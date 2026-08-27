@@ -7,7 +7,7 @@ Et mønster her er **ikke** i sig selv et fund uden for den flade, det blev obse
 hypotese med konkrete kandidatsteder. Bekræftede forekomster registreres som almindelige fund på den
 pågældende flades dokument og noteres nedenfor.
 
-**Brugerens afgørelser 2026-08-16 har ændret fire af de syv første mønstre.** Et mønster, hvis
+**Udviklerens afgørelser 2026-08-16 har ændret fire af de syv første mønstre.** Et mønster, hvis
 udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses med den trufne beslutning,
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
@@ -30,7 +30,7 @@ vender en forudsigelse på hovedet. Alle tre er afgjort 2026-08-25.** Fanen er e
 tabeller, ingen felter, ingen knapper, intet dokument), så M-16, M-19 og M-22 er uden genstand dér.
 **M-11 havde denne fane som navngiven kandidat, og kandidaten holdt ikke** – lovhenvisningerne kan
 ikke måles mod noget andet sted i programmet, fordi satserne kun vises her, og BB-075's stramning
-kræver to *uforenelige* henførsler – men de var **forkerte**, hvilket brugeren afgjorde 2026-08-25:
+kræver to *uforenelige* henførsler – men de var **forkerte**, hvilket udvikleren afgjorde 2026-08-25:
 begge satser har hjemmel i § 5, stk. 1 (tillægget i 1. pkt., referencesatsen i 2. pkt.), og
 henvisningerne er rettet. Læren: umålelig er ikke det samme som rigtig, så en enkeltstående
 lovhenvisning skal rejses som spørgsmål. Dertil stod i samme boks en påstand, der KUNNE måles, og den
@@ -41,7 +41,7 @@ mens en påstand om HVILKEN DATO der styrer et tal kan fremprovokeres på ét fo
 **M-15's spor LUKKET for hele programmet** (BB-094 afvist som BB-040) og **M-13's fjerde form afvist**
 (BB-095, fortegnets skrivemåde).
 
-**M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** Det er det
+**M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** Det er det
 bredeste mønster siden M-21 og det første, der handler om en afhængighed på tværs af FLADER: hver af
 programmets dokumentdefinitioner kræver en `ready` stamdataprojektion, uanset om dokumentet trykker
 et brevhoved. En rød dato i Stamdata slukker derfor downloadknapperne på flader, der ikke viser en
@@ -58,7 +58,7 @@ sat i deres skarpeste hidtidige form:
   bredt hertil.
 - **M-14:** den første målte oplevelse af mønsterets sidste uafprøvede kandidat, en **tabelcelle med
   et indsat regneark** (BB-088). Tre beløb på tre linjer bliver ÉN afvist værdi. Adfærden følger
-  brugerens paste=tastning-regel, men reglen tager ikke stilling til linjeskiftet – og linjeskiftet er
+  udviklerens paste=tastning-regel, men reglen tager ikke stilling til linjeskiftet – og linjeskiftet er
   netop det, et regneark leverer.
 - **M-16:** mønsterets **rene mangel-form** (BB-083). BB-037/BB-038 flyttede fanens to
   motorafvisninger ind i feltmodellen; en række med beløb og uden dato blev ikke omfattet, så et
@@ -93,7 +93,7 @@ efter programmets eget regelsæt ejer tastaturet. Begge er nu normative i kontra
 (`persistence-contract.md` §5 henholdsvis `keyboard-navigation.md` §Overlay-adfærd), og begge
 rettelser er mutationstestede. **Samme dag har M-06 og M-08 fået hver sin skærpelse** – læs dem i
 den nye form. M-06's udløsende fund (login-trimmet) er gennemført; **M-08's er derimod AFVIST**:
-brugeren fastholder, at Tab-ringen findes for at understøtte hurtig indtastning på ÉN side, og at
+udvikleren fastholder, at Tab-ringen findes for at understøtte hurtig indtastning på ÉN side, og at
 navigation mellem sider og faner må være mus-drevet.
 
 **M-15 og M-16 er tilføjet 2026-08-19 fra MinProcesrente og afgjort samme dag** (M-15 afvist for
@@ -128,7 +128,7 @@ der faktisk ER en kobling, som virker anderledes end den ser ud – ikke at kobl
 **M-08 til M-11 er tilføjet 2026-08-16 fra Om-fladen.** De adskiller sig fra M-01–M-07 ved ikke at
 handle om indtastning: de handler om siden som helhed – tastaturets rækkevidde, vinduets bredde,
 flydende elementer og de tekster, hvor programmet udtaler sig om sig selv. **Tre af dem er skrevet om
-samme dag efter brugerens afgørelser** (M-08 afgjort for bundlinjen, M-09 har fået en nedre grænse,
+samme dag efter udviklerens afgørelser** (M-08 afgjort for bundlinjen, M-09 har fået en nedre grænse,
 M-10 er skærpet); M-11 står uændret med to gennemførte tekstrettelser bag sig.
 
 ---
@@ -144,7 +144,7 @@ allerede står i feltet, i samme øjeblik valget ændres. Værdien er uændret; 
 eller hvilken af to regler et felt læses efter.
 
 - Fundet i: `stamdata.md` BB-001 (Skadestype → Skadedato/Anmeldelsesdato) – **fundet er afvist af
-  brugeren 2026-08-16**: skadestypen er en deskriptiv angivelse af sagen, og datoen er den samme
+  udvikleren 2026-08-16**: skadestypen er en deskriptiv angivelse af sagen, og datoen er den samme
   sagsdato under begge navne. Den blotte omdøbning af et felt er dermed **ikke** et fund.
 - **Mønsteret er derfor skærpet:** det, der tæller, er ikke navneskiftet, men om valget ændrer, hvad
   programmet *regner* eller *tillader* med den værdi, der allerede står. Netop dét gør skadestypen
@@ -165,7 +165,7 @@ sit. Beskeder, der har navnet skrevet ind i teksten, omgår mekanismen.
 at hente det fra feltet – og hvor to tekster om samme begreb bruger forskellige ord for det.
 
 **Skærpelse 2026-08-20 (fra `varigemen.md` BB-072) – de AFLEDTE labels blev ikke omfattet.**
-Brugerens navneregel (nederst i dette mønster) er gennemført for datofeltet selv og for
+Udviklerens navneregel (nederst i dette mønster) er gennemført for datofeltet selv og for
 fejlbeskederne: på en erhvervssygdomssag hedder rækken «Anmeldelsesdato», og beregningsdatoens fejl
 siger «kan ikke være før anmeldelsesdatoen (01-06-2020)». Men de labels, der beskriver noget
 **udledt af** datoen, står uændret: «Alder på skadestidspunkt» to linjer under den række,
@@ -189,7 +189,7 @@ var i forvejen på plads: `DateBoundsSpec.origin` VIDSTE, at grænsen kom fra Be
 spurgte blot ikke. Det er den generelle lære: når en besked genkender noget på en værdi, findes ophavet
 ofte allerede i erklæringen ved siden af.
 
-- **Brugerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
+- **Udviklerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
   den til enhver tid værende værdi i skadestype-feltet – «Anmeldelsesdato» ved Erhvervssygdom,
   ellers «Skadedato». De to betegnelser er de eneste korrekte brugervendte betegnelser.
 **Ny forekomst 2026-08-25 (fra `aarsloen.md` BB-113) – mønsterets rene prosa-form, tre navne for ét
@@ -212,7 +212,7 @@ M-07: `DATE_ORDER_ERROR_MESSAGE` siger «Til-**dato**» i et **ugefelt** (BB-107
 
 > Feltet kan læse en form, brugeren ikke må taste – eller omvendt.
 
-**Afgjort af brugeren 2026-08-16: forskellen er tilsigtet og er ikke i sig selv et fund.** Tastning må
+**Afgjort af udvikleren 2026-08-16: forskellen er tilsigtet og er ikke i sig selv et fund.** Tastning må
 ikke begynde at tolke på det tredje indtastede ciffer – `16` kan være både den 16. og den 1. juni, og
 en automatisk separator ville låse den usikre fortolkning fast. Indsættelse kender derimod hele
 teksten på én gang, og kan den uomtvisteligt opløses til én sikker værdi, skal programmet gøre det.
@@ -238,7 +238,7 @@ alle dato-, år-, uge-, beløbs- og procentfelter.
 > Ved en tegn- eller cifferegrænse afskæres brugeren fra at skrive mere – og han skal kunne læse det,
 > der står.
 
-**Brugerens regel 2026-08-16:** hvor der er en grænse for antal tegn eller cifre, skal brugeren
+**Udviklerens regel 2026-08-16:** hvor der er en grænse for antal tegn eller cifre, skal brugeren
 effektivt afskæres fra at indtaste flere. Det gælder universelt i hele programmet.
 
 **Reglen er allerede indført og målt** (kontraktens §1.2, håndhævet 2026-08-15): værnet ligger på
@@ -250,7 +250,7 @@ afkortning er et fund».
 Det, der stadig skal efterprøves på hver flade, er de to reelle rester:
 
 1. **Passer grænsen til feltet?** Et felt, der er tegnet til initialer, men tager imod 60 tegn, har en
-   grænse, brugeren aldrig rammer – den afværger intet. **Brugerens målestok 2026-08-16:** antallet af
+  grænse, brugeren aldrig rammer – den afværger intet. **Udviklerens målestok 2026-08-16:** antallet af
    tilladte tegn skal svare til det **synlige** indhold i feltet. De to initialfelter går derfor fra 60
    til 6 tegn. Spørg på hver flade, om et felts kategori er valgt – eller bare arvet.
 2. **Kan brugeren læse værdien bagefter?** En værdi, der er bredere end feltet, uden tooltip og med
@@ -324,7 +324,7 @@ eksisterende normalisering bor, frem for et lag tidligere.** Et trim i kalderen 
 netop dette hul og efterladt den næste kalder med samme fejl.
 
 - Fundet i: `stamdata.md` BB-007 – **accepteret 2026-08-16, skal rettes** med ét delt
-  normaliseringstrin før feltets egen paste-behandling. Brugerens forbehold er, at det ikke må
+  normaliseringstrin før feltets egen paste-behandling. Udviklerens forbehold er, at det ikke må
   forstyrre de øvrige normaliseringer; det er efterprøvet og skal måles af en ækvivalenstest pr.
   familie (implementeringsforslag i fundet).
 - Kandidater, ikke efterprøvet: alle fritekst- og kommentarfelter. Tal-, dato- og procentfelter har
@@ -335,7 +335,7 @@ netop dette hul og efterladt den næste kalder med samme fejl.
 > To felter, der afgrænser hinanden, skal begge markeres – og hver tekst skal sige, hvad brugeren kan
 > gøre i netop det felt.
 
-**Brugerens regel 2026-08-16:** udløser to felters værdier tilsammen en fejl, gives der fejl i begge.
+**Udviklerens regel 2026-08-16:** udløser to felters værdier tilsammen en fejl, gives der fejl i begge.
 Løsningen er forskellig i hvert felt, og teksten skal afspejle den udvej, feltet selv har. Forslaget om
 kun at markere det senest ændrede felt er afvist.
 
@@ -350,11 +350,11 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
 - Kandidater, ikke efterprøvet: alle periodetabeller med fra/til-kolonner. Bemærk især den fælles
   `DATE_ORDER_ERROR_MESSAGE`, som begge parter i et fra/til-par får i dag – samme tekst på to felter
   med hver sin udvej.
-- **Kandidaten er bekræftet 2026-08-25 på Årsløn** (`aarsloen.md` BB-107, Mellem, afventer bruger).
+- **Kandidaten er bekræftet 2026-08-25 på Årsløn** (`aarsloen.md` BB-107, Mellem, afventer udvikleren).
   Uge fra `10/2025` + Uge til `05/2025` gør begge celler røde med ordret samme tooltip: «Til-dato skal
   være efter fra-dato». Samme i datotilstand. **To skærpelser af mønsteret følger af målingen:**
   (1) teksten er skrevet fra TIL-feltets synsvinkel, så FRA-feltet beder brugeren rette noget, han
-  ikke kan rette dér – præcis den form, brugerens regel af 2026-08-16 forbyder; (2) den samme
+  ikke kan rette dér – præcis den form, udviklerens regel af 2026-08-16 forbyder; (2) den samme
   konstant bruges af **ugefelter**, så beskeden siger «dato» om to ugenumre – mønsteret overlapper
   dermed M-02. **Løsningen findes allerede i programmet:** BF-028 gav EO's dato-par den modgående
   dato i hver tooltip. Årsløns tabel står med den gamle form, så en rettelse er en konvergens, ikke
@@ -369,7 +369,7 @@ optager felter, dropdowns og de knapper, der udtrykkeligt er markeret som fokuse
 `<a>`. Da programmets egen Tab-håndtering samtidig afbryder browserens, findes der ingen anden vej til
 et link end musen.
 
-**Brugerens afgørelse 2026-08-16 (gælder bundlinjen):** boksen med søskendesider – og dermed også
+**Udviklerens afgørelse 2026-08-16 (gælder bundlinjen):** boksen med søskendesider – og dermed også
 kontaktadressen i den – skal **ikke** være en del af tastaturrækkefølgen, og GitHub-linket er
 undtaget specifikt. Fraværet er dér et valg.
 
@@ -397,7 +397,7 @@ sessionen.
 En cirkulær ring, der kun omfatter en delmængde af fladen, er en fælde: alt uden for ringen kan nås
 én gang og aldrig igen.
 
-**Men brugeren har AFVIST, at det er en mangel (2026-08-19, BB-051) – og afgørelsen lukker sporet.**
+**Men udvikleren har AFVIST, at det er en mangel (2026-08-19, BB-051) – og afgørelsen lukker sporet.**
 Tab-ringen findes med et bestemt formål: at understøtte hurtig indtastning i felterne, altså at man
 kan udfylde alle relevante værdier på en side uden at skifte til mus. Brugeren åbner typisk programmet
 for at lave ÉN bestemt type beregning og bliver derfor overvejende på samme side. At navigation til
@@ -445,7 +445,7 @@ sidestillede bokse eller indhold med egen minimumsbredde. Prøven er: **er indho
   spredt over 1174 px i et 567 px felt. **Skærpelse:** når to beslutninger om samme layout hviler på
   hvert sit kriterium (viewport kontra input-modalitet), findes der altid en tilstand mellem dem –
   efterprøv den frem for at antage, at de to kriterier falder sammen.
-- **Gennemført 2026-08-19, og brugerens løsning var en anden end min.** Jeg foreslog at lade
+- **Gennemført 2026-08-19, og udviklerens løsning var en anden end min.** Jeg foreslog at lade
   breddefrigørelsen følge samme kriterium som layoutskiftet (altså også et smalt musevindue). Brugeren
   afviste præmissen: mobilvisningen må slet ikke kunne opstå på en desktop. Opstillingen låses derfor
   til ENHEDEN – berøring plus orienteringsstabil kortside, samme aflæsning som device-gaten – og læses
@@ -532,7 +532,7 @@ Spørg derfor, om de to tekster kan være sande samtidig, før fundet skrives.
 
 Bemærk desuden, at fælden fra mønsterets øvrige fund vender om her: BB-011 og BB-012 blev læst som
 indvendinger mod adfærden, hvor kun teksten var forkert. Ved en kildeangivelse er det omvendt ikke
-givet, at teksten er den forkerte halvdel. Skriv derfor fundet med begge udfald og lad brugeren
+givet, at teksten er den forkerte halvdel. Skriv derfor fundet med begge udfald og lad udvikleren
 vælge – det er en faglig afgørelse, ikke en sproglig.
 
 - Kandidater, ikke efterprøvet: Satser-sidens fire sektionsoverskrifter, som er den eneste henførsel
@@ -541,11 +541,11 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
   måles.** De to satser vises kun dér i programmet, så der findes ingen konkurrerende henførsel, og
   efter BB-075's stramning er en enkeltstående henvisning ikke et fund. Om «§ 5, stk. 2» er rigtig, er
   et juridisk spørgsmål og blev rejst som sådan (`renteberegning.md`, fane 2, åbent spørgsmål 1).
-  **Og den VAR forkert (afgjort af brugeren 2026-08-25).** Begge satser har hjemmel i § 5, stk. 1:
+  **Og den VAR forkert (afgjort af udvikleren 2026-08-25).** Begge satser har hjemmel i § 5, stk. 1:
   tillægget i 1. pkt., referencesatsens definition i 2. pkt. Henvisningerne er rettet.
   **Læren skærper mønsteret i en ny retning:** BB-075's stramning gør en enkeltstående lovhenvisning
   til et *ikke-fund*, fordi den ikke kan MÅLES i programmet – men umålelig er ikke det samme som
-  rigtig. En enkeltstående henvisning skal derfor fortsat rejses som **spørgsmål** til brugeren, ikke
+  rigtig. En enkeltstående henvisning skal derfor fortsat rejses som **spørgsmål** til udvikleren, ikke
   registreres som «overvejet uden fund». Halvdelen af mønsterets værdi ligger i at spørge.
 - **Men i samme boks stod en anden påstand, som kunne måles – og den var forkert** (`renteberegning.md`
   BB-092, Høj). Beregningsforudsætningen skriver «Rentesatsen udgør nationalbankens udlånsrente + 8 %
@@ -554,7 +554,7 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
   + 30 dages tillægstid → rentedato `22-03-2013` → `6.402,74 kr.` (8,2 %), hvor den trykte
   forudsætning giver `5.621,92 kr.` (7,2 %). Teksten trykkes i BEGGE dokumenter, så modparten kan
   regne efter den og få et andet tal end dokumentets eget.
-  **Afgjort 2026-08-25: teksten var den forkerte halvdel.** Brugeren fastslog, at rentedatoen er den
+  **Afgjort 2026-08-25: teksten var den forkerte halvdel.** Udvikleren fastslog, at rentedatoen er den
   juridisk rigtige nøgle; forudsætningen siger nu «rentedato», satsfanens kolonne heder «Gælder fra»,
   og både terminologien og satsvalget er bindende i `renteberegning-contract.md` §2.9–§2.10. Ingen tal
   er ændret. **Bemærk for næste forekomst:** udfaldet gik til teksten her, men det var ikke afgjort på
@@ -572,7 +572,7 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
 > Brugeren træffer et valg, men kan hverken se, at det skete, hvornår det gælder, eller hvordan han
 > kommer tilbage.
 
-**Mønsteret er kraftigt indsnævret af brugerens afgørelser 2026-08-18. Læs indsnævringen FØR
+**Mønsteret er kraftigt indsnævret af udviklerens afgørelser 2026-08-18. Læs indsnævringen FØR
 formuleringen – alle tre udløsende fund blev afvist.** Det oprindelige mønster samlede tre fravær og
 kaldte kombinationen et problem:
 
@@ -650,7 +650,7 @@ altid mistænkelig; en `!== undefined`-prøve er den rigtige.
 Bemærk den skærpede form: det gælder ikke bare rækker. En `> 0`-prøve kan også afgøre, om en hel
 **kolonne** eller en hel **sektion** vises, og så forsvinder mere end én oplysning.
 
-**Afgjort af brugeren 2026-08-18: mønsteret er bekræftet og bindende.** «Rækker, hvor værdien er
+**Afgjort af udvikleren 2026-08-18: mønsteret er bekræftet og bindende.** «Rækker, hvor værdien er
 indtastet, men er 0, vises begge steder.» Præmissen – at siden og dokumentet skal vise det samme – er
 accepteret uden forbehold. Et fund i dette mønster skal derfor ikke argumenteres forfra; det skal blot
 måles og rettes.
@@ -691,7 +691,7 @@ måles og rettes.
     kald, der viser samme værdi to steder, og sammenlign precision-argumentet.**
   - **Begge accepteret og gennemført 2026-08-21 som ÉN rettelse:** alle beløb i varige mén går nu
     gennem `formatKr` med nul decimaler, i skærm og begge dokumentformater, og reglen er normativ i
-    `varigemen-contract.md` §2.9. **Men brugerens afgrænsning er en del af afgørelsen og hører med
+    `varigemen-contract.md` §2.9. **Men udviklerens afgrænsning er en del af afgørelsen og hører med
     her: nul decimaler er varige méns EGEN regel og må ikke udbredes til andre ydelser** –
     `amount-contract.md` §5's to-decimal-standard gælder fortsat alle andre domæner. Mønsteret
     forlanger altså, at de forskellige visninger af samme tal er ENIGE, ikke at de er nul-decimale.
@@ -730,7 +730,7 @@ måles og rettes.
   (`aarsloen.md` BB-109, BB-108, BB-111):
   - **BB-109 er BB-030 ordret på en ny flade.** Årslønsdokumentets `isEmptyOrZero` behandler `0`,
     `0,00` og `0,00 %` som fravær, så en indtastet fritvalgssats på **0 %** står på skærmen og mangler
-    i dokumentets Satser-afsnit. Brugerens afgørelse af 2026-08-18 er bindende, så fundet skal blot
+    i dokumentets Satser-afsnit. Udviklerens afgørelse af 2026-08-18 er bindende, så fundet skal blot
     måles og rettes. **Bemærk at samme prædikat også afgør, om en tabelRÆKKE kommer med i dokumentet** –
     prøv begge veje i samme rettelse. Den generelle lære står ved magt: en `> 0`- eller
     `=== 0`-prøve på SYNLIGHED er altid mistænkelig; `!== undefined` er den rigtige.
@@ -753,13 +753,13 @@ måles og rettes.
 
 > Der findes to veje ind i feltet, og de giver ikke samme svar.
 
-**Mønsteret er omformuleret 2026-08-18 efter brugerens afgørelse.** Første udgave hed «indsat tekst
+**Mønsteret er omformuleret 2026-08-18 efter udviklerens afgørelse.** Første udgave hed «indsat tekst
 samles af cifre uden hensyn til formens positioner» og byggede på, at tegn-for-tegn-reglen er *skadelig*
-for en form med faste positioner. Det er afvist: brugeren fastholder, at paste altid skal give samme
+for en form med faste positioner. Det er afvist: udvikleren fastholder, at paste altid skal give samme
 resultat som tastning af de samme tegn, også når det betyder, at `01-02-2026` bliver `102` i et årsfelt.
 Fejlen var aldrig tegn-for-tegn-reglen. Fejlen var, at der fandtes **en anden vej ved siden af den**.
 
-**Brugerens regel (bindende, hele programmet):** paste skal alle steder opføre sig, som hvis brugeren
+**Udviklerens regel (bindende, hele programmet):** paste skal alle steder opføre sig, som hvis brugeren
 havde tastet den indsatte værdi ét tegn ad gangen fra det første. Koden behøver ikke være implementeret
 som en serie enkelttastninger, men resultatet skal være som var det sket – og **enhver kode eller
 kontrakt, der fører til et andet resultat, er forkert og skal ændres.** Reglen står nu som §1.2a punkt 7
@@ -797,7 +797,7 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   `01`, afvist og rødt. Prøve 2 var derimod bestået: `01-01-2045` uden for feltets grænse blev
   bevaret uafkortet, så fortolkeren gætter ikke sig ned i et lovligt interval, som årsfelterne gjorde.
 
-  **Gennemført 2026-08-19 efter brugerens valg: kun tilstandsafhængigheden (kendetegn 2) er væk.**
+  **Gennemført 2026-08-19 efter udviklerens valg: kun tilstandsafhængigheden (kendetegn 2) er væk.**
   Segmentfortolkningen er bevaret, fordi den ER en truffet beslutning (BB-003/M-03). Fortolkningen
   bruges nu, når paste'en **erstatter hele værdien** – et lukket felt eller en åben draft med alt
   markeret – og springes, når noget af brugerens tekst bliver stående. Betingelsen er samlet i
@@ -806,7 +806,7 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   `ctl.isOpen ? draft : ''`, og netop de tre kopier var fundet.
 
   **Mønsteret har hermed en skarpere formulering.** Kendetegn 1 (en fortolker findes) er ikke i sig
-  selv fejlen – det afgjorde brugeren. Fejlen er kendetegn 2 og 3: at fortolkningen vælges på
+  selv fejlen – det afgjorde udvikleren. Fejlen er kendetegn 2 og 3: at fortolkningen vælges på
   editorens TILSTAND frem for på, om der er en kontekst at splice ind i, og at en grænse forkorter
   teksten. Efterprøv fremover netop de to.
 - Alle fire årsfelter delte codec og er rettet i én omgang: `satser.aargang`,
@@ -827,7 +827,7 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   linjeskiftet er præcis det, et regneark leverer. **Den åbne prøve er derfor ny og smal: hvad SKAL et
   linjeskift betyde i en indsat tekst?** Ved tastning afslutter det værdien; i paste forsvinder det.
   Behandles det som en afslutning, bliver cellen `1.000,00` i stedet for en afvist streng – uden at
-  reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt brugeren.
+  reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt udvikleren.
 
 ## M-15 – Skærmen tier, hvor dokumentet taler
 
@@ -857,7 +857,7 @@ ikke om baggrund, men om **et forbehold til rigtigheden af et tal, der allerede 
   et ord; PDF'en skriver med fed skrift «Der er kun fastsat procesrente frem til 31-12-2026.
   Beregning derefter er hypotetisk!». Teksten findes, er formuleret og er dækket af to enhedstests –
   den vises bare kun i den ene kanal.
-- **Afvist for MinProcesrente 2026-08-19.** Brugeren fastholdt, at brugerne stort set udelukkende
+- **Afvist for MinProcesrente 2026-08-19.** Udvikleren fastholdt, at brugerne stort set udelukkende
   benytter PDF-dokumenterne, så bristen er begrænset og accepteret på netop denne flade. Jeg forelagde
   alligevel en enkel udgave (samme sætning som én linje i «Beregnet rente»-boksen, kun når
   beregningsdatoen ligger efter sidst fastsatte sats); afvisningen blev fastholdt.
@@ -866,7 +866,7 @@ ikke om baggrund, men om **et forbehold til rigtigheden af et tal, der allerede 
   på skærmen gennem et længere arbejdsforløb – dér skal mønsteret forelægges igen.
 - **SPORET ER LUKKET FOR HELE PROGRAMMET 2026-08-25.** BB-094 blev afvist som BB-040, og fundets egen
   betingelse var, at netop den anden afvisning lukker sporet. **Rejs det ikke en tredje gang.**
-  Begrundelsen er ikke kun brugerens præference, men holder som argument: målgruppen er professionel
+  Begrundelsen er ikke kun udviklerens præference, men holder som argument: målgruppen er professionel
   og kender datasættets kadence, og et opslagsværk, hvis rækker viser hvert halvår siden 2005, siger
   sin egen dækning – en manglende `01-01-2027`-række ER svaret på «hvor langt rækker satserne?».
   Dokumenterne bærer stadig forbeholdet. **Den generelle regel, der bliver stående:** et
@@ -1181,8 +1181,8 @@ AST-værn, der afviser en farve-prop på et element med en `row--*`-klasse, lukk
   «mangler»-tekster rendres i `rgba(0, 0, 0, 0.87)` – præcis samme farve som en indtastet værdi – så
   en tom sag ser udfyldt ud. To rækker med hver sin ønskede farve fik SAMME emotion-klasse, hvis
   eneste farveregel er standardfarven.
-- **BB-067 er AFVIST af brugeren 2026-08-20, og afvisningen vender mønsteret på hovedet for
-  nedtoning.** Brugerens indvending var, at rettelsen ville give det modsatte resultat: bliver
+- **BB-067 er AFVIST af udvikleren 2026-08-20, og afvisningen vender mønsteret på hovedet for
+  nedtoning.** Udviklerens indvending var, at rettelsen ville give det modsatte resultat: bliver
   «mangler»-linjerne først nedtonede, kan de blive linjerne, brugeren *ikke* registrerer – og de
   bærer netop det væsentligste, nemlig hvad der er galt. **Et fund om en død farve-prop skal derfor
   vise, at den ønskede farve gør oplysningen lettere at opdage, ikke blot at proppen er død.** Den
@@ -1263,7 +1263,7 @@ beviser, at det har set overlappet. Det bruger bare kun viden ét af de to stede
 `sum / antalEnheder × norm`. Prøven er konkret og tager et minut: **indtast den samme række to gange
 og se, om resultatet fordobles.** Gør det det, og nævneren står uændret, er det en forekomst.
 
-- Fundet i: `aarsloen.md` BB-096 (Høj, afventer bruger). To identiske lønrækker (Måned `1`, År `2025`,
+- Fundet i: `aarsloen.md` BB-096 (Høj, afventer udvikleren). To identiske lønrækker (Måned `1`, År `2025`,
   Løn `30.000`) gav sammentællingen `69.000,00 kr.`, tidslinjen «23 hverdage - 1 SH-dag = 22
   arbejdsdage» og resultatet **`793.500,00 kr.`** mod `396.750,00 kr.` for én række. Ingen rød celle,
   ingen advarsel, begge dokumenter kunne hentes.
@@ -1295,7 +1295,7 @@ kan trykkes i et dokument, og det ser ud som et svar.
 resultat, er det en forekomst. Læs derefter feltets erklærede grænse og spørg, om den overhovedet kan
 rammes.
 
-- Fundet i: `aarsloen.md` BB-097 (Høj, afventer bruger). «Antal feriedage» = `99` i en måned med 23
+- Fundet i: `aarsloen.md` BB-097 (Høj, afventer udvikleren). «Antal feriedage» = `99` i en måned med 23
   hverdage gav «Hverdage i beregningsperioden (23 hverdage - 99 feriedage): **-76 hverdage**» og
   «Beregnet årsløn (33.750,00 / **-76** × 231): **0,00 kr.**» – med **aktiv** downloadknap.
 - **To lærer af fundet, som gælder mønsteret generelt.** (1) Grænsen `0–99` er valgt efter feltets art;

@@ -95,7 +95,7 @@ export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
  *
  * Baggrund: `'system'` var tidligere ikke en gemt værdi, men fraværet af én. Systemtemaet blev
  * kun læst ved allerførste start, og i samme øjeblik brugeren valgte lyst eller mørkt, var
- * automatikken permanent væk – uden nogen vej tilbage. Brugerens afgørelse 2026-08-18
+ * automatikken permanent væk – uden nogen vej tilbage. Udviklerens afgørelse 2026-08-18
  * (`docs/testing/brugerblik/indstillinger.md` BB-024) gør «følg computeren» til et ægte,
  * gemt valg og til standarden.
  */
@@ -141,7 +141,7 @@ export const appSettingsSchema = z
     defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     defaultVisBilagsnumre: z.boolean(),
-    // Beregningstekniske regel-toggles. Bevidst device-lokale (brugergodkendt 2026-06-19):
+    // Beregningstekniske regel-toggles. Bevidst device-lokale (udviklergodkendt 2026-06-19):
     // de ændrer IKKE de producerede tal, kun validerings-severity for overenskomst-/regulerings-
     // dækning (warning vs. error). Dokumenteret undtagelse fra app-settings.md §"Beregnings-/regel-
     // toggles"; eneste produktions-callsite er buildEoIndkomstRows. Skal flyttes til .eo-sagsdata

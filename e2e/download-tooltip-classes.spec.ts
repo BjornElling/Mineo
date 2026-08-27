@@ -3,7 +3,7 @@ import { type Locator } from '@playwright/test';
 import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 /**
- * Download-knappens tooltip: de tre brugerrettede klasser (brugerbeslutning 2026-08-13).
+ * Download-knappens tooltip: de tre brugerrettede klasser (udviklerbeslutning 2026-08-13).
  *
  *  (a) Fejlen står i sidens fejl-/advarselsboks → «Opgørelse kan ikke hentes, når der er fejl ovenfor»
  *  (b) Et rødt felt blokerer                    → «Fejl i indtastning»

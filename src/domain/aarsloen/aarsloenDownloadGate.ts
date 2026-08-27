@@ -151,7 +151,7 @@ export const evaluateAarsloenDownloadGate = (
       'Valideringsfejl i tabel'
     );
   }
-  // En lønrække med beløbet 0 kr. er LOVLIG (brugerbeslutning 2026-08-26). Brugeren kan have behov for at
+  // En lønrække med beløbet 0 kr. er LOVLIG (udviklerbeslutning 2026-08-26). Brugeren kan have behov for at
   // vise, at der i en måned ikke var lønindkomst – det er tydeligere end at udelade perioden, hvor den
   // kunne se glemt ud. Gaten spurgte tidligere, om nogen række havde en samlet løn FORSKELLIG FRA NUL, mens
   // tabelvalideringen regnede et eksplicit 0 som udfyldt. De to var uenige om præcis nullet, så en udfyldt

@@ -19,7 +19,7 @@ import { documentDownloaded, documentFailed } from '../../../document/definition
 // filformat, så det eneste varige spor af arbejdet er den PDF, brugeren måtte have hentet – og
 // søskendefladen Mineo viser i samme situation browserens «vil du forlade siden?».
 //
-// Brugerens regel: advar KUN når der er indtastninger, som ikke er hentet som PDF siden sidste ændring.
+// Udviklerens regel: advar KUN når der er indtastninger, som ikke er hentet som PDF siden sidste ændring.
 
 const catalog = getProductionInputCatalog();
 

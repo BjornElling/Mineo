@@ -110,7 +110,7 @@ describe('statusmønsteret', () => {
   });
 
   it('genkender begge åbne statusværdier og fanger den implementerede', () => {
-    expect(OPEN_STATUS_PATTERN.test('Status: **PLANLAGT** 2026-08-14. Brugerbeslutning foreligger.')).toBe(true);
+    expect(OPEN_STATUS_PATTERN.test('Status: **PLANLAGT** 2026-08-14. Udviklerbeslutning foreligger.')).toBe(true);
     expect(OPEN_STATUS_PATTERN.test('Status: **UDSKUDT** – afventer satsdata.')).toBe(true);
     expect(CLOSED_STATUS_PATTERN.test('Status: **IMPLEMENTERET** 2026-08-12, efter review.')).toBe(true);
     expect(OPEN_STATUS_PATTERN.test('Status: **IMPLEMENTERET** 2026-08-12, efter review.')).toBe(false);

@@ -61,14 +61,14 @@ Skillen skal derfor systematisk lede efter:
 
 ## 1. Aktivering og omfang
 
-Skillen aktiveres kun, når brugeren beder om det (`/brugerblik <flade>` eller `/brugerblik fortsæt`).
+Skillen aktiveres kun, når udvikleren beder om det (`/brugerblik <flade>` eller `/brugerblik fortsæt`).
 
 **Én invokation = én flade.** En flade er én side eller én fane – ikke mere. Gennemgangen skal være
 tæt nok til, at hvert enkelt felt, hver knap, hver tilstand og hver overgang faktisk er tænkt
 igennem. Bliver en flade for stor, deles den i afgrænsede afsnit, og STATUS.md fører de enkelte
 afsnit hver for sig.
 
-**Kør autonomt indtil fladen er færdig.** Undervejs stilles ingen spørgsmål til brugeren; alle
+**Kør autonomt indtil fladen er færdig.** Undervejs stilles ingen spørgsmål til udvikleren; alle
 tvivlsspørgsmål registreres som fund eller som åbne spørgsmål i rapporten. Først når fladen er
 gennemgået og skrevet ned, kommer den samlede tilbagemelding.
 
@@ -102,7 +102,7 @@ Fund-ID'er er løbende på tværs af hele programmet: `BB-001`, `BB-002`, … N�
 2. Læs `AGENTS.md` og de kontrakter, fladen er omfattet af (`src/contracts/contract-topology.json`).
    Kontrakterne er her **ikke** facit, men referencepunkt: en dokumenteret adfærd kan udmærket være
    en uhensigtsmæssig adfærd, og så er selve kontrakten fundet.
-3. Læs `docs/brugerfund-der-skal-rettes.md`. Fund, brugeren allerede har meldt, må ikke registreres
+3. Læs `docs/brugerfund-der-skal-rettes.md`. Fund, udvikleren allerede har meldt, må ikke registreres
    som nye – men de er et godt spor: et rettet fund har ofte en ikke-rettet slægtning.
 
 ### Trin 2 – Inventar
@@ -213,10 +213,10 @@ Hvert fund klassificeres:
 | Type | `Fornuft` · `Edge case` · `Fejl` (egentlig defekt fundet undervejs) |
 | Rækkevidde | `Lokal` · `Mønster` (henviser til `TVAERGAAENDE.md`) |
 | Prioritet | `Kritisk` · `Høj` · `Mellem` · `Lav` |
-| Beslutning | `Afventer bruger` (UI/UX eller beregning) · `Agent afgør` (rent teknisk) |
+| Beslutning | `Afventer udvikleren` (UI/UX eller beregning) · `Agent afgør` (rent teknisk) |
 
 Hvert fund skal have et **forslag**: den adfærd, der ville være den bedst tænkelige. Uden forslag er
-fundet ikke færdigt – brugeren skal kunne sige ja eller nej, ikke selv designe løsningen.
+fundet ikke færdigt – udvikleren skal kunne sige ja eller nej, ikke selv designe løsningen.
 
 ## 5. Prioritering – hvad vejer tungt
 
@@ -233,7 +233,7 @@ Vægten følger konsekvensen for brugerens tillid til programmet, ikke hvor let 
 ## 6. Bevidst uden for scope
 
 - **Ingen ændring af produktkode.** Skillen dokumenterer. Rettelser sker gennem `/fix-it` eller
-  brugerens beslutning bagefter.
+  udviklerens beslutning bagefter.
 - **Ingen gate-kørsel.** Ingen `npm run test`, `lint` eller `build` – der ændres ingen kode.
 - **Ingen commit.**
 - **Ingen vurdering af, om juridiske eller beregningstekniske regler er rigtige.** Ser noget
@@ -241,11 +241,11 @@ Vægten følger konsekvensen for brugerens tillid til programmet, ikke hvor let 
 
 ## 7. Afslutning på en flade
 
-Når fladen er skrevet ned, gives én samlet tilbagemelding til brugeren med:
+Når fladen er skrevet ned, gives én samlet tilbagemelding til udvikleren med:
 
 1. hvor mange fund, fordelt på type og prioritet;
-2. de fund, der kræver brugerens beslutning – hver formuleret som en konkret brugeroplevelse med et
-   konkret forslag, uden interne begreber (`AGENTS.md` §Mandat: UI/UX og beregning er brugerens);
+2. de fund, der kræver udviklerens beslutning – hver formuleret som en konkret brugeroplevelse med et
+   konkret forslag, uden interne begreber (`AGENTS.md` §Mandat: UI/UX og beregning er udviklerens);
 3. de systematiske mønstre, fladen afdækkede, og hvor de forventes at gå igen;
 4. hvilken flade der står som den næste.
 

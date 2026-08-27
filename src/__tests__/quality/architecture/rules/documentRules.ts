@@ -110,7 +110,7 @@ export const pdfDownloadCommittedState = defineRule({
  *
  * Reglen måler netop DE udfald: et stale-afbrud og en død DEV-server. En GATE-blokering hører ikke til
  * dem – den bærer ingen besked, fordi knappen var synligt inaktiv og tooltippet ejer årsagen
- * (brugerbeslutning 2026-07-31). De forventelige udfald routes bevidst ikke til den centrale
+ * (udviklerbeslutning 2026-07-31). De forventelige udfald routes bevidst ikke til den centrale
  * systemfejlflade (§A5), så uden en visning her ville de være lydløse.
  *
  * Reglen er en LOKAL strukturel kontrol pr. fil: aktiverer filen en download (`.download(...)` på et

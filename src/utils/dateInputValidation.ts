@@ -12,7 +12,7 @@ import { getTodayLocalISO, isLeapYear } from './dateUtils';
  * @param {number} day - Dag (1-31)
  * @param {number} month - Måned (1-12)
  * @param {number} year - År
- * @returns {boolean} True hvis datoen er gyldig
+ * @returns {boolean} Sand hvis datoen er gyldig
  */
 export const isValidDate = (day: number, month: number, year: number): boolean => {
   if (day < 1 || day > 31) return false;

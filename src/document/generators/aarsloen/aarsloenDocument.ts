@@ -51,7 +51,7 @@ const formatDanishAmount = (amount: AmountValue | number | null | undefined): st
  * Bruges til at afgøre, om en TABELRÆKKE kommer med i dokumentet. En lønrække med 0 kr. er en oplysning –
  * den siger, at der i perioden ikke var lønindkomst – og brugeren indtaster den netop for at tydeliggøre
  * det frem for at udelade perioden, som da kunne se glemt ud. Rækken skal derfor med i bilaget
- * (brugerbeslutning 2026-08-26).
+ * (udviklerbeslutning 2026-08-26).
  */
 const erCelleTom = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') return true;
@@ -69,7 +69,7 @@ const erCelleTom = (value: unknown): boolean => {
  * Bruges kun om Satser-afsnittets procentsatser, og her er nul-reglen den modsatte af tabellens. At
  * indtaste 0 i en tillægssats er for brugeren det samme som at sige, at satsen ikke findes i
  * ansættelsesforholdet – brugere skriver fra tid til anden 0, fordi de tror, det er sådan, man angiver et
- * fravær. Dokumentet retter den misforståelse ved at udelade satsen (brugerbeslutning 2026-08-26).
+ * fravær. Dokumentet retter den misforståelse ved at udelade satsen (udviklerbeslutning 2026-08-26).
  *
  * De to prædikater var før ÉN funktion (`isEmptyOrZero`), som gjorde begge dele. Den udelod derfor også en
  * lønrække med 0 kr. fra bilaget – stik imod reglen ovenfor. Skellet er nu udtrykt som to navne.

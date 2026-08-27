@@ -33,7 +33,7 @@ type NormalizedCellValue = string | number | null;
  * enhver tom form – `undefined`, `null`, `''`, whitespace, et ikke-endeligt tal – bliver `null`.
  *
  * Bemærk at en eksplicit `0` IKKE er tom her. Det er med vilje: to rækker med samme periode og 0 kr. i
- * begge er ordret den samme oplysning to gange, og 0 er en bevidst indtastning (jf. brugerbeslutningen om,
+ * begge er ordret den samme oplysning to gange, og 0 er en bevidst indtastning (jf. udviklerbeslutningen om,
  * at 0 kr. i en beløbstabel bevares som en oplysning).
  */
 export const normalizeCellValueForDuplicateComparison = (value: unknown): NormalizedCellValue => {

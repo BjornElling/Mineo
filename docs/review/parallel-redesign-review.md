@@ -1,11 +1,12 @@
-# Parallelt redesign-review – samlet status
+# Parallelt redesign-review – historisk arkitekturreview
 
 **Kodeverificeret pr. 2026-08-16** på `main` (`9ddb3943` før dette review).
 
-Dette dokument er den samlede, aktuelle vurdering af alle oprindelige redesign-punkter
-(`#1`–`#52`). Det er en status- og beslutningsoversigt, ikke en historisk arbejdsdagbog.
+Dette dokument er den samlede vurdering af alle oprindelige redesign-punkter (`#1`–`#52`),
+som de blev vurderet ved reviewet. Det er bevaret som historisk arkitektur- og beslutningsspor,
+ikke som en aktuel liste over åbne produktmangler. Den aktuelle programstatus står i `AGENTS.md`.
 Historiske mellemtrin, gamle statusmarkeringer og slettede arkitekturlag er kun medtaget,
-hvor de er nødvendige for at forstå den aktuelle status.
+hvor de er nødvendige for at forstå reviewets vurderinger.
 
 ## Konklusion først
 
@@ -22,7 +23,7 @@ Status er:
   oprindelige tekst foreslog.
 - **7 punkter er reelt delvist gennemført**: `#1`, `#7`, `#18`, `#22`, `#29`, `#32` og `#44`.
 - **2 punkter er overflødiggjort** og skal ikke genåbnes: `#2` og `#34`.
-- **1 punkt er bevidst afvist** efter brugerbeslutning: `#46`.
+- **1 punkt er bevidst afvist** efter udviklerbeslutning: `#46`.
 
 Der er altså ikke grundlag for at skrive, at alle oprindelige punkter er gennemført. Der er
 heller ikke grundlag for at genoptage hele den gamle plan. De syv delvist gennemførte punkter
@@ -37,7 +38,7 @@ før der implementeres noget.
 | ✅ Omformet | Målet er opfyldt, men den oprindelige diagnose eller løsning var forkert, for snæver eller forældet. |
 | ◐ Delvist gennemført | En reel del er løst, men der findes fortsat et konkret, verificeret restproblem. |
 | ↪ Overflødiggjort | Den oprindelige kandidat giver ikke længere mening efter en stærkere arkitekturomlægning. |
-| ⛔ Bevidst ikke gennemført | Punktet er aktivt fravalgt efter brugerbeslutning. |
+| ⛔ Bevidst ikke gennemført | Punktet er aktivt fravalgt efter udviklerbeslutning. |
 
 ## 1. Kort statusoversigt
 
@@ -818,7 +819,7 @@ kræver et nyt konkret behov og skal ikke genintroduceres fra den gamle kandidat
 **Status: ⛔ Bevidst ikke gennemført.**
 
 Styles er i praksis variant-isoleret gennem app-entryens style-loading, og den del af den
-oprindelige kandidat er løst. Brugeren har besluttet, at den resterende build-asset-oprydning
+oprindelige kandidat er løst. Udvikleren har besluttet, at den resterende build-asset-oprydning
 ikke skal gennemføres: `_headers`, `robots.txt`, `sitemap.xml` og `llms.txt` er host-/deploy-
 artefakter, og den eksisterende pipeline fungerer.
 
@@ -951,7 +952,7 @@ skal først have en konkret skæring, karakterisering og – hvor brugeroplevels
 
 `#2`, `#19`, `#25`, `#27`, `#28`, `#33`, `#34` og de tilsvarende gamle draft-/commit-ideer skal
 ikke genåbnes for at “afslutte” de historiske løsningsforslag. Deres mål er allerede opfyldt
-eller afløst af den aktuelle inputkerne. `#46` er den eneste eksplicit brugerbesluttede
+eller afløst af den aktuelle inputkerne. `#46` er den eneste eksplicit udviklerbesluttede
 ikke-gennemførte kandidat.
 
 ## 4. Verifikationsgrundlag
@@ -993,7 +994,7 @@ Ved nyt arbejde skal status altid skelne mellem:
 2. den løsning der faktisk findes nu,
 3. om løsningen er korrekt og greenfield-mæssigt optimal,
 4. et konkret resterende problem, hvis der er et,
-5. om resten kræver brugerens godkendelse på grund af UI/UX eller beregningslogik.
+5. om resten kræver udviklerens godkendelse på grund af UI/UX eller beregningslogik.
 
 Den næste læser skal kunne bruge statusoversigten alene til at se, hvad der er afsluttet,
 hvad der er reelt åbent, og hvad der ikke må genoplives.

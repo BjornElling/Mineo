@@ -166,7 +166,7 @@ Dækker det autoritative 4.431 kr.-eksempel (inkl. delresultaterne 69.234,82 / 6
 
 ---
 
-## Kendte udeståender
+## Status
 
 Dokumentationen afspejler den fastlagte forretningslogik. Fremtidige folkepensionsalder-forhøjelser
 tilføjes som nye poster i `forhoejetPensionsalderEvents.ts`.

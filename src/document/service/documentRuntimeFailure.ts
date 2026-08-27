@@ -116,7 +116,7 @@ const noteDevServerUnavailable = (
     area: 'document',
     context: `document.${diagnostics.outputId}`,
     userMessage: DEV_SERVER_UNAVAILABLE_ERROR,
-    developerMessage: 'Vite dev-server ping failed before document module load.',
+    developerMessage: 'Ping til Vite-udviklingsserveren mislykkedes før indlæsning af dokumentmodulet.',
     diagnostics: {
       mode: import.meta.env.MODE,
       origin: typeof window !== 'undefined' ? window.location.origin : null,

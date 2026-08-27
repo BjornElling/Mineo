@@ -544,6 +544,6 @@ synlige felt og blinkmarkerer det; uden en entydig adresse blinkmarkeres det fæ
 
 ---
 
-## Kendte udeståender
+## Status
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+*Filen er synkroniseret med koden.*

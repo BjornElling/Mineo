@@ -21,7 +21,7 @@ interface ErrorFallbackProps {
 }
 
 /**
- * Fallback UI der vises når ErrorBoundary fanger en fejl.
+ * Fallback-UI, der vises, når ErrorBoundary fanger en fejl.
  *
  * Viser brugervenlig fejlbesked med mulighed for:
  * - "Prøv igen" (re-render)

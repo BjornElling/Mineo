@@ -1,12 +1,17 @@
-# Brugerblik – status
+# Brugerblik – historisk auditspor
 
-Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
+Dette dokument bevarer beslutninger og observationer fra den gennemførte Brugerblik-gennemgang.
+Det er et historisk auditspor og ikke en aktuel liste over åbne produktmangler. Formuleringer som
+«Afventer udvikleren» og historiske næste-trin beskriver status på det tidspunkt, hvor gennemgangen
+blev skrevet; den aktuelle produktstatus står i `AGENTS.md`.
 
-- **Næste flade:** Forsørgertab (`/forsoergertab`, nr. 10)
-- **Næste fund-ID:** BB-117
-- **Åbne spørgsmål:** **fire**, alle fra flade 9 – se [aarsloen.md](aarsloen.md).
-- **Udestående implementeringer:** **21 fund fra flade 9 afventer brugerens afgørelse** (BB-096–BB-116).
-  Ingen udeståender fra flade 1–8.
+Historisk fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
+
+- **Planlagt næste flade på tidspunktet:** Forsørgertab (`/forsoergertab`, nr. 10)
+- **Næste fund-ID på tidspunktet:** BB-117
+- **Historiske spørgsmål:** **fire**, alle fra flade 9 – se [aarsloen.md](aarsloen.md).
+- **Historiske implementeringsfund:** **21 fund fra flade 9 afventede udviklerens afgørelse** (BB-096–BB-116).
+  Ingen tilsvarende fund fra flade 1–8.
 - **Senest opdateret:** 2026-08-25 (**Årslønsberegning gennemgået: 21 fund, heraf tre Høj, og to nye
   tværgående mønstre M-23/M-24 – de første, der handler om beregningens GRUNDLAG frem for om, hvad
   programmet siger.** De tunge er BB-096 (to identiske lønrækker fordobler årslønnen til
@@ -34,7 +39,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 ## Flader
 
 Rækkefølgen er fastlagt i `.claude/skills/brugerblik/references/flader.md` (små flader først).
-Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
+Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 
 | # | Flade | Status | Fund | Dokument |
 |---|---|---|---|---|
@@ -48,7 +53,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
-| 9 | Årslønsberegning | Afventer bruger | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
+| 9 | Årslønsberegning | Afventer udvikleren | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Ikke startet | – | – |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
@@ -115,7 +120,7 @@ som standard; at de to knapper så står side om side med samme navn i hver sin 
 undo/redo og kolonnesortering ikke afprøvet på fladen. Konsollen var tavs: 197 beskeder, 0 fejl,
 0 advarsler.
 
-**Fire åbne spørgsmål** – alle fire ændrer tal og kan ikke afgøres uden brugeren: overlappende
+**Fire historiske spørgsmål** – alle fire ændrer tal og kunne ikke afgøres uden udvikleren: overlappende
 perioder, en lønrække på 0 kr., lønperioder i fremtiden, og om Indstillingers to øvrige
 standardværdier skal gælde Årsløn.
 
@@ -151,7 +156,7 @@ blokere. Forskellen er værd at kende, før nogen «ensretter» EO med de øvrig
 ## Renteberegning → Satser – gennemgået 2026-08-24, afgjort 2026-08-25
 
 **Alle fem fund er afgjort** – tre gennemført, to afvist. Det fulde grundlag med målte tal og
-brugerens tilbagemeldinger står i [renteberegning.md](renteberegning.md) under «Fane 2 – Satser».
+udviklerens tilbagemeldinger står i [renteberegning.md](renteberegning.md) under «Fane 2 – Satser».
 
 | ID | Kort | Udfald |
 |---|---|---|
@@ -165,7 +170,7 @@ brugerens tilbagemeldinger står i [renteberegning.md](renteberegning.md) under 
 Beregningsforudsætningen – som trykkes i begge dokumenter og deles med standalone MinProcesrente –
 sagde «ved forfaldsdato før 01-03-2013 dog + 7 %», mens motoren vælger tillægssatsen på
 **rentedatoen**. Målt: forfaldsdato `20-02-2013` + 30 dages tillægstid gav `6.402,74 kr.` (8,2 %), hvor
-den trykte forudsætning gav `5.621,92 kr.` (7,2 %). **Brugeren afgjorde, at rentedatoen er den
+den trykte forudsætning gav `5.621,92 kr.` (7,2 %). **Udvikleren afgjorde, at rentedatoen er den
 juridisk rigtige nøgle**, så teksten er rettet og tallene står. Dermed blev BB-091's kolonnenavn og
 BB-092's forudsætning én og samme ensretning.
 
@@ -232,11 +237,11 @@ BB-092's og BB-093's to sager (tallene er målt på skærmen); satsernes rigtigh
 offentliggjorte satser kan ikke kontrolleres i programmet. Konsollen var tavs: 74 beskeder, 0 fejl,
 0 advarsler.
 
-**Det ene åbne spørgsmål er lukket samme dag:** lovhenvisningerne var forkerte, og brugeren afgjorde
+**Det ene åbne spørgsmål er lukket samme dag:** lovhenvisningerne var forkerte, og udvikleren afgjorde
 dem – Referencesats-boksen henviser nu til § 5, stk. 1, 2. pkt. og Tillægssats-boksen til § 5, stk. 1
 (`renteberegning-contract.md` §2.11). **Tilbage står 7 %-rækkens fremtrædenhed.**
 
-**Halvårsinddelingen er samtidig fastlåst som uforanderlig** (brugerafgørelse 2026-08-25):
+**Halvårsinddelingen er samtidig fastlåst som uforanderlig** (udviklerens afgørelse 2026-08-25):
 perioderne 1/1–30/6 og 1/7–31/12 følger af rentelovens § 5, stk. 1, 2. pkt. og kan ikke ændre sig, så
 domænet skal ikke indrettes til en anden kadence. Kontraktens §2.8 siger det nu, og
 `src/data/interestRates.ts` fail-closer ved modul-load på både en referencesats med anden
@@ -337,7 +342,7 @@ er ikke en mangel. Fundet er afvist.
 hele kroner uden decimaler – satstabellen, satsrækken, grundbeløbet, aldersreduktionen og
 slutbeløbet, på skærmen og i begge dokumentformater – gennem den kanoniske `formatKr`, så de inline
 `" kr."`-strenge er væk med. Reglen er normativ i **`varigemen-contract.md` §2.9** og er efter
-brugerens afgrænsning **unik for denne ydelse**; `amount-contract.md` §5's to-decimal-standard
+udviklerens afgrænsning **unik for denne ydelse**; `amount-contract.md` §5's to-decimal-standard
 gælder fortsat alle andre domæner. Beregningen er bevidst uændret: kun slutgodtgørelsen afrundes,
 og de tre viste linjer går stadig op, fordi reduktionen er defineret som differencen mod den
 oprundede godtgørelse.
@@ -448,16 +453,16 @@ efter modpres. Det fulde grundlag med begrundelser står i [globalshell.md](glob
 | BB-051 | Sidemenuen kan ikke nås med tastaturet, når fokus én gang har været i indholdet | **Afvist** – Tab-ringen findes for hurtig indtastning på ÉN side; mus til sidenavigation er et accepteret kompromis |
 | BB-052 | Programmet ved, om sagen er gemt, og siger det aldrig; sagen har intet filnavn på skærmen | **Afvist** – brugeren gemmer selv; browserens advarsel ved lukning er den primære beskyttelse |
 | BB-053 | Den anden besked arver den førstes resttid og kan være helt usynlig | **Gennemført** – identiteten kommer fra kilden som React-`key`; et fade-ud kan ikke længere lukke en nyere besked |
-| BB-054 | Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse | **Delvist gennemført efter modpres** – den dobbelte adfærd afvist (brugeren har ret), men spærringen af tasten fjernet |
+| BB-054 | Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse | **Delvist gennemført efter modpres** – den dobbelte adfærd afvist (udvikleren har ret), men spærringen af tasten fjernet |
 | BB-055 | Korrekt adgangskode med et usynligt mellemrum afvises som «Forkert adgangskode» | **Gennemført** – `trim()` ét sted, hvor case-neutraliseringen allerede bor; garantien for afledte virkninger er udfoldet |
 | BB-056 | Kan ikke logge ind, når browseren ikke må gemme login-status – én besked for to årsager | **Gennemført** – forgrening på fejlKLASSEN, ikke på tekst |
-| BB-057 | 404-siden er en hvid blindgyde uden menu og uden vej tilbage | **Gennemført** – siden ligger inde i shellen; brugerens to betingelser er efterprøvet strukturelt og målt |
+| BB-057 | 404-siden er en hvid blindgyde uden menu og uden vej tilbage | **Gennemført** – siden ligger inde i shellen; udviklerens to betingelser er efterprøvet strukturelt og målt |
 | BB-058 | `Slet alt` advarer og kvitterer, også når der intet er at slette | **Afvist** – `Slet alt` skal garantere, at alt er væk; en «der var intet»-besked har ingen værdi |
-| BB-059 | Genindlæsning (F5) advarer om et tab, der ikke sker | **Mitigering afvist** – brugerens regel tiltrådt som princip, men browseren har ét fælles `beforeunload` for lukning og F5. Ingen kodeændring |
+| BB-059 | Genindlæsning (F5) advarer om et tab, der ikke sker | **Mitigering afvist** – udviklerens regel tiltrådt som princip, men browseren har ét fælles `beforeunload` for lukning og F5. Ingen kodeændring |
 | BB-060 | `Slet alt` og `Erstat` kan ikke fortrydes, og dialogerne siger det ikke | **Afvist** – brugeren forventer, at `Slet alt` er irreversibel |
 | BB-061 | Der findes ingen vej ud af login igen | **Afvist** – professionelle brugere logger kun ind på egen eller en kollegas maskine |
 
-**Én afvisning, hvor jeg pressede tilbage og fik delvist ret (BB-054).** Brugerens hovedindvending var
+**Én afvisning, hvor jeg pressede tilbage og fik delvist ret (BB-054).** Udviklerens hovedindvending var
 rigtig: min anbefaling ville have givet Ctrl+Z to betydninger, og «én tast, én funktion» er den stærkere
 regel. Men fundet indeholdt et andet forhold, begrundelsen ikke dækkede – genvejen kaldte
 `preventDefault()`, FØR den så, at editoren var åben, og slog dermed browserens egen tekstfortrydelse
@@ -504,32 +509,32 @@ før/efter-tal står i [minprocesrente.md](minprocesrente.md).
 
 | ID | Kort | Udfald |
 |---|---|---|
-| BB-037 | Tillægstid kan skubbe rentedatoen forbi beregningsdatoen; rækken holder tavst op med at regne | **Gennemført** – brugerens løsning: `rule`-validator på Tillægstid med «Beregnet rentedato kan senest være …» |
+| BB-037 | Tillægstid kan skubbe rentedatoen forbi beregningsdatoen; rækken holder tavst op med at regne | **Gennemført** – udviklerens løsning: `rule`-validator på Tillægstid med «Beregnet rentedato kan senest være …» |
 | BB-038 | 0 kr. accepteres af feltet, afvises af beregningen | **Gennemført** – «Beløbet skal være større end 0 kr.» |
 | BB-039 | Blokeringen siger «Indtastning mangler», selv om intet mangler | **Bortfaldet** – min præmis var for bred; gatens præmis er nu SAND, fordi BB-037/038 giver røde felter |
 | BB-040 | Renten regnes fem år ud over de fastsatte satser; kun PDF'en advarer | **Afvist** – accepteret brist; jeg pressede med en enklere løsning, afvisningen fastholdt |
 | BB-041 | Sortering kan ikke slås fra og kan ikke fortrydes | **Afvist** – tilsigtet designvalg i alle tabeller |
-| BB-042 | Samme indsatte dato giver to forskellige resultater | **Gennemført** – brugerens valg: tolerancen bevaret, tilstandsafhængigheden fjernet ét sted for alle tre paste-flader |
-| BB-043 | Fejlen navngiver «dags dato» i stedet for Beregningsdato | **Gennemført** – «Datoen er efter beregningsdatoen (…)» med brugerens ordlyd |
+| BB-042 | Samme indsatte dato giver to forskellige resultater | **Gennemført** – udviklerens valg: tolerancen bevaret, tilstandsafhængigheden fjernet ét sted for alle tre paste-flader |
+| BB-043 | Fejlen navngiver «dags dato» i stedet for Beregningsdato | **Gennemført** – «Datoen er efter beregningsdatoen (…)» med udviklerens ordlyd |
 | BB-044 | Bekræftelsen taler om `.eo`-filer, som ikke findes i standalone | **Gennemført** – egen ordlyd pr. variant via `hasEoFiles` |
-| BB-045 | Telefonlayout i et smalt musevindue, men 1200 px indholdsboks | **Gennemført** – brugerens løsning: opstillingen låses til ENHEDEN, aldrig til vinduet |
+| BB-045 | Telefonlayout i et smalt musevindue, men 1200 px indholdsboks | **Gennemført** – udviklerens løsning: opstillingen låses til ENHEDEN, aldrig til vinduet |
 | BB-046 | Tillægstiden regner videre, men er usynlig i telefonlayoutet | **Gennemført** – løst af BB-045's device-lås; overgangen findes ikke længere |
 | BB-047 | «Slet alle indtastninger» kan ikke nås med tastaturet | **Gennemført** – `data-mineo-focusable-button` |
 | BB-048 | Arbejdet kan lukkes væk uden varsel | **Gennemført** – Mineos guard genbrugt; baselinen flyttes af et gennemført hent |
 
 **To brugerafklaringer traf jeg ikke selv, fordi de var reelle valg:**
 
-1. **BB-042 var en modsigelse mellem to af brugerens egne afgørelser.** BB-003 (16-08): indsættelse må
+1. **BB-042 var en modsigelse mellem to af udviklerens egne afgørelser.** BB-003 (16-08): indsættelse må
    gerne være mere tolerant end tastning. Denne tilbagemelding (19-08): paste skal altid opføre sig som
-   tastning. Forelagt med begge udfald; brugeren valgte at bevare tolerancen og kun rette
+   tastning. Forelagt med begge udfald; udvikleren valgte at bevare tolerancen og kun rette
    tilstandsforskellen. `input-field-behavior-contract.md` §1.2a punkt 7 er rettet tilsvarende – den
    påstod det absolutte forbud, som modsagde BB-003 fem dage før.
 2. **BB-045 krævede en definition af «mobil».** Browseren kan ikke sige «telefon» – kun «berøring» og
-   «skærmstørrelse». Brugeren valgte, at skærmens fysiske størrelse afgør, så en berøringsfølsom
+   «skærmstørrelse». Udvikleren valgte, at skærmens fysiske størrelse afgør, så en berøringsfølsom
    bærbar er en desktop.
 
 **Én afvigelse fra en tilbagemelding, forelagt og bekræftet:** ved BB-037 viser downloadknappen den
-konkrete sætning i stedet for «Fejl i indtastning», fordi der kun er ÉT rødt felt – brugerens egen
+  konkrete sætning i stedet for «Fejl i indtastning», fordi der kun er ÉT rødt felt – udviklerens egen
 lempelse af 13-08-2026. Bekræftet beholdt 19-08.
 
 **To åbne spørgsmål står fortsat uafklarede:** skal Beregningsdato være forudfyldt med dags dato ved
@@ -575,7 +580,7 @@ mutations-efterprøvet. Fuld vitest grøn: 605 filer / 7977 tests.
 
 **En sideeffekt fundet undervejs og rettet med:** ugefeltets separatorsæt var erklæret to gange med
 forskelligt indhold – `23,2025` kunne tastes, men blev afvist ved settle. Nu én erklæring, begge læser.
-Efter brugerens beslutning er **mellemrum ikke længere ugeseparator**, så `uge 23/2025` kan indsættes;
+Efter udviklerens beslutning er **mellemrum ikke længere ugeseparator**, så `uge 23/2025` kan indsættes;
 prisen er, at `23 2025` ikke kan.
 
 **Indstillinger er færdigbehandlet 2026-08-18. Alle otte fund er afgjort** – tre accepteret og
@@ -585,7 +590,7 @@ gennemført, fem afvist. Det fulde grundlag står i [indstillinger.md](indstilli
 |---|---|---|
 | BB-024 | Farvetemaet kunne ikke stilles tilbage til at følge computeren | **Accepteret – gennemført**; `themeMode` er tre-værdig, `'system'` er default, systemskift følges live |
 | BB-028 | Måneds-grænsen virker uafhængigt af den toggle, den står under | **Accepteret – gennemført**; rækkerne byttet om, tolerancen omformuleret selvstændigt |
-| BB-036 | «Nulstil» fik browserens sorte fokusramme (brugerens eget fund) | **Accepteret – gennemført**; ny `.text-action-button` genbruger programmets egen fokusmarkering |
+| BB-036 | «Nulstil» fik browserens sorte fokusramme (udviklerens eget fund) | **Accepteret – gennemført**; ny `.text-action-button` genbruger programmets egen fokusmarkering |
 | BB-023 | «Standardværdier» slår ikke igennem på den åbne sag | Afvist – begge tidspunkter for virkning er de forventede; ingen forklarende linje |
 | BB-025 | Indstillinger forsvinder tavst, hvis browserens lagring ryddes | Afvist – bæres bevidst; forbuddet mod `.eo` er nu normativt |
 | BB-026 | Alle ni brevhoveder kan slås fra uden oplysning om konsekvensen | Afvist – brevhovedet er et tilbud, ikke en integritetsegenskab |
@@ -593,7 +598,7 @@ gennemført, fem afvist. Det fulde grundlag står i [indstillinger.md](indstilli
 | BB-029 | «0 måneder» – ordlyden skulle pege det modsatte vej | Afvist – «forældet efter 0 måneder» læses naturligt som «straks» |
 
 **Begge åbne spørgsmål er lukket.** Standardværdier anvendes aldrig på en åben sag (heller ikke på
-brugerens anmodning), og de fire bokse skal ikke forklare, hvornår deres indhold virker.
+udviklerens anmodning), og de fire bokse skal ikke forklare, hvornår deres indhold virker.
 **Konsekvens for de resterende flader: «fladen bør sige hvornår en indstilling virker» er et lukket
 spor** – foreslå det ikke igen.
 
@@ -616,7 +621,7 @@ efter modpres fra agenten. Det fulde grundlag står i [om.md](om.md).
 | BB-015 | Fast indholdsbredde; 1366 px-skærm kræver vandret rul | Afgjort – 1536×864 er designmålet; shell-kontrakten dækker 1244×620 CSS-px ved 100 % browserzoom |
 | BB-016 | Sidens fem links kan ikke nås med tastaturet | Afgjort – bevidst designvalg, nu håndhævet af `ExternalLink` |
 | BB-017 | Hjælpeprogrammets tilstand vises først, når man klikker | Afgjort – acceptabelt kompromis |
-| BB-018 | Tre ord for samme handling: download, hente, installere | **Accepteret – gennemført.** Brugeren leverede brødteksten |
+| BB-018 | Tre ord for samme handling: download, hente, installere | **Accepteret – gennemført.** Udvikleren leverede brødteksten |
 | BB-019 | To browserikoner uden tekst | Afvist – ikonerne er en genkendelsesnøgle, ikke en oplysning |
 | BB-020 | Startside-valget står under «Teknisk» | Afvist – bevidst undtagelse; Om vises af juridiske grunde |
 | BB-021 | «Mineo» og «minEO.dk» på samme skærm | Afvist – ét navn i to sammenhænge |
@@ -627,7 +632,7 @@ efter modpres fra agenten. Det fulde grundlag står i [om.md](om.md).
 inklusive knaplabelen «Installér hjælpeprogram» (BB-018). Ordlyden står ordret i [om.md](om.md).
 
 **Gennemført undervejs:** BB-013's generelle linkregel – `ExternalLink`/`InternalLink`, AST-reglen
-`a11y/web-link-policy-single-source` og `e2e/web-link-policy.spec.ts`. Brugerens eget arbejde.
+`a11y/web-link-policy-single-source` og `e2e/web-link-policy.spec.ts`. Udviklerens eget arbejde.
 
 Stamdatas ti fund er afgjort 2026-08-16; afgørelserne står i [stamdata.md](stamdata.md).
 Tre rettelser derfra står klar til gennemførelse: BB-002 + BB-010's ordlyd (samme kodeændring),
@@ -691,14 +696,14 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   kun her, og BB-075's stramning kræver to *uforenelige* henførsler), men en påstand om en DATO i
   samme boks kunne – og var forkert (BB-092, **gennemført**: teksten navngiver nu rentedatoen). Prøv
   datoerne før lovhenvisningerne. **Efterskrift 2026-08-25: lovhenvisningen var OGSÅ forkert** –
-  brugeren afgjorde det åbne spørgsmål, og begge § -henvisninger er rettet. Læren om prøven står
+  udvikleren afgjorde det åbne spørgsmål, og begge § -henvisninger er rettet. Læren om prøven står
   uændret (en § kan ikke måles i programmet), men konklusionen «ikke målbart» er ikke det samme som
-  «rigtigt»: en umålelig påstand hører som spørgsmål til brugeren, ikke som en lukket sag. **M-15: sporet er LUKKET for hele programmet** – BB-094 er afvist
+  «rigtigt»: en umålelig påstand hører som spørgsmål til udvikleren, ikke som en lukket sag. **M-15: sporet er LUKKET for hele programmet** – BB-094 er afvist
   som BB-040, og fladen var netop det opslagsværk, betingelsen krævede. Læren, der bliver stående: en
   dataafhængig dækningsgrænse skal ikke skrives i tekst, når målgruppen kan læse den af datasættets
   egne rækker. **M-13:** fjerde form – fortegnets skrivemåde (`- 0,45 %` med mellemrum, BB-095) –
   **afvist**: `-` som fravær står altid alene i en celle, så de to læsninger kan ikke støde sammen.
-- **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer bruger.** «En usynlig
+- **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** «En usynlig
   dokumentafhængighed på en anden flade slukker knappen»: hver dokumentdefinition kræver en `ready`
   stamdataprojektion, uanset om dokumentet trykker et brevhoved – så en rød dato i Stamdata slukker
   downloadknappen på flader, der ikke viser en eneste stamdataoplysning. Målt på tre flader
@@ -774,7 +779,7 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
     selv. Rettelsen hører altså i feltmodellen, ikke i gaten – det er mønsterets skarpere form.
 - **M-14's sidste åbne kandidat er efterprøvet 2026-08-19, havde fejlen og er rettet** (BB-042).
   Datofelternes segmentbaserede paste kaldtes kun i et tomt felt. Prøve 2 var derimod bestået: en dato
-  uden for grænsen bevares uafkortet. Segmentfortolkningen er BEVARET efter brugerens valg (den er en
+  uden for grænsen bevares uafkortet. Segmentfortolkningen er BEVARET efter udviklerens valg (den er en
   truffet beslutning, BB-003); det er tilstandsafhængigheden, der er væk. Afgørelsen tvang samtidig en
   rettelse af `input-field-behavior-contract.md` §1.2a punkt 7, som påstod et absolut forbud mod
   paste-only fortolkning og dermed modsagde BB-003 fem dage før.
@@ -792,13 +797,13 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
     er altid mistænkelig. Åben kandidat: reguleringsbilagets **kolonnevalg** i `reguleringDocument.ts`
     (otte tillægssatser + grundlønnen) – hører til Erstatningsopgørelse.
   - **M-14** er **omskrevet** – læs den nye form. Den hed *«indsat tekst samles af cifre uden hensyn
-    til formens positioner»*, og **den præmis blev afvist**: brugeren fastholder, at paste altid skal
+    til formens positioner»*, og **den præmis blev afvist**: udvikleren fastholder, at paste altid skal
     give samme resultat som tastning, også når `01-02-2026` derved bliver `102` i et årsfelt. Mønsteret
     hedder nu *«en anden fortolkningsvej ved siden af tastningen»* og handler om paste-only fortolkere,
     der udleder en værdi af hele teksten – og som kun kaldes i et tomt felt. Åben kandidat:
     datofelternes `normalizeDatePaste`, den ene tilbageværende fortolker.
 
-- **M-12 er KRAFTIGT INDSNÆVRET samme dag efter brugerens afgørelser – læs den nye form, ikke den
+- **M-12 er KRAFTIGT INDSNÆVRET samme dag efter udviklerens afgørelser – læs den nye form, ikke den
   oprindelige.** Mønsteret samlede oprindelig tre fravær (ingen kvittering, forskudt virkning, ingen
   vej tilbage), og **alle tre udløsende fund blev afvist**: forskudt virkning er den forventede
   adfærd, og fraværet af fortrydelse er et værn frem for en mangel. Tilbage står den skarpere prøve,
@@ -811,11 +816,11 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   længere hjemme her.**
 
 - **M-01 til M-07** stammer fra Stamdata og handler om indtastning. Fire er omskrevet 2026-08-16
-  efter brugerens afgørelser – læs dem i deres nye form, ikke i fundenes oprindelige.
+  efter udviklerens afgørelser – læs dem i deres nye form, ikke i fundenes oprindelige.
 - **M-08 til M-11** er tilføjet fra Om-fladen 2026-08-16 og handler om siden som helhed:
   M-08 links uden for tastaturrækkefølgen, M-09 fast indholdsbredde, M-10 flydende knapper der
   dækker indhold, M-11 programmets egne påstande om sig selv. Alle fire er skrevet om samme dag
-  efter brugerens afgørelser og skal læses i den nye form:
+  efter udviklerens afgørelser og skal læses i den nye form:
   - **M-08** er afgjort for eksterne links i hele programmet: `ExternalLink` sætter `tabIndex={-1}`
     fast, og en AST-regel håndhæver det. Tilbage står kun **interne** links, der bærer noget,
     brugeren skal kunne handle på.

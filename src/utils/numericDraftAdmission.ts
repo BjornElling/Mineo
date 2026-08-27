@@ -127,7 +127,7 @@ export const isYearDraftAllowed = (draft: string): boolean =>
  * Separatoren må være `.`, `,`, `/`, `\` eller `-`; `parseWeekDraftForCommit` normaliserer den til `/`
  * ved settle. Samme flytningsbegrundelse som {@link isYearDraftAllowed}.
  *
- * **Mellemrum er IKKE en separator (brugerbeslutning 2026-08-18).** Det var det før, og kombineret med
+ * **Mellemrum er IKKE en separator (udviklerbeslutning 2026-08-18).** Det var det før, og kombineret med
  * §1.2a's regel «paste = tastning tegn for tegn» gjorde det en almindelig indsat tekst ubrugelig: i
  * `uge 23/2025` optog mellemrummet efter «uge» separator-pladsen, hvorefter det ægte `/` blev ulovligt
  * (kun én separator er tilladt), og resultatet ` 2320` blev afvist som «Ugyldigt format». Nu er

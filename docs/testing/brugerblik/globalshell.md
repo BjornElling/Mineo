@@ -33,7 +33,7 @@ i localStorage og IndexedDB, som er FÆLLES for alle faner. Netop den forskel er
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-17--én-oplysning-delt-over-to-lagerscoper`
 - **Prioritet:** Kritisk
-- **Beslutning:** **Accepteret – gennemført 2026-08-19** (brugeren bad om, at løsningsmodellerne blev
+- **Beslutning:** **Accepteret – gennemført 2026-08-19** (udvikleren bad om, at løsningsmodellerne blev
   undersøgt nøje først; se «Gennemført» nedenfor, hvor det oprindelige forslag blev erstattet af en
   enklere løsning)
 - **Sådan fremprovokeres det:**
@@ -172,7 +172,7 @@ bestå.
   skifte side, hente en fil eller slette sagen uden mus. `Gem` har Ctrl+S; `Hent` og `Slet alt` har
   ingen genvej overhovedet.
 - **Det er uhensigtsmæssigt fordi:** Programmets primære navigation og dets tre filhandlinger er
-  reelt mus-kun. Det er den samme mangel, brugeren allerede har afgjort skal rettes ét sted:
+  reelt mus-kun. Det er den samme mangel, udvikleren allerede har afgjort skal rettes ét sted:
   BB-047 slog fast, at Renteberegnings «Slet alle indtastninger» skulle med i Tab-ringen, fordi
   «to knapper, der er tegnet ens og står under hinanden, ikke må opføre sig forskelligt over for
   tastaturet». Sidemenuens `Slet alt` er den samme handling på et vigtigere sted. Årsagen er
@@ -246,7 +246,7 @@ fald åbne filvælgeren. Den halvdel af begrundelsen holder altså ikke mere, ua
 - **Type:** Fejl
 - **Rækkevidde:** Lokal
 - **Prioritet:** Høj
-- **Beslutning:** **Gennemført 2026-08-19** (agentafgørelse, præmis og løsning bekræftet af brugeren)
+- **Beslutning:** **Gennemført 2026-08-19** (agentafgørelse, præmis og løsning bekræftet af udvikleren)
 - **Sådan fremprovokeres det:**
   1. Tryk `Gem` på en urørt sag. Beskeden «Ingen data fundet at gemme» vises øverst til højre.
   2. Vent til den er ved at forsvinde – omkring 4½ sekund – og tryk `Gem` igen.
@@ -299,7 +299,7 @@ det tidspunkt, hvor den arvede nedtælling ville have lukket den.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** **Delvist gennemført 2026-08-19** – brugerens tvivl fastholdt for den dobbelte
+- **Beslutning:** **Delvist gennemført 2026-08-19** – udviklerens tvivl fastholdt for den dobbelte
   adfærd (Ctrl+Z ændrer IKKE tegn i et åbent felt), men `preventDefault()`-spærringen er fjernet, så
   tasten ikke længere er et sort hul. Se svaret nedenfor.
 - **Sådan fremprovokeres det:**
@@ -369,7 +369,7 @@ til at undre sig er væk.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-06--usynlige-tegn-overlever-fra-indsættelse`
 - **Prioritet:** Høj
-- **Beslutning:** **Gennemført 2026-08-19** (brugerens forbehold om afledte problemer er efterprøvet –
+- **Beslutning:** **Gennemført 2026-08-19** (udviklerens forbehold om afledte problemer er efterprøvet –
   se «Gennemført» nedenfor)
 - **Sådan fremprovokeres det:**
   1. Kopiér adgangskoden fra den mail, den blev sendt i – markeringen tager næsten altid det
@@ -577,7 +577,7 @@ noget, ville netop lære brugeren, at dens tilstedeværelse er en indikator, den
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Mitigeringen afvist 2026-08-19.** Brugerens regel (ingen advarsel hvor intet
+- **Beslutning:** **Mitigeringen afvist 2026-08-19.** Udviklerens regel (ingen advarsel hvor intet
   mistes) er tiltrådt som princip, men kan ikke implementeres for F5: browseren tilbyder ét
   `beforeunload`-hook for både lukning og genindlæsning og oplyser ikke hvilken det er. Ingen
   kodeændring – se svaret nedenfor
@@ -633,7 +633,7 @@ egne advarsler; det er kun browserens ene fælles hook, der ikke kan deles i to.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** **Afvist 2026-08-19** – brugeren forventer, at `Slet alt` er irreversibel; det behøver
+- **Beslutning:** **Afvist 2026-08-19** – udvikleren forventer, at `Slet alt` er irreversibel; det behøver
   ikke fremhæves
 - **Sådan fremprovokeres det:**
   1. Skriv en værdi i et felt og afslut det.

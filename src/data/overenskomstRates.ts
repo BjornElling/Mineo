@@ -1549,7 +1549,7 @@ export const getOverenskomstMetaById = (id: string): OverenskomstMeta | undefine
  * seks steder – to dropdowns (`getOptionLabel` + `MenuItem`) på hver af de to sider, viewmodellen og
  * reguleringsdefinitionen – mens de to EO-PDF-sektioner og sagsniveauet i stedet viste NAVNET ALENE. Den
  * uensartethed var synlig for brugeren: samme overenskomst hed to forskellige ting i dokumentet og på
- * skærmen. Brugerbeslutning 2026-07-31: navn OG parter, alle steder.
+ * skærmen. Udviklerbeslutning 2026-07-31: navn OG parter, alle steder.
  *
  * Kun den FØRSTE part pr. side vises, selv om begge lister kan have flere. Det er bevidst – etiketten skal
  * være læsbar i en dropdown og på en dokumentlinje, ikke udtømmende.

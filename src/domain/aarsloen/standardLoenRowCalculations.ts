@@ -371,7 +371,7 @@ export const hasCompletePeriodForLoenperiode = (row: StandardLoenTableRow, loenp
  *
  * Beløbet indgår BEVIDST ikke i prøven. Funktionen hed tidligere `hasAtLeastOneValidRow` og krævede
  * desuden, at rækkens samlede løn var forskellig fra nul – men en lønrække med 0 kr. er lovlig
- * (brugerbeslutning 2026-08-26): brugeren kan have behov for at vise, at der i en måned ikke var
+ * (udviklerbeslutning 2026-08-26): brugeren kan have behov for at vise, at der i en måned ikke var
  * lønindkomst, og det er tydeligere end at udelade perioden, som da kunne se glemt ud.
  *
  * Nul-kravet var desuden uenigt med tabelvalideringen, der regner et eksplicit 0 som udfyldt input. En

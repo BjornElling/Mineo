@@ -87,7 +87,7 @@ export const blinkFieldAttention = (element: HTMLElement | null | undefined): vo
  * felt, blinker den FØRSTE i dokumentrækkefølge; det er samme vilkårlige-men-entydige valg, som
  * `lookupEditorLocation` træffer, og enhver af dem er en gyldig flade for feltet.
  *
- * @returns true hvis et element blev fundet og markeret.
+ * @returns sand hvis et element blev fundet og markeret.
  */
 export const blinkFieldAttentionByAddress = (serializedAddress: string): boolean => {
   if (typeof document === 'undefined') return false;

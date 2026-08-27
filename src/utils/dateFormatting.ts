@@ -62,7 +62,7 @@ export const formatUtcDateLong = (date: Date | undefined): string => {
 };
 
 /**
- * Dansk tidszone. ALT brugersynligt/udvikler-rettet tids-output (fejlrapport,
+ * Dansk tidszone. ALT brugersynligt tids-output og output rettet mod udvikleren (fejlrapport,
  * DevTools-notits, filnavne, email-emne) formateres i denne zone – uafhængigt
  * af UTC-lagringen og af hvilken tidszone brugerens maskine er sat til.
  */

@@ -37,7 +37,7 @@ export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInne
 export type EoFileData = z.infer<typeof eoFileDataSchema>;
 
 /**
- * Load-only data-schema.
+ * Data-schema kun til load.
  *
  * Accepterer alle sektioner som unknown så load-pipelinen kan validere kendte sektioner
  * enkeltvis og rapportere ukendte felter/sektioner i preflight.
@@ -78,12 +78,12 @@ export const eoFileContainerSchema = z.object({
 export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
 
 /**
- * Load-only dekrypteret `.eo`-container.
+ * Dekrypteret `.eo`-container kun til load.
  *
  * Top-level container skal stadig have korrekt struktur, men `data` er permissiv så
  * kendte sektioner kan valideres enkeltvis.
  *
- * NOTE: `.strict()` på container-niveau er bevidst – container-strukturen er fast og
+ * Bemærk: `.strict()` på container-niveau er bevidst – container-strukturen er fast og
  * versionsstyret. Nye top-level felter kræver en bevidst migrering af dette schema.
  * Permissiviteten er afgrænset til `data`-sektionen og `_metadata`-felternes indhold.
  */

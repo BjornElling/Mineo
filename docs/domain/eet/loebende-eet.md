@@ -237,6 +237,6 @@ Dækker beregningen af løbende ydelser, herunder særreglen for `Endelig` ved `
 
 ---
 
-## Kendte udeståender
+## Status
 
 Dokumentationen afspejler den fastlagte forretningslogik for løbende ydelser.

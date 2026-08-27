@@ -145,7 +145,7 @@ const Mineo = React.memo(() => {
 
   return (
     <Box className="mineo-page">
-      {/* Side-header */}
+      {/* Sidehoved */}
       <Typography className="page-title">Mineo</Typography>
 
       {/* ------------------------------------------------------ */}
@@ -311,15 +311,15 @@ const Mineo = React.memo(() => {
         </Box>
 
         <Typography className="row--text">
-          Ved brug af programmet skal du være opmærksom på, at det aktuelt er i en åben
-          testudgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor
-          altid for at kontrollere dine beregninger.
+          Ved brug af programmet skal du være opmærksom på, at programmet er grundigt
+          testet, men fejl vil kunne forekomme. Sørg derfor altid for at kontrollere dine
+          beregninger.
         </Typography>
 
       </ContentBox>
 
       {/* ------------------------------------------------------ */}
-      {/* License Modal */}
+      {/* Licensmodal */}
       <LicenseModal
         open={licenseOpen}
         onClose={handleLicenseClose}

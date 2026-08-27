@@ -379,7 +379,7 @@ describe('Årsløn – placeholders viser kun værdiens FORM', () => {
   });
 
   it('«Indtastning mangler» overtager IKKE placeholderen; cellen markeres i stedet visuelt', async () => {
-    // Brugergodkendt 2026-07-28: manglende-værdi-feedbacken bruger samme visuelle idiom
+    // Udviklergodkendt 2026-07-28: manglende-værdi-feedbacken bruger samme visuelle idiom
     // som en fejlflash – cellen scrolles ind og blinker rødt – i stedet for at erstatte formvejledningen.
     // Kæden er den ÆGTE: omregnings-toggle uden gyldig periode → tabellens imperative handle → markering.
     const user = userEvent.setup();

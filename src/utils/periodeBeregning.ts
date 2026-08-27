@@ -117,7 +117,7 @@ export const beregnFeriedagePaaEtAar = (retTilSjetteFerieuge: boolean): number =
  * @param {string} loenperiode - "maaned" | "uge" | "dag"
  * @param {number} unikkeEnheder - Antal unikke enheder fra periodeData
  * @param {Set<string>} datoSet - Set af datoer (kun for dagsløn)
- * @returns {boolean} True hvis nøjagtig 1 års data
+ * @returns {boolean} Sand hvis der er nøjagtig 1 års data
  */
 export const erPraecisEtAar = (loenperiode: string, unikkeEnheder: number, datoSet?: ReadonlySet<ISODateString>) => {
   if (loenperiode === 'maaned') {
@@ -449,4 +449,3 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
     perioder
   };
 };
-

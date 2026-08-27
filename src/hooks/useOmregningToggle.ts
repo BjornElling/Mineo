@@ -31,7 +31,7 @@ interface UseOmregningToggleReturn {
  * - Den centrale omregnings-gate afgør både toggle-visning og effektiv aktivering
  * - Manuel enable blokeres tidligt ved ugyldige forhold (→ fokus/markering på første fejl)
  *
- * Rystelsen af togglen er fjernet (brugerbeslutning 2026-08-15). Hver afvisningsgren peger i
+ * Rystelsen af togglen er fjernet (udviklerbeslutning 2026-08-15). Hver afvisningsgren peger i
  * forvejen brugeren på en KONKRET celle – fejlcellen, den manglende indtastning eller første
  * periodecelle – og det er den vejvisning, der havde værdi. Rystelsen tilføjede kun «noget er galt».
  */

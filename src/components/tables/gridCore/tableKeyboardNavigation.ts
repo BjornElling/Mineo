@@ -513,7 +513,7 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
         if (cell && isSameCell(core.getEditingCell(), cell)) {
           // Invariant: queueMicrotask sikrer at input onBlur kører først (mens isEditing stadig er true).
           // Gør IKKE dette synkront/flushSync; det ville bryde commit-on-blur og kan overskrive drafts.
-          // Decision note: denne microtask er en infrastruktur-undtagelse fra den normale form-regel.
+          // Beslutningsnote: denne microtask er en infrastruktur-undtagelse fra den normale form-regel.
           // Reason: tabellens blur-capture skal udskyde editor-nedlukning indtil celle-inputtets eget blur-commit
           // er fuldført, ellers kan gyldigt committet input gå tabt.
           // Risk: at udvide dette mønster uden for grid-infrastrukturen ville genindføre skjult commit-timing.

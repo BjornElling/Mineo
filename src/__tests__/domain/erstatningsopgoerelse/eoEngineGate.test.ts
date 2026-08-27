@@ -17,7 +17,7 @@ import type { EoDependencyProjection } from '../../../domain/erstatningsopgoerel
 // readerens MASKEREDE værdier. En rød værdi er `undefined` for motoren, så fx en forligsprocent på 150 blev
 // regnet som "intet forlig" (= 100 %), og "Beregnet svie/smerte" kunne vises som om tidligere udbetalt var 0.
 //
-// Brugerbeslutning 2026-07-25: et EO-output, hvis afhængighed er rød, skal vise `-`/ikke beregnet – og
+// Udviklerbeslutning 2026-07-25: et EO-output, hvis afhængighed er rød, skal vise `-`/ikke beregnet – og
 // uafhængige dele skal BEVARES (ingen overblokering).
 //
 // ⚠️ Baseline SKAL være beregningsklar (`data !== null`). En tom EO-sag har i forvejen validatorfejl, så en
@@ -187,7 +187,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
   });
 
   it('en rød S/S-afhængighed stopper S/S-motoren – intet falsk "Beregnet svie/smerte"', () => {
-    // Kernen i brugerbeslutningen: uden gaten kørte S/S-motoren videre på den maskerede tomværdi og viste et
+    // Kernen i udviklerbeslutningen: uden gaten kørte S/S-motoren videre på den maskerede tomværdi og viste et
     // beløb regnet som om "tidligere udbetalt svie/smerte" var 0.
     compute([redField('svieSmerteTidligereTotal')]);
 
@@ -195,7 +195,7 @@ describe('EO: motorerne kaldes ikke, når en rød reader-feltfejl blokerer', () 
   });
 
   it('S/S-gaten er DEPENDENCY-SPECIFIK: en TAF-fejl stopper ikke S/S-motoren', () => {
-    // §1.10 / brugerbeslutning 2: rettelsen må ikke overblokere. `tidligereModtagetTaf` er ikke en
+    // §1.10 / udviklerbeslutning 2: rettelsen må ikke overblokere. `tidligereModtagetTaf` er ikke en
     // S/S-afhængighed, så S/S-visningen skal bestå (selv om de autoritative totaler er blokeret).
     compute([redField('tidligereModtagetTaf')]);
 
@@ -268,7 +268,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
   });
 
   it('en rød S/S-afhængighed blokerer KUN S/S-grenen – TAF forbliver ubrudt', () => {
-    // Brugerbeslutning 2: et ugyldigt svie/smerte-felt må ikke fjerne den gyldige TAF-visning.
+    // Udviklerbeslutning 2: et ugyldigt svie/smerte-felt må ikke fjerne den gyldige TAF-visning.
     const snapshot = compute([redField('svieSmerteSatserAar')]);
 
     expect(snapshot.blockedDependencies?.svieSmerte).toBe(true);
@@ -276,7 +276,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     expect(svieSmerteSpy).not.toHaveBeenCalled();
   });
 
-  it('BRUGERBESLUTNING 2: den gyldige TAF-periodisering NÅR Beregning-fanen ved en S/S-fejl', () => {
+  it('UDVIKLERBESLUTNING 2: den gyldige TAF-periodisering NÅR Beregning-fanen ved en S/S-fejl', () => {
     // Dette er fund S1's egentlige krav. `data` er `null` (aggregatet er ikke autoritativt), men fanen
     // læser `beregningView.tafPerioder` – og den skal fortsat vise det GYLDIGE forløb.
     //
@@ -331,7 +331,7 @@ describe('EO: afhængighedsopdelingen er specifik pr. gren (§1.10)', () => {
     // Fund S2: motoren læser SELV forligsgraden (`svieSmerteEngine.ts:234`) og skalerer satser + total med
     // faktoren. En maskeret ugyldig forligsprocent blev derfor regnet som 100 %.
     //
-    // Brugerbeslutning 1 kræver samtidig, at før-forlig-resultater BESTÅR – derfor må forligsfelterne ikke
+    // Udviklerbeslutning 1 kræver samtidig, at før-forlig-resultater BESTÅR – derfor må forligsfelterne ikke
     // ligge i S/S-gruppen, og grundlaget skal være uændret.
     const eoValues = createComputableEoValues();
     eoValues.svieSmerteSatserAar = 2024;

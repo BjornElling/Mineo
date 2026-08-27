@@ -4,8 +4,8 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-25 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
-annonceres ikke i brugerfladen». Brugerafgørelse, ingen kodeændring; afsnittet fastholder den bestående
+**Senest verificeret mod kode:** 2026-08-27 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
+annonceres ikke i brugerfladen». Udviklerens afgørelse, ingen kodeændring; afsnittet fastholder den bestående
 tavshed, så en «hjælpsom» `Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere. Verificeret begge veje:
 genvejen ER registreret (`MainLayout.tsx` – og den spørger `hasOpenOverlay()` før `preventDefault()`),
 og «Ctrl» findes ikke i én eneste brugervendt streng i `src/` – kun i kommentarer og kontrakter.
@@ -280,7 +280,7 @@ eget regelsæt under §Popup-widget detection, og fokus bliver bevidst på combo
 ### Tastaturet bliver i vinduet
 
 Så længe et overlay er åbent, ejer overlayet tastaturet. `Tab`/`Shift+Tab` cirkulerer inde i vinduet:
-fra sidste element til første og omvendt (brugerbeslutning 2026-08-15). Fokus må aldrig nå siden
+fra sidste element til første og omvendt (udviklerbeslutning 2026-08-15). Fokus må aldrig nå siden
 bagved.
 
 Fangsten leveres af MUI's `FocusTrap` – gratis i en `Dialog`, eksplicit monteret i et håndrullet
@@ -339,11 +339,11 @@ browserens egen tekstfortrydelse blev slået ihjel samtidig: brugeren stod med e
 en tast, der hverken gjorde det ene eller det andet. Nul funktioner plus en spærring er ikke «én
 funktion». Prøven for en åben editor skal derfor være SYNKRON (`ActiveEditorRegistry.getEditing()`) –
 `prepare()` er asynkron, og når dens `noop` foreligger, er hændelsen længe returneret, og
-`preventDefault()` kan ikke længere undlades. Brugerbeslutning 2026-08-19 (BB-054): den dobbelte adfærd
+`preventDefault()` kan ikke længere undlades. Udviklerbeslutning 2026-08-19 (BB-054): den dobbelte adfærd
 er afvist, spærringen fjernet. Virkningen kan kun måles i en rigtig browser; jsdom har ingen
 tekstfortrydelse.
 
-### `Ctrl+S` annonceres ikke i brugerfladen (normativ, brugerafgørelse 2026-08-25)
+### `Ctrl+S` annonceres ikke i brugerfladen (normativ, udviklerens afgørelse 2026-08-25)
 
 Genvejen `Ctrl+S` for `Gem` er bevidst **skjult**: den nævnes hverken i sidemenuens tooltip, på
 Om-siden eller andre steder på skærmen. Den er der for dem, der prøver den – ikke som en oplyst

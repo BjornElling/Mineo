@@ -192,6 +192,6 @@ Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse.
 
 ---
 
-## Kendte udeståender
+## Status
 
 Dokumentationen afspejler den fastlagte forretningslogik for differencekrav.

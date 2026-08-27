@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // `varigemen-contract.md` §2.9: alle beløb i varige mén vises i HELE KRONER uden decimaler – på begge
-// faner og i dokumentet. Reglen er unik for denne ydelse (brugerbeslutning 2026-08-21, BB-078/BB-079)
+// faner og i dokumentet. Reglen er unik for denne ydelse (udviklerbeslutning 2026-08-21, BB-078/BB-079)
 // og er derfor ikke dækket af `amount-contract.md` §5's to-decimal-standard.
 //
 // Testen måler gennem den ÆGTE side og den ægte produktions-runtime, og den er skrevet som et

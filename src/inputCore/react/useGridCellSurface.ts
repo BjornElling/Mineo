@@ -144,7 +144,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     filter(e);
   }, []);
 
-  // Celle-paste. Brugerbeslutning (2026-07-17): en lukket celle committer det indsatte STRAKS (ingen
+  // Celle-paste. Udviklerbeslutning (2026-07-17): en lukket celle committer det indsatte STRAKS (ingen
   // åbn-med-kladde-fase). En åben celle splicer ind i draften på caret-positionen (som formular-surfacen).
   const onPaste = React.useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
     const { controller: ctl, locked: isLocked } = latest.current;

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Sideordnet de øvrige tværgående kontrakter. Begrænser enhver domænekontrakt, der producerer
 brugervendt tekst om ferieydelser – herunder `aarsloen-contract.md` og erstatningsopgørelsens kontrakter.
-**Senest verificeret mod kode:** 2026-08-26
+**Senest verificeret mod kode:** 2026-08-27
 
 ---
 
@@ -26,7 +26,7 @@ procentsatser der faktisk anvendes, ejes af beregningsdomænerne og deres egne k
 
 ## 2. Normative regler
 
-Brugerbeslutning 2026-08-26.
+Udviklerbeslutning 2026-08-26.
 
 1. **En lønmodtagers løn tillægges enten a) feriegodtgørelse eller b) ferietillæg. Aldrig begge.**
 2. **Hvad der udløser hvad:** Får lønmodtageren løn under ferie, får vedkommende **ferietillæg**. Ellers

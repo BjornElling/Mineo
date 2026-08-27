@@ -40,7 +40,7 @@ describe('eoSnapshotToBeregningView', () => {
   });
 
   // Fanen læser KUN snapshottet – den ser aldrig `inspektionSnapshot`. Fald-tilbaget
-  // til `readyBranches` er derfor det, der realiserer brugerbeslutning 2. Grænserne for fald-tilbaget:
+  // til `readyBranches` er derfor det, der realiserer udviklerbeslutning 2. Grænserne for fald-tilbaget:
   describe('fald-tilbage til readyBranches (§1.10)', () => {
     const baseSnapshot = {
       revision: 'rev-1',

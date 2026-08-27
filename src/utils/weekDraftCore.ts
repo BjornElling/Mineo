@@ -55,7 +55,7 @@ export const parseWeekDraftForCommit = (
 
   // Separatorsættet ejes af `normalizeWeekSeparators`, som feltets tegnværn læser af samme kilde.
   // Her stod før et selvstændigt `[ .:-]`, der hverken dækkede `,` og `\` (tastbare, men afvist ved
-  // settle) eller udelod mellemrummet (ikke længere en separator, jf. brugerbeslutning 2026-08-18).
+  // settle) eller udelod mellemrummet (ikke længere en separator, jf. udviklerbeslutning 2026-08-18).
   const normalized = normalizeWeekSeparators(trimmed);
   if (normalized.startsWith('/')) return fail('Ugyldigt format');
 

@@ -46,7 +46,7 @@ export type EvaluateEoDocumentDownloadGateInput = Readonly<{
 }>;
 
 /**
- * Den interne forklaring på blokeringen. Efter brugerbeslutningen 2026-08-13 er den IKKE længere
+ * Den interne forklaring på blokeringen. Efter udviklerbeslutningen 2026-08-13 er den IKKE længere
  * brugerteksten for en rækkeblokering – men den bevares som `message`, så koder, tests og logs stadig kan
  * skelne to blokeringer, der deler samme tooltip.
  */
@@ -76,8 +76,8 @@ export const evaluateEoDocumentDownloadGate = (
   }
   const message = resolveDisabledReason(input) ?? input.gateFallback;
 
-  // BRUGERBESLUTNING 2026-08-13: er blokeringen en rækkefejl, står den ALLEREDE i "Fejl og advarsler"
-  // ovenfor, og knappen henviser dertil frem for at citere én af rækkerne. Brugeren valgte
+  // UDVIKLERBESLUTNING 2026-08-13: er blokeringen en rækkefejl, står den ALLEREDE i "Fejl og advarsler"
+  // ovenfor, og knappen henviser dertil frem for at citere én af rækkerne. Udvikleren valgte
   // forudsigelighed over handlingsanvisning: samme tooltip hver gang boksen viser en fejl, også når
   // fejlen kunne navngives ("Feriegodtgørelse er ikke udfyldt").
   //

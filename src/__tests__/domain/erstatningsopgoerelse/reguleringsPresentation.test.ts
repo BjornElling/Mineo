@@ -1379,7 +1379,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('viser basisrækken på reference-datoen – rækker dateret før reguleringsdatoen ignoreres', () => {
-    // 2026-07-02 (brugerbeslutning): rækker med dato før den anvendte reguleringsdato indgår ikke
+    // 2026-07-02 (udviklerbeslutning): rækker med dato før den anvendte reguleringsdato indgår ikke
     // i reguleringen (de udløser en advarsel i række-evalueringen). Basis er altid basisrækken –
     // spejler buildLoenudviklingFromManual i motoren.
     const values = cloneInitialValues();
@@ -1486,7 +1486,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('viser kun reguleringsdato-rækken når den eneste ændringsrække ligger før reguleringsdatoen', () => {
-    // 2026-07-02 (brugerbeslutning): rækken pr. 10-01-2024 (før den særskilte reguleringsdato
+    // 2026-07-02 (udviklerbeslutning): rækken pr. 10-01-2024 (før den særskilte reguleringsdato
     // 26-01-2024) ignoreres i beregning og visning; reguleringsdato-rækken bærer basisrækkens værdier.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -1646,7 +1646,7 @@ describe('reguleringsPresentation', () => {
   });
 
   it('bruger basisrækken som indeksbasis – rækker dateret før reguleringsdatoen ignoreres', () => {
-    // 2026-07-02 (brugerbeslutning): rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
+    // 2026-07-02 (udviklerbeslutning): rækken pr. 2024-04-01 (før reguleringsdatoen 2024-05-01)
     // indgår ikke; indeksbasis er basisrækken (100), og rækken pr. 2024-06-01 giver indeks 120.
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];

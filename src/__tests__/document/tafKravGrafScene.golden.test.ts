@@ -8,7 +8,7 @@
  * er hver visuel beslutning – koordinat, farve, skrift, tekst, rækkefølge – en værdi i
  * scene-modellen, og dette net fastfryser den.
  *
- * Kontrakten er PIXEL-TROSKAB (brugerbeslutning 2026-08-06, pkt. 3): scene-modellen skal
+ * Kontrakten er PIXEL-TROSKAB (udviklerbeslutning 2026-08-06, pkt. 3): scene-modellen skal
  * reproducere den hidtidige tegning. En utilsigtet afvigelse – et flyttet koordinat, en
  * ændret farve, en tabt label – fejler her. Ægte tegnefejl må rettes, men skal forelægges
  * brugeren enkeltvis; en snapshot-opdatering uden den forelæggelse er et kontraktbrud.

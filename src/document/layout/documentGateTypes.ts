@@ -23,7 +23,7 @@ import {
  *
  *  - `page-errors` – blokeringen skyldes fejl, siden ALLEREDE viser i sin egen fejl-/advarselsboks.
  *    Tooltippet henviser til boksen ({@link DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE}) frem for at gentage
- *    eller citere en enkelt af fejlene. Brugerbeslutning 2026-08-13: forudsigelighed over
+ *    eller citere en enkelt af fejlene. Udviklerbeslutning 2026-08-13: forudsigelighed over
  *    handlingsanvisning – viser boksen en fejl, siger knappen ALTID det samme, også når fejlen kunne
  *    navngives. Klassen har derfor den HØJESTE prioritet.
  *  - `invalid-input` – der ER indtastet noget, men det er ugyldigt (en rød feltfejl blokerer projektionen).
@@ -305,7 +305,7 @@ export const resolveDocumentGateTooltip = (reason: DocumentDownloadGateReason): 
  * tilfældigvis pusher sine årsager i.
  *
  * **`page-errors` vinder alt.** Er fejlen allerede synlig i sidens fejlboks, er den henvisning det, brugeren
- * skal læse – uanset om en af de underliggende fejl kunne navngives (brugerbeslutning 2026-08-13:
+ * skal læse – uanset om en af de underliggende fejl kunne navngives (udviklerbeslutning 2026-08-13:
  * forudsigelighed over handlingsanvisning).
  *
  * `invalid-input` slår `missing-input`, fordi noget FORKERT er mere akut end noget uudfyldt: det uudfyldte

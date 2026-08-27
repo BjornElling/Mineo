@@ -536,7 +536,7 @@ describe('hasAtLeastOneCompletePeriodRow', () => {
     expect(hasAtLeastOneCompletePeriodRow([row], 'maaned')).toBe(true);
   });
 
-  // Brugerbeslutning 2026-08-26: en lønrække med 0 kr. er en OPLYSNING (der var ingen indkomst i
+  // Udviklerbeslutning 2026-08-26: en lønrække med 0 kr. er en OPLYSNING (der var ingen indkomst i
   // perioden), ikke en manglende indtastning. Prædikatet krævede tidligere samlet ≠ 0, hvilket gjorde
   // dokumentgaten uenig med tabelvalideringen, der regner et eksplicit 0 som udfyldt.
   it('row med komplet periode og beløbet 0 → true (0 kr. er en lovlig lønrække)', () => {

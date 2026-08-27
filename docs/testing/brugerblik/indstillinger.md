@@ -27,7 +27,7 @@ hvornår kan jeg se det?*
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-12--en-indstilling-uden-synlig-virkning`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Åbn en sag, og gå til Erstatningsopgørelse. Feltet «Erstatningsopgørelse afsluttes med» står
      på «Bekræftet godkendt».
@@ -67,7 +67,7 @@ Mønsteret er skrevet om efter dette (`TVAERGAAENDE.md` M-12).
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Åbn Mineo første gang på en computer indstillet til mørkt tema. Mineo starter i mørkt tema.
   2. Vælg «Lyst» på Indstillinger.
@@ -121,7 +121,7 @@ Reglen er skrevet ind i `src/contracts/app-settings.md`.
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Sæt flere indstillinger, fx «Opgørelse afsluttes med» = «Underskrift-linje».
   2. Ryd browserens lagrede data for stedet (eller åbn Mineo i et privat vindue, eller lad
@@ -175,7 +175,7 @@ underforstået. **Genåbn ikke** – men bemærk ved en fremtidig ny indstilling
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Fjern fluebenet ved alle ni dokumenttyper under «Indsæt brevhoved i».
   2. Download en erstatningsopgørelse.
@@ -208,7 +208,7 @@ ikke et fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-12--en-indstilling-uden-synlig-virkning`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Slå «Bilagsnumre i erstatningsopgørelser» til.
   2. Tryk Ctrl+Z.
@@ -248,7 +248,7 @@ mekanismen ikke senere bliver «rettet» af en, der læser fraværet som en forg
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Læs de to rækker i «Beregningsteknisk» i den rækkefølge, de står:
      «Tillad regulering med overenskomst, der ikke dækker hele perioden» (fra som standard), og
@@ -295,7 +295,7 @@ Rækkefølgen er betydningsbærende og må ikke byttes tilbage; begrundelsen st�
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Sæt «Efter udløb anses overenskomst for forældet efter» til `0` måneder.
 - **Det sker:** Grænsen bliver reelt slået fra: ingen periode kan falde inden for et vindue på nul
@@ -421,7 +421,7 @@ Når 'nulstil' får fokus, ser det ikke kønt ud. der kommer en sort boks rundt 
 
 ### BB-036 – «Nulstil» får browserens sorte fokusramme
 
-- **Type:** Fornuft (brugerens eget fund)
+- **Type:** Fornuft (udviklerens eget fund)
 - **Rækkevidde:** Mønster – se «Andre steder» nedenfor
 - **Prioritet:** Lav
 - **Beslutning:** Gennemført 2026-08-18
@@ -439,7 +439,7 @@ Når 'nulstil' får fokus, ser det ikke kønt ud. der kommer en sort boks rundt 
 
   **To forsøg undervejs; begge forkastet efter at være set i browseren:**
 
-  1. *Primærfarvet ring* (som Log ind-knappen). Afvist af brugeren: den så «fjollet og forkert»
+  1. *Primærfarvet ring* (som Log ind-knappen). Afvist af udvikleren: den så «fjollet og forkert»
      ud. Grunden er reel – login-siden står uden for app-shellen og har sit eget udtryk, så dens
      fokusramme er ikke sidernes sprog. Inde i programmet lagde ringen en form oven på et element,
      der ellers ingen form har.

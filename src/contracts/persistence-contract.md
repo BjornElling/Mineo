@@ -3,12 +3,12 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-26 (PWA-load og .eo-sanitization er adversarialt gennemgået:
+**Senest verificeret mod kode:** 2026-08-27 (PWA-load og .eo-sanitization er adversarialt gennemgået:
 filhåndtag og pending PWA-requests er klientscopede i origin-fælles IndexedDB, en afsluttet request
 kan ikke replayes efter en fejlet oprydning, PWA-acknowledgement går før øvrig metadata, og isolerbare
 ugyldige felter bevarer resten af sektionen via preflight. Tidligere 2026-08-25: nyt normativt afsnit i §5: et ændret filnavns-relevant
 stamdatafelt giver bevidst en NY fil – hverken en «hidtidig fil eller ny?»-dialog eller tavs
-videreskrivning under et navn, der ikke længere passer til sagen. Brugerafgørelse, ingen kodeændring;
+videreskrivning under et navn, der ikke længere passer til sagen. Udviklerens afgørelse, ingen kodeændring;
 afsnittet beskriver den bestående adfærd, så den ikke senere «rettes». Verificeret mod
 `fileSaveTarget.ts`: `hasFilenameBasisChanged` sammenligner de tre felter, `resolveSaveTarget` sletter
 håndtaget ved ændring, og `suggestedFilename` bruger da det nygenererede navn. Reglen står ved siden af
@@ -51,7 +51,7 @@ Før en ændring af persistensformen skal der foreligge en konkret vurdering af 
 værdier, migrering og round-trip-test. Et versionsbump eller en ny nøgle er aldrig i sig selv en kompatibilitetsplan.
 
 Hvis den planlagte ændring kan give en bruger en fejl, preflight, advarsel, ændret standardværdi, mistet værdi eller
-anden afvigelse under load af en tidligere udgivet fil, skal ændringen forelægges brugeren før implementering med
+anden afvigelse under load af en tidligere udgivet fil, skal ændringen forelægges udvikleren før implementering med
 eksempel på filen og den oplevede load-adfærd. Den må ikke indføres tavst.
 
 Afgrænset undtagelse: Filer fra den interne udviklingsfase kan indeholde de tidligere device-lokale felter
@@ -244,7 +244,7 @@ brugerarbejde forsvinder uden brugerens handling, og programmet melder succes. N
 sekundært værn mod forkert eller forældet handle i samme klient. Fail-closed-reglen gælder som ellers:
 kan det kasserede håndtag ikke ryddes verificerbart, afbrydes gemningen.
 
-**Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, brugerafgørelse
+**Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, udviklerens afgørelse
 2026-08-25).** Skadelidtes navn, skadestype og skadedato afgør, hvilket filnavn `Gem` foreslår. Retter
 brugeren en af dem efter et gem – fx en stavefejl i navnet – kasseres håndtaget efter prøven ovenfor,
 og næste `Gem` går til filvælgeren med det NYE filnavn som forslag. Resultatet er to filer for samme

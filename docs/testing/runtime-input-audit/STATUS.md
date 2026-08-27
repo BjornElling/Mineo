@@ -1,18 +1,22 @@
-# Mineo robustheds- og adfærdsaudit – status
+# Mineo robustheds- og adfærdsaudit – historisk auditspor
+
+Dette dokument bevarer auditdækning og observationer fra den daværende auditperiode.
+Det er et historisk auditspor og ikke en aktuel liste over åbne produktmangler; statusser,
+næste scenarier og historiske fund nedenfor skal læses som tidsstemplet auditdokumentation.
 
 ## Auditstatus
 
-- Samlet status: I gang
-- Aktuel auditpass: 1
+- Samlet auditstatus på tidspunktet: I gang
+- Seneste auditpass på tidspunktet: 1
 - Senest opdateret: 2026-08-14 22:44 Europe/Copenhagen (EDGE-015 EO Word rejected gentaget)
 - Seneste session: AUDIT-2026-08-14-52 – EDGE-015 eo-word-rejected-reentry
 - Commit/build: `5e8ff077` / `2026.08.1332.5e8ff07` / arbejdstræ på `main`
 - Dirty-state: beregningslogik urørt; audit-skillen og dens worker-fejllog er ændret; manuel Chrome-kørsel brugte kun syntetiske data og headless browser
-- Åbne fund: `CRASH-002` (ustabilt); `AUDIT-WORKER-ERRORS.md` indeholder worker-/værktøjsfejl; `OBSERVATIONS.md` er tom
+- Historiske fund: `CRASH-002` (ustabilt); `AUDIT-WORKER-ERRORS.md` indeholder worker-/værktøjsfejl; `OBSERVATIONS.md` er tom
 - Senest afsluttede scenarie: AUDIT-2026-08-14-52 – valid Word-EO, rejected upstream-dato, disabled gate og gendannelse
-- Næste scenarie og starttilstand: EDGE-016-EO-CHOICE-REENTRY – ren synlig login på aktuel build; EO-valggrene, skjul/vis og bevaret Word-dokumentgate
-- Aktive blokeringer: Ingen
-- Uafklarede spørgsmål: Ingen (Q-001 besvaret og indarbejdet 2026-08-14)
+- Planlagt scenarie på tidspunktet: EDGE-016-EO-CHOICE-REENTRY – ren synlig login på aktuel build; EO-valggrene, skjul/vis og bevaret Word-dokumentgate
+- Blokeringer registreret på tidspunktet: Ingen
+- Uafklarede spørgsmål registreret på tidspunktet: Ingen (Q-001 besvaret og indarbejdet 2026-08-14)
 
 ## Dækningsforklaring
 

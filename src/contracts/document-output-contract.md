@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-22
+**Senest verificeret mod kode:** 2026-08-27
 
 ## Scope
 
@@ -137,7 +137,7 @@ og indføre en afhængighed, der ikke bumper settingsrevisionen.
 
 ## A3. Toggle-guards for betingede felter
 
-Når et felt i UI vises betinget af et toggle, et valg eller en anden brugerbeslutning, skal den renderer der kan udskrive feltet have en tilsvarende guard.
+Når et felt i UI vises betinget af et toggle, et valg eller en anden udviklerbeslutning, skal den renderer der kan udskrive feltet have en tilsvarende guard.
 
 Acceptable mønstre:
 
@@ -194,7 +194,7 @@ forklaring) og aldrig af den flade, der tegner knappen. `resolveDocumentGateTool
 **Prioritet ved flere årsager:** `page-errors` → `invalid-input` → `missing-input` → `specific`.
 
 - `page-errors` vinder alt: er fejlen synlig i boksen, er henvisningen dertil det, brugeren skal læse –
-  også når en af de underliggende fejl kunne navngives (brugerbeslutning 2026-08-13: forudsigelighed over
+  også når en af de underliggende fejl kunne navngives (udviklerbeslutning 2026-08-13: forudsigelighed over
   handlingsanvisning). Klassen må KUN bruges, når fejlen faktisk gengives på siden; en snapshot- eller
   invariantblokering uden garanteret fejlrække må den ikke dække.
 - `invalid-input` slår `missing-input`: noget forkert er mere akut end noget uudfyldt.

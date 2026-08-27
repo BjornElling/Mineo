@@ -27,7 +27,7 @@ så flade nr. 8 kan nøjes med det, der er specifikt for Mineo-udgaven.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Høj
-- **Beslutning:** **Accepteret – gennemført 2026-08-19** (brugerens løsning, ikke min)
+- **Beslutning:** **Accepteret – gennemført 2026-08-19** (udviklerens løsning, ikke min)
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til dags dato (19-08-2026).
   2. Udfyld en række: Beløb `100.000`, Forfaldsdato `01-01-2020`. Rækken viser Rentedato
@@ -166,7 +166,7 @@ Hver «Indtastning mangler» i tabellen svarer nu til et tomt felt, brugeren sel
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-15--skærmen-tier-hvor-dokumentet-taler`
 - **Prioritet:** Høj
-- **Beslutning:** **Afvist af brugeren 2026-08-19** – accepteret brist; PDF'en bærer forbeholdet alene
+- **Beslutning:** **Afvist af udvikleren 2026-08-19** – accepteret brist; PDF'en bærer forbeholdet alene
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til `31-12-2031` (accepteres uden bemærkning – det er feltets øvre grænse).
   2. Udfyld en række: Beløb `100.000`, Forfaldsdato `01-01-2020`.
@@ -199,7 +199,7 @@ Forbeholdet står derfor fortsat kun i PDF'en. Registreret som en bevidst accept
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (gælder alle sorterbare tabeller)
 - **Prioritet:** Mellem
-- **Beslutning:** **Afvist af brugeren 2026-08-19** – tilsigtet designvalg i alle tabeller
+- **Beslutning:** **Afvist af udvikleren 2026-08-19** – tilsigtet designvalg i alle tabeller
 - **Sådan fremprovokeres det:**
   1. Skriv tre rækker i den rækkefølge, sagens bilag har: `5.000` / `01-01-2024`, derefter
      `9.000` / `01-02-2024`, derefter `1.000` / `01-03-2024`.
@@ -288,7 +288,7 @@ før. Kontrakten siger nu, at tilstandsuafhængighed er kravet – ikke identite
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** **Accepteret – gennemført 2026-08-19** (med brugerens sproglige rettelse)
+- **Beslutning:** **Accepteret – gennemført 2026-08-19** (med udviklerens sproglige rettelse)
 - **Sådan fremprovokeres det:**
   1. Klik «Indsæt dags dato», så Beregningsdato bliver 19-08-2026.
   2. Skriv `01-01-2027` i «Forfaldsdato».
@@ -354,7 +354,7 @@ ene er en layoutbeslutning, det andet er et spørgsmål om, hvilke begreber appe
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-09--fast-indholdsbredde`
 - **Prioritet:** Mellem
-- **Beslutning:** **Accepteret – gennemført 2026-08-19** (brugerens løsning: device-lås, ikke min)
+- **Beslutning:** **Accepteret – gennemført 2026-08-19** (udviklerens løsning: device-lås, ikke min)
 - **Sådan fremprovokeres det:** Åbn minprocesrente.dk i et almindeligt browservindue (mus, ikke
   touch), og gør vinduet smallere end 600 px – eller zoom til 250 % på en 1366 px skærm, hvilket
   giver den samme CSS-bredde.
@@ -526,7 +526,7 @@ rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugere
   hele gennemgangen: 0 fejl, 0 advarsler.
 - **Deaktiveret downloadknap er tavs ved klik** og forklarer sig kun i tooltip – som besluttet.
 - **Links.** Titel-linket (`minProcesrente.dk`) og søskendelinkene i bunden er uden for
-  Tab-rækkefølgen, jf. brugerens afgørelse i M-08. Titel-linket peger på sidens egen rod og er
+  Tab-rækkefølgen, jf. udviklerens afgørelse i M-08. Titel-linket peger på sidens egen rod og er
   dermed en genindlæsning af samme side.
 - **Rul-til-toppen-knappen findes ikke i standalone**, så M-10 giver intet her.
 - **Bredde ved de understøttede mål.** 1536×864 og 1244×620 viser hele tabellen (1131 px) uden
@@ -570,7 +570,7 @@ rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugere
    og «Rentedato» kun på den store skærm. Er det en bevidst forenkling af telefonudgaven – eller
    skal telefonen kunne det samme, blot i en anden opstilling? Svaret afgør, om BB-046 skal løses
    ved at *vise* rentedatoen eller ved at *give adgang til* tillægstiden.
-   **BESVARET OG LUKKET 2026-08-25: nej – forenklingen er bevidst.** Brugerens svar: der er ikke
+   **BESVARET OG LUKKET 2026-08-25: nej – forenklingen er bevidst.** Udviklerens svar: der er ikke
    plads til alle felterne i telefonvisningen, heller ikke vandret, så telefonen har med vilje kun ét
    datofelt, og **forfaldsdatoen lægges direkte til grund for renteberegningen** (rentedato =
    forfaldsdato). BB-046 kræver derfor ingen af de to udfald: der er ingen skjult tillægstid at vise

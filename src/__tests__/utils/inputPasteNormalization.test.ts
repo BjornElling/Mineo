@@ -106,7 +106,7 @@ describe('inputPasteNormalization', () => {
     expect(normalizeWeekPaste('23,2025')).toBe('23,2025');
     expect(normalizeWeekPaste('23.2025')).toBe('23.2025');
     expect(normalizeWeekPaste('17-12')).toBe('17-12');
-    // Mellemrum er IKKE en separator (brugerbeslutning 2026-08-18) og springes som ethvert andet
+    // Mellemrum er IKKE en separator (udviklerbeslutning 2026-08-18) og springes som ethvert andet
     // ulovligt tegn. Cifrene løber derfor sammen og afvises ved settle – samme udfald som tastning.
     expect(normalizeWeekPaste('23 2025')).toBe('23');
     // Et tredje ugeciffer uden separator er ulovligt og springes; det afbryder ikke resten, men de

@@ -213,6 +213,6 @@ Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til 
 
 ---
 
-## Kendte udeståender
+## Status
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+*Filen er synkroniseret med koden.*

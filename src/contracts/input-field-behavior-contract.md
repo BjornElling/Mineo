@@ -3,12 +3,12 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-24 (§1.0a og beløbsreglen er implementeret og målt: canonical
+**Senest verificeret mod kode:** 2026-08-27 (§1.0a og beløbsreglen er implementeret og målt: canonical
 og rejected rækkeindhold deler tomhedsvurdering for trailing række, sletning og sortering på alle
 collection-tabeller; defaultvalg tæller kun som input ved fravalg; rene manglende partnerfelter får
 ikke rød ring; hvert beløbstalled har højst ét decimalkomma)
 2026-08-19 (§1.2a punkt 7 er PRÆCISERET og målt: tilstandsuafhængighed er
-kravet, ikke identitet med tastning. Datofamiliens segmentfordeling er bevaret, jf. brugerens afgørelse af
+kravet, ikke identitet med tastning. Datofamiliens segmentfordeling er bevaret, jf. udviklerens afgørelse af
 BB-003, men den afgøres nu af, om paste'en efterlader noget af brugerens tekst – ikke af om editoren er
 åben. `resolvePasteContextDraft` ejer beslutningen ét sted for alle tre paste-surfaces, og
 `pasteSplice.test.ts` måler, at et tomt og et fuldt markeret felt giver samme resultat. Baggrund: BB-042)
@@ -20,11 +20,11 @@ tegnværnet og settle-parseren læser)
 2026-08-16 (§1.2a's generelle tekst-normalisering ved paste, Stamdatas
 skadedato-/anmeldelsesdatoreference og de to korte initialfelter er implementeret og dækket af målrettede tests;
 §2.6's og §2.7's fælles undo-regel for tastaturvalg er en
-brugerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx`; §1.2's længdedel er nu håndhævet for ALLE tastede
+udviklerbeslutning truffet samme dag og målt af `keyboardChoiceUndoSteps.test.tsx`; §1.2's længdedel er nu håndhævet for ALLE tastede
 feltfamilier: `maxLength`/`maxDigits` er påkrævet i codec-typen, og
 `src/__tests__/inputCore/fieldCharLengthPolicy.test.ts` måler for hvert produktionsfelt, at et for langt
 paste faktisk afkortes. Målingen fandt forinden 28 af 31 tekstfelter og 8 af 12 heltalsfelter helt uden
-grænse; §2.5 og §2.8 bærer nu de brugergodkendte tal. §1.1a's totrins-krav for de TRANSIENTE felter er
+grænse; §2.5 og §2.8 bærer nu de udviklergodkendte tal. §1.1a's totrins-krav for de TRANSIENTE felter er
 målt af `useTransientDraft.test.tsx`: et lukket felt er `readOnly` ved første klik og åbnes først ved
 det andet, et lovligt starttegn erstatter værdien, og Escape-XOR'en er målt fra begge sider – lukket
 felt lader tasten passere til den omgivende dialog, åben editor annullerer indtastningen)
@@ -174,7 +174,7 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 6. Hvis paste-resultatet bliver tomt, er paste et no-op. En eksisterende værdi må ikke forsvinde, blot fordi
    clipboard-teksten kun indeholder afviste tegn eller er tom; rydning kræver den eksplicitte
    Delete/Backspace-handling, medmindre feltet er en kontrol med særskilt no-op-regel.
-7. **Reglen er modalitets- OG tilstandsuafhængig (brugerbeslutning 2026-08-18, præciseret 2026-08-19).**
+7. **Reglen er modalitets- OG tilstandsuafhængig (udviklerbeslutning 2026-08-18, præciseret 2026-08-19).**
    Resultatet af et paste må ikke afhænge af, om feltet var tomt eller havde en værdi i forvejen, og der må
    ikke findes en regel, der leder efter et velformet delelement i teksten (fx «find årstallet»). En sådan
    regel giver enten et andet resultat end tastning eller to forskellige resultater for samme tekst.
@@ -187,7 +187,7 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
 
    **Tilstandsuafhængighed er kravet – ikke identitet med tastning.** Punktet forbød indtil 2026-08-19
    ENHVER paste-only normalisering, der læser hele teksten på én gang. Den formulering var for bred og
-   modsagde brugerens egen afgørelse af BB-003 samme uge (`docs/testing/brugerblik/stamdata.md`, 2026-08-16): **indsættelse må gerne
+   modsagde udviklerens egen afgørelse af BB-003 samme uge (`docs/testing/brugerblik/stamdata.md`, 2026-08-16): **indsættelse må gerne
    være mere tolerant end tastning.** Tastning må ikke begynde at tolke på det tredje ciffer – `16` kan
    være både den 16. og den 1. juni, og en automatisk separator ville låse den usikre fortolkning fast.
    Indsættelse kender derimod hele teksten på én gang, og kan den uomtvisteligt opløses til én sikker
@@ -270,7 +270,7 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 - `12-2-2026` er gyldigt input og formateres først ved Enter, blur eller lukket-felt-paste til `12-02-2026`.
 - **En indsættelse, der erstatter hele værdien, fordeles i segmenterne dag/måned/år.** `010623` bliver
   derfor draften `01-06-23` (og `01-06-2023` ved settle), mens de samme tegn TASTET bliver `01` og markeres
-  rødt. Forskellen er tilsigtet – brugerens afgørelse af BB-003, 2026-08-16 – fordi indsættelse kender hele
+  rødt. Forskellen er tilsigtet – udviklerens afgørelse af BB-003, 2026-08-16 – fordi indsættelse kender hele
   teksten på én gang, mens tastning ikke må gætte på det tredje ciffer. Fordelingen gælder både et lukket
   felt og en åben draft, hvor alt er markeret (Ctrl+A): de to er samme situation og skal give samme resultat
   (§1.2a punkt 7, BB-042). En indsættelse midt i en draft splices derimod ind tegn for tegn.
@@ -427,7 +427,7 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
 
 - Længden erklæres på feltets codec (`createTextFieldCodec` / `createOptionalTextFieldCodec`), hvor den
   er PÅKRÆVET: et felt uden grænse kan ikke kompilere.
-- To kategorier, brugergodkendt 2026-08-15 (`src/inputCore/catalog/fieldLengthLimits.ts`):
+- To kategorier, udviklergodkendt 2026-08-15 (`src/inputCore/catalog/fieldLengthLimits.ts`):
   **korte enkeltlinjefelter 60 tegn** (navne, numre, referencer, korte fritekstangivelser) og
   **flerlinjede kommentarfelter 512 tegn**. De tre felter, kontrakten allerede havde navngivet, beholder
   deres egne tal: EO-`Nummer` 7 (§4.1), `+ evt. ledsagetekst` 64 (§4.2) og Offentlige ydelsers
@@ -449,7 +449,7 @@ uændret ind i sagen og blev gemt. Det er samme fejlmåde som datofelternes mang
   de ikke må være tomme.
 - Ét valg kan fortrydes med ét undo-trin.
 
-**Hvert tastetryk, der ændrer valget, er sin egen handling i undo/redo** (brugerbeslutning 2026-08-15).
+**Hvert tastetryk, der ændrer valget, er sin egen handling i undo/redo** (udviklerbeslutning 2026-08-15).
 
 Reglen præciserer punktet ovenfor for den ene situation, hvor den ellers kunne læses på to måder: når
 brugeren bladrer med bogstavtasten i en LUKKET dropdown. `Arbejdssituation` har fire valgmuligheder, der
@@ -482,7 +482,7 @@ history-trin for en bogstav-cykling. Samme regel gælder radiogrupper, se §2.7.
   ikke-eksisterende tekstværdi.
 
 **Hvert tastetryk, der ændrer det valgte i en radiogruppe, er sin egen handling i undo/redo**
-(brugerbeslutning 2026-08-15). Det er ordret samme regel som for dropdowns, §2.6, og den gælder uanset
+(udviklerbeslutning 2026-08-15). Det er ordret samme regel som for dropdowns, §2.6, og den gælder uanset
 hvilken tast der udløste valget: pil, Enter eller mellemrum. Flytter brugeren med piletasten gennem en
 gruppe med tre valgmuligheder, opstår der tre fortryd-trin – ikke ét. Hvert tryk sætter en ny, fuldgyldig
 værdi på feltet, og brugeren skal kunne gå tilbage til hver enkelt af dem.
@@ -501,7 +501,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   2026-08-15 fandt 8 af 12 heltalsfelter uden nogen grænse: `Méngrad` (hvis eget maksimum er 120) og
   `Tilkendt for periode` (maksimum 10) tog imod 30 cifre og blev først røde bagefter. Loftet erklæres nu
   på codec'et, hvor det er PÅKRÆVET.
-- **Cifferloftet UDLEDES af feltets eget maksimum, hvor et maksimum findes** (brugergodkendt
+- **Cifferloftet UDLEDES af feltets eget maksimum, hvor et maksimum findes** (udviklergodkendt
   2026-08-15). `Méngrad` 1–120 giver 3 cifre, `Tilkendt for periode` 1–10 giver 2, `Antal feriedage`
   0–99 giver 2. Udledningen er ikke kosmetisk: den gør det umuligt for indtastningsgrænsen og
   talværdigrænsen at komme fra hinanden, hvis maksimum senere ændres.
@@ -534,7 +534,7 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 
 - Formen er uge + separator + årstal, kanonisk «UU/ÅÅÅÅ» efter settle (ugenummeret nul-polstret).
 - **De lovlige separatorer er `.` `,` `/` `\` og `-`. Mellemrum er IKKE en separator**
-  (brugerbeslutning 2026-08-18). Mellemrum var det før, og sammen med §1.2a's tegn-for-tegn-regel gjorde
+  (udviklerbeslutning 2026-08-18). Mellemrum var det før, og sammen med §1.2a's tegn-for-tegn-regel gjorde
   det en almindelig indsat tekst ubrugelig: i `uge 23/2025` optog mellemrummet efter «uge»
   separator-pladsen, hvorefter det ægte `/` blev ulovligt (kun én separator tillades), og resultatet
   ` 2320` blev afvist. Nu springes mellemrummet som ethvert andet ulovligt tegn, og teksten bliver

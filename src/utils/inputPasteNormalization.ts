@@ -15,12 +15,12 @@ import { type TwoDigitYearPolicy } from './yearDraftCore';
 
 // `findNextDigitIndex`, `extractContiguousDigits` og `isWithinBounds` er fjernet 2026-08-18. De tjente
 // UDELUKKENDE års- og uge-normaliseringernes egne fortolkere: «find den første ciffergruppe, og forkort
-// den til den passer grænserne». Den fremgangsmåde er ophævet ved brugerbeslutning (§1.2a punkt 5: en
+// den til den passer grænserne». Den fremgangsmåde er ophævet ved udviklerbeslutning (§1.2a punkt 5: en
 // grænse må aldrig forkorte en indsat tekst – grænser er bounds og hører i feltvalidatoren), og
 // hjælperne er ikke efterladt: de er byggeklodserne til præcis den regel, der ikke må opstå igen.
 //
 // Bemærk hvad der IKKE er ophævet: `normalizeDatePaste` nedenfor fortolker fortsat en hel indsat tekst
-// og er bevaret med vilje (§1.2a punkt 7, brugerens afgørelse af BB-003: indsættelse må gerne være mere
+// og er bevaret med vilje (§1.2a punkt 7, udviklerens afgørelse af BB-003: indsættelse må gerne være mere
 // tolerant end tastning). Kravet er, at samme paste giver samme resultat uanset feltets tilstand – ikke
 // at paste er identisk med tastning. Det, der var forkert i års- og ugefortolkerne, var grænse-
 // afkortningen og tilstandsafhængigheden, ikke fortolkningen af hele teksten.
@@ -209,7 +209,7 @@ export const normalizeFractionPaste = (
  *
  * Funktionen byggede før uge- og årssegmentet hver for sig og limede dem sammen med `/`, og den kaldte
  * samtidig årsfeltets tilsvarende fortolker (se {@link normalizeYearPaste}). Begge er fjernet ved
- * brugerbeslutning 2026-08-18, fordi de forkortede en indsat tekst for at få den inden for
+ * udviklerbeslutning 2026-08-18, fordi de forkortede en indsat tekst for at få den inden for
  * årsgrænserne – og fordi de kun blev kaldt i et tomt felt, så samme paste gav to udfald.
  *
  * Ugefamilien har derfor bevidst INGEN egen fortolkning tilbage. Det er ikke et generelt forbud mod at
@@ -235,7 +235,7 @@ export const normalizeWeekPaste = (
 /**
  * Års-paste (§1.2a): tegn for tegn gennem årsfeltets tegnprædikat – højst fire cifre.
  *
- * **Fjernet ved brugerbeslutning 2026-08-18.** Funktionen udtrak før den første sammenhængende
+ * **Fjernet ved udviklerbeslutning 2026-08-18.** Funktionen udtrak før den første sammenhængende
  * ciffergruppe og forkortede den derefter, indtil resultatet lå inden for feltets årsgrænser. Det gav
  * to fejl, som brugerfundet BB-031 målte:
  *

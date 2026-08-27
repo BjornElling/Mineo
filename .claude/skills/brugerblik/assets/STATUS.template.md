@@ -9,7 +9,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 ## Flader
 
 Rækkefølgen er fastlagt i `.claude/skills/brugerblik/references/flader.md` (små flader først).
-Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
+Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 
 | # | Flade | Status | Fund | Dokument |
 |---|---|---|---|---|
@@ -26,7 +26,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer bruger`.
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
-## Fund der afventer brugerens beslutning
+## Fund der afventer udviklerens beslutning
 
 | ID | Flade | Kort | Forelagt |
 |---|---|---|---|

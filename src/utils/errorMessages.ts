@@ -133,7 +133,7 @@ export function getUserMessage(error: Error): string {
  * Type guard funktion.
  *
  * @param {Error} error - Error at tjekke
- * @returns {boolean} True hvis CalculationError
+ * @returns {boolean} Sand hvis værdien er en CalculationError
  */
 export function isCalculationError(error: Error): error is CalculationError {
   return error instanceof CalculationError;

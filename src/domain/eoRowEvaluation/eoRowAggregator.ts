@@ -232,7 +232,7 @@ const isRowRelevantForEoValues = (
   if (values.kravPaaOevrigeErstatningskrav !== 'Ja' && row.id.startsWith('oevrigekrav.')) {
     return false;
   }
-  // Over-block-fix (B9 §2D, brugergodkendt 2026-06-24): de to krævede oversigtsfelter må kun
+  // Over-block-fix (B9 §2D, udviklergodkendt 2026-06-24): de to krævede oversigtsfelter må kun
   // blokere, når den tilhørende beregning faktisk kræves. 'Arbejdssituation' (tafArbejdsstatus)
   // indgår udelukkende i TAF-fremstillingen; 'Helbredsforhold' (svieSmerteHelbredsstatus) kun i
   // svie/smerte. Tidligere blokerede de PDF-download uanset relevans, fordi deres id'er ikke matcher

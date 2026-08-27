@@ -3,11 +3,11 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-25 (§Regel 12's fire afgrænsninger er tilføjet samme dag og
+**Senest verificeret mod kode:** 2026-08-27 (§Regel 12's fire afgrænsninger er tilføjet samme dag og
 verificeret som gældende adfærd: `createRenteberegningInitialValues` sætter `beregningsdato: undefined`,
 kommentarfeltet er fladens ene felt, 7 %-rækken står ligeværdigt, og telefonopstillingen har ét
 datofelt. §Regel 8's uforanderlige halvårsinddeling og §Regel 11's
-lovhenvisninger er tilføjet efter brugerens afgørelse samme dag; halvårsguarden i
+lovhenvisninger er tilføjet efter udviklerens afgørelse samme dag; halvårsguarden i
 `src/data/interestRates.ts` er mutationstestet i begge grene. §Regel 9–10 er nye og verificeret mod
 `procesrenteCalculator.ts`: tillægssatsen slås op på rentedatoen og genbruges for alle perioder,
 referencesatsen slås op pr. halvårsstart. Beregningen er uændret; de brugervendte tekster, der sagde
@@ -83,14 +83,14 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
     Al brugervendt tekst, der navngiver en dato som grundlag for en sats, skal navngive den dato,
     reglen ovenfor faktisk bruger. En sammenlagt «procesrente»-visning pr. dato er derfor ikke
     tilladt: den ville være forkert for krav med rentedato før `01-03-2013` og periode efter.
-11. **Lovhenvisninger for de to satser (brugerens afgørelse 2026-08-25).** Begge satser har hjemmel i
+11. **Lovhenvisninger for de to satser (udviklerens afgørelse 2026-08-25).** Begge satser har hjemmel i
     rentelovens **§ 5, stk. 1**, som lyder: «Renten efter forfaldsdagen fastsættes til en årlig rente,
     der svarer til den fastsatte referencesats med et tillæg på 8 pct. Som referencesats anses i denne
     lov den officielle udlånsrente, som Nationalbanken har fastsat henholdsvis pr. den 1. januar og den
     1. juli det pågældende år.» Tillægget på 8 pct. står i **stk. 1** (1. pkt.), og definitionen af
     referencesatsen i **stk. 1, 2. pkt.** Satsfanens to sætninger skal henvise dertil – ikke til
     stk. 2, som er hjemlen til at ændre satsen og hverken fastsætter tillægget eller referencesatsen.
-12. **Fire bevidste afgrænsninger af fladens omfang (brugerafgørelser 2026-08-25).** Alle fire er
+12. **Fire bevidste afgrænsninger af fladens omfang (udviklerens afgørelser 2026-08-25).** Alle fire er
     afgjort som «uændret» og står her, fordi hver af dem ellers ser ud som en oplagt forbedring.
     Ændr dem ikke uden en ny afgørelse:
     - **Beregningsdato forudfyldes ikke.** Feltet er tomt, når fladen åbnes – i både Mineo og

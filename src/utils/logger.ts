@@ -4,7 +4,7 @@
  * Features:
  * - Struktureret logging med timestamp, level, context, stack trace
  * - Persistering til IndexedDB (kun errors og warnings)
- * - Altid aktiv (ikke kun development mode)
+ * - Altid aktiv (ikke kun under udvikling)
  * - Privacy-compliant: Logger IKKE persondata (CPR, navne, etc.)
  */
 

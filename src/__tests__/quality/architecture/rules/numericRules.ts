@@ -90,7 +90,7 @@ const TO_FIXED_ALLOWLIST = new Set([
  * Kriterium for optagelse:
  *   a) Den kanoniske formateringsimplementation bruger toLocaleString internt
  *   b) Logging/fejlrapport: teknisk output der aldrig vises til slutbruger
- *   c) Devtools/debug: kun synligt for udviklere
+ *   c) Devtools/debug: kun synligt for udvikleren
  */
 const TO_LOCALE_STRING_ALLOWLIST = new Set<string>();
 

@@ -113,24 +113,24 @@ procentinterval, datoordensregler og øvrige domæneregler må ikke ligge i pers
 fra feltdefinitioner og domænevalidatorer. En parsebar værdi uden for en domænegrænse skal derfor kunne roundtrippe
 gennem save/load uden at blive muteret eller få hele sektionen droppet.
 
-### Regel 1.2: Brugeren vælger load-adfærden for hvert nyt persisteret felt
+### Regel 1.2: Udvikleren vælger load-adfærden for hvert nyt persisteret felt
 
-Før et nyt persisteret felt implementeres, skal brugeren udtrykkeligt vælge én konkret oplevelse for tidligere
+Før et nyt persisteret felt implementeres, skal udvikleren udtrykkeligt vælge én konkret oplevelse for tidligere
 `.eo`-filer, der ikke indeholder feltet:
 
-1. **Tavs standardværdi:** Feltet udfyldes med den værdi brugeren angiver – også når værdien er schemaets
+1. **Tavs standardværdi:** Feltet udfyldes med den værdi udvikleren angiver – også når værdien er schemaets
    default. Der vises ingen preflight, og den indsatte værdi indgår ikke i `expectedCount`, `loadedCount` eller
    `failedCount`, fordi den ikke kom fra filen.
-2. **Preflight:** Feltet udfyldes med den værdi brugeren angiver, men før indlæsning forklarer preflight, at
+2. **Preflight:** Feltet udfyldes med den værdi udvikleren angiver, men før indlæsning forklarer preflight, at
    den historiske fil ikke indeholdt feltet. Værdien indgår heller ikke i filens optælling.
 
 Valget og den konkrete værdi registreres i `MISSING_PERSISTED_FIELD_POLICIES` i
 `src/persistence/persistedLoadAdapter.ts` med de præcise kildeversioner og feltstien. Listen er tom, så længe
-ingen nuværende feltændring bruger ordningen. En ny policy må aldrig tilføjes på agentens eget skøn: brugerens
+ingen nuværende feltændring bruger ordningen. En ny policy må aldrig tilføjes på agentens eget skøn: udviklerens
 valg og værdi skal foreligge først. `silentDefault` realiserer valg 1; `preflight` realiserer valg 2. Begge
 værdier indsættes af adapteren før schema-parse, mens `.eo`-loaderens optælling fortsat læser det oprindelige
 filgrundlag. Aktiv browser-session har ingen preflightflade; rammes den af en `preflight`-policy, bevares de rå
-sessionbytes og hydreringen stopper fail-closed, indtil brugeren vælger en eksplicit recovery.
+sessionbytes og hydreringen stopper fail-closed, indtil udvikleren vælger en eksplicit recovery.
 
 ### Regel 1.3: Vælg skema-default konservativt
 
@@ -289,7 +289,7 @@ Følgende ændringer påvirker load-kompatibiliteten:
 De er ikke tilladte breaking ændringer af tidligere gemte `.eo`-filer. En ændring skal enten bevare den historiske
 værdi gennem den aktuelle schemaform eller have en eksplicit, testet migrering. Et versionsbump er et sporbarheds-
 værn, ikke en tilladelse til at afvise eller tabe data. Hvis en sikker kompatibilitetsbevarende løsning ikke kan
-bevises, skal arbejdet standses og forelægges brugeren, før schemaet eller load-adfærden ændres.
+bevises, skal arbejdet standses og forelægges udvikleren, før schemaet eller load-adfærden ændres.
 
 `stripUnknownFieldsBySchema()` og schema-defaults må derfor ikke bruges til at håndtere et kendt historisk felt,
 som programmet selv tidligere har gemt. Strip/default er kun korrekt for reelt fremmede eller korrupte data. En
@@ -420,7 +420,7 @@ kræver en samtidig, testet `rejectedInputs`-oversættelse. Versionerne må ikke
 En fremtidig `FILE_FORMAT_VERSION`-ændring kræver en adapter for alle tidligere understøttede container-versioner.
 En gammel container-version må ikke afvises alene, fordi den nye version er indført. En ny container-version skal
 så vidt muligt være additiv og load-tolerant; hvis en adapter ikke kan bygges sikkert, skal ændringen forelægges
-brugeren med den konkrete load-fejl eller afvigelse, før implementering.
+udvikleren med den konkrete load-fejl eller afvigelse, før implementering.
 
 ---
 

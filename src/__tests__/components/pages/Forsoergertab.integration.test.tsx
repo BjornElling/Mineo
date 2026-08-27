@@ -246,7 +246,7 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
  *  2. tooltippet er den universelle tekst, og
  *  3. et KLIK på den inaktive knap giver INGEN besked – hverken under knappen eller i rækken.
  *
- * Punkt 3 er brugerbeslutningen 2026-07-31, gjort universel for hele programmet: en deaktiveret
+ * Punkt 3 er udviklerbeslutningen 2026-07-31, gjort universel for hele programmet: en deaktiveret
  * download-knap svarer aldrig med tekst. Knappen var synligt inaktiv, og brugeren har haft tooltippet;
  * en besked oveni ville forklare det, brugeren allerede kunne se.
  */

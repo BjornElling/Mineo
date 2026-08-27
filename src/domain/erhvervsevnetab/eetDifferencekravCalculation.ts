@@ -686,7 +686,7 @@ export const composeEetDifferencekravCalculation = (
       ) {
         return false;
       }
-      // Decision note:
+      // Beslutningsnote:
       // Reason: differencekrav filtrerer beregningsgrundlaget til afgørelser med virkning på eller før beregningsdatoen.
       // Den generiske "Ingen ASL-afgørelser er indtastet" må i differencekrav kun afhænge af, om der findes
       // nogen gyldige afgørelser overhovedet. Underberegningernes tom-tabel-fejl er derfor misvisende her,

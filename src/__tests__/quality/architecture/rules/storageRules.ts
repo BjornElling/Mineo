@@ -179,7 +179,7 @@ export const caseResetPolicyOwnership = forbidCalls({
 });
 
 /**
- * `Slet alt` afsluttes INDE i appen (brugerbeslutning).
+ * `Slet alt` afsluttes INDE i appen (udviklerbeslutning).
  *
  * Den fulde `window.location`-genindlæsning er fjernet: load og hel-sags-clear bruger samme
  * autoritative replacement-grænse og skal ikke ende to forskellige steder. Reglen er en

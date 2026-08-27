@@ -483,7 +483,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     // Overenskomst-sporet havde tidligere sin EGEN navn-kun-visning her, så samme overenskomst hed
     // `Industriens overenskomst` i dokumentet og `Industriens overenskomst (3F / DI)` i EO-inspektionen.
-    // `resolveValgtReguleringDisplay` bærer nu begge steder – navn OG parter (brugerbeslutning 2026-07-31).
+    // `resolveValgtReguleringDisplay` bærer nu begge steder – navn OG parter (udviklerbeslutning 2026-07-31).
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
     const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);

@@ -32,7 +32,7 @@ type FileSystemHandleWithPermissions = FileSystemFileHandle & {
  * Når en handle er persisteret (IndexedDB) og hentes frem efter en app-genstart, kan brugerens
  * read-permission være udløbet/trukket tilbage. Uden dette tjek kaster `getFile()` en rå
  * `NotAllowedError`, som ville nå brugeren som teknisk engelsk tekst. Vi forsøger derfor at
- * gen-anmode om tilladelse (kun muligt i en user-gesture) og fejler ellers fail-closed med en
+ * gen-anmode om tilladelse (kun muligt i en brugerhandling) og fejler ellers fail-closed med en
  * dansk besked. `queryPermission`/`requestPermission` er endnu ikke i alle TS DOM-libs, så de
  * tilgås via feature-detection frem for en usikker cast.
  */

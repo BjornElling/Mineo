@@ -3,25 +3,27 @@
 ## Projekt
 Mineo er en trust-kritisk, 100 % client-side erstatningsberegner for danske arbejdsskadesager. Forkerte beregninger, datatab eller uforudsigelig adfærd er uacceptabelt.
 
-**Fase:** Programmet er funktionelt næsten færdigt og fungerer i brugerens øjne, men er i intern testfase – der er ingen eksterne brugere. Arkitekturen er vokset organisk og er mange steder ustruktureret. Opgaven er at færdiggøre programmet til produktion: gennemstruktureret, ensartet og fejlfrit. Der er ingen tidshorisont; slutproduktets kvalitet er det eneste mål.
+**Fase:** Programmet er offentliggjort på mineo.dk og bruges af eksterne brugere. Den fastlagte feature-flade er implementeret. Arbejdet består af løbende vedligeholdelse, kvalitetssikring og mindre forbedringer af de eksisterende funktioner. Der er ingen tidshorisont; slutproduktets kvalitet er det eneste mål.
 
-**Feature-omfang er låst.** Alle store features er implementeret, og der kommer ingen flere overordnede beregningstyper til. Konkret betyder det fx ingen nye erstatningstyper, der skal tilføjes i sidemenuen. Der kan stadig komme mindre justeringer og tilføjelser til eksisterende beregningslogik og UI, men den overordnede feature-flade er fastlagt. Antag derfor ikke fremtidige beregningstyper i arkitekturen – favorisér forenkling og konsolidering af det eksisterende frem for udvidelsespunkter til hypotetiske nye features (jf. [Konvergens](#konvergens-rød-tråd)).
+**Nuværende feature-flade.** Den offentliggjorte feature-flade og de overordnede beregningstyper er implementeret. Der findes dog planlagte, afgrænsede fremtidige udviklingsprojekter, som ikke er en del af den aktuelle funktionalitet, blandt andet autofill-suggest og beregning af særligt ferietillæg. De beskrives i `docs/implementation/` eller relevante kontrakter og kan implementeres ved lejlighed efter udviklerens prioritering. Antag ikke yderligere hypotetiske beregningstyper eller features i arkitekturen – favorisér forenkling og konsolidering af det eksisterende frem for udvidelsespunkter uden et konkret projekt (jf. [Konvergens](#konvergens-rød-tråd)).
 
 **Stack:** TypeScript (strict) · React 19 · Vite 7 · MUI 7 · Zustand 5 · Zod 4 · jsPDF.
 
 ## Roller
-To udviklere: dig (agenten) og brugeren. Ingen andre.
+Der er én menneskelig udvikler: Bjørn. Han bruger Codex og Claude Code som programmeringsassistenter. I denne fil
+betyder **brugeren/brugere** altid de eksterne personer, der anvender Mineo på mineo.dk, mens **udvikleren** altid
+betyder Bjørn.
 
 - **Du** har det fulde ansvar for al kode og træffer **alle** koderelaterede beslutninger selv – arkitektur, struktur, navngivning, oprydning, refaktorering, tekniske tradeoffs. Du tænker langsigtet på slutproduktet, leder aktivt efter fejl, mangler og problemer, og retter dem – også tilfældighedsfund i andre dele af programmet end det aktuelle scope, og også fejl du ikke selv har introduceret.
-- **Brugeren** ejer al UI/UX og al beregningslogik. Brugeren har ingen kodeerfaring og forstår ikke koderelaterede spørgsmål.
+- **Udvikleren** ejer al UI/UX og al beregningslogik. Ændringer på disse områder forelægges udvikleren som konkrete oplevelser for brugeren.
 
 ## Mandat og godkendelsesgrænser
-- **Bredt kodemandat.** Du gennemfører omfattende, fundamentale og greenfield-refaktoreringer af intern kode og arkitektur uden at spørge. Omfang er ingen hindring, og breaking ændringer i interne runtime-API'er er tilladt, når de giver et bedre slutprodukt. Dette mandat gælder **ikke** persisterede brugerdata: en ændring må aldrig gøre en tidligere gyldigt gemt `.eo`-fil ulæselig, ændre dens indlæste sagsdata tavst eller indføre en ny load-fejl/-advarsel uden brugerens forudgående godkendelse.
+- **Bredt kodemandat.** Du gennemfører omfattende, fundamentale og greenfield-refaktoreringer af intern kode og arkitektur uden at spørge. Omfang er ingen hindring, og breaking ændringer i interne runtime-API'er er tilladt, når de giver et bedre slutprodukt. Dette mandat gælder **ikke** persisterede brugerdata: en ændring må aldrig gøre en tidligere gyldigt gemt `.eo`-fil ulæselig, ændre dens indlæste sagsdata tavst eller indføre en ny load-fejl/-advarsel uden udviklerens forudgående godkendelse.
 - **Forelæg altid til godkendelse, før du ændrer:**
   - **UI/UX** – men kun når ændringen får **egentlig synlig betydning** for brugeren (layout, tekster, flow, udadvendt komponentadfærd). Bug fixes der genskaber tilsigtet, dokumenteret adfærd kræver ikke godkendelse.
   - **Beregningslogik** – alt der kan påvirke de tal programmet producerer, eller de regler beregningerne følger. Du må aldrig ændre beregningslogik uden forudgående godkendelse.
   - **Fremtidig persistenskompatibilitet** – alle ændringer af `.eo`-container, persisted schemas, feltadresser, rækkeidentiteter, enum-værdier, migrations- og sanitization-adfærd samt relevante browserlagrede data skal vurderes før implementering. Tidligere gyldigt gemte `.eo`-filer skal fortsat kunne indlæses med deres sagsdata bevaret. Hvis en ændring kan give brugeren en fejl, preflight-afvigelse, ny advarsel, mistet værdi, ændret standardværdi eller anden ændret oplevelse ved load, skal ændringen forelægges først med et konkret eksempel på den gamle fil og den nye load-adfærd. Ingen sådan ændring må skjules bag et versionsbump eller en hård afvisning.
-- **Forelæg som konkrete brugeroplevelser.** Antag at brugeren ikke forstår kode. Hvert valg forklares ud fra konkrete eksempler på, hvad brugeren ser, hvad der sker, og hvad der bliver anderledes i praksis. Oversæt teknik til oplevet adfærd; lad aldrig valget hvile på interne begreber.
+- **Forelæg som konkrete brugeroplevelser.** Forklar udvikleren hvert valg ud fra konkrete eksempler på, hvad brugeren ser, hvad der sker, og hvad der bliver anderledes i praksis. Oversæt teknik til oplevet adfærd; lad aldrig valget hvile på interne begreber.
 - **Giv besked** hvis du opdager forhold, der kunne give UI/UX-problemer, fremstår afvigende fra programmets øvrige UI/UX, eller hvor du forudser problemer – selv hvis du ikke ændrer noget.
 - **Vurdér ikke** om domæne-/juridiske regler er korrekte; implementér dem præcis som angivet. Bemærker du afvigende, forkert eller ulogisk beregningslogik, forelægger du det.
 - **Lav ikke ændringer for ændringernes skyld.** Hver ændring skal forbedre korrekthed, struktur, klarhed eller vedligeholdbarhed.
@@ -34,7 +36,7 @@ Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved v
 - Brug det mest reproducerbare niveau, der dækker behovet: (1) eksisterende eller nye Playwright E2E-tests til stabil adfærd og regressionsbeskyttelse; (2) den projektlokale `playwright-cli`-skill til hurtig udforskning og konkret kontrol; (3) Playwright MCP til længere interaktive forløb, hvor vedvarende browserkontekst og accessibility snapshots er en fordel. MCP-konfigurationen ligger i `.codex/config.toml` og bliver synlig efter genstart af Codex-sessionen; CLI og E2E-tests kan altid køres direkte fra terminalen.
 - **To adskilte Playwright-træer.** `@playwright/test` er projektets E2E-motor i `node_modules`; `@playwright/cli` og `@playwright/mcp` pinner en anden Playwright-runtime og bor derfor i deres eget træ under `.agents/tools` (installeres med `npm run tools:install`). Læg dem aldrig i projektets `package.json`: begge familier deklarerer kommandoen `playwright`, og npm kan kun give den ene `node_modules/.bin/playwright` – så kører `npx playwright test` e2e-filerne med en anden runner-instans, end filerne importerer, og hver fil fejler med «did not expect test.describe() to be called here». `npm run check:tool-isolation` (del af `check:dependencies`) håndhæver adskillelsen.
 - Før ad hoc-browserstyring kontrolleres installationen med `node .agents/tools/playwright-cli.mjs --version`. Mangler browserbinæren, installeres den med `npx playwright install chromium`. Start først derefter udviklingsserveren.
-- Start Mineo uden Vites `--open`, så brugerens almindelige browser ikke åbnes: kør først `npm run generate:build-info` og derefter `npx vite --config vite.mineo.config.ts --host 127.0.0.1`.
+- Start Mineo uden Vites `--open`, så udviklerens almindelige browser ikke åbnes: kør først `npm run generate:build-info` og derefter `npx vite --config vite.mineo.config.ts --host 127.0.0.1`.
 - `npm run test:e2e` bygger og starter selv en isoleret E2E-testserver gennem `playwright.config.ts`. Brug `npm run test:e2e:headed`, når det er relevant at se browseren; automatiseret kontrol køres ellers headless.
 - **Baner frem for fuld matrix.** Suiten kørte før hver test i alle 16 kombinationer af fire browsere og fire viewporter – 1232 kørsler af 77 tests, omkring tre kvarter. Nu vælger den enkelte test sin bane med et tag fra `e2e/support/lanes.ts`:
   - **ingen tag** → basisbanen: én kørsel i Chrome ved 1536×864. Det rigtige valg for alt, der handler om Mineos egen adfærd.
@@ -60,7 +62,7 @@ Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved v
 
 ## Git-rettigheder
 Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktive arbejdsværktøjer som `git stash` i det omfang, du finder det relevant. Men du må ikke ændre den historik eller de ændringer, der allerede ligger i git. Konkret:
-- **Commit kun på eksplicit besked.** Du committer kun, når brugeren udtrykkeligt beder om det. Udgangspunktet er, at du committer **alle** uncommittede ændringer i working tree. Hvis brugeren specifikt beder om kun at committe ændringerne fra den konkrete opgave, afgrænser du committen til disse ændringer og lader øvrige uncommittede ændringer stå urørte. Du committer som udgangspunkt altid til main, medmindre brugeren specifikt beder om at der oprettes en branch.
+- **Commit kun på eksplicit besked.** Du committer kun, når udvikleren udtrykkeligt beder om det. Udgangspunktet er, at du committer **alle** uncommittede ændringer i working tree. Hvis udvikleren specifikt beder om kun at committe ændringerne fra den konkrete opgave, afgrænser du committen til disse ændringer og lader øvrige uncommittede ændringer stå urørte. Du committer som udgangspunkt altid til main, medmindre udvikleren specifikt beder om at der oprettes en branch.
 
 ### Commit-praksis (hold det simpelt)
 - **Lav opdeling let, ikke perfekt.** Saml ændringer der tydeligt hører sammen, i hver sin commit med en dækkende besked. Men brug minimal energi på det: grupér efter hvad der er åbenlyst sammenhængende, og acceptér at en enkelt fil eller hunk kan lande i en nabocommit hvor den ikke passer 100 %. Det er et acceptabelt udfald – ikke noget at bruge tid på at jagte.
@@ -75,10 +77,10 @@ Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktiv
 - **Pre-commit hook (forventet).** En Husky-hook (`.husky/pre-commit`) kører automatisk ved hvert commit: encoding/mojibake-tjek (`check:mojibake`) og filnavns-casing-tjek (`check:filename-case`). Programversion regenereres ikke i pre-commit; build-info genereres af `scripts/generate-build-info.mjs` før dev/build/test/CI. Hooken printer `HUSKY PRE-COMMIT KØRER`. Omgå den aldrig med `--no-verify`. Fejler den (typisk mojibake eller casing), så ret årsagen i stedet for at springe den over.
 
 ## Reviews og subagents
-En væsentlig del af arbejdet er reviews. Ved hvert review skal du overveje at uddelegere til subagents, og du gør det gerne – er du i tvivl, så gør det. Du har fri beslutningsret over hvornår og hvor mange. Begrundelse: dit eget kontekstvindue bliver hurtigt ustruktureret ved brede gennemgange; fan-out til subagents holder hovedtråden ren, så du kun beholder konklusionerne, ikke fil-dumps.
+En væsentlig del af arbejdet er reviews. Ved hvert review skal du overveje at uddelegere til subagents, og du gør det gerne – er du i tvivl, så gør det. Du har fri beslutningsret over hvornår og hvor mange. Begrundelse: dit eget kontekstvindue gør det hurtigt svært at bevare overblikket ved brede gennemgange; fan-out til subagents holder hovedtråden ren, så du kun beholder konklusionerne, ikke fil-dumps.
 
 ## Krav-håndtering
-- Brugeren leverer krav, hensigt og domæneregler.
+- Udvikleren leverer krav, hensigt og domæneregler.
 - Er krav tvetydige, modstridende eller ufuldstændige: stop og påpeg det, før du koder.
 - Sig fra, hvis du ikke forstår den relevante del af systemet – gæt ikke; markér antagelser eksplicit.
 
@@ -93,6 +95,7 @@ Sproget skal være ensartet overalt efter disse regler – afvigelser rettes, hv
 - **Brugervendt tekst:** dansk (jf. ovenfor).
 - **Kontrakter** (`src/contracts/*.md`): dansk uden undtagelse.
 - **Kodekommentarer, JSDoc og øvrige docs (`docs/`):** dansk prosa. Etablerede tekniske fagudtryk uden naturlig dansk pendant beholdes på engelsk i deres faste form (fx *blur*, *focus state*, *debounce*, *commit*, *render*, *mount*) – oversæt dem ikke kunstigt. Selve sætningen, forklaringen og strukturen er dansk; kun det enkelte fagudtryk er engelsk. Skriv ikke hele engelske kommentar- eller dokumentafsnit.
+- **Roller i prosa:** *bruger/brugere* betyder altid eksterne personer, der anvender Mineo på mineo.dk. *Udvikleren* betyder altid Bjørn. Codex og Claude Code omtales som programmeringsassistenter, ikke som personer.
 - Identifikatorer i koden (variabel-, funktions-, type- og filnavne) er ikke omfattet og ændres kun efter de almindelige struktur- og navngivningsregler.
 
 ### Tankestreg: en-dash, aldrig em-dash
@@ -143,10 +146,10 @@ PDF-outputtet er upåvirket af skiftet: `pdfTextUtils.ts` mapper både `–` og 
 
 ## Save/load (.eo) – trust-kritisk
 - Stille datatab er uacceptabelt. Save inkluderer alt canonical brugerinput og kun schema-valideret brugerinput. Rejected input overlever F5 i sessionen, men blokerer `.eo`-save og skrives aldrig i filen. Persistér kun brugerindtastet/-valgt data; genberegn afledte værdier efter load.
-- Load er atomisk medmindre brugeren eksplicit accepterer delvis load i preflight. Ingen in-memory state muteres før preflight-beslutningen er bekræftet. Ved load/apply-fejl: bevar nuværende state uændret og vis eksplicit fejl.
+- Load er atomisk medmindre udvikleren eksplicit accepterer delvis load i preflight. Ingen in-memory state muteres før preflight-beslutningen er bekræftet. Ved load/apply-fejl: bevar nuværende state uændret og vis eksplicit fejl.
 - Samme Zod-schemas (eller direkte schema-afledte validatorer) validerer både pre-save state og loaded `.eo`-data før apply.
 - **Forward/backward-tolerant load:** En tidligere udgivet `.eo`-fil skal indlæses uden fejl, ny preflight eller ændret sagsdata. Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel. Omdøbte/flyttede felter, ændrede enum-værdier og andre kendte historiske strukturer skal bevares gennem eksakte typed migratorer eller stabile load-aliaser. App-settings/device-lokale defaults må ikke injiceres under load for at få en gammel fil til at se komplet ud. Ukendte eller reelt ugyldige data, som ikke stammer fra en tidligere udgivet Mineo-fil, håndteres fortsat fail-closed eller via den eksisterende preflight.
-- **Preflight** viser forventede/loadbare/fejlende counts og brugervenlige fejlårsager, med præcis disse valg: "Indlæs trods fejl", "Send fejloplysninger", "Stop og gør intet". En ny preflight eller ændret fejltekst som følge af en planlagt ændring kræver brugerens forudgående godkendelse.
+- **Preflight** viser forventede/loadbare/fejlende counts og brugervenlige fejlårsager, med præcis disse valg: "Indlæs trods fejl", "Send fejloplysninger", "Stop og gør intet". En ny preflight eller ændret fejltekst som følge af en planlagt ændring kræver udviklerens forudgående godkendelse.
 - Vellykket fejlfrit load skal opfylde streng save→load round-trip for brugerinput. Gamle interne runtime-modeller, hooks og API'er må stadig slettes ved greenfield-refaktorering; den regel forbyder ikke en afgrænset, testet kompatibilitetsadapter ved persistensgrænsen.
 
 ## Kanoniske inputgrænser

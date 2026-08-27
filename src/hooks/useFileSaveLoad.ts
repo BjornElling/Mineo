@@ -494,7 +494,7 @@ export const useFileSaveLoad = ({
     if (pending.phase !== 'preflight') return;
     let awaitsOverwriteDecision = false;
     // Gå direkte fra preflight til overskrivning. Den fælles dialog beholder dermed sit
-    // overlay-/historik-ejerskab gennem begge brugerbeslutninger; et kort `idle` ville lukke det
+    // overlay-/historik-ejerskab gennem begge udviklerbeslutninger; et kort `idle` ville lukke det
     // første overlay, hvis asynkrone history-oprydning ellers kan ramme den netop åbnede efterfølger.
 
     try {

@@ -14,7 +14,7 @@ Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem 
 - Gennemgået: 2026-08-20 · commit `47c7739c`
 - Tilbagemeldinger gennemført: 2026-08-20. Elleve fund rettet (BB-062, BB-063, BB-064, BB-065,
   BB-066, BB-068, BB-069, BB-070, BB-071, BB-072, BB-073 – se hver enkelt for detaljer), to afvist
-  af brugeren (BB-067, BB-074, begge noteret under fundet).
+  af udvikleren (BB-067, BB-074, begge noteret under fundet).
 - Afprøvet i: Chrome, 1536×864, headless via `playwright-cli`. Alle tal og tekster nedenfor er
   aflæst i den kørende app, ikke udledt af koden, medmindre andet står.
 - Console under hele gennemgangen: 183 beskeder, **0 errors, 0 warnings.**
@@ -73,7 +73,7 @@ Jeg er enig i dit fund. Den gule advarsel på feltet bør ikke være afhængig a
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger (juridisk grænse og UI-tekst)
+- **Beslutning:** Afventer udvikleren (juridisk grænse og UI-tekst)
 - **Sådan fremprovokeres det:** Udfyld sagen, og sæt Méngrad til `1`.
 - **Det sker (målt):** «Grundbeløb: 1 % mén á 10.135,00 kr. → 10.135,00 kr.», «Aldersreduktion, 45 år
   = - 6 % → - 608,00 kr.», «Beregnet méngodtgørelse 9.527 kr.», og downloadknappen er aktiv. Ingen
@@ -99,7 +99,7 @@ Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den in
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-19--rødt-læses-som-tomt-af-den-flade-der-låner-værdien`
 - **Prioritet:** Høj
 - **Beslutning:** Agent afgør for mekanikken (programmet har allerede løsningen, se nedenfor);
-  **Afventer bruger** for ordlyden, hvis den skal være en anden end Forsørgertabs.
+  **Afventer udvikleren** for ordlyden, hvis den skal være en anden end Forsørgertabs.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `10-06-2020` (gyldig), Fødselsdato `01-01-2035`.
   2. Gå til Varige mén → Ménberegning.
@@ -132,7 +132,7 @@ Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den in
 Jeg anerkender præmissen for din vurdering, men vil gerne afsøge en lidt anden løsning.
 Generelt vil jeg gerne forsimplet orienteringerne til brugeren om fejl og mangler i tooltip-meddelelser og disse inline-meddelelser, så der konsekvent bruges to tilbagemeldinger om henholdsvis at indtastning mangler eller at der er fejl i indtastning, altså i tråd med hvad der sker i tooltip på download-knappen. Selve den udspecificerede fejlmeddelelse, hvis der er en, fremgår af det felt, hvor indtastningen faktisk er foretaget eller mangler. Så her kunne det være rart at inline-teksten sondrede mellem, om den indtastede værdi mangler eller om der er indtastet en ugyldig værdi, og da skriver det.
 
-**Rettet (2026-08-20), efter brugerens alternative løsning.** Fødselsdato-, skadedato- og
+**Rettet (2026-08-20), efter udviklerens alternative løsning.** Fødselsdato-, skadedato- og
 alder-rækkerne viser nu ÉN af de to universelle standardbeskeder (`ACTION_BLOCKED_MISSING_INPUT_MESSAGE`
 = "Indtastning mangler" / `ACTION_BLOCKED_INVALID_INPUT_MESSAGE` = "Fejl i indtastning", samme
 konstanter som download-knappens tooltip bruger via `actionGate.ts`) i stedet for at citere feltets
@@ -143,7 +143,7 @@ specifikke fejltekst. Den udspecificerede fejl står stadig ordret i tooltip og 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-19--rødt-læses-som-tomt-af-den-flade-der-låner-værdien`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger (UI-tekst)
+- **Beslutning:** Afventer udvikleren (UI-tekst)
 - **Sådan fremprovokeres det:** Skadedato `10-06-2020`; skriv Beregningsdato `01-01-2019`.
 - **Det sker (målt):** Feltet bliver rødt med «Datoen kan ikke være før skadedatoen (10-06-2020)».
   Rækken nedenfor skifter label til «Sats per méngrad i beregningsåret» og viser teksten
@@ -230,7 +230,7 @@ Jeg er ikke afvisende over for din anbefaling, men jeg er bange for, at resultat
 - **Type:** Edge case
 - **Rækkevidde:** Lokal (men se kandidatlisten)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger (hvad knappen skal gøre, når dags dato ikke er en lovlig værdi)
+- **Beslutning:** Afventer udvikleren (hvad knappen skal gøre, når dags dato ikke er en lovlig værdi)
 - **Sådan fremprovokeres det:** Beregningsdatoens tilladte interval slutter ved den sidste dag i
   det seneste år med méngrad-sats, i dag `31-12-2026`. Målt: `01-01-2027` afvises med «Dato skal
   være mellem 10-06-2020 og 31-12-2026». Knappen «Indsæt dags dato» indsætter dags dato uden at
@@ -300,7 +300,7 @@ Accepteret efter tilbagevendende drøftelse: rettes. Fundet handler ikke om knap
    anden en lokal patch (`onMouseDown={(e) => e.preventDefault()}` kun på denne knap). Et
    opfølgende sundhedstjek hos Codex konkluderede entydigt, at den globale ændring ville være
    overkompliceret (ny to-vejs disabled-semantik, risiko for Tab-kontrakten på alle andre
-   download-knapper i programmet) for et snævert, lavfrekvent scenarie. Brugeren valgte den lokale
+   download-knapper i programmet) for et snævert, lavfrekvent scenarie. Udvikleren valgte den lokale
    patch. Implementeret som en ny, valgfri `onMouseDown`-prop på `DownloadIconButton`/
    `DocumentDownloadButton` (additiv, ingen anden kaldsside påvirket), brugt kun på Varige méns
    aktive downloadknap.
@@ -315,7 +315,7 @@ Regressionstest tilføjet i `MenberegningTab.integration.test.tsx`.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster (M-13-familien: to udgaver af samme tal)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (hvilken af de to former der er den rigtige)
+- **Beslutning:** Afventer udvikleren (hvilken af de to former der er den rigtige)
 - **Sådan fremprovokeres det:** Hent PDF'en for en færdig sag og sammenlign nederste linje med
   skærmen.
 - **Det sker (målt i en hentet PDF):** Dokumentet skriver «Beregnet méngodtgørelse **364.155,00
@@ -341,7 +341,7 @@ Jeg anerkender fejlen og er enig. Løsningen bør være ensartet udseende på si
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (går på tværs af sidens to faner)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (UI-tekst)
+- **Beslutning:** Afventer udvikleren (UI-tekst)
 - **Sådan fremprovokeres det:** Læs satsrækken på Ménberegning, og skift derefter til fanen Satser.
 - **Det sker (målt):** Ménberegning: «Sats **per** méngrad i år 2026 → 11.035 kr.». Fanen Satser:
   kolonnerne «**Opgørelsesår**» og «Sats **pr.** méngrad» → «2026 | 11.035 kr.». Samme tal, samme
@@ -368,14 +368,14 @@ havde den samme "per méngrad i år"-formulering og er rettet til samme tekst so
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger (navngivning er brugerens regel)
+- **Beslutning:** Afventer udvikleren (navngivning er udviklerens regel)
 - **Sådan fremprovokeres det:** Stamdata: Skadestype = `Erhvervssygdom`, dato `01-06-2020`.
   Gå til Ménberegning.
 - **Det sker (målt):** Rækken hedder korrekt «Anmeldelsesdato → 1. juni 2020», og
   beregningsdatoens fejl siger korrekt «Datoen kan ikke være før **anmeldelsesdatoen** (01-06-2020)».
   Rækken imellem hedder stadig «Alder på **skadestidspunkt**» – og alderen er regnet på præcis den
   anmeldelsesdato, linjen ovenover netop omdøbte. Samme label står i den hentede PDF.
-- **Det er uhensigtsmæssigt fordi:** brugerens regel (M-02) er, at «Skadedato» og «Anmeldelsesdato»
+- **Det er uhensigtsmæssigt fordi:** udviklerens regel (M-02) er, at «Skadedato» og «Anmeldelsesdato»
   er de to eneste korrekte betegnelser for den dato, og at **alle** tekster om den skal følge
   skadestypen. Feltet og fejlbeskederne gør det; de afledte labels blev ikke omfattet. For en
   erhvervssygdom findes der ikke noget «skadestidspunkt», og linjen fortæller derfor brugeren, at
@@ -405,7 +405,7 @@ gennemgangs scope.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (UI-tekst; **ikke** et forslag om at skjule rækken)
+- **Beslutning:** Afventer udvikleren (UI-tekst; **ikke** et forslag om at skjule rækken)
 - **Sådan fremprovokeres det:** Fødselsdato `01-01-1995`, Skadedato `01-06-2020` (alder 25), Méngrad
   `33`.
 - **Det sker (målt på skærm og i PDF):** «Aldersreduktion, 25 år = **- 0 %** → **- 0,00 kr.**», og
@@ -413,7 +413,7 @@ gennemgangs scope.
 - **Det er uhensigtsmæssigt fordi:** «minus nul kroner» er en regnestørrelse, ikke en oplysning.
   Rækken **skal** blive stående (M-13: nul er en oplysning – at der ikke er nogen aldersreduktion,
   er netop noget sagen afhænger af), men fortegnet foran et nul gør linjen til et regnestykke, der
-  ser ufærdigt ud, og det rammer hver eneste skadelidt under 40 år.
+  fremstår som et misvisende regneudtryk, og det rammer hver eneste skadelidt under 40 år.
 - **Bedre ville være:** samme række uden fortegn, når reduktionen er nul: «Aldersreduktion, 25 år =
   0 %» → «0,00 kr.». Rækken er dermed stadig der og siger stadig det samme.
 - **Andre steder det kan gælde:** andre reduktions-/fradragslinjer, der sætter et fast `-` foran en
@@ -430,7 +430,7 @@ Jeg er enig.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (synlig tekst)
+- **Beslutning:** Afventer udvikleren (synlig tekst)
 - **Sådan fremprovokeres det:** Se det tomme Méngrad-felt; skriv derefter `0` og tryk Tab.
 - **Det sker (målt):** Det tomme felt viser den grå pladsholder `0`. Værdien `0` afsluttes rødt med
   «Værdi skal være mellem 1 og 120».
@@ -575,7 +575,7 @@ fra, og hvad «Beregningsår» betyder.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger (juridisk grundlag)
+- **Beslutning:** Afventer udvikleren (juridisk grundlag)
 - **Sådan fremprovokeres det:**
   1. Åbn Varige mén → fanen Satser og læs linjen over tabellen.
   2. Gå til sidemenuens **Satser** (satsår 2026) og find den samme sats.
@@ -625,7 +625,7 @@ kræver, at de to henførsler er *uforenelige* – ikke blot forskelligt afgræn
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (synlig tekst)
+- **Beslutning:** Afventer udvikleren (synlig tekst)
 - **Sådan fremprovokeres det:** Åbn fanen Satser uden først at have været på fane 1, og læs
   kolonneoverskriften «Beregningsår».
 - **Det sker (målt):** Tabellens eneste forklarende linje er lovhenvisningen; ordet «Beregningsår»
@@ -656,7 +656,7 @@ lovhenvisning ELLER af, hvilken af sagens datoer der styrer satsopslaget.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (UI)
+- **Beslutning:** Afventer udvikleren (UI)
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til `01-01-2026` på fane 1 (satsrækken viser «… i beregningsår 2026 →
      11.035 kr.»).
@@ -728,7 +728,7 @@ linjer går derfor op, også med en øre-sats. Det er dækket af en test.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger (synlig tekst)
+- **Beslutning:** Afventer udvikleren (synlig tekst)
 - **Sådan fremprovokeres det:** Fødselsdato `01-01-1980`, Skadedato `01-01-2020`, Méngrad `10`,
   Beregningsdato `01-01-2026`. Læs fane 1 ovenfra.
 - **Det sker (målt):** «Sats pr. méngrad i beregningsår 2026 → **11.035 kr.**» og tre linjer længere

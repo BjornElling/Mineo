@@ -4,7 +4,7 @@
 // øverste venstre hjørne, renderet uden for shellen. Sagen lå uskadt i fanens hukommelse, men skærmen
 // så ud, som om programmet var væk.
 //
-// Brugeren accepterede en dedikeret 404-side på TO betingelser, og de er det, denne fil måler:
+// Udvikleren accepterede en dedikeret 404-side på TO betingelser, og de er det, denne fil måler:
 //
 //   1. Siden må ikke blive en genvej ind bag login-siden.
 //   2. Mobilen skal fortsat kun have sin egen enkelte «Desværre»-side.

@@ -21,7 +21,7 @@ type InlineActionButtonProps = Readonly<{
  * Knap til en page-lokal hjælpehandling ved siden af et felt (fx «Indsæt» i sygedagpenge-hjælperen).
  *
  * **Deaktiveret tilstand følger den universelle regel for grå knapper** (`page-component-contract.md`
- * §11.1, generaliseret fra downloadknapperne ved brugerbeslutning 2026-08-15):
+ * §11.1, generaliseret fra downloadknapperne ved udviklerbeslutning 2026-08-15):
  *
  *  - Knappen bliver stående som nedtonet og inaktiv – den forsvinder ikke.
  *  - Årsagen vises KUN i tooltippet, kun ved hover.

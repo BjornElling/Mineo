@@ -164,7 +164,7 @@ export const buildOffentligOverenskomstSegmenter = (
         offentlig.loentrin,
         offentlig.loengruppe
       );
-      // Decision note: Vi bruger første tilgængelige sats som proxy i intervallet
+      // Beslutningsnote: Vi bruger første tilgængelige sats som proxy i intervallet
       // [STORE_BEDEDAG_START, effectiveBase.startIso) for at kunne materialisere
       // den særskilte Store Bededag-regulering fra 01-01-2024 uden at antage
       // øvrige lønstigninger før første dækkede satsdato.

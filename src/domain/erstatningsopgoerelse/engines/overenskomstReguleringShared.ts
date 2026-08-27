@@ -23,7 +23,7 @@ import type { FormulaComponents } from './reguleringFormulaUtils';
 // derfor kunne vise et forkert kontrol-indeks (falsk `control:sammentaelling_mismatch`).
 // Resolveren nedenfor er den ENESTE kilde til tillæggets kroneværdi og aktiveringsdato.
 // Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
-// kontrol-lagets decimal-konvention, jf. B9) – kun resolutionen af user-input deles.
+// kontrol-lagets decimal-konvention, jf. B9) – kun opløsningen af brugerinput deles.
 // =============================================================================
 
 /**

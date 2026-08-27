@@ -428,11 +428,13 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ---
 
-## 16. Udestående teknisk gæld
+## 16. Tekniske afgrænsninger
 
 ### A. Regex-baseret id-parsing i `eoInspektionPageViewModel.ts`
 
-Se afsnit 11 og 13. En mere robust løsning ville være eksplicit metadata på `EoRowModel` (fx `employmentId?: string`). Udestår som forbedring.
+Se afsnit 11 og 13. Den nuværende parsing er en bevidst, lokal afgrænsning. En eksplicit metadata-egenskab på
+`EoRowModel` (fx `employmentId?: string`) kan vurderes igen, hvis row-identiteterne udvides eller den nuværende
+parsing ikke længere er entydig.
 
 ### B. `EOInspektionPageViewModel` eksponerer både rows og synlighedsflag
 

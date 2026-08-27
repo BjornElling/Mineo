@@ -50,7 +50,7 @@ Afstem inventaret begge veje: enhver synlig editor skal have en kildeidentitet, 
 
 En række er ikke dækket, fordi én happy path virker. Alle relevante partitioner, branches, sekvenser, downstream-forbrugere og understøttede browsere skal være håndteret.
 
-For den globale shell er minimumshøjden en selvstændig matrixdimension. Auditér udvidet og sammenfoldet sidemenu ved 1536×864 samt 1920×1080 i alle fire browsere og PWA-preview. Kontroller sidste menupunkt, sidste globale handling, fokus ved `Tab`/`Shift+Tab`, aktivering med `Enter`, routeændring og faktisk synlig/klikbar geometri. Sidemenuen må ikke have egen intern lodret scroll; en clipped eller ikke-fokuserbar kontrol er et fund, også hvis resten af siden kan scrolles. En eventuel komprimering af menuens rækker eller afstande er en markant synlig UI-ændring og skal behandles efter brugerens godkendelsesregel.
+For den globale shell er minimumshøjden en selvstændig matrixdimension. Auditér udvidet og sammenfoldet sidemenu ved 1536×864 samt 1920×1080 i alle fire browsere og PWA-preview. Kontroller sidste menupunkt, sidste globale handling, fokus ved `Tab`/`Shift+Tab`, aktivering med `Enter`, routeændring og faktisk synlig/klikbar geometri. Sidemenuen må ikke have egen intern lodret scroll; en clipped eller ikke-fokuserbar kontrol er et fund, også hvis resten af siden kan scrolles. En eventuel komprimering af menuens rækker eller afstande er en markant synlig UI-ændring og skal behandles efter udviklerens godkendelsesregel.
 
 ## 3. Inputpartitioner
 

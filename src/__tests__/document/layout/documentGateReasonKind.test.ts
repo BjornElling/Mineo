@@ -326,7 +326,7 @@ describe('resolvePrimaryGateReason – forrang mellem klasser', () => {
   });
 
   /**
-   * OMVENDT af den oprindelige model (brugerbeslutning 2026-08-13). `specific` vandt før alt, men efter
+   * OMVENDT af den oprindelige model (udviklerbeslutning 2026-08-13). `specific` vandt før alt, men efter
    * lempelsen er et ordret citat kun tilladt for præcis ÉN felt-/rækkefejl. Er en anden klasse også i spil,
    * dækker blokeringen mere end den ene fejl, og at fremhæve den ville få brugeren til at tro, den var den
    * eneste. `specific` er derfor LAVEST rangerende.

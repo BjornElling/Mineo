@@ -14,7 +14,7 @@ export type InterestRatesTableProps = Readonly<{
 
 /**
  * Negative referencesatser vises med luft mellem minus og tal («- 0,45 %»). Formen er et bevidst
- * visuelt valg for satstabellerne (brugerbeslutning 2026-08-25, BB-095) og må IKKE bredes til
+ * visuelt valg for satstabellerne (udviklerbeslutning 2026-08-25, BB-095) og må IKKE bredes til
  * `formatPercent`, som resten af programmets procentvisninger bruger. Fortegnet sættes eksplicit
  * frem for som en `replace` på det formaterede resultat, så formen ikke afhænger af, hvor i strengen
  * det første bindestreg-tegn tilfældigvis står.

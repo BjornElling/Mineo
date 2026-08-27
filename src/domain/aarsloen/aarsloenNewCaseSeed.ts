@@ -12,7 +12,7 @@ import type { LoenPaaHelligdage } from '../../types/loen';
 // igennem på Årsløn, selv om indstillingerne hedder ORDRET det samme som sidens felter.
 //
 // Resultatet var værre end hvis ingen af dem virkede: at «Løn indtastes som» virkede, var netop beviset
-// for, at boksen gjaldt siden – og så stod de to andre stille på noget andet. Brugerbeslutning
+// for, at boksen gjaldt siden – og så stod de to andre stille på noget andet. Udviklerbeslutning
 // 2026-08-26: standardværdier skal slå igennem på nye sager og ved «Slet alt» ALLE de steder i
 // programmet, hvor de pågældende felter anvendes. Kriteriet er derfor: har indstillingen et felt her,
 // gælder den her.

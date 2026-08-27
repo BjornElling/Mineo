@@ -120,7 +120,7 @@ const Indstillinger = React.memo(() => {
 
   return (
     <Box>
-      {/* Side-header */}
+      {/* Sidehoved */}
       <Typography className="page-title">Indstillinger</Typography>
 
       <ContentBox className="content-box">
@@ -444,7 +444,7 @@ const Indstillinger = React.memo(() => {
           )}
         </LabeledControlRow>
 
-        {/* DEV-only: denne indstilling vises kun i udviklingsmiljøet (import.meta.env.DEV).
+        {/* Kun i udviklingsmiljøet: denne indstilling vises kun i udviklingsmiljøet (import.meta.env.DEV).
             Den forbrugende adfærd er ligeledes DEV-gated (font-style-farver i AppSettingsContext),
             så en værdi der er gemt i localStorage under en dev-session aldrig kan aktivere
             adfærden i en produktions-build. */}

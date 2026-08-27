@@ -56,7 +56,7 @@ MinProcesrenteTitle.displayName = 'MinProcesrenteTitle';
  * end begge de layouts, der findes (BB-045). Samme skift skjulte samtidig tillægstid, enhed og den
  * afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046).
  *
- * Brugerbeslutning 2026-08-19: mobil/tablet skal blive på mobilvisningen og desktop på
+ * Udviklerbeslutning 2026-08-19: mobil/tablet skal blive på mobilvisningen og desktop på
  * desktopvisningen, uanset hvad der sker med vinduets størrelse – i både lodret og vandret
  * orientering. Aflæsningen er derfor den samme, som Mineos «Desværre»-side bruger til at sortere
  * mobilbrugere fra (`isTouchLikeDeviceWithShortestSideAtMost`): berøring PLUS enhedens

@@ -8,7 +8,7 @@ import FloatingActionButton from '../../../components/ui/FloatingActionButton';
 import { resolveActionGate } from '../../../components/inputs/actionGate';
 
 // Den universelle regel for GRÅ KNAPPER (`page-component-contract.md` §11.1, generaliseret fra de
-// deaktiverede downloadknapper ved brugerbeslutning 2026-08-15):
+// deaktiverede downloadknapper ved udviklerbeslutning 2026-08-15):
 //
 //   1. knappen bliver stående som nedtonet og inaktiv – den forsvinder ikke,
 //   2. årsagen har ÉN visningskanal: tooltippet, og kun ved hover,

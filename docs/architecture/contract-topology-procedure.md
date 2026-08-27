@@ -31,7 +31,7 @@ load/sanitization, skal samme ændring desuden indeholde en kompatibilitetsvurde
 1. identificér alle tidligere udgivne versioner og gemte værdier, som kan være berørt;
 2. tilføj eller bekræft den eksakte typed migrator, load-alias eller container-adapter;
 3. tilføj en fixture, der viser load uden ny fejl, preflight eller tavs ændring;
-4. forelæg ændringen for brugeren før implementering, hvis en tidligere udgivet fil ikke kan bevares uden en
+4. forelæg ændringen for udvikleren før implementering, hvis en tidligere udgivet fil ikke kan bevares uden en
    synlig load-afvigelse.
 
 Et versionsbump, en ny storage-nøgle eller en hård afvisning tæller ikke som kompatibilitetsvurdering.

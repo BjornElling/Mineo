@@ -26,7 +26,7 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Gå til Satser og skriv `2024` i «Vis satser for år».
   2. Læs afsnittet Arbejdsskadesikringsloven på skærmen. Nederst står to reguleringsprocenter:
@@ -89,7 +89,7 @@ datagrundlaget ændrer sig.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--indsat-tekst-samles-af-cifre-uden-hensyn-til-formens-positioner`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Sæt året til `2015`, så feltet har en værdi. Marker værdien (Ctrl+A) og indsæt teksten
      `01-02-2026` (en almindelig dansk dato, fx kopieret fra sagens papirer).
@@ -150,7 +150,7 @@ Var der rent hypotetisk blevet pastet 2.026.4 ville derefter være sket
 
 **Afgørelse og gennemførelse 2026-08-18 – accepteret; mit eget forslag forkastet.**
 
-Brugeren har ret, og fundets «Bedre ville være» var forkert. Mit forslag – «find det entydige firecifrede
+Udvikleren har ret, og fundets «Bedre ville være» var forkert. Mit forslag – «find det entydige firecifrede
 årstal i teksten» – ville have indført en NY fortolkningsregel oven på tastningen, altså præcis den slags
 konkurrerende vej, fundet selv klagede over. Reglen er i stedet den, brugeren beskriver: paste giver samme
 resultat, som hvis tegnene var tastet ét ad gangen. Den var i forvejen kontrakt (§1.2a) og var ikke
@@ -159,14 +159,14 @@ opfyldt.
 **Det, der var i vejen, var to paste-only fortolkere.** `normalizeYearPaste` og `normalizeWeekPaste` læste
 hele teksten på én gang, tog den første ciffergruppe og forkortede den derefter, indtil resultatet lå inden
 for årsgrænserne. Begge er slettet og erstattet af det delte tegn-for-tegn-filter, som beløb, procent og
-brøk allerede brugte (`filterPasteCharacters`, hvis egen dokumentation ordret er brugerens regel). Dermed er
+brøk allerede brugte (`filterPasteCharacters`, hvis egen dokumentation ordret er udviklerens regel). Dermed er
 der ikke længere nogen anden fortolkningsvej i programmet.
 
 To fejl faldt væk med dem:
 
 | Indsat | Før (tomt felt) | Før (udfyldt) | Nu (begge) |
 |---|---|---|---|
-| `2.026` | 2002 | 2026 | **2026** ✓ brugerens eksempel |
+| `2.026` | 2002 | 2026 | **2026** ✓ udviklerens eksempel |
 | `2035` (maks 2030) | 2020 tavst | 2035 rødt | **2035 rødt** |
 | `01-02-2026` | 2001 | 102 | **102 rødt** |
 
@@ -180,7 +180,7 @@ feltvalidatoren; de må ikke røre teksten.
 - Ugefeltets separatorsæt var erklæret **to gange med forskelligt indhold**: tegnværnet tillod `,` og `\`,
   som settle-parseren ikke normaliserede (`23,2025` kunne tastes, men blev afvist), og parseren
   normaliserede `:`, som aldrig kunne tastes. Nu én erklæring, som begge læser.
-- **Mellemrum er ikke længere ugeseparator** (brugerbeslutning, spørgsmål stillet undervejs). Med
+- **Mellemrum er ikke længere ugeseparator** (udviklerbeslutning, spørgsmål stillet undervejs). Med
   tegn-for-tegn-reglen gjorde mellemrummet `uge 23/2025` ubrugelig – det optog separator-pladsen, så det
   ægte `/` blev ulovligt, og ` 2320` blev afvist. Nu bliver teksten `23/2025`. Prisen er, at `23 2025` og
   `Uge 7 2019` ikke længere kan indsættes; de kræver en af de fem separatorer.
@@ -188,13 +188,13 @@ feltvalidatoren; de må ikke røre teksten.
   er fjernet, ikke efterladt: de er byggeklodserne til præcis den slags fortolker, der ikke må opstå igen.
 
 **Kontrakten er opdateret**, fordi reglen er normativ og var uopfyldt: §1.2a har fået **punkt 7**
-(modalitets- OG tilstandsuafhængighed, med brugerens sætning om at enhver kode eller kontrakt, der giver et
+(modalitets- OG tilstandsuafhængighed, med udviklerens sætning om at enhver kode eller kontrakt, der giver et
 andet resultat, er forkert), og der er kommet en **§2.9 om års- og ugefelter**, som var udtrykkeligt
 uafklarede indtil nu. De tre tilsigtede konsekvenser er skrevet ind, så de ikke senere «rettes» tilbage.
 
-**Bemærk den ene konsekvens, jeg gjorde brugeren opmærksom på undervejs:** `01-02-2026` giver `102` med rød
+**Bemærk den ene konsekvens, jeg gjorde udvikleren opmærksom på undervejs:** `01-02-2026` giver `102` med rød
 ring – ikke en afvisning. Fire cifre parser fint som årstal, så værdien committes canonical med et
-bounds-issue. Brugeren så udfaldet og fastholdt reglen; en «det ligner en dato»-undtagelse ville genskabe
+bounds-issue. Udvikleren så udfaldet og fastholdt reglen; en «det ligner en dato»-undtagelse ville genskabe
 den anden fortolkningsvej.
 
 Tests: de gamle prøver pinnede den forkerte adfærd og er skrevet om. Ny test måler ligheden mellem tomt og
@@ -205,7 +205,7 @@ udfyldt felt direkte – det er den invariant, hele fundet handler om.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Gå til Satser med et gyldigt år udfyldt. Kig på siden, og hold musen over årsfeltet.
   2. Skriv `2004` (fx fordi sagen er fra 2004) og forlad feltet.
@@ -248,7 +248,7 @@ og downloadknappens tooltip siger begge «Årstallet skal være mellem 2005 og 2
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Åbn Satser i sidemenuen: ét årsfelt, og satserne for det ene valgte år.
   2. Åbn Varige mén → fanen «Satser»: en tabel med **alle** år på én gang («Opgørelsesår» /
@@ -275,7 +275,7 @@ og downloadknappens tooltip siger begge «Årstallet skal være mellem 2005 og 2
 Ikke en reel fejl. Det er forskelligt fra emne-type til emne-type, hvilke supplerende informationer, brugere har behov for at se for de respektive satser, så det er programmets forskelle udtryk for.
 
 **Afgjort 2026-08-18 – afvist. Ingen ændring.**
-Fundets præmis var, at de forskellige visningsformer er en inkonsistens. Brugeren afgør, at de er et
+Fundets præmis var, at de forskellige visningsformer er en inkonsistens. Udvikleren afgør, at de er et
 udtryk for et reelt fagligt behov: hvilke supplerende oplysninger en bruger har brug for, afhænger af
 satstypen, og formen følger behovet. Én-år-ad-gangen, alle-år-tabel og indtastningsfelter er derfor tre
 rigtige svar på tre forskellige spørgsmål – ikke tre inkonsistente svar på ét.
@@ -289,7 +289,7 @@ det samme. Rejs det ikke igen for «Satser» som overskrift.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. Vælg år `2005`: rækken heder «Reguleringsprocent for erhvervsevnetab: 5,5 %».
   2. Vælg år `2024`: nu er der **to** rækker – «(før 2024): 65,7 %» og «(fra 2024): 0 %».
@@ -319,7 +319,7 @@ Der er tale om en juridisk teknikalitet, som alle brugere vil kende baggrunden b
 
 **Afgjort 2026-08-18 – afvist. Ingen ændring.**
 Fundet hvilede på, at brugeren skal kunne læse på siden, hvilken reguleringsserie hans sag hører til.
-Brugeren oplyser, at 2024-ændringen af beregningsprincipperne og dens overgangsbestemmelser er almindeligt
+Udvikleren oplyser, at 2024-ændringen af beregningsprincipperne og dens overgangsbestemmelser er almindeligt
 fagkendskab i målgruppen: parentesen «(fra 2024)» er ikke et forbehold, der skal forklares, men en
 henvisning til en velkendt lovændring. Etiketten er dermed tilstrækkelig, og der skal ikke tilføjes
 tooltips til reguleringsrækkerne.
@@ -337,7 +337,7 @@ programmets EGEN konstruktion, ikke hvor den refererer til en kendt regel eller 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer bruger
+- **Beslutning:** Afventer udvikleren
 - **Sådan fremprovokeres det:**
   1. På Satser: hold musen over informationsikonet ved «Beløbsgrænse for fri proces
      (enlig/samlevende)». Tooltippen siger «Personlig indkomst + positiv kapitalindkomst».
@@ -361,7 +361,7 @@ Ikke væsentligt. Det er grundlæggende en overflødig information til brugerne 
 
 **Afgjort 2026-08-18 – afvist. Ingen ændring.**
 Fundet antog, at tooltippens indhold er nødvendigt for at bruge beløbsgrænsen, og at fraværet i dokumentet
-derfor er et tab. Brugeren afgør det modsatte: indkomstgrundlaget er overflødig oplysning for målgruppen,
+derfor er et tab. Udvikleren afgør det modsatte: indkomstgrundlaget er overflødig oplysning for målgruppen,
 og tooltippen står der af akademisk interesse – ikke som en forudsætning for at læse tallet. Så er der
 intet tab i, at dokumentet undlader den.
 

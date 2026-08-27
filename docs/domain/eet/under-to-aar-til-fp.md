@@ -192,6 +192,6 @@ Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentatio
 
 ---
 
-## Kendte udeståender
+## Status
 
 Dokumentationen afspejler den fastlagte forretningslogik for særreglen.

@@ -5,18 +5,18 @@ Alle udviklingsregler, roller, mandat og constraints for Mineo er samlet i [AGEN
 Det brede mandat til greenfield- og fundamentale arkitekturændringer gælder kun intern runtime-kode. Persistensgrænsen
 er bagudkompatibel: tidligere gyldigt gemte `.eo`-filer skal fortsat kunne indlæses uden tavst datatab eller ny
 load-afvigelse. En mulig load-fejl, preflight, advarsel eller ændret indlæst værdi er en særskilt godkendelsesgate
-efter AGENTS.md og skal forelægges brugeren før ændringen.
+efter AGENTS.md og skal forelægges udvikleren før ændringen.
 
 ## Kommunikationsstil (skærpelse af AGENTS.md §Kommunikation)
 
 AGENTS.md siger allerede "Hold kommunikation på et absolut minimum". Denne skærpelse står her, fordi jeg
-**ikke har fulgt den** – påtalt af brugeren 2026-07-29 med ordene "det er kun dig, der er problemet".
+**ikke har fulgt den** – påtalt af udvikleren 2026-07-29 med ordene "det er kun dig, der er problemet".
 
 - **Kortfattet, klar, præcis.** Ingen løbende overvejelser, ingen tankestrøm, ingen narration af hvad jeg er
   ved at gøre eller hvorfor. Ingen genfortælling af det, et værktøjskald lige viste.
-- **Lejlighedsvise livstegn under langt arbejde** – én kort linje, så brugeren ved, at jeg ikke er gået i stå.
+- **Lejlighedsvise livstegn under langt arbejde** – én kort linje, så udvikleren ved, at jeg ikke er gået i stå.
   Et minimum. Ikke en statusrapport pr. delopgave.
-- **Udførligt er tilladt PRÆCIS to steder:** spørgsmål til brugeren, og den afsluttende status. Dem skal jeg
+- **Udførligt er tilladt PRÆCIS to steder:** spørgsmål til udvikleren, og den afsluttende status. Dem skal jeg
   til gengæld formulere grundigt og gennemarbejdet.
 - Mellemliggende beslutninger, afvejninger og begrundelser hører i **koden, WI-filen eller reviewrapporten** –
   ikke i chatten. Jeg ejer alle proces- og kodebeslutninger, så de skal ikke forelægges undervejs.
@@ -26,17 +26,17 @@ Prøven før hver besked, der hverken er et spørgsmål eller en afsluttende sta
 
 ### Afsluttende ntfy-notifikation
 
-Den globale ntfy-hook sender ved reel afslutning, ved et hovedagent-stop der afventer brugerinput og ved
+Den globale ntfy-hook sender ved reel afslutning, ved et hovedagent-stop der afventer input fra udvikleren og ved
 tekniske stopfejl. Når alle nødvendige ændringer og kvalitetstjek er færdige, skal den afsluttende besked
 slutte med den skjulte markør `<!-- ntfy:done -->`. Markøren må ikke bruges i mellemstatusser, spørgsmål
 eller subagent-svar. Subagent-stop giver ingen ntfy-besked.
 
 ## Nedluknings-protokol ("luk ned")
 
-Når brugeren skriver **"luk ned"** (typisk fordi statuslinjen har fyret en ntfy om at
+Når udvikleren skriver **"luk ned"** (typisk fordi statuslinjen har fyret en ntfy om at
 5-timers-kvoten er ≥ 95 % opbrugt), betyder det: *afslut arbejdet forsvarligt nu, så intet går
 tabt, og så næste session kan fortsætte uden at gætte.* Jeg kan ikke selv se kvoten – signalet
-kommer altid udefra, fra brugeren. En anden ntfy melder når vinduet er nulstillet igen; genoptag
+kommer altid udefra, fra udvikleren. En anden ntfy melder når vinduet er nulstillet igen; genoptag
 da arbejdet fra den status, overdragelsesnotatet og progress-memoryen efterlod.
 
 Sådan gør jeg, i denne rækkefølge:
@@ -50,13 +50,13 @@ Sådan gør jeg, i denne rækkefølge:
    afsluttet.
 3. **Opdatér progress-memoryen** `project_fix_it_progress.md` med hvor arbejdet
    står – samme detaljeringsniveau som de øvrige statuslinjer der.
-4. **Rapportér til brugeren** hvad der er gemt, hvad der er ufærdigt, og om træet er rødt eller grønt.
+4. **Rapportér til udvikleren** hvad der er gemt, hvad der stadig står tilbage, og om træet er rødt eller grønt.
 
 Bevidst **uden for** protokollen:
 
 - **Ingen gate- eller suite-kørsel.** Ved 95 % er der ikke budget til det, og en halv kørsel er
   værre end ingen. Er tilstanden usikker, skriv det i overdragelsesnotatet frem for at bruge kvoten på at måle den.
-- **Ingen automatisk commit.** Commit kun hvis brugeren beder om det – nedlukningen skal ikke selv
+- **Ingen automatisk commit.** Commit kun hvis udvikleren beder om det – nedlukningen skal ikke selv
   lægge en halvfærdig ændring i historikken. Dokumentationen fra trin 2–3 er det der sikrer arbejdet.
 
 ## Commit-besked: undgå det gentagne `@`-præfiks

@@ -144,6 +144,6 @@ Dækker kapitaliseringsberegningen, herunder særreglen for `Endelig` ved `≤ 2
 
 ---
 
-## Kendte udeståender
+## Status
 
 Dokumentationen afspejler den fastlagte forretningslogik for kapitalisering.

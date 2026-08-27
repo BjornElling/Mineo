@@ -8,7 +8,7 @@
  *  2. Årsagen har ÉN visningskanal: tooltippet, og kun ved hover.
  *  3. Et klik på en inaktiv knap er TAVST. Ingen besked, ingen tekstknude, intet visuelt svar.
  *
- * Brugerbeslutning 2026-08-15: den regel er ikke download-specifik. Den er programmets mønster for
+ * Udviklerbeslutning 2026-08-15: den regel er ikke download-specifik. Den er programmets mønster for
  * ENHVER grå knap, og en grå knap må derfor gerne nøjes med en generisk årsag frem for en
  * håndskrevet, handlingsanvisende sætning pr. knap. Det er en bevidst afvejning: forudsigelighed
  * (alle grå knapper svarer ens) over handlingsanvisning (hver knap forklarer sit eget særtilfælde).

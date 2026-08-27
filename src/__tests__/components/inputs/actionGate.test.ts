@@ -11,7 +11,7 @@ import {
 } from '../../../document/layout/documentGateTypes';
 
 // Den delte grammatik for en DEAKTIVERET HANDLING. Reglen fandtes i forvejen for de deaktiverede
-// downloadknapper (`page-component-contract.md` §11.1); brugerbeslutningen 2026-08-15 gjorde den
+// downloadknapper (`page-component-contract.md` §11.1); udviklerbeslutningen 2026-08-15 gjorde den
 // universel for enhver grå knap – herunder at en generisk årsag er god nok.
 
 describe('actionGate: teksterne er DELT med downloadgaten, ikke kopieret', () => {

@@ -93,4 +93,4 @@ Bjørn Elling
 
 ---
 
-**Status**: Under udvikling
+**Status**: Offentliggjort og under løbende vedligeholdelse

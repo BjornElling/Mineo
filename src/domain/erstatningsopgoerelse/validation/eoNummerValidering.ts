@@ -9,7 +9,7 @@
  * - Alle andre tilfælde → true (første)
  *
  * @param eoNummer - Erstatningsopgørelses-nummeret (fx "1", "2", "3A", "1A", etc.)
- * @returns true hvis dette er første erstatningsopgørelse, false ellers
+ * @returns sand hvis dette er første erstatningsopgørelse, ellers falsk
  */
 export const erDetteFoersteErstatningsopgoerelse = (eoNummer: string | undefined): boolean => {
   if (typeof eoNummer !== 'string' || eoNummer.length === 0) return true;

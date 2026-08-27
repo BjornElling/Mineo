@@ -71,7 +71,7 @@ type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
 /**
  * Kontakten har BEVIDST ingen imperativ ref-flade. Den havde tidligere et `StyledToggleSwitchHandle`
  * med præcis ét medlem – `shake()` – som omregnings-gaten kaldte ved en afvist aktivering. Rystelsen
- * er fjernet i hele programmet (brugerbeslutning 2026-08-15), og dermed bortfaldt hele
+ * er fjernet i hele programmet (udviklerbeslutning 2026-08-15), og dermed bortfaldt hele
  * handlet. Genindfør hverken `forwardRef` eller `useImperativeHandle` her uden et reelt medlem.
  */
 const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {

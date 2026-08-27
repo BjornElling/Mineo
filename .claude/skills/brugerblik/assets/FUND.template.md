@@ -15,7 +15,7 @@ Hvad brugeren møder her, hvad fladen bruges til, og hvad den er forudsætning f
 - **Type:** Fornuft | Edge case | Fejl
 - **Rækkevidde:** Lokal | Mønster → `TVAERGAAENDE.md#<anker>`
 - **Prioritet:** Kritisk | Høj | Mellem | Lav
-- **Beslutning:** Afventer bruger | Agent afgør
+- **Beslutning:** Afventer udvikleren | Agent afgør
 - **Sådan fremprovokeres det:**
   1. …
   2. …

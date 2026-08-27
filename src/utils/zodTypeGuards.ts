@@ -14,7 +14,7 @@ import type { Loenperiode, LoenPaaHelligdage, TillaegAngivesSom } from '../types
  * Type guard for Loenperiode (valideret via Zod schema)
  *
  * @param value - Værdi at validere
- * @returns true hvis værdien er en gyldig Loenperiode
+ * @returns sand hvis værdien er en gyldig Loenperiode
  */
 export const isLoenperiodeValue = (value: unknown): value is Loenperiode => {
   const result = loenperiodeEnum.safeParse(value);
@@ -25,7 +25,7 @@ export const isLoenperiodeValue = (value: unknown): value is Loenperiode => {
  * Type guard for LoenPaaHelligdage (valideret via Zod schema)
  *
  * @param value - Værdi at validere
- * @returns true hvis værdien er en gyldig LoenPaaHelligdage
+ * @returns sand hvis værdien er en gyldig LoenPaaHelligdage
  */
 export const isLoenPaaHelligdageValue = (value: unknown): value is LoenPaaHelligdage => {
   const result = loenPaaHelligdageEnum.safeParse(value);
@@ -36,7 +36,7 @@ export const isLoenPaaHelligdageValue = (value: unknown): value is LoenPaaHellig
  * Type guard for TillaegAngivesSom (valideret via Zod schema)
  *
  * @param value - Værdi at validere
- * @returns true hvis værdien er en gyldig TillaegAngivesSom ('procent' | 'beloeb')
+ * @returns sand hvis værdien er en gyldig TillaegAngivesSom ('procent' | 'beloeb')
  */
 export const isTillaegAngivesSomValue = (value: unknown): value is TillaegAngivesSom => {
   const result = tillaegAngivesSomEnum.safeParse(value);

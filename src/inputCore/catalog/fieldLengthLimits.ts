@@ -10,7 +10,7 @@
  *
  * **Hvorfor tallene bor her og ikke på hvert kaldssted.** Et loft skrevet i hånden pr. descriptor er et
  * loft, der kan drifte: to felter med samme rolle får forskellig grænse, og ingen kan se det. Tierne
- * nedenfor er de brugergodkendte kategorier (2026-08-15), så et nyt felt vælger en KATEGORI frem for et
+ * nedenfor er de udviklergodkendte kategorier (2026-08-15), så et nyt felt vælger en KATEGORI frem for et
  * tal.
  *
  * **Loft, ikke tilladelse (§8).** Grænserne her afgrænser alene, hvor mange tegn der kan komme ind i

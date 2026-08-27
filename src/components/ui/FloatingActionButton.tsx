@@ -32,7 +32,7 @@ type FloatingActionButtonProps = {
  * §11.1): knappen bliver stående som nedtonet og reelt inaktiv, årsagen vises kun i tooltippet, og et
  * klik er tavst.
  *
- * **Rystelsen er fjernet** (brugerbeslutning 2026-08-15). Knappen ryster tidligere ved klik,
+ * **Rystelsen er fjernet** (udviklerbeslutning 2026-08-15). Knappen ryster tidligere ved klik,
  * MENS den fremstod aktiv – den var kun visuelt dæmpet, ikke slået fra. Det gav to modstridende svar
  * på samme klik og oplyste knappen som brugbar for en skærmlæser. Programmet har nu ÉN afvisningsmåde:
  * knappen er ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.

@@ -8,7 +8,7 @@
 // Komponenten er det ene sted, rækken nu bygges.
 //
 // Den modsatte grænse er lige så vigtig og pinnes nedenfor: en GATE-blokering må ikke nå rækken. En
-// deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (brugerbeslutning 2026-07-31).
+// deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (udviklerbeslutning 2026-07-31).
 import { render, screen } from '@testing-library/react';
 import DocumentOutcomeMessage from '../../../components/inputs/DocumentOutcomeMessage';
 import { resolveDocumentOutcomeMessage } from '../../../document/definition/documentMessages';
@@ -63,7 +63,7 @@ describe('DocumentOutcomeMessage', () => {
   });
 
   /**
-   * Den universelle regel (brugerbeslutning 2026-07-31): en deaktiveret download-knap svarer ALDRIG med
+   * Den universelle regel (udviklerbeslutning 2026-07-31): en deaktiveret download-knap svarer ALDRIG med
    * tekst. Gate-årsagen har én kanal – knappens tooltip ved hover.
    *
    * Værnet ligger på beskedlaget frem for på en enkelt flade, fordi det er dér, reglen er ét sted:

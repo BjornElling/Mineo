@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-19 (§11.1a's universelle regel for grå knapper er målt af
+**Senest verificeret mod kode:** 2026-08-27 (§11.1a's universelle regel for grå knapper er målt af
 `actionGate.test.ts` og `disabledActionButtons.test.tsx`: de to generiske tekster er de SAMME
 konstanter, downloadgaten bruger, klikket er tavst på både mus og Enter, årsagen findes kun i
 tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. Forbuddet mod rystelse
@@ -436,7 +436,7 @@ Regler:
 3. **Årsagen er kort og præcis:** ÉN kort sætning på brugerens sprog, der navngiver den manglende
    forudsætning – fx «Pensionsalderen er ikke forhøjet i perioden» eller «Mer-erstatning er fravalgt
    nedenfor». Ingen udbygget begrundelse, ingen gentagelse af feltets egen label, og ingen redegørelse for
-   regelgrundlaget eller for hvad brugeren så skal gøre; et tooltip læses i forbifarten (brugerbeslutning
+   regelgrundlaget eller for hvad brugeren så skal gøre; et tooltip læses i forbifarten (udviklerbeslutning
    2026-08-14). Men den skal stadig navngive forudsætningen – ikke et indholdsløst "ikke tilgængelig".
 4. **Rangorden når flere forudsætninger mangler:** brugerens eget fravalg forklares FØR en beregningsårsag.
    Har brugeren fravalgt indholdet, er beregningen ikke udført, og en beregningsårsag ville da være en påstand
@@ -493,7 +493,7 @@ konsistent og tilladt. Undtagelse: tabelceller med en etableret "ingen værdi"-m
 
 **Gate-årsagen har ÉN visningskanal: tooltippet – og kun ved hover.** En deaktiveret download-knap
 giver brugeren INGEN besked, hverken under knappen eller i rækken. Reglen er universel for hele
-programmet (brugerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen opdages:
+programmet (udviklerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen opdages:
 
 - Ingen flade må rendere `disabledReason` (eller en gate-`reason.message`) som en tekstknude.
 - Et KLIK på en inaktiv knap besvares ikke med tekst. Det gælder også, når blokeringen først
@@ -506,7 +506,7 @@ programmet (brugerbeslutning 2026-07-31) og gælder uanset, hvornår blokeringen
 - Et visuelt svar er stadig tilladt og ønsket, hvor det findes – men det skal PEGE et sted hen:
   fokus på det første blokerende felt, eller et flash af den fejlende celle. Det er ikke en besked,
   men en henvisning til dét, brugeren skal rette.
-- **Rystelse er forbudt.** Knapper må ikke ryste ved en blokeret aktivering (brugerbeslutning
+- **Rystelse er forbudt.** Knapper må ikke ryste ved en blokeret aktivering (udviklerbeslutning
   2026-08-15). En rystelse siger kun «noget er galt» – hvilket tooltippet allerede har sagt mere
   præcist – og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
   spærret. Der er derfor ÉN afvisningsmåde i hele programmet: knappen er synligt og reelt inaktiv
@@ -543,7 +543,7 @@ oversat, eller `resolveBlockedGateTooltip(gate.reasons)` for en per-række-gate.
 #### 11.1a Reglen gælder ENHVER grå knap – ikke kun download
 
 Alt ovenfor er formuleret om downloadknapper, fordi de var den første flade, der fik reglen. Den er
-**universel for enhver deaktiveret handling i programmet** (brugerbeslutning 2026-08-15): en grå knap
+**universel for enhver deaktiveret handling i programmet** (udviklerbeslutning 2026-08-15): en grå knap
 bliver stående, forklarer sig KUN i tooltippet, og svarer tavst på et klik.
 
 Det indebærer, at en grå knap gerne må nøjes med en **generisk** årsag. Det er en bevidst afvejning:

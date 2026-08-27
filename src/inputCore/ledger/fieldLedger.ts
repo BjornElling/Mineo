@@ -21,7 +21,7 @@ export const leafToDataFieldPath = (leaf: string): string | null => {
   return leaf.replace(AMOUNT_LEAF_SUFFIX, '');
 };
 
-/** True hvis stien ligger inde i en collection (indeholder `[]`). Collection-børn ejes af collectionLedger. */
+/** Sand hvis stien ligger inde i en collection (indeholder `[]`). Collection-børn ejes af collectionLedger. */
 export const isCollectionChildPath = (path: string): boolean => path.includes('[]');
 
 export type FieldCodecAnnotation = Readonly<{ codec: CodecFamily; control: ControlKind }>;

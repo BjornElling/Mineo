@@ -4,7 +4,7 @@ Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem 
 én række pr. fane.
 
 - Rute/placering: `/renteberegning`
-- Faner: **Beregning** (gennemgået 2026-08-21, elleve fund rettet i review 2026-08-22; brugerens
+- Faner: **Beregning** (gennemgået 2026-08-21, elleve fund rettet i review 2026-08-22; udviklerens
   tilbagemeldinger står ved hvert fund) · **Satser** (gennemgået 2026-08-24, fem fund, alle afgjort
   2026-08-25: tre rettet, to afvist)
 
@@ -893,7 +893,7 @@ forsvinde som «oprydning» i en senere refaktor.
   målt på skærmen; fane 1's gennemgang læste dokumenterne for andre sager. Kolonnen bruger samme
   `totalRatePct`, som skærmens beløb er regnet af, så uenighed er usandsynlig – men den er ikke målt.
 - **Om «§ 5, stk. 2» er den rigtige henvisning kunne ikke afgøres i kørslen.** Kun observationen blev
-  registreret. **Hullet er lukket 2026-08-25:** brugeren afgjorde spørgsmålet, og begge henvisninger
+  registreret. **Hullet er lukket 2026-08-25:** udvikleren afgjorde spørgsmålet, og begge henvisninger
   er rettet – se åbent spørgsmål 1.
 - **Satsernes rigtighed mod Nationalbankens offentliggjorte satser er ikke kontrolleret.** Programmet
   er 100 % client-side, satserne er hardkodede, og der findes ingen kilde i programmet at afstemme
@@ -907,7 +907,7 @@ forsvinde som «oprydning» i en senere refaktor.
 - `components/pages/renteberegning/RentesatserTab.tsx` – Tillægssats-tabellens kolonne heder «Gælder
   fra» (BB-091), hver af de to bokse har fået én sætning om, hvordan dens egen sats virker (BB-093),
   og lovhenvisningerne er rettet til «§ 5, stk. 1, 2. pkt.» (referencesats) og «§ 5, stk. 1»
-  (tillægssats) efter brugerens afgørelse – åbent spørgsmål 1 er dermed lukket. Hver boks' to
+  (tillægssats) efter udviklerens afgørelse – åbent spørgsmål 1 er dermed lukket. Hver boks' to
   sætninger står på hver sin `row--text`-linje, altså samme stakkede form som fane 1's fire
   beregningstekniske forudsætninger; ingen ny styling er indført.
 - `data/interestRates.ts` – halvårsinddelingen er uforanderlig og håndhæves nu ved modul-load: en
@@ -942,7 +942,7 @@ forsvinde som «oprydning» i en senere refaktor.
    to sætninger henvise til § 5, stk. 1 – eller er den nuværende opdeling den, en praktiker forventer?
    Bemærk, at spørgsmålet hænger sammen med BB-092: skal tillægssatsen vælges efter forfaldsdatoen
    frem for rentedatoen, er det samme bestemmelses overgangsregel, der afgør det.
-   **BESVARET OG LUKKET 2026-08-25.** Brugeren har afgjort, at henvisningen til stk. 2 var forkert, og
+   **BESVARET OG LUKKET 2026-08-25.** Udvikleren har afgjort, at henvisningen til stk. 2 var forkert, og
    citeret bestemmelsen: § 5, stk. 1, 1. pkt. fastsætter tillægget på 8 pct., og 2. pkt. definerer
    referencesatsen som Nationalbankens udlånsrente pr. 1. januar og 1. juli. Rettet i kode:
    Referencesats-boksen henviser nu til **«§ 5, stk. 1, 2. pkt.»** og Tillægssats-boksen til
@@ -954,7 +954,7 @@ forsvinde som «oprydning» i en senere refaktor.
    halvdelen af den tabel, BB-091 og BB-093 handler om. Spørgsmålet er ikke, om rækken er rigtig (den
    er), men om den bør stå som en ligeværdig sats eller under en overskrift, der siger, at den er en
    overgangsregel.
-   **BESVARET OG LUKKET 2026-08-25: rækken skal stå ligeværdigt og blive ved med det.** Brugerens svar:
+   **BESVARET OG LUKKET 2026-08-25: rækken skal stå ligeværdigt og blive ved med det.** Udviklerens svar:
    «Den gamle tillægssats på 7 % skal stadig fremgå ligeværdigt med 8 %, og skal blive ved med at gøre
    det.» Ingen kodeændring – den nuværende visning ER afgørelsen. Den er nu normativ i
    `renteberegning-contract.md` §2.12, så rækken ikke senere rykkes ned eller sættes under en

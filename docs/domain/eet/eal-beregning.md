@@ -240,6 +240,6 @@ Dækker: kæde-regulering, aldersreduktionsformel, EET-% prioritering (EAL vs. A
 
 ---
 
-## Kendte udeståender
+## Status
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+*Filen er synkroniseret med koden.*

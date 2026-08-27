@@ -25,8 +25,8 @@ når det er relevant, også selv om det kræver væsentlige eller breaking arkit
   implementerende kvalitetssikrer. Codex må anfægte planen, ændre arkitekturen, rette koden,
   skrive tests og gennemføre verifikation.
 - Begge agenter ejer selv alle kode-, struktur- og procesbeslutninger. Ingen tekniske valg,
-  scopevalg eller arkitekturvalg forelægges brugeren.
-- Brugeren spørges kun før en ændring, der reelt ændrer synlig UI/UX eller beregningstal/-regler.
+  scopevalg eller arkitekturvalg forelægges udvikleren.
+- Udvikleren spørges kun før en ændring, der reelt ændrer synlig UI/UX eller beregningstal/-regler.
   Forelæg i så fald den konkrete brugeroplevelse eller talmæssige forskel og stop før ændringen.
   En bugfix, der blot genskaber dokumenteret tilsigtet synlig adfærd, kræver ikke ny godkendelse;
   ændringer af beregningstal/-regler forelægges altid.
@@ -41,7 +41,7 @@ runtime-adfærd.
    arkitekturdokumenter i `docs/architecture/`. Claude-memory er kun orientering.
 2. Inspicér `git status --short`, `git diff`, `git diff --cached` og untracked filer. Registrér
    præcist working-tree-baseline før ændringen: filer, staged/unstaged status og diffens omfang.
-   Eksisterende ændringer tilhører brugeren og må hverken overskrives, nulstilles eller committtes.
+   Eksisterende ændringer tilhører udvikleren og må hverken overskrives, nulstilles eller committtes.
 3. Skriv scope, invarianter, acceptance criteria, risikoklasse, forventede berørte områder og
    testplan i hovedtråden. Ved fler-sessionsarbejde bruges et midlertidigt
    `docs/arbejdsnotat-<slug>.md`; slet det før Codex committer.
@@ -55,7 +55,7 @@ men en strukturel rodårsag, som er nødvendig for en korrekt løsning, hører m
 ## 3. Godkendelsesgate
 
 Hvis planen kan ændre synlig UI/UX eller beregningstal/-regler, forelæg den konkrete forskel for
-brugeren og stop før implementering. Alt andet afgøres autonomt af Claude eller Codex. En pause
+udvikleren og stop før implementering. Alt andet afgøres autonomt af Claude eller Codex. En pause
 genoptages ved at påkalde `/fix-it <arbejdsnotat eller scope>` igen.
 
 ## 4. Claude implementerer
@@ -79,7 +79,7 @@ sin egen plan som facit for Codex.
 Kør Codex med skriveadgang, Luna og Extra High (`xhigh`):
 
 ```powershell
-codex exec -C . -s workspace-write -m gpt-5.6-luna -c 'model_reasoning_effort="xhigh"' "Review, ret, verificér og commit den aktuelle fix-it-løsning. Læs AGENTS.md, relevante kontrakter og arbejdsnotatet. Efterprøv planen uafhængigt mod hele den berørte struktur. For hvert fund: afgør om det er lokalt eller et symptom på en strukturel rodårsag, undersøg om roden manifesterer sig andre steder, og ret alle relevante fund i stedet for kun symptomet. Du ejer selv arkitektur-, kode- og procesbeslutninger. Spørg kun brugeren hvis en foreslået rettelse reelt ændrer synlig UI/UX eller beregningstal/-regler; stop da uden commit og returnér spørgsmålet. Kør relevante typechecks, lint og tests. Brug Playwright når ændringen berører browseradfærd, routing, auth, keyboard/focus, runtime, fil-I/O eller synligt UI; ret alle fund og gentag verifikationen indtil løsningen virker efter hensigten. Commit til sidst kun ændringer fra dette fix-it-scope, aldrig pre-eksisterende working-tree-ændringer."
+codex exec -C . -s workspace-write -m gpt-5.6-luna -c 'model_reasoning_effort="xhigh"' "Review, ret, verificér og commit den aktuelle fix-it-løsning. Læs AGENTS.md, relevante kontrakter og arbejdsnotatet. Efterprøv planen uafhængigt mod hele den berørte struktur. For hvert fund: afgør om det er lokalt eller et symptom på en strukturel rodårsag, undersøg om roden manifesterer sig andre steder, og ret alle relevante fund i stedet for kun symptomet. Du ejer selv arkitektur-, kode- og procesbeslutninger. Spørg kun udvikleren hvis en foreslået rettelse reelt ændrer synlig UI/UX eller beregningstal/-regler; stop da uden commit og returnér spørgsmålet. Kør relevante typechecks, lint og tests. Brug Playwright når ændringen berører browseradfærd, routing, auth, keyboard/focus, runtime, fil-I/O eller synligt UI; ret alle fund og gentag verifikationen indtil løsningen virker efter hensigten. Commit til sidst kun ændringer fra dette fix-it-scope, aldrig pre-eksisterende working-tree-ændringer."
 ```
 
 Codex skal:

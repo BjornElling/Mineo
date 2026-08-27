@@ -191,7 +191,7 @@ describe('MenberegningTab – reader-projektion + download-gate', () => {
  *     samme besked, og
  *  2. den findes som ikonets tilgængelige navn (MUI's `Tooltip` sætter `aria-label` på den disablede knap).
  *
- * Andre rækker (fx satsrækken) må gerne vise samme universelle tekst synligt – det er efter brugerbeslutning
+ * Andre rækker (fx satsrækken) må gerne vise samme universelle tekst synligt – det er efter udviklerbeslutning
  * 2026-08-20 (BB-065) den TILSIGTEDE måde de skelner mellem "mangler" og "fejl" i deres egen lånte værdi, og
  * er en anden linje end resultatrækken denne test pinner.
  */

@@ -207,7 +207,7 @@ describe('StyledToggleSwitch', () => {
     it('eksponerer INTET handle – rystelsen og dens `shake()` er slettet', () => {
       // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som
       // omregnings-gaten kaldte ved en afvist aktivering. Rystelsen er fjernet i hele programmet
-      // (brugerbeslutning 2026-08-15), og handlet bortfaldt med den.
+      // (udviklerbeslutning 2026-08-15), og handlet bortfaldt med den.
       //
       // Testen måler fraværet på den ENESTE måde, der ikke kan blive grøn af tomhed: den renderer
       // komponenten med en ref og fastslår, at intet bliver tildelt. Ville nogen genindføre et

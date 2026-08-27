@@ -7,7 +7,7 @@ import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInput
 import { resolveSatserDefaultAargang } from '../../../domain/policies/satserCalculations';
 import { seedSatserNewCase } from '../../../domain/satser/satserNewCaseSeed';
 
-// §1.12/brugerbeslutning: en frisk sag seedes med default-satsåret som ægte committed input (ikke skygge-visning).
+// §1.12/udviklerbeslutning: en frisk sag seedes med default-satsåret som ægte committed input (ikke skygge-visning).
 //
 // Seeden leverer kun sin SEKTIONSVÆRDI; `initializeInputRuntime` ejer konstruktionen af
 // aggregatet og re-validerer gennem kataloget. Testen går derfor gennem den ægte bootstrap-vej frem for at

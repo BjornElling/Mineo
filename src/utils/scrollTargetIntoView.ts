@@ -55,7 +55,7 @@ const isVerticallyWithin = (containerRect: DOMRect, elementRect: DOMRect): boole
 /**
  * Scroll målet ind i den nærmeste Mineo-scroll-container, men kun hvis det er nødvendigt.
  *
- * @returns true hvis et scroll-mål kunne håndteres (uanset om der faktisk blev scrollet).
+ * @returns sand hvis et scroll-mål kunne håndteres (uanset om der faktisk blev scrollet).
  */
 export const scrollTargetIntoView = (
   target: HTMLElement | null | undefined,

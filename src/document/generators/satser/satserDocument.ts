@@ -22,7 +22,7 @@ type SatserDocumentOptions = DocumentCommonOptions;
  * Prøven var før `value > 0`, og det var en anden prøve end sidens (`DataRow` skjuler rækken, når
  * værdien mangler). De to var enige om alt undtagen et lovligt nul: `reguleringsprocentErhvervsevnetabFra2024`
  * er `0.0` i 2024, så skærmen viste «Reguleringsprocent for erhvervsevnetab (fra 2024): 0 %», mens
- * dokumentet udelod rækken helt. Brugerfund BB-030, rettet efter brugerbeslutning 2026-08-18: **0 er en
+ * dokumentet udelod rækken helt. Brugerfund BB-030, rettet efter udviklerbeslutning 2026-08-18: **0 er en
  * oplysning, ikke et fravær** – den siger, at der ikke er reguleret siden 2024-grundlaget, og fraværet af
  * rækken kunne lige så godt læses som «satsen er ukendt».
  *

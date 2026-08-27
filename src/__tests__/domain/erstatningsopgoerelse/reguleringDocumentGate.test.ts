@@ -1,7 +1,7 @@
 /**
  * Gaten for de tre reguleringssats-outputs.
  *
- * To ting pinnes her, begge BRUGERGODKENDT 2026-07-26:
+ * To ting pinnes her, begge UDVIKLERGODKENDT 2026-07-26:
  *
  * 1. **Offentlig-løn-tjekket gælder KUN ved grundlaget `Overenskomst`.** Skjulte felter bevares
  *    bevidst ved grundlagsskift (`loenindkomstStateCleanup.ts`), så et tomt løntrin fra et tidligere

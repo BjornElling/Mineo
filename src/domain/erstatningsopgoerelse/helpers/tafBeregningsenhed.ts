@@ -100,7 +100,7 @@ const employmentHasOverlappendeIndtastetLoen = (
  * - Ingen UI-draft state, ingen side effects.
  */
 export type TafBeregningsenhedInput = Readonly<{
-  // Input is designed for engine usage and may be DeepReadonly.
+  // Inputtet er beregnet til brug i engines og må være DeepReadonly.
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   tafBeregningsperiodeFra?: ErstatningsopgoerelseValues['tafBeregningsperiodeFra'];
   tafBeregningsperiodeTil?: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];

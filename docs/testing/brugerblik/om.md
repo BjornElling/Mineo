@@ -3,7 +3,7 @@
 - Rute/placering: `/mineo` (sidemenuens punkt hedder «Om», sidens overskrift hedder «Mineo»)
 - Gennemgået: 2026-08-16 · commit `190f9453`
 - Forelagt og besvaret: 2026-08-16 i to runder – **alle tolv fund afgjort**, fire af dem efter
-  modpres. De to aftalte tekstrettelser er gennemført; BB-013 var allerede gennemført af brugeren.
+  modpres. De to aftalte tekstrettelser er gennemført; BB-013 var allerede gennemført af udvikleren.
 - Afprøvet i: Chrome (Playwright, headless), CSS-viewport 1536×864 som hovedmål; layoutet desuden
   målt ved 1920, 1728, 1600, 1440, 1366 og 1280 px bredde. Devserver på 127.0.0.1:3000.
 
@@ -23,14 +23,14 @@ selv**: hvad der sker med brugerens oplysninger, hvad der gemmes, og hvad der se
 ikke pynt: de er det eneste sted, brugeren kan læse, hvornår hans arbejde forsvinder, og det er dem,
 han vil blive spurgt om, hvis hans arbejdsplads spørger til persondata.
 
-**Sidens formål er juridisk.** Brugerens afgørelse af BB-020 tilføjer en oplysning, gennemgangen ikke
+**Sidens formål er juridisk.** Udviklerens afgørelse af BB-020 tilføjer en oplysning, gennemgangen ikke
 selv kunne udlede, og som ændrer læsningen af hele fladen: Om vises som standard-startside, fordi
 licensvilkårene fremgår af den, og fremvisningen er en juridisk garanti for, at brugeren har set dem.
 Fladen er altså ikke en «kom i gang»-side, og den skal ikke bedømmes som en.
 
 ---
 
-## Brugerens afgørelser (2026-08-16)
+## Udviklerens afgørelser (2026-08-16)
 
 Alle tolv fund er forelagt, besvaret og – efter en anden runde med modpres på fire af dem –
 **afgjort. Ingen fund er åbne.** Den enkelte afgørelse står i sin helhed under fundet, sammen med
@@ -45,7 +45,7 @@ agentens efterprøvning af præmisserne.
 | BB-015 | Afgjort – 1536×864 og opefter er designmålet; den implementerede shell-kontrakt dækker desuden 1244×620 CSS-px ved 100 % browserzoom | Nej (her) |
 | BB-016 | Afgjort – bevidst designvalg. Nu tillige håndhævet strukturelt via BB-013's `ExternalLink` | Nej |
 | BB-017 | Afgjort – «klik for at få svar» er et acceptabelt kompromis | Nej |
-| BB-018 | **Accepteret – skal rettes.** Brugeren har leveret brødteksten; knappen skrives «Installér» efter husstilen | **Gennemført** (tekst) |
+| BB-018 | **Accepteret – skal rettes.** Udvikleren har leveret brødteksten; knappen skrives «Installér» efter husstilen | **Gennemført** (tekst) |
 | BB-019 | Afvist – ikonerne er en genkendelsesnøgle, ikke en oplysning | Nej |
 | BB-020 | Afvist – bevidst undtagelse; Om-siden vises af juridiske grunde, og fravalget skal være let at nå | Nej |
 | BB-021 | Afvist – ét navn i to sammenhænge, ikke to navne | Nej |
@@ -90,7 +90,7 @@ værd at læse for begrundelserne, ikke kun for udfaldet.
   data – herunder Indstillinger-sidens beskrivelser og bekræftelsesdialogernes ordlyd
   («Slet alt», overskrivning ved Hent).
 
-**Brugerens afgørelse.** Adfærden er korrekt og bevares. En bruger må kunne forvente, at den åbne sag
+**Udviklerens afgørelse.** Adfærden er korrekt og bevares. En bruger må kunne forvente, at den åbne sag
 hører til den åbne fane; at en ny fane er en ny sag, er den rigtige model.
 
 **Agentens modpres – afgørelsen besvarer ikke fundet.** Jeg er enig i adfærden og har ikke foreslået
@@ -108,7 +108,7 @@ ikke «Gem», som er den eneste måde at beholde sagen på tværs af fanen.
 Spørgsmålet står derfor stadig, nu renset for adfærdsdelen: **skal sætningen rettes, så den siger
 «fanen» i stedet for «browseren» og peger på «Gem»?** Adfærdsdelen er lukket og genåbnes ikke.
 
-**Brugerens endelige afgørelse (2026-08-16, anden runde).** Modpresset accepteres: adfærden bevares
+**Udviklerens endelige afgørelse (2026-08-16, anden runde).** Modpresset accepteres: adfærden bevares
 uændret, og **teksten rettes**. Fundet er dermed lukket som en ren tekstrettelse.
 
 **Den nye tekst** (erstatter sidste sætning i «Persondata»):
@@ -155,7 +155,7 @@ samme tekstboks.
 - **Andre steder det kan gælde:** Samme prøve – påstand mod målt adfærd – hører til på Indstillinger,
   hvor teksterne beskriver, hvad en indstilling gør.
 
-**Brugerens afgørelse.** Analysen er fejlbehæftet og unødvendigt bekymret. Programmet lover, at det
+**Udviklerens afgørelse.** Analysen er fejlbehæftet og unødvendigt bekymret. Programmet lover, at det
 ikke gemmer nogen data om de skadelidte, som beregningerne vedrører, og det løfte holder.
 
 **Agentens modpres – vi er enige om løftet, uenige om, hvad teksten siger.** Jeg er helt enig i, at
@@ -184,14 +184,14 @@ gemmes eller transmitteres ingen oplysninger om sagen eller om din brug af progr
 indstillinger og opdateringstjek ikke længere omfattet, og løftet er skarpere end før. Fastholder du
 efter dette, at teksten er dækkende, lukker jeg fundet uden videre.
 
-**Brugerens endelige afgørelse (2026-08-16, anden runde).** Delvis enighed: teksten må gerne
+**Udviklerens endelige afgørelse (2026-08-16, anden runde).** Delvis enighed: teksten må gerne
 præciseres, så det tydeligere fremgår, at løftet handler om oplysninger om de skadelidte. Men
 modpresset er for bredt sat: programmet udveksler **heller ikke** brugsdata eller statistik, og det er
 oplysninger om brugerens adfærd, ikke om skadelidte. Betingelsen for at rette er, at den nye tekst er
 korrekt **og** kort – en fyldestgørende formulering, der bliver lang og kringlet, er ikke en
 forbedring.
 
-**Agentens korrektion – brugeren har ret på det punkt.** Der findes ingen telemetri, ingen
+**Agentens korrektion – udvikleren har ret på det punkt.** Der findes ingen telemetri, ingen
 brugsstatistik og intet indsamlingspunkt i programmet; `AGENTS.md` forbyder det, og gennemgangen fandt
 intet. Løftets to nøgleord – «persondata» og «brugsstatistik» – er altså begge sande og skal blive
 stående. Modpresset gjaldt kun tre ting i sætningen, og de kan rettes uden at gøre den længere:
@@ -256,7 +256,7 @@ ingen kontrakt, intet nyt værn – ren tekst. Rettelsen er gennemført i én om
 - **Andre steder det kan gælde:** Kontaktadressen i samme bundlinje (mailto) og ethvert andet link ud
   af programmet. Bundlinjen bruges i dag kun her og på standalone MinProcesrente.
 
-**Brugerens afgørelse.** Analysen er fejlbehæftet: alle links til eksterne sider åbner i en ny fane.
+**Udviklerens afgørelse.** Analysen er fejlbehæftet: alle links til eksterne sider åbner i en ny fane.
 
 **Agentens modpres – påstanden er halvt rigtig, og målingen viser hvilken halvdel.** Jeg efterprøvede
 den igen 2026-08-16 med en ren session, netop fordi et faktuelt modsvar kræver, at jeg har ret:
@@ -283,13 +283,13 @@ kontaktadressen også åbne i en ny fane, når Mineo kører i browseren – som 
 gør?** Bemærk, at afgørelsen af BB-016 (bundlinjen holdes uden for tastaturrækkefølgen) er upåvirket
 af dette; de to ting er uafhængige.
 
-**Brugerens endelige afgørelse (2026-08-16, anden runde).** Målingen accepteres, og den oprindelige
+**Udviklerens endelige afgørelse (2026-08-16, anden runde).** Målingen accepteres, og den oprindelige
 præmis trækkes tilbage. Rettelsen laves ikke som en lokal lap på bundlinjen, men som en **generel
 strukturel regel** for hele programmet: **eksterne links åbner altid i en ny fane, interne links
 åbner i den eksisterende.** Reglen er implementeret i denne ændring og ligger uden for Brugerbliks
 bord.
 
-**Gennemført af brugeren samme dag.** Ændringen er ikke et udestående punkt, men implementeret i
+**Gennemført af udvikleren samme dag.** Ændringen er ikke et udestående punkt, men implementeret i
 arbejdstræet, og den er lavet som en regel frem for en lap:
 
 - to fælles primitiver, `src/components/ui/ExternalLink.tsx` og `InternalLink.tsx`. `ExternalLink`
@@ -345,7 +345,7 @@ ikke opstå.
   sider. Ethvert indhold, der når helt ud i det hjørne, kan blive dækket – fx de runde
   tilføj-knapper under tabeller og downloadknapper i bunden af en side.
 
-**Brugerens afgørelse.** Knappen ligger kun delvist oven på det sidste link, og kun ved en meget smal
+**Udviklerens afgørelse.** Knappen ligger kun delvist oven på det sidste link, og kun ved en meget smal
 sidebredde. Det er acceptabelt.
 
 **Agentens modpres – «meget smal» er den bredde, du selv udpeger som målet.** Overlapningen indtræder
@@ -367,7 +367,7 @@ sidebredde» holder ikke, og spørgsmålet bør derfor stilles igen på den rigt
 acceptabelt, at knappen dækker en del af det sidste søskendelink ved den opløsning, siden er
 designet til?** Den billigste rettelse er stadig at skjule knappen, når bundlinjen er rullet frem.
 
-**Brugerens endelige afgørelse (2026-08-16, anden runde).** Modpresset er læst, og afgørelsen står
+**Udviklerens endelige afgørelse (2026-08-16, anden runde).** Modpresset er læst, og afgørelsen står
 fast: 1536×864 er den **nederste** kant af det understøttede område og bruges kun af de få, der
 kører 1080p med 125 % zoom. Langt de fleste sidder bredere, hvor overlapningen ikke findes. Dertil
 kommer, at den planlagte zoom-løsning vil ændre geometrien og dermed selve præmissen for fundet.
@@ -412,7 +412,7 @@ fundet.
   liste; en ændring af tekstbreddens regel vil kræve, at listen udvides, og det er en beslutning
   brugeren skal træffe, ikke en fejlrettelse.
 
-**Brugerens oprindelige afgørelse – designmålet er 1536×864 og opefter.** Skærme på 1366 px er hovedsageligt
+**Udviklerens oprindelige afgørelse – designmålet er 1536×864 og opefter.** Skærme på 1366 px er hovedsageligt
 ældre budget-bærbare. Mineo henvender sig til brugere, der arbejder professionelt med området, og de
 må formodes at have nyere maskiner. Designvalget er derfor, at siden skal se rigtig ud for brugere med
 1920×1080 ved 125 % zoom (= 1536×864 CSS-pixels) og opefter – ikke for lavere opløsninger.
@@ -467,7 +467,7 @@ eller yderligere nedskalering.
   (`satserRows.tsx`), MinProcesrente har sin titel som link, og bundlinjen går igen begge steder.
   Uverificeret, men samme mekanisme: intet `<a>` i programmet kan nås med Tab.
 
-**Brugerens afgørelse.** Det er en bevidst designbeslutning. Bundlinjen med links til søskendesiderne
+**Udviklerens afgørelse.** Det er en bevidst designbeslutning. Bundlinjen med links til søskendesiderne
 skal ikke være en del af tastaturrækkefølgen, og GitHub-linket er undtaget specifikt og
 undtagelsesvis. Ingen kodeændring.
 
@@ -483,7 +483,7 @@ og den ring, tasten flytter rundt i, samles af en selector, der optager felter o
 men **intet `<a>` overhovedet**. Fraværet var altså en følge, ikke et valg, og det gjaldt også
 Satsers retsinfo-henvisninger, hvor spørgsmålet er reelt.
 
-Det er lukket af den strukturændring, brugeren gennemførte under BB-013: `ExternalLink` sætter nu
+Det er lukket af den strukturændring, udvikleren gennemførte under BB-013: `ExternalLink` sætter nu
 `tabIndex={-1}` fast, og AST-reglen `a11y/web-link-policy-single-source` håndhæver det. Beslutningen
 er dermed **erklæret på linket selv** frem for at være et biprodukt af sidens Tab-mekanik – og den
 gælder nu ensartet for eksterne links overalt, også på Satser. Mønsteret M-08 er dermed afgjort i
@@ -528,7 +528,7 @@ automatiserede browser ikke tilbyder en installationsprompt. Hvad en almindelig 
 når browseren HAR tilbudt prompten, er ikke afprøvet – noteret som dækningshul. Det ændrer ikke
 fundet: uanset udfaldet fortæller siden ikke tilstanden, før der klikkes.
 
-**Brugerens afgørelse.** Det er et acceptabelt kompromis, at brugeren – som nu – får en popup, hvis
+**Udviklerens afgørelse.** Det er et acceptabelt kompromis, at brugeren – som nu – får en popup, hvis
 hjælpeprogrammet allerede er installeret, og han klikker på linket. Tilstanden skal altså ikke vises
 på siden på forhånd. Ingen kodeændring.
 
@@ -553,7 +553,7 @@ resten af fundet.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Accepteret af brugeren 2026-08-16** – skal rettes
+- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes
 - **Sådan fremprovokeres det:** Læs «Teknisk» fra ende til anden og klik derefter på knappen.
 - **Det sker:** Afsnittet siger «skal du **installere** et hjælpeprogram», «Det kan **hentes** via
   **linket** nedenfor», knappen hedder «**Download** hjælpeprogram», den efterfølgende linje siger
@@ -569,8 +569,8 @@ resten af fundet.
   ved at klikke på installationsikonet …», og dialogerne tilsvarende.
 - **Andre steder det kan gælde:** Ingen – hjælpeprogrammet omtales kun her.
 
-**Brugerens afgørelse – accepteret, skal rettes.** Der skal bruges ét ord, «installer»/«installere».
-Gentagelsen af det samme ord må dog ikke gøre teksten kluntet, og brugeren har derfor selv leveret
+**Udviklerens afgørelse – accepteret, skal rettes.** Der skal bruges ét ord, «installer»/«installere».
+Gentagelsen af det samme ord må dog ikke gøre teksten kluntet, og udvikleren har derfor selv leveret
 brødteksten:
 
 > «For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i Mineo, skal du installere et
@@ -587,7 +587,7 @@ kalder det. Fundets sidebemærkning om knap-versus-link bortfalder dermed.
 Alle strenge ligger i [Mineo.tsx](../../../src/components/pages/Mineo.tsx); ingen af dem er delt med
 andre flader, så rettelsen er ren tekst uden mekanik.
 
-1. **Brødteksten** i «Teknisk» erstattes med brugerens formulering ovenfor. Kun første punktum
+1. **Brødteksten** i «Teknisk» erstattes med udviklerens formulering ovenfor. Kun første punktum
    ændres reelt; ikonerne og resten af sætningen står uændret (BB-019 er afvist).
 2. **Knappen** «Download hjælpeprogram» → «Installér hjælpeprogram» (bydeform med accent, jf.
    afgørelsen om stavemåde nedenfor).
@@ -604,10 +604,10 @@ andre flader, så rettelsen er ren tekst uden mekanik.
 **Spørgsmål om stavemåden.** Programmet skriver ellers bydeform med accent – «kontrollér altid dine
 beregninger grundigt» står på den samme side.
 
-**Brugerens afgørelse (2026-08-16, anden runde).** Husstilen følges; stavemåderne skal være
+**Udviklerens afgørelse (2026-08-16, anden runde).** Husstilen følges; stavemåderne skal være
 konsekvente. Knappen hedder derfor **«Installér hjælpeprogram»** med accent.
 
-**Agentens afgrænsning af reglen.** Accenten hører kun på **bydeformen**. Brugerens egen brødtekst
+**Agentens afgrænsning af reglen.** Accenten hører kun på **bydeformen**. Udviklerens egen brødtekst
 skriver «skal du installere et hjælpeprogram» og dialogerne «Du behøver ikke installere det igen» –
 begge er infinitiv og skal **ikke** have accent. Reglen rammer altså præcis ét sted på fladen: selve
 knappen. Det er også kun -ere-verberne, mønsteret gælder; programmets øvrige knapper («Gem»,
@@ -620,7 +620,7 @@ knappen. Det er også kun -ere-verberne, mønsteret gælder; programmets øvrige
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16**
 - **Sådan fremprovokeres det:** Læs første sætning i «Teknisk» til ende.
 - **Det sker:** Sætningen slutter «… ved at klikke på installationsikonet yderst til højre i
   browserens adresselinje (Google Chrome ▣ / Microsoft Edge ▣).» De to tegn er små billeder uden
@@ -634,7 +634,7 @@ knappen. Det er også kun -ere-verberne, mønsteret gælder; programmets øvrige
 - **Andre steder det kan gælde:** Andre steder, hvor et ikon står inde i en sætning frem for ved
   siden af en etiket. Ikke systematisk eftersøgt.
 
-**Brugerens afgørelse.** Adfærden er acceptabel. Ikonerne står der udelukkende, for at brugeren kan
+**Udviklerens afgørelse.** Adfærden er acceptabel. Ikonerne står der udelukkende, for at brugeren kan
 se, hvad han skal kigge efter i adresselinjen i henholdsvis Chrome og Edge. En beskrivende tekst
 ville være overflødig. Ingen kodeændring.
 
@@ -652,7 +652,7 @@ med den.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16**
 - **Sådan fremprovokeres det:**
   1. Åbn Indstillinger og led efter, hvor programmet skal starte.
   2. Åbn derefter Om og se nederst i boksen «Teknisk».
@@ -673,7 +673,7 @@ med den.
 - **Andre steder det kan gælde:** Enhver indstilling, der bor uden for Indstillinger. Ikke
   systematisk eftersøgt; efterprøves når Indstillinger gennemgås som næste flade.
 
-**Brugerens afgørelse – en bevidst undtagelse med en begrundelse, gennemgangen ikke kendte.**
+**Udviklerens afgørelse – en bevidst undtagelse med en begrundelse, gennemgangen ikke kendte.**
 Om-siden er standard-startside af **juridiske** grunde: licensvilkårene fremgår af den, og
 fremvisningen er garantien for, at brugeren har set dem. Brugeren går ind i programmet mange gange
 uden at komme forbi Indstillinger, og han vil meget hurtigt ønske at starte på Stamdata i stedet.
@@ -700,7 +700,7 @@ registrerer den ikke som et selvstændigt fund.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16**
 - **Sådan fremprovokeres det:** Se på Om-siden fra top til bund.
 - **Det sker:** Overskriften siger «Mineo», brødteksten siger «Mineo er et specialiseret
   regneprogram», og bundlinjen fremhæver den aktuelle side som «minEO.dk». Loginskærmen, brugeren
@@ -716,7 +716,7 @@ registrerer den ikke som et selvstændigt fund.
   «minEO.dk» i overskriften og «Mineo» i brødteksten), browserfanens titel («Mineo
   Erstatningsberegner») og dokumenternes brevhoved.
 
-**Brugerens afgørelse.** Bevidst designvalg; skal ikke ændres. Målgruppen ved, at EO er
+**Udviklerens afgørelse.** Bevidst designvalg; skal ikke ændres. Målgruppen ved, at EO er
 fagbetegnelsen for erstatningsopgørelse, og at programmets fulde navn dermed er «min
 erstatningsopgørelse». I løbende tekst er «Mineo» det pænere og mere naturlige udtryk, mens
 «minEO.dk» er det rigtige dér, hvor programmet står side om side med søskendesiderne, der alle hedder
@@ -735,7 +735,7 @@ inkonsistens for enhver, der ser den udefra.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16**
 - **Sådan fremprovokeres det:** Log ind som ny bruger uden at ændre noget. Programmet lander på Om.
 - **Det sker:** Brugeren møder fem tekstbokse og en bundlinje. Sidens egne betjenbare ting er: hent
   et hjælpeprogram, skift startside, læs licensen – og fem links, hvoraf de fire fører **ud** af
@@ -749,7 +749,7 @@ inkonsistens for enhver, der ser den udefra.
   beregninger.» Det er en sætning, ikke en ny funktion.
 - **Andre steder det kan gælde:** Ingen.
 
-**Brugerens afgørelse.** Programmet er målrettet professionelle brugere og kan lave mange forskellige
+**Udviklerens afgørelse.** Programmet er målrettet professionelle brugere og kan lave mange forskellige
 typer beregninger. Brugeren går selv til den side, der svarer til den beregning, han skal lave. Der
 skal ikke udpeges ét sted at begynde. Ingen kodeændring.
 
@@ -810,7 +810,7 @@ opgaven. Forslaget bortfalder.
 - **Søskendesiderne er ikke åbnet i virkeligheden.** Det er ikke efterprøvet, at de fire adresser
   svarer. Ved efterprøvningen af BB-013 blev de tre adresser aflyttet lokalt, så klikket kunne måles
   uden at gå på nettet; det viser, hvor fanen lander, ikke hvad der er i den anden ende.
-- **BB-013's rettelse er ikke efterprøvet af Brugerblik.** Linkreglen blev gennemført af brugeren
+- **BB-013's rettelse er ikke efterprøvet af Brugerblik.** Linkreglen blev gennemført af udvikleren
   efter gennemgangen, og jeg har læst den i koden, ikke målt den i browseren. Den bærer sin egen
   dækning med (`e2e/web-link-policy.spec.ts` og AST-reglen), så en efterprøvning her ville være en
   gentagelse – men det skal stå, at fladens målte tilstand er den **før** rettelsen.
@@ -834,7 +834,7 @@ værn. De kan gennemføres i én omgang.
 | «Teknisk»-boksen | Brødtekst, knaplabel «Installér hjælpeprogram» og to dialogtekster bruger ét ord for handlingen | BB-018 |
 
 **Gennemført undervejs:** BB-013's generelle linkregel (`ExternalLink`/`InternalLink`, AST-værn og
-e2e-måling) er allerede i arbejdstræet – den er brugerens eget arbejde og ligger uden for denne
+e2e-måling) er allerede i arbejdstræet – den er udviklerens eget arbejde og ligger uden for denne
 rettelsesliste.
 
 ## Åbne spørgsmål

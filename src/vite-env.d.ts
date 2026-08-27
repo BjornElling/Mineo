@@ -1,4 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- Vite 8 exposes client types at this file; path reference keeps older VS Code TS servers from resolving the removed compilerOptions type library entry.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- Vite 8 eksponerer klienttyper her; stireferencen holder ældre VS Code-TS-servere fra at slå den fjernede compilerOptions-typebiblioteksindstilling op.
 /// <reference path="../node_modules/vite/client.d.ts" />
 
 interface BeforeInstallPromptEvent extends Event {

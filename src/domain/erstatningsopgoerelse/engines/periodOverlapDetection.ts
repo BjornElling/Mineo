@@ -23,7 +23,7 @@ export type PeriodRow = Readonly<{
  *
  * @param row1 - Første periode-række
  * @param row2 - Anden periode-række
- * @returns true hvis perioderne overlapper, ellers false
+ * @returns sand hvis perioderne overlapper, ellers falsk
  */
 const rowsOverlap = (row1: PeriodRow, row2: PeriodRow): boolean => {
   // Begge rækker skal have både fra og til udfyldt

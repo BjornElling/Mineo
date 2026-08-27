@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-26
+**Senest verificeret mod kode:** 2026-08-27
 
 ---
 
@@ -176,7 +176,7 @@ Kontrollaget må ikke lave nye fallback-enginekald for sektions-**afhængige** d
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 **Reguleringsforløbet er sektions-afhængigt og fail-closes derfor i validerings-fejl-stien**
-(brugerbeslutning): det viste reguleringsforløb er udelukkende
+(udviklerbeslutning): det viste reguleringsforløb er udelukkende
 den kanoniske serie fra det autoritative `pdfModel` (ingen re-derivation), som netop ikke bygges,
 når autoritativ beregning er blokeret. EOInspektion viser derfor reguleringsafsnittet som
 placeholders (ingen indeks-/værditabeller), indtil valideringsfejlen er løst. Der må IKKE
@@ -251,7 +251,7 @@ egen download-gate.
 **Forliget er en delvis S/S-afhængighed.** `computeSvieSmerteEngine` læser selv forligsgraden og skalerer
 dagssats, maksimum og total med faktoren. Forligsfelterne ligger derfor **ikke** i S/S-gruppen: en rød
 forligsprocent neutraliserer kun EFTER-forlig-felterne (`satserPerDagOre`, `satserMaxOre`, `forligFactor`,
-`totalOre`), mens før-forlig-grundlaget består – brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
+`totalOre`), mens før-forlig-grundlaget består – udviklerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at
 før-forlig-resultater bevares. Motorens egen operationsrækkefølge er uændret; kun hvilke af dens beregnede
 felter der eksponeres, ændres.
 
@@ -272,7 +272,7 @@ situation, og det autoritative output har ingen halv-tilstand.
 blokerede sti de grene, der stadig kunne beregnes sikkert (`svieSmerte`, `tafPerioder`; `undefined` =
 "blokeret af sin egen røde afhængighed"). `eoSnapshotToBeregningView` falder tilbage til dem, så
 Beregning-fanen fortsat viser den GYLDIGE TAF-periodisering, når et svie/smerte-felt er rødt – netop
-brugerbeslutning 2 (2026-07-25). Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så et krav om,
+udviklerbeslutning 2 (2026-07-25). Fanen læser kun snapshottet og ser ikke `inspektionSnapshot`, så et krav om,
 at den delvise visning "lever i inspektionSnapshot", ville i praksis fjerne gyldige data fra brugeren.
 `canonicalOutput` har bevidst **intet** fald-tilbage: det ER det krydsgående aggregat.
 
@@ -438,7 +438,7 @@ Historisk load-kompatibilitet:
 - De historiske udviklingsfelter `opsagtFraStilling` og `sfggSygeperioderFoer2015` er ikke længere aktuelle sagsdata
   og fjernes eksplicit uden preflight under load.
 - Mappings er versionsstyrede, typed og testet. Hvis en historisk værdi ikke kan oversættes entydigt, må en ny
-  load-fejl eller preflight ikke indføres uden brugerens forudgående godkendelse.
+  load-fejl eller preflight ikke indføres uden udviklerens forudgående godkendelse.
 
 ## 12. EO-feltklassificering og bounds-model
 

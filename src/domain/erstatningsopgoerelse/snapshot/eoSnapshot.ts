@@ -121,7 +121,7 @@ export type EoSnapshot = Readonly<{
    * De UAFHÆNGIGE grenes resultater, som stadig kunne beregnes sikkert, selv om aggregatet er blokeret.
    *
    * Findes KUN på den blokerede sti; på den grønne sti er `data` autoritativ og bærer alt. Formålet er
-   * brugerbeslutning 2: et rødt svie/smerte-felt må ikke fjerne den GYLDIGE TAF-periodisering fra
+   * udviklerbeslutning 2: et rødt svie/smerte-felt må ikke fjerne den GYLDIGE TAF-periodisering fra
    * Beregning-fanen. Fanen læste tidligere udelukkende `data`, som er `null` her, så de gyldige grene
    * kunne slet ikke nå frem – de levede alene i `inspektionSnapshot`, som Beregning-fanen ikke ser.
    *
@@ -204,7 +204,7 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
  * maksimum og total med faktoren (`:251-254`). En rød forligsprocent maskeres af readeren til `undefined`
  * og ville derfor blive regnet som "intet forlig", dvs. 100 % – et falsk tal bag en rød feltmarkering.
  *
- * Grundlaget består: brugerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at "før-forlig-resultater består".
+ * Grundlaget består: udviklerbeslutning 1 (2026-07-25) kræver udtrykkeligt, at "før-forlig-resultater består".
  * Vi nulstiller derfor KUN de skalerede felter og lader `satserPerDagFoerForligOre`/`satserMaxFoerForligOre`,
  * dagene og de indtastede beløb stå. `totalOre` er skaleret og bliver `null`-ækvivalenten nul, fordi typen
  * ikke er nullable – consumeren læser `forligFactor === null` sammen med `blockedDependencies.forlig`.
@@ -374,7 +374,7 @@ export const computeEoSnapshot = (args: Readonly<{
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
     // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
     //
-    // BEVIDST UDELADT (brugerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
+    // BEVIDST UDELADT (udviklerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
     // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
     // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
     // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
@@ -382,14 +382,14 @@ export const computeEoSnapshot = (args: Readonly<{
     // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
     // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
     // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
-    // "tidligere udbetalt" var 0 – præcis det falske tal, brugerbeslutningen 2026-07-25 kræver erstattet af `-`.
+    // "tidligere udbetalt" var 0 – præcis det falske tal, udviklerbeslutningen 2026-07-25 kræver erstattet af `-`.
     //
     // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
     // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
     // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
     // top-level feltnavne, så en rød rækkecelle ville være usynlig her.
     // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
-    // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: brugerbeslutning 1 kræver, at
+    // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: udviklerbeslutning 1 kræver, at
     // før-forlig-resultater består.
     const svieSmerteForInspektion = blockedDependencies.svieSmerte
       ? undefined
@@ -398,7 +398,7 @@ export const computeEoSnapshot = (args: Readonly<{
         blockedDependencies.forlig
       );
     // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
-    // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (brugerbeslutning 2 kræver
+    // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (udviklerbeslutning 2 kræver
     // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl – ikke at en ugyldig vises).
     const tafRangesForInspektion = blockedDependencies.taf
       ? undefined
@@ -419,10 +419,10 @@ export const computeEoSnapshot = (args: Readonly<{
       // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
       // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
       // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
-      // dér brugerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
+      // dér udviklerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
       data: null,
       blockedDependencies,
-      // Brugerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
+      // Udviklerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
       // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
       // svie/smerte-felt er rødt.
       readyBranches: Object.freeze({

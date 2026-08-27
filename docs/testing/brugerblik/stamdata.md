@@ -23,7 +23,7 @@ mindst feedback.
 
 ---
 
-## Brugerens afgørelser (2026-08-16)
+## Udviklerens afgørelser (2026-08-16)
 
 Alle ti fund er forelagt og afgjort. Oversigten er bindende; den enkelte afgørelse står i sin helhed
 under fundet, sammen med agentens efterprøvning af præmisserne.
@@ -60,7 +60,7 @@ BB-002-rettelsen alligevel åbner den kontrakt.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-01-kontekstuelle-feltnavne`
 - **Prioritet:** Høj
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – med én faktuel korrektion fra agenten
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – med én faktuel korrektion fra agenten
 - **Sådan fremprovokeres det:**
   1. Lad Skadestype stå tom. Feltet nederst hedder «Skadedato».
   2. Skriv `01-06-2020` i Skadedato og tryk Tab.
@@ -84,7 +84,7 @@ BB-002-rettelsen alligevel åbner den kontrakt.
   allerede har indtastet* – er derimod generelt og skal efterprøves overalt, hvor et valg styrer,
   hvordan et allerede udfyldt felt læses (se `TVAERGAAENDE.md`).
 
-**Brugerens afgørelse.** Fundets præmis er forkert. Skadelidte kan ikke både have en arbejdsulykke og
+**Udviklerens afgørelse.** Fundets præmis er forkert. Skadelidte kan ikke både have en arbejdsulykke og
 en erhvervssygdom. Skadestypen er en *deskriptiv* angivelse af den skade, beregningen vedrører – «lidt
 som at svare på, om et barn er en pige eller en dreng, og derudover spørge til dets fødselsdato».
 Datoen er den samme sagsdato under begge navne; feltet hedder blot skadedato eller anmeldelsesdato
@@ -102,7 +102,7 @@ holder ikke ved en måling. Skadestypen styrer i dag tre ting ud over navnet:
    anmeldelsesdatoen i erhvervssygdomssager (`erErhvervssygdom` i `eoPeriodeBlockingContext.ts`).
 3. **Dokumenternes ordlyd** – `eoPresentationModel.ts` skriver «Erhvervssygdom anmeldt den …».
 
-**Brugerens svar på korrektionen (2026-08-16).** Forholdet var glemt, men afgørelsen står ved magt:
+**Udviklerens svar på korrektionen (2026-08-16).** Forholdet var glemt, men afgørelsen står ved magt:
 skiftet mellem skadestyperne må fortsat ske tavst. Har brugeren fx sat Erhvervssygdom og angivet en
 svie-/smertedato før skadedatoen, og ændres skadestypen derefter, skal selve skiftet **ikke** give en
 orientering. Brugeren orienteres i stedet gennem den afledte konsekvens: svie-/smerteperiodens
@@ -129,7 +129,7 @@ rettelse i en eksisterende.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02-beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Høj
-- **Beslutning:** **Accepteret af brugeren 2026-08-16** – skal rettes; ordlyden forelægges
+- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes; ordlyden forelægges
 - **Sådan fremprovokeres det:**
   1. Vælg Skadestype = «Erhvervssygdom». Datofeltet hedder nu «Anmeldelsesdato».
   2. Skriv `01-06-2020` i Anmeldelsesdato.
@@ -152,11 +152,11 @@ rettelse i en eksisterende.
   bærer teksten «Grænserne kommer fra Fødselsdato og Skadedato» med samme problem – den er dog i
   praksis uopnåelig her, da intervallet ikke kan blive umuligt.
 
-**Brugerens afgørelse.** Navngivningen i fejlmeddelelserne skal følge den til enhver tid værende værdi
+**Udviklerens afgørelse.** Navngivningen i fejlmeddelelserne skal følge den til enhver tid værende værdi
 i skadestype-feltet: står den på Erhvervssygdom, skal **al** tekst om datoen konsekvent kalde den
 anmeldelsesdatoen – ellers skadedatoen. Reglen gælder hele programmet, ikke kun Stamdata.
 
-**Agentens bemærkning til ordlyden.** Brugerens præcisering er bindende: «Skadedato» og
+**Agentens bemærkning til ordlyden.** Udviklerens præcisering er bindende: «Skadedato» og
 «Anmeldelsesdato» er de eneste korrekte betegnelser, afhængigt af skadestypen. Forslaget nedenfor
 bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** i alle afledte tekster.
 
@@ -196,7 +196,7 @@ bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** i alle afledte 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-03-tastning-og-indsættelse-accepterer-ikke-det-samme`
 - **Prioritet:** Høj
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – forskellen mellem tastning og indsættelse er tilsigtet
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – forskellen mellem tastning og indsættelse er tilsigtet
 - **Sådan fremprovokeres det:**
   1. Klik i Skadedato og tast `010623` uden bindestreger.
   2. Tryk Enter.
@@ -220,7 +220,7 @@ bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** i alle afledte 
   overlay-datofeltet; der er 23 datofelter fordelt på otte descriptorfiler. Uge- og årsfelterne har
   tilsvarende segmentregler og skal efterprøves på samme måde.
 
-**Brugerens afgørelse.** Den nuværende opsætning er valgt bevidst. Et datofelt, der begynder at tolke
+**Udviklerens afgørelse.** Den nuværende opsætning er valgt bevidst. Et datofelt, der begynder at tolke
 på det tredje indtastede ciffer, giver anledning til fejl og usikkerhed: skriver brugeren `11`, kan det
 både være den 11. i en måned og den 1. januar. Når brugeren derimod *indsætter* en værdi, der
 uomtvisteligt kan opløses til én sikker dato, er det mest brugervenlige, at programmet også gør det –
@@ -243,7 +243,7 @@ kontraktrevision få begrundelsen med, så beslutningen ikke genåbnes af den n�
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-04-lydløs-afkortning-ved-længdegrænse`
 - **Prioritet:** Mellem
-- **Beslutning:** **Afgjort af brugeren 2026-08-16.** Princippet er allerede den gældende, målte
+- **Beslutning:** **Afgjort af udvikleren 2026-08-16.** Princippet er allerede den gældende, målte
   adfærd; de to initialfelter skal derimod have en grænse på **6 tegn** i stedet for 60
 - **Sådan fremprovokeres det:**
   1. Indsæt `Advokatfirmaet Jensen og Partnere I/S, Att. Line Bruun Madsen` i feltet «Advokat».
@@ -266,7 +266,7 @@ kontraktrevision få begrundelsen med, så beslutningen ikke genåbnes af den n�
   (`SHORT_TEXT_MAX_LENGTH`), og de flerlinjede kommentarfelter har 512. Adfærden ved overskridelse
   er den samme overalt.
 
-**Brugerens afgørelse.** Det er en fejl, hvis et felt tager imod flere tegn end tilladt og derefter
+**Udviklerens afgørelse.** Det er en fejl, hvis et felt tager imod flere tegn end tilladt og derefter
 afkorter tavst. Den korrekte adfærd er en effektiv blokering, så brugeren afskæres fra at indtaste
 flere tegn end feltets grænse – og det bør universelt gælde alle felttyper i hele programmet, hvor der
 er en grænse for antal tegn eller cifre.
@@ -287,16 +287,16 @@ er en grænse for antal tegn eller cifre.
 
 Det, fundet observerede, var derfor ikke en manglende blokering, men **paste**: en indsat tekst på 61
 tegn splices ind, indtil grænsen er nået, og resten springes over. Det er §1.2a's regel «paste
-behandles som tastning», som brugeren tiltrådte 2026-08-09 – og som blev valgt netop for at undgå, at
+behandles som tastning», som udvikleren tiltrådte 2026-08-09 – og som blev valgt netop for at undgå, at
 et paste enten smider hele indsættelsen væk eller kommer forbi en grænse, tastning håndhæver. Skal
 paste i stedet afvises *helt*, når teksten er for lang, er det en ændring af den beslutning og ikke en
 fejlrettelse; agenten fraråder den, fordi brugeren så mister også den del af værdien, der kunne bruges.
 
-**Brugerens afgørelse om grænsen (2026-08-16).** De to felter er initialfelter og skal have plads til
+**Udviklerens afgørelse om grænsen (2026-08-16).** De to felter er initialfelter og skal have plads til
 **færre tegn end et normalt tekstfelt**: antallet af tilladte tegn skal svare til det synlige indhold i
 felterne – **6 tegn**, både ved tastning og ved indsættelse.
 
-**Brugerens afgørelse om læsbarheden.** Spørgsmålet bortfalder for disse to felter, når grænsen er 6
+**Udviklerens afgørelse om læsbarheden.** Spørgsmålet bortfalder for disse to felter, når grænsen er 6
 tegn: der er da ikke noget skjult indhold at læse. Agenten er enig – og har efterprøvet, at det også
 gælder Stamdatas to øvrige tekstfelter, hvor feltbredden er rigelig i forhold til den tekst, en bruger
 reelt skriver («Skadelidtes navn» 350 px, «Journalnr.» 220 px). Spørgsmålet er derfor **lukket for
@@ -326,7 +326,7 @@ sammen med de øvrige tekstfelter (`93b21494`). Det ændrer intet ved afgørelse
    `.eo`-load, indtil brugeren selv retter feltet – der sker ingen tavs afkortning af gemte data.
    Alternativet (afkortning ved load) ville være datatab og fravælges.
 5. **Kontrakt (sammen med rettelsen).** `input-field-behavior-contract.md` §2.5 «Frie tekstfelter»
-   bærer i dag kategorien på 60 tegn som den brugergodkendte værdi; den skal have initialkategorien med
+   bærer i dag kategorien på 60 tegn som den udviklergodkendte værdi; den skal have initialkategorien med
    og navngive de to felter, den gælder for.
 
 ### BB-005 – Ingen rimelighedskontrol af alder: en 2-årig med erhvervssygdom går glat igennem
@@ -334,7 +334,7 @@ sammen med de øvrige tekstfelter (`93b21494`). Det ændrer intet ved afgørelse
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-05-ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier`
 - **Prioritet:** Mellem
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – der skal ikke være nogen nedre aldersgrænse
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – der skal ikke være nogen nedre aldersgrænse
 - **Sådan fremprovokeres det:**
   1. Fødselsdato = `01-06-2021`.
   2. Skadestype = «Erhvervssygdom», Anmeldelsesdato = `01-06-2023`.
@@ -349,11 +349,11 @@ sammen med de øvrige tekstfelter (`93b21494`). Det ændrer intet ved afgørelse
 - **Bedre ville være:** En gul, ikke-blokerende feltadvarsel, når alderen på skadetidspunktet ligger
   uden for et realistisk arbejdsliv – fx under 13 eller over 100 år. Formen findes allerede i
   programmet (méngrad på 5 %, EET-procenter under 15 %), så adfærden ville være genkendelig.
-  Grænserne er brugerens beslutning.
+  Grænserne er udviklerens beslutning.
 - **Andre steder det kan gælde:** Samme spørgsmål gælder ethvert felt, hvis grænse er sat vidt for
   ikke at opfinde en regel: beløb, procenter og datoer langt fra sagens øvrige datoer.
 
-**Brugerens afgørelse.** Programmet skal ikke have nogen nedre aldersgrænse – heller ikke som gul
+**Udviklerens afgørelse.** Programmet skal ikke have nogen nedre aldersgrænse – heller ikke som gul
 advarsel. Det skal kunne håndtere, at et nyfødt barn har taget skade, fordi forælderen har været udsat
 for en arbejdsskade, og at små børn kommer til skade i fx trafikuheld. En 2-årig skadelidt er derfor
 ikke et usandsynligt input, men et rigtigt et.
@@ -372,7 +372,7 @@ næste, der ser en 2-årig med erhvervssygdom gå igennem uden signal, skal kunn
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – og hævet til et bærende princip for hele programmet
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – og hævet til et bærende princip for hele programmet
 - **Sådan fremprovokeres det:**
   1. Åbn Stamdata på en tom sag.
   2. Udfyld journalnr. og navn. Lad Skadestype og Skadedato stå tomme.
@@ -392,7 +392,7 @@ næste, der ser en 2-årig med erhvervssygdom gå igennem uden signal, skal kunn
 - **Andre steder det kan gælde:** Ingen – men det modsatte spørgsmål er relevant på hver eneste
   senere flade: peger blokeringen konkret tilbage på det felt her, der mangler?
 
-**Brugerens afgørelse – et princip, ikke bare et nej.** Stamdata skal ikke give fejlmeddelelser eller
+**Udviklerens afgørelse – et princip, ikke bare et nej.** Stamdata skal ikke give fejlmeddelelser eller
 oplysninger om manglende indtastninger. Stamdatas felter er kun relevante i *visse*
 beregningssituationer, og brugeren bruger langtfra altid alle beregningstyper: renteberegning er fx
 uafhængig af skadelidtes stamdata, og det ville være direkte forkert, hvis Stamdata i det tilfælde
@@ -418,7 +418,7 @@ isolationsværn er kørt grønne efter tilføjelsen.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-06-usynlige-tegn-overlever-fra-indsættelse`
 - **Prioritet:** Lav
-- **Beslutning:** **Accepteret af brugeren 2026-08-16** – med udtrykkeligt krav om, at normaliseringen
+- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – med udtrykkeligt krav om, at normaliseringen
   ikke må forstyrre de øvrige normaliseringer
 - **Sådan fremprovokeres det:**
   1. Kopiér `Sag 2024-<hårdt mellemrum>117<tabulator>/` og på næste linje `Afd. 3` fra et
@@ -437,7 +437,7 @@ isolationsværn er kørt grønne efter tilføjelsen.
 - **Andre steder det kan gælde:** Alle fritekstfelter. Tal-, dato- og procentfelterne har allerede
   hver sin indsættelses-normalisering; tekstfelterne har ingen.
 
-**Brugerens afgørelse.** Der skal laves en forsvarlig normalisering af indsat tekst. Den må ikke give
+**Udviklerens afgørelse.** Der skal laves en forsvarlig normalisering af indsat tekst. Den må ikke give
 problemer med de øvrige normaliseringer, fx en indsat dato i et datofelt. Det er i orden, at
 normaliseringen kører først, så længe det kan sikres, at den ikke giver problemer længere nede i kæden.
 
@@ -480,7 +480,7 @@ antages.
    og nulbredde-tegn i et kort tekstfelt og i et kommentarfelt. (b) Levende kilde: en
    ækvivalenstest, der for **hver** ikke-tekstfamilie kører et repræsentativt paste gennem
    `normalizePaste` med og uden det nye trin og kræver byte-identisk resultat – den er den egentlige
-   sikring af brugerens forbehold, og den bliver rød, hvis en fremtidig familie begynder at læse
+   sikring af udviklerens forbehold, og den bliver rød, hvis en fremtidig familie begynder at læse
    mellemrum. (c) Skelnetest: en indsættelse, hvor kun linjeskiftsreglen adskiller enkeltlinje fra
    flerlinje, så testen ikke kan bestå på den forkerte mekanisme.
 5. **Bevidst udenfor:** værdier fra `.eo`-load og programmatiske skrivninger normaliseres ikke –
@@ -496,7 +496,7 @@ antages.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – ikke et faktisk problem
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – ikke et faktisk problem
 - **Sådan fremprovokeres det:** Åbn Stamdata og se på rækken «Advokat/Sagsbehandler».
 - **Det sker:** To lige store felter adskilt af en skråstreg, begge med pladsholderen «(init.)».
   Feltets rigtige navn findes kun som skjult skærmlæser-etiket.
@@ -507,7 +507,7 @@ antages.
   hvert felt.
 - **Andre steder det kan gælde:** Enhver række, hvor én etiket dækker flere felter.
 
-**Brugerens afgørelse.** Fundet afvises; det er ikke et faktisk problem. Ingen kodeændring.
+**Udviklerens afgørelse.** Fundet afvises; det er ikke et faktisk problem. Ingen kodeændring.
 Bemærk, at feltbredden og læsbarheden af de samme to felter fortsat er i spil under BB-004's åbne
 spørgsmål – det er en anden sag end etiketten.
 
@@ -516,7 +516,7 @@ spørgsmål – det er en anden sag end etiketten.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-05-ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier`
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16** – den nuværende tilstand accepteres
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – den nuværende tilstand accepteres
 - **Sådan fremprovokeres det:** Skriv `01-06-29` i Fødselsdato på en sag uden skadedato.
 - **Det sker:** Feltet viser `01-06-2029` og bliver rødt med teksten «Datoen er efter dags dato
   (16-08-2026)». Til sammenligning bliver `01-06-32` korrekt til `01-06-1932`.
@@ -531,7 +531,7 @@ spørgsmål – det er en anden sag end etiketten.
 - **Andre steder det kan gælde:** Fødselsdatofeltet findes også på Erhvervsevnetab. De øvrige
   datofelter er fremadrettede og har ikke problemet.
 
-**Brugerens afgørelse.** Den nuværende tilstand accepteres. Der skal være **én gennemgående regel** for,
+**Udviklerens afgørelse.** Den nuværende tilstand accepteres. Der skal være **én gennemgående regel** for,
 hvordan et tocifret årstal omsættes til fire cifre, og det er mest intuitivt og mest i tråd med
 programmets øvrige indtastninger, at 27-31 læses som 2027-2031. Fødselsdatofeltet skal altså ikke have
 sin egen bagudrettede regel.
@@ -549,7 +549,7 @@ fundets forslag om en særregel for fødselsdato bortfalder.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-07-parvise-grænser-markerer-begge-parter`
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af brugeren 2026-08-16 for markeringen; ordlyden skal derimod rettes**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16 for markeringen; ordlyden skal derimod rettes**
 - **Sådan fremprovokeres det:** Udfyld Skadedato korrekt, og skriv derefter en fødselsdato, der
   ligger efter den.
 - **Det sker:** Begge felter bliver røde med hver sin tooltip, selv om brugeren kun har rørt det ene.
@@ -563,7 +563,7 @@ fundets forslag om en særregel for fødselsdato bortfalder.
 - **Andre steder det kan gælde:** Alle parrede dato-grænser: fra/til-perioder, afgørelses- og
   virkningsdatoer, kapitaliseringsdatoer.
 
-**Brugerens afgørelse.** Udløser to felters værdier tilsammen en fejl, skal der gives fejl i **begge**.
+**Udviklerens afgørelse.** Udløser to felters værdier tilsammen en fejl, skal der gives fejl i **begge**.
 Løsningen er forskellig i hvert af de to felter, og fejlmeddelelsen skal afspejle, hvad brugeren kan
 gøre netop dér for at fjerne fejlen. Den nuværende markering er derfor korrekt og bevares. Til gengæld
 skal tooltip-teksterne afspejle det – fx i det ene felt «Der er angivet en skadedato før skadelidtes
@@ -589,7 +589,7 @@ I [dateRangeErrorMessages.ts](../../../src/utils/dateRangeErrorMessages.ts):
   (01-06-2020)».
 
 Begge tekster går uændret videre til «Fejl og advarsler»-boksene, fordi `bounds`-beskeder citeres
-ordret (`project_field_tooltip_vs_error_box`). Ordlyden forelægges brugeren, før den skrives ind.
+ordret (`project_field_tooltip_vs_error_box`). Ordlyden forelægges udvikleren, før den skrives ind.
 
 ---
 
@@ -624,19 +624,19 @@ ordret (`project_field_tooltip_vs_error_box`). Ordlyden forelægges brugeren, f�
 - Gem/hent-rundtur med de undersøgte værdier (usynlige tegn, afvist råtekst) er ikke kørt. Hører
   naturligt til fladen «Global shell».
 - Det er ikke efterprøvet, hvad de aldersafhængige beregninger konkret producerer for den 2-årige i
-  BB-005; kun at Stamdata accepterer den uden signal. Efter brugerens afgørelse er dette ikke længere
+  BB-005; kun at Stamdata accepterer den uden signal. Efter udviklerens afgørelse er dette ikke længere
   et grænsespørgsmål, men et **korrekthedsspørgsmål**: en meget ung skadelidt er et lovligt input, og
   kapitalisering, pensionsalder og forsørgertab skal derfor kunne regne rigtigt på den. Efterprøves på
   de pågældende flader.
 - Virkningen af et skift af skadestype på Erstatningsopgørelsens datogrænser er konstateret i koden,
-  men ikke afprøvet i browseren. Efter brugerens afgørelse er det netop den afledte fejlmarkering, der
+  men ikke afprøvet i browseren. Efter udviklerens afgørelse er det netop den afledte fejlmarkering, der
   BÆRER orienteringen – den bør derfor efterprøves konkret, når Erstatningsopgørelsen gennemgås:
   sæt Erhvervssygdom, angiv en svie-/smertedato mellem anmeldelsesdatoen ÷ 5 år og anmeldelsesdatoen,
   skift til Arbejdsulykke, og kontrollér at feltet bliver rødt med den korrekte besked.
 
 ## Åbne spørgsmål
 
-**Ingen.** Alle spørgsmål på denne flade er besvaret af brugeren 2026-08-16 – først de tre
+**Ingen.** Alle spørgsmål på denne flade er besvaret af udvikleren 2026-08-16 – først de tre
 oprindelige (BB-001: datoen bevares uændret; BB-005: ingen aldersgrænse; BB-010: begge felter markeres
 fortsat), og derefter de tre, som svarene rejste:
 

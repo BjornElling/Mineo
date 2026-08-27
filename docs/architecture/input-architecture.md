@@ -305,7 +305,7 @@ Inputschemaet håndhæver for hvert rejected felt:
 4. feltets strukturelle ejer/entity findes, og feltet er relevant efter den kanoniske inputdrevne relevansregel.
 
 Kun deterministisk, inputdrevet strukturel eksistens og relevans er envelope-invarianter. AppSettings må påvirke validering,
-beregning og visning af ikke-persisterede udvikler-/inspektionsflader, men må ikke styre synlighed/relevans for et
+beregning og visning af ikke-persisterede flader til udvikleren og inspektionsflader, men må ikke styre synlighed/relevans for et
 persisteret inputfelt. Hvis inventaret mod forventning finder en sådan kobling, er det et fase-0-stop, der forelægges
 som en konkret UI/UX-beslutning; den må ikke løses med implicit sletning eller en svagere save-gate.
 

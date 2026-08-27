@@ -370,7 +370,7 @@ export const buildEoIndkomstRows = (
       // Supplement-konsistens: bruges et tillæg (feriepenge/SH-SO/fritvalg/AG-pension) på nogle
       // aktive rækker, kræves det udfyldt på ALLE aktive rækker – ellers markeres rækken rød.
       // BEVIDST strengere end validatoren og motoren (som tolker et blankt tillæg som 0 / base-
-      // fallback): brugerens beslutning 2026-07-04 (regulering-review G13-1) er, at et tomt tillæg
+      // fallback): udviklerens beslutning 2026-07-04 (regulering-review G13-1) er, at et tomt tillæg
       // ikke må falde stille tilbage til basissatsen uden en synlig markering. Fjern ikke dette som
       // "unødig" streng-hed – asymmetrien er tilsigtet, ikke drift.
       const usedSupplements = MANUEL_ANGIVET_SUPPLEMENT_FELTER.filter((field) =>

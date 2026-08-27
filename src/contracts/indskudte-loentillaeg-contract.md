@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-27
 
 ## 1. Scope
 
@@ -66,7 +66,7 @@ dokumentation, der – som dette afsnit – forklarer, at det udelukkende er et 
 **Værn:** `indskudteLoentillaeg.test.ts` § "Særligt ferietillæg er ikke i programmet" måler modulets
 faktiske eksportflade, så en genindførelse af satserne gør testen rød.
 
-**Re-evalueringstrigger:** at implementeringsplanen gennemføres efter en udtrykkelig brugerbeslutning om, at
+**Re-evalueringstrigger:** at implementeringsplanen gennemføres efter en udtrykkelig udviklerbeslutning om, at
 tillægget skal indgå. Sker det, følges samme "indskudt tillæg fra en virkningsdato"-mønster som Store
 Bededag, og §1–§4 udvides med den konkrete beregnings- og præsentationskobling. Bemærk, at beslutningen da
 også skal afgøre tillæggets **betingelse** (Store Bededag gælder fx kun ved "Almindelig løn på helligdage")

@@ -85,7 +85,7 @@ describe('MinProcesrente – «Slet alle indtastninger»-bekræftelsen (BB-044)'
 // derfor telefonens tre kolonner med desktopbredden – og mistede samtidig tillægstid, enhed og den
 // afledte rentedato, mens renten fortsat blev regnet med tillægstiden.
 //
-// Brugerbeslutning 2026-08-19: visningen låses til enhedstypen og skifter aldrig med vinduet.
+// Udviklerbeslutning 2026-08-19: visningen låses til enhedstypen og skifter aldrig med vinduet.
 
 const createMediaQueryList = (matches: boolean, media: string): MediaQueryList => ({
   matches,
@@ -139,7 +139,7 @@ describe('MinProcesrente – opstillingen følger enheden, ikke vinduet (BB-045/
   });
 
   it('giver desktopopstilling på en berøringsfølsom bærbar med stor skærm', () => {
-    // Brugerens valg: skærmens fysiske størrelse afgør. En touch-laptop er en desktop.
+    // Udviklerens valg: skærmens fysiske størrelse afgør. En touch-laptop er en desktop.
     configureDevice({ touch: true, screenWidth: 1920, screenHeight: 1080, viewportWidth: 1920 });
     renderStandalone();
 

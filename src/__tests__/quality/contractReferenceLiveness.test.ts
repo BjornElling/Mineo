@@ -123,7 +123,7 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'StyledToggleSwitchHandle',
     direction: 'absent',
     note:
-      'Slettet sammen med rystelsen (brugerbeslutning 2026-08-15). Handlet havde præcis ét medlem, '
+      'Slettet sammen med rystelsen (udviklerbeslutning 2026-08-15). Handlet havde præcis ét medlem, '
       + '`shake()`, og fandtes alene for at ryste togglen ved en afvist aktivering. Kontrakten navngiver '
       + 'det for at forbyde dets genkomst: der er nu ÉN afvisningsmåde – synligt inaktiv knap med '
       + 'årsagen i tooltippet.',

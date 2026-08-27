@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-08-27
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -128,12 +128,12 @@ enkelte anførselstegn i de to skabeloner, der citerer det (`invalid`, `schema`)
 advarsler" UDEN feltet foran sig, og labels indeholder selv punktummer og bindestreger
 ("Hvis genopt. - tidl. kap.dato"), som ellers løber sammen med prosaen. `quoteFieldLabel` ejer formen.
 
-### 3.1 Hvor en manglende forudsætning meldes (brugerbeslutning 2026-08-16)
+### 3.1 Hvor en manglende forudsætning meldes (udviklerbeslutning 2026-08-16)
 
 En `missing`-melding hører hjemme på den flade, hvor oplysningen **bruges** – aldrig på den flade, der blot
 bærer feltet.
 
-Begrundelsen er brugerens: et felt kan være forudsætning for én beregning og fuldstændig uden betydning for en
+Begrundelsen er udviklerens: et felt kan være forudsætning for én beregning og fuldstændig uden betydning for en
 anden. Renteberegning er fx uafhængig af skadelidtes stamdata, og en melding på Stamdata om, at noget «mangler»,
 ville derfor være direkte forkert for den bruger, der kun regner renter. Der findes ingen flade, hvor
 programmet kan vide, hvad brugeren har tænkt sig at regne – kun de enkelte beregningsflader ved det om sig selv.
@@ -147,7 +147,7 @@ Heraf følger:
 3. **Afgrænsningen er `missing`, ikke `invalid`.** En værdi, brugeren faktisk har skrevet, og som er ugyldig
    eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet – også på en flade, der ellers ikke
    melder noget. Det er brugerens eget input, ikke en forudsætning for en beregning, han måske aldrig laver.
-4. **Begge parter i en brudt parvis grænse markeres** (brugerbeslutning samme dag). Udvejen er forskellig i hvert
+4. **Begge parter i en brudt parvis grænse markeres** (udviklerbeslutning samme dag). Udvejen er forskellig i hvert
    af de to felter, og hver tekst skal derfor beskrive den rettelse, brugeren kan foretage i netop det felt.
 
 5. **Stamdata-datoreferencen er central og konsekvent.** Når skadestypen er Arbejdsulykke eller ukendt, bruges
@@ -229,7 +229,7 @@ anden eller ukendt årsag falder i den generiske gren. Det er den sikre default:
 uegnet tekst til tooltippet.
 
 **Tabellen ovenfor gælder FELTETS eget tooltip. Download-knappens tooltip følger en egen, lempet regel
-(brugerbeslutning 2026-08-13).** Kontrakten krævede tidligere, at `bounds`/`rule` bevarede den fulde konkrete
+(udviklerbeslutning 2026-08-13).** Kontrakten krævede tidligere, at `bounds`/`rule` bevarede den fulde konkrete
 besked også i download-tooltippen. Det krav er lempet, fordi en downloadknap kan være blokeret af FLERE
 uafhængige input på én gang, hvor feltet altid er blokeret af præcis sit eget:
 
@@ -379,7 +379,7 @@ devtools-monitoren; knappen til fejlrapportering findes fortsat kun i `DevtoolsI
 ## 10. Tidsstempler og tidszone
 
 Systemlogs gemmer canonical instants som UTC ISO 8601 via `getTimestamp()`. Alt tidsoutput, der vises til bruger eller
-udvikler, formateres i `Europe/Copenhagen` via de kanoniske dato-/tidshelpers. Dette omfatter fejlrapport, devtools-
+udvikleren, formateres i `Europe/Copenhagen` via de kanoniske dato-/tidshelpers. Dette omfatter fejlrapport, devtools-
 notice og rapport-/skærmprintfilnavne.
 
 ## 11. Ingen reporter-/store-model

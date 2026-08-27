@@ -64,7 +64,7 @@ export const resolveAarsloenCanonicalRangeIssues = (
  *
  * Grænsen kendes præcist: det er det hverdagstal, siden selv skriver i samme linje. Reglen er derfor en
  * AFLEDT grænse, ikke en indtastningsbegrænsning – værdien committes canonical, og feltet bliver rødt med
- * den konkrete grænse i tooltippet (brugerbeslutning 2026-08-26: ingen egentlig begrænsning i
+ * den konkrete grænse i tooltippet (udviklerbeslutning 2026-08-26: ingen egentlig begrænsning i
  * indtastningen, men rød ring og en tooltip, der forklarer fejlen).
  *
  * Reglen kan ikke bo i en descriptor-validator: grænsen udledes af TABELLENS rækker, og `CanonicalView`
@@ -94,7 +94,7 @@ export const resolveAarsloenFeriedageOverskriderPeriodenIssue = (
  *
  * @param tableData - Tabeldata
  * @param loenperiode - Lønperiode type
- * @returns true hvis der er valideringsfejl
+ * @returns sand hvis der er valideringsfejl
  */
 export const harTabelValideringsFejl = (
   tableData: StandardLoenTableRow[],
@@ -215,7 +215,7 @@ export const beregnFejlmeddelelser = (
  *
  * @param tableData - Tabeldata
  * @param loenperiode - Lønperiode type
- * @returns true hvis der er data
+ * @returns sand hvis der er data
  */
 export const harTabelData = (
   tableData: StandardLoenTableRow[],

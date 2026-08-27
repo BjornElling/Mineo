@@ -103,7 +103,7 @@ const readOptional = <T>(reader: InputReader, ref: ReturnType<FieldDescriptor<T>
  * Sagsniveauets overenskomst-etiket.
  *
  * Viste tidligere KUN `meta.navn`, mens ansættelsesforholdet viste `navn (lønmodtager / arbejdsgiver)`.
- * Forskellen var eksisterende dokumentindhold og afventede derfor en brugerbeslutning (§5.4's hårde stop).
+ * Forskellen var eksisterende dokumentindhold og afventede derfor en udviklerbeslutning (§5.4's hårde stop).
  * Beslutningen faldt 2026-07-31: navn OG parter, alle steder. De to etiketter er nu samme funktion –
  * kun fallback-teksten for et manglende ID skiller dem.
  */

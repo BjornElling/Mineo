@@ -40,7 +40,7 @@ export interface ValidationError {
 export interface ValidationResult {
   /** Liste af alle errors */
   errors: ValidationError[];
-  /** True hvis ingen errors */
+  /** Sand hvis der ikke er fejl */
   isValid: boolean;
 }
 
@@ -58,4 +58,3 @@ export interface FormValidator<TValues> {
    */
   validate(values: TValues): ValidationResult;
 }
-

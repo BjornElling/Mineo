@@ -13,7 +13,7 @@ interface ErrorBoundaryState {
   errorInfo: React.ErrorInfo | null;
 }
 
-// Invariant: this.state.hasError === true ⇒ this.state.error !== null
+// Invariant: `this.state.hasError === true` medfører, at `this.state.error !== null`.
 
 /**
  * Error Boundary komponent der fanger React-fejl i child-komponenter
@@ -23,13 +23,13 @@ interface ErrorBoundaryState {
  *
  * VIGTIGT: Fanger KUN fejl i:
  * - Render-funktioner
- * - Lifecycle methods
- * - Constructors
+ * - lifecycle-metoder
+ * - konstruktører
  *
  * Fanger IKKE:
- * - Event handlers (onClick, onChange, etc.)
- * - Async kode (Promise rejections)
- * - setTimeout/setInterval callbacks
+ * - event handlers (`onClick`, `onChange` osv.)
+ * - asynkron kode (Promise-afvisninger)
+ * - `setTimeout`-/`setInterval`-callbacks
  */
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   private static truncateMultiline(
@@ -41,7 +41,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const lines = input.split('\n').slice(0, maxLines);
     const joined = lines.join('\n');
     if (joined.length <= maxChars) return joined;
-    return joined.slice(0, maxChars) + '\n[Truncated]';
+    return joined.slice(0, maxChars) + '\n[Forkortet]';
   }
 
   constructor(props: ErrorBoundaryProps) {
@@ -54,14 +54,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-    // Opdater state så næste render viser fallback UI
+    // Opdater state, så næste render viser fallback-UI.
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log fejl til konsol (development)
+    // Log fejl til konsol under udvikling.
     if (import.meta.env.DEV) {
-      console.error('ErrorBoundary caught error:', error, errorInfo);
+      console.error('ErrorBoundary fangede en fejl:', error, errorInfo);
     }
 
     // Gem fejldetaljer i state
@@ -75,7 +75,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       code: 'react:error_boundary',
       area: 'react',
       context: 'ErrorBoundary',
-      userMessage: 'React component error',
+      userMessage: 'Der opstod en fejl i en React-komponent',
       developerMessage: error.message,
       error,
       stack: ErrorBoundary.truncateMultiline(error.stack, 40, 8000),

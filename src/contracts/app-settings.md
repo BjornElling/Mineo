@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-08-26
+**Senest verificeret mod kode:** 2026-08-27
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -20,12 +20,12 @@ AppSettings består af fire kategorier med forskellig semantik:
 Programindstillinger er **ikke** sagsdata og **må derfor aldrig**:
 - ligge i sagens inputaggregate eller `sessionStorage`-inputenvelope
 - indgå i `.eo` save/load
-- være en del af nogen Zod-skemaer som repræsenterer persisted user input
+- være en del af nogen Zod-skemaer som repræsenterer persisteret brugerinput
 
 Konsekvens:
 - Hvis en `.eo`-fil deles med en kollega eller flyttes til en anden maskine, må programindstillinger ikke “smugles med”.
 
-**Brugerens afgørelse 2026-08-18 (bindende, genåbnes ikke).** Forbuddet gælder også som svar på det
+**Udviklerens afgørelse 2026-08-18 (bindende, genåbnes ikke).** Forbuddet gælder også som svar på det
 modsatrettede hensyn: indstillinger kan gå tabt, hvis browserens lagring ryddes, og de kan hverken
 gemmes eller hentes. Det er efterprøvet og accepteret. Forslaget om at lade dem følge `.eo`-filen –
 også som et separat, valgfrit afsnit – er **afvist**. Tabet er sjældent nok til at bæres, og
@@ -43,7 +43,7 @@ udviklingsrester og ændrer ikke reglen om, at nye eller ukendte device-lokale s
 ## Normativ regel: indstillinger er uden for undo/redo
 Ændringer på Indstillinger-siden må **aldrig** indgå i sagens fortrydelseshistorik.
 
-**Brugerens afgørelse 2026-08-18 (bindende):** valgene må kun kunne ændres ved brugerens aktive
+**Udviklerens afgørelse 2026-08-18 (bindende):** valgene må kun kunne ændres ved brugerens aktive
 handling. Var de en del af undo/redo, kunne ét tryk for meget på Fortryd ændre en indstilling, som
 brugeren ikke havde rørt – og virkningen ville ramme et helt andet sted end dér, fortrydelsen skete.
 Fraværet af fortrydelse er altså et værn, ikke en mangel; det skal ikke «rettes», og der skal ikke
@@ -67,7 +67,7 @@ vises nogen oplysning om det. Baggrund: `docs/testing/brugerblik/indstillinger.m
   - Kode, der legitimt har brug for hele `AppSettings` (ny-sags-seeds som `createDefaultLoenindkomstAnsaettelsesforhold`, DEV-inspektionens tomheds-prædikat), ligger uden for evalueringens sti og beholder den brede type.
   - Kode, der legitimt har brug for hele `AppSettings`, må aldrig aflevere den til et af de fire snapshots som struktur-supersæt. Mærkerne udelukker det; den smalle dokument-DTO, der tidligere bar samme ansvar strukturelt, er slettet, fordi en strukturel indsnævring er en aftale og ikke en grænse.
 - **Beregnings-/regel-toggles** må som hovedregel ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
-  - **Dokumenteret undtagelse (brugergodkendt 2026-06-19):** De to "Beregningsteknisk"-valg på Indstillinger-siden – `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` – er bevidst device-lokale. De ændrer ikke de producerede tal, men kun validerings-*severity* for overenskomst-/reguleringsdækning (en manglende/udløbet dækning vises som `warning` i stedet for `error`, og en udløbsperiode under grænsen accepteres). Konsekvens: samme `.eo`-sag kan validere forskelligt på to maskiner. Dette er accepteret, fordi valgene udtrykker den enkelte sagsbehandlers faste arbejdsmetode (ikke et sags-faktum), og fordi de ikke ændrer beregningsresultatet. **Re-evaluering:** flyt til schema-valideret sagsdata (`.eo`) hvis (a) der opstår behov for at to brugere skal se ens validering på samme sag, eller (b) et af valgene nogensinde kommer til at ændre de producerede tal frem for kun severity. Eneste produktions-callsite: `buildEoIndkomstRows` i `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts`.
+  - **Dokumenteret undtagelse (udviklergodkendt 2026-06-19):** De to "Beregningsteknisk"-valg på Indstillinger-siden – `allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden` og `allowReguleringMedUdloebMedMaaneder` – er bevidst device-lokale. De ændrer ikke de producerede tal, men kun validerings-*severity* for overenskomst-/reguleringsdækning (en manglende/udløbet dækning vises som `warning` i stedet for `error`, og en udløbsperiode under grænsen accepteres). Konsekvens: samme `.eo`-sag kan validere forskelligt på to maskiner. Dette er accepteret, fordi valgene udtrykker den enkelte sagsbehandlers faste arbejdsmetode (ikke et sags-faktum), og fordi de ikke ændrer beregningsresultatet. **Re-evaluering:** flyt til schema-valideret sagsdata (`.eo`) hvis (a) der opstår behov for at to brugere skal se ens validering på samme sag, eller (b) et af valgene nogensinde kommer til at ændre de producerede tal frem for kun severity. Eneste produktions-callsite: `buildEoIndkomstRows` i `src/domain/eoRowEvaluation/eoRowIndkomstRows.ts`.
 - **En valgindstillings værditype skal INFERERES på fladen, ikke annoteres væk og repareres bagefter.** `StyledDropdown` og `StyledRadioButton` er generiske i optionernes værditype, og `TValue` inferes fra `value`-proppen. Annoterer et kaldsted sin handler bredt (`StyledDropdownChangeEvent<string>`, `CommitEvent<string>`), vinder den brede type over literal-unionen, og kaldstedet må derefter bevise med et run-time-tjek, hvad compileren lige kunne have sagt. Det var oprindelsen til Indstillinger-sidens fem håndskrevne `is…Option`-typeguards, hver med kroppen `(OPTIONS as readonly string[]).includes(value)` – hvor `as readonly string[]` igen kaster netop den type væk, guarden bagefter påstår at etablere. Håndhæves af `form/choice-field-value-type-inferred`.
   - **Typens loft er målt og skal dækkes af en test.** `TValue` inferes fra `value`-proppen ALENE, ikke fra de rendrede `MenuItem`-børn (MUI typer `value` bredt). Compileren sikrer derfor, at det COMMITTEDE er en gyldig værdi, men ikke at kontrollen tilbyder præcis unionens værdier: både en overskydende og en manglende option typechecker grønt. Hver valgkontrols faktisk rendrede valgmuligheder skal derfor måles mod sit schema-univers i BEGGE retninger – `src/__tests__/components/pages/Indstillinger.optionCoverage.test.tsx`.
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
@@ -96,7 +96,7 @@ vises nogen oplysning om det. Baggrund: `docs/testing/brugerblik/indstillinger.m
   - **Head-scriptet gentager reglen i ES5** og kan ikke dele kode med `resolveThemeMode`.
     `themeBootstrapParity.test.ts` måler de to mod hinanden over krydsproduktet af alle gemte valg
     (inkl. ugyldige) og begge systempræferencer, så første paint og runtime ikke kan divergere.
-  - Baggrund: brugerens afgørelse 2026-08-18, `docs/testing/brugerblik/indstillinger.md` BB-024.
+  - Baggrund: udviklerens afgørelse 2026-08-18, `docs/testing/brugerblik/indstillinger.md` BB-024.
 - **Miljøafhængige defaults** er kun tilladt for rene visuelle UI-præferencer. De må ikke bruges til sags-, PDF- eller beregningsrelevante settings.
 - **Farvemarkering af font-styles er en DEV-kontrol, ikke en semantisk indholdsfarve.** En markørfarve skal
   svare til én komplet, kanonisk typografisignatur. Tabelsignaturer skelner mindst mellem 13 px og 14 px og

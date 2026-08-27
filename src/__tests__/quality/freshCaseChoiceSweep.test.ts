@@ -27,7 +27,7 @@ import { referenceRates, surchargeRates } from '../../data/interestRates';
  * "Angivet månedsløn" – og mød `eo_snapshot:hidden_angivet_loen_state_invalid`. Årsagen var, at et skjult
  * felt manglede en default, men KLASSEN er større: en systemfejl er per definition en tilstand, koden
  * erklærer umulig, og et brugervalg på en tom sag må aldrig kunne nå den. En systemfejl er ikke en
- * feltfejl brugeren kan rette; den er en påstand om, at programmet er i stykker.
+ * feltfejl brugeren kan rette; den beskriver en tilstand, som koden ikke tillader.
  *
  * Fejningen er BEVIDST udtømmende og katalogdrevet, ikke en liste af scenarier: den henter valgmængden fra
  * hvert felts eget codec (`FieldCodec.options`), så et nyt valgfelt eller en ny enum-værdi automatisk er

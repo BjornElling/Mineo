@@ -27,7 +27,7 @@ import { useDialogFocusRestore } from './useDialogFocusRestore';
  *
  * **Tilbage-knappen og historikken.** Et åbent overlay skubber ét `history`-trin. Lukkes overlayet ad
  * en anden vej (Escape, X, backdrop), fjernes trinnet igen, så historikken ikke vokser med et dødt
- * trin pr. åbning. Brugerbeslutning 2026-08-15: ét tilbage-tryk lukker ét overlay, og først når der
+ * trin pr. åbning. Udviklerbeslutning 2026-08-15: ét tilbage-tryk lukker ét overlay, og først når der
  * ikke er flere åbne, går tilbage til forrige side.
  */
 export type UseOverlayBehaviorOptions<TTrigger extends HTMLElement = HTMLElement> = Readonly<{

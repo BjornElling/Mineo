@@ -14,7 +14,7 @@
  * Sandheden er ÉN kilde: `package.json` → `engines`. Scriptet dublerer ikke intervallerne, så en bump af
  * `engines` (eller af `.nvmrc`) kan ikke efterlade kontrollen bagud.
  *
- * **Hvad intervallet dækker, og hvad CI måler (brugerbeslutning 2026-08-07).** `engines` tillader bevidst
+ * **Hvad intervallet dækker, og hvad CI måler (udviklerbeslutning 2026-08-07).** `engines` tillader bevidst
  * et BREDERE Node-interval (`>=24.18.0 <27`), end CI faktisk kører: workflowet henter sin version fra
  * `.nvmrc` (24.18.0), så det er den ene version, der efterprøves ved hver push. Udvidelsen blev truffet,
  * fordi hele toolchainen – fuld vitest-suite, Playwright-e2e, typecheck, lint og build – er verificeret

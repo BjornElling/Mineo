@@ -408,7 +408,7 @@ describe('assertValidSfggPolicy (vacuous-pass-værn)', () => {
  *
  * Formlen stod før udskrevet i hånden seks steder, mens de to EO-PDF-sektioner og sagsniveauet viste
  * navnet ALENE – så samme overenskomst hed to forskellige ting i dokumentet og på skærmen.
- * Brugerbeslutning 2026-07-31 ensartede dem; testen pinner den ene formel, alle nu deler.
+ * Udviklerbeslutning 2026-07-31 ensartede dem; testen pinner den ene formel, alle nu deler.
  */
 describe('resolveOverenskomstDisplay', () => {
   it('undefined, tom streng og whitespace → default-fallback "-"', () => {

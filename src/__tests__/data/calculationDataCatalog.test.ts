@@ -75,7 +75,7 @@ describe('calculationDataCatalog', () => {
       'forhoejet-pensionsalder-events': 'fbe93439bc6e0fb02378d11e8648712e81dc41d03eaabf35aa1bbb64a86f8e9e',
       // Ændret 2026-07-31: `SAERLIGT_FERIETILLAEG_SATSTRAPPE` fjernet fra payload'et, fordi særligt
       // ferietillæg er et rent fremtidigt udviklingsprojekt og ikke må indregnes nogen steder
-      // (brugerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
+      // (udviklerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
       'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
       kapitaliseringsbekendtgoerelser: '9e5d18bdaf8b554717ce3ee22c73bc409bff2ac4c45fc28f840bb59e831d615b',
       kapitaliseringstabeller: 'deb01298b81aa7886facb52faef0bec1b5a320c93fd2b729ecb19576d3367eea',

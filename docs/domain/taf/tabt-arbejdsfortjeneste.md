@@ -318,6 +318,6 @@ EO-domænet bruger den fælles merge-helper i `src/domain/erstatningsopgoerelse/
 
 ---
 
-## Kendte udeståender
+## Status
 
-*Ingen kendte udeståender pr. dags dato. Filen er synkroniseret med koden.*
+*Filen er synkroniseret med koden.*

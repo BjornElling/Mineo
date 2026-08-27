@@ -15,7 +15,7 @@ import type { DocumentOutcome } from '../../document/definition/documentOutcome'
  *
  * **Hvad der udløser advarslen.** Præcis det samme grundlag som Mineos: den afsluttede revision målt
  * mod en baseline. Forskellen er, hvad der flytter baselinen. I Mineo er det en `.eo`-save; her er det
- * en gennemført download, jf. brugerens regel: advarslen skal kun komme, når der er indtastninger, som
+ * en gennemført download, jf. udviklerens regel: advarslen skal kun komme, når der er indtastninger, som
  * ikke er hentet som PDF siden sidste ændring. Den, der lige har hentet sit dokument, generes altså
  * ikke – men taster han videre bagefter, er der igen noget at miste, og advarslen kommer tilbage af sig
  * selv, fordi revisionen så er højere end baselinen.
