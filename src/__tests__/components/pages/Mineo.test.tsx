@@ -371,7 +371,7 @@ describe('Mineo - License Modal Integration', () => {
       renderMineo();
 
       expect(screen.getByText(
-        'Alle konstaterede fejl rettes straks, men nye funktionaliteter udvikles og implementeres, når tid og mulighed tillader det.',
+        'Alle konstaterede fejl rettes straks. Da udviklingen af programmet i høj grad beror på interessetimer, vil nye funktionaliteter blive implementeret, når tid og mulighed tillader det.',
       )).toBeInTheDocument();
     });
 

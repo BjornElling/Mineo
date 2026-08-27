@@ -155,7 +155,7 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Programmet</Typography>
 
         <Typography className="row--text">
-          Mineo er et specialiseret regneprogram, der er udviklet til brug for advokater 
+          Mineo er et specialiseret regneprogram, der er udviklet til brug for advokater
           og arbejdsskadekonsulenter, som arbejder i eller for fagbevægelsen, og som beskæftiger
           sig med arbejdsskadesager.
         </Typography>
@@ -350,12 +350,12 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Status</Typography>
 
         <Typography className="row--text">
-          Programmet er fortsat under udvikling og vil løbende få opdateringer og nye funktioner.
+          Programmet er fortsat under udvikling og vil løbende blive opdateret og få nye funktioner.
         </Typography>
 
         <Typography className="row--text">
-          Alle konstaterede fejl rettes straks, men nye funktionaliteter udvikles og implementeres, når tid og mulighed
-          tillader det.
+          Alle konstaterede fejl rettes straks. Da udviklingen af programmet i høj grad beror på interessetimer, vil
+          nye funktionaliteter blive implementeret, når tid og mulighed tillader det.
         </Typography>
 
         <Typography className="row--text">
