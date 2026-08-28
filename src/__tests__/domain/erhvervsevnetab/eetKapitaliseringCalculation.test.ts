@@ -22,7 +22,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'aarsloen-zero',
       severity: 'error',
-      message: 'Årsløn skal være større end 0 kr',
+      message: 'Skadelidtes årsløn (efter ASL) skal være større end 0 kr',
     });
   });
 
@@ -89,7 +89,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'aarsloen-over-max',
       severity: 'error',
-      message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (632.000 kr.)',
+      message: 'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (632.000 kr.)',
     });
   });
 

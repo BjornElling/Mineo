@@ -19,7 +19,7 @@ import {
   resolveTafFejlgivendeBounds,
 } from '../validation/tafPeriodConstraints';
 import { getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
-import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../standardLoen/standardLoenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';

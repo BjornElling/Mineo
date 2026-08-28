@@ -13,7 +13,7 @@ import {
   aarsloenTablePensionBeloebField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
-import type { StandardLoenTableFieldSet } from '../../components/tables/standardLoenTableFieldSet';
+import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTableFieldSet';
 import { createEmptyStandardLoenRow } from './standardLoenRowInitialValues';
 
 // Løntabellens collection-ref bor HER hos feltsættet og ikke i projektionen. Ellers ville projektionen –

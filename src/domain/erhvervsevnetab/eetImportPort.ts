@@ -19,6 +19,7 @@ import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjecti
 import { eetIssueSchema, type EetIssue } from './eetTypes';
 import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType } from './eetAslAfgoerelser';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
   computeEetLoebendeYdelserForEoImport,
   EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS,
@@ -105,7 +106,7 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
     sourceIssues.push({
       id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
       severity: 'error',
-      message: 'Årslønnen er ikke gyldigt udfyldt.',
+      message: `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke gyldigt udfyldt.`,
     });
   }
   const skadedatoIssue = skadedatoRead.status === 'error' ? skadedatoRead.issue : undefined;

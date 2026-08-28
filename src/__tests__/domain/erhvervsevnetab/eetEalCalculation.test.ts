@@ -19,8 +19,8 @@ const aslRow = (patch: Partial<AslAfgoerelseRow> & Pick<AslAfgoerelseRow, 'id'>)
 
 describe('computeEetEalCalculation', () => {
   it.each([
-    ['EAL', { ealAarsloen: asAmount(-1000), aslAarsloen: asAmount(500000) }, 'eal-aarsloen-zero', 'EAL-årsløn skal være større end 0 kr'],
-    ['ASL', { ealAarsloen: undefined, aslAarsloen: asAmount(-1000) }, 'aarsloen-zero', 'Årsløn skal være større end 0 kr'],
+    ['EAL', { ealAarsloen: asAmount(-1000), aslAarsloen: asAmount(500000) }, 'eal-aarsloen-zero', 'Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) skal være større end 0 kr'],
+    ['ASL', { ealAarsloen: undefined, aslAarsloen: asAmount(-1000) }, 'aarsloen-zero', 'Skadelidtes årsløn (efter ASL) skal være større end 0 kr'],
   ] as const)('blokerer canonical negativ %s-årsløn som afledt issue', (_label, aarsloenPatch, issueId, message) => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
@@ -451,7 +451,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('fulde årsløn skal indtastes'))).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)'))).toBe(true);
   });
 
   it('viser advarsel når EAL-årsløn er tom og ASL-årsløn svarer til maks årsløn for skadesåret', () => {
@@ -471,7 +471,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('fulde årsløn skal indtastes'))).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)'))).toBe(true);
   });
 
   it('viser advarsel når skadedato er fra 1. juli 2024 og EAL-årsløn ikke er udfyldt', () => {

@@ -270,7 +270,7 @@ describe('computeForsoergertabSnapshot', () => {
         forsoergertab: {},
         faellesAarsloen: {
           aslAarsloen: {
-        message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (551.000 kr.)',
+        message: 'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (551.000 kr.)',
           },
         },
         stamdata: {},
@@ -300,7 +300,7 @@ describe('computeForsoergertabSnapshot', () => {
     // Oplysningen NÅR brugeren som en ikke-blokerende besked. Udledes den kun som
     // `fieldUi.ealAarsloen.helperText`, er der intet der læser den, og beskeden vises aldrig.
     expect(snapshot.ealAarsloenNotice).toBe(
-      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
+      'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.'
     );
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowResult).toBe(true);
@@ -327,7 +327,7 @@ describe('computeForsoergertabSnapshot', () => {
     // Oplysningen NÅR brugeren som en ikke-blokerende besked. Udledes den kun som
     // `fieldUi.ealAarsloen.helperText`, er der intet der læser den, og beskeden vises aldrig.
     expect(snapshot.ealAarsloenNotice).toBe(
-      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
+      'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.'
     );
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowResult).toBe(true);

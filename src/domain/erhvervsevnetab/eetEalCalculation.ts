@@ -30,6 +30,10 @@ import {
 } from '../money/money';
 import type { EetEalComputation } from './eetCanonicalOutput';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
+import {
+  SKADELIDTES_AARSLOEN_ASL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_LABEL,
+} from '../aslEalAarsloen/aarsloenLabels';
 
 export type { EetEalComputation } from './eetCanonicalOutput';
 
@@ -234,13 +238,13 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const ealAarsloenRaw = amountValueToNumber(values.ealAarsloen);
   const aslAarsloenRaw = amountValueToNumber(values.aslAarsloen);
   if (ealAarsloenRaw !== undefined && ealAarsloenRaw <= 0) {
-    issues.push(toIssue('eal-aarsloen-zero', 'EAL-årsløn skal være større end 0 kr'));
+    issues.push(toIssue('eal-aarsloen-zero', `${SKADELIDTES_AARSLOEN_EAL_LABEL} skal være større end 0 kr`));
   } else if (ealAarsloenRaw === undefined && aslAarsloenRaw !== undefined && aslAarsloenRaw <= 0) {
     // ASL-årslønnen er kun en EAL-afhængighed ved fallback. En ugyldig ASL-værdi må derfor ikke blokere
     // EAL-fanen, når brugeren allerede har angivet en positiv EAL-årsløn.
-    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
+    issues.push(toIssue('aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr`));
   } else if (aarsloen.value === null || aarsloen.source === null) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
+    issues.push(toIssue('aarsloen-missing', `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke udfyldt`));
   }
 
   // Identiske ASL-afgørelser er kun relevante, når EAL-EET-procenten skal findes via ASL-fallbacken.
@@ -325,7 +329,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
   const maxAarsloenForSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar, input.aarsloenAslMax);
   const maxAarsloenWarningMessage =
-    'Skadelidtes fulde årsløn skal indtastes for EAL – ikke maks. årslønnen efter ASL';
+    `${SKADELIDTES_AARSLOEN_EAL_LABEL} skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL`;
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
   if (

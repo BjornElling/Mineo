@@ -81,7 +81,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(result.issues).toContainEqual({
       id: 'aarsloen-zero',
       severity: 'error',
-      message: 'Årsløn skal være større end 0 kr',
+      message: 'Skadelidtes årsløn (efter ASL) skal være større end 0 kr',
     });
   });
 
@@ -1786,7 +1786,7 @@ describe('warn-asl-aarsloen-is-max', () => {
     expect(result.issues).toContainEqual({
       id: 'aarsloen-over-max',
       severity: 'error',
-      message: `Årsløn kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen2019, 0)} kr.)`,
+      message: `Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen2019, 0)} kr.)`,
     });
   });
 });

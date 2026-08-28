@@ -24,6 +24,10 @@ import {
   type StamdataDatoReference,
 } from '../../../domain/policies/stamdataCalculations';
 import { toKroner, type MoneyOre } from '../../../domain/money/money';
+import {
+  SKADELIDTES_AARSLOEN_ASL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_LABEL,
+} from '../../../domain/aslEalAarsloen/aarsloenLabels';
 
 // ============================================================================
 // Side 1: Grundlæggende oplysninger + Beregnet forsørgertab
@@ -101,7 +105,7 @@ const addGrundlaeggendeSection = (
     // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
     writer.writeBoldSubheader('ASL-ydelse');
     if (data.aslAarsloen !== undefined) {
-      writer.writeLeftRightText('Skadelidtes årsløn (efter ASL)', formatKr(data.aslAarsloen), {
+      writer.writeLeftRightText(SKADELIDTES_AARSLOEN_ASL_LABEL, formatKr(data.aslAarsloen), {
         rightFontStyle: 'normal',
       });
     }
@@ -121,7 +125,7 @@ const addGrundlaeggendeSection = (
   if (visEal && data.ealAarsloen !== undefined) {
     // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
     writer.writeBoldSubheader('EAL-ydelse');
-    writer.writeLeftRightText('Skadelidtes årsløn (efter EAL)', formatKr(data.ealAarsloen), {
+    writer.writeLeftRightText(SKADELIDTES_AARSLOEN_EAL_LABEL, formatKr(data.ealAarsloen), {
       rightFontStyle: 'normal',
     });
   }
@@ -246,7 +250,7 @@ const addEalSection = (
 const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputation): void => {
   writer.writeSectionHeader('ASL-ydelser');
 
-  writer.writeLeftRightText('Årsløn efter ASL', formatKr(asl.aslAarsloen), { rightFontStyle: 'normal' });
+  writer.writeLeftRightText(SKADELIDTES_AARSLOEN_ASL_LABEL, formatKr(asl.aslAarsloen), { rightFontStyle: 'normal' });
 
   writer.writeBoldSubheader('Løbende ydelse');
   writer.writeWrappedText(

@@ -92,6 +92,8 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     hydrate(null);
     renderPage();
     expect(screen.getByText('Grundlæggende oplysninger')).toBeInTheDocument();
+    expect(screen.getByText('Skadelidtes årsløn (efter ASL)')).toBeInTheDocument();
+    expect(screen.getByText('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(3); // header + to placeholders
   });
 
@@ -135,7 +137,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     const input = document.querySelector('input[name="aslAarsloen"]') as HTMLInputElement;
     expect(input).toHaveAttribute('aria-invalid', 'true');
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Løbende ydelser' }));
-    expect(screen.getByText(/Årsløn skal være deleligt/)).toBeInTheDocument();
+    expect(screen.getByText(/Skadelidtes årsløn \(efter ASL\) skal være deleligt/)).toBeInTheDocument();
   });
 
   it('viser maksimumssatsen fra skadesåret i årslønsfejlen', () => {
@@ -155,7 +157,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     // `validateAslAarsloenBySkadesaarMax`. Det er dens besked – med satsen formateret dansk – brugeren ser.
     // Maksimum-beskeden har desuden forrang over delelighedsreglen, når begge er brudt.
     expect(document.getElementById(statusId!)?.textContent).toBe(
-      'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
+      'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
     );
   });
 
@@ -173,7 +175,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     // BB-124: de to advarsler for samme situation er samlet til én. `EET_ASL_AARSLOEN_MAX_WARNING` er nu
     // et alias for `ASL_AARSLOEN_MAX_NOTICE`, så EET-fanen og øvrige flader siger det samme.
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.',
+      'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.',
     );
     expect(input.closest('.MuiOutlinedInput-root')).not.toHaveClass('Mui-error');
   });

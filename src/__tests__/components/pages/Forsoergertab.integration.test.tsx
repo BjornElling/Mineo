@@ -145,6 +145,10 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
     hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
     renderPage();
 
+    const inputSection = document.querySelector('[data-section-id="forsoergertab-beregning"]');
+    expect(inputSection).not.toBeNull();
+    expect(within(inputSection as HTMLElement).getByText('Skadelidtes årsløn (efter ASL)')).toBeInTheDocument();
+    expect(within(inputSection as HTMLElement).getByText('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)')).toBeInTheDocument();
     const downloadButton = screen.getByTestId('forsoergertab-download');
     await waitFor(() => expect(downloadButton).toBeEnabled());
 
@@ -211,7 +215,7 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
    * Beskeden blev udledt i snapshottet før rettelsen, men ingen komponent læste den – derfor er det netop
    * en test gennem den ægte side, der er beviset. En snapshot-unittest kunne ikke skelne "udledt" fra "vist".
    */
-  const ASL_MAX_NOTICE = 'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
+  const ASL_MAX_NOTICE = 'Når Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.';
 
   it('viser ASL-maksimum-oplysningen på siden uden at blokere download (beslutning 3)', async () => {
     hydrate(

@@ -8,7 +8,7 @@ import type { AarsloenValues, StandardLoenTableRow, LoenPaaHelligdage, Loenperio
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
-import { getStandardLoenTableValidation } from './standardLoenTableValidation';
+import { getStandardLoenTableValidation } from '../standardLoen/standardLoenTableValidation';
 import type { StandardLoenTableValidationSummary } from '../../types/table';
 
 export type AarsloenCanonicalRangeIssue = Readonly<{

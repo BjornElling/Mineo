@@ -6,12 +6,13 @@ import {
 import { formatAsAmount } from '../../utils/formatUtils';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { resolveStamdataDatoReference, type StamdataValues } from '../policies/stamdataCalculations';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from './aarsloenLabels';
 
 export const validateAslAarsloenDivisibleBy1000 = (
   aarsloen: number | undefined
 ): string | undefined => {
   if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
-  if (aarsloen % 1000 !== 0) return 'Årsløn skal være deleligt med 1.000.';
+  if (aarsloen % 1000 !== 0) return `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være deleligt med 1.000.`;
   return undefined;
 };
 
@@ -59,5 +60,5 @@ export const validateAslAarsloenBySkadesaarMax = (
   if (aarsloen <= maxAarsloen) return undefined;
 
   const aarLabel = resolveStamdataDatoReference(skadestype).aar;
-  return `Årsløn kan ikke overstige maks årslønnen i ${aarLabel}et (${formatAsAmount(maxAarsloen, 0)} kr.)`;
+  return `${SKADELIDTES_AARSLOEN_ASL_LABEL} kan ikke overstige maks årslønnen i ${aarLabel}et (${formatAsAmount(maxAarsloen, 0)} kr.)`;
 };

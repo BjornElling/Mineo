@@ -1,5 +1,5 @@
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../standardLoen/standardLoenTableValidation';
 
 const AMOUNT_KEYS: ReadonlyArray<keyof StandardLoenTableRow> = ['col2', 'col3', 'col4', 'col5'];
 

@@ -73,7 +73,8 @@ export const filterFractionKeyDown = (
 
 /**
  * Beløbsudtryk: tillad cifre, ét komma og operatorer/parenteser – og håndhæv
- * ciffergrænsen pr. talled (§2.2: højst 7 heltalscifre og 2 decimaler).
+ * ciffergrænsen pr. talled (§2.2: højst 7 heltalscifre og 2 decimaler). `allowDecimals`
+ * påvirker ikke dette tegnfilter; decimaldelen afrundes eller bevares først ved settle.
  */
 export const filterAmountExpressionKeyDown = (
   e: KeyDownEvent,

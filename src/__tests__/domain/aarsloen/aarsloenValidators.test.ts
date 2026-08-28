@@ -36,7 +36,7 @@ describe('validateAslAarsloenDivisibleBy1000', () => {
   });
 
   it('ikke-multiplum → fejlbesked', () => {
-    expect(validateAslAarsloenDivisibleBy1000(1500)).toBe('Årsløn skal være deleligt med 1.000.');
+    expect(validateAslAarsloenDivisibleBy1000(1500)).toBe('Skadelidtes årsløn (efter ASL) skal være deleligt med 1.000.');
   });
 });
 

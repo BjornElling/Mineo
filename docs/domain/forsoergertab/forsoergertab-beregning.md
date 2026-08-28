@@ -407,7 +407,7 @@ Alle fire outputtal vises som hele kronebeløb:
 - Tilkendt for periode
 - Køn, når beregningsdato er før 2015-03-01
 - Skadelidtes årsløn (efter ASL)
-- Skadelidtes årsløn (efter EAL)
+- Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)
 - Download specifikation
 
 Hvis `skadelidteFodselsdato` mangler eller er ugyldig, skal siden vise blokkerende fejlmeddelelse og henvise brugeren til `Stamdata`, hvor feltet vedligeholdes.

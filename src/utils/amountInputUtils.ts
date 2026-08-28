@@ -1,7 +1,7 @@
 export const DEFAULT_AMOUNT_PLACEHOLDER = '0,00';
 /**
- * Placeholder for beløbsfelter, der ikke tillader decimaler. Et felt, hvor kommaet er blokeret, må ikke
- * love en decimalhale i sin placeholder – vælg denne ud fra `allowDecimals`, ikke i hånden pr. kaldssted.
+ * Placeholder for beløbsfelter, der vises uden decimaler. Inputmotoren accepterer stadig en decimaldel
+ * under redigering og afrunder den ved settle; placeholderen følger alene feltets visningspræcision.
  */
 export const INTEGER_AMOUNT_PLACEHOLDER = '0';
 export const DEFAULT_AMOUNT_PRECISION = 2;

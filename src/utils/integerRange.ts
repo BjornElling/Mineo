@@ -4,7 +4,7 @@ import { formatAsAmount } from './formatUtils';
 //
 // **Tallene formateres dansk (BB-125).** Beskeden skrev før grænserne rå: «Værdi skal være mellem 1000 og
 // 551000» – uden tusindseparator, i et felt, der selv viser værdien som `600.000`, og ved siden af feltets
-// anden regel, som formaterer korrekt («Årsløn skal være deleligt med 1.000.»). To tekster om samme
+// anden regel, som formaterer korrekt («Skadelidtes årsløn (efter ASL) skal være deleligt med 1.000.»). To tekster om samme
 // størrelsesorden i to former på det samme felt. AGENTS.md kræver danske talkonventioner i tooltips.
 //
 // **Enheden er valgfri og hører til feltet, ikke til helperen.** «Værdi skal være mellem 1 og 10» siger

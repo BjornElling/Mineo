@@ -361,11 +361,9 @@ export const createAmountFieldCodec = (options: Readonly<{
   assertNumericBounds('AmountFieldCodec', options, (value) => options.allowDecimals
     ? isSafeCanonicalDecimal(value, DEFAULT_AMOUNT_PRECISION)
     : isSafeCanonicalInteger(value));
-  // `allowDecimals` styrer BÅDE hvad der kan indtastes og hvordan værdien vises: et felt, der afviser
-  // decimaler, må heller ikke vise en decimalkomma-hale, den brugeren ikke kan skrive eller rette. Derfor
-  // udledes visnings-præcisionen af flaget frem for at være hardkodet til 2 (jf. procent-codec'en, der
-  // altid har tråret sit `allowDecimals` igennem til `format`). Med præcision 0 udelader `formatAsAmount`
-  // kommaet helt.
+  // `allowDecimals` styrer settle-præcisionen og visningen, ikke draftens tegnsæt. Et decimalløst felt
+  // tager derfor stadig imod et decimalkomma og afrunder først ved settle. Med præcision 0 udelader
+  // `formatAsAmount` kommaet helt.
   const displayPrecision = options.allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
   return Object.freeze({
     family: 'amount',
@@ -389,8 +387,8 @@ export const createAmountFieldCodec = (options: Readonly<{
     },
     format: (value) => amountValueToDisplayString(value, displayPrecision),
     formatForEdit: (value) => amountValueToDraftString(value, displayPrecision),
-    // Et komma må kun åbne editoren i et felt, der faktisk kan rumme decimaler – ellers ville
-    // tastetrykket starte en redigering, som tegnfilteret straks blokerer.
+    // Et komma åbner editoren i alle beløbsfelter. Et decimalløst felt tager imod decimaldelen og afrunder
+    // den ved settle; at blokere kommaet her ville få decimalcifrene til at glide op i heltalsdelen.
     //
     // Et ikke-negativt felt må stadig bruge minus som SUBTRAKTION i et åbent udtryk ("5000-200"),
     // men et tomt felt skal ikke åbnes med et ugyldigt unært minus. Det åbne draft-filter afgør fortsat

@@ -23,12 +23,12 @@ import {
   resolveAarsloenOmregningGate,
   type AarsloenOmregningGate,
 } from './aarsloenValidationPolicies';
-import { type StandardLoenTableValidationResult } from './standardLoenTableValidation';
+import { type StandardLoenTableValidationResult } from '../standardLoen/standardLoenTableValidation';
 import {
   readStandardLoenTableRows,
   resolveStandardLoenDuplicateRowIssues,
   resolveStandardLoenTableValidationFromReader,
-} from '../../components/tables/standardLoenTableFieldSet';
+} from '../standardLoen/standardLoenTableFieldSet';
 import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
 
 // Årsløn-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den

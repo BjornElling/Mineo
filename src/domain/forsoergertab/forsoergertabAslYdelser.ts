@@ -29,6 +29,7 @@ import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 
 type Input = Readonly<{
   skadedato: ISODateString | undefined;
@@ -268,11 +269,11 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   const aslAarsloen = amountValueToNumber(input.aslAarsloen);
   if (aslAarsloen === undefined) {
-    issues.push(toIssue('asl-aarsloen-missing', 'Årsløn efter ASL er ikke udfyldt.'));
+    issues.push(toIssue('asl-aarsloen-missing', `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke udfyldt.`));
   } else if (aslAarsloen <= 0) {
     // Persistence accepterer fortegnet som canonical syntaks; domænegaten skal
     // derfor eksplicit blokere både nul og negative beløb.
-    issues.push(toIssue('asl-aarsloen-zero', 'Årsløn efter ASL skal være større end 0 kr.'));
+    issues.push(toIssue('asl-aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr.`));
   }
 
   if (!input.skadedato) {

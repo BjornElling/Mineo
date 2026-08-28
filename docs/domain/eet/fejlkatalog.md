@@ -87,7 +87,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ### Arbejdsskadesikringsloven
 
-#### `aarsloen-missing` – "Årsløn er ikke udfyldt."
+#### `aarsloen-missing` – "Skadelidtes årsløn (efter ASL) er ikke udfyldt"
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
@@ -96,7 +96,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Betingelse F2, F3 | `!Number.isFinite(aslAarsloenRaw)` |
 | Betingelse F4, F5 | `aarsloen.value === null` – hverken EAL-årsløn > 0 eller ASL-årsløn > 0 |
 
-#### `aarsloen-zero` – "Årsløn må ikke være 0 kr."
+#### `aarsloen-zero` – "Skadelidtes årsløn (efter ASL) skal være større end 0 kr"
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
@@ -113,7 +113,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Navigationslink | – (systemfejl) |
 | Betingelse | Maks. årsløn for skadesåret mangler i datakonstanterne |
 
-#### `aarsloen-over-max` – "Årsløn kan ikke overstige maks årslønnen i skadesåret ({beløb} kr.)"
+#### `aarsloen-over-max` – "Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret ({beløb} kr.)"
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
@@ -490,7 +490,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
 | Betingelse | `skadedato ≥ 2024-07-01` og `ealAarsloen` ikke udfyldt. Undertrykkes ikke af `aarsloen-missing`. |
 
-#### `warn-eal-aarsloen-is-max` – "Skadelidtes fulde årsløn skal indtastes for EAL – ikke maks. årslønnen efter ASL."
+#### `warn-eal-aarsloen-is-max` – "Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL"
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
@@ -498,7 +498,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
 | Betingelse | `ealAarsloen` er udfyldt og er præcis lig maks. årsløn for skadesåret |
 
-#### `warn-asl-aarsloen-is-max` – "Skadelidtes fulde årsløn skal indtastes for EAL – ikke maks. årslønnen efter ASL." (ASL-fallback)
+#### `warn-asl-aarsloen-is-max` – "Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL" (ASL-fallback)
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |

@@ -1,7 +1,7 @@
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, JaNej, LoenPaaHelligdage } from '../../../schemas/formSchemas';
 import type { DeepReadonly } from '../../../types/deepReadonly';
 import { parseISODate } from '../../../types/branded';
-import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../standardLoen/standardLoenTableValidation';
 import { type DateInterval } from '../../../utils/isoDateHelpers';
 import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 

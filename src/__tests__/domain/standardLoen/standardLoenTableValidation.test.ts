@@ -4,7 +4,7 @@ import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
-} from '../../../domain/aarsloen/standardLoenTableValidation';
+} from '../../../domain/standardLoen/standardLoenTableValidation';
 import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });

@@ -12,13 +12,11 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Næste fund-ID:** BB-135
 - **Åbne spørgsmål:** **ét**, fra flade 10 (hvor mange måneder er allerede udbetalt – de to halvdele bruger
   hver sin læsning). Se [forsoergertab.md](forsoergertab.md).
-- **Fund, der afventer udviklerens afgørelse:** **21 fra flade 9** (BB-096–BB-116) og **BB-123's navnedel**
-  fra flade 10. Ingen udeståender fra flade 1–8.
-- **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **15 rettet**, **to afvist**
-  (BB-119, BB-131) og **ét delvist** (BB-123: koblingsdelen afvist som en forkert præmis – der findes én
-  kanonisk årsløn efter hvert lovsæt, og at samme værdi bruges begge steder er ikke en skjult kobling;
-  navnedelen forelagt særskilt).
-- **Senest opdateret:** 2026-08-28 (**Flade 10 implementeret: 15 fund rettet.** De tre tunge rettelser
+- **Fund, der afventer udviklerens afgørelse:** ingen fra flade 10. Ingen udeståender fra flade 1–9.
+- **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
+  (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
+  forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
+- **Senest opdateret:** 2026-08-28 (**Flade 10 implementeret: 16 fund rettet.** De tre tunge rettelser
   afdækkede hver et lag under fundet selv:
   **BB-117** havde tre uafhængige lag – motorens issues var feltløse `EetIssue`s uden adresse, `DateField`
   manglede den `crossFieldIssue`-prop de øvrige feltfamilier havde, og gaten var en fail-OPEN allowlist på
@@ -84,8 +82,8 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
-| 9 | Årslønsberegning | Afventer udvikleren | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
-| 10 | Forsørgertab | Afventer udvikleren | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
+| 9 | Årslønsberegning | Afgjort | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
+| 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
@@ -97,24 +95,24 @@ de tre åbne spørgsmål og er skrevet op 2026-08-27. Det fulde grundlag med må
 
 | ID | Kort | Prioritet | Udfald |
 |---|---|---|---|
-| BB-117 | En efterladt på 17 år lader hele ASL-halvdelen forsvinde tavst – downloadknappen er aktiv | **Høj** | Accepteret · rettes + bredt eftersyn efter lignende huller |
-| BB-118 | «400.000,00» indsat i et årslønsfelt bliver til 4.000.000 kr. uden et ord | **Høj** | Accepteret · rettes generelt i paste-håndteringen; decimaldelen skal bevares, hvor feltet tillader decimaler |
+| BB-117 | En efterladt på 17 år lader hele ASL-halvdelen forsvinde tavst – downloadknappen er aktiv | **Høj** | Rettet 2026-08-28 · rettelsen er gennemført i issue-, felt- og download-gaten |
+| BB-118 | «400.000,00» indsat i et årslønsfelt bliver til 4.000.000 kr. uden et ord | **Høj** | Rettet 2026-08-28 · decimaldelen bevares og afrundes ved settle efter feltets præcision |
 | BB-119 | «Forsørgertabserstatning 0 kr.», hvor de tre linjer over den giver -363.879 kr. | **Høj** | **Afvist i sin helhed** · sporet er lukket, se nedenfor |
-| BB-120 | Feltet heder «Startdato for ASL-ydelse», men melder «Virkningsdato kan senest være …» | Mellem | Accepteret · de to ord betyder det samme, og ensretningen er overladt til mig |
-| BB-121 | «skadestidspunkt» står tre steder på en sag, programmet selv kalder «Anmeldelsesdato» | Mellem | Accepteret · en allerede fastslået regel, der ikke er implementeret overalt; kræver grundig gennemgang |
-| BB-122 | Specifikationen nævner ikke sagens skadedato | Mellem | Accepteret · indsættes konsekvent efter praksis fra de øvrige dokumenter |
-| BB-123 | De to årslønsfelter deles med Erhvervsevnetab, hedder tre ting, og intet siger det | Mellem | **Delvist afgjort** · delingen er tilsigtet og korrekt (én kanonisk årsløn pr. lov), så forslaget om en linje om deling bortfalder; navneensretningen står |
-| BB-124 | Samme situation giver to forskellige gule advarsler på de to sider, der deler feltet | Mellem | Accepteret · og efterse andre steder med uens tekster for samme problem |
-| BB-125 | Grænseteksten skriver «1000» og «551000» og siger ikke, hvor loftet kommer fra | Mellem | Accepteret betinget · en særskilt, bedre beskrivende besked er ønsket, hvis den kan laves uden nye skævheder |
-| BB-126 | Et rødt stamdatafelt vises med sin fejltekst, men uden den vej tilbage, det tomme felt har | Mellem | Accepteret · kortere tekst i den tomme grens stil, og samme rettelse alle relevante steder |
-| BB-127 | Datoparret: kun den ene af de to røde celler navngiver modparten | Mellem | Accepteret |
-| BB-128 | Feltets nedre grænse giver generisk «ugyldig værdi», den øvre en konkret tekst | Mellem | Accepteret |
-| BB-129 | Aldersreduktion under 30 år: «Aldersreduktion 0 =», «(- 0 %)» og «- 0 kr.» | Lav | Accepteret · følg praksis fra Varige mén |
-| BB-130 | Samme nul står som «- 0 kr.» og «0 kr.» på samme skærm | Lav | Accepteret |
+| BB-120 | Feltet heder «Startdato for ASL-ydelse», men melder «Virkningsdato kan senest være …» | Mellem | Rettet 2026-08-28 · fælles felttekst |
+| BB-121 | «skadestidspunkt» står tre steder på en sag, programmet selv kalder «Anmeldelsesdato» | Mellem | Rettet 2026-08-28 · navngivningen er ensrettet |
+| BB-122 | Specifikationen nævner ikke sagens skadedato | Mellem | Rettet 2026-08-28 · skadedatoen er tilføjet konsekvent |
+| BB-123 | De to årslønsfelter deles med Erhvervsevnetab, hedder tre ting, og intet siger det | Mellem | Rettet 2026-08-28 · begge felter bruger de godkendte navne på tværs af skærm, fejlbeskeder og dokument |
+| BB-124 | Samme situation giver to forskellige gule advarsler på de to sider, der deler feltet | Mellem | Rettet 2026-08-28 · advarslen er samlet |
+| BB-125 | Grænseteksten skriver «1000» og «551000» og siger ikke, hvor loftet kommer fra | Mellem | Rettet 2026-08-28 · grænserne vises med dansk talformat og forklaring |
+| BB-126 | Et rødt stamdatafelt vises med sin fejltekst, men uden den vej tilbage, det tomme felt har | Mellem | Rettet 2026-08-28 · samme Stamdata-genvej i begge fejlgrene |
+| BB-127 | Datoparret: kun den ene af de to røde celler navngiver modparten | Mellem | Rettet 2026-08-28 · begge datofelter navngiver modparten |
+| BB-128 | Feltets nedre grænse giver generisk «ugyldig værdi», den øvre en konkret tekst | Mellem | Rettet 2026-08-28 · begge grænser giver konkret tekst |
+| BB-129 | Aldersreduktion under 30 år: «Aldersreduktion 0 =», «(- 0 %)» og «- 0 kr.» | Lav | Rettet 2026-08-28 · nulformat og tekst er ensrettet |
+| BB-130 | Samme nul står som «- 0 kr.» og «0 kr.» på samme skærm | Lav | Rettet 2026-08-28 · samme nulformat bruges |
 | BB-131 | «(afrundet)» siger ikke til hvad, og regnestykket går ikke op | Lav | **Afvist** · målgruppen kender afrundingsprincippet for ydelsen |
-| BB-132 | Gangetegn og lighedstegn er ikke ensartede i formellinjerne | Lav | Accepteret |
-| BB-133 | «Skal ikke forhøjes, dvs. udgør» står over et beløb, der er sat NED til årets loft | Mellem | Afventer udvikleren |
-| BB-134 | Rækken «Køn» siger ikke, hvis køn den spørger om | Lav | Afventer udvikleren |
+| BB-132 | Gangetegn og lighedstegn er ikke ensartede i formellinjerne | Lav | Rettet 2026-08-28 · fælles formeltekst er ensrettet |
+| BB-133 | «Skal ikke forhøjes, dvs. udgør» står over et beløb, der er sat NED til årets loft | Mellem | Rettet 2026-08-28 · maksimum og tredelt reguleringstekst vises |
+| BB-134 | Rækken «Køn» siger ikke, hvis køn den spørger om | Lav | Rettet 2026-08-28 · «Skadelidtes køn» bruges konsekvent |
 
 **To afvisninger, og den ene indsnævrer et mønster.** BB-131 er afvist, fordi målgruppen kender
 afrundingen af årslønnen efter EAL. **BB-119 er afvist i to trin, og det andet trin er det lærerige:**

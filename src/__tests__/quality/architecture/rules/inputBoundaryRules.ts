@@ -911,8 +911,8 @@ export const sourceSettingsProjectionBoundary = defineRule({
 
 // --- Cellebinding: én bindingsmodel for grid-/tabelceller (§3.2, §1.11) -------
 
-/** Modulet der ejer cellebindingen. Kun her konstrueres en celles dataidentitet. */
-const CELL_BINDING_OWNER = 'src/inputCore/react/cellSpecBuilder.ts';
+/** Den rene primitive der ejer cellebindingen. Kun her konstrueres en celles dataidentitet. */
+const CELL_BINDING_OWNER = 'src/inputCore/collectionCellBinding.ts';
 
 /** Tabelfladerne, hvis celler skal bindes gennem den fælles bygger. */
 const TABLE_SURFACE_DIR = 'src/components/tables';
@@ -934,11 +934,13 @@ export const cellBindingSingleSource = defineRule({
   id: 'input/cell-binding-single-source',
   description:
     'Tabelflader må ikke selv binde en celles dataidentitet med `descriptor.bind(...)`. Cellebindingen '
-    + 'ejes af `buildCollectionCellSpec`/`useCollectionCellSpecBuilder`, som udleder ejer-id\'erne af '
-    + 'collectionens sti (§3.2) – ellers kan en nested tabel binde med for få entity-led og kaste under render.',
+    + 'ejes af den rene `bindCollectionCell`-primitive, som editorens `buildCollectionCellSpec` bruger '
+    + 'og som udleder ejer-id\'erne af collectionens sti (§3.2) – ellers kan en nested tabel binde med for '
+    + 'få entity-led og kaste under render.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath === CELL_BINDING_OWNER
+      || entry.relativePath === 'src/inputCore/react/cellSpecBuilder.ts'
       // AST-signal, ikke tekst.
       || (entry.relativePath.startsWith(`${TABLE_SURFACE_DIR}/`) && hasIdentifier(entry, 'buildCellSpec')),
     rationale:
@@ -946,6 +948,7 @@ export const cellBindingSingleSource = defineRule({
       + 'ejeren, er bindingen flyttet og reglen skal skrives om',
     requiredPaths: [
       CELL_BINDING_OWNER,
+      'src/inputCore/react/cellSpecBuilder.ts',
       'src/components/tables/useCollectionTable.ts',
       'src/components/tables/StandardLoenTable.tsx',
     ],
@@ -962,8 +965,9 @@ export const cellBindingSingleSource = defineRule({
         position: call.position,
         message:
           `\`${call.calleeText}(...)\` binder en celles dataidentitet lokalt. Brug `
-          + '`useCollectionCellSpecBuilder`/`buildCollectionCellSpec`, som udleder ejer-id\'erne af '
-          + 'collectionens sti – en lokal binding kan glemme ejeren i en nested collection (§3.2).',
+          + '`useCollectionCellSpecBuilder`/`buildCollectionCellSpec`, som bruger den rene '
+          + '`bindCollectionCell`-primitive og udleder ejer-id\'erne af collectionens sti – en lokal binding '
+          + 'kan glemme ejeren i en nested collection (§3.2).',
       });
     }
     return findings;

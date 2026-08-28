@@ -5,7 +5,7 @@ import type { CollectionRef } from '../../fieldAddress';
 import type { FieldDescriptor } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useCellEditor, type CellSpec } from '../useCellEditor';
-import { collectionOwnerEntityIds } from '../cellSpecBuilder';
+import { collectionOwnerEntityIds } from '../../collectionCellBinding';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { useFieldLabel } from '../useFieldLabel';

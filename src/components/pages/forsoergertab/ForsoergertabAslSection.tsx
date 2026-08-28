@@ -6,6 +6,7 @@ import StandardLooseTable from '../../tables/StandardLooseTable';
 import { isoToDanish } from '../../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../../utils/formatUtils';
 import { useForsoergertabVm } from './forsoergertabContext';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../../../domain/aslEalAarsloen/aarsloenLabels';
 
 /**
  * ASL-ydelserne: de løbende ydelser pr. periode og proformakapitaliseringen af resten.
@@ -23,7 +24,7 @@ const ForsoergertabAslSection = React.memo(() => {
       <Typography className="section-header">ASL-ydelser</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Årsløn efter ASL</Typography>
+        <Typography className="row--text">{SKADELIDTES_AARSLOEN_ASL_LABEL}</Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{formatKr(aslComputation.aslAarsloen)}</Typography>
         </Box>

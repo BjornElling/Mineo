@@ -1,7 +1,7 @@
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
 import { eoStandardRowFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { createEmptyStandardLoenRow } from '../aarsloen/standardLoenRowInitialValues';
-import type { StandardLoenTableFieldSet } from '../../components/tables/standardLoenTableFieldSet';
+import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTableFieldSet';
 
 // EO-parametrisering af den delte StandardLoenTable. Løntabellen deles mellem Årsløn (top-level
 // `aarsloen.tableData`) og EO's loenindkomst, hvor den ligger NESTED under hver ansættelsesforholds-række
@@ -9,7 +9,8 @@ import type { StandardLoenTableFieldSet } from '../../components/tables/standard
 //
 // Modulet leverer KUN den nested `collection` – som selv bærer ansættelsesforholdets entity-id – plus de rå
 // celle-descriptorer. Descriptorerne er BEVIDST ubundne: bindingen sker ét sted, i den fælles
-// `buildCollectionCellSpec`/`standardLoenTableFieldSet`, som udleder ejer-id'erne af `collection.path` (§3.2).
+// den rene `bindCollectionCell`-primitive, som editorens `buildCollectionCellSpec` også bruger og som udleder
+// ejer-id'erne af `collection.path` (§3.2).
 // Derfor kan et feltsæt ikke glemme ejeren, og en celles adresse er altid `field.bind(employmentId, rowId)`.
 //
 // Modulet havde tidligere sin EGEN rekonstruktion + cellefejl-indsamling – en næsten ordret kopi af Årsløns,

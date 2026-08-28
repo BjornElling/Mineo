@@ -9,6 +9,10 @@ import {
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
 } from '../../domain/aslEalAarsloen/aarsloenValidators';
+import {
+  SKADELIDTES_AARSLOEN_ASL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_LABEL,
+} from '../../domain/aslEalAarsloen/aarsloenLabels';
 import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
 
 // Produkt-descriptors for `faellesAarsloen`-sektionen (ASL/EAL-årsløn, §3.2). Sektionen har ingen
@@ -49,13 +53,14 @@ const amountField = (
  * Loftet var før sat to gange: her som en generisk bounds-grænse OG som `validateAslAarsloenBySkadesaarMax`
  * nedenfor. Bounds-validatoren kører først og vinder, så brugeren fik «Værdi skal være mellem 1000 og
  * 551000» – en tekst, der siger AT der er en grænse, men ikke hvor den kommer fra. Den forklarende besked,
- * som navngiver skadesåret («Årsløn kan ikke overstige maks årslønnen i skadesåret (551.000 kr.)»), var
+ * som navngiver skadesåret («Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret
+ * (551.000 kr.)»), var
  * uopnåelig død kode – præcis M-24's lære om to grænser, der er den samme grænse skrevet to gange.
  *
  * Bounds-grænsen er derfor det faste repræsentationsloft, og skadesårets skærpelse ejes alene af
  * domænereglen, hvis besked nu er den, brugeren ser. Sæt ikke skadesårsloftet ind her igen.
  */
-export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsløn', [
+export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', SKADELIDTES_AARSLOEN_ASL_LABEL, [
   (value, _field, view) => {
     const aarsloen = amountValueToNumber(value);
     /**
@@ -78,7 +83,7 @@ export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', 'Årsl
       : { reason: 'rule', code: 'faellesAarsloen.aslAarsloen.rule', message };
   },
 ]);
-export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', 'Årsløn (hvis forskellig fra ASL)');
+export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', SKADELIDTES_AARSLOEN_EAL_LABEL);
 
 export const faellesAarsloenFields = catalogFields(faellesAarsloenAslAarsloenField, faellesAarsloenEalAarsloenField);
 export const faellesAarsloenCollections = catalogCollections();

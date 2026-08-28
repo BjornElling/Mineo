@@ -22,10 +22,10 @@ import {
 } from '../../domain/aarsloen/standardLoenRowCalculations';
 import {
   getStandardLoenPeriodKeys,
-} from '../../domain/aarsloen/standardLoenTableValidation';
+} from '../../domain/standardLoen/standardLoenTableValidation';
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
-import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
-import { readStandardLoenTableRows } from './standardLoenTableFieldSet';
+import type { StandardLoenTableFieldSet } from '../../domain/standardLoen/standardLoenTableFieldSet';
+import { readStandardLoenTableRows } from '../../domain/standardLoen/standardLoenTableFieldSet';
 import { serializeFieldAddress, type CollectionRef, type FieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import { useInputEvaluation } from '../../inputCore/react';
@@ -56,10 +56,11 @@ import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 //    Celle-specs bygges af den FÆLLES `buildCollectionCellSpec`: begge cellearter bærer en fuldt bundet `FieldRef`,
 //    hvor ejer-id'erne udledes af collectionens sti (§3.2). En trailing PLACEHOLDER-række promoverer atomisk ved
 //    første ikke-tomme settle (§1.11).
-//  - de committede rækker læses read-only via `fieldSet.readRows(reader)` – KUN til sortering, afledte kolonner
-//    (col6/7/8) og tomheds-vurdering.
-//  - valideringssummaryen er REN og reader-afledt (`fieldSet.resolveValidation`) – ikke et imperativt celle-fejl-
-//    handle. Det imperative handle bærer KUN visuel feedback (blink/scroll/missing-hint), og selve blinket er
+//  - de committede rækker læses read-only via `readStandardLoenTableRows(fieldSet, reader)` – KUN til sortering,
+//    afledte kolonner (col6/7/8) og tomheds-vurdering.
+//  - valideringssummaryen er REN og reader-afledt (`resolveStandardLoenTableValidationFromReader`) – ikke et
+//    imperativt celle-fejl-handle. Det imperative handle bærer KUN visuel feedback
+//    (blink/scroll/missing-hint), og selve blinket er
 //    den DELTE `blinkFieldAttention`, ikke en tabel-lokal animation.
 
 export type StandardLoenTableProps = {

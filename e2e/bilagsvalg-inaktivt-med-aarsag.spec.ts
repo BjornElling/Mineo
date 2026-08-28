@@ -41,7 +41,7 @@ const fyldMindsteEetSag = async (page: Page): Promise<void> => {
   await page.getByRole('tab', { name: 'EET oplysninger' }).click();
 
   await setDate(page.locator("input[name='beregningsdato']"), '01-01-2025');
-  await setText(page.getByRole('textbox', { name: 'Årsløn', exact: true }), '400000');
+  await setText(page.getByRole('textbox', { name: 'Skadelidtes årsløn (efter ASL)', exact: true }), '400000');
 
   // Én ASL-afgørelse. Alle fire dele skal med: uden afgørelsestype melder fanen "Der er en afgørelse
   // uden afgørelsestype" og blokerer stadig, så bilagsvalgene aldrig ville nå at blive rendret.

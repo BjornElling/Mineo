@@ -46,31 +46,28 @@ const BELOEB_AMOUNT_KEYS: readonly StandardLoenTableColumnKey[] = ['fpFvShSoBelo
 const getAmountKeys = (mode: TillaegAngivesSom): readonly StandardLoenTableColumnKey[] =>
   mode === 'beloeb' ? [...BASE_AMOUNT_KEYS, ...BELOEB_AMOUNT_KEYS] : BASE_AMOUNT_KEYS;
 
-const hasAnyAmountInput = (row: StandardLoenTableRow, mode: TillaegAngivesSom): boolean => {
-  return getAmountKeys(mode).some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
-};
+const hasAnyAmountInput = (row: StandardLoenTableRow, mode: TillaegAngivesSom): boolean =>
+  getAmountKeys(mode).some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 
 const getColumnOrder = (loenperiode: Loenperiode, mode: TillaegAngivesSom): readonly StandardLoenTableColumnKey[] => {
   const [startKey, endKey] = PERIOD_KEYS[loenperiode];
   return [startKey, endKey, ...getAmountKeys(mode)];
 };
 
-const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTableColumnKey => {
-  return (
-    value === 'col0_maaned' ||
-    value === 'col1_maaned' ||
-    value === 'col0_uge' ||
-    value === 'col1_uge' ||
-    value === 'col0_dag' ||
-    value === 'col1_dag' ||
-    value === 'col2' ||
-    value === 'col3' ||
-    value === 'col4' ||
-    value === 'col5' ||
-    value === 'fpFvShSoBeloeb' ||
-    value === 'pensionBeloeb'
-  );
-};
+const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTableColumnKey => (
+  value === 'col0_maaned'
+  || value === 'col1_maaned'
+  || value === 'col0_uge'
+  || value === 'col1_uge'
+  || value === 'col0_dag'
+  || value === 'col1_dag'
+  || value === 'col2'
+  || value === 'col3'
+  || value === 'col4'
+  || value === 'col5'
+  || value === 'fpFvShSoBeloeb'
+  || value === 'pensionBeloeb'
+);
 
 const resolveColumnKeyFromCellKeyPart = (
   value: string,

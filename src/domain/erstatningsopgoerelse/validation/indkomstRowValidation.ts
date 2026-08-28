@@ -2,7 +2,7 @@ import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseV
 import { dateToISO, isISODateString } from '../../../types/branded';
 import { parseWeekString } from '../../../utils/dateUtils';
 import { MIN_YEAR, getCurrentYear } from '../../../config/dateRanges';
-import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
+import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../standardLoen/standardLoenTableValidation';
 import type { StandardLoenTableColumnKey } from '../../../types/table';
 import {
   getOffentligeYdelserTableValidation,

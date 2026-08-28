@@ -11,6 +11,10 @@ import { isoToDanish } from '../../../types/branded';
 import { type Koen } from '../../../schemas/formSchemas';
 import { useForsoergertabVm } from './forsoergertabContext';
 import { createFieldWarning } from '../../../inputCore/fieldWarning';
+import {
+  SKADELIDTES_AARSLOEN_ASL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_LABEL,
+} from '../../../domain/aslEalAarsloen/aarsloenLabels';
 
 /**
  * Grundlæggende oplysninger: de tværsektionelle stamdata-datoer, køn og de to årslønsfelter.
@@ -65,7 +69,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       <Typography className="row--subheading">ASL-ydelse</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes årsløn (efter ASL)</Typography>
+        <Typography className="row--text">{SKADELIDTES_AARSLOEN_ASL_LABEL}</Typography>
         <Box className="row--label-right-hover__content">
           <AmountField
             field={fields.aslAarsloen}
@@ -118,7 +122,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       <Typography className="row--subheading">EAL-ydelse</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)</Typography>
+        <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_LABEL}</Typography>
         <Box className="row--label-right-hover__content">
           <AmountField
             field={fields.ealAarsloen}

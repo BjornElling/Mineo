@@ -22,6 +22,10 @@ import type { Koen } from '../../../schemas/formSchemas';
 import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
+import {
+  SKADELIDTES_AARSLOEN_ASL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_LABEL,
+} from '../../../domain/aslEalAarsloen/aarsloenLabels';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
@@ -125,7 +129,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
       <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
         <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Årsløn</Typography>
+          <Typography className="row--text">{SKADELIDTES_AARSLOEN_ASL_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <AmountField
               field={aslAarsloenRef}
@@ -147,7 +151,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
       <ContentBox className="content-box" data-section-id="eet-oplysninger-eal">
         <Typography className="section-header">Erstatningsansvarsloven</Typography>
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Årsløn (hvis forskellig fra ASL)</Typography>
+          <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <AmountField
               field={ealAarsloenRef}

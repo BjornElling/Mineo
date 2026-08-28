@@ -2,8 +2,8 @@
 
 - Rute/placering: `/forsoergertab`
 - Gennemgået: 2026-08-27 · commit `10a817a6`
-- **Afgjort og implementeret: 2026-08-28.** Af de atten fund er **femten rettet**, **to afvist** (BB-119,
-  BB-131), og **ét delvist** (BB-123: koblingsdelen afvist, navnedelen forelagt). Hvert fund bærer sit
+- **Afgjort og implementeret: 2026-08-28.** Af de atten fund er **seksten rettet** og **to afvist** (BB-119,
+  BB-131). BB-123's koblingsdel er afvist, mens navnedelen er godkendt og rettet. Hvert fund bærer sit
   udfald nedenfor.
 - Afprøvet i: Chrome, 1536×864, lyst tema. Dokumentet hentet som `.docx` (fire udgaver, læst linje for linje).
 
@@ -30,7 +30,7 @@ beregninger** – og det er den forskel, de tungeste fund bor i.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på` og
   `TVAERGAAENDE.md#m-25--gaten-spørger-findes-der-noget-ikke-findes-det-brugeren-bad-om`
 - **Prioritet:** **Høj**
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Godkendt 2026-08-28
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `15-03-1975`, Skadedato `10-06-2020`.
   2. Forsørgertab: Beregningsdato `01-07-2025`, Skadelidtes årsløn (efter ASL) `400.000`,
@@ -314,7 +314,8 @@ brugeren har slået det til, og sagens dato må ikke afhænge af den indstilling
   2. Gå til Erhvervsevnetab → Oplysninger.
 - **Det sker:** Feltet «Årsløn» under overskriften «Arbejdsskadesikringsloven» står med `551.000`.
   Det er ikke en kopi – det er det samme felt (`faellesAarsloen.aslAarsloen`), og en rettelse det ene
-  sted ændrer det andet. **Ingen af de to sider siger det.** Dertil bærer hvert af de to felter tre navne:
+  sted ændrer det andet. **Ingen af de to sider siger det.** Ved den oprindelige måling bar hvert af de to
+  felter tre navne:
 
   | Felt | Forsørgertab (skærm) | Erhvervsevnetab (skærm) | Dokumentet | Feltets eget navn (fejltekster, oplæsning) |
   |---|---|---|---|---|
@@ -335,7 +336,7 @@ brugeren har slået det til, og sagens dato må ikke afhænge af den indstilling
 **Tilbagemelding**
 Årsløn efter ASL og Årsløn efter EAL er to juridiske begreber. Værdierne fastsættes autoritativt for den pågældende skadelidte vedrørende den givne skade. De skal ikke være ens efter ASL og EAL. Udgangspunktet er, at årslønnen efter ASL lægges til grund, hvis ikke brugeren særskilt angiver en anden årsløn efter EAL. Der er en særlig omstændighed ved, at der er en maks-grænse for årsløn efter ASL, der ikke findes efter EAL. En fastsat årsløn efter ASL anvendes på alle situationer, hvor der beregnes nogen ydelser, hvor årslønnen efter ASL lægges til grund - for den skadelidte findes der således kun én kanonisk årsløn efter ASL, og tilsvarende én kanonisk årsløn efter EAL.
 
-**Udfald: DELVIST – fundets kerne er AFVIST, navnedelen er UDESTÅENDE (2026-08-28).**
+**Udfald: DELVIST – fundets kerne er AFVIST, navnedelen er RETTET (2026-08-28).**
 
 Svaret afgør fundets vigtigste påstand: at koblingen mellem de to sider skulle gøres synlig med en linje om,
 at årslønnen «deles». Den præmis er forkert. Der findes ét kanonisk årslønsbeløb efter ASL og ét efter EAL
@@ -343,11 +344,13 @@ for den skadelidte, og at samme værdi bruges begge steder er ikke en skjult kob
 den samme autoritativt fastsatte størrelse, brugt hvor den hører til. **Ingen «deles med den anden side»-linje
 tilføjes.**
 
-**Tilbage står de tre navne**, som svaret ikke tager stilling til: hvert felt hedder én ting på Forsørgertab,
-en anden på Erhvervsevnetab og en tredje i sine egne fejlbeskeder («Årsløn»). Feltets `label` er den, oplæsning
-og fejltekster bruger, så en bruger kan møde en fejl om «Årsløn» stående ved en række, der hedder «Skadelidtes
-årsløn (efter ASL)». Det er samme mekanisme som BB-120, blot uden en afgørelse endnu. **Forelagt udvikleren
-særskilt; ingen kodeændring foretaget.**
+**Tilbage stod de tre navne**, som nu er ensrettet. Begge skærme, descriptorens feltlabel, relevante
+fejlbeskeder og dokumentets grundoplysninger bruger nu de godkendte navne:
+
+- «Skadelidtes årsløn (efter ASL)»
+- «Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)»
+
+Forslaget om en ekstra linje om, at felterne deles, er fortsat afvist. Der er ikke ændret på beregningen.
 
 ### BB-124 – Samme situation giver to forskellige gule advarsler på de to sider, der deler feltet
 
@@ -800,8 +803,8 @@ som fladens øvrige rækker, der navngiver deres person.
 - **De to døde `color="text.secondary"`-props** i `ForsoergertabOplysningerSection.tsx` (M-21's navngivne
   kandidat) er efterprøvet og er **ikke** et fund: de ville nedtone netop «Mangler»- og fejlteksterne, og
   BB-067's afvisning siger, at en nedtoning skal gøre oplysningen lettere at opdage, ikke sværere.
-- **Beløbsfelterne afviser decimaler ved tastning** efter den etablerede regel; ørerne i en indsat værdi
-  er derimod BB-118.
+- **Beløbsfelter, der vises i hele kroner, tager stadig imod en decimaldel ved tastning**; den bevares i
+  draften og afrundes ved settle. Det er BB-118's generelle rettelse.
 - **Fladen har hverken kommentarfelt eller «Slet alle indtastninger»** – begge findes kun på
   Renteberegning og er dér knyttet til den delte MinProcesrente-fane. Ingen inkonsistens.
 - **Konsollen var tavs gennem hele kørslen:** 199 beskeder, 0 fejl, 0 advarsler.

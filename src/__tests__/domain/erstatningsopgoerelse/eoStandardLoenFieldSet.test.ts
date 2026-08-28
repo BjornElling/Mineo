@@ -6,7 +6,7 @@ import {
 import {
   readStandardLoenTableRows,
   resolveStandardLoenTableValidationFromReader,
-} from '../../../components/tables/standardLoenTableFieldSet';
+} from '../../../domain/standardLoen/standardLoenTableFieldSet';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,

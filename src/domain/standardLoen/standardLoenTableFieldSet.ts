@@ -5,22 +5,19 @@ import type { CollectionRef } from '../../inputCore/fieldAddress';
 import { toAnyFieldRef, type AnyFieldRef, type FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
-import { bindCollectionCell } from '../../inputCore/react/cellSpecBuilder';
+import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import {
   getStandardLoenPeriodKeys,
   getStandardLoenTableValidation,
   type StandardLoenTableValidationResult,
-} from '../../domain/aarsloen/standardLoenTableValidation';
+} from './standardLoenTableValidation';
 import { DUPLICATE_ROW_MESSAGE, findDuplicateRows } from '../../utils/tableDuplicateRowDetection';
 
 // Parametrisering af den delte StandardLoenTable: hvert domæne ejer sine konkrete DESCRIPTORER + sin
 // collection, mens rekonstruktionen og cellefejl-indsamlingen er FÆLLES.
 //
-// Tidligere implementerede hvert domæne også `readRows` og `resolveValidation` – to næsten identiske
-// reader-adaptere (Årsløn + EO), hvis eneste forskel var, om cellen bindes med `(rowId)` eller
-// `(ejerId, rowId)`. Forskellen er unødvendig: ejer-id'erne står i collectionens egen sti, præcis
-// som `cellSpecBuilder` udleder dem. Begge afledninger er derfor nu generiske over feltsættet, og der findes
-// ÉT sted, hvor en løntabelrække rekonstrueres, og ÉT sted, hvor dens cellefejl samles.
+// Modulet er placeret i domænelaget, fordi readerprojektioner, validering og dokumentgates bruger det.
+// Det indeholder ingen React-rendering; den faktiske tabelkomponent er kun en overflade over denne kerne.
 
 /** Descriptorerne for løntabellens redigerbare celler i en konkret collection-kontekst. */
 export type StandardLoenTableFieldSet = Readonly<{
@@ -42,12 +39,11 @@ export type StandardLoenTableFieldSet = Readonly<{
 }>;
 
 /**
- * Binder en celle gennem den DELTE `bindCollectionCell` – samme regel, celleditoren bruger.
+ * Binder en celle gennem den fælles inputkerne-primitive – samme adresse som celleditoren bruger.
  *
- * At de to deler udtryk er ikke kosmetik: cellen skal LÆSES på præcis den adresse, den REDIGERES på.
+ * At de to deler udtryk er ikke kosmetik: cellen skal læses på præcis den adresse, den redigeres på.
  * Divergerede de, ville brugeren skrive i en celle, hvis værdi rekonstruktionen aldrig fandt – en lydløst
- * tom celle. Det er også grunden til, at de to reader-adaptere kunne samles: en top-level
- * collection giver `[]` ejere → `bind(rowId)`, en nested giver `[ejerId]` → `bind(ejerId, rowId)`.
+ * tom celle. Det er også grunden til, at de to reader-adaptere kunne samles.
  */
 const bindCell = <T>(
   fieldSet: StandardLoenTableFieldSet,
@@ -96,13 +92,12 @@ const rowIdsFor = (fieldSet: StandardLoenTableFieldSet, reader: InputReader): re
 export const readStandardLoenTableRows = (
   fieldSet: StandardLoenTableFieldSet,
   reader: InputReader
-): StandardLoenTableRow[] =>
-  rowIdsFor(fieldSet, reader).map((rowId) => rebuildRow(reader, fieldSet, rowId));
+): StandardLoenTableRow[] => rowIdsFor(fieldSet, reader).map((rowId) => rebuildRow(reader, fieldSet, rowId));
 
 /**
- * Kolonneindeks pr. rækkecelle: periodekolonnerne 0/1 for den AKTUELLE lønperiode; beløb 2–5; tillægsbeløb
- * 6/7 kun i Beløb-tilstand. Kun de relevante kolonner læses (§1.9: en skjult/irrelevant celle må ikke
- * overblokere).
+ * Kolonneindeks pr. rækkecelle: periodekolonnerne 0/1 for den aktuelle lønperiode; beløb 2–5;
+ * tillægsbeløb 6/7 kun i Beløb-tilstand. Kun de relevante kolonner læses (§1.9: en skjult/irrelevant
+ * celle må ikke overblokere).
  */
 const collectCellErrorsByCellKey = (
   reader: InputReader,
@@ -118,8 +113,8 @@ const collectCellErrorsByCellKey = (
     }
   };
 
-  // Periodekolonnerne har forskellig VÆRDITYPE pr. lønperiode (uge/måned er strenge, dag er en branded ISO-
-  // dato), så de to registreringer sker inde i hver gren. Et fælles union-array ville tvinge et cast.
+  // Periodekolonnerne har forskellig værditype pr. lønperiode (uge/måned er strenge, dag er en branded
+  // dato), så registreringen sker inde i hver gren. Et fælles union-array ville tvinge et cast.
   const recordPeriodCells = (rowId: string): void => {
     if (loenperiode === 'maaned') {
       record(rowId, 0, fieldSet.col0_maaned);
@@ -170,11 +165,11 @@ export const resolveStandardLoenTableValidationFromReader = (
 // ── Kryds-række-dubletter (brugerkrav 2026-08-26) ─────────────────────────────
 
 /**
- * De celler, der indgår i dublet-sammenligningen for den AKTUELLE tilstand.
+ * De celler, der indgår i dublet-sammenligningen for den aktuelle tilstand.
  *
- * Kun de RELEVANTE kolonner tæller med: den valgte lønperiodes to periodekolonner (en skjult måneds-værdi
- * må ikke afgøre, om to synligt ens uge-rækker er dubletter), og tillægsbeløbene kun i Beløb-tilstand, hvor
- * de er redigerbare. Det er samme relevans-afgrænsning, som `collectCellErrorsByCellKey` bruger.
+ * Kun de relevante kolonner tæller med: den valgte lønperiodes to periodekolonner og tillægsbeløbene kun
+ * i Beløb-tilstand, hvor de er redigerbare. Det er samme relevans-afgrænsning, som cellefejl-indsamlingen
+ * bruger.
  */
 const duplicateComparableValues = (
   row: StandardLoenTableRow,
@@ -189,26 +184,20 @@ const duplicateComparableValues = (
   return values;
 };
 
-/**
- * De kolonner, dublet-fejlen markerer. Hele rækken er gentagelsen, så markeringen sidder på ALLE de
- * sammenlignede celler frem for på én vilkårligt udvalgt – i modsætning til overlaps-reglen, hvor kun én af
- * to lovlige datoer ville blive udpeget som offer. Her er alle cellerne lige meget en del af dubletten.
- */
+/** Markerer de sammenlignede celler i den gentagne række. */
 const duplicateMarkedCellRefs = (
   fieldSet: StandardLoenTableFieldSet,
   rowId: string,
   loenperiode: Loenperiode,
   tillaegAngivesSom: TillaegAngivesSom
 ): readonly Readonly<{ id: string; field: AnyFieldRef }>[] => {
-  // Hver celle bindes med sin EGEN værditype bevaret; `toAnyFieldRef` udsletter typen først bagefter, så
-  // der ikke er brug for et cast over de heterogene descriptor-typer (streng / ISO-dato / AmountValue).
+  // Hver celle bindes med sin egen værditype bevaret; `toAnyFieldRef` udsletter typen først bagefter, så
+  // der ikke er brug for et cast over de heterogene descriptor-typer.
   const cell = <T>(descriptor: FieldDescriptor<T>) => Object.freeze({
     id: descriptor.id,
     field: toAnyFieldRef(bindCell(fieldSet, descriptor, rowId)),
   });
 
-  // Periodekolonnerne har forskellig værditype pr. lønperiode, så parret vælges i én gren frem for gennem
-  // en nøgle-indeksering, der ville tvinge et cast over union-typen.
   const periodCells = loenperiode === 'maaned'
     ? [cell(fieldSet.col0_maaned), cell(fieldSet.col1_maaned)]
     : loenperiode === 'uge'
@@ -225,14 +214,9 @@ const duplicateMarkedCellRefs = (
 /**
  * Løntabellens kryds-række-dubletter som kanoniske `FieldIssue`s.
  *
- * Reglen KAN ikke bo i en descriptor-validator: den sammenligner rækken med de forudgående rækker, og en
- * descriptor-validator ser kun sin egen celles værdi. Afledningen sker derfor samlet her – men resultatet
- * er strukturelt og bærer rækkens egne feltadresser, så rød ring, tooltip og fokusnavigation læser ÉN
- * repræsentation. Mønstret er `buildAslAfgoerelseRuleFieldIssues` i `erhvervsevnetabReaderProjection.ts`.
- *
- * Afledningen er generisk over feltsættet, så Årsløn og EO-lønindkomst deler den. I EO er feltsættet
- * bundet til ÉT ansættelsesforhold, hvorfor sammenligningen automatisk kun sker inden for det
- * ansættelsesforhold – to identiske rækker under to forskellige ansættelsesforhold er ikke en dublet.
+ * Reglen kan ikke bo i en descriptor-validator: den sammenligner rækken med forudgående rækker, mens en
+ * descriptor-validator kun kender sin egen celle. Resultatet bærer derfor rigtige feltadresser, så rød
+ * markering, tooltip og fokusnavigation læser én repræsentation.
  */
 export const resolveStandardLoenDuplicateRowIssues = (
   fieldSet: StandardLoenTableFieldSet,

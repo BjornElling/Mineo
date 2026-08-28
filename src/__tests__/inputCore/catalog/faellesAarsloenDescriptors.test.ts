@@ -35,6 +35,11 @@ const settle = <T>(input: SettledInput, field: FieldRef<T>, raw: string): Settle
 const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog, sourceToken });
 
 describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
+  it('bruger de godkendte fulde navne for begge fælles årslønsfelter', () => {
+    expect(faellesAarsloenAslAarsloenField.label).toBe('Skadelidtes årsløn (efter ASL)');
+    expect(faellesAarsloenEalAarsloenField.label).toBe('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)');
+  });
+
   it('bevarer fallback-loftet, når EET-beregningsdato mangler', () => {
     const input = settle(empty(), faellesAarsloenAslAarsloenField.bind(), '9999000');
     const read = evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind());
@@ -57,7 +62,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
       status: 'error',
       issue: {
         reason: 'rule',
-        message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
+        message: 'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
       },
     });
   });
@@ -80,7 +85,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
 
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
       status: 'error',
-      issue: { message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
+      issue: { message: 'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
     });
   });
 
@@ -98,7 +103,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
     input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
     input = settle(input, faellesAarsloenAslAarsloenField.bind(), '9999000');
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
-      issue: { message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
+      issue: { message: 'Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
     });
   });
 

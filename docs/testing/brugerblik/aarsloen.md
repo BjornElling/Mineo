@@ -2,6 +2,8 @@
 
 - Rute/placering: `/aarsloen` (flade 9, ingen faner)
 - Gennemgået: 2026-08-25 · commit `45f7fb3b`
+- **Efterfølgende rettelser implementeret: 2026-08-26 · commit `447905ca`.** Alle fund BB-096–BB-116 er
+  behandlet i kode; de historiske fundafsnit nedenfor bevarer den oprindelige gennemgang og beslutningsspor.
 - Afprøvet i: Chrome, 1536×864, lyst tema. Dokumenter hentet som `.docx` og læst linje for linje.
   Konsollen overvåget hele kørslen: 197 beskeder, **0 fejl, 0 advarsler**.
 

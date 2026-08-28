@@ -58,7 +58,11 @@ const trackedTypeScriptFiles = (): readonly string[] =>
   execFileSync('git', ['ls-files', '*.ts', '*.tsx'], { cwd: REPO_ROOT, encoding: 'utf8' })
     .trim()
     .split('\n')
-    .filter((line) => line.length > 0);
+    .filter((line) => line.length > 0)
+    // `git ls-files` also lists a file that is deleted in the working tree until the deletion is staged.
+    // Coverage concerns the files that exist and can be opened by the editor; otherwise an ordinary
+    // refactor with an unstaged deletion makes this guard report a phantom unowned file.
+    .filter((file) => fs.existsSync(path.join(REPO_ROOT, file)));
 
 /** Ren regel, så selv-testen kan fodre den en konstrueret tilstand. */
 export const findUnownedFiles = (

@@ -3,7 +3,7 @@ import { resolveSatserErrorField } from '../erstatningsopgoerelse/validation/loe
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
-} from '../aarsloen/standardLoenTableValidation';
+} from '../standardLoen/standardLoenTableValidation';
 import {
   OFFENTLIGE_YDELSER_COLUMN_ORDER,
   getOffentligeYdelserRowFilledState,

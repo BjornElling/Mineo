@@ -24,6 +24,7 @@ import {
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
 import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
@@ -706,11 +707,11 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
 
   if (aslAarsloenRaw === undefined || !Number.isFinite(aslAarsloenRaw)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
+    issues.push(toIssue('aarsloen-missing', `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke udfyldt`));
   } else if (aslAarsloenRaw <= 0) {
     // Fortegn valideres her som et afledt domæneissue, så også canonical
     // negative værdier fra persistence blokerer beregningen.
-    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
+    issues.push(toIssue('aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr`));
   }
   if (!fodselsdato) {
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));

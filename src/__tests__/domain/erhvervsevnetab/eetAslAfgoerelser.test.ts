@@ -494,7 +494,7 @@ describe('validateDuplicateAfgoerelse', () => {
 describe('validateAslAarsloenBySkadesaarMax', () => {
   it('giver fejl når årsløn overstiger maks årsløn i skadesåret', () => {
     const error = validateAslAarsloenBySkadesaarMax(539001, toISODateString('2019-04-01'));
-    expect(error).toBe('Årsløn kan ikke overstige maks årslønnen i skadesåret (539.000 kr.)');
+    expect(error).toBe('Skadelidtes årsløn (efter ASL) kan ikke overstige maks årslønnen i skadesåret (539.000 kr.)');
   });
 
   it('giver ikke fejl når årsløn er lig eller under maks årsløn i skadesåret', () => {
@@ -506,7 +506,7 @@ describe('validateAslAarsloenBySkadesaarMax', () => {
 describe('validateAslAarsloenDivisibleBy1000', () => {
   it('giver fejl når årsløn ikke er delelig med 1000', () => {
     const error = validateAslAarsloenDivisibleBy1000(539500);
-    expect(error).toBe('Årsløn skal være deleligt med 1.000.');
+    expect(error).toBe('Skadelidtes årsløn (efter ASL) skal være deleligt med 1.000.');
   });
 
   it('giver ikke fejl når årsløn er delelig med 1000', () => {

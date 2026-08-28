@@ -17,6 +17,7 @@ import {
   resolveAslAarsloensmaksimumForAar,
 } from '../satser/aslAarsloensmaksimum';
 import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
+import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
@@ -328,11 +329,11 @@ export const computeEetKapitaliseringCalculation = (
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
   if (aarsloen === undefined || !Number.isFinite(aarsloen)) {
-    issues.push(toIssue('aarsloen-missing', 'Årsløn er ikke udfyldt'));
+    issues.push(toIssue('aarsloen-missing', `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke udfyldt`));
   } else if (aarsloen <= 0) {
     // Fortegn er et afledt domæneissue, ikke et persistence-schema-krav. Værnet
     // skal derfor også afvise negative canonical værdier fra fx en indlæst fil.
-    issues.push(toIssue('aarsloen-zero', 'Årsløn skal være større end 0 kr'));
+    issues.push(toIssue('aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr`));
   }
   if (!fodselsdato) {
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt'));

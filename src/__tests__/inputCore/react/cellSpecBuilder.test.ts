@@ -1,9 +1,9 @@
 import {
   buildCollectionCellSpec,
   collectionLocationPrefix,
-  collectionOwnerEntityIds,
   type CollectionRenderRow,
 } from '../../../inputCore/react/cellSpecBuilder';
+import { collectionOwnerEntityIds } from '../../../inputCore/collectionCellBinding';
 import { createCollectionRef, type CollectionRef, type FieldAddress } from '../../../inputCore/fieldAddress';
 import type { FieldDescriptor } from '../../../inputCore/fieldDescriptor';
 import { aarsloenTableCol0MaanedField } from '../../../inputCore/catalog/aarsloenDescriptors';

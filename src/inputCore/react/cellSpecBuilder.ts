@@ -2,9 +2,10 @@ import * as React from 'react';
 import type { CollectionRef } from '../fieldAddress';
 import type { FieldDescriptor, FieldRef } from '../fieldDescriptor';
 import type { CellSpec } from './useCellEditor';
+import { bindCollectionCell, collectionOwnerEntityIds } from '../collectionCellBinding';
 
 /**
- * Den ENE cellebindingsmodel for alle dynamiske tabeller (§1.11, §3.2).
+ * Editorlagets ene celle-spec-model for alle dynamiske tabeller (§1.11, §3.2).
  *
  * Problemet den løser: en celles dataidentitet er `descriptor` bundet til HELE ejerstien – for en top-level
  * collection kun rækkens entity-id, for en nested collection (fx EO's løntabel under ét ansættelsesforhold)
@@ -12,8 +13,8 @@ import type { CellSpec } from './useCellEditor';
  * vælge sin egen bindingsmodel, og en nested tabel kunne binde med for få entity-led. Adresseariteten er
  * håndhævet i `FieldDescriptor.bind`, så bruddet blev en runtime-fejl under render frem for en typefejl.
  *
- * Her bindes BEGGE cellearter ét sted, ud fra den samme `ownerEntityIds`-præfiks, så en eksisterende celle og
- * dens placeholder aldrig kan få forskellig adressestruktur.
+ * Her bygges BEGGE cellearter ét sted, mens den rene `bindCollectionCell`-primitive ejer selve adressebindingen.
+ * Så kan en eksisterende celle og dens placeholder aldrig få forskellig adressestruktur.
  */
 export type CollectionCellBinding<TEntity> = Readonly<{
   /** Collectionen rækkerne bor i. Bærer selv ejerstien, så den ER kilden til ejer-id'erne. */
@@ -32,28 +33,8 @@ export type CollectionCellBinding<TEntity> = Readonly<{
 /** En række i den viste tabel: enten en committet række eller en endnu ikke oprettet placeholder. */
 export type CollectionRenderRow = Readonly<{ rowId: string; kind: 'existing' | 'placeholder' }>;
 
-/**
- * Ejer-id'erne før rækkens eget id, udledt af collectionens egen sti – ikke af en separat prop.
- *
- * Det er dét, der gør en forkert arity umulig at indføre lokalt: den samme sti, `insertEntity` og readeren
- * bruger, er også den, cellen bindes fra. En nested collection giver automatisk `[ejerId]`, en top-level `[]`.
- */
-export const collectionOwnerEntityIds = (collection: CollectionRef): readonly string[] =>
-  collection.path.flatMap((segment) => segment.kind === 'entity' ? [segment.entityId] : []);
-
-/**
- * Den ENE bindingsregel for en celle i en collection: ejerstien fra collectionen, derefter rækkens id.
- *
- * Udtrykket er eksporteret, fordi der er TO legitime aftagere: celle-spec-byggeren nedenfor (redigering) og
- * den fælles løntabel-reader-adapter (rekonstruktion + cellefejl). Begge skal binde IDENTISK – kunne de
- * divergere, ville en celle blive redigeret på én adresse og læst på en anden, og fejlen ville vise sig som
- * en lydløst tom celle. Derfor er reglen ét udtryk og ikke en gentaget `bind(...)`-linje.
- */
-export const bindCollectionCell = <T>(
-  collection: CollectionRef,
-  descriptor: FieldDescriptor<T>,
-  rowId: string
-): FieldRef<T> => descriptor.bind(...collectionOwnerEntityIds(collection), rowId);
+// De rene bindinger ligger uden for React-laget, så domænets read-only projektioner kan genbruge præcis
+// samme adresseberegning som editoren uden at importere en komponentmodul.
 
 /**
  * Kanonisk, kollisionsfrit lokations-præfiks for en collection-instans (§3.7).
