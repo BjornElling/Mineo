@@ -88,6 +88,22 @@ export const erOffentligeYdelserReguleringRelevant = (values: Erstatningsopgoere
 export const erTidligereModtagetTafRelevant = (values: ErstatningsopgoerelseValues): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values);
 
+type EmploymentRelevanceValues = Pick<
+  ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+  'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert'
+>;
+
+/** Opsigelsesvalget vises kun for en skadelidt, der var ansat på skadestidspunktet. */
+export const erAnsaettelsesforholdOphoertRelevant = (
+  employment: EmploymentRelevanceValues,
+): boolean => employment.ansatPaaSkadestidspunktet;
+
+/** Sidste arbejdsdag er kun relevant, når både ansættelse og opsigelse er valgt. */
+export const erSidsteArbejdsdagRelevant = (
+  employment: EmploymentRelevanceValues,
+): boolean =>
+  erAnsaettelsesforholdOphoertRelevant(employment) && employment.ansaettelsesforholdOphoert;
+
 /* ----------------------------------------------------------------------------------------
  * Rene synligheds-prædikater (afgørelsesdatoer, klage, bilagsnumre).
  * Gater UI-/PDF-felter der ikke indgår i et beregnet tal. De neutraliseres derfor IKKE i
@@ -127,6 +143,26 @@ export const neutralizeIrrelevantEoInputs = (
   values: ErstatningsopgoerelseValues,
 ): ErstatningsopgoerelseValues => {
   const patch: Partial<ErstatningsopgoerelseValues> = {};
+
+  const effectiveEmployments = values.loenindkomstAnsaettelsesforhold.map((employment) => {
+    if (erAnsaettelsesforholdOphoertRelevant(employment)) {
+      if (erSidsteArbejdsdagRelevant(employment) || employment.sidsteArbejdsdag === undefined) {
+        return employment;
+      }
+      return { ...employment, sidsteArbejdsdag: undefined };
+    }
+    if (employment.ansaettelsesforholdOphoert === false && employment.sidsteArbejdsdag === undefined) {
+      return employment;
+    }
+    return {
+      ...employment,
+      ansaettelsesforholdOphoert: false,
+      sidsteArbejdsdag: undefined,
+    };
+  });
+  if (effectiveEmployments.some((employment, index) => employment !== values.loenindkomstAnsaettelsesforhold[index])) {
+    patch.loenindkomstAnsaettelsesforhold = effectiveEmployments;
+  }
 
   // Array-felter blankes kun, når de faktisk indeholder ikke-tomt indhold. Tomme
   // placeholder-rækker (fra ensure*Rows) påvirker ikke beregning, og at fjerne dem ville

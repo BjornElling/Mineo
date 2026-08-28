@@ -31,7 +31,7 @@ import {
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
-import type { ContextualLabelRule, FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator } from '../fieldDescriptor';
+import type { CanonicalView, ContextualLabelRule, FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator, RelevanceRule } from '../fieldDescriptor';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, systemrammeSpec } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
@@ -58,6 +58,10 @@ import {
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { resolveStamdataDatoReferenceFromView } from './stamdataDescriptors';
+import {
+  erAnsaettelsesforholdOphoertRelevant,
+  erSidsteArbejdsdagRelevant,
+} from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 // Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
 // med skalarfelter + overenskomstFilter + tre nested tabeller, samt det singulære property-objekt
@@ -98,6 +102,7 @@ const createField = <T>(options: Readonly<{
   emptyValue: T;
   isEmpty: (value: T) => boolean;
   contextualLabel?: ContextualLabelRule;
+  relevance?: RelevanceRule<T>;
   validators?: readonly FieldValidator<T>[];
   dateBounds?: DateBoundsSpec;
 }>): FieldDescriptor<T> => defineStructuralField<T>({
@@ -108,6 +113,7 @@ const createField = <T>(options: Readonly<{
   isEmpty: options.isEmpty,
   label: options.label,
   ...(options.contextualLabel === undefined ? {} : { contextualLabel: options.contextualLabel }),
+  ...(options.relevance === undefined ? {} : { relevance: options.relevance }),
   controlKind: options.controlKind,
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   ...(options.validators === undefined ? {} : { validators: options.validators }),
@@ -180,8 +186,35 @@ const empAmountBounds = (field: string): readonly FieldValidator<AmountValue | u
 /** Datofelt direkte på en ansættelsesforhold-række. Systemrammen medmindre feltet har en skarpere regel. */
 const empDate = (
   field: string, label: string, spec: DateBoundsSpec = systemrammeSpec,
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
-  dateFieldWithBounds(EMP_ID, employmentPath, field, label, spec);
+  createField<ISODateString | undefined>({
+    ownerId: EMP_ID, path: employmentPath, field, label, controlKind: 'text', codec: dateCodec,
+    emptyValue: undefined, isEmpty: isUndefined,
+    ...dateBounds(spec),
+    ...(relevance === undefined ? {} : { relevance }),
+  });
+
+const employmentIdFromField = <T,>(field: FieldRef<T>): string => {
+  const employmentEntity = field.address.path.find(
+    (segment): segment is Extract<typeof segment, { kind: 'entity' }> =>
+      segment.kind === 'entity' && segment.collection === EMPLOYMENTS
+  );
+  if (employmentEntity === undefined) {
+    throw new Error('Lønindkomst-relevans kræver et ansættelsesforhold i feltadressen');
+  }
+  return employmentEntity.entityId;
+};
+
+const employmentRelevance = <T,>(
+  predicate: (employment: Pick<PersistedLoenindkomstAnsaettelsesforhold, 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert'>) => boolean,
+): RelevanceRule<T> => (field, view: CanonicalView) => {
+  const employmentId = employmentIdFromField(field);
+  return predicate({
+    ansatPaaSkadestidspunktet: view.readCanonical(eoEmploymentFields.ansatPaaSkadestidspunktet.bind(employmentId)),
+    ansaettelsesforholdOphoert: view.readCanonical(eoEmploymentFields.ansaettelsesforholdOphoert.bind(employmentId)),
+  });
+};
 
 // Navngivne employment-descriptors, som readerprojektion og grid binder direkte. Aggregatarrayet
 // nedenfor afledes fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
@@ -193,8 +226,8 @@ export const eoEmploymentFields = {
   // var den eneste, der stadig sagde «skadestidspunktet» ved en erhvervssygdom. UI'en byggede allerede
   // selv det rigtige navn to steder, så det var descriptorens label, der drev fra dem.
   ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet'),
+  ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentRelevance(erAnsaettelsesforholdOphoertRelevant) }),
+  sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant)),
   fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
   shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
   pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),

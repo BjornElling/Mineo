@@ -65,8 +65,10 @@ import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 import { varigeMenBeregningsdatoField } from '../../../inputCore/catalog/varigeMenDescriptors';
 import {
   eoEmploymentManual,
+  eoEmploymentFields,
   eoStandardRowFields,
 } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const catalog = getProductionInputCatalog();
 const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
@@ -76,6 +78,11 @@ const dispatch = <TField, TEntity>(input: SettledInput, command: InputMutationCo
 const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog, sourceToken: token });
 
 const tableRef = createCollectionRef({ section: 'aarsloen', path: [], collection: 'tableData' });
+const employmentCollectionRef = createCollectionRef({
+  section: 'erstatningsopgoerelse',
+  path: [],
+  collection: 'loenindkomstAnsaettelsesforhold',
+});
 
 describe('produktdescriptors – dato-, periode- og relevansregler', () => {
   /**
@@ -215,6 +222,40 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
     expect(evaluate(input).reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({
       status: 'usable',
       value: '2020-01-15',
+    });
+  });
+
+  it('udleverer aldrig et skjult ansættelsesforholds opsigelse til consumers', () => {
+    // Den rå canonical værdi bevares, så et senere tilvalg kan vise den igen. Men alle consumerveje
+    // går gennem readeren og får tomværdien, mens feltet er skjult.
+    const employment = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-relevans',
+      ansatPaaSkadestidspunktet: false,
+      ansaettelsesforholdOphoert: true,
+      sidsteArbejdsdag: toISODateString('2024-01-31'),
+    };
+    let input = dispatch(empty(), insertRow(employmentCollectionRef, employment));
+
+    expect(input.sections.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold?.[0]).toMatchObject({
+      ansaettelsesforholdOphoert: true,
+      sidsteArbejdsdag: '2024-01-31',
+    });
+    let reader = evaluate(input).reader;
+    expect(reader.read(eoEmploymentFields.ansaettelsesforholdOphoert.bind('af-relevans'))).toEqual({
+      status: 'usable', value: false,
+    });
+    expect(reader.read(eoEmploymentFields.sidsteArbejdsdag.bind('af-relevans'))).toEqual({
+      status: 'usable', value: undefined,
+    });
+
+    input = dispatch(input, setImmediateField(eoEmploymentFields.ansatPaaSkadestidspunktet.bind('af-relevans'), true));
+    reader = evaluate(input).reader;
+    expect(reader.read(eoEmploymentFields.ansaettelsesforholdOphoert.bind('af-relevans'))).toEqual({
+      status: 'usable', value: true,
+    });
+    expect(reader.read(eoEmploymentFields.sidsteArbejdsdag.bind('af-relevans'))).toEqual({
+      status: 'usable', value: '2024-01-31',
     });
   });
 

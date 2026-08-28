@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-27
+**Senest verificeret mod kode:** 2026-08-28
 
 ---
 
@@ -580,6 +580,10 @@ kan læse en forældet skjult værdi (fail-closed). Committed form-state mutater
   "tidligere beregnet S/S til max" er slået til.
 - TAF- og ferieperioder (`tafPerioder`, `ferieperioder`) og øvrige-krav-rækker
   (`oevrigeKravPerioder`) neutraliseres når den respektive sektion ikke er aktiv.
+- Et ansættelsesforholds `ansaettelsesforholdOphoert` neutraliseres til `false`, når
+  `ansatPaaSkadestidspunktet` er `false`. `sidsteArbejdsdag` neutraliseres desuden, når
+  ansættelsesforholdet ikke er opsagt. Dermed kan en bevaret, skjult opsigelse aldrig forkorte SFGG
+  eller frembringe en afledt advarsel.
 - Kun rækker med faktisk indhold blankes; tomme placeholder-rækker bevares (de påvirker
   ikke beregning).
 

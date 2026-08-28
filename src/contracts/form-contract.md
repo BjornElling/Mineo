@@ -3,8 +3,8 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-26 (kompatibilitetsafgrænsningen mellem intern runtime-arkitektur og
-persistensgrænsen er præciseret. Tidligere 2026-08-19: §8.2a er implementeret og verificeret: længdepolitikken erklæres
+**Senest verificeret mod kode:** 2026-08-28 (relevans er nu en hard læsegrænse i `InputReader`. Tidligere 2026-08-26:
+kompatibilitetsafgrænsningen mellem intern runtime-arkitektur og persistensgrænsen er præciseret. Tidligere 2026-08-19: §8.2a er implementeret og verificeret: længdepolitikken erklæres
 på codecet/`charLengthPolicy.ts` og læses af både formular- og gridfladen; paste afgrænses i `spliceDraftWithPaste`)
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
@@ -245,6 +245,11 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    rydningen i punkt 5 og tavsheden her – skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
    relevans-invarianten i `validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
    skjult felt.
+
+7. **Relevans er en læsegrænse.** `InputReader` udleverer altid feltets `emptyValue`, når descriptorens
+   relevansregel er falsk. Den bevarede canonical værdi er dermed kun tilgængelig for inputinfrastrukturen,
+   der genvurderer relevans og kan vise værdien igen efter et tilvalg. Beregning, dokumenter, kontrol og
+   afledt UI kan derfor ikke læse eller påvirkes af en skjult værdi.
 
 ## 8. Format, bounds og save-gate
 

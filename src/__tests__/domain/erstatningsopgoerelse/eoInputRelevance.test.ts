@@ -1,6 +1,9 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   erSvieSmertePeriodeInputRelevant,
   erSvieSmerteTidligereTotalRelevant,
@@ -10,6 +13,8 @@ import {
   erEETKlageRelevant,
   erBilagsnumreRelevant,
   erTidligereModtagetTafRelevant,
+  erAnsaettelsesforholdOphoertRelevant,
+  erSidsteArbejdsdagRelevant,
   neutralizeIrrelevantEoInputs,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/engines/svieSmerteEngine';
@@ -104,6 +109,28 @@ describe('eoInputRelevance', () => {
       expect(result.oevrigeKravPerioder).toEqual([]);
     });
 
+    it('blanker skjult opsigelse og sidste arbejdsdag i den effektive snapshot-kopi', () => {
+      const employment = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-skjult-opsigelse',
+        ansatPaaSkadestidspunktet: false,
+        ansaettelsesforholdOphoert: true,
+        sidsteArbejdsdag: iso('2024-01-31'),
+      };
+      const original = makeValues({ loenindkomstAnsaettelsesforhold: [employment] });
+      const effective = neutralizeIrrelevantEoInputs(original);
+
+      expect(effective.loenindkomstAnsaettelsesforhold[0]).toMatchObject({
+        ansatPaaSkadestidspunktet: false,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+      });
+      expect(original.loenindkomstAnsaettelsesforhold[0]).toMatchObject({
+        ansaettelsesforholdOphoert: true,
+        sidsteArbejdsdag: iso('2024-01-31'),
+      });
+    });
+
     it('UNDTAGELSE: bevarer komprimeret løn-/beregningsgrundlag ved EO 2+ (TAF beregnes fortsat heraf)', () => {
       const loenindkomst = createErstatningsopgoerelseInitialValues().loenindkomstAnsaettelsesforhold;
       const values = makeValues({
@@ -146,6 +173,16 @@ describe('eoInputRelevance', () => {
   });
 
   describe('rene synligheds-prædikater', () => {
+    it('opsigelse og sidste arbejdsdag er irrelevante uden ansættelse på skadestidspunktet', () => {
+      const employment = {
+        ansatPaaSkadestidspunktet: false,
+        ansaettelsesforholdOphoert: true,
+      };
+      expect(erAnsaettelsesforholdOphoertRelevant(employment)).toBe(false);
+      expect(erSidsteArbejdsdagRelevant(employment)).toBe(false);
+      expect(erSidsteArbejdsdagRelevant({ ...employment, ansatPaaSkadestidspunktet: true })).toBe(true);
+    });
+
     it('erVarigeMenAfgoerelseAktiv følger varigeMenAfgorelse', () => {
       expect(erVarigeMenAfgoerelseAktiv(makeValues({ varigeMenAfgorelse: 'Ja' }))).toBe(true);
       expect(erVarigeMenAfgoerelseAktiv(makeValues({ varigeMenAfgorelse: 'Nej' }))).toBe(false);

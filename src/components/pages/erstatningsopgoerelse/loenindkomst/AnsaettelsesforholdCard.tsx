@@ -55,6 +55,10 @@ import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { activeFieldIssue } from '../../../../inputCore/inputIssue';
 import { useInputReadPort } from '../../../../inputCore/react/inputRuntimeContext';
+import {
+  erAnsaettelsesforholdOphoertRelevant,
+  erSidsteArbejdsdagRelevant,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -212,8 +216,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   };
 
   const showOverenskomst = af.harOverenskomst;
-  const showMedlemOpsagt = af.ansatPaaSkadestidspunktet;
-  const showSidsteArbejdsdag = showMedlemOpsagt && af.ansaettelsesforholdOphoert;
+  const showMedlemOpsagt = erAnsaettelsesforholdOphoertRelevant(af);
+  const showSidsteArbejdsdag = erSidsteArbejdsdagRelevant(af);
   const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
   const displayNumber = index + 1;
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);

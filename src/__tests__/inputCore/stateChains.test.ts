@@ -415,12 +415,10 @@ const CHAINS: readonly Chain[] = [
          * `enhed = 'uger'` gør tillaegstid irrelevant. Værdien BEVARES (§5-kriterium 14):
          * canonical, visning og fravær af issue står UÆNDRET på tværs af skjulningen.
          *
-         * **Consumerstatus er bevidst `ready` her, ikke `blocked`.** Readeren gater ikke på relevans –
-         * en irrelevant men gyldig værdi er læsbar, og det er den enkelte consumers ansvar at afgøre,
-         * om den er relevant for netop dens beregning ([[project_field_visibility_single_source]]). En
-         * kerne, der skjulte værdien for ALLE consumers, ville gøre det umuligt for en consumer med en
-         * anden relevansregel end feltets visningsregel at læse den – og ville dermed være §1.10's
-         * overblokering i kernen.
+         * **Consumerstatus er bevidst `blocked` her.** Readeren udleverer tomværdien for et irrelevant
+         * felt, så ingen consumer kan regne eller producere output på en skjult værdi. Det er selve
+         * hard-garantien: canonical-inputtet bevares kun til et senere tilvalg, ikke som en alternativ
+         * datakilde for en beregning.
          *
          * Relevansen har ÉN konsekvens for en GYLDIG værdi, og det er ingen: den består urørt. Bar feltet
          * derimod en aktiv RØD fejl, ryddes det tavst med valget (§7.5 pkt. 2) – se næste kæde. Grunden er
@@ -430,7 +428,7 @@ const CHAINS: readonly Chain[] = [
          */
         label: 'skjul (enhed → uger) bevarer den gyldige værdi uændret',
         run: (state) => apply(state, setImmediateField(enhedField.bind(ROW), 'uger')),
-        expected: aspects(12, undefined, '12', undefined, 'alle-ready', 4, 2, 0),
+        expected: aspects(12, undefined, '12', undefined, 'consumer-blokeret', 4, 2, 0),
       },
       {
         label: 'vis igen (enhed → dage)',
@@ -441,7 +439,7 @@ const CHAINS: readonly Chain[] = [
       {
         label: 'undo (tilbage til skjult)',
         run: undo,
-        expected: aspects(12, undefined, '12', undefined, 'alle-ready', 6, 2, 1),
+        expected: aspects(12, undefined, '12', undefined, 'consumer-blokeret', 6, 2, 1),
       },
     ],
   },
