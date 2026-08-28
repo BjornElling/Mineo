@@ -4,6 +4,7 @@ import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { Koen } from '../../schemas/formSchemas';
+import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import {
   forsoergertabBeregningsdatoField,
   forsoergertabEfterladteFodselsdatoField,
@@ -18,6 +19,7 @@ import {
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
+  stamdataSkadestypeField,
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { computeForsoergertabSnapshot, type ForsoergertabSnapshot } from './forsoergertabSnapshot';
 
@@ -53,6 +55,7 @@ const aslAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenAslAars
 const ealAarsloenRef: FieldRef<AmountValue | undefined> = faellesAarsloenEalAarsloenField.bind();
 const skadedatoRef: FieldRef<ISODateString | undefined> = stamdataSkadedatoField.bind();
 const skadelidteFodselsdatoRef: FieldRef<ISODateString | undefined> = stamdataSkadelidteFodselsdatoField.bind();
+const skadestypeRef: FieldRef<Skadestype | undefined> = stamdataSkadestypeField.bind();
 
 export type ForsoergertabReaderProjection = Readonly<{
   /** Det ENE snapshot (uændret beregning). Driver både sidevisning og download-gaten. */
@@ -87,8 +90,17 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
   const ealAarsloen = readField(reader.read(ealAarsloenRef));
   const skadedato = readField(reader.read(skadedatoRef));
   const skadelidteFodselsdato = readField(reader.read(skadelidteFodselsdatoRef));
+  // Skadestypen afgør, om fladen og dokumentet siger «skadedato/skadestidspunkt/skadesår» eller
+  // «anmeldelsesdato/anmeldelsestidspunkt/anmeldelsesår» (BB-121). Den blev IKKE læst før, så
+  // `skadestype` nåede snapshottet som `undefined`, og hele fladen faldt tilbage til «skade»-formen –
+  // også for en erhvervssygdom, hvor rækken øverst korrekt sagde «Anmeldelsesdato». Det var årsagen til,
+  // at det generelle princip ikke virkede her, uanset hvor teksterne blev rettet.
+  const skadestype = readField(reader.read(skadestypeRef));
 
   const snapshot = computeForsoergertabSnapshot({
+    // Feltnavne opløses gennem readeren (§3.2a): `stamdata.skadedato` hedder «Anmeldelsesdato» ved en
+    // erhvervssygdom, og et feltissue skal navngive feltet, som brugeren ser det.
+    resolveFieldLabel: reader.labelOf,
     values: {
       beregningsdato: beregningsdato.value,
       virkningsdato: virkningsdato.value,
@@ -98,9 +110,11 @@ export const buildForsoergertabReaderProjection = (reader: InputReader): Forsoer
     },
     faellesAarsloen: { aslAarsloen: aslAarsloen.value, ealAarsloen: ealAarsloen.value },
     stamdata: {
-      // Snapshottet aftager kun de to datoer; de øvrige stamdata-felter er irrelevante for beregningen.
+      // Snapshottet aftager de to datoer + skadestypen, som styrer datoens navn i tekster (BB-121);
+      // de øvrige stamdata-felter er irrelevante for beregningen.
       skadedato: skadedato.value,
       skadelidteFodselsdato: skadelidteFodselsdato.value,
+      skadestype: skadestype.value,
       journalnr: '',
       advokat: '',
       sagsbehandler: '',

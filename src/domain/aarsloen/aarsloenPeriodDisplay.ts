@@ -39,17 +39,17 @@ export const aarsloenFradragsParentes = (
 };
 
 /**
- * Omregningsformlen: «33.750,00 / 21 × 231», eller «33.750,00 × 12» når divisoren er 1.
+ * Omregningsformlen: «33.750,00 / 21 x 231», eller «33.750,00 x 12» når divisoren er 1.
  *
  * Særreglen for én enhed fandtes allerede i dokumentgeneratoren, men ikke på skærmen, så skærmen skrev
- * «(33.750,00 / 1 × 12)» – en division uden indhold, som gør formlen sværere at læse, og som fik den, der
+ * «(33.750,00 / 1 x 12)» – en division uden indhold, som gør formlen sværere at læse, og som fik den, der
  * sammenholdt skærm og bilag, til at lede efter en forskel. Reglen bor nu ét sted, så begge skriver ens.
  */
 export const aarsloenOmregningFormel = (
   beloeb: string,
   divisor: number,
   faktor: string
-): string => divisor === 1 ? `${beloeb} × ${faktor}` : `${beloeb} / ${divisor} × ${faktor}`;
+): string => divisor === 1 ? `${beloeb} x ${faktor}` : `${beloeb} / ${divisor} x ${faktor}`;
 
 type AarsloenIndtastetEnhedDefinition = Readonly<{
   count: number;

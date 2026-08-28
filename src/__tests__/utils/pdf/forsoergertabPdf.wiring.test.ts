@@ -42,6 +42,8 @@ vi.mock('jspdf', () => ({ default: MockJsPDF }));
 const BASE_GRUNDLAEGGENDE = {
   beregningsdato: toISODateString('2026-03-17'),
   skadelidteFodselsdato: toISODateString('1980-01-01'),
+  skadedato: toISODateString('2020-05-01'),
+  skadestype: 'Arbejdsulykke' as const,
   efterladteFodselsdato: undefined,
   koen: undefined,
   visKoenValg: false,

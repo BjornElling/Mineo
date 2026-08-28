@@ -2,7 +2,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import {
-  buildAldersreduktionFormelTekst,
+  buildAldersreduktionEtiket,
   computeEetEalCalculation,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -627,17 +627,28 @@ describe('computeEetEalCalculation – aldersreduktionsprocent (invarianter)', (
   });
 });
 
-describe('buildAldersreduktionFormelTekst', () => {
+describe('buildAldersreduktionEtiket', () => {
   it('viser den cappede alder når alderen er over 69 år', () => {
-    expect(buildAldersreduktionFormelTekst(72)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');
+    expect(buildAldersreduktionEtiket(72)).toBe('Aldersreduktion (72 - 29) + (72 - 54) x 2 (max 70 %) =');
   });
 
   it('viser den faktiske alder når alderen højst er 69 år', () => {
-    expect(buildAldersreduktionFormelTekst(54)).toBe('(54 - 29) =');
-    expect(buildAldersreduktionFormelTekst(69)).toBe('(69 - 29) + (69 - 54) x 2 =');
+    expect(buildAldersreduktionEtiket(54)).toBe('Aldersreduktion (54 - 29) =');
+    expect(buildAldersreduktionEtiket(69)).toBe('Aldersreduktion (69 - 29) + (69 - 54) x 2 =');
   });
 
   it('capped også visningsformlen ved 70 år', () => {
-    expect(buildAldersreduktionFormelTekst(70)).toBe('(70 - 29) + (70 - 54) x 2 (max 70 %) =');
+    expect(buildAldersreduktionEtiket(70)).toBe('Aldersreduktion (70 - 29) + (70 - 54) x 2 (max 70 %) =');
+  });
+
+  /**
+   * BB-129: ved 0 % er der ingen formel. Etiketten var «Aldersreduktion 0 =» – ikke et regnestykke, men
+   * et lighedstegn uden venstreside, hvor 45-års-tilfældet giver «Aldersreduktion (45 - 29) =».
+   */
+  it('udelader formlen helt, når reduktionen er nul', () => {
+    expect(buildAldersreduktionEtiket(25)).toBe('Aldersreduktion');
+    expect(buildAldersreduktionEtiket(29)).toBe('Aldersreduktion');
+    // Første alder MED en reduktion får formlen tilbage.
+    expect(buildAldersreduktionEtiket(30)).toBe('Aldersreduktion (30 - 29) =');
   });
 });

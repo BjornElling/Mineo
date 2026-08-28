@@ -13,9 +13,16 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
+import type { Skadestype } from '../../../schemas/formSchemas/enumSchemas';
 import type { ForsoergertabCalculation, ForsoergertabAslComputation, ForsoergertabEalPort } from '../../../domain/forsoergertab/forsoergertabTypes';
-import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { resolveForsoergertabReguleringTekst } from '../../../domain/forsoergertab/forsoergertabReguleringTekst';
+import {
+  resolveStamdataDatoReference,
+  type StamdataDatoReference,
+} from '../../../domain/policies/stamdataCalculations';
 import { toKroner, type MoneyOre } from '../../../domain/money/money';
 
 // ============================================================================
@@ -25,6 +32,16 @@ import { toKroner, type MoneyOre } from '../../../domain/money/money';
 type GrundlaeggendeData = Readonly<{
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
+  /**
+   * Sagens egen dato (BB-122). Dokumentet trykte den ikke, selv om skærmen viser den som anden række, og
+   * selv om den styrer fire af beregningens opslag: ASL-årslønnens maksimum, opreguleringens kildeår,
+   * kapitaliseringsbekendtgørelsen og tabelvalget. En modpart kunne derfor ikke efterregne
+   * specifikationen, og papiret kunne ikke henføres til sagen. Varige méns dokument gjorde det rigtige på
+   * nøjagtig samme sagsgrundlag; dette er en konvergens mod det, ikke et nyt design.
+   */
+  skadedato: ISODateString | undefined;
+  /** Skadestypen afgør datoens navn i hele dokumentet (BB-121). */
+  skadestype: Skadestype | undefined;
   efterladteFodselsdato: ISODateString | undefined;
   koen: string | undefined;
   visKoenValg: boolean;
@@ -38,7 +55,8 @@ const addGrundlaeggendeSection = (
   writer: DocumentComposer,
   data: GrundlaeggendeData,
   visEal: boolean,
-  visAsl: boolean
+  visAsl: boolean,
+  datoReference: StamdataDatoReference
 ): void => {
   writer.writeBoldSubheader('Grundlæggende oplysninger');
 
@@ -54,6 +72,13 @@ const addGrundlaeggendeSection = (
     });
   }
 
+  // Sagens dato med det skadestype-afledte navn – samme række som skærmens anden (BB-122).
+  if (data.skadedato) {
+    writer.writeLeftRightText(datoReference.label, isoToDanish(data.skadedato) ?? '', {
+      rightFontStyle: 'normal',
+    });
+  }
+
   // Efterladtes fødselsdato indgår kun i ASL-beregningen
   if (visAsl && data.efterladteFodselsdato) {
     writer.writeLeftRightText(
@@ -63,8 +88,9 @@ const addGrundlaeggendeSection = (
     );
   }
 
+  // Fladen har to personer i sig; rækken navngiver sin person som de øvrige (BB-134).
   if (data.visKoenValg && data.koen) {
-    writer.writeLeftRightText('Køn', data.koen, { rightFontStyle: 'normal' });
+    writer.writeLeftRightText('Skadelidtes køn', data.koen, { rightFontStyle: 'normal' });
   }
 
   const hasAslIndhold =
@@ -80,7 +106,8 @@ const addGrundlaeggendeSection = (
       });
     }
     if (data.virkningsdato) {
-      writer.writeLeftRightText('Startdato for ASL-ydelse', isoToDanish(data.virkningsdato) ?? '', {
+      // Feltets ene navn (BB-120) – samme ord som skærmen og feltets grænsebesked.
+      writer.writeLeftRightText('Virkningsdato', isoToDanish(data.virkningsdato) ?? '', {
         rightFontStyle: 'normal',
       });
     }
@@ -105,10 +132,10 @@ const addBeregnedResultatSection = (writer: DocumentComposer, result: Forsoerger
   writer.writeBoldSubheader('Beregnet forsørgertab');
 
   writer.writeLeftRightText('EAL-krav', formatKr(result.ealKrav), { rightFontStyle: 'normal' });
-  writer.writeLeftRightText('Løbende ydelser (efter ASL)', `- ${formatKr(result.aslLobendeYdelserTotal)}`, {
+  writer.writeLeftRightText('Løbende ydelser (efter ASL)', formatDeductionKr(result.aslLobendeYdelserTotal), {
     rightFontStyle: 'normal',
   });
-  writer.writeLeftRightText('Kapitalbeløb (efter ASL)', `- ${formatKr(result.aslKapitalbelob)}`, {
+  writer.writeLeftRightText('Kapitalbeløb (efter ASL)', formatDeductionKr(result.aslKapitalbelob), {
     rightFontStyle: 'normal',
   });
   writer.writeLeftRightText('Forsørgertabserstatning', formatKr(result.nettokrav), {
@@ -120,17 +147,24 @@ const addBeregnedResultatSection = (writer: DocumentComposer, result: Forsoerger
 // Side 2: EAL-krav
 // ============================================================================
 
-const addEalSection = (writer: DocumentComposer, eal: ForsoergertabEalPort, foersoergertabEalMinSatsOre: MoneyOre | null, foersoergertabForhoejtetTilMin: boolean): void => {
+const addEalSection = (
+  writer: DocumentComposer,
+  eal: ForsoergertabEalPort,
+  foersoergertabEalMinSatsOre: MoneyOre | null,
+  foersoergertabForhoejtetTilMin: boolean,
+  datoReference: StamdataDatoReference
+): void => {
   writer.writeSectionHeader('EAL-krav');
 
   writer.writeBoldSubheader('Årsløn');
-  writer.writeLeftRightText('Skadelidtes årsløn på skadestidspunktet', formatKr(toKroner(eal.aarsloenOre)), {
+  // Datoens navn følger skadestypen i ALLE afledte tekster (BB-121), ikke kun i rækken øverst.
+  writer.writeLeftRightText(`Skadelidtes årsløn på ${datoReference.tidspunktBestemt}`, formatKr(toKroner(eal.aarsloenOre)), {
     rightFontStyle: 'normal',
   });
 
   if (eal.reguleringsaar.length > 0) {
     writer.writeLeftRightText(
-      `Regulering fra skadesår ${eal.skadesaar} til beregningsår ${eal.beregningsaar}`,
+      `Regulering fra ${datoReference.aar} ${eal.skadesaar} til beregningsår ${eal.beregningsaar}`,
       `+ ${formatPercentTrimmedFromRounded4(eal.reguleringsPctRounded4)} %`,
       { rightFontStyle: 'normal' }
     );
@@ -162,28 +196,38 @@ const addEalSection = (writer: DocumentComposer, eal: ForsoergertabEalPort, foer
     );
   }
 
+  // Loftet får sin egen linje, når det slår til – symmetrisk med minimum ovenfor (BB-133).
+  if (eal.eetReduceretTilMaks) {
+    writer.writeLeftRightText(
+      `Højeste erstatningsniveau i beregningsåret ${eal.beregningsaar}`,
+      formatKr(toKroner(eal.eetMaksOre)),
+      { rightFontStyle: 'normal' }
+    );
+  }
+
   writer.writeLeftRightText(
-    foersoergertabForhoejtetTilMin
-      ? 'Det beregnede forsørgertab skal forhøjes til minimum, dvs. udgør'
-      : 'Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør',
+    resolveForsoergertabReguleringTekst({
+      forhoejetTilMin: foersoergertabForhoejtetTilMin,
+      nedsatTilMaks: eal.eetReduceretTilMaks,
+    }),
     formatKr(toKroner(eal.eetAnvendtOre)),
     { rightFontStyle: 'normal' }
   );
 
   writer.writeBoldSubheader('Aldersreduktion');
   writer.writeLeftRightText(
-    'Skadelidtes alder på skadestidspunkt',
+    `Skadelidtes alder på ${datoReference.tidspunkt}`,
     formatCountWithUnit(eal.alderVedSkade, 'år', 'år'),
     { rightFontStyle: 'normal' }
   );
   writer.writeLeftRightText(
-    `Aldersreduktion ${buildAldersreduktionFormelTekst(eal.alderVedSkade)}`,
+    buildAldersreduktionEtiket(eal.alderVedSkade),
     `${eal.aldersreduktionPct} %`,
     { rightFontStyle: 'normal' }
   );
   writer.writeLeftRightText(
-    `${formatKr(toKroner(eal.eetAnvendtOre))} x (- ${eal.aldersreduktionPct} %) =`,
-    `- ${formatKr(toKroner(eal.aldersreduktionBeloebOre))}`,
+    `${formatKr(toKroner(eal.eetAnvendtOre))} x (${formatDeductionPercent(eal.aldersreduktionPct, `${eal.aldersreduktionPct} %`)}) =`,
+    formatDeductionKr(toKroner(eal.aldersreduktionBeloebOre)),
     { rightFontStyle: 'normal' }
   );
 
@@ -260,7 +304,9 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
     writer.writeLeftRightText('Kapitalbeløb', '0 kr.', { rightFontStyle: 'bold' });
   } else {
     writer.writeLeftRightText(
-      `Årlig ydelse i ${asl.beregningsaar}-værdi: 30 % x ${formatKr(asl.benyttetAarsloen)} × (${formatAsAmountTrimmed(asl.aarsloenMaxBeregningsaar, 0)} / ${formatAsAmountTrimmed(asl.aarsloenMaxSkadesaar, 0)}) =`,
+      // Ét gangetegn i hele linjen (BB-132): den brugte før BÅDE `x` og `×` i samme sætning, som om de
+      // to betød noget forskelligt. `x` er programmets tegn.
+      `Årlig ydelse i ${asl.beregningsaar}-værdi: 30 % x ${formatKr(asl.benyttetAarsloen)} x (${formatAsAmountTrimmed(asl.aarsloenMaxBeregningsaar, 0)} / ${formatAsAmountTrimmed(asl.aarsloenMaxSkadesaar, 0)}) =`,
       formatKr(asl.opreguleretAarligYdelse, 2),
       { rightFontStyle: 'normal' }
     );
@@ -304,7 +350,8 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
           { rightFontStyle: 'normal' }
         );
         writer.writeLeftRightText(
-          `Beregnet kapitalbeløb (${formatKr(asl.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(asl.kapitalfaktor, 3)})`,
+          // Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne (BB-132).
+          `Beregnet kapitalbeløb (${formatKr(asl.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(asl.kapitalfaktor, 3)}) =`,
           formatKr(asl.kapitalbelob),
           { rightFontStyle: 'bold' }
         );
@@ -347,7 +394,19 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
     foersoergertabForhoejtetTilMin,
   } = params;
 
-  addGrundlaeggendeSection(writer, grundlaeggende, ealComputation !== null, aslComputation !== null);
+  // Ét navnevalg for hele dokumentet, udledt af skadestypen (BB-121). Sektionerne må ikke udlede hver sit.
+  //
+  // Skadestypen kommer fra `grundlaeggende` og IKKE fra brevhovedets stamdata: brevhovedet projiceres kun,
+  // når brugeren har slået det til, og navnet på sagens dato må ikke afhænge af den indstilling.
+  const datoReference = resolveStamdataDatoReference(grundlaeggende.skadestype);
+
+  addGrundlaeggendeSection(
+    writer,
+    grundlaeggende,
+    ealComputation !== null,
+    aslComputation !== null,
+    datoReference
+  );
 
   if (result !== null) {
     addBeregnedResultatSection(writer, result);
@@ -356,7 +415,13 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
   // --- Side 2: EAL ---
   if (ealComputation !== null) {
     writer.addPage();
-    addEalSection(writer, ealComputation, foersoergertabEalMinSatsOre, foersoergertabForhoejtetTilMin);
+    addEalSection(
+      writer,
+      ealComputation,
+      foersoergertabEalMinSatsOre,
+      foersoergertabForhoejtetTilMin,
+      datoReference
+    );
   }
 
   // --- Side 3: ASL ---

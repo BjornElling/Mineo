@@ -62,23 +62,23 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
     // Blur'en fra caret-værnets egen blur/focus-cyklus må ikke opfattes som brugerens blur og
     // dermed afslutte den editor, der lige blev åbnet.
     const ignoreOpeningBlurRef = React.useRef(false);
-    const admission = React.useMemo(() => {
-      const charAdmission = amountExpressionAdmission({
-        allowNegative,
-        allowDecimals,
-        maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
-        maxDecimalDigits: allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0,
-      });
-      return charAdmission;
-    }, [allowDecimals, allowNegative]);
+    // Decimalpladserne er de samme, uanset om feltet VISER decimaler (BB-118): kommaet skal kunne tastes
+    // og indsættes, ellers springes det over og decimalcifrene glider op i heltalsdelen. `allowDecimals`
+    // udtrykkes i stedet som settle-præcision nedenfor.
+    const admission = React.useMemo(() => amountExpressionAdmission({
+      allowNegative,
+      allowDecimals,
+      maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
+      maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
+    }), [allowDecimals, allowNegative]);
+    const settlePrecision = allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
     const draftState = useTransientDraft<AmountValue | undefined>({
       value,
       format: (v) => amountValueToDraftString(v, DEFAULT_AMOUNT_PRECISION),
       parse: (draft) => {
         const parsed = parseAmountInput(draft, {
-          precision: DEFAULT_AMOUNT_PRECISION,
+          precision: settlePrecision,
           allowNegative,
-          allowDecimals,
           maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
           maxRawLength: MAX_AMOUNT_RAW_LENGTH,
         });

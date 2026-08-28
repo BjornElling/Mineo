@@ -19,6 +19,8 @@ describe('forsoergertab → Word-indhold', () => {
         grundlaeggende: {
           beregningsdato: toISODateString('2026-03-17'),
           skadelidteFodselsdato: toISODateString('1980-01-01'),
+          skadedato: toISODateString('2020-05-01'),
+          skadestype: 'Arbejdsulykke' as const,
           efterladteFodselsdato: undefined,
           koen: undefined,
           visKoenValg: false,
@@ -67,6 +69,8 @@ describe('forsoergertab → Word-indhold', () => {
         grundlaeggende: {
           beregningsdato: toISODateString('2026-03-19'),
           skadelidteFodselsdato: toISODateString('1980-01-01'),
+          skadedato: toISODateString('2020-05-01'),
+          skadestype: 'Arbejdsulykke' as const,
           efterladteFodselsdato: toISODateString('1973-01-01'),
           koen: 'Kvinde',
           visKoenValg: true,

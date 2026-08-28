@@ -27,10 +27,11 @@ type SygedagpengeSegment = Readonly<{
 }>;
 
 const toExpressionAmount = (expression: string) => {
+  // Udtrykket er PROGRAMGENERERET, ikke brugerinput; `precision: 2` bevarer ørerne i det led, motoren
+  // netop har bygget.
   const parsed = parseAmountInput(expression, {
     precision: 2,
     allowNegative: false,
-    allowDecimals: false,
   });
   if (!parsed.ok || !parsed.value) {
     throw new Error(`CRITICAL: Kunne ikke parse sygedagpenge-udtryk "${expression}"`);

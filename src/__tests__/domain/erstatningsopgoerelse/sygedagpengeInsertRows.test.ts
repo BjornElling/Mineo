@@ -22,7 +22,7 @@ import {
 
 /** Evaluerer et tillæg-udtryk på samme måde som persistens-laget (eksakt BigInt-rationel). */
 const evalExpression = (expression: string): number => {
-  const parsed = parseAmountInput(expression, { precision: 2, allowNegative: false, allowDecimals: false });
+  const parsed = parseAmountInput(expression, { precision: 2, allowNegative: false });
   if (!parsed.ok || !parsed.value) {
     throw new Error(`Kunne ikke evaluere "${expression}": ${parsed.ok ? 'tomt resultat' : parsed.error.message}`);
   }

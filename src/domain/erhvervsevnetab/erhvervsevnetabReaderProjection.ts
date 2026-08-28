@@ -310,11 +310,17 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
 
   const snapshot = computeEetSnapshot({
     values: composedValues,
-    // Snapshottet aftager kun skadedato fra stamdata (skadelidteFodselsdato læses fra composedValues). De øvrige
-    // stamdata-felter er irrelevante for EET-beregningen.
+    // Snapshottet aftager skadedato + skadestype fra stamdata (skadelidteFodselsdato læses fra
+    // composedValues). De øvrige stamdata-felter er irrelevante for EET-beregningen.
+    //
+    // `skadestype` blev LÆST ovenfor, men ikke videregivet (BB-121). Følgen var, at `eetSnapshot`s fire
+    // opslag af `input.stamdata?.skadestype` altid gav `undefined`, og hele EET-fladen faldt tilbage til
+    // «Skadedato»-formen – også ved erhvervssygdom. Uden denne linje virker de skadestype-afledte
+    // tekster ikke, uanset hvor mange af dem der rettes.
     stamdata: {
       skadedato: skadedato.value,
       skadelidteFodselsdato: skadelidteFodselsdato.value,
+      skadestype: skadestype.value,
       journalnr: '',
       advokat: '',
       sagsbehandler: '',

@@ -1,18 +1,49 @@
-# Brugerblik – historisk auditspor
+# Brugerblik – auditspor og fremdrift
 
-Dette dokument bevarer beslutninger og observationer fra den gennemførte Brugerblik-gennemgang.
-Det er et historisk auditspor og ikke en aktuel liste over åbne produktmangler. Formuleringer som
-«Afventer udvikleren» og historiske næste-trin beskriver status på det tidspunkt, hvor gennemgangen
-blev skrevet; den aktuelle produktstatus står i `AGENTS.md`.
+Dokumentet bevarer beslutninger og observationer fra Brugerblik-gennemgangen og fører samtidig dens
+fremdrift. Afsnittene under flade-tabellen er et **historisk auditspor**: formuleringer som «Afventer
+udvikleren» og historiske næste-trin beskriver status på det tidspunkt, hvor det pågældende afsnit blev
+skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets øvrige status står i
+`AGENTS.md`.
 
-Historisk fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
+Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Planlagt næste flade på tidspunktet:** Forsørgertab (`/forsoergertab`, nr. 10)
-- **Næste fund-ID på tidspunktet:** BB-117
-- **Historiske spørgsmål:** **fire**, alle fra flade 9 – se [aarsloen.md](aarsloen.md).
-- **Historiske implementeringsfund:** **21 fund fra flade 9 afventede udviklerens afgørelse** (BB-096–BB-116).
-  Ingen tilsvarende fund fra flade 1–8.
-- **Senest opdateret:** 2026-08-25 (**Årslønsberegning gennemgået: 21 fund, heraf tre Høj, og to nye
+- **Næste flade:** Erhvervsevnetab (`/erhvervsevnetab`, nr. 11) – tages **fane for fane**.
+- **Næste fund-ID:** BB-135
+- **Åbne spørgsmål:** **ét**, fra flade 10 (hvor mange måneder er allerede udbetalt – de to halvdele bruger
+  hver sin læsning). Se [forsoergertab.md](forsoergertab.md).
+- **Fund, der afventer udviklerens afgørelse:** **21 fra flade 9** (BB-096–BB-116) og **BB-123's navnedel**
+  fra flade 10. Ingen udeståender fra flade 1–8.
+- **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **15 rettet**, **to afvist**
+  (BB-119, BB-131) og **ét delvist** (BB-123: koblingsdelen afvist som en forkert præmis – der findes én
+  kanonisk årsløn efter hvert lovsæt, og at samme værdi bruges begge steder er ikke en skjult kobling;
+  navnedelen forelagt særskilt).
+- **Senest opdateret:** 2026-08-28 (**Flade 10 implementeret: 15 fund rettet.** De tre tunge rettelser
+  afdækkede hver et lag under fundet selv:
+  **BB-117** havde tre uafhængige lag – motorens issues var feltløse `EetIssue`s uden adresse, `DateField`
+  manglede den `crossFieldIssue`-prop de øvrige feltfamilier havde, og gaten var en fail-OPEN allowlist på
+  fem ID'er, hvor de tre andre flader længe har været fail-closed. Fem urapporterede søskende-issues (bl.a.
+  `forsoergertab-faktor-unresolved`, som rammer en 64-årig efterladt med 10 års periode) er dækket af samme
+  rettelse. **M-25 er skærpet:** en allowlist er den forkerte form, og «blokerer den?» er en anden
+  beslutning end «hvad hedder blokeringen?».
+  **BB-118** var ikke en paste-fejl: tastning gjorde nøjagtig det samme. Fejlen var tegn-for-tegn-reglen
+  «spring det ulovlige tegn over», som er forkert for netop decimalseparatoren. Udvikleren afgjorde, at
+  decimalløse felter tager imod decimaler og afrunder ved settle; `allowDecimals` er dermed ophørt med at
+  være en tegnregel.
+  **BB-121** var implementeret som princip, men virkede ikke: to reader-projektioner udelod `skadestype`,
+  så alt faldt tilbage til «skade»-formen. **M-02 har fået den lære:** når et implementeret princip ikke
+  slår igennem, så tjek først, om den forkerte kanal overhovedet får de data, valget hviler på.
+  Dertil tre nye delte moduler, der hver erstattede en kopieret regel: `MirroredStamdataRow` (seks
+  nær-identiske rækker), `deductionFormatting` (19 uvagtede fradragslinjer) og
+  `forsoergertabReguleringTekst`.)
+- **Tidligere: 2026-08-27** (**Forsørgertab gennemgået: 16 fund, heraf tre Høj, og to nye
+  tværgående mønstre M-25/M-26.** De tunge er BB-117 (en efterladt på 17 år lader hele ASL-halvdelen
+  forsvinde tavst, og dokumentet kan stadig hentes – uden fradraget på `1.065.384 kr.`), BB-118
+  (`400.000,00` indsat i et årslønsfelt bliver til `4.000.000` uden et ord) og BB-119
+  («Forsørgertabserstatning 0 kr.», hvor de tre linjer over den giver `-363.879 kr.`).
+  **Beregningsformlerne selv er kontrolregnet og er i orden.** M-19, M-22 og M-10 er efterprøvet og
+  **bestået**.)
+- **Tidligere: 2026-08-25** (**Årslønsberegning gennemgået: 21 fund, heraf tre Høj, og to nye
   tværgående mønstre M-23/M-24 – de første, der handler om beregningens GRUNDLAG frem for om, hvad
   programmet siger.** De tunge er BB-096 (to identiske lønrækker fordobler årslønnen til
   `793.500,00 kr.`, uden rødt felt eller advarsel), BB-097 (99 feriedage i en måned med 23 hverdage
@@ -54,9 +85,92 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
 | 9 | Årslønsberegning | Afventer udvikleren | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
-| 10 | Forsørgertab | Ikke startet | – | – |
+| 10 | Forsørgertab | Afventer udvikleren | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
 | 11 | Erhvervsevnetab | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Forsørgertab – gennemgået 2026-08-27
+
+**18 fund: tre Høj, ti Mellem, fem Lav.** De to sidste (BB-133, BB-134) kom af udviklerens svar på to af
+de tre åbne spørgsmål og er skrevet op 2026-08-27. Det fulde grundlag med målte tal står i
+[forsoergertab.md](forsoergertab.md).
+
+| ID | Kort | Prioritet | Udfald |
+|---|---|---|---|
+| BB-117 | En efterladt på 17 år lader hele ASL-halvdelen forsvinde tavst – downloadknappen er aktiv | **Høj** | Accepteret · rettes + bredt eftersyn efter lignende huller |
+| BB-118 | «400.000,00» indsat i et årslønsfelt bliver til 4.000.000 kr. uden et ord | **Høj** | Accepteret · rettes generelt i paste-håndteringen; decimaldelen skal bevares, hvor feltet tillader decimaler |
+| BB-119 | «Forsørgertabserstatning 0 kr.», hvor de tre linjer over den giver -363.879 kr. | **Høj** | **Afvist i sin helhed** · sporet er lukket, se nedenfor |
+| BB-120 | Feltet heder «Startdato for ASL-ydelse», men melder «Virkningsdato kan senest være …» | Mellem | Accepteret · de to ord betyder det samme, og ensretningen er overladt til mig |
+| BB-121 | «skadestidspunkt» står tre steder på en sag, programmet selv kalder «Anmeldelsesdato» | Mellem | Accepteret · en allerede fastslået regel, der ikke er implementeret overalt; kræver grundig gennemgang |
+| BB-122 | Specifikationen nævner ikke sagens skadedato | Mellem | Accepteret · indsættes konsekvent efter praksis fra de øvrige dokumenter |
+| BB-123 | De to årslønsfelter deles med Erhvervsevnetab, hedder tre ting, og intet siger det | Mellem | **Delvist afgjort** · delingen er tilsigtet og korrekt (én kanonisk årsløn pr. lov), så forslaget om en linje om deling bortfalder; navneensretningen står |
+| BB-124 | Samme situation giver to forskellige gule advarsler på de to sider, der deler feltet | Mellem | Accepteret · og efterse andre steder med uens tekster for samme problem |
+| BB-125 | Grænseteksten skriver «1000» og «551000» og siger ikke, hvor loftet kommer fra | Mellem | Accepteret betinget · en særskilt, bedre beskrivende besked er ønsket, hvis den kan laves uden nye skævheder |
+| BB-126 | Et rødt stamdatafelt vises med sin fejltekst, men uden den vej tilbage, det tomme felt har | Mellem | Accepteret · kortere tekst i den tomme grens stil, og samme rettelse alle relevante steder |
+| BB-127 | Datoparret: kun den ene af de to røde celler navngiver modparten | Mellem | Accepteret |
+| BB-128 | Feltets nedre grænse giver generisk «ugyldig værdi», den øvre en konkret tekst | Mellem | Accepteret |
+| BB-129 | Aldersreduktion under 30 år: «Aldersreduktion 0 =», «(- 0 %)» og «- 0 kr.» | Lav | Accepteret · følg praksis fra Varige mén |
+| BB-130 | Samme nul står som «- 0 kr.» og «0 kr.» på samme skærm | Lav | Accepteret |
+| BB-131 | «(afrundet)» siger ikke til hvad, og regnestykket går ikke op | Lav | **Afvist** · målgruppen kender afrundingsprincippet for ydelsen |
+| BB-132 | Gangetegn og lighedstegn er ikke ensartede i formellinjerne | Lav | Accepteret |
+| BB-133 | «Skal ikke forhøjes, dvs. udgør» står over et beløb, der er sat NED til årets loft | Mellem | Afventer udvikleren |
+| BB-134 | Rækken «Køn» siger ikke, hvis køn den spørger om | Lav | Afventer udvikleren |
+
+**To afvisninger, og den ene indsnævrer et mønster.** BB-131 er afvist, fordi målgruppen kender
+afrundingen af årslønnen efter EAL. **BB-119 er afvist i to trin, og det andet trin er det lærerige:**
+først faldt forslaget om at vise den negative difference (en negativ forsørgertabserstatning ville
+betyde en tilbagebetalingspligt), og derefter faldt også mit modpres om blot at forklare nullet med én
+linje – det er velkendt for målgruppen, at det, der beregnes, er et eventuelt **overskydende** krav
+efter EAL. **Den generelle regel, jeg formulerede efter fundet («et klampet nul skal enten forhindres
+af en grænse eller forklares af en linje»), var for bred og er trukket tilbage.** M-24 skelner nu de to
+slags nul: er nullet ydelsens velkendte resultatform, er det ikke et fund; dækker det over en umulig
+mellemregning som BB-097's `-76 hverdage`, er det. **Foreslå ikke BB-119 igen i nogen form.**
+
+**De to nye mønstre handler begge om en grænse, der er tegnet det forkerte sted.** **M-25** (gaten
+spørger «findes der noget?», ikke «findes det, brugeren bad om?») er den tungeste: fladens dokumentgate
+godkendes af ENTEN en EAL-del ELLER en ASL-del, så en efterladt uden for kapitaliseringstabellens
+aldersrækker (18–66 år) lader hele ASL-halvdelen forsvinde med aktiv downloadknap. **M-26** (et delt
+felt med to hjem) er den bredeste: de to årslønsfelter er ÉN descriptor, som både Forsørgertab og
+Erhvervsevnetab redigerer, med tre navne pr. felt og to ordlyde for samme gule advarsel. Begge har en
+prøve, der tager under et minut pr. flade: *ødelæg den ene halvdel af beregningen med en lovlig værdi
+uden dækning og læs downloadknappen*, henholdsvis *skriv en værdi på den ene flade og se, om den står på
+den anden*.
+
+**Beregningsformlerne selv er kontrolregnet og er i orden.** Opreguleringen
+(`0,3 × 400.000 × 632.000/551.000 = 137.640,65`), kapitalbeløbet (`× 3,064 → 421.731`, oprundet),
+EAL-kravet (`458.500 × 10 × 30 % = 1.375.500`), aldersreduktionen og nettokravet
+(`1.155.420 - 643.653 - 421.731 = 90.036`) er efterregnet i browseren, og de seks rækker i tabellen
+«Løbende ydelse» summerer til den viste total. **Ingen af de seksten fund handler om en forkert formel** –
+BB-119 handlede om et resultat, der er klampet uden at sige det – **afvist**, fordi nullet er ydelsens
+velkendte resultatform – og BB-133 om et loft, der virker uden at blive nævnt.
+
+**M-19, M-22 og M-10 er efterprøvet og BESTÅET.** M-19: fladen er mønsterets eget forlæg og viser
+feltets egen fejltekst frem for «Mangler» i begge spejlede rækker. M-22: isoleret målt med en
+fødselsdato på `99-99-9999` er intet felt på fladen rødt og knappen grå, **men rækken «Skadelidtes
+fødselsdato» bærer årsagen inline** – mønsterets betingelse er ikke opfyldt. Samme måling viste, at
+**Satser nu er upåvirket** af samme fødselsdato, altså BB-080's rettelse i drift. M-10: «Scroll til
+toppen» ligger på x = 1450,7–1505,0 ved 1536×864, og indholdssøjlen slutter ved x = 1446,2 – ingen
+overlapning. **M-23 er uden genstand**: fladen har ingen brugerredigeret periodetabel.
+
+**Konsekvenser for de resterende flader – fire prøver at tage med:**
+1. **M-25's prøve hører på hver flade med et dokument med valgfri afsnit.** Udfyld begge halvdele,
+   ødelæg den ene med en værdi, der er lovlig i feltet men uden dækning i beregningen, og læs
+   downloadknappen. Kandidater: EET's to faner, EO's mange valgfri afsnit, reguleringsbilaget.
+2. **M-26's prøve er billig og hører, hvor en descriptor bindes fra mere end én side.**
+   `rg "faellesAarsloen" src/components/pages` rammer også Erstatningsopgørelsen.
+3. **BB-118's prøve er ny og meget billig:** `rg "allowDecimals: false" src/inputCore/catalog`, og indsæt
+   i hvert træf den form, tallet normalt skrives i. Procentfelterne på EET er de næste kandidater.
+4. **BB-120's prøve er ren tekstsammenligning uden browser:**
+   `rg "maxBoundFieldLabel|minBoundLabel" src/inputCore/catalog` mod samme descriptors `label`.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864; PDF-kanalen ikke læst (alle fire dokumenter hentet
+som `.docx`); `Gem`/`Hent` ikke afprøvet (samme hul som BB-049); brevhovedet ikke slået til i nogen
+kørsel. Konsollen var tavs: 199 beskeder, 0 fejl, 0 advarsler.
+
+**Ét åbent spørgsmål tilbage:** de allerede udbetalte måneder (62 hele kalendermåneder mod tabellens
+60,7323). **To er afgjort 2026-08-27:** EAL-årslønnen skal ikke have et loft – loftet ligger på det
+beregnede beløb og indregnes allerede (men er usynligt, BB-133) – og «Køn» er **skadelidtes** køn, ikke
+efterladtes (min antagelse var forkert; rækkens placering er dermed korrekt, kun navnet mangler, BB-134).
 
 ## Årslønsberegning – gennemgået 2026-08-25
 
@@ -640,7 +754,23 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**INGEN TILBAGE. Alle otte spørgsmål i hele gennemgangen er afgjort 2026-08-25**, og ingen af de otte
+**Ét åbent fra flade 10 (Forsørgertab).** To af de tre er afgjort 2026-08-27; alle tre er udfoldet i
+[forsoergertab.md](forsoergertab.md).
+
+| Spørgsmål | Status |
+|---|---|
+| Hvor mange måneder er allerede udbetalt? Tabellen «Løbende ydelse» summerer til **60,7323 måneder**, mens den resterende periode regnes af **62 hele kalendermåneder** – to læsninger, der begge er sammenhængende, brugt i hver sin halvdel af samme skærm | **ÅBENT.** Sagen, der skal indtastes, og de efterregnede tal står i fundrapporten. Forskellen er **9.360 kr.** i kapitalbeløbet, og fortegnet vender modsat af, hvad jeg først skrev: den nuværende læsning er den gunstigste for efterladte |
+| Skal «Skadelidtes årsløn efter EAL» have et loft eller et rimelighedssignal? | **AFGJORT: NEJ.** Årslønnen har intet loft; loftet ligger på det **beregnede** beløb (EAL-loftet for 30 % erhvervsevnetab) og indregnes allerede. Efterprøvet i drift – men loftet er usynligt for brugeren, hvilket er **BB-133** |
+| Hvis køn spørger rækken «Køn» om? | **AFGJORT: SKADELIDTES.** Min antagelse om efterladtes var forkert; rækkens placering er dermed korrekt, og kun navnet mangler (**BB-134**) |
+
+**Læren af det andet og tredje svar er værd at bære videre:** i begge tilfælde sluttede jeg en
+domæneoplysning af mekanikken – at et manglende loft på feltet betød et manglende loft, og at et
+kønsopdelt tabelopslag på efterladtes alder også var opdelt efter efterladtes køn. Begge slutninger var
+forkerte. **En parameters ejer og en grænses placering er domæneoplysninger, ikke kodeoplysninger.**
+
+**Fire står fortsat åbne fra flade 9** (Årslønsberegning) – se [aarsloen.md](aarsloen.md).
+
+**Fra flade 1–8: INGEN TILBAGE. Alle otte spørgsmål er afgjort 2026-08-25**, og ingen af de otte
 afgørelser krævede en kodeændring – de fastholdt alle den nuværende adfærd, som nu er normativ, så den
 ikke senere «forbedres» tilbage. Det er i sig selv en observation værd at holde fast i: **hver gang et
 spørgsmål blev forelagt frem for afgjort af mig selv, var det bestående valg det rigtige.** Prisen ved
@@ -688,7 +818,28 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Seksogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **To nye mønstre 2026-08-27 fra Forsørgertab – M-25 og M-26 – og seks nye forekomster.**
+  **M-25 – gaten spørger «findes der noget?», ikke «findes det, brugeren bad om?».** En flade med to
+  halvdele bygger sin dokumentgate som et ELLER, så den bruger, der har udfyldt begge og har mistet den
+  ene undervejs, ser præcis det samme som den, der bevidst kun regnede den ene. Læs mønsteret sammen med
+  **M-16**: M-16 siger, hvor rettelsen hører hjemme (i feltmodellen), M-25 hvorfor gaten ikke fangede det.
+  **M-26 – et delt felt med to hjem.** Én descriptor renderes fra to sider med hver sine labels og hver
+  sin parallelle advarsel; brugeren får tre navne pr. felt og to ordlyde for samme regel, og ingen af
+  siderne siger, at værdien er den samme. Skellet mod M-19 er, at feltet her kan **redigeres** begge
+  steder, ikke blot spejles – og Satser-fladens lukkede spor 5 rammer ikke, netop fordi koblingen
+  faktisk findes.
+  **Nye forekomster:** M-02 (BB-120 og BB-121 – BB-072's navngivne kandidat bekræftet, og en ny
+  mekanisk prøve på `maxBoundFieldLabel`), M-07 (BB-127 – mønsterets halve form: dobbeltmarkeringen er
+  på plads, men kun den ene tekst har en afsender), M-13 (BB-122, BB-125, BB-130, BB-132 – prøven
+  udvides til hele rækker, til grænsebeskedernes egne tal og til operatorerne), M-14 (BB-118 –
+  mønsterets dyreste form: decimalkommaet springes over, og cifrene bagefter lægger sig i tallet),
+  M-16 (BB-117) og M-24 (BB-119 – klampningen ligger i AGGREGATET, ikke i et felt).
+  **M-24 er indsnævret 2026-08-28 efter BB-119's afvisning – læs mønsteret i sin nye form:** et
+  klampet nul, der ER ydelsens velkendte resultatform, er ikke et fund; kun et nul, der dækker over
+  en umulig mellemregning, er.
+  **Efterprøvet og bestået:** M-19, M-22 og M-10. **Uden genstand:** M-23.
 
 - **Ingen nye mønstre 2026-08-24 fra Renteberegning → Satser, men tre nye forekomster – og M-11's
   navngivne kandidat holdt ikke. Alle tre er afgjort 2026-08-25.** Fanen er et rent opslagsværk, så
@@ -890,3 +1041,16 @@ Toogtyve mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   Erstatningsopgørelse (nr. 12); M-14's to tabelcelle-årsfelter hører til Årsløn (nr. 9) og
   Erstatningsopgørelse; og Gem/Hent med et ugyldigt satsår hører til Global shell (nr. 6), fordi
   filgemmedialogen ikke kan afprøves headless.
+- **Flade 10 (Forsørgertab) var nr. 10 som planlagt, og rækkefølgens præmis holdt på en ny måde.**
+  Fladen er lille at betjene – syv felter, ingen faner, ingen brugerredigeret tabel – men den er den
+  første, hvor **hele resultatet er en difference mellem to selvstændige beregninger**, og det er den
+  forskel, alle tre Høj-fund bor i. De ni afklarede mønstre fra flade 1–9 sparede reelt arbejde: M-19,
+  M-22 og M-10 kunne efterprøves og afskrives på få minutter hver, og M-02's og M-07's forekomster var
+  genkendelser frem for opdagelser. **Justering af rækkefølgen: ingen.**
+- **Flade 11 (Erhvervsevnetab) har fem spor lagt ud til sig, og fire af dem er fund, der allerede er
+  målt på Forsørgertab og deles med EET:** BB-118 (`allowDecimals: false` på de delte årslønsfelter og
+  på EET's egne procentfelter), BB-123/BB-124 (de delte årslønsfelter og deres to parallelle advarsler),
+  BB-121 og BB-129/BB-131 (aldersreduktionens formellinjer og «(afrundet)», som kommer fra den fælles
+  `eetEalCalculation`-familie). Dertil M-25's prøve på fanernes to dele af dokumentet og M-20's
+  navngivne kandidat, EET-procenternes 15 %-advarsel. **En afgørelse på Forsørgertab kan derfor lukke
+  flere af flade 11's fund, før fladen gennemgås.**

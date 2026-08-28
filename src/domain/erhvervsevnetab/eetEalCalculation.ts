@@ -304,7 +304,8 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const alderVedSkade = calculateAgeInWholeYears(fodselsdato, skadedato);
   if (alderVedSkade === null) {
-    issues.push(toIssue('alder-unresolved', 'Alder på skadestidspunkt kan ikke beregnes'));
+    // Samme navneregel som de to øvrige issues i denne funktion (BB-121); referencen er udledt ovenfor.
+    issues.push(toIssue('alder-unresolved', `Alder på ${stamdataDatoReference.tidspunkt} kan ikke beregnes`));
   }
 
   const blockingIssues = issues.some((issue) => issue.severity === 'error');
@@ -390,6 +391,8 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const computation: EetEalComputation = {
     beregningsdato,
     skadedato,
+    // Skadestypen følger med ud, så skærm og dokument kan navngive datoen ens (BB-121).
+    skadestype: input.skadestype,
     fodselsdato,
     skadesaar,
     beregningsaar,
@@ -418,4 +421,4 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   };
 };
 
-export { buildAldersreduktionFormelTekst } from './eetAldersreduktionFormel';
+export { buildAldersreduktionEtiket } from './eetAldersreduktionFormel';

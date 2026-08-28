@@ -26,6 +26,7 @@ import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { formatMaaneder, formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr } from '../../../utils/deductionFormatting';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { type DocumentDownloadHandle } from '../../../document/definition/react/useDocumentDownload';
@@ -329,7 +330,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                       {`Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(toKroner(afgoerelse.beloebOre))}`}</Typography>
+                      <Typography className="row--text">{formatDeductionKr(toKroner(afgoerelse.beloebOre))}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -340,7 +341,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                       {`Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(toKroner(tvk.beloebOre))}`}</Typography>
+                      <Typography className="row--text">{formatDeductionKr(toKroner(tvk.beloebOre))}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -373,7 +374,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                     {`Kapitaliseret (${formatKapPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{`- ${formatKr(toKroner(afgoerelse.kapitalbelobOre))}`}</Typography>
+                    <Typography className="row--text">{formatDeductionKr(toKroner(afgoerelse.kapitalbelobOre))}</Typography>
                   </Box>
                 </Box>
               ) : afgoerelse.kapitaliseringEfterBeregningsdato ? (
@@ -397,10 +398,10 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                   <HoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. × ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md.`}
+                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md. =`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(toKroner(computation.resterendeLoebendeYdelser.fradragBeloebOre))}`}</Typography>
+                      <Typography className="row--text">{formatDeductionKr(toKroner(computation.resterendeLoebendeYdelser.fradragBeloebOre))}</Typography>
                     </Box>
                   </Box>
                 </>
@@ -412,7 +413,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                       {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatISOToDanish(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{`- ${formatKr(toKroner(computation.proformaKapitalisering.proformaBeloebOre))}`}</Typography>
+                      <Typography className="row--text">{formatDeductionKr(toKroner(computation.proformaKapitalisering.proformaBeloebOre))}</Typography>
                     </Box>
                   </Box>
                 </>
@@ -430,7 +431,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                     {`Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{`- ${formatKr(toKroner(event.merErstatningOre))}`}</Typography>
+                    <Typography className="row--text">{formatDeductionKr(toKroner(event.merErstatningOre))}</Typography>
                   </Box>
                 </Box>
               ))}

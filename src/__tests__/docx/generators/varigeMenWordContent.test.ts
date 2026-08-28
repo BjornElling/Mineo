@@ -4,6 +4,7 @@ import { generateVarigeMenDocument } from '../../../document/generators/varigeme
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for ménberegning: kører den RIGTIGE generator gennem
@@ -33,7 +34,7 @@ describe('varigeMen → Word-indhold', () => {
         mengrad,
         beregningsdato,
         beregningsResultat: beregningsResultat!,
-        skadedatoLabel: 'Skadedato',
+        datoReference: resolveStamdataDatoReference(undefined),
         visBrevhoved: false,
       });
     });
@@ -58,7 +59,7 @@ describe('varigeMen → Word-indhold', () => {
         mengrad,
         beregningsdato,
         beregningsResultat: beregningsResultat!,
-        skadedatoLabel: 'Skadedato',
+        datoReference: resolveStamdataDatoReference(undefined),
         visBrevhoved: false,
       });
     });
@@ -87,7 +88,7 @@ describe('varigeMen → Word-indhold', () => {
         mengrad,
         beregningsdato,
         beregningsResultat: beregningsResultat!,
-        skadedatoLabel: 'Skadedato',
+        datoReference: resolveStamdataDatoReference(undefined),
         visBrevhoved: true,
         stamdata: { journalnr: '4711', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

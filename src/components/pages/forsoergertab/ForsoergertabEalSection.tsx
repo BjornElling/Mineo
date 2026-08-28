@@ -2,9 +2,11 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
-import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetAldersreduktionFormel';
+import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetAldersreduktionFormel';
+import { resolveForsoergertabReguleringTekst } from '../../../domain/forsoergertab/forsoergertabReguleringTekst';
 import { toKroner } from '../../../domain/money/money';
 import { formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { useForsoergertabVm } from './forsoergertabContext';
 
 /**
@@ -14,8 +16,15 @@ import { useForsoergertabVm } from './forsoergertabContext';
  * Panelet bevares, selv når ASL-siden er blokeret – panel-gates er dependency-specifikke (§1.10).
  */
 const ForsoergertabEalSection = React.memo(() => {
-  const { canShowEal, ealComputation, foersoergertabEalMinSatsOre, foersoergertabForhoejtetTilMin } =
-    useForsoergertabVm();
+  const {
+    canShowEal,
+    ealComputation,
+    foersoergertabEalMinSatsOre,
+    foersoergertabEalMaksSatsOre,
+    foersoergertabForhoejtetTilMin,
+    foersoergertabNedsatTilMaks,
+    datoReference,
+  } = useForsoergertabVm();
   if (!canShowEal || !ealComputation) return null;
 
   return (
@@ -25,7 +34,7 @@ const ForsoergertabEalSection = React.memo(() => {
       <Typography className="row--subheading">Årsløn</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes årsløn på skadestidspunktet</Typography>
+        <Typography className="row--text">{`Skadelidtes årsløn på ${datoReference.tidspunktBestemt}`}</Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{formatKr(toKroner(ealComputation.aarsloenOre))}</Typography>
         </Box>
@@ -35,7 +44,7 @@ const ForsoergertabEalSection = React.memo(() => {
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">
-              {`Regulering fra skadesår ${ealComputation.skadesaar} til beregningsår ${ealComputation.beregningsaar}`}
+              {`Regulering fra ${datoReference.aar} ${ealComputation.skadesaar} til beregningsår ${ealComputation.beregningsaar}`}
             </Typography>
             <Box className="row--label-right-hover__content">
               <Typography className="row--text">{`+ ${formatAsAmountTrimmed(ealComputation.reguleringsPctRounded4, 4)} %`}</Typography>
@@ -87,11 +96,23 @@ const ForsoergertabEalSection = React.memo(() => {
         </Box>
       )}
 
+      {/* Loftet får sin egen linje, når det slår til – symmetrisk med minimum (BB-133). Uden den blev et
+          beløb sat NED til årets maksimum præsenteret under en sætning om, at intet var sket. */}
+      {foersoergertabNedsatTilMaks && foersoergertabEalMaksSatsOre !== null && (
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">{`Højeste erstatningsniveau i beregningsåret ${ealComputation.beregningsaar}`}</Typography>
+          <Box className="row--label-right-hover__content">
+            <Typography className="row--text">{formatKr(toKroner(foersoergertabEalMaksSatsOre))}</Typography>
+          </Box>
+        </Box>
+      )}
+
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {foersoergertabForhoejtetTilMin
-            ? 'Det beregnede forsørgertab skal forhøjes til minimum, dvs. udgør'
-            : 'Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør'}
+          {resolveForsoergertabReguleringTekst({
+            forhoejetTilMin: foersoergertabForhoejtetTilMin,
+            nedsatTilMaks: foersoergertabNedsatTilMaks,
+          })}
         </Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{formatKr(toKroner(ealComputation.eetAnvendtOre))}</Typography>
@@ -101,7 +122,7 @@ const ForsoergertabEalSection = React.memo(() => {
       <Typography className="row--subheading">Aldersreduktion</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes alder på skadestidspunkt</Typography>
+        <Typography className="row--text">{`Skadelidtes alder på ${datoReference.tidspunkt}`}</Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{formatCountWithUnit(ealComputation.alderVedSkade, 'år', 'år')}</Typography>
         </Box>
@@ -109,7 +130,7 @@ const ForsoergertabEalSection = React.memo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {`Aldersreduktion ${buildAldersreduktionFormelTekst(ealComputation.alderVedSkade)}`}
+          {buildAldersreduktionEtiket(ealComputation.alderVedSkade)}
         </Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{`${ealComputation.aldersreduktionPct} %`}</Typography>
@@ -118,10 +139,10 @@ const ForsoergertabEalSection = React.memo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {`${formatKr(toKroner(ealComputation.eetAnvendtOre))} x (- ${ealComputation.aldersreduktionPct} %) =`}
+          {`${formatKr(toKroner(ealComputation.eetAnvendtOre))} x (${formatDeductionPercent(ealComputation.aldersreduktionPct, `${ealComputation.aldersreduktionPct} %`)}) =`}
         </Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{`- ${formatKr(toKroner(ealComputation.aldersreduktionBeloebOre))}`}</Typography>
+          <Typography className="row--text">{formatDeductionKr(toKroner(ealComputation.aldersreduktionBeloebOre))}</Typography>
         </Box>
       </Box>
 

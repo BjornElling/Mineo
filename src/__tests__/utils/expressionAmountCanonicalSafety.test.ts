@@ -13,7 +13,6 @@ import { parseAmountInput } from '../../utils/expressionAmount';
 const parseIntegerAmount = (raw: string) => parseAmountInput(raw, {
   precision: 0,
   allowNegative: true,
-  allowDecimals: false,
   maxIntegerDigits: 7,
   maxRawLength: 512,
 });
@@ -31,7 +30,7 @@ describe('beløbsparserens canonical repræsentationsgrænse', () => {
     // feltets precision, ville den første værdi her kaste inde i schemaet.
     for (const raw of ['9999999*9999999', '9999999*2', '9999999', '5000000+4999999', '1234567,89']) {
       const parsed = parseAmountInput(raw, {
-        precision: 0, allowNegative: true, allowDecimals: false, maxIntegerDigits: 7, maxRawLength: 512,
+        precision: 0, allowNegative: true, maxIntegerDigits: 7, maxRawLength: 512,
       });
       if (!parsed.ok || parsed.value === undefined) continue;
       expect(() => amountValueSchema.parse(parsed.value)).not.toThrow();

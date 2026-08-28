@@ -1,5 +1,6 @@
 import { formatAsAmount, formatAsAmountTrimmed } from './formatUtils';
 import { parseDanishNumberString } from './numberParsing';
+import { roundByMethod } from './rounding';
 import {
   DEFAULT_PERCENT_DECIMAL_PRECISION,
   MAX_PERCENT_RAW_LENGTH,
@@ -79,7 +80,9 @@ export const parsePercentDraftForCommit = (
   const unsigned = isNegative ? compact.slice(1) : compact;
   if (unsigned.includes('-')) return { ok: false, errorMessage: 'Ugyldig procent' };
   if (/\s/.test(trimmed) && unsigned.includes('.')) return { ok: false, errorMessage: 'Ugyldig procent' };
-  if (!config.allowDecimals && unsigned.includes(',')) return { ok: false, errorMessage: 'Ugyldig procent' };
+  // En decimaldel AFVISES ikke i et decimalløst procentfelt (BB-118) – den afrundes nedenfor.
+  // Afvisningen var uopnåelig for brugeren, fordi tegnfilteret sprang kommaet over, så «15,00 %» nåede
+  // hertil som `1500` og blev afvist af 0-100-grænsen i stedet.
 
   const commaCount = (unsigned.match(/,/g) ?? []).length;
   if (commaCount > 1) return { ok: false, errorMessage: 'Ugyldig procent' };
@@ -90,7 +93,6 @@ export const parsePercentDraftForCommit = (
 
   if (decimalRaw !== undefined) {
     if (/[^0-9]/.test(decimalRaw)) return { ok: false, errorMessage: 'Ugyldig procent' };
-    if (!config.allowDecimals) return { ok: false, errorMessage: 'Ugyldig procent' };
     if (decimalRaw.length > DEFAULT_PERCENT_DECIMAL_PRECISION) return { ok: false, errorMessage: 'Ugyldig procent' };
   }
 
@@ -100,11 +102,28 @@ export const parsePercentDraftForCommit = (
     return { ok: false, errorMessage: 'Ugyldig procent' };
   }
 
-  const numericValue = parseDanishNumberString(
-    `${isNegative ? '-' : ''}${integerRaw}${decimalRaw ? `,${decimalRaw}` : ''}`,
-    { precision: getPercentPrecision(config.allowDecimals) }
+  /**
+   * Parse ved den SKREVNE præcision, og afrund derefter eksplicit (BB-118).
+   *
+   * `parseDanishNumberString`s `precision` er et sikkerhedsværn – ikke en afrunding: den afviser et tal,
+   * hvis decimaler ikke kan rummes sikkert i den angivne præcision. Blev den brugt som afrunder, ville
+   * `50,25` i et decimalløst felt komme retur som `undefined` og dermed som «Ugyldig procent», mens
+   * `50,00` slap igennem – kun trailing nuller overlevede. Feltet ville da INVITERE til en indtastning
+   * (kommaet er lovligt ved tastning og paste), som settle aldrig kunne acceptere, og brugeren fik en bar
+   * «Fejl i indtastning» uden nogen forklaring.
+   *
+   * Afrundingen bruger programmets kanoniske `roundByMethod` med samme metode som beløbsfelterne
+   * (`halfAwayFromZero`), så et procentfelt og et beløbsfelt afrunder ens: `50,5` → `51`.
+   */
+  const writtenValue = parseDanishNumberString(
+    `${isNegative ? '-' : ''}${integerRaw}${decimalRaw ? `,${decimalRaw}` : ''}`
   );
-  if (numericValue === undefined) return { ok: false, errorMessage: 'Ugyldig procent' };
+  if (writtenValue === undefined) return { ok: false, errorMessage: 'Ugyldig procent' };
+  const numericValue = roundByMethod(
+    writtenValue,
+    getPercentPrecision(config.allowDecimals),
+    'halfAwayFromZero'
+  );
 
   const rangeErrorMessage = buildPercentRangeErrorMessage(numericValue, config);
   if (rangeErrorMessage !== null) return { ok: false, errorMessage: rangeErrorMessage };

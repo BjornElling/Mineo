@@ -30,10 +30,14 @@ export type AmountParseResult =
     }
   | { ok: false; error: AmountParseError };
 
+/**
+ * `allowDecimals` er BEVIDST ikke længere en option (BB-118). Decimalpolitikken udtrykkes af `precision`
+ * alene: `0` afrunder til hele kroner, `2` bevarer ørerne. Et separat flag ville kunne komme i modstrid med
+ * præcisionen og gentog i praksis den samme oplysning to steder.
+ */
 export type AmountParseOptions = Readonly<{
   precision: number;
   allowNegative: boolean;
-  allowDecimals?: boolean;
   maxIntegerDigits?: number;
   maxRawLength?: number;
 }>;
@@ -117,11 +121,20 @@ const roundRationalToScale = (value: Rational, precision: number): bigint => {
   return quotient - 1n;
 };
 
+/**
+ * Parser ét talled. Decimaldelen tages ALTID imod og afrundes til `precision` (BB-118).
+ *
+ * Funktionen tog før et `allowDecimals`-flag og AFVISTE en decimaldel, når det var falsk. Flaget er væk,
+ * fordi afvisningen aldrig kunne nås for et decimalløst felt: tegnfilteret sprang decimalkommaet over,
+ * længe før settle så teksten, så «400.000,00» nåede hertil som `40000000`. Nu tages kommaet imod ved
+ * tastning og paste, og et decimalløst felt udtrykker sin regel som `precision: 0` – altså afrunding, ikke
+ * afvisning. Skal et felt igen kunne AFVISE decimaler, hører det til som en canonical feltvalidator på den
+ * committede værdi, ikke som en formatafvisning her (§1.6).
+ */
 const parseNumberToken = (
   raw: string,
   precision: number,
-  maxIntegerDigits?: number,
-  allowDecimals: boolean = true
+  maxIntegerDigits?: number
 ): { ok: true; value: number; exact: Rational; normalized: string; canonicalValueIsSafe: boolean } | { ok: false; error: ExpressionError } => {
   if (raw === '' || raw === ',' || raw === '.') {
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
@@ -145,13 +158,8 @@ const parseNumberToken = (
     return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
 
-  if (decimalRaw !== undefined) {
-    if (!allowDecimals) {
-      return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
-    }
-    if (/[^0-9]/.test(decimalRaw)) {
-      return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
-    }
+  if (decimalRaw !== undefined && /[^0-9]/.test(decimalRaw)) {
+    return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'Ugyldig operatorfølge' } };
   }
 
   const integerDigits = integerRaw === '' ? '0' : integerRaw.replace(/\./g, '');
@@ -193,8 +201,7 @@ const parseNumberToken = (
 const tokenizeExpression = (
   input: string,
   precision: number,
-  maxIntegerDigits?: number,
-  allowDecimals: boolean = true
+  maxIntegerDigits?: number
 ): { ok: true; tokens: Token[]; normalizedExpression: string } | { ok: false; error: ExpressionError } => {
   const trimmed = input.trim();
   if (trimmed === '') {
@@ -235,7 +242,7 @@ const tokenizeExpression = (
         index += 1;
       }
       const rawNumber = trimmed.slice(start, index);
-      const parsed = parseNumberToken(rawNumber, precision, maxIntegerDigits, allowDecimals);
+      const parsed = parseNumberToken(rawNumber, precision, maxIntegerDigits);
       if (!parsed.ok) return parsed;
       tokens.push({ type: 'number', value: parsed.exact, normalized: parsed.normalized });
       normalizedExpression += parsed.normalized;
@@ -433,12 +440,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
       return { ok: false, error: { kind: 'number', message: 'Ugyldigt beløb' } };
     }
 
-    const parsed = parseNumberToken(
-      unsigned,
-      options.precision,
-      options.maxIntegerDigits,
-      options.allowDecimals !== false
-    );
+    const parsed = parseNumberToken(unsigned, options.precision, options.maxIntegerDigits);
     if (!parsed.ok) {
       return { ok: false, error: { kind: 'number', message: parsed.error.message } };
     }
@@ -461,12 +463,7 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     };
   }
 
-  const tokenized = tokenizeExpression(
-    trimmed,
-    options.precision,
-    options.maxIntegerDigits,
-    options.allowDecimals !== false
-  );
+  const tokenized = tokenizeExpression(trimmed, options.precision, options.maxIntegerDigits);
   if (!tokenized.ok) {
     return { ok: false, error: { kind: 'expression', message: tokenized.error.message } };
   }

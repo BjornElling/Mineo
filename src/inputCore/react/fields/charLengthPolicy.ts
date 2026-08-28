@@ -179,9 +179,11 @@ export const resolveAmountCharPolicy = <T>(field: FieldRef<T>): Readonly<{
     allowNegative: fieldAllowsNegative(field),
     allowDecimals,
     maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
-    // Et felt uden decimaler har grænsen 0 – ikke «ingen grænse». Ellers ville et heltalsfelt
-    // acceptere en decimalhale, som codec'en hverken viser eller kan rumme.
-    maxDecimalDigits: allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0,
+    // Decimalpladserne er de SAMME, uanset om feltet viser decimaler (BB-118). Et decimalløst felt havde
+    // før grænsen 0, hvilket gjorde kommaet ulovligt – og et ulovligt tegn springes over, hvorefter
+    // decimalcifrene gled op i heltalsdelen og tidoblede beløbet. Feltet tager nu imod decimalerne og
+    // afrunder dem ved settle (codec'ens `displayPrecision`), så «400.000,00» bliver 400.000.
+    maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
     maxDraftLength: MAX_AMOUNT_RAW_LENGTH,
   });
 };
@@ -195,17 +197,19 @@ export const resolvePercentCharPolicy = <T>(field: FieldRef<T>): Readonly<{
   maxDraftLength: number;
 }> => {
   const allowDecimals = fieldAllowsDecimals(field);
-  const maxDecimalDigits = allowDecimals ? DEFAULT_PERCENT_DECIMAL_PRECISION : 0;
+  // Samme begrundelse som beløbsfeltet (BB-118): decimalpladserne er ens, uanset om feltet VISER
+  // decimaler. Et decimalløst procentfelt tog før «15,00 %» ind som `1500`, fordi kommaet var ulovligt
+  // og derfor blev sprunget over. Nu tages decimalerne imod og afrundes ved settle.
+  const maxDecimalDigits = DEFAULT_PERCENT_DECIMAL_PRECISION;
   const allowNegative = fieldAllowsNegative(field);
   return Object.freeze({
     allowNegative,
     allowDecimals,
     maxIntegerDigits: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
     maxDecimalDigits,
-    // Rå draft-loft: cifrene + et eventuelt komma + et eventuelt fortegn. Udledt frem for hardkodet,
-    // så et felt uden decimaler ikke får plads til en hale, det ikke kan bruge.
+    // Rå draft-loft: cifrene + komma + et eventuelt fortegn.
     maxDraftLength: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS
-      + (maxDecimalDigits > 0 ? maxDecimalDigits + 1 : 0)
+      + maxDecimalDigits + 1
       + (allowNegative ? 1 : 0),
   });
 };

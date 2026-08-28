@@ -128,12 +128,12 @@ describe('EET PDF empty states', () => {
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
     const joinedText = renderedText.join('\n');
 
-    expect(renderedText).toContain('Grundydelse (50 %): Grundløn × EET × Erstatningsniveau =');
+    expect(renderedText).toContain('Grundydelse (50 %): Grundløn x EET x Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
-    expect(joinedText).toContain('× 50 % × 80 % =');
+    expect(joinedText).toContain('x 50 % x 80 % =');
     expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
     expect(renderedText).not.toContain(
-      'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) ='
+      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) ='
     );
   });
 
@@ -254,12 +254,12 @@ describe('EET PDF empty states', () => {
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
     const joinedText = renderedText.join('\n');
 
-    expect(renderedText).toContain('Grundydelse (50 %): Grundløn × EET × Erstatningsniveau =');
+    expect(renderedText).toContain('Grundydelse (50 %): Grundløn x EET x Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
-    expect(joinedText).toContain('× 50 % × 80 % =');
+    expect(joinedText).toContain('x 50 % x 80 % =');
     expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
     expect(renderedText).not.toContain(
-      'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) ='
+      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) ='
     );
   });
 

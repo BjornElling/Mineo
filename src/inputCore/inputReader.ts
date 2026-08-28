@@ -113,7 +113,15 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         severity: 'error',
         field: anyRef,
         reason: rejected.reason,
-        message: buildFieldIssueMessage(anyRef),
+        // Den konkrete datotekst er også BESKEDEN, ikke kun tooltippet (BB-128).
+        //
+        // Teksten blev udledt korrekt, men sat udelukkende som `tooltip`, mens `message` blev ved med at
+        // være den generiske «Der er udfyldt en ugyldig værdi i feltet 'X'». `message` er den, «Fejl og
+        // advarsler» og a11y-laget læser, så de to ender af samme interval svarede med hver sin slags
+        // besked: `01-01-1899` fik den generiske tekst, mens `01-01-2030` fik «Datoen er efter dags dato».
+        // Brugeren, der havde tastet et forkert århundrede, fik at vide, at datoen var «ugyldig» – hvilket
+        // den ikke er som dato.
+        message: dateTooltip ?? buildFieldIssueMessage(anyRef),
         ...(detail === undefined ? {} : { detail }),
       }));
       continue;

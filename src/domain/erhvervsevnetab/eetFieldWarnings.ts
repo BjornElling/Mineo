@@ -5,6 +5,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { aarsloenAslMax, type YearlyRate } from '../../data/lovbestemteRates';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
+import { ASL_AARSLOEN_MAX_NOTICE } from '../aslEalAarsloen/aslAarsloenMaxNotice';
 
 /** Kanonisk, ikke-blokerende feltadvarsel for EET-procenter under lovens minimum. */
 export const EET_UNDER_15_WARNING = 'Der kan ikke tilkendes erhvervsevnetab under 15 %';
@@ -12,8 +13,14 @@ export const EET_UNDER_15_WARNING = 'Der kan ikke tilkendes erhvervsevnetab unde
 export const resolveEetUnder15Warning = (value: number | undefined): FieldWarning | undefined =>
   value !== undefined && value > 0 && value < 15 ? createFieldWarning(EET_UNDER_15_WARNING) : undefined;
 
-/** Kort feltbesked når ASL-årslønnen står på skadesårets maksimum. */
-export const EET_ASL_AARSLOEN_MAX_WARNING = 'Årsløn efter ASL er sat til max-årslønnen';
+/**
+ * Feltbeskeden når ASL-årslønnen står på skadesårets maksimum.
+ *
+ * Teksten ejes af det DELTE årslønsfelt, ikke af denne flade (BB-124): Forsørgertab havde sin egen,
+ * handlingsanvisende formulering for præcis samme situation, og de to nåede hver sin halvdel af brugerne.
+ * Skriv ikke en flade-lokal variant igen – ret den fælles konstant.
+ */
+export const EET_ASL_AARSLOEN_MAX_WARNING = ASL_AARSLOEN_MAX_NOTICE;
 
 /**
  * Samme trigger som beregningens `warn-asl-aarsloen-is-max`, samlet så feltvisningen og beregningen ikke kan drifte.

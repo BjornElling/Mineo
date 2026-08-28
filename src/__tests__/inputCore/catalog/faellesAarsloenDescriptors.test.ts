@@ -49,12 +49,15 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
 
     const read = evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind());
 
+    // BB-125: skadesårsloftet er ikke længere en bounds-grænse. Det ejes alene af domænereglen
+    // `validateAslAarsloenBySkadesaarMax`, så overskridelsen kommer nu som `reason: 'rule'` med
+    // regelens egen besked – og uden `detail.maxValue`, som kun en bounds-grænse bærer.
+    // Bounds er reduceret til det faste repræsentationsloft 1.000–9.999.999.
     expect(read).toMatchObject({
       status: 'error',
       issue: {
-        reason: 'bounds',
-        message: 'Værdi skal være mellem 1000 og 608000',
-        detail: { minValue: 1000, maxValue: 608000 },
+        reason: 'rule',
+        message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
       },
     });
   });
@@ -77,7 +80,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
 
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
       status: 'error',
-      issue: { message: 'Værdi skal være mellem 1000 og 608000' },
+      issue: { message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
     });
   });
 
@@ -95,7 +98,7 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
     input = dispatch(input, resetSection('stamdata', { skadedato: toISODateString('2024-01-01') }));
     input = settle(input, faellesAarsloenAslAarsloenField.bind(), '9999000');
     expect(evaluate(input).reader.read(faellesAarsloenAslAarsloenField.bind())).toMatchObject({
-      issue: { message: 'Værdi skal være mellem 1000 og 608000' },
+      issue: { message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)' },
     });
   });
 
@@ -103,9 +106,11 @@ describe('faellesAarsloen-descriptors – årsafhængigt ASL-maksimum', () => {
     let input = settle(empty(), erhvervsevnetabBeregningsdatoField.bind(), '01-01-2025');
     input = settle(input, faellesAarsloenEalAarsloenField.bind(), '999');
 
+    // Her rammes MINIMUM (999), som stadig er en bounds-grænse – kun formateringen er ny (BB-125):
+    // grænserne vises dansk med tusindtalsseparator og feltets enhed.
     expect(evaluate(input).reader.read(faellesAarsloenEalAarsloenField.bind())).toMatchObject({
       status: 'error',
-      issue: { message: 'Værdi skal være mellem 1000 og 9999999' },
+      issue: { message: 'Værdi skal være mellem 1.000 kr. og 9.999.999 kr.' },
     });
   });
 });

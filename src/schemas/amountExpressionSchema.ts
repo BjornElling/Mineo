@@ -62,7 +62,6 @@ export const amountExpressionSchema = z
     const reparsed = parseAmountInput(amount.expression, {
       precision: AMOUNT_SCHEMA_PRECISION,
       allowNegative: true,
-      allowDecimals: true,
       maxIntegerDigits: MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     });
@@ -105,7 +104,6 @@ export const coerceToAmountValue = (value: unknown): unknown => {
     const parsed = parseAmountInput(trimmed, {
       precision: AMOUNT_SCHEMA_PRECISION,
       allowNegative: true,
-      allowDecimals: true,
       maxIntegerDigits: MAX_AMOUNT_REPRESENTABLE_INTEGER_DIGITS,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     });

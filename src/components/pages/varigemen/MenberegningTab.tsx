@@ -6,6 +6,7 @@ import NumericTextField from '../../../inputCore/react/fields/NumericTextField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import InputUnitAdornment from '../../inputs/InputUnitAdornment';
 import ContentBox from '../../layout/ContentBox';
+import MirroredStamdataRow from '../../layout/MirroredStamdataRow';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
 import { integerAdmission } from '../../inputs/draftAdmission';
@@ -15,11 +16,12 @@ import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { useNavigate } from 'react-router-dom';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { calculateUtcAgeInWholeYears, getTodayLocalISO } from '../../../utils/dateUtils';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { resolveVarigeMenWarning } from '../../../domain/varigemen/varigeMenPolicy';
-import { resolveSkadestypeDatoLabel, resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import {
   ACTION_BLOCKED_INVALID_INPUT_MESSAGE,
   ACTION_BLOCKED_MISSING_INPUT_MESSAGE,
@@ -123,13 +125,13 @@ const MenberegningTab = React.memo(() => {
     [beregningsdato]
   );
 
-  // Spejlet stamdata-værdi: navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
-  const skadedatoLabel = resolveSkadestypeDatoLabel(skadestype);
-  // "Alder på skadestidspunkt"/"Alder på anmeldelsestidspunkt" følger samme skadestype-udledning som datoen,
-  // så en erhvervssygdom ikke omtales med et "skadestidspunkt", sagen ikke har (BB-072).
-  const alderVedSkadeLabel = resolveStamdataDatoReference(skadestype).kind === 'anmeldelsesdato'
-    ? 'Alder på anmeldelsestidspunkt'
-    : 'Alder på skadestidspunkt';
+  // Spejlet stamdata-værdi: navnet OG dets afledte former kommer fra feltets ene navneregel (§3.2a),
+  // aldrig fra en lokal ternary. Tidspunktsformen lå her som netop sådan en, indtil referencen selv
+  // kom til at bære den (BB-121); en erhvervssygdom omtales dermed ikke med et «skadestidspunkt»,
+  // sagen ikke har (BB-072).
+  const datoReference = resolveStamdataDatoReference(skadestype);
+  const skadedatoLabel = datoReference.label;
+  const alderVedSkadeLabel = `Alder på ${datoReference.tidspunkt}`;
 
   // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068): er dags dato uden for
   // beregningsdatoens øvre grænse (satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
@@ -216,11 +218,9 @@ const MenberegningTab = React.memo(() => {
   // Gate-årsagen hører kun i knappens tooltip; en blokering besvares her visuelt med fokusspring.
   const pdfErrorMessage = pageMessage(download.errorMessage);
 
-  const formatSkadedato = (iso: string | undefined): string => {
-    if (!iso) return 'Mangler (angiv i Stamdata)';
-    const formatted = formatIsoDateLong(coerceToISODateString(iso) ?? undefined);
-    return formatted || 'Mangler (angiv i Stamdata)';
-  };
+  // `formatSkadedato` er FJERNET (BB-126): dens «Mangler (angiv i Stamdata)»-gren var uopnåelig, fordi
+  // kaldsstedet allerede gav `undefined` for en tom dato – og den duplikerede rækkekomponentens ordlyd
+  // som en løs streng, hvilket var en invitation til at genindføre det mønster, komponenten afskaffede.
 
   return (
     <ContentBox className="content-box">
@@ -228,88 +228,33 @@ const MenberegningTab = React.memo(() => {
 
       <Typography className="row--subheading">Stamdata</Typography>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Fødselsdato</Typography>
-        <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-          {fodselsdato ? (
-            <Typography className="row--text">
-              {formatIsoDateLong(coerceToISODateString(fodselsdato) ?? undefined)}
-            </Typography>
-          ) : fodselsdatoError ? (
-            <Tooltip title={fodselsdatoError} arrow>
-              <Typography className="row--text" color="text.secondary">
-                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
-              </Typography>
-            </Tooltip>
-          ) : (
-            <Typography className="row--text" color="text.secondary">
-              Mangler (angiv i&nbsp; {' '}
-              <Typography
-                component="span"
-                className="icon-text-link"
-                color="inherit"
-                onClick={goToFodselsdato}
-                sx={{ cursor: 'pointer' }}
-              >
-                Stamdata
-              </Typography>
-              )
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      {/* De to spejlede stamdata-rækker deler nu komponent med Forsørgertabs (BB-126): den ugyldige gren
+          bærer samme link til Stamdata som den tomme, i stedet for en tekst uden vej tilbage. */}
+      <MirroredStamdataRow
+        label="Fødselsdato"
+        value={fodselsdato ? formatIsoDateLong(coerceToISODateString(fodselsdato) ?? undefined) : undefined}
+        errorMessage={fodselsdatoError}
+        onNavigate={goToFodselsdato}
+      />
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">{skadedatoLabel}</Typography>
-        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          {skadedato ? (
-            <Typography className="row--text">{formatSkadedato(skadedato)}</Typography>
-          ) : skadedatoError ? (
-            <Tooltip title={skadedatoError} arrow>
-              <Typography className="row--text" color="text.disabled">
-                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
-              </Typography>
-            </Tooltip>
-          ) : (
-            <Typography className="row--text" color="text.disabled">
-              Mangler (angiv i&nbsp; {' '}
-              <Typography
-                component="span"
-                className="icon-text-link"
-                color="inherit"
-                onClick={goToSkadedato}
-                sx={{ cursor: 'pointer' }}
-              >
-                Stamdata
-              </Typography>
-              )
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      <MirroredStamdataRow
+        label={skadedatoLabel}
+        value={skadedato ? formatIsoDateLong(coerceToISODateString(skadedato) ?? undefined) : undefined}
+        errorMessage={skadedatoError}
+        onNavigate={goToSkadedato}
+        color="text.disabled"
+      />
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">{alderVedSkadeLabel}</Typography>
-        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          {fodselsdatoError || skadedatoError ? (
-            <Tooltip title={ACTION_BLOCKED_INVALID_INPUT_MESSAGE} arrow>
-              <Typography className="row--text" color="text.disabled">
-                {ACTION_BLOCKED_INVALID_INPUT_MESSAGE}
-              </Typography>
-            </Tooltip>
-          ) : fodselsdato === undefined || skadedato === undefined ? (
-            <Tooltip title={ACTION_BLOCKED_MISSING_INPUT_MESSAGE} arrow>
-              <Typography className="row--text" color="text.disabled">
-                {ACTION_BLOCKED_MISSING_INPUT_MESSAGE}
-              </Typography>
-            </Tooltip>
-          ) : (
-            <Typography className="row--text">
-              {alderVedSkade !== undefined ? `${alderVedSkade} år` : ''}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      {/* Alderen er AFLEDT af de to rækker ovenfor og er derfor ikke en spejlet stamdata-række – men den
+          skal have samme vej tilbage (BB-126). Linket peger på det felt, der faktisk står i vejen: er
+          fødselsdatoen problemet, fører det dertil, ellers til skadedatoen. */}
+      <MirroredStamdataRow
+        label={alderVedSkadeLabel}
+        value={alderVedSkade === undefined ? undefined : `${alderVedSkade} år`}
+        errorMessage={fodselsdatoError ?? skadedatoError}
+        onNavigate={fodselsdatoError !== undefined || fodselsdato === undefined ? goToFodselsdato : goToSkadedato}
+        color="text.disabled"
+      />
 
       <Typography className="row--subheading">Beregningsgrundlag</Typography>
 
@@ -400,16 +345,18 @@ const MenberegningTab = React.memo(() => {
 
       {beregningsResultat && (
         <Box className="row--label-right-hover">
+          {/* BB-073's regel læses nu fra den delte helper (BB-129/130). Den lokale ternary vagtede på
+              RÅværdien, mens helperen vagter på det, brugeren faktisk ser – forskellen betyder noget,
+              hvis beløbet en dag ikke længere er en hel krone. */}
           <Typography className="row--text">
-            {beregningsResultat.aldersreduktionPct === 0
-              ? `Aldersreduktion, ${alderVedSkade} år = ${beregningsResultat.aldersreduktionPct} %`
-              : `Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
+            {`Aldersreduktion, ${alderVedSkade} år = ${formatDeductionPercent(
+              beregningsResultat.aldersreduktionPct,
+              `${beregningsResultat.aldersreduktionPct} %`
+            )}`}
           </Typography>
           <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
             <Typography className="row--text">
-              {beregningsResultat.aldersreduktionBeloeb === 0
-                ? formatKr(beregningsResultat.aldersreduktionBeloeb)
-                : `- ${formatKr(beregningsResultat.aldersreduktionBeloeb)}`}
+              {formatDeductionKr(beregningsResultat.aldersreduktionBeloeb)}
             </Typography>
           </Box>
         </Box>

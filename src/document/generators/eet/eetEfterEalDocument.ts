@@ -9,12 +9,14 @@ import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 
 // ============================================================================
 // HOVED-GENERATOR
@@ -31,6 +33,11 @@ export const renderEfterEalBody = (
   includeBeregningsdatoHeader = true
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };
+
+  // Datoens navn følger skadestypen i alle afledte tekster (BB-121). Referencen udledes af beregningen –
+  // IKKE af dokumentets `stamdata`, som kun projiceres, når brevhovedet er slået til og ellers er tom.
+  // Begge kaldere (eget dokument og differencekrav-bilaget) får derfor samme navn med brevhovedet fra.
+  const datoReference = resolveStamdataDatoReference(computation.skadestype);
 
   if (includeBeregningsdatoHeader) {
     writer.writeSectionHeader('Beregning');
@@ -49,14 +56,14 @@ export const renderEfterEalBody = (
   writer.writeBoldSubheader('Årsløn');
 
   writer.writeLeftRightText(
-    'Årsløn på skadestidspunktet',
+    `Årsløn på ${datoReference.tidspunktBestemt}`,
     formatKr(toKroner(computation.aarsloenOre)),
     rowOpts
   );
 
   if (computation.reguleringsaar.length > 0) {
     writer.writeLeftRightText(
-      `Regulering fra skadesår ${computation.skadesaar} til beregningsår ${computation.beregningsaar}`,
+      `Regulering fra ${datoReference.aar} ${computation.skadesaar} til beregningsår ${computation.beregningsaar}`,
       `+ ${formatPct(computation.reguleringsPctRounded4)}`,
       rowOpts
     );
@@ -112,24 +119,24 @@ export const renderEfterEalBody = (
   );
 
   writer.writeLeftRightText(
-    'Alder på skadestidspunkt',
+    `Alder på ${datoReference.tidspunkt}`,
     `${computation.alderVedSkade} år`,
     rowOpts
   );
 
-  const aldersreduktionFormula = buildAldersreduktionFormelTekst(
+  const aldersreduktionEtiket = buildAldersreduktionEtiket(
     computation.alderVedSkade
   );
 
   writer.writeLeftRightText(
-    `Aldersreduktion ${aldersreduktionFormula}`,
+    aldersreduktionEtiket,
     formatPct(computation.aldersreduktionPct),
     rowOpts
   );
 
   writer.writeLeftRightText(
-    `${formatKr(toKroner(computation.eetAnvendtOre))} x (- ${formatPct(computation.aldersreduktionPct)}) =`,
-    `- ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}`,
+    `${formatKr(toKroner(computation.eetAnvendtOre))} x (${formatDeductionPercent(computation.aldersreduktionPct, formatPct(computation.aldersreduktionPct))}) =`,
+    formatDeductionKr(toKroner(computation.aldersreduktionBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );
 

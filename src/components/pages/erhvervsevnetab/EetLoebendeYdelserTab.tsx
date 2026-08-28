@@ -281,7 +281,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                 <HoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
+                    {`Årsløn x (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{formatKr(toKroner(computation.grundloenOre))}</Typography>
@@ -293,7 +293,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                 <HoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
+                    {`Årsløn x (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{formatKr(toKroner(computation.grundloenOre))}</Typography>
@@ -349,8 +349,8 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                   : 'Resterende EET efter kapitalisering';
               const grundydelseFormula =
                 computation.erstatningsniveauPct === 83
-                  ? `Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 83 % × 92 % =`
-                  : `Grundløn × EET × Erstatningsniveau = ${formatKr(toKroner(computation.grundloenOre))} × ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} × 80 % =`;
+                  ? `Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 83 % x 92 % =`
+                  : `Grundløn x EET x Erstatningsniveau = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 80 % =`;
 
               const primaryGrundydelse =
                 computation.grundloenNiveau === '2024'
@@ -412,7 +412,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                     <>
                       <HoverRow underlined text="Grundydelse fra 1. januar 2024" />
                       <Box className="row--label-right-hover">
-                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(toKroner(grundydelse2003BaseFor2024), 2)} × ${reguleringFoer2024FaktorTekst} =`}</Typography>
+                        <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(toKroner(grundydelse2003BaseFor2024), 2)} x ${reguleringFoer2024FaktorTekst} =`}</Typography>
                         <Box className="row--label-right-hover__content">
                           <Typography className="row--text">{formatKr(toKroner(grundydelse2024Result), 2)}</Typography>
                         </Box>

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
 import { moneyOreSchema } from '../money/money';
+import { skadestypeEnum } from '../../schemas/formSchemas/enumSchemas';
 import { eetIssueSchema } from './eetTypes';
 import { eetLoebendeComputationSchema } from './eetLoebendeYdelserCalculation';
 
@@ -10,6 +11,13 @@ const integer = z.number().int();
 export const eetEalComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
+  /**
+   * Skadestypen bæres MED beregningen, fordi datoens navn er skadestype-afhængigt i alle afledte
+   * tekster (BB-121). Både skærmen og de to dokumentkaldere holder computation'en, mens dokumenternes
+   * `stamdata` kun projiceres, når brevhovedet er slået til – med brevhovedet fra bliver `skadestype`
+   * dér `undefined`, og bilaget ville tavst falde tilbage til «skadestidspunktet» ved erhvervssygdom.
+   */
+  skadestype: skadestypeEnum.optional(),
   fodselsdato: isoDateString,
   skadesaar: integer,
   beregningsaar: integer,

@@ -171,7 +171,8 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({
     kind: 'labelValue',
-    label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,
+    // Afsluttende « =» som alle andre formellinjer med et resultat i højre kolonne (BB-132).
+    label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)}) =`,
     value: formatKr(toKroner(afgoerelse.kapitalbelobOre), 0),
     bold: true,
   });

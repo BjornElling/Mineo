@@ -151,7 +151,12 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     const describedBy = input?.getAttribute('aria-describedby');
     const statusId = describedBy?.split(' ').at(-1);
     expect(statusId).toBeDefined();
-    expect(document.getElementById(statusId!)?.textContent).toBe('Værdi skal være mellem 1000 og 608000');
+    // BB-125: skadesårsloftet er ikke længere en bounds-grænse, men ejes af domænereglen
+    // `validateAslAarsloenBySkadesaarMax`. Det er dens besked – med satsen formateret dansk – brugeren ser.
+    // Maksimum-beskeden har desuden forrang over delelighedsreglen, når begge er brudt.
+    expect(document.getElementById(statusId!)?.textContent).toBe(
+      'Årsløn kan ikke overstige maks årslønnen i skadesåret (608.000 kr.)',
+    );
   });
 
   it('viser gul ring og tooltip på EAL-årslønnen når ASL-årslønnen er skadesårets maksimum', async () => {
@@ -165,7 +170,11 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     const input = document.querySelector('input[name="ealAarsloen"]') as HTMLInputElement;
     await userEvent.setup().hover(input);
 
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Årsløn efter ASL er sat til max-årslønnen');
+    // BB-124: de to advarsler for samme situation er samlet til én. `EET_ASL_AARSLOEN_MAX_WARNING` er nu
+    // et alias for `ASL_AARSLOEN_MAX_NOTICE`, så EET-fanen og øvrige flader siger det samme.
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.',
+    );
     expect(input.closest('.MuiOutlinedInput-root')).not.toHaveClass('Mui-error');
   });
 

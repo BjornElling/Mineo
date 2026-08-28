@@ -128,6 +128,8 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       stamdata: {
         skadedato: validStamdata.skadedato,
         skadelidteFodselsdato: validStamdata.skadelidteFodselsdato,
+        // Skadestypen videregives nu af projektionen (BB-121), så goldenen skal sende den samme vej ind.
+        skadestype: validStamdata.skadestype,
         journalnr: '', advokat: '', sagsbehandler: '',
       } as StamdataValues,
       fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },

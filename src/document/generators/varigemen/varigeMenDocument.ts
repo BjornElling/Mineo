@@ -11,8 +11,9 @@ import type { ISODateString } from '../../../types/branded';
 import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import type { SkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
+import type { StamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 
 /**
  * Tilføj stamdata-sektion
@@ -22,14 +23,16 @@ const addStamdataSection = (
   fodselsdato: ISODateString | undefined,
   skadedato: ISODateString | undefined,
   alderVedSkade: number,
-  skadedatoLabel: SkadestypeDatoLabel
+  datoReference: StamdataDatoReference
 ): void => {
   writer.writeBoldSubheader('Stamdata');
   writeLabelValueRows(writer, [
     { label: 'Fødselsdato', value: formatIsoDateLong(fodselsdato) },
-    { label: skadedatoLabel, value: formatIsoDateLong(skadedato) },
+    { label: datoReference.label, value: formatIsoDateLong(skadedato) },
     {
-      label: skadedatoLabel === 'Anmeldelsesdato' ? 'Alder på anmeldelsestidspunkt' : 'Alder på skadestidspunkt',
+      // Tidspunktsformen kommer fra referencen (BB-121). Den blev før udledt ved at STRENGSAMMENLIGNE
+      // på labelen – en afledning, der ville tie, hvis labelens ordlyd nogensinde ændrede sig.
+      label: `Alder på ${datoReference.tidspunkt}`,
       value: `${alderVedSkade} år`,
     },
   ]);
@@ -76,12 +79,12 @@ const addResultatSection = (
       value: formatKr(beregningsResultat.grundbeloebUdenReduktion),
     },
     {
-      label: beregningsResultat.aldersreduktionPct === 0
-        ? `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = ${beregningsResultat.aldersreduktionPct} %`
-        : `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
-      value: beregningsResultat.aldersreduktionBeloeb === 0
-        ? formatKr(beregningsResultat.aldersreduktionBeloeb)
-        : `- ${formatKr(beregningsResultat.aldersreduktionBeloeb)}`,
+      // Samme delte fortegnsregel som skærmen (BB-129/130); de to stod før som hver sin ternary.
+      label: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = ${formatDeductionPercent(
+        beregningsResultat.aldersreduktionPct,
+        `${beregningsResultat.aldersreduktionPct} %`
+      )}`,
+      value: formatDeductionKr(beregningsResultat.aldersreduktionBeloeb),
     },
     {
       label: 'Beregnet méngodtgørelse',
@@ -100,8 +103,8 @@ type GenerateVarigeMenDocumentParams = DocumentCommonOptions & Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  /** Feltets navn i sagens kontekst – afgjort af `resolveSkadestypeDatoLabel`, ikke af generatoren. */
-  skadedatoLabel: SkadestypeDatoLabel;
+  /** Datoens navn OG dens afledte former i sagens kontekst – afgjort af kalderen, ikke af generatoren. */
+  datoReference: StamdataDatoReference;
 }>;
 
 export const generateVarigeMenDocument = defineDocument<GenerateVarigeMenDocumentParams>({
@@ -121,9 +124,9 @@ export const generateVarigeMenDocument = defineDocument<GenerateVarigeMenDocumen
       mengrad,
       beregningsdato,
       beregningsResultat,
-      skadedatoLabel,
+      datoReference,
     } = params;
-    addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, skadedatoLabel);
+    addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, datoReference);
     addBeregningsgrundlagSection(writer, mengrad, beregningsdato, beregningsResultat);
     addResultatSection(writer, mengrad, beregningsResultat);
   },

@@ -241,6 +241,28 @@ const computeLobendeYdelser = (
   return rows;
 };
 
+/**
+ * De issues, der alene betyder «brugeren har ikke udfyldt feltet endnu».
+ *
+ * Motoren mærker ALLE sine issues `severity: 'error'` – også disse – så severity kan ikke bruges til at
+ * skelne «mangler» fra «er forkert». Gaten har brug for netop den skelnen: en tom ASL-sektion er en
+ * LEGITIM sag (brugeren regner kun EAL-delen), mens et afvist opslag i kapitaliseringstabellen er en
+ * halv beregning, der ikke må trykkes. Uden sættet ville en fail-closed gate på severity spærre den
+ * almindeligste gyldige sag på fladen.
+ *
+ * Sættet er eksporteret, så gaten læser motorens egen liste frem for at gentage ID'erne.
+ */
+export const FORSOERGERTAB_MISSING_INPUT_ISSUE_IDS: ReadonlySet<string> = new Set([
+  'asl-aarsloen-missing',
+  'skadedato-missing',
+  'beregningsdato-missing',
+  'virkningsdato-missing',
+  'efterladte-fodselsdato-missing',
+  'tilkendt-for-periode-missing',
+  'skadelidte-fodselsdato-missing',
+  'missing-koen',
+]);
+
 export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslResult => {
   const issues: EetIssue[] = [];
 
@@ -325,7 +347,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
-  const aslAarsloenMaxIssue = validateAslAarsloenBySkadesaarMax(aslAarsloen, input.skadedato);
+  const aslAarsloenMaxIssue = validateAslAarsloenBySkadesaarMax(aslAarsloen, input.skadedato, input.skadestype);
   if (aslAarsloenMaxIssue !== undefined) {
     // Readeren viser normalt samme regel som feltfejl. Dette værn holder også
     // direkte motoropslag fail-closed i stedet for at reducere input stiltiende.

@@ -61,9 +61,23 @@ describe('inputPasteNormalization', () => {
   });
 
   it('lader syntaktiske fejl og talværdi-grænser stå til settle', () => {
-    expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('12399');
     expect(normalizeAmountPaste('12345,67', { maxIntegerDigits: 3 })).toBe('123,67');
     expect(normalizeAmountPaste('100+25', { maxValue: 100 })).toBe('100+25');
+  });
+
+  /**
+   * BB-118: decimalkommaet må ALDRIG springes over.
+   *
+   * Assertionen her pinnede tidligere selve fejlen (`'123,99'` → `'12399'`). Reglen «spring det ulovlige
+   * tegn over» er rigtig for et bogstav, men forkert for det tegn, der ADSKILLER de to dele af et tal: de
+   * to decimalcifre gled op i heltalsdelen, og `400.000,00` – et beløb, som det står skrevet på dansk –
+   * blev til `4.000.000` uden et ord. Et decimalløst felt tager nu imod decimalen og afrunder den ved
+   * settle, så draften bevarer det, brugeren skrev.
+   */
+  it('bevarer decimalkommaet også i et felt uden decimaler (BB-118)', () => {
+    expect(normalizeAmountPaste('123,99', { allowDecimals: false })).toBe('123,99');
+    expect(normalizeAmountPaste('400.000,00', { allowDecimals: false })).toBe('400000,00');
+    expect(normalizeAmountPaste('400.000 kr.', { allowDecimals: false })).toBe('400000');
   });
 
   it('håndhæver beløbets ciffergrænse separat for hvert talled', () => {
@@ -76,7 +90,8 @@ describe('inputPasteNormalization', () => {
     expect(normalizePercentPaste('abc1007', { maxValue: 100 })).toBe('100');
     expect(normalizePercentPaste('abc999', { maxValue: 8 })).toBe('999');
     expect(normalizePercentPaste('12,987', { allowDecimals: true, maxDecimalDigits: 2 })).toBe('12,98');
-    expect(normalizePercentPaste('12,987', { allowDecimals: false })).toBe('129');
+    // BB-118: også et decimalløst procentfelt bevarer kommaet – «15,00 %» blev før til `1500`.
+    expect(normalizePercentPaste('12,987', { allowDecimals: false, maxDecimalDigits: 2 })).toBe('12,98');
     expect(normalizePercentPaste('-999', { allowNegative: true, minValue: -100 })).toBe('-999');
     expect(normalizePercentPaste('12.5', { allowDecimals: true })).toBe('125');
     expect(normalizePercentPaste('12 5', { allowDecimals: true })).toBe('125');

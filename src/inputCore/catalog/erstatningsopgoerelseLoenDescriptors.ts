@@ -189,7 +189,10 @@ export const eoEmploymentFields = {
   navnPaaArbejdssted: emp<string>('navnPaaArbejdssted', 'Navn på arbejdssted', 'text', optionalTextCodec),
   harOverenskomst: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harOverenskomst', label: 'Overenskomst', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   overenskomstId: emp<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  // `contextualLabel` som naboen `harAnciennitetstillaegEfterSkadedatoen` (BB-121): den kontekstfrie label
+  // var den eneste, der stadig sagde «skadestidspunktet» ved en erhvervssygdom. UI'en byggede allerede
+  // selv det rigtige navn to steder, så det var descriptorens label, der drev fra dem.
+  ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet'),
   fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),

@@ -5,6 +5,7 @@ import {
 } from '../satser/aslAarsloensmaksimum';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { isoYear } from '../../utils/isoDateHelpers';
+import { resolveStamdataDatoReference, type StamdataValues } from '../policies/stamdataCalculations';
 
 export const validateAslAarsloenDivisibleBy1000 = (
   aarsloen: number | undefined
@@ -27,9 +28,22 @@ export const resolveAslAarsloensmaksimumForSkadedato = (
     ? undefined
     : resolveAslAarsloensmaksimumForAar(isoYear(skadedatoIso));
 
+/**
+ * ASL-årslønnens loft for skadesåret.
+ *
+ * `skadestype` styrer, om beskeden siger «skadesåret» eller «anmeldelsesåret» (BB-121) – samme navneregel
+ * som resten af programmet. Den er valgfri, fordi flere kaldere kun har datoen; udelades den, bruges
+ * «skadesår», som er reglens udgangspunkt.
+ *
+ * Beskeden er nu den, brugeren FAKTISK ser (BB-125). Den var før uopnåelig, fordi feltet også havde et
+ * generisk bounds-loft med samme grænse, og bounds-validatoren kørte først og vandt med «Værdi skal være
+ * mellem 1000 og 551000». Det dublerede loft er fjernet fra descriptoren; denne besked er den ene, der
+ * navngiver, hvor grænsen kommer fra.
+ */
 export const validateAslAarsloenBySkadesaarMax = (
   aarsloen: number | undefined,
-  skadedatoIso: ISODateString | undefined
+  skadedatoIso: ISODateString | undefined,
+  skadestype?: StamdataValues['skadestype']
 ): string | undefined => {
   if (aarsloen === undefined || !Number.isFinite(aarsloen)) return undefined;
   if (skadedatoIso === undefined) return undefined;
@@ -44,5 +58,6 @@ export const validateAslAarsloenBySkadesaarMax = (
   }
   if (aarsloen <= maxAarsloen) return undefined;
 
-  return `Årsløn kan ikke overstige maks årslønnen i skadesåret (${formatAsAmount(maxAarsloen, 0)} kr.)`;
+  const aarLabel = resolveStamdataDatoReference(skadestype).aar;
+  return `Årsløn kan ikke overstige maks årslønnen i ${aarLabel}et (${formatAsAmount(maxAarsloen, 0)} kr.)`;
 };

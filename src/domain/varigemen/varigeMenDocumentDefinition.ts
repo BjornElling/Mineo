@@ -13,7 +13,7 @@ import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
-import { resolveStamdataDatoLabel } from '../policies/stamdataCalculations';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 import { evaluateVarigeMenDownloadGate } from './varigeMenDownloadGate';
@@ -90,7 +90,7 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
         mengrad: input.mengrad,
         beregningsdato: input.beregningsdato,
         beregningsResultat: input.beregningsResultat,
-        skadedatoLabel: resolveStamdataDatoLabel(input.stamdata),
+        datoReference: resolveStamdataDatoReference(input.stamdata?.skadestype),
         visBrevhoved: ctx.visBrevhoved,
         stamdata: input.stamdata,
       });

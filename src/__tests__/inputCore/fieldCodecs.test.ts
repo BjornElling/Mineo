@@ -120,11 +120,14 @@ describe('fieldCodecs', () => {
   });
 
   /**
-   * Et beløbsfelt, der ikke tager imod et komma, må heller ikke VISE et. Før denne binding hardkodede
-   * amount-codec'en præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" –
-   * en decimalhale brugeren hverken kunne skrive eller rette. Testen holder de to sider af samme
-   * `allowDecimals`-flag sammen, og kontrasten til `allowDecimals: true` sikrer, at den måler netop
-   * flaget og ikke blot "formatterer uden komma altid".
+   * Et decimalløst beløbsfelt må ikke VISE en decimalhale. Før denne binding hardkodede amount-codec'en
+   * præcision 2 i både `format` og `formatForEdit`, så et heltalsfelt viste "450.000,00" – en decimalhale
+   * brugeren ikke kunne rette bort. Testen holder de to sider af samme `allowDecimals`-flag sammen, og
+   * kontrasten til `allowDecimals: true` sikrer, at den måler netop flaget og ikke blot "formatterer uden
+   * komma altid".
+   *
+   * BB-118 flyttede den ANDEN side af flaget: admission tager nu imod kommaet, og settle afrunder det væk.
+   * Visning og settle måles derfor hver for sig nedenfor – de svarer ikke længere ens på flaget.
    */
   it('binder beløbs-VISNING til allowDecimals, så et komma-frit felt heller ikke viser komma', () => {
     const shared = { allowNegative: false, minValue: 1000, maxValue: 9999999 } as const;
@@ -138,9 +141,14 @@ describe('fieldCodecs', () => {
     expect(withDecimals.format(value)).toBe('450.000,00');
     expect(withDecimals.formatForEdit(value)).toBe('450.000,00');
 
-    // Et komma må ikke åbne editoren i et felt, hvor tegnfilteret straks ville blokere det.
-    expect(integerOnly.acceptsInitialKey(',')).toBe(false);
+    // BB-118: kommaet åbner editoren i BEGGE felter. `allowDecimals` er flyttet fra tegnfilteret til
+    // settle, så feltet tager imod decimalen og afrunder den væk – ellers ville «400.000,00» miste sit
+    // komma under tastningen og blive til 4.000.000. VISNINGEN ovenfor er uændret decimalløs.
+    expect(integerOnly.acceptsInitialKey(',')).toBe(true);
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
+    // Settle er nu det sted, decimalpolitikken håndhæves: heltalsfeltet afrunder, decimalfeltet bevarer.
+    expect(integerOnly.parseForSettle('450.000,60')).toEqual({ status: 'valid', value: { kind: 'number', value: 450001 } });
+    expect(withDecimals.parseForSettle('450.000,60')).toEqual({ status: 'valid', value: { kind: 'number', value: 450000.6 } });
     // Cifre åbner stadig editoren i begge – reglen rammer kommaet, ikke al indtastning.
     expect(integerOnly.acceptsInitialKey('5')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
@@ -154,7 +162,11 @@ describe('fieldCodecs', () => {
     expect(withDecimals.decimalPolicy).toBe('decimal');
     expect(withDecimals.acceptsInitialKey(',')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
-    expect(integerOnly.acceptsInitialKey(',')).toBe(false);
+    // BB-118: kommaet åbner editoren i ALLE procentfelter; `decimalPolicy` aflæses nu ved settle,
+    // ikke af tegnfilteret. Politikken måles derfor på parse-resultatet frem for på admission.
+    expect(integerOnly.acceptsInitialKey(',')).toBe(true);
+    expect(integerOnly.parseForSettle('50,25')).toEqual({ status: 'valid', value: 50 });
+    expect(withDecimals.parseForSettle('50,25')).toEqual({ status: 'valid', value: 50.25 });
   });
 
   /**

@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr } from '../../../utils/deductionFormatting';
 import { useForsoergertabVm } from './forsoergertabContext';
 
 /**
@@ -29,14 +30,14 @@ const ForsoergertabResultatSection = React.memo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løbende ydelser (efter ASL)</Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{`- ${formatKr(result.aslLobendeYdelserTotal)}`}</Typography>
+          <Typography className="row--text">{formatDeductionKr(result.aslLobendeYdelserTotal)}</Typography>
         </Box>
       </Box>
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">Kapitalbeløb (efter ASL)</Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{`- ${formatKr(result.aslKapitalbelob)}`}</Typography>
+          <Typography className="row--text">{formatDeductionKr(result.aslKapitalbelob)}</Typography>
         </Box>
       </Box>
 

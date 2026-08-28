@@ -12,6 +12,31 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**To nye mønstre 2026-08-27 fra Forsørgertab – M-25 og M-26 – og de handler begge om en GRÆNSE, der er
+tegnet det forkerte sted.** M-25 (gaten spørger «findes der noget?», ikke «findes det, brugeren bad om?»)
+er den tungeste: Forsørgertabs dokumentgate godkendes af ENTEN en EAL-del ELLER en ASL-del, så en
+efterladt under 18 år – et alderstrin, kapitaliseringstabellen ikke har – lader hele ASL-halvdelen
+forsvinde uden en rød celle, uden en advarsel og med **aktiv** downloadknap; det hentede dokument
+mangler både de fire ASL-oplysninger, brugeren har indtastet, og hele fradraget på `1.065.384 kr.`
+(BB-117). M-26 (et delt felt med to hjem) er den bredeste: de to årslønsfelter er ÉN descriptor, der
+renderes af både Forsørgertab og Erhvervsevnetab med hver sine labels og hver sin parallelle gule
+advarsel – tre navne pr. felt og to ordlyde for samme udløser (BB-123, BB-124), og ingen af siderne
+siger, at en rettelse det ene sted ændrer det andet. **Samme kørsel gav nye forekomster af M-02
+(BB-120, BB-121 – BB-072's navngivne kandidat bekræftet), M-07 (BB-127), M-13 (BB-122, BB-125, BB-130,
+BB-132), M-14 (BB-118 – mønsterets dyreste form hidtil: `400.000,00` indsat bliver `4.000.000` uden et
+ord), M-16 (BB-117) og M-24 (BB-119 – klampningen ligger i AGGREGATET, ikke i et felt; **fundet er
+afvist 2026-08-28, og afvisningen indsnævrer M-24 – læs mønsteret i sin nye form**).** M-19, M-22 og
+M-10 er efterprøvet og **bestået**; M-23 er uden genstand.
+
+**Efterskrift 2026-08-27, og den hører til M-11's familie.** To af fladens tre åbne spørgsmål er afgjort
+af udvikleren, og **begge mine antagelser var forkerte – begge fordi jeg sluttede en domæneoplysning af
+mekanikken.** Jeg læste et manglende feltloft som et manglende loft (loftet ligger på det BEREGNEDE
+beløb og indregnes allerede), og jeg læste et kønsopdelt tabelopslag på efterladtes alder som opdelt
+efter efterladtes køn (det er skadelidtes). **Læren, der bliver stående: en parameters ejer og en
+grænses placering er domæneoplysninger, ikke kodeoplysninger – de skal spørges om, ikke udledes af,
+hvilket opslag værdien indgår i.** Begge svar gav samtidig hvert sit nye fund (BB-133 og BB-134), så
+prisen ved at spørge var alene tid – præcis som `STATUS.md`'s observation om de otte tidligere spørgsmål.
+
 **To nye mønstre 2026-08-25 fra Årslønsberegning – M-23 og M-24 – og de er begge om BEREGNINGENS
 grundlag, ikke om dens formel.** Det er nyt for programmet: de 22 hidtidige mønstre handler om, hvad
 programmet siger, viser, skjuler eller blokerer. M-23 (aggregatet af-dublerer tiden, men ikke pengene)
@@ -176,6 +201,23 @@ sæt skadestypen til Erhvervssygdom og læs HELE fladen igennem – hver sætnin
 om sagens dato, er en kandidat.** Bemærk, at kilden findes: `resolveSkadestypeDatoLabel` er allerede
 kaldt på de fleste af fladerne til rækken lige ovenover.
 
+**Gennemført 2026-08-28 (fra `forsoergertab.md` BB-121) – og rettelsen afdækkede, hvorfor princippet
+ikke virkede.** BB-072's skærpelse ovenfor blev implementeret, og teksterne blev alligevel ved med at
+sige «skade». Årsagen lå ikke i teksterne: **to reader-projektioner udelod `skadestype`, når de byggede
+snapshottets stamdata** – på Erhvervsevnetab blev feltet endda LÆST og derefter ikke videregivet. Hvert
+opslag af `stamdata?.skadestype` på begge flader gav derfor `undefined`, og alt faldt tilbage til
+standardnavnet, mens rækken øverst – som læste gennem readeren i stedet – korrekt sagde «Anmeldelsesdato».
+
+**Læren er generel og værd at bruge, næste gang et implementeret princip ikke slår igennem:** når to
+kanaler viser samme oplysning og kun den ene er rigtig, så tjek FØRST om den forkerte kanal overhovedet
+FÅR de data, den skal træffe valget på. En manglende linje i en projektion er usynlig i både typer og
+tests – feltet er valgfrit, `undefined` er en gyldig værdi, og fallbacken ser fornuftig ud.
+
+Samme rettelse viste desuden, at referencen skal bære **alle** de former, teksterne bruger. Den bar kun
+datoens navn (`label`/`labelLower`), så «skadestidspunkt» og «skadesår» blev hardkodet – eller skrevet som
+en inline ternary de to steder, der gjorde det rigtigt. En reference, der kun dækker halvdelen af
+formerne, inviterer til den kopi, mønsteret handler om.
+
 **Skærpelse 2026-08-19 (fra `minprocesrente.md` BB-043).** Mønsteret rammer ikke kun beskeder med et
 feltnavn skrevet ind i prosaen. Det rammer også beskeder, der **genkender en grænse på dens værdi i
 stedet for på dens ophav**: den fælles dato-fejlregel svarer «Datoen er efter dags dato», så snart
@@ -200,6 +242,18 @@ alle fire tekster** – det er værd at bemærke, fordi det viser, at fejlen ikk
 men opstod ét felt ad gangen. Prøven er billig og hører på hver flade med prosa-advarsler: **læs hver
 advarsel og find det felt, den navngiver, på skærmen.** Samme kørsel gav en anden forekomst gennem
 M-07: `DATE_ORDER_ERROR_MESSAGE` siger «Til-**dato**» i et **ugefelt** (BB-107).
+
+**To nye forekomster 2026-08-27 fra Forsørgertab, og den ene lukker mønsterets ældste navngivne
+kandidat.** (1) **BB-121 bekræfter BB-072's forudsigelse:** på en erhvervssygdomssag omdøber fladen
+korrekt rækken til «Anmeldelsesdato» og skriver tolv linjer længere nede «Skadelidtes årsløn på
+skadestidspunktet», «Regulering fra skadesår 2020 …» og «Skadelidtes alder på skadestidspunkt» – om
+præcis den anmeldelsesdato. Samme tre sætninger står i dokumentet. Kilden findes:
+`resolveSkadestypeDatoLabel` kaldes allerede til rækken ovenfor. (2) **BB-120 er mønsterets reneste
+form hidtil:** feltet heder «Startdato for ASL-ydelse» på skærmen, i oplæsningen og i dokumentet, og
+melder «**Virkningsdato** kan senest være 31. december 2026», fordi descriptoren bærer en parallel
+streng `maxBoundFieldLabel: 'Virkningsdato'` ved siden af sin egen `label`. **Prøven er ny, billig og
+mekanisk: `rg "maxBoundFieldLabel|minBoundLabel" src/inputCore/catalog` og sammenlign hver streng med
+samme descriptors `label`.** Enhver forskel er et fund, uden at fladen skal åbnes.
 
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
@@ -359,6 +413,17 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
   dermed M-02. **Løsningen findes allerede i programmet:** BF-028 gav EO's dato-par den modgående
   dato i hver tooltip. Årsløns tabel står med den gamle form, så en rettelse er en konvergens, ikke
   et nyt design.
+- **Ny forekomst 2026-08-27 på Forsørgertab, og den viser mønsterets HALVE form** (`forsoergertab.md`
+  BB-127, Mellem). Beregningsdato `01-07-2025` + Startdato for ASL-ydelse `31-12-2030` gør begge felter
+  røde – dobbeltmarkeringen er altså i orden – men kun det ene har en tekst med afsender:
+  Beregningsdato får «Der findes ingen gyldig dato her … Grænserne kommer fra Anmeldelsesdato og
+  Startdato for ASL-ydelse», mens Startdato for ASL-ydelse får den bare `validateISODateRange`-tekst
+  «Dato skal være mellem 10-06-2020 og 01-07-2025». **Læren er, at mønsterets to halvdele fejler
+  uafhængigt:** en flade kan have dobbeltmarkeringen på plads og stadig efterlade det ene felt uden
+  udvej. Prøven skal derfor køres på BEGGE felter, ikke kun konstateres på det ene. Bemærk desuden en
+  ny svaghed i den ellers gode tekst: «senest tilladte (31-12-2026)» kommer fra datadækningen, ikke fra
+  nogen af de to felter, årsagssætningen navngiver – en årsagssætning må kun navngive de grænser, den
+  faktisk forklarer.
 
 ## M-08 – Links er ikke med i tastaturrækkefølgen
 
@@ -744,6 +809,27 @@ måles og rettes.
     mellemrum), selv om kolonnenavnene har ét sandt sted, og modulets egen kommentar begrunder det
     sande sted med, at samme kolonne ellers kunne hedde to ting. **Prøven er ny og generel: sammenlign
     hver kolonneoverskrift i en generator med descriptorens label.**
+- **Fire nye forekomster 2026-08-27 fra Forsørgertab, og de to første flytter prøven ud af tallene**
+  (`forsoergertab.md` BB-122, BB-125, BB-130, BB-132):
+  - **BB-122 er mønsterets oprindelige form vendt om: dokumentet udelader en HEL RÆKKE, skærmen viser.**
+    Specifikationen nævner ikke sagens skadedato/anmeldelsesdato, selv om skærmen har den som anden
+    række, og selv om fire af beregningens opslag hænger på den. Den kan ikke slås til: brevhovedet
+    bærer kun journalnr., advokat, sagsbehandler og dags dato. **Varige méns dokument gør det rigtige
+    på samme sagsgrundlag**, så rettelsen er en konvergens. **Prøven er ny og generel: hold skærmens
+    forudsætningsrækker op mod dokumentets, række for række – ikke kun værdi for værdi.**
+  - **BB-125 flytter prøven fra de viste tal til GRÆNSEBESKEDERNES tal.** Feltet skriver selv `600.000`
+    og melder «Værdi skal være mellem **1000** og **551000**», mens dets nabo-regel formaterer korrekt
+    («deleligt med **1.000**»). Kilden er `getIntegerRangeErrorMessage`, som ALLE beløbs- og
+    heltalsfelter i programmet deler, så formen er ens overalt og forkert overalt. Dertil den anden
+    halvdel: loftet `551.000` er skadesårets ASL-maksimum, men beskeden siger det ikke – og den besked,
+    der gør (`validateAslAarsloenBySkadesaarMax`), er **uopnåelig**, fordi bounds-validatoren kører
+    først. To grænser skrevet to gange, og den mindst oplysende vinder (jf. M-24's punkt 1).
+  - **BB-130 er BB-079's form igen:** «Kapitalbeløb (efter ASL) **- 0 kr.**» i sammentællingen mod
+    «Kapitalbeløb **0 kr.**» i panelet nedenfor – samme nul, to former, én skærm. Minusset er en fast
+    del af fradragslinjens skabelon.
+  - **BB-132 udvider prøven til OPERATORERNE.** Én linje bruger begge gangetegn på én gang
+    («30 % **x** 400.000 kr. **×** (632.000 / 551.000)»), og én formellinje mangler det afsluttende
+    `=`, som alle sidens andre har. **Sammenlign ikke kun tallets form, men tegnene omkring det.**
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -828,6 +914,22 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   linjeskift betyde i en indsat tekst?** Ved tastning afslutter det værdien; i paste forsvinder det.
   Behandles det som en afslutning, bliver cellen `1.000,00` i stedet for en afvist streng – uden at
   reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt udvikleren.
+- **Ny forekomst 2026-08-27, og den er mønsterets DYRESTE hidtil** (`forsoergertab.md` BB-118, **Høj**).
+  Samme spørgsmål som BB-088, men om **decimalkommaet** i et beløbsfelt uden decimaler – og med et
+  langt værre udfald, fordi resultatet ikke bliver afvist, men accepteret. Målt: `551.000,00` indsat i
+  «Skadelidtes årsløn efter EAL» giver `5.510.000`; `400.000,00` giver `4.000.000`; `400.000 kr.` giver
+  korrekt `400.000`. Enheden håndteres altså rigtigt – det er kun ørerne, der bliver til kroner. Ingen
+  rød kant, ingen besked, og værdien driver hele erstatningen og dokumentet. Tastet input giver samme
+  resultat, så det er ikke en paste-only fortolker: det er tegnfilteret, der springer kommaet over og
+  lader cifrene bagefter lægge sig i tallet.
+  **Afgrænsningen er skarp og gør fundet let at afgøre: `faellesAarsloen` er den ENESTE beløbsfamilie i
+  programmet med `allowDecimals: false`** (`rg "allowDecimals: false" src/inputCore/catalog` – de øvrige
+  træf er procentfelter). Alle andre beløbsfelter tager `400.000,00` korrekt. De to felter er altså
+  uenige med resten af programmet om det tegn, ethvert dansk beløb skrives med.
+  **Den generelle prøve: find hvert felt med `allowDecimals: false` og indsæt den form, tallet normalt
+  skrives i.** På procentfelterne (`erhvervsevnetabDescriptors.ts:142` og `:422`) bliver «15,00 %» til
+  `1500`, men dér fanger 0–100-grænsen det; på EAL-årslønnen findes intet loft, der kan fange en
+  faktor 10. **Læren: en tegnregel er kun så sikker som den grænse, der står bag den.**
 
 ## M-15 – Skærmen tier, hvor dokumentet taler
 
@@ -977,8 +1079,21 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
     **Forskellen til BB-083 er hele pointen:** dér efterlod brugeren rækken halvfærdig, her gjorde
     programmet det. **Skærpelse af prøven: kør M-16's mangel-halvdel ikke kun ved indtastning, men
     efter hvert valg, der ændrer hvilke kolonner en tabel viser.**
-- Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén,
-  Forsørgertab og EO's rækkebyggere (`EO_ROW_BUILDERS`).
+- **Kandidaten «Forsørgertab» er efterprøvet 2026-08-27, havde fejlen – og fejlen var VÆRRE end
+  mønsterets hidtidige form** (`forsoergertab.md` BB-117, **Høj**). En efterladt på 17 år (fx tastet som
+  `200808`, som feltet selv gør til `20-08-2008`) rammer et alderstrin, kapitaliseringstabellen ikke
+  har: tabellerne dækker 18–66 år, feltets erklærede grænse er `01-01-1900` til dags dato. Motoren
+  afviser med `forsoergertab-alder-missing` – en besked, programmet HAR formuleret og ingen komponent
+  læser – og afvisningen kommer ud som et rent fravær: hele ASL-sektionen forsvinder, uden en rød celle
+  og uden en advarsel. Grænsen er målt præcist: 18 år regner, 17 år gør ikke.
+  **Men her stopper mønsteret ikke, og det er hele pointen.** M-16's kendetegn er, at afvisningen
+  **spærrer** fladens dokumenter – «det værste ved formen er, at fejlen ikke bliver i rækken». På
+  Forsørgertab spærrer den ikke: downloadknappen står uændret som «Download som Word», og dokumentet
+  bliver hentet uden ASL-halvdelen og uden de fire ASL-oplysninger, brugeren har indtastet.
+  Den anden halvdel er derfor blevet sit eget mønster, **M-25**, og de to skal læses sammen: M-16 siger,
+  hvor rettelsen hører hjemme (i feltmodellen), M-25 siger, hvorfor gaten ikke fangede det.
+- Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén
+  og EO's rækkebyggere (`EO_ROW_BUILDERS`).
 
 ## M-17 – Én oplysning delt over to lagerscoper
 
@@ -1303,6 +1418,135 @@ rammes.
   Et loft, der er dubleret af et cifferloft, afværger intet – spørg altid, om de to grænser er den
   samme grænse skrevet to gange. (2) Motoren fail-softer allerede (`arbejdsdageIPeriode > 0`), men
   fail-soft uden en synlig årsag er værre end fail-closed: den producerer et lovligt udseende beløb.
+- **Ny forekomst 2026-08-27 (`forsoergertab.md` BB-119), AFVIST 2026-08-28 – og afvisningen SKÆRPER
+  mønsteret, som jeg havde sat for bredt.** Fundet var, at «Beregnet forsørgertab» viser `701.505 kr.`
+  `- 643.653 kr.` `- 421.731 kr.` og derefter, med fed, **`0 kr.`** – hvor regnestykket giver
+  `-363.879 kr.` De fire linjer trykkes ordret i dokumentet, og downloadknappen er aktiv. Jeg foreslog
+  først at vise differencen, derefter – efter udviklerens første svar – blot én forklarende linje.
+  **Begge dele er afvist:** værdien kan juridisk aldrig blive negativ (en negativ forsørgertabserstatning
+  ville betyde en tilbagebetalingspligt), og det er velkendt for målgruppen, at det, der beregnes, er et
+  eventuelt **overskydende** krav efter EAL, og at en negativ værdi vises som nul.
+  **Jeg formulerede efter fundet den generelle regel «et klampet nul skal enten forhindres af en grænse
+  eller forklares af en linje – det må aldrig bare stå der som et tal». Den regel er for bred og er
+  trukket tilbage.** Den rigtige prøve skelner de to slags nul:
+  - **Nullet ER ydelsens velkendte resultatform.** Klampningen udtrykker selve den regel, beregningen
+    findes for – «er der noget tilbage?» – og målgruppen kender formen. **Ikke et fund**, uanset at de
+    viste linjer ikke summerer til det viste resultat.
+  - **Nullet DÆKKER OVER en umulig mellemregning.** Klampningen redder et resultat, der aldrig skulle
+    være opstået – BB-097's «`23 hverdage - 99 feriedage` = `-76 hverdage`» og derefter årslønnen
+    `0,00 kr.` **Det er fundet**, og rettelsen hører i grænsen, ikke i en forklarende linje.
+  Prøven `sæt B større end A og læs linjen` gælder uændret som **måling**; det er bedømmelsen bagefter,
+  der er skærpet. **Spørg altid: er nullet svaret, eller er det et plaster?** Kun det sidste er et fund.
+  Bemærk endelig, at mønsterets oprindelige punkt 1 om aggregatet står ved magt som beskrivelse af
+  mekanikken – klampningen kan ligge på en sum og ikke kun på et felt – men den mekanik gør det ikke i
+  sig selv til et fund.
 - Kandidater, ikke efterprøvet: ethvert felt, hvis værdi trækkes fra et tal programmet selv har
   beregnet – EET's og forsørgertabs fradragsfelter, EO's reguleringsbilag. Generelt:
-  `rg " - \$\{" src/components/pages` over mellemregningstekster med et fradrag i parentes.
+  `rg " - \$\{" src/components/pages` over mellemregningstekster med et fradrag i parentes, og
+  `rg "Math.max\(0,|clampMoneyOreToZero" src/domain` over de klampede aggregater.
+
+## M-25 – Gaten spørger «findes der noget?», ikke «findes det, brugeren bad om?»
+
+> En flade regner to halvdele, og dokumentgaten godkendes af den ENE af dem. Falder den anden ud, sker
+> det tavst: intet er rødt, knappen er aktiv, og papiret ser færdigt ud.
+
+En flade med valgfrie dele bygger typisk sin gate som «har vi noget at trykke?» – `!canShowA && !canShowB`
+blokerer, alt andet slipper igennem. Betingelsen er sand og rigtig for den bruger, der bevidst kun regner
+den ene halvdel. Den er katastrofal for den bruger, der har udfyldt begge og har mistet den ene undervejs:
+de to tilstande ser **ens** ud på skærmen og i dokumentet.
+
+Formen er farlig, fordi den vender programmets normale beskyttelse om. En manglende oplysning giver
+normalt en grå knap; her giver en manglende BEREGNING en aktiv knap, netop fordi noget andet lykkedes.
+Og den kan ikke ses i koden: gaten læser fornuftigt, testene er grønne, og fejlen kræver et input, der
+rammer et hul i et datasæt.
+
+**Efterprøv, hvor:** en dokumentdefinition eller en gate indeholder et ELLER mellem to `canShow`-flag,
+eller hvor generatoren har `if (x !== null)` omkring en hel sektion. Prøven er konkret: **udfyld begge
+halvdele, ødelæg derefter den ene med en værdi, der er lovlig i feltet men uden dækning i beregningen –
+og læs downloadknappen.** Er den aktiv, hent dokumentet og tæl, hvad der mangler.
+
+**Skellet mod M-16.** M-16 handler om en afvisning, der kommer ud som et fravær og **spærrer** hele
+fladens dokumenter. M-25 er den anden halvdel: den samme afvisning kommer ud som et fravær og spærrer
+**ikke**. De to hører sammen – M-16 siger, hvor rettelsen hører hjemme (i feltmodellen, ved det felt
+brugeren skal rette), M-25 siger, hvorfor gaten ikke fangede det.
+
+**Den bagvedliggende regel er skarpere end gaten:** en gate må ikke kun spørge, om der er noget at
+trykke. Den skal spørge, om alt det, brugeren har udfyldt, er kommet med.
+
+**Rettelsen (2026-08-28) føjede to ting til mønsteret, som ikke var synlige fra fundet:**
+
+1. **En allowlist er den forkerte form.** Forsørgertabs gate navngav fem issue-ID'er, der blokerede.
+   `forsoergertab-alder-missing` og fem søskende stod ikke på listen. Retningen skal være omvendt: ethvert
+   error-issue blokerer, og en undtagelse skal tilføjes aktivt. De tre øvrige flader var allerede
+   fail-closed på præcis den måde – Forsørgertab var outlier'en, og det var ikke synligt fra fladen selv.
+2. **«Blokerer den?» og «hvad hedder blokeringen?» er TO beslutninger.** Da gaten blev fail-closed på
+   severity, kom en tom sag til at melde «Fejl i indtastning», før brugeren havde skrevet noget – fordi et
+   *manglende input*-issue også har severity `error`. Blokeringen skal være bred, klassifikationen smal:
+   listen af konkrete inputfejl afgør TEKSTEN, mens severity afgør BLOKERINGEN. En senere ændring, der
+   slår de to sammen igen, genindfører den fejl.
+
+- Fundet i: `forsoergertab.md` BB-117 (**Høj**, RETTET 2026-08-28). Målt: en efterladt på 17 år
+  (`20-08-2008` på en beregningsdato i 2025) rammer et alderstrin uden for kapitaliseringstabellens
+  18–66 år. Hele «ASL-ydelser»-sektionen forsvinder, «Beregnet forsørgertab» med den, ingen celle er
+  rød – og knappen står som «Download som Word». Dokumentet indeholder kun Beregningsdato og
+  Skadelidtes fødselsdato under «Grundlæggende oplysninger»: de fire ASL-oplysninger, brugeren netop har
+  indtastet, er væk, og papiret slutter med «Beregnet EAL-krav 1.155.420 kr.» med fed, uden det fradrag
+  på `1.065.384 kr.`, sagen faktisk har. Grænsen er målt: 18 år regner, 17 år gør ikke.
+- **Bemærk, hvor smal indgangen er, og hvor almindelig den er.** Datofeltet fortolker selv tocifrede
+  årstal, så `200808` bliver `20-08-2008`. Et forkert århundrede i efterladtes fødselsdato er præcis den
+  slags tastefejl, skillens præmis handler om – og den er den eneste, der skal til.
+- **Den tavse halvdel er værd at kende ved sit navn:** hver af de tre `if (… !== null)` i
+  `forsoergertabDocument.ts` udelader en hel side af dokumentet, og `addGrundlaeggendeSection`s `visAsl`
+  udelader tre indtastede felter fra forsiden. Ingen af dem efterlader et spor.
+- Kandidater, ikke efterprøvet: **Erhvervsevnetab** (to faner, hver med sin del af dokumentet),
+  **Erstatningsopgørelsen** (mange valgfri afsnit i ét dokument) og reguleringsbilaget. Generelt:
+  `rg "!canShow|=== null \?" src/domain` over dokumentdefinitioner og generatorer, og hvert
+  tabelopslag, hvis datasætdækning er smallere end det felt, der slår op i det.
+
+## M-26 – Et delt felt med to hjem
+
+> To sider redigerer det SAMME felt under hver sit navn, med hver sin advarsel – og ingen af dem siger,
+> at en rettelse det ene sted ændrer det andet.
+
+Et felt har ét sandt sted: descriptoren, med sin `label`, sin codec og sine validatorer. Men rækken
+omkring feltet tegnes af siden, og to sider kan tegne den forskelligt. Når den samme descriptor
+renderes fra to flader, opstår tre lag af navne – sidens synlige label, descriptorens eget `label`
+(som fejltekster og oplæsning bruger) og dokumentets label – og de kan alle tre være forskellige uden
+at nogen test bliver rød.
+
+Værre er de **parallelle afledninger**: hver side udleder sine egne feltadvarsler i sit eget snapshot,
+så den samme regel bliver skrevet to gange og driver fra hinanden. Den ene tekst konstaterer, den anden
+beder om en handling – og brugeren, der ser begge, tror der er tale om to forskellige forhold.
+
+**Skellet mod M-19.** M-19 handler om en flade, der **spejler** en fremmed værdi read-only. Dette
+mønster handler om et felt, der kan **redigeres** fra to steder. Konsekvensen er en anden: ikke en
+misvisende tekst, men en ændring af et andet områdes tal, brugeren ikke bad om.
+
+**Skellet mod Satser-fladens lukkede spor 5.** Afgørelsen dér var, at «brugeren kan tro, at de to sider
+hænger sammen» kun er et fund, hvis der **faktisk ER en kobling**. Det er netop betingelsen her: værdien
+er én og den samme.
+
+**Efterprøv, hvor:** en descriptor bindes fra mere end én sidekomponent. Prøven er konkret: **skriv en
+værdi på den ene flade, gå til den anden og se, om den står der** – og sammenlign så rækkens label,
+feltets `aria-label` og dokumentets label for samme felt.
+
+- Fundet i: `forsoergertab.md` BB-123 og BB-124 (begge Mellem, afventer udvikleren).
+  `faellesAarsloen.aslAarsloen` og `.ealAarsloen` renderes af både **Forsørgertab** og
+  **Erhvervsevnetab**. Målt: `551.000` skrevet på Forsørgertab står på Erhvervsevnetab, uden at nogen af
+  siderne siger det. Hvert felt bærer tre navne – ASL: «Skadelidtes årsløn (efter ASL)» / «Årsløn» /
+  «Skadelidtes årsløn (efter ASL)» i dokumentet, med descriptorens eget `label` = «Årsløn»; EAL:
+  «Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)» / «Årsløn (hvis forskellig fra ASL)» /
+  «Skadelidtes årsløn (efter EAL)».
+- **Den parallelle advarsel er den skarpeste halvdel** (BB-124). Samme udløser – ASL-årslønnen lig
+  skadesårets maksimum, EAL-årslønnen tom – giver «Når årsløn efter ASL svarer til maksimum, skal den
+  faktiske årsløn indtastes.» på Forsørgertab og «Årsløn efter ASL er sat til max-årslønnen» på
+  Erhvervsevnetab. To implementeringer (`forsoergertabSnapshot.ts`, `eetFieldWarnings.ts`), hvoraf den
+  ene er kommenteret med, at den er «samlet så feltvisningen og beregningen ikke kan drifte» – den er
+  blot drevet fra sin nabo i stedet for fra sin egen motor. **Læren: en regel er ikke samlet, fordi den
+  er samlet ÉT sted; den er samlet, når der ikke findes et andet sted, der gør det samme.**
+- Bemærk, at koden kender problemet og har løst den ene halvdel af det: begge flader sætter en
+  `EditorLocation` med hver sin `route`, netop så undo/redo lander på den side, brugeren stod på.
+  Identiteten er altså allerede erkendt som tvetydig – bare ikke over for brugeren.
+- Kandidater, ikke efterprøvet: `rg "faellesAarsloen" src/components/pages` (rammer også
+  Erstatningsopgørelsen), og generelt enhver descriptor, hvis `bind()` kaldes fra mere end én
+  sidekomponent.

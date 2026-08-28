@@ -168,6 +168,74 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.pdfProjection.result).toBeNull();
   });
 
+  /**
+   * BB-117, målt med rapportens egne værdier: en efterladt ægtefælle født `20-08-2008` er 16 år på
+   * beregningsdatoen, og kapitaliseringstabellen har kun aldersrækker fra 18 år.
+   *
+   * Før rettelsen forsvandt hele ASL-halvdelen tavst: ingen rød celle, ingen advarsel, og
+   * downloadknappen stod uændret aktiv. Dokumentet blev trykt med kun «Beregnet EAL-krav», altså uden de
+   * ASL-ydelser, der trak over en million fra – kravet fremstod tolv gange for stort, og fejlen kunne
+   * først opdages af modparten.
+   *
+   * De tre påstande dækker fundets tre lag: beskeden får en FELTADRESSE, gaten BLOKERER, og dokumentets
+   * projektion bærer ikke en halv beregning videre.
+   */
+  it('blokerer download og markerer feltet, når efterladtes alder er uden for tabellen (BB-117)', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({
+        beregningsdato: toISODateString('2025-07-01'),
+        virkningsdato: toISODateString('2020-06-10'),
+        efterladteFodselsdato: toISODateString('2008-08-20'),
+        koen: undefined,
+        tilkendtForPeriodeAar: 10,
+      }),
+      faellesAarsloen: createFaellesAarsloen({ aslAarsloen: asAmount(400000), ealAarsloen: undefined }),
+      stamdata: createStamdata({
+        skadedato: toISODateString('2020-06-10'),
+        skadelidteFodselsdato: toISODateString('1975-03-15'),
+      }),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    // Lag 1: motoren afviser ASL-delen, og beskeden bærer nu en feltadresse.
+    expect(snapshot.canShowAsl).toBe(false);
+    const feltIssue = snapshot.domainFieldIssues.all
+      .find((issue) => issue.code === 'forsoergertab.forsoergertab-alder-missing');
+    expect(feltIssue).toBeDefined();
+    expect(feltIssue?.field.address).toMatchObject({ field: 'efterladteFodselsdato' });
+
+    // Lag 2+3: gaten er fail-closed, og den halve beregning når ikke dokumentet.
+    expect(snapshot.pdfGate.canDownload).toBe(false);
+    expect(snapshot.pdfProjection.aslComputation).toBeNull();
+    expect(snapshot.pdfProjection.result).toBeNull();
+  });
+
+  /**
+   * Den NEGATIVE retning af BB-117's fail-closed gate, og den vigtigste af de to.
+   *
+   * Da gaten blev fail-closed på severity alene, spærrede den den almindeligste gyldige sag på fladen: en
+   * bruger, der bevidst kun regner EAL-delen. Årsagen er, at ASL-motoren mærker ALLE sine issues
+   * `severity: 'error'` – også de rene «feltet er ikke udfyldt». Et fail-closed værn må ikke kunne
+   * blokere det, det ikke er sat til at fange, så testen står her permanent.
+   */
+  it('blokerer IKKE en gyldig sag, hvor kun EAL-delen er udfyldt', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({
+        efterladteFodselsdato: undefined,
+        virkningsdato: undefined,
+        koen: undefined,
+        tilkendtForPeriodeAar: undefined,
+      }),
+      faellesAarsloen: createFaellesAarsloen({ aslAarsloen: undefined }),
+      stamdata: createStamdata(),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    expect(snapshot.canShowEal).toBe(true);
+    expect(snapshot.pdfGate.canDownload).toBe(true);
+    expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
+  });
+
   it('lader feltfejl overstyre domænehelpertekst i snapshot-projektionen', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues(),

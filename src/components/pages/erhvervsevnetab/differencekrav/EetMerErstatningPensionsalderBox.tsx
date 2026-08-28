@@ -101,7 +101,7 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     </Box>
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`}
+        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} x ${formatFaktor(event.gammel.kapitaliseringsfaktor)}) =`}
       </Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)}</Typography>
@@ -118,7 +118,7 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
     </Box>
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`}
+        {`Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} x ${formatFaktor(event.ny.kapitaliseringsfaktor)}) =`}
       </Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)}</Typography>

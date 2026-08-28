@@ -208,17 +208,17 @@ export const addLoebendeUdvidetSpecifikationPage = (
   writer.writeBoldSubheader('Grundløn');
   if (computation.grundloenNiveau === '2003') {
     writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
-    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
+    writer.writeWrappedTextContinued(`Årsløn x (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
-      `${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
+      `${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
       formatKr(toKroner(computation.grundloenOre)),
       rowOpts
     );
   } else {
     writer.writeWrappedText('Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
-    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
+    writer.writeWrappedTextContinued(`Årsløn x (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
-      `${formatKr(toKroner(computation.benyttetAarsloenOre))} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
+      `${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
       formatKr(toKroner(computation.grundloenOre)),
       rowOpts
     );

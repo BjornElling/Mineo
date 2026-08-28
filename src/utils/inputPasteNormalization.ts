@@ -152,7 +152,10 @@ export const normalizeAmountPaste = (
   text: string,
   options: AmountPasteOptions = {}
 ): string => {
-  const allowDecimals = options.allowDecimals !== false;
+  // `allowDecimals` styrer IKKE længere tegnsættet (BB-118): decimalkommaet er lovligt i alle
+  // beløbsfelter, og et decimalløst felt afrunder i stedet ved settle. Kun `maxDecimalDigits` begrænser
+  // draften. Optionen bevares på `AmountPasteOptions`, fordi codec'en stadig sender den – men den må
+  // ikke røre tegnfilteret igen; det var netop dét, der gjorde «400.000,00» til 4.000.000.
   const maxIntegerDigits = normalizePositiveIntegerOption(
     options.maxIntegerDigits,
     MAX_AMOUNT_INPUT_INTEGER_DIGITS
@@ -166,7 +169,6 @@ export const normalizeAmountPaste = (
     text,
     (draft) => isAmountExpressionDraftAllowed(draft, {
       allowNegative: options.allowNegative,
-      allowDecimals,
       maxIntegerDigits,
       maxDecimalDigits,
     }),
@@ -178,12 +180,13 @@ export const normalizePercentPaste = (
   text: string,
   options: NumericPasteOptions = {}
 ): string => {
-  const allowDecimals = options.allowDecimals === true;
+  // Samme regel som beløb (BB-118): kommaet er lovligt uanset `allowDecimals`, og settle afrunder.
+  // Bemærk at defaulten her var `=== true` mod beløbets `!== false` – to modsatte defaults for samme
+  // flag. Uenigheden er væk med flaget selv.
   const maxIntegerDigits = normalizePositiveIntegerOption(options.maxIntegerDigits, 3);
   const maxDecimalDigits = normalizeNonNegativeIntegerOption(options.maxDecimalDigits, 2);
   return filterPasteCharacters(text, (draft) => isPercentDraftAllowed(draft, {
     allowNegative: options.allowNegative,
-    allowDecimals,
     maxIntegerDigits,
     maxDecimalDigits,
   }));

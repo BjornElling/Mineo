@@ -78,16 +78,57 @@ const evaluate = (input: SettledInput) => createInputEvaluation({ input, catalog
 const tableRef = createCollectionRef({ section: 'aarsloen', path: [], collection: 'tableData' });
 
 describe('produktdescriptors – dato-, periode- og relevansregler', () => {
+  /**
+   * Feltets label er kontekstuel: `Skadedato` hedder `Anmeldelsesdato`, når skadestypen er
+   * Erhvervssygdom. Testen måler, at den AKTUELLE label – ikke descriptorens statiske navn – følger med
+   * ud i en rejected datofejl.
+   *
+   * BB-128: en afvisning med en KONKRET årsag (`nonexistentDay`, `yearOutOfRepresentableRange`) bruger nu
+   * årsagsteksten som `message`, ikke kun som tooltip. Den besked nævner ikke feltet, så labelen måles her
+   * på et `malformed` input («abc»), der stadig har den generiske feltnavns-besked. Kontrasten uden
+   * skadestype sikrer, at testen måler selve kontekstskiftet og ikke bare en konstant streng.
+   */
   it('bruger den aktuelle kontekstuelle label i rejected datofejl', () => {
+    let input = dispatch(empty(), resetSection('stamdata', { skadestype: 'Erhvervssygdom' }));
+    input = dispatch(input, settleField(stamdataSkadedatoField.bind(), 'abc'));
+
+    const evaluation = evaluate(input);
+    expect(evaluation.reader.labelOf(stamdataSkadedatoField.bind())).toBe('Anmeldelsesdato');
+    expect(evaluation.reader.read(stamdataSkadedatoField.bind())).toMatchObject({
+      status: 'error',
+      issue: {
+        reason: 'format',
+        message: "Der er udfyldt en ugyldig værdi i feltet 'Anmeldelsesdato'",
+        field: { descriptor: { label: 'Anmeldelsesdato' } },
+      },
+    });
+
+    // Uden Erhvervssygdom bærer præcis samme felt og input den anden label.
+    const utenSkadestype = evaluate(dispatch(empty(), settleField(stamdataSkadedatoField.bind(), 'abc')));
+    expect(utenSkadestype.reader.labelOf(stamdataSkadedatoField.bind())).toBe('Skadedato');
+    expect(utenSkadestype.reader.read(stamdataSkadedatoField.bind())).toMatchObject({
+      status: 'error',
+      issue: { message: "Der er udfyldt en ugyldig værdi i feltet 'Skadedato'" },
+    });
+  });
+
+  /**
+   * BB-128: den konkrete årsag er selve beskeden. Før stod den kun i `detail.tooltip`, mens `message`
+   * faldt tilbage til den generiske feltnavns-tekst – brugeren så altså «ugyldig værdi» frem for at få at
+   * vide, at 31. februar ikke findes. Den kontekstuelle label lever videre på issuets descriptor.
+   */
+  it('bruger den konkrete årsag som besked i en rejected datofejl', () => {
     let input = dispatch(empty(), resetSection('stamdata', { skadestype: 'Erhvervssygdom' }));
     input = dispatch(input, settleField(stamdataSkadedatoField.bind(), '31-02-2020'));
 
-    const evaluation = evaluate(input);
-    const issue = evaluation.reader.read(stamdataSkadedatoField.bind());
-    expect(evaluation.reader.labelOf(stamdataSkadedatoField.bind())).toBe('Anmeldelsesdato');
-    expect(issue).toMatchObject({
+    expect(evaluate(input).reader.read(stamdataSkadedatoField.bind())).toMatchObject({
       status: 'error',
-      issue: { reason: 'format', message: "Der er udfyldt en ugyldig værdi i feltet 'Anmeldelsesdato'" },
+      issue: {
+        reason: 'format',
+        message: 'Datoen findes ikke i kalenderen',
+        detail: { dateInvalidKind: 'nonexistentDay', tooltip: 'Datoen findes ikke i kalenderen' },
+        field: { descriptor: { label: 'Anmeldelsesdato' } },
+      },
     });
   });
 

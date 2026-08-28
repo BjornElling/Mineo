@@ -40,6 +40,7 @@ import {
   formatKr,
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
+import { formatDeduction, formatDeductionKr } from '../../../utils/deductionFormatting';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 import {
@@ -112,7 +113,7 @@ const addProformaKapitaliseringSection = (
       `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %) =`
     );
     writer.writeLeftRightText(
-      `${formatKr(toKroner(pk.grundydelseOre), 2)} × ${formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      `${formatKr(toKroner(pk.grundydelseOre), 2)} x ${formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4)} =`,
       formatKr(toKroner(pk.grundydelse2024Ore), 2),
       rowOpts
     );
@@ -192,7 +193,7 @@ const addProformaKapitaliseringSection = (
   writer.writeBoldSubheader('Kapitalbeløb');
 
   writer.writeLeftRightText(
-    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
+    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) =`,
     formatKr(toKroner(pk.proformaBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );
@@ -236,7 +237,7 @@ const addMerErstatningEvent = (
       `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %) =`
     );
     writer.writeLeftRightText(
-      `${formatCurrencyFromOre(event.grundydelseOre)} × ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      `${formatCurrencyFromOre(event.grundydelseOre)} x ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
       formatCurrencyFromOre(event.grundydelse2024Ore),
       rowOpts
     );
@@ -264,7 +265,7 @@ const addMerErstatningEvent = (
   writer.writeBoldSubheader(`Kapitalværdi til hidtidig folkepensionsalder (${event.gammelAlderLabel})`);
   writer.writeLeftRightText(event.gammel.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.gammel.kapitaliseringsfaktor), rowOpts);
   writer.writeLeftRightText(
-    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`,
+    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} x ${formatFaktor(event.gammel.kapitaliseringsfaktor)}) =`,
     formatCurrencyFromOre(event.gammel.kapitalvaerdiOre),
     rowOpts
   );
@@ -272,7 +273,7 @@ const addMerErstatningEvent = (
   writer.writeBoldSubheader(`Kapitalværdi til forhøjet folkepensionsalder (${event.nyAlderLabel})`);
   writer.writeLeftRightText(event.ny.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.ny.kapitaliseringsfaktor), rowOpts);
   writer.writeLeftRightText(
-    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`,
+    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} x ${formatFaktor(event.ny.kapitaliseringsfaktor)}) =`,
     formatCurrencyFromOre(event.ny.kapitalvaerdiOre),
     rowOpts
   );
@@ -371,13 +372,13 @@ const renderDifferencekravPage = (
     if (foretages && afgoerelse.beloebOre > 0) {
       writer.writeLeftRightText(
         `Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`,
-        `- ${formatKr(toKroner(afgoerelse.beloebOre))}`,
+        formatDeductionKr(toKroner(afgoerelse.beloebOre)),
         rowOpts
       );
     } else if (!foretages && tvk) {
       writer.writeLeftRightText(
         `Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`,
-        `- ${formatKr(toKroner(tvk.beloebOre))}`,
+        formatDeductionKr(toKroner(tvk.beloebOre)),
         rowOpts
       );
     } else if (!foretages && afgoerelse.afgoerelseType === 'Midlertidig') {
@@ -408,7 +409,7 @@ const renderDifferencekravPage = (
     ) {
       writer.writeLeftRightText(
         `Kapitaliseret (${formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`,
-        `- ${formatKr(toKroner(afgoerelse.kapitalbelobOre))}`,
+        formatDeductionKr(toKroner(afgoerelse.kapitalbelobOre)),
         rowOpts
       );
     } else if (afgoerelse.kapitaliseringEfterBeregningsdato) {
@@ -431,8 +432,8 @@ const renderDifferencekravPage = (
       const rest = computation.resterendeLoebendeYdelser;
       writer.writeWrappedText('De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes.');
       writer.writeLeftRightText(
-        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md.`,
-        `- ${formatKr(toKroner(rest.fradragBeloebOre))}`,
+        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md. =`,
+        formatDeductionKr(toKroner(rest.fradragBeloebOre)),
         rowOpts
       );
     } else if (computation.proformaKapitalisering) {
@@ -440,7 +441,7 @@ const renderDifferencekravPage = (
       writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
       writer.writeLeftRightText(
         `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatISOToDanish(pk.kapitaliseringsdato)}:`,
-        `- ${formatKr(toKroner(pk.proformaBeloebOre))}`,
+        formatDeductionKr(toKroner(pk.proformaBeloebOre)),
         rowOpts
       );
     }
@@ -452,7 +453,9 @@ const renderDifferencekravPage = (
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
         `Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
-        `- ${formatCurrencyFromOreTrimmed(event.merErstatningOre)}`,
+        // Linjen formaterer selv (trimmet valuta med NBSP); vagten måler derfor mod DEN streng, så
+        // dokumentet og skærmen ikke kan blive uenige om formen ved nul (BB-130).
+        formatDeduction(toKroner(event.merErstatningOre), formatCurrencyFromOreTrimmed(event.merErstatningOre)),
         rowOpts
       );
     }

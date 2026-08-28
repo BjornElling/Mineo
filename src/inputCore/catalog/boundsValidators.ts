@@ -69,14 +69,20 @@ export const canonicalStringCodecValidator = (
   };
 };
 
-/** Canonical bounds-validator for et heltalsfelt (tidligere codec-`range` via `getIntegerRangeErrorMessage`). */
+/**
+ * Canonical bounds-validator for et heltalsfelt (tidligere codec-`range` via `getIntegerRangeErrorMessage`).
+ *
+ * `unit` navngiver hvad tallet TÆLLER (BB-125). «Værdi skal være mellem 1 og 10» siger ikke, at der er tale
+ * om år; kun feltet ved det, så enheden leveres af descriptoren.
+ */
 export const integerBoundsValidator = (
   code: string,
   minValue: number | undefined,
-  maxValue: number | undefined
+  maxValue: number | undefined,
+  unit?: string
 ): FieldValidator<number | undefined> => (value) => {
   if (value === undefined) return undefined;
-  const message = getIntegerRangeErrorMessage(value, minValue, maxValue);
+  const message = getIntegerRangeErrorMessage(value, minValue, maxValue, unit === undefined ? {} : { unit });
   if (message === '') return undefined;
   return { reason: 'bounds', code, message, detail: boundsDetail(minValue, maxValue) };
 };
@@ -120,7 +126,9 @@ export const amountBoundsValidator = (
   return {
     reason: 'bounds',
     code,
-    message: getIntegerRangeErrorMessage(numeric, minValue, maxValue),
+    // Et beløbsfelts grænser er kroner; enheden står i beskeden af samme grund som tusindseparatoren
+    // (BB-125): «mellem 1000 og 551000» kan ikke læses i en fart og siger ikke, hvad tallet er.
+    message: getIntegerRangeErrorMessage(numeric, minValue, maxValue, { unit: 'kr.' }),
     detail: boundsDetail(minValue, maxValue),
   };
 };

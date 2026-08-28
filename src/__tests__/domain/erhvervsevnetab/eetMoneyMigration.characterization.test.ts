@@ -106,7 +106,7 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser hele det samlede snapshot byte-præcist efter stabil nøglesortering', () => {
-    expect(goldenHash(snapshot)).toBe('2d7ac9037ed02d1fbfa2fb2b98423db9f0279449ed83d96d7fc35e2a59f59cbc');
+    expect(goldenHash(snapshot)).toBe('85885853fce2034959d8b31415ec7ae7908d080f21ea02326999c51610bb11b3');
   });
 
   it('låser løbende ydelser med overlap og kalenderårsskift', () => {
@@ -118,11 +118,11 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser EAL-beregningen inklusive maksimum, regulering og aldersreduktion', () => {
-    expect(goldenHash(snapshot.efterEal)).toBe('7426a54298f8af7237eecffa75d99609f3113f909690d1ed5a654fd96924aa79');
+    expect(goldenHash(snapshot.efterEal)).toBe('204d3acc44ec81f2b49a69f5facb530db3735b6e528e77e74c8fdc1da2abe29e');
   });
 
   it('låser differencekravet inklusive søsterberegninger og forlig', () => {
-    expect(goldenHash(snapshot.differencekrav)).toBe('a866b0c49cddff84b067f70b43d8dd720ae1bbaae2b4da1969f15dadc95c6262');
+    expect(goldenHash(snapshot.differencekrav)).toBe('bafbfa690fdaf445b8377b3f89eba7936667420b28cca70fd74a65addec2ae58');
   });
 
   it('låser mer-erstatning ved forhøjet pensionsalder med alle delresultater', () => {

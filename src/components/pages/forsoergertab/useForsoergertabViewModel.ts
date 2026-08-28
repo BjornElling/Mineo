@@ -16,8 +16,15 @@ import {
   faellesAarsloenAslAarsloenField,
   faellesAarsloenEalAarsloenField,
 } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
-import { stamdataSkadedatoField, stamdataSkadelidteFodselsdatoField } from '../../../inputCore/catalog/stamdataDescriptors';
+import {
+  stamdataSkadedatoField,
+  stamdataSkadelidteFodselsdatoField,
+  stamdataSkadestypeField,
+} from '../../../inputCore/catalog/stamdataDescriptors';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import type { FieldAddress } from '../../../inputCore/fieldAddress';
+import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
+import type { AnyFieldRef } from '../../../inputCore/fieldDescriptor';
 import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
@@ -50,6 +57,7 @@ const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 const skadelidteFodselsdatoRef = stamdataSkadelidteFodselsdatoField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
+const skadestypeRef = stamdataSkadestypeField.bind();
 
 /**
  * route er eksplicit navigation-metadata (§3.7); Forsørgertab er en side uden faner (tabKey: null). De to
@@ -106,6 +114,16 @@ export function useForsoergertabViewModel() {
   const skadedato = skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined;
   const skadedatoError = skadedatoRead.status === 'error' ? skadedatoRead.issue.message : undefined;
   const skadedatoLabel = evaluation.reader.labelOf(skadedatoRef);
+  /**
+   * Datoens navn i alle afledte tekster (BB-121). Rækken øverst hed korrekt «Anmeldelsesdato» ved en
+   * erhvervssygdom, mens de tre EAL-tekster tolv linjer nede stadig sagde «skadestidspunktet»,
+   * «skadesår» og «skadestidspunkt» om nøjagtig samme dato. Referencen bærer alle formerne, så de ikke
+   * kan komme fra hinanden igen.
+   */
+  const skadestypeRead = evaluation.reader.read(skadestypeRef);
+  const datoReference = resolveStamdataDatoReference(
+    skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined
+  );
 
   /**
    * «Mangler (angiv i Stamdata)»-linket: naviger OG peg på det felt, der mangler.
@@ -131,6 +149,22 @@ export function useForsoergertabViewModel() {
     [goToStamdataField]
   );
 
+  /**
+   * Feltets beregningsafvisende domæneregel som `crossFieldIssue`-prop, eller `{}` når feltet ikke har en
+   * (BB-117).
+   *
+   * Spredningsformen `{...vm.domainIssueProps(felt)}` er valgt frem for en altid-tilstedeværende prop med
+   * `undefined`, fordi `exactOptionalPropertyTypes` ellers ville afvise den – samme form som de øvrige
+   * valgfri issue-props i programmet.
+   */
+  const domainIssueProps = React.useCallback(
+    (field: { address: FieldAddress } | AnyFieldRef) => {
+      const issue = snapshot.domainFieldIssues.get(serializeFieldAddress(field.address));
+      return issue === undefined ? {} : { crossFieldIssue: issue };
+    },
+    [snapshot]
+  );
+
   const settleBeregningsdato = React.useCallback(
     (today: Parameters<typeof beregningsdatoController.settleValue>[0]) => {
       beregningsdatoController.settleValue(today);
@@ -150,6 +184,7 @@ export function useForsoergertabViewModel() {
   return {
     fields: FIELDS,
     locations: LOCATIONS,
+    domainIssueProps,
     settleBeregningsdato,
     insertTodayDisabledReason,
     /**
@@ -164,6 +199,7 @@ export function useForsoergertabViewModel() {
     skadedato,
     skadedatoError,
     skadedatoLabel,
+    datoReference,
     goToSkadelidteFodselsdato,
     goToSkadedato,
     // Snapshot-afledt visning og panel-gates (§1.10).
@@ -172,6 +208,16 @@ export function useForsoergertabViewModel() {
     aslComputation: snapshot.calculation.aslComputation,
     foersoergertabEalMinSatsOre: snapshot.calculation.foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin: snapshot.calculation.foersoergertabForhoejtetTilMin,
+    /**
+     * Maksimumsgrænsen, symmetrisk med minimum (BB-133).
+     *
+     * Begge tal fandtes allerede i beregningen (`eetMaksOre`/`eetReduceretTilMaks`) – de blev bare aldrig
+     * vist. Følgen var, at et beløb sat NED til årets loft stod under sætningen «Det beregnede
+     * forsørgertab skal ikke forhøjes, dvs. udgør», som er usand i netop den situation, mens minimum
+     * havde både en navngiven linje og en formulering om, hvorvidt det slog til.
+     */
+    foersoergertabEalMaksSatsOre: snapshot.calculation.ealComputation?.eetMaksOre ?? null,
+    foersoergertabNedsatTilMaks: snapshot.calculation.ealComputation?.eetReduceretTilMaks ?? false,
     visKoenValg: snapshot.visKoenValg,
     canShowEal: snapshot.canShowEal,
     canShowAsl: snapshot.canShowAsl,

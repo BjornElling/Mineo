@@ -41,6 +41,7 @@ const ForsoergertabBeregningSection = React.memo(() => {
             field={vm.fields.beregningsdato}
             location={vm.locations.beregningsdato}
             name="beregningsdato"
+            {...vm.domainIssueProps(vm.fields.beregningsdato)}
           />
           <InsertTodayDateButton
             onCommit={vm.settleBeregningsdato}

@@ -8,22 +8,22 @@ import {
 describe('eetKapitaliseringPresentation', () => {
   it('udelader AM-bidrag i grundydelsesformlen for skader foer 2011', () => {
     expect(buildKapitaliseringGrundydelseLabel('50 %', 0)).toBe(
-      'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau'
+      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau'
     );
 
     expect(
       buildKapitaliseringGrundydelseExpression('351.539 kr.', '50 %', 80, 0, '140.615,60 kr.')
-    ).toBe('351.539 kr. × 50 % × 80 % = 140.615,60 kr.');
+    ).toBe('351.539 kr. x 50 % x 80 % = 140.615,60 kr.');
   });
 
   it('bevarer AM-bidrag i grundydelsesformlen for skader fra 2011', () => {
     expect(buildKapitaliseringGrundydelseLabel('50 %', 8)).toBe(
-      'Grundydelse (50 %): Grundløn × EET × Erstatningsniveau × (100 % − AM-bidrag)'
+      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag)'
     );
 
     expect(
       buildKapitaliseringGrundydelseExpression('351.539 kr.', '50 %', 83, 8, '134.998,98 kr.')
-    ).toBe('351.539 kr. × 50 % × 83 % × 92 % = 134.998,98 kr.');
+    ).toBe('351.539 kr. x 50 % x 83 % x 92 % = 134.998,98 kr.');
   });
 
   describe('buildKapitaliseringOpreguleringTil2024Expression', () => {
@@ -31,7 +31,7 @@ describe('eetKapitaliseringPresentation', () => {
       expect(
         buildKapitaliseringOpreguleringTil2024Expression('100.000 kr.', '1,376', '37,6 %')
       ).toBe(
-        'Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 37,6 %): 100.000 kr. × 1,376 ='
+        'Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 37,6 %): 100.000 kr. x 1,376 ='
       );
     });
 
@@ -39,7 +39,7 @@ describe('eetKapitaliseringPresentation', () => {
       expect(
         buildKapitaliseringOpreguleringTil2024Expression('100.000 kr.', '1,376', '37,6 %', '137.600 kr.')
       ).toBe(
-        'Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 37,6 %): 100.000 kr. × 1,376 = 137.600 kr.'
+        'Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 37,6 %): 100.000 kr. x 1,376 = 137.600 kr.'
       );
     });
   });
@@ -57,10 +57,10 @@ describe('eetKapitaliseringPresentation', () => {
 
     it('inkluderer reguleringsled når reguleringsprocenten er angivet', () => {
       expect(buildKapitaliseringAarsydelseExpression('137.600 kr.', '3,9 %')).toBe(
-        'Årlig ydelse (137.600 kr. × 3,9 %) ='
+        'Årlig ydelse (137.600 kr. x 3,9 %) ='
       );
       expect(buildKapitaliseringAarsydelseExpression('137.600 kr.', '3,9 %', '142.966 kr.')).toBe(
-        'Årlig ydelse (137.600 kr. × 3,9 %) = 142.966 kr.'
+        'Årlig ydelse (137.600 kr. x 3,9 %) = 142.966 kr.'
       );
     });
   });

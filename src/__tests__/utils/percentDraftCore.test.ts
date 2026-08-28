@@ -33,9 +33,15 @@ describe('percentDraftCore', () => {
     });
   });
 
+  /**
+   * BB-118: `allowDecimals: false` er ikke længere en TEGN-regel, men en SETTLE-regel. Et decimalløst
+   * procentfelt TAGER IMOD et komma og AFRUNDER det væk – det afviser det ikke. Afrundingen er
+   * `halfAwayFromZero`, samme metode som beløbsfelterne, så de to felttyper afrunder ens.
+   */
   it('respekterer decimal- og negativ-konfiguration', () => {
-    expect(parsePercentDraftForCommit('50,25', { ...baseConfig, allowDecimals: false }).ok).toBe(false);
-    expect(parsePercentDraftForCommit('5,0', { ...baseConfig, allowDecimals: false }).ok).toBe(false);
+    expect(parsePercentDraftForCommit('50,25', { ...baseConfig, allowDecimals: false })).toEqual({ ok: true, value: 50 });
+    expect(parsePercentDraftForCommit('50,5', { ...baseConfig, allowDecimals: false })).toEqual({ ok: true, value: 51 });
+    expect(parsePercentDraftForCommit('5,0', { ...baseConfig, allowDecimals: false })).toEqual({ ok: true, value: 5 });
     expect(parsePercentDraftForCommit('-5', baseConfig)).toEqual({
       ok: false,
       errorMessage: 'Procent kan ikke være negativ',

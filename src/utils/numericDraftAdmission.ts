@@ -5,14 +5,12 @@
 
 export type AmountDraftConstraints = Readonly<{
   allowNegative?: boolean;
-  allowDecimals?: boolean;
   maxDecimalDigits?: number;
   maxIntegerDigits?: number;
 }>;
 
 export type PercentDraftConstraints = Readonly<{
   allowNegative?: boolean;
-  allowDecimals?: boolean;
   maxDecimalDigits?: number;
   maxIntegerDigits?: number;
 }>;
@@ -47,20 +45,33 @@ const exceedsAmountTokenDigits = (
 const hasMultipleDecimalSeparatorsInAmountToken = (draft: string): boolean =>
   draft.split(/[+\-*/x()\s]+/).some((token) => (token.match(/,/g)?.length ?? 0) > 1);
 
-/** Om hele den kommende beløbsdraft kan rumme præcis de tegn, brugeren har skrevet. */
+/**
+ * Om hele den kommende beløbsdraft kan rumme præcis de tegn, brugeren har skrevet.
+ *
+ * **Decimalkommaet er tilladt UANSET `allowDecimals` (BB-118).** Flaget styrede før tegnsættet, og det var
+ * fejlen: en indsat eller tastet `400.000,00` fik kommaet SPRUNGET OVER – ikke afvist – hvorefter de to
+ * nuller efter kommaet gled op i heltalsdelen og gjorde beløbet til `4.000.000`. En faktor-10-fejl i det tal,
+ * hele erstatningen udspringer af, frembragt af den mest almindelige handling i programmet: at kopiere et
+ * beløb, som det står skrevet på dansk. Ingen rød kant, ingen besked.
+ *
+ * Reglen er nu, at et decimalløst felt TAGER IMOD decimaler og AFRUNDER dem ved settle (udviklerbeslutning
+ * 2026-08-28) – præcis som resten af programmets beløbsfelter. `allowDecimals` er dermed en settle-regel,
+ * ikke en tegnregel, og `maxDecimalDigits` styrer stadig hvor mange decimaler der må stå i draften.
+ *
+ * Fjern ikke kommaet fra tegnklassen igen: «spring det ulovlige tegn over» er den rigtige regel for et
+ * bogstav, men den forkerte for det tegn, der ADSKILLER de to dele af et tal.
+ */
 export const isAmountExpressionDraftAllowed = (
   draft: string,
   options: AmountDraftConstraints = {}
 ): boolean => {
   const allowNegative = options.allowNegative === true;
-  const allowDecimals = options.allowDecimals !== false;
   const maxDecimalDigits = options.maxDecimalDigits;
 
   if (!allowNegative && containsUnaryMinusToken(draft)) return false;
   if (draft.includes('.') || hasMultipleDecimalSeparatorsInAmountToken(draft)) return false;
   if (
-    allowDecimals
-    && typeof maxDecimalDigits === 'number'
+    typeof maxDecimalDigits === 'number'
     && Number.isInteger(maxDecimalDigits)
     && maxDecimalDigits >= 0
     && new RegExp(`,\\d{${maxDecimalDigits + 1}}`).test(draft)
@@ -69,36 +80,30 @@ export const isAmountExpressionDraftAllowed = (
   }
   if (
     typeof options.maxIntegerDigits === 'number'
-    && exceedsAmountTokenDigits(
-      draft,
-      options.maxIntegerDigits,
-      allowDecimals ? maxDecimalDigits : 0
-    )
+    && exceedsAmountTokenDigits(draft, options.maxIntegerDigits, maxDecimalDigits)
   ) {
     return false;
   }
 
-  const allowed = allowDecimals
-    ? /^[0-9+\-*/x(),]*$/
-    : /^[0-9+\-*/x()]*$/;
-  return allowed.test(draft);
+  return /^[0-9+\-*/x(),]*$/.test(draft);
 };
 
-/** Om hele den kommende procentdraft følger feltets tegn-, decimal- og cifferpolitik. */
+/**
+ * Om hele den kommende procentdraft følger feltets tegn-, decimal- og cifferpolitik.
+ *
+ * Decimalkommaet er tilladt uanset `allowDecimals` af samme grund som i beløbsdraften (BB-118): et
+ * indsat «15,00 %» blev til `1500`, fordi kommaet blev sprunget over frem for at afslutte tallet. Et
+ * decimalløst procentfelt tager derfor imod decimaler og afrunder dem ved settle.
+ */
 export const isPercentDraftAllowed = (
   draft: string,
   options: PercentDraftConstraints = {}
 ): boolean => {
   const allowNegative = options.allowNegative === true;
-  const allowDecimals = options.allowDecimals !== false;
   const maxDecimalDigits = options.maxDecimalDigits ?? 2;
-  const pattern = allowDecimals
-    ? allowNegative
-      ? new RegExp(`^-?\\d*(,\\d{0,${maxDecimalDigits}})?$`)
-      : new RegExp(`^\\d*(,\\d{0,${maxDecimalDigits}})?$`)
-    : allowNegative
-      ? /^-?\d*$/
-      : /^\d*$/;
+  const pattern = allowNegative
+    ? new RegExp(`^-?\\d*(,\\d{0,${maxDecimalDigits}})?$`)
+    : new RegExp(`^\\d*(,\\d{0,${maxDecimalDigits}})?$`);
   if (!pattern.test(draft)) return false;
 
   const normalized = draft.startsWith('-') ? draft.slice(1) : draft;

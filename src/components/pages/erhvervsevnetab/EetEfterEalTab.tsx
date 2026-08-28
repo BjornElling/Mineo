@@ -2,12 +2,14 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
-import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
@@ -28,9 +30,14 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
 
-  const aldersreduktionFormula = computation
-    ? buildAldersreduktionFormelTekst(computation.alderVedSkade)
+  const aldersreduktionEtiket = computation
+    ? buildAldersreduktionEtiket(computation.alderVedSkade)
     : '';
+
+  // Ét navnevalg for hele fanen, udledt af beregningens egen skadestype (BB-121). Skadestypen bæres
+  // i computation'en – ikke læst separat her – så skærmen og bilaget i differencekravet ikke kan
+  // navngive den samme dato forskelligt.
+  const datoReference = resolveStamdataDatoReference(computation?.skadestype);
 
   return (
     <Box>
@@ -77,7 +84,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
             <Typography className="row--subheading">Årsløn</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Årsløn på skadestidspunktet</Typography>
+              <Typography className="row--text">{`Årsløn på ${datoReference.tidspunktBestemt}`}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatKr(toKroner(computation.aarsloenOre))}</Typography>
               </Box>
@@ -87,7 +94,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
               <>
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    Regulering fra skadesår {computation.skadesaar} til beregningsår {computation.beregningsaar}
+                    {`Regulering fra ${datoReference.aar} ${computation.skadesaar} til beregningsår ${computation.beregningsaar}`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">+ {formatPct(computation.reguleringsPctRounded4)}</Typography>
@@ -158,23 +165,23 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Alder på skadestidspunkt</Typography>
+              <Typography className="row--text">{`Alder på ${datoReference.tidspunkt}`}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{`${computation.alderVedSkade} år`}</Typography>
               </Box>
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">{`Aldersreduktion ${aldersreduktionFormula}`}</Typography>
+              <Typography className="row--text">{aldersreduktionEtiket}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatPct(computation.aldersreduktionPct)}</Typography>
               </Box>
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} x (- ${formatPct(computation.aldersreduktionPct)}) =`}</Typography>
+              <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} x (${formatDeductionPercent(computation.aldersreduktionPct, formatPct(computation.aldersreduktionPct))}) =`}</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{`- ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}`}</Typography>
+                <Typography className="row--text text-bold">{formatDeductionKr(toKroner(computation.aldersreduktionBeloebOre))}</Typography>
               </Box>
             </Box>
 

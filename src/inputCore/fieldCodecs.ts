@@ -40,6 +40,7 @@ import {
   parsePercentDraftForCommit,
   type PercentParseConfig,
 } from '../utils/percentDraftCore';
+import { DEFAULT_PERCENT_DECIMAL_PRECISION } from '../utils/percentInputUtils';
 import {
   parseWeekDraftForCommit,
   type WeekDraftParseConfig,
@@ -373,10 +374,11 @@ export const createAmountFieldCodec = (options: Readonly<{
     decimalPolicy: options.allowDecimals ? 'decimal' : 'integerOnly',
     parseForSettle: (raw): FieldResolution<AmountValue | undefined> => {
       const parsed = parseAmountInput(raw, {
+        // `displayPrecision` ER decimalpolitikken (BB-118): 0 afrunder «400.000,50» til 400.001, 2 bevarer
+        // ørerne. Feltet afviser ikke længere en indtastet/indsat decimaldel – den afrundes.
         precision: displayPrecision,
         // Fortegn er en canonical bounds-regel; parseren afviser kun format og sikker repræsentation.
         allowNegative: true,
-        allowDecimals: options.allowDecimals,
         maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
         maxRawLength: MAX_AMOUNT_RAW_LENGTH,
       });
@@ -395,13 +397,16 @@ export const createAmountFieldCodec = (options: Readonly<{
     // den samme skelnen gennem `containsUnaryMinusToken`.
     acceptsInitialKey: (key) => {
       if (key === '-') return options.allowNegative;
-      return (options.allowDecimals ? /^[0-9,()]$/ : /^[0-9()]$/).test(key);
+      // Kommaet åbner editoren i ALLE beløbsfelter (BB-118): et decimalløst felt tager imod decimalen og
+      // afrunder den ved settle, så tastetrykket er lovligt og må ikke blokeres her.
+      return /^[0-9,()]$/.test(key);
     },
     normalizePaste: (raw) => normalizeAmountPaste(raw, {
       allowNegative: options.allowNegative,
-      allowDecimals: options.allowDecimals,
       maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
-      maxDecimalDigits: displayPrecision,
+      // Draftens decimalplads er DEFAULT_AMOUNT_PRECISION uanset visning; `displayPrecision` afrunder
+      // først ved settle. Var loftet 0 her, ville pastens filter springe kommaet over igen.
+      maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
       maxRawLength: MAX_AMOUNT_RAW_LENGTH,
     }),
   });
@@ -438,13 +443,16 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
     // så her er minus utvetydigt et fortegn – modsat beløbsfeltets subtraktion.
     acceptsInitialKey: (key) => {
       if (key === '-') return config.allowNegative;
-      return (config.allowDecimals ? /^[0-9,]$/ : /^[0-9]$/).test(key);
+      // Kommaet åbner editoren i ALLE procentfelter (BB-118); decimalen afrundes ved settle.
+      return /^[0-9,]$/.test(key);
     },
     normalizePaste: (raw) => normalizePercentPaste(raw, {
       allowNegative: config.allowNegative,
-      allowDecimals: config.allowDecimals,
+      allowDecimals: true,
       maxIntegerDigits: 3,
-      maxDecimalDigits: config.allowDecimals ? 2 : 0,
+      // Draftens decimalplads er den samme uanset visning; settle afrunder. Var loftet 0, ville pastens
+      // filter springe kommaet over og lade decimalcifrene glide op i heltalsdelen.
+      maxDecimalDigits: DEFAULT_PERCENT_DECIMAL_PRECISION,
     }),
   });
 };

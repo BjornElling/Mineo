@@ -4,6 +4,7 @@ import StyledTextFieldBase from '../../../components/inputs/StyledTextFieldBase'
 import type { ISODateString } from '../../../types/branded';
 import { dateLikeAdmission, keyFilterFromAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
+import type { FieldIssue } from '../../inputIssue';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
@@ -34,10 +35,21 @@ export type DateFieldProps = Readonly<{
   singleStageClick?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
+  /**
+   * Kryds-felt-domæneregel, descriptorens egen validator ikke kan udlede, fordi den kun ser sin egen
+   * canonical værdi (fx en datadækning, der først kendes efter en beregning: en aldersrække, som
+   * kapitaliseringstabellen ikke har). Descriptorens eget issue har forrang (§1.8).
+   *
+   * Familien manglede denne prop, mens `IntegerField`/`NumericTextField`/`PercentField` havde den. En
+   * datoafledt domæneregel kunne derfor ikke gøre sit eget felt rødt, og beskeden endte som død kode –
+   * konkret `forsoergertab-alder-missing`, hvor en efterladt under 18 år lod hele ASL-halvdelen forsvinde
+   * tavst. Fjern den ikke uden at flytte den vej et andet sted hen.
+   */
+  crossFieldIssue?: FieldIssue;
 }>;
 
 const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
-  ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx }, ref) => {
+  ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue }, ref) => {
     const accessibleName = useFieldLabel(field);
     // Datoformens rå loft er erklæret på codecet og læses gennem den DELTE resolver – samme kilde som
     // grid-cellen.
@@ -59,7 +71,7 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
       [inputRef, surface.inputElementRef]
     );
 
-    const issueText = resolveFieldIssueText(surface.issue);
+    const issueText = resolveFieldIssueText(surface.issue, crossFieldIssue);
     const hasError = issueText.message !== undefined;
 
     return (

@@ -8,6 +8,19 @@ export type StamdataDatoReference = Readonly<{
   kind: 'skadedato' | 'anmeldelsesdato';
   label: SkadestypeDatoLabel;
   labelLower: 'anmeldelsesdatoen' | 'skadedatoen';
+  /**
+   * Tidspunktsformen: «Skadelidtes alder på **skadestidspunkt**» / «… **anmeldelsestidspunkt**» (BB-121).
+   *
+   * Formen lå før som en inline ternary på `kind` i `MenberegningTab.tsx` og `varigeMenDocument.ts`, mens
+   * seks andre brugervendte tekster hardkodede «skadestidspunkt» – på flader, hvor rækken lige ovenfor
+   * korrekt sagde «Anmeldelsesdato». Referencen bærer derfor formen, så et nyt kaldssted arver den frem
+   * for at skrive sin egen.
+   */
+  tidspunkt: 'anmeldelsestidspunkt' | 'skadestidspunkt';
+  /** Bestemt form af {@link tidspunkt}: «på anmeldelsestidspunktet». */
+  tidspunktBestemt: 'anmeldelsestidspunktet' | 'skadestidspunktet';
+  /** Årsformen: «Regulering fra **skadesår** 2020» / «… **anmeldelsesår** 2020». */
+  aar: 'anmeldelsesår' | 'skadesår';
 }>;
 
 /**
@@ -36,8 +49,22 @@ export const resolveStamdataDatoReference = (
 ): StamdataDatoReference => {
   const label = resolveSkadestypeDatoLabel(skadestype);
   return label === 'Anmeldelsesdato'
-    ? { kind: 'anmeldelsesdato', label, labelLower: 'anmeldelsesdatoen' }
-    : { kind: 'skadedato', label, labelLower: 'skadedatoen' };
+    ? {
+      kind: 'anmeldelsesdato',
+      label,
+      labelLower: 'anmeldelsesdatoen',
+      tidspunkt: 'anmeldelsestidspunkt',
+      tidspunktBestemt: 'anmeldelsestidspunktet',
+      aar: 'anmeldelsesår',
+    }
+    : {
+      kind: 'skadedato',
+      label,
+      labelLower: 'skadedatoen',
+      tidspunkt: 'skadestidspunkt',
+      tidspunktBestemt: 'skadestidspunktet',
+      aar: 'skadesår',
+    };
 };
 
 /** Navnet bruges af EO-prosa og re-eksporteres derfra for eksisterende forbrugere. */

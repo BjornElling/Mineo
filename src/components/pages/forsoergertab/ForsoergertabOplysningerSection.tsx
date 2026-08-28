@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
+import MirroredStamdataRow from '../../layout/MirroredStamdataRow';
 import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../inputCore/react/fields/DateField';
@@ -28,57 +29,24 @@ const ForsoergertabOplysningerSection = React.memo(() => {
     <ContentBox className="content-box" data-section-id="forsoergertab-beregning">
       <Typography className="section-header">Grundlæggende oplysninger</Typography>
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">Skadelidtes fødselsdato</Typography>
-        <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-          {vm.skadelidteFodselsdato && !vm.skadelidteFodselsdatoError ? (
-            <Typography className="row--text">{isoToDanish(vm.skadelidteFodselsdato)}</Typography>
-          ) : (
-            <Typography className="row--text" color="text.secondary">
-              {vm.skadelidteFodselsdatoError ?? (
-                <>
-                  Mangler (angiv i&nbsp; {' '}
-                  <Typography
-                    component="span"
-                    className="icon-text-link"
-                    color="inherit"
-                    onClick={vm.goToSkadelidteFodselsdato}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    Stamdata
-                  </Typography>
-                  )
-                </>
-              )}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      <MirroredStamdataRow
+        label="Skadelidtes fødselsdato"
+        value={vm.skadelidteFodselsdato === undefined ? undefined : isoToDanish(vm.skadelidteFodselsdato)}
+        errorMessage={vm.skadelidteFodselsdatoError}
+        onNavigate={vm.goToSkadelidteFodselsdato}
+      />
 
-      <Box className="row--label-right-hover">
-        <Typography className="row--text">{vm.skadedatoLabel}</Typography>
-        <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-          {vm.skadedato && !vm.skadedatoError ? (
-            <Typography className="row--text">{isoToDanish(vm.skadedato)}</Typography>
-          ) : (
-            <Typography className="row--text" color="text.secondary">
-              {vm.skadedatoError ?? (
-                <>
-                  Mangler (angiv i&nbsp;{' '}
-                  <Typography component="span" className="icon-text-link" color="inherit" onClick={vm.goToSkadedato} sx={{ cursor: 'pointer' }}>
-                    Stamdata
-                  </Typography>
-                  )
-                </>
-              )}
-            </Typography>
-          )}
-        </Box>
-      </Box>
+      <MirroredStamdataRow
+        label={vm.skadedatoLabel}
+        value={vm.skadedato === undefined ? undefined : isoToDanish(vm.skadedato)}
+        errorMessage={vm.skadedatoError}
+        onNavigate={vm.goToSkadedato}
+      />
 
       {(vm.visKoenValg || vm.koenFieldHasError) && (
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Køn</Typography>
+          {/* Fladen har to personer i sig; rækken navngiver derfor sin person som de øvrige rækker (BB-134). */}
+          <Typography className="row--text">Skadelidtes køn</Typography>
           <Box className="row--label-right-hover__content">
             <ChoiceField<Koen>
               field={fields.koen}
@@ -104,14 +72,20 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             location={locations.aslAarsloen}
             name="aslAarsloen"
             width={MILLION_AMOUNT_FIELD_WIDTH}
+            {...vm.domainIssueProps(fields.aslAarsloen)}
           />
         </Box>
       </Box>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Startdato for ASL-ydelse</Typography>
+        <Typography className="row--text">Virkningsdato</Typography>
         <Box className="row--label-right-hover__content">
-          <DateField field={fields.virkningsdato} location={locations.virkningsdato} name="virkningsdato" />
+          <DateField
+            field={fields.virkningsdato}
+            location={locations.virkningsdato}
+            name="virkningsdato"
+            {...vm.domainIssueProps(fields.virkningsdato)}
+          />
         </Box>
       </Box>
 
@@ -123,6 +97,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             location={locations.tilkendtForPeriodeAar}
             name="tilkendtForPeriodeAar"
             width={80}
+            {...vm.domainIssueProps(fields.tilkendtForPeriodeAar)}
           />
           <Typography className="row--text">år</Typography>
         </Box>
@@ -135,6 +110,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
             field={fields.efterladteFodselsdato}
             location={locations.efterladteFodselsdato}
             name="efterladteFodselsdato"
+            {...vm.domainIssueProps(fields.efterladteFodselsdato)}
           />
         </Box>
       </Box>
