@@ -11,7 +11,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Næste flade:** Erhvervsevnetab (`/erhvervsevnetab`, nr. 11) – tages **fane for fane**.
 - **Næste fund-ID:** BB-135
 - **Åbne spørgsmål:** **ét**, fra flade 10 (hvor mange måneder er allerede udbetalt – de to halvdele bruger
-  hver sin læsning). Se [forsoergertab.md](forsoergertab.md).
+  hver sin læsning). Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
+  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md).
 - **Fund, der afventer udviklerens afgørelse:** ingen fra flade 10. Ingen udeståender fra flade 1–9.
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
@@ -757,7 +758,7 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 | Spørgsmål | Status |
 |---|---|
-| Hvor mange måneder er allerede udbetalt? Tabellen «Løbende ydelse» summerer til **60,7323 måneder**, mens den resterende periode regnes af **62 hele kalendermåneder** – to læsninger, der begge er sammenhængende, brugt i hver sin halvdel af samme skærm | **ÅBENT.** Sagen, der skal indtastes, og de efterregnede tal står i fundrapporten. Forskellen er **9.360 kr.** i kapitalbeløbet, og fortegnet vender modsat af, hvad jeg først skrev: den nuværende læsning er den gunstigste for efterladte |
+| Hvor mange måneder er allerede udbetalt? Tabellen «Løbende ydelse» summerer til **60,7323 måneder**, mens den resterende periode regnes af **62 hele kalendermåneder** – to læsninger, der begge er sammenhængende, brugt i hver sin halvdel af samme skærm | **ÅBENT.** Sagen, der skal indtastes, og de efterregnede tal står i fundrapporten. Forskellen er **9.360 kr.** i kapitalbeløbet, og fortegnet vender modsat af, hvad jeg først skrev: den nuværende læsning er den gunstigste for efterladte. Visningen er præciseret til «Resterende periode (hele år og måneder)», fordi kapitaliseringstabellen bruger hele år og måneder ved opslag |
 | Skal «Skadelidtes årsløn efter EAL» have et loft eller et rimelighedssignal? | **AFGJORT: NEJ.** Årslønnen har intet loft; loftet ligger på det **beregnede** beløb (EAL-loftet for 30 % erhvervsevnetab) og indregnes allerede. Efterprøvet i drift – men loftet er usynligt for brugeren, hvilket er **BB-133** |
 | Hvis køn spørger rækken «Køn» om? | **AFGJORT: SKADELIDTES.** Min antagelse om efterladtes var forkert; rækkens placering er dermed korrekt, og kun navnet mangler (**BB-134**) |
 

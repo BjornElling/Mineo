@@ -16,6 +16,7 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
 
 const FRAVALGT_DELTEKST = 'fravalgt nedenfor';
 const INGEN_FORHOEJELSE_DELTEKST = 'ikke forhøjet i perioden';
+const MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST = 'Indstillingen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» er slået fra på fanen «Offentlige ydelser»';
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
@@ -56,6 +57,21 @@ const fyldMindsteEetSag = async (page: Page): Promise<void> => {
 };
 
 test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
+  test('Midlertidig EET forklares med indstillingens navn og fane', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Beregning' }).click();
+
+    const bilag = page.getByRole('checkbox', { name: 'Midlertidig EET' });
+    await expect(bilag).toBeVisible();
+    await expect(bilag).toBeDisabled();
+
+    await page.getByText('Midlertidig EET', { exact: true }).hover();
+    await expect(page.getByRole('tooltip')).toHaveText(MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST);
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen forhøjelse', async ({ page, runtimeErrors }) => {
     await login(page);
     await fyldMindsteEetSag(page);

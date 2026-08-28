@@ -30,6 +30,7 @@ import {
 } from '../../config/dateRanges';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 import type { ISODateString } from '../../types/branded';
+import { EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL } from '../../domain/erstatningsopgoerelse/eoLabels';
 import {
   createBooleanFieldCodec,
   createAmountFieldCodec,
@@ -336,7 +337,7 @@ export const eoVedroererPeriodeTilField = dateField(
   ),
 );
 export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
-export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', 'Nej');
+export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL, 'Nej');
 export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
 
 export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined> = defineStructuralField<number | undefined>({

@@ -860,7 +860,7 @@ Tabellen «Løbende ydelse» viser månederne dag for dag:
 | 01-01-2025 | 01-07-2025 | 6,0323 |
 | | **I alt** | **60,7323** |
 
-Fire linjer længere nede står «Resterende periode: **4 år og 10 måneder**», altså **58 måneder** af de
+Fire linjer længere nede stod der i den oprindelige gennemgang «Resterende periode: **4 år og 10 måneder**», altså **58 måneder** af de
 120 tilkendte – hvilket forudsætter, at **62 måneder** er udbetalt. De 62 fremkommer ved at tælle hele
 kalendermåneder inklusive begge ender: juni 2020 til og med juli 2025.
 
@@ -894,6 +894,12 @@ efterladte. Jeg skrev også «i størrelsesordenen 14.000 kr.» som et skøn; de
 
 **Spørgsmålet er dermed:** skal de to halvdele bringes til at bruge samme læsning – og i givet fald
 hvilken? Beregningen er ikke rørt.
+
+**Beslutning om visningen (2026-08-28):** Den resterende periode vises som **«Resterende periode (hele år og
+måneder)»**, og værdien vises fortsat som år og måneder, for eksempel «4 år og 10 måneder». Det er væsentligt,
+fordi kapitaliseringstabellen foretager opslag ud fra hele år og måneder. Beslutningen præciserer dermed, hvad den
+viste mellemregning betyder, men afgør ikke det fortsat åbne spørgsmål om, hvorvidt de allerede udbetalte måneder
+skal tælles som 62 hele kalendermåneder eller cirka 60,7 dagbaserede måneder.
 
 ### 2. Skal EAL-årslønnen have et loft eller et rimelighedssignal? · AFGJORT 2026-08-27 – NEJ
 

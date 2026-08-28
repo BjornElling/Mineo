@@ -196,16 +196,16 @@ describe('getEoBilagAvailability', () => {
     expect(result.offentligeYdelser.enabled).toBe(true);
   });
 
-  it('deaktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" ikke er aktiveret', () => {
+  it('deaktiverer midlertidig EET når togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" ikke er aktiveret', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ midlertidigtEetFraEetSiden: 'Nej' }),
     });
 
     expect(result.midlertidigEet.enabled).toBe(false);
-    expect(disabledReasonOf(result.midlertidigEet)).toBe('Midlertidigt EET indsættes fra Erhvervsevnetab-siden er ikke slået til');
+    expect(disabledReasonOf(result.midlertidigEet)).toBe('Indstillingen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» er slået fra på fanen «Offentlige ydelser»');
   });
 
-  it('aktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" er aktiveret', () => {
+  it('aktiverer midlertidig EET når togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" er aktiveret', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ midlertidigtEetFraEetSiden: 'Ja' }),
     });

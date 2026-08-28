@@ -38,6 +38,7 @@ import { asError } from '../../../utils/typeGuards';
 import { useInputEditPort } from '../../../inputCore/react/inputRuntimeContext';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../config/eoTabKeys';
+import { EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL, EO_OFFENTLIGE_YDELSER_TAB_LABEL } from '../../../domain/erstatningsopgoerelse/eoLabels';
 import {
   eoBilagSelectionMidlertidigEetField,
   eoMidlertidigtEetFraEetSidenField,
@@ -367,7 +368,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   return (
     <>
       <ContentBox className="content-box">
-        <Typography className="section-header">Offentlige ydelser</Typography>
+        <Typography className="section-header">{EO_OFFENTLIGE_YDELSER_TAB_LABEL}</Typography>
         <Typography className="row--text" sx={{ mb: 2 }}>
           Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.
         </Typography>
@@ -432,7 +433,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         <PageMessageRow message={pageMessage(sygedagpengeInsertError)} rightCellHasContentClass />
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>
+          <Typography className="row--text">{EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <MappedToggleField
               field={midlertidigtEetFieldRef}
@@ -440,7 +441,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               checkedValue="Ja"
               uncheckedValue="Nej"
               name="midlertidigtEetFraEetSiden"
-              ariaLabel="Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
+              ariaLabel={EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL}
               commit={decideMidlertidigtEetToggle}
             />
           </Box>

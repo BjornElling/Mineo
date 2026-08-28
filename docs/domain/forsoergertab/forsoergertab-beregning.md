@@ -137,7 +137,7 @@ Normativ præcisering:
 - Der sker alene afrunding til 2 decimaler på den opregulerede årlige ydelse.
 - `opreguleretAarligYdelse` bruges **udelukkende** som grundlag for kapitalisering (§8). De løbende ydelsers månedlige beløb beregnes efter en separat formel i §5a.4, som bruger `ceilNearest12` i stedet for `round2`.
 
-### 5.3 Resterende periode
+### 5.3 Resterende periode (hele år og måneder)
 
 Ydelserne behandles som månedsvise ydelser betalt forud.
 
@@ -162,7 +162,7 @@ Samlet tilkendt periode:
 samletMaaneder = tilkendtForPeriodeAar * 12
 ```
 
-Resterende måneder:
+Resterende periode i hele måneder:
 
 ```text
 resterendeMaanederTotal = max(0, samletMaaneder - alleredeUdbetaltMaaneder)
@@ -174,6 +174,12 @@ Omskrevet til år og måneder:
 resterendeAar = floor(resterendeMaanederTotal / 12)
 resterendeMaaneder = resterendeMaanederTotal % 12
 ```
+
+Brugerfladen og dokumentet viser derfor perioden som **hele år og måneder** – for eksempel «4 år og 10 måneder» –
+og bruger teksten «Resterende periode (hele år og måneder)». Det er en bevidst præcisering af, hvad mellemregningen
+viser. Kapitaliseringstabellen slås op med `resterendeAar` og `resterendeMaaneder`, så opslaget skal ske ud fra denne
+opdeling og ikke ud fra et samlet decimalmåneder-tal. Præciseringen ændrer ikke beregningen eller valget af, hvordan
+allerede udbetalte måneder skal opgøres.
 
 Hvis `resterendeMaanederTotal === 0`, er `aslKapitalbelob = 0`, og der skal ikke foretages tabelopslag.
 

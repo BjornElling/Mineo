@@ -149,6 +149,7 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
     expect(inputSection).not.toBeNull();
     expect(within(inputSection as HTMLElement).getByText('Skadelidtes årsløn (efter ASL)')).toBeInTheDocument();
     expect(within(inputSection as HTMLElement).getByText('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)')).toBeInTheDocument();
+    expect(screen.getByText('Resterende periode (hele år og måneder)')).toBeInTheDocument();
     const downloadButton = screen.getByTestId('forsoergertab-download');
     await waitFor(() => expect(downloadButton).toBeEnabled());
 

@@ -28,6 +28,7 @@ import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
   SKADELIDTES_AARSLOEN_EAL_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
+import { FORSOERGERTAB_RESTERENDE_PERIODE_LABEL } from '../../../domain/forsoergertab/forsoergertabLabels';
 
 // ============================================================================
 // Side 1: Grundlæggende oplysninger + Beregnet forsørgertab
@@ -304,7 +305,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
   writer.writeWrappedText('Der foretages proformakapitalisering af resterende løbende ydelser');
 
   if (asl.resterendeMaanederTotal === 0) {
-    writer.writeLeftRightText('Resterende periode', 'Ingen', { rightFontStyle: 'normal' });
+    writer.writeLeftRightText(FORSOERGERTAB_RESTERENDE_PERIODE_LABEL, 'Ingen', { rightFontStyle: 'normal' });
     writer.writeLeftRightText('Kapitalbeløb', '0 kr.', { rightFontStyle: 'bold' });
   } else {
     writer.writeLeftRightText(
@@ -315,7 +316,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
       { rightFontStyle: 'normal' }
     );
     writer.writeLeftRightText(
-      'Resterende periode',
+      FORSOERGERTAB_RESTERENDE_PERIODE_LABEL,
       `${formatCountWithUnit(asl.resterendeAar, 'år', 'år')} og ${formatCountWithUnit(asl.resterendeMaaneder, 'måned', 'måneder')}`,
       { rightFontStyle: 'normal' }
     );

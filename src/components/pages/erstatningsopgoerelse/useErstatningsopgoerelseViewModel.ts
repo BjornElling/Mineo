@@ -8,6 +8,7 @@ import { useInputEvaluation } from '../../../inputCore/react';
 import { EO_TAB_KEYS, type EoTabKey } from '../../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { EO_OFFENTLIGE_YDELSER_TAB_LABEL } from '../../../domain/erstatningsopgoerelse/eoLabels';
 
 /**
  * Erstatningsopgørelses ene kanoniske viewmodel på PAGE-niveau (`page-component-contract.md` §4.4).
@@ -25,7 +26,7 @@ import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatnings
 const EO_MAIN_TAB_ITEMS: readonly Readonly<{ key: EoTabKey; label: string }>[] = [
   { key: EO_TAB_KEYS.EO_OPLYSNINGER, label: 'EO oplysninger' },
   { key: EO_TAB_KEYS.LOENINDKOMST, label: 'Lønindkomst' },
-  { key: EO_TAB_KEYS.OFFENTLIGE_YDELSER, label: 'Offentlige ydelser' },
+  { key: EO_TAB_KEYS.OFFENTLIGE_YDELSER, label: EO_OFFENTLIGE_YDELSER_TAB_LABEL },
   { key: EO_TAB_KEYS.BEREGNING, label: 'Beregning' },
 ];
 

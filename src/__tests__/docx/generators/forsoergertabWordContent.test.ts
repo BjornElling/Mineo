@@ -95,8 +95,9 @@ describe('forsoergertab → Word-indhold', () => {
     // ikke hardcodede tal): forsørgertabserstatningen (nettokrav) og EAL-kravet.
     expect(text).toContain(formatKr(calc.result!.nettokrav));
     expect(text).toContain(formatKr(calc.result!.ealKrav));
+    expect(text).toContain('Resterende periode (hele år og måneder)');
+    expect(text).toContain(`${calc.aslComputation!.resterendeAar} år og ${calc.aslComputation!.resterendeMaaneder} måneder`);
     // EAL-mellemregningen (reguleret årsløn x faktor x 30 %) skal være til stede.
     expect(text).toContain(`x ${calc.ealComputation!.kapitaliseringsfaktor} x 30 %`);
   });
 });
-

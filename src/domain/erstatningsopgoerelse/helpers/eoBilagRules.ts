@@ -18,6 +18,10 @@ import { parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
 import type { LoenudviklingModel, LoenudviklingSegment, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
+import {
+  EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL,
+  EO_OFFENTLIGE_YDELSER_TAB_LABEL,
+} from '../eoLabels';
 
 // Overlap er inklusiv begge endepunkter.
 const isIsoRangeOverlap = (a: IsoRange, b: IsoRange): boolean => a.fra <= b.til && b.fra <= a.til;
@@ -294,7 +298,7 @@ export const getEoBilagAvailability = (params: Readonly<{
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden er ikke slået til',
+          disabledReason: `Indstillingen «${EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL}» er slået fra på fanen «${EO_OFFENTLIGE_YDELSER_TAB_LABEL}»`,
         },
     regulering: kanViseIndkomstOgYdelserBilag && harRegulering
       ? { enabled: true }
