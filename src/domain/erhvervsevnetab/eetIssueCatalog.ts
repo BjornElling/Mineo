@@ -9,3 +9,10 @@ export const MISSING_BEREGNINGSDATO_ISSUE: EetIssue = Object.freeze({
   severity: 'error',
   message: 'Beregningsdato er ikke udfyldt',
 });
+
+/** Én fejlidentitet kan komme fra flere EET-beregninger, men skal altid læses som ét manglende input. */
+export const MISSING_KOEN_ISSUE: EetIssue = Object.freeze({
+  id: 'missing-koen',
+  severity: 'error',
+  message: 'Køn skal angives, når kapitaliseringen sker før 1. marts 2015',
+});

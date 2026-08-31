@@ -42,6 +42,11 @@ import type {
   EetKapitaliseringComputation,
 } from './eetCanonicalOutput';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
+import { MISSING_KOEN_ISSUE } from './eetIssueCatalog';
+import {
+  KAPITALISERING_UNDER_15_WARNING,
+  kapitaliseringUnder15WarningRowIds,
+} from './eetFieldWarnings';
 
 export type {
   EetKapitaliseringAfgoerelseComputation,
@@ -301,11 +306,6 @@ const collectResolvedRows = (
     issues.push(toMissingFieldIssue('kap-pct', 'kapitaliseringsprocent'));
   }
 
-  const hasKapPctUnder15 = result.some((row) => row.kapPct > 0 && row.kapPct < 15);
-  if (hasKapPctUnder15) {
-    issues.push(toWarning('warn-kap-pct-under-15', 'Der er angivet kapitalisering med mindre end 15 %'));
-  }
-
   return result.sort((a, b) => {
     if (a.afgoerelsesdato !== b.afgoerelsesdato) return a.afgoerelsesdato < b.afgoerelsesdato ? -1 : 1;
     const aVirkningsdato = a.virkningsdato ?? '';
@@ -374,7 +374,7 @@ export const computeEetKapitaliseringCalculation = (
   const amFaktor = from2011 ? 0.92 : 1;
   const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < SKAERING_2015_03_01);
   if (needsKoen && !values.koen) {
-    issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives'));
+    issues.push(MISSING_KOEN_ISSUE);
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
@@ -622,6 +622,10 @@ export const computeEetKapitaliseringCalculation = (
 
   if (issues.some((issue) => issue.severity === 'error')) {
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
+  }
+
+  if (kapitaliseringUnder15WarningRowIds(computations).size > 0) {
+    issues.push(toWarning('warn-kap-pct-under-15', KAPITALISERING_UNDER_15_WARNING));
   }
 
   return {

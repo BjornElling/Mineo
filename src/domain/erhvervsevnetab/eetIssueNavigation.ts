@@ -89,7 +89,7 @@ const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
   'missing-afgoerelseType': 'eet-oplysninger-asl',
   'missing-kap-dato': 'eet-oplysninger-asl',
   'missing-kap-pct': 'eet-oplysninger-asl',
-  'missing-koen': 'eet-oplysninger-asl',
+  'missing-koen': 'eet-oplysninger-grundlaeggende',
   'endelig-under-50-missing-kapitalisering': 'eet-oplysninger-asl',
   'delvist-endelig-missing-kapitalisering': 'eet-oplysninger-asl',
   'kapitaliseringstabel-missing': 'eet-oplysninger-asl',

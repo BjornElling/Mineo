@@ -12,6 +12,21 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-08-31 fra Erhvervsevnetab → EET oplysninger – M-27 – og det er den tredje og
+farligste form i M-19/M-22-familien.** M-19 handler om, at en rød værdi fra en anden flade meldes som
+*manglende*; M-22 om, at den *slukker en knap*. **M-27 er, at den slukker en REGEL:** med Skadedato sat til
+`99-99-9999` i Stamdata accepterer «Skadelidtes årsløn (efter ASL)» `9.999.000 kr.` med neutral kant og uden
+besked – det samme felt, der et minut før afviste `600.000` med skadesårets maksimum – og Afgørelsesdato
+accepterer `01-01-2006`, tolv år før sagens egen skadedato, fordi gulvet tavst falder tilbage til
+`01-01-2005` (BB-139). Formen er farlig, fordi fraværet af en rød kant er programmets måde at sige «i
+orden»; her betyder det «reglen kunne ikke køres», og de to ser ens ud. **Samme kørsel gav nye forekomster
+af M-02 (BB-137 – BB-134's usluttede søskende, og BB-145 – BB-120's mekaniske prøve rammer igen), M-07
+(BB-138 – beregningsdatoens gulv navngiver ikke Skadedato, hvor fire datoer på samme skærm gør), M-13
+(BB-143, BB-146), M-16 (BB-147 – BB-098's prøve, nu på et defaultet dropdown-valg frem for på værdien 0) og
+M-20 i SPEJLVENDT form (BB-141 – advarslen findes ved det ene felt og kun på en anden fane for nabofeltet).**
+M-09, M-10, M-14/BB-118, M-20 og M-26 er efterprøvet og **bestået**; M-19, M-22, M-23 og M-25 er uden
+genstand på en fane uden dokument og uden spejlede stamdata.
+
 **To nye mønstre 2026-08-27 fra Forsørgertab – M-25 og M-26 – og de handler begge om en GRÆNSE, der er
 tegnet det forkerte sted.** M-25 (gaten spørger «findes der noget?», ikke «findes det, brugeren bad om?»)
 er den tungeste: Forsørgertabs dokumentgate godkendes af ENTEN en EAL-del ELLER en ASL-del, så en
@@ -255,6 +270,21 @@ streng `maxBoundFieldLabel: 'Virkningsdato'` ved siden af sin egen `label`. **Pr
 mekanisk: `rg "maxBoundFieldLabel|minBoundLabel" src/inputCore/catalog` og sammenlign hver streng med
 samme descriptors `label`.** Enhver forskel er et fund, uden at fladen skal åbnes.
 
+**To nye forekomster 2026-08-31 fra Erhvervsevnetab → EET oplysninger, og den ene viser, at en gennemført
+navnerettelse kun ramte to af otte steder.** (1) **BB-137 er BB-134 igen på en anden flade:** rækken heder
+bare «Køn», mens informationsikonet ved siden af siger «Før 01-03-2015 beroede kapitalfaktorer på
+**skadelidtes** køn» – programmet siger altså selv, hvis køn det er, ét klik væk. Samme bare «Køn» står i
+differencekravs to bokse, i kapitaliseringsspecifikationen og to steder i differencekravdokumentet, og
+`ForsoergertabAslSection.tsx:191` + `forsoergertabDocument.ts:348` har det stadig. **Læren om
+omdøbningers omfang: en godkendt ordlyd skal søges som BEGREB, ikke som streng** – BB-134's rettelse fandt
+de to steder, hvor rækken hed «Køn» på Forsørgertabs oplysningssektion, og ikke de seks andre steder, hvor
+samme spørgsmål stilles. (2) **BB-145 er BB-120's mekaniske prøve, der rammer igen:** «Kapitaliseringsdato
+kan senest være …» om en kolonne, der heder «Kap.dato»; «Tidl. kap.dato skal være før afgørelsesdatoen …»
+om en kolonne, der heder «Hvis genopt. - tidl. kap.dato»; «Kapitaliseringsprocent kan ikke overstige 50 %»
+om «Kap. %». Prøven `rg "maxBoundFieldLabel|minBoundLabel" src/inputCore/catalog` fangede de to første;
+**de to sidste er PROSA-beskeder i domænet og er uden for prøvens rækkevidde** – udvid den derfor med
+`rg` på det fulde feltnavn i domænemodulet, når en flades kolonner bruger forkortelser.
+
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
   om en dato før stamdatodatoen, som nås fra mindst seks erklæringssteder i
@@ -424,6 +454,17 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
   ny svaghed i den ellers gode tekst: «senest tilladte (31-12-2026)» kommer fra datadækningen, ikke fra
   nogen af de to felter, årsagssætningen navngiver – en årsagssætning må kun navngive de grænser, den
   faktisk forklarer.
+- **Ny forekomst 2026-08-31 på Erhvervsevnetab, og den er mønsterets BILLIGSTE at måle, fordi begge
+  udgaver står på samme skærm** (`erhvervsevnetab.md` BB-138, Mellem). Beregningsdatoens gulv ER
+  Skadedato, og beskeden siger «Dato skal være mellem 01-06-2018 og 31-12-2026» – to bare datoer uden
+  afsender, på en flade hvor Skadedato slet ikke vises. Fire datofelter i tabellen ti centimeter længere
+  ned, hvis gulv er samme værdi fra samme kilde, siger «Datoen kan ikke være før skadedatoen (01-06-2018)».
+  Målt på tre flader for det SAMME feltnavn: Varige méns Beregningsdato navngiver skadedatoen, Forsørgertabs
+  og Erhvervsevnetabs gør ikke. **Prøven er ny, mekanisk og dækker hele programmet:
+  `rg "minBoundKind" src/inputCore/catalog` – hvert datofelt, hvis `min` læser et ANDET felts værdi uden at
+  sætte `minBoundKind`, viser en grænse uden afsender.** Bemærk at `origin`/`derivedDateBounds` IKKE lukker
+  hullet: den bruges kun i den umulige-interval-gren (min > max), så et felt kan have en korrekt erklæret
+  årsag og alligevel aldrig vise den.
 
 ## M-08 – Links er ikke med i tastaturrækkefølgen
 
@@ -830,6 +871,20 @@ måles og rettes.
   - **BB-132 udvider prøven til OPERATORERNE.** Én linje bruger begge gangetegn på én gang
     («30 % **x** 400.000 kr. **×** (632.000 / 551.000)»), og én formellinje mangler det afsluttende
     `=`, som alle sidens andre har. **Sammenlign ikke kun tallets form, men tegnene omkring det.**
+- **To nye forekomster 2026-08-31 fra Erhvervsevnetab → EET oplysninger** (`erhvervsevnetab.md` BB-143,
+  BB-146):
+  - **BB-143 er nullets stærkeste form hidtil: to felter med SAMME navn på samme skærm behandler `0`
+    modsat.** «EET % (hvis afviger fra ASL)» canonicaliserer `0` til tomt – tallet forsvinder, feltet står
+    tomt, ingen rød kant, ingen besked. Tabellens «EET %» beholder `0` og bliver rød med «EET % må ikke være
+    0 %.». Mønsteret har hidtil handlet om, at skærm og dokument (eller to visninger) er uenige om at VISE
+    et nul; her er de to felter uenige om, hvad nul BETYDER – fravær i det ene, fejl i det andet. **Prøven
+    er ny: `rg "value === 0" src/inputCore/catalog` – hvert codec, der canonicaliserer en indtastet værdi
+    til `undefined`, sletter noget brugeren skrev, og skal kunne sige det.**
+  - **BB-146 er BB-079's form inden for ÉT felt og to tooltips.** Beregningsdatoens øvre grænse siger
+    «31. december 2026», dens nedre «31-12-2026» – samme dato, samme felt, ét tastetryk fra hinanden.
+    Kilden er `eetDataMax`/`dataCoverageMax`-grenen i `dateRangeErrorMessages.ts`, som er den ENESTE gren
+    med langform; alle øvrige bruger `formatISOForTooltip`. Rettelsen ligger derfor ét sted og rammer
+    Forsørgertab og EO med.
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -1092,6 +1147,18 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
   bliver hentet uden ASL-halvdelen og uden de fire ASL-oplysninger, brugeren har indtastet.
   Den anden halvdel er derfor blevet sit eget mønster, **M-25**, og de to skal læses sammen: M-16 siger,
   hvor rettelsen hører hjemme (i feltmodellen), M-25 siger, hvorfor gaten ikke fangede det.
+- **Ny forekomst 2026-08-31 fra Erhvervsevnetab, og den flytter BB-098's prøve fra værdien 0 til et
+  DEFAULTET VALG** (`erhvervsevnetab.md` BB-147, Lav). Sættes «FS tilbageholdt EET» til `Ja` i
+  afgørelsestabellens tomme indtastningsrække og intet andet, bliver rækken en rigtig række – tabellen går
+  fra to til tre rækker, rækken får en «Slet rækken»-knap og skrives i `.eo`-filen – mens beregningen ser
+  den som tom: ingen issue på nogen af de fire faner, og downloadknappen er aktiv.
+  `isAslAfgoerelseRowEmpty` (som reglerne bruger) ignorerer feltet;
+  `isAslAfgoerelseRowPersistenceEmpty` (som tabellen og save bruger) gør ikke. **Udfaldet er den BENIGNE
+  retning – intet spærres – og netop derfor er det værd at kende: mønsterets to prædikater kan være uenige
+  uden at det koster en grå knap, og fundet er så, at brugeren har svaret på et spørgsmål, der ikke
+  betyder noget, og som kommer tilbage efter Hent.** Prøven udvides tilsvarende:
+  `rg "createRequiredChoiceFieldCodec" src/inputCore/catalog` – hver collection med et required-choice-felt
+  har to kandidater for «er der noget her?».
 - Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén
   og EO's rækkebyggere (`EO_ROW_BUILDERS`).
 
@@ -1264,8 +1331,22 @@ ene felts egen værdi.
 - **Accepteret og gennemført 2026-08-20:** advarslen læser nu méngradfeltets eget read i stedet for
   projektionen, og dens grænse blev i samme omgang rettet fra kun 5 % til 1–4 % – altså netop de
   værdier, hvor der ikke kan tilkendes mén (BB-063).
-- Kandidater, ikke efterprøvet: EET-procenternes 15 %-advarsel (`EetOplysningerTab.tsx`, `BF-019`) –
-  samme form, flade 11. Generelt: enhver `warning={resolve…(projection?.…)}`.
+- **Kandidaten er efterprøvet 2026-08-31 og BESTÅET.** EET-procenternes 15 %-advarsel (BF-019) læser
+  feltets eget read, ikke en projektion: målt på en helt tom sag giver `10` i «EET % (hvis afviger fra ASL)»
+  og `10` i afgørelsestabellens «EET %» den gule ramme (`rgb(245, 158, 11)`) med teksten straks, uden at et
+  andet felt er udfyldt. Erhvervsevnetabs projektion er desuden aldrig `blocked`, så mønsterets betingelse
+  findes ikke på fladen.
+- **Men samme kørsel gav mønsterets SPEJLVENDTE form, og den er ny** (`erhvervsevnetab.md` BB-141, Mellem).
+  Her er advarslen ikke hængt på hele sidens beregning – **den er slet ikke hængt på feltet.** «EET %» får
+  den gule feltadvarsel om, at der ikke kan tilkendes erhvervsevnetab under 15 %; nabocellen «Kap. %», som
+  udtrykker samme lovkrav og kun afhænger af sin egen værdi, står neutral, og programmets formulering
+  («Der er angivet kapitalisering med mindre end 15 %») findes udelukkende i «Fejl og advarsler» på en
+  ANDEN fane. **Mønsteret dækker dermed to fejl med samme rod: en feltnær oplysning, der er hængt et for
+  højt sted. Prøven udvides: gennemgå fladens `warn-*`-issues og spørg for hver, om den afhænger af ÉT
+  felts egen værdi – gør den det, hører den ved feltet, ikke i en boks.** Konkrete kandidater fra samme
+  liste: `warn-kap-pct-under-15`, `warn-afgoerelsesdato-after-beregningsdato`,
+  `warn-virkningsdato-after-beregningsdato`, `warn-kap-dato-after-beregningsdato`.
+- Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
 
@@ -1550,3 +1631,51 @@ feltets `aria-label` og dokumentets label for samme felt.
 - Kandidater, ikke efterprøvet: `rg "faellesAarsloen" src/components/pages` (rammer også
   Erstatningsopgørelsen), og generelt enhver descriptor, hvis `bind()` kaldes fra mere end én
   sidekomponent.
+
+## M-27 – En rød værdi på en anden flade slukker en regel her
+
+> Feltet afviser en værdi, så længe en oplysning på en anden side er læsbar. Bliver den oplysning rød,
+> forsvinder reglen – og feltet accepterer da tavst det, det lige afviste.
+
+En feltregel, der har brug for en værdi fra en anden flade, læser den gennem den kanoniske vej, som med
+vilje **skjuler** en værdi med en rød feltfejl. Validatoren får derfor `undefined` og gør det eneste
+forsvarlige: den returnerer «ingen fejl», fordi den ikke kan afgøre noget. Resultatet er, at feltet ser
+godkendt ud.
+
+Formen er farlig, fordi den vender programmets eget signalsprog om. **Fraværet af en rød kant er
+programmets måde at sige «denne værdi er kontrolleret og i orden».** Her betyder det «kontrollen kunne
+ikke køres», og de to tilstande er visuelt identiske. Brugeren, der har tastet den fremmede dato og lavet
+en tastefejl i den, udfylder hele fladen under en validering, der er slukket – og de værdier, han får
+accepteret, kan ligge en faktor 20 fra det tilladte.
+
+**Skellet mod M-19 og M-22.** De tre er samme mekanik med tre udfald. M-19: den lånende flade melder den
+røde værdi som *manglende*. M-22: dokumentets gate *slukker knappen* uden afsender. M-27: en *feltregel
+forsvinder*, og fladen ser mere i orden ud end før. M-27 er den værste af de tre, fordi de to andre i det
+mindste viser brugeren, at noget er galt.
+
+**Efterprøv, hvor:** en feltvalidator kalder `view.readCanonical` på et felt uden for fladen og returnerer
+`undefined`, når læsningen er `undefined`. Prøven er konkret og tager to minutter: **provokér feltets regel
+frem med en ulovlig værdi, gør derefter den fremmede oplysning UDFYLDT-MEN-UGYLDIG, og skriv den samme
+ulovlige værdi igen.** Bliver den nu accepteret uden et ord, er det en forekomst.
+
+**Den bagvedliggende regel:** kan en regel ikke afgøres, må feltet ikke se ud, som om den blev afgjort. Er
+det den rigtige adfærd at acceptere værdien (og det er det ofte – fail-open er nødvendigt, når
+forudsætningen mangler), skal fladen sige, at kontrollen ikke kunne udføres, og hvor forudsætningen står.
+
+- Fundet i: `erhvervsevnetab.md` BB-139 (Mellem, afventer udvikleren). Målt: Skadedato `99-99-9999` i
+  Stamdata → «Skadelidtes årsløn (efter ASL)» accepterer `9.999.000 kr.` uden rød kant og uden besked
+  (skadesårets maksimum er 527.000 kr. for 2018), og Afgørelsesdato accepterer `01-01-2006`. Rettes
+  Skadedato bagefter, bliver begge felter røde – skaden er altså reversibel, men usynlig i det øjeblik den
+  sker.
+- **Fanens egen forstærkning hører med til mønsteret:** EET oplysninger er den eneste af sidens fem faner
+  UDEN en «Fejl og advarsler»-boks, så der findes ikke et sted, hvor slukningen kunne have stået (BB-142).
+  Mønsteret er derfor værst på indtastningsflader, der ikke selv viser den fremmede oplysning – præcis dem
+  M-19's rettelse ikke kunne nå.
+- **Bemærk skellet mod en tom forudsætning.** Er den fremmede oplysning blot TOM, er samme slukning ikke i
+  sig selv et fund: brugeren ved, at han ikke har udfyldt den. Det er kombinationen «udfyldt, men ugyldig»
+  der bedrager, fordi brugeren tror, oplysningen er på plads.
+- Kandidater, ikke efterprøvet: `faellesAarsloen.aslAarsloen`s skadesårsregel er den SAMME descriptor på
+  **Forsørgertab** og i **Erstatningsopgørelsen**, så slukningen findes dér med. Alle fire ASL-datoroller på
+  EET har samme fallback (`skadedato ?? fallbackMin`), og det gør Varige méns, Forsørgertabs og EO's
+  datofelter også. Generel indgang: `rg "readCanonical\(stamdata" src/inputCore/catalog` og
+  `rg "\?\? .*fallbackMin" src/inputCore/catalog`.

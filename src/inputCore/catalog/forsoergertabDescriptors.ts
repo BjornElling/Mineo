@@ -87,7 +87,21 @@ export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Ber
     const virkningsdato = context.view.readCanonical(forsoergertabVirkningsdatoField.bind());
     return virkningsdato === undefined ? skadedatoMin : maxISO(skadedatoMin, virkningsdato);
   },
-  special: () => ({ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }),
+  special: (context) => {
+    const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
+    const virkningsdato = context.view.readCanonical(forsoergertabVirkningsdatoField.bind());
+    const skadedatoMin = resolveSkadedatoMin(skadedato);
+    const minFromVirkningsdato = virkningsdato !== undefined && virkningsdato >= skadedatoMin;
+    return {
+      ...(minFromVirkningsdato
+        ? { minBoundKind: 'efterFelt' as const, minBoundReferenceISO: virkningsdato, minBoundLabel: VIRKNINGSDATO_LABEL.toLowerCase() }
+        : skadedato !== undefined && skadedato > dateRanges_forsoergertab.beregningsdato.fallbackMin
+          ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+          : {}),
+      maxBoundKind: 'dataCoverageMax' as const,
+      maxBoundFieldLabel: 'Beregningsdato',
+    };
+  },
   // Min udledes af Skadedato og Virkningsdato; en for sen af dem gør intervallet umuligt.
   origin: (context) => derivedDateBounds(
     `${resolveStamdataDatoReferenceFromView(context.view).label} og ${VIRKNINGSDATO_LABEL}`

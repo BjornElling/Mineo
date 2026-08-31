@@ -104,11 +104,18 @@ export const integerStringBoundsValidator = (
 /** Canonical bounds-validator for et procentfelt (tidligere codec-`range` via `buildPercentRangeErrorMessage`). */
 export const percentBoundsValidator = (
   code: string,
-  bounds: Readonly<{ minValue?: number; maxValue?: number; allowDecimals: boolean }>
+  bounds: Readonly<{
+    minValue?: number;
+    maxValue?: number;
+    allowDecimals: boolean;
+    /** Brugerrettet, domænespecifik intervaltekst når standarden »Procent« er for upræcis. */
+    message?: string;
+  }>
 ): FieldValidator<number | undefined> => (value) => {
   if (value === undefined) return undefined;
-  const message = buildPercentRangeErrorMessage(value, bounds);
-  if (message === null) return undefined;
+  const defaultMessage = buildPercentRangeErrorMessage(value, bounds);
+  if (defaultMessage === null) return undefined;
+  const message = bounds.message ?? defaultMessage;
   return { reason: 'bounds', code, message, detail: boundsDetail(bounds.minValue, bounds.maxValue) };
 };
 

@@ -299,13 +299,17 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
       { ...createEmptyAslAfgoerelseRow(), id: 'r1' }
     ));
     input = dispatch(input, settleField(aslAfgoerelseAfgoerelsesDatoField.bind('r1'), '31-12-2004'));
-    input = dispatch(input, settleField(aslAfgoerelseEetPctField.bind('r1'), '12'));
-    input = dispatch(input, settleField(erhvervsevnetabEalEetPctField.bind(), '12'));
+    input = dispatch(input, settleField(aslAfgoerelseEetPctField.bind('r1'), '0'));
+    input = dispatch(input, settleField(erhvervsevnetabEalEetPctField.bind(), '1'));
     const evaluation = evaluate(input);
 
     expect(evaluation.reader.read(aslAfgoerelseAfgoerelsesDatoField.bind('r1')).status).toBe('error');
-    expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1')).status).toBe('error');
-    expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind()).status).toBe('error');
+    expect(evaluation.reader.read(aslAfgoerelseEetPctField.bind('r1'))).toMatchObject({
+      status: 'error', issue: { message: 'Erhvervsevnetabet skal være mellem 5 og 100' },
+    });
+    expect(evaluation.reader.read(erhvervsevnetabEalEetPctField.bind())).toMatchObject({
+      status: 'error', issue: { message: 'Erhvervsevnetabet skal være mellem 5 og 100' },
+    });
   });
 
   it('bruger ikke en par- eller dækningsbesked, når den ydre grænse vinder', () => {

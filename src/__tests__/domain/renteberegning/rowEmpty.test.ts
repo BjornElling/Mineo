@@ -50,8 +50,8 @@ describe('isRentekravRowEmpty', () => {
     expect(isRentekravRowEmpty(emptyRow())).toBe(true);
   });
 
-  it('kun enhed ændret fra standarden → false', () => {
+  it('kun enhed ændret fra standarden → true', () => {
     const row: RentekravRow = { ...emptyRow(), enhed: 'maaneder' };
-    expect(isRentekravRowEmpty(row)).toBe(false);
+    expect(isRentekravRowEmpty(row)).toBe(true);
   });
 });

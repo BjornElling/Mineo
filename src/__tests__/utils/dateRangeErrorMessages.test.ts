@@ -34,6 +34,21 @@ describe('resolveDateRangeErrorMessage', () => {
     expect(message).toContain('skadedatoen');
   });
 
+  it('navngiver en anden feltdato som den reelle nedre grænse', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2023-05-02'),
+      minDate: iso('2023-08-01'),
+      maxDate: iso('2030-12-31'),
+      special: {
+        minBoundKind: 'efterFelt',
+        minBoundReferenceISO: iso('2023-08-01'),
+        minBoundLabel: 'virkningsdatoen',
+      },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+    expect(message).toBe('Datoen kan ikke være før virkningsdatoen (01-08-2023)');
+  });
+
   it('uses erhvervssygdom 5-year message when minBoundKind=anmeldelsesdatoMinus5Aar', () => {
     const message = resolveDateRangeErrorMessage({
       iso: iso('2010-01-01'),

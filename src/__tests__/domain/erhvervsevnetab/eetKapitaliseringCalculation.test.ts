@@ -545,7 +545,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues).toContainEqual({
       id: 'missing-koen',
       severity: 'error',
-      message: 'Ved kapitalisering før 1. marts 2015 skal køn angives',
+      message: 'Køn skal angives, når kapitaliseringen sker før 1. marts 2015',
     });
   });
 

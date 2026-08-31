@@ -1,8 +1,11 @@
 import {
   EET_ASL_AARSLOEN_MAX_WARNING,
   EET_UNDER_15_WARNING,
+  KAPITALISERING_UNDER_15_WARNING,
   hasEetAslAarsloenMaxWarning,
+  kapitaliseringUnder15WarningRowIds,
   resolveEetAslAarsloenMaxWarning,
+  resolveKapitaliseringUnder15Warning,
   resolveEetUnder15Warning,
 } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
@@ -20,6 +23,25 @@ describe('resolveEetUnder15Warning', () => {
 
   it.each([undefined, 0, 15, 20])('viser ingen advarsel ved %s', (value) => {
     expect(resolveEetUnder15Warning(value)).toBeUndefined();
+  });
+});
+
+describe('kapitaliseringUnder15WarningRowIds', () => {
+  it('fremhæver den første kapitalisering under 15 %', () => {
+    const rows = [{ rowId: 'foerste', kapitaliseringspct: 10 }];
+    expect(kapitaliseringUnder15WarningRowIds(rows)).toEqual(new Set(['foerste']));
+    expect(resolveKapitaliseringUnder15Warning('foerste', rows)).toEqual({
+      severity: 'warning', message: KAPITALISERING_UNDER_15_WARNING,
+    });
+  });
+
+  it('fremhæver ikke en lovlig senere delkapitalisering efter en første kapitalisering på mindst 15 %', () => {
+    const rows = [
+      { rowId: 'foerste', kapitaliseringspct: 20 },
+      { rowId: 'forhoejelse', kapitaliseringspct: 10 },
+    ];
+    expect(kapitaliseringUnder15WarningRowIds(rows)).toEqual(new Set());
+    expect(resolveKapitaliseringUnder15Warning('forhoejelse', rows)).toBeUndefined();
   });
 });
 

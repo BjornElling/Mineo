@@ -8,16 +8,36 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Erhvervsevnetab (`/erhvervsevnetab`, nr. 11) – tages **fane for fane**.
-- **Næste fund-ID:** BB-135
-- **Åbne spørgsmål:** **ét**, fra flade 10 (hvor mange måneder er allerede udbetalt – de to halvdele bruger
-  hver sin læsning). Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
-  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md).
-- **Fund, der afventer udviklerens afgørelse:** ingen fra flade 10. Ingen udeståender fra flade 1–9.
+- **Næste flade:** Erhvervsevnetab **fane 2 – Løbende ydelser** (11b). Fane 11a er gennemgået 2026-08-31.
+- **Næste fund-ID:** BB-152
+- **Åbne spørgsmål:** **to.** (1) Fra flade 10: hvor mange måneder er allerede udbetalt – de to halvdele
+  bruger hver sin læsning. Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
+  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). (2) Fra flade 11a: skal
+  «Bemærk»-boksens to forbehold (tilskadekomstpension til tidligere tjenestemænd, den grønlandske ASL) også
+  stå i de fire EET-dokumenter, eller er de alene en oplysning til den, der taster? Se
+  [erhvervsevnetab.md](erhvervsevnetab.md).
+- **Fund, der afventer udviklerens afgørelse:** **17 fra flade 11a (BB-135–BB-151).** Ingen udeståender fra
+  flade 1–10.
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-08-28 (**Flade 10 implementeret: 16 fund rettet.** De tre tunge rettelser
+- **Senest opdateret:** 2026-08-31 (**Flade 11a – EET oplysninger – gennemgået: 17 fund, ni Mellem og otte
+  Lav, ingen Høj, og ét nyt tværgående mønster M-27.** Fanen er ren indtastning: den regner ikke, viser
+  intet resultat og har ingen downloadknap – og den er den ENESTE af sidens fem faner uden en «Fejl og
+  advarsler»-boks. Fire af fundene kommer af netop det. **M-27 er det tungeste og er den tredje form i
+  M-19/M-22-familien: en rød værdi på en anden flade slukker en REGEL her.** Med Skadedato sat til
+  `99-99-9999` accepterer «Skadelidtes årsløn (efter ASL)» `9.999.000 kr.` med neutral kant og uden besked –
+  det samme felt afviste `600.000` et minut før – og Afgørelsesdato accepterer `01-01-2006`, tolv år før
+  sagens egen skadedato (BB-139). **Det næsttungeste er BB-140:** ét klik på en kolonneoverskrift flytter
+  dublet-fejlen fra den næsten tomme række til den fuldt udfyldte, fordi reglen læser rækkernes committede
+  INDEKS – så «slet den røde række» rammer den forkerte. **BB-135 fører Køn-fejlens link til
+  «Arbejdsskadesikringsloven», hvor Køn-feltet ikke står** (målt: blinkmarkering på ASL-boksen, feltet 276 px
+  længere op, umarkeret og uden fokus), og **BB-137 er BB-134 igen** – rækken heder bare «Køn», mens
+  informationsikonet ved siden af selv siger «skadelidtes køn». **Ingen af de 17 fund handler om et forkert
+  tal:** ingen beregning er efterregnet på denne fane, fordi fanen ikke regner. **M-09, M-10, M-14/BB-118,
+  M-20 og M-26 er efterprøvet og BESTÅET;** M-19, M-22, M-23 og M-25 er uden genstand på en fane uden
+  dokument og uden spejlede stamdata. Konsollen var tavs: 181 beskeder, 0 fejl, 0 advarsler.)
+- **Tidligere: 2026-08-28** (**Flade 10 implementeret: 16 fund rettet.** De tre tunge rettelser
   afdækkede hver et lag under fundet selv:
   **BB-117** havde tre uafhængige lag – motorens issues var feltløse `EetIssue`s uden adresse, `DateField`
   manglede den `crossFieldIssue`-prop de øvrige feltfamilier havde, og gaten var en fail-OPEN allowlist på
@@ -85,8 +105,74 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
 | 9 | Årslønsberegning | Afgjort | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
-| 11 | Erhvervsevnetab | Ikke startet | – | – |
+| 11a | Erhvervsevnetab – EET oplysninger | Afventer udvikleren | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 11b | Erhvervsevnetab – Løbende ydelser | Ikke startet | – | – |
+| 11c | Erhvervsevnetab – Kapitalisering | Ikke startet | – | – |
+| 11d | Erhvervsevnetab – EET efter EAL | Ikke startet | – | – |
+| 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Erhvervsevnetab → EET oplysninger (11a) – gennemgået 2026-08-31
+
+**17 fund: ni Mellem, otte Lav, ingen Høj.** Det fulde grundlag med målte tal står i
+[erhvervsevnetab.md](erhvervsevnetab.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-135 | Køn-fejlens link fører til «Arbejdsskadesikringsloven», hvor Køn-feltet ikke står | Mellem |
+| BB-136 | Samme manglende Køn giver to forskellige fejlsætninger over hinanden | Mellem |
+| BB-137 | Rækken «Køn» siger ikke, hvis køn den spørger om – informationsikonet gør | Mellem |
+| BB-138 | Beregningsdatoens gulv navngiver ikke Skadedato; fire datoer længere ned gør | Mellem |
+| BB-139 | En rød Skadedato slukker årslønnens maksimum og datoernes gulv, uden et ord | Mellem |
+| BB-140 | Sortering flytter dublet-fejlen fra den tomme til den fuldt udfyldte række | Mellem |
+| BB-141 | Under 15 %-advarslen står ved EET %-cellen, men kun på en anden fane for Kap. % | Mellem |
+| BB-142 | Fanens egne mangler vises kun på de fire andre faner | Mellem |
+| BB-143 | To felter, der begge heder «EET %», behandler 0 modsat | Mellem |
+| BB-144 | Grænseteksten annoncerer 0 som tilladt procent, som en anden regel forbyder | Lav |
+| BB-145 | Kap.dato, tidl. kap.dato og Kap. % hedder noget andet i deres egne fejlbeskeder | Lav |
+| BB-146 | Beregningsdatoens to grænser skrives i to datoformater | Lav |
+| BB-147 | «FS tilbageholdt EET = Ja» alene skaber en gemt række, beregningen ignorerer | Lav |
+| BB-148 | To nabo-celler beskriver samme regel med modsat fortegn | Lav |
+| BB-149 | Køn-rækken skydes ind OVER det felt, der frembragte den | Lav |
+| BB-150 | Et umuligt tidl. kap.dato meldes som irrelevant i stedet for ugyldigt | Lav |
+| BB-151 | «Bemærk»-boksens handleanvisning står under det felt, den handler om | Lav |
+
+**Fanen er programmets rene indtastningsflade, og det forklarer både fundenes art og deres fravær.** Den
+regner ikke, viser intet resultat og har ingen downloadknap – derfor er der ingen formler at kontrolregne,
+ingen dokumenter at sammenligne, og hverken M-19, M-22, M-23 eller M-25 har genstand her. Til gengæld er
+den den **eneste af sidens fem faner uden en «Fejl og advarsler»-boks**, og fire af de sytten fund (BB-135,
+BB-139, BB-141, BB-142) er udslag af samme forhold: alt, hvad programmet ved om, hvad der mangler, står på
+de faner brugeren ikke sidder på, mens han taster.
+
+**Det nye mønster M-27 er familiens tredje og farligste form.** M-19 melder en rød fremmed værdi som
+*manglende*; M-22 *slukker en knap*; M-27 *slukker en regel*. Målt: Skadedato `99-99-9999` i Stamdata gør,
+at «Skadelidtes årsløn (efter ASL)» accepterer `9.999.000 kr.` med neutral kant og uden besked (skadesårets
+maksimum er `527.000 kr.`), og at Afgørelsesdato accepterer `01-01-2006`. Fraværet af en rød kant er
+programmets måde at sige «kontrolleret og i orden»; her betyder det «kontrollen kunne ikke køres», og de to
+ser ens ud. Prøven tager to minutter og hører på hver flade, hvis felter har en regel afledt af Stamdata.
+
+**BB-140 er det fund, der kan koste brugeren mest.** Dubletreglen udpeger den dublet, der ligger sidst i
+rækkernes **committede rækkefølge**, og sortering skriver netop den rækkefølge om. Målt før og efter ét klik
+på en kolonneoverskrift: den røde markering flytter fra den næsten tomme række til den, der bærer hele
+kapitaliseringen. Den nærliggende handling – «slet den røde række» – rammer da den forkerte.
+
+**Konsekvenser for de resterende flader – fire prøver at tage med:**
+1. **M-27's prøve hører på hver flade med en regel afledt af Stamdata:** provokér reglen frem med en ulovlig
+   værdi, gør derefter Skadedato eller Fødselsdato UDFYLDT-MEN-UGYLDIG, og skriv den ulovlige værdi igen.
+   Kandidater: Forsørgertab og EO deler `faellesAarsloen.aslAarsloen`s skadesårsregel; alle datofelter med
+   `skadedato ?? fallbackMin`.
+2. **BB-138's prøve er mekanisk og uden browser:** `rg "minBoundKind" src/inputCore/catalog` – hvert
+   datofelt, hvis `min` læser et andet felts værdi uden at sætte `minBoundKind`, viser en grænse uden
+   afsender. `origin`/`derivedDateBounds` lukker IKKE hullet; den bruges kun ved min > max.
+3. **BB-140's prøve er ny og billig:** find hver kryds-række-regel, der bruger rækkeindeks
+   (`rg "findIndex" src/domain`), og sortér tabellen. Flytter en rød markering sig, er det en forekomst.
+4. **BB-137's prøve er en lære om omdøbninger:** en godkendt ordlyd skal søges som BEGREB, ikke som streng.
+   BB-134's rettelse ramte to af otte steder, hvor programmet spørger om skadelidtes køn.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864 (M-09 desuden målt ved 1244×620); `Gem`/`Hent` ikke
+afprøvet (samme hul som BB-049), så BB-147's persistensdel hviler på prædikatet frem for på en målt fil;
+ingen dokumenter hentet (fanen har ingen downloadknap); Escape-annullering, celle-undo og «meget mange
+rækker» ikke systematisk målt.
 
 ## Forsørgertab – gennemgået 2026-08-27
 

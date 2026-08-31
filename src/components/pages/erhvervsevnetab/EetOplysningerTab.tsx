@@ -86,6 +86,24 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
       <ContentBox className="content-box" data-section-id="eet-oplysninger-grundlaeggende">
         <Typography className="section-header">Grundlæggende oplysninger</Typography>
 
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Beregningsdato</Typography>
+          <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+            <DateField
+              field={beregningsdatoRef}
+              location={LOCATIONS.beregningsdato}
+              name="beregningsdato"
+            />
+            <InsertTodayDateButton
+              onCommit={(today) => {
+                beregningsdatoController.settleValue(today);
+              }}
+              disabled={insertTodayDisabledReason !== undefined}
+              disabledReason={insertTodayDisabledReason}
+            />
+          </Box>
+        </Box>
+
         {visKoenFelt && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">
@@ -106,24 +124,6 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
             </Box>
           </Box>
         )}
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Beregningsdato</Typography>
-          <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-            <DateField
-              field={beregningsdatoRef}
-              location={LOCATIONS.beregningsdato}
-              name="beregningsdato"
-            />
-            <InsertTodayDateButton
-              onCommit={(today) => {
-                beregningsdatoController.settleValue(today);
-              }}
-              disabled={insertTodayDisabledReason !== undefined}
-              disabledReason={insertTodayDisabledReason}
-            />
-          </Box>
-        </Box>
       </ContentBox>
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
@@ -144,6 +144,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
         <EetAslAfgoerelserTable
           committedRows={projection.aslAfgoerelserCommittedRows}
           ruleIssues={projection.aslAfgoerelserRuleIssues}
+          kapitaliseringAfgoerelser={projection.snapshot.kapitalisering.computation?.afgoerelser ?? []}
           saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />
       </ContentBox>

@@ -49,8 +49,10 @@ export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.afgoerelseType &&
   !row.tidlKapDato;
 
+// `FS tilbageholdt EET` er en required-choice med defaulten »Nej«. Et valg i den kan ikke alene
+// gøre placeholder-rækken til brugerindhold: værdien har ingen beregningsbetydning uden en afgørelse.
 export const isAslAfgoerelseRowPersistenceEmpty = (row: AslAfgoerelseRow): boolean =>
-  isAslAfgoerelseRowEmpty(row) && (row.fsTilbageholdtEet ?? 'Nej') === 'Nej';
+  isAslAfgoerelseRowEmpty(row);
 
 export const parseCommittedPercent = (raw: number | undefined): number | undefined => {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : undefined;
@@ -65,6 +67,8 @@ const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser me
 export const KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 export const TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE = 'Kun relevant ved tidligere kapitalisering.';
+export const KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
+  'Kapitaliseringsprocent må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -162,7 +166,7 @@ export const validateKapPctByAfgoerelsestype = (
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.kapPct)) {
-      return 'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.';
+      return KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE;
     }
     return undefined;
   }

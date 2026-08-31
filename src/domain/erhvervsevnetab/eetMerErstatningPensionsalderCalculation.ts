@@ -20,6 +20,7 @@ import {
   resolveSaerfaktor,
 } from './eetKapitaliseringOpslag';
 import { resolveKapitaliseringAarsydelseBreakdown } from './eetKapitaliseringCalculation';
+import { MISSING_KOEN_ISSUE } from './eetIssueCatalog';
 import {
   fromKroner,
   subtractMoneyOre,
@@ -189,7 +190,7 @@ const resolveFaktorForBekendtgoerelse = (
   const factorRows = factorTableResult.rows;
   if (!factorRows || factorRows.length === 0) {
     if (factorTableResult.reason === 'missing-koen') {
-      issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
+      issues.push(MISSING_KOEN_ISSUE);
     } else {
       issues.push(toIssue(`${args.issuePrefix}-tabel-missing`, `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`));
     }

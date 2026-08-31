@@ -37,7 +37,11 @@ import {
   erhvervsevnetabAslAfgoerelserCollectionRef,
 } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import type { ISODateString } from '../../types/branded';
-import { resolveEetUnder15Warning } from '../../domain/erhvervsevnetab/eetFieldWarnings';
+import {
+  resolveEetUnder15Warning,
+  resolveKapitaliseringUnder15Warning,
+} from '../../domain/erhvervsevnetab/eetFieldWarnings';
+import type { EetKapitaliseringComputation } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 
 // EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
 // og celleredigering går nu udelukkende gennem inputCore – som StandardLoenTable/BeregnetRenteTable:
@@ -85,6 +89,8 @@ export type EetAslAfgoerelserTableProps = Readonly<{
    * markering, tooltip og fokusnavigation deler repræsentation med alle andre røde felter.
    */
   ruleIssues: FieldIssueSet;
+  /** Kapitaliseringsmotorens færdige rækker – warningen må ikke genudlede en parallel rækkefølge. */
+  kapitaliseringAfgoerelser: EetKapitaliseringComputation['afgoerelser'];
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
@@ -95,13 +101,14 @@ const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfg
 type EetAslAfgoerelserRowProps = Readonly<{
   renderRow: RenderRow;
   eetPct: number | undefined;
+  kapitaliseringAfgoerelser: EetKapitaliseringComputation['afgoerelser'];
   onDeleteRow: (rowId: string) => void;
   ruleIssues: FieldIssueSet;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, AslAfgoerelseRow>;
 }>;
 
 const EetAslAfgoerelserRow = React.memo(
-  ({ renderRow, eetPct, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
+  ({ renderRow, eetPct, kapitaliseringAfgoerelser, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
     const rowId = renderRow.rowId;
     const gc = (colIndex: number) => ({ rowId, colIndex });
 
@@ -173,6 +180,7 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.kapPct)}
             cell={kapPctCell}
             {...ruleIssueFor(kapPctCell)}
+            warning={resolveKapitaliseringUnder15Warning(rowId, kapitaliseringAfgoerelser)}
           />
         </TableCell>
         <TableCell>
@@ -205,7 +213,7 @@ const EetAslAfgoerelserRow = React.memo(
 EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ committedRows, ruleIssues, saveOrderPath }: EetAslAfgoerelserTableProps) => {
+  ({ committedRows, ruleIssues, kapitaliseringAfgoerelser, saveOrderPath }: EetAslAfgoerelserTableProps) => {
     // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
     // det udtrykkes som `minimumVisibleRows` og er en ren VISNINGSregel (§1.11).
     const table = useCollectionTable<AslAfgoerelseRow>({
@@ -291,6 +299,7 @@ const EetAslAfgoerelserTable = React.memo(
               key={renderRow.rowId}
               renderRow={renderRow}
               eetPct={committedById.get(renderRow.rowId)?.eetPct}
+              kapitaliseringAfgoerelser={kapitaliseringAfgoerelser}
               onDeleteRow={table.removeRow}
               ruleIssues={ruleIssues}
               buildCellSpec={buildCellSpec}

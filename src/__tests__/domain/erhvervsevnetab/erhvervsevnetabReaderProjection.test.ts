@@ -321,7 +321,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
     );
     expect(endeligMessages).not.toContain(
-      'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.'
+      'Kapitaliseringsprocent må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
     );
 
     // Midlertidig med de SAMME bevarede værdier: nu gælder de to regler, så fejlene opstår – af den nye
@@ -331,7 +331,7 @@ describe('buildErhvervsevnetabReaderProjection', () => {
       'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
     );
     expect(midlertidigMessages).toContain(
-      'Kapitaliseringsprocent må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.'
+      'Kapitaliseringsprocent må kun udfyldes ved endelig eller delvist endelig afgørelsestype.'
     );
   });
 

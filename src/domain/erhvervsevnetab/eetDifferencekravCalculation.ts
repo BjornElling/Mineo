@@ -12,7 +12,7 @@ import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { parseCommittedPercent } from './eetAslAfgoerelser';
-import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
+import { MISSING_BEREGNINGSDATO_ISSUE, MISSING_KOEN_ISSUE } from './eetIssueCatalog';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -237,7 +237,7 @@ const computeProformaKapitalisering = (
   const stamdataDatoReference = resolveStamdataDatoReference(args.skadestype);
 
   if (!args.koen && beregningsdato < SKAERING_2015_03_01) {
-    issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives'));
+    issues.push(MISSING_KOEN_ISSUE);
     return null;
   }
 
@@ -297,7 +297,7 @@ const computeProformaKapitalisering = (
     const factorRows = factorTableResult.rows;
     if (!factorRows || factorRows.length === 0) {
       if (factorTableResult.reason === 'missing-koen') {
-        issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives'));
+        issues.push(MISSING_KOEN_ISSUE);
       } else {
         issues.push(toIssue('proforma-kapitaliseringstabel-missing', `Ingen kapitaliseringsfaktorer for tabel ${tabelvalg.tabel}.`));
       }

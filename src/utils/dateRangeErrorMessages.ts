@@ -14,7 +14,7 @@ export type DateRangeSpecialErrors = {
   /**
    * Identificerer min-grænsens semantiske oprindelse til domæne-specifikke fejlbeskeder.
    */
-  minBoundKind?: 'skadedato' | 'anmeldelsesdatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato' | 'efterAnvendtReguleringsdato' | 'fodselsdato';
+  minBoundKind?: 'skadedato' | 'anmeldelsesdatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato' | 'efterAnvendtReguleringsdato' | 'fodselsdato' | 'efterFelt';
   /**
    * Den brugersynlige referencedato, der frembragte grænsen (typisk Skadedato/Anmeldelsesdato).
    * Bruges til specielle beskeder, der skal nævne den konkrete referencedato.
@@ -129,10 +129,15 @@ export const resolveDateRangeErrorMessage = (args: {
     return `Der er angivet en ${label.toLowerCase()} før skadelidtes fødselsdato (${formatISOForTooltip(reference)})`;
   }
 
+  if (special?.minBoundKind === 'efterFelt' && minDate && iso < minDate) {
+    const reference = special.minBoundReferenceISO ?? minDate;
+    const label = special.minBoundLabel ?? 'den tidligst tilladte dato';
+    return `Datoen kan ikke være før ${label} (${formatISOForTooltip(reference)})`;
+  }
+
   if ((special?.maxBoundKind === 'eetDataMax' || special?.maxBoundKind === 'dataCoverageMax') && maxDate && iso > maxDate) {
-    const year = Number.parseInt(maxDate.slice(0, 4), 10);
     const label = special.maxBoundFieldLabel ?? 'Datoen';
-    return `${label} kan senest være 31. december ${year}`;
+    return `${label} kan senest være ${formatISOForTooltip(maxDate)}`;
   }
 
   if (special?.maxBoundKind === 'foerAfgoerelsesdato' && maxDate && iso > maxDate) {

@@ -8,6 +8,7 @@ import {
   aslAfgoerelseKapPctField,
   erhvervsevnetabBeregningsdatoField,
   erhvervsevnetabEalEetPctField,
+  erhvervsevnetabKoenField,
 } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import {
   faellesAarsloenAslAarsloenField,
@@ -113,6 +114,7 @@ const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> =
   'beregningsdato-invalid': erhvervsevnetabBeregningsdatoField.bind().address,
   'warn-beregningsdato-foer-skadedato': erhvervsevnetabBeregningsdatoField.bind().address,
   'field-beregningsdato': erhvervsevnetabBeregningsdatoField.bind().address,
+  'missing-koen': erhvervsevnetabKoenField.bind().address,
 };
 
 const EAL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
@@ -205,6 +207,7 @@ const GRUNDLAEGGENDE_IDS = new Set([
   'beregningsdato-invalid',
   'warn-beregningsdato-foer-skadedato',
   'field-beregningsdato',
+  'missing-koen',
   'eet-max-missing',
   'proforma-kapitaliseringsbekendtgoerelse-missing',
   'proforma-kapitaliseringstabel-missing',
@@ -248,7 +251,6 @@ const ASL_IDS = new Set([
   'kap-pct-without-kap-dato',
   'missing-kap-dato',
   'missing-kap-pct',
-  'missing-koen',
   'virkningsdato-after-tidlkap-dato',
   'kap-dato-not-after-tidlkap-dato',
   'kapitaliseringsbekendtgoerelse-missing-control-date',

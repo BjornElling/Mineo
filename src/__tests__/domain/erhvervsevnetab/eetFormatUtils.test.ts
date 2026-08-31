@@ -9,6 +9,7 @@ import { APP_ROUTES } from '../../../config/pageNavigation';
 import {
   erhvervsevnetabBeregningsdatoField,
   erhvervsevnetabEalEetPctField,
+  erhvervsevnetabKoenField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { faellesAarsloenAslAarsloenField } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
 
@@ -63,6 +64,7 @@ describe('resolveEetIssueNavigation', () => {
       'beregningsdato-invalid',
       'warn-beregningsdato-foer-skadedato',
       'eet-max-missing',
+      'missing-koen',
     ]) {
       const nav = resolveEetIssueNavigation(id);
       expect(nav?.route).toBe(APP_ROUTES.erhvervsevnetab);
@@ -73,6 +75,8 @@ describe('resolveEetIssueNavigation', () => {
   it('giver fejl og advarsler med ét ansvarligt input en kanonisk feltadresse', () => {
     expect(resolveEetIssueNavigation('beregningsdato-missing')?.focusFieldAddress)
       .toEqual(erhvervsevnetabBeregningsdatoField.bind().address);
+    expect(resolveEetIssueNavigation('missing-koen')?.focusFieldAddress)
+      .toEqual(erhvervsevnetabKoenField.bind().address);
     expect(resolveEetIssueNavigation('warn-eal-eet-under-15')?.focusFieldAddress)
       .toEqual(erhvervsevnetabEalEetPctField.bind().address);
     expect(resolveEetIssueNavigation('aarsloen-missing')?.focusFieldAddress)

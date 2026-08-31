@@ -7,11 +7,44 @@ import { aarsloenAslMax, type YearlyRate } from '../../data/lovbestemteRates';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { ASL_AARSLOEN_MAX_NOTICE } from '../aslEalAarsloen/aslAarsloenMaxNotice';
 
+type KapitaliseringsPctRow = Readonly<{ rowId: string; kapitaliseringspct: number }>;
+
 /** Kanonisk, ikke-blokerende feltadvarsel for EET-procenter under lovens minimum. */
 export const EET_UNDER_15_WARNING = 'Der kan ikke tilkendes erhvervsevnetab under 15 %';
 
 export const resolveEetUnder15Warning = (value: number | undefined): FieldWarning | undefined =>
   value !== undefined && value > 0 && value < 15 ? createFieldWarning(EET_UNDER_15_WARNING) : undefined;
+
+/** Kanonisk advarsel for en selvstændig kapitalisering under den lovbestemte tærskel. */
+export const KAPITALISERING_UNDER_15_WARNING = 'Der er angivet kapitalisering med mindre end 15 %';
+
+/**
+ * Returnerer de kapitaliseringsrækker, der skal fremhæves.
+ *
+ * En forhøjelse fra fx 20 % til 30 % kan lovligt kapitalisere de yderligere 10 %. Derfor gælder
+ * advarslen alene den første kapitalisering og den samlede kapitalisering – aldrig en senere
+ * delkapitalisering isoleret. Rækkerne kommer fra kapitaliseringsmotorens færdige rækkefølge, så
+ * feltadvarslen og resultatfanen vurderer nøjagtigt den samme kapitalisering.
+ */
+export const kapitaliseringUnder15WarningRowIds = (
+  rows: readonly KapitaliseringsPctRow[]
+): ReadonlySet<string> => {
+  const first = rows[0];
+  if (first === undefined) return new Set();
+  const total = rows.reduce((sum, row) => sum + row.kapitaliseringspct, 0);
+  if (first.kapitaliseringspct >= 15 && total >= 15) return new Set();
+  // Summen under 15 indebærer altid også en første kapitalisering under 15, fordi alle kapitaliseringer
+  // er positive. Begge betingelser står med vilje eksplicit, så den juridiske regel ikke forsvinder i en
+  // senere refaktorering af rækkernes repræsentation.
+  return new Set([first.rowId]);
+};
+
+export const resolveKapitaliseringUnder15Warning = (
+  rowId: string,
+  rows: readonly KapitaliseringsPctRow[]
+): FieldWarning | undefined => kapitaliseringUnder15WarningRowIds(rows).has(rowId)
+  ? createFieldWarning(KAPITALISERING_UNDER_15_WARNING)
+  : undefined;
 
 /**
  * Feltbeskeden når ASL-årslønnen står på skadesårets maksimum.

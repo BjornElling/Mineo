@@ -75,9 +75,9 @@ describe('ensureRentekravRows', () => {
 });
 
 describe('shouldAppendRentekravPlaceholder', () => {
-  it('tilføjer en placeholder, når brugeren har valgt en anden enhed end standarden', () => {
+  it('tilføjer ikke en placeholder, når kun den required dropdown er ændret', () => {
     const row = { ...createEmptyRentekravCommittedRow('r1'), enhed: 'uger' as const };
-    expect(shouldAppendRentekravPlaceholder([row])).toBe(true);
+    expect(shouldAppendRentekravPlaceholder([row])).toBe(false);
   });
 
   it('tilføjer en placeholder når alle committed rækker indeholder egentligt renteinput', () => {

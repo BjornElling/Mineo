@@ -73,7 +73,16 @@ const eetBeregningsdatoBoundsSpec: DateBoundsSpec = {
   min: (context) => context.view.readCanonical(stamdataSkadedatoField.bind())
     ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin,
   max: () => dateRanges_erhvervsevnetab.beregningsdato.max,
-  special: () => ({ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }),
+  special: (context) => {
+    const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
+    return {
+      ...(skadedato !== undefined && skadedato > dateRanges_erhvervsevnetab.beregningsdato.fallbackMin
+        ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
+        : {}),
+      maxBoundKind: 'eetDataMax' as const,
+      maxBoundFieldLabel: 'Beregningsdato',
+    };
+  },
   // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
   origin: (context) => derivedDateBounds(resolveStamdataDatoReferenceFromView(context.view).label),
 };
@@ -162,9 +171,10 @@ export const erhvervsevnetabEalEetPctField = defineStructuralField<number | unde
   createEmptySection: createEmptyErhvervsevnetabSection,
   validators: [
     percentBoundsValidator('erhvervsevnetab.ealEetPct.bounds', {
-      minValue: 0,
+      minValue: 5,
       maxValue: 100,
       allowDecimals: false,
+      message: 'Erhvervsevnetabet skal være mellem 5 og 100',
     }),
     (value) => {
       const message = validatePercentDivisibleBy5FromValue(value, 'EET %');
@@ -415,7 +425,7 @@ const aslDate = (
   });
 };
 
-const aslPct = (field: string, label: string): FieldDescriptor<number | undefined> =>
+const aslPct = (field: 'eetPct' | 'kapPct', label: string): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
     id: `erhvervsevnetab.aslAfgoerelser.${field}`,
     template: aslRowTemplate(field),
@@ -427,12 +437,13 @@ const aslPct = (field: string, label: string): FieldDescriptor<number | undefine
     createEmptySection: createEmptyErhvervsevnetabSection,
     validators: [
       percentBoundsValidator(`erhvervsevnetab.aslAfgoerelser.${field}.bounds`, {
-        minValue: 0,
+        minValue: field === 'eetPct' ? 5 : 0,
         maxValue: 100,
         allowDecimals: false,
+        ...(field === 'eetPct' ? { message: 'Erhvervsevnetabet skal være mellem 5 og 100' } : {}),
       }),
       (value) => {
-        const message = validatePercentNotZero(value, label)
+        const message = (field === 'kapPct' ? validatePercentNotZero(value, label) : undefined)
           ?? validatePercentDivisibleBy5FromValue(value, label);
         return message === undefined ? undefined : {
           reason: 'rule', code: `erhvervsevnetab.aslAfgoerelser.${field}.rule`, message,

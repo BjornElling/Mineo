@@ -1817,7 +1817,7 @@ describe('isAslAfgoerelseRowEmpty', () => {
     })).toBe(true);
   });
 
-  it('behandler FS tilbageholdt EET som brugerindtastning i persistens-tomhedsreglen', () => {
+  it('behandler FS tilbageholdt EET som tomt uden øvrigt rækkeindhold i persistens-tomhedsreglen', () => {
     expect(isAslAfgoerelseRowPersistenceEmpty({
       id: 'empty-nej',
       fsTilbageholdtEet: 'Nej',
@@ -1839,7 +1839,7 @@ describe('isAslAfgoerelseRowEmpty', () => {
       afgoerelseType: undefined,
       tidlKapDato: undefined,
       fsTilbageholdtEet: 'Ja',
-    })).toBe(false);
+    })).toBe(true);
   });
 });
 
