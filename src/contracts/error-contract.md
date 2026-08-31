@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-27
+**Senest verificeret mod kode:** 2026-08-31
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -144,9 +144,12 @@ Heraf følger:
    "Fejl og advarsler"-boks. Tavsheden er tilsigtet.
 2. **Forbrugssiden melder dem**, med en henvisning der både navigerer og markerer det felt, der mangler
    (mønsteret «Mangler (angiv i Stamdata)» med `blinkFieldAttention` via feltadressen).
-3. **Afgrænsningen er `missing`, ikke `invalid`.** En værdi, brugeren faktisk har skrevet, og som er ugyldig
-   eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet – også på en flade, der ellers ikke
-   melder noget. Det er brugerens eget input, ikke en forudsætning for en beregning, han måske aldrig laver.
+3. **Afgrænsningen er normalt `missing`, ikke `invalid`.** En værdi, brugeren faktisk har skrevet, og som er
+   ugyldig eller bryder en parvis grænse, markeres fortsat dér, hvor den er skrevet – også på en flade, der ellers
+   ikke melder noget. Det er brugerens eget input, ikke en forudsætning for en beregning, han måske aldrig laver.
+   En consumer må dog spejle en ugyldig forudsætning med samme navigerbare række, når fejlen ellers gør consumerens
+   egne afledte regler tavse. Rækken skal bruge den fælles «Ugyldig værdi (ret i Stamdata)»-vej og må aldrig være en
+   fri, konkurrerende fejltekst. EET's stamdatadato før ASL-årslønnen er den konkrete anvendelse (BB-139).
 4. **Begge parter i en brudt parvis grænse markeres** (udviklerbeslutning samme dag). Udvejen er forskellig i hvert
    af de to felter, og hver tekst skal derfor beskrive den rettelse, brugeren kan foretage i netop det felt.
 

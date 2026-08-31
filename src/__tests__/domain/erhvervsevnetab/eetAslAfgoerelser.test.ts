@@ -2,6 +2,7 @@ import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import {
   collectEetAslAfgoerelseValidationIssues,
   collectIncompleteRowIssues,
+  KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE,
   validateAslAarsloenDivisibleBy1000,
   validateAslAarsloenBySkadesaarMax,
   validateDuplicateAfgoerelse,
@@ -135,14 +136,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: undefined, eetPct: 40, kapPct: 5 })
     );
-    expect(error).toContain('må ikke udfyldes');
+    expect(error).toBe(KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE);
   });
 
   it('afviser midlertidig eller tom type når kap % er udfyldt (også 0)', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Midlertidig', eetPct: 40, kapPct: 0 })
     );
-    expect(error).toContain('må ikke udfyldes');
+    expect(error).toBe(KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE);
   });
 
   it('afviser midlertidig eller tom type når kap.dato er udfyldt', () => {
@@ -437,7 +438,7 @@ describe('validateEetPctByPriorKapPct', () => {
 });
 
 describe('validateDuplicateAfgoerelse', () => {
-  it('giver fejl for nederste række når afgørelsesdato og virkningsdato er identiske', () => {
+  it('giver fejl for begge rækker når afgørelsesdato og virkningsdato er identiske', () => {
     const first = buildRow({
       id: 'r1',
       afgoerelsesDato: toISODateString('2025-11-01'),
@@ -452,8 +453,30 @@ describe('validateDuplicateAfgoerelse', () => {
     const firstError = validateDuplicateAfgoerelse(first, [first, second]);
     const secondError = validateDuplicateAfgoerelse(second, [first, second]);
 
-    expect(firstError).toBeUndefined();
+    expect(firstError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato');
     expect(secondError).toBe('Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato');
+  });
+
+  it('fører markeringen videre til begge dato-felter på begge dubletrækker', () => {
+    const rows = [
+      buildRow({
+        id: 'r1',
+        afgoerelsesDato: toISODateString('2025-11-01'),
+        virkningsDato: toISODateString('2025-10-01'),
+      }),
+      buildRow({
+        id: 'r2',
+        afgoerelsesDato: toISODateString('2025-11-01'),
+        virkningsDato: toISODateString('2025-10-01'),
+      }),
+    ];
+
+    expect(collectEetAslAfgoerelseValidationIssues(rows, undefined, undefined)).toEqual(expect.arrayContaining([
+      { rowId: 'r1', field: 'afgoerelsesDato', message: 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato' },
+      { rowId: 'r1', field: 'virkningsDato', message: 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato' },
+      { rowId: 'r2', field: 'afgoerelsesDato', message: 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato' },
+      { rowId: 'r2', field: 'virkningsDato', message: 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato' },
+    ]));
   });
 
   it('giver fejl selvom afgørelsestype er forskellig', () => {

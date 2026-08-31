@@ -16,6 +16,7 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import type { ErhvervsevnetabValues, FaellesAarsloenValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';
 
 /**
  * Testen måler på livscyklussens IRREVERSIBLE handling (`triggerDocumentDownload`) frem for
@@ -27,6 +28,13 @@ const mockTriggerDocumentDownload = vi.hoisted(() => vi.fn());
 vi.mock('../../../document/downloadArtifact', async (importOriginal) => ({
   ...await importOriginal<typeof import('../../../document/downloadArtifact')>(),
   triggerDocumentDownload: mockTriggerDocumentDownload,
+}));
+
+const mockScrollToFieldAddress = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../utils/scrollToFieldAddress', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../utils/scrollToFieldAddress')>(),
+  scrollToFieldAddress: mockScrollToFieldAddress,
 }));
 
 const catalog = getProductionInputCatalog();
@@ -86,6 +94,7 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
   beforeEach(() => {
     sessionStorage.clear();
     mockTriggerDocumentDownload.mockClear();
+    mockScrollToFieldAddress.mockClear();
   });
 
   it('renderer en fresh sag med schema-defaults og to synlige ASL-placeholder-rækker', () => {
@@ -95,6 +104,21 @@ describe('Erhvervsevnetab – samlet surface og reader-projektion', () => {
     expect(screen.getByText('Skadelidtes årsløn (efter ASL)')).toBeInTheDocument();
     expect(screen.getByText('Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)')).toBeInTheDocument();
     expect(screen.getAllByRole('row')).toHaveLength(3); // header + to placeholders
+  });
+
+  it.each([
+    { skadestype: 'Arbejdsulykke' as const, label: 'Skadedato' },
+    { skadestype: 'Erhvervssygdom' as const, label: 'Anmeldelsesdato' },
+  ])('viser manglende $label over ASL-årslønnen og fører til Stamdata', async ({ skadestype, label }) => {
+    hydrate(validEet, validAarsloen, { ...validStamdata, skadestype, skadedato: undefined });
+    renderPage();
+
+    const row = screen.getByText(label).closest('.row--label-right-hover');
+    expect(row).not.toBeNull();
+    expect(row).toHaveTextContent(/Mangler\s*\(angiv i\s*Stamdata\)/);
+
+    await userEvent.setup().click(within(row as HTMLElement).getByText('Stamdata'));
+    expect(mockScrollToFieldAddress).toHaveBeenCalledWith(stamdataSkadedatoField.bind().address);
   });
 
   it('promoverer første placeholder atomisk ved et fejlende settle og sletter rækken med rejected input', async () => {

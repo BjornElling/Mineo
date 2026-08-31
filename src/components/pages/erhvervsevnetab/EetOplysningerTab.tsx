@@ -1,8 +1,10 @@
 import React from 'react';
 import { Box, MenuItem, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
+import MirroredStamdataRow from '../../layout/MirroredStamdataRow';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
@@ -27,6 +29,7 @@ import {
   SKADELIDTES_AARSLOEN_EAL_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
 import { APP_ROUTES } from '../../../config/pageNavigation';
+import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { getTodayLocalISO } from '../../../utils/dateUtils';
@@ -34,6 +37,7 @@ import {
   resolveEetAslAarsloenMaxWarning,
   resolveEetUnder15Warning,
 } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
+import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 
 export type EetOplysningerTabProps = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -44,6 +48,7 @@ const koenRef = erhvervsevnetabKoenField.bind();
 const ealEetPctRef = erhvervsevnetabEalEetPctField.bind();
 const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
+const skadedatoRef = stamdataSkadedatoField.bind();
 
 // route + tabKey er eksplicit navigation-metadata (§3.7). aslAarsloen/ealAarsloen deler feltadresse med
 // Forsørgertab, men bærer HER route `/erhvervsevnetab` + oplysninger-fanen – det er route (ikke feltadresse) der
@@ -58,8 +63,17 @@ const LOCATIONS = {
 } as const;
 
 const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
-  const { values, skadedato } = projection;
+  const { values, skadedato, skadedatoError, skadedatoLabel } = projection;
+  const navigate = useNavigate();
   const beregningsdatoController = useFieldEditor(beregningsdatoRef, LOCATIONS.beregningsdato);
+
+  // EET-afgørelsernes dato-regler kan først afledes, når Stamdatas dato kan bruges. Den delte
+  // stamdata-række forklarer derfor både en manglende og en ugyldig dato dér, hvor den blokerer
+  // arbejdet, og fører tilbage til det konkrete felt uden en EET-lokal navigationsvej.
+  const goToSkadedato = React.useCallback(() => {
+    navigate(APP_ROUTES.stamdata);
+    scrollToFieldAddress(skadedatoRef.address);
+  }, [navigate]);
 
   // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
   // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (EET-satsdatasættets
@@ -128,6 +142,14 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-asl">
         <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
+        {skadedato === undefined && (
+          <MirroredStamdataRow
+            label={skadedatoLabel}
+            value={undefined}
+            errorMessage={skadedatoError}
+            onNavigate={goToSkadedato}
+          />
+        )}
         <Box className="row--label-right-hover">
           <Typography className="row--text">{SKADELIDTES_AARSLOEN_ASL_LABEL}</Typography>
           <Box className="row--label-right-hover__content">

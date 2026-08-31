@@ -55,6 +55,7 @@ import {
 } from '../../inputCore/inputIssue';
 import { toAnyFieldRef } from '../../inputCore/fieldDescriptor';
 import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
+import { resolveStamdataDatoReference, type SkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
 // Erhvervsevnetab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren
 // funktion over den offentlige `InputReader`, der erstatter `Erhvervsevnetab.tsx`'s rå `usePersistedForm`/
@@ -170,6 +171,10 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
   values: ErhvervsevnetabComposedValues;
   /** Reader-sikker skadedato til synlighedsregler og dokumentvisning. */
   skadedato: ISODateString | undefined;
+  /** Stamdatadatoens kontekstuelle navn til EET-oplysningernes afhængighedsgenvej. */
+  skadedatoLabel: SkadestypeDatoLabel;
+  /** Readerens besked, når stamdatadatoen er udfyldt, men ikke kan bruges. */
+  skadedatoError: string | undefined;
   /** Reader-sikre værdier for de tre delte forligsfelter. */
   forligValues: Readonly<{
     forligAnsvarsgradProcent: number | undefined;
@@ -361,6 +366,8 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     aslAfgoerelserRuleIssues: buildFieldIssueSet(aslAfgoerelserRuleFieldIssues),
     values: composedValues,
     skadedato: skadedato.value,
+    skadedatoLabel: resolveStamdataDatoReference(skadestype.value).label,
+    skadedatoError: skadedato.errorMessage,
     forligValues: {
       forligAnsvarsgradProcent: forligProcent.value,
       forligAnsvarsgradBroek: forligBroek.value,

@@ -138,11 +138,8 @@ export const validateDuplicateAfgoerelse = (
 
   if (!afgoerelsesdatoIso || !virkningsdatoIso) return undefined;
 
-  const rowIndex = allRows.findIndex((candidate) => candidate.id === row.id);
-  if (rowIndex <= 0) return undefined;
-
-  for (let i = 0; i < rowIndex; i += 1) {
-    const candidate = allRows[i];
+  for (const candidate of allRows) {
+    if (candidate.id === row.id) continue;
     const candidateAfgoerelsesdatoIso = coerceToISODateString(candidate.afgoerelsesDato);
     const candidateVirkningsdatoIso = coerceToISODateString(candidate.virkningsDato);
 
@@ -150,6 +147,8 @@ export const validateDuplicateAfgoerelse = (
       candidateAfgoerelsesdatoIso === afgoerelsesdatoIso &&
       candidateVirkningsdatoIso === virkningsdatoIso
     ) {
+      // Begge rækker er tvetydige efter en sortering. En rækkerækkefølge er visning, ikke en stabil
+      // brugeridentitet, så kun den "seneste" række kan ikke markeres pålideligt.
       return DUPLICATE_AFGOERELSE_MESSAGE;
     }
   }
