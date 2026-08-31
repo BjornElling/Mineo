@@ -8,20 +8,49 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Erhvervsevnetab **fane 2 – Løbende ydelser** (11b). Fane 11a er gennemgået 2026-08-31.
-- **Næste fund-ID:** BB-152
+- **Næste flade:** Erhvervsevnetab **fane 3 – Kapitalisering** (11c). Fane 11b er gennemgået 2026-08-31.
+- **Næste fund-ID:** BB-166
 - **Åbne spørgsmål:** **to.** (1) Fra flade 10: hvor mange måneder er allerede udbetalt – de to halvdele
   bruger hver sin læsning. Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
   tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). (2) Fra flade 11a: skal
   «Bemærk»-boksens to forbehold (tilskadekomstpension til tidligere tjenestemænd, den grønlandske ASL) også
   stå i de fire EET-dokumenter, eller er de alene en oplysning til den, der taster? Se
-  [erhvervsevnetab.md](erhvervsevnetab.md).
-- **Fund, der afventer udviklerens afgørelse:** **17 fra flade 11a (BB-135–BB-151).** Ingen udeståender fra
+  [erhvervsevnetab.md](erhvervsevnetab.md). Flade 11b rejste ingen nye åbne spørgsmål.
+- **Fund, der afventer udviklerens afgørelse:** **14 fra flade 11b (BB-152–BB-165).** Ingen udeståender fra
   flade 1–10.
+- **Flade 11a er besvaret, men ikke gennemført i kode.** Udviklerens tilbagemeldinger står ved hvert fund i
+  [erhvervsevnetab.md](erhvervsevnetab.md): **otte er godkendt** (BB-135, BB-136, BB-138, BB-144, BB-146,
+  BB-147, BB-148, BB-149), **seks er afvist eller hælder mod afvisning** (BB-137, BB-142, BB-143, BB-145,
+  BB-150, BB-151), og **tre står uafklarede** (BB-139, BB-140, BB-141 – de to første med et modargument, den
+  tredje med en domænepræcisering om, at kapitalisering under 15 % kun er en advarsel, når den FØRSTE eller
+  den SAMLEDE kapitalisering er under 15 %). To af svarene rækker ud over fanen: BB-147's princip («en linje
+  er ikke udfyldt, hvis der udelukkende er ændret en dropdown, der ikke kan være tom») skal gælde hele
+  programmet, og BB-142's afvisning fastlægger, at indtastningsfaner **kun** viser fejl som rød eller gul
+  ring med tooltip, mens fejltekster hører på undersiderne.
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-08-31 (**Flade 11a – EET oplysninger – gennemgået: 17 fund, ni Mellem og otte
+- **Senest opdateret:** 2026-08-31 (**Flade 11b – Løbende ydelser – gennemgået: 14 fund, ti Mellem og fire
+  Lav, ingen Høj, og ét nyt tværgående mønster M-28.** Fanen er den første resultatfane og den eneste, der
+  fordeler et krav over tid; dens produkt er en specifikation, modparten skal kunne efterregne, og **seks af
+  fundene handler om, at den ikke kan det.** **M-28 er det nye mønster og det første, hvis prøve er ren
+  kodesøgning uden browser: den manglende oplysning ligger allerede i beregningsoutputtet.** Målt to gange:
+  `skaeringsDato` og `harOverlap` ligger i det kanoniske output og renderes ingen steder, mens netop
+  skæringsdatoen er den eneste forklaring på, at en 30 %-afgørelses første halvår er regnet med **5 %**
+  (`10.635,34 kr.` mod `63.812,07 kr.`, BB-152); og `buildLoebendeAarsydelseReguleringSteps` beregner
+  præcis det mellemtrin, der gør «Ydelse/md.» efterregnelig, og kaldes kun af sin egen test (BB-156 –
+  `53.176,72 + 55,4 % = 82.636,62`, `/12 = 6.886,39`, men tabellen skriver `6.887`, fordi årsydelsen
+  oprundes til nærmeste 12 kr. først). **Det klareste egentlige fejlfund er BB-160:** dokumentet skriver
+  «Resterende EET (**30** - 5 % = 10 %)» hvor skærmen korrekt skriver «(**15** - 5 % = 10 %)» – et
+  aritmetisk falsk regnestykke i det papir, modparten læser, mens beløbet ved siden af er rigtigt.
+  **Dertil to selvmodsigende datolinjer:** «Løbende ydelse ophører» kan ligge et helt år FØR afgørelsens
+  egen virkningsdato (BB-154), og «Ophør skyldes: Beregningsdato» påstår et ophør, hvor beregningen blot
+  stopper (BB-155). **Beregningsformlerne selv er kontrolregnet i tre sagsformer og er i orden** –
+  grundløn, grundydelse, 2024-opregulering, hver periodelinje, brøkmåneden og begge sammentællinger;
+  **ingen af de 14 fund handler om et forkert tal.** **M-09, M-10, M-22 og M-25 er efterprøvet og
+  BESTÅET;** M-19, M-23 og M-27 er uden genstand på en fane, hvis eneste input er en toggle. Konsollen var
+  tavs: 185 beskeder, 0 fejl, 0 advarsler.)
+- **Tidligere: 2026-08-31** (**Flade 11a – EET oplysninger – gennemgået: 17 fund, ni Mellem og otte
   Lav, ingen Høj, og ét nyt tværgående mønster M-27.** Fanen er ren indtastning: den regner ikke, viser
   intet resultat og har ingen downloadknap – og den er den ENESTE af sidens fem faner uden en «Fejl og
   advarsler»-boks. Fire af fundene kommer af netop det. **M-27 er det tungeste og er den tredje form i
@@ -106,11 +135,85 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 9 | Årslønsberegning | Afgjort | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
 | 11a | Erhvervsevnetab – EET oplysninger | Afventer udvikleren | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11b | Erhvervsevnetab – Løbende ydelser | Ikke startet | – | – |
+| 11b | Erhvervsevnetab – Løbende ydelser | Afventer udvikleren | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11c | Erhvervsevnetab – Kapitalisering | Ikke startet | – | – |
 | 11d | Erhvervsevnetab – EET efter EAL | Ikke startet | – | – |
 | 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Erhvervsevnetab → Løbende ydelser (11b) – gennemgået 2026-08-31
+
+**14 fund: ti Mellem, fire Lav, ingen Høj.** Det fulde grundlag med målte tal står i
+[erhvervsevnetab.md](erhvervsevnetab.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-152 | Overlapperioden regnes med en anden procent end afgørelsens, og intet siger det | Mellem |
+| BB-153 | Når overlappet giver 0 kr., begynder tabellen efter afgørelsens egen virkningsdato | Mellem |
+| BB-154 | «Løbende ydelse ophører» kan ligge før afgørelsens egen virkningsdato | Mellem |
+| BB-155 | «Ophør skyldes: Beregningsdato» siger ophør, hvor beregningen blot stopper | Mellem |
+| BB-156 | Fra «Grundydelse» og «Regulering» kan man ikke nå «Ydelse/md.» | Mellem |
+| BB-157 | Kolonnen «Regulering» skifter målestok ved 2024, og «+ 0 %» står ved et beløb der er steget 65,7 % | Mellem |
+| BB-158 | En EET-procent, programmet kalder ugyldig, er kun en gul advarsel på en anden fane | Mellem |
+| BB-159 | De tre «efter beregningsdatoen»-advarsler står kun i en boks på de andre faner | Mellem |
+| BB-160 | Dokumentets «Resterende EET (30 - 5 % = 10 %)» er et regnestykke, der ikke går op | Mellem |
+| BB-161 | Dokumentet nævner ikke beregningsdatoen, som skærmen har som sin første række | Mellem |
+| BB-162 | «Mdr.» skrives med fire decimaler på skærmen og fem i dokumentet | Lav |
+| BB-163 | Ydelsesniveau-sætningen og grundydelsens minustegn er forskellige på skærm og i dokument | Lav |
+| BB-164 | To toggles styrer den samme udvidede specifikation, og ingen af dem nævner den anden | Lav |
+| BB-165 | Tabellen deler en periode i tre rækker med identiske tal | Lav |
+
+**Fanens produkt er en specifikation, modparten skal kunne efterregne – og seks af fundene handler om, at
+den ikke kan det.** BB-152, BB-153, BB-156, BB-160, BB-161 og BB-165 er alle former af samme forhold: de
+delegrænser og mellemtrin, motoren regner efter, står hverken på skærmen eller i dokumentet. Fanen er
+ellers meget grundig: den udvidede specifikation viser hvert led i grundlønnen og i grundydelsen, og
+I alt-rækken kan efterregnes af præcis de hele kroner, tabellen viser.
+
+**M-28 er det nye mønster, og dets prøve er den billigste, gennemgangen har frembragt: ren kodesøgning
+uden browser.** Den manglende oplysning ligger allerede i beregningsoutputtet – enten som et felt i
+computation-schemaet, som ingen komponent læser (`skaeringsDato`, `harOverlap`), eller som en eksporteret
+domænefunktion, hvis eneste kaldsside er dens egen test
+(`buildLoebendeAarsydelseReguleringSteps`). Læren om, hvorfor det opstår, hører med: outputtet er
+komplet af arkitektoniske grunde – det skal bære alt, hvad visning og generator kan komme til at bruge,
+så de to kanaler ikke kan drifte – og netop derfor bemærker ingen, når visningen aldrig blev skrevet.
+**Et komplet output er ikke dokumentation for, at brugeren får oplysningen.**
+
+**BB-160 er det klareste egentlige fejlfund.** Dokumentet skriver «Resterende EET (**30** - 5 % = 10 %)»
+hvor skærmen korrekt skriver «(**15** - 5 % = 10 %)», fordi generatoren bruger `afgoerelse.eetPct` hvor
+fanen bruger `eetPctFoerAktuelKap`. Beløbet ved siden af er rigtigt, så ingen sammentælling og ingen test
+fanger det – og brugeren har ingen anledning til at hente dokumentet og læse en linje, han allerede har
+set korrekt på skærmen. **Det er første målte tilfælde i programmet, hvor skærm og dokument er uenige om
+et LED i et regnestykke frem for om et tals form.**
+
+**Beregningsformlerne selv er kontrolregnet og er i orden** i tre sagsformer (2003-niveau med 2024-skift,
+2024-niveau, og en delvist kapitaliseret kæde med to afgørelser): grundløn
+`400.000 × 367.000/527.000 = 278.558`, grundydelse `278.558 × 25 % × 83 % × 92 % = 53.176,72`,
+2024-opreguleringen `× 1,657 = 88.113,83`, hver periodelinje inkl. oprundingen til nærmeste 12 kr.,
+brøkmåneden `6,0323` og begge sammentællinger. Overlapperioderne er efterregnet som
+`currentRest − previousRest` og summerer korrekt på tværs af de to afgørelser. **Ingen af de 14 fund
+handler om et forkert tal.**
+
+**Konsekvenser for de resterende flader – fire prøver at tage med:**
+1. **M-28's prøve er ren kodesøgning og hører på hver resultatflade:** tag fladens computation-schema og
+   søg hvert feltnavn i `src/components` og `src/document`; tag derefter domænemodulets eksporterede
+   funktioner og søg hver af dem uden for `src/__tests__`. Et navn, der kun findes i domænet, er en
+   kandidat – og et brugerfund, hvis det svarer på et spørgsmål, brugeren står med. Kandidater: EET's tre
+   øvrige computations og EO's rækkebyggere.
+2. **BB-160's prøve er ny: regnestykkerne skal REGNES EFTER i begge udgaver.** M-13's hidtidige tre trin
+   sammenligner tallets form; dette trin regner hver formellinje efter på skærmen og i dokumentet hver for
+   sig. `rg "= \$\{formatPct|- \$\{formatPct" src/document/generators` er indgangen.
+3. **BB-156's prøve hører på hver tabel, hvis kolonner er tænkt som et regnestykke:** regn ÉN række efter
+   udelukkende med de viste tal. Går det ikke op, er der et usynligt skridt – typisk en enhed, der ikke
+   står i overskriften, eller en afrunding, der sker før divisionen. `rg "ceilNearest12" src/` er indgangen
+   til den konkrete form.
+4. **BB-161's prøve skærper BB-122's:** hold skærmens forudsætningsrækker op mod dokumentets på
+   dokumentets **standardudgave** – ikke på den, hvor alle valgfri afsnit er slået til. Her lå både
+   beregningsdato og skadedato bag et valgfrit afsnit, der er slået fra som standard.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864; PDF-kanalen ikke læst (alle dokumenter hentet som
+`.docx`); `Gem`/`Hent` ikke afprøvet (samme hul som BB-049); brevhovedet ikke slået til; «meget mange
+afgørelser» (B3) ikke målt – højst tre rækker er brugt; differencekravdokumentets løbende-ydelser-bilag
+ikke hentet; M-21's kandidat `DocumentOutcomeMessage.tsx:34` kunne ikke fremprovokeres.
 
 ## Erhvervsevnetab → EET oplysninger (11a) – gennemgået 2026-08-31
 

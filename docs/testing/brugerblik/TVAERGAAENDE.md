@@ -12,6 +12,20 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-08-31 fra Erhvervsevnetab → Løbende ydelser – M-28 – og det er det første, hvis
+prøve er REN kodesøgning uden browser.** M-28 (den manglende oplysning ligger allerede i
+beregningsoutputtet) blev fundet to gange på samme fane: `skaeringsDato` og `harOverlap` ligger i
+`EetLoebendeAfgoerelseComputation` og renderes ingen steder, mens netop skæringsdatoen er den eneste
+forklaring på, at en 30 %-afgørelses første halvår er regnet med 5 % (BB-152); og
+`buildLoebendeAarsydelseReguleringSteps` beregner det mellemtrin, der gør tabellens «Ydelse/md.»
+efterregnelig, og kaldes kun af sin egen test (BB-156). **Samme kørsel gav nye forekomster af M-13 i
+fem former – herunder mønsterets første målte tilfælde, hvor skærm og dokument er uenige om et LED i et
+regnestykke og dokumentets version er aritmetisk falsk («Resterende EET (30 - 5 % = 10 %)», BB-160) – samt
+af M-16 (BB-158 – en værdi programmet selv kalder «ugyldig», som feltet accepterer og beregningen bruger),
+M-20 (BB-159 – mønsterets tre egne navngivne kandidater bekræftet) og M-11 (BB-155 – en linje, der udtaler
+sig om SAGEN, hvor programmet kun ved noget om sin egen beregning).** M-09, M-10, M-22 og M-25 er
+efterprøvet og **bestået**; M-19, M-23 og M-27 er uden genstand på en fane, hvis eneste input er en toggle.
+
 **Ét nyt mønster 2026-08-31 fra Erhvervsevnetab → EET oplysninger – M-27 – og det er den tredje og
 farligste form i M-19/M-22-familien.** M-19 handler om, at en rød værdi fra en anden flade meldes som
 *manglende*; M-22 om, at den *slukker en knap*. **M-27 er, at den slukker en REGEL:** med Skadedato sat til
@@ -672,6 +686,17 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
   forudsætningsafsnit, find de datoer den navngiver, og lav en sag, hvor de falder forskelligt ud.
   Kandidater: Varige méns og forsørgertabs forudsætningsafsnit og EO-bilagenes indledninger, hvor
   «skadestidspunkt» og «opgørelsesdato» står ved siden af hinanden.
+- **Ny form 2026-08-31, og den flytter mønsteret fra påstande om PROGRAMMET til påstande om SAGEN**
+  (`erhvervsevnetab.md` BB-155, Mellem; skærpet af BB-154). Løbende ydelser skriver «Løbende ydelse
+  **ophører** 01-07-2026 · Ophør **skyldes** Beregningsdato». Ydelsen ophører ikke – beregningsdatoen er
+  blot det punkt, brugeren har valgt at gøre kravet op til, og den er den ENESTE af feltets fire værdier,
+  der ikke er en begivenhed i sagen. Linjen trykkes ordret i dokumentet, så modparten læser en oplysning
+  om ydelsen, hvor programmet kun ved noget om sin egen afgrænsning. **BB-154 viser hvor langt det kan
+  gå:** med en beregningsdato eller en folkepensionsdato før afgørelsens virkningsdato skriver de to linjer
+  et forløb, der ophører et helt år før det begynder (`Virkningsdato 01-01-2022 · ophører 01-01-2021`).
+  **Prøven er ny og hører på hver linje, der bruger et verbum om sagen** – «ophører», «udbetales»,
+  «tilkendes», «bortfalder»: læs den som en påstand om virkeligheden og spørg, om programmet kan vide
+  det, eller kun kender sin egen grænse.
 
 ## M-12 – Et valg, hvis virkning hverken kan ses nu eller findes senere
 
@@ -885,6 +910,30 @@ måles og rettes.
     Kilden er `eetDataMax`/`dataCoverageMax`-grenen i `dateRangeErrorMessages.ts`, som er den ENESTE gren
     med langform; alle øvrige bruger `formatISOForTooltip`. Rettelsen ligger derfor ét sted og rammer
     Forsørgertab og EO med.
+- **Fem nye forekomster 2026-08-31 fra Erhvervsevnetab → Løbende ydelser, og den første er mønsterets
+  første ÆGTE regnefejl i en af de to udgaver** (`erhvervsevnetab.md` BB-160, BB-161, BB-153, BB-162,
+  BB-163):
+  - **BB-160 flytter prøven fra tallets form til regnestykkets LED.** Samme linje, to udgaver: skærmen
+    skriver «Resterende EET (**15** - 5 % = 10 %)», dokumentet «Resterende EET (**30** - 5 % = 10 %)».
+    Dokumentets version er aritmetisk falsk (`30 - 5` er 25), fordi generatoren bruger
+    `afgoerelse.eetPct` hvor fanen bruger `eetPctFoerAktuelKap`. Beløbet ved siden af er rigtigt, så
+    ingen test og ingen sammentælling fanger det. **Prøven er ny: for hver linje, der skriver et
+    regnestykke ud, læs de to udgaver side om side og REGN DEM EFTER hver for sig** – BB-108 udvidede
+    prøven til formlens tekst, denne udvider den til formlens rigtighed.
+  - **BB-161 er BB-122's form igen, nu på et helt dokument.** Skærmens første række er
+    «Beregningsdato 1. juli 2026»; dokumentet nævner hverken beregningsdato eller skadedato, når den
+    valgfri udvidede specifikation er slået fra – hvilket den er som standard. Prøven («hold skærmens
+    forudsætningsrækker op mod dokumentets, række for række») skal derfor køres på dokumentets
+    STANDARDudgave, ikke på den, hvor alle valgfri afsnit er slået til.
+  - **BB-153 er nullet som en manglende PERIODE.** Motoren udelader delperioder med `0 kr.`, så en
+    afgørelse med virkningsdato `01-01-2022` får en tabel, der begynder `01-07-2022`, uden en note. Dertil
+    den latente uenighed i samme familie: fanen afgør «ingen løbende ydelse» på `perioder.length === 0`,
+    dokumentet på `iAltBeregnetEetOre === 0`.
+  - **BB-162 og BB-163 er de to kendte former:** «Mdr.» med fire decimaler på skærmen (`12,0000`) og fem
+    i dokumentet (`12,00000`) – fanen har sin egen lokale formatter og omgår den, koden selv kalder
+    kanonisk – og «(100 % **−** AM-bidrag)» med U+2212 på skærmen mod U+002D i dokumentet, plus to
+    forskellige sætninger om AM-bidraget. **Tegnprøven skal køres på TEGNKODE:** de to minustegn er
+    visuelt næsten ens, og U+2212 findes kun to steder i programmets brugervendte tekster.
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -1159,6 +1208,17 @@ frem for rettelser i gaten: de gør en falsk præmis sand i stedet for at differ
   betyder noget, og som kommer tilbage efter Hent.** Prøven udvides tilsvarende:
   `rg "createRequiredChoiceFieldCodec" src/inputCore/catalog` – hver collection med et required-choice-felt
   har to kandidater for «er der noget her?».
+- **Ny forekomst 2026-08-31, og den vender mønsteret om: her regner motoren VILLIGT på en værdi, den selv
+  kalder ugyldig** (`erhvervsevnetab.md` BB-158, Mellem). Med skadedato `01-08-2024` accepterer
+  afgørelsestabellens «EET %» værdien `25` med neutral celle (målt `aria-invalid = false`, ingen tooltip),
+  fordi feltet håndhæver femtrin – mens domænet kræver titrin for skader fra 1. juli 2024 og melder «Der er
+  indtastet en **ugyldig** EET-procent (25 %) …» som en **gul** advarsel på tre andre faner. Beregningen
+  kører videre, og dokumentet kan hentes. **Mønsterets sædvanlige form er, at motoren afviser en komplet
+  række, og afvisningen kommer ud som et fravær; her ACCEPTERER motoren en række, den selv navngiver som
+  ugyldig.** Rettelsen hører samme sted som altid – i feltmodellen – men beslutningen forud er en anden:
+  først skal det afgøres, om ordet «ugyldig» eller adfærden er det forkerte. **Prøven er ny og billig:
+  `rg "ugyldig|kan ikke|må ikke" src/domain` og for hvert træf, der beskriver en VÆRDI, spørg om feltet
+  afviser den.**
 - Kandidater, ikke efterprøvet: tilsvarende motorer med interne fejltyper findes i Varige mén
   og EO's rækkebyggere (`EO_ROW_BUILDERS`).
 
@@ -1346,6 +1406,17 @@ ene felts egen værdi.
   felts egen værdi – gør den det, hører den ved feltet, ikke i en boks.** Konkrete kandidater fra samme
   liste: `warn-kap-pct-under-15`, `warn-afgoerelsesdato-after-beregningsdato`,
   `warn-virkningsdato-after-beregningsdato`, `warn-kap-dato-after-beregningsdato`.
+- **De tre navngivne kandidater er efterprøvet 2026-08-31 og BEKRÆFTET** (`erhvervsevnetab.md` BB-159,
+  Mellem). Med beregningsdato `01-01-2021` og en afgørelse fra 2022 står alle tre advarsler
+  (`warn-afgoerelsesdato-after-beregningsdato`, `warn-virkningsdato-after-beregningsdato`,
+  `warn-kap-dato-after-beregningsdato`) i «Fejl og advarsler» på Løbende ydelser, mens de tre celler på
+  indtastningsfanen er **neutrale** (målt `aria-invalid = false`, ingen tooltip, ingen gul ramme).
+  **Forekomsten er den billigste af mønsterets hidtidige, fordi begge de sammenlignede værdier står på
+  samme fane** – beregningsdatoen er endda fanens første felt, så «advarslen afhænger af mere end ét felt»
+  er ikke en gyldig indvending her. Mængden er kendt og lukket:
+  `EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS` navngiver præcis de tre.
+  **Bemærk at udviklerens afgørelse ved BB-142 peger samme vej:** indtastningsfanen skal vise fejl i
+  faktisk foretagne indtastninger som rød eller gul ring med tooltip – ikke som tekst i en boks.
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
@@ -1679,3 +1750,52 @@ forudsætningen mangler), skal fladen sige, at kontrollen ikke kunne udføres, o
   EET har samme fallback (`skadedato ?? fallbackMin`), og det gør Varige méns, Forsørgertabs og EO's
   datofelter også. Generel indgang: `rg "readCanonical\(stamdata" src/inputCore/catalog` og
   `rg "\?\? .*fallbackMin" src/inputCore/catalog`.
+
+## M-28 – Den manglende oplysning ligger allerede i beregningsoutputtet
+
+> Skærmen viser et tal, brugeren ikke kan forklare – og forklaringen står i det kanoniske
+> beregningsresultat ved siden af, i et felt eller en funktion, ingen komponent læser.
+
+De øvrige «programmet ved noget, det ikke fortæller»-mønstre handler om, at oplysningen skal *udledes*
+eller *formuleres*: M-15 om et forbehold, der kun findes i generatoren, M-19 om en fejltekst, der findes
+men ikke læses, M-20 om en advarsel, der er hængt et for højt sted. Dette mønster er skarpere og
+billigere at prøve: **oplysningen er allerede beregnet, navngivet og typet.** Et felt i et
+`z.object({…}).strict()`-output eller en eksporteret domænefunktion er bevis på, at nogen har fundet
+oplysningen nødvendig nok at regne ud – og fraværet af en kaldsside er bevis på, at den aldrig kom
+videre til brugeren.
+
+Formen er let at overse, fordi intet er rødt, ingen test fejler og typerne er i orden: et ubrugt felt i
+et output er ikke en fejl, og en eksporteret funktion med en test ligner brugt kode.
+
+**Efterprøv, hvor:** en flade viser et resultat, hvis mellemtrin ikke kan efterregnes af det, der står
+på skærmen. Prøven er **ren kodesøgning og kræver ingen browser**, i to trin:
+
+1. Tag fladens computation-schema og søg hvert feltnavn i `src/components` og `src/document`. Et felt,
+   der kun findes i domænemodulet selv, er en kandidat.
+2. Tag domænemodulets eksporterede funktioner og søg hver af dem uden for `src/__tests__`. En funktion,
+   hvis eneste kaldsside er dens egen test, er en kandidat.
+
+Bemærk skellet mod almindelig død kode. Et ubrugt hjælpefelt er et kodefund. Dette er et **brugerfund**,
+når feltet er præcis den oplysning, der mangler for at kunne læse et tal på skærmen – altså når trin 1
+eller 2 giver et navn, som svarer på et spørgsmål, brugeren allerede står med.
+
+- Fundet i: `erhvervsevnetab.md` BB-152 (Mellem, afventer udvikleren). En 30 %-afgørelses første halvår
+  er regnet med **5 %** (`10.635,34 kr.` mod de øvrige rækkers `63.812,07 kr.`), fordi den tidligere
+  afgørelse fortsat blev udbetalt frem til skæringsdatoen `01-07-2022`. Skæringsdatoen ligger i outputtet
+  som `skaeringsDato`, sammen med flaget `harOverlap` – og `rg "skaeringsDato|harOverlap" src/` giver kun
+  domænemodulet selv. Boksens overskrift siger «(30 %)», og der findes ikke ét tal på siden, differencen
+  kan udledes af.
+- Fundet i: `erhvervsevnetab.md` BB-156 (Mellem, afventer udvikleren). Tabellens `Grundydelse 53.176,72`
+  `+ 55,4 %` giver `82.636,62 / 12 = 6.886,39`, mens kolonnen «Ydelse/md.» skriver `6.887` – fordi
+  årsydelsen oprundes til nærmeste 12 kr. (`82.644`) før divisionen, og fordi «Grundydelse» er et
+  årsbeløb. **`buildLoebendeAarsydelseReguleringSteps` beregner præcis de to mellemtrin pr. satsår** og
+  har som eneste kaldsside sin egen unittest.
+- **Læren om, hvorfor mønsteret opstår, og den er værd at bære videre:** begge felter er lagt i outputtet
+  af en grund, der er rigtig – det kanoniske resultat skal bære alt, hvad en visning eller en generator
+  kan komme til at bruge, så de to kanaler ikke kan drifte. Men netop derfor er der ingen der bemærker,
+  når en visning aldrig blev skrevet. **Et output, der er komplet af arkitektoniske grunde, er ikke
+  dokumentation for, at brugeren får oplysningen.**
+- Kandidater, ikke efterprøvet: de tre øvrige EET-computations (`eetKapitaliseringCalculation`,
+  `eetEalCalculation`, `eetDifferencekravCalculation`) og EO's rækkebyggere. Generel indgang:
+  `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
+  `*Calculation.ts` en søgning uden for `src/__tests__`.

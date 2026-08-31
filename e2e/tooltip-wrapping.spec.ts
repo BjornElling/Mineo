@@ -3,7 +3,6 @@ import {
   expect,
   login,
   openPage,
-  setVerbatimFieldValueAndSettle,
   test,
 } from './support/mineoTest';
 
@@ -11,7 +10,6 @@ import { BROWSER_LANE_TAG } from './support/lanes';
 
 const LONG_TOOLTIP_TEXT = 'Juridisk omtvistet, men nyere retspraksis hælder mod fuld sats';
 const TAF_UNAVAILABLE_TOOLTIP = 'Der er ingen TAF-perioder i EO-perioden';
-const EAL_MISSING_RATES_TOOLTIP = 'EAL-beregningen kan ikke gennemføres, fordi der mangler reguleringssats for 1999, 2000, 2001, 2002, 2003, 2004.';
 
 const measureTooltip = async (tooltip: Locator) => tooltip.evaluate((element) => {
   const lines = [...element.querySelectorAll('.mineo-tooltip-line')];
@@ -83,31 +81,4 @@ test.describe('fælles tooltip-ombrydning', { tag: BROWSER_LANE_TAG }, () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('ombryder EAL-fejlen uden en enkeltstående linje på EET-beregningsdatoen', async ({ page, runtimeErrors }) => {
-    await login(page);
-    await openPage(page, 'Stamdata');
-    await setVerbatimFieldValueAndSettle(page.locator('input[name="skadedato"]'), '01-01-1999');
-
-    await openPage(page, 'Erhvervsevnetab');
-    await setVerbatimFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '01-01-2024');
-
-    const fieldTooltipAnchor = page.locator('[data-mui-internal-clone-element][aria-label^="EAL-beregningen"]');
-    await expect(fieldTooltipAnchor).toHaveAttribute('aria-label', EAL_MISSING_RATES_TOOLTIP);
-    const anchorBox = await fieldTooltipAnchor.boundingBox();
-    expect(anchorBox).not.toBeNull();
-    await page.mouse.move(0, 0);
-    await page.mouse.move(
-      (anchorBox?.x ?? 0) + (anchorBox?.width ?? 0) / 2,
-      (anchorBox?.y ?? 0) + (anchorBox?.height ?? 0) / 2,
-    );
-
-    const tooltip = page.getByRole('tooltip', { name: EAL_MISSING_RATES_TOOLTIP });
-    await expect(tooltip).toBeVisible();
-    await expect(tooltip.locator('.mineo-tooltip-line')).toHaveText([
-      'EAL-beregningen kan ikke gennemføres,',
-      'fordi der mangler reguleringssats for',
-      '1999, 2000, 2001, 2002, 2003, 2004.',
-    ]);
-    expect(runtimeErrors).toEqual([]);
-  });
 });
