@@ -2,7 +2,7 @@ import { createTheme } from '@mui/material';
 import type { PaletteMode, Theme } from '@mui/material/styles';
 import type { ResolvedThemeMode } from '../settings/appSettingsSchema';
 import { CONTENT_SCALE_CSS_VARIABLE } from '../utils/uiScale';
-import { MineoTooltipContent } from '../components/ui/MineoTooltipContent';
+import { MineoTooltipContent, TOOLTIP_MAX_WIDTH_PX } from '../components/ui/MineoTooltipContent';
 
 export type { ResolvedThemeMode };
 
@@ -67,7 +67,7 @@ export const buildTheme = (mode: ResolvedThemeMode): Theme =>
         styleOverrides: {
           tooltip: {
             width: 'fit-content',
-            maxWidth: '320px',
+            maxWidth: `${TOOLTIP_MAX_WIDTH_PX}px`,
             textAlign: 'left',
             whiteSpace: 'normal',
             overflowWrap: 'anywhere',
