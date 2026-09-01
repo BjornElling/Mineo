@@ -10,16 +10,18 @@ import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
-import type { ISODateString } from '../../../types/branded';
 import type {
   EetLoebendeComputation,
   EetLoebendeAfgoerelseComputation,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
+  LOEBENDE_YDELSE_AFRUNDING_NOTE,
+  formatLoebendeRestEetLinje,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
+  resolveLoebendeOphoerVisning,
+  resolveLoebendeSkaeringsNote,
   toAfgoerelseTypeLabel,
-  toOphoerAarsagLabel,
   visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -102,8 +104,14 @@ export const addLoebendeAfgoerelseSection = (
   writer.writeLeftRightText('Afgørelsesdato', formatISOToDanish(afgoerelse.afgoerelsesdato), rowOpts);
   writer.writeLeftRightText('Virkningsdato', formatISOToDanish(afgoerelse.virkningsdato), rowOpts);
   writer.writeLeftRightText('Afgørelse med tilbagevirkende kraft?', formatJaNej(afgoerelse.tilbagevirkendeKraft), rowOpts);
-  writer.writeLeftRightText('Løbende ydelse ophører', formatISOToDanish(afgoerelse.ophoerDato), rowOpts);
-  writer.writeLeftRightText('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
+
+  const ophoerVisning = resolveLoebendeOphoerVisning(afgoerelse);
+  if (ophoerVisning.kind === 'interval') {
+    writer.writeLeftRightText(ophoerVisning.ophoerLabel, formatISOToDanish(ophoerVisning.ophoerDato), rowOpts);
+    writer.writeLeftRightText('Årsag', ophoerVisning.aarsagLabel, rowOpts);
+  } else {
+    writer.writeWrappedText(ophoerVisning.forklaring);
+  }
 
   // Ingen manuel addSectionSpacer her: underoverskriften "Beregnede ydelser" har selv den
   // kanoniske top-afstand (kontrakt B5.1/B6). I PDF absorberer writeBoldSubheader en evt.
@@ -117,6 +125,11 @@ export const addLoebendeAfgoerelseSection = (
 
   writer.writeBoldSubheader('Beregnede ydelser');
 
+  const skaeringsNote = resolveLoebendeSkaeringsNote(afgoerelse);
+  if (skaeringsNote) {
+    writer.writeWrappedText(skaeringsNote);
+    writer.addSectionSpacer();
+  }
   if (viserGrundydelseNiveauSkift) {
     writer.writeWrappedText(
       'Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau.'
@@ -172,7 +185,7 @@ export const addLoebendeAfgoerelseSection = (
             { text: 'Fra o.m.' },
             { text: 'Til o.m.' },
             { text: 'Mdr.' },
-            { text: 'Grundydelse' },
+            { text: 'Grundydelse pr. år' },
             { text: 'Regulering' },
             { text: 'Ydelse/md.' },
             { text: 'Beregnet EET' },
@@ -196,6 +209,9 @@ export const addLoebendeUdvidetSpecifikationPage = (
   writer.addPage();
 
   writer.writeSectionHeader('Udvidet specifikation');
+
+  writer.writeWrappedText(LOEBENDE_YDELSE_AFRUNDING_NOTE);
+  writer.addSectionSpacer();
 
   const rowOpts = { rightFontStyle: 'normal' as const };
 
@@ -299,12 +315,11 @@ export const addLoebendeUdvidetSpecifikationPage = (
     writer.writeLeftRightText(grundydelseFormulaLine2, formatKr(toKroner(primaryGrundydelse), 2), rowOpts);
 
     if (showRest2003) {
-      const restEetExpression = `${afgoerelse.eetPct} - ${formatPct(afgoerelse.kapPctAktuel)} = ${formatPct(afgoerelse.restEetPct)}`;
-      const restTextPrefix =
-        afgoerelse.kapitaliseringsdato !== null
-          ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
-          : 'Resterende EET efter kapitalisering';
-      writer.writeLeftRightText(restTextPrefix, formatKr(toKroner(restGrundydelse2003), 2), rowOpts);
+      writer.writeLeftRightText(
+        formatLoebendeRestEetLinje(afgoerelse),
+        formatKr(toKroner(restGrundydelse2003), 2),
+        rowOpts
+      );
     }
 
     if (show2024Block) {
@@ -316,12 +331,11 @@ export const addLoebendeUdvidetSpecifikationPage = (
         rowOpts
       );
       if (showRest2024) {
-        const restEetExpression = `${afgoerelse.eetPct} - ${formatPct(afgoerelse.kapPctAktuel)} = ${formatPct(afgoerelse.restEetPct)}`;
-        const restTextPrefix =
-          afgoerelse.kapitaliseringsdato !== null
-            ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
-            : 'Resterende EET efter kapitalisering';
-        writer.writeLeftRightText(restTextPrefix, formatKr(toKroner(restGrundydelse2024), 2), rowOpts);
+        writer.writeLeftRightText(
+          formatLoebendeRestEetLinje(afgoerelse),
+          formatKr(toKroner(restGrundydelse2024), 2),
+          rowOpts
+        );
       }
     }
   }

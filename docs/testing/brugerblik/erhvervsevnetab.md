@@ -583,6 +583,10 @@ Jeg afviser fundet. Bemærk-sektionen findes hovedsageligt som en juridisk ansva
   ikke registreret som fund: **skal forbeholdene med i dokumenterne, eller er de alene en oplysning til
   den, der taster?**
 
+**Tilbagemelding**
+Nej, der er tale om en rent praktisk information til brugeren, mens vedkommende indtaster. Brugeren skal vide disse forhold i forvejen, så det har alene karakter af en påmindelse. Den skal ikke indgå i dokumenterne.
+
+
 ---
 
 # Fane 2 – Løbende ydelser
@@ -623,7 +627,7 @@ dokumentet, mens beløbet er rigtigt.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – skæringsdato og difference navngives i en note over tabellen
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`.
   2. EET oplysninger: Beregningsdato `01-07-2026`, ASL-årsløn `400.000`.
@@ -657,12 +661,15 @@ dokumentet, mens beløbet er rigtigt.
   et kanonisk beregningsoutput og aldrig renderes, er en kandidat – `harOverlap` og `skaeringsDato` er
   de to eneste i dette schema.
 
+**Tilbagemelding**
+Enig
+
 ### BB-153 – Når overlappet giver 0 kr., begynder tabellen efter afgørelsens egen virkningsdato
 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – samme note dækker den delvist tomme afgørelse
 - **Sådan fremprovokeres det:** samme sag som BB-152, men giv **række 2 samme EET % som række 1** (`25`).
 - **Det sker:** boksen «Afgørelse 1. juni 2022 (25 %)» skriver «Virkningsdato **01-01-2022**» i
   Periodeafgrænsningen, og tabellens første række begynder **01-07-2022**. Det halve år derimellem er
@@ -685,12 +692,15 @@ dokumentet, mens beløbet er rigtigt.
   `iAltBeregnetEetOre === 0` (`loebendeYdelserDocument.ts:116`). De to er enige i dag, fordi alle rækker
   er positive – men det er to prædikater for samme spørgsmål, jf. BB-098.
 
+**Tilbagemelding**
+Enig
+
 ### BB-154 – «Løbende ydelse ophører» kan ligge før afgørelsens egen virkningsdato
 
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – umuligt interval erstattet af årsagslinje
 - **Sådan fremprovokeres det:** to måder, målt hver for sig på en sag med en afgørelse, hvis
   Virkningsdato er `01-01-2022`:
   1. Sæt Beregningsdato til `01-01-2021`.
@@ -720,12 +730,15 @@ dokumentet, mens beløbet er rigtigt.
   virkningsdatoen (`eetLoebendeYdelserCalculation.ts:838`). Samme form kan opstå på Kapitalisering og
   Differencekrav, som bruger de samme fire ophørsårsager – hører til 11c og 11e.
 
+**Tilbagemelding**
+Enig
+
 ### BB-155 – «Ophør skyldes: Beregningsdato» siger, at ydelsen ophører, hvor beregningen blot stopper
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – «opgjort til og med» ved beregningsdatoen, «ophører» ved de tre ægte årsager
 - **Sådan fremprovokeres det:** en helt almindelig sag: én midlertidig afgørelse med Virkningsdato
   `01-01-2020`, Beregningsdato `01-07-2026`.
 - **Det sker:** «Løbende ydelse ophører **01-07-2026**» og «Ophør skyldes **Beregningsdato**». Men
@@ -743,12 +756,15 @@ dokumentet, mens beløbet er rigtigt.
   eneste kilde og deles af skærm og dokument, så rettelsen ligger ét sted. Se BB-154 for den skærpede
   form af samme linje.
 
+**Tilbagemelding**
+Enig
+
 ### BB-156 – Fra «Grundydelse» og «Regulering» kan man ikke nå «Ydelse/md.»
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – kolonnen hedder «Grundydelse pr. år», afrundingsreglen forklares i den udvidede specifikation
 - **Sådan fremprovokeres det:** tag rækken `01-01-2022`–`30-06-2022` fra en 25 %-afgørelse
   (skadedato `01-06-2018`, ASL-årsløn `400.000`) og regn den efter med det, tabellen viser.
 - **Det sker:** tabellen skriver `Grundydelse 53.176,72 kr.` · `Regulering + 55,4 %` ·
@@ -771,12 +787,15 @@ dokumentet, mens beløbet er rigtigt.
   for at give en hel månedsydelse. Generelt: hver tabel, hvis kolonner er tænkt som et regnestykke, skal
   prøves ved at regne én række efter udelukkende med de viste tal.
 
+**Tilbagemelding**
+Enig. Undgå gerne for meget visuelt rod, dog. Beregningerne er i forvejen lange og komplicerede, så undgå så vidt muligt gerne at tilføje alt for meget kompliceret beregningsteknisk. Det bliver nemt bare til visuelt rod.
+
 ### BB-157 – Kolonnen «Regulering» skifter målestok ved 2024, og «+ 0 %» står ved et grundbeløb, der er steget 65,7 %
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-01 – noten er efterprøvet og dækker alle relevante tilfælde
 - **Sådan fremprovokeres det:** en sag med skadedato `01-06-2018`, virkningsdato `01-01-2020` og
   beregningsdato `01-07-2026`, så tabellen krydser 1. januar 2024.
 - **Det sker:** de to kolonner fortæller modsatte historier ved årsskiftet, målt ordret:
@@ -803,12 +822,15 @@ dokumentet, mens beløbet er rigtigt.
 - **Andre steder det kan gælde:** `visGrundydelseNiveauSkift`-noten er delt af skærm og dokument, så
   begge udgaver har samme mangel. Kapitaliseringsfanen har samme 2003/2024-niveauskift – hører til 11c.
 
+**Tilbagemelding**
+Jeg afviser fundet. Brugeren bliver allerede orienteret om årsagen med denne tekst "Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau.". Tjek gerne, at teksten vises i alle de tilfælde, hvor problemstillingen kunne opstå og være relevant. Hvis den gør det, er dit fund ubegrundet.
+
 ### BB-158 – En EET-procent, programmet selv kalder ugyldig, er kun en gul advarsel på en anden fane
 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – gul feltadvarsel på EET %-cellen; «ugyldig» erstattet af «ikke lovmæssig»
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `01-08-2024`, Fødselsdato `01-01-1970`.
   2. EET oplysninger: Beregningsdato `01-07-2026`, ASL-årsløn `400.000`, én række med Afgørelsesdato
@@ -831,12 +853,15 @@ dokumentet, mens beløbet er rigtigt.
   `collectWarnings`. Generelt: hver advarsel, der bruger ordet «ugyldig», «forkert» eller «kan ikke» om
   en værdi, feltet accepterer – `rg "ugyldig" src/domain` er indgangen.
 
+**Tilbagemelding**
+Jeg er kun delvist enig. Selvom juraen siger, at der er særlige mindstegrænser og fastsatte procentsatser for erhvervsevnetab, som ikke kan fraviges, vil det nogen gange alligevel være nødvendigt at kunne lave teoretiske beregninger af værdien for sådanne. Derfor skal der konsekvent kun vises advarsler for indtastninger som er under mindstegrænserne eller uden for de faste procentsatser. Dog skal erhvervsevnetabsprocenter altid være delelige med 5, og de skal være større end nul og højst være hundrede - så fejl vedrørende dette skal gøre dem røde. Rent formuleringsmæssigt er det udtryk for en korrekt gengivelse af juraen at angive, at det er ugyldigt, når der indtastes en EET-procent under mindstegrænsen eller uden for de fastsatte procentsater, men programmet skal alligevel muliggøre dette. Brugeren skal blot advares om, at det er en ikke-lovmæssig beregning. Find en god balance og brug den gerne konsekvent.
+
 ### BB-159 – De tre «efter beregningsdatoen»-advarsler står kun i en boks på de andre faner
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-20--en-feltnær-oplysning-hentet-fra-hele-sidens-beregning`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – gul feltadvarsel på de tre datoceller, boksens tre linjer samlet til én
 - **Sådan fremprovokeres det:** en sag med en afgørelse (Afgørelsesdato `01-06-2022`, Virkningsdato
   `01-01-2022`, Kap.dato `01-06-2022`) og Beregningsdato `01-01-2021`.
 - **Det sker:** Løbende ydelser viser tre advarsler over hinanden – «Der er angivet en afgørelsesdato
@@ -857,12 +882,15 @@ dokumentet, mens beløbet er rigtigt.
   `warn-*` på fanen er efterprøvet: `warn-asl-eet-under-15` HAR sin feltadvarsel (BF-019), og
   `warn-non-endelig-after-endelig` er en ægte kryds-række-oplysning uden ét felt at hænge på.
 
+**Tilbagemelding**
+Enig.
+
 ### BB-160 – Dokumentets «Resterende EET (30 - 5 % = 10 %)» er et regnestykke, der ikke går op
 
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – hele kæden vises: 30 % - 15 % tidl. kap. - 5 % kap. = 10 %
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`. EET oplysninger: Beregningsdato
      `01-07-2026`, ASL-årsløn `400.000`.
@@ -890,12 +918,15 @@ dokumentet, mens beløbet er rigtigt.
   skriver et regnestykke ud, læs de to udgaver side om side og **regn dem efter hver for sig**.
   `rg "= \$\{formatPct|- \$\{formatPct" src/document/generators` er indgangen.
 
+**Tilbagemelding**
+Jeg er enig. Jeg overvejer dog, om det ikke vil være mest brugervenligt konsekvent i disse tilfælde at vise hele beregningen af erhvervsevnetab, altså hvis seneste afgørelse er på 30 %, så tage afsæt i denne procentsats og dels vise, at den tidligere kapitaliseringsprocent bliver trukket fra, og vise at den efterfølgende også bliver trukket fra, så brugeren kan følge hele regnestykket fra den angivne fulde procentsats til slutresultatet.
+
 ### BB-161 – Dokumentet nævner ikke beregningsdatoen, som skærmen har som sin første række
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-01 – beregningsdatoen har ingen selvstændig juridisk betydning
 - **Sådan fremprovokeres det:** hent «Løbende ydelser (EET)» på en almindelig sag og læs det igennem.
 - **Det sker:** skærmens første oplysning er «Beregningsdato 1. juli 2026». I dokumentet står den ikke
   – hverken på forsiden, i Periodeafgrænsningen eller i den udvidede specifikation. Sagens **skadedato**
@@ -916,12 +947,15 @@ dokumentet, mens beløbet er rigtigt.
   BB-122's og er mekanisk: hold skærmens forudsætningsrækker op mod dokumentets, række for række. Hører
   til 11c–11e.
 
+**Tilbagemelding**
+jeg er ikke sikker på, at jeg er enig. Beregningsdato er blot den dato, som brugeren vælger at lave beregningerne frem til. Der er ikke nogen juridisk eller faktuel betydning tilknyttet den pågældende dato. Jeg tænker derfor, at det er tilstrækkeligt at det blot fremgår af dokumenterne, at opgørelsen kun er lavet frem til en given dato, uden at det er relevant at angive, at den dato i selve programmet omtales som beregningsdatoen.
+
 ### BB-162 – «Mdr.» skrives med fire decimaler på skærmen og fem i dokumentet
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – fem decimaler begge steder via den fælles formatter
 - **Sådan fremprovokeres det:** sammenlign tabellens «Mdr.»-kolonne på skærmen med det hentede dokument.
 - **Det sker:** samme tal, to præcisioner, målt ordret:
 
@@ -949,12 +983,15 @@ dokumentet, mens beløbet er rigtigt.
   negative reguleringsprocenter, så uenigheden er ikke udløst; efter mønsterets egen lære lukkes den,
   når den findes.
 
+**Tilbagemelding**
+Jeg er enig. Brug fem decimaler for Mdr begge stedre.
+
 ### BB-163 – Ydelsesniveau-sætningen og grundydelsens minustegn er forskellige på skærm og i dokument
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – én ordlyd og ét minustegn (U+002D) på skærm og i dokument
 - **Sådan fremprovokeres det:** slå den udvidede specifikation til, hent dokumentet, og sammenlign
   afsnittene «Ydelsesniveau» og «Grundydelse» linje for linje med skærmens.
 - **Det sker:** to forskelle, målt ordret:
@@ -975,12 +1012,15 @@ dokumentet, mens beløbet er rigtigt.
   forekomster; alle øvrige træf er kommentarer. Generelt: sammenlign ikke kun tallets form, men tegnene
   omkring det, og gør det på tegnkode – de to minustegn er visuelt næsten ens.
 
+**Tilbagemelding**
+Enig
+
 ### BB-164 – To toggles i samme sag styrer den samme udvidede specifikation, og ingen af dem nævner den anden
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-01 – to uafhængige toggles, én pr. fanes egne dokumenter
 - **Sådan fremprovokeres det:**
   1. Løbende ydelser: slå «Medtag udvidet specifikation i Word» **til**.
   2. Gå til Differencekrav og læs «Medtag udvidet specifikation på løbende ydelser».
@@ -1001,12 +1041,15 @@ dokumentet, mens beløbet er rigtigt.
   flyttet til en anden fane (håndteret med en særregel i `fieldLocationCatalog.ts:71`). Særreglen er
   selv et spor: et felt, der bor i én datagruppe og renderes fra en anden fane, er en kandidat.
 
+**Tilbagemelding**
+Jeg afviser fundet. Det skaber mere forvirring end bidrag, hvis der kun laves én samlet slider, og brugeren derfor skal bruge tid på at lede efter den på en fane, hvor brugerens beregninger reelt hører til på en anden. Brugeren vil benytte beregningen af løbende ydelser og beregningen af differencekrav til helt forskellige formål, så det giver mening - også ud fra en brugers perspektiv - at der er en individuel mulighed på hver af siderne for at vælge, om specifikationer skal indgå. Der skal ikke være nogen indbyrdes sammenhæng overhovedet mellem de to sliders. én slider på hver af de to faner, som udelukkende bestemmer, om der indsættes specifikation på den enkelte fanes specifikke dokumenter.
+
 ### BB-165 – Tabellen deler en periode i tre rækker med identiske tal
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-01 – tilstødende rækker med identiske tal slås sammen i visningen
 - **Sådan fremprovokeres det:** samme sag som BB-160; læs tabellen i boksen «Afgørelse 1. juni 2022».
 - **Det sker:** tre rækker i træk er ordret ens bortset fra datoerne, målt:
 
@@ -1029,6 +1072,9 @@ dokumentet, mens beløbet er rigtigt.
 - **Andre steder det kan gælde:** `splitPeriodByBoundaries` bruges kun her. Generelt: hver flade, der
   splitter en periode på interne grænser, kan vise rækker uden forskel – EO's TAF-periodisering er den
   nærmeste kandidat (flade 12).
+
+**Tilbagemelding**
+Enig. Sørg for at finde en god, velstruktureret måde at gøre det på.
 
 ## Overvejet uden fund
 

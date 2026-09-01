@@ -1,6 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetCalculationGraph';
+import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
@@ -462,7 +463,7 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID)).toBe(true);
     expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(false);
     expect(result.hasBlockingErrors).toBe(false);
     expect(result.computation?.afgoerelser).toHaveLength(1);
@@ -537,9 +538,7 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID)).toBe(false);
     expect(result.computation?.dagFoerBeregningsdato).toBe(toISODateString('2026-01-14'));
     expect(result.computation?.loebendeComputation?.beregningsdato).toBe(toISODateString('2026-01-14'));
   });
@@ -568,9 +567,7 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID)).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(true);
     expect(result.issues.some((issue) => issue.id === 'asl-afgoerelser-empty')).toBe(false);
     expect(result.computation).toBeNull();
@@ -631,7 +628,7 @@ describe('computeEetDifferencekravCalculation', () => {
     });
 
     expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID)).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(true);
   });
 

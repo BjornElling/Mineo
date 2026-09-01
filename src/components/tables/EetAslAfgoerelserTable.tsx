@@ -36,8 +36,10 @@ import {
   aslAfgoerelseVirkningsDatoField,
   erhvervsevnetabAslAfgoerelserCollectionRef,
 } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
-import type { ISODateString } from '../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import {
+  resolveDatoEfterBeregningsdatoWarning,
+  resolveEetTitrinWarning,
   resolveEetUnder15Warning,
   resolveKapitaliseringUnder15Warning,
 } from '../../domain/erhvervsevnetab/eetFieldWarnings';
@@ -91,6 +93,10 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   ruleIssues: FieldIssueSet;
   /** Kapitaliseringsmotorens færdige rækker – warningen må ikke genudlede en parallel rækkefølge. */
   kapitaliseringAfgoerelser: EetKapitaliseringComputation['afgoerelser'];
+  /** Skadedatoen afgør EET-procentens trinregel; den står ikke i den celle, brugeren taster i. */
+  skadedato: ISODateString | undefined;
+  /** Beregningsdatoen, som de tre datoceller advares mod at ligge efter (BB-159). */
+  beregningsdato: ISODateString | undefined;
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
@@ -100,17 +106,21 @@ const createEmptyAslRow = (rowId: string): AslAfgoerelseRow => ({ ...emptyAslAfg
 
 type EetAslAfgoerelserRowProps = Readonly<{
   renderRow: RenderRow;
-  eetPct: number | undefined;
+  /** Rækkens afsluttede værdier – kilde til de feltnære advarsler, der afhænger af andre felter. */
+  committedRow: AslAfgoerelseRow | undefined;
   kapitaliseringAfgoerelser: EetKapitaliseringComputation['afgoerelser'];
+  skadedato: ISODateString | undefined;
+  beregningsdato: ISODateString | undefined;
   onDeleteRow: (rowId: string) => void;
   ruleIssues: FieldIssueSet;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, AslAfgoerelseRow>;
 }>;
 
 const EetAslAfgoerelserRow = React.memo(
-  ({ renderRow, eetPct, kapitaliseringAfgoerelser, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
+  ({ renderRow, committedRow, kapitaliseringAfgoerelser, skadedato, beregningsdato, onDeleteRow, ruleIssues, buildCellSpec }: EetAslAfgoerelserRowProps) => {
     const rowId = renderRow.rowId;
     const gc = (colIndex: number) => ({ rowId, colIndex });
+    const eetPct = committedRow?.eetPct;
 
     // Opslaget sker på den FÆRDIGT BUNDNE cellereference, editoren selv driver (`CellSpec.field`) – ikke på en
     // ny lokal binding og ikke på en parallel `${rowId}|${field}`-strengnøgle. Dermed findes der kun
@@ -137,6 +147,11 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.afgoerelsesDato)}
             cell={afgoerelsesDatoCell}
             {...ruleIssueFor(afgoerelsesDatoCell)}
+            warning={resolveDatoEfterBeregningsdatoWarning(
+              coerceToISODateString(committedRow?.afgoerelsesDato),
+              beregningsdato,
+              'Afgørelsesdatoen'
+            )}
           />
         </TableCell>
         <TableCell>
@@ -144,6 +159,11 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.virkningsDato)}
             cell={virkningsDatoCell}
             {...ruleIssueFor(virkningsDatoCell)}
+            warning={resolveDatoEfterBeregningsdatoWarning(
+              coerceToISODateString(committedRow?.virkningsDato),
+              beregningsdato,
+              'Virkningsdatoen'
+            )}
           />
         </TableCell>
         <TableCell>
@@ -151,7 +171,9 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.eetPct)}
             cell={eetPctCell}
             {...ruleIssueFor(eetPctCell)}
-            warning={resolveEetUnder15Warning(eetPct)}
+            // Cellen kan kun bære én advarsel. Under-15 vinder, fordi den gælder uanset skadedato;
+            // trinreglen er først relevant, når procenten i det hele taget kan tilkendes.
+            warning={resolveEetUnder15Warning(eetPct) ?? resolveEetTitrinWarning(eetPct, skadedato)}
           />
         </TableCell>
         <TableCell>
@@ -173,6 +195,11 @@ const EetAslAfgoerelserRow = React.memo(
             gridCell={gc(COL.kapDato)}
             cell={kapDatoCell}
             {...ruleIssueFor(kapDatoCell)}
+            warning={resolveDatoEfterBeregningsdatoWarning(
+              coerceToISODateString(committedRow?.kapDato),
+              beregningsdato,
+              'Kapitaliseringsdatoen'
+            )}
           />
         </TableCell>
         <TableCell>
@@ -213,7 +240,7 @@ const EetAslAfgoerelserRow = React.memo(
 EetAslAfgoerelserRow.displayName = 'EetAslAfgoerelserRow';
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ committedRows, ruleIssues, kapitaliseringAfgoerelser, saveOrderPath }: EetAslAfgoerelserTableProps) => {
+  ({ committedRows, ruleIssues, kapitaliseringAfgoerelser, skadedato, beregningsdato, saveOrderPath }: EetAslAfgoerelserTableProps) => {
     // Tomme rækker persisteres ikke. Legacy viste altid mindst EET_ASL_MIN_VISIBLE_ROWS (=2) rækker;
     // det udtrykkes som `minimumVisibleRows` og er en ren VISNINGSregel (§1.11).
     const table = useCollectionTable<AslAfgoerelseRow>({
@@ -298,8 +325,10 @@ const EetAslAfgoerelserTable = React.memo(
             <EetAslAfgoerelserRow
               key={renderRow.rowId}
               renderRow={renderRow}
-              eetPct={committedById.get(renderRow.rowId)?.eetPct}
+              committedRow={committedById.get(renderRow.rowId)}
               kapitaliseringAfgoerelser={kapitaliseringAfgoerelser}
+              skadedato={skadedato}
+              beregningsdato={beregningsdato}
               onDeleteRow={table.removeRow}
               ruleIssues={ruleIssues}
               buildCellSpec={buildCellSpec}

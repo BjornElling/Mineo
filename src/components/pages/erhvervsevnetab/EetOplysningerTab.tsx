@@ -167,6 +167,8 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
           committedRows={projection.aslAfgoerelserCommittedRows}
           ruleIssues={projection.aslAfgoerelserRuleIssues}
           kapitaliseringAfgoerelser={projection.snapshot.kapitalisering.computation?.afgoerelser ?? []}
+          skadedato={projection.skadedato}
+          beregningsdato={projection.values.beregningsdato}
           saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />
       </ContentBox>

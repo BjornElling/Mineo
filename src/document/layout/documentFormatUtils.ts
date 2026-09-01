@@ -1,6 +1,10 @@
-import { formatCurrency, formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
+import {
+  formatCurrency,
+  formatAsAmount,
+  formatAsAmountTrimmed,
+  formatReguleringPctSigned,
+} from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
-import { round4 } from '../../utils/roundingShortcuts';
 import {
   DOCUMENT_MAANEDER_DECIMALS,
   formatDocumentMaanederFixed,
@@ -134,12 +138,7 @@ export { DOCUMENT_MAANEDER_DECIMALS };
  * negativ værdi der afrundes til 0 (fx -0,00001) skal vises som "+ 0 %", ikke
  * "- 0 %" – et negativt fortegn på nul er misvisende i et tillidskritisk dokument.
  */
-export const formatReguleringPct = (value: number): string => {
-  const rounded = round4(Math.abs(value));
-  const inner = formatAsAmountTrimmed(rounded, 4);
-  const sign = value < 0 && rounded !== 0 ? '-' : '+';
-  return `${sign} ${inner} %`;
-};
+export const formatReguleringPct = formatReguleringPctSigned;
 
 export { isSingularCount } from '../../utils/formatUtils';
 export { formatCountWithUnit } from '../../utils/formatUtils';

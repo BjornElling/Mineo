@@ -32,6 +32,8 @@ import {
 import type { EetKapitaliseringCalculationResult } from './eetKapitaliseringCalculation';
 import type { EetEalCalculationResult } from './eetEalCalculation';
 import type { EetLoebendeCalculationResult } from './eetLoebendeYdelserCalculation';
+import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from './eetIssueCatalog';
+import { formatDatoEfterBeregningsdatoWarning } from './eetFieldWarnings';
 import {
   computeMerErstatningPensionsalder,
   type MerErstatningPensionsalderComputation,
@@ -199,14 +201,18 @@ const analyzeAslRowsAtBeregningsdato = (
       issues,
     };
   }
-  if (hasAfgoerelsesdatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen'));
-  }
-  if (hasVirkningsdatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen'));
-  }
-  if (hasKapDatoAfterBeregningsdato) {
-    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen'));
+  // Samme ene linje som på løbende ydelser (BB-159): årsagen er beregningsdatoen, ikke tre
+  // uafhængige problemer. Delt id og ordlyd, så de to faner ikke kan drive fra hinanden.
+  if (
+    beregningsdato &&
+    (hasAfgoerelsesdatoAfterBeregningsdato ||
+      hasVirkningsdatoAfterBeregningsdato ||
+      hasKapDatoAfterBeregningsdato)
+  ) {
+    issues.push(toWarning(
+      EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
+      formatDatoEfterBeregningsdatoWarning(beregningsdato)
+    ));
   }
   return {
     hasAnyEnteredRows,
@@ -679,13 +685,7 @@ export const composeEetDifferencekravCalculation = (
   const deduped = dedupeIssuesByIdentity(allSourceIssues)
     .filter((issue) => {
       if (issue.id === 'no-endelig-afgoerelser') return false;
-      if (
-        issue.id === 'warn-afgoerelsesdato-after-beregningsdato' ||
-        issue.id === 'warn-virkningsdato-after-beregningsdato' ||
-        issue.id === 'warn-kap-dato-after-beregningsdato'
-      ) {
-        return false;
-      }
+      if (issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID) return false;
       // Beslutningsnote:
       // Reason: differencekrav filtrerer beregningsgrundlaget til afgørelser med virkning på eller før beregningsdatoen.
       // Den generiske "Ingen ASL-afgørelser er indtastet" må i differencekrav kun afhænge af, om der findes

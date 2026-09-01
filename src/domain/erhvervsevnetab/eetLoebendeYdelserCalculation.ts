@@ -1,8 +1,16 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
-import { EET_UNDER_15_WARNING } from './eetFieldWarnings';
-import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
+import {
+  EET_TITRIN_FRA_2024_WARNING,
+  EET_UNDER_15_WARNING,
+  formatDatoEfterBeregningsdatoWarning,
+  harEetTitrinAfvigelse,
+} from './eetFieldWarnings';
+import {
+  EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
+  MISSING_BEREGNINGSDATO_ISSUE,
+} from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
@@ -26,7 +34,10 @@ import {
 import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenValidators';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+// Direkte fra utils, ikke via eetFormatUtils: den facade importerer hele descriptor-kataloget,
+// og en beregningsmodul-import derfra ville lukke en cyklus mellem domæne og inputCore.
+import { formatAsAmountTrimmed, formatPercentRounded4 as formatPct } from '../../utils/formatUtils';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
@@ -72,6 +83,14 @@ export const eetLoebendeAfgoerelseComputationSchema = z.object({
   kapitaliseringsdato: isoDateString.nullable(),
   skaeringsDato: isoDateString.nullable(),
   harOverlap: z.boolean(),
+  /**
+   * Den procent, den fortsat udbetalte forgænger giver i overlapperioden.
+   *
+   * Overlapperioden regnes som differencen mellem denne afgørelses rest og forgængerens rest, så
+   * uden forgængerens procent kan differencen ikke udledes af noget tal på siden (BB-152).
+   * `null` når afgørelsen ikke har en overlapperiode med en udbetalt forgænger.
+   */
+  overlapForgaengerEetPct: z.number().finite().nullable(),
   afgoerelseType: z.enum(['Midlertidig', 'Delvist endelig', 'Endelig']),
   eetPct: z.number().finite(),
   priorKapPct: z.number().finite(),
@@ -258,9 +277,7 @@ const collectResolvedAfgoerelser = (
  * Se `eo-snapshot-contract.md` §13.
  */
 export const EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS: ReadonlySet<string> = new Set([
-  'warn-afgoerelsesdato-after-beregningsdato',
-  'warn-virkningsdato-after-beregningsdato',
-  'warn-kap-dato-after-beregningsdato',
+  EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
 ]);
 
 const collectWarnings = (
@@ -273,14 +290,15 @@ const collectWarnings = (
     issues.push(toWarning('warn-asl-eet-under-15', EET_UNDER_15_WARNING));
   }
 
-  const firstInvalidPctAfter2024 = skadedato >= SKAERING_2024_07_01
-    ? afgoerelser.find((row) => row.eetPct > 15 && row.eetPct % 10 !== 0)
-    : undefined;
+  // Samme prædikat som feltadvarslen på EET %-cellen, så boksen og cellen ikke kan drive fra
+  // hinanden. Ordlyden siger nu, at beregningen ikke er lovmæssig, i stedet for at kalde værdien
+  // «ugyldig» – programmet accepterer den, regner på den og trykker den (BB-158).
+  const firstInvalidPctAfter2024 = afgoerelser.find((row) => harEetTitrinAfvigelse(row.eetPct, skadedato));
   if (firstInvalidPctAfter2024) {
     issues.push(
       toWarning(
         'warn-invalid-eet-pct-after-2024-07-01',
-        `Der er indtastet en ugyldig EET-procent (${formatPctForWarning(firstInvalidPctAfter2024.eetPct)} %) for skader fra 1. juli 2024.`
+        `${EET_TITRIN_FRA_2024_WARNING} (indtastet ${formatPctForWarning(firstInvalidPctAfter2024.eetPct)} %).`
       )
     );
   }
@@ -309,16 +327,19 @@ const collectWarnings = (
     );
   }
 
-  if (afgoerelser.some((row) => row.afgoerelsesdato > beregningsdato)) {
-    issues.push(toWarning('warn-afgoerelsesdato-after-beregningsdato', 'Der er angivet en afgørelsesdato efter beregningsdatoen'));
-  }
-
-  if (afgoerelser.some((row) => row.virkningsdato > beregningsdato)) {
-    issues.push(toWarning('warn-virkningsdato-after-beregningsdato', 'Der er angivet en virkningsdato efter beregningsdatoen'));
-  }
-
-  if (afgoerelser.some((row) => row.kapDato !== undefined && row.kapDato > beregningsdato)) {
-    issues.push(toWarning('warn-kap-dato-after-beregningsdato', 'Der er angivet en kapitaliseringsdato efter beregningsdatoen'));
+  // Tre linjer om ÉN årsag læses som tre problemer, hvor der er ét: beregningsdatoen ligger før
+  // sagens afgørelser (BB-159). Boksen navngiver derfor årsagen i én linje, og de enkelte datoer
+  // markeres i stedet ved deres egen celle med `resolveDatoEfterBeregningsdatoWarning`.
+  const harDatoEfterBeregningsdato = afgoerelser.some((row) =>
+    row.afgoerelsesdato > beregningsdato ||
+    row.virkningsdato > beregningsdato ||
+    (row.kapDato !== undefined && row.kapDato > beregningsdato)
+  );
+  if (harDatoEfterBeregningsdato) {
+    issues.push(toWarning(
+      EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
+      formatDatoEfterBeregningsdatoWarning(beregningsdato)
+    ));
   }
 };
 
@@ -603,9 +624,12 @@ const buildComputedSectionRows = (
     useOverlap: boolean;
     events: readonly KapitaliseringEvent[];
   }>
-): PeriodSectionRow[] => {
+): Readonly<{ rows: PeriodSectionRow[]; overlapForgaengerEetPct: number | null }> => {
   const { current, predecessors, finalStop, useOverlap, events } = args;
   const rows: PeriodSectionRow[] = [];
+  // Forgængerens rest i overlapperioden gemmes, så noten over tabellen kan navngive differencen.
+  // Første overlaprække er den, brugeren ser øverst, og dermed den, noten skal kunne forklare.
+  let overlapForgaengerEetPct: number | null = null;
   const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
   const overlapEnd = useOverlap ? getDayBeforeIso(skaeringsDato) : undefined;
   const overlapSplitBoundaries = [
@@ -633,6 +657,7 @@ const buildComputedSectionRows = (
         const previousRest = predecessor
           ? restEetPctAt(predecessor, events, splitRow.fra)
           : 0;
+        if (overlapForgaengerEetPct === null) overlapForgaengerEetPct = previousRest;
         rows.push({
           ...splitRow,
           eetPct: Math.max(0, currentRest - previousRest),
@@ -659,7 +684,7 @@ const buildComputedSectionRows = (
     }
   }
 
-  return assertValidPeriodSectionRows(rows);
+  return { rows: assertValidPeriodSectionRows(rows), overlapForgaengerEetPct };
 };
 
 /**
@@ -690,6 +715,49 @@ const toAfgoerelseLabel = (
   if (hasRestSektion) return 'Endelig afgørelse (delvist kap.)';
   if (hasKapitalisering) return 'Endelig afgørelse (kapitaliseret)';
   return 'Endelig afgørelse';
+};
+
+/**
+ * Lægger tilstødende visningsrækker sammen, når de er ens i alt andet end datoerne.
+ *
+ * Den tekniske periodisering deler bevidst en periode ved kapitaliserings- og skæringsdatoer
+ * (`splitPeriodByBoundaries`), og de grænser ændrer ofte intet i rækken: satsår, grundydelse og
+ * månedsydelse er de samme på begge sider. Tre identiske rækker i træk læses som en fejl i
+ * periodiseringen af den, der efterregner (BB-165), så sammenlægningen hører i visningen.
+ *
+ * Sammenlægningen sker EFTER `beregnetEetKroner` er afrundet pr. delperiode, og beløbene summeres.
+ * Slog man perioderne sammen før beregningen, ville afrundingen af én lang periode give et andet
+ * tal end summen af de korte – dvs. en ændret beregning. Totalen er derfor uændret, og hver vist
+ * række kan fortsat efterregnes af sine egne tal.
+ */
+const mergeAdjacentIdenticalPeriodRows = (
+  rows: readonly EetLoebendePeriodeRow[]
+): EetLoebendePeriodeRow[] => {
+  const merged: EetLoebendePeriodeRow[] = [];
+
+  for (const row of rows) {
+    const previous = merged[merged.length - 1];
+    const isDirectlyAdjacent = previous !== undefined && getDayAfterIso(previous.til) === row.fra;
+    const hasIdenticalValues = previous !== undefined &&
+      previous.satsAar === row.satsAar &&
+      previous.grundydelseAfrundetOre === row.grundydelseAfrundetOre &&
+      previous.reguleringPct === row.reguleringPct &&
+      previous.maanedligYdelseOre === row.maanedligYdelseOre;
+
+    if (previous === undefined || !isDirectlyAdjacent || !hasIdenticalValues) {
+      merged.push(row);
+      continue;
+    }
+
+    merged[merged.length - 1] = {
+      ...previous,
+      til: row.til,
+      maanederPraecis: previous.maanederPraecis + row.maanederPraecis,
+      beregnetEetOre: sumMoneyOre([previous.beregnetEetOre, row.beregnetEetOre]),
+    };
+  }
+
+  return merged;
 };
 
 const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculationResult => {
@@ -884,7 +952,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       afgoerelse,
       ophoerDato: predecessorFinalStop.date,
     }));
-    const allPeriods = buildComputedSectionRows({
+    const { rows: allPeriods, overlapForgaengerEetPct } = buildComputedSectionRows({
       current,
       predecessors,
       finalStop: finalStop.date,
@@ -924,7 +992,8 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       });
     }
 
-    const iAltBeregnetEetOre = sumMoneyOre(computedRows.map((row) => row.beregnetEetOre));
+    const visningsRows = mergeAdjacentIdenticalPeriodRows(computedRows);
+    const iAltBeregnetEetOre = sumMoneyOre(visningsRows.map((row) => row.beregnetEetOre));
 
     computations.push({
       rowId: current.rowId,
@@ -933,6 +1002,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       kapitaliseringsdato: hasKapitalisering && current.effectiveKapDato ? current.effectiveKapDato : null,
       skaeringsDato: currentTransition.skaeringsDato,
       harOverlap: currentTransition.useOverlap,
+      overlapForgaengerEetPct: currentTransition.useOverlap ? overlapForgaengerEetPct : null,
       afgoerelseType: current.afgoerelseType,
       eetPct: current.eetPct,
       priorKapPct,
@@ -949,7 +1019,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       grundydelseRestOre: grundydelseRestKroner === null ? null : fromKroner(grundydelseRestKroner),
       grundydelse2024FuldOre: fromKroner(grundydelse2024FuldKroner),
       grundydelse2024RestOre: grundydelse2024RestKroner === null ? null : fromKroner(grundydelse2024RestKroner),
-      perioder: computedRows,
+      perioder: visningsRows,
       iAltBeregnetEetOre,
     });
   }
@@ -1082,6 +1152,33 @@ export const resolveLoebendeAfgoerelseRestVisning = (
   };
 };
 
+/**
+ * Restlinjens tekst i den udvidede specifikation: hele kæden fra afgørelsens egen procent til resten.
+ *
+ * Skærm og dokument skrev hver sit regnestykke for samme linje, og dokumentets gik ikke op:
+ * generatoren brugte `eetPct` (30) i et udtryk, hvis facit var regnet af `eetPctFoerAktuelKap` (15),
+ * så der stod «30 - 5 % = 10 %» (BB-160). Rettelsen er ikke blot at vælge det ene tal: linjen viser
+ * nu hele kæden fra den procentsats, brugeren selv tastede, over fradraget for tidligere
+ * kapitalisering til fradraget for den aktuelle – så regnestykket kan følges hele vejen.
+ */
+export const formatLoebendeRestEetLinje = (
+  afgoerelse: Pick<
+    EetLoebendeAfgoerelseComputation,
+    'eetPct' | 'priorKapPct' | 'kapPctAktuel' | 'restEetPct' | 'kapitaliseringsdato'
+  >
+): string => {
+  const led = [`${formatPct(afgoerelse.eetPct)}`];
+  if (afgoerelse.priorKapPct > 0) {
+    led.push(`- ${formatPct(afgoerelse.priorKapPct)} tidl. kap.`);
+  }
+  led.push(`- ${formatPct(afgoerelse.kapPctAktuel)} kap.`);
+  const regnestykke = `${led.join(' ')} = ${formatPct(afgoerelse.restEetPct)}`;
+
+  return afgoerelse.kapitaliseringsdato !== null
+    ? `Resterende EET (${regnestykke}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}`
+    : `Resterende EET (${regnestykke}) efter kapitalisering`;
+};
+
 export const toAfgoerelseTypeLabel = (
   afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig',
   hasRestSektion: boolean,
@@ -1093,7 +1190,7 @@ export const toOphoerAarsagLabel = (
 ): string => {
   switch (cause) {
     case 'beregningsdato':
-      return 'Beregningsdato';
+      return 'Beregningsdatoen';
     case 'senere-afgoerelse':
       return 'Senere afgørelse';
     case 'kapitalisering':
@@ -1103,6 +1200,65 @@ export const toOphoerAarsagLabel = (
     default:
       return cause;
   }
+};
+
+/**
+ * Periodeafgrænsningens to sidste linjer, som de skal vises.
+ *
+ * To forhold gør en rå «Løbende ydelse ophører»-linje forkert:
+ *
+ * 1. **Beregningsdatoen er ikke en ophørsgrund** (BB-155). Ydelsen ophører ikke dér; beregningen
+ *    stopper. De tre øvrige årsager er ægte begivenheder i sagen, og en modpart, der læser
+ *    «ophører», kan med rimelighed læse det som en oplysning om ydelsen frem for om opgørelsen.
+ * 2. **Ophørsdatoen kan ligge før virkningsdatoen** (BB-154). `finalStop` er det tidligste af fire
+ *    kandidater uden gulv ved virkningsdatoen, så en beregningsdato eller folkepensionsdato før
+ *    afgørelsens virkning giver et interval, der slutter før det begynder. Det er ikke en
+ *    oplysning, men en selvmodsigelse, brugeren skal bruge tid på at afvise – og i
+ *    beregningsdato-tilfældet peger den på afgørelsen, hvor fejlen sidder i beregningsdatoen.
+ *
+ * Ejes af domænet, så fanen og dokumentgeneratoren viser samme linjer.
+ */
+export type LoebendeOphoerVisning =
+  | Readonly<{ kind: 'interval'; ophoerLabel: string; ophoerDato: ISODateString; aarsagLabel: string }>
+  | Readonly<{ kind: 'ingen-periode'; forklaring: string }>;
+
+export const resolveLoebendeOphoerVisning = (
+  afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'ophoerDato' | 'ophoerAarsag' | 'virkningsdato'>
+): LoebendeOphoerVisning => {
+  if (afgoerelse.ophoerDato < afgoerelse.virkningsdato) {
+    const datoTekst = formatISOToDanish(afgoerelse.ophoerDato);
+    switch (afgoerelse.ophoerAarsag) {
+      case 'beregningsdato':
+        return {
+          kind: 'ingen-periode',
+          forklaring: `Afgørelsen ligger helt efter beregningsdatoen (${datoTekst}).`,
+        };
+      case 'folkepensionsdato':
+        return {
+          kind: 'ingen-periode',
+          forklaring: `Virkningsdatoen ligger efter folkepensionsdatoen (${formatISOToDanish(afgoerelse.virkningsdato)} er efter ${datoTekst}).`,
+        };
+      case 'senere-afgoerelse':
+        return {
+          kind: 'ingen-periode',
+          forklaring: 'Afgørelsen er afløst af en senere afgørelse, før den fik virkning.',
+        };
+      case 'kapitalisering':
+        return {
+          kind: 'ingen-periode',
+          forklaring: `Afgørelsen er kapitaliseret, før den fik virkning (${datoTekst}).`,
+        };
+    }
+  }
+
+  // Beregningsdatoen afgrænser opgørelsen; den bringer ikke ydelsen til ophør.
+  const erKunstigAfgraensning = afgoerelse.ophoerAarsag === 'beregningsdato';
+  return {
+    kind: 'interval',
+    ophoerLabel: erKunstigAfgraensning ? 'Løbende ydelse opgjort til og med' : 'Løbende ydelse ophører',
+    ophoerDato: afgoerelse.ophoerDato,
+    aarsagLabel: toOphoerAarsagLabel(afgoerelse.ophoerAarsag),
+  };
 };
 
 /**
@@ -1119,6 +1275,57 @@ export const visGrundydelseNiveauSkift = (
   const hasRowsFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
   return grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
 };
+
+/**
+ * Noten der navngiver skæringsdatoen over «Beregnede ydelser».
+ *
+ * Frem til skæringsdatoen udbetales den tidligere afgørelse fortsat, så den nye afgørelse kun giver
+ * differencen mellem de to procenter. Uden noten står en linje til en brøkdel af de øvrige i en
+ * specifikation, modparten skal kunne efterregne, og hverken skæringsdatoen eller differencen findes
+ * på siden (BB-152). Giver differencen 0 kr., udelades perioden helt af tabellen, og tabellen
+ * begynder da efter afgørelsens egen virkningsdato uden at sige hvorfor (BB-153) – derfor dækker
+ * samme note begge tilfælde.
+ *
+ * Ejes af domænet, så fanen og dokumentgeneratoren ikke kan drive fra hinanden.
+ */
+export const resolveLoebendeSkaeringsNote = (
+  afgoerelse: Pick<
+    EetLoebendeAfgoerelseComputation,
+    'harOverlap' | 'skaeringsDato' | 'eetPct' | 'priorKapPct' | 'overlapForgaengerEetPct' | 'perioder'
+  >
+): string | null => {
+  const { skaeringsDato, overlapForgaengerEetPct } = afgoerelse;
+  if (!afgoerelse.harOverlap || skaeringsDato === null) return null;
+
+  const skaeringsDatoTekst = formatISOToDanish(skaeringsDato);
+  const harOverlapRaekke = afgoerelse.perioder.some((row) => row.fra < skaeringsDato);
+  if (!harOverlapRaekke || overlapForgaengerEetPct === null) {
+    // Differencen gav 0 kr., så perioden mangler helt i tabellen (BB-153).
+    return `Frem til ${skaeringsDatoTekst} udbetales den tidligere afgørelse fortsat, og denne afgørelse giver derfor intet yderligere krav for perioden.`;
+  }
+
+  const eetEfterTidligereKap = Math.max(0, afgoerelse.eetPct - afgoerelse.priorKapPct);
+  const differencePct = Math.max(0, eetEfterTidligereKap - overlapForgaengerEetPct);
+  return `Frem til ${skaeringsDatoTekst} udbetales den tidligere afgørelse fortsat, og perioden er derfor regnet med ${formatPct(eetEfterTidligereKap)} - ${formatPct(overlapForgaengerEetPct)} = ${formatPct(differencePct)}.`;
+};
+
+/**
+ * Noten under «Beregnede ydelser», der gør tabellens rækker efterregnelige.
+ *
+ * To skridt mellem «Grundydelse pr. år» og «Ydelse/md.» stod ingen steder: grundydelsen er et
+ * ÅRSbeløb, og den regulerede årsydelse oprundes til nærmeste 12 kr., før den divideres med 12
+ * (`ceilNearest12`). Uden dem giver `grundydelse x regulering / 12` et andet tal end det viste, og
+ * den, der efterregner, må gætte på, om det er en afrunding eller en fejl (BB-156).
+ *
+ * Bevidst ÉN note frem for et mellemtrin pr. satsår: tabellen er i forvejen lang, og en ekstra
+ * talkolonne eller to linjer pr. år ville lægge mere visuelt rod til end den forklarer.
+ *
+ * Noten står i den UDVIDEDE SPECIFIKATION, ikke over hver afgørelses tabel. Reglen er den samme for
+ * alle tabeller, og gentaget pr. afgørelse ville den lægge sig oven i skærings- og 2024-noterne, som
+ * er sagsspecifikke og derfor hører ved deres egen tabel.
+ */
+export const LOEBENDE_YDELSE_AFRUNDING_NOTE =
+  'Ydelse/md. beregnes som grundydelsen pr. år gange reguleringen, oprundet til nærmeste 12 kr. og divideret med 12.';
 
 export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');

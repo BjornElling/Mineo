@@ -185,6 +185,7 @@ const loebendeComputation = {
       kapitaliseringsdato: null,
       skaeringsDato: null,
       harOverlap: false,
+      overlapForgaengerEetPct: null,
       afgoerelseType: 'Midlertidig',
       eetPct: 50,
       priorKapPct: 0,

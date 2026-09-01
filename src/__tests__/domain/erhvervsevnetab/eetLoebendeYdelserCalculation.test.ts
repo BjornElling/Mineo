@@ -8,13 +8,17 @@ import {
   computeEetLoebendeYdelser,
   computeEetLoebendeYdelserForEoImport,
   firstOfMonthAfter,
+  formatLoebendeRestEetLinje,
   hasOverlapPeriod,
   resolveLoebendeAfgoerelseRestVisning,
+  resolveLoebendeOphoerVisning,
+  resolveLoebendeSkaeringsNote,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
   type EetLoebendeAfgoerelseComputation,
   type EetLoebendePeriodeRow,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import { fromKroner, toKroner } from '../../../domain/money/money';
@@ -446,7 +450,10 @@ describe('computeEetLoebendeYdelser', () => {
     const scenarios = [
       { label: 'ingen tilbageholdelse', aFs: 'Nej', bFs: 'Nej', aOphoer: '2024-02-29', bHasPeriods: true, cHasMarchPeriod: false, cHasSeptemberPeriod: true },
       { label: 'kun A tilbageholdt', aFs: 'Ja', bFs: 'Nej', aOphoer: '2024-01-31', bHasPeriods: true, cHasMarchPeriod: false, cHasSeptemberPeriod: true },
-      { label: 'kun B tilbageholdt', aFs: 'Nej', bFs: 'Ja', aOphoer: '2024-02-29', bHasPeriods: false, cHasMarchPeriod: true, cHasSeptemberPeriod: true },
+      // «kun B tilbageholdt»: fra 01-03 er der ingen udbetalt forgænger, så C giver hele sin ydelse
+      // både før og efter skæringsdatoen 01-09. De to delperioder er ordret ens og vises som én
+      // række 01-03–31-12 (BB-165); derfor findes der ikke længere en række, der STARTER 01-09.
+      { label: 'kun B tilbageholdt', aFs: 'Nej', bFs: 'Ja', aOphoer: '2024-02-29', bHasPeriods: false, cHasMarchPeriod: true, cHasSeptemberPeriod: false },
       { label: 'A og B tilbageholdt', aFs: 'Ja', bFs: 'Ja', aOphoer: '2024-01-31', bHasPeriods: false, cHasMarchPeriod: false, cHasSeptemberPeriod: false },
     ] as const;
 
@@ -490,6 +497,16 @@ describe('computeEetLoebendeYdelser', () => {
         expect(cPeriodStarts, scenario.label).not.toContain(toISODateString('2024-03-01'));
       }
       expect(c.perioder.some((period) => period.fra === toISODateString('2024-09-01'))).toBe(scenario.cHasSeptemberPeriod);
+      // Sammenlægningen af ens rækker må aldrig flytte et beløb: C's samlede krav skal være
+      // summen af dens egne viste rækker, uanset hvor mange grænser periodiseringen delte på.
+      expect(toKroner(c.iAltBeregnetEetOre)).toBe(
+        c.perioder.reduce((sum, period) => sum + toKroner(period.beregnetEetOre), 0)
+      );
+      // Rækkerne skal fortsat dække perioden uden huller eller overlap efter sammenlægningen.
+      for (const [index, period] of c.perioder.entries()) {
+        const previous = c.perioder[index - 1];
+        if (previous) expect(period.fra > previous.til, scenario.label).toBe(true);
+      }
     }
   });
 
@@ -836,13 +853,17 @@ describe('computeEetLoebendeYdelser', () => {
     expect(first.perioder.some((row) => row.til === toISODateString('2024-03-19'))).toBe(true);
     expect(first.perioder.some((row) => row.fra === toISODateString('2024-03-20'))).toBe(true);
 
-    const beforeKapOverlap = second.perioder.find((row) => row.fra === toISODateString('2024-03-01') && row.til === toISODateString('2024-03-19'));
-    const afterKapOverlap = second.perioder.find((row) => row.fra === toISODateString('2024-03-20') && row.til === toISODateString('2024-03-31'));
-    if (!beforeKapOverlap || !afterKapOverlap) throw new Error('expected overlap split around kapitalisering');
+    // Kapitaliseringen 20-03 ændrer INTET i den nye afgørelses overlaprække: dens rest falder med
+    // 20 %, men forgængerens gør det samme, og differencen er derfor uændret. De to tekniske
+    // delperioder havde ordret samme grundydelse og vises nu som én række (BB-165).
+    const overlapRow = second.perioder.find((row) => row.fra === toISODateString('2024-03-01'));
+    if (!overlapRow) throw new Error('expected overlap row from 2024-03-01');
+    expect(overlapRow.til).toBe(toISODateString('2024-03-31'));
+    expect(second.perioder.some((row) => row.fra === toISODateString('2024-03-20'))).toBe(false);
 
-    expect(toKroner(beforeKapOverlap.grundydelseAfrundetOre)).toBe(
-      toKroner(afterKapOverlap.grundydelseAfrundetOre)
-    );
+    // Forgængerens rækker deles derimod fortsat: dér halverer kapitaliseringen grundydelsen.
+    expect(first.perioder.some((row) => row.til === toISODateString('2024-03-19'))).toBe(true);
+    expect(first.perioder.some((row) => row.fra === toISODateString('2024-03-20'))).toBe(true);
   });
 
   it('beregner tilbagevirkende afgørelse fuldt før forgængeren virker og som difference derefter', () => {
@@ -1115,7 +1136,9 @@ describe('computeEetLoebendeYdelser', () => {
       result.issues.some(
         (issue) =>
           issue.severity === 'warning' &&
-          issue.message === 'Der er indtastet en ugyldig EET-procent (55 %) for skader fra 1. juli 2024.'
+          // «Ugyldig» erstattet: programmet accepterer værdien, regner på den og trykker den, så
+          // advarslen siger i stedet, at beregningen ikke er lovmæssig (BB-158).
+          issue.message === 'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024 – beregningen er derfor ikke lovmæssig (indtastet 55 %).'
       )
     ).toBe(true);
   });
@@ -1144,9 +1167,10 @@ describe('computeEetLoebendeYdelser', () => {
       skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
-    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
-    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(true);
-    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(true);
+    // Én linje navngiver årsagen – beregningsdatoen – i stedet for tre linjer om samme forhold (BB-159).
+    const datoWarnings = result.issues.filter((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID);
+    expect(datoWarnings).toHaveLength(1);
+    expect(datoWarnings[0]?.message).toBe('Beregningsdatoen (14-01-2026) ligger før sagens afgørelser.');
   });
 
   it('beregner rest-grundydelse proportionalt fra fuld grundydelse', () => {
@@ -1863,6 +1887,7 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     virkningsdato: toISODateString('2020-01-01'),
     skaeringsDato: null,
     harOverlap: false,
+    overlapForgaengerEetPct: null,
     afgoerelseType: 'Endelig',
     eetPct: 50,
     priorKapPct: 0,
@@ -2011,5 +2036,189 @@ describe('computeEetLoebendeYdelserForEoImport', () => {
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);
+  });
+});
+
+describe('sammenlægning af identiske visningsrækker (BB-165)', () => {
+  it('slår kapitaliserings- og skæringsgrænser sammen, når rækken er uændret, uden at flytte et beløb', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'a',
+        afgoerelsesDato: toISODateString('2022-06-01'),
+        virkningsDato: toISODateString('2022-01-01'),
+        eetPct: 20,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2022-06-01'),
+        kapPct: 15,
+      }),
+      testRow({
+        id: 'b',
+        afgoerelsesDato: toISODateString('2022-06-01'),
+        virkningsDato: toISODateString('2022-01-01'),
+        eetPct: 30,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2022-06-01'),
+        kapPct: 5,
+      }),
+    ], { beregningsdato: toISODateString('2022-12-31') });
+
+    for (const afgoerelse of result.computation?.afgoerelser ?? []) {
+      // Ingen to nabo-rækker må være ordret ens i alt andet end datoerne.
+      for (const [index, row] of afgoerelse.perioder.entries()) {
+        const previous = afgoerelse.perioder[index - 1];
+        if (!previous) continue;
+        const identiskeVaerdier =
+          previous.satsAar === row.satsAar &&
+          previous.grundydelseAfrundetOre === row.grundydelseAfrundetOre &&
+          previous.reguleringPct === row.reguleringPct &&
+          previous.maanedligYdelseOre === row.maanedligYdelseOre;
+        const tilstoedende = previous.til < row.fra;
+        expect(identiskeVaerdier && tilstoedende).toBe(false);
+      }
+
+      // Totalen skal stadig være summen af de viste rækker.
+      expect(toKroner(afgoerelse.iAltBeregnetEetOre)).toBe(
+        afgoerelse.perioder.reduce((sum, row) => sum + toKroner(row.beregnetEetOre), 0)
+      );
+    }
+  });
+
+  it('bevarer delingen, når kapitaliseringen faktisk ændrer grundydelsen', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'a',
+        afgoerelsesDato: toISODateString('2022-01-01'),
+        virkningsDato: toISODateString('2022-01-01'),
+        eetPct: 40,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2022-07-01'),
+        kapPct: 20,
+      }),
+    ], { beregningsdato: toISODateString('2022-12-31') });
+
+    const afgoerelse = result.computation?.afgoerelser[0];
+    if (!afgoerelse) throw new Error('expected one decision');
+    expect(afgoerelse.perioder).toHaveLength(2);
+    expect(afgoerelse.perioder[0]?.til).toBe(toISODateString('2022-06-30'));
+    expect(afgoerelse.perioder[1]?.fra).toBe(toISODateString('2022-07-01'));
+    expect(toKroner(afgoerelse.perioder[0]!.grundydelseAfrundetOre)).not.toBe(
+      toKroner(afgoerelse.perioder[1]!.grundydelseAfrundetOre)
+    );
+  });
+});
+
+describe('resolveLoebendeOphoerVisning', () => {
+  const base = {
+    virkningsdato: toISODateString('2022-01-01'),
+    ophoerDato: toISODateString('2026-07-01'),
+    ophoerAarsag: 'beregningsdato',
+  } as const;
+
+  it('skelner beregningsdatoens afgrænsning fra et ægte ophør', () => {
+    // Beregningsdatoen bringer ikke ydelsen til ophør; den er det punkt, kravet er gjort op til.
+    expect(resolveLoebendeOphoerVisning(base)).toEqual({
+      kind: 'interval',
+      ophoerLabel: 'Løbende ydelse opgjort til og med',
+      ophoerDato: toISODateString('2026-07-01'),
+      aarsagLabel: 'Beregningsdatoen',
+    });
+  });
+
+  it('kalder de tre ægte ophørsgrunde et ophør', () => {
+    for (const aarsag of ['senere-afgoerelse', 'kapitalisering', 'folkepensionsdato'] as const) {
+      const visning = resolveLoebendeOphoerVisning({ ...base, ophoerAarsag: aarsag });
+      expect(visning.kind).toBe('interval');
+      if (visning.kind !== 'interval') throw new Error('expected interval');
+      expect(visning.ophoerLabel).toBe('Løbende ydelse ophører');
+    }
+  });
+
+  it('erstatter et umuligt interval med årsagen, når ophør ligger før virkning', () => {
+    const beregningsdato = resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2022-01-01'),
+      ophoerDato: toISODateString('2021-01-01'),
+      ophoerAarsag: 'beregningsdato',
+    });
+    expect(beregningsdato).toEqual({
+      kind: 'ingen-periode',
+      forklaring: 'Afgørelsen ligger helt efter beregningsdatoen (01-01-2021).',
+    });
+
+    const folkepension = resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2022-01-01'),
+      ophoerDato: toISODateString('2021-06-30'),
+      ophoerAarsag: 'folkepensionsdato',
+    });
+    expect(folkepension.kind).toBe('ingen-periode');
+    if (folkepension.kind !== 'ingen-periode') throw new Error('expected ingen-periode');
+    expect(folkepension.forklaring).toContain('folkepensionsdatoen');
+  });
+});
+
+describe('formatLoebendeRestEetLinje', () => {
+  it('viser hele kæden fra afgørelsens egen procent til resten', () => {
+    // BB-160: dokumentet skrev «30 - 5 % = 10 %», et regnestykke der ikke går op, fordi facit var
+    // regnet af 15 (= 30 - 15 tidligere kap.). Nu står hele kæden, så den kan følges hele vejen.
+    expect(formatLoebendeRestEetLinje({
+      eetPct: 30,
+      priorKapPct: 15,
+      kapPctAktuel: 5,
+      restEetPct: 10,
+      kapitaliseringsdato: toISODateString('2022-06-01'),
+    })).toBe('Resterende EET (30 % - 15 % tidl. kap. - 5 % kap. = 10 %) efter kapitalisering 01-06-2022');
+  });
+
+  it('udelader leddet for tidligere kapitalisering, når der ikke er nogen', () => {
+    expect(formatLoebendeRestEetLinje({
+      eetPct: 25,
+      priorKapPct: 0,
+      kapPctAktuel: 10,
+      restEetPct: 15,
+      kapitaliseringsdato: toISODateString('2022-06-01'),
+    })).toBe('Resterende EET (25 % - 10 % kap. = 15 %) efter kapitalisering 01-06-2022');
+  });
+});
+
+describe('resolveLoebendeSkaeringsNote', () => {
+  const base = {
+    harOverlap: true,
+    skaeringsDato: toISODateString('2022-07-01'),
+    eetPct: 30,
+    priorKapPct: 0,
+    overlapForgaengerEetPct: 25,
+  } as const;
+  const periode = (fra: string): EetLoebendePeriodeRow => ({
+    fra: toISODateString(fra),
+    til: toISODateString('2022-12-31'),
+    satsAar: 2022,
+    maanederPraecis: 6,
+    grundydelseAfrundetOre: fromKroner(1000),
+    reguleringPct: 0,
+    maanedligYdelseOre: fromKroner(100),
+    beregnetEetOre: fromKroner(600),
+  });
+
+  it('navngiver skæringsdatoen og differencen, når overlapperioden har en række', () => {
+    expect(resolveLoebendeSkaeringsNote({ ...base, perioder: [periode('2022-01-01')] })).toBe(
+      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og perioden er derfor regnet med 30 % - 25 % = 5 %.'
+    );
+  });
+
+  it('forklarer det manglende halvår, når differencen giver 0 kr.', () => {
+    // BB-153: perioden udelades af tabellen, fordi 25 % - 25 % = 0 kr. Uden noten ser fraværet ud
+    // som et hul i beregningen frem for en oplysning om, at kravet ligger på den tidligere afgørelse.
+    expect(resolveLoebendeSkaeringsNote({ ...base, eetPct: 25, perioder: [periode('2022-07-01')] })).toBe(
+      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og denne afgørelse giver derfor intet yderligere krav for perioden.'
+    );
+  });
+
+  it('giver ingen note uden overlap', () => {
+    expect(resolveLoebendeSkaeringsNote({
+      ...base,
+      harOverlap: false,
+      skaeringsDato: null,
+      overlapForgaengerEetPct: null,
+      perioder: [periode('2022-01-01')],
+    })).toBeNull();
   });
 });

@@ -12,13 +12,18 @@ import {
   ASL_MAX_AARSLOEN_2024,
 } from '../../../data/lovbestemteRates';
 import {
+  LOEBENDE_YDELSE_AFRUNDING_NOTE,
+  formatLoebendeRestEetLinje,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
+  resolveLoebendeOphoerVisning,
+  resolveLoebendeSkaeringsNote,
   toAfgoerelseTypeLabel,
-  toOphoerAarsagLabel,
   visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { roundByMethod } from '../../../utils/rounding';
+import { formatDocumentMaanederFixed } from '../../../utils/documentMaanederFormatting';
+import { formatReguleringPctSigned } from '../../../utils/formatUtils';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -46,9 +51,10 @@ const extendedSpecificationRef = erhvervsevnetabBilagVisUdvidetSpecifikationFiel
 // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på løbende-ydelser-fanen.
 const EXTENDED_SPECIFICATION_LOCATION = { locationId: 'erhvervsevnetab:loebendeYdelser:visUdvidetSpecifikation', route: APP_ROUTES.erhvervsevnetab, tabKey: ERHVERVSEVNETAB_TAB_KEYS.LOEBENDE_YDELSER } as const;
 
-const formatMaaneder = (value: number): string => formatAsAmount(roundByMethod(value, 4, 'halfAwayFromZero'), 4);
-const formatRegulering = (value: number): string => `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
-const formatPctTal = (value: number): string => formatPct(value).replace(' %', '');
+// Samme månedsformatter som dokumentet (BB-162): «Mdr.» er den faktor, «Beregnet EET» ganges med,
+// så skærm og papir må ikke give den, der efterregner, to forskellige grundlag.
+const formatMaaneder = formatDocumentMaanederFixed;
+const formatRegulering = formatReguleringPctSigned;
 const formatEetHoverLabel = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
     ? `Erhvervsevnetab (${formatPct(eetPct)} - ${formatPct(priorKapPct)} tidligere kap.) =`
@@ -62,7 +68,9 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
   { header: 'Fra o.m.', align: 'center', width: '14%' },
   { header: 'Til o.m.', align: 'center', width: '14%' },
   { header: 'Mdr.', align: 'right', width: '10%' },
-  { header: 'Grundydelse', align: 'right', width: '18%' },
+  // «Grundydelse pr. år» frem for «Grundydelse»: kolonnen er et ÅRSbeløb, og uden ordet kunne
+  // rækken ikke efterregnes af de viste tal – man fik et andet resultat end «Ydelse/md.» (BB-156).
+  { header: 'Grundydelse pr. år', align: 'right', width: '18%' },
   { header: 'Regulering', align: 'right', width: '12%' },
   { header: 'Ydelse/md.', align: 'right', width: '14%' },
   { header: 'Beregnet EET', align: 'right', width: '18%' },
@@ -132,6 +140,8 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
           {afgoerelser.map((afgoerelse) => {
             const viserGrundydelseNiveauSkift = visGrundydelseNiveauSkift(afgoerelse, computation.grundloenNiveau);
             const ingenLoebendeYdelse = afgoerelse.perioder.length === 0;
+            const ophoerVisning = resolveLoebendeOphoerVisning(afgoerelse);
+            const skaeringsNote = resolveLoebendeSkaeringsNote(afgoerelse);
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
                 <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)} (${formatPct(afgoerelse.eetPct)})`}</Typography>
@@ -203,21 +213,28 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                   </Box>
                 </Box>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Løbende ydelse ophører</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatISOToDanish(afgoerelse.ophoerDato)}</Typography>
-                  </Box>
-                </Box>
+                {ophoerVisning.kind === 'interval' ? (
+                  <>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">{ophoerVisning.ophoerLabel}</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <Typography className="row--text">{formatISOToDanish(ophoerVisning.ophoerDato)}</Typography>
+                      </Box>
+                    </Box>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Ophør skyldes</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{toOphoerAarsagLabel(afgoerelse.ophoerAarsag)}</Typography>
-                  </Box>
-                </Box>
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Årsag</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <Typography className="row--text">{ophoerVisning.aarsagLabel}</Typography>
+                      </Box>
+                    </Box>
+                  </>
+                ) : (
+                  <HoverRow text={ophoerVisning.forklaring} />
+                )}
 
                 <Typography className="row--subheading">Beregnede ydelser</Typography>
+                {skaeringsNote && <HoverRow text={skaeringsNote} />}
                 {viserGrundydelseNiveauSkift && (
                   <HoverRow text="Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau." />
                 )}
@@ -264,6 +281,8 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
 
           <ContentBox className="content-box">
             <Typography className="section-header">Udvidet specifikation</Typography>
+
+            <HoverRow text={LOEBENDE_YDELSE_AFRUNDING_NOTE} />
 
             <Typography className="row--subheading">Årsløn</Typography>
 
@@ -313,7 +332,8 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                   </Box>
                 </Box>
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Der trækkes AM-bidrag (8 %) fra årslønnen og sker dermed yderligere regulering til</Typography>
+                  {/* Ordret samme sætning som dokumentet (BB-163); skærmens tidligere form manglede grundled efter «og». */}
+                  <Typography className="row--text">Der fratrækkes AM-bidrag (8 %) svarende til en yderligere regulering med</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">92 %</Typography>
                   </Box>
@@ -340,16 +360,12 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               const { show2024ConversionBlock, hasRestAfterKapBefore2024, showRest2003, showRest2024 } =
                 resolveLoebendeAfgoerelseRestVisning(afgoerelse, computation.grundloenNiveau);
               const showSplitHeading = show2024ConversionBlock;
-              const restEetExpression = `${formatPctTal(afgoerelse.eetPctFoerAktuelKap)} - ${formatPct(
-                afgoerelse.kapPctAktuel
-              )} = ${formatPct(afgoerelse.restEetPct)}`;
-              const restTextPrefix =
-                afgoerelse.kapitaliseringsdato !== null
-                  ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}`
-                  : 'Resterende EET efter kapitalisering';
+              const restTextPrefix = formatLoebendeRestEetLinje(afgoerelse);
               const grundydelseFormula =
                 computation.erstatningsniveauPct === 83
-                  ? `Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 83 % x 92 % =`
+                  // Almindelig bindestreg (U+002D), ikke U+2212: dokumentet skriver samme formel med
+                  // U+002D, og de to udgaver skal kunne lægges side om side (BB-163).
+                  ? `Grundløn x EET x Erstatningsniveau x (100 % - AM-bidrag) = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 83 % x 92 % =`
                   : `Grundløn x EET x Erstatningsniveau = ${formatKr(toKroner(computation.grundloenOre))} x ${formatEetFormulaFactor(afgoerelse.eetPct, afgoerelse.priorKapPct)} x 80 % =`;
 
               const primaryGrundydelse =

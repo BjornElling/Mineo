@@ -1,10 +1,14 @@
 import {
   EET_ASL_AARSLOEN_MAX_WARNING,
+  EET_TITRIN_FRA_2024_WARNING,
   EET_UNDER_15_WARNING,
   KAPITALISERING_UNDER_15_WARNING,
   hasEetAslAarsloenMaxWarning,
   kapitaliseringUnder15WarningRowIds,
+  formatDatoEfterBeregningsdatoWarning,
+  resolveDatoEfterBeregningsdatoWarning,
   resolveEetAslAarsloenMaxWarning,
+  resolveEetTitrinWarning,
   resolveKapitaliseringUnder15Warning,
   resolveEetUnder15Warning,
 } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
@@ -64,5 +68,70 @@ describe('resolveEetAslAarsloenMaxWarning', () => {
   ])('viser ingen advarsel når %s', (_reason, aslAarsloen, ealAarsloen) => {
     const skadedato = _reason === 'skadedatoen mangler' ? undefined : toISODateString('2024-07-01');
     expect(resolveEetAslAarsloenMaxWarning(aslAarsloen, ealAarsloen, skadedato)).toBeUndefined();
+  });
+});
+
+describe('resolveEetTitrinWarning', () => {
+  const fra2024 = toISODateString('2024-08-01');
+  const foer2024 = toISODateString('2024-06-30');
+
+  it.each([25, 35, 45])('advarer ved %s procent for en skade fra 1. juli 2024', (value) => {
+    expect(resolveEetTitrinWarning(value, fra2024)).toEqual({
+      severity: 'warning',
+      message: EET_TITRIN_FRA_2024_WARNING,
+    });
+  });
+
+  it.each([20, 30, 100])('advarer ikke ved %s procent, som opfylder titrinsreglen', (value) => {
+    expect(resolveEetTitrinWarning(value, fra2024)).toBeUndefined();
+  });
+
+  it('advarer ikke ved 15 procent, som er lovlig uanset titrinsreglen', () => {
+    expect(resolveEetTitrinWarning(15, fra2024)).toBeUndefined();
+  });
+
+  it.each([
+    ['skaden er før 1. juli 2024', foer2024],
+    ['skadedatoen mangler', undefined],
+  ])('advarer ikke når %s', (_reason, skadedato) => {
+    expect(resolveEetTitrinWarning(25, skadedato)).toBeUndefined();
+  });
+
+  it('siger at beregningen ikke er lovmæssig frem for at kalde værdien ugyldig', () => {
+    // BB-158: programmet accepterer værdien, regner på den og trykker den, så «ugyldig» og
+    // programmets egen adfærd kunne ikke begge være rigtige.
+    expect(EET_TITRIN_FRA_2024_WARNING).not.toContain('ugyldig');
+    expect(EET_TITRIN_FRA_2024_WARNING).toContain('ikke lovmæssig');
+    expect(EET_UNDER_15_WARNING).toContain('ikke lovmæssig');
+  });
+});
+
+describe('resolveDatoEfterBeregningsdatoWarning', () => {
+  const beregningsdato = toISODateString('2021-01-01');
+
+  it('advarer ved feltet, når datoen ligger efter beregningsdatoen', () => {
+    expect(resolveDatoEfterBeregningsdatoWarning(
+      toISODateString('2022-06-01'),
+      beregningsdato,
+      'Afgørelsesdatoen'
+    )).toEqual({
+      severity: 'warning',
+      message: 'Afgørelsesdatoen ligger efter beregningsdatoen (01-01-2021)',
+    });
+  });
+
+  it.each([
+    ['datoen er på beregningsdatoen', toISODateString('2021-01-01'), beregningsdato],
+    ['datoen ligger før', toISODateString('2020-01-01'), beregningsdato],
+    ['datoen mangler', undefined, beregningsdato],
+    ['beregningsdatoen mangler', toISODateString('2022-06-01'), undefined],
+  ])('advarer ikke når %s', (_reason, dato, grænse) => {
+    expect(resolveDatoEfterBeregningsdatoWarning(dato, grænse, 'Afgørelsesdatoen')).toBeUndefined();
+  });
+
+  it('navngiver årsagen én gang i boksens linje', () => {
+    // BB-159: tre linjer om ét forhold læses som tre problemer, hvor der er ét.
+    expect(formatDatoEfterBeregningsdatoWarning(beregningsdato))
+      .toBe('Beregningsdatoen (01-01-2021) ligger før sagens afgørelser.');
   });
 });

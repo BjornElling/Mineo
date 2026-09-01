@@ -6,6 +6,7 @@ import {
   computeEetEalCalculation,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { EET_UNDER_15_WARNING } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
 import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
@@ -403,7 +404,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === 'Der kan ikke tilkendes erhvervsevnetab under 15 %')).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === EET_UNDER_15_WARNING)).toBe(true);
   });
 
   it('viser advarsel når ASL-fallback EET % er under 15', () => {
@@ -431,7 +432,7 @@ describe('computeEetEalCalculation', () => {
       aarsloenAslMax,
     });
 
-    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === 'Der kan ikke tilkendes erhvervsevnetab under 15 %')).toBe(true);
+    expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === EET_UNDER_15_WARNING)).toBe(true);
   });
 
   it('viser advarsel når EAL-årsløn svarer til maks årsløn for skadesåret', () => {

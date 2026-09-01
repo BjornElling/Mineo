@@ -6,14 +6,80 @@ import { isoYear } from '../../utils/isoDateHelpers';
 import { aarsloenAslMax, type YearlyRate } from '../../data/lovbestemteRates';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { ASL_AARSLOEN_MAX_NOTICE } from '../aslEalAarsloen/aslAarsloenMaxNotice';
+import { SKAERING_2024_07_01 as EET_TITRIN_SKAERINGSDATO } from './eetSkaeringsdatoer';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 
 type KapitaliseringsPctRow = Readonly<{ rowId: string; kapitaliseringspct: number }>;
 
+/**
+ * Fælles halesætning for de EET-procenter, loven ikke tillader, men programmet alligevel regner på.
+ *
+ * Mindstegrænserne og de faste procentsatser kan juridisk ikke fraviges, men en teoretisk beregning
+ * af en sådan værdi skal være mulig. Derfor er de gule advarsler – ikke røde fejl – og derfor siger
+ * de eksplicit, at resultatet ikke er en lovmæssig beregning, i stedet for at kalde en værdi
+ * «ugyldig», som programmet i samme åndedrag regner på og trykker (BB-158).
+ *
+ * Kun EET-procentens FORM er en rød fejl: den skal være delelig med 5, større end 0 og højst 100.
+ */
+export const IKKE_LOVMAESSIG_BEREGNING_SUFFIX = ' – beregningen er derfor ikke lovmæssig';
+
 /** Kanonisk, ikke-blokerende feltadvarsel for EET-procenter under lovens minimum. */
-export const EET_UNDER_15_WARNING = 'Der kan ikke tilkendes erhvervsevnetab under 15 %';
+export const EET_UNDER_15_WARNING =
+  `Der kan ikke tilkendes erhvervsevnetab under 15 %${IKKE_LOVMAESSIG_BEREGNING_SUFFIX}`;
 
 export const resolveEetUnder15Warning = (value: number | undefined): FieldWarning | undefined =>
   value !== undefined && value > 0 && value < 15 ? createFieldWarning(EET_UNDER_15_WARNING) : undefined;
+
+/**
+ * Kanonisk advarsel for en EET-procent uden for de faste trin, der gælder skader fra 1. juli 2024.
+ *
+ * Fra den dato fastsættes erhvervsevnetabet i trin af 10 %. Reglen afhænger af SKADEDATOEN, som ikke
+ * står i den celle, brugeren taster i, så advarslen skal stå ved feltet – ellers får han en neutral
+ * celle og opdager det først på en anden fane (BB-158). 15 % er lovligt uanset trinreglen.
+ */
+export const EET_TITRIN_FRA_2024_WARNING =
+  `Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024${IKKE_LOVMAESSIG_BEREGNING_SUFFIX}`;
+
+export const harEetTitrinAfvigelse = (
+  value: number | undefined,
+  skadedato: ISODateString | undefined
+): boolean =>
+  value !== undefined &&
+  skadedato !== undefined &&
+  skadedato >= EET_TITRIN_SKAERINGSDATO &&
+  value > 15 &&
+  value % 10 !== 0;
+
+export const resolveEetTitrinWarning = (
+  value: number | undefined,
+  skadedato: ISODateString | undefined
+): FieldWarning | undefined =>
+  harEetTitrinAfvigelse(value, skadedato) ? createFieldWarning(EET_TITRIN_FRA_2024_WARNING) : undefined;
+
+/**
+ * Advarslen når en af sagens datoer ligger efter beregningsdatoen.
+ *
+ * Tidligere stod tre linjer over hinanden – en pr. datotype – i en boks på de faner, brugeren IKKE
+ * taster på, mens alle tre celler stod neutrale. Tre linjer om én årsag læses som tre problemer, og
+ * den ene rettelse (beregningsdatoen) blev ikke navngivet (BB-159). Nu siger boksen årsagen én
+ * gang, og hver af de tre datoceller bærer sin egen gule feltadvarsel, hvor brugeren sidder.
+ */
+export const formatDatoEfterBeregningsdatoWarning = (beregningsdato: ISODateString): string =>
+  `Beregningsdatoen (${formatISOToDanish(beregningsdato)}) ligger før sagens afgørelser.`;
+
+export const formatDatoEfterBeregningsdatoFeltWarning = (
+  datoLabel: string,
+  beregningsdato: ISODateString
+): string => `${datoLabel} ligger efter beregningsdatoen (${formatISOToDanish(beregningsdato)})`;
+
+export const resolveDatoEfterBeregningsdatoWarning = (
+  dato: ISODateString | undefined,
+  beregningsdato: ISODateString | undefined,
+  datoLabel: string
+): FieldWarning | undefined =>
+  dato !== undefined && beregningsdato !== undefined && dato > beregningsdato
+    ? createFieldWarning(formatDatoEfterBeregningsdatoFeltWarning(datoLabel, beregningsdato))
+    : undefined;
 
 /** Kanonisk advarsel for en selvstændig kapitalisering under den lovbestemte tærskel. */
 export const KAPITALISERING_UNDER_15_WARNING = 'Der er angivet kapitalisering med mindre end 15 %';

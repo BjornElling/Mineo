@@ -21,6 +21,7 @@ import {
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldAddressTemplate } from '../../inputCore/fieldDescriptor';
 import type { EetIssue } from './eetTypes';
+import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from './eetIssueCatalog';
 
 export type EetTabNavigation = Readonly<{
   pageName: string;
@@ -114,6 +115,8 @@ const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> =
   'beregningsdato-invalid': erhvervsevnetabBeregningsdatoField.bind().address,
   'warn-beregningsdato-foer-skadedato': erhvervsevnetabBeregningsdatoField.bind().address,
   'field-beregningsdato': erhvervsevnetabBeregningsdatoField.bind().address,
+  // Årsagen er beregningsdatoen, ikke de tre datoceller advarslen tidligere pegede på (BB-159).
+  [EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID]: erhvervsevnetabBeregningsdatoField.bind().address,
   'missing-koen': erhvervsevnetabKoenField.bind().address,
 };
 
@@ -207,6 +210,7 @@ const GRUNDLAEGGENDE_IDS = new Set([
   'beregningsdato-invalid',
   'warn-beregningsdato-foer-skadedato',
   'field-beregningsdato',
+  EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
   'missing-koen',
   'eet-max-missing',
   'proforma-kapitaliseringsbekendtgoerelse-missing',
@@ -266,9 +270,6 @@ const ASL_IDS = new Set([
   'warn-asl-aarsloen-is-max',
   'warn-invalid-eet-pct-after-2024-07-01',
   'warn-non-endelig-after-endelig',
-  'warn-afgoerelsesdato-after-beregningsdato',
-  'warn-virkningsdato-after-beregningsdato',
-  'warn-kap-dato-after-beregningsdato',
   'warn-kap-pct-under-15',
   'warn-ingen-kap-input',
 ]);

@@ -338,8 +338,11 @@ describe('EET PDF empty states', () => {
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
     expect(renderedText).toContain('Beregningsdato');
     expect(renderedText).toContain('15-01-2026');
-    expect(renderedText).toContain('Løbende ydelse ophører');
-    expect(renderedText).toContain('14-01-2026');
+    // Ophørsdatoen (14-01-2026) ligger FØR virkningsdatoen (15-01-2026), fordi beregningsdatoen
+    // afgrænser opgørelsen før afgørelsen fik virkning. Et interval, der slutter før det begynder,
+    // er en selvmodsigelse; dokumentet skriver derfor årsagen i stedet (BB-154).
+    expect(renderedText).toContain('Afgørelsen ligger helt efter beregningsdatoen (14-01-2026).');
+    expect(renderedText).not.toContain('Løbende ydelse ophører');
     expect(renderedText).toContain('Afgørelsen giver ingen løbende ydelse i den valgte periode.');
     expect(renderedText).not.toContain('Fra o.m.');
     expect(renderedText).not.toContain('Til o.m.');

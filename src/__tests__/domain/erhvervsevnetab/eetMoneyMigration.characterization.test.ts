@@ -93,6 +93,15 @@ const createStamdata = (): StamdataValues => ({
   skadelidteFodselsdato: iso('1980-01-01'),
 });
 
+/**
+ * Hashene for `snapshot`, `loebendeYdelser` og `differencekrav` blev opdateret, da tilstødende
+ * visningsrækker med identiske tal blev slået sammen (BB-165). Ingen af sagens BELØB ændrede sig:
+ * de tre afgørelser giver fortsat 69.296, 35.991 og 4.158 kr. Ændringen er, at
+ * `delvist-endelig-1`s to rækker `2025-07-01`–`2025-09-14` (9.785 kr.) og
+ * `2025-09-15`–`2025-09-30` (2.116 kr.) – ordret ens i satsår, grundydelse og månedsydelse – nu
+ * vises som én række `2025-07-01`–`2025-09-30` på 11.901 kr. Sammenlægningen sker EFTER
+ * afrundingen pr. delperiode, netop for at totalen ikke kan flytte sig.
+ */
 describe('EET MoneyOre-migration karakterisering', () => {
   const snapshot = computeEetSnapshot({
     values: createValues(),
@@ -106,11 +115,11 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser hele det samlede snapshot byte-præcist efter stabil nøglesortering', () => {
-    expect(goldenHash(snapshot)).toBe('85885853fce2034959d8b31415ec7ae7908d080f21ea02326999c51610bb11b3');
+    expect(goldenHash(snapshot)).toBe('ccde25da9070d72bb4c4395bafd3790240d7351b0b569be9cf0c7878a983f78a');
   });
 
   it('låser løbende ydelser med overlap og kalenderårsskift', () => {
-    expect(goldenHash(snapshot.loebendeYdelser)).toBe('c541115b3e69339f7d2e3fa2b8a495cfc073e01865109e474822321a308cfe1c');
+    expect(goldenHash(snapshot.loebendeYdelser)).toBe('d0c043ad653a56be80645f34c960327c4a7fa2c145244d6d296160e2b6a7a46b');
   });
 
   it('låser kapitalisering med delvist endelig og endelig afgørelse', () => {
@@ -122,7 +131,7 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser differencekravet inklusive søsterberegninger og forlig', () => {
-    expect(goldenHash(snapshot.differencekrav)).toBe('bafbfa690fdaf445b8377b3f89eba7936667420b28cca70fd74a65addec2ae58');
+    expect(goldenHash(snapshot.differencekrav)).toBe('ca675ce7fde3a2b0082e4c255ba7a0c8301ca3b2268b4d86325bdc39a0b89fc4');
   });
 
   it('låser mer-erstatning ved forhøjet pensionsalder med alle delresultater', () => {

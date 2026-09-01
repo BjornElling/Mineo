@@ -9,6 +9,7 @@ import {
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -660,7 +661,7 @@ describe('midlertidigt EET transient injection', () => {
               id: 'asl-1',
               afgoerelsesDato: iso('2024-02-01'),
               // Virkningsdato efter den effektive beregningsdato (TAF-slutdato) → udløser
-              // warn-virkningsdato-after-beregningsdato, som skal undertrykkes i EO-konteksten.
+              // dato-efter-beregningsdato-advarslen, som skal undertrykkes i EO-konteksten.
               virkningsDato: iso('2024-05-01'),
               // EET under 15 % → udløser warn-asl-eet-under-15, som er kontekst-uafhængig og bevares.
               eetPct: 10,
@@ -677,9 +678,7 @@ describe('midlertidigt EET transient injection', () => {
       iso('2024-04-30')
     ));
 
-    expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
-    expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
+    expect(result.issues.some((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID)).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'warn-asl-eet-under-15')).toBe(true);
   });
 

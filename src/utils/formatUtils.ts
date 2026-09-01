@@ -101,3 +101,16 @@ export const formatPercentTrimmedFromRounded4 = (value: number): string => {
  * Brug denne frem for lokale sammensætninger, så dokumenter og UI følger samme afrunding.
  */
 export const formatPercentRounded4 = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+
+/**
+ * Formaterer en reguleringsprocent med eksplicit fortegn: «+ 3,9 %» / «- 0,5 %».
+ *
+ * Fortegnet vælges på den AFRUNDEDE værdi, ikke på den rå: en regulering, der afrunder til nul,
+ * skal skrives «+ 0 %», fordi «- 0 %» er misvisende. Skærmen og dokumentet havde hver sin
+ * implementering, som var uenige netop dér (BB-162); denne ene kilde deles nu af begge.
+ */
+export const formatReguleringPctSigned = (value: number): string => {
+  const rounded = round4(Math.abs(value));
+  const sign = value < 0 && rounded !== 0 ? '-' : '+';
+  return `${sign} ${formatAsAmountTrimmed(rounded, 4)} %`;
+};
