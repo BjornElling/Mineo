@@ -1,0 +1,45 @@
+name: Dependency advisories
+
+env:
+  # Samme sikkerhedsnet som i ci.yml: Node 24 til workflow-actions, hvis en action
+  # kortvarigt ikke er opdateret endnu.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# `npm audit` spørger et eksternt advisory-register, der ændrer sig uden at repoet gør det.
+# Lå kontrollen kun i `verify:release:core`, ville en ny advisory mod et uændret, låst træ
+# først vise sig på den kørsel, der skal udrulle – altså som en blokeret deploy frem for
+# som en vedligeholdelsesopgave. Dette tilsyn stiller derfor spørgsmålet på et fast
+# interval mod main, så en ny advisory er kendt og rettet før næste release.
+on:
+  schedule:
+    # Mandag 06:00 UTC. Ugentligt er nok: gaten i `verify:release:core` er stadig den, der
+    # forhindrer, at et sårbart træ bliver udrullet – tilsynet her flytter kun fundet frem
+    # i tid. Bemærk at GitHub deaktiverer schedule-triggere efter 60 dages inaktivitet i
+    # repoet; sker det, kan tilsynet startes manuelt og genaktiveres i Actions-fanen.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  advisories:
+    name: Dependency advisories (main)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      # Tilsynet kører præcis den gate, release-gaten indeholder – ikke en variant af den.
+      # `check:tool-isolation` aflæser `node_modules/.bin`, så det låste træ skal være installeret.
+      - name: Install dependencies (strict)
+        run: npm ci
+
+      - name: Check dependencies
+        run: npm run check:dependencies
