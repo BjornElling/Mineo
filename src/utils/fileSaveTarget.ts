@@ -1,5 +1,5 @@
 import { generateFilename, type ResolvedDirectory, getStartInValue } from './fileHelpers';
-import { logWarning } from './logger';
+import { getTimestamp, logWarning } from './logger';
 import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
@@ -39,7 +39,12 @@ export type SaveTarget =
       /** Advarsel hvis et tidligere handle måtte kasseres, så brugeren blev sendt til pickeren. */
       fallbackWarning?: string;
     }
-  | { kind: 'download'; filename: string }
+  | {
+      kind: 'download';
+      filename: string;
+      /** Forklarer at browser-downloaden er en ny fil og ikke kan være en tavs overskrivning. */
+      fallbackWarning: string;
+    }
   | { kind: 'cancelled' };
 
 const hasFilenameBasisChanged = (
@@ -112,6 +117,23 @@ const isUserDismissedPermissionPrompt = (
   !verification.valid &&
   verification.reason === 'permission_denied' &&
   verification.detail === 'permission=prompt';
+
+/**
+ * En klassisk browser-download kan ikke overskrive en valgt fil og returnerer heller ikke det navn,
+ * browseren faktisk vælger. Genbrug af det gamle navn får typisk browseren til at lave `(... 1).eo`,
+ * mens Mineo fejlagtigt kvitterede med "Gemt" som om den oprindelige fil var opdateret. Et entydigt,
+ * tidsstemplet navn gør den nyeste fil synlig og forhindrer, at brugeren ved næste Hent vælger forgængeren.
+ */
+export const createVersionedDownloadFilename = (
+  fileData: EoFileContainer,
+  savedAtIso = getTimestamp()
+): string => {
+  const timestamp = savedAtIso
+    .replace('T', ' kl. ')
+    .replace(/:/g, '.')
+    .replace('Z', '');
+  return `${generateFilename(fileData.data)} - gemt ${timestamp}.eo`;
+};
 
 /**
  * Resolver det autoritative gem-mål ud fra det aktuelle miljø og tidligere gem-metadata.
@@ -232,12 +254,12 @@ export const resolveSaveTarget = async (
   // Fallback til klassisk download (Firefox m.fl.). Det er en forventet browserforskel og
   // skal derfor ikke registreres som en teknisk advarsel.
 
-  const lastSavedPath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
-  const currentFilename = generateFilename(fileData.data);
-  const savedStamdata = loadStoredFilenameBasis();
-  const currentStamdata = fileData.data.stamdata || {};
-  const stamdataChanged = hasFilenameBasisChanged(savedStamdata, currentStamdata);
-  const filename = lastSavedPath && !stamdataChanged ? lastSavedPath : `${currentFilename}.eo`;
-
-  return { kind: 'download', filename };
+  const filename = createVersionedDownloadFilename(fileData);
+  return {
+    kind: 'download',
+    filename,
+    fallbackWarning:
+      `Din browser kan ikke overskrive en eksisterende .eo-fil. Den aktuelle sag er gemt som en ny fil: ${filename}. `
+      + 'Vælg denne nyeste fil næste gang du bruger Hent.',
+  };
 };

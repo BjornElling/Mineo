@@ -28,6 +28,7 @@ import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
   logWarning: vi.fn(),
+  getTimestamp: () => '2026-09-02T12:34:56.789Z',
   sanitizeFilenameForLog: (value: unknown) => String(value ?? ''),
 }));
 
@@ -505,6 +506,10 @@ describe('fileSave', () => {
       expect(mockedDecryptFromString.mock.invocationCallOrder[0]).toBeLessThan(
         mockedDownloadFile.mock.invocationCallOrder[0]
       );
+      expect(result).toMatchObject({
+        status: 'saved',
+        warning: expect.stringContaining('kan ikke overskrive en eksisterende .eo-fil'),
+      });
     });
 
     it('bevarer saved-status med advarsel når filnavnsmetadata fejler efter verificeret download', async () => {

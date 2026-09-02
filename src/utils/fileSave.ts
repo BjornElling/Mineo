@@ -214,6 +214,7 @@ export const saveToFile = async (
 
     } else {
       filename = target.filename;
+      fallbackWarning = target.fallbackWarning;
 
       // VERIFICER indholdet FØR download. Fallback-sinken (browser-download) understøtter ikke
       // read-back, så det ene artefakt verificeres i hukommelsen, mens vi stadig kan afbryde:

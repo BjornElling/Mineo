@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { expect, login, openPage, test } from './support/mineoTest';
 
 import { BROWSER_LANE_TAG } from './support/lanes';
@@ -17,24 +17,6 @@ import { BROWSER_LANE_TAG } from './support/lanes';
 
 const TECHNICAL_WARNING = 'Teknisk advarsel registreret';
 const TECHNICAL_ERROR = 'Teknisk fejl registreret';
-
-type ConsoleCapture = Readonly<{
-  errors: string[];
-  warnings: string[];
-  pageErrors: string[];
-}>;
-
-const captureConsole = (page: Page): ConsoleCapture => {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const pageErrors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-    if (message.type() === 'warning') warnings.push(message.text());
-  });
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-  return { errors, warnings, pageErrors };
-};
 
 /**
  * `Journalnr.`-feltet har ingen tilgængeligt navn på selve inputtet; labelen står som et separat
@@ -106,11 +88,10 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
   );
 
   /**
-   * OBS-005: Gem gennem fallback-download må ikke fremstille en normal, forventet browserforskel
-   * som en teknisk advarsel om en fejl i den underliggende kode.
+   * Gem gennem fallback-download skal give filen et nyt navn og gøre det klart, at den tidligere
+   * fil ikke er overskrevet. Ellers vælger brugeren let den gamle fil næste gang og oplever datatab.
    */
-  test('OBS-005: normal Gem via fallback-download viser ingen teknisk advarsel', async ({ page }) => {
-    const captured = captureConsole(page);
+  test('OBS-005: Gem via fallback-download peger på den nye fil', async ({ page, runtimeErrors, runtimeSignals }) => {
     await login(page);
     await expectFallbackBranch(page);
 
@@ -122,18 +103,15 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Gem' }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.eo$/);
+    expect(download.suggestedFilename()).toMatch(/ - gemt \d{4}-\d{2}-\d{2} kl\. \d{2}\.\d{2}\.\d{2}\.\d{3}\.eo$/);
+    await expect(page.getByText('Din browser kan ikke overskrive en eksisterende .eo-fil.', { exact: false })).toBeVisible();
 
     // Fundets kerne: den synlige tekniske ramme ved en normal, lykket filhandling.
     await expect(page.getByText(TECHNICAL_WARNING, { exact: true })).toHaveCount(0);
     await expect(page.getByText(TECHNICAL_ERROR, { exact: true })).toHaveCount(0);
 
-    // Den udløsende console-advarsel fra fundet må heller ikke være der.
-    expect(
-      captured.warnings.filter((w) => w.includes('File System Access API ikke tilgængelig'))
-    ).toEqual([]);
-    expect(captured.errors).toEqual([]);
-    expect(captured.pageErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
 
     // Værdien skal fortsat stå i feltet efter Gem.
     await expect(journalnr).toHaveValue('SAVE1');
@@ -143,8 +121,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
    * CRASH-001: Hent gennem den synlige filvælger må ikke kaste `NotFoundError: Node.removeChild`
    * i filvælgerens oprydning. Fundet reproducerede 6/6 i Firefox.
    */
-  test('CRASH-001: Hent rydder filvælgeren op uden exception', async ({ page }) => {
-    const captured = captureConsole(page);
+  test('CRASH-001: Hent rydder filvælgeren op uden exception', async ({ page, runtimeErrors }) => {
     await login(page);
     await expectFallbackBranch(page);
 
@@ -177,7 +154,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     }
 
     // Fundets signal: NotFoundError fra removeChild + synlig teknisk fejlramme.
-    const removeChildErrors = [...captured.errors, ...captured.pageErrors].filter(
+    const removeChildErrors = runtimeErrors.filter(
       (message) => message.includes('removeChild') || message.includes('NotFoundError')
     );
     expect(removeChildErrors).toEqual([]);
@@ -192,7 +169,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     // kaster andet kald `NotFoundError`; med det nuværende `settled`-værn sker der intet.
     await runDoubleCleanupOnRealPicker(page);
 
-    const doubleCleanupErrors = [...captured.errors, ...captured.pageErrors].filter(
+    const doubleCleanupErrors = runtimeErrors.filter(
       (message) => message.includes('removeChild') || message.includes('NotFoundError')
     );
     expect(doubleCleanupErrors).toEqual([]);
@@ -204,8 +181,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
    * ovenpå og interceptede pointer events. Testen åbner overlayet og kræver, at datofeltet kan
    * klikkes og udfyldes uden først at skjule noget.
    */
-  test('OBS-028: Løntrin-finderens datofelt kan klikkes uden at skjule en advarsel', async ({ page }) => {
-    const captured = captureConsole(page);
+  test('OBS-028: Løntrin-finderens datofelt kan klikkes uden at skjule en advarsel', async ({ page, runtimeErrors }) => {
     await login(page);
     await expectFallbackBranch(page);
 
@@ -260,6 +236,6 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     // Advarslen må heller ikke være der i denne rejse.
     await expect(page.getByText(TECHNICAL_WARNING, { exact: true })).toHaveCount(0);
 
-    expect(captured.pageErrors).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
   });
 });

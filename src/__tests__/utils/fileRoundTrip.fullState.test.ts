@@ -77,6 +77,16 @@ const buildFullSnapshot = (): SaveSnapshot => {
       beloeb: { kind: 'expression', expression: '500+250', value: 750 },
     },
   ];
+  eo.offentligeYdelserRows = [
+    {
+      id: 'offentlig-rt',
+      fraDato: toISODateString('2024-03-01'),
+      tilDato: toISODateString('2024-03-31'),
+      ydelse: { kind: 'number', value: 12500 },
+      tillaeg: { kind: 'expression', expression: '400+100', value: 500 },
+      ydelsestype: 'sygedagpenge',
+    },
+  ];
 
   return {
     stamdata: {

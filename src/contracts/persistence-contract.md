@@ -3,7 +3,10 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-08-27 (PWA-load og .eo-sanitization er adversarialt gennemgået:
+**Senest verificeret mod kode:** 2026-09-02 (Download-fallbacken er verificeret mod `fileSaveTarget.ts` og
+`fileSave.ts`: en browserdownload kan ikke overskrive den tidligere fil og får derfor et nyt tidsstemplet navn,
+som vises i den handlingsanvisende gem-kvittering. Firefox-E2E bekræfter den synlige rejse. Tidligere 2026-08-27:
+PWA-load og .eo-sanitization er adversarialt gennemgået:
 filhåndtag og pending PWA-requests er klientscopede i origin-fælles IndexedDB, en afsluttet request
 kan ikke replayes efter en fejlet oprydning, PWA-acknowledgement går før øvrig metadata, og isolerbare
 ugyldige felter bevarer resten af sektionen via preflight. Tidligere 2026-08-25: nyt normativt afsnit i §5: et ændret filnavns-relevant
@@ -213,6 +216,10 @@ property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter
 6. Canonical snapshot valideres med de samme Zod-schemas som load.
 7. Artefaktet bygges og verificeres før sink. In-memory download verificeres før browserdownload; en read-back-sink
    verificeres mod de faktisk skrevne bytes.
+8. En browser-download kan ikke overskrive en eksisterende fil og kan ikke oplyse Mineo om browserens eventuelle
+   navneændring. Derfor er hvert download-mål en ny, tidsstemplet `.eo`-fil, og den synlige gem-kvittering skal
+   angive, at brugeren skal vælge netop den nyeste fil ved næste `Hent`. Et genbrugt filnavn med en generisk
+   «Gemt»-kvittering er forbudt, fordi brugeren ellers let åbner den ældre fil og oplever det som datatab.
 
 `.eo`-save-gaten er strukturel: ethvert aktivt relevant rejected input blokerer save globalt og skrives aldrig til
 filen. Et afledt rødt range-/bounds-/rule-issue på en ellers schema-gyldig canonical værdi blokerer ikke save; værdien

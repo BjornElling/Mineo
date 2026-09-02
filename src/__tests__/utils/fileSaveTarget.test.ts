@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { resolveSaveTarget } from '../../utils/fileSaveTarget';
+import { createVersionedDownloadFilename, resolveSaveTarget } from '../../utils/fileSaveTarget';
 import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
@@ -18,6 +18,7 @@ import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
   logError: vi.fn(),
+  getTimestamp: () => '2026-09-02T12:34:56.789Z',
   sanitizeFilenameForLog: (value: unknown) => String(value ?? ''),
 }));
 
@@ -69,14 +70,23 @@ describe('resolveSaveTarget', () => {
     );
   });
 
-  it('falder tilbage til download-mål når File System Access ikke er understøttet', async () => {
+  it('gemmer download-fallback som en ny tidsstemplet fil og forklarer den næste Hent', async () => {
     mockedIsFileSystemAccessSupported.mockReturnValue(false);
 
     const target = await resolveSaveTarget(fileData);
 
-    expect(target).toEqual({ kind: 'download', filename: 'foreslaaet-navn.eo' });
+    expect(target).toEqual({
+      kind: 'download',
+      filename: 'foreslaaet-navn - gemt 2026-09-02 kl. 12.34.56.789.eo',
+      fallbackWarning: expect.stringContaining('Vælg denne nyeste fil næste gang du bruger Hent.'),
+    });
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
     expect(mockedLogWarning).not.toHaveBeenCalled();
+  });
+
+  it('bygger downloadnavnet uden at genbruge den tidligere fils navn', () => {
+    expect(createVersionedDownloadFilename(fileData, '2026-09-02T12:34:56.789Z'))
+      .toBe('foreslaaet-navn - gemt 2026-09-02 kl. 12.34.56.789.eo');
   });
 
   it('genbruger et gyldigt persisteret handle uden at persistere det igen', async () => {
