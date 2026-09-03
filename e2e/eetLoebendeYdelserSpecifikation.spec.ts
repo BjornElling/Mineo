@@ -149,10 +149,14 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     // BB-158: cellen stod neutral, og advarslen fandtes kun i en boks på en anden fane. Værdien er
     // fortsat lovlig at REGNE på – den er en advarsel, ikke en rød fejl.
+    // BB-173: advarslen navngiver grænsen og påstår ikke noget om beregningens lovlighed.
     const eetCell = afgoerelseRow(page, 0).locator('input').nth(2);
     await expect(eetCell).toHaveAttribute('aria-invalid', 'false');
     await eetCell.hover();
-    await expect(page.getByRole('tooltip')).toContainText('beregningen er derfor ikke lovmæssig');
+    await expect(page.getByRole('tooltip')).toContainText(
+      'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024',
+    );
+    await expect(page.getByRole('tooltip')).not.toContainText('lovmæssig');
 
     expect(runtimeErrors).toEqual([]);
   });

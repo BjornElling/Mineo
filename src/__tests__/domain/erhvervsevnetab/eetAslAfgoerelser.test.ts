@@ -2,7 +2,9 @@ import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import {
   collectEetAslAfgoerelseValidationIssues,
   collectIncompleteRowIssues,
+  KAP_DATO_UNDER_TO_AAR_MESSAGE,
   KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE,
+  KAP_PCT_UNDER_TO_AAR_MESSAGE,
   validateAslAarsloenDivisibleBy1000,
   validateAslAarsloenBySkadesaarMax,
   validateDuplicateAfgoerelse,
@@ -77,6 +79,43 @@ describe('collectIncompleteRowIssues – canonical procentgrænser', () => {
       id: 'invalid-kap-pct',
       message: 'Kapitaliseringsprocent skal være mellem 0 og 100 %.',
     });
+  });
+});
+
+describe('collectIncompleteRowIssues – ≤ 2 år til folkepension', () => {
+  // En endelig afgørelse på 40 % ≤ 2 år før folkepensionsalderen. Kapitaliseringsfelterne SKAL være
+  // tomme (motoren udleder dem selv), men uden ≤2-års-undtagelsen blokerede fanen alligevel på
+  // «Endelig afgørelse under 50 % mangler oplysninger om kapitalisering» – mens de to feltregler
+  // afviste enhver udfyldt værdi. Ingen lovlig indtastning fandtes (BB-168).
+  const row = () =>
+    buildRow({
+      afgoerelsesDato: toISODateString('2023-06-01'),
+      virkningsDato: toISODateString('2023-01-01'),
+      afgoerelseType: 'Endelig',
+      eetPct: 40,
+      kapDato: undefined,
+      kapPct: undefined,
+    });
+  const skadedato = toISODateString('2018-06-01');
+  const fodselsdato = toISODateString('1958-01-01');
+
+  it('kræver ikke kapitaliseringsfelter, når de netop skal stå tomme', () => {
+    const ids = collectIncompleteRowIssues([row()], skadedato, fodselsdato).map((issue) => issue.id);
+    expect(ids).not.toContain('endelig-under-50-missing-kapitalisering');
+  });
+
+  it('kræver dem fortsat, når afgørelsen ligger mere end 2 år før folkepensionsalderen', () => {
+    const ids = collectIncompleteRowIssues(
+      [row()],
+      skadedato,
+      toISODateString('1980-01-01')
+    ).map((issue) => issue.id);
+    expect(ids).toContain('endelig-under-50-missing-kapitalisering');
+  });
+
+  it('kræver dem fortsat, når datoerne ikke er kendte (fail-closed)', () => {
+    const ids = collectIncompleteRowIssues([row()]).map((issue) => issue.id);
+    expect(ids).toContain('endelig-under-50-missing-kapitalisering');
   });
 });
 
@@ -191,7 +230,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
     );
-    expect(error).toBe('Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.');
+    expect(error).toBe(KAP_DATO_UNDER_TO_AAR_MESSAGE);
   });
 
   it('afviser kap.dato når den ligger før virkningsdato', () => {
@@ -349,7 +388,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
     );
-    expect(error).toBe('Ved ≤ 2 år til folkepension kapitaliseres hele EET.');
+    expect(error).toBe(KAP_PCT_UNDER_TO_AAR_MESSAGE);
   });
 
   it('accepterer kap % over 50 ved endelig afgørelse ≤ 2 år til folkepension når samlet kap % matcher EET %', () => {
@@ -660,7 +699,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         (issue) =>
           issue.rowId === 'r1' &&
           issue.field === 'kapDato' &&
-          issue.message === 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.'
+          issue.message === KAP_DATO_UNDER_TO_AAR_MESSAGE
       )
     ).toBe(false);
     expect(
@@ -668,7 +707,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         (issue) =>
           issue.rowId === 'r1' &&
           issue.field === 'kapPct' &&
-          issue.message === 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.'
+          issue.message === KAP_PCT_UNDER_TO_AAR_MESSAGE
       )
     ).toBe(false);
   });
@@ -703,7 +742,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     expect(issues).toContainEqual({
       rowId: 'r1',
       field: 'kapPct',
-      message: 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.',
+      message: KAP_PCT_UNDER_TO_AAR_MESSAGE,
     });
     expect(
       issues.some(

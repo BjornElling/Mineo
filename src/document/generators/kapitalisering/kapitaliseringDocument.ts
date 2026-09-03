@@ -7,22 +7,27 @@
 
 import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
-import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type {
   EetKapitaliseringAfgoerelseComputation,
   EetKapitaliseringComputation,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import { buildKapitaliseringAfgoerelseRows } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
+import {
+  buildKapitaliseringAfgoerelseHeading,
+  buildKapitaliseringAfgoerelseRows,
+  KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
+} from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 
-// Bevidst PDF-formulering: Vi viser "< 2 år" som en kortere og mere læsbar
-// etikette i PDF'en, selv om særreglen også omfatter kontroltidspunktet præcis
-// 2 år før folkepensionsalderen. PDF-teksten er derfor en præsentationsmæssig
-// forenkling og må ikke bruges som normativ regeltekst eller som grundlag for
-// ændring af beregningslogikken.
-export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL =
-  'Kapitaliseret pga. < 2 år til folkepension?';
+/**
+ * Etiketten er nu den DELTE konstant.
+ *
+ * Dokumentet skrev tidligere "< 2 år" som en bevidst «læsbar forenkling», mens linjen umiddelbart
+ * under – særfaktor-etiketten – skrev "≤ 2 år" om samme regel. To operatorer i træk læses som to
+ * forskellige grænser, og operatoren ER reglens indhold (BB-172). Genindfør ikke en lokal variant.
+ */
+export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL = KAPITALISERET_PGA_UNDER_TO_AAR_LABEL;
 
 export const addKapitaliseringEmptyState = (
   writer: DocumentComposer
@@ -46,20 +51,22 @@ export const addKapitaliseringAfgoerelseSection = (
   }
 
   writer.writeSectionHeader(
-    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`
+    buildKapitaliseringAfgoerelseHeading(
+      afgoerelse.afgoerelsesdato,
+      afgoerelse.eetPct,
+      formatIsoDateLong
+    )
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
   const boldRowOpts = { rightFontStyle: 'bold' as const };
 
   // Sekvens, felt-udvælgelse og synlighed ejes af den delte præsentationsmodel; dokumentet renderer
-  // hver række i sit eget idiom. Bevidste dokument-forskelle: kort dansk reguleringsdato,
-  // særfaktor-etiket med `≤`, og Køn-rækken kun når køn faktisk er sat.
+  // hver række i sit eget idiom. Den eneste bevidste dokument-forskel er, at Køn-rækken kun vises,
+  // når køn faktisk er sat.
   const rows = buildKapitaliseringAfgoerelseRows(afgoerelse, {
     koen,
     koenRowMode: 'whenPresent',
-    saerfaktorLabel: 'Særfaktor (≤ 2 år til folkepension)',
-    formatReguleringsdato: formatISOToDanish,
   });
 
   for (const row of rows) {

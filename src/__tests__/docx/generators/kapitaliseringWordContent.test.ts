@@ -34,6 +34,10 @@ describe('kapitalisering → Word-indhold', () => {
       rowId: 'kap-1',
       afgoerelsesdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
+      // Afgørelsens EGEN erhvervsevnetabsprocent er 30, mens kapitaliseringsprocenten nedenfor er
+      // 100. De to er forskellige størrelser, og det er netop pointen i BB-170: overskriften skal
+      // bære afgørelsens procent, så læseren kan se hvor stor en del kapitalbeløbet dækker.
+      eetPct: 30,
       kapitaliseringspct: 100,
       grundloenOre: fromKroner(320000),
       erstatningsniveauPct: 80,
@@ -69,5 +73,14 @@ describe('kapitalisering → Word-indhold', () => {
     // Mellemregningslinje (årsydelse x faktor) + det beregnede kapitalbeløb skal nå .docx'en.
     expect(text).toContain('256.000,00 kr. x 10');
     expect(text).toContain('2.560.000 kr.');
+    // BB-170/BB-171: overskriften bærer afgørelsens egen EET-procent – både så læseren kan se hvor
+    // stor en del af tabet kapitalbeløbet dækker, og så to afgørelser fra samme dag kan skilles i
+    // et dokument, hvor de to sider ikke kan ses samtidig.
+    expect(text).toContain('Afgørelse 1. januar 2025 (30 %)');
+    // BB-175: rækken hedder «Kapitaliseringsprocent», som feltets egne fejlbeskeder – ikke
+    // «Kapitalisering», der navngiver hele handlingen.
+    expect(text).toContain('Kapitaliseringsprocent');
+    // BB-167: beregningsdatoen står ikke i dokumentet, og skal heller ikke stå på skærmen.
+    expect(text).not.toContain('Beregningsdato');
   });
 });

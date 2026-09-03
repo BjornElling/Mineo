@@ -77,6 +77,21 @@ export const KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
 export const TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Tidligere kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 
+/**
+ * De to celletekster ved ≤ 2 år til folkepension navngiver HANDLINGEN, ikke reglen.
+ *
+ * Ved en endelig afgørelse ≤ 2 år før folkepensionsalderen kapitaliseres hele erhvervsevnetabet fra
+ * afgørelsesdagen, og motoren udleder selv begge værdier. De to felter skal derfor stå TOMME. De
+ * tidligere tekster oplyste kun reglen («Ved ≤ 2 år til folkepension sker kapitalisering fra
+ * afgørelsesdagen.»), så brugeren stod med to røde celler uden anledning til at gætte, at tomme
+ * felter var svaret – og et tomt felt gav i sig selv en tredje, blokerende fejl på fanen (BB-168).
+ * Sig hvad brugeren skal GØRE; reglen står som begrundelse efter kolonet.
+ */
+export const KAP_DATO_UNDER_TO_AAR_MESSAGE =
+  'Lad kapitaliseringsdato stå tom: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.';
+export const KAP_PCT_UNDER_TO_AAR_MESSAGE =
+  'Lad kapitaliseringsprocent stå tom: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.';
+
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
 /**
@@ -194,7 +209,7 @@ export const validateKapPctByAfgoerelsestype = (
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
       if (eetPct !== undefined && kapPctMedTidligere !== eetPct) {
-        return 'Ved ≤ 2 år til folkepension kapitaliseres hele EET.';
+        return KAP_PCT_UNDER_TO_AAR_MESSAGE;
       }
       return undefined;
     }
@@ -282,7 +297,7 @@ export const validateKapDatoByAfgoerelsestype = (
     isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDateIso);
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
-    return 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
+    return KAP_DATO_UNDER_TO_AAR_MESSAGE;
   }
 
   return undefined;
@@ -477,7 +492,8 @@ export const validatePercentDivisibleBy5FromValue = (
  *   1. Afgørelsesdato skal være udfyldt
  *   2. EET % skal være udfyldt
  *   3. Afgørelsestype skal være valgt
- *   4. Endelig afgørelse med EET % < 50 kræver både kap.dato og kap. %
+ *   4. Endelig afgørelse med EET % < 50 kræver både kap.dato og kap. % – UNDTAGEN ved ≤ 2 år til
+ *      folkepension, hvor de to felter netop skal stå tomme (kræver `skadedato` og `fodselsdato`)
  *   5. Kap.dato uden kap. % er ikke tilladt
  *   6. Kap. % uden kap.dato er ikke tilladt
  *
@@ -509,7 +525,9 @@ export type IncompleteRowIssue = Readonly<{
 }>;
 
 export const collectIncompleteRowIssues = (
-  rows: readonly AslAfgoerelseRow[]
+  rows: readonly AslAfgoerelseRow[],
+  skadedato: ISODateString | undefined = undefined,
+  fodselsdato: ISODateString | undefined = undefined
 ): IncompleteRowIssue[] => {
   const issues: IncompleteRowIssue[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
@@ -550,6 +568,19 @@ export const collectIncompleteRowIssues = (
     if (row.afgoerelseType !== 'Endelig') return false;
     const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
+    // Ved ≤ 2 år til folkepension er de TOMME felter den rigtige indtastning: kapitalisering sker fra
+    // afgørelsesdagen af hele erhvervsevnetabet, og de to feltregler afviser derfor enhver anden
+    // værdi. Uden denne undtagelse var både «udfyld» og «lad stå tomt» en blokering – en blindgyde
+    // uden en lovlig indtastning (BB-168). Motoren udleder selv begge værdier i netop dette tilfælde
+    // (`collectResolvedRows` i `eetKapitaliseringCalculation`), som også bærer samme undtagelse.
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
+    const isForcedUnderTwoYears =
+      skadedato !== undefined &&
+      fodselsdato !== undefined &&
+      controlDate !== undefined &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate);
+    if (isForcedUnderTwoYears) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
   if (hasEndeligUnder50MissingKap) {

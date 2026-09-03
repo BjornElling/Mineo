@@ -97,12 +97,16 @@ describe('resolveEetTitrinWarning', () => {
     expect(resolveEetTitrinWarning(25, skadedato)).toBeUndefined();
   });
 
-  it('siger at beregningen ikke er lovmæssig frem for at kalde værdien ugyldig', () => {
+  it('kalder ikke værdien ugyldig og påstår ikke noget om beregningens lovlighed', () => {
     // BB-158: programmet accepterer værdien, regner på den og trykker den, så «ugyldig» og
     // programmets egen adfærd kunne ikke begge være rigtige.
-    expect(EET_TITRIN_FRA_2024_WARNING).not.toContain('ugyldig');
-    expect(EET_TITRIN_FRA_2024_WARNING).toContain('ikke lovmæssig');
-    expect(EET_UNDER_15_WARNING).toContain('ikke lovmæssig');
+    // BB-173: halen «– beregningen er derfor ikke lovmæssig» er fjernet igen. Hvad der kan bruges
+    // juridisk, er brugerens vurdering; advarslen navngiver grænsen og lader det blive ved det.
+    // Halen gav desuden to advarsler om SAMME 15 %-grænse hver sin alvorsgrad.
+    for (const warning of [EET_TITRIN_FRA_2024_WARNING, EET_UNDER_15_WARNING, KAPITALISERING_UNDER_15_WARNING]) {
+      expect(warning).not.toContain('ugyldig');
+      expect(warning).not.toContain('lovmæssig');
+    }
   });
 });
 

@@ -12,20 +12,22 @@ import { formatISOToDanish } from '../../utils/dateFormatting';
 type KapitaliseringsPctRow = Readonly<{ rowId: string; kapitaliseringspct: number }>;
 
 /**
- * Fælles halesætning for de EET-procenter, loven ikke tillader, men programmet alligevel regner på.
+ * De EET-procenter, loven ikke tillader, men programmet alligevel regner på, advares gult – ikke rødt.
  *
  * Mindstegrænserne og de faste procentsatser kan juridisk ikke fraviges, men en teoretisk beregning
- * af en sådan værdi skal være mulig. Derfor er de gule advarsler – ikke røde fejl – og derfor siger
- * de eksplicit, at resultatet ikke er en lovmæssig beregning, i stedet for at kalde en værdi
- * «ugyldig», som programmet i samme åndedrag regner på og trykker (BB-158).
+ * af en sådan værdi skal være mulig. Derfor advares der i stedet for at kalde en værdi «ugyldig», som
+ * programmet i samme åndedrag regner på og trykker (BB-158).
+ *
+ * Advarslerne bærer bevidst INGEN hale om, at «beregningen derfor ikke er lovmæssig» (BB-173):
+ * hvad der kan bruges juridisk, er brugerens vurdering, ikke programmets, og halen gav to advarsler
+ * om samme grænse hver sin alvorsgrad. Advarslen navngiver grænsen; konsekvensen kender brugeren.
+ * Tilføj den ikke igen – heller ikke for en enkelt advarsel.
  *
  * Kun EET-procentens FORM er en rød fejl: den skal være delelig med 5, større end 0 og højst 100.
  */
-export const IKKE_LOVMAESSIG_BEREGNING_SUFFIX = ' – beregningen er derfor ikke lovmæssig';
 
 /** Kanonisk, ikke-blokerende feltadvarsel for EET-procenter under lovens minimum. */
-export const EET_UNDER_15_WARNING =
-  `Der kan ikke tilkendes erhvervsevnetab under 15 %${IKKE_LOVMAESSIG_BEREGNING_SUFFIX}`;
+export const EET_UNDER_15_WARNING = 'Der kan ikke tilkendes erhvervsevnetab under 15 %';
 
 export const resolveEetUnder15Warning = (value: number | undefined): FieldWarning | undefined =>
   value !== undefined && value > 0 && value < 15 ? createFieldWarning(EET_UNDER_15_WARNING) : undefined;
@@ -38,7 +40,7 @@ export const resolveEetUnder15Warning = (value: number | undefined): FieldWarnin
  * celle og opdager det først på en anden fane (BB-158). 15 % er lovligt uanset trinreglen.
  */
 export const EET_TITRIN_FRA_2024_WARNING =
-  `Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024${IKKE_LOVMAESSIG_BEREGNING_SUFFIX}`;
+  'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024';
 
 export const harEetTitrinAfvigelse = (
   value: number | undefined,

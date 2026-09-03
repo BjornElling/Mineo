@@ -2,7 +2,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../../layout/ContentBox';
 import type { ErhvervsevnetabValues } from '../../../../schemas/formSchemas';
 import type { EetDifferencekravProformaKapitalisering } from '../../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
-import { formatIsoDateLong, formatISOToDanish } from '../../../../utils/dateFormatting';
+import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatAsAmountTrimmed, formatKr } from '../../../../utils/formatUtils';
 import { toKroner } from '../../../../domain/money/money';
 import {
@@ -16,6 +16,10 @@ import {
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
+import {
+  KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
+  SAERFAKTOR_UNDER_TO_AAR_LABEL,
+} from '../../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 
 /**
  * Proformakapitaliseringen af rest-EET. Ren visning: den tager sin færdigberegnede
@@ -85,7 +89,8 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
     {pk.aarsydelseReguleringsPctRounded4 !== null && (
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {`Reguleringsprocent (${formatIsoDateLong(pk.kapitaliseringsdato)})`}
+          {/* Kort dansk form som i dokumentet og som boksens øvrige datoer (BB-176). */}
+          {`Reguleringsprocent (${formatISOToDanish(pk.kapitaliseringsdato)})`}
         </Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{`${formatAsAmountTrimmed(pk.aarsydelseReguleringsPctRounded4, 4)} %`}</Typography>
@@ -131,7 +136,8 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
     </Box>
 
     <Box className="row--label-right-hover">
-      <Typography className="row--text">Kapitaliseret pga. &lt; 2 år til folkepension?</Typography>
+      {/* Delte etiketter: `≤` er reglens faktiske operator og skal stå ens overalt (BB-172). */}
+      <Typography className="row--text">{KAPITALISERET_PGA_UNDER_TO_AAR_LABEL}</Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatJaNej(pk.kapitaliseretPgaUnderToAarTilFp)}</Typography>
       </Box>
@@ -139,7 +145,7 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
 
     {pk.kapitaliseretPgaUnderToAarTilFp && (
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Særfaktor (&lt; 2 år til folkepension)</Typography>
+        <Typography className="row--text">{SAERFAKTOR_UNDER_TO_AAR_LABEL}</Typography>
         <Box className="row--label-right-hover__content">
           <Typography className="row--text">{pk.saerfaktor === null ? '-' : formatFaktor(pk.saerfaktor)}</Typography>
         </Box>

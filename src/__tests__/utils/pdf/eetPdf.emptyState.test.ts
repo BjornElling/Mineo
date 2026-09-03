@@ -131,7 +131,10 @@ describe('EET PDF empty states', () => {
     expect(renderedText).toContain('Grundydelse (50 %): Grundløn x EET x Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
     expect(joinedText).toContain('x 50 % x 80 % =');
-    expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
+    // `<=`, ikke `≤`: PDF-kanalen normaliserer tegnet, fordi jsPDF-fonten ikke kan sætte det
+    // (`normalizeTextForDocument`). Skærm og Word bærer det rigtige `≤`. Begge PDF-linjer om
+    // ≤2-års-reglen normaliseres ens, så BB-172's krav om ÉN operator holder også her.
+    expect(renderedText).toContain('Kapitaliseret pga. <= 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) ='
     );
@@ -257,7 +260,10 @@ describe('EET PDF empty states', () => {
     expect(renderedText).toContain('Grundydelse (50 %): Grundløn x EET x Erstatningsniveau =');
     expect(joinedText).toContain('351.539');
     expect(joinedText).toContain('x 50 % x 80 % =');
-    expect(renderedText).toContain('Kapitaliseret pga. < 2 år til folkepension?');
+    // `<=`, ikke `≤`: PDF-kanalen normaliserer tegnet, fordi jsPDF-fonten ikke kan sætte det
+    // (`normalizeTextForDocument`). Skærm og Word bærer det rigtige `≤`. Begge PDF-linjer om
+    // ≤2-års-reglen normaliseres ens, så BB-172's krav om ÉN operator holder også her.
+    expect(renderedText).toContain('Kapitaliseret pga. <= 2 år til folkepension?');
     expect(renderedText).not.toContain(
       'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) ='
     );

@@ -18,7 +18,7 @@ indtastning) blev målt på en endelig afgørelse truffet mindre end 2 år før 
 Kap.dato og Kap. %, bliver begge celler røde med hver sin regeltekst; ryddes de, skriver fanen «Endelig
 afgørelse under 50 % mangler oplysninger om kapitalisering». Den eneste lovlige indtastning – afgørelsens
 egen dato og hele EET-procenten – nævnes af ingen af de tre beskeder, og undtagelsen findes allerede i
-koden, blot ét sted for lidt (BB-168). **Samme kørsel gav nye forekomster af M-13 i to former (BB-172 –
+koden, blot ét sted for lidt (BB-168 – rettet 2026-09-03). **Samme kørsel gav nye forekomster af M-13 i to former (BB-172 –
 «< 2 år» og «≤ 2 år» i to linjer i træk i samme dokument; BB-176 – reguleringsdatoen lang på skærmen, kort
 i dokumentet) og af M-02 (BB-175).** M-09, M-10 og M-22 er efterprøvet og **bestået**; M-19, M-23 og M-27
 er uden genstand på en fane uden indtastningsfelter. **M-28's prøve gav sit første NEGATIVE træf og har
@@ -1850,14 +1850,24 @@ en «mangler oplysninger om …»-fanefejl. Prøven tager under et minut pr. fel
 Indgang uden browser: `rg "mangler oplysninger om|må kun udfyldes ved|må ikke udfyldes ved" src/domain`,
 og hold hver fanefejl op mod feltreglerne for de felter, den nævner.
 
-- Fundet i: `erhvervsevnetab.md` BB-168 (**Høj**, afventer udvikleren). En endelig afgørelse på 40 %
-  truffet mindre end 2 år før folkepensionsalderen: udfyldes Kap.dato og Kap. %, bliver begge celler røde
-  («Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.» / «… kapitaliseres hele EET.»);
-  ryddes de, skriver Kapitaliseringsfanen «Endelig afgørelse under 50 % mangler oplysninger om
-  kapitalisering». Den eneste lovlige indtastning er afgørelsesdatoen og hele EET-procenten, og det siger
-  ingen af de tre beskeder. **Motoren kan i forvejen klare de tomme felter** – `collectResolvedRows`
-  udleder selv begge værdier i netop dette tilfælde – og ≤2-års-undtagelsen findes allerede i
+- Fundet i: `erhvervsevnetab.md` BB-168 (**Høj**, **implementeret 2026-09-03**). En endelig afgørelse på
+  40 % truffet mindre end 2 år før folkepensionsalderen: udfyldes Kap.dato og Kap. %, blev begge celler
+  røde («Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.» / «… kapitaliseres hele
+  EET.»); ryddedes de, skrev Kapitaliseringsfanen «Endelig afgørelse under 50 % mangler oplysninger om
+  kapitalisering». Den eneste lovlige indtastning var afgørelsesdatoen og hele EET-procenten, og det sagde
+  ingen af de tre beskeder. **Motoren kunne i forvejen klare de tomme felter** – `collectResolvedRows`
+  udleder selv begge værdier i netop dette tilfælde – og ≤2-års-undtagelsen fandtes allerede i
   `eetKapitaliseringCalculation.ts`, blot ikke i `eetAslAfgoerelser.ts`' `hasEndeligUnder50MissingKap`.
+- **Rettelsens form er mønsterets første, og den har to halvdele.** Den ene er at give
+  fuldstændighedsreglen den undtagelse, den manglede – `collectIncompleteRowIssues` tager nu `skadedato`
+  og `fodselsdato`, så den kan se, at de tomme felter ER den rigtige indtastning. Den anden er, at de to
+  celletekster nu navngiver **handlingen** frem for reglen: «Lad kapitaliseringsdato stå tom: ved ≤ 2 år
+  til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.» Kun den første halvdel
+  åbner døren; kun den anden fortæller brugeren, at den er åben. **En M-29-rettelse, der stopper ved den
+  første, efterlader et felt, brugeren stadig ikke tør lade stå tomt.**
+- **Bemærk fail-closed-detaljen:** kender rettelsen ikke skadedato eller fødselsdato, kræver den
+  fortsat kapitaliseringsfelterne. Undtagelsen må ikke være det, der lukker et hul i en sag, hvor
+  forudsætningen for undtagelsen er ukendt.
 - **Læren, der adskiller mønsteret fra M-16:** M-16 er en komplet række, programmet nægter at regne på.
   M-29 er en række, hvor der ikke findes nogen komplet form – hverken den udfyldte eller den tomme. Prøven
   for M-16 er «hvorfor regnes der ikke på dette?»; prøven for M-29 er «hvad SKAL der så stå?».

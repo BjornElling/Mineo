@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
-import { coerceToISODateString } from '../../../types/branded';
+import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import {
+  buildKapitaliseringAfgoerelseHeading,
   buildKapitaliseringAfgoerelseRows,
   type KapitaliseringRow,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
@@ -124,24 +124,20 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Pr
         afgoerelser.map((afgoerelse) => (
           <ContentBox key={afgoerelse.rowId} className="content-box">
             <Typography className="section-header">
-              Afgørelse {formatIsoDateLong(afgoerelse.afgoerelsesdato)}
+              {buildKapitaliseringAfgoerelseHeading(
+                afgoerelse.afgoerelsesdato,
+                afgoerelse.eetPct,
+                formatIsoDateLong
+              )}
             </Typography>
 
-            {/* Beregningsdato stammer fra de løse formværdier (ikke fra afgørelses-beregningen) og er
-                bevidst kun i UI'en – derfor uden for den delte præsentationsmodel. */}
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Beregningsdato</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatISOToDanish(coerceToISODateString(values.beregningsdato))}</Typography>
-              </Box>
-            </Box>
-
+            {/* Ingen Beregningsdato-række: fanen er bevidst uafhængig af beregningsdatoen
+                (`eetSnapshot.ts`), så rækken var den eneste værdi i boksen, intet i boksen afhang af –
+                og den stod ikke i dokumentet, så skærmen kunne ikke bruges som facit (BB-167). */}
             {renderKapitaliseringRows(
               buildKapitaliseringAfgoerelseRows(afgoerelse, {
                 koen: values.koen ?? undefined,
                 koenRowMode: 'always',
-                saerfaktorLabel: 'Særfaktor (< 2 år til folkepension)',
-                formatReguleringsdato: formatIsoDateLong,
               })
             )}
           </ContentBox>

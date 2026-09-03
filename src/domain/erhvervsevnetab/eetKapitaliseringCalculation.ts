@@ -202,7 +202,9 @@ const collectResolvedRows = (
     return result;
   }
 
-  for (const issue of collectIncompleteRowIssues(rows)) {
+  // Datoerne skal med: uden dem blokerer den delte samler stadig på manglende kapitaliseringsfelter
+  // ved ≤ 2 år til folkepension, hvor de netop skal være tomme (BB-168).
+  for (const issue of collectIncompleteRowIssues(rows, skadedato, fodselsdato)) {
     issues.push(toIssue(issue.id, issue.message));
   }
 
@@ -595,6 +597,7 @@ export const computeEetKapitaliseringCalculation = (
       rowId: row.rowId,
       afgoerelsesdato: row.afgoerelsesdato,
       kapitaliseringsdato: effectiveKapDato,
+      eetPct: row.eetPct,
       kapitaliseringspct: effectiveKapPct,
       grundloenOre,
       erstatningsniveauPct: from2011 ? 83 : 80,

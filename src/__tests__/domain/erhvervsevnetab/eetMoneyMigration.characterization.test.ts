@@ -101,6 +101,14 @@ const createStamdata = (): StamdataValues => ({
  * `2025-09-15`–`2025-09-30` (2.116 kr.) – ordret ens i satsår, grundydelse og månedsydelse – nu
  * vises som én række `2025-07-01`–`2025-09-30` på 11.901 kr. Sammenlægningen sker EFTER
  * afrundingen pr. delperiode, netop for at totalen ikke kan flytte sig.
+ *
+ * Alle fire hashes blev derefter opdateret igen (2026-09-03), og også denne gang ændrede INTET beløb
+ * sig. Snapshottene blev dumpet før og efter, og diffen indeholdt præcis seks linjer:
+ *   - to advarselstekster mistede halen «– beregningen er derfor ikke lovmæssig» (BB-173),
+ *   - fire nye `eetPct`-felter på kapitaliseringsafgørelserne (25 og 35 i hver af de to grene),
+ *     som bærer afgørelsens egen erhvervsevnetabsprocent til boksens overskrift (BB-170/BB-171).
+ * Sådan skal en hash-opdatering begrundes: dump snapshottet før og efter, og skriv hvad diffen
+ * indeholdt. Kan det ikke gøres, er hashen ikke klar til at flytte sig.
  */
 describe('EET MoneyOre-migration karakterisering', () => {
   const snapshot = computeEetSnapshot({
@@ -115,15 +123,15 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser hele det samlede snapshot byte-præcist efter stabil nøglesortering', () => {
-    expect(goldenHash(snapshot)).toBe('ccde25da9070d72bb4c4395bafd3790240d7351b0b569be9cf0c7878a983f78a');
+    expect(goldenHash(snapshot)).toBe('65fbd9fb3ab8de591f078aa05b2754ccf08fb28f283606c7b417b807826aaa9e');
   });
 
   it('låser løbende ydelser med overlap og kalenderårsskift', () => {
-    expect(goldenHash(snapshot.loebendeYdelser)).toBe('d0c043ad653a56be80645f34c960327c4a7fa2c145244d6d296160e2b6a7a46b');
+    expect(goldenHash(snapshot.loebendeYdelser)).toBe('52049e36713e4d7010b4c8f4116829387871bb7baa5911d1e2107da1cdfd791d');
   });
 
   it('låser kapitalisering med delvist endelig og endelig afgørelse', () => {
-    expect(goldenHash(snapshot.kapitalisering)).toBe('8a0f4f882809e7c40e612dcb39971a2e57319424cf8d96558c442ae71e4479bb');
+    expect(goldenHash(snapshot.kapitalisering)).toBe('fef5c1aa3c40ad069710ae68800c2921c7dff1e7ab8f32bed17e1e764b413a6b');
   });
 
   it('låser EAL-beregningen inklusive maksimum, regulering og aldersreduktion', () => {
@@ -131,7 +139,7 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser differencekravet inklusive søsterberegninger og forlig', () => {
-    expect(goldenHash(snapshot.differencekrav)).toBe('ca675ce7fde3a2b0082e4c255ba7a0c8301ca3b2268b4d86325bdc39a0b89fc4');
+    expect(goldenHash(snapshot.differencekrav)).toBe('60ba5a5c37c2254ba227b90b6fa1c0c885e781d32403dfc2ba99cb40ee1b47ed');
   });
 
   it('låser mer-erstatning ved forhøjet pensionsalder med alle delresultater', () => {

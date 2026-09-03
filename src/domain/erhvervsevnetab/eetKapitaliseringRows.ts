@@ -23,12 +23,57 @@ import { toKroner } from '../money/money';
  * steder. Denne builder ejer nu sekvensen ét sted; hver forbruger renderer rækkerne i sit eget idiom
  * (React label/value-hover-rækker vs. `writeLeftRightText` med højre-justeret beløbskolonne).
  *
- * De FÅ bevidste forskelle mellem UI og dokument bevares via eksplicitte options (de samles dermed ét
- * sted i stedet for at være tavst duplikeret): reguleringsdato-datoformat, særfaktor-etiketten
- * (`<`/`≤`) og hvornår Køn-rækken vises. Grundydelse-rækken har to forskellige layouts og bæres derfor
- * som en egen række-`kind`, som hver forbruger renderer. UI'ens ekstra "Beregningsdato"-række (som
- * stammer fra de løse formværdier, ikke fra afgørelses-beregningen) tilføjes fortsat af UI-laget selv.
+ * Den ENESTE bevidste forskel mellem UI og dokument er nu, hvornår Køn-rækken vises; den bæres som en
+ * eksplicit option, så den ikke er tavst duplikeret. Grundydelse-rækken har to forskellige layouts og
+ * bæres derfor som en egen række-`kind`, som hver forbruger renderer.
+ *
+ * To tidligere options er FJERNET, fordi divergensen selv var fundet: særfaktor-etiketten skrev `<` i
+ * UI'en og `≤` i dokumentet om samme regel (BB-172), og reguleringsdatoen stod i lang form på skærmen
+ * og kort form i dokumentet (BB-176). Begge er nu delte konstanter/formater. Indfør dem ikke igen –
+ * skærm og dokument skal kunne lægges ved siden af hinanden.
+ *
+ * UI'en havde derudover en ekstra "Beregningsdato"-række, som er fjernet helt (BB-167): fanen er
+ * bevidst uafhængig af beregningsdatoen, så rækken var den eneste værdi i boksen, intet i boksen
+ * afhang af. Genindfør den ikke her.
  */
+
+/**
+ * Etiketterne for ≤2-års-særreglen.
+ *
+ * `≤` er den korrekte operator – reglen omfatter også kontroltidspunktet præcis 2 år før
+ * folkepensionsalderen (`folkepensionsalderMaaneder − alder <= 24`), og det er den operator,
+ * feltbeskederne på EET oplysninger bruger. Dokumentet skrev tidligere `<` som en «læsbar
+ * forenkling» på den ene af de to linjer, så to linjer i træk stod med hver sin operator om samme
+ * regel (BB-172). Operatoren ER reglens indhold; den må ikke forenkles.
+ */
+export const KAPITALISERET_PGA_UNDER_TO_AAR_LABEL = 'Kapitaliseret pga. ≤ 2 år til folkepension?';
+export const SAERFAKTOR_UNDER_TO_AAR_LABEL = 'Særfaktor (≤ 2 år til folkepension)';
+
+/**
+ * Overskriften på en afgørelses kapitaliseringsboks.
+ *
+ * Procenten er afgørelsens EGEN erhvervsevnetabsprocent, ikke den kapitaliserede andel. Den står i
+ * overskriften af to grunde, som blev fundet hver for sig men har samme løsning:
+ *
+ *  - Uden den kan læseren ikke se, hvor stor en del af erhvervsevnetabet kapitalbeløbet dækker: en
+ *    delvist endelig afgørelse på 30 %, hvoraf 5 % kapitaliseres, skrev kun «Kapitalisering 5 %», og
+ *    de 25 % ukapitaliserede – dem differencekravet senere proformakapitaliserer – stod ingen
+ *    steder (BB-170).
+ *  - To afgørelser truffet SAMME dag gav to bokse med ordret samme overskrift, og i dokumentet, hvor
+ *    de to sider ikke kan ses samtidig, var der ingen vej tilbage til rækken i afgørelsestabellen
+ *    (BB-171). To afgørelser samme dag er almindeligt: en om erhvervsevnetabet og en om
+ *    kapitalisering af en del af det.
+ *
+ * Formen er den samme som Løbende ydelsers («Afgørelse 1. juni 2022 (30 %)»), så de to faner kan
+ * læses op mod hinanden. Er to afgørelser fra samme dag stadig ikke til at skille – samme dato OG
+ * samme EET % – skiller rækken «Kapitaliseringsdato» inde i boksen dem.
+ */
+export const buildKapitaliseringAfgoerelseHeading = (
+  afgoerelsesdato: ISODateString,
+  eetPct: number,
+  formatDato: (iso: ISODateString) => string
+): string => `Afgørelse ${formatDato(afgoerelsesdato)} (${formatKapitaliseringsPct(eetPct)})`;
+
 export type KapitaliseringRow =
   | Readonly<{ kind: 'subheading'; text: string }>
   | Readonly<{ kind: 'labelValue'; label: string; value: string; bold?: boolean }>
@@ -51,10 +96,6 @@ export type KapitaliseringRowOptions = Readonly<{
    * `'whenPresent'`: kun når køn faktisk er sat (dokument).
    */
   koenRowMode: 'always' | 'whenPresent';
-  /** Særfaktor-etiketten – UI bruger `<`, dokumentet bruger `≤` (bevidst bevaret). */
-  saerfaktorLabel: string;
-  /** Formaterer datoen i reguleringsprocent-etiketten – UI lang form, dokument kort dansk form. */
-  formatReguleringsdato: (iso: ISODateString) => string;
 }>;
 
 export const buildKapitaliseringAfgoerelseRows = (
@@ -69,7 +110,9 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({ kind: 'subheading', text: 'Grundydelse og regulering' });
 
-  rows.push({ kind: 'labelValue', label: 'Kapitalisering', value: kapPctFormatted });
+  // «Kapitalisering» navngav hele handlingen, ikke tallet – og stod ved siden af «Kapitaliseringsdato»,
+  // som netop navngiver sin egen art. Feltets egne fejlbeskeder siger «Kapitaliseringsprocent» (BB-175).
+  rows.push({ kind: 'labelValue', label: 'Kapitaliseringsprocent', value: kapPctFormatted });
 
   rows.push({
     kind: 'grundydelse',
@@ -105,7 +148,8 @@ export const buildKapitaliseringAfgoerelseRows = (
   if (afgoerelse.aarsydelseReguleringsPctRounded4 !== null) {
     rows.push({
       kind: 'labelValue',
-      label: `Reguleringsprocent (${options.formatReguleringsdato(afgoerelse.kapitaliseringsdato)})`,
+      // Kort dansk form som kapitaliseringsdatoen ovenfor – skærm og dokument skal være enige (BB-176).
+      label: `Reguleringsprocent (${formatISOToDanish(afgoerelse.kapitaliseringsdato)})`,
       value: `${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`,
     });
   }
@@ -139,14 +183,14 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({
     kind: 'labelValue',
-    label: 'Kapitaliseret pga. < 2 år til folkepension?',
+    label: KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
     value: formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
   });
 
   if (afgoerelse.kapitaliseretPgaUnderToAarTilFp) {
     rows.push({
       kind: 'labelValue',
-      label: options.saerfaktorLabel,
+      label: SAERFAKTOR_UNDER_TO_AAR_LABEL,
       value: afgoerelse.saerfaktor === null ? '-' : formatFaktor(afgoerelse.saerfaktor),
     });
   } else {

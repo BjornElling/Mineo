@@ -15,8 +15,29 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). **Flade 11a's spørgsmål er afgjort
   2026-09-03:** «Bemærk»-boksens to forbehold er en påmindelse til den, der taster, og skal **ikke** i de fire
   EET-dokumenter. Flade 11b rejste ingen nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **11 fra flade 11c (BB-166–BB-176).** Flade 1–11b er alle
-  afgjort.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11c er alle afgjort.
+- **Flade 11c er afgjort OG gennemført i kode 2026-09-03:** af de 11 fund er **seks implementeret**
+  (BB-167, BB-168, BB-171, BB-172, BB-173, BB-176), **to delvist** (BB-170, BB-175), **to afvist**
+  (BB-169, BB-174) og **ét trukket tilbage** (BB-166 – fundet hvilede på min egen fejlagtige præmis).
+  Fem forhold rækker ud over fanen:
+  **(1)** BB-166's tilbagetrækning fastlægger, at kapitalisering-fanen er bevidst uafhængig af
+  beregningsdatoen, og at det ville VÆRE fejlen, hvis den ikke var. Forholdet er omvendt i
+  differencekravet, hvor kapitaliseringsværdier beregnes særskilt og kun medregnes før beregningsdatoen.
+  Læren for mønsteret «to flader, to svar»: afklar først, om de to flader faktisk besvarer samme
+  spørgsmål – ellers registreres en korrekt arbejdsdeling som en selvmodsigelse.
+  **(2)** BB-173 endte med OMVENDT fortegn og **omgør BB-158's halesætning**: halen «– beregningen er
+  derfor ikke lovmæssig» er fjernet overalt, og konstanten `IKKE_LOVMAESSIG_BEREGNING_SUFFIX` findes ikke
+  længere. Hvad der kan bruges juridisk, er brugerens vurdering, ikke programmets. Testen, der låste
+  halen, er vendt om, så den nu låser fraværet.
+  **(3)** BB-171's «kun ved kollision» kunne ikke gennemføres – en overskrift, der skifter form når en
+  ANDEN række ændres, er værre, og i dokumentet kan læseren ikke se, at der er en kollision. BB-170's
+  løsning (afgørelsens egen EET-procent i overskriften, som Løbende ydelser) dækker begge ubetinget.
+  **(4)** Tre af rettelserne fjernede en «bevidst forskel» mellem skærm og dokument. En erklæret option,
+  der bærer to skrivemåder af SAMME oplysning, er ikke en løsning på divergensen – den er divergensen,
+  dokumenteret. `KapitaliseringRowOptions` har nu kun Køn-rækkens synlighed tilbage, hvor forskellen har
+  en grund.
+  **(5)** BB-170's efterregningskrav er lempet for netop denne fane: den gengiver en
+  myndighedsafgørelse, hvis mellemregninger har stået i den. Lempelsen gælder IKKE 11d/11e.
 - **Flade 11a er afgjort OG gennemført i kode 2026-09-03:** af de 17 fund er **elleve implementeret**
   (BB-135, BB-136, BB-138, BB-139, BB-140, BB-141, BB-144, BB-146, BB-147, BB-148, BB-149) og **seks afvist**
   (BB-137, BB-142, BB-143, BB-145, BB-150, BB-151). Fire forhold rækker ud over fanen:
@@ -178,7 +199,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
 | 11a | Erhvervsevnetab – EET oplysninger | Afgjort | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11c | Erhvervsevnetab – Kapitalisering | Afventer udvikleren | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 11c | Erhvervsevnetab – Kapitalisering | Afgjort og gennemført | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11d | Erhvervsevnetab – EET efter EAL | Ikke startet | – | – |
 | 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |

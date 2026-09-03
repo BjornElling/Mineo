@@ -45,6 +45,14 @@ export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   kapitaliseringsdato: isoDateString,
+  /**
+   * Afgørelsens EGEN erhvervsevnetabsprocent – ikke den kapitaliserede andel.
+   *
+   * Den er afgørelsens indhold, ikke en mellemregning: ved en delvist endelig afgørelse på 30 %,
+   * hvoraf 5 % kapitaliseres, kan læseren ellers ikke se, at 25 % står ukapitaliseret tilbage
+   * (det tal, differencekravet senere proformakapitaliserer). Bæres i boksens overskrift (BB-170).
+   */
+  eetPct: finite,
   kapitaliseringspct: finite,
   grundloenOre: moneyOreSchema,
   erstatningsniveauPct: z.union([z.literal(80), z.literal(83)]),

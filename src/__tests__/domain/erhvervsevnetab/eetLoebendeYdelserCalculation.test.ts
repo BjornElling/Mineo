@@ -1137,8 +1137,9 @@ describe('computeEetLoebendeYdelser', () => {
         (issue) =>
           issue.severity === 'warning' &&
           // «Ugyldig» erstattet: programmet accepterer værdien, regner på den og trykker den, så
-          // advarslen siger i stedet, at beregningen ikke er lovmæssig (BB-158).
-          issue.message === 'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024 – beregningen er derfor ikke lovmæssig (indtastet 55 %).'
+          // advarslen navngiver i stedet grænsen og den indtastede værdi (BB-158). Halen om at
+          // «beregningen derfor ikke er lovmæssig» er bevidst fjernet (BB-173).
+          issue.message === 'Erhvervsevnetab fastsættes i trin af 10 % for skader fra 1. juli 2024 (indtastet 55 %).'
       )
     ).toBe(true);
   });
