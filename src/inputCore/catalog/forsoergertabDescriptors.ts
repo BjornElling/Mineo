@@ -15,6 +15,7 @@ import type { FieldDescriptor, FieldValidator } from '../fieldDescriptor';
 import { defineStructuralField, isUndefined } from '../structuralDescriptors';
 import { integerBoundsValidator } from './boundsValidators';
 import { digitsRequiredFor } from './fieldLengthLimits';
+import { FORSOERGERTAB_SKADELIDTES_KOEN_LABEL } from '../../domain/forsoergertab/forsoergertabLabels';
 import {
   resolveStamdataDatoReferenceFromView,
   stamdataSkadedatoField,
@@ -145,7 +146,9 @@ export const forsoergertabKoenField = defineStructuralField<Koen | undefined>({
   codec: createChoiceFieldCodec<Koen>(['Mand', 'Kvinde']),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Køn',
+  // Labelen er navneautoriteten for feltets fejltekster og oplæsning, så den skal bære samme ordlyd som
+  // rækken på skærmen og i dokumentet (BB-134/BB-137).
+  label: FORSOERGERTAB_SKADELIDTES_KOEN_LABEL,
   controlKind: 'choice',
   createEmptySection: createEmptyForsoergertabSection,
 });

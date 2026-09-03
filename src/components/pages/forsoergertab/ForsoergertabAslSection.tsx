@@ -7,7 +7,10 @@ import { isoToDanish } from '../../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../../utils/formatUtils';
 import { useForsoergertabVm } from './forsoergertabContext';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../../../domain/aslEalAarsloen/aarsloenLabels';
-import { FORSOERGERTAB_RESTERENDE_PERIODE_LABEL } from '../../../domain/forsoergertab/forsoergertabLabels';
+import {
+  FORSOERGERTAB_RESTERENDE_PERIODE_LABEL,
+  FORSOERGERTAB_SKADELIDTES_KOEN_LABEL,
+} from '../../../domain/forsoergertab/forsoergertabLabels';
 
 /**
  * ASL-ydelserne: de løbende ydelser pr. periode og proformakapitaliseringen af resten.
@@ -188,7 +191,7 @@ const ForsoergertabAslSection = React.memo(() => {
 
               {aslComputation.kapitaliseringsTabelKoensopdelt && aslComputation.koen && (
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Køn</Typography>
+                  <Typography className="row--text">{FORSOERGERTAB_SKADELIDTES_KOEN_LABEL}</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{aslComputation.koen}</Typography>
                   </Box>

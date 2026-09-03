@@ -69,6 +69,13 @@ export const KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
 export const TIDL_KAP_DATO_WITHOUT_KAPITALISERING_MESSAGE = 'Kun relevant ved tidligere kapitalisering.';
 export const KAP_PCT_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Kapitaliseringsprocent må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
+/**
+ * Samme regel, samme sætningsform. De tre kapitaliseringsceller står side om side, og en af dem sagde
+ * reglen baglæns («må ikke udfyldes ved midlertidig …»), så brugeren skulle læse to formuleringer og
+ * selv se, at det var den samme regel (BB-148).
+ */
+export const TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
+  'Tidligere kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -409,7 +416,7 @@ export const validateTidlKapDatoByAfgoerelsestype = (
   const afgoerelsestype = row.afgoerelseType;
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.tidlKapDato)) {
-      return 'Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.';
+      return TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE;
     }
   }
 

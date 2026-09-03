@@ -157,7 +157,8 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateTidlKapDatoByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Midlertidig', tidlKapDato: toISODateString('2024-01-10'), kapDato: toISODateString('2024-01-10') })
     );
-    expect(error).toContain('må ikke udfyldes');
+    // Samme sætningsform som de to nabo-cellers regel (BB-148), ikke reglen baglæns.
+    expect(error).toContain('må kun udfyldes ved endelig');
   });
 
   it('afviser tidl. kap.dato når kap.dato ikke er udfyldt', () => {

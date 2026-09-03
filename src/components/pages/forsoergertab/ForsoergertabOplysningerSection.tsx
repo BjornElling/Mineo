@@ -15,6 +15,7 @@ import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
   SKADELIDTES_AARSLOEN_EAL_FELT_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
+import { FORSOERGERTAB_SKADELIDTES_KOEN_LABEL } from '../../../domain/forsoergertab/forsoergertabLabels';
 
 /**
  * Grundlæggende oplysninger: de tværsektionelle stamdata-datoer, køn og de to årslønsfelter.
@@ -50,7 +51,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       {(vm.visKoenValg || vm.koenFieldHasError) && (
         <Box className="row--label-right-hover">
           {/* Fladen har to personer i sig; rækken navngiver derfor sin person som de øvrige rækker (BB-134). */}
-          <Typography className="row--text">Skadelidtes køn</Typography>
+          <Typography className="row--text">{FORSOERGERTAB_SKADELIDTES_KOEN_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <ChoiceField<Koen>
               field={fields.koen}

@@ -35,7 +35,10 @@ import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
   SKADELIDTES_AARSLOEN_EAL_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
-import { FORSOERGERTAB_RESTERENDE_PERIODE_LABEL } from '../../../domain/forsoergertab/forsoergertabLabels';
+import {
+  FORSOERGERTAB_RESTERENDE_PERIODE_LABEL,
+  FORSOERGERTAB_SKADELIDTES_KOEN_LABEL,
+} from '../../../domain/forsoergertab/forsoergertabLabels';
 
 // ============================================================================
 // Grundlæggende oplysninger + Beregnet forsørgertab
@@ -102,7 +105,7 @@ const addGrundlaeggendeSection = (
 
   // Fladen har to personer i sig; rækken navngiver sin person som de øvrige (BB-134).
   if (data.visKoenValg && data.koen) {
-    writer.writeLeftRightText('Skadelidtes køn', data.koen, { rightFontStyle: 'normal' });
+    writer.writeLeftRightText(FORSOERGERTAB_SKADELIDTES_KOEN_LABEL, data.koen, { rightFontStyle: 'normal' });
   }
 
   const hasAslIndhold =
@@ -362,7 +365,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
       );
 
       if (asl.kapitaliseringsTabelKoensopdelt && asl.koen) {
-        writer.writeLeftRightText('Køn', asl.koen, { rightFontStyle: 'normal' });
+        writer.writeLeftRightText(FORSOERGERTAB_SKADELIDTES_KOEN_LABEL, asl.koen, { rightFontStyle: 'normal' });
       }
 
       if (asl.kapitalfaktor !== null) {

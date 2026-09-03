@@ -36,7 +36,7 @@ mens han taster.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – `missing-koen` fører til «Grundlæggende oplysninger» med Køn-feltet som fokusmål i begge navigationstabeller
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2010`.
   2. EET oplysninger: Beregningsdato `01-06-2014`, ASL-årsløn `400.000`, én afgørelsesrække med
@@ -70,7 +70,7 @@ Enig
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – én delt `MISSING_KOEN_ISSUE` for alle fire producenter
 - **Sådan fremprovokeres det:** samme sag som BB-135; gå til **Differencekrav**.
 - **Det sker:** «Fejl og advarsler» viser to linjer over hinanden om det samme tomme felt:
   «Ved **kapitalisering** før 1. marts 2015 skal køn angives» og
@@ -92,7 +92,7 @@ Enig
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist for Erhvervsevnetab 2026-09-03 – hele fladen omhandler skadelidte. Forsørgertabs ASL-halvdel er derimod rettet, se nedenfor
 - **Sådan fremprovokeres det:** sæt en dato før 01-03-2015 (fx Beregningsdato `01-01-2010`) og læs den
   række, der dukker op i «Grundlæggende oplysninger».
 - **Det sker:** rækken heder «Køn». Informationsikonet ved siden af siger «Før 01-03-2015 beroede
@@ -119,7 +119,7 @@ Det er kun forsørgertab, der sammenblander skadelidtes forhold med andres. Det 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-07--parvise-grænser-begge-felter-markeres-hver-med-sin-egen-udvej`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – `minBoundKind: 'skadedato'` på begge fladers Beregningsdato
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `01-06-2018`.
   2. EET oplysninger: Beregningsdato `01-01-2016`. Læs tooltippen.
@@ -151,7 +151,7 @@ Enig
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-27--en-rød-værdi-på-en-anden-flade-slukker-en-regel-her`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – ikke som en ny fritekstlinje, men som den fælles navigerbare stamdatarække over ASL-årslønnen
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `01-06-2018`. På EET: skriv `600000` i «Skadelidtes årsløn (efter ASL)» – rød,
      «kan ikke overstige maks årslønnen i skadesåret (527.000 kr.)».
@@ -184,7 +184,7 @@ Jeg er i tvivl om, hvorvidt jeg er enig. Det risikerer at tilføre mere visuelt 
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – BEGGE dubletrækker markeres; se noten om udviklerens modargument nedenfor
 - **Sådan fremprovokeres det:**
   1. Lav to afgørelsesrækker med samme Afgørelsesdato `01-06-2020` og samme Virkningsdato `01-01-2020`.
      Giv den ØVERSTE hele resten (EET % `25`, Endelig, Kap.dato `01-06-2020`, Kap. % `25`) og den nederste
@@ -222,7 +222,7 @@ Ikke sikker på, om jeg er enig. Brugeren vil naturligt forvente, at det er ræk
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-20--en-feltnær-oplysning-hentet-fra-hele-sidens-beregning`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – gul feltadvarsel på Kap. %-cellen efter udviklerens regel: kun første og/eller samlede kapitalisering under 15 %
 - **Sådan fremprovokeres det:** i en afgørelsesrække med Endelig: sæt EET % `10` og Kap. % `10`.
 - **Det sker:** EET %-cellen får den gule ramme (målt `rgb(245, 158, 11)`) med «Der kan ikke tilkendes
   erhvervsevnetab under 15 %». Kap. %-cellen står **neutral** (`rgba(0, 0, 0, 0.25)`) uden besked – og
@@ -247,7 +247,7 @@ Delvist enig, men der er en særlig omstændighed, du mangler at have med i betr
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-03 – indtastningsfaner viser kun rød/gul ring med tooltip
 - **Sådan fremprovokeres det:** samme sag som BB-135 (Køn tom, alt andet udfyldt). Bliv stående på
   «EET oplysninger» og se efter noget, der siger, at sagen ikke kan regnes.
 - **Det sker:** ingenting. Køn-dropdownen er tom med **neutral** kant (målt `rgba(0, 0, 0, 0.12)`), ingen
@@ -275,7 +275,7 @@ Jeg afviser fundet. EET-siden med indtastningsfelter skal kun vise fejl i faktis
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-03 – 0 i et procentfelt betyder ikke-udfyldt overalt i programmet
 - **Sådan fremprovokeres det:** skriv `0` i «EET % (hvis afviger fra ASL)» og Enter. Skriv derefter `0` i
   tabellens «EET %» og Enter.
 - **Det sker:** i EAL-feltet **forsvinder tallet**: feltet står tomt bagefter, uden rød kant og uden
@@ -301,7 +301,7 @@ Jeg afviser fundet. Der er rigtig mange steder i programmet, hvor 0 i et procent
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – «Erhvervsevnetabet skal være mellem 5 og 100» på begge EET %-felter
 - **Sådan fremprovokeres det:** skriv `101` i tabellens «EET %», læs tooltippen. Skriv derefter `0`, og
   derefter `7`.
 - **Det sker:** tre svar for det samme felt: «**Procent skal være mellem 0 og 100**», «EET % må ikke være
@@ -326,7 +326,7 @@ Jeg er enig - grænseteksten bør lyde på, at erhvervsevnetabet skal være mell
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-03 – tabeloverskrifter er forkortet af pladshensyn; henvisende prosa bruger det fulde navn
 - **Sådan fremprovokeres det:** i en afgørelsesrække: `31-12-2099` i Kap.dato; `01-07-2012` i
   «Hvis genopt. - tidl. kap.dato» (med Afgørelsesdato `01-06-2012` og en Kap.dato udfyldt); `55` i Kap. %;
   skift derefter Afgørelsestype til Midlertidig.
@@ -357,7 +357,7 @@ Jeg hælder mod at afvise fundet. I tabeloverskrifterne er visse ord forkortet a
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – `dd-mm-åååå` i begge grænsebeskeder
 - **Sådan fremprovokeres det:** skriv `31-12-2099` i Beregningsdato, læs tooltippen. Skriv derefter
   `01-01-2004`.
 - **Det sker:** øvre grænse: «Beregningsdato kan senest være **31. december 2026**». Nedre grænse: «Dato
@@ -379,7 +379,7 @@ Jeg er enig.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – et valg i en dropdown, der ikke kan være tom, gør ikke en række udfyldt; gennemført for både EET og renteberegning
 - **Sådan fremprovokeres det:** sæt «FS tilbageholdt EET» til `Ja` i tabellens tomme indtastningsrække og
   rør ikke andet.
 - **Det sker:** rækken bliver en rigtig række: tabellen går fra to til tre rækker (målt), rækken får en
@@ -405,7 +405,7 @@ Jeg er enig i fundet, og vi havde samme forhold på renteberegning-siden, hvor d
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – samme sætningsform i alle TRE kapitaliseringsceller
 - **Sådan fremprovokeres det:** udfyld en række med Endelig, Kap.dato og Kap. %, og skift derefter
   Afgørelsestype til `Midlertidig`.
 - **Det sker:** de to celler bliver røde med hver sin formulering af samme regel:
@@ -427,7 +427,7 @@ Enig
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-09-03 – Køn-rækken står efter Beregningsdato
 - **Sådan fremprovokeres det:** stå med en tom sag, skriv `01-01-2010` i Beregningsdato og tryk Enter.
 - **Det sker:** Køn-rækken dukker op som **første** række i «Grundlæggende oplysninger», altså over
   Beregningsdato, som derfor flytter en rækkehøjde ned – under musen, lige efter at brugeren har trykket
@@ -449,7 +449,7 @@ Enig
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-03 – oplysningen kan udledes af konteksten
 - **Sådan fremprovokeres det:** skriv `31-12-2099` i «Hvis genopt. - tidl. kap.dato» i en række, hvor
   Kap.dato er tom.
 - **Det sker:** cellen bliver rød med «**Kun relevant ved tidligere kapitalisering.**» Datoen ligger 73 år
@@ -475,7 +475,7 @@ Jeg afviser fundet. Det er en unødvendig information. Brugeren kan uden vanskel
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist af udvikleren 2026-09-03 – «Bemærk» er en juridisk fodnote, ikke en handleanvisning
 - **Sådan fremprovokeres det:** læs fanen fra top til bund.
 - **Det sker:** nederst, efter alle fire sektioner, står «For skadelidte i fleksjob skal altid beregnes ny
   erhvervsevnetabsprocent efter EAL.» Det felt, sætningen beder om at få udfyldt – «EET % (hvis afviger
@@ -586,6 +586,45 @@ Jeg afviser fundet. Bemærk-sektionen findes hovedsageligt som en juridisk ansva
 **Tilbagemelding**
 Nej, der er tale om en rent praktisk information til brugeren, mens vedkommende indtaster. Brugeren skal vide disse forhold i forvejen, så det har alene karakter af en påmindelse. Den skal ikke indgå i dokumenterne.
 
+**Afgjort 2026-09-03.** Ingen kodeændring. Forbeholdene forbliver en påmindelse til den, der taster, og skrives
+ikke i de fire EET-dokumenter. Spørgsmålet er dermed lukket og genrejses ikke – det er samme udfald som
+BB-131's og BB-094's afvisninger og hviler på samme præmis: målgruppen kender begrænsningerne i forvejen.
+
+## Gennemført i kode – 2026-09-03
+
+**Alle 17 fund er afgjort:** elleve implementeret, seks afvist. Fire forhold rækker ud over det enkelte fund
+og er værd at kende, før nogen genlæser afsnittet ovenfor.
+
+**1. BB-140 kunne ikke implementeres som udvikleren beskrev den, og udfaldet er bedre.** Tilbagemeldingen var,
+at «brugeren vil naturligt forvente, at det er række nr. to med identisk indhold, der er fejlen». Det kan
+programmet ikke afgøre pålideligt: «nr. to» er en plads i en liste, og et klik på en kolonneoverskrift skriver
+netop den liste om – det var selve fundet. Der findes ingen anden stabil identitet at hænge «nr. to» på, fordi
+de to rækkers datoer pr. definition er ens. **Løsningen er derfor, at BEGGE dubletrækker markeres**
+(`validateDuplicateAfgoerelse` returnerer nu beskeden for enhver række med en tvilling, uanset plads). Det er
+samme form som M-07's regel for to felter, der tilsammen udløser én fejl, og markeringen kan ikke længere
+flyttes af en sortering. Prisen er, at brugeren selv vælger, hvilken af de to identiske rækker han sletter –
+men de er identiske på netop de felter, reglen handler om.
+
+**2. BB-137 er afvist for Erhvervsevnetab, men tilbagemeldingens egen begrundelse rettede Forsørgertab.**
+Udvikleren skrev, at «det er kun forsørgertab, der sammenblander skadelidtes forhold med andres». Netop dér
+stod to visningssteder tilbage med et bart «Køn» efter BB-134: ASL-halvdelens forudsætningsrække på skærmen
+(`ForsoergertabAslSection.tsx`) og den tilsvarende linje i dokumentet (`forsoergertabDocument.ts`) – på en
+flade, hvis anden halvdel har en efterladt-tabel. Begge siger nu «Skadelidtes køn», og ordlyden er samlet i
+`FORSOERGERTAB_SKADELIDTES_KOEN_LABEL`, som også er blevet feltets `label`, så fejltekster og oplæsning bruger
+samme navn. Erhvervsevnetab beholder «Køn» efter afgørelsen. **BB-134's lære gentog sig præcist:** en godkendt
+ordlyd skal søges som begreb, ikke som streng – rettelsen ramte igen kun de steder, nogen huskede.
+
+**3. BB-148's rettelse dækker tre celler, ikke to.** Fundet navngav Kap.dato og Kap. %. Ved siden af dem stod
+en tredje af samme slags, som fundet ikke så: «Tidligere kapitaliseringsdato **må ikke udfyldes ved**
+midlertidig eller ikke-valgt afgørelsestype.» Alle tre siger nu reglen forlæns
+(`TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE`). Navnene er de fulde, jf. BB-145's afvisning.
+
+**4. BB-139 og BB-142 er afgjort hver sin vej, og grænsen mellem dem står nu i kontrakten.** BB-142's
+afvisning fastlægger, at indtastningsfaner kun viser fejl som rød eller gul ring med tooltip. BB-139's
+rettelse er en tekstlinje på samme fane – men ikke fanens egen fejl: det er den fælles, navigerbare
+«Ugyldig værdi (ret i Stamdata)»-række for en FREMMED forudsætning, som brugeren ikke kan rette her, og som
+gør fanens egne regler tavse. Undtagelsen er skrevet ind i `error-contract.md` §3.1 pkt. 3, så den ikke kan
+læses som en generel åbning for fritekstfejl på indtastningsflader.
 
 ---
 
@@ -1163,3 +1202,439 @@ Enig. Sørg for at finde en god, velstruktureret måde at gøre det på.
 - M-21's navngivne kandidat `DocumentOutcomeMessage.tsx:34` (den døde `error.main`-prop) kunne ikke
   måles: `download.errorMessage` sættes kun ved en stale-afbrydelse eller en DEV-serverfejl, og ingen af
   dem kunne fremprovokeres.
+
+---
+
+# Fane 3 – Kapitalisering
+
+- Gennemgået: 2026-09-03 · commit `7a6f0b00`
+- Afprøvet i: Chrome, lyst tema, 1536×864
+
+## Fladen kort
+
+Fanen er **Erhvervsevnetabs anden resultatfane** og den eneste, der opgør et engangsbeløb. Den har præcis
+én kontrol – downloadknappen – og alt andet er visning. Strukturen er: «Fejl og advarsler» (fælles
+`EetIssuesBox`), en «Beregning»-boks med downloadknappen, og derefter **én boks pr. kapitaliseret
+afgørelse** med fire underafsnit: Grundydelse og regulering · Kapitaliseringsbekendtgørelse og tabel ·
+Kapitaliseringsfaktor · Kapitalbeløb. Er der ingen kapitaliserede afgørelser, står i stedet boksen
+«Specifikation» med linjen «Der er ingen kapitaliserede afgørelser i sagen.»
+
+Fanen deler præsentationsmodel med sit dokument (`eetKapitaliseringRows.ts`), så skærm og PDF/Word viser
+samme rækker i samme rækkefølge. Tre forskelle er erklærede options: datoformatet i
+reguleringsprocent-linjen, `<`/`≤` i særfaktor-etiketten, og om Køn-rækken vises ved tom værdi. Dertil
+tilføjer skærmen én række, dokumentet ikke har: **Beregningsdato**.
+
+**Fanens særkende, og kilden til fire af fundene:** den er den ENESTE af de fire resultatfaner, hvor
+beregningsdatoen **ikke** er en afhængighed. Det er en bevidst beslutning
+(`eetSnapshot.ts`: «beregningsdato er BEVIDST ikke en kapitaliserings-afhængighed»), og den er rigtig –
+et kapitalbeløb hører til sin kapitaliseringsdato, ikke til den dato, brugeren gør sagen op pr. Men fanen
+skriver alligevel beregningsdatoen øverst i hver eneste boks, og den siger intet, når de to er i modstrid.
+
+**Beregningsformlerne selv er kontrolregnet og er i orden.** Efterregnet i browseren på skadedato
+`01-06-2018`, fødselsdato `01-01-1970`, ASL-årsløn `400.000`: grundløn
+`400.000 × 367.000/527.000 = 278.558`; 15 %-kapitaliseringen `278.558 × 15 % × 83 % × 92 % = 31.906,03`,
+reguleret `× 146,9 % = 46.869,96`, kapitaliseret `× 10,772 = 504.883,26` oprundet til `504.884 kr.`;
+5 %-kapitaliseringen `10.635,34 → 16.527,32 → × 10,073 = 166.480 kr.` Også 2024-niveauskiftet
+(`10.635,34 × 1,657 = 17.622,76`, `× 103,9 % = 18.310,05`, `× 8,408 = 153.951`) og særfaktor-grenen
+(`85.082,76 → 136.217,50 → × 1,245 = 169.591`) er efterregnet. **Ingen af de elleve fund handler om et
+forkert tal.**
+
+## Fund
+
+### BB-166 – Kapitaliseringer, der ligger efter beregningsdatoen, regnes med uden et ord – nabofanen erklærer de samme afgørelser for uden virkning
+
+- **Type:** Edge case
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`.
+  2. EET oplysninger: ASL-årsløn `400.000`, **Beregningsdato `01-06-2018`**.
+  3. Række 1: Afgørelsesdato `01-06-2019`, Virkningsdato `01-01-2019`, EET % `20`, Delvist endelig,
+     Kap.dato `01-06-2019`, Kap. % `15`.
+  4. Række 2: Afgørelsesdato `01-06-2022`, Virkningsdato `01-01-2022`, EET % `30`, Delvist endelig,
+     Kap.dato `01-06-2022`, Kap. % `5`.
+  5. Læs Kapitalisering, og derefter Løbende ydelser.
+- **Det sker:** de to faner behandler nøjagtig samme sag modsat, målt ordret:
+  - **Kapitalisering:** ingen «Fejl og advarsler»-boks overhovedet. To fulde afgørelsesbokse, hver med
+    «Beregningsdato **01-06-2018**» øverst og derefter en kapitalisering dateret 2019 henholdsvis 2022 –
+    `504.884 kr.` og `166.480 kr.` Downloadknappen er aktiv.
+  - **Løbende ydelser:** «**Beregningsdatoen (01-06-2018) ligger før sagens afgørelser.**» øverst, og i
+    hver afgørelsesboks «Afgørelsen ligger helt efter beregningsdatoen (01-06-2018)» og «Afgørelsen giver
+    ingen løbende ydelse i den valgte periode.»
+- **Det er uhensigtsmæssigt fordi:** brugeren har sagt, at sagen gøres op pr. 1. juni 2018. Den ene fane
+  svarer, at der derfor ikke er noget krav; den anden opgør `671.364 kr.` i kapitalbeløb for
+  kapitaliseringer, der ikke var truffet på den dato – og skriver oven i købet opgørelsesdatoen øverst i
+  hver boks, som om beløbet hørte til den. To faner i samme sag, to modsatte svar på «hvad er der pr.
+  denne dato?», og ingen af dem nævner den anden. Fejlformen er den samme, uanset hvilken af de to der er
+  juridisk rigtig: brugeren kan ikke se, at der findes to svar.
+- **Bedre ville være:** fanen siger, hvad den gør. Enten samme gule advarsel som Løbende ydelsers
+  – «Beregningsdatoen (01-06-2018) ligger før sagens afgørelser» – med en linje i den enkelte boks om, at
+  kapitaliseringen ligger efter opgørelsesdatoen og alligevel medtages, fordi et kapitalbeløb hører til
+  sin kapitaliseringsdato; eller, hvis afgørelsen er, at sådanne kapitaliseringer ikke hører med i en
+  opgørelse pr. den valgte dato, at de udelades med en linje, der siger hvorfor. Advarslen findes allerede
+  (`EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID`, BB-159); den produceres i dag kun af løbende ydelser og
+  differencekrav.
+- **Andre steder det kan gælde:** de to øvrige resultatfaner (EET efter EAL, Differencekrav) har
+  beregningsdatoen som ægte afhængighed og er derfor ikke i familien. Generelt: hver flade, hvor en
+  oplysning vises **uden** at være en afhængighed, mens en nabo-flade blokerer eller advarer på den samme
+  oplysning. Se BB-167 for rækkens egen del af problemet.
+
+### BB-167 – «Beregningsdato» står øverst i hver afgørelsesboks og styrer intet på fanen
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Byg sagen fra BB-166 med Beregningsdato `01-07-2026`, og læs rækken «Beregningsdato» i hver boks.
+  2. Ret Beregningsdato til `01-06-2018`. Læs fanen igen.
+  3. Ryd Beregningsdato helt. Læs fanen igen.
+- **Det sker:** intet tal på fanen ændrer sig i trin 2 – kun rækkens egen værdi. I trin 3 står rækken
+  tilbage med **tom værdi** øverst i hver boks, alle kapitalbeløb er uændrede, og downloadknappen er
+  fortsat aktiv (målt). De tre øvrige resultatfaner blokerer i samme tilstand med «Beregningsdato er ikke
+  udfyldt». Målt på en helt tom sag lister denne fane fire mangler (Fødselsdato, Skadedato, ASL-årsløn,
+  «Ingen ASL-afgørelser er indtastet») – Løbende ydelser lister de samme plus beregningsdatoen. **Og
+  dokumentet har slet ikke rækken** (målt i den hentede `.docx`).
+- **Det er uhensigtsmæssigt fordi:** en række øverst i en boks læses som boksens forudsætning. Her er den
+  det ikke – den er den eneste værdi i boksen, som intet i boksen afhænger af. Er den tom, ser boksen
+  ufærdig ud, selv om beregningen er komplet; er den forkert, ser boksen rigtig ud, selv om
+  opgørelsesdatoen modsiger den (BB-166). Og fordi dokumentet ikke har rækken, kan brugeren ikke bruge
+  skærmen som facit for, hvad modparten får at se.
+- **Bedre ville være:** rækken fjernes fra afgørelsesboksene. Skal fanen vise en dato for opgørelsen, hører
+  den én gang øverst i «Beregning»-boksen – ikke gentaget pr. afgørelse – og så skal den ledsages af
+  BB-166's linje, når den er i modstrid med kapitaliseringsdatoerne. Fanen bør ikke være det eneste sted i
+  programmet, hvor en tom beregningsdato ser ud som en tom celle frem for som en manglende oplysning.
+- **Andre steder det kan gælde:** `rg "values.beregningsdato" src/components/pages/erhvervsevnetab` – rækken
+  er bygget uden om den delte præsentationsmodel og er kommenteret som «bevidst kun i UI'en». Generelt:
+  hver værdi, en fane viser, men ikke læser. Prøven er BB-167's egen: **ændr værdien og se, om noget andet
+  på fladen ændrer sig.**
+
+### BB-168 – Ved ≤ 2 år til folkepension er både «udfyld» og «lad stå tomt» en fejl, og ingen af beskederne siger hvad der skal stå
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-29--to-regler-der-tilsammen-ikke-efterlader-en-lovlig-indtastning`
+- **Prioritet:** **Høj**
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `01-01-1958`, Skadedato `01-06-2018`.
+  2. EET oplysninger: Beregningsdato `01-07-2026`, ASL-årsløn `400.000`.
+  3. Én række: Afgørelsesdato `01-06-2023`, Virkningsdato `01-01-2023`, EET % `40`, **Endelig**.
+  4. Prøv først med Kap.dato `01-01-2024` og Kap. % `25`. Ryd dem derefter begge.
+- **Det sker:** begge tilstande er blokerende, målt ordret:
+  - **Udfyldt:** begge celler bliver røde (`aria-invalid = true`) med hver sin tooltip – Kap.dato: «Ved
+    ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.», Kap. % : «Ved ≤ 2 år til
+    folkepension kapitaliseres hele EET.» Kapitaliseringsfanen viser **kun den ene af de to** («… sker
+    kapitalisering fra afgørelsesdagen»), ingen specifikation overhovedet, og downloadknappen er grå med
+    «Fejl i indtastning».
+  - **Tomt:** ingen celle er rød, og Kapitaliseringsfanen skriver «**Endelig afgørelse under 50 % mangler
+    oplysninger om kapitalisering**» med grå knap og «Indtastning mangler».
+  - Den eneste lovlige indtastning er Kap.dato = **afgørelsesdatoen** (`01-06-2023`) og
+    Kap. % = **hele EET-procenten** (`40`). Med dem kører fanen igennem og skriver «Kapitaliseret pga.
+    < 2 år til folkepension? Ja» og «Særfaktor (< 2 år til folkepension) 1,245».
+- **Det er uhensigtsmæssigt fordi:** de tre beskeder oplyser hver sin **regel** og ingen af dem den
+  **handling**, brugeren skal foretage. Han står med to røde celler, retter dem til tomme, får en ny fejl,
+  og har ingen anledning til at gætte, at han skal skrive netop afgørelsesdatoen og hele EET-procenten i
+  de to felter, programmet lige har fortalt ham ikke må bruges frit. Det er en blindgyde i en helt
+  almindelig sagstype – en endelig afgørelse tæt på folkepensionsalderen. Dertil kommer, at
+  **beregningsmotoren i forvejen kan klare de tomme felter**: `collectResolvedRows`
+  (`eetKapitaliseringCalculation.ts:384-397`) sætter selv kapitaliseringsdato = afgørelsesdato og
+  kapitaliseringsprocent = EET % − tidligere kapitalisering i netop dette tilfælde. Det, der spærrer, er
+  `hasEndeligUnder50MissingKap` i `eetAslAfgoerelser.ts:549-556`, som **mangler** ≤2-års-undtagelsen –
+  mens søskende-reglen 250 linjer væk (`eetKapitaliseringCalculation.ts:264-277`) HAR den.
+- **Bedre ville være:** de tomme felter er den rigtige indtastning. Giv
+  `hasEndeligUnder50MissingKap` samme ≤2-års-undtagelse som sin søskende, så rækken går igennem med
+  motorens egne værdier, og lad fanen sige det, den allerede kan sige: «Kapitaliseret pga. < 2 år til
+  folkepension? Ja». De to røde celletekster skal samtidig navngive handlingen frem for reglen – fx
+  «Kapitaliseringsdato udfyldes ikke: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet fra
+  afgørelsesdagen».
+- **Andre steder det kan gælde:** mønsterets prøve (M-29) er ny og billig: **find hvert felt, hvor både en
+  udfyldt og en tom værdi kan udløse hver sin fejl, og læs de to beskeder efter hinanden.** Kandidater fra
+  samme familie er de øvrige par af «må ikke udfyldes ved …»-feltregler og «mangler oplysninger om …»
+  -fanefejl: `rg "mangler oplysninger om|må kun udfyldes ved" src/domain`.
+
+### BB-169 – Skadelidtes folkepensionsalder er 68 år i den ene boks og 69 år i den anden
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** sagen fra BB-166 med Beregningsdato `01-07-2026`. Læs rækken
+  «Folkepensionsalder» i begge afgørelsesbokse.
+- **Det sker:** samme person, to bokse på samme skærm, målt ordret:
+
+  ```
+  Afgørelse 1. juni 2019 · Folkepensionsalder  68 år
+  Afgørelse 1. juni 2022 · Folkepensionsalder  69 år
+  ```
+
+  Intet på fanen forklarer forskellen. Årsagen er, at folkepensionsalderen slås op **på
+  kapitaliseringstidspunktet** og derfor følger den lov, der gjaldt dengang (`folkepensionAlderRates.ts`).
+  **Programmet kan godt formulere det:** Differencekrav-fanen skriver i samme sag «Mer-erstatning ved
+  forhøjet folkepensionsalder – Forhøjelse pr. **31-12-2020 (68 år → 69 år)**».
+- **Det er uhensigtsmæssigt fordi:** rækken hedder «Folkepensionsalder» og læses som en oplysning om
+  skadelidte. En person har én folkepensionsalder, så to forskellige tal om samme person er en
+  selvmodsigelse, brugeren skal bruge tid på at afvise – og i en sag, hvor netop pensionsalderens
+  forhøjelse er et selvstændigt erstatningskrav (differencekravets mer-erstatning), er det den værst
+  tænkelige oplysning at være i tvivl om. Rækken er ikke forkert; den mangler sin afsender.
+- **Bedre ville være:** rækken navngiver sit opslagstidspunkt – «Folkepensionsalder (efter reglerne pr.
+  01-06-2019)» – eller, hvis linjen skal være kort, en note i boksen om, at folkepensionsalderen er den,
+  der gjaldt på kapitaliseringstidspunktet. Ordlyden bør være den samme som Differencekravs, som allerede
+  siger det rigtige.
+- **Andre steder det kan gælde:** `rg "folkepensionsalderLabel" src` – rækken vises også i Differencekravs
+  proformakapitalisering og i mer-erstatningsboksen, hvor den kan optræde med en TREDJE værdi i samme sag
+  (målt: `69 år` ved proformakapitalisering pr. `01-07-2026`). Generelt: hver værdi, der slås op på en
+  dato, og hvis række ikke nævner datoen.
+
+### BB-170 – Specifikationen kan ikke efterregnes: hverken skadedato, årsløn eller afgørelsens EET-procent står i den
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** hent «Kapitalisering (EET)» på en almindelig sag og læs dokumentet fra
+  top til bund. Sammenlign med skærmen.
+- **Det sker:** dokumentet begynder ved et tal, der ikke kan udledes af noget i dokumentet. Målt ordret
+  fra den hentede `.docx`:
+
+  ```
+  Kapitalisering (EET) · 3. september 2026
+  Afgørelse 1. juni 2023
+  Kapitaliseringsdato                                     01-06-2023
+  Grundydelse og regulering
+  Kapitalisering                                          40 %
+  Grundydelse (40 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) =
+  278.558 kr. x 40 % x 83 % x 92 %                        85.082,76 kr.
+  ```
+
+  **Grundløn `278.558 kr.` står som et bart tal.** Den er `400.000 × 367.000/527.000`, men hverken
+  ASL-årslønnen (`400.000 kr.`) eller skadedatoen (`01-06-2018`) findes noget sted i dokumentet – og det
+  er skadedatoen, der bestemmer både brøkens nævner (skadesårets maksimale årsløn), erstatningsniveauet
+  (83 %) og AM-fradraget (92 %). Afgørelsens egen EET-procent står heller ikke: ved en delvist endelig
+  afgørelse på 30 %, hvoraf 5 % kapitaliseres, skriver dokumentet kun «Kapitalisering 5 %». Skærmen har
+  nøjagtig samme mangler.
+- **Det er uhensigtsmæssigt fordi:** det er fanens eneste produkt, og det er dét papir, modparten skal
+  kunne regne efter. Uden årsløn og skadedato kan han hverken kontrollere grundlønnen eller de to
+  procentsatser – han kan kun tro på `278.558 kr.` Uden EET-procenten kan han ikke se, hvor stor en del af
+  erhvervsevnetabet kapitalbeløbet dækker. **Samme program gør det rigtigt på nabofanen:** Løbende ydelsers
+  udvidede specifikation viser grundlønnen led for led med skadedatoen i brøken («Maks. årsløn 1/6-2018»).
+  Det er BB-122's rettelse på Forsørgertab, der ikke er nået hertil.
+- **Bedre ville være:** dokumentet (og skærmen) får en forudsætningsblok øverst med skadedato/anmeldelsesdato
+  og ASL-årsløn, og grundlønslinjen skrives som en formel i stedet for som et resultat – præcis som Løbende
+  ydelser gør det. Afgørelsens EET-procent tilføjes i boksens overskrift, som Løbende ydelser allerede gør
+  («Afgørelse 1. juni 2022 (30 %)»); det løser samtidig BB-171.
+- **Andre steder det kan gælde:** samme forudsætningsprøve på EET efter EAL og Differencekrav (11d/11e), som
+  begge trykker grundlønnen på samme måde. Prøven er BB-161's, skærpet: **læs dokumentets STANDARDUDGAVE og
+  spørg, om hvert tal i den kan udledes af noget andet i den.**
+
+### BB-171 – To afgørelser truffet samme dag giver to bokse med samme overskrift
+
+- **Type:** Edge case
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** to rækker med samme Afgørelsesdato `01-06-2019`, forskellig Virkningsdato
+  (`01-01-2019` og `01-02-2019`), forskellig EET % (`20` og `30`) og forskellig Kap.dato
+  (`01-06-2019` og `01-09-2019`), begge Delvist endelig.
+- **Det sker:** fanen viser to bokse, og begge hedder ordret «**Afgørelse 1. juni 2019**» (målt). Kun
+  linjen «Kapitaliseringsdato» inde i boksen skiller dem. Dokumentet trykker de to afgørelser på hver sin
+  side, også med samme overskrift.
+- **Det er uhensigtsmæssigt fordi:** overskriften er brugerens eneste holdepunkt for, hvilken række i
+  afgørelsestabellen boksen svarer til. To identiske overskrifter tvinger ham til at læse indholdet for at
+  finde ud af, hvad han kigger på – og i dokumentet, hvor de to sider ikke kan ses samtidig, er der ingen
+  vej tilbage til rækken overhovedet. To afgørelser samme dag er ikke en kunstig konstruktion: en
+  afgørelse om erhvervsevnetab og en om kapitalisering af en del af det træffes ofte samme dag.
+- **Bedre ville være:** overskriften bærer det, der skiller de to – fx «Afgørelse 1. juni 2019 (30 %)» som
+  på Løbende ydelser, eller «… – kapitaliseret 01-09-2019». Løbende ydelsers form løser begge behov og er
+  allerede i drift.
+- **Andre steder det kan gælde:** `rg "Afgørelse \\$\\{formatIsoDateLong" src` – samme overskriftsform bruges
+  af kapitaliseringsdokumentet og af differencekravets afgørelsesafsnit.
+
+### BB-172 – Dokumentet siger «< 2 år» og «≤ 2 år» om samme regel i to linjer i træk
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** sagen fra BB-168 med de lovlige værdier (Kap.dato `01-06-2023`,
+  Kap. % `40`). Hent dokumentet og læs de to linjer under «Kapitaliseringsbekendtgørelse og tabel».
+- **Det sker:** tre skrivemåder for samme betingelse, målt ordret:
+  - Dokument, linje 1: «Kapitaliseret pga. **< 2 år** til folkepension?» → `Ja`
+  - Dokument, linje 2: «Særfaktor (**≤ 2 år** til folkepension)» → `1,245`
+  - Skærm: **begge** linjer med `<`; feltbeskederne på EET oplysninger: **begge** med `≤`.
+- **Det er uhensigtsmæssigt fordi:** de to linjer står lige over hinanden og handler om samme regel, og
+  operatoren er hele reglens indhold. Læseren, der ser `<` og `≤` i træk, må gå ud fra, at der er to
+  forskellige grænser. Programmets egen kommentar
+  (`kapitaliseringDocument.ts:19-25`) siger udtrykkeligt, at `<` er en forenkling, og at reglen også
+  omfatter kontroltidspunktet præcis 2 år før – altså er det `<`-linjen, der er upræcis, og den står i
+  begge kanaler.
+- **Bedre ville være:** `≤ 2 år` begge steder i begge kanaler, som feltbeskederne og som beregningen
+  (`folkepensionsalderMaaneder − alder <= 24`) allerede siger. Den bevidste forenkling er ikke værd at
+  betale to skrivemåder for.
+- **Andre steder det kan gælde:** `rg "2 år til folkepension" src` giver fire brugervendte forekomster;
+  `saerfaktorLabel` er den eneste, der er en erklæret option. Generelt: sammenlign ikke kun tallet, men
+  operatoren omkring det – det er BB-163's lære med et andet tegn.
+
+### BB-173 – Kapitaliseringens 15 %-advarsel siger ikke, hvad den betyder, hvor EET-procentens gør
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** én række med EET % `20`, Delvist endelig, Kap. % `10`. Læs Kap. %-cellens
+  gule advarsel og Kapitaliseringsfanens linje. Sammenlign med EET %-cellens advarsel ved værdien `10`.
+- **Det sker:** to søskende-advarsler om samme lovgrænse, målt ordret:
+  - Kap. % (gul ramme `rgb(245, 158, 11)` – BB-141's rettelse i drift) og fanens linje:
+    «Der er angivet kapitalisering med mindre end 15 %»
+  - EET %: «Der kan ikke tilkendes erhvervsevnetab under 15 % **– beregningen er derfor ikke lovmæssig**»
+- **Det er uhensigtsmæssigt fordi:** den ene advarsel siger, hvad konsekvensen er; den anden gentager blot,
+  hvad brugeren selv har skrevet. Læst efter hinanden ligner det to forskellige alvorsgrader for samme
+  15 %-grænse. Udviklerens afgørelse på BB-158 var netop, at en værdi under mindstegrænsen skal advares som
+  en **ikke-lovmæssig beregning**, og at balancen skal bruges **konsekvent** – halen mangler her.
+- **Bedre ville være:** samme hale på begge: «Der er angivet kapitalisering med mindre end 15 % – beregningen
+  er derfor ikke lovmæssig». Konstanterne står i samme fil
+  (`eetFieldWarnings.ts`: `EET_UNDER_15_WARNING` og `KAPITALISERING_UNDER_15_WARNING`), og suffikset er
+  allerede en delt konstant (`IKKE_LOVMAESSIG_BEREGNING_SUFFIX`).
+- **Andre steder det kan gælde:** `rg "IKKE_LOVMAESSIG_BEREGNING_SUFFIX" src` – to af programmets fire
+  under-mindstegrænse-advarsler bærer den i dag. Den fjerde kandidat er
+  `warn-invalid-eet-pct-after-2024-07-01`, som HAR den.
+
+### BB-174 – Fanen viser to kapitalbeløb og ingen sum – heller ikke den samlede kapitaliseringsprocent, som feltreglen håndhæver
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** sagen fra BB-166 med Beregningsdato `01-07-2026`. Rul til bunden af fanen.
+- **Det sker:** det sidste, der står på fanen, er «Beregnet kapitalbeløb (16.527,32 kr. x 10,073) =
+  **166.480 kr.**» (målt). Ovenfor står `504.884 kr.` i den anden boks. Summen `671.364 kr.` står ingen
+  steder – hverken på skærmen eller i dokumentet. Det samme gælder procenterne: boksene siger
+  «Kapitalisering 15 %» og «Kapitalisering 5 %», men ikke de samlede 20 %.
+- **Det er uhensigtsmæssigt fordi:** kapitalbeløbet er fanens eneste produkt, og det tal, brugeren skriver
+  i sit brev, er summen. Han skal lægge sammen selv – og ved fire afgørelser er det fire tal, han skal
+  finde og addere korrekt i et dokument, der ellers regner alt for ham. Den samlede kapitaliseringsprocent
+  er dertil den værdi, EET-oplysningernes egen feltregel håndhæver («… kan ikke overstige 50 % (inkl.
+  tidligere kapitaliseringsprocenter)»), og den er usynlig netop dér, hvor kapitaliseringerne står samlet.
+- **Bedre ville være:** en afsluttende «I alt»-boks med samlet kapitaliseringsprocent og samlet
+  kapitalbeløb, i samme form som Løbende ydelsers I alt-række – med samme regel om, at summen dannes af de
+  viste, afrundede beløb (`sumRoundedValues`), så «vist = beregnet» holder.
+- **Andre steder det kan gælde:** EET efter EAL og Differencekrav (11d/11e) opgør hver sit enkeltbeløb og
+  har ikke problemet; men Differencekrav trækker de samme kapitalbeløb fra ét ad gangen og viser heller
+  ikke deres sum.
+
+### BB-175 – Rækken, der bærer kapitaliseringsprocenten, hedder bare «Kapitalisering»
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** læs de to øverste rækker i en afgørelsesboks.
+- **Det sker:** værdien `15 %` står ud for etiketten «**Kapitalisering**», mens datoen lige over står ud
+  for «Kapitaliseringsdato». Samme værdi hedder «Kap. %» i afgørelsestabellen, «Kapitaliseringsprocent» i
+  sine egne fejlbeskeder og «Kapitaliseret (15 %)» på Differencekrav – fire navne. Dertil står
+  underoverskriften «Kapitaliseringsfaktor» umiddelbart over en række, der også hedder
+  «Kapitaliseringsfaktor».
+- **Det er uhensigtsmæssigt fordi:** «Kapitalisering» er ikke et navn på et tal, det er navnet på hele
+  handlingen – og rækken står ved siden af «Kapitaliseringsdato», som netop navngiver sin egen art.
+  Udviklerens afgørelse på BB-145 var, at tabeloverskriften må forkortes, mens henvisende tekster bruger
+  det fulde navn; her er navnet hverken forkortet eller fuldt.
+- **Bedre ville være:** «Kapitaliseringsprocent», som feltets egne fejlbeskeder allerede bruger. Rettelsen
+  er ét sted (`eetKapitaliseringRows.ts`) og rammer skærm og dokument samtidig. Underoverskriften
+  «Kapitaliseringsfaktor» kan samtidig blive «Faktoropslag», så den ikke gentager sin egen rækkes navn.
+- **Andre steder det kan gælde:** Differencekravs proformaboks bruger samme builder med etiketten
+  «Proformakapitalisering» og har derfor samme form.
+
+### BB-176 – Reguleringsdatoen skrives i lang form på skærmen og kort form i dokumentet
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** sammenlign rækken «Reguleringsprocent (…)» på skærmen med den samme række
+  i det hentede dokument.
+- **Det sker:** samme dato, to former, målt ordret:
+
+  ```
+  skærm:    Reguleringsprocent (1. juni 2023)     60,1 %
+  dokument: Reguleringsprocent (01-06-2023)       60,1 %
+  ```
+
+  Divergensen er en erklæret option (`formatReguleringsdato`). Bemærk, at boksens to øvrige datoer er
+  enige: overskriften «Afgørelse 1. juni 2023» er lang begge steder, og «Kapitaliseringsdato 01-06-2023»
+  er kort begge steder. **Skærmen bruger dermed begge former i samme boks, og de to kanaler er kun uenige
+  om den ene linje, hvor skærmen har valgt den lange.**
+- **Det er uhensigtsmæssigt fordi:** de to udgaver skal kunne lægges ved siden af hinanden, og en dato er
+  det, læseren bruger til at parre linjerne. Det er BB-087's og BB-146's form: samme værdi, samme flade, to
+  skrivemåder – her endda med den ekstra ejendommelighed, at det er skærmen, der er internt uenig med sig
+  selv.
+- **Bedre ville være:** kort dansk form (`dd-mm-åååå`) i begge kanaler, som kapitaliseringsdatoen allerede
+  bruger begge steder. `formatReguleringsdato`-optionen kan da fjernes.
+- **Andre steder det kan gælde:** `rg "formatReguleringsdato" src` – optionen sættes af
+  `EetKapitaliseringTab.tsx`, `kapitaliseringDocument.ts` og differencekravets to bokse; kun de to første
+  er uenige.
+
+## Overvejet uden fund
+
+- **Beregningen er kontrolregnet i tre sagsformer og er i orden** (se «Fladen kort»): 2003-niveau uden
+  skift, 2003-niveau med 2024-opregulering, og særfaktor-grenen ved ≤ 2 år til folkepension. Grundløn,
+  grundydelse, opregulering, årlig ydelse, faktoropslag og oprundingen af kapitalbeløbet er efterregnet i
+  browseren for hver af dem.
+- **2024-niveauskiftet er forklaret bedre her end på Løbende ydelser – ingen fund.** Linjen står i
+  beregningen selv: «Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 65,7 %):
+  10.635,34 kr. x 1,657 = 17.622,76 kr.» Det er præcis den oplysning, BB-157 savnede i tabelform, og den
+  behøver ingen note her, fordi mellemtrinnet er en egen række.
+- **M-28's prøve er kørt og giver ét træf, som IKKE er et fund.** `tabelLabel` i
+  `EetKapitaliseringAfgoerelseComputation` skrives af motoren og læses ingen steder
+  (`rg "tabelLabel" src` giver kun schema og producent). Feltet er redundant, ikke manglende: tabellen står
+  allerede i `kapitaliseringsbekendtgoerelseLabel` («Bkg. 1233/2018, tabel A»). Alle øvrige felter i
+  schemaet renderes. **Det er mønsterets første negative træf, og det skærper prøven:** et urenderet felt er
+  kun et brugerfund, hvis oplysningen ikke allerede står et andet sted i samme boks.
+- **M-22 er efterprøvet og BESTÅET.** Fødselsdato `99-99-9999` i Stamdata giver «Der er udfyldt en ugyldig
+  værdi i feltet 'Fødselsdato'» med linket «Stamdata → Skadelidte» og grå knap med «Fejl i indtastning».
+- **Den tomme sag er velbehandlet – ingen fund.** Efter «Slet alt» viser fanen fire linjer, der hver
+  navngiver sit felt og sin vej: «Fødselsdato er ikke udfyldt» og «Skadedato er ikke udfyldt» → Stamdata →
+  Skadelidte, «Skadelidtes årsløn (efter ASL) er ikke udfyldt» og «Ingen ASL-afgørelser er indtastet» →
+  EET oplysninger → Arbejdsskadesikringsloven. Knappen er grå med «Indtastning mangler». At der er fire
+  linjer og ikke fem (beregningsdatoen mangler) er korrekt for denne fane – og er selv en del af BB-167.
+- **Tom-specifikations-tilstanden findes og siger det rigtige.** Med én Endelig afgørelse på `50 %` uden
+  kapitaliseringsfelter viser fanen advarslen «Der er ikke angivet kapitaliseringsdato eller -procent for
+  nogen afgørelse» og boksen «Specifikation – Der er ingen kapitaliserede afgørelser i sagen.»
+  Downloadknappen er **aktiv**, og dokumentet skriver samme sætning. Det er M-25 efterlevet: skærm og
+  dokument er enige om fraværet, og gaten er fail-closed på severity, ikke en allowlist.
+- **BB-141's rettelse er i drift her.** Kap. %-cellen får den gule ramme (målt `rgb(245, 158, 11)`) ved
+  `10 %`, og fanens linje er den samme tekst. Reglen om, at kun første og samlede kapitalisering tæller,
+  er efterprøvet: en anden afgørelse på `5 %` oven på en første på `15 %` giver ingen advarsel.
+- **Særfaktor-grenen skjuler ikke sit tal.** Ved «Kapitaliseret pga. < 2 år til folkepension? Ja» udelades
+  rækkerne «Faktor måneds-afhængig?» og «Kapitaliseringsfaktor», men kapitalbeløbslinjen skriver faktoren
+  ud («136.217,50 kr. x **1,245**»), og 1,245 er netop den særfaktor, rækken ovenfor viser. Ingen usynlig
+  faktor.
+- **M-09 er målt og BESTÅET.** Bredeste boks 1164 px, højre kant ved x = 1478. Ved 1536×864 er
+  `scrollWidth = innerWidth = 1536` – ingen vandret scroll.
+- **M-10 er målt og BESTÅET.** «Scroll til toppen» ligger på x = 1451–1505, y = 779–833; fanens nederste
+  højre indhold (kapitalbeløbets værdicelle) slutter ved x = 1435, y = 747. Ingen overlapning.
+- **Tab-ringen er komplet.** Fanen har præcis ét fokuserbart element i indholdet – «Download som Word» –
+  og Tab fra fanebladet lander på det. Det er den rigtige ring for en flade uden indtastning.
+- **M-19, M-23 og M-27 er uden genstand.** Fanen spejler ingen stamdataoplysning (alder og
+  folkepensionsalder er afledte, ikke spejlede), den har ingen `sum / enheder`-brøk, og den har ingen
+  feltregler, en fremmed rød værdi kunne slukke.
+- **Den grå downloadknap følger den aftalte grammatik** (`disabled` + blokeringsårsagen som `aria-label`)
+  i alle tre målte blokeringer: «Fejl i indtastning», «Indtastning mangler» og den tomme specifikation.
+  Bemærk dog, at den blokerede og den normale «Beregning»-boks er visuelt identiske bortset fra knappen
+  (`EetDocumentDownloadBox` mod fanens egen boks) – det er bevidst og er allerede afgjort på flade 7a.
+- **Konsollen var tavs gennem hele kørslen:** 184 beskeder, 0 fejl, 0 advarsler.
+
+## Dækningshuller
+
+- Kun Chrome, lyst tema, 1536×864. Mørkt tema og de tre øvrige browsere er ikke målt.
+- PDF-kanalen er ikke læst; dokumentet er hentet som `.docx`. De to kanaler deler
+  `kapitaliseringDocument.ts` og den delte rækkebuilder, så BB-170, BB-172 og BB-176 hviler på
+  Word-udgaven plus kildelæsning.
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- Brevhovedet er ikke slået til i nogen kørsel; BB-170's «dokumentet nævner ikke skadedatoen» er målt uden
+  brevhoved, som heller ikke bærer skadedatoen (kildelæst).
+- «Meget mange afgørelser» (B3) er ikke målt; højst to kapitaliserede afgørelser er brugt. Med én boks pr.
+  afgørelse er sidelængden lineær, og BB-174's sum-problem vokser med antallet.
+- BB-168's grænsetilfælde er kun målt ved EET % `40`. Af kilden følger, at spærringen ikke opstår ved
+  EET % ≥ 50, hvor `hasEndeligUnder50MissingKap` ikke rammer – det er ikke efterprøvet i browseren.
+- Undo/redo og Escape er ikke afprøvet på fanen; den har ingen indtastningsfelter, så prøven hører på
+  11a.

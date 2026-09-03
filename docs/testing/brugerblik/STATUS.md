@@ -8,29 +8,71 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Erhvervsevnetab **fane 3 – Kapitalisering** (11c). Fane 11b er gennemgået 2026-08-31.
-- **Næste fund-ID:** BB-166
-- **Åbne spørgsmål:** **to.** (1) Fra flade 10: hvor mange måneder er allerede udbetalt – de to halvdele
+- **Næste flade:** Erhvervsevnetab **fane 4 – EET efter EAL** (11d). Fane 11c er gennemgået 2026-09-03.
+- **Næste fund-ID:** BB-177
+- **Åbne spørgsmål:** **ét.** Fra flade 10: hvor mange måneder er allerede udbetalt – de to halvdele
   bruger hver sin læsning. Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
-  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). (2) Fra flade 11a: skal
-  «Bemærk»-boksens to forbehold (tilskadekomstpension til tidligere tjenestemænd, den grønlandske ASL) også
-  stå i de fire EET-dokumenter, eller er de alene en oplysning til den, der taster? Se
-  [erhvervsevnetab.md](erhvervsevnetab.md). Flade 11b rejste ingen nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **14 fra flade 11b (BB-152–BB-165).** Ingen udeståender fra
-  flade 1–10.
-- **Flade 11a er besvaret, men ikke gennemført i kode.** Udviklerens tilbagemeldinger står ved hvert fund i
-  [erhvervsevnetab.md](erhvervsevnetab.md): **otte er godkendt** (BB-135, BB-136, BB-138, BB-144, BB-146,
-  BB-147, BB-148, BB-149), **seks er afvist eller hælder mod afvisning** (BB-137, BB-142, BB-143, BB-145,
-  BB-150, BB-151), og **tre står uafklarede** (BB-139, BB-140, BB-141 – de to første med et modargument, den
-  tredje med en domænepræcisering om, at kapitalisering under 15 % kun er en advarsel, når den FØRSTE eller
-  den SAMLEDE kapitalisering er under 15 %). To af svarene rækker ud over fanen: BB-147's princip («en linje
-  er ikke udfyldt, hvis der udelukkende er ændret en dropdown, der ikke kan være tom») skal gælde hele
-  programmet, og BB-142's afvisning fastlægger, at indtastningsfaner **kun** viser fejl som rød eller gul
-  ring med tooltip, mens fejltekster hører på undersiderne.
+  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). **Flade 11a's spørgsmål er afgjort
+  2026-09-03:** «Bemærk»-boksens to forbehold er en påmindelse til den, der taster, og skal **ikke** i de fire
+  EET-dokumenter. Flade 11b rejste ingen nye åbne spørgsmål.
+- **Fund, der afventer udviklerens afgørelse:** **11 fra flade 11c (BB-166–BB-176).** Flade 1–11b er alle
+  afgjort.
+- **Flade 11a er afgjort OG gennemført i kode 2026-09-03:** af de 17 fund er **elleve implementeret**
+  (BB-135, BB-136, BB-138, BB-139, BB-140, BB-141, BB-144, BB-146, BB-147, BB-148, BB-149) og **seks afvist**
+  (BB-137, BB-142, BB-143, BB-145, BB-150, BB-151). Fire forhold rækker ud over fanen:
+  **(1)** BB-147's princip – en række er ikke udfyldt, hvis der udelukkende er ændret en dropdown, der ikke
+  kan være tom – gælder hele programmet og er gennemført i de to collections, det fandtes i (EET's
+  afgørelsestabel og renteberegningens rentekrav); de øvrige rækketyper har intet required-choice-felt.
+  **(2)** BB-142's afvisning fastlægger, at indtastningsfaner **kun** viser fejl som rød eller gul ring med
+  tooltip, mens fejltekster hører på undersiderne – med den ene undtagelse, BB-139 gjorde nødvendig og
+  `error-contract.md` nu bærer: en FREMMED forudsætning, brugeren ikke kan rette på fanen, må spejles med den
+  fælles navigerbare stamdatarække. **(3)** BB-140 kunne ikke implementeres som beskrevet – «række nr. to» er
+  en plads i en liste, og sortering skriver listen om, så begge dubletrækker markeres i stedet.
+  **(4)** BB-137 er afvist for EET, men tilbagemeldingens egen begrundelse rettede Forsørgertabs ASL-halvdel,
+  hvor to visningssteder stod tilbage med et bart «Køn» efter BB-134.
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-08-31 (**Flade 11b – Løbende ydelser – gennemgået: 14 fund, ti Mellem og fire
+- **Senest opdateret:** 2026-09-03 (**Flade 11c – Kapitalisering – gennemgået: 11 fund, ét Høj, fire
+  Mellem og seks Lav, og ét nyt tværgående mønster M-29.** Fanen er den anden resultatfane og den eneste,
+  der opgør et engangsbeløb; den har præcis én kontrol og deler præsentationsmodel med sit dokument.
+  **M-29 er det nye mønster og det første, hvor brugeren slet ikke kan komme videre:** to regler, der
+  tilsammen ikke efterlader en lovlig indtastning. Målt på en endelig afgørelse truffet mindre end 2 år før
+  folkepensionsalderen – udfyldes Kap.dato og Kap. %, bliver **begge celler røde**; ryddes de, skriver fanen
+  «Endelig afgørelse under 50 % mangler oplysninger om kapitalisering». Den eneste lovlige indtastning er
+  afgørelsens egen dato og hele EET-procenten, og **ingen af de tre beskeder siger det** (BB-168). Motoren
+  kan i forvejen udlede begge værdier selv; undtagelsen findes allerede i `eetKapitaliseringCalculation.ts`
+  og mangler alene i `eetAslAfgoerelser.ts`. **Fanens andet gennemgående tema er beregningsdatoen:** den er
+  bevidst IKKE en afhængighed her, og det er rigtigt – men fanen skriver den alligevel øverst i hver
+  afgørelsesboks, hvor den styrer intet, står tom uden forklaring og mangler helt i dokumentet (BB-167) – og
+  når den ligger FØR kapitaliseringerne, opgør fanen `671.364 kr.` uden et ord, mens Løbende ydelser i samme
+  sag skriver «Afgørelsen ligger helt efter beregningsdatoen» og giver `0 kr.` (BB-166). **Dertil to fund om
+  efterregnelighed og identitet:** specifikationen indeholder hverken skadedato, årsløn eller afgørelsens
+  EET-procent, så grundlønnen `278.558 kr.` står som et bart tal modparten ikke kan kontrollere (BB-170), og
+  to afgørelser truffet samme dag får to bokse med ordret samme overskrift (BB-171). **Og en
+  selvmodsigelse, programmet selv kan forklare:** «Folkepensionsalder» står som `68 år` i den ene boks og
+  `69 år` i den anden for samme person, fordi den slås op på kapitaliseringstidspunktet – Differencekrav
+  skriver i samme sag «Forhøjelse pr. 31-12-2020 (68 år → 69 år)» (BB-169). **Beregningsformlerne selv er
+  kontrolregnet i tre sagsformer og er i orden;** ingen af de 11 fund handler om et forkert tal. **M-09,
+  M-10 og M-22 er efterprøvet og BESTÅET;** M-19, M-23 og M-27 er uden genstand. **M-28's prøve gav sit
+  første negative træf og er skærpet med et trin 3.** Konsollen var tavs: 184 beskeder, 0 fejl, 0
+  advarsler.)
+- **Tidligere: 2026-09-03** (**Flade 11a implementeret: elleve fund rettet, seks afvist, og
+  fanens åbne spørgsmål lukket.** De tre lærerige udfald: **BB-140 kunne ikke gøres som ønsket.**
+  Tilbagemeldingen bad om at markere «række nr. to med identisk indhold», men «nr. to» er en plads i en liste,
+  og et klik på en kolonneoverskrift skriver netop den liste om – det var selve fundet. De to rækkers datoer er
+  pr. definition ens, så der findes ingen anden stabil identitet. **Begge dubletrækker markeres nu**, som M-07
+  forlanger for to felter, der tilsammen udløser én fejl. **BB-137 er afvist for EET, men afvisningens egen
+  begrundelse rettede Forsørgertab:** udvikleren skrev, at kun forsørgertab sammenblander skadelidtes forhold
+  med andres – og netop dér stod ASL-halvdelens forudsætningsrække og dens dokumentlinje tilbage med et bart
+  «Køn» efter BB-134. **BB-134's lære gentog sig ordret: en godkendt ordlyd skal søges som BEGREB, ikke som
+  streng.** Ordlyden er nu én konstant, som også er feltets `label`, så fejltekster og oplæsning følger med.
+  **BB-139 og BB-142 trak grænsen mellem fanens egne fejl og fremmede forudsætninger,** og den står nu i
+  `error-contract.md`: indtastningsfaner viser kun rød/gul ring med tooltip, men en fremmed forudsætning, der
+  gør fanens egne regler tavse, må spejles med den fælles navigerbare «ret i Stamdata»-række. Dertil dækkede
+  BB-148's rettelse en tredje celle, fundet ikke så: «Tidligere kapitaliseringsdato må ikke udfyldes ved …»
+  sagde reglen baglæns ved siden af to celler, der sagde den forlæns.)
+- **Tidligere: 2026-08-31** (**Flade 11b – Løbende ydelser – gennemgået: 14 fund, ti Mellem og fire
   Lav, ingen Høj, og ét nyt tværgående mønster M-28.** Fanen er den første resultatfane og den eneste, der
   fordeler et krav over tid; dens produkt er en specifikation, modparten skal kunne efterregne, og **seks af
   fundene handler om, at den ikke kan det.** **M-28 er det nye mønster og det første, hvis prøve er ren
@@ -134,17 +176,80 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
 | 9 | Årslønsberegning | Afgjort | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
-| 11a | Erhvervsevnetab – EET oplysninger | Afventer udvikleren | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11b | Erhvervsevnetab – Løbende ydelser | Afventer udvikleren | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11c | Erhvervsevnetab – Kapitalisering | Ikke startet | – | – |
+| 11a | Erhvervsevnetab – EET oplysninger | Afgjort | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 11c | Erhvervsevnetab – Kapitalisering | Afventer udvikleren | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11d | Erhvervsevnetab – EET efter EAL | Ikke startet | – | – |
 | 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
 
-## Erhvervsevnetab → Løbende ydelser (11b) – gennemgået 2026-08-31
+## Erhvervsevnetab → Kapitalisering (11c) – gennemgået 2026-09-03
 
-**14 fund: ti Mellem, fire Lav, ingen Høj.** Det fulde grundlag med målte tal står i
+**11 fund: ét Høj, fire Mellem, seks Lav.** Det fulde grundlag med målte tal står i
 [erhvervsevnetab.md](erhvervsevnetab.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-168 | Ved ≤ 2 år til folkepension er både «udfyld» og «lad stå tomt» en fejl | **Høj** |
+| BB-166 | Kapitaliseringer efter beregningsdatoen regnes med, hvor nabofanen giver 0 kr. | Mellem |
+| BB-167 | «Beregningsdato» står øverst i hver afgørelsesboks og styrer intet på fanen | Mellem |
+| BB-169 | Folkepensionsalderen er 68 år i den ene boks og 69 år i den anden – samme person | Mellem |
+| BB-170 | Specifikationen mangler skadedato, årsløn og afgørelsens EET-procent | Mellem |
+| BB-171 | To afgørelser samme dag giver to bokse med samme overskrift | Lav |
+| BB-172 | Dokumentet siger «< 2 år» og «≤ 2 år» om samme regel i to linjer i træk | Lav |
+| BB-173 | Kapitaliseringens 15 %-advarsel mangler den lovmæssighedshale, EET-procentens fik | Lav |
+| BB-174 | To kapitalbeløb og ingen sum – heller ikke den samlede kapitaliseringsprocent | Lav |
+| BB-175 | Rækken med kapitaliseringsprocenten hedder bare «Kapitalisering» | Lav |
+| BB-176 | Reguleringsdatoen er lang på skærmen og kort i dokumentet | Lav |
+
+**Fanen er programmets eneste engangsbeløbs-opgørelse, og to forhold forklarer syv af fundene.** Det
+første er **beregningsdatoen**, som bevidst IKKE er en afhængighed her (`eetSnapshot.ts` siger det
+udtrykkeligt) – og det er rigtigt: et kapitalbeløb hører til sin kapitaliseringsdato. Men fanen skriver
+den alligevel øverst i hver eneste afgørelsesboks, hvor den styrer intet, står tom uden forklaring og
+mangler helt i dokumentet (BB-167); og når den ligger før kapitaliseringerne, opgør fanen `671.364 kr.`
+uden et ord, mens Løbende ydelser i nøjagtig samme sag skriver «Beregningsdatoen (01-06-2018) ligger før
+sagens afgørelser» og «Afgørelsen giver ingen løbende ydelse i den valgte periode» (BB-166). Det andet er
+**efterregneligheden**: dokumentet begynder ved grundløn `278.558 kr.` uden hverken årsløn eller skadedato,
+og uden dem kan modparten hverken kontrollere brøken, erstatningsniveauet eller AM-fradraget (BB-170).
+
+**M-29 er det nye mønster, og det er det første, hvor brugeren slet ikke kan komme videre.** To regler,
+skrevet af hver sin overvejelse, spærrer hver sin vej og oplyser hver især kun *hvorfor* de spærrer.
+Målt: en endelig afgørelse på 40 % truffet mindre end 2 år før folkepensionsalderen. Udfyldes Kap.dato og
+Kap. %, bliver begge celler røde («Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.» /
+«… kapitaliseres hele EET.»); ryddes de, skriver fanen «Endelig afgørelse under 50 % mangler oplysninger
+om kapitalisering». Den eneste lovlige indtastning er afgørelsens egen dato og hele EET-procenten.
+**Undtagelsen findes allerede i koden – bare ét sted for lidt:** `collectResolvedRows` udleder selv begge
+værdier i netop dette tilfælde, og ≤2-års-guarden står i `eetKapitaliseringCalculation.ts:264-277`, mens
+`eetAslAfgoerelser.ts:549-556`' `hasEndeligUnder50MissingKap` mangler den.
+
+**Beregningsformlerne selv er kontrolregnet i tre sagsformer og er i orden:** 2003-niveau
+(`400.000 × 367.000/527.000 = 278.558`, `× 15 % × 83 % × 92 % = 31.906,03`, `× 146,9 % = 46.869,96`,
+`× 10,772 → 504.884 kr.`), 2024-opreguleringen (`× 1,657 = 17.622,76`, `× 103,9 % = 18.310,05`,
+`× 8,408 → 153.951 kr.`) og særfaktor-grenen (`85.082,76 → 136.217,50`, `× 1,245 → 169.591 kr.`).
+**Ingen af de 11 fund handler om et forkert tal.**
+
+**Konsekvenser for de resterende flader – tre prøver at tage med:**
+1. **M-29's prøve hører på hvert felt med både en feltregel og en fanefejl:** udfyld feltet, læs beskeden;
+   ryd det, læs beskeden; spørg om nogen af de to siger, hvad der SKAL stå. Indgang uden browser:
+   `rg "mangler oplysninger om|må kun udfyldes ved|må ikke udfyldes ved" src/domain`.
+2. **BB-167's prøve er den billigste, gennemgangen har frembragt:** for hver værdi en resultatflade viser,
+   ændr den og se, om noget andet på fladen ændrer sig. Gør det ikke det, er rækken dekorativ – og så skal
+   den enten fjernes eller gives betydning.
+3. **BB-170 skærper BB-161's forudsætningsprøve endnu et trin:** læs dokumentets standardudgave og spørg
+   for hvert tal, om det kan udledes af noget ANDET i dokumentet. Kandidater: EET efter EAL og
+   Differencekrav, som trykker samme grundløn på samme måde.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864; PDF-kanalen ikke læst (dokumentet hentet som
+`.docx`); `Gem`/`Hent` ikke afprøvet; brevhovedet ikke slået til; «meget mange afgørelser» (B3) ikke målt
+– højst to kapitaliserede afgørelser er brugt; BB-168's grænse ved EET % ≥ 50 er kildelæst, ikke målt.
+
+## Erhvervsevnetab → Løbende ydelser (11b) – gennemgået 2026-08-31, afgjort og gennemført 2026-09-01
+
+**14 fund: ti Mellem, fire Lav, ingen Høj. Elleve implementeret, tre afvist** (BB-157, BB-161, BB-164). Det
+fulde grundlag med målte tal står i [erhvervsevnetab.md](erhvervsevnetab.md). BB-157's afvisning bad om en
+kontrol af, at niveauskift-noten vises i alle relevante tilfælde; den er efterprøvet 2026-09-03 og holder –
+`visGrundydelseNiveauSkift` er sand netop når grundlønnen er i 2003-niveau OG tabellen har rækker både før og
+fra 2024, altså i præcis de tilfælde, hvor «Regulering»-kolonnen skifter målestok.
 
 | ID | Kort | Prioritet |
 |---|---|---|
@@ -215,10 +320,11 @@ handler om et forkert tal.**
 afgørelser» (B3) ikke målt – højst tre rækker er brugt; differencekravdokumentets løbende-ydelser-bilag
 ikke hentet; M-21's kandidat `DocumentOutcomeMessage.tsx:34` kunne ikke fremprovokeres.
 
-## Erhvervsevnetab → EET oplysninger (11a) – gennemgået 2026-08-31
+## Erhvervsevnetab → EET oplysninger (11a) – gennemgået 2026-08-31, afgjort og gennemført 2026-09-03
 
-**17 fund: ni Mellem, otte Lav, ingen Høj.** Det fulde grundlag med målte tal står i
-[erhvervsevnetab.md](erhvervsevnetab.md).
+**17 fund: ni Mellem, otte Lav, ingen Høj. Elleve implementeret, seks afvist.** Det fulde grundlag med målte
+tal, udviklerens tilbagemeldinger og de fire udfald, der rækker ud over fanen, står i
+[erhvervsevnetab.md](erhvervsevnetab.md) under «Gennemført i kode – 2026-09-03».
 
 | ID | Kort | Prioritet |
 |---|---|---|

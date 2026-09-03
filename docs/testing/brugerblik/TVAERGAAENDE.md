@@ -12,6 +12,19 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-03 fra Erhvervsevnetab → Kapitalisering – M-29 – og det er det første, hvor
+brugeren slet ikke kan komme videre.** M-29 (to regler, der tilsammen ikke efterlader en lovlig
+indtastning) blev målt på en endelig afgørelse truffet mindre end 2 år før folkepensionsalderen: udfyldes
+Kap.dato og Kap. %, bliver begge celler røde med hver sin regeltekst; ryddes de, skriver fanen «Endelig
+afgørelse under 50 % mangler oplysninger om kapitalisering». Den eneste lovlige indtastning – afgørelsens
+egen dato og hele EET-procenten – nævnes af ingen af de tre beskeder, og undtagelsen findes allerede i
+koden, blot ét sted for lidt (BB-168). **Samme kørsel gav nye forekomster af M-13 i to former (BB-172 –
+«< 2 år» og «≤ 2 år» i to linjer i træk i samme dokument; BB-176 – reguleringsdatoen lang på skærmen, kort
+i dokumentet) og af M-02 (BB-175).** M-09, M-10 og M-22 er efterprøvet og **bestået**; M-19, M-23 og M-27
+er uden genstand på en fane uden indtastningsfelter. **M-28's prøve gav sit første NEGATIVE træf og har
+fået den lære skrevet ind:** `tabelLabel` renderes ingen steder, men er ikke et brugerfund, fordi tabellen
+allerede står i nabofeltets etiket.
+
 **Ét nyt mønster 2026-08-31 fra Erhvervsevnetab → Løbende ydelser – M-28 – og det er det første, hvis
 prøve er REN kodesøgning uden browser.** M-28 (den manglende oplysning ligger allerede i
 beregningsoutputtet) blev fundet to gange på samme fane: `skaeringsDato` og `harOverlap` ligger i
@@ -1779,6 +1792,12 @@ Bemærk skellet mod almindelig død kode. Et ubrugt hjælpefelt er et kodefund. 
 når feltet er præcis den oplysning, der mangler for at kunne læse et tal på skærmen – altså når trin 1
 eller 2 giver et navn, som svarer på et spørgsmål, brugeren allerede står med.
 
+**Skærpet 2026-09-03 af mønsterets første negative træf.** Prøven kørt på
+`EetKapitaliseringAfgoerelseComputation` gav ét urenderet felt, `tabelLabel` – og det er **ikke** et fund:
+tabellen står allerede i nabofeltets etiket («Bkg. 1233/2018, **tabel A**»), så feltet er redundant, ikke
+manglende. Trin 3 hører derfor med til prøven: **står oplysningen allerede et andet sted i samme boks?**
+Er svaret ja, er træffet et kodefund og hører et andet sted hen.
+
 - Fundet i: `erhvervsevnetab.md` BB-152 (Mellem, afventer udvikleren). En 30 %-afgørelses første halvår
   er regnet med **5 %** (`10.635,34 kr.` mod de øvrige rækkers `63.812,07 kr.`), fordi den tidligere
   afgørelse fortsat blev udbetalt frem til skæringsdatoen `01-07-2022`. Skæringsdatoen ligger i outputtet
@@ -1799,3 +1818,49 @@ eller 2 giver et navn, som svarer på et spørgsmål, brugeren allerede står me
   `eetEalCalculation`, `eetDifferencekravCalculation`) og EO's rækkebyggere. Generel indgang:
   `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
   `*Calculation.ts` en søgning uden for `src/__tests__`.
+
+---
+
+## M-29 – To regler, der tilsammen ikke efterlader en lovlig indtastning
+
+> Feltet er rødt, når det er udfyldt, og fladen klager, når det er tomt. Begge beskeder oplyser hver sin
+> regel, ingen af dem oplyser den værdi, der faktisk går igennem.
+
+De øvrige valideringsmønstre handler om beskedens indhold: M-02 om feltnavnet, M-05 om den manglende
+advarsel, M-07 om at kun den ene halvdel af et par markeres. Dette mønster handler om, at brugeren
+**ikke kan komme videre overhovedet** – ikke fordi der ikke findes en lovlig værdi, men fordi de to
+regler, der spærrer hver sin vej, hver især beskriver *hvorfor* de spærrer og aldrig *hvad der må stå*.
+
+Formen opstår, når en feltnær regel og en fladenær fuldstændighedsregel er skrevet af hver sin
+overvejelse. Feltreglen kender undtagelsen («i dette tilfælde bestemmes værdien af noget andet»);
+fuldstændighedsreglen kender den ikke og ser blot et tomt påkrævet felt. Hver for sig er de rigtige.
+Tilsammen lukker de døren.
+
+Kendetegnet i koden er, at undtagelsen **findes** – bare ét sted for lidt. Ofte er beregningsmotoren
+allerede forberedt på de tomme felter og udleder værdien selv, mens fuldstændighedsreglen aldrig fik
+undtagelsen med.
+
+**Efterprøv, hvor:** et felt kan være genstand for både en «må ikke / må kun udfyldes ved …»-feltregel og
+en «mangler oplysninger om …»-fanefejl. Prøven tager under et minut pr. felt:
+
+1. Udfyld feltet med en plausibel værdi. Bliv rødt? Læs beskeden.
+2. Ryd feltet igen. Klager fladen? Læs beskeden.
+3. Er begge svar en fejl, så spørg: **siger nogen af de to beskeder, hvad der skal stå?**
+
+Indgang uden browser: `rg "mangler oplysninger om|må kun udfyldes ved|må ikke udfyldes ved" src/domain`,
+og hold hver fanefejl op mod feltreglerne for de felter, den nævner.
+
+- Fundet i: `erhvervsevnetab.md` BB-168 (**Høj**, afventer udvikleren). En endelig afgørelse på 40 %
+  truffet mindre end 2 år før folkepensionsalderen: udfyldes Kap.dato og Kap. %, bliver begge celler røde
+  («Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.» / «… kapitaliseres hele EET.»);
+  ryddes de, skriver Kapitaliseringsfanen «Endelig afgørelse under 50 % mangler oplysninger om
+  kapitalisering». Den eneste lovlige indtastning er afgørelsesdatoen og hele EET-procenten, og det siger
+  ingen af de tre beskeder. **Motoren kan i forvejen klare de tomme felter** – `collectResolvedRows`
+  udleder selv begge værdier i netop dette tilfælde – og ≤2-års-undtagelsen findes allerede i
+  `eetKapitaliseringCalculation.ts`, blot ikke i `eetAslAfgoerelser.ts`' `hasEndeligUnder50MissingKap`.
+- **Læren, der adskiller mønsteret fra M-16:** M-16 er en komplet række, programmet nægter at regne på.
+  M-29 er en række, hvor der ikke findes nogen komplet form – hverken den udfyldte eller den tomme. Prøven
+  for M-16 er «hvorfor regnes der ikke på dette?»; prøven for M-29 er «hvad SKAL der så stå?».
+- Kandidater, ikke efterprøvet: de øvrige par af feltregel og fuldstændighedsregel på EET-oplysningerne
+  (kap.dato/kap. % ved delvist endelig, tidl. kap.dato ved genoptagelse) og EO's ansættelsesforhold, hvor
+  samme opdeling mellem feltregler og faneniveauets «mangler»-issues findes.
