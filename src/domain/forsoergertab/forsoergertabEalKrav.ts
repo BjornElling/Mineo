@@ -26,6 +26,16 @@ type Input = Readonly<{
   ealAarsloen: AmountValue | undefined;
 }>;
 
+/**
+ * Erhvervsevnetabsprocenten, forsørgertabskravet regnes af. Forsørgertabet udgør 30 % af det
+ * erhvervsevnetab, afdøde ville have haft ved et FULDT tab – ikke et erhvervsevnetab på 30 %. Derfor
+ * er det det fulde tab, der holdes op mod erhvervsevnetabets lovbestemte maksimum, før andelen tages.
+ */
+const EET_PCT_FULDT_TAB = 100;
+
+/** Forsørgertabets andel af erhvervsevnetabet, jf. erstatningsansvarslovens § 13. */
+const FORSOERGERTAB_PCT = 30;
+
 export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravResult => {
   const eetResult = computeEetEalCalculation({
     // EAL-beregningen aftager kun de fem felter, den faktisk læser (EetEalInputValues).
@@ -34,7 +44,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
     erhvervsevnetab: {
       beregningsdato: input.beregningsdato,
       aslAfgoerelser: [],
-      ealEetPct: 30,
+      ealEetPct: EET_PCT_FULDT_TAB,
       aslAarsloen: input.aslAarsloen,
       ealAarsloen: input.ealAarsloen,
     },
@@ -48,7 +58,8 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
 
   if (!eetResult.computation) {
     return {
-      ...eetResult,
+      issues: eetResult.issues,
+      computation: null,
       foersoergertabEalMinSatsOre: null,
       foersoergertabForhoejtetTilMin: false,
     };
@@ -76,60 +87,60 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
       foersoergertabForhoejtetTilMin: false,
     };
   }
-  const foersoergertabEalMinSatsOre = fromKroner(minSats);
-  const toPort = (computation: NonNullable<typeof eetResult.computation>): ForsoergertabEalPort => ({
-    beregningsdato: computation.beregningsdato,
-    skadedato: computation.skadedato,
-    fodselsdato: computation.fodselsdato,
-    skadesaar: computation.skadesaar,
-    beregningsaar: computation.beregningsaar,
-    aarsloenOre: computation.aarsloenOre,
-    aarsloenSource: computation.aarsloenSource,
-    reguleringsaar: computation.reguleringsaar,
-    reguleringsPctRounded4: computation.reguleringsPctRounded4,
-    reguleretAarsloenOre: computation.reguleretAarsloenOre,
-    eetPct: computation.eetPct,
-    eetPctSource: computation.eetPctSource,
-    kapitaliseringsfaktor: computation.kapitaliseringsfaktor,
-    eetBeregnetOre: computation.eetBeregnetOre,
-    eetMaksOre: computation.eetMaksOre,
-    eetAnvendtOre: computation.eetAnvendtOre,
-    eetReduceretTilMaks: computation.eetReduceretTilMaks,
-    alderVedSkade: computation.alderVedSkade,
-    alderVedSkadeCapped: computation.alderVedSkadeCapped,
-    aldersreduktionPct: computation.aldersreduktionPct,
-    aldersreduktionBeloebOre: computation.aldersreduktionBeloebOre,
-    ealKravOre: computation.ealKravOre,
-  });
-  const port = toPort(eetResult.computation);
-  const foersoergertabForhoejtetTilMin =
-    port.eetBeregnetOre < foersoergertabEalMinSatsOre;
 
-  if (foersoergertabForhoejtetTilMin) {
-    // Minimumssatsen afrundes fortsat ved den eksisterende round0-grænse. Derefter foregår
-    // subtraktion og nul-clamp udelukkende gennem den kanoniske pengealgebra.
-    const aldersreduktionBeloebOre = fromKroner(round0(
-      toKroner(foersoergertabEalMinSatsOre) * (port.aldersreduktionPct / 100)
-    ));
-    return {
-      issues: eetResult.issues,
-      computation: {
-        ...port,
-        eetAnvendtOre: foersoergertabEalMinSatsOre,
-        aldersreduktionBeloebOre,
-        ealKravOre: clampMoneyOreToZero(
-          subtractMoneyOre(foersoergertabEalMinSatsOre, aldersreduktionBeloebOre)
-        ),
-      },
-      foersoergertabEalMinSatsOre,
-      foersoergertabForhoejtetTilMin: true,
-    };
-  }
+  const foersoergertabEalMinSatsOre = fromKroner(minSats);
+  const eet = eetResult.computation;
+
+  // Andelen tages af erhvervsevnetabet EFTER maksimumsreduktionen. De lovbestemte round0-grænser
+  // ligger fortsat i kroner; først derefter bliver beløbet brandet.
+  const forsoergertabBeregnetOre = fromKroner(round0(
+    toKroner(eet.eetAnvendtOre) * (FORSOERGERTAB_PCT / 100)
+  ));
+
+  // Mindstebeløbet holdes op mod den FÆRDIGE andelsberegning – ikke mod det fulde erhvervsevnetab.
+  const foersoergertabForhoejtetTilMin = forsoergertabBeregnetOre < foersoergertabEalMinSatsOre;
+  const forsoergertabAnvendtOre = foersoergertabForhoejtetTilMin
+    ? foersoergertabEalMinSatsOre
+    : forsoergertabBeregnetOre;
+
+  const aldersreduktionBeloebOre = fromKroner(round0(
+    toKroner(forsoergertabAnvendtOre) * (eet.aldersreduktionPct / 100)
+  ));
+
+  const computation: ForsoergertabEalPort = {
+    beregningsdato: eet.beregningsdato,
+    skadedato: eet.skadedato,
+    fodselsdato: eet.fodselsdato,
+    skadesaar: eet.skadesaar,
+    beregningsaar: eet.beregningsaar,
+    aarsloenOre: eet.aarsloenOre,
+    aarsloenSource: eet.aarsloenSource,
+    reguleringsaar: eet.reguleringsaar,
+    reguleringsPctRounded4: eet.reguleringsPctRounded4,
+    reguleretAarsloenOre: eet.reguleretAarsloenOre,
+    eetPct: eet.eetPct,
+    kapitaliseringsfaktor: eet.kapitaliseringsfaktor,
+    eetBeregnetOre: eet.eetBeregnetOre,
+    eetMaksOre: eet.eetMaksOre,
+    eetAnvendtOre: eet.eetAnvendtOre,
+    eetReduceretTilMaks: eet.eetReduceretTilMaks,
+    forsoergertabPct: FORSOERGERTAB_PCT,
+    forsoergertabBeregnetOre,
+    forsoergertabAnvendtOre,
+    alderVedSkade: eet.alderVedSkade,
+    alderVedSkadeCapped: eet.alderVedSkadeCapped,
+    aldersreduktionPct: eet.aldersreduktionPct,
+    aldersreduktionBeloebOre,
+    // Subtraktion og nul-clamp foregår udelukkende gennem den kanoniske pengealgebra.
+    ealKravOre: clampMoneyOreToZero(
+      subtractMoneyOre(forsoergertabAnvendtOre, aldersreduktionBeloebOre)
+    ),
+  };
 
   return {
     issues: eetResult.issues,
-    computation: port,
+    computation,
     foersoergertabEalMinSatsOre,
-    foersoergertabForhoejtetTilMin: false,
+    foersoergertabForhoejtetTilMin,
   };
 };

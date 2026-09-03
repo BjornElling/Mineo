@@ -11,7 +11,7 @@ import {
 } from '../../domain/aslEalAarsloen/aarsloenValidators';
 import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
-  SKADELIDTES_AARSLOEN_EAL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_FELT_LABEL,
 } from '../../domain/aslEalAarsloen/aarsloenLabels';
 import { stamdataSkadedatoField, stamdataSkadestypeField } from './stamdataDescriptors';
 
@@ -83,7 +83,7 @@ export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', SKADEL
       : { reason: 'rule', code: 'faellesAarsloen.aslAarsloen.rule', message };
   },
 ]);
-export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', SKADELIDTES_AARSLOEN_EAL_LABEL);
+export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', SKADELIDTES_AARSLOEN_EAL_FELT_LABEL);
 
 export const faellesAarsloenFields = catalogFields(faellesAarsloenAslAarsloenField, faellesAarsloenEalAarsloenField);
 export const faellesAarsloenCollections = catalogCollections();

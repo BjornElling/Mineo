@@ -1,6 +1,6 @@
 # Forsørgertab
 
-**Sidst opdateret:** 2026-07-31
+**Sidst opdateret:** 2026-09-03
 **Status:** Implementeret
 
 ## 1. Formål
@@ -67,9 +67,13 @@ Når `beregningsdato < virkningsdato`, skal begge felter markeres med fejl.
 
 ### 4.1 Hovedregel
 
+Forsørgertabet udgør 30 % af det erhvervsevnetab, afdøde ville have haft ved et **fuldt** tab af
+erhvervsevnen. Det er altså ikke et erhvervsevnetab på 30 %, der beregnes, men 30 % af et
+erhvervsevnetab på 100 %.
+
 EAL-kravet beregnes ved at genbruge EET efter EAL-logikken med disse faste regler:
 
-- EET-procenten er fast `30`
+- EET-procenten er fast `100`
 - `beregningsdato` kommer fra `forsoergertab.beregningsdato`
 - `skadedato` kommer fra `stamdata.skadedato`
 - skadelidtes fødselsdato kommer fra `stamdata.skadelidteFodselsdato`
@@ -78,29 +82,44 @@ EAL-kravet beregnes ved at genbruge EET efter EAL-logikken med disse faste regle
 
 Beregningen er en selvstændig wrapperfunktion, `computeForsoergertabEalKrav` i
 `src/domain/forsoergertab/forsoergertabEalKrav.ts`, som kalder den fælles EAL-beregning
-(`computeEetEalCalculation`) med en fast override på 30 %.
+(`computeEetEalCalculation`) med en fast override på 100 % og derefter tager forsørgertabets andel.
 
-### 4.2 Afrunding
+### 4.2 Rækkefølge og de to lovbestemte grænser
+
+Grænserne rammer to forskellige størrelser, og rækkefølgen er derfor normativ:
+
+```text
+eetBeregnet   = round0(reguleretAarsloen * 10 * 100 %)
+eetMaks       = erhvervsevnetabEalMax[beregningsaar]
+eetAnvendt    = min(eetBeregnet, eetMaks)
+
+forsoergertabBeregnet = round0(eetAnvendt * 30 %)
+forsoergertabMin      = foersoergertabEalMin[beregningsaar]
+forsoergertabAnvendt  = max(forsoergertabBeregnet, forsoergertabMin)
+
+aldersreduktionBeloeb = round0(forsoergertabAnvendt * (aldersreduktionPct / 100))
+ealKrav               = max(0, forsoergertabAnvendt - aldersreduktionBeloeb)
+```
+
+- **Maksimumsbeløbet** for erhvervsevnetab efter EAL rammer det fulde erhvervsevnetab, altså **før**
+  andelen på 30 % tages.
+- **Mindstebeløbet** for forsørgertab rammer den færdige andelsberegning, altså **efter** at de 30 %
+  er taget.
+
+### 4.3 Afrunding
 
 `ealKrav` følger samme afrundingsregler som EET efter EAL og ender som helt kronebeløb.
 
-### 4.3 Minimumssats
+### 4.4 Eksponering til UI og dokument
 
-Der gælder et lovbestemt minimumsbeløb for EAL-kravet pr. beregningsår (`foersoergertabEalMin[beregningsaar]`).
-
-Hvis `eetBeregnet < foersoergertabEalMin[beregningsaar]`, forhøjes beregningen:
-
-```text
-eetAnvendt = foersoergertabEalMin[beregningsaar]
-aldersreduktionBeloeb = round0(eetAnvendt * (aldersreduktionPct / 100))
-ealKrav = max(0, round0(eetAnvendt - aldersreduktionBeloeb))
-```
-
-Hvis `eetBeregnet >= foersoergertabEalMin[beregningsaar]`, bruges den ordinære beregning uden forhøjelse.
-
-Til UI eksponeres:
+- `eetPct`, `eetBeregnet`, `eetMaks`, `eetAnvendt`, `eetReduceretTilMaks`: det fulde erhvervsevnetab
+  og maksimumsgrænsens virkning
+- `forsoergertabPct`, `forsoergertabBeregnet`, `forsoergertabAnvendt`: andelen og mindstebeløbets virkning
 - `foersoergertabEalMinSats`: minimumssatsen for beregningsåret (eller `null` hvis data mangler)
 - `foersoergertabForhoejtetTilMin`: `true` hvis forhøjelse er sket, ellers `false`
+
+Mangler minimumssatsen for beregningsåret, fejler beregningen lukket med
+`foersoergertab-eal-min-missing`; et forsørgertabskrav beregnes ikke uden minimumsgaranti.
 
 ## 5. ASL-ydelser
 
@@ -418,11 +437,16 @@ Alle fire outputtal vises som hele kronebeløb:
 
 Hvis `skadelidteFodselsdato` mangler eller er ugyldig, skal siden vise blokkerende fejlmeddelelse og henvise brugeren til `Stamdata`, hvor feltet vedligeholdes.
 
-Derudover vises:
+Derudover vises, i denne rækkefølge:
 
+- en contentbox for beregnet forsørgertab
 - en contentbox for EAL-krav
 - en contentbox for ASL-ydelser
-- en nederste contentbox for beregnet forsørgertab
+
+EAL-kravets contentbox indledes med den pædagogiske linje «Forsørgertabserstatning beregnes som 30 % af
+skadelidtes fulde erhvervsevnetab (jf. EAL § 13)» og viser derefter mellemregningen i to trin med hver sin
+underoverskrift: «Fuldt erhvervsevnetab» (det fulde tab og maksimumsgrænsen) og «Forsørgertab» (andelen
+på 30 % og mindstebeløbet).
 
 ## 11. Domænesnit
 
@@ -438,8 +462,10 @@ Beregningen er skåret op i disse moduler under `src/domain/forsoergertab/`:
 Ansvar:
 
 - bygge syntetisk input til EAL-beregningen
-- tvinge EET-procent til 30
-- forhøje til minimumssatsen og eksponere `foersoergertabEalMinSats`/`foersoergertabForhoejtetTilMin` (§4.3)
+- tvinge EET-procent til 100
+- tage forsørgertabets andel på 30 % af det maksimumsreducerede erhvervsevnetab (§4.2)
+- forhøje til minimumssatsen og eksponere `foersoergertabEalMinSats`/`foersoergertabForhoejtetTilMin` (§4.4)
+- beregne aldersreduktion og EAL-krav af den færdige andelsberegning
 - returnere EAL-computation og issues
 
 ### `computeForsoergertabAslYdelser`
@@ -488,8 +514,11 @@ Følgende regler er dækket:
   løbende ydelsers årsbeløb (§5a.4) bruger `ceilNearest12`
 - kapitalbeløb afrundes opad til hele kroner
 - nettokrav bliver aldrig negativt (clamp til 0)
+- erhvervsevnetabets maksimum rammer det fulde tab FØR andelen på 30 % (§4.2), og andelen tages af
+  det maksimumsreducerede beløb
+- mindstebeløbet holdes op mod den færdige andelsberegning, ikke mod det fulde erhvervsevnetab
 
-Derudover er dækket: EAL-kravets forhøjelse til minimumssatsen (§4.3), de-regulering af løbende
+Derudover er dækket: EAL-kravets forhøjelse til minimumssatsen (§4.4), de-regulering af løbende
 ydelser for år før skadeåret, afkortning af de løbende ydelser ved periodens naturlige slutdato,
 delvis første måned, samt de fail-closed inputgrænser (årsløn `0`/negativ/manglende, tilkendt
 periode uden for 1-10 og ikke-heltallig, manglende ASL-årslønsmaksimum for skades-, beregnings-

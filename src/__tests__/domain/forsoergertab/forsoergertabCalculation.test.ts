@@ -1,9 +1,10 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
+import { computeForsoergertabEalKrav } from '../../../domain/forsoergertab/forsoergertabEalKrav';
 import { opregulerMedAslAarsloensmaksimum } from '../../../domain/satser/opreguleringsmotorer';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
-import { round2 } from '../../../utils/roundingShortcuts';
+import { aarsloenAslMax, erhvervsevnetabEalMax, foersoergertabEalMin } from '../../../data/lovbestemteRates';
+import { round0, round2 } from '../../../utils/roundingShortcuts';
 import { toISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
 
@@ -461,7 +462,7 @@ describe('computeForsoergertabAslYdelser – de-regulering af løbende ydelser f
 
 describe('computeForsoergertabCalculation – minimumssats', () => {
   it('forhøjer EAL-krav til minimumssats når beregnet forsørgertab er under minimumsbeløbet', () => {
-    // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under
+    // Med ealAarsloen=100000 bliver forsørgertabets andel langt under
     // foersoergertabEalMin[2026]=1239000, så forhøjelse skal ske.
     const result = computeForsoergertabCalculation({ ...NOT_BLOCKED,
       skadedato: toISODateString('2020-05-01'),
@@ -479,11 +480,67 @@ describe('computeForsoergertabCalculation – minimumssats', () => {
     expect(result.foersoergertabForhoejtetTilMin).toBe(true);
     expect(toKroner(result.foersoergertabEalMinSatsOre!)).toBe(1239000);
     expect(result.foersoergertabEalMinSatsOre).toBe(123900000);
-    // eetAnvendt skal være sat til minimumssatsen
-    expect(toKroner(result.ealComputation!.eetAnvendtOre)).toBe(1239000);
+    // Det anvendte forsørgertab skal være sat til minimumssatsen
+    expect(toKroner(result.ealComputation!.forsoergertabAnvendtOre)).toBe(1239000);
     expect(result.ealComputation).not.toHaveProperty('eetAnvendt');
     // ealKrav skal være >= 0
     expect(result.result?.ealKrav ?? toKroner(result.ealComputation!.ealKravOre)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('computeForsoergertabEalKrav', () => {
+  // Skadedato og beregningsdato i samme år, så der ikke opreguleres: den regulerede årsløn er
+  // årslønnen selv, og de to lovbestemte grænser kan læses direkte af tallene.
+  const ealInput = {
+    beregningsdato: toISODateString('2026-03-19'),
+    skadedato: toISODateString('2026-01-01'),
+    skadelidteFodselsdato: toISODateString('1980-01-01'),
+    aslAarsloen: undefined,
+    ealAarsloen: asAmount(1500000),
+  };
+
+  it('reducerer det FULDE erhvervsevnetab til årets maksimum, før forsørgertabets andel tages', () => {
+    const result = computeForsoergertabEalKrav(ealInput);
+
+    expect(result.computation).not.toBeNull();
+    const eal = result.computation!;
+    expect(eal.eetPct).toBe(100);
+    expect(toKroner(eal.eetBeregnetOre)).toBe(15000000);
+    expect(toKroner(eal.eetMaksOre)).toBe(erhvervsevnetabEalMax[2026]);
+    expect(eal.eetReduceretTilMaks).toBe(true);
+    expect(toKroner(eal.eetAnvendtOre)).toBe(erhvervsevnetabEalMax[2026]);
+
+    // Andelen tages af det maksimumsreducerede beløb – ikke af de 15.000.000 kr.
+    expect(eal.forsoergertabPct).toBe(30);
+    expect(toKroner(eal.forsoergertabBeregnetOre)).toBe(round0(erhvervsevnetabEalMax[2026]! * 0.3));
+    expect(result.foersoergertabForhoejtetTilMin).toBe(false);
+    expect(toKroner(eal.forsoergertabAnvendtOre)).toBe(toKroner(eal.forsoergertabBeregnetOre));
+  });
+
+  it('regner aldersreduktion og EAL-krav af forsørgertabets andel, ikke af erhvervsevnetabet', () => {
+    const result = computeForsoergertabEalKrav(ealInput);
+    const eal = result.computation!;
+
+    expect(eal.aldersreduktionPct).toBe(17);
+    expect(toKroner(eal.aldersreduktionBeloebOre)).toBe(
+      round0(toKroner(eal.forsoergertabAnvendtOre) * 0.17)
+    );
+    expect(toKroner(eal.ealKravOre)).toBe(
+      toKroner(eal.forsoergertabAnvendtOre) - toKroner(eal.aldersreduktionBeloebOre)
+    );
+  });
+
+  it('holder mindstebeløbet op mod andelen – ikke mod det fulde erhvervsevnetab', () => {
+    // 100 % erhvervsevnetab er 4.000.000 kr. og ligger LANGT over mindstebeløbet, men de 30 %
+    // udgør 1.200.000 kr. og ligger under. Mindstebeløbet skal derfor slå til.
+    const result = computeForsoergertabEalKrav({ ...ealInput, ealAarsloen: asAmount(400000) });
+    const eal = result.computation!;
+
+    expect(eal.eetReduceretTilMaks).toBe(false);
+    expect(toKroner(eal.eetBeregnetOre)).toBe(4000000);
+    expect(toKroner(eal.forsoergertabBeregnetOre)).toBe(1200000);
+    expect(result.foersoergertabForhoejtetTilMin).toBe(true);
+    expect(toKroner(eal.forsoergertabAnvendtOre)).toBe(foersoergertabEalMin[2026]);
   });
 });
 

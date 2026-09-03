@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { resolveErhvervsevnetabMaksimumTekst } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -146,9 +147,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">
-                {computation.eetReduceretTilMaks
-                  ? 'Skadelidtes erhvervsevnetab reduceres til det lovbestemte maksimum'
-                  : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør'}
+                {resolveErhvervsevnetabMaksimumTekst(computation.eetReduceretTilMaks)}
               </Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text text-bold">{formatKr(toKroner(computation.eetAnvendtOre))}</Typography>

@@ -5,6 +5,7 @@ import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/f
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { formatKr } from '../../../utils/formatUtils';
 import { toISODateString } from '../../../types/branded';
+import { toKroner } from '../../../domain/money/money';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -97,7 +98,8 @@ describe('forsoergertab → Word-indhold', () => {
     expect(text).toContain(formatKr(calc.result!.ealKrav));
     expect(text).toContain('Resterende periode (hele år og måneder)');
     expect(text).toContain(`${calc.aslComputation!.resterendeAar} år og ${calc.aslComputation!.resterendeMaaneder} måneder`);
-    // EAL-mellemregningen (reguleret årsløn x faktor x 30 %) skal være til stede.
-    expect(text).toContain(`x ${calc.ealComputation!.kapitaliseringsfaktor} x 30 %`);
+    // EAL-mellemregningen i to trin: det fulde erhvervsevnetab og forsørgertabets andel af det.
+    expect(text).toContain(`x ${calc.ealComputation!.kapitaliseringsfaktor} x 100 %`);
+    expect(text).toContain(`${formatKr(toKroner(calc.ealComputation!.eetAnvendtOre))} x 30 %`);
   });
 });

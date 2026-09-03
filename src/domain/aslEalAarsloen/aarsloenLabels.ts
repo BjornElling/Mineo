@@ -6,4 +6,12 @@
  * kan udvikle hver sin betegnelse.
  */
 export const SKADELIDTES_AARSLOEN_ASL_LABEL = 'Skadelidtes årsløn (efter ASL)';
-export const SKADELIDTES_AARSLOEN_EAL_LABEL = 'Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)';
+
+/**
+ * Feltets eget navn på indtastningsfladen. Parentesen er en anvisning til den, der SKAL udfylde
+ * feltet, og hører derfor kun dér.
+ */
+export const SKADELIDTES_AARSLOEN_EAL_FELT_LABEL = 'Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)';
+
+/** Beløbets navn i beregninger og dokumenter, hvor værdien er indtastet og anvisningen er overstået. */
+export const SKADELIDTES_AARSLOEN_EAL_LABEL = 'Skadelidtes årsløn efter EAL';

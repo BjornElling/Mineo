@@ -208,16 +208,6 @@ export function useForsoergertabViewModel() {
     aslComputation: snapshot.calculation.aslComputation,
     foersoergertabEalMinSatsOre: snapshot.calculation.foersoergertabEalMinSatsOre,
     foersoergertabForhoejtetTilMin: snapshot.calculation.foersoergertabForhoejtetTilMin,
-    /**
-     * Maksimumsgrænsen, symmetrisk med minimum (BB-133).
-     *
-     * Begge tal fandtes allerede i beregningen (`eetMaksOre`/`eetReduceretTilMaks`) – de blev bare aldrig
-     * vist. Følgen var, at et beløb sat NED til årets loft stod under sætningen «Det beregnede
-     * forsørgertab skal ikke forhøjes, dvs. udgør», som er usand i netop den situation, mens minimum
-     * havde både en navngiven linje og en formulering om, hvorvidt det slog til.
-     */
-    foersoergertabEalMaksSatsOre: snapshot.calculation.ealComputation?.eetMaksOre ?? null,
-    foersoergertabNedsatTilMaks: snapshot.calculation.ealComputation?.eetReduceretTilMaks ?? false,
     visKoenValg: snapshot.visKoenValg,
     canShowEal: snapshot.canShowEal,
     canShowAsl: snapshot.canShowAsl,

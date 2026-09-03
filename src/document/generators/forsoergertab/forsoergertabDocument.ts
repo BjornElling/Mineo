@@ -2,9 +2,12 @@
  * PDF Generator for Forsørgertab
  *
  * Genererer PDF-specifikation for forsørgertabsberegning med:
- * - Side 1: Grundlæggende oplysninger + Beregnet forsørgertab (hvis tilgængeligt)
- * - Side 2 (betinget): EAL-krav
- * - Side 3 (betinget): ASL-ydelser
+ * - Grundlæggende oplysninger + Beregnet forsørgertab (hvis tilgængeligt)
+ * - EAL-krav (betinget)
+ * - ASL-ydelser (betinget)
+ *
+ * Sidebruddene sættes efter indholdet: er der KUN én ydelsesdel at specificere, står hele
+ * specifikationen på siden med de grundlæggende oplysninger. Er der to, får hver sin side.
  */
 
 import type { DocumentComposer } from '../../model/documentModel';
@@ -12,13 +15,17 @@ import { buildStamdataBrevhovedData, defineDocument } from '../documentGenerator
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
+import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentRounded4, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
 import type { Skadestype } from '../../../schemas/formSchemas/enumSchemas';
 import type { ForsoergertabCalculation, ForsoergertabAslComputation, ForsoergertabEalPort } from '../../../domain/forsoergertab/forsoergertabTypes';
 import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { resolveForsoergertabReguleringTekst } from '../../../domain/forsoergertab/forsoergertabReguleringTekst';
+import { resolveErhvervsevnetabMaksimumTekst } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
+import {
+  FORSOERGERTAB_EAL_GRUNDPRINCIP,
+  resolveForsoergertabMinimumTekst,
+} from '../../../domain/forsoergertab/forsoergertabEalTekster';
 import {
   resolveStamdataDatoReference,
   type StamdataDatoReference,
@@ -31,7 +38,7 @@ import {
 import { FORSOERGERTAB_RESTERENDE_PERIODE_LABEL } from '../../../domain/forsoergertab/forsoergertabLabels';
 
 // ============================================================================
-// Side 1: Grundlæggende oplysninger + Beregnet forsørgertab
+// Grundlæggende oplysninger + Beregnet forsørgertab
 // ============================================================================
 
 type GrundlaeggendeData = Readonly<{
@@ -149,7 +156,7 @@ const addBeregnedResultatSection = (writer: DocumentComposer, result: Forsoerger
 };
 
 // ============================================================================
-// Side 2: EAL-krav
+// EAL-krav
 // ============================================================================
 
 const addEalSection = (
@@ -160,10 +167,10 @@ const addEalSection = (
   datoReference: StamdataDatoReference
 ): void => {
   writer.writeSectionHeader('EAL-krav');
+  writer.writeWrappedText(FORSOERGERTAB_EAL_GRUNDPRINCIP);
 
   writer.writeBoldSubheader('Årsløn');
-  // Datoens navn følger skadestypen i ALLE afledte tekster (BB-121), ikke kun i rækken øverst.
-  writer.writeLeftRightText(`Skadelidtes årsløn på ${datoReference.tidspunktBestemt}`, formatKr(toKroner(eal.aarsloenOre)), {
+  writer.writeLeftRightText('Skadelidtes årsløn', formatKr(toKroner(eal.aarsloenOre)), {
     rightFontStyle: 'normal',
   });
 
@@ -180,16 +187,38 @@ const addEalSection = (
     );
   }
 
-  writer.writeBoldSubheader('Erhvervsevnetab');
-  writer.writeLeftRightText('Erstatningsprocent (jf. erstatningsansvarslovens § 13)', '30 %', {
+  writer.writeBoldSubheader('Fuldt erhvervsevnetab');
+  writer.writeLeftRightText('Erhvervsevnetab', formatPercentRounded4(eal.eetPct), {
     rightFontStyle: 'normal',
   });
   writer.writeLeftRightText('Kapitaliseringsfaktor', String(eal.kapitaliseringsfaktor), {
     rightFontStyle: 'normal',
   });
   writer.writeLeftRightText(
-    `Beregnet forsørgertab (${formatKr(toKroner(eal.reguleretAarsloenOre))} x ${eal.kapitaliseringsfaktor} x 30 %) =`,
+    `Erhvervsevnetab (${formatKr(toKroner(eal.reguleretAarsloenOre))} x ${eal.kapitaliseringsfaktor} x ${formatPercentRounded4(eal.eetPct)}) =`,
     formatKr(toKroner(eal.eetBeregnetOre)),
+    { rightFontStyle: 'normal' }
+  );
+  writer.writeLeftRightText(
+    `Maksimalt erhvervsevnetab i beregningsåret ${eal.beregningsaar}`,
+    formatKr(toKroner(eal.eetMaksOre)),
+    { rightFontStyle: 'normal' }
+  );
+  writer.writeLeftRightText(
+    resolveErhvervsevnetabMaksimumTekst(eal.eetReduceretTilMaks),
+    formatKr(toKroner(eal.eetAnvendtOre)),
+    { rightFontStyle: 'normal' }
+  );
+
+  writer.writeBoldSubheader('Forsørgertab');
+  writer.writeLeftRightText(
+    'Erstatningsprocent',
+    formatPercentRounded4(eal.forsoergertabPct),
+    { rightFontStyle: 'normal' }
+  );
+  writer.writeLeftRightText(
+    `Beregnet forsørgertab (${formatKr(toKroner(eal.eetAnvendtOre))} x ${formatPercentRounded4(eal.forsoergertabPct)}) =`,
+    formatKr(toKroner(eal.forsoergertabBeregnetOre)),
     { rightFontStyle: 'normal' }
   );
 
@@ -201,21 +230,9 @@ const addEalSection = (
     );
   }
 
-  // Loftet får sin egen linje, når det slår til – symmetrisk med minimum ovenfor (BB-133).
-  if (eal.eetReduceretTilMaks) {
-    writer.writeLeftRightText(
-      `Højeste erstatningsniveau i beregningsåret ${eal.beregningsaar}`,
-      formatKr(toKroner(eal.eetMaksOre)),
-      { rightFontStyle: 'normal' }
-    );
-  }
-
   writer.writeLeftRightText(
-    resolveForsoergertabReguleringTekst({
-      forhoejetTilMin: foersoergertabForhoejtetTilMin,
-      nedsatTilMaks: eal.eetReduceretTilMaks,
-    }),
-    formatKr(toKroner(eal.eetAnvendtOre)),
+    resolveForsoergertabMinimumTekst(foersoergertabForhoejtetTilMin),
+    formatKr(toKroner(eal.forsoergertabAnvendtOre)),
     { rightFontStyle: 'normal' }
   );
 
@@ -231,21 +248,21 @@ const addEalSection = (
     { rightFontStyle: 'normal' }
   );
   writer.writeLeftRightText(
-    `${formatKr(toKroner(eal.eetAnvendtOre))} x (${formatDeductionPercent(eal.aldersreduktionPct, `${eal.aldersreduktionPct} %`)}) =`,
+    `${formatKr(toKroner(eal.forsoergertabAnvendtOre))} x (${formatDeductionPercent(eal.aldersreduktionPct, `${eal.aldersreduktionPct} %`)}) =`,
     formatDeductionKr(toKroner(eal.aldersreduktionBeloebOre)),
     { rightFontStyle: 'normal' }
   );
 
   writer.writeBoldSubheader('Beregnet EAL-krav');
   writer.writeLeftRightText(
-    `${formatKr(toKroner(eal.eetAnvendtOre))} - ${formatKr(toKroner(eal.aldersreduktionBeloebOre))} =`,
+    `${formatKr(toKroner(eal.forsoergertabAnvendtOre))} - ${formatKr(toKroner(eal.aldersreduktionBeloebOre))} =`,
     formatKr(toKroner(eal.ealKravOre)),
     { rightFontStyle: 'bold' }
   );
 };
 
 // ============================================================================
-// Side 3: ASL-ydelser
+// ASL-ydelser
 // ============================================================================
 
 const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputation): void => {
@@ -405,21 +422,24 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
   // når brugeren har slået det til, og navnet på sagens dato må ikke afhænge af den indstilling.
   const datoReference = resolveStamdataDatoReference(grundlaeggende.skadestype);
 
-  addGrundlaeggendeSection(
-    writer,
-    grundlaeggende,
-    ealComputation !== null,
-    aslComputation !== null,
-    datoReference
-  );
+  const visEal = ealComputation !== null;
+  const visAsl = aslComputation !== null;
+
+  /**
+   * Er der kun ÉN ydelsesdel at specificere, hører den på siden med de grundlæggende oplysninger:
+   * en sag, der alene beregnes efter EAL, fyldte ellers to sider med luft nok til én. Er begge dele
+   * med, får hver sin side, så de to specifikationer ikke løber sammen.
+   */
+  const specifikationPaaEgenSide = visEal && visAsl;
+
+  addGrundlaeggendeSection(writer, grundlaeggende, visEal, visAsl, datoReference);
 
   if (result !== null) {
     addBeregnedResultatSection(writer, result);
   }
 
-  // --- Side 2: EAL ---
   if (ealComputation !== null) {
-    writer.addPage();
+    if (specifikationPaaEgenSide) writer.addPage();
     addEalSection(
       writer,
       ealComputation,
@@ -429,9 +449,8 @@ export const generateForsoergertabDocument = defineDocument<GenerateForsoergerta
     );
   }
 
-  // --- Side 3: ASL ---
   if (aslComputation !== null) {
-    writer.addPage();
+    if (specifikationPaaEgenSide) writer.addPage();
     addAslSection(writer, aslComputation);
   }
 

@@ -10,6 +10,7 @@ import { buildStamdataBrevhovedData, defineDocument } from '../documentGenerator
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { resolveErhvervsevnetabMaksimumTekst } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -103,9 +104,7 @@ export const renderEfterEalBody = (
   );
 
   writer.writeLeftRightText(
-    computation.eetReduceretTilMaks
-      ? 'Skadelidtes erhvervsevnetab reduceres til det lovbestemte maksimum'
-      : 'Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør',
+    resolveErhvervsevnetabMaksimumTekst(computation.eetReduceretTilMaks),
     formatKr(toKroner(computation.eetAnvendtOre)),
     { rightFontStyle: 'bold' as const }
   );

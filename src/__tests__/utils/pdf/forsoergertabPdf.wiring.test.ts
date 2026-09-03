@@ -6,9 +6,11 @@ import { createPdfDocumentSessionForTest } from './createPdfDocumentSession';
 
 let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
 
-// Wiring-test for forsørgertab-PDF'en: verificerer at de betingede sider (EAL/ASL)
+// Wiring-test for forsørgertab-PDF'en: verificerer at de betingede sektioner (EAL/ASL)
 // kun bygges når den tilhørende delberegning er sat, så et manglende delgrundlag
 // ikke fremtvinger en tom side eller en sektion uden indhold i et tillidskritisk dokument.
+// Samme test dækker sidebruddene: kun ÉN ydelsesdel hører på samme side som de grundlæggende
+// oplysninger, mens to dele får hver sin side.
 class MockJsPDF {
   static instances: MockJsPDF[] = [];
   internal = { pageSize: { width: 210, height: 297 } };
@@ -29,15 +31,28 @@ class MockJsPDF {
   setProperties = vi.fn();
   splitTextToSize = vi.fn((t: string) => [t]);
   getTextWidth = vi.fn((t: string) => t.length);
+  getFontSize = vi.fn(() => 8);
   getNumberOfPages = vi.fn(() => 1);
   setPage = vi.fn();
   line = vi.fn();
   setLineWidth = vi.fn();
+  setDrawColor = vi.fn();
+  addImage = vi.fn();
   addPage = vi.fn();
   save = vi.fn();
+  lastAutoTable?: { finalY?: number };
 }
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
+
+// Tabelplugin'et mockes: testen måler sidebrud og sektionsvalg, ikke tabellayout, og den ægte
+// autotable kræver et fuldt jsPDF-dokument. Kanalens tabelpræsentation er dækket af
+// tableChannelParity-golden'en.
+vi.mock('jspdf-autotable', () => ({
+  default: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+    doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
+  }),
+}));
 
 const BASE_GRUNDLAEGGENDE = {
   beregningsdato: toISODateString('2026-03-17'),
@@ -51,6 +66,38 @@ const BASE_GRUNDLAEGGENDE = {
   ealAarsloen: undefined,
   virkningsdato: undefined,
   tilkendtForPeriodeAar: undefined,
+};
+
+const FULD_GRUNDLAEGGENDE = {
+  ...BASE_GRUNDLAEGGENDE,
+  beregningsdato: toISODateString('2026-03-19'),
+  efterladteFodselsdato: toISODateString('1973-01-01'),
+  aslAarsloen: 450000,
+  ealAarsloen: 450000,
+  virkningsdato: toISODateString('2025-01-01'),
+  tilkendtForPeriodeAar: 10,
+};
+
+// Delberegningerne kommer fra den RIGTIGE domæneberegning, så sidebruddene måles på det
+// indhold, generatoren faktisk får – ikke på et hånd-cast objekt.
+const buildCalculation = async () => {
+  const { computeForsoergertabCalculation } = await import(
+    '../../../domain/forsoergertab/forsoergertabCalculation'
+  );
+  return computeForsoergertabCalculation({
+    ealBlocked: false,
+    aslBlocked: false,
+    skadedato: toISODateString('2020-05-01'),
+    skadestype: 'Arbejdsulykke',
+    skadelidteFodselsdato: toISODateString('1980-01-01'),
+    efterladteFodselsdato: toISODateString('1973-01-01'),
+    beregningsdato: toISODateString('2026-03-19'),
+    virkningsdato: toISODateString('2025-01-01'),
+    koen: undefined,
+    tilkendtForPeriodeAar: 10,
+    aslAarsloen: { kind: 'number', value: 450000 },
+    ealAarsloen: { kind: 'number', value: 450000 },
+  });
 };
 
 // Generatoren importeres dynamisk inde i testene, så jspdf-mocken (med MockJsPDF)
@@ -93,6 +140,54 @@ describe('forsoergertabPdf wiring', () => {
       expect(text).not.toContain('ASL-ydelser');
       // Ingen ekstra sider når begge delberegninger mangler.
       expect(instance?.addPage).not.toHaveBeenCalled();
+    },
+    20000
+  );
+
+  it(
+    'samler hele specifikationen på én side når kun EAL-delen er beregnet',
+    async () => {
+      const { generateForsoergertabDocument } = await importGenerator();
+      const calc = await buildCalculation();
+
+      await generateForsoergertabDocument(pdfSession, {
+        grundlaeggende: FULD_GRUNDLAEGGENDE,
+        result: null,
+        ealComputation: calc.ealComputation,
+        aslComputation: null,
+        foersoergertabEalMinSatsOre: calc.foersoergertabEalMinSatsOre,
+        foersoergertabForhoejtetTilMin: calc.foersoergertabForhoejtetTilMin,
+        visBrevhoved: false,
+      });
+
+      const instance = MockJsPDF.instances.at(-1);
+      expect(renderedTextOf(instance)).toContain('EAL-krav');
+      expect(instance?.addPage).not.toHaveBeenCalled();
+    },
+    20000
+  );
+
+  it(
+    'giver EAL- og ASL-delen hver sin side når begge er beregnet',
+    async () => {
+      const { generateForsoergertabDocument } = await importGenerator();
+      const calc = await buildCalculation();
+
+      await generateForsoergertabDocument(pdfSession, {
+        grundlaeggende: FULD_GRUNDLAEGGENDE,
+        result: calc.result,
+        ealComputation: calc.ealComputation,
+        aslComputation: calc.aslComputation,
+        foersoergertabEalMinSatsOre: calc.foersoergertabEalMinSatsOre,
+        foersoergertabForhoejtetTilMin: calc.foersoergertabForhoejtetTilMin,
+        visBrevhoved: false,
+      });
+
+      const instance = MockJsPDF.instances.at(-1);
+      const text = renderedTextOf(instance);
+      expect(text).toContain('EAL-krav');
+      expect(text).toContain('ASL-ydelser');
+      expect(instance?.addPage).toHaveBeenCalledTimes(2);
     },
     20000
   );

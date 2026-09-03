@@ -6,6 +6,10 @@ import type { MoneyOre } from '../money/money';
 /**
  * Forsørgertabsdomænets forbrugerejede EAL-port. Den eksplicitte projektion forhindrer, at
  * domænet muterer eller bliver typemæssigt koblet til Erhvervsevnetabs søster-output.
+ *
+ * Kravet regnes i to trin, og porten bærer begge, så skærm og dokument kan vise dem hver for sig:
+ * først det FULDE erhvervsevnetab (`eet*`-feltene, hvor det lovbestemte maksimum slår til), derefter
+ * forsørgertabets andel af det (`forsoergertab*`-feltene, hvor mindstebeløbet slår til).
  */
 export type ForsoergertabEalPort = Readonly<{
   beregningsdato: ISODateString;
@@ -18,13 +22,17 @@ export type ForsoergertabEalPort = Readonly<{
   reguleringsaar: readonly number[];
   reguleringsPctRounded4: number;
   reguleretAarsloenOre: MoneyOre;
+  /** Erhvervsevnetabsprocenten kravet regnes af: altid det fulde tab. */
   eetPct: number;
-  eetPctSource: 'eal' | 'asl';
   kapitaliseringsfaktor: 10;
   eetBeregnetOre: MoneyOre;
   eetMaksOre: MoneyOre;
   eetAnvendtOre: MoneyOre;
   eetReduceretTilMaks: boolean;
+  /** Forsørgertabets andel af erhvervsevnetabet, jf. erstatningsansvarslovens § 13. */
+  forsoergertabPct: number;
+  forsoergertabBeregnetOre: MoneyOre;
+  forsoergertabAnvendtOre: MoneyOre;
   alderVedSkade: number;
   alderVedSkadeCapped: number;
   aldersreduktionPct: number;

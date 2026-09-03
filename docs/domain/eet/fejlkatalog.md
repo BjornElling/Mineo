@@ -490,7 +490,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
 | Betingelse | `skadedato ≥ 2024-07-01` og `ealAarsloen` ikke udfyldt. Undertrykkes ikke af `aarsloen-missing`. |
 
-#### `warn-eal-aarsloen-is-max` – "Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL"
+#### `warn-eal-aarsloen-is-max` – "Skadelidtes årsløn efter EAL skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL"
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
@@ -498,7 +498,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
 | Betingelse | `ealAarsloen` er udfyldt og er præcis lig maks. årsløn for skadesåret |
 
-#### `warn-asl-aarsloen-is-max` – "Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL" (ASL-fallback)
+#### `warn-asl-aarsloen-is-max` – "Skadelidtes årsløn efter EAL skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL" (ASL-fallback)
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |

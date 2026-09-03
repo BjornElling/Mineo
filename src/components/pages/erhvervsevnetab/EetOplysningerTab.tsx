@@ -26,7 +26,7 @@ import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsev
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
-  SKADELIDTES_AARSLOEN_EAL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_FELT_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';
@@ -176,7 +176,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
       <ContentBox className="content-box" data-section-id="eet-oplysninger-eal">
         <Typography className="section-header">Erstatningsansvarsloven</Typography>
         <Box className="row--label-right-hover">
-          <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_LABEL}</Typography>
+          <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_FELT_LABEL}</Typography>
           <Box className="row--label-right-hover__content">
             <AmountField
               field={ealAarsloenRef}

@@ -161,6 +161,34 @@ describe('Forsoergertab – reader-projektion + download-gate', () => {
     expect(artifact.filename).toContain('J-2026-002');
   });
 
+  /**
+   * Kravet er 30 % af et FULDT erhvervsevnetab – ikke et erhvervsevnetab på 30 %. Mellemregningen skal
+   * derfor kunne læses i to trin på skærmen, så maksimum og mindstebeløb hver rammer den størrelse, de
+   * hører til: maksimum det fulde tab, mindstebeløbet den færdige andel.
+   */
+  it('viser EAL-kravet som 30 % af det fulde erhvervsevnetab i to trin', () => {
+    hydrate(validForsoergertab, validFaellesAarsloen, validStamdata);
+    renderPage();
+
+    const ealSection = document.querySelector('[data-section-id="forsoergertab-eal"]');
+    expect(ealSection).not.toBeNull();
+    const eal = within(ealSection as HTMLElement);
+
+    expect(eal.getByText(
+      'Forsørgertabserstatning beregnes som 30 % af skadelidtes fulde erhvervsevnetab (jf. EAL § 13)'
+    )).toBeInTheDocument();
+
+    expect(eal.getByText('Fuldt erhvervsevnetab')).toBeInTheDocument();
+    expect(eal.getByText('Erhvervsevnetab (450.000 kr. x 10 x 100 %) =')).toBeInTheDocument();
+    expect(eal.getByText('Maksimalt erhvervsevnetab i beregningsåret 2020')).toBeInTheDocument();
+    expect(eal.getByText('Skadelidtes erhvervsevnetab skal ikke reduceres, dvs. udgør')).toBeInTheDocument();
+
+    expect(eal.getByText('Forsørgertab')).toBeInTheDocument();
+    expect(eal.getByText('Beregnet forsørgertab (4.500.000 kr. x 30 %) =')).toBeInTheDocument();
+    expect(eal.getByText('Mindste erstatningsniveau i beregningsåret 2020')).toBeInTheDocument();
+    expect(eal.getByText('Det beregnede forsørgertab skal ikke forhøjes, dvs. udgør')).toBeInTheDocument();
+  });
+
   it('viser den aktuelle kontekstuelle label for Stamdatas dato', () => {
     hydrate(validForsoergertab, validFaellesAarsloen, {
       ...validStamdata,

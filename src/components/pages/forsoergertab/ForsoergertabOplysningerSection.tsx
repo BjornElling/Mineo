@@ -13,7 +13,7 @@ import { useForsoergertabVm } from './forsoergertabContext';
 import { createFieldWarning } from '../../../inputCore/fieldWarning';
 import {
   SKADELIDTES_AARSLOEN_ASL_LABEL,
-  SKADELIDTES_AARSLOEN_EAL_LABEL,
+  SKADELIDTES_AARSLOEN_EAL_FELT_LABEL,
 } from '../../../domain/aslEalAarsloen/aarsloenLabels';
 
 /**
@@ -122,7 +122,7 @@ const ForsoergertabOplysningerSection = React.memo(() => {
       <Typography className="row--subheading">EAL-ydelse</Typography>
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_LABEL}</Typography>
+        <Typography className="row--text">{SKADELIDTES_AARSLOEN_EAL_FELT_LABEL}</Typography>
         <Box className="row--label-right-hover__content">
           <AmountField
             field={fields.ealAarsloen}
