@@ -53,5 +53,16 @@ describe('efterEal → Word-indhold', () => {
     expect(text).toContain('450.000 kr. x 10 x'); // mellemregningslinje
     expect(text).toContain('2.250.000 kr.'); // eetBeregnet
     expect(text).toContain('2.137.500 kr.'); // ealKrav (slutbeløb)
+
+    // BB-182: skadedatoen bærer både aldersreduktionen og opreguleringen, men stod ikke i dokumentet
+    // – kun fødselsdatoen plus en færdig alder, hvoraf modparten højst kan indsnævre datoen til et år.
+    expect(text).toContain('Skadedato');
+    expect(text).toContain('01-01-2020');
+
+    // BB-177: rækken hed «Endeligt erhvervsevnetab» over en procent, der kan komme fra en afgørelse,
+    // brugeren har markeret Midlertidig. EAL kender ikke et midlertidigt erhvervsevnetab, så
+    // adjektivet var en påstand om sagen uden dækning.
+    expect(text).not.toContain('Endeligt erhvervsevnetab');
   });
+
 });

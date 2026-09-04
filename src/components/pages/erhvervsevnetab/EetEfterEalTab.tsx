@@ -3,7 +3,10 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { resolveErhvervsevnetabMaksimumTekst } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
+import {
+  ERHVERVSEVNETAB_EAL_PCT_LABEL,
+  resolveErhvervsevnetabMaksimumTekst,
+} from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -84,6 +87,23 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
 
             <Typography className="row--subheading">Årsløn</Typography>
 
+            {/*
+              Sagens egen dato bærer både aldersreduktionen og opreguleringen, men fanen viste kun
+              fødselsdatoen plus en færdig alder (BB-182). Uden datoen kan modparten ikke kontrollere
+              «Alder på skadestidspunkt», kun indsnævre den til et år – og netop et år flytter
+              aldersreduktionen et procentpoint og opreguleringen et helt reguleringsår. Rækken står i
+              Specifikationen og ikke i «Beregning», så differencekravets bilag bærer den med
+              (se `renderEfterEalBody`). Navnet følger skadestypen (BB-121), og formen er kort
+              `dd-mm-åååå` som Fødselsdato-rækken nedenfor – de to datoer bærer tilsammen
+              aldersreduktionen og skal kunne læses op mod hinanden uden at skifte format (BB-146).
+            */}
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">{datoReference.label}</Typography>
+              <Box className="row--label-right-hover__content">
+                <Typography className="row--text">{formatISOToDanish(computation.skadedato)}</Typography>
+              </Box>
+            </Box>
+
             <Box className="row--label-right-hover">
               <Typography className="row--text">{`Årsløn på ${datoReference.tidspunktBestemt}`}</Typography>
               <Box className="row--label-right-hover__content">
@@ -116,7 +136,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
             <Typography className="row--subheading">Erhvervsevnetab</Typography>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Endeligt erhvervsevnetab</Typography>
+              <Typography className="row--text">{ERHVERVSEVNETAB_EAL_PCT_LABEL}</Typography>
               <Box className="row--label-right-hover__content">
                 <Typography className="row--text">{formatPct(computation.eetPct)}</Typography>
               </Box>

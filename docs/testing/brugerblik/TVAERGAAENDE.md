@@ -12,6 +12,35 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-04 fra Erhvervsevnetab → EET efter EAL – M-30 – og dets prøve er et SKEMA, ikke
+en måling.** M-30 (advarslen hører til rækkerne, men produceres kun af nogle af de motorer, der læser dem)
+blev fundet to gange på samme fane: fanen henter sin EET-procent fra afgørelsestabellen, men bærer hverken
+`warn-non-endelig-after-endelig` (BB-178 – en midlertidig afgørelse fra 2022 på 30 % fortrænger en endelig
+fra 2020 på 50 %, en forskel på `813.240 kr.`, uden en boks på fanen, mens Løbende ydelser OG Differencekrav
+advarer) eller `warn-dato-after-beregningsdato` (BB-179 – en afgørelse truffet tre og et halvt år efter
+beregningsdatoen giver `1.038.825 kr.` her og **blokerer** Differencekrav helt). Prøven er ren kodesøgning:
+`rg "toWarning\('warn-" src/domain/<domæne>` giver et skema over advarsel × motor, og hver motor, der læser
+samme brugerrækker uden at bære en af de andres advarsler, er en kandidat. **Samme kørsel gav nye forekomster
+af M-11 i dens SAGEN-form (BB-177 – «Endeligt erhvervsevnetab» står over en procent fra en midlertidig
+afgørelse, mens de tre andre faner navngiver typen), af M-20 i BB-141's spejlvendte form (BB-183 – den ene
+halvdel af årslønsmaksimum-reglen har en gul ring, den anden kun en linje i en boks), af M-28 (BB-180 –
+`aarsloenSource` og `eetPctSource` ligger i outputtet og renderes ingen steder), af M-13 i BB-122's form
+(BB-182 – dokumentet mangler skadedatoen, som alderen hviler på) og af M-02 i to former (BB-181 – beskeden
+navngiver et begreb og linker til det forkerte af to felter; BB-184 – «Kapitaliseringsfaktor» er navnet på
+to forskellige størrelser på to faner af samme side).** **Afgjort og gennemført 2026-09-04:** BB-177,
+BB-182 og BB-183 er rettet, BB-178 og BB-181 delvist (BB-178: advarslen flyttet til afgørelsestabellens
+modul, men udvælgelsen står uændret – EAL kender ikke et midlertidigt erhvervsevnetab, og det gav M-30 sit
+trin 4. BB-181: fundets anbefaling afvist, men issuet delt i sine to tilstande), og BB-179, BB-180 og
+BB-184 er afvist. **BB-179's afvisning er den vigtigste af dem:** differencekrav opstår kun, når der er
+krav efter både ASL og EAL, så de to flader har forskellige forudsætninger, og «to faner, to svar» er
+dermed slet ikke et fund – det gav M-30's trin 2 sin tilføjelse. Citaterne nedenfor er gennemgangens
+MÅLINGER og beskriver derfor tilstanden før rettelserne – «Endeligt erhvervsevnetab» hedder nu
+«Erhvervsevnetab».
+M-10, M-19, M-22 og M-02/BB-121 er efterprøvet og
+**bestået**; M-25, M-27, M-29 og M-07 er uden genstand på en resultatfane uden indtastningsfelter og uden
+valgfri dokumentafsnit. **M-28's prøve gav sit andet negative træf** (`alderVedSkadeCapped` – loftet står
+allerede i etiketten som «(max 70 %)»). Konsollen var tavs: 195 beskeder, 0 fejl, 0 advarsler.
+
 **Ét nyt mønster 2026-09-03 fra Erhvervsevnetab → Kapitalisering – M-29 – og det er det første, hvor
 brugeren slet ikke kan komme videre.** M-29 (to regler, der tilsammen ikke efterlader en lovlig
 indtastning) blev målt på en endelig afgørelse truffet mindre end 2 år før folkepensionsalderen: udfyldes
@@ -311,6 +340,52 @@ om en kolonne, der heder «Hvis genopt. - tidl. kap.dato»; «Kapitaliseringspro
 om «Kap. %». Prøven `rg "maxBoundFieldLabel|minBoundLabel" src/inputCore/catalog` fangede de to første;
 **de to sidste er PROSA-beskeder i domænet og er uden for prøvens rækkevidde** – udvid den derfor med
 `rg` på det fulde feltnavn i domænemodulet, når en flades kolonner bruger forkortelser.
+
+**To nye forekomster 2026-09-04 fra Erhvervsevnetab → EET efter EAL, og den første er mønsterets DYRESTE
+form: beskeden navngiver et begreb og linker til det forkerte af to felter** (`erhvervsevnetab.md` BB-181,
+**Høj**). Med en afgørelsesrække, hvis EET %-celle står tom, skriver tre af de fire faner ordret «Der er en
+afgørelse uden EET %» → EET oplysninger → **Arbejdsskadesikringsloven**, mens EET efter EAL skriver
+«**Erhvervsevnetabsprocent er ikke udfyldt**» → EET oplysninger → **Erstatningsansvarsloven**. Begrebet er
+ikke navnet på nogen af de to felter, det kan handle om, og linket fører til det **valgfrie** – feltet, hvis
+egen etiket siger «(hvis afviger fra ASL)». Brugeren, der følger linket, får fanen til at regne og sætter
+samtidig en EAL-afvigelse, han ikke mente, mens den afgørelse, han skulle gøre færdig, står tilbage uden
+sin procent, så de tre andre faner bliver blokeret. **Prøven er ny og skarp: for hvert issue, der navngiver
+et BEGREB frem for et felt, spørg hvor mange felter der kan opfylde det – og hvor linket peger.** Nabolinjen
+i samme boks viser målestokken: «Skadelidtes årsløn (efter ASL) er ikke udfyldt» navngiver sit felt ordret
+og linker rigtigt, selv om den værdi har samme to-kilde-struktur. `rg "er ikke udfyldt" src/domain` er
+indgangen. **Den anden forekomst er navnekollisionen mellem to faner** (BB-184, Lav): rækken
+«Kapitaliseringsfaktor» bærer på Kapitalisering den aldersafhængige faktor fra kapitaliseringsbekendtgørelsen
+(målt `10,772`, tre decimaler) og på EET efter EAL erstatningsansvarslovens faste faktor (`10`) – to
+naborækker med identisk navn og værdier, der ser ud som samme størrelse med afrunding. **Mønsteret udvides
+dermed fra «beskeden bruger et andet navn end feltet» til «to forskellige størrelser bruger samme navn»;
+prøven er den samme og køres bare i den anden retning:** tag hvert rækkenavn, der optræder på mere end én
+fane, og spørg om det betegner samme størrelse.
+
+**Udfald 2026-09-04. BB-184 er AFVIST, og afvisningen retter mønsterets nye retning:** kapitaliseringsfaktor
+ER samme begreb i ASL og EAL – eneste forskel er, at ASL fastsætter den ved tabelopslag og EAL altid ved 10,
+og målgruppen kender og forventer det. **Læren: den omvendte prøve må ikke stoppe ved «to forskellige
+VÆRDIER med samme navn», men skal spørge om de to er samme BEGREB.** To fastsættelsesmåder af én størrelse
+er ikke en navnekollision; det er netop den slags forskel, et fælles fagbegreb findes for at dække.
+Kandidatlisten «Erhvervsevnetab», «Årsløn», «Regulering» skal derfor bedømmes på begrebsidentitet frem for
+på værdiernes form. **BB-181 er DELT i to tilstande og gennemført 2026-09-04:** fundets anbefaling var
+forkert – udgangspunktet for EET efter EAL er, at brugeren angiver procenten specifikt for EAL, og visse
+sager er kun omfattet af EAL, hvor det ville være meningsløst at pege på ASL. Men afvisningen dækkede den
+RENE sag (hverken EAL- eller ASL-oplysninger), mens fundets måling var en anden tilstand: en fuldt udfyldt
+Endelig afgørelse, hvis EET %-celle er tom. **Begge tilstande udsendte samme issue-id.** Nu peger en
+påbegyndt afgørelse uden procent på tabellens egen celle med de tre andre faners ordlyd
+(`missing-eet-pct`), mens en sag helt uden afgørelser får «Erhvervsevnetabsprocenten mangler: angiv EET %
+efter EAL, eller udfyld EET % på en afgørelse» med link til EAL-feltet – begge veje nævnt, fordi begge er
+lovlige udgange.
+
+**Læren er mønsterets vigtigste tilføjelse fra denne kørsel: når ét issue kan opstå i flere tilstande,
+skal prøven navngive dem hver for sig.** Ellers besvarer tilbagemeldingen den ene, mens fundet handlede om
+den anden – og begge parter kan have ret uden at nå hinanden. Det gælder især `missing-*`-issues i en
+beregning med en fallback: fallbacken har mindst to måder at løbe tør på (kilden findes slet ikke, eller
+kilden findes halvfærdig), og de kræver hvert sit link. **Konkret indgang: for hvert `missing-*`-issue,
+tæl de veje der fører dertil, og spørg om beskeden OG linket passer på dem alle.** Det er samtidig
+mønsterets svar på, hvorfor en besked, der navngiver et begreb frem for et felt, opstår: begrebet er ofte
+det ENESTE, der er sandt i alle tilstandene – og det er en grund til at dele issuet, ikke til at beholde
+begrebet.
 
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
@@ -710,6 +785,27 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
   **Prøven er ny og hører på hver linje, der bruger et verbum om sagen** – «ophører», «udbetales»,
   «tilkendes», «bortfalder»: læs den som en påstand om virkeligheden og spørg, om programmet kan vide
   det, eller kun kender sin egen grænse.
+- **Ny forekomst 2026-09-04, og den udvider SAGEN-formen fra verber til ADJEKTIVER**
+  (`erhvervsevnetab.md` BB-177, Mellem). EET efter EAL skriver «**Endeligt** erhvervsevnetab 30 %» over en
+  procent, motoren har hentet fra en afgørelse, brugeren har markeret **Midlertidig** – og med
+  `Delvist endelig` bliver påstanden endnu skævere, fordi netop den type betyder, at kun en del er endelig.
+  Programmet ved besked og siger det tre steder: Løbende ydelser skriver «Type: Midlertidig afgørelse»,
+  Differencekrav «Midlertidig afgørelse», og begge dokumenter trykker det. Kun fane 4's linje kalder tallet
+  endeligt, og linjen trykkes ordret i dens eget dokument, som en modpart læser.
+  **Prøven udvides: læs ikke kun verberne, men hvert kvalificerende adjektiv på et tal** – «endeligt»,
+  «samlet», «faktisk», «aktuel», «fuldt» – og spørg, om programmet har afgjort det, eller blot har valgt
+  rækken efter en sorteringsregel. **Bemærk, at løsningen findes i programmet selv:** Forsørgertabs dokument
+  kalder præcis samme tal fra præcis samme beregning blot «Erhvervsevnetab».
+  **Rettet 2026-09-04, og tilbagemeldingen gav en STÆRKERE begrundelse end fundets:** adjektivet er ikke
+  blot upræcist, det er meningsløst – erstatningsansvarsloven kender slet ikke et midlertidigt
+  erhvervsevnetab, så EAL-procenten er den fastsatte procent, og der findes ingen modsætning at være
+  «endelig» over for. Ordlyden er nu den delte konstant `ERHVERVSEVNETAB_EAL_PCT_LABEL`, så skærm og
+  dokument ikke kan drifte. **Læren for prøven, og den er ny:** når et adjektiv viser sig meningsløst i
+  domænet, er det et bedre argument for at fjerne det end at det er upræcist – og det er et argument, kun
+  domæneejeren kan give. Ordet er BEVARET i Erstatningsopgørelsens ASL-sektion
+  (`AesAfgoerelserSection.tsx:134`), hvor det navngiver en faktisk endelig afgørelse: **en omdøbning skal
+  søges som begreb i sin egen lovkontekst, ikke som streng** (BB-134's lære, nu i den omvendte retning –
+  her var to af tre træf netop dem, der IKKE måtte rettes).
 
 ## M-12 – Et valg, hvis virkning hverken kan ses nu eller findes senere
 
@@ -947,6 +1043,27 @@ måles og rettes.
     kanonisk – og «(100 % **−** AM-bidrag)» med U+2212 på skærmen mod U+002D i dokumentet, plus to
     forskellige sætninger om AM-bidraget. **Tegnprøven skal køres på TEGNKODE:** de to minustegn er
     visuelt næsten ens, og U+2212 findes kun to steder i programmets brugervendte tekster.
+- **Ny forekomst 2026-09-04 i BB-122's form, og den viser, at rettelsen ikke fulgte den DELTE beregning**
+  (`erhvervsevnetab.md` BB-182, Mellem). EET efter EAL's dokument har 19 linjer, og sagens skadedato er
+  ikke en af dem – men **Fødselsdato** står som selvstændig række, umiddelbart over «Alder på
+  skadestidspunkt 48 år». De to tal, der bærer hele aldersreduktionen, er netop fødselsdato og skadedato,
+  og dokumentet giver kun den ene, så alderen kan ikke kontrolleres. Det nærmeste er «Regulering fra
+  skadesår 2018 …», som udgår helt, hvis skadesår og beregningsår er det samme. **Forsørgertabs dokument,
+  som opgør præcis samme EAL-krav af præcis samme beregning, har datoen** (`forsoergertabDocument.ts:91-92`,
+  BB-122's rettelse 2026-08-28). **Læren om rettelsers omfang, og den er BB-137's igen i en ny form:**
+  BB-122 blev rettet i den generator, fundet blev gjort i, mens den ANDEN generator, der trykker samme
+  beregning, ikke fulgte med. Når en beregning har mere end én udgang, skal en forudsætningsrettelse søges
+  på beregningen (`rg` på computation-typen), ikke på generatoren.
+  **Rettet 2026-09-04, men PLACERET anderledes end fundet foreslog, og forskellen er selv en prøve.**
+  Fundet bad om rækken i «Beregning»-boksen ved Beregningsdato. Men differencekravet trykker samme krop som
+  bilag med `includeBeregningsdatoHeader = false`, som slår hele den sektion fra – og differencekravets egen
+  krop skriver ikke skadedatoen. En række i headeren var derfor forsvundet i netop det dokument, hvor
+  forudsætningen er sværest at finde. Rækken ligger nu i «Specifikation» under «Årsløn», hvor den er
+  synlig i begge udgange, og i kort `dd-mm-åååå` som fødselsdato-rækken, så de to datoer bag
+  aldersreduktionen kan læses op mod hinanden (BB-146's formregel). **Prøven, der følger heraf: før en
+  oplysning lægges i en betinget sektion, spørg hvilke KALDERE der slår sektionen fra, og om oplysningen er
+  undværlig for dem.** Indgang: `rg "include[A-Z]\w*Header|include[A-Z]\w* = true" src/document/generators`
+  – hvert flag af den form er en sektion, en anden kalder fravælger.
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -1430,6 +1547,27 @@ ene felts egen værdi.
   `EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS` navngiver præcis de tre.
   **Bemærk at udviklerens afgørelse ved BB-142 peger samme vej:** indtastningsfanen skal vise fejl i
   faktisk foretagne indtastninger som rød eller gul ring med tooltip – ikke som tekst i en boks.
+- **Ny forekomst 2026-09-04, og den er mønsterets BILLIGSTE at bedømme, fordi de to halvdele af SAMME
+  regel var implementeret hver sin vej** (`erhvervsevnetab.md` BB-183, Mellem, **rettet 2026-09-04**).
+  Årslønsmaksimum-advarslen har en gul ring, når ASL-årslønnen er på maksimum og EAL-feltet er tomt
+  (`resolveEetAslAarsloenMaxWarning`) – men havde **ingen ring**, når EAL-feltets EGEN værdi var lig
+  maksimum (målt: notched border `rgba(0, 0, 0, 0.12)`, ingen tooltip, ingen `aria-describedby`); dér stod
+  teksten udelukkende i «Fejl og advarsler» på to resultatfaner. Advarslen afhænger af ét felts egen værdi
+  plus skadedatoen – nøjagtig den præmis, `resolveEetTitrinWarning` blev accepteret på ved BB-158.
+  **To rettelser af fundets egen beskrivelse, som først kildelæsningen afslørede:** ringen sad hele tiden
+  på **EAL-feltet** og ikke på ASL-feltet (`EetOplysningerTab.tsx:186`; ASL-feltet har slet ingen
+  `warning`-prop), og de to advarsler bar **to forskellige tekster** – feltringen brugte
+  `ASL_AARSLOEN_MAX_NOTICE`, boksen en anden sætning. Reglen var altså på det rigtige felt, men dækkede kun
+  én af to tilstande, og de to kanaler sagde ikke det samme. Rettelsen tilføjede
+  `hasEetEalAarsloenMaxWarning` og samlede ordlyden i `EET_EAL_AARSLOEN_MAX_WARNING`.
+  **Læren: når en regel har to symmetriske halvdele, er den halvdel, der ikke fik feltadvarslen, altid
+  kandidaten** – og prøven er ikke «har feltet en ring?», men «har feltet en ring i HVER tilstand, reglen
+  kan brydes i, og er det den samme sætning som boksens?» Søg efter regler, hvis feltadvarsel har en
+  `=== undefined`-betingelse på nabofeltet: betingelsen findes for at undgå at advare to gange, men den
+  efterlader den anden halvdel uden ring. **Den diagnose holdt – bemærk at den peger på det rigtige sted,
+  selv om fundets beskrivelse af hvilket FELT der manglede ringen, var forkert; mekanismen er den
+  pålidelige del af prøven, den visuelle måling den skrøbelige.**
+  Konkret uafprøvet søster: `warn-eal-aarsloen-empty-for-2024-07-01`.
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
@@ -1814,8 +1952,32 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   kan komme til at bruge, så de to kanaler ikke kan drifte. Men netop derfor er der ingen der bemærker,
   når en visning aldrig blev skrevet. **Et output, der er komplet af arkitektoniske grunde, er ikke
   dokumentation for, at brugeren får oplysningen.**
-- Kandidater, ikke efterprøvet: de tre øvrige EET-computations (`eetKapitaliseringCalculation`,
-  `eetEalCalculation`, `eetDifferencekravCalculation`) og EO's rækkebyggere. Generel indgang:
+- **Kandidaten `eetEalCalculation` er efterprøvet 2026-09-04, havde fejlen, og den er mønsterets reneste
+  form hidtil** (`erhvervsevnetab.md` BB-180, Mellem). Af `eetEalComputationSchema`s 22 felter renderes 18.
+  De to, der betyder noget, er `aarsloenSource` og `eetPctSource` – de to `z.enum(['eal', 'asl'])`-felter,
+  der siger, HVILKEN af to udfyldte kilder beregningen brugte. `rg "aarsloenSource|eetPctSource"
+  src/components src/document` giver nul træf. Målt: med ASL-årsløn `400.000` og EAL-årsløn `700.000`, en
+  endelig afgørelse på `50 %` og en EAL-procent på `75` skriver fanen «Årsløn på skadestidspunktet
+  700.000 kr.» og «Endeligt erhvervsevnetab 75 %», mens Løbende ydelser i samme sag skriver «Årsløn
+  400.000 kr.» og «Erhvervsevnetab 50 %» – uden at nogen af de to rækker siger, hvor tallet kom fra, og
+  uden en tooltip på nogen af specifikationens 19 rækker. **Læren skærper prøven med en ny og meget smal
+  søgning: en `source`-diskriminant i et output er per definition et svar på et spørgsmål, brugeren står
+  med** («hvilket af mine to felter blev brugt?»). `rg "Source: z.enum" src/domain` er indgangen, og hvert
+  træf er en kandidat, indtil dets kaldsside i en visning er fundet. Samme kørsel gav mønsterets **andet
+  negative træf**: `alderVedSkadeCapped` renderes ingen steder, men er ikke et brugerfund – loftet står
+  allerede i etiketten som «(max 70 %)», altså trin 3's form fra BB-176.
+  **AFVIST af udvikleren 2026-09-04, og afvisningen giver mønsteret sit TREDJE negative træf – det
+  tungeste, fordi det rammer prøvens nye smalle søgning direkte.** Begrundelsen: målgruppen ved, at der
+  skal vurderes en årsløn efter EAL, og at ASL-årslønnen ofte er fallbacken; det behøver ikke
+  tydeliggøres. `aarsloenSource` og `eetPctSource` forbliver dermed bevidst urenderede.
+  **Læren, der skal med i prøven: en `source`-diskriminant er et svar på «hvilket felt blev brugt?», men
+  spørgsmålet er kun brugerens, hvis fallbacken er overraskende for målgruppen.** Er rangordenen mellem de
+  to kilder et fagligt selvfølge – som «EAL-årsløn ellers ASL-årsløn» er her – er diskriminanten intern
+  bogføring, ikke en manglende oplysning. `rg "Source: z.enum"` giver stadig kandidatlisten, men hvert
+  træf skal nu bedømmes på, om VALGET er overraskende, før det bliver et fund. Det er samme skelnen som
+  trin 3's, blot om målgruppens forventning frem for om domænets arbejdsdeling.
+- Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176),
+  `eetDifferencekravCalculation` og EO's rækkebyggere. Generel indgang:
   `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
   `*Calculation.ts` en søgning uden for `src/__tests__`.
 
@@ -1874,3 +2036,93 @@ og hold hver fanefejl op mod feltreglerne for de felter, den nævner.
 - Kandidater, ikke efterprøvet: de øvrige par af feltregel og fuldstændighedsregel på EET-oplysningerne
   (kap.dato/kap. % ved delvist endelig, tidl. kap.dato ved genoptagelse) og EO's ansættelsesforhold, hvor
   samme opdeling mellem feltregler og faneniveauets «mangler»-issues findes.
+
+---
+
+## M-30 – Advarslen hører til rækkerne, men produceres kun af nogle af de motorer, der læser dem
+
+> Flere beregninger læser den samme tabel af brugerindtastede rækker. Én af dem advarer om en mangel i
+> rækkerne; de andre regner videre på præcis samme rækker uden et ord.
+
+En side med flere resultatflader har typisk én fælles indtastning og flere selvstændige motorer, hver med
+sin egen `issues`-liste. Advarslerne om **selve indtastningen** – to afgørelser i forkert rækkefølge, en
+dato uden for opgørelsesperioden, en procent uden for lovens trin – er skrevet i den motor, hvor de først
+blev opdaget, og de følger derfor motoren og ikke rækken. Resultatet er, at samme mangel i samme tabel
+oplyses på nogle af fladerne og er tavs på de øvrige.
+
+Formen er farlig, fordi den er **usynlig i normal drift og usynlig i koden**: hver motors issue-liste er
+komplet efter sin egen målestok, hver flade viser loyalt sine egne issues, og ingen test kan fejle, når en
+advarsel ikke findes. Den kræver, at man læser to motorer op mod hinanden – og det er præcis, hvad ingen
+gør, når man arbejder i én af dem.
+
+Det er værre end M-20, hvor oplysningen er hængt et **for højt** sted. Her findes oplysningen slet ikke på
+den flade, hvor tallet står, og brugeren har ingen grund til at åbne nabofanen for at hente sit dokument.
+
+**Efterprøv, hvor:** to eller flere motorer læser samme brugerindtastede collection. Prøven er **ren
+kodesøgning og kræver ingen browser** – den giver et skema, ikke en måling:
+
+1. `rg "toWarning\('warn-" src/domain/<domæne>` og opstil advarsel × motor.
+2. For hver advarsel, der kun står i én motor: læser de øvrige motorer de samme rækker – **og opstår de
+   under samme forudsætninger?** En flade, hvis eksistensbetingelse er strengere end naboens (fx
+   differencekrav, der kræver krav efter både ASL og EAL), kan lovligt bære en advarsel, naboen ikke har.
+3. Gør de det, er de kandidater. Afgør derefter, om advarslen er relevant for netop den beregning – en
+   ASL-regel hører ikke nødvendigvis i en EAL-beregning, og det er den eneste gyldige grund til fraværet.
+4. **Skeln mellem to slags fravær, der ser ens ud i skemaet:** mangler motoren ADVARSLEN, eller kender
+   dens domæne slet ikke det BEGREB, advarslen handler om? Er svaret det sidste, kan beregningen være
+   fuldstændig korrekt i sin behandling af rækkerne, og alligevel skylde brugeren en oplysning om, at
+   rækkerne er flertydige.
+
+Trin 3 er nødvendigt, ellers bliver en korrekt arbejdsdeling registreret som en mangel (BB-166's lære).
+**Trin 4 er BB-178's lære og er tilføjet 2026-09-04, efter at fundet blev vendt om af sin egen
+tilbagemelding.** Fundet foreslog at overveje at sortere afgørelsestype før dato, så en endelig afgørelse
+ville vinde over en senere midlertidig. Svaret var det modsatte: erstatningsansvarsloven kender slet ikke
+et midlertidigt erhvervsevnetab, så «seneste ASL-procent vinder» er den rigtige regel og ikke en
+tilfældig sorteringsrækkefølge. **Beregningen var altså korrekt, og advarslen manglede alligevel** – de
+to konklusioner udelukker ikke hinanden, og et skema kan ikke skelne dem. Prøven er billig nok til at
+køres i sin helhed: skemaet er typisk under tyve linjer pr. domæne.
+
+**Rettelsens form er en del af mønsteret.** `warn-non-endelig-after-endelig` kunne ikke genbruges af
+EAL-motoren, fordi den var låst til løbende ydelsers egen `ResolvedAfgoerelse`-type – og netop den lås er
+det, der skaber mønsteret. Reglen er derfor flyttet til afgørelsestabellens eget modul
+(`eetAslAfgoerelser.ts`) som en ren funktion af en smal rækketype, med sin egen rækkeopløser for de
+motorer, der ikke i forvejen har en opløst liste. **Når du retter en forekomst: flyt reglen til
+tabellens modul frem for at kopiere prædikatet ind i den anden motor.**
+
+- Fundet i: `erhvervsevnetab.md` BB-178 (**Høj**, delvist implementeret 2026-09-04). Skemaet for EET,
+  som det stod ved gennemgangen: `warn-non-endelig-after-endelig` og
+  `warn-invalid-eet-pct-after-2024-07-01` produceredes KUN af `eetLoebendeYdelserCalculation`;
+  `warn-dato-after-beregningsdato` af løbende og differencekrav; `warn-asl-eet-under-15` af løbende og
+  EAL; `warn-kap-pct-under-15` og `warn-ingen-kap-input` kun af kapitalisering.
+  **`computeEetEalCalculation` læste afgørelsestabellen og bar ingen af tabellens rækkefølge-advarsler.**
+  Målt: en endelig afgørelse fra 2020 på 50 % plus en midlertidig fra 2022 på 30 % gav «Endeligt
+  erhvervsevnetab 30 %» og «Beregnet EAL-krav 1.219.860 kr.» uden nogen boks, hvor samme sag uden den
+  midlertidige række giver `2.033.100 kr.` – **813.240 kr.** i forskel. **Udfald:** udvælgelsen står
+  uændret (trin 4's lære), advarslen er flyttet til `eetAslAfgoerelser.ts` og produceres nu af EAL-motoren
+  ved fallbacken. Rækken hedder nu «Erhvervsevnetab» (BB-177).
+- **Ikke et fund: `erhvervsevnetab.md` BB-179 (AFVIST I SIN HELHED 2026-09-04), og afvisningen er
+  mønsterets vigtigste afgrænsning.** Fundet lignede mønsterets skarpeste form, fordi de to naboer ikke
+  blot advarede forskelligt – de var uenige om, at der fandtes et krav. Med beregningsdato `01-01-2021` og
+  en endelig afgørelse fra `01-06-2024` opgør EET efter EAL `1.038.825 kr.` med aktiv downloadknap, mens
+  Differencekrav **blokerer** med «Der er ingen ASL-afgørelser med virkningsdato på eller før
+  beregningsdatoen» – og differencekravet trykker netop EAL-kroppen som bilag
+  (`differencekravDocument.ts:527`). **Alligevel er begge rigtige:** differencekrav opstår udelukkende, når
+  der er krav efter BÅDE ASL og EAL, mens EAL-fanen opgør ét krav isoleret. De to flader kræver altså ikke
+  samme input for at opstå, og differencekravet skal kunne periodisere ASL-ydelserne, hvilket EAL-kravet
+  ikke skal. **Læren, som M-30's prøve skal bære: mønsteret gælder motorer, der læser samme rækker under
+  SAMME forudsætninger.** Er den ene flades eksistensbetingelse strengere end den andens, kan en
+  fejlmeddelelse være relevant dér uden at være det her – selv om de to udspringer af samme forhold, og
+  selv om det er samme tal. Prøvens trin 2 skal derfor spørge både «læser de samme rækker?» og «opstår de
+  under samme forudsætninger?». Det er BB-166's lære flyttet fra beregningernes arbejdsdeling til fladernes
+  input-forudsætninger.
+- **Læren om, hvorfor mønsteret opstår, og den er den samme som M-28's:** hver motors issue-liste bygges
+  af den, der skriver motoren, ud fra hvad DEN beregning har brug for. Advarsler om indtastningen ser ud
+  som en del af beregningen, men de hører til rækken. **En advarsel om brugerens indtastning bør derfor
+  udledes ét sted af rækkerne – ikke af hver motor for sig** (præcis den konstruktion,
+  `resolveEetUnder15Warning` og `resolveDatoEfterBeregningsdatoWarning` allerede har som feltadvarsler:
+  rene funktioner af rækkens egne værdier, kaldt fra det sted, der viser).
+- **Skellet mod M-16 og M-25.** M-16 handler om en motor, der AFVISER en komplet række, og hvor afvisningen
+  kommer ud som et fravær. M-25 om en gate, der ikke fanger, at en halv opgørelse faldt ud. M-30 handler om
+  en motor, der regner **villigt og korrekt** på rækker, en nabomotor har fundet noget at sige om.
+- Kandidater, ikke efterprøvet: Erstatningsopgørelsens rækkebyggere (`EO_ROW_BUILDERS`), som deler
+  lønindkomst- og ydelsestabellerne mellem flere faner; Årsløns tre lønmetoder, som deler samme
+  periodetabel. Generel indgang: `rg "toWarning\(|severity: 'warning'" src/domain` pr. domæne.

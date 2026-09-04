@@ -4,6 +4,7 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import {
   buildAldersreduktionEtiket,
   computeEetEalCalculation,
+  EET_PCT_MISSING_MESSAGE,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { EET_UNDER_15_WARNING } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
@@ -312,7 +313,16 @@ describe('computeEetEalCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'asl-identiske-afgoerelser')).toBe(false);
   });
 
-  it('giver fejl når EET % ikke kan bestemmes fra EAL eller ASL', () => {
+  /**
+   * BB-181: to tilstande efterlader fanen uden en procent, og de skal pege hvert sit sted.
+   *
+   * Er en afgørelsesrække PÅBEGYNDT og mangler blot sin procentcelle, er det en halvfærdig
+   * indtastning i ASL-tabellen, og beskeden skal være de tre andre faners – med afgørelsens egen
+   * celle som fokusmål. Pegede fanen dér på det valgfrie EAL-felt, ville brugeren udfylde en
+   * EAL-afvigelse han ikke mente, mens afgørelsen stod tilbage uden sin procent og blokerede de tre
+   * andre faner, uden at han havde rørt dem.
+   */
+  it('peger på afgørelsestabellen, når en påbegyndt afgørelse mangler sin EET %', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -338,7 +348,75 @@ describe('computeEetEalCalculation', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.message === 'Erhvervsevnetabsprocent er ikke udfyldt')).toBe(true);
+    // Ordret de tre andre faners besked, så samme mangel ikke får to beskrivelser.
+    expect(result.issues).toContainEqual({
+      id: 'missing-eet-pct',
+      severity: 'error',
+      message: 'Der er en afgørelse uden EET %',
+    });
+    // Og IKKE den generelle besked, som linker til det valgfrie EAL-felt.
+    expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
+  });
+
+  /**
+   * Den anden tilstand: ingen afgørelsesrækker og ingen EAL-procent. Her er der ikke en halvfærdig
+   * indtastning at pege på, og sagen kan være omfattet af erstatningsansvarsloven ALENE – derfor
+   * nævner beskeden begge veje og linker til EAL-feltet, som altid er en gyldig udgang.
+   */
+  it('nævner begge veje, når hverken en EAL-procent eller en afgørelse findes', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(500000),
+        ealAarsloen: undefined,
+        ealEetPct: undefined,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'eet-pct-missing',
+      severity: 'error',
+      message: EET_PCT_MISSING_MESSAGE,
+    });
+    expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(false);
+  });
+
+  it('peger på afgørelsestabellen, når EN af flere afgørelser mangler sin EET %', () => {
+    // Fallbacken vælger den seneste afgørelse. Er det netop den, der mangler sin procent, må den
+    // halvfærdige række stadig være den, brugeren sendes til – ikke EAL-feltet.
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(500000),
+        ealEetPct: undefined,
+        aslAfgoerelser: [
+          aslRow({
+            id: 'senest-uden-pct',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-01-01'),
+            eetPct: undefined,
+            afgoerelseType: 'Endelig',
+          }),
+        ],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
   });
 
   it('giver fejl når reguleringssats mangler for et nødvendigt år', () => {
@@ -499,6 +577,97 @@ describe('computeEetEalCalculation', () => {
           issue.message === 'For skader fra 1. juli 2024 og frem beregnes årsløn forskelligt efter EAL og ASL.'
       )
     ).toBe(true);
+  });
+});
+
+/**
+ * BB-178: fanen valgte sin EET-procent ved en sortering, brugeren ikke kunne se, og var samtidig helt
+ * tavs om, at der var mere end én afgørelse at vælge imellem – mens Løbende ydelser og Differencekrav
+ * begge advarede i samme sag. Målt i fundet: en midlertidig afgørelse fra 2022 på 30 % fortrænger en
+ * endelig fra 2020 på 50 %, en forskel på 813.240 kr. i det trykte krav.
+ *
+ * Udvælgelsen er BEVIDST uændret (udviklerens afgørelse 2026-09-04): mangler en særskilt EET-procent
+ * efter EAL, gælder den seneste procent efter ASL uanset afgørelsestype, fordi erstatningsansvarsloven
+ * ikke kender et midlertidigt erhvervsevnetab. Kun tavsheden er rettet.
+ */
+describe('computeEetEalCalculation – advarsel om ikke-endelig afgørelse efter endelig (BB-178)', () => {
+  const NON_ENDELIG_WARNING = 'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.';
+
+  const beregn = (rows: AslAfgoerelseRow[], ealEetPct?: number) =>
+    computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-07-01'),
+        aslAarsloen: asAmount(400000),
+        ealEetPct,
+        aslAfgoerelser: rows,
+      },
+      skadedato: iso('2018-06-01'),
+      skadelidteFodselsdato: iso('1970-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+  const endelig2020 = aslRow({
+    id: 'endelig-2020',
+    afgoerelsesDato: iso('2020-01-01'),
+    virkningsDato: iso('2020-01-01'),
+    eetPct: 50,
+    afgoerelseType: 'Endelig',
+    kapDato: iso('2020-01-01'),
+    kapPct: 50,
+  });
+  const midlertidig2022 = aslRow({
+    id: 'midlertidig-2022',
+    afgoerelsesDato: iso('2022-01-01'),
+    virkningsDato: iso('2022-01-01'),
+    eetPct: 30,
+    afgoerelseType: 'Midlertidig',
+  });
+
+  it('advarer, når en midlertidig afgørelse er den, procenten hentes fra', () => {
+    const result = beregn([endelig2020, midlertidig2022]);
+
+    // Den midlertidige vinder fortsat – det er den ønskede adfærd.
+    expect(result.computation?.eetPct).toBe(30);
+    expect(result.computation?.eetPctSource).toBe('asl');
+    expect(result.issues).toContainEqual({
+      id: 'warn-non-endelig-after-endelig',
+      severity: 'warning',
+      message: NON_ENDELIG_WARNING,
+    });
+  });
+
+  it('advarer ikke, når tabellen kun har den endelige afgørelse', () => {
+    const result = beregn([endelig2020]);
+
+    expect(result.computation?.eetPct).toBe(50);
+    expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(false);
+  });
+
+  it('advarer ikke, når en udfyldt EAL-procent gør afgørelsestabellen uden betydning', () => {
+    // Med en egen EAL-procent læser beregningen slet ikke tabellen; en advarsel om dens rækkefølge
+    // ville da pege på noget, der ikke bærer tallet.
+    const result = beregn([endelig2020, midlertidig2022], 75);
+
+    expect(result.computation?.eetPct).toBe(75);
+    expect(result.computation?.eetPctSource).toBe('eal');
+    expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(false);
+  });
+
+  it('advarer ikke, når den ikke-endelige afgørelse ligger FØR den endelige', () => {
+    const midlertidig2018 = aslRow({
+      id: 'midlertidig-2018',
+      afgoerelsesDato: iso('2018-07-01'),
+      virkningsDato: iso('2018-07-01'),
+      eetPct: 20,
+      afgoerelseType: 'Midlertidig',
+    });
+    const result = beregn([midlertidig2018, endelig2020]);
+
+    expect(result.computation?.eetPct).toBe(50);
+    expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(false);
   });
 });
 

@@ -1745,3 +1745,571 @@ samme tal som den håndregnede kontrol i «Fladen kort». Ingen Beregningsdato-r
 dumpet før og efter for at bevise, at diffen KUN indeholder de to advarselstekster og de fire nye
 `eetPct`-felter – **intet beløb flyttede sig**. Den fremgangsmåde står nu i testfilens egen header som
 kravet til enhver senere hash-opdatering.
+
+# Fane 4 – EET efter EAL
+
+- Gennemgået: 2026-09-04 · commit `8b34f3b5`
+- Afprøvet i: Chrome, lyst tema, 1536×864. Dokumentet hentet som `.docx` og læst linje for linje.
+
+## Fladen kort
+
+Fanen er **Erhvervsevnetabs tredje resultatfane** og den, der opgør kravet efter
+**erstatningsansvarsloven**: årsløn, opregulering til beregningsåret, erhvervsevnetab gange den faste
+faktor 10, loft ved årets maksimum og til sidst aldersreduktionen. Den har præcis én kontrol –
+downloadknappen – og alt andet er visning. Strukturen er «Fejl og advarsler» (fælles `EetIssuesBox`), en
+«Beregning»-boks med Beregningsdato og downloadknappen, og derefter én «Specifikation»-boks med fire
+underafsnit: Årsløn · Erhvervsevnetab · Aldersreduktion · Beregnet EAL-krav.
+
+**Skærm og dokument er ordret identiske.** `EetEfterEalTab.tsx` og `renderEfterEalBody` skriver de samme
+19 linjer i samme rækkefølge med de samme formattere; dokumentet har ingen valgfri afsnit, så dets
+standardudgave ER dens eneste udgave. Den ENESTE forskel er, at dokumentet udelader Beregningsdato-rækken,
+når kroppen kaldes som bilag i differencekravet (`includeBeregningsdatoHeader`).
+
+**Fanens særkende, og kilden til fem af fundene: den har TO fallbacks, og den siger aldrig hvilken vej den
+gik.** Årslønnen er EAL-årslønnen, hvis den er udfyldt og positiv – ellers ASL-årslønnen. EET-procenten er
+«EET % (hvis afviger fra ASL)», hvis den er udfyldt og ikke 0 – ellers den EET-procent, der findes ved at
+vælge afgørelsen med den seneste afgørelsesdato, derefter den seneste virkningsdato, derefter `Endelig` frem
+for `Delvist endelig` frem for resten. Begge valg er lagt i det kanoniske output som `aarsloenSource` og
+`eetPctSource`; ingen af dem renderes nogen steder.
+
+**Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden.** Efterprøvet i browseren på
+fødselsdato `01-01-1970`, skadedato `01-06-2018`, beregningsdato `01-07-2026`:
+`400.000 × 1,255198 = 502.079,20` afrundet til nærmeste 500 → `502.000`; `× 10 × 30 % = 1.506.000`;
+maksimum 2026 `11.582.500` (ikke ramt); alder 48 → aldersreduktion `48 − 29 = 19 %` → `286.140`;
+EAL-krav `1.219.860 kr.` Dertil maksimum-grenen (`1.000.000 → 1.255.000 → 12.550.000 > 11.582.500`,
+reduceret, EAL-krav `9.381.825 kr.`), aldersreduktionens loft (alder 75 → `(75 − 29) + (75 − 54) × 2
+(max 70 %)` → `70 %`, EAL-krav `3.474.750 kr.`) og halvdelsafrundingen
+(`6.588.750 × 19 % = 1.251.862,5 → 1.251.863`). **Ingen af de otte fund handler om en forkert formel** –
+BB-178 handler om, hvilken afgørelse formlen får sin procent fra.
+
+## Fund
+
+### BB-177 – «Endeligt erhvervsevnetab» står over en procent, der kan komme fra en midlertidig afgørelse – og de tre andre faner navngiver typen
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
+- **Prioritet:** Mellem
+- **Beslutning:** Implementeret 2026-09-04 – «Erhvervsevnetab» som delt konstant `ERHVERVSEVNETAB_EAL_PCT_LABEL`; udviklerens begrundelse er stærkere end fundets: EAL kender slet ikke et midlertidigt erhvervsevnetab, så adjektivet er meningsløst frem for blot upræcist. Ordet BEVARES i Erstatningsopgørelsens ASL-sektion, hvor det navngiver en faktisk endelig afgørelse
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`, Skadestype Arbejdsulykke.
+  2. EET oplysninger: Beregningsdato `01-07-2026`, ASL-årsløn `400.000`. Lad EAL-felterne stå tomme.
+  3. Én afgørelsesrække: Afgørelsesdato `01-01-2020`, Virkningsdato `01-01-2020`, EET % `30`,
+     Afgørelsestype **Midlertidig**.
+  4. Læs EET efter EAL, og derefter Løbende ydelser og Differencekrav.
+- **Det sker:** EET efter EAL skriver «**Endeligt erhvervsevnetab** 30 %» og opgør `1.219.860 kr.` Ingen
+  «Fejl og advarsler»-boks. På de to nabofaner står i samme sag ordret «Type: **Midlertidig afgørelse**»
+  (Løbende ydelser) og «**Midlertidig afgørelse**» plus «Erhvervsevnetabet udgør 30 %» (Differencekrav).
+  Samme måling med Afgørelsestype `Delvist endelig` og EET % `50` giver «Endeligt erhvervsevnetab **50 %**».
+- **Det er uhensigtsmæssigt fordi:** ordet «Endeligt» er en påstand om sagen, ikke om beregningen.
+  Programmet ved, at afgørelsen er midlertidig – det står ét faneklik væk og trykkes i to af de fire
+  dokumenter – og fanen skriver alligevel det modsatte i den linje, der bærer specifikationens
+  vigtigste tal. Linjen trykkes ordret i dokumentet, så en modpart læser, at erhvervsevnetabet er endeligt
+  fastsat til 30 %, i en sag hvor det ikke er. Ved en `Delvist endelig` afgørelse er påstanden endnu
+  skævere: netop den type betyder, at kun en del er endelig.
+- **Bedre ville være:** rækken navngiver den EET-procent, fanen faktisk bruger, uden at udtale sig om
+  afgørelsens karakter – «Erhvervsevnetab», som Forsørgertabs dokument allerede kalder præcis samme tal
+  fra præcis samme beregning (`forsoergertabDocument.ts`, «Fuldt erhvervsevnetab» → «Erhvervsevnetab»).
+  Skal typen med, kan den stå som Løbende ydelsers egen linje: «Erhvervsevnetab (midlertidig afgørelse)
+  30 %». Det andet valg er billigere og fjerner påstanden helt; det første oplyser mere.
+- **Andre steder det kan gælde:** `resolveErhvervsevnetabMaksimumTekst`s to grene siger «Skadelidtes
+  erhvervsevnetab …» uden at kalde det endeligt og er upåvirkede. Generelt: hver linje på en resultatflade,
+  der lægger et **kvalificerende adjektiv** på et tal, motoren blot har valgt efter en
+  sorteringsregel – «endeligt», «samlet», «faktisk», «aktuel». Konkret kandidat: differencekravets
+  «Resterende erhvervsevnetab».
+
+**Tilbagemelding**
+Erhvervsevnetab efter ASL og efter EAL har mange ligheder, men også mange forskelle. Præmissen for beregning efter EAL er, at hvis der ikke er angivet en specifik EET-procent for EAL lægges den seneste procent fra ASL til grund. Modsat ASL har EAL ikke midlertidigt EET. Jeg er enig i dit forslag om blot at omformulere fra "Endeligt erhvervsevnetab" til "Erhvervsevnetab" på al brugervendt tekst der relaterer til EET efter EAL.
+
+### BB-178 – En senere midlertidig afgørelse fortrænger en endelig, og fanen siger intet – de to nabofaner advarer
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-20--en-feltnær-oplysning-hentet-fra-hele-sidens-beregning`
+- **Prioritet:** **Høj**
+- **Beslutning:** Delvist implementeret 2026-09-04 – **udvælgelsen står uændret** efter udviklerens afgørelse: mangler en særskilt EET-procent efter EAL, gælder den seneste ASL-procent uden skelen til type, fordi EAL ikke kender et midlertidigt erhvervsevnetab. Kun tavsheden er rettet: `warn-non-endelig-after-endelig` er løftet fra løbende ydelsers motor til afgørelsestabellens eget modul og produceres nu også af EAL-motoren (kun ved fallbacken). Fundets punkt (2) – at sortere type før dato – er dermed AFVIST
+- **Sådan fremprovokeres det:**
+  1. Grundlaget som i BB-177 (fødselsdato `01-01-1970`, skadedato `01-06-2018`, beregningsdato
+     `01-07-2026`, ASL-årsløn `400.000`, EAL-felterne tomme).
+  2. Række 1: Afgørelsesdato `01-01-2020`, Virkningsdato `01-01-2020`, EET % **`50`**, **Endelig**.
+  3. Række 2: Afgørelsesdato `01-01-2022`, Virkningsdato `01-01-2022`, EET % **`30`**, **Midlertidig**.
+  4. Læs EET efter EAL. Ryd derefter række 2 og læs fanen igen.
+- **Det sker:** med begge rækker skriver fanen «Endeligt erhvervsevnetab **30 %**» og
+  «Beregnet EAL-krav **1.219.860 kr.**» – og har **ingen «Fejl og advarsler»-boks overhovedet**;
+  downloadknappen er aktiv. Ryddes række 2, står «Endeligt erhvervsevnetab **50 %**» og
+  «**2.033.100 kr.**» I samme tilstand skriver **både** Løbende ydelser **og** Differencekrav
+  «Der er angivet en midlertidig afgørelse efter en endelig afgørelse.» med link til
+  Arbejdsskadesikringsloven.
+- **Det er uhensigtsmæssigt fordi:** den midlertidige afgørelse på 30 % fortrænger den endelige på 50 %,
+  fordi udvælgelsen først sorterer på dato og først derefter på type. Forskellen er **813.240 kr.** i
+  det tal, dokumentet slutter med, og fanen giver ikke det mindste signal: ingen boks, ingen linje,
+  ingen grå knap. Brugeren har netop indtastet en endelig afgørelse på 50 % og ser et krav, der er regnet
+  på 30 %. Programmet har allerede formuleret advarslen og viser den to faner væk – på faner, brugeren ikke
+  behøver åbne for at hente EAL-specifikationen. Det er §5's punkt 2: et misvisende tal, brugeren ikke har
+  nogen anledning til at betvivle.
+- **Bedre ville være:** to ting, hvoraf den første er den vigtige. **(1)** EAL-motoren bærer samme advarsel
+  som sine to søsterberegninger, når afgørelsestabellen indeholder en ikke-endelig afgørelse efter en
+  endelig – issuet findes (`warn-non-endelig-after-endelig`) og skal blot føjes til `computeEetEalCalculation`
+  og til `EAL_IDS`/navigationstabellen. **(2)** Udvælgelsen forelægges: er det rigtigt, at en senere
+  midlertidig afgørelse fortrænger en tidligere endelig, når EAL-kravet skal opgøres? Sorterer man type før
+  dato, ville 50 % vinde. Afgør ikke reglen her – men uanset hvilken vej den falder, skal fanen sige, at der
+  er to afgørelser at vælge mellem.
+- **Andre steder det kan gælde:** `resolveLoebendeEetPct` i `eetDifferencekravCalculation.ts:460-499` bruger
+  ordret samme sorteringsrækkefølge (kommentaren siger selv «Tie-breaking matches fane 4's
+  resolveEetPctFromAslRows»), så differencekravets rest-EET vælger samme afgørelse – dér med advarslen på
+  plads. Generelt: hver motor, der **vælger én** ud af brugerens rækker efter en usynlig sorteringsregel.
+  `rg "latestAfgoerelsesdato|reduce\(\(latest" src/domain` er indgangen.
+
+**Tilbagemelding**
+Se tilbagemelding på BB-177. Den korrekte, ønskværdige og forventelige adfærd for brugeren vil være, at hvis ikke der er angivet en særskilt EET-procent for EAL, anvendes den seneste EET-procent efter ASL, uden skelen til, om den er midlertidig eller endelig.
+
+Jeg er dog enig i, at det vil være hensigtsmæssigt at gentage advarslen om, at der er indtastet en midlertidig afgørelse efter en endelig.
+
+### BB-179 – En afgørelse truffet efter beregningsdatoen giver et fuldt EAL-krav her og blokerer nabofanen helt
+
+- **Type:** Edge case
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afvist for denne fane 2026-09-04 – EET efter EAL lægger forudsætningsvist ASL-procenten til grund, og afgørelsens tidspunkt er derfor uden betydning for EAL-kravet. **Uenigheden med Differencekrav er ikke løst her, men flyttet:** se det omformulerede åbne spørgsmål nedenfor og flade 11e
+- **Sådan fremprovokeres det:**
+  1. Grundlaget som i BB-177, men **Beregningsdato `01-01-2021`**.
+  2. Én afgørelsesrække: Afgørelsesdato `01-06-2024`, Virkningsdato `01-06-2024`, EET % `30`, **Endelig**.
+  3. Læs de fire faner efter hinanden.
+- **Det sker:** de tre andre flader reagerer, EET efter EAL gør ikke:
+  - **EET oplysninger:** begge datoceller bærer en **gul** ring (målt `rgb(245, 158, 11)`) med tooltip
+    «Afgørelsesdatoen ligger efter beregningsdatoen (01-01-2021)» henholdsvis «Virkningsdatoen …».
+  - **Løbende ydelser:** «Beregningsdatoen (01-01-2021) ligger før sagens afgørelser.»
+  - **Differencekrav:** **blokeret** – «Der er ingen ASL-afgørelser med virkningsdato på eller før
+    beregningsdatoen», downloadknappen grå.
+  - **EET efter EAL:** ingen boks. Fuld specifikation og «Beregnet EAL-krav **1.038.825 kr.**»,
+    downloadknappen aktiv (målt `disabled = false`).
+- **Det er uhensigtsmæssigt fordi:** brugeren har sagt, at sagen gøres op pr. 1. januar 2021, og
+  beregningsdatoen er **en ægte forudsætning her** – både opreguleringen («til beregningsår 2021») og
+  maksimumsloftet («i beregningsåret 2021») kommer fra den. Alligevel henter fanen sin EET-procent fra en
+  afgørelse, der først blev truffet tre og et halvt år senere, mens nabofanen erklærer, at der slet ikke
+  findes en afgørelse pr. den dato – og det tal, Differencekrav nægter at regne, er præcis det tal, denne
+  fane udleverer (fanens EAL-krav trykkes ordret i differencekravets «EAL-krav»-afsnit). Uanset hvilken af
+  de to der er juridisk rigtig, kan brugeren ikke se, at der findes to svar.
+- **Bedre ville være:** fanen bærer samme advarsel som Løbende ydelsers – «Beregningsdatoen (01-01-2021)
+  ligger før sagens afgørelser» – og siger i én linje, hvad den så gør: at EAL-kravet opgøres på den
+  fastsatte erhvervsevnetabsprocent, uanset hvornår afgørelsen blev truffet. Advarslen findes allerede som
+  `EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID`. Er svaret i stedet, at en afgørelse efter beregningsdatoen
+  ikke må bære EAL-kravet, skal fanen blokere som Differencekrav gør.
+  **Bemærk BB-166's afgørelse, som IKKE må genrejses her:** Kapitalisering-fanen er bevidst uafhængig af
+  beregningsdatoen, og dér ville det være fejlen, hvis den ikke var. Dette fund hviler på det modsatte
+  forhold – beregningsdatoen ER en afhængighed på denne fane – og på uenigheden med Differencekrav om det
+  SAMME tal.
+- **Andre steder det kan gælde:** ingen. De to øvrige resultatfaner er målt i samme tilstand og
+  reagerer begge (Løbende advarer, Differencekrav blokerer); Kapitalisering er uden genstand efter BB-166.
+
+**Tilbagemelding**
+Jeg tror, jeg afviser fundet. EET efter EAL er lidt specielt i den forstand, at det forudsætningsvist blot skal lægge EET-procenten fra ASL-sagen til grund, medmindre brugeren specifikt angiver en EET-procent efter EAL. Man bruger så at sige, hvad man kan finde i ASL. Så derfor har det heller ikke større betydning for EET efter EAL, hvis afgørelsen først kommer efter beregningstidspunktet.
+
+**Modsvar 2026-09-04 – afvisningen er fulgt for fanen, men den flytter uenigheden i stedet for at lukke den**
+
+Afvisningen er accepteret for denne fane: fanen regner videre uden advarsel, og fundets ønske om en
+advarsel eller blokering HER er trukket tilbage. Men afvisningens egen begrundelse gør nabofanens
+adfærd til problemet, og det er efterprøvet i koden:
+
+- Differencekrav **blokerer** hele opgørelsen, når ingen afgørelse har virkningsdato ≤ beregningsdato:
+  `no-asl-afgoerelser-known-at-beregningsdato` (`eetDifferencekravCalculation.ts:195-196`).
+- Og differencekravsdokumentet trykker netop denne fanes krop som bilag:
+  `renderEfterEalBody(writer, computation.ealComputation, false)` (`differencekravDocument.ts:527`).
+
+I den målte sag kan brugeren derfor hente EAL-kravet `1.038.825 kr.` fra fane 4, mens fane 5 nægter
+at trykke samme beløb som bilag. Er afgørelsens tidspunkt uden betydning for EAL-kravet, følger
+deraf, at blokeringen er for hård – i hvert fald for EAL-halvdelen. Alternativt er blokeringen
+rigtig for differencekravets ASL-halvdel, hvor virkningsdatoen faktisk styrer periodiseringen, og så
+skal den blot ikke slå EAL-bilaget ud. **Det er beregningslogik og er ikke ændret.**
+
+**AFGJORT 2026-09-04 – fundet er afvist i sin helhed, og modsvaret er besvaret.** Udviklerens svar:
+differencekrav opstår udelukkende, når der er krav efter BÅDE ASL og EAL, så fladens forudsætninger
+er anderledes end ved en «ren» EET efter EAL. Derfor kan en fejlmeddelelse være relevant på
+differencekrav-fanen uden at være det på EAL-fanen, selv om de i en vis grad udspringer af samme
+forhold. Differencekravets blokering er altså **korrekt**, og de to svar er ikke en selvmodsigelse.
+
+**Læren, og den retter fundets egen præmis:** fundet sluttede fra «to faner siger forskelligt om
+samme tal» til «de kan ikke begge være rigtige». Det holder kun, hvis de to faner besvarer samme
+spørgsmål under samme forudsætninger. Her gør de ikke: EAL-fanen opgør ét krav isoleret, mens
+differencekravet forudsætter en dobbeltdækket sag og skal kunne periodisere ASL-ydelserne. **Det er
+BB-166's lære i en ny form** – dér var det arbejdsdelingen mellem to beregninger, her er det
+forudsætningerne for to flader. Prøven for de resterende flader: før en divergens registreres, afklar
+om de to flader har samme INPUT-forudsætning, ikke blot om de viser samme tal.
+
+### BB-180 – Fanen bruger den ene af to udfyldte årsløn- og procentkilder og siger aldrig hvilken
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`
+- **Prioritet:** Mellem
+- **Beslutning:** Afvist af udvikleren 2026-09-04 – målgruppen ved, at der skal vurderes en årsløn efter EAL, og at ASL-årslønnen ofte er fallbacken. Det behøver ikke tydeliggøres. `aarsloenSource`/`eetPctSource` forbliver urenderede og er dermed et bevidst udfald af M-28, ikke et hul
+- **Sådan fremprovokeres det:**
+  1. Grundlaget som i BB-177 (ASL-årsløn `400.000`, én **Endelig** afgørelse på **50 %**).
+  2. Udfyld dertil «Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)» = `700.000` og
+     «EET % (hvis afviger fra ASL)» = `75`.
+  3. Læs EET efter EAL, og derefter Løbende ydelser.
+- **Det sker:** EET efter EAL skriver «Årsløn på skadestidspunktet **700.000 kr.**» og «Endeligt
+  erhvervsevnetab **75 %**»; Løbende ydelser skriver i samme sag «Årsløn **400.000 kr.**» og
+  «Erhvervsevnetab **50 %**». Ingen af fanens rækker siger, hvilket felt tallet kommer fra, og der er
+  ingen tooltip på nogen af specifikationens rækker (målt: 0 af 19 rækker har `title` eller
+  `aria-describedby`). De to ASL-værdier, brugeren også har indtastet, forsvinder tavst ud af opgørelsen.
+- **Det er uhensigtsmæssigt fordi:** fanen har fire mulige indgange til to tal, og valget mellem dem er en
+  regel, brugeren ikke kan se: «udfyldt og positiv vinder». En bruger, der har tastet begge årsløn (fordi
+  ASL- og EAL-årslønnen faktisk er forskellige) og senere retter den ene, kan ikke se på specifikationen,
+  om rettelsen slog igennem. Værre er den modsatte vej: et gammelt tal i det valgfri EAL-felt fortrænger
+  den ASL-årsløn og den afgørelse, brugeren netop har opdateret – og de to faner viser da hver sit
+  grundlag uden en linje om, at de har hvert sit. Feltnavnenes «(hvis forskellig fra ASL)» og «(hvis
+  afviger fra ASL)» oplyser, hvornår man SKAL udfylde dem, ikke hvad der så sker.
+  **Programmet ved besked:** `aarsloenSource` og `eetPctSource` ligger i det kanoniske output
+  (`eetCanonicalOutput.ts:25,30`) og renderes ingen steder – `rg "aarsloenSource|eetPctSource" src/components
+  src/document` giver nul træf.
+- **Bedre ville være:** de to rækker navngiver deres kilde med de ord, felterne bærer på skærmen – «Årsløn
+  på skadestidspunktet (efter EAL)» / «(efter ASL)» og «Endeligt erhvervsevnetab (angivet efter EAL)» /
+  «(fra afgørelse 1. januar 2020)». Kilden er allerede afgjort og typet; det koster ingen beregning at
+  skrive den. Samme linje hører i dokumentet, hvor den dertil besvarer BB-182's spørgsmål om, hvilket af
+  sagens to årslønsbegreber modparten skal regne efter.
+- **Andre steder det kan gælde:** `forsoergertabEalKrav.ts:117,131` fører `aarsloenSource` videre til
+  Forsørgertabs port, hvor den heller ikke renderes – samme fund på flade 10, samme rettelse. Generelt:
+  hver beregning med en `source`-diskriminant i sit output. `rg "Source: z.enum" src/domain` er indgangen.
+
+**Tilbagemelding**
+Jeg tror, jeg afviser dit fund. Det vil være velkendt, at der skal vurderes en årsløn efter EAL, og at man ofte vil falde tilbage på at bruge årslønnen efter ASL som fallback. Det behøves ikke tydeliggjort.
+
+### BB-181 – «Erhvervsevnetabsprocent er ikke udfyldt» fører til det valgfrie EAL-felt, hvor de tre andre faner peger på afgørelsen, der mangler sin EET %
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
+- **Prioritet:** **Høj**
+- **Beslutning:** Implementeret 2026-09-04 efter det opdelte forslag – fundets ORIGINALE anbefaling er afvist (EAL er udgangspunktet, ikke ASL), men de to tilstande skelnes nu: en påbegyndt afgørelse uden EET % peger på afgørelsestabellen med cellen som fokusmål, mens en sag helt uden afgørelser får en besked, der nævner begge veje og linker til EAL-feltet
+- **Sådan fremprovokeres det:**
+  1. Grundlaget som i BB-177, men lad afgørelsesrækkens **EET %** stå tom: Afgørelsesdato `01-01-2020`,
+     Virkningsdato `01-01-2020`, Afgørelsestype `Endelig`, EET % **tom**.
+  2. Læs «Fejl og advarsler» på alle fire faner.
+- **Det sker:** tre faner peger på afgørelsen, én peger et andet sted – målt ordret:
+  - **Løbende ydelser:** «Der er en afgørelse uden EET %» → EET oplysninger → **Arbejdsskadesikringsloven**
+  - **Kapitalisering:** «Der er en afgørelse uden EET %» → EET oplysninger → **Arbejdsskadesikringsloven**
+  - **Differencekrav:** «Der er en afgørelse uden EET %» → EET oplysninger → **Arbejdsskadesikringsloven**
+  - **EET efter EAL:** «**Erhvervsevnetabsprocent er ikke udfyldt**» → EET oplysninger →
+    **Erstatningsansvarsloven**
+  På en helt tom sag står samme linje i fanens boks, umiddelbart under «Skadelidtes årsløn (efter ASL) er
+  ikke udfyldt» – som navngiver sit felt ordret. Afgørelsestabellens EET %-celle er neutral i begge
+  tilstande (målt `aria-invalid = false`).
+- **Det er uhensigtsmæssigt fordi:** linjen navngiver et begreb, der ikke er navnet på nogen af de to
+  felter, den kan handle om, og linket fører til det **valgfrie** – feltet, hvis egen etiket siger «(hvis
+  afviger fra ASL)». Brugeren, der følger linket og udfylder feltet, får fanen til at regne, men har
+  samtidig sat en EAL-afvigelse, han ikke mente, mens den afgørelse, han faktisk skulle gøre færdig, står
+  tilbage uden sin EET-procent – så de tre andre faner bliver blokeret, uden at han har rørt dem. Det er
+  både en fejlanvisning (§5's punkt 5: feedback, der ikke kan handles på rigtigt) og en blindgyde for de
+  øvrige tre dokumenter. Nabolinjen i samme boks viser, hvordan det skal se ud: «Skadelidtes årsløn (efter
+  ASL) er ikke udfyldt» med link til Arbejdsskadesikringsloven, selv om **den** værdi har præcis samme
+  to-kilde-struktur.
+- **Bedre ville være:** fanen bruger de tre andre faners besked og deres mål, når manglen ligger i
+  afgørelsestabellen: «Der er en afgørelse uden EET %» → Arbejdsskadesikringsloven, med den tomme
+  indtastningsrækkes celle som fokusmål (`ASL_FIRST_ROW_FIELD_BY_ISSUE_ID` har allerede
+  `missing-eet-pct` → `aslAfgoerelseEetPctField.template`). Kun når der hverken findes en afgørelsesrække
+  eller en EAL-procent, skal beskeden nævne begge veje – «Erhvervsevnetabsprocenten mangler: udfyld EET %
+  på en afgørelse, eller angiv en afvigende procent efter EAL».
+- **Andre steder det kan gælde:** samme fane, samme struktur, for årslønnen – dér er `aarsloen-missing`
+  korrekt bundet til ASL-feltet, og `eal-aarsloen-missing`/`eal-aarsloen-zero` til EAL-feltet, så
+  halvdelen er allerede rigtig. Generelt: hvert issue, hvis besked navngiver et **begreb** frem for et
+  felt, i en beregning med mere end én kilde. `rg "er ikke udfyldt" src/domain/erhvervsevnetab` er
+  indgangen.
+
+**Tilbagemelding**
+Jeg tror dit anbefaling er forkert. Udgangspunktet for EET efter EAL er, at brugeren angiver det specifikt for EAL. Visse sager er kun omfattet af EAL, og ikke af ASL, så der giver det ingen mening at pege brugeren i retning af, at skulle indtaste værdier efter ASL. ASL er kun en fallback, og den vil kun være udfyldt i de sager, som både er omfattet af EAL og ASL. Så det mest korrekte må være, at hvis der hverken er oplysninger efter EAL eller ASL, at pege brugeren i retning af EAL, når der er tale om EET efter EAL.
+
+**Modsvar 2026-09-04 – tilbagemeldingen dækker den rene sag, ikke den målte**
+
+Rangordenen (EAL er udgangspunktet, ASL kun fallback) er accepteret og lægges til grund. Men den
+besvarer kun den ene af to tilstande, `eet-pct-missing` opstår i, og fundets måling er den anden:
+
+1. **Ingen afgørelsesrækker og ingen EAL-procent** – den rene sag. Her er tilbagemeldingen
+   utvivlsomt rigtig: linket skal føre til Erstatningsansvarsloven.
+2. **Der ER en fuldt udfyldt Endelig afgørelse, men dens EET %-celle står tom.** Dette er den
+   tilstand, fundet målte. `resolveEetPct` finder rækken, men `parseCommittedPercent` giver
+   `undefined`, så `resolved` er `null` (`eetEalCalculation.ts:152-155`), og fanen skriver
+   «Erhvervsevnetabsprocent er ikke udfyldt» med link til det VALGFRIE EAL-felt. Brugeren, der
+   følger linket, sætter en EAL-afvigelse han ikke mente, mens den afgørelse han skulle gøre færdig
+   står tilbage uden sin procent – og de tre andre faner er nu blokeret, uden at han har rørt dem.
+
+Tre målinger viser dertil, at koden i dag ikke selv følger rangordenen: feltets etiket er
+«EET % (hvis afviger fra ASL)» (altså erklæret valgfrit), nabolinjen for årslønnen med samme
+to-kilde-struktur peger på **Arbejdsskadesikringsloven**
+(`SKADELIDTES_AARSLOEN_ASL_LABEL`, `eetEalCalculation.ts:251`), og de tre øvrige faner peger på
+afgørelsen. Efter tilbagemeldingen vil to linjer i SAMME boks udpege hvert sit lovsæt som
+udgangspunkt for samme sag.
+
+**Forelagt forslag, som følger rangordenen men skelner de to tilstande:**
+
+| Tilstand | Besked | Link |
+|---|---|---|
+| Ingen EAL-procent, og en afgørelsesrække mangler sin EET % | «Der er en afgørelse uden EET %» | Arbejdsskadesikringsloven |
+| Ingen EAL-procent, og ingen afgørelsesrækker | «Erhvervsevnetabsprocenten er ikke udfyldt» | **Erstatningsansvarsloven** |
+
+Dermed er EAL udgangspunktet, når der ikke er noget ASL – præcis som tilbagemeldingen beskriver –
+mens en halvfærdig ASL-afgørelse udpeger sin egen tomme celle.
+
+**Godkendt og gennemført 2026-09-04.** Udvikleren tilsluttede sig opdelingen. Implementeringen:
+
+- `hasStartedRowMissingEetPct` og `MISSING_EET_PCT_MESSAGE` er løftet til afgørelsestabellens eget
+  modul (`eetAslAfgoerelser.ts`), så EAL-motoren og `collectIncompleteRowIssues` ikke kan drifte fra
+  hinanden. Tabelmodulets egen inline-streng er erstattet af konstanten.
+- EAL-motoren vælger nu mellem de to id'er: er en række påbegyndt uden procent, udsendes
+  `missing-eet-pct` (ordret de tre andre faners besked, med `aslAfgoerelseEetPctField.template` som
+  fokusmål gennem den eksisterende `ASL_FIRST_ROW_FIELD_BY_ISSUE_ID`); ellers `eet-pct-missing`.
+- Den generelle besked er samtidig omformuleret fra «Erhvervsevnetabsprocent er ikke udfyldt» til
+  **«Erhvervsevnetabsprocenten mangler: angiv EET % efter EAL, eller udfyld EET % på en afgørelse»**.
+  Den navngav før et BEGREB frem for et felt (M-02's form) og fortalte ikke, at manglen kunne
+  afhjælpes ad to veje. Den linker fortsat til EAL-feltet, fordi det er den vej, der altid er åben.
+
+**Efterprøvet, at differencekravets to undertrykkelser af `eet-pct-missing` fortsat er sikre**
+(`eetDifferencekravCalculation.ts:706,709`): når EAL-motoren nu udsender `missing-eet-pct` i stedet,
+rejser differencekravets egen kæde allerede samme id med samme ordlyd gennem
+`kapResult.issues` → `collectIncompleteRowIssues`, og `dedupeIssuesByIdentity` fjerner dubletten på
+nøglen `id|severity|message`. Download-gaten klassificerer begge id'er som «Indtastning mangler», så
+gate-adfærden er uændret. Låst af tre unittests og to e2e-tests, hvoraf den ene følger linket og
+hævder, at fokus lander i afgørelsestabellens EET %-celle.
+
+### BB-182 – Specifikationen mangler skadedatoen, som både alderen og opreguleringen hviler på
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Mellem
+- **Beslutning:** Implementeret 2026-09-04 – skadedato-række på skærm og i dokument. **Placeret i «Specifikation» og ikke i «Beregning», som fundet foreslog:** differencekravet trykker kroppen som bilag med `includeBeregningsdatoHeader = false`, så en række i headeren var forsvundet i netop det dokument, der har mest brug for den – og differencekravets egen krop skriver ikke datoen. Formen er kort `dd-mm-åååå` som fødselsdato-rækken, så de to datoer bag aldersreduktionen kan læses op mod hinanden (BB-146)
+- **Sådan fremprovokeres det:** grundlaget fra BB-177; hent dokumentet («Download som Word») og læs det
+  linje for linje. Sammenlign med Forsørgertabs dokument på samme sagsgrundlag.
+- **Det sker:** dokumentet indeholder 19 linjer, og sagens skadedato er ikke en af dem. Det nærmeste er
+  «Regulering fra skadesår **2018** til beregningsår 2026» – som udgår helt, hvis skadesår og beregningsår
+  er det samme. Derimod står **Fødselsdato `01-01-1970`** som selvstændig række, umiddelbart over «Alder på
+  skadestidspunkt **48 år**». Skærmen viser præcis det samme. Forsørgertabs dokument, som opgør det samme
+  EAL-krav af den samme beregning, skriver skadedatoen i sin «Grundlæggende oplysninger»-sektion
+  (`forsoergertabDocument.ts:91-92`, rettet ved BB-122 2026-08-28).
+- **Det er uhensigtsmæssigt fordi:** de to tal, der bærer hele aldersreduktionen, er fødselsdatoen og
+  skadedatoen – og dokumentet giver kun den ene. En modpart, der læser «Fødselsdato 01-01-1970» og «Alder
+  på skadestidspunkt 48 år», kan ikke kontrollere alderen, kun indsnævre skadedatoen til et interval på
+  et år; og netop et års forskel er hvad der flytter aldersreduktionen et procentpoint og
+  opreguleringen et helt reguleringsår. Fanen har taget den vanskelige halvdel med og udeladt den lette.
+  Dokumentet har ingen valgfri afsnit, så manglen kan ikke slås til, og brevhovedet bærer heller ikke
+  datoen.
+- **Bedre ville være:** en «Skadedato»-række (ved erhvervssygdom «Anmeldelsesdato», som resten af fanen
+  allerede navngiver korrekt) i «Beregning»-boksen ved siden af Beregningsdato – på skærmen og i
+  dokumentet. Det er samme rettelse, Forsørgertab og Varige mén allerede har fået, så det er en
+  konvergens, ikke et nyt design.
+- **Andre steder det kan gælde:** Kapitalisering-fanen (BB-170's forudsætningsdel blev droppet dér, fordi
+  fanen gengiver en myndighedsafgørelse – lempelsen gælder udtrykkeligt IKKE denne fane) og
+  Differencekrav, som trykker EAL-kroppen som bilag og dertil har sin egen forudsætningsblok. Generelt:
+  BB-170's prøve, kørt på hvert dokument – læs standardudgaven og spørg for hvert tal, om det kan
+  kontrolleres af noget ANDET i dokumentet.
+
+**Tilbagemelding**
+Jeg er enig.
+
+### BB-183 – «Skadelidtes årsløn efter EAL skal udfyldes med den fulde årsløn» står kun i boksen, hvor nabofeltets samme regel har en gul ring
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-20--en-feltnær-oplysning-hentet-fra-hele-sidens-beregning`
+- **Prioritet:** Mellem
+- **Beslutning:** Implementeret 2026-09-04 – EAL-feltet bærer nu den gule ring i BEGGE halvdele af reglen. **Fundets egen beskrivelse var delvist forkert, se rettelsen efter tilbagemeldingen**
+- **Sådan fremprovokeres det:**
+  1. Grundlaget fra BB-177 (skadedato `01-06-2018`, hvis ASL-maksimum er `527.000 kr.`).
+  2. Sæt «Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)» til **`527.000`**.
+  3. Læs feltet på EET oplysninger, og derefter boksen på EET efter EAL.
+- **Det sker:** feltet er **neutralt** – målt notched border `rgba(0, 0, 0, 0.12)`, ingen tooltip, ingen
+  `aria-describedby`. Advarslen «Skadelidtes årsløn efter EAL skal udfyldes med den fulde årsløn – ikke
+  maks. årslønnen efter ASL» står udelukkende i «Fejl og advarsler» på EET efter EAL (og på
+  Differencekrav). Den **spejlvendte** situation – ASL-årslønnen på maksimum og EAL-feltet tomt – giver
+  derimod en gul ring på ASL-feltet med samme tekst (`resolveEetAslAarsloenMaxWarning`,
+  `EetOplysningerTab.tsx:186`).
+- **Det er uhensigtsmæssigt fordi:** advarslen afhænger af ét felts egen værdi og sagens skadedato – den
+  samme præmis, som `resolveEetTitrinWarning` blev accepteret på ved BB-158 – og hører derfor ved feltet,
+  hvor brugeren sidder og taster. Som det er nu, får den ene halvdel af den samme regel en ring, og den
+  anden halvdel kun en linje på en resultatfane, brugeren ikke behøver åbne. Udviklerens afgørelse ved
+  BB-142 peger samme vej: indtastningsfanen viser fejl i faktisk foretagne indtastninger som rød eller gul
+  ring med tooltip.
+- **Bedre ville være:** `resolveEetAslAarsloenMaxWarning` udvides (eller får en søster), så EAL-feltet
+  bærer den gule ring med samme tekst, når dets egen værdi er lig skadesårets ASL-maksimum. Motorens
+  `warn-eal-aarsloen-is-max` bliver da feltets spejl, præcis som `warn-asl-aarsloen-is-max` allerede er.
+- **Andre steder det kan gælde:** `warn-eal-aarsloen-empty-for-2024-07-01` («For skader fra 1. juli 2024 og
+  frem beregnes årsløn forskelligt efter EAL og ASL») har samme form – udløst af ét felts tomhed plus
+  skadedatoen, vist kun i boksen. Den er ikke målt i denne kørsel. Generelt: BB-141's prøve, kørt på
+  fanens `warn-*`-issues – `EAL_IDS` i `eetFormatUtils.ts:223-233` er listen.
+
+**Tilbagemelding**
+Jeg er enig.
+
+**Rettelse af fundet 2026-09-04 – to påstande i fundet holdt ikke ved kildelæsning**
+
+Tilbagemeldingen er fulgt, men mit eget fund beskrev mekanikken forkert på to punkter, og det ændrer,
+hvad rettelsen bestod i:
+
+1. **Ringen sad allerede på EAL-feltet, ikke på ASL-feltet.** `resolveEetAslAarsloenMaxWarning` var
+   bundet til `ealAarsloen` (`EetOplysningerTab.tsx:186`), og ASL-feltet har slet ingen
+   `warning`-prop. Fundets sætning om «en gul ring på ASL-feltet» var forkert. Reglen var altså ikke
+   implementeret på det forkerte felt – den var på det rigtige felt, men dækkede kun den ene af to
+   tilstande: EAL-feltet TOMT plus ASL-årslønnen på maksimum.
+2. **De to advarsler bar to forskellige tekster.** Feltringen brugte `ASL_AARSLOEN_MAX_NOTICE` («Når
+   Skadelidtes årsløn (efter ASL) svarer til maksimum, skal den faktiske årsløn indtastes.»), mens
+   boksens `warn-eal-aarsloen-is-max` brugte en helt anden sætning. Fundet antog, at ordlyden var
+   fælles.
+
+**Rettelsen er derfor:** en søsterfunktion `hasEetEalAarsloenMaxWarning` for den manglende tilstand –
+EAL-feltet udfyldt MED skadesårets ASL-maksimum – og `resolveEetAslAarsloenMaxWarning` vælger nu
+mellem de to i samme rækkefølge som beregningen (udfyldt felt først). Beregningens to `toWarning`-kald
+bruger den nye delte konstant `EET_EAL_AARSLOEN_MAX_WARNING`, så feltringen og boksen ikke længere kan
+sige to ting om samme regel. Verificeret i browseren (`e2e/eetEfterEalSpecifikation.spec.ts`).
+
+**Læren, der rækker ud over fundet:** en advarsel kan være «implementeret» og alligevel kun dække den
+halve regel. Prøven er ikke «har feltet en ring?», men «har feltet en ring i HVER af de tilstande,
+reglen kan brydes i?» – her var der to, og kun én var dækket.
+
+### BB-184 – «Kapitaliseringsfaktor» er navnet på to helt forskellige størrelser på to faner af samme side
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
+- **Prioritet:** Lav
+- **Beslutning:** Afvist af udvikleren 2026-09-04 – kapitaliseringsfaktor er SAMME begreb i ASL og EAL; eneste forskel er, at ASL fastsætter den ved tabelopslag og EAL altid ved 10. Målgruppen kender og forventer det. **Afledt følge:** BB-177's omdøbning er dermed afgrænset til ordet «Endeligt» og må ikke brede sig til «Kapitaliseringsfaktor»
+- **Sådan fremprovokeres det:** en sag med både en kapitaliseret afgørelse og et EAL-krav; læs rækken
+  «Kapitaliseringsfaktor» på Kapitalisering og på EET efter EAL.
+- **Det sker:** på **Kapitalisering** er «Kapitaliseringsfaktor» både et underafsnit og en række, og
+  værdien er den aldersafhængige faktor fra kapitaliseringsbekendtgørelsen – målt `10,772` for en
+  49-årig efter Bkg. 1233/2018 tabel A, med tre decimaler. På **EET efter EAL** hedder rækken det samme
+  og bærer værdien **`10`** – erstatningsansvarslovens faste faktor, uden decimaler og uden nogen
+  bekendtgørelse bag sig.
+- **Det er uhensigtsmæssigt fordi:** to naborækker med identisk navn og værdierne `10,772` og `10` ser ud
+  som samme størrelse med afrunding. De er det ikke: den ene er en tabelopslagsfaktor, der afhænger af
+  alder, køn og bekendtgørelse; den anden er en lovbestemt konstant. Fanen giver ingen ledetråd om
+  forskellen – hverken en lovhenvisning, en decimalform eller et informationsikon – og de to faner ligger
+  ét klik fra hinanden i samme sag.
+- **Bedre ville være:** rækken på EET efter EAL navngiver sin egen faktor: «Kapitaliseringsfaktor (EAL)»
+  eller, tættere på loven, «Faktor efter erstatningsansvarsloven». Alternativt et informationsikon som
+  Køn-rækkens, der siger, at faktoren er fast efter loven. Kapitalisering-fanens navn er det, der har
+  hjemmel i en bekendtgørelse, og bør blive.
+- **Andre steder det kan gælde:** Forsørgertabs dokument skriver samme række med samme navn og samme faste
+  faktor 10 (`forsoergertabDocument.ts:196`), og «Fladen kort» i `forsoergertab.md` kalder den
+  «kapitaliseringsfaktor 10». Generelt: hvert begreb, der bærer samme navn i ASL- og EAL-halvdelen af
+  programmet uden at være samme størrelse. Kandidater: «Erhvervsevnetab», «Årsløn», «Regulering».
+
+**Tilbagemelding**
+Jeg afviser fundet. Kapitaliseringsfaktor er det samme begreb i EAL og ASL. Eneste forskel er, at efter ASL fastsættes den ved tabelopslag, og i EAL er den altid 10. Brugeren ved dette og vil forvente det. Det behøves ikke udpenslet.
+
+## Overvejet uden fund
+
+- **Beregningen er kontrolregnet i fire sagsformer** (basis, maksimum-grenen, aldersreduktionens 70 %-loft
+  og halvdelsafrundingen) – alle tal går op, se «Fladen kort».
+- **Skærm mod dokument: ordret identiske.** Alle 19 linjer, alle tal, alle formler og alle tegn er
+  sammenlignet i Word-udgaven. `formatPct`, `formatKr`, `formatDeductionKr` og `formatDeductionPercent` er
+  de samme kald i de to kanaler, og `buildAldersreduktionEtiket` og `resolveErhvervsevnetabMaksimumTekst`
+  er delte konstanter. Dokumentet har ingen valgfri afsnit, så BB-161's «læs standardudgaven»-prøve er
+  uden genstand.
+- **M-13's tredje trin (dokument mod dokument) er uden genstand:** fanen har ét dokument. EAL-kroppen
+  optræder dertil som bilag i differencekravet gennem samme funktion, så en divergens kan ikke opstå;
+  prøven på bilagets placering hører på 11e.
+- **«(afrundet)» uden angivelse af hvad der afrundes til** er **BB-131 igen, ordret samme linje** – afvist
+  2026-08-28, fordi målgruppen kender afrundingsprincippet for årslønnen efter EAL. Rejses ikke.
+  (Målt: `400.000 × 1,255198 = 502.079,20`, vist `502.000` – afrunding til nærmeste 500.)
+- **BB-167's prøve («ændr hver værdi og se, om noget andet ændrer sig») er kørt og bestået.** Fanens
+  Beregningsdato-række er ikke dekorativ: den styrer både opreguleringens slutår og maksimumsloftets år,
+  målt ved skiftet `01-07-2026` → `01-01-2021` (`+ 25,5198 %` → `+ 6,8507 %`, maksimum `11.582.500` →
+  `9.859.500`). Rækken «Kapitaliseringsfaktor» er en konstant, men indgår i næste linjes formel og er
+  derfor ikke dekorativ.
+- **M-02/BB-121's skadestype-prøve er kørt og BESTÅET på hele fanen.** Med Skadestype `Erhvervssygdom`
+  skriver fanen «Årsløn på **anmeldelsestidspunktet**», «Regulering fra **anmeldelsesår** 2018» og «Alder
+  på **anmeldelsestidspunkt**», og den røde skadedatos besked hedder «feltet 'Anmeldelsesdato'». Navnet
+  udledes af beregningens egen `skadestype`, ikke af dokumentets `stamdata`, så bilaget i differencekravet
+  får samme navn med brevhovedet slået fra.
+- **M-19/M-22/M-27's prøve er kørt og BESTÅET.** Med Skadedato `99-99-9999` i Stamdata blokerer fanen med
+  «Der er udfyldt en ugyldig værdi i feltet 'Anmeldelsesdato'» → **Stamdata →** (navngivet link) og
+  knappen «Fejl i indtastning». Rødt læses altså ikke som tomt, den fremmede flade navngives, og ingen
+  feltregel slukkes tavst – fanen har i øvrigt ingen egne felter, så M-27 er uden genstand.
+- **M-10's prøve er kørt og BESTÅET.** Ved 1536×864 og fuldt rullet fane ligger «Scroll til toppen» på
+  x 1451–1505, y 779–833; specifikationens værdikolonne ender ved x 1435, og ingen `p` eller `button` i
+  indholdsboksene overlapper knappen (målt: tom overlap-liste).
+- **M-28's prøve (trin 1 og 2) er kørt.** Af `eetEalComputationSchema`s 22 felter renderes 18; de fire
+  urenderede er `aarsloenSource` og `eetPctSource` (**BB-180**), `alderVedSkadeCapped` og `skadedato`
+  (**BB-182**). `alderVedSkadeCapped` er mønsterets **andet negative træf** og er ikke et brugerfund:
+  loftet står allerede i etiketten som «(max 70 %)», så feltet er redundant, ikke manglende – præcis
+  `tabelLabel`s form fra BB-176. Trin 2 gav intet: modulets to eksporter (`computeEetEalCalculation`,
+  `buildAldersreduktionEtiket`) har begge produktionskaldssider.
+- **M-25's prøve er uden genstand.** Fanen har én beregning og ét dokument uden valgfri afsnit, så der
+  findes ikke et ELLER mellem to `canShow`-flag. Dens to fallbacks vælger mellem kilder til det samme tal;
+  konsekvensen af det er BB-180, ikke en tavs udeladelse af en halv opgørelse.
+- **M-29 og M-07 er uden genstand:** fanen har ingen indtastningsfelter og dermed hverken feltregler eller
+  parvise grænser.
+- **M-16's begge halvdele er kørt.** En række, der er umulig som helhed, findes ikke på denne fane
+  (motoren har ingen afvisningsgrund, feltmodellen ikke kender); den rene mangel-halvdel giver korrekt
+  «Indtastning mangler» med fem navngivne, linkede linjer på en tom sag.
+- **Den tomme sags fem linjer er efterprøvet enkeltvis** og peger alle på et rigtigt felt eller en rigtig
+  sektion: Fødselsdato → Stamdata, Skadedato → Stamdata, Beregningsdato → Grundlæggende oplysninger,
+  Skadelidtes årsløn (efter ASL) → Arbejdsskadesikringsloven. Den femte er BB-181.
+- **Aldersreduktionens 0 %-gren er efterprøvet i kilden:** ved alder ≤ 29 hedder rækken blot
+  «Aldersreduktion» uden formel, og `formatDeductionPercent`/`formatDeductionKr` giver «(0 %)» og «0 kr.»
+  uden minus – BB-129/BB-130's rettelse er delt kode og gælder derfor også her.
+- **Aldersreduktionens loft er efterprøvet og er ærligt.** Ved alder 75 skriver rækken
+  «Aldersreduktion (75 - 29) + (75 - 54) x 2 **(max 70 %)** =» og værdien `70 %`; formlens egne led giver
+  88, og parentesen siger, hvorfor der står 70. BB-133's krav om, at et virksomt loft skal nævnes, er
+  opfyldt – ligesom i maksimum-grenen, hvor teksten skifter til «Skadelidtes erhvervsevnetab **reduceres
+  til det lovbestemte maksimum**».
+- **`warn-beregningsdato-foer-skadedato` kan ikke nås fra brugerfladen.** Beregningsdatoens nedre grænse
+  ER skadedatoen, så en tidligere dato er en rød bounds-fejl, der blokerer panelet, før advarslen
+  formuleres. Advarslen er dermed død kode – ét linjes kodefund, ikke et brugerfund.
+- **`eet-max-missing` og `reguleringssats-missing` kan heller ikke nås:** beregningsdatoens øvre grænse er
+  datasættets dækning, og feltet har dertil sin egen røde `reguleringssats`-regel. Begge motorissues er
+  uopnåelige på samme måde som `DATE_BEFORE_RATE_COVERAGE` på Renteberegning.
+- **Tie-break-rækkefølgens ordensafhængighed er efterprøvet og lukket.** `endelig[0]` afhænger af rækkernes
+  committede rækkefølge, men to afgørelser med samme afgørelsesdato OG samme virkningsdato gør begge
+  rækker røde (`validateDuplicateAfgoerelse`, BB-140's rettelse) og blokerer fanen. BB-140's
+  sorteringsprøve kan derfor ikke flytte et tal her.
+- **EAL-procentens trinregel er ikke et fund.** Feltet «EET % (hvis afviger fra ASL)» får ikke
+  `resolveEetTitrinWarning`, hvor afgørelsestabellens EET %-celle gør. Det er rigtigt: 10 %-trinnene er en
+  ASL-regel for skader fra 1. juli 2024, og EAL-procenten fastsættes selvstændigt. Feltets egen regel
+  (delelig med 5, mellem 5 og 100) er den, der gælder. Se dog det åbne spørgsmål nedenfor.
+- **15 %-advarslen er efterprøvet og virker begge veje.** EAL-procent `10` giver «Der kan ikke tilkendes
+  erhvervsevnetab under 15 %» både som gul ring på feltet og som linje i fanens boks. BB-173's afgørelse
+  er i drift: advarslen bærer ingen hale om lovmæssighed.
+- **Den blokerede «Beregning»-boks** viser kun downloadrækken og ingen Beregningsdato, mens den bærer
+  samme overskrift. Det er `EetDocumentDownloadBox`, som deles af alle fire resultatfaner, og forholdet
+  er allerede afgjort på flade 7a.
+- **Konsollen var tavs gennem hele kørslen:** 195 beskeder, 0 fejl, 0 advarsler.
+
+## Dækningshuller
+
+- Kun Chrome, lyst tema, 1536×864. Mørkt tema og de tre øvrige browsere er ikke målt.
+- PDF-kanalen er ikke læst; dokumentet er hentet som `.docx`. De to kanaler deler `renderEfterEalBody`, så
+  BB-182 hviler på Word-udgaven plus kildelæsning.
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- Brevhovedet er ikke slået til i nogen kørsel. BB-182 er målt uden brevhoved; brevhovedet bærer kun
+  journalnr., advokat, sagsbehandler og dags dato (kildelæst), så det lukker ikke hullet.
+- `warn-eal-aarsloen-empty-for-2024-07-01` er ikke målt (kræver en skadedato fra 1. juli 2024 og frem);
+  den er kildelæst som BB-183's søster.
+- Aldersreduktionens 0 %-gren (alder ≤ 29) er kildelæst, ikke målt i browseren.
+- «Meget mange afgørelser» (B3) er ikke målt; højst to afgørelsesrækker er brugt. Fanens output er
+  uafhængigt af antallet, da kun én afgørelse vælges – men netop derfor vokser BB-178's risiko med
+  antallet af rækker.
+- Undo/redo, Escape og celle-annullering er ikke afprøvet på fanen; den har ingen indtastningsfelter, så
+  prøven hører på 11a.
+
+## Åbne spørgsmål
+
+- **AFGJORT 2026-09-04: Skal en senere midlertidig afgørelse kunne fortrænge en tidligere endelig, når
+  EAL-kravet opgøres?** **Ja – sorteringen står uændret.** Mangler en særskilt EET-procent efter EAL,
+  lægges den seneste procent efter ASL til grund uden skelen til, om den er midlertidig eller endelig,
+  fordi erstatningsansvarsloven ikke kender et midlertidigt erhvervsevnetab. Den samme begrundelse
+  afgjorde BB-177. Fanen siger nu, at der er to afgørelser at vælge imellem (BB-178's advarselsdel), men
+  vælger fortsat den seneste. `resolveLoebendeEetPct` i differencekravet bruger samme rækkefølge og er
+  dermed fortsat korrekt spejlet.
+- **AFGJORT 2026-09-04: Skal en afgørelse, der er truffet efter beregningsdatoen, bære EAL-kravet?**
+  **Ja på EAL-fanen, og Differencekravs blokering er samtidig korrekt.** Differencekrav opstår
+  udelukkende, når der er krav efter BÅDE ASL og EAL, så fladens forudsætninger er anderledes end ved
+  en «ren» EET efter EAL – og en fejlmeddelelse kan derfor være relevant dér uden at være det her,
+  selv om de udspringer af samme forhold. De to svar er ikke en selvmodsigelse, og der er ingen
+  udestående uenighed at tage op på 11e (BB-179).
+- **AFGJORT 2026-09-04: Gælder 10 %-trinnene for erhvervsevnetabsprocenten efter EAL?** **Nej – de nye
+  10 %-intervaller gælder kun erhvervsevnetab efter ASL.** Efter EAL anvendes fortsat de gamle
+  intervaller: 15 % som mindstegrænse og derefter løbende 5 %-intervaller op til 100 %. Antagelsen bag
+  gennemgangen holdt altså, og **fraværet af `resolveEetTitrinWarning` på «EET % (hvis afviger fra ASL)»
+  er korrekt** – advarslen ville være urigtig på det felt. Feltets egen regel (delelig med 5, mellem 5
+  og 100) er den, der gælder, og den svarer netop til EAL's intervaller. Ingen kodeændring.
+
+  **Læren, og den hører til M-30's trin 4:** det var netop den prøve, der holdt spørgsmålet ude af
+  fund-listen. En manglende advarsel og en advarsel, der ikke skal være der, ser ens ud i skemaet
+  `rg "toWarning\('warn-" src/domain/erhvervsevnetab`; kun domænet kan skelne dem. Havde fraværet
+  været registreret som fund, ville rettelsen have indført en forkert advarsel på det felt, hvor
+  EAL-kravet faktisk opgøres. **`warn-invalid-eet-pct-after-2024-07-01`s fravær i EAL-motoren er dermed
+  bekræftet korrekt og genrejses ikke.**

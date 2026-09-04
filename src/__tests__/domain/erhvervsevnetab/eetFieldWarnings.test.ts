@@ -1,9 +1,11 @@
 import {
   EET_ASL_AARSLOEN_MAX_WARNING,
+  EET_EAL_AARSLOEN_MAX_WARNING,
   EET_TITRIN_FRA_2024_WARNING,
   EET_UNDER_15_WARNING,
   KAPITALISERING_UNDER_15_WARNING,
   hasEetAslAarsloenMaxWarning,
+  hasEetEalAarsloenMaxWarning,
   kapitaliseringUnder15WarningRowIds,
   formatDatoEfterBeregningsdatoWarning,
   resolveDatoEfterBeregningsdatoWarning,
@@ -68,6 +70,39 @@ describe('resolveEetAslAarsloenMaxWarning', () => {
   ])('viser ingen advarsel når %s', (_reason, aslAarsloen, ealAarsloen) => {
     const skadedato = _reason === 'skadedatoen mangler' ? undefined : toISODateString('2024-07-01');
     expect(resolveEetAslAarsloenMaxWarning(aslAarsloen, ealAarsloen, skadedato)).toBeUndefined();
+  });
+
+  // BB-183: den anden halvdel af samme regel. Feltet fik tidligere kun en gul ring, når det var TOMT
+  // og ASL-årslønnen stod på maksimum; stod maksimum i feltet SELV, var det neutralt, og advarslen
+  // fandtes kun som en linje i «Fejl og advarsler» på to resultatfaner.
+  it('viser en gul feltadvarsel når EAL-årslønnen selv er skadesårets ASL-maksimum', () => {
+    const skadedato = toISODateString('2024-07-01');
+    const maks = amount(aarsloenAslMax[2024]!);
+
+    expect(hasEetEalAarsloenMaxWarning(maks, skadedato)).toBe(true);
+    expect(resolveEetAslAarsloenMaxWarning(undefined, maks, skadedato)).toEqual({
+      severity: 'warning',
+      message: EET_EAL_AARSLOEN_MAX_WARNING,
+    });
+  });
+
+  it('lader den udfyldte EAL-årsløn vinde, når begge felter står på maksimum', () => {
+    const skadedato = toISODateString('2024-07-01');
+    const maks = amount(aarsloenAslMax[2024]!);
+
+    // Kun én af de to halvdele må give en ring, og det er den, feltet selv bærer.
+    expect(resolveEetAslAarsloenMaxWarning(maks, maks, skadedato)).toEqual({
+      severity: 'warning',
+      message: EET_EAL_AARSLOEN_MAX_WARNING,
+    });
+  });
+
+  it.each([
+    ['EAL-årslønnen ikke er maksimum', amount(aarsloenAslMax[2024]! - 1000), toISODateString('2024-07-01')],
+    ['EAL-årslønnen er tom', undefined, toISODateString('2024-07-01')],
+    ['skadedatoen mangler', amount(aarsloenAslMax[2024]!), undefined],
+  ])('giver ingen EAL-maksimum-advarsel når %s', (_reason, ealAarsloen, skadedato) => {
+    expect(hasEetEalAarsloenMaxWarning(ealAarsloen, skadedato)).toBe(false);
   });
 });
 

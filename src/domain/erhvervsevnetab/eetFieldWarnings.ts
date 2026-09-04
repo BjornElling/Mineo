@@ -6,6 +6,7 @@ import { isoYear } from '../../utils/isoDateHelpers';
 import { aarsloenAslMax, type YearlyRate } from '../../data/lovbestemteRates';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { ASL_AARSLOEN_MAX_NOTICE } from '../aslEalAarsloen/aslAarsloenMaxNotice';
+import { SKADELIDTES_AARSLOEN_EAL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import { SKAERING_2024_07_01 as EET_TITRIN_SKAERINGSDATO } from './eetSkaeringsdatoer';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
@@ -144,11 +145,52 @@ export const hasEetAslAarsloenMaxWarning = (
   return maxAarsloen !== undefined && aslAarsloenValue === maxAarsloen;
 };
 
+/**
+ * Feltbeskeden når EAL-årslønnen SELV står på skadesårets ASL-maksimum.
+ *
+ * Den er den anden halvdel af samme regel som `hasEetAslAarsloenMaxWarning` (BB-183): dér er
+ * EAL-feltet tomt, og ASL-årslønnen står på maksimum, så advarslen opfordrer til at udfylde
+ * EAL-feltet med den fulde årsløn. Her HAR brugeren udfyldt det – men med netop maks. årslønnen
+ * efter ASL, altså det tal, advarslen bad ham om ikke at bruge. De to tilstande er lige forkerte og
+ * skal derfor se lige ens ud på feltet; før BB-183 fik kun den første en gul ring, mens den anden
+ * kun stod som en linje i «Fejl og advarsler» på to resultatfaner, brugeren ikke behøver åbne.
+ *
+ * Teksten er beregningens egen (`warn-eal-aarsloen-is-max`), ikke ASL-halvdelens: den navngiver det
+ * felt, ringen sidder på, og siger hvad der skal stå i det.
+ */
+export const EET_EAL_AARSLOEN_MAX_WARNING =
+  `${SKADELIDTES_AARSLOEN_EAL_LABEL} skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL`;
+
+export const hasEetEalAarsloenMaxWarning = (
+  ealAarsloen: AmountValue | undefined,
+  skadedato: ISODateString | undefined,
+  aslAarsloenMax: YearlyRate = aarsloenAslMax,
+): boolean => {
+  const ealAarsloenValue = amountValueToNumber(ealAarsloen);
+  if (ealAarsloenValue === undefined || !Number.isFinite(ealAarsloenValue) || skadedato === undefined) {
+    return false;
+  }
+
+  const maxAarsloen = resolveAslAarsloensmaksimumForAar(isoYear(skadedato), aslAarsloenMax);
+  return maxAarsloen !== undefined && ealAarsloenValue === maxAarsloen;
+};
+
+/**
+ * Den gule ring på EAL-årslønsfeltet – én af de to halvdele af maksimum-reglen, aldrig begge.
+ *
+ * Rækkefølgen spejler beregningens (`eetEalCalculation.ts`): en udfyldt EAL-årsløn på maksimum er
+ * det konkrete problem, og først når feltet er tomt, handler advarslen om ASL-årslønnen. Ringen
+ * sidder på EAL-feltet i begge tilfælde, fordi det er der, rettelsen skal foretages.
+ */
 export const resolveEetAslAarsloenMaxWarning = (
   aslAarsloen: AmountValue | undefined,
   ealAarsloen: AmountValue | undefined,
   skadedato: ISODateString | undefined,
-): FieldWarning | undefined =>
-  hasEetAslAarsloenMaxWarning(aslAarsloen, ealAarsloen, skadedato)
+): FieldWarning | undefined => {
+  if (hasEetEalAarsloenMaxWarning(ealAarsloen, skadedato)) {
+    return createFieldWarning(EET_EAL_AARSLOEN_MAX_WARNING);
+  }
+  return hasEetAslAarsloenMaxWarning(aslAarsloen, ealAarsloen, skadedato)
     ? createFieldWarning(EET_ASL_AARSLOEN_MAX_WARNING)
     : undefined;
+};

@@ -1,7 +1,12 @@
 import type { ErhvervsevnetabComposedValues, AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
-import { EET_UNDER_15_WARNING, hasEetAslAarsloenMaxWarning } from './eetFieldWarnings';
+import {
+  EET_EAL_AARSLOEN_MAX_WARNING,
+  EET_UNDER_15_WARNING,
+  hasEetAslAarsloenMaxWarning,
+  hasEetEalAarsloenMaxWarning,
+} from './eetFieldWarnings';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
@@ -14,14 +19,19 @@ import { roundByMethod } from '../../utils/rounding';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
   hasIdenticalAfgoerelser,
+  hasStartedRowMissingEetPct,
+  INCOMPLETE_ROW_ISSUE_IDS,
+  MISSING_EET_PCT_MESSAGE,
+  NON_ENDELIG_AFTER_ENDELIG_WARNING_ID,
   parseCommittedPercent,
+  resolveNonEndeligAfterEndeligRows,
+  resolveNonEndeligAfterEndeligWarning,
   validatePercentDivisibleBy5,
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
 import { round0, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { opregulerMedAkkumuleretReguleringssats } from '../satser/opreguleringsmotorer';
-import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import {
   clampMoneyOreToZero,
   fromKroner,
@@ -83,6 +93,20 @@ const toWarning = (id: string, message: string): EetIssue => ({
   severity: 'warning',
   message,
 });
+
+/**
+ * Beskeden når hverken en EAL-procent eller en afgørelse kan give erhvervsevnetabsprocenten.
+ *
+ * Nævner BEGGE veje, fordi begge er lovlige udgange, og fanen ikke kan vide hvilken sagen har
+ * (BB-181): erstatningsansvarsloven er udgangspunktet – en sag kan være omfattet af EAL alene – men
+ * er sagen også en arbejdsskadesag, er en afgørelse den sædvanlige kilde. Beskeden linker til
+ * EAL-feltet, fordi det er den vej, der altid er åben; den anden nævnes i teksten.
+ *
+ * Den hedder bevidst ikke blot «Erhvervsevnetabsprocent er ikke udfyldt» længere: det navngav et
+ * begreb frem for et felt og fortalte ikke, at der var to måder at afhjælpe manglen.
+ */
+export const EET_PCT_MISSING_MESSAGE =
+  'Erhvervsevnetabsprocenten mangler: angiv EET % efter EAL, eller udfyld EET % på en afgørelse';
 
 const calculateAgeInWholeYears = (fodselsdato: ISODateString, skadedato: ISODateString): number | null => {
   const birthDate = parseISODate(fodselsdato);
@@ -256,7 +280,37 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const eetPctResolution = resolveEetPct(values);
   issues.push(...eetPctResolution.issues);
   if (!eetPctResolution.resolved && eetPctResolution.issues.length === 0) {
-    issues.push(toIssue('eet-pct-missing', 'Erhvervsevnetabsprocent er ikke udfyldt'));
+    // To tilstande efterlader fanen uden en procent, og de kræver hver sit svar (BB-181).
+    //
+    // Erstatningsansvarsloven er udgangspunktet her: brugeren angiver procenten specifikt for EAL, og
+    // en sag kan være omfattet af EAL alene, hvor det ville være meningsløst at pege på ASL. Derfor
+    // hører den generelle mangel ved EAL-feltet.
+    //
+    // Men er en afgørelsesrække PÅBEGYNDT og mangler blot sin procentcelle, er det ikke et valg om
+    // lovsæt – det er en halvfærdig indtastning i ASL-tabellen. Peger fanen dér på EAL-feltet,
+    // udfylder brugeren en afvigelse han ikke mente, mens afgørelsen står tilbage uden sin procent, så
+    // de tre andre faner blokeres uden at han har rørt dem. De tre faner bruger allerede
+    // `missing-eet-pct` med samme ordlyd og med afgørelsens egen celle som fokusmål.
+    if (hasStartedRowMissingEetPct(values.aslAfgoerelser ?? [])) {
+      issues.push(toIssue(INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, MISSING_EET_PCT_MESSAGE));
+    } else {
+      issues.push(toIssue('eet-pct-missing', EET_PCT_MISSING_MESSAGE));
+    }
+  }
+
+  // Fanen valgte sin procent ved en sortering, brugeren ikke kan se, og en midlertidig afgørelse kan
+  // vinde over en tidligere endelig (BB-178). Udvælgelsen er bevidst: EAL kender ikke et
+  // midlertidigt erhvervsevnetab, så den seneste ASL-procent gælder uanset type. Men fanen var helt
+  // tavs om, at der VAR mere end én afgørelse at vælge imellem, mens Løbende ydelser og
+  // Differencekrav advarede i samme sag. Advarslen er kun relevant ved fallbacken – med en udfyldt
+  // EAL-procent læser beregningen ikke tabellen.
+  if (eetPctResolution.resolved?.source === 'asl') {
+    const nonEndeligAfterEndelig = resolveNonEndeligAfterEndeligWarning(
+      resolveNonEndeligAfterEndeligRows(values.aslAfgoerelser ?? [])
+    );
+    if (nonEndeligAfterEndelig !== undefined) {
+      issues.push(toWarning(NON_ENDELIG_AFTER_ENDELIG_WARNING_ID, nonEndeligAfterEndelig));
+    }
   }
 
   if (!fodselsdato) {
@@ -327,9 +381,9 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
-  const maxAarsloenForSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar, input.aarsloenAslMax);
-  const maxAarsloenWarningMessage =
-    `${SKADELIDTES_AARSLOEN_EAL_LABEL} skal udfyldes med den fulde årsløn – ikke maks. årslønnen efter ASL`;
+  // Ordlyden ejes af feltadvarslen, så den gule ring på EAL-årslønsfeltet og linjen i «Fejl og
+  // advarsler» er ordret den samme besked (BB-183).
+  const maxAarsloenWarningMessage = EET_EAL_AARSLOEN_MAX_WARNING;
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
   if (
@@ -344,21 +398,17 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     );
   }
 
-  if (maxAarsloenForSkadesaar !== undefined) {
-    if (
-      Number.isFinite(ealAarsloenInput) &&
-      ealAarsloenInput !== undefined &&
-      ealAarsloenInput === maxAarsloenForSkadesaar
-    ) {
-      issues.push(toWarning('warn-eal-aarsloen-is-max', maxAarsloenWarningMessage));
-    } else if (hasEetAslAarsloenMaxWarning(
-      values.aslAarsloen,
-      values.ealAarsloen,
-      skadedato,
-      input.aarsloenAslMax,
-    )) {
-      issues.push(toWarning('warn-asl-aarsloen-is-max', maxAarsloenWarningMessage));
-    }
+  // Samme to prædikater som feltringen bruger (BB-183), i samme rækkefølge: en udfyldt EAL-årsløn
+  // på maksimum er det konkrete problem; først når feltet er tomt, handler advarslen om ASL-værdien.
+  if (hasEetEalAarsloenMaxWarning(values.ealAarsloen, skadedato, input.aarsloenAslMax)) {
+    issues.push(toWarning('warn-eal-aarsloen-is-max', maxAarsloenWarningMessage));
+  } else if (hasEetAslAarsloenMaxWarning(
+    values.aslAarsloen,
+    values.ealAarsloen,
+    skadedato,
+    input.aarsloenAslMax,
+  )) {
+    issues.push(toWarning('warn-asl-aarsloen-is-max', maxAarsloenWarningMessage));
   }
 
   if (blockingIssues || !Number.isFinite(eetMaks) || alderVedSkade === null) {

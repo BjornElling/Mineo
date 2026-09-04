@@ -50,7 +50,9 @@ import {
   hasTextValue,
   isAslAfgoerelseRowEmpty,
   isKnownAfgoerelseType,
+  NON_ENDELIG_AFTER_ENDELIG_WARNING_ID,
   parseCommittedPercent,
+  resolveNonEndeligAfterEndeligWarning,
 } from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 import {
@@ -210,18 +212,6 @@ const parsePct = (raw: number | undefined): number | undefined => {
 const formatPctForWarning = (value: number): string =>
   formatAsAmountTrimmed(value, 2);
 
-const formatNonEndeligAfterEndeligWarning = (
-  hasMidlertidig: boolean,
-  hasDelvistEndelig: boolean
-): string => {
-  const afgoerelsestype = hasMidlertidig && hasDelvistEndelig
-    ? 'midlertidig og delvist endelig'
-    : hasMidlertidig
-      ? 'midlertidig'
-      : 'delvist endelig';
-  return `Der er angivet en ${afgoerelsestype} afgørelse efter en endelig afgørelse.`;
-};
-
 export const firstOfMonthAfter = firstOfMonthAfterIso;
 
 export const hasOverlapPeriod = (
@@ -303,28 +293,11 @@ const collectWarnings = (
     );
   }
 
-  const endeligeAfgoerelser = afgoerelser.filter((row) => row.afgoerelseType === 'Endelig');
-
-  const nonEndeligeAfterEndelig = afgoerelser.filter((row) =>
-    (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig') &&
-    endeligeAfgoerelser.some((endelig) =>
-      row.afgoerelsesdato > endelig.afgoerelsesdato ||
-      (
-        row.afgoerelsesdato === endelig.afgoerelsesdato &&
-        row.virkningsdato > endelig.virkningsdato
-      )
-    )
-  );
-  if (nonEndeligeAfterEndelig.length > 0) {
-    issues.push(
-      toWarning(
-        'warn-non-endelig-after-endelig',
-        formatNonEndeligAfterEndeligWarning(
-          nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Midlertidig'),
-          nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Delvist endelig')
-        )
-      )
-    );
+  // Reglen ejes af afgørelsestabellen, ikke af denne motor (BB-178): EET efter EAL læser samme
+  // rækker og skal give samme advarsel.
+  const nonEndeligAfterEndelig = resolveNonEndeligAfterEndeligWarning(afgoerelser);
+  if (nonEndeligAfterEndelig !== undefined) {
+    issues.push(toWarning(NON_ENDELIG_AFTER_ENDELIG_WARNING_ID, nonEndeligAfterEndelig));
   }
 
   // Tre linjer om ÉN årsag læses som tre problemer, hvor der er ét: beregningsdatoen ligger før

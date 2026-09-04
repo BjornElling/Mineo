@@ -506,6 +506,90 @@ export const validatePercentDivisibleBy5FromValue = (
  */
 export const ASL_IDENTICAL_AFGOERELSER_ID = 'asl-identiske-afgoerelser';
 
+export const NON_ENDELIG_AFTER_ENDELIG_WARNING_ID = 'warn-non-endelig-after-endelig';
+
+/**
+ * Advarslen når afgørelsestabellen indeholder en ikke-endelig afgørelse EFTER en endelig.
+ *
+ * Reglen hører til TABELLEN, ikke til den motor, der først fik brug for den. Den lå oprindeligt
+ * alene i løbende ydelser, så EET efter EAL kunne lade en midlertidig afgørelse fra 2022 på 30 %
+ * fortrænge en endelig fra 2020 på 50 % – en forskel på 813.240 kr. i det trykte krav – helt uden
+ * en «Fejl og advarsler»-boks, mens de to nabofaner advarede i samme sag (BB-178, mønster M-30).
+ *
+ * Udvælgelsen er bevidst uændret: mangler en særskilt EET-procent efter EAL, lægges den SENESTE
+ * procent efter ASL til grund uden skelen til afgørelsestypen, fordi erstatningsansvarsloven ikke
+ * kender et midlertidigt erhvervsevnetab. Advarslen fortæller alene, at der er mere end én
+ * afgørelse at vælge imellem, så brugeren kan se, hvilken der bar tallet.
+ *
+ * Læg nye forbrugere til her frem for at kopiere prædikatet – det er præcis den drift, M-30 fanger.
+ */
+export type NonEndeligAfterEndeligRow = Readonly<{
+  afgoerelsesdato: ISODateString;
+  virkningsdato: ISODateString;
+  afgoerelseType: AslAfgoerelseRow['afgoerelseType'];
+}>;
+
+const formatNonEndeligAfterEndeligWarning = (
+  hasMidlertidig: boolean,
+  hasDelvistEndelig: boolean
+): string => {
+  const afgoerelsestype = hasMidlertidig && hasDelvistEndelig
+    ? 'midlertidig og delvist endelig'
+    : hasMidlertidig
+      ? 'midlertidig'
+      : 'delvist endelig';
+  return `Der er angivet en ${afgoerelsestype} afgørelse efter en endelig afgørelse.`;
+};
+
+/**
+ * Opløser rå tabelrækker til det, advarslen har brug for, og springer de ufuldstændige over.
+ *
+ * Findes for de motorer, der ikke i forvejen har en opløst rækkeliste (EET efter EAL vælger kun ÉN
+ * afgørelse og bygger derfor ingen). Rækker uden begge datoer eller uden type melder sig selv
+ * gennem `collectIncompleteRowIssues` og skal ikke også udløse denne advarsel.
+ */
+export const resolveNonEndeligAfterEndeligRows = (
+  rows: readonly AslAfgoerelseRow[]
+): NonEndeligAfterEndeligRow[] => {
+  const resolved: NonEndeligAfterEndeligRow[] = [];
+  for (const row of rows) {
+    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType) continue;
+    resolved.push({ afgoerelsesdato, virkningsdato, afgoerelseType: row.afgoerelseType });
+  }
+  return resolved;
+};
+
+/**
+ * Returnerer advarselsteksten, når mindst én ikke-endelig afgørelse ligger efter en endelig –
+ * ellers `undefined`. Rækkerne skal være opløste (datoer og type udfyldt); ufuldstændige rækker
+ * melder sig selv gennem `collectIncompleteRowIssues`.
+ */
+export const resolveNonEndeligAfterEndeligWarning = (
+  rows: readonly NonEndeligAfterEndeligRow[]
+): string | undefined => {
+  const endelige = rows.filter((row) => row.afgoerelseType === 'Endelig');
+  if (endelige.length === 0) return undefined;
+
+  const nonEndeligeAfterEndelig = rows.filter((row) =>
+    (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig') &&
+    endelige.some((endelig) =>
+      row.afgoerelsesdato > endelig.afgoerelsesdato ||
+      (
+        row.afgoerelsesdato === endelig.afgoerelsesdato &&
+        row.virkningsdato > endelig.virkningsdato
+      )
+    )
+  );
+  if (nonEndeligeAfterEndelig.length === 0) return undefined;
+
+  return formatNonEndeligAfterEndeligWarning(
+    nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Midlertidig'),
+    nonEndeligeAfterEndelig.some((row) => row.afgoerelseType === 'Delvist endelig')
+  );
+};
+
 export const INCOMPLETE_ROW_ISSUE_IDS = {
   missingAfgoerelsesdato: 'missing-afgoerelsesdato',
   missingEetPct: 'missing-eet-pct',
@@ -518,6 +602,32 @@ export const INCOMPLETE_ROW_ISSUE_IDS = {
   invalidEetPct: 'invalid-eet-pct',
   invalidKapPct: 'invalid-kap-pct',
 } as const;
+
+/**
+ * Beskeden om en påbegyndt afgørelsesrække uden sin EET-procent.
+ *
+ * Konstant og ikke en inline-streng, fordi EET efter EAL bruger den SAMME besked, når dens
+ * ASL-fallback løber tør netop fordi en afgørelsesrækkes procentcelle er tom (BB-181). Fire faner
+ * skal sige det samme om det samme forhold og pege på den samme celle; drifter ordlyden, får
+ * brugeren to beskrivelser af én mangel og kan ikke se, at det er samme rettelse.
+ */
+export const MISSING_EET_PCT_MESSAGE = 'Der er en afgørelse uden EET %';
+
+/**
+ * Sand, når mindst én påbegyndt afgørelsesrække mangler sin EET-procent.
+ *
+ * Udstillet særskilt, fordi EET efter EAL skal kunne skelne to tilstande, der begge efterlader
+ * fanen uden en procent: en HALVFÆRDIG afgørelsesrække (denne) og slet ingen afgørelser. Kun den
+ * første må pege på afgørelsestabellen; den anden hører ved EAL-feltet, fordi en sag kan være
+ * omfattet af erstatningsansvarsloven alene (BB-181).
+ */
+export const hasStartedRowMissingEetPct = (rows: readonly AslAfgoerelseRow[]): boolean =>
+  rows
+    .filter((row) => !isAslAfgoerelseRowEmpty(row))
+    .some((row) => {
+      const pct = parseCommittedPercent(row.eetPct);
+      return pct === undefined || pct === 0;
+    });
 
 export type IncompleteRowIssue = Readonly<{
   id: string;
@@ -537,12 +647,8 @@ export const collectIncompleteRowIssues = (
     issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato, message: 'Der er en afgørelse uden afgørelsesdato' });
   }
 
-  const hasMissingEetPct = startedRows.some((row) => {
-    const pct = parseCommittedPercent(row.eetPct);
-    return pct === undefined || pct === 0;
-  });
-  if (hasMissingEetPct) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: 'Der er en afgørelse uden EET %' });
+  if (hasStartedRowMissingEetPct(rows)) {
+    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: MISSING_EET_PCT_MESSAGE });
   }
 
   const invalidEetPctMessage = startedRows

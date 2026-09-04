@@ -10,7 +10,10 @@ import { buildStamdataBrevhovedData, defineDocument } from '../documentGenerator
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionEtiket } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { resolveErhvervsevnetabMaksimumTekst } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
+import {
+  ERHVERVSEVNETAB_EAL_PCT_LABEL,
+  resolveErhvervsevnetabMaksimumTekst,
+} from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -56,6 +59,21 @@ export const renderEfterEalBody = (
 
   writer.writeBoldSubheader('Årsløn');
 
+  // Sagens egen dato står i Specifikationen og ikke i den betingede «Beregning»-sektion (BB-182),
+  // fordi differencekravet trykker netop denne krop som bilag med `includeBeregningsdatoHeader` =
+  // false – lå datoen i headeren, ville bilaget mangle den forudsætning, både årslønnens
+  // opregulering og aldersreduktionen hviler på. Navnet følger skadestypen (BB-121).
+  //
+  // Kort form `dd-mm-åååå` som Fødselsdato-rækken nedenfor: de to datoer er specifikationens eneste
+  // to, de bærer tilsammen aldersreduktionen, og en modpart skal kunne lægge dem op mod hinanden
+  // uden at oversætte mellem to formater (BB-146's formregel). «Beregningsdato» i headeren står i
+  // lang form, fordi den er sagens overskrift og ikke et led i et regnestykke.
+  writer.writeLeftRightText(
+    datoReference.label,
+    formatISOToDanish(computation.skadedato),
+    rowOpts
+  );
+
   writer.writeLeftRightText(
     `Årsløn på ${datoReference.tidspunktBestemt}`,
     formatKr(toKroner(computation.aarsloenOre)),
@@ -79,7 +97,7 @@ export const renderEfterEalBody = (
   writer.writeBoldSubheader('Erhvervsevnetab');
 
   writer.writeLeftRightText(
-    'Endeligt erhvervsevnetab',
+    ERHVERVSEVNETAB_EAL_PCT_LABEL,
     formatPct(computation.eetPct),
     rowOpts
   );
