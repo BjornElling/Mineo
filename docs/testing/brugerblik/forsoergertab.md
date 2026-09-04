@@ -824,7 +824,7 @@ som fladens øvrige rækker, der navngiver deres person.
 
 ## Åbne spørgsmål
 
-### 1. Hvor mange måneder er allerede udbetalt? · ÅBENT – afventer udviklerens afgørelse
+### 1. Hvor mange måneder er allerede udbetalt? · AFGJORT 2026-09-04 – DAGBASERET OPTJENINGSTÆLLING
 
 Udvikleren har bedt om de nøjagtige indtastningsværdier. De står her, sammen med de tal, sagen giver,
 og en kvantificering af, hvad det andet svar ville koste.
@@ -892,14 +892,47 @@ Forskellen er **9.360 kr.** i kapitalbeløbet i den målte sag.
 efterladte. Jeg skrev også «i størrelsesordenen 14.000 kr.» som et skøn; det efterregnede tal er
 9.360 kr.
 
-**Spørgsmålet er dermed:** skal de to halvdele bringes til at bruge samme læsning – og i givet fald
-hvilken? Beregningen er ikke rørt.
+**Spørgsmålet var dermed:** skal de to halvdele bringes til at bruge samme læsning – og i givet fald
+hvilken?
 
 **Beslutning om visningen (2026-08-28):** Den resterende periode vises som **«Resterende periode (hele år og
-måneder)»**, og værdien vises fortsat som år og måneder, for eksempel «4 år og 10 måneder». Det er væsentligt,
-fordi kapitaliseringstabellen foretager opslag ud fra hele år og måneder. Beslutningen præciserer dermed, hvad den
-viste mellemregning betyder, men afgør ikke det fortsat åbne spørgsmål om, hvorvidt de allerede udbetalte måneder
-skal tælles som 62 hele kalendermåneder eller cirka 60,7 dagbaserede måneder.
+måneder)»**, og værdien vises fortsat som år og måneder. Det er væsentligt, fordi kapitaliseringstabellen
+foretager opslag ud fra hele år og måneder. Beslutningen præciserede dermed, hvad den viste mellemregning
+betyder, men afgjorde ikke selve tællemetoden.
+
+**AFGJORT 2026-09-04 – begge halvdele bruger fremadrettet konsekvent dagbaseret optjeningstælling.**
+Udviklerens svar: fladen skal omlægges, så de to halvdele bruger samme metode, og metoden er den
+dagbaserede.
+
+**Gennemført i kode samme dag.** Rettelsen er ikke en anden formel ved siden af den gamle, men en
+fjernelse af den ene af de to kilder: `alleredeUdbetaltMaaneder` er nu **summen af tabellens egne
+månedstal** (`lobendeYdelser.reduce(… + r.maaneder)`, `forsoergertabAslYdelser.ts`), hvor den før var en
+selvstændig optælling af hele kalendermåneder
+(`(beregningsaar - virkningsaar) * 12 + (beregningsmaaned - virkningsmaaned) + 1`).
+`computeLobendeYdelser` er flyttet op før månedstællingen, så tabellen er den ENESTE kilde til tallet.
+**Derfor kan de to halvdele ikke længere drifte:** ændres periodiseringen, følger den resterende periode
+automatisk med, fordi den er afledt af den.
+
+Afkortningen til hele år og måneder sker nu **kun ved tabelopslaget** (`resterendeAar`/`resterendeMaaneder`),
+mens `resterendeMaanederTotal` bevarer decimalerne. Etiketten «Resterende periode (hele år og måneder)»
+er dermed fortsat præcis: den navngiver den afkortede opslagsnøgle, ikke den fulde rest.
+
+**Målt i browseren på netop denne sag** (`e2e/forsoergertabResterendePeriode.spec.ts`): tabellens sidste
+række viser `6,0323`, og «Resterende periode» viser nu **«4 år og 11 måneder»** mod tidligere «4 år og 10
+måneder». Kapitalfaktoren bliver `3,117` mod `3,064`, kapitalbeløbet `429.026 kr.` mod `421.731 kr.`, og
+**forsørgertabserstatningen falder fra 90.036 kr. til 82.741 kr.** i den målte sag. Bemærk fortegnet: den
+hidtidige læsning var den gunstigste af de to for de efterladte, så omlægningen er ikke en fejlrettelse i
+skadelidtes favør, men en ensretning af to uenige tællinger.
+
+Låst af to unittests – den ene hævder, at én dag tælles som `1/31` måned og ikke som en hel måned, den
+anden at `alleredeUdbetaltMaaneder` er identisk med tabellens egen sum – og af e2e-specen ovenfor. Fuld
+Vitest-suite (8206 tests) grøn.
+
+**Læren, der rækker ud over fladen:** to halvdele af samme opgørelse havde hver sin formel for det samme
+begreb, og begge formler var interne konsistente – derfor fangede ingen test dem. **Rettelsen bestod ikke
+i at vælge den rigtige formel, men i at fjerne den ene**, så der kun er én kilde. Prøven for de
+resterende flader: når to steder i samme opgørelse regner det samme tal, spørg om det ene kan **afledes**
+af det andet frem for at blive genberegnet.
 
 ### 2. Skal EAL-årslønnen have et loft eller et rimelighedssignal? · AFGJORT 2026-08-27 – NEJ
 

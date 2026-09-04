@@ -8,14 +8,29 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Erhvervsevnetab **fane 4 – EET efter EAL** (11d). Fane 11c er gennemgået 2026-09-03.
-- **Næste fund-ID:** BB-177
-- **Åbne spørgsmål:** **ét.** Fra flade 10: hvor mange måneder er allerede udbetalt – de to halvdele
-  bruger hver sin læsning. Visningen er præciseret til «Resterende periode (hele år og måneder)», men selve
-  tællemetoden er fortsat åben. Se [forsoergertab.md](forsoergertab.md). **Flade 11a's spørgsmål er afgjort
-  2026-09-03:** «Bemærk»-boksens to forbehold er en påmindelse til den, der taster, og skal **ikke** i de fire
-  EET-dokumenter. Flade 11b rejste ingen nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11c er alle afgjort.
+- **Næste flade:** Erhvervsevnetab **fane 5 – Differencekrav** (11e). Fane 11d er gennemgået 2026-09-04 og
+  afgjort + gennemført samme dag.
+- **Næste fund-ID:** BB-185
+- **Åbne spørgsmål:** **ingen.** De to sidste er afgjort 2026-09-04.
+  **Flade 10 – hvor mange måneder er allerede udbetalt:** fladens to halvdele skal **konsekvent bruge
+  dagbaseret optjeningstælling**. Gennemført i kode samme dag: `alleredeUdbetaltMaaneder` er nu afledt af
+  tabellens egen sum frem for at være en selvstændig optælling af hele kalendermåneder, så de to ikke kan
+  drifte. Det flytter et beløb i drift – i den målte sag fra 90.036 kr. til 82.741 kr. – og reglen er
+  derfor gjort normativ i `forsoergertab-snapshot-contract.md` §4A. Se [forsoergertab.md](forsoergertab.md).
+  **Flade 11d – 10 %-trinnene efter EAL:** **nej**, de nye 10 %-intervaller gælder kun ASL. Efter EAL
+  anvendes fortsat 15 % som mindstegrænse og derefter 5 %-intervaller op til 100 %. Antagelsen bag
+  gennemgangen holdt, feltets egen regel er allerede den rigtige, og
+  `warn-invalid-eet-pct-after-2024-07-01`s fravær i EAL-motoren er bekræftet korrekt. Ingen kodeændring –
+  og et eksempel på, at M-30's trin 4 sparede en forkert advarsel på det felt, hvor kravet opgøres.
+  **To af flade 11d's tre
+  spørgsmål blev afgjort tidligere samme dag:** en senere midlertidig afgørelse SKAL kunne fortrænge en tidligere
+  endelig, fordi EAL ikke kender et midlertidigt erhvervsevnetab (BB-178); og en afgørelse truffet efter
+  beregningsdatoen bærer EAL-kravet, mens Differencekravs blokering samtidig er korrekt, fordi den flade
+  forudsætter krav efter BÅDE ASL og EAL og derfor har andre forudsætninger (BB-179 – ingen udestående
+  uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
+  påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
+  nye åbne spørgsmål.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11d er alle afgjort.
 - **Flade 11c er afgjort OG gennemført i kode 2026-09-03:** af de 11 fund er **seks implementeret**
   (BB-167, BB-168, BB-171, BB-172, BB-173, BB-176), **to delvist** (BB-170, BB-175), **to afvist**
   (BB-169, BB-174) og **ét trukket tilbage** (BB-166 – fundet hvilede på min egen fejlagtige præmis).
@@ -54,7 +69,86 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-09-03 (**Flade 11c – Kapitalisering – gennemgået: 11 fund, ét Høj, fire
+- **Senest opdateret:** 2026-09-04 (**De to sidste åbne spørgsmål i hele gennemgangen er afgjort – der er
+  nu hverken fund eller spørgsmål, der afventer udvikleren, frem til flade 11e.**
+  **10 %-trinnene binder kun ASL, ikke EAL:** feltet «EET % (hvis afviger fra ASL)» skal fortsat kun
+  kræve 5 %-trin mellem 5 og 100, og den manglende trinadvarsel er dermed korrekt fraværende.
+  Spørgsmålet er værd at huske som M-30's trin 4 i praksis: havde fraværet været registreret som fund,
+  ville rettelsen have indført en **forkert** advarsel på netop det felt, hvor EAL-kravet opgøres.
+  **Forsørgertabets to halvdele er omlagt til dagbaseret optjeningstælling.** Rettelsen bestod ikke i at
+  vælge den rigtige af to formler, men i at **fjerne den ene**: `alleredeUdbetaltMaaneder` er nu summen af
+  `lobendeYdelser`-tabellens egne månedstal, så den resterende periode er afledt af tabellen frem for
+  talt op ved siden af den. Begge formler var før internt konsistente, og derfor fangede ingen test, at de
+  gav 62 mod 60,7323 måneder for de samme udbetalinger. Det flytter et beløb i drift – kapitalfaktoren
+  3,064 → 3,117, kapitalbeløbet 421.731 → 429.026 kr. og forsørgertabserstatningen 90.036 → 82.741 kr. i
+  den målte sag – og fortegnet er værd at have med: den hidtidige læsning var den **gunstigste** for de
+  efterladte, så omlægningen er en ensretning, ikke en fejlrettelse i skadelidtes favør. Reglen er gjort
+  normativ i `forsoergertab-snapshot-contract.md` §4A, fordi en tællemetode, der kan drifte, ikke må
+  kunne genopstå. Fuld Vitest-suite (8206 tests) grøn; to nye unittests og én ny e2e-spec
+  (`e2e/forsoergertabResterendePeriode.spec.ts`) låser tallene i browseren.
+  **Læren, der rækker ud over fladen:** når to steder i samme opgørelse regner det samme tal, så spørg om
+  det ene kan **afledes** af det andet frem for at blive genberegnet – to konsistente formler for ét
+  begreb er usynlige for tests og bliver først synlige for brugeren.)
+- **Tidligere: 2026-09-04** (**Flade 11d afgjort OG gennemført: fem fund rettet (to delvist), tre
+  afvist, nul udeståender – hele gennemgangen frem til 11e har dermed ingen fund, der afventer
+  udvikleren.** De to sidste afgørelser gav hver sin lære om, hvornår en divergens overhovedet ER et fund:
+  **BB-179 er afvist i sin helhed,** fordi differencekrav kun opstår, når der er krav efter BÅDE ASL og
+  EAL – de to flader har altså forskellige forudsætninger, og samme forhold kan derfor kræve en
+  fejlmeddelelse på den ene og ikke på den anden. Fundets slutning «to faner siger forskelligt om samme
+  tal, så de kan ikke begge være rigtige» holdt ikke. **BB-181 blev delt i to tilstande:** fundets
+  anbefaling var forkert – EAL ER udgangspunktet, og en sag kan være omfattet af EAL alene – men
+  afvisningen dækkede kun den rene sag, mens målingen var en anden tilstand: en fuldt udfyldt Endelig
+  afgørelse med tom procentcelle. Nu peger en påbegyndt afgørelse uden EET % på tabellens egen celle med
+  de tre andre faners ordlyd, mens en sag helt uden afgørelser får «Erhvervsevnetabsprocenten mangler:
+  angiv EET % efter EAL, eller udfyld EET % på en afgørelse» med link til EAL-feltet. Efterprøvet, at
+  differencekravets to undertrykkelser af `eet-pct-missing` fortsat er sikre, fordi dens egen kæde rejser
+  `missing-eet-pct` med samme ordlyd og dedupliceres. Fuld Vitest-suite (8205 tests) og hele
+  e2e-banesuiten (161 tests) grønne; fem e2e-tests låser fladens ændringer i browseren.)
+- **Tidligere: 2026-09-04** (**Flade 11d implementeret: fire fund rettet, tre afvist, ét
+  udestående.** De fire lærerige udfald: **BB-178 blev vendt om af sin egen tilbagemelding** – fundet bad
+  om at overveje at sortere afgørelsestype før dato, men EAL kender slet ikke et midlertidigt
+  erhvervsevnetab, så «seneste ASL-procent vinder» ER den rigtige regel. Kun tavsheden var fejlen, og
+  advarslen er derfor løftet fra løbende ydelsers motor til afgørelsestabellens eget modul, hvor reglen
+  hører til. **M-30's prøve har fået et trin 4 af det:** spørg først, om motorens domæne overhovedet
+  kender det begreb, den manglende advarsel handler om – et korrekt fravær af en typeafhængighed og et
+  urigtigt fravær af en advarsel ligner hinanden i skemaet. **BB-182 måtte placeres anderledes end
+  foreslået:** differencekravet trykker EAL-kroppen som bilag med «Beregning»-sektionen slået fra, så en
+  række i headeren var forsvundet i netop det dokument, hvor forudsætningen er sværest at finde – rækken
+  ligger derfor i «Specifikation». **BB-183 afslørede, at en advarsel kan være implementeret og alligevel
+  dække den halve regel:** ringen sad på det rigtige felt, men kun når feltet var TOMT, og feltringen og
+  boksen brugte to forskellige sætninger om samme regel. Mit eget fund beskrev dertil mekanikken forkert
+  på to punkter, som først kildelæsningen afslørede. **BB-181 er ikke lukket:** afvisningens begrundelse
+  er accepteret, men den dækker den rene sag, ikke den tilstand fundet målte – en fuldt udfyldt Endelig
+  afgørelse med tom EET %-celle – hvor beskeden sender brugeren til det valgfrie EAL-felt og blokerer de
+  tre andre faner. Fuld Vitest-suite og hele e2e-banesuiten grønne; tre nye e2e-tests låser ændringerne i
+  browseren.)
+- **Tidligere: 2026-09-04** (**Flade 11d – EET efter EAL – gennemgået: 8 fund, to Høj, fem
+  Mellem og ét Lav, og ét nyt tværgående mønster M-30.** Fanen er den tredje resultatfane og den, der opgør
+  kravet efter erstatningsansvarsloven; skærm og dokument er ordret identiske, og dokumentet har ingen
+  valgfri afsnit. **M-30 er det nye mønster, og dets prøve er et SKEMA frem for en måling:** flere motorer
+  læser samme afgørelsestabel, men advarslerne om tabellens mangler følger motoren og ikke rækken.
+  `rg "toWarning\('warn-" src/domain/erhvervsevnetab` giver skemaet, og `computeEetEalCalculation` bærer
+  **ingen** af tabellens rækkefølge-advarsler. **De to Høj-fund er begge udslag af det, og begge kan koste
+  brugeren penge eller tid:** **BB-178** – en midlertidig afgørelse fra 2022 på 30 % fortrænger en endelig
+  fra 2020 på 50 %, fordi udvælgelsen sorterer på dato før type; fanen opgør `1.219.860 kr.` uden **nogen**
+  «Fejl og advarsler»-boks, hvor samme sag uden den midlertidige række giver `2.033.100 kr.` – **813.240 kr.
+  i forskel** – mens Løbende ydelser OG Differencekrav begge skriver «Der er angivet en midlertidig afgørelse
+  efter en endelig afgørelse.» **BB-181** – med en afgørelsesrække, hvis EET %-celle er tom, peger tre af de
+  fire faner ordret på «Der er en afgørelse uden EET % → Arbejdsskadesikringsloven», mens fane 4 skriver
+  «Erhvervsevnetabsprocent er ikke udfyldt → **Erstatningsansvarsloven**» og dermed sender brugeren til det
+  VALGFRIE felt; udfylder han det, regner fanen, men han har sat en EAL-afvigelse, han ikke mente, og de
+  tre andre faner står blokeret. **Fanens andet gennemgående tema er de to fallbacks:** årslønnen og
+  EET-procenten har hver to mulige kilder, og fanen siger aldrig hvilken den brugte – `aarsloenSource` og
+  `eetPctSource` ligger i det kanoniske output og renderes ingen steder (BB-180, målt: fanen viser
+  `700.000 kr.`/`75 %` mens Løbende ydelser i samme sag viser `400.000 kr.`/`50 %`). **Dertil BB-177** –
+  «**Endeligt** erhvervsevnetab» står over en procent fra en afgørelse, brugeren har markeret Midlertidig,
+  mens de tre andre faner navngiver typen – og **BB-182**, hvor dokumentet mangler skadedatoen, som alderen
+  hviler på, selv om fødselsdatoen står der og Forsørgertabs dokument fik datoen ved BB-122.
+  **Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden;** intet af de otte fund
+  handler om en forkert formel. **M-10, M-19, M-22 og M-02/BB-121 er efterprøvet og BESTÅET;** M-25, M-27,
+  M-29 og M-07 er uden genstand. **M-28's prøve gav sit andet negative træf** (`alderVedSkadeCapped`).
+  Konsollen var tavs: 195 beskeder, 0 fejl, 0 advarsler.)
+- **Tidligere: 2026-09-03** (**Flade 11c – Kapitalisering – gennemgået: 11 fund, ét Høj, fire
   Mellem og seks Lav, og ét nyt tværgående mønster M-29.** Fanen er den anden resultatfane og den eneste,
   der opgør et engangsbeløb; den har præcis én kontrol og deler præsentationsmodel med sit dokument.
   **M-29 er det nye mønster og det første, hvor brugeren slet ikke kan komme videre:** to regler, der
@@ -200,9 +294,128 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 11a | Erhvervsevnetab – EET oplysninger | Afgjort | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11c | Erhvervsevnetab – Kapitalisering | Afgjort og gennemført | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11d | Erhvervsevnetab – EET efter EAL | Ikke startet | – | – |
+| 11d | Erhvervsevnetab – EET efter EAL | Afgjort og gennemført | 8 (BB-177–BB-184) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
 | 12 | Erstatningsopgørelse | Ikke startet | – | – |
+
+## Erhvervsevnetab → EET efter EAL (11d) – gennemgået 2026-09-04, afgjort og gennemført 2026-09-04
+
+**8 fund: to Høj, fem Mellem, ét Lav. Fem implementeret (to delvist), tre afvist.**
+Det fulde grundlag med målte tal, tilbagemeldinger og modsvar står i
+[erhvervsevnetab.md](erhvervsevnetab.md).
+
+| ID | Kort | Prioritet | Udfald |
+|---|---|---|---|
+| BB-178 | En senere midlertidig afgørelse fortrænger en endelig – 813.240 kr., uden en boks | **Høj** | **Delvist** · udvælgelsen står uændret (EAL kender ikke midlertidigt EET); advarslen er løftet til afgørelsestabellens modul og produceres nu også af EAL-motoren |
+| BB-181 | «Erhvervsevnetabsprocent er ikke udfyldt» fører til det valgfrie EAL-felt | **Høj** | **Delvist** · fundets anbefaling afvist (EAL ER udgangspunktet), men de to tilstande skelnes nu: en påbegyndt afgørelse uden EET % peger på tabellen, en sag uden afgørelser nævner begge veje |
+| BB-177 | «Endeligt erhvervsevnetab» står over en procent fra en midlertidig afgørelse | Mellem | Implementeret · «Erhvervsevnetab» som delt konstant; ordet bevaret i EO's ASL-sektion |
+| BB-179 | En afgørelse efter beregningsdatoen giver fuldt krav her og blokerer nabofanen | Mellem | **Afvist i sin helhed** · differencekrav forudsætter krav efter BÅDE ASL og EAL, så de to flader har forskellige forudsætninger og kan begge være rigtige |
+| BB-180 | Fanen bruger den ene af to udfyldte kilder og siger aldrig hvilken | Mellem | **Afvist** · fallbacken er velkendt for målgruppen |
+| BB-182 | Specifikationen mangler skadedatoen, som alderen og opreguleringen hviler på | Mellem | Implementeret · i «Specifikation», ikke «Beregning», så bilaget bærer den med |
+| BB-183 | Årslønsmaksimum-advarslen har en gul ring på det ene felt og kun en boks på det andet | Mellem | Implementeret · **fundet var delvist forkert**, se rettelsen |
+| BB-184 | «Kapitaliseringsfaktor» er navnet på to forskellige størrelser på to faner | Lav | **Afvist** · samme begreb, blot to fastsættelsesmåder |
+
+**Seks udfald, der rækker ud over fanen:**
+
+**(0) BB-179's afvisning retter en slutning, gennemgangen har brugt bredt: «to flader, to svar» er kun
+et fund, hvis de to flader har samme FORUDSÆTNING.** Fundet sluttede fra «Differencekrav blokerer det
+tal, denne fane udleverer» til «de kan ikke begge være rigtige». Men differencekrav opstår udelukkende,
+når der er krav efter BÅDE ASL og EAL, mens EAL-fanen opgør ét krav isoleret – så en fejlmeddelelse kan
+være relevant på den ene flade uden at være det på den anden, selv om de udspringer af samme forhold.
+**Det er BB-166's lære i en ny form:** dér var det arbejdsdelingen mellem to BEREGNINGER, her er det
+input-forudsætningerne for to FLADER. Prøven: før en divergens registreres, afklar om de to flader
+kræver samme input for overhovedet at opstå.
+
+**(0b) BB-181 blev delt i to tilstande, og delingen er selv prøven.** Fundets anbefaling var forkert –
+erstatningsansvarsloven ER udgangspunktet, og en sag kan være omfattet af EAL alene, hvor det ville
+være meningsløst at pege på ASL. Men afvisningen dækkede kun den rene sag, mens fundets måling var en
+anden tilstand: en fuldt udfyldt Endelig afgørelse med tom procentcelle. Begge udsendte samme issue-id.
+**Læren, der hører i M-02's prøve: når ét issue kan opstå i flere tilstande, skal prøven navngive dem
+hver for sig – ellers besvarer tilbagemeldingen den ene, mens fundet handlede om den anden,** og begge
+parter kan have ret uden at nå hinanden. Indgang: for hvert `missing-*`-issue, tæl de veje der fører
+dertil, og spørg om beskeden og linket passer på dem alle.
+
+**Fire udfald, der rækker ud over fanen:**
+
+**(1) BB-178 blev vendt om af sin egen tilbagemelding, og det er den vigtigste lære.** Fundet
+foreslog at overveje at sortere type før dato, så en endelig afgørelse ville vinde. Svaret var det
+modsatte: erstatningsansvarsloven kender slet ikke et midlertidigt erhvervsevnetab, så EAL-procenten
+er den fastsatte procent, og «seneste vinder» er dermed den rigtige regel – ikke en tilfældig
+sorteringsrækkefølge, som fundet antog. **Læren for M-30's prøve, som nu har et trin 4:** når en
+motor mangler en advarsel, spørg først, om motorens DOMÆNE overhovedet kender det begreb, advarslen
+handler om. Her var fraværet af en typeafhængighed korrekt, mens fraværet af advarslen ikke var – de
+to ligner hinanden i skemaet og er to helt forskellige fund. Samme skelnen som BB-166's lære, nu på
+advarselssiden frem for beregningssiden.
+
+**(2) Advarslen lå i den motor, der først fik brug for den – og reglen hørte til tabellen.**
+`warn-non-endelig-after-endelig` fandtes ét sted (løbende ydelser) og var låst til den motors egen
+`ResolvedAfgoerelse`-type, så EAL-motoren ikke kunne genbruge den. Den er nu flyttet til
+`eetAslAfgoerelser.ts` som `resolveNonEndeligAfterEndeligWarning` med sin egen smalle rækketype, og
+løbende ydelser kalder den delte regel. **Prøven for de resterende flader:** en advarsel om en
+brugerindtastet TABEL hører i tabellens modul, ikke i den beregning, hvor den blev opdaget. Er den
+låst til en motorspecifik type, er det selve låsen, der har skabt M-30's mønster.
+
+**(3) BB-182 flyttede en forudsætningsrække på grund af en bilagsgate, fundet ikke havde set.**
+Fundet foreslog rækken i «Beregning»-boksen ved Beregningsdato. Men differencekravet trykker samme
+krop som bilag med `includeBeregningsdatoHeader = false`, og differencekravets egen krop skriver
+ikke skadedatoen – rækken var altså forsvundet i netop det dokument, hvor forudsætningen er sværest
+at finde. **Prøven:** før en række lægges i en betinget sektion, spørg hvilke KALDERE der slår
+sektionen fra, og om oplysningen er undværlig for dem. `includeBeregningsdatoHeader`-mønstret findes
+overalt, hvor en krop genbruges som bilag.
+
+**(4) BB-183 viser, at en advarsel kan være «implementeret» og alligevel dække den halve regel.**
+Ringen sad på det rigtige felt med den rigtige tekst – men kun i den ene af to tilstande, reglen kan
+brydes i, og feltringen og boksen brugte to forskellige ordlyd om samme regel. **Prøven er ikke «har
+feltet en ring?», men «har feltet en ring i HVER tilstand, reglen kan brydes i, og er det den samme
+sætning som boksens?»** Fundets egen beskrivelse af mekanikken var dertil forkert på to punkter, som
+først kildelæsningen afslørede – en påmindelse om, at en måling af hvad der VISES, ikke er en måling
+af hvorfor.
+
+**Fanen er den tredje resultatfane, og to forhold forklarer syv af de otte fund.** Det første er, at fanen
+har **to fallbacks**: årslønnen er EAL-årslønnen, hvis den er udfyldt og positiv, ellers ASL-årslønnen, og
+EET-procenten er «EET % (hvis afviger fra ASL)», hvis den er udfyldt, ellers den afgørelse, der vinder en
+sortering på afgørelsesdato → virkningsdato → type. Ingen af de to valg vises nogen steder, selv om begge
+ligger i det kanoniske output som `aarsloenSource` og `eetPctSource` (BB-180) – og selve sorteringen kan
+lade en midlertidig afgørelse fortrænge en endelig (BB-178). Det andet er, at fanen **læser
+afgørelsestabellen uden at bære tabellens advarsler**: `computeEetEalCalculation` producerer hverken
+`warn-non-endelig-after-endelig` eller `warn-dato-after-beregningsdato`, som Løbende ydelser og
+Differencekrav gør (BB-178, BB-179).
+
+**M-30 er det nye mønster, og dets prøve er et SKEMA frem for en måling.** Flere motorer læser samme
+brugerindtastede tabel, men advarslerne om tabellens mangler er skrevet i den motor, hvor de først blev
+opdaget, og følger derfor motoren og ikke rækken.
+`rg "toWarning\('warn-" src/domain/erhvervsevnetab` giver hele skemaet på tolv linjer:
+`warn-non-endelig-after-endelig` og `warn-invalid-eet-pct-after-2024-07-01` produceres kun af løbende
+ydelser, `warn-dato-after-beregningsdato` af løbende og differencekrav, `warn-asl-eet-under-15` af løbende
+og EAL, `warn-kap-pct-under-15` og `warn-ingen-kap-input` kun af kapitalisering. Prøvens trin 3 er
+nødvendigt og er BB-166's lære: en ASL-regel hører ikke nødvendigvis i en EAL-beregning, og det er den
+eneste gyldige grund til fraværet. Netop derfor er `warn-invalid-eet-pct-after-2024-07-01`s fravær **ikke**
+registreret som fund, men som åbent spørgsmål.
+
+**Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden:** basis
+(`400.000 × 1,255198 = 502.079,20 → 502.000`, `× 10 × 30 % = 1.506.000`, aldersreduktion `19 %` →
+`286.140`, EAL-krav `1.219.860 kr.`), maksimum-grenen (`12.550.000 > 11.582.500` → reduceret, EAL-krav
+`9.381.825 kr.`), aldersreduktionens 70 %-loft (alder 75 → `(75 - 29) + (75 - 54) x 2 (max 70 %)` = 70 %,
+EAL-krav `3.474.750 kr.`) og halvdelsafrundingen (`6.588.750 × 19 % = 1.251.862,5 → 1.251.863`).
+**Ingen af de otte fund handler om en forkert formel** – BB-178 handler om, hvilken afgørelse formlen får
+sin procent fra.
+
+**Konsekvenser for de resterende flader – tre prøver at tage med:**
+1. **M-30's skema hører på hver side med flere motorer over samme tabel.** `rg "toWarning\('warn-"` pr.
+   domæne, opstil advarsel × motor, og spørg for hver enlig advarsel om de øvrige motorer læser samme
+   rækker. Kandidater: EO's rækkebyggere (`EO_ROW_BUILDERS`) over lønindkomst- og ydelsestabellerne, og
+   Årsløns tre lønmetoder over samme periodetabel.
+2. **BB-180 giver M-28 en ny og meget smal søgning:** `rg "Source: z.enum" src/domain`. En
+   `source`-diskriminant i et output er per definition svaret på «hvilket af mine felter blev brugt?», og
+   hvert træf er en kandidat, indtil dets kaldsside i en visning er fundet.
+3. **BB-182 er BB-137's lære om omdøbninger, nu om FORUDSÆTNINGER:** BB-122's skadedato-rettelse blev
+   lavet i den generator, fundet blev gjort i, mens den anden generator over samme beregning ikke fulgte
+   med. Når en beregning har mere end én udgang, skal en forudsætningsrettelse søges på computation-typen,
+   ikke på generatoren.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864; PDF-kanalen ikke læst (dokumentet hentet som `.docx`);
+`Gem`/`Hent` ikke afprøvet; brevhovedet ikke slået til; `warn-eal-aarsloen-empty-for-2024-07-01` og
+aldersreduktionens 0 %-gren er kildelæst, ikke målt; «meget mange afgørelser» (B3) ikke målt.
 
 ## Erhvervsevnetab → Kapitalisering (11c) – gennemgået 2026-09-03
 

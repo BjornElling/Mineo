@@ -1,6 +1,11 @@
 /**
  * Den resterende periode vises i hele år og måneder, fordi kapitaliseringstabellen
  * slår op på netop denne opdeling.
+ *
+ * Selve resten opgøres dagbaseret (`resterendeMaanederTotal`, afgjort 2026-09-04) som samlet periode
+ * minus tabellens egen sum af udbetalte måneder; afkortningen til hele år og måneder sker først ved
+ * tabelopslaget. Etiketten siger derfor netop, hvad den viste værdi er: den afkortede opslagsnøgle,
+ * ikke den fulde rest.
  */
 export const FORSOERGERTAB_RESTERENDE_PERIODE_LABEL = 'Resterende periode (hele år og måneder)';
 

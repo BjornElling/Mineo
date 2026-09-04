@@ -361,13 +361,29 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[beregningsår] / idx[skadeår]).
   const opreguleringsfaktor = opregulerMedAslAarsloensmaksimum({ kildeAar: skadesaar, maalAar: beregningsaar }).faktor;
   const opreguleretAarligYdelse = round2(FORSOERGERTABSPROCENT * benyttetAarsloen * opreguleringsfaktor);
-  const virkningsmaaned = Number(input.virkningsdato.slice(5, 7));
-  const beregningsmaaned = Number(input.beregningsdato.slice(5, 7));
-  const alleredeUdbetaltMaaneder = (beregningsaar - virkningsaar) * 12 + (beregningsmaaned - virkningsmaaned) + 1;
+  const lobendeYdelser = computeLobendeYdelser(
+    input.virkningsdato,
+    input.beregningsdato,
+    input.tilkendtForPeriodeAar,
+    benyttetAarsloen,
+    skadesaar,
+    aarsloenMaxSkadesaar,
+  );
+  const aslLobendeYdelserTotal = lobendeYdelser.reduce((sum, r) => sum + r.ydelseIAlt, 0);
+
+  // TÆLLEMETODE: dagbaseret optjening (udviklerens afgørelse 2026-09-04, brugerblik-spørgsmål fra flade 10).
+  // De allerede udbetalte måneder ER summen af tabellens egne månedstal – ikke en parallel optælling af
+  // hele kalendermåneder. Fladens to halvdele havde før hver sin læsning: tabellen værdiansatte dag for dag
+  // (fx 60,7323 mdr.), mens kapitalfaktoren talte hele kalendermåneder inklusive begge ender (62 mdr.), så
+  // de samme udbetalinger gav to forskellige tal i samme opgørelse. Ved at læse tabellens sum kan de to
+  // ikke længere drifte: ændres periodiseringen, følger den resterende periode med.
+  const alleredeUdbetaltMaaneder = round4(lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));
   const samletMaaneder = input.tilkendtForPeriodeAar * 12;
-  const resterendeMaanederTotal = Math.max(0, samletMaaneder - alleredeUdbetaltMaaneder);
+  const resterendeMaanederTotal = Math.max(0, round4(samletMaaneder - alleredeUdbetaltMaaneder));
+  // Kapitaliseringstabellen slår op på HELE år og måneder, så den dagbaserede rest afkortes her – og kun
+  // her. `resterendeMaanederTotal` bevarer decimalerne, så visningen kan sige hvad der faktisk er tilbage.
   const resterendeAar = roundByMethod(resterendeMaanederTotal / 12, 0, 'floor');
-  const resterendeMaaneder = resterendeMaanederTotal % 12;
+  const resterendeMaaneder = roundByMethod(resterendeMaanederTotal % 12, 0, 'floor');
 
   const kapitaliseringsbekendtgoerelseId = resolveKapitaliseringsbekendtgoerelseId(input.skadedato, input.beregningsdato);
   if (!kapitaliseringsbekendtgoerelseId) {
@@ -433,16 +449,6 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     harNaaetFolkepensionsalder || resterendeMaanederTotal === 0 || kapitalfaktor === null
       ? 0
       : ceil0(opreguleretAarligYdelse * kapitalfaktor);
-
-  const lobendeYdelser = computeLobendeYdelser(
-    input.virkningsdato,
-    input.beregningsdato,
-    input.tilkendtForPeriodeAar,
-    benyttetAarsloen,
-    skadesaar,
-    aarsloenMaxSkadesaar,
-  );
-  const aslLobendeYdelserTotal = lobendeYdelser.reduce((sum, r) => sum + r.ydelseIAlt, 0);
 
   const computation: ForsoergertabAslComputation = {
     skadedato: input.skadedato,

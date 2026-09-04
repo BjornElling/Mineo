@@ -4,7 +4,7 @@ import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/fo
 import { computeForsoergertabEalKrav } from '../../../domain/forsoergertab/forsoergertabEalKrav';
 import { opregulerMedAslAarsloensmaksimum } from '../../../domain/satser/opreguleringsmotorer';
 import { aarsloenAslMax, erhvervsevnetabEalMax, foersoergertabEalMin } from '../../../data/lovbestemteRates';
-import { round0, round2 } from '../../../utils/roundingShortcuts';
+import { round0, round2, round4 } from '../../../utils/roundingShortcuts';
 import { toISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
 
@@ -339,7 +339,10 @@ describe('computeForsoergertabAslYdelser', () => {
     expect(computation.kapitalbelob).toBe(Math.ceil(nonRounded));
   });
 
-  it('tæller virkningsdato og beregningsdato i samme måned som 1 allerede udbetalt måned', () => {
+  it('tæller allerede udbetalte måneder dagbaseret – én dag er 1/31 måned, ikke en hel måned', () => {
+    // TÆLLEMETODE (afgjort 2026-09-04): de udbetalte måneder er tabellens egen dagbaserede sum.
+    // Virkningsdato = beregningsdato = 1. marts er ÉN dag af martsʼ 31, altså 0,0323 måneder – ikke
+    // den hele kalendermåned, den tidligere optælling gav.
     const result = computeForsoergertabAslYdelser({
       skadedato: toISODateString('2020-05-01'),
       beregningsdato: toISODateString('2026-03-01'),
@@ -351,8 +354,34 @@ describe('computeForsoergertabAslYdelser', () => {
     });
 
     expect(result.computation).not.toBeNull();
-    expect(result.computation?.alleredeUdbetaltMaaneder).toBe(1);
-    expect(result.computation?.resterendeMaanederTotal).toBe(11);
+    expect(result.computation?.alleredeUdbetaltMaaneder).toBe(round4(1 / 31));
+    expect(result.computation?.resterendeMaanederTotal).toBe(round4(12 - 1 / 31));
+  });
+
+  it('læser de udbetalte måneder af tabellens egen sum, så de to halvdele ikke kan drifte', () => {
+    // Fladens to halvdele brugte før hver sin læsning: tabellen dagbaseret, kapitalfaktoren hele
+    // kalendermåneder. Denne test låser, at der nu kun er ÉN kilde til tallet.
+    const result = computeForsoergertabAslYdelser({
+      skadedato: toISODateString('2020-06-10'),
+      beregningsdato: toISODateString('2025-07-01'),
+      virkningsdato: toISODateString('2020-06-10'),
+      efterladteFodselsdato: toISODateString('1978-08-20'),
+      koen: undefined,
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(400000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation!;
+    const tabelSum = round4(computation.lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));
+
+    expect(computation.alleredeUdbetaltMaaneder).toBe(tabelSum);
+    // Den målte sag fra brugerblik-gennemgangen: 60,7323 udbetalt, 59,2677 tilbage – ikke 62/58.
+    expect(computation.alleredeUdbetaltMaaneder).toBe(60.7323);
+    expect(computation.resterendeMaanederTotal).toBe(59.2677);
+    // Tabelopslaget afkorter til hele år og måneder: 4 år og 11 måneder.
+    expect(computation.resterendeAar).toBe(4);
+    expect(computation.resterendeMaaneder).toBe(11);
   });
 
   it('afviser ugyldig tilkendt periode i domænelaget', () => {

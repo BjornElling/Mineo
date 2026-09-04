@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-01
+**Senest verificeret mod kode:** 2026-09-04
 
 ---
 
@@ -62,6 +62,27 @@ ikke-blokerende `FieldWarning`, aldrig som inline-besked.
 
 ---
 
+## 4A. Tællemetode for allerede udbetalte måneder
+
+**Afgjort 2026-09-04.** De allerede udbetalte måneder opgøres **dagbaseret** (optjeningstælling) – ikke
+som hele kalendermåneder.
+
+`alleredeUdbetaltMaaneder` **skal** være summen af `lobendeYdelser`-tabellens egne `maaneder`-værdier.
+Den må ikke beregnes af en selvstændig formel ved siden af tabellen. Reglen er en
+**afledningsregel**, ikke blot et valg af formel: fladens to halvdele – tabellen «Løbende ydelse» og
+kapitalfaktorens resterende periode – havde før hver sin optælling af de samme udbetalinger, og begge
+var internt konsistente. Netop derfor fangede ingen test uenigheden. Ved at aflede den ene af den anden
+kan de ikke drifte, hvis periodiseringen senere ændres.
+
+Afkortning til hele år og måneder sker **kun** ved opslaget i kapitaliseringstabellen
+(`resterendeAar`/`resterendeMaaneder`), fordi tabellen slår op på netop den opdeling.
+`resterendeMaanederTotal` bevarer decimalerne, så visningen kan skelne den faktiske rest fra
+opslagsnøglen. Etiketten «Resterende periode (hele år og måneder)» navngiver opslagsnøglen.
+
+En ændring af tællemetoden flytter et beløb i drift og er derfor en godkendelsesgate efter `AGENTS.md`.
+
+---
+
 ## 5. Minimumstestflade
 
 Tests skal dække:
@@ -70,4 +91,6 @@ Tests skal dække:
 2. dokumentgaten og dokumentprojektionen kommer fra samme dokumentdefinition og angiver blokerende årsager,
 3. runtime exception blokerer output,
 4. ændringer i `faellesAarsloen` påvirker snapshot deterministisk,
-5. dokumentflow bruger snapshot-projektionen og afviser et stale `EvaluationSourceToken`.
+5. dokumentflow bruger snapshot-projektionen og afviser et stale `EvaluationSourceToken`,
+6. `alleredeUdbetaltMaaneder` er identisk med tabellens egen sum (§4A), og en enkelt dag tælles som sin
+   brøkdel af måneden – ikke som en hel måned.
