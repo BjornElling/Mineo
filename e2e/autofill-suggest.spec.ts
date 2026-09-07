@@ -6,9 +6,8 @@ import { expect, login, openPage, setFieldValueAndSettle, test } from './support
 //
 // Basisbanen: adfærden er Mineos egen – ghostens synlighed, Enter-accept og fokusbevarelsen afhænger
 // ikke af browsermotoren. Det, der IKKE kan måles i JSDOM, er kæden hele vejen igennem: at ghosten
-// faktisk står i den rigtige celle på en rigtig side, at Enter-accepten går gennem grid-navigationens
-// capture-fase uden også at flytte fokus, og at et NYT Enter derefter navigerer videre til den næste
-// række, hvor det næste forslag så står klar.
+// faktisk står i den rigtige celle på en rigtig side, at Enter-accepten afslutter indtastningen uden at
+// flytte fokus, og at den næste almindelige Enter-navigation ikke arver et ældre Tab-anker.
 
 const ydelserRows = (page: Page): Locator =>
   page
@@ -19,7 +18,7 @@ const cell = (page: Page, rowIndex: number, label: string): Locator =>
   ydelserRows(page).nth(rowIndex).getByLabel(label, { exact: true });
 
 test.describe('Autofill-suggest i ydelsestabellen', () => {
-  test('foreslår næste periode, indsætter den med Enter og beholder fokus i cellen', async ({ page, runtimeErrors }) => {
+  test('foreslår næste periode og beholder fokus ved Enter-accept', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Offentlige ydelser' }).click();
@@ -42,7 +41,7 @@ test.describe('Autofill-suggest i ydelsestabellen', () => {
     await expect(fraDato).toHaveValue('');
     await expect(page.getByText('Forslag: 01-03-2026. Tryk Enter for at indsætte.')).toBeAttached();
 
-    // Enter indsætter præcis den viste tekst og bliver i cellen.
+    // Enter indsætter præcis den viste tekst, men ghost-accept navigerer aldrig.
     await fraDato.press('Enter');
     await expect(fraDato).toHaveValue('01-03-2026');
     await expect(fraDato).toBeFocused();
@@ -52,13 +51,55 @@ test.describe('Autofill-suggest i ydelsestabellen', () => {
     await tilDato.click();
     await expect(tilDato).toHaveAttribute('placeholder', '31-03-2026');
 
-    // Et NYT Enter navigerer videre som sædvanligt – til den nye tomme række, hvor næste forslag står klar.
+    // Et NYT Enter navigerer videre som sædvanligt – til den næste række, hvor et nyt forslag står klar.
     const nextFraDato = cell(page, 3, 'Fra dato');
     await fraDato.click();
     await expect(fraDato).toBeFocused();
     await fraDato.press('Enter');
     await expect(nextFraDato).toBeFocused();
     await expect(nextFraDato).toHaveAttribute('placeholder', '01-04-2026');
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  test('viser, afviser og accepterer et ydelsestype-forslag i browseren', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Offentlige ydelser' }).click();
+
+    const selectYdelsestype = async (rowIndex: number): Promise<void> => {
+      await cell(page, rowIndex, 'Ydelsestype').click();
+      await page.getByRole('option', { name: 'Dagpenge', exact: true }).click();
+    };
+    await selectYdelsestype(0);
+    await selectYdelsestype(1);
+
+    // En eksisterende, delvist udfyldt række har historisk den tomme streng som dropdownværdi. Den
+    // skal have samme ghost som den helt tomme placeholder-række.
+    await setFieldValueAndSettle(cell(page, 2, 'Fra dato'), '01-03-2026');
+    await setFieldValueAndSettle(cell(page, 2, 'Til dato'), '31-03-2026');
+    await setFieldValueAndSettle(cell(page, 2, 'Ydelse'), '12345,00');
+
+    const ydelsestype = cell(page, 2, 'Ydelsestype');
+    await ydelsestype.focus();
+    await expect(ydelsestype).toHaveAttribute('placeholder', 'Dagpenge');
+    await expect(page.getByText('Forslag: Dagpenge. Tryk Enter for at indsætte.')).toBeAttached();
+
+    // Tab og klik må ikke vælge en ghost. Klik åbner fortsat den rigtige menu.
+    await ydelsestype.press('Tab');
+    await expect(ydelsestype).toHaveValue('');
+    await ydelsestype.click();
+    // MUI skjuler baggrunden for tilgængelighed, mens den modale liste er åben. CSS-locator'en læser
+    // derfor triggerens ARIA-tilstand direkte uden at lade accessibility-træet skjule den for testen.
+    const openTrigger = page.locator('input[role="combobox"][aria-label="Ydelsestype"]').nth(2);
+    await expect(openTrigger).toHaveAttribute('aria-expanded', 'true');
+    await openTrigger.press('Escape');
+    await expect(openTrigger).toHaveAttribute('aria-expanded', 'false');
+
+    await ydelsestype.focus();
+    await ydelsestype.press('Enter');
+    await expect(ydelsestype).toHaveValue('Dagpenge');
+    await expect(ydelsestype).toBeFocused();
 
     expect(runtimeErrors).toEqual([]);
   });

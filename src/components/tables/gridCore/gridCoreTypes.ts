@@ -46,7 +46,8 @@ export type GridCellEditorHandle = Readonly<{
    *
    * Metoden ligger på handlet og ikke i navigationsmodulet, fordi kun cellen kender sin egen ghost:
    * forslaget afhænger af cellens fokus- og drafttilstand og af den tabelmodel, dens context bærer.
-   * Valgfri, fordi et handle uden autofill (fx en popup-celle) hverken har eller skal have en ghost.
+   * Valgfri, fordi et handle uden autofill hverken har eller skal have en ghost. En popup-celle kan derimod
+   * implementere den for et lukket dropdown-forslag.
    */
   acceptAutofillSuggestion?: () => boolean;
 }>;

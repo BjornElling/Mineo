@@ -17,15 +17,19 @@ export type InputUnitAdornmentProps = Readonly<{
   unitSuffix: string;
   /** Dæmp farven til placeholder-niveau – typisk når feltet er tomt. */
   muted: boolean;
+  /** Vis enheden som del af et synligt autofill-forslag. */
+  autofillSuggested?: boolean;
 }>;
 
-const InputUnitAdornment = ({ unitSuffix, muted }: InputUnitAdornmentProps) => (
+const InputUnitAdornment = ({ unitSuffix, muted, autofillSuggested = false }: InputUnitAdornmentProps) => (
   <InputAdornment
     position="end"
     sx={{
       marginLeft: 0,
       pointerEvents: 'none',
-      color: muted ? 'var(--mineo-color-input-unit-muted)' : 'inherit',
+      color: autofillSuggested
+        ? 'var(--mineo-color-active-grid-autofill)'
+        : muted ? 'var(--mineo-color-input-unit-muted)' : 'inherit',
       font: 'inherit',
       '& span': { font: 'inherit' },
     }}

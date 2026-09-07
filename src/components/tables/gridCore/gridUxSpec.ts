@@ -132,12 +132,15 @@ export const GRID_UX_SPEC = {
      *   når fokus forlader tabellen.
      * - Mønstret dannes af de udfyldte celler i SAMME kolonne i rækkerne OVER cellen, i visningsorden.
      *   To prøver er nok. Tomme, delvise og fejlbehæftede celler springes over.
-     * - Enter indsætter ghosten gennem den normale settle-vej og BEHOLDER fokus i cellen; et nyt Enter
-     *   navigerer nedad som sædvanligt. Accepten er en indtastning og rører derfor IKKE Tab-ankeret.
+     * - Enter indsætter ghosten gennem den normale settle-vej og beholder fokus i cellen. Accepten
+     *   rydder et eventuelt Tab-anker; næste almindelige navigation starter derfor i den samme celle.
+     *   Uden ghost er Enter uændret. Shift+Enter accepterer aldrig.
      *   Uden ghost er Enter uændret. Shift+Enter accepterer aldrig.
      * - Datoer, uger og måneder krydser årsskiftet. Beløb gør IKKE: falder rækkens periodestart i et nyt
      *   kalenderår, foreslås intet beløb.
-     * - Dropdown-celler og afledte kolonner har ingen autofill.
+     * - Afledte kolonner har ingen autofill. Dropdown-celler har det heller ikke, bortset fra Offentlige
+     *   ydelsers Ydelsestype: den kan kun gentage et aktivt, valgbart katalogvalg, og et klik åbner stadig
+     *   menuen uden stiltiende valg.
      */
     optInPerTable: true,
     onlyInFocusedEmptyCell: true,

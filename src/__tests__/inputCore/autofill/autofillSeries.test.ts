@@ -5,6 +5,7 @@ import {
   fromAbsoluteMonth,
   projectAbsoluteMonthSeries,
   projectConstantAmountSeries,
+  projectConstantChoiceSeries,
   projectDateSeries,
   projectMonthOfYearSeries,
   projectWeekSeries,
@@ -214,6 +215,19 @@ describe('autofillSeries', () => {
     it('kræver mindst to prøver', () => {
       expect(projectConstantAmountSeries([30000])).toBeNull();
       expect(projectConstantAmountSeries([])).toBeNull();
+    });
+  });
+
+  describe('projectConstantChoiceSeries', () => {
+    it('gentager kun det seneste ens dropdownvalg', () => {
+      expect(projectConstantChoiceSeries(['dagpenge', 'dagpenge'])).toBe('dagpenge');
+      expect(projectConstantChoiceSeries(['sygedagpenge', 'dagpenge', 'dagpenge'])).toBe('dagpenge');
+    });
+
+    it('foreslår intet ved for få eller forskellige valg', () => {
+      expect(projectConstantChoiceSeries([])).toBeNull();
+      expect(projectConstantChoiceSeries(['dagpenge'])).toBeNull();
+      expect(projectConstantChoiceSeries(['dagpenge', 'sygedagpenge'])).toBeNull();
     });
   });
   describe('hul i serien mod ægte kadence (skridt-tiebreak)', () => {

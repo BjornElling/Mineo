@@ -110,8 +110,12 @@ export const GridAmountCell = (
       textAlign="right"
       inputMode={allowDecimals ? 'decimal' : 'numeric'}
       maxDraftLength={maxDraftLength}
-      endAdornment={({ isDraftEmpty }) => (
-        <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={isDraftEmpty} />
+      endAdornment={({ isDraftEmpty, hasAutofillSuggestion }) => (
+        <InputUnitAdornment
+          unitSuffix={INPUT_UNIT_SUFFIX.currency}
+          muted={isDraftEmpty}
+          autofillSuggested={hasAutofillSuggestion}
+        />
       )}
       overlay={({ value }) => (value?.kind === 'expression' ? <ExpressionIndicator /> : null)}
       {...(collectionRuleIssue === undefined ? {} : { collectionRuleIssue })}

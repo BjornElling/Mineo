@@ -1,5 +1,6 @@
 import {
   amountAutofillColumn,
+  choiceAutofillColumn,
   dateAutofillColumn,
 } from '../../../inputCore/autofill/autofillColumns';
 import type { AutofillSuggestModel } from '../../../inputCore/autofill/autofillSuggestModel';
@@ -8,22 +9,25 @@ import {
   eoOffentligeYdelserTillaegField,
   eoOffentligeYdelserTilDatoField,
   eoOffentligeYdelserYdelseField,
+  eoOffentligeYdelserYdelsestypeField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { ydelsestypeKeys, ydelsestyper, type YdelsestypeKey } from '../../../data/ydelsestyper';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 
 /**
  * Autofill-modellen for Offentlige ydelser-tabellen.
  *
  * Kolonneindeksene er tabellens egne (`OffentligeYdelserTable`): 0 fra-dato, 1 til-dato, 2 ydelse,
- * 3 tillæg. Ydelsestypen (4) er en dropdown og de sidste tre kolonner er afledte – ingen af dem er
- * indtastningsceller og ingen af dem indgår.
+ * 3 tillæg og 4 ydelsestype. Ydelsestypen kan gentage et synligt, aktivt katalogvalg; de sidste tre
+ * kolonner er afledte og indgår ikke.
  *
  * `yearAnchorColIndex: 0` er FRA-datoen: det er rækkens periodestart, og et beløb foreslås ikke, når
  * startdatoen falder i et nyt kalenderår (nye satser, ny sygedagpengesats).
  */
 export const buildOffentligeYdelserAutofillModel = (
   rowIds: readonly string[],
-  committedById: ReadonlyMap<string, OffentligeYdelserRow>
+  committedById: ReadonlyMap<string, OffentligeYdelserRow>,
+  availableYdelsestyper: readonly YdelsestypeKey[] = ydelsestypeKeys
 ): AutofillSuggestModel => {
   const rows = rowIds.map((rowId) => committedById.get(rowId));
   return Object.freeze({
@@ -33,6 +37,13 @@ export const buildOffentligeYdelserAutofillModel = (
       dateAutofillColumn(1, eoOffentligeYdelserTilDatoField, rows.map((row) => row?.tilDato)),
       amountAutofillColumn(2, eoOffentligeYdelserYdelseField, rows.map((row) => row?.ydelse)),
       amountAutofillColumn(3, eoOffentligeYdelserTillaegField, rows.map((row) => row?.tillaeg)),
+      choiceAutofillColumn(
+        4,
+        eoOffentligeYdelserYdelsestypeField,
+        rows.map((row) => row?.ydelsestype),
+        (value) => ydelsestyper[value]?.label,
+        availableYdelsestyper,
+      ),
     ]),
     yearAnchorColIndex: 0,
   });

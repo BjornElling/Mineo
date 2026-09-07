@@ -1,6 +1,7 @@
 import { buildOffentligeYdelserAutofillModel } from '../../../components/tables/autofill/offentligeYdelserAutofillModel';
 import { buildStandardLoenAutofillModel } from '../../../components/tables/autofill/standardLoenAutofillModel';
 import { createEoStandardLoenFieldSet } from '../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
+import { isAmountExpressionDraftAllowed } from '../../../utils/numericDraftAdmission';
 import { resolveAutofillSuggestion } from '../../../inputCore/autofill/autofillSuggestEngine';
 import { EMPTY_AUTOFILL_SUGGEST_MODEL } from '../../../inputCore/autofill/autofillSuggestModel';
 import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoenRowInitialValues';
@@ -14,7 +15,7 @@ import { toISODateString } from '../../../types/branded';
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number) => ({ kind: 'number' as const, value });
 
-const YDELSE_COL = { fraDato: 0, tilDato: 1, ydelse: 2, tillaeg: 3 } as const;
+const YDELSE_COL = { fraDato: 0, tilDato: 1, ydelse: 2, tillaeg: 3, ydelsestype: 4 } as const;
 const LOEN_COL = { period0: 0, period1: 1, col2: 2 } as const;
 
 const ydelseRow = (id: string, row: Partial<OffentligeYdelserRow>): OffentligeYdelserRow => ({
@@ -145,7 +146,7 @@ describe('resolveAutofillSuggestion', () => {
       ]);
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toEqual({
         displayText: '3.100,00',
-        rawText: '3.100,00',
+        rawText: '3100,00',
       });
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.tillaeg)?.displayText).toBe('100,00');
     });
@@ -193,6 +194,30 @@ describe('resolveAutofillSuggestion', () => {
         ydelseRow('r2', { fraDato: iso('2026-02-01'), ydelse: amount(3200) }),
       ]);
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toBeNull();
+    });
+  });
+
+  describe('ydelsestype-dropdownen', () => {
+    it('gentager kun et gyldigt og aktuelt valgbart ydelsestypevalg', () => {
+      const model = ydelserModel([
+        ydelseRow('r1', { ydelsestype: 'dagpenge' }),
+        ydelseRow('r2', { ydelsestype: 'dagpenge' }),
+      ]);
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelsestype)).toEqual({
+        displayText: 'Dagpenge',
+        rawText: 'dagpenge',
+      });
+
+      // Et midlertidigt deaktiveret valg er ikke acceptabelt som ghost, selv om en ældre række bærer det.
+      const disabled = buildOffentligeYdelserAutofillModel(
+        ['r1', 'r2', 'ny'],
+        new Map([
+          ['r1', ydelseRow('r1', { ydelsestype: 'midlertidigt_eet' })],
+          ['r2', ydelseRow('r2', { ydelsestype: 'midlertidigt_eet' })],
+        ]),
+        ['dagpenge'],
+      );
+      expect(resolveAutofillSuggestion(disabled, 'ny', YDELSE_COL.ydelsestype)).toBeNull();
     });
   });
 
@@ -244,7 +269,16 @@ describe('resolveAutofillSuggestion', () => {
         loenRow('r1', { col0_maaned: '1', col1_maaned: '2026', col2: amount(30000) }),
         loenRow('r2', { col0_maaned: '2', col1_maaned: '2026', col2: amount(30000) }),
       ], { loenperiode: 'maaned' });
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.col2)?.displayText).toBe('30.000,00');
+      const suggestion = resolveAutofillSuggestion(model, 'ny', LOEN_COL.col2);
+      expect(suggestion?.displayText).toBe('30.000,00');
+      // Ghosten vises med tusindtalsseparator, men den rå accepttekst må ikke have punktum: beløbsfeltets
+      // tegnværn afviser punktummer, og ellers forsvinder netop store, ens lønbeløb fra UI'et.
+      expect(suggestion?.rawText).toBe('30000,00');
+      expect(isAmountExpressionDraftAllowed(suggestion?.rawText ?? '', {
+        allowNegative: true,
+        maxDecimalDigits: 2,
+        maxIntegerDigits: 7,
+      })).toBe(true);
     });
 
     it('holder tillægsbeløbene uden for modellen i Procent-tilstand', () => {

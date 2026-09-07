@@ -6,6 +6,7 @@ import {
   fromAbsoluteMonth,
   projectAbsoluteMonthSeries,
   projectConstantAmountSeries,
+  projectConstantChoiceSeries,
   projectDateSeries,
   projectMonthOfYearSeries,
   projectWeekSeries,
@@ -115,6 +116,7 @@ const pickWeek = (sample: AutofillSampleValue): WeekAutofillValue | null =>
 const pickAmount = (sample: AutofillSampleValue) => (sample.kind === 'amount' ? sample.value : null);
 const pickMonth = (sample: AutofillSampleValue) => (sample.kind === 'monthOfYear' ? sample.month : null);
 const pickYear = (sample: AutofillSampleValue) => (sample.kind === 'year' ? sample.year : null);
+const pickChoice = (sample: AutofillSampleValue) => (sample.kind === 'choice' ? sample.value : null);
 
 /**
  * Den projicerede værdi for en celle – uden formatering og uden beløbsgaten.
@@ -144,6 +146,11 @@ export const projectAutofillColumnValue = (
   if (column.kind === 'amount') {
     const next = projectConstantAmountSeries(collectAbove(column, rowIndex, pickAmount));
     return next === null ? null : { kind: 'amount', value: next };
+  }
+
+  if (column.kind === 'choice') {
+    const next = projectConstantChoiceSeries(collectAbove(column, rowIndex, pickChoice));
+    return next === null ? null : { kind: 'choice', value: next };
   }
 
   const linked = column.linkedColIndex === undefined ? null : columnAt(model, column.linkedColIndex);

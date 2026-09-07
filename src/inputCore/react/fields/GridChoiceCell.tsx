@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { mergeSx } from '../../../utils/mergeSx';
 import StyledDropdown, { type StyledDropdownChangeEvent, type StyledDropdownValue } from '../../../components/inputs/StyledDropdown';
@@ -12,6 +13,10 @@ import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
+import { useGridCellFocus } from '../../../components/tables/useGridCore';
+import { useAutofillSuggestion } from '../autofillSuggestContext';
+import { visuallyHiddenStyle } from '../../../components/shared/visuallyHiddenStyle';
+import { AutofillSuggestMarker } from './AutofillSuggestMarker';
 
 // Grid dropdown-celle (§2.5/§3.6): et immediate-commit-valg i en grid-celle. Den er grid-pendanten til
 // `ChoiceField` (form-dropdown) og den ene celle-valg-kontrol (fx rentekrav-enhed).
@@ -24,7 +29,8 @@ import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 //
 // Tastaturkontrakten er IKKE en egenskab ved denne komponent: både Container og grid-navigationen
 // klassificerer den som popup-kontrol ud fra `StyledDropdown`s ARIA-semantik gennem
-// `popupWidgetSemantics`, så Enter åbner menuen frem for at flytte cellefokus.
+// `popupWidgetSemantics`. Kun en lukket celle med synlig ghost accepterer den med Enter; ellers åbner
+// Enter menuen frem for at flytte cellefokus.
 
 const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
 
@@ -79,6 +85,20 @@ const GridChoiceCellInner = <
   const resolvedAllowEmpty = resolveChoiceAllowEmpty(cell.field, allowEmpty, 'GridChoiceCell');
   const controller = useCellEditor<TCanonical, TEntity>(cell);
   const dropdownRootRef = React.useRef<HTMLDivElement>(null);
+  const isFocused = useGridCellFocus(gridCell);
+  const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  // En eksisterende offentlig ydelsesrække kan have `''` som historisk tomværdi, selv om descriptorens
+  // canonical tomværdi er `undefined`. Dropdownen viser den som tom, og ghosten skal følge den synlige
+  // tomhed – ellers virker forslaget kun i den efterfølgende placeholder-række.
+  const isEmptyForSuggest = controller.value === undefined
+    || controller.value === ''
+    || cell.field.descriptor.isEmpty(controller.value);
+  const autofillSuggestion = useAutofillSuggestion(
+    gridCell.rowId,
+    gridCell.colIndex,
+    isFocused && isEmptyForSuggest && !isDropdownOpen,
+  );
+  const autofillId = React.useId();
 
   // Restore-mål via feltadresse + editorlokation (§3.7): begge cellearter bærer den samme færdigt bundne
   // cellereference, som editoren driver, så fokus efter undo/redo lander på DENNE grid-celles editorlokation.
@@ -98,8 +118,14 @@ const GridChoiceCellInner = <
   // En ikke-oprettet placeholder-række kan ikke "ryddes" (der er intet felt at rydde); et tom-valg dér er derfor
   // no-op. Et ikke-tomt valg promoverer rækken atomisk via `commitImmediate`'s placeholder-override (§1.11).
   const isPlaceholder = cell.kind === 'placeholder';
-  const latest = React.useRef({ controller, allowEmpty: resolvedAllowEmpty, isPlaceholder });
-  latest.current = { controller, allowEmpty: resolvedAllowEmpty, isPlaceholder };
+  const latest = React.useRef({
+    controller,
+    allowEmpty: resolvedAllowEmpty,
+    isPlaceholder,
+    isDropdownOpen,
+    autofillSuggestion,
+  });
+  latest.current = { controller, allowEmpty: resolvedAllowEmpty, isPlaceholder, isDropdownOpen, autofillSuggestion };
 
   const handleChange = React.useCallback((e: StyledDropdownChangeEvent<TValue | undefined>) => {
     const next = e.target.value;
@@ -127,6 +153,14 @@ const GridChoiceCellInner = <
     prepareEditFromKey: () => false,
     selectAll: () => {
       // no-op for dropdown
+    },
+    acceptAutofillSuggestion: () => {
+      const suggestion = latest.current.autofillSuggestion;
+      if (latest.current.isDropdownOpen || suggestion === null) return false;
+      // Forslaget kommer fra den lukkede optionsmængde i autofill-modellen, så denne immediate commit
+      // kan ikke vælge en forældet eller pt. disabled menuværdi.
+      latest.current.controller.commitImmediate(suggestion.rawText as TCanonical);
+      return true;
     },
   }), [gridApi]);
 
@@ -164,7 +198,9 @@ const GridChoiceCellInner = <
       lineHeight: 'inherit',
       color: 'inherit',
       '&::placeholder': {
-        color: 'var(--mineo-color-active-grid-placeholder)',
+        color: autofillSuggestion === null
+          ? 'var(--mineo-color-active-grid-placeholder)'
+          : 'var(--mineo-color-active-grid-autofill)',
         opacity: 1,
       },
       paddingTop: TABLE_INPUT_PADDING_Y,
@@ -181,6 +217,7 @@ const GridChoiceCellInner = <
       throw new Error('GridChoiceCell: allowEmpty=false kræver en defineret værdi');
     }
     return (
+      <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
       <StyledDropdown<TValue>
         ref={dropdownRootRef}
         ariaLabel={accessibleName}
@@ -191,6 +228,9 @@ const GridChoiceCellInner = <
       {...(getOptionLabel === undefined ? {} : { getOptionLabel })}
         value={value as TValue}
         allowEmpty={false}
+        placeholder={autofillSuggestion?.displayText ?? placeholder}
+        additionalDescribedBy={autofillSuggestion === null ? undefined : autofillId}
+        onOpenChange={setDropdownOpen}
         onChange={handleChange}
         error={hasError}
         helperText={errorMessage}
@@ -199,10 +239,18 @@ const GridChoiceCellInner = <
       >
         {children}
       </StyledDropdown>
+      {autofillSuggestion === null ? null : <>
+        <span id={autofillId} style={visuallyHiddenStyle}>
+          {`Forslag: ${autofillSuggestion.displayText}. Tryk Enter for at indsætte.`}
+        </span>
+        <AutofillSuggestMarker />
+      </>}
+      </Box>
     );
   }
 
   return (
+    <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
     <StyledDropdown<TValue>
       ref={dropdownRootRef}
       ariaLabel={accessibleName}
@@ -212,7 +260,9 @@ const GridChoiceCellInner = <
       expectedOptionValues={cell.field.descriptor.codec.options}
       value={controller.value === undefined ? undefined : controller.value as TValue}
       allowEmpty
-      placeholder={placeholder}
+      placeholder={autofillSuggestion?.displayText ?? placeholder}
+      additionalDescribedBy={autofillSuggestion === null ? undefined : autofillId}
+      onOpenChange={setDropdownOpen}
       onChange={handleChange}
       error={hasError}
       helperText={errorMessage}
@@ -221,6 +271,13 @@ const GridChoiceCellInner = <
     >
       {children}
     </StyledDropdown>
+    {autofillSuggestion === null ? null : <>
+      <span id={autofillId} style={visuallyHiddenStyle}>
+        {`Forslag: ${autofillSuggestion.displayText}. Tryk Enter for at indsætte.`}
+      </span>
+      <AutofillSuggestMarker />
+    </>}
+    </Box>
   );
 };
 

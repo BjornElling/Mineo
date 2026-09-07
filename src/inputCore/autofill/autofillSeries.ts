@@ -366,3 +366,10 @@ export const projectConstantAmountSeries = (values: readonly number[]): number |
   if (last !== values[values.length - 2]) return null;
   return isSafeCanonicalDecimal(last, DEFAULT_AMOUNT_PRECISION) ? last : null;
 };
+
+/** Næste katalogvalg: kun gentagelse af det samme, allerede kendte valg. */
+export const projectConstantChoiceSeries = (values: readonly string[]): string | null => {
+  if (values.length < 2) return null;
+  const last = values[values.length - 1];
+  return last !== undefined && last === values[values.length - 2] && last.trim() !== '' ? last : null;
+};

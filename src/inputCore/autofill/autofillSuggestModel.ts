@@ -21,7 +21,8 @@ export type AutofillSampleValue =
   | Readonly<{ kind: 'week'; week: number; year: number }>
   | Readonly<{ kind: 'monthOfYear'; month: number }>
   | Readonly<{ kind: 'year'; year: number }>
-  | Readonly<{ kind: 'amount'; value: number }>;
+  | Readonly<{ kind: 'amount'; value: number }>
+  | Readonly<{ kind: 'choice'; value: string }>;
 
 export type AutofillColumnKind = AutofillSampleValue['kind'];
 
@@ -35,7 +36,7 @@ export type AutofillColumnKind = AutofillSampleValue['kind'];
 export type AutofillSuggestion = Readonly<{
   /** Ghost-teksten i cellen: feltets VISNINGSform af den foreslåede værdi. */
   displayText: string;
-  /** Råteksten, accept settler. Feltets `formatForEdit`, altså den form brugeren selv ville have tastet. */
+  /** Råteksten eller choice-værdien, accept committer. Altid en form feltet selv kan tage imod. */
   rawText: string;
 }>;
 

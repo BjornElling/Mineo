@@ -22,15 +22,13 @@ import {
   type CellLocator,
 } from './tableGridGeometry';
 
-// Normativ UX-regel:
-// Tab-sekvensen har et "startcelle-anker".
-// Enter/Shift+Enter skal navigere vertikalt ud fra denne startcelle,
-// ikke fra den celle der aktuelt har fokus ved Enter-tryk.
+// Tab-sekvensen har et startcelle-anker. Den almindelige Enter-navigation bruger ankeret, så Enter efter
+// Tab fortsætter i den kolonne, Tab-sekvensen startede i.
 type TabAnchor = CellLocator;
 
 // Modul-lokal gestus-/navigations-state. BEMÆRK: ingen af disse spejler controller-state – de er
 // rene UI-gestus-/traversals-data, der ikke har nogen pendant i `GridCoreController`:
-// - `tabAnchorByTable`: "first-Tab-wins"-ankeret for Enter-vertikal-navigation.
+// - `tabAnchorByTable`: "first-Tab-wins"-ankeret for almindelig Enter-navigation.
 // - `pendingRecoveryByTable`: transient RAF-fokus-recovery efter en nav-flytning.
 // - `clickEditableCellByTable`: hvilken celle der er "armet" til to-trins-klik-redigering.
 // - `pointerDownFocusedCellByTable`: pointerdown→click-bogføring for to-trins-klik.
@@ -51,8 +49,8 @@ type PendingFocusRecovery = Readonly<{
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, PendingFocusRecovery>();
 
 // Navigations-semantik (ejet af dette modul):
-// - Enter / Shift+Enter: flyt vertikalt mens "anchor-cellen" bevares hvis den findes; ellers brug den aktuelle celle.
-// - ArrowUp/ArrowDown: flyt vertikalt fra den aktuelle celle (rydder ankeret).
+// - Enter / Shift+Enter: flyt vertikalt fra Tab-sekvensens startcelle, hvis der er én, ellers den aktuelle celle.
+// - ArrowUp/ArrowDown: flyt vertikalt fra den aktuelle celle og rydder Tab-ankeret.
 //   - Ved tabellens top-/bundkant frigives eventet bevidst, så Container kan fortsætte navigation uden for tabellen.
 // - ArrowLeft/ArrowRight: flyt horisontalt inden for den aktuelle række og wrap ved rækkekanter.
 // Bemærk: Vi kalder `stopPropagation()` for ejede taster, så Container-niveauets Tab-trap ikke også kører.
@@ -286,11 +284,27 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   const isLocked = activeEditableCell?.getIsLocked() === true;
   const isEditing = core && activeCell ? isSameCell(core.getEditingCell(), activeCell) : false;
 
-  // En LUKKET popup-kontrol i en celle ejer selv sin aktiveringstast: Enter skal åbne menuen, ikke
-  // flytte cellefokus. Klassifikationen er kontrollens ARIA-semantik (§keyboard-navigation.md) –
-  // ikke et komponentnavn eller en privat markør-attribut.
+  // Et synligt autofill-forslag har forrang, også i den ene dropdown-kolonne som tilbyder det. Det
+  // eksisterer kun i en tom, lukket kontrol; en åben menu ejer fortsat sine egne taster ovenfor.
+  const acceptedAutofillSuggestion = key === 'Enter'
+    && !e.shiftKey
+    && activeEditableCell?.acceptAutofillSuggestion?.() === true;
+  if (acceptedAutofillSuggestion) {
+    e.preventDefault();
+    e.stopPropagation();
+    // Accept er en afsluttet indtastning, men ikke en navigation. Ryd et eventuelt Tab-anker, så et
+    // senere almindeligt Enter altid starter fra cellen, brugeren stadig står i.
+    tabAnchorByTable.delete(table);
+    core?.clearFocusPlan();
+    scheduleFocusRecovery(table, activePos, { force: true });
+    return;
+  }
+
+  // En LUKKET popup-kontrol uden ghost ejer sin aktiveringstast: Enter skal åbne menuen, ikke flytte
+  // cellefokus. Klassifikationen er kontrollens ARIA-semantik (§keyboard-navigation.md) – ikke et
+  // komponentnavn eller en privat markør-attribut.
   const isClosedPopupTarget = isInClosedPopupWidget(target);
-  if (isClosedPopupTarget && key === 'Enter') return;
+  if (isClosedPopupTarget && key === 'Enter' && !acceptedAutofillSuggestion) return;
 
   if (isEscapeKey && isEditing && activeEditableCell) {
     e.preventDefault();
@@ -346,8 +360,8 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     (target.closest(TABLE_FOCUSABLE_SELECTOR) as HTMLElement | null) ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   if (key === 'Tab') {
-    // Bevar første celle i en sammenhængende Tab-sekvens som anker ("first Tab wins").
-    // Vi opdaterer ikke ankeret på efterfølgende Tab-tryk i samme sekvens.
+    // Tab ejes af browseren/Containeren. Vi registrerer kun første celle i en sammenhængende Tab-sekvens,
+    // så almindelig Enter-navigation kan fortsætte i dens kolonne.
     if (!tabAnchorByTable.has(table)) {
       tabAnchorByTable.set(table, activePos);
     }
@@ -355,27 +369,11 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   }
 
   if (key === 'Enter') {
-    // Autofill-suggest: er der en synlig ghost i den fokuserede celle, INDSÆTTER Enter den og beholder
-    // fokus, så et nyt Enter navigerer videre som sædvanligt. Grenen ligger før navigationen og spørger
-    // cellen selv – returnerer den `false` (ingen ghost), er adfærden uændret.
-    //
-    // Kun et bart Enter accepterer. Shift+Enter er «flyt opad» og må ikke også kunne skrive en værdi:
-    // en tast med to virkninger afhængigt af en modifier ville gøre indsættelsen svær at forudse.
-    if (!e.shiftKey && activeEditableCell?.acceptAutofillSuggestion?.() === true) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Tab-ankeret BEVARES med vilje. Et accept er en indtastning, ikke en navigation, og ankeret er
-      // den startcelle, et Enter navigerer vertikalt ud fra. Ryddede accepten det, ville det NÆSTE
-      // Enter gå ned i den celle, brugeren tilfældigvis stod i – ikke i ankerkolonnen, som et
-      // almindeligt Enter i samme Tab-sekvens ville have gjort.
-      return;
-    }
     const anchor = tabAnchorByTable.get(table);
     const base: CellLocator = anchor ? resolveAnchorLocator(grid, anchor, activePos) : activePos;
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = e.shiftKey ? -1 : 1;
-    // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
     tabAnchorByTable.delete(table);
     const result = pickVerticalTarget(grid, base, deltaRows, core, true);
     if (!result) return; // ingen valgbar (ikke-låst) celle nogen steder → no-op
@@ -414,7 +412,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     return;
   }
 
-  // ArrowLeft/ArrowRight i editor-mode hører til caret-bevægelse og må ikke rydde Tab-ankeret.
+  // ArrowLeft/ArrowRight i editor-mode hører til caret-bevægelse og bevarer Tab-ankeret.
   if (key === 'ArrowLeft' || key === 'ArrowRight') {
     if (isEditing) return;
   }
@@ -425,7 +423,6 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     tabAnchorByTable.delete(table);
-
     if (!activeFocusable) return;
     const direction: -1 | 1 = key === 'ArrowRight' ? 1 : -1;
     const next = pickHorizontalTarget(grid, activePos, direction, core);

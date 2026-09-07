@@ -9,11 +9,12 @@ skarpe kanter kommer af reviewet samme dag og er hver især målt: tomhedsprøve
 værdi (ellers skrev «markér alt, slet, Enter» forslaget), ghosten ryddes når fokus forlader tabellen
 (grid-core'ens logiske fokuscelle blev aldrig nulstillet), uafgjorte skridt afgøres af basisskridtet
 (et hul gav ellers juni frem for maj), beløbsgatens referenceår læses i den seneste række med en
-periodestart, årsforslaget følger sit eget månedsforslag i en faldende serie, og accepten bevarer
-Tab-ankeret. Mønstre, årsskifte-standsningen for beløb og måned/år-koblingen er målt af
+periodestart, årsforslaget følger sit eget månedsforslag i en faldende serie, og autofill-accept følger
+præcis samme Enter-navigation som en manuelt afsluttet indtastning. Mønstre,
+årsskifte-standsningen for beløb og måned/år-koblingen er målt af
 `src/__tests__/inputCore/autofill/autofillSeries.test.ts` og
-`src/__tests__/inputCore/autofill/autofillSuggestEngine.test.ts`; ghostens synlighed, Enter-accept,
-fokusbevarelse og den uændrede Enter-navigation uden ghost af
+`src/__tests__/inputCore/autofill/autofillSuggestEngine.test.ts`; ghostens synlighed, Enter-accept
+gennem den almindelige navigation og Enter-navigation uden ghost af
 `src/__tests__/components/tables/autofillSuggest.integration.test.tsx`)
 2026-08-27 (§1.0a og beløbsreglen er implementeret og målt: canonical
 og rejected rækkeindhold deler tomhedsvurdering for trailing række, sletning og sortering på alle
@@ -274,13 +275,13 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 ### 1.5 Autofill-suggest i tabelceller
 
 Afklaret 2026-09-07 på udviklerens krav. Funktionen er implementeret i `src/inputCore/autofill/` (ren
-mønstergenkendelse + motor), `AutofillSuggestProvider` (tabellens tilvalg), `useGridCellSurface`
-(synlighed + accept) og `GridTextCell` (visningen). Afsnittet afløser den tidligere arbejdsplan i
+mønstergenkendelse + motor), `AutofillSuggestProvider` (tabellens tilvalg), `useGridCellSurface` og
+`GridChoiceCell` (synlighed + accept) samt tabelcellefladerne (visningen). Afsnittet afløser den tidligere arbejdsplan i
 `docs/implementation/`, som er slettet, fordi arbejdet er udført.
 
 **Hvad brugeren ser.** Står brugeren i en TOM celle i en kolonne, hvor de foregående rækker danner et
 genkendeligt mønster, viser cellen mønstrets næste værdi som en dæmpet ghost-tekst med et lille
-`ENTER`-mærke. Enter indsætter præcis den viste værdi. Alt andet er uændret.
+`ENTER`-mærke nederst til højre. Enter indsætter præcis den viste værdi. Alt andet er uændret.
 
 **Aktivering – tilvalg pr. tabel.** Funktionen er kodet generelt for alle grid-celler, men aktiveres
 tabel for tabel. Den er aktiv i erstatningsopgørelsens løntabeller (én pr. ansættelsesforhold) og i
@@ -295,7 +296,8 @@ slået til.
    med afsluttet rejected råtekst får ALDRIG en ghost – heller ikke mens brugeren har slettet draften i
    en åben editor, hvor «markér alt, slet, Enter» ellers ville skrive forslaget i stedet for at rydde
    cellen. Begynder brugeren at skrive, forsvinder ghosten, og brugerens egen tekst står alene.
-3. Cellen er ikke låst, og den er ikke en dropdown eller en afledt visningskolonne.
+3. Cellen er ikke låst eller afledt. Dropdowns er normalt uden autofill; undtagelsen er Ydelsestype i
+   Offentlige ydelser, som er beskrevet under «Dropdownvalg» nedenfor.
 4. Kolonnen bærer et mønster efter reglerne nedenfor.
 
 Betingelse 2 er den, der gør Enter forsvarlig: der findes intet at overskrive, og
@@ -336,8 +338,12 @@ overholdt strukturelt og ikke ved en regel, nogen skal huske.
 | Måned + år | De to kolonner er ÉN månedsserie: efter måned 12 i år 2025 foreslås måned 1 og år 2026. Er årskolonnen tom hele vejen, wrapper måneden alene fra 12 til 1 uden et årsforslag. Har brugeren allerede skrevet måneden i rækken, foreslås det årstal, der placerer måneden kronologisk efter den seneste prøve |
 | Selvstændigt årstal | Konstant eller fast tilvækst |
 | Beløb | **Kun gentagelse af samme beløb.** En tilvækst foreslås aldrig |
+| Dropdownvalg | **Kun gentagelse af det samme valgbare katalogvalg.** Aktivt deaktiverede eller ukendte historiske valg foreslås aldrig |
 
-Et beløbsudtryk (`5000*2`) foreslås som sin talværdi, ikke som udtrykket.
+Et beløbsudtryk (`5000*2`) foreslås som sin talværdi, ikke som udtrykket. Ghosten viser beløbet med
+tusindtalsseparator som resten af feltet, mens dens interne accepttekst er uden punktummer (fx vises
+`30.000,00`, men `30000,00` settler). Det er nødvendigt, fordi beløbsfelternes tegnværn med vilje afviser
+punktummer (§2.2); Enter skal kunne acceptere enhver ghost, der vises.
 
 **Beløb standser ved årsskifte.** Et beløb foreslås ikke, når rækkens PERIODESTART falder i et andet
 kalenderår end det, tabellen senest står i. Startdatoen er det afgørende: fra-datoen i Offentlige
@@ -354,12 +360,13 @@ standsningen inaktiv. Reglen slår kun til på et positivt observeret årsskifte
 
 **Accept, afvisning og navigation.**
 
-- Enter indsætter ghosten og BEHOLDER fokus i cellen. Et nyt Enter navigerer nedad som sædvanligt, så
-  «Enter, Enter» både indsætter og går videre. Accepten er en indtastning og ikke en navigation, så den
-  rører ikke Tab-ankeret: det næste Enter går ned i ankerkolonnen, præcis som uden autofill.
+- Enter indsætter ghosten, afslutter indtastningen og beholder fokus i den samme celle. Det er en bevidst
+  undtagelse fra tabellens almindelige Enter-navigation: accepten flytter aldrig fokus op, ned, til højre
+  eller til venstre. Et eventuelt Tab-anker ryddes, så næste almindelige navigation starter i cellen.
 - Uden ghost er Enter uændret vertikal grid-navigation. `Shift+Enter` accepterer aldrig; den navigerer
   altid opad.
-- Tab, piletaster og klik forlader cellen uden at indsætte noget. Ghosten er ren visning og efterlader
+- Tab, piletaster og klik forlader tekstcellen uden at indsætte noget. I en dropdown åbner klik menuen,
+  men vælger heller ikke ghosten. Ghosten er ren visning og efterlader
   ingen tilstand – den forsvinder med fokus, også når fokus går helt ud af tabellen.
 - Accepten koster ét fortryd-trin (§1.4), også når den samtidig opretter den nye række.
 - Værdien indsættes som RÅTEKST gennem feltets eget codec og den normale settle-vej: samme parse, samme
@@ -367,6 +374,13 @@ standsningen inaktiv. Reglen slår kun til på et positivt observeret årsskifte
   undo-trin. Et forslag kan altså ikke skrive en værdi, brugeren ikke selv kunne have tastet.
 - Ghost-teksten er feltets visningsform af den værdi, accept skriver. De to kan per konstruktion ikke
   komme fra hinanden.
+
+**Dropdownvalg.** Ydelsestype i Offentlige ydelser kan vise den senest gentagne ydelsestype som ghost.
+Ghosten står kun i den lukkede, tomme dropdown. Enter vælger den viste type og beholder fokus i den samme
+dropdown; Enter uden ghost åbner fortsat menuen. Tab vælger
+aldrig ghosten. Et klik åbner menuen som normalt uden at vælge
+forslaget, og en åben menu ejer altid sine egne taster. Et valg, der er deaktiveret i den aktuelle menu,
+eller en historisk værdi, der ikke længere findes i kataloget, vises aldrig som ghost.
 
 **Afgrænsninger (bevidste).**
 

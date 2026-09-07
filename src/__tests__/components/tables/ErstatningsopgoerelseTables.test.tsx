@@ -148,10 +148,10 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     const labelsAfterDivider = children.slice(dividerIndex + 1).map((option) => option.textContent ?? '');
 
     // Gruppernes indhold: de supplerende posteringer står under stregen, resten over.
-    expect(labelsAfterDivider).toHaveLength(3);
-    expect(new Set(labelsAfterDivider)).toEqual(new Set(['Feriepenge', 'Midlertidigt EET', 'Andet']));
+    expect(labelsAfterDivider).toHaveLength(4);
+    expect(new Set(labelsAfterDivider)).toEqual(new Set(['Feriepenge', 'Midlertidigt EET', 'SU', 'Andet']));
     expect(labelsBeforeDivider).not.toHaveLength(0);
-    for (const supplerende of ['Feriepenge', 'Midlertidigt EET', 'Andet']) {
+    for (const supplerende of ['Feriepenge', 'Midlertidigt EET', 'SU', 'Andet']) {
       expect(labelsBeforeDivider).not.toContain(supplerende);
     }
 

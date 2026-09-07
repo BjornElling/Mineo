@@ -145,7 +145,43 @@ export const amountAutofillColumn = (
     value === undefined || !Number.isFinite(value.value)
       ? undefined
       : { kind: 'amount', value: value.value })),
-  format: (value) => (value.kind === 'amount'
-    ? suggestionFromCodec(descriptor.codec, { kind: 'number', value: value.value })
-    : null),
+  format: (value) => {
+    if (value.kind !== 'amount') return null;
+    const suggestion = suggestionFromCodec(descriptor.codec, { kind: 'number', value: value.value });
+    if (suggestion === null) return null;
+
+    // Beløbsdraften tillader med vilje ikke punktummer (§2.2), mens codecets visningsform bruger dem
+    // som tusindtalsseparator. Ghosten skal derfor acceptere som samme tekst, brugeren kan taste: ellers
+    // filtrerer celleoverfladen et gyldigt beløbsforslag væk fra fx 30.000,00.
+    const rawText = suggestion.rawText.replaceAll('.', '');
+    return Object.freeze({ ...suggestion, rawText });
+  },
 });
+
+/**
+ * Dropdown-kolonne med et lukket, kendt katalog. Ukendte eller historiske værdier bliver aldrig prøver:
+ * autofill må ikke gøre en gammel værdi, som brugeren ikke længere kan vælge, til et nyt valg.
+ */
+export const choiceAutofillColumn = (
+  colIndex: number,
+  descriptor: FieldDescriptor<string | undefined>,
+  values: readonly (string | undefined)[],
+  labelOf: (value: string) => string | undefined,
+  availableValues: readonly string[],
+): AutofillColumn => {
+  const available = new Set(availableValues);
+  return Object.freeze({
+    colIndex,
+    kind: 'choice' as const,
+    samples: Object.freeze(values.map((value): AutofillSampleValue | undefined =>
+      value === undefined || !available.has(value) ? undefined : { kind: 'choice', value })),
+    format: (value) => {
+      if (value.kind !== 'choice' || !available.has(value.value)) return null;
+      const displayText = labelOf(value.value);
+      if (displayText === undefined || displayText.trim() === '') return null;
+      // `rawText` er dropdownens canonical option-værdi, ikke den menneskelige label.
+      const rawText = descriptor.codec.formatForEdit(value.value);
+      return rawText.trim() === '' ? null : Object.freeze({ displayText, rawText });
+    },
+  });
+};

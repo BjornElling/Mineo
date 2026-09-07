@@ -151,6 +151,25 @@ describe('EO-lønindkomst – nested løntabel under et ansættelsesforhold', ()
     });
   }, ASYNC_TEST_TIMEOUT_MS);
 
+  it('foreslår og accepterer et gentaget lønbeløb inden for samme år', async () => {
+    hydrate([loenRow('row-1', '1', '2026'), loenRow('row-2', '2', '2026')]);
+    renderLoenindkomst();
+
+    await waitFor(() => {
+      expect(screen.getAllByLabelText('Løn', { exact: true })).toHaveLength(3);
+    });
+    const emptyLoenCell = screen.getAllByLabelText('Løn', { exact: true })[2];
+    if (emptyLoenCell === undefined) throw new Error('Løntabellen mangler sin tomme rækkecelle');
+
+    await userEvent.click(emptyLoenCell);
+    expect(emptyLoenCell).toHaveAttribute('placeholder', '30.000,00');
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(emptyLoenCell).toHaveValue('30.000,00');
+    });
+  }, ASYNC_TEST_TIMEOUT_MS);
+
   it('viser grundlagsikonet og forklarer beregningsperiodens aktuelle slutdato', async () => {
     hydrate([], { tafBeregningsperiodeTil: toISODateString('2024-12-31') });
     renderLoenindkomst();

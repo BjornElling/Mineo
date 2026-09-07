@@ -15,6 +15,7 @@ import { useFieldLabel } from '../useFieldLabel';
 import { keyFilterFromAdmission, type DraftAdmission } from '../../../components/inputs/draftAdmission';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { resolveDraftLengthLimit } from './charLengthPolicy';
+import { AutofillSuggestMarker } from './AutofillSuggestMarker';
 
 // Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
 // `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
@@ -47,10 +48,14 @@ export type GridTextCellProps<T, TEntity = unknown> = Readonly<{
   inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
   /** Maksimal rå draftlængde, når feltets synlige form har en fast længde. */
   maxDraftLength?: number;
-  /** Enheds-/udtryks-adornment. En funktion modtager draftens tomhed + den committede værdi. */
+  /** Enheds-/udtryks-adornment. En funktion modtager draftens tomhed, værdi og evt. autofill-tilstand. */
   endAdornment?:
     | React.ReactNode
-    | ((info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode);
+    | ((info: Readonly<{
+      isDraftEmpty: boolean;
+      value: T | undefined;
+      hasAutofillSuggestion: boolean;
+    }>) => React.ReactNode);
   /** Ekstra absolut-positioneret overlay i cellen (fx et `fx`-udtryksmærke). Render-prop får den committede værdi. */
   overlay?:
     | React.ReactNode
@@ -133,8 +138,12 @@ const GridTextCellInner = <T, TEntity>(
 
   const isDraftEmpty = surface.displayText.trim() === '';
   const resolvedEndAdornment = typeof endAdornment === 'function'
-    ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(
-        { isDraftEmpty, value: surface.value }
+    ? (endAdornment as (info: Readonly<{
+      isDraftEmpty: boolean;
+      value: T | undefined;
+      hasAutofillSuggestion: boolean;
+    }>) => React.ReactNode)(
+        { isDraftEmpty, value: surface.value, hasAutofillSuggestion: autofillSuggestion !== null }
       )
     : endAdornment;
 
@@ -214,7 +223,7 @@ const GridTextCellInner = <T, TEntity>(
               <span id={autofillId} style={visuallyHiddenStyle}>
                 {`Forslag: ${autofillSuggestion.displayText}. Tryk Enter for at indsætte.`}
               </span>
-              <AutofillSuggestMarker textAlign={textAlign} />
+              <AutofillSuggestMarker />
             </>
           ) : null}
           {typeof overlay === 'function'
@@ -225,34 +234,6 @@ const GridTextCellInner = <T, TEntity>(
     </Box>
   );
 };
-
-/**
- * «ENTER»-mærket ved en aktiv ghost.
- *
- * Mærket er ikke pynt: uden det ligner den dæmpede ghost-tekst en formatplaceholder, og brugeren kan
- * ikke se, at Enter vil indsætte netop den værdi. Det placeres modsat cellens tekstjustering, så det
- * aldrig lægger sig oven i hverken tallet eller enhedsmærket (`kr.`/`%`), og det bruger samme
- * absolut-positionerede idiom som `fx`-udtryksmærket.
- */
-const AutofillSuggestMarker = ({ textAlign }: Readonly<{ textAlign: 'center' | 'right' | 'left' }>): React.ReactElement => (
-  <span
-    className="mineo-autofill-suggest-marker"
-    style={{
-      position: 'absolute',
-      ...(textAlign === 'left' ? { right: 2 } : { left: 2 }),
-      bottom: 1,
-      fontSize: 7,
-      fontWeight: 600,
-      letterSpacing: '0.3px',
-      lineHeight: 1,
-      color: 'var(--mineo-color-active-grid-autofill)',
-      pointerEvents: 'none',
-    }}
-    aria-hidden="true"
-  >
-    ENTER
-  </span>
-);
 
 // forwardRef bevarer den generiske `T` via en cast af den generiske inner-komponent.
 const GridTextCell = GridTextCellInner as <T, TEntity = unknown>(

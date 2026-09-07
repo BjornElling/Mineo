@@ -5,10 +5,10 @@
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
 **Senest verificeret mod kode:** 2026-09-07 (§Enter har fået en fjerde undtagelse: en grid-celle med et
-synligt autofill-forslag indsætter ghosten og beholder fokus. Undtagelsen kan kun ramme en TOM celle, så
-forbuddet mod at overskrive en værdi uden samtykke er strukturelt overholdt; målt af
-`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`, der også måler, at Enter UDEN
-ghost navigerer nedad som hidtil)
+synligt autofill-forslag indsætter ghosten uden at flytte fokus. Undtagelsen kan kun ramme en TOM celle, så
+forbuddet mod at overskrive en værdi uden samtykke er strukturelt overholdt. Autofill er kun en
+indtastningsvej: accepten afslutter værdien i den aktuelle celle og rydder et eventuelt Tab-anker. Målt af
+`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`.)
 2026-08-27 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
 annonceres ikke i brugerfladen». Udviklerens afgørelse, ingen kodeændring; afsnittet fastholder den bestående
 tavshed, så en «hjælpsom» `Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere. Verificeret begge veje:
@@ -127,8 +127,10 @@ Konsekvens:
    - Container intercepter Enter-navigation for radiofelter, så fokus ikke flyttes videre
 
 4. **Grid-celle med et synligt autofill-forslag** (`input-field-behavior-contract.md` §1.5)
-   - Enter INDSÆTTER den viste ghost-tekst og beholder fokus i cellen; et nyt Enter navigerer nedad
-     som sædvanligt
+   - Enter INDSÆTTER den viste ghost-tekst, afslutter værdien og BEHOLDER fokus i den samme celle. Den
+     flytter aldrig fokus op, ned, til højre eller til venstre og rydder et eventuelt Tab-anker
+   - I Ydelsestype-dropdownen vælges det foreslåede katalogvalg direkte. Uden ghost åbner Enter fortsat
+     menuen, og mens menuen er åben ejer den selv Enter.
    - Undtagelsen gælder KUN, mens ghosten er synlig, og en ghost kan kun stå i en TOM celle. Enter kan
      derfor ikke overskrive en afsluttet værdi, jf. forbuddet under «Hvad MÅ IKKE ske»
    - `Shift+Enter` accepterer aldrig; den navigerer altid opad

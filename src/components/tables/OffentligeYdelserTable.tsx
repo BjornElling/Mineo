@@ -17,7 +17,7 @@ import {
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
-import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
+import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
@@ -78,7 +78,10 @@ const OffentligeYdelserTable = React.memo(({
   // ikke aggregatets indsættelsesorden. Bygges pr. render (rene array-opslag); se `StandardLoenTable`.
   const autofillModel = buildOffentligeYdelserAutofillModel(
     renderOrder.map((row) => row.rowId),
-    table.committedById
+    table.committedById,
+    disableMidlertidigtEetOption
+      ? ydelsestypeKeys.filter((key) => key !== 'midlertidigt_eet')
+      : ydelsestypeKeys,
   );
 
   const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];

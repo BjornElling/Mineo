@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import type React from 'react';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
@@ -28,8 +28,7 @@ import {
 
 // Autofill-suggest på tabeloverfladen (`input-field-behavior-contract.md` §1.5, `keyboard-navigation.md`
 // §Enter). Testen måler den observerbare adfærd, kravet handler om: ghosten står i den fokuserede, TOMME
-// celle, Enter indsætter præcis den viste tekst gennem den normale settle-vej, fokus bliver i cellen, og
-// et Enter UDEN ghost navigerer nedad som hidtil.
+// celle, Enter indsætter præcis den viste tekst gennem den normale settle-vej og beholder fokus i cellen.
 
 const catalog = getProductionInputCatalog();
 const iso = (value: string) => toISODateString(value);
@@ -135,7 +134,28 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     expect(screen.getAllByText('ENTER')).toHaveLength(1);
   });
 
-  it('lader Enter indsætte den viste tekst og beholder fokus i cellen', async () => {
+  it('viser ydelsestype-ghost i den første delvist udfyldte række efter to ens valg', async () => {
+    renderYdelser([
+      ...MAANEDSRAEKKER,
+      {
+        id: 'ydelse-3',
+        fraDato: iso('2026-03-01'),
+        tilDato: iso('2026-03-31'),
+        ydelse: amount(3100),
+        tillaeg: undefined,
+        // En eksisterende række bærer historisk den tomme streng, ikke `undefined`.
+        ydelsestype: '',
+      },
+    ]);
+
+    const ydelsestype = cellInput(2, 'Ydelsestype');
+    await focusTableElement(ydelsestype);
+
+    expect(ydelsestype).toHaveAttribute('placeholder', 'Dagpenge');
+    expect(screen.getByText('Forslag: Dagpenge. Tryk Enter for at indsætte.')).toBeInTheDocument();
+  });
+
+  it('lader Enter indsætte den viste tekst og beholde fokus i cellen', async () => {
     renderYdelser(MAANEDSRAEKKER);
     await focusTableElement(cellInput(2, 'Fra dato'));
     await keyDownTableElement(cellInput(2, 'Fra dato'), { key: 'Enter' });
@@ -145,6 +165,17 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     expect(document.activeElement).toBe(accepted);
     // Værdien er afsluttet, så der er intet forslag tilbage i cellen.
     expect(screen.queryByText(/^Forslag:/)).not.toBeInTheDocument();
+  });
+
+  it('farver kr.-enheden som ghosten i et beløbsfelt', async () => {
+    renderYdelser(MAANEDSRAEKKER);
+    const ydelse = cellInput(2, 'Ydelse');
+    await focusTableElement(ydelse);
+
+    expect(ydelse).toHaveAttribute('placeholder', '3.100,00');
+    const unit = ydelse.parentElement?.querySelector('.MuiInputAdornment-root');
+    expect(unit).not.toBeNull();
+    expect(unit).toHaveStyle('color: var(--mineo-color-active-grid-autofill)');
   });
 
   it('foreslår intet beløb, når startdatoen falder i et nyt kalenderår', async () => {
@@ -169,6 +200,23 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     await keyDownTableElement(cellInput(0, 'Fra dato'), { key: 'Enter' });
 
     expect(document.activeElement).toBe(cellInput(1, 'Fra dato'));
+  });
+
+  it('rydder Tab-ankeret ved autofill-accept, så næste Enter starter i den accepterede celle', async () => {
+    renderYdelser(MAANEDSRAEKKER);
+    const acceptedFraDato = cellInput(2, 'Fra dato');
+    await focusTableElement(cellInput(1, 'Fra dato'));
+    await keyDownTableElement(cellInput(1, 'Fra dato'), { key: 'Tab' });
+    await focusTableElement(acceptedFraDato);
+    await keyDownTableElement(acceptedFraDato, { key: 'Enter' });
+
+    expect(acceptedFraDato).toHaveValue('01-03-2026');
+    expect(document.activeElement).toBe(acceptedFraDato);
+
+    // Ghost-accept har ingen navigation og må heller ikke efterlade Tab-ankeret. Næste almindelige
+    // Enter bruger derfor den accepterede celle som udgangspunkt og wrap'er til første række.
+    await keyDownTableElement(acceptedFraDato, { key: 'Enter' });
+    expect(document.activeElement).toBe(cellInput(0, 'Fra dato'));
   });
 
   it('fjerner ghosten, når fokus forlader tabellen', async () => {
@@ -213,6 +261,30 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     // Accepten opretter rækken OG skriver feltet, men det er ÉN brugerhandling (§1.4).
     expect(cellInput(2, 'Fra dato')).toHaveValue('01-03-2026');
     expect(undoDepth()).toBe(before + 1);
+  });
+
+  it('viser, accepterer og afviser uden bivirkning et dropdown-forslag', async () => {
+    renderYdelser(MAANEDSRAEKKER);
+    const ydelsestype = cellInput(2, 'Ydelsestype');
+
+    await focusTableElement(ydelsestype);
+    expect(ydelsestype).toHaveAttribute('placeholder', 'Dagpenge');
+    expect(screen.getByText('Forslag: Dagpenge. Tryk Enter for at indsætte.')).toBeInTheDocument();
+
+    // Tab accepterer aldrig et valg – den synlige ghost er fortsat kun et forslag.
+    await keyDownTableElement(ydelsestype, { key: 'Tab' });
+    expect(ydelsestype).toHaveValue('');
+
+    // Et klik åbner menuen som normalt og vælger heller ikke ghosten stiltiende.
+    fireEvent.click(ydelsestype);
+    expect(ydelsestype).toHaveAttribute('aria-expanded', 'true');
+    expect(ydelsestype).toHaveValue('');
+    fireEvent.keyDown(ydelsestype, { key: 'Escape' });
+    expect(ydelsestype).toHaveAttribute('aria-expanded', 'false');
+
+    await keyDownTableElement(ydelsestype, { key: 'Enter' });
+    expect(ydelsestype).toHaveValue('Dagpenge');
+    expect(document.activeElement).toBe(ydelsestype);
   });
 });
 

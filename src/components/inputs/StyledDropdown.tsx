@@ -81,6 +81,10 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
    * Dette er bevidst adskilt fra `onBlur`, som er en fysisk blur.
    */
   onClose?: () => void;
+  /** Melder popoverens tilstand til den komponent, der viser et kontekstafhængigt overlay. */
+  onOpenChange?: (open: boolean) => void;
+  /** Ekstra skjult beskrivelse, fx et autofill-forslag. Bevarer altid en evt. fejlbeskrivelse. */
+  additionalDescribedBy?: string;
   /**
    * Styling for wrapper-containeren (`Box`) omkring inputtet.
    */
@@ -166,6 +170,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     onChange,
     onBlur,
     onClose,
+    onOpenChange,
+    additionalDescribedBy,
     placeholder = '',
     width = 200,
     children,
@@ -406,19 +412,21 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     inputElementRef.current?.focus();
     setAnchorEl(anchorRef.current);
     setOpen(true);
+    onOpenChange?.(true);
     const initialHighlight = selectedIndex >= 0
       ? selectedIndex
       : resolvedValue === undefined
         ? findSelectableIndex(-1, 1)
         : -1;
     setHighlightedIndex(initialHighlight);
-  }, [disabled, findSelectableIndex, hasConfigError, resolvedValue, selectedIndex]);
+  }, [disabled, findSelectableIndex, hasConfigError, onOpenChange, resolvedValue, selectedIndex]);
 
   const handleClose = React.useCallback(
     (reason: CloseReason) => {
       closedTypeaheadRef.current = null;
       if (!open) return;
       setOpen(false);
+      onOpenChange?.(false);
       setAnchorEl(null);
       setHighlightedIndex(-1);
       onClose?.();
@@ -431,7 +439,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         inputElementRef.current?.focus();
       }
     },
-    [onClose, open, returnFocusOnClose]
+    [onClose, onOpenChange, open, returnFocusOnClose]
   );
 
   React.useEffect(() => {
@@ -658,6 +666,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const showError = error && helperText.trim() !== '';
   const resolvedTooltipText = tooltipText ?? helperText;
   const errorTextId = `${resolvedId}-error`;
+  const describedByIds = [
+    ...(showError ? [errorTextId] : []),
+    ...(additionalDescribedBy?.trim() === '' || additionalDescribedBy === undefined ? [] : [additionalDescribedBy]),
+  ];
 
   return (
     <Tooltip
@@ -720,7 +732,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           // Fejlbeskeden skal også NÅ en skærmlæser. Kontrollen viste før udelukkende en rød ramme og
           // en hover-tooltip, mens tekstfelterne (`StyledTextFieldBase`) altid har haft både en
           // visuelt skjult besked og bindingen til den. Samme fejlmodel, samme formidling.
-          ...(showError ? { 'aria-describedby': errorTextId } : {}),
+          ...(describedByIds.length === 0 ? {} : { 'aria-describedby': describedByIds.join(' ') }),
           tabIndex: disabled || hasConfigError ? -1 : (userInputProps?.tabIndex ?? 0),
         }}
         onKeyDown={(e) => {
