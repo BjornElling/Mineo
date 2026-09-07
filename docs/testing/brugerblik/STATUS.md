@@ -8,10 +8,26 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** Erhvervsevnetab **fane 5 – Differencekrav** (11e). Fane 11d er gennemgået 2026-09-04 og
-  afgjort + gennemført samme dag.
-- **Næste fund-ID:** BB-185
-- **Åbne spørgsmål:** **ingen.** De to sidste er afgjort 2026-09-04.
+- **Næste flade:** **12a – Erstatningsopgørelse → Opgørelsens ramme.** Hele Erhvervsevnetab er gennemgået;
+  fane 11e er gennemgået 2026-09-07 og afventer udviklerens afgørelse.
+  **Flade 12 er 2026-09-07 delt i tretten bidder (12a–12m) efter EMNE frem for efter fane** – fanerne var
+  ikke en brugbar deling, fordi «EO oplysninger» rummer ni selvstændige sektioner med hver sit
+  erstatningskrav, og «Lønindkomst» et kort pr. ansættelsesforhold med seks underafsnit hver. Delingen,
+  dens begrundelse og en **dækningskontrol i fire lister** (faner · de ni EO-sektioner · kortets seks
+  underafsnit · de syv dokumenter) står i `.claude/skills/brugerblik/references/flader.md`. Opgørelsens
+  dokumentafsnit er bevidst fordelt ud på de bidder, der frembringer dem, så prøven «vist = beregnet =
+  trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
+  kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
+  det.**
+- **Næste fund-ID:** BB-202
+- **Åbne spørgsmål:** **ét, fra flade 11e.** **Skal løbende ydelser under en DELVIST ENDELIG afgørelse
+  fradrages i differencekravet ved skader fra 16. juni 2011?** `skalFradragForetages` returnerer i dag
+  `true` for `'Endelig'` alene, så en delvist endelig afgørelse behandles som en midlertidig. Målt i en
+  konkret sag: 66.827 kr. faktisk udbetalte løbende ydelser fradrages ikke, og specifikationen skriver
+  «Løbende ydelser derfor ikke relevante» om netop den afgørelse, hvis bilag få sider senere viser de
+  66.827 kr. Svaret afgør, om BB-187 er en tekstrettelse eller en beregningsrettelse.
+  Se [erhvervsevnetab.md](erhvervsevnetab.md).
+  Tidligere åbne spørgsmål: **de to sidste før 11e er afgjort 2026-09-04.**
   **Flade 10 – hvor mange måneder er allerede udbetalt:** fladens to halvdele skal **konsekvent bruge
   dagbaseret optjeningstælling**. Gennemført i kode samme dag: `alleredeUdbetaltMaaneder` er nu afledt af
   tabellens egen sum frem for at være en selvstændig optælling af hele kalendermåneder, så de to ikke kan
@@ -30,7 +46,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11d er alle afgjort.
+- **Fund, der afventer udviklerens afgørelse:** **17 – flade 11e's samlede liste (BB-185–BB-201).** To Høj,
+  elleve Mellem, fire Lav. Flade 1–11d er alle afgjort.
 - **Flade 11c er afgjort OG gennemført i kode 2026-09-03:** af de 11 fund er **seks implementeret**
   (BB-167, BB-168, BB-171, BB-172, BB-173, BB-176), **to delvist** (BB-170, BB-175), **to afvist**
   (BB-169, BB-174) og **ét trukket tilbage** (BB-166 – fundet hvilede på min egen fejlagtige præmis).
@@ -69,7 +86,34 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-09-04 (**De to sidste åbne spørgsmål i hele gennemgangen er afgjort – der er
+- **Senest opdateret:** 2026-09-07 (**Flade 11e – Differencekrav – gennemgået: 17 fund, to Høj, elleve
+  Mellem og fire Lav, og ét nyt tværgående mønster M-31. Hele Erhvervsevnetab er dermed gennemgået.**
+  Fanen er den fjerde resultatfane og den eneste, der samler alle de øvrige – og den eneste resultatfane
+  med egne indtastningsfelter. **M-31 er det nye mønster, og det er det første, hvor BEGGE tal er
+  rigtige:** samme beregning kørt med et justeret input udleveres under samme navn. Differencekravets
+  dokument er programmets eneste med bilag, og bilagene er nabofanernes dokumenter regnet på en filtreret
+  rækkeliste og en beregningsdato sat én dag tilbage. **Det tunge fund er BB-185:** to hentede `.docx`-filer
+  i samme sag bærer begge titlen «EET efter EAL» med identisk skadedato, årsløn, regulering, faktor,
+  fødselsdato og aldersreduktion – og skriver «Erhvervsevnetab **60 %**» / «Beregnet EAL-krav
+  **2.101.950 kr.**» mod «**30 %**» / «**1.050.975 kr.**» Forskellen er **1.050.975 kr., halvdelen af
+  kravet**, og bilaget udelader dertil den beregningsdato, filtreringen hviler på. **Det andet Høj-fund,
+  BB-187, kan koste penge:** specifikationen skriver «Løbende ydelser derfor ikke relevante» om en
+  **delvist endelig** afgørelse, hvis bilag i samme dokument viser «I alt **66.827 kr.**» – og
+  begrundelsen ovenfor handler kun om *midlertidige* ydelser. Om reglen bag er rigtig, er fladens ene åbne
+  spørgsmål. **M-25's navngivne kandidat er bekræftet** (BB-188 – et afkrydset «Kapitalisering»-bilag udgår
+  tavst af papiret, fordi `no-endelig-afgoerelser` bevidst filtreres væk; **et filtreret issue er også en
+  filtreret gate**), og **M-28 gav sit største enkeltfund** (BB-194 – syv felter i
+  `merErstatningEventSchema`, herunder alderen som begge kapitaliseringsfaktorer hviler på, renderes ingen
+  steder). **Mer-erstatningen ved forhøjet folkepensionsalder bærer fem af fundene:** den hedder fire ting
+  (BB-191), dens bilag trykker samtlige 12 beløb uden «kr.» (BB-190), dens to bokse er ordret ens ved to
+  kapitaliseringer (BB-193), dens faktorer er unavngivne (BB-194), og dens bilagsvalg påstår
+  «Pensionsalderen er ikke forhøjet i perioden» i en sag, hvor den ER forhøjet i perioden (BB-189).
+  **Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden;** ingen af de 17 fund handler
+  om en forkert formel – BB-185 og BB-186 handler om, hvilket INPUT formlen får, når den kaldes som bilag.
+  **M-09, M-10, M-19, M-22 og M-30 er efterprøvet og BESTÅET; M-24, M-26 og M-29 er efterprøvet uden fund**
+  – M-24's skærpede prøve placerer differencekravets klampede `0 kr.` på BB-119's afviste side. Konsollen
+  var tavs: 191 og 182 beskeder, 0 fejl, 0 advarsler.)
+- **Tidligere: 2026-09-04** (**De to sidste åbne spørgsmål i hele gennemgangen er afgjort – der er
   nu hverken fund eller spørgsmål, der afventer udvikleren, frem til flade 11e.**
   **10 %-trinnene binder kun ASL, ikke EAL:** feltet «EET % (hvis afviger fra ASL)» skal fortsat kun
   kræve 5 %-trin mellem 5 og 100, og den manglende trinadvarsel er dermed korrekt fraværende.
@@ -295,8 +339,100 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11c | Erhvervsevnetab – Kapitalisering | Afgjort og gennemført | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11d | Erhvervsevnetab – EET efter EAL | Afgjort og gennemført | 8 (BB-177–BB-184) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11e | Erhvervsevnetab – Differencekrav | Ikke startet | – | – |
-| 12 | Erstatningsopgørelse | Ikke startet | – | – |
+| 11e | Erhvervsevnetab – Differencekrav | Afventer udvikleren | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 12a | Erstatningsopgørelse – Opgørelsens ramme | Ikke startet | – | – |
+| 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Ikke startet | – | – |
+| 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Ikke startet | – | – |
+| 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Ikke startet | – | – |
+| 12e | Erstatningsopgørelse – TAF: perioden | Ikke startet | – | – |
+| 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Ikke startet | – | – |
+| 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Ikke startet | – | – |
+| 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Ikke startet | – | – |
+| 12i | Erstatningsopgørelse – Lønudvikling og regulering | Ikke startet | – | – |
+| 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Ikke startet | – | – |
+| 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
+| 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
+| 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erhvervsevnetab → Differencekrav (11e) – gennemgået 2026-09-07
+
+**17 fund: to Høj, elleve Mellem, fire Lav. Alle afventer udviklerens afgørelse.** Det fulde grundlag med
+målte tal står i [erhvervsevnetab.md](erhvervsevnetab.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-185 | To papirer med titlen «EET efter EAL»: 60 % / 2.101.950 kr. mod 30 % / 1.050.975 kr. | **Høj** |
+| BB-187 | «Løbende ydelser derfor ikke relevante» for en afgørelse, hvis bilag viser 66.827 kr. | **Høj** |
+| BB-186 | Samme afgørelse, samme dokumenttitel, to tal: 123.028 kr. mod 122.936 kr. | Mellem |
+| BB-188 | Et afkrydset bilag udgår tavst af papiret, mens to andre bilag inaktiveres med en grund | Mellem |
+| BB-189 | «Pensionsalderen er ikke forhøjet i perioden» er usand, når den ER forhøjet i perioden | Mellem |
+| BB-190 | Hele bilaget «Forhøjet pensionsalder» trykker 12 beløb uden «kr.» | Mellem |
+| BB-191 | Mer-erstatningen hedder fire ting på fire steder i samme sag | Mellem |
+| BB-192 | Dokumentets samlede «Differencekrav» havner under sektionen «Forhøjet pensionsalder» | Mellem |
+| BB-193 | To kapitaliseringer giver to ordret identiske «Forhøjelse pr. 31-12-2020 (68 år → 69 år)» | Mellem |
+| BB-194 | Mer-erstatningsboksen navngiver ikke sine to faktorer og mangler alderen, de hviler på | Mellem |
+| BB-195 | Forligsfejlene er de eneste linjer i «Fejl og advarsler» uden et link | Mellem |
+| BB-196 | Boksen skriver «indeholder en ugyldig værdi», hvor programmet selv har den konkrete sætning | Mellem |
+| BB-197 | Et forlig på 100 % forsvinder helt fra specifikationen | Mellem |
+| BB-198 | «Reguleringsprocent (01-06-2022)» og «Reguleringsprocent (2021)» i to nabobokse | Lav |
+| BB-199 | «Beregningsdato → 1. juni 2022» og «Kapitaliseringsdato → 01-06-2022» er samme dag i to formater | Lav |
+| BB-200 | Forligsprocenten står som «50,00» i feltet og «50 %» i sætningen | Lav |
+| BB-201 | «Ikke kapitaliseret.» ved en midlertidig afgørelse, som programmet selv forbyder at kapitalisere | Lav |
+
+**Fanen er den fjerde resultatfane, den eneste der samler alle de øvrige, og den eneste resultatfane med
+egne indtastningsfelter.** To forhold forklarer tretten af de sytten fund.
+
+**Det første er, at fanens dokument er programmets ENESTE med bilag – og bilagene er nabofanernes
+dokumenter regnet på et andet input.** `computeEetDifferencekravCalculation` bygger grafen selv: den
+filtrerer afgørelsesrækkerne til dem med virkningsdato på eller før beregningsdatoen og kalder derefter
+EAL-, kapitaliserings- og løbende-ydelsesmotoren på den filtrerede liste, løbende ydelser dertil med
+beregningsdatoen sat én dag tilbage. Begge justeringer er rigtige for differencekravet – men de tre
+resultater trykkes under nøjagtig samme titler som nabofanernes egne dokumenter (BB-185, BB-186).
+
+**Det andet er mer-erstatningen ved forhøjet folkepensionsalder,** som bærer fem fund: den hedder fire ting
+(BB-191), dens bilag trykker samtlige beløb uden «kr.» (BB-190), dens to bokse er ordret ens ved to
+kapitaliseringer (BB-193), dens to kapitaliseringsfaktorer er unavngivne og alderen bag dem vises ingen
+steder (BB-194), og dens bilagsvalg forklarer sig med en påstand, der er usand i netop den tilstand, hvor
+den vises (BB-189).
+
+**M-31 er det nye mønster, og det er det første, hvor BEGGE tal er rigtige.** Der er ingen fejl at finde,
+intet rødt felt og ingen advarsel – og derfor heller ingen mekanisme, der kunne fange det. Fejlen er, at
+brugeren og modparten ikke kan skelne de to udgaver, fordi navnet er det samme. Prøven er kodesøgning
+efterfulgt af to downloads: `rg "\.\.\.input|\.\.\.filtered|dagFoer|\bfiltered[A-Z]" src/domain`, og for
+hvert træf tre spørgsmål – bliver den justerede udgave vist eller trykt? bærer den samme titel som den
+ujusterede? står justeringen nogen steder i papiret?
+
+**Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden:**
+`4.201.875 − 88.113 − 389.275 − 834.979 − 797.783 − 43.453 = 2.048.272`,
+`3.940.650 − 122.936 − 516.226 − 834.979 − 332.960 − 26.072 − 43.453 = 2.064.024`, forligets
+`× 2/3 = 1.376.016`, `× 1/3 = 688.008` og `× 12,5 % = 258.003`, proformakæden
+(`278.558 × 25 % × 83 % × 92 % = 53.176,72` → `× 1,657 = 88.113,83` → `× 9,054 = 797.783`) og
+mer-erstatningskæden (`31.906,03 × 153,6 % = 49.007,66` → `× 10,157 = 497.770,80` /
+`× 10,689 = 523.842,88` → `26.072`). **Ingen af de 17 fund handler om en forkert formel.**
+
+**Fladens ene åbne spørgsmål:** skal løbende ydelser under en **delvist endelig** afgørelse fradrages i
+differencekravet ved skader fra 16. juni 2011? `skalFradragForetages` returnerer i dag `true` for
+`'Endelig'` alene. Svaret afgør, om BB-187 er en tekstrettelse eller en beregningsrettelse.
+
+**Konsekvenser for de resterende flader – fire prøver at tage med:**
+1. **M-31's prøve hører på hver flade, hvis dokument genbruger en anden fladers krop.** Kandidater: EO's
+   reguleringsbilag og TAF-bilag, som trykkes både selvstændigt og som afsnit i opgørelsen
+   (`rg "renderBody|Body\(writer" src/document/generators`), og Årsløns tre lønmetoder over samme
+   periodetabel.
+2. **Et filtreret issue er også en filtreret gate** (BB-188). For hver `.filter((issue) => issue.id !== …)`
+   i en aggregator: find det `computation`, samme issue nulstiller, og spørg hvem der læser det. Det er
+   M-25's mekanik set fra issue-siden i stedet fra gate-siden.
+3. **M-28's trin 3 er skærpet** (BB-194): prøven spørger, om oplysningen står ET ANDET STED i brugerens
+   synsfelt – ikke om den kan udledes af principper. Alderen bag en tabelopslået faktor er ikke
+   «velkendt», den er nøglen.
+4. **Prøven for hvert bilagsvalg og hver valgmulighed er den samme fire-vejs-sammenligning** (BB-191):
+   afkrydsningsfelt · skærmoverskrift · dokumentsektion · bilagstitel. Fire navne for én størrelse blev
+   fundet ved at læse dem op ad hinanden, ikke ved at søge på en streng.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620); PDF-kanalen ikke læst
+(dokumenterne hentet som `.docx`); `Gem`/`Hent` ikke afprøvet, hvilket er værd at måle her, fordi begge
+beregnings-toggles har `true` som default; brevhovedet ikke slået til; mer-erstatningens tavse issue-tab
+kildelæst, ikke målt; «meget mange afgørelser» (B3) ikke målt; skader før 16-06-2011 kun kildelæst.
 
 ## Erhvervsevnetab → EET efter EAL (11d) – gennemgået 2026-09-04, afgjort og gennemført 2026-09-04
 

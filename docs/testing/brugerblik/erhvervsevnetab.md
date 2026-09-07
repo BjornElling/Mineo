@@ -2313,3 +2313,804 @@ Jeg afviser fundet. Kapitaliseringsfaktor er det samme begreb i EAL og ASL. Enes
   været registreret som fund, ville rettelsen have indført en forkert advarsel på det felt, hvor
   EAL-kravet faktisk opgøres. **`warn-invalid-eet-pct-after-2024-07-01`s fravær i EAL-motoren er dermed
   bekræftet korrekt og genrejses ikke.**
+
+---
+
+# Fane 5 – Differencekrav
+
+- Gennemgået: 2026-09-07 · commit `9c39f977`
+- Afprøvet i: Chrome, lyst tema, 1536×864 (M-09 desuden målt ved 1244×620). Fire dokumenter hentet som
+  `.docx` og læst linje for linje: differencekravet i to sagsformer samt de to nabofaners egne dokumenter
+  til sammenligning.
+
+## Fladen kort
+
+Fanen er **Erhvervsevnetabs fjerde og sidste resultatfane** og den eneste, der samler alle de øvrige. Den
+opgør differencekravet: EAL-kravet fratrukket fire ASL-fradrag – de udbetalte løbende ydelser, de modtagne
+kapitalbeløb, værdien af det resterende erhvervsevnetab og mer-erstatningen ved forhøjet folkepensionsalder
+– og til sidst reduceret med et eventuelt forlig om ansvarsgrad.
+
+**Fanen er samtidig den eneste resultatfane med egne indtastningsfelter.** Strukturen er «Fejl og
+advarsler» (fælles `EetIssuesBox`), en «Beregning»-boks med Beregningsdato, downloadknappen, fem
+bilagsvalg og én toggle, en «Valgmuligheder»-boks med to toggles og tre forligsfelter, en
+«Specifikation»-boks med fem underafsnit, og til sidst to betingede bokse: «Proformakapitalisering af
+rest-EET» og «Mer-erstatning ved forhøjet folkepensionsalder».
+
+**Fanens særkende, og kilden til de to Høj-fund: dens dokument er det eneste i programmet med bilag, og
+bilagene er nabofanernes dokumenter regnet på et ANDET input.** `computeEetDifferencekravCalculation`
+bygger grafen selv: den filtrerer afgørelsesrækkerne til dem med virkningsdato på eller før
+beregningsdatoen (`filterAslRowsKnownAtBeregningsdato`) og kalder derefter EAL-, kapitaliserings- og
+løbende-ydelsesmotoren på den filtrerede liste – løbende ydelser dertil med beregningsdatoen sat én dag
+tilbage. Begge justeringer er bevidste og rigtige for differencekravet. Men de tre resultater trykkes som
+bilag under **nøjagtig samme titler** som nabofanernes egne dokumenter, så samme sag kan udlevere to
+papirer med samme overskrift og to forskellige tal.
+
+**Fanens andet gennemgående tema er mer-erstatningen ved forhøjet folkepensionsalder,** som bærer fem af
+fundene: den hedder fire ting, dens bilag trykker samtlige beløb uden «kr.», dens to bokse er ordret ens
+ved to kapitaliseringer, dens to kapitaliseringsfaktorer er unavngivne, og dens bilagsvalg forklarer sig
+med en påstand, der er forkert i netop den tilstand, hvor den vises.
+
+**Beregningsformlerne selv er kontrolregnet i fire sagsformer og er i orden.** Efterprøvet ordret:
+`4.201.875 − 88.113 − 389.275 − 834.979 − 797.783 − 43.453 = 2.048.272` (fire fradrag, ingen forlig),
+`3.940.650 − 122.936 − 516.226 − 834.979 − 332.960 − 26.072 − 43.453 = 2.064.024` (to kapitaliseringer, to
+mer-erstatningsevents), `2.064.024 × 2/3 = 1.376.016` og `2.064.024 × 1/3 = 688.008` (forlig som brøk),
+`2.064.024 × 12,5 % = 258.003` (forlig som decimalprocent). Proformakapitaliseringens egen kæde er
+efterregnet af de viste tal: `278.558 × 25 % × 83 % × 92 % = 53.176,72`, `× 1,657 = 88.113,83`,
+`× 9,054 = 797.783`. Mer-erstatningen ligeledes: `31.906,03 × 153,6 % = 49.007,66`, `× 10,157 =
+497.770,80`, `× 10,689 = 523.842,88`, difference `26.072`. **Ingen af de 17 fund handler om en forkert
+formel** – BB-185 og BB-186 handler om, hvilket INPUT formlen får, når den kaldes som bilag.
+
+## Fund
+
+### BB-185 – To papirer med titlen «EET efter EAL» i samme sag: 60 % og 2.101.950 kr. mod 30 % og 1.050.975 kr.
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-31--samme-beregning-kørt-med-et-justeret-input-udleveres-under-samme-navn`
+- **Prioritet:** **Høj**
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`, J.nr. `BB-11e-2`.
+  2. EET oplysninger: Beregningsdato `01-06-2022`, ASL-årsløn `400.000`.
+  3. Række 1: Afgørelsesdato `01-06-2020`, Virkningsdato `01-01-2020`, EET % `30`, Midlertidig.
+  4. Række 2: Afgørelsesdato `01-06-2023`, Virkningsdato `01-01-2023`, EET % `60`, Midlertidig.
+  5. Hent dokumentet fra fanen «EET efter EAL». Hent derefter differencekravet med bilagsvalget
+     «EET efter EAL» slået til (standard).
+- **Det sker:** de to papirer er ordret ens på hver linje bortset fra tre – målt i de hentede `.docx`-filer:
+
+  | Linje | «EET efter EAL» (fane 4) | Bilaget «EET efter EAL» i differencekravet |
+  |---|---|---|
+  | Erhvervsevnetab | **60 %** | **30 %** |
+  | Erhvervsevnetab (432.500 kr. x 10 x …) | 2.595.000 kr. | 1.297.500 kr. |
+  | Beregnet EAL-krav | **2.101.950 kr.** | **1.050.975 kr.** |
+
+  Skadedato, Årsløn, reguleringen (`+ 8,1329 %`), den opregulerede årsløn (`432.500 kr.`),
+  Kapitaliseringsfaktor `10`, maksimum, Fødselsdato, alder og aldersreduktionen (`19 %`) er identiske i
+  begge. Ingen af de to papirer nævner, at der findes en anden udgave, og bilaget udelader dertil
+  Beregningsdato-rækken (`includeBeregningsdatoHeader = false`), så den dato, filtreringen hviler på, står
+  slet ikke i bilaget. **Forskellen er 1.050.975 kr. – halvdelen af kravet.**
+- **Det er uhensigtsmæssigt fordi:** to papirer med samme overskrift i samme sag skal vise samme tal, ellers
+  er det ene forkert. Her er de begge rigtige – differencekravet SKAL kun regne på afgørelser med virkning
+  på eller før beregningsdatoen – men brugeren og modparten kan ikke se det. Den, der lægger begge papirer i
+  sagen, har lagt to modstridende opgørelser af det samme krav ved siden af hinanden og kan ikke forklare
+  forskellen. Fane 5 advarer korrekt («Beregningsdatoen (01-06-2022) ligger før sagens afgørelser.» med
+  link), men advarslen siger ikke, at EAL-kravet på denne fane derfor er et andet tal end nabofanens, og
+  **advarslen kommer ikke med i bilaget.**
+- **Bedre ville være:** bilaget navngives som det, det er, og bærer sin egen forudsætning. Konkret:
+  bilagstitlen skriver, at det er differencekravets grundlag («EET efter EAL – opgjort på afgørelser med
+  virkning til og med 01-06-2022»), og bilagskroppen beholder Beregningsdato-rækken plus én linje om, at
+  senere afgørelser er holdt uden for. Alternativt viser fane 5's specifikation begge tal, så divergensen
+  er synlig dér, hvor den opstår.
+- **Andre steder det kan gælde:** `filterAslRowsKnownAtBeregningsdato` fodrer ALLE tre nabomotorer i
+  `eetCalculationGraph.ts`, så samme form gælder kapitaliseringsbilaget (en kapitalisering på en afgørelse
+  med senere virkningsdato falder ud af bilaget, men står i fane 3's eget dokument) og
+  løbende-ydelsesbilaget (BB-186 er dens målte udgave). Prøven for resten af programmet er M-31's:
+  `rg "\.\.\.input\.|filtered|dagFoerBeregningsdato" src/domain` over graf- og kompositionsmoduler – hvert
+  sted, hvor et input justeres før et nabomodul kaldes, er en kandidat, hvis begge udgaver kan nå brugeren
+  under samme navn.
+
+**Tilbagemelding**
+Den beskrevne adfærd er den korrekte og forventelige adfærd. Beregning på fanen EET efter EAL er en anden opgørelsestype end beregning af Differencekrav. Til differencekrav er der knyttet et helt fast, ufravigeligt princip om, at det er de specifikke forhold, som sagen så ud på beregningsdatoen, der lægges til grund - uanset hvad der senere måtte være sket (jeg tror måske der er en undtagelse ved en senere afgørelse, der får virkning før beregningsdatoen). Modsat dette er beregningen på siden med EET efter EAL udtryk for en beregning af den sluttelige tilstand for erhvervsevnetabsafgørelser, blot opgjort med den værdi et erhvervsevnetab efter EAL ville have med samme procentsats, beregningsteknisk opgjort med den værdi det ville have på beregningsdatoen.
+
+### BB-186 – Samme afgørelse, samme titel, to dokumenter: 123.028 kr. mod 122.936 kr.
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-31--samme-beregning-kørt-med-et-justeret-input-udleveres-under-samme-navn`
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `01-01-1970`, Skadedato `01-06-2018`.
+  2. EET oplysninger: Beregningsdato `01-06-2022`, ASL-årsløn `400.000`, EAL-årsløn `900.000`.
+  3. Række 1: `01-12-2018` / `01-01-2019` / `30` / Delvist endelig / Kap.dato `01-01-2019` / Kap. % `15`.
+  4. Række 2: `01-06-2020` / `01-07-2019` / `50` / Endelig / Kap.dato `01-06-2020` / Kap. % `25`.
+  5. Hent dokumentet fra «Løbende ydelser» og derefter differencekravet med bilaget «Løbende ydelser».
+- **Det sker:** begge papirer bærer titlen «Løbende ydelser (EET)» og samme boksoverskrift «Afgørelse
+  1. juni 2020». De afviger på tre linjer, målt:
+
+  | | Dokumentet «Løbende ydelser (EET)» | Bilaget «Løbende ydelser (EET)» |
+  |---|---|---|
+  | Løbende ydelse opgjort til og med | **01-06-2022** | **31-05-2022** |
+  | Sidste periodelinje | `01-01-2022 · 01-06-2022 · 5,03333 mdr. · 13.867 kr.` | `01-01-2022 · 31-05-2022 · 5,00000 mdr. · 13.775 kr.` |
+  | I alt | **123.028 kr.** | **122.936 kr.** |
+
+  Samme forskel ses på skærmen: fane 2 skriver «Løbende ydelse opgjort til og med 01-06-2022» og
+  «I alt 123.028 kr.», mens fane 5's specifikation skriver «Løbende ydelser (01-07-2019 - 31-05-2022):
+  − 122.936 kr.» Ingen af de to steder forklarer dagen. (I sagen med beregningsdato `01-06-2024` er samme
+  afvigelse målt til 389.520 kr. mod 389.275 kr. – 245 kr.)
+- **Det er uhensigtsmæssigt fordi:** 92 kr. er lille nok til at se ud som en afrundingsfejl og stort nok til
+  at koste tid. Modparten, der efterregner, finder to «I alt» for samme afgørelse og må gætte, hvilket der
+  gælder. Årsagen – at ydelserne fradrages til og med dagen FØR beregningsdatoen, mens fane 2 opgør dem til
+  og med beregningsdatoen – er en rigtig regel, som ingen af de to papirer nævner. Dertil er selve rækken
+  «Løbende ydelse opgjort til og med» den eneste ledetråd, og den står kun i bilaget, ikke i fane 5's egen
+  specifikation.
+- **Bedre ville være:** fane 5's fradragslinje siger, hvorfor den slutter en dag før («… til og med
+  31-05-2022, dagen før beregningsdatoen»), og bilaget bærer samme sætning i sin
+  «Periodeafgrænsning»-blok. Er det for meget tekst, er alternativet at give bilaget en titel, der skiller
+  det fra fane 2's dokument, som i BB-185.
+- **Andre steder det kan gælde:** `dagFoerBeregningsdato` sættes ét sted (`eetCalculationGraph.ts:56`) og
+  bruges både som ophørsdato og som `fradragesTil`. Samme mønster som BB-185; se M-31's prøve.
+
+**Tilbagemelding**
+Løbende ydelser beregnes altid kun til og med dagen før kapitalisering. Hvis der fortsat er løbende ydelser, fordi der kun sker kapitalisering af en del af erhvervsevnetabet, fortsætter de løbende ydelser fra og med datoen for kapitalisering.
+
+Ved beregning af differencekrav sker der proformakapitalisering af ethvert tilbageværende erhvervsevnetab. Derfor regnes løbende ydelser i det tilfælde også altid kun til og med dagen før proformakapitaliseringen.
+
+Hvis der er beregninger noget sted i programmet, som medregner de løbende ydelser til og med datoen for kapitalisering, er det en fejl - de skal kun medregnes til og med dagen før (og eventuelt med den nye sats for kapitaliseringsdatoen og frem, hvis der ikke sker fuld kapitalisering og derfor fortsat er ret til reducerede løbende ydelser).
+
+Det er kun, hvis beregning af løbende ydelser på fanen med Løbende Ydelser ophører på grund af selve beregningsdatoen, at der regnes løbende ydelser til og med beregningsdatoen. Her vil der opstå en forskel i de beregnede resultater på siden med Løbende Ydelser (der beregner dem til og med beregningsdatoen) og differencekrav-siden (hvor der sker proformakapitalisering, og de løbende ydelser derfor kun beregnes til og med dagen før beregningsdatoen).
+
+### BB-187 – «Løbende ydelser derfor ikke relevante» for en afgørelse, hvis bilag to sider senere viser 66.827 kr.
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** **Høj**
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186. Læs afsnittet «Løbende ASL-ydelser» i
+  specifikationen, og læs derefter løbende-ydelsesbilagets første side i det samme dokument.
+- **Det sker:** specifikationen skriver, ordret:
+
+  ```
+  Løbende ASL-ydelser
+  Skaden er indtrådt den 16. juni 2011 eller senere.
+  Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser.
+  Afgørelse 1. december 2018
+  Delvist endelig afgørelse
+  Løbende ydelser derfor ikke relevante.
+  ```
+
+  To sider længere inde i **samme dokument** står den samme afgørelse med sine periodelinjer og
+  «I alt **66.827 kr.**» Afgørelsen er ikke midlertidig – den er *delvist endelig* – så den begrundelse,
+  ordet «derfor» henviser til, handler om en afgørelsestype, rækken ikke har. Målt i koden:
+  `skalFradragForetages` returnerer kun `true` for `'Endelig'`, når skadedatoen er 16-06-2011 eller senere;
+  `'Delvist endelig'` behandles altså som `'Midlertidig'`, uden at nogen tekst siger det.
+- **Det er uhensigtsmæssigt fordi:** «ikke relevante» er programmets stærkeste påstand om et fradrag – den
+  siger, at der ikke er noget at fradrage. Her er der 66.827 kr., og programmet trykker dem selv få sider
+  senere. Brugeren, der læser papiret igennem, finder to udsagn om samme afgørelse, der ikke kan være sande
+  samtidig, og kan ikke se hvilket der styrer beløbet. Er reglen rigtig, er teksten forkert; er teksten
+  rigtig, er der 66.827 kr. for meget i differencekravet.
+- **Bedre ville være:** linjen siger reglen med afgørelsens egen type: «Delvist endelige afgørelsers
+  løbende ydelser fradrages ikke ved skader fra 16. juni 2011» – og forbeholdssætningen ovenfor nævner
+  begge typer, så «derfor» peger et sted hen. Er det meningen, at delvist endelige ydelser SKAL fradrages,
+  hører rettelsen i `skalFradragForetages` og ikke i teksten. **Se det åbne spørgsmål nedenfor:
+  bedømmelsen af reglen er udviklerens.**
+- **Andre steder det kan gælde:** `rg "derfor ikke relevante|Der foretages derfor" src/components src/document`
+  – hver «derfor»-sætning, hvis begrundelse står i en anden linje, er en kandidat. Generelt: for hver
+  forbeholdssætning, der opregner nogle af en enums værdier, spørg hvilke værdier den udelader, og hvad de
+  så får som begrundelse.
+
+**Tilbagemelding**
+Begrebet 'delvist endelige afgørelser' er en kompliceret størrelse rent formuleringsmæssigt. Der er rent praktisk tale om en midlertidig afgørelse, hvor en del af ydelsen kan kapitaliseres efter reglerne for endelige afgørelser. Det ændrer ikke på, at den løbende ydelse både før og efter kapitaliseringstidspunktet er midlertidig - den afviger blot fra en sædvanlig midlertidig afgørelse derved, at der (modsat midlertidige afgørelser) har kunnet finde kapitalisering sted.
+
+Jeg er bange for, at formuligeringerne bliver for lange og kluntede, hvis man skal have beskrevet alt dette, og brugeren ved godt, at den løbende ydelse fra en delvist endelig afgørelse i praksis bare er en midlertidig ydelse. Hvis du kan finde en god, kort, præcis måde at formulere dette på, så fint, men hvis ikke, så undgå at drukne dokumenter i lange, komplicerede beskrivelser, der bare skaber unødvendigt rod.
+
+### BB-188 – Et afkrydset bilag kan udgå af dokumentet uden et ord, mens to andre bilag gøres inaktive med en grund
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-25--gaten-spørger-findes-der-noget-ikke-findes-det-brugeren-bad-om`
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Byg en sag med **kun midlertidige** afgørelser: Beregningsdato `01-06-2022`, ASL-årsløn `400.000`,
+     EAL-årsløn `900.000`, række 1 `01-12-2018` / `01-01-2019` / `30` / Midlertidig, række 2 `01-06-2020` /
+     `01-07-2019` / `50` / Midlertidig, ingen kapitalisering.
+  2. Bliv på Differencekrav med alle fem bilagsvalg som de står (alle afkrydsede), og hent dokumentet.
+- **Det sker:** differencekravet regner (`2.275.852 kr.`), der er **ingen «Fejl og advarsler»-boks**, og
+  knappen står som «Download som Word». Bilagsvalget **«Kapitalisering» er afkrydset og aktivt** – men det
+  hentede dokument indeholder kun fire afsnit, målt i `.docx`-filen: `Differencekrav (EET)`,
+  `EET efter EAL`, `Løbende ydelser (EET)`, `Proformakapitalisering af rest-EET`. Der er **ingen
+  Kapitalisering-side**, heller ikke den tomtilstand, generatoren ellers har («Der er ingen kapitaliserede
+  afgørelser i sagen.»). Fane 3 er samtidig helt blokeret med «Ingen endelig eller delvist endelig
+  afgørelser indtastet» – præcis det issue, differencekravet bevidst filtrerer væk
+  (`eetDifferencekravCalculation.ts:687`), så det aldrig når fanen.
+  **Samme boks behandler «har intet indhold» på tre måder:**
+  - «Proformakap. af rest-EET» og «Mer-erstatning forhøjet folkepension»: inaktive og umarkerede med
+    årsagen i tooltippet (målt: «Der er intet rest-EET at proformakapitalisere» / «Mer-erstatning er
+    fravalgt nedenfor» / «Pensionsalderen er ikke forhøjet i perioden»).
+  - «Løbende ydelser», «Kapitalisering», «EET efter EAL»: altid aktive (`unavailableReason={null}`) og
+    udgår tavst eller giver en «ingen»-side.
+  - Togglen «Medtag udvidet specifikation på løbende ydelser»: altid aktiv, også når
+    løbende-ydelsesbilaget er fravalgt – målt: bilaget fravalgt, togglen slået **til**, og den styrer
+    ingenting.
+- **Det er uhensigtsmæssigt fordi:** et afkrydset felt er et løfte om en side i papiret. Brugeren, der har
+  set «Proformakap. af rest-EET» blive grå med en forklaring, læser rimeligt en aktiv «Kapitalisering» som
+  «der ER noget her» – og opdager først ved at tælle sider, at der ikke er. I den målte sag ville bilaget
+  ganske vist have været tomt, men brugeren kan ikke skelne «bilaget var tomt» fra «noget faldt ud», og det
+  er netop den skelnen, gaten skulle levere.
+- **Bedre ville være:** de fem bilagsvalg får samme regel som EO's seks, der allerede har den: ét
+  `bilagAvailability`-opslag pr. valg, så et bilag uden indhold gøres inaktivt og umarkeret med årsagen i
+  tooltippet («Der er ingen kapitaliserede afgørelser i sagen»). Udvidet-spec-togglen følger
+  løbende-ydelsesbilaget på samme måde. Så kan et afkrydset felt ikke længere love en side, dokumentet ikke
+  har.
+- **Andre steder det kan gælde:** `rg "unavailableReason=\{null\}" src/components` giver fire træf – de tre
+  her plus EO's «Opgørelse», som er `lockedOn` og altså et andet tilfælde.
+  `rg "bilagSelection\." src/document/generators` giver de seks vagter i
+  `differencekravDocument.ts:524-568`; hver `&& computation.X`-vagt er et bilag, der kan udgå tavst.
+  EO's `renderBilagCheckbox` er den færdige model.
+
+**Tilbagemelding**
+Jeg er enig. Hvis der ikke er noget indhold i et givent bilag, skal boksen gøres deaktiveret med en kort, klar, beskrivende tooltip-meddelelse. Det er vist allerede tilfældet for forhøjet folkepensionsalder. Sørg for at lave en god, velstruktureret løsning. Ingen vilkårlige lappeløsninger.
+
+Jeg vil desuden gerne have at der også indsættes et lockedOn opgørelses-felt for differencekrav magen til det på EO. Hvis det ændrer schama eller andet tilsvarende, som kan give problemer med bagudkompatibilitet, så sørg for at tage højde for det. Det burde dog ikke være tilfældet. Opgørelsen dannes altid - både nu og med ændringen. Eneste forskel er, at der nu vises en symbolsk boks, hvor det fremgår.
+
+### BB-189 – «Pensionsalderen er ikke forhøjet i perioden» er forkert, når årsagen er, at der ikke er nogen kapitalisering
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-188 (kun midlertidige afgørelser, ingen kapitalisering).
+  Lad «Indregn mer-erstatning ved forhøjet pensionsalder» stå på **Ja**, og hold musen over det inaktive
+  bilagsvalg «Mer-erstatning forhøjet folkepension».
+- **Det sker:** tooltippet siger ordret «**Pensionsalderen er ikke forhøjet i perioden**». Det er ikke
+  rigtigt: folkepensionsalderen blev forhøjet fra 68 til 69 år **31-12-2020**, som ligger mellem
+  skadedatoen `01-06-2018` og beregningsdatoen `01-06-2022`, og programmet kender datoen
+  (`forhoejetPensionsalderEvents`). Den virkelige årsag er, at der ikke er nogen kapitalisering at
+  regulere: `computeMerErstatningPensionsalder` kaldes slet ikke, fordi vagten
+  `input.indregnMerErstatningVedForhoejetPensionsalder && kapResult.computation` fejler på det andet led.
+- **Det er uhensigtsmæssigt fordi:** brugeren har netop slået beregningen TIL, fordi han tror, sagen kan
+  have en mer-erstatning. Svaret er en påstand om lovgivningen, ikke om hans sag – og påstanden er usand.
+  Han har ingen anledning til at betvivle den og kan konkludere, at der intet er at rejse. Fundets form
+  står i programmets egen kodekommentar ved nabogrenen: «… ville da være en påstand om et regnestykke,
+  programmet ikke har udført – altså potentielt forkert». Den anden gren gør præcis det.
+- **Bedre ville være:** en tredje grund, der siger, hvad der mangler: «Der er ingen kapitalisering at
+  regulere for en forhøjet pensionsalder». «Pensionsalderen er ikke forhøjet i perioden» beholdes til det
+  tilfælde, hvor beregningen ER kørt og fandt ingen forhøjelse.
+- **Andre steder det kan gælde:** `resolveMerErstatningPensionsalderBilagDisabledReason` har to grunde til
+  tre tilstande. Samme prøve for de øvrige: `rg "DisabledReason|unavailableReason" src/domain` – for hver
+  grund, tæl de tilstande der kan udløse den, og spørg om teksten er sand i dem alle. Dette er BB-181's
+  lære i en ny form: **ét udsagn kan opstå i flere tilstande, og prøven skal navngive dem hver for sig.**
+  Dertil: `computeMerErstatningPensionsalder` skriver sine issues i en lokal liste
+  (`eetDifferencekravCalculation.ts:868`), som **aldrig merges** – fejler et faktoropslag, udgår fradraget
+  tavst og differencekravet bliver for højt. Ikke fremprovokeret fra brugerfladen (se dækningshuller).
+
+**Tilbagemelding**
+Jeg er enig. Men dit forslag til meddelelse bliver meget langt og kluntet. Kan det gøres kortere og mere præcist, eventuelt bare i retning af, at der ikke er nogen kapitaliseringsafgørelser at forhøje.
+
+### BB-190 – Hele bilaget «Forhøjet pensionsalder» trykker beløb uden «kr.»
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186 (to kapitaliseringer). Hent differencekravet og læs
+  fradragslinjen i specifikationen og bilaget «Forhøjet pensionsalder».
+- **Det sker:** samtlige beløb i mer-erstatningen står **uden enhed** – målt ordret i `.docx`-filen:
+
+  ```
+  Grundydelse (15 %): … =   278.558 x 15 % x 83 % x 92 % =   31.906,03
+  Årlig ydelse (31.906,03 x 153,6 %) =                       49.007,66
+  Kapitalværdi (49.007,66 x 10,157) =                       497.770,80
+  Kapitalværdi (49.007,66 x 10,689) =                       523.842,88
+  Mer-erstatning (523.842,88 − 497.770,80)                      26.072
+  ```
+
+  og fradragslinjen på forsiden: «Forhøjelse pr. 31-12-2020 (68 år → 69 år): **- 26.072**» – umiddelbart
+  under «Kapitaliseret (15 %) den 01-01-2019: **- 516.226 kr.**» og «Proformakapitalisering (10 %) den
+  01-06-2022: **- 332.960 kr.**» **På skærmen har de samme linjer «kr.» overalt** («278.558 kr. x 15 %»,
+  «497.770,80 kr.», «26.072 kr.»). Årsagen er målt i koden: mer-erstatningsafsnittet er det eneste i
+  `differencekravDocument.ts`, der bruger `formatCurrencyFromOre`/`formatCurrencyFromOreTrimmed` (15
+  forekomster) i stedet for `formatKr`; de to første formattere returnerer tallet UDEN «kr.», og
+  varianterne med enheden heder `formatMoneyOreWithKr`/`…Trimmed`.
+- **Det er uhensigtsmæssigt fordi:** et beløb uden enhed i et papir til modparten er en fejl, ikke en
+  formvariation – og den står side om side med linjer, der har enheden, så det læses som om de to slags
+  tal er forskellige størrelser. `278.558 x 15 %` ligner en indeksberegning frem for kroner. Skærmen og
+  dokumentet er samtidig uenige om samme linje, hvilket er M-13's kerne.
+- **Bedre ville være:** mer-erstatningsafsnittet bruger `formatKr` som resten af dokumentet, eller
+  `formatMoneyOreWithKr(Trimmed)`, så alle beløb i papiret bærer «kr.».
+- **Andre steder det kan gælde:** `rg "formatCurrencyFromOre\b|formatCurrencyFromOreTrimmed" src/document/generators`
+  giver syv filer. `differencekravDocument.ts` er den eneste, der bruger BÅDE dem og `formatKr` i samme
+  dokument. De øvrige seks er EO- og TAF-generatorer, hvor beløbene står i tabeller med enheden i
+  kolonneoverskriften – hver af dem skal efterprøves for, om et beløb er sluppet ud i en prosalinje.
+
+**Tilbagemelding**
+Jeg er enig i dit fund. Jeg vil have én ensartet standard, så hvis der anvendes 'kr.' alle andre steder i opgørelsen af erhvervsevnetab og differencekrav, skal det selvfølgelig også gøres her.
+
+### BB-191 – Mer-erstatningen hedder fire ting på fire steder i samme sag
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186. Læs bilagsrækken, togglen, specifikationen og den
+  nederste boks – og derefter det hentede dokument.
+- **Det sker:** fire forskellige navne for én størrelse, målt ordret:
+
+  | Sted | Ordlyd |
+  |---|---|
+  | Bilagsvalg (afkrydsningsfelt) | «Mer-erstatning forhøjet folkepension» |
+  | Toggle i «Valgmuligheder» | «Indregn mer-erstatning ved forhøjet **pensionsalder**» |
+  | Underoverskrift i specifikationen og boksens overskrift | «Mer-erstatning ved forhøjet **folkepensionsalder**» |
+  | Dokumentets sektionsoverskrift OG bilagstitel | «**Forhøjet pensionsalder**» |
+
+  Descriptorens `label` – det navn oplæsning og fejltekster bruger – er togglens form («Indregn
+  mer-erstatning ved forhøjet pensionsalder»).
+- **Det er uhensigtsmæssigt fordi:** brugeren skal selv koble fire navne til én størrelse på tværs af to
+  bokse og et papir, og det navn, dokumentet bruger, er det eneste, der ikke indeholder ordet
+  «mer-erstatning» – altså det ord, der siger, hvad linjen ER. Modparten, der får papiret, læser en
+  sektion, som hedder noget andet end det fradrag, den indeholder. Det er BB-134's og BB-177's prøve igen:
+  **en godkendt ordlyd skal søges som begreb, ikke som streng.**
+- **Bedre ville være:** ét navn som delt konstant – «Mer-erstatning ved forhøjet folkepensionsalder» –
+  brugt i boksen, i specifikationen, i dokumentets sektion og bilagstitel og i descriptorens label.
+  Bilagsvalget må gerne forkortes af pladshensyn (BB-145's afgørelse), men skal da forkorte det samme navn
+  («Mer-erstatning (folkepension)»).
+- **Andre steder det kan gælde:** `rg "pensionsalder|folkepension" src/components/pages/erhvervsevnetab src/document/generators/differencekrav src/inputCore/catalog`
+  – de fem ordlyd står i fem filer. Prøven for resten af fladen: for hvert bilagsvalg, sammenlign de fire
+  navne (afkrydsningsfelt · skærmoverskrift · dokumentsektion · bilagstitel). «Proformakap. af rest-EET»
+  mod «Proformakapitalisering af rest-EET» er samme form i mildere grad.
+
+**Tilbagemelding**
+Jeg er enig. 'Forhøjet pensionsalder' er vist det bedste udtryk.
+
+### BB-192 – Dokumentets samlede «Differencekrav» havner under sektionen «Forhøjet pensionsalder»
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186. Hent differencekravet og læs forsidens
+  overskriftshierarki.
+- **Det sker:** forsiden har to sektionsoverskrifter, «Beregning» og «Specifikation», og under den sidste
+  fire underoverskrifter (EAL-krav · Løbende ASL-ydelser · Kapitaliserede ASL-beløb · Resterende
+  erhvervsevnetab). Derefter kommer **en tredje sektionsoverskrift, «Forhøjet pensionsalder»** – og først
+  derefter underoverskriften «Differencekrav» med sagens bundlinje. Sagens resultat står altså som et
+  underafsnit af pensionsalderen. Målt i koden: `differencekravDocument.ts:452` bruger
+  `writeSectionHeader`, hvor de fire søskende bruger `writeBoldSubheader`, og
+  `writeBoldSubheader('Differencekrav')` følger på linje 465. **På skærmen er alle fem søskende
+  `row--subheading` inde i «Specifikation»,** så hierarkiet er rigtigt dér og forkert i papiret.
+- **Det er uhensigtsmæssigt fordi:** overskriftsniveauet er den eneste anvisning på, hvad der hører til
+  hvad, i et papir uden indholdsfortegnelse. Læseren, der leder efter kravet, leder under «Specifikation»
+  og finder det ikke; og den, der læser sekventielt, får bundlinjen præsenteret som en konsekvens af
+  pensionsalderen. Dertil bruges ordlyden «Forhøjet pensionsalder» både til dette afsnit og til bilagets
+  titel længere inde, så samme overskrift optræder to gange med to betydninger (jf. BB-191).
+- **Bedre ville være:** `writeBoldSubheader` som de fire andre fradragsafsnit, med samme ordlyd som
+  skærmen («Mer-erstatning ved forhøjet folkepensionsalder»), så «Differencekrav» bliver det femte
+  underafsnit i «Specifikation».
+- **Andre steder det kan gælde:** `rg "writeSectionHeader" src/document/generators` – hvert kald inde i en
+  krop, der allerede har en åben sektion, er en kandidat. Prøven er billig: læs generatorens kald i
+  rækkefølge og hold niveauerne op mod skærmens `section-header`/`row--subheading`.
+
+**Tilbagemelding**
+Enig
+
+### BB-193 – To kapitaliseringer giver to ordret identiske «Forhøjelse pr. 31-12-2020 (68 år → 69 år)»
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186 (kapitalisering 15 % pr. `01-01-2019` og 25 % pr.
+  `01-06-2020`, beregningsdato `01-06-2022`).
+- **Det sker:** specifikationen skriver to fradragslinjer med **ordret samme tekst** og to forskellige
+  beløb:
+
+  ```
+  Forhøjelse pr. 31-12-2020 (68 år → 69 år):   - 26.072 kr.
+  Forhøjelse pr. 31-12-2020 (68 år → 69 år):   - 43.453 kr.
+  ```
+
+  og boksen nedenfor får to blokke med ordret samme overskrift «Forhøjelse pr. 31. december 2020
+  (68 år → 69 år)». Den eneste forskel inde i blokkene er «Grundydelse (15 %)» mod «(25 %)». Programmet
+  KENDER forskellen: `MerErstatningPensionsalderEvent` bærer `rowId`, `afgoerelsesdato` og
+  `kapitaliseringsdato`, og React bruger dem allerede som `key` – de renderes blot ingen steder.
+- **Det er uhensigtsmæssigt fordi:** det er BB-171's fund igen, på den fane rettelsen ikke nåede. Brugeren
+  kan ikke se, hvilken kapitalisering hver linje hører til, og kan derfor ikke efterprøve nogen af dem;
+  to identiske overskrifter læses desuden let som en dublet, brugeren tror han skal slette.
+- **Bedre ville være:** samme løsning som BB-170/BB-171 gav kapitaliseringsfanen – overskriften bærer
+  afgørelsen: «Forhøjelse pr. 31. december 2020 (68 år → 69 år) · kapitalisering 15 % den 01-01-2019».
+  Fradragslinjen i specifikationen får samme tilføjelse.
+- **Andre steder det kan gælde:** `rg "\.map\(\(event" src/components/pages/erhvervsevnetab src/document/generators/differencekrav`
+  – hver liste, hvis overskrift kun består af felter, der er FÆLLES for alle elementer, er en kandidat.
+  Generelt: for hver `.map` over en liste med en overskrift, spørg om to elementer kan give samme
+  overskrift.
+
+### BB-194 – Mer-erstatningsboksen navngiver ikke sine to faktorer og mangler alderen, de hviler på
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186. Sammenlign boksen «Proformakapitalisering af
+  rest-EET» med boksen «Mer-erstatning ved forhøjet folkepensionsalder» lige under den.
+- **Det sker:** de to bokse viser samme slags oplysninger i to former. Proformaboksen har navngivne rækker:
+
+  ```
+  Kapitaliseringsbekendtgørelse      Vejl. 9864/2021, tabel E
+  Alder ved proformakapitalisering   52 år, 5 måneder
+  Folkepensionsalder                 69 år
+  Faktor måneds-afhængig?            Ja
+  Kapitaliseringsfaktor              10,073
+  ```
+
+  Mer-erstatningsboksen skriver i stedet bekendtgørelsen i VENSTRE kolonne med faktoren til højre og uden
+  et navn: «Vejl. 9921/2019, tabel A **10,157**» og «Vejl. 9870/2020, tabel A **10,689**». Der er ingen
+  række, der siger, at tallene er kapitaliseringsfaktorer, **ingen alder** og ingen folkepensionsalder ud
+  over de to labels i overskrifterne. M-28's prøve er kørt: `alderAar`, `alderMaaneder`,
+  `faktorMaanedsAfhaengig`, `gammel.folkepensionsalderLabel`, `ny.folkepensionsalderLabel`,
+  `afgoerelsesdato` og `kapitaliseringsdato` ligger alle i `merErstatningEventSchema` i det kanoniske
+  output – **og renderes ingen steder,** hverken på skærmen eller i dokumentet (målt:
+  `rg "event\.alderAar|event\.faktorMaanedsAfhaengig|\.gammel\.folkepensionsalderLabel"` giver nul træf).
+- **Det er uhensigtsmæssigt fordi:** alderen på forhøjelsesdatoen er den ENESTE nøgle ind i de to
+  faktortabeller. Uden den kan hverken brugeren eller modparten slå `10,157` og `10,689` op og kontrollere
+  fradraget – og fradraget er hele mer-erstatningen. Naboboksen ti centimeter længere op viser præcis de
+  rækker, der mangler, så uensartetheden er synlig uden at skifte fane. Det er BB-170's efterregningskrav,
+  som udtrykkeligt ikke er lempet for denne fane.
+- **Bedre ville være:** mer-erstatningsboksen får proformaboksens rækkeform: «Alder ved forhøjelsen»,
+  «Folkepensionsalder (hidtidig / forhøjet)», «Faktor måneds-afhængig?» og to navngivne
+  «Kapitaliseringsfaktor»-rækker under hver sin bekendtgørelse. Alle fire tal ligger i outputtet i
+  forvejen.
+- **Andre steder det kan gælde:** M-28's søgning på denne fane gav to træf mere ved siden af de syv
+  ovenfor: `EetDifferencekravComputation.fradragLoebendeYdelserOre` og `fradragKapitaliseretEetOre` er de
+  to sammentællinger af hver sit fradragsafsnit, og ingen af dem renderes – specifikationen viser kun de
+  enkelte linjer og springer direkte til bundlinjen. (BB-174's afvisning dækker den manglende sum for
+  kapitaliseringsfanen; her er forholdet, at mer-erstatningsboksen SELV har en «Samlet
+  mer-erstatning»-række, som specifikationen og dokumentet ikke har – se BB-201.)
+
+### BB-195 – Forligsfejlene er de eneste linjer i «Fejl og advarsler» uden et link
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:**
+  1. Byg en regnende sag (som BB-186) og gå til Differencekrav.
+  2. Skriv `150` i «Procent» under «Forlig om ansvarsgrad». Læs boksen.
+  3. Ryd feltet, skriv `2/3` i brøken og `01-01-2010` i «Evt. dato for forlig». Læs boksen.
+- **Det sker:** boksens rækker mangler den «Erhvervsevnetab → sektion»-henvisning, alle andre rækker har.
+  Målt side om side i samme boks:
+
+  ```
+  Skadelidtes årsløn (efter ASL) er ikke udfyldt      EET oplysninger → Arbejdsskadesikringsloven
+  Beregningsdato er ikke udfyldt                      EET oplysninger → Grundlæggende oplysninger
+  Fødselsdato er ikke udfyldt                         Stamdata → Skadelidte
+  Forlig om ansvarsgrad indeholder en ugyldig værdi    (intet link)
+  Datoen kan ikke være før skadedatoen (01-06-2018)    (intet link)
+  ```
+
+  Forligsdatoens række er dertil den eneste i boksen, der **ikke navngiver sit felt**: «Datoen» kan i
+  denne sag være en af otte datoer. Målt i koden: `forlig-ansvarsgrad-invalid`, `field-forlig-dato` og
+  `differencekrav-beregningsgrundlag-missing` står i ingen af `resolveEetIssueNavigation`s fire id-sæt, så
+  `navigation` er `null`, og `EetIssuesBox` udelader hele højre halvdel af rækken.
+- **Det er uhensigtsmæssigt fordi:** boksen har lært brugeren, at hver linje kan klikkes hen til sit felt.
+  De to linjer, der ikke kan, ser ud som de andre – og den ene af dem siger ikke engang hvilket felt den
+  handler om. På denne fane er skaden begrænset, fordi felterne står i boksen nedenfor, men rækkerne vises
+  efter samme sortering som alle andre, og et manglende link læses som «her er intet at rette». Dertil
+  bliver `differencekrav-beregningsgrundlag-missing` – en ren blindgyde-besked – helt uden anvisning.
+- **Bedre ville være:** de tre id'er får en navigation til fanens egen «Valgmuligheder»-sektion med
+  forligsfeltet som fokusmål, præcis som `GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID` gør for Køn og Beregningsdato.
+  Det kræver, at `EetIssuesBox`' `handleNavigate` kan pege på Differencekrav-fanen og ikke kun på «EET
+  oplysninger» (i dag fører ALLE EET-ruter til `onGoToEetOplysninger`). Forligsdatoens række navngiver
+  samtidig sit felt.
+- **Andre steder det kan gælde:** prøven er mekanisk og hører på hver EET-fane:
+  `rg "toIssue\('|toWarning\('|toFieldIssue\('" src/domain/erhvervsevnetab` giver alle producerede id'er;
+  hold dem op mod de fire sæt i `eetFormatUtils.ts`. Alt, hvad der ikke står i et sæt, vises uden link.
+  Bemærk at `EetIssuesBox`' antagelse om, at enhver `APP_ROUTES.erhvervsevnetab`-rute betyder «EET
+  oplysninger», er selve låsen: den gør et link til et felt på en anden EET-fane umuligt at udtrykke.
+
+### BB-196 – Boksen skriver «indeholder en ugyldig værdi», hvor programmet selv har den konkrete sætning
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** på Differencekrav, i tre trin med hver sin læsning af boksen OG feltets
+  tooltip: (a) `150` i Procent, (b) `50` i Procent og `1/3` i brøk, (c) `4/3` i brøk.
+- **Det sker:** boksen skriver **den samme generiske sætning i alle tre tilfælde** – «Forlig om ansvarsgrad
+  indeholder en ugyldig værdi» – mens feltets eget tooltip er konkret, målt ordret:
+
+  | Indtastning | Boksen | Feltets tooltip |
+  |---|---|---|
+  | Procent `150` | Forlig om ansvarsgrad indeholder en ugyldig værdi | Procent skal være mellem 1,00 og 100,00 |
+  | Procent `50` + brøk `1/3` | Forlig om ansvarsgrad indeholder en ugyldig værdi | Kan ikke udfylde både procent og brøk (på BEGGE felter) |
+  | Brøk `4/3` | Forlig om ansvarsgrad indeholder en ugyldig værdi | Brøk skal angives som fx "1/3" og kan ikke overstige 1 |
+
+  Programmet har dertil to ordlyd, det aldrig får brugt: `evaluateForligsgrad` returnerer «Angiv enten
+  procent eller brøk – ikke begge» og «Brøk skal angives som fx "1/3" og kan ikke overstige 1», som
+  `resolveForligBlocking` ville skrive som «Forlig om ansvarsgrad: …». Men begge de felter, der kan udløse
+  dem, har allerede sat en rød feltfejl, så `forlig.hasRejectedInput` er sand, og den generiske gren vinder
+  hver gang. **De to konkrete beskeder i `eetSnapshot.ts:272-279` er dermed uopnåelige fra brugerfladen.**
+- **Det er uhensigtsmæssigt fordi:** boksens linje er den, brugeren læser først – den står øverst på fanen,
+  og de øvrige linjer i den er konkrete og handlingsanvisende. Her siger den kun *at* noget er galt, hvor
+  programmet i samme øjeblik ved *hvad*. Og det er tre forskellige regler, der får én tekst, så brugeren
+  ikke kan se, om han skal ændre en værdi, fjerne en værdi eller vælge mellem to felter. Prøvekatalogets
+  A5 om to formuleringer for én brudt regel rammer her i sin omvendte form: én formulering for tre regler.
+- **Bedre ville være:** boksens linje bærer feltets egen besked, som de øvrige `field-*`-issues gør (de
+  føres ind gennem `toFieldIssue` med feltets `errorMessage`). Konkret: `resolveForligBlocking` får
+  procentens og brøkens `errorMessage` med og skriver «Forlig om ansvarsgrad: Brøk skal angives som fx
+  "1/3" og kan ikke overstige 1». Den generiske sætning beholdes kun som sidste udvej.
+- **Andre steder det kan gælde:** `rg "indeholder en ugyldig værdi" src` – hver generisk «ugyldig
+  værdi»-sætning, hvor det udløsende felt har sin egen besked, er samme form. Prøven: for hvert issue, der
+  udspringer af et felts `errorMessage`, spørg om beskeden er feltets egen eller en ny, vagere sætning.
+
+### BB-197 – Et forlig på 100 % forsvinder helt fra specifikationen
+
+- **Type:** Edge case
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** på en regnende sag, skriv `50` i «Procent» og læs specifikationens
+  «Differencekrav»-afsnit. Skriv derefter `100` og læs det igen.
+- **Det sker:** ved `50` står der to linjer, målt ordret:
+
+  ```
+  Der er indgået forlig i sagen på betaling af 50 %.
+  Beregnet differencekrav (50 % af 2.064.024 kr.)      1.032.012 kr.
+  ```
+
+  Ved `100` står der: «Beregnet differencekrav **2.064.024 kr.**» – og **ingen forligssætning**.
+  Specifikationen er ordret identisk med en sag helt uden forlig (målt: begge giver samme ene linje). Målt
+  i koden: `reducerer = forlig.factor < 1`, og både `forligLabel` og `forligDato` sættes til `null`, når
+  den er falsk.
+- **Det er uhensigtsmæssigt fordi:** et forlig på 100 % ansvarsgrad er et almindeligt udfald – modparten
+  har anerkendt fuldt ansvar – og det er en oplysning, brugeren netop har indtastet, fordi den skal stå i
+  papiret. At beløbet ikke reduceres, er rigtigt; at oplysningen forsvinder, er ikke. Brugeren kan ikke se,
+  om programmet forstod hans indtastning eller kastede den væk, og han kan heller ikke se det på feltet,
+  som beholder «100,00». Har han også udfyldt forligsdatoen, forsvinder den med.
+- **Bedre ville være:** forligssætningen skrives, når der ER angivet et gyldigt forlig, uanset procenten:
+  «Der er den 1. maj 2022 indgået forlig i sagen på betaling af 100 %.» Kun parentesen i «Beregnet
+  differencekrav (… af …)» udelades ved 100 %, fordi der ikke er nogen reduktion at vise.
+- **Andre steder det kan gælde:** samme `reducerer`-betingelse styrer forligets synlighed i
+  differencekravdokumentet. `rg "factor < 1" src/domain` – hvert sted, hvor en neutral faktor bruges som
+  «ingen oplysning», er en kandidat. Det er M-13's kerne i en ny form: **en værdi, der ikke ændrer
+  regnestykket, er stadig en oplysning.**
+
+### BB-198 – «Reguleringsprocent (01-06-2022)» og «Reguleringsprocent (2021)» i to nabobokse
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186 (beregningsdato `01-06-2022`, så begge bokse har en
+  reguleringsrække). Læs de to bokse nederst på fanen.
+- **Det sker:** samme rækkenavn med to slags parentesindhold, målt på samme skærm:
+
+  ```
+  Proformakapitalisering af rest-EET:             Reguleringsprocent (01-06-2022)   55,4 %
+  Mer-erstatning ved forhøjet folkepensionsalder: Reguleringsprocent (2021)         53,6 %
+  ```
+
+  Den ene parentes er en dato, den anden et årstal – og de to tal er forskellige, fordi de hører til
+  forskellige satsår (`satsAar` = året én måned efter forhøjelsesdatoen). Kapitaliseringsfanen skriver
+  datoformen («Reguleringsprocent (01-06-2020)»), så mer-erstatningen er den eneste af de tre, der bruger
+  årstallet.
+- **Det er uhensigtsmæssigt fordi:** brugeren, der ser to rækker med samme navn og to forskellige tal,
+  skal selv slutte, at parentesen betyder to forskellige ting – og at forskellen i tal er en konsekvens af
+  det, ikke en fejl. Årstallet er dertil ikke en oplysning, brugeren har givet: det er afledt af
+  forhøjelsesdatoen plus én måned, og den regel står ingen steder.
+- **Bedre ville være:** samme form som de to øvrige bokse – «Reguleringsprocent (31-01-2021)», altså den
+  dato satsen slås op på. Skal årstallet bevares, skal rækken sige hvorfor: «Reguleringsprocent (satsår
+  2021)». BB-176's rettelse valgte datoformen for kapitaliseringsfanen; den er den etablerede.
+- **Andre steder det kan gælde:** `rg "Reguleringsprocent \(" src` giver fire kaldssteder i fire filer
+  (skærm og dokument for hver af de to bokse). Prøven: for hver rækkeetiket med en parentes, tjek om
+  parentesens ART (dato · årstal · procent) er den samme overalt, hvor etiketten optræder.
+
+### BB-199 – «Beregningsdato → 1. juni 2022» og «Kapitaliseringsdato → 01-06-2022» er samme dag i to formater
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** samme sag som BB-186. Læs «Beregning»-boksens første række, og læs derefter
+  «Proformakapitalisering af rest-EET»-boksens første række. Hent til sidst dokumentet og læs dets
+  «Beregningsdato»-række.
+- **Det sker:** tre visninger af den 1. juni 2022, målt ordret:
+
+  | Sted | Ordlyd |
+  |---|---|
+  | «Beregning» → Beregningsdato (skærm) | **1. juni 2022** |
+  | «Proformakapitalisering af rest-EET» → Kapitaliseringsdato (skærm) | **01-06-2022** |
+  | Dokumentets «Beregning» → Beregningsdato | **01-06-2022** |
+
+  Proformakapitaliseringen sker pr. definition på beregningsdatoen, så de to skærmrækker viser samme dag.
+  Fladens øvrige datobrug er ellers konsekvent: overskrifter er lange («Afgørelse 1. juni 2020»,
+  «Forhøjelse pr. 31. december 2020»), indlejrede datoer er korte («Kapitaliseret (25 %) den 01-06-2020»).
+  **Beregningsdato-rækken er den eneste undtagelse:** den er en etiketteret række som
+  Kapitaliseringsdato-rækken, men skrives i langform – og kun på skærmen.
+- **Det er uhensigtsmæssigt fordi:** to etiketterede datorækker i samme kolonne på samme skærm bør se ens
+  ud, ellers læses forskellen som en forskel i indhold. Og at dokumentet skriver kortformen af netop den
+  række, skærmen skriver i langform, er BB-176's fund igen – det blev rettet for kapitaliseringsfanen og
+  står tilbage her.
+- **Bedre ville være:** kortformen `dd-mm-åååå` i Beregningsdato-rækken på begge kanaler, som
+  Kapitaliseringsdato-rækken og som feltet selv bruger.
+- **Andre steder det kan gælde:** `rg "formatIsoDateLong" src/components/pages src/document/generators` –
+  hvert kald i en etiketteret RÆKKE (frem for en overskrift eller en prosasætning) er en kandidat. Fanens
+  øvrige `formatIsoDateLong`-kald er alle overskrifter eller forligssætningen og er derfor i orden.
+
+### BB-200 – Forligsprocenten står som «50,00» i feltet og «50 %» i sætningen, og grænsen siger «mellem 1,00 og 100,00»
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** skriv `50` i «Procent» under «Forlig om ansvarsgrad» og tryk Enter. Læs
+  feltet, læs specifikationens forligssætning, og skriv derefter `150` og læs tooltippet.
+- **Det sker:** fire skrivemåder for samme tal på samme skærm, målt ordret:
+
+  ```
+  feltet:                50,00
+  forligssætningen:      Der er indgået forlig i sagen på betaling af 50 %.
+  label:                 Beregnet differencekrav (50 % af 2.064.024 kr.)
+  grænsetooltip (150):   Procent skal være mellem 1,00 og 100,00
+  ```
+
+  `12,5` bliver «12,50» i feltet og «12,5 %» i sætningen; `100` bliver «100,00». Feltet er det eneste
+  procentfelt på fanen (og det eneste, brugeren møder på hele EET-siden) med tvungne to decimaler, og
+  grænseteksten er den eneste med decimaler – EET %-felterne fik ved BB-144 «Erhvervsevnetabet skal være
+  mellem 5 og 100».
+- **Det er uhensigtsmæssigt fordi:** «50,00» læses som en præcisionsangivelse, brugeren ikke har givet, og
+  grænsen «mellem 1,00 og 100,00» får det til at se ud som om decimalerne er påkrævede. Brugeren, der
+  sammenligner feltet med sætningen ti centimeter længere ned, ser to tal og skal selv se, at det er
+  samme. Bemærk at decimalerne SKAL kunne indtastes (12,5 % er et virkeligt forlig) – det er visningen af
+  hele tal, der er afvigeren.
+- **Bedre ville være:** feltet trimmer «,00» ved settle, som `formatPercent` gør i sætningen, så `50`
+  bliver «50» og `12,5` bliver «12,5». Grænseteksten følger samme regel: «Procent skal være mellem 1 og
+  100».
+- **Andre steder det kan gælde:** felterne bor på Erstatningsopgørelsen (`eo.forligAnsvarsgradProcent`) og
+  renderes af begge sider, så rettelsen rammer to flader. `rg "allowDecimals: true" src/inputCore/catalog`
+  – hvert procentfelt med decimaler er en kandidat for både visningsformen og grænseteksten.
+
+### BB-201 – «Ikke kapitaliseret.» står ved en midlertidig afgørelse, som programmet selv forbyder at kapitalisere
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Lav
+- **Beslutning:** Afventer udvikleren
+- **Sådan fremprovokeres det:** byg sagen fra BB-188 (to midlertidige afgørelser, ingen kapitalisering) og
+  læs afsnittet «Kapitaliserede ASL-beløb».
+- **Det sker:** afsnittet består udelukkende af negationer, målt ordret:
+
+  ```
+  Kapitaliserede ASL-beløb
+  Værdien af modtagne kapitalbeløb fratrækkes.
+  Afgørelse 1. december 2018
+  Ikke kapitaliseret.
+  Afgørelse 1. juni 2020
+  Ikke kapitaliseret.
+  ```
+
+  Begge afgørelser er midlertidige, og en midlertidig afgørelse KAN ikke kapitaliseres – fanen «EET
+  oplysninger» afviser en Kap.dato på den med «Kapitaliseringsdato må kun udfyldes ved endelig eller
+  delvist endelig afgørelsestype.» Programmet skriver altså «ikke kapitaliseret» om noget, det selv
+  forbyder. I samme afsnit står den generelle sætning «Værdien af modtagne kapitalbeløb fratrækkes» over et
+  afsnit uden et enkelt beløb.
+- **Det er uhensigtsmæssigt fordi:** «Ikke kapitaliseret.» læses som en oplysning om, hvad der mangler –
+  altså som en opfordring til at udfylde noget. Brugeren, der går tilbage for at rette det, møder en rød
+  celle, der siger, at han ikke må. Fire linjer bruges på at oplyse et fravær, der er en følge af
+  afgørelsestypen, og som brugeren allerede ved.
+- **Bedre ville være:** afgørelser, der ikke KAN kapitaliseres, udelades af afsnittet, og er ingen af
+  sagens afgørelser kapitaliserbare, skriver afsnittet én linje: «Ingen af sagens afgørelser er
+  kapitaliseret.» «Ikke kapitaliseret.» beholdes til en endelig eller delvist endelig afgørelse, hvor
+  kapitaliseringen faktisk mangler. **Naboiagttagelse til samme fane:** mer-erstatningsboksen har en
+  «Samlet mer-erstatning»-række ved flere events (målt: `69.525 kr.`), mens specifikationen lister de to
+  fradrag uden sum, og dokumentets bilag heller ikke har nogen sum. De tre steder bør være enige om,
+  hvorvidt summen vises.
+- **Andre steder det kan gælde:** `aslRowsForDisplay` i `eetDifferencekravCalculation.ts:802` filtrerer kun
+  på EET % og afgørelsesdato, ikke på afgørelsestype. `rg "Ikke kapitaliseret|ikke relevante" src` – hver
+  «ikke»-linje om et felt, brugeren ikke må udfylde, er samme form. Jf. BB-187, som er den tunge udgave af
+  samme forhold i naboafsnittet.
+
+## Åbne spørgsmål til udvikleren
+
+**Skal løbende ydelser under en DELVIST ENDELIG afgørelse fradrages i differencekravet ved skader fra
+16. juni 2011?** `skalFradragForetages` (`eetDifferencekravCalculation.ts:505-511`) returnerer `true` for
+`'Endelig'` alene, så en delvist endelig afgørelse behandles som en midlertidig. I den målte sag betyder
+det, at 66.827 kr. faktisk udbetalte løbende ydelser ikke fradrages. Spørgsmålet er rejst her og ikke
+afgjort, fordi det er beregningslogik; BB-187 registrerer alene, at TEKSTEN begrunder sig med en regel om
+midlertidige ydelser, som ikke omfatter rækkens egen type. **Svaret afgør, om BB-187 er en tekstrettelse
+eller en beregningsrettelse.**
+
+## Overvejet uden fund
+
+- **Det klampede nul er ydelsens svar, ikke et plaster – ingen fund (M-24's skærpede prøve).** Målt:
+  `1.867.050 − 88.113 − 389.275 − 834.979 − 797.783 − 43.453 = −286.553`, og fanen skriver «Beregnet
+  differencekrav **0 kr.**» med fed. Formen er ordret BB-119's, som er **afvist**: et differencekrav er pr.
+  definition det OVERSKYDENDE krav efter EAL, en negativ værdi er juridisk umulig, og nullet er
+  målgruppens velkendte resultatform. Prøven er kørt (`sæt B større end A og læs linjen`), og bedømmelsen
+  falder på samme side som forsørgertabets. Genrejses ikke.
+- **De tre forligsfelter er delt med Erstatningsopgørelsen – efterprøvet, ingen fund.** Målt: `2/3` tastet
+  på Differencekrav står bagefter i EO-oplysningers «Forlig»-boks, og de tre felter er ÉN descriptor
+  (`eoForligAnsvarsgradProcentField` m.fl. gennem `forligInputPort`). Men de synlige etiketter er ordret
+  ens på de to flader («Forlig om ansvarsgrad» · «Procent» · «eller brøk» · «Evt. dato for forlig»), så
+  M-26's navnedel – den del af BB-123, der blev godkendt – er allerede opfyldt. Koblingsdelen er afvist to
+  gange (BB-123, og TVAERGAAENDE's afgørelse om at Mineo er en samling selvstændige værktøjer, hvor et
+  fund kræver en kobling, der virker anderledes end den ser ud). Her ER der én ansvarsgrad pr. sag, og den
+  ser ud og virker ens på begge flader. Registreres derfor som efterprøvet, ikke som fund.
+- **BB-184's «Kapitaliseringsfaktor» står nu i ÉT dokument – afgørelsen holder alligevel.** I det hentede
+  differencekrav står «Kapitaliseringsfaktor 10» (EAL-bilaget), «Kapitaliseringsfaktor 10,461»
+  (kapitaliseringsbilaget) og «Kapitaliseringsfaktor 10,073» (proformabilaget). BB-184 blev afvist med, at
+  det er samme begreb med to fastsættelsesmåder; at de tre nu kan stå i samme papir ændrer ikke
+  begrundelsen, og fundet genrejses ikke.
+- **M-25's prøve gav ÉT træf og er dermed lukket for fanen** (BB-188). Efterprøvet for de øvrige fire
+  bilag: `ealComputation` kan ikke være `null`, når gaten slipper igennem, `loebendeComputation` kun sammen
+  med et blokerende issue, og de to betingede bilag er allerede gated på deres indhold. **Kun
+  `no-endelig-afgoerelser`-grenen er reachable, fordi netop det issue filtreres væk.**
+- **M-30's skema er kørt for fanen og er BESTÅET.** `rg "toWarning\('warn-" src/domain/erhvervsevnetab`:
+  differencekravet producerer `warn-dato-efter-beregningsdato` selv (og genindsætter den EFTER dedupe, så
+  nabomotorernes udgave ikke maskerer den), og det aftager kapitaliserings- og løbende-ydelsesmotorens
+  advarsler direkte. Målt: advarslen «Beregningsdatoen (01-06-2022) ligger før sagens afgørelser.» står på
+  fanen med link til Grundlæggende oplysninger, hvor fane 4 i samme sag er tavs – men det er BB-179's
+  afviste forhold, ikke et nyt.
+- **M-29 er uden genstand.** Fanens egne felter er tre forligsfelter og syv boolske kontroller; der findes
+  altid en lovlig indtastning (lad forliget stå tomt), og de to forligsregler udelukker ikke hinanden.
+- **B0-grænseeftersynet er kørt for alle tre indtastningsfelter, og alle tre har en skarp grænse.**
+  Procent: `1–100` med decimaler. Brøk: tæller ≤ nævner, ingen nul-tæller, cifferloft. **Forligsdatoen har
+  dags dato som maksimum** – målt: `31-12-2026` er rød med «Dato skal være mellem 01-06-2018 og
+  07-09-2026», `07-09-2026` (dags dato) er grøn. En forligsdato i fremtiden er altså afvist, hvor fanens
+  øvrige datoer går til `31-12-2026`. Det er den rigtige grænse for netop dette felt, og B5's prøve om en
+  «lovlig men umulig» dato er dermed uden genstand.
+- **Forligsdato uden ansvarsgrad er dækket.** Målt: `01-05-2022` alene giver rød kant og «Dato for forlig
+  kræver, at ansvarsgrad angives som procent eller brøk» – en konkret, feltnavngivende besked. Reglen bor i
+  `forligAnsvarsgradRules.ts` som delt kilde med EO.
+- **Den tomme sag er velopdragen.** Efter «Slet alt» viser fanen fem issues, alle med link («Fødselsdato er
+  ikke udfyldt → Stamdata → Skadelidte», «Skadedato er ikke udfyldt», «Beregningsdato er ikke udfyldt → EET
+  oplysninger → Grundlæggende oplysninger», «Skadelidtes årsløn (efter ASL) er ikke udfyldt», «Ingen
+  ASL-afgørelser er indtastet»), og downloadknappen er «Indtastning mangler». BB-181's rettelse virker:
+  `eet-pct-missing` undertrykkes, når tabellen er tom, så der er ÉN besked om den manglende procent og ikke
+  to. «Slet alt» åbner fanen «EET oplysninger» (BF-052).
+- **M-19/M-22 er efterprøvet og BESTÅET.** Med `99-99-9999` i Stamdatas Skadedato skriver fanen «Der er
+  udfyldt en ugyldig værdi i feltet 'Skadedato'» med link til Stamdata → Skadelidte, og knappen bliver
+  «Fejl i indtastning». Rettes datoen, forsvinder boksen, og knappen bliver aktiv igen i samme øjeblik.
+- **BB-167's prøve er kørt for hver værdi i «Beregning»-boksen og BESTÅET.** Beregningsdatoen styrer alt på
+  denne fane – målt ved at flytte den fra `01-06-2024` til `01-06-2022`: EAL-kravet, alle fire fradrag,
+  proformaens dato/alder/faktor og bundlinjen ændrede sig. Rækken er ikke dekorativ.
+- **M-09 er målt og BESTÅET.** Ved 1536×864: `document.scrollWidth = innerWidth = 1536`, boksenes højre
+  kant ved 1478, ingen boks med indre overløb, indholdsskala 0,97. Ved 1244×620: skala 0,79, højre kant
+  1204, fortsat ingen vandret scroll.
+- **M-10 er målt og BESTÅET, men med en tæt margin værd at kende.** «Scroll til toppen»-knappen ligger ved
+  x = 1451–1505. De to toggles i «Valgmuligheder» har højre kant ved **1471**, altså 20 px inde i knappens
+  søjle – men de står så højt på siden, at de er rullet forbi knappens y-bånd (779–833), før knappen
+  overhovedet vises. Gennemrullet i 60 px-trin uden en enkelt overlapning mellem knappen og en kontrol.
+  Ændres boksrækkefølgen, kan marginen forsvinde.
+- **Tab-ringen er komplet og i visuel rækkefølge.** Målt 12 stop og retur: downloadknap → de fem bilagsvalg
+  → «Medtag udvidet specifikation» → «Endelig EET-afgørelse …» → «Indregn mer-erstatning …» → Procent →
+  brøk → Forligsdato → downloadknappen igen. Ingen huller. De tre toggles har korrekt `aria-labelledby` til
+  deres synlige etiket (BF-057), og de tre forligsfelter bærer descriptorens navne («Forlig ansvarsgrad
+  (%)» / «(brøk)» / «Forligsdato»), som er mere sigende end de synlige «Procent» / «eller brøk» alene –
+  ikke registreret som fund.
+- **Escape, Delete og undo/redo er efterprøvet på fanens egne felter.** Escape efter en ændring bevarer den
+  afsluttede værdi (`50,00` → `77` + Escape → `50,00`). Delete og Backspace på et fokuseret,
+  ikke-redigerende felt rydder hele feltet. Ctrl+Z gendanner både en ryddet feltværdi og et bilagsvalg.
+  Faneskift med en åben draft settler den (`33` → `33,00`, BF-066).
+- **Rækkefølgen «bilag før valgmuligheder» er efterprøvet.** Bilagsvalgene står i «Beregning»-boksen ØVERST
+  og de to beregnings-toggles i «Valgmuligheder» NEDERST, selv om togglene bestemmer, om bilagene findes.
+  Tooltippet «Mer-erstatning er fravalgt **nedenfor**» navngiver retningen, og rækkefølgen er den, brugeren
+  arbejder i (vælg beregning, hent papir). Ikke registreret som fund.
+- **Konsollen var tavs gennem hele kørslen:** 191 beskeder i den første session og 182 i den anden, 0 fejl
+  og 0 advarsler i begge.
+
+## Dækningshuller
+
+- Kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620). Mørkt tema og de tre øvrige browsere er ikke
+  målt.
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+  Bilagsvalgenes og de to togglers overlevelse gennem en `.eo`-runde hviler derfor på schemaet, ikke på en
+  målt fil. Det er værd at måle, fordi begge toggles har `true` som default: en ældre fil uden felterne får
+  dem sat til Ja.
+- Brevhovedet er ikke slået til. Dokumenterne er hentet som `.docx`; **PDF-kanalen er ikke læst**, så
+  BB-190's manglende «kr.» er verificeret i Word-udgaven og i generatorkoden, som er fælles for begge
+  kanaler.
+- **Mer-erstatningens tavse issue-tab er kildelæst, ikke målt.** `computeMerErstatningPensionsalder` skriver
+  sine fejl i en lokal liste, der aldrig merges (BB-189's sidste afsnit). Jeg fandt ingen indtastning, der
+  når den gren, uden at et søskende-issue blokerer fanen i forvejen, så den er registreret som en
+  kodeiagttagelse under BB-189 og ikke som et selvstændigt fund.
+- «Meget mange afgørelser» (B3) er ikke målt – højst tre rækker og to mer-erstatningsevents er brugt.
+- Differencekravets adfærd ved skader **før** 16-06-2011 (hvor alle løbende ydelser fradrages) er kun
+  kildelæst; kun `fradragGaelderForFoer2011 = false`-grenen er målt.

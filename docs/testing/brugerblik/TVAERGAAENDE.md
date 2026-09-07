@@ -12,6 +12,31 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-07 fra Erhvervsevnetab → Differencekrav – M-31 – og det er det første, hvor BEGGE
+tal er rigtige.** M-31 (samme beregning kørt med et justeret input udleveres under samme navn) blev fundet
+to gange på samme fane, fordi differencekravets dokument er det eneste i programmet med bilag, og bilagene
+er nabofanernes dokumenter regnet på en filtreret rækkeliste og en beregningsdato sat én dag tilbage. To
+hentede `.docx`-filer i samme sag bærer begge titlen «EET efter EAL» og skriver «Erhvervsevnetab **60 %**»
+/ «Beregnet EAL-krav **2.101.950 kr.**» mod «**30 %**» / «**1.050.975 kr.**» – en forskel på 1.050.975 kr.
+med alle øvrige linjer identiske (BB-185); og to filer med titlen «Løbende ydelser (EET)» skriver
+`123.028 kr.` mod `122.936 kr.` for samme afgørelse (BB-186). Prøven er kodesøgning efterfulgt af to
+downloads; se mønsteret. **Samme kørsel gav nye forekomster af M-25 – mønsterets NAVNGIVNE kandidat,
+Erhvervsevnetab, bekræftet** (BB-188 – et afkrydset «Kapitalisering»-bilag udgår tavst af papiret, fordi
+`no-endelig-afgoerelser` bevidst filtreres væk fra fanen, mens to andre bilagsvalg gøres inaktive med en
+grund) – **af M-11 i dens PÅSTANDS-form** (BB-189 – «Pensionsalderen er ikke forhøjet i perioden» er
+usand, når forhøjelsen ligger i perioden og årsagen er, at der ikke er nogen kapitalisering) – **af M-02**
+(BB-191 – mer-erstatningen hedder fire ting: bilagsvalg, toggle, skærmoverskrift og dokumentsektion) –
+**af M-28** (BB-194 – syv felter i `merErstatningEventSchema`, herunder alderen som de to
+kapitaliseringsfaktorer hviler på, renderes ingen steder) – **af BB-171's form** (BB-193 – to
+kapitaliseringer giver to ordret identiske «Forhøjelse pr. 31-12-2020 (68 år → 69 år)») – **og af M-13 i
+tre former** (BB-190 – hele mer-erstatningsbilaget trykker beløb uden «kr.»; BB-198 –
+«Reguleringsprocent (01-06-2022)» ved siden af «Reguleringsprocent (2021)»; BB-199/BB-200 – to datorækker
+og fire skrivemåder af samme procent på samme skærm). **M-09, M-10, M-19, M-22 og M-30 er efterprøvet og
+bestået; M-24, M-26 og M-29 er efterprøvet uden fund** – M-24's skærpede prøve placerer differencekravets
+klampede `0 kr.` på BB-119's afviste side, og M-26's navnedel er allerede opfyldt for de tre forligsfelter,
+der er delt med Erstatningsopgørelsen (ordret ens etiketter på begge flader). Konsollen var tavs: 191 og
+182 beskeder, 0 fejl, 0 advarsler.
+
 **Ét nyt mønster 2026-09-04 fra Erhvervsevnetab → EET efter EAL – M-30 – og dets prøve er et SKEMA, ikke
 en måling.** M-30 (advarslen hører til rækkerne, men produceres kun af nogle af de motorer, der læser dem)
 blev fundet to gange på samme fane: fanen henter sin EET-procent fra afgørelsestabellen, men bærer hverken
@@ -1801,10 +1826,25 @@ trykke. Den skal spørge, om alt det, brugeren har udfyldt, er kommet med.
 - **Den tavse halvdel er værd at kende ved sit navn:** hver af de tre `if (… !== null)` i
   `forsoergertabDocument.ts` udelader en hel side af dokumentet, og `addGrundlaeggendeSection`s `visAsl`
   udelader tre indtastede felter fra forsiden. Ingen af dem efterlader et spor.
-- Kandidater, ikke efterprøvet: **Erhvervsevnetab** (to faner, hver med sin del af dokumentet),
-  **Erstatningsopgørelsen** (mange valgfri afsnit i ét dokument) og reguleringsbilaget. Generelt:
-  `rg "!canShow|=== null \?" src/domain` over dokumentdefinitioner og generatorer, og hvert
-  tabelopslag, hvis datasætdækning er smallere end det felt, der slår op i det.
+- Kandidater, ikke efterprøvet: **Erstatningsopgørelsen** (mange valgfri afsnit i ét dokument) og
+  reguleringsbilaget. Generelt: `rg "!canShow|=== null \?" src/domain` over dokumentdefinitioner og
+  generatorer, og hvert tabelopslag, hvis datasætdækning er smallere end det felt, der slår op i det.
+- **Den navngivne kandidat «Erhvervsevnetab» er efterprøvet 2026-09-07 og BEKRÆFTET** (`erhvervsevnetab.md`
+  BB-188, Mellem, afventer udvikleren). Formen er dertil skærpet ét trin: på differencekravet har brugeren
+  **selv afkrydset** det bilag, der udgår. Målt: en sag med kun midlertidige afgørelser regner
+  (`2.275.852 kr.`), har ingen «Fejl og advarsler»-boks og aktiv downloadknap, mens bilagsvalget
+  «Kapitalisering» står afkrydset og aktivt – og det hentede dokument har ingen Kapitalisering-side, heller
+  ikke generatorens egen tomtilstand. **Årsagen er en bevidst issue-filtrering:** `no-endelig-afgoerelser`
+  fjernes fra differencekravets issues (rigtigt – fanen kan opgøre rest-EET uden en tidligere
+  kapitalisering), men samme issue er det, der gør `kapResult.computation` til `null`. **Læren, der
+  udvider mønsteret: et filtreret issue er også en filtreret gate.** Filtrerer en flade et issue væk, fordi
+  det ikke er en fejl DÉR, skal den samtidig spørge, hvad issuets bivirkninger var – her at et bilag holdt
+  op med at findes. Prøven: for hver `.filter((issue) => issue.id !== …)` i en aggregator, find det
+  `computation`, samme issue nulstiller, og spørg hvem der læser det.
+- **Modellen for rettelsen findes i programmet.** EO's seks dynamiske bilagsvalg går alle gennem
+  `renderBilagCheckbox` med et `bilagAvailability`-opslag og kommenteret regel om, at et utilgængeligt
+  bilagsvalg aldrig skjules, men vises inaktivt med årsagen. `rg "unavailableReason=\{null\}" src/components`
+  giver de tre EET-undtagelser plus EO's `lockedOn`-«Opgørelse», som er et andet tilfælde.
 
 ## M-26 – Et delt felt med to hjem
 
@@ -1976,9 +2016,20 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   bogføring, ikke en manglende oplysning. `rg "Source: z.enum"` giver stadig kandidatlisten, men hvert
   træf skal nu bedømmes på, om VALGET er overraskende, før det bliver et fund. Det er samme skelnen som
   trin 3's, blot om målgruppens forventning frem for om domænets arbejdsdeling.
-- Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176),
-  `eetDifferencekravCalculation` og EO's rækkebyggere. Generel indgang:
-  `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
+- **`eetDifferencekravCalculation` er efterprøvet 2026-09-07 og gav mønsterets største enkeltfund**
+  (`erhvervsevnetab.md` BB-194, Mellem, afventer udvikleren). `merErstatningEventSchema` bærer `alderAar`,
+  `alderMaaneder`, `faktorMaanedsAfhaengig`, `gammel.folkepensionsalderLabel`,
+  `ny.folkepensionsalderLabel`, `afgoerelsesdato` og `kapitaliseringsdato` – **syv felter, hvoraf ingen
+  renderes** (målt: `rg "event\.alderAar|event\.faktorMaanedsAfhaengig|\.gammel\.folkepensionsalderLabel"`
+  giver nul træf på både skærm og dokument). Trin 3-prøven består det ikke: alderen på forhøjelsesdatoen er
+  den ENESTE nøgle ind i de to faktortabeller, boksen viser begge faktorer (`10,157` og `10,689`) uden at
+  navngive dem, og naboboksen ti centimeter længere op viser præcis de rækker, der mangler. Det er altså
+  ikke en oplysning, der «står et andet sted» – den findes intet sted. Dertil renderes
+  `fradragLoebendeYdelserOre` og `fradragKapitaliseretEetOre`, de to afsnitssummer, heller ikke.
+  **Læren: trin 3 spørger, om oplysningen står ET ANDET STED i brugerens synsfelt – ikke om den kan
+  udledes af principper.**
+- Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176) og EO's rækkebyggere.
+  Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
   `*Calculation.ts` en søgning uden for `src/__tests__`.
 
 ---
@@ -2126,3 +2177,66 @@ tabellens modul frem for at kopiere prædikatet ind i den anden motor.**
 - Kandidater, ikke efterprøvet: Erstatningsopgørelsens rækkebyggere (`EO_ROW_BUILDERS`), som deler
   lønindkomst- og ydelsestabellerne mellem flere faner; Årsløns tre lønmetoder, som deler samme
   periodetabel. Generel indgang: `rg "toWarning\(|severity: 'warning'" src/domain` pr. domæne.
+
+## M-31 – Samme beregning kørt med et justeret input udleveres under samme navn
+
+> En flade genbruger en nabofanes beregning, men fodrer den et bevidst justeret input – én dag, en
+> filtreret rækkeliste, et andet satsår. Resultatet er rigtigt for begge flader. Men de udleveres under
+> samme titel og med samme rækkeoverskrifter, så to papirer i samme sag viser to tal for det samme, uden at
+> nogen af dem siger hvorfor.
+
+Mønsteret opstår af en god arkitektonisk beslutning. Et aggregat, der skal opgøre et krav «som det ser ud
+på beregningsdatoen», må ikke genberegne nabofanens formler selv – det ville give to konkurrerende
+implementeringer af samme regel. Den rigtige løsning er at kalde nabomotoren med et justeret input. Prisen
+er, at outputtet nu er en ANDEN udgave af det samme, og at intet i outputtet bærer justeringen med sig.
+
+**Formen er farlig, fordi begge tal er rigtige.** Der er ingen fejl at finde, intet rødt felt, ingen
+advarsel – og derfor heller ingen mekanisme, der ville kunne fange den. Fejlen er, at brugeren og modparten
+ikke kan skelne de to udgaver, fordi navnet er det samme. Er de to papirer først lagt i samme sag, ser de
+ud som to modstridende opgørelser af ét krav.
+
+**Efterprøv, hvor:** et graf-, kompositions- eller dokumentmodul kalder et nabomodul med et input, der er
+ændret undervejs. Prøven er ren kodesøgning efterfulgt af to downloads:
+`rg "\.\.\.input|\.\.\.filtered|dagFoer|Justeret|\bfiltered[A-Z]" src/domain` over de moduler, der
+komponerer flere motorer. For hvert træf, tre spørgsmål:
+
+1. **Bliver den justerede udgave vist eller trykt nogen steder?** Er den kun et mellemresultat, er der
+   intet fund.
+2. **Bærer visningen/papiret samme titel og samme rækkenavne som den ujusterede udgave?** Er svaret ja, er
+   det en forekomst.
+3. **Står justeringen nogen steder i det udleverede papir?** Er der en linje, der siger «opgjort til og med
+   dagen før beregningsdatoen» eller «kun afgørelser med virkning til og med …», er formen afværget.
+
+**Skellet mod M-13.** M-13 handler om, at to steder træffer samme afgørelse om FORMEN og bliver uenige.
+M-31 handler om, at to steder får samme beregning fodret to forskellige INPUT og derfor er uenige om
+TALLET. Rettelsen er også en anden: M-13 rettes ved at samle formatteringen ét sted, M-31 ved at give det
+justerede resultat sit eget navn eller sin egen forudsætningslinje. **Skellet mod M-28** er lige så skarpt:
+M-28 er en oplysning, der ligger i outputtet og ikke renderes; M-31 er en forudsætning, der ikke ligger i
+outputtet overhovedet.
+
+- Fundet i: `erhvervsevnetab.md` BB-185 (**Høj**, afventer udvikleren) og BB-186 (Mellem, afventer
+  udvikleren). Differencekravets `computeEetDifferencekravCalculation` filtrerer afgørelsesrækkerne til dem
+  med virkningsdato på eller før beregningsdatoen og kalder derefter EAL-, kapitaliserings- OG
+  løbende-ydelsesmotoren på den filtrerede liste – løbende ydelser dertil med beregningsdatoen sat én dag
+  tilbage. De tre resultater trykkes som bilag under nabofanernes egne dokumenttitler.
+- **BB-185 er mønsterets dyreste udgave hidtil.** To hentede `.docx`-filer i samme sag, begge med titlen
+  «EET efter EAL», begge med samme Skadedato, Årsløn, regulering (`+ 8,1329 %`), opregulerede årsløn
+  (`432.500 kr.`), Kapitaliseringsfaktor `10`, Fødselsdato, alder og aldersreduktion (`19 %`) – og med
+  «Erhvervsevnetab **60 %**» / «Beregnet EAL-krav **2.101.950 kr.**» mod «**30 %**» / «**1.050.975 kr.**»
+  Forskellen er 1.050.975 kr., altså halvdelen af kravet. Bilaget udelader dertil Beregningsdato-rækken
+  (`includeBeregningsdatoHeader = false`), så den dato, filtreringen hviler på, står slet ikke i bilaget.
+- **BB-186 er mønsterets billige udgave, og den er farligere at overse.** 92 kr. mellem to «I alt» for
+  samme afgørelse (`123.028 kr.` mod `122.936 kr.`), fordi differencekravet fradrager til og med dagen FØR
+  beregningsdatoen. Beløbet er lille nok til at læses som en afrundingsfejl. Den eneste ledetråd –
+  «Løbende ydelse opgjort til og med 31-05-2022» – står i bilaget og ikke i den specifikation, tallet
+  bruges i.
+- **Læren om, hvorfor formen ikke er synlig fra koden.** `filterAslRowsKnownAtBeregningsdato` har en
+  omhyggelig kommentar om, HVORFOR filtreringen er rigtig, og `differencekravDocument.ts` har en
+  kommentar om, at bilagene bevidst regnes af differencekravet og ikke af fanerne. Begge er rigtige, og
+  begge stopper netop dér, hvor fundet begynder: ingen af dem spørger, om papiret siger det til læseren.
+  **En begrundet afvigelse i koden er ikke en oplyst afvigelse i papiret.**
+- Kandidater, ikke efterprøvet: **Erstatningsopgørelsens** reguleringsbilag og TAF-bilag, som trykkes både
+  som selvstændige dokumenter og som afsnit i opgørelsen (`rg "renderBody|Body\(writer" src/document/generators`
+  giver de kroppe, der genbruges to steder); **Årslønsberegningens** tre lønmetoder over samme periodetabel;
+  og enhver `include*`-flag, der slår en forudsætningsrække fra i en genbrugt krop – BB-182's mekanisme, nu
+  set fra den anden side.
