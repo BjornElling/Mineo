@@ -85,15 +85,6 @@ export type AutofillColumn = Readonly<{
 export type AutofillSuggestModel = Readonly<{
   rowIds: readonly string[];
   columns: readonly AutofillColumn[];
-  /**
-   * Kolonnen, hvis KALENDERÅR afgør, om en beløbskolonne må foreslå (brugerkrav: beløb standser ved
-   * årsskifte). `null` = tabellen har ingen periodestart, og beløbsgaten er da inaktiv.
-   *
-   * Kolonnen er altid rækkens PERIODESTART – fra-datoen, fra-ugen eller løntabellens årskolonne – fordi
-   * det er startdatoen, kravet gør afgørende: ligger den i et nyt kalenderår, er beløbet et nyt års sats,
-   * og programmet må ikke gætte det.
-   */
-  yearAnchorColIndex: number | null;
 }>;
 
 /**
@@ -106,5 +97,4 @@ export type AutofillSuggestModel = Readonly<{
 export const EMPTY_AUTOFILL_SUGGEST_MODEL: AutofillSuggestModel = Object.freeze({
   rowIds: Object.freeze([]),
   columns: Object.freeze([]),
-  yearAnchorColIndex: null,
 });

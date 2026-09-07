@@ -21,8 +21,8 @@ import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
  * 3 tillæg og 4 ydelsestype. Ydelsestypen kan gentage et synligt, aktivt katalogvalg; de sidste tre
  * kolonner er afledte og indgår ikke.
  *
- * `yearAnchorColIndex: 0` er FRA-datoen: det er rækkens periodestart, og et beløb foreslås ikke, når
- * startdatoen falder i et nyt kalenderår (nye satser, ny sygedagpengesats).
+ * Ydelse og tillæg gentager cellen ovenover uden mønster eller årsskifte-gate – se
+ * {@link buildStandardLoenAutofillModel} for begrundelsen.
  */
 export const buildOffentligeYdelserAutofillModel = (
   rowIds: readonly string[],
@@ -45,6 +45,5 @@ export const buildOffentligeYdelserAutofillModel = (
         availableYdelsestyper,
       ),
     ]),
-    yearAnchorColIndex: 0,
   });
 };

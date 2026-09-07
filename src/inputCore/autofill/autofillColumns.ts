@@ -1,6 +1,8 @@
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../types/branded';
 import { isoWeeksInYear } from '../../utils/dateUtils';
+import { DEFAULT_AMOUNT_PRECISION } from '../../utils/amountInputUtils';
+import { isSafeCanonicalDecimal } from '../../utils/numericSafety';
 import { MAX_REPRESENTABLE_YEAR, MIN_REPRESENTABLE_YEAR } from './autofillSeries';
 import type { FieldCodec } from '../fieldCodec';
 import type { FieldDescriptor } from '../fieldDescriptor';
@@ -133,6 +135,10 @@ export const yearAutofillColumn = (
  * Prøven er beløbets TAL, og forslaget er altid et tal-beløb – aldrig det oprindelige udtryk. Et gentaget
  * `5000*2` ville vise `fx`-mærket og invitere til at redigere et udtryk, brugeren ikke selv har skrevet i
  * netop denne celle; tallet er den værdi, forslaget faktisk står for.
+ *
+ * Prøven kræver et CANONICAL repræsenterbart beløb. Kontrollen hører her, hvor prøven dannes: en
+ * beløbskolonne har intet mønster at forkaste en urimelig værdi i (den gentager blot cellen ovenover), og
+ * et tolerant `.eo`-load kan bære et tal, feltets egen præcision aldrig ville have accepteret.
  */
 export const amountAutofillColumn = (
   colIndex: number,
@@ -142,7 +148,7 @@ export const amountAutofillColumn = (
   colIndex,
   kind: 'amount' as const,
   samples: Object.freeze(values.map((value): AutofillSampleValue | undefined =>
-    value === undefined || !Number.isFinite(value.value)
+    value === undefined || !isSafeCanonicalDecimal(value.value, DEFAULT_AMOUNT_PRECISION)
       ? undefined
       : { kind: 'amount', value: value.value })),
   format: (value) => {

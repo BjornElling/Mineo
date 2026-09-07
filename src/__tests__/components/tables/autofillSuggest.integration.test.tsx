@@ -178,17 +178,31 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     expect(unit).toHaveStyle('color: var(--mineo-color-active-grid-autofill)');
   });
 
-  it('foreslår intet beløb, når startdatoen falder i et nyt kalenderår', async () => {
+  it('foreslår både dato og beløb hen over et kalenderårsskifte', async () => {
     renderYdelser([
       { ...MAANEDSRAEKKER[0]!, fraDato: iso('2025-11-01'), tilDato: iso('2025-11-30') },
       { ...MAANEDSRAEKKER[1]!, fraDato: iso('2025-12-01'), tilDato: iso('2025-12-31') },
     ]);
 
-    // Datoen fortsætter over årsskiftet …
     await focusTableElement(cellInput(2, 'Fra dato'));
     expect(cellInput(2, 'Fra dato')).toHaveAttribute('placeholder', '01-01-2026');
 
-    // … men beløbet får ingen ghost og beholder sin formatplaceholder.
+    // Beløbet standsede tidligere ved årsskiftet. Reglen er væk (udviklerens beslutning 2026-09-07):
+    // ghosten er værdien i cellen ovenover, og en tom beløbscelle ved et årsskifte var i praksis en
+    // manglende ghost uden nogen forklaring i det, brugeren kunne se.
+    await focusTableElement(cellInput(2, 'Ydelse'));
+    expect(cellInput(2, 'Ydelse')).toHaveAttribute('placeholder', '3.100,00');
+  });
+
+  it('foreslår intet i en celle, hvis nabocelle ovenover er tom', async () => {
+    // Synlighedsreglen måles på CELLEN: fra-datoen har en udfyldt celle ovenover og får sin ghost, mens
+    // ydelsen ikke har og derfor beholder sin formatplaceholder – i den SAMME række.
+    renderYdelser([
+      { ...MAANEDSRAEKKER[0]! },
+      { ...MAANEDSRAEKKER[1]!, ydelse: undefined },
+    ]);
+    await focusTableElement(cellInput(2, 'Fra dato'));
+    expect(cellInput(2, 'Fra dato')).toHaveAttribute('placeholder', '01-03-2026');
     await focusTableElement(cellInput(2, 'Ydelse'));
     expect(cellInput(2, 'Ydelse')).toHaveAttribute('placeholder', '0,00');
   });
@@ -332,14 +346,16 @@ describe('Autofill-suggest i løntabellen', () => {
     expect(cellInput(2, 'År')).toHaveValue('2026');
   });
 
-  it('standser lønbeløbet ved årsskiftet, selv om perioden fortsætter', async () => {
+  it('foreslår måned, år og lønbeløb hen over årsskiftet', async () => {
     renderLoentabel(true);
-    // Perioden fortsætter (januar 2026), men lønnen ville være et nyt års sats – cellen beholder derfor
-    // sin formatplaceholder i stedet for at få en ghost.
+    // Alle tre celler ovenover er udfyldte, så alle tre har en ghost. Måneden wrapper til januar, og
+    // årstallet følger med til 2026 – det er kravet «altid skifte af årstal ved årsskiftet».
     await focusTableElement(cellInput(2, 'Måned'));
     expect(cellInput(2, 'Måned')).toHaveAttribute('placeholder', '1');
+    await focusTableElement(cellInput(2, 'År'));
+    expect(cellInput(2, 'År')).toHaveAttribute('placeholder', '2026');
     await focusTableElement(cellInput(2, 'Løn'));
-    expect(cellInput(2, 'Løn')).toHaveAttribute('placeholder', '0,00');
+    expect(cellInput(2, 'Løn')).toHaveAttribute('placeholder', '30.000,00');
   });
   it('foreslår ikke i en celle, hvis afsluttede værdi brugeren netop har slettet i editoren', async () => {
     // `202` er en canonical, men rød årsværdi (tre cifre). Den er ingen mønsterprøve, så motorens

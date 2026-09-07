@@ -9,8 +9,6 @@ import {
 } from '../../utils/dateUtils';
 import { diffUtcDays } from '../../utils/utcDayMath';
 import { dateToISO, parseISODate, type ISODateString } from '../../types/branded';
-import { DEFAULT_AMOUNT_PRECISION } from '../../utils/amountInputUtils';
-import { isSafeCanonicalDecimal } from '../../utils/numericSafety';
 
 // Autofill-suggest, lag 2 (ren mønstergenkendelse). Modulet er framework-frit, totalt og kaster ikke: hver
 // funktion svarer `null`, når serien ikke bærer et mønster. Det er et bevidst designkrav og ikke
@@ -27,6 +25,24 @@ import { isSafeCanonicalDecimal } from '../../utils/numericSafety';
 // Derfor vælges det skridt, der forekommer HYPPIGST mellem seriens naboer, med det senest forekommende
 // skridt som tiebreak. Et enkelt hul ændrer ikke længere mønstret, og med præcis to prøver er det modale
 // skridt trivielt det ene, der findes – kravet om «mønster efter to rækker» er dermed uændret.
+//
+// ── Hvorfor en PERIODEserie skal være strengt monoton ────────────────────────────────────────────────
+// Modalvalget alene var ikke nok. Reviewet 2026-09-07 kørte motoren på halvt indtastede tabeller og fandt
+// tre familier af forslag, som ingen bruger kan læse som «næste værdi»:
+//
+//  - **Gentagelsen.** 6, 6 og 5, 6, 6 foreslog 6 igen. Skridtet mellem to ens naboprøver er 0, og med
+//    lige stemmer vandt netop det, fordi tiebreaket tog det SENESTE skridt. En periodekolonne, der
+//    gentager sig, er en indtastning på vej til at blive rettet – ikke en kadence.
+//  - **Retningsskiftet.** 1, 2, 1 foreslog december året før, og 2025, 2026, 2025 foreslog 2024. Vilkårligt
+//    hvilken af de to retninger der vandt, modsagde forslaget den serie, brugeren så.
+//  - **Den uafgjorte kadence.** 01-01, 15-01, 01-02 foreslog 18-02: to lige hyppige dagsskridt (+14 og
+//    +17), hvor det seneste vandt. Halvmånedsperioder ER et mønster, men ikke et, motoren kender, og et
+//    gæt midt imellem to kadencer er værre end ingen ghost.
+//
+// Derfor gælder for hver periodeart (dato, uge, måned/år, årstal): nulskridt kasseres, blandede retninger
+// ugyldiggør serien, og et uafgjort valg mellem to skridt af SAMME art giver intet forslag, medmindre det
+// ene er det andets basisskridt. Beløb og katalogvalg er ikke periodeserier – dér er gentagelsen hele
+// mønstret, og de har deres egne projektioner nederst i filen.
 
 /**
  * Er `candidate` BASISSKRIDTET bag `other` – altså det skridt, `other` ville være, hvis en række manglede?
@@ -44,18 +60,65 @@ export const isBaseNumericStepOf = (candidate: number, other: number): boolean =
   && other % candidate === 0;
 
 /**
+ * Formen af én serieart: hvordan et skridt måles, identificeres, retningsbestemmes og anvendes.
+ *
+ * Samlet i ét objekt frem for seks positionelle parametre, fordi de fem periodearter nu deler alle
+ * reglerne og kun adskiller sig i tre-fire af felterne. Som stillingsparametre kunne en ny art nemt
+ * udelade netop det prædikat, der håndhæver en af invarianterne, og forskellen ville først vise sig som
+ * et urimeligt forslag i en halvt indtastet tabel.
+ */
+type SeriesShape<TValue, TStep> = Readonly<{
+  /** Skridtet mellem to naboprøver, eller `null` når parret ikke bærer et lovligt skridt. */
+  stepBetween: (from: TValue, to: TValue) => TStep | null;
+  /** Skridtets identitet i modalvalget. */
+  keyOf: (step: TStep) => string;
+  /** Anvend det valgte skridt på seriens sidste prøve. */
+  apply: (last: TValue, step: TStep) => TValue | null;
+  /**
+   * Skridtets retning: negativ, nul eller positiv. Nulskridt kasseres, og blandede retninger
+   * ugyldiggør serien – se filhovedet for de forslag, de to regler findes for.
+   */
+  signOf: (step: TStep) => number;
+  /** Er `candidate` basisskridtet bag `other`? Første tiebreak. */
+  isBaseOf?: (candidate: TStep, other: TStep) => boolean;
+  /**
+   * Er de to skridt af samme ART?
+   *
+   * En uafgjort hyppighed INDEN FOR én art er en inkonsistent serie (+14 og +17 dage) og giver intet
+   * forslag. Er arterne forskellige (et dagsinterval og et månedsinterval), er der derimod tale om et
+   * bevidst skift af kadence, og det seneste skridt vinder.
+   */
+  sameKind?: (a: TStep, b: TStep) => boolean;
+  /**
+   * Skridtet, når kolonnen kun har ÉN prøve at fremskrive fra.
+   *
+   * Findes kun for MÅNEDSserierne, og det er ikke en bekvemmelighed. Kravet er udviklerens «altid én
+   * måned op», og uden et defaultskridt var den første række efter en tom tabel usammenhængende: skrev
+   * brugeren måned 1, år 2026 og løn 30.000 og gik en række ned, fik LØNNEN en ghost (den gentager blot
+   * cellen ovenover), mens måned og år stod tomme, fordi et mønster krævede to prøver. To ghosts og to
+   * tomme celler i samme række, uden nogen forskel brugeren kunne se.
+   *
+   * En månedskolonne har en kanonisk enhed – én måned – og derfor et forsvarligt skridt fra en enkelt
+   * prøve. Uge- og datokolonner har det IKKE: en dagskolonne kan bære uge-, 14-dages- eller
+   * månedsperioder, og et gæt på hvilken ville være et gæt på brugerens kadence. De kræver fortsat to
+   * prøver.
+   */
+  defaultStep?: TStep;
+}>;
+
+/**
  * Vælg det hyppigst forekommende skridt.
  *
- * Uafgjort afgøres i to trin. FØRST vinder et skridt, der er basisskridtet bag et andet af de uafgjorte
+ * Uafgjort afgøres i tre trin. FØRST vinder et skridt, der er basisskridtet bag et andet af de uafgjorte
  * (`isBaseOf`): januar, februar, april giver præcis ét +1 og ét +2, og uden trinnet ville forslaget blive
  * juni frem for maj – kravet om at et HUL ikke må ændre mønstret ville altså kun holde, når det sande
- * skridt havde flertal. DEREFTER vinder det SENESTE skridt, så et bevidst skift af kadence sidst i
+ * skridt havde flertal. DEREFTER er en uafgjort strid mellem skridt af SAMME art en inkonsistent serie, og
+ * der gives intet forslag. TIL SIDST vinder det SENESTE skridt, så et bevidst skift af kadence sidst i
  * tabellen slår et lige så hyppigt ældre skridt af en anden art.
  */
-const selectModalStep = <TStep>(
+const selectModalStep = <TValue, TStep>(
   steps: readonly TStep[],
-  keyOf: (step: TStep) => string,
-  isBaseOf?: (candidate: TStep, other: TStep) => boolean
+  { keyOf, isBaseOf, sameKind }: SeriesShape<TValue, TStep>
 ): TStep | null => {
   if (steps.length === 0) return null;
   const counts = new Map<string, number>();
@@ -82,6 +145,16 @@ const selectModalStep = <TStep>(
     if (baseKey !== undefined) return stepByKey.get(baseKey) ?? null;
   }
 
+  if (sameKind !== undefined) {
+    const tiedSteps = tiedKeys
+      .map((key) => stepByKey.get(key))
+      .filter((step): step is TStep => step !== undefined);
+    const [first] = tiedSteps;
+    // To lige hyppige kadencer af samme art er ikke ét mønster med en tvivl, men to mønstre uden et
+    // fælles næste skridt. Ghosten udelades frem for at vælge den ene halvdel af brugerens serie.
+    if (first !== undefined && tiedSteps.every((step) => sameKind(first, step))) return null;
+  }
+
   const latestKey = tiedKeys.reduce(
     (best, key) => ((lastIndex.get(key) ?? -1) > (lastIndex.get(best) ?? -1) ? key : best),
     tiedKeys[0] ?? ''
@@ -106,18 +179,35 @@ const consecutiveSteps = <TValue, TStep>(
   return steps;
 };
 
-/** Fælles form: mindst to prøver, modalt skridt, anvendt på den SIDSTE prøve. */
+/**
+ * Fælles form for en PERIODEserie: mindst to prøver, nulskridt kasseret, én entydig retning, modalt
+ * skridt, anvendt på den SIDSTE prøve.
+ *
+ * De to filtre løber FØR modalvalget og ikke som en efterprøve af resultatet. Rækkefølgen er
+ * afgørende: et nulskridt, der nåede frem til modalvalget, kunne vinde tiebreaket «seneste skridt» og
+ * lade ghosten gentage rækken ovenfor – og netop det var fejlen (se filhovedet).
+ */
 const projectSeries = <TValue, TStep>(
   values: readonly TValue[],
-  stepBetween: (from: TValue, to: TValue) => TStep | null,
-  keyOf: (step: TStep) => string,
-  apply: (last: TValue, step: TStep) => TValue | null,
-  isBaseOf?: (candidate: TStep, other: TStep) => boolean
+  shape: SeriesShape<TValue, TStep>
 ): TValue | null => {
-  if (values.length < 2) return null;
-  const step = selectModalStep(consecutiveSteps(values, stepBetween), keyOf, isBaseOf);
+  const [onlyValue] = values;
+  if (values.length === 1) {
+    // Én prøve bærer ikke et mønster, men kan bære kolonnens kanoniske enhed – se `defaultStep`.
+    return onlyValue === undefined || shape.defaultStep === undefined
+      ? null
+      : shape.apply(onlyValue, shape.defaultStep);
+  }
+  if (values.length === 0) return null;
+  const steps = consecutiveSteps(values, shape.stepBetween)
+    .filter((step) => shape.signOf(step) !== 0);
+  const [firstStep] = steps;
+  if (firstStep === undefined) return null;
+  const direction = shape.signOf(firstStep);
+  if (steps.some((step) => shape.signOf(step) !== direction)) return null;
+  const step = selectModalStep(steps, shape);
   if (step === null) return null;
-  return apply(values[values.length - 1], step);
+  return shape.apply(values[values.length - 1], step);
 };
 
 // ── Datoserier ───────────────────────────────────────────────────────────────────────────────────────
@@ -128,7 +218,16 @@ const projectSeries = <TValue, TStep>(
  */
 export type DateAutofillStep =
   | Readonly<{ kind: 'days'; days: number }>
-  | Readonly<{ kind: 'monthsSameDay'; months: number }>
+  | Readonly<{
+      kind: 'monthsSameDay';
+      months: number;
+      /**
+       * Mønstrets NOMINELLE dag i måneden – den dag, brugeren sigter efter, også når en kort måned har
+       * clampet den. Se {@link nominalDayOfMonthPattern} for hvorfor skridtet ikke kan klare sig med
+       * seriens sidste værdi alene.
+       */
+      nominalDay: number;
+    }>
   | Readonly<{ kind: 'monthsLastDay'; months: number }>;
 
 /**
@@ -150,13 +249,38 @@ const monthDelta = (from: Date, to: Date): number =>
 
 const isLastDayOfMonth = (date: Date): boolean => date.getUTCDate() === getDaysInMonth(date);
 
+/**
+ * Den nominelle dag bag mønstret «samme dag i hver måned», eller `null` når de to datoer ikke deler en.
+ *
+ * En ren `fromDag === tilDag`-prøve rakte ikke, og reviewet 2026-09-07 målte prisen: 30-01 → 28-02 er den
+ * 30. i hver måned, hvor februar har clampet dagen – men fordi dagstallene er forskellige, faldt parret
+ * igennem til et DAGSskridt på +29 og foreslog 29-03. Det er hverken brugerens mønster eller et tal, der
+ * betyder noget.
+ *
+ * Derfor bæres den nominelle dag med i skridtet: en dag, der er månedens SIDSTE, kan være en clampet
+ * større nominel dag, mens en dag inde i måneden er nominel som den er. Den nominelle dag er den største
+ * af de to observerede, og den skal clampe til begge – ellers er der intet fælles mønster.
+ */
+const nominalDayOfMonthPattern = (from: Date, to: Date): number | null => {
+  const fromDay = from.getUTCDate();
+  const toDay = to.getUTCDate();
+  const nominal = Math.max(fromDay, toDay);
+  // En dag inde i måneden er ikke clampet og skal derfor selv VÆRE den nominelle dag.
+  if (fromDay !== nominal && !isLastDayOfMonth(from)) return null;
+  if (toDay !== nominal && !isLastDayOfMonth(to)) return null;
+  if (Math.min(nominal, getDaysInMonth(from)) !== fromDay) return null;
+  if (Math.min(nominal, getDaysInMonth(to)) !== toDay) return null;
+  return nominal;
+};
+
 export const dateAutofillStepBetween = (from: Date, to: Date): DateAutofillStep | null => {
   const months = monthDelta(from, to);
   if (months !== 0 && Math.abs(months) <= MAX_MONTH_STEP) {
     // Rækkefølgen er en forrang: «sidste dag i måneden» genkendes FØR «samme dag i måneden», fordi den
     // 31. i en 31-dags måned opfylder begge, og kun sidste-dag-formen kan fortsætte korrekt til februar.
     if (isLastDayOfMonth(from) && isLastDayOfMonth(to)) return { kind: 'monthsLastDay', months };
-    if (from.getUTCDate() === to.getUTCDate()) return { kind: 'monthsSameDay', months };
+    const nominalDay = nominalDayOfMonthPattern(from, to);
+    if (nominalDay !== null) return { kind: 'monthsSameDay', months, nominalDay };
   }
   const days = diffUtcDays(from, to);
   if (!Number.isInteger(days) || Math.abs(days) > MAX_DAY_STEP) return null;
@@ -165,10 +289,20 @@ export const dateAutofillStepBetween = (from: Date, to: Date): DateAutofillStep 
 
 export const applyDateAutofillStep = (base: Date, step: DateAutofillStep): Date => {
   if (step.kind === 'days') return addDays(base, step.days);
-  if (step.kind === 'monthsSameDay') return addMonths(base, step.months);
-  // `addMonths` clamper til månedens længde; for sidste-dag-mønstret skal dagen tværtimod VOKSE til den
-  // nye måneds længde (28-02 → 31-03). Derfor regnes skridtet fra den 1. og lander på månedens sidste dag.
+  // Skridtet regnes fra den 1. i basismåneden for BEGGE månedsformer, så målmåneden findes uafhængigt af,
+  // hvad basisdatoens eget dagstal er.
   const firstOfMonth = addMonths(createDate(base.getUTCFullYear(), base.getUTCMonth(), 1), step.months);
+  if (step.kind === 'monthsSameDay') {
+    // Den NOMINELLE dag genclampes i målmåneden. Det er forskellen på at fortsætte mønstret og at arve en
+    // clamp: 30-01 → 28-02 fortsætter til 30-03, hvor `addMonths(28-02, 1)` ville give 28-03 og lade
+    // februars længde smitte af på resten af serien.
+    return createDate(
+      firstOfMonth.getUTCFullYear(),
+      firstOfMonth.getUTCMonth(),
+      Math.min(step.nominalDay, getDaysInMonth(firstOfMonth))
+    );
+  }
+  // For sidste-dag-mønstret skal dagen tværtimod VOKSE til den nye måneds længde (28-02 → 31-03).
   return createDate(firstOfMonth.getUTCFullYear(), firstOfMonth.getUTCMonth() + 1, 0);
 };
 
@@ -185,19 +319,35 @@ export const projectDateSeries = (values: readonly ISODateString[]): ISODateStri
     const parsed = parseISODate(value);
     if (parsed !== undefined) dates.push(parsed);
   }
-  const next = projectSeries(
-    dates,
-    dateAutofillStepBetween,
-    (step) => (step.kind === 'days' ? `d:${String(step.days)}` : `${step.kind}:${String(step.months)}`),
-    (last, step) => applyDateAutofillStep(last, step),
+  const next = projectSeries(dates, {
+    stepBetween: dateAutofillStepBetween,
+    // Den nominelle dag er en del af skridtets IDENTITET: «den 1. i hver måned» og «den 30. i hver
+    // måned» er to mønstre, ikke to prøver på det samme, og de må ikke tælle sammen i modalvalget.
+    keyOf: (step) => {
+      if (step.kind === 'days') return `d:${String(step.days)}`;
+      if (step.kind === 'monthsSameDay') {
+        return `monthsSameDay:${String(step.months)}:${String(step.nominalDay)}`;
+      }
+      return `monthsLastDay:${String(step.months)}`;
+    },
+    apply: (last, step) => applyDateAutofillStep(last, step),
+    signOf: (step) => Math.sign(step.kind === 'days' ? step.days : step.months),
     // Kun skridt af SAMME art kan være basisskridt for hinanden: `days: 31` og `monthsSameDay: 1` kan
     // beskrive samme afstand, men er to forskellige mønstre, og det ene er ikke «det andet med et hul».
-    (candidate, other) => candidate.kind === other.kind
-      && isBaseNumericStepOf(
+    // To månedsmønstre med forskellig NOMINEL dag er af samme grund heller ikke hinandens basisskridt.
+    isBaseOf: (candidate, other) => {
+      if (candidate.kind !== other.kind) return false;
+      if (candidate.kind === 'monthsSameDay' && other.kind === 'monthsSameDay') {
+        return candidate.nominalDay === other.nominalDay
+          && isBaseNumericStepOf(candidate.months, other.months);
+      }
+      return isBaseNumericStepOf(
         candidate.kind === 'days' ? candidate.days : candidate.months,
         other.kind === 'days' ? other.days : other.months
-      )
-  );
+      );
+    },
+    sameKind: (a, b) => a.kind === b.kind,
+  });
   if (next === null) return null;
   // `dateToISO` afviser en dato uden for det repræsenterbare domæne (1900–2100), så et mønster, der
   // ville løbe ud over det, giver intet forslag frem for en værdi feltet ikke kan bære.
@@ -243,13 +393,21 @@ export const weekAutofillStepBetween = (
   return Math.abs(weeks) > MAX_WEEK_STEP ? null : weeks;
 };
 
+/**
+ * De rent numeriske periodearter (uge, absolut måned, årstal) har kun ÉN skridtart, så enhver uafgjort
+ * strid mellem to skridt er en strid inden for arten. `sameKind` er derfor konstant sand, og tiebreaket
+ * «seneste skridt» er per konstruktion utilgængeligt for dem: en serie med to lige hyppige, urelaterede
+ * kadencer (+2 og +3 uger) giver intet forslag frem for at vælge den, brugeren tastede sidst.
+ */
+const NUMERIC_STEPS_ARE_ONE_KIND = (): boolean => true;
+
 /** Næste uge i serien, inklusive årsskifte (52/2025 → 01/2026 og 53/2020 → 01/2021). */
 export const projectWeekSeries = (values: readonly WeekAutofillValue[]): WeekAutofillValue | null =>
-  projectSeries(
-    values,
-    weekAutofillStepBetween,
-    (weeks) => `w:${String(weeks)}`,
-    (last, weeks) => {
+  projectSeries(values, {
+    stepBetween: weekAutofillStepBetween,
+    keyOf: (weeks) => `w:${String(weeks)}`,
+    signOf: Math.sign,
+    apply: (last, weeks) => {
       const monday = mondayOfWeek(last);
       if (monday === null) return null;
       const target = addDays(monday, weeks * 7);
@@ -263,15 +421,14 @@ export const projectWeekSeries = (values: readonly WeekAutofillValue[]): WeekAut
       if (resolved.week < 1 || resolved.week > isoWeeksInYear(resolved.year)) return null;
       return resolved;
     },
-    isBaseNumericStepOf
-  );
+    isBaseOf: isBaseNumericStepOf,
+    sameKind: NUMERIC_STEPS_ARE_ONE_KIND,
+  });
 
 // ── Måned, år og måned/år-par ────────────────────────────────────────────────────────────────────────
 
 /** Loft for et månedsskridt i en måned/år-serie. Samme tal som datoernes månedsloft. */
 const MAX_ABSOLUTE_MONTH_STEP = MAX_MONTH_STEP;
-/** Loft for et rent årsskridt. Et hop over hundrede år er ikke et mønster. */
-const MAX_YEAR_STEP = 100;
 
 /** Absolut månedsindeks (år × 12 + måned − 1) – den lineære form af et måned/år-par. */
 export const toAbsoluteMonth = (year: number, month: number): number => year * 12 + (month - 1);
@@ -303,73 +460,73 @@ export const fromAbsoluteMonth = (absolute: number): Readonly<{ year: number; mo
  * årskolonnen selv havde et mønster (den stod på 2025 hele vejen).
  */
 export const projectAbsoluteMonthSeries = (values: readonly number[]): number | null =>
-  projectSeries(
-    values,
-    (from, to) => {
+  projectSeries(values, {
+    stepBetween: (from, to) => {
       const delta = to - from;
       return Math.abs(delta) > MAX_ABSOLUTE_MONTH_STEP ? null : delta;
     },
-    (delta) => `m:${String(delta)}`,
-    (last, delta) => {
+    keyOf: (delta) => `m:${String(delta)}`,
+    signOf: Math.sign,
+    apply: (last, delta) => {
       const next = last + delta;
       if (!Number.isInteger(next)) return null;
       const { year } = fromAbsoluteMonth(next);
       return year < MIN_REPRESENTABLE_YEAR || year > MAX_REPRESENTABLE_YEAR ? null : next;
     },
-    isBaseNumericStepOf
-  );
+    isBaseOf: isBaseNumericStepOf,
+    sameKind: NUMERIC_STEPS_ARE_ONE_KIND,
+    defaultStep: 1,
+  });
+
+/**
+ * De skridt, en månedskolonne UDEN årstal kan bære: præcis én måned frem eller én måned tilbage.
+ *
+ * Begrænsningen er den degenererede sags pris. Med et årstal ved siden af er måneden en plads i en
+ * kalender, og hvert skridt er entydigt. Uden årstal er den et punkt på en cirkel, hvor ethvert skridt
+ * kan læses to veje – og den tidligere MODULÆRE skridtberegning valgte altid vejen fremad, så et
+ * faldende par fik fortegnet vendt: 6, 1 blev skridtet +7 og foreslog august, 1, 12 blev +11 og foreslog
+ * november. Kontrakten lover netop og kun wrappet 12 → 1 for en årsløs månedskolonne, og et skridt på
+ * ±1 er det eneste, der ikke kan forveksles med sin egen modsatte retning.
+ */
+const CYCLIC_MONTH_STEPS: readonly number[] = Object.freeze([1, -1]);
+
+/** Halvdelen af året. Et skridt herover læses som det tilsvarende skridt i den modsatte retning. */
+const HALF_YEAR_MONTHS = 6;
+
+/**
+ * Skridtet mellem to måneder på årscirklen, målt som den KORTESTE signerede vej.
+ *
+ * 12 → 1 er +1 og ikke +11; 2 → 1 er −1 og ikke +11. Det er forskellen på, at 12, 1, 2 kan læses som én
+ * voksende serie (tre skridt af +1) i stedet for som et retningsskifte, monotoni-reglen ville forkaste.
+ */
+const cyclicMonthStepBetween = (from: number, to: number): number | null => {
+  const forward = (((to - from) % 12) + 12) % 12;
+  const shortest = forward > HALF_YEAR_MONTHS ? forward - 12 : forward;
+  return CYCLIC_MONTH_STEPS.includes(shortest) ? shortest : null;
+};
 
 /**
  * Næste måned, når årskolonnen ikke bidrager med prøver.
  *
- * Skridtet er MODULÆRT, så 11 → 12 fortsætter til 1 (kravet «næste måned med wrap fra 12 til 1»). Uden en
- * årskolonne findes der ingen kalender at wrappe i; serien er ren måned.
+ * Skridtet er begrænset til ±1 (se {@link CYCLIC_MONTH_STEPS}), men ANVENDES modulært, så 11 → 12
+ * fortsætter til 1 og 2 → 1 fortsætter til 12. Uden en årskolonne findes der ingen kalender at placere
+ * wrappet i; serien er ren måned, og et årsforslag følger ikke med.
  */
 export const projectMonthOfYearSeries = (values: readonly number[]): number | null =>
   projectSeries(
     values.filter((month) => Number.isInteger(month) && month >= 1 && month <= 12),
-    (from, to) => (((to - from) % 12) + 12) % 12,
-    (delta) => `mm:${String(delta)}`,
-    (last, delta) => (((last - 1 + delta) % 12) + 12) % 12 + 1,
-    isBaseNumericStepOf
+    {
+      stepBetween: cyclicMonthStepBetween,
+      keyOf: (delta) => `mm:${String(delta)}`,
+      signOf: Math.sign,
+      apply: (last, delta) => (((last - 1 + delta) % 12) + 12) % 12 + 1,
+      // Ingen `isBaseOf`: med kun ±1 som lovlige skridt kan det ene ikke være det andets basisskridt.
+      sameKind: NUMERIC_STEPS_ARE_ONE_KIND,
+      defaultStep: 1,
+    }
   );
 
-/** Næste årstal i en ren årsserie (ingen månedskobling): konstant eller fast tilvækst. */
-export const projectYearSeries = (values: readonly number[]): number | null =>
-  projectSeries(
-    values.filter((year) => Number.isInteger(year)),
-    (from, to) => {
-      const delta = to - from;
-      return Math.abs(delta) > MAX_YEAR_STEP ? null : delta;
-    },
-    (delta) => `y:${String(delta)}`,
-    (last, delta) => {
-      const next = last + delta;
-      if (!Number.isInteger(next)) return null;
-      return next < MIN_REPRESENTABLE_YEAR || next > MAX_REPRESENTABLE_YEAR ? null : next;
-    },
-    isBaseNumericStepOf
-  );
-
-// ── Beløbsserier ─────────────────────────────────────────────────────────────────────────────────────
-
-/**
- * Næste beløb: KUN en gentagelse af den samme værdi.
- *
- * Et beløbsmønster med tilvækst er bevidst ikke understøttet. En løn, der er steget to gange, kan ikke
- * antages at stige igen med samme kroner – og et gæt på et beløb er den dyreste fejl, en autofill kan
- * lave i en erstatningsopgørelse. Kravet siger «ens værdi», og de to seneste prøver skal derfor være ens.
- */
-export const projectConstantAmountSeries = (values: readonly number[]): number | null => {
-  if (values.length < 2) return null;
-  const last = values[values.length - 1];
-  if (last !== values[values.length - 2]) return null;
-  return isSafeCanonicalDecimal(last, DEFAULT_AMOUNT_PRECISION) ? last : null;
-};
-
-/** Næste katalogvalg: kun gentagelse af det samme, allerede kendte valg. */
-export const projectConstantChoiceSeries = (values: readonly string[]): string | null => {
-  if (values.length < 2) return null;
-  const last = values[values.length - 1];
-  return last !== undefined && last === values[values.length - 2] && last.trim() !== '' ? last : null;
-};
+// Beløb og katalogvalg har bevidst INGEN projektion i dette modul. De gentager cellen umiddelbart
+// ovenover, og det er hele reglen (udviklerens beslutning 2026-09-07, se motorens regel 3). Tidligere
+// krævede de to ENS prøver og en gate på kalenderår, og prisen var uforudsigelighed: brugeren kunne ikke
+// se, hvorfor beløbskolonnen nogle gange havde en ghost og nogle gange ikke.

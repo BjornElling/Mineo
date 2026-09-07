@@ -22,8 +22,9 @@ import type { Loenperiode, StandardLoenTableRow } from '../../../schemas/formSch
  * - **Dag:** to selvstændige datoserier. Her falder både ugeintervaller (7/14/28 dage) og
  *   månedsintervaller (samme dag i næste måned, sidste dag i næste måned) ud af datomønstrene.
  *
- * `yearAnchorColIndex` peger derfor på den kolonne, der bærer rækkens ÅR: årskolonnen i måned-tilstand,
- * fra-ugen i uge-tilstand og fra-datoen i dag-tilstand. Beløbskolonnerne standser, når den skifter år.
+ * Beløbskolonnerne (2–5 og i Beløb-tilstand 6–7) har intet mønster: de gentager cellen ovenover. Derfor
+ * bærer modellen heller ingen periodestart-kolonne længere – den fandtes kun for den årsskifte-gate, der
+ * gjorde det uforudsigeligt, hvornår en beløbs-ghost dukkede op (udviklerens beslutning 2026-09-07).
  *
  * Tillægsbeløbene (6/7) er kun indtastningsceller i Beløb-tilstand; i Procent-tilstand er de afledte
  * visningsfelter og indgår ikke.
@@ -74,6 +75,5 @@ export const buildStandardLoenAutofillModel = ({
   return Object.freeze({
     rowIds,
     columns: Object.freeze([...periodColumns, ...amountColumns]),
-    yearAnchorColIndex: loenperiode === 'maaned' ? 1 : 0,
   });
 };
