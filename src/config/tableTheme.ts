@@ -24,6 +24,11 @@ const getTableTypographySignature = (useSmallFont: boolean) => ({
   '--mineo-color-active-grid-derived': useSmallFont
     ? 'var(--mineo-color-grid-derived-small)'
     : 'var(--mineo-color-grid-derived-regular)',
+  // Autofill-suggests ghost-tekst. Signaturen er delt efter skriftstørrelse som de øvrige
+  // tabelsignaturer, så en typografidrift mellem 13 og 14 px stadig kan ses i debugtilstanden.
+  '--mineo-color-active-grid-autofill': useSmallFont
+    ? 'var(--mineo-color-grid-autofill-small)'
+    : 'var(--mineo-color-grid-autofill-regular)',
 });
 
 /**

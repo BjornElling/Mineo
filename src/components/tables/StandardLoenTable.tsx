@@ -40,6 +40,10 @@ import {
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
+import { AutofillSuggestProvider } from '../../inputCore/react/autofillSuggestContext';
+import { EMPTY_AUTOFILL_SUGGEST_MODEL } from '../../inputCore/autofill/autofillSuggestModel';
+import { buildStandardLoenAutofillModel } from './autofill/standardLoenAutofillModel';
+
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
@@ -86,6 +90,13 @@ export type StandardLoenTableProps = {
    * eget issue. En descriptor-validator kan ikke se andre rækker og kan derfor ikke udtrykke reglen selv.
    */
   ruleIssues?: FieldIssueSet;
+  /**
+   * Autofill-suggest i tabellens indtastningsceller (default fra).
+   *
+   * Tilvalget er pr. KALDSSTED, fordi samme tabel renderes i to kontekster: Årsløns ene tabel og EO's
+   * tabel pr. ansættelsesforhold. Funktionen er indtil videre kun besluttet for EO-udgaven.
+   */
+  autofillSuggest?: boolean;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -103,7 +114,7 @@ const COL = {
 } as const;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, ruleIssues }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, ruleIssues, autofillSuggest = false }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -319,7 +330,22 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
 
+    // Autofill-suggest bygges af de VISTE rækker i visningsorden – mønstret skal følge det, brugeren ser,
+    // ikke aggregatets indsættelsesorden. Modellen bygges pr. render frem for memoiseret: arbejdet er
+    // O(rækker × kolonner) rene array-opslag, og cellerne re-renderer med tabellen alligevel, så en
+    // memoisering ville kun tilføje en dep-liste, der kunne blive uenig med den viste orden.
+    const autofillModel = autofillSuggest
+      ? buildStandardLoenAutofillModel({
+          rowIds: renderRows.map((row) => row.rowId),
+          committedById,
+          fieldSet,
+          loenperiode,
+          beloebMode,
+        })
+      : EMPTY_AUTOFILL_SUGGEST_MODEL;
+
     return (
+      <AutofillSuggestProvider model={autofillModel}>
       <StandardGridTable
         tableWidth="1130px"
         tableRef={tableRef}
@@ -495,6 +521,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           })}
         </tbody>
       </StandardGridTable>
+      </AutofillSuggestProvider>
     );
   }
 ));

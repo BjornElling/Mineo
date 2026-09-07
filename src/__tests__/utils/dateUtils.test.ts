@@ -5,11 +5,14 @@ import {
   createDate,
   formatDanishDate,
   formatToISO,
+  getDaysInMonth,
   getDaysInYear,
   getInclusivePeriodEndByMonths,
   getInclusivePeriodEndDanishDate,
   getTodayLocalISO,
   isLeapYear,
+  isoWeekOfDate,
+  isoWeeksInYear,
   parseDanishDate,
   parseWeekString,
 } from '../../utils/dateUtils';
@@ -280,6 +283,51 @@ describe('dateUtils', () => {
     it('uge 52/2024 er gyldig', () => {
       const interval = parseWeekString('52/2024');
       expect(interval).not.toBeNull();
+    });
+  });
+  describe('getDaysInMonth', () => {
+    it('giver månedens længde, også for februar i skud- og normalår', () => {
+      expect(getDaysInMonth(createDate(2026, 0, 15))).toBe(31);
+      expect(getDaysInMonth(createDate(2026, 1, 1))).toBe(28);
+      expect(getDaysInMonth(createDate(2024, 1, 1))).toBe(29);
+      expect(getDaysInMonth(createDate(2026, 3, 30))).toBe(30);
+      expect(getDaysInMonth(createDate(2026, 11, 31))).toBe(31);
+    });
+  });
+
+  describe('isoWeeksInYear', () => {
+    it('giver 53 for de kendte langår og 52 for de øvrige', () => {
+      // 2020 og 2026 har uge 53 (31-12 er torsdag hhv. skudår med fredag).
+      expect(isoWeeksInYear(2020)).toBe(53);
+      expect(isoWeeksInYear(2026)).toBe(53);
+      expect(isoWeeksInYear(2025)).toBe(52);
+      expect(isoWeeksInYear(2024)).toBe(52);
+    });
+  });
+
+  describe('isoWeekOfDate', () => {
+    it('er den omvendte af parseWeekString for hver uge i et 53-ugers år', () => {
+      for (let week = 1; week <= isoWeeksInYear(2020); week += 1) {
+        const interval = parseWeekString(`${String(week)}/2020`);
+        expect(interval).not.toBeNull();
+        expect(isoWeekOfDate(interval!.start)).toEqual({ week, year: 2020 });
+        expect(isoWeekOfDate(interval!.end)).toEqual({ week, year: 2020 });
+      }
+    });
+
+    it('lægger dagene omkring årsskiftet i det rigtige ISO-år', () => {
+      // 29-12-2025 til 04-01-2026 er ÉN uge: uge 01/2026.
+      expect(isoWeekOfDate(createDate(2025, 11, 29))).toEqual({ week: 1, year: 2026 });
+      expect(isoWeekOfDate(createDate(2026, 0, 4))).toEqual({ week: 1, year: 2026 });
+      // 01-01-2021 hører til uge 53/2020.
+      expect(isoWeekOfDate(createDate(2021, 0, 1))).toEqual({ week: 53, year: 2020 });
+      // 31-12-2024 hører til uge 01/2025.
+      expect(isoWeekOfDate(createDate(2024, 11, 31))).toEqual({ week: 1, year: 2025 });
+    });
+
+    it('er upåvirket af sommertidsskiftene i marts og oktober', () => {
+      expect(isoWeekOfDate(createDate(2026, 2, 29))).toEqual({ week: 13, year: 2026 });
+      expect(isoWeekOfDate(createDate(2026, 9, 25))).toEqual({ week: 43, year: 2026 });
     });
   });
 });

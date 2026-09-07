@@ -3,7 +3,19 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-08-27 (§1.0a og beløbsreglen er implementeret og målt: canonical
+**Senest verificeret mod kode:** 2026-09-07 (§1.5 er NY og implementeret: autofill-suggest er kodet
+generelt i `src/inputCore/autofill/` og aktiveret i EO's løntabeller og Offentlige ydelser. Afsnittets
+skarpe kanter kommer af reviewet samme dag og er hver især målt: tomhedsprøven læser den AFSLUTTEDE
+værdi (ellers skrev «markér alt, slet, Enter» forslaget), ghosten ryddes når fokus forlader tabellen
+(grid-core'ens logiske fokuscelle blev aldrig nulstillet), uafgjorte skridt afgøres af basisskridtet
+(et hul gav ellers juni frem for maj), beløbsgatens referenceår læses i den seneste række med en
+periodestart, årsforslaget følger sit eget månedsforslag i en faldende serie, og accepten bevarer
+Tab-ankeret. Mønstre, årsskifte-standsningen for beløb og måned/år-koblingen er målt af
+`src/__tests__/inputCore/autofill/autofillSeries.test.ts` og
+`src/__tests__/inputCore/autofill/autofillSuggestEngine.test.ts`; ghostens synlighed, Enter-accept,
+fokusbevarelse og den uændrede Enter-navigation uden ghost af
+`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`)
+2026-08-27 (§1.0a og beløbsreglen er implementeret og målt: canonical
 og rejected rækkeindhold deler tomhedsvurdering for trailing række, sletning og sortering på alle
 collection-tabeller; defaultvalg tæller kun som input ved fravalg; rene manglende partnerfelter får
 ikke rød ring; hvert beløbstalled har højst ét decimalkomma)
@@ -258,6 +270,119 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 - Hurtige gentagne klik eller tastetryk må ikke udføre samme gyldige overgang dobbelt.
 - Et skjult felt bevarer en gyldig værdi og viser den igen, når feltet bliver synligt. En skjult værdi med rød
   feltfejl slettes, så en fejl ikke kan gemme sig og blokere en handling, brugeren ikke kan rette.
+
+### 1.5 Autofill-suggest i tabelceller
+
+Afklaret 2026-09-07 på udviklerens krav. Funktionen er implementeret i `src/inputCore/autofill/` (ren
+mønstergenkendelse + motor), `AutofillSuggestProvider` (tabellens tilvalg), `useGridCellSurface`
+(synlighed + accept) og `GridTextCell` (visningen). Afsnittet afløser den tidligere arbejdsplan i
+`docs/implementation/`, som er slettet, fordi arbejdet er udført.
+
+**Hvad brugeren ser.** Står brugeren i en TOM celle i en kolonne, hvor de foregående rækker danner et
+genkendeligt mønster, viser cellen mønstrets næste værdi som en dæmpet ghost-tekst med et lille
+`ENTER`-mærke. Enter indsætter præcis den viste værdi. Alt andet er uændret.
+
+**Aktivering – tilvalg pr. tabel.** Funktionen er kodet generelt for alle grid-celler, men aktiveres
+tabel for tabel. Den er aktiv i erstatningsopgørelsens løntabeller (én pr. ansættelsesforhold) og i
+Offentlige ydelsers ydelsestabel. Årslønssidens løntabel er den samme komponent, men har den ikke
+slået til.
+
+**Hvornår ghosten står i cellen.** Alle fire betingelser skal være opfyldt samtidig:
+
+1. Cellen har fysisk fokus. Der vises højst ÉN ghost i tabellen ad gangen, og det er altid i den celle,
+   brugeren står i – aldrig i celler, brugeren ikke har fokus på.
+2. Cellens afsluttede værdi er tom, OG der står intet i inputtet. En celle med en canonical værdi eller
+   med afsluttet rejected råtekst får ALDRIG en ghost – heller ikke mens brugeren har slettet draften i
+   en åben editor, hvor «markér alt, slet, Enter» ellers ville skrive forslaget i stedet for at rydde
+   cellen. Begynder brugeren at skrive, forsvinder ghosten, og brugerens egen tekst står alene.
+3. Cellen er ikke låst, og den er ikke en dropdown eller en afledt visningskolonne.
+4. Kolonnen bærer et mønster efter reglerne nedenfor.
+
+Betingelse 2 er den, der gør Enter forsvarlig: der findes intet at overskrive, og
+`keyboard-navigation.md`'s forbud mod at «Enter overskriver værdi uden brugerens samtykke» er derfor
+overholdt strukturelt og ikke ved en regel, nogen skal huske.
+
+**Hvordan mønstret dannes.**
+
+- Prøverne er de udfyldte celler i SAMME kolonne i rækkerne OVER den aktuelle, i den orden brugeren ser
+  rækkerne (altså efter en eventuel sortering). Autofill fremskriver; den ekstrapolerer aldrig bagud til
+  en tom række, der står over de udfyldte.
+- **To prøver er nok.** Den forudgående række behøver ikke være udfyldt i øvrigt; kun værdien i den
+  KOLONNE, forslaget gælder, tæller. Hver kolonne har sit eget mønster.
+- **Tomme, delvist udfyldte og fejlbehæftede celler springes over**, og mønstret dannes af de øvrige.
+  En celle, hvis værdi er skjult bag en rød feltfejl, bærer ingen prøve.
+- **Manglende rækker ændrer ikke mønstret.** Skridtet mellem to naboprøver opgøres for hele serien, og
+  det HYPPIGST forekommende skridt vinder. Er januar–juni og august–november indtastet, foreslås
+  december – hullet i juli forskyder ikke serien.
+  - **Uafgjort afgøres først af BASISSKRIDTET.** Et hul giver altid et skridt, der er et helt multiplum
+    af det sande skridt: januar, februar, april er ét «+1» og ét «+2», og uden reglen ville forslaget
+    blive juni frem for maj. Reglen er kun en tiebreak, så en ægte kadence med flertal står uændret –
+    tre kvartaler og ét enkelt månedsspring foreslås fortsat som et kvartal.
+  - **Derefter afgør det SENESTE skridt.** To uafgjorte skridt af forskellig art (et dagsinterval og et
+    månedsinterval) kan ikke være hinandens basisskridt; da vinder det, brugeren skrev sidst.
+- **Rækkefølgen er den viste.** Sorteres kolonnen faldende, fremskrives serien nedad, og måneds- og
+  årsforslaget følges ad: efter 12/2025, 11/2025, 10/2025 foreslås måned 9 i år 2025.
+- Genkendes intet mønster, vises ingen ghost. Der gættes ikke.
+- **Et forslag, feltet ikke ville tage imod tegn for tegn, vises ikke.** Forslaget prøves mod feltets eget
+  tegn- og længdeprædikat (§1.2), før det bliver til en ghost. Ellers ville accept-vejen – som skriver
+  råteksten direkte – kunne omgå netop den grænse.
+
+**Understøttede mønstre.**
+
+| Kolonne | Mønster |
+|---|---|
+| Dato | Fast dagsinterval (herunder 7, 14 og 28 dage), samme dag i næste måned, sidste dag i næste måned, samt gentagelse af samme dato |
+| Uge (`uu/åååå`) | Fast ugeinterval, herunder flere uger ad gangen; korrekt hen over årsskiftet og over et 53-ugers år |
+| Måned + år | De to kolonner er ÉN månedsserie: efter måned 12 i år 2025 foreslås måned 1 og år 2026. Er årskolonnen tom hele vejen, wrapper måneden alene fra 12 til 1 uden et årsforslag. Har brugeren allerede skrevet måneden i rækken, foreslås det årstal, der placerer måneden kronologisk efter den seneste prøve |
+| Selvstændigt årstal | Konstant eller fast tilvækst |
+| Beløb | **Kun gentagelse af samme beløb.** En tilvækst foreslås aldrig |
+
+Et beløbsudtryk (`5000*2`) foreslås som sin talværdi, ikke som udtrykket.
+
+**Beløb standser ved årsskifte.** Et beløb foreslås ikke, når rækkens PERIODESTART falder i et andet
+kalenderår end det, tabellen senest står i. Startdatoen er det afgørende: fra-datoen i Offentlige
+ydelser og i løntabellens dags- og ugetilstand, og årskolonnen i løntabellens månedstilstand. Er
+periodestarten endnu ikke indtastet, bruges det forslag, startkolonnen selv giver – det er den værdi,
+brugeren er ved at acceptere. Datoer, uger og måneder fortsætter derimod frit hen over årsskiftet.
+
+Referenceåret læses i den seneste række over cellen med en PERIODESTART – ikke i den seneste række med
+et beløb. De to er ikke det samme: en delvist udfyldt række med et beløb, men uden periodestart, ville
+ellers gøre referenceåret ukendt og lade beløbet passere årsskiftet alligevel.
+
+Kan årstallet ikke fastslås på begge sider – typisk fordi periodekolonnen står tom hele vejen – er
+standsningen inaktiv. Reglen slår kun til på et positivt observeret årsskifte, ikke på uvished.
+
+**Accept, afvisning og navigation.**
+
+- Enter indsætter ghosten og BEHOLDER fokus i cellen. Et nyt Enter navigerer nedad som sædvanligt, så
+  «Enter, Enter» både indsætter og går videre. Accepten er en indtastning og ikke en navigation, så den
+  rører ikke Tab-ankeret: det næste Enter går ned i ankerkolonnen, præcis som uden autofill.
+- Uden ghost er Enter uændret vertikal grid-navigation. `Shift+Enter` accepterer aldrig; den navigerer
+  altid opad.
+- Tab, piletaster og klik forlader cellen uden at indsætte noget. Ghosten er ren visning og efterlader
+  ingen tilstand – den forsvinder med fokus, også når fokus går helt ud af tabellen.
+- Accepten koster ét fortryd-trin (§1.4), også når den samtidig opretter den nye række.
+- Værdien indsættes som RÅTEKST gennem feltets eget codec og den normale settle-vej: samme parse, samme
+  XOR-invariant mellem canonical og rejected, samme atomiske oprettelse af den nye række og ét
+  undo-trin. Et forslag kan altså ikke skrive en værdi, brugeren ikke selv kunne have tastet.
+- Ghost-teksten er feltets visningsform af den værdi, accept skriver. De to kan per konstruktion ikke
+  komme fra hinanden.
+
+**Afgrænsninger (bevidste).**
+
+- Forslaget er ikke grænsekontrolleret. Fører et mønster til en værdi uden for feltets aktive
+  domænegrænse, får cellen rød ring og konkret tooltip efter §1.1 – præcis som havde brugeren tastet
+  værdien. Ghosten er et forslag om FORM og fortsættelse, ikke en påstand om gyldighed.
+- Der gemmes ingen autofill-historik og ingen brugerpræferencer, og funktionen kan ikke slås fra pr. felt.
+- En TOM celle, der bærer en gul advarsel eller en kryds-række-fejl, får stadig sin ghost. De to signaler
+  er uafhængige: fejlen angår rækken, forslaget angår kolonnens mønster, og begge beskrives for en
+  skærmlæser.
+- Delete på en fokuseret celle rydder og committer straks (§1.3), hvorefter ghosten kan foreslå netop den
+  værdi, brugeren lige slettede. Det følger af, at ghosten kun ser den aktuelle revision; den kender
+  ingen «brugeren fravalgte dette»-hukommelse.
+- Ghosten følger tabellens viste rækkefølge og kender ingen anden sortering end den.
+- Sammenhængen mellem ghost og fokus gælder også skærmlæsere: cellen bærer en skjult tekst med
+  forslaget og dets aktiveringstast, så forslaget ikke blot lyder som feltets formathint.
 
 ## 2. Universelle regler for feltfamilier
 

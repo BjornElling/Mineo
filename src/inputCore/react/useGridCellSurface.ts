@@ -16,6 +16,8 @@ import {
   type DraftAdmission,
 } from '../../components/inputs/draftAdmission';
 import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
+import { useAutofillSuggestion } from './autofillSuggestContext';
+import type { AutofillSuggestion } from '../autofill/autofillSuggestModel';
 
 // Grid-celle-surface (§2.5/§3.5): den ENE UI-mekanik for en persisteret grid-celle. Den
 // bro-forbinder de TO redigerings-autoriteter, som en løntabel har:
@@ -72,6 +74,14 @@ export type GridCellSurface<T> = Readonly<{
    * (§3.7): serialiseret feltadresse + editorlokation. Celle-komponenten spreder dem på inputtet.
    */
   restoreTargetAttributes: RestoreTargetAttributes;
+  /**
+   * Det SYNLIGE autofill-forslag for cellen, eller `null`.
+   *
+   * Sat kun når cellen er fokuseret, ulåst og TOM, og kolonnen bærer et mønster. Betingelsen er det, der
+   * gør Enter-accept forudsigelig: ghost-teksten er den eneste værdi, Enter kan skrive, og der findes
+   * ingen afsluttet værdi at overskrive.
+   */
+  autofillSuggestion: AutofillSuggestion | null;
 
   onDraftChange: (nextDraft: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -103,9 +113,40 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   );
   const controller = useCellEditor<T, TEntity>(cell, focusTarget);
 
+  // Autofill-suggest (opt-in pr. tabel gennem `AutofillSuggestProvider`).
+  //
+  // Ghosten vises KUN i den fokuserede, ulåste celle, der er tom på BEGGE måder: ingen afsluttet værdi
+  // (`settledText`) og intet i inputtet (`displayText`). Begge betingelser er load-bearing:
+  //
+  //  - `settledText` er den, der gør Enter forsvarlig. Havde vi kun set på `displayText`, ville en celle,
+  //    hvis draft brugeren netop havde slettet, tælle som tom – og «markér alt, slet, Enter» ville
+  //    SKRIVE forslaget i stedet for at rydde cellen. Det er præcis det, `keyboard-navigation.md`
+  //    forbyder («Enter overskriver værdi uden brugerens samtykke»).
+  //  - `displayText` er den, der gør ghosten sand. Ghosten TEGNES af inputtets `placeholder`, som
+  //    browseren skjuler, så snart inputtet har en værdi; uden betingelsen kunne «ENTER»-mærket stå ved
+  //    en usynlig ghost.
+  //
+  // Prøven er `=== ''` og ikke `.trim()`, netop for at følge browserens placeholder-regel.
+  const isCellEmptyForSuggest = controller.settledText === '' && controller.displayText === '';
+  const candidateSuggestion = useAutofillSuggestion(
+    gridCell.rowId,
+    gridCell.colIndex,
+    !locked && isFocused && isCellEmptyForSuggest
+  );
+  // Forslaget skal kunne TASTES i cellen. Accept skriver råteksten direkte som draft og går derfor uden om
+  // `onDraftChange`, hvor familiens tegn- og længdeprædikat ellers håndhæves (§1.2). Kontrollen sker her
+  // – på VEJEN IND – så et forslag, feltet ville have afvist tegn for tegn, hverken kan vises eller
+  // accepteres. Ellers var «et forslag kan ikke skrive en værdi, brugeren ikke selv kunne have tastet»
+  // en hensigt frem for en garanti.
+  const autofillSuggestion = candidateSuggestion !== null
+    && isDraftWithinMaxLength(candidateSuggestion.rawText, maxDraftLength)
+    && (draftAdmission === undefined || draftAdmission(candidateSuggestion.rawText))
+    ? candidateSuggestion
+    : null;
+
   // En stabil ref til aktuelle {controller, isEditing, config}, så event-handlere/handle-metoder er stabile.
-  const latest = React.useRef({ controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength });
-  latest.current = { controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength };
+  const latest = React.useRef({ controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength, autofillSuggestion });
+  latest.current = { controller, isEditing, keyFilter, draftAdmission, locked, maxDraftLength, autofillSuggestion };
 
   // Den bundne cellereference (til codec-opslag i paste + tast-initieret åbning). Holdes i en ref, så de
   // stabile handlere altid ser den aktuelle celles felt uden at churne.
@@ -217,6 +258,26 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     });
   }, []);
 
+  /**
+   * Accepter cellens synlige autofill-forslag. Returnerer `false`, når der intet er at acceptere, så
+   * Enter falder tilbage til den almindelige grid-navigation.
+   *
+   * Forslaget går ind som RÅTEKST gennem den normale settle-vej – præcis som havde brugeren tastet
+   * teksten og trykket Enter (§1.3). Det er samme mekanik, som et paste i en lukket celle bruger, og det
+   * er bevidst ikke en canonical skrivning: forslaget skal møde feltets egen parse, XOR-invariant,
+   * placeholder-promotion og ét history-trin på lige fod med en indtastning.
+   */
+  const acceptAutofillSuggestion = React.useCallback((): boolean => {
+    const { controller: ctl, locked: isLocked, autofillSuggestion: suggestion } = latest.current;
+    if (isLocked || suggestion === null) return false;
+    // En åben editor har allerede en draft, der skal erstattes; en lukket åbnes med teksten som seed.
+    if (ctl.isOpen) ctl.changeDraft(suggestion.rawText);
+    else ctl.open(suggestion.rawText);
+    ctl.settle();
+    gridApi.closeEditing();
+    return true;
+  }, [gridApi]);
+
   // Bro-retning 2: registrér cellens `GridCellEditorHandle`. Navigationen (capture-fase) kalder disse; hver
   // metode delegerer til den ENE controlleren. `commitCurrent`/`clearAndCommit`/`cancelEdit` lukker
   // grid-core-editingen bagefter, så grid-core-lifecyclen og editor-lifecyclen holder trit.
@@ -277,7 +338,8 @@ export const useGridCellSurface = <T, TEntity = unknown>(
       }
       requestAnimationFrame(() => inputElementRef.current?.select());
     },
-  }), [gridApi]);
+    acceptAutofillSuggestion,
+  }), [acceptAutofillSuggestion, gridApi]);
 
   const resolvedGridCellKey = gridCellKey(gridCell);
   React.useEffect(() => {
@@ -308,6 +370,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     inputElementRef,
     readOnly: !isEditing,
     restoreTargetAttributes,
+    autofillSuggestion,
     onDraftChange,
     onKeyDown,
     onPaste,

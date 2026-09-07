@@ -4,7 +4,12 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-08-27 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
+**Senest verificeret mod kode:** 2026-09-07 (§Enter har fået en fjerde undtagelse: en grid-celle med et
+synligt autofill-forslag indsætter ghosten og beholder fokus. Undtagelsen kan kun ramme en TOM celle, så
+forbuddet mod at overskrive en værdi uden samtykke er strukturelt overholdt; målt af
+`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`, der også måler, at Enter UDEN
+ghost navigerer nedad som hidtil)
+2026-08-27 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
 annonceres ikke i brugerfladen». Udviklerens afgørelse, ingen kodeændring; afsnittet fastholder den bestående
 tavshed, så en «hjælpsom» `Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere. Verificeret begge veje:
 genvejen ER registreret (`MainLayout.tsx` – og den spørger `hasOpenOverlay()` før `preventDefault()`),
@@ -120,6 +125,16 @@ Konsekvens:
 3. **Radiobuttons**
    - Enter vælger den radiobutton der aktuelt har fokus
    - Container intercepter Enter-navigation for radiofelter, så fokus ikke flyttes videre
+
+4. **Grid-celle med et synligt autofill-forslag** (`input-field-behavior-contract.md` §1.5)
+   - Enter INDSÆTTER den viste ghost-tekst og beholder fokus i cellen; et nyt Enter navigerer nedad
+     som sædvanligt
+   - Undtagelsen gælder KUN, mens ghosten er synlig, og en ghost kan kun stå i en TOM celle. Enter kan
+     derfor ikke overskrive en afsluttet værdi, jf. forbuddet under «Hvad MÅ IKKE ske»
+   - `Shift+Enter` accepterer aldrig; den navigerer altid opad
+   - Uden ghost er Enter uændret vertikal grid-navigation. Grenen ligger i
+     `tableKeyboardNavigation.ts` og spørger cellens eget handle (`acceptAutofillSuggestion`), som
+     svarer «nej», når der intet er at indsætte
 
 Konsekvens:
 - Enter-navigation må gerne dele intern mekanik med Tab-navigation, men kontrakten kræver kun den observerbare adfærd.
@@ -615,7 +630,8 @@ Følgende adfærd er **forbudt** og betragtes som fejl:
 
 - FEJL: Tab markerer tekst i et felt.
 - FEJL: Enter markerer tekst i et felt.
-- FEJL: Enter overskriver værdi uden brugerens samtykke.
+- FEJL: Enter overskriver værdi uden brugerens samtykke. (Et autofill-forslag er ikke en overskrivning:
+  ghosten kan kun stå i en tom celle, og den viser præcis den tekst, Enter skriver.)
 - FEJL: Fokus springer uventet.
 - FEJL: Dropdown åbner utilsigtet ved Tab.
 - FEJL: Container intercepter museklik.

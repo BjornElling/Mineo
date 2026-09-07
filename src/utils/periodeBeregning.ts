@@ -7,7 +7,7 @@
 import type { DateInterval } from '../types/calculation';
 import type { StandardLoenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
-import { createDate, formatToISO, isLeapYear, parseWeekString } from './dateUtils';
+import { createDate, formatToISO, getDaysInYear, isoWeeksInYear, parseWeekString } from './dateUtils';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { iterateDatesInclusive } from './isoDateHelpers';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
@@ -74,12 +74,6 @@ const parseWeekKey = (weekKey: string): { year: number; week: number } | null =>
     return null;
   }
   return { year, week };
-};
-
-const isoWeeksInYear = (year: number): number => {
-  const dec31 = createDate(year, 11, 31);
-  const dayOfWeek = dec31.getUTCDay();
-  return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5) ? 53 : 52;
 };
 
 /**
@@ -150,7 +144,7 @@ export const erPraecisEtAar = (loenperiode: string, unikkeEnheder: number, datoS
     }
 
     // Bekræft antal dage svarer til det pågældende år (365 eller 366 for skudår)
-    const expectedDays = isLeapYear(startYear) ? 366 : 365;
+    const expectedDays = getDaysInYear(startYear);
     return datoSet.size === expectedDays;
   } else if (loenperiode === 'uge') {
     // Ugeløn skal ALTID omregnes (365/7 = 52,14 uger)

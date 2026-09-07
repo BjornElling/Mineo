@@ -61,6 +61,7 @@
       mørkorange grid-placeholder 13 px
       teal       deaktiveret felttekst brun         deaktiveret label
       goldenrod  afledt tabelværdi     cyan         sekundær tekst
+      turkis     autofill-ghost 14 px  mørk turkis  autofill-ghost 13 px
   */
   --mineo-color-section-header: var(--color-text-primary);
   --mineo-color-row-text: var(--color-text-primary);
@@ -86,12 +87,15 @@
   --mineo-color-grid-placeholder-small: var(--color-input-placeholder);
   --mineo-color-grid-derived-regular: var(--color-grid-derived-text);
   --mineo-color-grid-derived-small: var(--color-grid-derived-text);
+  --mineo-color-grid-autofill-regular: var(--color-grid-autofill-suggest);
+  --mineo-color-grid-autofill-small: var(--color-grid-autofill-suggest);
 
   /* Aktiv tabelsignatur sættes af den fælles tabelskal; regular er fail-safe uden for en skal. */
   --mineo-color-active-grid-text: var(--mineo-color-grid-table-text-regular);
   --mineo-color-active-grid-header: var(--mineo-color-grid-header-regular);
   --mineo-color-active-grid-placeholder: var(--mineo-color-grid-placeholder-regular);
   --mineo-color-active-grid-derived: var(--mineo-color-grid-derived-regular);
+  --mineo-color-active-grid-autofill: var(--mineo-color-grid-autofill-regular);
 
   /* Placeholder-tekst (felter, adornments, dropdown-placeholder) */
   --mineo-color-placeholder: var(--color-input-placeholder);
@@ -129,6 +133,8 @@
   --mineo-color-grid-placeholder-small: #e65100; /* Mørkorange */
   --mineo-color-grid-derived-regular: #b8860b; /* Dark Goldenrod */
   --mineo-color-grid-derived-small: #827717; /* Oliven */
+  --mineo-color-grid-autofill-regular: #00bcd4; /* Turkis: autofill-ghost 14 px */
+  --mineo-color-grid-autofill-small: #0097a7; /* Mørk turkis: autofill-ghost 13 px */
   --mineo-color-placeholder: #ff8c00; /* Orange */
   --mineo-color-dropdown-option-placeholder: #f57c00; /* Brændt orange: kursiv menu-placeholder */
   --mineo-color-expression-indicator: #f9a825; /* Gul: 8 px fed fx-markør */

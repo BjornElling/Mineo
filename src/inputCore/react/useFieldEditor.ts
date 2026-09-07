@@ -45,6 +45,17 @@ export type FieldEditorView<T> = Readonly<{
   isOpen: boolean;
   /** Teksten i inputfeltet: åben draft, ellers lukket-visning fra den afsluttede revision (§3.5). */
   displayText: string;
+  /**
+   * Lukket-visningen fra den AFSLUTTEDE revision – uafhængigt af om editoren er åben (§3.5).
+   *
+   * Findes, fordi «har feltet en værdi?» og «står der noget i inputtet?» IKKE er samme spørgsmål, når
+   * editoren er åben: en tømt draft over en afsluttet værdi giver et tomt `displayText`, mens feltet
+   * fortsat HAR sin værdi. Autofill-ghosten skal kun vises i et felt uden afsluttet værdi, så et Enter
+   * ikke kan skrive oven i noget – og den skelnen kan ikke tages på `displayText` alene.
+   *
+   * Er værdien afsluttet som rejected råtekst, er det den rå tekst, præcis som lukket visning.
+   */
+  settledText: string;
   /** Feltets aktive røde issue fra det tokenbundne snapshot (§1.8). Vises UÆNDRET under redigering (§1.2). */
   issue: FieldIssue | undefined;
   /** Den canonical værdi, hvis feltet ikke står som rejected råtekst – til controls, der renderer værdien direkte. */
@@ -282,11 +293,13 @@ export const useFieldEditor = <T>(
   const open_ = isEditorOpen(boundState);
   React.useEffect(() => closeActiveRegistration, [closeActiveRegistration]);
 
-  const displayText = boundState.open !== null ? boundState.open.draft : formatSettledFieldText(field, view);
+  const settledText = formatSettledFieldText(field, view);
+  const displayText = boundState.open !== null ? boundState.open.draft : settledText;
 
   return {
     isOpen: open_,
     displayText,
+    settledText,
     issue,
     value: view.kind === 'canonical' ? view.value : undefined,
     open,

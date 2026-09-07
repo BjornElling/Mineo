@@ -114,6 +114,23 @@ const GridTextCellInner = <T, TEntity>(
   const errorMessage = issueText.message ?? '';
   const tooltipMessage = issueText.tooltip ?? '';
 
+  // Autofill-suggest: ghost-teksten VISES gennem inputtets egen `placeholder`.
+  //
+  // Det er et bevidst valg frem for et absolut positioneret tekst-overlay. Placeholderen tegnes af
+  // browseren på præcis den plads, feltets tekst ville stå – med samme skrift, samme justering og med
+  // plads gjort til enhedsmærket. Et overlay skulle spejle alle tre ting i hånden, og en fejl i
+  // spejlingen ville vise forslaget forskudt i netop de smalle, centrerede talceller. Ghosten kan kun
+  // stå i en TOM celle (se `useGridCellSurface`), så der er aldrig indtastet tekst at flugte med.
+  const autofillSuggestion = surface.autofillSuggestion;
+  const autofillId = React.useId();
+  // Begge skjulte tekster kan optræde samtidig: en TOM celle kan bære en gul advarsel eller en
+  // kryds-række-fejl og alligevel have et forslag. `aria-describedby` tager en LISTE, så begge
+  // beskrivelser er koblet til cellen – ellers ville den ene node hænge løs uden nogen der peger på den.
+  const describedByIds = [
+    ...(showError || showWarning ? [cellStatusId] : []),
+    ...(autofillSuggestion !== null ? [autofillId] : []),
+  ];
+
   const isDraftEmpty = surface.displayText.trim() === '';
   const resolvedEndAdornment = typeof endAdornment === 'function'
     ? (endAdornment as (info: Readonly<{ isDraftEmpty: boolean; value: T | undefined }>) => React.ReactNode)(
@@ -148,7 +165,9 @@ const GridTextCellInner = <T, TEntity>(
             onPaste={surface.onPaste}
             onMouseDown={handleFieldMouseDown}
             {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
-            placeholder={surface.isFocused && !surface.readOnly ? '' : placeholder}
+            placeholder={autofillSuggestion !== null
+              ? autofillSuggestion.displayText
+              : surface.isFocused && !surface.readOnly ? '' : placeholder}
             inputProps={{
               'aria-label': accessibleName,
               inputMode,
@@ -159,7 +178,11 @@ const GridTextCellInner = <T, TEntity>(
               // node, ingen skærmlæser kobler til cellen. Formularfeltet gjorde det allerede
               // (`StyledTextFieldBase`); cellen renderede teksten uden id og uden describedby, så en
               // skærmlæserbruger kun fik den røde ramme og aldrig beskeden.
-              ...(showError || showWarning ? { 'aria-describedby': cellStatusId } : {}),
+              //
+              // Ghosten peges på af samme grund: en skærmlæser læser en placeholder som feltets hint og
+              // fortæller ikke, at Enter vil skrive den. Den skjulte tekst gør forslaget og dets
+              // aktiveringstast hørbare.
+              ...(describedByIds.length === 0 ? {} : { 'aria-describedby': describedByIds.join(' ') }),
               ...surface.restoreTargetAttributes,
             }}
             sx={{
@@ -173,7 +196,9 @@ const GridTextCellInner = <T, TEntity>(
                   caretColor: surface.isEditing ? 'auto' : 'transparent',
                 }),
                 '&::placeholder': {
-                  color: 'var(--mineo-color-active-grid-placeholder)',
+                  color: autofillSuggestion !== null
+                    ? 'var(--mineo-color-active-grid-autofill)'
+                    : 'var(--mineo-color-active-grid-placeholder)',
                   opacity: 1,
                 },
               },
@@ -184,6 +209,14 @@ const GridTextCellInner = <T, TEntity>(
               {showError ? errorMessage : normalizedWarningText}
             </span>
           ) : null}
+          {autofillSuggestion !== null ? (
+            <>
+              <span id={autofillId} style={visuallyHiddenStyle}>
+                {`Forslag: ${autofillSuggestion.displayText}. Tryk Enter for at indsætte.`}
+              </span>
+              <AutofillSuggestMarker textAlign={textAlign} />
+            </>
+          ) : null}
           {typeof overlay === 'function'
             ? (overlay as (info: Readonly<{ value: T | undefined }>) => React.ReactNode)({ value: surface.value })
             : overlay}
@@ -192,6 +225,34 @@ const GridTextCellInner = <T, TEntity>(
     </Box>
   );
 };
+
+/**
+ * «ENTER»-mærket ved en aktiv ghost.
+ *
+ * Mærket er ikke pynt: uden det ligner den dæmpede ghost-tekst en formatplaceholder, og brugeren kan
+ * ikke se, at Enter vil indsætte netop den værdi. Det placeres modsat cellens tekstjustering, så det
+ * aldrig lægger sig oven i hverken tallet eller enhedsmærket (`kr.`/`%`), og det bruger samme
+ * absolut-positionerede idiom som `fx`-udtryksmærket.
+ */
+const AutofillSuggestMarker = ({ textAlign }: Readonly<{ textAlign: 'center' | 'right' | 'left' }>): React.ReactElement => (
+  <span
+    className="mineo-autofill-suggest-marker"
+    style={{
+      position: 'absolute',
+      ...(textAlign === 'left' ? { right: 2 } : { left: 2 }),
+      bottom: 1,
+      fontSize: 7,
+      fontWeight: 600,
+      letterSpacing: '0.3px',
+      lineHeight: 1,
+      color: 'var(--mineo-color-active-grid-autofill)',
+      pointerEvents: 'none',
+    }}
+    aria-hidden="true"
+  >
+    ENTER
+  </span>
+);
 
 // forwardRef bevarer den generiske `T` via en cast af den generiske inner-komponent.
 const GridTextCell = GridTextCellInner as <T, TEntity = unknown>(

@@ -24,6 +24,8 @@ import { useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
+import { AutofillSuggestProvider } from '../../inputCore/react/autofillSuggestContext';
+import { buildOffentligeYdelserAutofillModel } from './autofill/offentligeYdelserAutofillModel';
 
 type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
 export type OffentligeYdelserTableProps = Readonly<{
@@ -72,10 +74,16 @@ const OffentligeYdelserTable = React.memo(({
     saveOrderPath,
   });
   const renderOrder = table.buildRenderRows(sortedRows);
+  // Autofill-suggest bygges af de VISTE rækker i visningsorden – mønstret skal følge det, brugeren ser,
+  // ikke aggregatets indsættelsesorden. Bygges pr. render (rene array-opslag); se `StandardLoenTable`.
+  const autofillModel = buildOffentligeYdelserAutofillModel(
+    renderOrder.map((row) => row.rowId),
+    table.committedById
+  );
 
   const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];
   const sortIds = ['fraDato', 'tilDato', 'ydelse', 'tillaeg', 'ydelsestype', 'periodisering', 'antalDage', 'ydelsePerDag'] as const;
-  return <StandardGridTable tableWidth="1130px" useSmallFont>
+  return <AutofillSuggestProvider model={autofillModel}><StandardGridTable tableWidth="1130px" useSmallFont>
     <colgroup>{['120px', '120px', '130px', '130px', '200px', '160px', '110px', '160px'].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
     <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} {...sortableHeader(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderOrder.map((row, rowIndex) => {
@@ -101,7 +109,7 @@ const OffentligeYdelserTable = React.memo(({
         </td>
       </tr>;
     })}</tbody>
-  </StandardGridTable>;
+  </StandardGridTable></AutofillSuggestProvider>;
 });
 
 OffentligeYdelserTable.displayName = 'OffentligeYdelserTable';

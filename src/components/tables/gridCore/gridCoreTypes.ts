@@ -38,6 +38,17 @@ export type GridCellEditorHandle = Readonly<{
    */
   prepareEditFromKey: (key: string) => boolean;
   selectAll: () => void;
+  /**
+   * Accepter cellens SYNLIGE autofill-forslag (ghost-teksten).
+   *
+   * Returnerer `true`, når der var et forslag, og det er afsluttet i cellen; `false` når der intet var at
+   * acceptere – da fortsætter Enter som almindelig vertikal grid-navigation.
+   *
+   * Metoden ligger på handlet og ikke i navigationsmodulet, fordi kun cellen kender sin egen ghost:
+   * forslaget afhænger af cellens fokus- og drafttilstand og af den tabelmodel, dens context bærer.
+   * Valgfri, fordi et handle uden autofill (fx en popup-celle) hverken har eller skal have en ghost.
+   */
+  acceptAutofillSuggestion?: () => boolean;
 }>;
 
 export type GridCoreStateStore = Readonly<{

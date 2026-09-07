@@ -58,6 +58,9 @@
   --color-overlay-bg: rgba(255, 255, 255, 0.95);
   --color-grid-derived-text: var(--color-text-secondary);
   --color-grid-expression-indicator: rgba(0, 0, 0, 0.45);
+  /* Autofill-suggest: ghost-teksten skal kunne skelnes fra formatplaceholderen, men aldrig
+     forveksles med en indtastet værdi. Derfor fokusfarven i dæmpet form. */
+  --color-grid-autofill-suggest: rgba(25, 118, 210, 0.55);
   --color-status-success: #10b981;
   --color-status-error: #ef4444;
   --color-status-warning: #f59e0b;
@@ -101,6 +104,7 @@
   --color-overlay-bg: rgba(30, 30, 30, 0.97);
   --color-grid-derived-text: var(--color-text-secondary);
   --color-grid-expression-indicator: rgba(255, 255, 255, 0.45);
+  --color-grid-autofill-suggest: rgba(144, 202, 249, 0.6);
   --color-status-success: #4caf7d;
   --color-status-error: #e05252;
   --color-status-warning: #c8922a;

@@ -13,6 +13,7 @@ import type { DanishDateString, ISODateString } from '../types/branded';
 import { createDate, parseDanishDate, toISODateString } from '../types/branded';
 
 import { formatCopenhagenISODate, formatDanishDate } from './dateFormatting';
+import { diffUtcDays } from './utcDayMath';
 
 export { createDate } from '../types/branded';
 export { parseDanishDate } from '../types/branded';
@@ -62,6 +63,40 @@ export const yearHas53Weeks = (year: number): boolean => {
   const dayOfWeek = dec31.getUTCDay();
   return dayOfWeek === 4 || (isLeapYear(year) && dayOfWeek === 5);
 };
+
+/**
+ * Antal ISO-uger i et ISO-år: 52 eller 53.
+ *
+ * Den kanoniske form af regnestykket ovenfor. `periodeBeregning.ts` bar sin egen kopi, som inlinede
+ * {@link yearHas53Weeks}' krop, indtil uge-autofillen fik brug for samme tal; to udgaver af en
+ * kalenderregel er præcis den drift, der kan gøre uge 53 til uge 1 i den ene og ikke i den anden.
+ */
+export const isoWeeksInYear = (year: number): number => (yearHas53Weeks(year) ? 53 : 52);
+
+/**
+ * ISO-ugenummeret og ISO-ÅRET for en UTC-kalenderdag.
+ *
+ * Den omvendte vej af {@link parseWeekString} og bevidst placeret ved siden af den, så uge-aritmetik kun
+ * kan regnes ét sted. ISO-året er IKKE altid kalenderåret: 31-12-2024 ligger i uge 01/2025, og 01-01-2021
+ * ligger i uge 53/2020. Netop derfor må ugeforslag ikke regnes ved at lægge 1 til ugenummeret og nøjes med
+ * at kigge på kalenderåret.
+ *
+ * Algoritmen er ISO 8601's egen: flyt til ugens torsdag (den dag, der pr. definition afgør ugens år), og
+ * tæl hele uger fra 1. januar i det år.
+ */
+export const isoWeekOfDate = (date: Date): Readonly<{ week: number; year: number }> => {
+  const thursday = createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const isoDayOfWeek = thursday.getUTCDay() === 0 ? 7 : thursday.getUTCDay();
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - isoDayOfWeek);
+  const isoYear = thursday.getUTCFullYear();
+  const january1 = createDate(isoYear, 0, 1);
+  const week = Math.floor(diffUtcDays(january1, thursday) / 7) + 1;
+  return { week, year: isoYear };
+};
+
+/** Antal dage i den måned, `date` ligger i. */
+export const getDaysInMonth = (date: Date): number =>
+  createDate(date.getUTCFullYear(), date.getUTCMonth() + 1, 0).getUTCDate();
 
 /**
  * Tilføjer et antal dage til en dato

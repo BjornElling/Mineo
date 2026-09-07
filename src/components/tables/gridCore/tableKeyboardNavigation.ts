@@ -355,6 +355,21 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   }
 
   if (key === 'Enter') {
+    // Autofill-suggest: er der en synlig ghost i den fokuserede celle, INDSÆTTER Enter den og beholder
+    // fokus, så et nyt Enter navigerer videre som sædvanligt. Grenen ligger før navigationen og spørger
+    // cellen selv – returnerer den `false` (ingen ghost), er adfærden uændret.
+    //
+    // Kun et bart Enter accepterer. Shift+Enter er «flyt opad» og må ikke også kunne skrive en værdi:
+    // en tast med to virkninger afhængigt af en modifier ville gøre indsættelsen svær at forudse.
+    if (!e.shiftKey && activeEditableCell?.acceptAutofillSuggestion?.() === true) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Tab-ankeret BEVARES med vilje. Et accept er en indtastning, ikke en navigation, og ankeret er
+      // den startcelle, et Enter navigerer vertikalt ud fra. Ryddede accepten det, ville det NÆSTE
+      // Enter gå ned i den celle, brugeren tilfældigvis stod i – ikke i ankerkolonnen, som et
+      // almindeligt Enter i samme Tab-sekvens ville have gjort.
+      return;
+    }
     const anchor = tabAnchorByTable.get(table);
     const base: CellLocator = anchor ? resolveAnchorLocator(grid, anchor, activePos) : activePos;
     e.preventDefault();
@@ -533,6 +548,14 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
   clickEditableCellByTable.delete(table);
   pointerDownFocusedCellByTable.delete(table);
   tabAnchorByTable.delete(table);
+  // Fokus har FORLADT tabellen: den logiske fokuscelle skal følge med.
+  //
+  // `focusedCell` er dokumenteret som «grid-core har FYSISK fokus på cellen», men blev kun sat – aldrig
+  // ryddet – så den blev stående på den sidst besøgte celle for evigt. Det var harmløst, så længe begge
+  // forbrugere også krævede editing-tilstand (som ryddes), men ikke længere: autofill-ghosten er den
+  // første forbruger, der KUN aflæser fokus, og en stale fokuscelle ville lade et forslag stå synligt i
+  // en tabel, brugeren var gået fra – og i én celle pr. tabel, han havde besøgt.
+  core?.setFocusedCell(null);
 };
 
 export const handleTableDoubleClickCapture = (e: React.MouseEvent<HTMLTableElement>) => {

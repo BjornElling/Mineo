@@ -119,6 +119,33 @@ export const GRID_UX_SPEC = {
     deleteClearsAndCommitsImmediately: true,
   },
 
+  autofillSuggest: {
+    /**
+     * Autofill-suggest (normativ; se `input-field-behavior-contract.md` §1.5).
+     *
+     * Tilvalg pr. TABEL: en tabel uden `AutofillSuggestProvider` har ingen autofill. Aktiv i EO's
+     * løntabeller (én pr. ansættelsesforhold) og i Offentlige ydelser.
+     *
+     * - Ghosten står KUN i den fokuserede, ulåste celle, hvis AFSLUTTEDE værdi er tom, og hvis input er
+     *   tomt. En celle med en afsluttet værdi – eller med en igangværende indtastning – har aldrig en
+     *   ghost, heller ikke mens draften er slettet i en åben editor. Ghosten forsvinder med fokus, også
+     *   når fokus forlader tabellen.
+     * - Mønstret dannes af de udfyldte celler i SAMME kolonne i rækkerne OVER cellen, i visningsorden.
+     *   To prøver er nok. Tomme, delvise og fejlbehæftede celler springes over.
+     * - Enter indsætter ghosten gennem den normale settle-vej og BEHOLDER fokus i cellen; et nyt Enter
+     *   navigerer nedad som sædvanligt. Accepten er en indtastning og rører derfor IKKE Tab-ankeret.
+     *   Uden ghost er Enter uændret. Shift+Enter accepterer aldrig.
+     * - Datoer, uger og måneder krydser årsskiftet. Beløb gør IKKE: falder rækkens periodestart i et nyt
+     *   kalenderår, foreslås intet beløb.
+     * - Dropdown-celler og afledte kolonner har ingen autofill.
+     */
+    optInPerTable: true,
+    onlyInFocusedEmptyCell: true,
+    minimumSamples: 2,
+    enterAcceptsAndKeepsFocus: true,
+    amountsStopAtCalendarYearChange: true,
+  },
+
   rows: {
     /**
      * Rækkers livscyklus (universel for Mineos grid-tabeller):
