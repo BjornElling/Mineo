@@ -50,7 +50,8 @@ grundløn = round0(min(årsløn_afrundet_1000, aarsloenMax[skadesår]) × (608.0
 
 #### Trin 2 – Grundydelse per afgørelse
 
-Grundydelsen beregnes for hvert afgørelses-EET-procentpoint og holder sig uforandret inden for afgørelsen.
+Grundydelsen beregnes ud fra den EET-procent, der opgøres i den enkelte delperiode.
+Kapitalisering og ændret tidligere dækning kan derfor ændre grundydelsen inden for samme afgørelse.
 
 **Skade fra 01-01-2011:**
 ```
@@ -82,7 +83,9 @@ grundydelse_rest    = round2(grundydelse_fuld × (rest_eet_pct / eet_pct_før_ak
 
 En ny afgørelses EET-procent erstatter altid den forrige i sin helhed – procenter lægges ikke oven på hinanden. Kapitaliseringsprocenter fra tidligere afgørelser fratrækkes dog kumulativt, fordi de procentpoint allerede er udbetalt som engangsbeløb.
 
-Afgørelser sorteres efter afgørelsesdato, derefter virkningsdato og derefter række-id. En afgørelses referenceafgørelse er den umiddelbart foregående afgørelse i denne sortering.
+Afgørelser sorteres efter afgørelsesdato, derefter virkningsdato og derefter række-id.
+Afløsningsrækkefølgen følger denne sortering; overlapfradraget følger de faktisk opgjorte bidrag
+fra alle tidligere afgørelser i den konkrete delperiode.
 
 #### Overlap mellem afgørelser
 
@@ -91,6 +94,9 @@ For en afgørelse B med forgænger A er den normale skæringsdato:
 skæringsdato(B) = første dag i måneden efter afgørelsesdato(B)
 ```
 
+Dette gælder også, når afgørelsen træffes den første i måneden. Kapitalisering følger derimod
+altid sin eksakte dato og kan reducere eller afslutte ydelsen før månedens udgang.
+
 Hvis B's virkningsdato ligger før skæringsdatoen, og A ikke har `FS tilbageholdt EET = Ja`, opstår der en overlapsperiode:
 ```
 overlapsperiode(B) = virkningsdato(B) til og med dagen før skæringsdato(B)
@@ -98,12 +104,22 @@ overlapsperiode(B) = virkningsdato(B) til og med dagen før skæringsdato(B)
 
 I overlapsperioden fortsætter A med sin løbende rest-EET. B bidrager kun med den positive difference mellem B's løbende rest-EET og A's løbende rest-EET:
 ```
-overlap_eet_pct = max(0, rest_eet_pct(B) − rest_eet_pct(A))
+overlap_eet_pct = max(0, rest_eet_pct(B) − sum(faktisk tidligere opgjorte bidragsprocenter))
 ```
+
+Ved kun én tidligere afgørelse er fradraget dennes løbende rest. Ved flere afgørelser indgår
+de faktiske bidrag fra hver delperiode. En mellemliggende nedsættelse, som gav nul ekstra,
+må ikke bruges i stedet for den ældre ydelse, der fortsat blev opgjort.
 
 Hvis differencen giver 0 kr. for en delperiode, vises delperioden ikke i tabellen eller PDF'en. De viste periode-rækker er derfor kravlinjer for faktiske beløb, ikke en komplet teknisk periodisering.
 
 Fra skæringsdatoen yder B sin fulde løbende rest-EET, og A er ophørt.
+
+Ved flere afgørelser truffet samme dag afløser de hinanden på deres virkningsdatoer.
+Hver af disse virkningsperioder skal stadig fratrække en ældre afgørelses fortsatte ydelse.
+Eksempel: En ældre afgørelse på 30 % fortsætter juni ud. To afgørelser fra samme dag i juni
+fastsætter 40 % fra januar og 50 % fra april. De giver henholdsvis 10 % ekstra i januar–marts
+og 20 % ekstra i april–juni; fra juli gives alene 50 % efter den sidste afgørelse.
 
 #### FS tilbageholdt EET
 
@@ -183,11 +199,21 @@ Starter på kapitaliseringsdatoen og løber til den tidligste af beregningsdatoe
 
 Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på eller før en delperiodes startdato reducerer løbende rest-EET for alle afgørelser. Det gælder både fuld-ydelsesperioder og overlapsperioder.
 
+Hvis en senere kapitalisering reducerer en tidligere afgørelses løbende rest til nul, ophører
+den tidligere ydelse dagen før kapitaliseringsdatoen. Det er denne dato og årsagen
+«Kapitalisering», der vises over tabellen; den senere nominelle afløsningsdato må ikke vises
+som ydelsens ophør. Tekniske nulperioder bevares som grundlag for overlap og forklaringer.
+
 #### Trin 5 – Beregnet EET per periode-række
 
 ```
 beregnet_eet = round0(måneder_præcis × månedlig_ydelse)
 ```
+
+Direkte tilstødende intervaller med samme satsår, grundydelse, regulering og månedsydelse
+samles før denne afrunding. En neutral teknisk deling må ikke ændre beløbet: én hel måned
+med 2.661 kr./md. giver 2.661 kr., også hvis kapitalisering midt i måneden ændrer både den
+tidligere og den nye rest lige meget. Forklaringen bevarer kapitaliseringens eksakte grænse.
 
 Måneder opgøres med den domæne-neutrale `sumMaanedsbroekForInterval` fra
 `domain/dates/maanedsbroek.ts`, som tæller dage/dage-i-måneden for hver dag i perioden. Det fulde
@@ -213,6 +239,10 @@ I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen
 
 `src/domain/erhvervsevnetab/eetLoebendeYdelserCalculation.ts`
 
+Den fælles periodeplan ligger i `src/domain/erhvervsevnetab/eetLoebendePerioder.ts`.
+Herfra afledes både pengetabellens intervaller og ophørsoplysninger. Overlapforklaringen
+bruger planens komplette delperioder, også når de er udeladt som nulkrav i pengetabellen.
+
 ### Interne hjælpefunktioner
 
 | Funktion | Beskrivelse |
@@ -220,6 +250,7 @@ I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen
 | `collectResolvedAfgoerelser()` | Filtrerer og sorterer afgørelser |
 | `resolveAfgoerelseTransition()` | Afgør om overgangen bruger overlap-skæringsdato eller faktisk virkningsdato |
 | `buildComputedSectionRows()` | Bygger kravlinjer for overlap og fuld løbende ydelse |
+| `buildLoebendePeriodeplan()` | Samler afgrænsninger og faktiske bidrag for hele afgørelseskæden |
 | `buildFullSectionPeriods()` | Bygger fuld-ydelsesperioder inkl. satsår ved tilbagevirkende kraft |
 | `buildCalendarYearSectionPeriods()` | Bygger kalenderårssplit til overlapperioder |
 | `buildKapitaliseringEvents()` | Opløser globale kapitaliseringer og deres datoer |

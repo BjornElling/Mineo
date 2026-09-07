@@ -159,6 +159,27 @@ const eetValues: ErhvervsevnetabComposedValues = {
 };
 
 describe('midlertidigt EET transient injection', () => {
+  it('medtager en senere endelig kapitalisering ved afgrænsning af den tidligere ydelse i EO-importen', () => {
+    const context = buildEetImportContext({
+      revision: 'kapitalisering-afgraenser-tidligere-ydelse',
+      skadedato: iso('2018-01-01'),
+      eetValues: {
+        ...eetValues, aslAarsloen: asAmountValue(400000),
+        skadelidteFodselsdato: iso('1980-01-01'), beregningsdato: iso('2022-06-01'),
+        aslAfgoerelser: [
+          { id: 'a', afgoerelsesDato: iso('2018-12-01'), virkningsDato: iso('2019-01-01'), eetPct: 30, afgoerelseType: 'Delvist endelig', kapDato: iso('2019-01-01'), kapPct: 15, tidlKapDato: undefined, fsTilbageholdtEet: 'Nej' },
+          { id: 'b', afgoerelsesDato: iso('2020-06-01'), virkningsDato: iso('2019-07-01'), eetPct: 50, afgoerelseType: 'Endelig', kapDato: iso('2020-06-01'), kapPct: 25, tidlKapDato: undefined, fsTilbageholdtEet: 'Nej' },
+        ],
+      },
+    }, iso('2022-06-01'));
+    expect(context.groups).toHaveLength(1);
+    expect(context.groups[0]?.afgoerelsesdato).toBe(iso('2018-12-01'));
+    expect(context.groups[0]?.perioder.map(({ fra, til, beregnetEetOre }) => [fra, til, toKroner(beregnetEetOre)])).toEqual([
+      [iso('2019-01-01'), iso('2019-12-31'), 46872],
+      [iso('2020-01-01'), iso('2020-05-31'), 19955],
+    ]);
+  });
+
   it('bevarer det midlertidige EET-bilag for en midlertidig og delvist endelig afgørelse med de rapporterede datoer', () => {
     const eoValues = {
       ...createValidEoBase(),

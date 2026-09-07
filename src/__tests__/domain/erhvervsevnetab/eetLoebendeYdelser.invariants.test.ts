@@ -53,6 +53,68 @@ const expectContiguous = (perioder: readonly EetLoebendePeriodeRow[]): void => {
 };
 
 describe('EET løbende periodiseringsinvarianter', () => {
+  it('fordeler samtidige afgørelser på virkningsperioder og fratrækker den ældre fortsatte ydelse i begge', () => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2018-12-01'), virkningsDato: toISODateString('2019-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString('2020-06-01'), virkningsDato: toISODateString('2020-01-01'), eetPct: 40, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'c', afgoerelsesDato: toISODateString('2020-06-01'), virkningsDato: toISODateString('2020-04-01'), eetPct: 50, afgoerelseType: 'Midlertidig' }),
+    ], toISODateString('2020-12-31'));
+    const [first, second, third] = result.computation?.afgoerelser ?? [];
+    if (!first || !second || !third) throw new Error('Forventede tre afgørelser');
+    expect(first.ophoerDato).toBe('2020-06-30');
+    expect(second.beregningsperioder.map(({ fra, til, eetPct }) => [fra, til, eetPct])).toEqual([
+      ['2020-01-01', '2020-03-31', 10],
+    ]);
+    expect(third.beregningsperioder.map(({ fra, til, eetPct }) => [fra, til, eetPct])).toEqual([
+      ['2020-04-01', '2020-06-30', 20], ['2020-07-01', '2020-12-31', 50],
+    ]);
+  });
+
+  it.each(['2024-03-01', '2024-03-15', '2024-03-31'])('bevarer den tidligere ydelse marts ud ved afgørelse %s', (afgoerelsesdato) => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2023-01-01'), virkningsDato: toISODateString('2023-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString(afgoerelsesdato), virkningsDato: toISODateString('2024-01-01'), eetPct: 40, afgoerelseType: 'Midlertidig' }),
+    ]);
+    const [first, second] = result.computation?.afgoerelser ?? [];
+    if (!first || !second) throw new Error('Forventede to afgørelser');
+    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(second.beregningsperioder.map(({ fra, til, eetPct }) => [fra, til, eetPct])).toEqual([
+      ['2024-01-01', '2024-03-31', 10], ['2024-04-01', '2024-12-31', 40],
+    ]);
+  });
+
+  it.each([
+    ['2024-03-01', '2024-02-29'],
+    ['2024-03-15', '2024-03-14'],
+    ['2024-03-31', '2024-03-30'],
+  ])('lader global kapitalisering %s afslutte en tidligere ydelse %s', (kapDato, ophoerDato) => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2023-01-01'), virkningsDato: toISODateString('2023-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString('2024-03-01'), virkningsDato: toISODateString('2024-01-01'), eetPct: 50, afgoerelseType: 'Delvist endelig', kapDato: toISODateString(kapDato), kapPct: 35 }),
+    ]);
+    const first = result.computation?.afgoerelser[0];
+    if (!first) throw new Error('Forventede første afgørelse');
+    expect(first.ophoerDato).toBe(ophoerDato);
+    expect(first.ophoerAarsag).toBe('kapitalisering');
+    expect(first.perioder.at(-1)?.til).toBe(ophoerDato);
+    expect(first.beregningsperioder.at(-1)?.eetPct).toBe(0);
+  });
+
+  it('bevarer faktisk dækning gennem flere forhøjelser og en kapitalisering midt i overlap', () => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2023-01-01'), virkningsDato: toISODateString('2023-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString('2024-03-01'), virkningsDato: toISODateString('2024-01-01'), eetPct: 40, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'c', afgoerelsesDato: toISODateString('2024-03-15'), virkningsDato: toISODateString('2024-01-01'), eetPct: 50, afgoerelseType: 'Delvist endelig', kapDato: toISODateString('2024-03-20'), kapPct: 35 }),
+    ]);
+    const decisions = result.computation?.afgoerelser;
+    if (!decisions) throw new Error('Forventede tre afgørelser');
+    const contributions = (day: string) => decisions.map((decision) =>
+      decision.beregningsperioder.find(({ fra, til }) => fra <= day && day <= til)?.eetPct ?? 0);
+    expect(contributions('2024-03-19')).toEqual([30, 10, 10]);
+    expect(contributions('2024-03-20')).toEqual([0, 5, 10]);
+    expect(contributions('2024-04-01')).toEqual([0, 0, 15]);
+  });
+
   it('dækker et flerårigt fuldt interval uden overlap eller hul', () => {
     const result = computeTestRows([
       testRow({

@@ -37,14 +37,20 @@ const afgoerelseRow = (page: Page, index: number) =>
 const fillAfgoerelse = async (
   page: Page,
   index: number,
-  values: Readonly<{ afgoerelsesdato: string; virkningsdato: string; eetPct: string }>,
+  values: Readonly<{
+    afgoerelsesdato: string; virkningsdato: string; eetPct: string;
+    type?: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
+    kapDato?: string; kapPct?: string;
+  }>,
 ): Promise<void> => {
   const row = afgoerelseRow(page, index);
   await setVerbatimFieldValueAndSettle(row.locator('input').nth(0), values.afgoerelsesdato);
   await setVerbatimFieldValueAndSettle(row.locator('input').nth(1), values.virkningsdato);
   await setFieldValueAndSettle(row.locator('input').nth(2), values.eetPct);
   await row.getByRole('combobox').first().click();
-  await page.getByRole('option', { name: 'Midlertidig', exact: true }).click();
+  await page.getByRole('option', { name: values.type ?? 'Midlertidig', exact: true }).click();
+  if (values.kapDato) await setVerbatimFieldValueAndSettle(row.locator('td').nth(4).locator('input'), values.kapDato);
+  if (values.kapPct) await setFieldValueAndSettle(row.locator('td').nth(5).locator('input'), values.kapPct);
 };
 
 const setupSag = async (page: Page, beregningsdato: string): Promise<void> => {
@@ -62,6 +68,38 @@ const setupSag = async (page: Page, beregningsdato: string): Promise<void> => {
 };
 
 test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
+  test('ophør og overlapforklaring følger kapitaliseringens eksakte dato', async ({ page, runtimeErrors }, testInfo) => {
+    await setupSag(page, '01-06-2022');
+    await fillAfgoerelse(page, 0, {
+      afgoerelsesdato: '01-12-2018', virkningsdato: '01-01-2019', eetPct: '30',
+      type: 'Delvist endelig', kapDato: '01-01-2019', kapPct: '15',
+    });
+    await fillAfgoerelse(page, 1, {
+      afgoerelsesdato: '01-06-2020', virkningsdato: '01-07-2019', eetPct: '50',
+      type: 'Endelig', kapDato: '01-06-2020', kapPct: '25',
+    });
+    await eetTab(page, 'Løbende ydelser').click();
+    const first = page.locator('.content-box').filter({ has: page.locator('.section-header').filter({ hasText: 'Afgørelse 1. december 2018' }) });
+    await expect(first.locator('.row--label-right-hover').filter({ hasText: 'Løbende ydelse ophører' })).toContainText('31-05-2020');
+    await expect(first.locator('.row--label-right-hover').filter({ hasText: 'Årsag' })).toContainText('Kapitalisering');
+    await expect(first.getByRole('row').filter({ hasText: '01-01-2020' })).toContainText('31-05-2020');
+    await expect(first.getByText('66.827 kr.', { exact: true })).toBeVisible();
+    const second = page.locator('.content-box').filter({ has: page.locator('.section-header').filter({ hasText: 'Afgørelse 1. juni 2020' }) });
+    await expect(second).toContainText('01-06-2020 – 30-06-2020');
+    await expect(second).toContainText('Efter kapitalisering på i alt 40 % er den løbende EET 10 %.');
+    await expect(second.getByText('123.028 kr.', { exact: true })).toBeVisible();
+    await first.getByText('Løbende ydelse ophører', { exact: true }).evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await page.screenshot({ path: testInfo.outputPath('kapitalisering-ophoer.png') });
+    await second.getByText(/^01-07-2019 – 31-05-2020:/).evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await page.screenshot({ path: testInfo.outputPath('kapitalisering-perioder.png') });
+    const downloadPromise = page.waitForEvent('download');
+    await grundlaeggendeRow(page, 'Download specifikation').getByRole('button').click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+    await download.saveAs(testInfo.outputPath('kapitalisering-perioder.pdf'));
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('navngiver overlappets skæringsdato og difference i stedet for at lade en lille linje stå uforklaret', async ({ page, runtimeErrors }) => {
     await setupSag(page, '01-07-2026');
     await fillAfgoerelse(page, 0, { afgoerelsesdato: '01-06-2020', virkningsdato: '01-01-2020', eetPct: '25' });
@@ -71,7 +109,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     // BB-152: skæringsdatoen og de 30 % - 25 % = 5 %, som overlapperioden faktisk er regnet med.
     await expect(page.getByText(
-      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og perioden er derfor regnet med 30 % - 25 % = 5 %.',
+      '01-01-2022 – 30-06-2022: Den løbende EET er 30 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor 5 % yderligere.',
     )).toBeVisible();
 
     // BB-156: de to skridt mellem «Grundydelse pr. år» og «Ydelse/md.», uden hvilke rækken ikke går op.
@@ -95,7 +133,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
 
     // BB-153: fraværet skal læses som en oplysning, ikke som et hul i beregningen.
     await expect(page.getByText(
-      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og denne afgørelse giver derfor intet yderligere krav for perioden.',
+      '01-01-2022 – 30-06-2022: Den løbende EET er 25 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor intet yderligere krav for perioden.',
     )).toBeVisible();
 
     expect(runtimeErrors).toEqual([]);

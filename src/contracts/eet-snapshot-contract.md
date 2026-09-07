@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-11
+**Senest verificeret mod kode:** 2026-09-07
 
 ---
 
@@ -46,6 +46,32 @@ Den canonical projektionsform er `issues`, `hasBlockingErrors` og `computation`,
 
 Projektionerne er dele af det Zod-validerede `EetSnapshot`; view- og dokumentprojektioner må
 kun formatere eller udvælge disse data.
+
+### 2.1 Løbende ydelsers perioder
+
+`eetLoebendePerioder.ts` ejer den samlede periodeplan: afløsningsgrænser, kapitaliseringshændelser,
+satsår og faktisk tidligere opgjorte bidrag. `eetLoebendeYdelserCalculation.ts` omsætter planen til penge.
+
+- `beregningsperioder` bevarer alle tekniske delperioder, også nulkrav, med løbende restprocent,
+  allerede dækket procent, kapitaliseret procent og afgørelsens yderligere bidrag.
+- En senere afgørelse fratrækker summen af de faktisk tidligere opgjorte, ikke-tilbageholdte bidrag
+  i hvert overlapinterval. En mellemliggende afgørelse med nulbidrag må ikke erstatte den ældre
+  fortsatte ydelse som fradragsgrundlag.
+- Kapitalisering virker globalt fra den eksakte kapitaliseringsdato. Ophørsdatoen for en ydelse,
+  der derved bliver nul, er dagen før denne dato, også når kapitaliseringen tilhører en senere afgørelse.
+- Den almindelige overlap-skæringsdato er første dag i måneden efter afgørelsesdatoen, også for
+  afgørelser truffet den første i måneden. Samtidige afgørelser og tilbageholdelse følger §6.1
+  i `domain-boundary-contract.md`.
+- `perioder` er pengetabellen: direkte tilstødende intervaller med identisk satsår, grundydelse,
+  regulering og månedsydelse samles før beløbsafrunding. Hver vist række er
+  `round0(sumMaanedsbroekForInterval(fra, til) × månedsydelse)`. Først herefter udelades nulbeløb.
+- Overlapforklaringer skal afledes af de tekniske delperioder, aldrig af første overlaprækkes
+  procent eller af den filtrerede pengetabel. Forklaringernes datoer skal svare til de intervaller,
+  deres tal gælder for.
+
+UI, dokumenter, differencekrav og EO-import aftager samme periodeplan gennem de eksisterende
+projektioner. Deres forskellige opgørelsesdatoer ændrer ikke periodereglerne. Planen er afledt
+runtime-output og persisteres ikke i `.eo` eller browserlagrede sagsdata.
 
 ---
 

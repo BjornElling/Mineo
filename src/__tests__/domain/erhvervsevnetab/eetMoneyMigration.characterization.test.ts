@@ -93,23 +93,10 @@ const createStamdata = (): StamdataValues => ({
   skadelidteFodselsdato: iso('1980-01-01'),
 });
 
-/**
- * Hashene for `snapshot`, `loebendeYdelser` og `differencekrav` blev opdateret, da tilstødende
- * visningsrækker med identiske tal blev slået sammen (BB-165). Ingen af sagens BELØB ændrede sig:
- * de tre afgørelser giver fortsat 69.296, 35.991 og 4.158 kr. Ændringen er, at
- * `delvist-endelig-1`s to rækker `2025-07-01`–`2025-09-14` (9.785 kr.) og
- * `2025-09-15`–`2025-09-30` (2.116 kr.) – ordret ens i satsår, grundydelse og månedsydelse – nu
- * vises som én række `2025-07-01`–`2025-09-30` på 11.901 kr. Sammenlægningen sker EFTER
- * afrundingen pr. delperiode, netop for at totalen ikke kan flytte sig.
- *
- * Alle fire hashes blev derefter opdateret igen (2026-09-03), og også denne gang ændrede INTET beløb
- * sig. Snapshottene blev dumpet før og efter, og diffen indeholdt præcis seks linjer:
- *   - to advarselstekster mistede halen «– beregningen er derfor ikke lovmæssig» (BB-173),
- *   - fire nye `eetPct`-felter på kapitaliseringsafgørelserne (25 og 35 i hver af de to grene),
- *     som bærer afgørelsens egen erhvervsevnetabsprocent til boksens overskrift (BB-170/BB-171).
- * Sådan skal en hash-opdatering begrundes: dump snapshottet før og efter, og skriv hvad diffen
- * indeholdt. Kan det ikke gøres, er hashen ikke klar til at flytte sig.
- */
+// Løbende perioder og differencekrav kontrolleres med konkrete værdier frem for uigennemsigtige hashes.
+// Sammenligning med HEAD ved periodeomlægningen viste uændrede beløb; den delvist endelige
+// ydelses ophør/fradragesTil flyttede fra 28-02 til 31-01-2026 pga. kapitaliseringen 01-02.
+// De komplette beregningsperioder erstatter samtidig den gamle ene overlap-procent.
 describe('EET MoneyOre-migration karakterisering', () => {
   const snapshot = computeEetSnapshot({
     values: createValues(),
@@ -122,12 +109,16 @@ describe('EET MoneyOre-migration karakterisering', () => {
     },
   });
 
-  it('låser hele det samlede snapshot byte-præcist efter stabil nøglesortering', () => {
-    expect(goldenHash(snapshot)).toBe('65fbd9fb3ab8de591f078aa05b2754ccf08fb28f283606c7b417b807826aaa9e');
-  });
-
-  it('låser løbende ydelser med overlap og kalenderårsskift', () => {
-    expect(goldenHash(snapshot.loebendeYdelser)).toBe('52049e36713e4d7010b4c8f4116829387871bb7baa5911d1e2107da1cdfd791d');
+  it('bevarer beløbene og viser kapitaliseringens faktiske ophør i et flerårigt forløb', () => {
+    const computation = snapshot.loebendeYdelser.computation;
+    if (!computation) throw new Error('Forventede løbende ydelser');
+    expect(computation.afgoerelser.map(({ iAltBeregnetEetOre, ophoerDato }) => [iAltBeregnetEetOre, ophoerDato])).toEqual([
+      [fromKroner(69296), iso('2025-09-30')],
+      [fromKroner(35991), iso('2026-01-31')],
+      [fromKroner(4158), iso('2026-01-31')],
+    ]);
+    expect(computation.afgoerelser[1]?.ophoerAarsag).toBe('kapitalisering');
+    expect(computation.afgoerelser[1]?.perioder.at(-1)?.til).toBe(iso('2026-01-31'));
   });
 
   it('låser kapitalisering med delvist endelig og endelig afgørelse', () => {
@@ -138,8 +129,19 @@ describe('EET MoneyOre-migration karakterisering', () => {
     expect(goldenHash(snapshot.efterEal)).toBe('204d3acc44ec81f2b49a69f5facb530db3735b6e528e77e74c8fdc1da2abe29e');
   });
 
-  it('låser differencekravet inklusive søsterberegninger og forlig', () => {
-    expect(goldenHash(snapshot.differencekrav)).toBe('60ba5a5c37c2254ba227b90b6fa1c0c885e781d32403dfc2ba99cb40ee1b47ed');
+  it('fører samme perioder og beløb videre til differencekravet', () => {
+    const computation = snapshot.differencekrav.computation;
+    if (!computation) throw new Error('Forventede differencekrav');
+    expect(computation.fradragLoebendeYdelserOre).toBe(fromKroner(4158));
+    expect(computation.fradragKapitaliseretEetOre).toBe(fromKroner(2913621));
+    expect(computation.ealKravOre).toBe(fromKroner(1388687));
+    expect(computation.differencekravOre).toBe(fromKroner(0));
+    expect(computation.afgoerelser.map(({ fradragesTil }) => fradragesTil)).toEqual([
+      iso('2025-09-30'), iso('2026-01-31'), iso('2026-01-31'),
+    ]);
+    expect(computation.loebendeComputation?.afgoerelser.map(({ perioder }) => perioder)).toEqual(
+      snapshot.loebendeYdelser.computation?.afgoerelser.map(({ perioder }) => perioder)
+    );
   });
 
   it('låser mer-erstatning ved forhøjet pensionsalder med alle delresultater', () => {

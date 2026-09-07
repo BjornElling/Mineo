@@ -78,6 +78,64 @@ describe('hasOverlapPeriod', () => {
 });
 
 describe('computeEetLoebendeYdelser', () => {
+  it('supplerer den faktisk fortsatte ydelse gennem en kæde med fald og senere tilbagevirkende forhøjelse', () => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2018-12-01'), virkningsDato: toISODateString('2019-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString('2020-06-01'), virkningsDato: toISODateString('2019-07-01'), eetPct: 20, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'c', afgoerelsesDato: toISODateString('2020-08-01'), virkningsDato: toISODateString('2020-01-01'), eetPct: 40, afgoerelseType: 'Midlertidig' }),
+    ], { aslAarsloen: 400000, skadedato: toISODateString('2018-01-01'), beregningsdato: toISODateString('2020-12-31') });
+    const [first, second, third] = result.computation?.afgoerelser ?? [];
+    if (!first || !second || !third) throw new Error('Forventede tre afgørelser');
+    expect(first.ophoerDato).toBe('2020-06-30');
+    expect(second.perioder.map(({ fra, til }) => [fra, til])).toEqual([['2020-07-01', '2020-08-31']]);
+    expect(third.perioder.map(({ fra, til, maanedligYdelseOre }) => [fra, til, toKroner(maanedligYdelseOre)])).toEqual([
+      ['2020-01-01', '2020-06-30', 2661],
+      ['2020-07-01', '2020-08-31', 5322],
+      ['2020-09-01', '2020-12-31', 10643],
+    ]);
+  });
+
+  it('opgør en hel måned med uændret ydelse til præcis månedsydelsen trods kapitalisering midt i måneden', () => {
+    const result = computeTestRows([
+      testRow({ id: 'a', afgoerelsesDato: toISODateString('2018-12-01'), virkningsDato: toISODateString('2019-01-01'), eetPct: 40, afgoerelseType: 'Midlertidig' }),
+      testRow({ id: 'b', afgoerelsesDato: toISODateString('2020-04-15'), virkningsDato: toISODateString('2020-04-01'), eetPct: 50, afgoerelseType: 'Delvist endelig', kapPct: 20, kapDato: toISODateString('2020-04-16') }),
+    ], { aslAarsloen: 400000, skadedato: toISODateString('2018-01-01'), beregningsdato: toISODateString('2020-12-31') });
+    const april = result.computation?.afgoerelser[1]?.perioder[0];
+    if (!april) throw new Error('Forventede aprilrækken');
+    expect([april.fra, april.til, april.maanederPraecis]).toEqual(['2020-04-01', '2020-04-30', 1]);
+    expect(toKroner(april.maanedligYdelseOre)).toBe(2661);
+    expect(toKroner(april.beregnetEetOre)).toBe(2661);
+  });
+
+  it('afslutter første afgørelses ydelse ved den eksakte senere kapitalisering og forklarer hvert overlapinterval', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'a', afgoerelsesDato: toISODateString('2018-12-01'),
+        virkningsDato: toISODateString('2019-01-01'), eetPct: 30,
+        afgoerelseType: 'Delvist endelig', kapPct: 15, kapDato: toISODateString('2019-01-01'),
+      }),
+      testRow({
+        id: 'b', afgoerelsesDato: toISODateString('2020-06-01'),
+        virkningsDato: toISODateString('2019-07-01'), eetPct: 50,
+        afgoerelseType: 'Endelig', kapPct: 25, kapDato: toISODateString('2020-06-01'),
+      }),
+    ], {
+      aslAarsloen: 400000, skadedato: toISODateString('2018-01-01'),
+      beregningsdato: toISODateString('2022-06-01'),
+    });
+    const [first, second] = result.computation?.afgoerelser ?? [];
+    if (!first || !second) throw new Error('Forventede begge afgørelser');
+    expect(first.ophoerDato).toBe('2020-05-31');
+    expect(first.ophoerAarsag).toBe('kapitalisering');
+    expect(first.perioder.at(-1)?.til).toBe(first.ophoerDato);
+    expect(toKroner(first.iAltBeregnetEetOre)).toBe(66827);
+    expect(toKroner(second.iAltBeregnetEetOre)).toBe(123028);
+    const note = resolveLoebendeSkaeringsNote(second);
+    expect(note).toContain('31-05-2020');
+    expect(note).toContain('01-06-2020');
+    expect(note).toContain('10 %');
+  });
+
   it('blokerer en canonical negativ årsløn som afledt domæneissue', () => {
     const result = computeTestRows([], { aslAarsloen: -1000 });
 
@@ -1888,7 +1946,7 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     virkningsdato: toISODateString('2020-01-01'),
     skaeringsDato: null,
     harOverlap: false,
-    overlapForgaengerEetPct: null,
+    beregningsperioder: [],
     afgoerelseType: 'Endelig',
     eetPct: 50,
     priorKapPct: 0,
@@ -2181,45 +2239,25 @@ describe('formatLoebendeRestEetLinje', () => {
 });
 
 describe('resolveLoebendeSkaeringsNote', () => {
-  const base = {
-    harOverlap: true,
-    skaeringsDato: toISODateString('2022-07-01'),
-    eetPct: 30,
-    priorKapPct: 0,
-    overlapForgaengerEetPct: 25,
-  } as const;
-  const periode = (fra: string): EetLoebendePeriodeRow => ({
-    fra: toISODateString(fra),
-    til: toISODateString('2022-12-31'),
-    satsAar: 2022,
-    maanederPraecis: 6,
-    grundydelseAfrundetOre: fromKroner(1000),
-    reguleringPct: 0,
-    maanedligYdelseOre: fromKroner(100),
-    beregnetEetOre: fromKroner(600),
-  });
+  const periode = {
+    fra: toISODateString('2022-01-01'), til: toISODateString('2022-06-30'),
+    satsAar: 2022, eetPct: 5, restEetPct: 30, tidligereYdelsePct: 25,
+    kapitaliseretPct: 0, overlap: true,
+  };
 
-  it('navngiver skæringsdatoen og differencen, når overlapperioden har en række', () => {
-    expect(resolveLoebendeSkaeringsNote({ ...base, perioder: [periode('2022-01-01')] })).toBe(
-      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og perioden er derfor regnet med 30 % - 25 % = 5 %.'
+  it('forklarer den præcise overlapperiode med dens løbende ydelse og tidligere dækning', () => {
+    expect(resolveLoebendeSkaeringsNote({ beregningsperioder: [periode] })).toBe(
+      '01-01-2022 – 30-06-2022: Den løbende EET er 30 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor 5 % yderligere.'
     );
   });
 
-  it('forklarer det manglende halvår, når differencen giver 0 kr.', () => {
-    // BB-153: perioden udelades af tabellen, fordi 25 % - 25 % = 0 kr. Uden noten ser fraværet ud
-    // som et hul i beregningen frem for en oplysning om, at kravet ligger på den tidligere afgørelse.
-    expect(resolveLoebendeSkaeringsNote({ ...base, eetPct: 25, perioder: [periode('2022-07-01')] })).toBe(
-      'Frem til 01-07-2022 udbetales den tidligere afgørelse fortsat, og denne afgørelse giver derfor intet yderligere krav for perioden.'
+  it('forklarer nulkrav, selvom perioden ikke står i pengetabellen', () => {
+    expect(resolveLoebendeSkaeringsNote({ beregningsperioder: [{ ...periode, eetPct: 0, restEetPct: 25 }] })).toContain(
+      'Denne afgørelse giver derfor intet yderligere krav for perioden.'
     );
   });
 
-  it('giver ingen note uden overlap', () => {
-    expect(resolveLoebendeSkaeringsNote({
-      ...base,
-      harOverlap: false,
-      skaeringsDato: null,
-      overlapForgaengerEetPct: null,
-      perioder: [periode('2022-01-01')],
-    })).toBeNull();
+  it('giver ingen overlapforklaring til en almindelig ydelsesperiode', () => {
+    expect(resolveLoebendeSkaeringsNote({ beregningsperioder: [{ ...periode, overlap: false }] })).toBeNull();
   });
 });

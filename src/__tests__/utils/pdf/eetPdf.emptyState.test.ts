@@ -320,6 +320,7 @@ describe('EET PDF empty states', () => {
             grundydelse2024FuldOre: fromKroner(0),
             grundydelse2024RestOre: null,
             perioder: [],
+            beregningsperioder: [],
             iAltBeregnetEetOre: fromKroner(0),
           }],
           issues: [],
