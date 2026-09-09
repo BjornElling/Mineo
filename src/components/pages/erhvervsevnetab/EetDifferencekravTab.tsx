@@ -4,14 +4,21 @@ import ContentBox from '../../layout/ContentBox';
 import LabeledControlRow from '../../layout/LabeledControlRow';
 import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
-import PercentField from '../../../inputCore/react/fields/PercentField';
-import FractionField from '../../../inputCore/react/fields/FractionField';
-import DateField from '../../../inputCore/react/fields/DateField';
 import {
   buildBeregnetDifferencekravLabel,
-  resolveMerErstatningPensionsalderBilagDisabledReason,
-  resolveProformaKapitaliseringBilagDisabledReason,
+  buildMerErstatningForhoejelseOverskrift,
+  DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
+  SAMLET_MER_ERSTATNING_LABEL,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import {
+  getEetDifferencekravBilagAvailability,
+  type EetDifferencekravBilagKey,
+} from '../../../domain/erhvervsevnetab/eetDifferencekravBilag';
+import {
+  FORHOEJET_PENSIONSALDER_LABEL,
+  INDREGN_FORHOEJET_PENSIONSALDER_LABEL,
+} from '../../../domain/erhvervsevnetab/eetLabels';
+import type { FieldRef } from '../../../inputCore/fieldDescriptor';
 import { ERHVERVSEVNETAB_TAB_KEYS } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
@@ -35,12 +42,12 @@ import {
   erhvervsevnetabBilagKapitaliseringField,
   erhvervsevnetabBilagLoebendeYdelserField,
   erhvervsevnetabBilagMerErstatningPensionsalderField,
+  erhvervsevnetabBilagOpgoerelseField,
   erhvervsevnetabBilagProformaKapitaliseringField,
   erhvervsevnetabBilagVisUdvidetSpecLoebendeField,
   erhvervsevnetabEndeligEetTilbagevirkendeField,
   erhvervsevnetabIndregnMerErstatningField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
-import { forligInputFields } from '../../../domain/erstatningsopgoerelse/forligInputPort';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
@@ -50,6 +57,7 @@ type Props = Readonly<{
 }>;
 
 const refs = {
+  opgoerelse: erhvervsevnetabBilagOpgoerelseField.bind(),
   loebendeYdelser: erhvervsevnetabBilagLoebendeYdelserField.bind(),
   kapitalisering: erhvervsevnetabBilagKapitaliseringField.bind(),
   eetEfterEal: erhvervsevnetabBilagEetEfterEalField.bind(),
@@ -58,9 +66,6 @@ const refs = {
   visUdvidetSpecifikationLoebendeYdelserBilag: erhvervsevnetabBilagVisUdvidetSpecLoebendeField.bind(),
   tilbagevirkende: erhvervsevnetabEndeligEetTilbagevirkendeField.bind(),
   merErstatning: erhvervsevnetabIndregnMerErstatningField.bind(),
-  forligProcent: forligInputFields.procent.bind(),
-  forligBroek: forligInputFields.broek.bind(),
-  forligDato: forligInputFields.dato.bind(),
 } as const;
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter bor på differencekrav-fanen.
@@ -71,12 +76,48 @@ const location = (field: string) => ({
 });
 
 
+const BILAG_FIELD_BY_KEY: Readonly<Record<EetDifferencekravBilagKey, FieldRef<boolean>>> = {
+  loebendeYdelser: refs.loebendeYdelser,
+  kapitalisering: refs.kapitalisering,
+  eetEfterEal: refs.eetEfterEal,
+  proformaKapitalisering: refs.proformaKapitalisering,
+  merErstatningPensionsalder: refs.merErstatningPensionsalder,
+  visUdvidetSpecifikationLoebendeYdelserBilag: refs.visUdvidetSpecifikationLoebendeYdelserBilag,
+};
+
 const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Props) => {
   const values = projection.values;
   const snapshot = projection.snapshot.differencekrav;
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
+
+  // Samme opslag som dokumentkilden bruger, så et gemt valg for et bilag uden indhold hverken kan
+  // stå afkrydset på fladen eller love en side i papiret.
+  const bilagAvailability = React.useMemo(
+    () => getEetDifferencekravBilagAvailability({
+      computation,
+      indregnMerErstatningVedForhoejetPensionsalder: values.indregnMerErstatningVedForhoejetPensionsalder,
+      loebendeYdelserBilagValgt: values.eetDifferencekravBilagSelection.loebendeYdelser,
+    }),
+    [computation, values.indregnMerErstatningVedForhoejetPensionsalder, values.eetDifferencekravBilagSelection.loebendeYdelser]
+  );
+
+  const renderBilagCheckbox = React.useCallback((key: EetDifferencekravBilagKey, label: string) => {
+    const availability = bilagAvailability[key];
+    // Inaktivering og årsag leveres som ÉN prop, så feltfamilien selv ejer tooltip-indpakningen
+    // (hover-fladen for et disabled input). Fladen skjuler aldrig et utilgængeligt bilagsvalg.
+    return (
+      <CheckboxField
+        key={key}
+        field={BILAG_FIELD_BY_KEY[key]}
+        location={location(`bilag-${key}`)}
+        name={key}
+        label={label}
+        unavailableReason={availability.enabled ? null : availability.disabledReason}
+      />
+    );
+  }, [bilagAvailability]);
 
   return (
     <Box>
@@ -92,10 +133,17 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
         <ContentBox className="content-box">
           <Typography className="section-header">Beregning</Typography>
 
+          {/*
+            Kort form `dd-mm-åååå` som fanens øvrige etiketterede datorækker – og som dokumentet
+            allerede brugte. Rækken stod i langform ved siden af «Kapitaliseringsdato 01-06-2022» i
+            proformaboksen, altså samme dag skrevet på to måder i samme kolonne på samme skærm, og
+            dokumentet var samtidig uenig med skærmen om netop denne række (BB-199). Overskrifter og
+            indlejrede prosadatoer beholder deres egne former.
+          */}
           <Box className="row--label-right-hover">
             <Typography className="row--text">Beregningsdato</Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{formatIsoDateLong(computation.beregningsdato)}</Typography>
+              <Typography className="row--text">{formatISOToDanish(computation.beregningsdato)}</Typography>
             </Box>
           </Box>
 
@@ -136,57 +184,34 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                   },
                 }}
               >
+                {/*
+                  ALLE bilagsvalg vises ALTID – også når bilaget ikke findes i den aktuelle beregning.
+                  De gøres da inaktive og umarkerede med årsagen i tooltippet, frem for at forsvinde fra
+                  rækken (jf. page-component-contract.md §"Bilagsvalg og andre betingede
+                  afkrydsningsfelter"). Et valg der forsvinder, efterlader brugeren i tvivl om, hvorvidt
+                  muligheden findes – og et valg, der står afkrydset og aktivt for et bilag uden
+                  indhold, lover en side, papiret ikke har (BB-188).
+                */}
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <CheckboxField
-                    field={refs.loebendeYdelser}
-                    location={location('bilag-loebendeYdelser')}
-                    name="loebendeYdelser"
-                    label="Løbende ydelser"
+                    field={refs.opgoerelse}
+                    location={location('bilag-opgoerelse')}
+                    name="opgoerelse"
+                    // Opgørelsen indgår ALTID; `lockedOn` er den modsatte tilstand af `disabled`:
+                    // altid markeret, aldrig redigerbar. Samme model som EO's «Opgørelse», og
+                    // dokumentkilden tvinger samme valg sandt, så visning og dokument ikke kan komme
+                    // fra hinanden.
+                    lockedOn
                     unavailableReason={null}
+                    label="Opgørelse"
                   />
-                  <CheckboxField
-                    field={refs.kapitalisering}
-                    location={location('bilag-kapitalisering')}
-                    name="kapitalisering"
-                    label="Kapitalisering"
-                    unavailableReason={null}
-                  />
-                  <CheckboxField
-                    field={refs.eetEfterEal}
-                    location={location('bilag-eetEfterEal')}
-                    name="eetEfterEal"
-                    label="EET efter EAL"
-                    unavailableReason={null}
-                  />
+                  {renderBilagCheckbox('loebendeYdelser', 'Løbende ydelser')}
+                  {renderBilagCheckbox('kapitalisering', 'Kapitalisering')}
+                  {renderBilagCheckbox('eetEfterEal', 'EET efter EAL')}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  {/*
-                    Begge bilagsvalg vises ALTID – også når bilaget ikke findes i den aktuelle beregning.
-                    De gøres da inaktive og umarkerede med årsagen i tooltippet, frem for at forsvinde fra
-                    rækken (jf. page-component-contract.md §"Bilagsvalg og andre betingede
-                    afkrydsningsfelter"). Et valg der forsvinder, efterlader brugeren i tvivl om, hvorvidt
-                    muligheden findes.
-                  */}
-                  <CheckboxField
-                    field={refs.proformaKapitalisering}
-                    location={location('bilag-proformaKapitalisering')}
-                    name="proformaKapitalisering"
-                    label="Proformakap. af rest-EET"
-                    unavailableReason={resolveProformaKapitaliseringBilagDisabledReason(
-                      computation.proformaKapitalisering !== null,
-                      computation.resterendeLoebendeYdelser !== null
-                    )}
-                  />
-                  <CheckboxField
-                    field={refs.merErstatningPensionsalder}
-                    location={location('bilag-merErstatningPensionsalder')}
-                    name="merErstatningPensionsalder"
-                    label="Mer-erstatning forhøjet folkepension"
-                    unavailableReason={resolveMerErstatningPensionsalderBilagDisabledReason(
-                      values.indregnMerErstatningVedForhoejetPensionsalder,
-                      computation.merErstatningPensionsalder !== null
-                    )}
-                  />
+                  {renderBilagCheckbox('proformaKapitalisering', 'Proformakap. af rest-EET')}
+                  {renderBilagCheckbox('merErstatningPensionsalder', FORHOEJET_PENSIONSALDER_LABEL)}
                 </Box>
               </Box>
             </Box>
@@ -200,6 +225,13 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                 name="visUdvidetSpecifikationLoebendeYdelserBilag"
                 id={controlId}
                 labelledBy={labelledBy}
+                // Togglen styrer en ekstra side I løbende-ydelsesbilaget og kan derfor kun betjenes,
+                // når det bilag både findes og er valgt (BB-188).
+                unavailableReason={
+                  bilagAvailability.visUdvidetSpecifikationLoebendeYdelserBilag.enabled
+                    ? null
+                    : bilagAvailability.visUdvidetSpecifikationLoebendeYdelserBilag.disabledReason
+                }
               />
             )}
           </LabeledControlRow>
@@ -229,7 +261,8 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           )}
         </LabeledControlRow>
 
-        <LabeledControlRow label="Indregn mer-erstatning ved forhøjet pensionsalder">
+        {/* Samme navn som bilagsvalget, boksen, specifikationen og dokumentet (BB-191). */}
+        <LabeledControlRow label={INDREGN_FORHOEJET_PENSIONSALDER_LABEL}>
           {({ labelledBy, controlId }) => (
             <ToggleField
               field={refs.merErstatning}
@@ -241,38 +274,6 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           )}
         </LabeledControlRow>
 
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Forlig om ansvarsgrad</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text">Procent</Typography>
-              <PercentField
-                field={refs.forligProcent}
-                location={location('forligProcent')}
-                name="forligAnsvarsgradProcent"
-                width={100}
-              />
-              <Typography className="row--text">eller brøk</Typography>
-              <FractionField
-                field={refs.forligBroek}
-                location={location('forligBroek')}
-                name="forligAnsvarsgradBroek"
-                width={120}
-              />
-            </Box>
-          </Box>
-        </Box>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Evt. dato for forlig</Typography>
-          <Box className="row--label-right-hover__content">
-            <DateField
-              field={refs.forligDato}
-              location={location('forligDato')}
-              name="forligDato"
-            />
-          </Box>
-        </Box>
       </ContentBox>
 
       {/* Specifikation */}
@@ -347,7 +348,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                 )}
 
                 {!foretages && !tvk && afgoerelse.afgoerelseType !== 'Midlertidig' && (
-                  <HoverRow text="Løbende ydelser derfor ikke relevante." />
+                  <HoverRow text={DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST} />
                 )}
 
                 {foretages && afgoerelse.beloebOre === 0 && (
@@ -421,20 +422,40 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
             </>
           )}
 
-          {/* Mer-erstatning ved forhøjet folkepensionsalder */}
+          {/* Forhøjet pensionsalder */}
           {computation.merErstatningPensionsalder && (
             <>
-              <Typography className="row--subheading" sx={{ mt: 2 }}>Mer-erstatning ved forhøjet folkepensionsalder</Typography>
+              <Typography className="row--subheading" sx={{ mt: 2 }}>{FORHOEJET_PENSIONSALDER_LABEL}</Typography>
               {computation.merErstatningPensionsalder.events.map((event) => (
                 <Box key={`${event.rowId}-${event.forhoejelsesdato}`} className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
+                    {`${buildMerErstatningForhoejelseOverskrift({
+                      forhoejelsesdatoFormatted: formatISOToDanish(event.forhoejelsesdato),
+                      gammelAlderLabel: event.gammelAlderLabel,
+                      nyAlderLabel: event.nyAlderLabel,
+                      kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
+                      kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
+                    })}:`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{formatDeductionKr(toKroner(event.merErstatningOre))}</Typography>
                   </Box>
                 </Box>
               ))}
+              {/*
+                Summen er det beløb, der faktisk fratrækkes differencekravet, og den vises derfor de
+                samme tre steder: her, i boksen nedenfor og i dokumentets bilag (BB-201).
+              */}
+              {computation.merErstatningPensionsalder.events.length > 1 && (
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">{`${SAMLET_MER_ERSTATNING_LABEL}:`}</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Typography className="row--text">
+                      {formatDeductionKr(toKroner(computation.merErstatningPensionsalder.samletMerErstatningOre))}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
             </>
           )}
 

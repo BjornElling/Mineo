@@ -24,16 +24,16 @@ describe('buildBeregnetDifferencekravLabel', () => {
 
 describe('resolveMerErstatningPensionsalderBilagDisabledReason', () => {
   it('giver ingen årsag når mer-erstatningen både er indregnet og beregnet', () => {
-    expect(resolveMerErstatningPensionsalderBilagDisabledReason(true, true)).toBeNull();
+    expect(resolveMerErstatningPensionsalderBilagDisabledReason(true, true, true)).toBeNull();
   });
 
   it('forklarer manglende forhøjelse i perioden når mer-erstatningen er indregnet men ikke findes', () => {
-    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(true, false);
+    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(true, false, true);
     expect(reason).toContain('ikke forhøjet i perioden');
   });
 
   it('forklarer brugerens eget fravalg når togglen er slået fra', () => {
-    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(false, false);
+    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(false, false, true);
     expect(reason).toContain('fravalgt');
   });
 
@@ -41,8 +41,19 @@ describe('resolveMerErstatningPensionsalderBilagDisabledReason', () => {
   // forklares med et regnestykke, programmet ikke har udført. Uden den kunne beregningsårsagen vinde,
   // så brugeren fik at vide, at pensionsalderen ikke er forhøjet – uden at det er efterprøvet.
   it('lader fravalget gå forud for beregningsårsagen, også hvis begge forudsætninger mangler', () => {
-    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(false, false);
+    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(false, false, false);
     expect(reason).toContain('fravalgt');
+    expect(reason).not.toContain('ikke forhøjet i perioden');
+  });
+
+  // BB-189: uden kapitalisering kaldes mer-erstatningsberegningen slet ikke, fordi vagten
+  // `indregnMerErstatning && kapResult.computation` fejler på sit ANDET led. Den fælles tekst
+  // «Pensionsalderen er ikke forhøjet i perioden» var derfor direkte usand netop dér – i den målte
+  // sag blev folkepensionsalderen forhøjet 31-12-2020, midt i sagens periode, og programmet kendte
+  // datoen. Testen låser, at de to tilstande har hver sin grund.
+  it('forklarer den manglende kapitalisering frem for at påstå noget om pensionsalderen', () => {
+    const reason = resolveMerErstatningPensionsalderBilagDisabledReason(true, false, false);
+    expect(reason).toContain('ingen kapitalisering');
     expect(reason).not.toContain('ikke forhøjet i perioden');
   });
 });

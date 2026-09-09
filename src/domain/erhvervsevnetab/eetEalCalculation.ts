@@ -70,6 +70,18 @@ export type EetEalInputValues = Pick<
   'beregningsdato' | 'aslAarsloen' | 'ealAarsloen' | 'ealEetPct' | 'aslAfgoerelser'
 >;
 
+/**
+ * Forligsgraden, som den skal anvendes på DETTE EAL-krav.
+ *
+ * `factor` er altid > 0 og < 1: et forlig på 100 % reducerer intet og skal derfor sendes som `null`,
+ * så beregningen ikke skriver en forligsblok, der oplyser en reduktion på 0 kr.
+ */
+export type EetEalForligInput = Readonly<{
+  factor: number;
+  label: string;
+  dato: ISODateString | null;
+}>;
+
 type Input = Readonly<{
   erhvervsevnetab: EetEalInputValues;
   skadedato: ISODateString | undefined;
@@ -78,6 +90,17 @@ type Input = Readonly<{
   reguleringssats: YearlyRate;
   erhvervsevnetabEalMax: YearlyRate;
   aarsloenAslMax: YearlyRate;
+  /**
+   * PÅKRÆVET og bevidst uden default: hver kalder skal tage stilling til, om forliget hører til
+   * netop dens opgørelse.
+   *
+   * Kun «EET efter EAL»-fanen sender et forlig. Differencekravets graf og Forsørgertab sender
+   * `null`, fordi de aftager det UREDUCEREDE `ealKravOre` og selv anvender forligsgraden på deres
+   * eget beløb. Var argumentet optional, kunne et forlig sive ind i differencekravets EAL-krav ved
+   * en uopmærksom ændring, og differencekravet ville blive markant for lavt (dobbelt reduktion).
+   * Se `eetEalForligSchema` og `erhvervsevnetab-differencekrav-contract.md` §7.
+   */
+  forlig: EetEalForligInput | null;
 }>;
 
 const round500 = (value: number): number => roundByMethod(value / 500, 0, 'halfAwayFromZero') * 500;
@@ -442,6 +465,17 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     subtractMoneyOre(eetAnvendtOre, aldersreduktionBeloebOre)
   );
 
+  // Forligsreduktionen afrundes til hele KRONER (round0) som differencekravets egen forligsreduktion,
+  // så de to flader bruger samme afrundingsregel på samme slags størrelse. Grundlaget er derimod
+  // forskelligt med vilje: her det rene EAL-krav, dér beløbet efter alle fire ASL-fradrag.
+  const forlig: EetEalComputation['forlig'] = input.forlig === null
+    ? null
+    : {
+      label: input.forlig.label,
+      dato: input.forlig.dato,
+      ealKravEfterForligOre: fromKroner(round0(toKroner(ealKravOre) * input.forlig.factor)),
+    };
+
   const computation: EetEalComputation = {
     beregningsdato,
     skadedato,
@@ -467,6 +501,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     aldersreduktionPct,
     aldersreduktionBeloebOre,
     ealKravOre,
+    forlig,
   };
 
   return {

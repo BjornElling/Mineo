@@ -262,8 +262,13 @@ describe('computeEetSnapshot', () => {
 
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
-    // Øvrige faner berøres ikke af forligs-fejlen.
-    expect(snapshot.efterEal.hasBlockingErrors).toBe(false);
+    // EAL-fanen er også en forligs-consumer (2026-09-09): den viser selv det forligsreducerede
+    // EAL-krav og må derfor ikke regne videre på et forlig, programmet har afvist.
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
+    // Løbende ydelser og kapitalisering læser intet forlig og berøres ikke.
+    expect(snapshot.loebendeYdelser.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(false);
+    expect(snapshot.kapitalisering.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(false);
   });
 
   it('blokerer differencekrav-outputtet når et forligs-felt har et ikke-committbart rå draft', () => {
@@ -281,7 +286,46 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
   });
 
-  it('blokerer kun differencekravet, når den delte forligsdato har en feltfejl', () => {
+  // BB-196: boksens linje skrev «Forlig om ansvarsgrad indeholder en ugyldig værdi» for TRE forskellige
+  // regler, mens feltets eget tooltip i samme øjeblik var konkret. Brugeren kunne derfor ikke se, om
+  // han skulle ændre en værdi, fjerne en værdi eller vælge mellem to felter.
+  it('bærer feltets EGEN besked i «Fejl og advarsler» frem for en generisk «ugyldig værdi»', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: 150, forligAnsvarsgradBroek: undefined },
+        procentErrorMessage: 'Procent skal være mellem 1 og 100',
+        hasRejectedInput: true,
+      },
+    });
+
+    expect(snapshot.differencekrav.issues).toContainEqual(expect.objectContaining({
+      id: 'forlig-ansvarsgrad-invalid',
+      message: 'Forlig om ansvarsgrad: Procent skal være mellem 1 og 100',
+    }));
+    expect(snapshot.differencekrav.issues.some((issue) => issue.message.includes('indeholder en ugyldig værdi'))).toBe(false);
+  });
+
+  it('falder tilbage til den generiske besked, når readeren har afvist uden en besked', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined },
+        hasRejectedInput: true,
+      },
+    });
+
+    expect(snapshot.differencekrav.issues).toContainEqual(expect.objectContaining({
+      id: 'forlig-ansvarsgrad-invalid',
+      message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi',
+    }));
+  });
+
+  it('blokerer de to forligs-consumere, når den delte forligsdato har en feltfejl', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),
       stamdata: createStamdata(),
@@ -295,9 +339,12 @@ describe('computeEetSnapshot', () => {
 
     expect(snapshot.differencekrav.issues).toContainEqual(expect.objectContaining({ id: 'field-forlig-dato' }));
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    // Forligsdatoen står i prosa-sætningen på BEGGE forligs-consumere og er derfor en afhængighed for
+    // dem begge; de to øvrige faner nævner den ikke.
+    expect(snapshot.efterEal.issues).toContainEqual(expect.objectContaining({ id: 'field-forlig-dato' }));
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
     expect(snapshot.loebendeYdelser.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
     expect(snapshot.kapitalisering.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
-    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'field-forlig-dato')).toBe(false);
   });
 
   it('failer lukket med snapshot-issue hvis en EET-beregner kaster runtimefejl', () => {

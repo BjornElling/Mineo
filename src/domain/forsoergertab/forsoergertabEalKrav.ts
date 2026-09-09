@@ -54,6 +54,9 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
     reguleringssats,
     erhvervsevnetabEalMax,
     aarsloenAslMax,
+    // Forsørgertabet har sin egen flade uden forligsfelter og opgør ikke forlig om ansvarsgrad.
+    // Forligsblokken hører alene til Erhvervsevnetabs fane «EET efter EAL».
+    forlig: null,
   });
 
   if (!eetResult.computation) {

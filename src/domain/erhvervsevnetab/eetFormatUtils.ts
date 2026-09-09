@@ -18,6 +18,7 @@ import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
+import { forligInputFields } from '../erstatningsopgoerelse/forligInputPort';
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldAddressTemplate } from '../../inputCore/fieldDescriptor';
 import type { EetIssue } from './eetTypes';
@@ -121,6 +122,11 @@ const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> =
 };
 
 const EAL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
+  // Forligsfelterne bor under «Erstatningsansvarsloven» på EET oplysninger (delt kilde med EO).
+  // Uden disse mål var forligsfejlene de ENESTE linjer i «Fejl og advarsler» uden en henvisning,
+  // og et manglende link læses som «her er intet at rette» (BB-195).
+  'forlig-ansvarsgrad-invalid': forligInputFields.procent.bind().address,
+  'field-forlig-dato': forligInputFields.dato.bind().address,
   'eal-aarsloen-missing': faellesAarsloenEalAarsloenField.bind().address,
   'eal-aarsloen-zero': faellesAarsloenEalAarsloenField.bind().address,
   'field-aarsloen-eal': faellesAarsloenEalAarsloenField.bind().address,
@@ -218,6 +224,11 @@ const GRUNDLAEGGENDE_IDS = new Set([
   'proforma-kapitaliseringsalder-under-minimum',
   'proforma-kapitaliseringsfaktor-unresolved',
   'proforma-reguleringssats-missing',
+  // Blindgyde-beskeden («beregningsgrundlaget er ufuldstændigt») kan ikke navngive ét felt, fordi den
+  // netop er reserven for de tilfælde, hvor ingen anden fejl har meldt sig. Sektionen er dog en ægte
+  // anvisning: alle dens forudsætninger – beregningsdato, skadedato, fødselsdato – rettes her eller
+  // gennem den delte stamdatarække (BB-195).
+  'differencekrav-beregningsgrundlag-missing',
 ]);
 
 const EAL_IDS = new Set([
@@ -230,6 +241,8 @@ const EAL_IDS = new Set([
   'warn-eal-eet-under-15',
   'warn-eal-aarsloen-is-max',
   'warn-eal-aarsloen-empty-for-2024-07-01',
+  'forlig-ansvarsgrad-invalid',
+  'field-forlig-dato',
 ]);
 
 const ASL_IDS = new Set([

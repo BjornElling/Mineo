@@ -145,6 +145,7 @@ const eetValues: ErhvervsevnetabComposedValues = {
   ],
   ealEetPct: undefined,
   eetDifferencekravBilagSelection: {
+    opgoerelse: true,
     loebendeYdelser: true,
     kapitalisering: true,
     eetEfterEal: true,

@@ -42,7 +42,8 @@ TAF-perioderne, som brugeren angiver, clampes automatisk til gældende grænser:
 - **Stille clamping** (ingen fejlindikation): perioden klemmes til EO's vedørende periode (`vedroererPeriodeFra`–`vedroererPeriodeTil`).
 - **Fejlgivende clamping** (rød kant + tooltip): perioden må ikke nå op til eller forbi `differencekravDato − 1 dag`, endelig EET-virkningsdato − 1 dag, eller (ved skadedato < 16. juni 2011) midlertidig EET-virkningsdato − 1 dag. Differencekrav-grænsen gælder altid. EET-grænserne (endelig og midlertidig) ophæves hvis der er verserende klage over EET-afgørelsen.
 
-For skader opstået **før 16. juni 2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO` i `periodiseringsMotor.ts`) afgrænser en upåklaget midlertidig EET-afgørelse retten til tabt arbejdsfortjeneste på præcis samme måde som en endelig afgørelse. Betingelserne er identiske: `midlertidigtEetAfgorelse = 'Ja'`, dato angivet, og `verserendeKlageEet ≠ 'Ja'`. Beregnet dato: `midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato`. Logikken er indkapslet i `resolveMidlertidigEetDatoHvisAktiv` i `tafPeriodConstraints.ts`.
+For skader opstået **før 16. juni 2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO` i `helpers/eoConstants.ts`,
+re-eksporteret fra `periodiseringsMotor.ts`) afgrænser en upåklaget midlertidig EET-afgørelse retten til tabt arbejdsfortjeneste på præcis samme måde som en endelig afgørelse. Betingelserne er identiske: `midlertidigtEetAfgorelse = 'Ja'`, dato angivet, og `verserendeKlageEet ≠ 'Ja'`. Beregnet dato: `midlertidigEETVirkningsdato ?? midlertidigEETAfgoerelseDato`. Logikken er indkapslet i `resolveMidlertidigEetDatoHvisAktiv` i `tafPeriodConstraints.ts`.
 
 Overlappende TAF-perioder merges til sammenhængende intervaller inden beregning for at undgå dobbeltoptælling. Mergede grupper bærer det første kilderækkes ID som repræsentativt ID.
 
@@ -72,15 +73,19 @@ SH-dage beregnes algoritmisk (påskerelaterede helligdage + faste datoer) via `b
 ### Netto-TAF-beregningen
 
 ```
-tabt_arbejdsfortjeneste = max(0, lønudvikling_total − taf_indtægter_total − tidligere_modtaget_taf)
+tabt_arbejdsfortjeneste = max(0,
+    (lønudvikling_total + offentlige_ydelser_udvikling_total)
+  − taf_indtægter_total
+  − sygeferiegodtgørelse_total)
 ```
 
 Alle beløb intern i beregningen håndteres i **øre** (integer) for at undgå floating-point-fejl. Slutresultatet vises i kroner.
 
 Komponenterne:
 - **Lønudvikling** (`buildLoenudviklingModel`): beregner hvad skadelidte ville have tjent i TAF-perioden baseret på indkomsten på skadestidspunktet, fremskrevet med lønudviklingsindeks.
-- **TAF-indtægter** (`buildIncomeForRanges`): summerer offentlige ydelser (sygedagpenge, dagpenge, kontanthjælp m.fl.) og eventuel lønindkomst i TAF-perioden.
-- **Tidligere modtaget TAF**: trækkes fra som allerede afholdt.
+- **Offentlige ydelsers udvikling** (`buildOffentligeYdelserUdviklingModel`): fremskriver de ydelser, der indgår i den hypotetiske indkomst, og LÆGGES derfor TIL sammen med lønudviklingen – ikke fra. Bemærk at et transient `midlertidigt_eet` fra Erhvervsevnetab-siden behandles her nøjagtigt som øvrige offentlige ydelser.
+- **TAF-indtægter** (`buildIncomeForRanges`): summerer offentlige ydelser (sygedagpenge, dagpenge, kontanthjælp m.fl.) og eventuel lønindkomst i TAF-perioden. Fradraget for `midlertidigt_eet` er UBETINGET: der er ingen 2011-grænse og ingen afhængighed af EET-afgørelsens type, så en delvist endelig afgørelses løbende ydelse fradrages på lige fod med en midlertidigs (jf. `docs/domain/eet/differencekrav.md` §«Delvist endelige afgørelser»).
+- **Sygeferiegodtgørelse**: trækkes fra som allerede afholdt.
 
 Offentlige ydelser periodiseres forskelligt:
 - De fleste ydelser: hverdage (ekskl. SH-dage). Undtagelse: sygedagpenge **før 2012-07-02** periodiseres på hverdage uden SH-fradrag.

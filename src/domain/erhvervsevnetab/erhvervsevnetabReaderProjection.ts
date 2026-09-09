@@ -24,6 +24,7 @@ import {
   erhvervsevnetabBilagEetEfterEalField,
   erhvervsevnetabBilagKapitaliseringField,
   erhvervsevnetabBilagLoebendeYdelserField,
+  erhvervsevnetabBilagOpgoerelseField,
   erhvervsevnetabBilagMerErstatningPensionsalderField,
   erhvervsevnetabBilagProformaKapitaliseringField,
   erhvervsevnetabBilagVisUdvidetSpecLoebendeField,
@@ -92,6 +93,7 @@ const ealEetPctRef: FieldRef<number | undefined> = erhvervsevnetabEalEetPctField
 const endeligEetTilbagevirkendeRef: FieldRef<boolean> = erhvervsevnetabEndeligEetTilbagevirkendeField.bind();
 const indregnMerErstatningRef: FieldRef<boolean> = erhvervsevnetabIndregnMerErstatningField.bind();
 
+const bilagOpgoerelseRef: FieldRef<boolean> = erhvervsevnetabBilagOpgoerelseField.bind();
 const bilagLoebendeYdelserRef: FieldRef<boolean> = erhvervsevnetabBilagLoebendeYdelserField.bind();
 const bilagKapitaliseringRef: FieldRef<boolean> = erhvervsevnetabBilagKapitaliseringField.bind();
 const bilagEetEfterEalRef: FieldRef<boolean> = erhvervsevnetabBilagEetEfterEalField.bind();
@@ -298,6 +300,9 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     ealEetPct: ealEetPct.value,
     aslAfgoerelser,
     eetDifferencekravBilagSelection: {
+      // Opgørelsen er altid med. Læsningen findes for at holde canonical værdi og visning i sync;
+      // dokumentkilden tvinger den sand, jf. `resolveDifferencekravBilagSelection`.
+      opgoerelse: readBoolean(reader.read(bilagOpgoerelseRef), true),
       loebendeYdelser: readBoolean(reader.read(bilagLoebendeYdelserRef), true),
       kapitalisering: readBoolean(reader.read(bilagKapitaliseringRef), true),
       eetEfterEal: readBoolean(reader.read(bilagEetEfterEalRef), true),
@@ -355,6 +360,11 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       },
       dato: forligDato.value,
       datoErrorMessage: forligDato.errorMessage,
+      // Feltets egne beskeder bæres med, så «Fejl og advarsler» kan skrive den konkrete regel
+      // («Procent skal være mellem 1 og 100», «Kan ikke udfylde både procent og brøk») frem for en
+      // generisk «indeholder en ugyldig værdi» (BB-196).
+      procentErrorMessage: forligProcent.errorMessage,
+      broekErrorMessage: forligBroek.errorMessage,
       // Et ikke-committbart rå forligsdraft er i modellen en rød reader-feltfejl (format-issue).
       hasRejectedInput: forligProcent.errorMessage !== undefined || forligBroek.errorMessage !== undefined,
     },

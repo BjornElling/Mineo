@@ -16,6 +16,9 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
 
 const FRAVALGT_DELTEKST = 'fravalgt nedenfor';
 const INGEN_FORHOEJELSE_DELTEKST = 'ikke forhøjet i perioden';
+const INGEN_KAPITALISERING_DELTEKST = 'ingen kapitalisering at forhøje';
+/** BB-191: ÉT navn for fradrag 4 – bilagsvalg, boks, specifikation, dokumentsektion og bilagstitel. */
+const FORHOEJET_PENSIONSALDER = 'Forhøjet pensionsalder';
 const MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST = 'Indstillingen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» er slået fra på fanen «Offentlige ydelser»';
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
@@ -56,6 +59,14 @@ const fyldMindsteEetSag = async (page: Page): Promise<void> => {
   await expect(afgoerelsestype).toHaveValue('Endelig');
 };
 
+/**
+ * Hover-fladen for et inaktivt bilagsvalg. Tooltippet kan ikke ankres på kontrollen selv (et disabled
+ * MUI-input udsender ingen pointer-events), så feltfamilien pakker den i `mineo-disabled-hover-target`.
+ * Locatoren rammer derfor wrapperen og ikke etiketten, hvis ordlyd kan optræde flere steder på fladen.
+ */
+const bilagHoverFlade = (page: Page, label: string) =>
+  page.locator('.mineo-disabled-hover-target').filter({ hasText: label }).first();
+
 test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
   test('Midlertidig EET forklares med indstillingens navn og fane', async ({ page, runtimeErrors }) => {
     await login(page);
@@ -72,13 +83,20 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen forhøjelse', async ({ page, runtimeErrors }) => {
+  /**
+   * Sagen har ingen kapitalisering, og DERFOR er der ingen mer-erstatning at beregne. Tooltippet
+   * skrev tidligere «Pensionsalderen er ikke forhøjet i perioden», og det var direkte usandt netop
+   * her: folkepensionsalderen blev forhøjet både 2015 og 2020, altså midt mellem sagens skadedato
+   * (01-01-2010) og beregningsdato (01-01-2025), og programmet kender datoerne. Brugeren havde slået
+   * beregningen TIL og fik et svar om lovgivningen frem for om sin sag (BB-189).
+   */
+  test('Mer-erstatning-bilaget bliver stående med årsag, når der ikke er nogen kapitalisering', async ({ page, runtimeErrors }) => {
     await login(page);
     await fyldMindsteEetSag(page);
 
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
 
-    const bilag = page.getByRole('checkbox', { name: 'Mer-erstatning forhøjet folkepension' });
+    const bilag = page.getByRole('checkbox', { name: FORHOEJET_PENSIONSALDER, exact: true });
 
     // Kernen: valget er SYNLIGT, men inaktivt og umarkeret – ikke væk.
     await expect(bilag).toBeVisible();
@@ -86,9 +104,12 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
     await expect(bilag).not.toBeChecked();
 
     // Årsagen har kun én visningskanal: tooltippet ved hover. Den må ikke stå som tekst i fladen.
-    await expect(page.getByText(INGEN_FORHOEJELSE_DELTEKST)).toHaveCount(0);
-    await page.getByText('Mer-erstatning forhøjet folkepension').hover();
-    await expect(page.getByRole('tooltip')).toContainText(INGEN_FORHOEJELSE_DELTEKST);
+    await expect(page.getByText(INGEN_KAPITALISERING_DELTEKST)).toHaveCount(0);
+    await bilagHoverFlade(page, FORHOEJET_PENSIONSALDER).hover();
+    const tooltip = page.getByRole('tooltip');
+    await expect(tooltip).toContainText(INGEN_KAPITALISERING_DELTEKST);
+    // Den gamle, usande påstand om lovgivningen må ikke være tilbage i denne tilstand.
+    await expect(tooltip).not.toContainText(INGEN_FORHOEJELSE_DELTEKST);
 
     expect(runtimeErrors).toEqual([]);
   });
@@ -100,19 +121,47 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
     await page.getByRole('tab', { name: 'Differencekrav' }).click();
 
     // Fravælg mer-erstatningen i "Valgmuligheder" nedenfor.
-    await page.getByRole('checkbox', { name: 'Indregn mer-erstatning ved forhøjet pensionsalder' }).click();
+    await page.getByRole('checkbox', { name: 'Indregn forhøjet pensionsalder', exact: true }).click();
 
-    const bilag = page.getByRole('checkbox', { name: 'Mer-erstatning forhøjet folkepension' });
+    const bilag = page.getByRole('checkbox', { name: FORHOEJET_PENSIONSALDER, exact: true });
     await expect(bilag).toBeVisible();
     await expect(bilag).toBeDisabled();
 
-    await page.getByText('Mer-erstatning forhøjet folkepension').hover();
+    await bilagHoverFlade(page, FORHOEJET_PENSIONSALDER).hover();
     const tooltip = page.getByRole('tooltip');
 
-    // Rangordenen: fravalget nævnes, og beregningsårsagen holdes tilbage. Ellers ville brugeren få at
-    // vide, at pensionsalderen ikke er forhøjet – uden at programmet har efterprøvet det.
+    // Rangordenen: fravalget nævnes, og beregningsårsagerne holdes tilbage. Ellers ville brugeren få
+    // at vide, at pensionsalderen ikke er forhøjet – uden at programmet har efterprøvet det.
     await expect(tooltip).toContainText(FRAVALGT_DELTEKST);
     await expect(tooltip).not.toContainText(INGEN_FORHOEJELSE_DELTEKST);
+    await expect(tooltip).not.toContainText(INGEN_KAPITALISERING_DELTEKST);
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  /**
+   * BB-188: «Kapitalisering» var altid aktivt og afkrydset, også i en sag helt uden kapitaliseringer,
+   * hvor bilaget derefter udgik TAVST af papiret. Brugeren kunne ikke skelne «bilaget var tomt» fra
+   * «noget faldt ud» – og netop den skelnen er det, gaten skal levere.
+   */
+  test('Kapitaliseringsbilaget gøres inaktivt med årsag i en sag uden kapitaliseringer', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await fyldMindsteEetSag(page);
+
+    await page.getByRole('tab', { name: 'Differencekrav' }).click();
+
+    const bilag = page.getByRole('checkbox', { name: 'Kapitalisering', exact: true });
+    await expect(bilag).toBeVisible();
+    await expect(bilag).toBeDisabled();
+    await expect(bilag).not.toBeChecked();
+
+    await bilagHoverFlade(page, 'Kapitalisering').hover();
+    await expect(page.getByRole('tooltip')).toContainText('ingen kapitaliserede afgørelser i sagen');
+
+    // «Opgørelse» er den modsatte tilstand: altid markeret, aldrig redigerbar.
+    const opgoerelse = page.getByRole('checkbox', { name: 'Opgørelse', exact: true });
+    await expect(opgoerelse).toBeChecked();
+    await expect(opgoerelse).toBeDisabled();
 
     expect(runtimeErrors).toEqual([]);
   });

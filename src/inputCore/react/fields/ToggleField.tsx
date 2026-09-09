@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Box, Tooltip } from '@mui/material';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import type { FieldRef } from '../../fieldDescriptor';
@@ -39,6 +40,15 @@ export type ToggleFieldProps = Readonly<{
 
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   disabled?: boolean;
+  /**
+   * Årsagen til, at togglen ikke kan betjenes – vist som tooltip på en hover-wrapper, præcis som
+   * `CheckboxField`s prop af samme navn.
+   *
+   * Findes, fordi en programinaktiv kontrol UDEN årsag efterlader brugeren i tvivl om, hvorvidt
+   * muligheden slet ikke findes, eller han selv har fravalgt den (BB-188). `disabled` alene er
+   * derfor kun til de tilfælde, hvor grunden fremgår af konteksten.
+   */
+  unavailableReason?: string | null;
   name?: string;
   id?: string;
   /** Callsite-ejet afslutning (gate/atomisk transaktion). Udelades for en almindelig ét-felts-toggle. */
@@ -54,7 +64,7 @@ export type ToggleFieldProps = Readonly<{
   AccessibleNameProps;
 
 const ToggleField = (props: ToggleFieldProps) => {
-    const { field, location, labelPlacement, disabled, name, id, commit, checkedOverride } = props;
+    const { field, location, labelPlacement, disabled, unavailableReason, name, id, commit, checkedOverride } = props;
     const controller = useFieldEditor(field, location);
     const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
@@ -72,17 +82,30 @@ const ToggleField = (props: ToggleFieldProps) => {
       [commit, controller]
     );
 
-    return (
+    const unavailable = unavailableReason !== undefined && unavailableReason !== null;
+    const toggle = (
       <StyledToggleSwitch
         checked={checked}
         onCommit={handleCommit}
         {...selectAccessibleNameProps(props)}
         {...(labelPlacement === undefined ? {} : { labelPlacement })}
-        {...(disabled === undefined ? {} : { disabled })}
+        {...(disabled === undefined && !unavailable ? {} : { disabled: disabled === true || unavailable })}
         {...(name === undefined ? {} : { name })}
         {...(id === undefined ? {} : { id })}
         restoreTargetAttributes={restoreTargetAttributes}
       />
+    );
+
+    if (!unavailable) return toggle;
+
+    // Samme ankring som `CheckboxField`: et disabled MUI-input udsender ingen pointer-events, så
+    // tooltippet skal sidde på en wrapper for at kunne vises.
+    return (
+      <Tooltip title={unavailableReason} arrow placement="top">
+        <Box component="span" className="mineo-disabled-hover-target">
+          {toggle}
+        </Box>
+      </Tooltip>
     );
 };
 

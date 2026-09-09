@@ -72,7 +72,12 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Load-tolerancen består (ældre `.eo` uden feltet får defaulten), men `undefined` kan ikke længere
 // repræsenteres – og dermed heller ikke nå motorens fail-closed-sti.
 // PERSISTED_DATA_VERSION bumpet til 3.12 (reel persisted schema-/parse-semantikændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c1dbceee';
+// Opdateret 2026-09-09: nyt bilag-felt `opgoerelse` på eetDifferencekravBilagSelection – differencekravets
+// forside, som fladen viser låst til (samme model som EO's «Opgørelse»). Feltet er required-with-default
+// `true`, så en ældre `.eo` uden det indlæses uændret og uden preflight-afvigelse: den får præcis den
+// tilstand, filen reelt havde (forsiden var altid med). Ingen eksisterende værdi ændres, intet beløb
+// flytter sig. PERSISTED_DATA_VERSION bumpet til 3.13 (reel persisted schema-ændring; nyt inputfelt).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-05a04bd6';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot – ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

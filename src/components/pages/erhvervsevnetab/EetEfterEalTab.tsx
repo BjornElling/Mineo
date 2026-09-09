@@ -8,7 +8,12 @@ import {
   resolveErhvervsevnetabMaksimumTekst,
 } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
+import {
+  buildForligIndgaaetSaetning,
+  FORLIG_ANSVARSGRAD_LABEL,
+} from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import EetIssuesBox from './EetIssuesBox';
+import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import EetDocumentDownloadBox from './EetDocumentDownloadBox';
@@ -204,14 +209,43 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
               </Box>
             </Box>
 
+            {/*
+              Forligsblokken står FØR bundlinjen, fordi den ændrer den: er der indgået forlig, er
+              fanens krav forligsgraden af det beregnede EAL-krav. Grundlaget er fanens EGET krav –
+              differencekravet reducerer i stedet sit beløb efter alle fire ASL-fradrag
+              (`eetEalForligSchema`).
+            */}
+            {computation.forlig && (
+              <>
+                <Typography className="row--subheading">{FORLIG_ANSVARSGRAD_LABEL}</Typography>
+                <HoverRow
+                  text={buildForligIndgaaetSaetning(
+                    computation.forlig.label,
+                    computation.forlig.dato ? formatIsoDateLong(computation.forlig.dato) : null
+                  )}
+                />
+              </>
+            )}
+
             <Typography className="row--subheading">Beregnet EAL-krav</Typography>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`}</Typography>
-              <Box className="row--label-right-hover__content">
-                <Typography className="row--text text-bold">{formatKr(toKroner(computation.ealKravOre))}</Typography>
+            {computation.forlig ? (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">
+                  {`${computation.forlig.label} x (${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}) =`}
+                </Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text text-bold">{formatKr(toKroner(computation.forlig.ealKravEfterForligOre))}</Typography>
+                </Box>
               </Box>
-            </Box>
+            ) : (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">{`${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`}</Typography>
+                <Box className="row--label-right-hover__content">
+                  <Typography className="row--text text-bold">{formatKr(toKroner(computation.ealKravOre))}</Typography>
+                </Box>
+              </Box>
+            )}
           </ContentBox>
         </>
       )}

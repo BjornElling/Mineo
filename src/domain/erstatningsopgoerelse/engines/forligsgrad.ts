@@ -2,6 +2,13 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../../../utils/fraction';
 import { formatPercent } from '../../../utils/formatUtils';
 
+/**
+ * Rækkens brugervendte navn – ét sted, fordi de tre forligsfelter vises på tre flader
+ * (Erstatningsopgørelsens «EO-oplysninger», Erhvervsevnetabs «EET oplysninger» og
+ * beregningsoversigten) og navngives i «Fejl og advarsler» på fire.
+ */
+export const FORLIG_ANSVARSGRAD_LABEL = 'Forlig om ansvarsgrad';
+
 export type ForligsgradResolved = Readonly<{
   factor: number;
   label: string;

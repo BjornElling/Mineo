@@ -8,8 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12a – Erstatningsopgørelse → Opgørelsens ramme.** Hele Erhvervsevnetab er gennemgået;
-  fane 11e er gennemgået 2026-09-07 og afventer udviklerens afgørelse.
+- **Næste flade:** **12a – Erstatningsopgørelse → Opgørelsens ramme.** Hele Erhvervsevnetab er gennemgået,
+  afgjort OG gennemført i kode; fane 11e blev afgjort og implementeret 2026-09-09.
   **Flade 12 er 2026-09-07 delt i tretten bidder (12a–12m) efter EMNE frem for efter fane** – fanerne var
   ikke en brugbar deling, fordi «EO oplysninger» rummer ni selvstændige sektioner med hver sit
   erstatningskrav, og «Lønindkomst» et kort pr. ansættelsesforhold med seks underafsnit hver. Delingen,
@@ -20,13 +20,18 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
 - **Næste fund-ID:** BB-202
-- **Åbne spørgsmål:** **ét, fra flade 11e.** **Skal løbende ydelser under en DELVIST ENDELIG afgørelse
-  fradrages i differencekravet ved skader fra 16. juni 2011?** `skalFradragForetages` returnerer i dag
-  `true` for `'Endelig'` alene, så en delvist endelig afgørelse behandles som en midlertidig. Målt i en
-  konkret sag: 66.827 kr. faktisk udbetalte løbende ydelser fradrages ikke, og specifikationen skriver
-  «Løbende ydelser derfor ikke relevante» om netop den afgørelse, hvis bilag få sider senere viser de
-  66.827 kr. Svaret afgør, om BB-187 er en tekstrettelse eller en beregningsrettelse.
-  Se [erhvervsevnetab.md](erhvervsevnetab.md).
+- **Åbne spørgsmål:** **ingen.** **Flade 11e's spørgsmål er afgjort 2026-09-09: NEJ** – løbende ydelser
+  under en delvist endelig afgørelse fradrages IKKE i differencekravet ved skader fra 16. juni 2011.
+  `skalFradragForetages` er uændret, og BB-187 er dermed en tekstrettelse. Reglen er gjort normativ:
+  en delvist endelig afgørelses løbende ydelser behandles beregningsteknisk som MIDLERTIDIGT løbende
+  erhvervsevnetab, mens dens kapitalbeløb behandles efter reglerne for ENDELIGE afgørelser
+  (`eet-snapshot-contract.md` §4.1 og `docs/domain/eet/differencekrav.md`).
+  **Svarets TAF-halvdel er undersøgt og forelagt som tre fund, ikke ændret:** importen medtager
+  `Midlertidig` og `Delvist endelig` på lige fod, og fradraget i TAF er ubetinget (reglens første
+  halvdel holder) – men INTET sted bruger EET's `kapDato` til at afgrænse en TAF-periode, EO kender kun
+  to afgørelseskategorier, og koblingen er i dag kontraktligt forbudt. En automatisk afgrænsning kræver
+  både en kontraktændring og en specifikation. Se [erhvervsevnetab.md](erhvervsevnetab.md) §«Åbne
+  spørgsmål til udvikleren» og domænedokumentets §«Åbne forhold».
   Tidligere åbne spørgsmål: **de to sidste før 11e er afgjort 2026-09-04.**
   **Flade 10 – hvor mange måneder er allerede udbetalt:** fladens to halvdele skal **konsekvent bruge
   dagbaseret optjeningstælling**. Gennemført i kode samme dag: `alleredeUdbetaltMaaneder` er nu afledt af
@@ -46,8 +51,34 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **17 – flade 11e's samlede liste (BB-185–BB-201).** To Høj,
-  elleve Mellem, fire Lav. Flade 1–11d er alle afgjort.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11e er alle afgjort og gennemført.
+- **Flade 11e er afgjort OG gennemført i kode 2026-09-09:** af de 17 fund er **tolv implementeret**
+  (BB-187, BB-188, BB-189, BB-190, BB-191, BB-192, BB-193, BB-194, BB-195, BB-196, BB-199, BB-200),
+  **ét delvist** (BB-201 – linjen «Ikke kapitaliseret.» beholdes for sin pædagogiske værdi, men
+  naboiagttagelsens sum vises nu alle tre steder) og **fire afvist** (BB-185, BB-186, BB-197, BB-198).
+  Fem forhold rækker ud over fanen:
+  **(1) Udvikleren gav samtidig en ny opgave, større end noget enkeltfund:** forligsfelterne er flyttet
+  fra Differencekrav til «EET oplysninger → Erstatningsansvarsloven», og «EET efter EAL» reducerer nu
+  selv med forligsgraden. **De to faner reducerer HVER SIT grundlag** – fane 4 det rene EAL-krav, fane 5
+  beløbet efter alle fire ASL-fradrag – og forveksling er en alvorlig beregningsfejl, ikke en
+  afrundingsforskel. Værnet ligger derfor i typerne: `computeEetEalCalculation` tager `forlig` som et
+  PÅKRÆVET argument uden default, `ealKravOre` bliver ureduceret ved siden af en nullable
+  `forlig`-blok, og differencekravets graf sender `forlig: null`. Reglen er normativ i
+  `eet-snapshot-contract.md` §4.1.
+  **(2) BB-185's og BB-186's afvisninger fastlægger M-31's grænse:** to flader, der opgør hver sin
+  størrelse, MÅ vise forskellige tal for det, der ligner samme spørgsmål – differencekravet lægger
+  ufravigeligt sagens forhold på beregningsdatoen til grund. Mønsteret er dermed kun et fund, når de to
+  flader faktisk besvarer samme spørgsmål (samme lære som BB-166's tilbagetrækning).
+  **(3) En e2e-test låste en påstand, der var usand i sin egen fixture.** Tooltippet «Pensionsalderen er
+  ikke forhøjet i perioden» stod på en sag, hvor folkepensionsalderen blev forhøjet BÅDE 2015 og 2020
+  (BB-189). **Læren:** en test, der låser en tekst, låser også dens sandhedsværdi – tjek fixturen mod
+  påstanden, ikke kun mod koden.
+  **(4) Et tavst fradrag er lukket fail-closed.** Mer-erstatningens issues blev aldrig merget, så en
+  opslagsfejl gjorde differencekravet for HØJT uden et ord. Beregningen er flyttet op før
+  blocking-evalueringen; ingen sag, der regner i dag, ændrer beløb.
+  **(5) Bilagsvalgene har fået EO's model,** og det nye `opgoerelse`-felt er et persistensskridt:
+  `PERSISTED_DATA_VERSION` er bumpet til `3.13` med required-with-default `true`, så en ældre `.eo`
+  indlæses uændret og uden preflight-afvigelse.
 - **Flade 11c er afgjort OG gennemført i kode 2026-09-03:** af de 11 fund er **seks implementeret**
   (BB-167, BB-168, BB-171, BB-172, BB-173, BB-176), **to delvist** (BB-170, BB-175), **to afvist**
   (BB-169, BB-174) og **ét trukket tilbage** (BB-166 – fundet hvilede på min egen fejlagtige præmis).
@@ -86,7 +117,14 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-09-07 (**Flade 11e – Differencekrav – gennemgået: 17 fund, to Høj, elleve
+- **Senest opdateret:** 2026-09-09 (**Flade 11e afgjort OG gennemført: tolv fund rettet, ét delvist,
+  fire afvist, og det sidste åbne spørgsmål besvaret – hele Erhvervsevnetab er dermed lukket.** Dertil
+  én ny opgave fra udvikleren: forligsfelterne er flyttet til «EET oplysninger», og «EET efter EAL»
+  reducerer nu selv med forligsgraden, mens differencekravet fortsat reducerer beløbet EFTER alle fire
+  ASL-fradrag. Forskellen på de to grundlag er den vigtigste enkeltregel i arbejdet og er håndhævet i
+  typerne, normativ i kontrakten og testdækket i både unit- og e2e-laget. TAF-halvdelen af svaret på det
+  åbne spørgsmål er undersøgt og forelagt som tre fund uden kodeændring.)
+- **Tidligere: 2026-09-07** (**Flade 11e – Differencekrav – gennemgået: 17 fund, to Høj, elleve
   Mellem og fire Lav, og ét nyt tværgående mønster M-31. Hele Erhvervsevnetab er dermed gennemgået.**
   Fanen er den fjerde resultatfane og den eneste, der samler alle de øvrige – og den eneste resultatfane
   med egne indtastningsfelter. **M-31 er det nye mønster, og det er det første, hvor BEGGE tal er

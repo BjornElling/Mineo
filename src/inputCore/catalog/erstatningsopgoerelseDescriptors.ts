@@ -343,7 +343,12 @@ export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffent
 export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined> = defineStructuralField<number | undefined>({
   id: 'eo.forligAnsvarsgradProcent',
   template: { section: S, path: [], field: 'forligAnsvarsgradProcent' },
-  codec: createPercentFieldCodec({ allowNegative: false, allowDecimals: true }),
+  // Decimaler SKAL kunne indtastes (12,5 % er et virkeligt forlig), men visningen må ikke påstå en
+  // præcision, brugeren ikke har givet: `50` vises som «50», `12,5` som «12,5» (BB-200).
+  codec: createPercentFieldCodec(
+    { allowNegative: false, allowDecimals: true },
+    { trimTrailingDecimals: true }
+  ),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Forlig ansvarsgrad (%)',
@@ -353,6 +358,9 @@ export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined
     minValue: 1,
     maxValue: 100,
     allowDecimals: true,
+    // Grænseteksten følger feltets egen visningsform: uden den lød den «mellem 1,00 og 100,00» og fik
+    // decimalerne til at se påkrævede ud (BB-200, samme afgørelse som BB-144's EET %-tekster).
+    message: 'Procent skal være mellem 1 og 100',
   }), (value, _field, view) => {
     const message = evaluateForligAnsvarsgradRules({
       forligAnsvarsgradProcent: value,

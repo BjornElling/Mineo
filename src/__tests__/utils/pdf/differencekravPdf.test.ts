@@ -86,6 +86,7 @@ describe('generateDifferencekravDocument', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: false,
         kapitalisering: false,
         eetEfterEal: false,
@@ -152,6 +153,7 @@ describe('generateDifferencekravDocument', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: false,
         kapitalisering: false,
         eetEfterEal: false,
@@ -204,6 +206,7 @@ describe('generateDifferencekravDocument', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: false,
         kapitalisering: false,
         eetEfterEal: false,
@@ -260,6 +263,7 @@ describe('generateDifferencekravDocument', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: false,
         kapitalisering: false,
         eetEfterEal: false,

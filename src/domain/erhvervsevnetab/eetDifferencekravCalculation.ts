@@ -601,13 +601,14 @@ export const composeEetDifferencekravCalculation = (
     allSourceIssues.push({ id: 'beregningsdato-invalid', severity: 'error', message: 'Beregningsdato er ugyldig.' });
   }
 
-  // ─── Fradrag 3: rest-EET (issues indgår i blocking-evaluering) ───────────────
-  // Rest-EET-beregningen kræver eal-computation og alle stamdata – kør kun hvis
-  // disse forudsætninger er til stede, så vi undgår fejl-stacking ovenpå allerede
-  // kendte blokerende fejl.
+  // ─── Fradrag 3 og 4 (issues indgår i blocking-evaluering) ────────────────────
+  // Begge fradrag kræver eal-computation og alle stamdata – kør kun hvis disse forudsætninger er til
+  // stede, så vi undgår fejl-stacking ovenpå allerede kendte blokerende fejl.
   const fradrag3Issues: EetIssue[] = [];
+  const merErstatningIssues: EetIssue[] = [];
   let proformaKapitalisering: EetDifferencekravProformaKapitalisering | null = null;
   let resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null = null;
+  let merErstatningPensionsalder: MerErstatningPensionsalderComputation | null = null;
   let loebendeEetPct = 0;
 
   if (ealResult.computation && beregningsdato && skadedato && fodselsdato && dagFoerBeregningsdato) {
@@ -672,11 +673,53 @@ export const composeEetDifferencekravCalculation = (
         );
       }
     }
+
+    // ─── Fradrag 4: Mer-erstatning ved forhøjet folkepensionsalder ────────────
+    // Når et erhvervsevnetab tidligere er kapitaliseret, og folkepensionsalderen senere
+    // forhøjes, er kapitalbeløbet beregnet til en for lav pensionsalder. Forskellen mellem
+    // kapitalværdien til den nye og den gamle folkepensionsalder fratrækkes differencekravet.
+    // Beregnes på grundlag af de faktisk kapitaliserede afgørelser fra fane 3.
+    if (input.indregnMerErstatningVedForhoejetPensionsalder && kapResult.computation) {
+      const kapitaliseringerForMerErstatning = kapResult.computation.afgoerelser
+        .filter((a) => a.kapitaliseringsdato <= beregningsdato && a.kapitaliseringspct > 0)
+        .map((a) => ({
+          rowId: a.rowId,
+          afgoerelsesdato: a.afgoerelsesdato,
+          kapitaliseringsdato: a.kapitaliseringsdato,
+          kapitaliseringspct: a.kapitaliseringspct,
+          grundloenOre: a.grundloenOre,
+          erstatningsniveauPct: a.erstatningsniveauPct,
+          amBidragPct: a.amBidragPct,
+        }));
+
+      if (kapitaliseringerForMerErstatning.length > 0) {
+        merErstatningPensionsalder = computeMerErstatningPensionsalder(
+          {
+            kapitaliseringer: kapitaliseringerForMerErstatning,
+            beregningsdato,
+            skadedato,
+            skadestype: input.skadestype,
+            fodselsdato,
+            before2024Skade,
+            koen: input.erhvervsevnetab.koen,
+          },
+          merErstatningIssues
+        );
+      }
+    }
   }
 
-  // Fradrag 3-issues merges ind før blocking-evaluering, så fejl i rest-EET-beregningen
-  // blokerer download på linje med fejl fra fane 2, 3 og 4.
-  for (const issue of fradrag3Issues) {
+  // Fradrag 3- og 4-issues merges ind før blocking-evaluering, så fejl i rest-EET- og
+  // mer-erstatningsberegningen blokerer download på linje med fejl fra fane 2, 3 og 4.
+  //
+  // Mer-erstatningens issues blev tidligere skrevet i en lokal liste, der ALDRIG blev merget: fejlede
+  // et bekendtgørelses-, tabel- eller faktoropslag på en forhøjelsesdato, udgik fradraget tavst, og
+  // differencekravet blev tilsvarende FOR HØJT – i den målte sag ville 26.072 + 43.453 kr. være
+  // forsvundet, uden at noget sagde det. Begrundelsen var, at et forkert (for lavt) fradrag er værre
+  // end intet fradrag, og det er rigtigt; men den tredje mulighed – at sige det – manglede.
+  // Udvikleren afgjorde 2026-09-09, at beregningen skal være fail-closed: fradraget udgår fortsat,
+  // OG downloaden blokeres med den konkrete opslagsfejl (BB-189).
+  for (const issue of [...fradrag3Issues, ...merErstatningIssues]) {
     allSourceIssues.push(issue);
   }
 
@@ -843,48 +886,6 @@ export const composeEetDifferencekravCalculation = (
     .sort((a, b) => a.afgoerelsesdato.localeCompare(b.afgoerelsesdato));
 
   kapAfgoerelser.push(...aslRowsForDisplay);
-
-  // ─── Fradrag 4: Mer-erstatning ved forhøjet folkepensionsalder ────────────
-  // Når et erhvervsevnetab tidligere er kapitaliseret, og folkepensionsalderen senere
-  // forhøjes, er kapitalbeløbet beregnet til en for lav pensionsalder. Forskellen mellem
-  // kapitalværdien til den nye og den gamle folkepensionsalder fratrækkes differencekravet.
-  // Beregnes på grundlag af de faktisk kapitaliserede afgørelser fra fane 3.
-  let merErstatningPensionsalder: MerErstatningPensionsalderComputation | null = null;
-  if (input.indregnMerErstatningVedForhoejetPensionsalder && kapResult.computation) {
-    const before2024Skade = skadedato < SKAERING_2024_07_01;
-    const kapitaliseringerForMerErstatning = kapResult.computation.afgoerelser
-      .filter((a) => a.kapitaliseringsdato <= beregningsdato && a.kapitaliseringspct > 0)
-      .map((a) => ({
-        rowId: a.rowId,
-        afgoerelsesdato: a.afgoerelsesdato,
-        kapitaliseringsdato: a.kapitaliseringsdato,
-        kapitaliseringspct: a.kapitaliseringspct,
-        grundloenOre: a.grundloenOre,
-        erstatningsniveauPct: a.erstatningsniveauPct,
-        amBidragPct: a.amBidragPct,
-      }));
-
-    if (kapitaliseringerForMerErstatning.length > 0) {
-      const merErstatningIssues: EetIssue[] = [];
-      merErstatningPensionsalder = computeMerErstatningPensionsalder(
-        {
-          kapitaliseringer: kapitaliseringerForMerErstatning,
-          beregningsdato,
-          skadedato,
-          skadestype: input.skadestype,
-          fodselsdato,
-          before2024Skade,
-          koen: input.erhvervsevnetab.koen,
-        },
-        merErstatningIssues
-      );
-      // Mer-erstatning er et fradrag der genbruger allerede validerede stamdata; opstår der
-      // alligevel et opslagsproblem, må det ikke nulstille hele differencekravet. Issues
-      // rapporteres ikke som blokerende her (computation er allerede gyldig på dette punkt),
-      // men hvis beregningen fejler udelades fradraget, så et forkert (for lavt) fradrag
-      // aldrig anvendes.
-    }
-  }
 
   // ─── Differencekrav før forlig ────────────────────────────────────────────
   const fradragLoebendeYdelserOre = sumMoneyOre(fradragLoebendeYdelserParts);

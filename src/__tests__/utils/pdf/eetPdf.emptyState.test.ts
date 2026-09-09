@@ -175,6 +175,7 @@ describe('EET PDF empty states', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: true,
         kapitalisering: true,
         eetEfterEal: false,
@@ -244,6 +245,7 @@ describe('EET PDF empty states', () => {
         differencekravOre: fromKroner(100000),
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: false,
         kapitalisering: false,
         eetEfterEal: false,
@@ -332,6 +334,7 @@ describe('EET PDF empty states', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: true,
         kapitalisering: false,
         eetEfterEal: false,
@@ -423,6 +426,7 @@ describe('EET PDF empty states', () => {
         ealComputation: null,
       } as never,
       bilagSelection: {
+        opgoerelse: true,
         loebendeYdelser: true,
         kapitalisering: false,
         eetEfterEal: false,

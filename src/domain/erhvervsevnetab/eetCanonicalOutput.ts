@@ -8,6 +8,32 @@ import { eetLoebendeComputationSchema } from './eetLoebendeYdelserCalculation';
 const finite = z.number().finite();
 const integer = z.number().int();
 
+/**
+ * Forligsreduktionen af EAL-kravet – hører til fane 4's EGEN opgørelse og til intet andet.
+ *
+ * `ealKravOre` på computation'en er og bliver det UREDUCEREDE krav. Reduktionen ligger som en
+ * selvstændig, navngiven størrelse ved siden af, fordi differencekravet aftager netop `ealKravOre`
+ * som sit udgangspunkt og selv reducerer med forliget FØRST EFTER alle fire ASL-fradrag. De to
+ * flader beregner altså forligsgraden af to forskellige grundlag, og det er ikke en unøjagtighed,
+ * men selve reglen:
+ *
+ * - EET efter EAL:  forlig x (EAL-krav)
+ * - Differencekrav: forlig x (EAL-krav − løbende ydelser − kapitalbeløb − rest-EET − mer-erstatning)
+ *
+ * Et differencekrav, der reducerede det rene EAL-krav, ville være en alvorlig beregningsfejl (kravet
+ * ville blive markant for lavt). Se `erhvervsevnetab-differencekrav-contract.md` §7.
+ */
+export const eetEalForligSchema = z.object({
+  /** Forligsgradens brugervendte form, fx «50 %» eller «2/3». */
+  label: z.string().min(1),
+  /** Forligsdatoen, hvis brugeren har angivet en. */
+  dato: isoDateString.nullable(),
+  /** round0(ealKravOre x forligsfaktor) – kun fane 4's eget resultat. */
+  ealKravEfterForligOre: moneyOreSchema,
+}).strict().readonly();
+
+export type EetEalForlig = z.infer<typeof eetEalForligSchema>;
+
 export const eetEalComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
@@ -37,7 +63,13 @@ export const eetEalComputationSchema = z.object({
   alderVedSkadeCapped: integer,
   aldersreduktionPct: finite,
   aldersreduktionBeloebOre: moneyOreSchema,
+  /**
+   * EAL-kravet FØR et eventuelt forlig om ansvarsgrad. Dette er det tal, differencekravet aftager –
+   * aldrig `forlig.ealKravEfterForligOre`.
+   */
   ealKravOre: moneyOreSchema,
+  /** `null` når der ikke er et gyldigt forlig under 100 %, eller når kalderen ikke opgør forlig. */
+  forlig: eetEalForligSchema.nullable(),
 }).strict().readonly();
 export type EetEalComputation = z.infer<typeof eetEalComputationSchema>;
 

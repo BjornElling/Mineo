@@ -42,6 +42,13 @@ export const computeEetDifferencekravCalculation = (
     reguleringssats,
     erhvervsevnetabEalMax,
     aarsloenAslMax,
+    // MÅ ALDRIG SÆTTES HER. Differencekravet aftager det UREDUCEREDE EAL-krav og anvender først
+    // forligsgraden på sit eget beløb, når alle fire ASL-fradrag er trukket fra
+    // (`composeEetDifferencekravCalculation`, «Forlig om ansvarsgrad»). Sendes forliget ind her,
+    // reduceres EAL-kravet to gange, og differencekravet bliver markant for lavt.
+    // Se `erhvervsevnetab-differencekrav-contract.md` §7 og
+    // `src/__tests__/domain/erhvervsevnetab/eetForligGrundlag.test.ts`.
+    forlig: null,
   });
   const kapResult = computeEetKapitaliseringCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,

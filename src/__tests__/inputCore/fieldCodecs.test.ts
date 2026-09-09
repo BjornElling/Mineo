@@ -170,6 +170,32 @@ describe('fieldCodecs', () => {
   });
 
   /**
+   * BB-200: et decimal-procentfelt viste altid to decimaler, så et indtastet `50` stod som «50,00» og
+   * læstes som en præcisionsangivelse, brugeren ikke havde givet. `trimTrailingDecimals` er en REN
+   * visningsændring: indtastning, canonicalisering og præcision er de samme, kun `format`/`formatForEdit`
+   * skifter. Flaget er sat pr. felt (forligsprocenten), ikke globalt.
+   */
+  it('viser kun de decimaler brugeren har givet, når feltet beder om det', () => {
+    const fast = createPercentFieldCodec({ allowNegative: false, allowDecimals: true });
+    const trimmet = createPercentFieldCodec(
+      { allowNegative: false, allowDecimals: true },
+      { trimTrailingDecimals: true }
+    );
+
+    expect(fast.format(50)).toBe('50,00');
+    expect(trimmet.format(50)).toBe('50');
+    expect(trimmet.format(12.5)).toBe('12,5');
+    expect(trimmet.format(12.25)).toBe('12,25');
+    expect(trimmet.formatForEdit(50)).toBe('50');
+    expect(trimmet.format(undefined)).toBe('');
+
+    // Indtastningssiden er UÆNDRET: decimaler kan stadig committes canonical med fuld præcision.
+    expect(trimmet.parseForSettle('12,5')).toEqual({ status: 'valid', value: 12.5 });
+    expect(trimmet.parseForSettle('12,25')).toEqual({ status: 'valid', value: 12.25 });
+    expect(trimmet.decimalPolicy).toBe('decimal');
+  });
+
+  /**
    * Codec-laget er det sted, en konkret parse-besked kan gå tabt for ALLE flader på én gang: et bart
    * `rejectedResolution('format')` ville kassere den besked, parse-kernen allerede har beregnet, og både
    * formular, gridcelle, a11y-tekst og download-tooltip ville falde til den generiske «Fejl i indtastning».

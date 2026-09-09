@@ -6,6 +6,7 @@ export const ERHVERVSEVNETAB_INITIAL_VALUES = {
   aslAfgoerelser: [],
   ealEetPct: undefined,
   eetDifferencekravBilagSelection: {
+    opgoerelse: true,
     loebendeYdelser: true,
     kapitalisering: true,
     eetEfterEal: true,

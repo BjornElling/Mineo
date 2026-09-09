@@ -440,6 +440,46 @@ describe('erhvervsevnetabSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.koen).toBeUndefined();
   });
+
+  /**
+   * Kompatibilitetsvurderingen bag `PERSISTED_DATA_VERSION` 3.13 (`schema-evolution.md` §4A): bilagsvalget
+   * fik feltet `opgoerelse` – differencekravets forside, som fladen viser låst til.
+   *
+   * En `.eo`-fil gemt FØR bumpet har ikke feltet. Den skal indlæses uden fejl, uden preflight-afvigelse og
+   * med præcis den tilstand, filen reelt havde: forsiden var altid med, så defaulten er `true`. Testen
+   * måler den konkrete load-adfærd og ikke blot at parse lykkes.
+   */
+  it('indlæser en ældre sektion uden bilagsvalget «opgoerelse» og giver den default true', () => {
+    const uden = { ...ERHVERVSEVNETAB_INITIAL_VALUES.eetDifferencekravBilagSelection };
+    delete (uden as Partial<typeof uden>).opgoerelse;
+
+    const result = erhvervsevnetabSchema.safeParse({
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      eetDifferencekravBilagSelection: uden,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.eetDifferencekravBilagSelection.opgoerelse).toBe(true);
+      // Skelnetest: de øvrige valg må ikke røres af defaulten.
+      expect(result.data.eetDifferencekravBilagSelection.loebendeYdelser).toBe(true);
+      expect(result.data.eetDifferencekravBilagSelection.visUdvidetSpecifikation).toBe(false);
+    }
+  });
+
+  it('bevarer et eksplicit falsk «opgoerelse» i sektionsdata (låsningen sker i dokumentkilden, ikke i schemaet)', () => {
+    // Låsningen hører i `resolveDifferencekravBilagSelection`, så schemaet ikke skjuler, hvad filen bar.
+    const result = erhvervsevnetabSchema.safeParse({
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      eetDifferencekravBilagSelection: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES.eetDifferencekravBilagSelection,
+        opgoerelse: false,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.eetDifferencekravBilagSelection.opgoerelse).toBe(false);
+  });
 });
 
 describe('aslAfgoerelseRowSchema', () => {

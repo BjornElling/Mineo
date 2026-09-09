@@ -21,14 +21,20 @@ Differencekravet er det beløb skadelidte kan kræve derudover, når EAL-erstatn
 ### Overordnet princip
 
 ```
-differencekrav = eal_krav
+differencekrav_før_forlig = eal_krav
                − fradrag_løbende_ydelser
                − fradrag_kapitaliseret_eet
                − fradrag_tilbageværende_eet
                − fradrag_mer_erstatning_forhøjet_folkepension
 
-hvis differencekrav < 0: differencekrav = 0
+hvis differencekrav_før_forlig < 0: differencekrav_før_forlig = 0
+
+differencekrav = forligsgrad × differencekrav_før_forlig
 ```
+
+**Forligsgraden anvendes SIDST – på beløbet efter alle fire fradrag.** Se
+[Forlig om ansvarsgrad](#forlig-om-ansvarsgrad) nedenfor; forveksling med fane 4's grundlag er en
+alvorlig beregningsfejl.
 
 Fradrag 4 (mer-erstatning ved forhøjet folkepensionsalder) er beskrevet i sin egen normative fil:
 [mer-erstatning-pensionsalder.md](./mer-erstatning-pensionsalder.md). Det indregnes kun når
@@ -63,6 +69,37 @@ Fradragsreglen per afgørelse afhænger fortsat af skadedatoen:
 | 16-06-2011 eller senere | Midlertidig | Nej |
 | 16-06-2011 eller senere | Delvist endelig | Nej |
 | 16-06-2011 eller senere | Endelig | Ja |
+
+#### Delvist endelige afgørelser: løbende del som midlertidig, kapitalbeløb som endeligt
+
+Udviklerens afgørelse 2026-09-09, som hele programmet skal følge:
+
+> En **delvist endelig** afgørelse behandles beregningsteknisk sådan, at ALLE dens løbende ydelser
+> håndteres som **midlertidigt** løbende erhvervsevnetab, mens dens **kapitalbeløb** behandles som et
+> kapitalbeløb efter reglerne for **endelige** afgørelser.
+
+Begrebet er kompliceret formuleringsmæssigt, men enkelt i praksis: der er tale om en midlertidig
+afgørelse, hvor en del af ydelsen har kunnet kapitaliseres efter reglerne for endelige afgørelser. Den
+løbende ydelse er midlertidig både før og efter kapitaliseringstidspunktet – afgørelsen afviger alene
+fra en sædvanlig midlertidig afgørelse ved, at der (modsat midlertidige afgørelser) har kunnet finde
+kapitalisering sted.
+
+Konsekvenser:
+
+- **I differencekravet** (tabellen nedenfor): for skader fra 16-06-2011 fradrages en delvist endelig
+  afgørelses løbende ydelser IKKE, præcis som for en midlertidig. Kapitalbeløbet fradrages derimod som
+  fradrag 2.
+- **I fradrag 3:** en resterende løbende del fra en delvist endelig afgørelse opgøres som en
+  midlertidig løbende ydelse med samme procentsats.
+- **I Erstatningsopgørelsen:** importen af midlertidigt EET medtager både `Midlertidig` og
+  `Delvist endelig` på fuldstændig lige fod (`eetImportPort.ts`), og fradraget i tabt
+  arbejdsfortjeneste er dermed det samme for de to typer. Reglens anden halvdel – at
+  **kapitaliseringsdatoen bringer retten til tabt arbejdsfortjeneste til ophør** – er en
+  TAF-afgrænsning og ligger uden for EET-siden; den er ikke implementeret som en automatisk
+  afgrænsning, og TAF-perioden indtastes fortsat manuelt på Erstatningsopgørelsen. Se
+  «Åbne forhold» nederst.
+
+Forholdet er besværligt, og ved tvivlstilfælde skal udvikleren spørges.
 
 Ved særreglen for ≤ 2 år til folkepension gælder derudover:
 - Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger før 2-årsgrænsen, fratrækkes løbende ydelser kun frem til og med dagen før afgørelsesdatoen.
@@ -139,6 +176,47 @@ Proformakapitaliseringen genbruger kapitaliseringslogikken fra fane 3 med disse 
 
 Proformakapitalisering er differencekravets egen beregningsteknik. Den kan derfor godt forekomme, selv om der i ASL-sporet aldrig er sket nogen faktisk kapitalisering.
 
+### Forlig om ansvarsgrad
+
+Er der indgået forlig om ansvarsgraden, reduceres differencekravet med forligsgraden. Feltet står på
+**EET oplysninger** under «Erstatningsansvarsloven» (procent eller brøk, plus en valgfri forligsdato)
+og deles med Erstatningsopgørelsen.
+
+**Grundlaget er differencekravet EFTER alle fire fradrag – aldrig det rene EAL-krav.**
+
+```
+differencekrav = round0(differencekrav_før_forlig × forligsgrad)
+```
+
+Dette er den vigtigste enkeltregel om forliget, fordi den anden EET-fane, der reducerer med
+forligsgraden, bruger et **andet** grundlag:
+
+| Fane | Grundlag |
+|---|---|
+| EET efter EAL (fane 4) | `forligsgrad × eal_krav` |
+| Differencekrav (fane 5) | `forligsgrad × (eal_krav − fradrag 1 − fradrag 2 − fradrag 3 − fradrag 4)` |
+
+Forskellen er tilsigtet: fane 4 opgør værdien af erhvervsevnetabet efter erstatningsansvarsloven, og
+et forlig reducerer den værdi direkte. Differencekravet er derimod det OVERSKYDENDE krav efter, at
+ASL-ydelserne er fratrukket, og forliget reducerer netop det overskydende beløb. **Ville
+differencekravet reducere det rene EAL-krav, blev kravet markant for lavt** – i en sag om store beløb
+er det en alvorlig fejl, ikke en afrundingsforskel. Mønsteret fra fane 4 må derfor ikke overføres
+hertil, og grænsen er testdækket i
+`src/__tests__/domain/erhvervsevnetab/eetForligGrundlag.test.ts` samt normativt fastholdt i
+`src/contracts/eet-snapshot-contract.md` §4.1.
+
+Øvrige regler:
+- Kun et gyldigt forlig **under** 100 % reducerer. Ved 100 % (eller intet forlig) er
+  `differencekrav = differencekrav_før_forlig`, og forligssætningen udelades. Et forlig på 100 % er en
+  atypisk indtastning, og forudsætningen for hele opgørelsen er i forvejen, at modparten har anerkendt
+  ansvaret; oplysningen har derfor ingen selvstændig værdi i papiret.
+- Afrundingen er hele kroner (`round0`).
+- Et ugyldigt forlig – begge felter udfyldt, en brøk over 1, en ugyldig forligsdato eller et
+  ikke-committbart råt draft – blokerer både fane 4 og fane 5. Motoren regner ikke videre med
+  `forligFactor: null`, som ville give et falsk 100 %-resultat bag en rød markering.
+- Differencekravdokumentets bilag «EET efter EAL» viser det **ureducerede** EAL-krav med én linje om,
+  at forliget anvendes på forsiden. Bilaget er grundlaget, ikke et selvstændigt krav.
+
 ### Særreglen i differencekrav
 
 #### Endelig afgørelse ≤ 2 år før folkepension, virkning før 2-årsgrænsen
@@ -189,6 +267,22 @@ Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentatio
 ### Fradrag 3-specifikke issue-ID'er
 
 Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse.
+
+---
+
+## Åbne forhold
+
+**Kapitaliseringsdatoen som TAF-afgrænsning (ikke implementeret).** Reglen ovenfor har en anden
+halvdel, der hører på Erstatningsopgørelsen: kapitaliseringsdatoen bringer retten til tabt
+arbejdsfortjeneste til ophør. Den findes i dag ikke i koden. TAF-periodens fejlgivende lofter kommer
+udelukkende fra manuelt indtastede EO-felter (`midlertidigtEETAfgorelse`, `endeligtEETAfgorelse` m.fl.
+i `tafPeriodConstraints.ts`), og ingen af dem læser EET's `kapDato`. En TAF-periode kan derfor
+uhindret fortsætte forbi en kapitalisering. Dertil kender EO kun kategorierne «midlertidig» og
+«endelig»: en delvist endelig afgørelse har intet eget felt, og ved skader før 16-06-2011 må brugeren
+registrere den som «midlertidig» for at afgrænse TAF. Endelig er fradraget for `midlertidigt_eet` i
+TAF ubetinget – uden 2011-grænse og uden afgørelsestype-afhængighed – hvilket er i orden efter reglen,
+men er udokumenteret uden for denne note. En eventuel ændring er beregningslogik på en anden flade og
+kræver sin egen specifikation fra udvikleren.
 
 ---
 

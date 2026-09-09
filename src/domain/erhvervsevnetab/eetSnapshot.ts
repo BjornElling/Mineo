@@ -5,6 +5,7 @@ import type {
 } from '../../schemas/formSchemas';
 import {
   evaluateForligsgrad,
+  FORLIG_ANSVARSGRAD_LABEL,
   type ForligAnsvarsgradInput,
 } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { ISODateString } from '../../types/branded';
@@ -15,7 +16,7 @@ import {
   reguleringssats,
 } from '../../data/lovbestemteRates';
 import { computeEetDifferencekravCalculation } from './eetCalculationGraph';
-import { computeEetEalCalculation } from './eetEalCalculation';
+import { computeEetEalCalculation, type EetEalForligInput } from './eetEalCalculation';
 import { navigationSortKey, toFieldIssue } from './eetFormatUtils';
 import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
@@ -45,9 +46,13 @@ type EetInputIssues = Readonly<{
 // reader-feltfejl bæres separat, fordi den er en selvstændig dokumentdependency.
 export type EetForligInput = Readonly<{
   values: ForligAnsvarsgradInput;
-  // Forligsdato (delt kilde med EO) – kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
+  // Forligsdato (delt kilde med EO) – bruges til prosa-sætningen på begge faner. Udeladt = ingen dato.
   dato?: ISODateString;
   datoErrorMessage?: string;
+  // Feltets EGEN besked, når readeren har afvist procenten/brøken. Bæres med, så «Fejl og
+  // advarsler» kan skrive den konkrete regel frem for en generisk «ugyldig værdi» (BB-196).
+  procentErrorMessage?: string;
+  broekErrorMessage?: string;
   hasRejectedInput: boolean;
 }>;
 
@@ -219,6 +224,93 @@ const isUsableAmount = (amount: EetSnapshotInput['values']['ealAarsloen']): bool
 
 const isUsableEetPct = (pct: number | undefined): boolean => pct !== undefined && pct !== 0;
 
+// Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig – "begge udfyldt",
+// en brøk over 1, eller et ikke-committbart rå draft – skal blokere både EAL- og differencekrav-outputtet.
+//
+// Beskeden er feltets EGEN, når readeren har afvist indtastningen (BB-196): den generiske «indeholder en
+// ugyldig værdi» sagde kun AT noget var galt, hvor programmet i samme øjeblik kendte HVAD – og tre
+// forskellige regler fik samme tekst. `evaluateForligsgrad`s egen besked er sidste udvej for de tilfælde,
+// hvor ingen feltfejl er sat.
+const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
+  forligFactor: Parameters<typeof computeEetDifferencekravCalculation>[0]['forlig'];
+  issue: EetIssue | null;
+}> => {
+  if (!forlig) return { forligFactor: null, issue: null };
+  const evaluation = evaluateForligsgrad(forlig.values);
+  const feltbesked = forlig.procentErrorMessage ?? forlig.broekErrorMessage;
+  if (feltbesked !== undefined && feltbesked.trim() !== '') {
+    return {
+      forligFactor: null,
+      issue: {
+        id: 'forlig-ansvarsgrad-invalid',
+        severity: 'error',
+        message: `${FORLIG_ANSVARSGRAD_LABEL}: ${feltbesked.trim()}`,
+      },
+    };
+  }
+  if (forlig.hasRejectedInput) {
+    return {
+      forligFactor: null,
+      issue: {
+        id: 'forlig-ansvarsgrad-invalid',
+        severity: 'error',
+        message: `${FORLIG_ANSVARSGRAD_LABEL} indeholder en ugyldig værdi`,
+      },
+    };
+  }
+  if (evaluation.status === 'invalid') {
+    return {
+      forligFactor: null,
+      issue: {
+        id: 'forlig-ansvarsgrad-invalid',
+        severity: 'error',
+        message: `${FORLIG_ANSVARSGRAD_LABEL}: ${evaluation.message}`,
+      },
+    };
+  }
+  return { forligFactor: evaluation.status === 'valid' ? evaluation.forlig : null, issue: null };
+};
+
+/**
+ * Forligsblokeringen, som den gælder for BÅDE «EET efter EAL» og «Differencekrav».
+ *
+ * De to faner viser hver sin forligsreducerede størrelse, og et forlig, brugeren ikke har kunnet
+ * indtaste gyldigt, må derfor blokere dem begge – ellers ville den ene fane vise et tal, der hvilede
+ * på et forlig, den anden fane samtidig afviste. Felterne bor på «EET oplysninger» under
+ * «Erstatningsansvarsloven» og deles med Erstatningsopgørelsen.
+ */
+const buildForligBlockingIssues = (input: EetSnapshotInput): Readonly<{
+  issues: readonly EetIssue[];
+  forligFactor: ReturnType<typeof resolveForligBlocking>['forligFactor'];
+}> => {
+  const forligBlocking = resolveForligBlocking(input.forlig);
+  const forligDatoIssue = toFieldIssue('field-forlig-dato', input.forlig?.datoErrorMessage);
+  return {
+    issues: [
+      ...(forligBlocking.issue ? [forligBlocking.issue] : []),
+      ...(forligDatoIssue === null ? [] : [forligDatoIssue]),
+    ],
+    forligFactor: forligBlocking.forligFactor,
+  };
+};
+
+/**
+ * Forligsgraden, som fane 4 skal REDUCERE SIT EGET EAL-krav med.
+ *
+ * Kun et gyldigt forlig UNDER 100 % giver en reduktion – præcis samme `factor < 1`-regel som
+ * differencekravet bruger, så et forlig på 100 % ikke skriver en forligsblok uden virkning (BB-197).
+ * Grundlaget er derimod fanens eget: her det rene EAL-krav, på differencekravet beløbet efter alle
+ * fire ASL-fradrag. Se `eetEalForligSchema`.
+ */
+const resolveEfterEalForlig = (
+  forligFactor: ReturnType<typeof resolveForligBlocking>['forligFactor'],
+  dato: ISODateString | undefined
+): EetEalForligInput | null => {
+  if (forligFactor === null || forligFactor === undefined) return null;
+  if (forligFactor.factor >= 1) return null;
+  return { factor: forligFactor.factor, label: forligFactor.label, dato: dato ?? null };
+};
+
 const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal'] => {
   // EAL-motoren har TO fallbacks: EAL-% → ASL-rækkernes eetPct, og EAL-årsløn → ASL-årsløn
   // (`eetEalCalculation.ts:158-193`). Begge primærfelter er derfor altid afhængigheder.
@@ -230,7 +322,11 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   const usesAslAarsloenFallback = !isUsableAmount(input.values.ealAarsloen);
   const usesAslEetPctFallback = !isUsableEetPct(input.values.ealEetPct);
 
+  // Forliget er nu en afhængighed også HER, fordi fanen selv viser det forligsreducerede EAL-krav.
+  const forligBlocking = buildForligBlockingIssues(input);
+
   const blockingIssues = [
+    ...forligBlocking.issues,
     ...createFieldIssues(input.fieldErrors, [
       { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
       { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
@@ -255,35 +351,13 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
     reguleringssats,
     erhvervsevnetabEalMax,
     aarsloenAslMax,
+    // ENESTE kaldested der sender et forlig: fane 4 opgør sit eget krav efter forliget.
+    forlig: resolveEfterEalForlig(forligBlocking.forligFactor, input.forlig?.dato),
   }));
 };
 
-// Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig – "begge udfyldt",
-// en brøk over 1, eller et ikke-committbart rå draft – skal blokere hele differencekrav-outputtet.
-const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
-  forligFactor: Parameters<typeof computeEetDifferencekravCalculation>[0]['forlig'];
-  issue: EetIssue | null;
-}> => {
-  if (!forlig) return { forligFactor: null, issue: null };
-  const evaluation = evaluateForligsgrad(forlig.values);
-  if (forlig.hasRejectedInput) {
-    return {
-      forligFactor: null,
-      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi' },
-    };
-  }
-  if (evaluation.status === 'invalid') {
-    return {
-      forligFactor: null,
-      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: `Forlig om ansvarsgrad: ${evaluation.message}` },
-    };
-  }
-  return { forligFactor: evaluation.status === 'valid' ? evaluation.forlig : null, issue: null };
-};
-
 const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['differencekrav'] => {
-  const forligBlocking = resolveForligBlocking(input.forlig);
-  const forligDatoIssue = toFieldIssue('field-forlig-dato', input.forlig?.datoErrorMessage);
+  const forligBlocking = buildForligBlockingIssues(input);
 
   // Differencekravet er en JOIN: det læser hele EAL- og ASL-siden PLUS forliget. Derfor er dens
   // afhængighedsliste unionen af søsterpanelernes – et rødt felt i enten EAL- eller ASL-grenen blokerer den.
@@ -300,8 +374,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
     ...createStamdataDateOrderIssues(input.stamdata),
-    ...(forligBlocking.issue ? [forligBlocking.issue] : []),
-    ...(forligDatoIssue === null ? [] : [forligDatoIssue]),
+    ...forligBlocking.issues,
   ];
 
   return buildGatedProjection(blockingIssues, () => computeEetDifferencekravCalculation({

@@ -20,6 +20,10 @@ import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { Koen } from '../../schemas/formSchemas/enumSchemas';
 import type { EetDifferencekravComputation } from './eetDifferencekravCalculation';
+import {
+  EET_DIFFERENCEKRAV_BILAG_KEYS,
+  getEetDifferencekravBilagAvailability,
+} from './eetDifferencekravBilag';
 import type { EetEalComputation } from './eetEalCalculation';
 import type { EetKapitaliseringComputation } from './eetKapitaliseringCalculation';
 import type { EetLoebendeComputation } from './eetLoebendeYdelserCalculation';
@@ -214,6 +218,38 @@ export type DifferencekravDocumentInput = Readonly<{
   stamdata: StamdataValues;
 }>;
 
+/**
+ * Bilagsvalget, som det gælder for det FRISKE snapshot: sagens gemte valg, hvor hvert bilag slås fra,
+ * hvis det ikke er tilgængeligt i den aktuelle beregning – og hvor opgørelsen altid er sand.
+ *
+ * Samme model som Erstatningsopgørelsens `resolveBilagSelection`. Uden den kunne et valg, brugeren
+ * traf i en sag med kapitaliseringer, blive gemt og senere gælde i en sag uden – og dokumentet ville
+ * da udelade bilaget tavst, mens afkrydsningsfeltet stod markeret (BB-188).
+ */
+const resolveDifferencekravBilagSelection = (
+  projection: ErhvervsevnetabReaderProjection,
+  computation: EetDifferencekravComputation
+): ErhvervsevnetabComposedValues['eetDifferencekravBilagSelection'] => {
+  const availability = getEetDifferencekravBilagAvailability({
+    computation,
+    indregnMerErstatningVedForhoejetPensionsalder:
+      projection.values.indregnMerErstatningVedForhoejetPensionsalder,
+    loebendeYdelserBilagValgt: projection.values.eetDifferencekravBilagSelection.loebendeYdelser,
+  });
+  const selection = { ...projection.values.eetDifferencekravBilagSelection };
+  for (const key of EET_DIFFERENCEKRAV_BILAG_KEYS) {
+    if (!availability[key].enabled) selection[key] = false;
+  }
+  // Opgørelsen er ikke et valg: fladen viser feltet låst til, og forsiden dannes altid. En sag gemt
+  // før låsningen – eller en håndredigeret .eo-fil – kan bære `opgoerelse: false`, og uden dette
+  // ville et felt, brugeren ikke kan røre, ændre papirets indhold.
+  selection.opgoerelse = true;
+  return selection;
+};
+
+/** Test-adgang: reglerne «utilgængeligt bilag slås fra» og «opgørelsen er altid valgt» er invarianter. */
+export const __testResolveDifferencekravBilagSelection = resolveDifferencekravBilagSelection;
+
 export const differencekravDocumentDefinition: MineoDocumentDefinition<DifferencekravDocumentInput> =
   defineMineoDocument({
     id: 'differencekrav',
@@ -226,7 +262,7 @@ export const differencekravDocumentDefinition: MineoDocumentDefinition<Differenc
       (projection, computation, stamdata) => ({
         computation,
         koen: projection.values.koen ?? undefined,
-        bilagSelection: projection.values.eetDifferencekravBilagSelection,
+        bilagSelection: resolveDifferencekravBilagSelection(projection, computation),
         stamdata,
       })
     ),

@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-09-07
+**Senest verificeret mod kode:** 2026-09-09
 
 ---
 
@@ -106,6 +106,66 @@ persisteres ikke og duplikeres ikke i `EetSnapshot` som selvstændig state.
 
 ---
 
+## 4.1 Forlig om ansvarsgrad: to faner, to grundlag
+
+De tre forligsfelter (`procent`, `broek`, `dato`) bor på **EET oplysninger** under
+«Erstatningsansvarsloven» og deles med Erstatningsopgørelsen gennem `forligInputPort`. To EET-faner
+reducerer med forligsgraden, og de gør det af **forskellige grundlag**:
+
+| Fane | Grundlag for forligsgraden |
+|---|---|
+| `efterEal` (fane 4) | EAL-kravet |
+| `differencekrav` (fane 5) | EAL-kravet **minus alle fire ASL-fradrag** (løbende ydelser, kapitalbeløb, rest-EET, mer-erstatning) |
+
+Forskellen er reglen, ikke en unøjagtighed. **Et differencekrav, der reducerede det rene EAL-krav, er
+en alvorlig beregningsfejl** – kravet ville blive markant for lavt. Mønsteret fra fane 4 må derfor
+aldrig brede sig til fane 5.
+
+Kontraktkravene, der håndhæver det:
+
+1. `computeEetEalCalculation` tager `forlig` som et **påkrævet** argument uden default. Hvert kaldested
+   skal tage stilling. Kun `buildEfterEalProjection` sender et forlig; `eetCalculationGraph`
+   (differencekravets graf) og Forsørgertab sender `null`.
+2. `EetEalComputation.ealKravOre` er og bliver det **ureducerede** krav. Reduktionen ligger i den
+   selvstændige, nullable `forlig`-blok ved siden af (`forlig.ealKravEfterForligOre`). Ingen kalder må
+   erstatte `ealKravOre` med den reducerede værdi.
+3. Differencekravets egen `ealComputation` bærer derfor **altid** `forlig: null`. Bærer den en
+   forligsblok, er forliget sivet ind i differencekravets grundlag.
+4. Kun et gyldigt forlig **under** 100 % giver en reduktion (`factor < 1`) – på begge faner. Et forlig
+   på 100 % skriver ingen forligsblok, fordi der ikke er nogen reduktion at oplyse.
+5. Afrundingen er hele kroner (`round0`) på begge faner – samme regel på samme slags størrelse.
+6. Et ugyldigt forlig (eller en ugyldig forligsdato) blokerer **begge** forligs-consumere, aldrig kun
+   den ene: ellers ville den ene fane vise et tal, der hvilede på et forlig, den anden samtidig
+   afviste. `loebendeYdelser` og `kapitalisering` læser intet forlig og må ikke blokeres af det.
+7. Boksens linje i «Fejl og advarsler» bærer feltets EGEN besked, når readeren har afvist
+   indtastningen. Den generiske «Forlig om ansvarsgrad indeholder en ugyldig værdi» er sidste udvej.
+
+Differencekravdokumentets bilag «EET efter EAL» viser det **ureducerede** EAL-krav, fordi bilaget er
+differencekravets grundlag, og bærer i stedet én linje om, at forliget anvendes på forsiden. Et
+reduceret bilag ved siden af en reduceret bundlinje ville læses som en dobbelt reduktion.
+
+Grænsen er testdækket i `src/__tests__/domain/erhvervsevnetab/eetForligGrundlag.test.ts`.
+
+---
+
+## 4.2 Differencekravets bilagsvalg
+
+Et afkrydset bilagsvalg er et løfte om en side i papiret. `getEetDifferencekravBilagAvailability`
+(`eetDifferencekravBilag.ts`) er det ene opslag over, om et bilag kan vælges – og hvis ikke, hvorfor.
+Samme opslag bruges af BÅDE fladen og dokumentkilden:
+
+- Fladen skjuler aldrig et utilgængeligt valg; det vises inaktivt og umarkeret med årsagen i
+  tooltippet (ÉN kort sætning uden punktum, jf. `page-component-contract.md` §10.5).
+- Dokumentkilden (`resolveDifferencekravBilagSelection`) slår et utilgængeligt bilag fra, så et valg
+  gemt i en anden sagstilstand ikke kan love en side, dokumentet ikke har.
+- Tilstanden «inaktiv uden årsag» er umulig at konstruere: tilgængeligheden er en discriminated union.
+- Togglen «Medtag udvidet specifikation på løbende ydelser» følger løbende-ydelsesbilaget: den kan kun
+  betjenes, når det bilag både findes og er valgt.
+- «Opgørelse» er ikke et valg, men forsiden. Fladen viser feltet låst til (`lockedOn`), kilden tvinger
+  det sandt, og generatoren kaster, hvis det mangler – samme model som EO's «Opgørelse».
+
+---
+
 ## 5. EO Import
 
 EO's midlertidigt-EET-import må kun bruge EET-domænets typed, Zod-validerede importport gennem den snævre undtagelse i `domain-boundary-contract.md` og `eo-snapshot-contract.md`.
@@ -137,5 +197,7 @@ Tests skal dække:
 7. row-level issues er mount-uafhængige og indgår i relevante dokumentdefinitioner,
 8. importportens schema, revision og øre→krone-grænse.
 9. løbende-ydelses-kernens afløsningsregler: samme afgørelsesdato med forskellige virkningsdatoer, senere tilbagevirkende afgørelser med hver FS-variant, kapitalisering efter en sådan afløsningsgruppe samt den ikke-blokerende typeadvarsel.
+10. forligsgradens to grundlag (§4.1): at fane 4 reducerer EAL-kravet, at differencekravet reducerer beløbet efter alle fire fradrag, at differencekravets egen `ealComputation` aldrig bærer en forligsblok, og at et ugyldigt forlig blokerer præcis de to forligs-consumere.
+11. bilagsvalgenes tilgængelighed (§4.2): at et bilag uden indhold er inaktivt MED en årsag, at dokumentkilden slår det fra, og at opgørelsen er låst til i både visning og kilde.
 
 EO-import-konsekvensen (`Midlertidig`/`Delvist endelig` importeres, `Endelig` ignoreres, schema-/kontraktstridigt output fail-closer) testdækkes på EO-importens test-flade, ikke EET-snapshottets: se `src/__tests__/domain/erstatningsopgoerelse/midlertidigtEetTransientInjection.test.ts` og `midlertidigtEetInsertRows.test.ts`.

@@ -27,10 +27,16 @@ Mer-erstatningen indregnes som et fradrag i differencekravet, fordi den udgør e
 har modtaget (eller har krav på at modtage) i ASL-sporet, og som derfor skal modregnes i det
 EAL-baserede differencekrav.
 
-Indregningen styres af valgmuligheden **"Indregn mer-erstatning ved forhøjet pensionsalder"** på
-differencekrav-fanen (sektion "Valgmuligheder"). Valget er sagsdata på erhvervsevnetab-sektionen,
-gemmes i `.eo` og følger med sagen. Default for nye sager er `true`; ældre `.eo`-filer uden feltet
-får `true` ved load.
+Indregningen styres af valgmuligheden **"Indregn forhøjet pensionsalder"** på differencekrav-fanen
+(sektion "Valgmuligheder"). Valget er sagsdata på erhvervsevnetab-sektionen, gemmes i `.eo` og følger
+med sagen. Default for nye sager er `true`; ældre `.eo`-filer uden feltet får `true` ved load.
+
+**Navnet er ÉT for hele størrelsen: «Forhøjet pensionsalder»** (udviklerens afgørelse 2026-09-09,
+BB-191). Det bruges i bilagsvalget, i boksens overskrift, i specifikationens underoverskrift, i
+dokumentets sektion og i bilagstitlen, og togglen dannes af det. Konstanten er
+`FORHOEJET_PENSIONSALDER_LABEL` i `src/domain/erhvervsevnetab/eetLabels.ts`. Baggrunden var, at
+størrelsen hed fire forskellige ting i samme sag, og at brugeren selv skulle koble dem til én
+størrelse på tværs af to bokse og et papir.
 
 ### Hvornår udløses mer-erstatning?
 
@@ -146,11 +152,18 @@ forkert.
    - kapitalværdier og mer-erstatning beregnes og lægges i `events`.
 4. `samletMerErstatning` trækkes fra differencekravet sammen med de øvrige fradrag.
 
-### Robusthed
+### Robusthed – fail-closed
 
-Mer-erstatningen genbruger allerede validerede stamdata. Skulle et faktoropslag alligevel fejle,
-udelades den pågældende forhøjelse, så et forkert (for lavt) fradrag aldrig anvendes. Beregningen
-nulstiller ikke hele differencekravet.
+Mer-erstatningen genbruger allerede validerede stamdata. Skulle et bekendtgørelses-, tabel- eller
+faktoropslag alligevel fejle, udelades den pågældende forhøjelse, så et forkert (for lavt) fradrag
+aldrig anvendes.
+
+**Opslagsfejlen blokerer samtidig downloaden** (udviklerens afgørelse 2026-09-09, BB-189). Issues fra
+`computeMerErstatningPensionsalder` merges ind FØR blocking-evalueringen i
+`composeEetDifferencekravCalculation` og rapporteres derfor med deres konkrete årsag i «Fejl og
+advarsler». Tidligere blev de skrevet i en lokal liste, der aldrig blev merget: fradraget udgik tavst,
+og differencekravet blev tilsvarende for HØJT, uden at noget sagde det. Begrundelsen – at et forkert
+fradrag er værre end intet fradrag – er fastholdt; det manglende var den tredje mulighed: at sige det.
 
 ### Implementeringsstatus
 

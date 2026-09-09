@@ -77,8 +77,9 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
         name: 'Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft',
       })
     ).toBeVisible();
+    // Ét navn for fradrag 4 i alle fem forekomster – togglen dannes af det (BB-191).
     await expect(
-      page.getByRole('checkbox', { name: 'Indregn mer-erstatning ved forhøjet pensionsalder' })
+      page.getByRole('checkbox', { name: 'Indregn forhøjet pensionsalder', exact: true })
     ).toBeVisible();
   });
 

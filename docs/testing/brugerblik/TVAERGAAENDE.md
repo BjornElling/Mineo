@@ -12,6 +12,10 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**M-31 er afgjort 2026-09-09, og begge dens forekomster er AFVIST – hvilket skærper mønsteret frem for at
+afskaffe det.** Prøven har fået et fjerde, foranstillet spørgsmål: *opgør de to flader det samme?* Er
+svaret nej, er der intet fund, uanset hvor stor taldifferencen er. Se mønsterets eget afsnit.
+
 **Ét nyt mønster 2026-09-07 fra Erhvervsevnetab → Differencekrav – M-31 – og det er det første, hvor BEGGE
 tal er rigtige.** M-31 (samme beregning kørt med et justeret input udleveres under samme navn) blev fundet
 to gange på samme fane, fordi differencekravets dokument er det eneste i programmet med bilag, og bilagene
@@ -2214,8 +2218,18 @@ justerede resultat sit eget navn eller sin egen forudsætningslinje. **Skellet m
 M-28 er en oplysning, der ligger i outputtet og ikke renderes; M-31 er en forudsætning, der ikke ligger i
 outputtet overhovedet.
 
-- Fundet i: `erhvervsevnetab.md` BB-185 (**Høj**, afventer udvikleren) og BB-186 (Mellem, afventer
-  udvikleren). Differencekravets `computeEetDifferencekravCalculation` filtrerer afgørelsesrækkerne til dem
+**Afgjort 2026-09-09 – og afgørelsen skærper mønsteret.** Både BB-185 og BB-186 er **AFVIST**: de to
+flader opgør hver sin størrelse, og de MÅ derfor kendeligt vise forskellige værdier. Differencekravet
+lægger ufravigeligt sagens forhold PÅ BEREGNINGSDATOEN til grund, mens «EET efter EAL» opgør den
+sluttelige tilstand, og kapitalisering (også proforma) standser en løbende ydelse dagen før, hvorimod en
+ydelse, der alene ophører på grund af beregningsdatoen, medregnes til og med den. **Mønsterets prøve skal
+derfor skærpes med et fjerde spørgsmål før de tre nedenfor: opgør de to flader det SAMME?** Er svaret nej,
+er der intet fund – uanset hvor stor taldifferencen er. Det er samme lære som BB-166's tilbagetrækning,
+nu bekræftet på mønsterets dyreste udgave. Formen er dermed ikke afskaffet som mønster: den gælder
+fortsat, hvor to flader faktisk besvarer samme spørgsmål.
+
+- Fundet i: `erhvervsevnetab.md` BB-185 (**Høj**, afvist 2026-09-09) og BB-186 (Mellem, afvist
+  2026-09-09). Differencekravets `computeEetDifferencekravCalculation` filtrerer afgørelsesrækkerne til dem
   med virkningsdato på eller før beregningsdatoen og kalder derefter EAL-, kapitaliserings- OG
   løbende-ydelsesmotoren på den filtrerede liste – løbende ydelser dertil med beregningsdatoen sat én dag
   tilbage. De tre resultater trykkes som bilag under nabofanernes egne dokumenttitler.

@@ -26,6 +26,10 @@ export type AslAfgoerelseRow = z.infer<typeof aslAfgoerelseRowSchema>;
 // ─── Erhvervsevnetab (fane 1) ─────────────────────────────────────────────────
 
 const eetDifferencekravBilagSelectionSchema = z.object({
+  // Differencekravets forside – ikke et valg, men et fast element, som fladen viser låst til.
+  // Schema-evolution: ældre .eo uden feltet får default true, altså den tilstand de reelt havde.
+  // Dokumentkilden tvinger samme værdi sand, så visning og dokument ikke kan komme fra hinanden.
+  opgoerelse: z.boolean().default(true),
   loebendeYdelser: z.boolean(),
   kapitalisering: z.boolean(),
   eetEfterEal: z.boolean(),

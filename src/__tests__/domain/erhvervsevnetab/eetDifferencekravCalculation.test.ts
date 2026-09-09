@@ -3,6 +3,7 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetCalculationGraph';
 import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import * as eetMerErstatningPensionsalderCalculation from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
@@ -1034,6 +1035,40 @@ describe('computeEetDifferencekravCalculation – fradrag 4 (mer-erstatning ved 
     expect(noEvent.computation).not.toBeNull();
     expect(noEvent.computation!.merErstatningPensionsalder).toBeNull();
     expect(kroner(noEvent.computation!.differencekravOre)).toBeGreaterThan(0);
+  });
+
+  /**
+   * BB-189: mer-erstatningens issues blev skrevet i en lokal liste, der ALDRIG blev merget. Fejlede et
+   * bekendtgørelses-, tabel- eller faktoropslag på en forhøjelsesdato, udgik fradraget TAVST, og
+   * differencekravet blev tilsvarende for højt – i den målte sag ville 26.072 + 43.453 kr. være
+   * forsvundet, uden at noget sagde det. Udvikleren afgjorde 2026-09-09, at beregningen skal være
+   * fail-closed: fradraget udgår fortsat (et forkert fradrag er værre end intet), OG downloaden
+   * blokeres med den konkrete opslagsfejl.
+   */
+  it('blokerer differencekravet, hvis mer-erstatningens faktoropslag fejler', () => {
+    const spy = vi
+      .spyOn(eetMerErstatningPensionsalderCalculation, 'computeMerErstatningPensionsalder')
+      .mockImplementation((_input, issues) => {
+        issues.push({
+          id: 'mer-erstatning-gammel-bekendtgoerelse-missing',
+          severity: 'error',
+          message: 'Der findes ingen kapitaliseringsbekendtgørelse for 29. december 2015.',
+        });
+        return null;
+      });
+
+    try {
+      const result = build(true);
+
+      expect(result.hasBlockingErrors).toBe(true);
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual(expect.objectContaining({
+        id: 'mer-erstatning-gammel-bekendtgoerelse-missing',
+        severity: 'error',
+      }));
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

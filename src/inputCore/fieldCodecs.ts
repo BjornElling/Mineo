@@ -37,6 +37,8 @@ import {
 } from '../utils/inputPasteNormalization';
 import {
   formatPercentDisplay,
+  formatPercentDraft,
+  getPercentPrecision,
   parsePercentDraftForCommit,
   type PercentParseConfig,
 } from '../utils/percentDraftCore';
@@ -410,7 +412,31 @@ export const createAmountFieldCodec = (options: Readonly<{
   });
 };
 
-export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<number | undefined> => {
+const formatPercentForField = (
+  value: number | undefined,
+  allowDecimals: boolean,
+  options: PercentFieldCodecOptions
+): string => options.trimTrailingDecimals === true
+  ? formatPercentDraft(value, getPercentPrecision(allowDecimals))
+  : formatPercentDisplay(value, allowDecimals);
+
+export type PercentFieldCodecOptions = Readonly<{
+  /**
+   * Vis de decimaler brugeren har givet – ikke flere. `50` vises som «50» og `12,5` som «12,5».
+   *
+   * Uden den viser et decimal-procentfelt altid to decimaler («50,00»), hvilket læses som en
+   * præcisionsangivelse, brugeren ikke har givet (BB-200). Indtastning, canonicalisering og
+   * beregning er upåvirket: kun `format`/`formatForEdit` skifter. Sat pr. felt og ikke globalt efter
+   * udviklerens afgørelse 2026-09-09; programmets øvrige decimal-procentfelter beholder fast
+   * to-decimal-visning.
+   */
+  trimTrailingDecimals?: boolean;
+}>;
+
+export const createPercentFieldCodec = (
+  config: PercentParseConfig,
+  options: PercentFieldCodecOptions = {}
+): FieldCodec<number | undefined> => {
   assertBoolean('PercentFieldCodec', 'allowNegative', config.allowNegative);
   assertBoolean('PercentFieldCodec', 'allowDecimals', config.allowDecimals);
   assertNumericBounds('PercentFieldCodec', config, (value) => config.allowDecimals
@@ -435,8 +461,8 @@ export const createPercentFieldCodec = (config: PercentParseConfig): FieldCodec<
       if (!parsed.ok) return rejectedResolution('format');
       return validResolution(parsed.value);
     },
-    format: (value) => formatPercentDisplay(value, config.allowDecimals),
-    formatForEdit: (value) => formatPercentDisplay(value, config.allowDecimals),
+    format: (value) => formatPercentForField(value, config.allowDecimals, options),
+    formatForEdit: (value) => formatPercentForField(value, config.allowDecimals, options),
     // Minus åbner kun editoren, hvis feltet FÅR være negativt. En procent har ingen udtryks-syntaks,
     // så her er minus utvetydigt et fortegn – modsat beløbsfeltets subtraktion.
     acceptsInitialKey: (key) => {

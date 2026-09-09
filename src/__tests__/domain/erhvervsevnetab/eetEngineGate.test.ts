@@ -203,9 +203,13 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     expect(spies.eal).not.toHaveBeenCalled();
   });
 
-  it('et ugyldigt forlig blokerer KUN differencekravet', () => {
+  it('et ugyldigt forlig blokerer differencekravet OG EAL-fanen, men ikke løbende ydelser og kapitalisering', () => {
     // Uden gaten ville motoren regne videre med `forligFactor: null`, dvs. som om der slet ikke var et forlig
     // – et falsk 100 %-resultat bag en rød markering.
+    //
+    // EAL-fanen er en afhængighed FRA 2026-09-09: forligsfelterne blev flyttet til «EET oplysninger» under
+    // «Erstatningsansvarsloven», og fane 4 viser nu selv det forligsreducerede EAL-krav. Løbende ydelser og
+    // kapitalisering læser derimod intet forlig og skal ikke blokeres af det.
     const snapshot = compute(NO_FIELD_ERRORS, {
       forlig: {
         values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/2' },
@@ -216,11 +220,13 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
     });
 
     expect(spies.difference).not.toHaveBeenCalled();
+    expect(spies.eal).not.toHaveBeenCalled();
     expect(spies.loebende).toHaveBeenCalledTimes(1);
     expect(spies.kapitalisering).toHaveBeenCalledTimes(1);
-    expect(spies.eal).toHaveBeenCalledTimes(1);
     expect(snapshot.differencekrav.computation).toBeNull();
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.efterEal.computation).toBeNull();
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
   });
 
   it('en stamdata-datoordensfejl blokerer alle fire paneler', () => {

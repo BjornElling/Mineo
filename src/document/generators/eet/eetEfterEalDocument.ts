@@ -21,6 +21,10 @@ import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deduct
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
+import {
+  buildForligIndgaaetSaetning,
+  FORLIG_ANSVARSGRAD_LABEL,
+} from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 // ============================================================================
 // HOVED-GENERATOR
@@ -31,11 +35,28 @@ type GenerateEfterEalDocumentParams = DocumentCommonOptions &
     computation: EetEalComputation;
   }>;
 
+export type EfterEalBodyOptions = Readonly<{
+  /** `false` i differencekravets bilag, som har sin egen beregningsdato-header på forsiden. */
+  includeBeregningsdatoHeader?: boolean;
+  /**
+   * `true` i differencekravets bilag, når sagen HAR et forlig om ansvarsgrad.
+   *
+   * Bilaget viser bevidst det UREDUCEREDE EAL-krav, fordi det er differencekravets grundlag, og
+   * forliget anvendes på differencekravets bundlinje efter alle fire ASL-fradrag. Uden linjen ville
+   * læseren møde et EAL-krav uden forlig og en bundlinje med forlig og ikke kunne se sammenhængen.
+   */
+  forligIndregnesIDifferencekravet?: boolean;
+}>;
+
+export const FORLIG_INDREGNET_I_DIFFERENCEKRAVET_TEKST =
+  'Forliget om ansvarsgrad er ikke indregnet i dette bilag – det anvendes på differencekravet på forsiden.';
+
 export const renderEfterEalBody = (
   writer: DocumentComposer,
   computation: EetEalComputation,
-  includeBeregningsdatoHeader = true
+  options: EfterEalBodyOptions = {}
 ): void => {
+  const { includeBeregningsdatoHeader = true, forligIndregnesIDifferencekravet = false } = options;
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   // Datoens navn følger skadestypen i alle afledte tekster (BB-121). Referencen udledes af beregningen –
@@ -157,13 +178,38 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
+  // Forligsblokken hører til DENNE opgørelse: fanens krav ER forligsgraden af det beregnede EAL-krav.
+  // I differencekravets bilag er `computation.forlig` altid `null` (grafen sender `forlig: null`), og
+  // bilaget bærer i stedet én linje om, at forliget anvendes på differencekravets bundlinje.
+  if (computation.forlig) {
+    writer.writeBoldSubheader(FORLIG_ANSVARSGRAD_LABEL);
+    writer.writeWrappedText(
+      buildForligIndgaaetSaetning(
+        computation.forlig.label,
+        computation.forlig.dato ? formatIsoDateLong(computation.forlig.dato) : null
+      )
+    );
+  }
+
   writer.writeBoldSubheader('Beregnet EAL-krav');
 
-  writer.writeLeftRightText(
-    `${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`,
-    formatKr(toKroner(computation.ealKravOre)),
-    { rightFontStyle: 'bold' as const }
-  );
+  if (computation.forlig) {
+    writer.writeLeftRightText(
+      `${computation.forlig.label} x (${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))}) =`,
+      formatKr(toKroner(computation.forlig.ealKravEfterForligOre)),
+      { rightFontStyle: 'bold' as const }
+    );
+  } else {
+    writer.writeLeftRightText(
+      `${formatKr(toKroner(computation.eetAnvendtOre))} - ${formatKr(toKroner(computation.aldersreduktionBeloebOre))} =`,
+      formatKr(toKroner(computation.ealKravOre)),
+      { rightFontStyle: 'bold' as const }
+    );
+  }
+
+  if (forligIndregnesIDifferencekravet) {
+    writer.writeWrappedText(FORLIG_INDREGNET_I_DIFFERENCEKRAVET_TEKST);
+  }
 };
 
 export const generateEfterEalDocument = defineDocument<GenerateEfterEalDocumentParams>({

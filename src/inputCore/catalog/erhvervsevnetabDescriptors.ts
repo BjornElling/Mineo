@@ -51,6 +51,10 @@ import {
   stamdataSkadedatoField,
   withStamdataDatoReference,
 } from './stamdataDescriptors';
+import {
+  FORHOEJET_PENSIONSALDER_LABEL,
+  INDREGN_FORHOEJET_PENSIONSALDER_LABEL,
+} from '../../domain/erhvervsevnetab/eetLabels';
 import { opregulerMedAkkumuleretReguleringssats } from '../../domain/satser/opreguleringsmotorer';
 import { reguleringssats } from '../../data/lovbestemteRates';
 
@@ -203,7 +207,7 @@ export const erhvervsevnetabEndeligEetTilbagevirkendeField = eetToggle(
 );
 export const erhvervsevnetabIndregnMerErstatningField = eetToggle(
   'indregnMerErstatningVedForhoejetPensionsalder',
-  'Indregn mer-erstatning ved forhøjet pensionsalder',
+  INDREGN_FORHOEJET_PENSIONSALDER_LABEL,
 );
 
 // ── Nested bilagsvalg (eetDifferencekravBilagSelection) ──────────────────────────
@@ -229,7 +233,16 @@ export const erhvervsevnetabBilagLoebendeYdelserField = bilagToggle('loebendeYde
 export const erhvervsevnetabBilagKapitaliseringField = bilagToggle('kapitalisering', 'Kapitalisering', true);
 export const erhvervsevnetabBilagEetEfterEalField = bilagToggle('eetEfterEal', 'EET efter EAL', true);
 export const erhvervsevnetabBilagProformaKapitaliseringField = bilagToggle('proformaKapitalisering', 'Proformakap. af rest-EET', true);
-export const erhvervsevnetabBilagMerErstatningPensionsalderField = bilagToggle('merErstatningPensionsalder', 'Mer-erstatning forhøjet folkepension', true);
+export const erhvervsevnetabBilagMerErstatningPensionsalderField = bilagToggle('merErstatningPensionsalder', FORHOEJET_PENSIONSALDER_LABEL, true);
+/**
+ * «Opgørelse» er ikke et valg, men et fast element – differencekravets forside dannes altid.
+ *
+ * Feltet findes, fordi fladen viser den låst til (`lockedOn`) som Erstatningsopgørelsens egen
+ * «Opgørelse»: et bilagsvalg, der bare mangler, efterlader brugeren i tvivl om, hvad papiret
+ * indeholder, når de øvrige fem valg står ved siden af. Schema-evolution: ældre `.eo` uden feltet får
+ * default `true`, altså præcis den tilstand de i praksis havde.
+ */
+export const erhvervsevnetabBilagOpgoerelseField = bilagToggle('opgoerelse', 'Opgørelse', true);
 export const erhvervsevnetabBilagVisUdvidetSpecifikationField = bilagToggle('visUdvidetSpecifikation', 'Vis udvidet specifikation', false);
 export const erhvervsevnetabBilagVisUdvidetSpecLoebendeField = bilagToggle('visUdvidetSpecifikationLoebendeYdelserBilag', 'Medtag udvidet specifikation på løbende ydelser', false);
 
@@ -489,6 +502,7 @@ export const erhvervsevnetabFields = catalogFields(
   erhvervsevnetabEalEetPctField,
   erhvervsevnetabEndeligEetTilbagevirkendeField,
   erhvervsevnetabIndregnMerErstatningField,
+  erhvervsevnetabBilagOpgoerelseField,
   erhvervsevnetabBilagLoebendeYdelserField,
   erhvervsevnetabBilagKapitaliseringField,
   erhvervsevnetabBilagEetEfterEalField,

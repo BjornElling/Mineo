@@ -35,13 +35,13 @@ import {
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import {
-  formatCurrencyFromOre,
-  formatCurrencyFromOreTrimmed,
   formatKr,
+  formatMoneyOreWithKrTrimmed,
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
 import { formatDeduction, formatDeductionKr } from '../../../utils/deductionFormatting';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { FORHOEJET_PENSIONSALDER_LABEL } from '../../../domain/erhvervsevnetab/eetLabels';
 import { toKroner } from '../../../domain/money/money';
 import {
   addLoebendeAfgoerelseSection,
@@ -54,7 +54,12 @@ import {
   PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
 } from '../kapitalisering/kapitaliseringDocument';
 import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
-import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import {
+  buildBeregnetDifferencekravLabel,
+  buildMerErstatningForhoejelseOverskrift,
+  DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
+  SAMLET_MER_ERSTATNING_LABEL,
+} from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
@@ -212,9 +217,13 @@ const addMerErstatningEvent = (
 
   // Manuel topafstand over underoverskriften er fjernet (document-output B6): writerens centrale
   // subheader-topspacing styrer afstanden mellem mer-erstatning-events.
-  writer.writeUnderlinedSubheader(
-    `Forhøjelse pr. ${formatIsoDateLong(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`
-  );
+  writer.writeUnderlinedSubheader(buildMerErstatningForhoejelseOverskrift({
+    forhoejelsesdatoFormatted: formatIsoDateLong(event.forhoejelsesdato),
+    gammelAlderLabel: event.gammelAlderLabel,
+    nyAlderLabel: event.nyAlderLabel,
+    kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
+    kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
+  }));
 
   writer.writeBoldSubheader('Løbende ydelse');
 
@@ -223,12 +232,12 @@ const addMerErstatningEvent = (
   );
   writer.writeLeftRightText(
     buildKapitaliseringGrundydelseExpression(
-      formatCurrencyFromOreTrimmed(event.grundloenOre),
+      formatKr(toKroner(event.grundloenOre), 0),
       formatKapPct(event.kapitaliseringspct),
       event.erstatningsniveauPct,
       event.amBidragPct
     ),
-    formatCurrencyFromOre(event.grundydelseOre),
+    formatKr(toKroner(event.grundydelseOre), 2),
     rowOpts
   );
 
@@ -237,13 +246,17 @@ const addMerErstatningEvent = (
       `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %) =`
     );
     writer.writeLeftRightText(
-      `${formatCurrencyFromOre(event.grundydelseOre)} x ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
-      formatCurrencyFromOre(event.grundydelse2024Ore),
+      `${formatKr(toKroner(event.grundydelseOre), 2)} x ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      formatKr(toKroner(event.grundydelse2024Ore), 2),
       rowOpts
     );
   }
 
   if (event.aarsydelseReguleringsPctRounded4 !== null) {
+    // Parentesen bærer SATSÅRET og ikke en dato: forhøjelsen sker altid lige før et årsskifte, og
+    // afgørelserne om den træffes i løbet af det følgende kalenderår, som satsen derfor slås op i
+    // (`satsAar` = året 1 måned efter forhøjelsesdatoen). Formen er efterprøvet og fastholdt af
+    // udvikleren 2026-09-09 (BB-198).
     writer.writeLeftRightText(
       `Reguleringsprocent (${event.satsAar})`,
       `${formatAsAmountTrimmed(event.aarsydelseReguleringsPctRounded4, 4)} %`,
@@ -253,38 +266,50 @@ const addMerErstatningEvent = (
 
   writer.writeLeftRightText(
     buildKapitaliseringAarsydelseExpression(
-      formatCurrencyFromOre(event.aarsydelseGrundlagOre),
+      formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
       event.aarsydelseReguleringsPctRounded4 === null
         ? null
         : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
     ),
-    formatCurrencyFromOre(event.aarsydelseOre),
+    formatKr(toKroner(event.aarsydelseOre), 2),
     rowOpts
   );
 
-  writer.writeBoldSubheader(`Kapitalværdi til hidtidig folkepensionsalder (${event.gammelAlderLabel})`);
-  writer.writeLeftRightText(event.gammel.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.gammel.kapitaliseringsfaktor), rowOpts);
+  // Faktoropslagets forudsætninger navngives som i proformaboksen (BB-194): alderen på
+  // forhøjelsesdatoen er den ENESTE nøgle ind i de to faktortabeller, og uden den kan hverken
+  // brugeren eller modparten slå de to faktorer op og kontrollere fradraget.
+  writer.writeBoldSubheader('Kapitaliseringsfaktorer');
   writer.writeLeftRightText(
-    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} x ${formatFaktor(event.gammel.kapitaliseringsfaktor)}) =`,
-    formatCurrencyFromOre(event.gammel.kapitalvaerdiOre),
+    'Alder ved forhøjelsen',
+    `${event.alderAar} år, ${event.alderMaaneder} måneder`,
     rowOpts
   );
-
-  writer.writeBoldSubheader(`Kapitalværdi til forhøjet folkepensionsalder (${event.nyAlderLabel})`);
-  writer.writeLeftRightText(event.ny.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.ny.kapitaliseringsfaktor), rowOpts);
-  writer.writeLeftRightText(
-    `Kapitalværdi (${formatCurrencyFromOre(event.aarsydelseOre)} x ${formatFaktor(event.ny.kapitaliseringsfaktor)}) =`,
-    formatCurrencyFromOre(event.ny.kapitalvaerdiOre),
-    rowOpts
-  );
-
+  writer.writeLeftRightText('Faktor måneds-afhængig?', formatJaNej(event.faktorMaanedsAfhaengig), rowOpts);
   if (event.koenOpdelt && koen) {
     writer.writeLeftRightText('Køn', koen, rowOpts);
   }
 
+  writer.writeBoldSubheader(`Kapitalværdi til hidtidig folkepensionsalder (${event.gammelAlderLabel})`);
+  writer.writeLeftRightText('Kapitaliseringsbekendtgørelse', event.gammel.kapitaliseringsbekendtgoerelseLabel, rowOpts);
+  writer.writeLeftRightText('Kapitaliseringsfaktor', formatFaktor(event.gammel.kapitaliseringsfaktor), rowOpts);
   writer.writeLeftRightText(
-    `Mer-erstatning (${formatCurrencyFromOre(event.ny.kapitalvaerdiOre)} − ${formatCurrencyFromOre(event.gammel.kapitalvaerdiOre)})`,
-    formatCurrencyFromOreTrimmed(event.merErstatningOre),
+    `Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} x ${formatFaktor(event.gammel.kapitaliseringsfaktor)}) =`,
+    formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2),
+    rowOpts
+  );
+
+  writer.writeBoldSubheader(`Kapitalværdi til forhøjet folkepensionsalder (${event.nyAlderLabel})`);
+  writer.writeLeftRightText('Kapitaliseringsbekendtgørelse', event.ny.kapitaliseringsbekendtgoerelseLabel, rowOpts);
+  writer.writeLeftRightText('Kapitaliseringsfaktor', formatFaktor(event.ny.kapitaliseringsfaktor), rowOpts);
+  writer.writeLeftRightText(
+    `Kapitalværdi (${formatKr(toKroner(event.aarsydelseOre), 2)} x ${formatFaktor(event.ny.kapitaliseringsfaktor)}) =`,
+    formatKr(toKroner(event.ny.kapitalvaerdiOre), 2),
+    rowOpts
+  );
+
+  writer.writeLeftRightText(
+    `Mer-erstatning (${formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)} − ${formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)})`,
+    formatKr(toKroner(event.merErstatningOre)),
     { rightFontStyle: 'bold' as const }
   );
 };
@@ -295,11 +320,22 @@ const addMerErstatningPensionsalderSection = (
   koen: string | undefined
 ): void => {
   writer.addPage();
-  writer.writeTitle('Forhøjet pensionsalder');
+  writer.writeTitle(FORHOEJET_PENSIONSALDER_LABEL);
 
   computation.events.forEach((event) => {
     addMerErstatningEvent(writer, event, koen);
   });
+
+  // Summen er det beløb, der faktisk fratrækkes differencekravet, og den skal derfor stå de samme
+  // tre steder: i boksen på skærmen, i specifikationen og her i bilaget (BB-201). Betingelsen er
+  // boksens: ved én forhøjelse ER linjen ovenfor summen.
+  if (computation.events.length > 1) {
+    writer.writeLeftRightText(
+      SAMLET_MER_ERSTATNING_LABEL,
+      formatKr(toKroner(computation.samletMerErstatningOre)),
+      { rightFontStyle: 'bold' as const }
+    );
+  }
 };
 
 // ============================================================================
@@ -314,6 +350,7 @@ const renderDifferencekravPage = (
 
   writer.writeSectionHeader('Beregning');
 
+  // Kort form `dd-mm-åååå` som skærmens øvrige etiketterede datorækker og som feltet selv (BB-199).
   writer.writeLeftRightText(
     'Beregningsdato',
     formatISOToDanish(computation.beregningsdato),
@@ -384,7 +421,7 @@ const renderDifferencekravPage = (
     } else if (!foretages && afgoerelse.afgoerelseType === 'Midlertidig') {
       // Post-2011 midlertidige afgørelser uden tilbagevirkende kraft vises kun informativt.
     } else if (!foretages && afgoerelse.afgoerelseType !== 'Midlertidig') {
-      writer.writeWrappedText('Løbende ydelser derfor ikke relevante.');
+      writer.writeWrappedText(DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST);
     } else {
       writer.writeWrappedText('Ingen løbende ydelser.');
     }
@@ -448,14 +485,33 @@ const renderDifferencekravPage = (
   }
 
   // Forhøjet pensionsalder
+  //
+  // `writeBoldSubheader` og ikke `writeSectionHeader`: afsnittet er det femte fradragsafsnit under
+  // «Specifikation» på linje med de fire søskende, og på skærmen ER alle fem `row--subheading` inde i
+  // samme boks. Med en sektionsoverskrift her blev sagens bundlinje, «Differencekrav», i stedet et
+  // UNDERAFSNIT af pensionsalderen – og overskriftsniveauet er den eneste anvisning på, hvad der
+  // hører til hvad, i et papir uden indholdsfortegnelse (BB-192).
   if (computation.merErstatningPensionsalder) {
-    writer.writeSectionHeader('Forhøjet pensionsalder');
+    writer.writeBoldSubheader(FORHOEJET_PENSIONSALDER_LABEL);
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
-        `Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
+        `${buildMerErstatningForhoejelseOverskrift({
+          forhoejelsesdatoFormatted: formatISOToDanish(event.forhoejelsesdato),
+          gammelAlderLabel: event.gammelAlderLabel,
+          nyAlderLabel: event.nyAlderLabel,
+          kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
+          kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
+        })}:`,
         // Linjen formaterer selv (trimmet valuta med NBSP); vagten måler derfor mod DEN streng, så
         // dokumentet og skærmen ikke kan blive uenige om formen ved nul (BB-130).
-        formatDeduction(toKroner(event.merErstatningOre), formatCurrencyFromOreTrimmed(event.merErstatningOre)),
+        formatDeduction(toKroner(event.merErstatningOre), formatMoneyOreWithKrTrimmed(event.merErstatningOre)),
+        rowOpts
+      );
+    }
+    if (computation.merErstatningPensionsalder.events.length > 1) {
+      writer.writeLeftRightText(
+        `${SAMLET_MER_ERSTATNING_LABEL}:`,
+        formatDeductionKr(toKroner(computation.merErstatningPensionsalder.samletMerErstatningOre)),
         rowOpts
       );
     }
@@ -485,6 +541,8 @@ const renderDifferencekravPage = (
 // ============================================================================
 
 export type BilagSelection = Readonly<{
+  /** Forsiden. Ikke et valg: fladen viser den låst til, og generatoren kræver den. */
+  opgoerelse: boolean;
   loebendeYdelser: boolean;
   kapitalisering: boolean;
   eetEfterEal: boolean;
@@ -517,6 +575,13 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
     bilagSelection,
   } = params;
 
+  // Opgørelsen er en invariant, ikke et valg: dokumentkilden tvinger den sand
+  // (`resolveDifferencekravBilagSelection`), så denne gren er uopnåelig fra brugerfladen og findes
+  // som værn mod en fremtidig kalder, der sender et bilagsvalg uden forsiden.
+  if (!bilagSelection.opgoerelse) {
+    throw new Error('Dokumentgenerering kræver, at elementet "Opgørelse" er valgt.');
+  }
+
   // Hoved-side: differencekrav-beregningen
   renderDifferencekravPage(writer, computation);
 
@@ -524,7 +589,14 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
   if (bilagSelection.eetEfterEal && computation.ealComputation) {
     writer.addPage();
     writer.writeTitle('EET efter EAL');
-    renderEfterEalBody(writer, computation.ealComputation, false);
+    renderEfterEalBody(writer, computation.ealComputation, {
+      includeBeregningsdatoHeader: false,
+      // Bilaget er differencekravets GRUNDLAG og viser derfor det ureducerede EAL-krav. Har sagen et
+      // forlig, står det på forsiden, hvor det anvendes på beløbet efter alle fire ASL-fradrag –
+      // linjen her forbinder de to, så et reduceret differencekrav og et ureduceret bilag ikke
+      // læses som en uenighed.
+      forligIndregnesIDifferencekravet: computation.forligLabel !== null,
+    });
   }
 
   // Bilag: Løbende ydelser (+ valgfri udvidet specifikation)

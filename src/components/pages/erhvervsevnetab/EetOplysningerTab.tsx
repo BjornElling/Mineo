@@ -9,6 +9,7 @@ import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import AmountField, { MILLION_AMOUNT_FIELD_WIDTH } from '../../../inputCore/react/fields/AmountField';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../inputCore/react/fields/DateField';
+import FractionField from '../../../inputCore/react/fields/FractionField';
 import PercentField from '../../../inputCore/react/fields/PercentField';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import {
@@ -20,6 +21,8 @@ import {
   faellesAarsloenAslAarsloenField,
   faellesAarsloenEalAarsloenField,
 } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
+import { forligInputFields } from '../../../domain/erstatningsopgoerelse/forligInputPort';
+import { FORLIG_ANSVARSGRAD_LABEL } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import type { Koen } from '../../../schemas/formSchemas';
 import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
@@ -49,6 +52,9 @@ const ealEetPctRef = erhvervsevnetabEalEetPctField.bind();
 const aslAarsloenRef = faellesAarsloenAslAarsloenField.bind();
 const ealAarsloenRef = faellesAarsloenEalAarsloenField.bind();
 const skadedatoRef = stamdataSkadedatoField.bind();
+const forligProcentRef = forligInputFields.procent.bind();
+const forligBroekRef = forligInputFields.broek.bind();
+const forligDatoRef = forligInputFields.dato.bind();
 
 // route + tabKey er eksplicit navigation-metadata (§3.7). aslAarsloen/ealAarsloen deler feltadresse med
 // Forsørgertab, men bærer HER route `/erhvervsevnetab` + oplysninger-fanen – det er route (ikke feltadresse) der
@@ -60,6 +66,11 @@ const LOCATIONS = {
   ealEetPct: { locationId: 'erhvervsevnetab:oplysninger:ealEetPct', ...EET_OPLYSNINGER_NAV },
   aslAarsloen: { locationId: 'erhvervsevnetab:oplysninger:aslAarsloen', ...EET_OPLYSNINGER_NAV },
   ealAarsloen: { locationId: 'erhvervsevnetab:oplysninger:ealAarsloen', ...EET_OPLYSNINGER_NAV },
+  // De tre forligsfelter deles med Erstatningsopgørelsen, men bærer HER EET-ruten, så undo/redo og
+  // «Fejl og advarsler» lander på den flade, brugeren rettede dem på.
+  forligProcent: { locationId: 'erhvervsevnetab:oplysninger:forligProcent', ...EET_OPLYSNINGER_NAV },
+  forligBroek: { locationId: 'erhvervsevnetab:oplysninger:forligBroek', ...EET_OPLYSNINGER_NAV },
+  forligDato: { locationId: 'erhvervsevnetab:oplysninger:forligDato', ...EET_OPLYSNINGER_NAV },
 } as const;
 
 const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
@@ -201,6 +212,48 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
               name="ealEetPct"
               placeholder="0"
               warning={resolveEetUnder15Warning(values.ealEetPct)}
+            />
+          </Box>
+        </Box>
+
+        {/*
+          Forliget om ansvarsgrad står HER og ikke på Differencekrav-fanen, hvor felterne tidligere lå:
+          det er en indtastning om erstatningsansvarsloven, og det reducerer BEGGE de to krav, siden
+          opgør – EAL-kravet på fane 4 og differencekravet på fane 5. Lå felterne på fane 5, ville
+          fane 4's forligsblok hvile på en indtastning, brugeren ikke kunne se derfra. Felterne er de
+          samme tre descriptors, som Erstatningsopgørelsen bruger (delt kilde gennem `forligInputPort`).
+
+          De to faner reducerer hver sit grundlag – se `eetEalForligSchema`.
+        */}
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">{FORLIG_ANSVARSGRAD_LABEL}</Typography>
+          <Box className="row--label-right-hover__content">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography className="row--text">Procent</Typography>
+              <PercentField
+                field={forligProcentRef}
+                location={LOCATIONS.forligProcent}
+                name="forligAnsvarsgradProcent"
+                width={100}
+              />
+              <Typography className="row--text">eller brøk</Typography>
+              <FractionField
+                field={forligBroekRef}
+                location={LOCATIONS.forligBroek}
+                name="forligAnsvarsgradBroek"
+                width={120}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Evt. dato for forlig</Typography>
+          <Box className="row--label-right-hover__content">
+            <DateField
+              field={forligDatoRef}
+              location={LOCATIONS.forligDato}
+              name="forligDato"
             />
           </Box>
         </Box>

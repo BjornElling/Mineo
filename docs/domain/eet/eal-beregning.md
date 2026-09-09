@@ -113,6 +113,34 @@ eal_krav = max(0, round0(eet_anvendt − aldersreduktion_beløb))
 
 Resultatet kan ikke være negativt.
 
+#### Trin 5 – Forlig om ansvarsgrad
+
+Er der indgået forlig om ansvarsgraden, er fanens krav forligsgraden af det beregnede EAL-krav:
+
+```
+eal_krav_efter_forlig = round0(eal_krav × forligsgrad)
+```
+
+Fanen skriver da en «Forlig om ansvarsgrad»-blok med prosa-sætningen («Der er den 1. maj 2022 indgået
+forlig i sagen på betaling af 50 %.») og lader bundlinjen vise regnestykket med forligsgraden ganget
+på: «50 % x (2.787.000 kr. - 501.660 kr.) =».
+
+Forligsfelterne (procent eller brøk, plus en valgfri forligsdato) står på **EET oplysninger** under
+«Erstatningsansvarsloven» og deles med Erstatningsopgørelsen. Kun et gyldigt forlig **under** 100 %
+giver en reduktion; ved 100 % eller intet forlig skriver fanen ingen forligsblok, og bundlinjen er den
+rene subtraktion. Et ugyldigt forlig blokerer fanen.
+
+> **Grundlaget er fanens EGET krav, og det må ikke overføres til differencekravet.**
+> `EetEalComputation.ealKravOre` er og bliver det UREDUCEREDE krav; reduktionen ligger i den
+> selvstændige `forlig`-blok ved siden af. Differencekravet aftager `ealKravOre` og anvender
+> forligsgraden på sit eget beløb EFTER alle fire ASL-fradrag – se
+> [differencekrav.md § Forlig om ansvarsgrad](./differencekrav.md#forlig-om-ansvarsgrad) og
+> `src/contracts/eet-snapshot-contract.md` §4.1. Et differencekrav, der reducerede det rene EAL-krav,
+> er en alvorlig beregningsfejl.
+>
+> Derfor tager `computeEetEalCalculation` `forlig` som et PÅKRÆVET argument: kun fane 4's projektion
+> sender et forlig, mens differencekravets graf og Forsørgertab sender `null`.
+
 ### Regulering i EAL vs. ASL
 
 EAL og ASL bruger **fundamentalt forskellige reguleringsmetoder**:

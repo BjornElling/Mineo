@@ -37,6 +37,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -58,6 +59,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation?.aarsloenSource).toBe('eal');
@@ -79,6 +81,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -109,6 +112,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -134,6 +138,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues).toEqual([]);
@@ -172,6 +177,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     const warning = result.issues.find((issue) => issue.id === 'warn-beregningsdato-foer-skadedato');
@@ -199,6 +205,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-beregningsdato-foer-skadedato')).toBe(false);
@@ -234,6 +241,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues).toEqual([]);
@@ -271,6 +279,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -307,6 +316,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).not.toBeNull();
@@ -345,6 +355,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -378,6 +389,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -413,6 +425,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.id === 'missing-eet-pct')).toBe(true);
@@ -434,6 +447,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats: { ...reguleringssats, 2025: undefined as unknown as number },
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.computation).toBeNull();
@@ -455,6 +469,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues).toEqual([]);
@@ -480,6 +495,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === EET_UNDER_15_WARNING)).toBe(true);
@@ -508,6 +524,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message === EET_UNDER_15_WARNING)).toBe(true);
@@ -528,6 +545,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Skadelidtes årsløn efter EAL'))).toBe(true);
@@ -548,6 +566,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(result.issues.some((issue) => issue.severity === 'warning' && issue.message.includes('Skadelidtes årsløn efter EAL'))).toBe(true);
@@ -568,6 +587,7 @@ describe('computeEetEalCalculation', () => {
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
     expect(
@@ -607,6 +627,7 @@ describe('computeEetEalCalculation – advarsel om ikke-endelig afgørelse efter
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
 
   const endelig2020 = aslRow({
@@ -690,6 +711,7 @@ describe('computeEetEalCalculation – delegering til opreguleringsmotor (akkumu
     reguleringssats: overrides.reguleringssats ?? reguleringssats,
     erhvervsevnetabEalMax,
     aarsloenAslMax,
+    forlig: null,
   });
 
   it('anvender en reguleringsfaktor der er tal-identisk med det eksplicitte akkumulerede produkt', () => {
@@ -761,6 +783,7 @@ describe('computeEetEalCalculation – aldersreduktionsprocent (invarianter)', (
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
+      forlig: null,
     });
     return result.computation?.aldersreduktionPct;
   };

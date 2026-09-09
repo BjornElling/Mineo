@@ -125,8 +125,25 @@ describe('EET MoneyOre-migration karakterisering', () => {
     expect(goldenHash(snapshot.kapitalisering)).toBe('fef5c1aa3c40ad069710ae68800c2921c7dff1e7ab8f32bed17e1e764b413a6b');
   });
 
+  // Hash-opdateringen 2026-09-09 er bevist frem for antaget, jf. kravet i denne fils historik: det
+  // ENESTE nye i `efterEal` er forligsblokken, og `ealKravOre` – det tal differencekravet aftager – er
+  // uændret. De to assertions nedenfor låser netop det, så en senere hash-opdatering ikke kan skjule,
+  // at et beløb har flyttet sig.
+  it('lader forliget reducere fanens EGET EAL-krav uden at røre det ureducerede grundlag', () => {
+    const computation = snapshot.efterEal.computation;
+    if (!computation) throw new Error('Forventede EAL-beregning');
+    // Uændret af forliget: EAL-kravet efter maksimum, regulering og aldersreduktion.
+    expect(computation.ealKravOre).toBe(fromKroner(1388687));
+    expect(computation.forlig).toEqual({
+      label: '2/3',
+      dato: iso('2026-03-01'),
+      // round0(1.388.687 x 2/3) – samme krone-afrunding som differencekravets forligsreduktion.
+      ealKravEfterForligOre: fromKroner(925791),
+    });
+  });
+
   it('låser EAL-beregningen inklusive maksimum, regulering og aldersreduktion', () => {
-    expect(goldenHash(snapshot.efterEal)).toBe('204d3acc44ec81f2b49a69f5facb530db3735b6e528e77e74c8fdc1da2abe29e');
+    expect(goldenHash(snapshot.efterEal)).toBe('b16a1146c36150e7d56eb360015d491d2485f68aeef6556ca8dd90887860aac0');
   });
 
   it('fører samme perioder og beløb videre til differencekravet', () => {
