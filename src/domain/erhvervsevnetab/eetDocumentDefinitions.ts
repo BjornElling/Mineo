@@ -50,8 +50,8 @@ const readSharedEetSource = (context: DocumentSourceContext<MineoDocumentGateSet
 };
 
 /**
- * Fælles dependency-/gate-evaluering for en EET-fane. `computation !== null` og
- * `computation !== null` er allerede dækket af gaten (`no-result`); den gentages her som
+ * Fælles dependency-/gate-evaluering for en EET-fane. `computation !== null` er allerede
+ * dækket af gaten (`no-result`); den gentages her som
  * typeindsnævring. Stamdata er en separat, betinget dependency: den projiceres kun, når EET-
  * brevhovedet er slået til, og en fejl blokerer da med en navngiven vej til Stamdata.
  */

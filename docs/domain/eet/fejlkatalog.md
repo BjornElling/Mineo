@@ -23,7 +23,8 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 - `alder-unresolved` undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` allerede er aktiv – den afledte fejl er redundant.
 - `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` – de to kan vises samtidigt.
 - `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
-- På F5 filtreres `no-endelig-afgoerelser` og `warn-ingen-kap-input` altid fra.
+- På F5 filtreres `no-endelig-afgoerelser` altid fra. `warn-ingen-kap-input` kan også vises på F5,
+  fordi differencekravet fortsat skal kunne opgøres uden kapitalisering.
 
 ---
 
@@ -442,35 +443,19 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Mindst én `Midlertidig` eller `Delvist endelig` afgørelse har afgørelsesdato efter den tidligste `Endelig` afgørelses dato |
 
-#### `warn-afgoerelsesdato-after-beregningsdato` – "Der er angivet en afgørelsesdato efter beregningsdatoen."
+#### `warn-dato-after-beregningsdato` – "Beregningsdatoen ({dato}) ligger før sagens afgørelser."
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
-| Vises på | F2, F3, F5 |
+| Vises på | F2 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses afgørelsesdato er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) – se `eo-snapshot-contract.md` §13. |
-
-#### `warn-virkningsdato-after-beregningsdato` – "Der er angivet en virkningsdato efter beregningsdatoen."
-| Felt | Værdi |
-|---|---|
-| Type | Advarsel |
-| Vises på | F2, F3, F5 |
-| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses virkningsdato er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) – se `eo-snapshot-contract.md` §13. |
-
-#### `warn-kap-dato-after-beregningsdato` – "Der er angivet en kapitaliseringsdato efter beregningsdatoen."
-| Felt | Værdi |
-|---|---|
-| Type | Advarsel |
-| Vises på | F3, F5 |
-| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én afgørelses kap.dato er udfyldt og er efter beregningsdato. Undertrykkes i erstatningsopgørelsens midlertidigt EET-import (beregningsdato = TAF-slutdato dér) – se `eo-snapshot-contract.md` §13. |
+| Betingelse | Mindst én afgørelsesdato, virkningsdato eller udfyldt kapitaliseringsdato er efter beregningsdato. De tre datofelter får desuden hver sin gule feltadvarsel med den konkrete dato og beregningsdatoen. Advarslen undertrykkes i erstatningsopgørelsens midlertidigt EET-import, hvor TAF-slutdatoen er beregningsdato – se `eo-snapshot-contract.md` §13. |
 
 #### `warn-ingen-kap-input` – "Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse."
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
-| Vises på | F3 (filtreres altid fra F5) |
+| Vises på | F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Der er påbegyndte rækker, men ingen har kap.dato eller kap.% udfyldt. ID: `WARN_NO_KAP_INPUT_ID` exporteret fra `eetKapitaliseringCalculation.ts`. |
 

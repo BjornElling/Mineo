@@ -263,6 +263,19 @@ const projectionSchema = <T extends z.ZodType>(computation: T) => z.object({
   computation: computation.nullable(),
 }).strict().superRefine((projection, ctx) => {
   const hasErrorIssue = projection.issues.some((issue) => issue.severity === 'error');
+  // Zod 4 mister det generiske beregningsfelts outputtype i callbackens inferens, selv om feltet
+  // er en del af schemaets shape. Feltet er statisk sikret af objektdefinitionen ovenfor.
+  const computation = (projection as unknown as { computation: unknown | null }).computation;
+  if (hasErrorIssue && computation !== null) {
+    // Et blokerende issue må ikke ledsages af et resultat, som en consumer kan komme til at vise eller gemme.
+    // Gaten og alle fire motorer følger allerede denne regel; schemaet håndhæver den også ved canonical-grænsen.
+    ctx.addIssue({
+      code: 'custom',
+      path: ['computation'],
+      message: 'En projektion med error-issues må ikke have et beregningsresultat',
+    });
+  }
+
   if (projection.hasBlockingErrors === hasErrorIssue) return;
 
   // Blocking-flaget er kun troværdigt, når den samme canonical projektion også forklarer

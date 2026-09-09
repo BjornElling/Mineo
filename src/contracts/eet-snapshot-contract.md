@@ -44,6 +44,10 @@ Den canonical projektionsform er `issues`, `hasBlockingErrors` og `computation`,
 `computation` er `null`, når projektionen ikke kan beregnes. Delresultater skal ikke pakkes i
 `Calculable<T>`, når denne form allerede udtrykker fraværet entydigt.
 
+En projektion med mindst ét `error`-issue skal altid have `computation: null`. Det er en
+canonical invariant, som både snapshot-gaten og output-schemas håndhæver, så en consumer ikke
+kan vise eller gemme et resultat fra en blokeret projektion.
+
 Projektionerne er dele af det Zod-validerede `EetSnapshot`; view- og dokumentprojektioner må
 kun formatere eller udvælge disse data.
 

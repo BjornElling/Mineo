@@ -91,4 +91,19 @@ describe('eetCanonicalOutput', () => {
 
     expect(eetCanonicalOutputSchema.safeParse(invalid).success).toBe(false);
   });
+
+  it('afviser en blokerende projektion der stadig indeholder et beregningsresultat', () => {
+    const snapshot = buildSnapshot();
+    expect(snapshot.loebendeYdelser.computation).not.toBeNull();
+    const invalid = {
+      ...snapshot,
+      loebendeYdelser: {
+        ...snapshot.loebendeYdelser,
+        hasBlockingErrors: true,
+        issues: [{ id: 'test-error', severity: 'error' as const, message: 'Testfejl' }],
+      },
+    };
+
+    expect(eetCanonicalOutputSchema.safeParse(invalid).success).toBe(false);
+  });
 });
