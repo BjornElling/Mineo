@@ -69,6 +69,30 @@ const findCommandConflicts = (lockPackages) => {
 };
 
 /**
+ * Nyere @playwright/test-versioner hejser den identiske Playwright-runtime til
+ * top-level. Begge pakker eksponerer derfor den samme CLI; det er ikke den
+ * fremmede CLI/MCP-runtime, som denne kontrol skal afvise.
+ */
+const isE2ECommandAlias = ({ command, owners }) => {
+  if (command !== E2E_COMMAND || owners.length !== 2) return false;
+
+  const parsedOwners = owners.map((owner) => {
+    const separatorIndex = owner.lastIndexOf('@');
+    return {
+      name: owner.slice(0, separatorIndex),
+      version: owner.slice(separatorIndex + 1),
+    };
+  });
+  const names = new Set(parsedOwners.map(({ name }) => name));
+  const versions = new Set(parsedOwners.map(({ version }) => version));
+
+  return names.size === 2
+    && names.has(E2E_COMMAND_OWNER)
+    && names.has('playwright')
+    && versions.size === 1;
+};
+
+/**
  * Udleder pakkenavnet af en sti ind i node_modules, fx `../@playwright/test/cli.js`
  * → `@playwright/test`. Stien er altid relativ til `.bin`, så pakkenavnet er de første
  * ét eller to segmenter efter de indledende `../`.
@@ -130,6 +154,7 @@ const validateToolIsolation = (repoRoot) => {
   }
 
   for (const { command, owners } of findCommandConflicts(lockPackages)) {
+    if (isE2ECommandAlias({ command, owners })) continue;
     problems.push(
       `kommandoen '${command}' deklareres af flere top-level pakker (${owners.join(' og ')}); `
       + 'npm kan kun give node_modules/.bin ét program, og valget er lydløst.'
@@ -230,7 +255,9 @@ const main = () => {
     process.exitCode = 1;
     return;
   }
-  console.log('check:tool-isolation – kommandonavnene har én ejer, og agentværktøjerne bor i deres eget træ.');
+  console.log(
+    'check:tool-isolation – kommandonavnene har ingen farlige konflikter, og agentværktøjerne bor i deres eget træ.'
+  );
 };
 
 const isMain = process.argv[1] !== undefined

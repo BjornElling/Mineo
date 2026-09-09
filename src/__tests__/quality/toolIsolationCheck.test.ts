@@ -165,7 +165,7 @@ const output = (result: ReturnType<typeof spawnSync>): string => `${result.stdou
 describe('check-tool-isolation', () => {
   it('accepterer et træ hvor E2E-motoren alene ejer playwright-kommandoen', () => {
     withFixture(makeFixture(), (result) => {
-      expect(output(result)).toContain('én ejer');
+      expect(output(result)).toContain('ingen farlige konflikter');
       expect(result.status).toBe(0);
     });
   });
@@ -182,6 +182,22 @@ describe('check-tool-isolation', () => {
       expect(result.status).toBe(1);
       expect(output(result)).toContain("kommandoen 'playwright' deklareres af flere top-level pakker");
       expect(output(result)).toContain('1.63.0-alpha-2026-08-05');
+    });
+  });
+
+  it('accepterer @playwright/tests identiske top-level runtime-alias', () => {
+    const fixture = makeFixture();
+    fixture.packageLock.packages['node_modules/playwright'] = {
+      version: '1.63.0',
+      dev: true,
+      bin: { playwright: 'cli.js' },
+    };
+    fixture.packageLock.packages['node_modules/@playwright/test'].version = '1.63.0';
+    fixture.packageLock.packages['node_modules/@playwright/test/node_modules/playwright'].version = '1.63.0';
+    fixture.packageLock.packages['node_modules/@playwright/test/node_modules/playwright-core'].version = '1.63.0';
+    withFixture(fixture, (result) => {
+      expect(result.status).toBe(0);
+      expect(output(result)).toContain('ingen farlige konflikter');
     });
   });
 
@@ -271,7 +287,7 @@ describe('check-tool-isolation', () => {
       // symlinket og meldte alligevel rødt.
       withFixture({ ...makeFixture(), binLinkStyle }, (result) => {
         expect(output(result)).not.toContain('ukendt');
-        expect(output(result)).toContain('én ejer');
+        expect(output(result)).toContain('ingen farlige konflikter');
         expect(result.status).toBe(0);
       });
     });
@@ -317,7 +333,7 @@ describe('check-tool-isolation', () => {
 
   it('er grøn mod det virkelige repo', () => {
     const result = runCheck(repoRoot);
-    expect(output(result)).toContain('én ejer');
+    expect(output(result)).toContain('ingen farlige konflikter');
     expect(result.status).toBe(0);
   });
 });
