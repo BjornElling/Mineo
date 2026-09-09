@@ -8,10 +8,8 @@ import {
   resolveErhvervsevnetabMaksimumTekst,
 } from '../../../domain/erhvervsevnetab/eetMaksimumTekst';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
-import {
-  buildForligIndgaaetSaetning,
-  FORLIG_ANSVARSGRAD_LABEL,
-} from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
+import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
+import { BEREGNET_EET_EFTER_EAL_LABEL } from '../../../domain/erhvervsevnetab/eetLabels';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -209,25 +207,22 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
               </Box>
             </Box>
 
+            <Typography className="row--subheading">{BEREGNET_EET_EFTER_EAL_LABEL}</Typography>
+
             {/*
-              Forligsblokken står FØR bundlinjen, fordi den ændrer den: er der indgået forlig, er
-              fanens krav forligsgraden af det beregnede EAL-krav. Grundlaget er fanens EGET krav –
-              differencekravet reducerer i stedet sit beløb efter alle fire ASL-fradrag
-              (`eetEalForligSchema`).
+              Forligssætningen står INDE i bundlinjens afsnit og ikke under sin egen underoverskrift –
+              samme opsætning som differencekravets «Differencekrav»-afsnit, hvor sætningen ligeledes
+              indleder det afsnit, forliget ændrer. Grundlaget er fanens EGET krav; differencekravet
+              reducerer i stedet sit beløb efter alle fire ASL-fradrag (`eetEalForligSchema`).
             */}
             {computation.forlig && (
-              <>
-                <Typography className="row--subheading">{FORLIG_ANSVARSGRAD_LABEL}</Typography>
-                <HoverRow
-                  text={buildForligIndgaaetSaetning(
-                    computation.forlig.label,
-                    computation.forlig.dato ? formatIsoDateLong(computation.forlig.dato) : null
-                  )}
-                />
-              </>
+              <HoverRow
+                text={buildForligIndgaaetSaetning(
+                  computation.forlig.label,
+                  computation.forlig.dato ? formatIsoDateLong(computation.forlig.dato) : null
+                )}
+              />
             )}
-
-            <Typography className="row--subheading">Beregnet EAL-krav</Typography>
 
             {computation.forlig ? (
               <Box className="row--label-right-hover">

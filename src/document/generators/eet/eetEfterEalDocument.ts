@@ -21,10 +21,8 @@ import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deduct
 import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { toKroner } from '../../../domain/money/money';
 import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
-import {
-  buildForligIndgaaetSaetning,
-  FORLIG_ANSVARSGRAD_LABEL,
-} from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
+import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
+import { BEREGNET_EET_EFTER_EAL_LABEL } from '../../../domain/erhvervsevnetab/eetLabels';
 
 // ============================================================================
 // HOVED-GENERATOR
@@ -178,11 +176,14 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
-  // Forligsblokken hører til DENNE opgørelse: fanens krav ER forligsgraden af det beregnede EAL-krav.
-  // I differencekravets bilag er `computation.forlig` altid `null` (grafen sender `forlig: null`), og
-  // bilaget bærer i stedet én linje om, at forliget anvendes på differencekravets bundlinje.
+  writer.writeBoldSubheader(BEREGNET_EET_EFTER_EAL_LABEL);
+
+  // Forligssætningen indleder bundlinjens afsnit og har ikke sin egen underoverskrift – samme
+  // opsætning som differencekravets «Differencekrav»-afsnit. Forliget hører til DENNE opgørelse:
+  // fanens krav ER forligsgraden af det beregnede krav. I differencekravets bilag er
+  // `computation.forlig` altid `null` (grafen sender `forlig: null`), og bilaget bærer i stedet én
+  // linje om, at forliget anvendes på differencekravets bundlinje.
   if (computation.forlig) {
-    writer.writeBoldSubheader(FORLIG_ANSVARSGRAD_LABEL);
     writer.writeWrappedText(
       buildForligIndgaaetSaetning(
         computation.forlig.label,
@@ -190,8 +191,6 @@ export const renderEfterEalBody = (
       )
     );
   }
-
-  writer.writeBoldSubheader('Beregnet EAL-krav');
 
   if (computation.forlig) {
     writer.writeLeftRightText(
@@ -208,6 +207,9 @@ export const renderEfterEalBody = (
   }
 
   if (forligIndregnesIDifferencekravet) {
+    // Linjen er en forudsætningsbemærkning og ikke en del af regnestykket ovenfor; spaceren giver den
+    // luft, så den ikke læses som endnu en linje i bundlinjens afsnit.
+    writer.addSectionSpacer();
     writer.writeWrappedText(FORLIG_INDREGNET_I_DIFFERENCEKRAVET_TEKST);
   }
 };

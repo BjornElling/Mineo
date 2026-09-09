@@ -17,3 +17,13 @@ export const FORHOEJET_PENSIONSALDER_LABEL = 'Forhøjet pensionsalder';
 
 /** Beregnings-togglen på differencekrav-fanen, dannet af samme navn. */
 export const INDREGN_FORHOEJET_PENSIONSALDER_LABEL = `Indregn ${FORHOEJET_PENSIONSALDER_LABEL.toLowerCase()}`;
+
+/**
+ * Bundlinjens underoverskrift på «EET efter EAL» – skærm og dokument.
+ *
+ * Hed før «Beregnet EAL-krav». Fanen opgør erhvervsevnetabet EFTER erstatningsansvarsloven, og navnet
+ * siger nu, hvad tallet ER, frem for hvilket lovsæt det kommer fra (udviklerens ordlyd 2026-09-09).
+ * Forsørgertabs egen «Beregnet EAL-krav»-underoverskrift er BEVIDST uændret: den flade opgør et
+ * forsørgertab, ikke et erhvervsevnetab.
+ */
+export const BEREGNET_EET_EFTER_EAL_LABEL = 'Beregnet EET (efter EAL)';

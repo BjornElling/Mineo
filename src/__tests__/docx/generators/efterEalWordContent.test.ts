@@ -46,7 +46,9 @@ describe('efterEal → Word-indhold', () => {
     expect(filename).toMatch(/\.docx$/);
     expect(text).toContain('EET efter EAL');
     expect(text).toContain('Erhvervsevnetab');
-    expect(text).toContain('Beregnet EAL-krav');
+    // Bundlinjens underoverskrift siger, hvad tallet ER – ikke hvilket lovsæt det kommer fra.
+    expect(text).toContain('Beregnet EET (efter EAL)');
+    expect(text).not.toContain('Beregnet EAL-krav');
     // Konkrete beløb på en udfyldt sti: den opregulerede årsløn, mellemregningen
     // (reguleret årsløn x 10 x EET-pct.) og det beregnede erhvervsevnetab skal nå .docx'en.
     // Fanger skjult tab af tal-tunge linjer i Word (ikke bare overskrifter/labels).
@@ -112,8 +114,11 @@ describe('efterEal → Word-indhold', () => {
     });
 
     const text = xmlToPlainText(documentXml);
-    expect(text).toContain('Forlig om ansvarsgrad');
+    // Sætningen indleder bundlinjens afsnit og har IKKE sin egen underoverskrift – samme opsætning
+    // som differencekravets «Differencekrav»-afsnit.
+    expect(text).toContain('Beregnet EET (efter EAL)');
     expect(text).toContain('Der er den 1. maj 2022 indgået forlig i sagen på betaling af 50 %.');
+    expect(text).not.toContain('Forlig om ansvarsgrad');
     // Regnestykket viser forligsgraden GANGET PÅ hele det beregnede krav – ikke en bar bundlinje.
     expect(text).toContain('50 % x (2.250.000 kr. - 112.500 kr.) =');
     expect(text).toContain('1.068.750 kr.');
