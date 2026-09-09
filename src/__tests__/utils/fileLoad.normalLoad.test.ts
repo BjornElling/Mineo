@@ -459,7 +459,7 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.snapshot.stamdata).toEqual(expect.objectContaining({ journalnr: 'J-FREMTID' }));
   });
 
-  it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {
+  it('rapporterer en versionsmærket faellesPersondata-sektion som ukendt data', async () => {
     const content = await encryptLoadContainer({
       stamdata: {
         journalnr: 'J-001',
@@ -486,6 +486,53 @@ describe('fileLoad – normalLoadFlow', () => {
       kind: 'unknownSection',
       path: 'faellesPersondata',
     }));
+  });
+
+  it('migrerer versionsløs historisk EET- og stamdatasektion uden preflight', async () => {
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-HISTORISK',
+        skadestype: 'Arbejdsulykke',
+        skadedato: toISODateString('2018-01-01'),
+      },
+      faellesPersondata: {
+        skadelidteFodselsdato: toISODateString('1970-01-01'),
+      },
+      faellesAarsloen: undefined,
+      erhvervsevnetab: {
+        beregningsdato: toISODateString('2022-01-01'),
+        koen: undefined,
+        aslAfgoerelser: [],
+        aslAarsloen: { kind: 'number', value: 400000 },
+        ealAarsloen: { kind: 'number', value: 450000 },
+        ealEetPct: 25,
+        eetDifferencekravBilagSelection: {
+          loebendeYdelser: true,
+          kapitalisering: true,
+          eetEfterEal: true,
+          proformaKapitalisering: false,
+          visUdvidetSpecifikation: false,
+          visUdvidetSpecifikationLoebendeYdelserBilag: false,
+        },
+      },
+    }, null);
+    const file = new File([content], 'historisk-eet.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+
+    expect(result.status).toBe('loaded');
+    if (result.status !== 'loaded') return;
+    expect(result.snapshot.stamdata).toEqual(expect.objectContaining({
+      skadelidteFodselsdato: '1970-01-01',
+    }));
+    expect(result.snapshot.faellesAarsloen).toEqual({
+      aslAarsloen: { kind: 'number', value: 400000 },
+      ealAarsloen: { kind: 'number', value: 450000 },
+    });
+    expect(result.snapshot.erhvervsevnetab).not.toHaveProperty('aslAarsloen');
+    expect(result.snapshot.erhvervsevnetab).not.toHaveProperty('ealAarsloen');
   });
 
   it('springer ugyldig sektion over og bevarer øvrige gyldige sektioner', async () => {

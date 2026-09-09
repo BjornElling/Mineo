@@ -317,8 +317,8 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
   {
     contract: 'src/contracts/domain-boundary-contract.md',
     reference: 'faellesPersondata',
-    direction: 'absent',
-    note: 'Afskaffet sektion. Kontrakten navngiver den i sin egen sætning om, at den ER afskaffet.',
+    direction: 'present',
+    note: 'Afskaffet aktiv sektion, men historisk load-alias skal forblive levende for gamle .eo-filer.',
   },
   {
     contract: 'src/contracts/critical-action-contract.md',

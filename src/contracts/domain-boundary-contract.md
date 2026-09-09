@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-09-07
+**Senest verificeret mod kode:** 2026-09-09
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -79,7 +79,8 @@ Hvis disse kriterier ikke er opfyldt, skal løsningen være:
 
 Aktuel anvendelse:
 - `faellesAarsloen` er en gyldig neutral sektion.
-- `faellesPersondata` er afskaffet, fordi `skadelidteFodselsdato` hører hjemme i `stamdata`.
+- `faellesPersondata` er afskaffet som aktiv sektion, fordi `skadelidteFodselsdato` hører hjemme i
+  `stamdata`. Navnet må kun forekomme som historisk load-alias i `src/persistence/persistedLoadAdapter.ts`.
 
 ---
 

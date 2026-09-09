@@ -40,4 +40,36 @@ describe('persistedLoadAdapter', () => {
       erstatningsopgoerelse: { ukendtFelt: 'skal rapporteres' },
     });
   });
+
+  it('migrerer versionsløs fødselsdato og EET-årslønner mellem historiske sektioner', () => {
+    const adapted = adaptPersistedFileDataForLoad({
+      stamdata: { journalnr: 'J-1' },
+      faellesPersondata: { skadelidteFodselsdato: '1990-01-01' },
+      erhvervsevnetab: {
+        aslAarsloen: { kind: 'number', value: 400000 },
+        ealAarsloen: { kind: 'number', value: 450000 },
+        beholdtFelt: true,
+      },
+    }, 'legacy-unversioned');
+
+    expect(adapted).toEqual({
+      stamdata: { journalnr: 'J-1', skadelidteFodselsdato: '1990-01-01' },
+      faellesAarsloen: {
+        aslAarsloen: { kind: 'number', value: 400000 },
+        ealAarsloen: { kind: 'number', value: 450000 },
+      },
+      erhvervsevnetab: { beholdtFelt: true },
+    });
+  });
+
+  it('lader tværgående destinationskonflikter stå til preflight', () => {
+    const source = {
+      stamdata: { skadelidteFodselsdato: '1980-01-01' },
+      faellesPersondata: { skadelidteFodselsdato: '1990-01-01' },
+      faellesAarsloen: { aslAarsloen: { kind: 'number', value: 300000 } },
+      erhvervsevnetab: { aslAarsloen: { kind: 'number', value: 400000 } },
+    };
+
+    expect(adaptPersistedFileDataForLoad(source, 'legacy-unversioned')).toEqual(source);
+  });
 });

@@ -74,11 +74,11 @@ const processDecryptedContainer = (args: {
 }): LoadFileResult => {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const rawFileData = fileContainer.data as Record<string, unknown>;
-  // Adapteren er load-grænsens eneste sted for godkendte historiske undtagelser. Den kører før
-  // optælling, så tavst ignorerede udviklingsfelter aldrig kan nå preflight-tallene.
-  const fileData = adaptPersistedFileDataForLoad(rawFileData);
   const sourcePersistedDataVersion =
     fileContainer._metadata.persistedDataVersion ?? LEGACY_PERSISTED_DATA_VERSION;
+  // Adapteren er load-grænsens eneste sted for godkendte historiske undtagelser. Den kører før
+  // optælling, så tavst ignorerede udviklingsfelter aldrig kan nå preflight-tallene.
+  const fileData = adaptPersistedFileDataForLoad(rawFileData, sourcePersistedDataVersion);
 
   const fileVersion = fileContainer.version;
 

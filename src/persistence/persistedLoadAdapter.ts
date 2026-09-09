@@ -1,7 +1,12 @@
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
-import { PERSISTED_DATA_VERSION, PERSISTED_DATA_VERSION_HISTORY } from '../config/persistenceVersion';
+import {
+  LEGACY_PERSISTED_DATA_VERSION,
+  PERSISTED_DATA_VERSION,
+  PERSISTED_DATA_VERSION_HISTORY,
+} from '../config/persistenceVersion';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { isRecord } from '../utils/typeGuards';
+import { countMeaningfulFields } from '../utils/dataCollection';
 
 export type PersistedLoadAdaptation = Readonly<{
   value: unknown;
@@ -257,6 +262,75 @@ const removeApprovedHistoricalDevelopmentFields = (value: unknown): unknown => {
   return result;
 };
 
+/**
+ * Migrerer de to tværgående strukturændringer fra de gamle, versionsløse `.eo`-filer.
+ *
+ * Før `persistedDataVersion` blev skrevet i containeren, lå fødselsdatoen i
+ * `faellesPersondata`, og EET-årslønnerne lå direkte i `erhvervsevnetab`. De to felter er
+ * sagsdata, ikke fremmede rester, og må derfor flyttes før sektionsschemas sanitizes.
+ * Funktionen flytter kun, når destinationsfeltet ikke findes. Ved en konflikt lader den
+ * begge værdier stå, så den almindelige preflight viser den gamle værdi i stedet for at
+ * vælge mellem to sagsværdier tavst.
+ */
+const migrateLegacyCrossSectionFields = (rawData: Readonly<Record<string, unknown>>): Record<string, unknown> => {
+  let nextData: Record<string, unknown> = { ...rawData };
+
+  const legacyPersondata = nextData.faellesPersondata;
+  if (isRecord(legacyPersondata) && Object.hasOwn(legacyPersondata, 'skadelidteFodselsdato')) {
+    const stamdata = isRecord(nextData.stamdata) ? nextData.stamdata : {};
+    if (!Object.hasOwn(stamdata, 'skadelidteFodselsdato')) {
+      const { skadelidteFodselsdato, ...remainingPersondata } = legacyPersondata;
+      nextData = {
+        ...nextData,
+        stamdata: { ...stamdata, skadelidteFodselsdato },
+      };
+      if (countMeaningfulFields(remainingPersondata) === 0) {
+        delete nextData.faellesPersondata;
+      } else {
+        nextData.faellesPersondata = remainingPersondata;
+      }
+    }
+  }
+
+  const legacyEet = nextData.erhvervsevnetab;
+  if (!isRecord(legacyEet)) return nextData;
+
+  const wageKeys = ['aslAarsloen', 'ealAarsloen'] as const;
+  const currentWages = isRecord(nextData.faellesAarsloen) ? nextData.faellesAarsloen : {};
+  let nextEet: Record<string, unknown> = legacyEet;
+  let nextWages: Record<string, unknown> = currentWages;
+  let wagesChanged = false;
+  let eetChanged = false;
+
+  for (const key of wageKeys) {
+    if (!Object.hasOwn(legacyEet, key) || Object.hasOwn(currentWages, key)) continue;
+    nextWages = { ...nextWages, [key]: legacyEet[key] };
+    nextEet = { ...nextEet };
+    delete nextEet[key];
+    wagesChanged = true;
+    eetChanged = true;
+  }
+
+  if (!wagesChanged) return nextData;
+  return {
+    ...nextData,
+    erhvervsevnetab: eetChanged ? nextEet : legacyEet,
+    faellesAarsloen: nextWages,
+  };
+};
+
+/**
+ * Anvender containermigreringer, som ikke kan udtrykkes som en isoleret sektionsmigrering.
+ * Versionsløse filer er den eneste historiske kilde, hvor disse to gamle sektionformer kan
+ * forekomme; nyere versionsmærkede filer behandles ikke efter payloadens shape.
+ */
+const adaptLegacyFileDataForLoad = (
+  value: Readonly<Record<string, unknown>>,
+  sourceVersion: string,
+): Record<string, unknown> => sourceVersion === LEGACY_PERSISTED_DATA_VERSION
+  ? migrateLegacyCrossSectionFields(value)
+  : { ...value };
+
 const adaptErstatningsopgoerelseForLoad = (value: unknown): PersistedLoadAdaptation => {
   const withAliases = mapKnownEoFieldAliases(value).value;
   const withoutHistoricalDevelopmentData = removeApprovedHistoricalDevelopmentFields(withAliases);
@@ -296,11 +370,13 @@ export const adaptPersistedSectionForLoad = createPersistedSectionLoadAdapter({
  * som anvender samme idempotente EO-regel.
  */
 export const adaptPersistedFileDataForLoad = (
-  rawData: Readonly<Record<string, unknown>>
+  rawData: Readonly<Record<string, unknown>>,
+  sourceVersion: string = PERSISTED_DATA_VERSION,
 ): Record<string, unknown> => {
-  if (!Object.hasOwn(rawData, 'erstatningsopgoerelse')) return { ...rawData };
+  const migratedData = adaptLegacyFileDataForLoad(rawData, sourceVersion);
+  if (!Object.hasOwn(migratedData, 'erstatningsopgoerelse')) return migratedData;
   return {
-    ...rawData,
-    erstatningsopgoerelse: removeApprovedHistoricalDevelopmentFields(rawData.erstatningsopgoerelse),
+    ...migratedData,
+    erstatningsopgoerelse: removeApprovedHistoricalDevelopmentFields(migratedData.erstatningsopgoerelse),
   };
 };
