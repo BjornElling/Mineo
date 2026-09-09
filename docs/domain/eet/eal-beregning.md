@@ -105,13 +105,17 @@ Det naturlige loft på 70 % fremkommer automatisk via `min(alder, 69)`. Eksemple
 aldersreduktion_beløb = round0(eet_anvendt × (reduktion_pct / 100))
 ```
 
-#### Trin 4 – EAL-krav
+#### Trin 4 – Beregnet EET (efter EAL)
 
 ```
 eal_krav = max(0, round0(eet_anvendt − aldersreduktion_beløb))
 ```
 
-Resultatet kan ikke være negativt.
+Resultatet kan ikke være negativt. Bundlinjens underoverskrift hedder «Beregnet EET (efter EAL)» på
+skærm og i dokument (`BEREGNET_EET_EFTER_EAL_LABEL`): fanen opgør erhvervsevnetabet efter
+erstatningsansvarsloven, og navnet siger, hvad tallet ER, frem for hvilket lovsæt det kommer fra.
+Forsørgertabs egen «Beregnet EAL-krav»-underoverskrift er bevidst uændret, fordi den flade opgør et
+forsørgertab.
 
 #### Trin 5 – Forlig om ansvarsgrad
 
@@ -121,13 +125,18 @@ Er der indgået forlig om ansvarsgraden, er fanens krav forligsgraden af det ber
 eal_krav_efter_forlig = round0(eal_krav × forligsgrad)
 ```
 
-Fanen skriver da en «Forlig om ansvarsgrad»-blok med prosa-sætningen («Der er den 1. maj 2022 indgået
-forlig i sagen på betaling af 50 %.») og lader bundlinjen vise regnestykket med forligsgraden ganget
-på: «50 % x (2.787.000 kr. - 501.660 kr.) =».
+Forligssætningen indleder «Beregnet EET (efter EAL)»-afsnittet og har **ikke** sin egen
+underoverskrift – samme opsætning som differencekravets «Differencekrav»-afsnit:
+
+```
+Beregnet EET (efter EAL)
+Der er den 1. maj 2022 indgået forlig i sagen på betaling af 50 %.
+50 % x (2.787.000 kr. - 501.660 kr.) =                      1.156.605 kr.
+```
 
 Forligsfelterne (procent eller brøk, plus en valgfri forligsdato) står på **EET oplysninger** under
 «Erstatningsansvarsloven» og deles med Erstatningsopgørelsen. Kun et gyldigt forlig **under** 100 %
-giver en reduktion; ved 100 % eller intet forlig skriver fanen ingen forligsblok, og bundlinjen er den
+giver en reduktion; ved 100 % eller intet forlig skrives ingen forligssætning, og bundlinjen er den
 rene subtraktion. Et ugyldigt forlig blokerer fanen.
 
 > **Grundlaget er fanens EGET krav, og det må ikke overføres til differencekravet.**
