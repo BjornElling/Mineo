@@ -5,10 +5,10 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `cbef51dd`
+- Revision: `1929c94f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, uafhængige satsfacitter og standalone valid-PDF-forløb er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, uafhængige satsfacitter, standalone valid-PDF-forløb og uafhængige totalsager for varige mén/forsørgertab er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -84,8 +84,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 106 tests grønne efter præcise grænseassertions, eksakt 2024-facit og håndberegnet skudårsinterval; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
 | `CALC-002` | Method C dag gennemgået med den tidligere utestede hele-kalendermåned-branch | `aarsloenCalculations.test.ts`: 29/29 tests bestået, herunder januar + februar 2024 som komplette perioder og håndberegnet `360000`; `TD-008` lukket for den konkrete branch | Resterende årslønsbranches, grænser, integration/downstream-paritet, mutation og uafhængig efterregning | `I gang` |
 | `CALC-003` | Procesrente-oracle gennemgået med intervalgrænser og daglig kontinuitet | `procesrenteCalculatorOracle.test.ts`: 8/8 tests bestået; breakdowns kontrolleres nu mod første start, sidste slut, næste kalenderdag og inklusivt dagtal; `TD-009` lukket for den konkrete invariant | Standalone-deling, øvrige rente-/inputbranches, outputparitet, mutation og uafhængig efterregning | `I gang` |
-| `CALC-004` | Varige mén-fladen gennemgået som målrettet unit-/integrationstestbaseline | 9 filer / 81 tests bestået; méngrad-, satsår-, alder-, dato-, afrundings- og gatecases er registreret | Uafhængig talprøve eller mutation, PDF/Word-paritet, fuld browserrejse og overlaprevision | `I gang` |
-| `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline | 7 filer / 81 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum og EAL/ASL-afhængigheder er registreret | Uafhængig totalsag, mutation, PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
+| `CALC-004` | Varige mén-fladen gennemgået som målrettet unit-/integrationstestbaseline og uafhængig totalsag | 10 filer / 82 tests bestået; méngrad-, satsår-, alder-, dato-, afrundings- og gatecases samt håndberegnet engine → projection → gate-facit er registreret | Mutation, PDF/Word-paritet, fuld browserrejse og overlaprevision | `I gang` |
+| `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline og uafhængig totalsag | 8 filer / 82 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret | Mutation, PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler | `eoSnapshotIndependentOracle.test.ts`: 3/3 og `eoInspektionIndependentOracle.test.ts`: 5/5 bestået; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Row-priority og øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline | Fokuseret kontrol: 8 filer / 96 tests. Bred dokumentkontrol: 22 filer / 232 tests. Separat gate-/downloadspor: 3/3. Kataloget dækker 18 Mineo- og 3 standalone-outputs | TD-012–TD-014: manglende standalone/per-output lifecycle, ufuldstændig lifecycle-fasekæde og manglende generel PDF/Word-paritet | `I gang` |
 | `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, øvrige målrettede browserflows grønne | Mobil-hard-stop i ægte browser og manglende lazy-chunk recovery; `TD-021`/`TD-022` | `I gang` |
@@ -96,7 +96,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 ## Næste arbejdsenhed
 
-Start med `CALC-004` og `CALC-005` uafhængige totalsager. Fortsæt derefter `CALC-006` med row-priority, øvrige rækkegrene
+`CALC-004` og `CALC-005` har nu uafhængige totalsager. Fortsæt med `CALC-006` med row-priority, øvrige rækkegrene
 og afklaring af `TD-016`, samt `DOC-001` med standalone/per-output-lifecycle. `DOC-002`/`DOC-003` mangler fysisk
 PDF-/Word-parse/render og semantisk paritet. `DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`,
 `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver

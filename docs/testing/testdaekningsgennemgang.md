@@ -318,32 +318,32 @@ kommandoer; skriv ikke blot «testet».
 
 | Felt | Udfyldes |
 | --- | --- |
-| Inventar-ID / gennemgået revision | `CALC-004` / `101f65bc` |
+| Inventar-ID / gennemgået revision | `CALC-004` / `1929c94f` |
 | Funktion og bruger-/systemkonsekvens ved fejl | Varige mén beregner godtgørelse ud fra méngrad, beregningsårets sats og alder ved skadestidspunktet. En fejl kan give forkert erstatning eller en gate, der tillader et dokument uden et gyldigt resultat. |
 | Kontrakt, specifikation, domænedokument eller kilde til forventet adfærd | `src/contracts/varigemen-contract.md` §§1–4, `src/contracts/date-contract.md`, `src/contracts/amount-contract.md` samt `computeVarigeMenEngine` som autoritativ engine. |
 | Relevante indgange, udgange, afhængigheder og sideeffekter | Reader-projektion, engine, `beregnVarigeMenGodtgoerelseWithRates`, satsopslag på beregningsdato, alder ved skade, aldersreduktion, ceil-afrunding, gate og dokumentprojektion. |
-| Eksisterende testfiler og testnavne | 9 filer i `src/__tests__/domain/varigemen` og `src/__tests__/components/pages/varigemen`, herunder `varigeMenCalculations.test.ts`, `varigeMenEngine.test.ts`, `varigeMenReaderProjection.test.ts`, `varigeMenDownloadGate.test.ts` og `MenberegningTab.integration.test.tsx`. |
-| Manglende test, svage assertioner eller dubletter | Den målrettede stikprøve fandt ingen konkret svag assertion, der bør ændres nu. Unit-fladen hævder de normative méngrad- og aldergrænser samt den viste beløbsafstemning. Den samlede gennemgang skal stadig vurdere mulig overlapning mellem calculations- og engine-testene samt PDF-/Word-paritet og browserrejse. |
+| Eksisterende testfiler og testnavne | 10 filer i `src/__tests__/domain/varigemen` og `src/__tests__/components/pages/varigemen`, herunder `varigeMenCalculations.test.ts`, `varigeMenEngine.test.ts`, `varigeMenReaderProjection.test.ts`, `varigeMenDownloadGate.test.ts`, `varigeMenIndependentOracle.test.ts` og `MenberegningTab.integration.test.tsx`. |
+| Manglende test, svage assertioner eller dubletter | Den uafhængige totalsag i `varigeMenIndependentOracle.test.ts` fastholder et håndberegnet facit gennem engine, reader-projektion og download-gate uden produktionssats som forventning. Den samlede gennemgang skal stadig vurdere mulig overlapning mellem calculations- og engine-testene samt PDF-/Word-paritet og browserrejse. |
 | Valgt testniveau og begrundelse | Unit for den rene beregning og aldersgrænser, integration for reader/gate/UI og eksisterende E2E for den synlige downloadrejse. Det følger kontraktens engine-ejerskab og holder UI-bevis adskilt fra talbevis. |
-| Mutation/modprøve og resultat | Der er ikke kørt mutation på CALC-004. Der foreligger heller ikke en særskilt håndberegnet oracle-fil; flere enhedstests hævder dog konkrete numeriske konstanter uafhængigt af engine-kaldet. |
-| Kørte kommandoer, miljø og artefaktlink | `npx vitest run src/__tests__/domain/varigemen src/__tests__/components/pages/varigemen --reporter=dot` – 9 filer / 81 tests bestået på Node `v24.18.0`/Windows. Vite udsendte den kendte `configLoader: 'native'`-advarsel. |
-| Fund-ID'er, beslutninger og opfølgning | Ingen nyt fund fra denne stikprøve. Fortsæt med uafhængig talprøve eller mutation, visningsparitet for PDF/Word og samlet browserrejse før rækken kan afsluttes. |
+| Mutation/modprøve og resultat | Der er ikke kørt mutation på CALC-004. Den nye uafhængige totalsag er en direkte modprøve: `10.530 × 37`, aldersreduktion på 22 % og ceil-afrunding giver `303.896` kr. gennem engine, projection og gate. |
+| Kørte kommandoer, miljø og artefaktlink | `npx vitest run src/__tests__/domain/varigemen src/__tests__/components/pages/varigemen --reporter=dot` – 10 filer / 82 tests bestået på Node `v24.18.0`/Windows. Den samlede CALC-004/CALC-005-kontrol bestod med 18 filer / 164 tests. Vite udsendte den kendte `configLoader: 'native'`-advarsel. |
+| Fund-ID'er, beslutninger og opfølgning | Ingen nyt fund fra denne stikprøve. Fortsæt med mutation, visningsparitet for PDF/Word og samlet browserrejse før rækken kan afsluttes. |
 | Reviewer / dato / slutstatus | Codex / 2026-09-10 / `I gang` |
 
 ### Foreløbig detaljeret gennemgang: `CALC-005` – forsørgertab
 
 | Felt | Udfyldes |
 | --- | --- |
-| Inventar-ID / gennemgået revision | `CALC-005` / `d0bc0672` |
+| Inventar-ID / gennemgået revision | `CALC-005` / `1929c94f` |
 | Funktion og bruger-/systemkonsekvens ved fejl | Forsørgertab samler EAL-krav, ASL-kapitalbeløb, løbende ASL-ydelser og nettokrav. En fejl i tabellen, perioden, kønsgrenen eller dependency-gaten kan ændre en trust-kritisk erstatning eller skjule en gyldig delberegning. |
 | Kontrakt, specifikation, domænedokument eller kilde til forventet adfærd | `src/contracts/forsoergertab-snapshot-contract.md` §§1–5, `src/contracts/date-contract.md`, `src/contracts/amount-contract.md` og `computeForsoergertabSnapshot` som autoritativ side-/dokumentprojektion. |
 | Relevante indgange, udgange, afhængigheder og sideeffekter | `stamdata`, `forsoergertab`, `faellesAarsloen`, EAL-/ASL-motorer, køn før/efter 1. marts 2015, tilkendt periode, ASL-maksimum, kapitalisering, fælles gate og PDF-projektion. |
-| Eksisterende testfiler og testnavne | 7 filer i `src/__tests__/domain/forsoergertab` og `src/__tests__/components/pages/Forsoergertab.integration.test.tsx`, bl.a. `forsoergertabCalculation.test.ts`, `forsoergertabSnapshot.test.ts`, `forsoergertabReaderProjection.test.ts` og `forsoergertabEngineGate.test.ts`. |
-| Manglende test, svage assertioner eller dubletter | Stikprøven fandt ingen enkeltstående assertion, der kræver rettelse nu. Der er bred dækning af fail-closed, dependency-grupper og numeriske grænser. Assertions er dog overvejende pipeline- og snapshotinterne; en uafhængig håndberegnet totalsag samt samlet PDF-/Word-/E2E-paritet mangler. |
+| Eksisterende testfiler og testnavne | 8 filer i `src/__tests__/domain/forsoergertab` og `src/__tests__/components/pages/Forsoergertab.integration.test.tsx`, bl.a. `forsoergertabCalculation.test.ts`, `forsoergertabSnapshot.test.ts`, `forsoergertabReaderProjection.test.ts`, `forsoergertabEngineGate.test.ts` og `forsoergertabIndependentOracle.test.ts`. |
+| Manglende test, svage assertioner eller dubletter | Den nye uafhængige totalsag i `forsoergertabIndependentOracle.test.ts` fastholder håndberegnede EAL-/ASL-facitter, kønsgren, dagbrøk, maksimum, difference og nettokrav gennem projection og download-gate. Den samlede gennemgang skal stadig vurdere overlapning samt PDF-/Word-/E2E-paritet. |
 | Valgt testniveau og begrundelse | Unit for tabeller, periodisering og EAL/ASL-formler, snapshot/reader for dependency- og gateadfærd og integration for den synlige side. Denne opdeling følger snapshot-kontrakten og holder dokumentgaten tæt på den autoritative projektion. |
-| Mutation/modprøve og resultat | Der er ikke kørt mutation eller separat uafhængig oracle på CALC-005. Den eksisterende suite bestod, men pipeline-paritet kan ikke alene bevise, at begge halvdele har korrekt fælles facit. |
-| Kørte kommandoer, miljø og artefaktlink | `npx vitest run src/__tests__/domain/forsoergertab src/__tests__/components/pages/Forsoergertab.integration.test.tsx --reporter=dot` – 7 filer / 81 tests bestået på Node `v24.18.0`/Windows. Vite udsendte den kendte `configLoader: 'native'`-advarsel. |
-| Fund-ID'er, beslutninger og opfølgning | Ingen nyt fund fra denne baseline. Fortsæt med en uafhængig totalsag, stale-/dokumentflow, PDF/Word-paritet og fuld E2E-rejse før rækken kan afsluttes. |
+| Mutation/modprøve og resultat | Der er ikke kørt mutation på CALC-005. Den nye uafhængige modprøve fastholder bl.a. `1.000.000 × 10` begrænset til 2013-maksimum `8.432.000`, 30 % EAL og en håndberegnet ASL-dagbrøk med samlet nettokrav `2.158.185` kr. |
+| Kørte kommandoer, miljø og artefaktlink | `npx vitest run src/__tests__/domain/forsoergertab src/__tests__/components/pages/Forsoergertab.integration.test.tsx --reporter=dot` – 8 filer / 82 tests bestået på Node `v24.18.0`/Windows. Den samlede CALC-004/CALC-005-kontrol bestod med 18 filer / 164 tests. Vite udsendte den kendte `configLoader: 'native'`-advarsel. |
+| Fund-ID'er, beslutninger og opfølgning | Ingen nyt fund fra denne baseline. Fortsæt med mutation, stale-/dokumentflow, PDF/Word-paritet og fuld E2E-rejse før rækken kan afsluttes. |
 | Reviewer / dato / slutstatus | Codex / 2026-09-10 / `I gang` |
 
 ### Foreløbig detaljeret gennemgang: `CALC-006` – uafhængigt EO-facit
