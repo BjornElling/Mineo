@@ -185,6 +185,30 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
     expect(pageSectionAccessBoundary.evaluate([page, port])).toEqual([]);
   });
 
+  it('page-grænsen accepterer en autoriseret transitiv re-export', () => {
+    const page = makeSyntheticEntry(
+      'src/components/pages/Aarsloen.tsx',
+      "import { project } from '../../domain/example/projection'; project();"
+    );
+    const projection = makeSyntheticEntry(
+      'src/domain/example/projection.ts',
+      "export { aarsloenFeriePctField } from '../../inputCore/catalog/aarsloenDescriptors';"
+    );
+
+    expect(pageSectionAccessBoundary.evaluate([page, projection])).toEqual([]);
+  });
+
+  it('page-grænsen afviser en uautoriseret re-export', () => {
+    const page = makeSyntheticEntry(
+      'src/components/pages/Aarsloen.tsx',
+      "export { x } from '../../inputCore/catalog/erhvervsevnetabDescriptors';"
+    );
+
+    const findings = pageSectionAccessBoundary.evaluate([page]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.message).toContain("sektion 'erhvervsevnetab'");
+  });
+
   describe.each(ARCHITECTURE_RULES.map((rule) => [rule.id, rule] as const))(
     'regel %s er ikke inert',
     (_id, rule) => {
@@ -363,6 +387,27 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
     }
 
     expect(stale).toEqual([]);
+  });
+
+  it('liveness-konfigurationer har et ikke-vakuøst mål', () => {
+    const invalid: string[] = [];
+
+    for (const rule of ARCHITECTURE_RULES) {
+      const { liveTarget } = rule;
+      if (liveTarget.kind === 'precondition') {
+        const minimumMatches = liveTarget.minimumMatches ?? 1;
+        if (!Number.isInteger(minimumMatches) || minimumMatches < 1) {
+          invalid.push(`${rule.id}: minimumMatches skal være et positivt heltal`);
+        }
+        continue;
+      }
+
+      if (liveTarget.kind === 'scoped' && liveTarget.roots.length === 0) {
+        invalid.push(`${rule.id}: en scoped-regel skal have mindst én scan-rod`);
+      }
+    }
+
+    expect(invalid).toEqual([]);
   });
 
   it('anti-rot: hver allowlist-post udløser stadig sin regel', () => {
