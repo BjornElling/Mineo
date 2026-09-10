@@ -213,6 +213,12 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     note: 'Bygget artefakt uden kildefil: `mineoPwaArtifacts` i vite.mineo.config.ts emitterer det ved build, og scripts/verify-build-artifacts.mjs verificerer det i dist. Der findes med vilje ingen fil af det navn i kildetræet.',
   },
   {
+    contract: 'src/contracts/document-output-contract.md',
+    reference: 'wordContentHarness.ts',
+    direction: 'present',
+    note: 'Test-only Word-hjælper, som kontrakten omtaler som fælles harness. Den eksakte teststi valideres separat; et bart basename må ikke tælle som produktionsfil.',
+  },
+  {
     contract: 'src/contracts/eo-snapshot-contract.md',
     reference: 'periodeTilBeregningFra',
     direction: 'present',
@@ -514,6 +520,22 @@ describe('kontrakt-reference-prædikaterne er ikke vakuøse', () => {
     // `satser-contract.md` skrive filnavnet forkert. Ordgrænsen er derfor load-bearing.
     expect(sourceBasenames().has('satserSchemas.ts')).toBe(true);
     expect(sourceBasenames().has('satserSchema.ts')).toBe(false);
+  });
+
+  it('lader ikke et test-only basename bekræfte en produktionsreference', () => {
+    const testOnlyBasename = 'contractReferenceLiveness.test.ts';
+    const exactTestPath = 'src/__tests__/quality/contractReferenceLiveness.test.ts';
+
+    expect(sourceBasenames().has(testOnlyBasename)).toBe(false);
+    expect(pathReferenceExists(testOnlyBasename)).toBe(false);
+    expect(
+      referenceHolds({
+        contract: 'src/contracts/contract-topology.json',
+        reference: testOnlyBasename,
+        direction: 'present',
+      })
+    ).toBe(false);
+    expect(pathReferenceExists(exactTestPath)).toBe(true);
   });
 
   it('skelner sti-lignende referencer fra symbolnavne', () => {

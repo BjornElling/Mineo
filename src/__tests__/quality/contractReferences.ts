@@ -51,6 +51,7 @@ export type ContractReference = Readonly<{
 }>;
 
 const REPO_ROOT = process.cwd();
+const SRC_TESTS_DIR = path.resolve(REPO_ROOT, 'src', '__tests__');
 
 const exists = (relativePath: string): boolean =>
   fs.existsSync(path.resolve(REPO_ROOT, relativePath));
@@ -92,14 +93,19 @@ const walk = (absoluteDir: string, visit: (absolutePath: string) => void): void 
 
 let basenameCache: ReadonlySet<string> | null = null;
 
-/** Alle filnavne (uden sti) under kildemapperne – til de referencer, kontrakterne skriver bart. */
+/** Alle produktionsfilnavne (uden sti) under kildemapperne – til referencer, kontrakterne skriver bart. */
 export const sourceBasenames = (): ReadonlySet<string> => {
   if (basenameCache !== null) return basenameCache;
   const names = new Set<string>();
   for (const dir of SOURCE_DIRS) {
     const absoluteDir = path.resolve(REPO_ROOT, dir);
     if (!fs.existsSync(absoluteDir)) continue;
-    walk(absoluteDir, (absolutePath) => names.add(path.basename(absolutePath)));
+    walk(absoluteDir, (absolutePath) => {
+      // Et bart filnavn under src/__tests__ er ikke bevis på, at en kontrakts produktionsreference
+      // findes. Eksakte teststier valideres fortsat af pathReferenceExists ovenfor.
+      if (absolutePath === SRC_TESTS_DIR || absolutePath.startsWith(`${SRC_TESTS_DIR}${path.sep}`)) return;
+      names.add(path.basename(absolutePath));
+    });
   }
   basenameCache = names;
   return names;
