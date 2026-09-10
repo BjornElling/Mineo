@@ -13,7 +13,13 @@ import { documentActionFromDefinition } from '../../document/definition/document
 import { executeDocumentDownload } from '../../document/definition/documentLifecycle';
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
-import { MINEO_DOCUMENT_OUTPUT_IDS, type MineoDocumentOutputId } from '../../document/definition/documentOutputId';
+import type { DocumentGenerationSession } from '../../document/documentGenerationSession';
+import {
+  MINEO_DOCUMENT_OUTPUT_IDS,
+  STANDALONE_DOCUMENT_OUTPUT_IDS,
+  type DocumentOutputId,
+  type MineoDocumentOutputId,
+} from '../../document/definition/documentOutputId';
 import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
 import { __createTestSourceSettings } from '../../settings/sourceSettings';
 import {
@@ -46,6 +52,11 @@ import { satserDocumentDefinition } from '../../domain/satser/satserDocumentDefi
 import { varigeMenDocumentDefinition } from '../../domain/varigemen/varigeMenDocumentDefinition';
 import { forsoergertabDocumentDefinition } from '../../domain/forsoergertab/forsoergertabDocumentDefinition';
 import { renteDocumentDefinition, renteOversigtDocumentDefinition } from '../../domain/renteberegning/renteberegningDocumentDefinitions';
+import {
+  standaloneRenteAlleDocumentDefinition,
+  standaloneRenteDocumentDefinition,
+  standaloneRenteOversigtDocumentDefinition,
+} from '../../apps/minprocesrente/document/standaloneRenteDocumentDefinitions';
 import { reguleringDocumentDefinition, krlDocumentDefinition, klLoenaftalerDocumentDefinition } from '../../domain/erstatningsopgoerelse/reguleringDocumentDefinitions';
 import { erstatningsopgoerelseDocumentDefinition, tafFordeltPaaAarDocumentDefinition, tafOpreguleretPaaAarDocumentDefinition, tafKravGrafDocumentDefinition } from '../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
 import { aarsloenDocumentDefinition, shDageDocumentDefinition } from '../../domain/aarsloen/aarsloenDocumentDefinitions';
@@ -58,7 +69,6 @@ vi.mock('../../document/downloadArtifact', () => ({
 }));
 
 const triggerMock = vi.mocked(triggerDocumentDownload);
-const rendererMock = vi.fn(async () => ({ blob: new Blob(), filename: 'fixture.pdf' }));
 
 const catalog = getProductionInputCatalog();
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
@@ -271,7 +281,7 @@ const withRelevantBoundsError = (input: SettledInput): SettledInput => {
   });
 };
 
-const withIrrelevantError = (input: SettledInput, outputId: MineoDocumentOutputId): SettledInput => {
+const withIrrelevantError = (input: SettledInput, outputId: DocumentOutputId): SettledInput => {
   if (outputId === 'satser') {
     const eet = input.sections.erhvervsevnetab;
     if (eet === null) throw new Error('Fixture mangler erhvervsevnetab');
@@ -293,9 +303,23 @@ const SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSettings(__c
   },
 }));
 
+type LifecycleCalls = {
+  loadRenderer: number;
+  createSession: number;
+  render: number;
+  sessionRender: number;
+  fileIo: number;
+  events: string[];
+};
+
+type LifecycleRun = Readonly<{
+  outcome: Awaited<ReturnType<typeof executeDocumentDownload>>;
+  calls: LifecycleCalls;
+}>;
+
 type Fixture = Readonly<{
   project: (input: SettledInput) => DocumentProjectionResult<unknown>;
-  runLifecycle: (input: SettledInput) => ReturnType<typeof executeDocumentDownload>;
+  runLifecycle: (input: SettledInput) => Promise<LifecycleRun>;
   ready: () => SettledInput;
   relevantError: () => SettledInput;
   bounds: () => SettledInput;
@@ -304,30 +328,48 @@ type Fixture = Readonly<{
   irrelevantError: () => SettledInput;
 }>;
 
-const fixture = <TRequest, TInput, TBrevhovedKey extends string>(
-  id: MineoDocumentOutputId,
-  definition: DocumentDefinition<TRequest, TInput, MineoDocumentGateSettings, TBrevhovedKey>,
+const fixture = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
+  id: DocumentOutputId,
+  definition: DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey>,
   request: TRequest,
   ready: () => SettledInput,
   relevantError: (input: SettledInput) => SettledInput,
   bounds: (input: SettledInput) => SettledInput,
+  gateSettings: TGateSettings,
   warning: Fixture['warning'] = {
     kind: 'not-applicable',
     reason: 'Definitionens domæneprojektion producerer ingen warning-severity for dette output.',
   }
 ): Fixture => {
   const project = (input: SettledInput): DocumentProjectionResult<TInput> =>
-    definition.project(contextFor(input), request);
-  const runLifecycle = (input: SettledInput) => {
-    const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
-    const testDefinition: DocumentDefinition<TRequest, TInput, MineoDocumentGateSettings, TBrevhovedKey> = {
-      ...definition,
-      loadRenderer: async () => rendererMock,
+    definition.project(contextFor(input, gateSettings), request);
+  const runLifecycle = async (input: SettledInput): Promise<LifecycleRun> => {
+    const calls: LifecycleCalls = {
+      loadRenderer: 0,
+      createSession: 0,
+      render: 0,
+      sessionRender: 0,
+      fileIo: 0,
+      events: [],
     };
-    const environment: DocumentExecutionEnvironment<MineoDocumentGateSettings, void, TBrevhovedKey> = {
+    const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+    const testDefinition: DocumentDefinition<TRequest, TInput, TGateSettings, TBrevhovedKey> = {
+      ...definition,
+      loadRenderer: async () => {
+        calls.loadRenderer += 1;
+        calls.events.push('load-renderer');
+        return async (session: DocumentGenerationSession) => {
+          calls.render += 1;
+          calls.events.push('render');
+          await session.render({ model: { blocks: [] }, properties: {} });
+          return { blob: new Blob(), filename: 'fixture.pdf' };
+        };
+      },
+    };
+    const environment: DocumentExecutionEnvironment<TGateSettings, void, TBrevhovedKey> = {
       captureSource: () => ({
         evaluation: createInputEvaluation({ input, catalog, sourceToken: token }),
-        gateSettings: SETTINGS,
+        gateSettings,
         renderSettings: undefined,
       }),
       readCurrentSourceToken: () => token,
@@ -335,12 +377,33 @@ const fixture = <TRequest, TInput, TBrevhovedKey extends string>(
         prepare: async () => ({ status: 'committed', token }),
       } as unknown as CriticalActionCoordinator,
       resolveFormat: () => 'pdf',
-      createSession: async () => ({ format: 'pdf' }) as never,
+      createSession: async () => {
+        calls.createSession += 1;
+        calls.events.push('create-session');
+        const session: DocumentGenerationSession = Object.freeze({
+          format: 'pdf',
+          render: async () => {
+            calls.sessionRender += 1;
+            calls.events.push('session-render');
+            return new Blob();
+          },
+        });
+        return session;
+      },
       resolveVisBrevhoved: () => false,
       reportFailure: () => {},
       showRuntimeFailureLocally: false,
     };
-    return executeDocumentDownload(documentActionFromDefinition(testDefinition), request, environment);
+    triggerMock.mockImplementation(() => {
+      calls.fileIo += 1;
+      calls.events.push('file-io');
+    });
+    const outcome = await executeDocumentDownload(
+      documentActionFromDefinition(testDefinition),
+      request,
+      environment
+    );
+    return { outcome, calls };
   };
   return {
     project,
@@ -420,47 +483,76 @@ const readyKapitaliseringWarningInput = (): SettledInput => {
 };
 
 const FIXTURES = {
-  satser: fixture('satser', satserDocumentDefinition, undefined, readyInput, satserInvalid, satserBounds),
-  rente: fixture('rente', renteDocumentDefinition, { rowId: 'rente-1' }, readyInput, renteInvalid, renteBounds),
-  'rente-oversigt': fixture('rente-oversigt', renteOversigtDocumentDefinition, undefined, readyInput, renteInvalid, renteBounds),
-  regulering: fixture('regulering', reguleringDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('Statistik'), stamdataInvalid, stamdataBounds),
-  krl: fixture('krl', krlDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('KRL satstabel'), stamdataInvalid, stamdataBounds),
-  'kl-loenaftaler': fixture('kl-loenaftaler', klLoenaftalerDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('KL-lønaftaler'), stamdataInvalid, stamdataBounds),
-  erstatningsopgoerelse: fixture('erstatningsopgoerelse', erstatningsopgoerelseDocumentDefinition, undefined, readyInput, eoInvalid, stamdataBounds),
-  'taf-fordelt-paa-aar': fixture('taf-fordelt-paa-aar', tafFordeltPaaAarDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds),
-  'taf-opreguleret-paa-aar': fixture('taf-opreguleret-paa-aar', tafOpreguleretPaaAarDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds),
-  'taf-krav-graf': fixture('taf-krav-graf', tafKravGrafDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds),
-  varigemen: fixture('varigemen', varigeMenDocumentDefinition, undefined, readyInput, varigeMenInvalid, varigeMenBounds),
-  aarsloen: fixture('aarsloen', aarsloenDocumentDefinition, undefined, readyInput, aarsloenInvalid, aarsloenBounds),
-  'sh-dage': fixture('sh-dage', shDageDocumentDefinition, undefined, readyShDageInput, aarsloenInvalid, aarsloenBounds),
-  kapitalisering: fixture('kapitalisering', kapitaliseringDocumentDefinition, undefined, readyKapitaliseringInput, kapitaliseringInvalid, kapitaliseringBounds, {
+  satser: fixture('satser', satserDocumentDefinition, undefined, readyInput, satserInvalid, satserBounds, SETTINGS),
+  rente: fixture('rente', renteDocumentDefinition, { rowId: 'rente-1' }, readyInput, renteInvalid, renteBounds, SETTINGS),
+  'rente-oversigt': fixture('rente-oversigt', renteOversigtDocumentDefinition, undefined, readyInput, renteInvalid, renteBounds, SETTINGS),
+  regulering: fixture('regulering', reguleringDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('Statistik'), stamdataInvalid, stamdataBounds, SETTINGS),
+  krl: fixture('krl', krlDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('KRL satstabel'), stamdataInvalid, stamdataBounds, SETTINGS),
+  'kl-loenaftaler': fixture('kl-loenaftaler', klLoenaftalerDocumentDefinition, { scope: 'case' }, () => readyReguleringInput('KL-lønaftaler'), stamdataInvalid, stamdataBounds, SETTINGS),
+  erstatningsopgoerelse: fixture('erstatningsopgoerelse', erstatningsopgoerelseDocumentDefinition, undefined, readyInput, eoInvalid, stamdataBounds, SETTINGS),
+  'taf-fordelt-paa-aar': fixture('taf-fordelt-paa-aar', tafFordeltPaaAarDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds, SETTINGS),
+  'taf-opreguleret-paa-aar': fixture('taf-opreguleret-paa-aar', tafOpreguleretPaaAarDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds, SETTINGS),
+  'taf-krav-graf': fixture('taf-krav-graf', tafKravGrafDocumentDefinition, undefined, readyTafInput, eoInvalid, tafBounds, SETTINGS),
+  varigemen: fixture('varigemen', varigeMenDocumentDefinition, undefined, readyInput, varigeMenInvalid, varigeMenBounds, SETTINGS),
+  aarsloen: fixture('aarsloen', aarsloenDocumentDefinition, undefined, readyInput, aarsloenInvalid, aarsloenBounds, SETTINGS),
+  'sh-dage': fixture('sh-dage', shDageDocumentDefinition, undefined, readyShDageInput, aarsloenInvalid, aarsloenBounds, SETTINGS),
+  kapitalisering: fixture('kapitalisering', kapitaliseringDocumentDefinition, undefined, readyKapitaliseringInput, kapitaliseringInvalid, kapitaliseringBounds, SETTINGS, {
     kind: 'covered', input: readyKapitaliseringWarningInput,
   }),
-  'efter-eal': fixture('efter-eal', efterEalDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, {
+  'efter-eal': fixture('efter-eal', efterEalDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, SETTINGS, {
     kind: 'covered', input: readyEalWarningInput,
   }),
-  differencekrav: fixture('differencekrav', differencekravDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, {
+  differencekrav: fixture('differencekrav', differencekravDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, SETTINGS, {
     kind: 'covered', input: readyEalWarningInput,
   }),
-  'loebende-ydelser': fixture('loebende-ydelser', loebendeYdelserDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, {
+  'loebende-ydelser': fixture('loebende-ydelser', loebendeYdelserDocumentDefinition, undefined, readyInput, eetInvalid, eetBounds, SETTINGS, {
     kind: 'covered', input: readyLoebendeWarningInput,
   }),
-  forsoergertab: fixture('forsoergertab', forsoergertabDocumentDefinition, undefined, readyInput, forsoergertabInvalid, forsoergertabBounds),
+  forsoergertab: fixture('forsoergertab', forsoergertabDocumentDefinition, undefined, readyInput, forsoergertabInvalid, forsoergertabBounds, SETTINGS),
 } satisfies Record<MineoDocumentOutputId, Fixture>;
 
-const contextFor = (input: SettledInput) => createDocumentSourceContext(
+const STANDALONE_FIXTURES = {
+  'standalone-rente': fixture(
+    'standalone-rente',
+    standaloneRenteDocumentDefinition,
+    { rowId: 'rente-1' },
+    readyInput,
+    renteInvalid,
+    renteBounds,
+    undefined,
+  ),
+  'standalone-rente-alle': fixture(
+    'standalone-rente-alle',
+    standaloneRenteAlleDocumentDefinition,
+    undefined,
+    readyInput,
+    renteInvalid,
+    renteBounds,
+    undefined,
+  ),
+  'standalone-rente-oversigt': fixture(
+    'standalone-rente-oversigt',
+    standaloneRenteOversigtDocumentDefinition,
+    undefined,
+    readyInput,
+    renteInvalid,
+    renteBounds,
+    undefined,
+  ),
+} satisfies Record<(typeof STANDALONE_DOCUMENT_OUTPUT_IDS)[number], Fixture>;
+
+const contextFor = <TGateSettings>(input: SettledInput, gateSettings: TGateSettings) => createDocumentSourceContext(
   createInputEvaluation({
     input,
     catalog,
     sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
   }),
-  SETTINGS
+  gateSettings
 );
 
 describe('uafhængigt fixture-register for alle Mineo-dokumentoutputs', () => {
   beforeEach(() => {
     triggerMock.mockClear();
-    rendererMock.mockClear();
   });
 
   it('er compiler-komplet og følger det kanoniske outputinventar', () => {
@@ -490,26 +582,100 @@ describe('uafhængigt fixture-register for alle Mineo-dokumentoutputs', () => {
     }
   });
 
-  it.each(MINEO_DOCUMENT_OUTPUT_IDS)('%s følger hele download-livscyklussen uden fil-I/O', async (id) => {
+  it.each(MINEO_DOCUMENT_OUTPUT_IDS)('%s følger hele download-livscyklussen med instrumenteret fil-I/O', async (id) => {
     const entry = FIXTURES[id];
     const ready = await entry.runLifecycle(entry.ready());
-    expect(ready, `${id}/ready-livscyklus`).toEqual({ status: 'downloaded' });
-    expect(rendererMock, `${id}/ready-rendering`).toHaveBeenCalledTimes(1);
+    expect(ready.outcome, `${id}/ready-livscyklus`).toEqual({ status: 'downloaded' });
+    expect(ready.calls, `${id}/ready-faser`).toMatchObject({
+      loadRenderer: 1,
+      createSession: 1,
+      render: 1,
+      sessionRender: 1,
+      fileIo: 1,
+    });
+    expect(ready.calls.events, `${id}/ready-rækkefølge`).toEqual([
+      'load-renderer',
+      'create-session',
+      'render',
+      'session-render',
+      'file-io',
+    ]);
     expect(triggerMock, `${id}/ready-download`).toHaveBeenCalledTimes(1);
     triggerMock.mockClear();
-    rendererMock.mockClear();
 
     for (const [name, blockedInput] of [
       ['ugyldigt input', entry.relevantError()],
       ['grænsefejl', entry.bounds()],
     ] as const) {
       const blocked = await entry.runLifecycle(blockedInput);
-      expect(blocked.status, `${id}/${name}/blokeret-livscyklus`).toBe('rejected');
-      if (blocked.status === 'rejected') {
-        expect(blocked.rejection.kind, `${id}/${name}/blokeringsårsag`).toBe('gate-blocked');
+      expect(blocked.outcome.status, `${id}/${name}/blokeret-livscyklus`).toBe('rejected');
+      if (blocked.outcome.status === 'rejected') {
+        expect(blocked.outcome.rejection.kind, `${id}/${name}/blokeringsårsag`).toBe('gate-blocked');
       }
-      expect(rendererMock, `${id}/${name}/ingen-rendering-ved-blokering`).not.toHaveBeenCalled();
+      expect(blocked.calls, `${id}/${name}/ingen-lifecycle-efter-gate`).toMatchObject({
+        loadRenderer: 0,
+        createSession: 0,
+        render: 0,
+        sessionRender: 0,
+        fileIo: 0,
+      });
+      expect(blocked.calls.events, `${id}/${name}/ingen-fase-efter-gate`).toEqual([]);
       expect(triggerMock, `${id}/${name}/ingen-fil-io-ved-blokering`).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('uafhængigt fixture-register for standalone-dokumentoutputs', () => {
+  beforeEach(() => {
+    triggerMock.mockClear();
+  });
+
+  it('er compiler-komplet og følger standalone-outputinventaret', () => {
+    expect(Object.keys(STANDALONE_FIXTURES).sort()).toEqual([...STANDALONE_DOCUMENT_OUTPUT_IDS].sort());
+  });
+
+  it.each(STANDALONE_DOCUMENT_OUTPUT_IDS)('%s har en separat valid og bounds-blokeret gate', (id) => {
+    const entry = STANDALONE_FIXTURES[id];
+    const ready = entry.project(entry.ready());
+    expect(ready.status, `${id}/ready`).toBe('ready');
+    expect(entry.project(entry.bounds()).status, `${id}/bounds`).toBe('blocked');
+    expect(entry.project(entry.irrelevantError()).status, `${id}/ikke-relevant`).toBe('ready');
+  });
+
+  it.each(STANDALONE_DOCUMENT_OUTPUT_IDS)('%s følger download-livscyklussen og stopper før lazy-load ved gatefejl', async (id) => {
+    const entry = STANDALONE_FIXTURES[id];
+    const ready = await entry.runLifecycle(entry.ready());
+    expect(ready.outcome, `${id}/ready-livscyklus`).toEqual({ status: 'downloaded' });
+    expect(ready.calls, `${id}/ready-faser`).toMatchObject({
+      loadRenderer: 1,
+      createSession: 1,
+      render: 1,
+      sessionRender: 1,
+      fileIo: 1,
+    });
+    expect(ready.calls.events, `${id}/ready-rækkefølge`).toEqual([
+      'load-renderer',
+      'create-session',
+      'render',
+      'session-render',
+      'file-io',
+    ]);
+    expect(triggerMock, `${id}/ready-download`).toHaveBeenCalledTimes(1);
+    triggerMock.mockClear();
+
+    const blocked = await entry.runLifecycle(entry.bounds());
+    expect(blocked.outcome, `${id}/bounds-livscyklus`).toMatchObject({
+      status: 'rejected',
+      rejection: { kind: 'gate-blocked' },
+    });
+    expect(blocked.calls, `${id}/bounds-faser`).toMatchObject({
+      loadRenderer: 0,
+      createSession: 0,
+      render: 0,
+      sessionRender: 0,
+      fileIo: 0,
+    });
+    expect(blocked.calls.events, `${id}/bounds-rækkefølge`).toEqual([]);
+    expect(triggerMock, `${id}/bounds-ingen-fil-io`).not.toHaveBeenCalled();
   });
 });
