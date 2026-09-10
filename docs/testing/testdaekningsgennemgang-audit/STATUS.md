@@ -53,6 +53,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Den nye dev-transitive `qs@6.15.1`-advisory via `typed-rest-client@2.3.1` blev afhjulpet med
   `overrides.qs = "6.16.0"`; `npm run check:vulnerabilities` er grøn efter ren `npm ci`. Override'et
   skal fjernes, når parentens range selv tillader den rettede version.
+- `verify-build-artifacts.mjs` kontrollerer nu, at hver PWA-assetsti faktisk findes i `outDir`; den
+  syntetiske positive/negative regressionstest bestod 2/2. Det tidligere B-001 er lukket, mens CI's
+  separate E2E/deploy-artefakt (B-002) fortsat er åbent.
 
 ## Foreløbig fladegennemgang
 
@@ -62,11 +65,12 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite og historiske fixturetests kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; se hoveddokumentets detaljerække | Releaseproveniens eller accepteret fixture-erstatning, uafhængig struktursammenligning, mutation og fuld testkvalitetsrevision | `I gang` |
 | `ARCH-002` | Registry-completeness tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 186 tests bestået; separat forventningsliste med 88 regel-ID'er fanger manglende og uventede registry-poster | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 105 tests grønne efter præcise grænseassertions og eksakt 2024-facit; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol tilføjet til buildverifikatoren | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2 bestået; `node --check` bestået; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 mangler | `I gang` |
 
 ## Næste arbejdsenhed
 
 Fortsæt `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
 negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut `TD-001` under
 `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Gå derefter videre til
-`CALC-006` og `DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
+lane-parseren, kontrakt-reference-liveness og `CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
 konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.

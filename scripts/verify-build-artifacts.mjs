@@ -68,6 +68,13 @@ if (variant === 'mineo') {
     );
   }
 
+  // PWA-assetmanifestet bruges direkte af service-workeren. En sti der ikke findes kan ellers give
+  // et grønt build, som først fejler ved installation og efterlader den åbne session uden lazy assets.
+  const missingAsset = pwaAssets.assets.find((asset) => !existsSync(path.join(outDir, asset)));
+  if (missingAsset !== undefined) {
+    throw new Error(`Mineo-buildets PWA-assetmanifest peger på en asset, der ikke findes i buildet: ${missingAsset}.`);
+  }
+
   // Worker og assetmanifest skal bære SAMME version. Workeren afviser at installere mod et manifest
   // fra en anden build, så et par ude af trit ville give et build helt uden versionscache – og
   // dermed uden beskyttelse mod at en åben session mister sine lazy chunks efter næste deploy.
