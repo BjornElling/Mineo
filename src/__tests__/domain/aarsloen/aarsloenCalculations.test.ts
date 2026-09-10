@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
-import type { AarsloenBeregningResult, AarsloenBeregningResultBeregnet } from '../../../types/calculation';
+import type { AarsloenBeregningResult, AarsloenBeregningResultBeregnet, DateInterval } from '../../../types/calculation';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import { beregnMetode, beregnOmregnetAarsloen } from '../../../domain/aarsloen/aarsloenCalculations';
 
@@ -22,7 +22,8 @@ const expectBeregnet = (result: AarsloenBeregningResult): AarsloenBeregningResul
 const buildPeriodeResult = (
   loenperiode: 'maaned' | 'uge' | 'dag',
   unikkeEnheder: number,
-  weekdayDates: string[] = []
+  weekdayDates: string[] = [],
+  perioder: DateInterval[] = []
 ): PeriodeResult => {
   const datoSet = new Set<ISODateString>(weekdayDates.map(iso));
   return {
@@ -31,7 +32,7 @@ const buildPeriodeResult = (
     unikkeEnheder,
     enhedNavn: loenperiode,
     datoSet,
-    perioder: [],
+    perioder,
   };
 };
 
@@ -478,6 +479,28 @@ describe('beregnOmregnetAarsloen – Metode C (dag)', () => {
     expect(expectBeregnet(result).omregnetAarsloen).toBeGreaterThan(0);
     const expected = (100000 / 50) * 261;
     expect(expectBeregnet(result).omregnetAarsloen).toBeCloseTo(expected, 1);
+  });
+
+  it('Metode C dag: hele kalendermåneder bruger månedsomregning', () => {
+    const perioder: DateInterval[] = [
+      { start: new Date(Date.UTC(2024, 0, 1)), end: new Date(Date.UTC(2024, 0, 31)) },
+      { start: new Date(Date.UTC(2024, 1, 1)), end: new Date(Date.UTC(2024, 1, 29)) },
+    ];
+    const periodeData = buildPeriodeResult('dag', 60, [], perioder);
+    const result = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: 0,
+      shDageAntal: 0,
+      fuldLoenUnderFerie: true,
+      loenPaaHelligdage: 'Almindelig løn',
+      beregnetAarsloen: 60000,
+    });
+
+    expect(result.metode).toBe('C');
+    expect(expectBeregnet(result).antalHeleKalendermaaneder).toBe(2);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(360000);
   });
 });
 

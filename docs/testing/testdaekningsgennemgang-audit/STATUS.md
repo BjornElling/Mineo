@@ -70,14 +70,16 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite og historiske fixturetests kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; se hoveddokumentets detaljerække | Releaseproveniens eller accepteret fixture-erstatning, uafhængig struktursammenligning, mutation og fuld testkvalitetsrevision | `I gang` |
 | `ARCH-002` | Registry-completeness tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 186 tests bestået; separat forventningsliste med 88 regel-ID'er fanger manglende og uventede registry-poster | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 105 tests grønne efter præcise grænseassertions og eksakt 2024-facit; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
+| `CALC-002` | Method C dag gennemgået med den tidligere utestede hele-kalendermåned-branch | `aarsloenCalculations.test.ts`: 29/29 tests bestået, herunder januar + februar 2024 som komplette perioder og håndberegnet `360000`; `TD-008` lukket for den konkrete branch | Resterende årslønsbranches, grænser, integration/downstream-paritet, mutation og uafhængig efterregning | `I gang` |
 | `BUILD-001` | Asset-eksistenskontrol tilføjet til buildverifikatoren | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2 bestået; `node --check` bestået; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 mangler | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
 ## Næste arbejdsenhed
 
-Fortsæt `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
-negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut `TD-001` under
-`PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Gå derefter videre til
-`CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
-konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.
+Fortsæt `CALC-002` med de resterende branches, grænser, integration/downstream-paritet og uafhængig efterregning.
+Fortsæt samtidig `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
+negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet.
+Afslut `TD-001` under `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning.
+Gå derefter videre til `CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal
+kobles til konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.
