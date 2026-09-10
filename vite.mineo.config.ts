@@ -113,8 +113,15 @@ const mineoPwaArtifacts = (): Plugin => {
       buildVersion = resolveBuildVersion(config.define);
     },
     generateBundle(_, bundle) {
-      const assets = Object.keys(bundle)
-        .filter((fileName) => fileName.startsWith('assets/'))
+      // Dynamiske CSS-importer giver i Vite 8 tomme facade-chunks i `bundle`, som ikke bliver
+      // skrevet til dist. Manifestet skal afspejle de faktiske filer, ellers afviser buildværnet
+      // korrekt eller service-workerens precache fejler på en ikke-eksisterende JS-fil.
+      const assets = Object.entries(bundle)
+        .filter(([fileName, output]) =>
+          fileName.startsWith('assets/')
+          && (output.type === 'asset' || output.code.length > 0)
+        )
+        .map(([fileName]) => fileName)
         .sort();
 
       const workerSource = readFileSync(SERVICE_WORKER_SOURCE_PATH, 'utf8');
