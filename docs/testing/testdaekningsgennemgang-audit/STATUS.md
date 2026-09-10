@@ -57,12 +57,13 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | --- | --- | --- | --- | --- |
 | `INPUT-001` | Kontrakt- og testinventar gennemgået; målrettet suite kørt separat; kontrolleret no-op-modprøve og uafhængig referencekontrol udført | Baseline 5 filer / 176 tests bestået; svækket no-op-gate gav 51 fejl / 146 tests; gendannet kontrol 2 filer / 103 tests bestået; separat referencekontrol 1/1 test bestået; se hoveddokumentets detaljerække | Kvalificeret mutationsrunner, fuld testkvalitetsrevision og browser-/adapterparitet | `I gang` |
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite og historiske fixturetests kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; se hoveddokumentets detaljerække | Releaseproveniens eller accepteret fixture-erstatning, uafhængig struktursammenligning, mutation og fuld testkvalitetsrevision | `I gang` |
+| `ARCH-002` | Registry-completeness tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 186 tests bestået; separat forventningsliste med 88 regel-ID'er fanger manglende og uventede registry-poster | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 105 tests grønne efter præcise grænseassertions og eksakt 2024-facit; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
 
 ## Næste arbejdsenhed
 
-Fortsæt `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002`'s
-registry-completeness og `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut `TD-001` under
+Fortsæt `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
+negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut `TD-001` under
 `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Gå derefter videre til
 `CALC-006` og `DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
 konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.

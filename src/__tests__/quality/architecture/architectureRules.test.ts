@@ -4,6 +4,104 @@ import { getSourceGraph, makeSyntheticEntry } from './sourceGraph';
 import { pageSectionAccessBoundary } from './rules/domainRules';
 
 /**
+ * Den autoritative forventning er bevidst en separat liste i testen. Selve registryet kan derfor ikke
+ * gøre sin egen completeness grøn ved at sammenligne sig med sig selv. En regeldefinition, der stadig
+ * findes i sit regelmodul, men fjernes fra `ARCHITECTURE_RULES`, giver en manglende ID her.
+ *
+ * Ved en legitim tilføjelse eller fjernelse af en regel skal denne liste opdateres samtidig med registryet.
+ */
+const EXPECTED_ARCHITECTURE_RULE_IDS: readonly string[] = [
+  'a11y/interactive-control-has-accessible-name',
+  'a11y/web-link-policy-single-source',
+  'criticalAction/no-dom-scan-or-frame-wait',
+  'data/calculation-catalog-not-eager-from-entrypoint',
+  'data/series-coverage-endpoints-via-primitive',
+  'date/no-date-parse',
+  'date/no-direct-date-parsing',
+  'date/no-iso-string-date-extraction',
+  'date/no-local-date-methods',
+  'date/no-manual-day-loop',
+  'date/no-manual-iso-midnight-construction',
+  'date/no-materialized-day-count',
+  'date/no-millisecond-day-count',
+  'document/activation-shows-outcome',
+  'document/download-committed-state',
+  'document/download-tooltip-from-gate',
+  'document/gate-class-hardcoded-invalid-input',
+  'document/generator-cursor-access-boundary',
+  'document/generator-cursor-element-access-boundary',
+  'document/generator-import-boundary',
+  'document/generator-writer-import-boundary',
+  'document/lifecycle-single-entrypoint',
+  'document/no-headerless-pseudo-table',
+  'domain/cross-domain-descriptor-port',
+  'domain/eet-differencekrav-composition-boundary',
+  'domain/engine-call-owned-by-projection',
+  'domain/eo-field-visibility-single-source',
+  'domain/page-section-access-boundary',
+  'domain/raw-section-access-boundary',
+  'domain/regulering-canonical-forloeb-boundary',
+  'domain/sfgg-ansaettelsesforhold-import-boundary',
+  'domain/sfgg-engine-import-boundary',
+  'domain/sfgg-segmentering-import-boundary',
+  'domain/sfgg-warnings-import-boundary',
+  'form/choice-field-value-type-inferred',
+  'form/deletable-collection-table-ownership',
+  'form/no-promise-tick-in-commit-sensitive',
+  'form/no-queue-microtask-in-commit-sensitive',
+  'form/placeholder-identity-single-owner',
+  'form/restore-target-attributes',
+  'form/row-delete-lane-cell-single-source',
+  'form/table-sort-order-owned-by-hook',
+  'input/cell-binding-single-source',
+  'input/contextual-field-label-single-authority',
+  'input/deleted-legacy-architecture-import',
+  'input/derived-values-are-not-input-writes',
+  'input/eo-surface-on-authoritative-editor-path',
+  'input/focus-destination-owned-by-location',
+  'input/internal-runtime-capability-boundary',
+  'input/issue-snapshot-capability-boundary',
+  'input/persisted-controls-use-field-family',
+  'input/persisted-page-has-viewmodel',
+  'input/popup-semantics-single-source',
+  'input/programmatic-commit-uses-settle',
+  'input/restore-attributes-carry-destination',
+  'input/row-command-destination',
+  'input/sign-policy-from-descriptor',
+  'input/single-field-identity-in-dom',
+  'input/source-settings-projection-boundary',
+  'input/standard-loen-column-labels-single-source',
+  'input/transient-cannot-write-case-data',
+  'input/write-boundary',
+  'layer/inspektion-import-boundary',
+  'layer/minprocesrente-standalone-import-boundary',
+  'layout/attention-blink-applied-by-helper',
+  'layout/focus-traversal-owned-by-container-navigation',
+  'layout/mui-dialog-disables-own-focus-restore',
+  'layout/overlay-uses-shared-behavior',
+  'layout/popup-focus-restore-single-source',
+  'legacy/forbidden-identifier',
+  'money/money-ore-type-assertion',
+  'numeric/no-direct-locale-formatting',
+  'numeric/no-direct-rounding',
+  'numeric/no-direct-to-fixed',
+  'numeric/no-global-is-nan',
+  'persistence/committed-section-mirror',
+  'satser/asl-aarsloensmaksimum-raw-subscript',
+  'satser/fail-open-display-lookup-import',
+  'shell/unsupported-device-page-bundle-isolation',
+  'shell/viewport-responsive-styling-allowlist',
+  'storage/case-reset-policy-single-owner',
+  'storage/default-directory-name-single-source',
+  'storage/local-storage-boundary',
+  'storage/no-full-page-reload-in-shell',
+  'storage/session-storage-boundary',
+  'storage/session-storage-manifest-key',
+  'test/store-hydration-uses-act-boundary',
+  'ui/message-box-guarded-by-page-message',
+];
+
+/**
  * Kør-motor + selvtest for det AST-baserede arkitektur-harness.
  *
  * Ét sted håndhæver:
@@ -14,6 +112,19 @@ import { pageSectionAccessBoundary } from './rules/domainRules';
  */
 
 describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
+  it('registryet dækker alle forventede regel-id’er', () => {
+    const registeredIds = new Set(ARCHITECTURE_RULES.map((rule) => rule.id));
+    const expectedIds = new Set(EXPECTED_ARCHITECTURE_RULE_IDS);
+    const missing = EXPECTED_ARCHITECTURE_RULE_IDS.filter((id) => !registeredIds.has(id));
+    const unexpected = [...registeredIds].filter((id) => !expectedIds.has(id));
+
+    expect(
+      [...missing, ...unexpected],
+      'Registryet afviger fra den eksplicitte regel-ID-forventning. '
+        + `Mangler: ${missing.join(', ') || 'ingen'}. Uventede: ${unexpected.join(', ') || 'ingen'}.`
+    ).toEqual([]);
+  });
+
   it('manifestet er velformet (unikke regel-id, fixtures til stede)', () => {
     const ids = ARCHITECTURE_RULES.map((rule) => rule.id);
     expect(new Set(ids).size, `Regel-id skal være unikke: ${ids.join(', ')}`).toBe(ids.length);
