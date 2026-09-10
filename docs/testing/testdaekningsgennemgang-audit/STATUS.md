@@ -5,10 +5,10 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `1389d93c1e8d78f6381cd1cec83bedc40b4f6a48`
+- Revision: `50f30cd9` med efterfølgende test-only arbejdsenheder under gennemgang
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001` og `PERSIST-001` foreløbigt gennemgået; mutationsrunner kvalificeret på `DATE-001`-moneyfladen; genskabte historiske `.eo`-fixtures, uafhængige reference-/EO-orakler og separat dokumentlifecycle-bevis tilføjet og retestet
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis, reel session-reload, produktionsbundet form/grid-paritet og bootstrap-sideeffektbevis er tilføjet og retestet.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -25,7 +25,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
 | Vitest | `npm run test` | Bestået | 635 filer, 8.421 tests, 278,06 s |
 | E2E-baner | `npm run test:e2e` | Bestået | 174 tests, 4,1 min, 3 workers; `playwright-report/` og `test-results/` |
-| Coverage | `npm run test:coverage` | Bestået | 396 instrumenterede filer; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
+| Coverage | `npm run test:coverage` | Bestået | 644 testfiler / 8.461 tests; 88,88 % statements, 80,20 % branches, 91,71 % functions, 91,68 % lines; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 25 filer, 238 tests, 13,92 s |
@@ -68,6 +68,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | --- | --- | --- | --- | --- |
 | `INPUT-001` | Kontrakt- og testinventar gennemgået; målrettet suite kørt separat; kontrolleret no-op-modprøve og uafhængig referencekontrol udført | Baseline 5 filer / 176 tests bestået; svækket no-op-gate gav 51 fejl / 146 tests; gendannet kontrol 2 filer / 103 tests bestået; separat referencekontrol 1/1 test bestået; se hoveddokumentets detaljerække | Kvalificeret mutationsrunner, fuld testkvalitetsrevision og browser-/adapterparitet | `I gang` |
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite, historiske fixturetests og uafhængig referencekontrol kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; `fileRoundTrip.independentReference.test.ts`: 1/1 bestået | Releaseproveniens eller accepteret fixture-erstatning, mutation og fuld testkvalitetsrevision | `I gang` |
+| `PERSIST-002` | Storage/settings, filhåndtag, PWA-filflows og reel session-reload gennemgået | 15 filer / 180 målrettede unit-/hook-tests; PWA-/filkørsel 4/4; reel input + aktiv fane + reload 1/1 | Ikke-callable File API-capability, IndexedDB-/hook-sammenhæng og flere storage-fejlveje; `TD-017` | `I gang` |
+| `INPUT-002` / `VALID-001` | Form/grid-overflader, produktions-ChoiceField og schema-/validatorhuller gennemgået | 63 filer / 1.469 tests; produktionsbundet form/grid-paritet 1/1 | Nested row-partitioner, faktiske `ZodError.issues` og fixture-uafhængighed; `TD-019` | `I gang` |
 | `CALC-001` | Satser og fælles reguleringsdata gennemgået som målrettet domænebaseline | `src/__tests__/domain/satser`: 4 filer / 47 tests bestået; satsårsprojektion, new-case seed, ASL-maksimum og begge reguleringsmetoder er dækket | Integration/E2E, dataregistrenes endepunkter og komplet downstream-konsumentparitet | `I gang` |
 | `ARCH-002` | Registry-completeness og udvalgte negative modcases tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 189 tests bestået; separat forventningsliste med 88 regel-ID'er samt re-export- og liveness-modcases; `TD-015` lukket for de konkrete huller | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 106 tests grønne efter præcise grænseassertions, eksakt 2024-facit og håndberegnet skudårsinterval; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
@@ -77,16 +79,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline | 7 filer / 81 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum og EAL/ASL-afhængigheder er registreret | Uafhængig totalsag, mutation, PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler | `eoSnapshotIndependentOracle.test.ts`: 3/3 og `eoInspektionIndependentOracle.test.ts`: 5/5 bestået; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Row-priority og øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline | Fokuseret kontrol: 8 filer / 96 tests. Bred dokumentkontrol: 22 filer / 232 tests. Separat gate-/downloadspor: 3/3. Kataloget dækker 18 Mineo- og 3 standalone-outputs | TD-012–TD-014: manglende standalone/per-output lifecycle, ufuldstændig lifecycle-fasekæde og manglende generel PDF/Word-paritet | `I gang` |
+| `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, øvrige målrettede browserflows grønne | Mobil-hard-stop i ægte browser og manglende lazy-chunk recovery; `TD-021`/`TD-022` | `I gang` |
+| `MIN-001` | Standalone isolation, reset/fokus, error boundary og exit-guard gennemgået | Målrettet E2E 1/1 samt 26-filers shell-/standalonekontrol | Valid input → beregning → gate → PDF og browserbaseret namespace-/runtime-isolation; `TD-023` | `I gang` |
 | `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 4/4; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 og øvrige chunk-/Vite-advarsler mangler | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
 ## Næste arbejdsenhed
 
-Fortsæt `CALC-002` og `CALC-003` med de resterende branches, grænser, integration/downstream-paritet og uafhængig efterregning.
-Fortsæt `CALC-006` med row-priority, øvrige rækkegrene og afklaring af `TD-016`; derefter `DOC-001` med standalone/per-output-lifecycle.
-Fortsæt samtidig `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
-negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet.
-Afslut `TD-001` under `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning; den uafhængige struktursammenligning er nu tilføjet.
-Gå derefter videre gennem `CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal
-kobles til konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.
+Afslut de igangværende test-only arbejdsenheder for `DATA-001`/`CALC-001`, `SHELL-002` og `MIN-001`, ret hoveddokumentets
+evidensrækker efter de faktiske resultater, og commit hver afgrænset enhed med grøn typecheck/lint. Fortsæt derefter
+`CALC-004` og `CALC-005` med uafhængige totalsager, og `CALC-006` med row-priority, øvrige rækkegrene og afklaring af
+`TD-016`. Gennemgå herefter `DOC-001` med standalone/per-output-lifecycle og `DOC-002`/`DOC-003` med fysisk outputbevis.
+`DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`, mens `PERSIST-001` kræver releaseproveniens eller
+accepteret fixture-erstatning under `TD-001`. Hver række skal kobles til konkret test- og uafhængig evidens, før status
+sættes til andet end `I gang`.
