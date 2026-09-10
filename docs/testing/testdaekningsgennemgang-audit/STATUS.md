@@ -8,7 +8,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 - Revision: `1389d93c1e8d78f6381cd1cec83bedc40b4f6a48`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001` og `PERSIST-001` foreløbigt gennemgået; mutationsrunner kvalificeret på `DATE-001`-moneyfladen; genskabte historiske `.eo`-fixtures og uafhængige reference-/EO-orakler tilføjet og retestet
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001` og `PERSIST-001` foreløbigt gennemgået; mutationsrunner kvalificeret på `DATE-001`-moneyfladen; genskabte historiske `.eo`-fixtures, uafhængige reference-/EO-orakler og separat dokumentlifecycle-bevis tilføjet og retestet
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -75,16 +75,16 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-003` | Procesrente-oracle gennemgået med intervalgrænser og daglig kontinuitet | `procesrenteCalculatorOracle.test.ts`: 8/8 tests bestået; breakdowns kontrolleres nu mod første start, sidste slut, næste kalenderdag og inklusivt dagtal; `TD-009` lukket for den konkrete invariant | Standalone-deling, øvrige rente-/inputbranches, outputparitet, mutation og uafhængig efterregning | `I gang` |
 | `CALC-004` | Varige mén-fladen gennemgået som målrettet unit-/integrationstestbaseline | 9 filer / 81 tests bestået; méngrad-, satsår-, alder-, dato-, afrundings- og gatecases er registreret | Uafhængig talprøve eller mutation, PDF/Word-paritet, fuld browserrejse og overlaprevision | `I gang` |
 | `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline | 7 filer / 81 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum og EAL/ASL-afhængigheder er registreret | Uafhængig totalsag, mutation, PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
-| `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med et uafhængigt oracle | `eoSnapshotIndependentOracle.test.ts`: 3/3 tests bestået; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Row-priority og øvrige rækkegrene, inspection-/view-model-dækning, dokumentparitet, mutation og E2E; udviklerens beslutning om TD-016 | `I gang` |
-| `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline | Fokuseret kontrol: 7 filer / 93 tests. Bred dokumentkontrol: 22 filer / 232 tests. Kataloget dækker 18 Mineo- og 3 standalone-outputs | TD-011–TD-014: selvrefererende preflight-parity, manglende standalone/per-output lifecycle, ufuldstændig lifecycle-fasekæde og manglende generel PDF/Word-paritet | `I gang` |
-| `BUILD-001` | Asset-eksistenskontrol tilføjet til buildverifikatoren | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2 bestået; `node --check` bestået; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 mangler | `I gang` |
+| `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler | `eoSnapshotIndependentOracle.test.ts`: 3/3 og `eoInspektionIndependentOracle.test.ts`: 5/5 bestået; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Row-priority og øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
+| `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline | Fokuseret kontrol: 8 filer / 96 tests. Bred dokumentkontrol: 22 filer / 232 tests. Separat gate-/downloadspor: 3/3. Kataloget dækker 18 Mineo- og 3 standalone-outputs | TD-012–TD-014: manglende standalone/per-output lifecycle, ufuldstændig lifecycle-fasekæde og manglende generel PDF/Word-paritet | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 4/4; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 og øvrige chunk-/Vite-advarsler mangler | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
 ## Næste arbejdsenhed
 
 Fortsæt `CALC-002` og `CALC-003` med de resterende branches, grænser, integration/downstream-paritet og uafhængig efterregning.
-Fortsæt `CALC-006` med row-priority, inspection-/view-model-grene og afklaring af `TD-016`; derefter `DOC-001` med den reelle gate-vs-download-paritet.
+Fortsæt `CALC-006` med row-priority, øvrige rækkegrene og afklaring af `TD-016`; derefter `DOC-001` med standalone/per-output-lifecycle.
 Fortsæt samtidig `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
 negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet.
 Afslut `TD-001` under `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning; den uafhængige struktursammenligning er nu tilføjet.
