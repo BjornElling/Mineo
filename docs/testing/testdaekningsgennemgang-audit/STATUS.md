@@ -56,6 +56,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - `verify-build-artifacts.mjs` kontrollerer nu, at hver PWA-assetsti faktisk findes i `outDir`; den
   syntetiske positive/negative regressionstest bestod 2/2. Det tidligere B-001 er lukket, mens CI's
   separate E2E/deploy-artefakt (B-002) fortsat er åbent.
+- Lane-vagten er gjort tokenizer-baseret, så double-quoted og array-baserede tags samt kommentarer og
+  strengindhold behandles korrekt. `e2eSuiteConventions.test.ts` bestod 20/20, og `check:e2e-lanes` er grøn.
 
 ## Foreløbig fladegennemgang
 
@@ -66,11 +68,12 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `ARCH-002` | Registry-completeness tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 186 tests bestået; separat forventningsliste med 88 regel-ID'er fanger manglende og uventede registry-poster | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 105 tests grønne efter præcise grænseassertions og eksakt 2024-facit; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
 | `BUILD-001` | Asset-eksistenskontrol tilføjet til buildverifikatoren | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2 bestået; `node --check` bestået; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 mangler | `I gang` |
+| `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 
 ## Næste arbejdsenhed
 
 Fortsæt `DATE-001` med uafhængig håndregning og afklaring af `TD-003`. Gennemgå derefter `ARCH-002` med
 negative modcases, importgrænser og øvrig liveness samt `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut `TD-001` under
 `PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Gå derefter videre til
-lane-parseren, kontrakt-reference-liveness og `CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
+kontrakt-reference-liveness og `CALC-006`/`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
 konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.

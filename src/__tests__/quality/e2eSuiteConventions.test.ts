@@ -1,6 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-
+import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 /**
@@ -95,6 +96,27 @@ const parse = (filePath: string): ts.SourceFile =>
     /* setParentNodes */ true,
     ts.ScriptKind.TS,
   );
+
+/** Kører den uafhængige Node-vagt på en in-memory fixture uden at ændre E2E-træet. */
+const inspectLaneTagFixture = (source: string): readonly string[] => {
+  const checkerUrl = pathToFileURL(path.resolve(__dirname, '../../../scripts/check-e2e-lane-tags.mjs')).href;
+  const encodedSource = Buffer.from(source, 'utf8').toString('base64');
+  const probe = [
+    `const checker = await import(${JSON.stringify(checkerUrl)});`,
+    `const source = Buffer.from(${JSON.stringify(encodedSource)}, 'base64').toString('utf8');`,
+    "const tags = new Map([['BROWSER_LANE_TAG', '@browsere'], ['VIEWPORT_LANE_TAG', '@viewporter']]);",
+    "console.log(JSON.stringify(checker.inspectSpecSource(source, 'fixture.spec.ts', tags)));",
+  ].join('\n');
+  const output = execFileSync(process.execPath, ['--input-type=module', '-e', probe], {
+    cwd: path.resolve(E2E_DIR, '..'),
+    encoding: 'utf8',
+  }).trim();
+  const parsed: unknown = JSON.parse(output);
+  if (!Array.isArray(parsed) || !parsed.every((item): item is string => typeof item === 'string')) {
+    throw new Error('Lane-vagtens testprobe returnerede ikke en liste af tekstfund.');
+  }
+  return parsed;
+};
 
 const lineOf = (source: ts.SourceFile, node: ts.Node): number =>
   source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
@@ -492,6 +514,25 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
         '// Filen kørte før med tag: BROWSER_LANE_TAG, men er nu utagget.\n'
         + "test.describe('x', () => {});",
       ))).toBe(false);
+    });
+
+    it('læser begge citationstyper og arrays uden tekstfalske fund', () => {
+      const source =
+        '// tag: "@forkert" og test.describe("kommentar @ord") er kun tekst.\n'
+        + 'const forklaring = "tag: \'@forkert\'";\n'
+        + 'test.describe("gyldig bane", { tag: ["@browsere", BROWSER_LANE_TAG, \'@viewporter\'] }, () => {});';
+
+      expect(inspectLaneTagFixture(source)).toEqual([]);
+    });
+
+    it('fanger fejl i dobbeltciterede og array-baserede bane-tags', () => {
+      const source =
+        'test.describe("ugyldig bane", { tag: ["@browser", UNKNOWN_LANE] }, () => {});';
+
+      expect(inspectLaneTagFixture(source)).toEqual([
+        "fixture.spec.ts: ukendt bane-tag '@browser'.",
+        "fixture.spec.ts: ukendt bane-konstant 'UNKNOWN_LANE'.",
+      ]);
     });
 
     it('udløses IKKE af de samme ord i kommentarer og strenge', () => {
