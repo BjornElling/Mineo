@@ -1,47 +1,72 @@
+import { z } from 'zod';
 import { formatZodIssues } from '../../utils/zodIssueFormatting';
+import { rentekravRowSchema, renteberegningSchema, satserSchema } from '../../schemas/formSchemas';
+
+const issuesFrom = (schema: z.ZodType, input: unknown): z.core.$ZodIssue[] => {
+  const result = schema.safeParse(input);
+  if (result.success) throw new Error('Testfixture skulle have givet Zod-fejl');
+  return result.error.issues;
+};
 
 describe('formatZodIssues', () => {
   it('formaterer enkelt issue med dotted path', () => {
-    const result = formatZodIssues([{ path: ['row', 0, 'amount'], message: 'Invalid value' }], 10);
-    expect(result).toBe('row.0.amount: Invalid value');
+    const issues = issuesFrom(renteberegningSchema, {
+      rentekravRows: [{ id: 'r1', enhed: 'timer' }],
+    });
+
+    expect(issues[0]?.path).toEqual(['rentekravRows', 0, 'enhed']);
+    expect(formatZodIssues(issues, 10)).toBe(
+      `rentekravRows.0.enhed: ${issues[0]?.message}`,
+    );
   });
 
   it('tom path → (root)', () => {
-    const result = formatZodIssues([{ path: [], message: 'Required' }], 10);
-    expect(result).toBe('(root): Required');
+    const issues = issuesFrom(satserSchema, null);
+
+    expect(issues[0]?.path).toEqual([]);
+    expect(formatZodIssues(issues, 10)).toBe(`(root): ${issues[0]?.message}`);
   });
 
   it('flere issues adskilles med newline', () => {
-    const result = formatZodIssues(
-      [
-        { path: ['a'], message: 'msg a' },
-        { path: ['b', 1], message: 'msg b' },
-      ],
-      10
+    const issues = issuesFrom(rentekravRowSchema, {
+      id: 7,
+      tillaegstid: 'ikke-et-tal',
+      enhed: 'timer',
+    });
+
+    expect(issues).toHaveLength(3);
+    expect(formatZodIssues(issues, 10)).toBe(
+      issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('\n'),
     );
-    expect(result).toBe('a: msg a\nb.1: msg b');
   });
 
   it('trunkerer til max antal', () => {
-    const issues = [
-      { path: ['a'], message: '1' },
-      { path: ['b'], message: '2' },
-      { path: ['c'], message: '3' },
-    ];
-    const result = formatZodIssues(issues, 2);
-    expect(result).toBe('a: 1\nb: 2');
+    const issues = issuesFrom(rentekravRowSchema, {
+      id: 7,
+      tillaegstid: 'ikke-et-tal',
+      enhed: 'timer',
+    });
+
+    expect(formatZodIssues(issues, 2)).toBe(
+      issues.slice(0, 2).map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('\n'),
+    );
+    expect(formatZodIssues(issues, 2)).not.toContain(issues[2]?.message ?? '');
   });
 
-  it('symbol-segment bruger description', () => {
+  it('symbol-segment bruger description fra et faktisk ZodIssue path', () => {
     const sym = Symbol('mySymbol');
-    const result = formatZodIssues([{ path: [sym, 'x'], message: 'm' }], 10);
-    expect(result).toBe('mySymbol.x: m');
+    const issues = issuesFrom(z.object({ [sym]: z.string() }), {});
+
+    expect(issues[0]?.path).toEqual([sym]);
+    expect(formatZodIssues(issues, 10)).toBe(`mySymbol: ${issues[0]?.message}`);
   });
 
-  it('symbol uden description → "symbol"', () => {
+  it('symbol uden description bruger symbol fra et faktisk ZodIssue path', () => {
     const sym = Symbol();
-    const result = formatZodIssues([{ path: [sym], message: 'm' }], 10);
-    expect(result).toBe('symbol: m');
+    const issues = issuesFrom(z.object({ [sym]: z.string() }), {});
+
+    expect(issues[0]?.path).toEqual([sym]);
+    expect(formatZodIssues(issues, 10)).toBe(`symbol: ${issues[0]?.message}`);
   });
 
   it('tom issue-liste → tom streng', () => {

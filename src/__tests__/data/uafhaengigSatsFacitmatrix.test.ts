@@ -11,9 +11,24 @@ import {
 } from '../../data/lovbestemteRates';
 import { referenceRates } from '../../data/interestRates';
 import {
+  getKRLSatstabel,
+  getReguleringsDatoIntervalForKRL,
+  type KRLSatstabelId,
+} from '../../data/krlRates';
+import {
+  getReguleringsDatoIntervalForOffentligLoen,
+  getOffentligLoenForDato,
+} from '../../data/offentligLoenLookup';
+import { toLoentrin } from '../../data/offentligLoenTypes';
+import {
+  getEffektiveSatserForDato,
+  type OverenskomstId,
+} from '../../data/overenskomstRates';
+import {
   statistiskLoenudvikling,
   type StatistiskLoenudvikling,
 } from '../../data/statistiskeRates';
+import { toDanishDateString } from '../../types/branded';
 
 /**
  * DATA-001/CALC-001: Uafhængige literal-facit for udvalgte autoritative registre.
@@ -100,6 +115,8 @@ const assertQuarterFacit = (
   }
 };
 
+const d = (date: string) => toDanishDateString(date);
+
 describe('uafhængig facitmatrix for rate- og satsregistre', () => {
   it('matcher EAL- og ASL-satser ved første, historisk mellemste og seneste endpoint', () => {
     for (const facit of lovbestemteFacit) {
@@ -157,5 +174,90 @@ describe('uafhængig facitmatrix for rate- og satsregistre', () => {
       ['2020K1', 107.4],
       ['2026K1', 129.3],
     ]);
+  });
+
+  it('matcher KRL-seriernes ældste definerede partitioner med literal-facit', () => {
+    const facit: ReadonlyArray<readonly [id: KRLSatstabelId, dato: string, pct: number]> = [
+      ['KTO (kommuner)', '01-04-2001', 4.0662],
+      ['SHK (kommuner)', '01-01-2008', 2.2063],
+      ['KTO (regioner)', '01-10-2018', 2.0238],
+      ['SHK (regioner)', '01-10-2018', 2.0238],
+    ];
+
+    for (const [id, dato, pct] of facit) {
+      const tabel = getKRLSatstabel(id);
+      expect(tabel).toBeDefined();
+      const endpoint = tabel?.vaerdier.find((vaerdi) => vaerdi.fraDato === dato);
+      expect(endpoint).toEqual({ fraDato: dato, reguleringsPct: pct });
+    }
+
+    expect(getReguleringsDatoIntervalForKRL('KTO (kommuner)')).toEqual({
+      fraDato: '01-04-2001',
+      tilDato: '30-09-2026',
+    });
+    expect(getReguleringsDatoIntervalForKRL('SHK (kommuner)')).toEqual({
+      fraDato: '01-01-2008',
+      tilDato: '30-09-2026',
+    });
+    expect(getReguleringsDatoIntervalForKRL('KTO (regioner)')).toEqual({
+      fraDato: '01-10-2018',
+      tilDato: '30-09-2026',
+    });
+    expect(getReguleringsDatoIntervalForKRL('SHK (regioner)')).toEqual({
+      fraDato: '01-10-2018',
+      tilDato: '30-09-2026',
+    });
+  });
+
+  it('matcher offentlige løntabellers nyeste partitioner og dækningsintervaller', () => {
+    const kl = getOffentligLoenForDato('KL', d('15-10-2026'), toLoentrin(1), 0);
+    expect(kl).toEqual({
+      overenskomstType: 'KL',
+      effectiveDate: '01-10-2026',
+      loentrin: 1,
+      loengruppe: 0,
+      maanedsLoen: 20386.58,
+      timeLoen: 127.15,
+    });
+
+    const rltn = getOffentligLoenForDato('RLTN', d('15-04-2026'), toLoentrin(10), 2);
+    expect(rltn).toEqual({
+      overenskomstType: 'RLTN',
+      effectiveDate: '01-04-2026',
+      loentrin: 10,
+      loengruppe: 2,
+      maanedsLoen: 23512.17,
+      timeLoen: 146.65,
+    });
+
+    expect(getReguleringsDatoIntervalForOffentligLoen('KL')).toEqual({
+      fraDato: '01-01-2012',
+      tilDato: '31-03-2027',
+    });
+    expect(getReguleringsDatoIntervalForOffentligLoen('RLTN')).toEqual({
+      fraDato: '01-01-2012',
+      tilDato: '30-09-2026',
+    });
+  });
+
+  it('matcher bygge-/anlægsoverenskomstens nyeste differentierede satsperiode', () => {
+    const sats = getEffektiveSatserForDato({
+      overenskomstId: 'bygge-anlaeg' as OverenskomstId,
+      dato: d('01-03-2027'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(sats).toEqual({
+      fraDato: '01-03-2027',
+      grundloen: 153.4,
+      shSoSats: 0.167,
+      fritvalg: 0,
+      agPension: 0.1115,
+      sfgg: null,
+      sfggFaglKbh: 223.75,
+      sfggFaglProv: 208.35,
+      sfggUfaglKbh: 200.2,
+      sfggUfaglProv: 201.5,
+    });
   });
 });
