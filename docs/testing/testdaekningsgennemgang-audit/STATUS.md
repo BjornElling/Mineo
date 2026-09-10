@@ -5,7 +5,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `c5064a87`
+- Revision: `291c6a93`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, uafhængige satsfacitter og standalone valid-PDF-forløb er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
