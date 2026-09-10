@@ -60,4 +60,5 @@ describe('utcDayMath', () => {
     const d = createDate(2024, 5, 15);
     expect(diffUtcDaysAbs(d, d)).toBe(0);
   });
+
 });

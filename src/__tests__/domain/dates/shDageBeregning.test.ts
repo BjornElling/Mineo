@@ -130,12 +130,19 @@ describe('beregnSHDage', () => {
     // 2024: ingen store bededag. Helligdage: nytår(man), skærtors(tor), langfre(fre),
     // påske(søn), 2.påske(man), himmelfartsdag(tor), pinse(søn), 2.pinse(man), jul(ons), 2.jul(tor)
     // søndage tælles ikke: påske, pinse → 8 hverdagshelligdage
-    // Men lad os bare verificere at det er > 7 og < 11
+    // De otte hverdagshelligdage er det entydige facit for 2024.
     const fra = createDate(2024, 0, 1);
     const til = createDate(2024, 11, 31);
     const antal = beregnSHDage(fra, til);
-    expect(antal).toBeGreaterThanOrEqual(7);
-    expect(antal).toBeLessThanOrEqual(10);
+    expect(antal).toBe(8);
+  });
+
+  it('ugyldig Date fejler fail-fast', () => {
+    const ugyldigDato = new Date(Number.NaN);
+    const gyldigDato = createDate(2024, 5, 15);
+
+    expect(() => beregnSHDage(ugyldigDato, gyldigDato)).toThrow('Invalid Date passed to formatToISO.');
+    expect(() => beregnSHDage(gyldigDato, ugyldigDato)).toThrow('Invalid Date passed to formatToISO.');
   });
 
   it('store bededag 2023 (fredag) tælles som SH-dag, men 2026 gør det ikke', () => {

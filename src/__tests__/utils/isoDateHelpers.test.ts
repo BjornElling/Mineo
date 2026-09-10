@@ -324,13 +324,26 @@ describe('validateISODateRange', () => {
   it('dato < minDate → isValid = false med fejlbesked', () => {
     const result = validateISODateRange(toISODateString('2023-12-31'), toISODateString('2024-01-01'), toISODateString('2024-12-31'));
     expect(result.isValid).toBe(false);
-    expect(result.errorMessage).toBeTruthy();
+    expect(result.errorMessage).toBe('Dato skal være mellem 01-01-2024 og 31-12-2024');
   });
 
   it('dato > maxDate → isValid = false med fejlbesked', () => {
     const result = validateISODateRange(toISODateString('2025-01-01'), toISODateString('2024-01-01'), toISODateString('2024-12-31'));
     expect(result.isValid).toBe(false);
-    expect(result.errorMessage).toBeTruthy();
+    expect(result.errorMessage).toBe('Dato skal være mellem 01-01-2024 og 31-12-2024');
+  });
+
+  it('umuligt ISO-interval viser begge præcise grænser', () => {
+    const result = validateISODateRange(
+      toISODateString('2024-06-15'),
+      toISODateString('2024-12-31'),
+      toISODateString('2024-01-01')
+    );
+
+    expect(result.isValid).toBe(false);
+    expect(result.errorMessage).toBe(
+      'Der findes ingen gyldig dato her: tidligst tilladte (31-12-2024) ligger efter senest tilladte (01-01-2024).'
+    );
   });
 
   it('ikke-ISO dato → isValid = false', () => {
