@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "command",
+  "commandRunner": {
+    "command": "npx vitest run src/__tests__/domain/money/money.test.ts --reporter=dot"
+  },
+  "mutate": ["src/domain/money/money.ts"],
+  "coverageAnalysis": "off",
+  "concurrency": 1,
+  "timeoutMS": 30000,
+  "dryRunTimeoutMinutes": 5,
+  "disableTypeChecks": true,
+  "reporters": ["clear-text", "progress", "html", "json"],
+  "htmlReporter": {
+    "fileName": "coverage/mutation/mutation.html"
+  },
+  "jsonReporter": {
+    "fileName": "coverage/mutation/mutation.json"
+  },
+  "ignorePatterns": [
+    ".tmp-mutation",
+    ".tmp-mutation-command",
+    ".playwright-cli",
+    "coverage",
+    "dist",
+    "playwright-report",
+    "test-results"
+  ]
+}

@@ -8,7 +8,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 - Revision: `1389d93c1e8d78f6381cd1cec83bedc40b4f6a48`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001` og `PERSIST-001` foreløbigt gennemgået; kontrolleret no-op-modprøve og uafhængig referencekontrol udført for `INPUT-001`; genskabte historiske `.eo`-fixtures tilføjet og retestet
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001` og `PERSIST-001` foreløbigt gennemgået; mutationsrunner kvalificeret på `DATE-001`-moneyfladen; genskabte historiske `.eo`-fixtures tilføjet og retestet
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -47,6 +47,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   AES-GCM-protokol, ikke udtrukket fra faktiske offentliggjorte filer; `TD-001` forbliver derfor åbent.
 - `INPUT-001` har nu en separat reference-model, der ikke genbruger reducer- eller history-helperne, og
   som kontrollerer settle, semantisk no-op, undo, redo og ny gren efter undo.
+- StrykerJS 10.0.0 med den officielle Vitest-runner bestod dry-run, men gav 0/58 dræbte mutationer på
+  `money.ts`; den blev derfor fravalgt som auditbevis. StrykerJS command-runner med eksplicit Vitest-
+  kommando dræbte 56/58 efter styrkelse af den dedikerede suite, uden timeout eller runnerfejl.
 
 ## Foreløbig fladegennemgang
 
@@ -54,10 +57,12 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | --- | --- | --- | --- | --- |
 | `INPUT-001` | Kontrakt- og testinventar gennemgået; målrettet suite kørt separat; kontrolleret no-op-modprøve og uafhængig referencekontrol udført | Baseline 5 filer / 176 tests bestået; svækket no-op-gate gav 51 fejl / 146 tests; gendannet kontrol 2 filer / 103 tests bestået; separat referencekontrol 1/1 test bestået; se hoveddokumentets detaljerække | Kvalificeret mutationsrunner, fuld testkvalitetsrevision og browser-/adapterparitet | `I gang` |
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite og historiske fixturetests kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; se hoveddokumentets detaljerække | Releaseproveniens eller accepteret fixture-erstatning, uafhængig struktursammenligning, mutation og fuld testkvalitetsrevision | `I gang` |
+| `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; dedikeret suite styrket | 58 mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. Mulig kontraktafvigelse for ugyldige `Date`-instanser er ikke ændret og skal forelægges ved en eventuel produktændring. | `I gang` |
 
 ## Næste arbejdsenhed
 
-Færdiggør `INPUT-001` med kvalificeret mutationsrunner, testkvalitetsrevision og browser-/adapterparitet. Afslut derefter `TD-001` under
-`PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Gå derefter videre til `CALC-006` og
-`DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
+Færdiggør `INPUT-001` med testkvalitetsrevision og browser-/adapterparitet. Afslut derefter `TD-001` under
+`PERSIST-001` med afklaret fixtureproveniens eller accepteret erstatning og struktursammenligning. Næste kode-/testarbejdsenhed er
+`DATE-001` med ugyldige datoer og præcise grænseassertions; en mulig beregnings-/fejladfærdsændring forelægges før produktkode ændres.
+Gå derefter videre til `CALC-006` og `DOC-001`, fordi de bærer store trust-risici og mange downstream-forbrugere. Hver række skal kobles til
 konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.

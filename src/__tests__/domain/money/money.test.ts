@@ -4,6 +4,7 @@ import {
   fromKroner,
   moneyOre,
   moneyOreSchema,
+  roundHeleKroner,
   roundKroner,
   scaleMoneyOre,
   subtractMoneyOre,
@@ -21,7 +22,7 @@ describe('money', () => {
       expect(moneyOreSchema.safeParse(123).success).toBe(true);
 
       for (const invalid of [0.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
-        expect(() => moneyOre(invalid)).toThrow();
+        expect(() => moneyOre(invalid)).toThrow('MoneyOre skal være et heltal');
         expect(moneyOreSchema.safeParse(invalid).success).toBe(false);
       }
     });
@@ -100,6 +101,11 @@ describe('money', () => {
     it('roundKroner bruger half-away-from-zero', () => {
       expect(roundKroner(1.125)).toBe(1.13);
       expect(roundKroner(-1.125)).toBe(-1.13);
+    });
+
+    it('roundHeleKroner bruger half-away-from-zero', () => {
+      expect(roundHeleKroner(1.5)).toBe(2);
+      expect(roundHeleKroner(-1.5)).toBe(-2);
     });
   });
 });
