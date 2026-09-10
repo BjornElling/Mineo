@@ -5,10 +5,10 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `af7acf2c`
+- Revision: `b40d3e27`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, uafhængige satsfacitter, standalone valid-PDF-forløb, uafhængige totalsager for varige mén/forsørgertab samt uafhængige EO-række-/periodefacitter er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, standalone valid-PDF-forløb, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner og faktiske `ZodError.issues` er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -61,8 +61,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Kontrakt-referenceværnet ignorerer nu bare basenames fra `src/__tests__`, mens eksakte teststier stadig
   valideres. `wordContentHarness.ts` er triageret som en bevidst test-only reference, og liveness-suiten
   er grøn efter regressionstesten.
-- `uafhaengigSatsFacitmatrix.test.ts` har fire uafhængige literal-facit-tests for EAL/ASL, EET,
-  Nationalbanken og Danmarks Statistik. Sygedagpengeregistret er bevidst udeladt, fordi den fundne
+- `uafhaengigSatsFacitmatrix.test.ts` har uafhængige literal-facit-tests for EAL/ASL, EET,
+  Nationalbanken, Danmarks Statistik, KRL, offentlig løn og overenskomstperioder. `satserDownstreamIndependentOracle.test.ts`
+  følger desuden en statisk reguleringssats gennem beregning og dokumenttabel. Sygedagpengeregistret er bevidst udeladt, fordi den fundne
   officielle 2005-kilde angiver 88,30 kr./time, mens produktdata angiver 88,51 kr./time; det er et
   afklaringspunkt og ikke et facit, auditten må gætte.
 - `persistence-reload-session.spec.ts` bevæger afsluttet input og aktiv fane gennem reel browser-reload
@@ -77,9 +78,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `INPUT-001` | Kontrakt- og testinventar gennemgået; målrettet suite kørt separat; kontrolleret no-op-modprøve og uafhængig referencekontrol udført | Baseline 5 filer / 176 tests bestået; svækket no-op-gate gav 51 fejl / 146 tests; gendannet kontrol 2 filer / 103 tests bestået; separat referencekontrol 1/1 test bestået; se hoveddokumentets detaljerække | Kvalificeret mutationsrunner, fuld testkvalitetsrevision og browser-/adapterparitet | `I gang` |
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite, historiske fixturetests og uafhængig referencekontrol kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; `fileRoundTrip.independentReference.test.ts`: 1/1 bestået | Releaseproveniens eller accepteret fixture-erstatning, mutation og fuld testkvalitetsrevision | `I gang` |
 | `PERSIST-002` | Storage/settings, filhåndtag, PWA-filflows og reel session-reload gennemgået | 15 filer / 180 målrettede unit-/hook-tests; PWA-/filkørsel 4/4; reel input + aktiv fane + reload 1/1 | Ikke-callable File API-capability, IndexedDB-/hook-sammenhæng og flere storage-fejlveje; `TD-017` | `I gang` |
-| `INPUT-002` / `VALID-001` | Form/grid-overflader, produktions-ChoiceField og schema-/validatorhuller gennemgået | 63 filer / 1.469 tests; produktionsbundet form/grid-paritet 1/1 | Nested row-partitioner, faktiske `ZodError.issues` og fixture-uafhængighed; `TD-019` | `I gang` |
-| `DATA-001` | Data-/satskatalog, integritet og udvalgte uafhængige endpointfacit gennemgået | 23 filer / 476 målrettede tests; uafhængig facitmatrix 4/4 | Resterende kilder, validatorpartitioner og sats → beregning → dokument-kæde; `TD-020` | `I gang` |
-| `CALC-001` | Satser og fælles reguleringsdata gennemgået som målrettet domænebaseline | `src/__tests__/domain/satser`: 4 filer / 47 tests bestået; satsårsprojektion, new-case seed, ASL-maksimum og begge reguleringsmetoder er dækket. Datafacitmatrix: 4/4 tests bestået for udvalgte lovbestemte satser, referencesats og ILON12/SBLON2 | Integration/E2E, resterende dataregistrenes endepunkter og komplet downstream-konsumentparitet | `I gang` |
+| `INPUT-002` / `VALID-001` | Form/grid-overflader, produktions-ChoiceField og schema-/validatorhuller gennemgået | 65 filer / 1.518 tests; produktionsbundet form/grid-paritet, 12 nested row-schemas og faktiske `ZodError.issues` er dækket | Validator-fixture-uafhængighed; `TD-019` | `I gang` |
+| `DATA-001` | Data-/satskatalog, integritet og udvalgte uafhængige endpointfacit gennemgået | 23 filer / 477 målrettede tests; literal-facit for udvalgte perioder samt sats → beregning → dokument-kæde er grøn | Resterende kilder, validatorpartitioner og komplet downstream-paritet; `TD-020` | `I gang` |
+| `CALC-001` | Satser og fælles reguleringsdata gennemgået som målrettet domænebaseline | Den samlede data-/satssuite bestod med 23 filer / 477 tests; uafhængige literal-facit og en statisk downstream-kæde er tilføjet | Integration/E2E, resterende dataregistrenes endepunkter, validatorpartitioner og komplet downstream-konsumentparitet | `I gang` |
 | `ARCH-002` | Registry-completeness og udvalgte negative modcases tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 189 tests bestået; separat forventningsliste med 88 regel-ID'er samt re-export- og liveness-modcases; `TD-015` lukket for de konkrete huller | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
 | `DATE-001` | Pengefladen er mutationstestet modulvist med den kvalificerede command-runner; datoassertions er styrket | 58 money-mutationer: 56 dræbt, 2 triageret som ækvivalent/åben numerisk grænse; 13 money-tests grønne. Dato-/SH-suiten: 3 filer / 106 tests grønne efter præcise grænseassertions, eksakt 2024-facit og håndberegnet skudårsinterval; `coverage/mutation/mutation.json` | Uafhængig håndregning og resten af dato-/periodiseringsfladen mangler. `TD-003` dokumenterer, at `utcDayMath` stadig returnerer `NaN` for ugyldige `Date`-instanser; produktændring skal forelægges. | `I gang` |
 | `CALC-002` | Method C dag gennemgået med den tidligere utestede hele-kalendermåned-branch | `aarsloenCalculations.test.ts`: 29/29 tests bestået, herunder januar + februar 2024 som komplette perioder og håndberegnet `360000`; `TD-008` lukket for den konkrete branch | Resterende årslønsbranches, grænser, integration/downstream-paritet, mutation og uafhængig efterregning | `I gang` |
@@ -96,7 +97,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 ## Næste arbejdsenhed
 
-`CALC-004` og `CALC-005` har nu uafhængige totalsager. `CALC-006` har fået række-/periodefacitter; fortsæt med
+`CALC-004` og `CALC-005` har nu uafhængige totalsager. `CALC-006` har fået række-/periodefacitter. `TD-019` og `TD-020` er delvist lukket med henholdsvis schema-/issuefacitter og udvalgte sats-/downstream-facitter; fortsæt med
 afklaring af `TD-016` og øvrige EO-grene. `DOC-001` har nu standalone/per-output-lifecycle; fortsæt med `TD-013`–`TD-014`.
 `DOC-002`/`DOC-003` mangler fysisk
 PDF-/Word-parse/render og semantisk paritet. `DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`,
