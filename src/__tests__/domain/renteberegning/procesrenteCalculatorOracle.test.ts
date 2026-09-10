@@ -25,6 +25,37 @@ import {
 const ref = (entries: ReadonlyArray<{ date: string; pct: number }>): RateEntry[] =>
   entries.map((e) => ({ effectiveDate: toISODateString(e.date), ratePct: e.pct }));
 
+const utcMidnightMs = (date: string): number => new Date(`${date}T00:00:00.000Z`).getTime();
+
+/**
+ * Kontrollerer hele intervallets grænser og daglige sammenhæng uden at genbruge
+ * rentemotorens egne dag- eller periodehelpers.
+ */
+const expectPeriodsCoverInterval = (
+  periods: ReadonlyArray<{ startDate: Date; endDate: Date; days: number }>,
+  expectedStart: string,
+  expectedEnd: string
+): void => {
+  expect(periods.length).toBeGreaterThan(0);
+  expect(periods[0]!.startDate.getTime()).toBe(utcMidnightMs(expectedStart));
+  expect(periods[periods.length - 1]!.endDate.getTime()).toBe(utcMidnightMs(expectedEnd));
+
+  for (let i = 0; i < periods.length; i++) {
+    const period = periods[i]!;
+    const expectedDays = Math.round(
+      (period.endDate.getTime() - period.startDate.getTime()) / (24 * 60 * 60 * 1000)
+    ) + 1;
+    expect(period.days).toBe(expectedDays);
+
+    const nextPeriod = periods[i + 1];
+    if (nextPeriod) {
+      expect(nextPeriod.startDate.getTime()).toBe(
+        period.endDate.getTime() + 24 * 60 * 60 * 1000
+      );
+    }
+  }
+};
+
 describe('calculateProcessInterestWithRates – uafhængigt orakel', () => {
   it('én dag i skudår bruger 366 årsdage (håndberegnet konstant)', () => {
     // 10000 · 10% · 1 / 366 = 2,732240...
@@ -109,8 +140,8 @@ describe('calculateProcessInterestBreakdownWithRates – halvårsskift og satsbe
     const b = breakdown!;
     expect(b.periods).toHaveLength(2);
 
-    // Invariant: periode 1 ligger helt før periode 2, ingen overlap, dækker hele intervallet.
-    expect(b.periods[0]!.endDate.getTime()).toBeLessThan(b.periods[1]!.startDate.getTime());
+    // Invariant: perioderne starter/slutter på inputgrænserne og dækker hver dag uden hul.
+    expectPeriodsCoverInterval(b.periods, '2020-06-01', '2020-07-31');
     expect(b.periods[0]!.totalRatePct).toBe(10);
     expect(b.periods[1]!.totalRatePct).toBe(12);
     expect(b.periods[0]!.days).toBe(30);
@@ -188,11 +219,7 @@ describe('calculateProcessInterestBreakdownWithRates – halvårsskift og satsbe
     // Halvårsopdeling: 2 perioder pr. år => 4 perioder.
     expect(breakdown!.periods).toHaveLength(4);
     expect(breakdown!.totalInterest).toBeCloseTo(20000, 6);
-    // Invariant: perioderne dækker intervallet sammenhængende uden huller eller overlap.
-    for (let i = 0; i < breakdown!.periods.length - 1; i++) {
-      expect(breakdown!.periods[i]!.endDate.getTime()).toBeLessThan(
-        breakdown!.periods[i + 1]!.startDate.getTime()
-      );
-    }
+    // Invariant: perioderne dækker hele intervallet dag for dag uden huller eller overlap.
+    expectPeriodsCoverInterval(breakdown!.periods, '2023-01-01', '2024-12-31');
   });
 });
