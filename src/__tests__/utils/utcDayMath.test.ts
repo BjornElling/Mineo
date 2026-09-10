@@ -2,25 +2,36 @@ import { createDate } from '../../utils/dateUtils';
 import { countExclusiveUtcDays, countInclusiveUtcDays, diffUtcDays, diffUtcDaysAbs } from '../../utils/utcDayMath';
 
 describe('utcDayMath', () => {
-  it('counts inclusive days across DST start', () => {
+  it('tæller inklusive dage over sommertidens start', () => {
     const start = createDate(2024, 2, 30);
     const end = createDate(2024, 3, 2);
     expect(countInclusiveUtcDays(start, end)).toBe(4);
   });
 
-  it('counts inclusive days across DST end', () => {
+  it('tæller inklusive dage over sommertidens slutning', () => {
     const start = createDate(2024, 9, 26);
     const end = createDate(2024, 9, 28);
     expect(countInclusiveUtcDays(start, end)).toBe(3);
   });
 
-  it('counts inclusive days without DST crossing', () => {
+  it('håndberegnet skudårsinterval tæller 28. februar til 1. marts som tre dage', () => {
+    const start = createDate(2024, 1, 28);
+    const end = createDate(2024, 2, 1);
+
+    expect(diffUtcDays(start, end)).toBe(2);
+    expect(diffUtcDays(end, start)).toBe(-2);
+    expect(diffUtcDaysAbs(start, end)).toBe(2);
+    expect(countExclusiveUtcDays(start, end)).toBe(2);
+    expect(countInclusiveUtcDays(start, end)).toBe(3);
+  });
+
+  it('tæller inklusive dage uden sommertidsskift', () => {
     const start = createDate(2024, 1, 10);
     const end = createDate(2024, 1, 12);
     expect(countInclusiveUtcDays(start, end)).toBe(3);
   });
 
-  it('calculates exclusive day difference', () => {
+  it('beregner eksklusiv dagforskel', () => {
     const start = createDate(2024, 1, 10);
     const end = createDate(2024, 1, 12);
     expect(countExclusiveUtcDays(start, end)).toBe(2);

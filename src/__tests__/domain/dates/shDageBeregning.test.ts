@@ -126,7 +126,7 @@ describe('beregnSHDage', () => {
     expect(beregnSHDage(fra, til)).toBe(0);
   });
 
-  it('2024 har 9 SH-dage (ingen store bededag)', () => {
+  it('2024 har 8 SH-dage (ingen store bededag)', () => {
     // 2024: ingen store bededag. Helligdage: nytår(man), skærtors(tor), langfre(fre),
     // påske(søn), 2.påske(man), himmelfartsdag(tor), pinse(søn), 2.pinse(man), jul(ons), 2.jul(tor)
     // søndage tælles ikke: påske, pinse → 8 hverdagshelligdage
