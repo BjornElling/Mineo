@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DownloadIconButton from '../../../components/inputs/DownloadIconButton';
 import DocumentDownloadButton from '../../../components/inputs/DocumentDownloadButton';
@@ -37,7 +37,7 @@ describe('DownloadIconButton (presentationskerne)', () => {
     render(<DownloadIconButton onClick={onClick} tooltip="Download som PDF" />);
     const button = screen.getByRole('button', { name: 'Download som PDF' });
 
-    button.focus();
+    act(() => button.focus());
     await user.keyboard('{Enter}');
     await user.keyboard(' ');
 

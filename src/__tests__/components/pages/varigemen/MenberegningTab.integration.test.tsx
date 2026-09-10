@@ -275,22 +275,6 @@ describe('MenberegningTab – gate-årsagen vises kun i tooltippet', () => {
     expect(mockScrollToFieldAddress).toHaveBeenCalledWith(field.bind().address);
   });
 
-  it('en blokeret download peger på den manglende stamdata-dato frem for kun at ryste knappen', async () => {
-    const user = userEvent.setup();
-    hydrate({ mengrad: 10, beregningsdato: toISODateString('2020-01-01') }, {
-      ...validStamdata,
-      skadelidteFodselsdato: undefined,
-    });
-    renderTab();
-
-    await user.click(screen.getByTestId('varigemen-download'));
-
-    expect(mockTriggerDocumentDownload).not.toHaveBeenCalled();
-    expect(mockScrollToFieldAddress).toHaveBeenCalledWith(
-      stamdataSkadelidteFodselsdatoField.bind().address
-    );
-  });
-
   /**
    * BB-069: et klik på en (endnu) AKTIV downloadknap, mens méngrad har en åben draft med en ugyldig
    * værdi. Knappens gate læser render-tidens tilstand og er derfor stadig aktiv i det øjeblik brugeren

@@ -108,7 +108,7 @@ module.exports = [
           paths: [
             {
               name: 'vitest',
-              message: 'Brug vitest globals i stedet (Vitest 4.x). Type imports er tilladt.',
+              message: 'Brug vitest globals i stedet (Vitest 5.x). Type imports er tilladt.',
               importNames: [
                 'describe',
                 'it',

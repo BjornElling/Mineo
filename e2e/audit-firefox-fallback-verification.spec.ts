@@ -1,8 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, login, openPage, test } from './support/mineoTest';
 
-import { BROWSER_LANE_TAG } from './support/lanes';
-
 /**
  * EFTERKONTROL af tre browserfundne auditfund (OBS-005, OBS-028, CRASH-001).
  *
@@ -63,7 +61,9 @@ const runDoubleCleanupOnRealPicker = async (page: Page): Promise<void> => {
     const held = (window as unknown as { __mineoAuditPicker?: Element | null }).__mineoAuditPicker;
     held?.dispatchEvent(new Event('cancel'));
   });
-  await page.waitForTimeout(500);
+  await expect.poll(() => page.evaluate(
+    () => document.querySelector('input[type="file"]') === null
+  )).toBe(true);
 };
 
 /**
@@ -79,13 +79,8 @@ const expectFallbackBranch = async (page: Page): Promise<void> => {
   ).toBe(false);
 };
 
-// Browserbanen: fundene er Firefox-adfærd, og filen springer over i alle andre motorer. Uden taget
-// ville den kun møde basisbanens Chrome og dermed aldrig køre.
-test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, CRASH-001)', { tag: BROWSER_LANE_TAG }, () => {
-  test.skip(
-    ({ browserName }) => browserName !== 'firefox',
-    'Alle tre fund blev observeret i Firefox-fallbacken'
-  );
+// Denne fil tildeles Firefox-projektet i playwright.config.ts og kører dér uden at skippe.
+test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, CRASH-001)', () => {
 
   /**
    * Gem gennem fallback-download skal give filen et nyt navn og gøre det klart, at den tidligere

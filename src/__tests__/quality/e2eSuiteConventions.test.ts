@@ -80,10 +80,12 @@ interface Violation {
   readonly detail: string;
 }
 
-const listSpecFiles = (): readonly string[] =>
-  fs.readdirSync(E2E_DIR)
-    .filter((name) => name.endsWith('.spec.ts'))
-    .map((name) => path.join(E2E_DIR, name));
+const listSpecFiles = (directory = E2E_DIR): readonly string[] =>
+  fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return listSpecFiles(entryPath);
+    return entry.isFile() && entry.name.endsWith('.spec.ts') ? [entryPath] : [];
+  });
 
 const parse = (filePath: string): ts.SourceFile =>
   ts.createSourceFile(
@@ -105,6 +107,41 @@ const findBareDoubleClickCalls = (source: ts.SourceFile): readonly ts.Node[] => 
       ts.isCallExpression(node)
       && ts.isPropertyAccessExpression(node.expression)
       && node.expression.name.text === 'dblclick'
+    ) {
+      found.push(node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(source, visit);
+  return found;
+};
+
+/** Faste sleeps synkroniserer mod maskinhastighed, ikke mod den adfærd testen hævder. */
+const findFixedWaits = (source: ts.SourceFile): readonly ts.Node[] => {
+  const found: ts.Node[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node)
+      && ts.isPropertyAccessExpression(node.expression)
+      && node.expression.name.text === 'waitForTimeout'
+    ) {
+      found.push(node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  ts.forEachChild(source, visit);
+  return found;
+};
+
+/** `force: true` omgår præcis den brugerflade-actionability, en browserrejse skal kontrollere. */
+const findForcedClicks = (source: ts.SourceFile): readonly ts.Node[] => {
+  const found: ts.Node[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node)
+      && ts.isPropertyAccessExpression(node.expression)
+      && node.expression.name.text === 'click'
+      && node.arguments.some((argument) => argument.getText(source).match(/\bforce\s*:\s*true\b/) !== null)
     ) {
       found.push(node);
     }
@@ -283,6 +320,48 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
     ).toEqual([]);
   });
 
+  it('synkroniserer på observerbar adfærd frem for en fast sleep', () => {
+    const violations: Violation[] = [];
+    for (const file of listSpecFiles()) {
+      const source = parse(file);
+      for (const node of findFixedWaits(source)) {
+        violations.push({
+          file: path.relative(E2E_DIR, file),
+          line: lineOf(source, node),
+          detail: node.getText(source).slice(0, 100),
+        });
+      }
+    }
+
+    expect(
+      violations,
+      'En fast waitForTimeout synkroniserer mod maskinhastighed i stedet for produktets observerbare '
+      + 'tilstand. Vent på det konkrete event, DOM-signal eller expect.poll-resultat.\n'
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
+    ).toEqual([]);
+  });
+
+  it('omgår ikke brugerhandlingens actionability med force-klik', () => {
+    const violations: Violation[] = [];
+    for (const file of listSpecFiles()) {
+      const source = parse(file);
+      for (const node of findForcedClicks(source)) {
+        violations.push({
+          file: path.relative(E2E_DIR, file),
+          line: lineOf(source, node),
+          detail: node.getText(source).slice(0, 100),
+        });
+      }
+    }
+
+    expect(
+      violations,
+      'Et force-klik kan skjule et overlay eller en animation, som en bruger faktisk rammer. Vent på '
+      + 'den interaktive tilstand og brug den almindelige klikvej.\n'
+      + violations.map((v) => `  ${v.file}:${v.line} – ${v.detail}`).join('\n'),
+    ).toEqual([]);
+  });
+
   it('navigerer i sidemenuen gennem openPage, ikke gennem et bart klik', () => {
     const violations: Violation[] = [];
     for (const file of listSpecFiles()) {
@@ -361,6 +440,11 @@ describe('E2E-specs måler ikke transient tilstand gennem et kapløb', () => {
     it('fanger et ægte dblclick-kald', () => {
       const source = fixture('await input.dblclick();\nawait input.fill("x");');
       expect(findBareDoubleClickCalls(source)).toHaveLength(1);
+    });
+
+    it('fanger en fast sleep og et force-klik', () => {
+      expect(findFixedWaits(fixture('await page.waitForTimeout(500);'))).toHaveLength(1);
+      expect(findForcedClicks(fixture('await button.click({ force: true });'))).toHaveLength(1);
     });
 
     it('fanger en ægte toHaveClass-påstand på blinkklassen', () => {

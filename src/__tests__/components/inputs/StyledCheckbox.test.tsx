@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledCheckbox from '../../../components/inputs/StyledCheckbox';
 
@@ -54,7 +54,7 @@ describe('StyledCheckbox', () => {
     await user.click(checkbox);
     expect(checkbox).toBeChecked();
 
-    checkbox.focus();
+    act(() => checkbox.focus());
     await user.keyboard(' ');
     await user.keyboard('{Enter}');
 

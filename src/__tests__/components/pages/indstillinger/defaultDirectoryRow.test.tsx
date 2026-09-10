@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material';
 import DefaultDirectoryRow from '../../../../components/pages/indstillinger/DefaultDirectoryRow';
@@ -231,7 +231,7 @@ describe('DefaultDirectoryRow – «Vælg mappe» er tastaturtilgængelig', () =
     const user = userEvent.setup();
     const { showDirectoryPicker, knap } = await renderMedMappevaelger();
 
-    knap.focus();
+    act(() => knap.focus());
     await user.keyboard('{Enter}');
 
     await waitFor(() => expect(showDirectoryPicker).toHaveBeenCalledTimes(1));
@@ -241,7 +241,7 @@ describe('DefaultDirectoryRow – «Vælg mappe» er tastaturtilgængelig', () =
     const user = userEvent.setup();
     const { showDirectoryPicker, knap } = await renderMedMappevaelger();
 
-    knap.focus();
+    act(() => knap.focus());
     await user.keyboard('[Space]');
 
     await waitFor(() => expect(showDirectoryPicker).toHaveBeenCalledTimes(1));

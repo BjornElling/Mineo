@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AddIcon from '@mui/icons-material/Add';
 import InlineActionButton from '../../../components/inputs/InlineActionButton';
@@ -42,7 +42,7 @@ describe('InlineActionButton: deaktiveret', () => {
       </InlineActionButton>
     );
 
-    screen.getByRole('button', { name: 'Indsæt' }).focus();
+    act(() => screen.getByRole('button', { name: 'Indsæt' }).focus());
     await user.keyboard('{Enter}');
     expect(onClick).not.toHaveBeenCalled();
   });
@@ -83,7 +83,7 @@ describe('InlineActionButton: deaktiveret', () => {
 
     const button = screen.getByRole('button', { name: 'Indsæt' });
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    button.focus();
+    act(() => button.focus());
     expect(document.activeElement).toBe(button);
   });
 

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudvikling' 1`] = `
+exports[`eoCanonicalOutput parity matrix > arbejdsdage-segmenter i loenudvikling 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [
@@ -46,7 +46,7 @@ exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudviklin
 }
 `;
 
-exports[`eoCanonicalOutput parity matrix > 'beregningsperiode med offentlige ydel…' 1`] = `
+exports[`eoCanonicalOutput parity matrix > beregningsperiode med offentlige ydelse… 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [],
@@ -77,7 +77,7 @@ exports[`eoCanonicalOutput parity matrix > 'beregningsperiode med offentlige yde
 }
 `;
 
-exports[`eoCanonicalOutput parity matrix > 'forlig + svie/smerte + oevrige krav +…' 1`] = `
+exports[`eoCanonicalOutput parity matrix > forlig + svie/smerte + oevrige krav + t… 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [
@@ -123,7 +123,7 @@ exports[`eoCanonicalOutput parity matrix > 'forlig + svie/smerte + oevrige krav 
 }
 `;
 
-exports[`eoCanonicalOutput parity matrix > 'forlig via broek (2/3)' 1`] = `
+exports[`eoCanonicalOutput parity matrix > forlig via broek (2/3) 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [
@@ -169,7 +169,7 @@ exports[`eoCanonicalOutput parity matrix > 'forlig via broek (2/3)' 1`] = `
 }
 `;
 
-exports[`eoCanonicalOutput parity matrix > 'ingen taf-perioder' 1`] = `
+exports[`eoCanonicalOutput parity matrix > ingen taf-perioder 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [],
@@ -200,7 +200,7 @@ exports[`eoCanonicalOutput parity matrix > 'ingen taf-perioder' 1`] = `
 }
 `;
 
-exports[`eoCanonicalOutput parity matrix > 'uden forlig med offentlige ydelser i …' 1`] = `
+exports[`eoCanonicalOutput parity matrix > uden forlig med offentlige ydelser i ta… 1`] = `
 {
   "periodiseringer": {
     "tafPerioder": [

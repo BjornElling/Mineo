@@ -21,8 +21,9 @@
  * er slettet. Et register, der accepterer suitenavne, kan derfor stå grønt uden en eneste udførende
  * assertion.
  *
- * `.skip`/`.todo`/`.failing`/`.skipIf` udelukkes (inkl. arvet fra en ancestor); `.each`/`.only`/
- * `.concurrent`/`.runIf` medtages, da de kører.
+ * `.skip`/`.todo`/`.failing`/`.skipIf` udelukkes (inkl. arvet fra en ancestor); `.each`/
+ * `.concurrent` medtages, da de kører. `disabledDeclarations` nedenfor finder også `.only` og
+ * `.runIf`, fordi testfladen som helhed forbyder eksklusive og miljøbetingede deklarationer.
  */
 import ts from 'typescript';
 
@@ -30,6 +31,7 @@ const LEAF_FNS = new Set(['it', 'test']);
 const SUITE_FNS = new Set(['describe', 'suite']);
 const TEST_FNS = new Set([...LEAF_FNS, ...SUITE_FNS]);
 const SKIPPING_MODIFIERS = new Set(['skip', 'todo', 'failing', 'skipIf']);
+const DISALLOWED_MODIFIERS = new Set(['skip', 'todo', 'failing', 'skipIf', 'runIf', 'only']);
 
 export type Declaration = Readonly<{
   name: string;
@@ -37,6 +39,8 @@ export type Declaration = Readonly<{
   /** 1-indekseret linje for deklarationens kald, så et fund kan rapporteres som fil:linje. */
   line: number;
 }>;
+
+export type DisabledDeclaration = Readonly<Declaration & { modifier: string }>;
 
 /** Bunden af en kaldekæde: `it.each(x)('n')` → `it`, plus de modifikatorer der blev brugt. */
 const unwrapCallee = (expression: ts.Expression): { root: string; modifiers: string[] } | null => {
@@ -106,3 +110,38 @@ export const leafTestNames = (content: string, fileName?: string): readonly stri
 
 export const suiteNames = (content: string, fileName?: string): readonly string[] =>
   activeDeclarations(content, fileName).filter((entry) => !entry.isLeaf).map((entry) => entry.name);
+
+/**
+ * Testdeklarationer der gør en test betinget, deaktiveret eller eksklusiv.
+ *
+ * En skip er ikke en ufarlig grøn test: den kan skjule en svigtende brugerrejse. `only` og `runIf`
+ * har samme praktiske fejlklasse, fordi de kan efterlade resten af suiten uden kørsel. Værnet bruger
+ * AST'et, så eksempler i kommentarer og parser-selvtests ikke giver falske fund.
+ */
+export const disabledDeclarations = (content: string, fileName = 'test.tsx'): readonly DisabledDeclaration[] => {
+  const source = ts.createSourceFile(
+    fileName, content, ts.ScriptTarget.Latest, /* setParentNodes */ true,
+    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+  const declarations: DisabledDeclaration[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callee = unwrapCallee(node.expression);
+      const [first] = node.arguments;
+      const modifier = callee?.modifiers.find((candidate) => DISALLOWED_MODIFIERS.has(candidate));
+      if (callee !== null && modifier !== undefined && first !== undefined && ts.isStringLiteralLike(first)) {
+        declarations.push({
+          name: first.text,
+          isLeaf: LEAF_FNS.has(callee.root),
+          line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+          modifier,
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+  return declarations;
+};

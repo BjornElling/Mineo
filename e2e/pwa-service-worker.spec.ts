@@ -13,8 +13,6 @@ import { expect, test } from './support/mineoTest';
 test.describe('Mineos ægte service-worker-forløb', () => {
   test.use({ serviceWorkers: 'allow' });
 
-  test.skip(({ browserName }) => browserName !== 'chromium', 'Denne livscykluskontrol køres én gang i Chromium.');
-
   test('går fra waiting til active efter SKIP_WAITING i en rigtig service worker', async ({ page }) => {
     await page.goto('/');
 

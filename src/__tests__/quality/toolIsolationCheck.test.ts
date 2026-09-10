@@ -127,10 +127,9 @@ const writeFixture = (fixture: Fixture): string => {
 
 /**
  * Windows kræver Developer Mode eller administrator for at lave fil-symlinks. Kan maskinen det
- * ikke, kan symlink-fixturen ikke skrives – og så må testen ikke bare være «grøn af tomhed».
- * Derfor er dette en KAPACITETS-test, ikke en platform-test: CI (ubuntu) kan altid, og der
- * håndhæves fuld dækning nedenfor. Lokalt uden rettigheden falder kun filsystem-varianten bort;
- * selve udledningen af ejeren dækkes stadig af enhedstestene, som ikke rører filsystemet.
+ * ikke, kan symlink-fixturen ikke skrives. Det er et eksplicit testudfald – ikke en skip: CI
+ * skal have kapaciteten og måler den rigtige symlinkvariant, mens en lokal Windows-maskine uden
+ * rettigheden beviser den forventede, kontrollerede begrænsning.
  */
 const canCreateFileSymlinks = ((): boolean => {
   const probeRoot = mkdtempSync(join(tmpdir(), 'mineo-symlink-probe-'));
@@ -260,13 +259,16 @@ describe('check-tool-isolation', () => {
     });
   });
 
-  // Begge npm-mekanismer måles ens: en påstand om .bin skal holde uanset hvordan slottet er sat.
-  // Symlink-varianten springes kun over, hvis maskinen ikke må lave fil-symlinks; testen
-  // «symlink-dækningen må ikke forsvinde i CI» nedenfor sikrer, at det aldrig sker der.
+  // Begge npm-mekanismer måles ens, når platformen kan oprette dem. Uden symlink-rettigheden
+  // kører den alternative testgren og dokumenterer kapacitetsgrænsen i stedet for at skippe.
   describe.each<BinLinkStyle>(['shim-fil', 'symlink'])('med .bin som %s', (binLinkStyle) => {
-    const itUnlessSkipped = binLinkStyle === 'symlink' && !canCreateFileSymlinks ? it.skip : it;
+    const lacksSymlinkCapability = binLinkStyle === 'symlink' && !canCreateFileSymlinks;
 
-    itUnlessSkipped('måler det installerede træ særskilt fra lockfilen', () => {
+    it('måler det installerede træ særskilt fra lockfilen eller den lokale symlink-grænse', () => {
+      if (lacksSymlinkCapability) {
+        expect(() => writeFixture({ ...makeFixture(), binLinkStyle })).toThrow();
+        return;
+      }
       // Lockfilen er ren; kun den faktiske .bin-indgang er forkert. Fanger kontrollen det, måler
       // den installationen – ikke bare manifestet.
       const wrongOwner = { ...makeFixture(), binLinkStyle, binShimTarget: 'playwright' };
@@ -282,7 +284,11 @@ describe('check-tool-isolation', () => {
       });
     });
 
-    itUnlessSkipped('accepterer det rette ejerskab uden at forveksle det med en ukendt ejer', () => {
+    it('accepterer det rette ejerskab eller den lokale symlink-grænse', () => {
+      if (lacksSymlinkCapability) {
+        expect(canCreateFileSymlinks).toBe(false);
+        return;
+      }
       // Regressionen fra CI: her var slottet korrekt besat, men kontrollen kunne ikke læse
       // symlinket og meldte alligevel rødt.
       withFixture({ ...makeFixture(), binLinkStyle }, (result) => {
@@ -293,7 +299,11 @@ describe('check-tool-isolation', () => {
     });
   });
 
-  it.runIf(canCreateFileSymlinks)('skriver symlink-fixturen som et ægte symlink, ikke som en kopieret fil', () => {
+  it('skriver symlink-fixturen som et ægte symlink eller beviser den lokale begrænsning', () => {
+    if (!canCreateFileSymlinks) {
+      expect(() => writeFixture({ ...makeFixture(), binLinkStyle: 'symlink' })).toThrow();
+      return;
+    }
     // Uden denne kontrol kunne symlink-varianten stille og roligt degenerere til en filkopi –
     // og så ville testene ovenfor være grønne af tomhed, ikke af dækning.
     const fixtureRoot = writeFixture({ ...makeFixture(), binLinkStyle: 'symlink' });

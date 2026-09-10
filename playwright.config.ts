@@ -37,6 +37,16 @@ const viewports = [
 type EngineDefinition = (typeof engines)[number];
 type ViewportDefinition = (typeof viewports)[number];
 
+/**
+ * Disse specs måler en browser-eksklusiv produktionsvej. De kører i ét dedikeret projekt i stedet
+ * for at erklære sig `skip` i alle andre projekter: en test er kun dækning, når den faktisk kører.
+ */
+const ENGINE_SPECIFIC_SPECS = [
+  '**/file-load-validation.spec.ts',
+  '**/audit-firefox-fallback-verification.spec.ts',
+  '**/pwa-service-worker.spec.ts',
+] as const;
+
 const buildProject = (
   engine: EngineDefinition,
   { suffix, viewport }: ViewportDefinition,
@@ -44,9 +54,26 @@ const buildProject = (
 ) => ({
   name: `${engine.key}${suffix}`,
   use: { ...engine.use, viewport },
+  testIgnore: [...ENGINE_SPECIFIC_SPECS],
   // Playwright matcher `grep` mod testens fulde titel inklusive dens tags.
   ...(laneTag === undefined ? {} : { grep: new RegExp(`${laneTag}\\b`) }),
 });
+
+const buildEngineSpecificProject = (
+  name: string,
+  engine: EngineDefinition,
+  testMatch: (typeof ENGINE_SPECIFIC_SPECS)[number],
+) => ({
+  name,
+  use: { ...engine.use, viewport: baselineViewport },
+  testMatch,
+});
+
+const engineSpecificProjects = [
+  buildEngineSpecificProject('webkit-filindlaesning', engines[3], ENGINE_SPECIFIC_SPECS[0]),
+  buildEngineSpecificProject('firefox-fallback-audit', engines[2], ENGINE_SPECIFIC_SPECS[1]),
+  buildEngineSpecificProject('chromium-service-worker', engines[0], ENGINE_SPECIFIC_SPECS[2]),
+];
 
 /**
  * **Banemodellen.** Suiten kørte før hver eneste test i alle 16 kombinationer af fire browsere og
@@ -66,6 +93,7 @@ const buildProject = (
  *
  * En test uden tag er altså ikke udækket – den er dækket ét sted. Det er et bevidst valg: en fejl,
  * der kun findes i én motor, findes af de tests der er tagget til at lede efter netop dét, og
+ * browser-eksklusive specs kører én gang i deres dedikerede motorprojekt uden `skip`.
  * `PLAYWRIGHT_FULL_MATRIX=1` kører fortsat hele den gamle matrix, når en bred efterkontrol er
  * formålet. `scripts/check-e2e-lane-tags.mjs` fanger et fejlstavet tag, som ellers tavst ville
  * betyde «kører ingen steder ekstra».
@@ -77,6 +105,7 @@ const laneProjects = [
   ...engines.slice(1).map((engine) => buildProject(engine, viewports[0], BROWSER_LANE_TAG)),
   // Viewportbanen: samme motor, kun de tests der aflæser projektets viewport.
   ...viewports.slice(1, 3).map((viewport) => buildProject(engines[0], viewport, VIEWPORT_LANE_TAG)),
+  ...engineSpecificProjects,
 ];
 
 const fullMatrixProjects = engines.flatMap((engine) =>
@@ -85,6 +114,7 @@ const fullMatrixProjects = engines.flatMap((engine) =>
 const projects = runFullMatrix
   ? [
     ...fullMatrixProjects,
+    ...engineSpecificProjects,
     ...(process.env.PLAYWRIGHT_INCLUDE_LARGE_VIEWPORT === '1'
       ? fullMatrixProjects.map((project) => ({
         name: `${project.name}-large`,

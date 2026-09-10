@@ -206,7 +206,7 @@ describe('SideTab', () => {
     expect(tab).toHaveAttribute('type', 'button');
     expect(tab).toHaveAttribute('aria-pressed', 'false');
 
-    tab.focus();
+    act(() => tab.focus());
     await user.keyboard('{Enter}');
     await user.keyboard('[Space]');
 

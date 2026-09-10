@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
@@ -111,7 +111,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false);
 
-      toggle.focus();
+      act(() => toggle.focus());
       expect(toggle).toHaveFocus();
 
       await user.keyboard('{Enter}');
@@ -125,7 +125,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false, true);
 
-      toggle.focus();
+      act(() => toggle.focus());
       await user.keyboard('{Enter}');
 
       expect(commitSpy).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false);
 
-      toggle.focus();
+      act(() => toggle.focus());
       expect(toggle).toHaveFocus();
 
       await user.keyboard(' ');
@@ -152,7 +152,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false, true);
 
-      toggle.focus();
+      act(() => toggle.focus());
       await user.keyboard(' ');
 
       expect(commitSpy).not.toHaveBeenCalled();
@@ -165,7 +165,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false);
 
-      toggle.focus();
+      act(() => toggle.focus());
 
       // Første Enter: false → true
       await user.keyboard('{Enter}');
@@ -187,7 +187,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, commitSpy } = renderControlledToggle(false);
 
-      toggle.focus();
+      act(() => toggle.focus());
 
       await user.keyboard(' ');
       expect(toggle).toBeChecked();

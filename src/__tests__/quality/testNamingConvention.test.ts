@@ -19,9 +19,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { activeDeclarations } from './testDeclarations';
+import { activeDeclarations, disabledDeclarations } from './testDeclarations';
 
 const TEST_ROOT = 'src/__tests__';
+const E2E_TEST_ROOT = 'e2e';
 
 /**
  * Ordene, der beskriver omlægningen frem for en invariant.
@@ -84,6 +85,7 @@ const collectTestFiles = (dir: string, out: string[] = []): string[] => {
 };
 
 const files = collectTestFiles(TEST_ROOT);
+const e2eFiles = collectTestFiles(E2E_TEST_ROOT).filter((file) => file.endsWith('.spec.ts'));
 const declarationsByFile = new Map(
   files.map((file) => [
     file,
@@ -142,5 +144,43 @@ describe('aktive testnavne beskriver invarianten, ikke omlægningen', () => {
     for (const entry of ALLOWED) {
       expect(entry.why.trim(), `undtagelsen '${entry.name}' mangler en begrundelse`).not.toBe('');
     }
+  });
+
+  it('ingen test er deaktiveret, betinget eller eksklusiv', () => {
+    const findings = [...files, ...e2eFiles].flatMap((file) =>
+      disabledDeclarations(fs.readFileSync(path.resolve(process.cwd(), file), 'utf8'), file)
+        .map((declaration) =>
+          `${file}:${declaration.line}  ${declaration.isLeaf ? 'it' : 'describe'}.${declaration.modifier}`
+          + `('${declaration.name}')`)
+    );
+
+    expect(
+      findings,
+      'En test må ikke deaktiveres, være betinget eller isolere resten af suiten. Flyt i stedet en '
+      + 'browser-eksklusiv test til et dedikeret Playwright-projekt, eller skriv en udførende lokal '
+      + 'alternativgren for en reel maskinkapacitetsgrænse:\n'
+      + findings.join('\n')
+    ).toEqual([]);
+  });
+
+  it('finder alle de forbudte deklarationsformer uden at læse kommentarer som kode', () => {
+    const declarations = disabledDeclarations(`
+      // it.skip('kommentar', () => {});
+      describe.skip('sprunget suite', () => {});
+      test.todo('senere');
+      it.failing('forventet fejl', () => {});
+      test.skipIf(true)('betinget', () => {});
+      it.runIf(true)('miljøafhængig', () => {});
+      describe.only('alene', () => {});
+    `);
+
+    expect(declarations.map(({ name, modifier }) => ({ name, modifier }))).toEqual([
+      { name: 'sprunget suite', modifier: 'skip' },
+      { name: 'senere', modifier: 'todo' },
+      { name: 'forventet fejl', modifier: 'failing' },
+      { name: 'betinget', modifier: 'skipIf' },
+      { name: 'miljøafhængig', modifier: 'runIf' },
+      { name: 'alene', modifier: 'only' },
+    ]);
   });
 });

@@ -78,6 +78,24 @@ if (hasDomEnvironment) {
   // rapporteret som uunderstøttede af testmiljøet.
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+  const actWarningGuard = globalThis as {
+    __mineoActWarningGuardInstalled?: boolean;
+    __mineoOriginalConsoleError?: typeof console.error;
+  };
+  if (!actWarningGuard.__mineoActWarningGuardInstalled) {
+    // En `act`-advarsel er en utæt asynkron UI-opdatering, ikke støj. Vitest kan ellers lade den
+    // passere som console-output, så en test ser grøn ud lokalt, mens GitHub Actions kun advarer.
+    // Setup-filen kører pr. jsdom-fil, derfor gemmes den oprindelige funktion én gang globalt.
+    actWarningGuard.__mineoOriginalConsoleError = console.error.bind(console);
+    console.error = (...args: Parameters<typeof console.error>): void => {
+      if (args.some((arg) => typeof arg === 'string' && /not wrapped in act/i.test(arg))) {
+        throw new Error(`React-opdatering uden act i test: ${args.join(' ')}`);
+      }
+      actWarningGuard.__mineoOriginalConsoleError?.(...args);
+    };
+    actWarningGuard.__mineoActWarningGuardInstalled = true;
+  }
+
   const [matchers, { cleanup, act, configure }, { default: userEvent }] = await Promise.all([
     import('@testing-library/jest-dom/matchers'),
     import('@testing-library/react'),
