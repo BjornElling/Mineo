@@ -103,4 +103,34 @@ describe('fileHelpers – fil-I/O', () => {
     await expect(readFile(file)).resolves.toBe('indhold');
     await expect(readFile(null)).rejects.toThrow('Ingen fil valgt');
   });
+
+  it('afviser FileReader-fejl', async () => {
+    vi.useRealTimers();
+    const file = new File(['indhold'], 'sag.eo', { type: 'application/octet-stream' });
+    const readAsText = vi.spyOn(FileReader.prototype, 'readAsText').mockImplementation(function (this: FileReader) {
+      this.onerror?.(new ProgressEvent('error') as ProgressEvent<FileReader>);
+    });
+
+    try {
+      await expect(readFile(file)).rejects.toThrow('Kunne ikke læse fil');
+    } finally {
+      readAsText.mockRestore();
+    }
+  });
+
+  it('afviser FileReader-resultat som ikke er tekst', async () => {
+    vi.useRealTimers();
+    const file = new File(['indhold'], 'sag.eo', { type: 'application/octet-stream' });
+    const readAsText = vi.spyOn(FileReader.prototype, 'readAsText').mockImplementation(function (this: FileReader) {
+      const event = new ProgressEvent('load') as ProgressEvent<FileReader>;
+      Object.defineProperty(event, 'target', { value: { result: new ArrayBuffer(1) } });
+      this.onload?.(event);
+    });
+
+    try {
+      await expect(readFile(file)).rejects.toThrow('Kunne ikke læse fil');
+    } finally {
+      readAsText.mockRestore();
+    }
+  });
 });
