@@ -243,4 +243,47 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
     await download.saveAs(testInfo.outputPath('eet-kapitalisering.docx'));
     expect(runtimeErrors).toEqual([]);
   });
+
+  test('kan hente Word med Differencekravets synlige beregning', async ({
+    page,
+    runtimeErrors,
+  }, testInfo) => {
+    await setupValidSag(page);
+
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
+    await page.getByRole('option', { name: 'Word', exact: true }).click();
+
+    await openPage(page, 'Erhvervsevnetab');
+    await eetTab(page, 'Differencekrav').click();
+    await expect(eetTab(page, 'Differencekrav')).toHaveAttribute('aria-selected', 'true');
+
+    const differencekravRow = page.locator('.row--label-right-hover')
+      .filter({ hasText: 'Beregnet differencekrav' });
+    await expect(differencekravRow).toBeVisible();
+    const visibleRowText = await differencekravRow.innerText();
+    const visibleAmount = visibleRowText.match(/[\d.]+ kr\./g)?.at(-1);
+    expect(visibleAmount).toBeDefined();
+
+    const button = downloadButton(page);
+    await expect(button).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await button.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+    const documentXml = await zip.file('word/document.xml')?.async('string');
+    expect(documentXml).toBeDefined();
+    expect(documentXml).toContain('Differencekrav (EET)');
+    expect(documentXml).toContain('EAL-krav');
+    expect(documentXml).toContain('Beregnet differencekrav');
+    expect(documentXml).toContain(visibleAmount!);
+
+    await download.saveAs(testInfo.outputPath('eet-differencekrav.docx'));
+    expect(runtimeErrors).toEqual([]);
+  });
 });
