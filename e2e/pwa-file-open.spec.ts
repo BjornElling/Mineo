@@ -1,4 +1,37 @@
 import { expect, login, test } from './support/mineoTest';
+import { BROWSER_LANE_TAG } from './support/lanes';
+
+/**
+ * Dette er kun et native kapabilitetsbevis. Playwright kan starte en browser og registrere en
+ * consumer, men kan ikke starte den installerede PWA fra operativsystemets filassociation og
+ * dermed ikke levere en virkelig `.eo`-fil til køen. Selve filafleveringen er derfor fortsat
+ * dækket af appens deterministiske unit-tests og den syntetiske registreringsprøve nedenfor.
+ */
+test.describe('Native launchQueue-kapabilitet', { tag: BROWSER_LANE_TAG }, () => {
+  test('Chromium eksponerer det native LaunchQueue-objekt', async ({
+    page,
+    browserName,
+    runtimeErrors,
+  }) => {
+    test.skip(browserName !== 'chromium', 'Det native LaunchQueue-bevis hører til Chromium-laget.');
+
+    await page.goto('/');
+
+    const launchQueueShape = await page.evaluate(() => {
+      const queue = (window as Window & { launchQueue?: unknown }).launchQueue;
+      return {
+        objectTag: Object.prototype.toString.call(queue),
+        setConsumer: typeof (queue as { setConsumer?: unknown } | null)?.setConsumer,
+      };
+    });
+
+    expect(launchQueueShape).toEqual({
+      objectTag: '[object LaunchQueue]',
+      setConsumer: 'function',
+    });
+    expect(runtimeErrors).toEqual([]);
+  });
+});
 
 test.describe('PWA-filåbning', () => {
   test('registrerer launchQueue-consumeren før den synlige loginrejse er afsluttet', async ({
