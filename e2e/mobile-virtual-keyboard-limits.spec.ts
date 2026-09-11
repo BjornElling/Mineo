@@ -55,9 +55,7 @@ const reopenEditor = async (input: Locator): Promise<void> => {
 };
 
 test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
-  test('dato- og talfelter håndhæver tegn- og længdegrænser på både formular og grid', async ({ page }) => {
-    const pageErrors: string[] = [];
-    page.on('pageerror', (error) => pageErrors.push(error.message));
+  test('dato- og talfelter håndhæver tegn- og længdegrænser på både formular og grid', async ({ page, runtimeErrors }) => {
 
     await page.goto('/minprocesrente.html');
     const formDate = page.locator('input[name="beregningsdato"]');
@@ -109,6 +107,6 @@ test.describe('indtastning uden brugbar keydown (skærmtastatur)', () => {
     await typeLikeMobileKeyboard(cellAmount, '12a34.56b7');
     await expect(cellAmount).toHaveValue('1234567');
 
-    expect(pageErrors).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
   });
 });

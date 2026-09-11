@@ -6,13 +6,7 @@ const CUTOFF_MESSAGE = 'Der er angivet svie/smerte efter datoen for en ménafgø
 const setDate = setVerbatimFieldValueAndSettle;
 
 test.describe('Svie/smerte efter ménafgørelse', () => {
-  test('viser rød ring, konkret tooltip og samme fejl på Beregning', async ({ page }, testInfo) => {
-    const consoleErrors: string[] = [];
-    const pageErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') consoleErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => pageErrors.push(error.message));
+  test('viser rød ring, konkret tooltip og samme fejl på Beregning', async ({ page, runtimeErrors }, testInfo) => {
 
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
@@ -43,7 +37,6 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     await expect(calculationPanel.getByText('Ingen gyldige datoer:', { exact: false })).toHaveCount(0);
 
     await page.screenshot({ path: testInfo.outputPath('svie-smerte-men-cutoff.png'), fullPage: false });
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
   });
 });

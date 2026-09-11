@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { expect, TEST_PASSWORD, test } from './support/mineoTest';
+import { expect, login, test } from './support/mineoTest';
 
 /**
  * Enhedstestene beviser komponentens logik mod mocks. Denne test beviser det, mocks ikke kan:
@@ -51,9 +51,7 @@ const applyScenario = async (page: Page, scenario: InstallationScenario): Promis
 };
 
 const openMineoPage = async (page: Page): Promise<void> => {
-  await page.goto('/');
-  await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-  await page.getByRole('button', { name: 'Log ind' }).click();
+  await login(page);
   await expect(page.getByText('Teknisk', { exact: true })).toBeVisible();
 };
 
@@ -114,9 +112,7 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
     ]);
   });
 
-  test('på hjemmesiden med installeret hjælpeprogram: dialogen tilbyder browseråbning og fallback', async ({ page }) => {
-    const runtimeSignals: string[] = [];
-    page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
+  test('på hjemmesiden med installeret hjælpeprogram: dialogen tilbyder browseråbning og fallback', async ({ page, runtimeErrors }) => {
 
     await applyScenario(page, 'installed');
     await openMineoPage(page);
@@ -132,7 +128,7 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
     await expect(dialog.getByText(/browseren bede om tilladelse/i)).toBeVisible();
     await expect(dialog.getByText(/computerens appmenu eller skrivebord/i)).toBeVisible();
 
-    expect(runtimeSignals).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
   });
 
   test('«Annuller» lukker dialogen uden at åbne et vindue', async ({ page, context }) => {
@@ -164,12 +160,9 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
     await expect(page.getByRole('button', { name: 'Installér hjælpeprogram' })).toBeFocused();
   });
 
-  test('inde i PWA-vinduet: dialogen siger «allerede åbent» og har kun Luk', async ({ page }) => {
+  test('inde i PWA-vinduet: dialogen siger «allerede åbent» og har kun Luk', async ({ page, runtimeErrors }) => {
     // Standalone-tilstanden fodrer appens egen display-mode-hook. Går den i stykker, render'er
     // fejlgrænsen i stedet for siden – og en dialog-assertion alene ville ikke afsløre det.
-    const runtimeSignals: string[] = [];
-    page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
-
     await applyScenario(page, 'runningInPwa');
     await openMineoPage(page);
     await clickInstallLink(page);
@@ -181,7 +174,7 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
     await expect(dialog.getByRole('link', { name: 'Åbn program' })).toBeHidden();
     await expect(dialog.getByRole('button')).toHaveCount(1);
 
-    expect(runtimeSignals).toEqual([]);
+    expect(runtimeErrors).toEqual([]);
   });
 
   test('inde i PWA-vinduet: «Luk» åbner ikke en dublet af vinduet', async ({ page, context }) => {

@@ -1,4 +1,4 @@
-import { expect, TEST_PASSWORD, test } from './support/mineoTest';
+import { expect, login, test } from './support/mineoTest';
 
 test.describe('PWA-filåbning', () => {
   test('registrerer launchQueue-consumeren før den synlige loginrejse er afsluttet', async ({
@@ -22,9 +22,7 @@ test.describe('PWA-filåbning', () => {
       });
     });
 
-    await page.goto('/open');
-    await page.getByLabel('Adgangskode').fill(TEST_PASSWORD);
-    await page.getByRole('button', { name: 'Log ind' }).click();
+    await login(page, '/open');
 
     await expect.poll(() => page.evaluate(() => {
       const probe = (window as Window & {

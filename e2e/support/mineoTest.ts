@@ -44,7 +44,9 @@ export const login = async (page: Page, path = '/'): Promise<void> => {
   await expect(password).toBeVisible();
   await password.fill(TEST_PASSWORD);
   await page.getByRole('button', { name: 'Log ind' }).click();
-  await expect(page).toHaveURL(/\/mineo$/);
+  // `/open` er PWA-filhandlerens landing og sender efter login direkte til Stamdata; den normale
+  // loginvej lander på `/mineo`. Begge er den færdigmonterede app-shell, som næste assertion bekræfter.
+  await expect(page).toHaveURL(path === '/open' ? /\/stamdata$/ : /\/mineo$/);
   await expect(page.getByRole('button', { name: 'Om', exact: true })).toBeVisible();
 };
 

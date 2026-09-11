@@ -42,13 +42,7 @@ const closeEditor = async (input: Locator): Promise<void> => {
 // Browserbanen: værnet mødes her gennem en indsat tekst, og `clipboardData` leveres forskelligt af
 // motorerne (jf. Firefox-noten i `pasteText`). Det er præcis dén forskel, taget køber dækning for.
 test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () => {
-  test('tastning og paste håndhæver grænser på formular og tabel uden runtimefejl', async ({ page }, testInfo) => {
-    const runtimeErrors: string[] = [];
-    const pageErrors: string[] = [];
-    page.on('console', (message) => {
-      if (message.type() === 'error') runtimeErrors.push(message.text());
-    });
-    page.on('pageerror', (error) => pageErrors.push(error.message));
+  test('tastning og paste håndhæver grænser på formular og tabel uden runtimefejl', async ({ page, runtimeErrors }, testInfo) => {
 
     await login(page);
 
@@ -99,6 +93,5 @@ test.describe('inputgrænser for beløb og dato', { tag: BROWSER_LANE_TAG }, () 
 
     await page.screenshot({ path: testInfo.outputPath('input-digit-limits.png'), fullPage: true });
     expect(runtimeErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
   });
 });
