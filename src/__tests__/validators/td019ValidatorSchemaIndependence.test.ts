@@ -212,6 +212,71 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('kræver lønregulering for beregningsperiode ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [{
+        id: 'af-1',
+        navnPaaArbejdssted: undefined,
+        harOverenskomst: false,
+        overenskomstId: undefined,
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+        harAnciennitetstillaegEfterSkadedatoen: false,
+        anciennitetstillaegDato: undefined,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+        anciennitetstillaegSats: undefined,
+        feriePct: undefined,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        storeBededagPct: 0,
+        pensionPct: undefined,
+        tillaegAngivesSom: 'procent',
+        loenperiode: 'maaned',
+        indtaegtsoplysningerTableData: [],
+        fuldLoenUnderFerie: 'Nej',
+        loenPaaHelligdage: 'Almindelig løn',
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: undefined,
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: undefined,
+        loenudviklingManuelTableData: [],
+        loenudviklingManuelProcentsatsTableData: [],
+        offentligLoenType: undefined,
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        offentligLoenEkstraGrundloen: undefined,
+        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ingen',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag',
+        message: 'Lønregulering skal vælges, evt. "Ingen"',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('fanger manglende statistikmodel for aktiv TAF med angivet månedsløn', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
