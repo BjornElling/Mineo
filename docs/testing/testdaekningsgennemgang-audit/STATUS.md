@@ -5,10 +5,10 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Evidensrevision: `64085759`
+- Evidensrevision: `6549e20c`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, uafhængige sats- og KRL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures, levende GitHub Actions-/architecture-runtimeværn, Varige méns semantiske PDF/Word-tekstparitet og faktisk route-chunk recovery er tilføjet og retestet. Den samlede `verify:release:core` og den valgte E2E-suite er bestået på `64085759`; åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, uafhængige sats- og KRL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures, levende GitHub Actions-/architecture-runtimeværn, Varige méns semantiske PDF/Word-tekstparitet, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den samlede `verify:release:core` og den valgte E2E-suite er bestået på `64085759`; åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Seneste samlede retest: revision `64085759`; `verify:release:core` er grøn med 667 testfiler, 8.667 beståede tests plus 17 forventede `it.fails`, og den valgte E2E-suite er grøn med 186/186 tests. Åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
@@ -72,7 +72,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   syntetiske positive/negative regressionstest bestod 2/2. Det tidligere B-001 er lukket. En lokal
   preview-smoke mod det eksakte produktionsbuild bestod 1/1, og CI-workflowen har nu en særskilt
   smoke-job mod det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup i samme
-  jobtrin; B-002 er dermed delvist dækket, mens faktisk workflowkørsel og fuld E2E mod artefaktet fortsat er åben.
+  jobtrin; E2E-matrixen er nu også koblet til det uploadede artefakt, mens faktisk workflowkørsel fortsat er åben under B-002.
 - Lane-vagten er gjort tokenizer-baseret, så double-quoted og array-baserede tags samt kommentarer og
   strengindhold behandles korrekt. `e2eSuiteConventions.test.ts` bestod 20/20, og `check:e2e-lanes` er grøn.
 - Kontrakt-referenceværnet ignorerer nu bare basenames fra `src/__tests__`, mens eksakte teststier stadig
@@ -122,9 +122,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 8 filer / 83 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret; command-runner dræbte 21/21 mutationer uden timeout/fejl | PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler samt række-/periodefacitter | `CALC-006`-kørslen bestod med 159 filer / 2.169 tests, heraf 7 nye uafhængige række-/periodecases; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: 3 filer / 66 tests samt 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 25 filer / 243 tests efter tilføjelse af Varige méns semantiske PDF/Word-tekstparitet. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel PDF/Word-paritet og fysisk artefaktbevis | `I gang` |
-| `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, øvrige målrettede browserflows grønne; fuld valgt E2E 186/186 efter fælles helper-konvergens | Native `launchQueue` og fuld PWA-/platformsparitet; `TD-022` | `I gang` |
+| `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, native LaunchQueue-form 2/2 i Chrome/Edge, øvrige målrettede browserflows grønne; fuld valgt E2E 186/186 efter fælles helper-konvergens | Fuld OS-/installeret-PWA-filaflevering og øvrig PWA-/platformsparitet; `TD-022` | `I gang` |
 | `MIN-001` | Standalone isolation, reset/fokus, error boundary, valid beregning, PDF, exit-guard og browserbaseret namespace-isolation gennemgået | `minprocesrente-valid-download.spec.ts`: 1/1, `minprocesrente-namespace-isolation.spec.ts`: 1/1 samt 186/186 i fuld valgt E2E | Fuld outputparitet og mutation | `I gang` |
-| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 7/7; eksakt produktionsbuilds lokale preview-smoke: 1/1; den nye CI-jobsektion er runtime-kontrolleret og starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup; TD-005 lukket | CI's fulde E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 er delvist dækket, faktisk workflowkørsel og øvrige chunk-/Vite-advarsler mangler | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 7/7; eksakt produktionsbuilds lokale preview-smoke: 1/1; CI-jobsektionen starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup, og E2E-matrixen downloader nu det samme artefakt; TD-005 lukket | Faktisk GitHub Actions-kørsel og øvrige chunk-/Vite-advarsler mangler; B-002 er delvist dækket | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
@@ -194,11 +194,30 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   bestod med 22/22, og den uafhængige validatorprøve omfatter nu 13 cases. `npm run check:github-actions-runtime`, testtypecheck,
   målrettet ESLint og `git diff --check` bestod.
 - `64085759` indeholder kun test-/CI-værn og auditdokumentation; produktionskode, beregningslogik,
-  UI/UX og persistensformat er ikke ændret. CI-smoke’en er koblet til det uploadede produktionsartefakt,
-  men en faktisk GitHub Actions-kørsel og fuld E2E mod samme artefakt er fortsat åbne under `B-002`.
+  UI/UX og persistensformat er ikke ændret. Den efterfølgende CI-ændring i `2b234dd0` kobler også
+  E2E-matrixen til det uploadede produktionsartefakt, men en faktisk GitHub Actions-kørsel er fortsat
+  åben under `B-002`.
 - Den tidligere samlede coverage-fejl på `1ec7b01e` blev ikke reproduceret i denne release-gate.
   `TD-025` står derfor delvist lukket, mens årsagen til den oprindelige async-/Tooltip-følsomhed
   fortsat ikke er bevist.
+
+## Seneste målrettede test efter revision `6549e20c`
+
+- `npm run test:e2e -- e2e/pwa-file-open.spec.ts e2e/lazy-chunk-recovery.spec.ts e2e/pwa-service-worker.spec.ts`
+  bestod med 8 tests og 2 forventede skips på 3 workers. Den nye native-kapabilitetstest bestod i
+  Chrome og Edge og observerede `[object LaunchQueue]` med callable `setConsumer`; Firefox og WebKit
+  skipper kun denne Chromium-specifikke måling. Lazy-chunk recovery bestod i alle fire browsermotorer,
+  og service-worker-sporet bestod i det dedikerede Chromium-projekt.
+- `npm run typecheck:e2e`, `npm run check:e2e-lanes` og målrettet ESLint bestod. Testen er tagget til
+  browserbanen og bruger fælles `runtimeErrors`/`runtimeSignals`; ingen produktionskode,
+  beregningslogik, UI/UX eller persistensformat er ændret.
+- Den faktiske OS-filaflevering til en installeret PWA, herunder fokus og `.eo`-filen i native
+  `launchQueue`, kan ikke fremkaldes reproducerbart i Playwright. `TD-022` er derfor fortsat delvist
+  lukket. Den seneste samlede release-gate og fulde valgte E2E-kørsel er stadig den dokumenterede
+  kørsel på `64085759` – de blev ikke gentaget efter denne test-only ændring.
+- `6549e20c` indeholder kun testændringen; næste tråd skal begynde med at opdatere/reteste den
+  samlede audit efter denne revision. Den tidligere lokale `.tmp-td020-rg.txt` er ikke en del af
+  auditsporet og er ikke staged.
 
 ## Seneste samlede retest på revision `83abfdad`
 
@@ -245,7 +264,7 @@ afklaring af `TD-016` og øvrige EO-grene. `DOC-001` har nu standalone/per-outpu
 PDF-/Word-parse/render og generel semantisk paritet mangler fortsat. `DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`,
 `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver
 fortsat platform-/IndexedDB-bevis under `TD-017`. Afslut løbende de resterende `INPUT`-/`VALID`-, `DATA`-, shell- og
-releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, men native `launchQueue`, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den samlede `verify:release:core` er nu kørt rent på `64085759` med 667 testfiler / 8.667 beståede tests og begge builds; den valgte E2E-gate er også kørt rent med 186/186 på samme kode. `TD-025` står delvist lukket efter den tidligere ikke-reproducerede flage, og `B-002` mangler fortsat faktisk CI-kørsel mod deploy-artefaktet.
+releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, native `LaunchQueue`-objektets form er målt 2/2 i Chrome/Edge, men OS-filaflevering, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den samlede `verify:release:core` er kørt rent på `64085759` med 667 testfiler / 8.667 beståede tests og begge builds; den valgte E2E-gate er også kørt rent med 186/186 på samme kode. `TD-025` står delvist lukket efter den tidligere ikke-reproducerede flage, og `B-002` mangler fortsat faktisk CI-kørsel mod deploy-artefaktet.
 Hver række skal kobles til
 konkret test- og uafhængig evidens, før status
 sættes til andet end `I gang`.
