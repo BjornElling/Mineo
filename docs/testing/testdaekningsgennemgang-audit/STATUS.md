@@ -5,13 +5,13 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Evidensrevision: `1956eb8d`
+- Evidensrevision: `bc3f0f3a`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, uafhængige sats- og KRL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures, levende GitHub Actions-/architecture-runtimeværn, Varige méns semantiske PDF/Word-tekstparitet og faktisk route-chunk recovery er tilføjet og retestet. Den samlede `verify:release:core` er bestået på `5c88267f`; åbne produkt-/proveniensbeslutninger og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
-- Seneste samlede retest: revision `1956eb8d`; fuld Vitest-suite og fuld valgt E2E-suite er grønne med henholdsvis 8.604 beståede tests plus 17 forventede `it.fails` og 185/185 E2E-tests. Åbne produkt-, proveniens- og outputparitetsfund forhindrer fortsat afslutning.
-- Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og den detaljerede `1956eb8d`-sektion nedenfor.
+- Seneste samlede retest: revision `bc3f0f3a`; fuld Vitest-coverage-suite er grøn med 8.605 beståede tests plus 17 forventede `it.fails`, og den seneste valgte E2E-suite er grøn med 185/185 tests på `1956eb8d`. Åbne produkt-, proveniens- og outputparitetsfund forhindrer fortsat afslutning.
+- Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
 
@@ -25,16 +25,17 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | --- | --- | --- | --- |
 | Typechecks | `npm run check:types` | Bestået | Alle fire TypeScript-projekter bestået |
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
-| Vitest | `npm run test:coverage` | Bestået | 661 filer, 8.603 tests bestået samt 6 forventede `it.fails`; samlet kørsel 396,36 s |
-| Aktuel fuld Vitest-retest | `npm test -- --reporter=dot` | Bestået | 663 filer, 8.604 tests bestået samt 17 forventede `it.fails`; 348,90 s på `1956eb8d` |
+| Vitest (historisk releasekørsel) | `npm run test:coverage` | Bestået | 661 filer, 8.603 tests bestået samt 6 forventede `it.fails`; samlet kørsel 396,36 s |
+| Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 664 filer, 8.605 tests bestået samt 17 forventede `it.fails`; 450,68 s på `bc3f0f3a` |
 | E2E-baner | `npm run test:e2e` | Bestået | 185 tests, 6,2 min, 3 workers; `playwright-report/` og `test-results/` |
-| Coverage | `npm run verify:release:core` | Bestået | 661 testfiler / 8.603 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.776 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
+| Coverage (historisk releasekørsel) | `npm run verify:release:core` | Bestået | 661 testfiler / 8.603 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.776 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
+| Aktuel coverage-retest | `npm run test:coverage` | Bestået | 393 instrumenterede filer; 89,28 % statements, 80,50 % branches, 92,38 % functions, 92,07 % lines; 18.378 / 20.584, 12.954 / 16.090, 2.973 / 3.218 og 16.785 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json`; Node `v24.18.0`/Windows |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 25 filer, 238 tests, 13,92 s |
 | Dokumentlifecycle | `npx vitest run src/__tests__/document/documentLifecycleMatrix.test.ts src/__tests__/document/documentLifecycleCoordinatorIntegration.test.tsx` | Bestået | 2 filer, 23 tests; alle registrerede stale-/fejltrin og reel editor/coordinator-integration |
 | Platform-/storagefejlveje | Målrettet Vitest-kørsel (se hoveddokumentet) | Bestået med forventede negative modcases | 8 filer, 89 beståede tests og 6 `it.fails` for den fortsat åbne ikke-callable picker-adfærd |
-| Validatorer og dataendepunkter | Målrettet Vitest-kørsel (se hoveddokumentet) | Bestået | 4 nye filer, 38 tests; uafhængige validator-literals, statiske data-/endpointfacitter, 2 folkepensions-downstreamfacitter og 1 KRL-downstreamfacit |
+| Validatorer og dataendepunkter | Målrettet Vitest-kørsel (se hoveddokumentet) | Bestået | 5 nye filer, 39 tests; uafhængige validator-literals, 1 håndskrevet typed validator-case, statiske data-/endpointfacitter, 2 folkepensions-downstreamfacitter og 1 KRL-downstreamfacit |
 | Dokumentkanalparitet | `npx vitest run src/__tests__/document/tableChannelParity.golden.test.ts` | Bestået | 19/19; EET-løbende-ydelsers PDF-resolved table cells sammenholdt med Word `document.xml` |
 | DATE-001 mutation | `npx --no-install stryker run .tmp-date-commit-stryker.json --logLevel info` | Bestået med triagerede ækvivalente mutationer | `dateCommit.ts`: 6 mutationer, 4 dræbt, 2 ækvivalente, 0 timeout/fejl |
 | CALC-002 mutation | `npx --no-install stryker run .tmp-aarsloen-stryker.json --logLevel info` | Bestået med triagerede mutationer | `aarsloenCalculations.ts`: 113 mutationer, 108 dræbt, 5 rapporterede overlevere; én blev dræbt i isoleret kontrolkørsel, 4 er ækvivalente, 0 timeout/fejl |
@@ -68,8 +69,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   skal fjernes, når parentens range selv tillader den rettede version.
 - `verify-build-artifacts.mjs` kontrollerer nu, at hver PWA-assetsti faktisk findes i `outDir`; den
   syntetiske positive/negative regressionstest bestod 2/2. Det tidligere B-001 er lukket. En lokal
-  preview-smoke mod det eksakte produktionsbuild bestod 1/1; B-002 er dermed delvist dækket, mens
-  den bredere CI-/deploy-artifactkobling fortsat er åben.
+  preview-smoke mod det eksakte produktionsbuild bestod 1/1, og CI-workflowen har nu en særskilt
+  smoke-job mod det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup;
+  B-002 er dermed delvist dækket, mens faktisk workflowkørsel og fuld E2E mod artefaktet fortsat er åben.
 - Lane-vagten er gjort tokenizer-baseret, så double-quoted og array-baserede tags samt kommentarer og
   strengindhold behandles korrekt. `e2eSuiteConventions.test.ts` bestod 20/20, og `check:e2e-lanes` er grøn.
 - Kontrakt-referenceværnet ignorerer nu bare basenames fra `src/__tests__`, mens eksakte teststier stadig
@@ -108,7 +110,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `INPUT-001` | Kontrakt- og testinventar gennemgået; målrettet suite kørt separat; kontrolleret no-op-modprøve og uafhængig referencekontrol udført | Baseline 5 filer / 176 tests bestået; svækket no-op-gate gav 51 fejl / 146 tests; gendannet kontrol 2 filer / 103 tests bestået; separat referencekontrol 1/1 test bestået; se hoveddokumentets detaljerække | Kvalificeret mutationsrunner, fuld testkvalitetsrevision og browser-/adapterparitet | `I gang` |
 | `PERSIST-001` | Kontrakt-, consumer- og testinventar gennemgået; målrettet save/load-suite, historiske fixturetests og uafhængig referencekontrol kørt separat | Baseline 24 filer / 233 tests; efter fixturetilføjelse 25 filer / 238 tests bestået; `fileRoundTrip.independentReference.test.ts`: 1/1 bestået | Releaseproveniens eller accepteret fixture-erstatning, mutation og fuld testkvalitetsrevision | `I gang` |
 | `PERSIST-002` | Storage/settings, filhåndtag, PWA-filflows og reel session-reload gennemgået | 15 filer / 180 målrettede unit-/hook-tests; PWA-/filkørsel 4/4; reel input + aktiv fane + reload 1/1; supplerende 8-filers platformssuite med 89 beståede tests og 6 forventede negative modcases; ugyldige `Date`-inputs har 8 forventede negative modcases | Ikke-callable File API-capability og fuld browser-/platformssammenhæng; `TD-017` og `TD-003` | `I gang` |
-| `INPUT-002` / `VALID-001` | Form/grid-overflader, produktions-ChoiceField og schema-/validatorhuller gennemgået | 65 filer / 1.518 tests; produktionsbundet form/grid-paritet, 12 nested row-schemas, faktiske `ZodError.issues` og 10 uafhængige validator-literaltests er dækket | Yderligere validator-fixture-uafhængighed og downstream-partitioner; `TD-019` | `I gang` |
+| `INPUT-002` / `VALID-001` | Form/grid-overflader, produktions-ChoiceField og schema-/validatorhuller gennemgået | 65 filer / 1.518 tests; produktionsbundet form/grid-paritet, 12 nested row-schemas, faktiske `ZodError.issues`, 10 uafhængige validator-literaltests og 1 håndskrevet typed runtime-case er dækket | Yderligere validator-fixture-uafhængighed og downstream-partitioner; `TD-019` | `I gang` |
 | `DATA-001` | Data-/satskatalog, integritet og udvalgte uafhængige endpointfacit gennemgået | 23 filer / 477 målrettede tests; literal-facit for udvalgte perioder, 25 statiske endpoint-/partitionfacitter, 2/2 statiske folkepensions-downstreamfacitter, 1/1 KRL-downstreamfacit samt sats → beregning → dokument-kæde er grønne | Resterende kilder, validatorpartitioner og komplet downstream-paritet; `TD-020` | `I gang` |
 | `CALC-001` | Satser og fælles reguleringsdata gennemgået som målrettet domænebaseline | Den samlede data-/satssuite bestod med 23 filer / 477 tests; uafhængige literal-facit og en statisk downstream-kæde er tilføjet | Integration/E2E, resterende dataregistrenes endepunkter, validatorpartitioner og komplet downstream-konsumentparitet | `I gang` |
 | `ARCH-002` | Registry-completeness, rule-factory-liveness og udvalgte negative modcases tilføjet til arkitekturharnessets dedikerede tests | `architectureRules.test.ts`: 1 fil / 190 tests bestået; separat forventningsliste med 88 regel-ID'er, AST-opslag af eksporterede definitions/aggregater samt re-export- og liveness-modcases; `TD-015` lukket for de konkrete huller | De enkelte reglers negative modcases, importgrænser og øvrige livenessværn mangler | `I gang` |
@@ -118,10 +120,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-004` | Varige mén-fladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 10 filer / 82 tests bestået; méngrad-, satsår-, alder-, dato-, afrundings- og gatecases samt håndberegnet engine → projection → gate-facit er registreret; command-runner: 94/114 mutationer dræbt, 20 triageret | PDF/Word-paritet, fuld browserrejse og overlaprevision | `I gang` |
 | `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 8 filer / 83 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret; command-runner dræbte 21/21 mutationer uden timeout/fejl | PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler samt række-/periodefacitter | `CALC-006`-kørslen bestod med 159 filer / 2.169 tests, heraf 7 nye uafhængige række-/periodecases; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
-| `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: 3 filer / 66 tests samt 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 24 filer / 243 tests efter tilføjelse af Varige méns semantiske PDF/Word-tekstparitet. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel PDF/Word-paritet og fysisk artefaktbevis | `I gang` |
+| `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: 3 filer / 66 tests samt 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 25 filer / 243 tests efter tilføjelse af Varige méns semantiske PDF/Word-tekstparitet. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel PDF/Word-paritet og fysisk artefaktbevis | `I gang` |
 | `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, øvrige målrettede browserflows grønne; fuld valgt E2E 185/185 efter fælles helper-konvergens | Native `launchQueue` og fuld PWA-/platformsparitet; `TD-022` | `I gang` |
 | `MIN-001` | Standalone isolation, reset/fokus, error boundary, valid beregning, PDF, exit-guard og browserbaseret namespace-isolation gennemgået | `minprocesrente-valid-download.spec.ts`: 1/1, `minprocesrente-namespace-isolation.spec.ts`: 1/1 samt 185/185 i fuld valgt E2E | Fuld outputparitet og mutation | `I gang` |
-| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 6/6; eksakt produktionsbuilds lokale preview-smoke: 1/1; TD-005 lukket | CI's E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 er delvist dækket, og øvrige chunk-/Vite-advarsler mangler | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 6/6; eksakt produktionsbuilds lokale preview-smoke: 1/1; den nye CI-jobsektion er runtime-kontrolleret og starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup; TD-005 lukket | CI's fulde E2E bygger fortsat et separat `--mode e2e`-artefakt i forhold til deploy-artefaktet; B-002 er delvist dækket, faktisk workflowkørsel og øvrige chunk-/Vite-advarsler mangler | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
@@ -130,7 +132,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Status | Fund |
 | --- | --- |
 | Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024` |
-| Delvist lukket | `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022` |
+| Delvist lukket | `B-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-002`, `TD-003`, `TD-004`, `TD-016`, `TD-017` |
 
 ## Seneste komplette baseline-retest på revision `e8faa7ce`
@@ -178,6 +180,21 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - `npm run check:e2e-lanes`, `npm run typecheck:e2e` og målrettet ESLint bestod. Testændringerne
   blev committet i `1956eb8d`; produktionskode, beregningslogik, UI/UX og persistensformat er ikke ændret.
 
+## Aktuel coverage- og testret test på revision `bc3f0f3a`
+
+- `npm run test:coverage` bestod med 664 testfiler, 8.605 beståede tests og 17 forventede `it.fails`.
+  Coverage var 89,28 % statements, 80,50 % branches, 92,38 % functions og 92,07 % lines –
+  henholdsvis 18.378/20.584, 12.954/16.090, 2.973/3.218 og 16.785/18.230 målte enheder.
+  Kørselstiden var 450,68 sekunder på Node `v24.18.0`/Windows. Rapporterne ligger i de ignorerede
+  `coverage/`-artefakter.
+- Den nye `td019ValidatorSchemaIndependence.test.ts` bestod isoleret med 1/1, og den uafhængige
+  validatorprøve omfatter nu 11 cases. `npm run check:github-actions-runtime`, testtypecheck,
+  målrettet ESLint og `git diff --check` bestod.
+- `bc3f0f3a` indeholder kun test-/CI-værn og auditdokumentation; produktionskode, beregningslogik,
+  UI/UX og persistensformat er ikke ændret. Den nye CI-smoke er koblet til det uploadede
+  produktionsartefakt, men en faktisk GitHub Actions-kørsel og fuld E2E mod samme artefakt er fortsat
+  åbne under `B-002`.
+
 ## Seneste samlede retest på revision `83abfdad`
 
 - `npm run verify:release:core` bestod med 661 testfiler, 8.603 beståede tests og 6 forventede
@@ -223,7 +240,7 @@ afklaring af `TD-016` og øvrige EO-grene. `DOC-001` har nu standalone/per-outpu
 PDF-/Word-parse/render og generel semantisk paritet mangler fortsat. `DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`,
 `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver
 fortsat platform-/IndexedDB-bevis under `TD-017`. Afslut løbende de resterende `INPUT`-/`VALID`-, `DATA`-, shell- og
-releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, men native `launchQueue`, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den fulde Vitest- og E2E-gate er nu kørt; coverage er ikke genkørt efter de seneste testtilføjelser.
+releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, men native `launchQueue`, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den fulde Vitest-/coverage-gate er nu kørt på `bc3f0f3a`, den valgte E2E-gate er kørt på `1956eb8d`, og `B-002` mangler fortsat faktisk CI-kørsel mod deploy-artefaktet.
 Hver række skal kobles til
 konkret test- og uafhængig evidens, før status
 sættes til andet end `I gang`.
