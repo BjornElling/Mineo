@@ -45,6 +45,28 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+      - name: Install Chromium for verified artifact smoke
+        run: npx playwright install --with-deps chromium
+
+      - name: Start verified Mineo artifact
+        shell: bash
+        run: |
+          nohup npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173 > /tmp/mineo-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/index.html > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/mineo-preview.log
+          exit 1
+
+      - name: Smoke-test verified Mineo artifact
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_SKIP_WEBSERVER: '1'
+        run: npm run test:e2e -- e2e/production-artifact-smoke.spec.ts --project=chrome-desktop
+
   e2e:
     name: E2E (${{ matrix.project }})
     runs-on: ubuntu-latest

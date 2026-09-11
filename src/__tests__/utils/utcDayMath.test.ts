@@ -2,6 +2,21 @@ import { createDate } from '../../utils/dateUtils';
 import { countExclusiveUtcDays, countInclusiveUtcDays, diffUtcDays, diffUtcDaysAbs } from '../../utils/utcDayMath';
 
 describe('utcDayMath', () => {
+  // TD-003: Den åbne beslutning er, om helperen selv skal afvise ugyldige datoer. Proben gør den
+  // nuværende NaN-adfærd synlig uden at foregribe en produktbeslutning om valideringsgrænsen.
+  it.fails.each([
+    ['diffUtcDays – start', () => diffUtcDays(new Date(Number.NaN), createDate(2024, 0, 1))],
+    ['diffUtcDays – slut', () => diffUtcDays(createDate(2024, 0, 1), new Date(Number.NaN))],
+    ['diffUtcDaysAbs – start', () => diffUtcDaysAbs(new Date(Number.NaN), createDate(2024, 0, 1))],
+    ['diffUtcDaysAbs – slut', () => diffUtcDaysAbs(createDate(2024, 0, 1), new Date(Number.NaN))],
+    ['countInclusiveUtcDays – start', () => countInclusiveUtcDays(new Date(Number.NaN), createDate(2024, 0, 1))],
+    ['countInclusiveUtcDays – slut', () => countInclusiveUtcDays(createDate(2024, 0, 1), new Date(Number.NaN))],
+    ['countExclusiveUtcDays – start', () => countExclusiveUtcDays(new Date(Number.NaN), createDate(2024, 0, 1))],
+    ['countExclusiveUtcDays – slut', () => countExclusiveUtcDays(createDate(2024, 0, 1), new Date(Number.NaN))],
+  ] as const)('afviser ugyldig Date i %s', (_label, invoke) => {
+    expect(invoke).toThrow();
+  });
+
   it('tæller inklusive dage over sommertidens start', () => {
     const start = createDate(2024, 2, 30);
     const end = createDate(2024, 3, 2);
