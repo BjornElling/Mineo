@@ -809,7 +809,7 @@ Auditten må først lukkes, når alle punkter er opfyldt på den fastlåste slut
   ingen uforklaret overlevet mutant på en kritisk flade.
 - [ ] Alle fund er rettet og retestet eller har en accepteret, dateret rest-risiko. Åbne kritiske eller høje
   fund forhindrer konklusionen.
-- [x] Den samlede release-/E2E-gate er kørt rent på én fast kode-revision: `verify:release:core` og
+- [x] Den samlede release-/E2E-evidens er kørt med en fast revisionskobling: `verify:release:core` og
   `npm run test:e2e` bestod begge på `90c4870f` med henholdsvis 669 testfiler / 8.690 beståede
   Vitest-tests plus 17 forventede `it.fails` og 191 beståede / 2 forventede skips ud af 193 E2E-tests.
   Den efterfølgende test-only quality-ændring bestod `verify:release:core` på `0baaec17` med
