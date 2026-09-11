@@ -97,7 +97,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   dækker de tidlige unsupported-device-sideeffekter med 1/1 grøn test. `unsupported-device-hard-stop.spec.ts`
   dækker den synlige mobil-hard-stoprejse med 1/1 grøn test, og `eetPageAudit.spec.ts` validerer nu
   semantisk Word-indhold for løbende ydelser, kapitalisering, EET efter EAL og Differencekrav fra den
-  faktiske hovedapp-download.
+  faktiske hovedapp-download. Differencekravets samlede PDF→Word-test kontrollerer nu samme synlige
+  beløb og fælles labels i begge kanaler med 1/1 målrettet E2E på `1e02e24b`.
 - `documentLifecycleCoordinatorIntegration.test.tsx` kobler en reel `useFieldEditor`-settle-revision og
   `CriticalActionCoordinator` til dokumentgaten og blokerer rejected input før projection og renderer-load.
 - `fileSystemAccess.test.ts`, `fileHandleStorage.failurePaths.test.ts` og den udvidede
@@ -137,7 +138,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: fixture-registret 62/62 og 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 26 filer / 273 tests efter faktisk PDF-/Word-artefaktkontrol. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel fysisk rendering og uafhængig PDF/Word-paritet | `I gang` |
 | `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, native LaunchQueue-form 2/2 i Chrome/Edge, øvrige målrettede browserflows grønne; seneste fulde valgte E2E 191/193 på testrevision `9c965ec5` efter fælles helper-konvergens | Fuld OS-/installeret-PWA-filaflevering og øvrig PWA-/platformsparitet; `TD-022` | `I gang` |
 | `MIN-001` | Standalone isolation, reset/fokus, error boundary, valid beregning, PDF, exit-guard og browserbaseret namespace-isolation gennemgået | `minprocesrente-valid-download.spec.ts`: 1/1, `minprocesrente-namespace-isolation.spec.ts`: 1/1 samt 191/193 i seneste fulde valgte E2E på testrevision `9c965ec5` | Fuld outputparitet og mutation | `I gang` |
-| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 8/8; eksakt produktionsbuilds lokale preview-smoke: 1/1; CI-jobsektionen starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup, E2E-matrixen downloader nu det samme artefakt, og statisk artefakt-flow-værn bestod med 6/6; TD-005 lukket | Faktisk GitHub Actions-kørsel og øvrige chunk-/Vite-advarsler mangler; B-002 er delvist dækket | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 8/8, herunder den ændrede Differencekrav PDF→Word-test med målrettet 1/1 på `1e02e24b`; eksakt produktionsbuilds lokale preview-smoke: 1/1; CI-jobsektionen starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup, E2E-matrixen downloader nu det samme artefakt, og statisk artefakt-flow-værn bestod med 6/6; TD-005 lukket | Faktisk GitHub Actions-kørsel og øvrige chunk-/Vite-advarsler mangler; B-002 er delvist dækket | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; `githubActionsRuntimeCheck.test.ts`: 6/6 med statisk CI-artefaktkobling; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
@@ -438,6 +439,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   8.699 beståede tests, 17 forventede `it.fails`, coverage 90,13 / 81,20 /
   93,97 / 92,95 og begge builds. E2E blev ikke gentaget, fordi produktkode og
   brugeradfærd er uændret.
+
+## Seneste EET Differencekrav-retest efter revision `1e02e24b`
+
+- `npm run test:e2e -- e2e/eetPageAudit.spec.ts --project=chrome-desktop --grep "kan hente Differencekrav som PDF og Word med synlig beregning"`
+  bestod med 1/1. Testen åbner Differencekrav med `setupValidSag`, aflæser det
+  synlige `Beregnet differencekrav`, downloader først PDF og derefter Word og
+  kræver samme beløb samt `Differencekrav (EET)`, `EAL-krav` og
+  `Beregnet differencekrav` i begge artefakter.
+- `runtimeErrors` var tom. `npm run typecheck:e2e` og målrettet E2E bestod.
+  Testen er test-only; den seneste fulde valgte E2E-suite står fortsat på
+  `9c965ec5` med 191/193, og fysisk generel PDF-/Word-rendering samt fuld
+  semantisk paritet er fortsat åben under `TD-014`/`TD-018`.
 
 ## Næste arbejdsenhed
 
