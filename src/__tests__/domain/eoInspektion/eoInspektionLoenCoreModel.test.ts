@@ -230,10 +230,19 @@ describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
     expect(types).toContain('grundloen');
   });
 
-  it('daglig total er et positivt beløb ved KL-opslag', () => {
+  it('beregner konkrete KL-komponentbeløb og daglig total', () => {
     const inspektionDays = [makeRowDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(inspektionDays));
-    expect(result.loenDays[0]?.dailyTotal).toBeGreaterThan(0);
+
+    // Uafhængigt facit for KL 01-10-2023, løntrin 20, gruppe 0: 158,18 kr.
+    // Hertil kommer 12,5 % feriepenge og 0,45 % Store Bededagstillæg.
+    const components = result.loenDays[0]?.components;
+    expect(components).toHaveLength(3);
+    expect(components?.[0]).toEqual({ type: 'grundloen', amount: 158.18, source: 'overenskomst' });
+    expect(components?.[1]).toEqual({ type: 'feriegodtgorelse', amount: 19.7725, source: 'manuel' });
+    expect(components?.[2]).toMatchObject({ type: 'storeBededag', source: 'regel' });
+    expect(components?.[2]?.amount).toBeCloseTo(0.71181, 12);
+    expect(result.loenDays[0]?.dailyTotal).toBeCloseTo(178.66431, 12);
   });
 
   it('inkluderer store bededag-komponent for KL-dag efter 2024-01-01', () => {
