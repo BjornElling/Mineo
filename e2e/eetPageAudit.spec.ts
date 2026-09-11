@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import JSZip from 'jszip';
 import type { Page } from '@playwright/test';
+import { extractPdfText } from '../src/__tests__/utils/pdf/pdfTextExtractor';
 
 import {
   expect,
@@ -21,13 +22,62 @@ const EET_TABS = [
   'Differencekrav',
 ] as const;
 
-const EET_DOCUMENT_TABS = EET_TABS.slice(1);
+type EetDocumentTab = Exclude<(typeof EET_TABS)[number], 'EET oplysninger'>;
+
+const EET_DOCUMENT_TABS = EET_TABS.slice(1) as readonly EetDocumentTab[];
+
+const EXPECTED_PDF_TEXT_BY_TAB: Readonly<Record<
+  EetDocumentTab,
+  readonly string[]
+>> = {
+  'Løbende ydelser': [
+    'Løbende ydelser (EET)',
+    'Afgørelse',
+    '400.000 kr.',
+    '25 %',
+  ],
+  Kapitalisering: [
+    'Kapitalisering (EET)',
+    'Afgørelse 1. juni 2020 (25 %)',
+    'Kapitaliseringsdato',
+    'Beregnet kapitalbeløb',
+  ],
+  'EET efter EAL': [
+    'EET efter EAL',
+    'Specifikation',
+    'Skadedato',
+    '01-06-2018',
+    'Erhvervsevnetab',
+    '25 %',
+    'Kapitaliseringsfaktor',
+    '10',
+    'Beregnet EET (efter EAL)',
+  ],
+  Differencekrav: [
+    'Differencekrav (EET)',
+    'EAL-krav',
+    'Beregnet differencekrav',
+  ],
+};
 
 const eetTab = (page: Page, name: string) => page.getByRole('tab', { name, exact: true });
 
 const downloadButton = (page: Page) => page.locator('.row--label-right-hover')
   .filter({ hasText: 'Download specifikation' })
   .getByRole('button');
+
+const expectPdfArtifactText = async (
+  downloadPath: string,
+  expectedText: readonly string[],
+): Promise<void> => {
+  const pdfBytes = await readFile(downloadPath);
+  expect(pdfBytes.length).toBeGreaterThan(100);
+
+  const pdfText = await extractPdfText(new Blob([pdfBytes], { type: 'application/pdf' }));
+  for (const text of expectedText) {
+    expect(pdfText).toContain(text);
+  }
+};
 
 const afgoerelseRow = (page: Page, index: number) =>
   page.locator('tbody tr[data-mineo-row-id]').nth(index);
@@ -152,6 +202,11 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
       await button.click();
       const download = await downloadPromise;
       expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+      const downloadPath = await download.path();
+      expect(downloadPath).not.toBeNull();
+      if (downloadPath === null) throw new Error('PDF-downloadet blev ikke skrevet til en lokal fil.');
+      await expectPdfArtifactText(downloadPath, EXPECTED_PDF_TEXT_BY_TAB[tabName]);
     }
 
     expect(runtimeErrors).toEqual([]);
