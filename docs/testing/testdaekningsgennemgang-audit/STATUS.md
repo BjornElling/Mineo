@@ -383,6 +383,16 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   670 testfiler, 8.695 beståede tests, 17 forventede `it.fails`, coverage 90,13 / 81,21 / 93,97 /
   92,96 og begge builds. Mutationens JSON-rapport var en ignoreret lokal artefakt og er ikke arkiveret.
 
+## Seneste TD-025-stresstest efter revision `ab289aae`
+
+- `npx vitest run src/__tests__/components/pages/erstatningsopgoerelse/Loenindkomst.nestedLoentabel.integration.test.tsx --reporter=dot`
+  blev gentaget 10 gange i samme arbejdsproces. Alle 10 kørsler bestod med 9/9, altså 90/90 tests,
+  uden assertionfejl eller ukontrollerede runtimefejl. Første kolde opstart tog 92,71 sekunder; de
+  efterfølgende ni tog 22,02–23,25 sekunder.
+- Prøven viser stabilitet i testfilens isolerede execution, men reproducerer ikke den oprindelige
+  parallelle coverage-flage med to timeouts og en efterfølgende `act`-fejl. `TD-025` forbliver derfor
+  delvist lukket; der er ikke ændret produktkode eller testadfærd.
+
 ## Næste arbejdsenhed
 
 `CALC-001`, `CALC-004` og `CALC-005` har nu uafhængige facitter eller totalsager og afgrænsede mutationstests med triagerede overlevere, mens `CALC-002`/`CALC-003` har samme type mutationsevidens. `CALC-006` har fået række-/periodefacitter; fortsæt med afklaring af `TD-016` og øvrige EO-grene. `TD-019` og `TD-020` er delvist lukket med henholdsvis schema-/issuefacitter og udvalgte sats-/downstream-facitter, herunder et konkret KL-facit gennem EO-inspektionen.
