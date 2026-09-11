@@ -211,4 +211,30 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       }],
     });
   });
+
+  it('afviser svie/smerte-række uden til-dato på håndskrevet typed runtime-værdi', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+      svieSmertePerioder: [{
+        id: 'ss-1',
+        fra: toISODateString('2024-01-01'),
+        til: undefined,
+        tilstand: 'sygemeldt',
+      }],
+      vedroererPeriodeFra: toISODateString('2024-01-01'),
+      vedroererPeriodeTil: toISODateString('2024-01-31'),
+      svieSmerteSatserAar: 2024,
+      svieSmerteDelvisSygemeldingSats: 'fuld',
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'svieSmertePerioder[0].til',
+        message: 'Til-dato mangler',
+        severity: 'error',
+      }],
+    });
+  });
 });
