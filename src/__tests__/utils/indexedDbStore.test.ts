@@ -25,6 +25,7 @@ type StubStore = Map<string, unknown>;
 const createStubIndexedDb = (options: Readonly<{
   failOnPut?: boolean;
   failToOpen?: boolean;
+  failTransaction?: 'error' | 'abort';
 }> = {}) => {
   const data: StubStore = new Map();
   let openConnections = 0;
@@ -72,7 +73,7 @@ const createStubIndexedDb = (options: Readonly<{
             const transaction = {
               objectStore: () => objectStore,
               abort: () => { transactionHandlers.onabort?.(); },
-              error: null,
+              error: null as Error | null,
               set oncomplete(fn: () => void) { transactionHandlers.oncomplete = fn; },
               set onerror(fn: () => void) { transactionHandlers.onerror = fn; },
               set onabort(fn: () => void) { transactionHandlers.onabort = fn; },
@@ -80,7 +81,19 @@ const createStubIndexedDb = (options: Readonly<{
             // Commit efter at alle requests i denne microtask-runde er afviklet.
             queueMicrotask(() => {
               queueMicrotask(() => {
-                queueMicrotask(() => transactionHandlers.oncomplete?.());
+                queueMicrotask(() => {
+                  if (options.failTransaction === 'error') {
+                    transaction.error = new Error('stub-transaction-fejl');
+                    transactionHandlers.onerror?.();
+                    return;
+                  }
+                  if (options.failTransaction === 'abort') {
+                    transaction.error = new Error('stub-transaction-afbrudt');
+                    transactionHandlers.onabort?.();
+                    return;
+                  }
+                  transactionHandlers.oncomplete?.();
+                });
               });
             });
             return transaction as unknown as IDBTransaction;
@@ -137,8 +150,22 @@ describe('indexedDbStore', () => {
       expect(isIndexedDbAvailable()).toBe(false);
     });
 
+    it('isIndexedDbAvailable er falsk uden IDBKeyRange', () => {
+      Object.defineProperty(globalThis, 'IDBKeyRange', { value: undefined, configurable: true, writable: true });
+      expect(isIndexedDbAvailable()).toBe(false);
+    });
+
     it('runTransactionOr giver kalderens fallback ved utilgængelighed', async () => {
       Object.defineProperty(globalThis, 'indexedDB', { value: undefined, configurable: true, writable: true });
+
+      const value = await runTransactionOr('fallback', SCHEMA, ['s'], 'readonly', async () => 'rigtig', 'test');
+
+      expect(value).toBe('fallback');
+    });
+
+    it('runTransactionOr giver kalderens fallback ved IndexedDB-fejl', async () => {
+      const { indexedDbStub } = createStubIndexedDb({ failToOpen: true });
+      installStub(indexedDbStub);
 
       const value = await runTransactionOr('fallback', SCHEMA, ['s'], 'readonly', async () => 'rigtig', 'test');
 
@@ -199,6 +226,36 @@ describe('indexedDbStore', () => {
 
       expect(result.status).toBe('error');
     });
+
+    it('rapporterer error når transactionen fejler efter requesten', async () => {
+      const { indexedDbStub, stats } = createStubIndexedDb({ failTransaction: 'error' });
+      installStub(indexedDbStub);
+
+      const result = await runTransaction(SCHEMA, ['s'], 'readwrite', async (transaction) => {
+        await awaitRequest(transaction.objectStore('s').put('a', 'nøgle-a'));
+      }, 'test');
+
+      expect(result).toEqual({
+        status: 'error',
+        error: expect.objectContaining({ message: 'stub-transaction-fejl' }),
+      });
+      expect(stats()).toEqual({ openConnections: 1, closedConnections: 1 });
+    });
+
+    it('rapporterer error når transactionen afbrydes efter requesten', async () => {
+      const { indexedDbStub, stats } = createStubIndexedDb({ failTransaction: 'abort' });
+      installStub(indexedDbStub);
+
+      const result = await runTransaction(SCHEMA, ['s'], 'readwrite', async (transaction) => {
+        await awaitRequest(transaction.objectStore('s').put('a', 'nøgle-a'));
+      }, 'test');
+
+      expect(result).toEqual({
+        status: 'error',
+        error: expect.objectContaining({ message: 'stub-transaction-afbrudt' }),
+      });
+      expect(stats()).toEqual({ openConnections: 1, closedConnections: 1 });
+    });
   });
 
   describe('åbningsfejl', () => {
@@ -208,7 +265,10 @@ describe('indexedDbStore', () => {
 
       const result = await runTransaction(SCHEMA, ['s'], 'readonly', async () => 'x', 'test');
 
-      expect(result.status).toBe('error');
+      expect(result).toEqual({
+        status: 'error',
+        error: expect.objectContaining({ message: 'kunne ikke åbne' }),
+      });
     });
   });
 });
