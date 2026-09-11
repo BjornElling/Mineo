@@ -5,7 +5,7 @@ import {
   opregulerMedAkkumuleretReguleringssats,
   resolveReguleringssatsForAar,
 } from '../../../domain/satser/opreguleringsmotorer';
-import { aarsloenAslMax, reguleringssats } from '../../../data/lovbestemteRates';
+import { aarsloenAslMax, reguleringssats, type YearlyRate } from '../../../data/lovbestemteRates';
 
 describe('opreguleringsmotorer', () => {
   describe('opregulerMedAslAarsloensmaksimum', () => {
@@ -155,6 +155,14 @@ describe('opreguleringsmotorer', () => {
       expect(withStart.faktor).toBeCloseTo(1.03 * 1.04, 12);
     });
 
+    it('fail-closer når målårets sats mangler i intervallets sidste år', () => {
+      const satser: YearlyRate = { 2022: 0, 2023: 3 };
+      const res = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2022, maalAar: 2024 }, satser);
+
+      expect(res.manglendeAar).toEqual([2024]);
+      expect(res.faktor).toBe(1);
+    });
+
     it('fail-closer på ikke-heltallige år (NaN/decimaltal) uden at iterere satser', () => {
       const nan = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2022, maalAar: Number.NaN });
       expect(nan.faktor).toBe(1);
@@ -213,6 +221,12 @@ describe('opreguleringsmotorer', () => {
     it('returnerer undefined for ikke-heltallige år uden opslag', () => {
       expect(resolveReguleringssatsForAar(Number.NaN)).toBeUndefined();
       expect(resolveReguleringssatsForAar(2024.5)).toBeUndefined();
+    });
+
+    it('returnerer undefined for decimalår selv med en faktisk decimal-key i map', () => {
+      const satser: YearlyRate = { [2024.5]: 3 };
+
+      expect(resolveReguleringssatsForAar(2024.5, satser)).toBeUndefined();
     });
 
     it('behandler ikke-finit sats i et injiceret map som manglende', () => {
