@@ -1,7 +1,10 @@
 import type { ISODateString } from '../../../types/branded';
 import type { VarigeMenValues } from '../../../schemas/formSchemas';
 import type { YearlyRate } from '../../../data/lovbestemteRates';
-import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
+import {
+  beregnVarigeMenGodtgoerelseWithRates,
+  resolveMenSatsForBeregningsdato,
+} from '../../../domain/varigemen/varigeMenCalculations';
 import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -16,6 +19,28 @@ const baseValues = (patch: Partial<VarigeMenValues> = {}): VarigeMenValues => ({
   mengrad: 10,
   beregningsdato: iso('2024-06-01'),
   ...patch,
+});
+
+describe('resolveMenSatsForBeregningsdato', () => {
+  it('returnerer beregningsår og sats for en gyldig dato', () => {
+    expect(resolveMenSatsForBeregningsdato(iso('2024-06-01'), buildRates({ 2024: 1000 }))).toEqual({
+      aar: 2024,
+      sats: 1000,
+    });
+  });
+
+  it('returnerer undefined for en ugyldig dato', () => {
+    expect(resolveMenSatsForBeregningsdato(iso('2024-02-30'), buildRates({ 2024: 1000 }))).toBeUndefined();
+  });
+
+  it('returnerer undefined når beregningsåret ikke har en sats', () => {
+    expect(resolveMenSatsForBeregningsdato(iso('2024-06-01'), buildRates({ 2023: 1000 }))).toBeUndefined();
+  });
+
+  it('ignorerer en sats, der kun findes på prototypen', () => {
+    const rates = Object.create({ 2024: 1000 }) as YearlyRate;
+    expect(resolveMenSatsForBeregningsdato(iso('2024-06-01'), rates)).toBeUndefined();
+  });
 });
 
 // ─── beregnAldersfradragPct (indirekte via beregnVarigeMenGodtgoerelseWithRates) ───
@@ -55,6 +80,17 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
     it('returnerer null ved mengrad = NaN', () => {
       const result = beregnVarigeMenGodtgoerelseWithRates(
         baseValues({ mengrad: NaN }),
+        iso('2024-01-01'),
+        buildRates({ 2024: 1000 }),
+        DEFAULT_FODSELSDATO
+      );
+      expect(result).toBeNull();
+    });
+
+    it('returnerer null ved en ikke-numerisk mengrad', () => {
+      const values = { ...baseValues(), mengrad: '10' } as unknown as VarigeMenValues;
+      const result = beregnVarigeMenGodtgoerelseWithRates(
+        values,
         iso('2024-01-01'),
         buildRates({ 2024: 1000 }),
         DEFAULT_FODSELSDATO
@@ -120,6 +156,24 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
         DEFAULT_FODSELSDATO
       );
       expect(result).toBeNull();
+    });
+
+    it('accepterer sats 0 og afviser negativ sats', () => {
+      const zeroRate = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues(),
+        iso('2024-01-01'),
+        buildRates({ 2024: 0 }),
+        DEFAULT_FODSELSDATO
+      );
+      expect(zeroRate?.beregnetGodtgoerelse).toBe(0);
+
+      const negativeRate = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues(),
+        iso('2024-01-01'),
+        buildRates({ 2024: -1 }),
+        DEFAULT_FODSELSDATO
+      );
+      expect(negativeRate).toBeNull();
     });
   });
 
@@ -310,6 +364,7 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
         iso('1990-01-01')
       );
       expect(result?.beregnetGodtgoerelse).toBe(1);
+      expect(result?.aldersreduktionBeloeb).toBe(0);
     });
 
     it('ceil efter fradrag: 9900.01 → 9901', () => {

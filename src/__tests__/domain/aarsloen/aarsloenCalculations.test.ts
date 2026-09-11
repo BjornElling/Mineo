@@ -440,6 +440,80 @@ describe('beregnOmregnetAarsloen – Metode B', () => {
   });
 });
 
+describe('beregnOmregnetAarsloen – konkrete metodefacitter', () => {
+  it('fastholder mellemresultater og normtal for Metode A og B', () => {
+    const periodeData = buildPeriodeResult('dag', 50, build10WeekdayDates());
+
+    const metodeB = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: true,
+      antalFeriedage: 5,
+      shDageAntal: 10,
+      fuldLoenUnderFerie: false,
+      loenPaaHelligdage: 'Almindelig løn',
+      beregnetAarsloen: 100000,
+    });
+    expect(metodeB).toMatchObject({
+      metode: 'B',
+      arbejdsdageIPeriode: 45,
+      hverdagePaaAar: 231,
+    });
+    expect(expectBeregnet(metodeB).omregnetAarsloen).toBeCloseTo((100000 / 45) * 231, 8);
+
+    const metodeBVedNul = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: 50,
+      shDageAntal: 0,
+      fuldLoenUnderFerie: false,
+      loenPaaHelligdage: 'Almindelig løn',
+      beregnetAarsloen: 100000,
+    });
+    expect(metodeBVedNul).toMatchObject({
+      metode: 'B',
+      arbejdsdageIPeriode: 0,
+      hverdagePaaAar: 236,
+      omregnetAarsloen: 0,
+    });
+
+    const metodeAIkkeFuldLoen = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: true,
+      antalFeriedage: 5,
+      shDageAntal: 10,
+      fuldLoenUnderFerie: false,
+      loenPaaHelligdage: 'Ingen',
+      beregnetAarsloen: 100000,
+    });
+    expect(metodeAIkkeFuldLoen).toMatchObject({
+      metode: 'A',
+      arbejdsdageIPeriode: 35,
+      arbejdsdagePaaAar: 223,
+    });
+    expect(expectBeregnet(metodeAIkkeFuldLoen).omregnetAarsloen).toBeCloseTo((100000 / 35) * 223, 8);
+
+    const metodeAFuldLoen = beregnOmregnetAarsloen({
+      periodeData,
+      loenperiode: 'dag',
+      retTilSjetteFerieuge: false,
+      antalFeriedage: 5,
+      shDageAntal: 10,
+      fuldLoenUnderFerie: true,
+      loenPaaHelligdage: 'Ingen',
+      beregnetAarsloen: 100000,
+    });
+    expect(metodeAFuldLoen).toMatchObject({
+      metode: 'A',
+      arbejdsdageIPeriode: 40,
+      arbejdsdagePaaAar: 253,
+    });
+    expect(expectBeregnet(metodeAFuldLoen).omregnetAarsloen).toBeCloseTo((100000 / 40) * 253, 8);
+  });
+});
+
 // ─── beregnOmregnetAarsloen – Metode C (dag) ──────────────────────────────
 
 describe('beregnOmregnetAarsloen – Metode C (dag)', () => {
