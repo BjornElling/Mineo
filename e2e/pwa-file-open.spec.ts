@@ -1,17 +1,10 @@
 import { expect, TEST_PASSWORD, test } from './support/mineoTest';
 
 test.describe('PWA-filåbning', () => {
-  test('registrerer launchQueue-consumeren før den synlige loginrejse er afsluttet', async ({ page }) => {
-    const runtimeSignals: string[] = [];
-    page.on('console', (message) => {
-      const isWebKitPreloadTimingWarning = message.type() === 'warning'
-        && /^The resource .+ was preloaded using link preload but not used within a few seconds /.test(message.text());
-      if (isWebKitPreloadTimingWarning) return;
-      if (message.type() === 'error' || message.type() === 'warning') {
-        runtimeSignals.push(`${message.type()}: ${message.text()}`);
-      }
-    });
-    page.on('pageerror', (error) => runtimeSignals.push(`pageerror: ${error.message}`));
+  test('registrerer launchQueue-consumeren før den synlige loginrejse er afsluttet', async ({
+    page,
+    runtimeSignals,
+  }) => {
 
     await page.addInitScript(() => {
       const probe = { consumerRegistered: false };
