@@ -124,6 +124,23 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('afviser omvendt vedrører-periode på håndskrevet typed runtime-værdi', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      vedroererPeriodeFra: toISODateString('2024-02-01'),
+      vedroererPeriodeTil: toISODateString('2024-01-01'),
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'vedroererPeriodeFra',
+        message: 'Til-dato skal være efter fra-dato',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('kræver satsvalg for differentieret overenskomst ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
