@@ -5,10 +5,10 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `e8faa7ce`
+- Revision: `a6d85e00`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn og `CALC-004`-varige mén; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og levende GitHub Actions-/architecture-runtimeværn er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-004`-varige mén og nu `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og levende GitHub Actions-/architecture-runtimeværn er tilføjet og retestet. CALC-003-retningen er fortsat under afgrænset mutationstjek.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -106,7 +106,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-002` | Method C dag gennemgået med den tidligere utestede hele-kalendermåned-branch og uafhængig mutationstest | `aarsloenCalculations.test.ts`: 30/30 tests bestået, herunder januar + februar 2024 som komplette perioder og håndberegnet `360000`; command-runner: 108/113 mutationer dræbt, 5 rapporterede overlevere, hvoraf én blev dræbt i isoleret kontrolkørsel og fire er triageret som ækvivalente | Resterende årslønsbranches, grænser, integration/downstream-paritet og fuld brugerrejse | `I gang` |
 | `CALC-003` | Procesrente-oracle gennemgået med intervalgrænser og daglig kontinuitet | `procesrenteCalculatorOracle.test.ts`: 8/8 tests bestået; breakdowns kontrolleres nu mod første start, sidste slut, næste kalenderdag og inklusivt dagtal; `TD-009` lukket for den konkrete invariant | Standalone-deling, øvrige rente-/inputbranches, outputparitet, mutation og uafhængig efterregning | `I gang` |
 | `CALC-004` | Varige mén-fladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 10 filer / 82 tests bestået; méngrad-, satsår-, alder-, dato-, afrundings- og gatecases samt håndberegnet engine → projection → gate-facit er registreret; command-runner: 94/114 mutationer dræbt, 20 triageret | PDF/Word-paritet, fuld browserrejse og overlaprevision | `I gang` |
-| `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline og uafhængig totalsag | 8 filer / 82 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret | Mutation, PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
+| `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 8 filer / 83 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret; command-runner dræbte 21/21 mutationer uden timeout/fejl | PDF/Word-paritet, fuld E2E-rejse og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler samt række-/periodefacitter | `CALC-006`-kørslen bestod med 22 filer / 233 tests, heraf 7 nye uafhængige række-/periodecases; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: 3 filer / 66 tests samt 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 23 filer / 242 tests. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel PDF/Word-paritet og fysisk artefaktbevis | `I gang` |
 | `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, øvrige målrettede browserflows grønne | Faktisk manglende lazy-chunk recovery og native `launchQueue`; `TD-022` | `I gang` |
@@ -133,6 +133,14 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   Den nye mobil-hard-stop-, EET-Word- og namespace-isolationkontrol bestod i samme kørsel; namespace-testen
   bestod også isoleret med 1/1 uden storage- eller login-genvej.
 - ARCH-002-harnesset bestod med 190/190 efter AST-værn mod eksporterede, men uregistrerede rule-factories/-aggregater.
+
+## Målrettet retest på revision `a6d85e00`
+
+- `CALC-005`: målrettet flade bestod med 8 filer / 83 tests. Command-runner-mutationen af
+  `forsoergertabCalculation.ts` dræbte 21/21 mutationer uden timeout eller tekniske fejl; tre oprindelige
+  overlevere blev lukket med en eksplicit blokeret EAL-sag for `null`, `null`, `false`-sentinelfelterne.
+- `ARCH-003`/`SHELL-002`: den målrettede PWA-kontrol efter samling på fælles login-, navigation- og
+  runtime-error-fixtures bestod med 9/9. `/open` lander korrekt via den fælles helper på `/stamdata`.
 
 ## Næste arbejdsenhed
 
