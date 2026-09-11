@@ -70,6 +70,27 @@ describe('computeForsoergertabCalculation', () => {
     });
   });
 
+  it('bevarer EAL-resultatets tomme sentinelfelter når EAL-gruppen er blokeret', () => {
+    const result = computeForsoergertabCalculation({
+      ...NOT_BLOCKED,
+      ealBlocked: true,
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1973-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
+      koen: 'Kvinde',
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(450000),
+      ealAarsloen: asAmount(450000),
+    });
+
+    expect(result.ealComputation).toBeNull();
+    expect(result.foersoergertabEalMinSatsOre).toBeNull();
+    expect(result.foersoergertabForhoejtetTilMin).toBe(false);
+    expect(result.result).toBeNull();
+  });
+
   it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {
     const commonInput = {
       skadedato: toISODateString('2008-01-10'),
