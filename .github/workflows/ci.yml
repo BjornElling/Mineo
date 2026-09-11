@@ -89,6 +89,7 @@ jobs:
 
   e2e:
     name: E2E (${{ matrix.project }})
+    needs: verify
     runs-on: ubuntu-latest
     # Projekterne er E2E-suitens baner (se `playwright.config.ts`): basisbanen i Chrome kører alle
     # specs, de øvrige motorer kører kun det, der er tagget `@browsere`, og de to
@@ -126,14 +127,55 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
+      # E2E skal bruge nøjagtig det build, som verify-jobbet kontrollerede og uploadede – ellers
+      # kan matrixen bevise et separat `--mode e2e`-build, mens deploy-jobbet bruger noget andet.
+      - name: Download verified build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
       # Chrome-/Edge-channel leveres af runner-imaget; Chromium-installationen er den
       # Playwright-motor, som begge channel-projekter bruger som fallback. Hvert job installerer
       # kun sin egen motor, så paralleliseringen ikke betaler for tre ubrugte browserpakker.
       - name: Install Playwright browser engine
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Run browser project
-        run: npm run test:e2e -- --project=${{ matrix.project }}
+      - name: Run browser project against verified artifact
+        shell: bash
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_SKIP_WEBSERVER: '1'
+        run: |
+          set -euo pipefail
+          preview_pid=''
+          cleanup() {
+            if [[ -n "$preview_pid" ]] && kill -0 "$preview_pid" 2>/dev/null; then
+              kill "$preview_pid" 2>/dev/null || true
+              wait "$preview_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          node scripts/serve-e2e-builds.mjs --port 4173 > /tmp/mineo-e2e-preview.log 2>&1 &
+          preview_pid=$!
+          preview_ready=''
+          for attempt in {1..30}; do
+            if ! kill -0 "$preview_pid" 2>/dev/null; then
+              cat /tmp/mineo-e2e-preview.log
+              exit 1
+            fi
+            if curl --fail --silent --show-error --connect-timeout 1 --max-time 2 http://127.0.0.1:4173/index.html > /dev/null; then
+              preview_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ -z "$preview_ready" ]]; then
+            cat /tmp/mineo-e2e-preview.log
+            exit 1
+          fi
+          npx playwright test --project=${{ matrix.project }}
 
   deploy:
     needs: [verify, e2e]
