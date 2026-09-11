@@ -8,7 +8,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 - Revision: `5c88267f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
-- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, folkepensions-downstream-facit, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og levende GitHub Actions-/architecture-runtimeværn er tilføjet og retestet. Den samlede releasegate mangler på den aktuelle slutrevision.
+- Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, folkepensions-downstream-facit, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og levende GitHub Actions-/architecture-runtimeværn er tilføjet og retestet. Den samlede `verify:release:core` er bestået på `5c88267f`; åbne produkt-/proveniensbeslutninger og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 
 ## Arbejdsrytme og commitregel
@@ -24,8 +24,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Typechecks | `npm run check:types` | Bestået | Alle fire TypeScript-projekter bestået |
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
 | Vitest | `npm run test:coverage` | Bestået | 661 filer, 8.601 tests bestået samt 6 forventede `it.fails`; samlet kørsel 388,25 s |
-| E2E-baner | `npm run test:e2e` | Bestået | 179 tests, 3,7 min, 3 workers; `playwright-report/` og `test-results/` |
-| Coverage | `npm run test:coverage` | Bestået | 661 testfiler / 8.601 tests bestået samt 6 forventede `it.fails`; 89,24 % statements, 80,49 % branches, 92,35 % functions, 92,02 % lines; 18.370 / 20.584, 12.951 / 16.090, 2.972 / 3.218 og 16.777 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
+| E2E-baner | `npm run test:e2e` | Bestået | 179 tests, 4,2 min, 3 workers; `playwright-report/` og `test-results/` |
+| Coverage | `npm run verify:release:core` | Bestået | 661 testfiler / 8.601 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.777 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 25 filer, 238 tests, 13,92 s |
@@ -138,9 +138,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 ## Seneste samlede retest på revision `5c88267f`
 
-- `npm run test:coverage` bestod med 661 testfiler, 8.601 beståede tests og 6 forventede `it.fails`.
-  Coverage var 89,24 % statements, 80,49 % branches, 92,35 % functions og 92,02 % lines –
-  henholdsvis 18.370/20.584, 12.951/16.090, 2.972/3.218 og 16.777/18.230 målte enheder.
+- `npm run verify:release:core` bestod med 661 testfiler, 8.601 beståede tests og 6 forventede `it.fails`.
+  Coverage var 89,23 % statements, 80,48 % branches, 92,35 % functions og 92,02 % lines –
+  henholdsvis 18.369/20.584, 12.950/16.090, 2.972/3.218 og 16.777/18.230 målte enheder. Begge
+  applikationsbuilds og deres assetkontroller bestod.
 - Fuld valgt E2E-suite bestod med 179/179 på Chrome, Edge, Firefox, WebKit, markerede viewporter og
   fallback-/service-worker-baner. Den fælles login-/navigation-/runtime-error-fixture er nu brugt af alle
   gennemgåede E2E-specs.
