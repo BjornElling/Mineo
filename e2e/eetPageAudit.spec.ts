@@ -191,4 +191,56 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
     await download.saveAs(testInfo.outputPath('eet-loebende-ydelser.docx'));
     expect(runtimeErrors).toEqual([]);
   });
+
+  test('kan hente Word med kapitaliseringens synlige beregning', async ({
+    page,
+    runtimeErrors,
+  }, testInfo) => {
+    await setupValidSag(page);
+
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
+    await page.getByRole('option', { name: 'Word', exact: true }).click();
+
+    await openPage(page, 'Erhvervsevnetab');
+    await eetTab(page, 'Kapitalisering').click();
+
+    const afgoerelse = page.locator('.content-box').filter({ hasText: 'Afgørelse 1. juni 2020 (25 %)' });
+    await expect(afgoerelse).toBeVisible();
+    await expect(afgoerelse).toContainText('Kapitaliseringsdato');
+    await expect(afgoerelse).toContainText('01-06-2020');
+    await expect(afgoerelse).toContainText('Kapitaliseringsprocent');
+    await expect(afgoerelse).toContainText('25 %');
+
+    const kapitalbeløbRow = afgoerelse
+      .locator('.row--label-right-hover')
+      .filter({ hasText: 'Beregnet kapitalbeløb' });
+    await expect(kapitalbeløbRow).toBeVisible();
+    const visibleRowText = await kapitalbeløbRow.innerText();
+    const visibleAmount = visibleRowText.match(/[\d.]+ kr\./g)?.at(-1);
+    expect(visibleAmount).toBeDefined();
+
+    const button = downloadButton(page);
+    await expect(button).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await button.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+    const documentXml = await zip.file('word/document.xml')?.async('string');
+    expect(documentXml).toBeDefined();
+    expect(documentXml).toContain('Kapitalisering (EET)');
+    expect(documentXml).toContain('Afgørelse 1. juni 2020 (25 %)');
+    expect(documentXml).toContain('Kapitaliseringsdato');
+    expect(documentXml).toContain('01-06-2020');
+    expect(documentXml).toContain('Beregnet kapitalbeløb');
+    expect(documentXml).toContain(visibleAmount!);
+
+    await download.saveAs(testInfo.outputPath('eet-kapitalisering.docx'));
+    expect(runtimeErrors).toEqual([]);
+  });
 });

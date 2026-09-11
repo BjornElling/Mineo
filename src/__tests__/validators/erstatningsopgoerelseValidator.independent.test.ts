@@ -147,5 +147,50 @@ describe('uafhængige validator-inputs', () => {
         }],
       });
     });
+
+    it('accepterer manuel SFGG-kilde med et aktivt literal-ansættelsesforhold', () => {
+      const values = parseLiteral({
+        ...VALIDATOR_LITERAL,
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        beregnesUdFra: 'Angivet dagsløn',
+        dagsloenenUdgoer: { kind: 'number', value: 500 },
+        eoAngivetLoenLoenudvikling: {
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+        loenindkomstAnsaettelsesforhold: [{
+          id: 'af-sfgg-literal',
+          ansatPaaSkadestidspunktet: true,
+        }],
+        sfggAnsaettelsesforhold: [{
+          ansaettelsesforholdId: 'af-sfgg-literal',
+          sfggBeregningskilde: 'Manuelt angivet',
+          sfggManuelDagssats: { kind: 'number', value: 250 },
+        }],
+      });
+
+      expect(erstatningsopgoerelseValidator.validate(values)).toEqual({
+        isValid: true,
+        errors: [],
+      });
+    });
+
+    it('accepterer ASL-årslønsmaksimum som aktivt literal-statistikgrundlag', () => {
+      const values = parseLiteral({
+        ...VALIDATOR_LITERAL,
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: { kind: 'number', value: 30000 },
+        eoAngivetLoenLoenudvikling: {
+          loenPaaHelligdage: 'Almindelig løn',
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+        },
+      });
+
+      expect(erstatningsopgoerelseValidator.validate(values)).toEqual({
+        isValid: true,
+        errors: [],
+      });
+    });
   });
 });
