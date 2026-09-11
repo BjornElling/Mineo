@@ -272,7 +272,7 @@ kommandoer; skriv ikke blot «testet».
 
 | Felt | Udfyldes |
 | --- | --- |
-| Inventar-ID / gennemgået revision | `CALC-001` / `329c43cf` |
+| Inventar-ID / gennemgået revision | `CALC-001` / `5bd202bd` |
 | Funktion og bruger-/systemkonsekvens ved fejl | Satsår, ASL-maksimum og reguleringsindeks bruges af flere beregninger og vises på satser-siden. Et forkert opslag eller en faktor med manglende mellemår kan forplante sig til flere erstatningsberegninger. |
 | Kontrakt, specifikation, domænedokument eller kilde til forventet adfærd | `src/contracts/satser-contract.md`, `src/contracts/calculation-data-contract.md`, `src/domain/satser/opreguleringsmotorer.ts` og de kanoniske dataregistre. |
 | Relevante indgange, udgange, afhængigheder og sideeffekter | Satsårsprojektion, nye sagers default-år, ASL-maksimum, akkumuleret reguleringssats, ASL-indeks, manglende-år og downstream-forbrugere. |
@@ -282,7 +282,7 @@ kommandoer; skriv ikke blot «testet».
 | Mutation/modprøve og resultat | `aslAarsloensmaksimum.ts` blev kørt med StrykerJS command-runneren: 28 mutationer, 26 dræbt og 2 triageret som ækvivalente overlevere (`typeof`-betingelsen er redundant med `Number.isFinite`, og singleton-branchens `join(', ')` giver samme tekst). Der var 0 timeout, 0 tekniske fejl og ingen uforklarede overlevere. |
 | Kørte kommandoer, miljø og artefaktlink | `npx vitest run src/__tests__/domain/satser/aslAarsloensmaksimum.test.ts --reporter=dot` – 9/9 tests bestået. `node node_modules/@stryker-mutator/core/bin/stryker.js run coverage/.tmp-calc001-stryker.config.json` – Node `v24.18.0`/Windows, én worker, 44 sekunder; rapport: `coverage/mutation/calc001-asl-mutation.json` (genereret lokalt under kørsel, ignoreret og ikke arkiveret i revisionen). Den øvrige sats-/datasuite bestod med 25 filer / 487 tests; Vite udsendte den kendte `configLoader: 'native'`-advarsel. |
 | Fund-ID'er, beslutninger og opfølgning | CALC-001s afgrænsede ASL-maksimumtarget er mutationstestet uden produktfund. `TD-020` er delvist lukket med de uafhængige endpointfacitter og tre downstream-facitspor, herunder offentlig KL-løn. Fortsæt med komponent-/E2E-rejse, validatorpartitioner og komplet downstream-paritet. |
-| Reviewer / dato / slutstatus | Codex / 2026-09-10 / `I gang` |
+| Reviewer / dato / slutstatus | Codex / 2026-09-11 / `I gang` |
 
 ### Foreløbig detaljeret gennemgang: `CALC-002` – Method C dag og hele kalendermåneder
 
