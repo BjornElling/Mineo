@@ -43,7 +43,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | CALC-004 mutation | `npx --no-install stryker run .tmp-varigemen-mutation.json --logLevel info` | Bestået med triagerede ækvivalente mutationer | `varigeMenCalculations.ts`: 114 mutationer, 94 dræbt, 20 ækvivalente, 0 timeout/fejl |
 | CALC-003 mutation | Selektiv StrykerJS command-runner mod `procesrenteCalculator.ts` | Bestået med triagerede mutationer og dokumenterede timeout-mutanter | 136 mutationer, 104 dræbt, 23 triagerede survivors, 9 timeouts, 0 fejl |
 | CALC-005 mutation | Selektiv StrykerJS command-runner mod `forsoergertabCalculation.ts` | Bestået | 21 mutationer, 21 dræbt, 0 timeout/fejl |
-| GitHub Actions-runtime | `npm run check:github-actions-runtime` og quality-suite | Bestået | 2 workflows og 5 quality-tests; den tidligere vakuøse `- uses:`-form kontrolleres nu |
+| GitHub Actions-runtime | `npm run check:github-actions-runtime` og quality-suite | Bestået | 2 workflows og 6 quality-tests; den tidligere vakuøse `- uses:`-form kontrolleres nu |
 
 ## Baselineobservationer til triage
 
@@ -101,7 +101,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   `document.xml`; dokumentgruppen bestod med 29/29 tests. Det lukker ikke generel PDF-parse/render.
 - `dateCommit.ts` blev mutationstestet med 6 mutationer, hvor 4 blev dræbt og 2 blev triageret som
   ækvivalente. `check-github-actions-runtime.mjs` matchede tidligere ikke den levende YAML-form `- uses:`;
-  5 quality-tests reproducerer nu både den grønne baseline og de relevante negative cases.
+  6 quality-tests reproducerer nu både den grønne baseline og de relevante negative cases.
 - `lazy-chunk-recovery.spec.ts` fremkalder en faktisk 404 på en route-chunk og beviser synlig recovery
   uden automatisk reload og med klikudløst reload i alle fire browsermotorer. Browsernes console- og
   requestlogik er ikke ens, så native `launchQueue` og fuld platformsparitet står fortsat åbne.
