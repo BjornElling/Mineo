@@ -6,6 +6,18 @@ import { validateGitHubActionsRuntime } from '../../../scripts/check-github-acti
 
 const repoRoot = resolve(__dirname, '../../..');
 
+const getWorkflowJob = (workflow: string, jobId: string, nextJobId?: string): string => {
+  const startMarker = `\n  ${jobId}:\n`;
+  const start = workflow.indexOf(startMarker);
+  if (start < 0) throw new Error(`Workflow-fixture mangler jobben ${jobId}`);
+  const contentStart = start + startMarker.length;
+  const end = nextJobId === undefined
+    ? workflow.length
+    : workflow.indexOf(`\n  ${nextJobId}:\n`, contentStart);
+  if (end < 0) throw new Error(`Workflow-fixture mangler slutjobben ${nextJobId}`);
+  return workflow.slice(contentStart, end);
+};
+
 const withWorkflowFixture = (workflow: string, nodeVersion = 'v24.18.0'): string => {
   const fixtureRoot = mkdtempSync(join(repoRoot, 'tmp-github-actions-runtime-'));
   mkdirSync(join(fixtureRoot, '.github', 'workflows'), { recursive: true });
@@ -65,5 +77,33 @@ describe('check-github-actions-runtime', () => {
     expect(validateGitHubActionsRuntime(fixtureRoot).problems).toEqual([
       "fixture.yml:4: 'actions/checkout@v7' kører på Node 24, men projektet kræver Node 25 eller nyere.",
     ]);
+  });
+
+  it('kobler verify-, E2E- og deploy-job til samme dist-artefakt', () => {
+    const workflow = readFileSync(join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+    const verifyJob = getWorkflowJob(workflow, 'verify', 'e2e');
+    const e2eJob = getWorkflowJob(workflow, 'e2e', 'deploy');
+    const deployJob = getWorkflowJob(workflow, 'deploy');
+
+    // Et statisk værn er passende her: CI-kontrakten skal være synlig i workflow-filen, og
+    // ellers kan en separat test-build igen blive forvekslet med det artefakt, der deployes.
+    expect(verifyJob).toContain('uses: actions/upload-artifact@v7');
+    expect(verifyJob).toContain('name: dist');
+    expect(verifyJob).toContain('path: dist/');
+    expect(verifyJob).toContain('e2e/production-artifact-smoke.spec.ts');
+
+    expect(e2eJob).toContain('needs: verify');
+    expect(e2eJob).toContain('uses: actions/download-artifact@v8');
+    expect(e2eJob).toContain('name: dist');
+    expect(e2eJob).toContain('path: dist/');
+    expect(e2eJob).toContain('node scripts/serve-e2e-builds.mjs');
+    expect(e2eJob).not.toContain('npm run build');
+
+    expect(deployJob).toContain('needs: [verify, e2e]');
+    expect(deployJob).toContain('uses: actions/download-artifact@v8');
+    expect(deployJob).toContain('name: dist');
+    expect(deployJob).toContain('path: dist/');
+    expect(deployJob).toContain('command: deploy --config wrangler.mineo.json');
+    expect(deployJob).toContain('command: deploy --config wrangler.minprocesrente.json');
   });
 });
