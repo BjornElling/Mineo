@@ -28,10 +28,18 @@ describe('resolveAslAarsloensmaksimumForAar (kanonisk ASL-maks-opslag)', () => {
   it('fail-closer på ikke-heltal, ikke-finit og ikke-positiv sats', () => {
     expect(resolveAslAarsloensmaksimumForAar(2024.5)).toBeUndefined();
     expect(resolveAslAarsloensmaksimumForAar(Number.NaN)).toBeUndefined();
+    const ikkeHeltalMedSats: YearlyRate = { [2024.5]: 608000 };
+    expect(ikkeHeltalMedSats[2024.5]).toBe(608000);
+    expect(resolveAslAarsloensmaksimumForAar(2024.5, ikkeHeltalMedSats)).toBeUndefined();
     const injiceret: YearlyRate = { 2024: 0, 2025: -5, 2026: 608000 };
     expect(resolveAslAarsloensmaksimumForAar(2024, injiceret)).toBeUndefined();
     expect(resolveAslAarsloensmaksimumForAar(2025, injiceret)).toBeUndefined();
     expect(resolveAslAarsloensmaksimumForAar(2026, injiceret)).toBe(608000);
+  });
+
+  it('afviser en positiv, men ikke-finit sats fra et injiceret indeks-map', () => {
+    const injiceret: YearlyRate = { 2024: Number.POSITIVE_INFINITY };
+    expect(resolveAslAarsloensmaksimumForAar(2024, injiceret)).toBeUndefined();
   });
 
   it('respekterer et injiceret indeks-map (deles med opreguleringsmotoren)', () => {
@@ -52,6 +60,12 @@ describe('kanonisk "mangler"-ordlyd (ensartet på tværs af faner)', () => {
     const suffix = aslAarsloensmaksimumBoundsSuffix();
     expect(formatAslAarsloensmaksimumMissingForYears([2004])).toBe(`ASL-maks-sats mangler for 2004${suffix}.`);
     expect(formatAslAarsloensmaksimumMissingForYears([2004, 2005])).toBe(`ASL-maks-sats mangler for 2004, 2005${suffix}.`);
+  });
+
+  it('returnerer tomt bounds-suffiks for et tomt indeks-map', () => {
+    const tomtIndeks: YearlyRate = {};
+    expect(aslAarsloensmaksimumBoundsSuffix(tomtIndeks)).toBe('');
+    expect(formatAslAarsloensmaksimumMissing(2024, tomtIndeks)).toBe('ASL-maks-sats mangler for år 2024.');
   });
 
   // Selv-test af værnet: bevis at den kanoniske betegnelse faktisk udskiftede de gamle,
