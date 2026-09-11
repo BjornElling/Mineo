@@ -212,6 +212,35 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('fanger manglende statistikmodel for aktiv TAF med angivet månedsløn', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: { kind: 'number', value: 30000 },
+      tafPerioder: [{
+        id: 'taf-1',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_RUNTIME_VALUES.eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: undefined,
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingStatistikModel',
+        message: 'Statistisk beregningsmodel skal vælges',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('afviser svie/smerte-række uden til-dato på håndskrevet typed runtime-værdi', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
