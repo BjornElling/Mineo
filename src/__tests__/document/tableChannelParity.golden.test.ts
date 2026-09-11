@@ -30,10 +30,11 @@ import type { DocumentGenerationSession } from '../../document/documentGeneratio
 import type { DocumentArtifact } from '../../document/downloadArtifact';
 
 let pdfSession: Awaited<ReturnType<typeof createPdfDocumentSessionForTest>>;
-import { renderWordDocument } from '../docx/generators/wordContentHarness';
+import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
 import {
   capturePresentation,
   extractWordTables,
+  extractWordTableRows,
   type CaptureDoc,
   type CapturedAutoTableOptions,
   type TablePresentation,
@@ -340,4 +341,21 @@ describe('tabel-kanal-paritet: Word document.xml (golden)', () => {
       expect(tables).toMatchSnapshot();
     }, 15000);
   }
+});
+
+describe('tabel-kanal-paritet: semantiske EET-celler på tværs af kanaler', () => {
+  it('loebendeYdelser sender samme tabelceller til PDF og Word', async () => {
+    const loebendeCase = cases.find(({ name }) => name.startsWith('loebendeYdelser'));
+    if (!loebendeCase) throw new Error('EET-løbende-ydelser mangler i tabelparitetens fixture-katalog');
+
+    const pdfTables = await collectPdfTables(loebendeCase.run);
+    expect(pdfTables).toHaveLength(1);
+
+    const wordTables = await collectWordTables(loebendeCase.run);
+    const wordTable = wordTables.find((table) => xmlToPlainText(table).includes('Fra o.m.'));
+    expect(wordTable).toBeDefined();
+
+    const pdfRows = pdfTables[0]!.body.map((row) => row.map((cell) => cell.content));
+    expect(extractWordTableRows(wordTable!)).toEqual(pdfRows);
+  }, 15000);
 });

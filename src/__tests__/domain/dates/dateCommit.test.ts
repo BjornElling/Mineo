@@ -44,6 +44,10 @@ describe('commitIsoDateFromDraftString', () => {
     it('  01-01-2024  → 2024-01-01', () => {
       expect(commitIsoDateFromDraftString('  01-01-2024  ')).toBe(toISODateString('2024-01-01'));
     });
+
+    it('  2024-01-01  → 2024-01-01', () => {
+      expect(commitIsoDateFromDraftString('  2024-01-01  ')).toBe(toISODateString('2024-01-01'));
+    });
   });
 
   describe('ugyldigt format → undefined', () => {

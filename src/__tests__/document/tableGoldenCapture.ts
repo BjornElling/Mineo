@@ -19,6 +19,8 @@
  * hvor kun `<w:tbl>`-blokkene udtrækkes.
  */
 
+import { xmlToPlainText } from '../docx/generators/wordContentHarness';
+
 export type CapturedColumnStyle = Readonly<{ cellWidth?: number | 'auto'; halign?: string }>;
 
 export type CapturedAutoTableOptions = Readonly<{
@@ -210,4 +212,24 @@ export const extractWordTables = (documentXml: string): string[] => {
   }
 
   return tables;
+};
+
+/**
+ * Udtrækker den semantiske rækkefølge af celler fra én Word-tabel.
+ *
+ * Bruges til kanalparitet, hvor PDF-harnessens resolved celler skal sammenholdes med Word-kanalens
+ * faktiske `document.xml`. Layoutmetadata og run-opdeling ignoreres bevidst; et manglende eller
+ * ændret label-/værdifelt skal derimod gøre sammenligningen rød.
+ */
+export const extractWordTableRows = (tableXml: string): string[][] => {
+  const rows: string[][] = [];
+  const rowMatches = tableXml.matchAll(/<w:tr(?:\s[^>]*)?>([\s\S]*?)<\/w:tr>/g);
+
+  for (const rowMatch of rowMatches) {
+    const cells = [...rowMatch[1].matchAll(/<w:tc(?:\s[^>]*)?>([\s\S]*?)<\/w:tc>/g)]
+      .map((cellMatch) => xmlToPlainText(cellMatch[1]));
+    rows.push(cells);
+  }
+
+  return rows;
 };
