@@ -829,6 +829,16 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
+  it('Statistik (SBLON2): uafhængigt downstream-facit for indeksforhold', () => {
+    // Facit: 2016K1 = 98,9, 2017K1 = 100,8 og 2018K1 = 102,8.
+    // Indeksforholdene mod 2016K1 giver henholdsvis 0 %, 1,92 % og 3,94 %.
+    expect(statistikDeltas('SBLON2 (Danmarks Statistik)', '2016-06-01', { fra: '2016-06-01', til: '2018-12-31' })).toEqual([
+      { fra: iso('2016-06-01'), deltaPct: 0 },
+      { fra: iso('2017-01-01'), deltaPct: 1.92 },
+      { fra: iso('2018-01-01'), deltaPct: 3.94 },
+    ]);
+  });
+
   it('Statistik (ILON12): base-clamp – reguleringsdato før første kvartal → zero-delta før basen (S1)', () => {
     // reguleringsdato 2004-06-01 ligger før ILON12's første kvartal (2005K1).
     // Motoren ankrer basen til ældste kvartal (2005K1 = 100) og giver zero-delta for
