@@ -357,17 +357,12 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('kan hente Word med Differencekravets synlige beregning', async ({
+  test('kan hente Differencekrav som PDF og Word med synlig beregning', async ({
     page,
     runtimeErrors,
   }, testInfo) => {
     await setupValidSag(page);
 
-    await openPage(page, 'Indstillinger');
-    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
-    await page.getByRole('option', { name: 'Word', exact: true }).click();
-
-    await openPage(page, 'Erhvervsevnetab');
     await eetTab(page, 'Differencekrav').click();
     await expect(eetTab(page, 'Differencekrav')).toHaveAttribute('aria-selected', 'true');
 
@@ -381,22 +376,45 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
     const button = downloadButton(page);
     await expect(button).toBeEnabled();
 
-    const downloadPromise = page.waitForEvent('download');
+    const pdfDownloadPromise = page.waitForEvent('download');
     await button.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+    const pdfDownload = await pdfDownloadPromise;
+    expect(pdfDownload.suggestedFilename()).toMatch(/\.pdf$/);
 
-    const downloadPath = await download.path();
-    expect(downloadPath).not.toBeNull();
-    const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+    const pdfDownloadPath = await pdfDownload.path();
+    expect(pdfDownloadPath).not.toBeNull();
+    if (pdfDownloadPath === null) throw new Error('PDF-downloadet blev ikke skrevet til en lokal fil.');
+    await expectPdfArtifactText(pdfDownloadPath, [
+      ...EXPECTED_PDF_TEXT_BY_TAB.Differencekrav,
+      visibleAmount!,
+    ]);
+
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
+    await page.getByRole('option', { name: 'Word', exact: true }).click();
+
+    await openPage(page, 'Erhvervsevnetab');
+    await eetTab(page, 'Differencekrav').click();
+    await expect(eetTab(page, 'Differencekrav')).toHaveAttribute('aria-selected', 'true');
+
+    const wordButton = downloadButton(page);
+    await expect(wordButton).toBeEnabled();
+
+    const wordDownloadPromise = page.waitForEvent('download');
+    await wordButton.click();
+    const wordDownload = await wordDownloadPromise;
+    expect(wordDownload.suggestedFilename()).toMatch(/\.docx$/);
+
+    const wordDownloadPath = await wordDownload.path();
+    expect(wordDownloadPath).not.toBeNull();
+    const zip = await JSZip.loadAsync(await readFile(wordDownloadPath!));
     const documentXml = await zip.file('word/document.xml')?.async('string');
     expect(documentXml).toBeDefined();
-    expect(documentXml).toContain('Differencekrav (EET)');
-    expect(documentXml).toContain('EAL-krav');
-    expect(documentXml).toContain('Beregnet differencekrav');
-    expect(documentXml).toContain(visibleAmount!);
+    for (const text of [...EXPECTED_PDF_TEXT_BY_TAB.Differencekrav, visibleAmount!]) {
+      expect(documentXml).toContain(text);
+    }
 
-    await download.saveAs(testInfo.outputPath('eet-differencekrav.docx'));
+    await wordDownload.saveAs(testInfo.outputPath('eet-differencekrav.docx'));
     expect(runtimeErrors).toEqual([]);
   });
 });
