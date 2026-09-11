@@ -12,3 +12,12 @@ export const createPdfDocumentSessionForTest = async () => {
     build: async () => new Blob([], { type: 'application/pdf' }),
   }));
 };
+
+/**
+ * Opretter en PDF-session, der beholder produktions-writerens faktiske build.
+ * Bruges kun af artefakttests, hvor de serialiserede PDF-bytes selv er beviset.
+ */
+export const createRealPdfDocumentSessionForTest = async () => {
+  const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+  return createDocumentGenerationSession('pdf', (options) => createPdfChannelWriter(options));
+};

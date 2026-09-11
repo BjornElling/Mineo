@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
 
 import {
@@ -56,6 +57,22 @@ const fillForsoergertabSag = async (page: Page): Promise<void> => {
   await setFieldValueAndSettle(page.locator('input[name="tilkendtForPeriodeAar"]'), '10');
 };
 
+const expectPdfDownload = async (page: Page, downloadTestId: string): Promise<void> => {
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId(downloadTestId).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+
+  const pdfPath = await download.path();
+  expect(pdfPath).not.toBeNull();
+  if (pdfPath === null) throw new Error('PDF-downloadet blev ikke skrevet til en lokal fil.');
+
+  const pdfBytes = await readFile(pdfPath);
+  expect(pdfBytes.length).toBeGreaterThan(100);
+  expect(pdfBytes.subarray(0, 5).toString('ascii')).toBe('%PDF-');
+  expect(pdfBytes.toString('latin1').trimEnd().endsWith('%%EOF')).toBe(true);
+};
+
 test.describe('CALC-004/CALC-005 – gyldig browserrejse og PDF-download', () => {
   test('CALC-004 viser beregnet ménbeløb og henter PDF på en gyldig sag', async ({
     page,
@@ -65,18 +82,13 @@ test.describe('CALC-004/CALC-005 – gyldig browserrejse og PDF-download', () =>
     await fillVarigeMenSag(page);
 
     const resultRow = page.locator('.row--label-right-hover').filter({
-      hasText: 'Beregnet méngodtgørelse',
-    }).last();
+      has: page.getByTestId('varigemen-download'),
+    });
     await expect(resultRow).toBeVisible();
     await expect(resultRow.getByText('91.800 kr.', { exact: true })).toBeVisible();
 
-    const downloadButton = page.getByTestId('varigemen-download');
-    await expect(downloadButton).toBeEnabled();
-
-    const downloadPromise = page.waitForEvent('download');
-    await downloadButton.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+    await expect(page.getByTestId('varigemen-download')).toBeEnabled();
+    await expectPdfDownload(page, 'varigemen-download');
 
     expect(runtimeErrors).toEqual([]);
   });
@@ -88,19 +100,12 @@ test.describe('CALC-004/CALC-005 – gyldig browserrejse og PDF-download', () =>
     await login(page);
     await fillForsoergertabSag(page);
 
-    const resultRow = page.locator('.row--label-right-hover').filter({
-      has: page.getByText('Forsørgertabserstatning', { exact: true }),
-    });
+    const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
     await expect(resultRow).toBeVisible();
     await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
 
-    const downloadButton = page.getByTestId('forsoergertab-download');
-    await expect(downloadButton).toBeEnabled();
-
-    const downloadPromise = page.waitForEvent('download');
-    await downloadButton.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.pdf$/);
+    await expect(page.getByTestId('forsoergertab-download')).toBeEnabled();
+    await expectPdfDownload(page, 'forsoergertab-download');
 
     expect(runtimeErrors).toEqual([]);
   });
