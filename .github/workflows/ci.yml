@@ -51,9 +51,24 @@ jobs:
       - name: Start verified Mineo artifact
         shell: bash
         run: |
-          nohup npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173 > /tmp/mineo-preview.log 2>&1 &
+          set -euo pipefail
+          preview_pid=''
+          cleanup() {
+            if [[ -n "$preview_pid" ]] && kill -0 "$preview_pid" 2>/dev/null; then
+              kill "$preview_pid" 2>/dev/null || true
+              wait "$preview_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173 --strictPort > /tmp/mineo-preview.log 2>&1 &
+          preview_pid=$!
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:4173/index.html > /dev/null; then
+            if ! kill -0 "$preview_pid" 2>/dev/null; then
+              cat /tmp/mineo-preview.log
+              exit 1
+            fi
+            if curl --fail --silent --show-error --connect-timeout 1 --max-time 2 http://127.0.0.1:4173/index.html > /dev/null; then
               exit 0
             fi
             sleep 1
