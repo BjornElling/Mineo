@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 import { ARCHITECTURE_RULES } from './architectureRules';
 import { formatViolations } from './ruleKit';
 import { getSourceGraph, makeSyntheticEntry } from './sourceGraph';
@@ -101,6 +104,145 @@ const EXPECTED_ARCHITECTURE_RULE_IDS: readonly string[] = [
   'ui/message-box-guarded-by-page-message',
 ];
 
+const ARCHITECTURE_RULES_DIR = path.resolve(
+  process.cwd(),
+  'src/__tests__/quality/architecture/rules'
+);
+const ARCHITECTURE_RULES_SOURCE = path.resolve(
+  process.cwd(),
+  'src/__tests__/quality/architecture/architectureRules.ts'
+);
+type RuleDefinitionExport = Readonly<{
+  moduleName: string;
+  exportName: string;
+}>;
+
+type RuleCollectionExport = Readonly<{
+  moduleName: string;
+  exportName: string;
+  members: readonly string[];
+}>;
+
+const unwrapExpression = (expression: ts.Expression): ts.Expression => {
+  let current = expression;
+  while (
+    ts.isAsExpression(current)
+    || ts.isSatisfiesExpression(current)
+    || ts.isParenthesizedExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+};
+
+const isExported = (statement: ts.Statement): boolean =>
+  ts.canHaveModifiers(statement)
+  && ts.getModifiers(statement)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true;
+
+const readRuleModuleExports = (): Readonly<{
+  definitions: readonly RuleDefinitionExport[];
+  collections: readonly RuleCollectionExport[];
+}> => {
+  const definitions: RuleDefinitionExport[] = [];
+  const collections: RuleCollectionExport[] = [];
+  const definitionNames = new Set<string>();
+
+  for (const fileName of fs.readdirSync(ARCHITECTURE_RULES_DIR).filter((name) => name.endsWith('.ts'))) {
+    const moduleName = fileName.replace(/\.ts$/, '');
+    const absolutePath = path.join(ARCHITECTURE_RULES_DIR, fileName);
+    const sourceFile = ts.createSourceFile(
+      absolutePath,
+      fs.readFileSync(absolutePath, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS
+    );
+    const ruleFactoryNames = new Set(
+      sourceFile.statements
+        .filter(ts.isImportDeclaration)
+        .filter((statement) =>
+          ts.isStringLiteral(statement.moduleSpecifier)
+          && statement.moduleSpecifier.text === '../ruleKit'
+        )
+        .flatMap((statement) => {
+          const bindings = statement.importClause?.namedBindings;
+          return bindings && ts.isNamedImports(bindings)
+            ? bindings.elements.map((element) => element.name.text)
+            : [];
+        })
+    );
+
+    for (const statement of sourceFile.statements) {
+      if (!ts.isVariableStatement(statement) || !isExported(statement)) continue;
+      for (const declaration of statement.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) continue;
+        const initializer = unwrapExpression(declaration.initializer);
+        if (
+          ts.isCallExpression(initializer)
+          && ts.isIdentifier(initializer.expression)
+          && ruleFactoryNames.has(initializer.expression.text)
+        ) {
+          const definition = { moduleName, exportName: declaration.name.text };
+          definitions.push(definition);
+          definitionNames.add(definition.exportName);
+          continue;
+        }
+
+        if (!ts.isArrayLiteralExpression(initializer)) continue;
+        const members = initializer.elements.flatMap((element) => {
+          const expression = ts.isSpreadElement(element) ? element.expression : element;
+          const unwrapped = unwrapExpression(expression);
+          return ts.isIdentifier(unwrapped) ? [unwrapped.text] : [];
+        });
+        if (members.some((member) => definitionNames.has(member))) {
+          collections.push({ moduleName, exportName: declaration.name.text, members });
+        }
+      }
+    }
+  }
+
+  return { definitions, collections };
+};
+
+const readRegistryBindings = (): ReadonlySet<string> => {
+  const sourceFile = ts.createSourceFile(
+    ARCHITECTURE_RULES_SOURCE,
+    fs.readFileSync(ARCHITECTURE_RULES_SOURCE, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const importedNames = new Map<string, string>();
+
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement)) continue;
+    const moduleSpecifier = statement.moduleSpecifier;
+    if (!ts.isStringLiteral(moduleSpecifier) || !moduleSpecifier.text.startsWith('./rules/')) continue;
+    const namedBindings = statement.importClause?.namedBindings;
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) continue;
+    for (const element of namedBindings.elements) {
+      importedNames.set(element.name.text, (element.propertyName ?? element.name).text);
+    }
+  }
+
+  const registryDeclaration = sourceFile.statements
+    .filter(ts.isVariableStatement)
+    .flatMap((statement) => [...statement.declarationList.declarations])
+    .find((declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === 'ARCHITECTURE_RULES');
+  if (registryDeclaration?.initializer === undefined) return new Set();
+  const registry = unwrapExpression(registryDeclaration.initializer);
+  if (!ts.isArrayLiteralExpression(registry)) return new Set();
+
+  return new Set(
+    registry.elements.flatMap((element) => {
+      const expression = ts.isSpreadElement(element) ? element.expression : element;
+      const unwrapped = unwrapExpression(expression);
+      if (!ts.isIdentifier(unwrapped)) return [];
+      return [importedNames.get(unwrapped.text) ?? unwrapped.text];
+    })
+  );
+};
+
 /**
  * Kør-motor + selvtest for det AST-baserede arkitektur-harness.
  *
@@ -122,6 +264,39 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
       [...missing, ...unexpected],
       'Registryet afviger fra den eksplicitte regel-ID-forventning. '
         + `Mangler: ${missing.join(', ') || 'ingen'}. Uventede: ${unexpected.join(', ') || 'ingen'}.`
+    ).toEqual([]);
+  });
+
+  it('registryet forbruger alle eksporterede regeldefinitioner fra rules/', () => {
+    const { definitions, collections } = readRuleModuleExports();
+    const registryBindings = readRegistryBindings();
+    const registeredDefinitions = new Set<string>();
+
+    for (const definition of definitions) {
+      if (registryBindings.has(definition.exportName)) {
+        registeredDefinitions.add(definition.exportName);
+      }
+    }
+    for (const collection of collections) {
+      if (!registryBindings.has(collection.exportName)) continue;
+      for (const member of collection.members) {
+        registeredDefinitions.add(member);
+      }
+    }
+
+    const missing = definitions
+      .map((definition) => definition.exportName)
+      .filter((exportName) => !registeredDefinitions.has(exportName));
+
+    expect(definitions.length, 'AST-opslaget fandt ingen eksporterede regeldefinitioner').toBeGreaterThan(0);
+    expect(
+      definitions.length,
+      'Antallet af eksporterede rule-factories skal svare til det aktive registry'
+    ).toBe(ARCHITECTURE_RULES.length);
+    expect(
+      missing,
+      'En eksporteret regeldefinition er ikke nået ind i ARCHITECTURE_RULES – opdatér registryet, '
+        + 'før den separate ID-forventning.'
     ).toEqual([]);
   });
 
