@@ -159,7 +159,7 @@ const trimStreamEnd = (bytes: Uint8Array): Uint8Array => {
   return bytes.slice(0, end);
 };
 
-const decodeStream = (pdf: Uint8Array, streamOffset: number, endStreamOffset: number): Uint8Array => {
+const decodeStream = (pdf: Uint8Array, streamOffset: number, endStreamOffset: number): Uint8Array | null => {
   let contentOffset = streamOffset + PDF_STREAM.length;
   if (pdf[contentOffset] === 13 && pdf[contentOffset + 1] === 10) contentOffset += 2;
   else if (pdf[contentOffset] === 10 || pdf[contentOffset] === 13) contentOffset += 1;
@@ -176,6 +176,10 @@ const decodeStream = (pdf: Uint8Array, streamOffset: number, endStreamOffset: nu
   const dictionary = dictionaryStart >= 0
     ? new TextDecoder('latin1').decode(pdf.slice(dictionaryStart, streamOffset))
     : '';
+  // Billeder er også PDF-streams, men deres bytes er ikke tekstprogrammer. De skal
+  // ikke sendes gennem den snævre jsPDF-tekstparser, ellers kan billeddata ligne en
+  // uafsluttet literal string og give et falsk testfejl.
+  if (/\/Subtype\s*\/Image/.test(dictionary)) return null;
   if (!PDF_FLATE_FILTER.test(dictionary)) return encoded;
   return new Uint8Array(inflateSync(encoded));
 };
@@ -189,6 +193,8 @@ export const extractPdfText = async (artifact: Blob): Promise<string> => {
   const pdf = new Uint8Array(await artifact.arrayBuffer());
   const header = new TextDecoder('latin1').decode(pdf.slice(0, 8));
   if (!header.startsWith('%PDF-')) throw new Error('PDF-artefaktet mangler en PDF-header');
+  const tail = new TextDecoder('latin1').decode(pdf.slice(Math.max(0, pdf.length - 32)));
+  if (!/%%EOF\s*$/.test(tail)) throw new Error('PDF-artefaktet mangler %%EOF');
 
   const streams: string[] = [];
   let searchOffset = 0;
@@ -197,7 +203,8 @@ export const extractPdfText = async (artifact: Blob): Promise<string> => {
     if (streamOffset < 0) break;
     const endStreamOffset = findBytes(pdf, PDF_ENDSTREAM, streamOffset + PDF_STREAM.length);
     if (endStreamOffset < 0) throw new Error('PDF-artefaktet mangler endstream');
-    streams.push(...parseTextOperators(decodeStream(pdf, streamOffset, endStreamOffset)));
+    const decodedStream = decodeStream(pdf, streamOffset, endStreamOffset);
+    if (decodedStream) streams.push(...parseTextOperators(decodedStream));
     searchOffset = endStreamOffset + PDF_ENDSTREAM.length;
   }
   return streams.join(' ');

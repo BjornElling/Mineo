@@ -1,3 +1,6 @@
+// @vitest-environment jsdom
+/// <reference types="vitest/globals" />
+
 import {
   createEvaluationSourceToken,
   createInputEvaluation,
@@ -14,6 +17,10 @@ import { executeDocumentDownload } from '../../document/definition/documentLifec
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { DocumentGenerationSession } from '../../document/documentGenerationSession';
+import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
+import { buildDocumentFooterText } from '../../document/layout/documentFooterImage';
+import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
 import {
   MINEO_DOCUMENT_OUTPUT_IDS,
   STANDALONE_DOCUMENT_OUTPUT_IDS,
@@ -68,9 +75,41 @@ vi.mock('../../document/downloadArtifact', () => ({
   triggerDocumentDownload: vi.fn(),
 }));
 
+// Testen af tekstkanalparitet måler dokumentgeneratorens håndtering af grafblokken,
+// ikke browserens canvas-rendering. Den del har egne scene- og grafiktests.
+const PNG_1X1 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+vi.mock('../../document/generators/tafFordelt/tafKravGrafChart', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../document/generators/tafFordelt/tafKravGrafChart')>();
+  return { ...actual, renderTafKravGrafChartPng: () => PNG_1X1 };
+});
+
 const triggerMock = vi.mocked(triggerDocumentDownload);
 
 const catalog = getProductionInputCatalog();
+
+// Kanalnormaliseringen er bevidst lokal: den må ikke genbruge PDF-writerens egen
+// normalisering, ellers kan samme fejl i produktionshelperen gøre begge kanaler grønne.
+const normalizeChannelText = (text: string): string => text
+  .normalize('NFKC')
+  .replace(/\u00a0/g, ' ')
+  .replace(/\u200B/g, '')
+  .replace(/\u200C/g, '')
+  .replace(/\u200D/g, '')
+  .replace(/\uFEFF/g, '')
+  .replace(/\u2212/g, '-')
+  .replace(/\u2013/g, '-')
+  .replace(/\u2014/g, '-')
+  .replace(/≤/g, '<=')
+  .replace(/≥/g, '>=')
+  .replace(/\s+/g, ' ')
+  // PDF-writerens TJ-opdeling kan placere et plus-tegn uden det omgivende
+  // mellemrum. Sammenligningen måler indhold og rækkefølge, ikke dette
+  // kanalinterne tekstplaceringssignal.
+  .replace(/\s*\+\s*/g, '+')
+  .trim();
+
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
 const stamdata = {
   journalnr: 'J-1',
@@ -320,6 +359,12 @@ type LifecycleRun = Readonly<{
 type Fixture = Readonly<{
   project: (input: SettledInput) => DocumentProjectionResult<unknown>;
   runLifecycle: (input: SettledInput) => Promise<LifecycleRun>;
+  renderArtifactParity: (input: SettledInput) => Promise<Readonly<{
+    pdfText: string;
+    wordText: string;
+    pdfByteLength: number;
+    wordMediaCount: number;
+  }>>;
   ready: () => SettledInput;
   relevantError: () => SettledInput;
   bounds: () => SettledInput;
@@ -343,6 +388,52 @@ const fixture = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
 ): Fixture => {
   const project = (input: SettledInput): DocumentProjectionResult<TInput> =>
     definition.project(contextFor(input, gateSettings), request);
+  const renderArtifactParity = async (input: SettledInput): Promise<Readonly<{
+    pdfText: string;
+    wordText: string;
+    pdfByteLength: number;
+    wordMediaCount: number;
+  }>> => {
+    const projection = project(input);
+    if (projection.status !== 'ready') {
+      throw new Error(`${id}/artefaktparitet kræver en klar fixture`);
+    }
+    const renderer = await definition.loadRenderer();
+    const pdfArtifact = await renderer(
+      await createRealPdfDocumentSessionForTest(),
+      projection.input,
+      { visBrevhoved: false },
+    );
+    const renderedWord = await renderWordDocument((session) => renderer(
+      session,
+      projection.input,
+      { visBrevhoved: false },
+    ));
+    const decodeXmlEntities = (text: string): string => text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+    const wordText = normalizeChannelText(decodeXmlEntities(xmlToPlainText(
+      renderedWord.documentXml
+        .replace(/<w:br\s*\/>/g, ' ')
+        .replace(/<\/w:tc>/g, ' ')
+        .replace(/<\/w:tr>/g, ' ')
+        .replace(/<\/w:p>/g, ' ')
+    )));
+    const footerText = buildDocumentFooterText();
+    const pdfText = normalizeChannelText((await extractPdfText(pdfArtifact.blob))
+      .replaceAll(footerText, '')
+      // I testmiljøets manglende canvas-fallback bliver PDF-vandmærket tekst,
+      // mens Word-vandmærket ligger i headerens VML og ikke i document.xml.
+      // Det er dokumentchrome, ikke body-paritet.
+      .replaceAll('UDKAST', ''));
+    const wordMediaCount = Object.keys(renderedWord.zip.files)
+      .filter((name) => /^word\/media\//.test(name))
+      .length;
+    return { pdfText, wordText, pdfByteLength: pdfArtifact.blob.size, wordMediaCount };
+  };
   const runLifecycle = async (input: SettledInput): Promise<LifecycleRun> => {
     const calls: LifecycleCalls = {
       loadRenderer: 0,
@@ -408,6 +499,7 @@ const fixture = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
   return {
     project,
     runLifecycle,
+    renderArtifactParity,
     ready,
     relevantError: () => relevantError(ready()),
     bounds: () => bounds(ready()),
@@ -677,5 +769,30 @@ describe('uafhængigt fixture-register for standalone-dokumentoutputs', () => {
     });
     expect(blocked.calls.events, `${id}/bounds-rækkefølge`).toEqual([]);
     expect(triggerMock, `${id}/bounds-ingen-fil-io`).not.toHaveBeenCalled();
+  });
+});
+
+const TEXT_PARITY_OUTPUT_IDS = MINEO_DOCUMENT_OUTPUT_IDS.filter((id) => id !== 'taf-krav-graf');
+
+describe('fysisk tekstparitet for hovedappens dokumentartefakter', () => {
+  it.each(TEXT_PARITY_OUTPUT_IDS)('%s bevarer tekst, tal, sektioner og rækkefølge i PDF og Word', async (id) => {
+    const entry = FIXTURES[id];
+    const { pdfText, wordText } = await entry.renderArtifactParity(entry.ready());
+
+    expect(pdfText, `${id}/PDF må ikke være tom`).not.toBe('');
+    expect(wordText, `${id}/Word må ikke være tom`).not.toBe('');
+    expect(pdfText, `${id}/PDF og Word`).toBe(wordText);
+  });
+
+  it('taf-krav-graf producerer fysiske billedartefakter i begge kanaler', async () => {
+    const { pdfText, wordText, pdfByteLength, wordMediaCount } = await FIXTURES['taf-krav-graf']
+      .renderArtifactParity(FIXTURES['taf-krav-graf'].ready());
+
+    // Grafen har bevidst ingen tekstblokke. Dens kanalparitet ligger i billedet,
+    // mens scene- og canvas-adfærden dækkes af særskilte graf-tests.
+    expect(pdfText).toBe('');
+    expect(wordText).toBe('');
+    expect(pdfByteLength).toBeGreaterThan(1000);
+    expect(wordMediaCount).toBeGreaterThan(0);
   });
 });
