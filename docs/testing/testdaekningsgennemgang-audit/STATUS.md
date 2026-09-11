@@ -5,7 +5,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Evidensrevision: `817a55e9`
+- Evidensrevision: `d83b8038`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, uafhængige sats-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den samlede `verify:release:core` og den valgte E2E-suite er senest bestået på `817a55e9`; åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
@@ -88,7 +88,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   og `beforeunload`-exit-guard med 1/1 grøn test. `bootstrapUnsupportedDeviceSideEffects.test.tsx`
   dækker de tidlige unsupported-device-sideeffekter med 1/1 grøn test. `unsupported-device-hard-stop.spec.ts`
   dækker den synlige mobil-hard-stoprejse med 1/1 grøn test, og `eetPageAudit.spec.ts` validerer nu
-  semantisk Word-indhold for både løbende ydelser og kapitalisering fra den faktiske hovedapp-download.
+  semantisk Word-indhold for løbende ydelser, kapitalisering, EET efter EAL og Differencekrav fra den
+  faktiske hovedapp-download.
 - `documentLifecycleCoordinatorIntegration.test.tsx` kobler en reel `useFieldEditor`-settle-revision og
   `CriticalActionCoordinator` til dokumentgaten og blokerer rejected input før projection og renderer-load.
 - `fileSystemAccess.test.ts`, `fileHandleStorage.failurePaths.test.ts` og den udvidede
@@ -122,9 +123,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `CALC-005` | Forsørgertabsfladen gennemgået som målrettet unit-/integrationstestbaseline, uafhængig totalsag og mutationstest | 8 filer / 83 tests bestået; snapshot-/reader-gates, kønsgrene, perioder, minimum/maksimum, EAL/ASL-afhængigheder og håndberegnet totalsag er registreret; command-runner dræbte 21/21 mutationer uden timeout/fejl; browserrejse 1/1 med `82.741 kr.` og faktisk PDF-header/EOF | Generel PDF/Word-paritet og overlaprevision | `I gang` |
 | `CALC-006` | EO-snapshot, canonical totals, dokumentprojektion, inspektionsdage og sidevisning stikprøvet med to uafhængige orakler samt række-/periodefacitter | `CALC-006`-kørslen bestod med 159 filer / 2.169 tests, heraf 7 nye uafhængige række-/periodecases; en weekendydelse i arbejdsdagsbaseret TAF gav observeret `control:sammentaelling_mismatch`; `TD-016` er åbent | Øvrige rækkegrene, dokumentparitet, mutation og fuld E2E; udviklerens beslutning om TD-016 | `I gang` |
 | `DOC-001` | Katalog, definitioner, gate/lifecycle og renderer-wiring gennemgået som evidensbaseline for alle registrerede outputs | Fokuseret fixture-/lifecyclekontrol: fixture-registret 62/62 og 2 filer / 23 lifecycle-/coordinator-tests. Samlet dokumentmappe: 26 filer / 273 tests efter faktisk PDF-/Word-artefaktkontrol. Kataloget dækker 18 Mineo- og 3 standalone-outputs; TD-012 er lukket og TD-013 retestet med udvidet fasebevis | TD-014: manglende generel fysisk rendering og uafhængig PDF/Word-paritet | `I gang` |
-| `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, native LaunchQueue-form 2/2 i Chrome/Edge, øvrige målrettede browserflows grønne; fuld valgt E2E 186/186 efter fælles helper-konvergens | Fuld OS-/installeret-PWA-filaflevering og øvrig PWA-/platformsparitet; `TD-022` | `I gang` |
-| `MIN-001` | Standalone isolation, reset/fokus, error boundary, valid beregning, PDF, exit-guard og browserbaseret namespace-isolation gennemgået | `minprocesrente-valid-download.spec.ts`: 1/1, `minprocesrente-namespace-isolation.spec.ts`: 1/1 samt 186/186 i fuld valgt E2E | Fuld outputparitet og mutation | `I gang` |
-| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 7/7; eksakt produktionsbuilds lokale preview-smoke: 1/1; CI-jobsektionen starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup, E2E-matrixen downloader nu det samme artefakt, og statisk artefakt-flow-værn bestod med 6/6; TD-005 lukket | Faktisk GitHub Actions-kørsel og øvrige chunk-/Vite-advarsler mangler; B-002 er delvist dækket | `I gang` |
+| `SHELL-001` / `SHELL-002` | Auth, routes, desktop-/unsupported-device-gate, 404, PWA, service worker, preload og browsermotorer gennemgået | 26 fokuserede filer / 125 tests; bootstrap-sideeffekter 1/1, synlig mobil-hard-stop 1/1, shell/404 4/4, minimumsviewporter 12/12, PWA-installation 8/8, lazy-chunk recovery 4/4, native LaunchQueue-form 2/2 i Chrome/Edge, øvrige målrettede browserflows grønne; seneste fulde valgte E2E 190/192 efter fælles helper-konvergens | Fuld OS-/installeret-PWA-filaflevering og øvrig PWA-/platformsparitet; `TD-022` | `I gang` |
+| `MIN-001` | Standalone isolation, reset/fokus, error boundary, valid beregning, PDF, exit-guard og browserbaseret namespace-isolation gennemgået | `minprocesrente-valid-download.spec.ts`: 1/1, `minprocesrente-namespace-isolation.spec.ts`: 1/1 samt 190/192 i seneste fulde valgte E2E | Fuld outputparitet og mutation | `I gang` |
+| `BUILD-001` | Asset-eksistenskontrol og PWA-manifestets faktiske filudvalg gennemgået | Syntetisk `verifyBuildArtifacts.test.ts`: 2/2; `npm run build:mineo` bestået; E2E-buildserver og `eetPageAudit.spec.ts`: 8/8; eksakt produktionsbuilds lokale preview-smoke: 1/1; CI-jobsektionen starter det uploadede produktionsartefakt med fast port, proceskontrol, timeout og cleanup, E2E-matrixen downloader nu det samme artefakt, og statisk artefakt-flow-værn bestod med 6/6; TD-005 lukket | Faktisk GitHub Actions-kørsel og øvrige chunk-/Vite-advarsler mangler; B-002 er delvist dækket | `I gang` |
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; `githubActionsRuntimeCheck.test.ts`: 6/6 med statisk CI-artefaktkobling; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
@@ -191,8 +192,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   assetkontroller bestod. Rapporterne ligger i de ignorerede `coverage/`-artefakter.
 - `npm run test:e2e` bestod med 186/186 på 3 workers og 4,0 minutter på samme kode-revision.
   Kørselens browserrejser omfattede også den aktuelle production-artifact-smoke mod E2E-artefaktet.
-- `td019ValidatorSchemaIndependence.test.ts` bestod isoleret med 3/3, `fileHandleVerification.test.ts`
-  bestod med 22/22, og den uafhængige validatorprøve omfatter nu 13 cases. `npm run check:github-actions-runtime`, testtypecheck,
+- `td019ValidatorSchemaIndependence.test.ts` bestod isoleret med 4/4, `fileHandleVerification.test.ts`
+  bestod med 22/22, og den uafhængige validatorprøve omfatter nu 14 cases. `npm run check:github-actions-runtime`, testtypecheck,
   målrettet ESLint og `git diff --check` bestod.
 - `64085759` indeholder kun test-/CI-værn og auditdokumentation; produktionskode, beregningslogik,
   UI/UX og persistensformat er ikke ændret. Den efterfølgende CI-ændring i `2b234dd0` kobler også
@@ -254,7 +255,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - En tidligere parallel gentagelse stoppede undervejs, da E2E-buildserveren døde efter den første
   timeout og gav kaskaderende forbindelsesfejl. Den blev ikke accepteret som evidens; en ren gentagelse
   med samme 3-worker-opsætning bestod 180/180.
-- `eetPageAudit.spec.ts` bestod isoleret med 7/7 på Chrome-basisbanen. Den samlede EET-specsuite
+- `eetPageAudit.spec.ts` bestod isoleret med 8/8 på Chrome-basisbanen. Den samlede EET-specsuite
   bestod med 24/24, og den uafhængige validator-kontrol bestod med 10/10.
 - Test- og dokumentationssporet er nu committet i `83abfdad`; den efterfølgende dokumentationscommit
   gør denne status reproducerbar. Åbne fund og udviklerbeslutninger er uændrede.
@@ -311,6 +312,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Retesten kørte efter test-only-committen `ae0945ce` og den efterfølgende statuscommit `817a55e9`.
   De kendte Vite `configLoader: 'native'`- og store chunk-advarsler består og er fortsat registreret
   som restpunkter; ingen ny regressionsfejl blev fundet. Port 4173 var fri efter E2E-oprydningen.
+
+## Seneste målrettede test efter revision `d83b8038`
+
+- `td019ValidatorSchemaIndependence.test.ts` bestod med 4/4 tests efter en ny håndskrevet,
+  typed svie-/smerte-case; den samlede uafhængige validatorprøve omfatter nu 14 cases.
+- `npm run test:e2e -- e2e/eetPageAudit.spec.ts --project=chrome-desktop` bestod med 8/8.
+  Den nye rejse vælger Word i hovedappen, åbner EET efter EAL, kontrollerer synlig specifikation,
+  downloader den faktiske `.docx` og kontrollerer samme labels, dato, procent og beløb i
+  `word/document.xml`.
+- `npm run typecheck:test`, E2E-typecheck og målrettet ESLint bestod. Ændringerne er test-only;
+  ingen produktkode, beregningslogik, UI/UX eller persistensformat er ændret. Port 4173 var fri
+  efter den målrettede E2E-kørsel.
 
 ## Næste arbejdsenhed
 
