@@ -50,8 +50,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Coverage er afgrænset til `src/domain/**`, `src/utils/**`, `src/hooks/**`, `src/rowDrafts/**` og
   `src/contexts/**`; resten af produktionskildetræet skal dækkes via inventar og andre testniveauer eller
   registreres som et konkret coveragehul.
-- Der findes ingen mutationsrunner i projektets scripts. Værktøjskvalificering er derfor en særskilt
-  auditopgave og ikke gennemført evidens.
+- Ved auditstart fandtes ingen mutationsrunner i projektets scripts. Værktøjskvalificeringen er nu gennemført
+  med Stryker command-runneren, og `strykerCommandRunnerConfig.test.ts` beskytter den valgte konfiguration
+  mod drift.
 - Vite udsender ved test og E2E en fremadrettet `configLoader: 'native'`-advarsel. E2E-builden udsender
   også en chunk-advarsel over den konfigurerede 750 kB-grænse.
 - Den lokale Playwright CLI `0.1.18` rapporterede, at skill-versionen ikke matcher værktøjet, og
@@ -134,8 +135,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Status | Fund |
 | --- | --- |
 | Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024` |
-| Delvist lukket | `B-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025` |
-| Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-002`, `TD-003`, `TD-004`, `TD-016`, `TD-017` |
+| Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025` |
+| Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-003`, `TD-004`, `TD-016`, `TD-017` |
 
 ## Seneste komplette baseline-retest på revision `e8faa7ce`
 
