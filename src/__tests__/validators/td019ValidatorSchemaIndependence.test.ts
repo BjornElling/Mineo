@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
+import { toISODateString } from '../../types/branded';
 
 // Denne fixture er bevidst komplet og håndskrevet. Den skal kontrollere validatorens domænelag
 // uden at hente manglende felter fra schema-defaults eller en produktionsfabrik.
@@ -118,6 +119,77 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       errors: [{
         path: 'forligAnsvarsgradProcent',
         message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('kræver satsvalg for differentieret overenskomst ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [{
+        id: 'taf-1',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [{
+        id: 'af-1',
+        navnPaaArbejdssted: undefined,
+        harOverenskomst: true,
+        overenskomstId: 'bygge-anlaeg',
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+        harAnciennitetstillaegEfterSkadedatoen: false,
+        anciennitetstillaegDato: undefined,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+        anciennitetstillaegSats: undefined,
+        feriePct: undefined,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        storeBededagPct: 0,
+        pensionPct: undefined,
+        tillaegAngivesSom: 'procent',
+        loenperiode: 'maaned',
+        indtaegtsoplysningerTableData: [],
+        fuldLoenUnderFerie: 'Nej',
+        loenPaaHelligdage: 'Almindelig løn',
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: undefined,
+        loenudviklingManuelTableData: [],
+        loenudviklingManuelProcentsatsTableData: [],
+        offentligLoenType: undefined,
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        offentligLoenEkstraGrundloen: undefined,
+        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold[0].sfggSatsvalg',
+        message: 'Satsvalg mangler',
         severity: 'error',
       }],
     });
