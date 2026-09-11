@@ -124,4 +124,46 @@ describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
       }],
     });
   });
+
+  it('rapporterer manglende offentlig løntrin med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_PUBLIC_SALARY_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_PUBLIC_SALARY_VALUES.eoAngivetLoenLoenudvikling,
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: 2,
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
+        message: 'Løntrin skal udfyldes',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer manglende offentlig løngruppe med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_PUBLIC_SALARY_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_PUBLIC_SALARY_VALUES.eoAngivetLoenLoenudvikling,
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: 30,
+        offentligLoenGruppe: undefined,
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
+        message: 'Gruppe skal udfyldes',
+        severity: 'error',
+      }],
+    });
+  });
 });
