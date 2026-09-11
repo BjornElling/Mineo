@@ -66,6 +66,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - StrykerJS 10.0.0 med den officielle Vitest-runner bestod dry-run, men gav 0/58 dræbte mutationer på
   `money.ts`; den blev derfor fravalgt som auditbevis. StrykerJS command-runner med eksplicit Vitest-
   kommando dræbte 56/58 efter styrkelse af den dedikerede suite, uden timeout eller runnerfejl.
+- En tidsafgrænset forundersøgelse af `eetEalCalculation.ts` bestod dry-run med 434 mutationer, men en
+  seriel kørsel nåede kun 32/434 efter cirka ét minut (27 dræbte, 5 overlevere, 0 tekniske fejl) og blev
+  stoppet, fordi den estimerede fulde kørsel oversteg 20 minutter. Der findes derfor ingen afsluttende
+  EET-mutationsscore; delresultatet er ikke brugt som auditbevis.
 - Den nye dev-transitive `qs@6.15.1`-advisory via `typed-rest-client@2.3.1` blev afhjulpet med
   `overrides.qs = "6.16.0"`; `npm run check:vulnerabilities` er grøn efter ren `npm ci`. Override'et
   skal fjernes, når parentens range selv tillader den rettede version.
