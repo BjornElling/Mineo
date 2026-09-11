@@ -48,8 +48,11 @@ jobs:
       - name: Install Chromium for verified artifact smoke
         run: npx playwright install --with-deps chromium
 
-      - name: Start verified Mineo artifact
+      - name: Smoke-test verified Mineo artifact
         shell: bash
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_SKIP_WEBSERVER: '1'
         run: |
           set -euo pipefail
           preview_pid=''
@@ -63,24 +66,26 @@ jobs:
 
           npx vite preview --config vite.mineo.config.ts --host 127.0.0.1 --port 4173 --strictPort > /tmp/mineo-preview.log 2>&1 &
           preview_pid=$!
+          preview_ready=''
           for attempt in {1..30}; do
             if ! kill -0 "$preview_pid" 2>/dev/null; then
               cat /tmp/mineo-preview.log
               exit 1
             fi
             if curl --fail --silent --show-error --connect-timeout 1 --max-time 2 http://127.0.0.1:4173/index.html > /dev/null; then
-              exit 0
+              preview_ready=1
+              break
             fi
             sleep 1
           done
-          cat /tmp/mineo-preview.log
-          exit 1
-
-      - name: Smoke-test verified Mineo artifact
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-          PLAYWRIGHT_SKIP_WEBSERVER: '1'
-        run: npm run test:e2e -- e2e/production-artifact-smoke.spec.ts --project=chrome-desktop
+          if [[ -z "$preview_ready" ]]; then
+            cat /tmp/mineo-preview.log
+            exit 1
+          fi
+          if ! npm run test:e2e -- e2e/production-artifact-smoke.spec.ts --project=chrome-desktop; then
+            cat /tmp/mineo-preview.log
+            exit 1
+          fi
 
   e2e:
     name: E2E (${{ matrix.project }})
