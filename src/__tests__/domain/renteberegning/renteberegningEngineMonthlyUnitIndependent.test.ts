@@ -11,7 +11,7 @@ const surchargeRates: RateEntry[] = [
 ];
 
 describe('renteberegningEngine – månedlig tillægstid med selvstændigt facit', () => {
-  it('clamper 31. januar 2024 til 29. februar og beregner engine-outputtet', () => {
+  it('begrænser 31. januar 2024 til 29. februar og beregner motorens resultat', () => {
     const result = computeRentekravRow(
       {
         id: 'row-month-clamp',

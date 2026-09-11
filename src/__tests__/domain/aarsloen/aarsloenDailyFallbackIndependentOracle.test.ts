@@ -1,4 +1,3 @@
-import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { computeAarsloenBeregning } from '../../../domain/aarsloen/aarsloenBeregning';
 import type { AarsloenValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
@@ -7,13 +6,13 @@ import { toISODateString } from '../../../types/branded';
 const amount = (value: number): StandardLoenTableRow['col2'] => ({ kind: 'number', value });
 
 const values: AarsloenValues = {
-  ...createAarsloenInitialValues(),
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
   loenperiode: LOENPERIODE.DAG,
   tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB,
-  fuldLoenUnderFerie: true,
-  retTilSjetteFerieuge: false,
-  antalFeriedage: 0,
-  loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
   tableData: [
     {
       id: 'august-ikke-hel',
@@ -31,6 +30,11 @@ const values: AarsloenValues = {
       pensionBeloeb: undefined,
     },
   ],
+  omregningTilFuldtAar: false,
+  fuldLoenUnderFerie: true,
+  retTilSjetteFerieuge: false,
+  antalFeriedage: 0,
+  loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
 };
 
 describe('Årsløn – uafhængigt facit for daglønnes hverdagsfallback', () => {

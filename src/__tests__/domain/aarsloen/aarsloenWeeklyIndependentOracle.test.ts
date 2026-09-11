@@ -1,13 +1,17 @@
-import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { computeAarsloenBeregning } from '../../../domain/aarsloen/aarsloenBeregning';
 import type { AarsloenValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { LOENPERIODE } from '../../../types/loen';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 const amount = (value: number): StandardLoenTableRow['col2'] => ({ kind: 'number', value });
 
 const values: AarsloenValues = {
-  ...createAarsloenInitialValues(),
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
   loenperiode: LOENPERIODE.UGE,
+  tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
   tableData: [
     {
       id: 'weekly-facit',
@@ -25,6 +29,11 @@ const values: AarsloenValues = {
       pensionBeloeb: undefined,
     },
   ],
+  omregningTilFuldtAar: false,
+  fuldLoenUnderFerie: true,
+  retTilSjetteFerieuge: true,
+  antalFeriedage: undefined,
+  loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
 };
 
 describe('Årsløn – uafhængigt ugefacit gennem beregningsindgangen', () => {

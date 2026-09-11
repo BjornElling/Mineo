@@ -1,7 +1,6 @@
-import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { computeAarsloenBeregning } from '../../../domain/aarsloen/aarsloenBeregning';
 import type { AarsloenValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../../types/loen';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number) => ({ kind: 'number' as const, value });
@@ -36,8 +35,24 @@ const dayRow = (id: string, from: string, to: string, value: number): StandardLo
   col2: amount(value),
 });
 
+const baseValues: AarsloenValues = {
+  feriePct: undefined,
+  fritvalgPct: undefined,
+  shSoPct: undefined,
+  storeBededagPct: undefined,
+  pensionPct: undefined,
+  loenperiode: LOENPERIODE.MAANED,
+  tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
+  tableData: [],
+  omregningTilFuldtAar: false,
+  fuldLoenUnderFerie: true,
+  retTilSjetteFerieuge: true,
+  antalFeriedage: undefined,
+  loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+};
+
 const values = (overrides: Partial<AarsloenValues>): AarsloenValues => ({
-  ...createAarsloenInitialValues(),
+  ...baseValues,
   ...overrides,
 });
 

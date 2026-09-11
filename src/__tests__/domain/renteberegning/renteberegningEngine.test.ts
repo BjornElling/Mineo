@@ -36,7 +36,7 @@ const normalizeOutput = (rows: ReadonlyArray<{ id: string; actualInterestDate: s
 };
 
 describe('renteberegningEngine', () => {
-  it('computes interest with explicit reference data', () => {
+  it('beregner rente med eksplicitte referencesatser', () => {
     const { referenceRates, surchargeRates } = buildRates();
     const amount = 1000;
     const startIso = toISODateString('2024-01-01');
@@ -80,7 +80,7 @@ describe('renteberegningEngine', () => {
     });
   });
 
-  it('returns null interest when beregningsdato is missing', () => {
+  it('returnerer null-rente når beregningsdato mangler', () => {
     const { referenceRates, surchargeRates } = buildRates();
     const startIso = toISODateString('2024-01-01');
     const expectedInterestDate = toISODateString('2024-01-11');
@@ -110,7 +110,7 @@ describe('renteberegningEngine', () => {
     });
   });
 
-  it('rounds edge case values deterministically', () => {
+  it('afrunder grænseværdier deterministisk', () => {
     const { referenceRates, surchargeRates } = buildRates(1.83, 0);
     const startIso = toISODateString('2024-01-01');
     const endIso = toISODateString('2024-01-01');
@@ -135,7 +135,7 @@ describe('renteberegningEngine', () => {
     expect(output.rows[0].calculatedInterest).toBe(0.01);
   });
 
-  it('is deterministic for identical input snapshots', () => {
+  it('er deterministisk for identiske input-snapshots', () => {
     const { referenceRates, surchargeRates } = buildRates();
     const snapshot = {
       renteberegning: {
@@ -161,7 +161,7 @@ describe('renteberegningEngine', () => {
     expect(first).toEqual(second);
   });
 
-  it('is order-independent for rentekrav rows', () => {
+  it('er uafhængig af rækkefølgen for rentekravsrækker', () => {
     const { referenceRates, surchargeRates } = buildRates();
     const startIso = toISODateString('2024-01-01');
     const endIso = toISODateString('2024-02-01');
@@ -198,7 +198,7 @@ describe('renteberegningEngine', () => {
     expect(normalizeOutput(outputA.rows)).toEqual(normalizeOutput(outputB.rows));
   });
 
-  it('matches interestCalculator output for same validated dates and rates', () => {
+  it('matcher interestCalculator-resultatet for samme validerede datoer og satser', () => {
     const { referenceRates, surchargeRates } = buildRates(2.15, 8);
     const renterFra = toISODateString('2024-01-15');
     const beregningsdato = toISODateString('2024-12-31');
