@@ -43,6 +43,10 @@ describe('calculateProcessInterestWithRates – null-paths', () => {
     ])).toEqual(parseISODate(toISODateString(expectedEnd)));
   });
 
+  it('returnerer null når referencesatstabellen er tom', () => {
+    expect(findLatestReferenceRatePeriodEnd([])).toBeNull();
+  });
+
   it('ugyldig startdato (ikke-parseable) → null', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
@@ -173,6 +177,61 @@ describe('calculateProcessInterestWithRates – null-paths', () => {
       []
     );
     expect(result).toBeNull();
+  });
+
+  it.each([
+    ['tillægssats', buildMinimalRates().ref, [{ effectiveDate: toISODateString('2025-01-01'), ratePct: 8 }]],
+    ['referencesats', [{ effectiveDate: toISODateString('2025-01-01'), ratePct: 2 }], buildMinimalRates().sur],
+  ])('returnerer null når %s endnu ikke er trådt i kraft', (_label, ref, sur) => {
+    const result = calculateProcessInterestWithRates(
+      1000,
+      toISODateString('2024-01-01'),
+      toISODateString('2024-01-31'),
+      ref,
+      sur
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('sorterer satser kronologisk og ignorerer ugyldige poster', () => {
+    const breakdown = calculateProcessInterestBreakdownWithRates(
+      100000,
+      toISODateString('2020-06-30'),
+      toISODateString('2020-07-01'),
+      [
+        { effectiveDate: toISODateString('2020-07-01'), ratePct: 4 },
+        { effectiveDate: toISODateString('2010-01-01'), ratePct: 2 },
+        { effectiveDate: badDate, ratePct: 3 },
+      ],
+      [
+        { effectiveDate: toISODateString('2020-01-01'), ratePct: Number.NaN },
+        { effectiveDate: toISODateString('2010-01-01'), ratePct: 8 },
+      ]
+    );
+
+    expect(breakdown).not.toBeNull();
+    expect(breakdown?.periods.map((period) => period.referenceRatePct)).toEqual([2, 4]);
+    expect(breakdown?.periods.map((period) => period.surchargeRatePct)).toEqual([8, 8]);
+  });
+
+  it('bruger den seneste sats før datoen og stopper ved en fremtidig sats', () => {
+    const breakdown = calculateProcessInterestBreakdownWithRates(
+      100000,
+      toISODateString('2013-02-01'),
+      toISODateString('2013-02-28'),
+      [
+        { effectiveDate: toISODateString('2010-01-01'), ratePct: 2 },
+        { effectiveDate: toISODateString('2013-07-01'), ratePct: 4 },
+      ],
+      [
+        { effectiveDate: toISODateString('2010-01-01'), ratePct: 8 },
+        { effectiveDate: toISODateString('2013-03-01'), ratePct: 9 },
+      ]
+    );
+
+    expect(breakdown?.periods[0]?.referenceRatePct).toBe(2);
+    expect(breakdown?.periods[0]?.surchargeRatePct).toBe(8);
   });
 });
 
