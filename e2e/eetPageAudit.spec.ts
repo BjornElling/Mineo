@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+
+import JSZip from 'jszip';
 import type { Page } from '@playwright/test';
 
 import {
@@ -151,6 +154,41 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
       expect(download.suggestedFilename()).toMatch(/\.pdf$/);
     }
 
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  test('kan vælge Word og hente semantisk indhold fra EET-dokumentet', async ({
+    page,
+    runtimeErrors,
+  }, testInfo) => {
+    await setupValidSag(page);
+
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
+    await page.getByRole('option', { name: 'Word', exact: true }).click();
+
+    await openPage(page, 'Erhvervsevnetab');
+    await eetTab(page, 'Løbende ydelser').click();
+
+    const button = downloadButton(page);
+    await expect(button).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await button.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+    const documentXml = await zip.file('word/document.xml')?.async('string');
+    expect(documentXml).toBeDefined();
+    expect(documentXml).toContain('Løbende ydelser (EET)');
+    expect(documentXml).toContain('Afgørelse');
+    expect(documentXml).toContain('400.000 kr.');
+    expect(documentXml).toContain('25 %');
+
+    await download.saveAs(testInfo.outputPath('eet-loebende-ydelser.docx'));
     expect(runtimeErrors).toEqual([]);
   });
 });
