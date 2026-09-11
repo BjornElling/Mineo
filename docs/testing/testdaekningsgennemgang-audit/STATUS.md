@@ -5,7 +5,7 @@ projektroden og må ikke indeholde rigtige person- eller sagsdata.
 
 ## Status
 
-- Revision: `a9423e35`
+- Revision: `d43d4837`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen og `dateCommit.ts`; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, uafhængige satsfacitter, en uafhængig sats → beregning → dokument-kæde, standalone valid-PDF-forløb, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og et levende GitHub Actions-runtimeværn er tilføjet og retestet. Alle tidligere underopgaver er afsluttet eller eksplicit stoppet; ingen subagent er aktiv.
@@ -23,9 +23,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | --- | --- | --- | --- |
 | Typechecks | `npm run check:types` | Bestået | Alle fire TypeScript-projekter bestået |
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
-| Vitest | `npm run test` | Bestået | 635 filer, 8.421 tests, 278,06 s |
-| E2E-baner | `npm run test:e2e` | Bestået | 174 tests, 4,1 min, 3 workers; `playwright-report/` og `test-results/` |
-| Coverage | `npm run test:coverage` | Bestået | 644 testfiler / 8.461 tests; 88,88 % statements, 80,20 % branches, 91,71 % functions, 91,68 % lines; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
+| Vitest | `npm run test` | Bestået | 660 filer, 8.585 tests bestået samt 6 forventede `it.fails`, 254,25 s |
+| E2E-baner | `npm run test:e2e` | Bestået | 178 tests, 4,0 min, 3 workers; `playwright-report/` og `test-results/` |
+| Coverage | `npm run test:coverage` | Bestået | 660 testfiler / 8.585 tests bestået samt 6 forventede `it.fails`; 89,21 % statements, 80,45 % branches, 92,35 % functions, 92,01 % lines; 20.584 / 16.090 / 3.218 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 25 filer, 238 tests, 13,92 s |
@@ -113,13 +113,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | `ARCH-003` | Lane-tag-vagten parser nu syntaksbevidst tags i E2E-specs | `e2eSuiteConventions.test.ts`: 20/20 bestået; `check:e2e-lanes`: 2 gyldige tags; TD-006 lukket | Øvrige release-/CI-værn og fuld kobling til releaseforløbet mangler | `I gang` |
 | `ARCH-001` | Bare test-only basenames er fjernet fra kontrakt-referenceopslag | `contractReferenceLiveness.test.ts`: 12/12 bestået efter triage; eksakte teststier accepteres fortsat; TD-007 lukket | Semantisk gennemgang af alle kontraktparagraffer og øvrige ARCH-001-værn mangler | `I gang` |
 
-## Seneste retest på revision `a9423e35`
+## Seneste retest på revision `d43d4837`
 
 - `DATE-001`: `dateCommit.ts` har 6 mutationer, 4 dræbte og 2 ækvivalente overlevere uden timeout eller tekniske fejl.
 - `DOC-001`/`DOC-002`: dokumentgruppen bestod med 29/29; EET-løbende-ydelsernes PDF-resolved table cells
   matcher Word `document.xml` for den fælles tabelcase.
 - `ARCH-003`: `check:github-actions-runtime` og 5 nye quality-tests er grønne. Kontrollen matcher nu den
   levende YAML-form `- uses:`; B-002 om separat E2E-/deploy-artefakt er fortsat åbent.
+- Fuld Vitest-coverage bestod med 660 filer, 8.585 beståede tests og 6 forventede `it.fails`; 89,21 %
+  statements, 80,45 % branches, 92,35 % functions og 92,01 % lines. Ubrugte runtimefiler er triageret og
+  fjernet i `d43d4837`; de resterende lave platform-/frameworkflader er ikke dækket kunstigt.
+- Fuld valgt E2E-suite bestod med 178/178 på Chrome, Edge, Firefox, WebKit og de markerede viewport-/fallbackbaner.
+  Den nye mobil-hard-stopkontrol og EET-Word-indholdskontrol bestod i samme kørsel.
 
 ## Næste arbejdsenhed
 
@@ -129,4 +134,6 @@ afklaring af `TD-016` og øvrige EO-grene. `DOC-001` har nu standalone/per-outpu
 PDF-/Word-parse/render og semantisk paritet. `DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`,
 `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver
 fortsat platform-/IndexedDB-bevis under `TD-017`. Afslut løbende de resterende `INPUT`-/`VALID`-, `DATA`-, shell- og
-releaseværnshuller. Hver række skal kobles til konkret test- og uafhængig evidens, før status sættes til andet end `I gang`.
+releaseværnshuller. Den fulde coverage- og E2E-gate er nu kørt; næste afgrænsede arbejdsenhed er release-/buildgate
+og derefter en samlet rest-risikorevision. Hver række skal kobles til konkret test- og uafhængig evidens, før status
+sættes til andet end `I gang`.
