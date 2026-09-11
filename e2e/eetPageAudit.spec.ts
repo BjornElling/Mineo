@@ -244,6 +244,64 @@ test.describe('EET-siden – samlet fane- og downloadaudit', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  test('kan hente Word med EET efter EALs synlige beregning', async ({
+    page,
+    runtimeErrors,
+  }, testInfo) => {
+    await setupValidSag(page);
+
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
+    await page.getByRole('option', { name: 'Word', exact: true }).click();
+
+    await openPage(page, 'Erhvervsevnetab');
+    await eetTab(page, 'EET efter EAL').click();
+    await expect(eetTab(page, 'EET efter EAL')).toHaveAttribute('aria-selected', 'true');
+
+    const specification = page.locator('.content-box').filter({
+      has: page.getByText('Specifikation', { exact: true }),
+    });
+    await expect(specification).toBeVisible();
+    await expect(specification).toContainText('Skadedato');
+    await expect(specification).toContainText('01-06-2018');
+    await expect(specification).toContainText('Erhvervsevnetab');
+    await expect(specification).toContainText('25 %');
+    await expect(specification).toContainText('Kapitaliseringsfaktor');
+    await expect(specification).toContainText('10');
+    await expect(specification).toContainText('Beregnet EET (efter EAL)');
+
+    const visibleResultText = await specification.locator('.row--label-right-hover').last().innerText();
+    const visibleAmount = visibleResultText.match(/[\d.]+ kr\./g)?.at(-1);
+    expect(visibleAmount).toBeDefined();
+
+    const button = downloadButton(page);
+    await expect(button).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent('download');
+    await button.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.docx$/);
+
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const zip = await JSZip.loadAsync(await readFile(downloadPath!));
+    const documentXml = await zip.file('word/document.xml')?.async('string');
+    expect(documentXml).toBeDefined();
+    expect(documentXml).toContain('EET efter EAL');
+    expect(documentXml).toContain('Specifikation');
+    expect(documentXml).toContain('Skadedato');
+    expect(documentXml).toContain('01-06-2018');
+    expect(documentXml).toContain('Erhvervsevnetab');
+    expect(documentXml).toContain('25 %');
+    expect(documentXml).toContain('Kapitaliseringsfaktor');
+    expect(documentXml).toContain('10');
+    expect(documentXml).toContain('Beregnet EET (efter EAL)');
+    expect(documentXml).toContain(visibleAmount!);
+
+    await download.saveAs(testInfo.outputPath('eet-efter-eal.docx'));
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('kan hente Word med Differencekravets synlige beregning', async ({
     page,
     runtimeErrors,
