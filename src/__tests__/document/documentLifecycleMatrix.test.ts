@@ -6,7 +6,7 @@
  *
  *   - åben draft, som settler gyldigt
  *   - åben draft, som settler fejlende
- *   - input-/settingsrevisionsændring under lazy-load
+ *   - input-/settingsrevisionsændring ved hver freshness-grænse under lazy-load
  *   - direkte programmatisk aktivering
  *   - "for blokerede cases sker der ikke lazy-load, generatorimport eller fil-I/O"
  *
@@ -30,7 +30,11 @@ import { defineDocumentOutput, type DocumentDefinition } from '../../document/de
 import { documentActionFromDefinition } from '../../document/definition/documentAction';
 import type { DocumentExecutionEnvironment } from '../../document/definition/documentExecutionEnvironment';
 import { executeDocumentDownload } from '../../document/definition/documentLifecycle';
-import { blockedProjection, type DocumentFailure } from '../../document/definition/documentOutcome';
+import {
+  blockedProjection,
+  type DocumentDiagnostics,
+  type DocumentFailure,
+} from '../../document/definition/documentOutcome';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
 
 vi.mock('../../document/downloadArtifact', () => ({
@@ -39,8 +43,8 @@ vi.mock('../../document/downloadArtifact', () => ({
 
 const triggerMock = vi.mocked(triggerDocumentDownload);
 
-const tokenAt = (revision: number): EvaluationSourceToken =>
-  createEvaluationSourceToken(createInputRevision(revision), createSettingsRevision(1));
+const tokenAt = (inputRevision: number, settingsRevision = 1): EvaluationSourceToken =>
+  createEvaluationSourceToken(createInputRevision(inputRevision), createSettingsRevision(settingsRevision));
 
 /**
  * Et minimalt `InputEvaluation`. Livscyklussen læser kun `issues.sourceToken` af det; resten går
@@ -56,21 +60,25 @@ type Preparation =
 
 /** Ét instrumenteret miljø + én instrumenteret definition. Alt der kan observeres, observeres. */
 const createHarness = (options: Readonly<{
-  /** Revisionen ved hver `readCurrentSourceToken`-forespørgsel, i rækkefølge. */
-  currentTokens?: readonly number[];
-  capturedRevision?: number;
+  /** Tokenet ved hver `readCurrentSourceToken`-forespørgsel, i rækkefølge. */
+  currentTokens?: readonly EvaluationSourceToken[];
+  capturedToken?: EvaluationSourceToken;
   preparation?: Preparation;
   projectResult?: 'ready' | 'blocked';
   prepareThrows?: boolean;
   captureThrows?: boolean;
+  devPreflight?: 'none' | 'success' | 'failure' | 'throws';
+  createSessionThrows?: boolean;
   renderThrows?: boolean;
 }> = {}) => {
   const {
-    capturedRevision = 1,
+    capturedToken = tokenAt(1),
     preparation = { status: 'committed', token: tokenAt(1) } as Preparation,
     projectResult = 'ready',
     prepareThrows = false,
     captureThrows = false,
+    devPreflight = 'none',
+    createSessionThrows = false,
     renderThrows = false,
   } = options;
 
@@ -82,14 +90,17 @@ const createHarness = (options: Readonly<{
     render: 0,
     focus: 0,
     reportFailure: [] as DocumentFailure[],
+    reportDiagnostics: [] as DocumentDiagnostics[],
+    devPreflight: 0,
+    devDiagnostics: [] as DocumentDiagnostics[],
   };
 
   let tokenReads = 0;
   const readCurrentSourceToken = (): EvaluationSourceToken => {
     const sequence = options.currentTokens ?? [];
-    const revision = sequence[tokenReads] ?? sequence.at(-1) ?? capturedRevision;
+    const token = sequence[tokenReads] ?? sequence.at(-1) ?? capturedToken;
     tokenReads += 1;
-    return tokenAt(revision);
+    return token;
   };
 
   const criticalActions = {
@@ -108,7 +119,7 @@ const createHarness = (options: Readonly<{
     captureSource: () => {
       if (captureThrows) throw new Error('capturefejl');
       return {
-        evaluation: evaluationAt(tokenAt(capturedRevision)),
+        evaluation: evaluationAt(capturedToken),
         gateSettings: undefined,
         renderSettings: undefined,
       };
@@ -118,10 +129,21 @@ const createHarness = (options: Readonly<{
     resolveFormat: () => 'pdf' as const,
     createSession: async () => {
       calls.createSession += 1;
+      if (createSessionThrows) throw new Error('writer-load-fejl');
       return { format: 'pdf', render: async () => new Blob() } as never;
     },
     resolveVisBrevhoved: () => false,
-    reportFailure: (failure: DocumentFailure) => { calls.reportFailure.push(failure); },
+    checkDevServerAvailability: devPreflight === 'none' ? undefined : async (diagnostics) => {
+      calls.devPreflight += 1;
+      calls.devDiagnostics.push(diagnostics);
+      if (devPreflight === 'failure') return { kind: 'dev-server-unavailable', phase: 'dev-preflight' };
+      if (devPreflight === 'throws') throw new Error('dev-preflight-fejl');
+      return null;
+    },
+    reportFailure: (failure: DocumentFailure, diagnostics: DocumentDiagnostics) => {
+      calls.reportFailure.push(failure);
+      calls.reportDiagnostics.push(diagnostics);
+    },
     // Harnessen måler på `reportFailure`, ikke på beskedteksten; politikken her er derfor
     // ligegyldig for testen, men feltet er obligatorisk, så et nyt miljø ikke kan glemme at tage
     // stilling til §A5.
@@ -210,7 +232,7 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
     // Barrieren committede på revision 1, men snapshottet er revision 2.
     const harness = createHarness({
       preparation: { status: 'committed', token: tokenAt(1) },
-      capturedRevision: 2,
+      capturedToken: tokenAt(2),
     });
     const outcome = await run(harness);
 
@@ -220,9 +242,83 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
     expect(triggerMock).not.toHaveBeenCalled();
   });
 
+  it('case: settingsrevisionen flytter MELLEM settle og kildeoptagelse → afvist i capture-fasen', async () => {
+    const harness = createHarness({
+      preparation: { status: 'committed', token: tokenAt(1, 1) },
+      capturedToken: tokenAt(1, 2),
+    });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'capture' } });
+    expect(harness.calls.project).toBe(0);
+    expect(harness.calls.loadRenderer).toBe(0);
+    expect(harness.calls.reportFailure).toEqual([]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('case: revisionen flytter ved indgangen til afviklingen → afvist i gate-fasen', async () => {
+    const harness = createHarness({ currentTokens: [tokenAt(2)] });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'gate' } });
+    expect(harness.calls.loadRenderer).toBe(0);
+    expect(harness.calls.createSession).toBe(0);
+    expect(harness.calls.reportFailure).toEqual([]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('case: DEV-preflight består → fase og diagnostics observeres, før resten af kæden kører', async () => {
+    const harness = createHarness({ devPreflight: 'success' });
+    const outcome = await run(harness);
+
+    expect(outcome).toEqual({ status: 'downloaded' });
+    expect(harness.calls.devPreflight).toBe(1);
+    expect(harness.calls.devDiagnostics).toEqual([{ outputId: 'satser', phase: 'dev-preflight' }]);
+    expect(harness.calls.loadRenderer).toBe(1);
+    expect(triggerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('case: DEV-preflight afviser utilgængelig server → dev-fejloutcome og ingen lazy-load', async () => {
+    const harness = createHarness({ devPreflight: 'failure' });
+    const outcome = await run(harness);
+
+    expect(outcome).toEqual({ status: 'failed', failure: { kind: 'dev-server-unavailable', phase: 'dev-preflight' } });
+    expect(harness.calls.devDiagnostics).toEqual([{ outputId: 'satser', phase: 'dev-preflight' }]);
+    expect(harness.calls.loadRenderer).toBe(0);
+    expect(harness.calls.createSession).toBe(0);
+    expect(harness.calls.reportFailure).toEqual([]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('case: DEV-preflight kaster → runtimefejl rapporteres i dev-preflight-fasen', async () => {
+    const harness = createHarness({ devPreflight: 'throws' });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime', phase: 'dev-preflight' } });
+    expect(harness.calls.devPreflight).toBe(1);
+    expect(harness.calls.loadRenderer).toBe(0);
+    expect(harness.calls.reportFailure).toHaveLength(1);
+    expect(harness.calls.reportDiagnostics).toEqual([{ outputId: 'satser', phase: 'dev-preflight' }]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('case: revisionen flytter efter DEV-preflight → afvist i dev-preflight-fasen', async () => {
+    const harness = createHarness({
+      devPreflight: 'success',
+      currentTokens: [tokenAt(1), tokenAt(2)],
+    });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'dev-preflight' } });
+    expect(harness.calls.devPreflight).toBe(1);
+    expect(harness.calls.loadRenderer).toBe(0);
+    expect(harness.calls.reportFailure).toEqual([]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
   it('case: revisionen flytter under LAZY-LOAD → afvist før generatoren når at rendere', async () => {
     // Entry-checket ser stadig revision 1; checket efter renderer-load ser revision 2.
-    const harness = createHarness({ currentTokens: [1, 2] });
+    const harness = createHarness({ currentTokens: [tokenAt(1), tokenAt(2)] });
     const outcome = await run(harness);
 
     expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'renderer-load' } });
@@ -233,9 +329,36 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
     expect(triggerMock).not.toHaveBeenCalled();
   });
 
+  it('case: settingsrevisionen flytter efter writer-load → afvist i writer-load-fasen', async () => {
+    const harness = createHarness({
+      currentTokens: [tokenAt(1, 1), tokenAt(1, 1), tokenAt(1, 2)],
+    });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'writer-load' } });
+    expect(harness.calls.loadRenderer).toBe(1);
+    expect(harness.calls.createSession).toBe(1);
+    expect(harness.calls.render).toBe(0);
+    expect(harness.calls.reportFailure).toEqual([]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
+  it('case: writer-load-fejl rapporteres som SYSTEMFEJL i writer-load-fasen', async () => {
+    const harness = createHarness({ createSessionThrows: true });
+    const outcome = await run(harness);
+
+    expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime', phase: 'writer-load' } });
+    expect(harness.calls.loadRenderer).toBe(1);
+    expect(harness.calls.createSession).toBe(1);
+    expect(harness.calls.render).toBe(0);
+    expect(harness.calls.reportFailure).toHaveLength(1);
+    expect(harness.calls.reportDiagnostics).toEqual([{ outputId: 'satser', phase: 'writer-load' }]);
+    expect(triggerMock).not.toHaveBeenCalled();
+  });
+
   it('case: revisionen flytter under RENDERING → artifactet kasseres UDEN fil-I/O', async () => {
     // Entry, renderer-load og writer-load ser revision 1; checket efter render ser revision 2.
-    const harness = createHarness({ currentTokens: [1, 1, 1, 2] });
+    const harness = createHarness({ currentTokens: [tokenAt(1), tokenAt(1), tokenAt(1), tokenAt(2)] });
     const outcome = await run(harness);
 
     expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'stale-source', phase: 'render' } });
@@ -273,10 +396,11 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
     const harness = createHarness({ renderThrows: true });
     const outcome = await run(harness);
 
-    expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime' } });
+    expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime', phase: 'render' } });
     // §A5: kun `runtime` når systemfejl-sinken – afvisninger gør ikke.
     expect(harness.calls.reportFailure).toHaveLength(1);
     expect(harness.calls.reportFailure[0]?.kind).toBe('runtime');
+    expect(harness.calls.reportDiagnostics).toEqual([{ outputId: 'satser', phase: 'render' }]);
     expect(triggerMock).not.toHaveBeenCalled();
   });
 
@@ -284,7 +408,7 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
     for (const harness of [
       createHarness({ projectResult: 'blocked' }),
       createHarness({ preparation: { status: 'blocked', target: null } }),
-      createHarness({ capturedRevision: 2, preparation: { status: 'committed', token: tokenAt(1) } }),
+      createHarness({ capturedToken: tokenAt(2), preparation: { status: 'committed', token: tokenAt(1) } }),
     ]) {
       await run(harness);
       expect(harness.calls.reportFailure).toEqual([]);
