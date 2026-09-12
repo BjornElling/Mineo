@@ -967,6 +967,11 @@ testfiler / 8.828 tests, ingen forventede `it.fails`, coverage 90,23 / 81,38 / 9
 begge produktionsbuilds. Vite rapporterede fortsat kun de kendte native-config- og
 chunk-størrelsesadvarsler.
 
+Den følsomme `Loenindkomst.nestedLoentabel.integration.test.tsx` blev desuden kørt fem gange
+serielt uden coverage og bestod med 45/45 tests. Det styrker den hidtidige stabilitetsevidens for
+`TD-025`, men forklarer ikke den oprindelige parallelle async-/Tooltip-følsomhed, så fundet forbliver
+delvist lukket.
+
 `TD-001` afventer de faktiske gamle `.eo`-filer. `TD-016` afventer stadig brugerobservation og
 domænevalg, fordi udviklerens svar korrigerede instruktionerne, men ikke tog stilling til den
 observerede advarsel og dokumentblokering. `TD-014`/`TD-018` fortsætter med automatiseret kontrol

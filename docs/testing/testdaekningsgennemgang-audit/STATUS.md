@@ -911,6 +911,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   skips ud af 208 på 10 projektbaner, med 3 workers på 4,3 minutter. Den samlede
   `verify:release:core` bestod på samme revision med 741 testfiler / 8.828 tests, ingen forventede
   `it.fails`, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge produktionsbuilds.
+- Den historisk følsomme `Loenindkomst.nestedLoentabel.integration.test.tsx` blev efterfølgende
+  kørt fem gange serielt uden coverage og bestod med 45/45 tests. Det styrker stabilitetsevidensen
+  for `TD-025`, men forklarer ikke den oprindelige parallelle async-/Tooltip-følsomhed; fundet er
+  derfor fortsat delvist lukket.
 
 ## Næste arbejdsenhed
 
