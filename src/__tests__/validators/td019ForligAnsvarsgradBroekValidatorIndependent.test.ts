@@ -119,4 +119,20 @@ describe('TD-019 – forligets brøkvalidering uden schema-fixture', () => {
       }],
     });
   });
+
+  it('afviser en brøk med nul som tæller med præcis feltsti, dansk besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      forligAnsvarsgradBroek: '0/3',
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'forligAnsvarsgradBroek',
+        message: 'Tæller kan ikke være 0 (ville nulstille erstatningen)',
+        severity: 'error',
+      }],
+    });
+  });
 });
