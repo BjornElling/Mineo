@@ -184,6 +184,25 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('rapporterer negativ fritvalg-procent på en håndskrevet typed runtime-værdi', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIELOVEN_VALUES.loenindkomstAnsaettelsesforhold[0],
+        fritvalgPct: -1,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].fritvalgPct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('kræver beregningskilde for sygeferiegodtgørelse ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,

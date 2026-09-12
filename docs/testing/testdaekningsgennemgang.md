@@ -700,7 +700,7 @@ antages gennemført på forhånd.
   rigtige Vitest-tests og markerer en bevidst svækket assertion som overlevet.
 - [x] Beslut isolation, timeout, workerantal, cache og rapportformat med en målt prøvekørsel. Mutationskørsel
   må ikke gøre almindelige tests eller E2E-runneren ustabil.
-- [ ] Før en dependency tilføjes, dokumentér begrundelse, lockfile-/vedligeholdelsesrisiko og den konkrete
+- [x] Før en dependency tilføjes, dokumentér begrundelse, lockfile-/vedligeholdelsesrisiko og den konkrete
   release-/CI-integration. Følg projektets dependency-regler.
 
 ### 7.2 Prioriteret mutationsplan – `MUT`
