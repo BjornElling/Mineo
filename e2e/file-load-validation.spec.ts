@@ -116,4 +116,35 @@ test.describe('Filvalidering ved Hent', () => {
     await expect(page.getByText('Filen er indlæst – nogle felter blev sat til standardværdier.')).toBeVisible();
     expect(runtimeErrors).toEqual([]);
   });
+
+  test('bevarer den aktive sag, når brugeren stopper direkte i preflight', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await openPage(page, 'Stamdata');
+
+    const nameInput = page.locator("input[name='skadelidte']");
+    await setVerbatimFieldValueAndSettle(nameInput, 'Aktiv sag før afvisning');
+
+    await page.getByRole('button', { name: 'Hent' }).click();
+    const fileInput = page.locator('input[type="file"]');
+    await expect(fileInput).toBeAttached();
+    await fileInput.setInputFiles({
+      name: 'aeldre-sag.eo',
+      mimeType: 'application/octet-stream',
+      buffer: await buildLegacyPartialFile(page),
+    });
+
+    const preflightDialog = page.getByRole('dialog').filter({
+      hasText: 'Nogle felter blev sat til standardværdier',
+    });
+    await expect(preflightDialog).toBeVisible();
+    await expect(preflightDialog.getByRole('button', { name: 'Stop og gør intet' })).toBeVisible();
+
+    await preflightDialog.getByRole('button', { name: 'Stop og gør intet' }).click();
+
+    await expect(preflightDialog).toBeHidden();
+    await expect(page).toHaveURL(/\/stamdata$/);
+    await expect(nameInput).toHaveValue('Aktiv sag før afvisning');
+    await expect(page.getByText('Filen er indlæst – nogle felter blev sat til standardværdier.')).toHaveCount(0);
+    expect(runtimeErrors).toEqual([]);
+  });
 });
