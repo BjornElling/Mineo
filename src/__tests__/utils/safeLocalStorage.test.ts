@@ -49,14 +49,16 @@ describe('getSafeLocalStorage', () => {
     expect(storage.getItem('json_key')).toBe(data);
   });
 
-  it('isolerede kald returnerer uafhængig storage', () => {
-    // Hvert kald returnerer enten browser localStorage (delt)
-    // eller i testmiljøet: in-memory (ny instans pr. modul-scope)
-    // Det vigtige er at API-kontrakten er opfyldt
-    const s1 = getSafeLocalStorage();
-    s1.setItem('isolation_test', 'A');
-    // Verificer blot at API returnerer noget brugbart
-    expect(s1.getItem('isolation_test')).toBeTruthy();
+  it('giver hvert kald separat in-memory fallback i Node-runtime', () => {
+    // I browseren er localStorage med rette delt. Denne test rammer i stedet den eksplicitte
+    // Node-fallback, hvor et delt modul-store ville lade testdata sive mellem isolerede kald.
+    const firstStorage = getSafeLocalStorage();
+    const secondStorage = getSafeLocalStorage();
+
+    firstStorage.setItem('isolation_test', 'A');
+
+    expect(firstStorage.getItem('isolation_test')).toBe('A');
+    expect(secondStorage.getItem('isolation_test')).toBeNull();
   });
 
   it('tom streng er en gyldig value', () => {
