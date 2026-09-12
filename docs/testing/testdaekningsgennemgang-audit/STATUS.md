@@ -6,12 +6,12 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `c41f8391`
+- Evidensrevision: `14ce800f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats- og indtægtsoplysnings-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit og en offentlig-løn-validatorcase. Den samlede `verify:release:core` er senest bestået på `cb7f977a`; den valgte E2E-suite er senest bestået på testrevision `9c965ec5` uden produktkode- eller brugeradfærdsændring siden `90c4870f`. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
-- Seneste samlede retest: `verify:release:core` på revision `0ee2aa4e` er grøn med 688 testfiler, 8.720 beståede tests plus 17 forventede `it.fails`; coverage er 90,14 / 81,23 / 93,97 / 92,96, og begge builds bestod. Den valgte E2E-suite er senest grøn på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193. E2E-kørslen indeholder det nye PDF-artefaktspor, mens de efterfølgende TD-019- og TD-020-ændringer er målrettet retestet på `deec535e`, `5c395772`, `4f4caf24`, `6aa78b27`, `b98fb10c`, `39df52d5`, `c66e09c7`, `1cd38209`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`, `69d0b53d`, `c41f8391` og `0ee2aa4e`; standalone-renderertesten er målrettet retestet på `902034ca`. Produktkoden er uændret siden `90c4870f`. Åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `0ee2aa4e` er grøn med 688 testfiler, 8.720 beståede tests plus 17 forventede `it.fails`; coverage er 90,14 / 81,23 / 93,97 / 92,96, og begge builds bestod. Den valgte E2E-suite er senest grøn på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193. E2E-kørslen indeholder det nye PDF-artefaktspor, mens de efterfølgende TD-019- og TD-020-ændringer er målrettet retestet på `deec535e`, `5c395772`, `4f4caf24`, `6aa78b27`, `b98fb10c`, `39df52d5`, `c66e09c7`, `1cd38209`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`, `69d0b53d`, `c41f8391`, `14ce800f` og `0ee2aa4e`; standalone-renderertesten er målrettet retestet på `902034ca`. Produktkoden er uændret siden `90c4870f`. Åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -529,7 +529,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   produktkode, beregningslogik, brugeradfærd og persistensformat er uændret.
   Den samlede `verify:release:core` står fortsat på `cb7f977a`, og E2E står fortsat på `9c965ec5`.
 
-## Seneste DOC-001/TD-019-retest efter revisioner `902034ca`, `69d0b53d`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3` og `c41f8391`
+## Seneste DOC-001/TD-019-retest efter revisioner `902034ca`, `69d0b53d`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`, `c41f8391` og `14ce800f`
 
 - `standaloneRenteAlleDocumentDefinition.test.ts` kalder den reelle standalone-renderer med to
   eksplicitte rækker og fastholder to titler/tabeller, én pageBreak mellem sektionerne, én footer
@@ -538,13 +538,16 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - `aarsloenDocumentIndependent.test.ts` kalder den reelle årsløns-dokumentgenerator med
   eksplicitte månedslønsrækker og fastholder 34.650,00 kr. i tabeltotal, 207.900,00 kr. i
   omregnet årsløn, sektioner, tabelstruktur og filnavn. Testen bestod med 1/1.
-- Den målrettede direkte kontrol af de ti validatorfacitfiler bestod med 10 filer / 26 tests.
+- Den målrettede direkte kontrol af de ti validatorfacitfiler bestod med 10 filer / 29 tests.
   `td019OverenskomstValidatorIndependent.test.ts` fastholder manglende `overenskomstId` med
   path `eoAngivetLoenLoenudvikling.overenskomstId`, beskeden `Overenskomst skal vælges` og
   severity `error`.
 - `td019ManuelLoenValidatorIndependent.test.ts` fastholder den manuelle reguleringsbranches
   manglende række med path `eoAngivetLoenLoenudvikling.loenudviklingManuelTableData`, beskeden
   `Mindst én manuel reguleringsrække skal udfyldes` og severity `error`.
+- Samme testfil fastholder desuden manglende grundløn, grundløn på nul og manglende dato i en
+  manuel reguleringsrække med samme præcise path, de konkrete validatorbeskeder og severity
+  `error`.
 - `td019ManuelProcentsatsValidatorIndependent.test.ts` fastholder den manuelle procentsatsbranches
   manglende dato med path `eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData`,
   beskeden `Dato skal udfyldes på alle manuelle procentsatsrækker` og severity `error`.
@@ -554,7 +557,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - `td019IndtaegtsoplysningerValidatorIndependent.test.ts` fastholder en aktiv TAF-branches
   manglende lønoplysninger med path `loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData`,
   beskeden `Lønoplysninger skal udfyldes, når lønudviklingen reguleres` og severity `error`.
-- Den målrettede direkte kontrol af de ti validatorfacitfiler bestod med 10 filer / 26 tests.
+- Den målrettede direkte kontrol af de ti validatorfacitfiler bestod med 10 filer / 29 tests.
 - Den samlede dokumentmappe bestod med 28 filer / 275 tests. Typechecks, fuld ESLint,
   encoding-/filnavnscasing- og kontraktværn bestod gennem commit-gaterne. Ændringerne er
   test-only; produktkode, beregningslogik, brugeradfærd og persistensformat er uændret.
@@ -572,9 +575,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 ## Næste arbejdsenhed
 
-`CALC-001`, `CALC-004` og `CALC-005` har nu uafhængige facitter eller totalsager og afgrænsede mutationstests med triagerede overlevere, mens `CALC-002`/`CALC-003` har samme type mutationsevidens og nu også procent-, uge-, dag- og månedlige engine-facitspor. `CALC-006` har fået række-/periodefacitter; fortsæt med afklaring af `TD-016` og øvrige EO-grene. `TD-019` og `TD-020` er delvist lukket med henholdsvis schema-/issuefacitter og udvalgte sats-/downstream-facitter, herunder konkrete KL-, ILON12-, SBLON2- og procesrente-facitter gennem de relevante downstream-motorer. TD-019 har nu også uafhængige facitter for manuel procentsatsdato, manuel procentsats og manglende indtægtsoplysninger i aktiv TAF.
+`CALC-001`, `CALC-004` og `CALC-005` har nu uafhængige facitter eller totalsager og afgrænsede mutationstests med triagerede overlevere, mens `CALC-002`/`CALC-003` har samme type mutationsevidens og nu også procent-, uge-, dag- og månedlige engine-facitspor. `CALC-006` har fået række-/periodefacitter; fortsæt med afklaring af `TD-016` og øvrige EO-grene. `TD-019` og `TD-020` er delvist lukket med henholdsvis schema-/issuefacitter og udvalgte sats-/downstream-facitter, herunder konkrete KL-, ILON12-, SBLON2- og procesrente-facitter gennem de relevante downstream-motorer. TD-019 har nu også uafhængige facitter for manuel lønbranches manglende eller nul grundløn og manglende dato, manuel procentsatsdato, manuel procentsats og manglende indtægtsoplysninger i aktiv TAF.
 `DOC-001` har standalone/per-output-lifecycle, standalone-alle-rendererens 1/1 semantiske facit og EET-tabelparitet. `DOC-002`/`DOC-003` har nu faktisk PDF-artefaktbevis for alle 18 hovedapp-outputs, men den snævre parser kan ikke lukke fysisk PDF-/Word-rendering, sideskift eller uafhængig semantisk paritet; fortsæt med `TD-014` og en afgrænsning af, om de 18 Word-kompatible outputs eller alle 21 katalogoutputs skal omfattes.
-`DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`, `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver fortsat platform-/IndexedDB-bevis under `TD-017`. Afslut løbende de resterende `INPUT`-/`VALID`-, `DATA`-, shell- og releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, native `LaunchQueue`-objektets form er målt 2/2 i Chrome/Edge, men OS-filaflevering, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den statiske CI-artefaktkobling er nu dækket i quality-test, og TD-002 har fået et statisk værn for den valgte command-runner, men B-002 mangler fortsat faktisk CI-kørsel mod deploy-artefaktet. Den samlede `verify:release:core` er senest kørt rent på `0ee2aa4e` med 688 testfiler / 8.720 beståede tests, 17 forventede `it.fails`, coverage 90,14 / 81,23 / 93,97 / 92,96 og begge builds; den valgte E2E-gate er senest kørt rent på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193, inklusive det nye EET-PDF-artefaktspor. De efterfølgende test-only TD-019- og TD-020-styrkelser er målrettet retestet på `deec535e`, `5c395772`, `4f4caf24`, `6aa78b27`, `b98fb10c`, `39df52d5`, `c66e09c7`, `1cd38209`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`, `69d0b53d` og `c41f8391`; produktkoden er uændret siden `90c4870f`. `TD-025` står delvist lukket efter den tidligere ikke-reproducerede flage.
+`DATE-001` kræver fortsat uafhængig håndregning og afklaring af `TD-003`, `PERSIST-001` kræver releaseproveniens eller accepteret fixture-erstatning under `TD-001`, og `PERSIST-002` kræver fortsat platform-/IndexedDB-bevis under `TD-017`. Afslut løbende de resterende `INPUT`-/`VALID`-, `DATA`-, shell- og releaseværnshuller, og gennemfør en samlet rest-risikorevision. Route-chunk recovery er nu browserretestet 4/4, native `LaunchQueue`-objektets form er målt 2/2 i Chrome/Edge, men OS-filaflevering, fuld outputparitet, releaseproveniens og de øvrige åbne fund står fortsat. Den statiske CI-artefaktkobling er nu dækket i quality-test, og TD-002 har fået et statisk værn for den valgte command-runner, men B-002 mangler fortsat faktisk CI-kørsel mod deploy-artefaktet. Den samlede `verify:release:core` er senest kørt rent på `0ee2aa4e` med 688 testfiler / 8.720 beståede tests, 17 forventede `it.fails`, coverage 90,14 / 81,23 / 93,97 / 92,96 og begge builds; den valgte E2E-gate er senest kørt rent på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193, inklusive det nye EET-PDF-artefaktspor. De efterfølgende test-only TD-019- og TD-020-styrkelser er målrettet retestet på `deec535e`, `5c395772`, `4f4caf24`, `6aa78b27`, `b98fb10c`, `39df52d5`, `c66e09c7`, `1cd38209`, `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`, `69d0b53d`, `c41f8391` og `14ce800f`; produktkoden er uændret siden `90c4870f`. `TD-025` står delvist lukket efter den tidligere ikke-reproducerede flage.
 Hver række skal kobles til
 konkret test- og uafhængig evidens, før status
 sættes til andet end `I gang`.
