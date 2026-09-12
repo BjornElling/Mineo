@@ -98,6 +98,7 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
       launch_handler: { client_mode: string };
       related_applications: Array<{ platform: string; url: string; id: string }>;
       protocol_handlers: Array<{ protocol: string; url: string }>;
+      file_handlers: Array<{ action: string; accept: Record<string, string[]> }>;
     };
     const expectedId = new URL('/', page.url()).href;
     const expectedManifestUrl = new URL('/manifest.json', page.url()).href;
@@ -109,6 +110,16 @@ test.describe('«Installér hjælpeprogram» når hjælpeprogrammet allerede er 
     ]);
     expect(manifest.protocol_handlers).toEqual([
       { protocol: 'web+mineo', url: '/?mineo-launch=%s' },
+    ]);
+    expect(manifest.file_handlers).toEqual([
+      expect.objectContaining({
+        action: '/open',
+        accept: {
+          'application/x-eo': ['.eo'],
+          'application/octet-stream': ['.eo'],
+          'application/json': ['.eo'],
+        },
+      }),
     ]);
   });
 
