@@ -153,8 +153,8 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038` |
-| Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034` |
+| Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041` |
+| Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-003`, `TD-004`, `TD-016`, `TD-017` |
 
 ## Seneste komplette baseline-retest på revision `e8faa7ce`
@@ -660,6 +660,23 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Hele batchen var test-only og ændrede hverken produktkode, beregningslogik, brugeradfærd, schema
   eller persistensformat. Proveniens, komplet downstream-paritet og øvrig semantisk kontraktgennemgang
   er fortsat åbne.
+
+## Seneste dokument-/validator-/browserbatch efter revision `c7d64cc5`
+
+- `varigeMenDocumentIndependent.test.ts` og `forsoergertabDocumentIndependent.test.ts` tilføjer
+  hver et håndskrevet engine → Word-facit. De målrettede dokumenttests bestod med 2/2 og følger
+  henholdsvis 303.896 kr. samt et nettokrav på 2.158.185 kr. til det faktiske Word-XML.
+- `td019SvieSmerteOverlapValidatorIndependent.test.ts` tilføjer en fuldt håndskrevet typed fixture
+  med to overlappende perioder og kræver begge fejl med præcis path, besked og severity; den
+  målrettede test bestod med 1/1.
+- `ui-005-forsoergertab-word-browserrejse.spec.ts` gennemfører den synlige Forsørgertab-rejse,
+  kontrollerer 82.741 kr., vælger Word og inspicerer det faktiske `word/document.xml`; målrettet
+  Chrome-kørsel bestod med 1/1 uden runtimefejl eller ukontrollerede eksterne requests.
+- Den samlede målrettede kontrol bestod med 3 filer / 3 Vitest-tests og den nye E2E-test med 1/1;
+  typechecks, lint, mojibake- og filnavnschecks bestod i commit-hooken. Hele batchen er test-only:
+  ingen produktkode, beregningslogik, brugeradfærd, schema eller persistensformat er ændret.
+- TD-019 er fortsat delvist lukket for øvrige fixturehuller, og TD-014, TD-016, TD-017, TD-022,
+  TD-025, B-002 samt øvrig downstream-, output- og releaseparitet står fortsat åbne.
 
 ## Næste arbejdsenhed
 
