@@ -40,6 +40,10 @@ const createAtomicIndexedDbStub = () => {
           onabort?: () => void;
         } = {};
         let aborted = false;
+        const commit = (): void => {
+          for (const { key, value } of pendingWrites) data.set(key, value);
+          pendingWrites.length = 0;
+        };
         const objectStore = {
           put: (value: unknown, key: string) => makeRequest(() => {
             writesReceived += 1;
@@ -57,7 +61,12 @@ const createAtomicIndexedDbStub = () => {
             handlers.onabort?.();
           },
           error: null as Error | null,
-          set oncomplete(handler: () => void) { handlers.oncomplete = handler; },
+          set oncomplete(handler: () => void) {
+            handlers.oncomplete = () => {
+              commit();
+              handler();
+            };
+          },
           set onerror(handler: () => void) { handlers.onerror = handler; },
           set onabort(handler: () => void) { handlers.onabort = handler; },
         };
