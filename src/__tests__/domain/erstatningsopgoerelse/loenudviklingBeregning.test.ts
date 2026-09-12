@@ -1604,4 +1604,59 @@ describe('TD-020 – sygedagpenge fra satsrække til indkomstperiode', () => {
       }],
     });
   });
+
+  it('fastholder satsgrænsen fra 2019 til 2020 gennem række- og indkomstperiodisering', () => {
+    const fraDato = iso('2019-12-30');
+    const tilDato = iso('2020-01-10');
+    const rows = buildSygedagpengeRowsForRange(fraDato, tilDato);
+
+    // Testen dokumenterer transformationen fra den kanoniske satsrække til indkomstperioden,
+    // ikke om satserne er juridisk kildekorrekte.
+    expect(rows).toEqual([
+      expect.objectContaining({
+        fraDato,
+        tilDato: iso('2020-01-05'),
+        ydelse: {
+          kind: 'expression',
+          expression: '1*3413',
+          value: 3413,
+        },
+        tillaeg: {
+          kind: 'expression',
+          expression: '39*2',
+          value: 78,
+        },
+        ydelsestype: 'sygedagpenge',
+      }),
+      expect.objectContaining({
+        fraDato: iso('2020-01-06'),
+        tilDato,
+        ydelse: {
+          kind: 'expression',
+          expression: '1*4405',
+          value: 4405,
+        },
+        tillaeg: {
+          kind: 'expression',
+          expression: '50*2+13',
+          value: 113,
+        },
+        ydelsestype: 'sygedagpenge',
+      }),
+    ]);
+
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [];
+    values.offentligeYdelserRows = [...rows];
+    const income = buildIncomeForRanges(values, [{ fra: fraDato, til: tilDato }]);
+
+    expect(income).toEqual({
+      employers: [],
+      benefits: [{
+        typeKey: 'sygedagpenge',
+        label: 'Sygedagpenge',
+        amount: 8009,
+      }],
+    });
+  });
 });
