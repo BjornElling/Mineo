@@ -384,6 +384,17 @@ describe('architectureRules – AST-baseret arkitekturgrænse-harness', () => {
     expect(findings[0]?.message).toContain("sektion 'erhvervsevnetab'");
   });
 
+  it('page-grænsen følger en dynamisk import af et descriptor-katalog', () => {
+    const page = makeSyntheticEntry(
+      'src/components/pages/Aarsloen.tsx',
+      "const load = () => import('../../inputCore/catalog/erhvervsevnetabDescriptors');"
+    );
+
+    const findings = pageSectionAccessBoundary.evaluate([page]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.message).toContain("sektion 'erhvervsevnetab'");
+  });
+
   describe.each(ARCHITECTURE_RULES.map((rule) => [rule.id, rule] as const))(
     'regel %s er ikke inert',
     (_id, rule) => {

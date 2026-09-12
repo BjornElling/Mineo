@@ -35,6 +35,24 @@ describe('uafhængige validator-inputs', () => {
       }
     });
 
+    it('rapporterer forkert top-level-type som en faktisk Zod-issue', () => {
+      const result = erstatningsopgoerelseSchema.safeParse({
+        ...MINIMAL_LITERAL,
+        loenindkomstAnsaettelsesforhold: {},
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(expect.arrayContaining([
+          expect.objectContaining({
+            code: 'invalid_type',
+            path: ['loenindkomstAnsaettelsesforhold'],
+            message: 'Invalid input: expected array, received object',
+          }),
+        ]));
+      }
+    });
+
     it('rapporterer ukendt top-level-felt som en faktisk Zod-issue', () => {
       const result = erstatningsopgoerelseSchema.safeParse({
         ...MINIMAL_LITERAL,
