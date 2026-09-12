@@ -146,4 +146,24 @@ describe('TD-019 – svie/smerte-validator med aktiv periode', () => {
       }],
     });
   });
+
+  it('rapporterer manglende fra-dato på en svie/smerte-række med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_SVIE_SMERTE_VALUES,
+      svieSmerteSatserAar: 2024,
+      svieSmertePerioder: [{
+        ...INDEPENDENT_SVIE_SMERTE_VALUES.svieSmertePerioder[0],
+        fra: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'svieSmertePerioder[0].fra',
+        message: 'Fra-dato mangler',
+        severity: 'error',
+      }],
+    });
+  });
 });

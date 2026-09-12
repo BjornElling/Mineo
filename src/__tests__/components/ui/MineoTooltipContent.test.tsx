@@ -27,7 +27,7 @@ describe('MineoTooltipContent', () => {
     ].join(' ');
     const lines = splitTooltipTextIntoLines(text);
 
-    expect(lines.length).toBeGreaterThan(2);
+    expect(lines).toHaveLength(4);
     expect(lines).toEqual(lines.map((line) => line.trim()));
     expect(lines.join(' ')).toBe(text);
     expect(TOOLTIP_FALLBACK_LINE_CHARACTER_LIMIT).toBe(50);
