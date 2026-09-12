@@ -22,6 +22,8 @@ import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/fae
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../types/branded';
+import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
 import type {
   ErhvervsevnetabValues,
   FaellesAarsloenValues,
@@ -31,6 +33,11 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+const normalizePdfText = (text: string): string => text
+  .replace(/\u00a0/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 const stamdata: StamdataValues = {
   journalnr: 'EET-definition-orakel',
@@ -163,12 +170,19 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     });
 
     const renderer = await efterEalDocumentDefinition.loadRenderer();
+    const pdfArtifact = await renderer(
+      await createRealPdfDocumentSessionForTest(),
+      input,
+      { visBrevhoved: false },
+    );
+    const pdfText = normalizePdfText(await extractPdfText(pdfArtifact.blob));
     const { filename, documentXml } = await renderWordDocument((session) =>
       renderer(session, input, { visBrevhoved: false })
     );
     const text = xmlToPlainText(documentXml);
 
     expect(filename).toMatch(/\.docx$/);
+    expect(pdfText).toContain('1.142.400 kr.');
     expect(text).toContain('EET efter EAL');
     expect(text).toContain('952.000 kr. x 10 x 50 %');
     expect(text).toContain('4.760.000 kr.');
