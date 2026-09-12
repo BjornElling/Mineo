@@ -2,9 +2,9 @@ import { createDate } from '../../utils/dateUtils';
 import { countExclusiveUtcDays, countInclusiveUtcDays, diffUtcDays, diffUtcDaysAbs } from '../../utils/utcDayMath';
 
 describe('utcDayMath', () => {
-  // TD-003: Den åbne beslutning er, om helperen selv skal afvise ugyldige datoer. Proben gør den
-  // nuværende NaN-adfærd synlig uden at foregribe en produktbeslutning om valideringsgrænsen.
-  it.fails.each([
+  // TD-003: Alle offentlige dagstællere skal afvise ugyldige datoer ved den
+  // fælles diffUtcDays-grænse i stedet for at føre NaN videre.
+  it.each([
     ['diffUtcDays – start', () => diffUtcDays(new Date(Number.NaN), createDate(2024, 0, 1))],
     ['diffUtcDays – slut', () => diffUtcDays(createDate(2024, 0, 1), new Date(Number.NaN))],
     ['diffUtcDaysAbs – start', () => diffUtcDaysAbs(new Date(Number.NaN), createDate(2024, 0, 1))],

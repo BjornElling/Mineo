@@ -111,6 +111,16 @@ jobs:
             browser: chromium
           - project: chrome-desktop-1366x620
             browser: chromium
+          # Browser-eksklusive specs skal også køre mod det verificerede artefakt i CI. De er
+          # dedikerede projekter i `playwright.config.ts` og indgår derfor ikke i de seks lane-projekter.
+          - project: webkit-filindlaesning
+            browser: webkit
+          - project: firefox-fallback-audit
+            browser: firefox
+          - project: chromium-service-worker
+            browser: chromium
+          - project: firefox-stamdata-save-load
+            browser: firefox
 
     steps:
       - name: Checkout

@@ -2,10 +2,13 @@ import { logWarning, logError, sanitizeFilenameForLog } from './logger';
 import { asError } from './typeGuards';
 
 /**
- * Tjekker om File System Access API er tilgængelig i browseren
+ * Tjekker om File System Access API er tilgængelig i browseren.
+ * Egenskaberne kan findes uden at være brugbare funktioner, så begge skal
+ * være callable, før Hent- og Gem-flowet vælger API'et frem for fallbacken.
  */
 export const isFileSystemAccessSupported = (): boolean => {
-  return 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+  return typeof window.showSaveFilePicker === 'function'
+    && typeof window.showOpenFilePicker === 'function';
 };
 
 /**
@@ -71,7 +74,7 @@ export const openFileWithPicker = async (
 ): Promise<{ file: File; handle: FileSystemFileHandle } | null> => {
   try {
     const showOpenFilePicker = window.showOpenFilePicker;
-    if (!showOpenFilePicker) {
+    if (typeof showOpenFilePicker !== 'function') {
       throw new Error('File System Access API er ikke understøttet i denne browser');
     }
 
@@ -118,7 +121,7 @@ export const saveFileWithPicker = async (
     const finalName = suggestedName.endsWith('.eo') ? suggestedName : `${suggestedName}.eo`;
 
     const showSaveFilePicker = window.showSaveFilePicker;
-    if (!showSaveFilePicker) {
+    if (typeof showSaveFilePicker !== 'function') {
       throw new Error('File System Access API er ikke understøttet i denne browser');
     }
 

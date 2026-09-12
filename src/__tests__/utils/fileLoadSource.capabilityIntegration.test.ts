@@ -56,13 +56,13 @@ describe('createManualLoadSource – capability og fallback', () => {
     restorePickerCapabilities();
   });
 
-  // TD-017: Denne integrationstest holder property-only-detektionen synlig ved den faktiske
-  // load-source-grænse. Når en picker-egenskab ikke er callable, skal fallbacken vælges.
-  it.fails.each([
+  // TD-017: Ved den faktiske Hent-grænse skal fallbacken vælges, når open-picker-værdien
+  // ikke er en funktion.
+  it.each([
     ['showOpenFilePicker', undefined],
     ['showOpenFilePicker', null],
     ['showOpenFilePicker', {}],
-  ] as const)('skal bruge fallback når %s er %o', (brokenPicker, brokenValue) => {
+  ] as const)('bruger fallback når %s ikke er en funktion: %o', (brokenPicker, brokenValue) => {
     const selectedFile = new File(['bytes'], 'sag.eo', { type: 'application/octet-stream' });
     selectFileMock.mockResolvedValue(selectedFile);
     readFileMock.mockResolvedValue('bytes');
@@ -75,7 +75,6 @@ describe('createManualLoadSource – capability og fallback', () => {
       status: 'selected',
       source: 'manual',
       file: selectedFile,
-      fileHandle: undefined,
     });
   });
 });

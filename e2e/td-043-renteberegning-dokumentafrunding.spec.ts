@@ -26,7 +26,7 @@ test.describe('TD-043 – renteberegningens afrunding mellem UI og dokument', ()
     await setFieldValueAndSettle(firstRow.getByRole('textbox', { name: 'Beløb' }), '100000');
     await setFieldValueAndSettle(firstRow.getByRole('textbox', { name: 'Forfaldsdato' }), '30-06-2024');
 
-    await expect(firstRow.getByText('94,95 kr.', { exact: true })).toBeVisible();
+    await expect(firstRow.getByText('94,94 kr.', { exact: true })).toBeVisible();
 
     const downloadPromise = page.waitForEvent('download');
     await firstRow.getByRole('button', {

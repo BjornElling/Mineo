@@ -82,16 +82,15 @@ describe('fileSystemAccess', () => {
       expect(isFileSystemAccessSupported()).toBe(false);
     });
 
-    // TD-017: Den nuværende property-only-detektion accepterer disse værdier som en picker.
-    // `it.fails` holder fundet synligt i testlaget uden at ændre produktets fallback-adfærd.
-    it.fails.each([
+    // TD-017: En picker-egenskab er kun brugbar, når værdien faktisk er en funktion.
+    it.each([
       ['showOpenFilePicker', undefined],
       ['showSaveFilePicker', undefined],
       ['showOpenFilePicker', null],
       ['showSaveFilePicker', null],
       ['showOpenFilePicker', {}],
       ['showSaveFilePicker', {}],
-    ] as const)('skal afvise %s når værdien er undefined eller ikke-callable: %o', (brokenPicker, value) => {
+    ] as const)('afviser %s når værdien ikke er en funktion: %o', (brokenPicker, value) => {
       setPickerCapability('showOpenFilePicker', vi.fn());
       setPickerCapability('showSaveFilePicker', vi.fn());
       setPickerCapability(brokenPicker, value);

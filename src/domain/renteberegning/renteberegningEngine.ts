@@ -10,7 +10,7 @@ import {
 } from './procesrenteCalculator';
 import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from './rentekravValidation';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { roundByMethod } from '../../utils/rounding';
+import { round2, sumRoundedValues } from '../../utils/roundingShortcuts';
 
 // Autoritativ aggregation engine:
 // satser injiceres eksplicit som input-snapshot, og afrunding sker centralt her.
@@ -32,8 +32,11 @@ export type RenteberegningOutput = Readonly<{
   rows: ReadonlyArray<RentekravResult>;
 }>;
 
-const roundInterest = (value: number): number => {
-  return roundByMethod(value, 2, 'halfAwayFromZero');
+const sumRoundedPeriodInterests = (periods: ReadonlyArray<ProcessInterestPeriod>): number => {
+  // UI- og dokumenttotalen skal være summen af de beløb, som de synlige perioder viser.
+  // Den rå periodetotal bevares i perioderne, men må ikke afrundes samlet bagefter, fordi
+  // det ellers kan give en anden total end den, brugeren kan efterregne fra tabellen.
+  return sumRoundedValues(periods.map((period) => period.interest), round2);
 };
 
 type RentekravComputation = Readonly<{
@@ -103,7 +106,7 @@ const calculateRowInterest = (
   return {
     id: rowValues.id,
     actualInterestDate,
-    calculatedInterest: breakdown === null ? null : roundInterest(breakdown.totalInterest),
+    calculatedInterest: breakdown === null ? null : sumRoundedPeriodInterests(breakdown.periods),
     periods: breakdown?.periods ?? null,
   };
 };

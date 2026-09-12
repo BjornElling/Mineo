@@ -29,8 +29,8 @@ describe('TD-020 – procesrente med faktiske rentesatser', () => {
 
     const row = output.rows[0];
     expect(row?.actualInterestDate).toBe(toISODateString('2024-06-30'));
-    // 2024 er et skudår: 11750 · 1 / 366 + 11500 · 2 / 366 = 94,945355...
-    expect(row?.calculatedInterest).toBe(94.95);
+    // De synlige perioder afrundes hver for sig: 32,10 + 62,84 = 94,94 kr.
+    expect(row?.calculatedInterest).toBe(94.94);
     expect(row?.periods).toEqual([
       {
         startDate: new Date('2024-06-30T00:00:00.000Z'),

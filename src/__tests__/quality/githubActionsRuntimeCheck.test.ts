@@ -106,4 +106,20 @@ describe('check-github-actions-runtime', () => {
     expect(deployJob).toContain('command: deploy --config wrangler.mineo.json');
     expect(deployJob).toContain('command: deploy --config wrangler.minprocesrente.json');
   });
+
+  it('kører alle dedikerede browserprojekter i CI', () => {
+    const workflow = readFileSync(join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+    const e2eJob = getWorkflowJob(workflow, 'e2e', 'deploy');
+    const requiredProjects = [
+      ['webkit-filindlaesning', 'webkit'],
+      ['firefox-fallback-audit', 'firefox'],
+      ['chromium-service-worker', 'chromium'],
+      ['firefox-stamdata-save-load', 'firefox'],
+    ] as const;
+
+    for (const [project, browser] of requiredProjects) {
+      expect(e2eJob).toContain(`- project: ${project}`);
+      expect(e2eJob).toContain(`browser: ${browser}`);
+    }
+  });
 });

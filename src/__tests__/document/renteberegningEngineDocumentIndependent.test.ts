@@ -63,7 +63,7 @@ describe('CALC-003/DOC-003 – rentemotorens output gennem PDF og Word', () => {
     const result = computeRentekravRow(row, iso('2024-07-02'), referenceRates, surchargeRates);
 
     expect(result.actualInterestDate).toBe(iso('2024-06-30'));
-    expect(result.calculatedInterest).toBe(94.95);
+    expect(result.calculatedInterest).toBe(94.94);
     expect(result.pdfContext).not.toBeNull();
     if (result.pdfContext === null) {
       throw new Error('Rentemotoren gav ingen dokumentkontekst');

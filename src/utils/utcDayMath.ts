@@ -4,6 +4,12 @@
  * - Brug IKKE ms-diff (getTime / 86400000) til dags-optællinger.
  */
 export const diffUtcDays = (start: Date, end: Date): number => {
+  // Værnet ligger ved den kanoniske dagsforskel, så ugyldige datoer ikke kan
+  // blive til NaN og dermed skjule fejl i de afledte periodeberegninger.
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw new Error('utcDayMath kræver gyldige datoer.');
+  }
+
   const msPerDay = 24 * 60 * 60 * 1000;
   const startUtc = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
   const endUtc = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
