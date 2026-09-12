@@ -796,3 +796,14 @@ describe('fysisk tekstparitet for hovedappens dokumentartefakter', () => {
     expect(wordMediaCount).toBeGreaterThan(0);
   });
 });
+
+describe('fysisk tekstparitet for standalone-dokumentartefakter', () => {
+  it.each(STANDALONE_DOCUMENT_OUTPUT_IDS)('%s bevarer tekst, tal, sektioner og rækkefølge i PDF og Word', async (id) => {
+    const entry = STANDALONE_FIXTURES[id];
+    const { pdfText, wordText } = await entry.renderArtifactParity(entry.ready());
+
+    expect(pdfText, `${id}/PDF må ikke være tom`).not.toBe('');
+    expect(wordText, `${id}/Word må ikke være tom`).not.toBe('');
+    expect(pdfText, `${id}/PDF og Word`).toBe(wordText);
+  });
+});
