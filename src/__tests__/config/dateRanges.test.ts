@@ -154,7 +154,7 @@ describe('dateRanges_erstatningsopgoerelse', () => {
     expect(dateRanges_erstatningsopgoerelse.tabelFerieTil.type).toBe('unconstrained');
   });
 
-  it('alle dynamic-min felter har fallbackMin', () => {
+  it('alle dynamic-min felter har fallbackMin fra 2005-01-01', () => {
     const dynamicMinFields = [
       'periodeTil',
       'forligDato',
@@ -170,7 +170,7 @@ describe('dateRanges_erstatningsopgoerelse', () => {
     for (const field of dynamicMinFields) {
       const range = dateRanges_erstatningsopgoerelse[field];
       if (range.type === 'dynamic-min') {
-        expect(range.fallbackMin).toBeTruthy();
+        expect(range.fallbackMin).toBe(toISODateString('2005-01-01'));
       }
     }
   });

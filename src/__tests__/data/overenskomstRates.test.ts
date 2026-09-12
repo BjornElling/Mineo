@@ -121,8 +121,8 @@ describe('overenskomster – dataintegritet', () => {
 
   it('alle overenskomster har id, navn, loenmodtagerOrg og arbejdsgiverOrg', () => {
     for (const o of overenskomster) {
-      expect(o.meta.id).toBeTruthy();
-      expect(o.meta.navn).toBeTruthy();
+      expect(o.meta.id).toMatch(/\S+/);
+      expect(o.meta.navn).toMatch(/\S+/);
       expect(o.meta.loenmodtagerOrg.length).toBeGreaterThan(0);
       expect(o.meta.arbejdsgiverOrg.length).toBeGreaterThan(0);
     }
@@ -567,8 +567,9 @@ describe('getReguleringsDatoIntervalForOverenskomst', () => {
     const interval = getReguleringsDatoIntervalForOverenskomst('bygge-anlaeg');
     expect(interval).toBeDefined();
     if (interval) {
-      expect(interval.fraDato).toBeTruthy();
-      expect(interval.tilDato).toBeTruthy();
+      const DANISH_DATE = /^\d{2}-\d{2}-\d{4}$/;
+      expect(interval.fraDato).toMatch(DANISH_DATE);
+      expect(interval.tilDato).toMatch(DANISH_DATE);
     }
   });
 
@@ -1091,8 +1092,7 @@ describe('getGrundloenAngivetPerForOverenskomst', () => {
     // Uden tafBeregnesSom anvendes meta-feltet, ikke offentlig-override
     const result = getGrundloenAngivetPerForOverenskomst('kl-overenskomst');
     // KL er offentlig men uden tafBeregnesSom bruges meta
-    // Resultatet afhænger af KL-metaens grundloenAngivetPer
-    expect(result !== undefined || result === undefined).toBe(true); // tilstedeværelse-check
+    expect(result).toBe('Måned');
   });
 });
 
