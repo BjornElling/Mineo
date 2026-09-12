@@ -100,6 +100,9 @@ describe('check-github-actions-runtime', () => {
     expect(e2eJob).not.toContain('npm run build');
 
     expect(deployJob).toContain('needs: [verify, e2e]');
+    expect(deployJob).toContain(
+      "if: github.event_name == 'push' && github.ref == 'refs/heads/main'"
+    );
     expect(deployJob).toContain('uses: actions/download-artifact@v8');
     expect(deployJob).toContain('name: dist');
     expect(deployJob).toContain('path: dist/');
