@@ -107,6 +107,66 @@ const INDEPENDENT_RUNTIME_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
+const INDEPENDENT_FERIELOVEN_VALUES: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_RUNTIME_VALUES,
+  kravPaaTabtArbejdsfortjeneste: 'Ja',
+  tafPerioder: [{
+    id: 'taf-ferieloven',
+    fra: toISODateString('2024-01-01'),
+    til: toISODateString('2024-01-31'),
+    loseFeriedage: 0,
+  }],
+  tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+  tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+  loenindkomstAnsaettelsesforhold: [{
+    id: 'af-ferieloven',
+    navnPaaArbejdssted: undefined,
+    harOverenskomst: false,
+    overenskomstId: undefined,
+    ansatPaaSkadestidspunktet: true,
+    ansaettelsesforholdOphoert: false,
+    sidsteArbejdsdag: undefined,
+    harAnciennitetstillaegEfterSkadedatoen: false,
+    anciennitetstillaegDato: undefined,
+    anciennitetstillaegSatsAngivesPer: 'Måned',
+    anciennitetstillaegSats: undefined,
+    feriePct: undefined,
+    fritvalgPct: undefined,
+    shSoPct: undefined,
+    storeBededagPct: 0,
+    pensionPct: undefined,
+    tillaegAngivesSom: 'procent',
+    loenperiode: 'maaned',
+    indtaegtsoplysningerTableData: [],
+    fuldLoenUnderFerie: 'Nej',
+    loenPaaHelligdage: 'Almindelig løn',
+    saerligFraDatoRegulering: undefined,
+    loenudviklingBeregningsgrundlag: 'Ingen',
+    loenudviklingStatistikModel: undefined,
+    loenudviklingKRLSatstabel: undefined,
+    loenudviklingManuelNavn: undefined,
+    loenudviklingManuelTableData: [],
+    loenudviklingManuelProcentsatsTableData: [],
+    offentligLoenType: undefined,
+    offentligLoenTrin: undefined,
+    offentligLoenGruppe: undefined,
+    offentligLoenEkstraGrundloen: undefined,
+    overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  }],
+  sfggAnsaettelsesforhold: [{
+    ansaettelsesforholdId: 'af-ferieloven',
+    sfggBeregningskilde: 'Ferieloven',
+    sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+    sfggReferenceperiodeTil: toISODateString('2023-12-31'),
+    sfggReferenceperiodeFravaersdageUdenLoen: 0,
+    sfggManuelDagssats: undefined,
+    sfggManuelBeloebIHenholdTil: undefined,
+    sfggManuelFoerstEfterSygeloen: 'Nej',
+    sfggSatsvalg: undefined,
+    sfggAlleredeBetaltBeloeb: undefined,
+  }],
+};
+
 describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
   it('validerer en domænegrænse på en håndskrevet typed runtime-værdi', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
@@ -197,62 +257,10 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
 
   it('kræver referenceperiode til-dato for Ferieloven ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
-      ...INDEPENDENT_RUNTIME_VALUES,
-      kravPaaTabtArbejdsfortjeneste: 'Ja',
-      tafPerioder: [{
-        id: 'taf-1',
-        fra: toISODateString('2024-01-01'),
-        til: toISODateString('2024-01-31'),
-        loseFeriedage: 0,
-      }],
-      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
-      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
-      loenindkomstAnsaettelsesforhold: [{
-        id: 'af-1',
-        navnPaaArbejdssted: undefined,
-        harOverenskomst: false,
-        overenskomstId: undefined,
-        ansatPaaSkadestidspunktet: true,
-        ansaettelsesforholdOphoert: false,
-        sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadedatoen: false,
-        anciennitetstillaegDato: undefined,
-        anciennitetstillaegSatsAngivesPer: 'Måned',
-        anciennitetstillaegSats: undefined,
-        feriePct: undefined,
-        fritvalgPct: undefined,
-        shSoPct: undefined,
-        storeBededagPct: 0,
-        pensionPct: undefined,
-        tillaegAngivesSom: 'procent',
-        loenperiode: 'maaned',
-        indtaegtsoplysningerTableData: [],
-        fuldLoenUnderFerie: 'Nej',
-        loenPaaHelligdage: 'Almindelig løn',
-        saerligFraDatoRegulering: undefined,
-        loenudviklingBeregningsgrundlag: 'Ingen',
-        loenudviklingStatistikModel: undefined,
-        loenudviklingKRLSatstabel: undefined,
-        loenudviklingManuelNavn: undefined,
-        loenudviklingManuelTableData: [],
-        loenudviklingManuelProcentsatsTableData: [],
-        offentligLoenType: undefined,
-        offentligLoenTrin: undefined,
-        offentligLoenGruppe: undefined,
-        offentligLoenEkstraGrundloen: undefined,
-        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
-      }],
+      ...INDEPENDENT_FERIELOVEN_VALUES,
       sfggAnsaettelsesforhold: [{
-        ansaettelsesforholdId: 'af-1',
-        sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        ...INDEPENDENT_FERIELOVEN_VALUES.sfggAnsaettelsesforhold[0],
         sfggReferenceperiodeTil: undefined,
-        sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggManuelDagssats: undefined,
-        sfggManuelBeloebIHenholdTil: undefined,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
-        sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: undefined,
       }],
     });
 
@@ -261,6 +269,25 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       errors: [{
         path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeTil',
         message: 'Referenceperiode til-dato mangler',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('kræver referenceperiode fra-dato for Ferieloven ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      sfggAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIELOVEN_VALUES.sfggAnsaettelsesforhold[0],
+        sfggReferenceperiodeFra: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
+        message: 'Referenceperiode fra-dato mangler',
         severity: 'error',
       }],
     });
