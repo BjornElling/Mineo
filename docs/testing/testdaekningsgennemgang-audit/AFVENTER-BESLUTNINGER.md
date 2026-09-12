@@ -21,7 +21,7 @@ eller accepterer du, at de genskabte eksempler i auditten bruges som erstatning?
 
 **Dit svar:**
 
-> Skriv her.
+> Jeg har en række gamle .eo filer liggende. Sig til, når jeg skal give dig dem.
 
 ## 2. Ydelse i en weekend i en arbejdsdagsbaseret sag (TD-016)
 
@@ -47,7 +47,7 @@ situation, eller skal ydelsen vises og behandles på en anden måde?
 
 **Dit svar:**
 
-> Skriv her.
+> Dit eksempel giver ingen mening. Dels mangler du at give mig specifikke anvisninger om, hvad jeg skal indtaste i flere felter - og derudover beder du mig indtaste en beregningsperiode, efter jeg har valgt, at beregningsgrundlaget er angivet dagsløn, hvilket ikke er muligt, siden rækken med beregningsperiode bliver skjult i det tilfælde. Giv mig bedre instruktioner.
 
 ## 3. Ugyldig dato, der når beregningen (TD-003)
 
@@ -65,7 +65,7 @@ det tilstrækkeligt, at den almindelige formular allerede stopper den?
 
 **Dit svar:**
 
-> Skriv her.
+> Dit spørgsmål giver ingen mening. Du beder mig forholde mig til en situation, du hverken specificerer, og som jeg ikke kan fremkalde.
 
 ## 4. Gem og Hent, når browserens filvalg ikke virker (TD-017)
 
@@ -83,7 +83,7 @@ eller skal Mineo have en anden fallback eller fejlbesked?
 
 **Dit svar:**
 
-> Skriv her.
+> Det har jeg ingen forudsætninger for at besvare. Du kan ikke give mig en måde at fremprovokere situationen på, så jeg ved rent ud sagt ikke, hvad det er, jeg skal forholde mig til.
 
 ## 5. Åbning af en fil i den installerede Mineo-app (TD-022)
 
@@ -105,7 +105,7 @@ her, eller skal denne del accepteres som en resterende manuel kontrol?
 
 **Dit svar:**
 
-> Skriv her.
+> Indlæsning i app'en ved at dobbeltklikke på en .eo-fil fungerer som det skal.
 
 ## 6. Fysisk kontrol af PDF- og Word-dokumenter (TD-014 og TD-018)
 
@@ -127,7 +127,7 @@ automatiske kontrol af dokumenternes indhold som tilstrækkelig for denne gennem
 
 **Dit svar:**
 
-> Skriv her.
+> Jeg vil have, at så meget kontrol som muligt foretages af automatiske kontroller fra programmets test-funktionaliteter. Hvis jeg skal kontrollere noget manuelt, skal det være helt specifikke enkeltdele, og jeg skal i så fald have helt nøjagtige anvisninger om hvad, og hvordan jeg fremprovokerer de forhold, der skal afprøves manuelt.
 
 ## 7. Den faktiske releasekontrol i GitHub Actions (B-002)
 
@@ -147,7 +147,7 @@ og den statiske gennemgang af workflowet som tilstrækkelig dokumentation?
 
 **Dit svar:**
 
-> Skriv her.
+> Jeg vil ikke være afhængig af at skulle lave manuel releasekontrol efter at have pushet en ny version til github, som derefter bliver deployet. Det skal sikres gennem programmets funktionaliteter og rutiner, at alt virker, som det skal.
 
 ## 8. Én øre forskel mellem renteberegning og PDF (TD-043)
 
@@ -170,7 +170,7 @@ endelige – `94,95 kr.` eller `94,94 kr.`?
 
 **Dit svar:**
 
-> Skriv her.
+> Du kan ikke bare bede mig forholde mig til magic numbers på den måde. Du må forklare, hvad der er årsagen til de forskellige beløb, og bede mig forholde mig til hvilken af de to forskellige fremgangsmåder, jeg vil have. Der skal dog altid (!!) være samme værdi vist på skærmen, som i pdf'en. jeg formoder, at forskellen her skyldes, at pdf'en afrunder til to decimaler for hver beregnet række. det er den korrekte fremgangsmåde, som også skal anvendes i visningen på skærmen. De viste værdier skal altid være identiske med værdierne i pdf'en.
 
 ## Notat
 
