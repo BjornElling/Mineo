@@ -111,6 +111,65 @@ const INDEPENDENT_MANUEL_LOEN_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
+const INDEPENDENT_MANUEL_LOEN_MISSING_GRUNDLOEN: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_MANUEL_LOEN_VALUES,
+  eoAngivetLoenLoenudvikling: {
+    ...INDEPENDENT_MANUEL_LOEN_VALUES.eoAngivetLoenLoenudvikling,
+    loenudviklingManuelTableData: [{
+      id: 'missing-grundloen',
+      dato: toISODateString('2024-01-01'),
+      grundloen: undefined,
+      feriepenge: undefined,
+      shSoSats: undefined,
+      fritvalg: undefined,
+      agPension: undefined,
+    }],
+  },
+};
+
+const INDEPENDENT_MANUEL_LOEN_ZERO_GRUNDLOEN: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_MANUEL_LOEN_VALUES,
+  eoAngivetLoenLoenudvikling: {
+    ...INDEPENDENT_MANUEL_LOEN_VALUES.eoAngivetLoenLoenudvikling,
+    loenudviklingManuelTableData: [{
+      id: 'zero-grundloen',
+      dato: toISODateString('2024-01-01'),
+      grundloen: { kind: 'number', value: 0 },
+      feriepenge: undefined,
+      shSoSats: undefined,
+      fritvalg: undefined,
+      agPension: undefined,
+    }],
+  },
+};
+
+const INDEPENDENT_MANUEL_LOEN_MISSING_DATE: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_MANUEL_LOEN_VALUES,
+  eoAngivetLoenLoenudvikling: {
+    ...INDEPENDENT_MANUEL_LOEN_VALUES.eoAngivetLoenLoenudvikling,
+    loenudviklingManuelTableData: [
+      {
+        id: 'basis',
+        dato: toISODateString('2024-01-01'),
+        grundloen: { kind: 'number', value: 30000 },
+        feriepenge: 12.5,
+        shSoSats: 10,
+        fritvalg: 5,
+        agPension: 8,
+      },
+      {
+        id: 'missing-date',
+        dato: undefined,
+        grundloen: { kind: 'number', value: 31000 },
+        feriepenge: 12.5,
+        shSoSats: 10,
+        fritvalg: 5,
+        agPension: 8,
+      },
+    ],
+  },
+};
+
 describe('TD-019 – manuel løn-validator med aktiv TAF og angivet månedsløn', () => {
   it('rapporterer manglende manuel reguleringsrække med præcis feltsti, besked og severity', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_MANUEL_LOEN_VALUES);
@@ -120,6 +179,45 @@ describe('TD-019 – manuel løn-validator med aktiv TAF og angivet månedsløn'
       errors: [{
         path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData',
         message: 'Mindst én manuel reguleringsrække skal udfyldes',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer manglende grundløn på en manuel reguleringsrække med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_MANUEL_LOEN_MISSING_GRUNDLOEN);
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData',
+        message: 'Grundløn skal udfyldes på alle manuelle reguleringsrækker',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer grundløn på nul på en manuel reguleringsrække med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_MANUEL_LOEN_ZERO_GRUNDLOEN);
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData',
+        message: 'Grundløn skal være større end 0 på alle manuelle reguleringsrækker',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer manglende dato på en ellers udfyldt manuel reguleringsrække med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_MANUEL_LOEN_MISSING_DATE);
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelTableData',
+        message: 'Dato skal udfyldes på alle manuelle reguleringsrækker',
         severity: 'error',
       }],
     });
