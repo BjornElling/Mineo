@@ -901,8 +901,8 @@ Auditten må først lukkes, når alle punkter er opfyldt på den fastlåste slut
   8.755 beståede Vitest-tests, 17 forventede `it.fails`, samme coverage og begge builds; produktkode og brugeradfærd er uændret. Den efterfølgende
   assertion-kvalitetsstyrkelse bestod `verify:release:core` på `665495fd` med 697 testfiler /
   8.755 beståede Vitest-tests, 17 forventede `it.fails`, samme coverage og begge builds; produktkode og brugeradfærd er uændret.
-  Den seneste samlede gate bestod på `8899263d` med 711 testfiler / 8.774 beståede Vitest-tests,
-  17 forventede `it.fails`, coverage 90,15 / 81,28 / 93,97 / 92,96 og begge builds. De seneste
+  Den seneste samlede gate bestod på `cb4282d9` med 715 testfiler / 8.778 beståede Vitest-tests,
+  17 forventede `it.fails`, coverage 90,21 / 81,34 / 93,97 / 93,03 og begge builds. De seneste
   ændringer er test- og auditdokumentation; produktkode, beregningslogik, brugeradfærd, schema og
   persistensformat er uændret.
 - [ ] Artefakter, fixtures, rapporter, mutationstriangulering og beslutningslog er tilgængelige fra dette
