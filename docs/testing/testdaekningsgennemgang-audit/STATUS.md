@@ -6,13 +6,13 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `cb4282d9`
+- Evidensrevision: `497da326`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `37a1954d`; den valgte E2E-suite er senest bestået på testrevision `9c965ec5` uden produktkode- eller brugeradfærdsændring siden `90c4870f`. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `cb4282d9` er grøn med 715 testfiler, 8.778 beståede tests plus 17 forventede `it.fails`; coverage er 90,21 / 81,34 / 93,97 / 93,03, og begge builds bestod. Den valgte E2E-suite er senest grøn på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193. De seneste dokument-, validator- og browserfacitter er målrettet retestet på `c7d64cc5`, `1d813c5f`, `8302dfd6` og `cb4282d9`; produktkoden er uændret siden `90c4870f`. Åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `497da326` er grøn med 717 testfiler, 8.780 beståede tests plus 17 forventede `it.fails`; coverage er 90,21 / 81,34 / 93,97 / 93,03, og begge builds bestod. Den valgte E2E-suite er senest grøn på testrevision `9c965ec5` med 191 beståede tests og 2 forventede skips ud af 193. De seneste dokument-, validator- og browserfacitter er målrettet retestet på `c7d64cc5`, `1d813c5f`, `8302dfd6`, `cb4282d9` og `497da326`; produktkoden er uændret siden `90c4870f`. Åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -28,11 +28,11 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Typechecks | `npm run check:types` | Bestået | Alle fire TypeScript-projekter bestået |
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
 | Vitest (historisk releasekørsel) | `npm run test:coverage` | Bestået | 661 filer, 8.603 tests bestået samt 6 forventede `it.fails`; samlet kørsel 396,36 s |
-| Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 715 filer, 8.778 tests bestået samt 17 forventede `it.fails`; coverage 90,21 / 81,34 / 93,97 / 93,03 på `cb4282d9` |
+| Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 717 filer, 8.780 tests bestået samt 17 forventede `it.fails`; coverage 90,21 / 81,34 / 93,97 / 93,03 på `497da326` |
 | E2E-baner | `npm run test:e2e` | Bestået | 191 beståede tests og 2 forventede skips ud af 193, 4,3 min, 3 workers; `playwright-report/` og `test-results/` på testrevision `9c965ec5`; produktkoden er uændret siden `90c4870f` |
-| Aktuel samlet release-gate | `npm run verify:release:core` | Bestået | Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og begge build-gates bestået på `cb4282d9`; coverage 715 filer / 8.778 beståede tests / 17 forventede `it.fails` |
+| Aktuel samlet release-gate | `npm run verify:release:core` | Bestået | Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og begge build-gates bestået på `497da326`; coverage 717 filer / 8.780 beståede tests / 17 forventede `it.fails` |
 | Coverage (historisk releasekørsel) | `npm run verify:release:core` | Bestået | 661 testfiler / 8.603 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.776 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
-| Aktuel coverage-retest | `npm run test:coverage` | Bestået | 393 instrumenterede filer; 90,21 % statements, 81,34 % branches, 93,97 % functions, 93,03 % lines; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json`; `cb4282d9`, Node `v24.18.0`/Windows |
+| Aktuel coverage-retest | `npm run test:coverage` | Bestået | 393 instrumenterede filer; 90,21 % statements, 81,34 % branches, 93,97 % functions, 93,03 % lines; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json`; `497da326`, Node `v24.18.0`/Windows |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 26 filer, 252 tests; byteintegritet 5/5 SHA-256-facitter |
@@ -747,6 +747,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   overgangsbeløbet i 2025 på 198.500 kr. og kontrollerer det i faktisk Word-XML; 1/1 bestået.
 - Begge ændringer er test-only. De berører ikke TD-003's åbne ugyldige-dato-beslutning og ændrer
   ikke produktkode, data, beregningslogik, brugeradfærd, schema eller persistensformat.
+
+## Seneste samlede release-gate efter revision `497da326`
+
+- `npm run verify:release:core` bestod samlet. Dependency-, runtime-, type-, lint-, data-, kontrakt-,
+  lane-, ledger-, coverage- og begge produktionsbuild-gates bestod.
+- Vitest gennemførte 717 testfiler med 8.780 beståede tests og 17 forventede `it.fails`.
+  Coverage var 90,21 % statements, 81,34 % branches, 93,97 % functions og 93,03 % lines.
+- Mineo- og MinProcesrente-builds blev genereret og artefakterne verificeret. De seneste ændringer
+  er test- og auditdokumentation; produktkode, beregningslogik, brugeradfærd, schema og
+  persistensformat er uændret.
+- B-002's faktiske GitHub Actions-kørsel, historisk `.eo`-proveniens, fysisk dokumentinspektion
+  og de øvrige åbne beslutningspunkter er fortsat ikke afsluttet.
 
 ## Næste arbejdsenhed
 
