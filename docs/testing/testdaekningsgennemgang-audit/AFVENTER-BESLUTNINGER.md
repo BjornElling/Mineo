@@ -149,6 +149,29 @@ og den statiske gennemgang af workflowet som tilstrækkelig dokumentation?
 
 > Skriv her.
 
+## 8. Én øre forskel mellem renteberegning og PDF (TD-043)
+
+**Det brugeren kan opleve:** Mineo viser `94,95 kr.` i renteberegningen, men den hentede
+PDF viser `94,94 kr.` for den samme sag. Det kan give tvivl om, hvilket beløb brugeren
+skal stole på.
+
+**Sådan genskaber du det i Mineo:**
+
+1. Log ind, og gå til **Renteberegning**.
+2. Sæt **Beregningsdato** til **02-07-2024**.
+3. Sæt beløbet i den første række til `100.000` kr.
+4. Sæt **Forfaldsdato** til **30-06-2024**.
+5. Notér beløbet, som Mineo viser i rækken.
+6. Hent rækkens PDF-specifikation, og sammenlign det samlede rentebeløb i PDF'en med
+   beløbet i Mineo.
+
+**Spørgsmål:** Skal begge steder vise samme beløb? Hvis ja, hvilket beløb skal være det
+endelige – `94,95 kr.` eller `94,94 kr.`?
+
+**Dit svar:**
+
+> Skriv her.
+
 ## Notat
 
 Andre åbne auditposter er ikke medtaget her, fordi de enten er løbende testarbejde,
