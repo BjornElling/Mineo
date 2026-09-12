@@ -595,6 +595,30 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   produktkode, beregningslogik, brugeradfærd og persistensformat er uændret.
   Den samlede `verify:release:core` står fortsat på `cb7f977a`, og E2E står fortsat på `9c965ec5`.
 
+## Seneste test-only facitbatch efter revision `4790b649`
+
+- `utcDayMathIndependentOracle.test.ts` tilføjer to uafhængige århundredesfacitter: 1900 er ikke
+  skudår, mens 2000 er skudår. Den målrettede test bestod med 2/2 på `5bc0d087`.
+- `td019SvieSmerteValidatorIndependent.test.ts` tilføjer et typed, produktionsdefault-uafhængigt
+  facit for manglende `svieSmerteSatserAar` i en aktiv svie/smerte-periode. Den målrettede test
+  bestod med 1/1 på `5bc0d087`.
+- `td016SygedagpengeFoerShCutoffIndependent.test.ts` tilføjer et håndberegnet sygedagpengefacit
+  før SH-cutoff med påskemandag, fem konkrete dagværdier, samlet 900 kr. og tom integrity issue.
+  Den målrettede test bestod med 1/1; den supplerende EO-inspektionssuite bestod med 17 filer / 186
+  tests på `c34b8885`.
+- `indexedDbStore.atomicity.test.ts` beviser med en staging-stub, der også har en reel positiv
+  commitsti, at ingen af to writes bliver synlige efter transaction-abort. Den målrettede test
+  bestod med 1/1. Teststubben blev efter review styrket på `4790b649`, så assertionen ikke længere
+  kunne være grøn uden en observerbar forskel mellem commit og abort.
+- Den kombinerede kontrol af de fire nye tests bestod med 4 filer / 5 tests. `npm run typecheck:test`
+  og `npm run lint` bestod; den kendte Vite `configLoader: 'native'`-advarsel blev fortsat observeret.
+  Ændringerne er test-only; ingen produktkode, beregningslogik, brugeradfærd, schema eller
+  persistensformat er ændret.
+- `TD-003` står fortsat åben for ugyldige `Date`-instanser, `TD-016` for den observerede
+  weekendydelse-/TAF-mismatch, `TD-017` for ikke-callable File API-detektion og fuld
+  browser-/IndexedDB-sammenhæng, og `TD-019` er fortsat delvist lukket for de øvrige
+  validatorfixtures.
+
 ## Næste arbejdsenhed
 
 De seneste test-only styrkelser er målrettet retestet: standalone-dokumentparitet med 3/3 på `75d1a956`, pensionsalderens downstream-hændelser med 2/2 på `16ad2251`, validatorens negative fritvalg-procent med 13/13 og forsørgertabets EAL-mindstesats med 1/1 på `4418f502`. Assertion-kvalitetsbatchen på `7281c4cd` bestod med 2 filer / 46 tests og erstattede to generelle truthy/falsy-assertioner med konkrete resultater. Den efterfølgende procesrente-assertion på `f6a61a6a` bestod med 15/15 målrettede tests og kræver nu en ikke-blank række-id. EO-række-id-facittet på `93021dfa` bestod med 14/14 målrettede tests og kræver nu et ikke-blankt id i roundtrip-modellen. Datafacitterne på `37a1954d` bestod med 2 filer / 148 tests og styrkede konkrete dato-, metadata- og fallback-forventninger. Den samlede releasegate er senest genkørt grønt på `37a1954d` med 697 testfiler / 8.755 beståede tests, 17 forventede `it.fails` og coverage 90,14 / 81,24 / 93,97 / 92,96. Næste arbejdsenhed skal fortsat vælges blandt de åbne, test-only dækningshuller.
