@@ -173,6 +173,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - `TD-043`: Rentemotorens synlige total summerer per-periode-afrundede beløb. Den uafhængige
   PDF/Word-kontrol og `td-043-renteberegning-dokumentafrunding.spec.ts` forventer nu `94,94 kr.`
   på tværs af skærm og dokument.
+- `TD-014`: `renteOversigtDocumentIndependent.test.ts` fører to håndskrevne rentelinjer gennem
+  faktiske PDF- og Word-artefakter og kræver samme titel, dato, tabelindhold, principper og total
+  `414,75 kr.` i begge kanaler. Den generelle rendering-, sideskifts- og outputparitetskontrol er
+  fortsat åben.
 - `B-002`: Den bindende releasekontrol er valgt som automatisk GitHub Actions-gate. CI-matrixen
   omfatter nu de fire dedikerede browserprojekter og er dækket af et statisk quality-værn. En
   faktisk GitHub Actions-kørsel er fortsat engangsbeviset for rutinen og ikke en tilbagevendende
