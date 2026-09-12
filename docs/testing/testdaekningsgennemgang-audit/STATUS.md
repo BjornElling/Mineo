@@ -153,7 +153,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-044`, `TD-045`, `TD-046` |
+| Lukket | `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048` |
 | Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-003`, `TD-004`, `TD-016`, `TD-017`, `TD-043` |
 
@@ -738,6 +738,15 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   persistensformat er uændret.
 - B-002's faktiske GitHub Actions-kørsel, historisk `.eo`-proveniens, fysisk dokumentinspektion
   og de øvrige åbne beslutningspunkter er fortsat ikke afsluttet.
+
+## Seneste DATE-001/DATA-001-facitbatch efter revision `cb4282d9`
+
+- `utcDayMath2100IndependentOracle.test.ts` tilføjer et uafhængigt håndfacit for årsskiftet
+  2099/2100, inklusive eksklusiv og inklusiv dagtælling; målrettet test bestod med 1/1.
+- `td020OvergangsbeloebSatserDocumentIndependent.test.ts` tilføjer et statisk facit for
+  overgangsbeløbet i 2025 på 198.500 kr. og kontrollerer det i faktisk Word-XML; 1/1 bestået.
+- Begge ændringer er test-only. De berører ikke TD-003's åbne ugyldige-dato-beslutning og ændrer
+  ikke produktkode, data, beregningslogik, brugeradfærd, schema eller persistensformat.
 
 ## Næste arbejdsenhed
 
