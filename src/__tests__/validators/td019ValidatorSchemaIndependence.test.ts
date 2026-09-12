@@ -124,6 +124,148 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('kræver beregningskilde for sygeferiegodtgørelse ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [{
+        id: 'taf-1',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [{
+        id: 'af-1',
+        navnPaaArbejdssted: undefined,
+        harOverenskomst: false,
+        overenskomstId: undefined,
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+        harAnciennitetstillaegEfterSkadedatoen: false,
+        anciennitetstillaegDato: undefined,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+        anciennitetstillaegSats: undefined,
+        feriePct: undefined,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        storeBededagPct: 0,
+        pensionPct: undefined,
+        tillaegAngivesSom: 'procent',
+        loenperiode: 'maaned',
+        indtaegtsoplysningerTableData: [],
+        fuldLoenUnderFerie: 'Nej',
+        loenPaaHelligdage: 'Almindelig løn',
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: undefined,
+        loenudviklingManuelTableData: [],
+        loenudviklingManuelProcentsatsTableData: [],
+        offentligLoenType: undefined,
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        offentligLoenEkstraGrundloen: undefined,
+        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: undefined,
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold[0].sfggBeregningskilde',
+        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('kræver referenceperiode til-dato for Ferieloven ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [{
+        id: 'taf-1',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [{
+        id: 'af-1',
+        navnPaaArbejdssted: undefined,
+        harOverenskomst: false,
+        overenskomstId: undefined,
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+        harAnciennitetstillaegEfterSkadedatoen: false,
+        anciennitetstillaegDato: undefined,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+        anciennitetstillaegSats: undefined,
+        feriePct: undefined,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        storeBededagPct: 0,
+        pensionPct: undefined,
+        tillaegAngivesSom: 'procent',
+        loenperiode: 'maaned',
+        indtaegtsoplysningerTableData: [],
+        fuldLoenUnderFerie: 'Nej',
+        loenPaaHelligdage: 'Almindelig løn',
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: undefined,
+        loenudviklingManuelTableData: [],
+        loenudviklingManuelProcentsatsTableData: [],
+        offentligLoenType: undefined,
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        offentligLoenEkstraGrundloen: undefined,
+        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeTil',
+        message: 'Referenceperiode til-dato mangler',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('afviser omvendt vedrører-periode på håndskrevet typed runtime-værdi', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
