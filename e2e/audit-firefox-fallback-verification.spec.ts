@@ -129,7 +129,10 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     await page.getByRole('button', { name: 'Gem' }).click();
     const download = await downloadPromise;
     const savedPath = await download.path();
-    expect(savedPath).toBeTruthy();
+    expect(savedPath, 'Gem-fallbacken skal levere en faktisk midlertidig filsti').toEqual(expect.any(String));
+    if (savedPath === null) {
+      throw new Error('Gem-fallbacken leverede ingen filsti');
+    }
 
     // Hent samme fil gennem den synlige filvælger – det trin, der kastede.
     //
