@@ -68,7 +68,7 @@ describe('tableModel roundtrip', () => {
     expect(isTafRowEmpty(taf[taf.length - 1])).toBe(true);
 
     const oevrige = ensureOevrigeKravRows([{ id: 'o1', dato: toISODateString('2024-01-10'), udgiftTil: 'A', beloeb: { kind: 'number', value: 1 } }]);
-    expect(oevrige[oevrige.length - 1].id).toBeTruthy();
+    expect(oevrige[oevrige.length - 1].id).toMatch(/\S/);
     expect(oevrige[oevrige.length - 1].dato).toBeUndefined();
   });
 
