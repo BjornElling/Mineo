@@ -212,6 +212,77 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('kræver manuel dagssats for sygeferiegodtgørelse ved aktiv TAF', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      tafPerioder: [{
+        id: 'taf-1',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [{
+        id: 'af-1',
+        navnPaaArbejdssted: undefined,
+        harOverenskomst: false,
+        overenskomstId: undefined,
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+        harAnciennitetstillaegEfterSkadedatoen: false,
+        anciennitetstillaegDato: undefined,
+        anciennitetstillaegSatsAngivesPer: 'Måned',
+        anciennitetstillaegSats: undefined,
+        feriePct: undefined,
+        fritvalgPct: undefined,
+        shSoPct: undefined,
+        storeBededagPct: 0,
+        pensionPct: undefined,
+        tillaegAngivesSom: 'procent',
+        loenperiode: 'maaned',
+        indtaegtsoplysningerTableData: [],
+        fuldLoenUnderFerie: 'Nej',
+        loenPaaHelligdage: 'Almindelig løn',
+        saerligFraDatoRegulering: undefined,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        loenudviklingStatistikModel: undefined,
+        loenudviklingKRLSatstabel: undefined,
+        loenudviklingManuelNavn: undefined,
+        loenudviklingManuelTableData: [],
+        loenudviklingManuelProcentsatsTableData: [],
+        offentligLoenType: undefined,
+        offentligLoenTrin: undefined,
+        offentligLoenGruppe: undefined,
+        offentligLoenEkstraGrundloen: undefined,
+        overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold[0].sfggManuelDagssats',
+        message: 'Dagssats for sygeferiegodtgørelse mangler',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('kræver lønregulering for beregningsperiode ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
