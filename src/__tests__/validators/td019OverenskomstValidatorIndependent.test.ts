@@ -111,6 +111,72 @@ const INDEPENDENT_OVERENSKOMST_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
+const INDEPENDENT_OVERENSKOMST_MODSTRIDENDE_VALG_VALUES: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_OVERENSKOMST_VALUES,
+  beregnesUdFra: 'Beregningsperiode',
+  loenindkomstAnsaettelsesforhold: [{
+    id: 'af-overenskomst',
+    navnPaaArbejdssted: undefined,
+    harOverenskomst: false,
+    overenskomstId: 'bygge-anlaeg',
+    ansatPaaSkadestidspunktet: true,
+    ansaettelsesforholdOphoert: false,
+    sidsteArbejdsdag: undefined,
+    harAnciennitetstillaegEfterSkadedatoen: false,
+    anciennitetstillaegDato: undefined,
+    anciennitetstillaegSatsAngivesPer: 'Måned',
+    anciennitetstillaegSats: undefined,
+    feriePct: 12.5,
+    fritvalgPct: undefined,
+    shSoPct: undefined,
+    storeBededagPct: 0,
+    pensionPct: undefined,
+    tillaegAngivesSom: 'procent',
+    loenperiode: 'maaned',
+    indtaegtsoplysningerTableData: [{
+      id: 'loen-overenskomst',
+      col0_maaned: '1',
+      col1_maaned: '2024',
+      col0_uge: '',
+      col1_uge: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
+      col2: { kind: 'number', value: 30000 },
+      col3: undefined,
+      col4: undefined,
+      col5: undefined,
+      fpFvShSoBeloeb: undefined,
+      pensionBeloeb: undefined,
+    }],
+    fuldLoenUnderFerie: 'Nej',
+    loenPaaHelligdage: 'Almindelig løn',
+    saerligFraDatoRegulering: undefined,
+    loenudviklingBeregningsgrundlag: 'Overenskomst',
+    loenudviklingStatistikModel: undefined,
+    loenudviklingKRLSatstabel: undefined,
+    loenudviklingManuelNavn: undefined,
+    loenudviklingManuelTableData: [],
+    loenudviklingManuelProcentsatsTableData: [],
+    offentligLoenType: undefined,
+    offentligLoenTrin: undefined,
+    offentligLoenGruppe: undefined,
+    offentligLoenEkstraGrundloen: undefined,
+    overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+  }],
+  sfggAnsaettelsesforhold: [{
+    ansaettelsesforholdId: 'af-overenskomst',
+    sfggBeregningskilde: 'Ingen',
+    sfggReferenceperiodeFra: undefined,
+    sfggReferenceperiodeTil: undefined,
+    sfggReferenceperiodeFravaersdageUdenLoen: 0,
+    sfggManuelDagssats: undefined,
+    sfggManuelBeloebIHenholdTil: undefined,
+    sfggManuelFoerstEfterSygeloen: 'Nej',
+    sfggSatsvalg: undefined,
+    sfggAlleredeBetaltBeloeb: undefined,
+  }],
+};
+
 describe('TD-019 – overenskomst-validator med aktiv TAF og angivet månedsløn', () => {
   it('rapporterer manglende overenskomst med præcis feltsti, besked og severity', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OVERENSKOMST_VALUES);
@@ -120,6 +186,19 @@ describe('TD-019 – overenskomst-validator med aktiv TAF og angivet månedsløn
       errors: [{
         path: 'eoAngivetLoenLoenudvikling.overenskomstId',
         message: 'Overenskomst skal vælges',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer modstridende overenskomst-toggle med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OVERENSKOMST_MODSTRIDENDE_VALG_VALUES);
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].harOverenskomst',
+        message: 'Overenskomst skal slås til, når lønudviklingen beregnes ud fra overenskomst',
         severity: 'error',
       }],
     });
