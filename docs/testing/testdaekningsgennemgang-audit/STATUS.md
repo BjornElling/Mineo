@@ -177,6 +177,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   faktiske PDF- og Word-artefakter og kræver samme titel, dato, tabelindhold, principper og total
   `414,75 kr.` i begge kanaler. Den generelle rendering-, sideskifts- og outputparitetskontrol er
   fortsat åben.
+- `TD-020`: `td020KrlDocumentIndependent.test.ts` fører to håndskrevne KRL-rækker gennem den
+  faktiske Word-generator og kræver alle fire tabeller samt de konkrete 2026- og 2018-værdier;
+  målrettet kontrol af KRL-sporet bestod med 27/27.
 - `B-002`: Den bindende releasekontrol er valgt som automatisk GitHub Actions-gate. CI-matrixen
   omfatter nu de fire dedikerede browserprojekter og er dækket af et statisk quality-værn, som
   også fastholder, at deploy kun kører ved push til main. En
