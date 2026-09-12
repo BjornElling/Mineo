@@ -6,7 +6,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `106344e3`
+- Evidensrevision: `152ca00c`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `37a1954d`; den valgte E2E-suite er senest bestået på testrevision `9c965ec5` uden produktkode- eller brugeradfærdsændring siden `90c4870f`. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
@@ -154,7 +154,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063` |
+| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066` |
 | Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016` |
 
@@ -856,7 +856,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   `git diff --check` bestod. Facittet lukker kun den konkrete TAF-grafpartition. TD-014/TD-018
   står fortsat åbne for fysisk rendering, sideskift og generel PDF/Word-paritet.
 
-## Seneste målrettede batch – revision `106344e3`
+## Seneste målrettede batch – revision `152ca00c`
 
 - `td019SfggReferenceperiodeOrderValidatorIndependent.test.ts` bestod med 1/1 og fastholder et
   uafhængigt SFGG-facit for en referenceperiode, der kun indeholder weekenddage.
@@ -870,6 +870,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   forbliver åbne for fysisk rendering og generel dokumentparitet.
 - Den samlede målrettede retest af de tre nye testfiler bestod med 3 filer / 4 tests. Der er ikke
   ændret produktkode, beregningslogik, UI/UX eller persistensformat.
+- Den efterfølgende batch tilføjede `td019SfggReferenceperiodeFravaersdageValidatorIndependent.test.ts`
+  med 1/1 SFGG-fraværsdagefacit, `aarsloenShDagIndependentOracle.test.ts` med 1/1 SH-dagefacit
+  for Metode A og `githubActionsTriggerLiveness.test.ts` med 2/2 CI-triggerfacitter. Der er fortsat
+  ikke ændret produktkode, beregningslogik, UI/UX eller persistensformat.
 
 ## Næste arbejdsenhed
 
