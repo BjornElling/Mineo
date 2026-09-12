@@ -203,7 +203,9 @@ describe('LicenseModal', () => {
       // Verificer at indholdet har linjeskift (1:1 formatering bevaret)
       if (preElement) {
         expect(preElement.textContent).toContain('\n');
-        expect(preElement.textContent).toBeTruthy();
+        expect(preElement.textContent).toBe(
+          'MIT License\n\nCopyright (c) 2026 Test\n\nPermission is hereby granted...',
+        );
       }
     });
 
