@@ -529,13 +529,13 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   produktkode, beregningslogik, brugeradfærd og persistensformat er uændret.
   Den samlede `verify:release:core` står fortsat på `cb7f977a`, og E2E står fortsat på `9c965ec5`.
 
-## Seneste DOC-001/TD-019-retest efter revisioner `902034ca` og `61b138c8`
+## Seneste DOC-001/TD-019-retest efter revisioner `902034ca`, `61b138c8`, `010b44d9` og `890fa37e`
 
 - `standaloneRenteAlleDocumentDefinition.test.ts` kalder den reelle standalone-renderer med to
   eksplicitte rækker og fastholder to titler/tabeller, én pageBreak mellem sektionerne, én footer
   som sidste blok, begge hovedstole/periodetekster og filnavnet `Procesrente, 1.000,00 kr.
   (01-01-2024 - 31-01-2024) +1.pdf`. Testen bestod med 1/1.
-- Den målrettede direkte kontrol af de syv validatorfacitfiler bestod med 7 filer / 23 tests.
+- Den målrettede direkte kontrol af de otte validatorfacitfiler bestod med 8 filer / 24 tests.
   `td019OverenskomstValidatorIndependent.test.ts` fastholder manglende `overenskomstId` med
   path `eoAngivetLoenLoenudvikling.overenskomstId`, beskeden `Overenskomst skal vælges` og
   severity `error`.
