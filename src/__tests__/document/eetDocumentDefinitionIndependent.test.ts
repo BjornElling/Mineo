@@ -6,6 +6,7 @@ import { createDocumentSourceContext } from '../../document/definition/documentS
 import {
   efterEalDocumentDefinition,
   type EfterEalDocumentInput,
+  loebendeYdelserDocumentDefinition,
 } from '../../domain/erhvervsevnetab/eetDocumentDefinitions';
 import { projectMineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import { createInputEvaluation } from '../../inputCore/inputReader';
@@ -46,6 +47,10 @@ const erhvervsevnetab: ErhvervsevnetabValues = {
   beregningsdato: iso('2022-04-01'),
   koen: 'Kvinde',
   ealEetPct: 50,
+  eetDifferencekravBilagSelection: {
+    ...ERHVERVSEVNETAB_INITIAL_VALUES.eetDifferencekravBilagSelection,
+    visUdvidetSpecifikation: true,
+  },
   aslAfgoerelser: [{
     id: 'eet-definition-row',
     afgoerelsesDato: iso('2019-06-01'),
@@ -117,6 +122,26 @@ const project = (): EfterEalDocumentInput => {
   return result.input;
 };
 
+const projectLoebendeYdelser = () => {
+  const catalog = getProductionInputCatalog();
+  const input = buildInput();
+  const evaluation = createInputEvaluation({
+    input,
+    catalog,
+    sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+  });
+  const result = loebendeYdelserDocumentDefinition.project(
+    createDocumentSourceContext(evaluation, gateSettings),
+    undefined,
+  );
+
+  expect(result.status).toBe('ready');
+  if (result.status !== 'ready') {
+    throw new Error('Løbende ydelser-definitionen blev blokeret i orakelfixturet');
+  }
+  return result.input;
+};
+
 describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
   it('fører den projicerede beregning til Word med de håndberegnede beløb', async () => {
     const input = project();
@@ -150,5 +175,36 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     expect(text).toContain('2.475.200 kr.');
     expect(text).toContain('50 % x (4.760.000 kr. - 2.475.200 kr.) =');
     expect(text).toContain('1.142.400 kr.');
+  });
+
+  it('fører den projicerede løbende ydelse til Word med det håndberegnede totalbeløb', async () => {
+    const input = projectLoebendeYdelser();
+
+    // Uafhængigt facit: grundlønnen er 401.000 x 367.000 / 539.000 = 273.037 kr., og
+    // den ene afgørelses fem regulerede perioder summerer til 536.270 kr. i løbende EET.
+    expect(input.computation).toEqual(expect.objectContaining({
+      benyttetAarsloenOre: 40100000,
+      grundloenOre: 27303700,
+      erstatningsniveauPct: 83,
+      amBidragPct: 8,
+    }));
+    expect(input.computation.afgoerelser).toHaveLength(1);
+    expect(input.computation.afgoerelser[0]).toEqual(expect.objectContaining({
+      eetPct: 60,
+      iAltBeregnetEetOre: 53627000,
+    }));
+
+    const renderer = await loebendeYdelserDocumentDefinition.loadRenderer();
+    const { filename, documentXml } = await renderWordDocument((session) =>
+      renderer(session, input, { visBrevhoved: false })
+    );
+    const text = xmlToPlainText(documentXml);
+
+    expect(filename).toMatch(/\.docx$/);
+    expect(text).toContain('Løbende ydelser (EET)');
+    expect(text).toContain('Afgørelse 1. juni 2019');
+    expect(text).toContain('536.270 kr.');
+    expect(text).toContain('Udvidet specifikation');
+    expect(text).toContain('273.037 kr.');
   });
 });
