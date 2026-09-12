@@ -37,6 +37,7 @@ import {
   referenceHolds,
   sourceBasenames,
   symbolReferenceExists,
+  stripCommentsAndStrings,
   type ContractReference,
 } from './contractReferences';
 
@@ -542,5 +543,13 @@ describe('kontrakt-reference-prædikaterne er ikke vakuøse', () => {
     expect(isPathLike('src/document/model/documentModel.ts')).toBe(true);
     expect(isPathLike('documentModel.ts')).toBe(true);
     expect(isPathLike('DocumentComposer')).toBe(false);
+  });
+
+  it('lader ikke et symbol i et almindeligt strengliteral holde liveness kunstigt i live', () => {
+    const symbolOnlyInString = 'OnlyInOrdinaryStringLiteral';
+    const stripped = stripCommentsAndStrings(`render("${symbolOnlyInString}");`);
+
+    expect(stripped).toContain('render');
+    expect(stripped).not.toContain(symbolOnlyInString);
   });
 });

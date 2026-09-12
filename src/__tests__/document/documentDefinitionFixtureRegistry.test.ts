@@ -784,6 +784,28 @@ describe('fysisk tekstparitet for hovedappens dokumentartefakter', () => {
     expect(pdfText, `${id}/PDF og Word`).toBe(wordText);
   });
 
+  it('satser bevarer uafhængigt forventet indhold i både PDF og Word', async () => {
+    const { pdfText, wordText } = await FIXTURES.satser.renderArtifactParity(FIXTURES.satser.ready());
+    const expectedContent = [
+      'Arbejdsskadesatser 2024',
+      'Erstatningsansvarsloven',
+      'Arbejdsskadesikringsloven',
+      'Minimum årsløn (skader før 1.7.2024)',
+      '227.000 kr.',
+      'Minimum årsløn (skader fra 1.7.2024)',
+      '257.000 kr.',
+      'Reguleringsprocent for erhvervsevnetab (fra 2024)',
+      '0 %',
+    ] as const;
+
+    // Forventningerne er bevidst litterale og ikke afledt af satsobjektet. Ellers kunne en
+    // bortfiltreret eller forkert formatteret sats gøre både PDF- og Wordkontrollen grøn.
+    for (const expected of expectedContent) {
+      expect(pdfText, `PDF mangler ${expected}`).toContain(expected);
+      expect(wordText, `Word mangler ${expected}`).toContain(expected);
+    }
+  });
+
   it('taf-krav-graf producerer fysiske billedartefakter i begge kanaler', async () => {
     const { pdfText, wordText, pdfByteLength, wordMediaCount } = await FIXTURES['taf-krav-graf']
       .renderArtifactParity(FIXTURES['taf-krav-graf'].ready());

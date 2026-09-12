@@ -138,7 +138,9 @@ export const stripCommentsAndStrings = (source: string): string => {
     // Modulspecifikation i en import/export: `from '../utils/pwaLaunchQueue'`. Stien ER koden –
     // et modul, der kun nås gennem sine importstier, ville ellers se dødt ud.
     if (/\b(from|import|require\()\s*$/.test(before)) return match;
-    return match[0]!.repeat(2);
+    // Et almindeligt literal er data, ikke en levende reference. Bevar linjeskift, så et eventuelt
+    // senere diagnostik-opslag ikke mister kildepositioner, men fjern selve indholdet.
+    return match.replace(/[^\r\n]/g, ' ');
   };
   return withoutComments
     .replace(/'(?:[^'\\\n]|\\.)*'/g, keepAsLiveCode)

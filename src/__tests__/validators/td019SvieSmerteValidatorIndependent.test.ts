@@ -126,4 +126,24 @@ describe('TD-019 – svie/smerte-validator med aktiv periode', () => {
       }],
     });
   });
+
+  it('rapporterer manglende tilstand på en svie/smerte-række med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_SVIE_SMERTE_VALUES,
+      svieSmerteSatserAar: 2024,
+      svieSmertePerioder: [{
+        ...INDEPENDENT_SVIE_SMERTE_VALUES.svieSmertePerioder[0],
+        tilstand: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'svieSmertePerioder[0].tilstand',
+        message: 'Tilstand mangler',
+        severity: 'error',
+      }],
+    });
+  });
 });
