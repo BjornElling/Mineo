@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `28cdcb2b` / `e0f9d340` | `verify:release:core` på `28cdcb2b`: 737 testfiler / 8.824 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,23 % statements / 81,38 % branches / 93,97 % functions / 93,05 % lines; begge produktionsbuilds bestået. Seneste `npm run test:e2e` på `e0f9d340`: 201 beståede tests og 2 forventede skips ud af 203 på 10 projektbaner; siden da er kun test- og auditdokumentation ændret. |
+| Seneste samlede release-/E2E-retest | `28cdcb2b` / `c8187c6d` | `verify:release:core` på `28cdcb2b`: 737 testfiler / 8.824 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,23 % statements / 81,38 % branches / 93,97 % functions / 93,05 % lines; begge produktionsbuilds bestået. Seneste `npm run test:e2e` på `c8187c6d`: 204 beståede tests og 2 forventede skips ud af 206 på 10 projektbaner; siden da er kun auditdokumentation ændret. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -933,6 +933,11 @@ en ikke-deterministisk 2020 → Word-prøve desuden `document:download_failure` 
 for timeouten; en sekventiel gentagelse lykkedes med `Arbejdsskadesatser 2020.docx`. Observationen
 er derfor registreret under `TD-025` og ikke som en fastslået produktfejl. Ingen produktkode,
 beregningslogik, UI/UX eller persistensformat blev ændret.
+
+Den fulde valgte E2E-suite blev derefter kørt på revision `c8187c6d` og bestod med 204 tests og 2
+forventede skips ud af 206 på 10 projektbaner, med 3 workers på 4,2 minutter. De nye browserrejser
+bestod, og den tidligere parallelle 2020 → Word-observation gentog sig ikke. Vite rapporterede kun
+de kendte native-config- og chunk-størrelsesadvarsler.
 
 `TD-001` afventer de faktiske gamle `.eo`-filer. `TD-016` afventer stadig brugerobservation og
 domænevalg, fordi udviklerens svar korrigerede instruktionerne, men ikke tog stilling til den
