@@ -1,7 +1,9 @@
-# Beslutninger, der afventer dig
+# Beslutningsark – udviklerens svar og videre håndtering
 
-Skriv dit svar direkte under hvert spørgsmål. Punkterne er de fund, hvor næste skridt
-kræver dit valg eller en konkret kontrol, som kun du kan udføre.
+Udviklerens svar står direkte under hvert spørgsmål. Koderelaterede forhold, som ikke kan
+genskabes gennem Mineos skærmbilleder, afgøres strukturelt ud fra den eksisterende arkitektur.
+Punkter, der kræver faktiske filer, en konkret brugerobservation eller et domænevalg, bliver
+ikke afgjort ved gæt.
 
 ## 1. Genskabelse af gamle sagsfiler (TD-001)
 
@@ -32,15 +34,31 @@ ydelseskolonne i kontroltabellen.
 **Sådan genskaber du det i Mineo:**
 
 1. Log ind, og gå til **Stamdata**. Udfyld de nødvendige felter med gyldige værdier.
-2. Gå til **Erstatningsopgørelse**.
-3. Vælg **Ja** til tabt arbejdsfortjeneste, og vælg **Angivet dagsløn**.
-4. Skriv `1.000` i dagslønnen.
-5. Sæt den relevante periode til **01-07-2024 – 31-07-2024** og
-   beregningsperioden til **01-07-2024 – 07-07-2024**.
-6. Opret en TAF-periode med samme uge.
-7. Under **Offentlige ydelser** opretter du en **Sygedagpenge**-række fra
-   **06-07-2024** til **07-07-2024** på `2.000` kr.
-8. Gå til **Beregning**, og se på kontroltabellen og dokumentknappen.
+2. Udfyld **Stamdata** sådan:
+   - **Journalnr.**: `TD-016`
+   - **Skadelidtes navn**: `Fiktiv skadelidt`
+   - **Skadestype**: `Arbejdsulykke`
+   - **Fødselsdato**: `01-01-1980`
+   - **Skadedato**: `01-01-2022`
+3. Gå til **Erstatningsopgørelse** og fanen **EO-oplysninger**. Udfyld:
+   - **Opgørelse lavet den**: `01-02-2022`
+   - **Krav på svie- og smertegodtgørelse**: `Nej`
+   - **Er der krav på tabt arbejdsfortjeneste i erstatningsperioden**: `Ja`
+   - **Krav på øvrige erstatningskrav**: `Nej`
+   - **Vedrører periode fra**: `01-07-2024`
+   - **til og med**: `31-07-2024`
+4. Find afsnittet **Indtægt før skaden**. Vælg **Angivet dagsløn** ved
+   **Beregnes ud fra**, og skriv `1.000` ved **Dagslønnen udgør**. Udfyld ikke en
+   beregningsperiode – de felter skal være skjult i dette valg.
+5. Find tabellen **Tabt arbejdsfortjeneste**. Skriv `01-07-2024` i **Fra o.m.**
+   og `07-07-2024` i **Til o.m.** i den første række. Lad **Løse feriedage** stå tomt.
+6. Gå til fanen **Offentlige ydelser**. Udfyld den første række sådan:
+   - **Fra dato**: `06-07-2024`
+   - **Til dato**: `07-07-2024`
+   - **Ydelse**: `2.000`
+   - **Ydelsestype**: `Sygedagpenge`
+7. Gå til fanen **Beregning**, og se på kontroltabellen og knappen til at hente
+   opgørelsen.
 
 **Spørgsmål:** Er det korrekt, at Mineo viser advarslen og blokerer dokumentet i denne
 situation, eller skal ydelsen vises og behandles på en anden måde?
@@ -56,12 +74,13 @@ afvist. Fundet handler om en særlig intern situation, hvor en ugyldig dato alli
 kommer videre. I så fald kan resultatet blive tomt eller ubrugeligt i stedet for en klar
 fejl.
 
-**Sådan genskaber du det:** Det kan ikke fremkaldes med almindelige klik i Mineo. Den
-almindelige formular afviser datoen først. Det kræver en særlig testkørsel, hvor en
-ugyldig dato sendes direkte ind i datoberegningen.
+**Sådan genskaber du det:** Du kan ikke genskabe dette med almindelige klik eller
+indtastninger i Mineo. Du skal derfor ikke prøve at indtaste noget særligt. Punktet er
+en intern sikkerhedskontrol, som Codex kan afprøve automatisk, men som ikke er synlig
+for en almindelig bruger.
 
-**Spørgsmål:** Skal Mineo også afvise datoen tydeligt i denne særlige situation, eller er
-det tilstrækkeligt, at den almindelige formular allerede stopper den?
+**Spørgsmål:** Skal vi også beskytte denne usynlige situation særskilt, eller er det
+tilstrækkeligt, at Mineo allerede afviser forkerte datoer i den almindelige formular?
 
 **Dit svar:**
 
@@ -74,12 +93,13 @@ Mineo falde tilbage til den almindelige filvælger. Fundet undersøger en sjæld
 browsertilstand, hvor browseren ser ud til at kunne bruge det nye filvalg, men ikke
 faktisk kan gennemføre det.
 
-**Sådan genskaber du det:** Det kan ikke fremkaldes med en almindelig browser alene.
-Det kræver en særlig testopsætning, der gør browserens filvalg ubrugeligt. Klik derefter
-på **Gem** eller **Hent**, og se om Mineo viser den almindelige filvælger eller en fejl.
+**Sådan kontrollerer du det:** Du kan ikke fremkalde denne sjældne situation fra Mineos
+normale skærmbilleder. Du skal ikke ændre noget på din computer eller forsøge at gøre
+filvalget defekt. Codex har en automatisk kontrol, der efterligner situationen.
 
-**Spørgsmål:** Er den nuværende håndtering af denne sjældne browsertilstand acceptabel,
-eller skal Mineo have en anden fallback eller fejlbesked?
+**Spørgsmål:** Er det acceptabelt, at den automatiske kontrol er den eneste kontrol af
+denne sjældne situation, eller skal punktet stå åbent, indtil det kan prøves på en
+konkret computer?
 
 **Dit svar:**
 
@@ -151,9 +171,9 @@ og den statiske gennemgang af workflowet som tilstrækkelig dokumentation?
 
 ## 8. Én øre forskel mellem renteberegning og PDF (TD-043)
 
-**Det brugeren kan opleve:** Mineo viser `94,95 kr.` i renteberegningen, men den hentede
-PDF viser `94,94 kr.` for den samme sag. Det kan give tvivl om, hvilket beløb brugeren
-skal stole på.
+**Det brugeren oplevede før rettelsen:** Mineo viste `94,95 kr.` i renteberegningen, men
+den hentede PDF viste `94,94 kr.` for den samme sag. Det kunne give tvivl om, hvilket
+beløb brugeren skulle stole på.
 
 **Sådan genskaber du det i Mineo:**
 
@@ -165,12 +185,29 @@ skal stole på.
 6. Hent rækkens PDF-specifikation, og sammenlign det samlede rentebeløb i PDF'en med
    beløbet i Mineo.
 
-**Spørgsmål:** Skal begge steder vise samme beløb? Hvis ja, hvilket beløb skal være det
-endelige – `94,95 kr.` eller `94,94 kr.`?
+**Spørgsmål:** Skal begge steder vise samme beløb? Hvis ja, skal skærmen følge den samme
+afrunding pr. beregnet række som PDF'en, eller skal begge steder bruge en anden fælles
+afrunding?
 
 **Dit svar:**
 
 > Du kan ikke bare bede mig forholde mig til magic numbers på den måde. Du må forklare, hvad der er årsagen til de forskellige beløb, og bede mig forholde mig til hvilken af de to forskellige fremgangsmåder, jeg vil have. Der skal dog altid (!!) være samme værdi vist på skærmen, som i pdf'en. jeg formoder, at forskellen her skyldes, at pdf'en afrunder til to decimaler for hver beregnet række. det er den korrekte fremgangsmåde, som også skal anvendes i visningen på skærmen. De viste værdier skal altid være identiske med værdierne i pdf'en.
+
+## Gennemgang af svarene
+
+Svarene er gennemgået 2026-09-12. De følgende punkter er den bindende videre håndtering i
+auditten:
+
+| Punkt | Videre håndtering | Status |
+| --- | --- | --- |
+| TD-001 | De gamle `.eo`-filer skal leveres som lokale kopier, når provenienskontrollen gennemføres. Auditten gætter ikke på filernes historik. | Afventer faktiske filer |
+| TD-016 | Reproduktionstrinnene ovenfor er rettet, så de følger den valgte dagsløn og ikke beder om skjulte felter. Dit svar tager stilling til instruktionerne, men ikke til om advarslen og blokeringen er korrekt. Punktet afventer derfor selve observationen og det efterfølgende domænevalg. | Afventer brugerobservation og domænevalg |
+| TD-003 | Den kanoniske `utcDayMath`-grænse skal afvise ugyldige `Date`-instanser straks. Det er et internt fail-closed-værn, som ikke kræver manuel genskabelse og ikke ændrer gyldige datoer. | Gennemført automatisk |
+| TD-017 | File System Access API må kun vælges, når begge picker-funktioner faktisk kan kaldes. Ellers bruges den eksisterende almindelige Hent-/Gem-fallback. Det er et internt browserværn uden behov for manuel genskabelse. | Gennemført automatisk |
+| TD-022 | Din kontrol accepteres som manuel observation af, at dobbeltklik på en `.eo`-fil virker. OS, browser og uafhængigt artefaktbevis mangler fortsat, så den bredere platformskontrol står delvist åben. | Delvist dokumenteret |
+| TD-014 / TD-018 | Dokumentkontrol automatiseres så langt programmets testfunktioner kan observere den. Der kræves kun en konkret, afgrænset manuel kontrol, hvis der efter den automatiske gennemgang stadig er et bestemt layoutforhold, som ikke kan måles pålideligt. | Automatiseret først |
+| B-002 | Den bindende releasekontrol skal ligge i GitHub Actions og blokere deploy automatisk. De browserprojekter, der ellers kun kører lokalt, kobles derfor også på CI. En enkelt ekstern workflowkørsel bruges kun til at kvalificere rutinen – ikke som en tilbagevendende manuel releasehandling. | Automatisk kontrol udvidet |
+| TD-043 | Hver synlig renteberegningsrække afrundes til to decimaler, og de afrundede rækkebeløb summeres. Skærm, PDF og Word skal derfor vise samme beløb – i det dokumenterede eksempel `94,94 kr.` | Gennemført automatisk |
 
 ## Notat
 
