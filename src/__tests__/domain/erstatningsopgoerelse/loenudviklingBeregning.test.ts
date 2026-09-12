@@ -10,6 +10,8 @@ import { resolveStatistikModelId } from '../../../domain/erstatningsopgoerelse/h
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildSygedagpengeRowsForRange } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import {
   getEffektiveSatserForDato,
@@ -20,6 +22,7 @@ import { getOffentligLoenForDato } from '../../../data/offentligLoenLookup';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { isoToDanish, toDanishDateString, toISODateString } from '../../../types/branded';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { sygedagpengeRates } from '../../../data/sygedagpengeRates';
 import { roundByMethod } from '../../../utils/rounding';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -1549,5 +1552,56 @@ describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
     const model = byggOffentligModel('1900-01-01', '1900-01-01', '1900-12-31');
     expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
     expect(model.beregnedeSegmenter.every((s) => s.deltaPct === 0)).toBe(true);
+  });
+});
+
+describe('TD-020 – sygedagpenge fra satsrække til indkomstperiode', () => {
+  it('fastholder 2025-satsen, den genererede række og første uges indkomst', () => {
+    const fraDato = iso('2025-01-06');
+    const tilDato = iso('2025-01-17');
+    const foersteUgeTilDato = iso('2025-01-10');
+    const rate2025 = sygedagpengeRates.find((rate) => rate.fraDato === fraDato);
+
+    expect(rate2025).toEqual({
+      fraDato,
+      tilDato: iso('2026-01-04'),
+      sygedagpengeTimesats: 131.49,
+      atpTimebidrag: 4.26,
+      obligatoriskPensionProcent: 1.8,
+    });
+
+    const rows = buildSygedagpengeRowsForRange(fraDato, tilDato);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      fraDato,
+      tilDato,
+      ydelsestype: 'sygedagpenge',
+      ydelse: {
+        kind: 'expression',
+        expression: '2*4865',
+        value: 9730,
+      },
+      tillaeg: {
+        kind: 'expression',
+        expression: '2*(53*2+87)',
+        value: 386,
+      },
+    });
+
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [];
+    values.offentligeYdelserRows = [...rows];
+    const income = buildIncomeForRanges(values, [{ fra: fraDato, til: foersteUgeTilDato }]);
+
+    // Transformationen kontrollerer den aktuelle kilde- og periodiseringskæde, ikke om satserne
+    // er juridisk korrekte: 37 × 131,49 → 4.865, eget ATP → 53, OP → 87, i alt 10.116.
+    expect(income).toEqual({
+      employers: [],
+      benefits: [{
+        typeKey: 'sygedagpenge',
+        label: 'Sygedagpenge',
+        amount: 5058,
+      }],
+    });
   });
 });
