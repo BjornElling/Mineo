@@ -45,6 +45,7 @@ const ENGINE_SPECIFIC_SPECS = [
   '**/file-load-validation.spec.ts',
   '**/audit-firefox-fallback-verification.spec.ts',
   '**/pwa-service-worker.spec.ts',
+  '**/ui-001-stamdata-save-load.spec.ts',
 ] as const;
 
 /**
@@ -85,6 +86,7 @@ const engineSpecificProjects = [
   buildEngineSpecificProject('webkit-filindlaesning', engines[3], ENGINE_SPECIFIC_SPECS[0]),
   buildEngineSpecificProject('firefox-fallback-audit', engines[2], ENGINE_SPECIFIC_SPECS[1]),
   buildEngineSpecificProject('chromium-service-worker', engines[0], ENGINE_SPECIFIC_SPECS[2]),
+  buildEngineSpecificProject('firefox-stamdata-save-load', engines[2], ENGINE_SPECIFIC_SPECS[3]),
 ];
 
 /**
