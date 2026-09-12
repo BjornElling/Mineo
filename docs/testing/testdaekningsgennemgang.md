@@ -848,7 +848,10 @@ Auditten må først lukkes, når alle punkter er opfyldt på den fastlåste slut
   bestod med 1/1, og validatorfacitterne på `61b138c8`, `010b44d9`, `890fa37e`, `682b0ba3`
   og `c41f8391` indgik i en direkte kontrol med 10 filer / 26 tests; produktkode og brugeradfærd er
   uændret. Den efterfølgende
-  E2E-only PDF-assertion bestod på `9c965ec5` med 191 beståede og 2 forventede skips, og produktkode og
+  samlede `verify:release:core` bestod på `0ee2aa4e` med 688 testfiler / 8.720 beståede tests,
+  17 forventede `it.fails`, coverage 90,14 / 81,23 / 93,97 / 92,96 og begge builds; produktkode
+  og brugeradfærd er uændret. Den efterfølgende E2E-only PDF-assertion bestod på `9c965ec5` med 191
+  beståede og 2 forventede skips, og produktkode og
   brugeradfærd er uændret. Den tidligere fejl på `1ec7b01e` er bevaret som
   delvist lukket `TD-025`, fordi årsagen ikke er endeligt forklaret.
 - [ ] Artefakter, fixtures, rapporter, mutationstriangulering og beslutningslog er tilgængelige fra dette
