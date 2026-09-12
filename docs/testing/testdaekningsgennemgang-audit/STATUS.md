@@ -705,6 +705,16 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   diff-kontrol bestod. Ændringerne er test-only; produktkode, data, beregningslogik, brugeradfærd,
   schema og persistensformat er uændret.
 
+## Seneste validator-/EO-rækkebatch efter revision `8302dfd6`
+
+- `td019TafValidatorIndependent.test.ts` tilføjer et håndskrevet typed validatorfacit for
+  manglende TAF-fra-dato og kræver præcis feltsti, dansk fejltekst og `error`-severity; 1/1 bestået.
+- `eoRowMidlertidigtEetKonsistensIndependent.test.ts` tilføjer et typed EO-rækkefacit for advarslen,
+  når TAF fortsætter efter midlertidig EET-virkning uden ydelse; 1/1 bestået.
+- Samlet målrettet kontrol bestod med 2 filer / 2 tests. Typechecks, lint og diff-kontrol bestod.
+  Ændringerne er test-only; produktkode, beregningslogik, brugeradfærd, schema og persistensformat
+  er uændret.
+
 ## Seneste samlede release-gate efter revision `8899263d`
 
 - `npm run verify:release:core` bestod samlet. Dependency-, runtime-, type-, lint-, data-, kontrakt-,
