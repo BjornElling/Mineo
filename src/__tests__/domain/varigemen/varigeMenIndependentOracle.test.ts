@@ -47,7 +47,7 @@ const expectedResult = {
   alderVedSkade: 60,
 } as const;
 
-const buildProjection = () => {
+const buildProjection = (varigemen: VarigeMenValues, stamdata: StamdataValues) => {
   const catalog = getProductionInputCatalog();
   const input = catalog.validateSettledInput({
     sections: {
@@ -79,7 +79,7 @@ describe('Varige mén – uafhængigt håndberegnet totalsag', () => {
 
     expect(engineResult).toEqual(expectedResult);
 
-    const projection = buildProjection();
+    const projection = buildProjection(varigeMen, stamdata);
     expect(projection.status).toBe('ready');
     if (projection.status !== 'ready') throw new Error('Forventede en ready varige mén-projektion');
 
@@ -92,5 +92,44 @@ describe('Varige mén – uafhængigt håndberegnet totalsag', () => {
     const gate = evaluateVarigeMenDownloadGate(projection);
     expect(gate.canDownload).toBe(true);
     expect(gate.reasons).toEqual([]);
+  });
+
+  it('matcher det håndberegnede facit præcis ved 39-årsgrænsen', () => {
+    const boundaryVarigeMen: VarigeMenValues = {
+      mengrad: 10,
+      beregningsdato: iso('2024-06-01'),
+    };
+    const boundaryStamdata: StamdataValues = {
+      journalnr: 'varigemen-39-aar',
+      advokat: '',
+      sagsbehandler: '',
+      skadelidte: 'Uafhængig grænseværdi',
+      skadestype: 'Arbejdsulykke',
+      skadedato: iso('2024-02-28'),
+      skadelidteFodselsdato: iso('1985-02-28'),
+    };
+    // 2024-satsen er skrevet som et facitliteral, så testen ikke læser sin forventning fra registret.
+    const boundaryRate: YearlyRate = { 2024: 10135 };
+    const expectedBoundaryResult = {
+      // 10.135 × 10 = 101.350 kr.; 39 år giver ingen aldersreduktion.
+      beregnetGodtgoerelse: 101350,
+      grundbeloeb: 1013500,
+      satsPerMengrad: 10135,
+      aldersreduktionPct: 0,
+      grundbeloebUdenReduktion: 101350,
+      aldersreduktionBeloeb: 0,
+      beregningsaar: 2024,
+      alderVedSkade: 39,
+    } as const;
+
+    const engineResult = computeVarigeMenEngine({
+      varigemen: boundaryVarigeMen,
+      fodselsdato: boundaryStamdata.skadelidteFodselsdato,
+      skadestidspunkt: boundaryStamdata.skadedato,
+      rates: boundaryRate,
+    }).result;
+
+    expect(engineResult).toEqual(expectedBoundaryResult);
+
   });
 });
