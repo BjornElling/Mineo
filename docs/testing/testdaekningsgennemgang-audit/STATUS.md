@@ -915,6 +915,11 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   kørt fem gange serielt uden coverage og bestod med 45/45 tests. Det styrker stabilitetsevidensen
   for `TD-025`, men forklarer ikke den oprindelige parallelle async-/Tooltip-følsomhed; fundet er
   derfor fortsat delvist lukket.
+- Den efterfølgende test-only-runde tilføjede `td020SatserEalAslDocumentIndependent.test.ts` med
+  1/1, `td019SvieSmerteVedroererPeriodeValidatorIndependent.test.ts` med 1/1 og
+  `td-034-file-load-preflight-report.spec.ts` med 1/1 i Chrome. Den sidste browserrejse gav
+  desuden den åbne modalobservation, der er registreret som `TD-088`; ingen produktkode,
+  beregningslogik, UI/UX eller persistensformat er ændret.
 
 ## Næste arbejdsenhed
 
