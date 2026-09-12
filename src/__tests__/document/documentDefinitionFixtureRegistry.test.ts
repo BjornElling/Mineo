@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
+import { inflateSync } from 'node:zlib';
 import {
   createEvaluationSourceToken,
   createInputEvaluation,
@@ -109,6 +110,65 @@ const normalizeChannelText = (text: string): string => text
   // kanalinterne tekstplaceringssignal.
   .replace(/\s*\+\s*/g, '+')
   .trim();
+
+type PdfImageXObject = Readonly<{
+  width: number;
+  height: number;
+  filter: string | undefined;
+  bytes: Uint8Array;
+}>;
+
+const decodeBase64DataUrl = (dataUrl: string): Uint8Array => {
+  const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+const extractPdfImageXObjects = async (artifact: Blob): Promise<readonly PdfImageXObject[]> => {
+  const pdf = new Uint8Array(await artifact.arrayBuffer());
+  const text = new TextDecoder('latin1').decode(pdf);
+  const images: PdfImageXObject[] = [];
+  let searchOffset = 0;
+
+  while (true) {
+    const subtypeOffset = text.indexOf('/Subtype /Image', searchOffset);
+    if (subtypeOffset < 0) break;
+
+    const dictionaryStart = text.lastIndexOf('<<', subtypeOffset);
+    const streamOffset = text.indexOf('stream', subtypeOffset);
+    const endStreamOffset = streamOffset < 0
+      ? -1
+      : text.indexOf('endstream', streamOffset + 'stream'.length);
+    if (dictionaryStart < 0 || streamOffset < 0 || endStreamOffset < 0) {
+      throw new Error('PDF-artefaktets billedobjekt er ufuldstændigt');
+    }
+
+    const dictionary = text.slice(dictionaryStart, streamOffset);
+    const width = dictionary.match(/\/Width\s+(\d+)/)?.[1];
+    const height = dictionary.match(/\/Height\s+(\d+)/)?.[1];
+    if (width === undefined || height === undefined) {
+      throw new Error('PDF-artefaktets billedobjekt mangler mål');
+    }
+
+    let contentOffset = streamOffset + 'stream'.length;
+    if (pdf[contentOffset] === 13 && pdf[contentOffset + 1] === 10) contentOffset += 2;
+    else if (pdf[contentOffset] === 10 || pdf[contentOffset] === 13) contentOffset += 1;
+    let contentEnd = endStreamOffset;
+    while (contentEnd > contentOffset && (pdf[contentEnd - 1] === 10 || pdf[contentEnd - 1] === 13)) {
+      contentEnd -= 1;
+    }
+
+    images.push({
+      width: Number.parseInt(width, 10),
+      height: Number.parseInt(height, 10),
+      filter: dictionary.match(/\/Filter\s+([^\s>]+)/)?.[1],
+      bytes: pdf.slice(contentOffset, contentEnd),
+    });
+    searchOffset = endStreamOffset + 'endstream'.length;
+  }
+
+  return images;
+};
 
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
 const stamdata = {
@@ -364,6 +424,8 @@ type Fixture = Readonly<{
     wordText: string;
     pdfByteLength: number;
     wordMediaCount: number;
+    pdfImageXObjects: readonly PdfImageXObject[];
+    wordMediaBytes: readonly Uint8Array[];
   }>>;
   ready: () => SettledInput;
   relevantError: () => SettledInput;
@@ -393,6 +455,8 @@ const fixture = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
     wordText: string;
     pdfByteLength: number;
     wordMediaCount: number;
+    pdfImageXObjects: readonly PdfImageXObject[];
+    wordMediaBytes: readonly Uint8Array[];
   }>> => {
     const projection = project(input);
     if (projection.status !== 'ready') {
@@ -432,7 +496,22 @@ const fixture = <TRequest, TInput, TGateSettings, TBrevhovedKey extends string>(
     const wordMediaCount = Object.keys(renderedWord.zip.files)
       .filter((name) => /^word\/media\//.test(name))
       .length;
-    return { pdfText, wordText, pdfByteLength: pdfArtifact.blob.size, wordMediaCount };
+    const wordMediaFiles = Object.keys(renderedWord.zip.files)
+      .filter((name) => /^word\/media\/[^/]+$/.test(name))
+      .sort();
+    const wordMediaBytes = await Promise.all(wordMediaFiles.map(async (name) => {
+      const file = renderedWord.zip.file(name);
+      if (!file) throw new Error(`Word-artefaktet mangler ${name}`);
+      return file.async('uint8array');
+    }));
+    return {
+      pdfText,
+      wordText,
+      pdfByteLength: pdfArtifact.blob.size,
+      wordMediaCount,
+      pdfImageXObjects: await extractPdfImageXObjects(pdfArtifact.blob),
+      wordMediaBytes,
+    };
   };
   const runLifecycle = async (input: SettledInput): Promise<LifecycleRun> => {
     const calls: LifecycleCalls = {
@@ -816,6 +895,25 @@ describe('fysisk tekstparitet for hovedappens dokumentartefakter', () => {
     expect(wordText).toBe('');
     expect(pdfByteLength).toBeGreaterThan(1000);
     expect(wordMediaCount).toBeGreaterThan(0);
+  });
+
+  it('taf-krav-graf indlejrer det samme billede i PDF og Word', async () => {
+    const result = await FIXTURES['taf-krav-graf'].renderArtifactParity(FIXTURES['taf-krav-graf'].ready());
+    const expectedPng = decodeBase64DataUrl(PNG_1X1);
+
+    // Den eksisterende fixture erstatter canvas-renderingen med et kendt 1×1-PNG. Denne prøve
+    // kontrollerer kanalernes faktiske containerbytes, ikke grafens pixels eller fysisk rendering.
+    expect(result.wordMediaBytes).toHaveLength(1);
+    expect(Array.from(result.wordMediaBytes[0] ?? [])).toEqual(Array.from(expectedPng));
+
+    // jsPDF skriver dette kendte PNG som ét Flate-komprimeret DeviceGray-pixelobjekt. Det er den
+    // observerbare PDF-repræsentation af samme fixture, mens Word bevarer PNG-containeren.
+    const graphImages = result.pdfImageXObjects.filter(({ width, height }) => width === 1 && height === 1);
+    expect(graphImages).toHaveLength(1);
+    const graphImage = graphImages[0];
+    if (!graphImage) throw new Error('PDF-artefaktet mangler grafens billedobjekt');
+    expect(graphImage.filter).toBe('/FlateDecode');
+    expect(Array.from(inflateSync(graphImage.bytes))).toEqual([1, 0]);
   });
 });
 
