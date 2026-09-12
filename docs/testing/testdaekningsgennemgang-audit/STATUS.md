@@ -693,6 +693,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   persistensformat er ændret. TD-043 kræver udviklerens beslutning om den autoritative afrunding,
   før en eventuel produktrettelse kan overvejes.
 
+## Seneste CALC-006/DATA-001-facitbatch efter revision `db829436`
+
+- `eoInspektionOffentligYdelseTillaegIndependent.test.ts` tilføjer et håndskrevet facit for
+  800 kr. offentlig ydelse plus 200 kr. tillæg: 200 kr. på hver af fem hverdage, samlet 1.000 kr.
+  og ingen integritetsissue. Målrettet kontrol bestod med 1/1.
+- `td020EoInspektionOffentligKlIndependent.test.ts` tilføjer et statisk KL-lønfacit gennem
+  EO-inspektionens reguleringstidslinje med grundløn, feriepenge, Store Bededag, pakkeværdi og indeks.
+  Målrettet kontrol bestod med 1/1.
+- Den samlede målrettede kontrol bestod med 2 filer / 2 tests. `npm run typecheck:test`, lint og
+  diff-kontrol bestod. Ændringerne er test-only; produktkode, data, beregningslogik, brugeradfærd,
+  schema og persistensformat er uændret.
+
 ## Seneste samlede release-gate efter revision `8899263d`
 
 - `npm run verify:release:core` bestod samlet. Dependency-, runtime-, type-, lint-, data-, kontrakt-,
