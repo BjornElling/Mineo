@@ -1529,6 +1529,67 @@ describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
     expect(model.beregnedeSegmenter.some((s) => s.deltaPct > 0)).toBe(true);
   });
 
+  it('TD-020: RLTN-facit føres fra løntrinssats til regulerede segmenter', () => {
+    const fraDato = iso('2024-04-01');
+    const tilDato = iso('2024-10-01');
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenBaseretPaa = 'Testgrundlag';
+    values.angivetMaanedsloenOpreguleresFraDato = fraDato;
+    values.tafPerioder = [{
+      id: 'taf-rltn-facit',
+      fra: fraDato,
+      til: tilDato,
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      overenskomstId: 'rltn-overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 10,
+      offentligLoenGruppe: 2,
+      loenPaaHelligdage: 'Ingen',
+      feriePct: 0,
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: fraDato },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: fraDato, til: tilDato }] }
+    );
+
+    // Transformationfacit: de statiske RLTN-løntrinssatser føres gennem motorens
+    // segmentering; testen afgør ikke den eksterne proveniens for RLTN-kilden.
+    expect(getOffentligLoenForDato('RLTN', toDanishDateString('01-04-2024'), toLoentrin(10), 2)?.maanedsLoen)
+      .toBe(22396.67);
+    expect(getOffentligLoenForDato('RLTN', toDanishDateString('01-10-2024'), toLoentrin(10), 2)?.maanedsLoen)
+      .toBe(22707.92);
+
+    expect(model.beregnedeSegmenter.map((segment) => ({
+      fra: segment.fra,
+      til: segment.til,
+      deltaPct: segment.deltaPct,
+      maanedsloenOre: segment.kind === 'maaneder' ? segment.maanedsloenOre : undefined,
+    }))).toEqual([
+      {
+        fra: iso('2024-04-01'),
+        til: iso('2024-09-30'),
+        deltaPct: 0,
+        maanedsloenOre: 3_000_000,
+      },
+      {
+        fra: iso('2024-10-01'),
+        til: iso('2024-10-01'),
+        deltaPct: 1.39,
+        maanedsloenOre: 3_000_000,
+      },
+    ]);
+  });
+
   it('invariant: hvert segments deltaPct = (opslået segment-månedsløn / basis-månedsløn − 1) × 100', () => {
     const model = byggOffentligModel('2024-04-01', '2024-04-01', '2026-03-31');
     const baseLoen = getOffentligLoenForDato('KL', toDanishDateString('01-04-2024'), toLoentrin(1), 0)?.maanedsLoen;
