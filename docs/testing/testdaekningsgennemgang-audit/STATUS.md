@@ -6,13 +6,13 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `152ca00c`
+- Evidensrevision: `4e56872d`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `37a1954d`; den valgte E2E-suite er senest bestået på testrevision `9c965ec5` uden produktkode- eller brugeradfærdsændring siden `90c4870f`. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `4557a98e` er grøn med 729 testfiler og 8.813 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,22 / 81,37 / 93,97 / 93,05, og begge builds bestod. Den seneste fulde E2E-suite er grøn på `7e52716c` med 201 beståede tests og 2 forventede skips ud af 203 på 10 projektbaner; siden da er kun tests og dokumentation ændret. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `4e56872d` er grøn med 735 testfiler og 8.821 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,23 / 81,38 / 93,97 / 93,06, og begge builds bestod. Den seneste fulde E2E-suite er grøn på `7e52716c` med 201 beståede tests og 2 forventede skips ud af 203 på 10 projektbaner; siden da er kun tests og dokumentation ændret. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets- og TD-025-stabilitetsfund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -874,6 +874,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   med 1/1 SFGG-fraværsdagefacit, `aarsloenShDagIndependentOracle.test.ts` med 1/1 SH-dagefacit
   for Metode A og `githubActionsTriggerLiveness.test.ts` med 2/2 CI-triggerfacitter. Der er fortsat
   ikke ændret produktkode, beregningslogik, UI/UX eller persistensformat.
+- Den samlede `verify:release:core` bestod efter batchen på `4e56872d` med 735 testfiler / 8.821
+  beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,06 og begge builds. Vite rapporterede kun
+  de kendte native-config- og chunk-størrelsesadvarsler.
 
 ## Næste arbejdsenhed
 

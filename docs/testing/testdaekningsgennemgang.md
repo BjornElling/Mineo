@@ -887,6 +887,10 @@ Den efterfølgende test-only batch på revision `152ca00c` tilføjer tre uafhæn
 SFGG-fraværsdage uden løn, `aarsloenShDagIndependentOracle.test.ts` bestod med 1/1 for faktiske
 SH-dage i Metode A, og `githubActionsTriggerLiveness.test.ts` bestod med 2/2 for CI-triggerne.
 
+Den samlede `verify:release:core` bestod derefter på revision `4e56872d` med 735 testfiler / 8.821
+beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,06 og begge builds. Vite rapporterede kun de
+kendte native-config- og chunk-størrelsesadvarsler.
+
 `TD-001` afventer de faktiske gamle `.eo`-filer. `TD-016` afventer stadig brugerobservation og
 domænevalg, fordi udviklerens svar korrigerede instruktionerne, men ikke tog stilling til den
 observerede advarsel og dokumentblokering. `TD-014`/`TD-018` fortsætter med automatiseret kontrol
