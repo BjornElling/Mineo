@@ -108,7 +108,7 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       issues
     );
     const har2015 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2015-12-29'));
-    expect(har2015).toBeTruthy();
+    expect(har2015).toBe(true);
   });
 
   it('medtager ikke en forhøjelse på eller før kapitaliseringsdatoen', () => {
@@ -131,7 +131,7 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       issues
     );
     const har2020 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2020-12-31'));
-    expect(har2020).toBeFalsy();
+    expect(har2020).toBe(false);
   });
 
   it('returnerer null når ingen forhøjelse kvalificerer', () => {

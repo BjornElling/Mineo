@@ -114,11 +114,10 @@ describe('getReguleringsDatoIntervalForStatistikModel', () => {
 
   it('ILON12 → returnerer interval med fraDato og tilDato', () => {
     const interval = getReguleringsDatoIntervalForStatistikModel('ILON12');
-    expect(interval).toBeDefined();
-    if (interval) {
-      expect(interval.fraDato).toBeTruthy();
-      expect(interval.tilDato).toBeTruthy();
-    }
+    expect(interval).toEqual({
+      fraDato: '01-01-2005',
+      tilDato: '30-09-2026',
+    });
   });
 
   it('SBLON2 → returnerer interval', () => {

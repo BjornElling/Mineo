@@ -123,11 +123,10 @@ describe('formatKRLSatstabelDisplay', () => {
 describe('getReguleringsDatoIntervalForKRL', () => {
   it('kendt id → returnerer interval med fraDato og tilDato', () => {
     const interval = getReguleringsDatoIntervalForKRL('KTO (kommuner)');
-    expect(interval).toBeDefined();
-    if (interval) {
-      expect(interval.fraDato).toBeTruthy();
-      expect(interval.tilDato).toBeTruthy();
-    }
+    expect(interval).toEqual({
+      fraDato: '01-04-2001',
+      tilDato: '30-09-2026',
+    });
   });
 
   it('alle 4 IDs returnerer interval', () => {

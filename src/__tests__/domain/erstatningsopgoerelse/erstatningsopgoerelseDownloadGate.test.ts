@@ -10,6 +10,10 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { DEFAULT_EO_ROW_POLICY } from '../../../settings/sourceSettings';
 import {
+  DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE,
+  resolveBlockedGateTooltip,
+} from '../../../document/layout/documentGateTypes';
+import {
   createEvaluationSourceToken,
   createInputRevision,
   createSettingsRevision,
@@ -117,8 +121,9 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
 
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.tafFordeltPaaAar.canDownload).toBe(false);
-    // Der er en synlig, konkret blokerings-årsag (aldrig usynlig blokering).
-    expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBeTruthy();
+    expect(gates.erstatningsopgoerelse.reasons[0]?.kind).toBe('page-errors');
+    expect(resolveBlockedGateTooltip(gates.erstatningsopgoerelse.reasons))
+      .toBe(DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE);
   });
 
   it('blokerer når en StandardLoen-tabelcelle er ugyldig (`${afId}:loenindkomst`-aggregatet via suffix-gaten)', () => {
