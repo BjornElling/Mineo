@@ -102,9 +102,18 @@ createServer((request, response) => {
     : isMinprocesrente
       ? pathname.slice('/minprocesrente'.length) || '/minprocesrente.html'
       : pathname;
-  const requestedFile = resolveSafeFile(root, relativePath);
+  // Produktionsbuildene har hver sin outDir, men deres egne index-filer bruger begge `/assets/`
+  // på samme E2E-origin. Et opslag kun i den valgte variant ville derfor servere Mineos fallback
+  // for MinProcesrentes entry-chunk. Hashede fælles filer har samme bytes; unikke filer findes kun
+  // i den ene rod, så begge rødder kan søges sikkert her.
+  const roots = !isMinprocesrente && pathname.startsWith('/assets/')
+    ? [mineoRoot, minprocesrenteRoot]
+    : [root];
+  const requestedFile = roots
+    .map((candidateRoot) => resolveSafeFile(candidateRoot, relativePath))
+    .find((candidate) => candidate !== null && existsSync(candidate) && statSync(candidate).isFile()) ?? null;
   const fallbackFile = isMinprocesrente ? null : path.join(mineoRoot, 'index.html');
-  const filePath = requestedFile !== null && existsSync(requestedFile) && statSync(requestedFile).isFile()
+  const filePath = requestedFile !== null
     ? requestedFile
     : fallbackFile;
 

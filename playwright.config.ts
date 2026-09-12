@@ -47,6 +47,15 @@ const ENGINE_SPECIFIC_SPECS = [
   '**/pwa-service-worker.spec.ts',
 ] as const;
 
+/**
+ * Disse specs kræver E2E-buildets test-only introspektionsbro. Produktionsartefaktet må ikke
+ * indeholde broen, så de holdes ude af den eksterne artefaktmatrix og køres fortsat i den lokale
+ * E2E-buildbane, hvor de hører hjemme.
+ */
+const TEST_BUILD_ONLY_SPECS = [
+  '**/automation-bridge-smoke.spec.ts',
+] as const;
+
 const buildProject = (
   engine: EngineDefinition,
   { suffix, viewport }: ViewportDefinition,
@@ -54,7 +63,10 @@ const buildProject = (
 ) => ({
   name: `${engine.key}${suffix}`,
   use: { ...engine.use, viewport },
-  testIgnore: [...ENGINE_SPECIFIC_SPECS],
+  testIgnore: [
+    ...ENGINE_SPECIFIC_SPECS,
+    ...(useExternalWebServer ? TEST_BUILD_ONLY_SPECS : []),
+  ],
   // Playwright matcher `grep` mod testens fulde titel inklusive dens tags.
   ...(laneTag === undefined ? {} : { grep: new RegExp(`${laneTag}\\b`) }),
 });

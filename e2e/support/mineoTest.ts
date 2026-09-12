@@ -212,12 +212,17 @@ export const test = base.extend<{
   runtimeSignals: async ({ page }, provide) => {
     const signals: string[] = [];
     page.on('console', (message) => {
+      // Playwright sender selv denne advarsel, når suiten med vilje blokerer service workers.
+      // Den er ikke Mineos runtime-signal; en ægte registreringsfejl rapporteres stadig af appens
+      // egen bootstrap, når den ikke rammer den blokerede adapters `undefined`-registration.
+      const isPlaywrightServiceWorkerBlockWarning = message.type() === 'warning'
+        && message.text() === 'Service Worker registration blocked by Playwright';
       // WebKit udsteder selv denne timingdiagnose for gyldige modulepreloads, når en lazy route
       // bruger assetet senere end få sekunder efter window.load. Det er hverken applikationskode,
       // en runtimefejl eller en fejlet request, og må ikke gøre en stabil brugerrejse flaky.
       const isWebKitPreloadTimingWarning = message.type() === 'warning'
         && /^The resource .+ was preloaded using link preload but not used within a few seconds /.test(message.text());
-      if (isWebKitPreloadTimingWarning) return;
+      if (isPlaywrightServiceWorkerBlockWarning || isWebKitPreloadTimingWarning) return;
       if (message.type() === 'error' || message.type() === 'warning') {
         signals.push(`${message.type()}: ${message.text()}`);
       }
