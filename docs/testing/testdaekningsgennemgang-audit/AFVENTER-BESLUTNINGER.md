@@ -209,6 +209,25 @@ auditten:
 | B-002 | Den bindende releasekontrol skal ligge i GitHub Actions og blokere deploy automatisk. De browserprojekter, der ellers kun kører lokalt, kobles derfor også på CI. En enkelt ekstern workflowkørsel bruges kun til at kvalificere rutinen – ikke som en tilbagevendende manuel releasehandling. | Automatisk kontrol udvidet |
 | TD-043 | Hver synlig renteberegningsrække afrundes til to decimaler, og de afrundede rækkebeløb summeres. Skærm, PDF og Word skal derfor vise samme beløb – i det dokumenterede eksempel `94,94 kr.` | Gennemført automatisk |
 
+## 9. Modal-lukning i fejlrapport-preview (TD-088)
+
+**Det brugeren kan opleve:** Efter valg af **Send fejloplysninger** vises et lokalt preview
+oven på load-preflighten. Når brugeren vælger **Luk** i previewet, lukkes både previewet og
+den underliggende preflight-dialog.
+
+**Observation:** Det blev set i Chrome under `td-034-file-load-preflight-report.spec.ts`.
+Testen fastlåser bevidst ikke denne del af brugeroplevelsen, fordi det ikke er afgjort, om
+brugeren skal tilbage til preflighten med sagen uændret, eller om begge dialoger skal lukkes.
+
+**Spørgsmål:** Skal **Luk** kun lukke fejlrapport-previewet, så preflighten bliver stående,
+eller er det tilsigtet, at begge dialoger lukkes?
+
+**Dit svar:**
+
+> Afventer udviklerens beslutning.
+
+| TD-088 | Fejlrapport-previewets **Luk** skal enten lukke previewet alene eller begge dialoger. Valget ændrer den synlige load-flowadfærd og kræver derfor udviklerens godkendelse. | Afventer udviklerbeslutning |
+
 ## Notat
 
 Andre åbne auditposter er ikke medtaget her, fordi de enten er løbende testarbejde,
