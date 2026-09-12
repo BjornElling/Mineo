@@ -255,6 +255,25 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('rapporterer manglende SFGG-række for aktivt ansættelsesforhold', () => {
+    // Den matchende række-cases ovenfor rammer en indekseret sti. Denne partition
+    // skal også fastholdes: et aktivt ansættelsesforhold kan mangle sin SFGG-række,
+    // hvor validatoren skal rapportere relationens samlingssti uden indeks.
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      sfggAnsaettelsesforhold: [],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'sfggAnsaettelsesforhold.sfggBeregningskilde',
+        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('kræver referenceperiode til-dato for Ferieloven ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_FERIELOVEN_VALUES,
