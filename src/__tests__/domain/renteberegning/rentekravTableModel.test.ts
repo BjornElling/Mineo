@@ -58,7 +58,7 @@ describe('ensureRentekravRows', () => {
       enhed: 'dage' as const,
     };
     const rows = ensureRentekravRows([noId]);
-    expect(rows[0]!.id).toBeTruthy();
+    expect(rows[0]!.id).toMatch(/\S+/);
   });
 
   it('manglende enhed defaulter til "dage"', () => {
