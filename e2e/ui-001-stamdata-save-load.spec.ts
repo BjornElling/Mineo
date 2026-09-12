@@ -9,6 +9,20 @@ import {
 } from './support/mineoTest';
 
 test.describe('UI-001 – Stamdata Gem/Hent', () => {
+  test('viser en synlig besked og åbner ikke filflowet for en urørt ny sag', async ({
+    page,
+    runtimeErrors,
+  }) => {
+    await login(page);
+    await openPage(page, 'Stamdata');
+
+    await page.getByRole('button', { name: 'Gem', exact: true }).click();
+
+    await expect(page.getByText('Ingen data fundet at gemme', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/stamdata$/);
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('gemmer alle stamdatafelter og gendanner dem efter synlig Hent-rejse', async ({
     page,
     runtimeErrors,
