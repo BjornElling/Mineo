@@ -120,7 +120,7 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       issues
     );
     const har2015 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2015-12-29'));
-    expect(har2015).toBeFalsy();
+    expect(har2015).toBe(false);
   });
 
   it('medtager ikke en forhøjelse efter beregningsdatoen', () => {

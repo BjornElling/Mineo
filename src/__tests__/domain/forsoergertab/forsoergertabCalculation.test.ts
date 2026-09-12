@@ -196,7 +196,7 @@ describe('computeForsoergertabCalculation', () => {
 
     expect(result.issues.some((issue) => issue.id === 'missing-koen')).toBe(false);
     expect(result.aslComputation?.kapitaliseringsTabelKoensopdelt).toBe(false);
-    expect(result.aslComputation?.kapitaliseringsTabel).toBeTruthy();
+    expect(result.aslComputation?.kapitaliseringsTabel).toBe('F');
   });
 
   it('clamp er nettokrav til 0 når ASL-kapitalbeløbet overstiger EAL-kravet', () => {
