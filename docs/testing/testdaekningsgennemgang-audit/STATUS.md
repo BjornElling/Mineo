@@ -6,7 +6,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `5c6054de` for seneste målrettede test-only batch; seneste samlede gate er fortsat `92dd437f`
+- Evidensrevision: `02a45d31` for seneste målrettede test-only batch; seneste samlede gate er fortsat `92dd437f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `28cdcb2b` med 737 testfiler / 8.824 beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds. Den valgte E2E-suite er senest bestået på `e0f9d340` med 201 beståede tests og 2 forventede skips ud af 203; siden da er kun test- og auditdokumentation ændret. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
@@ -154,7 +154,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072` |
+| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109` |
 | Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016` |
 
@@ -995,8 +995,6 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   encoding-, filnavns- og kontraktkontrol bestod. Ændringerne er test- og auditdokumentation;
   produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
 
-## Næste arbejdsenhed
-
 ## Seneste input-, dato-, build- og værktøjsbatch efter revision `5c6054de`
 
 - `gridAdapter.test.tsx` tilføjer et Escape-facit for en redigeret placeholder og kræver ingen
@@ -1013,10 +1011,27 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   encoding-, filnavns- og kontraktkontrol bestod. Ændringerne er test- og auditdokumentation;
   produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
 
+## Seneste browser-, validator- og datafacitbatch efter revision `02a45d31`
+
+- `td-107-file-load-overwrite-cancel.spec.ts` dækker den hidtil manglende Chrome-rejse, hvor en
+  syntetisk delvis `.eo`-fil først godkendes i preflight og derefter annulleres ved overskrivning.
+  Den aktive sag forbliver uændret; målrettet Chrome-kørsel bestod med 1/1 uden runtimefejl,
+  runtime-signaler eller eksterne requests.
+- `td019TafBeregningsperiodeFraValidatorIndependent.test.ts` dækker den uafhængige symmetriske
+  TAF-gren med udfyldt beregningsperiode-til-dato og manglende fra-dato; målrettet kontrol bestod
+  med 1/1.
+- `td020KontanthjaelpDownstreamIndependent.test.ts` fører kontanthjælp over 28.02.–02.03.2024
+  gennem kalenderdagsconsumeren med 250 kr. pr. dag, også på skuddag og weekend; målrettet kontrol
+  bestod med 1/1.
+- `npm run test` bestod med 756 testfiler / 8.846 tests. Typechecks, ESLint, encoding-, filnavns- og
+  kontraktkontrol bestod. Ændringerne er test-only; produktkode, beregningslogik, brugeradfærd,
+  schema og persistensformat er uændret. Den samlede releasegate er endnu ikke genkørt efter denne
+  revision; seneste grønne gate er fortsat `92dd437f`.
+
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch på `5c6054de` og den samlede releasegate på `92dd437f` samt den fulde E2E-suite er retestet grønt. Næste
-arbejdsenhed er derfor en af de åbne, test-only dækningshuller, indtil et punkt kræver udviklerens
+Den seneste målrettede batch på `02a45d31` og den fulde Vitest-suite er retestet grønt. Næste
+arbejdsenhed er den samlede releasegate og derefter en af de åbne, test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
 
