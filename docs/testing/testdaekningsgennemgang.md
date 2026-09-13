@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `0b4647e2` / `72a6d44f` | `verify:release:core` på `0b4647e2`: 759 testfiler / 8.849 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,24 % statements / 81,39 % branches / 93,97 % functions / 93,06 % lines; begge produktionsbuilds bestået. Seneste `npm run test:e2e` på `72a6d44f`: 211 beståede tests og 2 forventede skips ud af 213 på 10 projektbaner, med 3 workers på 4,9 minutter. |
+| Seneste samlede release-/E2E-retest | `60fe110f` / `72a6d44f` | `verify:release:core` på `60fe110f`: 764 testfiler / 8.854 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,26 % statements / 81,39 % branches / 94,03 % functions / 93,07 % lines; begge produktionsbuilds bestået. Seneste `npm run test:e2e` på `72a6d44f`: 211 beståede tests og 2 forventede skips ud af 213 på 10 projektbaner, med 3 workers på 4,9 minutter. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -962,6 +962,15 @@ feriedagsfradrag gennem faktiske PDF- og Word-artefakter, og
 ménafgørelsesdatoen med præcis issue-evidens. Den fulde `npm run test` bestod med 764 testfiler /
 8.854 tests. Ændringerne er test-only; produktkode, beregningslogik, brugeradfærd, schema og
 persistensformat er uændret. Den samlede releasegate skal genkøres efter denne batch.
+
+## Seneste samlede releasegate – revision `60fe110f`
+
+`verify:release:core` bestod med 764 testfiler / 8.854 beståede Vitest-tests uden forventede
+`it.fails`, coverage 90,26 % statements / 81,39 % branches / 94,03 % functions / 93,07 % lines
+og begge produktionsbuilds. Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-
+og artefaktkontroller bestod. Vite rapporterede kun de kendte native-config- og
+chunk-størrelsesadvarsler. Den fulde valgte E2E-suite står fortsat på `72a6d44f` med 211 beståede
+tests og 2 forventede skips ud af 213, fordi de seneste ændringer er test- og auditdokumentation.
 
 ## Seneste beslutningsretest – 2026-09-12
 
