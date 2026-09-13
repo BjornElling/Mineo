@@ -242,6 +242,16 @@ describe('dateUtils', () => {
       const result = addMonths(start!, -1);
       expect(formatDanishDate(result)).toBe('29-02-2024'); // clamp til 29. feb
     });
+
+    it('negativ forskydning normaliserer mål-måned over årsskifte', () => {
+      const start = parseDanishDate('31-01-2024');
+      expect(start).toBeDefined();
+      const result = addMonths(start!, -1);
+
+      // Januar 2024 minus én kalendermåned er december 2023; facittet er fast,
+      // så testen ikke genbruger produktionskodens måned-/årsaritmetik.
+      expect(formatDanishDate(result)).toBe('31-12-2023');
+    });
   });
 
   describe('parseWeekString', () => {

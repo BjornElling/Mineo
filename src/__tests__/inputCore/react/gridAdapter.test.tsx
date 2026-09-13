@@ -248,6 +248,26 @@ describe('useCellEditor – placeholder-promotion (§1.11)', () => {
     expect(store.getState().revision).toBe(revBefore);
   });
 
+  it('Escape på en redigeret placeholder annullerer uden at promovere rækken', () => {
+    const binding = makeBinding();
+    const revBefore = store.getState().revision;
+    const { result } = renderCell(placeholderCell(), binding);
+
+    // En placeholder må først blive brugerdata ved et afsluttet input. Escape skal derfor kassere draften
+    // uden at oprette rækken – ellers bliver en annulleret redigering til et synligt, tomt eller fejlende
+    // rækkeindhold, som brugeren aldrig afsluttede.
+    act(() => result.current.open());
+    act(() => result.current.changeDraft('abc'));
+    act(() => result.current.cancel());
+
+    expect(result.current.isOpen).toBe(false);
+    expect(catalog.listEntityIds(store.getState().input.sections, rentekravRowsRef())).toEqual([]);
+    expect(rejectedRaw(belobRef('new-1'))).toBeUndefined();
+    expect(store.getState().revision).toBe(revBefore);
+    expect(store.getState().history.past).toHaveLength(0);
+    expect(registry.getEditing()).toBeNull();
+  });
+
   it('et immediate-commit-VALG på en placeholder promoverer rækken atomisk og bevarer valget (§1.11)', () => {
     // Bruger-krav: at vælge enhed på en tom række må ALDRIG tabe valget. Placeholder-immediate-override opretter
     // rækken og skriver valget i én transaktion – enhed nulstilles ikke til rækkefaktorens default.

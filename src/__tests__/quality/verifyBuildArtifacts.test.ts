@@ -36,6 +36,7 @@ const writeMineoFixture = ({ assetPath, writeAsset }: FixtureOptions): string =>
   );
   writeFileSync(join(fixtureRoot, 'assets', 'app.js'), '');
   if (writeAsset && assetPath !== 'assets/app.js') {
+    mkdirSync(dirname(join(fixtureRoot, assetPath)), { recursive: true });
     writeFileSync(join(fixtureRoot, assetPath), '');
   }
 
@@ -72,6 +73,15 @@ describe('verify-build-artifacts PWA-assets', () => {
       expect(result.status).toBe(1);
       expect(output(result)).toContain(
         'PWA-assetmanifest peger på en asset, der ikke findes i buildet: assets/mangler.js.'
+      );
+    });
+  });
+
+  it('afviser en eksisterende asset med en sti, service-workeren ikke kan matche', () => {
+    withFixture({ assetPath: 'assets/nested/app.js', writeAsset: true }, (result) => {
+      expect(result.status).toBe(1);
+      expect(output(result)).toContain(
+        'PWA-assetmanifest indeholder en asset-sti, service-workeren ikke kan matche: assets/nested/app.js.'
       );
     });
   });
