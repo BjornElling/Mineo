@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * UI-tests for EOInspektionRegulationSections (fase 4.5)
+ * UI-tests for EOInspektionRegulationSections
  *
  * Omfang:
  * - Meget begrænsede tests
