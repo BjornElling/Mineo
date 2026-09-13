@@ -92,6 +92,9 @@ describe('createErstatningsopgoerelseInitialValues – schema-afledte objekt-def
       feriePct: undefined,
       // settings-afledt (DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage):
       loenPaaHelligdage: DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage,
+      // Store Bededagstillægget er et eksplicit tilvalg; en ny sag starter uden det
+      // (indskudte-loentillaeg-contract.md §2a.2).
+      beregnStoreBededagstillaeg: false,
       saerligFraDatoRegulering: undefined,
       loenudviklingBeregningsgrundlag: undefined,
       loenudviklingStatistikModel: undefined,

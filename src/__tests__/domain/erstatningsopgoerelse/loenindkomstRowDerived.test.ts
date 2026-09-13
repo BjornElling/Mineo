@@ -39,6 +39,9 @@ describe('calculateLoenindkomstRowDerived', () => {
   it('fordeler manuel satsændring efter kalenderdage når TAF beregnes som måneder', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
+      // satsfordelingen INKLUSIVE tillægget (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenperiode: 'maaned' as const,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
@@ -72,6 +75,9 @@ describe('calculateLoenindkomstRowDerived', () => {
   it('bruger senest gældende manuel sats selv når satsændringen ligger før lønrækken', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
+      // satsfordelingen INKLUSIVE tillægget (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenperiode: 'maaned' as const,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       feriePct: 15,
@@ -109,6 +115,9 @@ describe('calculateLoenindkomstRowDerived', () => {
   it('fordeler manuel satsændring efter arbejdsdage når TAF beregnes som arbejdsdage', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
+      // satsfordelingen INKLUSIVE tillægget (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenperiode: 'dag' as const,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
@@ -142,6 +151,9 @@ describe('calculateLoenindkomstRowDerived', () => {
   it('arbejdsdags-sporet respekterer ferie og fravær ved manuel satsfordeling', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
+      // satsfordelingen INKLUSIVE tillægget (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenperiode: 'dag' as const,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
@@ -177,6 +189,9 @@ describe('calculateLoenindkomstRowDerived', () => {
   it('fordeler overenskomstsats pr. rækkedato i stedet for en fast sats på anvendt regulering', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
+      // satsfordelingen INKLUSIVE tillægget (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,

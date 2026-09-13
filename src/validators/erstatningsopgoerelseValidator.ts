@@ -67,7 +67,6 @@ import {
   opregulerMedAslAarsloensmaksimum,
 } from '../domain/satser/opreguleringsmotorer';
 import { formatAslAarsloensmaksimumMissingForYears } from '../domain/satser/aslAarsloensmaksimum';
-import { STORE_BEDEDAG_START } from '../data/indskudteLoentillaeg';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -104,26 +103,13 @@ function validateSchema(values: unknown): ValidationError[] {
 /**
  * Dato-interval validering
  */
-function validateStandaloneRules(
-  values: ErstatningsopgoerelseValues,
-  options?: ErstatningsopgoerelseValidationOptions
-): ValidationError[] {
+function validateStandaloneRules(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // En fravalgt toggle er et bevidst muligt valg, men ved en relevant periode skal brugeren
-  // kunne se den sædvanlige konsekvens før dokumentdownload. Den blokerer aldrig beregningen.
-  const harRelevantTafPeriode = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO })
-    .some((range) => range.til >= STORE_BEDEDAG_START);
-  if (harRelevantTafPeriode) {
-    values.loenindkomstAnsaettelsesforhold.forEach((af, index) => {
-      if (af.loenPaaHelligdage !== 'Almindelig løn' || af.beregnStoreBededagstillaeg) return;
-      errors.push({
-        path: `loenindkomstAnsaettelsesforhold[${index}].beregnStoreBededagstillaeg`,
-        message: 'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.',
-        severity: 'warning',
-      });
-    });
-  }
+  // Her stod kortvarigt advarslen om fravalgt Store Bededagstillæg. Den hører IKKE i validatoren:
+  // «Fejl og advarsler» på EO-beregningsfanen fodres udelukkende af række-byggerne i
+  // `src/domain/eoRowEvaluation/`, så en `severity: 'warning'` herfra blev aldrig vist – den blev
+  // kun en ikke-blokerende snapshot-invariant uden læser. Advarslen bor nu i `buildEoIndkomstRows`.
 
   // Dato-interval validering: periodeFra <= periodeTil
   if (
@@ -1363,7 +1349,7 @@ export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
   validateParsed(values: ErstatningsopgoerelseValues, options?: ErstatningsopgoerelseValidationOptions): ValidationResult {
     const errors: ValidationError[] = [
       ...validateCanonicalRanges(values),
-      ...validateStandaloneRules(values, options),
+      ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
       ...validateSvieSmerte(values),
       ...validateTAF(values, options),

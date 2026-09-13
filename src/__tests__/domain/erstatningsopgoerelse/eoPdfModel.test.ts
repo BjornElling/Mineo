@@ -54,6 +54,12 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
     ...makeTestAnsaettelsesforholdBase(),
     ...af,
     id: af.id ?? `af-${index + 1}`,
+    // Store Bededagstillægget er et eksplicit tilvalg i produktionen, og en ny sag starter uden det.
+    // Fixturerne herunder spreader `createDefaultLoenindkomstAnsaettelsesforhold()` og bærer derfor
+    // den passive `false`, mens filens facitter er regnet MED tillægget. Harnesset tilvælger det ét
+    // sted frem for i 70 fixturer. De negative Store Bededag-tests i filen måler datogrænsen
+    // 01-01-2024 – ikke togglen – og er derfor fortsat ægte (indskudte-loentillaeg-contract.md §2a).
+    beregnStoreBededagstillaeg: true,
     overenskomstFilter: af.overenskomstFilter ?? {
       loenmodtager: undefined,
       arbejdsgiver: undefined,
@@ -87,6 +93,12 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
         overenskomstId: merged.eoAngivetLoenLoenudvikling.overenskomstId ?? first.overenskomstId,
         feriePct: merged.eoAngivetLoenLoenudvikling.feriePct ?? first.feriePct,
         loenPaaHelligdage: merged.eoAngivetLoenLoenudvikling.loenPaaHelligdage ?? first.loenPaaHelligdage,
+        // Store Bededag-togglen er required-with-default (`false`), så et `??` ville aldrig nå
+        // ansættelsesforholdet. Fixturerne udtrykker valget DER, og broen spejler det, så «Angivet løn»
+        // regner på samme grundlag (indskudte-loentillaeg-contract.md §2a).
+        beregnStoreBededagstillaeg:
+          merged.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg === true
+          || first.beregnStoreBededagstillaeg === true,
         saerligFraDatoRegulering: merged.eoAngivetLoenLoenudvikling.saerligFraDatoRegulering ?? first.saerligFraDatoRegulering,
         loenudviklingBeregningsgrundlag:
           merged.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag ?? first.loenudviklingBeregningsgrundlag,
@@ -789,6 +801,9 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           navnPaaArbejdssted: 'Ansættelse A',
+          // Tilvalgt, så indtægten fortsat bærer Store Bededagstillægget (0,45 %) som før
+          // (indskudte-loentillaeg-contract.md §2a).
+          beregnStoreBededagstillaeg: true,
           loenperiode: 'dag',
           loenudviklingBeregningsgrundlag: 'Ingen',
           indtaegtsoplysningerTableData: [

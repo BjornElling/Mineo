@@ -1380,6 +1380,9 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       harOverenskomst: true,
       overenskomstId: 'industriens-overenskomst',
       feriePct: 16.95,
+      // Reguleringsindekset i facitet er regnet MED Store Bededagstillægget, som nu kræver et
+      // eksplicit tilvalg (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenudviklingBeregningsgrundlag: 'Overenskomst',
       indtaegtsoplysningerTableData: [{
         id: 'loen-dec-2023',

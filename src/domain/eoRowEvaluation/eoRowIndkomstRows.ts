@@ -27,6 +27,18 @@ import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShare
 import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
+
+/**
+ * Advarslen om et fravalgt Store Bededagstillæg (ordlyd godkendt af udvikleren).
+ *
+ * Den bor i række-kanalen og IKKE i `erstatningsopgoerelseValidator`: «Fejl og advarsler» på
+ * EO-beregningsfanen fodres udelukkende af `collectAllEoRows`, så en `severity: 'warning'` fra
+ * validatoren blev aldrig vist for brugeren.
+ */
+const STORE_BEDEDAGSTILLAEG_FRAVALGT_ADVARSEL =
+  'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.';
 
 /**
  * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
@@ -202,11 +214,38 @@ export const buildEoIndkomstRows = (
 
   const loenudviklingsKilde = resolveLoenudviklingKilde(values);
 
+  // Store Bededagstillægget indgår i lønpakken fra 1. januar 2024, uanset reguleringsform. Advarslen
+  // er derfor kun tidsafgrænset: den vises, når en (færdigclampet) TAF-periode når ind i 2024.
+  const harTafPeriodeFraStoreBededag = buildTafRanges(values, { skadedatoISO: skadedato })
+    .some((range) => range.til >= STORE_BEDEDAG_START);
+
   loenudviklingsKilde.forEach((ansaettelsesforhold) => {
-    const loenudviklingRowPrefix =
-      values.beregnesUdFra === 'Beregningsperiode'
-        ? `loenindkomst.${ansaettelsesforhold.id}.regulering`
-        : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}`;
+    const erBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
+    const loenudviklingRowPrefix = erBeregningsperiode
+      ? `loenindkomst.${ansaettelsesforhold.id}.regulering`
+      : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}`;
+
+    // BEVIDST før enhver early return herunder: advarslen er uafhængig af, om reguleringen er
+    // færdigopsat (udviklerbeslutning 2026-09-13). Den skal kunne ses, også mens ansættelsesforholdet
+    // har en blokerende reguleringsfejl – ellers kan brugeren nå at rette fejlen og downloade uden
+    // nogensinde at have set advarslen.
+    if (
+      harTafPeriodeFraStoreBededag
+      && ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn'
+      && ansaettelsesforhold.beregnStoreBededagstillaeg !== true
+    ) {
+      rows.push({
+        id: erBeregningsperiode
+          ? `loenindkomst.${ansaettelsesforhold.id}.storeBededagstillaegFravalgt`
+          : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}.storeBededagstillaegFravalgt`,
+        ...(erBeregningsperiode ? { employmentId: ansaettelsesforhold.id } : {}),
+        label: 'Advarsel',
+        displayValue: `Advarsel (${STORE_BEDEDAGSTILLAEG_FRAVALGT_ADVARSEL})`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+      });
+    }
+
     const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
     let status: EoRowStatus = 'ok';
     let message = '-';

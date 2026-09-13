@@ -367,47 +367,6 @@ describe('svie/smerte validering', () => {
 // =============================================================================
 
 describe('TAF validering', () => {
-  it('advarer ikke-blokerende ved fravalgt Store Bededagstillæg i en TAF-periode fra 2024', () => {
-    const values = makeValues({
-      tafPerioder: [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31') }],
-      loenindkomstAnsaettelsesforhold: [{
-        ...createDefaultLoenindkomstAnsaettelsesforhold(),
-        id: 'af-1',
-        loenPaaHelligdage: 'Almindelig løn',
-        beregnStoreBededagstillaeg: false,
-      }],
-    });
-
-    const result = erstatningsopgoerelseValidator.validateParsed(values);
-
-    expect(result.errors).toContainEqual({
-      path: 'loenindkomstAnsaettelsesforhold[0].beregnStoreBededagstillaeg',
-      message: 'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.',
-      severity: 'warning',
-    });
-    // Validatorens `isValid` ignorerer warnings; eventuelle øvrige TAF-fejl i denne
-    // minimalt opstillede fixture er derfor uvedkommende for advarslens blokeringsevne.
-    expect(result.errors.find((error) =>
-      error.path === 'loenindkomstAnsaettelsesforhold[0].beregnStoreBededagstillaeg'
-    )?.severity).toBe('warning');
-  });
-
-  it('advarer ikke ved fravalgt tillæg, når TAF-perioden slutter før 2024', () => {
-    const values = makeValues({
-      tafPerioder: [{ id: 'taf-1', fra: iso('2023-12-01'), til: iso('2023-12-31') }],
-      loenindkomstAnsaettelsesforhold: [{
-        ...createDefaultLoenindkomstAnsaettelsesforhold(),
-        id: 'af-1',
-        loenPaaHelligdage: 'Almindelig løn',
-        beregnStoreBededagstillaeg: false,
-      }],
-    });
-
-    expect(erstatningsopgoerelseValidator.validateParsed(values).errors).not.toContainEqual(expect.objectContaining({
-      path: 'loenindkomstAnsaettelsesforhold[0].beregnStoreBededagstillaeg',
-    }));
-  });
-
   it('fanger delvist udfyldt TAF-periode', () => {
     const values = makeValues({
       tafPerioder: [

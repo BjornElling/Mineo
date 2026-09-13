@@ -16,7 +16,7 @@ export type StoreBededagstillaegValg = Readonly<{
 export const harValgtStoreBededagstillaeg = (valg: StoreBededagstillaegValg): boolean =>
   valg.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG && valg.beregnStoreBededagstillaeg === true;
 
-/** Den datoafhængige sats efter den udtrykkelige brugerbeslutning. */
+/** Den datoafhængige sats, når brugeren udtrykkeligt har tilvalgt tillægget. */
 export const resolveStoreBededagstillaegPct = (
   iso: ISODateString | undefined,
   valg: StoreBededagstillaegValg

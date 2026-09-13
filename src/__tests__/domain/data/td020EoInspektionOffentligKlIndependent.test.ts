@@ -21,6 +21,9 @@ const buildValues = (): ErstatningsopgoerelseValues => {
     overenskomstId: 'kl-overenskomst',
     feriePct: 12.5,
     loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+    // Facitet er regnet MED Store Bededagstillægget, som nu kræver et eksplicit tilvalg
+    // (indskudte-loentillaeg-contract.md §2a).
+    beregnStoreBededagstillaeg: true,
     loenudviklingBeregningsgrundlag: 'Overenskomst',
     offentligLoenType: 'Timeløn',
     offentligLoenTrin: 20,

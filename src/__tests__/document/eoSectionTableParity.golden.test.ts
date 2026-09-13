@@ -202,6 +202,9 @@ const buildLoenOgYdelserFixture = (): EoFixture => {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       id: 'af-1',
       navnPaaArbejdssted: 'Kerteminde Kommune',
+      // Golden-tallene er regnet MED Store Bededagstillægget, som nu kræver et eksplicit tilvalg
+      // (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: true,
       loenperiode: 'maaned',
       loenudviklingBeregningsgrundlag: 'Ingen',
       indtaegtsoplysningerTableData: [

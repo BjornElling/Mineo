@@ -302,6 +302,16 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return rowTarget(sfggSeksmaanederEmploymentId);
   }
 
+  // Fravalgt Store Bededagstillæg: advarslen har præcis ÉT ansvarligt input – selve togglen, som kun
+  // er synlig ved «Almindelig løn» på helligdage, altså netop i den tilstand advarslen opstår i.
+  const loenindkomstStoreBededagId = row.id.match(/^loenindkomst\.([^.]+)\.storeBededagstillaegFravalgt$/)?.[1];
+  if (loenindkomstStoreBededagId) {
+    return target(eoEmploymentFields.beregnStoreBededagstillaeg.bind(loenindkomstStoreBededagId));
+  }
+  if (/^taf\.beregningsgrundlag\.loenudvikling\.[^.]+\.storeBededagstillaegFravalgt$/.test(row.id)) {
+    return target(eoAngivetLoenFields.beregnStoreBededagstillaeg.bind());
+  }
+
   const loenindkomstStatusMatch = row.id.match(/^loenindkomst\.([^.]+)\.(arbejdsstedNavn|satserSkadestidspunkt|loenoplysninger|loenEfterOphoer)$/);
   if (loenindkomstStatusMatch) {
     const [, employmentId, issue] = loenindkomstStatusMatch;

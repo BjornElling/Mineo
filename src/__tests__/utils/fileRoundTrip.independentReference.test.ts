@@ -185,6 +185,9 @@ const EXPECTED_LOADED_SNAPSHOT = {
       harAnciennitetstillaegEfterSkadedatoen: false,
       anciennitetstillaegSatsAngivesPer: 'Måned',
       loenPaaHelligdage: 'Almindelig løn',
+      // Nyt eksplicit tilvalg; save-modellen bar det allerede som `false`, så loaden bevarer det
+      // uden at ramme migreringen for filer helt uden feltet (indskudte-loentillaeg-contract.md §2a).
+      beregnStoreBededagstillaeg: false,
       loenudviklingManuelTableData: [],
       loenudviklingManuelProcentsatsTableData: [],
       offentligLoenType: 'Månedsløn',
