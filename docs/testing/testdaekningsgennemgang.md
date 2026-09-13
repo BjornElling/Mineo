@@ -913,6 +913,10 @@ weekend. `npm run test` bestod med 756 testfiler / 8.846 tests. Typechecks, lint
 og kontraktkontrol bestod ved committen. Ændringerne er test-only; produktkode, beregningslogik,
 brugeradfærd, schema og persistensformat er uændret.
 
+Den samlede `verify:release:core` blev derefter kørt på revision `70351d3c` og bestod med 756
+testfiler / 8.846 tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds. De kendte
+Vite-native-config- og chunk-størrelsesadvarsler var ikke fejl.
+
 ## Seneste beslutningsretest – 2026-09-12
 
 Udviklerens svar i `AFVENTER-BESLUTNINGER.md` er gennemgået igen. Koderelaterede fund, der ikke

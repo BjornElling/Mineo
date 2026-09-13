@@ -6,13 +6,13 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `02a45d31` for seneste målrettede test-only batch; seneste samlede gate er fortsat `92dd437f`
+- Evidensrevision: `70351d3c` for seneste samlede releasegate; seneste målrettede test-only batch er `02a45d31`; fuld E2E står fortsat på `92dd437f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `28cdcb2b` med 737 testfiler / 8.824 beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds. Den valgte E2E-suite er senest bestået på `e0f9d340` med 201 beståede tests og 2 forventede skips ud af 203; siden da er kun test- og auditdokumentation ændret. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `92dd437f` er grøn med 745 testfiler og 8.832 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,23 / 81,38 / 93,97 / 93,05, og begge builds bestod. Den fulde E2E-suite er grøn på samme revision med 208 beståede tests og 2 forventede skips ud af 210 på 10 projektbaner, med 3 workers på 4,6 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets-, TD-025-stabilitets- og TD-088-modalefund forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `70351d3c` er grøn med 756 testfiler og 8.846 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,23 / 81,38 / 93,97 / 93,05, og begge builds bestod. Den fulde E2E-suite står fortsat på revision `92dd437f` med 208 beståede tests og 2 forventede skips ud af 210 på 10 projektbaner. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets-, TD-025-stabilitets- og TD-088-modalefund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -1024,9 +1024,10 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   gennem kalenderdagsconsumeren med 250 kr. pr. dag, også på skuddag og weekend; målrettet kontrol
   bestod med 1/1.
 - `npm run test` bestod med 756 testfiler / 8.846 tests. Typechecks, ESLint, encoding-, filnavns- og
-  kontraktkontrol bestod. Ændringerne er test-only; produktkode, beregningslogik, brugeradfærd,
-  schema og persistensformat er uændret. Den samlede releasegate er endnu ikke genkørt efter denne
-  revision; seneste grønne gate er fortsat `92dd437f`.
+  kontraktkontrol bestod. Den samlede `verify:release:core` bestod derefter på revision `70351d3c`
+  med samme 756 testfiler / 8.846 tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds.
+  Ændringerne er test-only; produktkode, beregningslogik, brugeradfærd, schema og persistensformat
+  er uændret. Den fulde E2E-suite er endnu ikke genkørt efter denne revision.
 
 ## Næste arbejdsenhed
 
