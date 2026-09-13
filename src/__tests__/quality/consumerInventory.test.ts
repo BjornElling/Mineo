@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import ts from 'typescript';
 import {
   CONSUMER_CALCULATION_ENTRYPOINTS,
   CONSUMER_CASE_FILE_PATHS,
@@ -11,20 +12,64 @@ import { PERSISTED_SECTION_KEYS } from '../../config/persistenceRegistry';
 import { MINEO_DOCUMENT_OUTPUT_IDS } from '../../document/definition/documentOutputId';
 import { collectSectionSchemaPaths } from '../../inputCore/ledger/schemaFieldPaths';
 
-const readInventoryModule = (entry: InventoryEntry): string =>
-  readFileSync(resolve(process.cwd(), entry.module), 'utf8');
+const parseSourceFile = (fileName: string, source: string): ts.SourceFile =>
+  ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+
+const readSourceFile = (fileName: `src/${string}`): ts.SourceFile => {
+  const absolutePath = resolve(process.cwd(), fileName);
+  return parseSourceFile(fileName, readFileSync(absolutePath, 'utf8'));
+};
+
+const isExported = (node: ts.Node): boolean =>
+  ts.canHaveModifiers(node)
+  && ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true;
+
+const hasExportedSymbol = (sourceFile: ts.SourceFile, symbol: string): boolean =>
+  sourceFile.statements.some((statement) => {
+    if (!isExported(statement)) return false;
+
+    if (ts.isVariableStatement(statement)) {
+      return statement.declarationList.declarations.some(
+        (declaration) => ts.isIdentifier(declaration.name) && declaration.name.text === symbol
+      );
+    }
+
+    return (
+      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement))
+      && statement.name !== undefined
+      && statement.name.text === symbol
+    );
+  });
+
+const hasDirectCallsite = (sourceFile: ts.SourceFile, symbol: string): boolean => {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === symbol) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return found;
+};
 
 const assertExportedSymbol = (entry: InventoryEntry): void => {
-  const source = readInventoryModule(entry);
-  const escaped = entry.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  expect(source).toMatch(new RegExp(`export\\s+(?:const|function|class)\\s+${escaped}\\b`));
+  expect(hasExportedSymbol(readSourceFile(entry.module), entry.symbol)).toBe(true);
 };
 
 const assertConsumedSymbol = (entry: ConsumedInventoryEntry): void => {
   assertExportedSymbol(entry);
-  const escaped = entry.symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   for (const consumer of entry.consumers) {
-    expect(readFileSync(resolve(process.cwd(), consumer), 'utf8')).toMatch(new RegExp(`\\b${escaped}\\b`));
+    expect(hasDirectCallsite(readSourceFile(consumer), entry.symbol)).toBe(true);
   }
 };
 
@@ -60,6 +105,19 @@ describe('konsument- og schema-registre', () => {
       ...CONSUMER_CALCULATION_ENTRYPOINTS,
       ...CONSUMER_CASE_FILE_PATHS,
     ]) assertConsumedSymbol(entry);
+  });
+
+  it('kræver syntaktiske exports og callsites frem for symbolnavne i tekst', () => {
+    const source = parseSourceFile(
+      'fixture.ts',
+      `
+        // export const projectSatser = ...;
+        const omtale = 'projectSatser(reader)';
+      `
+    );
+
+    expect(hasExportedSymbol(source, 'projectSatser')).toBe(false);
+    expect(hasDirectCallsite(source, 'projectSatser')).toBe(false);
   });
 
   /**

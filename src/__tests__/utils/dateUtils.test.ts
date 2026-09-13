@@ -2,6 +2,7 @@ import { toDanishDateString, toISODateString, type DanishDateString } from '../.
 import {
   addDays,
   addMonths,
+  calculateUtcAgeInWholeYears,
   createDate,
   formatDanishDate,
   formatToISO,
@@ -146,6 +147,15 @@ describe('dateUtils', () => {
 
     it('2000 = 366 dage', () => {
       expect(getDaysInYear(2000)).toBe(366);
+    });
+  });
+
+  describe('calculateUtcAgeInWholeYears', () => {
+    it('skifter først alder på selve fødselsdagen', () => {
+      const fodselsdato = new Date(Date.UTC(1985, 5, 15));
+
+      expect(calculateUtcAgeInWholeYears(fodselsdato, new Date(Date.UTC(2025, 5, 14)))).toBe(39);
+      expect(calculateUtcAgeInWholeYears(fodselsdato, new Date(Date.UTC(2025, 5, 15)))).toBe(40);
     });
   });
 

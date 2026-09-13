@@ -240,6 +240,29 @@ describe('dispatchInput – undo/redo (§3.6/§7.2)', () => {
     expect(readStoredInput()).toEqual(store.getState().input);
   });
 
+  it('ugyldig X → gyldig B → undo → redo bevarer rejected-XOR gennem runtime og session', () => {
+    const field = aargangField.bind();
+
+    dispatchInput(store, catalog, settleField(field, 'abc'), { now: 1 });
+    expect(canonical(store.getState().input, field)).toBeUndefined();
+    expect(rejectedAt(store.getState().input, field)).toEqual({ raw: 'abc', reason: 'format' });
+
+    dispatchInput(store, catalog, settleField(field, '2020'), { now: 2 });
+    expect(canonical(store.getState().input, field)).toBe(2020);
+    expect(rejectedAt(store.getState().input, field)).toBeUndefined();
+    expect(readStoredInput()).toEqual(store.getState().input);
+
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 3 });
+    expect(canonical(store.getState().input, field)).toBeUndefined();
+    expect(rejectedAt(store.getState().input, field)).toEqual({ raw: 'abc', reason: 'format' });
+    expect(readStoredInput()).toEqual(store.getState().input);
+
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 4 });
+    expect(canonical(store.getState().input, field)).toBe(2020);
+    expect(rejectedAt(store.getState().input, field)).toBeUndefined();
+    expect(readStoredInput()).toEqual(store.getState().input);
+  });
+
   it('undo uden history er en no-op uden write', () => {
     const writes = countWrites(store);
     const result = dispatchInput(store, catalog, { kind: 'undo' });
