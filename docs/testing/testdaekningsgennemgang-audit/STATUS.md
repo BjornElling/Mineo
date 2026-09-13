@@ -154,7 +154,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123` |
+| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123`, `TD-124`, `TD-125` |
 | Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016` |
 
@@ -1111,6 +1111,18 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 - Den fulde valgte E2E-suite står fortsat på `72a6d44f` med 211 beståede tests og 2 forventede
   skips ud af 213.
 
+## Seneste test-only uge-, svie/smerte- og browserbatch
+
+- `td020SvieSmerteMaxDownstreamIndependent.test.ts` fastholder et håndskrevet 2024-facit med
+  386 dage × 230 kr., maksimum 88.500 kr., tidligere 20.000 kr. og aktuelt 3.500 kr., altså
+  65.000 kr.; målrettet kontrol bestod med 1/1.
+- `calc-002-ugeloen-browserrejse.spec.ts` gennemfører ugeløn fra tabelindtastning til
+  helårsomregning på 521.400,00 kr. og aktiv Årsløn-PDF-download; Chrome-basisbanen bestod med
+  1/1 uden runtimefejl, runtime-signaler eller eksterne requests.
+- Den fulde Vitest-kørsel bestod med 771 testfiler / 8.861 tests. En redundant, ny validatorfil
+  blev fjernet efter review, fordi den var funktionelt identisk med en eksisterende TAF-case.
+  Ændringerne er test-only; næste samlede releasegate skal køres på denne batch.
+
 ## Seneste browser-, validator- og datafacitbatch efter revision `02a45d31`
 
 - `td-107-file-load-overwrite-cancel.spec.ts` dækker den hidtil manglende Chrome-rejse, hvor en
@@ -1132,8 +1144,9 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch med tre nye facitter og den fulde Vitest-suite er retestet grønt.
-Den samlede releasegate på `797f1809` er også grøn. Næste arbejdsenhed er en af de åbne,
+Den seneste målrettede batch med to nye facitter og den fulde Vitest-suite er retestet grønt.
+Den samlede releasegate på `797f1809` er grøn for den foregående batch. Næste arbejdsenhed er
+releasegaten for den aktuelle batch og derefter en af de åbne,
 test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
