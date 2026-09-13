@@ -35,6 +35,7 @@ export const createSfggEmployment = (
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,
   loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  beregnStoreBededagstillaeg: patch.beregnStoreBededagstillaeg ?? false,
   saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
   loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
   loenudviklingStatistikModel: patch.loenudviklingStatistikModel,

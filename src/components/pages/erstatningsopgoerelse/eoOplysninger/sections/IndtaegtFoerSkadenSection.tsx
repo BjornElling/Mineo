@@ -2,6 +2,7 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import ContentBox from '../../../../layout/ContentBox';
 import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
+import ToggleField from '../../../../../inputCore/react/fields/ToggleField';
 import ChoiceField from '../../../../../inputCore/react/fields/ChoiceField';
 import DateField from '../../../../../inputCore/react/fields/DateField';
 import IntegerField from '../../../../../inputCore/react/fields/IntegerField';
@@ -370,7 +371,39 @@ export default function IndtaegtFoerSkadenSection() {
             )}
 
             {visLoenudviklingFraEO && (
-              <LoenudviklingFields
+              <>
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">Løn på helligdage:</Typography>
+                  <Box className="row--label-right-hover__content">
+                    <ChoiceField
+                      field={eoAngivetLoenFields.loenPaaHelligdage.bind()}
+                      location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenPaaHelligdage')}
+                      name="loenPaaHelligdage"
+                      width={185}
+                      allowEmpty={false}
+                    >
+                      <MenuItem value="Almindelig løn">Almindelig løn</MenuItem>
+                      <MenuItem value="SH-udbetaling">SH-udbetaling</MenuItem>
+                      <MenuItem value="Ingen">Ingen</MenuItem>
+                    </ChoiceField>
+                  </Box>
+                </Box>
+
+                {eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn' ? (
+                  <LabeledControlRow label="Beregn Store Bededagstillæg fra 1. januar 2024:">
+                    {({ labelledBy, controlId }) => (
+                      <ToggleField
+                        field={eoAngivetLoenFields.beregnStoreBededagstillaeg.bind()}
+                        location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg')}
+                        name="beregnStoreBededagstillaeg"
+                        id={controlId}
+                        labelledBy={labelledBy}
+                      />
+                    )}
+                  </LabeledControlRow>
+                ) : null}
+
+                <LoenudviklingFields
                 binding={loenudviklingBinding}
                 manualBindings={eoAngivetLoenManual}
                 manualCollection={eoAngivetLoenManual.manualCollection.template as CollectionRef}
@@ -479,7 +512,8 @@ export default function IndtaegtFoerSkadenSection() {
                 readOnlyBaseRowPercentFields={false}
                 baseRowPercentErrors={undefined}
                 fieldNamePrefix=""
-              />
+                />
+              </>
             )}
 
             {showEoAnciennitetstillaegSection ? (

@@ -46,8 +46,8 @@ export const STORE_BEDEDAG_START: ISODateString = iso('2024-01-01');
 
 /**
  * Store Bededagstillægget angivet i procentpoint (0,45).
- * Indskydes i lønpakken fra `STORE_BEDEDAG_START` når lønnen reguleres med
- * "Almindelig løn på helligdage".
+ * Indskydes i lønpakken fra `STORE_BEDEDAG_START`, når brugeren både har valgt
+ * "Almindelig løn" på helligdage og aktivt valgt Store Bededagstillægget.
  */
 export const STORE_BEDEDAG_PCT = 0.45;
 

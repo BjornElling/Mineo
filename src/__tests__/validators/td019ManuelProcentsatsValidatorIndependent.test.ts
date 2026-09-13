@@ -88,6 +88,7 @@ const INDEPENDENT_MANUAL_PERCENT_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: 'Manuel procentsats',
     loenudviklingStatistikModel: undefined,

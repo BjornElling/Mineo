@@ -240,6 +240,7 @@ export const eoEmploymentFields = {
   anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
   feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
   loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
+  beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   saerligFraDatoRegulering: empDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),
   loenudviklingBeregningsgrundlag: optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
@@ -454,6 +455,7 @@ export const eoAngivetLoenFields = {
   // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
   // samme konkrete sats, som schemaets `.default()` giver.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
+  beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),
   loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),

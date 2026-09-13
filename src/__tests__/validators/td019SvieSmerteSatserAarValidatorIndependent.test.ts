@@ -89,6 +89,7 @@ const INDEPENDENT_SVIE_SMERTE_SATS_AAR_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

@@ -86,6 +86,7 @@ export const resolveLoenudviklingKilde = (
     loenperiode: LOENPERIODE.MAANED,
     fuldLoenUnderFerie: 'Ja',
     loenPaaHelligdage,
+    beregnStoreBededagstillaeg: eo.beregnStoreBededagstillaeg,
     saerligFraDatoRegulering: eo.saerligFraDatoRegulering,
     indtaegtsoplysningerTableData: [],
     loenudviklingBeregningsgrundlag: eo.loenudviklingBeregningsgrundlag,

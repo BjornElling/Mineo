@@ -247,6 +247,9 @@ const overenskomstFilterSchema = z.object({
 const loenudviklingOgSatserShape = {
   feriePct: decimalNumber,
   loenPaaHelligdage: loenPaaHelligdageEnum.default('Almindelig løn'),
+  // Store Bededagstillæg er et udtrykkeligt sagsvalg. Det må aldrig igen udledes alene af
+  // "Løn på helligdage", så den passive default er bevidst false.
+  beregnStoreBededagstillaeg: z.boolean().default(false),
   saerligFraDatoRegulering: optionalIsoDateString,
   loenudviklingBeregningsgrundlag: z.preprocess(normalizeEmptyToUndefined, loenudviklingBeregningsgrundlagEnum.optional()),
   loenudviklingStatistikModel: z.preprocess(normalizeEmptyToUndefined, loenudviklingStatistikModelEnum.optional()),

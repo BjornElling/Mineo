@@ -135,7 +135,7 @@ describe('adaptPersistedSectionForLoad', () => {
       }
     });
 
-    it('rører intet andet end slottet – også når sektionen har flere ansættelsesforhold', () => {
+    it('fjerner slottet og bevarer den tidligere automatiske beslutning – også ved flere ansættelsesforhold', () => {
       const { value } = adaptPersistedSectionForLoad(
         'erstatningsopgoerelse',
         {
@@ -148,10 +148,42 @@ describe('adaptPersistedSectionForLoad', () => {
       expect(value).toEqual({
         vedroererPeriodeFra: '2024-01-01',
         loenindkomstAnsaettelsesforhold: [
-          { id: 'af-1', pensionPct: 7.5 },
-          { id: 'af-2', pensionPct: 3 },
+          { id: 'af-1', pensionPct: 7.5, beregnStoreBededagstillaeg: false },
+          { id: 'af-2', pensionPct: 3, beregnStoreBededagstillaeg: false },
         ],
       });
+    });
+
+    it('sætter den manglende toggle til true ved historisk almindelig løn på helligdage', () => {
+      const { value } = adaptPersistedSectionForLoad(
+        'erstatningsopgoerelse',
+        { loenindkomstAnsaettelsesforhold: [employment({ loenPaaHelligdage: 'Almindelig løn' })] },
+        '3.13'
+      );
+      const rows = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
+        .loenindkomstAnsaettelsesforhold;
+      expect(rows[0]?.beregnStoreBededagstillaeg).toBe(true);
+    });
+
+    it('migrerer også Angivet månedsløn/dagsløn og bevarer en allerede gemt toggle', () => {
+      const { value } = adaptPersistedSectionForLoad(
+        'erstatningsopgoerelse',
+        {
+          eoAngivetLoenLoenudvikling: { loenPaaHelligdage: 'Almindelig løn' },
+          loenindkomstAnsaettelsesforhold: [employment({
+            loenPaaHelligdage: 'Almindelig løn',
+            beregnStoreBededagstillaeg: false,
+          })],
+        },
+        '3.13'
+      );
+      const migrated = value as {
+        eoAngivetLoenLoenudvikling: Record<string, unknown>;
+        loenindkomstAnsaettelsesforhold: Record<string, unknown>[];
+      };
+
+      expect(migrated.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg).toBe(true);
+      expect(migrated.loenindkomstAnsaettelsesforhold[0]?.beregnStoreBededagstillaeg).toBe(false);
     });
 
     it('er identity for en ukendt kildeversion (§3.1a: intet versions-gæt)', () => {

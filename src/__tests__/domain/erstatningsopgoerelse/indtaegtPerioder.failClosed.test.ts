@@ -19,6 +19,7 @@ describe('buildIncomeForRanges fail-closed', () => {
     af.overenskomstId = 'glasoverenskomsten';
     af.loenperiode = 'dag';
     af.loenPaaHelligdage = 'Almindelig løn';
+    af.beregnStoreBededagstillaeg = true;
     af.feriePct = 16.95;
     af.fritvalgPct = 0;
     af.shSoPct = 6.9;
@@ -195,12 +196,13 @@ describe('buildIncomeForRanges fail-closed', () => {
     expect(income.employers[0]?.amount).toBe(200);
   });
 
-  it('medregner Store Bededag i arbejdsgiverbeløbet fra 01-01-2024 ved Almindelig løn', () => {
+  it('medregner Store Bededag i arbejdsgiverbeløbet fra 01-01-2024 ved aktivt valgt tillæg', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.loenPaaHelligdage = 'Almindelig løn';
+    af.beregnStoreBededagstillaeg = true;
     af.indtaegtsoplysningerTableData = [
       {
         id: 'loen-store-bededag',
@@ -221,6 +223,25 @@ describe('buildIncomeForRanges fail-closed', () => {
 
     expect(income.employers).toHaveLength(1);
     expect(income.employers[0]?.amount).toBeCloseTo(100.45, 8);
+  });
+
+  it('medregner ikke Store Bededag ved Almindelig løn, når brugeren fravælger tillægget', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.beregnStoreBededagstillaeg = false;
+    af.indtaegtsoplysningerTableData = [{
+      id: 'loen-fravalgt-store-bededag',
+      col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '',
+      col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-01'),
+      col2: asAmount(100), col3: undefined, col4: undefined, col5: undefined,
+    }];
+
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-01') }]);
+
+    expect(income.employers[0]?.amount).toBeCloseTo(100, 8);
   });
 
   it('medregner ikke Store Bededag i arbejdsgiverbeløbet ved SH-udbetaling', () => {

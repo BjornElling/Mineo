@@ -132,7 +132,7 @@ export const INPUT_COLLECTION_LEDGER: readonly CollectionLedgerEntry[] = [
       f('pensionPct', 'percent'), f('feriePct', 'percent'),
       f('tillaegAngivesSom', 'choice', 'choice'), f('loenperiode', 'choice', 'choice'),
       f('fuldLoenUnderFerie', 'choice', 'toggle'), f('anciennitetstillaegSatsAngivesPer', 'choice', 'choice'),
-      f('loenPaaHelligdage', 'choice', 'choice'), f('loenudviklingBeregningsgrundlag', 'choice', 'choice'),
+      f('loenPaaHelligdage', 'choice', 'choice'), f('beregnStoreBededagstillaeg', 'boolean', 'toggle'), f('loenudviklingBeregningsgrundlag', 'choice', 'choice'),
       f('loenudviklingStatistikModel', 'choice', 'choice'), f('loenudviklingKRLSatstabel', 'choice', 'choice'),
       f('offentligLoenType', 'choice', 'choice'), f('anciennitetstillaegSats', 'amount'),
       f('offentligLoenEkstraGrundloen', 'amount'), f('loenudviklingManuelNavn', 'optionalText'),

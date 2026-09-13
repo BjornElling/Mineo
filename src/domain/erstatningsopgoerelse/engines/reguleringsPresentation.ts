@@ -47,6 +47,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { isKRLSatstabelId } from '../../../data/krlRates';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
+import { harValgtStoreBededagstillaeg } from '../helpers/storeBededagstillaeg';
 import {
   buildFormulaText,
   computeFormulaValue,
@@ -557,6 +558,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (!fraDato || !tilDato) return null;
       assertOffentligReguleringsDatoGyldig(fraDato);
       const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+      const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
 
       const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, gruppeValue);
       const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
@@ -569,7 +571,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const hasFritvalg = hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
       const hasAgPension = hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
-      const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
+      const showStoreBededagColumn = applyStoreBededagstillaeg && tafTil >= STORE_BEDEDAG_START;
       const loenHeader = resolveReguleringsvaerdierLoenHeader({
         tafBeregningsenhed,
         loenudviklingBeregningsgrundlag: grundlag,
@@ -662,7 +664,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         if (iso >= overenskomstCoverageStartIso && iso <= tafTil) allRealDates.add(iso);
       }
       if (
-        applyAlmindeligLoenPaaShDageRegel &&
+        applyStoreBededagstillaeg &&
         overenskomstCoverageStartIso < STORE_BEDEDAG_START &&
         tafTil >= STORE_BEDEDAG_START
       ) {
@@ -706,6 +708,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     if (!fraDato || !tilDato) return null;
 
     const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+    const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
     const satser = getEffektiveSatserForPeriode({
       overenskomstId: ref.baseId,
       fraDato,
@@ -719,7 +722,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasAgPension = hasAnyPctSourceOrInput(allSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
-    const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
+    const showStoreBededagColumn = applyStoreBededagstillaeg && tafTil >= STORE_BEDEDAG_START;
     const loenHeader = resolveReguleringsvaerdierLoenHeader({
       tafBeregningsenhed,
       loenudviklingBeregningsgrundlag: grundlag,
@@ -741,7 +744,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (iso >= overenskomstCoverageStartIso && iso <= tafTil) allRealDates.add(iso);
     }
     if (
-      ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn' &&
+      applyStoreBededagstillaeg &&
       tafFra < STORE_BEDEDAG_START &&
       tafTil >= STORE_BEDEDAG_START
     ) {
@@ -800,7 +803,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         }
         const isStoreBededagBeforeCoverage =
           showStoreBededagColumn &&
-          applyAlmindeligLoenPaaShDageRegel &&
+          applyStoreBededagstillaeg &&
           iso === STORE_BEDEDAG_START &&
           iso < overenskomstCoverageStartIso;
         if (isStoreBededagBeforeCoverage) {
@@ -1058,6 +1061,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const tafEndIso = segments[segments.length - 1].til;
   const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+  const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
   const getStoreBededagPct = (iso: ISODateString): number =>
     resolveAutoStoreBededagPct(ansaettelsesforhold, iso);
   const statistikModelLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
@@ -1071,8 +1075,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
       tafStartIso < STORE_BEDEDAG_START &&
       tafEndIso >= STORE_BEDEDAG_START &&
       (
-        (loenudviklingBasis === 'Overenskomst' && applyAlmindeligLoenPaaShDageRegel) ||
-        (loenudviklingBasis === 'Manuelt angivet' && applyAlmindeligLoenPaaShDageRegel)
+        (loenudviklingBasis === 'Overenskomst' && applyStoreBededagstillaeg) ||
+        (loenudviklingBasis === 'Manuelt angivet' && applyStoreBededagstillaeg)
       );
     if (!shouldPreserveStoreBededagBoundary) return undefined;
     return new Set<ISODateString>([STORE_BEDEDAG_START]);
@@ -1186,7 +1190,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     : segments;
   const segmentsForOverenskomstCalc = (
     loenudviklingBasis === 'Overenskomst' &&
-    applyAlmindeligLoenPaaShDageRegel &&
+    applyStoreBededagstillaeg &&
     tafStartIso < STORE_BEDEDAG_START &&
     tafEndIso >= STORE_BEDEDAG_START
   )
@@ -1278,7 +1282,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         || hasAnyPctSourceOrInput(periodeTillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct)
       );
       const hasStoreBededag =
-        applyAlmindeligLoenPaaShDageRegel &&
+        applyStoreBededagstillaeg &&
         (anvendtReguleringsdato >= STORE_BEDEDAG_START || segmentsForOverenskomstCalc.some((segment) => segment.til >= STORE_BEDEDAG_START));
       const baseValue = (loenType === 'maanedsLoen' ? baseResult.maanedsLoen : baseResult.timeLoen) + offentligLoenEkstraGrundloen;
       const baseComponents: FormulaComponents = buildOffentligOverenskomstFormulaComponents({
@@ -1288,7 +1292,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         shSoPctInput: ansaettelsesforhold.shSoPct,
         fritvalgPctInput: ansaettelsesforhold.fritvalgPct,
         pensionPctInput: ansaettelsesforhold.pensionPct,
-        applyAlmindeligLoenPaaShDageRegel,
+        applyStoreBededagstillaeg,
         dateIso: anvendtReguleringsdato,
       });
       const baseVisibility: FormulaVisibility = {
@@ -1325,7 +1329,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
           shSoPctInput: ansaettelsesforhold.shSoPct,
           fritvalgPctInput: ansaettelsesforhold.fritvalgPct,
           pensionPctInput: ansaettelsesforhold.pensionPct,
-          applyAlmindeligLoenPaaShDageRegel,
+          applyStoreBededagstillaeg,
           dateIso: segment.fra,
         });
         const visibility: FormulaVisibility = {
@@ -1382,7 +1386,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const hasStoreBededagPerioder = Boolean(
           firstSegmentStartIso &&
           lastSegmentEndIso &&
-          applyAlmindeligLoenPaaShDageRegel &&
+          applyStoreBededagstillaeg &&
           lastSegmentEndIso >= STORE_BEDEDAG_START
         );
         const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
@@ -1396,7 +1400,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
           pctBasisRole: 'reference',
           dateIso: anvendtReguleringsdato,
           baseValueSupplement: 0,
-          applyAlmindeligLoenPaaShDageRegel,
+          applyStoreBededagstillaeg,
         });
         const baseVisibility: FormulaVisibility = {
           showFritvalg: hasFritvalg,
@@ -1418,7 +1422,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
             : undefined;
 
           const useStoreBededagOnlyBeforeCoverage =
-            applyAlmindeligLoenPaaShDageRegel &&
+            applyStoreBededagstillaeg &&
             segment.fra >= STORE_BEDEDAG_START &&
             segment.fra < privateBaseContext.effectiveBase.startIso;
 
@@ -1440,7 +1444,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
             pctBasisRole: useStoreBededagOnlyBeforeCoverage ? 'reference' : 'segment',
             dateIso: segment.fra,
             baseValueSupplement: segmentAnciennitet,
-            applyAlmindeligLoenPaaShDageRegel,
+            applyStoreBededagstillaeg,
           });
           const visibility: FormulaVisibility = {
             showFritvalg: hasFritvalg,
@@ -1626,7 +1630,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         .filter((row): row is Readonly<{ startIso: ISODateString; components: FormulaComponents }> => Boolean(row))
         .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
 
-      const hasStoreBededagPerioder = applyAlmindeligLoenPaaShDageRegel && tafEndIso >= STORE_BEDEDAG_START;
+      const hasStoreBededagPerioder = applyStoreBededagstillaeg && tafEndIso >= STORE_BEDEDAG_START;
 
       if (hasStoreBededagPerioder && tafStartIso < STORE_BEDEDAG_START) {
         const baseForStore = [...periodStarts]

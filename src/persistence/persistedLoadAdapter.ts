@@ -159,6 +159,36 @@ const removeDerivedStoreBededagPct = (value: unknown): PersistedLoadAdaptation =
   };
 };
 
+/**
+ * Overfører den tidligere automatiske Store Bededag-beslutning til det nye, udtrykkelige valg.
+ *
+ * Alle hidtidige Mineo-filer manglede togglen, men beregnede tillægget når "Løn på helligdage"
+ * var "Almindelig løn". Derfor er `true` den eneste kompatibilitetsbevarende værdi i netop den
+ * historiske tilstand. En allerede gemt toggle røres aldrig, og andre helligdagsvalg får den
+ * passive `false`-værdi. Det er en kendt semantisk migrering, ikke en schema-default.
+ */
+const migrateMissingStoreBededagToggle = (value: unknown): unknown => {
+  if (!isRecord(value)) return value;
+
+  const migrateSource = (source: unknown): unknown => {
+    if (!isRecord(source) || Object.hasOwn(source, 'beregnStoreBededagstillaeg')) return source;
+    return {
+      ...source,
+      beregnStoreBededagstillaeg: source.loenPaaHelligdage === 'Almindelig løn',
+    };
+  };
+
+  const employments = value.loenindkomstAnsaettelsesforhold;
+  const migratedEmployments = Array.isArray(employments) ? employments.map(migrateSource) : employments;
+  const migratedAngivetLoen = migrateSource(value.eoAngivetLoenLoenudvikling);
+  if (migratedEmployments === employments && migratedAngivetLoen === value.eoAngivetLoenLoenudvikling) return value;
+  return {
+    ...value,
+    ...(migratedEmployments === employments ? {} : { loenindkomstAnsaettelsesforhold: migratedEmployments }),
+    ...(migratedAngivetLoen === value.eoAngivetLoenLoenudvikling ? {} : { eoAngivetLoenLoenudvikling: migratedAngivetLoen }),
+  };
+};
+
 type FieldAlias = Readonly<{
   from: string;
   to: string;
@@ -334,7 +364,7 @@ const adaptLegacyFileDataForLoad = (
 const adaptErstatningsopgoerelseForLoad = (value: unknown): PersistedLoadAdaptation => {
   const withAliases = mapKnownEoFieldAliases(value).value;
   const withoutHistoricalDevelopmentData = removeApprovedHistoricalDevelopmentFields(withAliases);
-  return removeDerivedStoreBededagPct(withoutHistoricalDevelopmentData);
+  return removeDerivedStoreBededagPct(migrateMissingStoreBededagToggle(withoutHistoricalDevelopmentData));
 };
 
 // Registrér alle kendte historiske EO-versioner, også når en version ikke behøver en særskilt

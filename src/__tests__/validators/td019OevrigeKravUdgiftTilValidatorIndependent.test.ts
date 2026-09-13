@@ -89,6 +89,7 @@ const INDEPENDENT_OEVRIGE_KRAV_UDGIFT_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: 'Ingen',
     loenudviklingStatistikModel: undefined,

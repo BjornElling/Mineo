@@ -13,7 +13,7 @@ import {
   resolveOverenskomstRef,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
+import { resolveStoreBededagstillaegPct } from './storeBededagstillaeg';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
@@ -58,14 +58,9 @@ const resolveBindingFromDecimal = (value: number | null | undefined): Overenskom
 };
 
 const resolveStoreBededagPct = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage'>,
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'>,
   anvendtReguleringsdato: ISODateString | undefined
-): number => {
-  if (!anvendtReguleringsdato) return 0;
-  return af.loenPaaHelligdage === 'Almindelig løn' && anvendtReguleringsdato >= STORE_BEDEDAG_START
-    ? STORE_BEDEDAG_PCT
-    : 0;
-};
+): number => resolveStoreBededagstillaegPct(anvendtReguleringsdato, af);
 
 const resolveManualPercentValue = (
   rowValue: string | number | undefined,
@@ -130,7 +125,7 @@ const resolvePeriodSatser = (
 };
 
 export const resolveAutoStoreBededagPct = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage'>,
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'>,
   anvendtReguleringsdato: ISODateString | undefined
 ): number => resolveStoreBededagPct(af, anvendtReguleringsdato);
 
@@ -181,7 +176,7 @@ export const isOverenskomstSatsFieldLocked = (
 const resolveAutoSatsFields = (
   af: Pick<
     LoenindkomstAnsaettelsesforhold,
-    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'
+    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'
     | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
   >,
   anvendtReguleringsdato: ISODateString | undefined
@@ -200,7 +195,7 @@ const resolveAutoSatsFields = (
 export const applyAutoSatsFields = <
   T extends Pick<
     LoenindkomstAnsaettelsesforhold,
-    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'
+    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'
     | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
   >,
 >(
@@ -224,6 +219,7 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
     | 'harOverenskomst'
     | 'overenskomstId'
     | 'loenPaaHelligdage'
+    | 'beregnStoreBededagstillaeg'
   >;
   skadedato: ISODateString | undefined;
   fra: ISODateString;

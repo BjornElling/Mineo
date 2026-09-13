@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
-import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../../data/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
+import { harStoreBededagstillaegIInterval, resolveStoreBededagstillaegPct } from '../../../helpers/storeBededagstillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
 import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
@@ -41,6 +41,7 @@ const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string =>
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   const { active, angivetLoen, anvendtReguleringsdato, tafRanges, kraeverFeriePctVedBeregningsperiode, activeMedSynligeSatserOgLoenoplysninger } = ctx;
   assertUniform(active, (af) => normalizeManualRows(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
+  assertUniform(active, (af) => af.beregnStoreBededagstillaeg ?? false, 'Store Bededagstillæg');
   if (!angivetLoen) {
     if (activeMedSynligeSatserOgLoenoplysninger.length > 1) {
       assertUniform(
@@ -67,6 +68,7 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
       label,
       reguleringsdato: anvendtReguleringsdato,
       loenPaaHelligdage: active[0].loenPaaHelligdage ?? '',
+      beregnStoreBededagstillaeg: active[0].beregnStoreBededagstillaeg,
       feriePct,
       manualRows: active[0].loenudviklingManuelTableData ?? [],
       tafRanges,
@@ -93,9 +95,7 @@ const byggResultat = (
     pensionPct: parsePercentInput(baseRow.agPension),
   };
   const resolveStoreBededagPctForManualDate = (iso: ISODateString | undefined): number =>
-    konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG && iso && iso >= STORE_BEDEDAG_START
-      ? STORE_BEDEDAG_PCT
-      : 0;
+    resolveStoreBededagstillaegPct(iso, konsolideret);
 
   const basePackage = computePackageValuePct({
     ...baseComponents,
@@ -137,9 +137,8 @@ const byggResultat = (
     }> => Boolean(row))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
 
-  const hasStoreBededagSegmenter =
-    konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
-    konsolideret.tafRanges.some((range) => range.til >= STORE_BEDEDAG_START);
+  const hasStoreBededagSegmenter = konsolideret.tafRanges.some((range) =>
+    harStoreBededagstillaegIInterval(range.fra, range.til, konsolideret));
 
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {

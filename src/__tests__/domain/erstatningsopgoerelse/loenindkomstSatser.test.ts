@@ -54,10 +54,13 @@ describe('syncManualBaseRowSatser', () => {
 // ─── resolveAutoStoreBededagPct ───────────────────────────────────────────────
 
 describe('resolveAutoStoreBededagPct', () => {
-  const almindelig = { loenPaaHelligdage: 'Almindelig løn' as const };
-  const shUdbetaling = { loenPaaHelligdage: 'SH-udbetaling' as const };
+  const almindelig = { loenPaaHelligdage: 'Almindelig løn' as const, beregnStoreBededagstillaeg: true };
+  const shUdbetaling = {
+    loenPaaHelligdage: 'SH-udbetaling' as const,
+    beregnStoreBededagstillaeg: false,
+  };
 
-  it('returnerer 0,45 ved Almindelig løn og dato = 2024-01-01', () => {
+  it('returnerer 0,45 ved valgt tillæg og dato = 2024-01-01', () => {
     expect(resolveAutoStoreBededagPct(almindelig, toISODateString('2024-01-01'))).toBe(0.45);
   });
 
@@ -72,6 +75,13 @@ describe('resolveAutoStoreBededagPct', () => {
   it('returnerer 0 ved SH-udbetaling og dato >= 2024-01-01', () => {
     expect(resolveAutoStoreBededagPct(shUdbetaling, toISODateString('2024-01-01'))).toBe(0);
     expect(resolveAutoStoreBededagPct(shUdbetaling, toISODateString('2025-01-01'))).toBe(0);
+  });
+
+  it('returnerer 0, når brugeren har fravalgt tillægget ved Almindelig løn', () => {
+    expect(resolveAutoStoreBededagPct(
+      { loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: false },
+      toISODateString('2024-01-01')
+    )).toBe(0);
   });
 
   it('returnerer 0 når reguleringsdato er undefined', () => {
@@ -90,6 +100,7 @@ describe('applyAutoSatsFields – Store Bededag', () => {
     harOverenskomst: true,
     overenskomstId: 'bygge-anlaeg',
     loenPaaHelligdage: 'Almindelig løn' as const,
+    beregnStoreBededagstillaeg: true,
   });
 
   it('sætter 0,45 % ved Almindelig løn og reguleringsdato = 2024-01-01', () => {
@@ -103,6 +114,14 @@ describe('applyAutoSatsFields – Store Bededag', () => {
   it('sætter 0 % ved SH-udbetaling selvom reguleringsdato er >= 2024-01-01', () => {
     const result = applyAutoSatsFields(
       { ...base(), loenPaaHelligdage: 'SH-udbetaling' as const },
+      toISODateString('2024-01-01')
+    );
+    expect(result.storeBededagPct).toBe(0);
+  });
+
+  it('sætter 0 % når brugeren fravælger tillægget ved Almindelig løn', () => {
+    const result = applyAutoSatsFields(
+      { ...base(), beregnStoreBededagstillaeg: false },
       toISODateString('2024-01-01')
     );
     expect(result.storeBededagPct).toBe(0);
@@ -135,6 +154,7 @@ describe('applyAutoSatsFields – Store Bededag', () => {
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: true,
       feriePct: 12.5,
       fritvalgPct: 99,
       shSoPct: 99,
@@ -153,13 +173,14 @@ describe('applyAutoSatsFields – Store Bededag', () => {
   });
 
   it('beholder bededagssats korrekt når overenskomst fravælges (harOverenskomst: false)', () => {
-    // storeBededagPct styres af loenPaaHelligdage + dato – ikke af harOverenskomst
+    // storeBededagPct styres af brugerens valg + dato – ikke af harOverenskomst
     const autoSynced = applyAutoSatsFields({
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       storeBededagPct: 0,
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: true,
     }, toISODateString('2024-01-01'));
 
     const result = applyAutoSatsFields({
@@ -181,6 +202,7 @@ describe('applyAutoSatsFields – overenskomstsatser', () => {
       harOverenskomst: true,
       overenskomstId: 'kl-overenskomst',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: true,
       fritvalgPct: 3.5,
       shSoPct: 4.25,
       pensionPct: 9,
@@ -198,6 +220,7 @@ describe('applyAutoSatsFields – overenskomstsatser', () => {
       harOverenskomst: true,
       overenskomstId: 'kl-overenskomst',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: true,
       fritvalgPct: 3.5,
       shSoPct: 4.25,
       pensionPct: 9,
@@ -218,6 +241,7 @@ describe('applyAutoSatsFields – overenskomstsatser', () => {
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: false,
       fritvalgPct: 3.5,
     }, toISODateString('2024-01-01'));
 
@@ -234,6 +258,7 @@ describe('isOverenskomstSatsFieldLocked', () => {
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: false,
     };
 
     expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(true);
@@ -247,6 +272,7 @@ describe('isOverenskomstSatsFieldLocked', () => {
       harOverenskomst: true,
       overenskomstId: 'kl-overenskomst',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: false,
     };
 
     expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(false);
@@ -260,6 +286,7 @@ describe('isOverenskomstSatsFieldLocked', () => {
       harOverenskomst: true,
       overenskomstId: 'laerer-overenskomsten',
       loenPaaHelligdage: 'Almindelig løn' as const,
+      beregnStoreBededagstillaeg: false,
     };
 
     expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(true);
@@ -280,6 +307,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: false,
         loenudviklingBeregningsgrundlag: 'Ingen',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: true,
         storeBededagPct: undefined, // ikke auto-synced fra upstream
       },
       skadedato: undefined,
@@ -299,6 +327,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: false,
         loenudviklingBeregningsgrundlag: 'Ingen',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: false,
         storeBededagPct: 0.45, // stale/forkert værdi
       },
       skadedato: undefined,
@@ -319,6 +348,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: false,
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: true,
         storeBededagPct: undefined,
         loenudviklingManuelTableData: [
           { id: 'manuel-1', dato: toISODateString('2024-01-01'), feriepenge: 12.5, shSoSats: 6.9, fritvalg: 0, agPension: 10 },
@@ -348,6 +378,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: false,
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: false,
         feriePct: 15,
         pensionPct: 10,
         loenudviklingManuelTableData: [
@@ -376,6 +407,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: true,
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'SH-udbetaling' as const,
+        beregnStoreBededagstillaeg: false,
       },
       skadedato: undefined,
       fra: toISODateString('2024-01-01'),
@@ -394,6 +426,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: true,
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: true,
       },
       skadedato: undefined,
       fra: toISODateString('2024-01-01'),
@@ -413,6 +446,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: true,
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: false,
       },
       skadedato: undefined,
       fra: toISODateString('2024-01-01'),
@@ -433,6 +467,7 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
         harOverenskomst: true,
         overenskomstId: 'bygge-anlaeg',
         loenPaaHelligdage: 'SH-udbetaling' as const,
+        beregnStoreBededagstillaeg: false,
       },
       skadedato: undefined,
       fra: toISODateString('2024-01-01'),
@@ -462,6 +497,7 @@ describe('buildLoenindkomstRateSegments – manuel carry-forward', () => {
     harOverenskomst: false,
     loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
     loenPaaHelligdage: 'SH-udbetaling' as const,
+    beregnStoreBededagstillaeg: false,
     feriePct: 1,
     fritvalgPct: 1,
     shSoPct: 1,

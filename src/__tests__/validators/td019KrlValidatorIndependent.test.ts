@@ -88,6 +88,7 @@ const INDEPENDENT_KRL_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: 'KRL satstabel',
     loenudviklingStatistikModel: undefined,

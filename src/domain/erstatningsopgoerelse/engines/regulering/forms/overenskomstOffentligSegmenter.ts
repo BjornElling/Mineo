@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
+import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
 import {
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,
@@ -41,6 +42,7 @@ export const buildOffentligOverenskomstSegmenter = (
   const { reguleringsdatoIso, reguleringsdatoDa, anciennitetForIndex } = ctx;
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+  const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
   const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
     konsolideret.offentligLoenEkstraGrundloen,
     konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
@@ -99,7 +101,7 @@ export const buildOffentligOverenskomstSegmenter = (
     shSoPctInput: konsolideret.shSoPct,
     fritvalgPctInput: konsolideret.fritvalgPct,
     pensionPctInput: konsolideret.pensionPct,
-    applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+    applyStoreBededagstillaeg,
     dateIso: reguleringsdatoIso,
   }));
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
@@ -137,7 +139,7 @@ export const buildOffentligOverenskomstSegmenter = (
       const startIso = parseDanishToIso(sats.fraDato);
       if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
     }
-    if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+    if (applyStoreBededagstillaeg && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
     // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -169,7 +171,7 @@ export const buildOffentligOverenskomstSegmenter = (
       // den særskilte Store Bededag-regulering fra 01-01-2024 uden at antage
       // øvrige lønstigninger før første dækkede satsdato.
       const useFallbackBaseBeforeCoverage =
-        applyShRegel &&
+        applyStoreBededagstillaeg &&
         segment.fra >= STORE_BEDEDAG_START &&
         segment.fra < offentligEffectiveBase.startIso;
       const effectiveSegmentResult = segmentResult ?? (useFallbackBaseBeforeCoverage ? offentligEffectiveBase.result : undefined);
@@ -198,7 +200,7 @@ export const buildOffentligOverenskomstSegmenter = (
         shSoPctInput: konsolideret.shSoPct,
         fritvalgPctInput: konsolideret.fritvalgPct,
         pensionPctInput: konsolideret.pensionPct,
-        applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+        applyStoreBededagstillaeg,
         dateIso: segment.fra,
       }));
       if (!Number.isFinite(packageValue) || packageValue <= 0) {

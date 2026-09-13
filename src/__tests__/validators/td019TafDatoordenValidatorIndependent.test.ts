@@ -89,6 +89,7 @@ const INDEPENDENT_TAF_DATE_ORDER_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: 'Ingen',
     loenudviklingStatistikModel: undefined,

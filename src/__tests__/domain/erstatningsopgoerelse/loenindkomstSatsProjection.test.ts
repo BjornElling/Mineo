@@ -24,6 +24,7 @@ const createValues = (
     harOverenskomst: true,
     overenskomstId: 'bygge-anlaeg',
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: true,
     ...employment,
   }],
 });

@@ -10,7 +10,7 @@
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
 import { isoToDanish, toISODateString } from '../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import type { RowDay } from '../eoRowEvaluation/eoRowTypes';
 import type { LoenTimeline, DailyLoen, LoenComponent, DailySvieSmerte } from './eoInspektionLoenTypes';
@@ -28,14 +28,12 @@ import {
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../data/indskudteLoentillaeg';
+import { resolveStoreBededagstillaegPct } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
 } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
-
-const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
 /**
  * Loen Core Input
@@ -91,10 +89,10 @@ const getPrimaryAnsaettelsesforhold = (
   values: ErstatningsopgoerelseValues
 ) => values.loenindkomstAnsaettelsesforhold?.[0];
 
-const getStoreBededagPct = (iso: ISODateString, loenPaaHelligdage: LoenPaaHelligdage | undefined): number => {
-  if (loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.ALMINDELIG) return 0;
-  return iso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-};
+const getStoreBededagPct = (
+  iso: ISODateString,
+  ansaettelsesforhold: Pick<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number], 'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'> | undefined
+): number => ansaettelsesforhold ? resolveStoreBededagstillaegPct(iso, ansaettelsesforhold) / 100 : 0;
 
 const buildLoenComponents = (args: {
   grundloen: number;
@@ -202,7 +200,7 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
         feriePct,
         shSoPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.shSoSats, af.shSoPct),
         fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.fritvalg, af.fritvalgPct),
-        storeBededagPct: getStoreBededagPct(inspektionDay.iso, loenPaaHelligdage),
+        storeBededagPct: getStoreBededagPct(inspektionDay.iso, af),
         pensionPct: resolvePctDecimalFromSatsOrInput(tillaegsSatser?.agPension, af.pensionPct),
       });
 
@@ -228,7 +226,7 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
     const shSoPct = sats.shSoSats ?? 0;
     const fritvalgPct = sats.fritvalg ?? 0;
     const pensionPct = sats.agPension ?? 0;
-    const storeBededagPct = getStoreBededagPct(inspektionDay.iso, loenPaaHelligdage);
+    const storeBededagPct = getStoreBededagPct(inspektionDay.iso, af);
 
     const { components, total } = buildLoenComponents({
       grundloen: sats.grundloen,

@@ -38,6 +38,7 @@ const createEmployment = (
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,
   loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  beregnStoreBededagstillaeg: patch.beregnStoreBededagstillaeg ?? false,
   saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
   loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
   loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
@@ -177,6 +178,7 @@ describe('computeEoSnapshot', () => {
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
+        beregnStoreBededagstillaeg: true,
       }),
     ];
     eoValues.tafPerioder = [
@@ -223,6 +225,7 @@ describe('computeEoSnapshot', () => {
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
+        beregnStoreBededagstillaeg: true,
       }),
     ];
     eoValues.sfggAnsaettelsesforhold = [{

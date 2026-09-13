@@ -97,6 +97,7 @@ const INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES: ErstatningsopgoerelseVa
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

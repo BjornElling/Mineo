@@ -142,6 +142,7 @@ describe('buildRegulationInspektionSections', () => {
         loenudviklingBeregningsgrundlag: 'Overenskomst',
         overenskomstId: 'laasesmedeoverenskomsten',
         loenPaaHelligdage: 'Almindelig løn',
+        beregnStoreBededagstillaeg: true,
       },
     ];
     const stamdataValues = {

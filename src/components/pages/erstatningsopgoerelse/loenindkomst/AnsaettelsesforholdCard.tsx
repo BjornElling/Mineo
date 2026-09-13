@@ -520,6 +520,20 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
+      {af.loenPaaHelligdage === 'Almindelig løn' ? (
+        <LabeledControlRow label="Beregn Store Bededagstillæg fra 1. januar 2024:">
+          {({ labelledBy, controlId }) => (
+            <ToggleField
+              field={field(eoEmploymentFields.beregnStoreBededagstillaeg)}
+              location={location('beregnStoreBededagstillaeg')}
+              name={`${af.id}:beregnStoreBededagstillaeg`}
+              id={controlId}
+              labelledBy={labelledBy}
+            />
+          )}
+        </LabeledControlRow>
+      ) : null}
+
       {beregnesUdFra === 'Beregningsperiode' && (
         <Box className="row--label-right-hover">
           <Typography className="row--text">

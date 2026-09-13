@@ -129,6 +129,13 @@ describe('tillaegAngivesSom og Beløb-tilstandens rækkefelter', () => {
     expect(af.tillaegAngivesSom).toBe('procent');
   });
 
+  it('EO: nyt ansættelsesforhold og angivet løn defaulter til fravalgt Store Bededagstillæg', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+
+    expect(createDefaultLoenindkomstAnsaettelsesforhold().beregnStoreBededagstillaeg).toBe(false);
+    expect(values.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg).toBe(false);
+  });
+
   it('EO: en ældre AF uden tillaegAngivesSom loades med default "procent"', () => {
     const initial = createErstatningsopgoerelseInitialValues();
     const af = createDefaultLoenindkomstAnsaettelsesforhold();

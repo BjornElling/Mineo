@@ -588,6 +588,7 @@ describe('buildLoenudviklingModel', () => {
     values.eoAngivetLoenLoenudvikling = {
       ...values.eoAngivetLoenLoenudvikling,
       loenPaaHelligdage: 'Almindelig løn',
+      beregnStoreBededagstillaeg: true,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
       loenudviklingManuelTableData: [
         {
@@ -951,6 +952,7 @@ describe('buildLoenudviklingModel – Manuelt angivet i Beløb-tilstand (tillæg
       shSoPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
       pensionPct: tillaegAngivesSom === 'beloeb' ? 99 : undefined,
       loenPaaHelligdage: options?.loenPaaHelligdage ?? 'Almindelig løn',
+      beregnStoreBededagstillaeg: options?.loenPaaHelligdage === 'Ingen' ? false : true,
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
       loenudviklingManuelTableData: rows.map((row) => ({
         id: row.id,

@@ -23,6 +23,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../data/indskudteLoentillaeg';
+import { harValgtStoreBededagstillaeg } from '../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { formatDanishList } from '../../../../utils/danishListFormatting';
@@ -188,6 +189,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
   if (!startDato || !slutDato) return [];
 
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+  const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
   let fritvalgStiger = false;
   let shSoStiger = false;
   let pensionStiger = false;
@@ -255,8 +257,8 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
     }
   }
 
-  const startBededag = applyAlmindeligLoenPaaShDageRegel && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-  const slutBededag = applyAlmindeligLoenPaaShDageRegel && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+  const startBededag = applyStoreBededagstillaeg && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
+  const slutBededag = applyStoreBededagstillaeg && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
   // Reguleringsperioden kan starte efter 01-01-2024, mens basisrækken i tabellen ligger før.
   // Derfor skal tekstnoten læse Store Bededag fra samme tabelspænd som de øvrige tillæg.
   bededagStiger = bededagStiger || isGreaterThanWithTolerance(slutBededag, startBededag);

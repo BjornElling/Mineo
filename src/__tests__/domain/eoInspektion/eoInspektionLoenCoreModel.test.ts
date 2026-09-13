@@ -50,6 +50,7 @@ const makeEOValues = (
       indtaegtsoplysningerTableData: [],
       fuldLoenUnderFerie: 'Nej', // Bevidst testvalg – system-default er 'Ja'
       loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+      beregnStoreBededagstillaeg: true,
       saerligFraDatoRegulering: undefined,
       loenudviklingBeregningsgrundlag: 'Ingen',
       loenudviklingStatistikModel: undefined,
@@ -88,7 +89,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
     expect(result.loenDays.length).toBe(0);
   });
 
-  it('anvender store bededag tillæg fra 2024-01-01 ved almindelig løn på helligdage', () => {
+  it('anvender store bededag tillæg fra 2024-01-01 ved aktivt valgt tillæg', () => {
     const inspektionDays = [
       makeRowDay(toISODateString('2023-12-15'), true),
       makeRowDay(toISODateString('2024-01-15'), true),
@@ -210,6 +211,7 @@ describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
           overenskomstId: 'kl-overenskomst',
           feriePct: 12.5,
           loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+          beregnStoreBededagstillaeg: true,
           offentligLoenType: 'Timeløn',
           offentligLoenTrin: 20,
           offentligLoenGruppe: 0,
@@ -243,6 +245,25 @@ describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
     expect(components?.[2]).toMatchObject({ type: 'storeBededag', source: 'regel' });
     expect(components?.[2]?.amount).toBeCloseTo(0.71181, 12);
     expect(result.loenDays[0]?.dailyTotal).toBeCloseTo(178.66431, 12);
+  });
+
+  it('udelader Store Bededag ved Almindelig løn, når tillægget er fravalgt', () => {
+    const result = buildLoenTimeline(makeInput(
+      [makeRowDay(toISODateString('2024-02-15'), true)],
+      {
+        loenindkomstAnsaettelsesforhold: [{
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          harOverenskomst: true,
+          overenskomstId: 'bygge-anlaeg',
+          feriePct: 12.5,
+          loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+          beregnStoreBededagstillaeg: false,
+        }],
+      }
+    ));
+
+    expect(result.loenDays[0]?.components.map((component) => component.type)).not.toContain('storeBededag');
   });
 
   it('inkluderer store bededag-komponent for KL-dag efter 2024-01-01', () => {

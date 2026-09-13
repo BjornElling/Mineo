@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-08-27
+**Senest verificeret mod kode:** 2026-09-13
 
 ## 1. Scope
 
@@ -25,7 +25,7 @@ Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 3. **Satser (gældende værdier – domæneregel, må kun ændres efter godkendelse, jf. `AGENTS.md`):**
    - Store Bededagstillæg: **0,45 procentpoint** fra og med **1. januar 2024**.
 4. **Satstrappe-model.** Et tillæg med flere historiske satser modelleres som en satstrappe (`IndskudtLoentillaegSatstrin[]`) sorteret stigende efter `fraOgMed`. Opslag for en dato (`resolveIndskudtLoentillaegPct`) returnerer det seneste trins sats hvis `fraOgMed ≤ dato`, ellers `0` (intet tillæg før det tidligste trin). Store Bededag er en trappe med ét trin; modellen understøtter flere trin, men ingen nuværende trappe bruger det.
-5. **Gating ud over datoen er beregningslagets ansvar.** Fx gælder Store Bededagstillægget kun når lønnen reguleres med "Almindelig løn på helligdage". Sådan domæne-gating ligger i lønudviklingslogikken (`resolveAutoStoreBededagPct` m.fl.), ikke i datafilen – datafilen leverer kun sats-pr-dato.
+5. **Gating ud over datoen er beregningslagets ansvar.** Store Bededagstillægget gælder kun, når brugeren både har valgt "Almindelig løn" på helligdage og aktiveret `Beregn Store Bededagstillæg fra 1. januar 2024`. Sådan domæne-gating ligger i lønudviklingslogikken (`resolveStoreBededagstillaegPct` m.fl.), ikke i datafilen – datafilen leverer kun sats-pr-dato.
 
 ## 3. Autoritative Kilder
 
@@ -69,5 +69,5 @@ faktiske eksportflade, så en genindførelse af satserne gør testen rød.
 **Re-evalueringstrigger:** at implementeringsplanen gennemføres efter en udtrykkelig udviklerbeslutning om, at
 tillægget skal indgå. Sker det, følges samme "indskudt tillæg fra en virkningsdato"-mønster som Store
 Bededag, og §1–§4 udvides med den konkrete beregnings- og præsentationskobling. Bemærk, at beslutningen da
-også skal afgøre tillæggets **betingelse** (Store Bededag gælder fx kun ved "Almindelig løn på helligdage")
+også skal afgøre tillæggets **betingelse** (Store Bededag kræver fx både "Almindelig løn på helligdage" og brugerens aktive valg)
 og dets forhold til det brugerindtastede `feriePct`-felt, som allerede indgår i samme `totalPct`.

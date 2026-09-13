@@ -88,6 +88,7 @@ const INDEPENDENT_PUBLIC_SALARY_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegSats: undefined,
     feriePct: 12.5,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: 'Overenskomst',
     loenudviklingStatistikModel: undefined,

@@ -90,6 +90,7 @@ const INDEPENDENT_SVIE_SMERTE_VEDROERER_PERIODE_VALUES: ErstatningsopgoerelseVal
     anciennitetstillaegSats: undefined,
     feriePct: undefined,
     loenPaaHelligdage: 'Almindelig løn',
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

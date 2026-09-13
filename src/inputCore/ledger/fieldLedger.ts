@@ -108,7 +108,7 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
     bilagsnumreSvieSmerteDokumentation: t('optionalText'), bilagsnumreBeregningsgrundlagTaf: t('optionalText'),
     bilagsnumreLoenISygeperioden: t('optionalText'), bilagsnumreOffentligeYdelser: t('optionalText'),
     bilagsnumreOevrigeErstatningskrav: t('optionalText'),
-    // eoAngivetLoenLoenudvikling (singular property-objekt, 18 felter)
+    // eoAngivetLoenLoenudvikling (singular property-objekt, 19 felter)
     'eoAngivetLoenLoenudvikling.overenskomstId': c(),
     'eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen': tog(),
     'eoAngivetLoenLoenudvikling.anciennitetstillaegDato': t('date'),
@@ -116,6 +116,7 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
     'eoAngivetLoenLoenudvikling.anciennitetstillaegSats': t('amount'),
     'eoAngivetLoenLoenudvikling.feriePct': t('percent'),
     'eoAngivetLoenLoenudvikling.loenPaaHelligdage': c(),
+    'eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg': tog(),
     'eoAngivetLoenLoenudvikling.saerligFraDatoRegulering': t('date'),
     'eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag': c(),
     'eoAngivetLoenLoenudvikling.loenudviklingStatistikModel': c(),
@@ -131,4 +132,4 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
 };
 
 /** Baseline-count (§6). Låst mod de levende schemas i completeness-testen – ingen placeholder. */
-export const EXPECTED_FIELD_REF_COUNT = 239;
+export const EXPECTED_FIELD_REF_COUNT = 241;

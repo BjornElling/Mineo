@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
+import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
@@ -36,6 +37,7 @@ export const buildPrivatOverenskomstSegmenter = (
   const { reguleringsdatoIso, overenskomstRef, anciennitetForIndex } = ctx;
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+  const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
   const feriePct = konsolideret.feriePct;
 
   // Privat overenskomst clamper basen til dækningsstart via max(reguleringsdato, dækningsstart).
@@ -71,7 +73,7 @@ export const buildPrivatOverenskomstSegmenter = (
     pctBasisRole: 'reference',
     dateIso: reguleringsdatoIso,
     baseValueSupplement: 0,
-    applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+    applyStoreBededagstillaeg,
   });
   const basePackage = computeFormulaValue(basePackageComponents);
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
@@ -101,7 +103,7 @@ export const buildPrivatOverenskomstSegmenter = (
       const startIso = parseDanishToIso(sats.fraDato);
       if (startIso && startIso > range.fra && startIso <= range.til) starts.add(startIso);
     }
-    if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+    if (applyStoreBededagstillaeg && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
     // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
@@ -130,7 +132,7 @@ export const buildPrivatOverenskomstSegmenter = (
       // Før første private overenskomstdækning må kun Store Bededag give regulering.
       // Øvrige overenskomstbestemte satser må først slå igennem fra første faktiske satsdato.
       const useStoreBededagOnlyBeforeCoverage =
-        applyShRegel &&
+        applyStoreBededagstillaeg &&
         segment.fra >= STORE_BEDEDAG_START &&
         segment.fra < privateBaseContext.effectiveBase.startIso;
       if (!sats && !useStoreBededagOnlyBeforeCoverage) {
@@ -157,7 +159,7 @@ export const buildPrivatOverenskomstSegmenter = (
         pctBasisRole: useStoreBededagOnlyBeforeCoverage ? 'reference' : 'segment',
         dateIso: segment.fra,
         baseValueSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
-        applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+        applyStoreBededagstillaeg,
       });
       const packageValue = computeFormulaValue(segmentComponents);
       if (!Number.isFinite(packageValue) || packageValue <= 0) {

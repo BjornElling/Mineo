@@ -76,6 +76,8 @@ const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
   loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()].map((af) => ({
     ...af,
+    // Denne tabelsuite dækker de valgte Store Bededag-forløb; fravalg dækkes eksplicit nedenfor.
+    beregnStoreBededagstillaeg: true,
     indtaegtsoplysningerTableData: [...af.indtaegtsoplysningerTableData],
     loenudviklingManuelTableData: [...af.loenudviklingManuelTableData],
     loenudviklingManuelProcentsatsTableData: [...af.loenudviklingManuelProcentsatsTableData],
@@ -635,12 +637,13 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.every((row) => row.length === table.columns.length)).toBe(true);
   });
 
-  it('indsætter 01-01-2024 som separat Store Bededag-grænserække i privat lønreguleringstabel når TAF krydser datoen med Almindelig løn', () => {
+  it('indsætter 01-01-2024 som separat Store Bededag-grænserække i privat lønreguleringstabel ved aktivt valgt tillæg', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
     af.overenskomstId = 'bygge-anlaeg';
     af.loenPaaHelligdage = 'Almindelig løn';
+    af.beregnStoreBededagstillaeg = true;
     af.feriePct = 15;
 
     const table = buildReguleringsvaerdierTableData({
@@ -654,6 +657,26 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+  });
+
+  it('indsætter ikke en Store Bededag-grænserække, når brugeren fravælger tillægget', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygge-anlaeg';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.beregnStoreBededagstillaeg = false;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-05-24'),
+      tafFra: iso('2023-06-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table?.columns).not.toContain('Store Bededag');
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
   it('viser fallback-satser på 01-01-2024 i privat lønreguleringstabel før første overenskomstdækning', () => {

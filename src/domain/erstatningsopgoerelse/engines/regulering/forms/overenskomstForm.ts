@@ -37,6 +37,7 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 
   assertUniform(active, (af) => af.overenskomstId ?? '', 'overenskomst');
   assertUniform(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
+  assertUniform(active, (af) => af.beregnStoreBededagstillaeg ?? false, 'Store Bededagstillæg');
   assertUniform(active, (af) => af.harAnciennitetstillaegEfterSkadedatoen ?? false, 'anciennitetstillæg');
   assertUniform(
     active,
@@ -112,6 +113,7 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
       reguleringsdato: anvendtReguleringsdato,
       overenskomstId: active[0].overenskomstId,
       loenPaaHelligdage,
+      beregnStoreBededagstillaeg: active[0].beregnStoreBededagstillaeg,
       feriePct,
       fritvalgPct,
       shSoPct,

@@ -29,7 +29,8 @@ import { formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatst
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../data/indskudteLoentillaeg';
+import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
+import { harValgtStoreBededagstillaeg, resolveStoreBededagstillaegPct } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/engines/arbejdsdageMaaneder';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -52,8 +53,6 @@ import { buildShDageSetFromIsoRange, buildFerieDageSetForPeriode } from '../erst
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
 import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
 import { resolveSkadestypeDatoLabel } from '../policies/stamdataCalculations';
-
-const STORE_BEDEDAG_PCT = STORE_BEDEDAG_PCT_PCT / 100;
 
 export type RegulationCoreInput = {
   readonly eoValues: ErstatningsopgoerelseValues;
@@ -114,10 +113,10 @@ const getEoRange = (
   return { fra, til };
 };
 
-const getStoreBededagPct = (iso: ISODateString, loenPaaHelligdage: LoenPaaHelligdage | undefined): number => {
-  if (loenPaaHelligdage !== LOEN_PAA_HELLIGDAGE.ALMINDELIG) return 0;
-  return iso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-};
+const getStoreBededagPct = (iso: ISODateString, valg: Readonly<{
+  loenPaaHelligdage: LoenPaaHelligdage | undefined;
+  beregnStoreBededagstillaeg: boolean | undefined;
+}>): number => resolveStoreBededagstillaegPct(iso, valg) / 100;
 
 const getTidsenhedsvaerdier = (
   index: number,
@@ -174,7 +173,7 @@ const buildManualEntries = (args: Readonly<{
     feriePct: resolveManualFeriePctDecimal(row?.feriepenge, args.af.feriePct),
     shSoPct: parsePercentToDecimal(row?.shSoSats),
     fritvalgPct: parsePercentToDecimal(row?.fritvalg),
-    storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
+    storeBededagPct: getStoreBededagPct(iso, args.af),
     pensionPct: parsePercentToDecimal(row?.agPension),
   });
 
@@ -188,7 +187,7 @@ const buildManualEntries = (args: Readonly<{
     if (iso >= args.eoFra && iso <= args.eoTil) dates.add(iso);
   }
   if (
-    args.af.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG &&
+    harValgtStoreBededagstillaeg(args.af) &&
     args.eoFra <= STORE_BEDEDAG_START &&
     args.eoTil >= STORE_BEDEDAG_START
   ) {
@@ -224,7 +223,7 @@ const buildManualEntries = (args: Readonly<{
       feriePct: resolveManualFeriePctDecimal(matchingRow?.feriepenge, args.af.feriePct),
       shSoPct: parsePercentToDecimal(matchingRow?.shSoSats),
       fritvalgPct: parsePercentToDecimal(matchingRow?.fritvalg),
-      storeBededagPct: getStoreBededagPct(iso, args.af.loenPaaHelligdage),
+      storeBededagPct: getStoreBededagPct(iso, args.af),
       pensionPct: parsePercentToDecimal(matchingRow?.agPension),
       packageValue,
       index: referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0,
@@ -480,6 +479,7 @@ const buildEntryForDate = (args: {
   sats: OverenskomstPeriodeSats;
   feriePct: number;
   loenPaaHelligdage: LoenPaaHelligdage | undefined;
+  beregnStoreBededagstillaeg: boolean | undefined;
   referenceValue: number;
   // Anciennitetstillæg (kr.) der er aktivt på denne dato. Referenceværdien kalder med 0, fordi
   // tillægget først må ligge efter anvendt reguleringsdato og derfor ikke indgår i indeks 100.
@@ -490,7 +490,7 @@ const buildEntryForDate = (args: {
   const fritvalgPct = args.sats.fritvalg ?? 0;
   const pensionPct = args.sats.agPension ?? 0;
   const feriePct = args.feriePct;
-  const storeBededagPct = getStoreBededagPct(args.iso, args.loenPaaHelligdage);
+  const storeBededagPct = getStoreBededagPct(args.iso, args);
   const grundloen = args.sats.grundloen + (args.grundloenSupplement ?? 0);
 
   const packageValue = computePackageValueDecimal({
@@ -677,7 +677,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         feriePct,
         shSoPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.shSoSats, af.shSoPct),
         fritvalgPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.fritvalg, af.fritvalgPct),
-        storeBededagPct: getStoreBededagPct(referenceIso, loenPaaHelligdage),
+        storeBededagPct: getStoreBededagPct(referenceIso, af),
         pensionPct: resolvePctDecimalFromSatsOrInput(referenceTillaegsSatser?.agPension, af.pensionPct),
       });
       if (!Number.isFinite(referenceValue) || referenceValue <= 0) continue;
@@ -716,7 +716,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         }
       }
       if (
-        applyAlmindeligLoenPaaShDageRegel &&
+        harValgtStoreBededagstillaeg(af) &&
         timelineStartIso < STORE_BEDEDAG_START &&
         eoRange.til >= STORE_BEDEDAG_START
       ) {
@@ -757,7 +757,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           feriePct,
           shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
           fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
-          storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
+          storeBededagPct: getStoreBededagPct(iso, af),
           pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
         });
         const index = referenceValue > 0 ? (packageValue / referenceValue) * 100 : 0;
@@ -786,7 +786,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           feriePct,
           shSoPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.shSoSats, af.shSoPct),
           fritvalgPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.fritvalg, af.fritvalgPct),
-          storeBededagPct: getStoreBededagPct(iso, loenPaaHelligdage),
+          storeBededagPct: getStoreBededagPct(iso, af),
           pensionPct: resolvePctDecimalFromSatsOrInput(tillaegSats?.agPension, af.pensionPct),
           packageValue,
           index,
@@ -849,6 +849,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         sats: referenceSats,
         feriePct,
         loenPaaHelligdage,
+        beregnStoreBededagstillaeg: af.beregnStoreBededagstillaeg,
         referenceValue: 1,
         grundloenSupplement: 0,
       });
@@ -881,7 +882,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       }
 
       if (eoRange.fra <= STORE_BEDEDAG_START && eoRange.til >= STORE_BEDEDAG_START) {
-        if (loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG) {
+        if (harValgtStoreBededagstillaeg(af)) {
           dates.add(STORE_BEDEDAG_START as ISODateString);
         }
       }
@@ -908,6 +909,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           sats,
           feriePct,
           loenPaaHelligdage,
+          beregnStoreBededagstillaeg: af.beregnStoreBededagstillaeg,
           referenceValue,
           grundloenSupplement: entryAnciennitet,
         });

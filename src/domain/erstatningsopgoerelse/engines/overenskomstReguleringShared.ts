@@ -182,7 +182,7 @@ export const buildOffentligOverenskomstFormulaComponents = (args: Readonly<{
   shSoPctInput: number | undefined;
   fritvalgPctInput: number | undefined;
   pensionPctInput: number | undefined;
-  applyAlmindeligLoenPaaShDageRegel: boolean;
+  applyStoreBededagstillaeg: boolean;
   dateIso: ISODateString;
 }>): FormulaComponents => ({
   baseValue: args.grundloen,
@@ -190,7 +190,7 @@ export const buildOffentligOverenskomstFormulaComponents = (args: Readonly<{
   fritvalgPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.fritvalg, args.fritvalgPctInput),
   shSoPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.shSoSats, args.shSoPctInput),
   pensionPct: resolvePctPointFromSatsOrInput(args.tillaegsSatser?.agPension, args.pensionPctInput),
-  storeBededagPct: args.applyAlmindeligLoenPaaShDageRegel && args.dateIso >= STORE_BEDEDAG_START
+  storeBededagPct: args.applyStoreBededagstillaeg && args.dateIso >= STORE_BEDEDAG_START
     ? STORE_BEDEDAG_PCT
     : 0,
 });
@@ -205,7 +205,7 @@ export const buildPrivateOverenskomstFormulaComponents = (args: Readonly<{
   pctBasisRole: 'reference' | 'segment';
   dateIso: ISODateString;
   baseValueSupplement?: number;
-  applyAlmindeligLoenPaaShDageRegel: boolean;
+  applyStoreBededagstillaeg: boolean;
 }>): FormulaComponents => ({
   baseValue: (args.sats.grundloen ?? 0) + (args.baseValueSupplement ?? 0),
   feriePct: args.feriePct,
@@ -218,7 +218,7 @@ export const buildPrivateOverenskomstFormulaComponents = (args: Readonly<{
   pensionPct: args.context.useInputPctBasisForMissingBase && args.pctBasisRole === 'reference'
     ? resolvePctPointFromSatsOrInput(args.context.referenceSats?.agPension, args.pensionPctInput)
     : resolvePctPointFromSatsOrInput(args.sats.agPension, args.pensionPctInput),
-  storeBededagPct: args.applyAlmindeligLoenPaaShDageRegel && args.dateIso >= STORE_BEDEDAG_START
+  storeBededagPct: args.applyStoreBededagstillaeg && args.dateIso >= STORE_BEDEDAG_START
     ? STORE_BEDEDAG_PCT
     : 0,
 });

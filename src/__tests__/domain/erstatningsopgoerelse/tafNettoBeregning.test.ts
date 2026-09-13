@@ -40,6 +40,7 @@ const createEmployment = (
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,
   loenPaaHelligdage: patch.loenPaaHelligdage ?? 'Almindelig løn',
+  beregnStoreBededagstillaeg: patch.beregnStoreBededagstillaeg ?? false,
   saerligFraDatoRegulering: patch.saerligFraDatoRegulering,
   loenudviklingBeregningsgrundlag: patch.loenudviklingBeregningsgrundlag,
   loenudviklingStatistikModel: patch.loenudviklingStatistikModel,
@@ -269,6 +270,7 @@ describe('computeTafNettoBeregning', () => {
       id: 'af-arbejdsdage',
       loenperiode: 'dag',
       loenPaaHelligdage: 'SH-udbetaling',
+      beregnStoreBededagstillaeg: false,
       loenudviklingBeregningsgrundlag: 'Ingen',
       indtaegtsoplysningerTableData: [{
         id: 'loen-jan-2024',
@@ -319,6 +321,7 @@ describe('computeTafNettoBeregning', () => {
       harOverenskomst: true,
       overenskomstId: 'industriens-overenskomst',
       feriePct: 16.95,
+      beregnStoreBededagstillaeg: true,
       loenudviklingBeregningsgrundlag: 'Overenskomst',
       indtaegtsoplysningerTableData: [{
         id: 'loen-dec-2023',
@@ -379,6 +382,7 @@ describe('computeTafNettoBeregning', () => {
     values.eoAngivetLoenLoenudvikling = {
       ...values.eoAngivetLoenLoenudvikling,
       overenskomstId: 'industriens-overenskomst',
+      beregnStoreBededagstillaeg: true,
       loenudviklingBeregningsgrundlag: 'Overenskomst',
     };
     values.loenindkomstAnsaettelsesforhold = [createEmployment({

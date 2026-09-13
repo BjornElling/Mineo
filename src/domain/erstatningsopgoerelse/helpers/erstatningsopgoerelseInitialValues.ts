@@ -47,14 +47,15 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     feriePct: undefined,
     fritvalgPct: undefined,
     shSoPct: undefined,
-    // Ingen `storeBededagPct`: den er afledt af dato og "Løn på helligdage" og hører ikke i det
-    // persisterede ansættelsesforhold. Reader-projektionen udleder den før første consumer-read.
+    // Ingen `storeBededagPct`: den er afledt af dato og det udtrykkelige Store Bededag-valg og hører
+    // ikke i det persisterede ansættelsesforhold. Reader-projektionen udleder den før første consumer-read.
     pensionPct: undefined,
     tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
     loenperiode: safeSettings.defaultLoenIndtastesSom,
     indtaegtsoplysningerTableData: [],
     fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
     loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
+    beregnStoreBededagstillaeg: false,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

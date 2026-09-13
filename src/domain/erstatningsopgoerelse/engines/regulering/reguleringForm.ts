@@ -49,6 +49,7 @@ export type KonsolideretLoenudvikling =
     reguleringsdato: ISODateString | undefined;
     overenskomstId: string;
     loenPaaHelligdage: string;
+    beregnStoreBededagstillaeg: boolean;
     feriePct: number;
     fritvalgPct: number;
     shSoPct: number;
@@ -67,6 +68,7 @@ export type KonsolideretLoenudvikling =
     label: string;
     reguleringsdato: ISODateString | undefined;
     loenPaaHelligdage: string;
+    beregnStoreBededagstillaeg: boolean;
     feriePct: number;
     manualRows: readonly LoenudviklingManualRow[];
     tafRanges: readonly IsoRange[];

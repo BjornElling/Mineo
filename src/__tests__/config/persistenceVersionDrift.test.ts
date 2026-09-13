@@ -77,7 +77,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // `true`, så en ældre `.eo` uden det indlæses uændret og uden preflight-afvigelse: den får præcis den
 // tilstand, filen reelt havde (forsiden var altid med). Ingen eksisterende værdi ændres, intet beløb
 // flytter sig. PERSISTED_DATA_VERSION bumpet til 3.13 (reel persisted schema-ændring; nyt inputfelt).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-05a04bd6';
+// Opdateret 2026-09-13: Store Bededagstillæg er nu et eksplicit valg på både ansættelsesforhold og
+// angivet løn. Historiske filer migreres tavst til den tidligere automatiske betydning.
+// PERSISTED_DATA_VERSION bumpet til 3.14 (reel persisted schema- og semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-4ba3da86';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot – ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {
