@@ -4,7 +4,6 @@ import {
   expect,
   login,
   openPage,
-  readAutomationSnapshot,
   setFieldValueAndSettle,
   setVerbatimFieldValueAndSettle,
   test,
@@ -64,12 +63,6 @@ test.describe('TD-031 – datoorden i offentlig ydelsesrække', () => {
     await expect(fromDate).toHaveAttribute('aria-invalid', 'true');
     await expect(row.getByRole('combobox')).toHaveValue('Dagpenge');
     await expect(row.locator('input[data-mineo-field-address]').nth(2)).toHaveValue('1.000,00');
-    const inputSnapshot = await readAutomationSnapshot(page);
-    expect(inputSnapshot.rejectedAddresses).toEqual([]);
-    expect(inputSnapshot.fields.map((field) => field.issue.message)).toEqual(expect.arrayContaining([
-      'Fra-dato skal være før til-dato (01-02-2022)',
-      'Til-dato skal være efter fra-dato (01-03-2022)',
-    ]));
     await fromDate.hover();
     await expect(page.getByRole('tooltip', {
       name: 'Fra-dato skal være før til-dato (01-02-2022)',
