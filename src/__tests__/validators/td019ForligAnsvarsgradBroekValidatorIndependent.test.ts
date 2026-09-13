@@ -135,4 +135,28 @@ describe('TD-019 – forligets brøkvalidering uden schema-fixture', () => {
       }],
     });
   });
+
+  it('marker begge forligsfelter ved samtidig udfyldning med præcise paths, beskeder og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      forligAnsvarsgradProcent: 50,
+      forligAnsvarsgradBroek: '1/2',
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'forligAnsvarsgradProcent',
+          message: 'Angiv enten procent eller brøk – ikke begge',
+          severity: 'error',
+        },
+        {
+          path: 'forligAnsvarsgradBroek',
+          message: 'Angiv enten procent eller brøk – ikke begge',
+          severity: 'error',
+        },
+      ],
+    });
+  });
 });

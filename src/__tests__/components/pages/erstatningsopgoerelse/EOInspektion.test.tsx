@@ -471,6 +471,62 @@ describe('EOInspektion', () => {
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
+  it('viser orphan-SFGG-sektion med tabel uden almindelige rækker', () => {
+    eoSnapshotToInspektionViewMock.mockReturnValue({
+      kind: 'ready',
+      canonicalOutput: undefined,
+      inspektionSnapshot: {
+        sammentaellingRows: [],
+      },
+      stamdataValues: {},
+      erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Nej',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
+      },
+      rowsBySection: new Map([
+        ['sygeferiegodtgoerelse', [
+          {
+            id: 'sfgg.af-orphan.tabel',
+            employmentId: 'af-orphan',
+            label: 'SFGG-beregning',
+            displayValue: 'Gammel serialisering uden tabel',
+            status: 'ok',
+            table: {
+              columns: ['Fra-dato', 'Til-dato', 'Antal arbejdsdage', 'Samlet'],
+              rows: [
+                { cells: ['01-01-2024', '31-01-2024', '22', '2.200,00'] },
+              ],
+            },
+          },
+        ]],
+      ]),
+      regulationSections: [],
+    });
+
+    renderComponent({ revision: 'rev-1' } as never);
+
+    expect(screen.getByText('Sygeferiegodtgørelse')).toBeVisible();
+    expect(screen.getByText('Arbejdssted 1')).toBeVisible();
+    expect(screen.queryByText('Gammel serialisering uden tabel')).not.toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    expect(table).toBeVisible();
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Fra-dato',
+      'Til-dato',
+      'Antal arbejdsdage',
+      'Samlet',
+    ]);
+    expect(screen.getAllByRole('cell').map((cell) => cell.textContent)).toEqual([
+      '01-01-2024',
+      '31-01-2024',
+      '22',
+      '2.200,00',
+    ]);
+  });
+
   it('viser AES-togglelinjen for endeligt EET selv når værdien er Nej', () => {
     eoSnapshotToInspektionViewMock.mockReturnValue({
       kind: 'ready',
