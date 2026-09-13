@@ -19,7 +19,7 @@
  */
 import ts from 'typescript';
 import { defineRule, forbidImports, type Finding } from '../ruleKit';
-import { collectCalls, hasAnyIdentifier, hasIdentifier } from '../astQueries';
+import { collectCalls, hasAnyIdentifier, hasIdentifier, type ImportRef } from '../astQueries';
 import type { SourceEntry } from '../sourceGraph';
 
 /**
@@ -51,6 +51,14 @@ const TRAVERSAL_PRIMITIVE_NAMES = [
 
 const TRAVERSAL_PRIMITIVES: ReadonlySet<string> = new Set(TRAVERSAL_PRIMITIVE_NAMES);
 
+// En namespace-import har ingen named bindings i AST-udlæsningen, men giver adgang til alle
+// eksportens primitiver via punktnotation. Den må derfor ikke glide igennem som en tom import.
+const isNamespaceImport = (ref: ImportRef): boolean => {
+  if (ref.kind !== 'import' || !ts.isImportDeclaration(ref.node)) return false;
+  const bindings = ref.node.importClause?.namedBindings;
+  return bindings !== undefined && ts.isNamespaceImport(bindings);
+};
+
 export const focusTraversalOwnershipRule = forbidImports({
   id: 'layout/focus-traversal-owned-by-container-navigation',
   description:
@@ -75,9 +83,9 @@ export const focusTraversalOwnershipRule = forbidImports({
   allow: FOCUS_TRAVERSAL_OWNERS,
   forbidden: (ref) =>
     ref.moduleSpecifier.includes('tableFocusHelpers') &&
-    ref.namedBindings.some((name) => TRAVERSAL_PRIMITIVES.has(name)),
+    (ref.namedBindings.some((name) => TRAVERSAL_PRIMITIVES.has(name)) || isNamespaceImport(ref)),
   message: (ref) =>
-    `Fokus-traverserings-primitiv importeret uden for containerNavigation/ (${ref.namedBindings.filter((name) => TRAVERSAL_PRIMITIVES.has(name)).join(', ')}). Sidens fokus-traversering ejes af src/components/layout/containerNavigation/ – byg ikke en parallel traversering. Se keyboard-navigation.md §Cross-cutting contract.`,
+    `Fokus-traverserings-primitiv importeret uden for containerNavigation/ (${ref.namedBindings.filter((name) => TRAVERSAL_PRIMITIVES.has(name)).join(', ') || 'namespace-import'}). Sidens fokus-traversering ejes af src/components/layout/containerNavigation/ – byg ikke en parallel traversering. Se keyboard-navigation.md §Cross-cutting contract.`,
   violatingFixtures: [
     {
       relativePath: 'src/components/layout/Container.tsx',
