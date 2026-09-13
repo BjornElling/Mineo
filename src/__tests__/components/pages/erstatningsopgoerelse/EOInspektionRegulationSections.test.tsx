@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
- * UI Tests for EOInspektionRegulationSections (Phase 4.5)
+ * UI-tests for EOInspektionRegulationSections (fase 4.5)
  *
- * SCOPE:
+ * Omfang:
  * - Meget begrænsede tests
  * - Kun struktur, ikke indhold
- * - Ingen beregnings-tests (det er domain-tests)
+ * - Ingen beregningstests (det er domænetests)
  */
 
 import { render, screen } from '@testing-library/react';
@@ -81,15 +81,19 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
       </MemoryRouter>
     );
 
-    // Tjek at headers vises
-    expect(getByText('Regulerings-overblik')).toBeDefined();
-    expect(getByText('Regulerings-tidslinje')).toBeDefined();
-    expect(getByText('Store Bededag')).toBeDefined();
+    // Tjek at overskrifterne faktisk er synlige for brugeren.
+    expect(getByText('Regulerings-overblik')).toBeVisible();
+    expect(getByText('Regulerings-tidslinje')).toBeVisible();
+    expect(getByText('Store Bededag')).toBeVisible();
     expect(container.querySelectorAll('.content-box')).toHaveLength(3);
 
-    // Tjek at displayValue vises (kan være flere steder)
-    expect(getAllByText('01-01-2024').length).toBeGreaterThan(0);
-    expect(getAllByText('1,3800').length).toBeGreaterThan(0);
+    // Tjek at den viste værdi er synlig alle steder, hvor komponenten gengiver den.
+    for (const element of getAllByText('01-01-2024')) {
+      expect(element).toBeVisible();
+    }
+    for (const element of getAllByText('1,3800')) {
+      expect(element).toBeVisible();
+    }
   });
 
   it('renderer timeline table korrekt', () => {
@@ -122,13 +126,13 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
       </MemoryRouter>
     );
 
-    // Tjek at tabel-header vises
-    expect(getByText('Fra-dato')).toBeDefined();
-    expect(getByText('Kumulativ faktor')).toBeDefined();
+    // Tjek at tabeloverskriften vises.
+    expect(getByText('Fra-dato')).toBeVisible();
+    expect(getByText('Kumulativ faktor')).toBeVisible();
 
-    // Tjek at displayValue vises (ikke rawValue)
-    expect(getByText('01-01-2024')).toBeDefined();
-    expect(getByText('1,3800')).toBeDefined();
+    // Tjek at displayValue vises (ikke rawValue).
+    expect(getByText('01-01-2024')).toBeVisible();
+    expect(getByText('1,3800')).toBeVisible();
   });
 
   it('omdøber standard-kolonneoverskrifter i reguleringstabeller', () => {
@@ -277,8 +281,8 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Regulerings-overblik')).toBeDefined();
-    expect(getByText('Test')).toBeDefined();
-    expect(getByText('Værdi')).toBeDefined();
+    expect(getByText('Regulerings-overblik')).toBeVisible();
+    expect(getByText('Test')).toBeVisible();
+    expect(getByText('Værdi')).toBeVisible();
   });
 });
