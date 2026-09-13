@@ -6,13 +6,13 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `decec96a` for seneste samlede releasegate; seneste målrettede test-only batch er `decec96a`, og seneste fulde E2E er `decec96a`
+- Evidensrevision: `8321fdb2` for seneste samlede releasegate; seneste målrettede test-only batch er `8321fdb2`, og seneste fulde E2E er `8321fdb2`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `28cdcb2b` med 737 testfiler / 8.824 beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds. Den valgte E2E-suite er senest bestået på `e0f9d340` med 201 beståede tests og 2 forventede skips ud af 203; siden da er kun test- og auditdokumentation ændret. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `decec96a` er grøn med 774 testfiler og 8.868 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,26 / 81,41 / 94,03 / 93,06, og begge builds bestod. Den fulde E2E-suite på revision `decec96a` bestod med 213 tests og 2 forventede skips ud af 215 på 10 projektbaner, med 3 workers på 5,3 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets-, TD-025-stabilitets- og TD-088-modalefund forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `8321fdb2` er grøn med 776 testfiler og 8.871 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,26 / 81,42 / 94,03 / 93,07, og begge builds bestod. Den fulde E2E-suite på revision `8321fdb2` bestod med 214 tests og 2 forventede skips ud af 216 på 10 projektbaner, med 3 workers på 4,8 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-, proveniens-, outputparitets-, TD-025-stabilitets- og TD-088-modalefund forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -28,11 +28,11 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Typechecks | `npm run check:types` | Bestået | Alle fire TypeScript-projekter bestået |
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
 | Vitest (historisk releasekørsel) | `npm run test:coverage` | Bestået | 661 filer, 8.603 tests bestået samt 6 forventede `it.fails`; samlet kørsel 396,36 s |
-| Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 774 filer, 8.868 tests bestået og ingen forventede `it.fails`; coverage 90,26 / 81,41 / 94,03 / 93,06 på `decec96a` |
-| E2E-baner | `npm run test:e2e` | Bestået | 213 beståede tests og 2 forventede skips ud af 215, 5,3 min, 3 workers og 10 projektbaner på `decec96a`; den udvidede kørsel omfatter de fire dedikerede browserprojekter |
-| Aktuel samlet release-gate | `npm run verify:release:core` | Bestået | Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og begge build-gates bestået på `decec96a`; coverage 774 filer / 8.868 beståede tests / ingen forventede `it.fails` |
+| Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 776 filer, 8.871 tests bestået og ingen forventede `it.fails`; coverage 90,26 / 81,42 / 94,03 / 93,07 på `8321fdb2` |
+| E2E-baner | `npm run test:e2e` | Bestået | 214 beståede tests og 2 forventede skips ud af 216, 4,8 min, 3 workers og 10 projektbaner på `8321fdb2`; den udvidede kørsel omfatter de fire dedikerede browserprojekter |
+| Aktuel samlet release-gate | `npm run verify:release:core` | Bestået | Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og begge build-gates bestået på `8321fdb2`; coverage 776 filer / 8.871 beståede tests / ingen forventede `it.fails` |
 | Coverage (historisk releasekørsel) | `npm run verify:release:core` | Bestået | 661 testfiler / 8.603 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.776 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
-| Aktuel coverage-retest | `npm run test:coverage` | Bestået | 393 instrumenterede filer; 90,26 % statements, 81,41 % branches, 94,03 % functions, 93,06 % lines; 18.582/20.587 statements, 13.103/16.094 branches, 3.027/3.219 funktioner og 16.968/18.232 linjer; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json`; `decec96a`, Node `v24.18.0`/Windows |
+| Aktuel coverage-retest | `npm run test:coverage` | Bestået | 393 instrumenterede filer; 90,26 % statements, 81,42 % branches, 94,03 % functions, 93,07 % lines; 18.583/20.587 statements, 13.104/16.094 branches, 3.027/3.219 funktioner og 16.969/18.232 linjer; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json`; `8321fdb2`, Node `v24.18.0`/Windows |
 | Persistensmålrettet suite | `npx vitest run ...` (se hoveddokumentet) | Bestået | 24 filer, 233 tests, 10,19 s |
 | Historiske `.eo`-fixtures | `npx vitest run src/__tests__/utils/historicalEoFixtures.test.ts` | Bestået | 5 tests; fixtures for legacy uden version samt 1.0.4, 3.10, 3.12 og 3.13 |
 | Persistenssuite efter fixturetilføjelse | `npx vitest run ...` (se hoveddokumentet) | Bestået | 26 filer, 252 tests; byteintegritet 5/5 SHA-256-facitter |
@@ -154,7 +154,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 
 | Status | Fund |
 | --- | --- |
-| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123`, `TD-124`, `TD-125`, `TD-129`, `TD-130`, `TD-131`, `TD-132`, `TD-133`, `TD-134` |
+| Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123`, `TD-124`, `TD-125`, `TD-129`, `TD-130`, `TD-131`, `TD-132`, `TD-133`, `TD-134`, `TD-135`, `TD-136`, `TD-137` |
 | Delvist lukket | `B-002`, `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016` |
 
@@ -1227,10 +1227,35 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   215 på 10 projektbaner. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler
   eller eksterne requests.
 
+## Seneste test-only quality-, validator- og UI-batch efter revision `8321fdb2`
+
+- `githubActionsLaneMatrixLiveness.test.ts` fastholder de seks almindelige E2E-lanes med deres
+  deklarerede browsere og har et negativt facit for en fjernet viewportlane; målrettet kontrol
+  bestod med 2/2.
+- `td019OevrigeFravaersdageRangeValidatorIndependent.test.ts` bruger en håndskrevet typed fixture
+  og kræver præcis afvisning af 367 øvrige fraværsdage med 1/1.
+- `ui-006-aarsloen-beregningsprincipper-browserrejse.spec.ts` gennemfører Dato-periode,
+  helårsomregning, afhængige ferie-/SH-valg, SH-dage og faktisk PDF-download; målrettet E2E
+  bestod med 1/1 i Chrome uden runtimefejl, runtime-signaler eller eksterne requests.
+- Den fulde `npm run test` bestod med 776 testfiler / 8.871 tests, og den fulde valgte E2E-suite
+  bestod med 214 tests og 2 forventede skips ud af 216. Ændringerne er test-only.
+
+## Seneste samlede releasegate efter revision `8321fdb2`
+
+- `npm run verify:release:core` bestod med 776 testfiler / 8.871 beståede Vitest-tests uden
+  forventede `it.fails`, coverage 90,26 / 81,42 / 94,03 / 93,07 og begge produktionsbuilds.
+  Coverage målte 18.583/20.587 statements, 13.104/16.094 branches, 3.027/3.219 funktioner
+  og 16.969/18.232 linjer. Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-,
+  ledger- og artefaktkontroller bestod; Vite rapporterede kun de kendte native-config- og
+  chunk-størrelsesadvarsler.
+- E2E-kørslen er grøn på samme revision med 214 beståede tests og 2 forventede skips ud af
+  216 på 10 projektbaner. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler
+  eller eksterne requests.
+
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch og samlede releasegate på `decec96a` er retestet grønt; den fulde
-E2E-suite er ligeledes grøn på `decec96a`. Næste arbejdsenhed er en af de åbne,
+Den seneste målrettede batch og samlede releasegate på `8321fdb2` er retestet grønt; den fulde
+E2E-suite er ligeledes grøn på `8321fdb2`. Næste arbejdsenhed er en af de åbne,
 test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
