@@ -6,7 +6,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `92dd437f`
+- Evidensrevision: `1c2e28ba` for seneste målrettede test-only batch; seneste samlede gate er fortsat `92dd437f`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit og et uafhængigt ISO-ugefacit. Den samlede `verify:release:core` er senest bestået på `28cdcb2b` med 737 testfiler / 8.824 beståede tests, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge builds. Den valgte E2E-suite er senest bestået på `e0f9d340` med 201 beståede tests og 2 forventede skips ud af 203; siden da er kun test- og auditdokumentation ændret. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
@@ -929,9 +929,25 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
   `verify:release:core` bestod på samme revision med 745 testfiler / 8.832 tests, ingen forventede
   `it.fails`, coverage 90,23 / 81,38 / 93,97 / 93,05 og begge produktionsbuilds. E2E-kørslen gav
   ingen ukontrollerede runtimefejl eller eksterne requests.
+## Seneste test-only batch efter revision `1c2e28ba`
+
+- `td-031-erstatningsopgoerelse-datoorden-browsergren.spec.ts` tilføjer en synlig Chrome-
+  brugerrejse for en omvendt, men kalendergyldig offentlig ydelsesperiode. Den kræver begge
+  konkrete datoissues, tooltiptekster og en disabled EO-download; målrettet kontrol bestod med
+  1/1 uden runtimefejl, runtime-signaler eller eksterne requests.
+- `td020OffentligLoenReguleringDocumentIndependent.test.ts` fører håndskrevne RLTN-facitter
+  for tre reguleringsperioder gennem den faktiske Word-generator og kræver konkrete månedslønninger
+  og timelønninger; målrettet kontrol bestod med 1/1.
+- `td019PublicSalaryRangeValidatorIndependent.test.ts` tilføjer et håndskrevet facit for negativ
+  ekstra grundløn i en aktiv KL-sag med præcis feltsti, besked og severity; målrettet kontrol bestod
+  med 1/1.
+- Den lokale HEAD-verifikation bestod med 2 Vitest-tests og 1 Chrome-E2E-test. Ændringerne er
+  test-only; produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+  Den seneste samlede releasegate og fulde E2E-retest er fortsat de grønne kørsler på `92dd437f`.
+
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch og samlede releasegate på `92dd437f` samt den fulde E2E-suite er retestet grønt. Næste
+Den seneste målrettede batch på `1c2e28ba` og den samlede releasegate på `92dd437f` samt den fulde E2E-suite er retestet grønt. Næste
 arbejdsenhed er derfor en af de åbne, test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
