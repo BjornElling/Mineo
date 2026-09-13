@@ -331,4 +331,54 @@ describe('grid-felt', () => {
 
     expect(canonical(belobField.bind(rowId))).toEqual(originalAmount);
   });
+
+  it('afviser tredje decimal ved direkte grid-input og gendanner den afsluttede visning', () => {
+    const rowId = 'r1';
+    const gridCell: GridCellCoord = { rowId, colIndex: 0 };
+    const originalAmount = { kind: 'number' as const, value: 100 };
+    dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow(rowId, { belob: originalAmount })), {
+      origin: testRowOrigin(),
+    });
+
+    const binding = makeBinding();
+    const gridStateStore: GridCoreStateStore = {
+      subscribe: () => () => undefined,
+      getFocusedCell: () => gridCell,
+      getEditingCell: () => gridCell,
+    };
+
+    render(
+      <InputRuntimeProvider binding={binding}>
+        <GridCoreProvider value={{
+          gridStateStore,
+          openEditing: () => undefined,
+          closeEditing: () => undefined,
+          registerEditor: () => undefined,
+          unregisterEditor: () => undefined,
+          getEditor: () => null,
+          requestFocusPlan: () => undefined,
+        }}>
+          <GridAmountCell
+            gridCell={gridCell}
+            cell={{ kind: 'existing', field: belobField.bind(rowId), location: testLocation('r1:belob-direct-input') }}
+          />
+        </GridCoreProvider>
+      </InputRuntimeProvider>
+    );
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    const settledDisplay = input.value;
+    const revisionBefore = store.getState().revision;
+
+    // Direkte input-events er den modalitetsuafhængige adgang, som også dækker IME og skærmtastatur.
+    // Tredje decimal må derfor ikke nå draften, selv om der ikke kommer en brugbar keydown først.
+    act(() => {
+      fireEvent.change(input, { target: { value: '100,123' } });
+    });
+
+    expect(input.value).toBe(settledDisplay);
+    expect(canonical(belobField.bind(rowId))).toEqual(originalAmount);
+    expect(store.getState().revision).toBe(revisionBefore);
+    expect(store.getState().input.rejectedInputs).toEqual({});
+  });
 });
