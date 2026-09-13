@@ -552,4 +552,14 @@ describe('kontrakt-reference-prædikaterne er ikke vakuøse', () => {
     expect(stripped).toContain('render');
     expect(stripped).not.toContain(symbolOnlyInString);
   });
+
+  it('lader ikke et symbol i en kommentar holde liveness kunstigt i live', () => {
+    const symbolOnlyInComment = 'OnlyInComment';
+    const stripped = stripCommentsAndStrings(
+      `/* ${symbolOnlyInComment} */\nrender(); // ${symbolOnlyInComment}`
+    );
+
+    expect(stripped).toContain('render');
+    expect(stripped).not.toContain(symbolOnlyInComment);
+  });
 });
