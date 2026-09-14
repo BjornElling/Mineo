@@ -1414,10 +1414,23 @@ E2E blev ikke gentaget på denne test-only revision; seneste fulde E2E står på
 215 beståede tests og 2 forventede skips ud af 217 på 10 projektbaner, uden ukontrollerede
 runtimefejl, runtime-signaler eller eksterne requests.
 
+## Seneste samlede releasegate efter arbejdsrevision baseret på `e7f755e0`
+
+`verify:release:core` bestod med 793 testfiler / 8.922 beståede Vitest-tests, coverage 90,26 %
+statements / 81,40 % branches / 93,98 % functions / 93,08 % lines og begge produktionsbuilds.
+Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger- og artefaktkontroller bestod.
+Vite rapporterede kun de kendte native-config- og chunk-størrelsesadvarsler. Kontrollen omfattede
+også det nye Andet-downstream-facit i arbejdsrevisionen.
+
+Den målrettede Store Bededag-browserrejse bestod med 1/1 på Chrome efter `e7f755e0`. Den fulde
+valgte E2E-suite er endnu ikke genkørt efter den nye browser-spec; seneste fulde E2E står på
+`38df665f` med 215 beståede tests og 2 forventede skips ud af 217 på 10 projektbaner, uden
+ukontrollerede runtimefejl, runtime-signaler eller eksterne requests.
+
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch og samlede releasegate på `d39076e1` er retestet grønt; den fulde
-E2E-suite er senest grøn på `38df665f`. Næste arbejdsenhed er en af de åbne,
+Den seneste målrettede batch og samlede releasegate på arbejdsrevisionen baseret på `e7f755e0` er
+retestet grønt; den fulde E2E-suite er senest grøn på `38df665f`. Næste arbejdsenhed er en af de åbne,
 test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.

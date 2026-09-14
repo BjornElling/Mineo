@@ -950,6 +950,7 @@ prøves med en anden evidensform end den primære test.
 | TD-155 | 2026-09-13 | `ARCH-002` | Mellem | Architecture-harnessets reguleringsserie-importværn havde ikke et selvstændigt modcase for CommonJS `require(...)`. En sådan import kunne derfor i princippet omgå et statisk værn uden finding. | `reguleringRequireImportBlindspot.test.ts` sender et syntetisk CommonJS-`require(...)`-modcase gennem den faktiske regel og kræver præcis én finding med besked om direkte import af reguleringsserie; målrettet kontrol bestod med 1/1. | Lukket for den konkrete CommonJS `require(...)` → reguleringsserie-importværn-partition. Øvrige arkitekturregler, importgrænser og semantisk gennemgang er fortsat åbne under `ARCH-002`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt architecture-facit |
 | TD-156 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Ved TAF-slutår efter sidste offentlige reguleringssatsår rapporterer validatoren to fejl på samme felt: både at reguleringen ikke kan beregnes efter 2026 og at satsen for 2027 mangler. Det kan give brugeren en dobbelt årsagslinje, selv om begge fejl udspringer af samme manglende dækning. | `td019OffentligeYdelserReguleringsValidatorIndependent.test.ts` bruger en håndskrevet typed 2027-fixture og kræver præcis begge `error`-issues på `regulerOffentligeYdelser`; målrettet kontrol bestod med 2/2 tests. | Testen låser den observerede fulde issue-partition. Ingen validator- eller UI-ændring foretages uden udviklerens beslutning om, hvorvidt de to årsagslinjer skal samles eller vises særskilt. | Ja – ændring af synlig fejltekst eller fejlvisning kræver udviklerens godkendelse. | Åben – reproduceret og fastlåst med 1/1 nyt validatorfacit |
 | TD-157 | 2026-09-14 | `DATA-001` / `CALC-006` / `TD-020` | Mellem | SU var registreret som kalenderdagsbaseret ydelsestype, men manglede et uafhængigt downstream-facit. En fejl i ydelsestypens mapping, kalenderdagsfordeling, formattering eller kontrolsum kunne derfor overleve de øvrige ydelsesfacitter. | `td020SuDownstreamIndependent.test.ts` fører et håndberegnet facit på 900 kr. + 300 kr. fra 30. maj til 2. juni 2024 gennem den faktiske EO-inspektionsmodel og kræver SU-kolonne, 300 kr. pr. kalenderdag, korrekt formatering, weekendmarkering, kontrolsum og ingen integrity issues; målrettet kontrol bestod med 1/1. | Lukket for den konkrete SU → kalenderdagsconsumer-partition. Øvrige offentlige ydelsestyper, komplet downstream-paritet og ekstern kildeproveniens er fortsat åbne under `DATA-001` og `TD-020`. Ingen data, beregningslogik eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt downstream-facit |
+| TD-158 | 2026-09-14 | `DATA-001` / `CALC-006` / `TD-020` | Mellem | Andet var registreret som kalenderdagsbaseret ydelsestype, men manglede et uafhængigt downstream-facit over skuddag og weekend. En fejl i ydelsestypens mapping, kalenderdagsfordeling, formattering eller kontrolsum kunne derfor overleve de øvrige ydelsesfacitter. | `td020AndetDownstreamIndependent.test.ts` fører et håndberegnet facit på 1.000 kr. + 200 kr. fra 28. februar til 2. marts 2024 gennem den faktiske EO-inspektionsmodel og kræver Andet-kolonne, 300 kr. pr. kalenderdag, korrekt formatering, skuddag, weekendmarkering, kontrolsum og ingen integrity issues; målrettet kontrol bestod med 1/1. | Lukket for den konkrete Andet → skuddag/weekend → kalenderdagsconsumer-partition. Øvrige offentlige ydelsestyper, komplet downstream-paritet og ekstern kildeproveniens er fortsat åbne under `DATA-001` og `TD-020`. Ingen data, beregningslogik eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt downstream-facit |
 
 ## Seneste test-only facitbatch – revision `5f6f0cd9`
 
@@ -1452,6 +1453,35 @@ alvor må aldrig bruges til at skjule en uafklaret brudt invariant.
 | --- | --- | --- | --- | --- |
 | TD-D01 | Mutationsrunner for rene TypeScript-flader | Vitest-pluginpen kan give en pæn rapport, men den målte brugeroplevelse for auditten er et falsk grønt signal: en forkert `toKroner`-implementering bliver ikke fanget. Command-runneren tager længere tid, men den samme suite dræber 56/58 mutationer og kan bruges modulvist. | Codex / 2026-09-10 | Brug command-runneren med eksplicit testkommando og én worker. Revurder ved opgradering af Vitest eller Stryker, hvis en pluginrunner igen kan bevise dræbte kontrolmutationer. |
 | TD-D02 | Transitiv qs-advisory fra mutationsrunneren | Opdatér parenten, hvis en ny version åbner en rettet `qs`-range; ellers kan en eksplicit override holde release-gaten grøn uden at ændre klientbundle. En forkert eller manglende override lader udviklerens dependency-kontrol fejle, men påvirker ikke en ekstern bruger direkte. | Codex / 2026-09-10 | Behold `qs@6.16.0`-override’et, og revurder det ved næste Stryker-/typed-rest-client-opdatering. Fjern override’et, når parentens range dækker rettelsen. |
+
+## Seneste test-only Store Bededag-, validator- og data-batch – revision `e7f755e0`
+
+Den seneste produktændring på `036fcbcf` var udviklerejet og er ikke ændret af auditten. Dens
+målrettede regressioner bestod med 6 filer / 152 tests, inklusive advarselsrute, dokumentgate og
+eksisterende beregningsfacitter.
+
+Auditten har siden tilføjet følgende testbeviser:
+
+- `githubActionsReleaseStepLiveness.test.ts` afviser nu også et aktivt release-step med
+  `continue-on-error: true`; målrettet kontrol bestod med 3/3 på `b2845345`.
+- `td019OffentligeYdelserReguleringsValidatorIndependent.test.ts` låser den observerede fulde
+  2027-issuepartition på 2/2 og registrerer den åbne dobbeltårsagslinje som `TD-156` på
+  `4d31a57c`.
+- Store Bededag-migrationen har typed facitter for almindelig løn, SH-udbetaling, ingen løn,
+  eksisterende toggle og angivet løn uden historisk helligdagsfelt; persistence-målfilen bestod
+  med 23/23 tests. `td020SuDownstreamIndependent.test.ts` og
+  `td020AndetDownstreamIndependent.test.ts` bestod hver med 1/1.
+- `store-bededag-advarsel.spec.ts` gennemfører den monterede EO-rejse og viser, at den synlige
+  advarsel ikke blokerer `Hent opgørelse`, og at issue-linket fører til det konkrete togglefelt;
+  målrettet Chrome-kontrol bestod med 1/1 uden runtimefejl, runtime-signaler eller eksterne requests.
+
+Den første samlede Vitest-kontrol efter batchen kørte med 791 testfiler / 8.920 tests og havde én
+quality-fejl: harnesset afviste korrekt en transient `toHaveClass`-assertion i den nye E2E-test.
+Assertioen blev fjernet og commit’et på `e7f755e0`; målrettet E2E bestod derefter med 1/1.
+Den efterfølgende `verify:release:core` på arbejdsrevisionen baseret på `e7f755e0` bestod med
+793 testfiler / 8.922 tests, coverage 90,26 % statements / 81,40 % branches / 93,98 % functions /
+93,08 % lines og begge produktionsbuilds. Den fulde valgte E2E-suite skal fortsat genkøres på den
+rettede slutrevision.
 
 ## 10. Afslutningsgate
 
