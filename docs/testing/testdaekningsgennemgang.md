@@ -1558,7 +1558,12 @@ SFGG-suite bestod med 3/3, TD-020-downstream-gruppen med 25 filer / 26 tests, og
 `npm run typecheck:test`, lint, mojibake-, filnavns- og diff-kontroller bestod. Den relevante
 Chrome-E2E-retest bestod med 3/3 uden runtimefejl, runtime-signaler eller eksterne requests.
 Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret.
-Samlet `verify:release:core` skal køres efter batchen.
+Den efterfølgende samlede releasegate og fulde valgte E2E-suite er dokumenteret nedenfor.
+
+Efter batchen bestod `verify:release:core` på `71746917` med 808 testfiler / 8.948 Vitest-tests,
+coverage 90,37 / 81,50 / 94,33 / 93,15 og begge builds. Den fulde valgte E2E-suite bestod på
+samme revision med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers
+på 6,2 minutter. De kendte Vite native-config- og chunk-størrelsesadvarsler var ikke fejl.
 
 ## 10. Afslutningsgate
 
