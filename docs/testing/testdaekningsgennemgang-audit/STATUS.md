@@ -1435,6 +1435,13 @@ restore til den konkrete `Find løntrin`-knap. Ingen produktkode, beregningslogi
 persistensformat er ændret. Den samlede Vitest-/releasegate- og valgte E2E-retest bestod på
 `238e2740`, jf. ovenstående.
 
+## Seneste test-only dato- og validatorbatch efter arbejdsrevision baseret på `e389e896`
+
+`dateMonthBoundaryIndependentOracle.test.ts` og `td019FeriePctValidatorIndependent.test.ts`
+bestod samlet med 2/2 målrettede Vitest-tests. Batchen er test-only; ingen produktkode,
+beregningslogik eller persistens er ændret. Samlet Vitest-/releasegate- og valgt E2E-retest
+skal gennemføres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste målrettede batch og samlede releasegate på `238e2740` er retestet grønt; den fulde
