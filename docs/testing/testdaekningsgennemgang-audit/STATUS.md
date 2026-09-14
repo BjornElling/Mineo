@@ -1442,6 +1442,13 @@ bestod samlet med 2/2 målrettede Vitest-tests. Batchen er test-only; ingen prod
 beregningslogik eller persistens er ændret. Samlet Vitest-/releasegate- og valgt E2E-retest
 skal gennemføres efter batchen.
 
+## Seneste test-only validatorbatch efter arbejdsrevision baseret på `85198e06`
+
+`td019AnciennitetstillaegDatoValidatorIndependent.test.ts` låser den inklusive grænse for
+anciennitetstillæg på reguleringsdatoen med 1/1 målrettet Vitest. Ingen produktkode,
+beregningslogik eller persistens er ændret. Samlet Vitest-/releasegate- og valgt E2E-retest
+skal gennemføres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste målrettede batch og samlede releasegate på `238e2740` er retestet grønt; den fulde
