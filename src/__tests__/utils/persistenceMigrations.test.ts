@@ -5,6 +5,67 @@ import {
   type MissingPersistedFieldPolicy,
   type PersistedLoadAdapterRegistry,
 } from '../../persistence/persistedLoadAdapter';
+import type {
+  EOAngivetLoenLoenudvikling,
+  LoenindkomstAnsaettelsesforhold,
+} from '../../schemas/formSchemas';
+
+type HistoricalHolidayPay = 'Almindelig løn' | 'SH-udbetaling' | 'Ingen';
+
+type HistoricalEmploymentFixture = Omit<LoenindkomstAnsaettelsesforhold, 'beregnStoreBededagstillaeg'>;
+
+const historicalEmployment = (
+  loenPaaHelligdage: HistoricalHolidayPay
+): HistoricalEmploymentFixture => ({
+  id: 'af-historisk',
+  navnPaaArbejdssted: 'Historisk arbejdssted',
+  harOverenskomst: true,
+  overenskomstId: 'bygge-anlaeg',
+  ansatPaaSkadestidspunktet: true,
+  ansaettelsesforholdOphoert: false,
+  sidsteArbejdsdag: undefined,
+  fritvalgPct: 4,
+  shSoPct: 2,
+  pensionPct: 7.5,
+  tillaegAngivesSom: 'procent',
+  loenperiode: 'maaned',
+  indtaegtsoplysningerTableData: [],
+  fuldLoenUnderFerie: 'Ja',
+  harAnciennitetstillaegEfterSkadedatoen: false,
+  anciennitetstillaegDato: undefined,
+  anciennitetstillaegSatsAngivesPer: 'Måned',
+  anciennitetstillaegSats: undefined,
+  feriePct: 12.5,
+  loenPaaHelligdage,
+  saerligFraDatoRegulering: undefined,
+  loenudviklingBeregningsgrundlag: 'Overenskomst',
+  loenudviklingStatistikModel: undefined,
+  loenudviklingKRLSatstabel: undefined,
+  loenudviklingManuelNavn: undefined,
+  loenudviklingManuelTableData: [],
+  loenudviklingManuelProcentsatsTableData: [],
+  offentligLoenType: 'Månedsløn',
+  offentligLoenTrin: undefined,
+  offentligLoenGruppe: undefined,
+  offentligLoenEkstraGrundloen: undefined,
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+});
+
+type HistoricalAngivetLoenFixture = Partial<Omit<
+  EOAngivetLoenLoenudvikling,
+  'loenPaaHelligdage' | 'beregnStoreBededagstillaeg'
+>>;
+
+const historicalAngivetLoenWithoutHoliday: HistoricalAngivetLoenFixture = {
+  overenskomstId: 'bygge-anlaeg',
+  harAnciennitetstillaegEfterSkadedatoen: false,
+  anciennitetstillaegSatsAngivesPer: 'Måned',
+  feriePct: 12.5,
+  loenudviklingBeregningsgrundlag: 'Overenskomst',
+  loenudviklingManuelTableData: [],
+  loenudviklingManuelProcentsatsTableData: [],
+  overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+};
 
 describe('adaptPersistedSectionForLoad', () => {
   it('normaliserer null -> undefined dybt før migrator-trinnet (schema-evolution §3.1a)', () => {
@@ -203,6 +264,85 @@ describe('adaptPersistedSectionForLoad', () => {
         '3.10'
       );
       expect(value).toEqual({ loenindkomstAnsaettelsesforhold: ['ikke-et-objekt'] });
+    });
+  });
+
+  describe('det eksplicitte Store Bededag-valg i realistiske historiske lønfelter', () => {
+    const missingToggleCases = [
+      { loenPaaHelligdage: 'Almindelig løn', expectedToggle: true },
+      { loenPaaHelligdage: 'SH-udbetaling', expectedToggle: false },
+      { loenPaaHelligdage: 'Ingen', expectedToggle: false },
+    ] as const;
+
+    it.each(missingToggleCases)('migrerer manglende toggle for $loenPaaHelligdage', ({ loenPaaHelligdage, expectedToggle }) => {
+      const source = historicalEmployment(loenPaaHelligdage);
+      expect(Object.hasOwn(source, 'beregnStoreBededagstillaeg')).toBe(false);
+
+      const { value } = adaptPersistedSectionForLoad(
+        'erstatningsopgoerelse',
+        { loenindkomstAnsaettelsesforhold: [source] },
+        '3.13'
+      );
+      const row = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
+        .loenindkomstAnsaettelsesforhold[0];
+
+      expect(row).toEqual(expect.objectContaining({
+        id: 'af-historisk',
+        navnPaaArbejdssted: 'Historisk arbejdssted',
+        loenPaaHelligdage,
+        pensionPct: 7.5,
+        beregnStoreBededagstillaeg: expectedToggle,
+      }));
+      expect(row).not.toHaveProperty('storeBededagPct');
+    });
+
+    const existingToggleCases = [
+      { loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: false },
+      { loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: true },
+      { loenPaaHelligdage: 'SH-udbetaling', beregnStoreBededagstillaeg: false },
+      { loenPaaHelligdage: 'SH-udbetaling', beregnStoreBededagstillaeg: true },
+      { loenPaaHelligdage: 'Ingen', beregnStoreBededagstillaeg: false },
+      { loenPaaHelligdage: 'Ingen', beregnStoreBededagstillaeg: true },
+    ] as const;
+
+    it.each(existingToggleCases)('bevarer eksisterende toggle ved $loenPaaHelligdage', ({ loenPaaHelligdage, beregnStoreBededagstillaeg }) => {
+      const source = {
+        ...historicalEmployment(loenPaaHelligdage),
+        beregnStoreBededagstillaeg,
+      };
+      const { value } = adaptPersistedSectionForLoad(
+        'erstatningsopgoerelse',
+        { loenindkomstAnsaettelsesforhold: [source] },
+        '3.13'
+      );
+      const row = (value as { loenindkomstAnsaettelsesforhold: Record<string, unknown>[] })
+        .loenindkomstAnsaettelsesforhold[0];
+
+      expect(row).toEqual(expect.objectContaining({
+        loenPaaHelligdage,
+        beregnStoreBededagstillaeg,
+      }));
+      expect(row).not.toHaveProperty('storeBededagPct');
+    });
+
+    it('migrerer ældre angivet løn uden loenPaaHelligdage med passivt togglevalg', () => {
+      expect(Object.hasOwn(historicalAngivetLoenWithoutHoliday, 'loenPaaHelligdage')).toBe(false);
+      expect(Object.hasOwn(historicalAngivetLoenWithoutHoliday, 'beregnStoreBededagstillaeg')).toBe(false);
+
+      const { value } = adaptPersistedSectionForLoad(
+        'erstatningsopgoerelse',
+        { eoAngivetLoenLoenudvikling: historicalAngivetLoenWithoutHoliday },
+        '3.13'
+      );
+      const migrated = value as {
+        eoAngivetLoenLoenudvikling: Record<string, unknown>;
+      };
+
+      expect(migrated.eoAngivetLoenLoenudvikling).toEqual(expect.objectContaining({
+        feriePct: 12.5,
+        beregnStoreBededagstillaeg: false,
+      }));
+      expect(migrated.eoAngivetLoenLoenudvikling).not.toHaveProperty('loenPaaHelligdage');
     });
   });
 
