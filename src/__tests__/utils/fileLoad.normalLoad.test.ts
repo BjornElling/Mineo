@@ -704,4 +704,20 @@ describe('loadFromFileHandle', () => {
     // afbrød flowet før fil-I/O).
     expect(getFile).not.toHaveBeenCalled();
   });
+
+  it('afviser med handlingsanvisende dansk besked når PWA-filen er flyttet eller slettet', async () => {
+    // En tilladt handle kan stadig pege på en fil, der er flyttet eller slettet. Den rå
+    // NotFoundError må ikke nå brugeren eller føre til læsning af et tomt snapshot.
+    const getFile = vi.fn().mockRejectedValue(new DOMException('Filen findes ikke', 'NotFoundError'));
+    const handle = {
+      getFile,
+      queryPermission: vi.fn().mockResolvedValue('granted'),
+    } as unknown as FileSystemFileHandle;
+
+    await expect(loadFromFileHandle(handle, { requestId: 'req-not-found' })).rejects.toMatchObject({
+      name: 'FileHandleAccessError',
+      message: 'Filen blev ikke fundet – den er måske flyttet eller slettet. Vælg filen igen via Hent.',
+    });
+    expect(readFileMock).not.toHaveBeenCalled();
+  });
 });
