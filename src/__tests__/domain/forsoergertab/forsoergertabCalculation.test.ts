@@ -470,6 +470,37 @@ describe('computeForsoergertabAslYdelser', () => {
     const forventetMaaneder = Math.round((17 / 31) * 10000) / 10000;
     expect(raekke.maaneder).toBe(forventetMaaneder);
   });
+
+  it('fører skuddagen korrekt gennem den håndberegnede ASL-dagbrøk', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadedato: toISODateString('2024-01-01'),
+      beregningsdato: toISODateString('2024-03-01'),
+      virkningsdato: toISODateString('2024-02-29'),
+      efterladteFodselsdato: toISODateString('1980-01-01'),
+      koen: undefined,
+      tilkendtForPeriodeAar: 1,
+      aslAarsloen: asAmount(400000),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const computation = result.computation!;
+
+    // Håndfacit: 29. februar–1. marts 2024 er 1/29 + 1/31 = 0,0667408...
+    // måned, som afrundes til 0,0667. 30 % af 400.000 kr. giver 120.000 kr.
+    // årligt og 10.000 kr. pr. måned; rækken bliver derfor 667 kr. i alt.
+    expect(computation.opreguleringsfaktor).toBe(1);
+    expect(computation.opreguleretAarligYdelse).toBe(120000);
+    expect(computation.lobendeYdelser).toEqual([{
+      fraDato: toISODateString('2024-02-29'),
+      tilDato: toISODateString('2024-03-01'),
+      maaneder: 0.0667,
+      maanedligYdelse: 10000,
+      ydelseIAlt: 667,
+    }]);
+    expect(computation.alleredeUdbetaltMaaneder).toBe(0.0667);
+    expect(computation.resterendeMaanederTotal).toBe(11.9333);
+    expect(computation.aslLobendeYdelserTotal).toBe(667);
+  });
 });
 
 describe('computeForsoergertabAslYdelser – de-regulering af løbende ydelser før skadeår', () => {
