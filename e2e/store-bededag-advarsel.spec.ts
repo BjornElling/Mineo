@@ -69,6 +69,23 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
       exact: true,
     });
     await expect(storeBededagToggle).toBeVisible();
+    await expect(storeBededagToggle).toBeChecked();
+
+    const beregnesUdFra = page.getByRole('combobox', { name: 'Beregnes ud fra', exact: true });
+    await beregnesUdFra.click();
+    await page.getByRole('option', { name: 'Angivet dagsløn', exact: true }).click();
+    await expect(storeBededagToggle).not.toBeChecked();
+    await beregnesUdFra.click();
+    await page.getByRole('option', { name: 'Angivet månedsløn', exact: true }).click();
+    await expect(storeBededagToggle).toBeChecked();
+    await holidayPay.click();
+    await page.getByRole('option', { name: 'SH-udbetaling', exact: true }).click();
+    await expect(storeBededagToggle).toBeHidden();
+    await holidayPay.click();
+    await page.getByRole('option', { name: 'Almindelig løn', exact: true }).click();
+    await expect(storeBededagToggle).toBeVisible();
+    await expect(storeBededagToggle).toBeChecked();
+    await storeBededagToggle.click();
     await expect(storeBededagToggle).not.toBeChecked();
 
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
@@ -92,6 +109,39 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     await issueLink.click();
     await expect(page.getByRole('tab', { name: 'EO oplysninger', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(storeBededagToggle).toBeVisible();
+
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
+  test('nyt ansættelsesforhold starter med aktiv toggle ved almindelig helligdagsløn', async ({
+    page,
+    runtimeErrors,
+    runtimeSignals,
+    externalRequests,
+  }) => {
+    await login(page);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Lønindkomst', exact: true }).click();
+    await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold', exact: true }).click();
+    await page.getByRole('button', { name: 'Ja, tilføj', exact: true }).click();
+
+    const holidayPay = page.getByRole('combobox', { name: 'Løn på helligdage', exact: true });
+    const storeBededagToggle = page.getByRole('checkbox', {
+      name: 'Beregn Store Bededagstillæg fra 1. januar 2024:',
+      exact: true,
+    });
+    await expect(holidayPay).toHaveValue('Almindelig løn');
+    await expect(storeBededagToggle).toBeChecked();
+
+    await holidayPay.click();
+    await page.getByRole('option', { name: 'SH-udbetaling', exact: true }).click();
+    await expect(storeBededagToggle).toBeHidden();
+    await holidayPay.click();
+    await page.getByRole('option', { name: 'Almindelig løn', exact: true }).click();
+    await expect(storeBededagToggle).toBeVisible();
+    await expect(storeBededagToggle).toBeChecked();
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);

@@ -39,6 +39,7 @@ import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../..
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
+import { createEoBeregningsgrundlagCommitOverride } from '../../../../../domain/erstatningsopgoerelse/angivetLoenBeregningsgrundlagCommit';
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
@@ -189,6 +190,11 @@ export default function IndtaegtFoerSkadenSection() {
                 <ChoiceField
                   field={eoBeregnesUdFraField.bind()}
                   location={eoOplyLocation('erstatningsopgoerelse.beregnesUdFra')}
+                  immediateCommitOverride={createEoBeregningsgrundlagCommitOverride({
+                    field: eoBeregnesUdFraField.bind(),
+                    storeBededagField: eoAngivetLoenFields.beregnStoreBededagstillaeg.bind(),
+                    location: eoOplyLocation('erstatningsopgoerelse.beregnesUdFra'),
+                  })}
                   name="beregnesUdFra"
                   width={200}
                   allowEmpty={false}

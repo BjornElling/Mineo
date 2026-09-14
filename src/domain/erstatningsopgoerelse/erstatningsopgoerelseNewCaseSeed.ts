@@ -45,7 +45,11 @@ export const resolveErstatningsopgoerelseNewCaseDefaults = (
     kravPaaOevrigeErstatningskrav: 'Skjul',
     eoAngivetLoenLoenudvikling: {
       loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-      // Schema-defaulten er bevidst `undefined` af hensyn til load-tolerance for ældre `.eo`-filer.
+      // Den første angivne løn-mode er månedsløn, og dens synlige toggle skal derfor starte slået til.
+      // Valget af dagsløn ændrer dette eksplicit og atomisk til false i EO-oplysninger-fladen.
+      beregnStoreBededagstillaeg: true,
+      // `offentligLoenType`'s schema-default er bevidst `undefined` af hensyn til load-tolerance for ældre
+      // `.eo`-filer; en ny sag skal alligevel starte på "Månedsløn".
       offentligLoenType: 'Månedsløn',
       overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
     },

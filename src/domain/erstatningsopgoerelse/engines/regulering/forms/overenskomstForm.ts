@@ -14,6 +14,7 @@ import {
 import { buildOverenskomstSegmentContext } from './overenskomstSegmentContext';
 import { buildOffentligOverenskomstSegmenter } from './overenskomstOffentligSegmenter';
 import { buildPrivatOverenskomstSegmenter } from './overenskomstPrivatSegmenter';
+import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
 import type {
   FormKonsoliderContext,
   KildeReguleringsInterval,
@@ -37,7 +38,9 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 
   assertUniform(active, (af) => af.overenskomstId ?? '', 'overenskomst');
   assertUniform(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
-  assertUniform(active, (af) => af.beregnStoreBededagstillaeg ?? false, 'Store Bededagstillæg');
+  // En skjult toggle er ikke en beregningsindstilling. Sammenlign derfor kun den effektive værdi, så
+  // tidligere skjulte true/false-værdier ikke kan blokere en ellers gyldig lønudvikling.
+  assertUniform(active, (af) => harValgtStoreBededagstillaeg(af), 'Store Bededagstillæg');
   assertUniform(active, (af) => af.harAnciennitetstillaegEfterSkadedatoen ?? false, 'anciennitetstillæg');
   assertUniform(
     active,

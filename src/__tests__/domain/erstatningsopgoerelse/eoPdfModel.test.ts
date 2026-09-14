@@ -54,11 +54,10 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
     ...makeTestAnsaettelsesforholdBase(),
     ...af,
     id: af.id ?? `af-${index + 1}`,
-    // Store Bededagstillægget er et eksplicit tilvalg i produktionen, og en ny sag starter uden det.
-    // Fixturerne herunder spreader `createDefaultLoenindkomstAnsaettelsesforhold()` og bærer derfor
-    // den passive `false`, mens filens facitter er regnet MED tillægget. Harnesset tilvælger det ét
-    // sted frem for i 70 fixturer. De negative Store Bededag-tests i filen måler datogrænsen
-    // 01-01-2024 – ikke togglen – og er derfor fortsat ægte (indskudte-loentillaeg-contract.md §2a).
+    // Store Bededagstillægget er et eksplicit tilvalg i produktionen. PDF-fixturerne regnes med
+    // tillægget, så harnesset fastlåser valget ét sted frem for i de mange individuelle fixturer.
+    // De negative Store Bededag-tests i filen måler datogrænsen 01-01-2024 – ikke togglen – og er
+    // derfor fortsat ægte (indskudte-loentillaeg-contract.md §2a).
     beregnStoreBededagstillaeg: true,
     overenskomstFilter: af.overenskomstFilter ?? {
       loenmodtager: undefined,

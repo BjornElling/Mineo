@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-09-13
+**Senest verificeret mod kode:** 2026-09-14
 
 ## 1. Scope
 
@@ -27,7 +27,7 @@ Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 4. **Satstrappe-model.** Et tillæg med flere historiske satser modelleres som en satstrappe (`IndskudtLoentillaegSatstrin[]`) sorteret stigende efter `fraOgMed`. Opslag for en dato (`resolveIndskudtLoentillaegPct`) returnerer det seneste trins sats hvis `fraOgMed ≤ dato`, ellers `0` (intet tillæg før det tidligste trin). Store Bededag er en trappe med ét trin; modellen understøtter flere trin, men ingen nuværende trappe bruger det.
 5. **Gating ud over datoen er beregningslagets ansvar.** Store Bededagstillægget gælder kun, når brugeren både har valgt "Almindelig løn" på helligdage og aktiveret `Beregn Store Bededagstillæg fra 1. januar 2024`. Sådan domæne-gating ligger i lønudviklingslogikken (`resolveStoreBededagstillaegPct` m.fl.), ikke i datafilen – datafilen leverer kun sats-pr-dato.
 
-## 2a. Store Bededagstillægget er et eksplicit tilvalg (udviklerbeslutning 2026-09-13)
+## 2a. Store Bededagstillægget er et eksplicit tilvalg (udviklerbeslutninger 2026-09-13 og 2026-09-14)
 
 Tillægget blev tidligere beregnet automatisk, alene fordi "Løn på helligdage" stod på "Almindelig løn".
 Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og dokumentflader:
@@ -36,8 +36,12 @@ Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og
    (`loenindkomstAnsaettelsesforhold[].beregnStoreBededagstillaeg`, brugt ved "Beregningsperiode") og på
    EO-oplysningernes angivne løn (`eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg`, brugt ved
    "Angivet månedsløn"/"Angivet dagsløn"). Der findes ingen automatisk sti udenom.
-2. **Standardværdi `false`.** En ny sag starter uden tillægget. Det er den sikre default: tillægget kommer
-   først med efter et udtrykkeligt tilvalg.
+2. **Kontekstafhængig standardværdi på nye data.** En ny EO-sag starter med `true` på den angivne
+   løn-toggles skjulte værdi, fordi den første angivne løn-mode er "Angivet månedsløn". Når brugeren vælger
+   "Angivet dagsløn", sættes den som en del af samme brugerhandling til `false`. Et nyt ansættelsesforhold
+   får `true`, når det oprettes med "Almindelig løn" på helligdage, ellers den passive `false`-værdi.
+   Schemaets `false`-default er fortsat kun load-fallback og ændres ikke. En eksisterende, synlig toggle
+   er dermed ikke en automatisk beregningsregel – den er stadig kun aktiv efter brugerens valg.
 3. **Skjult værdi bevares, men virker ikke.** Togglen vises kun ved "Almindelig løn". Skifter brugeren
    helligdagsvalget væk, bevares den gemte værdi i sagen, men gater ikke noget – `harValgtStoreBededagstillaeg`
    kræver BEGGE betingelser. Skiftes der tilbage, gælder den tidligere værdi igen. Ingen tavs nulstilling.
@@ -69,6 +73,10 @@ fulde dækning: der er intet andet indskudt tillæg.
 - `src/__tests__/data/indskudteLoentillaeg.test.ts` (satser, virkningsdatoer, satstrappe-opslag og randtilfælde
   – samt det negative værn i §6, der måler modulets eksportflade).
 - `src/__tests__/domain/erstatningsopgoerelse/eoSharedUtils.test.ts` (Store Bededag-tillæggets indgang i lønpakken).
+- `src/__tests__/domain/erstatningsopgoerelse/angivetLoenBeregningsgrundlagCommit.test.ts` (atomiske defaults for
+  "Angivet månedsløn" og "Angivet dagsløn").
+- `src/__tests__/domain/erstatningsopgoerelse/storeBededagstillaegHiddenState.test.ts` (skjult gating og
+  fleransættelsesforhold med forskellige passive toggle-værdier).
 - `src/__tests__/domain/eoRowEvaluation/eoRowStoreBededagstillaegWarning.test.ts` (§2a.5: advarslens betingelser,
   begge flader, fokusmål og vej gennem `collectAllEoRows` til "Fejl og advarsler").
 - `src/__tests__/utils/persistenceMigrations.test.ts` (§2a.4: load-migreringen af ældre `.eo`-filer).

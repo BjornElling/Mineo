@@ -1,7 +1,11 @@
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
-import { harStoreBededagstillaegIInterval, resolveStoreBededagstillaegPct } from '../../../helpers/storeBededagstillaeg';
+import {
+  harStoreBededagstillaegIInterval,
+  harValgtStoreBededagstillaeg,
+  resolveStoreBededagstillaegPct,
+} from '../../../helpers/storeBededagstillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
 import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
@@ -41,7 +45,9 @@ const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string =>
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   const { active, angivetLoen, anvendtReguleringsdato, tafRanges, kraeverFeriePctVedBeregningsperiode, activeMedSynligeSatserOgLoenoplysninger } = ctx;
   assertUniform(active, (af) => normalizeManualRows(af.loenudviklingManuelTableData ?? []), 'manuelle reguleringsraekker');
-  assertUniform(active, (af) => af.beregnStoreBededagstillaeg ?? false, 'Store Bededagstillæg');
+  // En skjult toggle er ikke en beregningsindstilling. Sammenlign derfor kun den effektive værdi, så
+  // tidligere skjulte true/false-værdier ikke kan blokere en ellers gyldig lønudvikling.
+  assertUniform(active, (af) => harValgtStoreBededagstillaeg(af), 'Store Bededagstillæg');
   if (!angivetLoen) {
     if (activeMedSynligeSatserOgLoenoplysninger.length > 1) {
       assertUniform(

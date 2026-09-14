@@ -12,6 +12,7 @@ import {
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
+import { resolveDefaultStoreBededagstillaeg } from './storeBededagstillaeg';
 
 export const DEFAULT_ANCIENNITET_FIELDS = {
   harAnciennitetstillaegEfterSkadedatoen: false as const,
@@ -55,7 +56,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     indtaegtsoplysningerTableData: [],
     fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
     loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-    beregnStoreBededagstillaeg: false,
+    beregnStoreBededagstillaeg: resolveDefaultStoreBededagstillaeg(safeSettings.defaultLoenPaaHelligdage),
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

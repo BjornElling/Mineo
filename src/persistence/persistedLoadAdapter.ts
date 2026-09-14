@@ -7,6 +7,7 @@ import {
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { isRecord } from '../utils/typeGuards';
 import { countMeaningfulFields } from '../utils/dataCollection';
+import { resolveDefaultStoreBededagstillaeg } from '../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 
 export type PersistedLoadAdaptation = Readonly<{
   value: unknown;
@@ -174,7 +175,9 @@ const migrateMissingStoreBededagToggle = (value: unknown): unknown => {
     if (!isRecord(source) || Object.hasOwn(source, 'beregnStoreBededagstillaeg')) return source;
     return {
       ...source,
-      beregnStoreBededagstillaeg: source.loenPaaHelligdage === 'Almindelig løn',
+      beregnStoreBededagstillaeg: resolveDefaultStoreBededagstillaeg(
+        typeof source.loenPaaHelligdage === 'string' ? source.loenPaaHelligdage : undefined
+      ),
     };
   };
 

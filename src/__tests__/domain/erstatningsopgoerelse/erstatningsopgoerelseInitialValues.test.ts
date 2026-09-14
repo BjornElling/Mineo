@@ -1,4 +1,7 @@
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { persistenceSchemas } from '../../../config/persistenceRegistry';
 import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
@@ -92,9 +95,9 @@ describe('createErstatningsopgoerelseInitialValues – schema-afledte objekt-def
       feriePct: undefined,
       // settings-afledt (DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage):
       loenPaaHelligdage: DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage,
-      // Store Bededagstillægget er et eksplicit tilvalg; en ny sag starter uden det
+      // Den første angivne løn-mode er månedsløn, hvor togglen starter slået til
       // (indskudte-loentillaeg-contract.md §2a.2).
-      beregnStoreBededagstillaeg: false,
+      beregnStoreBededagstillaeg: true,
       saerligFraDatoRegulering: undefined,
       loenudviklingBeregningsgrundlag: undefined,
       loenudviklingStatistikModel: undefined,
@@ -138,6 +141,23 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     const settings = { ...DEFAULT_APP_SETTINGS, defaultFuldLoenUnderFerie: false };
     const values = createErstatningsopgoerelseInitialValues(settings);
     expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
+  });
+
+  it('opretter en synlig Store Bededag-toggle som aktiv ved almindelig løn på helligdage', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold(DEFAULT_APP_SETTINGS);
+
+    expect(employment.loenPaaHelligdage).toBe('Almindelig løn');
+    expect(employment.beregnStoreBededagstillaeg).toBe(true);
+  });
+
+  it('opretter den skjulte Store Bededag-toggle passiv ved andet helligdagsvalg', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold({
+      ...DEFAULT_APP_SETTINGS,
+      defaultLoenPaaHelligdage: 'Ingen',
+    });
+
+    expect(employment.loenPaaHelligdage).toBe('Ingen');
+    expect(employment.beregnStoreBededagstillaeg).toBe(false);
   });
 
   it('defaultSvieSmerteDelvisSygemeldingSats="fuld" → svieSmerteDelvisSygemeldingSats="fuld"', () => {

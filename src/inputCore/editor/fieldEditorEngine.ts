@@ -10,12 +10,13 @@ import type {
   SetImmediateFieldCommand,
   ClearFieldCommand,
   SettleFieldInNewRowCommand,
+  FieldTransactionCommand,
   StructuralTransactionCommand,
 } from '../inputReducer';
 import type { CollectionRef } from '../fieldAddress';
 import type { FieldHistoryOrigin } from '../inputHistory';
 
-// Kun de tre felt-scopede commands udstedes herfra; entity-/system-commands ejes af række- og case-portene.
+// Kun felt-scopede commands udstedes herfra; entity-/system-commands ejes af række- og case-portene.
 // En præcis command-type (ikke den brede union) undgår den contravariante generiske variansfælde, som
 // `dispatchInput`'s løse parametertype allerede beskriver (jf. dispatchInput.ts).
 // `settleFieldInNewRow` er editorens ENESTE entity-command (§1.11): den atomiske placeholder-promotion, hvor
@@ -24,7 +25,8 @@ type EditorFieldCommand<T> =
   | SettleFieldCommand<T>
   | SetImmediateFieldCommand<T>
   | ClearFieldCommand<T>
-  | SettleFieldInNewRowCommand<unknown, T>;
+  | SettleFieldInNewRowCommand<unknown, T>
+  | FieldTransactionCommand;
 
 export type EditorDispatch<T> = Readonly<{
   command: EditorFieldCommand<T> | StructuralTransactionCommand;

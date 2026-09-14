@@ -9,6 +9,13 @@ export type StoreBededagstillaegValg = Readonly<{
 }>;
 
 /**
+ * Standardvalget for en ny synlig Store Bededag-toggle på en række med almindelig løn på helligdage.
+ * Ved andre helligdagsvalg er togglen skjult og får den passive `false`-værdi.
+ */
+export const resolveDefaultStoreBededagstillaeg = (loenPaaHelligdage: string | undefined): boolean =>
+  loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+
+/**
  * "Løn på helligdage" er en forudsætning for at vise valget, men er ikke længere en beregningsregel.
  * Den særskilte toggle er nødvendig, så hverken skjult input eller en gammel automatisk antagelse kan
  * føre tillægget ind i beregninger, kontrol eller dokumenter.
