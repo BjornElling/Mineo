@@ -121,6 +121,26 @@ const INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES: ErstatningsopgoerelseVa
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
+const INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_MAX_YEAR_VALUES: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES,
+  offentligeYdelserRows: [{
+    id: 'ydelse-1',
+    fraDato: toISODateString('2027-01-01'),
+    tilDato: toISODateString('2027-12-31'),
+    ydelse: { kind: 'number', value: 1000 },
+    tillaeg: undefined,
+    ydelsestype: 'dagpenge',
+  }],
+  tafPerioder: [{
+    id: 'taf-1',
+    fra: toISODateString('2027-01-01'),
+    til: toISODateString('2027-12-31'),
+    loseFeriedage: undefined,
+  }],
+  tafBeregningsperiodeFra: toISODateString('2027-01-01'),
+  tafBeregningsperiodeTil: toISODateString('2027-12-31'),
+};
+
 describe('TD-019 – offentlig ydelsesregulering uden schema-fixture', () => {
   it('rapporterer reguleringsbase før første satsår med præcis feltsti, besked og severity', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES);
@@ -130,6 +150,25 @@ describe('TD-019 – offentlig ydelsesregulering uden schema-fixture', () => {
       errors: [{
         path: 'regulerOffentligeYdelser',
         message: 'Der kan ikke indtastes datoer før 1. januar 2005 ved regulering af offentlige ydelser.',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer TAF-slutår efter sidste satsår med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(
+      INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_MAX_YEAR_VALUES,
+    );
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'regulerOffentligeYdelser',
+        message: 'Regulering af offentlige ydelser kan ikke beregnes efter 2026, fordi reguleringssatsen mangler.',
+        severity: 'error',
+      }, {
+        path: 'regulerOffentligeYdelser',
+        message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027.',
         severity: 'error',
       }],
     });
