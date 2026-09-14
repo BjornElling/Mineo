@@ -1471,13 +1471,28 @@ namespace-importværnet. Målrettet kontrol bestod med 4/4 tests, `npm run typec
 lint bestod. Batchen er test-only; ingen produktkode, beregningslogik, brugeradfærd eller persistens
 er ændret. Samlet releasegate skal genkøres efter batchen.
 
+## Seneste test-only validator-, downstream- og lane-batch efter arbejdsrevision baseret på `c2304563`
+
+Batchen tilføjer tre disjunkte testfacitter: `td019SfggReferenceperiodeFoerTafValidatorIndependent.test.ts`
+fastholder den inklusive SFGG-grænse, hvor referenceperiodens til-dato falder på første TAF-dag,
+med 1/1 præcist validatorfacit; `td020FeriepengeDownstreamIndependent.test.ts` fører feriepenge
+over skærtorsdag, langfredag, weekend, påskedag og påskemandag gennem arbejdsdagsconsumeren med
+1/1 uafhængigt downstream-facit; og `e2eDoubleQuotedMenuNavigationGuard.test.ts` styrker
+ARCH-003-værnet for dobbelciterede direkte sidemenu-klik med 3/3 quality-facitter. Den målrettede
+SFGG-suite bestod med 3/3, TD-020-downstream-gruppen med 25 filer / 26 tests, og
+`npm run typecheck:test`, lint, mojibake-, filnavns- og diff-kontroller bestod. Den relevante
+Chrome-E2E-retest bestod med 3/3 uden runtimefejl, runtime-signaler eller eksterne requests.
+Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret.
+Samlet `verify:release:core` skal køres efter batchen.
+
 ## Næste arbejdsenhed
 
-Den seneste samlede releasegate på `056c722a` er retestet grønt; den fulde E2E-suite er senest grøn
-på `238e2740` med 220/222. Næste arbejdsenhed er en af de åbne,
-test-only dækningshuller, indtil et punkt kræver udviklerens
-beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
-`TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
+Den seneste samlede releasegate på `d39076e1` er retestet grønt; den fulde E2E-suite er senest grøn
+på `38df665f` med 215/217. Den seneste arbejdsbatch tilføjer tre test-only facitter baseret på
+`c2304563`; målrettet retest er grøn, mens samlet releasegate endnu skal køres. Næste arbejdsenhed
+er den samlede releasegate og derefter en ny afgrænset test-only dækningskontrol, indtil et punkt
+kræver udviklerens beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`,
+`TD-016`, `TD-014`, `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
 
 ## Historisk arbejdsenhedskontekst
 
