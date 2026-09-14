@@ -113,6 +113,15 @@ const INDEPENDENT_OEVRIGE_KRAV_VALUES: ErstatningsopgoerelseValues = {
   bilagsnumreOevrigeErstatningskrav: undefined,
 };
 
+const INDEPENDENT_OEVRIGE_KRAV_ZERO_AMOUNT_VALUES: ErstatningsopgoerelseValues = {
+  ...INDEPENDENT_OEVRIGE_KRAV_VALUES,
+  oevrigeKravPerioder: INDEPENDENT_OEVRIGE_KRAV_VALUES.oevrigeKravPerioder.map((row) => ({
+    ...row,
+    id: 'oevrigt-krav-nul-beloeb',
+    beloeb: { kind: 'number', value: 0 },
+  })),
+};
+
 describe('TD-019 – øvrige krav-validator uden schema-fixture', () => {
   it('rapporterer negativt beløb med præcis feltsti, dansk besked og severity', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OEVRIGE_KRAV_VALUES);
@@ -122,6 +131,19 @@ describe('TD-019 – øvrige krav-validator uden schema-fixture', () => {
       errors: [{
         path: 'oevrigeKravPerioder[0].beloeb',
         message: 'Beløb kan ikke være negativt',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('rapporterer nulbeløb med præcis feltsti, dansk besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OEVRIGE_KRAV_ZERO_AMOUNT_VALUES);
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'oevrigeKravPerioder[0].beloeb',
+        message: 'Beløb skal være større end 0',
         severity: 'error',
       }],
     });
