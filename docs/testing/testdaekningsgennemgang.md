@@ -1522,7 +1522,10 @@ kalendermånedssegmenter ved årsskifte og skuddag med 25/25 håndskrevne facitv
 med 2/2 præcise validatorfacitter. De tre målrettede tests bestod samlet med 3/3, og
 `npm run typecheck:test` bestod efter en eksplicit testafgrænset runtime-boundary for den ukendte
 modelværdi. Ændringerne er test-only; ingen produktkode, beregningslogik, brugeradfærd eller
-persistens er ændret. Samlet releasegate skal genkøres efter batchen.
+persistens er ændret. `verify:release:core` bestod derefter på `056c722a` med 799 testfiler / 8.929
+Vitest-tests, coverage 90,26 % statements / 81,39 % branches / 93,98 % functions / 93,08 % lines
+og begge produktionsbuilds. Den fulde valgte E2E-suite er fortsat senest grøn på `238e2740` med
+220 tests og 2 forventede skips ud af 222; batchen ændrede ikke browserkode.
 
 ## 10. Afslutningsgate
 

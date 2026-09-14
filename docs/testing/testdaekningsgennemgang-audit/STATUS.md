@@ -1455,13 +1455,15 @@ skal gennemføres efter batchen.
 årsskifte og skuddag med 25/25 håndskrevne facitværdier. `td019StatistikModelValidatorIndependent.test.ts`
 afprøver både manglende og ukendt Statistikmodel i et aktivt ansættelsesforhold og kræver 2/2 præcise
 issues. De tre målrettede tests bestod med 3/3, og `npm run typecheck:test` bestod. Batchen er test-only;
-ingen produktkode, beregningslogik, brugeradfærd eller persistens er ændret. Samlet releasegate skal
-genkøres efter batchen.
+ingen produktkode, beregningslogik, brugeradfærd eller persistens er ændret. `verify:release:core`
+bestod derefter på `056c722a` med 799 testfiler / 8.929 Vitest-tests, coverage 90,26 / 81,39 / 93,98 /
+93,08 og begge builds. Den fulde valgte E2E-suite er fortsat senest grøn på `238e2740` med 220 tests
+og 2 forventede skips ud af 222; batchen ændrede ikke browserkode.
 
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch og samlede releasegate på `238e2740` er retestet grønt; den fulde
-E2E-suite er senest grøn på samme revision med 220/222. Næste arbejdsenhed er en af de åbne,
+Den seneste samlede releasegate på `056c722a` er retestet grønt; den fulde E2E-suite er senest grøn
+på `238e2740` med 220/222. Næste arbejdsenhed er en af de åbne,
 test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
