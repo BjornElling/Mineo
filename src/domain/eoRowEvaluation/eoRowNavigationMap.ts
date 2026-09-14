@@ -1,11 +1,9 @@
 /**
  * Navigation-mapping for EOInspektion rows til Beregning-fanen
  *
- * Dette modul håndterer mapping fra EoRowId til navigation-targets (sider/faner/sektioner)
+ * Dette modul håndterer mapping fra række-id’er til navigation-targets (sider/faner/sektioner)
  * for at understøtte klikbare links i Beregning-fanen.
  */
-
-// Bevidst ingen EoRowId-union her: navigationen accepterer string-input for at undgå runtime-nedbrud.
 
 /**
  * SectionId angiver et scroll-mål i UI'et: værdien skrives som `sectionId` på
@@ -62,14 +60,14 @@ export type NavigationTarget =
     };
 
 /**
- * Exhaustive mapping fra EoRowId til NavigationTarget
+ * Mapping fra række-id til NavigationTarget
  *
  * VIGTIGT:
  * - Ukendte IDs returnerer altid 'unsupported' (ingen runtime-crash)
  * - Mapping er bevidst tolerant for at undgå at blokere visning i Beregning-fanen
  * - TypeScript kan ikke håndhæve exhaustiveness her pga. string-input
  *
- * @param rowId - EoRowId fra builder-funktioner
+ * @param rowId - Række-id fra builder-funktioner
  * @returns NavigationTarget med kind, path og metadata
  */
 export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget => {

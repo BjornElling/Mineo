@@ -7,18 +7,6 @@ import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 import { resolveSkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
-/**
- * Række-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
- *
- * Dette beskytter React-key-stabilitet og gør kontrol-output auditerbart.
- */
-export type EoRowId =
-  | 'stamdata.journalnr'
-  | 'stamdata.advokatSagsbehandler'
-  | 'stamdata.skadelidte'
-  | 'stamdata.skadestype'
-  | 'stamdata.skadedato';
-
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldIssues = FieldIssueSet;
 
