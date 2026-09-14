@@ -1595,8 +1595,13 @@ i samme EO-kolonne med 3/3 uafhængigt downstream-facit; og `e2eSharedFixtureImp
 styrker ARCH-003-værnet mod forkerte runtime-, namespace-, dynamiske og CommonJS-importer med 7/7
 quality-facitter. Den samlede målrettede validator-/downstream-kontrol bestod med 89 filer / 121 tests,
 og `npm run typecheck:test`, målrettet ESLint og diff-kontrol bestod. Ændringerne er test-only; ingen
-produktkode, beregningslogik, UI/UX, E2E-specs eller persistens er ændret. Samlet releasegate skal
-genkøres efter batchen.
+produktkode, beregningslogik, UI/UX, E2E-specs eller persistens er ændret. Den efterfølgende samlede
+releasegate er dokumenteret nedenfor.
+
+Efter batchen bestod `verify:release:core` på `8d1f2007` med 814 testfiler / 8.965 Vitest-tests,
+coverage 90,36 / 81,49 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite er
+fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner,
+fordi batchen kun ændrede tests og ikke browserkode eller brugeradfærd.
 
 ## 10. Afslutningsgate
 
