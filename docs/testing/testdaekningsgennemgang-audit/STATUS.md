@@ -1509,11 +1509,24 @@ coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde val
 er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
 projektbaner; den efterfølgende batch var test-only og ændrede ikke browserkode eller brugeradfærd.
 
+## Seneste test-only validator-, downstream- og ARCH-batch – arbejdsrevision `917c259c`
+
+Batchen tilføjer tre disjunkte testfacitter: `td019UspecificeredeFerieFridageRangeValidatorIndependent.test.ts`
+fastholder den øvre canonical-grænse for uspecificerede feriedage med 1/1 præcist validatorfacit;
+`td020KontanthjaelpRowPartitionIndependent.test.ts` fastholder to ikke-overlappende kontanthjælpsrækker
+i samme EO-kolonne med 3/3 uafhængigt downstream-facit; og `e2eSharedFixtureImportGuard.test.ts`
+styrker ARCH-003-værnet mod forkerte runtime-, namespace-, dynamiske og CommonJS-importer med 7/7
+quality-facitter. Den samlede målrettede validator-/downstream-kontrol bestod med 89 filer / 121 tests,
+og `npm run typecheck:test`, målrettet ESLint og diff-kontrol bestod. Ændringerne er test-only; ingen
+produktkode, beregningslogik, UI/UX, E2E-specs eller persistens er ændret. Den samlede releasegate
+skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede releasegate på `2bec9ac8` er retestet grønt; den fulde E2E-suite er senest grøn
 på `71746917` med 221/223. Den seneste arbejdsbatch tilføjer tre test-only facitter baseret på
-`0dca69cf`, og både målrettet retest og samlet releasegate er grønne. Næste arbejdsenhed
+`917c259c`, og både målrettet retest og samlet releasegate er grønne for den forrige batch; den nye
+batch er målrettet grøn, mens samlet releasegate endnu skal køres. Næste arbejdsenhed
 er en ny afgrænset test-only dækningskontrol, indtil et punkt
 kræver udviklerens beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`,
 `TD-016`, `TD-014`, `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
