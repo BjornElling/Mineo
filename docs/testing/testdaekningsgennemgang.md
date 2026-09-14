@@ -1575,8 +1575,13 @@ fastholder den øvre forligsprocentgrænse med 1/1 præcist validatorfacit;
 `td020DagpengeRowPartitionIndependent.test.ts` fastholder to ikke-overlappende dagpengerrækker i
 samme EO-kolonne med 1/1 uafhængigt downstream-facit; og `e2eOpenPageAwaitGuard.test.ts` styrker
 ARCH-003-værnet for uawaitede `openPage`-kald med 6/6 quality-facitter. Ændringerne er test-only;
-ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Samlet releasegate skal
-genkøres efter batchen.
+ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den efterfølgende samlede
+releasegate er dokumenteret nedenfor.
+
+Efter batchen bestod `verify:release:core` på `2bec9ac8` med 811 testfiler / 8.956 Vitest-tests,
+coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite er
+fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner,
+fordi batchen kun ændrede tests og ikke browserkode eller brugeradfærd.
 
 ## 10. Afslutningsgate
 
