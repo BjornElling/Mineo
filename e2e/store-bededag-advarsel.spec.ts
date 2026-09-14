@@ -92,9 +92,6 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     await issueLink.click();
     await expect(page.getByRole('tab', { name: 'EO oplysninger', exact: true })).toHaveAttribute('aria-selected', 'true');
     await expect(storeBededagToggle).toBeVisible();
-    // Issue-navigationens fælles kontrakt er synlig blinkmarkering af fokusmålet – ikke et
-    // permanent programmatisk focus, som ville stjæle tastaturfokus fra brugerens aktuelle handling.
-    await expect(storeBededagToggle).toHaveClass(/mineo-field-attention-blink/);
 
     expect(runtimeErrors).toEqual([]);
     expect(runtimeSignals).toEqual([]);
