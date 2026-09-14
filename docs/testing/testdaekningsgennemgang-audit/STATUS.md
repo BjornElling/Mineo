@@ -1427,6 +1427,14 @@ valgte E2E-suite er endnu ikke genkørt efter den nye browser-spec; seneste fuld
 `38df665f` med 215 beståede tests og 2 forventede skips ud af 217 på 10 projektbaner, uden
 ukontrollerede runtimefejl, runtime-signaler eller eksterne requests.
 
+## Seneste test-only overlay- og data-batch efter arbejdsrevision baseret på `7ec0ccca`
+
+`td020DagpengeDownstreamIndependent.test.ts` bestod med 1/1 målrettet Vitest. Den nye
+`loentrin-finder-overlay.spec.ts` bestod i Chrome, Edge, Firefox og WebKit med 4/4 og blev
+retestet i Chrome med 1/1; rejsen kræver åbning, Tab/Shift+Tab-cyklus, Escape-lukning og fokus-
+restore til den konkrete `Find løntrin`-knap. Ingen produktkode, beregningslogik eller
+persistensformat er ændret. Fuld Vitest-/releasegate- og valgt E2E-retest skal gennemføres.
+
 ## Næste arbejdsenhed
 
 Den seneste målrettede batch og samlede releasegate på arbejdsrevisionen baseret på `e7f755e0` er
