@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `c49c5714` / `71746917` | `verify:release:core` på `c49c5714`: 861 testfiler / 9.036 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,72 % statements / 81,92 % branches / 94,82 % functions / 93,51 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
+| Seneste samlede release-/E2E-retest | `4ab724d1` / `71746917` | `verify:release:core` på `4ab724d1`: 863 testfiler / 9.038 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,72 % statements / 81,92 % branches / 94,82 % functions / 93,51 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -701,7 +701,7 @@ procenter på tværs af revisionsændringer uden at sammenligne instrumenteret f
 
 ### Seneste coverage-retest
 
-På `c49c5714` bestod `npm run test:coverage` med 861 testfiler / 9.036 tests uden forventede
+På `4ab724d1` bestod `npm run test:coverage` med 863 testfiler / 9.038 tests uden forventede
 `it.fails`. Coverage var 90,72 % statements, 81,92 % branches, 94,82 % functions og 93,51 %
 lines – 18.701 / 20.613, 13.193 / 16.104, 3.061 / 3.228 og 17.073 / 18.257 målte enheder.
 Coverage er fortsat triageværktøj og ikke eneste kvalitetsbevis; begge produktionsbuilds bestod
@@ -1048,6 +1048,8 @@ prøves med en anden evidensform end den primære test.
 | TD-232 | 2026-09-14 | `CALC-006` | Mellem | EO-sammentællingen havde ikke et uafhængigt facit for manglende øvrige fraværsdage. En ændring kunne derfor vise et beregningsgrundlag, før fraværsantallet er afsluttet, selv om tabelperioden fortsat indeholder fem dage. | `eoInspektionSammentaellingMissingAbsenceIndependent.test.ts` kræver med 1/1 `beregnetValue: null`, `beregnetDisplay: '-'`, `tabelValue: 5`, `tabelDisplay: '5'` og nul som internt fraværsantal. | Lukket for den konkrete manglende øvrige fraværsdage → tomt beregningsgrundlag/bevaret tabelgrundlag-partition. Øvrige sammentællings-/dokumentprojektioner og domæneafklaringen i `TD-016` er fortsat åbne under `CALC-006`. Ingen produktkode eller beregningslogik er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt sammentællingsfacit |
 | TD-233 | 2026-09-14 | `ARCH-002` | Mellem | Storage-boundary-reglen havde ikke et uafhængigt modcase for rå `globalThis.localStorage`-adgang. En ændring kunne derfor lade globalThis-syntaksen passere, selv om den bryder den autoritative storage-grænse. | `storageBoundaryGlobalThisNegative.test.ts` kræver med 1/1 finding for `globalThis.localStorage` med den konkrete regelbesked. | Lukket for den konkrete globalThis.localStorage → storage-boundary-finding-partition. Bracket-access og øvrige ARCH-002-regler er fortsat ikke fuldt triageret. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt arkitekturmodcase |
 | TD-234 | 2026-09-14 | `DOC-001` | Mellem | Satser-definitionen havde ikke et uafhængigt renderer-wiring-facit for, at typed sats-snapshot, stamdata, årstal og `visBrevhoved` videresendes uændret. En ændring kunne derfor give rendereren forkert input uden at fixture- eller lifecycle-tests blev røde. | `satserDocumentRendererWiringIndependent.test.ts` kræver med 1/1 korrekt blob/filnavn og præcis videresendelse af session, årstal, sats-snapshot, stamdata og `visBrevhoved: true`. | Lukket for den konkrete Satser-definition → renderer-input-partition. Fysisk PDF/Word-rendering og fuld semantisk kanalparitet er fortsat åbne under `TD-014`/`TD-018`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt renderer-wiring-facit |
+| TD-235 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Lønindkomst-validatoren havde ikke et uafhængigt typed facit for negativ `storeBededagPct`. En ændring kunne derfor acceptere en negativ Store Bededag-procent eller flytte feltsti, besked eller severity. | `td019StoreBededagPctRangeValidatorIndependent.test.ts` kræver med 1/1 præcis feltsti `loenindkomstAnsaettelsesforhold[0].storeBededagPct`, beskeden `Procent skal være mellem 0 og 100` og `error`-severity. | Lukket for den konkrete Store Bededag-procent → canonical range-issue-partition. Øvrige validatorpartitioner og komplet validatorparitet er fortsat åbne under `TD-019`. Ingen schema-, validator- eller runtimeændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
+| TD-236 | 2026-09-14 | `DATA-001` / `DOC-001` / `TD-020` | Mellem | Kapitaliseringens 2026-tabel A havde ikke et uafhængigt downstream-facit gennem den faktiske Word-generator. En ændring kunne derfor vælge forkert bekendtgørelsestabel, alder/faktor eller tekst uden at øvrige kapitaliseringstabeller blev røde. | `td020Kapitalisering2026DocumentIndependent.test.ts` kræver med 1/1 Vejl. 10056/2025 tabel A, 55 år, faktor `10.018`, korrekt kapitaliseringsdato, folkepensionsalder og Word-tekst. | Lukket for den konkrete 2026-tabel A → kapitaliseringsprojektion → Word-partition. Øvrige kapitaliseringstabeller, fysisk PDF/Word-rendering og fuld kanalparitet er fortsat åbne under `TD-014`/`TD-018`. Ingen produktkode eller beregningslogik er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt kapitaliseringsfacit |
 
 ## Seneste test-only dato-, data-, validator- og arkitekturbatch – arbejdsrevision baseret på `048fa314`
 
@@ -2052,6 +2054,23 @@ semantisk kanalparitet og øvrige arkitekturreglers modcases er fortsat åbne.
 ## Seneste samlede releasegate efter arbejdsrevision `c49c5714`
 
 `verify:release:core` bestod med 861 testfiler / 9.036 Vitest-tests uden forventede `it.fails`,
+coverage 90,72 / 81,92 / 94,82 / 93,51 og begge produktionsbuilds. Den fulde valgte E2E-suite
+er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
+projektbaner; batchen ændrede kun testkode og krævede derfor ikke en ny fuld E2E-kørsel.
+
+## Seneste test-only VALID-/DATA-facitbatch – arbejdsrevision `4ab724d1`
+
+Batchen tilføjer to disjunkte facitter uden produktændringer: `td019StoreBededagPctRangeValidatorIndependent.test.ts`
+fastholder med 1/1 negativ `storeBededagPct` med præcis feltsti, besked og severity, og
+`td020Kapitalisering2026DocumentIndependent.test.ts` fastholder med 1/1 2026 tabel A,
+faktor `10.018` og konkrete Word-tekster gennem den faktiske dokumentgenerator. Den målrettede
+kontrol bestod med 2/2 nye tests; typechecks, lint, encoding-, filnavns- og diff-kontroller bestod.
+Ændringerne er test-only; øvrige validatorpartitioner, kapitaliseringstabeller og fysisk rendering
+er fortsat åbne.
+
+## Seneste samlede releasegate efter arbejdsrevision `4ab724d1`
+
+`verify:release:core` bestod med 863 testfiler / 9.038 Vitest-tests uden forventede `it.fails`,
 coverage 90,72 / 81,92 / 94,82 / 93,51 og begge produktionsbuilds. Den fulde valgte E2E-suite
 er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
 projektbaner; batchen ændrede kun testkode og krævede derfor ikke en ny fuld E2E-kørsel.
