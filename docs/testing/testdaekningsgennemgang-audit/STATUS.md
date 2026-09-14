@@ -1449,6 +1449,15 @@ anciennitetstillæg på reguleringsdatoen med 1/1 målrettet Vitest. Ingen produ
 beregningslogik eller persistens er ændret. Samlet Vitest-/releasegate- og valgt E2E-retest
 skal gennemføres efter batchen.
 
+## Seneste test-only periodiserings- og validatorbatch efter arbejdsrevision baseret på `70325877`
+
+`periodRangeGroupsIndependentOracle.test.ts` fastholder fire delvise kalendermånedssegmenter ved
+årsskifte og skuddag med 25/25 håndskrevne facitværdier. `td019StatistikModelValidatorIndependent.test.ts`
+afprøver både manglende og ukendt Statistikmodel i et aktivt ansættelsesforhold og kræver 2/2 præcise
+issues. De tre målrettede tests bestod med 3/3, og `npm run typecheck:test` bestod. Batchen er test-only;
+ingen produktkode, beregningslogik, brugeradfærd eller persistens er ændret. Samlet releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste målrettede batch og samlede releasegate på `238e2740` er retestet grønt; den fulde
