@@ -1414,18 +1414,17 @@ E2E blev ikke gentaget på denne test-only revision; seneste fulde E2E står på
 215 beståede tests og 2 forventede skips ud af 217 på 10 projektbaner, uden ukontrollerede
 runtimefejl, runtime-signaler eller eksterne requests.
 
-## Seneste samlede releasegate efter arbejdsrevision baseret på `e7f755e0`
+## Seneste samlede releasegate efter revision `238e2740`
 
-`verify:release:core` bestod med 793 testfiler / 8.922 beståede Vitest-tests, coverage 90,26 %
-statements / 81,40 % branches / 93,98 % functions / 93,08 % lines og begge produktionsbuilds.
+`verify:release:core` bestod med 794 testfiler / 8.923 beståede Vitest-tests, coverage 90,26 %
+statements / 81,39 % branches / 93,98 % functions / 93,08 % lines og begge produktionsbuilds.
 Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger- og artefaktkontroller bestod.
 Vite rapporterede kun de kendte native-config- og chunk-størrelsesadvarsler. Kontrollen omfattede
-også det nye Andet-downstream-facit i arbejdsrevisionen.
+også Dagpenge-downstream-facit og Løntrin-finderens nye browser-spec.
 
-Den målrettede Store Bededag-browserrejse bestod med 1/1 på Chrome efter `e7f755e0`. Den fulde
-valgte E2E-suite er endnu ikke genkørt efter den nye browser-spec; seneste fulde E2E står på
-`38df665f` med 215 beståede tests og 2 forventede skips ud af 217 på 10 projektbaner, uden
-ukontrollerede runtimefejl, runtime-signaler eller eksterne requests.
+Den målrettede Store Bededag-browserrejse bestod med 1/1 på Chrome. Den fulde valgte E2E-suite
+bestod med 220 tests og 2 forventede skips ud af 222 på 10 projektbaner, inklusive Løntrin-finderens
+browserrejse, uden ukontrollerede runtimefejl, runtime-signaler eller eksterne requests.
 
 ## Seneste test-only overlay- og data-batch efter arbejdsrevision baseret på `7ec0ccca`
 
@@ -1433,12 +1432,13 @@ ukontrollerede runtimefejl, runtime-signaler eller eksterne requests.
 `loentrin-finder-overlay.spec.ts` bestod i Chrome, Edge, Firefox og WebKit med 4/4 og blev
 retestet i Chrome med 1/1; rejsen kræver åbning, Tab/Shift+Tab-cyklus, Escape-lukning og fokus-
 restore til den konkrete `Find løntrin`-knap. Ingen produktkode, beregningslogik eller
-persistensformat er ændret. Fuld Vitest-/releasegate- og valgt E2E-retest skal gennemføres.
+persistensformat er ændret. Den samlede Vitest-/releasegate- og valgte E2E-retest bestod på
+`238e2740`, jf. ovenstående.
 
 ## Næste arbejdsenhed
 
-Den seneste målrettede batch og samlede releasegate på arbejdsrevisionen baseret på `e7f755e0` er
-retestet grønt; den fulde E2E-suite er senest grøn på `38df665f`. Næste arbejdsenhed er en af de åbne,
+Den seneste målrettede batch og samlede releasegate på `238e2740` er retestet grønt; den fulde
+E2E-suite er senest grøn på samme revision med 220/222. Næste arbejdsenhed er en af de åbne,
 test-only dækningshuller, indtil et punkt kræver udviklerens
 beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`,
 `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.

@@ -1491,8 +1491,9 @@ Batchen tilføjer et uafhængigt Dagpenge-downstream-facit (`td020DagpengeDownst
 med 1/1 målrettet Vitest samt en browserrejse for Løntrin-finderens overlay
 (`loentrin-finder-overlay.spec.ts`). Browserrejsen bestod i Chrome, Edge, Firefox og WebKit med
 4/4; den målrettede Chrome-retest bestod med 1/1. Testene er test-only, og ingen produktkode,
-beregningslogik eller persistensformat er ændret. Fuld Vitest-/releasegate- og valgt E2E-retest
-skal gennemføres efter batchen.
+beregningslogik eller persistensformat er ændret. Efter batchen bestod den fulde valgte E2E-suite
+med 220 beståede tests og 2 forventede skips ud af 222, og `verify:release:core` bestod på
+`238e2740` med 794 testfiler / 8.923 tests samt begge builds.
 
 ## 10. Afslutningsgate
 
