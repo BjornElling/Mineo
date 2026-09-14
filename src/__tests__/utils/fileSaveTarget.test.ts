@@ -128,6 +128,25 @@ describe('resolveSaveTarget', () => {
     });
   });
 
+  it('rydder et forældreløst filhandle uden sessionStorage-filnavn før filvælgerforløbet', async () => {
+    const orphaned = makeHandle('ukendt.eo');
+    const picked = makeHandle('ny.eo');
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    mockedLoadFileHandleFromIndexedDB.mockResolvedValue(orphaned);
+    mockedSaveFileWithPicker.mockResolvedValue(picked);
+
+    const target = await resolveSaveTarget(fileData);
+
+    expect(mockedDeleteFileHandleFromIndexedDB).toHaveBeenCalledOnce();
+    expect(mockedVerifyFileHandleDetailed).not.toHaveBeenCalled();
+    expect(mockedSaveFileWithPicker).toHaveBeenCalledWith('foreslaaet-navn.eo', 'desktop');
+    expect(target).toEqual({
+      kind: 'fileHandle',
+      fileHandle: picked,
+      persistHandleAfterSuccess: true,
+    });
+  });
+
   it('annullerer stille når brugeren afviser tilladelses-prompten på et gemt handle', async () => {
     sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
