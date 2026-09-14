@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `6bc1269e` / `71746917` | `verify:release:core` på `6bc1269e`: 896 testfiler / 9.071 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 81,99 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
+| Seneste samlede release-/E2E-retest | `7394d80b` / `71746917` | `verify:release:core` på `7394d80b`: 897 testfiler / 9.072 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 81,99 % branches / 94,88 % functions / 93,53 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -701,9 +701,9 @@ procenter på tværs af revisionsændringer uden at sammenligne instrumenteret f
 
 ### Seneste coverage-retest
 
-På `6bc1269e` bestod `npm run test:coverage` med 896 testfiler / 9.071 tests uden forventede
-`it.fails`. Coverage var 90,74 % statements, 81,99 % branches, 94,88 % functions og 93,54 %
-lines – 18.705 / 20.613, 13.204 / 16.104, 3.063 / 3.228 og 17.078 / 18.257 målte enheder.
+På `7394d80b` bestod `npm run test:coverage` med 897 testfiler / 9.072 tests uden forventede
+`it.fails`. Coverage var 90,74 % statements, 81,99 % branches, 94,88 % functions og 93,53 %
+lines – 18.705 / 20.613, 13.204 / 16.104, 3.063 / 3.228 og 17.077 / 18.257 målte enheder.
 Coverage er fortsat triageværktøj og ikke eneste kvalitetsbevis; begge produktionsbuilds bestod
 efterfølgende i `verify:release:core`.
 
@@ -1083,8 +1083,25 @@ prøves med en anden evidensform end den primære test.
 | TD-267 | 2026-09-15 | `PERSIST-002` / `TD-022` | Mellem | File System Access-close havde ikke et uafhængigt facit for close-fejl efter succesfuld write. En ændring kunne derfor rapportere succes efter en fejlet afslutning eller miste loggerdata. | `fileSystemAccessCloseFailureIndependent.test.ts` kræver med 1/1 succesfuld write, close-kald, oversat close-fejl og loggerens oprindelige fejl. | Lukket for den konkrete close-fejl → write/close/status/logning-partition. Reel browser-/OS-filskrivning er fortsat åben under `TD-022`. Ingen produktkode eller persistensformat er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt File API-facit |
 | TD-268 | 2026-09-15 | `PERSIST-002` / `TD-022` | Mellem | File System Access-read havde ikke et uafhængigt facit for fejl i `file.text()`. En ændring kunne derfor skjule læsefejlen eller miste den oprindelige loggerdata. | `fileSystemAccessReadTextFailureIndependent.test.ts` kræver med 1/1 `getFile()`, `text()`, oversat læsefejl og loggerens oprindelige fejl. | Lukket for den konkrete `file.text()`-fejl → oversættelse/logning-partition. Reel browser-/OS-filskrivning og læsning er fortsat åben under `TD-022`. Ingen produktkode eller persistensformat er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt File API-facit |
 | TD-269 | 2026-09-15 | `VALID-001` / `TD-019` | Mellem | EO-angivet løn-validatoren havde ikke et uafhængigt typed facit for negativ `feriePct`. En ændring kunne derfor acceptere negativ ferieprocent eller flytte feltsti, besked eller severity. | `td019EoAngivetLoenFeriePctRangeValidatorIndependent.test.ts` kræver med 1/1 præcis feltsti `eoAngivetLoenLoenudvikling.feriePct`, beskeden `Procent skal være mellem 0 og 100` og `error`-severity. | Lukket for den konkrete EO-angivet løn → ferieprocent → canonical range-issue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, validator- eller runtimeændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
+| TD-270 | 2026-09-15 | `VALID-001` / `TD-019` | Mellem | EO-angivet løn-validatoren havde ikke et uafhængigt typed facit for øvre `feriePct`-grænse. En ændring kunne derfor acceptere en ferieprocent over 100 eller flytte feltsti, besked eller severity. | `td019EoAngivetLoenFeriePctUpperRangeValidatorIndependent.test.ts` kræver med 1/1 præcis feltsti `eoAngivetLoenLoenudvikling.feriePct`, beskeden `Procent skal være mellem 0 og 100` og `error`-severity for værdien 101. | Lukket for den konkrete EO-angivet løn → øvre ferieprocentgrænse → canonical range-issue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, validator- eller runtimeændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
 
-## Seneste test-only PERSIST-/VALID-batch – arbejdsrevision `6bc1269e`
+## Seneste test-only VALID-batch – arbejdsrevision `7394d80b`
+
+Batchen tilføjer ét disjunkt test-only facit uden produktændringer:
+`td019EoAngivetLoenFeriePctUpperRangeValidatorIndependent.test.ts` fastholder med 1/1 den
+øvre canonical-grænse for EO-angivet `feriePct` med præcis feltsti, besked og severity.
+Den målrettede kontrol bestod med 1/1 ny test; typechecks, lint, encoding-, filnavns- og
+diff-kontroller bestod. Ændringen er test-only; ingen produktkode, schema, beregningslogik,
+UI/UX eller persistens er ændret.
+
+## Seneste samlede releasegate efter arbejdsrevision `7394d80b`
+
+`verify:release:core` bestod med 897 testfiler / 9.072 Vitest-tests uden forventede `it.fails`,
+coverage 90,74 / 81,99 / 94,88 / 93,53 og begge produktionsbuilds. Den fulde valgte E2E-suite
+er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
+projektbaner; batchen ændrede kun testkode og krævede derfor ikke en ny fuld E2E-kørsel.
+
+## Tidligere test-only PERSIST-/VALID-batch – arbejdsrevision `6bc1269e`
 
 Batchen tilføjer elleve disjunkte test-only facitter uden produktændringer: ni PERSIST-002-
 facitter for silent IndexedDB-read, standardmappe-routing og metadata, directory-/file-handle-
@@ -1094,7 +1111,7 @@ kontrol bestod med 11/11 nye tests; typechecks, lint, encoding-, filnavns- og di
 bestod. Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX, persistensformat
 eller brugeradfærd er ændret.
 
-## Seneste samlede releasegate efter arbejdsrevision `6bc1269e`
+## Tidligere samlede releasegate efter arbejdsrevision `6bc1269e`
 
 `verify:release:core` bestod med 896 testfiler / 9.071 Vitest-tests uden forventede `it.fails`,
 coverage 90,74 / 81,99 / 94,88 / 93,54 og begge produktionsbuilds. Den fulde valgte E2E-suite
