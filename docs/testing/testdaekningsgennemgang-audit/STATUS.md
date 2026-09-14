@@ -1460,6 +1460,17 @@ bestod derefter på `056c722a` med 799 testfiler / 8.929 Vitest-tests, coverage 
 93,08 og begge builds. Den fulde valgte E2E-suite er fortsat senest grøn på `238e2740` med 220 tests
 og 2 forventede skips ud af 222; batchen ændrede ikke browserkode.
 
+## Seneste test-only dato-, data-, validator- og arkitekturbatch efter arbejdsrevision baseret på `048fa314`
+
+Batchen tilføjer fire disjunkte testfacitter: `periodeBeregningMaanedLeapYearIndependentOracle.test.ts`
+fastholder februar 2024 med 29 dage og skuddag; `td020MidlertidigtEetDownstreamIndependent.test.ts`
+fastholder midlertidigt EET over skuddag med kalenderdagsfordeling, formatering, kontrolsum og tomme
+integrity issues; `td019AngivetMaanedsloenKrlDaekningValidatorIndependent.test.ts` fastholder KRL-
+dækningsfejlen ved Angivet månedsløn; og `reguleringNamespaceImportBlindspot.test.ts` fastholder
+namespace-importværnet. Målrettet kontrol bestod med 4/4 tests, `npm run typecheck:test` bestod og
+lint bestod. Batchen er test-only; ingen produktkode, beregningslogik, brugeradfærd eller persistens
+er ændret. Samlet releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede releasegate på `056c722a` er retestet grønt; den fulde E2E-suite er senest grøn
