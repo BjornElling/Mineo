@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `04a3e8b8` / `71746917` | `verify:release:core` på `04a3e8b8`: 867 testfiler / 9.042 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,72 % statements / 81,92 % branches / 94,82 % functions / 93,51 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
+| Seneste samlede release-/E2E-retest | `1e0dfd6a` / `71746917` | `verify:release:core` på `1e0dfd6a`: 871 testfiler / 9.046 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,71 % statements / 81,92 % branches / 94,82 % functions / 93,51 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -701,7 +701,7 @@ procenter på tværs af revisionsændringer uden at sammenligne instrumenteret f
 
 ### Seneste coverage-retest
 
-På `04a3e8b8` bestod `npm run test:coverage` med 867 testfiler / 9.042 tests uden forventede
+På `1e0dfd6a` bestod `npm run test:coverage` med 871 testfiler / 9.046 tests uden forventede
 `it.fails`. Coverage var 90,71 % statements, 81,91 % branches, 94,82 % functions og 93,51 %
 lines – 18.700 / 20.613, 13.192 / 16.104, 3.061 / 3.228 og 17.073 / 18.257 målte enheder.
 Coverage er fortsat triageværktøj og ikke eneste kvalitetsbevis; begge produktionsbuilds bestod
@@ -1054,6 +1054,8 @@ prøves med en anden evidensform end den primære test.
 | TD-238 | 2026-09-14 | `SHELL-001` / `SHELL-002` | Mellem | Supported desktop-bootstrap havde ikke et uafhængigt facit for sideeffekternes rækkefølge. En ændring kunne derfor installere capture eller styles for sent, køre file-open i forkert fase eller rendere appen før preload-/before-render-trinnene. | `bootstrapSupportedDeviceOrderIndependent.test.tsx` kræver med 1/1 den præcise rækkefølge `preload-recovery`, `install-capture`, `app-styles`, `file-open`, `before-render`, `render-app`, `root-render`, `after-render` samt det konkrete render-kald. | Lukket for den konkrete supported-bootstrap → sideeffektsekvens/render-partition. Installeret-PWA-/OS-filaflevering, browsermatrix og øvrig shell-/platformsparitet er fortsat åbne under `TD-022`. Ingen produktkode eller synlig brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt bootstrapfacit |
 | TD-239 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Lønindkomst-validatoren havde ikke et uafhængigt typed facit for negativ anciennitetstillægssats. En ændring kunne derfor acceptere et negativt beløb eller flytte feltsti, besked eller severity for den canonical beløbsgrænse. | `td019AnciennitetstillaegSatsCanonicalValidatorIndependent.test.ts` kræver med 1/1 præcis feltsti `loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSats`, beskeden `Beløb kan ikke være negativt` og `error`-severity. | Lukket for den konkrete anciennitetstillægssats → canonical beløbsissue-partition. Den tilsvarende `eoAngivetLoenLoenudvikling`-partition, øvrige canonical-beløbsgrænser og komplet validatorparitet er fortsat åbne under `TD-019`. Ingen schema-, validator- eller runtimeændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
 | TD-240 | 2026-09-14 | `DOC-001` | Mellem | Dokumentdownloadens delayed object-URL-oprydning havde ikke et uafhængigt facit for, at anchor-elementet kan være fjernet af browseren før cleanup. En ændring kunne derfor kaste ved oprydning eller efterlade object-URL'en frigivet forkert. | `documentDownloadAnchorLifecycleIndependent.test.ts` kræver med 1/1 korrekt blob-URL og filnavn, ét click, fjernelse af anchor før timeren udløber, ingen exception og præcis ét `URL.revokeObjectURL`-kald. | Lukket for den konkrete detached-anchor → delayed cleanup-partition. Faktisk browser-/OS-download, installeret-PWA-adfærd og generel dokumentparitet er fortsat åbne under `TD-014`/`TD-022`. Ingen produktkode eller synlig brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt dokumentfacit |
+| TD-241 | 2026-09-14 | `DATA-001` / `DOC-001` / `TD-020` | Mellem | Satser-dokumentet havde ikke et uafhængigt downstream-facit for `diverse.reguleringssats`. En ændring kunne derfor vise forkert dansk procentformat eller udelade satsen i Word, selv om satskataloget fortsat var grønt. | `td020SatserDiverseReguleringssatsDocumentIndependent.test.ts` kræver med 1/1 den håndskrevne sats `2.75` som `Diverse / Reguleringssats / 2,75 %` i den faktiske Word-XML. | Lukket for den konkrete Diverse-reguleringssats → Satser-Word-projektion/format-partition. Kilden `getSatserForYear`, øvrige Diverse-branches, PDF-rendering og komplet downstream-/kanalparitet er fortsat åbne under `TD-020`/`TD-014`. Ingen data-, produktkode- eller beregningsændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt sats-/dokumentfacit |
+| TD-242 | 2026-09-14 | `PERSIST-002` / `TD-022` | Mellem | Sessionidentiteten for filoperationer havde ikke et uafhængigt facit for en ugyldig gemt værdi. En ændring kunne derfor genbruge en ugyldig klientidentitet eller miste bindingen efter reload og dermed blande samtidige filrequests. | `fileOperationClientSessionInvalidStorageIndependent.test.ts` kræver med 1/1 rotation fra den ugyldige værdi `for-kort` til en ny UUID-identitet, præcis ét randomUUID-kald og samme nye identitet efter simuleret reload. | Lukket for den konkrete ugyldig sessionStorage-værdi → ny klientidentitet → reload-partition. Browser-/PWA-/IndexedDB-sammenhæng, storage-fejl ved skrivning og fuld OS-filaflevering er fortsat åbne under `TD-022`. Ingen produktkode eller persistensformat er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt sessionfacit |
 
 ## Seneste test-only dato-, data-, validator- og arkitekturbatch – arbejdsrevision baseret på `048fa314`
 
@@ -2109,6 +2111,23 @@ bestod med 2/2 nye tests; typechecks, lint, encoding-, filnavns- og diff-kontrol
 
 `verify:release:core` bestod med 867 testfiler / 9.042 Vitest-tests uden forventede `it.fails`,
 coverage 90,72 / 81,92 / 94,82 / 93,51 og begge produktionsbuilds. Den fulde valgte E2E-suite
+er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
+projektbaner; batchen ændrede kun testkode og krævede derfor ikke en ny fuld E2E-kørsel.
+
+## Seneste test-only DATA-/PERSIST-facitbatch – arbejdsrevision `1e0dfd6a`
+
+Batchen tilføjer to disjunkte facitter uden produktændringer: `td020SatserDiverseReguleringssatsDocumentIndependent.test.ts`
+fastholder med 1/1 den håndskrevne Diverse-reguleringssats `2.75` som `2,75 %` i den
+faktiske Word-XML, og `fileOperationClientSessionInvalidStorageIndependent.test.ts` fastholder
+med 1/1 rotation af en ugyldig gemt klientidentitet samt bevarelse efter simuleret reload.
+Den målrettede kontrol bestod med 2/2 nye tests; typechecks, lint, encoding-, filnavns- og
+diff-kontroller bestod. Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX
+eller persistens er ændret.
+
+## Seneste samlede releasegate efter arbejdsrevision `1e0dfd6a`
+
+`verify:release:core` bestod med 871 testfiler / 9.046 Vitest-tests uden forventede `it.fails`,
+coverage 90,71 / 81,92 / 94,82 / 93,51 og begge produktionsbuilds. Den fulde valgte E2E-suite
 er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
 projektbaner; batchen ændrede kun testkode og krævede derfor ikke en ny fuld E2E-kørsel.
 
