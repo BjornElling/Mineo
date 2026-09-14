@@ -975,6 +975,7 @@ prøves med en anden evidensform end den primære test.
 | TD-179 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Lønindkomstens SH/SO-procent havde ikke et uafhængigt facit for negativ værdi. En ændring kunne derfor acceptere en negativ procentsats eller rapportere fejlen på forkert felt, besked eller severity. | `td019ShSoPctRangeValidatorIndependent.test.ts` bruger en komplet håndskrevet typed fixture uden schema-defaults eller produktionsfabrikker med `shSoPct: -1` og kræver præcis feltsti, besked og `error`-severity; målrettet kontrol bestod med 1/1. | Lukket for den konkrete SH/SO-procent → nedre canonical-grænse → præcis validatorissue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, runtime- eller brugeradfærdsændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
 | TD-180 | 2026-09-14 | `DATA-001` / `CALC-006` / `TD-020` | Mellem | SU havde et facit for én række, men ikke for flere ikke-overlappende rækker i samme EO-kolonne. En ændring kunne derfor miste skuddagen, overskrive den første række eller give forkert samlet kontrolsum. | `td020SuRowPartitionIndependent.test.ts` fører to håndskrevne SU-rækker over skuddag gennem den faktiske EO-inspektionsmodel og kræver 300 kr. pr. dag i første partition, 450 kr. pr. dag i anden partition, samlet 1.500 kr. og ingen integrity issues; målrettet kontrol bestod med 1/1. | Lukket for den konkrete SU → skuddag → flere rækkepartitioner → fælles EO-kolonne-partition. Øvrige ydelsestyper, komplet downstream-paritet og domæneafklaringen i `TD-016` er fortsat åbne. Ingen data, beregningslogik, produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt downstream-facit |
 | TD-181 | 2026-09-14 | `ARCH-002` | Mellem | Inspektionslagets importværn havde ikke et selvstændigt modcase for wildcard-re-export. En `export * from` kunne derfor i princippet omgå et statisk boundary-værn uden finding. | `inspektionReExportBoundaryBlindspot.test.ts` sender et syntetisk `export * from`-modcase gennem den levende `layer/inspektion-import-boundary`-regel og kræver præcis én finding med besked om import af inspektions-/kontrollaget; målrettet kontrol bestod med 1/1. | Lukket for den konkrete wildcard-re-export → inspektionsboundary-partition. Øvrige arkitekturregler, importgrænser og semantisk gennemgang er fortsat åbne under `ARCH-002`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt architecture-facit |
+| TD-182 | 2026-09-14 | `DOC-001` | Mellem | Reguleringsdokumentets outputvalg havde ikke et samlet uafhængigt facit for alle committed beregningsgrundlag. En fejl kunne derfor vælge forkert dokumentgenerator eller returnere et output for en tom sag. | `reguleringDocumentOutputSelectionIndependent.test.ts` committer hvert af de fire grundlag `Overenskomst`, `Statistik`, `KRL satstabel` og `KL-lønaftaler` gennem den faktiske inputmotor og kræver de fire håndskrevne output-id'er samt `null` for tom sag; målrettet kontrol bestod med 1/1. | Lukket for den konkrete reguleringsgrundlag → dokumentoutput-id-partition. Øvrige dokumentdefinitioner, fysisk layout-/Word-paritet og komplet output-lifecycle er fortsat åbne under `DOC-001`–`DOC-003` og `TD-014`/`TD-018`. Ingen produktkode, dokumenttekst eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt dokumentfacit |
 
 ## Seneste test-only dato-, data-, validator- og arkitekturbatch – arbejdsrevision baseret på `048fa314`
 
@@ -1607,6 +1608,22 @@ inspektionslaget med 1/1 architecture-facit. Den samlede målrettede validator-/
 bestod med 91 filer / 117 tests, og `npm run typecheck:test`, målrettet ESLint og diff-kontrol
 bestod. Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX, E2E-specs eller
 persistens er ændret. Den efterfølgende samlede releasegate er dokumenteret ovenfor.
+
+## Seneste test-only DOC-001-batch – arbejdsrevision `3065da1d`
+
+Batchen tilføjer `reguleringDocumentOutputSelectionIndependent.test.ts`, som gennem den faktiske
+inputmotor committer de fire reguleringsgrundlag og fastholder de fire dokumentoutput-id'er samt
+`null` for tom sag med 1/1 uafhængigt dokumentfacit. Målrettet kontrol bestod med 1/1, og
+`npm run typecheck:test`, ESLint og diff-kontrol bestod. Ændringen er test-only; ingen produktkode,
+dokumenttekst, beregningslogik, UI/UX eller persistens er ændret. Den efterfølgende samlede
+releasegate er dokumenteret nedenfor.
+
+## Seneste samlede releasegate efter arbejdsrevision `3065da1d`
+
+`verify:release:core` bestod med 818 testfiler / 8.969 Vitest-tests uden forventede `it.fails`,
+coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite
+er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
+projektbaner; batchen ændrede kun tests og krævede derfor ikke en ny E2E-kørsel.
 
 ## Seneste test-only validator-, downstream- og ARCH-batch – arbejdsrevision baseret på `917c259c`
 
