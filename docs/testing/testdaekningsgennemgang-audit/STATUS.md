@@ -1492,11 +1492,21 @@ coverage 90,37 / 81,50 / 94,33 / 93,15 og begge builds. Den fulde valgte E2E-sui
 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter.
 Ingen ukontrollerede runtimefejl, runtime-signaler eller eksterne requests blev rapporteret.
 
+## Seneste test-only validator-, downstream- og navigationbatch efter arbejdsrevision `0dca69cf`
+
+Batchen tilføjer tre disjunkte testfacitter: `td019ForligAnsvarsgradProcentRangeValidatorIndependent.test.ts`
+fastholder den øvre forligsprocentgrænse med 1/1 præcist validatorfacit;
+`td020DagpengeRowPartitionIndependent.test.ts` fastholder to ikke-overlappende dagpengerrækker i
+samme EO-kolonne med 1/1 uafhængigt downstream-facit; og `e2eOpenPageAwaitGuard.test.ts` styrker
+ARCH-003-værnet for uawaitede `openPage`-kald med 6/6 quality-facitter. Ændringerne er test-only;
+ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Samlet releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
-Den seneste samlede releasegate på `d39076e1` er retestet grønt; den fulde E2E-suite er senest grøn
-på `38df665f` med 215/217. Den seneste arbejdsbatch tilføjer tre test-only facitter baseret på
-`c2304563`; målrettet retest og samlet releasegate er grønne på `71746917`. Næste arbejdsenhed
+Den seneste samlede releasegate på `71746917` er retestet grønt; den fulde E2E-suite er senest grøn
+på samme revision med 221/223. Den seneste arbejdsbatch tilføjer tre test-only facitter baseret på
+`0dca69cf`; målrettet retest er grøn, mens samlet releasegate endnu skal køres. Næste arbejdsenhed
 er en ny afgrænset test-only dækningskontrol, indtil et punkt
 kræver udviklerens beslutning eller faktiske eksterne artefakter. De kendte blokeringer er `TD-001`,
 `TD-016`, `TD-014`, `TD-018`, `TD-022`, `B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
