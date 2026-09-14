@@ -15,8 +15,8 @@ export type CodePosition = Readonly<{ line: number; column: number }>;
 export type ImportRef = Readonly<{
   /** Modulets specifier uden anførselstegn, fx `../../stores/formPersistenceStore`. */
   moduleSpecifier: string;
-  /** Statisk `import`/`export ... from`, dynamisk `import(...)` eller `require(...)`. */
-  kind: 'import' | 'export-from' | 'dynamic' | 'require';
+  /** Statisk `import`/`export ... from`, dynamisk `import(...)`, `require(...)` eller import-equals. */
+  kind: 'import' | 'export-from' | 'dynamic' | 'require' | 'import-equals';
   /** Er importen ren type-position (`import type` / `import { type X }`)? */
   typeOnly: boolean;
   /**
@@ -122,7 +122,7 @@ const namedBindingsOf = (
   return [];
 };
 
-/** Alle modul-imports i filen: statiske, `export ... from`, dynamiske og `require`. */
+/** Alle modul-imports i filen: statiske, `export ... from`, dynamiske, `require` og import-equals. */
 export const collectImports = (entry: SourceEntry): readonly ImportRef[] => {
   const cache = getQueryCache(entry);
   if (cache.imports !== undefined) return cache.imports;
@@ -162,6 +162,27 @@ export const collectImports = (entry: SourceEntry): readonly ImportRef[] => {
         node,
         position: positionOf(ast, node),
       });
+      return;
+    }
+
+    // TypeScript understøtter også `import navn = require('...')`. Det er en modulafhængighed
+    // på samme måde som et almindeligt import-kald; uden denne gren kan en importgrænse omgås
+    // ved at skifte syntaks, selv om modulets sti er identisk.
+    if (
+      ts.isImportEqualsDeclaration(node)
+      && ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      const spec = unquote(node.moduleReference.expression);
+      if (spec !== null) {
+        refs.push({
+          moduleSpecifier: spec,
+          kind: 'import-equals',
+          typeOnly: false,
+          namedBindings: [],
+          node,
+          position: positionOf(ast, node),
+        });
+      }
       return;
     }
 
