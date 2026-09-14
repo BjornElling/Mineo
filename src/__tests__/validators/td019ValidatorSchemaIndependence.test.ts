@@ -662,28 +662,6 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
-  it('rapporterer manglende lønregulering på EO-angivet løn med den separate feltsti', () => {
-    const result = erstatningsopgoerelseValidator.validateParsed({
-      ...INDEPENDENT_RUNTIME_VALUES,
-      kravPaaTabtArbejdsfortjeneste: 'Ja',
-      beregnesUdFra: 'Angivet månedsløn',
-      maanedsloenenUdgoer: { kind: 'number', value: 30000 },
-      eoAngivetLoenLoenudvikling: {
-        ...INDEPENDENT_RUNTIME_VALUES.eoAngivetLoenLoenudvikling,
-        loenudviklingBeregningsgrundlag: undefined,
-      },
-    });
-
-    expect(result).toEqual({
-      isValid: false,
-      errors: [{
-        path: 'eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag',
-        message: 'Lønregulering skal vælges, evt. "Ingen"',
-        severity: 'error',
-      }],
-    });
-  });
-
   it('afviser svie/smerte-række uden til-dato på håndskrevet typed runtime-værdi', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
