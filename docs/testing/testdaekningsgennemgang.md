@@ -972,6 +972,9 @@ prøves med en anden evidensform end den primære test.
 | TD-176 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Validatorfladen havde ikke et uafhængigt facit for den øvre canonical-grænse for uspecificerede feriedage. En ændring kunne derfor acceptere 367 dage eller rapportere fejlen på forkert felt, besked eller severity. | `td019UspecificeredeFerieFridageRangeValidatorIndependent.test.ts` bruger en komplet håndskrevet typed fixture uden schema-defaults eller produktionsfabrikker med `uspecificeredeFerieFridage: 367` og kræver præcis feltsti, besked og `error`-severity; målrettet kontrol bestod med 1/1. | Lukket for den konkrete uspecificerede feriedage → øvre canonical-grænse → præcis validatorissue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, runtime- eller brugeradfærdsændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
 | TD-177 | 2026-09-14 | `DATA-001` / `CALC-006` / `TD-020` | Mellem | Kontanthjælp havde ikke et uafhængigt facit for flere ikke-overlappende rækker i samme EO-kolonne. En ændring kunne derfor overskrive den første række, blande dagssatserne eller give forkert samlet kontrolsum. | `td020KontanthjaelpRowPartitionIndependent.test.ts` fører to håndskrevne kontanthjælpsrækker over månedsskift og weekend gennem den faktiske EO-inspektionsmodel og kræver 210 kr. pr. dag i første partition, 420 kr. pr. dag i anden partition, samlet 1.680 kr. og ingen integrity issues; målrettet kontrol bestod med 3/3. | Lukket for den konkrete kontanthjælp → flere rækkepartitioner → fælles EO-kolonne-partition. Øvrige ydelsestyper, komplet downstream-paritet og domæneafklaringen i `TD-016` er fortsat åbne. Ingen data, beregningslogik, produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 3/3 nyt downstream-facit |
 | TD-178 | 2026-09-14 | `ARCH-003` | Mellem | E2E-kvalitetsværnet dækkede fælles navigation og fixtures, men ikke importomgåelser, hvor en spec henter runnerens runtime-fixtures fra `@playwright/test` eller delte helpers fra et andet modul. En sådan spec kunne miste de obligatoriske runtime-fixtures uden at statiske konventionstests blev røde. | `e2eSharedFixtureImportGuard.test.ts` bruger TypeScript-AST til at afvise runtime-, namespace-, dynamiske og CommonJS-importer fra `@playwright/test`, afvise `test`/`expect`/fælles helpers fra andre moduler, acceptere type-only browsertyper og aliaser fra det kanoniske modul samt kontrollere den levende suite; målrettet kontrol bestod med 7/7. | Lukket for den konkrete E2E-shared-fixture importpartition. Øvrige lane-/releaseværn og faktisk GitHub Actions-kørsel mod deployartefaktet er fortsat åbne under `ARCH-003` og `B-002`. Ingen workflow, produktkode, E2E-specs eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 7/7 quality-facitter |
+| TD-179 | 2026-09-14 | `VALID-001` / `TD-019` | Mellem | Lønindkomstens SH/SO-procent havde ikke et uafhængigt facit for negativ værdi. En ændring kunne derfor acceptere en negativ procentsats eller rapportere fejlen på forkert felt, besked eller severity. | `td019ShSoPctRangeValidatorIndependent.test.ts` bruger en komplet håndskrevet typed fixture uden schema-defaults eller produktionsfabrikker med `shSoPct: -1` og kræver præcis feltsti, besked og `error`-severity; målrettet kontrol bestod med 1/1. | Lukket for den konkrete SH/SO-procent → nedre canonical-grænse → præcis validatorissue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, runtime- eller brugeradfærdsændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
+| TD-180 | 2026-09-14 | `DATA-001` / `CALC-006` / `TD-020` | Mellem | SU havde et facit for én række, men ikke for flere ikke-overlappende rækker i samme EO-kolonne. En ændring kunne derfor miste skuddagen, overskrive den første række eller give forkert samlet kontrolsum. | `td020SuRowPartitionIndependent.test.ts` fører to håndskrevne SU-rækker over skuddag gennem den faktiske EO-inspektionsmodel og kræver 300 kr. pr. dag i første partition, 450 kr. pr. dag i anden partition, samlet 1.500 kr. og ingen integrity issues; målrettet kontrol bestod med 1/1. | Lukket for den konkrete SU → skuddag → flere rækkepartitioner → fælles EO-kolonne-partition. Øvrige ydelsestyper, komplet downstream-paritet og domæneafklaringen i `TD-016` er fortsat åbne. Ingen data, beregningslogik, produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt downstream-facit |
+| TD-181 | 2026-09-14 | `ARCH-002` | Mellem | Inspektionslagets importværn havde ikke et selvstændigt modcase for wildcard-re-export. En `export * from` kunne derfor i princippet omgå et statisk boundary-værn uden finding. | `inspektionReExportBoundaryBlindspot.test.ts` sender et syntetisk `export * from`-modcase gennem den levende `layer/inspektion-import-boundary`-regel og kræver præcis én finding med besked om import af inspektions-/kontrollaget; målrettet kontrol bestod med 1/1. | Lukket for den konkrete wildcard-re-export → inspektionsboundary-partition. Øvrige arkitekturregler, importgrænser og semantisk gennemgang er fortsat åbne under `ARCH-002`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt architecture-facit |
 
 ## Seneste test-only dato-, data-, validator- og arkitekturbatch – arbejdsrevision baseret på `048fa314`
 
@@ -1586,6 +1589,25 @@ coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde val
 fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner,
 fordi batchen kun ændrede tests og ikke browserkode eller brugeradfærd.
 
+## Seneste samlede releasegate efter arbejdsrevision `e968a321`
+
+`verify:release:core` bestod med 817 testfiler / 8.968 Vitest-tests uden forventede `it.fails`,
+coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite er
+fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner,
+fordi batchen kun ændrede tests og ikke browserkode eller brugeradfærd.
+
+## Seneste test-only SH-SO-, SU- og ARCH-batch – arbejdsrevision `e968a321`
+
+Batchen tilføjer tre disjunkte testfacitter: `td019ShSoPctRangeValidatorIndependent.test.ts`
+fastholder negativ SH/SO-procent med 1/1 præcist validatorfacit;
+`td020SuRowPartitionIndependent.test.ts` fastholder to ikke-overlappende SU-rækker i samme
+EO-kolonne over skuddag med 1/1 uafhængigt downstream-facit; og
+`inspektionReExportBoundaryBlindspot.test.ts` styrker ARCH-002 mod wildcard-re-export til
+inspektionslaget med 1/1 architecture-facit. Den samlede målrettede validator-/downstream-kontrol
+bestod med 91 filer / 117 tests, og `npm run typecheck:test`, målrettet ESLint og diff-kontrol
+bestod. Ændringerne er test-only; ingen produktkode, beregningslogik, UI/UX, E2E-specs eller
+persistens er ændret. Den efterfølgende samlede releasegate er dokumenteret ovenfor.
+
 ## Seneste test-only validator-, downstream- og ARCH-batch – arbejdsrevision baseret på `917c259c`
 
 Batchen tilføjer tre disjunkte testfacitter: `td019UspecificeredeFerieFridageRangeValidatorIndependent.test.ts`
@@ -1598,8 +1620,8 @@ og `npm run typecheck:test`, målrettet ESLint og diff-kontrol bestod. Ændringe
 produktkode, beregningslogik, UI/UX, E2E-specs eller persistens er ændret. Den efterfølgende samlede
 releasegate er dokumenteret nedenfor.
 
-Efter batchen bestod `verify:release:core` på `8d1f2007` med 814 testfiler / 8.965 Vitest-tests,
-coverage 90,36 / 81,49 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite er
+Efter batchen bestod `verify:release:core` på `e968a321` med 817 testfiler / 8.968 Vitest-tests,
+coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde valgte E2E-suite er
 fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner,
 fordi batchen kun ændrede tests og ikke browserkode eller brugeradfærd.
 
