@@ -341,6 +341,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/data/indskudteLoentillaeg.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/eoSharedUtils.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/angivetLoenBeregningsgrundlagCommit.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/storeBededagstillaegHiddenState.test.ts',
       'src/__tests__/domain/eoRowEvaluation/eoRowStoreBededagstillaegWarning.test.ts',
       'src/__tests__/utils/persistenceMigrations.test.ts',
     ],
