@@ -62,4 +62,23 @@ describe('GitHub Actions – CI-triggerens liveness', () => {
     expect(readCiTriggers(workflow)).toEqual({ pullRequest: false, pushToMain: true });
     expect(hasRequiredCiTriggers(workflow)).toBe(false);
   });
+
+  it('afviser en syntetisk workflow uden push-til-main-trigger', () => {
+    const workflow = [
+      'name: CI',
+      '',
+      'on:',
+      '  pull_request:',
+      '  push:',
+      '    branches: [ release ]',
+      '',
+      'jobs:',
+      '  verify:',
+      '    steps:',
+      '      - run: npm run verify:release:core',
+    ].join('\n');
+
+    expect(readCiTriggers(workflow)).toEqual({ pullRequest: true, pushToMain: false });
+    expect(hasRequiredCiTriggers(workflow)).toBe(false);
+  });
 });
