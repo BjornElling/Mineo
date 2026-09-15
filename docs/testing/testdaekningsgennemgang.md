@@ -1189,7 +1189,11 @@ test-only-facit og ændrede ingen filer. `TD-001` har lokal dækning for de fem 
 tidligere offentlige releases eller udviklerens eksplicitte accept af rekonstruktionerne.
 `TD-004` er lokalt kontrolleret med `qs@6.16.0`, override, dependency-tests og advisory-check,
 men advisory-resultatet er afhængigt af npm-registrets aktuelle svar. `B-002` har statiske
-workflow-/artifact-/lokale smoke-værn, men kræver en faktisk GitHub Actions-kørsel.
+workflow-/artifact-/lokale smoke-værn, og GitHub Actions-kørsel #284 bestod med releasegate,
+alle 10 E2E-jobs, artefakt og deploy på `ed6bd4e`
+([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Kørslen er en
+forfader til den lokale `82090548`, så den dokumenterer workflowets faktiske forløb, men lukker
+ikke evidensen for den aktuelle lokale revision.
 `TD-022` kræver manuel installeret PWA/OS-test af `.eo`-filassociation og dataoverdragelse.
 `TD-014`/`TD-018` kræver fysisk PDF-/Word-viewerinspektion af clipping, fonte, sideskift og
 header/footer. `TD-020` har nu 2025 tabel A/B og 2026 tabel A/B gennem Word-generatoren;

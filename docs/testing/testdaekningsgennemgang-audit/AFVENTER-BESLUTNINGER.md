@@ -153,7 +153,10 @@ automatiske kontrol af dokumenternes indhold som tilstrækkelig for denne gennem
 
 **Det brugeren kan opleve:** Den version, der faktisk lægges online, kan i værste fald
 opføre sig anderledes end den version, der er testet lokalt. Den lokale kontrol og
-workflowets kobling er testet, men en rigtig GitHub Actions-kørsel mangler.
+workflowets kobling er testet. GitHub Actions-kørsel #284 bestod på `ed6bd4e` med releasegate,
+alle 10 E2E-jobs, artefakt og deploy
+([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Kørslen er dog en
+forfader til den lokale `82090548` og er derfor ikke et bevis for den aktuelle lokale revision.
 
 **Sådan kontrollerer du det:**
 
