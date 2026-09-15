@@ -7,12 +7,13 @@ import { fileURLToPath } from 'node:url';
 type FixtureOptions = {
   assetPath: string;
   writeAsset: boolean;
+  indexScriptSrc?: string;
 };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const verifyScript = join(repoRoot, 'scripts', 'verify-build-artifacts.mjs');
 
-const writeMineoFixture = ({ assetPath, writeAsset }: FixtureOptions): string => {
+const writeMineoFixture = ({ assetPath, writeAsset, indexScriptSrc = '/assets/app.js' }: FixtureOptions): string => {
   const fixtureRoot = mkdtempSync(join(tmpdir(), 'mineo-build-artifacts-'));
   mkdirSync(join(fixtureRoot, '.vite'), { recursive: true });
   mkdirSync(join(fixtureRoot, 'assets'), { recursive: true });
@@ -21,7 +22,7 @@ const writeMineoFixture = ({ assetPath, writeAsset }: FixtureOptions): string =>
   writeFileSync(
     join(fixtureRoot, 'index.html'),
     '<script>mineo_app_settings_v1 prefers-color-scheme: dark</script>\n'
-      + '<script src="/assets/app.js"></script>\n'
+      + `<script src="${indexScriptSrc}"></script>\n`
   );
   writeFileSync(join(fixtureRoot, '_headers'), '');
   writeFileSync(join(fixtureRoot, 'manifest.json'), '{}\n');
@@ -65,6 +66,19 @@ describe('verify-build-artifacts PWA-assets', () => {
     withFixture({ assetPath: 'assets/app.js', writeAsset: true }, (result) => {
       expect(result.status).toBe(0);
       expect(output(result)).toContain('verificeret');
+    });
+  });
+
+  it('afviser et build når index.html peger på en src-fil', () => {
+    withFixture({
+      assetPath: 'assets/app.js',
+      writeAsset: true,
+      indexScriptSrc: '/src/main.tsx',
+    }, (result) => {
+      expect(result.status).toBe(1);
+      expect(output(result)).toContain(
+        'mineo-buildets index.html peger ikke entydigt på et bygget asset.'
+      );
     });
   });
 
