@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
 import JSZip from 'jszip';
-import type { Page } from '@playwright/test';
 
 import {
   expect,
@@ -11,6 +10,8 @@ import {
   setVerbatimFieldValueAndSettle,
   test,
 } from './support/mineoTest';
+
+type Page = Parameters<typeof openPage>[0];
 
 const fillForsoergertabSag = async (page: Page): Promise<void> => {
   await openPage(page, 'Stamdata');
@@ -79,6 +80,34 @@ test.describe('UI-005 – Forsørgertab fra input til Word-dokument', () => {
     expect(documentXml).toContain('Beregnet forsørgertab');
     expect(documentXml).toContain('EAL-krav');
     expect(documentXml).toContain('82.741 kr.');
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
+  test('blokerer download ved ugyldig tilkendt periode og aktiverer den igen efter rettelse', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await fillForsoergertabSag(page);
+
+    const periode = page.locator('input[name="tilkendtForPeriodeAar"]');
+    const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
+    const downloadButton = page.getByTestId('forsoergertab-download');
+
+    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(downloadButton).toBeEnabled();
+
+    await setFieldValueAndSettle(periode, '11');
+    await expect(periode).toHaveAttribute('aria-invalid', 'true');
+    await expect(downloadButton).toBeDisabled();
+
+    await setFieldValueAndSettle(periode, '10');
+    await expect(periode).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(downloadButton).toBeEnabled();
+    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
 
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);
