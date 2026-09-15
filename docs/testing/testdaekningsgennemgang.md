@@ -1207,6 +1207,11 @@ serielle tests og den coverage-nære parallelkontrol bestod 64/64 uden reprodukt
 oprindelige async-/Word-/Tooltip-flage er fortsat uden bevist årsag. En ny test nu ville kun
 simulere en hypotese; punktet kræver enten en reproducerbar trace med konkret årsag eller
 udviklerens accept af den uforklarede rest-risiko.
+`TD-004` blev genkontrolleret med `npm ls qs typed-rest-client --all` og
+`npm run check:vulnerabilities`: `qs@6.16.0` er aktiv via det dokumenterede override, og
+advisory-gaten er grøn. Punktet forbliver en åben vedligeholdelsespost, fordi
+`typed-rest-client@2.3.1` stadig kræver den gamle præcise range; override'et skal fjernes,
+når parentens range selv dækker den rettede version.
 `TD-156` er allerede fastlåst af det uafhængige typed validatorfacit med begge observerede
 `error`-issues på samme felt. Der er ikke et sikkert test-only-hul tilbage; udvikleren skal
 beslutte, om brugeren skal se begge årsagslinjer, eller om de skal samles. Read-only-gennemgangen
