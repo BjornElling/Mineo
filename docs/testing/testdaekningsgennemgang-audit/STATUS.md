@@ -14,7 +14,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 - Seneste read-only restpunktstria: TD-001, TD-004, TD-022 og TD-014/TD-018/TD-020 har ingen sikkert nyt lokalt facit; B-002 er lukket for den konkrete CI-/artefaktkobling efter ekstern workflowkørsel #284 på `ed6bd4e`. De øvrige punkter kræver henholdsvis faktiske historiske `.eo`-filer eller accept, ekstern advisory-/rangeopfølgning, installeret PWA/OS, fysisk PDF-/Word-viewerinspektion eller autoritativt tabelkildefacit.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `f7c4edd5` er grøn med 916 testfiler og 9.091 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,74 / 81,99 / 94,88 / 93,54, og begge builds bestod. Den fulde E2E-suite på revision `71746917` bestod med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-/proveniens-/outputparitetsfund, TD-025-stabilitetsrisikoen og TD-088-modalefundet forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `f7c4edd5` er grøn med 916 testfiler og 9.091 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,74 / 81,99 / 94,88 / 93,54, og begge builds bestod. Den fulde E2E-suite på revision `71746917` bestod med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-/proveniens-/outputparitetsfund, TD-025-stabilitetsrisikoen, TD-088-modalefundet og TD-156-dobbeltårsagslinjen forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -221,7 +221,7 @@ med 1/1 håndskrevet Word-facit, og `PERSIST-002` med
 | --- | --- |
 | Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123`, `TD-124`, `TD-125`, `TD-129`, `TD-130`, `TD-131`, `TD-132`, `TD-133`, `TD-134`, `TD-135`, `TD-136`, `TD-137`, `TD-138`, `TD-139`, `TD-140`, `TD-144`, `TD-145`, `TD-146`, `TD-147`, `TD-148`, `TD-149`, `TD-150`, `TD-151`, `TD-152` |
 | Delvist lukket | `TD-002`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
-| Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016` |
+| Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-004`, `TD-016`, `TD-156` |
 | Senest tilføjet lukket | `TD-153`, `TD-154`, `TD-155`, `TD-157`–`TD-289` – test-only facitter dokumenteret til og med `f7c4edd5`; `TD-156` er fortsat åbent |
 
 ## Aktuel evidensdelta – revision `f7c4edd5`
@@ -241,7 +241,7 @@ fulde E2E-suite kræver ikke ny kørsel, fordi ændringen kun vedrører testkode
 desuden en coverage-nær parallel TD-025-kontrol med 13/13 testfiler og 64/64 grønne tests uden
 reproduktion; Tooltip-transitionen er fortsat kun en plausibel, ikke dokumenteret årsag, så
 TD-025 forbliver delvist
-lukket. TD-001, TD-016, TD-014, TD-018, TD-022, TD-088 og TD-025 forbliver blokerende
+lukket. TD-001, TD-016, TD-014, TD-018, TD-022, TD-088, TD-025 og TD-156 forbliver blokerende
 restpunkter for auditkonklusionen; B-002 er lukket for den konkrete CI-/artefaktkobling.
 
 ## Seneste read-only restpunktstria – arbejdsrevision `58978b77`
@@ -261,6 +261,18 @@ auditdokumentation ændret. B-002 er derfor lukket for den konkrete CI-/artefakt
 2026 tabel A/B gennem Word-generatoren, mens resterende historiske tabeller kræver autoritativt
 kildefacit. Triagekontrollen bestod med 6 quality-filer / 35 tests samt relevante runtime- og
 advisory-checks. Der blev ikke ændret filer eller lavet commit i triagen.
+
+## Seneste read-only beslutnings-/restpunktstjek – arbejdsrevision `4333ca04`
+
+`TD-025` blev ikke yderligere lukket: den historiske `Loenindkomst`-flade bestod 90/90
+serielle tests og den coverage-nære parallelkontrol bestod 64/64 uden reproduktion, men den
+oprindelige async-/Word-/Tooltip-flage er fortsat uden bevist årsag. En ny test nu ville kun
+simulere en hypotese; punktet kræver enten en reproducerbar trace med konkret årsag eller
+udviklerens accept af den uforklarede rest-risiko.
+`TD-156` er allerede fastlåst af det uafhængige typed validatorfacit med begge observerede
+`error`-issues på samme felt. Der er ikke et sikkert test-only-hul tilbage; udvikleren skal
+beslutte, om brugeren skal se begge årsagslinjer, eller om de skal samles. Read-only-gennemgangen
+ændrede ingen filer.
 
 ## Tidligere evidensdelta – revision `d5bf5f62`
 

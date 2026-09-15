@@ -1200,6 +1200,18 @@ header/footer. `TD-020` har nu 2025 tabel A/B og 2026 tabel A/B gennem Word-gene
 resterende historiske tabeller kræver et autoritativt kildefacit. Triagekontrollen bestod med
 6 quality-filer / 35 tests samt de relevante runtime- og advisory-checks.
 
+## Seneste read-only beslutnings-/restpunktstjek – arbejdsrevision `4333ca04`
+
+`TD-025` blev ikke yderligere lukket: den historiske `Loenindkomst`-flade bestod 90/90
+serielle tests og den coverage-nære parallelkontrol bestod 64/64 uden reproduktion, men den
+oprindelige async-/Word-/Tooltip-flage er fortsat uden bevist årsag. En ny test nu ville kun
+simulere en hypotese; punktet kræver enten en reproducerbar trace med konkret årsag eller
+udviklerens accept af den uforklarede rest-risiko.
+`TD-156` er allerede fastlåst af det uafhængige typed validatorfacit med begge observerede
+`error`-issues på samme felt. Der er ikke et sikkert test-only-hul tilbage; udvikleren skal
+beslutte, om brugeren skal se begge årsagslinjer, eller om de skal samles. Read-only-gennemgangen
+ændrede ingen filer.
+
 ## Tidligere samlede releasegate efter arbejdsrevision `b6fc0325`
 
 `verify:release:core` bestod med 912 testfiler / 9.087 Vitest-tests uden forventede `it.fails`,
