@@ -10,7 +10,7 @@
  */
 import ts from 'typescript';
 import { isValidStorageKey } from '../../../../config/storageManifest';
-import { collectCalls, collectImports, hasIdentifier } from '../astQueries';
+import { collectCalls, collectElementAccess, collectImports, collectMemberAccess, hasIdentifier } from '../astQueries';
 import { defineRule, forbidCalls, forbidImports, forbidMemberAccess, type Finding } from '../ruleKit';
 
 // --- Storage-globaler: al adgang skal gå gennem de kanoniske wrappere ---------
@@ -18,32 +18,56 @@ import { defineRule, forbidCalls, forbidImports, forbidMemberAccess, type Findin
 const isDirectLocalStorageAccess = (chainText: string, rootName: string): boolean =>
   rootName === 'localStorage' || /^(?:window|globalThis)\.localStorage(?:\.|$)/.test(chainText);
 
+const isDirectLocalStorageElementAccess = (objectName: string, node: ts.ElementAccessExpression): boolean => {
+  if (objectName === 'localStorage') return true;
+  if (objectName !== 'window' && objectName !== 'globalThis') return false;
+
+  const argument = node.argumentExpression;
+  return argument !== undefined && ts.isStringLiteral(argument) && argument.text === 'localStorage';
+};
+
 const isDirectSessionStorageAccess = (chainText: string, rootName: string): boolean =>
   rootName === 'sessionStorage' || /^(?:window|globalThis)\.sessionStorage(?:\.|$)/.test(chainText);
 
-export const localStorageBoundary = forbidMemberAccess({
+export const localStorageBoundary = defineRule({
   id: 'storage/local-storage-boundary',
   description:
-    'Direkte window.localStorage-adgang er kun tilladt i den kanoniske safeLocalStorage-wrapper.',
+    'Direkte localStorage-adgang er kun tilladt i den kanoniske safeLocalStorage-wrapper.',
   liveTarget: {
     kind: 'precondition',
-    // AST-signal, ikke tekst. Reglens EGEN rene fixture er en kommentar, der blot NÆVNER localStorage:
-    // den ville opfylde en tekstprobe, mens evaluatoren korrekt ikke flager den. Proben kunne dermed
-    // erklære grænsen levende, efter at mekanismen var slettet.
-    probe: (entry) => hasIdentifier(entry, 'localStorage'),
+    // AST-signal, ikke tekst: prik- og bracket-adgange tæller begge som levende trafik. En ren
+    // string-literal som `config["localStorage"]` må ikke holde værnet kunstigt levende.
+    probe: (entry) =>
+      collectMemberAccess(entry).some((ref) => isDirectLocalStorageAccess(ref.chainText, ref.rootName))
+      || collectElementAccess(entry).some((ref) => isDirectLocalStorageElementAccess(ref.objectName, ref.node)),
     rationale: 'mindst én fil rører localStorage – ellers har grænsen ingen trafik at regulere',
   },
   allow: ['src/utils/safeLocalStorage.ts'],
-  forbidden: (ref) => isDirectLocalStorageAccess(ref.chainText, ref.rootName),
-  message: (ref) => `Rå localStorage-adgang (${ref.chainText}) – brug safeLocalStorage-wrapperen.`,
+  find: (entry) => {
+    const message = (chainText: string): string =>
+      `Rå localStorage-adgang (${chainText}) – brug safeLocalStorage-wrapperen.`;
+
+    const memberFindings = collectMemberAccess(entry)
+      .filter((ref) => isDirectLocalStorageAccess(ref.chainText, ref.rootName))
+      .map((ref) => ({ position: ref.position, message: message(ref.chainText) }));
+    const elementFindings = collectElementAccess(entry)
+      .filter((ref) => isDirectLocalStorageElementAccess(ref.objectName, ref.node))
+      .map((ref) => ({ position: ref.position, message: message(ref.chainText) }));
+
+    return [...memberFindings, ...elementFindings];
+  },
   violatingFixtures: [
     { relativePath: 'src/x.ts', code: 'const x = localStorage.getItem("k");' },
     { relativePath: 'src/x.ts', code: 'window.localStorage.setItem("k", "v");' },
     { relativePath: 'src/x.ts', code: 'const ls = window.localStorage;' },
+    { relativePath: 'src/x.ts', code: 'const storage = globalThis["localStorage"];' },
+    { relativePath: 'src/x.ts', code: 'const storage = window["localStorage"];' },
+    { relativePath: 'src/x.ts', code: 'const value = localStorage[storageKey];' },
   ],
   cleanFixtures: [
     { relativePath: 'src/x.ts', code: '// merge af settings fra localStorage' },
     { relativePath: 'src/x.ts', code: 'const s = config.localStorage;' },
+    { relativePath: 'src/x.ts', code: 'const s = config["localStorage"];' },
   ],
 });
 
