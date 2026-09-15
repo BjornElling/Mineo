@@ -1210,7 +1210,7 @@ udviklerens accept af den uforklarede rest-risiko.
 `TD-156` er allerede fastlåst af det uafhængige typed validatorfacit med begge observerede
 `error`-issues på samme felt. Der er ikke et sikkert test-only-hul tilbage; udvikleren skal
 beslutte, om brugeren skal se begge årsagslinjer, eller om de skal samles. Read-only-gennemgangen
-ændrede ingen filer.
+ændrede ingen filer. Den eksisterende validatorfil blev genkørt på `9a49bedc` og bestod med 2/2.
 
 ## Tidligere samlede releasegate efter arbejdsrevision `b6fc0325`
 
