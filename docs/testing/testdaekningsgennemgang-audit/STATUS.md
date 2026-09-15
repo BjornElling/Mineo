@@ -766,9 +766,9 @@ og `ARCH-002` er fortsat `I gang`, fordi disse facitter kun lukker de konkrete p
   OS-/installerede-PWA-filaflevering kan fortsat kun kontrolleres manuelt.
 - `B-002`: Den bindende releasekontrol er valgt som automatisk GitHub Actions-gate. CI-matrixen
   omfatter nu de fire dedikerede browserprojekter og er dækket af et statisk quality-værn, som
-  også fastholder, at deploy kun kører ved push til main. En
-  faktisk GitHub Actions-kørsel er fortsat engangsbeviset for rutinen og ikke en tilbagevendende
-  manuel releasekontrol.
+  også fastholder, at deploy kun kører ved push til main. GitHub Actions-kørsel #284 bestod med
+  releasegate, alle 10 E2E-jobs, artefakt og deploy på `ed6bd4e`; kørsel #284 er engangsbeviset
+  for rutinen og ikke en tilbagevendende manuel releasekontrol.
 - `TD-001` afventer faktiske gamle `.eo`-filer. `TD-016` afventer stadig brugerobservation og
   domænevalg, fordi udviklerens svar korrigerede reproduktionstrinnene, men ikke afgjorde den
   observerede advarsel og dokumentblokering. `TD-014`/`TD-018` fortsætter med automatiseret
@@ -2126,11 +2126,12 @@ projektbaner; batchen ændrede kun tests og krævede derfor ikke en ny E2E-kørs
 
 ## Næste arbejdsenhed
 
-Den seneste arbejdsbatch på `91491792` har grøn målrettet retest og samlet releasegate. Den fulde
-E2E-suite er senest grøn på `71746917` med 221/223. Næste arbejdsenhed er en ny
-afgrænset test-only dækningskontrol, indtil et punkt kræver udviklerens beslutning eller faktiske
-eksterne artefakter. De kendte blokeringer er `TD-001`, `TD-016`, `TD-014`, `TD-018`, `TD-022`,
-`B-002`, `TD-088` og den uforklarede rest-risiko i `TD-025`.
+Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
+read-only CI-status er dokumenteret på `0afe530f`. Den fulde E2E-suite er senest grøn på
+`71746917` med 221/223. Næste arbejdsenhed er en ny afgrænset test-only dækningskontrol,
+indtil et punkt kræver udviklerens beslutning eller faktiske eksterne artefakter. De kendte
+blokeringer er `TD-001`, `TD-016`, `TD-014`, `TD-018`, `TD-022`, `TD-088` og den uforklarede
+rest-risiko i `TD-025`; B-002 er lukket for den konkrete CI-/artefaktkobling.
 
 ## Historisk arbejdsenhedskontekst
 
