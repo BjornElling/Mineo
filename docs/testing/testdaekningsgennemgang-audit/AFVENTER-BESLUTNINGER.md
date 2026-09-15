@@ -233,6 +233,29 @@ eller er det tilsigtet, at begge dialoger lukkes?
 
 | TD-088 | Fejlrapport-previewets **Luk** skal enten lukke previewet alene eller begge dialoger. Valget ændrer den synlige load-flowadfærd og kræver derfor udviklerens godkendelse. | Afventer udviklerbeslutning |
 
+## 10. Refererede chunks i standalone-buildets manifest (TD-292)
+
+**Det mulige brugerproblem:** En standalone-build kan passere den isolerede artifact-verifier,
+selv om en PDF-/Word-chunk, som manifestet refererer til gennem `file`, `imports` eller
+`dynamicImports`, mangler i buildmappen. Fejlen vil først vise sig, når brugeren åbner det
+berørte dokumentforløb.
+
+**Read-only-observation:** `scripts/verify-build-artifacts.mjs` kontrollerer for
+MinProcesrente manifestets nøgler og `src`, standalone-entryen og forbudte Mineo-kilder.
+Det aktuelle `dist/minprocesrente/.vite/manifest.json` indeholder også `file`, `imports` og
+`dynamicImports`. `verifyMinprocesrenteBuildArtifacts.test.ts` dækker i dag kun entry og
+Mineo-entryforbud.
+
+**Spørgsmål:** Skal releasekontrollen udvides, så den build-koblet følger og eksistens-
+kontrollerer alle `file`, `imports` og `dynamicImports`-referencer i standalone-manifestet,
+hvorefter der tilføjes et uafhængigt negativt quality-facit?
+
+**Dit svar:**
+
+> Afventer udviklerens beslutning.
+
+| TD-292 | Udvidelse af standalone-artifact-verifieren til alle manifestreferencer ændrer releasekontrollens scope og kræver derfor udviklerens godkendelse før implementering. | Afventer udviklerbeslutning |
+
 ## Notat
 
 Andre åbne auditposter er ikke medtaget her, fordi de enten er løbende testarbejde,
