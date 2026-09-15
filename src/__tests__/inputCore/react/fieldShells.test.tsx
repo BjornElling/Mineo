@@ -2,7 +2,7 @@
 import { __createSlimInputTestStore } from '../../../inputCore/runtime/slimInputStore';
 import * as React from 'react';
 import { MenuItem } from '@mui/material';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, createEvent } from '@testing-library/react';
 import { dispatchInput, ActiveEditorRegistry, type SlimInputStore } from '../../../inputCore/runtime';
 import { createInputRuntimeBinding, InputRuntimeProvider, type InputRuntimeBinding } from '../../../inputCore/react';
 import {
@@ -99,6 +99,103 @@ describe('numeriske feltpresets', () => {
     dispatchInput(store, catalog, insertRow(rentekravRef(), makeRow('r1')), { origin: testRowOrigin() });
     renderField(<AmountField field={belobField.bind('r1')} location={testLocation('amt-1')} name="belob" />);
     expect(screen.getByText('kr.')).toBeInTheDocument();
+  });
+});
+
+describe('feltkopiering og genindsættelse', () => {
+  it('kopierer et beløbsudtryk som formel og indsætter det fra første tegn i et formularfelt', () => {
+    const rows = rentekravRef();
+    dispatchInput(store, catalog, insertRow(rows, makeRow('r1')), { origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rows, makeRow('r2', { belob: { kind: 'number', value: 9 } })), { origin: testRowOrigin() });
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '1000+250'));
+
+    renderField(
+      <>
+        <AmountField field={belobField.bind('r1')} location={testLocation('copy-amount-source')} name="source" />
+        <AmountField field={belobField.bind('r2')} location={testLocation('copy-amount-target')} name="target" />
+      </>
+    );
+
+    const [source, target] = screen.getAllByRole('textbox') as HTMLInputElement[];
+    expect(source).toHaveValue('1.250,00');
+    expect(target).toHaveValue('9,00');
+
+    const clipboardData = { setData: vi.fn() };
+    const copyEvent = createEvent.copy(source);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+    fireEvent(source, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', '1000+250');
+    expect(copyEvent.defaultPrevented).toBe(true);
+
+    fireEvent.paste(target, {
+      clipboardData: { getData: () => '1000+250' },
+    });
+
+    expect(canonical(belobField.bind('r2'))).toEqual({
+      kind: 'expression',
+      expression: '1000+250',
+      value: 1250,
+    });
+    expect(target).toHaveValue('1.250,00');
+  });
+
+  it('kopierer et beløbsudtryk som formel og indsætter det fra første tegn i en grid-celle', () => {
+    const rows = rentekravRef();
+    dispatchInput(store, catalog, insertRow(rows, makeRow('r1')), { origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rows, makeRow('r2', { belob: { kind: 'number', value: 9 } })), { origin: testRowOrigin() });
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '1000+250'));
+
+    const sourceCell: GridCellCoord = { rowId: 'r1', colIndex: 0 };
+    const targetCell: GridCellCoord = { rowId: 'r2', colIndex: 0 };
+    const gridStateStore: GridCoreStateStore = {
+      subscribe: () => () => undefined,
+      getFocusedCell: () => sourceCell,
+      getEditingCell: () => null,
+    };
+
+    render(
+      <InputRuntimeProvider binding={makeBinding()}>
+        <GridCoreProvider value={{
+          gridStateStore,
+          openEditing: () => undefined,
+          closeEditing: () => undefined,
+          registerEditor: () => undefined,
+          unregisterEditor: () => undefined,
+          getEditor: () => null,
+          requestFocusPlan: () => undefined,
+          tableKind: 'grid',
+        }}>
+          <GridAmountCell
+            gridCell={sourceCell}
+            cell={{ kind: 'existing', field: belobField.bind('r1'), location: testLocation('copy-grid-source') }}
+          />
+          <GridAmountCell
+            gridCell={targetCell}
+            cell={{ kind: 'existing', field: belobField.bind('r2'), location: testLocation('copy-grid-target') }}
+          />
+        </GridCoreProvider>
+      </InputRuntimeProvider>
+    );
+
+    const [source, target] = screen.getAllByRole('textbox') as HTMLInputElement[];
+    const clipboardData = { setData: vi.fn() };
+    const copyEvent = createEvent.copy(source);
+    Object.defineProperty(copyEvent, 'clipboardData', { value: clipboardData });
+    fireEvent(source, copyEvent);
+
+    expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', '1000+250');
+    expect(copyEvent.defaultPrevented).toBe(true);
+
+    fireEvent.paste(target, {
+      clipboardData: { getData: () => '1000+250' },
+    });
+
+    expect(canonical(belobField.bind('r2'))).toEqual({
+      kind: 'expression',
+      expression: '1000+250',
+      value: 1250,
+    });
   });
 });
 

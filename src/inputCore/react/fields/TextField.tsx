@@ -63,6 +63,7 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         accessibleName={accessibleName}
         placeholder={placeholder}
         draft={surface.displayText}
+        copyText={surface.copyText}
         onDraftChange={surface.onDraftChange}
         inputRef={mergedInputRef}
         onFocus={surface.onFocus}

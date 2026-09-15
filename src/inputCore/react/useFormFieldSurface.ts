@@ -72,6 +72,8 @@ export type FormFieldSurfaceConfig = Readonly<{
 export type FormFieldSurface<T> = Readonly<{
   /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§3.5). Bindes til `<input>`. */
   displayText: string;
+  /** Genindsættelig tekst fra den afsluttede værdi, fx et fuldt beløbsudtryk. */
+  copyText: string;
   isOpen: boolean;
   /** Feltets aktive røde issue fra det tokenbundne snapshot (§1.8). Vises UÆNDRET under redigering (§1.2). */
   issue: FieldIssue | undefined;
@@ -364,6 +366,7 @@ export const useFormFieldSurface = <T>(
 
   return {
     displayText: controller.displayText,
+    copyText: controller.copyText,
     isOpen,
     issue: controller.issue,
     value: controller.value,

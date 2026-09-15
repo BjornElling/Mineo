@@ -59,6 +59,8 @@ export type GridCellSurfaceConfig = Readonly<{
 export type GridCellSurface<T> = Readonly<{
   /** Draften i åben tilstand, ellers lukket-visning fra den afsluttede revision (§3.5). Bindes til `<input>`. */
   displayText: string;
+  /** Genindsættelig tekst fra den afsluttede værdi, fx et fuldt beløbsudtryk. */
+  copyText: string;
   /** Grid-core redigerer denne celle netop nu (edit-open-autoriteten). Styrer `readOnly`. */
   isEditing: boolean;
   /** Grid-core har fysisk fokus på cellen (til placeholder-visning m.m.). */
@@ -363,6 +365,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
 
   return {
     displayText: controller.displayText,
+    copyText: controller.copyText,
     isEditing,
     isFocused,
     issue: controller.issue,

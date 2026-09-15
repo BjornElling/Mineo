@@ -334,6 +334,16 @@ describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecf
               .toBe(field.descriptor.codec.format(canonical(field)));
           });
 
+          it('eksponerer codecets genindsættelige clipboard-tekst på begge surfaces', () => {
+            seedRow();
+            const field = fieldFor();
+            dispatchInput(store, catalog, settleField(field, testCase.valid.raw));
+            const rendered = renderSurface(surface, field);
+
+            expect(rendered.controller().copyText)
+              .toBe(field.descriptor.codec.formatForEdit(canonical(field)));
+          });
+
           it('åben draft ændrer intet afsluttet (§1.2)', () => {
             seedRow();
             const field = fieldFor();
@@ -458,6 +468,19 @@ describe('§7.1 fælles feltkontrakt – samme suite mod form OG grid pr. codecf
 
               expect(canonical(field)).toEqual(testCase.emptyCanonical);
               expect(rejectedRaw(field)).toBe(testCase.invalidRaw);
+            });
+
+            it('kopierer rejected råtekst ordret, så den kan genindsættes', () => {
+              seedRow();
+              const field = fieldFor();
+              dispatchInput(store, catalog, settleField(field, testCase.valid.raw));
+              const rendered = renderSurface(surface, field);
+
+              rendered.act(() => rendered.controller().open());
+              rendered.act(() => rendered.controller().changeDraft(testCase.invalidRaw!));
+              rendered.act(() => rendered.controller().settle());
+
+              expect(rendered.controller().copyText).toBe(testCase.invalidRaw);
             });
 
             it('en NY fejl vises først EFTER settle, ikke under redigering (§1.2)', () => {

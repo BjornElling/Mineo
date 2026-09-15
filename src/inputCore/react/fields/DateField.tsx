@@ -80,6 +80,7 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
         accessibleName={accessibleName}
         name={name}
         draft={surface.displayText}
+        copyText={surface.copyText}
         onDraftChange={surface.onDraftChange}
         inputRef={assignInputRef}
         onFocus={surface.onFocus}

@@ -89,6 +89,7 @@ const MultilineTextField = React.forwardRef<HTMLDivElement, MultilineTextFieldPr
         name={name}
         placeholder={placeholder}
         draft={surface.displayText}
+        copyText={surface.copyText}
         onDraftChange={surface.onDraftChange}
         inputRef={assignInputRef}
         onFocus={onFocus}

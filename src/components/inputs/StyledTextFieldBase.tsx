@@ -61,6 +61,8 @@ export type StyledTextFieldBaseProps = {
   placeholder?: string;
 
   draft: string;
+  /** Clipboard-tekst i lukket tilstand; udelades for almindelige UI-only felter, hvor draften er facit. */
+  copyText?: string;
   onDraftChange: (draft: string, selection: InputSelectionSnapshot) => void;
 
   inputRef?: React.Ref<HTMLInputElement>;
@@ -116,6 +118,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       accessibleName,
       placeholder,
       draft,
+      copyText,
       onDraftChange,
       onBlur,
       onFocus,
@@ -217,13 +220,13 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         copyWholeValueFromReadOnlyField(e, {
           isReadOnly: htmlInputAttributes?.readOnly === true,
-          value: draft,
+          value: copyText ?? draft,
           selectionStart: e.currentTarget.selectionStart,
           selectionEnd: e.currentTarget.selectionEnd,
         });
         onCopy?.(e);
       },
-      [draft, htmlInputAttributes?.readOnly, onCopy]
+      [copyText, draft, htmlInputAttributes?.readOnly, onCopy]
     );
 
     const showError = error && helperText.trim() !== '';

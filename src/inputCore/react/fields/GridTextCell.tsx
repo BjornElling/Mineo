@@ -16,6 +16,7 @@ import { keyFilterFromAdmission, type DraftAdmission } from '../../../components
 import { resolveFieldIssueText } from '../fieldIssueText';
 import { resolveDraftLengthLimit } from './charLengthPolicy';
 import { AutofillSuggestMarker } from './AutofillSuggestMarker';
+import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
 
 // Grid-celle-basis (§2.5/§3.5): den ENE tynde `<input>`-skal for en persisteret grid-celle, oven på
 // `useGridCellSurface` (som bro-forbinder grid-core-navigation ↔ editor-motoren). Den er grid-pendanten
@@ -172,6 +173,15 @@ const GridTextCellInner = <T, TEntity>(
             onBlur={surface.onBlur}
             onKeyDown={surface.onKeyDown}
             onPaste={surface.onPaste}
+            onCopy={(e) => {
+              const input = surface.inputElementRef.current;
+              copyWholeValueFromReadOnlyField(e, {
+                isReadOnly: surface.readOnly,
+                value: surface.copyText,
+                selectionStart: input?.selectionStart,
+                selectionEnd: input?.selectionEnd,
+              });
+            }}
             onMouseDown={handleFieldMouseDown}
             {...(resolvedEndAdornment === undefined ? {} : { endAdornment: resolvedEndAdornment })}
             placeholder={autofillSuggestion !== null

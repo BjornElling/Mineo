@@ -46,6 +46,11 @@ export type FieldEditorView<T> = Readonly<{
   /** Teksten i inputfeltet: åben draft, ellers lukket-visning fra den afsluttede revision (§3.5). */
   displayText: string;
   /**
+   * Teksten, der skal i clipboard ved kopi af et lukket felt. Den bruger codecets edit-format, så et
+   * beløbsudtryk kopieres som selve udtrykket og ikke som det beregnede resultat.
+   */
+  copyText: string;
+  /**
    * Lukket-visningen fra den AFSLUTTEDE revision – uafhængigt af om editoren er åben (§3.5).
    *
    * Findes, fordi «har feltet en værdi?» og «står der noget i inputtet?» IKKE er samme spørgsmål, når
@@ -295,10 +300,15 @@ export const useFieldEditor = <T>(
 
   const settledText = formatSettledFieldText(field, view);
   const displayText = boundState.open !== null ? boundState.open.draft : settledText;
+  // Lukket visning må gerne være læsevenlig og vise et beregnet beløbsresultat. Clipboard skal derimod
+  // bære den rå, genindsættelige repræsentation. Den naive genbrug af `displayText` var netop det, der
+  // gjorde `1000+250` til `1.250,00` ved copy og dermed fjernede brugerens formel.
+  const copyText = view.kind === 'rejected' ? view.rejected.raw : field.descriptor.codec.formatForEdit(view.value);
 
   return {
     isOpen: open_,
     displayText,
+    copyText,
     settledText,
     issue,
     value: view.kind === 'canonical' ? view.value : undefined,
