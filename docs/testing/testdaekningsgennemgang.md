@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `78752b56` / `71746917` | `verify:release:core` på `78752b56`: 919 testfiler / 9.096 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,73 % statements / 81,98 % branches / 94,88 % functions / 93,53 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
+| Seneste samlede release-/E2E-retest | `27cc0751` / `71746917` | `verify:release:core` på `27cc0751`: 920 testfiler / 9.098 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 82,00 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -2509,6 +2509,16 @@ KRL-dækningsissue for Angivet dagsløn efter 30-09-2026. Den nye E2E-case besto
 eksisterende browsercase med 2/2, og de to unit-/validatorfacitter bestod med 1/1 hver. Typechecks,
 lint, encoding-, filnavns- og diff-kontroller bestod. Ændringerne er test-only; den samlede
 releasegate er endnu ikke gentaget efter denne batch.
+
+## Seneste samlede releasegate efter arbejdsrevision `27cc0751`
+
+`verify:release:core` bestod med 920 testfiler / 9.098 Vitest-tests uden forventede `it.fails`,
+coverage 90,74 / 82,00 / 94,88 / 93,54 og begge produktionsbuilds. Coverage målte
+18.706/20.613 statements, 13.206/16.104 branches, 3.063/3.228 funktioner og 17.079/18.257
+linjer. Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og
+build-gates bestod. Den fulde valgte E2E-suite er fortsat senest grøn på `71746917` med 221
+beståede tests og 2 forventede skips ud af 223 på 10 projektbaner. Vite- og chunk-advarslerne
+er kendte ikke-blokerende buildobservationer.
 
 ## Seneste samlede releasegate efter arbejdsrevision `78752b56`
 
