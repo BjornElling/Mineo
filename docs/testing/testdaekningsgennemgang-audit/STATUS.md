@@ -254,7 +254,7 @@ dependency-tests og advisory-check, men advisory-resultatet afhænger af npm-reg
 svar. `B-002` har lokale workflow-/artifact-/smoke-værn. GitHub Actions-kørsel #284 bestod med
 releasegate, alle 10 E2E-jobs, artefakt og deploy på `ed6bd4e`
 ([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). `ed6bd4e` er en
-forfader til den lokale `82090548`, men siden kørslen er kun `src/__tests__` og
+forfader til den lokale `b8a5ab32`, men siden kørslen er kun `src/__tests__` og
 auditdokumentation ændret. B-002 er derfor lukket for den konkrete CI-/artefaktkobling.
 `TD-022` kræver manuel installeret PWA/OS-test af `.eo`-filassociation og dataoverdragelse.
 `TD-014`/`TD-018` kræver fysisk PDF-/Word-viewerinspektion. `TD-020` har nu 2025 tabel A/B og
@@ -2127,7 +2127,7 @@ projektbaner; batchen ændrede kun tests og krævede derfor ikke en ny E2E-kørs
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
-read-only CI-status er dokumenteret på `0afe530f`. Den fulde E2E-suite er senest grøn på
+read-only CI-status er dokumenteret på `b8a5ab32`. Den fulde E2E-suite er senest grøn på
 `71746917` med 221/223. Næste arbejdsenhed er en ny afgrænset test-only dækningskontrol,
 indtil et punkt kræver udviklerens beslutning eller faktiske eksterne artefakter. De kendte
 blokeringer er `TD-001`, `TD-016`, `TD-014`, `TD-018`, `TD-022`, `TD-088` og den uforklarede

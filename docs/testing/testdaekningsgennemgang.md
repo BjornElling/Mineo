@@ -1192,7 +1192,7 @@ men advisory-resultatet er afhængigt af npm-registrets aktuelle svar. `B-002` h
 workflow-/artifact-/lokale smoke-værn, og GitHub Actions-kørsel #284 bestod med releasegate,
 alle 10 E2E-jobs, artefakt og deploy på `ed6bd4e`
 ([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Kørslen er en
-forfader til den lokale `82090548`, men siden kørslen er kun `src/__tests__` og
+forfader til den lokale `b8a5ab32`, men siden kørslen er kun `src/__tests__` og
 auditdokumentation ændret. B-002 er derfor lukket for den konkrete CI-/artefaktkobling.
 `TD-022` kræver manuel installeret PWA/OS-test af `.eo`-filassociation og dataoverdragelse.
 `TD-014`/`TD-018` kræver fysisk PDF-/Word-viewerinspektion af clipping, fonte, sideskift og

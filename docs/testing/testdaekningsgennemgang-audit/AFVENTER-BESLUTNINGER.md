@@ -155,8 +155,9 @@ automatiske kontrol af dokumenternes indhold som tilstrækkelig for denne gennem
 opføre sig anderledes end den version, der er testet lokalt. Den lokale kontrol og
 workflowets kobling er testet. GitHub Actions-kørsel #284 bestod på `ed6bd4e` med releasegate,
 alle 10 E2E-jobs, artefakt og deploy
-([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Kørslen er dog en
-forfader til den lokale `82090548` og er derfor ikke et bevis for den aktuelle lokale revision.
+([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Kørslen er en
+forfader til den lokale `b8a5ab32`, men siden kørslen er kun test- og auditdokumentation ændret;
+workflowets og produktionsartefaktets relevante kode er derfor uændret.
 
 **Sådan kontrollerer du det:**
 
