@@ -83,4 +83,47 @@ describe('kapitalisering → Word-indhold', () => {
     // BB-167: beregningsdatoen står ikke i dokumentet, og skal heller ikke stå på skærmen.
     expect(text).not.toContain('Beregningsdato');
   });
+
+  it('skriver særfaktorgrenen ved højst to år til folkepension', async () => {
+    const afgoerelse = {
+      rowId: 'kap-saerfaktor',
+      afgoerelsesdato: toISODateString('2025-01-01'),
+      kapitaliseringsdato: toISODateString('2025-01-01'),
+      eetPct: 30,
+      kapitaliseringspct: 100,
+      grundloenOre: fromKroner(320000),
+      erstatningsniveauPct: 80,
+      amBidragPct: 8,
+      grundydelseOre: fromKroner(256000),
+      grundydelse2024Ore: null,
+      opreguleringTil2024PctRounded4: null,
+      aarsydelseGrundlagOre: fromKroner(256000),
+      aarsydelseReguleringsPctRounded4: null,
+      aarsydelseOre: fromKroner(256000),
+      kapitaliseringsbekendtgoerelseLabel: 'Bekendtgørelse 2024',
+      tabelLabel: 'Tabel A',
+      folkepensionsalderLabel: '69 år',
+      saerfaktor: 1.245,
+      alderAar: 67,
+      alderMaaneder: 0,
+      kapitaliseretPgaUnderToAarTilFp: true,
+      faktorMaanedsAfhaengig: false,
+      kapitaliseringsfaktor: 10,
+      kapitalbelobOre: fromKroner(2560000),
+      koenOpdelt: false,
+    } satisfies EetKapitaliseringAfgoerelseComputation;
+
+    const { documentXml } = await renderWordDocument((session) =>
+      generateKapitaliseringDocument(session, {
+        computation: { afgoerelser: [afgoerelse] } satisfies EetKapitaliseringComputation,
+        visBrevhoved: false,
+      })
+    );
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toMatch(/Kapitaliseret pga\. ≤ 2 år til folkepension\?\s*Ja/);
+    expect(text).toMatch(/Særfaktor \(≤ 2 år til folkepension\)\s*1,245/);
+    expect(text).not.toContain('Faktor måneds-afhængig?');
+    expect(text).not.toContain('Kapitaliseringsfaktor');
+  });
 });
