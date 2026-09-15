@@ -9,6 +9,7 @@ test.describe('MinProcesrente – gyldig beregning, PDF og exit-guard', () => {
   test('beregner en dokumenteret rentelinje, henter PDF og advarer ved forsøg på at forlade siden', async ({
     page,
     runtimeErrors,
+    externalRequests,
   }, testInfo) => {
     await page.goto('/minprocesrente.html');
 
@@ -54,5 +55,6 @@ test.describe('MinProcesrente – gyldig beregning, PDF og exit-guard', () => {
     await download.saveAs(testInfo.outputPath('minprocesrente-rentelinje.pdf'));
 
     expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
   });
 });
