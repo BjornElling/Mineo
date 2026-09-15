@@ -127,4 +127,32 @@ test.describe('UI-008 – Satser', () => {
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
+
+  test('vælger det laveste understøttede satsår 2005', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await openPage(page, 'Satser');
+
+    const yearInput = page.locator('input[name="aargang"]');
+    await setFieldValueAndSettle(yearInput, '2005');
+
+    await expect(yearInput).toHaveValue('2005');
+    await expect(page.getByText('Arbejdsskadesatser 2005', { exact: true })).toBeVisible();
+
+    const aslSection = page.locator('.content-box').filter({
+      has: page.getByText('Arbejdsskadesikringsloven', { exact: true }),
+    });
+    await expect(aslSection.locator('.row--label-right-hover').filter({
+      hasText: 'Minimum årsløn',
+    }).first()).toContainText('145.000 kr.');
+    await expect(aslSection.locator('.row--label-right-hover').filter({
+      hasText: 'Reguleringsprocent for erhvervsevnetab',
+    }).first()).toContainText('5,5 %');
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
 });
