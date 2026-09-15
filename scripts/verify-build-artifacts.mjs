@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -110,6 +110,52 @@ if (variant === 'mineo') {
   }
 } else {
   for (const forbidden of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons', 'favicon-mineo.svg']) forbidPath(forbidden);
+  const manifestEntries = new Map(Object.entries(manifest));
+  const resolveManifestFile = (entryKey, file) => {
+    if (typeof file !== 'string' || file.trim() === '') {
+      throw new Error(`MinProcesrente-buildets manifest-entry ${entryKey} mangler en filreference.`);
+    }
+    const normalized = file.replaceAll('\\', '/');
+    const normalizedPosix = path.posix.normalize(normalized);
+    if (
+      path.posix.isAbsolute(normalized)
+      || /^[A-Za-z]:\//.test(normalized)
+      || normalizedPosix === '..'
+      || normalizedPosix.startsWith('../')
+    ) {
+      throw new Error(`MinProcesrente-buildets manifest-entry ${entryKey} har en ugyldig filreference: ${file}.`);
+    }
+    const target = path.resolve(outDir, ...normalizedPosix.split('/'));
+    const resolvedOutDir = path.resolve(outDir);
+    if (target !== resolvedOutDir && !target.startsWith(`${resolvedOutDir}${path.sep}`)) {
+      throw new Error(`MinProcesrente-buildets manifest-entry ${entryKey} peger uden for buildmappen: ${file}.`);
+    }
+    return target;
+  };
+
+  for (const [entryKey, entry] of manifestEntries) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`MinProcesrente-buildets manifest-entry ${entryKey} har et ugyldigt format.`);
+    }
+    const target = resolveManifestFile(entryKey, entry.file);
+    if (!existsSync(target) || !statSync(target).isFile()) {
+      throw new Error(`MinProcesrente-buildets manifestrefererede fil mangler: ${entry.file} (fra ${entryKey}).`);
+    }
+    for (const referenceField of ['imports', 'dynamicImports']) {
+      const references = entry[referenceField];
+      if (references === undefined) continue;
+      if (!Array.isArray(references)) {
+        throw new Error(`MinProcesrente-buildets manifest-entry ${entryKey} har en ugyldig ${referenceField}-liste.`);
+      }
+      for (const reference of references) {
+        if (typeof reference !== 'string' || !manifestEntries.has(reference)) {
+          throw new Error(
+            `MinProcesrente-buildets manifest-entry ${entryKey} refererer fra ${referenceField} til en ukendt entry: ${String(reference)}.`,
+          );
+        }
+      }
+    }
+  }
   if (!manifestSources.some((source) => source.endsWith('minprocesrente.html'))) {
     throw new Error('MinProcesrente-buildets manifest mangler standalone-entryen.');
   }

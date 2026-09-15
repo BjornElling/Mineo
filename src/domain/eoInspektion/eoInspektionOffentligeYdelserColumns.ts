@@ -6,7 +6,11 @@ import { parseAmount } from '../../utils/numberParsing';
 import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { KontrolTabelIntegrityIssue } from './eoInspektionKontrolModel';
-import { isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import {
+  buildOffentligYdelsePeriodiseringsGrundlag,
+  isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral,
+  type OffentligYdelsePeriodiseringsGrundlag,
+} from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 
@@ -64,7 +68,14 @@ export const buildOffentligeYdelserColumns = (args: {
   const issues: KontrolTabelIntegrityIssue[] = [];
   const parsedRowsByType = new Map<
     string,
-    Array<Readonly<{ id: string; label: string; range: Readonly<{ fra: ISODateString; til: ISODateString }>; total: number; config: Readonly<{ periodisering: Periodisering; periodiseringLabel: string }> }>>
+    Array<Readonly<{
+      id: string;
+      label: string;
+      range: Readonly<{ fra: ISODateString; til: ISODateString }>;
+      total: number;
+      config: Readonly<{ periodisering: Periodisering; periodiseringLabel: string }>;
+      periodiseringsGrundlag: OffentligYdelsePeriodiseringsGrundlag;
+    }>>
   >();
 
   for (const row of values.offentligeYdelserRows ?? []) {
@@ -113,17 +124,16 @@ export const buildOffentligeYdelserColumns = (args: {
     const total = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
     if (total === 0) continue;
 
-    let dayCount = 0;
     const start = isoDateToDate(range.fra);
     const end = isoDateToDate(range.til);
-    iterateDatesInclusive(start, end, (d) => {
-      const iso = dateToISO(d);
-      if (!iso) return;
-      if (isOffentligYdelseDatoMedregnet(iso, d, shDays, config.periodisering, typeKey, range.til, sygedagpengeShCutoff)) {
-        dayCount += 1;
-      }
+    const periodiseringsGrundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval: { start, end },
+      periodisering: config.periodisering,
+      ydelsestypeKey: typeKey,
+      shDays,
+      sygedagpengeShCutoff,
     });
-    if (dayCount <= 0) {
+    if (!periodiseringsGrundlag || periodiseringsGrundlag.periodiseringsDage <= 0) {
       issues.push({
         severity: 'warning',
         area: 'offentlige ydelser',
@@ -131,6 +141,7 @@ export const buildOffentligeYdelserColumns = (args: {
       });
       continue;
     }
+    const dayCount = periodiseringsGrundlag.periodiseringsDage;
 
     expectedTotalsByType.set(typeKey, (expectedTotalsByType.get(typeKey) ?? 0) + total);
 
@@ -143,7 +154,7 @@ export const buildOffentligeYdelserColumns = (args: {
     }
 
     const parsedForType = parsedRowsByType.get(typeKey) ?? [];
-    parsedForType.push({ id: row.id, label: config.label, range, total, config });
+    parsedForType.push({ id: row.id, label: config.label, range, total, config, periodiseringsGrundlag });
     parsedRowsByType.set(typeKey, parsedForType);
 
     const perDay = total / dayCount;
@@ -152,7 +163,11 @@ export const buildOffentligeYdelserColumns = (args: {
       if (!iso) return;
       const idx = isoIndex.get(iso);
       if (idx === undefined) return;
-      if (!isOffentligYdelseDatoMedregnet(iso, d, shDays, config.periodisering, typeKey, range.til, sygedagpengeShCutoff)) return;
+      if (
+        periodiseringsGrundlag.fallbackAllocationDays
+          ? !periodiseringsGrundlag.fallbackAllocationDays.has(iso)
+          : !isOffentligYdelseDatoMedregnet(iso, d, shDays, config.periodisering, typeKey, range.til, sygedagpengeShCutoff)
+      ) return;
       amounts[idx] += perDay;
     });
   }
@@ -184,7 +199,11 @@ export const buildOffentligeYdelserColumns = (args: {
         if (!iso) return;
         const idx = isoIndex.get(iso);
         if (idx === undefined) return;
-        if (!isOffentligYdelseDatoMedregnet(iso, d, shDays, row.config.periodisering, typeKey, row.range.til, sygedagpengeShCutoff)) return;
+        if (
+          row.periodiseringsGrundlag.fallbackAllocationDays
+            ? !row.periodiseringsGrundlag.fallbackAllocationDays.has(iso)
+            : !isOffentligYdelseDatoMedregnet(iso, d, shDays, row.config.periodisering, typeKey, row.range.til, sygedagpengeShCutoff)
+        ) return;
         actual += amounts[idx] ?? 0;
       });
 

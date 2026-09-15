@@ -147,14 +147,9 @@ describe('CALC-006-A – uafhængigt håndfacit gennem EO-snapshot', () => {
       eoValues: withSfggIngenForEmployments(eoValues),
     });
 
-    // Kontroltabellen har endnu ingen fallback-kolonne for en ren weekendydelse. Derfor er
-    // snapshot-data tilgængelig, men dokumentprojektionen blokeres af den ærlige mismatch-invariant.
-    expect(snapshot.status).toBe('error');
+    expect(snapshot.status).toBe('ok');
     expect(snapshot.data).not.toBeNull();
-    expect(snapshot.invariants).toEqual([expect.objectContaining({
-      id: 'control:sammentaelling_mismatch',
-      severity: 'error',
-    })]);
+    expect(snapshot.invariants).toEqual([]);
     expect(snapshot.data?.engines.tafNetto.tafBeregningsenhed).toBe('Arbejdsdage');
     expect(snapshot.data?.engines.tafNetto.tafIndtaegter?.entries).toEqual([{
       label: 'Sygedagpenge',
@@ -171,7 +166,7 @@ describe('CALC-006-A – uafhængigt håndfacit gennem EO-snapshot', () => {
     });
 
     const document = eoSnapshotToEoDocument(snapshot);
-    expect(document.kind).toBe('blocked');
+    expect(document.kind).toBe('ok');
 
     const view = eoSnapshotToInspektionView({
       snapshot,

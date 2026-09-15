@@ -164,11 +164,7 @@ describe('TD-019 – offentlig ydelsesregulering uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'regulerOffentligeYdelser',
-        message: 'Regulering af offentlige ydelser kan ikke beregnes efter 2026, fordi reguleringssatsen mangler.',
-        severity: 'error',
-      }, {
-        path: 'regulerOffentligeYdelser',
-        message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027.',
+        message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027. Der kan ikke beregnes regulering efter 2026.',
         severity: 'error',
       }],
     });

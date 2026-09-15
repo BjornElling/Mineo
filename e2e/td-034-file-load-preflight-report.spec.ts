@@ -121,6 +121,12 @@ test.describe('TD-034 – lokal fejlrapport fra load-preflight', () => {
     await expect(reportPreview).toHaveValue(/Fil: aeldre-sag\.eo/);
     await expect(reportDialog.getByRole('button', { name: 'Åbn email' })).toBeEnabled();
 
+    // Udviklerbeslutning TD-088: Luk afslutter hele fejlrapportforløbet, inklusive den
+    // underliggende preflight-dialog.
+    await reportDialog.getByRole('button', { name: 'Luk', exact: true }).click();
+    await expect(reportDialog).toBeHidden();
+    await expect(preflightDialog).toBeHidden();
+
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);
   });

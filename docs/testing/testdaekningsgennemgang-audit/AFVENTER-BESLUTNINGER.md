@@ -18,16 +18,31 @@ advarsel eller beder om en anden handling.
 3. Vælg filen, gennemgå forhåndsvisningen, og vælg at indlæse den.
 4. Kontrollér, at sagens oplysninger og de vigtigste beregningsfelter er uændrede.
 
-**Spørgsmål:** Kan du give mig en eller flere faktiske gamle `.eo`-filer til kontrollen,
-eller accepterer du, at de genskabte eksempler i auditten bruges som erstatning?
+**Spørgsmål:** Kan du give mig en eller flere gamle `.eo`-filer, så jeg kan kontrollere,
+at Mineo stadig viser de samme sagsoplysninger, når filerne åbnes, eller skal jeg bruge
+de genskabte eksempler som erstatning?
 
 **Dit svar:**
 
-> Jeg har en række gamle .eo filer liggende. Sig til, når jeg skal give dig dem.
+> Jeg har en række gamle .eo filer liggende. Kan du selv indlæse dem? Bemærk dog, at du under ingen omstændigheder må ændre i dem. De ligger her:
+C:\Users\BEL\OneDrive - FH\Verserende sager\Mineo
+
+**Opfølgende spørgsmål:** Ved gennemgangen kunne 10 af de 11 filer åbnes direkte. Én ældre
+sag kunne også åbnes, men Mineo viste en advarsel om, at nogle gamle oplysninger blev sat til
+standardværdier. Det drejede sig blandt andet om skadesdatoen, som programmet i dag kalder
+**skadedato**, samt tre gamle oplysninger om sygeferiegodtgørelse, som ikke længere findes
+som selvstændige oplysninger i Mineo. De gamle oplysninger kom ikke fra en brugerændring i
+den aktuelle version, men fra den tidligere udgave af Mineo.
+
+Skal denne ene sag fremover åbne direkte uden advarsel, hvor skadesdatoen bevares, og de tre
+gamle, forældede oplysninger ikke længere vises som tabte? Eller skal Mineo fortsat vise
+advarslen, når en så gammel fil åbnes?
+
+> Der er tale om en enkeltstående sag, der blevet lavet mens programmet stadig var i en intern udviklingsudgave. Ingen eksterne brugere har benyttet programmet på et tidspunkt, som ville gøre denne preflight meddelelse aktuel for dem. Der er ikke behov for kompatibilitet af dette forhold.
 
 ## 2. Ydelse i en weekend i en arbejdsdagsbaseret sag (TD-016)
 
-**Det brugeren kan opleve:** Mineo viser en advarsel og blokerer dokumentet, selv om
+**Det brugeren oplevede før rettelsen:** Mineo viste en advarsel og blokerede dokumentet, selv om
 brugeren har indtastet en ydelse, der dækker en weekend. Der vises ikke en tilsvarende
 ydelseskolonne i kontroltabellen.
 
@@ -60,12 +75,23 @@ ydelseskolonne i kontroltabellen.
 7. Gå til fanen **Beregning**, og se på kontroltabellen og knappen til at hente
    opgørelsen.
 
-**Spørgsmål:** Er det korrekt, at Mineo viser advarslen og blokerer dokumentet i denne
-situation, eller skal ydelsen vises og behandles på en anden måde?
+**Spørgsmål:** Når en bruger har indtastet en offentlig ydelse, der dækker en lørdag eller
+søndag, skal Mineo så vise en tydelig advarsel og forhindre brugeren i at hente opgørelsen,
+eller skal brugeren kunne hente opgørelsen, hvor ydelsen indgår i oversigten?
 
 **Dit svar:**
 
-> Dit eksempel giver ingen mening. Dels mangler du at give mig specifikke anvisninger om, hvad jeg skal indtaste i flere felter - og derudover beder du mig indtaste en beregningsperiode, efter jeg har valgt, at beregningsgrundlaget er angivet dagsløn, hvilket ikke er muligt, siden rækken med beregningsperiode bliver skjult i det tilfælde. Giv mig bedre instruktioner.
+> Jeg mener, at vi havde en lignende problemstilling, når brugeren indtastede lønindkomst i en periode, hvor samtlige af dagene var angivet som feriedage. Vil du undersøge og beskrive, hvad vi gjorde der, så jeg kan vurdere, om samme fremgangsmåde skal bruges her.
+
+**Opfølgende spørgsmål:** Jeg har undersøgt den tilsvarende situation. Når en lønperiode
+udelukkende består af feriedage, bevarer Mineo beløbet i opgørelsen, men dagene tæller ikke
+som arbejdsdage. Den samme behandling findes allerede for en offentlig ydelse, der kun
+dækker en weekend.
+
+Skal brugeren derfor kunne se ydelsen i oversigten og hente dokumentet uden en advarsel
+eller blokering, selv om ydelsen kun dækker lørdag og søndag?
+
+> Følg den øvrige praksis fra programmet. Hvis den indebærer, at beløbet medregnes og indgår i beregningen tavst og uden særskilt advarsel eller meddelelse, så gør det samme her. Det eneste, som ikke må ske - hverken her eller nogen af de andre steder, hvor lignende problemer er aktuelle - er at beløbet blot forsvinder tavst.
 
 ## 3. Ugyldig dato, der når beregningen (TD-003)
 
@@ -79,12 +105,12 @@ indtastninger i Mineo. Du skal derfor ikke prøve at indtaste noget særligt. Pu
 en intern sikkerhedskontrol, som Codex kan afprøve automatisk, men som ikke er synlig
 for en almindelig bruger.
 
-**Spørgsmål:** Skal vi også beskytte denne usynlige situation særskilt, eller er det
-tilstrækkeligt, at Mineo allerede afviser forkerte datoer i den almindelige formular?
+**Spørgsmål:** Hvis en ugyldig dato alligevel skulle nå frem til beregningen, skal Mineo så
+stoppe og vise brugeren en tydelig fejl i stedet for at vise et tomt eller ubrugeligt resultat?
 
 **Dit svar:**
 
-> Dit spørgsmål giver ingen mening. Du beder mig forholde mig til en situation, du hverken specificerer, og som jeg ikke kan fremkalde.
+> Ja, ugyldige datoer skal afvises, men det er væsentligt, at brugeren får advarsler og fejl om disse på sædvanlig vis, dvs. fx. ved rød ring og tooltip i indtastningsfeltet, som har udløst fejlen, og visning i boksen med Fejl og advarsler med relevant beskrivelse og link til det felt, hvor indtastningen befinder sig, der har forårsaget problemet.
 
 ## 4. Gem og Hent, når browserens filvalg ikke virker (TD-017)
 
@@ -97,13 +123,13 @@ faktisk kan gennemføre det.
 normale skærmbilleder. Du skal ikke ændre noget på din computer eller forsøge at gøre
 filvalget defekt. Codex har en automatisk kontrol, der efterligner situationen.
 
-**Spørgsmål:** Er det acceptabelt, at den automatiske kontrol er den eneste kontrol af
-denne sjældne situation, eller skal punktet stå åbent, indtil det kan prøves på en
-konkret computer?
+**Spørgsmål:** Hvis Mineos normale filvalg ikke virker på brugerens computer, skal Mineo så
+automatisk vise et andet filvalg, så brugeren stadig kan gemme eller hente sin sag uden at
+møde en fejl?
 
 **Dit svar:**
 
-> Det har jeg ingen forudsætninger for at besvare. Du kan ikke give mig en måde at fremprovokere situationen på, så jeg ved rent ud sagt ikke, hvad det er, jeg skal forholde mig til.
+> Ja. Det er særligt væsenltig for mig, at brugeren ikke kan miste sine indtastninger på grund af en fejl i filvælgeren ved gem. Dette må ikke kunne ske - så rigtig fint, at programmet viser et andet filvalg. Der må også gerne på denne måde være en alternativ visning for hent. Sørg dog i første række for at sikre den ordinære gem/hent-funktionalitet bedst muligt, så den alternative løsning helst aldrig skal blive relevant.
 
 ## 5. Åbning af en fil i den installerede Mineo-app (TD-022)
 
@@ -120,12 +146,22 @@ kontrolleret på en rigtig desktopinstallation.
 5. Kontrollér, at Mineo åbner filen, viser forhåndsvisningen, og indlæser sagen uden
    at oplysninger mangler.
 
-**Spørgsmål:** Kan du udføre denne kontrol og skrive operativsystem, browser og resultat
-her, eller skal denne del accepteres som en resterende manuel kontrol?
+**Spørgsmål:** Når en bruger dobbeltklikker på en `.eo`-fil, skal den installerede Mineo-app
+så åbne filen, vise forhåndsvisningen og indlæse sagen med alle oplysninger, eller skal
+brugeren først åbne Mineo og vælge filen derfra?
 
 **Dit svar:**
 
-> Indlæsning i app'en ved at dobbeltklikke på en .eo-fil fungerer som det skal.
+> Indlæsning i app'en ved at dobbeltklikke på en .eo-fil fungerer som det skal. Jeg er dog stødt på en problemstilling, hvor brugeren efter installation fravælger i Windows, at .eo-filer fremover skal åbnes i Mineo. Da dukker programmet ikke op på forslagslisten i browseren, hvis brugeren efterfølgende dobbeltklikker på en .eo-fil. Det ved jeg ikke om kan løses i programmet, eller er en problemstilling med Windows' funktionalitet til at vælge standardprogrammer.
+
+**Opfølgende spørgsmål:** Når brugeren aktivt har fjernet Mineo som program til åbning af
+`.eo`-filer i Windows, kan Mineo ikke selv sørge for at komme tilbage på Windows’ liste over
+foreslåede programmer, før brugeren vælger det igen.
+
+Skal vi acceptere dette som en begrænsning i Windows og eventuelt skrive en kort vejledning
+til, hvordan brugeren vælger Mineo igen, eller ønsker du, at vi undersøger en anden løsning?
+
+> Det er en windows-begrænsning. Så du skal ikke gøre mere for at forsøge at løse det.
 
 ## 6. Fysisk kontrol af PDF- og Word-dokumenter (TD-014 og TD-018)
 
@@ -142,8 +178,10 @@ bliver klippet, eller skifter uhensigtsmæssigt mellem sider.
 4. Kontrollér overskrifter, tabeller, tal, sideskift og at ingen tekst mangler eller
    overlapper.
 
-**Spørgsmål:** Vil du udføre denne manuelle kontrol, eller accepterer du den nuværende
-automatiske kontrol af dokumenternes indhold som tilstrækkelig for denne gennemgang?
+**Spørgsmål:** Når brugeren henter en PDF eller Word-fil, er det så tilstrækkeligt, at de
+automatiske kontroller sikrer de rigtige tal og tekster, eller er der et bestemt synligt
+forhold – for eksempel tekst, der overlapper, bliver klippet eller får et forkert sideskift
+– som du ønsker kontrolleret særskilt?
 
 **Dit svar:**
 
@@ -166,8 +204,9 @@ workflowets og produktionsartefaktets relevante kode er derfor uændret.
 3. Kontrollér, at login, navigation og mindst én dokumentdownload gennemføres.
 4. Skriv resultatet og linket til workflowkørslen her.
 
-**Spørgsmål:** Kan du køre denne releasekontrol, eller accepterer du den lokale kontrol
-og den statiske gennemgang af workflowet som tilstrækkelig dokumentation?
+**Spørgsmål:** Skal en ny version kun kunne blive lagt online, når de automatiske kontroller
+har vist, at brugerne kan logge ind, navigere og hente dokumenter i netop den version, der
+skal offentliggøres – uden at du bagefter skal kontrollere det manuelt?
 
 **Dit svar:**
 
@@ -189,30 +228,76 @@ beløb brugeren skulle stole på.
 6. Hent rækkens PDF-specifikation, og sammenlign det samlede rentebeløb i PDF'en med
    beløbet i Mineo.
 
-**Spørgsmål:** Skal begge steder vise samme beløb? Hvis ja, skal skærmen følge den samme
-afrunding pr. beregnet række som PDF'en, eller skal begge steder bruge en anden fælles
-afrunding?
+**Spørgsmål:** Skal brugeren altid se præcis det samme rentebeløb på skærmen og i den hentede
+PDF og Word-fil – også når beløbet består af flere beregnede rækker? Hvis ja, skal hver række
+afrundes til to decimaler, før rækkernes beløb lægges sammen?
 
 **Dit svar:**
 
-> Du kan ikke bare bede mig forholde mig til magic numbers på den måde. Du må forklare, hvad der er årsagen til de forskellige beløb, og bede mig forholde mig til hvilken af de to forskellige fremgangsmåder, jeg vil have. Der skal dog altid (!!) være samme værdi vist på skærmen, som i pdf'en. jeg formoder, at forskellen her skyldes, at pdf'en afrunder til to decimaler for hver beregnet række. det er den korrekte fremgangsmåde, som også skal anvendes i visningen på skærmen. De viste værdier skal altid være identiske med værdierne i pdf'en.
+> Brugeren skal altid se nøjagtig de samme rentebeløb på skærmen og i pdf'en. Det skal på santlige visninger og dokumenter - ikke bare i renteberegning - være sådan, at når flere beløb vises på skærmen eller i dokumentet med x decimaler, så er det den viste værdi afrundet til x decimaler, der skal indgå i den fremtidige beregning af i alt-beløbet. Jeg mener kun at vi har lavet én bevidst undtagelse i EO omkring regulering af ydelser, .
+
+**Opfølgende spørgsmål:** Skal jeg forstå din beslutning sådan, at alle beløb, der vises
+afrundet, også skal bruge den viste afrundede værdi i efterfølgende totaler – både på skærmen
+og i PDF- og Word-dokumenter?
+
+Hvad er den præcise undtagelse omkring regulering af ydelser i EO? Skal månedstal fortsat
+beregnes med en mere præcis værdi end den, brugeren ser, eller skal månedstal også følge den
+viste afrunding?
+
+> Alle beløb, der vises afrundet, skal også bruge den viste afrundede værdi i de efterfølgende totaler. Både på skærmen og i PDF- og Word-dokumenter. Der er vist nok en enkelt undtagelse, som allerede er indarbejdet og som du skal lade stå. Jeg mener, at det er i forhold til beregning af den regulerede månedsløn i EO, hvor der ellers ville kunne opstå situationer, hvor lønnen på beregningstidspunktet fx er 20.000 kr., som derefter ændres til 21.000 kr. men idet regulering sker med procenter med et begrænset antal decimaler, ville der kunne opstå en situation, hvor afrunding medførte, at det opregulerede beløb ikke blev 21.000 kr. Det er dog muligt, at denne ene afvigelse handler om procenttallet for antal decimaler i opreguleringsprocenten og ikke i beregningen af selve beløbet. Find udtagelsen og bevar bare den.
+
+## Opfølgende spørgsmål til TD-156 – manglende reguleringssats
+
+**Det brugeren kan opleve:** Mineo kan opdage to forskellige problemer i de samme
+oplysninger om regulering af offentlige ydelser. Brugeren kan derfor enten få vist to
+fejlbeskeder eller én samlet forklaring.
+
+**Spørgsmål:** Når Mineo mangler oplysninger om regulering af offentlige ydelser, hvad skal
+brugeren så se?
+
+- To separate fejlbeskeder, hvor hver besked forklarer sit eget problem.
+- Én samlet fejlbesked, der forklarer, hvilke oplysninger der mangler, og hvad det betyder
+  for beregningen.
+
+> Det kommer an på hvad karakteren af fejlene er. Det er svært for mig at bedømme, når du ikke er kommet med konkrete eksempler.
+
+**Konkret eksempel på TD-156:** Brugeren vælger **Ja** til regulering af offentlige
+ydelser, indtaster en ydelse på `1.000 kr.` fra `01-01-2027` til `31-12-2027` og har en
+erstatningsperiode, der også løber i 2027. Mineo mangler reguleringssatsen for 2027.
+
+I denne situation viser Mineo i dag to fejl på samme valg:
+
+1. `Regulering af offentlige ydelser kan ikke beregnes efter 2026, fordi reguleringssatsen mangler.`
+2. `Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027.`
+
+De to fejl handler her om det samme konkrete problem – at satsen for 2027 mangler.
+
+**Nyt spørgsmål:** Skal brugeren i dette konkrete tilfælde se begge fejl, eller skal de
+vises som én samlet fejlbesked, for eksempel:
+
+> Regulering af offentlige ydelser kan ikke beregnes, fordi reguleringssatsen for 2027 mangler. Beregningen kan ikke gennemføres efter 2026.
+
+Hvis svaret afhænger af situationen, bedes du beskrive, hvornår to fejl skal vises hver for
+sig, og hvornår de skal samles.
+
+> Hvis der i det væsentligste er tale om fejl, der ligesom det ovenstående eksempel grundlæggende handler om samme problem, skal de samles til én fejlmeddelelse til brugeren.
 
 ## Gennemgang af svarene
 
-Svarene er gennemgået 2026-09-12. De følgende punkter er den bindende videre håndtering i
+Svarene er gennemgået 2026-09-15. De følgende punkter er den bindende videre håndtering i
 auditten:
 
 | Punkt | Videre håndtering | Status |
 | --- | --- | --- |
-| TD-001 | De gamle `.eo`-filer skal leveres som lokale kopier, når provenienskontrollen gennemføres. Auditten gætter ikke på filernes historik. | Afventer faktiske filer |
-| TD-016 | Reproduktionstrinnene ovenfor er rettet, så de følger den valgte dagsløn og ikke beder om skjulte felter. Dit svar tager stilling til instruktionerne, men ikke til om advarslen og blokeringen er korrekt. Punktet afventer derfor selve observationen og det efterfølgende domænevalg. | Afventer brugerobservation og domænevalg |
+| TD-001 | De 11 faktiske `.eo`-filer er gennemgået read-only gennem den synlige Hent-funktion. 10 blev indlæst direkte, og 1 viste den eksisterende preflight og blev indlæst efter den eksplicitte bekræftelse. Filerne blev ikke ændret. Den ene fil stammer fra en intern udviklingsudgave, og der indføres derfor ikke yderligere kompatibilitet for netop denne historiske struktur. | Gennemført – ingen produktændring |
+| TD-016 | Den fælles fald-tilbage-fordeling bruges nu også i EO-inspektionens kontroltabel. En weekendydelse forsvinder derfor ikke, giver ikke et falsk kontrolbrud og fremgår af den relevante ydelseskolonne. | Implementeret og målrettet testet |
 | TD-003 | Den kanoniske `utcDayMath`-grænse skal afvise ugyldige `Date`-instanser straks. Det er et internt fail-closed-værn, som ikke kræver manuel genskabelse og ikke ændrer gyldige datoer. | Gennemført automatisk |
 | TD-017 | File System Access API må kun vælges, når begge picker-funktioner faktisk kan kaldes. Ellers bruges den eksisterende almindelige Hent-/Gem-fallback. Det er et internt browserværn uden behov for manuel genskabelse. | Gennemført automatisk |
-| TD-022 | Din kontrol accepteres som manuel observation af, at dobbeltklik på en `.eo`-fil virker. OS, browser og uafhængigt artefaktbevis mangler fortsat, så den bredere platformskontrol står delvist åben. | Delvist dokumenteret |
+| TD-022 | Din kontrol accepteres som manuel observation af, at dobbeltklik på en `.eo`-fil virker. Den manglende åbning, når Mineo ikke er valgt som Windows-standardapp, accepteres som en Windows-begrænsning, og der laves ikke yderligere produktændringer for at omgå den. | Accepteret Windows-begrænsning |
 | TD-014 / TD-018 | Dokumentkontrol automatiseres så langt programmets testfunktioner kan observere den. Der kræves kun en konkret, afgrænset manuel kontrol, hvis der efter den automatiske gennemgang stadig er et bestemt layoutforhold, som ikke kan måles pålideligt. | Automatiseret først |
 | B-002 | Den bindende releasekontrol skal ligge i GitHub Actions og blokere deploy automatisk. De browserprojekter, der ellers kun kører lokalt, kobles derfor også på CI. Kørsel #284 på `ed6bd4e` bestod med releasegate, alle 10 E2E-jobs, artefakt og deploy ([workflow](https://github.com/BjornElling/mineo/actions/runs/34855411327)). Den ene eksterne workflowkørsel kvalificerer rutinen – den er ikke en tilbagevendende manuel releasehandling. | Lukket for den konkrete CI-/artefaktkobling |
-| TD-156 | En TAF-sag med slutår 2027 giver to synlige fejlårsager på samme felt: `Regulering af offentlige ydelser kan ikke beregnes efter 2026, fordi reguleringssatsen mangler.` og `Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027.` Begge er testmæssigt fastlåst; der skal tages stilling til, om brugeren skal se begge linjer eller én samlet forklaring. | Afventer udviklerens UI/UX-beslutning |
-| TD-043 | Hver synlig renteberegningsrække afrundes til to decimaler, og de afrundede rækkebeløb summeres. Skærm, PDF og Word skal derfor vise samme beløb – i det dokumenterede eksempel `94,94 kr.` | Gennemført automatisk |
+| TD-156 | Når flere fejl i samme situation grundlæggende skyldes den samme manglende reguleringssats, samles de til én fejlbesked. Fejl, der skyldes en anden årsag, forbliver særskilte. | Implementeret og målrettet testet |
+| TD-043 | Alle afrundede beløb skal bruge den viste afrundede værdi i efterfølgende totaler på skærm, PDF og Word. Den eksisterende særregel for KL-lønaftalers trinvist afrundede, regulerede løn bevares, fordi den sikrer, at fx 20.000 kr. kan ende præcist på den trinvist beregnede 21.000 kr. | Bekræftet – eksisterende undtagelse bevaret |
 
 ## 9. Modal-lukning i fejlrapport-preview (TD-088)
 
@@ -220,18 +305,19 @@ auditten:
 oven på load-preflighten. Når brugeren vælger **Luk** i previewet, lukkes både previewet og
 den underliggende preflight-dialog.
 
-**Observation:** Det blev set i Chrome under `td-034-file-load-preflight-report.spec.ts`.
-Testen fastlåser bevidst ikke denne del af brugeroplevelsen, fordi det ikke er afgjort, om
-brugeren skal tilbage til preflighten med sagen uændret, eller om begge dialoger skal lukkes.
+**Observation før beslutningen:** Det blev set i Chrome under
+`td-034-file-load-preflight-report.spec.ts`. E2E-testen fastlåser nu beslutningen nedenfor:
+begge dialoger skal være lukkede efter **Luk**.
 
-**Spørgsmål:** Skal **Luk** kun lukke fejlrapport-previewet, så preflighten bliver stående,
-eller er det tilsigtet, at begge dialoger lukkes?
+**Spørgsmål:** Når brugeren lukker forhåndsvisningen af fejlrapporten, skal brugeren så
+komme tilbage til vinduet, hvor den valgte fil stadig kan godkendes eller afvises, eller
+skal begge vinduer lukkes, så brugeren er tilbage ved den nuværende sag?
 
 **Dit svar:**
 
-> Afventer udviklerens beslutning.
+> Luk skal lukke begge. Det er tilsigtet og korrekt adfærd.
 
-| TD-088 | Fejlrapport-previewets **Luk** skal enten lukke previewet alene eller begge dialoger. Valget ændrer den synlige load-flowadfærd og kræver derfor udviklerens godkendelse. | Afventer udviklerbeslutning |
+| TD-088 | Fejlrapport-previewets **Luk** lukker både previewet og den underliggende preflight-dialog, som ønsket. E2E-testen fastlåser begge dialoger som skjulte bagefter. | Lukket med test |
 
 ## 10. Refererede chunks i standalone-buildets manifest (TD-292)
 
@@ -240,21 +326,21 @@ selv om en PDF-/Word-chunk, som manifestet refererer til gennem `file`, `imports
 `dynamicImports`, mangler i buildmappen. Fejlen vil først vise sig, når brugeren åbner det
 berørte dokumentforløb.
 
-**Read-only-observation:** `scripts/verify-build-artifacts.mjs` kontrollerer for
+**Read-only-observation før rettelsen:** `scripts/verify-build-artifacts.mjs` kontrollerede for
 MinProcesrente manifestets nøgler og `src`, standalone-entryen og forbudte Mineo-kilder.
 Det aktuelle `dist/minprocesrente/.vite/manifest.json` indeholder også `file`, `imports` og
 `dynamicImports`. `verifyMinprocesrenteBuildArtifacts.test.ts` dækker i dag kun entry og
 Mineo-entryforbud.
 
-**Spørgsmål:** Skal releasekontrollen udvides, så den build-koblet følger og eksistens-
-kontrollerer alle `file`, `imports` og `dynamicImports`-referencer i standalone-manifestet,
-hvorefter der tilføjes et uafhængigt negativt quality-facit?
+**Spørgsmål:** Skal en ny version af MinProcesrente kun kunne blive lagt online, hvis alle
+funktioner til at hente PDF- og Word-filer faktisk er til stede og kan åbnes, så brugeren
+ikke først opdager en manglende del, når netop den funktion vælges?
 
 **Dit svar:**
 
-> Afventer udviklerens beslutning.
+> Ja
 
-| TD-292 | Udvidelse af standalone-artifact-verifieren til alle manifestreferencer ændrer releasekontrollens scope og kræver derfor udviklerens godkendelse før implementering. | Afventer udviklerbeslutning |
+| TD-292 | Standalone-artifact-verifieren kontrollerer nu, at alle manifestentries har en eksisterende `file`, og at alle `imports`-/`dynamicImports`-referencer peger på eksisterende manifestentries. Der er også negative kvalitetstests for manglende filer og ukendte referencer. | Implementeret og målrettet testet |
 
 ## Notat
 

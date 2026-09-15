@@ -483,7 +483,7 @@ describe('regulering af offentlige ydelser – satsdækning', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'regulerOffentligeYdelser',
-      message: expect.stringContaining('kan ikke beregnes efter 2026'),
+      message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027. Der kan ikke beregnes regulering efter 2026.',
       severity: 'error',
     }));
   });

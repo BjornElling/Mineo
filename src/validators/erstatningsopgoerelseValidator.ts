@@ -601,13 +601,8 @@ function validateOffentligeYdelserReguleringssatser(
       severity: 'error',
     });
   }
-  if (maxTafYear > bounds.maxYear) {
-    errors.push({
-      path: 'regulerOffentligeYdelser',
-      message: `Regulering af offentlige ydelser kan ikke beregnes efter ${bounds.maxYear}, fordi reguleringssatsen mangler.`,
-      severity: 'error',
-    });
-  }
+  const maxTafYearExceedsRateBounds = maxTafYear > bounds.maxYear;
+  let missingRateYears: readonly number[] = [];
   if (reguleringsBaseIso !== undefined) {
     const baseYear = Number.parseInt(reguleringsBaseIso.slice(0, 4), 10);
     if (Number.isInteger(baseYear) && maxTafYear >= baseYear) {
@@ -615,14 +610,27 @@ function validateOffentligeYdelserReguleringssatser(
         { kildeAar: baseYear, maalAar: maxTafYear },
         reguleringssats
       );
-      if (manglendeAar.length > 0) {
-        errors.push({
-          path: 'regulerOffentligeYdelser',
-          message: `Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for ${formatMissingYears(manglendeAar)}.`,
-          severity: 'error',
-        });
-      }
+      missingRateYears = manglendeAar;
     }
+  }
+  if (missingRateYears.length > 0) {
+    // Når slutåret også ligger efter den kendte satsdækning, beskriver de to fund samme
+    // manglende sats. Én samlet fejl er mere forståelig; en særskilt fejl for en dato før
+    // den tidligste sats er fortsat relevant og vises derfor ovenfor.
+    const upperBoundExplanation = maxTafYearExceedsRateBounds
+      ? ` Der kan ikke beregnes regulering efter ${bounds.maxYear}.`
+      : '';
+    errors.push({
+      path: 'regulerOffentligeYdelser',
+      message: `Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for ${formatMissingYears(missingRateYears)}.${upperBoundExplanation}`,
+      severity: 'error',
+    });
+  } else if (maxTafYearExceedsRateBounds) {
+    errors.push({
+      path: 'regulerOffentligeYdelser',
+      message: `Regulering af offentlige ydelser kan ikke beregnes efter ${bounds.maxYear}, fordi reguleringssatsen mangler.`,
+      severity: 'error',
+    });
   }
 
   return errors;

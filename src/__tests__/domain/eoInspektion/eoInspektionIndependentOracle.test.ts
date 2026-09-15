@@ -276,7 +276,7 @@ describe('EOInspektion – kontroltabel med statisk facit', () => {
     expect(model.tableData.tafFlagsByIndex.slice(0, 5).map((flags) => [...flags])).toEqual([[], ['base:taf_day'], [], [], []]);
   });
 
-  it('viser auditbruddet hvor beregningen fanger weekend-fald-tilbage, men kontroltabellen ikke gør', () => {
+  it('viser en weekendydelse via samme fald-tilbage-fordeling som beregningen', () => {
     const values = buildControlValues({
       vedroererPeriodeFra: iso('2024-07-06'),
       vedroererPeriodeTil: iso('2024-07-07'),
@@ -295,11 +295,9 @@ describe('EOInspektion – kontroltabel med statisk facit', () => {
     });
 
     expect(canonicalIncome.benefits.find((benefit) => benefit.typeKey === 'sygedagpenge')?.amount).toBe(2000);
-    expect(model.columnRawValues.get('offentlig:sygedagpenge')).toBeUndefined();
-    expect(model.integrityIssues).toEqual([expect.objectContaining({
-      severity: 'warning',
-      area: 'offentlige ydelser',
-      message: expect.stringContaining('ingen periodiseringsdage'),
-    })]);
+    const amounts = model.columnRawValues.get('offentlig:sygedagpenge');
+    expect(amounts?.slice(0, 7)).toEqual([0, 0, 0, 0, 0, 1000, 1000]);
+    expect(amounts?.reduce((sum, value) => sum + value, 0)).toBe(2000);
+    expect(model.integrityIssues).toEqual([]);
   });
 });
