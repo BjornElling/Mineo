@@ -48,4 +48,34 @@ test.describe('UI-009 – device-lokale indstillinger', () => {
     expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
+
+  test('viser valgt mappe og vender tilbage til skrivebordet ved nulstilling', async ({
+    page,
+    runtimeErrors,
+    runtimeSignals,
+    externalRequests,
+  }) => {
+    await login(page);
+    await openPage(page, 'Indstillinger');
+
+    await expect(page.getByText('Skrivebord (standard)', { exact: true })).toBeVisible();
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'showDirectoryPicker', {
+        configurable: true,
+        value: async () => ({ kind: 'directory', name: 'E2E-sager' }),
+      });
+    });
+
+    await page.getByRole('button', { name: 'Vælg mappe' }).click();
+    await expect(page.getByText('E2E-sager', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nulstil til skrivebord' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Nulstil til skrivebord' }).click();
+    await expect(page.getByText('Skrivebord (standard)', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nulstil til skrivebord' })).not.toBeVisible();
+
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
 });

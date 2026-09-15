@@ -10,7 +10,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit, et uafhængigt ISO-ugefacit, et SFGG-grænsefacit, et feriepenge-downstream-facit, et dobbelciteret lane-facit, scroll- og EO-id-facitter samt gemme- og EO-løntidsfacitter. Den samlede `verify:release:core` er senest bestået på `e50fb1e5` med 847 testfiler / 9.021 beståede tests, coverage 90,58 / 81,70 / 94,76 / 93,36 og begge builds. Den valgte E2E-suite er senest bestået på `71746917` med 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
-- Seneste test-only batch: CALC-006/DOC-001-facittet TD-297; målrettet kontrol 1 ny test / 1 test; ingen produktkode, beregningslogik, UI/UX eller persistens ændret. TD-025 blev retestet coverage-nært parallelt med 64/64 grønne tests uden reproduktion, men den mulige Tooltip-årsag er fortsat uforklaret.
+- Seneste test-only batch: UI-009/PERSIST-002-facittet TD-298; målrettet kontrol 1 ny E2E-test / 2 tests; ingen produktkode, beregningslogik, UI/UX eller persistens ændret. TD-025 blev retestet coverage-nært parallelt med 64/64 grønne tests uden reproduktion, men den mulige Tooltip-årsag er fortsat uforklaret.
 - Seneste read-only restpunktstria: TD-004 er genkontrolleret med grøn advisory-gate, men står fortsat som vedligeholdelsespost, indtil parentens `qs`-range åbnes; TD-001, TD-022 og TD-014/TD-018/TD-020 har ingen sikkert nyt lokalt facit. TD-292 er identificeret som et åbent standalone-artifactværn, der kræver beslutning om en udvidet releasekontrol. B-002 er lukket for den konkrete CI-/artefaktkobling efter ekstern workflowkørsel #284 på `ed6bd4e`. De øvrige punkter kræver henholdsvis faktiske historiske `.eo`-filer eller accept, installeret PWA/OS, fysisk PDF-/Word-viewerinspektion eller autoritativt tabelkildefacit.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
@@ -222,7 +222,7 @@ med 1/1 håndskrevet Word-facit, og `PERSIST-002` med
 | Lukket | `TD-003`, `TD-005`, `TD-006`, `TD-007`, `TD-008`, `TD-009`, `TD-010`, `TD-011`, `TD-012`, `TD-013`, `TD-015`, `TD-017`, `TD-021`, `TD-023`, `TD-024`, `TD-035`, `TD-036`, `TD-037`, `TD-038`, `TD-039`, `TD-040`, `TD-041`, `TD-043`, `TD-044`, `TD-045`, `TD-046`, `TD-047`, `TD-048`, `TD-049`, `TD-050`, `TD-051`, `TD-052`, `TD-053`, `TD-054`, `TD-055`, `TD-056`, `TD-057`, `TD-058`, `TD-059`, `TD-060`, `TD-061`, `TD-062`, `TD-063`, `TD-064`, `TD-065`, `TD-066`, `TD-067`, `TD-068`, `TD-069`, `TD-070`, `TD-071`, `TD-072`, `TD-073`, `TD-074`, `TD-075`, `TD-076`, `TD-077`, `TD-078`, `TD-079`, `TD-080`, `TD-081`, `TD-082`, `TD-083`, `TD-084`, `TD-085`, `TD-086`, `TD-087`, `TD-089`, `TD-090`, `TD-091`, `TD-092`, `TD-093`, `TD-094`, `TD-095`, `TD-096`, `TD-097`, `TD-098`, `TD-099`, `TD-100`, `TD-101`, `TD-102`, `TD-104`, `TD-105`, `TD-106`, `TD-107`, `TD-108`, `TD-109`, `TD-110`, `TD-111`, `TD-112`, `TD-113`, `TD-114`, `TD-115`, `TD-116`, `TD-117`, `TD-118`, `TD-119`, `TD-120`, `TD-121`, `TD-122`, `TD-123`, `TD-124`, `TD-125`, `TD-129`, `TD-130`, `TD-131`, `TD-132`, `TD-133`, `TD-134`, `TD-135`, `TD-136`, `TD-137`, `TD-138`, `TD-139`, `TD-140`, `TD-144`, `TD-145`, `TD-146`, `TD-147`, `TD-148`, `TD-149`, `TD-150`, `TD-151`, `TD-152` |
 | Delvist lukket | `TD-002`, `TD-004`, `TD-014`, `TD-018`, `TD-019`, `TD-020`, `TD-022`, `TD-025`, `TD-027`, `TD-028`, `TD-029`, `TD-031`, `TD-032`, `TD-033`, `TD-034`, `TD-042` |
 | Åbent – kræver udviklerbeslutning eller ekstern evidens | `TD-001`, `TD-016`, `TD-156`, `TD-292` |
-| Senest tilføjet lukket | `TD-153`, `TD-154`, `TD-155`, `TD-157`–`TD-297` – test-only facitter dokumenteret; `TD-156` er fortsat åbent |
+| Senest tilføjet lukket | `TD-153`, `TD-154`, `TD-155`, `TD-157`–`TD-298` – test-only facitter dokumenteret; `TD-156` er fortsat åbent |
 
 ## Seneste test-only batch – TD-295
 
@@ -258,6 +258,19 @@ af den faktiske dokumentformatterings `1.200,00 kr.`. Der blev ikke ændret prod
 beregningslogik, UI/UX eller persistens, og den samlede releasegate blev ikke gentaget,
 fordi ændringen er test-only. TD-297 er lukket for den konkrete EO-definition → renderer-
 partition; øvrig CALC-006- og dokumentparitet er fortsat i gang.
+
+## Seneste test-only batch – TD-298
+
+UI-009/PERSIST-002-facittet udvider `ui-009-indstillinger-persistens.spec.ts` med den
+monterede browserrejse `Vælg mappe` → `E2E-sager` → `Nulstil til skrivebord` →
+`Skrivebord (standard)`. Den native picker er kun erstattet af et kontrolleret
+dialogresultat; settings-rækken, den device-lokale storage og nulstillingen gennemføres
+via den faktiske app. Filens samlede målrettede E2E-kørsel bestod med 2/2, og
+E2E-typecheck samt målrettet lint bestod. Der blev ikke ændret produktkode,
+beregningslogik, UI/UX eller persistensformat, og den samlede releasegate blev ikke
+gentaget, fordi ændringen er test-only. TD-298 er lukket for den konkrete monterede
+mappevalgspartition; reel OS-/PWA-dialog og platformssammenhæng er fortsat åben under
+TD-022.
 
 ## Aktuel evidensdelta – revision `f7c4edd5`
 
