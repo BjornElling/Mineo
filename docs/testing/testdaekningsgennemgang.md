@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `6b24d9e6` / `71746917` | `verify:release:core` på `6b24d9e6`: 910 testfiler / 9.085 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 81,99 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
+| Seneste samlede release-/E2E-retest | `b908c540` / `71746917` | `verify:release:core` på `b908c540`: 911 testfiler / 9.086 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 81,99 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på `71746917`: 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Den aktuelle releasegate ændrede kun testkode og dokumentation efter den seneste E2E-kørsel. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -1101,8 +1101,20 @@ prøves med en anden evidensform end den primære test.
 | TD-281 | 2026-09-15 | `ARCH-003` / `SHELL-001` | Mellem | E2E-buildserveren, portoprydningen og `test:e2e`-indgangen havde ikke et uafhængigt livenessfacit for fælles serveridentitet og kørselsrækkefølge. En ændring kunne derfor få oprydningen til at spørge én identitet, mens serveren svarede med en anden, eller starte Playwright før preflight og portoprydning. | `e2eServerIdentityLiveness.test.ts` kræver med 1/1 den fælles identitetsimport, serverens identitetsendpoint, cleanup-verifikationen og rækkefølgen preflight → cleanup → Playwright. | Lukket for den konkrete E2E-server → portoprydning → runner-identitetspartition. Faktisk CI-/OS-kørsel er fortsat åben under `B-002`, og øvrige release-scriptgrænser er ikke dermed lukket. Ingen produktkode, workflow eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt E2E-serverfacit |
 | TD-282 | 2026-09-15 | `PERSIST-002` | Mellem | File System Access-værnet havde ikke et uafhængigt facit for fejlen efter en vellykket picker, når det valgte handle ikke kunne hente filen. En ændring kunne derfor skjule den konkrete brugerfejl eller undlade at logge den oprindelige exception. | `fileSystemAccessOpenGetFileFailureIndependent.test.ts` kræver med 1/1 den præcise brugerfejl `Kunne ikke åbne fil: filen kunne ikke hentes`, ét picker-/`getFile()`-kald og `logError` med den oprindelige fejl. | Lukket for den konkrete picker-success → `getFile()`-fejlpartition. Reel browser-/OS-adfærd og øvrige platformforløb er fortsat åbne under `TD-022`. Ingen produktkode, `.eo`-format eller schemaændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt filåbningsfacit |
 | TD-283 | 2026-09-15 | `DOC-001` / `DOC-003` | Mellem | Dokumentkontekst-memoiseringen havde ikke et uafhængigt facit for en legitim `undefined`-projektion. En ændring kunne derfor genberegne en delt projektion ved hvert kald og give inkonsistent eller unødvendig renderer-/gate-adfærd. | `documentSourceContextUndefinedMemoIndependent.test.ts` kræver med 1/1, at en shared-projektion, der returnerer `undefined`, evalueres præcis én gang pr. kontekst. | Lukket for den konkrete `undefined`-resultat → memo-partition. Fysisk PDF-/Word-rendering og fuld browser-/PWA-paritet er fortsat åbne under `TD-014`/`TD-018`/`TD-022`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt dokumentfacit |
+| TD-284 | 2026-09-15 | `DATA-001` / `TD-020` / `DOC-001` / `DOC-003` | Mellem | Kapitaliseringstabellerne havde ikke et uafhængigt typed facit for 31.12.2025, tabel A. En ændring kunne derfor vælge forkert bekendtgørelse, pensionsalder, alder i måneder, faktor eller Word-output. | `td020Kapitalisering2025TabelADocumentIndependent.test.ts` kræver med 1/1 `Vejl. 10183/2025, tabel A`, folkepensionsalder 70 år, alder 54 år 11 måneder, faktor 9,929 og de samme labels i den faktiske Word-tekst. | Lukket for den konkrete 31.12.2025 → tabel A → Word-partition. Øvrige kapitaliseringstabeller, fysisk PDF-/Word-rendering og fuld kanalparitet er fortsat åbne under `TD-014`/`TD-018`/`TD-020`. Ingen produktkode eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt kapitaliseringsfacit |
 
-## Seneste test-only PERSIST-/DOC-batch – arbejdsrevision `6b24d9e6`
+## Seneste test-only DATA-/DOC-batch – arbejdsrevision `b908c540`
+
+Batchen tilføjer ét disjunkt test-only facit uden produktændringer:
+`td020Kapitalisering2025TabelADocumentIndependent.test.ts` fastholder med 1/1
+`Vejl. 10183/2025, tabel A` ved kapitaliseringsdato 31.12.2025, alder 54 år 11 måneder,
+faktor 9,929 og de tilsvarende labels i faktisk Word-output. Den målrettede kontrol bestod
+med 1/1 ny test; typechecks, lint, encoding-, filnavns- og diff-kontroller bestod. Carson
+retestede desuden den kendte TD-025-risiko serielt 10 gange med 90/90 grønne tests uden
+reproduktion; den parallelle coverage-/Tooltip-årsag er fortsat ikke forklaret. Ændringen er
+test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret.
+
+## Tidligere test-only PERSIST-/DOC-batch – arbejdsrevision `6b24d9e6`
 
 Batchen tilføjer to disjunkte test-only facitter uden produktændringer:
 `fileSystemAccessOpenGetFileFailureIndependent.test.ts` fastholder med 1/1 picker-success →
@@ -1112,11 +1124,11 @@ legitimt `undefined`-resultat. Den målrettede kontrol bestod med 2/2 nye tests;
 encoding-, filnavns- og diff-kontroller bestod. Ændringerne er test-only; ingen produktkode, schema,
 beregningslogik, UI/UX eller persistensformat er ændret.
 
-## Seneste samlede releasegate efter arbejdsrevision `6b24d9e6`
+## Seneste samlede releasegate efter arbejdsrevision `b908c540`
 
-`verify:release:core` bestod med 910 testfiler / 9.085 Vitest-tests uden forventede `it.fails`,
+`verify:release:core` bestod med 911 testfiler / 9.086 Vitest-tests uden forventede `it.fails`,
 coverage 90,74 / 81,99 / 94,88 / 93,54 og begge produktionsbuilds. Coverage målte
-18.706/20.613 statements, 13.205/16.104 branches, 3.063/3.228 funktioner og 17.078/18.257
+18.705/20.613 statements, 13.204/16.104 branches, 3.063/3.228 funktioner og 17.078/18.257
 linjer. Den fulde valgte E2E-suite er fortsat senest grøn på `71746917` med 221 tests og 2
 forventede skips ud af 223 på 10 projektbaner; batchen ændrede kun testkode og krævede derfor ikke
 en ny fuld E2E-kørsel.
