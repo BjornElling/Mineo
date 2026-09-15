@@ -53,7 +53,7 @@ relevant`. Brug kun `Ikke relevant`, når begrundelsen og den undersøgte flade 
 | Uden for scope og begrundelse | Ingen identificeret produktflade er udeladt. Auditten vurderer ikke, om juridiske/domænemæssige regler er korrekte; den vurderer, om implementeringen er dækket af de angivne regler og kontrakter. Nye features er ikke i scope. |
 | Baseline: antal kildefiler, testfiler, tests, E2E-specs og mutationsscore | Ved auditstart: 923 produktionsfiler (`.ts/.tsx`), 638 testfiler i alt, 8.421 Vitest-tests, 36 E2E-specs og 174 E2E-tests. Historisk release-revision `37a1954d`: 920 produktionsfiler, 697 Vitest-testfiler med grøn kørsel, 8.755 beståede tests samt 17 forventede `it.fails`; den seneste fulde valgte E2E-suite på testrevision `9c965ec5` havde 43 E2E-specs, 191 beståede lane-tests og 2 forventede skips, efter at EET-PDF-artefakterne blev inspiceret. Mutationsrunneren er kvalificeret modulvist: money 56/58 dræbt, `dateCommit.ts` 4/6 dræbt, ASL-maksimum 26/28 dræbt med 2 ækvivalente overlevere, reguleringsmotorer 104/113 dræbt med 6 triagerede overlevere og 3 timeouts, årsløn 108/113 dræbt, varige mén 94/114 dræbt, forsørgertab 21/21 dræbt og procesrente 104/136 dræbt med 23 triagerede survivors og 9 dokumenterede timeouts; alle ikke-dræbte mutationer er triageret. |
 | Baseline: `test:coverage`-rapport og de dækkede/udeladte mapper | Historisk coverage fra `37a1954d`: 393 instrumenterede filer i `src/domain`, `src/utils`, `src/hooks`, `src/rowDrafts` og `src/contexts`; 90,14 % statements, 81,24 % branches, 93,97 % functions og 92,96 % lines – 18.556 / 20.584, 13.072 / 16.090, 3.024 / 3.218 og 16.948 / 18.230 målte enheder. Coverage-konfigurationen omfatter ikke de øvrige produktionsfiler; de skal klassificeres i inventaret. Historiske baselineværdier bevares i retesttabellen i §8. |
-| Seneste samlede release-/E2E-retest | `abe1e0cd` / `7b8f01ef` | `verify:release:core` på `abe1e0cd`: 920 testfiler / 9.099 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 82,00 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på testrevisionen `7b8f01ef`: 228 beståede tests og 2 forventede skips ud af 230 på 10 projektbaner, med 3 workers på 5,7 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. Releasegaten blev kørt på `abe1e0cd`; E2E-resultatet blev dokumenteret i docs-only revisionen `eec9e78d`. |
+| Seneste samlede release-/E2E-retest | `2b4baf1a` / `7b8f01ef` | `verify:release:core` på `2b4baf1a`: 920 testfiler / 9.102 beståede Vitest-tests / ingen forventede `it.fails`; coverage 90,74 % statements / 82,00 % branches / 94,88 % functions / 93,54 % lines; begge produktionsbuilds bestået. Seneste fulde `npm run test:e2e` på testrevisionen `7b8f01ef`: 228 beståede tests og 2 forventede skips ud af 230 på 10 projektbaner, med 3 workers på 5,7 minutter. Der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller eksterne requests. E2E-resultatet blev dokumenteret i docs-only revisionen `eec9e78d`; den seneste releasegate er efterfølgende bestået på `2b4baf1a`. |
 | Kendte åbne test- eller kvalitetsfund ved start | Baselinekørslerne er grønne. Observationer til senere triage: Vite-advarslen om `configLoader: 'native'`, build-advarslen om chunks over 750 kB, svagere maskine med 3 workers, Playwright CLI/skill-uoverensstemmelsen og manglende mutationsrunner. Ingen af observationerne er endnu klassificeret som produktfund. |
 
 ### Indgangskrav
@@ -1121,6 +1121,7 @@ prøves med en anden evidensform end den primære test.
 | TD-301 | 2026-09-15 | `DOC-003` / `DATA-001` / `TD-020` | Mellem | Kapitaliseringsdokumentets Word-dækning havde den modsatte gren med `saerfaktor: null`, men ikke grenen ved højst to år til folkepension. En ændring kunne derfor vise de almindelige faktorlabels i stedet for den særlige faktorgren. | `kapitaliseringWordContent.test.ts` fastholder med 1/1 `Kapitaliseret pga. ≤ 2 år til folkepension? Ja`, `Særfaktor (≤ 2 år til folkepension) 1,245` og fravær af `Faktor måneds-afhængig?` samt `Kapitaliseringsfaktor` i faktisk Word-tekst. | Lukket for den konkrete ≤ 2 år til folkepension → særfaktor → Word-label-partition. Øvrige kapitaliseringstabeller, fysisk rendering og fuld PDF/Word-paritet er fortsat åbne under `DOC-003`, `TD-014`/`TD-018` og `TD-020`. Ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt Word-facit |
 | TD-302 | 2026-09-15 | `VALID-001` / `TD-019` | Mellem | Validatoren havde et facit for KRL-dækning ved `Angivet månedsløn`, men ikke for den dagslønsspecifikke reguleringsdato. En ændring kunne derfor acceptere en dato efter sidste KRL-dækning eller flytte issue til en forkert feltsti. | `td019AngivetDagsloenKrlDaekningValidatorIndependent.test.ts` kræver med 1/1 præcis path `angivetDagsloenOpreguleresFraDato`, beskeden om manglende KRL-dækning efter 30-09-2026 og `error`-severity ved KTO (kommuner). | Lukket for den konkrete Angivet dagsløn → KRL-dækningsgrænse → præcis validatorissue-partition. Øvrig validator-fixture-uafhængighed og komplet validatorparitet er fortsat åben under `TD-019`. Ingen schema-, validator- eller runtimeændring. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt validatorfacit |
 | TD-303 | 2026-09-15 | `BUILD-001` / `ARCH-003` | Mellem | Build-verifikationen havde positive assetfacitter og enkelte negative buildfejl, men ikke et uafhængigt facit for et `index.html`, der peger på `/src/` i stedet for et bygget asset. En ændring kunne derfor levere en udviklingsreference i et produktionsartefakt uden at quality-værnet blev rødt. | `verifyBuildArtifacts.test.ts` kræver med 1/1 exitstatus 1 og den præcise fejl `mineo-buildets index.html peger ikke entydigt på et bygget asset.` ved `src="/src/main.tsx"`; filens samlede syntetiske suite bestod med 4/4. | Lukket for den konkrete ugyldig `index.html`-reference → buildverifikationsfejl-partition. Manifestreferencer, fysisk installeret PWA og øvrige release-/CI-grænser er fortsat åbne under `BUILD-001`, `TD-022` og `TD-292`. Ingen produktkode, workflow eller brugeradfærd er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 1/1 nyt buildfacit |
+| TD-304 | 2026-09-15 | `ARCH-002` / `BUILD-001` | Mellem | ARCH-002's localStorage-værn dækkede prik-adgang, men ikke bracket-adgang. En genindført `globalThis["localStorage"]`, `window["localStorage"]` eller `localStorage[nøgle]` kunne derfor passere kvalitetsharnesset. | `storageBoundaryGlobalThisNegative.test.ts` fastholder med 4/4 de eksisterende globalThis- og nye bracket-modcases; den samlede architecture-suite bestod med 2 filer / 195 tests, og hele `verify:release:core` bestod på `2b4baf1a` med 920 testfiler / 9.102 tests og begge builds. | Lukket for den konkrete localStorage → bracket-access → ARCH-002-finding-partition. Øvrige architecture-/releasegrænser og åbne auditfund består. Ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. | Ikke påkrævet; test-only ændring. | Lukket efter 3/3 nye bracket-facitter, 195/195 architecture-tests og samlet releasegate |
 
 ## Seneste test-only DATA-/VALID-batch – arbejdsrevision `f7c4edd5`
 
@@ -2519,13 +2520,37 @@ fejl `mineo-buildets index.html peger ikke entydigt på et bygget asset.`; quali
 med 4/4. Typechecks, lint, encoding-, filnavns- og diff-kontroller samt pre-commit bestod.
 Ændringen er test-only; den samlede releasegate er endnu ikke gentaget efter denne batch.
 
+## Seneste test-only batch – TD-304, arbejdsrevision `2b4baf1a`
+
+ARCH-002-facittet udvider localStorage-værnet til også at afvise bracket-adgang via
+`globalThis["localStorage"]`, `window["localStorage"]` og `localStorage[nøgle]`, mens
+`config["localStorage"]` fortsat er en gyldig ikke-storage-adgang. De tre nye negative
+facitter og den eksisterende globalThis-case bestod med 4/4 i den målrettede fil; den
+samlede architecture-suite bestod med 2 filer / 195 tests. Typecheck, lint, encoding-,
+filnavns- og diff-kontroller bestod. Den efterfølgende `verify:release:core` bestod på
+`2b4baf1a` med 920 testfiler / 9.102 Vitest-tests, coverage 90,74 / 82,00 / 94,88 / 93,54
+og begge produktionsbuilds. Ændringen er test-only; ingen produktkode, beregningslogik,
+UI/UX eller persistens er ændret.
+
 ## Seneste valgte E2E-suite – arbejdsrevision `7b8f01ef`
 
 `npm run test:e2e` bestod med 228 tests og 2 forventede skips ud af 230 på 10 projektbaner,
 med 3 workers på 5,7 minutter. Kørselen omfattede TD-300's ugyldig-periode → disabled-download
 → rettelse-rejse; der blev ikke registreret ukontrollerede runtimefejl, runtime-signaler eller
 eksterne requests. E2E-kørslen blev udført på testrevisionen `7b8f01ef` efter den samlede
-releasegate på `abe1e0cd` og dokumenteret i docs-only revisionen `eec9e78d`.
+releasegate på `abe1e0cd` og dokumenteret i docs-only revisionen `eec9e78d`. Den seneste
+samlede releasegate er efterfølgende bestået på `2b4baf1a`; TD-304 ændrede kun
+quality-harnesset og krævede derfor ikke en ny fuld E2E-kørsel.
+
+## Seneste samlede releasegate efter arbejdsrevision `2b4baf1a`
+
+`verify:release:core` bestod med 920 testfiler / 9.102 Vitest-tests uden forventede `it.fails`,
+coverage 90,74 / 82,00 / 94,88 / 93,54 og begge produktionsbuilds. Coverage målte
+18.706/20.613 statements, 13.206/16.104 branches, 3.063/3.228 funktioner og 17.078/18.257
+linjer. Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og
+build-gates bestod. Den fulde valgte E2E-suite er fortsat senest grøn på `7b8f01ef` med 228
+beståede tests og 2 forventede skips ud af 230 på 10 projektbaner. Vite- og chunk-advarslerne
+er kendte ikke-blokerende buildobservationer.
 
 ## Seneste samlede releasegate efter arbejdsrevision `abe1e0cd`
 
