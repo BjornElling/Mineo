@@ -274,6 +274,12 @@ udviklerens accept af den uforklarede rest-risiko.
 advisory-gaten er grøn. Punktet forbliver en åben vedligeholdelsespost, fordi
 `typed-rest-client@2.3.1` stadig kræver den gamle præcise range; override'et skal fjernes,
 når parentens range selv dækker den rettede version.
+For `TD-020` blev kildeproveniensen gennemgået read-only: EAL/ASL-satserne har eksisterende
+Retsinformation-links og direkte linktests, og KRL-dokumentet fastholder `krl.dk` som kilde.
+KL/RLTN-dataene har derimod kun lokale Excel-kilder i repoet, og sygedagpengesporet har en
+uforklaret 2005-afvigelse mellem den dokumenterede officielle værdi på 88,30 kr./time og
+produktdataenes 88,51 kr./time. Proveniensen kan derfor ikke lukkes uden de faktiske
+udgiverlinks/filer eller en afklaring af afvigelsen.
 `TD-156` er allerede fastlåst af det uafhængige typed validatorfacit med begge observerede
 `error`-issues på samme felt. Der er ikke et sikkert test-only-hul tilbage; udvikleren skal
 beslutte, om brugeren skal se begge årsagslinjer, eller om de skal samles. Read-only-gennemgangen
