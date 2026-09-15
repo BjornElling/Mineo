@@ -6,7 +6,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 
 ## Status
 
-- Evidensrevision: `abe1e0cd` for seneste samlede releasegate og målrettede test-only batch; seneste fulde E2E er `71746917`
+- Evidensrevision: `7b8f01ef` for seneste samlede E2E-evidens; seneste samlede releasegate og Vitest-evidens er `abe1e0cd`
 - Branch: `main`
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit, et uafhængigt ISO-ugefacit, et SFGG-grænsefacit, et feriepenge-downstream-facit, et dobbelciteret lane-facit, scroll- og EO-id-facitter samt gemme- og EO-løntidsfacitter. Den samlede `verify:release:core` er senest bestået på `e50fb1e5` med 847 testfiler / 9.021 beståede tests, coverage 90,58 / 81,70 / 94,76 / 93,36 og begge builds. Den valgte E2E-suite er senest bestået på `71746917` med 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
@@ -14,7 +14,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 - Seneste read-only restpunktstria: TD-004 er genkontrolleret med grøn advisory-gate, men står fortsat som vedligeholdelsespost, indtil parentens `qs`-range åbnes; TD-001, TD-022 og TD-014/TD-018/TD-020 har ingen sikkert nyt lokalt facit. TD-292 er identificeret som et åbent standalone-artifactværn, der kræver beslutning om en udvidet releasekontrol. B-002 er lukket for den konkrete CI-/artefaktkobling efter ekstern workflowkørsel #284 på `ed6bd4e`. De øvrige punkter kræver henholdsvis faktiske historiske `.eo`-filer eller accept, installeret PWA/OS, fysisk PDF-/Word-viewerinspektion eller autoritativt tabelkildefacit.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
-- Seneste samlede retest: `verify:release:core` på revision `abe1e0cd` er grøn med 920 testfiler og 9.099 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,74 / 82,00 / 94,88 / 93,54, og begge builds bestod. Den fulde E2E-suite på revision `71746917` bestod med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-/proveniens-/outputparitetsfund, TD-025-stabilitetsrisikoen, TD-088-modalefundet og TD-156-dobbeltårsagslinjen forhindrer fortsat afslutning.
+- Seneste samlede retest: `verify:release:core` på revision `abe1e0cd` er grøn med 920 testfiler og 9.099 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,74 / 82,00 / 94,88 / 93,54, og begge builds bestod. Den fulde E2E-suite blev efterfølgende kørt på `7b8f01ef` og bestod med 228 tests og 2 forventede skips ud af 230 på 10 projektbaner, med 3 workers på 5,7 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-/proveniens-/outputparitetsfund, TD-025-stabilitetsrisikoen, TD-088-modalefundet og TD-156-dobbeltårsagslinjen forhindrer fortsat afslutning.
 - Den lange fasebeskrivelse ovenfor er auditens oprindelige makrostatus; den gældende reteststatus er den aktuelle linje og de detaljerede retestsektioner nedenfor.
 
 ## Arbejdsrytme og commitregel
@@ -31,7 +31,7 @@ Det gælder også test-, fixture- og dokumentationsændringer. Der pushes aldrig
 | Lint | `npm run lint` | Bestået | 0 warnings/errors |
 | Vitest (historisk releasekørsel) | `npm run test:coverage` | Bestået | 661 filer, 8.603 tests bestået samt 6 forventede `it.fails`; samlet kørsel 396,36 s |
 | Aktuel fuld Vitest-retest | `npm run test:coverage` | Bestået | 920 filer, 9.099 tests bestået og ingen forventede `it.fails` på `abe1e0cd` |
-| E2E-baner | `npm run test:e2e` | Bestået | 221 beståede tests og 2 forventede skips ud af 223, 6,2 min, 3 workers og 10 projektbaner på `71746917`; den udvidede kørsel omfatter de fire dedikerede browserprojekter |
+| E2E-baner | `npm run test:e2e` | Bestået | 228 beståede tests og 2 forventede skips ud af 230, 5,7 min, 3 workers og 10 projektbaner på `7b8f01ef`; den udvidede kørsel omfatter de fire dedikerede browserprojekter |
 | Aktuel samlet release-gate | `npm run verify:release:core` | Bestået | Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og begge build-gates bestået på `abe1e0cd`; coverage 920 filer / 9.099 beståede tests / ingen forventede `it.fails` |
 | Coverage (historisk releasekørsel) | `npm run verify:release:core` | Bestået | 661 testfiler / 8.603 tests bestået samt 6 forventede `it.fails`; 89,23 % statements, 80,48 % branches, 92,35 % functions, 92,02 % lines; 18.369 / 20.584, 12.950 / 16.090, 2.972 / 3.218 og 16.776 / 18.230 målte enheder; `coverage/index.html`, `coverage/clover.xml` og `coverage/coverage-final.json` |
 | Aktuel coverage-retest | `npm run test:coverage` | Bestået | 394 instrumenterede filer; 90,74 % statements, 82,00 % branches, 94,88 % functions, 93,54 % lines; 18.706/20.613 statements, 13.206/16.104 branches, 3.063/3.228 funktioner og 17.078/18.257 linjer; coverage-artefakterne blev genereret under `coverage/`; `abe1e0cd`, Node `v24.18.0`/Windows |
@@ -310,14 +310,21 @@ diff-kontroller samt pre-commit bestod. Der blev ikke ændret produktkode, workf
 beregningslogik, UI/UX eller persistens; den samlede releasegate er endnu ikke gentaget efter
 denne batch.
 
+## Seneste valgte E2E-suite – arbejdsrevision `7b8f01ef`
+
+`npm run test:e2e` bestod med 228 tests og 2 forventede skips ud af 230 på 10 projektbaner,
+med 3 workers på 5,7 minutter. Kørselen blev udført efter TD-300 og omfattede den nye
+ugyldig-periode → disabled-download → rettelse-rejse. Der blev ikke registreret ukontrollerede
+runtimefejl, runtime-signaler eller eksterne requests.
+
 ## Seneste samlede releasegate – revision `abe1e0cd`
 
 `verify:release:core` bestod med 920 testfiler / 9.099 Vitest-tests uden forventede `it.fails`,
 coverage 90,74 / 82,00 / 94,88 / 93,54 og begge produktionsbuilds. Coverage målte
 18.706/20.613 statements, 13.206/16.104 branches, 3.063/3.228 funktioner og 17.078/18.257
 linjer. Dependency-, runtime-, type-, lint-, data-, kontrakt-, lane-, ledger-, coverage- og
-build-gates bestod. Den fulde valgte E2E-suite er fortsat senest grøn på `71746917` med 221
-tests og 2 forventede skips ud af 223 på 10 projektbaner. Vite- og chunk-advarslerne er kendte
+build-gates bestod. Den fulde valgte E2E-suite blev efterfølgende gentaget på `7b8f01ef` med 228
+tests og 2 forventede skips ud af 230 på 10 projektbaner. Vite- og chunk-advarslerne er kendte
 ikke-blokerende buildobservationer. TD-001, TD-016, TD-014, TD-018, TD-022, TD-088, TD-025 og
 TD-156 forbliver blokerende restpunkter for auditkonklusionen; B-002 er lukket for den konkrete
 CI-/artefaktkobling.
