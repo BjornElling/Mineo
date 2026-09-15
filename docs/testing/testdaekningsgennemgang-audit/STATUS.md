@@ -11,6 +11,7 @@ outputstier og garanterer ikke, at rapporten stadig findes efter en senere kørs
 - Startdato: 2026-09-10 Europe/Copenhagen
 - Fase: Auditstart og baseline afsluttet; makroinventar oprettet; `INPUT-001`, `PERSIST-001`, `PERSIST-002`, `DATA-001`, `CALC-001`–`CALC-007`, `DOC-001`–`DOC-003` samt shell-/standalone-flader foreløbigt gennemgået. Mutationsrunneren er kvalificeret på `DATE-001`-moneyfladen, `dateCommit.ts`, `CALC-001`-ASL-maksimum og reguleringsmotorer, `CALC-002`-årsløn, `CALC-003`-procesrente, `CALC-004`-varige mén og `CALC-005`-forsørgertab; historiske `.eo`-fixtures, byteintegriteten for de rekonstruerede fixtures, uafhængige reference-/EO-orakler, dokumentlifecycle-bevis for alle registrerede outputs, reel session-reload, produktionsbundet form/grid-paritet, bootstrap-sideeffektbevis, mobil-hard-stop i browser, EET-tabelparitet og Word-indhold, EETs fire faktiske PDF-artefakter, uafhængige satsfacitter, uafhængige sats-, procesrente-, KRL- og KL-downstream-facitter, standalone valid-PDF-forløb, browserbaseret namespace-isolation, uafhængige totalsager for varige mén/forsørgertab, uafhængige EO-række-/periodefacitter, nested row-schema-partitioner, faktiske `ZodError.issues`, File API-/IndexedDB-fejlveje, validator-literalfixtures og obligatoriske top-level-, lønregulerings-, løntrin-, løngruppe-, manuelle procentsats-, indtægtsoplysnings- og SFGG-schema-/validatorfacitter, levende GitHub Actions-/architecture-runtimeværn, statisk CI-artefaktkobling, Varige méns faktiske PDF-artefakt/Word-tekstparitet, fysisk tekst-/billedartefaktkontrol for alle 18 hovedapp-outputs, faktisk route-chunk recovery og native LaunchQueue-kapabilitet er tilføjet og retestet. Den seneste batch har desuden uafhængige procent-/uge-/dagfacitter for årsløn, månedlig/ugentlig engine-dækning for procesrente, et præcist KRL-validatorfacit, en offentlig-løn-validatorcase, et løbende EET-definition → Word-facit, et svie/smerte-downstream-facit, et uafhængigt ISO-ugefacit, et SFGG-grænsefacit, et feriepenge-downstream-facit, et dobbelciteret lane-facit, scroll- og EO-id-facitter samt gemme- og EO-løntidsfacitter. Den samlede `verify:release:core` er senest bestået på `e50fb1e5` med 847 testfiler / 9.021 beståede tests, coverage 90,58 / 81,70 / 94,76 / 93,36 og begge builds. Den valgte E2E-suite er senest bestået på `71746917` med 221 beståede tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. Åbne produkt-/proveniensbeslutninger, TD-025's ikke-årsagsforklarede flagerisiko og højere-niveau-outputparitet forhindrer fortsat afslutning.
 - Seneste test-only batch: DATA-/VALID-facitter TD-288–TD-289; målrettet kontrol 2 nye tests / 2 tests; ingen produktkode, beregningslogik, UI/UX eller persistens ændret. TD-025 blev retestet coverage-nært parallelt med 64/64 grønne tests uden reproduktion, men den mulige Tooltip-årsag er fortsat uforklaret.
+- Seneste read-only restpunktstria: TD-001, TD-004, B-002, TD-022 og TD-014/TD-018/TD-020 har ingen sikkert nyt lokalt facit; de kræver henholdsvis faktiske historiske `.eo`-filer eller accept, ekstern advisory-/rangeopfølgning, faktisk GitHub Actions, installeret PWA/OS, fysisk PDF-/Word-viewerinspektion eller autoritativt tabelkildefacit.
 - Hoveddokument: `docs/testing/testdaekningsgennemgang.md`
 - Beslutningsark til udvikleren: `docs/testing/testdaekningsgennemgang-audit/AFVENTER-BESLUTNINGER.md`
 - Seneste samlede retest: `verify:release:core` på revision `f7c4edd5` er grøn med 916 testfiler og 9.091 beståede tests uden tilbageværende forventede `it.fails`; coverage er 90,74 / 81,99 / 94,88 / 93,54, og begge builds bestod. Den fulde E2E-suite på revision `71746917` bestod med 221 tests og 2 forventede skips ud af 223 på 10 projektbaner, med 3 workers på 6,2 minutter. TD-003, TD-017 og den konkrete TD-043-afrundingsforskel er lukket; åbne produkt-/proveniens-/outputparitetsfund, TD-025-stabilitetsrisikoen og TD-088-modalefundet forhindrer fortsat afslutning.
@@ -241,6 +242,20 @@ reproduktion; Tooltip-transitionen er fortsat kun en plausibel, ikke dokumentere
 TD-025 forbliver delvist
 lukket. TD-001, TD-016, TD-014, TD-018, TD-022,
 B-002, TD-088 og TD-025 forbliver blokerende restpunkter for auditkonklusionen.
+
+## Seneste read-only restpunktstria – arbejdsrevision `58978b77`
+
+En parallel read-only triage fandt ingen sikkert nyt test-only-facit og ændrede ingen filer.
+`TD-001` har lokal dækning for de fem rekonstruerede `.eo`-fixtures, bytefacitter, round-trip
+og migreringsgrene, men kræver faktiske filer fra tidligere offentlige releases eller eksplicit
+accept af rekonstruktionerne. `TD-004` er lokalt kontrolleret med `qs@6.16.0`, override,
+dependency-tests og advisory-check, men advisory-resultatet afhænger af npm-registrets aktuelle
+svar. `B-002` har lokale workflow-/artifact-/smoke-værn, men kræver faktisk GitHub Actions.
+`TD-022` kræver manuel installeret PWA/OS-test af `.eo`-filassociation og dataoverdragelse.
+`TD-014`/`TD-018` kræver fysisk PDF-/Word-viewerinspektion. `TD-020` har nu 2025 tabel A/B og
+2026 tabel A/B gennem Word-generatoren, mens resterende historiske tabeller kræver autoritativt
+kildefacit. Triagekontrollen bestod med 6 quality-filer / 35 tests samt relevante runtime- og
+advisory-checks. Der blev ikke ændret filer eller lavet commit i triagen.
 
 ## Tidligere evidensdelta – revision `d5bf5f62`
 

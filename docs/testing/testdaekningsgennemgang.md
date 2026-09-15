@@ -1181,6 +1181,21 @@ linjer. Den fulde valgte E2E-suite er fortsat senest grøn på `71746917` med 22
 forventede skips ud af 223 på 10 projektbaner; batchen ændrede kun testkode og krævede derfor ikke
 en ny fuld E2E-kørsel.
 
+## Seneste read-only restpunktstria – arbejdsrevision `58978b77`
+
+En parallel read-only triage af de resterende ikke-lukkede spor fandt ingen sikkert nyt
+test-only-facit og ændrede ingen filer. `TD-001` har lokal dækning for de fem rekonstruerede
+`.eo`-fixtures, bytefacitter, round-trip og migreringsgrene, men kræver faktiske filer fra
+tidligere offentlige releases eller udviklerens eksplicitte accept af rekonstruktionerne.
+`TD-004` er lokalt kontrolleret med `qs@6.16.0`, override, dependency-tests og advisory-check,
+men advisory-resultatet er afhængigt af npm-registrets aktuelle svar. `B-002` har statiske
+workflow-/artifact-/lokale smoke-værn, men kræver en faktisk GitHub Actions-kørsel.
+`TD-022` kræver manuel installeret PWA/OS-test af `.eo`-filassociation og dataoverdragelse.
+`TD-014`/`TD-018` kræver fysisk PDF-/Word-viewerinspektion af clipping, fonte, sideskift og
+header/footer. `TD-020` har nu 2025 tabel A/B og 2026 tabel A/B gennem Word-generatoren;
+resterende historiske tabeller kræver et autoritativt kildefacit. Triagekontrollen bestod med
+6 quality-filer / 35 tests samt de relevante runtime- og advisory-checks.
+
 ## Tidligere samlede releasegate efter arbejdsrevision `b6fc0325`
 
 `verify:release:core` bestod med 912 testfiler / 9.087 Vitest-tests uden forventede `it.fails`,
