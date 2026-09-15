@@ -14,12 +14,14 @@ import {
   useStandaloneDocumentSourceContext,
 } from '../../../apps/minprocesrente/document/useStandaloneDocumentOutput';
 import { useUndoRedoShortcuts } from '../../../inputCore/react/useUndoRedoShortcuts';
+import { scheduleHistoryTargetRestore } from '../../../inputCore/react/historyRestoreTarget';
 import { useStandaloneExitGuard } from '../../../apps/minprocesrente/useStandaloneExitGuard';
 import SiblingSitesFooter from '../../layout/SiblingSitesFooter';
 import InternalLink from '../../ui/InternalLink';
 import { isTouchLikeDeviceWithShortestSideAtMost } from '../../../utils/clientDevice';
 
 const MOBILE_LAYOUT_MAX_SHORTEST_SCREEN_SIDE_PX = 599;
+const STANDALONE_RENTE_LOCATION_NAV = { route: '/minprocesrente.html', tabKey: null } as const;
 
 /**
  * Rækkeknappernes reaktive gate kommer fra tabellens projektion, ikke fra handlens `canDownload`:
@@ -72,8 +74,9 @@ const isStandalonePhoneLikeDevice = (): boolean => {
 const MinProcesrenteCalculatorPage = React.memo(() => {
   const [isMobile] = React.useState(isStandalonePhoneLikeDevice);
   const mobileContentFontSize = '12px';
-  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) mod den ene den ene write-grænse.
-  useUndoRedoShortcuts();
+  // Standalone har ingen side-/faneskift at udføre. Den skal stadig bruge Mineos fælles history- og
+  // fokusrestore-loop efter Ctrl/Cmd+Z og Ctrl/Cmd+Y; callbacken er derfor kun fokusrestore.
+  useUndoRedoShortcuts({ onRestore: scheduleHistoryTargetRestore });
 
   // Dokument-download: de tre standalone-outputs komponeres her mod standalones eget
   // miljø (fast PDF, intet brevhoved, lokal fejl-sink) og videregives som færdige handles til den
@@ -237,6 +240,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         renteOversigtDownload={renteOversigtDownload}
         showOversigtBox
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
+        locationNav={STANDALONE_RENTE_LOCATION_NAV}
       />
       <SiblingSitesFooter currentSite="minprocesrente" />
     </Box>

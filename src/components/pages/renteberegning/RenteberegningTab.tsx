@@ -24,6 +24,7 @@ import { resolveBlockedGateTooltip } from '../../../document/layout/documentGate
 import { useInputEvaluation, useCriticalInputActions } from '../../../inputCore/react/useInputEvaluation';
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import { useSectionReset } from '../../../inputCore/react/inputRuntimeContext';
+import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 import { resetSection } from '../../../inputCore/inputReducer';
 import {
   renteberegningBeregningsdatoField,
@@ -52,9 +53,18 @@ const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
 const beregningsdatoRef = renteberegningBeregningsdatoField.bind();
 const kommentarerRef = renteberegningKommentarerField.bind();
 
-// route + tabKey er eksplicit navigation-metadata (§3.7). Denne tab-komponent renderes kun under calculation-fanen.
-const BEREGNINGSDATO_LOCATION = { locationId: 'renteberegning:beregningsdato', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
-const KOMMENTARER_LOCATION = { locationId: 'renteberegning:kommentarer', route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning } as const;
+type RenteberegningLocationNav = Readonly<{ route: string; tabKey: string | null }>;
+
+const DEFAULT_LOCATION_NAV: RenteberegningLocationNav = {
+  route: APP_ROUTES.renteberegning,
+  tabKey: PAGE_DEFAULT_TAB.renteberegning,
+};
+
+const buildEditorLocation = (locationId: string, locationNav: RenteberegningLocationNav): EditorLocation => ({
+  locationId,
+  route: locationNav.route,
+  tabKey: locationNav.tabKey,
+});
 
 /**
  * Fanen deles af Mineo og standalone MinProcesrente, som har hvert sit
@@ -83,6 +93,8 @@ export interface RenteberegningTabProps {
   renteOversigtDownload?: DocumentDownloadHandle<void>;
   showOversigtBox?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
+  /** Destinationen for denne delte rentefanes felt- og tabelorigins. */
+  locationNav?: RenteberegningLocationNav;
   /**
    * Om appen har `.eo`-filer, som bekræftelsen kan berolige brugeren om.
    *
@@ -106,6 +118,7 @@ const RenteberegningTab = React.memo(({
   renteOversigtDownload,
   showOversigtBox = false,
   documentDownloadFormat,
+  locationNav = DEFAULT_LOCATION_NAV,
   hasEoFiles = false,
 }: RenteberegningTabProps) => {
   const dispatchSectionReset = useSectionReset();
@@ -114,7 +127,15 @@ const RenteberegningTab = React.memo(({
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
 
-  const beregningsdatoController = useFieldEditor(beregningsdatoRef, BEREGNINGSDATO_LOCATION);
+  const beregningsdatoLocation = React.useMemo(
+    () => buildEditorLocation('renteberegning:beregningsdato', locationNav),
+    [locationNav]
+  );
+  const kommentarerLocation = React.useMemo(
+    () => buildEditorLocation('renteberegning:kommentarer', locationNav),
+    [locationNav]
+  );
+  const beregningsdatoController = useFieldEditor(beregningsdatoRef, beregningsdatoLocation);
 
   // Den ENE reader-afledte projektion (§3.4/§5.4) – tabeloutput og download-gates deler præcis samme sandhed.
   const projection = React.useMemo(
@@ -200,7 +221,7 @@ const RenteberegningTab = React.memo(({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <DateField
                 field={beregningsdatoRef}
-                location={BEREGNINGSDATO_LOCATION}
+                location={beregningsdatoLocation}
                 name="beregningsdato"
                 width={isMobile ? 110 : 130}
                 singleStageClick={isMobile}
@@ -239,6 +260,7 @@ const RenteberegningTab = React.memo(({
             rowProjections={projection.rowProjections}
             onDownloadSpecifikation={handleDownloadRow}
             saveOrderPath="renteberegning.rentekravRows"
+            locationNav={locationNav}
             isMobile={isMobile}
             documentDownloadFormat={documentDownloadFormat}
             // Rækkeknappernes gate spørger SAMME definition, som klikket aktiverer, med rækkens
@@ -320,7 +342,7 @@ const RenteberegningTab = React.memo(({
         <Typography className="section-header">Kommentarer</Typography>
         <MultilineTextField
           field={kommentarerRef}
-          location={KOMMENTARER_LOCATION}
+          location={kommentarerLocation}
           name="kommentarer"
           width="min(800px, 100%)"
           rows={isMobile ? 3 : 4}

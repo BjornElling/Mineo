@@ -1,6 +1,26 @@
 import { expect, setFieldValueAndSettle, test } from './support/mineoTest';
 
 test.describe('MinProcesrente – recovery og fokus', () => {
+  test('flytter fokus til den berørte celle ved Ctrl+Z og Ctrl+Y', async ({ page, runtimeErrors }) => {
+    await page.goto('/minprocesrente.html');
+
+    const amount = page.getByRole('textbox', { name: 'Beløb' }).first();
+    const dueDate = page.getByRole('textbox', { name: 'Forfaldsdato' }).first();
+    await setFieldValueAndSettle(amount, '1000');
+    await dueDate.focus();
+
+    await dueDate.press('Control+z');
+    await expect(amount).toBeFocused();
+    await expect(amount).toHaveValue('');
+
+    await dueDate.focus();
+    await dueDate.press('Control+y');
+    await expect(amount).toBeFocused();
+    await expect(amount).toHaveValue('1.000,00');
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('rydder en afvist beregningsdato og bevarer fokus på Indsæt dags dato', async ({ page, runtimeErrors }) => {
     await page.goto('/minprocesrente.html');
 

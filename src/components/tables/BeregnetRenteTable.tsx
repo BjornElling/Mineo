@@ -7,7 +7,6 @@ import { useCollectionTable } from './useCollectionTable';
 import { useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
 import { round2, sumRoundedValues } from '../../utils/roundingShortcuts';
-import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import type { RentekravRow } from '../../schemas/formSchemas';
@@ -91,6 +90,8 @@ export type BeregnetRenteTableProps = Readonly<{
   rowProjections: ReadonlyMap<string, ProjectionResult<RentekravRowResult>>;
   onDownloadSpecifikation: (rowId: string) => Promise<void>;
   saveOrderPath?: TableSaveOrderPath;
+  /** Eksplicit destination for felt- og rækkeorigins i den kontekst, hvor tabellen renderes. */
+  locationNav: Readonly<{ route: string; tabKey: string | null }>;
   isMobile?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
   /**
@@ -256,6 +257,7 @@ const BeregnetRenteTable = React.memo(
     rowProjections,
     onDownloadSpecifikation,
     saveOrderPath,
+    locationNav,
     isMobile = false,
     documentDownloadFormat,
     resolveDownloadGate,
@@ -268,7 +270,7 @@ const BeregnetRenteTable = React.memo(
       createRowId: createRentekravRowId,
       createEmptyRow: createEmptyRentekravCommittedRow,
       locationPrefix: collectionLocationPrefix(rentekravRowsCollectionRef),
-      locationNav: { route: APP_ROUTES.renteberegning, tabKey: PAGE_DEFAULT_TAB.renteberegning },
+      locationNav,
     });
 
     const sortColumns = React.useMemo(() => [
