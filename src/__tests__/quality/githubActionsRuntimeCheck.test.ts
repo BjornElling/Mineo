@@ -60,6 +60,14 @@ describe('check-github-actions-runtime', () => {
     ]);
   });
 
+  it('afviser en ekstern action uden entydig versionsreference', () => {
+    const fixtureRoot = withWorkflowFixture('jobs:\n  check:\n    steps:\n      - uses: actions/checkout\n');
+
+    expect(validateGitHubActionsRuntime(fixtureRoot).problems).toEqual([
+      "fixture.yml:4: 'actions/checkout' mangler en entydig action-reference.",
+    ]);
+  });
+
   it('afviser en action-major der ikke er den dokumenterede major', () => {
     const fixtureRoot = withWorkflowFixture('jobs:\n  check:\n    steps:\n      - uses: actions/checkout@v6\n');
 
