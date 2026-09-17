@@ -9,7 +9,7 @@ import { coerceToISODateString, dateToISO, isISODateString, parseISODate } from 
 import { calculateStandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAmount } from '../../../utils/numberParsing';
 import { createDate } from '../../../utils/dateUtils';
-import { ydelsestyper } from '../../../data/ydelsestyper';
+import { resolveYdelsestype } from '../../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from '../engines/isoRangeAlgebra';
 import {
@@ -130,19 +130,9 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
   };
 };
 
-const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string; periodisering: (typeof ydelsestyper)[string]['periodisering'] }> | null => {
-  const direct = ydelsestyper[raw];
-  if (direct) {
-    return { key: raw, label: direct.label, periodisering: direct.periodisering };
-  }
-  const normalizedRaw = raw.trim().toLowerCase();
-  for (const [key, config] of Object.entries(ydelsestyper)) {
-    if (config.label.trim().toLowerCase() === normalizedRaw) {
-      return { key, label: config.label, periodisering: config.periodisering };
-    }
-  }
-  return null;
-};
+// Opslaget bor i `data/ydelsestyper`, så EO-kontroltabellen forstår en gemt label præcis som
+// indtægtssiden gør. Lå de hver sit sted, kunne de to sider af sammentællingen se forskellige
+// ydelser – se resolverens egen kommentar.
 
 export const buildTafRanges = (
   values: TafCalculationValues,
@@ -479,10 +469,10 @@ export const buildIncomeForRanges = (
     const resolvedType = resolveYdelsestype(rawType);
     if (!resolvedType) continue;
     const typeKey = resolvedType.key;
-    const label = resolvedType.label;
+    const label = resolvedType.config.label;
     const periodiseringsGrundlag = buildOffentligYdelsePeriodiseringsGrundlag({
       interval,
-      periodisering: resolvedType.periodisering,
+      periodisering: resolvedType.config.periodisering,
       ydelsestypeKey: typeKey,
       shDays: shDaysForYdelser,
       sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,

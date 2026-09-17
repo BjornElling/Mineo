@@ -5,18 +5,24 @@ import {
   type SammentaellingModel,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
 import {
+  beregnetVaerdi,
+  buildSammentaellingControl,
   getSammentaellingControlStatus,
   type SammentaellingControl,
 } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 
-const baseControl: SammentaellingControl = {
-  beregnetDisplay: '-',
-  tabelDisplay: '-',
-  beregnetValue: null,
-  tabelValue: null,
-  loseFeriedage: 0,
-  oevrigeFravaersdage: 0,
-};
+/** Kontrolrækker bygges gennem produktionskonstruktøren; brandet lukker håndskrevne literaler ude. */
+const makeControl = (overrides: Readonly<{
+  beregnetValue?: number | null;
+  tabelValue?: number | null;
+  beregnetDisplay?: string;
+  tabelDisplay?: string;
+}> = {}): SammentaellingControl => buildSammentaellingControl({
+  beregnet: beregnetVaerdi(overrides.beregnetValue ?? null, overrides.beregnetDisplay ?? '-'),
+  tabel: { value: overrides.tabelValue ?? null, display: overrides.tabelDisplay ?? '-' },
+});
+
+const baseControl: SammentaellingControl = makeControl();
 
 describe('getSammentaellingControlStatus', () => {
   it('returns ok when both values are null', () => {

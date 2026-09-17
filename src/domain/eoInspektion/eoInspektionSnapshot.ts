@@ -78,7 +78,6 @@ export const buildEOInspektionSnapshot = (args: {
   const inspektionDays = buildInspektionDaysFromModel(model);
   const sammentaelling = buildEOInspektionSammentaellingModel({
     values: eoValues,
-    errors: eoErrors,
     model,
     svieSmerteContext,
     taftContext,

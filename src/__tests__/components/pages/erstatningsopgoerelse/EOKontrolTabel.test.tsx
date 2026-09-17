@@ -7,6 +7,10 @@ import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import type { EOInspektionModel } from '../../../../domain/eoInspektion/eoInspektionKontrolModel';
 import type { EOInspektionSnapshot } from '../../../../domain/eoInspektion/eoInspektionSnapshot';
 import type { SammentaellingDisplayTables, SammentaellingModel } from '../../../../domain/eoInspektion/eoInspektionSammentaelling';
+import {
+  beregnetVaerdi,
+  buildSammentaellingControl,
+} from '../../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
@@ -46,14 +50,11 @@ const makeModel = (patch: Partial<EOInspektionModel>): EOInspektionModel => {
 };
 
 const makeSammentaelling = (patch: Partial<SammentaellingModel>): SammentaellingModel => {
-  const baseControl = {
-    beregnetDisplay: '-',
-    tabelDisplay: '-',
-    beregnetValue: null,
-    tabelValue: null,
-    loseFeriedage: 0,
-    oevrigeFravaersdage: 0,
-  } as const;
+  // Kontrolrækker kan ikke skrives i hånden; brandet tvinger dem gennem produktionskonstruktøren.
+  const baseControl = buildSammentaellingControl({
+    beregnet: beregnetVaerdi(null, '-'),
+    tabel: { value: null, display: '-' },
+  });
 
   const base: SammentaellingModel = {
     beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,

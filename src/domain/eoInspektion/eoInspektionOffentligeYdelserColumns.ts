@@ -3,7 +3,7 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
-import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
+import { resolveYdelsestype, ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
 import type { KontrolTabelIntegrityIssue } from './eoInspektionKontrolModel';
 import {
@@ -80,8 +80,8 @@ export const buildOffentligeYdelserColumns = (args: {
 
   for (const row of values.offentligeYdelserRows ?? []) {
     if (errorRowIds.has(row.id)) continue;
-    const typeKey = row.ydelsestype?.trim() ?? '';
-    if (typeKey === '') {
+    const rawType = row.ydelsestype?.trim() ?? '';
+    if (rawType === '') {
       // Fejl hvis beløb er angivet uden ydelsestype
       const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
       if (hasAnyValue) {
@@ -93,18 +93,23 @@ export const buildOffentligeYdelserColumns = (args: {
       }
       continue;
     }
-    const config = ydelsestyper[typeKey];
-    if (!config) {
+    // Samme kanoniske opslag som indtægtssiden bruger. Et direkte `ydelsestyper[rawType]` ville
+    // ikke forstå en gemt LABEL («Sygedagpenge»), og kolonnen ville udeblive, mens indtægtssiden
+    // regnede videre – netop den asymmetri, der meldte en falsk `control:sammentaelling_mismatch`.
+    const resolved = resolveYdelsestype(rawType);
+    if (!resolved) {
       const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
       if (hasAnyValue) {
         issues.push({
           severity: 'warning',
           area: 'offentlige ydelser',
-          message: `Offentlig ydelse (række ${row.id}): Ukendt ydelsestype "${typeKey}" – kan ikke vises i kontroltabellen.`,
+          message: `Offentlig ydelse (række ${row.id}): Ukendt ydelsestype "${rawType}" – kan ikke vises i kontroltabellen.`,
         });
       }
       continue;
     }
+    const typeKey = resolved.key;
+    const config = resolved.config;
 
     const fraISO = parseOffentligDato(row.fraDato);
     const tilISO = parseOffentligDato(row.tilDato);

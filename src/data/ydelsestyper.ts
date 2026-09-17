@@ -105,6 +105,39 @@ export const ydelsestyper:
 
 export const ydelsestypeKeys = Object.keys(ydelsestyperLiteral) as YdelsestypeKey[];
 
+/**
+ * Den ENE opslagsvej fra en gemt `ydelsestype`-værdi til dens kanoniske nøgle og konfiguration.
+ *
+ * Værdien i en `.eo`-fil er ikke altid nøglen. Tidligere gemte sager kan bære den viste LABEL
+ * («Sygedagpenge» frem for `sygedagpenge`), og derfor har opslaget altid haft et label-fallback.
+ * Fallbacket lå bare kun ét af de to steder, værdien blev slået op.
+ *
+ * **Det kostede en falsk systemfejl.** Indtægtssiden (`indtaegtPerioder`) normaliserede label og
+ * versalisering til nøglen og beregnede et beløb; EO-kontroltabellen slog derimod direkte op i
+ * `ydelsestyper[raw]`, fandt intet og udelod kolonnen. Sammentællingen så da «beregnet=100,00,
+ * tabel=-» og meldte `control:sammentaelling_mismatch` – en SYSTEMFEJL, der åbnede notitsen
+ * «Teknisk fejl registreret» og blokerede EO-PDF'en, uden at nogen anden besked forklarede hvorfor
+ * (brugerfund 2026-09-17). Begge sider slår derfor nu op HER.
+ *
+ * Opslaget er bevidst tolerant og ændrer ikke persisterede data: en gammel fil læses som før, den
+ * bliver bare forstået ens af alle lag.
+ */
+export const resolveYdelsestype = (
+  raw: string
+): Readonly<{ key: string; config: YdelsestypeConfig }> | null => {
+  const direct = ydelsestyper[raw];
+  if (direct) return { key: raw, config: direct };
+
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === '') return null;
+
+  for (const [key, config] of Object.entries(ydelsestyperLiteral)) {
+    if (key.toLowerCase() === normalized) return { key, config };
+    if (config.label.trim().toLowerCase() === normalized) return { key, config };
+  }
+  return null;
+};
+
 /* ----------------------------------------------------------------------------------------
  * Valgrækkefølgen i Ydelsestype-dropdownen
  *

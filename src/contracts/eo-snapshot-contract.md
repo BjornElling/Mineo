@@ -7,7 +7,10 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-08-28
+**Senest verificeret mod kode:** 2026-09-17 (§6.1 er ny: sammentællingskontrollens to sider deler nu
+inputgate OG dataforståelse. `SammentaellingControl` er gjort nominal med `buildSammentaellingControl`
+som eneste konstruktør, og `resolveYdelsestype` er konsolideret i `data/ydelsestyper`, så tre
+bekræftede indgange til en falsk `control:sammentaelling_mismatch` er lukket. Tidligere 2026-08-28.)
 
 ---
 
@@ -348,6 +351,41 @@ For reguleringsformer med en selvstændig kildeserie skal EOInspektion læse mot
 `ReguleringForloeb` fra snapshotets lønudviklingsmodel. Kontrol- og dokumentlag må ikke genindlæse
 statistik-, KRL-, KL-lønaftale- eller manuel-procentsatsserier fra rå data. Kontrollaget må og skal
 fortsat genberegne selve indeksforholdet ud fra serien som et uafhængigt aritmetisk krydstjek.
+
+### 6.1 Sammentællingskontrollens to sider deler inputgate (normativ)
+
+En sammentællingsrække sammenligner en BEREGNET værdi med en TABEL-aflæst værdi. De to sider skal
+hvile på **samme** krav til inputtet. Kan den ene side ikke dannes, fordi inputtet ikke er et gyldigt,
+færdigt grundlag, må den anden side heller ikke danne et tal.
+
+Reglen er ikke kosmetisk. `control:sammentaelling_mismatch` er klassificeret `source: 'system'` og
+routes til `reportSystemIssue`, så den åbner notitsen «Teknisk fejl registreret». Et «beregnet=-,
+tabel=263» er ikke to opgørelser, der er uenige – det er én opgørelse, der mangler – og at melde det
+som systemfejl sender brugeren efter en kodefejl i stedet for efter sin egen indtastning.
+
+Reglen er STRUKTUREL, ikke en konvention: `SammentaellingControl` er nominal, og
+`buildSammentaellingControl` er dens eneste konstruktør. Den beregnede side erklæres som enten
+`vaerdi` eller `grundlag-mangler`, og ved `grundlag-mangler` tømmer konstruktøren BEGGE sider. En
+håndskrevet objektliteral – som er dér, asymmetrien opstod – er en compile-fejl.
+
+Tre bekræftede indgange til fejlen (brugerfund 2026-09-17), alle målt af
+`domain/eoInspektion/eoInspektionSammentaellingInputGate.test.ts`:
+
+1. **Overlap.** En beregningsperiode, der slutter samme dag som TAF-perioden begynder, er et overlap
+   i den lukkede intervalalgebra. Kun den beregnede side respekterede overlapsgaten. Den ægte fejl var
+   allerede en rød række («Der er overlap mellem beregningsperioden ... og en TAF-periode»), som
+   blokerede downloaden ad den vej; uoverensstemmelsen lagde alene en uforståelig systemfejl oven på.
+2. **Uafsluttet påkrævet felt.** «Øvrigt fravær uden løn» sat til Ja, mens antalsfeltet endnu er tomt.
+   Rammer under helt almindelig indtastning.
+3. **Gemt label i stedet for nøgle.** En `ydelsestype` kan i en tidligere gemt `.eo`-fil bære den viste
+   label («Sygedagpenge») frem for nøglen. Indtægtssiden normaliserede den, EO-kontroltabellen slog
+   direkte op og udelod kolonnen. Her var uoverensstemmelsen den ENESTE besked, brugeren fik. Begge
+   sider slår nu op gennem `resolveYdelsestype` i `data/ydelsestyper`.
+
+Den sidste peger på en generalisering af reglen: **de to sider skal også forstå de samme data ens.**
+Enhver normalisering af en gemt værdi (label→nøgle, versalisering, alias) skal ligge ét sted, som
+begge sider bruger – ellers kan de se forskellige ydelser og melde en uoverensstemmelse, der kun er en
+opslagsforskel.
 
 ---
 
