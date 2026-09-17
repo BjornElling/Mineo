@@ -22,6 +22,7 @@
  * handling, og browser-downloaden ER den irreversible handling.
  */
 import { sourceTokensEqual, type EvaluationSourceToken } from '../../inputCore/evaluationSource';
+import { isLazyChunkFailure } from '../../utils/lazyChunkFailure';
 import { asError } from '../../utils/typeGuards';
 import { triggerDocumentDownload } from '../downloadArtifact';
 import type { DocumentAction, ResolvedDocumentAction } from './documentAction';
@@ -46,6 +47,24 @@ import { createDocumentSourceContext } from './documentSourceContext';
  * først synlig, da det første callsite faktisk aktiverede en download.
  */
 const preparedBrand = Symbol('PreparedDocument');
+
+/**
+ * Den ENE oversættelse fra en fanget exception til et udfald.
+ *
+ * En manglende lazy chunk er ikke en programfejl, og den må derfor ikke nå systemfejl-sinken: koden
+ * er korrekt, men generator- eller writer-modulets asset ligger ikke længere på origin. Uden denne
+ * skelnen blev en deploy-betinget, brugerrettelig tilstand til «Teknisk fejl registreret» med en
+ * fejltekst, ingen bruger kan handle på – mens den genindlæsning, der faktisk ville løse det, stod
+ * som en let overset linje øverst på siden.
+ *
+ * Skelnen sker på identitet gennem `lazyChunkFailure`, ikke på fejltekst; se det modul for hvorfor.
+ * Gør et miljø ikke brug af Vites recovery-hook (DEV, tests, standalone-preview), er registret tomt,
+ * og alt klassificeres som før.
+ */
+const classifyThrownFailure = (error: unknown, phase: DocumentLifecyclePhase): DocumentOutcome =>
+  isLazyChunkFailure(error)
+    ? documentRejected({ kind: 'chunk-unavailable', phase })
+    : documentFailed({ kind: 'runtime', phase, cause: asError(error) });
 
 /**
  * Et godkendt dokument. Nominal via `preparedBrand` og modulprivat: typen eksporteres ikke, og
@@ -107,7 +126,7 @@ export const executeDocumentDownload = async <TRequest, TGateSettings, TRenderSe
 
     return finish(await runPreparedDocument(prepared.prepared, environment, phase), prepared.prepared.document.id);
   } catch (error) {
-    return finish(documentFailed({ kind: 'runtime', phase: phase.current, cause: asError(error) }));
+    return finish(classifyThrownFailure(error, phase.current));
   }
 };
 
@@ -234,6 +253,6 @@ const runPreparedDocument = async <TGateSettings, TRenderSettings, TBrevhovedKey
     triggerDocumentDownload(artifact);
     return documentDownloaded;
   } catch (error) {
-    return documentFailed({ kind: 'runtime', phase: phase.current, cause: asError(error) });
+    return classifyThrownFailure(error, phase.current);
   }
 };

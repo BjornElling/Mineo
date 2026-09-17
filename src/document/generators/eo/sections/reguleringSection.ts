@@ -424,6 +424,15 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const normalizedTableData = stripEmptyReguleringsColumns(tableData);
 
+    // Er HVER kolonne tom i hver række, fjerner filtreringen dem alle. En tabel uden kolonner (og
+    // med rækker uden celler) er et invariantbrud i `assertValidTableSpec`, så den naive form
+    // væltede hele downloaden med «Dokumenttabel kaldt uden kolonner» i stedet for at sige, at der
+    // ikke var noget at vise. Samme udfald som en tom rækkeliste ovenfor.
+    if (normalizedTableData.columns.length === 0) {
+      safeAddWrappedText('Ingen reguleringsværdier.');
+      return;
+    }
+
     // Fordel pladsen jævnt mellem kolonnerne (flex) i stedet for autotables indholdsbaserede
     // bredder; den adaptive omfordeling udvider stadig kolonner efter behov. Reguleringskolonnerne
     // (pct/indeks/…) højrejusteres via kolonne-intentionen (Word læser cellens justering) med et

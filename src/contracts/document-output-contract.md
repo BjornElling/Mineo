@@ -3,7 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-08-27
+**Senest verificeret mod kode:** 2026-09-17 (§A5 har fået punkt 4: en manglende lazy chunk er afvisningen
+`chunk-unavailable` med lokal besked, ikke en systemfejl. Målt af `document/documentLifecycleMatrix.test.ts`
+og `components/inputs/DocumentOutcomeMessage.test.tsx`. Tidligere 2026-08-27.)
 
 ## Scope
 
@@ -170,10 +172,17 @@ Et visningsvalg er et visningsønske, ikke en ret til at overstyre semantisk fra
 1. Hvis download var korrekt gated, men selve dokument-genereringen fejler ved runtime, er det en systemteknisk fejl.
 2. Brugeren må ikke mødes af en `BugReportButton` inline i sideflowet eller i en download-dialog.
 3. Fejlen routes via den centrale fejlrapportering jf. `error-contract.md`.
+4. **En manglende lazy chunk er IKKE en runtime-fejl.** Kunne generator- eller writer-modulet ikke
+   hentes, er koden korrekt – assetet ligger bare ikke længere på origin (ryddet Cache Storage, en
+   aldrig fuldført service-worker-installation, en deploy midt i en åben session; se
+   `app-shell-contract.md` §Kendte Undtagelser 4). Udfaldet er afvisningen `chunk-unavailable`, som
+   bærer en lokal besked og aldrig når systemfejl-sinken. Tilstanden genkendes på identitet gennem
+   `src/utils/lazyChunkFailure.ts`; en fejl med samme ordlyd, der ikke kom fra Vites lazy-load,
+   forbliver en systemfejl.
 
 Lokale fejlbeskeder må kun bruges til de forventelige udfald, brugeren ikke kunne forudse af knappens
-tilstand: et stale-afbrud og DEV-specifik dev-server-nedetid. Uventede runtime-fejl under en godkendt
-download er systemfejl.
+tilstand: et stale-afbrud, en manglende programdel og DEV-specifik dev-server-nedetid. Uventede
+runtime-fejl under en godkendt download er systemfejl.
 
 En GATE-blokering er udtrykkeligt IKKE en lokal fejlbesked. En deaktiveret download-knap svarer aldrig
 med tekst – årsagen har én kanal, knappens tooltip ved hover – og det gælder også, når blokeringen først

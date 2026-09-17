@@ -51,6 +51,32 @@ describe('DocumentOutcomeMessage', () => {
     );
   });
 
+  it('viser beskeden om en manglende programdel i BEGGE apps', () => {
+    // En manglende lazy chunk er transient og brugerrettelig som et stale-afbrud, ikke en
+    // programfejl. Hovedappen har også recoverylinjen med «Genindlæs nu», mens standalone
+    // MinProcesrente ikke har nogen – derfor må beskeden ikke afhænge af app-politikken.
+    for (const showRuntimeFailureLocally of [false, true]) {
+      const message = resolveDocumentOutcomeMessage(
+        documentRejected({ kind: 'chunk-unavailable', phase: 'renderer-load' }),
+        labels,
+        'pdf',
+        showRuntimeFailureLocally
+      );
+      expect(message).toBe(
+        'Downloaden blev afbrudt, fordi en programdel skal genindlæses. Genindlæs programmet, og prøv igen.'
+      );
+    }
+
+    const rendered = resolveDocumentOutcomeMessage(
+      documentRejected({ kind: 'chunk-unavailable', phase: 'writer-load' }),
+      labels,
+      'pdf',
+      false
+    );
+    render(<DocumentOutcomeMessage message={rendered} />);
+    expect(screen.getByTestId('document-outcome-message')).toHaveTextContent('en programdel skal genindlæses');
+  });
+
   it('viser DEV-server-beskeden, som brugeren selv kan handle på', () => {
     const message = resolveDocumentOutcomeMessage(
       documentFailed({ kind: 'dev-server-unavailable', phase: 'dev-preflight' }),

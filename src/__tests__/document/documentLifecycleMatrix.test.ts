@@ -36,6 +36,7 @@ import {
   type DocumentFailure,
 } from '../../document/definition/documentOutcome';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
+import { markLazyChunkFailure } from '../../utils/lazyChunkFailure';
 
 vi.mock('../../document/downloadArtifact', () => ({
   triggerDocumentDownload: vi.fn(),
@@ -70,6 +71,8 @@ const createHarness = (options: Readonly<{
   devPreflight?: 'none' | 'success' | 'failure' | 'throws';
   createSessionThrows?: boolean;
   renderThrows?: boolean;
+  /** En KONKRET fejlinstans, der kastes ved den angivne grænse – så identitetsbaseret klassifikation kan prøves. */
+  throwAt?: Readonly<{ phase: 'renderer-load' | 'writer-load'; error: Error }>;
 }> = {}) => {
   const {
     capturedToken = tokenAt(1),
@@ -80,6 +83,7 @@ const createHarness = (options: Readonly<{
     devPreflight = 'none',
     createSessionThrows = false,
     renderThrows = false,
+    throwAt,
   } = options;
 
   const calls = {
@@ -129,6 +133,7 @@ const createHarness = (options: Readonly<{
     resolveFormat: () => 'pdf' as const,
     createSession: async () => {
       calls.createSession += 1;
+      if (throwAt?.phase === 'writer-load') throw throwAt.error;
       if (createSessionThrows) throw new Error('writer-load-fejl');
       return { format: 'pdf', render: async () => new Blob() } as never;
     },
@@ -162,6 +167,7 @@ const createHarness = (options: Readonly<{
     },
     loadRenderer: async () => {
       calls.loadRenderer += 1;
+      if (throwAt?.phase === 'renderer-load') throw throwAt.error;
       return async () => {
         calls.render += 1;
         if (renderThrows) throw new Error('generatorfejl');
@@ -423,6 +429,42 @@ describe('dokument-livscyklus – matrix (definitionsuafhængige cases)', () => 
 
     expect(harness.calls.prepare).toBe(1);
     expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'settle-failed' } });
+  });
+
+  describe('manglende lazy chunk', () => {
+    // En manglende chunk er et ASSET-problem, ikke en programfejl. Blev den rapporteret som
+    // systemfejl, mødte brugeren «Teknisk fejl registreret» med en fejltekst, ingen kan handle på,
+    // i stedet for den genindlæsning, der faktisk løser det (app-shell-contract §Kendte Undtagelser 4).
+    it.each(['renderer-load', 'writer-load'] as const)(
+      'case: markeret chunk-fejl ved %s → afvisning uden systemfejl',
+      async (phase) => {
+        const error = new Error('Failed to fetch dynamically imported module: /assets/eo-B4beMD54.js');
+        markLazyChunkFailure(error);
+        const harness = createHarness({ throwAt: { phase, error } });
+
+        const outcome = await run(harness);
+
+        expect(outcome).toMatchObject({ status: 'rejected', rejection: { kind: 'chunk-unavailable', phase } });
+        expect(harness.calls.reportFailure).toEqual([]);
+        expect(triggerMock).not.toHaveBeenCalled();
+      }
+    );
+
+    it('case: en UMARKERET fejl med samme ordlyd er stadig en systemfejl', async () => {
+      // Klassifikationen hviler på identitet, ikke på fejltekst: en generatorfejl, der tilfældigvis
+      // citerer Vites ordlyd, må ikke kunne skjule sig som en manglende chunk.
+      const harness = createHarness({
+        throwAt: {
+          phase: 'renderer-load',
+          error: new Error('Failed to fetch dynamically imported module: /assets/eo-B4beMD54.js'),
+        },
+      });
+
+      const outcome = await run(harness);
+
+      expect(outcome).toMatchObject({ status: 'failed', failure: { kind: 'runtime', phase: 'renderer-load' } });
+      expect(harness.calls.reportFailure).toHaveLength(1);
+    });
   });
 
   it('case: `noop` fra barrieren er et INVARIANTBRUD, ikke en tavs afvisning', async () => {

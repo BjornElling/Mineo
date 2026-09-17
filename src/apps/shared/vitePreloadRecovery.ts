@@ -6,7 +6,32 @@
  *
  * Vite udsender `vite:preloadError` for både route-, renderer- og writer-chunks. Derfor ligger
  * håndteringen i den fælles bootstrap og ikke i den enkelte dokumentdefinition.
+ *
+ * **`preventDefault()` er ikke en universel undertrykkelse.** Vites hjælper er formet sådan:
+ *
+ * ```js
+ * return promise.then((res) => {
+ *   for (const item of res || []) if (item.status === 'rejected') handlePreloadError(item.reason);
+ *   return baseModule().catch(handlePreloadError);
+ * });
+ * ```
+ *
+ * `handlePreloadError` kaster kun videre, når eventet IKKE er defaultPrevented. De to kaldesteder
+ * har derfor hver sin konsekvens af en undertrykkelse:
+ *
+ *  1. **Fejlet CSS-preload** (`Unable to preload CSS for …`): løkken fortsætter, og `baseModule()`
+ *     henter modulet alligevel. Undertrykkelsen redder her en fungerende session – kun
+ *     stylesheetet mangler. Den beholdes.
+ *  2. **Fejlet modulhentning**: `.catch(handlePreloadError)` returnerer `undefined`, så
+ *     `await import(...)` RESOLVER med `undefined`. Hvert kaldested rammer da en TypeError ved
+ *     destructuring («Cannot destructure property …»), som bliver rapporteret som en uforståelig
+ *     systemfejl – præcis dét, denne linje findes for at undgå
+ *     (`app-shell-contract.md` §Kendte Undtagelser 4). Fejlen skal derfor kastes videre. Den
+ *     markeres i `lazyChunkFailure`, så kaldestedet kan kende den igen på IDENTITET frem for på en
+ *     browserspecifik fejltekst.
  */
+import { markLazyChunkFailure } from '../../utils/lazyChunkFailure';
+
 let removePreloadErrorListener: (() => void) | null = null;
 let recoveryPending = false;
 const recoveryListeners = new Set<() => void>();
@@ -32,17 +57,27 @@ export const reloadAfterVitePreloadRecovery = (): boolean => {
   return true;
 };
 
-const getFailureSignature = (payload: unknown): string | null => {
+/**
+ * Vites egen ordlyd for en fejlet CSS-preload. Den er det ENESTE signal, der adskiller de to
+ * kaldesteder i hjælperen fra hinanden. Ændrer Vite teksten, falder vi tilbage til den strenge vej
+ * (fejlen kastes videre) – fail-safe frem for en tavs `undefined`-resolution.
+ */
+const CSS_PRELOAD_FAILURE_PREFIX = 'Unable to preload CSS for';
+
+const getFailureError = (payload: unknown): Error | null => {
   if (!(payload instanceof Error)) return null;
-  return payload.message.trim() === '' ? null : payload.message;
+  return payload.message.trim() === '' ? null : payload;
 };
 
 /**
  * Installerer Vites ene globale recovery-hook.
  *
- * Et Vite-signal undertrykkes og offentliggøres som en ventende, sikker recovery. Det er bevidst
- * ikke en automatisk reload: sessionStorage indeholder afsluttet input, men en åben editor har
- * stadig en draft, som kun den kritiske handlingsbarriere kan settle eller afvise korrekt.
+ * Et Vite-signal offentliggøres som en ventende, sikker recovery. Det er bevidst ikke en automatisk
+ * reload: sessionStorage indeholder afsluttet input, men en åben editor har stadig en draft, som kun
+ * den kritiske handlingsbarriere kan settle eller afvise korrekt.
+ *
+ * Selve fejlen undertrykkes kun for CSS-preloads – se modulkommentaren for hvorfor en generel
+ * undertrykkelse gør det modsatte af det tilsigtede.
  */
 export const setupVitePreloadRecovery = (): void => {
   if (!import.meta.env.PROD) return;
@@ -50,9 +85,18 @@ export const setupVitePreloadRecovery = (): void => {
   if (removePreloadErrorListener !== null) return;
 
   const handlePreloadError = (event: VitePreloadErrorEvent): void => {
-    if (getFailureSignature(event.payload) === null) return;
-    event.preventDefault();
+    const failure = getFailureError(event.payload);
+    if (failure === null) return;
     publishRecoveryPending(true);
+
+    if (failure.message.startsWith(CSS_PRELOAD_FAILURE_PREFIX)) {
+      event.preventDefault();
+      return;
+    }
+
+    // Ingen `preventDefault()`: Vite kaster den SAMME instans videre, så kaldestedet får en ægte
+    // afvisning i stedet for et `undefined`-modul. Markeringen sker her, mens identiteten er kendt.
+    markLazyChunkFailure(failure);
   };
 
   window.addEventListener('vite:preloadError', handlePreloadError);

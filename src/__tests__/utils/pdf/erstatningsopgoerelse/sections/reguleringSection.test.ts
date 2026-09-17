@@ -606,6 +606,39 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     ]);
   });
 
+  it('skriver "Ingen reguleringsværdier." i stedet for at kaste, når HVER kolonne er tom', () => {
+    // Filtreringen fjerner alle kolonner, og en tabel uden kolonner er et invariantbrud i
+    // `assertValidTableSpec`. Uden guarden væltede hele dokument-downloaden med
+    // «Dokumenttabel kaldt uden kolonner» og blev rapporteret som systemfejl.
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-tomme-kolonner',
+        navnPaaArbejdssted: 'Teststed',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx, safeAddWrappedText } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2023-07-01'),
+      sidste: iso('2025-12-21'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Fra-dato', 'Timeløn', 'SH/SO'],
+      rows: [
+        ['-', '', '   '],
+        ['', '-', '-'],
+      ],
+    }));
+
+    expect(() => renderReguleringSection(ctx)).not.toThrow();
+    expect(safeAddWrappedText).toHaveBeenCalledWith('Ingen reguleringsværdier.');
+    expect(autoTableMock).not.toHaveBeenCalled();
+  });
+
   it('højre-aligner kun pct-kolonnernes indhold med indrykning', () => {
     autoTableMock.mockClear();
     const eoValues = createErstatningsopgoerelseInitialValues();

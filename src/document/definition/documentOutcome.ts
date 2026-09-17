@@ -135,11 +135,18 @@ export const blockedProjectionFromCauses = (
  * - `stale-source` er transient og har samme betydning i ALLE faser (deraf `phase` som data).
  * - `settle-failed` betyder, at den åbne editor ikke kunne finaliseres; feltet bærer selv den røde
  *   markering, og `focusTarget` peger på det.
+ * - `chunk-unavailable` betyder, at generator- eller writer-modulet ikke kunne hentes. Det er et
+ *   ASSET-problem, ikke en programfejl: koden er korrekt, men filen ligger ikke længere på origin
+ *   (ryddet Cache Storage, en aldrig fuldført service-worker-installation, en deploy midt i en åben
+ *   session). Brugeren retter den ved at genindlæse, og `app-shell-contract.md`
+ *   §Kendte Undtagelser 4 kræver udtrykkeligt, at netop denne tilstand bliver en synlig, sikker
+ *   genindlæsning frem for en runtimefejl.
  */
 export type DocumentRejection =
   | Readonly<{ kind: 'gate-blocked'; phase: DocumentLifecyclePhase; reasons: DocumentGateReasons }>
   | Readonly<{ kind: 'stale-source'; phase: DocumentLifecyclePhase }>
-  | Readonly<{ kind: 'settle-failed'; phase: DocumentLifecyclePhase }>;
+  | Readonly<{ kind: 'settle-failed'; phase: DocumentLifecyclePhase }>
+  | Readonly<{ kind: 'chunk-unavailable'; phase: DocumentLifecyclePhase }>;
 
 /**
  * En ægte fejl. `runtime` er den eneste klasse, der rapporteres som systemfejl; `cause` bevares, så

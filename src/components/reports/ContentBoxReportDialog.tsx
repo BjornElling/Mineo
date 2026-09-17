@@ -21,6 +21,7 @@ import {
   prepareContentBoxReport,
 } from '../../utils/bugReport';
 import { downloadBlob } from '../../utils/fileHelpers';
+import { isLazyChunkFailure } from '../../utils/lazyChunkFailure';
 import { CONTENT_SCALE_ROOT_SELECTOR } from '../../utils/uiScale';
 
 /**
@@ -197,6 +198,18 @@ const ContentBoxReportDialog = React.memo(({
         severity: 'success',
       });
     } catch (error) {
+      // En manglende `html2canvas`-chunk er et asset-problem, ikke en programfejl. Uden skelnen
+      // ville `console.error` rejse «Teknisk fejl registreret» oven i snackbaren og pege brugeren
+      // mod en kodefejl frem for mod den genindlæsning, der faktisk løser det (samme regel som
+      // dokument-downloadens `chunk-unavailable`, `document-output-contract.md` §A5).
+      if (isLazyChunkFailure(error)) {
+        setSnackbar({
+          open: true,
+          message: 'Skærmprint kræver en programdel, der skal genindlæses. Genindlæs programmet, og prøv igen.',
+          severity: 'error',
+        });
+        return;
+      }
       console.error('Kunne ikke lave skærmprint:', error);
       setSnackbar({
         open: true,
