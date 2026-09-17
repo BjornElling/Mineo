@@ -73,6 +73,19 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   `origin.kind === 'static'`, så en skadedato-skærpet MIN-grænse slukkede MAX-sidens tekst. Grenen
   hviler nu på en eksplicit `maxBoundKind: 'dagsDato'`, og rettelsen rammer derfor også Stamdatas
   Fødselsdato og Skadedato.
+  **Efterslæb i dokumentationen ryddet 2026-09-17.** 61 fund i fem fladerapporter stod stadig som
+  «Beslutning: Afventer udvikleren», selv om fladerne var afgjort og gennemført for uger siden – kun
+  statuslinjen var aldrig fulgt med, så rapporterne modsagde både tabellen ovenfor og hinanden.
+  Fordelingen var: Årsløn 19, Forsørgertab 17, Varige mén 12, Indstillinger 7 og Satser 6.
+  **Kilden er forskellig og er markeret i hver enkelt linje.** Forsørgertab, Indstillinger, Satser og
+  Varige mén havde alle et afgørelsesafsnit ved hvert fund («Udfald: RETTET», «Afgjort … AFVIST»,
+  «Rettet (dato)»), så deres linjer er udledt mekanisk derfra. **Årsløn har aldrig haft et sådant
+  afsnit**, så dens 19 linjer er sammenfattet af udviklerens tilbagemelding ved fundet og bærer
+  forbeholdet «udledt af udviklerens tilbagemelding»; er en sammenfatning for skarp eller for blød,
+  er tilbagemeldingen under fundet den gældende kilde. Årsløn har samtidig fået det
+  gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
+  Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
+  gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
 - **Senest opdateret:** 2026-09-15 (**Flade 12a – Erstatningsopgørelse → Opgørelsens ramme –
   gennemgået: 15 fund, to Høj, otte Mellem og fem Lav. Ingen nye tværgående mønstre, men femten
   forekomster af de eksisterende, og to af dem udvider mønsteret de hører til.** Biddens emne er sagens
@@ -522,10 +535,13 @@ ikke gennemgået (12m).
 (`Erstatningsopgoerelse.tsx:43`), mens `references/flader.md` og B9-noterne kalder bid 12m
 «EO-gennemsyn og Kontroltabel». Navnene skal afstemmes, når 12m tages.
 
-## Erhvervsevnetab → Differencekrav (11e) – gennemgået 2026-09-07
+## Erhvervsevnetab → Differencekrav (11e) – gennemgået 2026-09-07, afgjort og gennemført 2026-09-09
 
-**17 fund: to Høj, elleve Mellem, fire Lav. Alle afventer udviklerens afgørelse.** Det fulde grundlag med
-målte tal står i [erhvervsevnetab.md](erhvervsevnetab.md).
+**17 fund: to Høj, elleve Mellem, fire Lav. Alle afgjort 2026-09-09:** tolv implementeret, ét delvist
+(BB-201) og fire afvist (BB-185, BB-186, BB-197, BB-198). Det fulde grundlag med målte tal står i
+[erhvervsevnetab.md](erhvervsevnetab.md) under «Gennemført i kode – 2026-09-09», som også beskriver den
+større opgave, udvikleren gav samme dag: forligsfelterne er flyttet til «EET oplysninger», og «EET efter
+EAL» reducerer nu selv med forligsgraden på et andet grundlag end differencekravet.
 
 | ID | Kort | Prioritet |
 |---|---|---|
@@ -721,9 +737,10 @@ sin procent fra.
 `Gem`/`Hent` ikke afprøvet; brevhovedet ikke slået til; `warn-eal-aarsloen-empty-for-2024-07-01` og
 aldersreduktionens 0 %-gren er kildelæst, ikke målt; «meget mange afgørelser» (B3) ikke målt.
 
-## Erhvervsevnetab → Kapitalisering (11c) – gennemgået 2026-09-03
+## Erhvervsevnetab → Kapitalisering (11c) – gennemgået 2026-09-03, afgjort og gennemført 2026-09-03
 
-**11 fund: ét Høj, fire Mellem, seks Lav.** Det fulde grundlag med målte tal står i
+**11 fund: ét Høj, fire Mellem, seks Lav. Alle afgjort 2026-09-03:** seks implementeret, to delvist,
+to afvist og ét trukket tilbage. Det fulde grundlag med målte tal står i
 [erhvervsevnetab.md](erhvervsevnetab.md).
 
 | ID | Kort | Prioritet |
@@ -921,9 +938,10 @@ afprøvet (samme hul som BB-049), så BB-147's persistensdel hviler på prædika
 ingen dokumenter hentet (fanen har ingen downloadknap); Escape-annullering, celle-undo og «meget mange
 rækker» ikke systematisk målt.
 
-## Forsørgertab – gennemgået 2026-08-27
+## Forsørgertab – gennemgået 2026-08-27, afgjort og gennemført 2026-08-28
 
-**18 fund: tre Høj, ti Mellem, fem Lav.** De to sidste (BB-133, BB-134) kom af udviklerens svar på to af
+**18 fund: tre Høj, ti Mellem, fem Lav. Alle afgjort 2026-08-28:** femten implementeret, ét delvist
+(BB-123) og to afvist (BB-119, BB-131). De to sidste (BB-133, BB-134) kom af udviklerens svar på to af
 de tre åbne spørgsmål og er skrevet op 2026-08-27. Det fulde grundlag med målte tal står i
 [forsoergertab.md](forsoergertab.md).
 
@@ -1004,9 +1022,11 @@ kørsel. Konsollen var tavs: 199 beskeder, 0 fejl, 0 advarsler.
 beregnede beløb og indregnes allerede (men er usynligt, BB-133) – og «Køn» er **skadelidtes** køn, ikke
 efterladtes (min antagelse var forkert; rækkens placering er dermed korrekt, kun navnet mangler, BB-134).
 
-## Årslønsberegning – gennemgået 2026-08-25
+## Årslønsberegning – gennemgået 2026-08-25, afgjort og gennemført 2026-08-26
 
-**21 fund: tre Høj, ni Mellem, ni Lav.** Det fulde grundlag med målte tal står i
+**21 fund: tre Høj, ni Mellem, ni Lav. Alle afgjort og gennemført 2026-08-26** (commit `447905ca`):
+fjorten implementeret, tre delvist (BB-096, BB-100, BB-115) og fire afvist (BB-105, BB-109, BB-110,
+BB-116). Det fulde grundlag med målte tal står i
 [aarsloen.md](aarsloen.md).
 
 | ID | Kort | Prioritet |

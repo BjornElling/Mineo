@@ -26,7 +26,7 @@ svie/smerte-satsår er et helt andet felt (`svieSmerteSatserAar`).
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Gå til Satser og skriv `2024` i «Vis satser for år».
   2. Læs afsnittet Arbejdsskadesikringsloven på skærmen. Nederst står to reguleringsprocenter:
@@ -89,7 +89,7 @@ datagrundlaget ændrer sig.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--indsat-tekst-samles-af-cifre-uden-hensyn-til-formens-positioner`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Sæt året til `2015`, så feltet har en værdi. Marker værdien (Ctrl+A) og indsæt teksten
      `01-02-2026` (en almindelig dansk dato, fx kopieret fra sagens papirer).
@@ -205,7 +205,7 @@ udfyldt felt direkte – det er den invariant, hele fundet handler om.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Gå til Satser med et gyldigt år udfyldt. Kig på siden, og hold musen over årsfeltet.
   2. Skriv `2004` (fx fordi sagen er fra 2004) og forlad feltet.
@@ -248,7 +248,7 @@ og downloadknappens tooltip siger begge «Årstallet skal være mellem 2005 og 2
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Åbn Satser i sidemenuen: ét årsfelt, og satserne for det ene valgte år.
   2. Åbn Varige mén → fanen «Satser»: en tabel med **alle** år på én gang («Opgørelsesår» /
@@ -289,7 +289,7 @@ det samme. Rejs det ikke igen for «Satser» som overskrift.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Vælg år `2005`: rækken heder «Reguleringsprocent for erhvervsevnetab: 5,5 %».
   2. Vælg år `2024`: nu er der **to** rækker – «(før 2024): 65,7 %» og «(fra 2024): 0 %».
@@ -337,7 +337,7 @@ programmets EGEN konstruktion, ikke hvor den refererer til en kendt regel eller 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-18 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. På Satser: hold musen over informationsikonet ved «Beløbsgrænse for fri proces
      (enlig/samlevende)». Tooltippen siger «Personlig indkomst + positiv kapitalindkomst».

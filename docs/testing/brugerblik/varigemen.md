@@ -73,7 +73,7 @@ Jeg er enig i dit fund. Den gule advarsel på feltet bør ikke være afhængig a
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren (juridisk grænse og UI-tekst)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Udfyld sagen, og sæt Méngrad til `1`.
 - **Det sker (målt):** «Grundbeløb: 1 % mén á 10.135,00 kr. → 10.135,00 kr.», «Aldersreduktion, 45 år
   = - 6 % → - 608,00 kr.», «Beregnet méngodtgørelse 9.527 kr.», og downloadknappen er aktiv. Ingen
@@ -143,7 +143,7 @@ specifikke fejltekst. Den udspecificerede fejl står stadig ordret i tooltip og 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-19--rødt-læses-som-tomt-af-den-flade-der-låner-værdien`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren (UI-tekst)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Skadedato `10-06-2020`; skriv Beregningsdato `01-01-2019`.
 - **Det sker (målt):** Feltet bliver rødt med «Datoen kan ikke være før skadedatoen (10-06-2020)».
   Rækken nedenfor skifter label til «Sats per méngrad i beregningsåret» og viser teksten
@@ -230,7 +230,7 @@ Jeg er ikke afvisende over for din anbefaling, men jeg er bange for, at resultat
 - **Type:** Edge case
 - **Rækkevidde:** Lokal (men se kandidatlisten)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren (hvad knappen skal gøre, når dags dato ikke er en lovlig værdi)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Beregningsdatoens tilladte interval slutter ved den sidste dag i
   det seneste år med méngrad-sats, i dag `31-12-2026`. Målt: `01-01-2027` afvises med «Dato skal
   være mellem 10-06-2020 og 31-12-2026». Knappen «Indsæt dags dato» indsætter dags dato uden at
@@ -315,7 +315,7 @@ Regressionstest tilføjet i `MenberegningTab.integration.test.tsx`.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster (M-13-familien: to udgaver af samme tal)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (hvilken af de to former der er den rigtige)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Hent PDF'en for en færdig sag og sammenlign nederste linje med
   skærmen.
 - **Det sker (målt i en hentet PDF):** Dokumentet skriver «Beregnet méngodtgørelse **364.155,00
@@ -341,7 +341,7 @@ Jeg anerkender fejlen og er enig. Løsningen bør være ensartet udseende på si
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (går på tværs af sidens to faner)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (UI-tekst)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Læs satsrækken på Ménberegning, og skift derefter til fanen Satser.
 - **Det sker (målt):** Ménberegning: «Sats **per** méngrad i år 2026 → 11.035 kr.». Fanen Satser:
   kolonnerne «**Opgørelsesår**» og «Sats **pr.** méngrad» → «2026 | 11.035 kr.». Samme tal, samme
@@ -368,7 +368,7 @@ havde den samme "per méngrad i år"-formulering og er rettet til samme tekst so
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren (navngivning er udviklerens regel)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Stamdata: Skadestype = `Erhvervssygdom`, dato `01-06-2020`.
   Gå til Ménberegning.
 - **Det sker (målt):** Rækken hedder korrekt «Anmeldelsesdato → 1. juni 2020», og
@@ -405,7 +405,7 @@ gennemgangs scope.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (UI-tekst; **ikke** et forslag om at skjule rækken)
+- **Beslutning:** Implementeret 2026-08-20 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Fødselsdato `01-01-1995`, Skadedato `01-06-2020` (alder 25), Méngrad
   `33`.
 - **Det sker (målt på skærm og i PDF):** «Aldersreduktion, 25 år = **- 0 %** → **- 0,00 kr.**», og
@@ -430,7 +430,9 @@ Jeg er enig.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (synlig tekst)
+- **Beslutning:** Afvist 2026-08-20 – pladsholdere bruges bevidst i vid udstrækning, og nul er en
+  brugbar pladsholder; programmet svarer tydeligt, hvis brugeren selv indtaster nul (udledt af
+  udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:** Se det tomme Méngrad-felt; skriv derefter `0` og tryk Tab.
 - **Det sker (målt):** Det tomme felt viser den grå pladsholder `0`. Værdien `0` afsluttes rødt med
   «Værdi skal være mellem 1 og 120».
@@ -575,7 +577,7 @@ fra, og hvad «Beregningsår» betyder.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv`
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren (juridisk grundlag)
+- **Beslutning:** Afvist 2026-08-21 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Åbn Varige mén → fanen Satser og læs linjen over tabellen.
   2. Gå til sidemenuens **Satser** (satsår 2026) og find den samme sats.
@@ -625,7 +627,7 @@ kræver, at de to henførsler er *uforenelige* – ikke blot forskelligt afgræn
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (synlig tekst)
+- **Beslutning:** Afvist 2026-08-21 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Åbn fanen Satser uden først at have været på fane 1, og læs
   kolonneoverskriften «Beregningsår».
 - **Det sker (målt):** Tabellens eneste forklarende linje er lovhenvisningen; ordet «Beregningsår»
@@ -656,7 +658,7 @@ lovhenvisning ELLER af, hvilken af sagens datoer der styrer satsopslaget.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (UI)
+- **Beslutning:** Afvist 2026-08-21 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Sæt Beregningsdato til `01-01-2026` på fane 1 (satsrækken viser «… i beregningsår 2026 →
      11.035 kr.»).
@@ -728,7 +730,7 @@ linjer går derfor op, også med en øre-sats. Det er dækket af en test.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (synlig tekst)
+- **Beslutning:** Implementeret 2026-08-21 – se afgørelsen under **Tilbagemelding** nedenfor.
 - **Sådan fremprovokeres det:** Fødselsdato `01-01-1980`, Skadedato `01-01-2020`, Méngrad `10`,
   Beregningsdato `01-01-2026`. Læs fane 1 ovenfra.
 - **Det sker (målt):** «Sats pr. méngrad i beregningsår 2026 → **11.035 kr.**» og tre linjer længere

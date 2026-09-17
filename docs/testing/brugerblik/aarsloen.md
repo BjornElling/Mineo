@@ -30,7 +30,7 @@ handler om tabellen selv, hører sammen med flade 12.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-23**
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren (beregning)
+- **Beslutning:** Delvist 2026-08-26 – fundets kerne afvist (to lønbilag for samme periode er lovligt); i stedet indført en generel dublet-kontrol på identiske rækker (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som **Måned**. Feriegodtgørelse `12,5`, SH/SO `2,5`, Løn på helligdage
      «SH-udbetaling».
@@ -68,7 +68,7 @@ jeg vil dog gerne have, at der generelt - det vil sige ikke kun her - laves en k
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-24**
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren (beregning)
+- **Beslutning:** Implementeret 2026-08-26 – rød ring og tooltip på feriedage-feltet frem for en indtastningsbegrænsning (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Én lønrække: Måned `1`, År `2025`, Løn `30000`. Feriegodtgørelse `12,5`.
   2. Slå «Omregning til fuldt år» til og «Fuld løn under ferie» **fra**.
@@ -101,7 +101,7 @@ Jeg tænker, at det bliver uhensigtsmæssigt med en egentlig begrænsning i brug
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-16** (skærpet)
 - **Prioritet:** Høj
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – 0 kr. er en lovlig lønrække uden for renteberegning (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Én lønrække: Måned `1`, År `2025`, Løn `0`.
 - **Det sker:** Alle tre celler er udfyldt, ingen af dem er rød. «Sammentælling af løn fra tabellen»
@@ -159,7 +159,7 @@ Jeg er enig. Overvej gerne om løsningen for visning er konsekvens med resten af
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Delvist 2026-08-26 – accepteret kun som diskret tooltip; lange forklaringer afvist for en professionel målgruppe (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`, SH/SO `2,5`, Arbejdsgivers pensionsbidrag `12`.
   2. Én lønrække: Løn `30000`, **Ikke-pensionsgivende løn** `1000`.
@@ -189,7 +189,7 @@ Jeg kan se, hvorfor du har flaget dette, og dine betragninger er overordnet set 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Måned. Tolv rækker: måned `1`–`12`, år `2025`, Løn `30000` i hver.
   2. Slå «Omregning til fuldt år» til.
@@ -227,7 +227,7 @@ Jeg anerkender og er enig i dit fund og dit forslag til rettelse.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. En lønrække med et beløb, men uden periode (eller en helt tom tabel).
   2. Klik på «Omregning til fuldt år».
@@ -256,7 +256,7 @@ Jeg anerkender problemet og din løsning.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – betinget af at løsningen undgår parallel logik (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`. Én lønrække: Måned `1`, År `2025`, Løn `30000`. Omregning til.
      Resultatet er `405.000,00 kr.`
@@ -288,7 +288,7 @@ Jeg anerkender problemet. Hvis løsningen er i tråd med programmets generelle f
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – betinget af en simpel fælles løsning uden mere tekst på fladen (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Sæt «Løn på helligdage» til «SH-udbetaling» med en gyldig lønrække og omregning slået til.
 - **Det sker:** Siden viser to downloadikoner: ét ved «Antal SH-dage i de indtastede perioder» og ét
@@ -316,7 +316,7 @@ Jeg er ikke enig i, at det er et stort problem. Men hvis det kan løses på en s
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-16** (den rene mangel-form)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-26 – tabte indtastninger ved formatskift er forventet adfærd og værdierne bevares (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Måned. Én række: Måned `1`, År `2025`, Løn `30000`. Omregning til.
      Resultatet er `405.000,00 kr.`, og «Download som Word» er aktiv.
@@ -348,7 +348,7 @@ Dette er ikke en fejl og jeg afviser dit fund. Brugeren vil vide og forvente, at
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – standardværdier skal slå igennem på nye sager og ved Slet alt (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Indstillinger → Standardværdier → **Tabt arbejdsfortjeneste**: sæt «Løn indtastes som» til **Uge**,
      slå «Fuld løn under ferie» **fra**, og sæt «Løn på helligdage» til **Ingen**.
@@ -380,7 +380,7 @@ Dette er en utilsigtet fejl. Når brugeren har sat standardværdier i indstillin
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-07** og **M-02**
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – betinget af en central, arkitektonisk sund løsning (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som **Uge**. Skriv «Uge fra» `10/2025` og «Uge til» `05/2025`.
   2. Samme prøve i **Dato**-tilstand med `01-06-2025` og `01-01-2025`.
@@ -407,7 +407,7 @@ Jeg anerkender fundet og rettelsen. Overvej meget gerne om det kan og bør løse
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-13**
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – decimaler vises på fladen, men ikke tvunget i dokumentet (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`, SH/SO `2,5`. Én lønrække, Måned `1`, År `2025`, Løn `30000`. Omregning
      til, «Fuld løn under ferie» til.
@@ -434,7 +434,9 @@ Jeg er ikke sikker på, om jeg er enig. På siden er der tale om en indtastning,
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-13**
 - **Prioritet:** Lav
-- **Beslutning:** Agent afgør (mønsteret er afgjort bindende 2026-08-18)
+- **Beslutning:** Afvist 2026-08-26 af udvikleren – en tillægssats på 0 udelades bevidst i visningen,
+  fordi den for brugeren betyder «satsen findes ikke»; et nul i et TABELBELØB er derimod en bevidst
+  indtastning og bevares. Mønsteret fra 2026-08-18 gælder dermed ikke her.
 - **Sådan fremprovokeres det:**
   1. Skriv `0` i «Fritvalg» og `12,5` i «Feriegodtgørelse/-tillæg».
   2. Hent årslønsdokumentet.
@@ -459,7 +461,7 @@ Jeg er ikke enig i dit fund. At indtaste 0 i en tillægssats er for brugeren det
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-19**
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-26 – antal ferie- og SH-dage skal fremgå af dokumentet, også når det er nul (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Omregning til, «Fuld løn under ferie» fra, **lad «Antal feriedage» stå tomt**.
   2. Hent årslønsdokumentet.
@@ -484,7 +486,7 @@ Jeg afviser fundet. Antal feriedage og SH-dage i perioden er en værdi, der skal
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-13**
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – fri teknisk løsning, så længe det viste resultat er uændret (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Hent årslønsdokumentet med mindst én lønrække.
 - **Det sker:** Tre kolonnenavne er ikke ens:
@@ -516,7 +518,7 @@ Teksten er alene forkortet for at kunne holde den inden for den plads, der er ti
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Én lønrække, omregning til.
   2. Læs Beregningsprincipper og Beregning umiddelbart efter hinanden.
@@ -547,7 +549,7 @@ Jeg accepterer din rettelse.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-02**
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 – feriepenge-begreberne fastlagt som kanoniske principper i kontrakt (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`, omregning til, «Fuld løn under ferie» til.
   2. Slå «Fuld løn under ferie» fra og «Ret til 6. ferieuge» fra, og sæt satsen til `16`.
@@ -578,7 +580,7 @@ Jeg vil gerne have en ensartet sprogbrug. Den skal dog være baseret på følgen
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Uge. Skriv `53/2025` i «Uge fra». (2025 har 52 ISO-uger.)
   2. Prøv derefter `23/2004`.
@@ -602,7 +604,7 @@ Jeg er enig.
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Delvist 2026-08-26 – fremtidig lønperiode er lovlig; kun den gule ring med tooltip er indført (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Dato. Skriv `01-12-2026` og `31-12-2026` (dags dato er 25-08-2026).
   2. Samme i Måned-tilstand: `12` / `2026`.
@@ -629,7 +631,7 @@ Jeg har dog forståelse for dit synspunkt om at sætte en gul ring på feltet me
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-26 – felternes fælles navn bevares; info-ikon placeres ved «Løn 2» (udledt af udviklerens tilbagemelding nedenfor).
 - **Sådan fremprovokeres det:**
   1. Se løntabellens to første beløbskolonner.
 - **Det sker:** De hedder «Løn» og «Løn (2)». Kun den anden har et informationsikon, og det siger
@@ -653,6 +655,31 @@ Jeg har dog forståelse for dit synspunkt om at sætte en gul ring på feltet me
 Jeg afviser en ændring af label på felterne. Det gør det kun endnu mere forvirrende, at de har forskellige navne. Når de har samme navn, giver det et billede af, at der er tale om samme ydelse. Og det er evident for brugeren, hvad 'Løn' udgør - så det er 'Løn 2' som brugeren vil blive forvirret over, så derfor det mest relevante sted at placere info-ikon og tooltip.
 
 ---
+
+## Gennemført i kode – 2026-08-26
+
+**Alle 21 fund er afgjort og gennemført** i commit `447905ca` («Ret brugerblikkets fund på Årsløn og
+ensret feriepenge-sprogbrugen»): fjorten implementeret, tre delvist (BB-096, BB-100, BB-115) og fire
+afvist (BB-105, BB-109, BB-110, BB-116).
+
+**Beslutningslinjerne ovenfor er tilføjet 2026-09-17** og er udledt af udviklerens tilbagemelding ved
+hvert fund. Til forskel fra de øvrige fladerapporter har denne aldrig haft et **Udfald**-afsnit pr.
+fund, så den enkelte linje er en sammenfatning af tilbagemeldingen – ikke en selvstændig afgørelse.
+Er en sammenfatning for skarp eller for blød, er tilbagemeldingen under fundet den gældende kilde.
+
+De tre tungeste udfald er værd at kende, fordi de ændrede fundets præmis:
+
+- **BB-096** blev vendt om. Fundets krav – at to lønrækker med samme periode skal blokere – er afvist,
+  fordi to lønbilag for samme måned er et lovligt og almindeligt tilfælde (to ansættelsesforhold). I
+  stedet kom en GENEREL dublet-kontrol på rækker, der er identiske i alle indtastningsfelter, målt på
+  det BEREGNEDE beløb, så `1000 + 1000` og `2000` tæller som samme række. Kontrollen deles af Årsløn,
+  lønindkomst-tabellerne (pr. ansættelsesforhold, ikke på tværs) og offentlige ydelser.
+- **BB-098** afgjorde, at `0 kr.` er en lovlig lønrække. Nullet er brugerens måde at vise, at en måned
+  var uden indkomst, frem for at udelade perioden og lade den ligne en forglemmelse. Kun i
+  renteberegningen er 0 kr. en fejl.
+- **BB-113** blev til en tværgående kontrakt om feriepenge-begreberne, ikke en tekstrettelse: en løn
+  tillægges enten feriegodtgørelse eller ferietillæg, aldrig begge, og «feriepenge» er alene den
+  sproglige fællesnævner for retten til en af de to – ikke navnet på en procentsats.
 
 ## Overvejet uden fund
 

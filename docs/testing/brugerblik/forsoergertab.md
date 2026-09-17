@@ -90,7 +90,7 @@ issue-ID'er) + en integrationstest i `forsoergertabSnapshot.test.ts` med rapport
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--en-anden-fortolkningsvej-ved-siden-af-tastningen`
 - **Prioritet:** **Høj**
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Kopiér beløbet `400.000,00` fra en afgørelse eller et regneark.
   2. Indsæt det i «Skadelidtes årsløn efter EAL (hvis forskellig fra ASL)».
@@ -141,7 +141,7 @@ Konsekvensen er bredere end de to årslønsfelter: `allowDecimals`-optionen er f
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-24--feltets-grænse-er-sat-af-feltets-art-ikke-af-det-tal-det-trækkes-fra`
 - **Prioritet:** **Høj**
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `15-03-1958`, Skadedato `10-06-2020`.
   2. Forsørgertab: Beregningsdato `01-07-2025`, årsløn efter ASL `400.000`,
@@ -193,7 +193,7 @@ der dækker over en umulig mellemregning – som BB-097's `-76 hverdage` – er 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Lad Beregningsdato være tom.
   2. Skriv `01-01-2030` i «Startdato for ASL-ydelse».
@@ -226,7 +226,7 @@ koden – rettelsen bringer UI'et i overensstemmelse med koden, ikke omvendt.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadestype `Erhvervssygdom`, dato `10-06-2020`, fødselsdato `15-03-1975`.
   2. Udfyld Forsørgertab, så EAL-panelet vises.
@@ -278,7 +278,7 @@ allerede gjorde det rigtigt), ASL-årslønnens maksimum-besked, og descriptoren
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Udfyld en fuldstændig sag og hent dokumentet.
 - **Det sker:** Dokumentets «Grundlæggende oplysninger» indeholder Beregningsdato, Skadelidtes
   fødselsdato, Efterladtes fødselsdato, Køn (når relevant), årsløn, Startdato for ASL-ydelse og Tilkendt
@@ -308,7 +308,7 @@ brugeren har slået det til, og sagens dato må ikke afhænge af den indstilling
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-26--et-delt-felt-med-to-hjem`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Delvist 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Skriv `551.000` i «Skadelidtes årsløn (efter ASL)» på Forsørgertab.
   2. Gå til Erhvervsevnetab → Oplysninger.
@@ -357,7 +357,7 @@ Forslaget om en ekstra linje om, at felterne deles, er fortsat afvist. Der er ik
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-26--et-delt-felt-med-to-hjem`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `10-06-2020`.
   2. Sæt årsløn efter ASL til `551.000` (skadesårets maksimum) og lad EAL-årslønnen være tom.
@@ -392,7 +392,7 @@ den næste flade ville lige så let skrive en tredje variant.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `10-06-2020`.
   2. Skriv `600000` i «Skadelidtes årsløn (efter ASL)».
@@ -439,7 +439,7 @@ programmet, ikke kun denne flade.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Lad Stamdata være tom. Læs rækken «Skadelidtes fødselsdato» på Forsørgertab.
   2. Skriv `99-99-9999` i Stamdatas Fødselsdato. Læs samme række igen.
@@ -478,7 +478,7 @@ så præcisionen ikke går tabt.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-07--parvise-grænser-begge-felter-markeres-hver-med-sin-egen-udvej`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Beregningsdato `01-07-2025`.
   2. Startdato for ASL-ydelse `31-12-2030`.
@@ -515,7 +515,7 @@ ikke brugt her.
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Skriv `01-01-1899` og derefter `01-01-2030` i «Efterladte
   ægtefælle/samlevers fødselsdato» (feltets erklærede interval er `01-01-1900` til dags dato).
 - **Det sker:**
@@ -549,7 +549,7 @@ gang, ikke kun dette.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (konvergens mod BB-073)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Stamdata: Fødselsdato `15-03-1995`, Skadedato `10-06-2020` (afdøde er
   25 år). Udfyld resten.
 - **Det sker:** EAL-panelet skriver tre linjer i træk:
@@ -586,7 +586,7 @@ rettede deres skabelon i takt. Fortegnet følger BB-073's praksis; se BB-130 for
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Sæt Tilkendt for periode til `2` og Beregningsdato til `27-08-2026`, så
   perioden er udløbet før beregningsdatoen.
 - **Det sker:** «Beregnet forsørgertab» skriver «Kapitalbeløb (efter ASL) **- 0 kr.**», mens ASL-panelet
@@ -619,7 +619,7 @@ mellemrum), måler mod DEN streng – ellers ville dokumentet kunne skrive «- 0
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Afvist 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Årsløn `400.000`, skadeår 2020, beregningsår 2025.
 - **Det sker:** EAL-panelet skriver «400.000 kr. x (100 % + 14,6699 %) (afrundet) = **458.500 kr.**»
   Det viste regnestykke giver `458.679,60`. Forskellen er afrundingen til nærmeste 500 kr., og det eneste,
@@ -644,7 +644,7 @@ det ikke igen.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:** Udfyld en fuldstændig sag og læs ASL-panelet.
 - **Det sker:** To ting i samme familie af linjer:
   1. Én linje bruger **begge** gangetegn: «Årlig ydelse i 2025-værdi: 30 % **x** 400.000 kr. **×**
@@ -676,7 +676,7 @@ bevidst urørt – fundet handlede om gangetegnet.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (samme mellemregning bruges af Erhvervsevnetab efter EAL)
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Baggrund:** Fundet er en direkte følge af udviklerens svar på åbent spørgsmål 2 (2026-08-27):
   årslønnen har intet loft, men det **beregnede beløb** har – erstatningsansvarslovens loft for 30 %
   erhvervsevnetabserstatning, som programmet allerede indregner. Loftet er efterprøvet, det virker – og
@@ -728,7 +728,7 @@ nøjagtig det samme; de stod før som hver sin inline ternary.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren
+- **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Baggrund:** Fundet er, hvad der står tilbage af åbent spørgsmål 3, efter at udvikleren har afgjort
   (2026-08-27), at det er **skadelidtes** køn. **Min oprindelige antagelse om, at det var efterladtes,
   var forkert** – rækkens placering blandt skadelidtes oplysninger er altså korrekt, og det er kun
