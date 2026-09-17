@@ -7,8 +7,10 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-09-17 (§6.1 er ny: sammentællingskontrollens to sider deler nu
-inputgate OG dataforståelse. `SammentaellingControl` er gjort nominal med `buildSammentaellingControl`
+**Senest verificeret mod kode:** 2026-09-17 (§2.3 punkt 5a er ny: alle overlap er ugyldige, og
+indtastede perioder omfortolkes ikke – `periodOverlapDetection` bruger nu den kanoniske
+`utils/closedDateRange` i stedet for sin egen kopi af uligheden. §6.1 er ny: sammentællingskontrollens
+to sider deler nu inputgate OG dataforståelse. `SammentaellingControl` er gjort nominal med `buildSammentaellingControl`
 som eneste konstruktør, og `resolveYdelsestype` er konsolideret i `data/ydelsestyper`, så tre
 bekræftede indgange til en falsk `control:sammentaelling_mismatch` er lukket. Tidligere 2026-08-28.)
 
@@ -154,6 +156,21 @@ invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 5. **Ethvert svie/smerte-overlap afvises** – også overlap mellem perioder med samme tilstand.
    Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/kontrollaget markerer det
    synligt før gem. Der findes ingen "samme tilstand er tilladt"-undtagelse.
+
+5a. **Alle overlap er ugyldige, og indtastede perioder omfortolkes ikke** (udviklerbeslutning
+   2026-09-17). Programmet må ikke ændre eller fortolke de perioder, brugeren indtaster, for at få
+   dem til at passe – heller ikke når overlappet kun er én delt dag. Intervallerne er LUKKEDE, så to
+   perioder, der blot deler en endedato (`til = 01-03` og `fra = 01-03`), overlapper og er ugyldige.
+
+   Reglen gælder ENHVER periodesammenligning: svie/smerte-, TAF- og ferie/fraværsrækker indbyrdes
+   (`periodOverlapDetection`) og beregningsperiode mod TAF-periode (`beregningsperiodeTafOverlap`).
+   Begge skal derfor bruge den kanoniske intervalalgebra i `utils/closedDateRange` – en lokal kopi af
+   uligheden er en arkitekturfejl, fordi en senere rettelse ét sted ville gøre nogle overlap ugyldige
+   og andre ikke, uden at noget blev rødt.
+
+   Reglen gælder GYLDIGHED, ikke beregningsgrundlaget: den stille clamping i §2.1 og den
+   centraliserede merge i punkt 4 ovenfor er uændrede og berører ikke, hvilke perioder brugeren har
+   indtastet.
 
 6. **Ingen parallelle fallback-totaler.** EO-domænet kan have flere tekniske TAF-forbrugere
    (per-række/merged-output og snapshot-aggregation), men de skal følge samme autoritative
