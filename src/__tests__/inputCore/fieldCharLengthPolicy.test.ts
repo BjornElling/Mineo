@@ -12,6 +12,19 @@ import {
   stamdataSagsbehandlerField,
   stamdataSkadelidteField,
 } from '../../inputCore/catalog/stamdataDescriptors';
+import {
+  eoBilagsnumreBeregningsgrundlagTafField,
+  eoBilagsnumreEetAfgoerelserField,
+  eoBilagsnumreLoenISygeperiodenField,
+  eoBilagsnumreMenAfgoerelseField,
+  eoBilagsnumreOffentligeYdelserField,
+  eoBilagsnumreOevrigeErstatningskravField,
+  eoBilagsnumreSvieSmerteDokumentationField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  BILAGSNUMMER_MAX_LENGTH,
+  SHORT_TEXT_MAX_LENGTH,
+} from '../../inputCore/catalog/fieldLengthLimits';
 
 // VÆRN: ethvert felt, brugeren TASTER i, har en erklæret og virksom tegn-/længdegrænse.
 //
@@ -20,7 +33,7 @@ import {
 // erklærede tegnsæt og maksimale længde.» Reglen var kun håndhævet dér, hvor nogen huskede den. Målingen
 // 2026-08-15 fandt:
 //
-//   - 28 af 31 tekstfelter uden nogen grænse (bl.a. `Skadelidte`, `Journalnr.`, `Særlige kommentarer`
+//   - 28 af 31 tekstfelter uden nogen grænse (bl.a. `Skadelidte`, `Journalnr.`, `Særlige bemærkninger`
 //     og alle syv bilagsnumre-felter). En indsat tekst på 50.000 tegn gik uændret ind i sagen.
 //   - 8 af 12 heltalsfelter uden ciffergrænse – heriblandt `Méngrad`, hvis eget maksimum er 120.
 //   - Brøk-, år- og ugefelternes grænse skrevet i hånden i komponenten frem for læst fra codecet;
@@ -137,5 +150,35 @@ describe('felter håndhæver deres erklærede tegn- og længdegrænse', () => {
     expect(stamdataAdvokatField.codec.maxLength).toBe(6);
     expect(stamdataSagsbehandlerField.codec.maxLength).toBe(6);
     expect(stamdataAdvokatField.codec.maxLength).not.toBe(stamdataSkadelidteField.codec.maxLength);
+  });
+
+  /**
+   * Bilagsnumrene arvede korttekst-kategoriens 60 tegn, men står i et 130 px bredt, centreret felt: 60
+   * tegn måler ~515 px, så brugeren kunne se ca. en fjerdedel af sin egen indtastning, taget fra midten,
+   * uden tooltip at læse resten i. En grænse, feltet kun kan vise en brøkdel af, afværger intet og gør en
+   * fejlagtig indsættelse fra et andet dokument umulig at opdage – værdien ser rigtig ud.
+   */
+  it('giver alle syv bilagsnumre deres eget loft, der svarer til det synlige indhold', () => {
+    const bilagsnummerFelter = [
+      eoBilagsnumreMenAfgoerelseField,
+      eoBilagsnumreEetAfgoerelserField,
+      eoBilagsnumreSvieSmerteDokumentationField,
+      eoBilagsnumreBeregningsgrundlagTafField,
+      eoBilagsnumreLoenISygeperiodenField,
+      eoBilagsnumreOffentligeYdelserField,
+      eoBilagsnumreOevrigeErstatningskravField,
+    ];
+
+    expect(bilagsnummerFelter).toHaveLength(7);
+    for (const felt of bilagsnummerFelter) {
+      expect(felt.codec.maxLength, `${felt.label} skal bruge bilagsnummer-loftet`)
+        .toBe(BILAGSNUMMER_MAX_LENGTH);
+    }
+    // Det er et SMALLERE loft end den generelle korttekst-kategori, ikke blot en kopi af den.
+    expect(BILAGSNUMMER_MAX_LENGTH).toBeLessThan(SHORT_TEXT_MAX_LENGTH);
+    // Rummer de former, der reelt forekommer, og afkorter alt derover.
+    expect(spliceDraftWithPaste('', 'Bilag 12-14', 0, 0, BILAGSNUMMER_MAX_LENGTH).draft).toBe('Bilag 12-14');
+    expect(spliceDraftWithPaste('', 'x'.repeat(60), 0, 0, BILAGSNUMMER_MAX_LENGTH).draft)
+      .toHaveLength(BILAGSNUMMER_MAX_LENGTH);
   });
 });

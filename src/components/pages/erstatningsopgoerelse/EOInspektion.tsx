@@ -87,7 +87,7 @@ const EOInspektion = ({ eoSnapshot = null, manuelReguleringInputErrors }: EOInsp
       )}
 
       <EOInspektionRowsSection title="Øvrige erstatningskrav" rows={pageView.oevrigeKravRows} />
-      <EOInspektionRowsSection title="Eventuelle særlige kommentarer" rows={pageView.saerligeKommentarerRows} />
+      <EOInspektionRowsSection title="Eventuelle særlige bemærkninger" rows={pageView.saerligeKommentarerRows} />
       <EOInspektionRowsSection title="Bilagsnumre" rows={pageView.bilagsnumreRows} />
     </Box>
   );

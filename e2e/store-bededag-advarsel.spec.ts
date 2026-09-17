@@ -34,7 +34,7 @@ const udfyldStoreBededagssag = async (page: Page): Promise<void> => {
   await setDate(tafRow.getByRole('textbox', { name: 'Fra o.m.', exact: true }), '01-01-2024');
   await setDate(tafRow.getByRole('textbox', { name: 'Til o.m.', exact: true }), '31-12-2024');
 
-  const arbejdsstatus = page.getByRole('combobox', { name: 'Arbejdsstatus', exact: true });
+  const arbejdsstatus = page.getByRole('combobox', { name: 'Arbejdssituation', exact: true });
   await arbejdsstatus.click();
   await page.getByRole('option', { name: 'Uarbejdsdygtig', exact: true }).click();
 

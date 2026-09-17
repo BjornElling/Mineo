@@ -161,7 +161,7 @@ const textFieldCodecBase: Omit<FieldCodec<string>, 'maxLength'> = Object.freeze(
  *
  * **`maxLength` er PÅKRÆVET.** `input-field-behavior-contract.md` §1.2 kræver, at ethvert felt, brugeren
  * skriver i, har en effektiv længdeblokering. Så længe grænsen var valgfri, havde 28 af 31 tekstfelter
- * ingen: «Skadelidte», «Journalnr.», «Særlige kommentarer» og alle bilagsnumre-felter tog imod en
+ * ingen: «Skadelidte», «Journalnr.», «Særlige bemærkninger» og alle bilagsnumre-felter tog imod en
  * vilkårligt lang indsat tekst og gemte den i sagen. Kontrakten var overholdt præcis dér, hvor nogen
  * huskede den – samme fejlmåde som datofelternes manglende grænser (§2.1). Et påkrævet felt i typen er
  * det billigste værn: en ny descriptor uden grænse kan ikke kompilere.

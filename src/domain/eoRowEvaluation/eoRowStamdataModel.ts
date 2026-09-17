@@ -6,11 +6,27 @@ import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 import { resolveSkadestypeDatoLabel } from '../policies/stamdataCalculations';
+import type { AfsluttesMed } from '../../schemas/formSchemas';
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldIssues = FieldIssueSet;
 
-export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFieldIssues): EoRowModel[] => {
+/**
+ * Kræver den valgte afslutningsform skadelidtes navn?
+ *
+ * «Underskrift-linje» trykker navnet under selve underskriftslinjen. Uden det skrev dokumentet ordret
+ * `*skadelidtes navn*` i et papir, der skulle sendes til underskrift, mens download var tilladt og den
+ * eneste advarsel handlede om brevhovedet (BB-214). Navnet er uundværligt PRÆCIS i den tilstand: ved
+ * «Bekræftet godkendt» og «Ingen» sættes det ikke, og en manglende værdi er da fortsat kun en advarsel.
+ */
+const kraeverSkadelidtesNavn = (afsluttesMed: AfsluttesMed | undefined): boolean =>
+  afsluttesMed === 'Underskrift-linje';
+
+export const buildEoStamdataRows = (
+  values: StamdataValues,
+  errors: StamdataFieldIssues,
+  erstatningsopgoerelseAfsluttesMed: AfsluttesMed | undefined
+): EoRowModel[] => {
   const advokat = isNonEmptyString(values.advokat) ? values.advokat.trim() : undefined;
   const sagsbehandler = isNonEmptyString(values.sagsbehandler) ? values.sagsbehandler.trim() : undefined;
   const advokatSagsbehandler =
@@ -43,6 +59,19 @@ export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFiel
   // Konverter skadedato til dansk format
   const danishSkadedato = isoToDanish(values.skadedato);
 
+  // Blokerer et tomt navn, skal beskeden sige HVORFOR. Den generiske «'Skadelidtes navn' er ikke angivet»
+  // ville ikke forklare, at det netop er afslutningsformen, der gør navnet uundværligt – og brugeren ville
+  // stå med en blokeret download uden at kunne se, at det andet valg fjerner kravet (BB-214).
+  const skadelidteBlokerer =
+    kraeverSkadelidtesNavn(erstatningsopgoerelseAfsluttesMed) && !isNonEmptyString(values.skadelidte);
+  const skadelidteIssue = topLevelFieldIssue(errors, 'stamdata', 'skadelidte');
+  const skadelidteDisplay = skadelidteBlokerer && presentIssuesForRow(skadelidteIssue).length === 0
+    ? {
+      displayValue: 'Fejl (Skadelidtes navn skal angives, når opgørelsen afsluttes med en underskrift-linje)',
+      status: 'error' as EoRowStatus,
+    }
+    : resolveEoRowDisplay({ value: values.skadelidte, issue: skadelidteIssue, emptyState: 'warning' });
+
   return [
     {
       id: 'stamdata.journalnr',
@@ -59,7 +88,7 @@ export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFiel
     {
       id: 'stamdata.skadelidte',
       label: 'Skadelidtes navn',
-      ...resolveEoRowDisplay({ value: values.skadelidte, issue: topLevelFieldIssue(errors, 'stamdata', 'skadelidte'), emptyState: 'warning' }),
+      ...skadelidteDisplay,
     },
     {
       id: 'stamdata.skadestype',

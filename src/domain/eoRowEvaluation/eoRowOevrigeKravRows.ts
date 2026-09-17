@@ -122,7 +122,7 @@ export const buildEoOevrigeKravRows = (
 };
 
 /**
- * Bygger kontrol-række for Særlige kommentarer
+ * Bygger kontrol-række for Særlige bemærkninger
  */
 export const buildEoSaerligeKommentarerRows = (
   values: ErstatningsopgoerelseValues,
@@ -134,7 +134,7 @@ export const buildEoSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      label: harKommentarer ? 'Kommentar:' : 'Ingen',
+      label: harKommentarer ? 'Bemærkning:' : 'Ingen',
       displayValue: harKommentarer ? kommentarer.trim() : '-',
       status: 'ok',
     },

@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { dateRange_systemramme } from '../../config/dateRanges';
+import { dateRange_systemramme, getToday } from '../../config/dateRanges';
 import { NONEXISTENT_DAY_MESSAGE } from '../../utils/dateDraftCommit';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { maxISO, minISO } from '../../utils/isoDateHelpers';
@@ -143,7 +143,13 @@ export const resolveDateFormatIssueText = (
   const maxDate = resolveBound(declaration.max, context);
   // Kun de YDRE grænser bruges. En skærpelse udledt af andre felter kan ikke gøres skarpere af en værdi,
   // der aldrig blev canonical, og et umuligt interval ville her beskrive en tilstand, råteksten ikke nåede.
-  return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${formatISOToDanish(maxDate)}`;
+  //
+  // Er loftet kalenderen, navngives det som «dags dato» ligesom for en canonical værdi (BB-208): de to
+  // fejlformer må ikke blive til to forskellige sprog om den samme grænse.
+  const maxTekst = maxDate === getToday()
+    ? `dags dato (${formatISOToDanish(maxDate)})`
+    : formatISOToDanish(maxDate);
+  return `Dato skal være mellem ${formatISOToDanish(minDate)} og ${maxTekst}`;
 };
 
 /**

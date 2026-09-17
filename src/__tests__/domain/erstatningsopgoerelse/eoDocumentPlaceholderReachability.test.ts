@@ -101,7 +101,7 @@ const buildAngivetMaanedsloenCase = (
     kravPaaSvieSmerteGodtgoerelse: 'Nej',
     kravPaaOevrigeErstatningskrav: 'Nej',
     kravPaaTabtArbejdsfortjeneste: 'Ja',
-    vedroererPeriodeFra: toISODateString('2022-01-01'),
+    vedroererPeriodeFra: toISODateString('2022-03-01'),
     vedroererPeriodeTil: toISODateString('2022-12-31'),
     beregnesUdFra: 'Angivet månedsløn',
     // Udfyldt, så den ENESTE variabel mellem de to sager er selve månedslønnen. Uden dette
@@ -203,7 +203,7 @@ describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A1
       kravPaaSvieSmerteGodtgoerelse: 'Nej',
       kravPaaTabtArbejdsfortjeneste: 'Nej',
       kravPaaOevrigeErstatningskrav: 'Ja',
-      vedroererPeriodeFra: toISODateString('2022-01-01'),
+      vedroererPeriodeFra: toISODateString('2022-03-01'),
       vedroererPeriodeTil: toISODateString('2022-12-31'),
       loenindkomstAnsaettelsesforhold: [],
       oevrigeKravPerioder: [
@@ -285,7 +285,7 @@ describe('nåbarhed: substitueret nul i «Samlet»-kolonnen (kortlægningens A7)
       kravPaaSvieSmerteGodtgoerelse: 'Nej',
       kravPaaTabtArbejdsfortjeneste: 'Nej',
       kravPaaOevrigeErstatningskrav: 'Nej',
-      vedroererPeriodeFra: toISODateString('2022-01-01'),
+      vedroererPeriodeFra: toISODateString('2022-03-01'),
       vedroererPeriodeTil: toISODateString('2022-12-31'),
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [

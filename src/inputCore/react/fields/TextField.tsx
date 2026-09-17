@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase, { type StyledTextFieldBaseInputType } from '../../../components/inputs/StyledTextFieldBase';
 import type { FieldRef } from '../../fieldDescriptor';
+import type { FieldWarning } from '../../fieldWarning';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
@@ -28,11 +29,17 @@ export type TextFieldProps = Readonly<{
   sx?: SxProps<Theme>;
   /** Åbn editoren ved første klik uden forudgående fokus (touch/mobil). */
   singleStageClick?: boolean;
+  /**
+   * Ikke-blokerende feltadvarsel (gul ring + tooltip). Bruges til en oplysning, der afhænger af feltets
+   * egen værdi plus et andet valg, og som derfor hører hjemme dér, hvor brugeren står – ikke kun som
+   * tekst i en boks på en anden fane (BB-142, BB-159, BB-207).
+   */
+  warning?: FieldWarning;
   inputRef?: React.Ref<HTMLInputElement>;
 }>;
 
 const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
-  ({ field, location, width, id, name, placeholder, disabled, inputType = 'text', sx, singleStageClick = false, inputRef }, ref) => {
+  ({ field, location, width, id, name, placeholder, disabled, inputType = 'text', sx, singleStageClick = false, warning, inputRef }, ref) => {
     const accessibleName = useFieldLabel(field);
     // Længden er erklæret på codec'en (§2.5) og håndhæves BÅDE som `<input maxLength>` (tastning) og
     // gennem surfacens paste-splice, hvor elementets eget loft ikke virker (§1.2a). Resolveren KRÆVER
@@ -78,6 +85,7 @@ const TextField = React.forwardRef<HTMLDivElement, TextFieldProps>(
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
+        {...(warning === undefined ? {} : { warning })}
         htmlInputAttributes={{
           maxLength,
           readOnly: surface.readOnly,

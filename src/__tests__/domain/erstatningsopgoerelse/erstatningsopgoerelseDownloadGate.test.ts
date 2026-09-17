@@ -46,7 +46,9 @@ const buildEoDownloadableEo = (): ErstatningsopgoerelseValues => {
     kravPaaSvieSmerteGodtgoerelse: 'Nej',
     kravPaaTabtArbejdsfortjeneste: 'Nej',
     kravPaaOevrigeErstatningskrav: 'Nej',
-    vedroererPeriodeFra: toISODateString('2022-01-01'),
+    // Perioden starter PÅ skadedatoen: en erstatningsopgørelse kan ikke vedrøre en periode før den skade,
+    // den opgør, og periodefelterne har derfor skadedatoen som gulv ligesom fladens øvrige datoer.
+    vedroererPeriodeFra: toISODateString('2022-03-01'),
     vedroererPeriodeTil: toISODateString('2022-12-31'),
     loenindkomstAnsaettelsesforhold: [],
   };

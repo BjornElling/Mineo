@@ -53,6 +53,33 @@ export const buildEoErstatningsopgoerelseRows = (
     return `${hasError ? 'Fejl' : 'Advarsel'} (${parts.join('; ')})`;
   })();
 
+  /**
+   * Er præcis den ene halvdel udfyldt, navngiver rækken den MANGLENDE – og peger fokus på den.
+   *
+   * Før sagde beskeden «'Vedrører perioden' er ikke angivet» om en periode, hvis fra-dato stod på
+   * skærmen, og linket markerede netop den udfyldte halvdel (BB-205). Brugeren så altså en besked, der
+   * benægtede det, han kunne læse, og en anvisning, der pegede på den halvdel, der var i orden. Er begge
+   * tomme, er den generiske tekst korrekt og bevares.
+   */
+  const periodeManglendeHalvdel: 'fra' | 'til' | undefined =
+    hasPeriodeFra === hasPeriodeTil ? undefined : hasPeriodeFra ? 'til' : 'fra';
+  const periodeManglendeHalvdelTekst = periodeManglendeHalvdel === undefined
+    ? undefined
+    : `Fejl (${periodeManglendeHalvdel === 'til' ? 'Til-dato' : 'Fra-dato'} er ikke angivet)`;
+
+  /**
+   * Alle tre kravvalg fravalgt.
+   *
+   * Uden rækken forsvandt hele boksen «Fejl og advarsler», og det er programmets måde at sige «alt er i
+   * orden». Her betød det «du har ikke rejst noget krav» – de to så ens ud, og en glemt indstilling gav en
+   * komplet, underskriftsklar opgørelse på 0,00 kr., der kunne sendes (BB-215). Advarslen blokerer ikke:
+   * en bevidst nulopgørelse er et legitimt produkt, nullet skal blot være et valg og ikke et fravær.
+   */
+  const ingenKravRejst =
+    values.kravPaaSvieSmerteGodtgoerelse !== 'Ja' &&
+    values.kravPaaTabtArbejdsfortjeneste !== 'Ja' &&
+    values.kravPaaOevrigeErstatningskrav !== 'Ja';
+
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
 
   return [
@@ -84,8 +111,9 @@ export const buildEoErstatningsopgoerelseRows = (
     {
       id: 'erstatningsopgoerelse.vedroererPeriode',
       label: 'Vedrører perioden',
-      displayValue: periodeErrorValue ?? periodeDisplay,
+      displayValue: periodeErrorValue ?? periodeManglendeHalvdelTekst ?? periodeDisplay,
       status: periodeStatus,
+      ...(periodeManglendeHalvdel === undefined ? {} : { focusFieldHint: periodeManglendeHalvdel }),
     },
     {
       id: 'erstatningsopgoerelse.opgørelseLavetDen',
@@ -106,6 +134,15 @@ export const buildEoErstatningsopgoerelseRows = (
       label: 'Arbejdssituation',
       ...resolveEoRowDisplay({ value: values.tafArbejdsstatus, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tafArbejdsstatus'), emptyState: 'error' }),
     },
+    ...(ingenKravRejst
+      ? [{
+        id: 'erstatningsopgoerelse.ingenKravRejst',
+        label: 'Rejste krav',
+        displayValue: 'Advarsel (Der er ikke rejst krav under nogen af de tre emner – opgørelsen vil vise 0 kr.)',
+        status: 'warning' as EoRowStatus,
+        summaryDisplay: 'messageOnly' as const,
+      }]
+      : []),
   ];
 };
 

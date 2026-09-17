@@ -12,6 +12,41 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ingen nye mønstre 2026-09-15 fra Erstatningsopgørelse → Opgørelsens ramme (12a), men femten forekomster –
+og den tungeste er M-01 i en form, mønsteret ikke havde forudset: ikke et VALG, men et FRITEKSTFELT, der
+ændrer hvad programmet regner.** Feltet «Nummer» parses af `erDetteFoersteErstatningsopgoerelse`, og svaret
+læses af ni moduler. Målt: tom, `1`, `1A`, `A2` og **`Nr. 2`** regnes som FØRSTE opgørelse; `2`, `12` og `2A`
+gør ikke. Ét tastetryk i feltet lader et fradragsfelt («Svie/smerte-krav i tidligere erstatningsopgørelser»,
+målt med 45.000 kr. i) dukke op eller forsvinde, skjuler hele beregningsgrundlaget under «Indtægt før
+skadedatoen», og flytter sygeferiegodtgørelsens første TAF-dag. **M-01 er dermed udvidet: prøven skal ikke
+kun stilles til dropdowns og toggles, men til hvert fritekstfelt, hvis indhold PARSES til en
+beregningsbeslutning** – indgang `rg "values\.[a-zA-Z]+\)" src/domain/**/validation` over prædikater med en
+tekstværdi som eneste argument (BB-202, **Høj**). **Samme fund er M-28's reneste form til dato:** svaret
+findes som rækken «Første erstatningsopgørelse? Ja/Nej» i `buildEoErstatningsopgoerelseRows` og vises
+udelukkende på kontrolfanen «EO-kontrol», der er slået fra som standard.
+**De øvrige forekomster:** **M-07 + M-19 i kombination** (BB-205, **Høj** – «'Vedrører perioden' er ikke
+angivet» om en periode med udfyldt fra-dato, ingen af de to felter røde, og linkets blinkmarkering rammer
+den UDFYLDTE halvdel; målt som ét `mineoFieldAttentionBlink` på `vedroererPeriodeFra`) · **M-04's NAVNGIVNE
+kandidat bekræftet** (BB-206 – EO's syv bilagsnummerfelter tager 60 tegn i et 130 px centreret felt uden
+tooltip; `scrollWidth` 515 px) · **M-20 spejlvendt + M-25** (BB-207 – et bilagsnummer, hvis kontekst
+programmet finder inkonsistent, får ingen gul ring og udgår tavst af papiret; modprøve bekræftet begge veje)
+· **M-13 tre gange** (BB-204 – dokumentets titel får dobbelt mellemrum, som HVERKEN skærmen (HTML kollapser)
+eller filnavnet (`sanitizeFilenamePart`) kan vise; BB-212 – «Eventuelle særlige kommentarer» / «Særlige
+kommentarer» / «Særlige bemærkninger»; BB-210 – «Status ved erstatningsperiodens udløb» mod «Status den
+1. januar 2019», to ordlyde om to forskellige dage) · **M-02 i BB-120's mekaniske form, nu på seks felter**
+(BB-211 – «Nummer»→`EO-nummer`, «Helbredsforhold»→`Helbredsstatus`, «Arbejdssituation»→`Arbejdsstatus`,
+«Erstatningsopgørelse afsluttes med»→`Afsluttes med`; fladens TOGGLES er derimod korrekte, fordi de tegnes
+af `LabeledControlRow`) · **M-02's grænse-form** (BB-208 – «Dato skal være mellem 01-06-2018 og 15-09-2026»,
+hvor det sidste tal er dags dato uden at sige det) · **M-19 spejlvendt** (BB-214 – `*skadelidtes navn*`
+trykkes ordret i underskriftsblokken, og download er aktiv) · **M-12** (BB-203 – en toggle, brugeren aldrig
+så, dukker op AFKRYDSET og skjuler seks felter) · **M-25** (BB-215 – alle tre krav på «Nej» fjerner hele
+«Fejl og advarsler»-boksen og giver en hentbar opgørelse på 0 kr.) · **M-27 bekræftet, men AFBØDET**
+(BB-216 – en rød Skadedato slukker «Opgørelse lavet den»s regel, men EO's egen boks navngiver årsagen og
+blokerer download; formen er dermed mildere end BB-139's).
+**M-09 og M-10 er efterprøvet og BESTÅET** (ingen vandret scroll ved 1536×864 eller 1244×620; rul-op-knappen
+ved (1451, 779) overlapper intet på fladen). Konsollen var tavs: 200 beskeder, 0 advarsler, 2 fejl – begge
+`ERR_CONNECTION_REFUSED` på favicon fra en genstartet udviklingsserver.
+
 **M-31 er afgjort 2026-09-09, og begge dens forekomster er AFVIST – hvilket skærper mønsteret frem for at
 afskaffe det.** Prøven har fået et fjerde, foranstillet spørgsmål: *opgør de to flader det samme?* Er
 svaret nej, er der intet fund, uanset hvor stor taldifferencen er. Se mønsterets eget afsnit.
@@ -278,6 +313,22 @@ eller hvilken af to regler et felt læses efter.
 - Kandidater, ikke efterprøvet: felter styret af «Tillæg angives som» (procent/beløb), «Beregnes ud
   fra», og enhver tidsenhedsvælger ved siden af et tal. Efterprøv dem på den skærpede formulering:
   skifter *beregningen* eller *grænserne*, ikke bare ordet.
+- **Ny forekomst 2026-09-15, og den UDVIDER mønsteret fra valg til FRITEKST**
+  (`erstatningsopgoerelse-12a.md` BB-202, **Høj**). Mønsteret har hidtil handlet om et *valg* – en
+  dropdown, en toggle, en radiogruppe – der ændrer betydningen af en indtastet værdi. Her er det
+  omvendt: et fritekstfelt, «Nummer», hvis INDHOLD parses til en beregningsbeslutning.
+  `erDetteFoersteErstatningsopgoerelse` læser feltets første bogstav-eller-ciffer, og svaret læses af ni
+  moduler. Målt: tom, `1`, `1A`, `A2` og **`Nr. 2`** giver «første opgørelse»; `2`, `12` og `2A` giver
+  «ikke første». Virkningen er synlig og kontant: fradragsfeltet «Svie/smerte-krav i tidligere
+  erstatningsopgørelser» vises/skjules og medregnes/ignoreres (målt med 45.000 kr. i det), hele blokken
+  under «Indtægt før skadedatoen» forsvinder, og sygeferiegodtgørelsens første TAF-dag ind-/udelukkes
+  for skader fra 2015 (`sfggEngine.ts:37-42`).
+  **Prøven udvides tilsvarende og er billig: find hvert prædikat, der tager en BRUGERSKREVET TEKST som
+  eneste argument og returnerer en beregningsbeslutning** – `rg "values\.[a-zA-Z]+\)" src/domain/**/validation`
+  over enargumentsprædikater – og spørg for hvert, om brugeren kan se, hvilket svar hans tekst gav.
+  **Bemærk den skarpe forskel til et valg:** en dropdown har et endeligt, synligt værdisæt, og brugeren
+  kan se hvilket han valgte. En parset tekst har et uendeligt værdisæt og en usynlig regel – derfor er
+  denne form af mønsteret farligere end den, det blev født af.
 
 ## M-02 – Beskeder med hardkodede feltnavne
 
@@ -480,6 +531,17 @@ arvet fra en kategori frem for valgt til feltet.
   længdekategori på 6 tegn til initialfelterne (implementeringsforslag i fundet).
 - Kandidater, ikke efterprøvet: alle korte tekstfelter (samme grænse på 60 tegn), de flerlinjede
   kommentarfelter (512), samt smalle tabelceller med lange værdier.
+- **Den NAVNGIVNE kandidat «EO's bilagsnumre-felter» er efterprøvet 2026-09-15 og BEKRÆFTET**
+  (`erstatningsopgoerelse-12a.md` BB-206, Mellem). Målt på «Ménafgørelse → Bilagsnr.»: 60 tegn
+  accepteres, `clientWidth` = **130 px**, `scrollWidth` = **515 px**, `text-align: center`,
+  `title = null`. Brugeren ser cirka en fjerdedel af sin egen indtastning, taget fra MIDTEN, og har
+  ingen tooltip til resten. Det gælder alle syv bilagsnummerfelter; grænsen er `SHORT_TEXT_MAX_LENGTH`
+  arvet fra en kategori, mens nabofeltet «Nummer» i samme sektion har fået sine 7 tegn valgt til
+  formålet (BF-036). **Læren om, hvor punkt 1 og punkt 2 mødes: centreret tekst gør punkt 2 værre end
+  venstrestillet.** Et venstrestillet felt viser i det mindste begyndelsen af værdien, som er den del,
+  der identificerer den; et centreret viser en vilkårlig midte, som ikke kan genkendes. Prøven bør
+  derfor læse `text-align` med: `rg "textAlign: 'center'" src/components` krydset med feltets
+  længdegrænse.
 
 ## M-05 – Ingen rimelighedskontrol af lovlige, men usandsynlige værdier
 
@@ -2032,9 +2094,20 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   `fradragLoebendeYdelserOre` og `fradragKapitaliseretEetOre`, de to afsnitssummer, heller ikke.
   **Læren: trin 3 spørger, om oplysningen står ET ANDET STED i brugerens synsfelt – ikke om den kan
   udledes af principper.**
-- Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176) og EO's rækkebyggere.
-  Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for hver eksport i et
-  `*Calculation.ts` en søgning uden for `src/__tests__`.
+- **Kandidaten «EO's rækkebyggere» er efterprøvet 2026-09-15 for 12a og gav mønsterets billigste
+  forekomst hidtil** (`erstatningsopgoerelse-12a.md` BB-202, del af det tunge fund). `buildEoErstatningsopgoerelseRows`
+  producerer rækken **«Første erstatningsopgørelse? Ja/Nej»** – programmets eget, færdigformulerede svar
+  på den regel, der afgør fradrag, beregningsgrundlag og sygeferiegodtgørelse. Rækken renderes kun på
+  kontrolfanen «EO-kontrol», som er slået FRA som standard i Indstillinger.
+  **Læren udvider trin 1: en rækkebygger er en lige så god kandidatkilde som et computation-schema –
+  og den er skarpere, fordi rækken allerede HAR en brugervendt etiket og en brugervendt værdi.** En
+  række, hvis eneste visning er en kontrolflade bag en indstilling, er per definition ikke en oplysning,
+  brugeren får. Indgang: `rg "label: '" src/domain/eoRowEvaluation` og for hver række, om dens `id`
+  overhovedet kan nå en almindelig flade – rækkerne når kun Beregning-fanen, når de har status
+  `error`/`warning`, så enhver `status: 'ok'`-række er usynlig uden for kontrolfanerne.
+- Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176) og EO's øvrige
+  rækkebyggere. Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for
+  hver eksport i et `*Calculation.ts` en søgning uden for `src/__tests__`.
 
 ---
 

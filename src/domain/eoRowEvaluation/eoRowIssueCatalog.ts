@@ -55,7 +55,9 @@ import {
   eoTidligereSsMaxField,
   eoUspecificeredeFerieFridageField,
   eoVarigeMenAfgorelseField,
+  eoKravPaaSvieSmerteGodtgoerelseField,
   eoVedroererPeriodeFraField,
+  eoVedroererPeriodeTilField,
   eoVerserendeKlageEetField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { eoAngivetLoenFields, eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
@@ -201,8 +203,12 @@ const exactFieldTargets: Readonly<Record<string, EoIssueFocusTarget>> = {
   'erstatningsopgoerelse.eoNummer': target(eoNummerField.bind()),
   'erstatningsopgoerelse.eoLedsagetekst': target(eoLedsagetekstField.bind()),
   'erstatningsopgoerelse.revideretOpgoerelse': target(eoRevideretOpgoerelseField.bind()),
-  'erstatningsopgoerelse.vedroererPeriode': target(eoVedroererPeriodeFraField.bind()),
+  // `erstatningsopgoerelse.vedroererPeriode` står bevidst IKKE her: rækken dækker to felter, og målet
+  // vælges af hintet i `focusByRowPattern`.
   'erstatningsopgoerelse.opgørelseLavetDen': target(eoOpgørelseLavetDenField.bind()),
+  // Advarslen «ingen krav rejst» handler om alle tre kravvalg. Svie/smerte er det første af dem på
+  // fladen og dermed indgangen til den beslutning, brugeren skal genoverveje.
+  'erstatningsopgoerelse.ingenKravRejst': target(eoKravPaaSvieSmerteGodtgoerelseField.bind()),
   'erstatningsopgoerelse.helbredsstatus': target(eoSvieSmerteHelbredsstatusField.bind()),
   'erstatningsopgoerelse.arbejdsstatus': target(eoTafArbejdsstatusField.bind()),
   'forlig.ansvarsgrad': target(eoForligAnsvarsgradProcentField.bind()),
@@ -483,6 +489,13 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     // årsagen; ellers er det periodetabellen, brugeren skal rette i.
     if (message.includes('Vedrører perioden')) return target(eoVedroererPeriodeFraField.bind());
     return firstRowTarget(eoSvieSmertePeriodeFraField);
+  }
+
+  if (row.id === 'erstatningsopgoerelse.vedroererPeriode') {
+    // «Vedrører perioden» er to felter i én række. Er præcis den ene halvdel udfyldt, peger rækkens hint
+    // på den TOMME – uden det markerede linket den udfyldte dato, og brugeren så på et felt, fejlen ikke
+    // handlede om (BB-205). Uden hint (begge tomme, eller et bounds-issue) er fra-feltet indgangen.
+    return target(dateFieldFromHint(hint, message, eoVedroererPeriodeFraField, eoVedroererPeriodeTilField).bind());
   }
 
   return exactFieldTargets[row.id];

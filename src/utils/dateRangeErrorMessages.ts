@@ -28,8 +28,15 @@ export type DateRangeSpecialErrors = {
   /**
    * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
    * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
+   *
+   * `'dagsDato'` er den eksplicitte erklæring om, at loftet ER kalenderen. Den findes, fordi grenen
+   * tidligere blev genkendt på `bounds.kind === 'static'` plus `maxDate === getToday()`, altså på
+   * grænsens VÆRDI i stedet for dens ophav: et felt, hvis MIN-grænse var skærpet af skadedatoen, fik
+   * `kind: 'derived'` og faldt derfor igennem til den bare «mellem X og Y», selv om dets max stadig var
+   * dags dato (BB-208). Erklæringen er samtidig det, der holder BB-043 lukket: en max udledt af et andet
+   * felt sætter `'efterFelt'` og navngiver kilden frem for at tilskrive grænsen kalenderen.
    */
-  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato' | 'efterFelt';
+  maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato' | 'skadedato' | 'efterFelt' | 'dagsDato';
   /** Feltlabelet brugt i maxBoundKind-fejlbeskeden, fx "Beregningsdato". */
   maxBoundFieldLabel?: string;
   /**
@@ -40,6 +47,34 @@ export type DateRangeSpecialErrors = {
 };
 
 const formatISOForTooltip = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
+
+/**
+ * Er feltets øvre grænse kalenderen selv?
+ *
+ * Erklæringen (`maxBoundKind: 'dagsDato'`) er det primære svar. Værdi-genkendelsen bevares for de felter,
+ * hvis grænser er rene konfigurationskonstanter og derfor ikke går gennem en `special`-funktion: der KAN
+ * en max lig dags dato kun komme fra kalenderen. Et `'efterFelt'`-max navngiver sin kilde og må aldrig
+ * tilskrives kalenderen, heller ikke når den tilfældigvis lander på i dag (BB-043).
+ */
+const isDagsDatoMax = (
+  special: DateRangeSpecialErrors | undefined,
+  bounds: DateRangeBoundsOrigin,
+  maxDate: ISODateString | undefined
+): boolean => {
+  if (special?.maxBoundKind === 'dagsDato') return true;
+  if (special?.maxBoundKind !== undefined) return false;
+  return bounds.kind === 'static' && maxDate !== undefined && maxDate === getToday();
+};
+
+/**
+ * «… og dags dato (DD-MM-ÅÅÅÅ)» i stedet for en bar dato.
+ *
+ * Reglen «en opgørelse kan ikke være lavet i fremtiden» er umiddelbart forståelig; et tal, brugeren selv
+ * skal genkende som i dag, er den ikke (BB-208). Formen er den samme overalt, hvor loftet er kalenderen,
+ * så de to halvdele af samme felts grænse ikke taler i hver sin stilart.
+ */
+const formatMaxForTooltip = (maxDate: ISODateString, erDagsDato: boolean): string =>
+  erDagsDato ? `dags dato (${formatISOForTooltip(maxDate)})` : formatISOForTooltip(maxDate);
 
 /**
  * Hvor intervallets grænser kommer fra – og dermed om et UMULIGT interval (min > max) kan opstå.
@@ -96,7 +131,7 @@ export const resolveDateRangeErrorMessage = (args: {
   // kilden i stedet. Uden det forbehold tilskrev beskeden grænsen det forkerte ophav i netop det
   // hyppigste tilfælde: en beregningsdato sat med «Indsæt dags dato» er dags dato, og brugeren fik at
   // vide, at datoen lå i fremtiden, mens han i virkeligheden skulle flytte beregningsdatoen (BB-043).
-  if (bounds.kind === 'static' && maxDate && maxDate === getToday() && iso > maxDate) {
+  if (isDagsDatoMax(special, bounds, maxDate) && maxDate && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }
 
@@ -170,6 +205,13 @@ export const resolveDateRangeErrorMessage = (args: {
   }
   if (special?.fraTilRole === 'til' && minDate && iso < minDate) {
     return DATE_ORDER_ERROR_MESSAGE;
+  }
+
+  // Intervalteksten nævner BEGGE grænser, også når det kun er den ene, der er overtrådt. Er loftet
+  // kalenderen, skal det derfor også her sige «dags dato», så feltets to grænser ikke taler i hver sin
+  // stilart (BB-208). Resten af formen er `validateISODateRange`s egen, så de to ikke kan drifte.
+  if (minDate && maxDate && isDagsDatoMax(special, bounds, maxDate) && (iso < minDate || iso > maxDate)) {
+    return `Dato skal være mellem ${formatISOForTooltip(minDate)} og ${formatMaxForTooltip(maxDate, true)}`;
   }
 
   return validateISODateRange(iso, minDate, maxDate).errorMessage;

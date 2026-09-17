@@ -1,4 +1,4 @@
-import { toISODateString } from '../../types/branded';
+import { isoToDanish, toISODateString } from '../../types/branded';
 import { getToday } from '../../config/dateRanges';
 import {
   derivedDateBounds,
@@ -129,6 +129,50 @@ describe('resolveDateRangeErrorMessage', () => {
       bounds: STATIC_DATE_BOUNDS,
     });
     expect(message).toContain('dags dato');
+  });
+
+  /**
+   * Grenen blev tidligere genkendt på `bounds.kind === 'static'`, altså på grænsens OPHAV som helhed.
+   * Et felt, hvis MIN-grænse var skærpet af skadedatoen, fik `kind: 'derived'` og mistede derfor sin
+   * dags dato-tekst, selv om dets max stadig var kalenderen: brugeren fik en bar intervaltekst, mens
+   * samme felts anden grænse navngav sin kilde. Erklæringen gør max-siden uafhængig af min-siden.
+   */
+  it('navngiver dags dato som loft, selv når min-grænsen er UDLEDT af et andet felt', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2100-01-01'),
+      minDate: iso('2018-06-01'),
+      maxDate: getToday(),
+      special: { maxBoundKind: 'dagsDato', minBoundKind: 'skadedato', minBoundReferenceISO: iso('2018-06-01') },
+      bounds: derivedDateBounds('Skadedato og Skadestype'),
+    });
+    expect(message).toBe(`Datoen er efter dags dato (${isoToDanish(getToday())})`);
+  });
+
+  it('skriver «dags dato» i intervalteksten, når det er den NEDRE grænse, der er overtrådt', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2010-01-01'),
+      minDate: iso('2018-06-01'),
+      maxDate: getToday(),
+      special: { maxBoundKind: 'dagsDato' },
+      bounds: derivedDateBounds('Skadedato og Skadestype'),
+    });
+    expect(message).toBe(`Dato skal være mellem 01-06-2018 og dags dato (${isoToDanish(getToday())})`);
+  });
+
+  /**
+   * Det modsatte værn: en max, der er UDLEDT af et andet felt, må aldrig tilskrives kalenderen, heller
+   * ikke når den tilfældigvis lander på i dag. Beskeden skal navngive det felt, brugeren skal flytte.
+   */
+  it('tilskriver ikke kalenderen en max, der kommer fra et andet felt', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2100-01-01'),
+      minDate: iso('2005-01-01'),
+      maxDate: getToday(),
+      special: { maxBoundKind: 'efterFelt', maxBoundFieldLabel: 'beregningsdatoen', maxBoundReferenceISO: getToday() },
+      bounds: STATIC_DATE_BOUNDS,
+    });
+    expect(message).toContain('beregningsdatoen');
+    expect(message).not.toContain('dags dato');
   });
 
   it('uses domain-specific kap.dato message when minBoundKind=kapDatoFoerAfgoerelsesdato', () => {

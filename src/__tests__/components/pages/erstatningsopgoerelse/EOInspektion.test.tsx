@@ -723,7 +723,7 @@ describe('EOInspektion', () => {
 
     renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.getByText('Eventuelle særlige kommentarer')).toBeInTheDocument();
+    expect(screen.getByText('Eventuelle særlige bemærkninger')).toBeInTheDocument();
     expect(screen.getByText('Ingen')).toBeInTheDocument();
   });
 

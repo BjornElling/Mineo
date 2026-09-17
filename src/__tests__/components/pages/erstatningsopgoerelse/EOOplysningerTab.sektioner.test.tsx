@@ -65,7 +65,7 @@ describe('EOOplysningerTab sektioner', () => {
       'Tabt arbejdsfortjeneste',
       'Indtægt før skadedatoen',
       'Øvrige erstatningskrav',
-      'Eventuelle særlige kommentarer',
+      'Eventuelle særlige bemærkninger',
       'Bilagsnumre',
     ];
 

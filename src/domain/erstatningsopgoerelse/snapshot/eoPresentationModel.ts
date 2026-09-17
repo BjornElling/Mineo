@@ -63,9 +63,14 @@ export const buildEoPdfPresentation = (
   const erRevideret = eoValues.revideretOpgoerelse === 'Ja';
   const revideretPrefix = erRevideret ? 'Revideret ' : '';
   const erstatningsord = erRevideret ? 'erstatningsopgørelse' : 'Erstatningsopgørelse';
-  const nummer = eoValues.eoNummer || '';
-  const ledsagetekst = eoValues.eoLedsagetekst ? ` (${eoValues.eoLedsagetekst})` : '';
-  const titel = `${revideretPrefix}${erstatningsord} ${nummer}${ledsagetekst}`.trim();
+  const nummer = eoValues.eoNummer ?? '';
+  const ledsagetekst = eoValues.eoLedsagetekst ? `(${eoValues.eoLedsagetekst})` : '';
+  // Leddene samles på de UDFYLDTE dele. En skabelon-interpolation med faste mellemrum gav et dobbelt
+  // mellemrum, når `nummer` var tom (`.trim()` fjerner kun mellemrum i enderne), og det var usynligt på
+  // skærmen og i filnavnet, fordi HTML kollapser blanktegn og `sanitizeFilenamePart` normaliserer dem.
+  const titel = [`${revideretPrefix}${erstatningsord}`, nummer, ledsagetekst]
+    .filter((led) => led.trim() !== '')
+    .join(' ');
 
   const periodeFra = eoValues.vedroererPeriodeFra;
   const periodeTil = eoValues.vedroererPeriodeTil;

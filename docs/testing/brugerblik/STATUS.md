@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12a – Erstatningsopgørelse → Opgørelsens ramme.** Hele Erhvervsevnetab er gennemgået,
+- **Næste flade:** **12b – Erstatningsopgørelse → Svie- og smertegodtgørelse.** 12a er gennemgået
+  2026-09-15 (15 fund, BB-202–BB-216). Tidligere: hele Erhvervsevnetab er gennemgået,
   afgjort OG gennemført i kode; fane 11e blev afgjort og implementeret 2026-09-09.
   **Flade 12 er 2026-09-07 delt i tretten bidder (12a–12m) efter EMNE frem for efter fane** – fanerne var
   ikke en brugbar deling, fordi «EO oplysninger» rummer ni selvstændige sektioner med hver sit
@@ -19,8 +20,18 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-202
-- **Åbne spørgsmål:** **ingen.** **Flade 11e's spørgsmål er afgjort 2026-09-09: NEJ** – løbende ydelser
+- **Næste fund-ID:** BB-217
+- **Åbne spørgsmål:** **ingen.** **Flade 12a's tre spørgsmål er afgjort 2026-09-17:**
+  **(1) Må «Nummer» afgøre, om sagen regnes som første opgørelse? JA** – udledningen beholdes uændret.
+  Feltet skal kunne tage hvad brugeren vil; i praksis skrives tal, og en tekstlinje kan alligevel ikke
+  gennemskue en fritekst. Udvikleren fastholdt svaret, da beregningskonsekvensen (`2` og `Nr. 2` giver
+  forskellige beløb i samme sag) blev forelagt igen. BB-202 er dermed afvist, ikke udskudt.
+  **(2) Må en opgørelse vedrøre en periode FØR skadedatoen? NEJ** – begge periodefelter bruger nu samme
+  spec som fladens øvrige otte datoer, hvilket efter udviklerens korrektion også giver dem
+  erhvervssygdoms-reglen (anmeldelsesdato minus 5 år) i stedet for en ny, parallel regel (BB-209).
+  **(3) Må en opgørelse uden et eneste krav hentes tavst? NEJ, men den må stadig hentes** – en bevidst
+  nulopgørelse er et legitimt produkt, så advarslen er ikke-blokerende (BB-215).
+  Tidligere åbne spørgsmål: **Flade 11e's spørgsmål er afgjort 2026-09-09: NEJ** – løbende ydelser
   under en delvist endelig afgørelse fradrages IKKE i differencekravet ved skader fra 16. juni 2011.
   `skalFradragForetages` er uændret, og BB-187 er dermed en tekstrettelse. Reglen er gjort normativ:
   en delvist endelig afgørelses løbende ydelser behandles beregningsteknisk som MIDLERTIDIGT løbende
@@ -51,7 +62,43 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–11e er alle afgjort og gennemført.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–12a er alle afgjort og gennemført.
+  **Flade 12a er afgjort OG gennemført i kode 2026-09-17:** ti fund implementeret (BB-204, BB-205,
+  BB-206, BB-207, BB-208, BB-209, BB-211, BB-212, BB-214, BB-215), tre afvist af udvikleren (BB-202,
+  BB-203, BB-210) og ét registreret uden selvstændig rettelse (BB-216, bekræftet M-27-forekomst).
+  To af de implementerede blev ændret undervejs efter udviklerens modforslag: BB-208 bruger udviklerens
+  egen ordlyd «… og dags dato (DD-MM-ÅÅÅÅ)» rullet ud overalt hvor loftet er dagen i dag, og BB-212
+  beholder «Eventuelle» på indtastningsfladen, mens sagen ellers hedder «Særlige bemærkninger».
+  **BB-208 havde en dybere årsag end fundet beskrev:** dags dato-grenen blev genkendt på
+  `origin.kind === 'static'`, så en skadedato-skærpet MIN-grænse slukkede MAX-sidens tekst. Grenen
+  hviler nu på en eksplicit `maxBoundKind: 'dagsDato'`, og rettelsen rammer derfor også Stamdatas
+  Fødselsdato og Skadedato.
+- **Senest opdateret:** 2026-09-15 (**Flade 12a – Erstatningsopgørelse → Opgørelsens ramme –
+  gennemgået: 15 fund, to Høj, otte Mellem og fem Lav. Ingen nye tværgående mønstre, men femten
+  forekomster af de eksisterende, og to af dem udvider mønsteret de hører til.** Biddens emne er sagens
+  ramme: nummer, ledsagetekst, revision, periode, dato, udkast-stempel, status ved periodens udløb,
+  afslutningsformel, forlig, særlige bemærkninger og de syv bilagsnumre – plus de dokumentafsnit, de
+  frembringer. **Det tunge fund er BB-202, og det flytter M-01 fra valg til fritekst:** feltet, der på
+  skærmen bare hedder «Nummer», parses af `erDetteFoersteErstatningsopgoerelse`, og svaret læses af ni
+  moduler. Målt for otte skrivemåder – tom, `1`, `1A`, `A2` og **`Nr. 2`** regnes som FØRSTE opgørelse;
+  `2`, `12` og `2A` gør ikke. Ét tastetryk lader fradragsfeltet «Svie/smerte-krav i tidligere
+  erstatningsopgørelser» (målt med 45.000 kr. i) dukke op eller forsvinde, skjuler hele
+  beregningsgrundlaget under «Indtægt før skadedatoen», og flytter sygeferiegodtgørelsens første
+  TAF-dag. **Programmet kender svaret og har formuleret det** som rækken «Første erstatningsopgørelse?
+  Ja/Nej» – den vises kun på kontrolfanen «EO-kontrol», som er slået fra som standard (M-28's reneste
+  form hidtil, og mønsteret har fået rækkebyggere som ny kandidatkilde). **Det andet Høj-fund, BB-205,
+  er M-07 og M-19 i ét:** med «Vedrører perioden» fra = `01-07-2018` og til tom blokerer Beregning med
+  «'Vedrører perioden' er ikke angivet», ingen af de to felter er røde (`aria-invalid = "false"`), og
+  klikkes linket, blinkmarkeres **fra**-feltet – altså den halvdel, der ER udfyldt. **M-04's navngivne
+  kandidat er bekræftet** (BB-206 – syv bilagsnummerfelter tager 60 tegn i et 130 px centreret felt uden
+  tooltip; `scrollWidth` 515 px), **M-20 gav sin spejlvendte form igen** (BB-207 – et bilagsnummer, hvis
+  kontekst er inkonsistent, får ingen gul ring og udgår tavst af papiret; modprøvet begge veje), og
+  **M-13 gav tre forekomster**, hvoraf BB-204 er den skarpeste: dokumentets titel får dobbelt mellemrum
+  («Erstatningsopgørelse  (revideret efter møde)»), som hverken skærmen (HTML kollapser) eller filnavnet
+  (`sanitizeFilenamePart`) kan vise. **Dertil BB-214**, hvor et hentbart dokument trykker
+  `*skadelidtes navn*` ordret under underskriftslinjen. **M-09 og M-10 er efterprøvet og BESTÅET.**
+  Konsollen var tavs: 200 beskeder, 0 advarsler, 2 fejl – begge favicon-fejl fra en genstartet
+  udviklingsserver.)
 - **Flade 11e er afgjort OG gennemført i kode 2026-09-09:** af de 17 fund er **tolv implementeret**
   (BB-187, BB-188, BB-189, BB-190, BB-191, BB-192, BB-193, BB-194, BB-195, BB-196, BB-199, BB-200),
   **ét delvist** (BB-201 – linjen «Ikke kapitaliseret.» beholdes for sin pædagogiske værdi, men
@@ -117,7 +164,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 - **Flade 10 er afgjort OG gennemført i kode 2026-08-28:** af de 18 fund er **16 rettet** og **to afvist**
   (BB-119, BB-131). BB-123's navnedel er godkendt og rettet; koblingsdelen er fortsat afvist som en
   forkert præmis – der findes én kanonisk årsløn efter hvert lovsæt.
-- **Senest opdateret:** 2026-09-09 (**Flade 11e afgjort OG gennemført: tolv fund rettet, ét delvist,
+- **Tidligere: 2026-09-09** (**Flade 11e afgjort OG gennemført: tolv fund rettet, ét delvist,
   fire afvist, og det sidste åbne spørgsmål besvaret – hele Erhvervsevnetab er dermed lukket.** Dertil
   én ny opgave fra udvikleren: forligsfelterne er flyttet til «EET oplysninger», og «EET efter EAL»
   reducerer nu selv med forligsgraden, mens differencekravet fortsat reducerer beløbet EFTER alle fire
@@ -377,8 +424,8 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11c | Erhvervsevnetab – Kapitalisering | Afgjort og gennemført | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11d | Erhvervsevnetab – EET efter EAL | Afgjort og gennemført | 8 (BB-177–BB-184) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11e | Erhvervsevnetab – Differencekrav | Afventer udvikleren | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 12a | Erstatningsopgørelse – Opgørelsens ramme | Ikke startet | – | – |
+| 11e | Erhvervsevnetab – Differencekrav | Afgjort og gennemført | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 12a | Erstatningsopgørelse – Opgørelsens ramme | Afgjort og gennemført | 15 (BB-202–BB-216) | [erstatningsopgoerelse-12a.md](erstatningsopgoerelse-12a.md) |
 | 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Ikke startet | – | – |
 | 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Ikke startet | – | – |
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Ikke startet | – | – |
@@ -391,6 +438,89 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Opgørelsens ramme (12a) – gennemgået 2026-09-15
+
+**15 fund: to Høj, otte Mellem, fem Lav. Alle afgjort 2026-09-17 og gennemført samme dag:** ti
+implementeret, tre afvist af udvikleren (BB-202, BB-203, BB-210) og ét registreret uden selvstændig
+rettelse (BB-216, bekræftet M-27-forekomst). Det fulde grundlag med målte tal og den enkelte
+beslutning står i [erstatningsopgoerelse-12a.md](erstatningsopgoerelse-12a.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-202 | «Nummer» afgør hvilket regelsæt sagen beregnes efter – `Nr. 2` regnes som FØRSTE opgørelse | **Høj** |
+| BB-205 | «'Vedrører perioden' er ikke angivet» om en periode med udfyldt fra-dato; linket markerer netop den | **Høj** |
+| BB-203 | En toggle, brugeren aldrig så, dukker op AFKRYDSET og skjuler hele beregningsgrundlaget | Mellem |
+| BB-204 | Dokumentets titel får dobbelt mellemrum, som hverken skærm eller filnavn kan vise | Mellem |
+| BB-206 | Syv bilagsnummerfelter tager 60 tegn i et 130 px centreret felt uden tooltip | Mellem |
+| BB-207 | Et inkonsistent bilagsnummer udgår tavst af papiret, mens feltet står neutralt | Mellem |
+| BB-209 | «Vedrører perioden» er den eneste dato på fladen uden bund i sagens skadedato | Mellem |
+| BB-211 | Seks felter hedder noget andet, end skærmen siger – fladens toggles er korrekte | Mellem |
+| BB-213 | «Afsluttes med» vælger mellem to juridiske afsnit, der ikke kan ses før download | Mellem |
+| BB-214 | Med tom «Skadelidte» trykkes `*skadelidtes navn*` under underskriftslinjen | Mellem |
+| BB-208 | «Dato skal være mellem 01-06-2018 og 15-09-2026» – det sidste tal er dags dato, usagt | Lav |
+| BB-210 | «Status ved erstatningsperiodens udløb» mod «Status den 1. januar 2019» – to dage | Lav |
+| BB-212 | «Eventuelle særlige kommentarer» / «Særlige kommentarer» / «Særlige bemærkninger» | Lav |
+| BB-215 | Alle tre krav på «Nej» giver en hentbar opgørelse på 0 kr. uden en eneste advarsel | Lav |
+| BB-216 | M-27 bekræftet: rød Skadedato slukker «Opgørelse lavet den»s regel (afbødet af EO's boks) | Lav |
+
+**Bidden er sagens ramme, og den regner ikke selv – men den navngiver dokumentet, sætter dets dato og
+afgør, hvilken afslutningsformel modparten læser.** Det er netop derfor, det tunge fund overrasker.
+
+**BB-202 er det vigtigste og flytter M-01 til en ny form.** Mønsteret har hidtil handlet om et *valg*,
+der ændrer betydningen af en indtastet værdi. Her er det et **fritekstfelt**, hvis indhold parses til en
+beregningsbeslutning: `erDetteFoersteErstatningsopgoerelse` læser det første bogstav-eller-ciffer i
+«Nummer», og ni moduler læser svaret. Målt for otte skrivemåder – tom, `1`, `1A`, `A2` og **`Nr. 2`**
+giver «første opgørelse»; `2`, `12` og `2A` giver «ikke første». Virkningerne er kontante: fradragsfeltet
+«Svie/smerte-krav i tidligere erstatningsopgørelser» (målt med `45.000,00 kr.` i) vises/skjules og
+medregnes/ignoreres, blokken «Beregnes ud fra» + beregningsperiode + ferietabel + øvrigt fravær forsvinder
+fra «Indtægt før skadedatoen», og sygeferiegodtgørelsens første TAF-dag ind-/udelukkes for skader fra 2015.
+**Og programmet kender svaret:** rækken «Første erstatningsopgørelse? Ja/Nej» findes færdigformuleret i
+`buildEoErstatningsopgoerelseRows` og vises udelukkende på kontrolfanen «EO-kontrol», som er slået fra som
+standard. Det er M-28's reneste form til dato og har givet mønsteret **rækkebyggere som ny kandidatkilde**:
+enhver række med `status: 'ok'` er usynlig uden for kontrolfanerne, uanset hvor brugervendt dens etiket er.
+
+**BB-205 er M-07 og M-19 i samme fund, og det er den billigste af de to at rette.** Med
+«Vedrører perioden» fra = `01-07-2018` og til tom blokerer Beregning-fanen med «'Vedrører perioden' er
+ikke angivet» – en besked, der benægter det, brugeren kan se. Ingen af de to felter er røde (målt
+`aria-invalid = "false"`, neutral kant), og klikkes linket, fyrer præcis én `mineoFieldAttentionBlink`
+på **fra**-feltet, altså den halvdel der ER udfyldt. Det er BB-135's form igen: anvisningen peger på det
+felt, fejlen ikke handler om.
+
+**BB-204 er M-13 i en form, hvor begge de kanaler, der kunne afsløre fejlen, skjuler den.** Med tomt
+nummer og udfyldt ledsagetekst får dokumentets første linje to mellemrum
+(«Erstatningsopgørelse  (revideret efter møde)»), fordi `.trim()` kun rører enderne. Skærmens
+forhåndsvisning viser ét, fordi HTML kollapser blanktegn; filnavnet viser ét, fordi `sanitizeFilenamePart`
+kører `.replace(/\s+/g, ' ')`. Brugeren kan først se det i Word.
+
+**Konsekvenser for de resterende bidder – fire prøver at tage med:**
+1. **M-02's mekaniske prøve har fået en ny, endnu billigere indgang** (BB-211):
+   `rg 'className="row--label-right-hover"' src/components` og sammenlign hver rækkes `row--text` med
+   descriptorens `label`. Fladens toggles er korrekte, fordi `LabeledControlRow` giver kontrollen
+   rækketeksten – tekstfelter og dropdowns i samme rækketype gør ikke. Navngiven kandidat til 12f:
+   togglen «Skjul beregning efter første opgørelse» har descriptor-label «Komprimér beregning efter
+   første opgørelse».
+2. **En feltnær advarsel, hvis hele indhold er en besked, hører ved feltet** (BB-207).
+   `rg "summaryDisplay: 'messageOnly'" src/domain/eoRowEvaluation` giver rækkerne; for hver: afhænger den
+   af ét felts egen værdi plus ét valg? Så mangler feltet en gul ring.
+3. **M-04's prøve skal læse `text-align` med** (BB-206). Et centreret felt, der er smallere end sin
+   længdegrænse, er værre end et venstrestillet: det viser en vilkårlig midte i stedet for den
+   begyndelse, der identificerer værdien.
+4. **Sektionsoverskrifter er en egen navnedimension** (BB-212).
+   `rg "renderSectionHeader\('" src/document/generators/eo` og sammenlign hver med skærmens
+   sektionsoverskrift. Uafprøvede kandidater i samme dokument: «Erstatningsniveau» (skærm: «Forlig»),
+   «Øvrige krav» (skærm: «Øvrige erstatningskrav»), «Godkendelse» (skærm: «Bekræftelse»).
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620); PDF-kanalen ikke læst
+(dokumenterne hentet som `.docx`); `Gem`/`Hent` ikke afprøvet – værd at måle her, fordi tre af biddens
+kontroller har en standardværdi, og fordi BB-203's toggle kan komme tilbage afkrydset efter en Hent;
+undo/redo umiddelbart efter en ændring af «Nummer» ikke målt, selv om det er det tastetryk, der flytter
+mest; brevhovedet slået fra ikke afprøvet; kontrolfanerne blev slået til for at bekræfte BB-202 og er
+ikke gennemgået (12m).
+
+**Tilfældighedsfund til 12m:** kontrolfanen hedder **«EO-kontrol»** i produktet
+(`Erstatningsopgoerelse.tsx:43`), mens `references/flader.md` og B9-noterne kalder bid 12m
+«EO-gennemsyn og Kontroltabel». Navnene skal afstemmes, når 12m tages.
 
 ## Erhvervsevnetab → Differencekrav (11e) – gennemgået 2026-09-07
 

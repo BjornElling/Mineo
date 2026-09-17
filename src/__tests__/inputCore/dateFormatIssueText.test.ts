@@ -47,7 +47,7 @@ const tooltipForRejectedRaw = (
 describe('datofelters format-fejl formuleres med konkrete datoer', () => {
   it('nævner feltets EGNE grænser – ikke det repræsenterbare årsinterval', () => {
     const tooltip = tooltipForRejectedRaw(stamdataSkadelidteFodselsdatoField, '31-12-1899');
-    expect(tooltip).toBe(`Dato skal være mellem 01-01-1900 og ${isoToDanish(getToday())}`);
+    expect(tooltip).toBe(`Dato skal være mellem 01-01-1900 og dags dato (${isoToDanish(getToday())})`);
     expect(tooltip).not.toMatch(/årstal/i);
     expect(tooltip).not.toMatch(/2100/);
   });
@@ -58,7 +58,7 @@ describe('datofelters format-fejl formuleres med konkrete datoer', () => {
    */
   it('viser dags dato som Fødselsdatoens øvre grænse, ikke år 2100', () => {
     const tooltip = tooltipForRejectedRaw(stamdataSkadelidteFodselsdatoField, '01-01-2101');
-    expect(tooltip).toBe(`Dato skal være mellem 01-01-1900 og ${isoToDanish(getToday())}`);
+    expect(tooltip).toBe(`Dato skal være mellem 01-01-1900 og dags dato (${isoToDanish(getToday())})`);
   });
 
   /**
@@ -67,7 +67,17 @@ describe('datofelters format-fejl formuleres med konkrete datoer', () => {
    */
   it('læser grænserne fra det konkrete felt', () => {
     expect(tooltipForRejectedRaw(stamdataSkadedatoField, '31-12-1899'))
-      .toBe(`Dato skal være mellem 01-01-2005 og ${isoToDanish(getToday())}`);
+      .toBe(`Dato skal være mellem 01-01-2005 og dags dato (${isoToDanish(getToday())})`);
+  });
+
+  /**
+   * Et loft, der ER kalenderen, navngives som kalenderen. Ellers får brugeren et tal, han selv skal
+   * genkende som i dag, mens feltets anden grænse i samme tooltip navngiver sin kilde – de to halvdele
+   * af samme grænse ville da tale i to forskellige stilarter.
+   */
+  it('navngiver et loft, der er dagen i dag, som «dags dato»', () => {
+    const tooltip = tooltipForRejectedRaw(stamdataSkadedatoField, '31-12-1899');
+    expect(tooltip).toMatch(/dags dato \(\d{2}-\d{2}-\d{4}\)$/);
   });
 
   it('forklarer en ikke-eksisterende kalenderdag som netop dét', () => {

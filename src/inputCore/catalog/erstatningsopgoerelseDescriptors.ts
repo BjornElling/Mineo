@@ -24,6 +24,7 @@ import {
 import {
   computeSkadedatoMinRule,
   getCurrentYear,
+  getToday,
   dateRanges_erstatningsopgoerelse,
   dateRanges_offentligeYdelser,
   MIN_SVIESMERTE_YEAR,
@@ -47,6 +48,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { entityIdForCollection } from '../fieldAddress';
 import {
+  BILAGSNUMMER_MAX_LENGTH,
   COMMENT_TEXT_MAX_LENGTH,
   SHORT_TEXT_MAX_LENGTH,
   UNBOUNDED_DAY_COUNT_MAX_DIGITS,
@@ -117,7 +119,7 @@ export const EO_LEDSAGETEKST_MAX_LENGTH = 64;
  * samme tal ved tastning OG paste.
  *
  * Parameteren er PÅKRÆVET. Den var valgfri, og resultatet var, at 11 af EO's 13 fritekstfelter blev
- * oprettet uden nogen grænse: `Særlige kommentarer` og alle syv bilagsnumre-felter tog imod en
+ * oprettet uden nogen grænse: `Særlige bemærkninger` og alle syv bilagsnumre-felter tog imod en
  * vilkårligt lang indsat tekst. Det er samme fejlmåde, som `dateField` nedenfor allerede har lukket
  * for datogrænserne – udeladelse er nu en typefejl, ikke en forglemmelse.
  */
@@ -199,12 +201,20 @@ const skadedatoBoundedSpec = (
   narrowMin: (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate,
   special: (context) => {
     const rule = skadedatoMinRuleFor(context, range.fallbackMin);
-    return rule.minBoundKind === undefined || rule.minDate <= range.fallbackMin
+    // Max-erklæringen står for sig og gælder uanset min-skærpelsen. Før blev «dags dato»-grenen genkendt
+    // på `origin.kind === 'static'`, og en aktiv MIN-skærpelse gjorde origin `'derived'` – så et felt med
+    // udfyldt skadedato mistede sin dags dato-tekst og faldt tilbage på en bar intervaltekst (BB-208).
+    const maxSpecial = range.max === getToday()
+      ? ({ maxBoundKind: 'dagsDato' } as const)
+      : undefined;
+    const minSpecial = rule.minBoundKind === undefined || rule.minDate <= range.fallbackMin
       ? undefined
       : withStamdataDatoReference(context, {
         minBoundKind: rule.minBoundKind,
         minBoundReferenceISO: rule.minBoundReferenceISO,
       });
+    if (minSpecial === undefined && maxSpecial === undefined) return undefined;
+    return { ...(minSpecial ?? {}), ...(maxSpecial ?? {}) };
   },
   // Skadedato kan i sig selv gøre intervallet umuligt (fx en skadedato efter konfigurationens max), og
   // Skadestype afgør hvilken af de to min-regler der gælder. Begge navngives derfor som årsag.
@@ -294,7 +304,14 @@ const requiredJaNejSkjulField = (
 
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
 // Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede.
-export const eoNummerField = optionalTextField('eoNummer', 'EO-nummer', EO_NUMMER_MAX_LENGTH);
+//
+// Labels er feltets SYNLIGE navn (§3.2a via `useFieldLabel`): de er derfor rækkens egen tekst, ikke et
+// internt kaldenavn. Felterne hed før «EO-nummer» og «Ledsagetekst», mens skærmen skrev «Nummer» og
+// «+ evt. ledsagetekst» – så oplæsning og fejltekster navngav et felt, brugeren ikke kunne finde (BB-211).
+// Hvor det synlige navn er delt over to tekster, er det sammensatte navn det rigtige.
+export const eoNummerField = optionalTextField('eoNummer', 'Erstatningsopgørelse nummer', EO_NUMMER_MAX_LENGTH);
+// «+ evt.» er rækkens visuelle sammenkædning til nabofeltet, ikke en del af navnet: et felt kan ikke
+// hedde «+ evt. ledsagetekst» i en oplæsning eller en fejltekst («'+ evt. ledsagetekst' er ikke angivet»).
 export const eoLedsagetekstField = optionalTextField(
   'eoLedsagetekst', 'Ledsagetekst', EO_LEDSAGETEKST_MAX_LENGTH
 );
@@ -314,25 +331,28 @@ const vedroererPeriodePair: DatePairBinding = {
 // Grænserne clampes bevidst IKKE mod modparten (jf. `dateOrderValidators.ts`): gjorde de det, ville
 // bounds-reglen spise kronologireglen, og beskeden ville skifte til en intervaltekst, der ikke nævner
 // den modgående dato. Kronologien ejes af `dateOrderValidator`, den ydre ramme af `dateBounds`.
+//
+// Begge periodefelter bruger `skadedatoBoundedSpec` som fladens øvrige otte datoer (BB-209). De havde
+// før en ren statisk ramme (1-1-2005 … 31-12 ét år frem), så en periode otte år FØR sagens egen skade
+// blev afsluttet canonical uden nogen reaktion – og perioden afgrænser samtlige krav. Specen bærer
+// samtidig erhvervssygdoms-reglen (anmeldelsesdato minus 5 år), så den ydre ramme ikke skal gentages her.
 export const eoVedroererPeriodeFraField = dateField(
   'vedroererPeriodeFra', 'Vedrører periode fra',
   dateBounds(
-    {
-      min: () => dateRanges_erstatningsopgoerelse.periodeFra.min,
-      max: () => dateRanges_erstatningsopgoerelse.periodeFra.fallbackMax,
-      origin: STATIC_DATE_BOUNDS,
-    },
+    skadedatoBoundedSpec({
+      fallbackMin: dateRanges_erstatningsopgoerelse.periodeFra.min,
+      get max() { return dateRanges_erstatningsopgoerelse.periodeFra.fallbackMax; },
+    }),
     [dateOrderValidator('fra', vedroererPeriodePair)],
   ),
 );
 export const eoVedroererPeriodeTilField = dateField(
   'vedroererPeriodeTil', 'Vedrører periode til',
   dateBounds(
-    {
-      min: () => dateRanges_erstatningsopgoerelse.periodeTil.fallbackMin,
-      max: () => dateRanges_erstatningsopgoerelse.periodeTil.max,
-      origin: STATIC_DATE_BOUNDS,
-    },
+    skadedatoBoundedSpec({
+      fallbackMin: dateRanges_erstatningsopgoerelse.periodeTil.fallbackMin,
+      get max() { return dateRanges_erstatningsopgoerelse.periodeTil.max; },
+    }),
     [dateOrderValidator('til', vedroererPeriodePair)],
   ),
 );
@@ -351,7 +371,9 @@ export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined
   ),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Forlig ansvarsgrad (%)',
+  // Rækkens synlige navn er sammensat: «Forlig om ansvarsgrad» + «Procent» (BB-211). Parentesformen
+  // «(%)» var en notation, ingen tekst på skærmen bruger.
+  label: 'Forlig om ansvarsgrad, procent',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [percentBoundsValidator('eo.forligAnsvarsgradProcent.bounds', {
@@ -384,7 +406,7 @@ export const eoForligAnsvarsgradBroekField: FieldDescriptor<string | undefined> 
   }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Forlig ansvarsgrad (brøk)',
+  label: 'Forlig om ansvarsgrad, brøk',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [(value, _field, view) => {
@@ -440,13 +462,16 @@ export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kra
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
   'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true
 );
+// Feltet hed «Særlige kommentarer», sektionen på skærmen «Eventuelle særlige kommentarer» og dokumentets
+// overskrift «Særlige bemærkninger» – tre navne for én ting (BB-212). Sagen hedder nu «Særlige bemærkninger»
+// alle tre steder; «Eventuelle» bevares kun som sektionens valgfrihedssignal på indtastningsfladen.
 export const eoSaerligeKommentarerField = optionalTextField(
-  'saerligeKommentarer', 'Særlige kommentarer', COMMENT_TEXT_MAX_LENGTH, true
+  'saerligeKommentarer', 'Særlige bemærkninger', COMMENT_TEXT_MAX_LENGTH, true
 );
 
 export const eoAfsluttesMedField = requiredChoiceField<AfsluttesMed>(
   'erstatningsopgoerelseAfsluttesMed',
-  'Afsluttes med',
+  'Erstatningsopgørelse afsluttes med',
   ['Bekræftet godkendt', 'Underskrift-linje', 'Ingen'],
   'Bekræftet godkendt'
 );
@@ -518,7 +543,7 @@ export const eoDifferencekravDatoField = dateField(
 // ── Svie/smerte (skalarer) ──────────────────────────────────────────────────────
 export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse', 'Ja');
 export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
-  'svieSmerteHelbredsstatus', 'Helbredsstatus', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
+  'svieSmerteHelbredsstatus', 'Helbredsforhold', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
 export const eoTidligereSsMaxField = requiredJaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej');
 // Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..getCurrentYear er det afledte bounds-issue.
@@ -541,7 +566,7 @@ export const eoSvieSmerteAktuelPeriodeField = amountField('svieSmerteAktuelPerio
 
 // ── TAF (skalarer) ──────────────────────────────────────────────────────────────
 export const eoKravPaaTabtArbejdsfortjenesteField = requiredJaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste', 'Ja');
-export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdsstatus', 'Arbejdsstatus', [
+export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdsstatus', 'Arbejdssituation', [
   'Uarbejdsdygtig', 'Delvist raskmeldt', 'Fuldt arbejdsdygtig', 'Fleksjob', 'Revalidering', 'Uddannelse',
   'Førtidspension', 'Seniorpension', 'Folkepension', 'Efterløn', 'Kontanthjælp',
 ]);
@@ -586,14 +611,16 @@ export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
 );
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
+// Alle syv har `BILAGSNUMMER_MAX_LENGTH` og ikke den generelle korttekst-kategori: felterne er 130 px
+// brede og centrerede, så et 60-tegns loft tillod en værdi, brugeren kun kunne se midten af (BB-206).
 export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
-export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', SHORT_TEXT_MAX_LENGTH);
-export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', SHORT_TEXT_MAX_LENGTH);
+export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', BILAGSNUMMER_MAX_LENGTH);
 
 // ── Rene top-level samlinger + rækkefelter ─────────────────────────────────────────
 const rowTemplate = (collection: string, field: string): FieldAddressTemplate => ({

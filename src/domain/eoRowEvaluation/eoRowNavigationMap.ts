@@ -235,7 +235,7 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       tabId: 'eo_oplysninger',
       sectionId: 'saerlige-kommentarer',
       tabName: 'EO oplysninger',
-      sectionTitle: 'Eventuelle særlige kommentarer',
+      sectionTitle: 'Eventuelle særlige bemærkninger',
     };
   }
 

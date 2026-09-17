@@ -27,10 +27,24 @@
 export const SHORT_TEXT_MAX_LENGTH = 60;
 
 /**
+ * Bilagsnumre – meget korte referencer i et smalt, centreret felt.
+ *
+ * Felterne arvede `SHORT_TEXT_MAX_LENGTH` (60) fra kategorien ovenfor, men de er 130 px brede og
+ * centrerede: 60 tegn måler ~515 px, så brugeren kunne se ca. en fjerdedel af sin egen indtastning,
+ * taget fra midten, uden tooltip at læse resten i (BB-206). En grænse, feltet kun kan vise en brøkdel
+ * af, afværger intet og gør en fejlagtig indsættelse fra et andet dokument umulig at opdage.
+ *
+ * 12 tegn er rundeligt til de former, der reelt forekommer («3», «3-7», «Bilag 12-14»), og er stadig
+ * læsbart i feltets bredde. Målestokken er udviklerens egen (2026-08-16): antallet af tilladte tegn skal
+ * svare til det synlige indhold – samme afvejning som bag «Nummer»-feltets 7 tegn.
+ */
+export const BILAGSNUMMER_MAX_LENGTH = 12;
+
+/**
  * De flerlinjede kommentarfelter (`MultilineTextField`).
  *
  * 512 er ikke et nyt tal: det er præcis det loft, `Kommentarer` på Offentlige ydelser allerede havde
- * (kontraktens §3.4). De to øvrige kommentarfelter – EO's `Særlige kommentarer` og Renteberegningens
+ * (kontraktens §3.4). De to øvrige kommentarfelter – EO's `Særlige bemærkninger` og Renteberegningens
  * `Kommentarer` – havde intet og får nu det samme.
  */
 export const COMMENT_TEXT_MAX_LENGTH = 512;
