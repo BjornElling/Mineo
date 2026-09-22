@@ -7,11 +7,12 @@ import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
-import type { Calculable, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
+import type { Calculable, OevrigeKravCanonicalInput, SvieSmerteIngenBeloebAarsag, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
 import { moneyOre, zeroMoneyOre } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
+import { erEETKlageRelevant } from '../helpers/eoInputRelevance';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
@@ -58,6 +59,20 @@ export const buildSvieSmerteModel = (
 ): SvieSmerteSectionPresentation => {
   const beregnes = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
   const skjul = values.kravPaaSvieSmerteGodtgoerelse === 'Skjul';
+  // «Der rejses ikke krav» og «kravet er udtømt» er to forskellige juridiske udsagn; dokumentet
+  // gengav dem begge som ordet «Ingen» (BB-221). Årsagen bæres derfor med.
+  //
+  // Den udtømte ramme har to veje – brugerens egen afkrydsning og programmets beregning ud fra et
+  // indtastet beløb, der æder hele maksimum. De er beregningsteknisk og forventningsmæssigt samme
+  // tilstand og får derfor samme årsag og samme sætning i papiret (BB-219).
+  const maksimumOpbrugt =
+    (values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Ja') ||
+    (beregnes && options.engine.maksimumOpbrugtFoerPerioden);
+  const ingenBeloebAarsag: SvieSmerteIngenBeloebAarsag | null = maksimumOpbrugt
+    ? 'maksimumOpbrugt'
+    : beregnes
+      ? null
+      : 'ikkeRejst';
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
 
@@ -92,8 +107,12 @@ export const buildSvieSmerteModel = (
 
   if (varigeMenAfgorelse === 'Nej' && opgLavetDen) {
     const dato = formatDateLong(opgLavetDen);
-    const tekst = `Der er den ${dato} ikke truffet afgørelse om varige mén.`;
-    statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
+    // «Verserende klage over ménafgørelse» vises kun, når der ER truffet en ménafgørelse
+    // (`erVarigeMenAfgoerelseAktiv`). I denne gren er feltet altså skjult og dermed pr. definition
+    // ikke udfyldt, så en stale «Ja» må ikke tale: papiret skrev ellers «Der er ikke truffet
+    // afgørelse om varige mén. Afgørelsen er påklaget.» – en sætning, der modsiger sig selv om en
+    // afgørelse, der ikke findes (BB-222's regel).
+    statusLinjer.push(`Der er den ${dato} ikke truffet afgørelse om varige mén.`);
   } else if (varigeMenAfgorelse === 'Ja' && menDato) {
     const dato = formatDateLong(menDato);
     const tekst = `Der er den ${dato} truffet afgørelse om varige mén.`;
@@ -140,7 +159,11 @@ export const buildSvieSmerteModel = (
   const satserMaxFoerForlig: Calculable<MoneyOre> = engine.satserMaxFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(engine.satserMaxFoerForligOre);
-  const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null
+  // Et indtastet 0 er IKKE et svar for "opgjort i tidligere opgørelser": samme prøve som advarslen
+  // i eoRowSvieSmerteRows (`> 0`), fordi brugeren ved tvivl taster 0. Uden spejlingen ville papiret
+  // trykke "med 0 kr." om et beløb, skærmen samtidig siger mangler (BB-220). Beløbsmæssigt er det
+  // uden virkning: 0 fradrages ikke i maksimum.
+  const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null || engine.tidligereOre <= zeroMoneyOre()
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(engine.tidligereOre);
   const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null
@@ -154,6 +177,7 @@ export const buildSvieSmerteModel = (
 
   return {
     beregnes,
+    ingenBeloebAarsag,
     skjul,
     statusLinjer,
     opgjortFremTilPeriodeTil,
@@ -249,9 +273,15 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   const eetLinjer: string[] = [];
 
+  // Klagefeltet læses gennem sin egen synlighed: er det skjult, er det ikke udfyldt, og en stale
+  // «Ja» må ikke kunne slukke en TAF-afgrænsning (BB-222's regel). Her er `midlertidigtEETAfgorelse
+  // === 'Ja'` i forvejen et af de to vilkår, der gør feltet synligt, så guarden ændrer intet i
+  // praksis – den gør afhængigheden eksplicit, så prædikatet ikke kan drive fra feltets synlighed.
+  const klageEetAngivet = erEETKlageRelevant(values) && values.verserendeKlageEet === 'Ja';
+
   // Afgør om midlertidig EET er aktiv som TAF-afgrænsning (skadedato < 2011-06-16).
   const midlertidigEetErTafRelevant =
-    values.verserendeKlageEet !== 'Ja' &&
+    !klageEetAngivet &&
     values.midlertidigtEETAfgorelse === 'Ja' &&
     !!options.skadedatoISO &&
     options.skadedatoISO < TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
@@ -317,7 +347,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   const harTafPerioder = tafMonetary.harTafPerioder;
 
   const endeligtEetBringTilOphoer =
-    values.verserendeKlageEet !== 'Ja' && harTafDagenFoer(endeligtEetReferenceDato);
+    !klageEetAngivet && harTafDagenFoer(endeligtEetReferenceDato);
   const midlertidigEetBringTilOphoer =
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
@@ -388,8 +418,10 @@ export const buildTabtArbejdsfortjenesteModel = (
     eetLinjer.push(endeligtEetLinje ?? midlertidigEetLinje ?? '');
   } else if (!harEndeligtEetAfgorelse && !harMidlertidigEetAfgorelse && values.opgørelseLavetDen) {
     const dato = formatDateLong(values.opgørelseLavetDen);
-    const tekst = `Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
-    eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
+    // Klagefeltet er skjult, når INGEN EET-afgørelse er truffet (`erEETKlageRelevant`) – og det er
+    // netop denne gren. En stale «Ja» gav ellers «Der er ikke truffet afgørelse … Afgørelsen er
+    // påklaget.» Samme selvmodsigelse som ménlinjen ovenfor (BB-222's regel).
+    eetLinjer.push(`Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`);
   }
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);

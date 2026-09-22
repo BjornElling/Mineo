@@ -89,7 +89,20 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
       ? <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
       : <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
 
-    return rows.map((row) => (
+    // Samme sætning vises ÉN gang. To overlappende perioder gav før to ordret ens linjer, som
+    // ikke kunne skelnes fra hinanden – og nu, hvor overlappet også farver cellerne, bæres
+    // udpegningen af den røde rings tooltip (BB-218). Rækkerne selv foldes IKKE: de gater
+    // download hver for sig, og kun visningen er dublet.
+    // Første forekomst beholdes, så linjens link peger på den første berørte række.
+    const seen = new Set<string>();
+    const visibleRows = rows.filter((row) => {
+      const text = formatSummaryText(row);
+      if (seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    });
+
+    return visibleRows.map((row) => (
       <Box
         key={row.id}
         className="row--label-right-hover"

@@ -17,6 +17,8 @@ import {
   eoTidligereSsMaxField,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { useFieldEditor } from '../../../../../inputCore/react/useFieldEditor';
+import { createFieldWarning } from '../../../../../inputCore/fieldWarning';
+import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../../../../../domain/erstatningsopgoerelse/helpers/svieSmerteMaksimum';
 import {
   erSvieSmerteSektionAktiv,
   erSvieSmertePeriodeInputRelevant,
@@ -39,8 +41,15 @@ export default function SvieSmerteSection() {
   const {
     values,
     svie,
-    svieSmerteCutoffDateIssues,
+    svieSmerteCellIssues,
   } = useEoOplysningerVm();
+  // Gul ring ved feltet, ikke kun en linje i boksen på Beregning-fanen: brugeren står HER og taster
+  // beløbet, og et beløb over maksimum gør hele kravet til 0 (BB-219, samme afgørelse som BB-207).
+  // Teksten hentes fra samme kilde som rækken, så de to kanaler ikke kan drive fra hinanden.
+  const tidligereTotalOverMax = (() => {
+    const tekst = resolveSvieSmerteTidligereTotalOverMaxWarning(values);
+    return tekst === null ? undefined : createFieldWarning(tekst);
+  })();
   const satserAarEditor = useFieldEditor(
     eoSvieSmerteSatserAarField.bind(),
     { locationId: 'erstatningsopgoerelse.svieSmerteSatserAar', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }
@@ -91,7 +100,7 @@ export default function SvieSmerteSection() {
                   committedRows={values.svieSmertePerioder}
                   derivedById={svie.derivedById}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
-                  cutoffIssues={svieSmerteCutoffDateIssues}
+                  cellIssues={svieSmerteCellIssues}
                 />
 
                 <Box className="row--label-right-hover">
@@ -131,19 +140,22 @@ export default function SvieSmerteSection() {
                   </Box>
                 </Box>
 
-                <Typography className="row--subheading">Tidligere svie- og smertegodtgørelse</Typography>
+                {/* Dækker begge felter uanset opgørelsesnummer: ved 1. opgørelse står kun
+                    "allerede modtaget for nuværende periode" under den (BB-225). */}
+                <Typography className="row--subheading">Tidligere svie/smerte-beløb</Typography>
 
                 {/* Synlighed deler samme predikat som beregningens neutralisering,
                     så feltet aldrig kan være skjult i UI'en men aktivt i beregningen. */}
                 {erSvieSmerteTidligereTotalRelevant(values) && (
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Svie/smerte-krav i tidligere erstatningsopgørelser:</Typography>
+                    <Typography className="row--text">Svie/smerte opgjort i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">
                       <AmountField
                         field={eoSvieSmerteTidligereTotalField.bind()}
                         location={{ locationId: 'erstatningsopgoerelse.svieSmerteTidligereTotal', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                         name="svieSmerteTidligereTotal"
                         width={150}
+                        {...(tidligereTotalOverMax === undefined ? {} : { warning: tidligereTotalOverMax })}
                       />
                     </Box>
                   </Box>

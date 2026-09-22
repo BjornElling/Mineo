@@ -47,7 +47,7 @@ describe('buildEoSvieSmerteRows – tidligere svie-/smertebeløb', () => {
 
     expect(row).toMatchObject({
       status: 'warning',
-      message: 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser',
+      message: 'Der er ikke angivet svie/smerte opgjort i tidligere erstatningsopgørelser',
       summaryDisplay: 'messageOnly',
     });
   });
@@ -55,7 +55,45 @@ describe('buildEoSvieSmerteRows – tidligere svie-/smertebeløb', () => {
   it('viser ikke advarslen, når beløbet er større end nul', () => {
     const row = getTidligereTotalRow({ svieSmerteTidligereTotal: amount(1) });
 
-    expect(row).toMatchObject({ status: 'ok', displayValue: '1,00' });
+    // Beløbet vises med enhed som naborækkerne i kontroltabellen.
+    expect(row).toMatchObject({ status: 'ok', displayValue: '1,00 kr.' });
+    expect(row?.message).toBeUndefined();
+  });
+
+  it('advarer, når beløbet overstiger maksimum – men blokerer ikke', () => {
+    // 2024-maksimum er 88.500 kr. Beløbet KAN være rigtigt (rammen er reelt opbrugt), så
+    // advarslen er gul og ikke en fejl (BB-219).
+    const row = getTidligereTotalRow({
+      svieSmerteSatserAar: 2024,
+      svieSmerteTidligereTotal: amount(100_000),
+    });
+
+    expect(row?.status).toBe('warning');
+    expect(row?.message).toBe(
+      'Svie/smerte opgjort i tidligere erstatningsopgørelser overstiger maksimum (88.500,00 kr.)'
+    );
+  });
+
+  it('måler mod det FORLIGSREDUCEREDE maksimum, som beregningen bruger', () => {
+    // 50 % af 88.500 = 44.250. Et beløb derimellem er over grænsen i denne sag, men ikke i en sag
+    // uden forlig.
+    const row = getTidligereTotalRow({
+      svieSmerteSatserAar: 2024,
+      forligAnsvarsgradProcent: 50,
+      svieSmerteTidligereTotal: amount(50_000),
+    });
+
+    expect(row?.status).toBe('warning');
+    expect(row?.message).toContain('44.250,00 kr.');
+  });
+
+  it('advarer ikke, når beløbet er præcis lig maksimum', () => {
+    const row = getTidligereTotalRow({
+      svieSmerteSatserAar: 2024,
+      svieSmerteTidligereTotal: amount(88_500),
+    });
+
+    expect(row?.status).toBe('ok');
     expect(row?.message).toBeUndefined();
   });
 
@@ -110,7 +148,7 @@ describe('collectAllEoRows – tidligere svie-/smertebeløb', () => {
     const warning = warnings.find((row) => row.id === 'sviesmerte.tidligereTotal');
 
     expect(warning).toMatchObject({
-      summaryText: 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser',
+      summaryText: 'Der er ikke angivet svie/smerte opgjort i tidligere erstatningsopgørelser',
       focusTarget: { kind: 'fieldAddress', address: eoSvieSmerteTidligereTotalField.bind().address },
       navigation: {
         kind: 'erstatningsopgoerelse-tab',

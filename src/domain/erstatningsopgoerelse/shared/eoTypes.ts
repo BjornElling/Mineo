@@ -67,8 +67,25 @@ export type ForligModel =
     factor: number;
   }>;
 
+/**
+ * Hvorfor der ikke opgøres et svie/smerte-beløb. Skelnen findes, fordi "der rejses ikke krav" og
+ * "kravet findes, men maksimum er udtømt" er to forskellige juridiske udsagn, som dokumentet
+ * tidligere gengav med ét og samme ord, «Ingen» (BB-221).
+ *
+ * `maksimumOpbrugt` dækker BEGGE veje til en udtømt ramme – brugerens egen afkrydsning
+ * («Tidligere beregnet S/S til max.») og programmets beregning ud fra et indtastet beløb, der
+ * æder hele maksimum. De to er beregningsteknisk og forventningsmæssigt samme tilstand og skal
+ * derfor behandles ens (BB-219).
+ */
+export type SvieSmerteIngenBeloebAarsag = 'ikkeRejst' | 'maksimumOpbrugt';
+
 export type SvieSmerteModel = Readonly<{
   beregnes: boolean;
+  /**
+   * Sat når der ikke opgøres et beløb, uanset om det skyldes kravvalget eller en udtømt ramme.
+   * `null` når der faktisk opgøres et beløb.
+   */
+  ingenBeloebAarsag: SvieSmerteIngenBeloebAarsag | null;
   /**
    * Når `true` skal emnet udelades HELT fra erstatningsopgørelse-PDF'en (ingen overskrift,
    * intet "Ingen"). Modsat `beregnes: false` (Nej), der stadig viser overskrift + "Ingen".

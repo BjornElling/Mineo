@@ -284,11 +284,11 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     const reader = buildReader(withSvieSmerteCutoff, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'svie-cutoff' });
 
-    expect(projection.svieSmerteCutoffDateIssues.all.map((issue) => issue.field.address.field).sort()).toEqual(['fra', 'til']);
-    expect(projection.svieSmerteCutoffDateIssues.all[0]?.message).toBe(
+    expect(projection.svieSmerteCellIssues.all.map((issue) => issue.field.address.field).sort()).toEqual(['fra', 'til']);
+    expect(projection.svieSmerteCellIssues.all[0]?.message).toBe(
       'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2022)'
     );
-    expect(projection.eoErrors.all).toEqual(expect.arrayContaining([...projection.svieSmerteCutoffDateIssues.all]));
+    expect(projection.eoErrors.all).toEqual(expect.arrayContaining([...projection.svieSmerteCellIssues.all]));
     expect(projection.snapshot.blockedDependencies?.svieSmerte).toBe(true);
     expect(projection.snapshot.status).toBe('error');
   });

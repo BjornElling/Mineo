@@ -542,9 +542,9 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
   {
     key: 'svie-smerte-tidligere-total',
     match: { kind: 'id', id: 'sviesmerte.tidligereTotal' },
-    when: 'Det er ikke første erstatningsopgørelse, men der er ikke angivet et positivt svie-/smertebeløb fra tidligere opgørelser.',
+    when: 'Det er ikke første erstatningsopgørelse, og beløbet opgjort i tidligere opgørelser mangler eller overstiger maksimum.',
     summaryText: (_row, message) =>
-      message || 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser',
+      message || 'Der er ikke angivet svie/smerte opgjort i tidligere erstatningsopgørelser',
   },
   {
     key: 'svie-smerte-period-row',

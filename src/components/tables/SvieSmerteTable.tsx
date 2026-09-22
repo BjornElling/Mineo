@@ -26,14 +26,14 @@ export type SvieSmerteTableProps = Readonly<{
   committedRows: readonly SvieSmertePeriodeRow[];
   derivedById: Readonly<Record<string, SvieSmerteDerived>>;
   saveOrderPath?: TableSaveOrderPath;
-  /** Svie/smerte-cutoff mod ménafgørelsen, projekteret pr. konkret datocelle. */
-  cutoffIssues?: FieldIssueSet;
+  /** Rækkeregler projekteret pr. konkret datocelle: ménafgørelsens cutoff og periodeoverlap. */
+  cellIssues?: FieldIssueSet;
 }>;
 
 const createEmptyRow = (id: string): SvieSmertePeriodeRow => createEmptySvieCommittedRow(id);
 const collection = eoSvieSmertePerioderCollection.template as CollectionRef;
 
-const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath, cutoffIssues }: SvieSmerteTableProps) => {
+const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath, cellIssues }: SvieSmerteTableProps) => {
   const table = useCollectionTable({
     collection,
     committedRows,
@@ -60,31 +60,33 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
   const renderRows = table.buildRenderRows(sortedRows);
 
   return (
-    <StandardLooseTable sx={{ width: '760px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>
+    <StandardLooseTable sx={{ width: '820px', tableLayout: 'fixed', mb: 3, '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' }, '& thead th': { textAlign: 'center' } }}>
       <TableHead><TableRow>
         <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
         <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
-        <StandardLooseHeaderCell sx={{ width: 100 }} {...sortableHeader('antalDage')}>Antal dage</StandardLooseHeaderCell>
+        {/* Årsagen står i overskriften, fordi tallet ellers ser ud som en tavs reduktion, når en
+            række rækker ud over EO-perioden (BB-217). */}
+        <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('antalDage')}>Antal dage (i EO-perioden)</StandardLooseHeaderCell>
         <StandardLooseHeaderCell sx={{ width: 220 }} {...sortableHeader('tilstand')}>Tilstand</StandardLooseHeaderCell>
       </TableRow></TableHead>
       <TableBody>{renderRows.map((row) => {
         const committed = table.committedById.get(row.rowId);
         const fraCell = table.buildCellSpec(row, eoSvieSmertePeriodeFraField, 0);
         const tilCell = table.buildCellSpec(row, eoSvieSmertePeriodeTilField, 1);
-        const cutoffFor = (cell: { field: { address: Parameters<typeof serializeFieldAddress>[0] } }): FieldIssue | undefined =>
-          cutoffIssues?.get(serializeFieldAddress(cell.field.address));
-        const fraCutoff = cutoffFor(fraCell);
-        const tilCutoff = cutoffFor(tilCell);
+        const issueFor = (cell: { field: { address: Parameters<typeof serializeFieldAddress>[0] } }): FieldIssue | undefined =>
+          cellIssues?.get(serializeFieldAddress(cell.field.address));
+        const fraIssue = issueFor(fraCell);
+        const tilIssue = issueFor(tilCell);
         return <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 0 }}
             cell={fraCell}
-            {...(fraCutoff === undefined ? {} : { collectionRuleIssue: fraCutoff })}
+            {...(fraIssue === undefined ? {} : { collectionRuleIssue: fraIssue })}
           /></TableCell>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 1 }}
             cell={tilCell}
-            {...(tilCutoff === undefined ? {} : { collectionRuleIssue: tilCutoff })}
+            {...(tilIssue === undefined ? {} : { collectionRuleIssue: tilIssue })}
           /></TableCell>
           <TableCell><Typography variant="body1">{committed === undefined ? '' : (derivedById[committed.id]?.antalDage ?? '')}</Typography></TableCell>
           <RowDeleteLaneCell>

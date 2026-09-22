@@ -1,6 +1,6 @@
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO } from '../../types/branded';
-import { formatCurrency } from '../../utils/formatUtils';
+import { formatCurrency, formatKr } from '../../utils/formatUtils';
 import { SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_LABELS } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { presentIssuesForRow, resolveEoRowDisplay } from './eoRowCommon';
@@ -17,7 +17,8 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
-import { erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
+import { erSvieSmertePeriodeInputRelevant, erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
+import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../erstatningsopgoerelse/helpers/svieSmerteMaksimum';
 import { getYearOneMonthAfter, hasSvieSmerteSatserForAar } from '../erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
@@ -187,6 +188,11 @@ export const buildEoSvieSmerteRows = (
   const hasSatserForOpgoerelsePlusOneMonthYear =
     typeof opgoerelsePlusOneMonthYear === 'number' && hasSvieSmerteSatserForAar(opgoerelsePlusOneMonthYear);
   const shouldShowSatsYearSuggestionWarning =
+    // Advarslen deler synlighedsprædikat med det felt, den handler om. Uden det blev den stående,
+    // når «Tidligere beregnet S/S til max.» fjernede satsårsfeltet – en opfordring til at gøre
+    // noget, der ikke kan gøres, med et link, der ikke markerede noget (BB-222). Et skjult felt er
+    // ikke udfyldt og må ikke kunne påvirke hverken beregning eller fejlmeddelelser.
+    erSvieSmertePeriodeInputRelevant(values) &&
     satserAarResolved.status !== 'error' &&
     !satserAarMangler &&
     values.revideretOpgoerelse !== 'Ja' &&
@@ -305,34 +311,53 @@ export const buildEoSvieSmerteRows = (
   if (!erFoersteOpgoerelse) {
     const tidligereTotalAmount = amountValueToNumber(values.svieSmerteTidligereTotal);
     const tidligereTotalResolved = resolveEoRowDisplay({
-      value: formatCurrency(tidligereTotalAmount),
+      // Med «kr.» som naborækkerne «Satser per dag/max» og «Beregnet svie/smerte»: et bart tal i en
+      // kolonne af beløb med enhed læses forkert. `formatKr` er den kanoniske read-only-visning.
+      value: tidligereTotalAmount === undefined ? '' : formatKr(tidligereTotalAmount, 2),
       issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteTidligereTotal'),
       emptyState: 'ok',
     });
     // Feltet er skjult, når svie/smerte ikke beregnes eller tidligere allerede er beregnet til
     // maksimum. Advarslen må derfor kun aktiveres, når linkets konkrete fokusmål er synligt.
+    // BEVIDST: `> 0` – ikke `!== undefined`. Et indtastet 0 behandles som tomt, fordi brugeren i
+    // 2. opgørelse er i tvivl, når 1. opgørelse ikke rummede et svie/smerte-krav, og derfor ved en
+    // fejl taster 0. Begge tilstande skal give samme advarsel (BB-220). Dokumentet spejler prøven,
+    // så skærm og papir ikke kan blive uenige om, hvorvidt beløbet er angivet.
     const tidligereTotalMangler =
       erSvieSmerteTidligereTotalRelevant(values) &&
       !(typeof tidligereTotalAmount === 'number' && tidligereTotalAmount > 0);
     const visTidligereTotalAdvarsel =
       tidligereTotalMangler && tidligereTotalResolved.status === 'ok';
+
+    // Teksten kommer fra samme kilde som den gule ring ved feltet, så boks og felt ikke kan drive
+    // fra hinanden (BB-219, samme lære som BB-207).
+    const overMaxTekst = resolveSvieSmerteTidligereTotalOverMaxWarning(values);
+    const visTidligereTotalOverMaxAdvarsel =
+      overMaxTekst !== null && tidligereTotalResolved.status === 'ok';
+
     const tidligereTotalStatus: EoRowStatus =
-      visTidligereTotalAdvarsel ? 'warning' : tidligereTotalResolved.status;
+      visTidligereTotalAdvarsel || visTidligereTotalOverMaxAdvarsel
+        ? 'warning'
+        : tidligereTotalResolved.status;
 
     rows.push({
       id: 'sviesmerte.tidligereTotal',
-      label: 'Svie/smerte-krav i tidligere erstatningsopgørelser',
+      label: 'Svie/smerte opgjort i tidligere erstatningsopgørelser',
       displayValue: tidligereTotalResolved.displayValue,
       status: tidligereTotalStatus,
       message: visTidligereTotalAdvarsel
-        ? 'Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser'
-        : undefined,
-      summaryDisplay: visTidligereTotalAdvarsel ? 'messageOnly' : undefined,
+        ? 'Der er ikke angivet svie/smerte opgjort i tidligere erstatningsopgørelser'
+        : visTidligereTotalOverMaxAdvarsel
+          ? overMaxTekst
+          : undefined,
+      summaryDisplay:
+        visTidligereTotalAdvarsel || visTidligereTotalOverMaxAdvarsel ? 'messageOnly' : undefined,
     });
   }
 
   // 5) Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode (ok hvis tomt)
-  const aktuelPeriodeValue = formatCurrency(amountValueToNumber(values.svieSmerteAktuelPeriode));
+  const aktuelPeriodeAmount = amountValueToNumber(values.svieSmerteAktuelPeriode);
+  const aktuelPeriodeValue = aktuelPeriodeAmount === undefined ? '' : formatKr(aktuelPeriodeAmount, 2);
   rows.push({
     id: 'sviesmerte.aktuelPeriode',
     label: 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode',

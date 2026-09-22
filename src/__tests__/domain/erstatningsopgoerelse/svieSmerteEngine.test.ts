@@ -163,4 +163,46 @@ describe('computeSvieSmerteEngine', () => {
     expect(result.totalOre).toBe(0);
     expect(result.harPerioder).toBe(false);
   });
+
+  describe('maksimumOpbrugtFoerPerioden', () => {
+    const medTidligere = (tidligere: number) => computeSvieSmerteEngine({
+      erstatningsopgoerelse: makeValues({
+        tidligereSsMax: 'Nej',
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-12-31'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2024-02-01'), til: iso('2024-02-28'), tilstand: 'sygemeldt' },
+        ],
+        svieSmerteSatserAar: 2024,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        svieSmerteTidligereTotal: asAmountValue(tidligere),
+        svieSmerteAktuelPeriode: asAmountValue(0),
+      }),
+    });
+
+    it('er sand, når tidligere opgørelser har brugt hele rammen op', () => {
+      // 88.500 er 2024-maksimum; 100.000 æder det helt, så der er ingen restplads.
+      const result = medTidligere(100_000);
+
+      expect(result.maksimumOpbrugtFoerPerioden).toBe(true);
+      expect(result.totalOre).toBe(0);
+    });
+
+    it('er falsk, når kravet blot skæres NED til en resterende plads', () => {
+      // 88.500 - 85.000 = 3.500 tilbage, og råkravet 28 × 230 = 6.440 skæres til det.
+      const result = medTidligere(85_000);
+
+      expect(result.maksimumOpbrugtFoerPerioden).toBe(false);
+      expect(result.maxApplied).toBe(true);
+      expect(result.totalOre).toBe(350_000);
+    });
+
+    it('er falsk, når hele kravet er inden for rammen', () => {
+      const result = medTidligere(0);
+
+      expect(result.maksimumOpbrugtFoerPerioden).toBe(false);
+      expect(result.maxApplied).toBe(false);
+      expect(result.totalOre).toBe(644_000);
+    });
+  });
 });

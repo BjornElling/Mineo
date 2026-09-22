@@ -8,8 +8,9 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12b – Erstatningsopgørelse → Svie- og smertegodtgørelse.** 12a er gennemgået
-  2026-09-15 (15 fund, BB-202–BB-216). Tidligere: hele Erhvervsevnetab er gennemgået,
+- **Næste flade:** **12c – Erstatningsopgørelse → Øvrige erstatningskrav.** 12b er gennemgået
+  2026-09-22 (11 fund, BB-217–BB-227). Tidligere: 12a er gennemgået
+  2026-09-15 (15 fund, BB-202–BB-216), og hele Erhvervsevnetab er gennemgået,
   afgjort OG gennemført i kode; fane 11e blev afgjort og implementeret 2026-09-09.
   **Flade 12 er 2026-09-07 delt i tretten bidder (12a–12m) efter EMNE frem for efter fane** – fanerne var
   ikke en brugbar deling, fordi «EO oplysninger» rummer ni selvstændige sektioner med hver sit
@@ -20,8 +21,24 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-217
-- **Åbne spørgsmål:** **ingen.** **Flade 12a's tre spørgsmål er afgjort 2026-09-17:**
+- **Næste fund-ID:** BB-228
+- **Åbne spørgsmål:** **tre, alle fra flade 12b.** De fire modsvar, der blev rejst 2026-09-22 på
+  udviklerens egne afgørelser, er alle besvaret og gennemført samme dag. Tilbage står: **(a) skal
+  validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen efter
+  BB-222's mandat og den eneste udestående del af det. `computeEoSnapshot` giver rækkebyggerne de
+  neutraliserede værdier, men validatoren de rå – bevidst, og begrundet i koden med, at gates også
+  skal se fejl i felter, «som ikke aktuelt er mountet eller aktive». Det står i direkte modstrid med
+  den nye regel: et negativt beløb, der skjules efter indtastning, blokerer fortsat download med en
+  fejl på et usynligt felt. At rette det er en omgørelse af en dokumenteret arkitekturbeslutning og
+  hører hos udvikleren, ikke hos agenten. **(b) Hvilken form skal den strukturelle sikring have?**
+  Reglen er afgjort og de fem forekomster rettet, men håndhævelsen er ikke: en AST-regel eller en
+  samlet filtrering for ALLE læsere, ikke kun talfødende input. Det tredje er det oprindelige:
+  **skal satsåret for svie/smerte have en
+  sammenhæng med de perioder, kravet dækker?** Feltet er i dag et frit årstal mellem 2005 og den
+  aktuelle satsdækning, og en sag med sygeperioder udelukkende i 2019 kan uden en eneste bemærkning
+  opgøres med 2026-satser (`250 kr./dag` mod `205 kr./dag`, 22 % højere). Den eneste kontrol i dag er
+  forslaget om året én måned efter opgørelsens dato. Spørgsmålet er beregningsteknisk og er derfor
+  rejst frem for registreret som fund. **Flade 12a's tre spørgsmål er afgjort 2026-09-17:**
   **(1) Må «Nummer» afgøre, om sagen regnes som første opgørelse? JA** – udledningen beholdes uændret.
   Feltet skal kunne tage hvad brugeren vil; i praksis skrives tal, og en tekstlinje kan alligevel ikke
   gennemskue en fritekst. Udvikleren fastholdt svaret, da beregningskonsekvensen (`2` og `Nr. 2` giver
@@ -62,7 +79,20 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 1–12a er alle afgjort og gennemført.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12b's elleve fund
+  (BB-217–BB-227) er afgjort af udvikleren 2026-09-22 OG gennemført i kode samme dag**, inklusive
+  de fire modsvar, udvikleren besvarede undervejs. **Ni rettet** (BB-217, BB-218, BB-219, BB-220,
+  BB-221, BB-222, BB-224, BB-225, BB-227) og **to afvist** (BB-223, BB-226). Modsvarene flyttede tre
+  af dem: BB-220's dokumenthalvdel blev afgjort (papiret tier nu ved `0`, som skærmen gør), BB-224's
+  ordlyd blev afklaret fagligt (tidligere PERIODER opgøres, den AKTUELLE periode fradrages med det
+  UDBETALTE – præcis som motoren regner), og BB-219's to tilstande blev bekræftet som én og samme.
+  **Tre afgørelser rakte ud over fundene:** BB-222's mandat gav en systematisk gennemgang, der fandt
+  **fem yderligere forekomster** af skjulte felter, der talte – tre rettet (to selvmodsigende
+  dokumentsætninger om påklagede afgørelser, der ikke findes, og et skjult `verserendeKlageEet`, der
+  slukkede en TAF-afgrænsning og flippede en statusrække til advarsel), to udskudt til en
+  arkitekturbeslutning om validatorens rå værdier. BB-218 krævede dertil, at ens overlaps-linjer
+  foldes til én, og BB-219 krævede gul ring, når et tidligere opgjort beløb overstiger maksimum.
+  Flade 1–12a er alle afgjort og gennemført.
   **Flade 12a er afgjort OG gennemført i kode 2026-09-17:** ti fund implementeret (BB-204, BB-205,
   BB-206, BB-207, BB-208, BB-209, BB-211, BB-212, BB-214, BB-215), tre afvist af udvikleren (BB-202,
   BB-203, BB-210) og ét registreret uden selvstændig rettelse (BB-216, bekræftet M-27-forekomst).
@@ -86,7 +116,57 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-09-15 (**Flade 12a – Erstatningsopgørelse → Opgørelsens ramme –
+- **Senest opdateret:** 2026-09-22 (**Flade 12b afgjort af udvikleren: seks godkendt, to delvist, to
+  afvist, ét delvist afvist – og afgørelserne ændrer tre ting ud over fundene.** (1) **BB-222 blev til
+  et mønster.** Udvikleren fastslog, at et skjult felt overalt i programmet skal betragtes som ikke
+  udfyldt og aldrig må påvirke beregninger eller fejlmeddelelser, og at fejlens eksistens derfor er en
+  arkitekturfejl frem for en lokal forglemmelse. Fundet er opgraderet fra Lokal til Mønster, og **M-32**
+  er skrevet på grundlag af afgørelsen – det første mønster i denne gennemgang, der kommer af en
+  afgørelse og ikke af en måling. Dets pointe er, at `eoInputRelevance.ts` allerede løser halvdelen
+  stringent og fail-closed for talfødende input, mens advarsler og forslag ligger uden for garantien,
+  uden at noget i koden siger det. (2) **BB-218 og BB-219 fik krav ud over fundene:** ens overlaps-linjer
+  skal foldes til én i «Fejl og advarsler», og et tidligere opgjort beløb over maksimum skal give gul
+  ring og advarsel – i dag tages `100.000` imod uden markering. (3) **To afgørelser rejste hver sit åbne
+  spørgsmål, som blokerer gennemførelsen af netop de fund:** BB-224's faglige skel mellem *opgjort*,
+  *udbetalt* og *krav* er rigtigt og gør det derfor nødvendigt at afklare, hvad feltet faktisk
+  indeholder, før nogen ordlyd vælges; og BB-220's afgørelse om, at `0` og tomt behandles ens, efterlader
+  dokumentets «med 0 kr.» som en påstand om en oplysning, programmet samtidig siger mangler.
+  **Afvisningerne:** BB-223 (brugeren kender den juridiske +1-måneds-regel) og BB-226 (fladen viser
+  bevidst kun hvilke ydelser og hvilken periode; beregninger og resultat hører i dokumentet, fordi et
+  sluttal på skærmen intet siger om beregningens rigtighed). BB-226's afvisning gør BB-217 vigtigere:
+  når skærmen bevidst ikke viser resultatet, skal det ene tal, den faktisk viser, være det rigtige.)
+- **Tidligere: 2026-09-22** (**Flade 12b – Erstatningsopgørelse → Svie- og smertegodtgørelse –
+  gennemgået: 11 fund, ét Høj, otte Mellem og to Lav. Ingen nye tværgående mønstre, men elleve
+  forekomster af de eksisterende, og fire af dem har samme rod.** Bidden er opgørelsens første
+  erstatningskrav og det eneste, der opgøres af rene datoer og en takst: kravvalget, «Tidligere beregnet
+  S/S til max.», periodetabellen, satsåret, satsen ved delvis sygemelding og de to fradragsfelter – plus
+  dokumentets afsnit «Svie- og smertegodtgørelse» med Status, Sygeperiode(r), Beregningsgrundlag og
+  Beregnet krav. **Roden bag de fire tunge fund er, at sektionen regner fire tal og viser ingen af dem:**
+  `buildEoSvieSmerteRows` producerer «Satser per dag/max», «Antal svie/smerte-dage i
+  erstatningsperioden», «Beregnet svie/smerte» og «Svie/smerte-ophør skyldes» – alle med `status: 'ok'`
+  og dermed usynlige uden for kontrolfanen «EO-kontrol», der er slået fra som standard. Det er BB-202's
+  rækkebygger-indgang bekræftet igen, og denne gang er de urenderede rækker svarene på tre selvstændige
+  fund. **Det tunge fund er BB-217:** tabellens kolonne «Antal dage» viser rækkens egen længde, mens
+  opgørelsen betaler for den del, der ligger i erstatningsperioden – målt `90` i tabellen mod «59
+  sygedage á 230 kr.» i papiret, og en række på `365` dage, der bidrager med nul og står umarkeret.
+  Informationsikonet ved «Periode:» beder udtrykkeligt brugeren om at lade tidligere perioder stå, så
+  divergensen er normaltilstanden fra og med 2. opgørelse, ikke en tastefejl. **BB-218 er M-20's
+  spejlvendte form i dens skarpeste hidtidige udgave:** svie/smerte-periodetabellens to datoceller er
+  omfattet af fire regler, tre af dem farver cellen, og den fjerde – overlap – spærrer hele opgørelsen
+  uden en eneste rød celle (målt `aria-invalid = "false"` på alle seks celler). Mekanikken til
+  rettelsen ligger allerede i tabellen, som tager ménafgørelses-cutoffen ind som `collectionRuleIssue`.
+  **BB-219 kan koste tillid i papiret:** «(reduceret til max)» står ved siden af `0,00 kr.`, hvor
+  maksimum var opbrugt i forvejen, og det loft, reduktionen faktisk skete til – `44.250 kr.` efter et
+  forlig på 50 % – trykkes ingen steder; papiret skriver `88.500 kr.` **BB-220 er M-13's nul-form flyttet
+  fra visning til validering** (et indtastet `0` meldes som «ikke angivet», mens dokumentet i samme sag
+  trykker «med 0 kr. for tidligere perioder»), og **BB-224 er BB-211's prøve på fem nye felter**, hvoraf
+  ét skifter begreb fire gange (*krav* · *udbetalt* · *smertebeløb* · *opgjort*). **Beregningsformlerne
+  selv er kontrolregnet i fem sagsformer og er i orden;** ingen af de 11 fund handler om et forkert
+  beløb. **M-07, M-09, M-10 og M-15's intervalprøve er efterprøvet og BESTÅET; M-24 er efterprøvet og
+  placeret på BB-119's afviste side; M-23 er uden genstand; M-27 er bekræftet i BB-216's allerede
+  registrerede, afbødede form.** BB-207's rettelse er efterprøvet i 12b og virker. Konsollen var tavs:
+  197 beskeder, 0 fejl, 0 advarsler.)
+- **Tidligere: 2026-09-15** (**Flade 12a – Erstatningsopgørelse → Opgørelsens ramme –
   gennemgået: 15 fund, to Høj, otte Mellem og fem Lav. Ingen nye tværgående mønstre, men femten
   forekomster af de eksisterende, og to af dem udvider mønsteret de hører til.** Biddens emne er sagens
   ramme: nummer, ledsagetekst, revision, periode, dato, udkast-stempel, status ved periodens udløb,
@@ -439,7 +519,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 11d | Erhvervsevnetab – EET efter EAL | Afgjort og gennemført | 8 (BB-177–BB-184) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11e | Erhvervsevnetab – Differencekrav | Afgjort og gennemført | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 12a | Erstatningsopgørelse – Opgørelsens ramme | Afgjort og gennemført | 15 (BB-202–BB-216) | [erstatningsopgoerelse-12a.md](erstatningsopgoerelse-12a.md) |
-| 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Ikke startet | – | – |
+| 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Afgjort og gennemført | 11 (BB-217–BB-227) | [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md) |
 | 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Ikke startet | – | – |
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Ikke startet | – | – |
 | 12e | Erstatningsopgørelse – TAF: perioden | Ikke startet | – | – |
@@ -451,6 +531,84 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Svie- og smertegodtgørelse (12b) – gennemgået 2026-09-22
+
+**11 fund: ét Høj, otte Mellem, to Lav. Alle afgjort 2026-09-22, ingen gennemført endnu:** seks godkendt
+(BB-217, BB-218, BB-221, BB-222, BB-225, BB-227), to delvist (BB-219, BB-224), to afvist (BB-223, BB-226)
+og ét delvist afvist (BB-220). **Tre afgørelser rækker ud over fundene:** BB-222's mandat om, at et skjult
+felt ALDRIG må påvirke beregninger eller fejlmeddelelser noget sted i programmet (nyt mønster M-32;
+BB-222 opgraderet fra Lokal til Mønster), BB-218's krav om at folde ens overlaps-linjer til én, og
+BB-219's krav om gul ring, når et tidligere opgjort beløb overstiger maksimum. **To afgørelser rejste
+hver sit åbne spørgsmål** (BB-224 om feltets indhold, BB-220 om dokumentets modsatte læsning af `0`),
+som skal besvares, før de fund kan gennemføres. Det fulde grundlag med målte tal og den enkelte
+beslutning står i [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md).
+
+| ID | Kort | Prioritet |
+|---|---|---|
+| BB-217 | Tabellens «Antal dage» viser 90, hvor opgørelsen betaler for 59 – og en række på 365 dage bidrager med nul | **Høj** |
+| BB-218 | Overlappende perioder spærrer hele opgørelsen uden en eneste rød celle | Mellem |
+| BB-219 | «(reduceret til max)» ved siden af 0,00 kr., og det loft der gjaldt (44.250 kr.) står intet sted | Mellem |
+| BB-220 | Et indtastet `0` meldes som «ikke angivet», mens papiret trykker «med 0 kr.» | Mellem |
+| BB-221 | «Tidligere beregnet S/S til max» og «Nej» giver samme ene ord i dokumentet: «Ingen» | Mellem |
+| BB-222 | Satsårsadvarslen bliver stående, når feltet forsvinder; linket markerer intet | Mellem |
+| BB-223 | «Indsæt årstal» indsætter 2025 i 2026 efter en +1-måneds-regel, intet siger | Mellem |
+| BB-224 | Fem felter hedder noget andet, end skærmen siger – ét af dem hedder fire ting | Mellem |
+| BB-226 | Sektionens eneste resultat – beløbet – findes kun i PDF'en og på en fane, der er slået fra | Mellem |
+| BB-225 | «Tidligere svie- og smertegodtgørelse» står over ét felt om den NUVÆRENDE periode | Lav |
+| BB-227 | Fire tilstande, ét ord: «Nej» i Beregning-fanens sammendrag | Lav |
+
+**Fire af de elleve fund har samme rod, og den er M-28's rækkebygger-indgang fra BB-202.**
+`buildEoSvieSmerteRows` producerer fire færdigformulerede rækker – «Satser per dag/max (forlig på 50 %)
+→ 115,00 kr. / 44.250,00 kr.», «Antal svie/smerte-dage i erstatningsperioden → 28 sygedage», «Beregnet
+svie/smerte → 3.220,00 kr.» og «Svie/smerte-ophør skyldes → Tidligere beregnet til max» – alle med
+`status: 'ok'` og dermed usynlige uden for kontrolfanen «EO-kontrol». Tre af dem er svaret på hvert sit
+selvstændige fund (BB-217, BB-219, BB-221), og den fjerde er selve beløbet (BB-226).
+
+**BB-217 er det tunge, og det rammer den arbejdsgang, programmet selv foreskriver.** Informationsikonet
+ved «Periode:» siger ordret: «Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved
+senere opgørelse.» Motorens trin 3 klipper derefter perioderne til opgørelsesperioden med en kommentar
+om, at det sker «stille … (ingen fejlindikation)». Tabellens kolonne «Antal dage» viser rækkens EGEN
+længde: målt `90` mod papirets «59 sygedage á 230 kr.», og en række på `365` dage helt uden for perioden,
+der bidrager med nul og hverken er markeret eller nævnt i dokumentet. Ingen celle er rød, og intet på
+fladen nævner klipningen.
+
+**BB-218 er M-20's spejlvendte form i den skarpeste udgave hidtil, fordi søskendereglerne gør det
+rigtige.** De to datoceller er omfattet af fire regler; dato-orden giver begge celler hver sin
+spejlvendte tekst, ménafgørelses-cutoffen giver rød celle med tooltip gennem `collectionRuleIssue`, og
+feltets bounds giver rød celle. Overlappet findes derimod kun som to ordret ens linjer i «Fejl og
+advarsler» og spærrer hele opgørelsen, mens alle seks celler måler `aria-invalid = "false"`. Mekanikken
+til rettelsen ligger allerede i `SvieSmerteTable`.
+
+**BB-219 er den, der kan koste tillid i papiret.** «(reduceret til max)» er den eneste forklaring på et
+beløb, og suffikset er usandt i netop den tilstand, hvor kravet er reduceret helt til 0, fordi maksimum
+var opbrugt i forvejen. Ved forlig trykker papiret det ureducerede loft (`88.500 kr.`), mens beregningen
+bruger `44.250 kr.` – et tal, kontrolfanen har færdigformuleret.
+
+**Konsekvenser for de resterende bidder – fire prøver at tage med:**
+1. **BB-211's mekaniske prøve er ikke udtømt** (BB-224). Rettelsen 2026-09-17 omdøbte 12a's seks felter,
+   men lod rækkemekanikken stå; 12b gav straks fem nye. Kør
+   `rg 'className="row--label-right-hover"' src/components` pr. bid, og læs navnene som BEGREBER, ikke
+   som strenge – 12b's værste tilfælde skifter mellem *krav*, *udbetalt* og *opgjort* om samme beløb.
+2. **En periodetabel, der afgrænses af en anden flades periode, skal måles på sin egen afledte kolonne**
+   (BB-217). TAF-periodetabellen (12e), ferieperioderne (12e/12f) og lønindkomstens perioder (12h) har
+   samme struktur. Indgang: `rg "stille clamping|ingen fejlindikation" src/domain`.
+3. **Tæl, hvor mange af et felts regler der når cellen** (BB-218). En regel, der er ene om kun at stå i
+   boksen, er sjældent en bevidst undtagelse. `detectOverlappingPeriods` bruges af tre tabeller mere.
+4. **En advarsel skal dele synlighedsprædikat med det felt, den handler om** (BB-222).
+   `eoInputRelevance.ts` har prædikaterne; `sviesmerte.tidligereTotal` bruger dem korrekt, satsårets
+   forslag gør ikke, og resultatet er et link, der markerer ingenting.
+
+**Dækningshuller:** kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620); kun PDF-kanalen er læst
+(Word-udgaven bør læses ved 12l, jf. BB-204); `Gem`/`Hent` ikke afprøvet, selv om BB-220's `0` og
+BB-217's rækker uden for perioden er netop den slags, der skal overleve en `.eo`-rundtur; undo/redo
+efter «Tidligere beregnet S/S til max» ikke målt; brevhovedet slået fra ikke afprøvet; sagen kørt uden
+TAF og uden lønindkomst, så samspillet mellem svie/smerte- og TAF-perioder er ikke set; kontrolfanen
+blev slået til for at bekræfte fire fund og er ikke gennemgået (12m).
+
+**Tilfældighedsfund til 12m:** kontrolfanens række «Svie/smerte-krav i tidligere erstatningsopgørelser»
+viser `0,00` **uden «kr.»**, mens naborækkerne viser `115,00 kr. / 44.250,00 kr.` og `3.220,00 kr.`
+(`formatCurrency` uden suffiks mod `formatCurrency(...) + ' kr.'` i samme builder).
 
 ## Erstatningsopgørelse → Opgørelsens ramme (12a) – gennemgået 2026-09-15
 

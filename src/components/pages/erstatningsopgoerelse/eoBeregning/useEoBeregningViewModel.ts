@@ -666,9 +666,17 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     beregnesSvieSmerte &&
     (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
+  // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode. Ordet dækkede før tre
+  // forskellige tilstande – kravet er fravalgt, kravet er opbrugt, og perioderne mangler endnu –
+  // så et «Nej» ud for en tom tabel læstes som «det emne er afsluttet» (BB-227).
   // 'Skjul' har samme beregningsadfærd som 'Nej', men udelades helt fra opgørelses-PDF'en.
   // Markér det i oversigten, så det er tydeligt at emnet er fravalgt fra dokumentet (ikke kun 0 kr.).
-  const svieSmerteFravalgtTekst = eoValues.kravPaaSvieSmerteGodtgoerelse === 'Skjul' ? 'Nej (skjult)' : 'Nej';
+  const svieSmerteFravalgtTekst = (() => {
+    if (eoValues.kravPaaSvieSmerteGodtgoerelse === 'Skjul') return 'Ikke rejst (skjult)';
+    if (eoValues.kravPaaSvieSmerteGodtgoerelse !== 'Ja') return 'Ikke rejst';
+    if (eoValues.tidligereSsMax === 'Ja') return 'Maksimum nået i tidligere opgørelse';
+    return 'Ingen perioder angivet';
+  })();
   const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : [svieSmerteFravalgtTekst];
   const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
     ? 'Svie/smerte-perioder'

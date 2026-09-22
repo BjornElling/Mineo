@@ -541,7 +541,7 @@ export const eoDifferencekravDatoField = dateField(
 );
 
 // ── Svie/smerte (skalarer) ──────────────────────────────────────────────────────
-export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Krav på svie- og smertegodtgørelse', 'Ja');
+export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kravPaaSvieSmerteGodtgoerelse', 'Er der krav på svie- og smertegodtgørelse i erstatningsperioden', 'Ja');
 export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
   'svieSmerteHelbredsstatus', 'Helbredsforhold', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
@@ -553,16 +553,21 @@ export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefin
   codec: createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_SVIESMERTE_YEAR, maxYear: getCurrentYear() }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Svie/smerte satsår',
+  label: 'Hvilket års svie/smerte-satser lægges til grund?',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, getCurrentYear)],
 });
 export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
-  'svieSmerteDelvisSygemeldingSats', 'Sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',
+  'svieSmerteDelvisSygemeldingSats', 'Svie/smerte-sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',
 );
-export const eoSvieSmerteTidligereTotalField = amountField('svieSmerteTidligereTotal', 'Tidligere udbetalt svie/smerte');
-export const eoSvieSmerteAktuelPeriodeField = amountField('svieSmerteAktuelPeriode', 'Svie/smerte aktuel periode');
+// Tidligere PERIODER opgøres; hvad der faktisk blev betalt for dem er uden betydning, fordi beløbet
+// fradrages i MAKSIMUM (svieSmerteEngine: restPlads = max - tidligere). Derfor "opgjort", ikke
+// "udbetalt" – label, advarsel og dokument bruger samme ord om samme tal (BB-224).
+export const eoSvieSmerteTidligereTotalField = amountField('svieSmerteTidligereTotal', 'Svie/smerte opgjort i tidligere erstatningsopgørelser');
+// Den AKTUELLE periode er den omvendte regel: kun det faktisk betalte tæller, fordi beløbet
+// fradrages i det opgjorte krav for perioden (svieSmerteEngine: beloeb - allerede).
+export const eoSvieSmerteAktuelPeriodeField = amountField('svieSmerteAktuelPeriode', 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode');
 
 // ── TAF (skalarer) ──────────────────────────────────────────────────────────────
 export const eoKravPaaTabtArbejdsfortjenesteField = requiredJaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste', 'Ja');

@@ -402,7 +402,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(tafBlock).not.toContain('01-01-2024 - 31-01-2024');
   });
 
-  it('viser kun "Ingen" i svie/smerte-sektionen når tidligere S/S max er valgt trods stale felter', () => {
+  it('viser kun maksimum-sætningen i svie/smerte-sektionen når tidligere S/S max er valgt trods stale felter', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eo.tidligereSsMax = 'Ja';
@@ -418,10 +418,82 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
 
-    expect(svieBlock).toContain('Ingen');
+    // «Ingen» er forbeholdt kravvalget «Nej». En udtømt ramme er et andet juridisk udsagn og
+    // skrives som sådan (BB-221).
+    expect(svieBlock).toContain('Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.');
+    expect(svieBlock).not.toContain('Ingen');
     expect(svieBlock).not.toContain('Den 1. februar 2024 var skadelidte fortsat sygemeldt.');
     expect(svieBlock).not.toContain('Sygeperiode med svie- og smertegodtgørelse');
     expect(svieBlock).not.toContain('01-01-2024 - 31-01-2024');
+  });
+
+  it('skriver maksimum-sætningen i stedet for et misvisende "(reduceret til max)" ved 0 kr.', () => {
+    // Maksimum var brugt op af tidligere opgørelser, så kravet er ikke reduceret TIL maksimum –
+    // det bortfalder. Tilstanden er den samme som togglen og skrives ordret ens (BB-219).
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eo.tidligereSsMax = 'Nej';
+    eo.svieSmerteSatserAar = 2024;
+    eo.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eo.svieSmerteTidligereTotal = asAmountValue(100_000);
+    eo.svieSmertePerioder = [
+      { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
+
+    expect(svieBlock).toContain('Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.');
+    expect(svieBlock.some((text) => text.includes('(reduceret til max)'))).toBe(false);
+  });
+
+  it('tier om et indtastet 0 i "tidligere opgjort", præcis som ved et tomt felt', () => {
+    // `0` er ikke et svar (BB-220): advarslen står, og papiret må derfor ikke samtidig oplyse
+    // modparten om et beløb, programmet siger mangler.
+    const { stamdata, eo } = buildBaseInput();
+    eo.eoNummer = '2';
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eo.tidligereSsMax = 'Nej';
+    eo.svieSmerteSatserAar = 2024;
+    eo.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eo.svieSmerteTidligereTotal = asAmountValue(0);
+    eo.svieSmertePerioder = [
+      { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
+
+    expect(svieBlock.some((text) => text.includes('for tidligere perioder'))).toBe(false);
+  });
+
+  it('trykker det forligsreducerede loft, så læseren ikke selv skal gange', () => {
+    // Før stod kun de ureducerede tal, og det loft beregningen faktisk bruger, fandtes intet
+    // sted i papiret (BB-219).
+    const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eo.tidligereSsMax = 'Nej';
+    eo.svieSmerteSatserAar = 2024;
+    eo.svieSmerteDelvisSygemeldingSats = 'fuld';
+    eo.forligAnsvarsgradProcent = 50;
+    eo.svieSmertePerioder = [
+      { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const takstLinje = texts.find((text) => text.startsWith('Taksten udgør'));
+
+    expect(takstLinje).toContain('svarende til');
+    // 2024: 230 kr./dag og 88.500 kr. i maksimum; ved 50 % forlig 115 kr. og 44.250 kr.
+    expect(takstLinje).toContain('44.250');
+    expect(takstLinje).toContain('88.500');
   });
 
   it('skjuler "I alt:" når kun én del-linje vises', () => {

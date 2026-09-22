@@ -155,6 +155,7 @@ import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 import { collectSvieSmerteCutoffDateIssues } from './svieSmerteCutoffDateIssues';
+import { collectSvieSmerteOverlapIssues } from './svieSmerteOverlapIssues';
 
 // Erstatningsopgørelse-projektionen (§3.4/§5.4/§1.10). En
 // ALMINDELIG ren funktion over den offentlige `InputReader`, der erstatter `Erstatningsopgoerelse.tsx`'s revisions-
@@ -535,8 +536,12 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   manualRegulationDateIssues: FieldIssueSet;
   /** TAF-cutoff mod differencekrav/EET, adresseret til den konkrete fra-/til-celle der overskrider grænsen. */
   tafCutoffDateIssues: FieldIssueSet;
-  /** Svie/smerte-cutoff mod ménafgørelsen, adresseret til de konkrete fra-/til-celler der overskrider grænsen. */
-  svieSmerteCutoffDateIssues: FieldIssueSet;
+  /**
+   * Svie/smerte-rækkeregler projekteret til de konkrete fra-/til-celler: ménafgørelsens cutoff og
+   * overlappet mellem perioder. Begge er regler, der ikke kan ligge på descriptoren, og som uden
+   * projektionen ville spærre opgørelsen uden at farve en celle.
+   */
+  svieSmerteCellIssues: FieldIssueSet;
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
@@ -733,8 +738,12 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
   const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
   const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
+  // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
+  // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
+  const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
+  const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
   const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCutoffDateIssueList);
-  const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteCutoffDateIssueList);
+  const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
   const eoFieldIssues = mergeIssues(eoProjection.readIssues(), projectedRowIssues);
   const stamdataFieldIssues = stamdataProjection.readIssues();
   const eoErrors = buildFieldIssueSet(eoFieldIssues);
@@ -742,7 +751,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const dependencyProjection = buildEoDependencyProjection(
     reader,
     eoFieldIssues,
-    { svieSmerte: svieSmerteCutoffDateIssueList, taf: tafProjectedIssues }
+    { svieSmerte: svieSmerteProjectedIssues, taf: tafProjectedIssues }
   );
 
   const snapshot = computeEoSnapshot({
@@ -763,7 +772,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     stamdataErrors,
     manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
     tafCutoffDateIssues: buildFieldIssueSet(tafCutoffDateIssueList),
-    svieSmerteCutoffDateIssues: buildFieldIssueSet(svieSmerteCutoffDateIssueList),
+    svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
     sourceToken: reader.sourceToken,
   };
 };

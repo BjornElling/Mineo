@@ -6,6 +6,7 @@ import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatning
 import { buildTafDerived } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { resolveAnvendtReguleringsdatoReferenceText, resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { parseISODate } from '../../../../types/branded';
@@ -37,12 +38,34 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
   const skadedatoISO = stamdataValues.skadedato;
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
   const loentrinFinder = useLoentrinFinder();
+  // "Antal dage" viser rækkens bidrag til opgørelsen – altså dagene INDEN FOR EO-perioden, ikke
+  // rækkens egen længde. Opgørelsen betaler kun for det afgrænsede, og kolonnen er det eneste tal,
+  // brugeren ser mens han taster (BB-217). Kolonneoverskriften bærer årsagen, så det lavere tal
+  // ikke fremstår som en tavs reduktion.
+  // Der clampes mod EO-perioden ALENE – ikke mod ménafgørelsens cutoff, som er en fejlgivende
+  // grænse med rød celle og egen besked; den skal ikke også tælle dage ned bag om ryggen.
+  // Engineens `constrainedPeriods` kan ikke bruges her: den fletter overlappende/tilstødende
+  // perioder og sorterer dem, så rækkeidentiteten går tabt.
+  const eoPeriodeBounds = React.useMemo(
+    () => resolveSvieSmerteEoPeriodeBounds({
+      vedroererPeriodeFra: values.vedroererPeriodeFra,
+      vedroererPeriodeTil: values.vedroererPeriodeTil,
+    }),
+    [values.vedroererPeriodeFra, values.vedroererPeriodeTil],
+  );
   const svie = React.useMemo(() => ({
     derivedById: Object.fromEntries(values.svieSmertePerioder.map((row) => {
       const hasRangeError = row.fra !== undefined && row.til !== undefined && row.fra > row.til;
-      return [row.id, { hasRangeError, antalDage: hasRangeError ? null : calculateKalenderdageInclusive(row.fra, row.til) }];
+      if (hasRangeError) return [row.id, { hasRangeError, antalDage: null }];
+      if (row.fra === undefined || row.til === undefined) {
+        return [row.id, { hasRangeError, antalDage: calculateKalenderdageInclusive(row.fra, row.til) }];
+      }
+      const clamped = clampSvieSmerteRange({ fra: row.fra, til: row.til }, eoPeriodeBounds);
+      // Helt uden for perioden: rækken bidrager med 0, ikke med sin egen længde.
+      if (clamped === null) return [row.id, { hasRangeError, antalDage: 0 }];
+      return [row.id, { hasRangeError, antalDage: calculateKalenderdageInclusive(clamped.fra, clamped.til) }];
     })),
-  }), [values.svieSmertePerioder]);
+  }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
   const ferieFeriedageById = React.useMemo(() => Object.fromEntries(values.ferieperioder.map((row) => [row.id, calculateFerieHverdageMinusSHDage(row.fra, row.til)])), [values.ferieperioder]);
   const fravaerFeriedageById = React.useMemo(() => Object.fromEntries(values.fravaerPerioder.map((row) => [row.id, calculateFerieHverdageMinusSHDage(row.fra, row.til)])), [values.fravaerPerioder]);

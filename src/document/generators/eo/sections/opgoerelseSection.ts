@@ -24,6 +24,16 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../sc
 import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
 import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
+/**
+ * Ét sted for den sætning, der erstatter «Ingen», når rammen er udtømt.
+ *
+ * Konstanten er ikke en bekvemmelighed: begge veje til en udtømt ramme – brugerens afkrydsning
+ * «Tidligere beregnet S/S til max.» og programmets beregning ud fra et indtastet beløb – skal sige
+ * ordret det samme, fordi de er samme tilstand (BB-219/BB-221). To strenge kunne drive fra hinanden.
+ */
+const SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST =
+  'Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.';
+
 type OpgorelseSectionContext = Readonly<{
   model: EoModel;
   eoValues: ErstatningsopgoerelseValues;
@@ -181,7 +191,18 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
   );
   if (!model.svieSmerte.beregnes) {
-    safeAddWrappedText('Ingen');
+    // «Ingen» dækkede før både «der rejses ikke krav» og «kravet findes, men er udtømt». De to er
+    // forskellige juridiske udsagn over for modparten, og den, der senere åbner sagen, kunne ikke
+    // se hvorfor der ikke stod et beløb (BB-221).
+    safeAddWrappedText(
+      model.svieSmerte.ingenBeloebAarsag === 'maksimumOpbrugt'
+        ? SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST
+        : 'Ingen'
+    );
+  } else if (model.svieSmerte.ingenBeloebAarsag === 'maksimumOpbrugt') {
+    // Maksimum var opbrugt af tidligere opgørelser, så der er intet krav tilbage. Samme tilstand
+    // som togglen – og derfor ordret samme sætning (BB-219).
+    safeAddWrappedText(SVIE_SMERTE_MAKSIMUM_OPBRUGT_TEKST);
   } else {
     renderSubheaderIfContent({
       text: 'Status',
@@ -256,8 +277,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       }
 
       if (visForligMedFuldeSatser && takstLedFoerForlig.length > 0) {
+        // Før stod kun de ureducerede tal («50 % af (230 kr. pr. sygedag, dog højst 88.500 kr.)»),
+        // så læseren selv skulle gange loftet med forligsgraden for at nå det tal, beregningen
+        // faktisk bruger. Nu trykkes begge dele: graden OG de tal, den giver (BB-219).
         safeAddWrappedText(
-          `Taksten udgør ${forligSatsLabel} af (${takstLedFoerForlig.join(' og ')}, dog højst ${maxDisplayWithKrFoerForlig})`
+          `Taksten udgør ${forligSatsLabel} af (${takstLedFoerForlig.join(' og ')}, dog højst ${maxDisplayWithKrFoerForlig}), svarende til ${takstLed.join(' og ')}, dog højst ${maxDisplayWithKr}`
         );
       } else if (takstLed.length > 0) {
         safeAddWrappedText(`Taksten udgør ${takstLed.join(' og ')}, dog højst ${maxDisplayWithKr}`);

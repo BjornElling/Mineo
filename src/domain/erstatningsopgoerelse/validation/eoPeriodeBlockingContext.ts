@@ -3,6 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { resolveMidlertidigEetDatoHvisAktiv } from './tafPeriodConstraints';
 import { resolveSvieSmerteCutoffDate } from './svieSmerteConstraints';
+import { erEETKlageRelevant } from '../helpers/eoInputRelevance';
 
 /**
  * Afledning af de dato-/afgørelses-grænser som periode-blokeringen (svie/smerte, TAF, ferie)
@@ -66,7 +67,14 @@ export const buildTaftContext = (
     ...erstatningsopgoerelseValues,
     skadedatoISO: stamdataValues.skadedato,
   });
-  const verserendeKlageEet = erstatningsopgoerelseValues.verserendeKlageEet === 'Ja';
+  // Klagefeltet vises kun, når mindst én EET-afgørelse er truffet (`erEETKlageRelevant`). Er det
+  // skjult, er det pr. definition ikke udfyldt og må ikke kunne påvirke noget: en stale «Ja»
+  // slukkede ellers differencekravets cutoff, så `taf.ophoerSkyldes` skiftede fra en ok-række til
+  // en advarsel, og TAF-/ferieperiodernes grænsevalidering blev lempet – alt sammen styret af et
+  // felt, brugeren ikke kan se (BB-222's regel).
+  const verserendeKlageEet =
+    erEETKlageRelevant(erstatningsopgoerelseValues) &&
+    erstatningsopgoerelseValues.verserendeKlageEet === 'Ja';
 
   return {
     skadedatoISO: stamdataValues.skadedato,

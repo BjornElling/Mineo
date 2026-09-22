@@ -233,6 +233,8 @@ export const buildEoAesRows = (
   const varigeMenErSynlig = values.varigeMenAfgorelse === 'Ja';
   const midlertidigEetErSynlig = values.midlertidigtEETAfgorelse === 'Ja';
   const endeligEetErSynlig = values.endeligtEETAfgorelse === 'Ja';
+  // Klagefeltet deler prædikat med de to EET-afgørelser: det vises, når mindst én er truffet.
+  const klageEetErSynlig = midlertidigEetErSynlig || endeligEetErSynlig;
 
   // Konverter datoer til dansk format - men kun hvis feltet er synligt
   const danishMenAfgoerelseDato = varigeMenErSynlig ? isoToDanish(values.menAfgoerelseDato) : undefined;
@@ -492,7 +494,14 @@ export const buildEoAesRows = (
     {
       id: 'aes.verserendeKlageEet',
       label: 'Verserende klage over EET',
-      ...resolveEoRowDisplay({ value: values.verserendeKlageEet, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'verserendeKlageEet'), emptyState: 'error' }),
+      // Feltet vises kun, når mindst én EET-afgørelse er truffet. Uden gaten kunne rækken gå rød
+      // på et tomt felt, som slet ikke er på skærmen – en fejl, brugeren hverken kan se eller
+      // rette (BB-222's regel). `emptyState` følger derfor synligheden.
+      ...resolveEoRowDisplay({
+        value: values.verserendeKlageEet,
+        issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'verserendeKlageEet'),
+        emptyState: klageEetErSynlig ? 'error' : 'ok',
+      }),
       group: 'aes.oevrigt',
     },
     {

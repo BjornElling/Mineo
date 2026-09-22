@@ -225,6 +225,10 @@ const withForligGate = (
     forligFactor: null,
     totalOre: zeroMoneyOre(),
     maxApplied: false,
+    // Loftet er skaleret af forligsgraden og derfor ukendt, når forliget er blokeret. Så kan vi
+    // heller ikke påstå, at maksimum var opbrugt – papiret ville ellers skrive en konklusion om en
+    // ramme, ingen kender.
+    maksimumOpbrugtFoerPerioden: false,
   })
   : output;
 

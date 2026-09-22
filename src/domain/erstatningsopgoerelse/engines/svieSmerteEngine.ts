@@ -52,6 +52,13 @@ export type SvieSmerteEngineOutput = Readonly<{
   delviseSygedage: number;
   delvisFaktor: 1 | 0.5;
   maxApplied: boolean;
+  /**
+   * Maksimum var opbrugt FØR denne opgørelse: det, der er opgjort i tidligere opgørelser, æder hele
+   * rammen, så der ikke er restplads tilbage. Adskilt fra `maxApplied`, som også er sand, når kravet
+   * blot skæres NED til en resterende plads. Forskellen er den, papiret skal fortælle: «reduceret
+   * til max» er sandt i det ene tilfælde og misvisende i det andet, hvor beløbet bliver 0 (BB-219).
+   */
+  maksimumOpbrugtFoerPerioden: boolean;
   totalOre: MoneyOre;
 }>;
 
@@ -134,6 +141,7 @@ const buildZeroOutput = (values: DeepReadonly<SvieSmerteCalculationValues>): Svi
     delviseSygedage: 0,
     delvisFaktor: values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5,
     maxApplied: false,
+    maksimumOpbrugtFoerPerioden: false,
     totalOre: zeroMoneyOre(),
   };
 };
@@ -279,6 +287,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
 
   let totalOre = zeroMoneyOre();
   let maxApplied = false;
+  let maksimumOpbrugtFoerPerioden = false;
 
   if (harPerioder) {
     // Satser er garanteret tilstede her: harPerioder kræver harInputPerioder,
@@ -300,6 +309,10 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     const restPladsEfterTidligere = clampToNonNegative(restPlads);
     const beloebFoerFradrag = Math.min(rawKroner, restPladsEfterTidligere);
     maxApplied = rawKroner > restPladsEfterTidligere;
+    // Ingen restplads overhovedet: rammen var brugt op i forvejen, og kravet nedsættes ikke TIL
+    // maksimum – det bortfalder. Den tilstand er samme virkelighed som togglen «Tidligere beregnet
+    // S/S til max.» og skal behandles ens (BB-219).
+    maksimumOpbrugtFoerPerioden = restPladsEfterTidligere <= 0 && rawKroner > 0;
     const beloeb = clampToNonNegative(beloebFoerFradrag - allerede);
     totalOre = clampMoneyOreToZero(fromKroner(roundKroner(beloeb)));
   }
@@ -323,6 +336,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     delviseSygedage,
     delvisFaktor,
     maxApplied,
+    maksimumOpbrugtFoerPerioden,
     totalOre: clampMoneyOreToZero(totalOre),
   };
 };

@@ -12,6 +12,49 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-22 fra Erstatningsopgørelse → Svie- og smertegodtgørelse (12b) – M-32, som ikke
+kom af gennemgangen, men af udviklerens afgørelse på BB-222: et skjult felt skal overalt i programmet
+betragtes som ikke udfyldt og må aldrig påvirke beregninger eller fejlmeddelelser. At fundet kunne opstå er
+en arkitekturfejl, ikke en lokal forglemmelse, og BB-222 er derfor opgraderet fra Lokal til Mønster.
+Den efterfølgende gennemgang fandt fem yderligere forekomster, hvoraf tre er rettet og to er udskudt til
+en arkitekturbeslutning. Dertil elleve forekomster af de eksisterende mønstre – og de fire tungeste er
+ÉN og samme rod: sektionen regner fire tal og viser ingen af dem.**
+`buildEoSvieSmerteRows` producerer «Satser per dag/max (forlig på 50 %) → 115,00 kr. / 44.250,00 kr.»,
+«Antal svie/smerte-dage i erstatningsperioden → 28 sygedage», «Beregnet svie/smerte → 3.220,00 kr.» og
+«Svie/smerte-ophør skyldes → Tidligere beregnet til max» – alle fire med `status: 'ok'` og dermed usynlige
+uden for kontrolfanen «EO-kontrol», der er slået fra som standard. **M-28's rækkebygger-indgang fra BB-202
+er dermed bekræftet en gang til, og denne gang er de urenderede rækker svarene på tre selvstændige fund:**
+BB-217 (**Høj** – tabellens «Antal dage» viser rækkens egen længde, mens opgørelsen betaler for den
+afgrænsede: målt `90` i tabellen mod «59 sygedage» i papiret, og en række på `365` dage, der bidrager med
+nul og er umarkeret; informationsikonet beder udtrykkeligt brugeren om at lade tidligere perioder stå, så
+tilstanden er normaltilstanden) · BB-219 (Mellem – «(reduceret til max)» står ved siden af `0,00 kr.`, og
+det loft, reduktionen skete til, `44.250 kr.` efter forlig, trykkes ingen steder; papiret skriver
+`88.500 kr.`) · BB-221 (Mellem – «Tidligere beregnet S/S til max» og kravvalget «Nej» giver ordret samme
+ene ord i dokumentet, «Ingen») · BB-226 (Mellem – selve beløbet findes kun i PDF'en og på kontrolfanen).
+**De øvrige forekomster:** **M-20 i sin spejlvendte form** (BB-218 – overlappende perioder spærrer hele
+opgørelsen uden en eneste rød celle, mens de tre andre regler på præcis samme celler farver dem; målt
+`aria-invalid = "false"` på alle seks celler mod røde celler ved dato-orden og ved ménafgørelses-cutoffen)
+· **M-13's nul-form i valideringen** (BB-220 – et indtastet `0` meldes som «ikke angivet», mens dokumentet
+i samme sag trykker «med 0 kr. for tidligere perioder»; prædikatet er `> 0` i stedet for `!== undefined`)
+· **M-02 i BB-211's mekaniske form, nu på fem felter** (BB-224 – og det skarpeste af dem skifter BEGREB
+undervejs: «Svie/smerte-**krav** i tidligere erstatningsopgørelser» / `Tidligere **udbetalt**
+svie/smerte` / «svie-/**smertebeløb**» / «Der er **opgjort** …») · **M-28 + M-02 om en usynlig regel**
+(BB-223 – knappen «Indsæt årstal» indsætter året én måned efter «Opgørelse lavet den», altså `2025` i
+september 2026, og advarslen «Svie/smerte-satsen for 2025 kan anvendes.» nævner hverken det valgte år
+eller reglen – på kontrolfanen ERSTATTER den endda værdien) · **en blindgyde** (BB-222 – samme advarsel
+bliver stående, når satsårsfeltet fjernes af «Tidligere beregnet S/S til max»; linket markerer intet,
+målt nul blink og nul felter i DOM'en) · **M-13 i sammendraget** (BB-227 – fire tilstande, ét ord: «Nej»)
+· og **et lokalt navnefund** (BB-225 – underoverskriften «Tidligere svie- og smertegodtgørelse» står ved
+første opgørelse over ét felt om den NUVÆRENDE periode).
+**M-07 er efterprøvet og BESTÅET** (dato-orden giver begge celler hver sin spejlvendte tekst – BF-028 i
+drift), **M-24 er efterprøvet og placeret på BB-119's afviste side** (nullet ER svie/smerte-kravets
+velkendte resultatform), **M-15's intervalprøve er bestået** (feltets 2005–2026 svarer præcis til
+satsdatasættets dækning), **M-23 er uden genstand** (overlapsdetektionen afviser to identiske rækker), og
+**M-27 er bekræftet i BB-216's allerede registrerede, afbødede form** (rød Skadedato slukker
+periodecellernes gulv; EO's boks navngiver årsagen og spærrer download). **BB-207's rettelse er
+efterprøvet i 12b og virker** (gul ring `rgb(245, 158, 11)` på et bilagsnummer uden krav). M-09 og M-10
+er efterprøvet og bestået. Konsollen var tavs: 197 beskeder, 0 fejl, 0 advarsler.
+
 **Ingen nye mønstre 2026-09-15 fra Erstatningsopgørelse → Opgørelsens ramme (12a), men femten forekomster –
 og den tungeste er M-01 i en form, mønsteret ikke havde forudset: ikke et VALG, men et FRITEKSTFELT, der
 ændrer hvad programmet regner.** Feltet «Nummer» parses af `erDetteFoersteErstatningsopgoerelse`, og svaret
@@ -466,6 +509,24 @@ tæl de veje der fører dertil, og spørg om beskeden OG linket passer på dem a
 mønsterets svar på, hvorfor en besked, der navngiver et begreb frem for et felt, opstår: begrebet er ofte
 det ENESTE, der er sandt i alle tilstandene – og det er en grund til at dele issuet, ikke til at beholde
 begrebet.
+
+**Ny forekomst 2026-09-22, og den viser, at BB-211's rettelse var en OPRYDNING og ikke en lukning af
+hullet** (`erstatningsopgoerelse-12b.md` BB-224, Mellem). BB-211 gav 12a's seks felter deres synlige
+etiket, men lod rækkemekanikken stå – og den næste sektion har derfor fem nye: «Er der krav på svie- og
+smertegodtgørelse i erstatningsperioden» → `Krav på svie- og smertegodtgørelse`; «Hvilket års
+svie/smerte-satser lægges til grund?» → `Svie/smerte satsår`; «Svie/smerte-sats ved delvis sygemelding»
+→ `Sats ved delvis sygemelding`; «Svie/smerte-krav i tidligere erstatningsopgørelser» → `Tidligere
+udbetalt svie/smerte`; «Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode» →
+`Svie/smerte aktuel periode`. Skillelinjen holder: sektionens ENESTE toggle, «Tidligere beregnet S/S til
+max.», bærer korrekt sin rækketekst, fordi den tegnes af `LabeledControlRow`.
+**Den fjerde af dem skifter BEGREB og er derfor mere end en navnesag:** samme beløb hedder
+«Svie/smerte-**krav** i tidligere erstatningsopgørelser» på skærmen, `Tidligere **udbetalt**
+svie/smerte` i oplæsning og fejltekster, «et svie-/**smertebeløb** for tidligere erstatningsopgørelser»
+i advarslen og «Der er **opgjort** svie- og smertegodtgørelse med X for tidligere perioder» i dokumentet.
+*Krav*, *udbetalt* og *opgjort* er tre forskellige størrelser i en erstatningssag, og feltet trækkes fra
+maksimum uanset hvilken af dem brugeren tror, han taster. **Læren: mønsterets prøve skal ikke stoppe ved
+«er de to strenge forskellige?», men spørge, om de to ord betegner det samme forhold** – det er BB-184's
+begrebsprøve, nu brugt inden for ét felt i stedet for på tværs af to faner.
 
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
@@ -1155,6 +1216,21 @@ måles og rettes.
   oplysning lægges i en betinget sektion, spørg hvilke KALDERE der slår sektionen fra, og om oplysningen er
   undværlig for dem.** Indgang: `rg "include[A-Z]\w*Header|include[A-Z]\w* = true" src/document/generators`
   – hvert flag af den form er en sektion, en anden kalder fravælger.
+- **Ny forekomst 2026-09-22, og den flytter nul-prøven fra VISNING til VALIDERING**
+  (`erstatningsopgoerelse-12b.md` BB-220, Mellem). Feltet «Svie/smerte-krav i tidligere
+  erstatningsopgørelser» med værdien `0` viser `0,00` på skærmen, og dokumentet skriver «Der er opgjort
+  svie- og smertegodtgørelse med **0 kr.** for tidligere perioder» – men «Fejl og advarsler» skriver
+  samtidig «Der er ikke angivet et svie-/smertebeløb for tidligere erstatningsopgørelser». Prædikatet er
+  `!(typeof x === 'number' && x > 0)` i `eoRowSvieSmerteRows.ts`. **Mønsteret har hidtil handlet om, at
+  to udgaver er uenige om at VISE et nul; her afgør `> 0`, om programmet mener, at brugeren har SVARET.**
+  Nullet er det rigtige svar i en almindelig sag (2. opgørelse efter en første, der kun rummede TAF), og
+  advarslen kan derfor ikke ryddes på nogen måde. **Prøven udvides: `rg "> 0" src/domain/eoRowEvaluation`
+  over de prædikater, der afgør en ADVARSELS synlighed – ikke kun en rækkes.**
+- **Ny forekomst 2026-09-22 i sammendragsform** (`erstatningsopgoerelse-12b.md` BB-227, Lav): fire
+  tilstande – krav = Nej, krav = Skjul, «Tidligere beregnet S/S til max» = Ja, og krav = Ja uden
+  indtastede perioder – giver alle rækken «Svie/smerte-periode» værdien `Nej` (den anden dog
+  `Nej (skjult)`). Ordet «Nej» er ikke en periode, og de tre ens svar dækker over «intet krav»,
+  «kravet er opbrugt» og «du mangler at taste».
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -1659,6 +1735,20 @@ ene felts egen værdi.
   selv om fundets beskrivelse af hvilket FELT der manglede ringen, var forkert; mekanismen er den
   pålidelige del af prøven, den visuelle måling den skrøbelige.**
   Konkret uafprøvet søster: `warn-eal-aarsloen-empty-for-2024-07-01`.
+- **Ny forekomst 2026-09-22, og den er mønsterets skarpeste, fordi SØSKENDEREGLERNE på præcis samme
+  celler gør det rigtige** (`erstatningsopgoerelse-12b.md` BB-218, Mellem). Svie/smerte-periodetabellens
+  to datoceller er omfattet af fire regler. Tre af dem farver cellen: dato-orden (begge celler røde med
+  hver sin spejlvendte tekst), ménafgørelses-cutoffen (rød celle + tooltip, projekteret som
+  `collectionRuleIssue` gennem `svieSmerteCutoffDateIssues`) og feltets egne bounds. **Den fjerde,
+  overlap, findes kun som to ordret ens linjer i «Fejl og advarsler» og spærrer hele opgørelsen** – målt
+  `aria-invalid = "false"` på alle seks celler i en sag med `01-02-2024`–`28-02-2024` (Sygemeldt) og
+  `15-02-2024`–`10-03-2024` (Delvist Sygemeldt). **Rettelsen er en konvergens, ikke et nyt design:
+  mekanikken ligger allerede i tabellen** – `SvieSmerteTable` tager en `cutoffIssues: FieldIssueSet` og
+  sender den ind som `collectionRuleIssue` pr. celle; overlappet skal blot projekteres samme vej.
+  **Prøven, der følger heraf: når en flade har flere regler på det samme felt, så tæl, hvor mange af dem
+  der når cellen.** En regel, der er ene om ikke at gøre det, er sjældent en bevidst undtagelse.
+  Konkrete uafprøvede søskende: `detectOverlappingPeriods` bruges også af TAF-perioderne (12e),
+  ferieperioderne (12e/12f) og lønindkomstens perioder (12h).
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
@@ -2105,9 +2195,23 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   brugeren får. Indgang: `rg "label: '" src/domain/eoRowEvaluation` og for hver række, om dens `id`
   overhovedet kan nå en almindelig flade – rækkerne når kun Beregning-fanen, når de har status
   `error`/`warning`, så enhver `status: 'ok'`-række er usynlig uden for kontrolfanerne.
+- **Rækkebygger-indgangen er kørt igen 2026-09-22 på `buildEoSvieSmerteRows` og gav mønsterets hidtil
+  største høst på én sektion: FIRE urenderede rækker, hvoraf tre er svaret på hvert sit selvstændige
+  fund** (`erstatningsopgoerelse-12b.md` BB-217, BB-219, BB-221, BB-226). Målt med kontrolfanen slået
+  til: «Satser per dag/max (forlig på 50 %) → `115,00 kr. / 44.250,00 kr.`» (det forligsreducerede loft,
+  som papiret aldrig trykker – det skriver `88.500 kr.`), «Antal svie/smerte-dage i erstatningsperioden
+  → `28 sygedage`» (det tal, tabellens «Antal dage»-kolonne er uenig med, når en periode afgrænses),
+  «Beregnet svie/smerte → `3.220,00 kr.`» (sektionens eneste resultat, som ikke findes uden for PDF'en)
+  og «Svie/smerte-ophør skyldes → `Tidligere beregnet til max`» (den grund, dokumentet erstatter med
+  ordet «Ingen»). Alle fire har `status: 'ok'`.
+  **Læren, der skærper trin 1 for rækkebyggere: tæl ikke bare de urenderede rækker – hold hver af dem op
+  mod et spørgsmål, brugeren allerede står med.** Her svarede tre af de fire på «hvor mange dage betaler
+  I for?», «hvad blev jeg reduceret til?» og «hvorfor står der ingenting?». Det er forskellen på et
+  kodefund og et brugerfund, og den kan aflæses direkte af, om rækkens etiket er formuleret som et
+  spørgsmål, fladen ikke besvarer.
 - Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176) og EO's øvrige
-  rækkebyggere. Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne, og for
-  hver eksport i et `*Calculation.ts` en søgning uden for `src/__tests__`.
+  rækkebyggere (12c–12l). Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne,
+  og for hver eksport i et `*Calculation.ts` en søgning uden for `src/__tests__`.
 
 ---
 
@@ -2327,3 +2431,99 @@ fortsat, hvor to flader faktisk besvarer samme spørgsmål.
   giver de kroppe, der genbruges to steder); **Årslønsberegningens** tre lønmetoder over samme periodetabel;
   og enhver `include*`-flag, der slår en forudsætningsrække fra i en genbrugt krop – BB-182's mekanisme, nu
   set fra den anden side.
+
+## M-32 – Et skjult felt er ikke udfyldt – men kun nogle af dets læsere ved det
+
+> Et felt skjules af en betingelse. Beregningen respekterer det: værdien neutraliseres, før motorerne
+> kører. Men feltets ØVRIGE læsere – advarsler, forslag, statuslinjer, dokumentafsnit – spørger ikke om
+> synlighed. De bliver stående og taler om et felt, brugeren ikke kan se, og som programmet selv
+> betragter som tomt.
+
+**Reglen er absolut og afgjort af udvikleren 2026-09-22:** et skjult felt skal overalt i programmet
+betragtes som ikke udfyldt og må aldrig påvirke beregninger eller fejlmeddelelser. Den gælder hele
+programmet, ikke kun erstatningsopgørelsen.
+
+**Mønsterets pointe er, at halvdelen af reglen allerede ER bygget – og at det er dét, der gør resten
+usynlig.** `eoInputRelevance.ts` er skrevet præcis til dette problem og løser det stringent for tal:
+prædikaterne er den eneste autoritative kilde til synlighed, UI'en og `neutralizeIrrelevantEoInputs`
+læser samme prædikat, og neutraliseringen er udtrykkeligt fail-closed – «glemmer en motor at spejle en
+synligheds-betingelse, er værdien allerede neutraliseret her». Modulet afgrænser sig selv lige så
+udtrykkeligt: prædikater, der kun gater rene visnings-/dokumentfelter, «neutraliseres ikke her, fordi de
+ikke indgår i noget beregnet tal – neutralisering forbeholdes talfødende input». **Det er i den
+afgrænsning, fejlen bor.** En advarsel er hverken et tal eller et visningsfelt: den er en tredje læser,
+som garantien aldrig blev strakt til, og som derfor hverken er dækket eller markeret som udækket.
+
+**Derfor er formen en arkitekturfejl og ikke en forglemmelse.** Der findes et sted, hvor synlighed er
+defineret én gang, og et led, der håndhæver den – men håndhævelsen rammer kun den ene slags læser.
+Enhver ny advarsel, ethvert nyt forslag og enhver ny statusrække skrives uden for garantiens rækkevidde,
+uden at noget i koden siger det. Fejlen kan altså genopstå vilkårligt mange gange uden at nogen har
+overtrådt en regel.
+
+**Efterprøv, hvor:** et felt har en synlighedsbetingelse OG en anden læser end beregningen. Prøven i to
+led:
+
+1. Find prædikaterne: `rg "er[A-Z]\w*(Relevant|Aktiv)" src/domain/erstatningsopgoerelse/helpers/eoInputRelevance.ts`.
+2. For hvert prædikat, find alle de issues, forslag, statusrækker og dokumentlinjer, der navngiver et
+   felt bag det – og spørg, om de kalder samme prædikat. Gør de ikke, er det en forekomst.
+
+**Tre undertyper, som prøven skal skelne:**
+
+- **Advarslen om et skjult felt** (den fundne form): advarslen overlever feltet og kan ikke ryddes.
+- **Linket, der ikke fører nogen steder hen:** advarslens `focusFieldHint` peger på et felt, der ikke er
+  i DOM'en, så klikket markerer intet. Måles som nul `mineoFieldAttentionBlink`-hændelser.
+- **Dokumentlinjen om en skjult værdi:** papiret trykker en oplysning, brugeren ikke længere kan se eller
+  rette. Farligst, fordi den går til modparten.
+
+**Skellet mod M-19 og M-27.** De to handler om en RØD værdi, der læses som tom af en anden flade – altså
+om ugyldighed, der forplanter sig. M-32 handler om en SKJULT værdi, der er tom efter hensigten, og om
+læsere, der ikke har fået det at vide. Rettelsen er også en anden: M-19/M-27 rettes ved at navngive
+årsagen på den låntagende flade, M-32 ved at give læseren det synlighedsprædikat, den mangler.
+
+**Den bevidste undtagelse skal ikke forveksles med mønsteret.** Komprimeringen ved EO 2+
+(`komprimerBeregningEfterFoersteOpgoerelse === 'Ja'`) skjuler beregningsgrundlagets felter, mens de
+forbliver aktive input – dokumenteret i `eoInputRelevance.ts` som «BEVIDST UNDTAGELSE» og afgjort af
+udvikleren ved BB-203 som den ønskede adfærd. Her er «skjult» ikke det samme som «ikke udfyldt».
+Undtagelsen er dermed selv en kandidat af den tredje undertype – papiret skriver «Månedsløn er i
+tidligere erstatningsopgørelse beregnet til X» om et grundlag, brugeren ikke kan se – men den er
+besluttet, ikke overset.
+
+- Fundet i: `erstatningsopgoerelse-12b.md` BB-222 (Mellem, **GODKENDT** 2026-09-22 med mandat til en
+  systematisk gennemgang). `shouldShowSatsYearSuggestionWarning` deler ikke prædikat med det felt, den
+  handler om: sættes «Tidligere beregnet S/S til max.» til Ja, fjernes satsårsfeltet af
+  `erSvieSmertePeriodeInputRelevant`, mens advarslen «Svie/smerte-satsen for 2025 kan anvendes.» bliver
+  stående – i en tilstand, hvor der slet ikke beregnes svie/smerte. Linket markerer intet: målt nul
+  blink og nul elementer med feltets adresse i DOM'en.
+- **Modeksemplet i samme sektion viser, at rettelsen er billig, og at den allerede er kendt.**
+  `sviesmerte.tidligereTotal` kalder `erSvieSmerteTidligereTotalRelevant` med netop den begrundelse.
+  Satsårsadvarslen er undtagelsen, ikke reglen – hvilket er præcis dét, der gør formen svær at få øje
+  på ved læsning: nabolinjen gør det rigtigt.
+- **Efterprøvet 2026-09-22 på hele Erstatningsopgørelsen efter udviklerens mandat: fem yderligere
+  forekomster, alle af de tre undertyper ovenfor.** Tre er rettet:
+  - **To selvmodsigende dokumentsætninger.** `eoPresentationSectionBuilders` skrev «Der er den … 
+    **ikke** truffet afgørelse om varige mén. **Afgørelsen er påklaget.**» – og præcis samme form om
+    erhvervsevnetab. Klagefelterne vises kun, når der ER truffet en afgørelse, så i netop de grene er
+    feltet garanteret skjult. Det er mønsterets tredje undertype i sin dyreste form: papiret går til
+    modparten.
+  - **Et skjult `verserendeKlageEet` slukkede en beregningsmæssig afgrænsning.**
+    `eoPeriodeBlockingContext` læste feltet uden `erEETKlageRelevant`, så en stale «Ja» suspenderede
+    differencekravets cutoff: rækken `taf.ophoerSkyldes` skiftede fra ok til advarsel, og TAF-/
+    ferieperiodernes grænsevalidering blev lempet. **Det er formens vigtigste lære: undertyperne er
+    ikke kun kosmetiske.** Et skjult felt, som ingen neutraliserer, kan ændre hvad programmet
+    REGNER – her fordi feltet ikke føder et tal, men styrer en gren, og garantien kun dækker tal.
+  - Dertil oversigtsrækken `aes.verserendeKlageEet`, som kunne gå rød på et tomt felt uden for skærmen.
+- **To forekomster er IKKE rettet, og de viser hvor grænsen for mønsteret går.** Validatoren læser
+  bevidst RÅ værdier (`eoSnapshot` sender `parsedEo.data`, ikke de neutraliserede), og
+  `validateCanonicalRanges` begrunder det udtrykkeligt: grænserne ligger der, «så snapshot- og
+  dokumentgates også ser fejl i felter, som ikke aktuelt er mountet eller aktive». Konsekvensen er,
+  at et negativt beløb, der skjules efter indtastning, fortsat **blokerer download** med en fejl på
+  et usynligt felt – mens beregningen samtidig er rigtig, fordi værdien ER neutraliseret. Samme form
+  rammer `regulerOffentligeYdelser`. At rette det er ikke en oprydning men en omgørelse af en
+  dokumenteret arkitekturbeslutning, og den hører hos udvikleren. **Mønsterets prøve skal derfor
+  stille ét spørgsmål mere: er den læser, der taler om det skjulte felt, en VALIDATOR?** Er den det,
+  er fundet ikke en forglemmelse men en kollision mellem to regler, og det skal forelægges.
+- Kandidater, ikke efterprøvet: de øvrige fladers betingede sektioner (Erhvervsevnetab, Forsørgertab,
+  Årsløn), hvor synlighed ikke har et tilsvarende samlet relevans-modul og derfor kan være spredt som
+  inline-betingelser.
+- **Den strukturelle sikring er selve opgaven, ikke den lokale rettelse.** Så længe et prædikat kun
+  håndhæves for talfødende input, er hver ny advarsel en ny mulighed for samme fejl. Formen, sikringen
+  skal have, er ikke afgjort.
