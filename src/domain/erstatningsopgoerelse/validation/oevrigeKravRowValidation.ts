@@ -38,6 +38,20 @@ export type OevrigeKravRowAssessment =
   | Readonly<{ kind: 'ok' }>
   | Readonly<{ kind: 'error' | 'warning'; message: string; focusColumn: OevrigeKravColumn }>;
 
+/**
+ * En dato uden for opgørelsens «Vedrører perioden». IKKE-blokerende (udviklerafgørelse 2026-09-23, BB-235): en
+ * kvittering for fx medicin fra en tidligere erstatningsperiode kan legitimt først blive sendt senere og
+ * medregnes i en senere opgørelse. Reglen må derfor ALDRIG gøres blokerende; den spørger kun, om datoen er
+ * tastet rigtigt. Samme tekst står som gul ring ved cellen og – med rækkens navn – i «Fejl og advarsler».
+ */
+export const isOevrigeKravDatoUdenforPeriode = (
+  dato: ISODateString | undefined,
+  periode: OevrigeKravPeriode | undefined,
+): boolean => dato !== undefined && periode !== undefined && (dato < periode.fra || dato > periode.til);
+
+export const buildOevrigeKravDatoUdenforPeriodeMessage = (periode: OevrigeKravPeriode): string =>
+  `Datoen ligger uden for opgørelsens periode (${isoToDanish(periode.fra)} - ${isoToDanish(periode.til)})`;
+
 const hasText = (value: string | undefined): value is string => typeof value === 'string' && value.trim() !== '';
 
 /**
@@ -62,10 +76,8 @@ const isRedIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
  * Vurderer én række. `cellIssues` er cellernes aktive feltissues; en celle med et rødt issue er udfyldt, men
  * forkert, selv om readeren giver den som tom.
  *
- * `periode` er opgørelsens «Vedrører perioden». En dato uden for den er en IKKE-blokerende advarsel
- * (udviklerafgørelse 2026-09-23, BB-235): en kvittering for fx medicin fra en tidligere erstatningsperiode
- * kan legitimt først blive sendt senere og medregnes i en senere opgørelse. Advarslen må derfor ALDRIG
- * gøres blokerende; den spørger kun, om datoen er tastet rigtigt.
+ * `periode` er opgørelsens «Vedrører perioden»; en dato uden for den giver en ikke-blokerende advarsel
+ * (`isOevrigeKravDatoUdenforPeriode`).
  */
 export const assessOevrigeKravRow = (
   row: OevrigeKravRow,
@@ -107,10 +119,10 @@ export const assessOevrigeKravRow = (
     return { kind: 'error', message: `${name}: ${dele.join('; ')}`, focusColumn };
   }
 
-  if (periode !== undefined && row.dato !== undefined && (row.dato < periode.fra || row.dato > periode.til)) {
+  if (periode !== undefined && isOevrigeKravDatoUdenforPeriode(row.dato, periode)) {
     return {
       kind: 'warning',
-      message: `${name}: Datoen ligger uden for opgørelsens periode (${isoToDanish(periode.fra)} - ${isoToDanish(periode.til)})`,
+      message: `${name}: ${buildOevrigeKravDatoUdenforPeriodeMessage(periode)}`,
       focusColumn: 'dato',
     };
   }

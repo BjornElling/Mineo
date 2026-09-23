@@ -1,3 +1,4 @@
+import { TAF_FORBEHOLD_YDELSESTYPER } from '../helpers/tafForbehold';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -97,18 +98,18 @@ const buildTafIndtaegterModel = (
     }))
     .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
   const entries = [...employerEntries, ...benefitEntries];
-  const oevrigeKravForbeholdYdelsestyper = Array.from(
+  const forbeholdYdelsestyper = Array.from(
     new Set(
       indtaegter.benefits
         .map((entry) => entry.typeKey)
-        .filter((typeKey) => typeKey === 'kontanthjaelp' || typeKey === 'ressourceforloebsydelse')
+        .filter((typeKey) => TAF_FORBEHOLD_YDELSESTYPER.has(typeKey))
     )
   );
 
   const totalOre = clampMoneyOreToZero(sumMoneyOre(entries.map((entry) => entry.amountOre)));
   return {
     entries,
-    oevrigeKravForbeholdYdelsestyper,
+    forbeholdYdelsestyper,
     total: asCalculable(totalOre),
   };
 };

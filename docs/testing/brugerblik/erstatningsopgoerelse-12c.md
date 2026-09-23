@@ -285,7 +285,9 @@ Enig. Indtastning af 0 kr. som beløb her er en fejl, der skal give rød ring og
   `#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`
 - **Prioritet:** **Høj**
 - **Beslutning:** **AFGJORT** af udvikleren 2026-09-23: forbeholdet hører til EET, ikke til øvrige krav.
-  **GENNEMFØRT** 2026-09-23 for klageforbeholdet; se opfølgningen under tilbagemeldingen.
+  **GENNEMFØRT** 2026-09-23 for begge forbehold efter udviklerens svar på opfølgningen: klageforbeholdet og
+  kontanthjælps-/ressourceforløbsforbeholdet trykkes sidst i TAF-beregningen under underoverskriften
+  «Forbehold», hvert på sin egen linje. «Øvrige krav» bærer ingen forbehold længere.
 - **Sådan fremprovokeres det:**
   1. AES-afgørelser: «Midlertidigt EET-afgørelse» slået til med afgørelsesdato `01-03-2024`, «Verserende
      klage over EET» slået til.
@@ -346,6 +348,15 @@ De øvrige afsnit er i orden: svie/smerte-afsnittets status trykker mén-afgøre
 afgrænser svie/smerte-perioden; TAF-afsnittets status trykker EET-afgørelserne og differencekravet, der
 afgrænser TAF-perioden; bilagshenvisningerne står under det afsnit, bilaget dokumenterer.
 
+**Svar fra udvikleren (2026-09-23):** begge forbehold – EET-klagen og kontanthjælpen – indsættes sidst i
+TAF-beregningen under deres egen underoverskrift «Forbehold», hver på sin egen linje, hvis begge vises. At de
+kun trykkes, når TAF er «Ja», er korrekt.
+
+**Gennemført (agent, 2026-09-23):** «Forbehold» står nu som sidste underafsnit i «Tabt arbejdsfortjeneste»,
+efter «Beregnet krav». Klageforbeholdet er flyttet væk fra «Status» igen og står først; ydelsesforbeholdet
+står under det. Underoverskriften trykkes kun, når mindst ét forbehold er udløst, og betingelserne for hvert
+forbehold er uændrede. Dækket af `erstatningsopgoerelsePdf.indkomstBreakdownVisibility.test.ts`.
+
 ### BB-234 – Øvrige krav står ingen steder på Beregning-fanen
 
 - **Type:** Fornuft
@@ -389,6 +400,7 @@ tages op igen dér.
   med link til datocellen, og download er fortsat mulig. Begrundelsen – kvitteringer fra en tidligere periode
   kan legitimt medregnes senere – står ved reglen i `oevrigeKravRowValidation.ts` sammen med forbuddet mod at
   gøre den blokerende. Har rækken også en fejl, vises kun fejlen, så rækken aldrig giver to linjer.
+  Efter udviklerens svar på opfølgningen får datocellen desuden en gul ring med samme tekst.
 - **Sådan fremprovokeres det:** «Vedrører perioden» `01-01-2024` – `31-12-2024`, «Opgørelse lavet den»
   `01-02-2025`. Tast rækker dateret `15-06-2019`, `15-06-2024` og `15-01-2025`. Hent opgørelsen.
 - **Det sker:** Ingen celle er rød eller gul, boksen er tom, og dokumentet skriver alle tre under
@@ -414,6 +426,13 @@ En angivet dato uden for erstatningsperiodens interval skal give en ikke-blokere
 fordi din tilbagemelding nævner advarslen i «Fejl og advarsler» og ikke ringen, og fordi tabellens celler i
 dag ikke kan vise en gul ring – det kræver en ny kanal i tabellen. Linket fra advarslen blinkmarkerer cellen.
 Sig til, hvis du også vil have ringen.
+
+**Svar fra udvikleren (2026-09-23):** ja tak.
+
+**Gennemført og rettelse (agent, 2026-09-23):** datocellen får nu en gul ring med tooltippen «Datoen ligger
+uden for opgørelsens periode (01-01-2024 - 31-12-2024)» – samme regel og tekst som linjen i «Fejl og
+advarsler», og stadig ikke blokerende. **Min begrundelse ovenfor var forkert:** tabellens celler HAR en kanal
+til gule advarsler (den bruges fx i EET-afgørelsernes tabel); den krævede ingen ny mekanisme.
 
 ### BB-236 – «Ja» uden en eneste post giver tavshed på skærmen og «Ingen» i dokumentet – ordret som «Nej»
 
@@ -476,6 +495,9 @@ Et spørgsmål til dit forbehold om «øvrige krav»: ingen af de nye beskeder b
 felt – de står alle i sektionen og nævner kun kolonnerne. Det eneste sted, ordet står i en besked, er
 advarslen «Der er ikke indtastet øvrige krav» (BB-236), hvor det er almindelig tale om kravene og ikke navnet
 på noget på siden; dér har jeg ladet det stå uden «». Sig til, hvis du mente et andet sted.
+
+**Svar fra udvikleren (2026-09-23):** nej – det var en bekymring ud fra formuleringen, og da det er
+undersøgt og ikke aktuelt, er det fint. Afsluttet.
 
 ## Overvejet uden fund
 

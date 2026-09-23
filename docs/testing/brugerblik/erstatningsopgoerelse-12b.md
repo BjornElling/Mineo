@@ -832,6 +832,15 @@ konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan 
   om programmet bør advare, når satsåret ligger langt fra perioderne, sådan som det i dag advarer, når
   det ligger før opgørelsen. Det er en beregningsteknisk vurdering, ikke en teknisk, og er derfor ikke
   registreret som et fund.
+  **AFGJORT** af udvikleren 2026-09-23: **nej.** Sygeperiodernes årstal har ingen sammenhæng med det
+  satsår, der kræves. Det er lovbestemt, at der – uanset sygeperiodens placering – kan rejses krav med den
+  sats, der var gældende én måned efter, kravet blev rejst, og kravet anses for rejst én måned efter
+  «Opgørelse lavet den». Brugeren angiver selv satsåret; programmet giver alene en ikke-blokerende advarsel,
+  hvis et senere års (højere) sats kunne være anvendt. **GENNEMFØRT** 2026-09-23: reglen er dokumenteret
+  normativt i `eo-snapshot-contract.md` §16. Den eksisterende advarsel fulgte den i forvejen, men er skærpet
+  på to punkter: den tier nu, når det senere år ikke har en højere sats, og den virker også ved årsskiftet,
+  hvor næste års satser endnu ikke findes – så advarer den om det nyeste år med satser (fx en opgørelse
+  lavet 15-12-2026 med satsår 2024 giver «Svie/smerte-satsen for 2026 kan anvendes.», hvor den før tav).
 - **Skal validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen
   efter BB-222's mandat, og det er den eneste udestående del af mandatet. `computeEoSnapshot` giver
   rækkebyggerne de neutraliserede værdier (`effectiveEoValues`), men giver `validateParsed` de RÅ

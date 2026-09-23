@@ -1019,7 +1019,7 @@ describe('buildTafPerYearResult', () => {
       tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'ok', value: moneyOre(0) },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(15000000) } },
+      tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(15000000) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1218,7 +1218,7 @@ describe('buildTafPerYearResult', () => {
       tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
+      tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1256,7 +1256,7 @@ describe('buildTafPerYearResult', () => {
       tabtArbejdsfortjenesteOre: moneyOre(3_100_000),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
+      tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(TAF_BEREGNES_SOM.MAANEDER),
       forligFactor: null,
     };
@@ -1302,7 +1302,7 @@ describe('buildTafPerYearResult', () => {
       tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
+      tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1387,7 +1387,7 @@ describe('buildTafPerYearResult', () => {
       tabtArbejdsfortjenesteOre: moneyOre(0),
       tidligereModtagetTaf: { status: 'ok', value: moneyOre(100) },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
-      tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
+      tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'ok', value: moneyOre(0) } },
       offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
@@ -1500,7 +1500,7 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
       perAnsaettelse: [],
     } as unknown as TafPerYearSource['loenudvikling'],
     offentligeYdelserUdvikling: null,
-    tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: okMoney(0) } as unknown as TafPerYearSource['tafIndtaegter'],
+    tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: okMoney(0) } as unknown as TafPerYearSource['tafIndtaegter'],
     tidligereModtagetTaf: { status: 'not_calculable', reason: 'Ikke angivet' },
     sygeferiegodtgoerelse: { totalOre: moneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null } as unknown as TafPerYearSource['sygeferiegodtgoerelse'],
     tabtArbejdsfortjenesteOre: moneyOre(10_000_00) as never,
@@ -1539,7 +1539,7 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
     const outcome = buildTafPerYearBuildOutcome(
       {
         ...source,
-        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'not_calculable', reason: 'mangler' } } as unknown as TafPerYearSource['tafIndtaegter'],
+        tafIndtaegter: { entries: [], forbeholdYdelsestyper: [], total: { status: 'not_calculable', reason: 'mangler' } } as unknown as TafPerYearSource['tafIndtaegter'],
       },
       eoValues,
       options

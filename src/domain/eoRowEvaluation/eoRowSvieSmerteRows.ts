@@ -19,7 +19,11 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { erSvieSmertePeriodeInputRelevant, erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../erstatningsopgoerelse/helpers/svieSmerteMaksimum';
-import { getYearOneMonthAfter, hasSvieSmerteSatserForAar } from '../erstatningsopgoerelse/helpers/svieSmerteSatsAar';
+import {
+  erSvieSmerteSatserHoejere,
+  hasSvieSmerteSatserForAar,
+  resolveSvieSmerteSatsAarForReferenceDate,
+} from '../erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 
 
@@ -182,9 +186,14 @@ export const buildEoSvieSmerteRows = (
   const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue);
   const satserAarParsed = Number.parseInt(satserAarValue?.trim() ?? '', 10);
   const hasValidSatserAar = Number.isInteger(satserAarParsed);
+  // Satsåret er lovbestemt og uafhængigt af, hvornår sygeperioderne ligger (udviklerafgørelse 2026-09-23,
+  // `eo-snapshot-contract.md` §16): kravet anses for rejst én måned efter «Opgørelse lavet den», og der kan
+  // kræves den sats, der gælder dér. Brugeren vælger selv året; programmet advarer alene – ikke-blokerende –
+  // når et senere års HØJERE sats kunne være anvendt. Det bedste år er det nyeste fuldt dækkede satsår, der
+  // ikke ligger efter kravets tidspunkt, så advarslen også virker ved årsskiftet, før næste års satser findes.
   const opgoerelsePlusOneMonthYear = values.opgørelseLavetDen === undefined
     ? undefined
-    : getYearOneMonthAfter(values.opgørelseLavetDen);
+    : resolveSvieSmerteSatsAarForReferenceDate(values.opgørelseLavetDen);
   const hasSatserForOpgoerelsePlusOneMonthYear =
     typeof opgoerelsePlusOneMonthYear === 'number' && hasSvieSmerteSatserForAar(opgoerelsePlusOneMonthYear);
   const shouldShowSatsYearSuggestionWarning =
@@ -199,7 +208,8 @@ export const buildEoSvieSmerteRows = (
     hasValidSatserAar &&
     typeof opgoerelsePlusOneMonthYear === 'number' &&
     opgoerelsePlusOneMonthYear > satserAarParsed &&
-    hasSatserForOpgoerelsePlusOneMonthYear;
+    hasSatserForOpgoerelsePlusOneMonthYear &&
+    erSvieSmerteSatserHoejere(opgoerelsePlusOneMonthYear, satserAarParsed);
 
   const satserAarDisplay = (() => {
     if (satserAarMangler) return 'Fejl (Årstal for svie/smerte-satser er ikke angivet)';

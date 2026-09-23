@@ -32,6 +32,22 @@ export const findLatestSvieSmerteSatsAarAtOrBefore = (
   return years.length === 0 ? undefined : Math.max(...years);
 };
 
+/**
+ * Er satserne for `senereAar` højere end for `valgtAar`? Et senere år med uændrede satser giver brugeren
+ * intet at vinde, så det er ikke en grund til at advare.
+ */
+export const erSvieSmerteSatserHoejere = (
+  senereAar: number,
+  valgtAar: number,
+  rates: Readonly<{ prDag: YearlyRate; max: YearlyRate }> = { prDag: svieSmertePrDag, max: svieSmerteMax }
+): boolean => {
+  const senerePrDag = rates.prDag[senereAar];
+  const senereMax = rates.max[senereAar];
+  if (typeof senerePrDag !== 'number' || typeof senereMax !== 'number') return false;
+  return senerePrDag > (rates.prDag[valgtAar] ?? Number.NEGATIVE_INFINITY)
+    || senereMax > (rates.max[valgtAar] ?? Number.NEGATIVE_INFINITY);
+};
+
 /** Udleder knapværdien fra datoen én måned efter opgørelses-/dagsdatoen. */
 export const resolveSvieSmerteSatsAarForReferenceDate = (
   referenceDate: ISODateString,

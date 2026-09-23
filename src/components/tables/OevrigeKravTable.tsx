@@ -33,6 +33,12 @@ import {
   eoOevrigeKravUdgiftTilField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { createFieldWarning } from '../../inputCore/fieldWarning';
+import {
+  buildOevrigeKravDatoUdenforPeriodeMessage,
+  isOevrigeKravDatoUdenforPeriode,
+  type OevrigeKravPeriode,
+} from '../../domain/erstatningsopgoerelse/validation/oevrigeKravRowValidation';
 
 // Øvrige krav-tabel: Rækkeinfrastruktur, celleværdier og celle-
 // redigering går udelukkende gennem inputCore, som BeregnetRenteTable/StandardLoenTable:
@@ -52,6 +58,8 @@ export type OevrigeKravTableProps = Readonly<{
   /** De committede rækker (læst reader-afledt af forælderen), i den afsluttede rækkefølge. */
   committedRows: readonly OevrigeKravRow[];
   saveOrderPath?: TableSaveOrderPath;
+  /** Opgørelsens «Vedrører perioden»; en dato uden for den får en gul ring (BB-235). */
+  periode?: OevrigeKravPeriode;
 }>;
 
 
@@ -61,12 +69,17 @@ type OevrigeKravRowProps = Readonly<{
   rowHasSettledInput: boolean;
   onDeleteRow: (rowId: string) => void;
   buildCellSpec: <T>(renderRow: RenderRow, descriptor: FieldDescriptor<T>, colIdx: number) => CellSpec<T, OevrigeKravRow>;
+  periode: OevrigeKravPeriode | undefined;
 }>;
 
-const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInput, onDeleteRow, buildCellSpec }: OevrigeKravRowProps) => {
+const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInput, onDeleteRow, buildCellSpec, periode }: OevrigeKravRowProps) => {
   const rowId = renderRow.rowId;
   const gc = (colIndex: number) => ({ rowId, colIndex });
   const showDelete = renderRow.kind === 'existing' && committed !== undefined && rowHasSettledInput;
+  // Ikke-blokerende: samme regel og tekst som advarslen i «Fejl og advarsler» (BB-235).
+  const datoWarning = periode !== undefined && isOevrigeKravDatoUdenforPeriode(committed?.dato, periode)
+    ? createFieldWarning(buildOevrigeKravDatoUdenforPeriodeMessage(periode))
+    : undefined;
 
   return (
     <TableRow data-mineo-row-id={rowId}>
@@ -74,6 +87,7 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInp
         <GridDateCell
           gridCell={gc(COL.dato)}
           cell={buildCellSpec<ISODateString | undefined>(renderRow, eoOevrigeKravDatoField, COL.dato)}
+          {...(datoWarning === undefined ? {} : { warning: datoWarning })}
         />
       </TableCell>
       <TableCell>
@@ -96,7 +110,7 @@ const OevrigeKravTableRow = React.memo(({ renderRow, committed, rowHasSettledInp
 
 OevrigeKravTableRow.displayName = 'OevrigeKravTableRow';
 
-const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKravTableProps) => {
+const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath, periode }: OevrigeKravTableProps) => {
   const table = useCollectionTable<OevrigeKravRow>({
     collection: collectionRef,
     committedRows,
@@ -150,6 +164,7 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath }: OevrigeKr
             rowHasSettledInput={!table.isRowEmpty(renderRow.rowId)}
             onDeleteRow={table.removeRow}
             buildCellSpec={buildCellSpec}
+            periode={periode}
           />
         ))}
       </TableBody>

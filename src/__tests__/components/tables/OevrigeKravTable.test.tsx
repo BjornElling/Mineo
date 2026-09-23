@@ -54,12 +54,15 @@ const hydrate = (rows: OevrigeKravRow[]): void => {
   hydrateSlimInputStoreForTest(slimInputStore, input);
 };
 
-const renderTable = (committedRows: OevrigeKravRow[]) => render(
+const renderTable = (
+  committedRows: OevrigeKravRow[],
+  periode?: { fra: ReturnType<typeof toISODateString>; til: ReturnType<typeof toISODateString> },
+) => render(
   <MemoryRouter>
     <AppSettingsProvider>
       <RoutePathnameProvider>
         <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
-          <OevrigeKravTable committedRows={committedRows} />
+          <OevrigeKravTable committedRows={committedRows} {...(periode === undefined ? {} : { periode })} />
         </ProductionInputRuntimeProvider>
       </RoutePathnameProvider>
     </AppSettingsProvider>
@@ -90,6 +93,24 @@ describe('OevrigeKravTable', () => {
     const bodyRows = screen.getAllByRole('row').filter((row) => row.hasAttribute('data-mineo-row-id'));
     expect(bodyRows).toHaveLength(2);
     expect(within(bodyRows[0]).getByDisplayValue('Medicin')).toBeInTheDocument();
+  });
+
+  it('giver en dato uden for opgørelsens periode en gul, ikke-blokerende ring (BB-235)', () => {
+    const rows: OevrigeKravRow[] = [
+      { id: 'ok-1', dato: toISODateString('2022-05-01'), udgiftTil: 'Medicin', beloeb: asAmount(1500) },
+      { id: 'ok-2', dato: toISODateString('2023-02-01'), udgiftTil: 'Transport', beloeb: asAmount(100) },
+    ];
+    hydrate(rows);
+    renderTable(rows, { fra: toISODateString('2022-03-01'), til: toISODateString('2022-12-31') });
+
+    const bodyRows = screen.getAllByRole('row').filter((row) => row.hasAttribute('data-mineo-row-id'));
+    const indenfor = within(bodyRows[0]).getByDisplayValue('01-05-2022');
+    const udenfor = within(bodyRows[1]).getByDisplayValue('01-02-2023');
+    const beskrivelse = (input: HTMLElement) => document.getElementById(input.getAttribute('aria-describedby') ?? '')?.textContent;
+
+    expect(indenfor.getAttribute('aria-describedby')).toBeNull();
+    expect(beskrivelse(udenfor)).toBe('Datoen ligger uden for opgørelsens periode (01-03-2022 - 31-12-2022)');
+    expect(udenfor).toHaveAttribute('aria-invalid', 'false');
   });
 
   it('håndhæver tekstcodecets længdegrænse på den direkte grid-overflade', () => {

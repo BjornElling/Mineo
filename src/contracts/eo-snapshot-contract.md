@@ -7,7 +7,8 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-09-23 (§14 har fået læsegrænsen: EO-felterne bag et valg bærer
+**Senest verificeret mod kode:** 2026-09-23 (§16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
 indtastede perioder omfortolkes ikke – `periodOverlapDetection` bruger nu den kanoniske
@@ -710,3 +711,23 @@ faktiske kilde:
 Den kanoniske tekstafledning ligger i
 `src/domain/erstatningsopgoerelse/helpers/eoDateReferenceText.ts` og skal genbruges frem for lokale
 strengsammenligninger i UI, kontrol- eller dokumentlag.
+
+## 16. Svie/smerte-satsår
+
+Afsnittet er normativt og fastlagt af udvikleren 2026-09-23.
+
+- **Satsåret har ingen sammenhæng med sygeperiodernes placering.** Det er lovbestemt, at der – uanset hvornår
+  selve sygeperioden ligger – kan rejses krav med den sats, der var gældende én måned efter, kravet blev rejst.
+  En sag med sygeperioder udelukkende i 2019 kan derfor retmæssigt opgøres med 2026-satser. Programmet må
+  hverken advare om, blokere på eller udlede noget af forskellen mellem periodernes år og satsåret.
+- **Kravet anses for rejst én måned efter «Opgørelse lavet den».** Det gælder både opgørelsen og de
+  underliggende beregninger. Kalenderåret findes med den fælles clamp-semantik for månedsslut
+  (`getYearOneMonthAfter`).
+- **Brugeren vælger selv satsåret** i «Hvilket års svie/smerte-satser lægges til grund?». Programmet indsætter
+  eller ændrer det aldrig uden en brugerhandling (knappen `Indsæt årstal`, `input-field-behavior-contract.md`
+  §4.6a).
+- **Programmet advarer alene, ikke-blokerende, når et senere års HØJERE sats kunne være anvendt:** når det
+  nyeste fuldt dækkede satsår, der ikke ligger efter kravets tidspunkt
+  (`resolveSvieSmerteSatsAarForReferenceDate`), er senere end det valgte år, og dets dagssats eller maksimum
+  er højere (`erSvieSmerteSatserHoejere`). Advarslen tier ved en revideret opgørelse, ved et skjult satsårsfelt
+  og når «Opgørelse lavet den» mangler. Den står i `eoRowSvieSmerteRows.ts` (`sviesmerte.satserAar`).

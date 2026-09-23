@@ -3,7 +3,8 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-09-08 (§1.5 er NY og implementeret: autofill-suggest er kodet
+**Senest verificeret mod kode:** 2026-09-23 (§4.6a henviser nu til satsårets juridiske regel i
+`eo-snapshot-contract.md` §16. Tidligere 2026-09-08: §1.5 er NY og implementeret: autofill-suggest er kodet
 generelt i `src/inputCore/autofill/` og aktiveret i EO's løntabeller og Offentlige ydelser. Afsnittet blev
 SKREVET OM natten til den 8., efter at udvikleren kørte funktionen og fotograferede tre tabeltilstande med
 forkerte forslag. De tre regler er nærmest hele afsnittet nu, og hver af de fejl, de kom af, er målt:
@@ -877,6 +878,8 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 - Knappen indsætter det afledte år, når både svie/smerte-dagssatsen og maksimumssatsen findes for året. Mangler
   den fremtidige satsrække, indsættes i stedet det højeste tidligere år med begge satser. Indsættelsen går gennem
   årsfeltets normale settle-vej, bevarer knapfokus og giver højst ét undo-trin.
+- Den juridiske regel bag året – og at det er uafhængigt af sygeperiodernes placering – står i
+  `eo-snapshot-contract.md` §16.
 
 ### 4.7 `Indsæt udkast-stempel`
 

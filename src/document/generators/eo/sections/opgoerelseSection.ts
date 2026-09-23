@@ -15,7 +15,6 @@ import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLo
 import {
   getDayAfterIso,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
 import { buildForligIndgaaetSaetning } from '../../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import type { Calculable, LoenudviklingSegment, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -374,7 +373,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       hasContent:
         model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
         model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
-        model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje !== null ||
         model.tabtArbejdsfortjeneste.differencekravLinje !== null,
       options: { addTopSpacing: false },
       renderContent: () => {
@@ -387,9 +385,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
         for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
           safeAddWrappedText(line);
-        }
-        if (model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje) {
-          safeAddWrappedText(model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje);
         }
         writeBilagReferenceLinje(bilag.eetAfgoerelser);
       },
@@ -696,35 +691,30 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddLeftRightText('Beregnet krav', '—', rightMaxWidth, { rightFontStyle: 'bold' });
     }
     }
+
+    // Forbeholdene står sidst i TAF-beregningen, hvert på sin egen linje (BB-233, udviklerafgørelse
+    // 2026-09-23). De stod før under «Øvrige krav» og forsvandt dér, når øvrige krav stod på «Skjul».
+    renderSubheaderIfContent({
+      text: 'Forbehold',
+      hasContent: model.tabtArbejdsfortjeneste.forbeholdLinjer.length > 0,
+      renderContent: () => {
+        for (const line of model.tabtArbejdsfortjeneste.forbeholdLinjer) {
+          safeAddWrappedText(line);
+        }
+      },
+    });
   }
   }
 
   const kravEntries = model.oevrigeKrav.entries;
   const kravRightMaxWidth = rightMaxWidth;
   const kravHeaderHeight = lineHeight * 4;
-  const oevrigeKravIntroLinjer = resolveOevrigeKravIntroLinjer({
-    ydelser: model.tabtArbejdsfortjeneste.tafIndtaegter?.oevrigeKravForbeholdYdelsestyper ?? [],
-  });
-  const renderOevrigeKravIntro = (addTrailingSpacer: boolean): void => {
-    oevrigeKravIntroLinjer.forEach((line, index) => {
-      safeAddWrappedText(line);
-      const erSidsteLinje = index === oevrigeKravIntroLinjer.length - 1;
-      if (!erSidsteLinje || addTrailingSpacer) {
-        writer.addSectionSpacer();
-      }
-    });
-  };
-
   // 'Skjul' udelader emnet HELT fra PDF'en (ingen overskrift, intet "Ingen").
-  // 'Nej' (beregnes === false uden skjul) viser fortsat overskrift + "Ingen" (uden forbehold-intro).
+  // 'Nej' (beregnes === false uden skjul) viser fortsat overskrift + "Ingen".
   if (!model.oevrigeKrav.skjul) {
   if (kravEntries.length === 0) {
     renderSectionHeader('Øvrige krav');
-    if (model.oevrigeKrav.beregnes && oevrigeKravIntroLinjer.length > 0) {
-      renderOevrigeKravIntro(false);
-    } else {
-      safeAddWrappedText('Ingen');
-    }
+    safeAddWrappedText('Ingen');
   } else {
     renderAtomicTableChunks({
       rows: kravEntries,
@@ -732,9 +722,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       headerHeight: kravHeaderHeight,
       renderHeader: () => {
         renderSectionHeader('Øvrige krav');
-        if (oevrigeKravIntroLinjer.length > 0) {
-          renderOevrigeKravIntro(true);
-        }
       },
       renderRow: (entry) => {
         const udgiftText = entry.udgiftTil !== '' ? entry.udgiftTil : '-';

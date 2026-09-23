@@ -23,16 +23,18 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
 - **Næste fund-ID:** BB-238
-- **Åbne spørgsmål:** **fire fra flade 12c og ét fra flade 12b.** Fra 12c, alle stillet under
-  udviklerens tilbagemeldinger i [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md):
-  **(1) skal kontanthjælps-forbeholdet flyttes fra «Øvrige krav» til «Tabt arbejdsfortjeneste»?** Det har
-  præcis klageforbeholdets fejl (BB-233) og trykkes aldrig i en ny sag, men placeringen er dokumenteret som
-  et bevidst valg. **(2) Skal EET-oplysningerne kunne stå i en opgørelse uden TAF?** Klageforbeholdet følger
-  nu EET-linjerne, som kun trykkes, når TAF er «Ja». **(3) Skal en dato uden for perioden også have en gul
-  ring** (BB-235)? **(4) Mente forbeholdet om «øvrige krav» i «» et bestemt sted** (BB-237)?
+- **Åbne spørgsmål:** **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
+  årstal har ingen sammenhæng med det krævede satsår. Kravet anses for rejst én måned efter «Opgørelse lavet
+  den», og den sats, der gælder dér, kan kræves; brugeren vælger året, og programmet advarer alene
+  (ikke-blokerende), når en senere, højere sats kunne være anvendt. Dokumenteret i `eo-snapshot-contract.md`
+  §16; advarslen er skærpet til at tie ved uændret sats og virke ved årsskiftet. **Flade 12c's fire opfølgende
+  spørgsmål er besvaret og gennemført 2026-09-23:** (1) begge forbehold – EET-klagen og kontanthjælpen –
+  trykkes sidst i TAF-beregningen under underoverskriften «Forbehold», hvert på sin egen linje; (2) at de kun
+  trykkes, når TAF er «Ja», er korrekt; (3) en dato uden for perioden får også en gul ring; (4) forbeholdet
+  om «øvrige krav» i «» var ikke aktuelt.
   **12b's spørgsmål (a) og (b) er besvaret 2026-09-23 af BB-228's tilbagemelding:** udvikleren bad om én
   fælles løsning, og den er feltets `relevance` i inputkernen – validatoren, rækkerne, dokumentet og
-  beregningen læser nu alle et skjult felt som tomt. Tilbage fra 12b står: **(c) skal satsåret**. De
+  beregningen læser nu alle et skjult felt som tomt. Det tredje, satsåret, er afgjort ovenfor. De
   følgende linjer er 12b's oprindelige formulering. **(a) skal
   validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen efter
   BB-222's mandat og den eneste udestående del af det. `computeEoSnapshot` giver rækkebyggerne de
@@ -99,6 +101,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   Rettet af samme mekanisme. (3) BB-229–BB-232 og BB-235 er løst som ÉN vurdering pr. række, som validatoren
   og «Fejl og advarsler» deler: én linje pr. række med rækkens navn, alle dens mangler og link til den første
   celle. TAF-rækken i sammendraget fik samtidig svie/smertes ordlyd (BB-234), så 12e's henvisning er løst.
+  Efter udviklerens svar på de fire opfølgende spørgsmål står begge forbehold nu under «Forbehold» sidst i
+  TAF-beregningen, og en dato uden for perioden har fået gul ring.
   Tidligere: **Flade 12b's elleve fund
   (BB-217–BB-227) er afgjort af udvikleren 2026-09-22 OG gennemført i kode samme dag**, inklusive
   de fire modsvar, udvikleren besvarede undervejs. **Ni rettet** (BB-217, BB-218, BB-219, BB-220,

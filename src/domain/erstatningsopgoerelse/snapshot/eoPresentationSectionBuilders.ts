@@ -1,3 +1,4 @@
+import { EET_KLAGE_FORBEHOLD_LINJE, resolveTafYdelsesforbeholdLinje } from '../helpers/tafForbehold';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, isoToDanish } from '../../../types/branded';
@@ -26,8 +27,6 @@ import { formatDanishList } from '../../../utils/danishListFormatting';
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
-export const EET_KLAGE_FORBEHOLD_LINJE =
-  'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
 
 const buildTafFerieFravaerLinje = (
   values: ErstatningsopgoerelseValues,
@@ -242,7 +241,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       skjul,
       statusLinjer: [],
       eetLinjer: [],
-      eetKlageForbeholdLinje: null,
+      forbeholdLinjer: [],
       differencekravLinje: null,
       ferieFravaerLinje: null,
       tafPerioderLinjer: [],
@@ -428,16 +427,20 @@ export const buildTabtArbejdsfortjenesteModel = (
     eetLinjer.push(`Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`);
   }
 
-  // Forbeholdet kræver en dateret afgørelse – samme vilkår, som gjaldt, da det stod under «Øvrige
-  // krav». Det følger EET-linjerne, så det kun trykkes, hvor afgørelsen selv er oplyst (BB-233).
+  // Klageforbeholdet kræver en dateret afgørelse – samme vilkår, som gjaldt, da det stod under «Øvrige
+  // krav» (BB-233).
   const harDateretEetAfgoerelse =
     (values.midlertidigtEETAfgorelse === 'Ja' &&
       (values.midlertidigEETVirkningsdato !== undefined || values.midlertidigEETAfgoerelseDato !== undefined)) ||
     (values.endeligtEETAfgorelse === 'Ja' &&
       (values.endeligEETVirkningsdato !== undefined || values.endeligEETAfgoerelseDato !== undefined));
-  const eetKlageForbeholdLinje = klageEetAngivet && harDateretEetAfgoerelse
-    ? EET_KLAGE_FORBEHOLD_LINJE
-    : null;
+  const ydelsesforbeholdLinje = resolveTafYdelsesforbeholdLinje(
+    tafMonetary.tafIndtaegter?.forbeholdYdelsestyper ?? []
+  );
+  const forbeholdLinjer = [
+    klageEetAngivet && harDateretEetAfgoerelse ? EET_KLAGE_FORBEHOLD_LINJE : null,
+    ydelsesforbeholdLinje,
+  ].filter((linje): linje is string => linje !== null);
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const skalKomprimereIndkomstBeregning =
@@ -448,7 +451,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     skjul,
     statusLinjer,
     eetLinjer,
-    eetKlageForbeholdLinje,
+    forbeholdLinjer,
     differencekravLinje,
     ferieFravaerLinje,
     tafPerioderLinjer,

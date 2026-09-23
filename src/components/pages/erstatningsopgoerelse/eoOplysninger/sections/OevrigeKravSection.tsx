@@ -39,6 +39,9 @@ export default function OevrigeKravSection() {
           <OevrigeKravTable
             committedRows={values.oevrigeKravPerioder}
             saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
+            {...(values.vedroererPeriodeFra !== undefined && values.vedroererPeriodeTil !== undefined
+              ? { periode: { fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil } }
+              : {})}
           />
         )}
       </ContentBox>

@@ -13,10 +13,7 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { assessOevrigeKravRow } from '../erstatningsopgoerelse/validation/oevrigeKravRowValidation';
 import { erOevrigeKravSektionAktiv } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
-import { buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
-import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
 
@@ -40,31 +37,9 @@ const COLUMN_DESCRIPTORS = {
  */
 export const buildEoOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
-  errors: ErstatningsopgoerelseFieldIssues,
-  canonicalOutput?: EoCanonicalOutput
+  errors: ErstatningsopgoerelseFieldIssues
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const tafRanges = canonicalOutput?.periodiseringer.tafPerioder ?? buildTafRanges(values);
-  const oevrigeKravForbeholdYdelsestyper = Array.from(
-    new Set(
-      buildIncomeForRanges(values, tafRanges).benefits
-        .map((entry) => entry.typeKey)
-        .filter((typeKey) => typeKey === 'kontanthjaelp' || typeKey === 'ressourceforloebsydelse')
-    )
-  );
-  const introLinjer = resolveOevrigeKravIntroLinjer({
-    ydelser: oevrigeKravForbeholdYdelsestyper,
-  });
-
-  introLinjer.forEach((linje, index) => {
-    rows.push({
-      id: `oevrigekrav.intro.${index + 1}`,
-      label: linje,
-      displayValue: '-',
-      status: 'ok',
-    });
-  });
-
   const periode = values.vedroererPeriodeFra !== undefined && values.vedroererPeriodeTil !== undefined
     ? { fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }
     : undefined;
@@ -107,7 +82,7 @@ export const buildEoOevrigeKravRows = (
         summaryDisplay: 'messageOnly',
         focusTarget: { kind: 'collectionField', template: eoOevrigeKravUdgiftTilField.template },
       });
-    } else if (introLinjer.length === 0) {
+    } else {
       rows.push({
         id: 'oevrigekrav.empty',
         label: 'Ingen',

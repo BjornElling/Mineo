@@ -20,7 +20,7 @@ const FAKE_MODEL = {
     beregnes: true,
     statusLinjer: ['Status: aktiv'],
     eetLinjer: [],
-    eetKlageForbeholdLinje: null,
+    forbeholdLinjer: [],
     differencekravLinje: null,
     harTafPerioder: true,
     tafPerioderLinjer: ['01-01-2024 - 31-12-2024'],

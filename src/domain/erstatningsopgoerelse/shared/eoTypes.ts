@@ -134,12 +134,12 @@ export type TabtArbejdsfortjenesteModel = Readonly<{
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
   /**
-   * Forbeholdet om en verserende klage over EET-afgørelsen. Trykkes i opgørelsen lige efter
-   * EET-linjerne, hvor afgørelsen og «Afgørelsen er påklaget.» står (BB-233). Holdes adskilt fra
-   * `eetLinjer`, fordi de to TAF-på-år-dokumenter også trykker `eetLinjer`, og forbeholdet om
-   * kravets regulering hører til selve opgørelsen.
+   * Forbeholdene (verserende EET-klage, kontanthjælp/ressourceforløbsydelse), i trykkerækkefølge. Trykkes
+   * sidst i opgørelsens TAF-beregning under «Forbehold», én linje hver (BB-233, `helpers/tafForbehold.ts`).
+   * Holdes adskilt fra `eetLinjer`, fordi de to TAF-på-år-dokumenter også trykker `eetLinjer`, og
+   * forbeholdene om kravets regulering hører til selve opgørelsen.
    */
-  eetKlageForbeholdLinje: string | null;
+  forbeholdLinjer: readonly string[];
   differencekravLinje: string | null;
   ferieFravaerLinje: string | null;
   tafPerioderLinjer: readonly string[];
@@ -261,7 +261,7 @@ export type OffentligeYdelserUdviklingModel = Readonly<{
 
 export type TafIndtaegterModel = Readonly<{
   entries: readonly { label: string; amountOre: MoneyOre }[];
-  oevrigeKravForbeholdYdelsestyper: readonly string[];
+  forbeholdYdelsestyper: readonly string[];
   total: Calculable<MoneyOre>;
 }>;
 

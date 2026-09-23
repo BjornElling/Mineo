@@ -168,8 +168,7 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
     run: (ctx) =>
       buildEoOevrigeKravRows(
         ctx.eoValues,
-        ctx.eoErrors,
-        ctx.canonicalOutput
+        ctx.eoErrors
       ),
   },
 
