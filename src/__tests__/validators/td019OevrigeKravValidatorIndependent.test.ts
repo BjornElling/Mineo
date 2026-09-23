@@ -136,16 +136,11 @@ describe('TD-019 – øvrige krav-validator uden schema-fixture', () => {
     });
   });
 
-  it('rapporterer nulbeløb med præcis feltsti, dansk besked og severity', () => {
+  // Nulreglen ejes af feltet selv (`eoOevrigeKravBeloebField`), så cellen bliver rød (BB-232). Validatoren
+  // melder den ikke oveni: det var netop den linje uden link og uden rød celle, fundet handlede om.
+  it('overlader nulbeløbet til feltets egen regel', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OEVRIGE_KRAV_ZERO_AMOUNT_VALUES);
 
-    expect(result).toEqual({
-      isValid: false,
-      errors: [{
-        path: 'oevrigeKravPerioder[0].beloeb',
-        message: 'Beløb skal være større end 0',
-        severity: 'error',
-      }],
-    });
+    expect(result).toEqual({ isValid: true, errors: [] });
   });
 });

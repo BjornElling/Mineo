@@ -28,9 +28,6 @@ import {
   eoNummerField,
   eoOevrigeFravaersdageField,
   eoOevrigeFravaersdageBeskrivelseField,
-  eoOevrigeKravBeloebField,
-  eoOevrigeKravDatoField,
-  eoOevrigeKravUdgiftTilField,
   eoOffentligeYdelserFraDatoField,
   eoOpgørelseLavetDenField,
   eoRevideretOpgoerelseField,
@@ -445,14 +442,8 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     ).bind(beregningsFerieRowId));
   }
 
-  const oevrigeKravRowId = rowIdSuffix(row.id, 'oevrigekrav.');
-  if (oevrigeKravRowId) {
-    const lower = message.toLocaleLowerCase('da-DK');
-    // Beskrivelse tjekkes før beløb, så "Beskrivelse og beløb mangler" peger på beskrivelsesfeltet.
-    if (lower.includes('beskrivelse')) return target(eoOevrigeKravUdgiftTilField.bind(oevrigeKravRowId));
-    if (lower.includes('beløb')) return target(eoOevrigeKravBeloebField.bind(oevrigeKravRowId));
-    return target(eoOevrigeKravDatoField.bind(oevrigeKravRowId));
-  }
+  // Øvrige krav-rækkerne sætter selv deres `focusTarget` (den første celle med en mangel, jf.
+  // `assessOevrigeKravRow`), så kataloget gætter ikke længere cellen ud fra beskedens ordlyd.
 
   if (row.id === 'taf.beregningsgrundlag.indkomst') {
     // «Ingen indkomst i beregningsperioden»: summen er afledt af lønrækkerne OG beregningsperioden.
@@ -676,9 +667,9 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
   {
     key: 'oevrige-krav-row',
     match: { kind: 'prefix', prefix: 'oevrigekrav.' },
-    when: 'Et øvrigt erstatningskrav mangler beskrivelse, beløb eller dato.',
-    // Builderen leverer en selvstændig besked ("Beskrivelse og beløb mangler", "Beløb mangler",
-    // "Dato mangler"); den vises uændret. Det højrestillede link angiver placeringen.
+    when: 'Et øvrigt erstatningskrav mangler «Udgift til» eller «Beløb», har en rød celle, er dateret uden for opgørelsens periode, eller «Ja» står uden en eneste post.',
+    // Builderen leverer én selvstændig linje pr. række med rækkens navn og alle dens mangler (fx
+    // «Medicin: «Beløb» er ikke udfyldt»); den vises uændret. Det højrestillede link angiver placeringen.
     summaryText: (_row, message) => message || undefined,
   },
   {

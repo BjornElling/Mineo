@@ -121,7 +121,7 @@ describe('TD-019 – øvrige kravs udgift uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'oevrigeKravPerioder[0].udgiftTil',
-        message: 'Udgift til mangler',
+        message: '«Udgift til» er ikke udfyldt',
         severity: 'error',
       }],
     });

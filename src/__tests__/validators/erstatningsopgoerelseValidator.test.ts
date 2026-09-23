@@ -21,6 +21,9 @@ const hasError = (values: ErstatningsopgoerelseValues, messagePart: string): boo
   return result.errors.some((e) => e.message.includes(messagePart));
 };
 
+const oevrigeKravErrors = (values: ErstatningsopgoerelseValues) =>
+  erstatningsopgoerelseValidator.validate(values).errors.filter((error) => error.path.startsWith('oevrigeKravPerioder'));
+
 const isValid = (values: ErstatningsopgoerelseValues): boolean => {
   return erstatningsopgoerelseValidator.validate(values).isValid;
 };
@@ -210,15 +213,17 @@ describe('canonical rangevalidering', () => {
     ]));
   });
 
-  it('kræver fortsat et strengt positivt beløb for øvrige krav', () => {
+  it('afviser fortsat et negativt beløb for øvrige krav – nulreglen ejes nu af feltet selv (BB-232)', () => {
     const zero = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [{ id: 'krav-0', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: asAmount(0) }],
     });
     const negative = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [{ id: 'krav-negativ', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: asAmount(-1) }],
     });
 
-    expect(errorPathsForMessage(zero, 'Beløb skal være større end 0')).toEqual(['oevrigeKravPerioder[0].beloeb']);
+    expect(oevrigeKravErrors(zero)).toEqual([]);
     expect(errorPathsForMessage(negative, 'Beløb kan ikke være negativt')).toEqual(['oevrigeKravPerioder[0].beloeb']);
   });
 });
@@ -742,15 +747,27 @@ describe('SFGG validering', () => {
 describe('øvrige krav validering', () => {
   it('fanger delvist udfyldt øvrige krav-række', () => {
     const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-01-01'), udgiftTil: '', beloeb: asAmount(100) },
       ],
     });
-    expect(hasError(values, 'Udgift til mangler')).toBe(true);
+    expect(hasError(values, '«Udgift til» er ikke udfyldt')).toBe(true);
+  });
+
+  it.each(['Nej', 'Skjul'] as const)('validerer ikke rækkerne, når kravvalget er «%s» (BB-228)', (kravvalg) => {
+    const values = makeValues({
+      kravPaaOevrigeErstatningskrav: kravvalg,
+      oevrigeKravPerioder: [
+        { id: '1', dato: undefined, udgiftTil: 'Medicin', beloeb: undefined },
+      ],
+    });
+    expect(oevrigeKravErrors(values)).toEqual([]);
   });
 
   it('fanger negativt beløb', () => {
     const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-01-01'), udgiftTil: 'Test', beloeb: asAmount(-100) },
       ],
@@ -764,7 +781,7 @@ describe('øvrige krav validering', () => {
         { id: '1', dato: undefined, udgiftTil: undefined, beloeb: undefined },
       ],
     });
-    expect(hasError(values, 'Udgift til mangler')).toBe(false);
+    expect(hasError(values, '«Udgift til» er ikke udfyldt')).toBe(false);
   });
 });
 
@@ -1619,22 +1636,24 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 // =============================================================================
 
 describe('øvrige krav – ekstra valideringscases', () => {
-  it('fanger manglende dato med udgiftTil og beloeb til stede', () => {
+  it('godtager en række uden dato – datoen er valgfri (BB-229)', () => {
     const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: undefined, udgiftTil: 'Transport', beloeb: asAmount(500) },
       ],
     });
-    expect(hasError(values, 'Dato mangler')).toBe(true);
+    expect(oevrigeKravErrors(values)).toEqual([]);
   });
 
   it('fanger manglende beloeb med dato og udgiftTil til stede', () => {
     const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-01-01'), udgiftTil: 'Transport', beloeb: undefined },
       ],
     });
-    expect(hasError(values, 'Beløb mangler')).toBe(true);
+    expect(hasError(values, '«Beløb» er ikke udfyldt')).toBe(true);
   });
 });
 

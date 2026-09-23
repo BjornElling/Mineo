@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12c – Erstatningsopgørelse → Øvrige erstatningskrav.** 12b er gennemgået
+- **Næste flade:** **12d – Erstatningsopgørelse → AES-afgørelser og erstatningsperiodens afgrænsning.**
+  12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
   2026-09-22 (11 fund, BB-217–BB-227). Tidligere: 12a er gennemgået
   2026-09-15 (15 fund, BB-202–BB-216), og hele Erhvervsevnetab er gennemgået,
   afgjort OG gennemført i kode; fane 11e blev afgjort og implementeret 2026-09-09.
@@ -21,9 +22,18 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-228
-- **Åbne spørgsmål:** **tre, alle fra flade 12b.** De fire modsvar, der blev rejst 2026-09-22 på
-  udviklerens egne afgørelser, er alle besvaret og gennemført samme dag. Tilbage står: **(a) skal
+- **Næste fund-ID:** BB-238
+- **Åbne spørgsmål:** **fire fra flade 12c og ét fra flade 12b.** Fra 12c, alle stillet under
+  udviklerens tilbagemeldinger i [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md):
+  **(1) skal kontanthjælps-forbeholdet flyttes fra «Øvrige krav» til «Tabt arbejdsfortjeneste»?** Det har
+  præcis klageforbeholdets fejl (BB-233) og trykkes aldrig i en ny sag, men placeringen er dokumenteret som
+  et bevidst valg. **(2) Skal EET-oplysningerne kunne stå i en opgørelse uden TAF?** Klageforbeholdet følger
+  nu EET-linjerne, som kun trykkes, når TAF er «Ja». **(3) Skal en dato uden for perioden også have en gul
+  ring** (BB-235)? **(4) Mente forbeholdet om «øvrige krav» i «» et bestemt sted** (BB-237)?
+  **12b's spørgsmål (a) og (b) er besvaret 2026-09-23 af BB-228's tilbagemelding:** udvikleren bad om én
+  fælles løsning, og den er feltets `relevance` i inputkernen – validatoren, rækkerne, dokumentet og
+  beregningen læser nu alle et skjult felt som tomt. Tilbage fra 12b står: **(c) skal satsåret**. De
+  følgende linjer er 12b's oprindelige formulering. **(a) skal
   validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen efter
   BB-222's mandat og den eneste udestående del af det. `computeEoSnapshot` giver rækkebyggerne de
   neutraliserede værdier, men validatoren de rå – bevidst, og begrundet i koden med, at gates også
@@ -79,7 +89,17 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12b's elleve fund
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12c's ti fund (BB-228–BB-237) er
+  afgjort af udvikleren OG gennemført i kode 2026-09-23** – alle ti rettet. **Tre ting rakte ud over
+  fundene:** (1) BB-228's «undersøg, om det håndteres ensartet» viste, at det ikke gjorde: hver læser afgjorde
+  selv, om et felt var skjult. EO's felter bag et valg bærer nu inputkernens `relevance`, så ALLE læsere ser
+  et skjult felt som tomt, og et valg, der skjuler et rødt felt, rydder det (`form-contract.md` §7 pkt. 5, som årsløn i
+  forvejen følger). (2) Undersøgelsen fandt **en beregningsfejl i drift**: et skjult «Svie/smerte opgjort i
+  tidligere erstatningsopgørelser» ved 1. opgørelse blev trukket fra maksimum (målt 6.665,00 kr. → 0,00 kr.).
+  Rettet af samme mekanisme. (3) BB-229–BB-232 og BB-235 er løst som ÉN vurdering pr. række, som validatoren
+  og «Fejl og advarsler» deler: én linje pr. række med rækkens navn, alle dens mangler og link til den første
+  celle. TAF-rækken i sammendraget fik samtidig svie/smertes ordlyd (BB-234), så 12e's henvisning er løst.
+  Tidligere: **Flade 12b's elleve fund
   (BB-217–BB-227) er afgjort af udvikleren 2026-09-22 OG gennemført i kode samme dag**, inklusive
   de fire modsvar, udvikleren besvarede undervejs. **Ni rettet** (BB-217, BB-218, BB-219, BB-220,
   BB-221, BB-222, BB-224, BB-225, BB-227) og **to afvist** (BB-223, BB-226). Modsvarene flyttede tre
@@ -116,7 +136,25 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-09-22 (**Flade 12b afgjort af udvikleren: seks godkendt, to delvist, to
+- **Senest opdateret:** 2026-09-23 (**Flade 12c afgjort og gennemført** – se «Fund, der afventer
+  udviklerens afgørelse» ovenfor.) Samme dag, før afgørelsen: (**Flade 12c – Erstatningsopgørelse →
+  Øvrige erstatningskrav – gennemgået: 10 fund, fire Høj, fire Mellem og to Lav, og ét nyt tværgående mønster M-33.** Sektionen er
+  opgørelsens enkleste – et kravvalg og en tabel med dato, beskrivelse og beløb – men den har to
+  valideringslag, rækkebyggeren og den gamle validator, der vurderer samme række hver for sig og er
+  uenige om ordlyd, alvor, relevans og om datoen er påkrævet. **Seks af de ti fund har den rod, og den er
+  M-33.** **BB-228 er det tungeste og en ren fejl:** en halvudfyldt række, der skjules af «Nej»/«Skjul»,
+  spærrer fortsat opgørelsen med «Dato mangler» uden link, fordi `validateOevrigeKrav` mangler den
+  `if (!beregnes) return`, som både `validateSvieSmerte` og `validateTAF` har. **BB-229:** én tom datocelle
+  giver en rød fejl uden link OG en gul advarsel med link – og præsentationsmodellen taber en udaterede
+  række af dokumentets liste, men lægger den med i «I alt», så det er alene validatorens fejl, der i dag
+  forhindrer et forkert papir. **BB-230 er M-19:** tre røde datoer giver syv linjer, heraf tre gange
+  «Dato mangler» om datoer på skærmen; `suppressMaskedMissingInvariants` dækker ikke rækkecellerne.
+  **BB-233 handler om papiret:** forbeholdet om en verserende EET-klage (og om kontanthjælp) trykkes kun,
+  når øvrige krav er «Ja», og en ny sag starter på «Skjul». **BB-231 er bagsiden af BB-218's foldning:** to
+  rækker med samme mangel giver én linje, fordi foldningen også rammer linjer uden rød ring.
+  Beregningsformlerne (sum og forlig) er kontrolregnet og i orden. M-09 bestået; M-23 uden genstand.
+  Konsollen var tavs.)
+- **Tidligere: 2026-09-22** (**Flade 12b afgjort af udvikleren: seks godkendt, to delvist, to
   afvist, ét delvist afvist – og afgørelserne ændrer tre ting ud over fundene.** (1) **BB-222 blev til
   et mønster.** Udvikleren fastslog, at et skjult felt overalt i programmet skal betragtes som ikke
   udfyldt og aldrig må påvirke beregninger eller fejlmeddelelser, og at fejlens eksistens derfor er en
@@ -520,7 +558,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 11e | Erhvervsevnetab – Differencekrav | Afgjort og gennemført | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 12a | Erstatningsopgørelse – Opgørelsens ramme | Afgjort og gennemført | 15 (BB-202–BB-216) | [erstatningsopgoerelse-12a.md](erstatningsopgoerelse-12a.md) |
 | 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Afgjort og gennemført | 11 (BB-217–BB-227) | [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md) |
-| 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Ikke startet | – | – |
+| 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Afgjort og gennemført | 10 (BB-228–BB-237) | [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md) |
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Ikke startet | – | – |
 | 12e | Erstatningsopgørelse – TAF: perioden | Ikke startet | – | – |
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Ikke startet | – | – |

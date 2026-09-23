@@ -26,6 +26,9 @@ import { formatDanishList } from '../../../utils/danishListFormatting';
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
+export const EET_KLAGE_FORBEHOLD_LINJE =
+  'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
+
 const buildTafFerieFravaerLinje = (
   values: ErstatningsopgoerelseValues,
   tafRanges: readonly { fra: ISODateString; til: ISODateString }[]
@@ -239,6 +242,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       skjul,
       statusLinjer: [],
       eetLinjer: [],
+      eetKlageForbeholdLinje: null,
       differencekravLinje: null,
       ferieFravaerLinje: null,
       tafPerioderLinjer: [],
@@ -424,6 +428,17 @@ export const buildTabtArbejdsfortjenesteModel = (
     eetLinjer.push(`Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`);
   }
 
+  // Forbeholdet kræver en dateret afgørelse – samme vilkår, som gjaldt, da det stod under «Øvrige
+  // krav». Det følger EET-linjerne, så det kun trykkes, hvor afgørelsen selv er oplyst (BB-233).
+  const harDateretEetAfgoerelse =
+    (values.midlertidigtEETAfgorelse === 'Ja' &&
+      (values.midlertidigEETVirkningsdato !== undefined || values.midlertidigEETAfgoerelseDato !== undefined)) ||
+    (values.endeligtEETAfgorelse === 'Ja' &&
+      (values.endeligEETVirkningsdato !== undefined || values.endeligEETAfgoerelseDato !== undefined));
+  const eetKlageForbeholdLinje = klageEetAngivet && harDateretEetAfgoerelse
+    ? EET_KLAGE_FORBEHOLD_LINJE
+    : null;
+
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const skalKomprimereIndkomstBeregning =
     !erFoersteOpgoerelse && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja';
@@ -433,6 +448,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     skjul,
     statusLinjer,
     eetLinjer,
+    eetKlageForbeholdLinje,
     differencekravLinje,
     ferieFravaerLinje,
     tafPerioderLinjer,
@@ -470,7 +486,10 @@ export const buildOevrigeKravModel = (
   for (const row of parsed.rows) {
     const dateText = row.original.dato ? formatDateShort(row.original.dato) : '';
     const udgiftTil = (row.original.udgiftTil ?? '').trim();
-    if (dateText === '' || udgiftTil === '') continue;
+    // Datoen er valgfri (BB-229): en udateret post trykkes uden datopræfiks. Før blev den sprunget over i
+    // listen, men lagt med i «I alt», så papiret kunne vise en total, der var større end sine linjer.
+    // En post uden «Udgift til» blokerer download (`assessOevrigeKravRow`) og når derfor aldrig papiret.
+    if (udgiftTil === '') continue;
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
   }
 

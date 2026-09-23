@@ -3,18 +3,44 @@ import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
+import { activeFieldIssue, type FieldIssue } from '../../inputCore/inputIssue';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import {
+  eoOevrigeKravBeloebField,
+  eoOevrigeKravDatoField,
+  eoOevrigeKravUdgiftTilField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { assessOevrigeKravRow } from '../erstatningsopgoerelse/validation/oevrigeKravRowValidation';
+import { erOevrigeKravSektionAktiv } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 import { buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
+import type { OevrigeKravRow } from '../../schemas/formSchemas';
+
+const cellIssue = <T>(
+  errors: ErstatningsopgoerelseFieldIssues,
+  descriptor: FieldDescriptor<T>,
+  rowId: string
+): FieldIssue | undefined => activeFieldIssue(errors, serializeFieldAddress(descriptor.bind(rowId).address));
+
+const COLUMN_DESCRIPTORS = {
+  dato: eoOevrigeKravDatoField,
+  udgiftTil: eoOevrigeKravUdgiftTilField,
+  beloeb: eoOevrigeKravBeloebField,
+} as const;
 
 /**
  * Bygger EO-rækker for Øvrige erstatningskrav.
+ *
+ * Hver tabelrække giver højst ÉN linje i «Fejl og advarsler», som nævner alle rækkens mangler og linker til
+ * den første celle, der skal rettes. Vurderingen ligger i `assessOevrigeKravRow`, som validatoren deler.
  */
 export const buildEoOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
-  _errors: ErstatningsopgoerelseFieldIssues,
+  errors: ErstatningsopgoerelseFieldIssues,
   canonicalOutput?: EoCanonicalOutput
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
@@ -27,7 +53,6 @@ export const buildEoOevrigeKravRows = (
     )
   );
   const introLinjer = resolveOevrigeKravIntroLinjer({
-    eoValues: values,
     ydelser: oevrigeKravForbeholdYdelsestyper,
   });
 
@@ -40,81 +65,86 @@ export const buildEoOevrigeKravRows = (
     });
   });
 
-  const oevrigeKrav = values.oevrigeKravPerioder ?? [];
-  const harKrav = oevrigeKrav.length > 0 && oevrigeKrav.some((k) => k.dato || k.udgiftTil || k.beloeb);
+  const periode = values.vedroererPeriodeFra !== undefined && values.vedroererPeriodeTil !== undefined
+    ? { fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }
+    : undefined;
+  const vurder = (krav: OevrigeKravRow, kvalificeretNavn: boolean) => assessOevrigeKravRow(
+    krav,
+    {
+      dato: cellIssue(errors, eoOevrigeKravDatoField, krav.id),
+      udgiftTil: cellIssue(errors, eoOevrigeKravUdgiftTilField, krav.id),
+      beloeb: cellIssue(errors, eoOevrigeKravBeloebField, krav.id),
+    },
+    periode,
+    { kvalificeretNavn }
+  );
+  const foersteVurderinger = (values.oevrigeKravPerioder ?? []).map((krav) => ({ krav, vurdering: vurder(krav, false) }));
+  // «Fejl og advarsler» folder ordret ens linjer til én (BB-218). To rækker med samme beskrivelse og samme
+  // mangel ville derfor blive til én linje, og den anden række ville først vise sig, når den første var rettet
+  // (BB-231). Sådanne rækker navngives med dato og beløb, så hver række har sin egen linje.
+  const beskedAntal = new Map<string, number>();
+  for (const { vurdering } of foersteVurderinger) {
+    if (vurdering.kind === 'error' || vurdering.kind === 'warning') {
+      beskedAntal.set(vurdering.message, (beskedAntal.get(vurdering.message) ?? 0) + 1);
+    }
+  }
+  const vurderinger = foersteVurderinger.map(({ krav, vurdering }) =>
+    (vurdering.kind === 'error' || vurdering.kind === 'warning') && (beskedAntal.get(vurdering.message) ?? 0) > 1
+      ? { krav, vurdering: vurder(krav, true) }
+      : { krav, vurdering });
+  const udfyldte = vurderinger.filter(({ vurdering }) => vurdering.kind !== 'empty');
 
-  if (!harKrav && introLinjer.length === 0) {
-    rows.push({
-      id: 'oevrigekrav.empty',
-      label: 'Ingen',
-      displayValue: '-',
-      status: 'ok',
-    });
-  } else {
-    oevrigeKrav.forEach((krav) => {
-      const hasDato = isNonEmptyString(krav.dato);
-      const hasUdgiftTil = isNonEmptyString(krav.udgiftTil);
-      const hasBeloeb = krav.beloeb !== undefined;
+  if (udfyldte.length === 0) {
+    if (erOevrigeKravSektionAktiv(values)) {
+      // «Ja» er et svar om, at der ER øvrige krav; en tabel uden en eneste post lod en glemt tabel
+      // passere som et færdigt krav (BB-236). Advarslen blokerer ikke.
+      rows.push({
+        id: 'oevrigekrav.empty',
+        label: 'Ingen',
+        displayValue: '-',
+        status: 'warning',
+        message: 'Der er ikke indtastet øvrige krav',
+        summaryDisplay: 'messageOnly',
+        focusTarget: { kind: 'collectionField', template: eoOevrigeKravUdgiftTilField.template },
+      });
+    } else if (introLinjer.length === 0) {
+      rows.push({
+        id: 'oevrigekrav.empty',
+        label: 'Ingen',
+        displayValue: '-',
+        status: 'ok',
+      });
+    }
+    return rows;
+  }
 
-      // Tæl hvor mange felter der er udfyldt
-      const filledCount = [hasDato, hasUdgiftTil, hasBeloeb].filter(Boolean).length;
-      const noneFilled = filledCount === 0;
-
-      // Spring over rækker hvor intet er udfyldt
-      if (noneFilled) return;
-
-      // Konverter dato til dansk format
-      const datoDanish = hasDato ? isoToDanish(krav.dato) : undefined;
-
-      // Tjek om udgiftTil og beløb begge er udfyldt
-      const udgiftOgBeloebUdfyldt = hasUdgiftTil && hasBeloeb;
-
-      // Status er fejl hvis udgiftTil ELLER beløb mangler (når der er noget udfyldt i rækken)
-      // Status er advarsel hvis kun dato mangler.
-      // Selve fejl-/advarselsteksten lægges i `message` (ikke bagt ind i label/displayValue med
-      // et "Fejl:"-præfiks): "Fejl og advarsler" viser `message` som en selvstændig, specifik
-      // sætning, og det højrestillede link angiver placeringen. `messageOnly` sikrer, at netop
-      // `message` vises uden label-præfiks.
-      let status: EoRowStatus = 'ok';
-      let label = '';
-      let displayValue = '';
-      let message: string | undefined;
-
-      if (!udgiftOgBeloebUdfyldt) {
-        // Fejl: Enten beskrivelse eller beløb (eller begge) mangler
-        status = 'error';
-
-        if (!hasUdgiftTil && !hasBeloeb) {
-          label = 'Øvrigt erstatningskrav';
-          message = 'Beskrivelse og beløb er ikke udfyldt';
-        } else if (!hasUdgiftTil) {
-          label = 'Øvrigt erstatningskrav';
-          message = 'Beskrivelse er ikke udfyldt';
-        } else {
-          label = krav.udgiftTil ?? 'Øvrigt erstatningskrav';
-          message = 'Beløb er ikke angivet';
-        }
-        displayValue = `Fejl (${message})`;
-      } else if (!hasDato) {
-        // Advarsel: Kun dato mangler
-        status = 'warning';
-        label = krav.udgiftTil ?? 'Øvrigt erstatningskrav';
-        message = 'Dato er ikke angivet';
-        displayValue = formatCurrency(amountValueToNumber(krav.beloeb));
-      } else {
-        // Alt udfyldt korrekt
-        label = `${krav.udgiftTil} (${datoDanish})`;
-        displayValue = formatCurrency(amountValueToNumber(krav.beloeb));
-      }
-
+  for (const { krav, vurdering } of udfyldte) {
+    if (vurdering.kind === 'empty') continue;
+    const udgiftTil = (krav.udgiftTil ?? '').trim();
+    const datoDanish = krav.dato === undefined ? undefined : isoToDanish(krav.dato);
+    const beloebText = formatCurrency(amountValueToNumber(krav.beloeb));
+    if (vurdering.kind === 'ok') {
       rows.push({
         id: `oevrigekrav.${krav.id}`,
-        label,
-        displayValue,
-        status,
-        message,
-        summaryDisplay: status !== 'ok' ? 'messageOnly' : undefined,
+        label: datoDanish ? `${udgiftTil} (${datoDanish})` : udgiftTil,
+        displayValue: beloebText,
+        status: 'ok',
       });
+      continue;
+    }
+    // Beskeden står i `message` (ikke bagt ind i label/displayValue med et «Fejl:»-præfiks): «Fejl og
+    // advarsler» viser den som en selvstændig sætning, og det højrestillede link angiver placeringen.
+    rows.push({
+      id: `oevrigekrav.${krav.id}`,
+      label: udgiftTil === '' ? 'Øvrigt erstatningskrav' : udgiftTil,
+      displayValue: vurdering.kind === 'error' ? `Fejl (${vurdering.message})` : beloebText,
+      status: vurdering.kind,
+      message: vurdering.message,
+      summaryDisplay: 'messageOnly',
+      focusTarget: {
+        kind: 'fieldAddress',
+        address: COLUMN_DESCRIPTORS[vurdering.focusColumn].bind(krav.id).address,
+      },
     });
   }
 

@@ -52,6 +52,8 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
   return {
     ...base,
     eoNummer: 'EO-42',
+    // Øvrige krav-rækken er kun udfyldt, når tabellen vises; bag «Skjul» læses den som tom (BB-228).
+    kravPaaOevrigeErstatningskrav: 'Ja',
     forligAnsvarsgradProcent: 50,
     forligAnsvarsgradBroek: '',
     kravPaaTabtArbejdsfortjeneste: 'Ja',

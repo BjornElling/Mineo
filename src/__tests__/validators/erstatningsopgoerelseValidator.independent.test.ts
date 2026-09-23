@@ -143,9 +143,11 @@ describe('uafhængige validator-inputs', () => {
       });
     });
 
-    it('rapporterer nul i øvrige krav som en struktureret validatorfejl', () => {
+    // Nulreglen ejes af feltet selv, så cellen bliver rød (BB-232); validatoren melder den ikke oveni.
+    it('overlader nul i øvrige krav til feltets egen regel', () => {
       const values = parseLiteral({
         ...VALIDATOR_LITERAL,
+        kravPaaOevrigeErstatningskrav: 'Ja',
         oevrigeKravPerioder: [{
           id: 'krav-literal',
           dato: '2024-01-01',
@@ -156,14 +158,7 @@ describe('uafhængige validator-inputs', () => {
 
       const result = erstatningsopgoerelseValidator.validate(values);
 
-      expect(result).toEqual({
-        isValid: false,
-        errors: [{
-          path: 'oevrigeKravPerioder[0].beloeb',
-          message: 'Beløb skal være større end 0',
-          severity: 'error',
-        }],
-      });
+      expect(result).toEqual({ isValid: true, errors: [] });
     });
 
     it('accepterer manuel SFGG-kilde med et aktivt literal-ansættelsesforhold', () => {

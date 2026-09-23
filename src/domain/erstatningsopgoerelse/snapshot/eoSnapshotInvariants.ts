@@ -5,6 +5,10 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
+import {
+  OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
+  OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
+} from '../validation/oevrigeKravRowValidation';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
@@ -61,7 +65,12 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
 const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
   'Fra-dato mangler',
   'Til-dato mangler',
+  OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
+  OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
 ]);
+
+/** De rækkefelter, hvis «mangler»-invariant kan være et maskeringsartefakt. */
+const MASKABLE_ROW_FIELDS: ReadonlySet<string> = new Set(['fra', 'til', 'udgiftTil', 'beloeb']);
 
 /**
  * Fjerner de "mangler"-invarianter, som en STRUKTUREL feltfejl på samme felt allerede har dækket.
@@ -91,6 +100,9 @@ const legacyPathForFieldIssue = (
   const supportedCollections = {
     tafPerioder: values.tafPerioder,
     svieSmertePerioder: values.svieSmertePerioder,
+    // Et beløb på 0 kr. er rødt (BB-232) og læses derfor som tomt: uden denne post fik det også
+    // «Beløb er ikke udfyldt» om et beløb, der står i cellen.
+    oevrigeKravPerioder: values.oevrigeKravPerioder,
   } as const;
   const entity = issue.field.address.path.find((segment) => (
     segment.kind === 'entity' && segment.collection in supportedCollections
@@ -101,7 +113,7 @@ const legacyPathForFieldIssue = (
   const rows = supportedCollections[collection];
   const index = rows.findIndex((row) => row.id === entity.entityId);
   if (index < 0) return undefined;
-  if (issue.field.address.field !== 'fra' && issue.field.address.field !== 'til') return undefined;
+  if (!MASKABLE_ROW_FIELDS.has(issue.field.address.field)) return undefined;
   return `${collection}[${index}].${issue.field.address.field}`;
 };
 

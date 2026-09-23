@@ -41,6 +41,12 @@ import { reportSystemIssue } from '../../../../utils/systemIssueReporter';
 import { safeCompute } from '../../../../utils/safeComputation';
 import { isErr } from '../../../../types/result';
 import { getEoBilagAvailability } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
+import { isOevrigeKravRowEmpty } from '../../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import {
+  INGEN_PERIODER_ANGIVET_TEKST,
+  resolveKravIkkeRejstTekst,
+  resolveOevrigeKravSummaryText,
+} from './eoBeregningSummaryTexts';
 import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
 import {
   resolveMidlertidigtEetIssueNavigation,
@@ -666,17 +672,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     beregnesSvieSmerte &&
     (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
-  // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode. Ordet dækkede før tre
-  // forskellige tilstande – kravet er fravalgt, kravet er opbrugt, og perioderne mangler endnu –
-  // så et «Nej» ud for en tom tabel læstes som «det emne er afsluttet» (BB-227).
-  // 'Skjul' har samme beregningsadfærd som 'Nej', men udelades helt fra opgørelses-PDF'en.
-  // Markér det i oversigten, så det er tydeligt at emnet er fravalgt fra dokumentet (ikke kun 0 kr.).
-  const svieSmerteFravalgtTekst = (() => {
-    if (eoValues.kravPaaSvieSmerteGodtgoerelse === 'Skjul') return 'Ikke rejst (skjult)';
-    if (eoValues.kravPaaSvieSmerteGodtgoerelse !== 'Ja') return 'Ikke rejst';
-    if (eoValues.tidligereSsMax === 'Ja') return 'Maksimum nået i tidligere opgørelse';
-    return 'Ingen perioder angivet';
-  })();
+  // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode (BB-227); ordene deles med de to
+  // andre krav i `eoBeregningSummaryTexts.ts`.
+  const svieSmerteFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaSvieSmerteGodtgoerelse)
+    ?? (eoValues.tidligereSsMax === 'Ja' ? 'Maksimum nået i tidligere opgørelse' : INGEN_PERIODER_ANGIVET_TEKST);
   const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : [svieSmerteFravalgtTekst];
   const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
     ? 'Svie/smerte-perioder'
@@ -706,9 +705,19 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
     tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
-  const tafFravalgtTekst = eoValues.kravPaaTabtArbejdsfortjeneste === 'Skjul' ? 'Nej (skjult)' : 'Nej';
+  // Samme ord som svie/smerte-rækken: «Nej» dækkede før både et fravalgt krav og et rejst krav uden
+  // perioder (BB-234).
+  const tafFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaTabtArbejdsfortjeneste) ?? INGEN_PERIODER_ANGIVET_TEKST;
   const tafSummaryLines = harTafPerioder ? tafPerioderLines : [tafFravalgtTekst];
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
+
+  // Øvrige krav var det eneste af de tre krav, sammendraget ikke nævnte – og netop det starter
+  // skjult i en ny sag (BB-234). Rækken viser antallet af poster, ikke beløbet (BB-226's afgørelse).
+  const oevrigeKravSummaryText = resolveOevrigeKravSummaryText({
+    kravvalg: eoValues.kravPaaOevrigeErstatningskrav,
+    harFejl: relevantRows.some((row) => row.id.startsWith('oevrigekrav.') && row.status === 'error'),
+    antalPoster: (eoValues.oevrigeKravPerioder ?? []).filter((row) => !isOevrigeKravRowEmpty(row)).length,
+  });
 
   // Navnet kommer fra feltets ene navneregel (§3.2a), aldrig fra en lokal ternary.
   const skadedatoLabel = resolveSkadestypeDatoLabel(stamdataValues?.skadestype);
@@ -782,6 +791,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     svieSmerteSummaryLines,
     tafSummaryLabel,
     tafSummaryLines,
+    oevrigeKravSummaryText,
     skadedatoLabel,
     skadedatoDisplay,
     erstatningsopgoerelseTitel,

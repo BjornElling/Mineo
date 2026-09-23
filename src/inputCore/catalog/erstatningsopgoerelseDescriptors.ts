@@ -54,12 +54,26 @@ import {
   UNBOUNDED_DAY_COUNT_MAX_DIGITS,
 } from './fieldLengthLimits';
 import type {
+  CanonicalView,
   FieldControlKind,
   FieldAddressTemplate,
   FieldDescriptor,
   FieldRef,
   FieldValidator,
+  RelevanceRule,
 } from '../fieldDescriptor';
+import {
+  erBilagsnumreRelevant,
+  erEETKlageRelevant,
+  erEndeligtEETAfgoerelseAktiv,
+  erMidlertidigtEETAfgoerelseAktiv,
+  erOevrigeKravSektionAktiv,
+  erSvieSmertePeriodeInputRelevant,
+  erSvieSmerteSektionAktiv,
+  erSvieSmerteTidligereTotalRelevant,
+  erTabtArbejdsfortjenesteSektionAktiv,
+  erVarigeMenAfgoerelseAktiv,
+} from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, originWhenNarrowed, systemrammeSpec } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
@@ -71,6 +85,7 @@ import {
 } from '../structuralDescriptors';
 import {
   amountBoundsValidator,
+  positiveAmountValidator,
   integerBoundsValidator,
   percentBoundsValidator,
   yearBoundsValidator,
@@ -128,6 +143,7 @@ const optionalTextField = (
   label: string,
   maxLength: number,
   preservesLineBreaks = false,
+  relevance?: RelevanceRule<string | undefined>,
 ): FieldDescriptor<string | undefined> =>
   defineStructuralField<string | undefined>({
     id: `eo.${field}`,
@@ -138,6 +154,7 @@ const optionalTextField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 /**
@@ -153,7 +170,8 @@ type DateFieldBounds = Readonly<{
 const dateField = (
   field: string,
   label: string,
-  bounds: DateFieldBounds
+  bounds: DateFieldBounds,
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${field}`,
@@ -165,6 +183,7 @@ const dateField = (
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
     ...bounds,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 // ── EO's datogrænser: fra deklaration til håndhævelse ────────────────────────────
@@ -224,7 +243,11 @@ const skadedatoBoundedSpec = (
   ),
 });
 
-const amountField = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
+const amountField = (
+  field: string,
+  label: string,
+  relevance?: RelevanceRule<AmountValue | undefined>,
+): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
@@ -235,6 +258,7 @@ const amountField = (field: string, label: string): FieldDescriptor<AmountValue 
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
     validators: [amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 /**
@@ -280,6 +304,7 @@ const requiredChoiceField = <T extends string>(
   values: readonly T[],
   emptyValue: T,
   controlKind: FieldControlKind = 'choice',
+  relevance?: RelevanceRule<T>,
 ): FieldDescriptor<T> =>
   defineStructuralField<T>({
     id: `eo.${field}`,
@@ -290,10 +315,16 @@ const requiredChoiceField = <T extends string>(
     label,
     controlKind,
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
-const requiredJaNejField = (field: string, label: string, emptyValue: JaNej): FieldDescriptor<JaNej> =>
-  requiredChoiceField(field, label, ['Ja', 'Nej'], emptyValue, 'toggle');
+const requiredJaNejField = (
+  field: string,
+  label: string,
+  emptyValue: JaNej,
+  relevance?: RelevanceRule<JaNej>,
+): FieldDescriptor<JaNej> =>
+  requiredChoiceField(field, label, ['Ja', 'Nej'], emptyValue, 'toggle', relevance);
 
 const requiredJaNejSkjulField = (
   field: string,
@@ -301,6 +332,58 @@ const requiredJaNejSkjulField = (
   emptyValue: JaNejSkjul
 ): FieldDescriptor<JaNejSkjul> =>
   requiredChoiceField(field, label, ['Ja', 'Nej', 'Skjul'], emptyValue);
+
+// ── Relevans: felter bag et valg (§7.3) ──────────────────────────────────────────
+//
+// Et skjult felt er ikke udfyldt (BB-222) og må hverken påvirke beregning eller fejlmeddelelser. EO
+// udtrykte det kun ved, at hvert læsested spejlede sektionens valg for sig: motorerne fik neutraliserede
+// værdier, men validatoren fik de rå, så en halvudfyldt række bag «Nej»/«Skjul» spærrede opgørelsen med
+// en linje uden link, og et rødt felt bag et valg blev ved med at spærre uden for skærmen (BB-228).
+//
+// Reglerne her er inputCores egen læsegrænse og gælder derfor ALLE læsere på én gang: readeren giver
+// feltets tomværdi, der dannes ingen rød ring, og et valg, der skjuler et rødt felt, rydder det (§7.5).
+// De kalder prædikaterne i `eoInputRelevance.ts`, så UI'ens synlighed og felternes relevans har ét sted.
+// Hver regel SKAL svare præcis til den betingelse, sektionskomponenten viser feltet under: er relevansen
+// smallere end synligheden, forsvinder en synlig indtastning tavst.
+//
+// Bevidst UDEN for: beregningsgrundlagets mode-felter (`beregnesUdFra`, fravær, angivet løn, lønindkomst),
+// fordi komprimeringen ved EO 2+ skjuler dem i UI'en, mens de forbliver aktive input (se
+// `eoInputRelevance.ts`). Deres synlighed er ikke deres relevans.
+const readEo = <T>(view: CanonicalView, descriptor: FieldDescriptor<T>): T => view.readCanonical(descriptor.bind());
+
+const whenEo = <T>(isRelevant: (view: CanonicalView) => boolean): RelevanceRule<T> =>
+  (_field, view) => isRelevant(view);
+
+const svieSmerteSektionAktiv = (view: CanonicalView): boolean =>
+  erSvieSmerteSektionAktiv({ kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField) });
+const svieSmertePeriodeInputRelevant = (view: CanonicalView): boolean =>
+  erSvieSmertePeriodeInputRelevant({
+    kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField),
+    tidligereSsMax: readEo(view, eoTidligereSsMaxField),
+  });
+const svieSmerteTidligereTotalRelevant = (view: CanonicalView): boolean =>
+  erSvieSmerteTidligereTotalRelevant({
+    kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField),
+    tidligereSsMax: readEo(view, eoTidligereSsMaxField),
+    eoNummer: readEo(view, eoNummerField),
+  });
+const tafSektionAktiv = (view: CanonicalView): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv({ kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField) });
+const oevrigeKravSektionAktiv = (view: CanonicalView): boolean =>
+  erOevrigeKravSektionAktiv({ kravPaaOevrigeErstatningskrav: readEo(view, eoKravPaaOevrigeErstatningskravField) });
+const varigeMenAfgoerelseAktiv = (view: CanonicalView): boolean =>
+  erVarigeMenAfgoerelseAktiv({ varigeMenAfgorelse: readEo(view, eoVarigeMenAfgorelseField) });
+const midlertidigtEetAfgoerelseAktiv = (view: CanonicalView): boolean =>
+  erMidlertidigtEETAfgoerelseAktiv({ midlertidigtEETAfgorelse: readEo(view, eoMidlertidigtEETAfgorelseField) });
+const endeligtEetAfgoerelseAktiv = (view: CanonicalView): boolean =>
+  erEndeligtEETAfgoerelseAktiv({ endeligtEETAfgorelse: readEo(view, eoEndeligtEETAfgorelseField) });
+const eetKlageRelevant = (view: CanonicalView): boolean =>
+  erEETKlageRelevant({
+    midlertidigtEETAfgorelse: readEo(view, eoMidlertidigtEETAfgorelseField),
+    endeligtEETAfgorelse: readEo(view, eoEndeligtEETAfgorelseField),
+  });
+const bilagsnumreRelevant = (view: CanonicalView): boolean =>
+  erBilagsnumreRelevant({ visBilagsnumre: readEo(view, eoVisBilagsnumreField) });
 
 // ── Base-blok ─────────────────────────────────────────────────────────────────────
 // Længderne er kontraktens egne (§4.1: 7 tegn; §4.2: 64 tegn), ikke skønnede.
@@ -457,7 +540,7 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
     },
   ],
 });
-export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Krav på øvrige erstatningskrav', 'Ja');
+export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Er der øvrige krav i erstatningsperioden', 'Ja');
 // §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
   'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true
@@ -514,27 +597,36 @@ export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse'
 export const eoMenAfgoerelseDatoField = dateField(
   'menAfgoerelseDato', 'Mén-afgørelsesdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.menAfgoerelseDato)),
+  whenEo(varigeMenAfgoerelseAktiv),
 );
-export const eoVerserendeKlageMenField = requiredJaNejField('verserendeKlageMen', 'Verserende klage (mén)', 'Nej');
+export const eoVerserendeKlageMenField = requiredJaNejField(
+  'verserendeKlageMen', 'Verserende klage (mén)', 'Nej', whenEo(varigeMenAfgoerelseAktiv),
+);
 export const eoMidlertidigtEETAfgorelseField = requiredJaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse', 'Nej');
 export const eoMidlertidigEETAfgoerelseDatoField = dateField(
   'midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETAfgoerelseDato)),
+  whenEo(midlertidigtEetAfgoerelseAktiv),
 );
 export const eoMidlertidigEETVirkningsdatoField = dateField(
   'midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETVirkningsdato)),
+  whenEo(midlertidigtEetAfgoerelseAktiv),
 );
 export const eoEndeligtEETAfgorelseField = requiredJaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse', 'Nej');
 export const eoEndeligEETAfgoerelseDatoField = dateField(
   'endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETAfgoerelseDato)),
+  whenEo(endeligtEetAfgoerelseAktiv),
 );
 export const eoEndeligEETVirkningsdatoField = dateField(
   'endeligEETVirkningsdato', 'Endeligt EET-virkningsdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETVirkningsdato)),
+  whenEo(endeligtEetAfgoerelseAktiv),
 );
-export const eoVerserendeKlageEetField = requiredJaNejField('verserendeKlageEet', 'Verserende klage (EET)', 'Nej');
+export const eoVerserendeKlageEetField = requiredJaNejField(
+  'verserendeKlageEet', 'Verserende klage (EET)', 'Nej', whenEo(eetKlageRelevant),
+);
 export const eoDifferencekravDatoField = dateField(
   'differencekravDato', 'Differencekravsdato',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.differencekravDato)),
@@ -545,7 +637,9 @@ export const eoKravPaaSvieSmerteGodtgoerelseField = requiredJaNejSkjulField('kra
 export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
   'svieSmerteHelbredsstatus', 'Helbredsforhold', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
-export const eoTidligereSsMaxField = requiredJaNejField('tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej');
+export const eoTidligereSsMaxField = requiredJaNejField(
+  'tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej', whenEo(svieSmerteSektionAktiv),
+);
 // Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..getCurrentYear er det afledte bounds-issue.
 export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefined>({
   id: 'eo.svieSmerteSatserAar',
@@ -557,17 +651,23 @@ export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefin
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, getCurrentYear)],
+  relevance: whenEo(svieSmertePeriodeInputRelevant),
 });
 export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
   'svieSmerteDelvisSygemeldingSats', 'Svie/smerte-sats ved delvis sygemelding', ['fuld', 'halv'], 'halv',
+  'choice', whenEo(svieSmertePeriodeInputRelevant),
 );
 // Tidligere PERIODER opgøres; hvad der faktisk blev betalt for dem er uden betydning, fordi beløbet
 // fradrages i MAKSIMUM (svieSmerteEngine: restPlads = max - tidligere). Derfor "opgjort", ikke
 // "udbetalt" – label, advarsel og dokument bruger samme ord om samme tal (BB-224).
-export const eoSvieSmerteTidligereTotalField = amountField('svieSmerteTidligereTotal', 'Svie/smerte opgjort i tidligere erstatningsopgørelser');
+export const eoSvieSmerteTidligereTotalField = amountField(
+  'svieSmerteTidligereTotal', 'Svie/smerte opgjort i tidligere erstatningsopgørelser', whenEo(svieSmerteTidligereTotalRelevant),
+);
 // Den AKTUELLE periode er den omvendte regel: kun det faktisk betalte tæller, fordi beløbet
 // fradrages i det opgjorte krav for perioden (svieSmerteEngine: beloeb - allerede).
-export const eoSvieSmerteAktuelPeriodeField = amountField('svieSmerteAktuelPeriode', 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode');
+export const eoSvieSmerteAktuelPeriodeField = amountField(
+  'svieSmerteAktuelPeriode', 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode', whenEo(svieSmertePeriodeInputRelevant),
+);
 
 // ── TAF (skalarer) ──────────────────────────────────────────────────────────────
 export const eoKravPaaTabtArbejdsfortjenesteField = requiredJaNejSkjulField('kravPaaTabtArbejdsfortjeneste', 'Krav på tabt arbejdsfortjeneste', 'Ja');
@@ -580,7 +680,7 @@ export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdssta
 export const eoSidsteDagAnsaettelsesforholdField = dateField(
   'sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold', dateBounds(systemrammeSpec),
 );
-export const eoTidligereModtagetTafField = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF');
+export const eoTidligereModtagetTafField = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF', whenEo(tafSektionAktiv));
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
 export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse', 'Ja');
@@ -619,13 +719,13 @@ export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
 // Alle syv har `BILAGSNUMMER_MAX_LENGTH` og ikke den generelle korttekst-kategori: felterne er 130 px
 // brede og centrerede, så et 60-tegns loft tillod en værdi, brugeren kun kunne se midten af (BB-206).
 export const eoVisBilagsnumreField = requiredJaNejField('visBilagsnumre', 'Vis bilagsnumre', 'Nej');
-export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', BILAGSNUMMER_MAX_LENGTH);
-export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', BILAGSNUMMER_MAX_LENGTH);
+export const eoBilagsnumreMenAfgoerelseField = optionalTextField('bilagsnumreMenAfgoerelse', 'Bilagsnr. mén-afgørelse', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreEetAfgoerelserField = optionalTextField('bilagsnumreEetAfgoerelser', 'Bilagsnr. EET-afgørelser', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreSvieSmerteDokumentationField = optionalTextField('bilagsnumreSvieSmerteDokumentation', 'Bilagsnr. svie/smerte-dokumentation', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreBeregningsgrundlagTafField = optionalTextField('bilagsnumreBeregningsgrundlagTaf', 'Bilagsnr. beregningsgrundlag TAF', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreLoenISygeperiodenField = optionalTextField('bilagsnumreLoenISygeperioden', 'Bilagsnr. løn i sygeperioden', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreOffentligeYdelserField = optionalTextField('bilagsnumreOffentligeYdelser', 'Bilagsnr. offentlige ydelser', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
+export const eoBilagsnumreOevrigeErstatningskravField = optionalTextField('bilagsnumreOevrigeErstatningskrav', 'Bilagsnr. øvrige erstatningskrav', BILAGSNUMMER_MAX_LENGTH, false, whenEo(bilagsnumreRelevant));
 
 // ── Rene top-level samlinger + rækkefelter ─────────────────────────────────────────
 const rowTemplate = (collection: string, field: string): FieldAddressTemplate => ({
@@ -636,7 +736,8 @@ const rowDate = (
   collection: string,
   field: string,
   label: string,
-  bounds: DateFieldBounds
+  bounds: DateFieldBounds,
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
   defineStructuralField<ISODateString | undefined>({
     id: `eo.${collection}.${field}`,
@@ -648,6 +749,7 @@ const rowDate = (
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
     ...bounds,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 /**
@@ -663,7 +765,8 @@ const rowDatePair = (
   tilField: string,
   fraLabel: string,
   tilLabel: string,
-  specs: Readonly<{ fra: DateBoundsSpec; til: DateBoundsSpec }>
+  specs: Readonly<{ fra: DateBoundsSpec; til: DateBoundsSpec }>,
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): Readonly<{
   fra: FieldDescriptor<ISODateString | undefined>;
   til: FieldDescriptor<ISODateString | undefined>;
@@ -675,8 +778,8 @@ const rowDatePair = (
     til: () => til,
     bindIds: (field) => [rowIdOf(field)],
   };
-  const fra = rowDate(collection, fraField, fraLabel, dateBounds(specs.fra, [dateOrderValidator('fra', pair)]));
-  const til = rowDate(collection, tilField, tilLabel, dateBounds(specs.til, [dateOrderValidator('til', pair)]));
+  const fra = rowDate(collection, fraField, fraLabel, dateBounds(specs.fra, [dateOrderValidator('fra', pair)]), relevance);
+  const til = rowDate(collection, tilField, tilLabel, dateBounds(specs.til, [dateOrderValidator('til', pair)]), relevance);
   return { fra, til };
 };
 
@@ -705,7 +808,7 @@ const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Ti
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMax,
   }),
-});
+}, whenEo(tafSektionAktiv));
 export const eoTafPeriodeFraField = tafPeriodeDates.fra;
 export const eoTafPeriodeTilField = tafPeriodeDates.til;
 export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | undefined>({
@@ -721,6 +824,7 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [integerBoundsValidator('eo.tafPerioder.loseFeriedage.bounds', 0, undefined)],
+  relevance: whenEo(tafSektionAktiv),
 });
 
 // ferieperioder
@@ -730,7 +834,7 @@ export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('fe
 const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: systemrammeSpec,
   til: systemrammeSpec,
-});
+}, whenEo(tafSektionAktiv));
 export const eoFerieperiodeFraField = ferieperiodeDates.fra;
 export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
@@ -757,7 +861,7 @@ const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', '
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
   }),
-});
+}, whenEo(svieSmertePeriodeInputRelevant));
 export const eoSvieSmertePeriodeFraField = svieSmertePeriodeDates.fra;
 export const eoSvieSmertePeriodeTilField = svieSmertePeriodeDates.til;
 export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand | undefined>({
@@ -769,6 +873,7 @@ export const eoSvieSmertePeriodeTilstandField = defineStructuralField<Tilstand |
   label: 'Tilstand',
   controlKind: 'choice',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  relevance: whenEo(svieSmertePeriodeInputRelevant),
 });
 
 // oevrigeKravPerioder
@@ -790,6 +895,7 @@ export const eoOevrigeKravDatoField: FieldDescriptor<ISODateString | undefined> 
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   // Var en håndskrevet kopi af skadedato-reglen; deler nu spec med de øvrige EO-datoer.
   ...dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato)),
+  relevance: whenEo(oevrigeKravSektionAktiv),
 });
 export const eoOevrigeKravUdgiftTilField = defineStructuralField<string>({
   id: 'eo.oevrigeKravPerioder.udgiftTil',
@@ -800,6 +906,7 @@ export const eoOevrigeKravUdgiftTilField = defineStructuralField<string>({
   label: 'Udgift til',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  relevance: whenEo(oevrigeKravSektionAktiv),
 });
 export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | undefined>({
   id: 'eo.oevrigeKravPerioder.beloeb',
@@ -810,7 +917,13 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
   label: 'Beløb',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  validators: [amountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds', 0, undefined)],
+  // En udgift på 0 kr. er ikke et krav. Reglen stod før kun i validatoren (`> 0`), mens feltet tog imod
+  // 0 med neutral kant: opgørelsen blev spærret af en linje uden link og uden rød celle (BB-232).
+  validators: [
+    positiveAmountValidator('eo.oevrigeKravPerioder.beloeb.positive', 'Beløbet skal være større end 0 kr.'),
+    amountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds', 0, undefined),
+  ],
+  relevance: whenEo(oevrigeKravSektionAktiv),
 });
 
 // offentligeYdelserRows (ydelse/tillaeg tillader negative jf. TableAmountInput-default)

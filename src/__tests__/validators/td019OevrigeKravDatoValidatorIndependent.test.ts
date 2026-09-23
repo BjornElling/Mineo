@@ -114,16 +114,10 @@ const INDEPENDENT_OEVRIGE_KRAV_DATO_VALUES: ErstatningsopgoerelseValues = {
 };
 
 describe('TD-019 – øvrige krav-dato uden schema-fixture', () => {
-  it('rapporterer manglende dato med præcis feltsti, besked og severity', () => {
+  // Datoen er valgfri (udviklerafgørelse 2026-09-23, BB-229): en udgift kan mangle en nøjagtig dato.
+  it('godtager en række uden dato, når beskrivelse og beløb er udfyldt', () => {
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_OEVRIGE_KRAV_DATO_VALUES);
 
-    expect(result).toEqual({
-      isValid: false,
-      errors: [{
-        path: 'oevrigeKravPerioder[0].dato',
-        message: 'Dato mangler',
-        severity: 'error',
-      }],
-    });
+    expect(result).toEqual({ isValid: true, errors: [] });
   });
 });

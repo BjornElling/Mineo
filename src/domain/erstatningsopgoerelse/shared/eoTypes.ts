@@ -133,6 +133,13 @@ export type TabtArbejdsfortjenesteModel = Readonly<{
   skjul: boolean;
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
+  /**
+   * Forbeholdet om en verserende klage over EET-afgørelsen. Trykkes i opgørelsen lige efter
+   * EET-linjerne, hvor afgørelsen og «Afgørelsen er påklaget.» står (BB-233). Holdes adskilt fra
+   * `eetLinjer`, fordi de to TAF-på-år-dokumenter også trykker `eetLinjer`, og forbeholdet om
+   * kravets regulering hører til selve opgørelsen.
+   */
+  eetKlageForbeholdLinje: string | null;
   differencekravLinje: string | null;
   ferieFravaerLinje: string | null;
   tafPerioderLinjer: readonly string[];

@@ -12,6 +12,22 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-23 fra Erstatningsopgørelse → Øvrige erstatningskrav (12c) – M-33: to
+valideringslag vurderer samme række hver for sig, og brugeren får begge svar.** Rækkebyggeren
+(`eoRowOevrigeKravRows.ts`) og den gamle validator (`validateOevrigeKrav`) er uenige om ordlyd («Beskrivelse
+er ikke udfyldt» / «Udgift til mangler»), om alvor (en tom dato er en gul advarsel i det ene lag og en rød
+fejl i det andet), om relevans (validatoren kører også, når kravet er fravalgt) og om grænser (feltet
+tillader beløbet 0, validatoren afviser det). Seks af fladens ti fund har den rod: BB-228 (**Høj** – en
+skjult, halvudfyldt række spærrer opgørelsen efter «Nej»/«Skjul»; også en forekomst af **M-32**) ·
+BB-229 (**Høj** – én tom dato, to linjer, to alvorsgrader, ét link) · BB-230 (**Høj** – **M-19**: tre røde
+datoer giver syv linjer, heraf tre gange «Dato mangler») · BB-232 (0 kr. tages imod af feltet og spærres af
+validatoren uden link) · BB-237 (navnene) · og latent i BB-229: præsentationsmodellen taber en udateret række
+af dokumentets liste, men tæller den med i «I alt». **Dertil en ny form af M-20** (BB-231 – BB-218's
+foldning af ens linjer rammer også linjer uden rød ring, så en anden rækkes mangel forsvinder), **M-15 +
+M-28** (BB-233 – et forbehold udløst af 12d/12k trykkes kun, når øvrige krav er «Ja», og en ny sag starter på
+«Skjul»), **M-05** (BB-235 – en udgift uden for opgørelsens periode) og **M-13 i BB-221's form** (BB-236 –
+«Ja» uden poster giver «Ingen» som «Nej»). M-09 bestået, M-23 uden genstand, konsollen tavs.
+
 **Ét nyt mønster 2026-09-22 fra Erstatningsopgørelse → Svie- og smertegodtgørelse (12b) – M-32, som ikke
 kom af gennemgangen, men af udviklerens afgørelse på BB-222: et skjult felt skal overalt i programmet
 betragtes som ikke udfyldt og må aldrig påvirke beregninger eller fejlmeddelelser. At fundet kunne opstå er
@@ -1653,6 +1669,13 @@ truffet, ikke et nyt designforslag.
   0 feriedage fra perioden, mens den trækker 30 fra året. Dokumentet dokumenterer et valg, brugeren
   aldrig traf, over for modparten. **Prøven er ny og smal: `rg "\?\? 0" src/document/generators` – for
   hvert træf, hvad viser skærmen samme sted?**
+- **Ny forekomst 2026-09-23 INDEN FOR én flade – og mod en undertrykkelse, der allerede findes**
+  (`erstatningsopgoerelse-12c.md` BB-230, **Høj**). Tre røde datoer i øvrige krav-tabellen giver syv
+  linjer: tre gange validatorens «Dato mangler», tre grænsetekster og én folded «Dato er ikke angivet».
+  Mønsteret handler her ikke om en LÅNENDE flade, men om to lag på samme flade, der begge læser readerens
+  maskerede `undefined` (se M-33). `suppressMaskedMissingInvariants` i `eoSnapshot.ts` er skrevet til
+  netop dette, men dækker ikke rækkeceller. Prøven er den samme: giv cellen en udfyldt, ugyldig værdi og
+  tæl «mangler»-linjerne.
 - Kandidater, ikke efterprøvet: EET efter EAL's spejlede stamdata-rækker (flade 11),
   Erstatningsopgørelsens forudsætningsrækker (flade 12) og enhver tekst af formen «<felt> mangler»,
   der er koblet til en `undefined`-læsning frem for til et tomt felt.
@@ -1749,6 +1772,12 @@ ene felts egen værdi.
   der når cellen.** En regel, der er ene om ikke at gøre det, er sjældent en bevidst undtagelse.
   Konkrete uafprøvede søskende: `detectOverlappingPeriods` bruges også af TAF-perioderne (12e),
   ferieperioderne (12e/12f) og lønindkomstens perioder (12h).
+- **Bagsiden af BB-218's rettelse, målt 2026-09-23** (`erstatningsopgoerelse-12c.md` BB-231, Mellem).
+  Foldningen af ordret ens linjer ligger i den fælles renderer (`EOberegningTab.renderEoRows`) og rammer
+  derfor også linjer, hvis regel IKKE farver cellen. To øvrige krav-rækker uden beløb giver én linje
+  «Beløb er ikke angivet», hvis link fører til første række; den anden rækkes mangel står ingen steder.
+  BB-218's foldning forudsatte, at den røde ring bærer udpegningen. **Prøven: for hver `messageOnly`-række
+  pr. tabelrække, nævner teksten rækken? Gør den ikke, og farver reglen ikke cellen, forsvinder række nr. 2.**
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
@@ -2527,3 +2556,76 @@ besluttet, ikke overset.
 - **Den strukturelle sikring er selve opgaven, ikke den lokale rettelse.** Så længe et prædikat kun
   håndhæves for talfødende input, er hver ny advarsel en ny mulighed for samme fejl. Formen, sikringen
   skal have, er ikke afgjort.
+- **Ny forekomst 2026-09-23, og den er en ren forglemmelse, ikke en arkitekturkollision**
+  (`erstatningsopgoerelse-12c.md` BB-228, **Høj**). `validateOevrigeKrav` validerer øvrige krav-rækkerne
+  også, når kravvalget er «Nej» eller «Skjul», så en halvudfyldt, skjult række spærrer opgørelsen med
+  «Dato mangler» uden link. Søskendene `validateSvieSmerte` og `validateTAF` begynder begge med
+  `if (!beregnes) return errors;`. **Læren til prøvens validator-spørgsmål:** at læseren er en validator,
+  gør ikke automatisk forekomsten til en kollision med den dokumenterede rå-værdi-beslutning. Skel
+  mellem en validator, der læser et felts RÅ værdi (kollision – forelægges), og en validator, der slet
+  ikke spørger om sektionens relevans (forglemmelse – rettes). Den røde-dato-halvdel af samme fund er
+  derimod kollisionen.
+- **Den strukturelle sikring er afgjort og gennemført 2026-09-23 for EO** (BB-228's tilbagemelding: «overvej
+  en fælles arkitektonisk løsning»). Den fandtes allerede i inputkernen: feltets `relevance`. Når en
+  descriptor bærer den, giver readeren feltets tomværdi til ALLE læsere, `deriveFieldIssueSet` danner ingen
+  rød ring for det, og et valg, der skjuler et rødt felt, rydder det (`form-contract.md` §7 pkt. 5). EO's felter bag et valg bærer
+  den nu og kalder prædikaterne i `eoInputRelevance.ts`, så synlighed og relevans har ét sted. Dermed er
+  både validator-kollisionen og de fremtidige advarsler dækket: en ny læser kan ikke længere glemme at
+  spørge, for readeren spørger for den. **Gennemgangen fandt samtidig en beregningsfejl af formen:** et
+  skjult «Svie/smerte opgjort i tidligere erstatningsopgørelser» ved 1. opgørelse blev trukket fra
+  maksimum, fordi svie/smerte-motoren fik dependency-projektionens rå værdier frem for de neutraliserede –
+  målt 6.665,00 kr. → 0,00 kr. Rettet af samme mekanisme.
+  **Tilbage:** beregningsgrundlagets mode-felter (styret af «Beregnes ud fra», komprimeringsundtagelsen)
+  og de øvrige fladers betingede sektioner. Prøven for dem er nu enkel: har feltet en synlighedsbetingelse,
+  men ingen `relevance` på descriptoren?
+
+## M-33 – To lag vurderer samme række hver for sig – og brugeren får begge svar
+
+> Samme tabelrække vurderes af to uafhængige lag – et rækkebyggerlag, der tegner «Fejl og advarsler», og
+> et ældre valideringslag, der blokerer download. De er skrevet hver for sig, og de er uenige: om ordet,
+> om alvoren, om hvornår rækken overhovedet er relevant, og om grænsen. Brugeren ser begge svar side om
+> side og skal selv afgøre, hvilket der gælder.
+
+**Formerne, målt på øvrige krav (12c):**
+
+| Uenighed | Rækkebyggeren siger | Validatoren siger |
+|---|---|---|
+| Ordlyd | «Beskrivelse er ikke udfyldt» · «Beløb er ikke angivet» | «Udgift til mangler» · «Beløb mangler» |
+| Alvor | tom dato = **advarsel**, med link | tom dato = **fejl**, uden link |
+| Relevans | rækken filtreres væk ved «Nej»/«Skjul» | rækken valideres stadig (BB-228) |
+| Grænse | feltets bounds tillader `0` | «Beløb skal være større end 0» (BB-232) |
+| Rød værdi | læser masket `undefined` → «Dato er ikke angivet» | læser masket `undefined` → «Dato mangler» (BB-230) |
+
+**Hvorfor formen er værre end summen af dens linjer.** Validatorens `ValidationError` har en streng-`path`
+(`oevrigeKravPerioder[0].dato`), ikke en feltadresse. Linjen kan derfor hverken få link eller farve
+cellen (hukommelsen `validationerror-vs-fieldissue-asymmetri`), og download-tooltippen falder til
+«Indtastning mangler». Det lag, der har ordet med link, er altså ofte det, der tager fejl om alvoren – og
+det lag, der har alvoren rigtigt, kan ikke vise brugeren hvor.
+
+**Den latente, farligste form: lagene er også uenige med dokumentet.** I 12c kalder rækkebyggeren en
+udateret række hentbar (advarsel), præsentationsmodellen taber den af dokumentets liste, men tæller den
+med i «I alt». Kun validatorens blokering forhindrer et papir, hvor totalen ikke er summen af linjerne.
+**Prøven skal derfor ikke blot tælle dubletter, men spørge: hvis det ene lag fjernes, bliver dokumentet så
+forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene; de skal samles til ét.
+
+**Efterprøv, hvor:** enhver rækketype, der både har en `validate*RowCompleteness` i
+`erstatningsopgoerelseValidator.ts` og en rækkebygger i `src/domain/eoRowEvaluation`. Prøven i tre trin:
+
+1. Tast en række, hvor ét felt mangler, og tæl linjerne i boksen for den ene mangel.
+2. Tast en rød værdi i en ellers fuld række og tæl igen (M-19-formen).
+3. Fravælg sektionens kravvalg og se, om boksen stadig taler (M-32-formen).
+
+- Fundet i: `erstatningsopgoerelse-12c.md` BB-228, BB-229, BB-230, BB-232 og BB-237.
+- Kandidater, ikke efterprøvet: svie/smerte-perioder («Fra-dato mangler» / «Til-dato mangler» /
+  «Tilstand mangler», validatorlinje 459–465 – 12b målte kun, at en række med kun «Tilstand» spærrer uden
+  rød celle), TAF- og ferieperioder (879/882, 12e), de manuelle reguleringsrækker (1154–1199, 12i).
+- **Bemærk skellet mod BB-083's afgjorte princip:** at en ren mangel i en halvfærdig række ikke får rød
+  ring, er afgjort og korrekt. M-33 handler ikke om ringen, men om at samme mangel meldes to gange med to
+  alvorsgrader, og om at det lag, der blokerer, ikke kan pege.
+- **Rettet for øvrige krav 2026-09-23 efter prøvens egen regel – samlet, ikke slettet.** Rækken vurderes
+  ét sted (`oevrigeKravRowValidation.ts`), og validatoren og rækkebyggeren læser samme ordlyd og samme
+  krav (datoen er valgfri efter udviklerens afgørelse). Rækkebyggeren giver én linje pr. række med rækkens
+  navn, alle dens mangler og de røde cellers egne tekster samt link til den første celle; validatoren
+  bevares som forsvar i dybden for snapshottet, men dens linjer når aldrig boksen, fordi rækkebyggeren
+  altid melder samme mangel. Dokumentet trykker den udaterede post, så «I alt» igen er summen af linjerne.
+  Skabelonen til de øvrige kandidater er dermed: én vurdering pr. række, som begge lag læser.

@@ -24,6 +24,7 @@ const FAKE_MODEL = {
     skjul: false,
     statusLinjer: ['Status: aktiv'],
     eetLinjer: [],
+    eetKlageForbeholdLinje: null,
     differencekravLinje: null,
     ferieFravaerLinje: null,
     harTafPerioder: true,

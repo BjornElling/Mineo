@@ -75,6 +75,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     svieSmerteSummaryLines,
     tafSummaryLabel,
     tafSummaryLines,
+    oevrigeKravSummaryText,
     skadedatoLabel,
     skadedatoDisplay,
     erstatningsopgoerelseTitel,
@@ -94,6 +95,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     // udpegningen af den røde rings tooltip (BB-218). Rækkerne selv foldes IKKE: de gater
     // download hver for sig, og kun visningen er dublet.
     // Første forekomst beholdes, så linjens link peger på den første berørte række.
+    // Foldningen forudsætter, at en linje om en bestemt tabelrække NAVNGIVER rækken: to rækker, der
+    // mangler det samme, må ikke give ordret samme tekst, for så forsvinder den ene uden rød ring til at
+    // udpege den (BB-231). Øvrige krav-rækkerne gør det (`assessOevrigeKravRow`).
     const seen = new Set<string>();
     const visibleRows = rows.filter((row) => {
       const text = formatSummaryText(row);
@@ -367,6 +371,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
                 {line}
               </Typography>
             ))}
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Øvrige krav</Typography>
+          <Box className="row--label-right-hover__content">
+            <Typography className="row--text">{oevrigeKravSummaryText}</Typography>
           </Box>
         </Box>
 

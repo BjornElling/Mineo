@@ -4,8 +4,6 @@ import {
 } from '../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import {
   eoFerieperiodeFraField,
-  eoOevrigeKravBeloebField,
-  eoOevrigeKravUdgiftTilField,
   eoSfggBeregningskildeField,
   eoSfggSatsvalgField,
   eoSvieSmertePeriodeFraField,
@@ -176,18 +174,8 @@ const CASES: readonly Case[] = [
     expectedSummary: 'Ferieperioden ligger uden for beregningsperioden',
   },
   // ── Øvrige erstatningskrav ────────────────────────────────────────────────
-  {
-    name: 'øvrige krav – beskrivelse og beløb ikke udfyldt peger på beskrivelsescellen',
-    row: { id: 'oevrigekrav.k-1', label: 'Øvrigt erstatningskrav', message: 'Beskrivelse og beløb er ikke udfyldt', summaryDisplay: 'messageOnly' },
-    expectedSummary: 'Beskrivelse og beløb er ikke udfyldt',
-    expectedFocus: focus(eoOevrigeKravUdgiftTilField, 'k-1'),
-  },
-  {
-    name: 'øvrige krav – beløb ikke angivet peger på beløbscellen',
-    row: { id: 'oevrigekrav.k-1', label: 'Tandlæge', message: 'Beløb er ikke angivet', summaryDisplay: 'messageOnly' },
-    expectedSummary: 'Beløb er ikke angivet',
-    expectedFocus: focus(eoOevrigeKravBeloebField, 'k-1'),
-  },
+  // Øvrige krav-rækkerne sætter selv deres fokusmål (den første celle med en mangel); kataloget gætter det
+  // ikke længere ud fra ordlyden. Dækket i `eoRowOevrigeKravRowsIndependent.test.ts`.
   // ── Sygeferiegodtgørelse ──────────────────────────────────────────────────
   {
     name: 'SFGG – beregningskilde ikke valgt',

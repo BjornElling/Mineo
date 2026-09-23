@@ -18,7 +18,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, entityIdForCollection, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
-import { amountBoundsValidator, integerBoundsValidator } from './boundsValidators';
+import { amountBoundsValidator, integerBoundsValidator, positiveAmountValidator } from './boundsValidators';
 import { COMMENT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { calculateInterestDate } from '../../domain/renteberegning/rentekravValidation';
@@ -102,20 +102,11 @@ const rowTemplate = (field: string) => ({
  * `validateInterestCalculation` kræver `> 0`. De to var uenige, og uenigheden ramte brugeren som en
  * tavs blokering: `0` blev canonical og grønt, rækken mistede sin beregning, og hele sidens
  * download blev grå med «Indtastning mangler» – også for de øvrige, gyldige rækker (BB-038).
- *
- * Reglen står her frem for som en skarpere `amountBoundsValidator`-grænse, fordi grænsen er
- * EKSKLUSIV: den fælles bounds-besked («Værdi skal være 0 eller højere») kan kun udtrykke
- * inklusive grænser og ville påstå, at 0 er tilladt. `reason: 'rule'` giver samtidig den ordrette
- * tooltip (`REASONS_WITH_SPECIFIC_TOOLTIP`), så brugeren læser årsagen ved det felt, der skal rettes.
  */
-const rentekravBelobPositiveValidator: FieldValidator<AmountValue | undefined> = (value) => {
-  if (value?.value === undefined || value.value !== 0) return undefined;
-  return {
-    reason: 'rule',
-    code: 'renteberegning.rentekravRows.belob.positive',
-    message: 'Beløbet skal være større end 0 kr.',
-  };
-};
+const rentekravBelobPositiveValidator = positiveAmountValidator(
+  'renteberegning.rentekravRows.belob.positive',
+  'Beløbet skal være større end 0 kr.'
+);
 
 export const rentekravBelobField = defineStructuralField<AmountValue | undefined>({
   id: 'renteberegning.rentekravRows.belob',

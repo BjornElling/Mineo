@@ -2099,19 +2099,12 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect((kravY as number) - (forbeholdY as number)).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE);
   });
 
-  it('viser klage-reguleringslinje i "Øvrige krav" ved midlertidig EET med verserende klage', () => {
+  // BB-233 (udviklerafgørelse 2026-09-23): forbeholdet om en verserende EET-klage hører til EET-
+  // oplysningerne i TAF-afsnittets status – ikke under «Øvrige krav», hvor det forsvandt tavst,
+  // fordi en ny sag starter med øvrige krav på «Skjul».
+  it('trykker klage-forbeholdet i TAF-status lige efter EET-linjen – ikke under "Øvrige krav"', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.kravPaaOevrigeErstatningskrav = 'Ja';
-    eo.offentligeYdelserRows = [
-      {
-        id: 'oy-1',
-        fraDato: toISODateString('2024-01-01'),
-        tilDato: toISODateString('2024-01-31'),
-        ydelsestype: 'kontanthjaelp',
-        ydelse: asAmountValue(5000),
-        tillaeg: undefined,
-      },
-    ];
     eo.midlertidigtEETAfgorelse = 'Ja';
     eo.midlertidigEETVirkningsdato = iso('2024-02-01');
     eo.verserendeKlageEet = 'Ja';
@@ -2127,12 +2120,17 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    expect(texts).toContain(EET_KLAGE_REGULERINGSLINJE);
+    const tafBlock = getTextsBetween(texts, 'Tabt arbejdsfortjeneste', 'Øvrige krav');
+    const eetIndex = tafBlock.findIndex((text) => text.includes('midlertidig erhvervsevnetabsafgørelse'));
+    expect(eetIndex).toBeGreaterThanOrEqual(0);
+    expect(tafBlock[eetIndex]).toContain('Afgørelsen er påklaget.');
+    expect(tafBlock[eetIndex + 1]).toBe(EET_KLAGE_REGULERINGSLINJE);
+    expect(texts.filter((text) => text === EET_KLAGE_REGULERINGSLINJE)).toHaveLength(1);
   });
 
-  it('viser klage-reguleringslinje i "Øvrige krav" også uden ydelsesforbehold', () => {
+  it('trykker klage-forbeholdet, selv om øvrige krav står på sin standard "Skjul"', () => {
     const { stamdata, eo } = buildBaseInput();
-    eo.kravPaaOevrigeErstatningskrav = 'Ja';
+    expect(eo.kravPaaOevrigeErstatningskrav).toBe('Skjul');
     eo.endeligtEETAfgorelse = 'Ja';
     eo.endeligEETVirkningsdato = iso('2024-03-01');
     eo.verserendeKlageEet = 'Ja';
@@ -2141,56 +2139,18 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain(EET_KLAGE_REGULERINGSLINJE);
-    expect(hasTextAfterHeader(texts, 'Øvrige krav', 'Ingen')).toBe(false);
+    expect(texts).not.toContain('Øvrige krav');
   });
 
-  it('placerer klage-reguleringslinje mellem ydelsesforbehold og øvrige krav med én linjeafstand', () => {
+  it('trykker ikke klage-forbeholdet, når klagen ikke er verserende', () => {
     const { stamdata, eo } = buildBaseInput();
-    eo.kravPaaOevrigeErstatningskrav = 'Ja';
-    eo.offentligeYdelserRows = [
-      {
-        id: 'oy-1',
-        fraDato: toISODateString('2024-01-01'),
-        tilDato: toISODateString('2024-01-31'),
-        ydelsestype: 'kontanthjaelp',
-        ydelse: asAmountValue(5000),
-        tillaeg: undefined,
-      },
-    ];
     eo.endeligtEETAfgorelse = 'Ja';
     eo.endeligEETVirkningsdato = iso('2024-03-01');
-    eo.verserendeKlageEet = 'Ja';
-    eo.oevrigeKravPerioder = [
-      {
-        id: 'krav-1',
-        dato: iso('2024-01-15'),
-        udgiftTil: 'Transport',
-        beloeb: asAmountValue(1200),
-      },
-    ];
+    eo.verserendeKlageEet = 'Nej';
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    const ydelsesforbehold =
-      'Skadelidte har modtaget kontanthjælp i erstatningsperioden. Kræves ydelsen tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.';
-    const kravLinje = '15-01-2024: Transport';
-    const forbeholdIndex = texts.indexOf(ydelsesforbehold);
-    const klageIndex = texts.indexOf(EET_KLAGE_REGULERINGSLINJE);
-    const kravIndex = texts.indexOf(kravLinje);
-    expect(forbeholdIndex).toBeGreaterThanOrEqual(0);
-    expect(klageIndex).toBeGreaterThan(forbeholdIndex);
-    expect(kravIndex).toBeGreaterThan(klageIndex);
-
-    const forbeholdY = findTextY(MockJsPDF.lastInstance, ydelsesforbehold);
-    const klageY = findTextY(MockJsPDF.lastInstance, EET_KLAGE_REGULERINGSLINJE);
-    const kravY = findTextY(MockJsPDF.lastInstance, kravLinje);
-    expect(forbeholdY).not.toBeNull();
-    expect(klageY).not.toBeNull();
-    expect(kravY).not.toBeNull();
-    const afstandForbeholdTilKlage = (klageY as number) - (forbeholdY as number);
-    const afstandKlageTilKrav = (kravY as number) - (klageY as number);
-    expect(afstandForbeholdTilKlage).toBe(afstandKlageTilKrav);
-    expect(afstandForbeholdTilKlage).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
+    expect(texts).not.toContain(EET_KLAGE_REGULERINGSLINJE);
   });
 });

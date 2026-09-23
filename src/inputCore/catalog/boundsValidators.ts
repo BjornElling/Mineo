@@ -140,6 +140,23 @@ export const amountBoundsValidator = (
   };
 };
 
+/**
+ * Et beløbsfelt, hvor 0 kr. ikke er et svar: grænsen er EKSKLUSIV.
+ *
+ * Reglen står som sin egen validator frem for som en skarpere `amountBoundsValidator`-grænse, fordi den
+ * fælles bounds-besked («Værdi skal være 0 eller højere») kun kan udtrykke inklusive grænser og ville
+ * påstå, at 0 er tilladt. `reason: 'rule'` giver den ordrette tooltip (`REASONS_WITH_SPECIFIC_TOOLTIP`),
+ * så brugeren læser årsagen ved det felt, der skal rettes. Sættes FØR feltets bounds-validator: den er
+ * den mest konkrete besked, og §1.8 viser højst ét issue pr. felt.
+ */
+export const positiveAmountValidator = (
+  code: string,
+  message: string
+): FieldValidator<AmountValue | undefined> => (value) => {
+  if (value?.value === undefined || value.value !== 0) return undefined;
+  return { reason: 'rule', code, message };
+};
+
 /** Canonical bounds-validator for et årstalsfelt (tidligere codec-`range` via `getYearRangeErrorMessage`). */
 export const yearBoundsValidator = (
   code: string,

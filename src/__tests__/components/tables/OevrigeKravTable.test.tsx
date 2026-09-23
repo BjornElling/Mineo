@@ -17,7 +17,7 @@ import {
   createInputRevision,
   createSettingsRevision,
 } from '../../../inputCore/evaluationSource';
-import { eoOevrigeKravDatoField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { eoOevrigeKravBeloebField, eoOevrigeKravDatoField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -36,8 +36,10 @@ const stamdata: StamdataValues = {
   skadelidteFodselsdato: toISODateString('1980-01-01'),
 };
 
+// Tabellen vises kun ved kravvalget «Ja»; ellers er cellerne skjulte og dermed ikke udfyldt (BB-228).
 const eoWith = (rows: OevrigeKravRow[]): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
+  kravPaaOevrigeErstatningskrav: 'Ja',
   oevrigeKravPerioder: rows,
 });
 
@@ -105,6 +107,27 @@ describe('OevrigeKravTable', () => {
     );
     const read = reader.read(eoOevrigeKravDatoField.bind('ok-1'));
     expect(read.status).toBe('error');
+  });
+
+  it('et beløb på 0 kr. er rødt med sin egen tooltip-tekst (BB-232)', () => {
+    const reader = buildReader(
+      eoWith([{ id: 'ok-1', dato: toISODateString('2022-05-01'), udgiftTil: 'Medicin', beloeb: asAmount(0) }]),
+      stamdata
+    );
+    const read = reader.read(eoOevrigeKravBeloebField.bind('ok-1'));
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
+    expect(read.issue.reason).toBe('rule');
+    expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
+  });
+
+  it('en skjult celle er ikke udfyldt og bliver ikke rød (BB-228)', () => {
+    const reader = buildReader(
+      { ...eoWith([{ id: 'ok-1', dato: toISODateString('2021-01-01'), udgiftTil: 'Medicin', beloeb: asAmount(0) }]), kravPaaOevrigeErstatningskrav: 'Skjul' },
+      stamdata
+    );
+    expect(reader.read(eoOevrigeKravDatoField.bind('ok-1'))).toEqual({ status: 'usable', value: undefined });
+    expect(reader.read(eoOevrigeKravBeloebField.bind('ok-1'))).toEqual({ status: 'usable', value: undefined });
   });
 
   it('descriptor-dato-bounds: en dato inden for interval committes uden fejl', () => {

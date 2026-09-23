@@ -81,12 +81,14 @@ describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
   // Auditten afsluttede alle fem som canonical med `aria-invalid=false`, mens Forligsdato – det ENE
   // felt med en håndskrevet validator – afviste samme værdi. Kontrasten var beviset for, at manglen
   // lå i bindingen og ikke i reglen.
+  // Hver dato vises kun, når dens afgørelse er truffet («Ja»); ellers er den skjult og dermed ikke
+  // udfyldt (descriptor-relevans, BB-228), og så må den heller ikke blive rød.
   const aesFelter = [
-    ['Mén-afgørelsesdato', eoMenAfgoerelseDatoField, { menAfgoerelseDato: DAGEN_FOER_SKADEN }],
-    ['Midlertidigt EET-afgørelsesdato', eoMidlertidigEETAfgoerelseDatoField, { midlertidigEETAfgoerelseDato: DAGEN_FOER_SKADEN }],
-    ['Midlertidigt EET-virkningsdato', eoMidlertidigEETVirkningsdatoField, { midlertidigEETVirkningsdato: DAGEN_FOER_SKADEN }],
-    ['Endeligt EET-afgørelsesdato', eoEndeligEETAfgoerelseDatoField, { endeligEETAfgoerelseDato: DAGEN_FOER_SKADEN }],
-    ['Endeligt EET-virkningsdato', eoEndeligEETVirkningsdatoField, { endeligEETVirkningsdato: DAGEN_FOER_SKADEN }],
+    ['Mén-afgørelsesdato', eoMenAfgoerelseDatoField, { varigeMenAfgorelse: 'Ja', menAfgoerelseDato: DAGEN_FOER_SKADEN }],
+    ['Midlertidigt EET-afgørelsesdato', eoMidlertidigEETAfgoerelseDatoField, { midlertidigtEETAfgorelse: 'Ja', midlertidigEETAfgoerelseDato: DAGEN_FOER_SKADEN }],
+    ['Midlertidigt EET-virkningsdato', eoMidlertidigEETVirkningsdatoField, { midlertidigtEETAfgorelse: 'Ja', midlertidigEETVirkningsdato: DAGEN_FOER_SKADEN }],
+    ['Endeligt EET-afgørelsesdato', eoEndeligEETAfgoerelseDatoField, { endeligtEETAfgorelse: 'Ja', endeligEETAfgoerelseDato: DAGEN_FOER_SKADEN }],
+    ['Endeligt EET-virkningsdato', eoEndeligEETVirkningsdatoField, { endeligtEETAfgorelse: 'Ja', endeligEETVirkningsdato: DAGEN_FOER_SKADEN }],
   ] as const;
 
   it.each(aesFelter)('%s markeres rødt med skadedagen nævnt', (_label, field, patch) => {
@@ -101,7 +103,12 @@ describe('EO’s AES-datofelter afviser datoer før skadedagen', () => {
   });
 
   it('en dato PÅ skadedagen er lovlig (grænsen er inklusiv)', () => {
-    const evaluation = buildReader({ ...baseEo(), menAfgoerelseDato: toISODateString(SKADEDATO) });
+    const evaluation = buildReader({ ...baseEo(), varigeMenAfgorelse: 'Ja', menAfgoerelseDato: toISODateString(SKADEDATO) });
+    expect(issueAt(evaluation, eoMenAfgoerelseDatoField.bind())).toBeUndefined();
+  });
+
+  it('en skjult dato er ikke udfyldt og bliver ikke rød, selv om den ligger før skadedagen', () => {
+    const evaluation = buildReader({ ...baseEo(), varigeMenAfgorelse: 'Nej', menAfgoerelseDato: DAGEN_FOER_SKADEN });
     expect(issueAt(evaluation, eoMenAfgoerelseDatoField.bind())).toBeUndefined();
   });
 });

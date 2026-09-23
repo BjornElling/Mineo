@@ -9,7 +9,7 @@
  * Sektions-valideringer:
  * - Svie/smerte: perioder, satser, helbredsstatus
  * - TAF: perioder, beregnesUdFra, lønudvikling
- * - Øvrige krav: række-completeness
+ * - Øvrige krav: række-completeness (beskrivelse og beløb; datoen er valgfri)
  * - Forlig: brøk-format, procent/brøk-eksklusivitet
  *
  * VIGTIGT: Alle validerings-funktioner er pure (ingen side effects)
@@ -39,6 +39,11 @@ import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/h
 import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { isFeriePctRelevant } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
+import { erOevrigeKravSektionAktiv } from '../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import {
+  OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
+  OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
+} from '../domain/erstatningsopgoerelse/validation/oevrigeKravRowValidation';
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
@@ -230,7 +235,12 @@ const validateLoenudviklingCanonicalRanges = (
 /**
  * De persistente schemas accepterer alle syntaktisk gyldige canonical værdier. De tidligere
  * schema-grænser ligger derfor samlet her, så snapshot- og dokumentgates også ser fejl i
- * felter, som ikke aktuelt er mountet eller aktive i formularen.
+ * felter, som ikke aktuelt er mountet i formularen.
+ *
+ * «Ikke mountet» er ikke det samme som «skjult»: et felt bag et valg (fx «Nej»/«Skjul») er ikke
+ * udfyldt og må ikke blokere (BB-222/BB-228). Værdierne her kommer fra readeren, som giver et
+ * sådant felt dets tomværdi gennem descriptorens `relevance`; grænserne rammer derfor kun felter,
+ * brugeren kan se og rette.
  */
 function validateCanonicalRanges(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -1299,6 +1309,11 @@ const buildLoenudviklingsKildeResolutionError = (error: unknown): ValidationErro
 
 function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
+  // Samme gate som søskendene `validateSvieSmerte`/`validateTAF`. Uden den blev en halvudfyldt række bag
+  // «Nej»/«Skjul» ved med at spærre opgørelsen med en linje, der hverken havde link eller nævnte sektionen
+  // (BB-228). Readerens relevansgrænse giver allerede tomme celler her; gaten står som forsvar i dybden for
+  // kald uden reader og for at gøre afhængigheden læsbar.
+  if (!erOevrigeKravSektionAktiv(values)) return errors;
   const rows = values.oevrigeKravPerioder ?? [];
 
   for (let i = 0; i < rows.length; i += 1) {
@@ -1312,28 +1327,28 @@ function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationErr
 }
 
 /**
- * Validér at en ikke-tom øvrige krav-række er fuldt udfyldt
+ * Validér at en ikke-tom øvrige krav-række har beskrivelse og beløb.
+ *
+ * Datoen er bevidst VALGFRI (udviklerafgørelse 2026-09-23, BB-229): en udgift kan mangle en nøjagtig dato,
+ * og dokumentet trykker den da uden datopræfiks. Et beløb på 0 kr. afvises af feltet selv
+ * (`eoOevrigeKravBeloebField`), så cellen bliver rød; reglen stod før kun her, uden rød celle (BB-232).
+ * Ordlyden deles med rækkebyggeren gennem `oevrigeKravRowValidation.ts`, så de to lag aldrig beskriver
+ * samme mangel forskelligt.
  */
 function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number): ValidationError[] {
   const errors: ValidationError[] = [];
   const prefix = `oevrigeKravPerioder[${index}]`;
 
-  const hasDato = typeof row.dato === 'string' && row.dato.trim() !== '';
   const hasUdgiftTil = typeof row.udgiftTil === 'string' && row.udgiftTil.trim() !== '';
   const amountValue = amountValueToNumber(row.beloeb);
 
-  if (!hasDato) {
-    errors.push({ path: `${prefix}.dato`, message: 'Dato mangler', severity: 'error' });
-  }
   if (!hasUdgiftTil) {
-    errors.push({ path: `${prefix}.udgiftTil`, message: 'Udgift til mangler', severity: 'error' });
+    errors.push({ path: `${prefix}.udgiftTil`, message: OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE, severity: 'error' });
   }
   if (amountValue === undefined) {
-    errors.push({ path: `${prefix}.beloeb`, message: 'Beløb mangler', severity: 'error' });
+    errors.push({ path: `${prefix}.beloeb`, message: OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE, severity: 'error' });
   } else if (amountValue < 0 || Object.is(amountValue, -0)) {
     errors.push({ path: `${prefix}.beloeb`, message: 'Beløb kan ikke være negativt', severity: 'error' });
-  } else if (amountValue === 0) {
-    errors.push({ path: `${prefix}.beloeb`, message: 'Beløb skal være større end 0', severity: 'error' });
   }
 
   return errors;

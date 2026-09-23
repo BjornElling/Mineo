@@ -188,13 +188,12 @@ describe('nåbarhed: «—» som Beregnet krav og som «I alt» (kortlægningens
 
 describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A12)', () => {
   /**
-   * `buildOevrigeKrav` springer en række over, hvis dato ELLER beskrivelse er tom – men
-   * `parsed.totalOre` summerer ALLE rækker. En droppet række efterlader derfor en «I alt», der
-   * ikke kan afstemmes med posterne ovenfor.
+   * `buildOevrigeKravModel` sprang tidligere en række over, hvis dato ELLER beskrivelse var tom – men
+   * `parsed.totalOre` summerer ALLE rækker. En droppet række efterlod derfor en «I alt», der ikke kunne
+   * afstemmes med posterne ovenfor, og kun validatorens «Dato mangler» holdt den ude af en dannet fil.
    *
-   * Manglende BESKRIVELSE er en fejl og blokerer download. Manglende DATO er derimod kun en
-   * ADVARSEL (`eoRowOevrigeKravRows.ts:98-103`) – så den sag kan hentes. Denne prøve afgør, om
-   * beløbet dermed forsvinder fra listen men bliver i totalen.
+   * Datoen er nu valgfri (udviklerafgørelse 2026-09-23, BB-229). Prøven vender derfor: en udateret række
+   * kan hentes, og den SKAL da stå på listen, så totalen er summen af posterne.
    */
   const buildOevrigeKravCase = (dato: string | undefined): ErstatningsopgoerelseValues => {
     const base = createErstatningsopgoerelseInitialValues();
@@ -217,19 +216,16 @@ describe('nåbarhed: droppet øvrige-krav-række vs. totalen (kortlægningens A1
     } as unknown as ErstatningsopgoerelseValues;
   };
 
-  it('BLOKERET: en række uden dato blokerer download, så den aldrig kan droppes i en dannet fil', () => {
-    const gates = gatesFor(buildOevrigeKravCase(undefined));
-    const withDate = gatesFor(buildOevrigeKravCase('2022-05-01'));
+  it('NÅBAR OG AFSTEMT: en række uden dato kan hentes og står på listen, så «I alt» er summen af posterne', () => {
+    const eo = buildOevrigeKravCase(undefined);
+    const gates = gatesFor(eo);
+    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata), { revision: 'r' });
+    const oevrigeKrav = projection.snapshot.data?.pdfModel.oevrigeKrav;
 
-    // MÅLT: rækkemotoren giver kun en ADVARSEL for den manglende dato…
-    expect(errorRowsFor(buildOevrigeKravCase(undefined)).join(' | ').toLowerCase())
-      .not.toContain('dato er ikke angivet');
-    // …men gaten blokerer alligevel, på sit eget niveau, med «Dato mangler». Rækken kan derfor
-    // aldrig droppes fra en DANNET fil, og totalen kan ikke komme i utakt med posterne.
-    expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
-    expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Dato mangler');
-    // Kontrast: datoen er dét, der gør forskellen – ellers ville prøven være grøn af tomhed.
-    expect(withDate.erstatningsopgoerelse.canDownload).toBe(true);
+    expect(errorRowsFor(eo)).toEqual([]);
+    expect(gates.erstatningsopgoerelse.canDownload).toBe(true);
+    expect(oevrigeKrav?.entries).toEqual([{ dateText: '', udgiftTil: 'Medicin', amountOre: 125_000 }]);
+    expect(oevrigeKrav?.totalFoerForligOre).toBe(125_000);
   });
 });
 

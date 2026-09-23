@@ -21,6 +21,14 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  *     motorerne kører, så ingen motor (nuværende eller fremtidig) kan se en forældet skjult
  *     værdi. Fail-closed: glemmer en motor at spejle en synligheds-betingelse, er værdien
  *     allerede neutraliseret her.
+ *  3. EO-descriptorerne bærer dem som `relevance` (`erstatningsopgoerelseDescriptors.ts`). Det er
+ *     inputCores fælles læsegrænse: readeren returnerer feltets tomværdi, `deriveFieldIssueSet`
+ *     danner ingen rød ring for det, og et valg, der skjuler et rødt felt, rydder det (§7.5). Dermed
+ *     ser ALLE læsere – validatoren, rækkebyggerne, dependency-projektionen, dokumentet – det
+ *     skjulte felt som ikke udfyldt, også de ikke-talfødende felter nedenfor. Før var det kun
+ *     motorerne, der så de neutraliserede værdier; validatoren fik de rå, så en skjult, halvudfyldt
+ *     række spærrede opgørelsen med en fejl, brugeren ikke kunne finde (BB-228, M-32).
+ *     Prædikaterne tager derfor kun de felter, de læser (`Pick`), så en relevansregel kan kalde dem.
  * Fordi UI og beregning læser samme prædikat, kan "skjult i UI" og "ignoreret i beregning"
  * ikke divergere. Predikater der kun gater rene visnings-/dokumentfelter (datoer, klage,
  * bilagsnumre) bruges af UI/PDF-laget; de neutraliseres ikke her, fordi de ikke indgår i
@@ -39,14 +47,16 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  */
 
 /** Svie/smerte-sektionen er aktiv (krav medregnes). */
-export const erSvieSmerteSektionAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erSvieSmerteSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse'>): boolean =>
   values.kravPaaSvieSmerteGodtgoerelse === 'Ja';
 
 /**
  * Svie/smerte-periodeinput (perioder, sats-år, "allerede modtaget") er relevant.
  * Skjules når sektionen er fra, eller når "tidligere beregnet S/S til max" er slået til.
  */
-export const erSvieSmertePeriodeInputRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+export const erSvieSmertePeriodeInputRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse' | 'tidligereSsMax'>
+): boolean =>
   erSvieSmerteSektionAktiv(values) && values.tidligereSsMax !== 'Ja';
 
 /**
@@ -55,15 +65,17 @@ export const erSvieSmertePeriodeInputRelevant = (values: ErstatningsopgoerelseVa
  * ingen tidligere opgørelse at fradrage ved første opgørelse. Dette er kernen i fejlen:
  * UI'en skjuler feltet ved første opgørelse, men motoren fradrog det alligevel.
  */
-export const erSvieSmerteTidligereTotalRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+export const erSvieSmerteTidligereTotalRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse' | 'tidligereSsMax' | 'eoNummer'>
+): boolean =>
   erSvieSmertePeriodeInputRelevant(values) && !erDetteFoersteErstatningsopgoerelse(values.eoNummer);
 
 /** Tabt arbejdsfortjeneste-sektionen er aktiv (krav medregnes). */
-export const erTabtArbejdsfortjenesteSektionAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erTabtArbejdsfortjenesteSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'>): boolean =>
   values.kravPaaTabtArbejdsfortjeneste === 'Ja';
 
 /** Øvrige erstatningskrav-sektionen er aktiv (krav medregnes). */
-export const erOevrigeKravSektionAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erOevrigeKravSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaOevrigeErstatningskrav'>): boolean =>
   values.kravPaaOevrigeErstatningskrav === 'Ja';
 
 /**
@@ -85,7 +97,7 @@ export const erOffentligeYdelserReguleringRelevant = (values: Erstatningsopgoere
  * "Tidligere modtaget tabt arbejdsfortjeneste" er relevant. Fradraget anvendes kun, når
  * TAF-sektionen er aktiv, så feltet er irrelevant uden for sektionen.
  */
-export const erTidligereModtagetTafRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+export const erTidligereModtagetTafRelevant = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'>): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values);
 
 type EmploymentRelevanceValues = Pick<
@@ -111,23 +123,25 @@ export const erSidsteArbejdsdagRelevant = (
  * ------------------------------------------------------------------------------------- */
 
 /** Varige mén-afgørelse er truffet (gater afgørelsesdato + verserende klage). */
-export const erVarigeMenAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erVarigeMenAfgoerelseAktiv = (values: Pick<ErstatningsopgoerelseValues, 'varigeMenAfgorelse'>): boolean =>
   values.varigeMenAfgorelse === 'Ja';
 
 /** Midlertidig EET-afgørelse er truffet (gater afgørelses- og virkningsdato). */
-export const erMidlertidigtEETAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erMidlertidigtEETAfgoerelseAktiv = (values: Pick<ErstatningsopgoerelseValues, 'midlertidigtEETAfgorelse'>): boolean =>
   values.midlertidigtEETAfgorelse === 'Ja';
 
 /** Endelig EET-afgørelse er truffet (gater afgørelses- og virkningsdato). */
-export const erEndeligtEETAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+export const erEndeligtEETAfgoerelseAktiv = (values: Pick<ErstatningsopgoerelseValues, 'endeligtEETAfgorelse'>): boolean =>
   values.endeligtEETAfgorelse === 'Ja';
 
 /** Verserende klage over EET-afgørelse er relevant (mindst én EET-afgørelse er truffet). */
-export const erEETKlageRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+export const erEETKlageRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'midlertidigtEETAfgorelse' | 'endeligtEETAfgorelse'>
+): boolean =>
   erMidlertidigtEETAfgoerelseAktiv(values) || erEndeligtEETAfgoerelseAktiv(values);
 
 /** Bilagsnumre-felterne vises (brugeren har slået "Vis bilagsnumre" til). */
-export const erBilagsnumreRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+export const erBilagsnumreRelevant = (values: Pick<ErstatningsopgoerelseValues, 'visBilagsnumre'>): boolean =>
   values.visBilagsnumre === 'Ja';
 
 /**

@@ -655,6 +655,7 @@ describe('eoPdfModel', () => {
 
   it('afviser øvrige krav med manglende beløb', () => {
     const eoValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: undefined },
       ],
@@ -663,24 +664,26 @@ describe('eoPdfModel', () => {
 
     // Validatoren fanger manglende beløb før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Beløb mangler');
+      .toThrow('«Beløb» er ikke udfyldt');
   });
 
-  it('afviser øvrige krav med manglende dato', () => {
+  it('trykker en øvrige krav-post uden dato uden datopræfiks (BB-229)', () => {
     const eoValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: undefined, udgiftTil: 'Test', beloeb: asAmountValue(100) },
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
-    // Validatoren fanger manglende dato før builder-laget
-    expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Dato mangler');
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+    expect(model.oevrigeKrav.entries).toEqual([{ dateText: '', udgiftTil: 'Test', amountOre: 10_000 }]);
+    expect(model.oevrigeKrav.totalOre).toBe(10_000);
   });
 
   it('afviser øvrige krav med negativt beløb', () => {
     const eoValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(-1) },
       ],

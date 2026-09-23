@@ -7,7 +7,9 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-09-17 (§2.3 punkt 5a er ny: alle overlap er ugyldige, og
+**Senest verificeret mod kode:** 2026-09-23 (§14 har fået læsegrænsen: EO-felterne bag et valg bærer
+descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
+Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
 indtastede perioder omfortolkes ikke – `periodOverlapDetection` bruger nu den kanoniske
 `utils/closedDateRange` i stedet for sin egen kopi af uligheden. §6.1 er ny: sammentællingskontrollens
 to sider deler nu inputgate OG dataforståelse. `SammentaellingControl` er gjort nominal med `buildSammentaellingControl`
@@ -641,6 +643,16 @@ kan læse en forældet skjult værdi (fail-closed). Committed form-state mutater
   eller frembringe en afledt advarsel.
 - Kun rækker med faktisk indhold blankes; tomme placeholder-rækker bevares (de påvirker
   ikke beregning).
+
+**Læsegrænsen går forud for neutraliseringen.** EO-felterne bag et valg bærer prædikaterne som
+descriptorens `relevance` (`erstatningsopgoerelseDescriptors.ts`). Readeren giver et irrelevant felt dets
+tomværdi til ALLE læsere – validatoren, række-evalueringen, dependency-projektionen og motorerne – og
+danner intet feltissue for det; et valg, der skjuler et rødt felt, rydder det i samme transaktion
+(`form-contract.md` §7 pkt. 5). Et skjult felt kan derfor hverken blokere download eller påvirke et tal. Det gælder
+også de rene visningsfelter (mén-/EET-afgørelsesdatoer og klagefelter, bilagsnumre), som
+`neutralizeIrrelevantEoInputs` ikke dækker. Neutraliseringen ovenfor står tilbage som forsvar i dybden for
+beregningskald uden reader. Descriptor-relevansen er IKKE en persistensregel: `.eo`-save og -load læser
+sektionerne direkte, så en skjult værdi gemmes og indlæses uændret.
 
 **Bevidst undtagelse – komprimering ved EO 2+:** Når
 `komprimerBeregningEfterFoersteOpgoerelse === 'Ja'` fra og med 2. opgørelse, skjules

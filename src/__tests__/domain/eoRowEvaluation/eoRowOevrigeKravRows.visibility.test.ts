@@ -23,7 +23,7 @@ describe('buildEoOevrigeKravRows visibility', () => {
     ]);
   });
 
-  it('viser samme forbeholdslinjer som pdf ved kontanthjælp og verserende EET-klage', () => {
+  it('viser samme forbeholdslinje som pdf ved kontanthjælp – EET-klagen hører ikke til øvrige krav', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.vedroererPeriodeFra = iso('2024-01-01');
     values.vedroererPeriodeTil = iso('2024-12-31');
@@ -46,12 +46,11 @@ describe('buildEoOevrigeKravRows visibility', () => {
 
     expect(rows.map((row) => row.label)).toEqual([
       'Skadelidte har modtaget kontanthjælp i erstatningsperioden. Kræves ydelsen tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.',
-      'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.',
     ]);
     expect(rows.every((row) => row.status === 'ok')).toBe(true);
   });
 
-  it('viser EET-klagelinjen alene uden ydelsesforbehold', () => {
+  it('viser ingen EET-klagelinje under øvrige krav (BB-233)', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.verserendeKlageEet = 'Ja';
     values.endeligtEETAfgorelse = 'Ja';
@@ -59,8 +58,6 @@ describe('buildEoOevrigeKravRows visibility', () => {
 
     const rows = buildEoOevrigeKravRows(values, EMPTY_FIELD_ISSUE_SET);
 
-    expect(rows.map((row) => row.label)).toEqual([
-      'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.',
-    ]);
+    expect(rows.map((row) => row.id)).toEqual(['oevrigekrav.empty']);
   });
 });

@@ -374,6 +374,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       hasContent:
         model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
         model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
+        model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje !== null ||
         model.tabtArbejdsfortjeneste.differencekravLinje !== null,
       options: { addTopSpacing: false },
       renderContent: () => {
@@ -386,6 +387,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
         for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
           safeAddWrappedText(line);
+        }
+        if (model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje) {
+          safeAddWrappedText(model.tabtArbejdsfortjeneste.eetKlageForbeholdLinje);
         }
         writeBilagReferenceLinje(bilag.eetAfgoerelser);
       },
@@ -699,7 +703,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   const kravRightMaxWidth = rightMaxWidth;
   const kravHeaderHeight = lineHeight * 4;
   const oevrigeKravIntroLinjer = resolveOevrigeKravIntroLinjer({
-    eoValues,
     ydelser: model.tabtArbejdsfortjeneste.tafIndtaegter?.oevrigeKravForbeholdYdelsestyper ?? [],
   });
   const renderOevrigeKravIntro = (addTrailingSpacer: boolean): void => {
