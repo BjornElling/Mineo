@@ -7,6 +7,18 @@ import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/va
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import {
+  resolveAesDatoEfterOpgoerelseMessage,
+  type AesDatoEfterOpgoerelseFelt,
+} from '../erstatningsopgoerelse/validation/aesDatoEfterOpgoerelse';
+import {
+  eoDifferencekravDatoField,
+  eoEndeligEETAfgoerelseDatoField,
+  eoEndeligEETVirkningsdatoField,
+  eoMenAfgoerelseDatoField,
+  eoMidlertidigEETAfgoerelseDatoField,
+  eoMidlertidigEETVirkningsdatoField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(value);
 
@@ -407,6 +419,20 @@ export const buildEoAesRows = (
     return { displayValue: '-', status: 'ok' as EoRowStatus };
   })();
 
+  // En afgørelses- eller differencekravsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende
+  // advarsel (BB-242). Den lægges kun på en ellers gyldig række: en rød dato eller en manglende dato har
+  // sin egen, vigtigere besked.
+  const medDatoEfterOpgoerelse = (
+    felt: AesDatoEfterOpgoerelseFelt,
+    display: Readonly<{ displayValue: string; status: EoRowStatus }>
+  ): Readonly<{ displayValue: string; status: EoRowStatus }> => {
+    if (display.status !== 'ok') return display;
+    const message = resolveAesDatoEfterOpgoerelseMessage(felt, values);
+    return message === undefined ? display : { displayValue: `Advarsel (${message})`, status: 'warning' };
+  };
+
+  // Rækkernes labels er feltets synlige navn fra descriptoren, så «Fejl og advarsler», oplæsningen og
+  // skærmen navngiver feltet ens (BB-243).
   return [
     {
       id: 'aes.varigeMenAfgorelse',
@@ -416,9 +442,8 @@ export const buildEoAesRows = (
     },
     {
       id: 'aes.menAfgoerelseDato',
-      label: 'Mén-afgørelsesdato',
-      displayValue: menAfgoerelseDatoDisplay,
-      status: menAfgoerelseDatoStatus,
+      label: eoMenAfgoerelseDatoField.label,
+      ...medDatoEfterOpgoerelse('menAfgoerelseDato', { displayValue: menAfgoerelseDatoDisplay, status: menAfgoerelseDatoStatus }),
       group: 'aes.varigeMen',
     },
     {
@@ -433,14 +458,16 @@ export const buildEoAesRows = (
     },
     {
       id: 'aes.midlertidigEETAfgoerelseDato',
-      label: 'Dato for midlertidig EET-afgørelse',
-      displayValue: midlertidigEETAfgoerelseDatoDisplay,
-      status: midlertidigEETAfgoerelseDatoStatus,
+      label: eoMidlertidigEETAfgoerelseDatoField.label,
+      ...medDatoEfterOpgoerelse('midlertidigEETAfgoerelseDato', {
+        displayValue: midlertidigEETAfgoerelseDatoDisplay,
+        status: midlertidigEETAfgoerelseDatoStatus,
+      }),
       group: 'aes.midlertidigtEet',
     },
     {
       id: 'aes.midlertidigEETVirkningsdato',
-      label: 'Virkningsdato for midlertidig EET-afgørelse',
+      label: eoMidlertidigEETVirkningsdatoField.label,
       ...resolveEoRowDisplay({
         value: danishMidlertidigEETVirkningsdato,
         issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'midlertidigEETVirkningsdato'),
@@ -468,14 +495,16 @@ export const buildEoAesRows = (
     },
     {
       id: 'aes.endeligEETAfgoerelseDato',
-      label: 'Dato for endelig EET-afgørelse',
-      displayValue: endeligEETAfgoerelseDatoDisplay,
-      status: endeligEETAfgoerelseDatoStatus,
+      label: eoEndeligEETAfgoerelseDatoField.label,
+      ...medDatoEfterOpgoerelse('endeligEETAfgoerelseDato', {
+        displayValue: endeligEETAfgoerelseDatoDisplay,
+        status: endeligEETAfgoerelseDatoStatus,
+      }),
       group: 'aes.endeligtEet',
     },
     {
       id: 'aes.endeligEETVirkningsdato',
-      label: 'Virkningsdato for endelig EET-afgørelse',
+      label: eoEndeligEETVirkningsdatoField.label,
       ...resolveEoRowDisplay({ value: danishEndeligEETVirkningsdato, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'endeligEETVirkningsdato'), emptyState: 'ok' }),
       group: 'aes.endeligtEet',
     },
@@ -506,8 +535,11 @@ export const buildEoAesRows = (
     },
     {
       id: 'aes.differencekravDato',
-      label: 'Dato for differencekrav',
-      ...resolveEoRowDisplay({ value: danishDifferencekravDato, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'differencekravDato'), emptyState: 'ok' }),
+      label: eoDifferencekravDatoField.label,
+      ...medDatoEfterOpgoerelse(
+        'differencekravDato',
+        resolveEoRowDisplay({ value: danishDifferencekravDato, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'differencekravDato'), emptyState: 'ok' }),
+      ),
       group: 'aes.differencekrav',
     },
   ];

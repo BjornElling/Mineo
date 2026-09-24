@@ -135,4 +135,35 @@ describe('CALC-006 – uafhængigt TAF-ophørsfacit for differencekrav', () => {
       status: 'ok',
     });
   });
+
+  // BB-238: klagen ophæver EET-afskæringerne, IKKE differencekravets – præcis som rød-celle-valideringen.
+  // Før faldt rækken igennem til en advarsel, ingen lovlig indtastning kunne rydde.
+  it.each([
+    ['efter differencekravet', '2024-03-01'],
+    ['før differencekravet', '2024-01-03'],
+  ])('viser differencekravet som ophørsårsag trods verserende EET-klage (endelig afgørelse %s)', (_navn, endeligDato) => {
+    const values: ErstatningsopgoerelseValues = {
+      ...INDEPENDENT_DIFFERENCEKRAV_VALUES,
+      endeligtEETAfgorelse: 'Ja',
+      endeligEETAfgoerelseDato: iso(endeligDato),
+      verserendeKlageEet: 'Ja',
+    };
+    const rows = buildEoTaftRows(values, EMPTY_FIELD_ISSUE_SET, {
+      skadedatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: iso(endeligDato),
+      midlertidigEETBeregnetDato: undefined,
+      differencekravDato: values.differencekravDato,
+      verserendeKlageEet: true,
+    });
+
+    expect(rows.find((row) => row.id === 'taf.ophoerSkyldes')).toEqual({
+      id: 'taf.ophoerSkyldes',
+      label: 'TAF-ophør skyldes',
+      displayValue: 'Differencekrav opgjort (06-01-2024)',
+      status: 'ok',
+    });
+    expect(rows.filter((row) => row.status !== 'ok')).toEqual([]);
+  });
 });

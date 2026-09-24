@@ -5,6 +5,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateLikeAdmission, keyFilterFromAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { FieldIssue } from '../../inputIssue';
+import type { FieldWarning } from '../../fieldWarning';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFormFieldSurface } from '../useFormFieldSurface';
 import { resolveFieldIssueText } from '../fieldIssueText';
@@ -46,10 +47,15 @@ export type DateFieldProps = Readonly<{
    * tavst. Fjern den ikke uden at flytte den vej et andet sted hen.
    */
   crossFieldIssue?: FieldIssue;
+  /**
+   * Ikke-blokerende feltadvarsel (gul ring + tooltip), som i `TextField`. Bruges, når datoen er lovlig, men
+   * usandsynlig i sagens egen sammenhæng – fx en afgørelse dateret efter «Opgørelse lavet den» (BB-242).
+   */
+  warning?: FieldWarning;
 }>;
 
 const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
-  ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue }, ref) => {
+  ({ field, location, name, width = 130, placeholder = DATE_FORMAT_PLACEHOLDER, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue, warning }, ref) => {
     const accessibleName = useFieldLabel(field);
     // Datoformens rå loft er erklæret på codecet og læses gennem den DELTE resolver – samme kilde som
     // grid-cellen.
@@ -95,6 +101,7 @@ const DateField = React.forwardRef<HTMLDivElement, DateFieldProps>(
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
+        {...(warning === undefined ? {} : { warning })}
         htmlInputAttributes={{ inputMode: 'numeric', maxLength: maxDraftLength, readOnly: surface.readOnly, ...surface.restoreTargetAttributes }}
         sx={mergeSx({
           '& .MuiInputBase-input': {

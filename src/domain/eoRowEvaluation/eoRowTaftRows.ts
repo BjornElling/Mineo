@@ -7,7 +7,13 @@ import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
-import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import {
+  clampTafRange,
+  getValidTafRange,
+  resolveTafConstraintBounds,
+  resolveMidlertidigEetDatoHvisAktiv,
+  resolveTafCutoffDates,
+} from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeriodeValidation';
 import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
@@ -110,76 +116,47 @@ export const buildEoTaftRows = (
     values.vedroererPeriodeFra !== undefined &&
     firstTafKravDato > values.vedroererPeriodeFra;
 
-  // `tafOphoerSkyldes` beregnes kun, når der er TAF inden for EO-perioden.
+  // Afskæringsdatoerne hentes fra SAMME opslag, som rød-celle-valideringen og motorens clamping bruger.
+  // Rækken havde før sin egen kopi af klage-betingelsen og lagde den også på differencekravet, som klagen
+  // IKKE ophæver: med en verserende EET-klage blev et TAF-ophør ved differencekravet til advarslen «Der er
+  // ikke rejst TAF-krav for hele EO-perioden», som ingen lovlig indtastning kunne rydde (BB-238, M-34).
+  const tafCutoffs = resolveTafCutoffDates({
+    ...values,
+    skadedatoISO: context.skadedatoISO,
+    verserendeKlageEet: context.verserendeKlageEet ? 'Ja' : 'Nej',
+  });
+
+  // `taf.ophoerSkyldes` beregnes kun, når der er TAF inden for EO-perioden.
   // Er der ingen TAF i EO-perioden (lastTafKravDato === undefined), vises
   // i stedet taf.perioder.clampedAway og taf.ophoerSkyldes emitteres ikke.
-  const tafOphoerSkyldes = lastTafKravDato
-    ? (() => {
-        // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
-        // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
-        if (manglerTafVedStartAfIkkeFoersteEo) {
-          return tafIkkeRejstLabel;
-        }
-
-        const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
-        if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
-          return 'Endelig EET-afgørelse';
-        }
-
-        const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
-        if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
-          return 'Midlertidig EET-afgørelse';
-        }
-
-        const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
-        if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
-          return 'Differencekrav opgjort';
-        }
-
-        if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
-          return 'Erstatningsperiodens ophør';
-        }
-
-        return tafIkkeRejstLabel;
-      })()
-    : undefined;
-
-  const tafOphoerSkyldesDatoISO = (() => {
+  const tafOphoer = ((): Readonly<{ label: string; datoISO?: ISODateString | undefined }> | undefined => {
     if (!lastTafKravDato) return undefined;
-    if (manglerTafVedStartAfIkkeFoersteEo) return undefined;
+    // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
+    // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
+    if (manglerTafVedStartAfIkkeFoersteEo) return { label: tafIkkeRejstLabel };
 
-    const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
-    if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
-      return context.endeligEETBeregnetDato;
-    }
-
-    const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
-    if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
-      return aktivMidlertidigEETBeregnetDato;
-    }
-
-    const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
-    if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
-      return context.differencekravDato;
-    }
+    const afskaeringer = [
+      { label: 'Endelig EET-afgørelse', datoISO: tafCutoffs.endeligEETDato },
+      { label: 'Midlertidig EET-afgørelse', datoISO: tafCutoffs.midlertidigEETDato },
+      { label: 'Differencekrav opgjort', datoISO: tafCutoffs.differencekravDato },
+    ];
+    const afskaering = afskaeringer.find(({ datoISO }) => datoISO !== undefined && getDayBeforeIso(datoISO) === lastTafKravDato);
+    if (afskaering) return afskaering;
 
     if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
-      return values.vedroererPeriodeTil;
+      return { label: 'Erstatningsperiodens ophør', datoISO: values.vedroererPeriodeTil };
     }
 
-    return undefined;
+    return { label: tafIkkeRejstLabel };
   })();
 
-  if (tafOphoerSkyldes !== undefined) {
-    const dateDanish = tafOphoerSkyldesDatoISO ? isoToDanish(tafOphoerSkyldesDatoISO) : undefined;
-    const tafOphoerSkyldesDisplayValue = dateDanish
-      ? `${tafOphoerSkyldes} (${dateDanish})`
-      : tafOphoerSkyldes;
+  if (tafOphoer !== undefined) {
+    const dateDanish = tafOphoer.datoISO ? isoToDanish(tafOphoer.datoISO) : undefined;
     rows.push({
       id: 'taf.ophoerSkyldes',
       label: 'TAF-ophør skyldes',
-      displayValue: tafOphoerSkyldesDisplayValue,
-      status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
+      displayValue: dateDanish ? `${tafOphoer.label} (${dateDanish})` : tafOphoer.label,
+      status: tafOphoer.label === tafIkkeRejstLabel ? 'warning' : 'ok',
     });
   }
 

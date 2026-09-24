@@ -12,6 +12,28 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-24 fra Erstatningsopgørelse → AES-afgørelser (12d) – M-34: en regel genbruger en
+nabo-regels prædikat og arver dens undtagelser.** Sektionens datoer bliver afskæringsdatoer for svie/smerte og
+TAF, og undtagelserne fra afskæringen (verserende klage, 2011-grænsen for midlertidig EET) er skrevet ind i de
+prædikater, der afgør afskæringen. To andre regler har lånt dem: rækken «TAF-ophør skyldes» har kopieret
+klage-betingelsen over på differencekravet, som klagen IKKE ophæver, så en rigtig, synlig klage giver den
+urydelige advarsel «Der er ikke rejst TAF-krav for hele EO-perioden», mens papiret siger, at differencekravet
+bringer retten til ophør (BB-238, Mellem); og advarslen om manglende midlertidige EET-ydelser finder
+afgørelsens dato med afskæringsprædikatet, som returnerer intet for skader fra 16. juni 2011 – netop dér, hvor
+ydelsen skal fradrages. Målt: fuld TAF `360.000,00 kr.` uden fradrag og uden advarsel, mens papiret selv
+oplyser afgørelsen (BB-240, **Høj**). **Dertil det tungeste fund, som er lokalt:** én klagetoggle for to
+EET-afgørelser, placeret under «Øvrigt» og ikke ved EET, ophæver begge afskæringer; i en sag fra før 2011
+opgøres `452.037,00 kr.` for en periode, en upåklaget midlertidig afgørelse skulle have afskåret, og papiret
+nævner kun den påklagede (BB-239, **Høj**). **Øvrige forekomster:** M-13 i BB-122's form (BB-241 – en
+ménafgørelse uden dato forsvinder af papiret med sin klage; BF-054 rettede kun EET), M-05 (BB-242 – en
+afgørelse dateret efter opgørelsen; BB-246 – differencekrav uden EET-afgørelse), M-02 (BB-243 – seks
+datofelter, der hedder noget andet i boksen), M-11's SAGEN-form (BB-245 – «opgjort per» bliver «opgjort den»)
+og en lokal dublet (BB-244). M-09, M-19 og M-32 bestået; konsollen tavs.
+**Afgjort og gennemført samme dag:** syv rettet; **BB-239 og BB-246 afvist.** BB-239: en verserende klage over
+EET åbner alt EET-relateret for prøvelse, så én fælles klage er rigtig – det er ikke M-34, og kommende flader
+skal ikke genrejse opdelingen. BB-246: «differencekrav» bruges også om en EAL-opgørelse uden endelig
+ASL-afgørelse, så M-05-forekomsten er et nej. BB-242's M-05-forekomst er derimod godkendt som gul advarsel.
+
 **Ét nyt mønster 2026-09-23 fra Erstatningsopgørelse → Øvrige erstatningskrav (12c) – M-33: to
 valideringslag vurderer samme række hver for sig, og brugeren får begge svar.** Rækkebyggeren
 (`eoRowOevrigeKravRows.ts`) og den gamle validator (`validateOevrigeKrav`) er uenige om ordlyd («Beskrivelse
@@ -544,6 +566,11 @@ maksimum uanset hvilken af dem brugeren tror, han taster. **Læren: mønsterets 
 «er de to strenge forskellige?», men spørge, om de to ord betegner det samme forhold** – det er BB-184's
 begrebsprøve, nu brugt inden for ét felt i stedet for på tværs af to faner.
 
+**Ny forekomst 2026-09-24 i samme mekaniske form** (`erstatningsopgoerelse-12d.md` BB-243, Lav): AES-sektionens
+seks datofelter hedder i «Fejl og advarsler» og i oplæsningen noget, skærmen ikke skriver – «Dato for første
+ménafgørelse» bliver «Mén-afgørelsesdato:», «Dato for endelig erhvervsevnetabsafgørelse» bliver «Dato for
+endelig EET-afgørelse:». Sektionens toggles er korrekte (`LabeledControlRow`), så BB-211's skillelinje holder.
+
 - Fundet i: `stamdata.md` BB-002 – **accepteret, skal rettes** (implementeringsforslag i fundet).
 - Konkrete kandidatsteder: `src/utils/dateRangeErrorMessages.ts`; den fælles besked
   om en dato før stamdatodatoen, som nås fra mindst seks erklæringssteder i
@@ -647,6 +674,10 @@ langt fra det sted, den blev indtastet.
   være usandsynlig i: Satser-sidens satsår må frit sættes til 2007 i en 2024-sag, fordi det netop er
   opslagsværkets formål. Spørg derfor først, om feltet indgår i en beregning – ikke blot om programmet
   kender to tal, der kunne sammenlignes.
+- **To nye forekomster 2026-09-24** (`erstatningsopgoerelse-12d.md` BB-242 og BB-246; BB-242 godkendt som gul advarsel, BB-246 afvist): en
+  afgørelsesdato efter «Opgørelse lavet den» trykkes som status i et papir, der er dateret før den; og et
+  differencekrav uden EET-afgørelse giver to modstridende Status-linjer. Begge er usandsynlige *i sagens egen
+  sammenhæng*, fordi programmet selv bruger opgørelsens dato som status-dato.
 
 ## M-06 – Usynlige tegn overlever fra indsættelse
 
@@ -974,6 +1005,9 @@ vælge – det er en faglig afgørelse, ikke en sproglig.
   (`AesAfgoerelserSection.tsx:134`), hvor det navngiver en faktisk endelig afgørelse: **en omdøbning skal
   søges som begreb i sin egen lovkontekst, ikke som streng** (BB-134's lære, nu i den omvendte retning –
   her var to af tre træf netop dem, der IKKE måtte rettes).
+- **Ny forekomst 2026-09-24 i SAGEN-formen** (`erstatningsopgoerelse-12d.md` BB-245, Lav): feltet spørger om
+  den dato, differencekravet er opgjort **pr.**, og papiret skriver, at det er opgjort **den** dato – en påstand
+  om, hvornår det blev udregnet, som programmet ikke kender.
 
 ## M-12 – Et valg, hvis virkning hverken kan ses nu eller findes senere
 
@@ -1247,6 +1281,9 @@ måles og rettes.
   indtastede perioder – giver alle rækken «Svie/smerte-periode» værdien `Nej` (den anden dog
   `Nej (skjult)`). Ordet «Nej» er ikke en periode, og de tre ens svar dækker over «intet krav»,
   «kravet er opbrugt» og «du mangler at taste».
+- **Ny forekomst 2026-09-24 i BB-122's form** (`erstatningsopgoerelse-12d.md` BB-241, Mellem): «Truffet afgørelse
+  om varige mén» = Ja uden dato fjerner ménlinjen fra papiret – også «Afgørelsen er påklaget.» – mens samme
+  tilstand for EET trykkes som truffet (BF-054). Rettelsen er en konvergens.
 - **Bestået samme dag på beløbssiden:** renteberegningens `formatKr(x, 2)` på skærmen og
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
@@ -2629,3 +2666,39 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   bevares som forsvar i dybden for snapshottet, men dens linjer når aldrig boksen, fordi rækkebyggeren
   altid melder samme mangel. Dokumentet trykker den udaterede post, så «I alt» igen er summen af linjerne.
   Skabelonen til de øvrige kandidater er dermed: én vurdering pr. række, som begge lag læser.
+
+## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
+
+> En regel har brug for en oplysning, som en anden regel allerede udleder, og kalder den andens funktion.
+> Men funktionen svarer på den anden regels spørgsmål, med den anden regels undtagelser indbygget. Den nye
+> regel tier – eller taler – i præcis de tilfælde, undtagelserne dækker, uden at nogen har besluttet det.
+
+Et prædikat som «afskærer denne afgørelse TAF?» indeholder hele sin regel: afgørelsen skal være truffet, have
+en dato, ikke være påklaget og – for den midlertidige – vedrøre en skade før 16. juni 2011. Kalder en anden
+regel det for at få «afgørelsens dato», får den `undefined` i alle de tilfælde, hvor afgørelsen ikke
+*afskærer*, også når den nye regel netop handler om dem. Den omvendte form er kopien: en betingelse skrevet
+af til en nabogren, hvor den ikke gælder.
+
+Formen er farlig, fordi begge regler læser rigtigt hver for sig, og fordi genbrug ligner god praksis. Det,
+der er gået tabt, er skellet mellem **oplysningen** (datoen) og **anvendelsen** (afskæringen).
+
+**Efterprøv, hvor:** en funktion med en undtagelse i navnet eller kroppen (`…HvisAktiv`, `resolve…Cutoff…`,
+en `!klage &&`-betingelse) kaldes uden for den regel, den er skrevet til. Prøven er kodesøgning i tre trin:
+
+1. Find kaldsstederne: `rg "resolveMidlertidigEetDatoHvisAktiv|resolveTafCutoffDates|resolveSvieSmerteCutoffDate" src`.
+2. For hvert kaldssted uden for afskæringsreglen: spørger det «afskærer afgørelsen?» eller «findes der en
+   afgørelse, og hvornår?» Er det det sidste, er det en kandidat.
+3. For hver kopieret betingelse (`!context.verserendeKlageEet`): gælder undtagelsen for netop den gren? Hold
+   den op mod reglens dokumenterede form.
+
+**Skellet mod M-30.** M-30 handler om en advarsel, som kun nogle af de motorer, der læser samme rækker, bærer.
+M-34 handler om en regel, der bærer sin advarsel, men har lånt den forkerte betingelse for, hvornår den
+gælder. **Skellet mod M-33:** dér er to lag uenige om samme række; her er én regel uenig med sig selv om,
+hvilket spørgsmål den besvarer.
+
+- Fundet i: `erstatningsopgoerelse-12d.md` BB-238 (Mellem – `taf.ophoerSkyldes` lader klagen ophæve
+  differencekravet; valideringen gør korrekt ikke) og BB-240 (**Høj** – advarslen om manglende midlertidige
+  EET-ydelser bruger afskæringsprædikatet og er slukket for alle skader fra 16. juni 2011).
+- Kandidater, ikke efterprøvet: `eoInspektionSammentaelling.ts:79-86` og `eoInspektionKontrolModel.ts:692`
+  (12m); svie/smerte-rækkernes `shouldApplyMenCutoff` i `eoRowSvieSmerteRows.ts:406` og `:580`, som læser
+  ménafskæringen to steder.

@@ -115,9 +115,12 @@ export const buildSvieSmerteModel = (
     // afgørelse om varige mén. Afgørelsen er påklaget.» – en sætning, der modsiger sig selv om en
     // afgørelse, der ikke findes (BB-222's regel).
     statusLinjer.push(`Der er den ${dato} ikke truffet afgørelse om varige mén.`);
-  } else if (varigeMenAfgorelse === 'Ja' && menDato) {
-    const dato = formatDateLong(menDato);
-    const tekst = `Der er den ${dato} truffet afgørelse om varige mén.`;
+  } else if (varigeMenAfgorelse === 'Ja') {
+    // Uden dato er afgørelsen stadig truffet og skal oplyses – med sin klage, som netop forklarer, hvorfor
+    // svie/smerte løber videre. Samme form som de datoløse EET-linjer nedenfor (BB-241).
+    const tekst = menDato
+      ? `Der er den ${formatDateLong(menDato)} truffet afgørelse om varige mén.`
+      : 'Der er truffet afgørelse om varige mén.';
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
@@ -338,7 +341,9 @@ export const buildTabtArbejdsfortjenesteModel = (
   }
 
   const differencekravLinjeBase = values.differencekravDato
-    ? `Der er opgjort differencekrav i sagen den ${formatDateLong(values.differencekravDato)}.`
+    // «pr.»: datoen er den, kravet er opgjort PR. (feltet «Evt. differencekrav opgjort per»), ikke den
+    // dag, det blev udregnet, som programmet ikke kender (BB-245).
+    ? `Der er opgjort differencekrav i sagen pr. ${formatDateLong(values.differencekravDato)}.`
     : null;
   const differencekravReferenceDato = values.differencekravDato;
 

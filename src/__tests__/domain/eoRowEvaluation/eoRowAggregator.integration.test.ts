@@ -37,7 +37,7 @@ describe('collectAllEoRows integration', () => {
     expect(result.warnings).toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: 'aes.menAfgoerelseDato',
-        summaryText: 'Dato for ménafgørelse er ikke angivet',
+        summaryText: 'Dato for første ménafgørelse er ikke angivet',
       }),
       expect.objectContaining({
         id: 'aes.midlertidigEETAfgoerelseDato',

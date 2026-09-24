@@ -3,8 +3,10 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-09-23 (§4.6a henviser nu til satsårets juridiske regel i
-`eo-snapshot-contract.md` §16. Tidligere 2026-09-08: §1.5 er NY og implementeret: autofill-suggest er kodet
+**Senest verificeret mod kode:** 2026-09-24 (§4.13, §4.14 og §4.16: afgørelses- og differencekravsdatoer efter
+`Opgørelse lavet den` får en gul, ikke-blokerende ring; en ménafgørelse uden dato trykkes; differencekravet er
+opgjort «pr.». Tidligere 2026-09-23: §4.6a henviser til satsårets juridiske regel i `eo-snapshot-contract.md` §16.
+Tidligere 2026-09-08: §1.5 er NY og implementeret: autofill-suggest er kodet
 generelt i `src/inputCore/autofill/` og aktiveret i EO's løntabeller og Offentlige ydelser. Afsnittet blev
 SKREVET OM natten til den 8., efter at udvikleren kørte funktionen og fotograferede tre tabeltilstande med
 forkerte forslag. De tre regler er nærmest hele afsnittet nu, og hver af de fejl, de kom af, er målt:
@@ -945,8 +947,11 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
   ikke-blokerende gul advarsel på Beregning-siden. Feltet er tomt uden rød ring.
 - Tidligste tilladte dato er den højeste af skadedatoen og 01-01-2005; seneste er dags dato. Begge grænser er
   tilladte. Værdier uden for intervallet bevares rødt med konkret tooltip.
-- Datoen er uafhængig af `Vedrører perioden` og `Opgørelse lavet den`. Hvis skadedatoen senere flyttes efter
-  datoen, bevares datoen og markeres rødt.
+- Datoen er uafhængig af `Vedrører perioden`. Hvis skadedatoen senere flyttes efter datoen, bevares datoen og
+  markeres rødt.
+- Ligger datoen efter `Opgørelse lavet den`, får den en ikke-blokerende gul ring og en linje i «Fejl og advarsler»: «Afgørelsen er dateret efter opgørelsens dato (<dato>)». Dokument, beløb og download er uændrede; afgørelsen trykkes fortsat.
+- Uden dato trykkes afgørelsen alligevel: «Der er truffet afgørelse om varige mén.», ved klage efterfulgt af
+  «Afgørelsen er påklaget.».
 
 ### 4.14 Midlertidigt EET: toggle og datoer
 
@@ -963,7 +968,8 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 - Datoen er ikke obligatorisk i feltet. Hvis både denne dato og virkningsdatoen mangler, vises en ikke-blokerende
   gul Beregning-advarsel; der vises ingen rød ring på dato-felterne.
 - Tidligste dato er den højeste af skadedatoen og 01-01-2005; seneste er dags dato. Begge grænser er tilladte.
-- Range-ugyldige datoer bevares rødt. Datoen er uafhængig af `Vedrører perioden` og `Opgørelse lavet den`.
+- Range-ugyldige datoer bevares rødt. Datoen er uafhængig af `Vedrører perioden`.
+- Ligger datoen efter `Opgørelse lavet den`, får den en ikke-blokerende gul ring og en linje i «Fejl og advarsler»: «Afgørelsen er dateret efter opgørelsens dato (<dato>)». Dokument, beløb og download er uændrede; afgørelsen trykkes fortsat.
 - Når toggle står på Nej, skjules datoen; gyldig værdi bevares, fejlbehæftet værdi slettes, og gyldig værdi
   kommer tilbage ved ny aktivering.
 
@@ -1008,8 +1014,12 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 
 - Feltet er frivilligt og kan stå tomt uden direkte fejl eller advarsel.
 - Tidligste dato er den højeste af skadedatoen og 01-01-2005; seneste er dags dato. Begge grænser er tilladte.
-- Datoer uden for intervallet bevares med rød ring og konkret tooltip. Feltet er uafhængigt af `Vedrører perioden`
-  og `Opgørelse lavet den`.
+- Datoer uden for intervallet bevares med rød ring og konkret tooltip. Feltet er uafhængigt af `Vedrører perioden`.
+- Ligger datoen efter `Opgørelse lavet den`, får den en ikke-blokerende gul ring og en linje i «Fejl og advarsler»:
+  «Differencekravet er opgjort pr. en dato efter opgørelsens dato (<dato>)».
+- Dokumentet skriver «Der er opgjort differencekrav i sagen pr. <dato>.», og en TAF-dato efter afskæringen får
+  beskeden «… efter den dato, differencekravet er opgjort pr. (<dato>)» – datoen er den, kravet er opgjort pr.,
+  ikke den dag, det blev udregnet.
 - En udfyldt dato afgrænser TAF ved dagen før datoen og supplerer andre afgrænsende datoer. Den erstatter ikke
   andre afgrænsninger; den tidligste relevante dato gælder, også når EET-klagesag ellers er verserende.
 

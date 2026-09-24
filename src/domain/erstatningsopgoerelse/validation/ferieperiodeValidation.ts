@@ -105,7 +105,8 @@ const evaluateOne = (
   );
 
   if (hasOverlap || computedRangeMessages.length > 0) {
-    const message = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
+    // Fra og til kan ramme samme grænse med samme ordlyd; linjen må ikke gentage sig selv (BB-244).
+    const message = hasOverlap ? 'Der er overlappende perioder' : [...new Set(computedRangeMessages)].join('; ');
     const field: 'fra' | 'til' | undefined = hasOverlap
       ? undefined
       : fraRangeMessage

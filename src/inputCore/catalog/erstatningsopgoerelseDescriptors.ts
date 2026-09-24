@@ -594,8 +594,13 @@ export const eoVarigeMenAfgorelseField = requiredJaNejField('varigeMenAfgorelse'
 // Alle seks stod uden validator, så datoer før skadedatoen – og efter dags dato – kunne afsluttes canonical
 // og nå hele vejen til en aktiv PDF-knap. Kun `max` skiller dem: afgørelsesdatoer kan ikke ligge
 // i fremtiden, mens virkningsdatoer kan række et år frem.
+//
+// Labels er rækkens SYNLIGE tekst (BB-211's regel); de to «Virkningsdato (hvis forskellig fra
+// afgørelsesdatoen)» er ens på skærmen, så deres navn er sammensat med afgørelsen, de hører til. Før hed
+// felterne fx «Mén-afgørelsesdato» i «Fejl og advarsler» og i oplæsningen – et navn, skærmen ikke skriver
+// (BB-243).
 export const eoMenAfgoerelseDatoField = dateField(
-  'menAfgoerelseDato', 'Mén-afgørelsesdato',
+  'menAfgoerelseDato', 'Dato for første ménafgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.menAfgoerelseDato)),
   whenEo(varigeMenAfgoerelseAktiv),
 );
@@ -604,23 +609,23 @@ export const eoVerserendeKlageMenField = requiredJaNejField(
 );
 export const eoMidlertidigtEETAfgorelseField = requiredJaNejField('midlertidigtEETAfgorelse', 'Midlertidigt EET-afgørelse', 'Nej');
 export const eoMidlertidigEETAfgoerelseDatoField = dateField(
-  'midlertidigEETAfgoerelseDato', 'Midlertidigt EET-afgørelsesdato',
+  'midlertidigEETAfgoerelseDato', 'Dato for første midlertidige erhvervsevnetabsafgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETAfgoerelseDato)),
   whenEo(midlertidigtEetAfgoerelseAktiv),
 );
 export const eoMidlertidigEETVirkningsdatoField = dateField(
-  'midlertidigEETVirkningsdato', 'Midlertidigt EET-virkningsdato',
+  'midlertidigEETVirkningsdato', 'Virkningsdato for den midlertidige afgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.midlertidigEETVirkningsdato)),
   whenEo(midlertidigtEetAfgoerelseAktiv),
 );
 export const eoEndeligtEETAfgorelseField = requiredJaNejField('endeligtEETAfgorelse', 'Endeligt EET-afgørelse', 'Nej');
 export const eoEndeligEETAfgoerelseDatoField = dateField(
-  'endeligEETAfgoerelseDato', 'Endeligt EET-afgørelsesdato',
+  'endeligEETAfgoerelseDato', 'Dato for endelig erhvervsevnetabsafgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETAfgoerelseDato)),
   whenEo(endeligtEetAfgoerelseAktiv),
 );
 export const eoEndeligEETVirkningsdatoField = dateField(
-  'endeligEETVirkningsdato', 'Endeligt EET-virkningsdato',
+  'endeligEETVirkningsdato', 'Virkningsdato for den endelige afgørelse',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.endeligEETVirkningsdato)),
   whenEo(endeligtEetAfgoerelseAktiv),
 );
@@ -628,7 +633,7 @@ export const eoVerserendeKlageEetField = requiredJaNejField(
   'verserendeKlageEet', 'Verserende klage (EET)', 'Nej', whenEo(eetKlageRelevant),
 );
 export const eoDifferencekravDatoField = dateField(
-  'differencekravDato', 'Differencekravsdato',
+  'differencekravDato', 'Evt. differencekrav opgjort per',
   dateBounds(skadedatoBoundedSpec(dateRanges_erstatningsopgoerelse.differencekravDato)),
 );
 

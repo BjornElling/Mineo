@@ -232,7 +232,7 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
           "eoRowErrors": [
             {
               "id": "taf.periode.taf-1",
-              "message": "Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (⟨dato⟩); Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (⟨dato⟩)",
+              "message": "Hele perioden ligger efter den dato, differencekravet er opgjort pr. (⟨dato⟩)",
             },
           ],
           "projectionKind": "ok",

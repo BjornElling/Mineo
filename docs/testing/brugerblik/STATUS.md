@@ -8,8 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12d – Erstatningsopgørelse → AES-afgørelser og erstatningsperiodens afgrænsning.**
-  12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
+- **Næste flade:** **12e – Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden.** 12d er gennemgået,
+  afgjort OG gennemført 2026-09-24 (9 fund, BB-238–BB-246). 12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
   2026-09-22 (11 fund, BB-217–BB-227). Tidligere: 12a er gennemgået
   2026-09-15 (15 fund, BB-202–BB-216), og hele Erhvervsevnetab er gennemgået,
   afgjort OG gennemført i kode; fane 11e blev afgjort og implementeret 2026-09-09.
@@ -22,8 +22,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-238
-- **Åbne spørgsmål:** **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
+- **Næste fund-ID:** BB-247
+- **Åbne spørgsmål:** **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
+  EET-klage gælder alt EET; den bliver under «Øvrigt», og papiret trykker fortsat én EET-linje), BB-242 ja til en
+  gul advarsel, BB-245 ja til «pr.», BB-246 afvist. Tidligere: **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
   årstal har ingen sammenhæng med det krævede satsår. Kravet anses for rejst én måned efter «Opgørelse lavet
   den», og den sats, der gælder dér, kan kræves; brugeren vælger året, og programmet advarer alene
   (ikke-blokerende), når en senere, højere sats kunne være anvendt. Dokumenteret i `eo-snapshot-contract.md`
@@ -91,7 +93,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12c's ti fund (BB-228–BB-237) er
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12d's ni fund (BB-238–BB-246) er afgjort og
+  gennemført 2026-09-24** – syv rettet, to afvist; se afsnittet om 12d nedenfor. Tidligere: **ingen.** **Flade 12c's ti fund (BB-228–BB-237) er
   afgjort af udvikleren OG gennemført i kode 2026-09-23** – alle ti rettet. **Tre ting rakte ud over
   fundene:** (1) BB-228's «undersøg, om det håndteres ensartet» viste, at det ikke gjorde: hver læser afgjorde
   selv, om et felt var skjult. EO's felter bag et valg bærer nu inputkernens `relevance`, så ALLE læsere ser
@@ -140,7 +143,11 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-09-23 (**Flade 12c afgjort og gennemført** – se «Fund, der afventer
+- **Senest opdateret:** 2026-09-24 (**Flade 12d afgjort og gennemført** – se afsnittet om 12d nedenfor.)
+  Samme dag, før afgørelsen: (**Flade 12d – AES-afgørelser og erstatningsperiodens afgrænsning –
+  gennemgået: 9 fund, to Høj, tre Mellem og fire Lav, og ét nyt tværgående mønster M-34.** Se afsnittet
+  om 12d nedenfor.)
+- **Tidligere: 2026-09-23** (**Flade 12c afgjort og gennemført** – se «Fund, der afventer
   udviklerens afgørelse» ovenfor.) Samme dag, før afgørelsen: (**Flade 12c – Erstatningsopgørelse →
   Øvrige erstatningskrav – gennemgået: 10 fund, fire Høj, fire Mellem og to Lav, og ét nyt tværgående mønster M-33.** Sektionen er
   opgørelsens enkleste – et kravvalg og en tabel med dato, beskrivelse og beløb – men den har to
@@ -563,7 +570,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12a | Erstatningsopgørelse – Opgørelsens ramme | Afgjort og gennemført | 15 (BB-202–BB-216) | [erstatningsopgoerelse-12a.md](erstatningsopgoerelse-12a.md) |
 | 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Afgjort og gennemført | 11 (BB-217–BB-227) | [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md) |
 | 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Afgjort og gennemført | 10 (BB-228–BB-237) | [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md) |
-| 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Ikke startet | – | – |
+| 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Afgjort og gennemført | 9 (BB-238–BB-246) | [erstatningsopgoerelse-12d.md](erstatningsopgoerelse-12d.md) |
 | 12e | Erstatningsopgørelse – TAF: perioden | Ikke startet | – | – |
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Ikke startet | – | – |
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Ikke startet | – | – |
@@ -573,6 +580,39 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → AES-afgørelser og erstatningsperiodens afgrænsning (12d) – gennemgået, afgjort og gennemført 2026-09-24
+
+**Afgjort og gennemført 2026-09-24:** syv rettet (BB-238, BB-240–BB-245), to afvist (BB-239, BB-246). BB-242 blev
+forelagt igen, fordi svaret ramte et andet forslag; udvikleren sagde derefter ja til den gule advarsel. BB-239's
+placering og papirets ene EET-linje blev forelagt som opfølgning og besvaret «som i dag». **Én ting rakte ud over
+fundene:** BB-240's svar bad om et systematisk mønster – afgørelsen er en oplysning, der altid trykkes og aldrig
+blokerer; den ydelse, den udløser, er en forventning, der kun giver en ikke-blokerende advarsel, i begge retninger.
+Mønsteret dækker også midlertidigt EET indsat fra Erhvervsevnetab-siden (12k's kandidat). Tabellen nedenfor viser
+den oprindelige beslutningsstatus.
+
+**9 fund: to Høj, tre Mellem, fire Lav – og ét nyt tværgående mønster M-34.** Sektionen regner intet selv,
+men hver dato bliver en afskæringsdato for svie/smerte eller TAF, og undtagelserne (klage, 2011-grænsen)
+bor i de prædikater, der afgør afskæringen. **To af fundene er regler, der har lånt de prædikater til et andet
+spørgsmål (M-34):** BB-238 (ophørsrækken lader klagen ophæve differencekravet, så en urydelig advarsel står
+over for et papir, der siger det modsatte) og BB-240 (advarslen om manglende midlertidige EET-ydelser er
+slukket for alle skader fra 16. juni 2011 – målt fuld TAF `360.000,00 kr.` uden fradrag og uden et ord).
+**Det tungeste er lokalt:** én klagetoggle under «Øvrigt» for to EET-afgørelser ophæver begge afskæringer og
+kan i en sag fra før 2011 give `452.037,00 kr.` for en periode, en upåklaget midlertidig afgørelse skulle have
+afskåret, mens papiret kun nævner den påklagede (BB-239). Fire fund afventer udviklerens afgørelse (BB-239,
+BB-242, BB-245, BB-246); fem kan agenten afgøre (BB-238, BB-240, BB-241, BB-243, BB-244). Grundlaget står i [erstatningsopgoerelse-12d.md](erstatningsopgoerelse-12d.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-239 | Én klagetoggle under «Øvrigt» for to EET-afgørelser ophæver begge afskæringer; papiret nævner kun den ene | **Høj** | Afventer udvikleren |
+| BB-240 | Advarslen om manglende midlertidige EET-ydelser tier for alle skader fra 16. juni 2011 | **Høj** | Agent afgør |
+| BB-238 | EET-klage + differencekrav giver «Der er ikke rejst TAF-krav for hele EO-perioden», som ikke kan ryddes | Mellem | Agent afgør |
+| BB-241 | En ménafgørelse uden dato forsvinder af papiret med sin klage (BF-054 rettede kun EET) | Mellem | Agent afgør |
+| BB-242 | En afgørelse dateret efter «Opgørelse lavet den» tages imod og trykkes uden bemærkning | Mellem | Afventer udvikleren |
+| BB-243 | Seks datofelter hedder noget andet i «Fejl og advarsler» og i oplæsningen end på skærmen | Lav | Agent afgør |
+| BB-244 | Afskæringsbeskeden står to gange i samme linje, når hele perioden ligger efter afgørelsen | Lav | Agent afgør |
+| BB-245 | «Differencekrav opgjort per» bliver «opgjort den» i papiret | Lav | Afventer udvikleren |
+| BB-246 | Differencekrav uden EET-afgørelse giver to modstridende Status-linjer | Lav | Afventer udvikleren |
 
 ## Erstatningsopgørelse → Svie- og smertegodtgørelse (12b) – gennemgået 2026-09-22
 

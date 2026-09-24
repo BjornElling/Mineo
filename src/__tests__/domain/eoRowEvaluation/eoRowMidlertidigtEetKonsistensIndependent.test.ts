@@ -40,6 +40,55 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     ]);
   });
 
+  // BB-240: efter 16. juni 2011 løber TAF videre efter en midlertidig afgørelse, og ydelsen skal
+  // fradrages. Advarslen læser afgørelsens dato som oplysning – ikke gennem afskæringsprædikatet, der
+  // svarer «ingen dato» for alle skader fra 2011.
+  const efter2011 = (overrides: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
+    ...createErstatningsopgoerelseInitialValues(),
+    vedroererPeriodeFra: iso('2024-01-01'),
+    vedroererPeriodeTil: iso('2024-12-31'),
+    midlertidigtEETAfgorelse: 'Ja',
+    midlertidigEETAfgoerelseDato: iso('2023-03-01'),
+    tafPerioder: [{ id: 'taf-2024', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined }],
+    offentligeYdelserRows: [],
+    ...overrides,
+  });
+  const SKADEDATO_EFTER_2011 = iso('2018-06-01');
+  const advarselIds = (values: ErstatningsopgoerelseValues) =>
+    buildEoOffentligeYdelserRows(values, SKADEDATO_EFTER_2011)
+      .filter((row) => row.id.startsWith('midlertidigtEetKonsistens.'))
+      .map((row) => `${row.id}:${row.status}`);
+
+  it('advarer for en skade efter 2011, når TAF løber efter afgørelsen uden midlertidigt EET-ydelser', () => {
+    expect(advarselIds(efter2011({}))).toEqual(['midlertidigtEetKonsistens.afgorelseUdenYdelser:warning']);
+  });
+
+  it('er tavs, når TAF slutter før afgørelsens dato', () => {
+    expect(advarselIds(efter2011({ midlertidigEETAfgoerelseDato: iso('2025-01-01') }))).toEqual([]);
+  });
+
+  it('regner midlertidigt EET indsat fra Erhvervsevnetab-siden som angivet', () => {
+    expect(advarselIds(efter2011({ midlertidigtEetFraEetSiden: 'Ja' }))).toEqual([]);
+  });
+
+  it('genkender en manuel række, hvis ydelsestype er gemt som den viste label', () => {
+    expect(advarselIds(efter2011({
+      offentligeYdelserRows: [{
+        id: 'label-gemt',
+        fraDato: iso('2024-01-01'),
+        tilDato: iso('2024-12-31'),
+        ydelsestype: 'Midlertidigt EET',
+        ydelse: amount(1000),
+        tillaeg: undefined,
+      }],
+    }))).toEqual([]);
+  });
+
+  it('advarer, når midlertidigt EET indsættes fra Erhvervsevnetab-siden uden en afgørelse', () => {
+    expect(advarselIds(efter2011({ midlertidigtEETAfgorelse: 'Nej', midlertidigtEetFraEetSiden: 'Ja' })))
+      .toEqual(['midlertidigtEetKonsistens.ydelerUdenAfgorelse:warning']);
+  });
+
   it('viser advarsel når midlertidige EET-ydelser er indtastet uden afgørelse', () => {
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),

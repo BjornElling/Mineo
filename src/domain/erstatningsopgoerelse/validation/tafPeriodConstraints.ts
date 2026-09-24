@@ -42,7 +42,21 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
 };
 
 /**
- * Returnerer den beregnede virkningsdato for midlertidig EET, hvis den er aktiv som TAF-afgrænsning.
+ * OPLYSNINGEN: den midlertidige EET-afgørelses beregnede dato (virkningsdato, ellers afgørelsesdato), når
+ * afgørelsen er truffet – uden 2011-grænsen og uden klagen.
+ *
+ * Holdes adskilt fra ANVENDELSEN (`resolveMidlertidigEetDatoHvisAktiv`, afskæringen af TAF). En regel, der
+ * spørger «findes der en afgørelse, og hvornår?», må ikke låne afskæringsprædikatet: det svarer `undefined`
+ * for alle skader fra 16. juni 2011, og advarslen om manglende midlertidige EET-ydelser var derfor slukket
+ * netop dér, hvor ydelsen skal fradrages (BB-240, mønster M-34).
+ */
+export const resolveMidlertidigEetDato = (values: TafConstraintSource): ISODateString | undefined => {
+  if (values.midlertidigtEETAfgorelse !== 'Ja') return undefined;
+  return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
+};
+
+/**
+ * ANVENDELSEN: den midlertidige EET-afgørelses dato, hvis den er aktiv som TAF-afgrænsning.
  *
  * Betingelser:
  * - `midlertidigtEETAfgorelse = 'Ja'`
@@ -50,12 +64,12 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  *
  * Checker IKKE `verserendeKlageEet` – det er kalderens ansvar at udelade resultatet ved aktiv klage.
  *
- * Hvis blot én betingelse mangler, returneres undefined (ingen afgrænsning).
+ * Hvis blot én betingelse mangler, returneres undefined (ingen afgrænsning). Skal du blot kende
+ * afgørelsens dato, er det `resolveMidlertidigEetDato`.
  */
 export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource): ISODateString | undefined => {
-  if (values.midlertidigtEETAfgorelse !== 'Ja') return undefined;
   if (!values.skadedatoISO || values.skadedatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
-  return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
+  return resolveMidlertidigEetDato(values);
 };
 
 /**
@@ -88,36 +102,88 @@ const resolveEetMaxBounds = (values: TafConstraintSource): TafConstraintBounds =
   return { maxEnd: minDefined(endeligEetMax, midlertidigEetMax) };
 };
 
-export const buildTafCutoffErrorMessage = (args: Readonly<{
-  value: ISODateString | undefined;
+type TafCutoffKilde = 'differencekrav' | 'endeligEet' | 'midlertidigEet';
+
+type TafCutoffDatoer = Readonly<{
   differencekravDato?: ISODateString | undefined;
   endeligEETDato?: ISODateString | undefined;
   midlertidigEETDato?: ISODateString | undefined;
+}>;
+
+/**
+ * Hver afskæringskildes to beskedformer. «Efter»-formen siger, at en dato ligger efter afskæringen;
+ * «hele perioden»-formen bruges i periodens samlede besked, når også fra-datoen gør det (BB-244).
+ * Differencekravets dato er den dato, kravet er opgjort PR. (feltet «Evt. differencekrav opgjort per») –
+ * ikke den dag, det blev udregnet (BB-245).
+ */
+const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
+  efter: (dateText: string) => string;
+  helePerioden: (dateText: string) => string;
+}>>> = {
+  differencekrav: {
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter den dato, differencekravet er opgjort pr. (${d})`,
+    helePerioden: (d) => `Hele perioden ligger efter den dato, differencekravet er opgjort pr. (${d})`,
+  },
+  endeligEet: {
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${d})`,
+    helePerioden: (d) => `Hele perioden ligger efter afgørelsen om endeligt erhvervsevnetab (${d})`,
+  },
+  midlertidigEet: {
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${d})`,
+    helePerioden: (d) => `Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (${d})`,
+  },
+};
+
+/** De afskæringer, `value` ligger på eller efter, i datoorden. */
+const collectTafCutoffsRamtAf = (
+  value: ISODateString | undefined,
+  datoer: TafCutoffDatoer
+): Array<Readonly<{ kilde: TafCutoffKilde; dato: ISODateString }>> => {
+  if (!value) return [];
+  const kandidater: Array<Readonly<{ kilde: TafCutoffKilde; dato: ISODateString | undefined }>> = [
+    { kilde: 'differencekrav', dato: datoer.differencekravDato },
+    { kilde: 'endeligEet', dato: datoer.endeligEETDato },
+    { kilde: 'midlertidigEet', dato: datoer.midlertidigEETDato },
+  ];
+  return kandidater
+    .filter((k): k is Readonly<{ kilde: TafCutoffKilde; dato: ISODateString }> => k.dato !== undefined && value >= k.dato)
+    .sort((left, right) => left.dato.localeCompare(right.dato));
+};
+
+const formatCutoffDato = (dato: ISODateString): string => isoToDanish(dato) ?? dato;
+
+/** Én datos afskæringsbesked – cellens tooltip. */
+export const buildTafCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
+  value: ISODateString | undefined;
 }>): string | undefined => {
-  const { value, differencekravDato, endeligEETDato, midlertidigEETDato } = args;
-  if (!value) return undefined;
+  const ramt = collectTafCutoffsRamtAf(args.value, args);
+  if (ramt.length === 0) return undefined;
+  return ramt.map((cutoff) => TAF_CUTOFF_TEKST[cutoff.kilde].efter(formatCutoffDato(cutoff.dato))).join('; ');
+};
 
-  const candidates: Array<{ dato: ISODateString; message: string }> = [];
-
-  if (differencekravDato && value >= differencekravDato) {
-    const dateText = isoToDanish(differencekravDato) ?? differencekravDato;
-    candidates.push({ dato: differencekravDato, message: `Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})` });
+/**
+ * Periodens samlede afskæringsbesked – linjen i «Fejl og advarsler».
+ *
+ * Fra- og til-cellen har hver sin besked, men periodens linje må ikke blot sammenføje dem: ligger begge
+ * datoer efter samme afskæring, stod samme sætning to gange i én linje (BB-244). Hver afskæring nævnes
+ * derfor én gang – i «hele perioden»-formen, når også fra-datoen ligger efter den.
+ */
+export const buildTafPeriodeCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
+  fra: ISODateString | undefined;
+  til: ISODateString | undefined;
+}>): string | undefined => {
+  const fraKilder = new Set(collectTafCutoffsRamtAf(args.fra, args).map((cutoff) => cutoff.kilde));
+  const samlet = new Map<TafCutoffKilde, ISODateString>();
+  for (const cutoff of [...collectTafCutoffsRamtAf(args.fra, args), ...collectTafCutoffsRamtAf(args.til, args)]) {
+    samlet.set(cutoff.kilde, cutoff.dato);
   }
-
-  if (endeligEETDato && value >= endeligEETDato) {
-    const dateText = isoToDanish(endeligEETDato) ?? endeligEETDato;
-    candidates.push({ dato: endeligEETDato, message: `Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})` });
-  }
-
-  if (midlertidigEETDato && value >= midlertidigEETDato) {
-    const dateText = isoToDanish(midlertidigEETDato) ?? midlertidigEETDato;
-    candidates.push({ dato: midlertidigEETDato, message: `Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})` });
-  }
-
-  if (candidates.length === 0) return undefined;
-  return candidates
-    .sort((left, right) => left.dato.localeCompare(right.dato))
-    .map((candidate) => candidate.message)
+  if (samlet.size === 0) return undefined;
+  return [...samlet.entries()]
+    .sort(([, left], [, right]) => left.localeCompare(right))
+    .map(([kilde, dato]) => {
+      const tekst = TAF_CUTOFF_TEKST[kilde];
+      return (fraKilder.has(kilde) ? tekst.helePerioden : tekst.efter)(formatCutoffDato(dato));
+    })
     .join('; ');
 };
 

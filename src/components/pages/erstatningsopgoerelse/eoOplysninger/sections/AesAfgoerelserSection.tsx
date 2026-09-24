@@ -23,6 +23,11 @@ import {
   erEETKlageRelevant,
 } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
+import { createFieldWarning } from '../../../../../inputCore/fieldWarning';
+import {
+  resolveAesDatoEfterOpgoerelseMessage,
+  type AesDatoEfterOpgoerelseFelt,
+} from '../../../../../domain/erstatningsopgoerelse/validation/aesDatoEfterOpgoerelse';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 // route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
@@ -32,6 +37,12 @@ export default function AesAfgoerelserSection() {
   const {
     values,
   } = useEoOplysningerVm();
+  // Gul ring på en dato efter «Opgørelse lavet den» – samme regel og tekst som «Fejl og advarsler» (BB-242).
+  const datoWarning = (felt: AesDatoEfterOpgoerelseFelt) => {
+    const message = resolveAesDatoEfterOpgoerelseMessage(felt, values);
+    const warning = message === undefined ? undefined : createFieldWarning(message);
+    return warning === undefined ? {} : { warning };
+  };
 
   return (
       <ContentBox className="content-box" data-section-id="aes">
@@ -65,6 +76,7 @@ export default function AesAfgoerelserSection() {
                   field={eoMenAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.menAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="menAfgoerelseDato"
+                  {...datoWarning('menAfgoerelseDato')}
                 />
               </Box>
             </Box>
@@ -113,6 +125,7 @@ export default function AesAfgoerelserSection() {
                   field={eoMidlertidigEETAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.midlertidigEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="midlertidigEETAfgoerelseDato"
+                  {...datoWarning('midlertidigEETAfgoerelseDato')}
                 />
               </Box>
             </Box>
@@ -157,6 +170,7 @@ export default function AesAfgoerelserSection() {
                   field={eoEndeligEETAfgoerelseDatoField.bind()}
                   location={{ locationId: 'erstatningsopgoerelse.endeligEETAfgoerelseDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                   name="endeligEETAfgoerelseDato"
+                  {...datoWarning('endeligEETAfgoerelseDato')}
                 />
               </Box>
             </Box>
@@ -201,6 +215,7 @@ export default function AesAfgoerelserSection() {
               field={eoDifferencekravDatoField.bind()}
               location={{ locationId: 'erstatningsopgoerelse.differencekravDato', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="differencekravDato"
+              {...datoWarning('differencekravDato')}
             />
           </Box>
         </Box>

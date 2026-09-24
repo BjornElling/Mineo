@@ -4,7 +4,7 @@ import { getDayBeforeIso, validateISODateRange } from '../../../utils/isoDateHel
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } from '../../../config/dateRanges';
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
-import { buildTafCutoffErrorMessage } from './tafPeriodConstraints';
+import { buildTafCutoffErrorMessage, buildTafPeriodeCutoffErrorMessage } from './tafPeriodConstraints';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations';
 
@@ -171,22 +171,19 @@ const evaluateOne = (
     endeligEETDato: endeligEetCutoff,
     midlertidigEETDato: midlertidigEetCutoff,
   });
-  const tilCutoffError = buildTafCutoffErrorMessage({
-    value: tilISO,
+  // Cellerne bærer hver sin besked; periodens linje nævner hver afskæring én gang (BB-244).
+  const periodeCutoffError = buildTafPeriodeCutoffErrorMessage({
+    fra: fraISO,
+    til: tilISO,
     differencekravDato: context.differencekravDato,
     endeligEETDato: endeligEetCutoff,
     midlertidigEETDato: midlertidigEetCutoff,
   });
-  const preferredFieldErrorMessages = [fraCutoffError, tilCutoffError].filter(
-    (message): message is string => typeof message === 'string' && message.trim() !== ''
-  );
 
-  if (hasOverlap || preferredFieldErrorMessages.length > 0 || computedRangeMessages.length > 0) {
+  if (hasOverlap || periodeCutoffError !== undefined || computedRangeMessages.length > 0) {
     const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const rangeOrCutoffErrorMessage =
-      preferredFieldErrorMessages.length > 0
-        ? preferredFieldErrorMessages.join('; ')
-        : (fraFoerTilError ?? computedRangeMessages.join('; '));
+      periodeCutoffError ?? fraFoerTilError ?? [...new Set(computedRangeMessages)].join('; ');
     const errorMessages =
       hasOverlap && rangeOrCutoffErrorMessage
         ? `${rangeOrCutoffErrorMessage}; Der er overlappende perioder`
@@ -195,7 +192,7 @@ const evaluateOne = (
     // fra-cellen (ikke til-cellen, som en ordlyd-baseret gæt ville gøre), rækkefølgefejl peger på
     // til-datoen, og en ren overlap-fejl har intet entydigt felt (kataloget falder da til fra).
     const field: 'fra' | 'til' | undefined =
-      preferredFieldErrorMessages.length > 0
+      periodeCutoffError !== undefined
         ? (fraCutoffError ? 'fra' : 'til')
         : fraFoerTilError
           ? 'til'

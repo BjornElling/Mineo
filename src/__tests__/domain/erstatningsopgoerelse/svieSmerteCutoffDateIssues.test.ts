@@ -51,18 +51,35 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
     expect(issues[0]?.field.address.field).toBe('til');
   });
 
-  it('bruger den samme specifikke besked i række-evalueringen som ved feltet', () => {
-    const evaluation = evaluateSvieSmertePerioder(eoWith({}).svieSmertePerioder, {
-      skadedatoISO: toISODateString('2020-01-01'),
-      erErhvervssygdom: false,
-      menAfgoerelseDatoForTabel: toISODateString('2024-09-15'),
-      menAfgoerelseDato: toISODateString('2024-09-16'),
-      verserendeKlageMen: false,
-    }).get('ss-1');
+  const cutoffContext = {
+    skadedatoISO: toISODateString('2020-01-01'),
+    erErhvervssygdom: false,
+    menAfgoerelseDatoForTabel: toISODateString('2024-09-15'),
+    menAfgoerelseDato: toISODateString('2024-09-16'),
+    verserendeKlageMen: false,
+  };
+
+  it('bruger feltets besked i række-evalueringen, når kun til-datoen ligger efter ménafgørelsen', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: toISODateString('2024-09-01'),
+      til: toISODateString('2024-10-01'),
+      tilstand: 'sygemeldt',
+    }], cutoffContext).get('ss-1');
 
     expect(evaluation).toEqual({
       kind: 'error',
       message: 'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)',
+      field: 'til',
+    });
+  });
+
+  it('siger i række-evalueringen, at hele perioden ligger efter ménafgørelsen, når fra-datoen gør det', () => {
+    const evaluation = evaluateSvieSmertePerioder(eoWith({}).svieSmertePerioder, cutoffContext).get('ss-1');
+
+    expect(evaluation).toEqual({
+      kind: 'error',
+      message: 'Hele perioden ligger efter datoen for ménafgørelsen (16-09-2024)',
       field: 'fra',
     });
   });

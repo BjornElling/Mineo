@@ -6,7 +6,7 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../..
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/dateOrderValidation';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { formatDanishList } from '../../../utils/danishListFormatting';
-import { buildSvieSmerteCutoffErrorMessage } from './svieSmerteConstraints';
+import { buildSvieSmerteCutoffErrorMessage, buildSvieSmertePeriodeCutoffErrorMessage } from './svieSmerteConstraints';
 import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
 /**
@@ -145,7 +145,11 @@ const evaluateOne = (
     value: tilISO,
     menAfgoerelseDato: menCutoffDate,
   });
-  const preferredCutoffError = fraCutoffError ?? tilCutoffError;
+  const preferredCutoffError = buildSvieSmertePeriodeCutoffErrorMessage({
+    fra: fraISO,
+    til: tilISO,
+    menAfgoerelseDato: menCutoffDate,
+  });
 
   const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
     (m): m is string => typeof m === 'string' && m.trim() !== ''
@@ -167,7 +171,7 @@ const evaluateOne = (
     const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
     const errorMessages = hasOverlap
       ? 'Der er overlappende perioder'
-      : (preferredCutoffError ?? fraFoerTilError ?? allMessages.join('; '));
+      : (preferredCutoffError ?? fraFoerTilError ?? [...new Set(allMessages)].join('; '));
     const field: 'fra' | 'til' | undefined = hasOverlap
       ? undefined
       : fraCutoffError

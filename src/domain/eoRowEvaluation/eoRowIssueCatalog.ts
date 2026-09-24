@@ -677,7 +677,8 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     match: { kind: 'id', id: 'aes.menAfgoerelseDato' },
     when: 'Varige mén er sat til Ja, men ménafgørelsens dato mangler.',
     summaryText: (_row, message) =>
-      message === 'Afgørelsesdato mangler' ? 'Dato for ménafgørelse er ikke angivet' : undefined,
+      // Feltets synlige navn, ikke et kaldenavn (BB-243).
+      message === 'Afgørelsesdato mangler' ? `${eoMenAfgoerelseDatoField.label} er ikke angivet` : undefined,
   },
   {
     key: 'aes-midlertidig-eet-dato',

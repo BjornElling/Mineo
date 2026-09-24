@@ -33,7 +33,7 @@ describe('collectTafCutoffDateIssues', () => {
     expect(issues).toHaveLength(1);
     expect(issues[0]?.field.descriptor.id).toBe('eo.tafPerioder.til');
     expect(issues[0]?.reason).toBe('rule');
-    expect(issues[0]?.message).toContain('differencekrav er opgjort (01-03-2016)');
+    expect(issues[0]?.message).toContain('differencekravet er opgjort pr. (01-03-2016)');
     // `rule` vises ORDRET, så cutoff-datoen står i tooltippet ved markøren.
     expect(resolveFieldIssueTooltip(issues[0]!)).toBe(issues[0]!.message);
   });

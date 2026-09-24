@@ -472,6 +472,33 @@ describe('eoPdfModel', () => {
     expect(model.svieSmerte.satserPerDag.status).toBe('ok');
   });
 
+  // BB-241: en ménafgørelse uden dato er stadig truffet og skal stå i papiret – med sin klage, som
+  // forklarer, hvorfor svie/smerte opgøres uden afskæring. Samme form som de datoløse EET-linjer.
+  it.each([
+    ['uden klage', 'Nej' as const, 'Der er truffet afgørelse om varige mén.'],
+    ['med klage', 'Ja' as const, 'Der er truffet afgørelse om varige mén. Afgørelsen er påklaget.'],
+  ])('trykker en ménafgørelse uden dato %s', (_navn, verserendeKlageMen, forventetLinje) => {
+    const eoValues = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-10'),
+      tidligereSsMax: 'Nej',
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld',
+      varigeMenAfgorelse: 'Ja',
+      menAfgoerelseDato: undefined,
+      verserendeKlageMen,
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.svieSmerte.statusLinjer).toContain(forventetLinje);
+    expect(model.svieSmerte.statusLinjer.some((linje) => linje.includes('bringer retten'))).toBe(false);
+  });
+
   it('markerer svie/smerte-satser som ikke beregnelige uden perioder', () => {
     const eoValues = makeValues({
       vedroererPeriodeFra: iso('2024-01-01'),
@@ -2057,7 +2084,7 @@ describe('eoPdfModel', () => {
 
     expect(model.tabtArbejdsfortjeneste.eetLinjer).toHaveLength(0);
     expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe(
-      'Der er opgjort differencekrav i sagen den 1. juli 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
+      'Der er opgjort differencekrav i sagen pr. 1. juli 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
     );
   });
 
@@ -2086,7 +2113,7 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
     expect(model.tabtArbejdsfortjeneste.eetLinjer).not.toContain('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe(
-      'Der er opgjort differencekrav i sagen den 15. juni 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
+      'Der er opgjort differencekrav i sagen pr. 15. juni 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
     );
   });
 
@@ -2128,7 +2155,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
     expect(model.tabtArbejdsfortjeneste.differencekravLinje).toBe(
-      'Der er opgjort differencekrav i sagen den 1. juli 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
+      'Der er opgjort differencekrav i sagen pr. 1. juli 2024. Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.'
     );
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
   });

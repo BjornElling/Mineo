@@ -44,6 +44,24 @@ export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
 };
 
 /**
+ * Periodens linje i «Fejl og advarsler». Ligger allerede fra-datoen efter ménafgørelsen, ligger hele
+ * perioden der, og linjen siger det – samme form som TAF-periodernes (BB-244). Ellers er det til-cellens
+ * besked. Cellerne beholder hver sin besked fra `buildSvieSmerteCutoffErrorMessage`.
+ */
+export const buildSvieSmertePeriodeCutoffErrorMessage = (args: Readonly<{
+  fra: ISODateString | undefined;
+  til: ISODateString | undefined;
+  menAfgoerelseDato: ISODateString | undefined;
+}>): string | undefined => {
+  const { fra, til, menAfgoerelseDato } = args;
+  if (menAfgoerelseDato === undefined) return undefined;
+  if (fra !== undefined && fra >= menAfgoerelseDato) {
+    return `Hele perioden ligger efter datoen for ménafgørelsen (${isoToDanish(menAfgoerelseDato) ?? menAfgoerelseDato})`;
+  }
+  return buildSvieSmerteCutoffErrorMessage({ value: til, menAfgoerelseDato });
+};
+
+/**
  * Fejlgivende øvre grænse for svie/smerte-perioder: menAfgoerelseDato − 1.
  * Returnerer undefined hvis ménafgørelse ikke er endelig (verserendeKlageMen = 'Ja' eller
  * varigeMenAfgorelse ≠ 'Ja').

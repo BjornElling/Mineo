@@ -25,7 +25,8 @@ import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
 import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
-import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDato } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { resolveYdelsestype } from '../../data/ydelsestyper';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
@@ -41,47 +42,78 @@ const STORE_BEDEDAGSTILLAEG_FRAVALGT_ADVARSEL =
   'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.';
 
 /**
- * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
- * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-kontrolrækkerne
- * (eneste forbruger) og hører derfor sammen med indkomst-byggeren, ikke oevrigeKrav-byggeren.
+ * Er der midlertidigt EET blandt de offentlige ydelser? Enten indsættes det fra Erhvervsevnetab-siden
+ * (togglen erstatter da de manuelle rækker helt, jf. domain-boundary-contract §10), eller der er en manuel
+ * række med et beløb. Ydelsestypen slås op gennem `resolveYdelsestype`, fordi ældre filer kan bære den
+ * viste label i stedet for nøglen.
  */
-export const buildEoMidlertidigtEetKonsistensRows = (
+const harMidlertidigtEetYdelser = (values: ErstatningsopgoerelseValues): boolean => {
+  if (values.midlertidigtEetFraEetSiden === 'Ja') return true;
+  return (values.offentligeYdelserRows ?? []).some((row) => {
+    if (resolveYdelsestype(row.ydelsestype ?? '')?.key !== 'midlertidigt_eet') return false;
+    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
+    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
+    return ydelseBeloeb + tillaegBeloeb > 0;
+  });
+};
+
+/** Sidste dag med TAF-krav efter alle afskæringer – samme clamping som motoren. */
+const resolveSidsteTafKravDato = (
   values: ErstatningsopgoerelseValues,
   skadedatoISO: ISODateString | undefined
-): EoRowModel[] => {
-  // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
-  if (values.midlertidigtEETAfgorelse !== 'Ja') return [];
-
-  const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
-    ...values,
-    skadedatoISO,
-  });
-  if (!midlertidigEETBeregnetDato) return [];
-
-  // Find TAF-slutdato (sidste dag i det sidst registrerede TAF-krav)
+): ISODateString | undefined => {
   const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO });
-  let lastTafKravDato: ISODateString | undefined = undefined;
+  let sidste: ISODateString | undefined = undefined;
   for (const periode of values.tafPerioder ?? []) {
     const valid = getValidTafRange(periode);
     if (!valid) continue;
     const clamped = clampTafRange(valid, tafBounds);
     if (!clamped) continue;
-    if (!lastTafKravDato || clamped.til > lastTafKravDato) lastTafKravDato = clamped.til;
+    if (!sidste || clamped.til > sidste) sidste = clamped.til;
+  }
+  return sidste;
+};
+
+/**
+ * Konsistensen mellem afgørelsen om midlertidigt EET (AES-afgørelser) og ydelsen midlertidigt EET
+ * (Offentlige ydelser) – i begge retninger.
+ *
+ * **Mønsteret:** en truffet afgørelse er en OPLYSNING, som altid står på papiret og aldrig blokerer. Det,
+ * afgørelsen normalt medfører for beregningen – her en løbende ydelse, der skal fradrages i TAF – er en
+ * FORVENTNING, programmet kun kan påpege. Uoverensstemmelsen er derfor altid en ikke-blokerende advarsel:
+ * retten til ydelsen kan være bortfaldet siden afgørelsen, og så er det rigtigt, at ydelsen ikke står der
+ * (udviklerafgørelse 2026-09-24, BB-240). Gør aldrig disse rækker til `error`.
+ *
+ * Afgørelsens dato læses som oplysning (`resolveMidlertidigEetDato`) – uden 2011-grænsen og uden klagen,
+ * som hører til afskæringen af TAF. Med afskæringsprædikatet var advarslen slukket for alle skader fra
+ * 16. juni 2011, netop dér, hvor TAF løber videre og ydelsen skal fradrages (M-34). For en skade før 2011
+ * afskærer afgørelsen selv TAF, så «TAF efter datoen» forekommer kun ved en verserende klage – det klarer
+ * clampingen i `resolveSidsteTafKravDato` uden en særregel her.
+ */
+export const buildEoMidlertidigtEetKonsistensRows = (
+  values: ErstatningsopgoerelseValues,
+  skadedatoISO: ISODateString | undefined
+): EoRowModel[] => {
+  const harYdelser = harMidlertidigtEetYdelser(values);
+
+  if (values.midlertidigtEETAfgorelse !== 'Ja') {
+    return harYdelser
+      ? [{
+        id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
+        label: 'Advarsel',
+        displayValue: 'Advarsel (Der er indtastet midlertidige EET-ydelser, men ikke angivet en afgørelse)',
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+      }]
+      : [];
   }
 
-  if (!lastTafKravDato) return [];
-
-  // TAF-slutdato er efter EET-virkningsdato → der burde være midlertidige EET-ydelser
-  if (lastTafKravDato < midlertidigEETBeregnetDato) return [];
-
-  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
-    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
-    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
-    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
-    return ydelseBeloeb + tillaegBeloeb > 0;
-  });
-
-  if (harMidlertidigtEetYdelser) return [];
+  if (harYdelser) return [];
+  const afgoerelseDato = resolveMidlertidigEetDato(values);
+  if (!afgoerelseDato) return [];
+  const sidsteTafKravDato = resolveSidsteTafKravDato(values, skadedatoISO);
+  // Ingen TAF efter afgørelsens dato → intet at fradrage.
+  if (!sidsteTafKravDato || sidsteTafKravDato < afgoerelseDato) return [];
 
   return [
     {
@@ -614,25 +646,6 @@ export const buildEoOffentligeYdelserRows = (
     });
   });
 
-  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
-    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
-    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
-    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
-    return ydelseBeloeb + tillaegBeloeb > 0;
-  });
-
-  // Advarsel 1: midlertidige EET-ydelser indtastet, men afgørelse er ikke sat til 'Ja'
-  if (harMidlertidigtEetYdelser && values.midlertidigtEETAfgorelse !== 'Ja') {
-    rows.push({
-      id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
-      label: 'Advarsel',
-      displayValue: 'Advarsel (Der er indtastet midlertidige EET-ydelser, men ikke angivet en afgørelse)',
-      status: 'warning',
-      summaryDisplay: 'messageOnly',
-    });
-  }
-
-  // Advarsel 2: afgørelse sat til 'Ja' og TAF-slutdato er efter EET-virkningsdato, men ingen ydelser
   rows.push(...buildEoMidlertidigtEetKonsistensRows(values, skadedatoISO));
 
   return rows;

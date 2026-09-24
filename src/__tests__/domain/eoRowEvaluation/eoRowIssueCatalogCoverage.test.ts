@@ -229,8 +229,8 @@ const CASES: readonly Case[] = [
   // ── Mén / EET-datoer ──────────────────────────────────────────────────────
   {
     name: 'mén – afgørelsesdato ikke angivet',
-    row: { id: 'aes.menAfgoerelseDato', label: 'Mén-afgørelsesdato', displayValue: 'Advarsel (Afgørelsesdato mangler)', status: 'warning' },
-    expectedSummary: 'Dato for ménafgørelse er ikke angivet',
+    row: { id: 'aes.menAfgoerelseDato', label: 'Dato for første ménafgørelse', displayValue: 'Advarsel (Afgørelsesdato mangler)', status: 'warning' },
+    expectedSummary: 'Dato for første ménafgørelse er ikke angivet',
   },
   {
     name: 'midlertidigt EET – dato ikke angivet',
