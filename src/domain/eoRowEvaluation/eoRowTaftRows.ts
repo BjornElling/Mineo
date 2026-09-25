@@ -22,6 +22,21 @@ import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } fr
 import { formatRowCount, formatRowMonths } from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import { activeFieldIssue } from '../../inputCore/inputIssue';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import {
+  eoFerieperiodeFraField,
+  eoFerieperiodeTilField,
+  eoTafPeriodeFraField,
+  eoTafPeriodeLoseFeriedageField,
+  eoTafPeriodeTilField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import {
+  buildPeriodeRaekkeNavn,
+  harTafPeriodeIngenArbejdsdage,
+  TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE,
+} from '../erstatningsopgoerelse/validation/tafRowRules';
 
 const resolveFolkepensionsdato = (
   fodselsdato: ISODateString | undefined,
@@ -49,7 +64,32 @@ export const buildEoTaftRows = (
   const rows: EoRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
   const perioder = values.tafPerioder ?? [];
-  const synligeTafPerioder = perioder.filter((periode) => periode.fra || periode.til);
+  // Cellernes aktive feltissues: en celle med en rød værdi er udfyldt – forkert – selv om readeren giver
+  // den som tom, og den meldes med sin egen tekst frem for som manglende (BB-253, BB-230's form).
+  const cellIssue = <T,>(descriptor: FieldDescriptor<T>, rowId: string) =>
+    activeFieldIssue(errors, serializeFieldAddress(descriptor.bind(rowId).address));
+
+  // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge, røde celler) afgøres af den delte,
+  // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) – ÉN
+  // sandhedskilde (jf. B9). Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
+  const aktivMidlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
+    ...values,
+    skadedatoISO: context.skadedatoISO,
+  });
+  const tafEvaluations = evaluateTafPerioder(perioder, {
+    skadedatoISO: context.skadedatoISO,
+    erErhvervssygdom: context.erErhvervssygdom,
+    differencekravDato: context.differencekravDato,
+    endeligEETBeregnetDato: context.endeligEETBeregnetDato,
+    midlertidigEETBeregnetDato: context.midlertidigEETBeregnetDato,
+    aktivMidlertidigEETBeregnetDato,
+    verserendeKlageEet: context.verserendeKlageEet,
+  }, (rowId) => ({
+    fra: cellIssue(eoTafPeriodeFraField, rowId),
+    til: cellIssue(eoTafPeriodeTilField, rowId),
+    loseFeriedage: cellIssue(eoTafPeriodeLoseFeriedageField, rowId),
+  }));
+  const synligeTafPerioder = perioder.filter((periode) => tafEvaluations.get(periode.id)?.kind !== 'skip');
   const harPerioder = synligeTafPerioder.length > 0;
   const periodeLabel = synligeTafPerioder.length === 1 ? 'Periode' : 'Perioder';
 
@@ -72,10 +112,6 @@ export const buildEoTaftRows = (
   }
 
   const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: context.skadedatoISO });
-  const aktivMidlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
-    ...values,
-    skadedatoISO: context.skadedatoISO,
-  });
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
   const tafIkkeRejstLabel = 'Der er ikke rejst TAF-krav for hele EO-perioden';
   const authoritativeTafRanges = canonicalOutput?.periodiseringer.tafPerioder;
@@ -161,20 +197,24 @@ export const buildEoTaftRows = (
   }
 
   // 1) Periode-rækker fra tabellen.
-  // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
-  // autoritative TAF-periode-validering i domænets validerings-lag (`tafPeriodeValidation`) – ÉN
-  // sandhedskilde (jf. B9). Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF.
-  const tafEvaluations = evaluateTafPerioder(perioder, {
-    skadedatoISO: context.skadedatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    differencekravDato: context.differencekravDato,
-    endeligEETBeregnetDato: context.endeligEETBeregnetDato,
-    midlertidigEETBeregnetDato: context.midlertidigEETBeregnetDato,
-    aktivMidlertidigEETBeregnetDato,
-    verserendeKlageEet: context.verserendeKlageEet,
-  });
-
   const ferieperioder = values.ferieperioder ?? [];
+
+  // En periode uden én arbejdsdag bidrager med nul og er næsten altid en tastefejl (BB-257). Advarslen
+  // blokerer ikke, og samme tekst står som gul ring ved rækkens datoceller (samme prædikat som tabellen).
+  const pushIngenArbejdsdageAdvarsel = (periode: (typeof perioder)[number]): void => {
+    if (tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) return;
+    if (!harTafPeriodeIngenArbejdsdage(clampedTafById.get(periode.id) ?? null)) return;
+    const message = `${buildPeriodeRaekkeNavn('TAF-perioden', periode)}: ${TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE}`;
+    rows.push({
+      id: `taf.ingenArbejdsdage.${periode.id}`,
+      label: 'Advarsel',
+      displayValue: `Advarsel (${message})`,
+      status: 'warning',
+      message,
+      summaryDisplay: 'messageOnly',
+      focusTarget: { kind: 'fieldAddress', address: eoTafPeriodeFraField.bind(periode.id).address },
+    });
+  };
 
   perioder.forEach((periode) => {
     const evaluation = tafEvaluations.get(periode.id) ?? { kind: 'ok' as const };
@@ -199,6 +239,8 @@ export const buildEoTaftRows = (
         status: 'error',
         focusFieldHint: evaluation.field,
       });
+      // Den gule ring står ved cellerne uanset rækkens andre fejl; linjen skal derfor også.
+      pushIngenArbejdsdageAdvarsel(periode);
       return;
     }
 
@@ -228,7 +270,7 @@ export const buildEoTaftRows = (
     );
     const maanederDisplay = antalMaaneder === null ? '-' : `${formatRowMonths(antalMaaneder)} måneder`;
     const arbejdsdageDisplay = breakdown
-      ? `${formatRowCount(breakdown.arbejdsdage)} hverdage - ${formatRowCount(breakdown.shDage)} SH-dage - ${formatRowCount(breakdown.feriedage)} feriedage - ${formatRowCount(breakdown.loseFeriedage)} løse feriedage = ${formatRowCount(breakdown.tafDage)} arbejdsdage`
+      ? `${formatRowCount(breakdown.arbejdsdage)} hverdage - ${formatRowCount(breakdown.shDage)} SH-dage - ${formatRowCount(breakdown.feriedage)} feriedage - ${formatRowCount(breakdown.loseFeriedage)} løse ferie-/feriefridage = ${formatRowCount(breakdown.tafDage)} arbejdsdage`
       : '-';
 
     const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
@@ -244,6 +286,8 @@ export const buildEoTaftRows = (
       status,
     });
 
+    pushIngenArbejdsdageAdvarsel(periode);
+
     if (folkepensionsdato && displayTil >= folkepensionsdato) {
       rows.push({
         id: `taf.folkepensionsalder.${periode.id}`,
@@ -257,20 +301,15 @@ export const buildEoTaftRows = (
   });
 
   // 2) Ferieperiode-rækker fra tabellen
-  const harFerieperioder = ferieperioder.length > 0 && ferieperioder.some((p) => p.fra || p.til);
-  const ferieperiodeLabel = ferieperioder.filter((p) => p.fra || p.til).length === 1 ? 'Ferieperiode' : 'Ferieperioder';
-
-  // Ferieperiode-blokering (komplethed, dato-grænser, overlap) afgøres af den delte, autoritative
-  // validering (jf. B9); kontrollaget RENDERER kun resultatet.
-  const ferieEvaluations = evaluateFerieperioder(ferieperioder, {
-    skadedatoISO: context.skadedatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    differencekravDato: context.differencekravDato,
-    endeligEETBeregnetDato: context.endeligEETBeregnetDato,
-    midlertidigEETBeregnetDato: context.midlertidigEETBeregnetDato,
-    aktivMidlertidigEETBeregnetDato,
-    verserendeKlageEet: context.verserendeKlageEet,
-  });
+  // Ferieperiodens linje samler rækkens røde celler (vinduet og overlappet projekteres til cellerne i
+  // `tafRowCellIssues.ts`) og dens manglende datoer; kontrollaget RENDERER kun resultatet.
+  const ferieEvaluations = evaluateFerieperioder(ferieperioder, (rowId) => ({
+    fra: cellIssue(eoFerieperiodeFraField, rowId),
+    til: cellIssue(eoFerieperiodeTilField, rowId),
+  }));
+  const synligeFerieperioder = ferieperioder.filter((periode) => ferieEvaluations.get(periode.id)?.kind !== 'skip');
+  const harFerieperioder = synligeFerieperioder.length > 0;
+  const ferieperiodeLabel = synligeFerieperioder.length === 1 ? 'Ferieperiode' : 'Ferieperioder';
 
   if (!harFerieperioder) {
     rows.push({

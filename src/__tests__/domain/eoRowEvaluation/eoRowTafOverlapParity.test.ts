@@ -38,8 +38,8 @@ describe('buildEoTaftRows overlap parity', () => {
 
     expect(rowB?.status).toBe('error');
     expect(rowC?.status).toBe('error');
-    expect(rowB?.displayValue).toContain('Der er overlappende perioder');
-    expect(rowC?.displayValue).toContain('Der er overlappende perioder');
+    expect(rowB?.displayValue).toContain('Der er overlappende TAF-perioder');
+    expect(rowC?.displayValue).toContain('Der er overlappende TAF-perioder');
   });
 
   it('advarer ikke når TAF-periode går ud over vedrører-periodens til-dato', () => {

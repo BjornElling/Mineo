@@ -38,7 +38,7 @@ describe('buildEoTaftRows field error priority', () => {
 
     expect(row?.status).toBe('error');
     expect(row?.displayValue).toBe(
-      'Fejl (Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025))'
+      'Fejl (TAF-perioden 01-06-2025 - 15-07-2025: Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-07-2025))'
     );
     expect(row?.displayValue).not.toContain('Dato skal være mellem');
   });

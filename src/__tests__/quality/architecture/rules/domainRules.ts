@@ -342,6 +342,8 @@ const DESCRIPTOR_CATALOG_SECTIONS: ReadonlyMap<string, PersistedSectionKey> = ne
   ['aarsloenDescriptors', 'aarsloen'],
   ['erhvervsevnetabDescriptors', 'erhvervsevnetab'],
   ['erstatningsopgoerelseDescriptors', 'erstatningsopgoerelse'],
+  // Den tomme EO-sektion, som begge EO-descriptormoduler bygger på; samme domæne.
+  ['erstatningsopgoerelseEmptySection', 'erstatningsopgoerelse'],
   ['erstatningsopgoerelseLoenDescriptors', 'erstatningsopgoerelse'],
   ['faellesAarsloenDescriptors', 'faellesAarsloen'],
   ['forsoergertabDescriptors', 'forsoergertab'],

@@ -48,6 +48,27 @@ const cutoffIssueFor = (
   })];
 };
 
+/** De aktive afskæringsdatoer for sagen – SAMME opslag som motorens clamping (`resolveTafCutoffDates`). */
+export const resolveSagensTafCutoffDates = (
+  values: ErstatningsopgoerelseValues,
+  stamdata: Pick<StamdataValues, 'skadedato'>
+): ReturnType<typeof resolveTafCutoffDates> =>
+  resolveTafCutoffDates({
+    differencekravDato: isISODateString(values.differencekravDato) ? values.differencekravDato : undefined,
+    endeligtEETAfgorelse: values.endeligtEETAfgorelse,
+    endeligEETVirkningsdato: isISODateString(values.endeligEETVirkningsdato)
+      ? values.endeligEETVirkningsdato : undefined,
+    endeligEETAfgoerelseDato: isISODateString(values.endeligEETAfgoerelseDato)
+      ? values.endeligEETAfgoerelseDato : undefined,
+    midlertidigtEETAfgorelse: values.midlertidigtEETAfgorelse,
+    midlertidigEETVirkningsdato: isISODateString(values.midlertidigEETVirkningsdato)
+      ? values.midlertidigEETVirkningsdato : undefined,
+    midlertidigEETAfgoerelseDato: isISODateString(values.midlertidigEETAfgoerelseDato)
+      ? values.midlertidigEETAfgoerelseDato : undefined,
+    verserendeKlageEet: values.verserendeKlageEet,
+    skadedatoISO: stamdata.skadedato,
+  });
+
 /**
  * Udleder cutoff-feltfejlene for alle TAF-perioderækker.
  *
@@ -65,21 +86,7 @@ export const collectTafCutoffDateIssues = (
 ): readonly FieldIssue[] => {
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') return [];
 
-  const cutoffs = resolveTafCutoffDates({
-    differencekravDato: isISODateString(values.differencekravDato) ? values.differencekravDato : undefined,
-    endeligtEETAfgorelse: values.endeligtEETAfgorelse,
-    endeligEETVirkningsdato: isISODateString(values.endeligEETVirkningsdato)
-      ? values.endeligEETVirkningsdato : undefined,
-    endeligEETAfgoerelseDato: isISODateString(values.endeligEETAfgoerelseDato)
-      ? values.endeligEETAfgoerelseDato : undefined,
-    midlertidigtEETAfgorelse: values.midlertidigtEETAfgorelse,
-    midlertidigEETVirkningsdato: isISODateString(values.midlertidigEETVirkningsdato)
-      ? values.midlertidigEETVirkningsdato : undefined,
-    midlertidigEETAfgoerelseDato: isISODateString(values.midlertidigEETAfgoerelseDato)
-      ? values.midlertidigEETAfgoerelseDato : undefined,
-    verserendeKlageEet: values.verserendeKlageEet,
-    skadedatoISO: stamdata.skadedato,
-  });
+  const cutoffs = resolveSagensTafCutoffDates(values, stamdata);
 
   if (
     cutoffs.differencekravDato === undefined

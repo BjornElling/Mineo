@@ -45,7 +45,9 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
     return cloneAndDeepFreeze(field.descriptor.readCanonical(snapshot.sections, field.address)) as T;
   };
 
-  const view: CanonicalView = Object.freeze({ readCanonical });
+  const listEntityIds = (collection: CollectionRef): readonly string[] =>
+    catalog.listEntityIds(snapshot.sections, collection);
+  const view: CanonicalView = Object.freeze({ readCanonical, listEntityIds });
 
   const isRelevant = <T>(field: FieldRef<T>): boolean => {
     const relevance = field.descriptor.relevance;
@@ -62,11 +64,16 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
     },
     isRelevant,
     listEntities: (collection) => Object.freeze(
-      catalog.listEntityIds(snapshot.sections, collection).map((entityId) =>
-        Object.freeze({ collection, entityId }))
+      listEntityIds(collection).map((entityId) => Object.freeze({ collection, entityId }))
     ),
   });
 };
+
+/** Readerens rene canonical-flade som `CanonicalView` – samme grænse, ingen issues. */
+const canonicalViewOf = (reader: ValidationReader): CanonicalView => Object.freeze({
+  readCanonical: reader.readCanonical,
+  listEntityIds: (collection: CollectionRef) => reader.listEntities(collection).map((entity) => entity.entityId),
+});
 
 // ── §3.4 pkt. 2: feltvalidatorerne udleder det immutable issue-snapshot ──────────────────────────────
 
@@ -77,13 +84,13 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
  *
  * Irrelevante (= skjulte, §7.3) felter giver aldrig et aktivt issue (§1.9): en rød markering, brugeren ikke
  * kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og det er netop derfor
- * `reduceImmediateChoice` RYDDER et felt, som et valg skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
+ * reduceren (`clearFieldsHiddenWhileRed`) RYDDER et felt, som en ændring skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
  * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
  * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet.
  */
 export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSet => {
   const issues: FieldIssue[] = [];
-  const view: CanonicalView = Object.freeze({ readCanonical: reader.readCanonical });
+  const view = canonicalViewOf(reader);
 
   for (const field of catalog.listFieldInstances(reader.input.sections)) {
     if (!reader.isRelevant(field)) continue;
@@ -227,7 +234,7 @@ const createInputReader = (options: Readonly<{
   issues: FieldIssueSnapshot;
 }>): InputReader => {
   const validation = createValidationReader(options.input, options.catalog);
-  const labelView: CanonicalView = Object.freeze({ readCanonical: validation.readCanonical });
+  const labelView = canonicalViewOf(validation);
 
   return Object.freeze({
     sourceToken: options.issues.sourceToken,

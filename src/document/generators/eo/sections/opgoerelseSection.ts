@@ -633,7 +633,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
     const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
     if (tidligereModtagetTaf.status === 'ok') {
-      renderSubheader('Tidligere betalt erstatning');
+      // Feltets eget emne: «Tidligere betalt erstatning» var bredere end TAF og kunne læses som tidligere
+      // opgørelser (BB-255).
+      renderSubheader('Allerede modtaget tabt arbejdsfortjeneste');
       safeAddLeftRightText(
         'Der er allerede betalt tabt arbejdsfortjeneste for perioden med',
         formatMoneyOreWithKr(tidligereModtagetTaf.value),

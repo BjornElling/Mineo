@@ -406,7 +406,7 @@ describe('Svie/smerte beregning', () => {
       const beregnetPeriode = rows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
       const overlapPeriode = rows.find((row) => row.id === 'sviesmerte.periode.1');
       expect(beregnetPeriode?.status).toBe('error');
-      expect(beregnetPeriode?.displayValue).toContain('Fejl (Der er overlappende perioder)');
+      expect(beregnetPeriode?.displayValue).toContain('Fejl (Der er overlappende svie/smerte-perioder)');
       expect(overlapPeriode?.label).toBe('Periode (22-06-2023 - 31-07-2024)');
       // Fejludfaldet er en færdig besked, ikke en periodeliste – `lines` skal være tom, så
       // Beregning-fanen ikke tæller fejlteksten som «én periode».

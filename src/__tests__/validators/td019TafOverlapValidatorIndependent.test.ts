@@ -130,12 +130,12 @@ describe('TD-019 – TAF-overlap uden schema-fixture', () => {
       errors: [
         {
           path: 'tafPerioder[0].fra',
-          message: 'TAF-perioder overlapper',
+          message: 'Der er overlappende TAF-perioder',
           severity: 'error',
         },
         {
           path: 'tafPerioder[1].fra',
-          message: 'TAF-perioder overlapper',
+          message: 'Der er overlappende TAF-perioder',
           severity: 'error',
         },
       ],

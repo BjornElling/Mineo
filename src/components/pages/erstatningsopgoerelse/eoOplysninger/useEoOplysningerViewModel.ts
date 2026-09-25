@@ -2,8 +2,13 @@ import * as React from 'react';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import { useLoentrinFinder } from '../shared/useLoentrinFinder';
 import { calculateKalenderdageInclusive } from '../../../../domain/erstatningsopgoerelse/engines/tafCalculations';
-import { calculateFerieHverdageMinusSHDage } from '../../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
-import { buildTafDerived } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import {
+  buildFerieFeriedageById,
+  buildTafDerived,
+  resolveBeregningsperiodeFerieRamme,
+  resolveTafFerieRamme,
+} from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import { erTafLoseFeriedageRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
@@ -67,8 +72,17 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     })),
   }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
-  const ferieFeriedageById = React.useMemo(() => Object.fromEntries(values.ferieperioder.map((row) => [row.id, calculateFerieHverdageMinusSHDage(row.fra, row.til)])), [values.ferieperioder]);
-  const fravaerFeriedageById = React.useMemo(() => Object.fromEntries(values.fravaerPerioder.map((row) => [row.id, calculateFerieHverdageMinusSHDage(row.fra, row.til)])), [values.fravaerPerioder]);
+  // Ferietabellernes kolonne tæller de feriedage, beregningen fradrager – inden for TAF-perioderne hhv.
+  // beregningsperioden – og overskriften siger rammen (BB-249).
+  const ferieFeriedageById = React.useMemo(
+    () => buildFerieFeriedageById(values.ferieperioder, resolveTafFerieRamme(values, skadedatoISO)),
+    [skadedatoISO, values],
+  );
+  const fravaerFeriedageById = React.useMemo(
+    () => buildFerieFeriedageById(values.fravaerPerioder, resolveBeregningsperiodeFerieRamme(values)),
+    [values],
+  );
+  const visTafLoseFeriedage = erTafLoseFeriedageRelevant(values);
   const forligEvaluation = React.useMemo(() => evaluateForligAnsvarsgradRules(values), [values]);
   const forligFejl = React.useMemo(() => ({ harFejl: forligEvaluation.beggeUdfyldt, fejlbesked: forligEvaluation.beggeUdfyldtFejl ?? '' }), [forligEvaluation]);
   const visLoenudviklingFraEO = values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
@@ -99,7 +113,7 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
   return {
     values, skadedatoISO, erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom', forligFejl,
-    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById,
+    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById, visTafLoseFeriedage,
     fravaer: { committedRowsEnsured: values.fravaerPerioder },
     statusSubheaderLabel: formatLabelDayAfterIsoDate('Status ved erstatningsperiodens udløb', values.vedroererPeriodeTil, 'Status').replace(/:$/, ''),
     menAfgoerelseDatoForTabel: values.varigeMenAfgorelse === 'Ja' ? values.menAfgoerelseDato : undefined,

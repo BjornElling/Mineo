@@ -7,6 +7,8 @@ import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../../../utils/date
 import { buildTafCutoffErrorMessage, buildTafPeriodeCutoffErrorMessage } from './tafPeriodConstraints';
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
+import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, TAF_OVERLAP_LINJE } from './tafRowRules';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-periode-rækker.
@@ -26,7 +28,29 @@ export type TafPeriodeRowInput = Readonly<{
   id: string;
   fra?: ISODateString;
   til?: ISODateString;
+  loseFeriedage?: number | undefined;
 }>;
+
+/** En rækkes aktive feltissues pr. kolonne. En celle med et rødt issue er udfyldt, selv om readeren giver den tom. */
+export type TafPeriodeCellIssues = Readonly<{
+  fra?: FieldIssue | undefined;
+  til?: FieldIssue | undefined;
+  loseFeriedage?: FieldIssue | undefined;
+}>;
+
+export type TafPeriodeCellIssueLookup = (rowId: string) => TafPeriodeCellIssues;
+
+const NO_CELL_ISSUES: TafPeriodeCellIssueLookup = () => ({});
+
+const isRed = (issue: FieldIssue | undefined): issue is FieldIssue =>
+  issue !== undefined && issue.severity === 'error' && issue.message.trim() !== '';
+
+/**
+ * En rød celles egen besked skal med i rækkens linje – undtagen overlappet (én linje pr. tabel) og
+ * afskæringen, som periodens samlede besked allerede nævner én gang (BB-244).
+ */
+const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
+  isRed(issue) && !issue.code.endsWith('.overlap') && !issue.code.endsWith('.tafCutoff');
 
 export type TafPeriodeBoundsContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
@@ -46,7 +70,7 @@ export type TafPeriodeEvaluation =
    * Blokerende fejl. `field` angiver hvilket input fejlen er forankret til (fra-/til-dato), så
    * UI'et kan pege på den korrekte celle uden at gætte kolonnen ud fra beskedens ordlyd.
    */
-  | Readonly<{ kind: 'error'; message: string; field?: 'fra' | 'til' }>;
+  | Readonly<{ kind: 'error'; message: string; field?: 'fra' | 'til' | 'loseFeriedage' }>;
 
 /**
  * Den kombinerede øvre til-dato-grænse fra differencekrav/EET-afgørelses-datoer (hver minus
@@ -93,25 +117,66 @@ const validateRowDate = (args: {
 
 const evaluateOne = (
   periode: TafPeriodeRowInput,
+  cellIssues: TafPeriodeCellIssues,
   hasOverlap: boolean,
   skadedatoMinRule: ReturnType<typeof computeSkadedatoMinRule>,
   combinedExtraMaxDate: ISODateString | undefined,
   context: TafPeriodeBoundsContext
 ): TafPeriodeEvaluation => {
-  const hasFra = isNonEmptyString(periode.fra);
-  const hasTil = isNonEmptyString(periode.til);
-  const filledCount = [hasFra, hasTil].filter(Boolean).length;
-  if (filledCount === 0) return { kind: 'skip' };
-  if (filledCount !== 2) {
-    return hasFra
-      ? { kind: 'error', message: 'Til-dato er ikke angivet', field: 'til' }
-      : { kind: 'error', message: 'Fra-dato er ikke angivet', field: 'fra' };
-  }
+  const harFra = isNonEmptyString(periode.fra) || isRed(cellIssues.fra);
+  const harTil = isNonEmptyString(periode.til) || isRed(cellIssues.til);
+  const harLose = typeof periode.loseFeriedage === 'number' || isRed(cellIssues.loseFeriedage);
+  // En række med kun løse feriedage er udfyldt: den spærrede før via validatoren med to linjer uden link,
+  // mens rækkebyggeren så den som tom (BB-253).
+  if (!harFra && !harTil && !harLose) return { kind: 'skip' };
+
+  // Én linje pr. række med rækkens navn og ALLE dens mangler; linket går til den første (BB-253).
+  const dele: Array<Readonly<{ message: string; field: 'fra' | 'til' | 'loseFeriedage' }>> = [];
+  // Afskæringen nævnes af periodens samlede besked, men den dannes kun, når begge datoer er læsbare. Mangler
+  // den ene, bærer cellens egen afskæringstekst linjen.
+  const periodeBeskedDannes = isNonEmptyString(periode.fra) && isNonEmptyString(periode.til);
+  const hoererTilLinjen = (issue: FieldIssue | undefined): issue is FieldIssue =>
+    isRed(issue) && !issue.code.endsWith('.overlap') && (periodeBeskedDannes ? !issue.code.endsWith('.tafCutoff') : true);
+  if (hoererTilLinjen(cellIssues.fra)) dele.push({ message: cellIssues.fra.message.trim(), field: 'fra' });
+  if (hoererTilLinjen(cellIssues.til)) dele.push({ message: cellIssues.til.message.trim(), field: 'til' });
+  const mangler = assessPeriodeDatoMangler(harFra, harTil);
+  if (mangler) dele.push(mangler);
 
   const fraISO = periode.fra;
   const tilISO = periode.til;
-  if (!fraISO || !tilISO) return { kind: 'error', message: 'Ugyldig dato' };
+  if (fraISO && tilISO) {
+    const rangeOrCutoff = evaluateRangeAndCutoff(fraISO, tilISO, skadedatoMinRule, combinedExtraMaxDate, context);
+    if (rangeOrCutoff) dele.push(rangeOrCutoff);
+  }
+  if (isRowLineIssue(cellIssues.loseFeriedage)) {
+    dele.push({ message: cellIssues.loseFeriedage.message.trim(), field: 'loseFeriedage' });
+  }
 
+  if (dele.length === 0) {
+    // Et rent overlap nævner ikke rækken: de overlappende rækkers linjer er ordret ens og foldes til én pr.
+    // tabel, mens den røde celles tooltip navngiver modparten (BB-218, BB-251).
+    return hasOverlap ? { kind: 'error', message: TAF_OVERLAP_LINJE, field: 'fra' } : { kind: 'ok' };
+  }
+  const beskeder = [...new Set(dele.map((del) => del.message))];
+  if (hasOverlap) beskeder.push(TAF_OVERLAP_LINJE);
+  return {
+    kind: 'error',
+    message: `${buildPeriodeRaekkeNavn('TAF-perioden', periode)}: ${beskeder.join('; ')}`,
+    field: dele[0]!.field,
+  };
+};
+
+/**
+ * Datogrænserne og afskæringen for en række med begge datoer. Cellerne bærer hver sin afskæringsbesked;
+ * periodens linje nævner hver afskæring én gang (BB-244).
+ */
+const evaluateRangeAndCutoff = (
+  fraISO: ISODateString,
+  tilISO: ISODateString,
+  skadedatoMinRule: ReturnType<typeof computeSkadedatoMinRule>,
+  combinedExtraMaxDate: ISODateString | undefined,
+  context: TafPeriodeBoundsContext
+): Readonly<{ message: string; field: 'fra' | 'til' }> | undefined => {
   const bounds = computeRowDateBounds({
     skadedatoMinDate: skadedatoMinRule.minDate,
     rowFra: fraISO,
@@ -123,29 +188,22 @@ const evaluateOne = (
     useTilExtraMaxDate: true,
   });
 
-  const fraNoValidRangeCause = (() => {
-    const parts: string[] = [];
-    const stamdataDatoLabel = resolveSkadestypeDatoLabel(
-      context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
-    ).toLowerCase();
-    if (skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
-    if (tilISO) parts.push('til-dato i samme række');
-    return parts.length > 0 ? parts.join(', ') : undefined;
-  })();
-
-  const tilNoValidRangeCause = (() => {
-    const parts: string[] = [];
-    const stamdataDatoLabel = resolveSkadestypeDatoLabel(
-      context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
-    ).toLowerCase();
-    if (!fraISO && skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
-    if (fraISO) parts.push('fra-dato i samme række');
-    parts.push('dags dato');
-    if (context.differencekravDato) parts.push('differencekrav-dato');
-    if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
-    if (!context.verserendeKlageEet && context.aktivMidlertidigEETBeregnetDato) parts.push('beregnet dato for midlertidigt EET');
-    return parts.join(', ');
-  })();
+  const stamdataDatoLabel = resolveSkadestypeDatoLabel(
+    context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
+  ).toLowerCase();
+  const fraNoValidRangeCause = [
+    ...(skadedatoMinRule.minBoundKind ? [stamdataDatoLabel] : []),
+    'til-dato i samme række',
+  ].join(', ');
+  const tilNoValidRangeCause = [
+    'fra-dato i samme række',
+    'dags dato',
+    ...(context.differencekravDato ? ['differencekrav-dato'] : []),
+    ...(!context.verserendeKlageEet && context.endeligEETBeregnetDato ? ['beregnet dato for endeligt EET'] : []),
+    ...(!context.verserendeKlageEet && context.aktivMidlertidigEETBeregnetDato
+      ? ['beregnet dato for midlertidigt EET']
+      : []),
+  ].join(', ');
 
   const fraRangeErrorMessage = validateRowDate({
     iso: fraISO,
@@ -171,7 +229,6 @@ const evaluateOne = (
     endeligEETDato: endeligEetCutoff,
     midlertidigEETDato: midlertidigEetCutoff,
   });
-  // Cellerne bærer hver sin besked; periodens linje nævner hver afskæring én gang (BB-244).
   const periodeCutoffError = buildTafPeriodeCutoffErrorMessage({
     fra: fraISO,
     til: tilISO,
@@ -180,29 +237,14 @@ const evaluateOne = (
     midlertidigEETDato: midlertidigEetCutoff,
   });
 
-  if (hasOverlap || periodeCutoffError !== undefined || computedRangeMessages.length > 0) {
-    const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
-    const rangeOrCutoffErrorMessage =
-      periodeCutoffError ?? fraFoerTilError ?? [...new Set(computedRangeMessages)].join('; ');
-    const errorMessages =
-      hasOverlap && rangeOrCutoffErrorMessage
-        ? `${rangeOrCutoffErrorMessage}; Der er overlappende perioder`
-        : (rangeOrCutoffErrorMessage || 'Der er overlappende perioder');
-    // Forankr fejlen til det konkrete felt: en cutoff-/interval-fejl på fra-datoen peger på
-    // fra-cellen (ikke til-cellen, som en ordlyd-baseret gæt ville gøre), rækkefølgefejl peger på
-    // til-datoen, og en ren overlap-fejl har intet entydigt felt (kataloget falder da til fra).
-    const field: 'fra' | 'til' | undefined =
-      periodeCutoffError !== undefined
-        ? (fraCutoffError ? 'fra' : 'til')
-        : fraFoerTilError
-          ? 'til'
-          : computedRangeMessages.length > 0
-            ? (fraRangeErrorMessage ? 'fra' : 'til')
-            : undefined;
-    return { kind: 'error', message: errorMessages, field };
+  // Forankr fejlen til det konkrete felt: en afskærings-/intervalfejl på fra-datoen peger på fra-cellen, en
+  // rækkefølgefejl på til-datoen.
+  if (periodeCutoffError !== undefined) return { message: periodeCutoffError, field: fraCutoffError ? 'fra' : 'til' };
+  if (hasDateOrderError(fraISO, tilISO)) return { message: DATE_ORDER_ERROR_MESSAGE, field: 'til' };
+  if (computedRangeMessages.length > 0) {
+    return { message: [...new Set(computedRangeMessages)].join('; '), field: fraRangeErrorMessage ? 'fra' : 'til' };
   }
-
-  return { kind: 'ok' };
+  return undefined;
 };
 
 /**
@@ -210,7 +252,8 @@ const evaluateOne = (
  */
 export const evaluateTafPerioder = (
   perioder: ReadonlyArray<TafPeriodeRowInput>,
-  context: TafPeriodeBoundsContext
+  context: TafPeriodeBoundsContext,
+  cellIssues: TafPeriodeCellIssueLookup = NO_CELL_ISSUES
 ): ReadonlyMap<string, TafPeriodeEvaluation> => {
   const overlappingIds = detectOverlappingPeriods(perioder);
   const skadedatoMinRule = computeSkadedatoMinRule({
@@ -224,7 +267,14 @@ export const evaluateTafPerioder = (
   for (const periode of perioder) {
     result.set(
       periode.id,
-      evaluateOne(periode, overlappingIds.has(periode.id), skadedatoMinRule, combinedExtraMaxDate, context)
+      evaluateOne(
+        periode,
+        cellIssues(periode.id),
+        overlappingIds.has(periode.id),
+        skadedatoMinRule,
+        combinedExtraMaxDate,
+        context
+      )
     );
   }
   return result;

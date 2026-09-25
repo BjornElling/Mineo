@@ -120,7 +120,7 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     return samletLoseOgFravaer > 0 ? ` (- ${formatCount(samletLoseOgFravaer)} løse ferie- og fraværsdage)` : '';
   })();
   const tafEkstraSuffix = tafLoseFerieTilLabel > 0
-    ? ` (- ${formatCount(tafLoseFerieTilLabel)} løse feriedage)`
+    ? ` (- ${formatCount(tafLoseFerieTilLabel)} løse ferie-/feriefridage)`
     : '';
 
   const beregningsperiodeLabel =

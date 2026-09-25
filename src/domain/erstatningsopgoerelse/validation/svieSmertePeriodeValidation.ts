@@ -169,8 +169,10 @@ const evaluateOne = (
   if (harFejl) {
     const fraFoerTilError = hasDateOrderError(fraISO, tilISO) ? DATE_ORDER_ERROR_MESSAGE : undefined;
     const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
+    // Linjen navngiver tabellen: «Fejl og advarsler» folder ordret ens linjer til én, og en fælles tekst
+    // for alle periodetabeller foldede svie/smerte-, TAF- og ferieoverlap sammen til én linje (BB-251).
     const errorMessages = hasOverlap
-      ? 'Der er overlappende perioder'
+      ? 'Der er overlappende svie/smerte-perioder'
       : (preferredCutoffError ?? fraFoerTilError ?? [...new Set(allMessages)].join('; '));
     const field: 'fra' | 'til' | undefined = hasOverlap
       ? undefined

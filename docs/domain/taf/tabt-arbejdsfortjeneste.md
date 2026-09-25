@@ -29,11 +29,32 @@ Inden alt andet fastlægges det, om TAF skal beregnes i **måneder** eller **arb
 | Aspekt | Måneder | Arbejdsdage |
 |---|---|---|
 | Opgørelsesmetode | Kalenderdage, inkl. ferie og SH-dage | Hverdage (man-fre) ekskl. daterede feriedage og SH-dage |
-| Løse feriedage | Fratrækkes **ikke** | Placeres på de første ledige hverdage og fratrækkes |
+| Løse ferie-/feriefridage | Fratrækkes **ikke** – kolonnen skjules i TAF-tabellen | Placeres på de første ledige hverdage og fratrækkes |
 | Øvrigt fravær uden løn | Reducerer **kun** beregningsgrundlaget (4,8 % af måned pr. dag) | Reducerer **kun** beregningsgrundlaget |
 | TAF-kravet selv | Påvirkes ikke af fravær (brugeren afgrænser perioderne manuelt) | Påvirkes ikke af "øvrigt fravær" (brugeren afgrænser perioderne manuelt) |
 
 Faktor: 1 arbejdsdag = 0,048 måneder (4,8 %).
+
+**Skjult i måneder, men ikke ferieperioderne** (udviklerafgørelse 2026-09-25, BB-247). Kolonnen «Løse
+ferie-/feriefridage» skjules, når TAF opgøres i måneder: hverken TAF-kravet eller sygeferiegodtgørelsen
+læser den. Skjult er ikke udfyldt – descriptorens relevans (`erTafLoseFeriedageRelevant`) giver værdien som
+tom for alle læsere, men den bevares og kommer tilbage, hvis enheden skifter. «Evt. ferie i perioden» vises
+derimod i begge enheder, fordi sygeferiegodtgørelsen bruger ferieperioderne også i måneder.
+
+**Tabellernes afledte kolonner tæller det, der regnes med, og overskriften siger rammen** (BB-217, BB-249,
+BB-250): «TAF-måneder (i EO-perioden)» / «TAF-arbejdsdage (i EO-perioden)» tæller rækkens del inden for
+opgørelsen, og «Feriedage (i TAF-perioden)» tæller ferierækkens feriedage inden for TAF-perioderne
+(`countFeriedageInRanges`, samme optælling som ferielinjen i dokumentet). Beregningsgrundlagets ferietabel
+hedder tilsvarende «Feriedage (i beregningsperioden)».
+
+**Ferieperiodens vindue spærrer fortsat** (udviklerafgørelse 2026-09-25, BB-248): en ferie før skadedatoen,
+efter dags dato eller efter en afskæring fradrages aldrig, men spærrer opgørelsen med rød celle og en besked
+i fladens sprog («Ferien ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)»), så brugeren
+retter den, før en senere ændret periode gør den virksom. Reglen projekteres til cellen i
+`tafRowCellIssues.ts` sammen med overlappet i begge tabeller og maksimum for løse feriedage.
+
+**En TAF-periode uden én arbejdsdag** (fx en weekend) giver i arbejdsdage en gul, ikke-blokerende ring og
+står i dokumentets periodeliste med «(0 arbejdsdage)» (BB-257).
 
 ### Periodeafgrænsning
 

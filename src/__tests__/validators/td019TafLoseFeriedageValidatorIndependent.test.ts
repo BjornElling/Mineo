@@ -122,7 +122,7 @@ describe('TD-019 – TAF-validatorens løse feriedage uden schema-fixture', () =
       isValid: false,
       errors: [{
         path: 'tafPerioder[0].loseFeriedage',
-        message: 'Løse feriedage overstiger mulige arbejdsdage i perioden (maksimalt 5)',
+        message: 'Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden (maksimalt 5)',
         severity: 'error',
       }],
     });

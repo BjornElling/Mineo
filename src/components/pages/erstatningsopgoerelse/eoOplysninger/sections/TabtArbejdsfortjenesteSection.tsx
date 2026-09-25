@@ -22,7 +22,8 @@ export default function TabtArbejdsfortjenesteSection() {
     values,
     tafDerived,
     ferieFeriedageById,
-    tafCutoffDateIssues,
+    tafCellIssues,
+    visTafLoseFeriedage,
   } = useEoOplysningerVm();
 
   return (
@@ -53,7 +54,9 @@ export default function TabtArbejdsfortjenesteSection() {
               derivedById={tafDerived.derivedById}
               derivedColumnHeader={tafDerived.kolonneOverskrift}
               saveOrderPath="erstatningsopgoerelse.tafPerioder"
-              cutoffIssues={tafCutoffDateIssues}
+              cellIssues={tafCellIssues}
+              visLoseFeriedage={visTafLoseFeriedage}
+              ingenArbejdsdageById={tafDerived.ingenArbejdsdageById}
             />
 
             <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
@@ -62,6 +65,7 @@ export default function TabtArbejdsfortjenesteSection() {
               committedRows={values.ferieperioder}
               feriedageById={ferieFeriedageById}
               saveOrderPath="erstatningsopgoerelse.ferieperioder"
+              cellIssues={tafCellIssues}
             />
 
             <Typography className="row--subheading">Øvrigt</Typography>

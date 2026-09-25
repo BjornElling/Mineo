@@ -139,7 +139,7 @@ export type EoIssueFocusTarget =
  * primært fokus-mål – i stedet for at gætte kolonnen ud fra fejlbeskedens ordlyd (som ikke kan
  * skelne fx en fra-dato efter en cutoff fra en til-dato-fejl).
  */
-export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand';
+export type EoIssueFieldHint = 'fra' | 'til' | 'tilstand' | 'loseFeriedage';
 
 /**
  * Struktureret tabel på en række, når rækkens værdi ER en tabel.

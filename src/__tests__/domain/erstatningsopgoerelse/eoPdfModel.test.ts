@@ -762,7 +762,7 @@ describe('eoPdfModel', () => {
 
     // Validatoren fanger ufuldstændig TAF-periode (manglende til-dato) før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Til-dato mangler');
+      .toThrow('Til-dato er ikke angivet');
   });
 
   it('rapporterer valideringsfejl ved overlappende svie/smerte-perioder', () => {

@@ -378,7 +378,7 @@ describe('TAF validering', () => {
         { id: '1', fra: iso('2024-01-01'), til: undefined },
       ],
     });
-    expect(hasError(values, 'Til-dato mangler')).toBe(true);
+    expect(hasError(values, 'Til-dato er ikke angivet')).toBe(true);
   });
 
   it('fanger fra > til i TAF-periode', () => {
@@ -981,7 +981,7 @@ describe('TAF – clampede feriedage', () => {
     expect(
       result.errors.some((error) =>
         error.path === 'tafPerioder[0].loseFeriedage' &&
-        error.message.startsWith('Løse feriedage overstiger mulige arbejdsdage i perioden')
+        error.message.startsWith('Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden')
       )
     ).toBe(true);
   });
@@ -1057,7 +1057,7 @@ describe('TAF – clampede feriedage', () => {
     expect(
       resultWithSkadedatoClamp.errors.some((error) =>
         error.path === 'tafPerioder[0].loseFeriedage' &&
-        error.message.startsWith('Løse feriedage overstiger mulige arbejdsdage i perioden')
+        error.message.startsWith('Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden')
       )
     ).toBe(true);
   });
@@ -1074,7 +1074,17 @@ describe('TAF – fanger manglende fra-dato alene', () => {
         { id: '1', fra: undefined, til: iso('2024-01-31') },
       ],
     });
-    expect(hasError(values, 'Fra-dato mangler')).toBe(true);
+    expect(hasError(values, 'Fra-dato er ikke angivet')).toBe(true);
+  });
+
+  it('melder en række med kun løse feriedage som én mangel (BB-253)', () => {
+    const values = makeValues({
+      tafPerioder: [
+        { id: '1', fra: undefined, til: undefined, loseFeriedage: 3 },
+      ],
+    });
+    expect(hasError(values, 'Fra- og til-dato er ikke angivet')).toBe(true);
+    expect(hasError(values, 'Til-dato er ikke angivet')).toBe(false);
   });
 });
 

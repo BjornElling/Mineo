@@ -154,6 +154,7 @@ import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
+import { collectTafRowCellIssues } from './tafRowCellIssues';
 import { collectSvieSmerteCutoffDateIssues } from './svieSmerteCutoffDateIssues';
 import { collectSvieSmerteOverlapIssues } from './svieSmerteOverlapIssues';
 
@@ -534,8 +535,11 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   stamdataErrors: FieldIssueSet;
   /** Aktiv manuel reguleringsforms strenge datoregel, adresseret direkte til de berørte datoceller. */
   manualRegulationDateIssues: FieldIssueSet;
-  /** TAF-cutoff mod differencekrav/EET, adresseret til den konkrete fra-/til-celle der overskrider grænsen. */
-  tafCutoffDateIssues: FieldIssueSet;
+  /**
+   * TAF-afsnittets rækkeregler projekteret til de konkrete celler i TAF- og ferietabellen: cutoff mod
+   * differencekrav/EET, overlap, for mange løse feriedage og en ferieperiode uden for sit vindue.
+   */
+  tafCellIssues: FieldIssueSet;
   /**
    * Svie/smerte-rækkeregler projekteret til de konkrete fra-/til-celler: ménafgørelsens cutoff og
    * overlappet mellem perioder. Begge er regler, der ikke kan ligge på descriptoren, og som uden
@@ -737,12 +741,16 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
   // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
   const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
+  // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue spærrede før uden rød celle
+  // (BB-248, BB-251, BB-252). De projekteres samme vej som cutoffen og blokerer samme gren.
+  const tafRowCellIssueList = collectTafRowCellIssues(eoValues, stamdataValues);
+  const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList);
   const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
   // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
   // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
   const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
   const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
-  const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCutoffDateIssueList);
+  const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCellIssueList);
   const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
   const eoFieldIssues = mergeIssues(eoProjection.readIssues(), projectedRowIssues);
   const stamdataFieldIssues = stamdataProjection.readIssues();
@@ -771,7 +779,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     eoErrors,
     stamdataErrors,
     manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
-    tafCutoffDateIssues: buildFieldIssueSet(tafCutoffDateIssueList),
+    tafCellIssues: buildFieldIssueSet(tafCellIssueList),
     svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
     sourceToken: reader.sourceToken,
   };

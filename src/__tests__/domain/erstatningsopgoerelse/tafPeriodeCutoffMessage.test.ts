@@ -60,7 +60,7 @@ describe('evaluateTafPerioder', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2023)',
+      message: 'TAF-perioden 01-01-2024 - 31-12-2024: Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2023)',
       field: 'fra',
     });
   });

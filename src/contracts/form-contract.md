@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-28 (relevans er nu en hard læsegrænse i `InputReader`. Tidligere 2026-08-26:
+**Senest verificeret mod kode:** 2026-09-25 (§7 pkt. 5: rydningen af et skjult rødt felt gælder enhver ændring, ikke kun et valg. Tidligere 2026-08-28: relevans er nu en hard læsegrænse i `InputReader`. Tidligere 2026-08-26:
 kompatibilitetsafgrænsningen mellem intern runtime-arkitektur og persistensgrænsen er præciseret. Tidligere 2026-08-19: §8.2a er implementeret og verificeret: længdepolitikken erklæres
 på codecet/`charLengthPolicy.ts` og læses af både formular- og gridfladen; paste afgrænses i `spliceDraftWithPaste`)
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
@@ -227,6 +227,13 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    irrelevant (= skjult, punkt 3), ryddes feltet **tavst** i samme transaktion som valget – én typed
    domænecommand, ét history-trin. Undtagelsen gælder begge fejlformer: rejected råtekst (format) såvel som
    en canonical out-of-bounds-/rule-værdi.
+
+   Det samme gælder **enhver anden ændring**, der gør et felt irrelevant – en indtastning, en rydning, en
+   ny eller slettet række. Relevans kan følge et tekstfelt («Svie/smerte-krav i tidligere
+   erstatningsopgørelser» følger «Nummer») eller en tabels indhold (TAF's «Løse ferie-/feriefridage» følger
+   beregningsenheden, som udledes af lønindkomstens rækker). Uden rydningen efterlod indtastningen råtekst
+   i et skjult felt, og relevans-invarianten afviste tilstanden. En indlæst `.eo`-fil og en ny sag ryddes
+   aldrig: de har ingen før-tilstand at sammenligne med.
 
    Begrundelsen er ikke, at reglen ophører med at gælde for det skjulte felt; den er, at **en rød fejl,
    brugeren ikke kan se, ikke kan rettes.** Uden rydningen kunne en ugyldig indtastning blokere

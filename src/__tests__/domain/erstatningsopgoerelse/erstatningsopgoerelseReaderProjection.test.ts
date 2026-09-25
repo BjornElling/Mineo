@@ -78,10 +78,13 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
         tillaegAngivesSom: 'procent',
         loenudviklingBeregningsgrundlag: 'Ingen',
         loenPaaHelligdage: 'Almindelig løn',
+        // Uden fuld løn under ferie og med løn i beregningsperioden opgøres TAF i arbejdsdage, så TAF-rækkens
+        // løse feriedage er relevante og læses tilbage (BB-247).
+        fuldLoenUnderFerie: 'Nej',
         indtaegtsoplysningerTableData: [
           {
             id: 'std-1',
-            col0_maaned: '1',
+            col0_maaned: '5',
             col1_maaned: '2022',
             col0_uge: '',
             col1_uge: '',

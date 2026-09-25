@@ -244,7 +244,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     expect(texts).toContain(
-      'I perioden blev der afholdt ferie i perioden 01-01-2024 - 05-01-2024 samt 2 løse ferie-/feriefridage.'
+      'I perioden blev der afholdt ferie 01-01-2024 - 05-01-2024 samt 2 løse ferie-/feriefridage.'
     );
   });
 
@@ -303,7 +303,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     expect(texts).toContain(
-      'I perioden blev der afholdt ferie i perioderne 02-01-2024 - 03-01-2024 og 08-01-2024 - 09-01-2024.'
+      'I perioden blev der afholdt ferie 02-01-2024 - 03-01-2024 og 08-01-2024 - 09-01-2024.'
     );
   });
 
@@ -503,14 +503,14 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(arbejdsstedBlock).not.toContain('I alt:');
   });
 
-  it('viser sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF er indtastet', () => {
+  it('viser sektionen "Allerede modtaget tabt arbejdsfortjeneste" når tidligere modtaget TAF er indtastet', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tidligereModtagetTaf = asAmountValue(5000);
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    expect(texts).toContain('Tidligere betalt erstatning');
+    expect(texts).toContain('Allerede modtaget tabt arbejdsfortjeneste');
     expect(texts).toContain('Der er allerede betalt tabt arbejdsfortjeneste for perioden med');
   });
 
@@ -538,14 +538,14 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     );
   });
 
-  it('skjuler sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF ikke er indtastet', () => {
+  it('skjuler sektionen "Allerede modtaget tabt arbejdsfortjeneste" når tidligere modtaget TAF ikke er indtastet', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tidligereModtagetTaf = undefined;
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
-    expect(texts).not.toContain('Tidligere betalt erstatning');
+    expect(texts).not.toContain('Allerede modtaget tabt arbejdsfortjeneste');
     expect(texts).not.toContain('Der er allerede betalt tabt arbejdsfortjeneste for perioden med');
   });
 

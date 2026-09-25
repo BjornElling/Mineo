@@ -122,7 +122,7 @@ describe('TD-019 – TAF til-dato uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'tafPerioder[0].til',
-        message: 'Til-dato mangler',
+        message: 'Til-dato er ikke angivet',
         severity: 'error',
       }],
     });

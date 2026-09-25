@@ -19,7 +19,8 @@ import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import { buildTafFerieFravaerSummary } from '../engines/tafDaySets';
 import { formatCountWithUnit } from '../../../utils/formatUtils';
-import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
+import { harTafPeriodeIngenArbejdsdage } from '../validation/tafRowRules';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { roundByMethod } from '../../../utils/rounding';
 import { formatDanishList } from '../../../utils/danishListFormatting';
@@ -36,9 +37,11 @@ const buildTafFerieFravaerLinje = (
   if (summary.totalFeriedage <= 0) return null;
 
   const periodTexts = summary.ferieperioder.map((range) => `${formatDateShort(range.fra)} - ${formatDateShort(range.til)}`);
+  // «I perioden blev der afholdt ferie i perioden …» sagde «i perioden» to gange om to forskellige perioder
+  // (BB-256); ferieperioderne står nu direkte efter «ferie».
   const periodPart = periodTexts.length === 0
     ? null
-    : `ferie i ${periodTexts.length === 1 ? 'perioden' : 'perioderne'} ${formatDanishList(periodTexts)}`;
+    : `ferie ${formatDanishList(periodTexts)}`;
   const loosePart = summary.loseFeriedage > 0
     ? `${formatCountWithUnit(summary.loseFeriedage, 'løs ferie-/feriefridag', 'løse ferie-/feriefridage')}`
     : null;
@@ -218,12 +221,16 @@ const buildTafPerioderLinjer = (
   const nonEmpty = rows.filter((row) => !isTafRowEmpty(row));
   if (nonEmpty.length === 0) return [];
 
+  // En periode uden én arbejdsdag indgår ikke i regnestykket i arbejdsdage; papiret siger det frem for at
+  // liste den som krævet uden at regne på den (BB-257).
+  const visIngenArbejdsdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
   const lines: string[] = [];
   for (const range of tafRanges) {
     const fraText = formatDateShort(range.fra);
     const tilText = formatDateShort(range.til);
     if (fraText && tilText) {
-      lines.push(`${fraText} - ${tilText}`);
+      const ingenArbejdsdage = visIngenArbejdsdage && harTafPeriodeIngenArbejdsdage(range);
+      lines.push(ingenArbejdsdage ? `${fraText} - ${tilText} (0 arbejdsdage)` : `${fraText} - ${tilText}`);
     }
   }
   return lines;

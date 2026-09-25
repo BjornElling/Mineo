@@ -35,7 +35,7 @@ describe('buildTafDerived', () => {
         tafPerioder: [],
         ferieperioder: [],
       });
-      expect(result.kolonneOverskrift).toBe('TAF-måneder');
+      expect(result.kolonneOverskrift).toBe('TAF-måneder (i EO-perioden)');
       expect(result.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
     });
 
@@ -45,7 +45,7 @@ describe('buildTafDerived', () => {
         tafPerioder: [],
         ferieperioder: [],
       });
-      expect(result.kolonneOverskrift).toBe('TAF-arbejdsdage');
+      expect(result.kolonneOverskrift).toBe('TAF-arbejdsdage (i EO-perioden)');
       expect(result.beregningsenhed).toBe(TAF_BEREGNES_SOM.ARBEJDSDAGE);
     });
   });

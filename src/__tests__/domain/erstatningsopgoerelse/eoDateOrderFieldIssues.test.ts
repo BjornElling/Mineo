@@ -277,7 +277,7 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     });
     const projection = buildErstatningsopgoerelseReaderProjection(evaluation.reader, { revision: 'r' });
     const failed = projection.snapshot.invariants.filter((i) => !i.passed);
-    expect(failed.some((i) => i.message === 'Til-dato mangler')).toBe(true);
+    expect(failed.some((i) => i.message === 'Til-dato er ikke angivet')).toBe(true);
   });
 
   it('dækker også beregningsperioden, SFGG-referenceperioden og indtægtstabellens dato-par', () => {

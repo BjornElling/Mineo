@@ -150,7 +150,7 @@ describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
     // To hverdage er ferie, én resterende hverdag er løs feriedag: 5 - 1 - 2 - 1 = 1.
     expect(row).toMatchObject({
       status: 'ok',
-      displayValue: '5 hverdage - 1 SH-dage - 2 feriedage - 1 løse feriedage = 1 arbejdsdage',
+      displayValue: '5 hverdage - 1 SH-dage - 2 feriedage - 1 løse ferie-/feriefridage = 1 arbejdsdage',
     });
   });
 
@@ -205,15 +205,15 @@ describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
 
     expect(rowById(rows, 'sviesmerte.periode.ss-1')).toMatchObject({
       status: 'error',
-      displayValue: 'Fejl (Der er overlappende perioder)',
+      displayValue: 'Fejl (Der er overlappende svie/smerte-perioder)',
     });
     expect(rowById(rows, 'sviesmerte.periode.ss-2')).toMatchObject({
       status: 'error',
-      displayValue: 'Fejl (Der er overlappende perioder)',
+      displayValue: 'Fejl (Der er overlappende svie/smerte-perioder)',
     });
     expect(rowById(rows, 'sviesmerte.beregnetPeriode')).toMatchObject({
       status: 'error',
-      displayValue: 'Fejl (Der er overlappende perioder)',
+      displayValue: 'Fejl (Der er overlappende svie/smerte-perioder)',
     });
   });
 

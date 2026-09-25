@@ -12,6 +12,20 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-09-24 fra Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden (12e) – M-35: et
+synligt felt, som den aktuelle beregningsmåde ikke læser.** Det er M-32's spejlbillede: dér blev et skjult felt
+læst, her bliver et synligt felt ikke læst. En ny sag opgøres i måneder, og i måneder fradrages hverken ferie
+eller løse feriedage – men ferietabellen og kolonnen «Løse feriedage» står uændret, tager imod og viser et
+feriedagstal, mens kravet er det samme (BB-247, **Høj**). **Dertil M-20 i BB-218's form, nu i tre udgaver på
+samme to tabeller:** overlap (BB-251, **Høj**), for mange løse feriedage (BB-252) og en ferieperiode uden for
+det vindue, valideringen har lånt fra TAF-perioderne – hvor descriptoren selv siger systemrammen (BB-248,
+**Høj**, også M-33). Alle tre spærrer uden rød celle; kun afskæringen fra 12d når cellen. **BB-217's form
+to gange** (BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnen tæller rigtigt, men overskriften
+siger det ikke). **M-33's navngivne TAF-kandidat bekræftet** (BB-253 – en række med kun løse feriedage spærrer
+med «Fra-dato mangler» uden link, og BB-231's bagside folder en TAF- og en feriemangel til én linje). M-05 +
+M-13 (BB-254 – «360.000,00 kr. - 500.000,00 kr. = 0,00 kr.»), M-02 (BB-255) og to lokale M-13-forekomster
+(BB-256, BB-257). M-09, M-10 og M-32 bestået; konsollen tavs.
+
 **Ét nyt mønster 2026-09-24 fra Erstatningsopgørelse → AES-afgørelser (12d) – M-34: en regel genbruger en
 nabo-regels prædikat og arver dens undtagelser.** Sektionens datoer bliver afskæringsdatoer for svie/smerte og
 TAF, og undtagelserne fra afskæringen (verserende klage, 2011-grænsen for midlertidig EET) er skrevet ind i de
@@ -1815,6 +1829,14 @@ ene felts egen værdi.
   «Beløb er ikke angivet», hvis link fører til første række; den anden rækkes mangel står ingen steder.
   BB-218's foldning forudsatte, at den røde ring bærer udpegningen. **Prøven: for hver `messageOnly`-række
   pr. tabelrække, nævner teksten rækken? Gør den ikke, og farver reglen ikke cellen, forsvinder række nr. 2.**
+- **BB-218's navngivne søskende bekræftet 2026-09-24, og tabellen har TRE regler, der ikke når cellen**
+  (`erstatningsopgoerelse-12e.md` BB-248, BB-251, BB-252). TAF- og ferietabellen får kun afskæringen fra 12d ind
+  som `collectionRuleIssue`; overlap, maksimum for løse feriedage og ferieperiodens vindue spærrer alle
+  opgørelsen med neutrale celler. Tre af dem ligger i to forskellige lag (rækkebyggeren og den gamle validator),
+  så rettelsen er både BB-218's projektion og M-33's samling.
+  **Rettet 2026-09-25** (`tafRowCellIssues.ts`, `periodOverlapIssues.ts`). Overlapslinjen navngiver nu tabellen:
+  med én fælles tekst foldede boksen svie/smerte-, TAF- og ferieoverlap sammen til én linje – BB-231's bagside
+  på tværs af tabeller.
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
@@ -2666,6 +2688,13 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   bevares som forsvar i dybden for snapshottet, men dens linjer når aldrig boksen, fordi rækkebyggeren
   altid melder samme mangel. Dokumentet trykker den udaterede post, så «I alt» igen er summen af linjerne.
   Skabelonen til de øvrige kandidater er dermed: én vurdering pr. række, som begge lag læser.
+- **TAF-kandidaten bekræftet 2026-09-24** (`erstatningsopgoerelse-12e.md` BB-253, og som del af BB-248 og BB-252).
+  Lagene er uenige om TOMHED: rækkebyggeren kalder en række med kun «Løse feriedage» tom (`fra || til`),
+  validatoren melder «Fra-dato mangler»/«Til-dato mangler» uden link og spærrer. Og ferieperiodens grænse er
+  uenig med sin egen descriptor: cellen har systemrammen, valideringen skadedato og afskæringerne. **Prøven får
+  et fjerde trin: tast en række, hvor KUN et ikke-datofelt er udfyldt.**
+  **Rettet 2026-09-25:** rækkens vurdering tager cellernes feltissues ind, så en rød celle meldes med sin egen
+  tekst, og rækkebygger og validator deler ordlyden (`tafRowRules.ts`).
 
 ## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
 
@@ -2702,3 +2731,38 @@ hvilket spørgsmål den besvarer.
 - Kandidater, ikke efterprøvet: `eoInspektionSammentaelling.ts:79-86` og `eoInspektionKontrolModel.ts:692`
   (12m); svie/smerte-rækkernes `shouldApplyMenCutoff` i `eoRowSvieSmerteRows.ts:406` og `:580`, som læser
   ménafskæringen to steder.
+
+## M-35 – Et synligt felt, som den aktuelle beregningsmåde ikke læser
+
+> Et valg – ofte et, programmet selv udleder – bestemmer, hvilken regel beregningen følger, og under den ene
+> regel er et felt uden betydning. Feltet står der stadig, tager imod og viser måske et afledt tal. Brugeren
+> udfylder det, intet ændrer sig, og intet siger hvorfor.
+
+Det er M-32's spejlbillede. M-32: et skjult felt læses stadig. M-35: et synligt felt læses ikke. Begge bryder
+samme forventning – at det, brugeren kan se og udfylde, er det, beregningen regner på.
+
+Formen er værst, når valget ikke træffes på fladen. I 12e bestemmer `computeTafBeregningsenhed` måneder eller
+arbejdsdage ud fra «Beregnes ud fra» og – i «Beregningsperiode»-grenen – ud fra to valg pr. ansættelsesforhold
+på en anden fane. Det eneste spor på fladen er ét ord i en kolonneoverskrift.
+
+**Efterprøv, hvor:** en domæneregel siger «under X bruges Y ikke» (typisk i en tabel over to beregningsmåder),
+og komponenten viser Y uden en betingelse på X. Prøven er:
+
+1. Find reglen i domænedokumentet (`docs/domain/**`) eller i en kommentar ved enhedsudledningen.
+2. Tjek, om sektionskomponenten viser feltet ubetinget.
+3. Udfyld feltet i den tilstand, hvor det ikke bruges, og se, om skærm, boks eller papir siger noget.
+
+**Skellet mod M-12:** M-12 handler om en tilstand, brugeren ikke kan vælge. M-35 handler om et felt, der ikke
+tæller i den tilstand, programmet har valgt. **Skellet mod BB-083:** et felt, der mangler, er ikke et felt, der
+ikke bruges.
+
+- Fundet i: `erstatningsopgoerelse-12e.md` BB-247 (**Høj** – ferietabellen og «Løse feriedage» i en sag, der
+  opgøres i måneder; målt «TAF-måneder 6» og 180.000,00 kr. med og uden 11 feriedage og 5 løse).
+- Kandidater, ikke efterprøvet: ferie i beregningsperioden og «Uspecificerede ferie-/fridage» (12f) i måneder;
+  «Løn på helligdage» under angivet månedsløn (12f/12g).
+- **Rettet 2026-09-25 – og prøvens første trin var ikke nok.** Domænetabellen sagde, at ferie ikke fradrages i
+  måneder, men ferieperioderne bruges OGSÅ af sygeferiegodtgørelsen, i begge enheder. Kun «Løse
+  ferie-/feriefridage» var reelt uvirksom og skjules nu (descriptor-relevans, så skjult = ikke udfyldt).
+  **Prøven får et fjerde trin: før et felt skjules, find ALLE læsere af værdien (`rg "\.feltnavn"` i
+  `src/domain`), ikke kun den regel, fundet nævner.** Og relevans, der følger en udledt tilstand, kan skifte ved
+  en almindelig indtastning – reducerens rydning af skjulte røde felter gælder derfor enhver ændring.

@@ -7,7 +7,13 @@ const toUtcDay = (date: Date): Date => {
   return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
 };
 
-export const parseAarsloenRowInterval = (row: StandardLoenTableRow, loenperiode: Loenperiode): DateInterval | null => {
+/** De kolonner, en rækkes periode udledes af – intet andet læses. */
+export type AarsloenRowPeriodColumns = Pick<
+  StandardLoenTableRow,
+  'col0_maaned' | 'col1_maaned' | 'col0_uge' | 'col1_uge' | 'col0_dag' | 'col1_dag'
+>;
+
+export const parseAarsloenRowInterval = (row: AarsloenRowPeriodColumns, loenperiode: Loenperiode): DateInterval | null => {
   if (loenperiode === 'maaned') {
     const monthRaw = row.col0_maaned?.trim() ?? '';
     const yearRaw = row.col1_maaned?.trim() ?? '';

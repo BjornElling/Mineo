@@ -547,7 +547,10 @@ export const createInputCatalog = (options: Readonly<{
       }
       return cloneAndDeepFreeze(field.descriptor.readCanonical(isolateSections(sections), field.address)) as T;
     };
-    const view: CanonicalView = Object.freeze({ readCanonical });
+    const view: CanonicalView = Object.freeze({
+      readCanonical,
+      listEntityIds: (collection: CollectionRef) => listEntityIds(sections, collection),
+    });
 
     for (const [serialized, rejected] of Object.entries(structural.rejectedInputs)) {
       const address = deserializeFieldAddress(serialized);
@@ -569,8 +572,8 @@ export const createInputCatalog = (options: Readonly<{
       }
       // Relevans-invarianten (§7.5 pkt. 2): en FÆRDIG tilstand må ikke bære rejected råtekst i et skjult
       // felt. Råtekst blokerer `.eo`-save globalt (§8), så en skjult rejection ville spærre save fra et felt,
-      // brugeren hverken kan se eller rette. `reduceImmediateChoice` rydder derfor netop de felter, et valg
-      // gør skjulte, og denne invariant BEVISER, at rydningen er komplet.
+      // brugeren hverken kan se eller rette. Reduceren (`clearFieldsHiddenWhileRed`) rydder derfor netop de
+      // felter, en ændring gør skjulte, og denne invariant BEVISER, at rydningen er komplet.
       //
       // Den er slået fra i ét enkelt kald: `validateSettledInputBeforeRelevanceCleanup`, som reduceren
       // bruger til at LÆSE efter-relevansen, netop før den rydder. Der er tilstanden lovligt mellemliggende.

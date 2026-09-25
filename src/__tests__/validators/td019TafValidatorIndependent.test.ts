@@ -121,7 +121,7 @@ describe('TD-019 – TAF-validatorens uafhængige rækkefacit', () => {
       isValid: false,
       errors: [{
         path: 'tafPerioder[0].fra',
-        message: 'Fra-dato mangler',
+        message: 'Fra-dato er ikke angivet',
         severity: 'error',
       }],
     });

@@ -63,12 +63,27 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     hydrate({ ...createErstatningsopgoerelseInitialValues(), tafPerioder: rows });
 
     renderInRuntime(
-      <TafPeriodeTable committedRows={rows} derivedById={{ 'taf-1': 21 }} derivedColumnHeader="Dage" />
+      <TafPeriodeTable committedRows={rows} derivedById={{ 'taf-1': 21 }} derivedColumnHeader="Dage" visLoseFeriedage />
     );
 
     expect(dataRows()).toHaveLength(2);
     expect(within(dataRows()[0]!).getByDisplayValue('01-01-2024')).toBeInTheDocument();
+    expect(within(dataRows()[0]!).getByDisplayValue('2')).toBeInTheDocument();
     expect(within(dataRows()[0]!).getByText('21')).toBeInTheDocument();
+    expect(screen.getByText('Løse ferie-/feriefridage')).toBeInTheDocument();
+  });
+
+  it('TAF-tabellen skjuler løse feriedage, når TAF opgøres i måneder (BB-247)', () => {
+    const rows = [{ id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: 2 }];
+    hydrate({ ...createErstatningsopgoerelseInitialValues(), tafPerioder: rows });
+
+    renderInRuntime(
+      <TafPeriodeTable committedRows={rows} derivedById={{ 'taf-1': 1 }} derivedColumnHeader="TAF-måneder (i EO-perioden)" visLoseFeriedage={false} />
+    );
+
+    expect(screen.queryByText('Løse ferie-/feriefridage')).not.toBeInTheDocument();
+    expect(within(dataRows()[0]!).queryByDisplayValue('2')).not.toBeInTheDocument();
+    expect(screen.getByText('TAF-måneder (i EO-perioden)')).toBeInTheDocument();
   });
 
   it('ferietabellen renderer committed række og afledt antal dage', () => {
@@ -82,6 +97,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(dataRows()).toHaveLength(2);
     expect(within(dataRows()[0]!).getByDisplayValue('01-02-2024')).toBeInTheDocument();
     expect(within(dataRows()[0]!).getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('Feriedage (i TAF-perioden)')).toBeInTheDocument();
   });
 
   it('offentlige ydelser renderer canonical beløb og afledte kolonner', () => {

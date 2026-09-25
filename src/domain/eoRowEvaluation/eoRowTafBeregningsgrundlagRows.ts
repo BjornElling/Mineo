@@ -275,7 +275,8 @@ export const buildEoTafBeregningsgrundlagRows = (
         rows.push({
           id: `taf.beregningsgrundlag.ferie.${periode.id}`,
           label: 'Ferieperiode',
-          displayValue: 'Fejl (Der er overlappende perioder)',
+          // Tabellen navngives, så linjen ikke foldes sammen med en anden tabels overlap (BB-251).
+          displayValue: 'Fejl (Der er overlappende ferieperioder i beregningsperioden)',
           status: 'error',
         });
         return;

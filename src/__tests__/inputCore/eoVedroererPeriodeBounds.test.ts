@@ -22,6 +22,7 @@ import type { CanonicalView, FieldDescriptor, FieldRef } from '../../inputCore/f
 const SKADEDATO = '2018-06-01';
 
 const viewWith = (skadestype: string): CanonicalView => ({
+  listEntityIds: () => [],
   readCanonical: <T,>(field: FieldRef<T>): T | undefined => {
     if (field.descriptor.id === stamdataSkadedatoField.id) return toISODateString(SKADEDATO) as T;
     if (field.descriptor.id === stamdataSkadestypeField.id) return skadestype as T;

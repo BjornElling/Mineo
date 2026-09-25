@@ -142,7 +142,7 @@ describe('buildSammentaellingDisplayTables', () => {
       'Arbejdsdage i beregningsperiode (- 8 feriedage og 8 SH-dage) (- 41 løse ferie- og fraværsdage)'
     );
     expect(tables.basis[1]?.label).toBe(
-      'Arbejdsdage i TAF-periode (- 22 feriedage og 3 SH-dage) (- 5 løse feriedage)'
+      'Arbejdsdage i TAF-periode (- 22 feriedage og 3 SH-dage) (- 5 løse ferie-/feriefridage)'
     );
   });
 

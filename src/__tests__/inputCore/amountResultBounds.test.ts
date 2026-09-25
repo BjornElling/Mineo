@@ -62,7 +62,7 @@ describe('defineField tilføjer resultatgrænsen deriveret', () => {
     // Uden dette kunne et nyt beløbsfelt opstå uden grænse, indtil nogen huskede den.
     const validators = eoOevrigeKravBeloebField.validators ?? [];
     const field = eoOevrigeKravBeloebField.bind('row-1');
-    const view = { readCanonical: <V,>(): V => undefined as V };
+    const view = { readCanonical: <V,>(): V => undefined as V, listEntityIds: () => [] };
     const issues = validators.map((v) => v({ kind: 'number', value: 10_000_000 }, field, view));
     expect(issues.some((issue) => issue?.reason === 'bounds')).toBe(true);
   });
@@ -70,14 +70,14 @@ describe('defineField tilføjer resultatgrænsen deriveret', () => {
   it('en værdi inden for grænsen giver ingen issues fra det deriverede værn', () => {
     const validators = eoOevrigeKravBeloebField.validators ?? [];
     const field = eoOevrigeKravBeloebField.bind('row-1');
-    const view = { readCanonical: <V,>(): V => undefined as V };
+    const view = { readCanonical: <V,>(): V => undefined as V, listEntityIds: () => [] };
     const issues = validators.map((v) => v({ kind: 'number', value: 1_000 }, field, view));
     expect(issues.every((issue) => issue === undefined)).toBe(true);
   });
 
   it('maskerer ikke et felts egen skarpere bounds-besked', () => {
     const field = eoOevrigeKravBeloebField.bind('row-1');
-    const view = { readCanonical: <V,>(): V => undefined as V };
+    const view = { readCanonical: <V,>(): V => undefined as V, listEntityIds: () => [] };
     const candidates = (field.descriptor.validators ?? []).flatMap((validate) => {
       const spec = validate({ kind: 'number', value: -1 }, field, view);
       if (spec === undefined) return [];

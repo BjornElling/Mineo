@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12e – Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden.** 12d er gennemgået,
+- **Næste flade:** **12f – Erstatningsopgørelse → Beregningsgrundlaget for TAF.** 12e er gennemgået 2026-09-24
+  og afgjort OG gennemført 2026-09-25 (11 fund, BB-247–BB-257). 12d er gennemgået,
   afgjort OG gennemført 2026-09-24 (9 fund, BB-238–BB-246). 12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
   2026-09-22 (11 fund, BB-217–BB-227). Tidligere: 12a er gennemgået
   2026-09-15 (15 fund, BB-202–BB-216), og hele Erhvervsevnetab er gennemgået,
@@ -22,7 +23,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-247
+- **Næste fund-ID:** BB-258
 - **Åbne spørgsmål:** **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
   EET-klage gælder alt EET; den bliver under «Øvrigt», og papiret trykker fortsat én EET-linje), BB-242 ja til en
   gul advarsel, BB-245 ja til «pr.», BB-246 afvist. Tidligere: **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
@@ -93,7 +94,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12d's ni fund (BB-238–BB-246) er afgjort og
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12e's elleve fund (BB-247–BB-257) er afgjort og
+  gennemført 2026-09-25** – ti rettet (BB-247 indsnævret), ét afvist (BB-254); se afsnittet om 12e nedenfor.
+  Tidligere: **ingen.** **Flade 12d's ni fund (BB-238–BB-246) er afgjort og
   gennemført 2026-09-24** – syv rettet, to afvist; se afsnittet om 12d nedenfor. Tidligere: **ingen.** **Flade 12c's ti fund (BB-228–BB-237) er
   afgjort af udvikleren OG gennemført i kode 2026-09-23** – alle ti rettet. **Tre ting rakte ud over
   fundene:** (1) BB-228's «undersøg, om det håndteres ensartet» viste, at det ikke gjorde: hver læser afgjorde
@@ -143,7 +146,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-09-24 (**Flade 12d afgjort og gennemført** – se afsnittet om 12d nedenfor.)
+- **Senest opdateret:** 2026-09-25 (**Flade 12e afgjort og gennemført** – se afsnittet om 12e nedenfor.)
+  Tidligere: 2026-09-24 (**Flade 12e – Tabt arbejdsfortjeneste: perioden – gennemgået: 11 fund, tre Høj,
+  fem Mellem og tre Lav, og ét nyt tværgående mønster M-35.** Se afsnittet om 12e nedenfor.) Tidligere samme dag:
+  (**Flade 12d afgjort og gennemført** – se afsnittet om 12d nedenfor.)
   Samme dag, før afgørelsen: (**Flade 12d – AES-afgørelser og erstatningsperiodens afgrænsning –
   gennemgået: 9 fund, to Høj, tre Mellem og fire Lav, og ét nyt tværgående mønster M-34.** Se afsnittet
   om 12d nedenfor.)
@@ -571,7 +577,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12b | Erstatningsopgørelse – Svie- og smertegodtgørelse | Afgjort og gennemført | 11 (BB-217–BB-227) | [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md) |
 | 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Afgjort og gennemført | 10 (BB-228–BB-237) | [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md) |
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Afgjort og gennemført | 9 (BB-238–BB-246) | [erstatningsopgoerelse-12d.md](erstatningsopgoerelse-12d.md) |
-| 12e | Erstatningsopgørelse – TAF: perioden | Ikke startet | – | – |
+| 12e | Erstatningsopgørelse – TAF: perioden | Afgjort og gennemført | 11 (BB-247–BB-257) | [erstatningsopgoerelse-12e.md](erstatningsopgoerelse-12e.md) |
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Ikke startet | – | – |
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Ikke startet | – | – |
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Ikke startet | – | – |
@@ -580,6 +586,46 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden (12e) – gennemgået 2026-09-24, afgjort og gennemført 2026-09-25
+
+**Afgjort og gennemført 2026-09-25:** ti rettet, ét afvist (BB-254). Fire blev afgjort efter modsvar: **BB-247**
+blev indsnævret, da ferieperioderne viste sig at virke i måneder gennem sygeferiegodtgørelsen – kun «Løse
+ferie-/feriefridage» skjules; **BB-248** spærrer fortsat i alle tre vinduer, nu med rød celle og fladens ordlyd;
+**BB-250** blev godkendt, da afvisningen ramte den tavse afgrænsning, som fundet ikke rørte – overskriften har nu
+BB-217's form; **BB-254** forbliver afvist, også for papirets regnestykke. **To ting rakte ud over fundene:** (1)
+BB-247's relevans følger beregningsenheden, som kan skifte ved en indtastning under Lønindkomst, så reducerens
+rydning af et skjult rødt felt gælder nu enhver ændring, ikke kun et valg (`form-contract.md` §7 pkt. 5). Det
+rettede en eksisterende fejl: «Nummer» fra 2 til 1 med ugyldig tekst i «Svie/smerte-krav i tidligere
+erstatningsopgørelser» kastede en undtagelse. (2) BB-251's linjer navngiver nu tabellen; den fælles tekst «Der er
+overlappende perioder» foldede svie/smerte-, TAF-, ferie- og beregningsgrundlagets overlap til én linje.
+
+**11 fund: tre Høj, fem Mellem, tre Lav – og ét nyt tværgående mønster M-35.** Sektionens to tabeller har mange
+regler, og kun afskæringen fra 12d når cellen: overlap (BB-251), for mange løse feriedage (BB-252) og en
+ferieperiode uden for det vindue, valideringen har lånt fra TAF-perioderne (BB-248), spærrer alle opgørelsen med
+neutrale celler – BB-218's navngivne søskende, bekræftet. **Det nye mønster M-35 er M-32's spejlbillede:** en ny
+sag opgøres i måneder, hvor ferie og løse feriedage ikke fradrages, men ferietabellen og «Løse feriedage» står
+uændret og tager imod – målt 180.000,00 kr. med og uden 11 feriedage og 5 løse (BB-247). BB-217's form to gange
+(BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnens overskrift siger ikke, at den er klemt), M-33's
+TAF-kandidat bekræftet (BB-253), et regnestykke der ikke går op, når «allerede modtaget» overstiger kravet
+(BB-254, «360.000,00 kr. - 500.000,00 kr. = 0,00 kr.»), og tre Lav (BB-255–BB-257). Beregningerne er
+kontrolregnet og i orden. Seks fund afventer udviklerens afgørelse helt eller delvist (BB-247, BB-248(b), BB-254,
+BB-255(b), BB-256, BB-257); resten kan agenten afgøre. Grundlaget står i
+[erstatningsopgoerelse-12e.md](erstatningsopgoerelse-12e.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-247 | I måneder tager ferie og løse feriedage imod oplysninger, der intet gør | **Høj** | Rettet (indsnævret: kun løse feriedage skjules) |
+| BB-248 | En ferieperiode uden for sit vindue spærrer uden rød celle og med en intern besked | **Høj** | Rettet (spærrer fortsat, rød celle) |
+| BB-249 | «Feriedage» tæller hele ferierækken, også dage uden for TAF-perioden | Mellem | Rettet |
+| BB-250 | TAF-kolonnen tæller kun EO-perioden uden at sige det; en række helt uden for står med 0 | Mellem | Rettet efter modsvar |
+| BB-251 | Overlappende TAF- og ferieperioder spærrer uden rød celle | **Høj** | Rettet |
+| BB-252 | For mange løse feriedage spærrer uden rød celle og uden link | Mellem | Rettet |
+| BB-253 | To lag vurderer TAF-rækken; en række med kun løse feriedage spærrer uden link | Mellem | Rettet |
+| BB-254 | «Allerede modtaget» større end kravet giver et regnestykke, der ikke går op | Mellem | Afvist |
+| BB-255 | Beløbsfeltet hedder tre ting | Lav | Rettet |
+| BB-256 | Papirets ferielinje siger «i perioden» to gange | Lav | Rettet |
+| BB-257 | En TAF-periode uden arbejdsdage står i periodelisten, men ikke i beregningen | Lav | Rettet |
 
 ## Erstatningsopgørelse → AES-afgørelser og erstatningsperiodens afgrænsning (12d) – gennemgået, afgjort og gennemført 2026-09-24
 

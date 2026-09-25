@@ -1,6 +1,7 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhedInput } from './tafBeregningsenhed';
 
 /**
  * Relevans-/neutraliseringslag for erstatningsopgørelse-input.
@@ -73,6 +74,22 @@ export const erSvieSmerteTidligereTotalRelevant = (
 /** Tabt arbejdsfortjeneste-sektionen er aktiv (krav medregnes). */
 export const erTabtArbejdsfortjenesteSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'>): boolean =>
   values.kravPaaTabtArbejdsfortjeneste === 'Ja';
+
+/**
+ * TAF-periodernes «Løse ferie-/feriefridage» er relevante: sektionen er aktiv, og TAF opgøres i ARBEJDSDAGE.
+ *
+ * I måneder fradrages løse feriedage ikke (`tafBeregningsenhed.ts`), og hverken TAF-kravet eller
+ * sygeferiegodtgørelsen læser dem – kolonnen skjules da (udviklerafgørelse 2026-09-25, BB-247). Ferie-
+ * PERIODERNE er derimod ikke omfattet: sygeferiegodtgørelsen bruger dem i begge enheder.
+ *
+ * Enheden udledes af «Beregnes ud fra» og – ved en beregningsperiode – af lønindkomstens rækker, så
+ * relevansen kan skifte ved en almindelig indtastning under Lønindkomst, ikke kun ved et valg.
+ */
+export const erTafLoseFeriedageRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'> & TafBeregningsenhedInput
+): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv(values)
+  && computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
 
 /** Øvrige erstatningskrav-sektionen er aktiv (krav medregnes). */
 export const erOevrigeKravSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaOevrigeErstatningskrav'>): boolean =>
@@ -202,6 +219,10 @@ export const neutralizeIrrelevantEoInputs = (
     if (harIndhold(values.tafPerioder, isTafRowEmpty)) patch.tafPerioder = [];
     if (harIndhold(values.ferieperioder, isFerieRowEmpty)) patch.ferieperioder = [];
     if (values.tidligereModtagetTaf !== undefined) patch.tidligereModtagetTaf = undefined;
+  } else if (!erTafLoseFeriedageRelevant(values) && values.tafPerioder.some((row) => row.loseFeriedage !== undefined)) {
+    // I måneder har løse feriedage ingen virkning; neutraliseringen er forsvar i dybden for kald uden reader.
+    patch.tafPerioder = values.tafPerioder.map((row) =>
+      row.loseFeriedage === undefined ? row : { ...row, loseFeriedage: undefined });
   }
 
   // Øvrige erstatningskrav

@@ -303,15 +303,15 @@ const removeRejectedBelowEntity = (
 };
 
 /**
- * §3.6: et styrende valg committer sit eget felt og rydder ÉN snæver klasse af felter med det.
+ * §3.6/§7.5: en ændring, der skjuler et felt med en aktiv rød fejl, rydder feltet i samme transaktion.
  *
  * **Hovedreglen (§7.5):** et valg må ikke slette brugerens indtastninger. Kun eksplicit slettende
  * kontroller – `Slet række`, `Slet alt`, Delete/Backspace på et fokuseret felt – fjerner data, og de er
- * alle navngivet som netop det over for brugeren. Et valg, der skjuler et felt, ændrer derfor kun
+ * alle navngivet som netop det over for brugeren. En ændring, der skjuler et felt, ændrer derfor kun
  * VURDERINGEN af det: værdien består, dens issues genudledes fra det nye snapshot, og den kommer uændret
- * til syne igen, hvis valget skiftes tilbage.
+ * til syne igen, hvis ændringen skiftes tilbage.
  *
- * **Undtagelsen (§7.5 pkt. 2):** bar feltet en AKTIV RØD FEJL i før-snapshottet, og gør valget det
+ * **Undtagelsen (§7.5 pkt. 2):** bar feltet en AKTIV RØD FEJL i før-snapshottet, og gør ændringen det
  * irrelevant (= skjult, §7.3), ryddes feltet tavst i samme transaktion – ét history-trin. Begrundelsen er
  * ikke, at reglen ikke længere gælder; den er, at en rød fejl brugeren ikke kan SE, ikke kan rettes.
  * Uden rydningen kunne en ugyldig indtastning blokere `.eo`-save fra et skjult felt, og brugeren ville
@@ -320,25 +320,57 @@ const removeRejectedBelowEntity = (
  *   - rejected råtekst (formatfejl) – blokerer save globalt (§8), og
  *   - en canonical out-of-bounds-/rule-værdi – blokerer afhængige beregninger og dokumenter.
  *
+ * **Enhver ændring, ikke kun et valg.** Rydningen sad før kun på `setImmediateField`. Men relevans kan også
+ * afhænge af et TEKSTfelt eller en tabels indhold: «Svie/smerte-krav i tidligere erstatningsopgørelser» er
+ * kun relevant fra 2. opgørelse, og «Nummer» er et tekstfelt. Rettede brugeren «Nummer» fra 2 til 1, mens
+ * beløbsfeltet bar ugyldig råtekst, efterlod settle råteksten i et skjult felt, og relevans-invarianten
+ * afviste tilstanden med en undtagelse – indtastningen kunne slet ikke gennemføres. Samme vej går TAF's
+ * «Løse ferie-/feriefridage», hvis relevans følger beregningsenheden, som udledes af lønindkomstens rækker.
+ *
  * Afgrænsningen er snæver med vilje: et skjult felt UDEN rød fejl bevares altid (§7.6). Rydningen rammer
  * altså netop overgangen `synlig+rød → skjult`, ikke skjulte værdier i almindelighed. Undo gendanner
- * både valget og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
+ * både ændringen og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
  */
+const clearFieldsHiddenWhileRed = (
+  input: SettledInput,
+  uncleaned: SettledInputCandidate,
+  catalog: InputCatalog
+): SettledInputCandidate => {
+  // 1. Før-snapshottets inputdrevne relevans. Kun felter MED en relevansregel kan skifte til skjult, så kun de
+  //    vurderes – reducen kører ved hver indtastning, og et lønindkomsttræ har tusinder af felter uden regel.
+  //    Issues udledes først, hvis et felt faktisk skifter.
+  const beforeReader = createValidationReader(input, catalog);
+  const beforeRelevant = catalog.listFieldInstances(input.sections)
+    .filter((field) => field.descriptor.relevance !== undefined && beforeReader.isRelevant(field));
+  if (beforeRelevant.length === 0) return uncleaned;
+
+  // 2. Efter-relevansen på kandidaten; find felter med overgangen relevant → irrelevant.
+  const candidate = catalog.validateSettledInputBeforeRelevanceCleanup(uncleaned);
+  const afterReader = createValidationReader(candidate, catalog);
+  const hidden = beforeRelevant.filter((field) =>
+    catalog.containsAddressEntities(candidate.sections, field.address) && !afterReader.isRelevant(field));
+  if (hidden.length === 0) return uncleaned;
+
+  // 3. Ryd HVIS OG KUN HVIS feltet bar en aktiv rød feltfejl, brugeren nu ikke længere kan se.
+  const beforeIssues = deriveFieldIssueSet(beforeReader, catalog);
+  let cleaned: InputParts = candidate;
+  for (const field of hidden) {
+    if (activeFieldIssue(beforeIssues, serializeFieldAddress(field.address)) === undefined) continue;
+    // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
+    // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
+    // blokere `.eo`-save globalt (§8) fra et skjult felt – præcis den usynlige blokering, undtagelsen
+    // findes for at forhindre.
+    cleaned = withCanonicalValue(cleaned, field, field.descriptor.emptyValue);
+  }
+  return cleaned;
+};
+
 const reduceImmediateChoice = <T>(
   input: SettledInput,
   field: FieldRef<T>,
   value: T,
   catalog: InputCatalog
 ): InputParts => {
-  // 1. Fasthold før-snapshottets aktive feltissues og inputdrevne relevans.
-  const beforeReader = createValidationReader(input, catalog);
-  const beforeIssues = deriveFieldIssueSet(beforeReader, catalog);
-  const beforeFields = catalog.listFieldInstances(input.sections);
-  const beforeRelevant = new Map(
-    beforeFields.map((f) => [serializeFieldAddress(f.address), beforeReader.isRelevant(f)])
-  );
-
-  // 2. Anvend valget på kandidaten.
   assertWritable(input, field, catalog);
   if (field.descriptor.controlKind === 'text') {
     throw new Error('InputReducer: setImmediateField er kun tilladt for choice/toggle');
@@ -347,31 +379,8 @@ const reduceImmediateChoice = <T>(
   if (reparsed.status !== 'valid' || !deepEqual(reparsed.value, value)) {
     throw new Error('InputReducer: immediate-værdien accepteres ikke af feltets codec');
   }
-  let candidate = withCanonicalValue(input, field, value);
-
-  // 3-4. Beregn efter-relevans; find felter med overgangen relevant → irrelevant.
-  const afterReader = createValidationReader(
-    catalog.validateSettledInputBeforeRelevanceCleanup(candidate),
-    catalog
-  );
-
-  for (const beforeField of beforeFields) {
-    const key = serializeFieldAddress(beforeField.address);
-    if (beforeRelevant.get(key) !== true) continue;
-    // Feltet kan være slettet i kandidaten (bør ikke ske ved et rent valg), så guard eksistens.
-    if (!catalog.containsAddressEntities(candidate.sections, beforeField.address)) continue;
-    if (afterReader.isRelevant(beforeField)) continue;
-    // 5. Ryd HVIS OG KUN HVIS feltet bar en aktiv rød feltfejl, brugeren nu ikke længere kan se.
-    if (activeFieldIssue(beforeIssues, key) === undefined) continue;
-    // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
-    // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
-    // blokere `.eo`-save globalt (§8) fra et skjult felt – præcis den usynlige blokering, undtagelsen
-    // findes for at forhindre.
-    candidate = withCanonicalValue(candidate, beforeField, beforeField.descriptor.emptyValue);
-  }
-
-  // 6. Øvrige værdier bevares; validering sker i reduceInputCommand.
-  return candidate;
+  // Øvrige værdier bevares; rydningen af skjulte røde felter sker i `buildCandidate`.
+  return withCanonicalValue(input, field, value);
 };
 
 const buildCandidate = <TField, TEntity>(
@@ -379,6 +388,19 @@ const buildCandidate = <TField, TEntity>(
   command: InputMutationCommand<TField, TEntity>,
   catalog: InputCatalog,
   removeEmptyRows = true
+): SettledInputCandidate => {
+  const candidate = buildUncleanedCandidate(input, command, catalog, removeEmptyRows);
+  // En hel ny sag (indlæst `.eo`, «Ny sag») har ingen før-tilstand at sammenligne relevans med, og en
+  // indlæst fil må aldrig ændres ved indlæsning.
+  if (command.kind === 'replaceCase' || command.kind === 'clearCase') return candidate;
+  return clearFieldsHiddenWhileRed(input, candidate, catalog);
+};
+
+const buildUncleanedCandidate = <TField, TEntity>(
+  input: SettledInput,
+  command: InputMutationCommand<TField, TEntity>,
+  catalog: InputCatalog,
+  removeEmptyRows: boolean
 ): SettledInputCandidate => {
   switch (command.kind) {
     case 'settleField': {

@@ -10,6 +10,11 @@ import {
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
 } from '../validation/oevrigeKravRowValidation';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import {
+  FRA_DATO_IKKE_ANGIVET_MESSAGE,
+  FRA_OG_TIL_DATO_IKKE_ANGIVET_MESSAGE,
+  TIL_DATO_IKKE_ANGIVET_MESSAGE,
+} from '../validation/tafRowRules';
 
 export type EoProjectionTarget = 'beregning' | 'inspektion' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
@@ -65,6 +70,9 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
 const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
   'Fra-dato mangler',
   'Til-dato mangler',
+  FRA_DATO_IKKE_ANGIVET_MESSAGE,
+  TIL_DATO_IKKE_ANGIVET_MESSAGE,
+  FRA_OG_TIL_DATO_IKKE_ANGIVET_MESSAGE,
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
 ]);

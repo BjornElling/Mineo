@@ -252,6 +252,32 @@ const buildPlacedLoseFeriedageForRange = (
   return placeLoseFeriedage(range.fra, range.til, loseFeriedage, blockedLoseFerie);
 };
 
+/**
+ * De feriedage i ÉN ferierække, der ligger inden for `ranges` – dagene, beregningen faktisk fradrager, talt
+ * på samme måde som `buildTafFerieFravaerSummary` (hverdage minus SH-dage i fællesmængden).
+ *
+ * Ferietabellernes kolonne viser dette tal og ikke rækkens egen længde: kolonnen er det eneste, brugeren
+ * kontrollerer sit arbejde mod, og en ferie, der delvist ligger uden for TAF- eller beregningsperioden, blev
+ * før talt med dage, som ingen del af opgørelsen brugte (BB-249, BB-217's form). `null` for en række uden to
+ * gyldige datoer i rigtig orden.
+ */
+export const countFeriedageInRanges = (
+  ferieperiode: Readonly<{ fra?: ISODateString | undefined; til?: ISODateString | undefined }>,
+  ranges: readonly IsoRange[]
+): number | null => {
+  if (!ferieperiode.fra || !ferieperiode.til || ferieperiode.fra > ferieperiode.til) return null;
+  const ferieRange = { fra: ferieperiode.fra, til: ferieperiode.til };
+  const dates = new Set<ISODateString>();
+  for (const range of ranges) {
+    const constrained = intersectIsoRange(ferieRange, range);
+    if (!constrained) continue;
+    for (const dato of buildFerieDageSet([constrained], buildDatoSetInclusive(constrained.fra, constrained.til))) {
+      dates.add(dato);
+    }
+  }
+  return dates.size;
+};
+
 export const buildTafFerieFravaerSummary = (
   rows: ReadonlyArray<TafPeriodeRow>,
   ferieperioder: ReadonlyArray<FerieperiodeRow>,

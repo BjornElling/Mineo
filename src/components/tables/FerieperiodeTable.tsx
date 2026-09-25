@@ -11,7 +11,8 @@ import {
   eoFravaerPeriodeTilField,
   eoFravaerPerioderCollection,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef } from '../../inputCore/fieldAddress';
+import type { FieldIssueSet } from '../../inputCore/inputIssue';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { createEmptyFerieCommittedRow, createFravaerRowId, createTafFerieRowId } from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
 import { useCollectionTable } from './useCollectionTable';
@@ -25,13 +26,28 @@ export type FerieperiodeTableProps = Readonly<{
   committedRows: readonly FerieperiodeRow[];
   feriedageById: Readonly<Record<string, number | null>>;
   saveOrderPath?: TableSaveOrderPath;
+  /**
+   * Rækkereglerne, der ikke kan ligge på descriptoren – overlap og feriens vindue (projekteret fra domænet,
+   * se `tafRowCellIssues.ts`). Leveres pr. celle på feltets EGEN adresse (BB-248, BB-251).
+   */
+  cellIssues?: FieldIssueSet;
 }>;
+
+/**
+ * Kolonnen tæller de feriedage, beregningen fradrager, og overskriften siger rammen (BB-249) – samme form som
+ * «Antal dage (i EO-perioden)» og «TAF-arbejdsdage (i EO-perioden)».
+ */
+const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], string>> = {
+  taf: 'Feriedage (i TAF-perioden)',
+  beregningsperiode: 'Feriedage (i beregningsperioden)',
+};
 
 const FerieperiodeTable = React.memo(({
   kind,
   committedRows,
   feriedageById,
   saveOrderPath,
+  cellIssues,
 }: FerieperiodeTableProps) => {
   const collection = (kind === 'taf' ? eoFerieperioderCollection.template : eoFravaerPerioderCollection.template) as CollectionRef;
   const fraField = kind === 'taf' ? eoFerieperiodeFraField : eoFravaerPeriodeFraField;
@@ -67,7 +83,7 @@ const FerieperiodeTable = React.memo(({
 
   return (
     <StandardLooseTable sx={{
-      width: '520px', tableLayout: 'fixed', mb: 3,
+      width: '620px', tableLayout: 'fixed', mb: 3,
       '& .MuiTableCell-root': { textAlign: 'center', whiteSpace: 'nowrap' },
       '& thead th': { textAlign: 'center' },
     }}>
@@ -75,24 +91,30 @@ const FerieperiodeTable = React.memo(({
         <TableRow>
           <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
           <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('feriedage')}>Feriedage</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 260 }} {...sortableHeader('feriedage')}>{FERIEDAGE_OVERSKRIFT[kind]}</StandardLooseHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {renderRows.map((row) => {
           const committed = table.committedById.get(row.rowId);
+          const fraCell = table.buildCellSpec(row, fraField, 0);
+          const tilCell = table.buildCellSpec(row, tilField, 1);
+          const fraIssue = cellIssues?.get(serializeFieldAddress(fraCell.field.address));
+          const tilIssue = cellIssues?.get(serializeFieldAddress(tilCell.field.address));
           return (
             <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
               <TableCell>
                 <GridDateCell
                   gridCell={{ rowId: row.rowId, colIndex: 0 }}
-                  cell={table.buildCellSpec(row, fraField, 0)}
+                  cell={fraCell}
+                  {...(fraIssue === undefined ? {} : { collectionRuleIssue: fraIssue })}
                 />
               </TableCell>
               <TableCell>
                 <GridDateCell
                   gridCell={{ rowId: row.rowId, colIndex: 1 }}
-                  cell={table.buildCellSpec(row, tilField, 1)}
+                  cell={tilCell}
+                  {...(tilIssue === undefined ? {} : { collectionRuleIssue: tilIssue })}
                 />
               </TableCell>
               <RowDeleteLaneCell>

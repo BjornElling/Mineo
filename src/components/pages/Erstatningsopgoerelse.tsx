@@ -64,7 +64,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             values={vm.eoValues}
             stamdataValues={vm.stamdataValues}
             manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
-            tafCutoffDateIssues={vm.projection.tafCutoffDateIssues}
+            tafCellIssues={vm.projection.tafCellIssues}
             svieSmerteCellIssues={vm.projection.svieSmerteCellIssues}
           />
         </Box>

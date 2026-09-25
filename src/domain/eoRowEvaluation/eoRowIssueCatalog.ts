@@ -47,6 +47,7 @@ import {
   eoTafArbejdsstatusField,
   eoTafBeregningsperiodeFraField,
   eoTafPeriodeFraField,
+  eoTafPeriodeLoseFeriedageField,
   eoTafPeriodeTilField,
   eoTidligereModtagetTafField,
   eoTidligereSsMaxField,
@@ -412,6 +413,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
 
   const tafRowId = rowIdSuffix(row.id, 'taf.periode.');
   if (tafRowId) {
+    if (hint === 'loseFeriedage') return target(eoTafPeriodeLoseFeriedageField.bind(tafRowId));
     return target(dateFieldFromHint(hint, message, eoTafPeriodeFraField, eoTafPeriodeTilField).bind(tafRowId));
   }
 

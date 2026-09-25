@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-09-24 (§4.13, §4.14 og §4.16: afgørelses- og differencekravsdatoer efter
+**Senest verificeret mod kode:** 2026-09-25 (feltet hedder «Løse ferie-/feriefridage». Tidligere 2026-09-24: §4.13, §4.14 og §4.16: afgørelses- og differencekravsdatoer efter
 `Opgørelse lavet den` får en gul, ikke-blokerende ring; en ménafgørelse uden dato trykkes; differencekravet er
 opgjort «pr.». Tidligere 2026-09-23: §4.6a henviser til satsårets juridiske regel i `eo-snapshot-contract.md` §16.
 Tidligere 2026-09-08: §1.5 er NY og implementeret: autofill-suggest er kodet
@@ -705,7 +705,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   0–99 giver 2. Udledningen er ikke kosmetisk: den gør det umuligt for indtastningsgrænsen og
   talværdigrænsen at komme fra hinanden, hvis maksimum senere ændres.
 - **Felter uden øvre domænemaksimum – i praksis «antal dage»-felterne – har 4 cifre** (op til 9999 dage).
-  Det gælder `Uspecificerede ferie-/fridage`, `Øvrige fraværsdage`, `Løse feriedage` og `Fraværsdage uden
+  Det gælder `Uspecificerede ferie-/fridage`, `Øvrige fraværsdage`, `Løse ferie-/feriefridage` og `Fraværsdage uden
   løn i referenceperioden`.
 - **Cifferloftet er en LÆNGDEregel og løsner aldrig feltets talværdigrænse.** En værdi inden for
   cifferantallet, men uden for feltets interval, skal fortsat kunne indtastes og bevares som canonical

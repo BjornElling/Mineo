@@ -1,28 +1,19 @@
 import type { ISODateString } from '../../../types/branded';
-import { computeRowDateBounds } from '../helpers/rowDateBounds';
-import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
-import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } from '../../../config/dateRanges';
-import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
-import { resolveSkadestypeDatoLabel } from '../../../domain/policies/stamdataCalculations';
-import {
-  computeTafCombinedExtraMaxDate,
-  type TafPeriodeBoundsContext,
-  type TafPeriodeEvaluation,
-} from './tafPeriodeValidation';
+import { isNonEmptyString } from './eoDateRangeMessages';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
+import type { TafPeriodeEvaluation } from './tafPeriodeValidation';
+import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, FERIE_OVERLAP_LINJE } from './tafRowRules';
 
 /**
- * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`).
+ * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`) – linjen i
+ * «Fejl og advarsler».
  *
- * AUTORITATIV kilde til om en ferieperiode blokerer (komplethed, dato-grænser, overlap) – disse
- * tjek findes IKKE i `erstatningsopgoerelseValidator` (som slet ikke validerer ferieperioder), så
- * de var hidtil kun håndhævet inde i DEV-kontrol-builderens display-formattering (jf. B9).
- *
- * Deler dato-grænserne (`computeTafCombinedExtraMaxDate`, skadedato-min) med TAF-periode-
- * valideringen. Bemærk de bevidste forskelle fra TAF-perioder, der bevares 1:1:
- *  - ingen cutoff-efter-differencekrav/EET-fejl (kun selve dato-intervallet),
- *  - ingen eksplicit rækkefølge-besked (fra>til fanges via interval-grænsen),
- *  - til-dato-årsagsteksten nævner ikke midlertidigt EET (selv om grænsen indeholder det).
+ * Rækkens datoregler ligger IKKE her længere. Feriens vindue (skadedato, dags dato, afskæringerne) og
+ * overlappet projekteres til cellerne i `tafRowCellIssues.ts`, hvor de farver cellen og blokerer TAF-grenen
+ * som enhver rød feltfejl (BB-248, BB-251); dato-orden og systemrammen bærer descriptoren selv. Her samles
+ * rækkens røde celler og dens manglende datoer til ÉN linje med rækkens navn (BB-253) – så cellen og linjen
+ * aldrig siger to forskellige ting om samme dato.
  */
 
 export type FerieperiodeRowInput = Readonly<{
@@ -31,111 +22,52 @@ export type FerieperiodeRowInput = Readonly<{
   til?: ISODateString;
 }>;
 
+export type FerieperiodeCellIssues = Readonly<{
+  fra?: FieldIssue | undefined;
+  til?: FieldIssue | undefined;
+}>;
+
+const isRed = (issue: FieldIssue | undefined): issue is FieldIssue =>
+  issue !== undefined && issue.severity === 'error' && issue.message.trim() !== '';
+
+const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
+  isRed(issue) && !issue.code.endsWith('.overlap');
+
 const evaluateOne = (
   periode: FerieperiodeRowInput,
+  cellIssues: FerieperiodeCellIssues,
   hasOverlap: boolean,
-  skadedatoMinRule: ReturnType<typeof computeSkadedatoMinRule>,
-  combinedExtraMaxDate: ISODateString | undefined,
-  context: TafPeriodeBoundsContext
 ): TafPeriodeEvaluation => {
-  const hasFra = isNonEmptyString(periode.fra);
-  const hasTil = isNonEmptyString(periode.til);
-  const filledCount = [hasFra, hasTil].filter(Boolean).length;
-  if (filledCount === 0) return { kind: 'skip' };
-  if (filledCount !== 2) {
-    return hasFra
-      ? { kind: 'error', message: 'Til-dato er ikke angivet', field: 'til' }
-      : { kind: 'error', message: 'Fra-dato er ikke angivet', field: 'fra' };
+  const harFra = isNonEmptyString(periode.fra) || isRed(cellIssues.fra);
+  const harTil = isNonEmptyString(periode.til) || isRed(cellIssues.til);
+  if (!harFra && !harTil) return { kind: 'skip' };
+
+  const dele: Array<Readonly<{ message: string; field: 'fra' | 'til' }>> = [];
+  if (isRowLineIssue(cellIssues.fra)) dele.push({ message: cellIssues.fra.message.trim(), field: 'fra' });
+  if (isRowLineIssue(cellIssues.til)) dele.push({ message: cellIssues.til.message.trim(), field: 'til' });
+  const mangler = assessPeriodeDatoMangler(harFra, harTil);
+  if (mangler) dele.push(mangler);
+
+  if (dele.length === 0) {
+    return hasOverlap ? { kind: 'error', message: FERIE_OVERLAP_LINJE, field: 'fra' } : { kind: 'ok' };
   }
-
-  const fraISO = periode.fra;
-  const tilISO = periode.til;
-  const stamdataDatoLabel = resolveSkadestypeDatoLabel(
-    context.erErhvervssygdom ? 'Erhvervssygdom' : undefined
-  );
-  if (!fraISO || !tilISO) return { kind: 'error', message: 'Ugyldig dato' };
-
-  const bounds = computeRowDateBounds({
-    skadedatoMinDate: skadedatoMinRule.minDate,
-    rowFra: fraISO,
-    rowTil: tilISO,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-    fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-    tilFallbackMax: getToday(),
-    tilExtraMaxDate: combinedExtraMaxDate,
-    useTilExtraMaxDate: true,
-  });
-
-  const fraNoValidRangeCause = (() => {
-    const parts: string[] = [];
-    if (skadedatoMinRule.minBoundKind) parts.push(stamdataDatoLabel);
-    if (tilISO) parts.push('til-dato i samme række');
-    return parts.length > 0 ? parts.join(', ') : undefined;
-  })();
-
-  const tilNoValidRangeCause = (() => {
-    const parts: string[] = [];
-    if (skadedatoMinRule.minBoundKind && (!fraISO || fraISO <= skadedatoMinRule.minDate)) {
-      parts.push(stamdataDatoLabel);
-    }
-    if (fraISO) parts.push('fra-dato i samme række');
-    parts.push('dags dato');
-    if (context.differencekravDato) parts.push('differencekrav-dato');
-    if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
-    return parts.join(', ');
-  })();
-
-  const validateRowDate = (
-    iso: ISODateString,
-    minDate: ISODateString,
-    maxDate: ISODateString,
-    noValidRangeCause: string | undefined
-  ): string | undefined => {
-    if (minDate > maxDate) {
-      return buildNoValidDateRangeMessage({ minDate, maxDate, noValidRangeCause });
-    }
-    const result = validateISODateRange(iso, minDate, maxDate);
-    return result.isValid ? undefined : result.errorMessage;
+  const beskeder = [...new Set(dele.map((del) => del.message))];
+  if (hasOverlap) beskeder.push(FERIE_OVERLAP_LINJE);
+  return {
+    kind: 'error',
+    message: `${buildPeriodeRaekkeNavn('Ferieperioden', periode)}: ${beskeder.join('; ')}`,
+    field: dele[0]!.field,
   };
-
-  const fraRangeMessage = validateRowDate(fraISO, bounds.fra.min, bounds.fra.max, fraNoValidRangeCause);
-  const tilRangeMessage = validateRowDate(tilISO, bounds.til.min, bounds.til.max, tilNoValidRangeCause);
-  const computedRangeMessages = [fraRangeMessage, tilRangeMessage].filter(
-    (m): m is string => typeof m === 'string' && m.trim() !== ''
-  );
-
-  if (hasOverlap || computedRangeMessages.length > 0) {
-    // Fra og til kan ramme samme grænse med samme ordlyd; linjen må ikke gentage sig selv (BB-244).
-    const message = hasOverlap ? 'Der er overlappende perioder' : [...new Set(computedRangeMessages)].join('; ');
-    const field: 'fra' | 'til' | undefined = hasOverlap
-      ? undefined
-      : fraRangeMessage
-        ? 'fra'
-        : 'til';
-    return { kind: 'error', message, field };
-  }
-
-  return { kind: 'ok' };
 };
 
 export const evaluateFerieperioder = (
   ferieperioder: ReadonlyArray<FerieperiodeRowInput>,
-  context: TafPeriodeBoundsContext
+  cellIssues: (rowId: string) => FerieperiodeCellIssues,
 ): ReadonlyMap<string, TafPeriodeEvaluation> => {
   const overlappingIds = detectOverlappingPeriods(ferieperioder);
-  const skadedatoMinRule = computeSkadedatoMinRule({
-    skadedatoISO: context.skadedatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-  });
-  const combinedExtraMaxDate = computeTafCombinedExtraMaxDate(context);
-
   const result = new Map<string, TafPeriodeEvaluation>();
   for (const periode of ferieperioder) {
-    result.set(
-      periode.id,
-      evaluateOne(periode, overlappingIds.has(periode.id), skadedatoMinRule, combinedExtraMaxDate, context)
-    );
+    result.set(periode.id, evaluateOne(periode, cellIssues(periode.id), overlappingIds.has(periode.id)));
   }
   return result;
 };

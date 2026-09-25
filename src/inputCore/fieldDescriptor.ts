@@ -4,6 +4,7 @@ import { cloneAndDeepFreeze } from '../utils/deepFreeze';
 import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import {
   createFieldAddress,
+  type CollectionRef,
   type FieldAddress,
   type SectionKey,
 } from './fieldAddress';
@@ -48,9 +49,15 @@ export type CanonicalWrite<T> = (
 /**
  * Ren canonical-læsning uden issues (§3.4 pkt. 1). Relevansregler og feltvalidatorer læser HER, aldrig
  * gennem den offentlige reader – så feltvurderingen ikke bliver cirkulær.
+ *
+ * `listEntityIds` giver en samlings aktuelle række-id'er i rækkefølge, så en regel kan binde felterne i
+ * hver række. Uden den kunne en relevansregel kun afhænge af felter med fast adresse – og en regel, der
+ * afhænger af en tabels indhold (fx TAF's beregningsenhed, som udledes af lønindkomstens rækker), måtte
+ * enten genskabes et andet sted eller slet ikke udtrykkes.
  */
 export type CanonicalView = Readonly<{
   readCanonical: <V>(field: FieldRef<V>) => V;
+  listEntityIds: (collection: CollectionRef) => readonly string[];
 }>;
 
 /**

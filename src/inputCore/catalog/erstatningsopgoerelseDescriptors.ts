@@ -12,8 +12,8 @@ import type {
   Tilstand,
 } from '../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseEmptySection';
 import {
-  erstatningsopgoerelseSchema,
   type FerieperiodeRow,
   type OevrigeKravRow,
   type OffentligeYdelserRow,
@@ -72,8 +72,10 @@ import {
   erSvieSmerteSektionAktiv,
   erSvieSmerteTidligereTotalRelevant,
   erTabtArbejdsfortjenesteSektionAktiv,
+  erTafLoseFeriedageRelevant,
   erVarigeMenAfgoerelseAktiv,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { readTafBeregningsenhedEmployments } from './erstatningsopgoerelseLoenDescriptors';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, originWhenNarrowed, systemrammeSpec } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
@@ -110,12 +112,6 @@ import {
 // Produkt-descriptors for `erstatningsopgoerelse`-sektionen (§3.2): top-level skalarer (incl. nested
 // bilagsvalgs-booleans) og de rene top-level samlinger med deres rækkefelter. Lønindkomstens/EO-angivet løns
 // nested træ ligger i `erstatningsopgoerelseLoenDescriptors.ts`.
-//
-// Den tomme sektion er den fulde canonical default: `loenindkomstAnsaettelsesforhold` er en påkrævet (ikke-
-// defaultet) array, så den skal angives eksplicit for at parse.
-
-export const createEmptyErstatningsopgoerelseSection = (): unknown =>
-  erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
 
 const S = 'erstatningsopgoerelse' as const;
 
@@ -369,6 +365,22 @@ const svieSmerteTidligereTotalRelevant = (view: CanonicalView): boolean =>
   });
 const tafSektionAktiv = (view: CanonicalView): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv({ kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField) });
+// Enheden læser hele lønindkomsttræet, og reglen kaldes for hver TAF-række; svaret huskes derfor pr. view,
+// som er bundet til én uændrelig inputtilstand.
+const tafLoseFeriedageRelevansPrView = new WeakMap<CanonicalView, boolean>();
+const tafLoseFeriedageRelevant = (view: CanonicalView): boolean => {
+  const cached = tafLoseFeriedageRelevansPrView.get(view);
+  if (cached !== undefined) return cached;
+  const relevant = erTafLoseFeriedageRelevant({
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+    tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
+    tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
+    loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
+  });
+  tafLoseFeriedageRelevansPrView.set(view, relevant);
+  return relevant;
+};
 const oevrigeKravSektionAktiv = (view: CanonicalView): boolean =>
   erOevrigeKravSektionAktiv({ kravPaaOevrigeErstatningskrav: readEo(view, eoKravPaaOevrigeErstatningskravField) });
 const varigeMenAfgoerelseAktiv = (view: CanonicalView): boolean =>
@@ -685,7 +697,13 @@ export const eoTafArbejdsstatusField = choiceField<Arbejdsstatus>('tafArbejdssta
 export const eoSidsteDagAnsaettelsesforholdField = dateField(
   'sidsteDagAnsaettelsesforhold', 'Sidste dag i ansættelsesforhold', dateBounds(systemrammeSpec),
 );
-export const eoTidligereModtagetTafField = amountField('tidligereModtagetTaf', 'Tidligere modtaget TAF', whenEo(tafSektionAktiv));
+// Skærmens tekst, som svie/smertes tvillingefelt (BB-224): «Tidligere modtaget TAF» kunne læses som
+// tidligere opgørelser, som feltet netop ikke handler om (BB-255).
+export const eoTidligereModtagetTafField = amountField(
+  'tidligereModtagetTaf',
+  'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
+  whenEo(tafSektionAktiv),
+);
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
 export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse', 'Ja');
@@ -825,11 +843,13 @@ export const eoTafPeriodeLoseFeriedageField = defineStructuralField<number | und
   }),
   emptyValue: undefined,
   isEmpty: isUndefined,
-  label: 'Løse feriedage',
+  // Kolonnens tekst: dagene kan være både feriedage og feriefridage (BB-256).
+  label: 'Løse ferie-/feriefridage',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   validators: [integerBoundsValidator('eo.tafPerioder.loseFeriedage.bounds', 0, undefined)],
-  relevance: whenEo(tafSektionAktiv),
+  // Skjult, når TAF opgøres i måneder (BB-247); se `erTafLoseFeriedageRelevant`.
+  relevance: whenEo(tafLoseFeriedageRelevant),
 });
 
 // ferieperioder

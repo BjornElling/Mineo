@@ -50,7 +50,7 @@ import {
   weekYearBoundsValidator,
   yearStringBoundsValidator,
 } from './boundsValidators';
-import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseDescriptors';
+import { createEmptyErstatningsopgoerelseSection } from './erstatningsopgoerelseEmptySection';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
 import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
 import {
@@ -58,6 +58,8 @@ import {
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { resolveStamdataDatoReferenceFromView } from './stamdataDescriptors';
+import { createCollectionRef, type CollectionRef } from '../fieldAddress';
+import type { TafBeregningsenhedEmployment, TafBeregningsenhedLoenRow } from '../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   erAnsaettelsesforholdOphoertRelevant,
   erSidsteArbejdsdagRelevant,
@@ -352,6 +354,50 @@ export const eoStandardRowFields = {
 } as const;
 
 const standardRowFields = Object.values(eoStandardRowFields);
+
+const standardRowsOf = (employmentId: string): CollectionRef => createCollectionRef({
+  section: S,
+  path: [{ kind: 'entity', collection: EMPLOYMENTS, entityId: employmentId }],
+  collection: STANDARD_ROWS,
+});
+
+/**
+ * Lønindkomstens ansættelsesforhold, som `computeTafBeregningsenhed` læser dem, bygget fra en `CanonicalView`.
+ * Bruges af relevansreglen for TAF-periodernes «Løse ferie-/feriefridage», hvis relevans følger
+ * beregningsenheden (BB-247).
+ *
+ * Rækkerne og deres felter læses DOVENT: reglen kaldes, hver gang en reader dannes, og et lønindkomsttræ kan
+ * have flere hundrede rækker. Afgørelsen stopper ved første række med løn i beregningsperioden og læser kun
+ * en rækkes beløb, når dens periode rammer – så en fuld læsning af træet ikke lægges oven i hver indtastning.
+ */
+export const readTafBeregningsenhedEmployments = (view: CanonicalView): readonly TafBeregningsenhedEmployment[] =>
+  view.listEntityIds(eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef).map((employmentId) => {
+    const e = eoEmploymentFields;
+    const r = eoStandardRowFields;
+    const rows = function* (): Generator<TafBeregningsenhedLoenRow> {
+      for (const rowId of view.listEntityIds(standardRowsOf(employmentId))) {
+        const read = <T,>(descriptor: FieldDescriptor<T>): T => view.readCanonical(descriptor.bind(employmentId, rowId));
+        yield {
+          get col0_maaned() { return read(r.col0_maaned); },
+          get col1_maaned() { return read(r.col1_maaned); },
+          get col0_uge() { return read(r.col0_uge); },
+          get col1_uge() { return read(r.col1_uge); },
+          get col0_dag() { return read(r.col0_dag); },
+          get col1_dag() { return read(r.col1_dag); },
+          get col2() { return read(r.col2); },
+          get col3() { return read(r.col3); },
+          get col4() { return read(r.col4); },
+          get col5() { return read(r.col5); },
+        };
+      }
+    };
+    return {
+      loenPaaHelligdage: view.readCanonical(e.loenPaaHelligdage.bind(employmentId)),
+      fuldLoenUnderFerie: view.readCanonical(e.fuldLoenUnderFerie.bind(employmentId)),
+      loenperiode: view.readCanonical(e.loenperiode.bind(employmentId)),
+      indtaegtsoplysningerTableData: { [Symbol.iterator]: rows },
+    };
+  });
 
 // ── Nested manuel-lønudviklings-tabeller (delt mellem de to ejere) ──────────────────
 export type ManualBindings = Readonly<{

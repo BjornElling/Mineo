@@ -134,6 +134,17 @@ const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
   },
 };
 
+/**
+ * Samme afskæringer set fra en ferieperiode. En ferie, der ligger efter afskæringen, fradrages aldrig, men
+ * spærrer fortsat opgørelsen (udviklerafgørelse 2026-09-25, BB-248): brugeren skal have et incitament til at
+ * rette den, før en senere ændret periode gør den virksom. Beskeden siger derfor, HVORFOR datoen ikke går.
+ */
+const FERIE_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, (dateText: string) => string>> = {
+  differencekrav: (d) => `Ferien ligger efter den dato, differencekravet er opgjort pr. (${d})`,
+  endeligEet: (d) => `Ferien ligger efter afgørelsen om endeligt erhvervsevnetab (${d})`,
+  midlertidigEet: (d) => `Ferien ligger efter afgørelsen om midlertidigt erhvervsevnetab (${d})`,
+};
+
 /** De afskæringer, `value` ligger på eller efter, i datoorden. */
 const collectTafCutoffsRamtAf = (
   value: ISODateString | undefined,
@@ -159,6 +170,15 @@ export const buildTafCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
   const ramt = collectTafCutoffsRamtAf(args.value, args);
   if (ramt.length === 0) return undefined;
   return ramt.map((cutoff) => TAF_CUTOFF_TEKST[cutoff.kilde].efter(formatCutoffDato(cutoff.dato))).join('; ');
+};
+
+/** En ferieperiodedatos afskæringsbesked – cellens tooltip (BB-248). */
+export const buildFerieCutoffErrorMessage = (args: TafCutoffDatoer & Readonly<{
+  value: ISODateString | undefined;
+}>): string | undefined => {
+  const ramt = collectTafCutoffsRamtAf(args.value, args);
+  if (ramt.length === 0) return undefined;
+  return ramt.map((cutoff) => FERIE_CUTOFF_TEKST[cutoff.kilde](formatCutoffDato(cutoff.dato))).join('; ');
 };
 
 /**

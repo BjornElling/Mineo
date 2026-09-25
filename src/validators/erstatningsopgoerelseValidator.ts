@@ -26,6 +26,12 @@ import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoere
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
+import {
+  assessPeriodeDatoMangler,
+  buildTafLoseFeriedageMaxMessage,
+  resolveTafLoseFeriedageMaksimum,
+  TAF_OVERLAP_LINJE,
+} from '../domain/erstatningsopgoerelse/validation/tafRowRules';
 import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
@@ -50,11 +56,6 @@ import {
 } from '../domain/erstatningsopgoerelse/engines/sfggReferencesats';
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
 import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
-import {
-  clampTafRow,
-  getValidTafRange,
-  resolveTafConstraintBounds,
-} from '../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
@@ -73,7 +74,8 @@ import {
 } from '../domain/satser/opreguleringsmotorer';
 import { formatAslAarsloensmaksimumMissingForYears } from '../domain/satser/aslAarsloensmaksimum';
 
-export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
+// Samme ordlyd som «Fejl og advarsler»s linje, så de to lag aldrig siger to ting om samme overlap (M-33).
+export const TAF_OVERLAP_ERROR_MESSAGE = TAF_OVERLAP_LINJE;
 
 // =============================================================================
 // LAG 1: SCHEMA-VALIDERING
@@ -801,44 +803,20 @@ type ErstatningsopgoerelseValidationOptions = Readonly<{
   skadestype?: StamdataValues['skadestype'] | undefined;
 }>;
 
+/**
+ * For mange løse feriedage i en TAF-række. Reglen og dens ordlyd ligger i `tafRowRules.ts`, som også
+ * projekterer den til cellen (`tafRowCellIssues.ts`), så validatoren og den røde celle aldrig er uenige.
+ */
 export function validateTafLoseFeriedage(
   values: ErstatningsopgoerelseValues,
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] {
-  const errors: ValidationError[] = [];
-  const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
-  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: options?.skadedatoISO });
-
-  for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
-    const row = values.tafPerioder[i];
-    if (typeof row.loseFeriedage !== 'number') continue;
-    const clampedRange = clampTafRow(row, tafBounds);
-    if (!clampedRange) {
-      // Rå rækker uden gyldig dato håndteres af rækkevalideringen ovenfor.
-      // Når en ellers gyldig TAF-række clampes helt bort, følger vi EO-kontrakten:
-      // perioden indgår ikke i den autoritative beregning, og løse feriedage må ikke blokere.
-      if (!getValidTafRange(row)) continue;
-      continue;
-    }
-
-    const breakdown = calculateTafArbejdsdageBreakdown(
-      clampedRange.fra,
-      clampedRange.til,
-      ferieperioder,
-      row.loseFeriedage,
-      { kind: 'taf' }
-    );
-    if (!breakdown) continue;
-    if (row.loseFeriedage <= breakdown.loseFeriedage) continue;
-
-    errors.push({
-      path: `tafPerioder[${i}].loseFeriedage`,
-      message: `Løse feriedage overstiger mulige arbejdsdage i perioden (maksimalt ${breakdown.loseFeriedage})`,
-      severity: 'error',
-    });
-  }
-
-  return errors;
+  return (values.tafPerioder ?? []).flatMap((row, i) => {
+    const maksimum = resolveTafLoseFeriedageMaksimum(row, values, options?.skadedatoISO);
+    return maksimum === undefined
+      ? []
+      : [{ path: `tafPerioder[${i}].loseFeriedage`, message: buildTafLoseFeriedageMaxMessage(maksimum), severity: 'error' as const }];
+  });
 }
 
 export function validateBeregningsperiodeLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
@@ -870,36 +848,19 @@ export function validateBeregningsperiodeLoseFeriedage(values: Erstatningsopgoer
 }
 
 /**
- * Validér at en ikke-tom TAF-række er fuldt udfyldt
+ * Validér at en ikke-tom TAF-række er fuldt udfyldt. Manglerne siges som i «Fejl og advarsler»
+ * (`assessPeriodeDatoMangler`): én besked pr. række, også for en række med kun løse feriedage (BB-253).
  */
 function validateTafRowCompleteness(row: TafPeriodeRow, index: number): ValidationError[] {
-  return validateFerieperiodeRowCompleteness(row, `tafPerioder[${index}]`);
-}
-
-function validateFerieperiodeRowCompleteness(
-  row: Readonly<{ fra?: string; til?: string }>,
-  prefix: string
-): ValidationError[] {
-  const errors: ValidationError[] = [];
-
+  const prefix = `tafPerioder[${index}]`;
   const hasFra = typeof row.fra === 'string' && row.fra.trim() !== '';
   const hasTil = typeof row.til === 'string' && row.til.trim() !== '';
-
-  if (!hasFra) {
-    errors.push({ path: `${prefix}.fra`, message: 'Fra-dato mangler', severity: 'error' });
+  const mangler = assessPeriodeDatoMangler(hasFra, hasTil);
+  if (mangler) return [{ path: `${prefix}.${mangler.field}`, message: mangler.message, severity: 'error' }];
+  if (isISODateString(row.fra) && isISODateString(row.til) && row.fra > row.til) {
+    return [{ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' }];
   }
-  if (!hasTil) {
-    errors.push({ path: `${prefix}.til`, message: 'Til-dato mangler', severity: 'error' });
-  }
-
-  // isISODateString-guards er type narrowing – format er garanteret af Zod-schema.
-  if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
-    if (row.fra > row.til) {
-      errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
-    }
-  }
-
-  return errors;
+  return [];
 }
 
 /**

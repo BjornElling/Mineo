@@ -3,7 +3,7 @@ import type { DeepReadonly } from '../../../types/deepReadonly';
 import { parseISODate } from '../../../types/branded';
 import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../standardLoen/standardLoenTableValidation';
 import { type DateInterval } from '../../../utils/isoDateHelpers';
-import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
+import { parseAarsloenRowInterval, type AarsloenRowPeriodColumns } from '../../aarsloen/aarsloenRowInterval';
 
 export const TAF_BEREGNES_SOM = {
   MAANEDER: 'Måneder',
@@ -45,9 +45,13 @@ export const TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR = 0.048;
 
 const ALMINDELIG_LOEN_PAA_HELLIGDAGE: LoenPaaHelligdage = 'Almindelig løn';
 const JA: JaNej = 'Ja';
-const AMOUNT_KEYS: ReadonlyArray<keyof StandardLoenTableRow> = ['col2', 'col3', 'col4', 'col5'];
+const AMOUNT_KEYS = ['col2', 'col3', 'col4', 'col5'] as const;
 
-const rowHasIndtastetLoen = (row: StandardLoenTableRow): boolean => {
+/** De kolonner i en lønrække, enheden afhænger af: periodens datoer og de fire beløbskolonner. */
+export type TafBeregningsenhedLoenRow = AarsloenRowPeriodColumns
+  & Pick<StandardLoenTableRow, (typeof AMOUNT_KEYS)[number]>;
+
+const rowHasIndtastetLoen = (row: TafBeregningsenhedLoenRow): boolean => {
   return AMOUNT_KEYS.some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 };
 
@@ -60,11 +64,12 @@ const employmentHasOverlappendeIndtastetLoen = (
   beregningsperiode: DateInterval
 ): boolean => {
   const rows = employment.indtaegtsoplysningerTableData ?? [];
+  // Perioden prøves før beløbene: resultatet er det samme, men en række uden for beregningsperioden
+  // behøver da ikke få sine beløb læst. Det betyder noget for relevansreglen, som læser felt for felt.
   for (const row of rows) {
-    if (!rowHasIndtastetLoen(row)) continue;
     const interval = parseAarsloenRowInterval(row, employment.loenperiode);
-    if (!interval) continue;
-    if (hasOverlap(interval, beregningsperiode)) return true;
+    if (!interval || !hasOverlap(interval, beregningsperiode)) continue;
+    if (rowHasIndtastetLoen(row)) return true;
   }
   return false;
 };
@@ -99,12 +104,25 @@ const employmentHasOverlappendeIndtastetLoen = (
  * - Funktionen er ren (pure) og må kun afhænge af schema-valideret (committed) input.
  * - Ingen UI-draft state, ingen side effects.
  */
+/**
+ * Kun de felter, afgørelsen faktisk læser. Typen er smal med vilje: descriptorens relevansregel for «Løse
+ * ferie-/feriefridage» bygger inputtet fra en `CanonicalView` og skal kunne give præcis dette – ikke et helt
+ * ansættelsesforhold. Rækkerne er en `Iterable`, så reglen kan levere dem dovent og kun læse de rækker og
+ * felter, afgørelsen når frem til.
+ */
+export type TafBeregningsenhedEmployment = DeepReadonly<
+  Pick<
+    ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+    'loenPaaHelligdage' | 'fuldLoenUnderFerie' | 'loenperiode'
+  >
+> & Readonly<{ indtaegtsoplysningerTableData?: Iterable<TafBeregningsenhedLoenRow> | undefined }>;
+
 export type TafBeregningsenhedInput = Readonly<{
   // Inputtet er beregnet til brug i engines og må være DeepReadonly.
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   tafBeregningsperiodeFra?: ErstatningsopgoerelseValues['tafBeregningsperiodeFra'];
   tafBeregningsperiodeTil?: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
-  loenindkomstAnsaettelsesforhold: ReadonlyArray<DeepReadonly<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]>>;
+  loenindkomstAnsaettelsesforhold: ReadonlyArray<TafBeregningsenhedEmployment>;
 }>;
 
 export const computeTafBeregningsenhed = (values: TafBeregningsenhedInput): TafBeregningsenhed => {

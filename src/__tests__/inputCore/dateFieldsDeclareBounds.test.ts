@@ -45,6 +45,7 @@ const emptyView = {
 const ACTIVE_DEPENDENCY_DATE = '2020-01-01';
 const activeDependencyView = {
   readCanonical: <T>(_field: FieldRef<T>): T => ACTIVE_DEPENDENCY_DATE as T,
+  listEntityIds: () => [],
 } as CanonicalView;
 
 const dateFields = productionInputFields.filter((field) => field.codec.family === 'date');
