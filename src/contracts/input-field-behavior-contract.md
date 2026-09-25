@@ -3,34 +3,12 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-09-25 (feltet hedder «Løse ferie-/feriefridage». Tidligere 2026-09-24: §4.13, §4.14 og §4.16: afgørelses- og differencekravsdatoer efter
-`Opgørelse lavet den` får en gul, ikke-blokerende ring; en ménafgørelse uden dato trykkes; differencekravet er
-opgjort «pr.». Tidligere 2026-09-23: §4.6a henviser til satsårets juridiske regel i `eo-snapshot-contract.md` §16.
-Tidligere 2026-09-08: §1.5 er NY og implementeret: autofill-suggest er kodet
-generelt i `src/inputCore/autofill/` og aktiveret i EO's løntabeller og Offentlige ydelser. Afsnittet blev
-SKREVET OM natten til den 8., efter at udvikleren kørte funktionen og fotograferede tre tabeltilstande med
-forkerte forslag. De tre regler er nærmest hele afsnittet nu, og hver af de fejl, de kom af, er målt:
-ghosten står kun under en udfyldt CELLE i samme kolonne (en rækkeprøve lod årskolonnen foreslå to celler
-under det seneste årstal); månedsserien tæller hele månedskolonnen med UDLEDTE årstal (en måned uden
-årstal faldt ud af serien, så 1, 2, 3, 4 foreslog 4); måneden fremskrives også fra én prøve, mens uge og
-dato bevidst ikke gør; årskolonnen gentager cellen ovenover, når der ingen måned/år-serie er; og beløb og
-dropdownvalg gentager cellen ovenover uden mønsterkrav og uden årsskifte-standsning (en uge-tabel med
-faldende periodeårstal fik ellers ingen beløbs-ghost nogen steder). Et adversarielt review forud for
-omskrivningen gav periodeseriens invarianter, også hver for sig målt: nulskridt kasseres før mønstervalget (6, 6 foreslog 6
-igen), blandede retninger giver intet forslag (1, 2, 1 foreslog december året før), en uafgjort strid
-mellem to kadencer af samme art giver intet forslag (01-01, 15-01, 01-02 foreslog 18-02), en årsløs
-månedskolonne bærer kun skridt på ±1 (6, 1 foreslog august, fordi skridtet blev regnet modulært og fik
-fortegnet vendt), og samme-dag-mønstret bærer sin nominelle dag (30-01, 28-02 foreslog 29-03). Uafhængigt
-heraf gælder fortsat: tomhedsprøven læser den AFSLUTTEDE værdi (ellers skrev
-«markér alt, slet, Enter» forslaget), ghosten ryddes når fokus forlader tabellen, uafgjorte skridt afgøres
-af basisskridtet (et hul gav ellers juni frem for maj), årsforslaget følger sit eget månedsforslag i en
-faldende serie, og autofill-accept følger præcis samme Enter-navigation som en manuelt afsluttet
-indtastning. Mønstre og måned/år-koblingen er målt af
-`src/__tests__/inputCore/autofill/autofillSeries.test.ts` og
-`src/__tests__/inputCore/autofill/autofillSuggestEngine.test.ts`; de tre fotograferede tabeltilstande
-celle for celle af `src/__tests__/inputCore/autofill/autofillSuggestSkaermbilleder.test.ts`; ghostens
-synlighed, Enter-accept gennem den almindelige navigation og Enter-navigation uden ghost af
-`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`)
+**Senest verificeret mod kode:** 2026-09-25 (feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
+revideret efter gennemgang af brugernes forventninger og fejlskærmbilleder: forslag kræver to foregående
+rækker, periodemønstre begrænses til faste uge- og månedsintervaller, sammenhængende fra-/til-perioder
+følges ad, og beløb gentages kun efter to ens værdier, med de beskrevne periode- og grænsevilkår.
+Autofillens motor er målt af `src/__tests__/inputCore/autofill/`; tabelvisning og accept er dækket af
+`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`.)
 2026-08-27 (§1.0a og beløbsreglen er implementeret og målt: canonical
 og rejected rækkeindhold deler tomhedsvurdering for trailing række, sletning og sortering på alle
 collection-tabeller; defaultvalg tæller kun som input ved fravalg; rene manglende partnerfelter får
@@ -289,175 +267,71 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 
 ### 1.5 Autofill-suggest i tabelceller
 
-Afklaret 2026-09-07 på udviklerens krav og SKREVET OM natten til den 8., efter at udvikleren så
-funktionen i drift og fotograferede tre tabeltilstande med forkerte forslag. Funktionen er implementeret i
-`src/inputCore/autofill/` (ren mønstergenkendelse + motor), `AutofillSuggestProvider` (tabellens tilvalg),
-`useGridCellSurface` og `GridChoiceCell` (synlighed + accept) samt tabelcellefladerne (visningen).
+Autofill er aktiv i erstatningsopgørelsens løntabeller og Offentlige ydelsers ydelsestabel. Forslaget er
+kun en synlig ghost i den fokuserede, tomme celle. Enter indsætter den viste værdi; øvrig navigation og
+accept følger reglerne nedenfor og `keyboard-navigation.md`.
 
-**Hvad brugeren ser.** Står brugeren i en TOM celle, hvis nabocelle ovenover er udfyldt, viser cellen den
-næste værdi som en dæmpet ghost-tekst med et lille `ENTER`-mærke nederst til højre. Enter indsætter præcis
-den viste værdi. Alt andet er uændret.
+#### Fælles adgangskrav
 
-**Aktivering – tilvalg pr. tabel.** Funktionen er kodet generelt for alle grid-celler, men aktiveres
-tabel for tabel. Den er aktiv i erstatningsopgørelsens løntabeller (én pr. ansættelsesforhold) og i
-Offentlige ydelsers ydelsestabel. Årslønssidens løntabel er den samme komponent, men har den ikke
-slået til.
+- Målcellen skal være tom, redigerbar og umiddelbart under en brugbar, afsluttet værdi i samme kolonne.
+  Draft, rejected tekst, ugyldige værdier og røde feltfejl tæller ikke som brugbare prøver.
+- Mønstret skal kunne genkendes ud fra de to rækker umiddelbart over målet. Begge celler skal indeholde
+  brugbare prøver. En tom eller ugyldig celle afbryder prøven; spring ikke over rækker for at finde ældre
+  værdier. Med færre end to prøver gives intet forslag.
+- Modellen følger den viste rækkefølge. Den gætter ikke bagud og udfylder ikke celler, som ikke har fokus.
+- Forslaget formateres og accepteres gennem målfeltets codec. Forslag uden for feltets repræsentation
+  vises ikke.
 
-#### De tre regler
+#### Perioder
 
-Regelsættet er udviklerens, og det er bevidst SMALT. Et tidligere og mere «hjælpsomt» regelsæt havde den
-pris, at brugeren ikke kunne forudsige, hvornår en ghost ville stå der, og hvad den byggede på – og de
-skærme, udvikleren fotograferede, viste hver især et forslag, der modsagde det, der stod lige ovenover.
-
-1. **Ghosten står KUN i cellen umiddelbart under en udfyldt celle i SAMME kolonne.** Er cellen ovenover
-   tom, findes der intet forslag – uanset hvad der står længere oppe i kolonnen.
-2. **Periodekolonnerne fremskrives af kolonnens eget mønster.** Måned og år er ÉN serie, så årstallet
-   skifter, når måneden wrapper.
-3. **Beløb og dropdownvalg GENTAGER cellen ovenover.** Intet mønster, ingen tilvækst, ingen
-   årsskifte-standsning.
-
-**Hvornår ghosten står i cellen.** Alle fem betingelser skal være opfyldt samtidig:
-
-1. Cellen har fysisk fokus. Der vises højst ÉN ghost i tabellen ad gangen, og det er altid i den celle,
-   brugeren står i – aldrig i celler, brugeren ikke har fokus på.
-2. Cellens afsluttede værdi er tom, OG der står intet i inputtet. En celle med en canonical værdi eller
-   med afsluttet rejected råtekst får ALDRIG en ghost – heller ikke mens brugeren har slettet draften i
-   en åben editor, hvor «markér alt, slet, Enter» ellers ville skrive forslaget i stedet for at rydde
-   cellen. Begynder brugeren at skrive, forsvinder ghosten, og brugerens egen tekst står alene.
-3. Cellen er ikke låst eller afledt. Dropdowns er normalt uden autofill; undtagelsen er Ydelsestype i
-   Offentlige ydelser, som er beskrevet under «Dropdownvalg» nedenfor.
-4. **Nabocellen umiddelbart OVENOVER, i samme kolonne, bærer en brugbar værdi** (regel 1).
-   - Prøven er på CELLEN og ikke på rækken. Det er hele forskellen på de to skærmbilleder, reglen kom
-     af: en række med en tastet måned, men en tom årscelle, er udfyldt som RÆKKE – og en rækkeprøve lod
-     derfor årskolonnen foreslå et årstal i rækken NEDENUNDER, altså to celler under det seneste årstal.
-   - Kolonnerne er dermed uafhængige i samme række: har brugeren udfyldt perioden, men sprunget beløbet
-     over, har periodekolonnen en ghost i næste række, og beløbskolonnen har ikke.
-   - En celle, hvis værdi ikke kan bruges (en måned 13, en uge 99, en rejected råtekst), bærer ingen
-     brugbar værdi. Står den umiddelbart ovenover, er der ingen ghost: brugeren har en fejl at rette, og
-     et forslag dér ville hverken passe til cellen ovenover eller til serien.
-   - Et hul MIDT i serien får sin egen ghost. Er række 3 tømt, mens 1, 2 og 4 er udfyldte, foreslås
-     mønstrets næste værdi både i hullet og i rækken under række 4.
-5. Kolonnen kan fremskrive en værdi efter reglerne nedenfor.
-
-Betingelse 2 er den, der gør Enter forsvarlig: der findes intet at overskrive, og forbuddet i
-`keyboard-navigation.md` mod at «Enter overskriver værdi uden brugerens samtykke» er derfor overholdt
-strukturelt og ikke ved en regel, nogen skal huske.
-
-#### Beløb og dropdownvalg: cellen ovenover
-
-Ghosten er værdien i cellen umiddelbart ovenover. Det er hele reglen.
-
-Reglen afløste to ting, som hver især gjorde ghostens tilstedeværelse uforudsigelig:
-
-- **Et mønsterkrav om to ENS beløb.** Stod der 30.000 og 31.000, var der ingen ghost, selv om cellen
-  ovenover var udfyldt. Nu foreslås 31.000 – det tal, brugeren kan se.
-- **En standsning ved kalenderårsskifte.** Et beløb blev ikke foreslået, når rækkens periodestart faldt i
-  et nyt kalenderår. Reglen var velment (nyt år betyder nye satser), men i praksis forsvandt ghosten uden
-  nogen grund, brugeren kunne se i cellen: en uge-tabel med faldende periodeårstal fik ingen
-  beløbs-ghost nogen steder. Beløb følger nu perioden frit hen over årsskiftet, præcis som datoer gør.
-
-Et beløbsudtryk (`5000*2`) foreslås som sin talværdi, ikke som udtrykket. Ghosten viser beløbet med
-tusindtalsseparator som resten af feltet, mens dens interne accepttekst er uden punktummer (fx vises
-`30.000,00`, men `30000,00` settler). Det er nødvendigt, fordi beløbsfelternes tegnværn med vilje afviser
-punktummer (§2.2); Enter skal kunne acceptere enhver ghost, der vises. Et beløb, der ikke kan
-repræsenteres canonical (uendeligt, over feltets præcision), bliver aldrig en prøve.
-
-#### Periodekolonnerne: mønstret
-
-- Prøverne er de udfyldte celler i SAMME kolonne i rækkerne OVER den aktuelle, i den orden brugeren ser
-  rækkerne (altså efter en eventuel sortering). Autofill fremskriver; den ekstrapolerer aldrig bagud til
-  en tom række, der står over de udfyldte.
-- **Tomme og fejlbehæftede celler springes over**, og mønstret dannes af de øvrige. En celle, hvis værdi
-  er skjult bag en rød feltfejl, bærer ingen prøve. (Står en sådan celle umiddelbart ovenover, standser
-  synlighedsreglen forslaget – se betingelse 4.)
-- **Manglende rækker ændrer ikke mønstret.** Skridtet mellem to naboprøver opgøres for hele serien, og
-  det HYPPIGST forekommende skridt vinder. Er januar–juni og august–november indtastet, foreslås
-  december – hullet i juli forskyder ikke serien.
-  - **Uafgjort afgøres først af BASISSKRIDTET.** Et hul giver altid et skridt, der er et helt multiplum
-    af det sande skridt: januar, februar, april er ét «+1» og ét «+2», og uden reglen ville forslaget
-    blive juni frem for maj. Reglen er kun en tiebreak, så en ægte kadence med flertal står uændret –
-    tre kvartaler og ét enkelt månedsspring foreslås fortsat som et kvartal.
-  - **Derefter er en uafgjort strid inden for SAMME art ingen serie.** To lige hyppige dagsskridt uden
-    basisrelation (+14 og +17 dage, altså halvmånedsperioder) er to kadencer uden et fælles næste skridt,
-    og der vises ingen ghost. Tidligere vandt det seneste, og 01-01, 15-01, 01-02 foreslog 18-02.
-  - **Til sidst afgør det SENESTE skridt.** To uafgjorte skridt af forskellig art (et dagsinterval og et
-    månedsinterval) kan ikke være hinandens basisskridt; da vinder det, brugeren skrev sidst.
-- **En periodeserie skal være strengt monoton.**
-  - **En gentagelse er intet mønster.** 6, 6 foreslog 6 igen, fordi skridtet mellem to ens naboprøver er
-    0 og vandt tiebreaket «seneste skridt». Nulskridt kasseres nu, før mønstret vælges – men de
-    ugyldiggør ikke resten af serien: 3, 4, 4 foreslår fortsat 5.
-  - **Et retningsskifte er intet mønster.** 1, 2, 1 foreslog december året før. En serie, der både vokser
-    og falder, giver ingen ghost.
-- **Rækkefølgen er den viste.** Sorteres kolonnen faldende, fremskrives serien nedad, og måneds- og
-  årsforslaget følges ad: efter 12/2025, 11/2025, 10/2025 foreslås måned 9 i år 2025.
-- Genkendes intet mønster, vises ingen ghost. Der gættes ikke.
-- **Et forslag, feltet ikke ville tage imod tegn for tegn, vises ikke.** Forslaget prøves mod feltets eget
-  tegn- og længdeprædikat (§1.2), før det bliver til en ghost. Ellers ville accept-vejen – som skriver
-  råteksten direkte – kunne omgå netop den grænse.
-
-**Understøttede mønstre.**
-
-| Kolonne | Mønster |
+| Værditype | Genkendt skridt |
 |---|---|
-| Dato | Fast dagsinterval (herunder 7, 14 og 28 dage), samme dag i næste måned, sidste dag i næste måned. **Samme-dag-mønstret bærer sin nominelle dag:** er den 30. mønstret, foreslås 28-02 i februar og igen 30-03 i marts – februars længde smitter ikke af på resten af serien, og 30-01 → 28-02 læses ikke som et dagsinterval på +29 |
-| Uge (`uu/åååå`) | Fast ugeinterval, herunder flere uger ad gangen; korrekt hen over årsskiftet og over et 53-ugers år |
-| Måned + år | De to kolonner er ÉN månedsserie: efter måned 12 i år 2025 foreslås måned 1 og år 2026. Har brugeren allerede skrevet måneden i rækken, foreslås det årstal, der placerer måneden kronologisk efter den seneste prøve |
-| Måned uden årstal | Er årskolonnen tom hele vejen, wrapper måneden alene fra 12 til 1 (og nedad fra 1 til 12) uden et årsforslag. **Kun skridt på ±1.** Uden et årstal er måneden et punkt på en cirkel, hvor et større skridt kan læses to veje; 6, 1 og 1, 7 giver derfor ingen ghost. Et mønster med større månedsspring kræver et årstal ved siden af |
-| Årstal uden måneder | **Gentager cellen ovenover.** En løntabel har 12 rækker pr. kalenderår i måned-tilstand, så det gentagne årstal er det normale, og en tilvækst pr. række er det ikke. Reglen dækker den bruger, der udfylder kolonne for kolonne og skriver årstallene først; en selvstændig årsSERIE ville derimod svare 2027 på rækken 2025, 2026 uden at kende rækkens måned |
+| Dato | Præcis 7, 14 eller 28 kalenderdage, eller én kalendermåned |
+| Uge/år | Præcis 1, 2 eller 4 ISO-uger |
+| Måned/år | Én kalendermåned |
+| Måned uden år | Én måned frem eller tilbage, med wrap mellem 12 og 1 |
 
-**Månedskolonnen bærer hele kolonnens prøver.** Månedsserien tæller også de rækker, hvor årstallet endnu
-ikke er tastet; det manglende årstal udledes som det kalenderår, der lægger måneden tættest på naboprøven
-(retningsneutralt, så en faldende serie ikke springer et år frem). Uden udledningen faldt en måned uden
-årstal ud af serien, og det gav det første fotograferede forslag: står månederne 1, 2, 3, 4 med årstal i de
-tre første rækker, blev mønstret dannet af 1, 2, 3, og ghosten foreslog 4 – i rækken under en celle, hvor
-der allerede stod 4. Brugeren læser månedskolonnen som 1, 2, 3, 4 og forventer 5.
+Begge prøver skal vise samme skridt og retning. Andre spring, gentagelser, manglende prøver og retningsskift
+giver intet forslag. Uge- og datofremskrivning bruger kalenderaritmetik, så 52/53-ugers år, skudår,
+31-dages måneder og årsskifter fortsætter korrekt. En månedsdato bevarer sin nominelle dag eller
+sidste-dag-form gennem februar.
 
-**Måneden fremskrives også fra ÉN prøve.** Kravet er «altid én måned op», og en månedskolonne har en
-kanonisk enhed, der gør skridtet forsvarligt uden et mønster. Uden reglen var den første række efter en tom
-tabel usammenhængende: skrev brugeren måned 1, år 2026 og løn 30.000 og gik en række ned, fik LØNNEN en
-ghost, mens måned og år stod tomme. Uge- og datokolonner fremskrives derimod IKKE fra én prøve – det er en
-bevidst afgrænsning, fordi de ikke har en kanonisk enhed: en dagskolonne kan bære uge-, 14-dages- eller
-månedsperioder, og et gæt på hvilken ville være et gæt på brugerens kadence.
+Måned og år er én serie. Året følger den fremskrevne måned over årsskiftet. Hvis målcellen for år allerede
+har en måned, skal årsforslaget være det år, der placerer denne måned på den genkendte næste position.
+Et årstal uden to gyldige måned/år-prøver kan ikke foreslås alene.
 
-**Accept, afvisning og navigation.**
+Fra- og til-datoer følges ad, når de to foregående perioder er sammenhængende: anden periodes start er
+dagen efter første periodes slut, og til-datoerne har et genkendt skridt. Da sættes næste fra-dato til
+dagen efter seneste til-dato. Ellers må fra-datoen kun fortsætte sit eget genkendte skridt. Dermed kan
+næste fra-dato ikke falde inde i den seneste periode, som 23-05 efter en periode sluttende 24-05.
 
-- Enter indsætter ghosten, afslutter indtastningen og beholder fokus i den samme celle. Det er en bevidst
-  undtagelse fra tabellens almindelige Enter-navigation: accepten flytter aldrig fokus op, ned, til højre
-  eller til venstre. Et eventuelt Tab-anker ryddes, så næste almindelige navigation starter i cellen.
-- Uden ghost er Enter uændret vertikal grid-navigation. `Shift+Enter` accepterer aldrig; den navigerer
-  altid opad.
-- Tab, piletaster og klik forlader tekstcellen uden at indsætte noget. I en dropdown åbner klik menuen,
-  men vælger heller ikke ghosten. Ghosten er ren visning og efterlader
-  ingen tilstand – den forsvinder med fokus, også når fokus går helt ud af tabellen.
-- Accepten koster ét fortryd-trin (§1.4), også når den samtidig opretter den nye række.
-- Værdien indsættes som RÅTEKST gennem feltets eget codec og den normale settle-vej: samme parse, samme
-  XOR-invariant mellem canonical og rejected, samme atomiske oprettelse af den nye række og ét
-  undo-trin. Et forslag kan altså ikke skrive en værdi, brugeren ikke selv kunne have tastet.
-- Ghost-teksten er feltets visningsform af den værdi, accept skriver. De to kan per konstruktion ikke
-  komme fra hinanden.
+#### Beløb og dropdownvalg
 
-**Dropdownvalg.** Ydelsestype i Offentlige ydelser kan vise ydelsestypen fra cellen ovenover som ghost.
-Ghosten står kun i den lukkede, tomme dropdown. Enter vælger den viste type og beholder fokus i den samme
-dropdown; Enter uden ghost åbner fortsat menuen. Tab vælger aldrig ghosten. Et klik åbner menuen som
-normalt uden at vælge forslaget, og en åben menu ejer altid sine egne taster. Et valg, der er deaktiveret i
-den aktuelle menu, eller en historisk værdi, der ikke længere findes i kataloget, vises aldrig som ghost.
+- Et beløb foreslås kun, hvis de to umiddelbart foregående beløbsceller begge har brugbare og numerisk
+  identiske værdier. Udtryk sammenlignes på deres canonical talværdi.
+- Hvis målrækkens kendte indtjeningsperiode er længere end en af perioderne, der bar de to ens beløb,
+  vises beløbet ikke. Det forhindrer eksempelvis, at samme total foreslås for fem uger efter to
+  fireugersperioder. Hvis målrækkens periode endnu ikke er udfyldt, kan denne sammenligning ikke foretages.
+- Ved en periode, der krydser et årsskifte eller grænser ved 31. december/1. januar eller ved
+  28./29. februar/1. marts, må forskellige beløb over grænsen foreslå den seneste værdi. Både de to
+  beløbsceller og periodens relevante datoer skal være brugbare. Dette dækker forventelige lønændringer
+  ved 1. januar og 1. marts. Den længere-periode-regel gælder stadig, når beløbene er ens.
+- Ydelsestype-dropdownen gentager kun, når de to foregående celler har samme aktuelle, valgbare katalogværdi.
+  Ældre eller deaktiverede valg foreslås aldrig.
 
-**Afgrænsninger (bevidste).**
+Et beløb, der foreslås, vises med feltets sædvanlige tusindtalsseparator; acceptteksten følger fortsat
+beløbsfeltets tegnregler. Forslaget kopierer aldrig et oprindeligt regneudtryk.
 
-- Forslaget er ikke grænsekontrolleret. Fører et mønster til en værdi uden for feltets aktive
-  domænegrænse, får cellen rød ring og konkret tooltip efter §1.1 – præcis som havde brugeren tastet
-  værdien. Ghosten er et forslag om FORM og fortsættelse, ikke en påstand om gyldighed.
-- Der gemmes ingen autofill-historik og ingen brugerpræferencer, og funktionen kan ikke slås fra pr. felt.
-- En TOM celle, der bærer en gul advarsel eller en kryds-række-fejl, får stadig sin ghost. De to signaler
-  er uafhængige: fejlen angår rækken, forslaget angår kolonnens egen nabocelle, og begge beskrives for en
-  skærmlæser.
-- Delete på en fokuseret celle rydder og committer straks (§1.3), hvorefter ghosten kan foreslå netop den
-  værdi, brugeren lige slettede. Det følger af, at ghosten kun ser den aktuelle revision; den kender
-  ingen «brugeren fravalgte dette»-hukommelse.
-- Ghosten følger tabellens viste rækkefølge og kender ingen anden sortering end den.
-- Sammenhængen mellem ghost og fokus gælder også skærmlæsere: cellen bærer en skjult tekst med
-  forslaget og dets aktiveringstast, så forslaget ikke blot lyder som feltets formathint.
+#### Visning, accept og afgrænsning
 
+Ghosten vises kun, når cellen har fysisk fokus, er tom efter afsluttet tilstand og ikke har en åben draft.
+Den forsvinder, når fokus flyttes eller brugeren begynder at skrive. Enter accepterer den viste værdi uden
+at flytte fokus; `Shift+Enter`, Tab, pile og klik accepterer den ikke. Dropdownens åbne menu ejer sine
+normale taster.
+
+Forslaget kontrolleres ikke mod aktive domænegrænser. Et ellers repræsenterbart forslag kan derfor få
+feltets sædvanlige røde issue, præcis som en manuelt indtastet værdi. Autofill gemmer ingen historik og
+skriver intet, før brugeren accepterer.
 ## 2. Universelle regler for feltfamilier
 
 ### 2.1 Datofelter

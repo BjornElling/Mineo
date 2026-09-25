@@ -34,10 +34,12 @@ const suggestionFromCodec = <T>(codec: FieldCodec<T>, value: T): AutofillSuggest
 export const dateAutofillColumn = (
   colIndex: number,
   descriptor: FieldDescriptor<ISODateString | undefined>,
-  values: readonly (ISODateString | undefined)[]
+  values: readonly (ISODateString | undefined)[],
+  pairedDateRole?: 'start' | 'end'
 ): AutofillColumn => Object.freeze({
   colIndex,
   kind: 'date' as const,
+  ...(pairedDateRole === undefined ? {} : { linkedColIndex: pairedDateRole === 'start' ? colIndex + 1 : colIndex - 1, pairedDateRole }),
   samples: Object.freeze(values.map((value): AutofillSampleValue | undefined =>
     value === undefined || value === '' ? undefined : { kind: 'date', iso: value })),
   format: (value) => (value.kind === 'date' ? suggestionFromCodec(descriptor.codec, value.iso) : null),
@@ -136,17 +138,18 @@ export const yearAutofillColumn = (
  * `5000*2` ville vise `fx`-mærket og invitere til at redigere et udtryk, brugeren ikke selv har skrevet i
  * netop denne celle; tallet er den værdi, forslaget faktisk står for.
  *
- * Prøven kræver et CANONICAL repræsenterbart beløb. Kontrollen hører her, hvor prøven dannes: en
- * beløbskolonne har intet mønster at forkaste en urimelig værdi i (den gentager blot cellen ovenover), og
- * et tolerant `.eo`-load kan bære et tal, feltets egen præcision aldrig ville have accepteret.
+ * Prøven kræver et CANONICAL repræsenterbart beløb. Kontrollen hører her, hvor prøven dannes: et tolerant
+ * `.eo`-load kan bære et tal, feltets egen præcision aldrig ville have accepteret.
  */
 export const amountAutofillColumn = (
   colIndex: number,
   descriptor: FieldDescriptor<AmountValue | undefined>,
-  values: readonly (AmountValue | undefined)[]
+  values: readonly (AmountValue | undefined)[],
+  amountPeriodColIndices?: readonly [number, number]
 ): AutofillColumn => Object.freeze({
   colIndex,
   kind: 'amount' as const,
+  ...(amountPeriodColIndices === undefined ? {} : { amountPeriodColIndices }),
   samples: Object.freeze(values.map((value): AutofillSampleValue | undefined =>
     value === undefined || !isSafeCanonicalDecimal(value.value, DEFAULT_AMOUNT_PRECISION)
       ? undefined

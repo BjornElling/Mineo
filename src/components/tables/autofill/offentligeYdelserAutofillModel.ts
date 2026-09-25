@@ -21,8 +21,7 @@ import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
  * 3 tillæg og 4 ydelsestype. Ydelsestypen kan gentage et synligt, aktivt katalogvalg; de sidste tre
  * kolonner er afledte og indgår ikke.
  *
- * Ydelse og tillæg gentager cellen ovenover uden mønster eller årsskifte-gate – se
- * {@link buildStandardLoenAutofillModel} for begrundelsen.
+ * Ydelse og tillæg bruger samme to-celle- og periodelængderegler som løntabellens beløb.
  */
 export const buildOffentligeYdelserAutofillModel = (
   rowIds: readonly string[],
@@ -33,10 +32,10 @@ export const buildOffentligeYdelserAutofillModel = (
   return Object.freeze({
     rowIds,
     columns: Object.freeze([
-      dateAutofillColumn(0, eoOffentligeYdelserFraDatoField, rows.map((row) => row?.fraDato)),
-      dateAutofillColumn(1, eoOffentligeYdelserTilDatoField, rows.map((row) => row?.tilDato)),
-      amountAutofillColumn(2, eoOffentligeYdelserYdelseField, rows.map((row) => row?.ydelse)),
-      amountAutofillColumn(3, eoOffentligeYdelserTillaegField, rows.map((row) => row?.tillaeg)),
+      dateAutofillColumn(0, eoOffentligeYdelserFraDatoField, rows.map((row) => row?.fraDato), 'start'),
+      dateAutofillColumn(1, eoOffentligeYdelserTilDatoField, rows.map((row) => row?.tilDato), 'end'),
+      amountAutofillColumn(2, eoOffentligeYdelserYdelseField, rows.map((row) => row?.ydelse), [0, 1]),
+      amountAutofillColumn(3, eoOffentligeYdelserTillaegField, rows.map((row) => row?.tillaeg), [0, 1]),
       choiceAutofillColumn(
         4,
         eoOffentligeYdelserYdelsestypeField,

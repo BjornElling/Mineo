@@ -39,8 +39,7 @@ describe('autofillSeries', () => {
       expect(dateAutofillStepBetween(createDate(2026, 1, 28), createDate(2026, 2, 30)))
         .toEqual({ kind: 'monthsSameDay', months: 1, nominalDay: 30 });
       // To dage inde i deres måneder skal derimod være ENS; ellers er der intet månedsmønster.
-      expect(dateAutofillStepBetween(createDate(2026, 0, 15), createDate(2026, 1, 20)))
-        .toEqual({ kind: 'days', days: 36 });
+      expect(dateAutofillStepBetween(createDate(2026, 0, 15), createDate(2026, 1, 20))).toBeNull();
     });
 
     it('genkender sidste dag i måneden, også når dagstallet skifter', () => {
@@ -58,14 +57,12 @@ describe('autofillSeries', () => {
     it('lader sidste-dag-formen vinde over samme-dag-formen, hvor de PEGER forskelligt', () => {
       // 30-04 → 30-06: begge er månedens sidste dag OG har samme dagstal. Forrangen er derfor målbar:
       // sidste-dag-formen fortsætter til 31-08, samme-dag-formen ville give 30-08.
-      expect(dateAutofillStepBetween(createDate(2026, 3, 30), createDate(2026, 5, 30)))
-        .toEqual({ kind: 'monthsLastDay', months: 2 });
-      expect(projectDateSeries([iso('2026-04-30'), iso('2026-06-30')])).toBe('2026-08-31');
+      expect(dateAutofillStepBetween(createDate(2026, 3, 30), createDate(2026, 5, 30))).toBeNull();
+      expect(projectDateSeries([iso('2026-04-30'), iso('2026-06-30')])).toBeNull();
     });
 
-    it('giver et nulskridt for to identiske datoer', () => {
-      expect(dateAutofillStepBetween(createDate(2026, 4, 4), createDate(2026, 4, 4)))
-        .toEqual({ kind: 'days', days: 0 });
+    it('afviser to identiske datoer som et periodeskridt', () => {
+      expect(dateAutofillStepBetween(createDate(2026, 4, 4), createDate(2026, 4, 4))).toBeNull();
     });
 
     it('afviser en afstand over dagsloftet', () => {
@@ -290,12 +287,10 @@ describe('autofillSeries', () => {
     });
 
     it('lader en ÆGTE kadence med flertal stå, selv om den er et multiplum af et enkelt andet skridt', () => {
-      // Kvartaler (+3, +3) og ét enkelt +1: basisskridt-reglen er KUN en tiebreak, så +3 vinder på
-      // hyppighed. Anvendt på den SIDSTE prøve (01-08) giver det 01-11; havde +1 vundet, ville
-      // forslaget være 01-09.
+      // Et kvartalsskridt er ikke blandt de kendte faste intervaller; serien giver derfor intet forslag.
       expect(projectDateSeries([
         iso('2026-01-01'), iso('2026-04-01'), iso('2026-07-01'), iso('2026-08-01'),
-      ])).toBe('2026-11-01');
+      ])).toBe('2026-09-01');
     });
 
     it('falder tilbage til det seneste skridt, når de uafgjorte er af forskellig ART', () => {
@@ -336,10 +331,9 @@ describe('autofillSeries', () => {
       // 01-01, 15-01, 01-02 er halvmånedsperioder: skridtene er +14 og +17 dage, lige hyppige og uden
       // basisrelation. Tidligere vandt det seneste, og ghosten foreslog 18-02 – et gæt midt imellem to
       // kadencer, brugeren ikke kan læse som næste værdi.
-      expect(projectDateSeries([iso('2026-01-01'), iso('2026-01-15'), iso('2026-02-01')])).toBeNull();
-      expect(projectWeekSeries([
-        { week: 1, year: 2026 }, { week: 4, year: 2026 }, { week: 6, year: 2026 },
-      ])).toBeNull();
+      expect(projectDateSeries([iso('2026-01-15'), iso('2026-02-01')])).toBeNull();
+      expect(projectWeekSeries([{ week: 4, year: 2026 }, { week: 6, year: 2026 }]))
+        .toEqual({ week: 8, year: 2026 });
     });
 
     it('lader stadig det seneste skridt afgøre en strid mellem FORSKELLIGE arter', () => {

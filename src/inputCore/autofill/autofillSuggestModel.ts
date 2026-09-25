@@ -46,8 +46,8 @@ export type AutofillSuggestion = Readonly<{
  * `samples` er parallel med {@link AutofillSuggestModel.rowIds}: samme længde, samme rækkefølge. En
  * `undefined`-plads betyder «ingen brugbar prøve i denne række», og det dækker fire tilstande: tom
  * celle, placeholder-række, afsluttet rejected råtekst og en canonical værdi, der er skjult bag en rød
- * feltfejl. Det er præcis den filtrering, kravet beskriver: fejlbehæftede og delvist udfyldte rækker
- * springes over, og mønstret dannes af de øvrige.
+ * feltfejl. Rækkerne springes ikke over under mønstergenkendelsen: hvis en af de to umiddelbart
+ * foregående celler mangler, afbrydes mønstret.
  *
  * **Hvor filtreringen faktisk sker.** Byggerne i `autofillColumns.ts` ser aldrig et `FieldIssue`; de
  * kender kun værdier. Det røde input frafiltreres ét lag tidligere, i de reader-afledte rækkeprojektioner
@@ -74,6 +74,10 @@ export type AutofillColumn = Readonly<{
    * kolonner ÉN månedsserie, og årsskiftet falder ud af den af sig selv.
    */
   linkedColIndex?: number;
+  /** Datoens rolle i et sammenhængende fra-/til-par. Kun fra-datoen bruger koblingen. */
+  pairedDateRole?: 'start' | 'end';
+  /** Periodekolonner, der bestemmer beløbets dækkede kalenderdage. */
+  amountPeriodColIndices?: readonly [number, number];
 }>;
 
 /**

@@ -99,6 +99,15 @@ describe('resolveAutofillSuggestion', () => {
   });
 
   describe('datokolonner (Offentlige ydelser)', () => {
+    it('starter næste sammenhængende fireugersperiode efter seneste til-dato', () => {
+      const model = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-04-01'), tilDato: iso('2026-04-26') }),
+        ydelseRow('r2', { fraDato: iso('2026-04-27'), tilDato: iso('2026-05-24') }),
+      ]);
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.fraDato)?.displayText).toBe('25-05-2026');
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.tilDato)?.displayText).toBe('21-06-2026');
+    });
+
     it('fortsætter en månedsserie i både fra- og til-dato', () => {
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2026-01-01'), tilDato: iso('2026-01-31') }),
@@ -121,15 +130,13 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.tilDato)?.displayText).toBe('04-01-2026');
     });
 
-    it('danner mønster på tværs af en række, der kun er delvist udfyldt', () => {
-      // Rækken i midten har INGEN fra-dato. Kravet er, at den springes over, og at mønstret dannes af
-      // de øvrige – ikke at hele kolonnen mister sin autofill.
+    it('giver intet forslag, hvis en af de to foregående fra-datoceller mangler', () => {
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2026-01-01') }),
         ydelseRow('r2', { tilDato: iso('2026-02-28') }),
         ydelseRow('r3', { fraDato: iso('2026-02-01') }),
       ]);
-      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.fraDato)?.displayText).toBe('01-03-2026');
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.fraDato)).toBeNull();
     });
 
     it('foreslår december efter januar-juni og august-november', () => {
@@ -141,16 +148,11 @@ describe('resolveAutofillSuggestion', () => {
     });
   });
 
-  // Beløbskolonnerne har ÉN regel (udviklerens beslutning 2026-09-07, motorens regel 3): ghosten er
-  // værdien i cellen umiddelbart ovenover, og den vises kun, hvis den celle er udfyldt. Reglen afløste et
-  // mønsterkrav («de to seneste beløb skal være ens») plus en gate på kalenderår. Prisen for de to var,
-  // at brugeren ikke kunne forudsige, hvornår beløbskolonnen ville have en ghost: en tabel med faldende
-  // periodeårstal fik ingen ghost nogen steder, uden nogen synlig grund i cellen.
-  describe('beløbskolonner gentager cellen ovenover', () => {
-    it('gentager beløbet fra rækken over', () => {
+  describe('beløbskolonner kræver to ens værdier og en passende periode', () => {
+    it('foreslår beløbet, når de to foregående værdier er ens', () => {
       const model = ydelserModel([
-        ydelseRow('r1', { fraDato: iso('2026-01-01'), ydelse: amount(3100), tillaeg: amount(100) }),
-        ydelseRow('r2', { fraDato: iso('2026-02-01'), ydelse: amount(3100), tillaeg: amount(100) }),
+        ydelseRow('r1', { fraDato: iso('2026-01-01'), tilDato: iso('2026-01-31'), ydelse: amount(3100), tillaeg: amount(100) }),
+        ydelseRow('r2', { fraDato: iso('2026-02-01'), tilDato: iso('2026-02-28'), ydelse: amount(3100), tillaeg: amount(100) }),
       ]);
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toEqual({
         displayText: '3.100,00',
@@ -159,29 +161,60 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.tillaeg)?.displayText).toBe('100,00');
     });
 
-    it('gentager det SENESTE beløb, også når serien har ændret sig', () => {
-      // Et mønsterkrav om to ens prøver gav her ingen ghost. Cellen ovenover er udfyldt, og dens værdi
-      // er det eneste, brugeren kan forvente at få tilbudt.
+    it('foreslår intet, når de to beløb ikke er ens uden en forventelig lønændringsgrænse', () => {
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2026-01-01'), ydelse: amount(3100) }),
         ydelseRow('r2', { fraDato: iso('2026-02-01'), ydelse: amount(3200) }),
       ]);
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toBeNull();
+    });
+
+    it('kræver to beløbsceller over målet', () => {
+      const model = ydelserModel([ydelseRow('r1', { ydelse: amount(3100) })]);
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toBeNull();
+    });
+
+    it('bruger seneste beløb ved grænsen mellem december og januar', () => {
+      const model = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2025-11-01'), tilDato: iso('2025-11-30'), ydelse: amount(3100) }),
+        ydelseRow('r2', { fraDato: iso('2025-12-01'), tilDato: iso('2025-12-31'), ydelse: amount(3200) }),
+      ]);
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.fraDato)?.displayText).toBe('01-01-2026');
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)?.displayText).toBe('3.200,00');
     });
 
-    it('gentager beløbet efter ÉN udfyldt række', () => {
-      // Beløbet har intet mønster og behøver derfor ikke to prøver – kun cellen ovenover.
-      const model = ydelserModel([ydelseRow('r1', { ydelse: amount(3100) })]);
-      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)?.displayText).toBe('3.100,00');
+    it('foreslår ikke et gentaget beløb for en længere indtjeningsperiode', () => {
+      const model = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-04-01'), tilDato: iso('2026-04-26'), ydelse: amount(19323) }),
+        ydelseRow('r2', { fraDato: iso('2026-04-27'), tilDato: iso('2026-05-24'), ydelse: amount(19323) }),
+        ydelseRow('r3', { fraDato: iso('2026-05-25'), tilDato: iso('2026-06-21'), ydelse: amount(19323) }),
+        ydelseRow('r4', { fraDato: iso('2026-06-22'), tilDato: iso('2026-07-26') }),
+      ], []);
+      expect(resolveAutofillSuggestion(model, 'r4', YDELSE_COL.ydelse)).toBeNull();
+
+      // Et længere femugersmønster i den ene prøverække må heller ikke få et mellemlangt mål til at gå fri.
+      const mixedLengths = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-04-01'), tilDato: iso('2026-04-26'), ydelse: amount(19323) }),
+        ydelseRow('r2', { fraDato: iso('2026-04-27'), tilDato: iso('2026-05-31'), ydelse: amount(19323) }),
+        ydelseRow('r3', { fraDato: iso('2026-06-01'), tilDato: iso('2026-06-28'), ydelse: amount(19323) }),
+        ydelseRow('r4', { fraDato: iso('2026-06-29'), tilDato: iso('2026-07-30') }),
+      ], []);
+      expect(resolveAutofillSuggestion(mixedLengths, 'r4', YDELSE_COL.ydelse)).toBeNull();
     });
 
-    it('gentager beløbet HEN OVER et årsskifte', () => {
+    it('bruger seneste beløb ved grænsen til 1. marts, også i skudår', () => {
       const model = ydelserModel([
-        ydelseRow('r1', { fraDato: iso('2025-11-01'), ydelse: amount(3100) }),
-        ydelseRow('r2', { fraDato: iso('2025-12-01'), ydelse: amount(3100) }),
+        ydelseRow('r1', { fraDato: iso('2024-02-01'), tilDato: iso('2024-02-28'), ydelse: amount(3000) }),
+        ydelseRow('r2', { fraDato: iso('2024-02-29'), tilDato: iso('2024-03-31'), ydelse: amount(3150) }),
       ]);
-      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.fraDato)?.displayText).toBe('01-01-2026');
-      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)?.displayText).toBe('3.100,00');
+      expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)?.displayText).toBe('3.150,00');
+
+      const nonLeapYear = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2025-02-01'), tilDato: iso('2025-02-27'), ydelse: amount(3000) }),
+        ydelseRow('r2', { fraDato: iso('2025-02-28'), tilDato: iso('2025-02-28'), ydelse: amount(3150) }),
+        ydelseRow('r3', { fraDato: iso('2025-03-01'), tilDato: iso('2025-03-31') }),
+      ], []);
+      expect(resolveAutofillSuggestion(nonLeapYear, 'r3', YDELSE_COL.ydelse)?.displayText).toBe('3.150,00');
     });
 
     it('foreslår INTET beløb, når cellen ovenover er tom', () => {
@@ -190,8 +223,8 @@ describe('resolveAutofillSuggestion', () => {
         ydelseRow('r2', { fraDato: iso('2026-02-01') }),
       ]);
       expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toBeNull();
-      // Men rækken lige under det udfyldte beløb har det stadig.
-      expect(resolveAutofillSuggestion(model, 'r2', YDELSE_COL.ydelse)?.displayText).toBe('3.100,00');
+      // Én værdi over er ikke nok til at vise et sikkert forslag.
+      expect(resolveAutofillSuggestion(model, 'r2', YDELSE_COL.ydelse)).toBeNull();
     });
 
     it('afviser et beløb, der ikke kan repræsenteres canonical', () => {
@@ -349,7 +382,7 @@ describe('resolveAutofillSuggestion', () => {
         loenRow('r3', { col0_maaned: '13', col1_maaned: '2026' }),
       ], { loenperiode: 'maaned' });
       expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)).toBeNull();
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)?.displayText).toBe('2026');
+      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)).toBeNull();
     });
 
     it('viser forslaget i et hul MIDT i serien og i den første tomme række efter den', () => {
@@ -367,8 +400,8 @@ describe('resolveAutofillSuggestion', () => {
       });
       // Hullet står lige under r2 og bærer derfor mønstrets næste værdi.
       expect(resolveAutofillSuggestion(model, 'hul', LOEN_COL.period0)?.displayText).toBe('3');
-      // Og «ny» står lige under r4, som er udfyldt.
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)?.displayText).toBe('5');
+      // «ny» står under et hul og mangler dermed to sammenhængende rækker til et sikkert mønster.
+      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)).toBeNull();
     });
 
     it('giver intet forslag i en helt tom tabel', () => {
@@ -378,35 +411,29 @@ describe('resolveAutofillSuggestion', () => {
     });
   });
 
-  describe('årskolonnen uden en brugbar måned/år-serie (review 2026-09-07)', () => {
-    it('GENTAGER årstallet, når der slet ikke er måneder at koble til', () => {
-      // Arbejdsmønstret er en bruger, der udfylder kolonne for kolonne og skriver årstallene først. En
-      // selvstændig årsSERIE var forkert her (2025, 2026 svarede 2027 uden at kende rækkens måned), men
-      // INTET forslag var også forkert: årskolonnen fik da aldrig en ghost. En løntabel har 12 rækker pr.
-      // kalenderår i måned-tilstand, så det gentagne årstal er det normale.
+  describe('årskolonnen kræver en sammenhængende måned/år-serie', () => {
+    it('foreslår ikke et årstal uden to kendte måned/år-par', () => {
       const sameYear = loenModel([
         loenRow('r1', { col1_maaned: '2026' }),
         loenRow('r2', { col1_maaned: '2026' }),
       ], { loenperiode: 'maaned' });
-      expect(resolveAutofillSuggestion(sameYear, 'ny', LOEN_COL.period1)?.displayText).toBe('2026');
+      expect(resolveAutofillSuggestion(sameYear, 'ny', LOEN_COL.period1)).toBeNull();
 
-      // Og en tilvækst i årskolonnen fremskrives ikke: cellen ovenover er svaret.
+      // To årstal uden måneder fortæller ikke, hvilken periode det næste årstal skal følge.
       const rising = loenModel([
         loenRow('r1', { col1_maaned: '2025' }),
         loenRow('r2', { col1_maaned: '2026' }),
       ], { loenperiode: 'maaned' });
-      expect(resolveAutofillSuggestion(rising, 'ny', LOEN_COL.period1)?.displayText).toBe('2026');
+      expect(resolveAutofillSuggestion(rising, 'ny', LOEN_COL.period1)).toBeNull();
     });
 
-    it('gentager årstallet, når månedsparrene ikke bærer et mønster', () => {
-      // Måneden 1, 1 er et nulskridt og altså ingen serie. Månedskolonnen har derfor intet forslag,
-      // mens årskolonnen falder tilbage til cellen ovenover.
+    it('foreslår intet årstal, når de to foregående måneder ikke danner en serie', () => {
       const model = loenModel([
         loenRow('r1', { col0_maaned: '1', col1_maaned: '2026' }),
         loenRow('r2', { col0_maaned: '1', col1_maaned: '2026' }),
       ], { loenperiode: 'maaned' });
       expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)).toBeNull();
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)?.displayText).toBe('2026');
+      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)).toBeNull();
     });
 
     it('lader måned/år-serien vinde over gentagelsen, hvor den findes', () => {
@@ -437,20 +464,20 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)?.displayText).toBe('05/2026');
     });
 
-    it('standser lønbeløbet, når den foreslåede fra-uge ligger i et nyt kalenderår', () => {
+    it('foreslår ikke beløb, når periodeintervallet er længere end de to beløbsprøver', () => {
       const model = loenModel([
         loenRow('r1', { col0_uge: '50/2025', col1_uge: '50/2025', col2: amount(7000) }),
         loenRow('r2', { col0_uge: '51/2025', col1_uge: '51/2025', col2: amount(7000) }),
-      ], { loenperiode: 'uge' });
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)?.displayText).toBe('52/2025');
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.col2)?.displayText).toBe('7.000,00');
+        loenRow('r3', { col0_uge: '52/2025', col1_uge: '04/2026' }),
+      ], { loenperiode: 'uge', trailingRowIds: [] });
+      expect(resolveAutofillSuggestion(model, 'r3', LOEN_COL.col2)).toBeNull();
 
       const acrossNewYear = loenModel([
         loenRow('r1', { col0_uge: '51/2025', col1_uge: '51/2025', col2: amount(7000) }),
         loenRow('r2', { col0_uge: '52/2025', col1_uge: '52/2025', col2: amount(7000) }),
       ], { loenperiode: 'uge' });
       expect(resolveAutofillSuggestion(acrossNewYear, 'ny', LOEN_COL.period0)?.displayText).toBe('01/2026');
-      // Beløbet følger med over årsskiftet: det gentager cellen ovenover, uden hensyn til kalenderåret.
+      // To ens beløb fortsætter over årsskiftet, når målrækkens periode endnu ikke er angivet.
       expect(resolveAutofillSuggestion(acrossNewYear, 'ny', LOEN_COL.col2)?.displayText).toBe('7.000,00');
     });
 
@@ -514,8 +541,8 @@ describe('resolveAutofillSuggestion', () => {
           loenRow('r3', { col0_uge: '02/2026' }),
         ], { loenperiode: 'uge' });
         const suggestion = resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0);
-        // Den ugyldige række springes over, så mønstret 01 → 02 fortsætter til uge 03.
-        expect(suggestion?.displayText).toBe('03/2026');
+        // En ugyldig celle umiddelbart over målet kan ikke indgå i de to rækkers mønster.
+        expect(suggestion).toBeNull();
       }
     });
 
@@ -527,8 +554,8 @@ describe('resolveAutofillSuggestion', () => {
         loenRow('r2', { col0_maaned: '13', col1_maaned: '202' }),
         loenRow('r3', { col0_maaned: '2', col1_maaned: '2026' }),
       ], { loenperiode: 'maaned' });
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)?.displayText).toBe('3');
-      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)?.displayText).toBe('2026');
+      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period0)).toBeNull();
+      expect(resolveAutofillSuggestion(model, 'ny', LOEN_COL.period1)).toBeNull();
     });
   });
 });

@@ -239,11 +239,6 @@ export type DateAutofillStep =
 export const MIN_REPRESENTABLE_YEAR = 1900;
 export const MAX_REPRESENTABLE_YEAR = 2100;
 
-/** Loft for et dagsskridt. Et interval over godt et år er ikke et mønster, men to urelaterede datoer. */
-const MAX_DAY_STEP = 400;
-/** Loft for et månedsskridt (to år). Samme begrundelse som dagsloftet. */
-const MAX_MONTH_STEP = 24;
-
 const monthDelta = (from: Date, to: Date): number =>
   (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + (to.getUTCMonth() - from.getUTCMonth());
 
@@ -275,7 +270,7 @@ const nominalDayOfMonthPattern = (from: Date, to: Date): number | null => {
 
 export const dateAutofillStepBetween = (from: Date, to: Date): DateAutofillStep | null => {
   const months = monthDelta(from, to);
-  if (months !== 0 && Math.abs(months) <= MAX_MONTH_STEP) {
+  if (months === 1 || months === -1) {
     // Rækkefølgen er en forrang: «sidste dag i måneden» genkendes FØR «samme dag i måneden», fordi den
     // 31. i en 31-dags måned opfylder begge, og kun sidste-dag-formen kan fortsætte korrekt til februar.
     if (isLastDayOfMonth(from) && isLastDayOfMonth(to)) return { kind: 'monthsLastDay', months };
@@ -283,7 +278,7 @@ export const dateAutofillStepBetween = (from: Date, to: Date): DateAutofillStep 
     if (nominalDay !== null) return { kind: 'monthsSameDay', months, nominalDay };
   }
   const days = diffUtcDays(from, to);
-  if (!Number.isInteger(days) || Math.abs(days) > MAX_DAY_STEP) return null;
+  if (!Number.isInteger(days) || ![7, 14, 28].includes(Math.abs(days))) return null;
   return { kind: 'days', days };
 };
 
@@ -310,8 +305,7 @@ export const applyDateAutofillStep = (base: Date, step: DateAutofillStep): Date 
  * Næste dato i serien.
  *
  * Årsskifte er ikke en særregel her: både dags- og månedsskridt regnes på kalenderdage og lander frit i
- * næste år (28-12 + 7 dage → 04-01, 01-12 + 1 måned → 01-01). Det er netop kravet: DATOER må krydse
- * årsskiftet, mens beløb ikke må – og beløbsgaten hører derfor i motoren, ikke her.
+ * næste år (28-12 + 7 dage → 04-01, 01-12 + 1 måned → 01-01). Beløbenes særregler hører i motoren.
  */
 export const projectDateSeries = (values: readonly ISODateString[]): ISODateString | null => {
   const dates: Date[] = [];
@@ -358,8 +352,8 @@ export const projectDateSeries = (values: readonly ISODateString[]): ISODateStri
 
 export type WeekAutofillValue = Readonly<{ week: number; year: number }>;
 
-/** Loft for et ugeskridt. Fire uger er det største mønster, kravet nævner; loftet er rundet rigeligt op. */
-const MAX_WEEK_STEP = 60;
+/** De faste ugeintervaller, brugeren kan forvente som fortsættelse. */
+const ALLOWED_WEEK_STEPS = new Set([1, 2, 4]);
 
 /**
  * Ugens mandag. Regnestykket går gennem den kanoniske {@link parseWeekString}, så ugeforståelsen er
@@ -390,7 +384,7 @@ export const weekAutofillStepBetween = (
   const days = diffUtcDays(fromMonday, toMonday);
   if (days % 7 !== 0) return null;
   const weeks = days / 7;
-  return Math.abs(weeks) > MAX_WEEK_STEP ? null : weeks;
+  return ALLOWED_WEEK_STEPS.has(Math.abs(weeks)) ? weeks : null;
 };
 
 /**
@@ -427,8 +421,8 @@ export const projectWeekSeries = (values: readonly WeekAutofillValue[]): WeekAut
 
 // ── Måned, år og måned/år-par ────────────────────────────────────────────────────────────────────────
 
-/** Loft for et månedsskridt i en måned/år-serie. Samme tal som datoernes månedsloft. */
-const MAX_ABSOLUTE_MONTH_STEP = MAX_MONTH_STEP;
+/** Måned/år-serien fortsætter præcis én kalendermåned ad gangen. */
+const MAX_ABSOLUTE_MONTH_STEP = 1;
 
 /** Absolut månedsindeks (år × 12 + måned − 1) – den lineære form af et måned/år-par. */
 export const toAbsoluteMonth = (year: number, month: number): number => year * 12 + (month - 1);

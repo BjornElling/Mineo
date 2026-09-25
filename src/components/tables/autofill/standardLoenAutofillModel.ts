@@ -22,9 +22,8 @@ import type { Loenperiode, StandardLoenTableRow } from '../../../schemas/formSch
  * - **Dag:** to selvstændige datoserier. Her falder både ugeintervaller (7/14/28 dage) og
  *   månedsintervaller (samme dag i næste måned, sidste dag i næste måned) ud af datomønstrene.
  *
- * Beløbskolonnerne (2–5 og i Beløb-tilstand 6–7) har intet mønster: de gentager cellen ovenover. Derfor
- * bærer modellen heller ingen periodestart-kolonne længere – den fandtes kun for den årsskifte-gate, der
- * gjorde det uforudsigeligt, hvornår en beløbs-ghost dukkede op (udviklerens beslutning 2026-09-07).
+ * Beløbskolonnerne (2–5 og i Beløb-tilstand 6–7) kræver to ens beløb. Koblingen til periodekolonnerne
+ * bruges til at undertrykke en gentagelse, når målrækken dækker flere kalenderdage.
  *
  * Tillægsbeløbene (6/7) er kun indtastningsceller i Beløb-tilstand; i Procent-tilstand er de afledte
  * visningsfelter og indgår ikke.
@@ -55,19 +54,19 @@ export const buildStandardLoenAutofillModel = ({
           weekAutofillColumn(1, fieldSet.col1_uge, rows.map((row) => row?.col1_uge)),
         ]
       : [
-          dateAutofillColumn(0, fieldSet.col0_dag, rows.map((row) => row?.col0_dag)),
-          dateAutofillColumn(1, fieldSet.col1_dag, rows.map((row) => row?.col1_dag)),
+          dateAutofillColumn(0, fieldSet.col0_dag, rows.map((row) => row?.col0_dag), 'start'),
+          dateAutofillColumn(1, fieldSet.col1_dag, rows.map((row) => row?.col1_dag), 'end'),
         ];
 
   const amountColumns: readonly AutofillColumn[] = [
-    amountAutofillColumn(2, fieldSet.col2, rows.map((row) => row?.col2)),
-    amountAutofillColumn(3, fieldSet.col3, rows.map((row) => row?.col3)),
-    amountAutofillColumn(4, fieldSet.col4, rows.map((row) => row?.col4)),
-    amountAutofillColumn(5, fieldSet.col5, rows.map((row) => row?.col5)),
+    amountAutofillColumn(2, fieldSet.col2, rows.map((row) => row?.col2), [0, 1]),
+    amountAutofillColumn(3, fieldSet.col3, rows.map((row) => row?.col3), [0, 1]),
+    amountAutofillColumn(4, fieldSet.col4, rows.map((row) => row?.col4), [0, 1]),
+    amountAutofillColumn(5, fieldSet.col5, rows.map((row) => row?.col5), [0, 1]),
     ...(beloebMode
       ? [
-          amountAutofillColumn(6, fieldSet.fpFvShSoBeloeb, rows.map((row) => row?.fpFvShSoBeloeb)),
-          amountAutofillColumn(7, fieldSet.pensionBeloeb, rows.map((row) => row?.pensionBeloeb)),
+          amountAutofillColumn(6, fieldSet.fpFvShSoBeloeb, rows.map((row) => row?.fpFvShSoBeloeb), [0, 1]),
+          amountAutofillColumn(7, fieldSet.pensionBeloeb, rows.map((row) => row?.pensionBeloeb), [0, 1]),
         ]
       : []),
   ];

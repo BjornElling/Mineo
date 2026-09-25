@@ -82,9 +82,9 @@ describe('skærmbillede 3: uge-tilstand med faldende periodeårstal', () => {
     loenRow('r6', { col0_uge: '53/2020', col1_uge: '01/2026' }),
   ], 'uge');
 
-  it('foreslår lønbeløbet fra cellen ovenover, uanset periodens årstal', () => {
-    expect(ghost(built, 'r3', COL.loen)).toBe('1.234,00');
-    expect(ghost(built, 'r3', COL.loen2)).toBe('123,00');
+  it('foreslår ikke et beløb, når rækkerne dækker uforenelige perioder', () => {
+    expect(ghost(built, 'r3', COL.loen)).toBeNull();
+    expect(ghost(built, 'r3', COL.loen2)).toBeNull();
   });
 
   it('foreslår stadig intet, hvor løncellen ovenover er tom', () => {
