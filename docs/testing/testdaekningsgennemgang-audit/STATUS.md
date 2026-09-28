@@ -2566,6 +2566,16 @@ functions / 100 % lines. `npm run typecheck:test` og målrettet ESLint skal best
 Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret.
 Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-361, arbejdsrevision `4a60e868`
+
+Batchen tilføjer to direkte facitter i `aarsloenNewCaseSeed.test.ts`: standardindstillinger og en
+konkret brugeropsætning for de tre Årsløn-defaults lander i den nye sags seed sammen med en tom
+løntabel. Filen bestod med 2/2, hele Årsløn-domænesuiten består fortsat med 20 filer / 268 tests,
+og seedmodulet dækkes med 100 % statements / branches / functions / lines. `npm run
+typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
