@@ -334,6 +334,31 @@ describe('computeEetEalCalculation', () => {
     });
   });
 
+  it('begrænser et EAL-krav til maksimum for beregningsåret', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(1_000_000),
+        ealAarsloen: asAmount(1_000_000),
+        ealEetPct: 100,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: null,
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.computation).not.toBeNull();
+    expect(result.computation!.eetReduceretTilMaks).toBe(true);
+    expect(result.computation!.eetBeregnetOre).toBeGreaterThan(result.computation!.eetAnvendtOre);
+    expect(result.computation!.eetAnvendtOre).toBe(1_158_250_000);
+  });
+
   it('advarer (ikke-blokerende) når beregningsdato ligger før skadedato', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
