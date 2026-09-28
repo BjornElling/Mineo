@@ -312,6 +312,30 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
     // Ingen loenperiode → kan ikke parse interval → brug baseSatser
     expect(result.fpFvShSo).toBeCloseTo(31000 * 0.05, 6);
   });
+
+  it('falder tilbage til basessatser ved en række uden et parsebart interval', () => {
+    const baseSatser: StandardLoenSatserInput = { ...satser, shSoPct: '5,0' };
+    const result = calculateStandardLoenRowDerived(createRow({ col2: 31000 }), baseSatser, {
+      loenperiode: 'maaned',
+      rateSegments,
+    });
+
+    expect(result.fpFvShSo).toBeCloseTo(31000 * 0.05, 6);
+  });
+
+  it('falder tilbage til basessatser når ingen ratesegment overlapper rækken', () => {
+    const baseSatser: StandardLoenSatserInput = { ...satser, shSoPct: '5,0' };
+    const result = calculateStandardLoenRowDerived(row, baseSatser, {
+      loenperiode: 'maaned',
+      rateSegments: [{
+        fra: toISODateString('2025-01-01'),
+        til: toISODateString('2025-01-31'),
+        satser: { ...satser, shSoPct: '99,0' },
+      }],
+    });
+
+    expect(result.fpFvShSo).toBeCloseTo(31000 * 0.05, 6);
+  });
 });
 
 describe('calculateStandardLoenProjectedAmounts', () => {

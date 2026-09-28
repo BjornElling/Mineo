@@ -2576,6 +2576,16 @@ typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
 genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-362, arbejdsrevision `17530421`
+
+Batchen tilføjer to direkte fallback-facitter i `aarsloenRowCalculations.test.ts`: basissatser
+bevares ved en række uden parsebart interval og ved manglende overlap med ratesegmenter. Den
+målrettede fil bestod med 43/43, hele Årsløn-domænesuiten består fortsat med 21 filer / 270 tests,
+og den resterende `totalDays <= 0`-gren er dokumenteret som defensiv reserve. `npm run
+typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
