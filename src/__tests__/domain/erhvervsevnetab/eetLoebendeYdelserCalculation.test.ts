@@ -18,6 +18,7 @@ import {
   resolveLoebendeSkaeringsNote,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
+  toOphoerAarsagLabel,
   formatSkadedatoCompact,
   visGrundydelseNiveauSkift,
   type EetLoebendeAfgoerelseComputation,
@@ -83,6 +84,51 @@ describe('hasOverlapPeriod', () => {
 });
 
 describe('computeEetLoebendeYdelser', () => {
+  it('blokerer med en konkret fejl når skadedato mangler', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2025-12-31'),
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [testRow({
+          id: 'a',
+          afgoerelsesDato: toISODateString('2025-01-01'),
+          virkningsDato: toISODateString('2025-01-01'),
+          eetPct: 50,
+          afgoerelseType: 'Midlertidig',
+        })],
+      },
+      skadedato: undefined,
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'skadedato-missing',
+      severity: 'error',
+      message: 'Skadedato er ikke udfyldt',
+    });
+  });
+
+  it('blokerer med en konkret fejl når en runtime-afgørelsestype er ukendt', () => {
+    const row = testRow({
+      id: 'a',
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-01-01'),
+      eetPct: 50,
+      afgoerelseType: 'Ugyldig' as unknown as AslAfgoerelseRow['afgoerelseType'],
+    });
+
+    const result = computeTestRows([row]);
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'invalid-afgoerelse-type',
+      severity: 'error',
+      message: 'En afgørelse har en ukendt afgørelsestype og kan derfor ikke beregnes sikkert.',
+    });
+  });
+
   it('supplerer den faktisk fortsatte ydelse gennem en kæde med fald og senere tilbagevirkende forhøjelse', () => {
     const result = computeTestRows([
       testRow({ id: 'a', afgoerelsesDato: toISODateString('2018-12-01'), virkningsDato: toISODateString('2019-01-01'), eetPct: 30, afgoerelseType: 'Midlertidig' }),
@@ -2340,6 +2386,10 @@ describe('resolveLoebendeOphoerVisning', () => {
       if (visning.kind !== 'interval') throw new Error('expected interval');
       expect(visning.ophoerLabel).toBe('Løbende ydelse ophører');
     }
+  });
+
+  it('bevarer en ukendt ophørsårsag i den defensive label-fallback', () => {
+    expect(toOphoerAarsagLabel('ukendt' as Parameters<typeof toOphoerAarsagLabel>[0])).toBe('ukendt');
   });
 
   it('erstatter et umuligt interval med årsagen, når ophør ligger før virkning', () => {

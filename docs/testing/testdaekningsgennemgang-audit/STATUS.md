@@ -2776,6 +2776,15 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-389, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `eetLoebendeYdelserCalculation.test.ts` for løbende
+ydelsers manglende skadedato, ukendt runtime-afgørelsestype og defensiv ophørsårsag-label.
+Testene kræver henholdsvis `skadedato-missing`, `invalid-afgoerelse-type` og bevaret rå fallback-label.
+Filen bestod med 82/82 og målte 100 % statements / 96,75 % branches / 100 % functions /
+100 % lines. Hele EET-domænesuiten bestod med 27 filer / 511 tests. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-388, arbejdsrevision
 
 Batchen tilføjer 6/6 direkte facitter i `eetAslAfgoerelser.test.ts` for runtime-guards,
