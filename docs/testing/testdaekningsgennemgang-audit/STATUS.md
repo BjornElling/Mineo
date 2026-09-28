@@ -2556,6 +2556,16 @@ målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen produk
 beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter
 batchen.
 
+## Seneste test-only CALC-batch – TD-360, arbejdsrevision `26e3d3ba`
+
+Batchen tilføjer ét fail-closed-facit i `aarsloenRowInterval.test.ts`: en ugyldig uge-streng
+bliver ikke klassificeret som en omvendt periode af `hasAarsloenPeriodOrderError`. Den målrettede
+fil bestod med 39/39, hele Årsløn-domænesuiten består fortsat med 20 filer / 266 tests, og
+afgrænset coverage for intervalmodulet blev 96,87 % statements / 88,88 % branches / 100 %
+functions / 100 % lines. `npm run typecheck:test` og målrettet ESLint skal bestå før commit.
+Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret.
+Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

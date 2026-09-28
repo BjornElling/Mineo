@@ -244,6 +244,10 @@ describe('hasAarsloenPeriodOrderError', () => {
     expect(hasAarsloenPeriodOrderError(ugeRow('5/2024', ''), 'uge')).toBe(false);
   });
 
+  it('afviser ikke en ugyldig uge-streng som rækkefølgefejl', () => {
+    expect(hasAarsloenPeriodOrderError(ugeRow('2024', '10/2024'), 'uge')).toBe(false);
+  });
+
   it('rapporterer omvendt dagperiode', () => {
     expect(hasAarsloenPeriodOrderError(
       dagRow(toISODateString('2024-01-31'), toISODateString('2024-01-01')),
