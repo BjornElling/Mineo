@@ -53,6 +53,29 @@ describe('getEetDifferencekravBilagAvailability', () => {
     expect(availability.loebendeYdelser).toEqual({ enabled: true });
   });
 
+  it('aktiverer alle bilag og den udvidede specifikation når alle forudsætninger findes', () => {
+    const availability = getEetDifferencekravBilagAvailability({
+      computation: computationWith({
+        loebendeComputation: withAfgoerelser(1) as unknown as EetDifferencekravComputation['loebendeComputation'],
+        kapComputation: withAfgoerelser(1) as unknown as EetDifferencekravComputation['kapComputation'],
+        proformaKapitalisering: {} as EetDifferencekravComputation['proformaKapitalisering'],
+        resterendeLoebendeYdelser: {} as EetDifferencekravComputation['resterendeLoebendeYdelser'],
+        merErstatningPensionsalder: {} as EetDifferencekravComputation['merErstatningPensionsalder'],
+      }),
+      indregnMerErstatningVedForhoejetPensionsalder: true,
+      loebendeYdelserBilagValgt: true,
+    });
+
+    expect(availability).toEqual({
+      loebendeYdelser: { enabled: true },
+      kapitalisering: { enabled: true },
+      eetEfterEal: { enabled: true },
+      proformaKapitalisering: { enabled: true },
+      merErstatningPensionsalder: { enabled: true },
+      visUdvidetSpecifikationLoebendeYdelserBilag: { enabled: true },
+    });
+  });
+
   it('deaktiverer løbende-ydelsesbilaget og den afhængige udvidet-spec-toggle sammen', () => {
     const availability = getEetDifferencekravBilagAvailability({
       computation: computationWith({

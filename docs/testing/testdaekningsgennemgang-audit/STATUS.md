@@ -2526,6 +2526,15 @@ statements / 88,88 % branches / 100 % functions / 100 % lines. `npm run typechec
 målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-357, arbejdsrevision `3b685140`
+
+Batchen tilføjer ét matrixfacit i `eetDifferencekravBilag.test.ts` for den fuldt tilgængelige
+tilstand, hvor alle fem bilag og den udvidede specifikation er aktive. Den målrettede fil bestod
+med 8/8, hele EET-domænesuiten med 25 filer / 479 tests, og afgrænset coverage blev 100 %
+statements / 100 % branches / 100 % functions / 100 % lines. `npm run typecheck:test` og
+målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
