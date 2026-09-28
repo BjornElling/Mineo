@@ -138,6 +138,20 @@ describe('buildMidlertidigtEetInsertSource', () => {
     ]));
   });
 
+  it('bruger datoordenens referencegrænse, når Fødselsdato samtidig har en bounds-fejl', () => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({
+      foedselsdato: '2100-01-01',
+      skadedato: '2020-01-01',
+    }));
+
+    expect(source.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'midlertidigt-eet-stamdata-date-order',
+        message: 'Der er angivet en skadedato før skadelidtes fødselsdato (2100-01-01)',
+      }),
+    ]));
+  });
+
   it('fail-closer ved en anden stamdata-fejl end datoorden', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({
       foedselsdato: '1970-01-01',

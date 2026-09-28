@@ -2766,6 +2766,16 @@ schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESL
 filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter
 batchen.
 
+## Seneste test-only INPUT/CALC-batch – TD-380, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `useMidlertidigtEetInsertSource.test.ts` for datoordenens
+referencegrænse, når Fødselsdato selv har en bounds-fejl. Importkontrollen bestod med 4 filer / 39 tests,
+og `eetImportPort.ts` målte 100 % statements / 96,77 % branches / 100 % functions / 100 % lines.
+Den ene ternære side for en samtidig usable Fødselsdato er fortsat en defensiv reserve, fordi den samme
+datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
+skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
