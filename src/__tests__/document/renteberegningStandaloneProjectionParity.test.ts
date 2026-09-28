@@ -9,6 +9,7 @@ import {
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import { renteberegningBeregningsdatoField } from '../../inputCore/catalog/renteberegningDescriptors';
+import { stamdataSkadedatoField } from '../../inputCore/catalog/stamdataDescriptors';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import { renteDocumentDefinition, renteOversigtDocumentDefinition } from '../../domain/renteberegning/renteberegningDocumentDefinitions';
 import {
@@ -32,6 +33,15 @@ const MAIN_GATE_SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSe
     brevhovedIndstillinger: {
       ...__createTestSourceSettings().brevhovedIndstillinger,
       renteberegning: false,
+    },
+  })
+);
+
+const MAIN_BREVHOVED_SETTINGS: MineoDocumentGateSettings = projectMineoDocumentGateSettings(
+  __createTestSourceSettings({
+    brevhovedIndstillinger: {
+      ...__createTestSourceSettings().brevhovedIndstillinger,
+      renteberegning: true,
     },
   })
 );
@@ -91,6 +101,32 @@ const blockedInput = (): SettledInput => catalog.validateSettledInput({
   },
 });
 
+const stamdataBlockedInput = (): SettledInput => catalog.validateSettledInput({
+  sections: validInput().sections,
+  rejectedInputs: {
+    [serializeFieldAddress(stamdataSkadedatoField.bind().address)]: {
+      raw: 'ikke-en-dato',
+      reason: 'format',
+    },
+  },
+});
+
+const rowWithoutResultInput = (): SettledInput => {
+  const input = validInput();
+  const renteberegning = input.sections.renteberegning;
+  if (renteberegning === null) throw new Error('Testinvariant: renteberegning mangler');
+  return catalog.validateSettledInput({
+    sections: {
+      ...input.sections,
+      renteberegning: {
+        ...renteberegning,
+        beregningsdato: toISODateString('2023-12-31'),
+      },
+    },
+    rejectedInputs: input.rejectedInputs,
+  });
+};
+
 const evaluationFor = (input: SettledInput) => createInputEvaluation({
   input,
   catalog,
@@ -100,6 +136,11 @@ const evaluationFor = (input: SettledInput) => createInputEvaluation({
 const mainContextFor = (input: SettledInput) => createDocumentSourceContext(
   evaluationFor(input),
   MAIN_GATE_SETTINGS,
+);
+
+const mainBrevhovedContextFor = (input: SettledInput) => createDocumentSourceContext(
+  evaluationFor(input),
+  MAIN_BREVHOVED_SETTINGS,
 );
 
 const standaloneContextFor = (input: SettledInput) => createDocumentSourceContext(
@@ -186,5 +227,50 @@ describe('CALC-003 – hovedapp og standalone deler samme rentefacit', () => {
 
     expect(main.status).toBe('blocked');
     expect(standalone.status).toBe('blocked');
+  });
+
+  it('blokerer oversigten direkte på aktivt brevhoved med rød stamdata', () => {
+    const result = renteOversigtDocumentDefinition.project(
+      mainBrevhovedContextFor(stamdataBlockedInput()),
+      undefined,
+    );
+
+    expect(result).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'renteberegning:stamdata-blocked',
+        message: 'Ret fejlen i Stamdata',
+      })],
+    });
+  });
+
+  it('blokerer en specifikation direkte på aktivt brevhoved med rød stamdata', () => {
+    const result = renteDocumentDefinition.project(
+      mainBrevhovedContextFor(stamdataBlockedInput()),
+      { rowId: 'rente-paritet' },
+    );
+
+    expect(result).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'renteberegning:stamdata-blocked',
+        message: 'Ret fejlen i Stamdata',
+      })],
+    });
+  });
+
+  it('blokerer en eksisterende specifikation ved datofejl i rækken', () => {
+    const result = renteDocumentDefinition.project(
+      mainContextFor(rowWithoutResultInput()),
+      { rowId: 'rente-paritet' },
+    );
+
+    expect(result).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'rente:row-blocked',
+        message: 'Datoen er efter beregningsdatoen (31-12-2023)',
+      })],
+    });
   });
 });

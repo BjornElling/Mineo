@@ -2648,6 +2648,18 @@ består fortsat med 21 filer / 277 tests. `npm run typecheck:test` og målrettet
 bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-369, arbejdsrevision `e8ea9d22`
+
+Batchen tilføjer 3/3 direkte facitter i `renteberegningStandaloneProjectionParity.test.ts`:
+aktivt brevhoved med rød stamdata blokerer både oversigt og specifikation, og en eksisterende
+række med datofejl blokeres med `rente:row-blocked` og den konkrete datoårsag. Filen bestod
+med 7/7; den samlede dokumentdefinitionskontrol bestod med 6 filer / 108 tests.
+`renteberegningDocumentDefinitions.ts` dækkes med 94,73 % statements / 75 % branches /
+100 % functions / 96,07 % lines. De defensive reserver for manglende beregningsdato efter en
+godkendt gate og `row-no-result` står fortsat åbne. `npm run typecheck:test` og målrettet ESLint
+skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
