@@ -1,7 +1,10 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import {
+  aarsloenAslMax,
+  reguleringsprocentErhvervsevnetabFoer2024,
+} from '../../../data/lovbestemteRates';
 import { roundByMethod } from '../../../utils/rounding';
 import {
   buildLoebendeAarsydelseReguleringSteps,
@@ -15,6 +18,8 @@ import {
   resolveLoebendeSkaeringsNote,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
+  formatSkadedatoCompact,
+  visGrundydelseNiveauSkift,
   type EetLoebendeAfgoerelseComputation,
   type EetLoebendePeriodeRow,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -147,6 +152,76 @@ describe('computeEetLoebendeYdelser', () => {
     });
   });
 
+  it('samler manglende årsløn, fødselsdato og ufuldstændige afgørelsesrækker som fejl', () => {
+    const result = computeEetLoebendeYdelser({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2025-12-31'),
+        aslAarsloen: undefined,
+        aslAfgoerelser: [
+          testRow({
+            id: 'mangler-eet',
+            afgoerelsesDato: toISODateString('2025-01-01'),
+            virkningsDato: toISODateString('2025-01-01'),
+            eetPct: undefined,
+            afgoerelseType: 'Midlertidig',
+          }),
+          testRow({
+            id: 'mangler-dato-og-type',
+            afgoerelsesDato: undefined,
+            virkningsDato: undefined,
+            eetPct: 20,
+            afgoerelseType: undefined,
+          }),
+        ],
+      },
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: undefined,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues.map((issue) => issue.id)).toEqual(expect.arrayContaining([
+      'aarsloen-missing',
+      'skadelidte-fodselsdato-missing',
+    ]));
+  });
+
+  it('viser advarsel når en løbende EET-afgørelse ligger under 15 procent', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'under-15',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
+        eetPct: 10,
+        afgoerelseType: 'Midlertidig',
+      }),
+    ]);
+
+    expect(result.issues).toContainEqual(expect.objectContaining({
+      id: 'warn-asl-eet-under-15',
+      severity: 'warning',
+    }));
+  });
+
+  it('blokerer delvist endelig afgørelse uden kapitaliseringsoplysninger', () => {
+    const result = computeTestRows([
+      testRow({
+        id: 'mangler-kapitalisering',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
+        eetPct: 40,
+        afgoerelseType: 'Delvist endelig',
+      }),
+    ]);
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'delvist-endelig-missing-kapitalisering',
+      severity: 'error',
+      message: 'Der er angivet en delvist endelig afgørelse uden kapitalisering',
+    });
+  });
+
   it('afviser ikke-positive ASL-årslønsmaksimum før grundlønsdivision', () => {
     const original = aarsloenAslMax[2019];
     aarsloenAslMax[2019] = 0;
@@ -173,6 +248,37 @@ describe('computeEetLoebendeYdelser', () => {
       });
     } finally {
       aarsloenAslMax[2019] = original;
+    }
+  });
+
+  it('stopper fail-closed når den fælles reguleringssats for 2024 mangler', () => {
+    const rates = reguleringsprocentErhvervsevnetabFoer2024 as Record<number, number | undefined>;
+    const original = rates[2024];
+    delete rates[2024];
+
+    try {
+      const result = computeTestRows([
+        testRow({
+          id: 'missing-regulering-2024',
+          afgoerelsesDato: toISODateString('2023-01-01'),
+          virkningsDato: toISODateString('2023-01-01'),
+          eetPct: 25,
+          afgoerelseType: 'Midlertidig',
+        }),
+      ]);
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'reguleringssats-missing-2024',
+        severity: 'error',
+        message: 'Reguleringssats mangler for år 2024',
+      });
+    } finally {
+      if (original === undefined) {
+        delete rates[2024];
+      } else {
+        rates[2024] = original;
+      }
     }
   });
 
@@ -1985,6 +2091,50 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     expect(vis.showRest2003).toBe(false);
   });
 
+  it('bygger reguleringstrin fra post-2024-perioder og bevarer restbeløb', () => {
+    const steps = buildLoebendeAarsydelseReguleringSteps(afgoerelse({
+      afgoerelsesdato: toISODateString('2025-01-01'),
+      grundydelse2024FuldOre: fromKroner(100000),
+      grundydelse2024RestOre: fromKroner(50000),
+      kapitaliseringsdato: null,
+      harRestSektion: false,
+      perioder: [
+        { ...periode(2023), reguleringPct: 10 },
+        { ...periode(2025), reguleringPct: 3.5 },
+        { ...periode(2026), reguleringPct: 4.8 },
+      ],
+    }));
+
+    expect(steps.map((step) => ({
+      satsAar: step.satsAar,
+      reguleringPct: step.reguleringPct,
+      reguleringsfaktor: step.reguleringsfaktor,
+    }))).toEqual([
+      { satsAar: 2025, reguleringPct: 3.5, reguleringsfaktor: 1.035 },
+      { satsAar: 2026, reguleringPct: 4.8, reguleringsfaktor: 1.048 },
+    ]);
+    expect(steps[0]).toEqual(expect.objectContaining({
+      aarsydelseFuldFoerAfrundingOre: fromKroner(103500),
+      aarsydelseRestFoerAfrundingOre: fromKroner(51750),
+    }));
+    expect(steps[1]).toEqual(expect.objectContaining({
+      aarsydelseFuldFoerAfrundingOre: fromKroner(104800),
+      aarsydelseRestFoerAfrundingOre: fromKroner(52400),
+    }));
+  });
+
+  it('viser grundydelsens niveauskift kun ved 2003-niveau på begge sider af 2024', () => {
+    const perioder = [periode(2023), periode(2024)];
+
+    expect(visGrundydelseNiveauSkift({ perioder }, '2003')).toBe(true);
+    expect(visGrundydelseNiveauSkift({ perioder }, '2024')).toBe(false);
+    expect(visGrundydelseNiveauSkift({ perioder: [periode(2024)] }, '2003')).toBe(false);
+  });
+
+  it('formaterer skadedato kompakt til reguleringsnotens format', () => {
+    expect(formatSkadedatoCompact(toISODateString('2024-03-07'))).toBe('7/3-2024');
+  });
+
   it('rest-sektion med kapitalisering før 2024-01-01 → rest i 2003-niveau', () => {
     const vis = resolveLoebendeAfgoerelseRestVisning(
       afgoerelse({ kapitaliseringsdato: toISODateString('2022-06-01'), harRestSektion: true, perioder: [periode(2023), periode(2025)] }),
@@ -2211,6 +2361,26 @@ describe('resolveLoebendeOphoerVisning', () => {
     expect(folkepension.kind).toBe('ingen-periode');
     if (folkepension.kind !== 'ingen-periode') throw new Error('expected ingen-periode');
     expect(folkepension.forklaring).toContain('folkepensionsdatoen');
+  });
+
+  it('forklarer senere afgørelse og kapitalisering, når begge ophør ligger før virkning', () => {
+    expect(resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2022-01-01'),
+      ophoerDato: toISODateString('2021-01-01'),
+      ophoerAarsag: 'senere-afgoerelse',
+    })).toEqual({
+      kind: 'ingen-periode',
+      forklaring: 'Afgørelsen er afløst af en senere afgørelse, før den fik virkning.',
+    });
+
+    expect(resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2022-01-01'),
+      ophoerDato: toISODateString('2021-01-01'),
+      ophoerAarsag: 'kapitalisering',
+    })).toEqual({
+      kind: 'ingen-periode',
+      forklaring: 'Afgørelsen er kapitaliseret, før den fik virkning (01-01-2021).',
+    });
   });
 });
 

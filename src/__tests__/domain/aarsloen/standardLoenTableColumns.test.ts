@@ -1,4 +1,6 @@
+import * as React from 'react';
 import {
+  getStandardLoenTableHeaderNodes,
   getStandardLoenTableHeaders,
   getStandardLoenHeaderIndex,
   resolveStandardLoenColumnLabel,
@@ -59,6 +61,29 @@ describe('standardLoenTableColumns', () => {
 
   it('getStandardLoenHeaderIndex fejler hårdt hvis labelen ikke findes', () => {
     expect(() => getStandardLoenHeaderIndex('maaned', 'Ikke-eksisterende kolonne')).toThrow('CRITICAL');
+  });
+
+  it('giver kun Løn (2)-overskriften et tooltip-node', () => {
+    const headers = getStandardLoenTableHeaderNodes('maaned');
+
+    expect(headers).toHaveLength(9);
+    expect(headers[0]).toBe('Måned');
+    expect(headers[2]).toBe('Løn');
+    expect(React.isValidElement(headers[3])).toBe(true);
+
+    const loenToHeader = headers[3];
+    if (!React.isValidElement<{ children?: React.ReactNode }>(loenToHeader)) return;
+    expect(loenToHeader.type).toBe('span');
+    const headerChildren = React.Children.toArray(loenToHeader.props.children);
+    expect(headerChildren[0]).toBe('Løn (2)');
+
+    const tooltip = headerChildren[1];
+    expect(React.isValidElement<{ title?: string }>(tooltip)).toBe(true);
+    if (React.isValidElement<{ title?: string }>(tooltip)) {
+      expect(tooltip.props.title).toBe('Opdelingen af løn er rent visuel – værdierne lægges sammen i beregningen');
+    }
+
+    expect(headers[2]).not.toEqual(expect.objectContaining({ type: 'span' }));
   });
 });
 

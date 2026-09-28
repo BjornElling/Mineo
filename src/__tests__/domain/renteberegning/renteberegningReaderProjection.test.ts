@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import {
+  readRentekravCommittedRows,
   buildRenteberegningReaderProjection,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
 import { computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
@@ -114,7 +115,21 @@ describe('buildRenteberegningReaderProjection', () => {
     }).reader;
 
     expect(reader.hasEntityInput(rentekravRowsCollectionRef, 'r1')).toBe(true);
+    expect(readRentekravCommittedRows(reader)).toEqual([{
+      ...createRow('r1'),
+      belob: undefined,
+    }]);
     const projection = buildRenteberegningReaderProjection({ reader, referenceRates, surchargeRates });
     expect(projection.rowProjections.get('r1')?.status).not.toBe('ready');
+  });
+
+  it('rekonstruerer canonical rækker og bevarer tomme partnerfelter som undefined', () => {
+    const rows: RentekravRow[] = [
+      createRow('r1', { tillaegstid: 2, enhed: 'uger' }),
+      { id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' },
+    ];
+    const reader = buildReaderForRows(rows, '2024-12-31');
+
+    expect(readRentekravCommittedRows(reader)).toEqual(rows);
   });
 });

@@ -167,4 +167,60 @@ describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
       }],
     });
   });
+
+  it('fastholder den dobbelte issue-partition for ugyldigt offentlig løntrin', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_PUBLIC_SALARY_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_PUBLIC_SALARY_VALUES.eoAngivetLoenLoenudvikling,
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: 0,
+        offentligLoenGruppe: 2,
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
+          message: 'Løntrin skal være mellem 1 og 55',
+          severity: 'error',
+        },
+        {
+          path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
+          message: 'Løntrin skal være mellem 1 og 55',
+          severity: 'error',
+        },
+      ],
+    });
+  });
+
+  it('fastholder den dobbelte issue-partition for ugyldig offentlig løngruppe', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_PUBLIC_SALARY_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_PUBLIC_SALARY_VALUES.eoAngivetLoenLoenudvikling,
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: 30,
+        offentligLoenGruppe: 5,
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
+          message: 'Løngruppe skal være mellem 0 og 4',
+          severity: 'error',
+        },
+        {
+          path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
+          message: 'Løngruppe skal være mellem 0 og 4',
+          severity: 'error',
+        },
+      ],
+    });
+  });
 });

@@ -2,6 +2,7 @@
 /// <reference types="vitest/globals" />
 
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
+import { buildDocumentFooterText } from '../../document/layout/documentFooterImage';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   efterEalDocumentDefinition,
@@ -38,6 +39,21 @@ const normalizePdfText = (text: string): string => text
   .replace(/\u00a0/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
+
+const normalizeWordText = (documentXml: string): string => normalizePdfText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
+
+const removePdfFooter = (text: string): string => normalizePdfText(
+  text
+    .replace(normalizePdfText(buildDocumentFooterText()), '')
+    .replace(/\s*mineo\.dk\s*\/\/\s*\S+\s*$/, '')
+);
 
 const stamdata: StamdataValues = {
   journalnr: 'EET-definition-orakel',
@@ -175,11 +191,12 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
       input,
       { visBrevhoved: false },
     );
-    const pdfText = normalizePdfText(await extractPdfText(pdfArtifact.blob));
+    const pdfText = removePdfFooter(await extractPdfText(pdfArtifact.blob));
     const { filename, documentXml } = await renderWordDocument((session) =>
       renderer(session, input, { visBrevhoved: false })
     );
     const text = xmlToPlainText(documentXml);
+    const wordText = normalizeWordText(documentXml);
 
     expect(filename).toMatch(/\.docx$/);
     expect(pdfText).toContain('1.142.400 kr.');
@@ -189,6 +206,7 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     expect(text).toContain('2.475.200 kr.');
     expect(text).toContain('50 % x (4.760.000 kr. - 2.475.200 kr.) =');
     expect(text).toContain('1.142.400 kr.');
+    expect(wordText).toBe(pdfText);
   });
 
   it('fører den projicerede løbende ydelse til Word med det håndberegnede totalbeløb', async () => {
@@ -209,10 +227,17 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     }));
 
     const renderer = await loebendeYdelserDocumentDefinition.loadRenderer();
+    const pdfArtifact = await renderer(
+      await createRealPdfDocumentSessionForTest(),
+      input,
+      { visBrevhoved: false },
+    );
+    const pdfText = removePdfFooter(await extractPdfText(pdfArtifact.blob));
     const { filename, documentXml } = await renderWordDocument((session) =>
       renderer(session, input, { visBrevhoved: false })
     );
     const text = xmlToPlainText(documentXml);
+    const wordText = normalizeWordText(documentXml);
 
     expect(filename).toMatch(/\.docx$/);
     expect(text).toContain('Løbende ydelser (EET)');
@@ -220,5 +245,7 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     expect(text).toContain('536.270 kr.');
     expect(text).toContain('Udvidet specifikation');
     expect(text).toContain('273.037 kr.');
+    expect(pdfText).toContain('536.270 kr.');
+    expect(wordText).toBe(pdfText);
   });
 });

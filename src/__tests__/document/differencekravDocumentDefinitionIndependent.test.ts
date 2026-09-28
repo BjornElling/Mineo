@@ -27,9 +27,29 @@ import { __createTestSourceSettings } from '../../settings/sourceSettings';
 import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
 import { toISODateString } from '../../types/branded';
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
+import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+const normalizeChannelText = (text: string): string => text
+  .replace(/\u00a0/g, ' ')
+  .replace(/\u2212/g, '-')
+  .replace(/\u2264/g, '<=')
+  .replace(/\u2013/g, '-')
+  .replace(/mineo\.dk\s*\/\/\s*\S+/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const normalizeWordText = (documentXml: string): string => normalizeChannelText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
 
 const stamdata: StamdataValues = {
   journalnr: 'EET-definition-orakel',
@@ -136,14 +156,25 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
     expect(input.bilagSelection.opgoerelse).toBe(true);
 
     const renderer = await differencekravDocumentDefinition.loadRenderer();
+    const pdfArtifact = await renderer(
+      await createRealPdfDocumentSessionForTest(),
+      input,
+      { visBrevhoved: false },
+    );
+    const pdfText = normalizeChannelText(await extractPdfText(pdfArtifact.blob));
     const { filename, documentXml } = await renderWordDocument((session) =>
       renderer(session, input, { visBrevhoved: false })
     );
     const text = xmlToPlainText(documentXml);
+    const wordText = normalizeWordText(documentXml);
 
     expect(filename).toBe('Differencekrav (EET).docx');
+    expect(pdfText).toContain('Differencekrav (EET)');
+    expect(pdfText).toContain('1.700.470 kr.');
+    expect(pdfText).toContain('850.235 kr.');
     expect(text).toContain('Differencekrav (EET)');
     expect(text).toContain('1.700.470 kr.');
     expect(text).toContain('850.235 kr.');
+    expect(wordText).toBe(pdfText);
   });
 });

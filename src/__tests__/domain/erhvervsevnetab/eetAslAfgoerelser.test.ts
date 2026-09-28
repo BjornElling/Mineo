@@ -1,5 +1,7 @@
 import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import {
+  createAslAfgoerelseRowId,
+  createEmptyAslAfgoerelseRow,
   collectEetAslAfgoerelseValidationIssues,
   collectIncompleteRowIssues,
   KAP_DATO_UNDER_TO_AAR_MESSAGE,
@@ -10,8 +12,15 @@ import {
   validateDuplicateAfgoerelse,
   validateEetPctByPriorKapPct,
   validateKapDatoByAfgoerelsestype,
+  validateKapDatoByTidlKapDato,
   validateKapPctByAfgoerelsestype,
+  validatePercentDivisibleBy5,
+  validatePercentDivisibleBy5FromValue,
+  validatePercentNotZero,
+  validateVirkningsDatoByTidlKapDato,
   validateTidlKapDatoByAfgoerelsestype,
+  resolveNonEndeligAfterEndeligRows,
+  resolveNonEndeligAfterEndeligWarning,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import {
   isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
@@ -31,6 +40,17 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   tidlKapDato: undefined,
   fsTilbageholdtEet: 'Nej',
   ...patch,
+});
+
+describe('ASL-afgørelsesrække-fabrikker', () => {
+  it('opretter tom række med prefixed id og beregningsneutral default', () => {
+    const row = createEmptyAslAfgoerelseRow();
+
+    expect(row.id).toMatch(/^eet_asl_/);
+    expect(row.fsTilbageholdtEet).toBe('Nej');
+    expect(row.afgoerelsesDato).toBeUndefined();
+    expect(createAslAfgoerelseRowId()).toMatch(/^eet_asl_/);
+  });
 });
 
 describe('collectEetAslAfgoerelseValidationIssues – stamdata-datoreference', () => {
@@ -162,6 +182,13 @@ describe('validateKapPctByAfgoerelsestype', () => {
       buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 30, kapPct: 31 })
     );
     expect(error).toContain('mere end det samlede EET');
+  });
+
+  it('afviser delvist endelig når hele EET forsøges kapitaliseret', () => {
+    const error = validateKapPctByAfgoerelsestype(
+      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 40, kapPct: 40 })
+    );
+    expect(error).toBe('Ved delvist endelig afgørelse kan det fulde EET ikke kapitaliseres.');
   });
 
   it('accepterer delvist endelig når kap % mangler (fejl vises på andre faner)', () => {
@@ -475,6 +502,65 @@ describe('validateEetPctByPriorKapPct', () => {
     const error = validateEetPctByPriorKapPct(current, [current, later]);
     expect(error).toBeUndefined();
   });
+
+  it('sorterer fail-closed ved manglende og ens virkningsdatoer', () => {
+    const current = buildRow({
+      id: 'current',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      virkningsDato: toISODateString('2024-03-01'),
+      eetPct: 10,
+    });
+    const missingAfgoerelsesdato = buildRow({ id: 'missing-date', kapPct: 10 });
+    const missingVirkningsdato = buildRow({
+      id: 'missing-virkning',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      kapPct: 10,
+    });
+    const earlierVirkningsdato = buildRow({
+      id: 'earlier-virkning',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      virkningsDato: toISODateString('2024-02-01'),
+      kapPct: 10,
+    });
+    const sameDate = buildRow({
+      id: 'same-date',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      virkningsDato: toISODateString('2024-03-01'),
+      kapPct: 10,
+    });
+
+    expect(validateEetPctByPriorKapPct(current, [
+      missingAfgoerelsesdato,
+      missingVirkningsdato,
+      earlierVirkningsdato,
+      sameDate,
+      current,
+    ])).toBeUndefined();
+  });
+});
+
+describe('procent- og genoptagelsesvalidatorer', () => {
+  it('dækker nul, område, heltal og delelighed for procentissues', () => {
+    expect(validatePercentNotZero(0, 'EET %')).toBe('EET % må ikke være 0 %.');
+    expect(validatePercentDivisibleBy5(-1, 'EET %')).toBe('EET % skal være mellem 0 og 100 %.');
+    expect(validatePercentDivisibleBy5(12.5, 'EET %')).toBe('EET % skal være et heltal.');
+    expect(validatePercentDivisibleBy5(12, 'EET %')).toBe('EET % skal være deleligt med 5.');
+    expect(validatePercentDivisibleBy5FromValue(12.5, 'Kapitaliseringsprocent')).toBe('Kapitaliseringsprocent skal være et heltal.');
+    expect(validatePercentDivisibleBy5FromValue(12, 'Kapitaliseringsprocent')).toBe('Kapitaliseringsprocent skal være deleligt med 5.');
+  });
+
+  it('accepterer manglende eller senere datoer ved genoptagelse', () => {
+    expect(validateVirkningsDatoByTidlKapDato(buildRow({}))).toBeUndefined();
+    expect(validateVirkningsDatoByTidlKapDato(buildRow({
+      virkningsDato: toISODateString('2025-01-01'),
+      tidlKapDato: toISODateString('2025-02-01'),
+    }))).toBeUndefined();
+    expect(validateKapDatoByTidlKapDato(buildRow({ tidlKapDato: toISODateString('2025-01-01') }))).toBeUndefined();
+    expect(validateKapDatoByTidlKapDato(buildRow({
+      kapDato: toISODateString('2025-02-01'),
+      tidlKapDato: toISODateString('2025-01-01'),
+    }))).toBeUndefined();
+  });
 });
 
 describe('validateDuplicateAfgoerelse', () => {
@@ -554,6 +640,105 @@ describe('validateDuplicateAfgoerelse', () => {
   });
 });
 
+describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
+  it('validerer virkningsdato og ny kapitaliseringsdato mod tidligere kapitalisering', () => {
+    const row = buildRow({
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-02-01'),
+      tidlKapDato: toISODateString('2025-01-15'),
+      kapDato: toISODateString('2025-01-15'),
+      afgoerelseType: 'Endelig',
+    });
+
+    expect(validateVirkningsDatoByTidlKapDato(row)).toBe(
+      'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives.'
+    );
+    expect(validateKapDatoByTidlKapDato(row)).toBe(
+      'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives.'
+    );
+    expect(validateTidlKapDatoByAfgoerelsestype(row)).toBe(
+      'Datoen for den tidligere afgørelse skal være før afgørelsesdatoen.'
+    );
+  });
+
+  it('kombinerer midlertidig og delvist endelig advarsel efter endelig afgørelse', () => {
+    const resolved = resolveNonEndeligAfterEndeligRows([
+      buildRow({
+        id: 'endelig',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      buildRow({
+        id: 'midlertidig',
+        afgoerelsesDato: toISODateString('2024-02-01'),
+        virkningsDato: toISODateString('2024-02-01'),
+        afgoerelseType: 'Midlertidig',
+      }),
+      buildRow({
+        id: 'delvist',
+        afgoerelsesDato: toISODateString('2024-03-01'),
+        virkningsDato: toISODateString('2024-03-01'),
+        afgoerelseType: 'Delvist endelig',
+      }),
+    ]);
+
+    expect(resolveNonEndeligAfterEndeligWarning(resolved)).toBe(
+      'Der er angivet en midlertidig og delvist endelig afgørelse efter en endelig afgørelse.'
+    );
+  });
+
+  it('springer ufuldstændige rækker over ved opløsning af advarselsdata', () => {
+    const resolved = resolveNonEndeligAfterEndeligRows([
+      buildRow({
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      buildRow({
+        afgoerelsesDato: toISODateString('2024-02-01'),
+        afgoerelseType: 'Midlertidig',
+      }),
+    ]);
+
+    expect(resolved).toHaveLength(1);
+  });
+
+  it('giver den konkrete issue når ny kapitaliseringsdato ikke ligger efter tidligere dato', () => {
+    const issues = collectIncompleteRowIssues([buildRow({
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-01-01'),
+      eetPct: 50,
+      kapDato: toISODateString('2025-01-15'),
+      kapPct: 25,
+      afgoerelseType: 'Endelig',
+      tidlKapDato: toISODateString('2025-01-15'),
+    })]);
+
+    expect(issues).toContainEqual({
+      id: 'kap-dato-not-after-tidlkap-dato',
+      message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives',
+    });
+  });
+
+  it('giver den konkrete issue når oprindelig virkningsdato ligger efter tidligere dato', () => {
+    const issues = collectIncompleteRowIssues([buildRow({
+      afgoerelsesDato: toISODateString('2025-03-01'),
+      virkningsDato: toISODateString('2025-02-01'),
+      eetPct: 50,
+      kapDato: toISODateString('2025-02-01'),
+      kapPct: 25,
+      afgoerelseType: 'Endelig',
+      tidlKapDato: toISODateString('2025-01-15'),
+    })]);
+
+    expect(issues).toContainEqual({
+      id: 'virkningsdato-after-tidlkap-dato',
+      message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives',
+    });
+  });
+});
+
 describe('validateAslAarsloenBySkadesaarMax', () => {
   it('giver fejl når årsløn overstiger maks årsløn i skadesåret', () => {
     const error = validateAslAarsloenBySkadesaarMax(539001, toISODateString('2019-04-01'));
@@ -578,6 +763,21 @@ describe('validateAslAarsloenDivisibleBy1000', () => {
 });
 
 describe('collectEetAslAfgoerelseValidationIssues', () => {
+  it('opsamler et EET-issue for nul', () => {
+    const issues = collectEetAslAfgoerelseValidationIssues([buildRow({
+      afgoerelsesDato: toISODateString('2025-01-01'),
+      virkningsDato: toISODateString('2025-01-01'),
+      afgoerelseType: 'Midlertidig',
+      eetPct: 0,
+    })], undefined, undefined);
+
+    expect(issues).toContainEqual({
+      rowId: 'r1',
+      field: 'eetPct',
+      message: 'EET % må ikke være 0 %.',
+    });
+  });
+
   it('producerer ingen kap.dato-issue når kap.dato er før afgørelsesdato (håndhæves af UI-range)', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({

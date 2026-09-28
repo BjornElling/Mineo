@@ -120,4 +120,20 @@ describe('TD-019 – uspecificerede feriedages canonical grænse uden schema-fix
       }],
     });
   });
+
+  it('afviser -1 uspecificerede feriedage med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_USPECIFICEREDE_FERIEDAGE_VALUES,
+      uspecificeredeFerieFridage: -1,
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'uspecificeredeFerieFridage',
+        message: 'Antal dage skal være mellem 0 og 366',
+        severity: 'error',
+      }],
+    });
+  });
 });

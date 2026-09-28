@@ -143,6 +143,32 @@ describe('uafhængige validator-inputs', () => {
       });
     });
 
+    it('rapporterer begge manglende top-level-datoer for Beregningsperiode', () => {
+      const values = parseLiteral({
+        ...VALIDATOR_LITERAL,
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: undefined,
+        tafBeregningsperiodeTil: undefined,
+      });
+
+      expect(erstatningsopgoerelseValidator.validate(values)).toEqual({
+        isValid: false,
+        errors: [
+          {
+            path: 'tafBeregningsperiodeFra',
+            message: 'Beregningsperiode fra-dato mangler',
+            severity: 'error',
+          },
+          {
+            path: 'tafBeregningsperiodeTil',
+            message: 'Beregningsperiode til-dato mangler',
+            severity: 'error',
+          },
+        ],
+      });
+    });
+
     // Nulreglen ejes af feltet selv, så cellen bliver rød (BB-232); validatoren melder den ikke oveni.
     it('overlader nul i øvrige krav til feltets egen regel', () => {
       const values = parseLiteral({

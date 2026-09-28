@@ -155,4 +155,23 @@ describe('TD-019 – lønindkomstens SH/SO-procent uden schema-fixture', () => {
       }],
     });
   });
+
+  it('afviser SH/SO-procent over 100 med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_SH_SO_PCT_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_SH_SO_PCT_VALUES.loenindkomstAnsaettelsesforhold[0],
+        shSoPct: 101,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].shSoPct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
 });

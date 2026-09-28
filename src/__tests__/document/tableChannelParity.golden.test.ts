@@ -359,3 +359,24 @@ describe('tabel-kanal-paritet: semantiske EET-celler på tværs af kanaler', () 
     expect(extractWordTableRows(wordTable!)).toEqual(pdfRows);
   }, 15000);
 });
+
+describe('tabel-kanal-paritet: renteberegningens semantiske celler', () => {
+  beforeEach(async () => {
+    pdfSession = await createPdfDocumentSessionForTest();
+  });
+
+  for (const { name, run } of cases.filter(({ name: caseName }) =>
+    caseName.startsWith('rente')
+  )) {
+    it(`${name} → samme tabelceller i PDF og Word`, async () => {
+      const pdfTables = await collectPdfTables(run);
+      expect(pdfTables).toHaveLength(1);
+
+      const wordTables = await collectWordTables(run);
+      expect(wordTables).toHaveLength(1);
+
+      const pdfRows = pdfTables[0]!.body.map((row) => row.map((cell) => cell.content));
+      expect(extractWordTableRows(wordTables[0]!)).toEqual(pdfRows);
+    }, 15000);
+  }
+});

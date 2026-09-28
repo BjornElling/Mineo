@@ -114,4 +114,18 @@ describe('buildMidlertidigtEetInsertSource', () => {
     expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-stamdata-date-order');
   });
 
+  it('fail-closer ved en anden stamdata-fejl end datoorden', () => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({
+      foedselsdato: '1970-01-01',
+      skadedato: '2004-12-31',
+    }));
+
+    expect(source.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'midlertidigt-eet-stamdata-schema-invalid',
+        severity: 'error',
+      }),
+    ]));
+  });
+
 });

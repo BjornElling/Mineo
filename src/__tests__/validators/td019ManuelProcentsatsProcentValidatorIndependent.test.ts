@@ -128,4 +128,48 @@ describe('TD-019 – manuel procentsats-validator med aktiv TAF', () => {
       }],
     });
   });
+
+  it('afviser negativ manuel procentsats med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_MANUAL_PERCENT_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_MANUAL_PERCENT_VALUES.eoAngivetLoenLoenudvikling,
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+          { id: 'active', dato: toISODateString('2025-01-01'), procent: -1 },
+        ],
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData[1].procent',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('afviser manuel procentsats over 100 med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_MANUAL_PERCENT_VALUES,
+      eoAngivetLoenLoenudvikling: {
+        ...INDEPENDENT_MANUAL_PERCENT_VALUES.eoAngivetLoenLoenudvikling,
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+          { id: 'active', dato: toISODateString('2025-01-01'), procent: 101 },
+        ],
+      },
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData[1].procent',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
 });

@@ -205,6 +205,25 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
     });
   });
 
+  it('rapporterer fritvalg-procent over 100 på en håndskrevet typed runtime-værdi', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIELOVEN_VALUES.loenindkomstAnsaettelsesforhold[0],
+        fritvalgPct: 101,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].fritvalgPct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
+
   it('kræver beregningskilde for sygeferiegodtgørelse ved aktiv TAF', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_RUNTIME_VALUES,
@@ -707,6 +726,105 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         message: 'Til-dato mangler',
         severity: 'error',
       }],
+    });
+  });
+
+  it('rapporterer manglende feriePct for manuel EO-løn med præcis feltsti', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIELOVEN_VALUES.loenindkomstAnsaettelsesforhold[0],
+        feriePct: undefined,
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-manuel-ferie',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
+          col2: { kind: 'number', value: 30000 },
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [{
+          id: 'manuel-ferie-basis',
+          dato: toISODateString('2024-01-01'),
+          grundloen: { kind: 'number', value: 30000 },
+          feriepenge: 12.5,
+          shSoSats: undefined,
+          fritvalg: undefined,
+          agPension: undefined,
+        }],
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].feriePct',
+        message: 'Feriegodtgørelse/-tillæg skal udfyldes',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('afviser omvendt referenceperiode for Ferieloven med præcis feltsti', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIELOVEN_VALUES,
+      sfggAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIELOVEN_VALUES.sfggAnsaettelsesforhold[0],
+        sfggReferenceperiodeFra: toISODateString('2023-12-31'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-01'),
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
+          message: 'Til-dato skal være efter fra-dato',
+          severity: 'error',
+        },
+        {
+          path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
+          message: 'Ingen arbejdsdage i SFGG-perioden',
+          severity: 'error',
+        },
+      ],
+    });
+  });
+
+  it('fail-closer en ukendt beregningskilde med den autoritative fejlsti', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_RUNTIME_VALUES,
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'ukendt' as unknown as ErstatningsopgoerelseValues['beregnesUdFra'],
+      tafPerioder: [{
+        id: 'taf-ukendt-beregning',
+        fra: toISODateString('2024-01-01'),
+        til: toISODateString('2024-01-31'),
+        loseFeriedage: 0,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'beregnesUdFra',
+          message: 'Ukendt beregnesUdFra-værdi: ukendt',
+          severity: 'error',
+        },
+        {
+          path: 'beregnesUdFra',
+          message: 'Ukendt beregnesUdFra-værdi: ukendt',
+          severity: 'error',
+        },
+      ],
     });
   });
 });

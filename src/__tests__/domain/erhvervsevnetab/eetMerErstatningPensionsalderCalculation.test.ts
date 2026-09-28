@@ -144,6 +144,94 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
     );
     expect(computation).toBeNull();
   });
+
+  it('ignorerer kapitaliseringer med nul procent uden at oprette issues', () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        ...base,
+        kapitaliseringer: [{ ...kap(toISODateString('2014-06-01')), kapitaliseringspct: 0 }],
+      },
+      issues
+    );
+
+    expect(computation).toBeNull();
+    expect(issues).toEqual([]);
+  });
+
+  it('blokerer fail-closed når skadedatoen ikke har en historisk bekendtgørelse', () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        ...base,
+        skadedato: iso('1900-01-01'),
+        kapitaliseringer: [kap(toISODateString('2014-06-01'))],
+      },
+      issues
+    );
+
+    expect(computation).toBeNull();
+    expect(issues).toContainEqual(expect.objectContaining({
+      id: 'mer-erstatning-gammel-bekendtgoerelse-missing',
+      severity: 'error',
+    }));
+  });
+
+  it('blokerer fail-closed når alderen ligger under faktortabellens minimum', () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        ...base,
+        fodselsdato: iso('2023-01-01'),
+        kapitaliseringer: [kap(toISODateString('2014-06-01'))],
+      },
+      issues
+    );
+
+    expect(computation).toBeNull();
+    expect(issues).toContainEqual(expect.objectContaining({
+      id: 'mer-erstatning-gammel-faktor-unresolved',
+      severity: 'error',
+    }));
+  });
+
+  it('blokerer fail-closed når den nye bekendtgørelse mangler særfaktor under to år til folkepension', () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        ...base,
+        skadedato: iso('2011-01-01'),
+        fodselsdato: iso('1955-07-01'),
+        beregningsdato: iso('2021-06-01'),
+        kapitaliseringer: [kap(toISODateString('2019-06-01'))],
+      },
+      issues
+    );
+
+    expect(computation).toBeNull();
+    expect(issues).toContainEqual(expect.objectContaining({
+      id: 'mer-erstatning-ny-faktor-unresolved',
+      severity: 'error',
+      message: 'Særfaktor mangler.',
+    }));
+  });
+
+  it('anvender direkte særfaktor ved 2025-forhøjelsen tæt på folkepensionsalderen', () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        ...base,
+        skadedato: iso('2021-01-01'),
+        fodselsdato: iso('1959-01-01'),
+        beregningsdato: iso('2026-06-01'),
+        kapitaliseringer: [kap(toISODateString('2021-01-01'))],
+      },
+      issues
+    );
+
+    expect(issues).toEqual([]);
+    expect(computation).toBeNull();
+  });
 });
 
 describe('computeMerErstatningPensionsalder – autoritativt eksempel (67→68, skade fra 2011, 22.641 kr.)', () => {

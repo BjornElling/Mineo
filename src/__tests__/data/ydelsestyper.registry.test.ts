@@ -1,4 +1,4 @@
-import { ydelsestyper, ydelsestypeKeys } from '../../data/ydelsestyper';
+import { resolveYdelsestype, ydelsestyper, ydelsestypeKeys } from '../../data/ydelsestyper';
 
 describe('ydelsestyper registry', () => {
   it('har periodisering og periodiseringslabel for alle ydelsestyper', () => {
@@ -72,5 +72,47 @@ describe('ydelsestyper registry', () => {
     expect(ydelsestyper.dagpenge.tabelLabel).toBeUndefined();
     expect(ydelsestyper.efterloen.tabelLabel).toBeUndefined();
     expect(ydelsestyper.sygedagpenge.tabelLabel).toBeUndefined();
+  });
+
+  it('resolver både kanoniske nøgler og tidligere gemte labels til samme nøgle', () => {
+    const facit = [
+      ['dagpenge', 'Dagpenge'],
+      ['efterloen', 'Efterløn'],
+      ['feriepenge', 'Feriepenge'],
+      ['flextilskud', 'Flextilskud'],
+      ['foertidspension', 'Førtidspension'],
+      ['kontanthjaelp', 'Kontanthjælp'],
+      ['ledighedsydelse', 'Ledighedsydelse'],
+      ['midlertidigt_eet', 'Midlertidigt EET'],
+      ['pension', 'Pension'],
+      ['ressourceforloebsydelse', 'Ress. forløbsydelse'],
+      ['revalideringsydelse', 'Revalideringsydelse'],
+      ['sygedagpenge', 'Sygedagpenge'],
+      ['su', 'SU'],
+      ['uddannelseshjaelp', 'Uddannelseshjælp'],
+      ['andet', 'Andet'],
+    ] as const;
+
+    for (const [key, label] of facit) {
+      expect(resolveYdelsestype(key)).toMatchObject({ key, config: ydelsestyper[key] });
+      expect(resolveYdelsestype(label)).toMatchObject({ key, config: ydelsestyper[key] });
+    }
+  });
+
+  it('resolver historiske labels med whitespace og anden versalisering', () => {
+    expect(resolveYdelsestype('  sYgEdAgPeNgE  ')).toMatchObject({
+      key: 'sygedagpenge',
+      config: ydelsestyper.sygedagpenge,
+    });
+    expect(resolveYdelsestype('  Ress. FORLØBSYDELSE  ')).toMatchObject({
+      key: 'ressourceforloebsydelse',
+      config: ydelsestyper.ressourceforloebsydelse,
+    });
+  });
+
+  it('resolver ukendte og tomme ydelsestyper fail-closed', () => {
+    expect(resolveYdelsestype('')).toBeNull();
+    expect(resolveYdelsestype('   ')).toBeNull();
+    expect(resolveYdelsestype('ukendt ydelse')).toBeNull();
   });
 });

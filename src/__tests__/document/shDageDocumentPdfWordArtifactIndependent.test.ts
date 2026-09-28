@@ -6,6 +6,7 @@ import { createDate } from '../../utils/dateUtils';
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
 import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
 import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
+import { buildDocumentFooterText } from '../../document/layout/documentFooterImage';
 
 const perioder = [
   { start: createDate(2024, 2, 28), end: createDate(2024, 3, 1) },
@@ -18,6 +19,15 @@ const normalizeText = (text: string): string => text
   .replace(/\u00a0/g, ' ')
   .replace(/\s+/g, ' ')
   .trim();
+
+const wordTextWithBoundaries = (documentXml: string): string => normalizeText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
 
 const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => {
   const originalDocument = globalThis.document;
@@ -61,9 +71,10 @@ describe('TD-014/TD-018 – SH-dage gennem faktiske PDF- og Word-artefakter', ()
       return runDocument(session);
     });
     const pdfText = normalizeText(await extractPdfText(pdfArtifact.blob));
+    const pdfTextWithoutFooter = normalizeText(pdfText.replace(buildDocumentFooterText(), ''));
 
     const wordArtifact = await withDocumentUnavailable(() => renderWordDocument(runDocument));
-    const wordText = normalizeText(xmlToPlainText(wordArtifact.documentXml));
+    const wordText = wordTextWithBoundaries(wordArtifact.documentXml);
 
     expect(pdfArtifact.filename).toBe('SH-dage (28-03-2024 - 01-04-2024).pdf');
     expect(pdfArtifact.blob.type).toBe('application/pdf');
@@ -79,5 +90,6 @@ describe('TD-014/TD-018 – SH-dage gennem faktiske PDF- og Word-artefakter', ()
 
     expect(pdfText).toMatch(/SH-dage i alt\s*3/);
     expect(wordText).toMatch(/SH-dage i alt\s*3/);
+    expect(pdfTextWithoutFooter).toBe(wordText);
   });
 });

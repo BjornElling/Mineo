@@ -169,4 +169,29 @@ describe('TD-019 – offentlig ydelsesregulering uden schema-fixture', () => {
       }],
     });
   });
+
+  it('rapporterer TAF-år efter sidste satsår uden en manglende mellemårsliste', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_MAX_YEAR_VALUES,
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: toISODateString('2028-01-01'),
+        tilDato: toISODateString('2028-12-31'),
+        ydelse: { kind: 'number', value: 1000 },
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+      tafBeregningsperiodeFra: toISODateString('2028-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2028-12-31'),
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'regulerOffentligeYdelser',
+        message: 'Regulering af offentlige ydelser kan ikke beregnes efter 2026, fordi reguleringssatsen mangler.',
+        severity: 'error',
+      }],
+    });
+  });
 });

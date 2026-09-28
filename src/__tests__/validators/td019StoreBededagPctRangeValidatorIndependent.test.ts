@@ -155,4 +155,23 @@ describe('TD-019 – lønindkomstens Store Bededag-procent uden schema-fixture',
       }],
     });
   });
+
+  it('afviser Store Bededag-procent over 100 med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_STORE_BEDEDAG_PCT_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_STORE_BEDEDAG_PCT_VALUES.loenindkomstAnsaettelsesforhold[0],
+        storeBededagPct: 101,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].storeBededagPct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
 });

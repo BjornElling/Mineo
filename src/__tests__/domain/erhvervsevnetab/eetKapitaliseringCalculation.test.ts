@@ -1,8 +1,15 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { computeEetKapitaliseringCalculation } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import {
+  computeEetKapitaliseringCalculation,
+  resolveKapitaliseringAarsydelseBreakdown,
+} from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import {
+  aarsloenAslMax,
+  reguleringsprocentErhvervsevnetabFoer2024,
+} from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
+import { fromKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -24,6 +31,24 @@ describe('computeEetKapitaliseringCalculation', () => {
       severity: 'error',
       message: 'Skadelidtes årsløn (efter ASL) skal være større end 0 kr',
     });
+  });
+
+  it('blokerer når årsløn og fødselsdato mangler', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: undefined,
+        aslAfgoerelser: [],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: undefined,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toEqual(expect.arrayContaining([
+      { id: 'aarsloen-missing', severity: 'error', message: 'Skadelidtes årsløn (efter ASL) er ikke udfyldt' },
+      { id: 'skadelidte-fodselsdato-missing', severity: 'error', message: 'Fødselsdato er ikke udfyldt' },
+    ]));
   });
 
   it('afviser ikke-positive ASL-årslønsmaksimum før grundlønsdivision', () => {
@@ -174,6 +199,85 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
+  });
+
+  it('giver præcis fejl og warning når delvist endelig afgørelse mangler kapitalisering', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'delvist-endelig-missing-kapitalisering',
+      severity: 'error',
+      message: 'Der er angivet en delvist endelig afgørelse uden kapitalisering',
+    });
+    expect(result.issues).toContainEqual({
+      id: 'warn-ingen-kap-input',
+      severity: 'warning',
+      message: 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse',
+    });
+  });
+
+  it('stopper fail-closed når præ-2024-skadens fælles 2024-opregulering mangler', () => {
+    const rates = reguleringsprocentErhvervsevnetabFoer2024 as Record<number, number | undefined>;
+    const original = rates[2024];
+    delete rates[2024];
+
+    try {
+      const result = computeEetKapitaliseringCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          aslAarsloen: asAmount(489000),
+          aslAfgoerelser: [
+            {
+              id: 'a',
+              fsTilbageholdtEet: 'Nej',
+              afgoerelsesDato: toISODateString('2024-01-15'),
+              virkningsDato: toISODateString('2024-01-15'),
+              eetPct: 25,
+              kapDato: toISODateString('2024-02-01'),
+              kapPct: 25,
+              afgoerelseType: 'Delvist endelig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1965-01-01'),
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'reguleringssats-missing',
+        severity: 'error',
+        message: 'Reguleringssats mangler for år 2024',
+      });
+    } finally {
+      if (original === undefined) {
+        delete rates[2024];
+      } else {
+        rates[2024] = original;
+      }
+    }
   });
 
   it('giver kap-dato-without-kap-pct fejl når kapitaliseringsdato er udfyldt men ikke -procent', () => {
@@ -362,6 +466,50 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.alderMaaneder).toBe(2);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.759);
+  });
+
+  it('blokerer når alderen ligger under den valgte faktortabels minimum', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [{
+          id: 'a',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2025-07-01'),
+          virkningsDato: toISODateString('2025-07-01'),
+          eetPct: 50,
+          kapDato: toISODateString('2025-10-01'),
+          kapPct: 25,
+          afgoerelseType: 'Delvist endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('2022-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues.some((issue) => issue.id === 'kapitaliseringsalder-under-minimum')).toBe(true);
+  });
+
+  it('returnerer null når kapitaliseringsårets reguleringssats mangler', () => {
+    const issues: Parameters<typeof resolveKapitaliseringAarsydelseBreakdown>[1] = [];
+    const result = resolveKapitaliseringAarsydelseBreakdown({
+      grundloenOre: fromKroner(100000),
+      kapitaliseringspct: 25,
+      erstatningsniveau: 0.83,
+      amFaktor: 0.92,
+      kapitaliseringsaar: 2027,
+      before2024Skade: false,
+    }, issues);
+
+    expect(result).toBeNull();
+    expect(issues).toContainEqual({
+      id: 'reguleringssats-missing',
+      severity: 'error',
+      message: 'Reguleringssats mangler for år 2027',
+    });
   });
 
   it('opregulerer præ-2024-skade til 2024-niveau uden ekstra 2024-sats i kapitaliseringsleddet', () => {
@@ -650,6 +798,17 @@ describe('computeEetKapitaliseringCalculation', () => {
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
+          {
+            id: 'd',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-08-01'),
+            eetPct: 50,
+            kapDato: toISODateString('2025-11-01'),
+            kapPct: 25,
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
         ],
       },
       skadedato: toISODateString('2025-01-01'),
@@ -657,6 +816,6 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.computation?.afgoerelser.map((row) => row.rowId)).toEqual(['a', 'b', 'c']);
+    expect(result.computation?.afgoerelser.map((row) => row.rowId)).toEqual(['a', 'b', 'c', 'd']);
   });
 });

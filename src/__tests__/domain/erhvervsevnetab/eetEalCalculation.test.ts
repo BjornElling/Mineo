@@ -44,6 +44,69 @@ describe('computeEetEalCalculation', () => {
     expect(result.issues).toContainEqual({ id: issueId, severity: 'error', message });
   });
 
+  it('blokerer når både EAL/ASL-årsløn og fødselsdato mangler', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        ealAarsloen: undefined,
+        aslAarsloen: undefined,
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: undefined,
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: null,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toEqual(expect.arrayContaining([
+      { id: 'aarsloen-missing', severity: 'error', message: 'Skadelidtes årsløn (efter ASL) er ikke udfyldt' },
+      { id: 'skadelidte-fodselsdato-missing', severity: 'error', message: 'Fødselsdato er ikke udfyldt' },
+    ]));
+  });
+
+  it('blokerer fail-closed når maksimum for beregningsåret mangler', () => {
+    const ealMax = erhvervsevnetabEalMax as Record<number, number | undefined>;
+    const original = ealMax[2026];
+    delete ealMax[2026];
+
+    try {
+      const result = computeEetEalCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: iso('2026-02-27'),
+          ealAarsloen: asAmount(500000),
+          aslAarsloen: asAmount(500000),
+          ealEetPct: 40,
+          aslAfgoerelser: [],
+        },
+        skadedato: iso('2020-01-01'),
+        skadelidteFodselsdato: iso('1990-01-01'),
+        reguleringssats,
+        erhvervsevnetabEalMax,
+        aarsloenAslMax,
+        forlig: null,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'eet-max-missing',
+        severity: 'error',
+        message: 'Maksimum for erhvervsevnetab mangler for år 2026',
+      });
+    } finally {
+      if (original === undefined) {
+        delete ealMax[2026];
+      } else {
+        ealMax[2026] = original;
+      }
+    }
+  });
+
   it('ignorerer ugyldig ASL-årsløn, når EAL-årslønnen er udfyldt positivt', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {

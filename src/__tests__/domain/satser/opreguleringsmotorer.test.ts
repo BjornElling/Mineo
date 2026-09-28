@@ -16,6 +16,26 @@ describe('opreguleringsmotorer', () => {
       expect(res.deltaPct).toBeCloseTo((aarsloenAslMax[2026] / aarsloenAslMax[2022] - 1) * 100, 10);
     });
 
+    it('fører literal ASL-endepunkter gennem intervallet med håndfaciteret faktor', () => {
+      const literalAslIndex: YearlyRate = {
+        2022: 570000,
+        2023: 588000,
+        2024: 608000,
+        2025: 632000,
+        2026: 662000,
+      };
+      const res = opregulerMedAslAarsloensmaksimum(
+        { kildeAar: 2022, maalAar: 2026 },
+        literalAslIndex,
+      );
+      const forventetFaktor = 662000 / 570000;
+      expect(res).toEqual({
+        faktor: forventetFaktor,
+        deltaPct: (forventetFaktor - 1) * 100,
+        manglendeAar: [],
+      });
+    });
+
     it('returnerer ingen opregulering når målår ≤ kildeår med fuld indeksdækning', () => {
       expect(opregulerMedAslAarsloensmaksimum({ kildeAar: 2026, maalAar: 2026 })).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [] });
       expect(opregulerMedAslAarsloensmaksimum({ kildeAar: 2026, maalAar: 2020 })).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [] });
@@ -107,6 +127,26 @@ describe('opreguleringsmotorer', () => {
       expect(res.manglendeAar).toEqual([]);
       expect(res.faktor).toBeCloseTo(forventet, 12);
       expect(res.deltaPct).toBeCloseTo((forventet - 1) * 100, 10);
+    });
+
+    it('fører literal reguleringssatser gennem intervallet med håndfaciteret faktor', () => {
+      const literalRates: YearlyRate = {
+        2022: 2.8,
+        2023: 3,
+        2024: 3.5,
+        2025: 3.9,
+        2026: 4.8,
+      };
+      const res = opregulerMedAkkumuleretReguleringssats(
+        { kildeAar: 2022, maalAar: 2026 },
+        literalRates,
+      );
+      const forventetFaktor = 1.03 * 1.035 * 1.039 * 1.048;
+      expect(res).toEqual({
+        faktor: forventetFaktor,
+        deltaPct: (forventetFaktor - 1) * 100,
+        manglendeAar: [],
+      });
     });
 
     it('2022→2026 giver ca. 16,08 % (tilpasningsprocent+2%-metoden), IKKE 16,14 % (ASL-metoden)', () => {

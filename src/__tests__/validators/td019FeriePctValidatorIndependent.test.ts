@@ -186,4 +186,42 @@ describe('TD-019 – feriePct-validator uden schema-fixture', () => {
       }],
     });
   });
+
+  it('afviser negativ feriePct med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIE_PCT_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIE_PCT_VALUES.loenindkomstAnsaettelsesforhold[0],
+        feriePct: -1,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].feriePct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
+
+  it('afviser feriePct over 100 med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_FERIE_PCT_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_FERIE_PCT_VALUES.loenindkomstAnsaettelsesforhold[0],
+        feriePct: 101,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].feriePct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
 });

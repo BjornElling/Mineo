@@ -1,6 +1,10 @@
 import type { DateInterval, AarsloenBeregningResultBeregnet } from '../../../types/calculation';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
-import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
+import {
+  aarsloenFradragsParentes,
+  aarsloenOmregningFormel,
+  resolveAarsloenIndtastetEnhedSummary,
+} from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
@@ -88,6 +92,51 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     });
   });
 
+  it('viser uger for metode C med ugeløn', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(4),
+      beregningsData: { ...baseBeregnet, metode: 'C', antalEnheder: 4 },
+      loenperiode: 'uge',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal uger i de indtastede perioder',
+      value: '4 uger',
+      isSinglePeriod: false,
+    });
+  });
+
+  it('viser hele kalendermåneder for metode C med dagløn, når de findes', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(59),
+      beregningsData: { ...baseBeregnet, metode: 'C', arbejdsdageIPeriode: 41, antalHeleKalendermaaneder: 2 },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal måneder i de indtastede perioder',
+      value: '2 måneder',
+      isSinglePeriod: false,
+    });
+  });
+
+  it('falder tilbage til hverdage for metode C med dagløn uden hele kalendermåneder', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(59),
+      beregningsData: { ...baseBeregnet, metode: 'C', arbejdsdageIPeriode: 41, antalHeleKalendermaaneder: null },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal hverdage i de indtastede perioder',
+      value: '41 hverdage',
+      isSinglePeriod: false,
+    });
+  });
+
   it('falder tilbage til kalenderdage når metode endnu ikke er afgjort', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [],
@@ -99,6 +148,36 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     expect(result).toEqual({
       label: 'Antal kalenderdage i de indtastede perioder',
       value: '51 kalenderdage',
+      isSinglePeriod: false,
+    });
+  });
+
+  it('bruger månedsenhed i fallback når metode endnu ikke er afgjort', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(3),
+      beregningsData: { metode: 'ingen', erEtAar: false },
+      loenperiode: 'maaned',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal måneder i de indtastede perioder',
+      value: '3 måneder',
+      isSinglePeriod: false,
+    });
+  });
+
+  it('bruger uge-enhed i fallback når metode endnu ikke er afgjort', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(4),
+      beregningsData: { metode: 'ingen', erEtAar: false },
+      loenperiode: 'uge',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal uger i de indtastede perioder',
+      value: '4 uger',
       isSinglePeriod: false,
     });
   });
@@ -134,5 +213,24 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
       value: '24 hverdage',
       isSinglePeriod: false,
     });
+  });
+});
+
+describe('aarsloen display-helpers', () => {
+  it('udelader fradragsparentesen når der ikke er aktive fradrag', () => {
+    expect(aarsloenFradragsParentes('23 hverdage', ['', ''])).toBe('');
+  });
+
+  it('bygger fradragsparentesen i den angivne rækkefølge', () => {
+    expect(aarsloenFradragsParentes('23 hverdage', [' - 2 feriedage', ' - 1 SH-dag']))
+      .toBe(' (23 hverdage - 2 feriedage - 1 SH-dag)');
+  });
+
+  it('udelader divisor 1 i omregningsformlen', () => {
+    expect(aarsloenOmregningFormel('33.750,00', 1, '12')).toBe('33.750,00 x 12');
+  });
+
+  it('viser divisor større end 1 i omregningsformlen', () => {
+    expect(aarsloenOmregningFormel('33.750,00', 21, '231')).toBe('33.750,00 / 21 x 231');
   });
 });

@@ -8,6 +8,7 @@ import { toISODateString } from '../../types/branded';
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
 import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
 import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
+import { buildDocumentFooterText } from '../../document/layout/documentFooterImage';
 
 const computation = {
   beregningsdato: toISODateString('2024-03-31'),
@@ -77,6 +78,15 @@ const normalizeText = (text: string): string => text
   .replace(/\s+/g, ' ')
   .trim();
 
+const wordTextWithBoundaries = (documentXml: string): string => normalizeText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
+
 const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => {
   const originalDocument = globalThis.document;
   vi.stubGlobal('document', undefined);
@@ -121,9 +131,10 @@ describe('DOC-001/TD-014 – løbende ydelser gennem faktiske PDF- og Word-artef
       return runDocument(session);
     });
     const pdfText = normalizeText(await extractPdfText(pdfArtifact.blob));
+    const pdfTextWithoutFooter = normalizeText(pdfText.replace(buildDocumentFooterText(), ''));
 
     const wordArtifact = await withDocumentUnavailable(() => renderWordDocument(runDocument));
-    const wordText = normalizeText(xmlToPlainText(wordArtifact.documentXml));
+    const wordText = wordTextWithBoundaries(wordArtifact.documentXml);
 
     expect(pdfArtifact.filename).toBe('Løbende ydelser (EET).pdf');
     expect(pdfArtifact.blob.type).toBe('application/pdf');
@@ -136,5 +147,6 @@ describe('DOC-001/TD-014 – løbende ydelser gennem faktiske PDF- og Word-artef
       expect(pdfText, `PDF mangler ${expected}`).toContain(expected);
       expect(wordText, `Word mangler ${expected}`).toContain(expected);
     }
+    expect(pdfTextWithoutFooter).toBe(wordText);
   });
 });

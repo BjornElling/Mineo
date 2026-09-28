@@ -126,6 +126,23 @@ describe('TD-019 – øvrige kravs udgift uden schema-fixture', () => {
       }],
     });
   });
+
+  it('ignorerer en tom række i en aktiv øvrige krav-sektion', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_OEVRIGE_KRAV_UDGIFT_VALUES,
+      oevrigeKravPerioder: [{
+        id: 'oevrigt-krav-tom',
+        dato: undefined,
+        udgiftTil: undefined,
+        beloeb: undefined,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: true,
+      errors: [],
+    });
+  });
 });
 
 

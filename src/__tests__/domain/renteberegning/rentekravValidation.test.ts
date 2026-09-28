@@ -77,6 +77,13 @@ describe('calculateInterestDate', () => {
   });
 
   describe('fejlscenarier', () => {
+    it('ukendt enhed → INVALID_UNIT', () => {
+      const invalidUnit = 'aar' as unknown as Parameters<typeof calculateInterestDate>[0]['enhed'];
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 1, enhed: invalidUnit });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('INVALID_UNIT');
+    });
+
     it('tom kravetDato → MISSING_INPUT', () => {
       const result = calculateInterestDate({ kravetDato: iso(''), tillaegstid: 1, enhed: 'dage' });
       expect(result.success).toBe(false);
@@ -97,6 +104,16 @@ describe('calculateInterestDate', () => {
 
     it('dansk format afvises (forventer ISO) → DATE_PARSE_ERROR', () => {
       const result = calculateInterestDate({ kravetDato: iso('01-01-2024'), tillaegstid: 1, enhed: 'dage' });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('DATE_PARSE_ERROR');
+    });
+
+    it('ekstrem tillægstid, der giver ugyldig datoaritmetik → DATE_PARSE_ERROR', () => {
+      const result = calculateInterestDate({
+        kravetDato: iso('2024-01-01'),
+        tillaegstid: Number.MAX_SAFE_INTEGER,
+        enhed: 'dage',
+      });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('DATE_PARSE_ERROR');
     });
@@ -211,6 +228,12 @@ describe('validateInterestCalculation', () => {
   });
 
   describe('INVALID_DATE_ORDER', () => {
+    it('ikke-ISO rentedato → INVALID_DATE_ORDER', () => {
+      const result = validateInterestCalculation(validKravetDato, validBeloeb, iso('ikke-en-dato'), validBeregningsdato);
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('INVALID_DATE_ORDER');
+    });
+
     it('rentedato > beregningsdato → INVALID_DATE_ORDER', () => {
       const result = validateInterestCalculation(validKravetDato, validBeloeb, iso('2024-12-01'), iso('2024-01-01'));
       expect(result.success).toBe(false);

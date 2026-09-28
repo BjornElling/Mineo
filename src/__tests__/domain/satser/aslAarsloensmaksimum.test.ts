@@ -13,6 +13,11 @@ import {
 } from '../../../domain/satser/aslAarsloensmaksimum';
 
 describe('resolveAslAarsloensmaksimumForAar (kanonisk ASL-maks-opslag)', () => {
+  it('matcher det uafhængige facit for historisk mellemår og seneste år', () => {
+    expect(resolveAslAarsloensmaksimumForAar(2022)).toBe(570000);
+    expect(resolveAslAarsloensmaksimumForAar(2026)).toBe(662000);
+  });
+
   it('returnerer beløbet for et dækket år (identisk med rå tabelopslag)', () => {
     const bounds = getYearBoundsForYearlyRate(aarsloenAslMax);
     expect(bounds).not.toBeNull();

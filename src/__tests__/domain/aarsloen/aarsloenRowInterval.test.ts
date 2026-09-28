@@ -1,5 +1,8 @@
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { parseAarsloenRowInterval } from '../../../domain/aarsloen/aarsloenRowInterval';
+import {
+  hasAarsloenPeriodOrderError,
+  parseAarsloenRowInterval,
+} from '../../../domain/aarsloen/aarsloenRowInterval';
 import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -228,5 +231,35 @@ describe('parseAarsloenRowInterval – dag', () => {
   it('håndterer whitespace', () => {
     const result = parseAarsloenRowInterval(dagRow(toISODateString('2024-01-01'), toISODateString('2024-01-31')), 'dag');
     expect(result).not.toBeNull();
+  });
+});
+
+describe('hasAarsloenPeriodOrderError', () => {
+  it('rapporterer omvendt ugeperiode', () => {
+    expect(hasAarsloenPeriodOrderError(ugeRow('10/2024', '5/2024'), 'uge')).toBe(true);
+  });
+
+  it('accepterer kronologisk ugeperiode og afviser ikke en ufuldstændig ugeperiode', () => {
+    expect(hasAarsloenPeriodOrderError(ugeRow('5/2024', '10/2024'), 'uge')).toBe(false);
+    expect(hasAarsloenPeriodOrderError(ugeRow('5/2024', ''), 'uge')).toBe(false);
+  });
+
+  it('rapporterer omvendt dagperiode', () => {
+    expect(hasAarsloenPeriodOrderError(
+      dagRow(toISODateString('2024-01-31'), toISODateString('2024-01-01')),
+      'dag',
+    )).toBe(true);
+  });
+
+  it('accepterer samme dag og afviser ikke en ugyldig datostreng', () => {
+    expect(hasAarsloenPeriodOrderError(
+      dagRow(toISODateString('2024-01-01'), toISODateString('2024-01-01')),
+      'dag',
+    )).toBe(false);
+    expect(hasAarsloenPeriodOrderError(dagRow('31-02-2024', '28-02-2024'), 'dag')).toBe(false);
+  });
+
+  it('rapporterer ingen rækkefølgefejl for måned, som ikke har denne kontrol', () => {
+    expect(hasAarsloenPeriodOrderError(maanedRow('12', '2024'), 'maaned')).toBe(false);
   });
 });

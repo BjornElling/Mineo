@@ -141,4 +141,35 @@ describe('TD-019 – TAF-overlap uden schema-fixture', () => {
       ],
     });
   });
+
+  it('markerer kun de overlappende rækker når en tredje række er adskilt', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_TAF_VALUES,
+      tafPerioder: [
+        ...INDEPENDENT_TAF_VALUES.tafPerioder,
+        {
+          id: 'taf-overlap-c',
+          fra: toISODateString('2024-02-01'),
+          til: toISODateString('2024-02-10'),
+          loseFeriedage: 0,
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [
+        {
+          path: 'tafPerioder[0].fra',
+          message: 'Der er overlappende TAF-perioder',
+          severity: 'error',
+        },
+        {
+          path: 'tafPerioder[1].fra',
+          message: 'Der er overlappende TAF-perioder',
+          severity: 'error',
+        },
+      ],
+    });
+  });
 });

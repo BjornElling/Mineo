@@ -2,6 +2,8 @@
 /// <reference types="vitest/globals" />
 
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
+import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
+import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   kapitaliseringDocumentDefinition,
@@ -30,6 +32,23 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+
+const normalizeChannelText = (text: string): string => text
+  .replace(/\u00a0/g, ' ')
+  .replace(/\u2212/g, '-')
+  .replace(/\u2264/g, '<=')
+  .replace(/\s+/g, ' ')
+  .replace(/\s*mineo\.dk\s*\/\/\s*\S+\s*$/, '')
+  .trim();
+
+const normalizeWordText = (documentXml: string): string => normalizeChannelText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
 
 const stamdata: StamdataValues = {
   journalnr: 'EET-kapitalisering-orakel',
@@ -142,12 +161,21 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
     });
 
     const renderer = await kapitaliseringDocumentDefinition.loadRenderer();
+    const pdfArtifact = await renderer(
+      await createRealPdfDocumentSessionForTest(),
+      input,
+      { visBrevhoved: false },
+    );
+    const pdfText = normalizeChannelText(await extractPdfText(pdfArtifact.blob));
     const { filename, documentXml } = await renderWordDocument((session) =>
       renderer(session, input, { visBrevhoved: false })
     );
     const text = xmlToPlainText(documentXml);
+    const wordText = normalizeWordText(documentXml);
 
     expect(filename).toMatch(/\.docx$/);
+    expect(pdfText).toContain('Kapitalisering (EET)');
+    expect(pdfText).toContain('577.053 kr.');
     expect(text).toContain('Kapitalisering (EET)');
     expect(text).toContain('Afgørelse 15. januar 2024 (25 %)');
     expect(text).toContain('Kapitaliseringsdato01-02-2024');
@@ -163,5 +191,6 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
     expect(text).toContain('Kapitaliseringsfaktor5,479');
     expect(text).toContain('Beregnet kapitalbeløb (105.320,76 kr. x 5,479) =577.053 kr.');
     expect(text).not.toContain('Særfaktor');
+    expect(wordText).toBe(pdfText);
   });
 });

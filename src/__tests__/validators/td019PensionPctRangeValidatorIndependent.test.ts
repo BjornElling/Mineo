@@ -155,4 +155,23 @@ describe('TD-019 – lønindkomstens pensionsprocent uden schema-fixture', () =>
       }],
     });
   });
+
+  it('afviser negativ pensionsprocent med præcis feltsti, besked og severity', () => {
+    const result = erstatningsopgoerelseValidator.validateParsed({
+      ...INDEPENDENT_PENSION_PCT_VALUES,
+      loenindkomstAnsaettelsesforhold: [{
+        ...INDEPENDENT_PENSION_PCT_VALUES.loenindkomstAnsaettelsesforhold[0],
+        pensionPct: -1,
+      }],
+    });
+
+    expect(result).toEqual({
+      isValid: false,
+      errors: [{
+        path: 'loenindkomstAnsaettelsesforhold[0].pensionPct',
+        message: 'Procent skal være mellem 0 og 100',
+        severity: 'error',
+      }],
+    });
+  });
 });

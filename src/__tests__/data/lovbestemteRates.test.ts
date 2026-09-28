@@ -175,6 +175,35 @@ describe('getSatserForYear', () => {
     });
   });
 
+  it('samler alle numeriske 2026-felter i de korrekte kategorier', () => {
+    expect(getSatserForYear(2026)).toMatchObject({
+      eal: {
+        svieSmertePrDag: 250,
+        svieSmerteMax: 96000,
+        erhvervsevnetabEalMax: 11582500,
+        foersoergertabEalMin: 1239000,
+        vejledendeUdtalelseEet: 26378,
+      },
+      asl: {
+        varigeMenPrGrad: 11035,
+        aarsloenAslMax: 662000,
+        aarsloenMin: 280000,
+        aarsloenMinFoer2024: null,
+        aarsloenMinFra2024: null,
+        overgangsbelob: 208000,
+        reguleringProcentErhvervsevnetab: null,
+        reguleringProcentErhvervsevnetabFoer2024: null,
+        reguleringProcentErhvervsevnetabFra2024: 8.9,
+      },
+      diverse: {
+        friProcesEnlig: 404000,
+        friProcesSamlevende: 513000,
+        friProcesBarn: 70000,
+        reguleringssats: 4.8,
+      },
+    });
+  });
+
   describe('retsinformation-links', () => {
     it('afleder vist reference-tekst fra samme datasæt som links', () => {
       const satser = getSatserForYear(2024);

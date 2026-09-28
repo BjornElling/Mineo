@@ -10,6 +10,7 @@ import type { PeriodeResult } from '../../utils/periodeBeregning';
 import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
 import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
+import { buildDocumentFooterText } from '../../document/layout/documentFooterImage';
 
 const periodeData: PeriodeResult = {
   periodeTekst: 'jan 2024 - feb 2024',
@@ -96,8 +97,24 @@ const params: Parameters<typeof generateAarsloenDocument>[1] = {
 
 const normalizeText = (text: string): string => text
   .replace(/\u00a0/g, ' ')
+  // Tabelkolonner kan dele korte header-ord forskelligt mellem PDF og OOXML.
+  // Normaliseringen fjerner kun de kendte kanal-layoutmellemrum, så resten af
+  // tekstens indhold og rækkefølge stadig sammenlignes eksakt.
+  .replace(/Ikke-pens\. giv\. løn/g, 'Ikke-pens.giv. løn')
+  .replace(/ATP mv\. u\. tillæg/g, 'ATP mv.u. tillæg')
+  .replace(/FP\/FV\/SH\/ SO\/St\.B\./g, 'FP/FV/SH/SO/St.B.')
+  .replace(/Arb\.g\. Pension/g, 'Arb.g.Pension')
   .replace(/\s+/g, ' ')
   .trim();
+
+const wordTextWithBoundaries = (documentXml: string): string => normalizeText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
 
 const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => {
   const originalDocument = globalThis.document;
@@ -146,9 +163,10 @@ describe('TD-014/TD-018 – Årslønens faktiske PDF- og Word-artefakter', () =>
       return runDocument(session);
     });
     const pdfText = normalizeText(await extractPdfText(pdfArtifact.blob));
+    const pdfTextWithoutFooter = normalizeText(pdfText.replace(buildDocumentFooterText(), ''));
 
     const wordArtifact = await withDocumentUnavailable(() => renderWordDocument(runDocument));
-    const wordText = normalizeText(xmlToPlainText(wordArtifact.documentXml));
+    const wordText = wordTextWithBoundaries(wordArtifact.documentXml);
 
     expect(pdfArtifact.filename).toBe('Årslønsberegning.pdf');
     expect(pdfArtifact.blob.type).toBe('application/pdf');
@@ -161,5 +179,6 @@ describe('TD-014/TD-018 – Årslønens faktiske PDF- og Word-artefakter', () =>
       expect(pdfText, `PDF mangler ${expected}`).toContain(expected);
       expect(wordText, `Word mangler ${expected}`).toContain(expected);
     }
+    expect(pdfTextWithoutFooter).toBe(wordText);
   });
 });

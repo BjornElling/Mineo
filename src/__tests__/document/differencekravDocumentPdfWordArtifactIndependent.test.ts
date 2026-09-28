@@ -73,9 +73,23 @@ const params = {
 
 const normalizeText = (text: string): string => text
   .replace(/\u00a0/g, ' ')
+  .replace(/\u2212/g, '-')
   .replace(/\u2013/g, '-')
   .replace(/\s+/g, ' ')
   .trim();
+
+const removeFooter = (text: string): string => normalizeText(
+  text.replace(/\s*mineo\.dk\s*\/\/\s*\S+\s*$/, '')
+);
+
+const normalizeWordText = (documentXml: string): string => normalizeText(
+  xmlToPlainText(
+    documentXml
+      .replace(/<\/w:tc>/g, ' ')
+      .replace(/<\/w:tr>/g, ' ')
+      .replace(/<\/w:p>/g, ' ')
+  )
+);
 
 const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => {
   const originalDocument = globalThis.document;
@@ -130,7 +144,7 @@ describe('DOC-001/TD-014 – Differencekravs faktiske PDF- og Word-artefakter', 
     const pdfMetadata = new TextDecoder('latin1').decode(await pdfArtifact.blob.arrayBuffer());
 
     const wordArtifact = await withDocumentUnavailable(() => renderWordDocument(render));
-    const wordText = normalizeText(xmlToPlainText(wordArtifact.documentXml));
+    const wordText = normalizeWordText(wordArtifact.documentXml);
     const wordCoreXml = (await wordArtifact.zip.file('docProps/core.xml')?.async('string')) ?? '';
 
     expect(pdfArtifact.filename).toBe('DOC-001-TD-014 - Differencekrav (EET).pdf');
@@ -144,6 +158,8 @@ describe('DOC-001/TD-014 – Differencekravs faktiske PDF- og Word-artefakter', 
       expect(pdfText, `PDF mangler ${expected}`).toContain(expected);
       expect(wordText, `Word mangler ${expected}`).toContain(expected);
     }
+
+    expect(removeFooter(pdfText)).toBe(removeFooter(wordText));
 
     expect(pdfMetadata).toContain('/Title (Differencekrav \\(EET\\))');
     expect(pdfMetadata).toContain('/Subject (Erstatningsberegning)');
