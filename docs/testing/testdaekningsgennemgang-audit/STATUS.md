@@ -2776,6 +2776,15 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-386, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte numerisk facit i `eetMerErstatningPensionsalderCalculation.test.ts`
+for den positive ekstrapolation fra faktortabellens sidste række til særfaktoren. Testen forkorter
+midlertidigt tabel J i `10029/2024`, kræver faktor `2,832` for alderen 62 år og 11 måneder uden
+issues og gendanner data i `finally`. Filen bestod med 24/24 og målte 94,68 % statements / 91,07 %
+branches / 100 % functions / 100 % lines. Hele EET-domænesuiten bestod med 27 filer / 500 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-385, arbejdsrevision
 
 Batchen tilføjer 5/5 matrixfacitter i `eetAslAfgoerelser.test.ts` for manglende

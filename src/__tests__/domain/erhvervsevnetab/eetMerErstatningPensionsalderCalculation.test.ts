@@ -405,6 +405,40 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
     }
   });
 
+  it('interpolerer videre fra faktortabellens sidste række til særfaktoren', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['10029/2024'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 10029/2024');
+    dataById['10029/2024'] = {
+      ...original,
+      // Testen forkorter kun tabellen, så den kendte 62 år, 11 måneder-gang tvinges
+      // gennem den positive ekstrapolation til den dokumenterede særfaktor.
+      erhvervsevnetabTabeller: {
+        ...original.erhvervsevnetabTabeller,
+        J: original.erhvervsevnetabTabeller.J.filter((row) => row.alder < 62),
+      },
+    };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        {
+          ...base,
+          skadedato: iso('2007-07-01'),
+          fodselsdato: iso('1963-01-01'),
+          kapitaliseringer: [kap(toISODateString('2014-06-01'))],
+        },
+        issues
+      );
+
+      expect(issues).toEqual([]);
+      const event = computation?.events.find((candidate) => candidate.forhoejelsesdato === toISODateString('2025-12-31'));
+      expect(event?.gammel.kapitaliseringsfaktor).toBe(2.832);
+    } finally {
+      dataById['10029/2024'] = original;
+    }
+  });
+
   it('anvender direkte særfaktor ved 2025-forhøjelsen tæt på folkepensionsalderen', () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
