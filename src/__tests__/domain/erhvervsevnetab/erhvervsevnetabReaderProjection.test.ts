@@ -18,11 +18,13 @@ import {
   aslAfgoerelseAfgoerelseTypeField,
   aslAfgoerelseAfgoerelsesDatoField,
   aslAfgoerelseEetPctField,
+  aslAfgoerelseFsTilbageholdtEetField,
   aslAfgoerelseKapDatoField,
   aslAfgoerelseKapPctField,
   aslAfgoerelseTidlKapDatoField,
   aslAfgoerelseVirkningsDatoField,
   erhvervsevnetabAslAfgoerelserCollectionRef,
+  erhvervsevnetabBilagOpgoerelseField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { APP_ROUTES } from '../../../config/pageNavigation';
@@ -49,6 +51,7 @@ import type {
   FaellesAarsloenValues,
   StamdataValues,
 } from '../../../schemas/formSchemas';
+import type { RejectedInputs } from '../../../inputCore/settledInput';
 
 // Erhvervsevnetabs reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen (a) kører den
 // EKSISTERENDE `computeEetSnapshot` byte-identisk på reader-læste værdier (§5.4 hårdt stop mod talændring, inkl. den
@@ -98,7 +101,8 @@ const validStamdata: StamdataValues = {
 const buildReader = (
   erhvervsevnetab: ErhvervsevnetabValues,
   faellesAarsloen: FaellesAarsloenValues,
-  stamdata: StamdataValues | null
+  stamdata: StamdataValues | null,
+  rejectedInputs: RejectedInputs = {}
 ) => {
   const input = catalog.validateSettledInput({
     sections: {
@@ -106,7 +110,7 @@ const buildReader = (
       renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
     },
-    rejectedInputs: {},
+    rejectedInputs,
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
   return createInputEvaluation({ input, catalog, sourceToken }).reader;
@@ -124,6 +128,28 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata);
 
     expect(readAslAfgoerelserCommittedRows(reader)).toEqual(validErhvervsevnetab.aslAfgoerelser);
+  });
+
+  it('falder tilbage til toggle-tomværdien ved afvist boolean-input', () => {
+    const address = serializeFieldAddress(erhvervsevnetabBilagOpgoerelseField.bind().address);
+    const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata, {
+      [address]: { raw: 'abc', reason: 'format' },
+    });
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+
+    expect(projection.values.eetDifferencekravBilagSelection.opgoerelse).toBe(true);
+  });
+
+  it('falder tilbage til rækkens Nej-tomværdi ved afvist required choice', () => {
+    const rowId = 'eet_asl_row1';
+    const address = serializeFieldAddress(aslAfgoerelseFsTilbageholdtEetField.bind(rowId).address);
+    const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata, {
+      [address]: { raw: 'abc', reason: 'format' },
+    });
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+
+    expect(projection.aslAfgoerelserCommittedRows[0]?.fsTilbageholdtEet).toBe('Nej');
+    expect(projection.snapshot.loebendeYdelser.issues.some((issue) => issue.id === 'field-asl-afgoerelser')).toBe(true);
   });
 
   it('kører computeEetSnapshot byte-identisk på de reader-læste værdier, inkl. aslAfgoerelser-collection (§5.4)', () => {

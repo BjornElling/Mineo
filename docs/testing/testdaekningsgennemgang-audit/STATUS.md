@@ -2776,6 +2776,20 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT/CALC-batch – TD-382, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `erhvervsevnetabReaderProjection.test.ts`: afvist
+boolean-input falder tilbage til toggle-tomværdien, og afvist required choice i en ASL-række
+falder tilbage til `Nej` og blokerer den afhængige beregning med `field-asl-afgoerelser`.
+Filen bestod med 11/11, og reader-projektionen målte 100 % statements / branches / functions /
+lines. Hele EET-domænesuiten bestod med 27 filer / 492 tests.
+
+Under triagen af Differencekravets eksisterende missing-rate-facit blev det samtidig konstateret,
+at den lokale reservegren for 2024-reguleringssatsen ikke kan observeres: `round2(NaN)` bliver
+til `0`, før `Number.isFinite`-kontrollen. Det kan derfor give et nulbeløb i stedet for den
+tilsigtede blokering. Der er ikke ændret beregningslogik; forholdet er forelagt udvikleren.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er ellers uændret.
+
 ## Seneste test-only CALC-batch – TD-381, arbejdsrevision
 
 Batchen tilføjer 1/1 direkte facit i `eetKapitaliseringCalculation.test.ts` for manglende særfaktor
