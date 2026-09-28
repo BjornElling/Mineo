@@ -10,6 +10,8 @@ import {
   createSettingsRevision,
 } from '../../inputCore/evaluationSource';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
 import { projectMineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import { __createTestSourceSettings } from '../../settings/sourceSettings';
 import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
@@ -38,6 +40,13 @@ const gateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings
   brevhovedIndstillinger: {
     ...DEFAULT_BREVHOVED_INDSTILLINGER,
     varigeMen: false,
+  },
+}));
+
+const gateSettingsWithBrevhoved = projectMineoDocumentGateSettings(__createTestSourceSettings({
+  brevhovedIndstillinger: {
+    ...DEFAULT_BREVHOVED_INDSTILLINGER,
+    varigeMen: true,
   },
 }));
 
@@ -74,6 +83,38 @@ const project = () => {
   return result.input;
 };
 
+const projectWithBlockedBrevhovedStamdata = () => {
+  const catalog = getProductionInputCatalog();
+  const input = catalog.validateSettledInput({
+    sections: {
+      stamdata: { ...stamdata, skadestype: undefined },
+      satser: null,
+      aarsloen: null,
+      faellesAarsloen: null,
+      renteberegning: null,
+      varigemen,
+      forsoergertab: null,
+      erstatningsopgoerelse: null,
+      erhvervsevnetab: null,
+    },
+    rejectedInputs: {
+      [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
+        raw: 'ikke-en-type',
+        reason: 'format',
+      },
+    },
+  });
+  const evaluation = createInputEvaluation({
+    input,
+    catalog,
+    sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+  });
+  return varigeMenDocumentDefinition.project(
+    createDocumentSourceContext(evaluation, gateSettingsWithBrevhoved),
+    undefined,
+  );
+};
+
 describe('CALC-004 – varige mén fra snapshot til Word', () => {
   it('fører det håndberegnede resultat til det faktiske Word-dokument', async () => {
     const input = project();
@@ -105,5 +146,15 @@ describe('CALC-004 – varige mén fra snapshot til Word', () => {
     expect(text).toContain('389.610 kr.');
     expect(text).toContain('85.714 kr.');
     expect(text).toContain('303.896 kr.');
+  });
+
+  it('blokerer med den konkrete stamdataårsag, når brevhovedet er aktivt', () => {
+    expect(projectWithBlockedBrevhovedStamdata()).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'varigemen:stamdata-blocked',
+        message: 'Ret fejlen i Stamdata',
+      })],
+    });
   });
 });

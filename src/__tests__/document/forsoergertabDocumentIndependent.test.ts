@@ -10,6 +10,8 @@ import {
   createSettingsRevision,
 } from '../../inputCore/evaluationSource';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type {
   FaellesAarsloenValues,
@@ -55,6 +57,13 @@ const gateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings
   },
 }));
 
+const gateSettingsWithBrevhoved = projectMineoDocumentGateSettings(__createTestSourceSettings({
+  brevhovedIndstillinger: {
+    ...DEFAULT_BREVHOVED_INDSTILLINGER,
+    forsoergertab: true,
+  },
+}));
+
 const project = () => {
   const catalog = getProductionInputCatalog();
   const input = catalog.validateSettledInput({
@@ -88,6 +97,38 @@ const project = () => {
   return result.input;
 };
 
+const projectWithBlockedBrevhovedStamdata = () => {
+  const catalog = getProductionInputCatalog();
+  const input = catalog.validateSettledInput({
+    sections: {
+      stamdata: { ...stamdata, skadestype: undefined },
+      satser: null,
+      aarsloen: null,
+      faellesAarsloen,
+      renteberegning: null,
+      varigemen: null,
+      forsoergertab,
+      erstatningsopgoerelse: null,
+      erhvervsevnetab: null,
+    },
+    rejectedInputs: {
+      [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
+        raw: 'ikke-en-type',
+        reason: 'format',
+      },
+    },
+  });
+  const evaluation = createInputEvaluation({
+    input,
+    catalog,
+    sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+  });
+  return forsoergertabDocumentDefinition.project(
+    createDocumentSourceContext(evaluation, gateSettingsWithBrevhoved),
+    undefined,
+  );
+};
+
 describe('CALC-005 – forsørgertab fra snapshot til Word', () => {
   it('fører det håndberegnede resultat og de to ydelsesdele til dokumentet', async () => {
     const input = project();
@@ -119,5 +160,15 @@ describe('CALC-005 – forsørgertab fra snapshot til Word', () => {
     expect(text).toContain('2.158.185 kr.');
     expect(text).toContain('Resterende periode (hele år og måneder)');
     expect(text).toContain('0 år og 11 måneder');
+  });
+
+  it('blokerer med den konkrete stamdataårsag, når brevhovedet er aktivt', () => {
+    expect(projectWithBlockedBrevhovedStamdata()).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'forsoergertab:stamdata-blocked',
+        message: 'Ret fejlen i Stamdata',
+      })],
+    });
   });
 });

@@ -2660,6 +2660,17 @@ godkendt gate og `row-no-result` står fortsat åbne. `npm run typecheck:test` o
 skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-370, arbejdsrevision `a7f11ca9`
+
+Batchen tilføjer 2/2 direkte stamdata-gatefacitter i de uafhængige Varige mén- og
+Forsørgertab-dokumenttests, når brevhovedet er aktivt. Den samlede dokumentkontrol bestod med
+6 filer / 104 tests; `varigeMenDocumentDefinition.ts` dækkes med 94,11 % statements / 80 %
+branches / 100 % functions / 93,75 % lines, mens `forsoergertabDocumentDefinition.ts` har
+100 % på alle fire målepunkter. Varige méns `no-result` står fortsat som defensiv reserve.
+`npm run typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
