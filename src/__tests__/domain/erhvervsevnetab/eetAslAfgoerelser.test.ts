@@ -102,6 +102,50 @@ describe('collectIncompleteRowIssues – canonical procentgrænser', () => {
   });
 });
 
+describe('collectIncompleteRowIssues – manglende rækkeoplysninger', () => {
+  it.each([
+    [
+      'afgørelsesdato',
+      buildRow({ virkningsDato: toISODateString('2025-01-01'), eetPct: 50, afgoerelseType: 'Midlertidig' }),
+      { id: 'missing-afgoerelsesdato', message: 'Der er en afgørelse uden afgørelsesdato' },
+    ],
+    [
+      'EET-procent',
+      buildRow({ afgoerelsesDato: toISODateString('2025-01-01'), virkningsDato: toISODateString('2025-01-01'), afgoerelseType: 'Midlertidig' }),
+      { id: 'missing-eet-pct', message: 'Der er en afgørelse uden EET %' },
+    ],
+    [
+      'afgørelsestype',
+      buildRow({ afgoerelsesDato: toISODateString('2025-01-01'), virkningsDato: toISODateString('2025-01-01'), eetPct: 50 }),
+      { id: 'missing-afgoerelseType', message: 'Der er en afgørelse uden afgørelsestype' },
+    ],
+    [
+      'kapitaliseringsprocent',
+      buildRow({
+        afgoerelsesDato: toISODateString('2025-01-01'),
+        virkningsDato: toISODateString('2025-01-01'),
+        eetPct: 50,
+        kapDato: toISODateString('2025-02-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      { id: 'kap-dato-without-kap-pct', message: 'Der er indtastet kapitaliseringsdato men ikke -procent' },
+    ],
+    [
+      'kapitaliseringsdato',
+      buildRow({
+        afgoerelsesDato: toISODateString('2025-01-01'),
+        virkningsDato: toISODateString('2025-01-01'),
+        eetPct: 50,
+        kapPct: 25,
+        afgoerelseType: 'Endelig',
+      }),
+      { id: 'kap-pct-without-kap-dato', message: 'Der er indtastet kapitaliseringsprocent men ikke -dato' },
+    ],
+  ] as const)('rapporterer manglende %s med det konkrete issue', (_label, row, expected) => {
+    expect(collectIncompleteRowIssues([row])).toContainEqual(expected);
+  });
+});
+
 describe('collectIncompleteRowIssues – ≤ 2 år til folkepension', () => {
   // En endelig afgørelse på 40 % ≤ 2 år før folkepensionsalderen. Kapitaliseringsfelterne SKAL være
   // tomme (motoren udleder dem selv), men uden ≤2-års-undtagelsen blokerede fanen alligevel på
