@@ -92,6 +92,54 @@ describe('computeEetDifferencekravCalculation', () => {
     }
   });
 
+  it('blokerer med en konkret fejl når dagen før beregningsdatoen ikke kan repræsenteres', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('1900-01-01'),
+        aslAarsloen: asAmount(401000),
+      },
+      skadedato: undefined,
+      skadelidteFodselsdato: toISODateString('1900-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'beregningsdato-invalid',
+      severity: 'error',
+      message: 'Beregningsdato er ugyldig.',
+    });
+  });
+
+  it('filtrerer løbende ydelsers no-endelig-advarsel væk fra Differencekrav', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2021-03-01'),
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [{
+          id: 'midlertidig',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2019-10-01'),
+          virkningsDato: toISODateString('2019-02-01'),
+          eetPct: 55,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2015-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.issues).not.toContainEqual(expect.objectContaining({ id: 'no-endelig-afgoerelser' }));
+  });
+
   it('blokerer resterende løbende ydelser når 2024-reguleringssatsen mangler', () => {
     const rates = reguleringsprocentErhvervsevnetabFoer2024 as Record<number, number | undefined>;
     const original = rates[2024];

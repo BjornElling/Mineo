@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-390, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `eetDifferencekravCalculation.test.ts` for
+Differencekravets beregningsdato-reserve og issue-filtrering. `01.01.1900` kræver
+`beregningsdato-invalid`, mens en sag med kun en midlertidig afgørelse ikke må få
+`no-endelig-afgoerelser` med fra løbende ydelser til Differencekrav. Filen bestod med 45/45
+og målte 93,58 % statements / 90,15 % branches / 100 % functions / 95,08 % lines.
+Hele EET-domænesuiten bestod med 27 filer / 513 tests. Den manglende 2024-reguleringssats
+står fortsat dokumenteret som ikke-observerbar reserve; produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-389, arbejdsrevision
 
 Batchen tilføjer 3/3 direkte facitter i `eetLoebendeYdelserCalculation.test.ts` for løbende
