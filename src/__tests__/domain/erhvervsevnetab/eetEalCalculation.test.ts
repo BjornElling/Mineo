@@ -9,7 +9,7 @@ import {
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { EET_UNDER_15_WARNING } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
 import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -105,6 +105,32 @@ describe('computeEetEalCalculation', () => {
         ealMax[2026] = original;
       }
     }
+  });
+
+  it('blokerer fail-closed når fødselsdatoen ikke kan bruges til aldersberegning', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        ealAarsloen: asAmount(500000),
+        aslAarsloen: asAmount(500000),
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: 'ugyldig-dato' as unknown as ISODateString,
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: null,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'alder-unresolved',
+      severity: 'error',
+      message: 'Alder på skadestidspunkt kan ikke beregnes',
+    });
   });
 
   it('ignorerer ugyldig ASL-årsløn, når EAL-årslønnen er udfyldt positivt', () => {

@@ -2411,6 +2411,15 @@ og afgrænset coverage blev 85,10 % statements / 80,35 % branches / 100 % functi
 ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
 skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-345, arbejdsrevision `84ea550d`
+
+Batchen tilføjer ét direkte fail-closed-facit i `eetEalCalculation.ts` for en runtime-
+fødselsdato, der ikke kan parses. Den målrettede fil bestod med 42/42, hele EET-
+domænesuiten med 25 filer / 462 tests, og afgrænset coverage blev 98,18 % statements /
+91,36 % branches / 100 % functions / 98,70 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
