@@ -2724,6 +2724,16 @@ Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uænd
 typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit.
 Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-376, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `eetAslAfgoerelser.test.ts` for advarslen om en
+ikke-endelig afgørelse efter en endelig afgørelse: henholdsvis kun midlertidig og kun delvist
+endelig. Filen bestod med 69/69, og `eetAslAfgoerelser.ts` målte 94,78 % statements / 90,42 %
+branches / 89,79 % functions / 96,47 % lines. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-,
+encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

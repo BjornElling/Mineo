@@ -688,6 +688,48 @@ describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
     );
   });
 
+  it('navngiver kun den midlertidige afgørelse i advarslen', () => {
+    const resolved = resolveNonEndeligAfterEndeligRows([
+      buildRow({
+        id: 'endelig',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      buildRow({
+        id: 'midlertidig',
+        afgoerelsesDato: toISODateString('2024-02-01'),
+        virkningsDato: toISODateString('2024-02-01'),
+        afgoerelseType: 'Midlertidig',
+      }),
+    ]);
+
+    expect(resolveNonEndeligAfterEndeligWarning(resolved)).toBe(
+      'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.'
+    );
+  });
+
+  it('navngiver kun den delvist endelige afgørelse i advarslen', () => {
+    const resolved = resolveNonEndeligAfterEndeligRows([
+      buildRow({
+        id: 'endelig',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      buildRow({
+        id: 'delvist',
+        afgoerelsesDato: toISODateString('2024-02-01'),
+        virkningsDato: toISODateString('2024-02-01'),
+        afgoerelseType: 'Delvist endelig',
+      }),
+    ]);
+
+    expect(resolveNonEndeligAfterEndeligWarning(resolved)).toBe(
+      'Der er angivet en delvist endelig afgørelse efter en endelig afgørelse.'
+    );
+  });
+
   it('springer ufuldstændige rækker over ved opløsning af advarselsdata', () => {
     const resolved = resolveNonEndeligAfterEndeligRows([
       buildRow({
