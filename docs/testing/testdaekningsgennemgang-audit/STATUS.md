@@ -2776,6 +2776,14 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-395, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `eetSnapshot.test.ts` for 100 %-forligets no-op-grænse.
+EAL-projektionens forligsblok og Differencekravets faktor/dato skal være null, selv om forliget
+er gyldigt og ikke blokerer. Filen bestod med 17/17 og målte 98,88 % statements / 90,24 %
+branches / 100 % functions / 100 % lines. Hele EET-domænesuiten bestod med 27 filer /
+529 tests. Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-394, arbejdsrevision
 
 Batchen tilføjer 2/2 direkte facitter i `eetFormatUtils.test.ts` for månedsformatteringen

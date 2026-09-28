@@ -252,6 +252,25 @@ describe('computeEetSnapshot', () => {
     );
   });
 
+  it('behandler et gyldigt forlig på 100 procent som ingen reduktion', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: 100, forligAnsvarsgradBroek: undefined },
+        dato: toISODateString('2024-05-17'),
+        hasRejectedInput: false,
+      },
+    });
+
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(false);
+    expect(snapshot.efterEal.computation?.forlig).toBeNull();
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(false);
+    expect(snapshot.differencekrav.computation?.forligFactor).toBeNull();
+    expect(snapshot.differencekrav.computation?.forligDato).toBeNull();
+  });
+
   it('blokerer hele differencekrav-outputtet når både procent og brøk er udfyldt', () => {
     const snapshot = computeEetSnapshot({
       values: createValues(),
