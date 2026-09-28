@@ -26,7 +26,9 @@ import {
 } from '../../../inputCore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
+  aarsloenAntalFeriedageField,
   aarsloenFeriePctField,
+  aarsloenFuldLoenUnderFerieField,
   aarsloenLoenPaaHelligdageField,
   aarsloenOmregningTilFuldtAarField,
   aarsloenTableCol0MaanedField,
@@ -119,6 +121,21 @@ const withOneValidAugustMonthRow = (input: SettledInput): SettledInput => {
   return dispatch(next, settle(aarsloenTableCol2Field.bind('r1'), '30000'));
 };
 
+const withDuplicateValidMonthRows = (input: SettledInput): SettledInput => {
+  let next = withOneValidMonthRow(input);
+  next = dispatch(next, insert(emptyRow('r2')));
+  next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r2'), '1'));
+  next = dispatch(next, settle(aarsloenTableCol1MaanedField.bind('r2'), '2024'));
+  return dispatch(next, settle(aarsloenTableCol2Field.bind('r2'), '30000'));
+};
+
+const withFeriedageOverPeriod = (input: SettledInput): SettledInput => {
+  let next = withOneValidMonthRow(input);
+  next = dispatch(next, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+  next = dispatch(next, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
+  return dispatch(next, settle(aarsloenAntalFeriedageField.bind(), '24'));
+};
+
 const expectBlocked = (
   gate: ReturnType<typeof evaluateAarsloenDownloadGate>,
   code: string
@@ -170,6 +187,32 @@ describe('evaluateAarsloenDownloadGate', () => {
   it('tillader download for et komplet, gyldigt grundlag', () => {
     const gate = evaluateAarsloenDownloadGate(project(withOneValidMonthRow(withValidStamdata(empty()))));
     expect(gate.canDownload).toBe(true);
+  });
+
+  it('blokerer begge dokumentgates ved identiske lønrækker', () => {
+    const projection = project(withDuplicateValidMonthRows(withValidStamdata(empty())));
+
+    expect(projection.duplicateRowIssues.all.length).toBeGreaterThan(0);
+    const aarsloenGate = evaluateAarsloenDownloadGate(projection);
+    const shDageGate = evaluateShDageDownloadGate(projection);
+
+    expectBlocked(aarsloenGate, 'aarsloen:duplicate-rows');
+    expectBlocked(shDageGate, 'aarsloen:sh-duplicate-rows');
+    if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('invalid-input');
+    if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('invalid-input');
+  });
+
+  it('blokerer begge dokumentgates ved feriedage over periodens hverdage', () => {
+    const projection = project(withFeriedageOverPeriod(withValidStamdata(empty())));
+
+    expect(projection.feriedageFieldIssues).toHaveLength(1);
+    const aarsloenGate = evaluateAarsloenDownloadGate(projection);
+    const shDageGate = evaluateShDageDownloadGate(projection);
+
+    expectBlocked(aarsloenGate, 'aarsloen:feriedage-over-perioden');
+    expectBlocked(shDageGate, 'aarsloen:sh-feriedage-over-perioden');
+    if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('specific');
+    if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('specific');
   });
 
   it('blokerer når omregning er aktiv uden periode-data', () => {

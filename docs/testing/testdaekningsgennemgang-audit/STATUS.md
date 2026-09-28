@@ -2627,6 +2627,18 @@ reserverne står fortsat som uopnåelige invariants. `npm run typecheck:test` og
 skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-367, arbejdsrevision `226a314d`
+
+Batchen tilføjer 2/2 direkte facitter i `aarsloenDownloadGate.test.ts`, der blokerer både
+Årsløns- og SH-dokumentet ved identiske lønrækker og ved 24 feriedage mod 23 periodiske
+hverdage. Filen bestod med 20/20; afgrænset coverage for `aarsloenDownloadGate.ts` blev
+89,55 % statements / 86,66 % branches / 85,71 % functions / 91,37 % lines. Hele Årsløn-
+domænesuiten bestod med 21 filer / 277 tests. De defensive canonical-range-/table-error-
+reserver står fortsat åbne som ikke-observerede invariants. `npm run typecheck:test` og
+målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen produktkode,
+beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter
+batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
