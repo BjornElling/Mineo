@@ -302,6 +302,38 @@ describe('computeEetEalCalculation', () => {
     expect(result.computation).not.toHaveProperty('ealKrav');
   });
 
+  it('anvender forligsfaktor på EAL-kravet og bevarer forligsmetadata', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        aslAarsloen: asAmount(489000),
+        ealAarsloen: undefined,
+        ealEetPct: 75,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2019-06-01'),
+      skadelidteFodselsdato: iso('1966-01-08'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: {
+        factor: 0.5,
+        label: '50 %',
+        dato: iso('2026-03-01'),
+      },
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.computation).not.toBeNull();
+    expect(toKroner(result.computation!.ealKravOre)).toBe(3422850);
+    expect(result.computation!.forlig).toEqual({
+      label: '50 %',
+      dato: iso('2026-03-01'),
+      ealKravEfterForligOre: 171142500,
+    });
+  });
+
   it('advarer (ikke-blokerende) når beregningsdato ligger før skadedato', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {

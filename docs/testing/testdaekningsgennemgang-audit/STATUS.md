@@ -2776,6 +2776,15 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-383, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte numerisk facit i `eetEalCalculation.test.ts` for den positive
+forligsgren. Testen kræver det fulde EAL-krav på 3.422.850 kr. samt den separate reducerede
+værdi på 1.711.425 kr. med label og dato. Filen bestod med 45/45, og `eetEalCalculation.ts`
+målte 99,39 % statements / 93,52 % branches / 100 % functions / 100 % lines. Hele EET-
+domænesuiten bestod med 27 filer / 493 tests. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret.
+
 ## Seneste test-only INPUT/CALC-batch – TD-382, arbejdsrevision
 
 Batchen tilføjer 2/2 direkte facitter i `erhvervsevnetabReaderProjection.test.ts`: afvist
