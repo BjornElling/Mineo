@@ -2391,6 +2391,16 @@ blev 89,62 % statements / 89,33 % branches / 95 % functions / 89,14 % lines.
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
 skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-343, arbejdsrevision `f28de5d7`
+
+Batchen tilføjer ét direkte fail-closed-facit i `eetKapitaliseringCalculation.ts`:
+en effektiv alder efter faktortabellens sidste alder, hvor den historiske tabel mangler
+særfaktor. Den målrettede fil bestod med 29/29, hele EET-domænesuiten med 25 filer /
+458 tests, og afgrænset coverage blev 90,45 % statements / 89,77 % branches /
+95 % functions / 90,04 % lines. `npm run typecheck:test` og målrettet ESLint bestod.
+Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er
+ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

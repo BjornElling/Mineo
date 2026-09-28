@@ -531,6 +531,37 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.759);
   });
 
+  it('blokerer når særfaktor mangler efter faktortabellens sidste alder', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2015-01-01'),
+            virkningsDato: toISODateString('2015-01-01'),
+            eetPct: 50,
+            kapDato: toISODateString('2020-12-31'),
+            kapPct: 25,
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'kapitaliseringsfaktor-unresolved',
+      severity: 'error',
+      message: 'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler',
+    });
+  });
+
   it('blokerer når alderen ligger under den valgte faktortabels minimum', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
