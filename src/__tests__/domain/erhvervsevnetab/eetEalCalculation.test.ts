@@ -69,6 +69,58 @@ describe('computeEetEalCalculation', () => {
     ]));
   });
 
+  it('blokerer når beregningsdato mangler', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: undefined,
+        ealAarsloen: asAmount(500000),
+        aslAarsloen: asAmount(500000),
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: null,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'beregningsdato-missing',
+      severity: 'error',
+      message: 'Beregningsdato er ikke udfyldt',
+    });
+  });
+
+  it('blokerer når skadedato mangler', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-02-27'),
+        ealAarsloen: asAmount(500000),
+        aslAarsloen: asAmount(500000),
+        ealEetPct: 40,
+        aslAfgoerelser: [],
+      },
+      skadedato: undefined,
+      skadelidteFodselsdato: iso('1990-01-01'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+      forlig: null,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'skadedato-missing',
+      severity: 'error',
+      message: 'Skadedato er ikke udfyldt',
+    });
+  });
+
   it('blokerer fail-closed når maksimum for beregningsåret mangler', () => {
     const ealMax = erhvervsevnetabEalMax as Record<number, number | undefined>;
     const original = ealMax[2026];
