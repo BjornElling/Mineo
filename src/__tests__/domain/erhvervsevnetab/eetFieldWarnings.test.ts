@@ -33,6 +33,10 @@ describe('resolveEetUnder15Warning', () => {
 });
 
 describe('kapitaliseringUnder15WarningRowIds', () => {
+  it('viser ingen rækker når kapitaliseringslisten er tom', () => {
+    expect(kapitaliseringUnder15WarningRowIds([])).toEqual(new Set());
+  });
+
   it('fremhæver den første kapitalisering under 15 %', () => {
     const rows = [{ rowId: 'foerste', kapitaliseringspct: 10 }];
     expect(kapitaliseringUnder15WarningRowIds(rows)).toEqual(new Set(['foerste']));
