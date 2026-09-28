@@ -18,6 +18,8 @@ import {
   aarsloenFeriePctField,
   aarsloenFuldLoenUnderFerieField,
   aarsloenOmregningTilFuldtAarField,
+  aarsloenTableCol0MaanedField,
+  aarsloenTableCol1MaanedField,
   aarsloenTableCol2Field,
   aarsloenTillaegAngivesSomField,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
@@ -190,6 +192,22 @@ describe('buildAarsloenReaderProjection', () => {
 
     expect(projection.fieldIssues).toHaveLength(0);
     expect(projection.calculation).not.toBeNull();
+  });
+
+  it('afleder konkret feriedagsgrænse fra periodens hverdage', () => {
+    let input = dispatch(empty(), setImmediateField(aarsloenOmregningTilFuldtAarField.bind(), true) as AnyInputCommand);
+    input = dispatch(input, setImmediateField(aarsloenFuldLoenUnderFerieField.bind(), false) as AnyInputCommand);
+    input = dispatch(input, insert(emptyRow('r1')));
+    input = dispatch(input, settle(aarsloenTableCol0MaanedField.bind('r1'), '1'));
+    input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind('r1'), '2024'));
+    input = dispatch(input, settle(col2Ref('r1'), '1000'));
+    input = dispatch(input, settle(aarsloenAntalFeriedageField.bind(), '24'));
+
+    const projection = buildAarsloenReaderProjection(reader(input));
+
+    expect(projection.calculation).not.toBeNull();
+    expect(projection.feriedageFieldIssues).toHaveLength(1);
+    expect(projection.feriedageFieldIssues[0]?.message).toContain('23');
   });
 
   /**

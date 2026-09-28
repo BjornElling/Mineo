@@ -2606,6 +2606,15 @@ run typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er 
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
 genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-365, arbejdsrevision `ec38b3b2`
+
+Batchen tilføjer ét direkte facit i `aarsloenProjection.test.ts`: 24 canonical feriedage i
+januar 2024 bliver mødt af en konkret afledt grænse på 23 hverdage i perioden. Den målrettede
+fil bestod med 16/16 og 100 % statements / branches / functions / lines, og hele Årsløn-
+domænesuiten består fortsat med 21 filer / 275 tests. `npm run typecheck:test` og målrettet
+ESLint skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX
+eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
