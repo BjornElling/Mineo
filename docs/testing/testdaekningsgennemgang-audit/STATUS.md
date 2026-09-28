@@ -2517,6 +2517,15 @@ hele EET-domænesuiten med 25 filer / 477 tests, og afgrænset coverage blev 89,
 ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-356, arbejdsrevision `b7212519`
+
+Batchen tilføjer ét defensivt facit i `eetDifferencekravBilag.test.ts`: EET-efter-EAL-bilaget
+bliver inaktivt med den konkrete årsag, når EAL-computation mangler. Den målrettede fil bestod
+med 7/7, hele EET-domænesuiten med 25 filer / 478 tests, og afgrænset coverage blev 100 %
+statements / 88,88 % branches / 100 % functions / 100 % lines. `npm run typecheck:test` og
+målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

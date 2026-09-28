@@ -113,6 +113,22 @@ describe('getEetDifferencekravBilagAvailability', () => {
     }
   });
 
+  it('deaktiverer EET-efter-EAL-bilaget med en konkret årsag når EAL-computation mangler', () => {
+    const availability = getEetDifferencekravBilagAvailability({
+      computation: {
+        ...computationWith({}),
+        ealComputation: null,
+      },
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+      loebendeYdelserBilagValgt: false,
+    });
+
+    expect(availability.eetEfterEal).toEqual({
+      enabled: false,
+      disabledReason: 'Der er intet beregnet EAL-krav i sagen',
+    });
+  });
+
   it('giver hvert utilgængeligt valg en årsag – et inaktivt felt uden forklaring er selve fundet', () => {
     const availability = getEetDifferencekravBilagAvailability({
       computation: computationWith({}),
