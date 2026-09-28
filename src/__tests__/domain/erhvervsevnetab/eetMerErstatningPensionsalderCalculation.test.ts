@@ -2,6 +2,7 @@ import { computeMerErstatningPensionsalder } from '../../../domain/erhvervsevnet
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { toISODateString } from '../../../types/branded';
 import { fromKroner } from '../../../domain/money/money';
+import { kapitaliseringsTabelDataById, type KapitaliseringsTabelData } from '../../../data/kapitalisering/kapitaliseringsTabeller';
 
 // Autoritativt eksempel (jf. docs/domain/eet/mer-erstatning-pensionsalder.md):
 //   Skade mellem 1.1.2004 og 30.6.2007 → erstatningsniveau 80 %, intet AM-bidrag,
@@ -193,6 +194,82 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       id: 'mer-erstatning-gammel-faktor-unresolved',
       severity: 'error',
     }));
+  });
+
+  it('blokerer fail-closed når den gamle bekendtgørelses data mangler', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['198/2015'];
+    dataById['198/2015'] = undefined;
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        { ...base, kapitaliseringer: [kap(toISODateString('2014-06-01'))] },
+        issues
+      );
+
+      expect(computation).not.toBeNull();
+      expect(computation?.events.some((event) => event.forhoejelsesdato === toISODateString('2015-12-29'))).toBe(false);
+      expect(issues).toContainEqual({
+        id: 'mer-erstatning-gammel-bekendtgoerelse-missing',
+        severity: 'error',
+        message: 'Kapitaliseringsdata mangler for 198/2015.',
+      });
+    } finally {
+      dataById['198/2015'] = original;
+    }
+  });
+
+  it('blokerer fail-closed når den gamle bekendtgørelse mangler tabelvalg', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['198/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 198/2015');
+    dataById['198/2015'] = { ...original, erhvervsevnetabTabelvalg: [] };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        { ...base, kapitaliseringer: [kap(toISODateString('2014-06-01'))] },
+        issues
+      );
+
+      expect(computation).not.toBeNull();
+      expect(computation?.events.some((event) => event.forhoejelsesdato === toISODateString('2015-12-29'))).toBe(false);
+      expect(issues).toContainEqual(expect.objectContaining({
+        id: 'mer-erstatning-gammel-tabel-missing',
+        severity: 'error',
+      }));
+    } finally {
+      dataById['198/2015'] = original;
+    }
+  });
+
+  it('blokerer fail-closed når den gamle bekendtgørelses valgte faktortabel mangler', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['198/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 198/2015');
+    dataById['198/2015'] = {
+      ...original,
+      erhvervsevnetabTabeller: { ...original.erhvervsevnetabTabeller, G: [] },
+    };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        { ...base, kapitaliseringer: [kap(toISODateString('2014-06-01'))] },
+        issues
+      );
+
+      expect(computation).not.toBeNull();
+      expect(computation?.events.some((event) => event.forhoejelsesdato === toISODateString('2015-12-29'))).toBe(false);
+      expect(issues).toContainEqual({
+        id: 'mer-erstatning-gammel-tabel-missing',
+        severity: 'error',
+        message: 'Ingen kapitaliseringsfaktorer for tabel G.',
+      });
+    } finally {
+      dataById['198/2015'] = original;
+    }
   });
 
   it('blokerer fail-closed når den nye bekendtgørelse mangler særfaktor under to år til folkepension', () => {

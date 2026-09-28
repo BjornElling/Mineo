@@ -2401,6 +2401,16 @@ særfaktor. Den målrettede fil bestod med 29/29, hele EET-domænesuiten med 25 
 Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er
 ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-344, arbejdsrevision `db3d1b6e`
+
+Batchen tilføjer tre direkte defensive facitter i `eetMerErstatningPensionsalderCalculation.ts`:
+manglende bekendtgørelsesdata, manglende tabelvalg og manglende faktortabel i det gamle
+opslag. Den målrettede fil bestod med 20/20, hele EET-domænesuiten med 25 filer / 461 tests,
+og afgrænset coverage blev 85,10 % statements / 80,35 % branches / 100 % functions /
+88,88 % lines. `npm run typecheck:test` og målrettet ESLint bestod. Ændringen er test-only;
+ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
+skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
