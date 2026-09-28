@@ -2671,6 +2671,18 @@ branches / 100 % functions / 93,75 % lines, mens `forsoergertabDocumentDefinitio
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
 genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-371, arbejdsrevision `468cb118`
+
+Batchen tilføjer 1/1 direkte stamdata-gatefacit i `eetDocumentDefinitionIndependent.test.ts`:
+løbende ydelser blokeres med `eet-loebendeYdelser:stamdata-blocked`, når EET-beregningsgaten
+er godkendt, brevhovedet er aktivt og `Skadestype` er rød. Den målrettede fil bestod med 3/3,
+og den samlede dokumentdefinitionskontrol bestod med 7 filer / 87 tests. Afgrænset coverage
+for `eetDocumentDefinitions.ts` blev 98,07 % statements / 75 % branches / 100 % functions /
+97,87 % lines; den defensive `eet-*:no-result`-gren står fortsat som invariant-reserve.
+Produktkode, beregningslogik, brugeradfærd, schema og persistens er uændret. `npm run
+typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

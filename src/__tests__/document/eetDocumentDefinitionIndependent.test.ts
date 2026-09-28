@@ -11,12 +11,14 @@ import {
 } from '../../domain/erhvervsevnetab/eetDocumentDefinitions';
 import { projectMineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import { createInputEvaluation } from '../../inputCore/inputReader';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import {
   createEvaluationSourceToken,
   createInputRevision,
   createSettingsRevision,
 } from '../../inputCore/evaluationSource';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
+import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
 import { __createTestSourceSettings } from '../../settings/sourceSettings';
 import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
@@ -124,6 +126,32 @@ const gateSettings = projectMineoDocumentGateSettings(__createTestSourceSettings
     erhvervsevnetab: false,
   },
 }));
+
+const gateSettingsWithBrevhoved = projectMineoDocumentGateSettings(__createTestSourceSettings({
+  brevhovedIndstillinger: {
+    ...DEFAULT_BREVHOVED_INDSTILLINGER,
+    erhvervsevnetab: true,
+  },
+}));
+
+const stamdataBlockedInput = () => {
+  const input = buildInput();
+  return getProductionInputCatalog().validateSettledInput({
+    sections: {
+      ...input.sections,
+      stamdata: {
+        ...input.sections.stamdata,
+        skadestype: undefined,
+      },
+    },
+    rejectedInputs: {
+      [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
+        raw: 'ikke-en-type',
+        reason: 'format',
+      },
+    },
+  });
+};
 
 const project = (): EfterEalDocumentInput => {
   const catalog = getProductionInputCatalog();
@@ -247,5 +275,27 @@ describe('EET efter EAL-definition – uafhængigt downstream-facit', () => {
     expect(text).toContain('273.037 kr.');
     expect(pdfText).toContain('536.270 kr.');
     expect(wordText).toBe(pdfText);
+  });
+
+  it('blokerer løbende ydelser med aktivt brevhoved, når Stamdata er rød', () => {
+    const catalog = getProductionInputCatalog();
+    const input = stamdataBlockedInput();
+    const evaluation = createInputEvaluation({
+      input,
+      catalog,
+      sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+    });
+    const result = loebendeYdelserDocumentDefinition.project(
+      createDocumentSourceContext(evaluation, gateSettingsWithBrevhoved),
+      undefined,
+    );
+
+    expect(result).toEqual({
+      status: 'blocked',
+      reasons: [expect.objectContaining({
+        code: 'eet-loebendeYdelser:stamdata-blocked',
+        message: 'Ret fejlen i Stamdata',
+      })],
+    });
   });
 });
