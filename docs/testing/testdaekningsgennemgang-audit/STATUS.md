@@ -2639,6 +2639,15 @@ målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen produk
 beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter
 batchen.
 
+## Seneste test-only CALC-batch – TD-368, arbejdsrevision `d2c447ed`
+
+Batchen fjerner to vacuous assertions i `aarsloenDownloadGate.test.ts`: aktiv omregning med
+periode-data kræves nu konkret tilladt, og SH-dage uden omregning kræves konkret blokeret med
+`aarsloen:sh-no-count`. Den målrettede fil bestod med 20/20, og hele Årsløn-domænesuiten
+består fortsat med 21 filer / 277 tests. `npm run typecheck:test` og målrettet ESLint skal
+bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

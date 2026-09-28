@@ -215,18 +215,13 @@ describe('evaluateAarsloenDownloadGate', () => {
     if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('specific');
   });
 
-  it('blokerer når omregning er aktiv uden periode-data', () => {
+  it('tillader download, når aktiv omregning har periode-data', () => {
     const input = dispatch(
       withOneValidMonthRow(withValidStamdata(empty())),
       settle(aarsloenOmregningTilFuldtAarField.bind(), 'true')
     );
     const gate = evaluateAarsloenDownloadGate(project(input));
-    // Enten er periode-data til stede (omregning kunne beregnes) eller ej; er den ikke, SKAL
-    // blokeringen have sin egen kode frem for at falde igennem som "tilladt".
-    if (!gate.canDownload) {
-      expect(['aarsloen:missing-period-data', 'aarsloen:fatal-calculation-error'])
-        .toContain(gate.reasons[0]?.code);
-    }
+    expect(gate).toEqual({ canDownload: true, reasons: [] });
   });
 });
 
@@ -353,14 +348,11 @@ describe('evaluateShDageDownloadGate', () => {
     expectBlocked(evaluateShDageDownloadGate(project(input)), 'aarsloen:sh-no-count');
   });
 
-  it('blokerer når der ikke findes periode-data', () => {
-    // Uden omregning beregnes der ingen periode-data → SH-dage-dokumentet har intet grundlag.
+  it('blokerer når SH-dage ikke beregnes uden omregning', () => {
+    // Periode-data findes stadig, men uden aktiv omregning findes der intet SH-dage-antal.
     const input = withOneValidMonthRow(withValidStamdata(empty()));
     const gate = evaluateShDageDownloadGate(project(input));
-    if (!gate.canDownload) {
-      expect(['aarsloen:sh-missing-period-data', 'aarsloen:sh-no-count', 'aarsloen:sh-zero'])
-        .toContain(gate.reasons[0]?.code);
-    }
+    expectBlocked(gate, 'aarsloen:sh-no-count');
   });
 
   it('klassificerer en rød beregningsgate som manglende periode-data', () => {
