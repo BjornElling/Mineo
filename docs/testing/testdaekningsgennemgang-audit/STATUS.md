@@ -2754,6 +2754,18 @@ schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESL
 encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-379, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `eetSnapshot.test.ts` for canonical-outputets fail-closed-forløb.
+Testen tvinger schemafejlen, kræver den præcise systemrapportering og fastholder fire blokerende
+`runtime-exception`-projektioner med `computation: null`. Filen bestod med 16/16; hele EET-domænesuiten
+bestod med 27 filer / 489 tests. Den målrettede snapshot-coverage målte 97,77 % statements / 87,80 %
+branches / 100 % functions / 100 % lines; de resterende huller er eksisterende forligs- og
+fallbackpartitioner med særskilte facitter i andre EET-tests. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og
+filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter
+batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

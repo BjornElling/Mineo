@@ -5,6 +5,9 @@ import * as eetLoebendeYdelserCalculation from '../../../domain/erhvervsevnetab/
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
+import { eetCanonicalOutputSchema } from '../../../domain/erhvervsevnetab/eetCanonicalOutput';
+import * as systemIssueReporter from '../../../utils/systemIssueReporter';
+import { z } from 'zod';
 
 const createValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -373,6 +376,57 @@ describe('computeEetSnapshot', () => {
     } finally {
       spy.mockRestore();
       consoleErrorSpy.mockRestore();
+    }
+  });
+
+  it('failer lukket med fire blokerende projektioner, hvis canonical output ikke validerer', () => {
+    const safeParseSpy = vi.spyOn(eetCanonicalOutputSchema, 'safeParse').mockImplementation(() => ({
+      success: false,
+      error: new z.ZodError([]) as z.ZodError<z.infer<typeof eetCanonicalOutputSchema>>,
+    }));
+    const reportSystemIssueSpy = vi
+      .spyOn(systemIssueReporter, 'reportSystemIssue')
+      .mockImplementation(() => {});
+
+    try {
+      const snapshot = computeEetSnapshot({
+        values: createValues(),
+        stamdata: createStamdata(),
+        fieldErrors: {
+          stamdata: {},
+          erhvervsevnetab: {},
+          faellesAarsloen: {},
+        },
+      });
+
+      expect(reportSystemIssueSpy).toHaveBeenCalledWith(expect.objectContaining({
+        code: 'eet_snapshot:canonical_output',
+        area: 'calculation',
+        context: 'eetSnapshot.canonicalOutput',
+        userMessage: 'Uventet valideringsfejl i EET-beregning',
+        diagnostics: { issueCount: 0 },
+        developerMessage: expect.any(String),
+      }));
+
+      for (const projection of [
+        snapshot.loebendeYdelser,
+        snapshot.kapitalisering,
+        snapshot.efterEal,
+        snapshot.differencekrav,
+      ]) {
+        expect(projection).toEqual({
+          issues: [{
+            id: 'runtime-exception',
+            severity: 'error',
+            message: 'Beregningen kan ikke gennemføres, fordi det kanoniske beregningsresultat er ugyldigt',
+          }],
+          hasBlockingErrors: true,
+          computation: null,
+        });
+      }
+    } finally {
+      safeParseSpy.mockRestore();
+      reportSystemIssueSpy.mockRestore();
     }
   });
 });
