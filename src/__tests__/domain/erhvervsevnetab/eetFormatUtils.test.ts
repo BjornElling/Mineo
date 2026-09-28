@@ -1,6 +1,8 @@
 import {
   formatJaNej,
   formatFaktor,
+  formatMaaneder,
+  isEetFieldErrorIssueId,
   navigationSortKey,
   resolveEetIssueNavigation,
   toFieldIssue,
@@ -25,6 +27,30 @@ describe('formatFaktor', () => {
     expect(formatFaktor(1.2345)).toBe('1,235');
     expect(formatFaktor(1)).toBe('1');
   });
+});
+
+describe('formatMaaneder', () => {
+  it('formaterer månedsantal med fire decimaler og dansk komma', () => {
+    expect(formatMaaneder(1.23456)).toBe('1,2346');
+  });
+});
+
+describe('isEetFieldErrorIssueId', () => {
+  it.each([
+    'field-x',
+    'stamdata-date-order:skadedato',
+    'forlig-ansvarsgrad-invalid',
+    'invalid-eet-pct',
+    'invalid-kap-pct',
+    'invalid-afgoerelse-type',
+    'beregningsdato-invalid',
+  ])('klassificerer %s som feltfejl', (issueId) => {
+    expect(isEetFieldErrorIssueId(issueId)).toBe(true);
+  });
+
+  it.each(['runtime-exception', 'beregningsdato-missing', 'warn-asl-eet-under-15'])('klassificerer %s som ikke-feltfejl', (issueId) => {
+      expect(isEetFieldErrorIssueId(issueId)).toBe(false);
+    });
 });
 
 describe('toFieldIssue', () => {
