@@ -2695,6 +2695,16 @@ beregningslogik, brugeradfærd, schema og persistensformat er uændret. `npm run
 typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC/DOC-batch – TD-373, arbejdsrevision `26d94226`
+
+Batchen tilføjer 2/2 direkte facitter i `eetKapitaliseringRowsIndependent.test.ts` for den
+delte kapitaliserings-rækkebuilders manglende særfaktor i ≤2-årsgrenen og tomme kønsrække i
+UI-modus. Sammen med den eksisterende kapitaliseringskontrol bestod 5 filer / 13 tests, og
+`eetKapitaliseringRows.ts` dækkes med 100 % statements / branches / functions / lines.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret. `npm run
+typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
