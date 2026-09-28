@@ -5,6 +5,7 @@ import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhver
 import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import * as eetMerErstatningPensionsalderCalculation from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { kapitaliseringsTabelDataById, type KapitaliseringsTabelData } from '../../../data/kapitalisering/kapitaliseringsTabeller';
 import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 
@@ -725,6 +726,130 @@ describe('computeEetDifferencekravCalculation', () => {
       severity: 'error',
       message: 'Køn skal angives, når kapitaliseringen sker før 1. marts 2015',
     });
+  });
+
+  it('blokerer proformakapitalisering når bekendtgørelsesdata mangler', () => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['1700/2015'];
+    dataById['1700/2015'] = undefined;
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2020-01-01'),
+          aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2019-01-01'),
+            virkningsDato: toISODateString('2019-01-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadedato: toISODateString('2007-07-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'proforma-kapitaliseringsbekendtgoerelse-missing',
+        severity: 'error',
+        message: 'Kapitaliseringsdata mangler for 1700/2015.',
+      });
+    } finally {
+      dataById['1700/2015'] = original;
+    }
+  });
+
+  it('blokerer proformakapitalisering når tabelvalget mangler', () => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['1700/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 1700/2015');
+    dataById['1700/2015'] = { ...original, erhvervsevnetabTabelvalg: [] };
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2020-01-01'),
+          aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2019-01-01'),
+            virkningsDato: toISODateString('2019-01-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadedato: toISODateString('2007-07-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual(expect.objectContaining({
+        id: 'proforma-kapitaliseringstabel-missing',
+        severity: 'error',
+      }));
+    } finally {
+      dataById['1700/2015'] = original;
+    }
+  });
+
+  it('blokerer proformakapitalisering når den valgte faktortabel mangler', () => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['1700/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 1700/2015');
+    dataById['1700/2015'] = {
+      ...original,
+      erhvervsevnetabTabeller: { ...original.erhvervsevnetabTabeller, B: [] },
+    };
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2020-01-01'),
+          aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2019-01-01'),
+            virkningsDato: toISODateString('2019-01-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadedato: toISODateString('2007-07-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'proforma-kapitaliseringstabel-missing',
+        severity: 'error',
+        message: 'Ingen kapitaliseringsfaktorer for tabel B.',
+      });
+    } finally {
+      dataById['1700/2015'] = original;
+    }
   });
 
   it('splitter proformakapitaliseringens opregulering i 2003→2024 og 2024→målår, når beregningen ligger i 2026', () => {

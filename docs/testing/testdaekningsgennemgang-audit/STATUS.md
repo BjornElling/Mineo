@@ -2448,6 +2448,16 @@ EET-domænesuiten med 25 filer / 466 tests, og afgrænset coverage blev 89,10 % 
 ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-349, arbejdsrevision `a19ffe66`
+
+Batchen tilføjer tre direkte defensive facitter i `eetDifferencekravCalculation.ts`:
+manglende bekendtgørelsesdata, manglende tabelvalg og manglende valgt faktortabel i den
+historiske proformakapitalisering. Den målrettede fil bestod med 40/40, hele EET-
+domænesuiten med 25 filer / 469 tests, og afgrænset coverage blev 91,34 % statements /
+86,74 % branches / 100 % functions / 92,98 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
