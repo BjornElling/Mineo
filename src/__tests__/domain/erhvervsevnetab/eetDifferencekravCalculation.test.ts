@@ -899,6 +899,39 @@ describe('computeEetDifferencekravCalculation', () => {
     }
   });
 
+  it('blokerer proformakapitalisering når beregningsdatoen ligger før første bekendtgørelse', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2007-06-30'),
+        koen: 'Mand',
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2007-01-01'),
+          virkningsDato: toISODateString('2007-01-01'),
+          eetPct: 50,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1956-07-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'proforma-kapitaliseringsbekendtgoerelse-missing',
+      severity: 'error',
+      message: 'Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen 30-06-2007.',
+    });
+  });
+
   it('splitter proformakapitaliseringens opregulering i 2003→2024 og 2024→målår, når beregningen ligger i 2026', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {

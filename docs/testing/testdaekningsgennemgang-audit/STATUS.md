@@ -2467,6 +2467,16 @@ statements / 87,12 % branches / 100 % functions / 93,68 % lines. `npm run typech
 og målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik,
 UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-351, arbejdsrevision `7a74746c`
+
+Batchen tilføjer ét direkte fail-closed-facit i `eetDifferencekravCalculation.ts` for
+en beregningsdato før den første kapitaliseringsbekendtgørelse i det valgte interval.
+Den målrettede fil bestod med 42/42, hele EET-domænesuiten med 25 filer / 471 tests,
+og afgrænset coverage blev 92,62 % statements / 87,50 % branches / 100 % functions /
+94,38 % lines. `npm run typecheck:test` og målrettet ESLint bestod. Ændringen er test-only;
+ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
+skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
