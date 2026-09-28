@@ -8,6 +8,10 @@ import {
   aarsloenAslMax,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/lovbestemteRates';
+import {
+  kapitaliseringsTabelDataById,
+  type KapitaliseringsTabelData,
+} from '../../../data/kapitalisering/kapitaliseringsTabeller';
 import { toISODateString } from '../../../types/branded';
 import { fromKroner } from '../../../domain/money/money';
 
@@ -732,6 +736,49 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
     expect(result.computation?.afgoerelser[0]?.kapitalbelobOre).toBe(30027900);
+  });
+
+  it('blokerer når særfaktor mangler ved kapitalisering under to år til folkepension', () => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['10029/2024'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 10029/2024');
+    dataById['10029/2024'] = {
+      ...original,
+      saerfaktorUnderToAarTilFpPerSkadesinterval: [],
+    };
+
+    try {
+      const result = computeEetKapitaliseringCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          aslAarsloen: asAmount(632000),
+          aslAfgoerelser: [
+            {
+              id: 'a',
+              fsTilbageholdtEet: 'Nej',
+              afgoerelsesDato: toISODateString('2025-07-01'),
+              virkningsDato: toISODateString('2025-07-01'),
+              eetPct: 50,
+              kapDato: toISODateString('2025-10-01'),
+              kapPct: 25,
+              afgoerelseType: 'Endelig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: toISODateString('2025-01-01'),
+        skadelidteFodselsdato: toISODateString('1959-01-01'),
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'kapitaliseringsfaktor-unresolved',
+        severity: 'error',
+        message: 'Særfaktor mangler for kapitalisering under 2 år til folkepension',
+      });
+    } finally {
+      dataById['10029/2024'] = original;
+    }
   });
 
   it('låser faktorgrundlaget til afgørelsestidspunktet når kapitaliseret pga. under to år til folkepension er ja', () => {
