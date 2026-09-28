@@ -2,6 +2,8 @@ import {
   buildMidlertidigtEetInsertSource,
 } from '../../domain/erhvervsevnetab/eetImportPort';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../inputCore/inputReader';
 import {
@@ -26,6 +28,7 @@ const buildEvaluation = (options?: Readonly<{
   aslAarsloen?: number;
   foedselsdato?: string;
   skadedato?: string;
+  invalidSkadestype?: boolean;
 }>) => {
   const erhvervsevnetab: ErhvervsevnetabValues = {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -48,7 +51,8 @@ const buildEvaluation = (options?: Readonly<{
     ealAarsloen: amount(600000),
   };
   const stamdata: StamdataValues = {
-    journalnr: 'J', advokat: 'A', sagsbehandler: 'S', skadelidte: 'T', skadestype: 'Arbejdsulykke',
+    journalnr: 'J', advokat: 'A', sagsbehandler: 'S', skadelidte: 'T',
+    skadestype: options?.invalidSkadestype ? undefined : 'Arbejdsulykke',
     skadelidteFodselsdato: toISODateString(options?.foedselsdato ?? '1980-01-01'),
     skadedato: toISODateString(options?.skadedato ?? '2024-01-01'),
   };
@@ -57,7 +61,12 @@ const buildEvaluation = (options?: Readonly<{
       stamdata, satser: null, aarsloen: null, faellesAarsloen, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
     },
-    rejectedInputs: {},
+    rejectedInputs: options?.invalidSkadestype ? {
+      [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
+        raw: 'ikke-en-type',
+        reason: 'format' as const,
+      },
+    } : {},
   });
   return createInputEvaluation({
     input,
@@ -112,6 +121,21 @@ describe('buildMidlertidigtEetInsertSource', () => {
     }));
 
     expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-stamdata-date-order');
+  });
+
+  it('bruger datoordenens fallbacktekst, når Skadestype samtidig er rød', () => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({
+      foedselsdato: '2010-01-01',
+      skadedato: '2009-01-01',
+      invalidSkadestype: true,
+    }));
+
+    expect(source.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'midlertidigt-eet-stamdata-date-order',
+        message: expect.stringContaining('skadedato'),
+      }),
+    ]));
   });
 
   it('fail-closer ved en anden stamdata-fejl end datoorden', () => {

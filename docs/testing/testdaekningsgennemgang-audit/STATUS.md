@@ -2683,6 +2683,18 @@ Produktkode, beregningslogik, brugeradfærd, schema og persistens er uændret. `
 typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT/CALC-batch – TD-372, arbejdsrevision `d22b351d`
+
+Batchen tilføjer fem direkte EET-importfacitter i `eetImportPortRuntimeIndependent.test.ts`:
+to runtimefejlforløb går gennem den faktiske invariant-/runtime-catch, og source-missing,
+manglende beregningsdato samt manglende TAF-slutdato fastholdes med deres konkrete issues.
+Sammen med den eksisterende importkontrol bestod 4 filer / 38 tests. Afgrænset coverage for
+`eetImportPort.ts` blev 100 % statements / 96,77 % branches / 100 % functions / 100 % lines;
+den alternative fødselsdato-fallbackgren står fortsat som et lille branch-hul. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret. `npm run
+typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
