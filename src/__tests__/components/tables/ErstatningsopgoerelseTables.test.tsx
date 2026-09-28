@@ -78,12 +78,13 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     hydrate({ ...createErstatningsopgoerelseInitialValues(), tafPerioder: rows });
 
     renderInRuntime(
-      <TafPeriodeTable committedRows={rows} derivedById={{ 'taf-1': 1 }} derivedColumnHeader="TAF-måneder (i EO-perioden)" visLoseFeriedage={false} />
+      <TafPeriodeTable committedRows={rows} derivedById={{ 'taf-1': 1 }} derivedColumnHeader="TAF-måneder" visLoseFeriedage={false} />
     );
 
     expect(screen.queryByText('Løse ferie-/feriefridage')).not.toBeInTheDocument();
     expect(within(dataRows()[0]!).queryByDisplayValue('2')).not.toBeInTheDocument();
-    expect(screen.getByText('TAF-måneder (i EO-perioden)')).toBeInTheDocument();
+    expect(screen.getByText('TAF-måneder')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kun TAF-måneder i EO-perioden fremgår' })).toBeInTheDocument();
   });
 
   it('ferietabellen renderer committed række og afledt antal dage', () => {
@@ -97,7 +98,8 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(dataRows()).toHaveLength(2);
     expect(within(dataRows()[0]!).getByDisplayValue('01-02-2024')).toBeInTheDocument();
     expect(within(dataRows()[0]!).getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('Feriedage (i TAF-perioden)')).toBeInTheDocument();
+    expect(screen.getByText('Feriedage')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kun dage i TAF-perioden fremgår' })).toBeInTheDocument();
   });
 
   it('offentlige ydelser renderer canonical beløb og afledte kolonner', () => {

@@ -28,9 +28,9 @@ export const buildTafDerived = (args: {
 }): TafDerivedResult => {
   const beregningsenhed = computeTafBeregningsenhed(args.values);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  // Kolonnen tæller rækkens del inden for EO-perioden, og overskriften siger det, så en række på tolv
-  // måneder, der står med 6, ikke fremstår som en tavs reduktion (BB-250, BB-217's form).
-  const kolonneOverskrift = visAntalMaaneder ? 'TAF-måneder (i EO-perioden)' : 'TAF-arbejdsdage (i EO-perioden)';
+  // Kolonnen tæller rækkens del inden for EO-perioden. Tabellen viser rammen i et info-tooltip, så en række
+  // på tolv måneder, der står med 6, ikke fremstår som en tavs reduktion (BB-250, BB-217's form).
+  const kolonneOverskrift = visAntalMaaneder ? 'TAF-måneder' : 'TAF-arbejdsdage';
   const tafBounds = resolveTafConstraintBounds(args.values, { skadedatoISO: args.skadedatoISO });
 
   const derivedById: Record<string, number | null> = {};

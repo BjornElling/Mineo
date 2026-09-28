@@ -42,17 +42,21 @@ const tabelRaekke = (page: Page, tabel: number, raekke: number) =>
     .locator('input[data-mineo-field-address]');
 const errorBox = (page: Page) => page.locator('.content-box').filter({ hasText: 'Fejl og advarsler' });
 
-// Flade 12e (BB-247–BB-257): TAF-periodens tabeller. Løse feriedage skjules i måneder, afledte kolonner siger
-// deres ramme, og rækkereglerne når cellen.
+// Flade 12e (BB-247–BB-257): TAF-periodens tabeller. Løse feriedage skjules i måneder, afledte kolonner
+// beskriver deres ramme i info-tooltips, og rækkereglerne når cellen.
 test.describe('Erstatningsopgørelse – TAF-perioden', () => {
   test('skjuler løse feriedage i måneder og viser dem i arbejdsdage', async ({ page, runtimeErrors, externalRequests }) => {
     await login(page);
     await fillSag(page);
     await vaelgBeregnesUdFra(page, 'Angivet dagsløn');
 
-    await expect(tafSection(page).getByText('TAF-arbejdsdage (i EO-perioden)')).toBeVisible();
+    await expect(tafSection(page).getByText('TAF-arbejdsdage', { exact: true })).toBeVisible();
+    await expect(tafSection(page).getByRole('img', { name: 'Kun TAF-arbejdsdage i EO-perioden fremgår' })).toBeVisible();
+    await tafSection(page).getByRole('img', { name: 'Kun TAF-arbejdsdage i EO-perioden fremgår' }).hover();
+    await expect(page.getByRole('tooltip', { name: 'Kun TAF-arbejdsdage i EO-perioden fremgår' })).toBeVisible();
     await expect(tafSection(page).getByText('Løse ferie-/feriefridage')).toBeVisible();
-    await expect(tafSection(page).getByText('Feriedage (i TAF-perioden)')).toBeVisible();
+    await expect(tafSection(page).getByText('Feriedage', { exact: true })).toBeVisible();
+    await expect(tafSection(page).getByRole('img', { name: 'Kun dage i TAF-perioden fremgår' })).toBeVisible();
 
     await setDate(tabelRaekke(page, 0, 0).nth(0), '01-01-2024');
     await setDate(tabelRaekke(page, 0, 0).nth(1), '31-01-2024');
@@ -64,7 +68,8 @@ test.describe('Erstatningsopgørelse – TAF-perioden', () => {
 
     // I måneder fradrages løse feriedage ikke: kolonnen forsvinder, og den røde celle spærrer ikke længere.
     await vaelgBeregnesUdFra(page, 'Angivet månedsløn');
-    await expect(tafSection(page).getByText('TAF-måneder (i EO-perioden)')).toBeVisible();
+    await expect(tafSection(page).getByText('TAF-måneder', { exact: true })).toBeVisible();
+    await expect(tafSection(page).getByRole('img', { name: 'Kun TAF-måneder i EO-perioden fremgår' })).toBeVisible();
     await expect(tafSection(page).getByText('Løse ferie-/feriefridage')).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();

@@ -55,6 +55,9 @@ const LoenindkomstTab = React.memo(({
     : eoValues.beregnesUdFra === 'Angivet dagsløn'
       ? 'Når beregningen foretages ud fra en angivet dagsløn, behøver du ikke indtaste lønoplysninger før skaden.'
       : null;
+  const insertEmploymentPrompt = totalAnsaettelsesforhold === 0
+    ? 'Tryk på den blå knap for at indsætte et ansættelsesforhold.'
+    : 'Tryk på den blå knap nederst for at indsætte yderligere ansættelsesforhold.';
 
   // Kontekst-værdi til kortene: den fulde view-model + de få side-niveau-værdier kortene læser.
   const ctxValue: LoenindkomstVm = {
@@ -75,15 +78,13 @@ const LoenindkomstTab = React.memo(({
       >
         <Typography className="section-header">Ansættelsesforhold</Typography>
 
-        {totalAnsaettelsesforhold === 0 ? (
-          <Box className="row--label-right-hover">
-            <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-              <Typography className="row--text">
-                Tryk på den blå knap for at indsætte et ansættelsesforhold.
-              </Typography>
-            </Box>
+        <Box className="row--label-right-hover">
+          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+            <Typography className="row--text">
+              {insertEmploymentPrompt}
+            </Typography>
           </Box>
-        ) : null}
+        </Box>
 
         {/* «Bemærk, at» + punkterne står i en egen `flow--16`-blok (samme utility som Mineo-siden
             bruger til løbende tekst): den neutraliserer `row--text`s faste rækkehøjde, så linjerne

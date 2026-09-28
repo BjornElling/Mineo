@@ -3,6 +3,7 @@ import { expect, login, openPage, test } from './support/mineoTest';
 import { BROWSER_LANE_TAG } from './support/lanes';
 
 const INSERT_EMPLOYMENT_PROMPT = 'Tryk på den blå knap for at indsætte et ansættelsesforhold.';
+const INSERT_ADDITIONAL_EMPLOYMENT_PROMPT = 'Tryk på den blå knap nederst for at indsætte yderligere ansættelsesforhold.';
 const EMPLOYMENT_NOTICE = 'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.';
 
 // Browserbanen: fokusrammen efter Escape afhænger af motorens `:focus-visible`-heuristik, som er
@@ -39,7 +40,7 @@ test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TA
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('indsættelsesvejledningen vises kun før første ansættelsesforhold', async ({ page, runtimeErrors }) => {
+  test('indsættelsesvejledningen tilpasses antallet af ansættelsesforhold', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Lønindkomst' }).click();
@@ -51,6 +52,7 @@ test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TA
     await page.getByRole('button', { name: 'Ja, tilføj' }).click();
 
     await expect(page.getByText(INSERT_EMPLOYMENT_PROMPT, { exact: true })).toHaveCount(0);
+    await expect(page.getByText(INSERT_ADDITIONAL_EMPLOYMENT_PROMPT, { exact: true })).toBeVisible();
     await expect(page.getByText(EMPLOYMENT_NOTICE)).toBeVisible();
 
     await page.getByRole('button', { name: 'Slet ansættelsesforhold' }).click();

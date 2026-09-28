@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell, GridIntegerCell } from '../../inputCore/react/fields/gridCells';
@@ -90,9 +91,10 @@ const TafPeriodeTable = React.memo(({
         {visLoseFeriedage ? (
           <StandardLooseHeaderCell sx={{ width: 200 }} {...sortableHeader('loseFeriedage')}>{TAF_LOSE_FERIEDAGE_LABEL}</StandardLooseHeaderCell>
         ) : null}
-        {/* Overskriften siger, at kolonnen tæller rækkens del inden for EO-perioden – samme form som
-            svie/smerte-tabellens «Antal dage (i EO-perioden)» (BB-217, BB-250). */}
-        <StandardLooseHeaderCell sx={{ width: 300 }} {...sortableHeader('beregnet')}>{derivedColumnHeader}</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 300 }} {...sortableHeader('beregnet')}>
+          {derivedColumnHeader}
+          <InfoTooltipIcon title={`Kun ${derivedColumnHeader} i EO-perioden fremgår`} />
+        </StandardLooseHeaderCell>
       </TableRow></TableHead>
       <TableBody>{renderOrder.map((row) => {
         const committed = table.committedById.get(row.rowId);

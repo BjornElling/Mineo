@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell } from '../../inputCore/react/fields/gridCells';
@@ -64,9 +65,10 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
       <TableHead><TableRow>
         <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
         <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
-        {/* Årsagen står i overskriften, fordi tallet ellers ser ud som en tavs reduktion, når en
-            række rækker ud over EO-perioden (BB-217). */}
-        <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('antalDage')}>Antal dage (i EO-perioden)</StandardLooseHeaderCell>
+        <StandardLooseHeaderCell sx={{ width: 160 }} {...sortableHeader('antalDage')}>
+          Antal dage
+          <InfoTooltipIcon title="Kun dage i EO-perioden fremgår" />
+        </StandardLooseHeaderCell>
         <StandardLooseHeaderCell sx={{ width: 220 }} {...sortableHeader('tilstand')}>Tilstand</StandardLooseHeaderCell>
       </TableRow></TableHead>
       <TableBody>{renderRows.map((row) => {

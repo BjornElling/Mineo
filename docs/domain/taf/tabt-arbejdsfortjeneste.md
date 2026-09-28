@@ -41,11 +41,11 @@ læser den. Skjult er ikke udfyldt – descriptorens relevans (`erTafLoseFerieda
 tom for alle læsere, men den bevares og kommer tilbage, hvis enheden skifter. «Evt. ferie i perioden» vises
 derimod i begge enheder, fordi sygeferiegodtgørelsen bruger ferieperioderne også i måneder.
 
-**Tabellernes afledte kolonner tæller det, der regnes med, og overskriften siger rammen** (BB-217, BB-249,
-BB-250): «TAF-måneder (i EO-perioden)» / «TAF-arbejdsdage (i EO-perioden)» tæller rækkens del inden for
-opgørelsen, og «Feriedage (i TAF-perioden)» tæller ferierækkens feriedage inden for TAF-perioderne
-(`countFeriedageInRanges`, samme optælling som ferielinjen i dokumentet). Beregningsgrundlagets ferietabel
-hedder tilsvarende «Feriedage (i beregningsperioden)».
+**Tabellernes afledte kolonner tæller det, der regnes med, og info-tooltipet siger rammen** (BB-217, BB-249,
+BB-250): «TAF-måneder» / «TAF-arbejdsdage» tæller rækkens del inden for opgørelsen, og «Feriedage» tæller
+ferierækkens feriedage inden for TAF-perioderne (`countFeriedageInRanges`, samme optælling som ferielinjen i
+dokumentet). Info-tooltipet siger henholdsvis «Kun TAF-måneder i EO-perioden fremgår», «Kun TAF-arbejdsdage i
+EO-perioden fremgår», «Kun dage i TAF-perioden fremgår» og «Kun dage i beregningsperioden fremgår».
 
 **Ferieperiodens vindue spærrer fortsat** (udviklerafgørelse 2026-09-25, BB-248): en ferie før skadedatoen,
 efter dags dato eller efter en afskæring fradrages aldrig, men spærrer opgørelsen med rød celle og en besked

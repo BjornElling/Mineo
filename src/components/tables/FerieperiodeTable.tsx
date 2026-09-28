@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { GridDateCell } from '../../inputCore/react/fields/gridCells';
@@ -34,12 +35,11 @@ export type FerieperiodeTableProps = Readonly<{
 }>;
 
 /**
- * Kolonnen tæller de feriedage, beregningen fradrager, og overskriften siger rammen (BB-249) – samme form som
- * «Antal dage (i EO-perioden)» og «TAF-arbejdsdage (i EO-perioden)».
+ * Kolonnen tæller de feriedage, beregningen fradrager. Ikonets tooltip siger rammen (BB-249).
  */
-const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], string>> = {
-  taf: 'Feriedage (i TAF-perioden)',
-  beregningsperiode: 'Feriedage (i beregningsperioden)',
+const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], Readonly<{ label: string; tooltip: string }>>> = {
+  taf: { label: 'Feriedage', tooltip: 'Kun dage i TAF-perioden fremgår' },
+  beregningsperiode: { label: 'Feriedage', tooltip: 'Kun dage i beregningsperioden fremgår' },
 };
 
 const FerieperiodeTable = React.memo(({
@@ -91,7 +91,10 @@ const FerieperiodeTable = React.memo(({
         <TableRow>
           <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('fra')}>Fra o.m.</StandardLooseHeaderCell>
           <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
-          <StandardLooseHeaderCell sx={{ width: 260 }} {...sortableHeader('feriedage')}>{FERIEDAGE_OVERSKRIFT[kind]}</StandardLooseHeaderCell>
+          <StandardLooseHeaderCell sx={{ width: 260 }} {...sortableHeader('feriedage')}>
+            {FERIEDAGE_OVERSKRIFT[kind].label}
+            <InfoTooltipIcon title={FERIEDAGE_OVERSKRIFT[kind].tooltip} />
+          </StandardLooseHeaderCell>
         </TableRow>
       </TableHead>
       <TableBody>

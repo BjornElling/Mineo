@@ -92,9 +92,10 @@ describe('SvieSmerteTable – «Antal dage» viser bidraget i EO-perioden', () =
     expect(dagCelleFor('ss-3')).toBe('10');
   }, ASYNC_TEST_TIMEOUT_MS);
 
-  it('bærer årsagen i kolonneoverskriften, så det lavere tal ikke ser ud som en tavs reduktion', async () => {
+  it('viser årsagen i info-tooltipet, så det lavere tal ikke ser ud som en tavs reduktion', async () => {
     await renderMedPerioder();
 
-    expect(screen.getAllByText('Antal dage (i EO-perioden)').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Antal dage').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('img', { name: 'Kun dage i EO-perioden fremgår' }).length).toBeGreaterThan(0);
   }, ASYNC_TEST_TIMEOUT_MS);
 });
