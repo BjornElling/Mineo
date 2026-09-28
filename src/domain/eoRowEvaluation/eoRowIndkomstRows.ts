@@ -2,6 +2,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
+import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { resolveKildeReguleringsIntervalIso } from '../erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
@@ -30,6 +31,23 @@ import { resolveYdelsestype } from '../../data/ydelsestyper';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
+import { resolveManualRegulationIssue } from './eoManualRegulationIssue';
+
+const resolveLoenindkomstTableInputIssue = (
+  issues: FieldIssueSet | undefined,
+  employmentId: string,
+): FieldIssue | undefined => issues?.all.find((issue) => {
+  const [employment, nested] = issue.field.address.path;
+  return employment?.kind === 'entity'
+    && employment.collection === 'loenindkomstAnsaettelsesforhold'
+    && employment.entityId === employmentId
+    && nested?.kind === 'entity'
+    && [
+      'indtaegtsoplysningerTableData',
+      'loenudviklingManuelTableData',
+      'loenudviklingManuelProcentsatsTableData',
+    ].includes(nested.collection);
+});
 
 /**
  * Advarslen om et fravalgt Store Bededagstillæg (ordlyd godkendt af udvikleren).
@@ -162,7 +180,8 @@ export const buildEoIndkomstRows = (
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
-  skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom'
+  skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom',
+  eoErrors?: FieldIssueSet,
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = rowPolicy.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
@@ -388,19 +407,36 @@ export const buildEoIndkomstRows = (
 
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
-        return { displayValue: 'Ingen', status: 'ok' as EoRowStatus };
+        return { displayValue: 'Ingen', status: 'ok' as EoRowStatus, focusTarget: undefined };
       }
       if (!loenudviklingBasis) {
-        return { displayValue: 'Nej', status: 'error' as EoRowStatus };
+        return { displayValue: 'Nej', status: 'error' as EoRowStatus, focusTarget: undefined };
       }
       if (loenudviklingBasis !== 'Manuelt angivet' && loenudviklingBasis !== 'Manuel procentsats') {
-        return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
+        return { displayValue: 'Ja', status: 'ok' as EoRowStatus, focusTarget: undefined };
       }
+
+      const manualIssue = resolveManualRegulationIssue(
+        ansaettelsesforhold,
+        loenudviklingBasis,
+        erBeregningsperiode,
+      );
+      const inputIssue = erBeregningsperiode
+        ? resolveLoenindkomstTableInputIssue(eoErrors, ansaettelsesforhold.id)
+        : undefined;
+      const inputIssueFocusTarget = inputIssue
+        ? { kind: 'fieldAddress' as const, address: inputIssue.field.address }
+        : undefined;
+      const focusTarget = inputIssueFocusTarget ?? manualIssue?.focusTarget;
+      const manualIssueMessage = inputIssue
+        ? `Manuel regulering: ${inputIssue.field.descriptor.label}`
+        : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering';
 
       if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
         return {
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
-          message: 'Værdier mangler at blive udfyldt for manuel regulering',
+          message: manualIssueMessage,
+          focusTarget,
           status: 'error' as EoRowStatus,
         };
       }
@@ -411,7 +447,8 @@ export const buildEoIndkomstRows = (
         const ok = aktiveRows.every(isManuelProcentsatsRowKomplet);
         return {
           displayValue: ok ? 'Ja' : 'Nej',
-          message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
+          message: ok ? undefined : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
+          focusTarget: ok ? undefined : focusTarget,
           status: ok ? 'ok' : 'error' as EoRowStatus,
         };
       }
@@ -423,7 +460,8 @@ export const buildEoIndkomstRows = (
       if (aktiveRows.length === 0) {
         return {
           displayValue: 'Nej',
-          message: 'Værdier mangler at blive udfyldt for manuel regulering',
+          message: manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
+          focusTarget,
           status: 'error' as EoRowStatus,
         };
       }
@@ -454,7 +492,8 @@ export const buildEoIndkomstRows = (
       const ok = grundloenOk && supplementsOk && datoOk;
       return {
         displayValue: ok ? 'Ja' : 'Nej',
-        message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
+        message: ok ? undefined : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
+        focusTarget: ok ? undefined : focusTarget,
         status: ok ? 'ok' : 'error' as EoRowStatus,
       };
     })();
@@ -469,6 +508,7 @@ export const buildEoIndkomstRows = (
           ? 'messageOnly'
           : undefined,
         status: alleReguleringsvaerdierRow.status,
+        focusTarget: alleReguleringsvaerdierRow.focusTarget,
         dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });
     }

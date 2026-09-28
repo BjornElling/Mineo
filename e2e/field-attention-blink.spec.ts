@@ -1,6 +1,13 @@
 import { type Page } from '@playwright/test';
 
-import { expect, login, openPage, setFieldValueAndSettle, test } from './support/mineoTest';
+import {
+  expect,
+  login,
+  openPage,
+  setFieldValueAndSettle,
+  setVerbatimFieldValueAndSettle,
+  test,
+} from './support/mineoTest';
 
 /**
  * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
@@ -426,6 +433,42 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     // NEDSKREVNE observation: kortet kan ikke «holde op med» at blinke sig fri af en levende kontrol.
     expect(observed.targetInputName).toBe(inputName);
     await expectLinkedDropdownToPulse(page, inputName!, Promise.resolve(observed));
+  });
+
+  test('manuel regulering blinker den manglende pensionssats over tabellen', async ({ page, runtimeErrors }) => {
+    await login(page);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Lønindkomst' }).click();
+    await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Ja, tilføj' }).click();
+
+    await page.locator('[name$=":loenudviklingBeregningsgrundlag"]').click();
+    await page.getByRole('option', { name: 'Manuelt angivet', exact: true }).click();
+
+    await setFieldValueAndSettle(page.getByLabel('Grundløn').first(), '100');
+    const userRow = page.locator('tr:has(input[aria-label="Dato"])').first();
+    await setVerbatimFieldValueAndSettle(userRow.getByLabel('Dato'), '01-02-2024');
+    await setFieldValueAndSettle(userRow.getByLabel('Grundløn'), '110');
+    await setFieldValueAndSettle(userRow.getByLabel('Arbejdsgivers pension'), '10');
+
+    await page.getByRole('tab', { name: 'Beregning' }).click();
+    await expect(page.getByText('Manuel regulering mangler: Arbejdsgivers pensionsbidrag', { exact: true })).toBeVisible();
+
+    await startBlinkSampling(page);
+    await clickEoIssueLink(
+      page,
+      'Manuel regulering mangler: Arbejdsgivers pensionsbidrag',
+      'Lønindkomst'
+    );
+
+    await expect(page.getByRole('tab', { name: 'Lønindkomst' })).toHaveAttribute('aria-selected', 'true');
+    const pensionField = page.locator('input[name$=":pensionPct"]');
+    await expect(pensionField).toBeVisible();
+    const observed = await readBlinkObservation(page);
+    expect(observed.targetInputName).toBe(await pensionField.getAttribute('name'));
+    expect(observed.targetClassName).toContain(BLINK_CLASS);
+    expectRedPulse(observed.samples);
+    expect(runtimeErrors).toEqual([]);
   });
 
   /**

@@ -4,6 +4,14 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildEoIndkomstRows } from '../../../domain/eoRowEvaluation/eoRowIndkomstRows';
+import {
+  eoEmploymentFields,
+  eoEmploymentManual,
+} from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { toISODateString } from '../../../types/branded';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+
+const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('resolveEoRowPresentation', () => {
   it('extracts structured message from Fejl (...) as default fallback', () => {
@@ -74,8 +82,80 @@ describe('manual regulering message', () => {
 
     expect(row).toBeDefined();
     expect(row?.status).toBe('error');
-    expect(row?.message).toBe('Værdier mangler at blive udfyldt for manuel regulering');
+    expect(row?.message).toBe('Manuel regulering mangler: Grundløn');
     expect(row?.summaryDisplay).toBe('messageOnly');
+    expect(row?.focusTarget).toEqual({
+      kind: 'collectionField',
+      template: expect.objectContaining({ field: 'grundloen' }),
+    });
+  });
+
+  it('peger på pensionsfeltet over tabellen når basissatsen mangler', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [
+          {
+            id: 'base',
+            dato: undefined,
+            grundloen: amount(100),
+            feriepenge: undefined,
+            shSoSats: undefined,
+            fritvalg: undefined,
+            agPension: undefined,
+          },
+          {
+            id: 'row-2',
+            dato: toISODateString('2024-02-01'),
+            grundloen: amount(110),
+            feriepenge: undefined,
+            shSoSats: undefined,
+            fritvalg: undefined,
+            agPension: 10,
+          },
+        ],
+      },
+    ];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    const row = buildEoIndkomstRows(values, undefined, {}).find(
+      (candidate) => candidate.id === `loenindkomst.${af.id}.regulering.alleVaerdier`
+    );
+
+    expect(row?.message).toBe('Manuel regulering mangler: Arbejdsgivers pensionsbidrag');
+    expect(row?.focusTarget).toEqual({
+      kind: 'fieldAddress',
+      address: eoEmploymentFields.pensionPct.bind(af.id).address,
+    });
+  });
+
+  it('peger på den manglende procentsats i manuel procentsats-tabellen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats',
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'base', dato: undefined, procent: 0 },
+          { id: 'row-2', dato: toISODateString('2024-02-01'), procent: undefined },
+        ],
+      },
+    ];
+
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    const row = buildEoIndkomstRows(values, undefined, {}).find(
+      (candidate) => candidate.id === `loenindkomst.${af.id}.regulering.alleVaerdier`
+    );
+
+    expect(row?.message).toBe('Manuel regulering mangler: Procent');
+    expect(row?.focusTarget).toEqual({
+      kind: 'fieldAddress',
+      address: eoEmploymentManual.manualPercentFields.procent.bind(af.id, 'row-2').address,
+    });
   });
 
   it('bruger messageOnly for lønoplysninger-række i beregningens summary', () => {
