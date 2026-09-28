@@ -2499,6 +2499,15 @@ typecheck:test` og målrettet ESLint bestod. Ændringen er test-only; ingen
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
 genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-354, arbejdsrevision `8d7a5457`
+
+Batchen tilføjer et direkte minimumsårgangsfacit og styrker den mandlige gren i
+`eetKapitaliseringOpslag.test.ts`. Den målrettede fil bestod med 12/12, hele EET-
+domænesuiten med 25 filer / 476 tests, og afgrænset coverage blev 90,47 % statements /
+81,95 % branches / 100 % functions / 100 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik,
+UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

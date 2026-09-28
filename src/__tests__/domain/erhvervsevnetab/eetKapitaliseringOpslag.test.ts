@@ -5,6 +5,7 @@ import {
   interpolateFactorWithinTable,
   isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
   resolveFactorTable,
+  resolveKapitaliseringTabelvalg,
   resolveKapitaliseringTabelvalgForControlDate,
   resolveSaerfaktor,
   type AgeYearsMonths,
@@ -65,6 +66,8 @@ describe('eetKapitaliseringOpslag', () => {
     expect(result.reason).toBeNull();
     expect(result.koenOpdelt).toBe(true);
     expect(result.rows?.[0]).toEqual({ alder: 5, faktor: 27.626 });
+    const maleResult = resolveFactorTable(tableData, 'A', 'Mand');
+    expect(maleResult.rows?.[0]).toEqual({ alder: 5, faktor: 27.321 });
   });
 
   it('vælger en simpel tabel og fail-closer ved en ukendt tabel', () => {
@@ -133,6 +136,23 @@ describe('eetKapitaliseringOpslag – alders- og interpolationsgrænser', () => 
 });
 
 describe('eetKapitaliseringOpslag – særfaktor og kontrolopslag', () => {
+  it('vælger den tidligste moderne tabel for en fødselsdato før minimumsårgangen', () => {
+    const tableData = getKapitaliseringsTabelData('10056/2025');
+    if (tableData === undefined) throw new Error('Forventede moderne kapitaliseringsdata');
+
+    expect(resolveKapitaliseringTabelvalg(
+      tableData,
+      iso('2021-01-01'),
+      iso('1900-01-01'),
+      iso('2026-01-01')
+    )).toEqual({
+      tabel: 'D',
+      folkepensionsalderMaaneder: 780,
+      folkepensionsalderLabel: '65 år',
+      usesKoen: false,
+    });
+  });
+
   it('vælger seneste særfaktor og afviser dato før første interval', () => {
     const tableData = getKapitaliseringsTabelData('10056/2025');
     if (tableData === undefined) throw new Error('Forventede historiske kapitaliseringsdata');
