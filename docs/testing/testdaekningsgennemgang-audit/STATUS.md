@@ -2705,6 +2705,14 @@ Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uænd
 typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC/DOC-batch – TD-374, arbejdsrevision `e288682c`
+
+Batchen tilføjer 3/3 direkte facitter i `eetMaksimumTekst.test.ts` for den fælles EAL-label
+og begge maksimumstekster. Afgrænset coverage for `eetMaksimumTekst.ts` blev 100 % statements /
+branches / functions / lines. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret. `npm run typecheck:test` og målrettet ESLint skal bestå før
+commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
