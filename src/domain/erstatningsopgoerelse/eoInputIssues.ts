@@ -53,7 +53,24 @@ export const resolveEoValidationPathAddress = (
 export const selectBlockingLoenindkomstEntityIds = (
   issues: FieldIssueSet
 ): Readonly<Record<string, true>> => {
+  const fieldIssues = selectBlockingLoenindkomstFieldIssues(issues);
   const ids: Record<string, true> = {};
+  for (const employmentId of Object.keys(fieldIssues)) {
+    ids[employmentId] = true;
+  }
+  return Object.freeze(ids);
+};
+
+/**
+ * Finder den første konkrete celleissue pr. ansættelsesforhold i lønindkomstens nested tabeller.
+ *
+ * Row-builderen bruger resultatet til at pege på den røde celle. Den skal derfor ikke selv scanne
+ * det brede issue-snapshot – det ville lade en præsentationsdetalje genåbne den brede capability.
+ */
+export const selectBlockingLoenindkomstFieldIssues = (
+  issues: FieldIssueSet
+): Readonly<Record<string, FieldIssue>> => {
+  const fieldIssues: Record<string, FieldIssue> = {};
   for (const issue of issues.all) {
     const [employment, nested] = issue.field.address.path;
     if (
@@ -65,10 +82,11 @@ export const selectBlockingLoenindkomstEntityIds = (
         'loenudviklingManuelTableData',
         'loenudviklingManuelProcentsatsTableData',
       ].includes(nested.collection)
+      || fieldIssues[employment.entityId] !== undefined
     ) {
       continue;
     }
-    ids[employment.entityId] = true;
+    fieldIssues[employment.entityId] = issue;
   }
-  return Object.freeze(ids);
+  return Object.freeze(fieldIssues);
 };

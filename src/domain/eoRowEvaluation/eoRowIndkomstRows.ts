@@ -2,7 +2,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
-import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
+import type { FieldIssue } from '../../inputCore/inputIssue';
 import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { resolveKildeReguleringsIntervalIso } from '../erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
@@ -34,20 +34,9 @@ import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
 import { resolveManualRegulationIssue } from './eoManualRegulationIssue';
 
 const resolveLoenindkomstTableInputIssue = (
-  issues: FieldIssueSet | undefined,
+  issues: Readonly<Record<string, FieldIssue>> | undefined,
   employmentId: string,
-): FieldIssue | undefined => issues?.all.find((issue) => {
-  const [employment, nested] = issue.field.address.path;
-  return employment?.kind === 'entity'
-    && employment.collection === 'loenindkomstAnsaettelsesforhold'
-    && employment.entityId === employmentId
-    && nested?.kind === 'entity'
-    && [
-      'indtaegtsoplysningerTableData',
-      'loenudviklingManuelTableData',
-      'loenudviklingManuelProcentsatsTableData',
-    ].includes(nested.collection);
-});
+): FieldIssue | undefined => issues?.[employmentId];
 
 /**
  * Advarslen om et fravalgt Store Bededagstillæg (ordlyd godkendt af udvikleren).
@@ -181,7 +170,7 @@ export const buildEoIndkomstRows = (
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom',
-  eoErrors?: FieldIssueSet,
+  loenindkomstTableInputIssues?: Readonly<Record<string, FieldIssue>>,
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = rowPolicy.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
@@ -422,7 +411,7 @@ export const buildEoIndkomstRows = (
         erBeregningsperiode,
       );
       const inputIssue = erBeregningsperiode
-        ? resolveLoenindkomstTableInputIssue(eoErrors, ansaettelsesforhold.id)
+        ? resolveLoenindkomstTableInputIssue(loenindkomstTableInputIssues, ansaettelsesforhold.id)
         : undefined;
       const inputIssueFocusTarget = inputIssue
         ? { kind: 'fieldAddress' as const, address: inputIssue.field.address }
