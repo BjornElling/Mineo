@@ -500,6 +500,37 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
   });
 
+  it('giver advarsel ved gyldig kapitalisering under 15 %', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
+            eetPct: 50,
+            kapDato: toISODateString('2025-10-01'),
+            kapPct: 10,
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation?.afgoerelser).toHaveLength(1);
+    expect(result.issues).toContainEqual({
+      id: 'warn-kap-pct-under-15',
+      severity: 'warning',
+      message: 'Der er angivet kapitalisering med mindre end 15 %',
+    });
+  });
+
   it('interpolerer mod særfaktoren efter tabellens sidste hele alder i månedsafhængige tabeller', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

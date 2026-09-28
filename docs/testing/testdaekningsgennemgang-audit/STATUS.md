@@ -2508,6 +2508,15 @@ domænesuiten med 25 filer / 476 tests, og afgrænset coverage blev 90,47 % stat
 ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik,
 UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-355, arbejdsrevision `1009cd25`
+
+Batchen tilføjer ét direkte facit i `eetKapitaliseringCalculation.test.ts` for en gyldig
+kapitalisering under 15 % med den kanoniske advarsel. Den målrettede fil bestod med 30/30,
+hele EET-domænesuiten med 25 filer / 477 tests, og afgrænset coverage blev 89,62 % statements /
+88,88 % branches / 95 % functions / 89,14 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
