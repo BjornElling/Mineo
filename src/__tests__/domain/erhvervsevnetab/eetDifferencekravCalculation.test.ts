@@ -663,6 +663,38 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.proformaKapitalisering?.kapitaliseringsfaktor).toBe(1.759);
   });
 
+  it('blokerer proformakapitalisering når særfaktor mangler efter faktortabellens sidste alder', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2020-01-01'),
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2020-01-01'),
+          virkningsDato: toISODateString('2020-01-01'),
+          eetPct: 50,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'proforma-kapitaliseringsfaktor-unresolved',
+      severity: 'error',
+      message: 'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler',
+    });
+  });
+
   it('splitter proformakapitaliseringens opregulering i 2003→2024 og 2024→målår, når beregningen ligger i 2026', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {

@@ -2429,6 +2429,16 @@ domænesuiten med 25 filer / 464 tests, og afgrænset coverage blev 99,39 % stat
 ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-347, arbejdsrevision `240d8709`
+
+Batchen tilføjer ét direkte fail-closed-facit i `eetDifferencekravCalculation.ts` for
+historisk manglende særfaktor efter faktortabellens sidste alder. Den målrettede fil bestod
+med 36/36, hele EET-domænesuiten med 25 filer / 465 tests, og afgrænset coverage blev
+88,46 % statements / 84,84 % branches / 100 % functions / 89,82 % lines. `npm run
+typecheck:test` og målrettet ESLint bestod. Ændringen er test-only; ingen produktkode,
+beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres
+efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
