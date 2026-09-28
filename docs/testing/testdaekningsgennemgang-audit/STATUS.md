@@ -2488,6 +2488,17 @@ og målrettet ESLint bestod. Ændringen er test-only; ingen produktkode,
 beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres
 efter batchen.
 
+## Seneste test-only CALC-batch – TD-353, arbejdsrevision `e27f69f0`
+
+Batchen tilføjer tre defensive facitter i `eetMerErstatningPensionsalderCalculation.ts`:
+manglende køn i en kønsopdelt valgt tabel, manglende særfaktor efter den gamle faktortabel
+og et ugyldigt ekstrapolationsinterval i den nye 2025-vejledning. Den målrettede fil bestod
+med 23/23, hele EET-domænesuiten med 25 filer / 475 tests, og afgrænset coverage blev
+93,61 % statements / 89,28 % branches / 100 % functions / 98,76 % lines. `npm run
+typecheck:test` og målrettet ESLint bestod. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

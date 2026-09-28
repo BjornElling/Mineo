@@ -272,6 +272,44 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
     }
   });
 
+  it('blokerer fail-closed når den gamle faktortabel kræver køn uden køn', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['198/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 198/2015');
+    const originalTable = original.erhvervsevnetabTabeller.G;
+    if (originalTable === undefined) throw new Error('Forventede faktortabel G for 198/2015');
+    dataById['198/2015'] = {
+      ...original,
+      erhvervsevnetabTabeller: { ...original.erhvervsevnetabTabeller, G: [] },
+      erhvervsevnetabKoensopdelteTabeller: {
+        ...original.erhvervsevnetabKoensopdelteTabeller,
+        G: originalTable.map((row) => ({
+          alder: row.alder,
+          maendFaktor: row.faktor,
+          kvinderFaktor: row.faktor,
+        })),
+      },
+    };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        { ...base, kapitaliseringer: [kap(toISODateString('2014-06-01'))] },
+        issues
+      );
+
+      expect(computation).not.toBeNull();
+      expect(computation?.events.some((event) => event.forhoejelsesdato === toISODateString('2015-12-29'))).toBe(false);
+      expect(issues).toContainEqual({
+        id: 'missing-koen',
+        severity: 'error',
+        message: 'Køn skal angives, når kapitaliseringen sker før 1. marts 2015',
+      });
+    } finally {
+      dataById['198/2015'] = original;
+    }
+  });
+
   it('blokerer fail-closed når den nye bekendtgørelse mangler særfaktor under to år til folkepension', () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
@@ -291,6 +329,80 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       severity: 'error',
       message: 'Særfaktor mangler.',
     }));
+  });
+
+  it('blokerer fail-closed når særfaktoren mangler efter den gamle faktortabel', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['198/2015'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 198/2015');
+    dataById['198/2015'] = {
+      ...original,
+      erhvervsevnetabTabeller: {
+        ...original.erhvervsevnetabTabeller,
+        G: original.erhvervsevnetabTabeller.G.filter((row) => row.alder < 60),
+      },
+      saerfaktorUnderToAarTilFpPerSkadesinterval: [],
+    };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        {
+          ...base,
+          fodselsdato: iso('1955-07-01'),
+          kapitaliseringer: [kap(toISODateString('2014-06-01'))],
+        },
+        issues
+      );
+
+      expect(computation).toBeNull();
+      expect(issues).toContainEqual({
+        id: 'mer-erstatning-gammel-faktor-unresolved',
+        severity: 'error',
+        message: 'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler.',
+      });
+    } finally {
+      dataById['198/2015'] = original;
+    }
+  });
+
+  it('blokerer fail-closed når faktortabellens ekstrapolationsinterval er ugyldigt', () => {
+    const issues: EetIssue[] = [];
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['10029/2024'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 10029/2024');
+    dataById['10029/2024'] = {
+      ...original,
+      erhvervsevnetabTabeller: {
+        ...original.erhvervsevnetabTabeller,
+        J: [
+          ...original.erhvervsevnetabTabeller.J.filter((row) => row.alder !== 62),
+          { alder: 70, faktor: 1 },
+        ],
+      },
+    };
+
+    try {
+      const computation = computeMerErstatningPensionsalder(
+        {
+          ...base,
+          skadedato: iso('2007-07-01'),
+          fodselsdato: iso('1963-01-01'),
+          kapitaliseringer: [kap(toISODateString('2014-06-01'))],
+        },
+        issues
+      );
+
+      expect(computation).not.toBeNull();
+      expect(computation?.events.some((event) => event.forhoejelsesdato === toISODateString('2025-12-31'))).toBe(false);
+      expect(issues).toContainEqual({
+        id: 'mer-erstatning-gammel-faktor-unresolved',
+        severity: 'error',
+        message: 'Kapitaliseringsfaktor kan ikke beregnes for alder (62 år, 11 mdr.).',
+      });
+    } finally {
+      dataById['10029/2024'] = original;
+    }
   });
 
   it('anvender direkte særfaktor ved 2025-forhøjelsen tæt på folkepensionsalderen', () => {
