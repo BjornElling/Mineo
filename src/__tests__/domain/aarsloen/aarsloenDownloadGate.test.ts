@@ -341,6 +341,16 @@ describe('evaluateShDageDownloadGate', () => {
     expectBlocked(evaluateShDageDownloadGate(projection), 'aarsloen:sh-zero');
   });
 
+  it('tillader SH-dage-dokumentet, når der findes faktiske SH-dage', () => {
+    let input = withOneValidMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+    input = dispatch(input, settle(aarsloenLoenPaaHelligdageField.bind(), 'SH-udbetaling'));
+    const projection = project(input);
+
+    expect(projection.calculation?.shDageAntal).toBeGreaterThan(0);
+    expect(evaluateShDageDownloadGate(projection)).toEqual({ canDownload: true, reasons: [] });
+  });
+
   it('bærer altid en synlig grund ved blokering', () => {
     const gate = evaluateShDageDownloadGate(project(empty()));
     expect(gate.canDownload).toBe(false);

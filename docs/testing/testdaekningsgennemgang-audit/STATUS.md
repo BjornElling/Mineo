@@ -2596,6 +2596,16 @@ reserve. `npm run typecheck:test` og målrettet ESLint skal bestå før commit. 
 test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-364, arbejdsrevision `de0e946f`
+
+Batchen tilføjer ét direkte positivt facit i `aarsloenDownloadGate.test.ts`: januar 2024 med
+`SH-udbetaling` og faktiske SH-dage tillader SH-dokumentet med returværdien `{ canDownload: true,
+reasons: [] }`. Den målrettede fil bestod med 18/18, hele Årsløn-domænesuiten består fortsat
+med 21 filer / 274 tests, og den positive SH-gate er nu hævdet sammen med de røde gates. `npm
+run typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
+genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
