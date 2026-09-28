@@ -2368,6 +2368,18 @@ coverage 90,37 / 81,50 / 94,33 / 93,15 og begge produktionsbuilds. Den fulde val
 er fortsat senest grøn på `71746917` med 221 tests og 2 forventede skips ud af 223 på 10
 projektbaner; batchen ændrede kun tests og krævede derfor ikke en ny E2E-kørsel.
 
+## Seneste test-only CALC-batch – TD-341, arbejdsrevision `63e6da5c`
+
+`eetKapitaliseringOpslag.test.ts` tilføjer otte direkte facitter for EET-kapitaliseringens
+opslagshjælper: aldersberegning, simple og ukendte tabeller, månedsinterpolation,
+månedsafhængig ekstrapolation, særfaktor, kontroltabelvalg og to-årsgrænsen til folkepension.
+Den målrettede fil bestod med 11/11, hele `src/__tests__/domain/erhvervsevnetab` bestod med
+25 filer / 455 tests, og den samlede `npm test` bestod med 937 filer / 9.371 tests.
+Afgrænset coverage for `eetKapitaliseringOpslag.ts` blev 91,66 % statements / 84,96 % branches /
+100 % functions / 100 % lines. `npm run typecheck:test` og
+målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik,
+brugeradfærd eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
