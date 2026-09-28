@@ -248,6 +248,27 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBe('Der kan ikke kapitaliseres mere end det samlede EET.');
   });
 
+  it('navngiver tidligere kapitalisering som årsag når endelig kap % overstiger EET %', () => {
+    const previous = buildRow({
+      id: 'previous',
+      afgoerelsesDato: toISODateString('2024-01-01'),
+      afgoerelseType: 'Delvist endelig',
+      eetPct: 80,
+      kapPct: 20,
+    });
+    const current = buildRow({
+      id: 'current',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      afgoerelseType: 'Endelig',
+      eetPct: 40,
+      kapPct: 25,
+    });
+
+    expect(validateKapPctByAfgoerelsestype(current, [previous, current])).toBe(
+      'Angivelse af Kap. % skal ske med fradrag for tidligere kapitalisering.'
+    );
+  });
+
   it('kræver fortsat fuld kapitalisering ved endelig afgørelse under 50 % mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 40, kapPct: 35 }),
@@ -282,6 +303,13 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('accepterer delvist endelig når kap % mangler (fejl vises på andre faner)', () => {
     const error = validateKapPctByAfgoerelsestype(
       buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 40, kapPct: undefined })
+    );
+    expect(error).toBeUndefined();
+  });
+
+  it('accepterer delvist endelig når EET % mangler men kap % er udfyldt', () => {
+    const error = validateKapPctByAfgoerelsestype(
+      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: undefined, kapPct: 5 })
     );
     expect(error).toBeUndefined();
   });
@@ -624,6 +652,21 @@ describe('validateEetPctByPriorKapPct', () => {
       sameDate,
       current,
     ])).toBeUndefined();
+  });
+
+  it('ignorerer en tidligere række uden kapitaliseringsprocent', () => {
+    const previousWithoutKapPct = buildRow({
+      id: 'previous-without-kap-pct',
+      afgoerelsesDato: toISODateString('2024-01-01'),
+      kapPct: undefined,
+    });
+    const current = buildRow({
+      id: 'current',
+      afgoerelsesDato: toISODateString('2024-03-01'),
+      eetPct: 10,
+    });
+
+    expect(validateEetPctByPriorKapPct(current, [previousWithoutKapPct, current])).toBeUndefined();
   });
 });
 

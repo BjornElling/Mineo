@@ -2776,6 +2776,15 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-392, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `eetAslAfgoerelser.test.ts` for ASL-validatorens
+resterende kap %-partitioner. Testene fastholder forklaringen med tidligere kapitalisering,
+den tilladte delvist endelige række uden EET-procent og ignorering af en tidligere række uden
+kapitaliseringsprocent. Filen bestod med 83/83 og målte 100 % statements / 99 % branches /
+100 % functions / 100 % lines. Hele EET-domænesuiten bestod med 27 filer / 516 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-391, arbejdsrevision
 
 Batchen tilføjer 1/1 direkte facit til sorteringen i `eetKapitaliseringCalculation.test.ts`.
