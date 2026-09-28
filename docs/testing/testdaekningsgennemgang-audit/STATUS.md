@@ -2380,6 +2380,17 @@ Afgrænset coverage for `eetKapitaliseringOpslag.ts` blev 91,66 % statements / 8
 målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik,
 brugeradfærd eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-342, arbejdsrevision `aa48ca0f`
+
+Batchen tilføjer to direkte fail-closed-facitter i `eetKapitaliseringCalculation.ts`:
+ukendt kontrolbekendtgørelse ved en historisk tidligere kapitaliseringsdato og ukendt
+kapitaliseringsbekendtgørelse ved et historisk kapitaliseringstidspunkt. Den målrettede fil
+bestod med 28/28, hele EET-domænesuiten med 25 filer / 457 tests, og afgrænset coverage
+blev 89,62 % statements / 89,33 % branches / 95 % functions / 89,14 % lines.
+`npm run typecheck:test` og målrettet ESLint bestod. Ændringen er test-only; ingen
+produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
+skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

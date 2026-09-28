@@ -344,6 +344,69 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
   });
 
+  it('fastholder konkret kontroltidsfejl ved ukendt kontrolbekendtgørelse', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('1978-03-30'),
+            eetPct: 50,
+            kapDato: toISODateString('2025-10-01'),
+            kapPct: 25,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: toISODateString('1978-03-31'),
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'kapitaliseringsbekendtgoerelse-missing-control-date',
+      severity: 'error',
+      message: 'Kapitaliseringsbekendtgørelse mangler for 31-03-1978.',
+    });
+  });
+
+  it('fastholder konkret effektiv-datofejl ved ukendt kapitaliseringstidspunkt', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        koen: 'Mand',
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'a',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
+            eetPct: 50,
+            kapDato: toISODateString('1978-03-31'),
+            kapPct: 25,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'kapitaliseringsbekendtgoerelse-missing-effective-date',
+      severity: 'error',
+      message: 'Kapitaliseringsbekendtgørelse mangler for 31-03-1978.',
+    });
+  });
+
   it('giver fejl om manglende endelig eller delvist endelig afgørelse når kun midlertidige afgørelser er indtastet', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
