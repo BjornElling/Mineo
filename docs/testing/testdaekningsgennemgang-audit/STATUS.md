@@ -2615,6 +2615,18 @@ domænesuiten består fortsat med 21 filer / 275 tests. `npm run typecheck:test`
 ESLint skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX
 eller persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-366, arbejdsrevision `123440ee`
+
+Batchen tilføjer to direkte stamdata-gatefacitter i `aarsloenDocumentDefinitions.test.ts`:
+Årslønsberegningen og SH-dage-dokumentet blokerer med deres konkrete
+`...:stamdata-blocked`-årsag, når brevhovedet er aktivt og Skadedato er rød, efter de
+respektive beregningsgates er godkendt. Den målrettede fil bestod med 2/2, og den samlede
+dokumentdefinitionskontrol med 4 filer / 83 tests. `aarsloenDocumentDefinitions.ts` dækkes
+med 94,11 % statements / 78,57 % branches / 100 % functions / 93,54 % lines; no-result-
+reserverne står fortsat som uopnåelige invariants. `npm run typecheck:test` og målrettet ESLint
+skal bestå før commit. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
