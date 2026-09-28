@@ -27,6 +27,7 @@ import {
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
   aarsloenFeriePctField,
+  aarsloenLoenPaaHelligdageField,
   aarsloenOmregningTilFuldtAarField,
   aarsloenTableCol0MaanedField,
   aarsloenTableCol1MaanedField,
@@ -107,6 +108,13 @@ const withBlockedStamdata = (input: SettledInput): SettledInput => {
 const withOneValidMonthRow = (input: SettledInput): SettledInput => {
   let next = dispatch(input, insert(emptyRow('r1')));
   next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r1'), '1'));
+  next = dispatch(next, settle(aarsloenTableCol1MaanedField.bind('r1'), '2024'));
+  return dispatch(next, settle(aarsloenTableCol2Field.bind('r1'), '30000'));
+};
+
+const withOneValidAugustMonthRow = (input: SettledInput): SettledInput => {
+  let next = dispatch(input, insert(emptyRow('r1')));
+  next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r1'), '8'));
   next = dispatch(next, settle(aarsloenTableCol1MaanedField.bind('r1'), '2024'));
   return dispatch(next, settle(aarsloenTableCol2Field.bind('r1'), '30000'));
 };
@@ -310,6 +318,27 @@ describe('evaluateShDageDownloadGate', () => {
       expect(['aarsloen:sh-missing-period-data', 'aarsloen:sh-no-count', 'aarsloen:sh-zero'])
         .toContain(gate.reasons[0]?.code);
     }
+  });
+
+  it('klassificerer en rød beregningsgate som manglende periode-data', () => {
+    const input = dispatch(
+      withOneValidMonthRow(withValidStamdata(empty())),
+      settle(aarsloenFeriePctField.bind(), '150')
+    );
+    const projection = project(input);
+
+    expect(projection.calculation).toBeNull();
+    expectBlocked(evaluateShDageDownloadGate(projection), 'aarsloen:sh-missing-period-data');
+  });
+
+  it('blokerer SH-dage-dokumentet med en særskilt forklaring ved nul faktiske SH-dage', () => {
+    let input = withOneValidAugustMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+    input = dispatch(input, settle(aarsloenLoenPaaHelligdageField.bind(), 'Ingen'));
+    const projection = project(input);
+
+    expect(projection.calculation?.shDageAntal).toBe(0);
+    expectBlocked(evaluateShDageDownloadGate(projection), 'aarsloen:sh-zero');
   });
 
   it('bærer altid en synlig grund ved blokering', () => {

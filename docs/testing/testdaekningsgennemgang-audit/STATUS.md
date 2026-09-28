@@ -2535,6 +2535,16 @@ statements / 100 % branches / 100 % functions / 100 % lines. `npm run typecheck:
 målrettet ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-358, arbejdsrevision `b017f4ff`
+
+Batchen tilføjer to direkte facitter i `aarsloenDownloadGate.test.ts`: SH-dokumentet blokeres
+med den konkrete beregningsgate-årsag ved rød ferieprocent, og med den særskilte `sh-zero`-årsag,
+når august 2024 har nul faktiske SH-dage. Den målrettede fil bestod med 17/17, hele
+Årsløn-domænesuiten med 20 filer / 264 tests, og afgrænset coverage blev 79,10 % statements /
+71,11 % branches / 85,71 % functions / 86,20 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
