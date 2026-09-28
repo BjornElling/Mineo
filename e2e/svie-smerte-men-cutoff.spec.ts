@@ -1,12 +1,13 @@
 import { expect, login, openPage, setVerbatimFieldValueAndSettle, test } from './support/mineoTest';
 
 const CUTOFF_MESSAGE = 'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)';
+const PERIOD_CUTOFF_MESSAGE = 'Hele perioden ligger efter datoen for ménafgørelsen (16-09-2024)';
 
 /** Datoindtastning gennem den delte, tidsrobuste totrins-helper (se `support/mineoTest.ts`). */
 const setDate = setVerbatimFieldValueAndSettle;
 
 test.describe('Svie/smerte efter ménafgørelse', () => {
-  test('viser rød ring, konkret tooltip og samme fejl på Beregning', async ({ page, runtimeErrors }, testInfo) => {
+  test('viser konkret feltfejl og samlet periodefejl på Beregning', async ({ page, runtimeErrors }, testInfo) => {
 
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
@@ -33,7 +34,7 @@ test.describe('Svie/smerte efter ménafgørelse', () => {
     await page.mouse.move(0, 0);
     await page.getByRole('tab', { name: 'Beregning' }).click();
     const calculationPanel = page.getByRole('tabpanel').filter({ hasText: 'Fejl og advarsler' });
-    await expect(calculationPanel.getByText(CUTOFF_MESSAGE, { exact: true })).toBeVisible();
+    await expect(calculationPanel.getByText(PERIOD_CUTOFF_MESSAGE, { exact: true })).toBeVisible();
     await expect(calculationPanel.getByText('Ingen gyldige datoer:', { exact: false })).toHaveCount(0);
 
     await page.screenshot({ path: testInfo.outputPath('svie-smerte-men-cutoff.png'), fullPage: false });
