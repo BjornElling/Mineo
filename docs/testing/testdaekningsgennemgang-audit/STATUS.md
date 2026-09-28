@@ -2734,6 +2734,16 @@ schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESL
 encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC/DOC-batch – TD-377, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `eetDifferencekravPresentation.test.ts` for
+mer-erstatningens overskrift med dato, aldersskifte, kapitaliseringsprocent og
+kapitaliseringsdato. Filen bestod med 12/12, og `eetDifferencekravPresentation.ts` dækkes med
+100 % statements / branches / functions / lines. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-,
+encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

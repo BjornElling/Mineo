@@ -1,5 +1,6 @@
 import {
   buildBeregnetDifferencekravLabel,
+  buildMerErstatningForhoejelseOverskrift,
   resolveMerErstatningPensionsalderBilagDisabledReason,
   resolveProformaKapitaliseringBilagDisabledReason,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
@@ -18,6 +19,20 @@ describe('buildBeregnetDifferencekravLabel', () => {
   it('viser procent-forlig i parentes', () => {
     expect(buildBeregnetDifferencekravLabel('50 %', '1.095.121 kr.')).toBe(
       'Beregnet differencekrav (50 % af 1.095.121 kr.)'
+    );
+  });
+});
+
+describe('buildMerErstatningForhoejelseOverskrift', () => {
+  it('viser forhøjelsesdato, alderstrin og den kapitalisering der reguleres', () => {
+    expect(buildMerErstatningForhoejelseOverskrift({
+      forhoejelsesdatoFormatted: '31.12.2020',
+      gammelAlderLabel: '66 år',
+      nyAlderLabel: '67 år',
+      kapitaliseringspctFormatted: '30 %',
+      kapitaliseringsdatoFormatted: '01.01.2019',
+    })).toBe(
+      'Forhøjelse pr. 31.12.2020 (66 år → 67 år) · kapitaliseret (30 %) den 01.01.2019'
     );
   });
 });
