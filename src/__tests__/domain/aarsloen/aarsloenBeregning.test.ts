@@ -149,4 +149,52 @@ describe('computeAarsloenBeregning (wire-up/control-flow)', () => {
     expect(result.harFatalBeregningsFejl).toBe(true);
     expect(result.beregningsFejl).toBe('Fejl ved beregning af SH-dage');
   });
+
+  it('sætter fatal fejl når periodeberegningen fejler', () => {
+    mockedSafeCompute.mockImplementation((fn, context) => {
+      if (context === 'aarsloenBeregning.periodeBeregning') {
+        return { success: false, error: new Error('boom') };
+      }
+      return { success: true, value: fn() };
+    });
+
+    const result = computeAarsloenBeregning({ values: makeValues(), omregningAktiveret: false });
+
+    expect(result.periodeData).toBeNull();
+    expect(result.harFatalBeregningsFejl).toBe(true);
+    expect(result.beregningsFejl).toBe('Fejl ved beregning af periode-data');
+  });
+
+  it('sætter fatal fejl når årslønssummen fejler', () => {
+    mockedSafeCompute.mockImplementation((fn, context) => {
+      if (context === 'aarsloenBeregning.aarsloenBeregning') {
+        return { success: false, error: new Error('boom') };
+      }
+      return { success: true, value: fn() };
+    });
+
+    const result = computeAarsloenBeregning({ values: makeValues(), omregningAktiveret: false });
+
+    expect(result.beregnetAarsloen).toBe(0);
+    expect(result.harFatalBeregningsFejl).toBe(true);
+    expect(result.beregningsFejl).toBe('Fejl ved beregning af årsløn');
+  });
+
+  it('sætter fatal fejl når omregningen til årsløn fejler', () => {
+    mockedSafeCompute.mockImplementation((fn, context) => {
+      if (context === 'aarsloenBeregning.omregnetAarsloenBeregning') {
+        return { success: false, error: new Error('boom') };
+      }
+      return { success: true, value: fn() };
+    });
+
+    const result = computeAarsloenBeregning({
+      values: makeValues({ omregningTilFuldtAar: true }),
+      omregningAktiveret: true,
+    });
+
+    expect(result.beregningsData).toEqual({ metode: 'ingen', erEtAar: false });
+    expect(result.harFatalBeregningsFejl).toBe(true);
+    expect(result.beregningsFejl).toBe('Fejl ved beregning af omregnet årsløn');
+  });
 });

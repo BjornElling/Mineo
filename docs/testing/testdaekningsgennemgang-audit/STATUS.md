@@ -2586,6 +2586,16 @@ typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er test
 produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal
 genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-363, arbejdsrevision `e23eb09d`
+
+Batchen tilføjer tre direkte fail-closed-facitter i `aarsloenBeregning.test.ts`: periodeberegning,
+årslønssum og omregning rapporterer hver sin fatale fejlårsag ved intern beregningsfejl. Den
+målrettede fil bestod med 7/7, hele Årsløn-domænesuiten består fortsat med 21 filer / 273 tests,
+og den ukendte runtime-værdi efter den typede `Loenperiode`-union er dokumenteret som uopnåelig
+reserve. `npm run typecheck:test` og målrettet ESLint skal bestå før commit. Ændringen er
+test-only; ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
