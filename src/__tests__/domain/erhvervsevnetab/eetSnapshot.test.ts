@@ -138,6 +138,44 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
   });
 
+  it('fører kun ASL-årslønnens feltfejl ind i EAL når EAL-årslønnen mangler', () => {
+    const snapshot = computeEetSnapshot({
+      values: { ...createValues(), ealAarsloen: undefined },
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: { aslAarsloen: { message: 'ASL-årslønnen er ugyldig' } },
+      },
+    });
+
+    expect(snapshot.efterEal.issues).toContainEqual({
+      id: 'field-aarsloen-asl',
+      severity: 'error',
+      message: 'ASL-årslønnen er ugyldig',
+    });
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+  });
+
+  it('fører kun ASL-afgørelsers feltfejl ind i EAL når EAL-EET procenten mangler', () => {
+    const snapshot = computeEetSnapshot({
+      values: { ...createValues(), ealEetPct: undefined },
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: { aslAfgoerelser: { message: 'ASL-afgørelserne er ugyldige' } },
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.efterEal.issues).toContainEqual({
+      id: 'field-asl-afgoerelser',
+      severity: 'error',
+      message: 'ASL-afgørelserne er ugyldige',
+    });
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+  });
+
   it('viser manglende beregningsdato præcis én gang på Differencekrav', () => {
     const snapshot = computeEetSnapshot({
       values: {
