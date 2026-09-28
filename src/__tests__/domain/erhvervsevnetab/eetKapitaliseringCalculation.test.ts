@@ -1033,6 +1033,17 @@ describe('computeEetKapitaliseringCalculation', () => {
             tidlKapDato: undefined,
           },
           {
+            id: 'a2',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-06-01'),
+            virkningsDato: toISODateString('2025-06-01'),
+            eetPct: 50,
+            kapDato: toISODateString('2025-08-01'),
+            kapPct: 25,
+            afgoerelseType: 'Delvist endelig',
+            tidlKapDato: undefined,
+          },
+          {
             id: 'b',
             fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
@@ -1061,6 +1072,6 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
 
     expect(result.issues).toEqual([]);
-    expect(result.computation?.afgoerelser.map((row) => row.rowId)).toEqual(['a', 'b', 'c', 'd']);
+    expect(result.computation?.afgoerelser.map((row) => row.rowId)).toEqual(['a', 'a2', 'b', 'c', 'd']);
   });
 });
