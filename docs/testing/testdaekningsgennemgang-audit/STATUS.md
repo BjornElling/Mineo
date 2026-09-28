@@ -2545,6 +2545,17 @@ når august 2024 har nul faktiske SH-dage. Den målrettede fil bestod med 17/17,
 ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
 persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-359, arbejdsrevision `66d08324`
+
+Batchen tilføjer ét direkte facit i `aarsloenProjection.test.ts`: et afvist input i
+`Antal feriedage` samles som `format`-issue og blokerer feltgaten, når omregning er aktiv og
+fuld løn under ferie er slået fra. Den målrettede fil bestod med 15/15, og hele
+Årsløn-domænesuiten består fortsat med 20 filer / 265 tests. Afgrænset coverage blev 100 %
+statements / 89,28 % branches / 100 % functions / 100 % lines. `npm run typecheck:test` og
+målrettet ESLint skal bestå før commit. Ændringen er test-only; ingen produktkode,
+beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres efter
+batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

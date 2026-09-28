@@ -14,7 +14,10 @@ import {
 } from '../../../inputCore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
+  aarsloenAntalFeriedageField,
   aarsloenFeriePctField,
+  aarsloenFuldLoenUnderFerieField,
+  aarsloenOmregningTilFuldtAarField,
   aarsloenTableCol2Field,
   aarsloenTillaegAngivesSomField,
 } from '../../../inputCore/catalog/aarsloenDescriptors';
@@ -130,6 +133,20 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
     const input = dispatch(empty(), settle(feriePctRef, '12'));
     const values = readAarsloenValues(reader(input));
     expect(resolveAarsloenFieldErrorGate(reader(input), values, { omregningAktiveret: true })).toHaveLength(0);
+  });
+
+  it('rød feriedage-fejl blokerer, når omregning er aktiv og fuld løn under ferie er slået fra', () => {
+    let input = dispatch(empty(), setImmediateField(aarsloenOmregningTilFuldtAarField.bind(), true) as AnyInputCommand);
+    input = dispatch(input, setImmediateField(aarsloenFuldLoenUnderFerieField.bind(), false) as AnyInputCommand);
+    input = dispatch(input, settle(aarsloenAntalFeriedageField.bind(), 'abc'));
+    const values = readAarsloenValues(reader(input));
+    const gate = resolveAarsloenFieldErrorGate(reader(input), values, { omregningAktiveret: true });
+
+    expect(gate).toHaveLength(1);
+    expect(gate[0]).toMatchObject({
+      reason: 'format',
+      message: expect.stringContaining('Antal feriedage'),
+    });
   });
 });
 
