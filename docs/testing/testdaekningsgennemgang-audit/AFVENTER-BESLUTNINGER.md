@@ -342,6 +342,21 @@ ikke først opdager en manglende del, når netop den funktion vælges?
 
 | TD-292 | Standalone-artifact-verifieren kontrollerer nu, at alle manifestentries har en eksisterende `file`, og at alle `imports`-/`dynamicImports`-referencer peger på eksisterende manifestentries. Der er også negative kvalitetstests for manglende filer og ukendte referencer. | Implementeret og målrettet testet |
 
+## 11. Identiske validatorissues for offentlig lønindplacering (TD-305)
+
+**Det brugeren kan opleve:** En ugyldig værdi i **Løntrin** eller **Gruppe** kunne tidligere
+give samme fejlbesked to gange i validatorens rå resultat. Feltvisningen reducerede allerede
+resultatet til ét aktivt issue, men validatorens samlede resultat havde en unødig dobbeltpartition.
+
+**Spørgsmål:** Skal identiske fejl med samme feltsti, besked og severity deduplikeres ved
+validatorgrænsen, mens forskellige fejlårsager fortsat vises særskilt?
+
+**Dit svar:**
+
+> Deduplikere, tak
+
+| TD-305 | Validatorens samlede resultat deduplikerer nu identiske `path`-/besked-/severity-kombinationer. Det giver ét råt issue for ugyldigt offentlig løntrin og løngruppe, og forskellige fejlårsager bevares. | Implementeret, målrettet testet og inkluderet i grøn releasegate 2026-09-28 |
+
 ## Notat
 
 Andre åbne auditposter er ikke medtaget her, fordi de enten er løbende testarbejde,

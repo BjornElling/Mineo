@@ -168,7 +168,7 @@ describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
     });
   });
 
-  it('fastholder den dobbelte issue-partition for ugyldigt offentlig løntrin', () => {
+  it('deduplikerer den identiske rangefejl for ugyldigt offentlig løntrin', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_PUBLIC_SALARY_VALUES,
       eoAngivetLoenLoenudvikling: {
@@ -181,22 +181,15 @@ describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
 
     expect(result).toEqual({
       isValid: false,
-      errors: [
-        {
-          path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
-          message: 'Løntrin skal være mellem 1 og 55',
-          severity: 'error',
-        },
-        {
-          path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
-          message: 'Løntrin skal være mellem 1 og 55',
-          severity: 'error',
-        },
-      ],
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin',
+        message: 'Løntrin skal være mellem 1 og 55',
+        severity: 'error',
+      }],
     });
   });
 
-  it('fastholder den dobbelte issue-partition for ugyldig offentlig løngruppe', () => {
+  it('deduplikerer den identiske rangefejl for ugyldig offentlig løngruppe', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_PUBLIC_SALARY_VALUES,
       eoAngivetLoenLoenudvikling: {
@@ -209,18 +202,11 @@ describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
 
     expect(result).toEqual({
       isValid: false,
-      errors: [
-        {
-          path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
-          message: 'Løngruppe skal være mellem 0 og 4',
-          severity: 'error',
-        },
-        {
-          path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
-          message: 'Løngruppe skal være mellem 0 og 4',
-          severity: 'error',
-        },
-      ],
+      errors: [{
+        path: 'eoAngivetLoenLoenudvikling.offentligLoenGruppe',
+        message: 'Løngruppe skal være mellem 0 og 4',
+        severity: 'error',
+      }],
     });
   });
 });

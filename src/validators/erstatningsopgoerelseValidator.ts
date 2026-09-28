@@ -160,9 +160,9 @@ const LOENGRUPPE_RANGE_ERROR_MESSAGE = 'Løngruppe skal være mellem 0 og 4';
  * sådan et hul: intervallet blev tjekket, men ikke tilstedeværelsen).
  *
  * De to `-ugyldig`-årsager deler beskeds-konstant med `validateLoenudviklingCanonicalRanges`, som
- * allerede dækker interval-overtrædelser på de samme feltstier. De står her udelukkende for at
- * holde nøgle-udtømmeligheden – derfor konstanter frem for gentagne strengliteraler, så de to
- * producenter ikke kan drive fra hinanden i ordlyd.
+ * også dækker interval-overtrædelser på de samme feltstier. Validatorens samlede resultat
+ * deduplikerer den identiske fejl, så parseren stadig har en synlig ejer for hver motorårsag uden
+ * at sende samme felt/besked to gange videre til validatorens forbrugere.
  */
 const OFFENTLIG_LOEN_SELECTION_VALIDATION_ISSUE: Readonly<
   Record<OffentligLoenSelectionFailure, Readonly<{ field: string; message: string }>>
@@ -1319,6 +1319,18 @@ function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number):
 // SAMLET VALIDATOR
 // =============================================================================
 
+const deduplicateValidationErrors = (errors: readonly ValidationError[]): ValidationError[] => {
+  const seen = new Set<string>();
+  return errors.filter((error) => {
+    // Identiske path/besked/severity-kombinationer er samme brugerrettede fejl, også når to
+    // uafhængige valideringslag opdager den samme ugyldige canonical værdi.
+    const key = `${error.path}\u0000${error.message}\u0000${error.severity ?? 'error'}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 /**
  * Samlet validator for Erstatningsopgørelse
  *
@@ -1331,7 +1343,7 @@ type ErstatningsopgoerelseValidator = FormValidator<ErstatningsopgoerelseValues>
 
 export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
   validateParsed(values: ErstatningsopgoerelseValues, options?: ErstatningsopgoerelseValidationOptions): ValidationResult {
-    const errors: ValidationError[] = [
+    const errors = deduplicateValidationErrors([
       ...validateCanonicalRanges(values),
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
@@ -1339,7 +1351,7 @@ export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
       ...validateTAF(values, options),
       ...validateSygeferiegodtgoerelse(values),
       ...validateOevrigeKrav(values),
-    ];
+    ]);
 
     return {
       errors,

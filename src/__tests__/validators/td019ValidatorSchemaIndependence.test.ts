@@ -813,18 +813,11 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
 
     expect(result).toEqual({
       isValid: false,
-      errors: [
-        {
-          path: 'beregnesUdFra',
-          message: 'Ukendt beregnesUdFra-værdi: ukendt',
-          severity: 'error',
-        },
-        {
-          path: 'beregnesUdFra',
-          message: 'Ukendt beregnesUdFra-værdi: ukendt',
-          severity: 'error',
-        },
-      ],
+      errors: [{
+        path: 'beregnesUdFra',
+        message: 'Ukendt beregnesUdFra-værdi: ukendt',
+        severity: 'error',
+      }],
     });
   });
 });
