@@ -2439,6 +2439,15 @@ typecheck:test` og målrettet ESLint bestod. Ændringen er test-only; ingen prod
 beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres
 efter batchen.
 
+## Seneste test-only CALC-batch – TD-348, arbejdsrevision `a59f6c6f`
+
+Batchen tilføjer ét direkte fail-closed-facit i `eetDifferencekravCalculation.ts` for
+den historiske kønsgate før 1. marts 2015. Den målrettede fil bestod med 37/37, hele
+EET-domænesuiten med 25 filer / 466 tests, og afgrænset coverage blev 89,10 % statements /
+85,22 % branches / 100 % functions / 90,52 % lines. `npm run typecheck:test` og målrettet
+ESLint bestod. Ændringen er test-only; ingen produktkode, beregningslogik, UI/UX eller
+persistens er ændret. Den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

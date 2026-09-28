@@ -695,6 +695,38 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
+  it('blokerer historisk proformakapitalisering når køn mangler', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2014-01-01'),
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2013-01-01'),
+          virkningsDato: toISODateString('2013-01-01'),
+          eetPct: 50,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'missing-koen',
+      severity: 'error',
+      message: 'Køn skal angives, når kapitaliseringen sker før 1. marts 2015',
+    });
+  });
+
   it('splitter proformakapitaliseringens opregulering i 2003→2024 og 2024→målår, når beregningen ligger i 2026', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
