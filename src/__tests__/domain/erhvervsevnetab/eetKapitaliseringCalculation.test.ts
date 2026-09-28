@@ -472,6 +472,79 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues.some((issue) => issue.message === 'Der er en afgørelse uden EET %')).toBe(false);
   });
 
+  it('giver generiske manglende kapitaliseringsfelter når ingen række kan opløses', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'endelig',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+          {
+            id: 'midlertidig',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-08-01'),
+            virkningsDato: toISODateString('2025-08-01'),
+            eetPct: 25,
+            kapDato: toISODateString('2025-09-01'),
+            kapPct: 25,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'missing-kap-dato',
+      severity: 'error',
+      message: 'Der mangler indtastning af kapitaliseringsdato.',
+    });
+    expect(result.issues).toContainEqual({
+      id: 'missing-kap-pct',
+      severity: 'error',
+      message: 'Der mangler indtastning af kapitaliseringsprocent.',
+    });
+  });
+
+  it('accepterer endelig afgørelse under to år til folkepension uden kapitaliseringsfelter under 50 procent', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [{
+          id: 'a',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2025-07-01'),
+          virkningsDato: toISODateString('2025-07-01'),
+          eetPct: 40,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1959-01-01'),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
+    expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
+  });
+
   it('beregner delvis kapitalisering med tabelinterpolation for en moderne bekendtgørelse', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

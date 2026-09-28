@@ -2776,6 +2776,15 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-387, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `eetKapitaliseringCalculation.test.ts` for kapitaliseringens
+inputreserve. Den ene kræver de generiske `missing-kap-dato`- og `missing-kap-pct`-issues, når ingen
+række kan opløses, og den anden kræver, at en endelig afgørelse på 40 % under to år til folkepension
+beregnes med særfaktor `1,245` uden issues. Filen bestod med 33/33 og målte 92,11 % statements /
+91,55 % branches / 100 % functions / 91,40 % lines. Hele EET-domænesuiten bestod med 27 filer /
+502 tests. Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret.
+
 ## Seneste test-only CALC-batch – TD-386, arbejdsrevision
 
 Batchen tilføjer 1/1 direkte numerisk facit i `eetMerErstatningPensionsalderCalculation.test.ts`
