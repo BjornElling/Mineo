@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import {
+  hasAnyRentekravInput,
   readRentekravCommittedRows,
   buildRenteberegningReaderProjection,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
@@ -131,5 +132,67 @@ describe('buildRenteberegningReaderProjection', () => {
     const reader = buildReaderForRows(rows, '2024-12-31');
 
     expect(readRentekravCommittedRows(reader)).toEqual(rows);
+  });
+
+  it('regner rejected råtekst som afsluttet rentekravsinput', () => {
+    const input = catalog.validateSettledInput({
+      sections: {
+        stamdata: null, satser: null, aarsloen: null, faellesAarsloen: null,
+        renteberegning: {
+          beregningsdato: toISODateString('2024-12-31'),
+          kommentarer: undefined,
+          rentekravRows: [{ ...createRow('r1'), belob: undefined }],
+        },
+        varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab: null,
+      },
+      rejectedInputs: {
+        [serializeFieldAddress(rentekravBelobField.bind('r1').address)]: { raw: 'abc', reason: 'format' },
+      },
+    });
+    const reader = createInputEvaluation({
+      input,
+      catalog,
+      sourceToken: createEvaluationSourceToken(createInputRevision(3), createSettingsRevision(3)),
+    }).reader;
+
+    expect(hasAnyRentekravInput(reader)).toBe(true);
+  });
+
+  it('regner en helt tom rentekravsrække som ingen afsluttet input', () => {
+    const reader = buildReaderForRows([{
+      id: 'r-empty', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage',
+    }], '2024-12-31');
+
+    expect(hasAnyRentekravInput(reader)).toBe(false);
+  });
+
+  it('blokerer aggregatet og rapporterer, når en ready rækkeprojektion forsvinder', () => {
+    const reader = buildReaderForRows([createRow('r1')], '2024-12-31');
+    const originalMapGet = Map.prototype.get;
+    const mapGetSpy = vi.spyOn(Map.prototype, 'get').mockImplementation(function (this: Map<unknown, unknown>, key: unknown) {
+      // Den interne aggregatprojektion slår kun denne række op i den map, vi vil simulere som
+      // inkonsistent. Andre map-opslag skal fortsat bruge den normale implementation.
+      if (key === 'r1') return undefined;
+      return originalMapGet.call(this, key);
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const projection = buildRenteberegningReaderProjection({
+        reader, referenceRates, surchargeRates,
+      });
+      expect(projection.aggregateProjection.status).toBe('ready');
+      if (projection.aggregateProjection.status !== 'ready') throw new Error('forventede ready');
+      expect(projection.aggregateProjection.value).toEqual({
+        pdfContexts: new Map(),
+        anyRowHasError: true,
+      });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Renteaggregat mangler ready rækkeprojektion for r1.'
+      );
+    } finally {
+      mapGetSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

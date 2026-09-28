@@ -2713,6 +2713,17 @@ branches / functions / lines. Produktkode, beregningslogik, brugeradfærd, schem
 persistensformat er uændret. `npm run typecheck:test` og målrettet ESLint skal bestå før
 commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC/INPUT-batch – TD-375, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `renteberegningReaderProjection.test.ts`: rejected
+råtekst tæller som afsluttet rentekravsinput, en helt tom række tæller ikke, og en manglende
+ready rækkeprojektion blokerer aggregatet med `anyRowHasError` samt den præcise systemfejl.
+Filen bestod med 9/9, og den samlede renteberegningskontrol med 19 filer / 167 tests.
+Reader-projektionen målte 100 % statements / 86,66 % branches / 100 % functions / 100 % lines.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret. `npm run
+typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit.
+Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende
