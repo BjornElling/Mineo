@@ -2477,6 +2477,17 @@ og afgrænset coverage blev 92,62 % statements / 87,50 % branches / 100 % functi
 ingen produktkode, beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate
 skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-352, arbejdsrevision `ad9e89fe`
+
+Batchen tilføjer ét end-to-end-facit i `eetDifferencekravCalculation.ts` for den manglende2024-reguleringssats i restydelsesforløbet. Den målrettede fil bestod med 43/43, hele
+EET-domænesuiten med 25 filer / 472 tests, og afgrænset coverage blev 92,62 % statements /
+88,63 % branches / 100 % functions / 94,38 % lines. Det samme issue rapporteres også
+upstream af løbende-ydelser, så testen fastholder den observerbare Differencekrav-gate,
+mens den interne reservebranch fortsat står som defensivt hul. `npm run typecheck:test`
+og målrettet ESLint bestod. Ændringen er test-only; ingen produktkode,
+beregningslogik, UI/UX eller persistens er ændret. Den samlede releasegate skal genkøres
+efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

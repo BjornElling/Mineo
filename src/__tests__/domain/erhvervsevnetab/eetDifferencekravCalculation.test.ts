@@ -4,7 +4,7 @@ import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevn
 import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import * as eetEalCalculation from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import * as eetMerErstatningPensionsalderCalculation from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { aarsloenAslMax, reguleringsprocentErhvervsevnetabFoer2024 } from '../../../data/lovbestemteRates';
 import { kapitaliseringsTabelDataById, type KapitaliseringsTabelData } from '../../../data/kapitalisering/kapitaliseringsTabeller';
 import { fromKroner, toKroner, type MoneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
@@ -89,6 +89,50 @@ describe('computeEetDifferencekravCalculation', () => {
       });
     } finally {
       spy.mockRestore();
+    }
+  });
+
+  it('blokerer resterende løbende ydelser når 2024-reguleringssatsen mangler', () => {
+    const rates = reguleringsprocentErhvervsevnetabFoer2024 as Record<number, number | undefined>;
+    const original = rates[2024];
+    delete rates[2024];
+
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2024-01-01'),
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
+            eetPct: 60,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          }],
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1958-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'reguleringssats-missing-2024',
+        severity: 'error',
+        message: 'Reguleringssats mangler for år 2024',
+      });
+    } finally {
+      if (original === undefined) {
+        delete rates[2024];
+      } else {
+        rates[2024] = original;
+      }
     }
   });
 
