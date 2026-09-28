@@ -2744,6 +2744,16 @@ schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESL
 encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
 releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT/CALC-batch – TD-378, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `erhvervsevnetabReaderProjection.test.ts` for den offentlige
+reader-facade til afsluttede ASL-afgørelser. Filen bestod med 9/9; hele EET-domænesuiten bestod
+med 27 filer / 488 tests, og `erhvervsevnetabReaderProjection.ts` målte 100 % statements /
+78,57 % branches / 100 % functions / 100 % lines. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-,
+encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Næste arbejdsenhed
 
 Den seneste samlede test-/releaseevidens er fastlåst på `f7c4edd5`, og den efterfølgende

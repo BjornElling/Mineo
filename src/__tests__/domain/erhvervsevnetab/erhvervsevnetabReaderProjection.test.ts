@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import { buildErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
+import {
+  buildErhvervsevnetabReaderProjection,
+  readAslAfgoerelserCommittedRows,
+} from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
 import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -117,6 +120,12 @@ const expectedComposedValues = (): ErhvervsevnetabComposedValues => ({
 });
 
 describe('buildErhvervsevnetabReaderProjection', () => {
+  it('rekonstruerer de afsluttede ASL-afgørelser gennem den offentlige reader-facade', () => {
+    const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata);
+
+    expect(readAslAfgoerelserCommittedRows(reader)).toEqual(validErhvervsevnetab.aslAfgoerelser);
+  });
+
   it('kører computeEetSnapshot byte-identisk på de reader-læste værdier, inkl. aslAfgoerelser-collection (§5.4)', () => {
     const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata);
     const projection = buildErhvervsevnetabReaderProjection(reader);
