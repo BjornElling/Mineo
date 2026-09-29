@@ -58,4 +58,35 @@ describe('buildManuelProcentsatsEntries', () => {
     });
     expect(entries.map((entry) => entry.rowId)).toEqual(['base']);
   });
+
+  it('returnerer tom serie når den anvendte reguleringsdato mangler', () => {
+    expect(buildManuelProcentsatsEntries({
+      anvendtReguleringsdato: undefined,
+      rows: [row('base', undefined, 0), row('r1', '2024-06-01', 10)],
+    })).toEqual([]);
+  });
+
+  it('bruger et stabilt basis-id når rækkelisten er tom', () => {
+    const entries = buildManuelProcentsatsEntries({
+      anvendtReguleringsdato: iso('2024-01-01'),
+      rows: [],
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.rowId).toBe('manuel-procentsats-base');
+  });
+
+  it('bevarer originalrækkefølgen for samme reguleringsdato og har tom lookup-fallback', () => {
+    const entries = buildManuelProcentsatsEntries({
+      anvendtReguleringsdato: iso('2024-01-01'),
+      rows: [
+        row('base', undefined, 0),
+        row('første-samme-dato', '2024-06-01', 10),
+        row('anden-samme-dato', '2024-06-01', 5),
+      ],
+    });
+
+    expect(entries.map((entry) => entry.rowId)).toEqual(['base', 'første-samme-dato', 'anden-samme-dato']);
+    expect(findManuelProcentsatsEntryForDate([], iso('2024-06-01'))).toBeUndefined();
+  });
 });

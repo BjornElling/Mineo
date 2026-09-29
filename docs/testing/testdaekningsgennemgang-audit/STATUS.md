@@ -2803,6 +2803,19 @@ schema og persistensformat er uændret; øvrig TAF- og reguleringsparitet står 
 `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
 før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-474, arbejdsrevision
+
+Batchen tilføjer 3 direkte facitter i `manuelProcentsatsRegulering.test.ts`
+for manglende basisdato, stabil originalrækkefølge ved samme reguleringsdato,
+tom rækkeliste og tom lookup-fallback. Filen bestod med 7/7 tests; modulet målte
+100 % statements / 100 % branches / 100 % functions / 100 % lines. Den målte
+helperflade har ingen resterende coverage-huller. Den fulde Vitest-suite bestod
+med 969 filer / 9.770 tests. Produktkode, beregningslogik, brugeradfærd, schema
+og persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat åben
+under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-471, arbejdsrevision
 
 Batchen tilføjer 2 direkte tests i `periodiseringsMotor.test.ts` med facitter for
