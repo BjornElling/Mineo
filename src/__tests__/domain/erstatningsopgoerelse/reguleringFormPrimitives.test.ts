@@ -34,6 +34,13 @@ describe('reguleringFormPrimitives', () => {
     });
   });
 
+  it('ignorerer et omvendt interval uden at bygge et ugyldigt segment', () => {
+    expect(buildSegmentsFromStartDates(
+      { fra: iso('2024-02-01'), til: iso('2024-01-31') },
+      new Set()
+    )).toEqual([]);
+  });
+
   it('projicerer et dansk satsinterval til ISO og bevarer tomt input som undefined', () => {
     expect(toKildeReguleringsIntervalIso({ fraDato: '01-01-2024', tilDato: '31-12-2024' })).toEqual({
       fraIso: iso('2024-01-01'),
