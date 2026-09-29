@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-435, arbejdsrevision
+
+Batchen tilføjer 1 test med 5/5 direkte nul-output-facitter i `svieSmerteEngine.test.ts` for
+ufuldstændig periode, manglende vedrører-periode, manglende satsår, manglende delvis-sats og
+ukendt satsår. Filen bestod med 11/11 tests; `svieSmerteEngine.ts` målte 93,23 % statements /
+86,5 % branches / 90 % functions / 99,18 % lines. Den interne defensive sats-null-vagt efter
+tidligere gates står som reserve. Den fulde Vitest-suite bestod med 965 filer / 9.685 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig
+svie/smerte-, SFGG- og reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før
+commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-434, arbejdsrevision
 
 Batchen tilføjer 9/9 direkte facitter i `sfggSegmentering.test.ts` for proportional fordeling og

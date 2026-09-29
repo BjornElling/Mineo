@@ -164,6 +164,37 @@ describe('computeSvieSmerteEngine', () => {
     expect(result.harPerioder).toBe(false);
   });
 
+  it('returnerer nul-output ved ufuldstændig periode eller manglende svie/smerte-grundlag', () => {
+    const base = {
+      tidligereSsMax: 'Nej' as const,
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' as const },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld' as const,
+      svieSmerteTidligereTotal: asAmountValue(0),
+      svieSmerteAktuelPeriode: asAmountValue(0),
+    };
+    const expectZero = (patch: Partial<ErstatningsopgoerelseValues>) => {
+      expect(computeSvieSmerteEngine({
+        erstatningsopgoerelse: makeValues(patch),
+      })).toMatchObject({
+        constrainedPeriods: [],
+        harInputPerioder: false,
+        harPerioder: false,
+        totalOre: 0,
+      });
+    };
+
+    expectZero({ ...base, vedroererPeriodeFra: undefined });
+    expectZero({ ...base, svieSmerteSatserAar: undefined });
+    expectZero({ ...base, svieSmerteDelvisSygemeldingSats: undefined });
+    expectZero({ ...base, svieSmerteSatserAar: 1900 });
+    expectZero({ ...base, svieSmertePerioder: [{ ...base.svieSmertePerioder[0], tilstand: undefined }] });
+  });
+
   describe('maksimumOpbrugtFoerPerioden', () => {
     const medTidligere = (tidligere: number) => computeSvieSmerteEngine({
       erstatningsopgoerelse: makeValues({
