@@ -8,12 +8,13 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { resolveReguleringssatsForAar } from '../../../domain/satser/opreguleringsmotorer';
 import { formatPercent } from '../../../utils/formatUtils';
 import { roundByMethod } from '../../../utils/rounding';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { IncomePeriodResult } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { OffentligeYdelserUdviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { moneyOre } from '../../../domain/money/money';
 
 const iso = (value: string) => toISODateString(value);
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 const makeTableModel = (
   overrides: Partial<OffentligeYdelserUdviklingModel> = {}
@@ -191,6 +192,13 @@ describe('buildOffentligeYdelserUdviklingModel', () => {
       reguler: true,
       reguleringsBaseIso: undefined,
     }))).toThrow('Offentlige ydelser kan ikke beregnes: reguleringsdato mangler');
+  });
+
+  it('afviser runtime-ugyldig reguleringsdato', () => {
+    expect(() => buildOffentligeYdelserUdviklingModel(baseParams({
+      reguler: true,
+      reguleringsBaseIso: invalidIso('ikke-en-dato'),
+    }))).toThrow('Offentlige ydelser kan ikke beregnes: ugyldig reguleringsdato');
   });
 
   it('bygger et arbejdsdagssegment og springer et segment uden arbejdsdage over', () => {

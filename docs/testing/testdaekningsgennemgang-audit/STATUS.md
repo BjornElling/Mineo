@@ -2776,6 +2776,21 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-469, arbejdsrevision
+
+Batchen tilføjer 1 direkte fail-closed-facit i
+`offentligeYdelserUdviklingRegulering.test.ts` for runtime-ugyldig reguleringsdato.
+Sammen med `offentligeYdelserDerived.test.ts`, tre uafhængige ydelsesfacitter og
+sats-oraklet bestod den målrettede kontrol med 6 filer / 27 tests;
+`offentligeYdelserUdviklingBeregning.ts` målte 95,34 % statements / 89,79 % branches /
+100 % functions / 95,94 % lines. Tre defensive guards for ugyldigt månedssegment,
+arbejdsdagesegment og intern ydelsestotal står uramte. Den fulde Vitest-suite bestod
+med 969 filer / 9.760 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat åben under
+`CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-468, arbejdsrevision
 
 Batchen tilføjer 1 direkte brugerblik-facit i
