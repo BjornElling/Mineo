@@ -3,8 +3,10 @@ import {
   clearTableSaveOrderRegistryForTests,
   isTableSaveOrderPath,
   registerTableSaveOrder,
+  unregisterTableSaveOrder,
 } from '../../utils/tableSaveOrderRegistry';
 import type { SaveSnapshot } from '../../utils/fileSaveTypes';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -95,5 +97,128 @@ describe('tableSaveOrderRegistry', () => {
     registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['b']);
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('fjerner en registreret rækkefølge igen', () => {
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['b', 'a']);
+    unregisterTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows');
+
+    const snapshot: SaveSnapshot = {
+      stamdata: undefined,
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erhvervsevnetab: undefined,
+      erstatningsopgoerelse: {
+        ...createErstatningsopgoerelseInitialValues(),
+        offentligeYdelserRows: [{ id: 'a' }, { id: 'b' }] as never,
+      },
+    };
+
+    expect(applyRegisteredTableSaveOrder(snapshot)).toBe(snapshot);
+  });
+
+  it('afviser registrering med ukendt eller tomt path-segment', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    registerTableSaveOrder('ukendt.rows' as TableSaveOrderPath, ['a']);
+    registerTableSaveOrder('erstatningsopgoerelse..rows' as TableSaveOrderPath, ['a']);
+    registerTableSaveOrder('erstatningsopgoerelse' as TableSaveOrderPath, ['a']);
+
+    expect(errorSpy).toHaveBeenCalledTimes(3);
+    expect(applyRegisteredTableSaveOrder({
+      stamdata: undefined,
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erstatningsopgoerelse: undefined,
+      erhvervsevnetab: undefined,
+    })).toEqual({
+      stamdata: undefined,
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erstatningsopgoerelse: undefined,
+      erhvervsevnetab: undefined,
+    });
+  });
+
+  it('bevarer rows ved kort rækkefølge og ikke-string-id’er og ignorerer duplikater i rækkefølgen', () => {
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['a']);
+    const shortOrderSnapshot: SaveSnapshot = {
+      stamdata: undefined,
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erhvervsevnetab: undefined,
+      erstatningsopgoerelse: {
+        ...createErstatningsopgoerelseInitialValues(),
+        offentligeYdelserRows: [{ id: 'a' }, { id: 'b' }] as never,
+      },
+    };
+    const shortOrderResult = applyRegisteredTableSaveOrder(shortOrderSnapshot);
+    expect((shortOrderResult.erstatningsopgoerelse as { offentligeYdelserRows: Array<{ id: string }> }).offentligeYdelserRows)
+      .toEqual([{ id: 'a' }, { id: 'b' }]);
+
+    clearTableSaveOrderRegistryForTests();
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['a', 'a', 'missing']);
+    const duplicateOrderResult = applyRegisteredTableSaveOrder(shortOrderSnapshot);
+    expect((duplicateOrderResult.erstatningsopgoerelse as { offentligeYdelserRows: Array<{ id: string }> }).offentligeYdelserRows)
+      .toEqual([{ id: 'a' }, { id: 'b' }]);
+
+    clearTableSaveOrderRegistryForTests();
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['a']);
+    const nonStringIdSnapshot: SaveSnapshot = {
+      ...shortOrderSnapshot,
+      erstatningsopgoerelse: {
+        ...createErstatningsopgoerelseInitialValues(),
+        offentligeYdelserRows: [{ id: 'a' }, { id: 1 }] as never,
+      },
+    };
+    expect(applyRegisteredTableSaveOrder(nonStringIdSnapshot)).toBe(nonStringIdSnapshot);
+  });
+
+  it('bevarer snapshot ved ugyldig nested indeks, manglende property og primitive leaf', () => {
+    const snapshot: SaveSnapshot = {
+      stamdata: undefined,
+      satser: undefined,
+      aarsloen: undefined,
+      faellesAarsloen: undefined,
+      renteberegning: undefined,
+      varigemen: undefined,
+      forsoergertab: undefined,
+      erhvervsevnetab: undefined,
+      erstatningsopgoerelse: {
+        ...createErstatningsopgoerelseInitialValues(),
+        offentligeYdelserRows: [{ id: 'a', ydelse: { kind: 'number', value: 1 } }] as never,
+      },
+    };
+
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows.9', ['a']);
+    expect(applyRegisteredTableSaveOrder(snapshot)).toBe(snapshot);
+
+    clearTableSaveOrderRegistryForTests();
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows.0.missing', ['a']);
+    expect(applyRegisteredTableSaveOrder(snapshot)).toBe(snapshot);
+
+    clearTableSaveOrderRegistryForTests();
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows.0.ydelse.value.foo', ['a']);
+    expect(applyRegisteredTableSaveOrder(snapshot)).toBe(snapshot);
+
+    clearTableSaveOrderRegistryForTests();
+    registerTableSaveOrder('stamdata.rows', ['a']);
+    expect(applyRegisteredTableSaveOrder(snapshot)).toBe(snapshot);
   });
 });

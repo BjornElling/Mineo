@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only PERSIST/INPUT-batch – TD-405, arbejdsrevision
+
+Batchen tilføjer 4/4 direkte facitter i `tableSaveOrderRegistry.test.ts` for unregister,
+ugyldige registreringer, kort rækkefølge, dublet-/manglende-id-håndtering, ikke-string-id’er,
+ugyldigt nested indeks, manglende property, primitiv slutværdi og manglende sektion. Den målrettede
+registry-/sorteringstest bestod med 2 filer / 14 tests. `tableSaveOrderRegistry.ts` målte
+93,33 % statements / 89,47 % branches / 100 % functions / 94,73 % lines. De defensive grene
+for et registreret path uden rest-segment og en redundant root-key-kontrol er ikke nåbare gennem
+den typed offentlige registreringsgate og står som reserve. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; øvrig tabel-/form-/browserparitet står
+fortsat åben under `PERSIST-001`/`INPUT-002`/`TD-022`.
+
 ## Seneste test-only INPUT-batch – TD-404, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `inputSelectionUtils.test.ts` for manglende
