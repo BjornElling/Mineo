@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-417, arbejdsrevision
+
+Batchen tilføjer 8/8 direkte facitter i `loenudviklingBeregning.test.ts` for segmentbeløb, lukket
+dagstælling, lønkilde og autoritative TAF-arbejdsdage, manglende TAF-ranges, manglende canonical
+dagsløn, manglende beregningsperiode, Ingen-kilde uden arbejdsgivere/ydelser i både måneds- og
+arbejdsdagsspor samt manglende divisor. Filen bestod med 59/59 tests; `loenudviklingBeregning.ts`
+målte 83,95 % statements / 74,65 % branches / 96,29 % functions / 88,11 % lines. Den fulde
+Vitest-suite bestod med 952 filer / 9.604 tests. Produktkode, beregningslogik, brugeradfærd, schema
+og persistensformat er uændret; defensive branches for intern strategi-/segmentkonsistens,
+uoverensstemmende arbejdsgiverindeks, en ikke-ok intern total og private base-reserver står fortsat
+åbne under `CALC-006`/`TD-020`.
+
 ## Seneste test-only UI/PERSIST-batch – TD-416, arbejdsrevision
 
 Batchen tilføjer 6/6 direkte facitter i `logger.test.ts` for filnavnshash, deterministisk timestamp,

@@ -1,7 +1,13 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import {
+  buildLoenudviklingModel,
+  buildTafArbejdsdageSet,
+  countTafArbejdsdageInRange,
+  resolveLoenudviklingRows,
+  segmentAmountOre,
+} from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import { buildKrlIndexEntries } from '../../../domain/erstatningsopgoerelse/engines/krlRegulering';
 import { buildStatistikForloeb } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
@@ -53,6 +59,40 @@ const expectOnlyPositiveArbejdsdagssegmenter = (values: ErstatningsopgoerelseVal
   expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
   expect(model.beregnedeSegmenter.every((segment) => segment.kind === 'arbejdsdage' && segment.arbejdsdage > 0)).toBe(true);
 };
+
+describe('loenudviklingBeregning – fælles helpers', () => {
+  it('beregner segmentbeløb og tæller kun dage inden for den lukkede range', () => {
+    expect(segmentAmountOre(1_234, 2, 12.5)).toBe(277_650);
+
+    const arbejdsdage = new Set([
+      iso('2024-01-02'),
+      iso('2024-01-03'),
+      iso('2024-01-05'),
+    ]);
+    expect(countTafArbejdsdageInRange(arbejdsdage, iso('2024-01-03'), iso('2024-01-05'))).toBe(2);
+    expect(countTafArbejdsdageInRange(arbejdsdage, iso('2024-01-04'), iso('2024-01-04'))).toBe(0);
+  });
+
+  it('bygger TAF-arbejdsdage fra de autoritative ranges og bevarer lønkilden', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafPerioder = [{
+      id: 'taf-helper',
+      fra: iso('2024-01-02'),
+      til: iso('2024-01-05'),
+      loseFeriedage: 0,
+    }];
+    const tafRanges = [{ fra: iso('2024-01-02'), til: iso('2024-01-05') }];
+
+    expect(resolveLoenudviklingRows(values)).toBe(values.loenindkomstAnsaettelsesforhold);
+    expect(buildTafArbejdsdageSet(values, tafRanges)).toEqual(new Set([
+      iso('2024-01-02'),
+      iso('2024-01-03'),
+      iso('2024-01-04'),
+      iso('2024-01-05'),
+    ]));
+  });
+});
 
 describe('buildLoenudviklingModel', () => {
   it('springer over overenskomstsegmenter uden TAF-arbejdsdage', () => {
@@ -904,6 +944,145 @@ describe('buildLoenudviklingModel', () => {
 
     expect(model.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
     expect(model.beregnedeSegmenter).toEqual([]);
+  });
+
+  it('fejllukker når angivet løn mangler TAF-ranges', () => {
+    const values = setupAngivetDagsloen();
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      null,
+      { tafRanges: [] },
+    )).toThrow('mangler beregningsgrundlag');
+  });
+
+  it('fejllukker når angivet dagsløn ikke har en canonical værdi', () => {
+    const values = setupAngivetDagsloen();
+    values.dagsloenenUdgoer = undefined;
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      null,
+      { tafRanges: [{ fra: iso('2024-01-02'), til: iso('2024-01-05') }] },
+    )).toThrow('mangler beregningsgrundlag');
+  });
+
+  it('fejllukker en beregningsperiode uden datoer før indkomstlæsning', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafPerioder = [{
+      id: 'taf-missing-period',
+      fra: iso('2024-01-01'),
+      til: iso('2024-01-05'),
+      loseFeriedage: 0,
+    }];
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-05') }] },
+    )).toThrow('mangler beregningsgrundlag');
+  });
+
+  it.each([TAF_BEREGNES_SOM.MAANEDER, TAF_BEREGNES_SOM.ARBEJDSDAGE])(
+    'bygger en nulmodel for Ingen-kilde uden arbejdsgivere eller ydelser (%s)',
+    (tafBeregningsenhed) => {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.beregnesUdFra = 'Beregningsperiode';
+      values.tafBeregningsperiodeFra = iso('2024-01-01');
+      values.tafBeregningsperiodeTil = iso('2024-01-31');
+      values.tafPerioder = [{
+        id: 'taf-no-income',
+        fra: iso('2024-01-02'),
+        til: iso('2024-01-05'),
+        loseFeriedage: 0,
+      }];
+      const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+      values.loenindkomstAnsaettelsesforhold = [{
+        ...baseAf,
+        id: 'af-ingen',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [],
+      }];
+
+      const model = buildLoenudviklingModel(
+        values,
+        { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+        tafBeregningsenhed,
+        null,
+        {
+          tafRanges: [{ fra: iso('2024-01-02'), til: iso('2024-01-05') }],
+          incomeForBeregningsperiode: { employers: [], benefits: [] },
+        },
+      );
+
+      expect(model.loenudviklingLabel).toBe('Ingen');
+      expect(model.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
+      expect(model.perAnsaettelse).toEqual([]);
+      expect(model.beregnedeSegmenter).toHaveLength(1);
+      expect(model.beregnedeSegmenter[0]?.deltaPct).toBe(0);
+    },
+  );
+
+  it('fejllukker en arbejdsgiverindtægt uden beregnet divisor', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.tafPerioder = [{
+      id: 'taf-missing-divisor',
+      fra: iso('2024-01-02'),
+      til: iso('2024-01-05'),
+      loseFeriedage: 0,
+    }];
+    const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+    values.loenindkomstAnsaettelsesforhold = [{
+      ...baseAf,
+      id: 'af-ingen',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: [],
+    }];
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      {
+        tafRanges: [{ fra: iso('2024-01-02'), til: iso('2024-01-05') }],
+        incomeForBeregningsperiode: {
+          employers: [{
+            id: 'income-employer',
+            index: 0,
+            name: 'Arbejdsgiver',
+            amount: 30_000,
+            breakdown: {
+              loenPlusLoen2: 30_000,
+              loenPlusLoen2PlusIkkePensLoen: 30_000,
+              fpFvShSo: 0,
+              pension: 0,
+              atp: 0,
+              samlet: 30_000,
+            },
+          }],
+          benefits: [],
+        },
+      },
+    )).toThrow('mangler beregningsgrundlag');
   });
 });
 
