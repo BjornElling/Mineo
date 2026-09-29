@@ -2776,6 +2776,19 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-466, arbejdsrevision
+
+Batchen tilføjer 1 direkte table-model-test i `tableModelRoundTrip.test.ts` med facitter
+for tom input, genereret række-id, tomme draftfelter og ugyldig tilstand. Sammen med
+`svieSmerteEngine.test.ts` og `SvieSmerteTable.antalDage.test.tsx` bestod den målrettede
+kontrol med 3 filer / 23 tests; `svieSmerteTableModel.ts` målte 100 % statements /
+100 % branches / 100 % functions / 100 % lines. Den fulde Vitest-suite bestod med
+969 filer / 9.757 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat åben under
+`CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-465, arbejdsrevision
 
 Batchen tilføjer 3 direkte helper-facitter i `svieSmerteCutoffDateIssues.test.ts`

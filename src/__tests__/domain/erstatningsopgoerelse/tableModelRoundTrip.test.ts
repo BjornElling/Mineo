@@ -37,6 +37,35 @@ describe('tableModel roundtrip', () => {
     expect(back).toEqual(committed[0]);
   });
 
+  it('svie/smerte-modellen normaliserer tomme input, id og ugyldig tilstand', () => {
+    const emptyFromUndefined = ensureSvieRows(undefined);
+    expect(emptyFromUndefined).toHaveLength(1);
+    expect(emptyFromUndefined[0]).toMatchObject({ fra: undefined, til: undefined, tilstand: undefined });
+
+    const withGeneratedId = ensureSvieRows([{
+      id: '',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-10'),
+      tilstand: 'sygemeldt',
+    }]);
+    expect(withGeneratedId[0]?.id).toMatch(/^svie_row_/);
+
+    const emptyDraft = committedToSvieDraftRows([{
+      id: 's-empty',
+      fra: undefined,
+      til: undefined,
+      tilstand: undefined,
+    }])[0];
+    expect(emptyDraft).toEqual({ id: 's-empty', fra: '', til: '', tilstand: '' });
+
+    expect(svieDraftToCommittedRow({
+      id: 's-invalid',
+      fra: '',
+      til: '',
+      tilstand: 'ukendt tilstand',
+    })).toEqual({ id: 's-invalid', fra: undefined, til: undefined, tilstand: undefined });
+  });
+
   it('taf draft↔committed bevarer id og loseFeriedage', () => {
     const committed = [{ id: 't1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-10'), loseFeriedage: 3 }] as const;
     const draft = committedToTafDraftRows([...committed])[0];
