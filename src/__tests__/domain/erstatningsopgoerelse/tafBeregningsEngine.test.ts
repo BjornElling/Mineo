@@ -1,5 +1,8 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { computeTafArbejdsdageAggregation } from '../../../domain/erstatningsopgoerelse/engines/tafBeregningsEngine';
+import {
+  buildMergedTafGroups,
+  computeTafArbejdsdageAggregation,
+} from '../../../domain/erstatningsopgoerelse/engines/tafBeregningsEngine';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
@@ -94,5 +97,31 @@ describe('tafBeregningsEngine', () => {
     });
 
     expect(aggregated).toBeNull();
+  });
+
+  it('bruger kun autoritative ranges med overlappende kilde og bevarer ugyldige rækker', () => {
+    const groups = buildMergedTafGroups(
+      [
+        { id: 'invalid', fra: undefined, til: toISODateString('2024-02-05'), loseFeriedage: 4 },
+        {
+          id: 'valid',
+          fra: toISODateString('2024-02-01'),
+          til: toISODateString('2024-02-05'),
+          loseFeriedage: 2,
+        },
+      ],
+      undefined,
+      {
+        authoritativeRanges: [
+          { fra: toISODateString('2024-02-03'), til: toISODateString('2024-02-04') },
+          { fra: toISODateString('2024-03-01'), til: toISODateString('2024-03-02') },
+        ],
+      }
+    );
+
+    expect(groups).toEqual([
+      { id: 'invalid', fra: undefined, til: toISODateString('2024-02-05'), loseFeriedage: 0 },
+      { id: 'valid', fra: toISODateString('2024-02-03'), til: toISODateString('2024-02-04'), loseFeriedage: 2 },
+    ]);
   });
 });
