@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only UI/ARCH-batch – TD-413, arbejdsrevision
+
+Batchen tilføjer 5/5 direkte facitter i `focusUtils.test.ts` for `requestAnimationFrame`, normal
+focus, `preventScroll`-fallback, ikke-fokuserbare elementer og et forbundet enabled element. Den
+målrettede utility-suite bestod med 1 fil / 5 tests; `focusUtils.ts` målte 100 % statements /
+100 % branches / 100 % functions / 100 % lines. Den fulde Vitest-suite bestod med 951 filer /
+9.579 tests. Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret;
+den bredere keyboard-navigation, fokusrejse gennem formular/grid og faktiske browsermotorparitet
+står fortsat åben under `UI-002`/`ARCH-002`/`TD-022`.
+
 ## Seneste test-only INPUT/ARCH-batch – TD-412, arbejdsrevision
 
 Batchen tilføjer 1/1 matrixfacit i `zodTypeGuards.test.ts` for `TillaegAngivesSom` og 1/1
