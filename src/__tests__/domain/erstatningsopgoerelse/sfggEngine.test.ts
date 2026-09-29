@@ -49,6 +49,106 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
   });
 
+  it('returnerer ingen segmenter når Ferielovens referenceperiode mangler', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [{
+      ...createSfggIngenRow('af-1'),
+      sfggBeregningskilde: 'Ferieloven',
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+    const employmentResult = result.perAnsaettelsesforhold[0];
+
+    expect(employmentResult).toMatchObject({
+      segments: [],
+      perYear: [],
+      totalOre: moneyOre(0),
+      sfggReferencesats: {
+        status: 'not_calculable',
+        kind: 'missing_referenceperiode',
+      },
+      sfggReferencesatsFormula: null,
+    });
+  });
+
+  it('udelader et weekendsegment ved reguleringsskift i arbejdsdagssporet', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ...createSfggIngenRow('af-1'),
+      sfggBeregningskilde: 'Ferieloven',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-06') }],
+      loenudviklingPerAnsaettelse: new Map([
+        ['af-1', {
+          beregnedeSegmenter: [
+            {
+              kind: 'arbejdsdage' as const,
+              fra: iso('2024-02-01'),
+              til: iso('2024-02-02'),
+              arbejdsdage: 2,
+              dagsloenOre: moneyOre(0),
+              deltaPct: 0,
+              amountOre: moneyOre(0),
+            },
+            {
+              kind: 'arbejdsdage' as const,
+              fra: iso('2024-02-03'),
+              til: iso('2024-02-04'),
+              arbejdsdage: 0,
+              dagsloenOre: moneyOre(0),
+              deltaPct: 2,
+              amountOre: moneyOre(0),
+            },
+            {
+              kind: 'arbejdsdage' as const,
+              fra: iso('2024-02-05'),
+              til: iso('2024-02-06'),
+              arbejdsdage: 2,
+              dagsloenOre: moneyOre(0),
+              deltaPct: 4,
+              amountOre: moneyOre(0),
+            },
+          ],
+        }],
+      ]),
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.segments.map(({ fra, til }) => ({ fra, til }))).toEqual([
+      { fra: iso('2024-02-01'), til: iso('2024-02-02') },
+      { fra: iso('2024-02-05'), til: iso('2024-02-06') },
+    ]);
+  });
+
   it('formaterer arbejdsdage-label med kun ikke-nul fradrag', () => {
     expect(buildSfggReferenceperiodeCountLabel({
       loenPlusLoen2PlusIkkePensLoenKroner: 0,
