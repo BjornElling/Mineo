@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT-batch – TD-415, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `numericSafety.test.ts` for ugyldige decimaltegn, tom
+decimaldel, negativt skaleret heltal, non-finite værdi, ikke-heltal/negativ precision, overflowende
+faktor og for stor canonical decimalværdi. Filen bestod med 7/7 tests; `numericSafety.ts` målte
+97,77 % statements / 94,11 % branches / 100 % functions / 100 % lines. Den fulde Vitest-suite
+bestod med 952 filer / 9.595 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; den defensive underflowgren i den interne binary64-grænse samt øvrig
+parser-, codec-, schema-, form- og browserparitet står fortsat åben under `INPUT-001`/`INPUT-002`.
+
 ## Seneste test-only PERSIST/SHELL-batch – TD-414, arbejdsrevision
 
 Batchen tilføjer 14/14 direkte facitter i `usePwaLaunchQueue.test.tsx` for idle- og tomme events,

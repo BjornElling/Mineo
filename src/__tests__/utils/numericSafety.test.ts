@@ -21,6 +21,14 @@ describe('numericSafety', () => {
     expect(hasSafeDecimalDigits('1', '234', 2)).toBe(false);
   });
 
+  it('afviser ugyldige decimaltegn og kontrollerer negative skalerede heltal', () => {
+    expect(hasSafeDecimalDigits('', '1', 2)).toBe(false);
+    expect(hasSafeDecimalDigits('1', 'x', 2)).toBe(false);
+    expect(hasSafeDecimalDigits('1', '', 2)).toBe(true);
+    expect(isSafeScaledInteger(1n, -1)).toBe(false);
+    expect(isSafeScaledInteger(-1n, 0)).toBe(true);
+  });
+
   it('kræver et sikkert skaleret heltal for canonical decimalværdi', () => {
     expect(isSafeCanonicalDecimal(0.29, 2)).toBe(true);
     expect(isSafeCanonicalDecimal(0.1 + 0.2, 2)).toBe(true);
@@ -37,6 +45,14 @@ describe('numericSafety', () => {
     expect(first).toBe(next);
     expect(isSafeCanonicalDecimal(first, 2)).toBe(false);
     expect(isSafeCanonicalDecimal(next, 2)).toBe(false);
+  });
+
+  it('afviser non-finite, ugyldig og for stor decimalpræcision', () => {
+    expect(isSafeCanonicalDecimal(Number.NaN, 2)).toBe(false);
+    expect(isSafeCanonicalDecimal(1, 1.5)).toBe(false);
+    expect(isSafeCanonicalDecimal(1, -1)).toBe(false);
+    expect(isSafeCanonicalDecimal(1, 309)).toBe(false);
+    expect(isSafeCanonicalDecimal(Number.MAX_VALUE, 0)).toBe(false);
   });
 
   it('afgrænser frie number-værdier uden at forbyde sikre decimaler', () => {
