@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only PERSIST-batch – TD-418, arbejdsrevision
+
+Batchen tilføjer 1/1 direkte facit i `useFileSaveLoad.test.tsx` for en uventet save-fejl efter
+filhandlingen er startet. Testen kræver den præcise tekniske console-fejl, et error-overlay med
+fejlen og ingen `markSaved`-bogføring. Filen bestod med 27/27 tests; `useFileSaveLoad.ts` målte
+88,29 % statements / 71,55 % branches / 91,17 % functions / 89,63 % lines. Den fulde Vitest-suite
+bestod med 952 filer / 9.605 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; SaveValidationError-oversættelsen, øvrige defensive hookgrene og reel
+browser-/OS-filparitet står fortsat åbne under `PERSIST-001`/`PERSIST-002`/`TD-022`.
+
 ## Seneste test-only CALC-batch – TD-417, arbejdsrevision
 
 Batchen tilføjer 8/8 direkte facitter i `loenudviklingBeregning.test.ts` for segmentbeløb, lukket

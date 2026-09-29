@@ -275,6 +275,25 @@ describe('useFileSaveLoad', () => {
       );
     });
 
+    it('viser og logger uventet save-fejl uden at markere sagen som gemt', async () => {
+      const handles = renderHook({ hasData: true });
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const unexpectedError = new Error('Uventet skrivefejl');
+      saveToFileMock.mockRejectedValueOnce(unexpectedError);
+
+      await act(async () => {
+        await handles.api?.handleGem();
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Gem fejlede:', unexpectedError);
+      expect(handles.showOverlay).toHaveBeenCalledWith({
+        message: 'Uventet skrivefejl',
+        type: 'error',
+      });
+      expect(handles.markSaved).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+
     // Critical-action-kontrakten §5: fil-pickeren ligger INDE i `saveToFile`, så friskheds-kontrollen injiceres
     // som callback og evalueres først EFTER target-resolution. Denne test simulerer, at brugeren ændrer sagen,
     // mens dialogen er åben: mocken kalder callbacken efter en mutation og skal da se den som stale.
