@@ -51,10 +51,11 @@ const dagsloenSag = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsop
   ...patch,
 });
 
-const project = (eo: ErstatningsopgoerelseValues) => {
+const project = (eo: ErstatningsopgoerelseValues, stamdataPatch: Partial<StamdataValues> = {}) => {
+  const currentStamdata = { ...stamdata, ...stamdataPatch };
   const input = catalog.validateSettledInput({
     sections: {
-      stamdata, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
+      stamdata: currentStamdata, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: eo, erhvervsevnetab: null,
     },
     rejectedInputs: {},
@@ -127,6 +128,16 @@ describe('BB-248 – en ferieperiode uden for sit vindue', () => {
     expect(cellMessage(projection, eoFerieperiodeFraField.bind('f1'))).toBe(besked);
     expect(cellMessage(projection, eoFerieperiodeTilField.bind('f1'))).toBe(besked);
     expect(errorLinjer).toEqual([`${navn}: ${besked}`]);
+    expect(projection.snapshot.data).toBeNull();
+  });
+
+  it('bruger anmeldelsesdatoen som nedre grænse ved erhvervssygdom', () => {
+    const { projection } = project(dagsloenSag({
+      ferieperioder: [ferie('f1', '2013-05-31', '2013-06-01')],
+    }), { skadestype: 'Erhvervssygdom' });
+    const besked = 'Ferien ligger mere end 5 år før anmeldelsesdatoen (01-06-2018)';
+
+    expect(cellMessage(projection, eoFerieperiodeFraField.bind('f1'))).toBe(besked);
     expect(projection.snapshot.data).toBeNull();
   });
 });

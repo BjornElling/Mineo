@@ -2776,6 +2776,19 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-446, arbejdsrevision
+
+Batchen tilføjer 1 direkte brugerblik-facit i `tafPerioderBrugerblik12e.test.ts` for
+erhvervssygdommens femårsgrænse, hvor feriecellens fejl skal navngive anmeldelsesdatoen.
+Sammen med `tafCutoffDateIssues.test.ts` bestod den målrettede kontrol med 2 filer / 22 tests;
+`tafRowCellIssues.ts` målte 89,47 % statements / 75 % branches / 91,66 % functions /
+96,87 % lines. Den resterende generiske fallback ved manglende typed skade-/anmeldelsesdato
+står som defensiv reserve. Den fulde Vitest-suite bestod med 966 filer / 9.710 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig
+TAF- og reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`. `npm run typecheck:test`,
+målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit. Ændringen er
+test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-445, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `tafForbehold.test.ts` for den faste EET-klageforbeholdstekst,
