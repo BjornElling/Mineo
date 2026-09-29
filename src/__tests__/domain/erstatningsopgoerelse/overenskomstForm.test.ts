@@ -185,6 +185,16 @@ describe('overenskomstForm', () => {
     }))).toThrow('Inkonsistente loenudviklingsindstillinger: feriepct');
   });
 
+  it('accepterer ens feriepct på flere synlige ansættelser i beregningsperioden', () => {
+    const first = createSource({ feriePct: 12 });
+    const second = createSource({ id: 'af-2', feriePct: 12 });
+
+    expect(overenskomstForm.konsolider(createContext([first, second], {
+      angivetLoen: false,
+      activeMedSynligeSatserOgLoenoplysninger: [first, second],
+    })).konsolideret).toMatchObject({ feriePct: 12 });
+  });
+
   it('bygger privat og offentlig resultat samt afviser forkert strategi', () => {
     const privat = overenskomstForm.byggResultat(createPrivateKonsolideret());
     expect(privat.segmenter.length).toBeGreaterThan(0);
