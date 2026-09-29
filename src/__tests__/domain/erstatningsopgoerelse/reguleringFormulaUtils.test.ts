@@ -182,6 +182,11 @@ describe('parsePercentInput', () => {
   it('nul → 0', () => {
     expect(parsePercentInput('0')).toBe(0);
   });
+
+  it('numerisk finite og non-finite input følger samme fail-closed-regel', () => {
+    expect(parsePercentInput(12.5)).toBe(12.5);
+    expect(parsePercentInput(Number.NaN)).toBe(0);
+  });
 });
 
 // ─── resolveFeriePctForFormula ────────────────────────────────────────────────
@@ -213,6 +218,11 @@ describe('resolveFeriePctForFormula', () => {
 
   it('row-værdi med procent-tegn → parsed korrekt', () => {
     expect(resolveFeriePctForFormula('12%', 0)).toBe(12);
+  });
+
+  it('numerisk row-værdi bruges direkte, men non-finite bliver 0', () => {
+    expect(resolveFeriePctForFormula(12.5, 8)).toBe(12.5);
+    expect(resolveFeriePctForFormula(Number.POSITIVE_INFINITY, 8)).toBe(0);
   });
 });
 
@@ -252,6 +262,11 @@ describe('formatPercentCellFromRaw', () => {
     const result = formatPercentCellFromRaw('abc');
     expect(result).toBe('abc %');
   });
+
+  it('numerisk finite formateres, mens non-finite vises som bindestreg', () => {
+    expect(formatPercentCellFromRaw(12.5)).toContain('12');
+    expect(formatPercentCellFromRaw(Number.POSITIVE_INFINITY)).toBe('-');
+  });
 });
 
 // ─── mergeFeriepengeDisplay ───────────────────────────────────────────────────
@@ -287,6 +302,15 @@ describe('mergeFeriepengeDisplay', () => {
 
   it('"-" behandles som tom', () => {
     expect(mergeFeriepengeDisplay('-', 'abc')).toBe('abc');
+  });
+
+  it('normaliserer numeriske værdier og ignorerer non-finite værdier', () => {
+    expect(mergeFeriepengeDisplay(12.5, Number.POSITIVE_INFINITY)).toContain('12');
+    expect(mergeFeriepengeDisplay(Number.POSITIVE_INFINITY, 8)).toContain('8');
+  });
+
+  it('bevarer identisk ikke-numerisk tekst én gang', () => {
+    expect(mergeFeriepengeDisplay('abc', 'abc')).toBe('abc');
   });
 });
 
@@ -445,6 +469,14 @@ describe('buildFormulaText', () => {
     expect(result).toBe('100,00');
   });
 
+  it('showShSo=false → SH/SO udelades selvom shSoPct != 0', () => {
+    const components: FormulaComponents = {
+      baseValue: 100, feriePct: 0, fritvalgPct: 0, shSoPct: 5, pensionPct: 0, storeBededagPct: 0,
+    };
+    const noShSo: FormulaVisibility = { showFritvalg: true, showShSo: false, showPension: true, showStoreBededag: true };
+    expect(buildFormulaText(components, noShSo)).toBe('100,00');
+  });
+
   it('showStoreBededag=true og storeBededagPct != 0 → bededagsandel indgår i formelteksten', () => {
     const components: FormulaComponents = {
       baseValue: 1000, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 0, storeBededagPct: 0.45,
@@ -477,5 +509,18 @@ describe('buildFormulaText', () => {
     expect(result).toContain('12');
     expect(result).toContain('0,45');
     expect(result).toContain('10');
+  });
+
+  it('behandler non-finite komponenter som nul i den viste formel', () => {
+    const result = buildFormulaText({
+      baseValue: Number.NaN,
+      feriePct: Number.POSITIVE_INFINITY,
+      fritvalgPct: Number.NaN,
+      shSoPct: Number.NaN,
+      pensionPct: Number.POSITIVE_INFINITY,
+      storeBededagPct: Number.NaN,
+    }, allVisible);
+
+    expect(result).toBe('0,00');
   });
 });
