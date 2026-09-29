@@ -2790,6 +2790,19 @@ persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat å
 `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
 før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-473, arbejdsrevision
+
+Batchen tilføjer 2 direkte facitter i `beregningsperiodeTafOverlap.test.ts`
+for deterministisk sekundær sortering af identiske overlapranges og fallback til
+rå runtime-datoer i overlapbeskeden. Filen bestod med 9/9 tests; modulet målte
+100 % statements / 94,44 % branches / 100 % functions / 100 % lines. Den ene
+modsatte comparator-retning står som defensiv reserve. Den fulde Vitest-suite
+bestod med 969 filer / 9.767 tests. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat
+åben under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-471, arbejdsrevision
 
 Batchen tilføjer 2 direkte tests i `periodiseringsMotor.test.ts` med facitter for

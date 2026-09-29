@@ -1,4 +1,4 @@
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import {
   buildBeregningsperiodeTafOverlapErrorMessage,
   computeTafOverlapWithBeregningsperiode,
@@ -87,6 +87,33 @@ describe('computeTafOverlapWithBeregningsperiode – edge cases', () => {
     });
     expect(Object.keys(result.overlapMessageByRowId)).toEqual(['valid']);
     expect(result.firstOverlapMessage).toBeDefined();
+  });
+
+  it('bevarer deterministisk resultat når to overlapranges er identiske', () => {
+    const result = computeTafOverlapWithBeregningsperiode({
+      beregningsperiode: { fra: toISODateString('2024-01-01'), til: toISODateString('2024-12-31') },
+      tafPerioder: [
+        { id: 'første', fra: toISODateString('2024-06-01'), til: toISODateString('2024-06-30') },
+        { id: 'anden', fra: toISODateString('2024-06-01'), til: toISODateString('2024-06-29') },
+        { id: 'tredje', fra: toISODateString('2024-06-01'), til: toISODateString('2024-06-30') },
+        { id: 'fjerde', fra: toISODateString('2024-05-01'), til: toISODateString('2024-05-31') },
+      ],
+    });
+
+    expect(Object.keys(result.overlapMessageByRowId)).toEqual(['fjerde', 'anden', 'første', 'tredje']);
+    expect(result.firstOverlapMessage).toContain('(01-05-2024 - 31-05-2024)');
+  });
+
+  it('falder tilbage til rå runtime-datoer i overlapbeskeden når formatteringen fejler', () => {
+    const ugyldigFra = 'ikke-en-dato' as ISODateString;
+    const ugyldigTil = 'heller-ikke-en-dato' as ISODateString;
+
+    expect(buildBeregningsperiodeTafOverlapErrorMessage({
+      beregningsperiode: { fra: ugyldigFra, til: ugyldigTil },
+      tafPeriode: { fra: ugyldigFra, til: ugyldigTil },
+    })).toBe(
+      'Der er overlap mellem beregningsperioden (ikke-en-dato - heller-ikke-en-dato) og en TAF-periode (ikke-en-dato - heller-ikke-en-dato)'
+    );
   });
 });
 
