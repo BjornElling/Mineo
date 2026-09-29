@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-407, arbejdsrevision
+
+Batchen tilføjer 5/5 direkte facitter i `manuelProcentsatsForm.test.ts` for konsolidering med og
+uden manglende felter, uens aktive rækker, tre kædede reguleringssegmenter med autoritativt forløb,
+tom kildedækning, manglende reguleringsdato, tomt segmentinterval og forkert strategi. Den
+målrettede form-/builder-suite bestod med 2 filer / 9 tests. `manuelProcentsatsForm.ts` målte
+94,28 % statements / 81,81 % branches / 100 % functions / 93,54 % lines. De defensive grene
+for en tom entry-serie efter reguleringsdato-gaten og manglende entry ved lookup kan ikke nås gennem
+den fælles builder, der altid emitterer basisentryen for en gyldig dato, og står som reserve.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig motor-,
+præsentations-, kontrol-, validator- og browserparitet står fortsat åben under `CALC-006`/`TD-019`.
+
 ## Seneste test-only CALC-batch – TD-406, arbejdsrevision
 
 Batchen tilføjer 7/7 direkte facitter i `overenskomstReguleringShared.test.ts` for dækket og
