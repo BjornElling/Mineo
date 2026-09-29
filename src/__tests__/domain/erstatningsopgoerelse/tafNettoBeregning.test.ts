@@ -260,6 +260,41 @@ describe('computeTafNettoBeregning', () => {
     expect(result.tabtArbejdsfortjenesteOre).toBe(436380);
   });
 
+  it('bruger Arbejdssted som fallback for en arbejdsgiver uden navn', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      navnPaaArbejdssted: '   ',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(1000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] }
+    );
+
+    expect(result.tafIndtaegter?.entries).toContainEqual({ label: 'Arbejdssted', amountOre: moneyOre(100000) });
+  });
+
   it('samler begge ydelsestyper der udløser TAF-forbehold', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
