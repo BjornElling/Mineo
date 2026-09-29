@@ -2776,6 +2776,19 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only PERSIST-batch – TD-401, arbejdsrevision
+
+Batchen udvider `fileSave.test.ts` med 7/7 direkte facitter for de tre offentlige save-fejltyper,
+fail-closed stale, schema-fejl med brugervenlig videresendelse, dekrypteringsfejl før
+fallback-download, høj forskelsliste med tælling, manglende handle-persistens og metadatafejl i
+samme forløb samt handle-verifikationsadvarsel. Filen bestod med 34/34 og målte 98,80 % statements /
+92,45 % branches / 100 % functions / 98,78 % lines. Den målrettede save-target-suite bestod med
+3 filer / 50 tests. Den defensive `SaveValidationError`-videresendelse står fortsat som reserve,
+fordi den nuværende save-pipeline kun producerer almindelig schema-afvisning. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig historik-, load-,
+browser-/OS- og fuld persistence-sammenhæng står fortsat åben under
+`PERSIST-001`/`PERSIST-002`/`TD-022`.
+
 ## Seneste test-only UI/PERSIST-batch – TD-400, arbejdsrevision
 
 Batchen udvider `bugReport.test.ts` med 12/12 direkte facitter for fuld kontekst og ekstra

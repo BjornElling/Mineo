@@ -2,7 +2,12 @@
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString, encryptToString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
-import { saveToFile } from '../../utils/fileSave';
+import {
+  SaveIntegrityError,
+  SaveUnusableFileError,
+  SaveValidationError,
+  saveToFile,
+} from '../../utils/fileSave';
 import { downloadFile } from '../../utils/fileHelpers';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
 import { logError, logWarning } from '../../utils/logger';
@@ -365,6 +370,24 @@ describe('fileSave', () => {
       erhvervsevnetab: undefined,
     } as const;
 
+    it('bevarer de tre offentlige save-fejltypers navn og kind', () => {
+      expect(new SaveIntegrityError('integritet')).toMatchObject({
+        name: 'SaveIntegrityError',
+        kind: 'integrity',
+        message: 'integritet',
+      });
+      expect(new SaveUnusableFileError('ubrugelig')).toMatchObject({
+        name: 'SaveUnusableFileError',
+        kind: 'unusable',
+        message: 'ubrugelig',
+      });
+      expect(new SaveValidationError('validering')).toMatchObject({
+        name: 'SaveValidationError',
+        kind: 'validation',
+        message: 'validering',
+      });
+    });
+
     it('stempler current persistedDataVersion i det krypterede artefakt', async () => {
       mockedIsFileSystemAccessSupported.mockReturnValue(false);
       mockedEncryptToString.mockResolvedValueOnce('encrypted');
@@ -536,6 +559,108 @@ describe('fileSave', () => {
       );
     });
 
+    it('afbryder fail-closed som stale efter gemmemålets resolution', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+
+      const result = await saveToFile(snapshot, undefined, () => false);
+
+      expect(result).toEqual({ status: 'stale' });
+      expect(mockedDownloadFile).not.toHaveBeenCalled();
+      expect(mockedWriteToFileHandle).not.toHaveBeenCalled();
+    });
+
+    it('giver en brugervenlig fejl ved schema-afvisning og logger ikke rå brugerdata', async () => {
+      const invalidSnapshot = {
+        ...snapshot,
+        stamdata: { journalnr: 123 },
+      } as never;
+
+      await expect(saveToFile(invalidSnapshot)).rejects.toThrow('Kunne ikke gemme fil: Kan ikke gemme');
+      expect(mockedLogError).toHaveBeenCalledWith(
+        'Gem-operation fejlede',
+        expect.objectContaining({ context: 'saveToFile', error: expect.any(Error) }),
+      );
+      expect(mockedEncryptToString).not.toHaveBeenCalled();
+    });
+
+    it('returnerer unusable-fejl fra en dekrypteringsfejl før fallback-download', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedDecryptFromString.mockRejectedValueOnce(new Error('Dekryptering afvist'));
+
+      await expect(saveToFile(snapshot)).rejects.toThrow('FILEN ER IKKE BRUGBAR');
+      expect(mockedDownloadFile).not.toHaveBeenCalled();
+      expect(mockedLogError).toHaveBeenCalledWith(
+        'Gem-operation fejlede',
+        expect.objectContaining({ context: 'saveToFile' }),
+      );
+    });
+
+    it('bevarer saved-status med advarsler når nyt handle eller metadata ikke kan persisteres', async () => {
+      const pickedHandle = { name: 'sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(pickedHandle);
+      mockedWriteToFileHandle.mockResolvedValue();
+      mockedReadFromFileHandle.mockResolvedValue('encrypted');
+      mockedDecryptFromString.mockResolvedValue(currentContainer({
+        stamdata: { journalnr: 'J-1' },
+      }));
+      mockedSaveFileHandleToIndexedDB.mockResolvedValue(false);
+      persistSavedFilenameMetadataMock.mockImplementationOnce(() => {
+        throw new Error('sessionStorage utilgængelig');
+      });
+
+      const result = await saveToFile(snapshot);
+
+      expect(result).toMatchObject({
+        status: 'saved',
+        warning: expect.stringContaining('koblingen til senere direkte Gem'),
+      });
+      expect(result).toMatchObject({
+        warning: expect.stringContaining('filnavnsoplysninger til næste Gem'),
+      });
+      expect(mockedLogWarning).toHaveBeenCalledWith(
+        'Gemt fil, men kunne ikke persistere file handle til senere overskrivning',
+        expect.objectContaining({ context: 'saveToFile.persistFileHandleAfterSuccess' }),
+      );
+    });
+
+    it('bevarer saved-status når file-handle-verifikation kun giver en advarsel', async () => {
+      const pickedHandle = { name: 'tom-sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+      const emptySnapshot = {
+        stamdata: undefined,
+        satser: undefined,
+        aarsloen: undefined,
+        faellesAarsloen: undefined,
+        renteberegning: undefined,
+        varigemen: undefined,
+        forsoergertab: undefined,
+        erstatningsopgoerelse: undefined,
+        erhvervsevnetab: undefined,
+      } as const;
+
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(pickedHandle);
+      mockedWriteToFileHandle.mockResolvedValue();
+      mockedReadFromFileHandle.mockResolvedValue('encrypted');
+      mockedDecryptFromString.mockResolvedValue(currentContainer({}));
+      mockedSaveFileHandleToIndexedDB.mockResolvedValue(true);
+
+      const result = await saveToFile(emptySnapshot);
+
+      expect(result).toMatchObject({
+        status: 'saved',
+        warning: expect.stringContaining('Manglende sektioner: stamdata'),
+      });
+      expect(mockedLogWarning).toHaveBeenCalledWith('⚠ Verificering fandt advarsler (se konsol for detaljer)');
+    });
+
     it('downloader ALDRIG et korrupt artefakt i fallback-stien (byg-og-verificér-før-sink)', async () => {
       mockedIsFileSystemAccessSupported.mockReturnValue(false);
       mockedEncryptToString.mockResolvedValueOnce('encrypted');
@@ -545,6 +670,25 @@ describe('fileSave', () => {
       }));
 
       await expect(saveToFile(snapshot)).rejects.toThrow('INTEGRITETSKONTROL FEJLEDE');
+      expect(mockedDownloadFile).not.toHaveBeenCalled();
+    });
+
+    it('viser højst fem forskelle og tæller resten i integritetsfejlen', async () => {
+      mockedIsFileSystemAccessSupported.mockReturnValue(false);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        stamdata: {
+          journalnr: 'J-1',
+          advokat: 'Advokat',
+          sagsbehandler: 'Sagsbehandler',
+          skadelidte: 'Skadelidte',
+          skadelidteFodselsdato: '1980-01-01',
+          skadestype: 'Arbejdsulykke',
+          skadedato: '2024-01-01',
+        },
+      }));
+
+      await expect(saveToFile(snapshot)).rejects.toThrow(/Forskelle fundet:[\s\S]+\.\.\. og 1 flere/);
       expect(mockedDownloadFile).not.toHaveBeenCalled();
     });
 
