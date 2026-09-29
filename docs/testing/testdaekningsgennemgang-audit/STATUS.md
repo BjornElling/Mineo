@@ -2776,6 +2776,19 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-459, arbejdsrevision
+
+Batchen styrker `sfggSegmentering.test.ts` med en gyldig nulrække i calculator-facittet
+og tilføjer 1 direkte facit for ukendt overenskomst i sats-, pensions- og boundary-
+resolverne. Sammen med `sfggEngine.test.ts` bestod den målrettede kontrol med 2 filer /
+63 tests; `sfggSegmentering.ts` målte 96,17 % statements / 88,80 % branches / 100 %
+functions / 99 % lines. Kun fallbacken for en runtime-ugyldig dato står uramt som defensiv
+reserve. Den fulde Vitest-suite bestod med 969 filer / 9.743 tests. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig TAF- og
+reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-458, arbejdsrevision
 
 Batchen tilføjer 2 direkte facitter i `sfggEngine.test.ts` for fail-closed ved

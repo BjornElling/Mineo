@@ -94,6 +94,19 @@ describe('sfggSegmentering', () => {
           col4: undefined,
           col5: undefined,
         },
+        {
+          id: 'nul-række',
+          col0_maaned: '2',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
+          col2: asSfggAmount(0),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
       ],
     });
     const calculator = buildEmploymentSfggCalculator(employment, []);
@@ -317,5 +330,38 @@ describe('sfggSegmentering', () => {
       ...baseArgs,
       sfggRow: createSfggIngenRow(employment.id),
     })).toBeNull();
+  });
+
+  it('falder sikkert tilbage ved ukendt overenskomst i sats-, pension- og grænsespor', () => {
+    const unknownEmployment = createSfggEmployment({
+      overenskomstId: 'ukendt-overenskomst',
+      pensionPct: 7,
+    });
+    const baseArgs = {
+      iso: iso('2024-01-15'),
+      employment: unknownEmployment,
+      sfggRow: createSfggIngenRow(unknownEmployment.id),
+      sfggBaseRate: {
+        sfggReferenceperiode: { fra: iso('2024-01-01'), til: iso('2024-01-31') },
+        sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(10_000) },
+        sfggReferencesatsFormula: null,
+      },
+      loenudvikling: undefined,
+    };
+
+    expect(resolveSfggSegmentRateForDate({
+      ...baseArgs,
+      sfggSource: { kind: 'overenskomst_direkte' },
+    })).toBeNull();
+    expect(resolveSfggSegmentRateForDate({
+      ...baseArgs,
+      sfggSource: { kind: 'ferielov' },
+    })).toEqual({ satsOre: 10_000, agPensionPct: 7, reguleringsindeks: null });
+    expect(resolveSfggSegmentBoundaryStarts({
+      ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
+      employment: unknownEmployment,
+      sfggSource: { kind: 'manuel' },
+      loenudvikling: undefined,
+    })).toEqual([]);
   });
 });
