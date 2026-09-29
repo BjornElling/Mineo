@@ -1,4 +1,4 @@
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { moneyOre } from '../../../domain/money/money';
 import type {
   TafPerYearResult,
@@ -13,6 +13,7 @@ import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/o
 import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);
+const invalidIso = 'ikke-en-dato' as ISODateString;
 
 const makeYear = (year: number, yearTafOre: number): TafYearEntry => ({
   year,
@@ -48,6 +49,14 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
   it('returnerer not_applicable når der ikke er per-år-resultat', () => {
     expect(buildTafPerYearOpreguleretBuildOutcome(null, iso('2024-05-01')).kind).toBe('not_applicable');
     expect(buildTafPerYearOpreguleretBuildOutcome(makeResult([]), iso('2024-05-01')).kind).toBe('not_applicable');
+  });
+
+  it('fejler lukket ved en ugyldig runtime-beregningsdato', () => {
+    expect(buildTafPerYearOpreguleretBuildOutcome(makeResult([makeYear(2024, 10_000_00)]), invalidIso)).toEqual({
+      kind: 'error',
+      reason: 'manglende_reguleringssats',
+      manglendeAar: [],
+    });
   });
 
   it('opregulerer hvert år til beregningsåret med akkumuleret reguleringssats', () => {
