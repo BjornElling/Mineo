@@ -54,6 +54,24 @@ describe('buildOverenskomstSegmentContext', () => {
       .toBeNull();
   });
 
+  it('samler første og sidste dato på tværs af flere TAF-ranges', () => {
+    const result = buildOverenskomstSegmentContext(createKonsolideret({
+      harAnciennitetstillaegEfterSkadedatoen: true,
+      anciennitetstillaegDato: iso('2024-06-01'),
+      anciennitetstillaegSatsValue: 125,
+      tafRanges: [
+        { fra: iso('2025-01-01'), til: iso('2025-12-31') },
+        { fra: iso('2024-04-01'), til: iso('2024-12-31') },
+        { fra: iso('2026-01-01'), til: iso('2026-12-31') },
+      ],
+    }));
+
+    expect(result.anciennitetForIndex).toMatchObject({
+      activeFromIso: iso('2024-06-01'),
+      supplementValue: expect.any(Number),
+    });
+  });
+
   it('afviser manglende reguleringsdato, manglende overenskomst og ugyldig dato', () => {
     expect(() => buildOverenskomstSegmentContext(createKonsolideret({ reguleringsdato: undefined })))
       .toThrow('Loenudvikling kan ikke beregnes: reguleringsdato mangler');

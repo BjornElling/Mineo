@@ -109,6 +109,10 @@ describe('resolveAnciennitetForIndex', () => {
     expect(resolveAnciennitetForIndex({ ...baseInput(), satsValue: -50 })).toBeNull();
     expect(resolveAnciennitetForIndex({ ...baseInput(), satsValue: Number.MAX_VALUE, satsAngivesPer: 'Time' })).toBeNull();
     expect(resolveAnciennitetForIndex({ ...baseInput(), overenskomstId: undefined })).toBeNull();
+    expect(resolveAnciennitetForIndex({
+      ...baseInput(),
+      overenskomstId: 'ukendt-overenskomst',
+    })).toBeNull();
   });
 
   it('omregner timesats til grundlønnens enhed', () => {
