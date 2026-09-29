@@ -13,6 +13,7 @@ import {
   optaelMaanederPraecis,
   periodiserBeloebForOffentligYdelse,
   periodiserBeloebForOffentligYdelseMedGrundlag,
+  resolveIncomeAllocationDays,
 } from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
 const iso = (value: string): ISODateString => toISODateString(value);
@@ -372,6 +373,38 @@ describe('periodiseringsMotor', () => {
   it('optaelMaanederAfrundet returnerer null ved undefined fra', () => {
     const value = optaelMaanederAfrundet({ fra: undefined, til: iso('2024-01-31') });
     expect(value).toBeNull();
+  });
+
+  it('bevarer naturlige fordelingsdage og bruger fallback ved tomt dagsæt', () => {
+    const naturalDays = new Set<ISODateString>([iso('2024-07-01')]);
+    expect(resolveIncomeAllocationDays(
+      { fra: iso('2024-07-01'), til: iso('2024-07-31') },
+      naturalDays
+    )).toEqual({ days: naturalDays, usedFallback: false });
+
+    const fallback = resolveIncomeAllocationDays(
+      { fra: iso('2024-07-06'), til: iso('2024-07-07') },
+      new Set<ISODateString>()
+    );
+    expect(fallback.usedFallback).toBe(true);
+    expect(fallback.days.size).toBe(2);
+  });
+
+  it('afviser en ukendt runtime-kontekst i arbejdsdagsopgørelsen', () => {
+    expect(() => optaelArbejdsdageBreakdown({
+      fra: iso('2024-01-01'),
+      til: iso('2024-01-05'),
+      ferieperioder: [],
+      loseFeriedage: 0,
+      context: { kind: 'ukendt' } as never,
+    })).toThrow();
+    expect(optaelArbejdsdage({
+      fra: undefined,
+      til: iso('2024-01-05'),
+      ferieperioder: [],
+      loseFeriedage: 0,
+      context: { kind: 'taf' },
+    })).toBeNull();
   });
 });
 
