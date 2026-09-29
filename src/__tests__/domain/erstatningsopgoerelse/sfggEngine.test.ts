@@ -16,6 +16,39 @@ import {
 } from '../../utils/sfggTestSupport';
 
 describe('computeSygeferiegodtgoerelse', () => {
+  it('returnerer det tomme resultat uden TAF-perioder', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+
+    expect(computeSygeferiegodtgoerelse({
+      values,
+      stamdata: STAMDATA_INITIAL_VALUES,
+      tafRanges: [],
+    })).toEqual({
+      totalOre: moneyOre(0),
+      perAnsaettelsesforhold: [],
+      perYear: [],
+      firstExcludedDate: null,
+    });
+  });
+
+  it('udelader aktive ansættelsesforhold med SFGG-kilden Ingen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [createSfggIngenRow('af-1')];
+
+    expect(computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    })).toEqual({
+      totalOre: moneyOre(0),
+      perAnsaettelsesforhold: [],
+      perYear: [],
+      firstExcludedDate: null,
+    });
+  });
+
   it('formaterer arbejdsdage-label med kun ikke-nul fradrag', () => {
     expect(buildSfggReferenceperiodeCountLabel({
       loenPlusLoen2PlusIkkePensLoenKroner: 0,
