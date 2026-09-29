@@ -2776,6 +2776,20 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-442, arbejdsrevision
+
+Batchen tilføjer 2 direkte tests i `tafPerYearDerived.test.ts` for no-year-gaten når alle
+arbejdsdags-subsegmenter filtreres bort uden TAF-ranges og fail-closed ved afrundingsafvigelse
+over 1 kr. Det eksisterende arbejdsdagsfacit styrkes samtidig med en restøre-fordeling på
+4.000/6.001 øre. Sammen med den relaterede midlertidigt-EET-suite bestod den målrettede suite
+med 2 filer / 65 tests; `tafPerYearDerived.ts` målte 96,13 % statements / 81,48 % branches /
+100 % functions / 98,17 % lines. Kun den defensive `totalWeight <= 0`-reserve og den interne
+invariant-logning står uramt. Den fulde Vitest-suite bestod med 965 filer / 9.696 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig TAF-
+og reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`. `npm run typecheck:test`,
+målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit. Ændringen er
+test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-441, arbejdsrevision
 
 Batchen tilføjer 1 direkte fail-closed-facit i `tafPerYearOpreguleretDerived.test.ts`

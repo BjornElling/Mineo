@@ -1416,9 +1416,9 @@ describe('buildTafPerYearResult', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmountValue(2000),
-      tidligereModtagetTaf: asAmountValue(100),
+      tidligereModtagetTaf: asAmountValue(100.01),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-06'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [],
       loenindkomstAnsaettelsesforhold: [
@@ -1437,10 +1437,10 @@ describe('buildTafPerYearResult', () => {
     assertTotals(result, snapshotData.pdfModel);
     expect(result.years).toHaveLength(2);
 
-    expect(result.years[0].yearTidligereModtagetTafOre).toBe(5000);
-    expect(result.years[1].yearTidligereModtagetTafOre).toBe(5000);
+    expect(result.years[0].yearTidligereModtagetTafOre).toBe(4000);
+    expect(result.years[1].yearTidligereModtagetTafOre).toBe(6001);
     const totalPaidOre = result.years.reduce((sum, year) => sum + year.yearTidligereModtagetTafOre, 0);
-    expect(totalPaidOre).toBe(10000);
+    expect(totalPaidOre).toBe(10001);
   });
 
   it('fordeler "Allerede betalt TAF" pr. år efter måneder', () => {
@@ -1547,5 +1547,43 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
     expect(outcome.kind).toBe('not_applicable');
     if (outcome.kind !== 'not_applicable') return;
     expect(outcome.reason).toBe('missing_taf_indtaegter');
+  });
+
+  it('missing_loenudvikling når alle arbejdsdags-subsegmenter filtreres bort uden TAF-ranges', () => {
+    const base = baseSource({ tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE });
+    if (!base.loenudvikling) return;
+
+    const outcome = buildTafPerYearBuildOutcome(
+      {
+        ...base,
+        loenudvikling: {
+          ...base.loenudvikling,
+          beregnedeSegmenter: [
+            {
+              kind: 'arbejdsdage',
+              fra: iso('2024-01-02'),
+              til: iso('2024-01-05'),
+              arbejdsdage: 4,
+              dagsloenOre: moneyOre(50_000),
+              deltaPct: 1,
+              amountOre: moneyOre(200_000),
+            },
+          ],
+        },
+      },
+      eoValues,
+      { tafRanges: [] }
+    );
+
+    expect(outcome).toEqual({ kind: 'not_applicable', reason: 'missing_loenudvikling' });
+  });
+
+  it('fail-closer når afrundingsafvigelsen overstiger 1 kr.', () => {
+    const outcome = buildTafPerYearBuildOutcome(baseSource({}), eoValues, options);
+
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') return;
+    expect(outcome.reason).toBe('afrunding_over_100');
+    expect(Math.abs(outcome.afrundingOre)).toBeGreaterThan(100);
   });
 });
