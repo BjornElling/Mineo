@@ -1587,3 +1587,116 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
     expect(Math.abs(outcome.afrundingOre)).toBeGreaterThan(100);
   });
 });
+
+describe('buildTafPerYearBuildOutcome: kanonisk midlertidigt EET-fradrag', () => {
+  const eoValues = makeValues({
+    midlertidigtEetFraEetSiden: 'Ja',
+    beregnesUdFra: 'Angivet månedsløn',
+    maanedsloenenUdgoer: asAmountValue(10_000),
+    tafPerioder: [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined }],
+    offentligeYdelserRows: [{
+      id: 'eet-1',
+      fraDato: iso('2024-01-01'),
+      tilDato: iso('2024-01-31'),
+      ydelse: asAmountValue(1_000),
+      tillaeg: undefined,
+      ydelsestype: 'Midlertidigt EET',
+    }],
+  });
+
+  const source: TafPerYearSource = {
+    stamdataValues: makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') }),
+    loenudvikling: {
+      loenudviklingLabel: 'Angivet månedsløn',
+      loenudviklingTotal: { status: 'ok', value: moneyOre(1_000_000) },
+      beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      beregnedeSegmenter: [{
+        kind: 'maaneder',
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-31'),
+        maaneder: 1,
+        maanedsloenOre: moneyOre(1_000_000),
+        deltaPct: 0,
+        amountOre: moneyOre(1_000_000),
+      }],
+      perAnsaettelse: [],
+    },
+    offentligeYdelserUdvikling: {
+      reguleringsLabel: '',
+      reguleringsBaseIso: undefined,
+      beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      entries: [{
+        typeKey: 'midlertidigt_eet',
+        label: 'Midlertidigt EET',
+        beregnedeSegmenter: [{
+          kind: 'maaneder',
+          fra: iso('2024-01-01'),
+          til: iso('2024-01-31'),
+          maaneder: 1,
+          maanedsloenOre: moneyOre(100_000),
+          deltaPct: 0,
+          amountOre: moneyOre(100_000),
+        }],
+        total: { status: 'ok', value: moneyOre(100_000) },
+      }],
+      total: { status: 'ok', value: moneyOre(100_000) },
+    },
+    tafIndtaegter: {
+      entries: [{ label: 'Midlertidigt EET', amountOre: moneyOre(200_000) }],
+      forbeholdYdelsestyper: [],
+      total: { status: 'ok', value: moneyOre(200_000) },
+    },
+    tidligereModtagetTaf: { status: 'ok', value: moneyOre(0) },
+    sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
+    tabtArbejdsfortjenesteOre: moneyOre(900_000),
+    tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    forligFactor: null,
+  };
+
+  const midlertidigtEetGroup = {
+    afgoerelsesdato: iso('2024-01-01'),
+    eetPct: 50,
+    rows: [],
+    perioder: [{
+      fra: iso('2024-01-01'),
+      til: iso('2024-01-31'),
+      satsAar: 2024,
+      maanederPraecis: 1,
+      grundydelseAfrundetOre: moneyOre(200_000),
+      reguleringPct: 0,
+      maanedligYdelseOre: moneyOre(200_000),
+      beregnetEetOre: moneyOre(200_000),
+    }],
+  } as const;
+
+  it('bruger bilagets pr.-periode-afrundede hele kroner i per-år-fradraget', () => {
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, {
+      tafRanges: tafRangesFromValues(eoValues),
+      midlertidigtEetGroups: [midlertidigtEetGroup],
+    });
+
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    expect(outcome.result.years[0]?.deductions).toEqual([
+      { label: 'Midlertidigt EET', amountOre: moneyOre(200_000) },
+    ]);
+    expect(outcome.result.years[0]?.yearTafOre).toBe(moneyOre(900_000));
+  });
+
+  it('udelader fradraget når den kanoniske EET-gruppe ikke giver et positivt beløb', () => {
+    const zeroGroup = {
+      ...midlertidigtEetGroup,
+      perioder: [{ ...midlertidigtEetGroup.perioder[0], maanedligYdelseOre: moneyOre(0), beregnetEetOre: moneyOre(0) }],
+    } as const;
+    const outcome = buildTafPerYearBuildOutcome(
+      { ...source, tabtArbejdsfortjenesteOre: moneyOre(1_100_000) },
+      eoValues,
+      { tafRanges: tafRangesFromValues(eoValues), midlertidigtEetGroups: [zeroGroup] }
+    );
+
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    expect(outcome.result.years[0]?.deductions).toEqual([]);
+    expect(outcome.result.years[0]?.yearTafOre).toBe(moneyOre(1_100_000));
+  });
+});
