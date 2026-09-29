@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-424, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `ingenForm.test.ts` for `Ingen`-konsolidering, den
+forventede fejl ved direkte `byggResultat` og manglende kildedækning. Filen bestod med 3/3 tests;
+`ingenForm.ts` målte 100 % statements / 100 % branches / 100 % functions / 100 % lines. Den
+fulde Vitest-suite bestod med 956 filer / 9.638 tests. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; den faktiske orkestratoriske zero-delta-
+bygning og øvrig reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`. `npm run typecheck:test`,
+målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only;
+den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-423, arbejdsrevision
 
 Batchen tilføjer 7/7 direkte facitter i `reguleringFormulaUtils.test.ts` for numeriske og
