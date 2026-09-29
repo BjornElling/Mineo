@@ -111,4 +111,73 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
   ])('er tavs ved %s', (_name, overrides) => {
     expect(collectSvieSmerteCutoffDateIssues(eoWith(overrides))).toHaveLength(0);
   });
+
+  it('navngiver én manglende celle og vælger fra-feltet', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: undefined,
+      til: toISODateString('2024-10-01'),
+      tilstand: 'sygemeldt',
+    }], cutoffContext).get('ss-1');
+
+    expect(evaluation).toEqual({
+      kind: 'error',
+      message: 'Fra-dato er ikke angivet',
+      field: 'fra',
+    });
+  });
+
+  it('navngiver flere manglende celler med dansk listeformat', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: toISODateString('2024-09-01'),
+      til: undefined,
+      tilstand: undefined,
+    }], cutoffContext).get('ss-1');
+
+    expect(evaluation).toEqual({
+      kind: 'error',
+      message: 'Til-dato og tilstand er ikke angivet',
+      field: 'til',
+    });
+  });
+
+  it('viser den konkrete umulige fra-dato-range med den afgørende grænse', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-02'),
+      tilstand: 'sygemeldt',
+    }], {
+      ...cutoffContext,
+      skadedatoISO: toISODateString('2025-01-01'),
+      menAfgoerelseDatoForTabel: undefined,
+      menAfgoerelseDato: undefined,
+    }).get('ss-1');
+
+    expect(evaluation?.kind).toBe('error');
+    expect(evaluation && 'message' in evaluation ? evaluation.message : '').toContain(
+      'Ingen gyldige datoer: min-dato (01-01-2025) er efter max-dato (02-01-2024)'
+    );
+    expect(evaluation && 'field' in evaluation ? evaluation.field : undefined).toBe('fra');
+  });
+
+  it('forankrer en omvendt datoorden i til-feltet', () => {
+    const evaluation = evaluateSvieSmertePerioder([{
+      id: 'ss-1',
+      fra: toISODateString('2024-02-01'),
+      til: toISODateString('2024-01-01'),
+      tilstand: 'sygemeldt',
+    }], {
+      ...cutoffContext,
+      menAfgoerelseDatoForTabel: undefined,
+      menAfgoerelseDato: undefined,
+    }).get('ss-1');
+
+    expect(evaluation).toEqual({
+      kind: 'error',
+      message: 'Til-dato skal være efter fra-dato',
+      field: 'til',
+    });
+  });
 });

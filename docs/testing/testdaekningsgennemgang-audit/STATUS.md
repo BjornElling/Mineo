@@ -2776,6 +2776,21 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-464, arbejdsrevision
+
+Batchen tilføjer 4 direkte evaluator-facitter i `svieSmerteCutoffDateIssues.test.ts`
+for én og flere manglende celleværdier, et umuligt fra-dato-interval og omvendt
+datoorden. Sammen med `svieSmerteOverlapIssues.test.ts`, `svieSmerteBeregning.test.ts`,
+`eoRowSvieSmerteIngenPeriodeParity.test.ts` og `SvieSmerteTable.antalDage.test.tsx`
+bestod den målrettede kontrol med 5 filer / 67 tests; `svieSmertePeriodeValidation.ts`
+målte 100 % statements / 90,90 % branches / 100 % functions / 100 % lines. De
+resterende brancher er defensive guards for valgfrie cutoff-/range-input og en intern
+feltfallback. Den fulde Vitest-suite bestod med 969 filer / 9.753 tests. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig TAF- og
+reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-463, arbejdsrevision
 
 Batchen tilføjer 2 direkte engine-facitter i `svieSmerteEngine.test.ts` for fail-closed
