@@ -1,6 +1,7 @@
 import { buildOverenskomstSegmentContext } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstSegmentContext';
 import { buildOffentligOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstOffentligSegmenter';
 import { buildPrivatOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstPrivatSegmenter';
+import * as overenskomstReguleringShared from '../../../domain/erstatningsopgoerelse/engines/overenskomstReguleringShared';
 import type { KonsolideretLoenudvikling } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { getReguleringsDatoIntervalForOverenskomst } from '../../../data/overenskomstRates';
@@ -10,6 +11,7 @@ import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => toISODateString(value);
+const invalidIso = (value: string): ISODateString => value as ISODateString;
 type Overenskomst = Extract<KonsolideretLoenudvikling, { strategi: 'overenskomst' }>;
 type OffentligSelection = NonNullable<Overenskomst['offentlig']>;
 
@@ -81,6 +83,46 @@ describe('overenskomst-segmentbyggere', () => {
       konsolideret,
       buildOverenskomstSegmentContext(konsolideret)
     )).toThrow('Loenudvikling kan ikke beregnes: ingen overenskomstsegmenter');
+  });
+
+  it('afviser privat serie når basissatsen mangler', () => {
+    const spy = vi.spyOn(overenskomstReguleringShared, 'resolvePrivateOverenskomstBaseContext').mockReturnValue(null);
+    try {
+      expect(() => buildPrivatOverenskomstSegmenter(
+        createOverenskomst(),
+        buildOverenskomstSegmentContext(createOverenskomst())
+      )).toThrow('Loenudvikling kan ikke beregnes: basissats mangler');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('afviser privat serie med ugyldigt TAF-interval', () => {
+    const konsolideret = createOverenskomst({
+      tafRanges: [{ fra: invalidIso('ikke-en-dato'), til: iso('2024-12-31') }],
+    });
+
+    expect(() => buildPrivatOverenskomstSegmenter(
+      konsolideret,
+      buildOverenskomstSegmentContext(konsolideret)
+    )).toThrow('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
+  });
+
+  it('bygger nulsegment før privat dækning uden Store Bededag', () => {
+    const konsolideret = createOverenskomst({
+      reguleringsdato: iso('2000-01-01'),
+      tafRanges: [{ fra: iso('2000-01-01'), til: iso('2011-12-31') }],
+    });
+
+    const result = buildPrivatOverenskomstSegmenter(
+      konsolideret,
+      buildOverenskomstSegmentContext(konsolideret)
+    );
+
+    expect(result).toEqual([
+      { fra: iso('2000-01-01'), til: iso('2011-02-28'), deltaPct: 0 },
+      { fra: iso('2011-03-01'), til: iso('2011-12-31'), deltaPct: 0 },
+    ]);
   });
 
   it('bygger offentlig serie med løntrin, timeløn, Store Bededag og anciennitet', () => {
