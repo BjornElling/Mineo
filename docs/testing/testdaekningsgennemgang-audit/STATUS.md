@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only PERSIST/SHELL-batch – TD-414, arbejdsrevision
+
+Batchen tilføjer 14/14 direkte facitter i `usePwaLaunchQueue.test.tsx` for idle- og tomme events,
+busy-load, udskiftning af synlig request, ignore med warning, alle tre load-/overskriv-/nulstil-gates,
+promotion og forsvundet request, `/open`-retry, busy-retry og cleanup. Den målrettede hook-suite bestod
+med 1 fil / 14 tests; `usePwaLaunchQueue.ts` målte 90,35 % statements / 82,41 % branches /
+100 % functions / 100 % lines. Den fulde Vitest-suite bestod med 952 filer / 9.593 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; de resterende
+defensive timingkombinationer samt reel OS-/installeret-PWA-filaflevering og fuld platformparitet
+står fortsat åben under `PERSIST-002`/`SHELL-002`/`TD-022`.
+
 ## Seneste test-only UI/ARCH-batch – TD-413, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `focusUtils.test.ts` for `requestAnimationFrame`, normal
