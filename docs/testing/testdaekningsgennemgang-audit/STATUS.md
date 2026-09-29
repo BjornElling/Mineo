@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-402, arbejdsrevision
+
+Batchen tilføjer 11/11 direkte facitter i `eoManualRegulationIssue.test.ts` for tom manuel
+angivet-form, manglende grundløn og dato, alle fire manuelle tillægsfelter, procent-/beløbstilstand,
+ansættelsesforholdets og angivet løns topfelt, manuel procentsats med manglende dato/procent samt
+tomme og komplette forløb. Filen bestod med 11/11 og målte 94,28 % statements / 88,23 % branches /
+100 % functions / 93,54 % lines. Hele EO-række-suiten bestod med 38 filer / 382 tests. De to
+defensive exhaustive `never`-grene står fortsat som reserve. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; øvrige EO-række-, downstream- og
+dokumentkombinationer står fortsat åbne under `CALC-006`/`TD-020`.
+
 ## Seneste test-only PERSIST-batch – TD-401, arbejdsrevision
 
 Batchen udvider `fileSave.test.ts` med 7/7 direkte facitter for de tre offentlige save-fejltyper,
