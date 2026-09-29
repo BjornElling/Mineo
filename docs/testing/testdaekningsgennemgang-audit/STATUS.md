@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-406, arbejdsrevision
+
+Batchen tilføjer 7/7 direkte facitter i `overenskomstReguleringShared.test.ts` for dækket og
+før-dækning privat basesats, ugyldig effektiv dato, manglende referencesats, offentlig og privat
+pct-point-samling, Store Bededag, null-/fallbackværdier, arbejdsdagsgren og månedsløn. Filen bestod
+med 14/14 og målte 94,11 % statements / 95,94 % branches / 100 % functions / 100 % lines. De
+defensive grene for et kendt overenskomst-id uden lønenhed, en ikke-parsbar katalogdato eller en
+manglende førstesats kan ikke nås gennem det aktuelle validerede satskatalog og står som reserve.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig motor-,
+præsentations-, kontrol-, data- og browserparitet står fortsat åben under `CALC-006`/`TD-020`.
+
 ## Seneste test-only PERSIST/INPUT-batch – TD-405, arbejdsrevision
 
 Batchen tilføjer 4/4 direkte facitter i `tableSaveOrderRegistry.test.ts` for unregister,
