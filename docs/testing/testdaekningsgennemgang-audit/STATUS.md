@@ -2776,6 +2776,20 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-447, arbejdsrevision
+
+Batchen tilføjer 6 tests i `tafPeriodConstraints.test.ts` med direkte facitter for midlertidig
+EET-oplysning kontra aktiv afgrænsning, klagesuspenderede cutoff-datoer, ferie-cutoff-tekst,
+EO-bounds-optionsiden og de resterende cutoff-beskedformer. Sammen med
+`tafPeriodeCutoffMessage.test.ts` bestod den målrettede kontrol med 2 filer / 64 tests;
+`tafPeriodConstraints.ts` målte 100 % statements / 98,27 % branches / 100 % functions /
+100 % lines. Den ene resterende branch er `isoToDanish(...) ?? dato`-fallbacken efter en valid
+ISO-type og står som defensiv reserve. Den fulde Vitest-suite bestod med 966 filer / 9.716 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig
+TAF- og reguleringsparitet står fortsat åben under `CALC-006`/`TD-020`. `npm run typecheck:test`,
+målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå før commit. Ændringen er
+test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-446, arbejdsrevision
 
 Batchen tilføjer 1 direkte brugerblik-facit i `tafPerioderBrugerblik12e.test.ts` for

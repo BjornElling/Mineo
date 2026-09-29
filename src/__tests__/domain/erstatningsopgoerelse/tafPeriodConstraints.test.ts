@@ -3,6 +3,13 @@ import type { IsoRange } from '../../../domain/erstatningsopgoerelse/validation/
 import {
   resolveTafConstraintBounds,
   resolveTafFejlgivendeBounds,
+  resolveMidlertidigEetDato,
+  resolveMidlertidigEetDatoHvisAktiv,
+  resolveTafCutoffDates,
+  buildFerieCutoffErrorMessage,
+  buildTafCutoffErrorMessage,
+  buildTafPeriodeCutoffErrorMessage,
+  resolveTafEoPeriodeBounds,
   clampTafRange,
   getValidTafRange,
   clampTafRow,
@@ -247,6 +254,109 @@ describe('resolveTafConstraintBounds', () => {
       });
       expect(bounds.maxEnd).toBeUndefined();
     });
+  });
+});
+
+describe('direkte TAF-cutoff-resolvere', () => {
+  it('skelner mellem oplysningen om midlertidig EET og aktiv TAF-afgrænsning', () => {
+    expect(resolveMidlertidigEetDato({
+      midlertidigtEETAfgorelse: 'Ja',
+      midlertidigEETAfgoerelseDato: iso('2011-03-01'),
+    })).toBe(iso('2011-03-01'));
+    expect(resolveMidlertidigEetDato({
+      midlertidigtEETAfgorelse: 'Nej',
+      midlertidigEETVirkningsdato: iso('2011-03-01'),
+    })).toBeUndefined();
+
+    expect(resolveMidlertidigEetDatoHvisAktiv({
+      midlertidigtEETAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2011-03-01'),
+      skadedatoISO: iso('2011-06-15'),
+    })).toBe(iso('2011-03-01'));
+    expect(resolveMidlertidigEetDatoHvisAktiv({
+      midlertidigtEETAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2011-03-01'),
+      skadedatoISO: iso('2011-06-16'),
+    })).toBeUndefined();
+  });
+
+  it('returnerer aktive cutoff-datoer og suspenderer EET ved klage', () => {
+    const source = {
+      differencekravDato: iso('2024-07-01'),
+      endeligtEETAfgorelse: 'Ja' as const,
+      endeligEETVirkningsdato: iso('2024-06-01'),
+      midlertidigtEETAfgorelse: 'Ja' as const,
+      midlertidigEETVirkningsdato: iso('2011-03-01'),
+      skadedatoISO: iso('2011-01-01'),
+    };
+    expect(resolveTafCutoffDates(source)).toEqual({
+      differencekravDato: iso('2024-07-01'),
+      endeligEETDato: iso('2024-06-01'),
+      midlertidigEETDato: iso('2011-03-01'),
+    });
+    expect(resolveTafCutoffDates({ ...source, verserendeKlageEet: 'Ja' })).toEqual({
+      differencekravDato: iso('2024-07-01'),
+      endeligEETDato: undefined,
+      midlertidigEETDato: undefined,
+    });
+  });
+
+  it('bygger ferie-cutofftekst og returnerer undefined uden ramt cutoff', () => {
+    expect(buildFerieCutoffErrorMessage({
+      value: undefined,
+      differencekravDato: iso('2024-07-01'),
+    })).toBeUndefined();
+    expect(buildFerieCutoffErrorMessage({
+      value: iso('2024-07-01'),
+      differencekravDato: iso('2024-07-01'),
+    })).toBe('Ferien ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+  });
+
+  it('returnerer EO-periodens stille bounds uændret', () => {
+    expect(resolveTafEoPeriodeBounds({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-12-31'),
+      differencekravDato: iso('2024-06-15'),
+    })).toEqual({
+      minStart: iso('2024-01-01'),
+      maxEnd: iso('2024-12-31'),
+    });
+  });
+
+  it('lader options overskrive skadedatoen ved samlet bounds-opslag', () => {
+    expect(resolveTafConstraintBounds({
+      midlertidigtEETAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2011-03-01'),
+      skadedatoISO: iso('2011-06-16'),
+    }, { skadedatoISO: iso('2011-06-15') })).toEqual({
+      minStart: undefined,
+      maxEnd: iso('2011-02-28'),
+    });
+  });
+
+  it('dækker de øvrige cutoff-beskedformer og ingen ramt cutoff', () => {
+    expect(buildTafPeriodeCutoffErrorMessage({
+      fra: iso('2024-08-01'),
+      til: iso('2024-12-31'),
+      differencekravDato: iso('2024-07-01'),
+    })).toBe('Hele perioden ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    expect(buildTafPeriodeCutoffErrorMessage({
+      fra: iso('2024-01-01'),
+      til: iso('2024-06-30'),
+      endeligEETDato: iso('2024-03-01'),
+    })).toBe('Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-03-2024)');
+    expect(buildFerieCutoffErrorMessage({
+      value: iso('2024-06-30'),
+      endeligEETDato: iso('2024-03-01'),
+    })).toBe('Ferien ligger efter afgørelsen om endeligt erhvervsevnetab (01-03-2024)');
+    expect(buildFerieCutoffErrorMessage({
+      value: iso('2024-06-30'),
+      midlertidigEETDato: iso('2024-03-01'),
+    })).toBe('Ferien ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2024)');
+    expect(buildTafCutoffErrorMessage({
+      value: iso('2024-01-01'),
+      differencekravDato: iso('2024-07-01'),
+    })).toBeUndefined();
   });
 });
 
