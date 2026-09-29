@@ -54,6 +54,55 @@ describe('computeSvieSmerteEngine', () => {
     expect(result.maxApplied).toBe(true);
   });
 
+  it('returnerer tomt beregningsoutput ved overlappende perioder', () => {
+    const result = computeSvieSmerteEngine({
+      erstatningsopgoerelse: makeValues({
+        tidligereSsMax: 'Nej',
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-01-31'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+          { id: '2', fra: iso('2024-01-05'), til: iso('2024-01-15'), tilstand: 'delvist-sygemeldt' },
+        ],
+        svieSmerteSatserAar: 2026,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        svieSmerteTidligereTotal: asAmountValue(0),
+        svieSmerteAktuelPeriode: asAmountValue(0),
+      }),
+    });
+
+    expect(result).toMatchObject({
+      constrainedPeriods: [],
+      harInputPerioder: false,
+      harPerioder: false,
+      totalOre: 0,
+    });
+  });
+
+  it('sorterer flere gyldige perioder kronologisk efter clamping', () => {
+    const result = computeSvieSmerteEngine({
+      erstatningsopgoerelse: makeValues({
+        tidligereSsMax: 'Nej',
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-02-02'),
+        svieSmertePerioder: [
+          { id: '2', fra: iso('2024-02-01'), til: iso('2024-02-02'), tilstand: 'sygemeldt' },
+          { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-02'), tilstand: 'sygemeldt' },
+        ],
+        svieSmerteSatserAar: 2026,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        svieSmerteTidligereTotal: asAmountValue(0),
+        svieSmerteAktuelPeriode: asAmountValue(0),
+      }),
+    });
+
+    expect(result.constrainedPeriods).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-02'), isDelvist: false },
+      { fra: iso('2024-02-01'), til: iso('2024-02-02'), isDelvist: false },
+    ]);
+    expect(result.sygedage).toBe(4);
+  });
+
   it('regner totalen med den AFRUNDEDE delvis-dagssats (efterregnelig fra vist sats)', () => {
     // Sats 215 kr (2022) × forlig 33 % = 70,95 kr = 7.095 øre (ulige), så delvis-satsen
     // (× 0,5 = 3.547,5 øre) får en halv øre. Totalen skal bruge den afrundede delvis-sats
