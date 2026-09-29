@@ -112,6 +112,21 @@ describe('manuelForm', () => {
     expect(result.segmenter[1]?.deltaPct).toBe(10.5);
   });
 
+  it('beregner manuelle segmenter uden Store Bededagstillæg', () => {
+    const result = manuelForm.byggResultat(createKonsolideret({
+      beregnStoreBededagstillaeg: false,
+      feriePct: 0,
+      manualRows: [
+        row('base', '2023-01-01', 1000),
+        row('change', '2024-01-01', 1100),
+      ],
+    }));
+
+    expect(result.segmenter).toHaveLength(2);
+    expect(result.segmenter[1]?.fra).toBe(iso('2024-01-01'));
+    expect(result.segmenter[1]?.deltaPct).toBe(10);
+  });
+
   it('afviser strategi-, række-, pakke- og tomheds-gates', () => {
     expect(() => manuelForm.byggResultat({ ...createKonsolideret(), strategi: 'krl' } as never))
       .toThrow('manuel strategi mangler');
