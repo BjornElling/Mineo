@@ -1084,6 +1084,56 @@ describe('buildLoenudviklingModel', () => {
       },
     )).toThrow('mangler beregningsgrundlag');
   });
+
+  it('fejllukker et omvendt månedssegment før beløbsberegningen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(1_000);
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-01-05'), til: iso('2024-01-01') }] },
+    )).toThrow('ugyldigt maanedssegment');
+  });
+
+  it('fejllukker en aktiv beregningsperiode uden arbejdsgiverindtægt eller ydelse', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.tafPerioder = [{
+      id: 'taf-aktiv-uden-indkomst',
+      fra: iso('2024-01-02'),
+      til: iso('2024-01-05'),
+      loseFeriedage: 0,
+    }];
+    const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+    values.loenindkomstAnsaettelsesforhold = [{
+      ...baseAf,
+      id: 'af-aktiv-uden-indkomst',
+      loenudviklingBeregningsgrundlag: 'KRL satstabel',
+      loenudviklingKRLSatstabel: 'KTO (kommuner)',
+      indtaegtsoplysningerTableData: [],
+    }];
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      {
+        tafRanges: [{ fra: iso('2024-01-02'), til: iso('2024-01-05') }],
+        incomeForBeregningsperiode: { employers: [], benefits: [] },
+      },
+    )).toThrow('mangler beregningsgrundlag');
+  });
 });
 
 describe('buildLoenudviklingModel – Manuelt angivet i Beløb-tilstand (tillæg regulerer)', () => {
