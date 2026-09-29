@@ -8,6 +8,10 @@ import {
   resolveSfggReferenceperiodeMaxDate,
 } from '../../../domain/erstatningsopgoerelse/engines/sfggReferencesats';
 import { asSfggAmount, createSfggEmployment, createSfggIngenRow, sfggIso as iso } from '../../utils/sfggTestSupport';
+import type { ISODateString } from '../../../types/branded';
+
+// Testen injicerer bevidst en runtime-ugyldig dato for at fastholde fail-closed-værnet.
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 describe('sfggReferencesats', () => {
   it('bygger alle kendte ikke-beregnelige referencesatsårsager og genkender nul-dage', () => {
@@ -213,6 +217,35 @@ describe('sfggReferencesats', () => {
         status: 'not_calculable',
         kind: 'missing_referenceperiode',
         reason: 'Referenceperiode mangler',
+      },
+      sfggReferencesatsFormula: null,
+    });
+  });
+
+  it('fail-closer ved runtime-ugyldig referenceperiodedato', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const result = resolveSfggBaseRate(
+      values,
+      createSfggEmployment(),
+      {
+        ...createSfggIngenRow('af-1'),
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: invalidIso('2024-00-00'),
+        sfggReferenceperiodeTil: iso('2024-01-31'),
+      },
+      { kind: 'ferielov' },
+      { sumLoenInRangesKroner: () => 0 }
+    );
+
+    expect(result).toEqual({
+      sfggReferenceperiode: {
+        fra: invalidIso('2024-00-00'),
+        til: iso('2024-01-31'),
+      },
+      sfggReferencesatsOre: {
+        status: 'not_calculable',
+        kind: 'unresolvable_referenceperiode',
+        reason: 'Referenceperioden kan ikke opgøres',
       },
       sfggReferencesatsFormula: null,
     });
