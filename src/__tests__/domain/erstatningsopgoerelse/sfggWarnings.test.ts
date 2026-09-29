@@ -67,4 +67,34 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
 
     expect(findSfggSixMonthWarningEmploymentIds({ values, result })).toEqual([]);
   });
+
+  it('ignorerer en positiv men ugyldig lønrække', () => {
+    const { values, result } = buildWarningCase('2024-08-01');
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      indtaegtsoplysningerTableData: [{
+        id: 'ugyldig-maaned',
+        col0_maaned: '13',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+
+    expect(findSfggSixMonthWarningEmploymentIds({ values, result })).toEqual([]);
+  });
+
+  it('ignorerer ansættelsesforhold uden beregnet SFGG-resultat', () => {
+    const { values, result } = buildWarningCase('2024-08-01');
+
+    expect(findSfggSixMonthWarningEmploymentIds({
+      values,
+      result: { ...result, perAnsaettelsesforhold: [] },
+    })).toEqual([]);
+  });
 });
