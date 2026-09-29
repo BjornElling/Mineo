@@ -1,5 +1,5 @@
 import { buildTafPeriodeCutoffErrorMessage } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { evaluateTafPerioder } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodeValidation';
+import { computeTafCombinedExtraMaxDate, evaluateTafPerioder } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodeValidation';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
@@ -44,6 +44,53 @@ describe('buildTafPeriodeCutoffErrorMessage', () => {
 });
 
 describe('evaluateTafPerioder', () => {
+  it('vælger den tidligste aktive ekstra cutoff-dato', () => {
+    expect(computeTafCombinedExtraMaxDate({
+      skadedatoISO: iso('2010-01-01'),
+      erErhvervssygdom: false,
+      differencekravDato: iso('2024-07-01'),
+      endeligEETBeregnetDato: iso('2024-03-01'),
+      midlertidigEETBeregnetDato: iso('2024-05-01'),
+      aktivMidlertidigEETBeregnetDato: iso('2024-05-01'),
+      verserendeKlageEet: false,
+    })).toBe(iso('2024-02-29'));
+  });
+
+  it('returnerer ok for en gyldig række uden overlap eller cutoff', () => {
+    const evaluation = evaluateTafPerioder(
+      [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31') }],
+      {
+        skadedatoISO: iso('2010-06-01'),
+        erErhvervssygdom: false,
+        differencekravDato: undefined,
+        endeligEETBeregnetDato: undefined,
+        midlertidigEETBeregnetDato: undefined,
+        aktivMidlertidigEETBeregnetDato: undefined,
+        verserendeKlageEet: false,
+      }
+    ).get('taf-1');
+
+    expect(evaluation).toEqual({ kind: 'ok' });
+  });
+
+  it('rapporterer en datogrænsefejl fra rækkens samlede validering', () => {
+    const evaluation = evaluateTafPerioder(
+      [{ id: 'taf-1', fra: iso('2017-01-01'), til: iso('2017-01-31') }],
+      {
+        skadedatoISO: iso('2018-06-01'),
+        erErhvervssygdom: false,
+        differencekravDato: undefined,
+        endeligEETBeregnetDato: undefined,
+        midlertidigEETBeregnetDato: undefined,
+        aktivMidlertidigEETBeregnetDato: undefined,
+        verserendeKlageEet: false,
+      }
+    ).get('taf-1');
+
+    if (evaluation?.kind !== 'error') throw new Error('Forventede en TAF-datogrænsefejl');
+    expect(evaluation.message).toContain('Ingen gyldige datoer: min-dato (01-06-2018) er efter max-dato (31-01-2017)');
+  });
+
   it('gentager ikke afskæringsbeskeden, når hele perioden ligger efter afgørelsen', () => {
     const evaluation = evaluateTafPerioder(
       [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31') }],
