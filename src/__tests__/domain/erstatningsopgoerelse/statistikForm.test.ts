@@ -88,6 +88,17 @@ describe('statistikForm', () => {
       .toThrow('ingen statistiksegmenter');
   });
 
+  it('giver zero-delta for statistiksegmenter før den effektive basisdato', () => {
+    const result = statistikForm.byggResultat(createKonsolideret({
+      tafRanges: [{ fra: iso('2019-01-01'), til: iso('2020-06-30') }],
+    }));
+
+    expect(result.segmenter).toEqual([
+      { fra: iso('2019-01-01'), til: iso('2019-12-31'), deltaPct: 0 },
+      { fra: iso('2020-01-01'), til: iso('2020-06-30'), deltaPct: 0 },
+    ]);
+  });
+
   it('projicerer statistikmodellens kildedækning', () => {
     expect(statistikForm.coverageInterval(statistikAf('ILON12 (Danmarks Statistik)'))).toEqual({
       fraIso: iso('2005-01-01'),
