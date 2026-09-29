@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT/ARCH-batch – TD-412, arbejdsrevision
+
+Batchen tilføjer 1/1 matrixfacit i `zodTypeGuards.test.ts` for `TillaegAngivesSom` og 1/1
+runtime-facit i `assertNever.test.ts` for den præcise exhaustive-switch-fejl. Den målrettede
+utility-suite bestod med 2 filer / 8 tests; begge produktionsmoduler målte 100 % statements /
+100 % branches / 100 % functions / 100 % lines. Den fulde Vitest-suite bestod med 950 filer /
+9.574 tests. Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret;
+eventuelle fejl i de kaldende form-/switch-forløb og den øvrige input-/arkitekturparitet står fortsat
+åben under `INPUT-001`/`ARCH-002`.
+
 ## Seneste test-only CALC-batch – TD-411, arbejdsrevision
 
 Batchen tilføjer 8/8 direkte facitter i `offentligeYdelserUdviklingRegulering.test.ts` for tomme

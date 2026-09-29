@@ -1,4 +1,4 @@
-import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
+import { isLoenperiodeValue, isLoenPaaHelligdageValue, isTillaegAngivesSomValue } from '../../utils/zodTypeGuards';
 
 describe('isLoenperiodeValue', () => {
   it('gyldige lønperioder → true', () => {
@@ -43,5 +43,14 @@ describe('isLoenPaaHelligdageValue', () => {
     expect(isLoenPaaHelligdageValue(undefined)).toBe(false);
     expect(isLoenPaaHelligdageValue(0)).toBe(false);
     expect(isLoenPaaHelligdageValue(true)).toBe(false);
+  });
+});
+
+describe('isTillaegAngivesSomValue', () => {
+  it('accepterer de to schema-værdier og afviser andre typer', () => {
+    expect(isTillaegAngivesSomValue('procent')).toBe(true);
+    expect(isTillaegAngivesSomValue('beloeb')).toBe(true);
+    expect(isTillaegAngivesSomValue('beløb')).toBe(false);
+    expect(isTillaegAngivesSomValue(null)).toBe(false);
   });
 });
