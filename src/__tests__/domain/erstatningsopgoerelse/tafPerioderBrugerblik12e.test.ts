@@ -140,6 +140,7 @@ describe('BB-248 – en ferieperiode uden for sit vindue', () => {
     expect(cellMessage(projection, eoFerieperiodeFraField.bind('f1'))).toBe(besked);
     expect(projection.snapshot.data).toBeNull();
   });
+
 });
 
 describe('BB-249 – ferietabellens kolonne tæller dagene i TAF-perioden', () => {
