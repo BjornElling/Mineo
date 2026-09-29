@@ -2796,6 +2796,16 @@ bestod med 2 filer / 26 tests. `krlRegulering.ts` målte 100 % statements / 100 
 persistensformat er uændret; den virkelige KRL-katalogproveniens og øvrig KRL-downstream-,
 validator-, dokument- og browserparitet står fortsat åben under `DATA-001`/`CALC-006`/`TD-020`.
 
+## Seneste test-only SHELL-batch – TD-410, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `useContentUiScale.test.tsx` for initial skala og
+CSS-property, dobbelt resize før samme frame, faktisk skalaændring, no-op ved uændret bredde
+og cleanup af pending frame. Den målrettede hook-/uiScale-suite bestod med 2 filer / 45 tests.
+`useContentUiScale.ts` målte 100 % statements / 87,5 % branches / 100 % functions / 100 % lines;
+den server-side `typeof window === 'undefined'`-gren står fortsat som reserve. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig fysisk browser-/
+viewportparitet står fortsat åben under `SHELL-001`/`SHELL-002`/`TD-022`.
+
 ## Seneste test-only CALC-batch – TD-407, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `manuelProcentsatsForm.test.ts` for konsolidering med og
