@@ -2776,6 +2776,19 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-427, arbejdsrevision
+
+Batchen tilføjer 5/5 direkte facitter i `krlForm.test.ts` for ensartet konsolidering,
+KRL-segmenter og autoritativt forløb, strategi-/dato-/tabel-/tomheds-gates, korrupte
+basis-/segmentindeks og kildedækning. Filen bestod med 5/5 tests; `krlForm.ts` målte
+97,95 % statements / 94,11 % branches / 100 % functions / 97,82 % lines. Den fulde
+Vitest-suite bestod med 959 filer / 9.651 tests. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; den defensive interne KRL-indeksgren
+står fortsat som reserve, og øvrig reguleringsparitet står fortsat åben under
+`CALC-006`/`TD-020`. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og
+filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede releasegate
+skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-426, arbejdsrevision
 
 Batchen tilføjer 4/4 direkte facitter i `statistikForm.test.ts` for ensartet konsolidering,
