@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only PERSIST-batch – TD-399, arbejdsrevision
+
+Batchen tilføjer 6/6 direkte facitter i `inboundPersistedSection.test.ts` for canonical parse,
+dyb null-normalisering, flere ugyldige felter med salvage, atomisk fjernelse af en ugyldig
+tabelrække, kombineret unknown-/invalid-path-rapportering og fail-closed root-fejl. Filen
+bestod med 6/6 og målte 96,22 % statements / 93,33 % branches / 100 % functions /
+100 % lines. Den målrettede persistence-relaterede suite bestod med 6 filer / 81 tests.
+Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; øvrig
+persistence-, historik-, mutations- og platformsevidens står fortsat åben under
+`PERSIST-001`/`TD-001`/`TD-022`.
+
 ## Seneste test-only SHELL-batch – TD-398, arbejdsrevision
 
 Batchen tilføjer 6/6 direkte facitter i `pwaDisplayMode.test.ts` for aktiv/inaktiv
