@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only UI/PERSIST-batch – TD-400, arbejdsrevision
+
+Batchen udvider `bugReport.test.ts` med 12/12 direkte facitter for fuld kontekst og ekstra
+oplysninger, stack-trimning og tidsformat, fem browser-/OS-partitioner, aktive flag med
+dublet-/tomhedsfiltrering, komplet ContentBox-identifikation, begge download-overloads, lokal
+mailto-navigation, clipboard-succes/-fejl og mailto-fejllogning. Filen bestod med 19/19 og målte
+93,86 % statements / 79,26 % branches / 96,15 % functions / 94,51 % lines. De resterende
+mailto-fallbackgrene er defensive reserveveje efter den faste længdegrænse. Produktkode,
+beregningslogik, brugeradfærd, schema og persistensformat er uændret; den synlige
+load-preflightrejse står fortsat under `TD-087`/`TD-088`, og fuld browser-, mailklient- og
+platformssammenhæng står fortsat åben under `UI-010`/`PERSIST-001`/`TD-022`.
+
 ## Seneste test-only PERSIST-batch – TD-399, arbejdsrevision
 
 Batchen tilføjer 6/6 direkte facitter i `inboundPersistedSection.test.ts` for canonical parse,
