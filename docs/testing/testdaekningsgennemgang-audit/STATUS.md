@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-419, arbejdsrevision
+
+Batchen tilføjer 2/2 direkte facitter i `reguleringsPresentation.test.ts` for første/sidste gyldige
+TAF-dato med ugyldig række filtreret væk samt første/sidste lønudviklingssegment og tom-liste-
+fallback. Filen bestod med 66/66 tests; `reguleringsPresentation.ts` målte 77,44 % statements /
+63,15 % branches / 82,45 % functions / 82,44 % lines. Den fulde Vitest-suite bestod med 952 filer /
+9.607 tests. Produktkode, beregningslogik, brugeradfærd, schema og persistensformat er uændret; den
+øvrige reguleringsværdier-, indeks-, formel-, data- og browserparitet står fortsat åben under
+`CALC-006`/`TD-020`/`TD-014`.
+
 ## Seneste test-only PERSIST-batch – TD-418, arbejdsrevision
 
 Batchen tilføjer 1/1 direkte facit i `useFileSaveLoad.test.tsx` for en uventet save-fejl efter

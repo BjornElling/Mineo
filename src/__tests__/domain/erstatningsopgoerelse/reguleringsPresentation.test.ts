@@ -3,8 +3,10 @@ import {
   buildReguleringsvaerdierTableData as buildReguleringsvaerdierTableDataFromCanonical,
   buildReguleringIndexRows as buildReguleringIndexRowsFromCanonical,
   resolveAnvendtReguleringsdato as resolvePdfAnvendtReguleringsdato,
+  resolveLoenudviklingSegmentBounds,
   resolveLoenudviklingSegmenterForKilde,
   resolveLoenSkadedatoText,
+  resolveTafDateBounds,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
@@ -100,6 +102,57 @@ describe('reguleringsPresentation', () => {
 
     expect(resolvePdfAnvendtReguleringsdato(stamdata, values, af)).toBe(sharedResult);
   };
+
+  it('finder første og sidste gyldige TAF-dato og afviser et tomt datasæt', () => {
+    const values = cloneInitialValues();
+    values.tafPerioder = [
+      {
+        id: 'taf-late',
+        fra: iso('2025-01-01'),
+        til: iso('2025-01-31'),
+        loseFeriedage: 0,
+      },
+      {
+        id: 'taf-early',
+        fra: iso('2024-03-01'),
+        til: iso('2024-03-31'),
+        loseFeriedage: 0,
+      },
+      {
+        id: 'taf-invalid',
+        fra: undefined,
+        til: iso('2024-02-01'),
+        loseFeriedage: 0,
+      },
+    ];
+
+    expect(resolveTafDateBounds(values)).toEqual({
+      foerste: iso('2024-03-01'),
+      sidste: iso('2025-01-31'),
+    });
+    expect(resolveTafDateBounds({ ...values, tafPerioder: [] })).toBeNull();
+  });
+
+  it('finder første og sidste lønudviklingssegment og afviser en tom liste', () => {
+    const segment = (fra: string, til: string): LoenudviklingSegment => ({
+      kind: 'maaneder',
+      fra: iso(fra),
+      til: iso(til),
+      maaneder: 1,
+      maanedsloenOre: moneyOre(1000),
+      deltaPct: 0,
+      amountOre: moneyOre(1000),
+    });
+
+    expect(resolveLoenudviklingSegmentBounds([
+      segment('2025-01-01', '2025-01-31'),
+      segment('2024-03-01', '2024-03-31'),
+    ])).toEqual({
+      foerste: iso('2024-03-01'),
+      sidste: iso('2025-01-31'),
+    });
+    expect(resolveLoenudviklingSegmentBounds([])).toBeNull();
+  });
 
   describe('resolveLoenudviklingSegmenterForKilde', () => {
     const seg = (fra: string, til: string, deltaPct: number): LoenudviklingSegment => ({
