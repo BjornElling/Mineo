@@ -44,6 +44,31 @@ describe('tableModel roundtrip', () => {
     expect(back).toEqual(committed[0]);
   });
 
+  it('taf-modellen fail-closed-normaliserer tom input og tomme draftfelter', () => {
+    const emptyFromUndefined = ensureTafRows(undefined);
+    expect(emptyFromUndefined).toHaveLength(1);
+    expect(emptyFromUndefined[0]).toMatchObject({ fra: undefined, til: undefined, loseFeriedage: undefined });
+
+    const withGeneratedId = ensureTafRows([{
+      id: '',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-10'),
+      loseFeriedage: 1,
+    }]);
+    expect(withGeneratedId[0]?.id).toMatch(/^taf_row_/);
+
+    const emptyDraft = committedToTafDraftRows([{
+      id: 't-empty',
+      fra: undefined,
+      til: undefined,
+      loseFeriedage: undefined,
+    }])[0];
+    expect(emptyDraft).toEqual({ id: 't-empty', fra: '', til: '', loseFeriedage: '' });
+
+    const emptyCommitted = tafDraftToCommittedRow({ id: 't-empty', fra: '', til: '', loseFeriedage: '' });
+    expect(emptyCommitted).toEqual({ id: 't-empty', fra: undefined, til: undefined, loseFeriedage: undefined });
+  });
+
   it('øvrige krav draft↔committed bevarer id og beløb', () => {
     const committed = [{ id: 'o1', dato: toISODateString('2024-01-10'), udgiftTil: 'Medicn', beloeb: { kind: 'number', value: 100 } }] as const;
     const draft = committedToOevrigeKravDraftRows([...committed])[0];
