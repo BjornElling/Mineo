@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-436, arbejdsrevision
+
+Batchen tilføjer 1 direkte facit i `reguleringsPresentation.test.ts` for offentlig timeløn,
+alle relevante tillægskomponenter, offentlig satsresolution og split ved 01-01-2024.
+Filen bestod med 67/67 tests; målrettet modulmåling målte `reguleringsPresentation.ts` 83,24 %
+statements / 67,39 % branches / 83,33 % functions / 89,31 % lines. Den fulde Vitest-suite
+bestod med 965 filer / 9.686 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; den øvrige store præsentationsflade og reguleringsparitet står
+fortsat åben under `CALC-006`/`TD-020`. `npm run typecheck:test`, målrettet ESLint, diff-,
+encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-435, arbejdsrevision
 
 Batchen tilføjer 1 test med 5/5 direkte nul-output-facitter i `svieSmerteEngine.test.ts` for

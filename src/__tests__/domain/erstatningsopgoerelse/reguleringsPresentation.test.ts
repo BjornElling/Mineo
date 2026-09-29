@@ -640,6 +640,46 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
+  it('bygger direkte indeksrække for offentlig overenskomst med løn- og tillægskomponenter', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'kl-overenskomst';
+    af.offentligLoenType = 'Timeløn';
+    af.offentligLoenTrin = 20;
+    af.offentligLoenGruppe = 0;
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 16.95;
+    af.shSoPct = 4;
+    af.fritvalgPct = 5;
+    af.pensionPct = 14.37;
+
+    const rows = buildReguleringIndexRows({
+      segments: [{
+        kind: 'maaneder',
+        fra: iso('2023-06-01'),
+        til: iso('2025-12-31'),
+        maaneder: 31,
+        maanedsloenOre: moneyOre(300_000),
+        deltaPct: 0,
+        amountOre: moneyOre(9_300_000),
+      }],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-05-24'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.map((row) => row.fraDato)).toEqual(['01-06-2023', '01-01-2024']);
+    expect(rows[0]?.tilDato).toBe('31-12-2023');
+    expect(rows[1]?.tilDato).toBe('31-12-2025');
+    expect(rows[0]?.indeksberegning).toContain('x');
+    expect(rows[1]?.indeksberegning).toContain('/');
+    for (const row of rows) {
+      expect(row.indeks).not.toBe('');
+    }
+    expect(rows[1]?.loenudvikling).not.toBe('');
+  });
+
   it('viser basisrækken med sin rå satsdato (ikke reguleringsdatoen) når satsen ændrede sig mellem reguleringsdato og vinduets start', () => {
     // Reguleringsdatoen (24-05-2023) ligger før reguleringsvinduets start (01-06-2023), og
     // bygge-anlaeg har en satsændring 01-06-2023. Basisrækken – satsen i kraft PÅ reguleringsdatoen,
