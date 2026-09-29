@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only INPUT-batch – TD-403, arbejdsrevision
+
+Batchen tilføjer 4/4 direkte facitter i `fingerprintDeterminism.test.ts` for amount-, integer-,
+percent- og date-parsernes tomme og fejlende partitioner, inklusive ikke-finite numerik,
+min/max-grænser, fortegnsregel og ugyldig kalenderdato. Filen bestod med 8/8 og målte 98,79 %
+statements / 96,96 % branches / 100 % functions / 98,50 % lines. Den defensive fejlgren for et
+ugyldigt allerede prævalideret beløb står fortsat som reserve. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; øvrig inputmotor-, form/grid-, downstream-
+og browserparitet står fortsat åben under `INPUT-001`/`INPUT-002`/`TD-019`.
+
 ## Seneste test-only CALC-batch – TD-402, arbejdsrevision
 
 Batchen tilføjer 11/11 direkte facitter i `eoManualRegulationIssue.test.ts` for tom manuel
