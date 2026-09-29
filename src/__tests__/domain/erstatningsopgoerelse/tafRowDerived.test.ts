@@ -1,7 +1,13 @@
 import type { ISODateString } from '../../../types/branded';
 import type { TafPeriodeRow, FerieperiodeRow, ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildTafDerived, buildBeregningsperiodeTafOverlap } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
+import {
+  buildTafDerived,
+  buildBeregningsperiodeTafOverlap,
+  buildFerieFeriedageById,
+  resolveBeregningsperiodeFerieRamme,
+  resolveTafFerieRamme,
+} from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
 
@@ -253,5 +259,51 @@ describe('buildBeregningsperiodeTafOverlap', () => {
       ],
     });
     expect(result).toBeDefined();
+  });
+});
+
+describe('resolveBeregningsperiodeFerieRamme', () => {
+  it('returnerer beregningsperioden som én ramme ved gyldige datoer', () => {
+    expect(resolveBeregningsperiodeFerieRamme({
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
+    })).toEqual([{ fra: iso('2024-01-01'), til: iso('2024-12-31') }]);
+  });
+
+  it.each([
+    ['manglende fra-dato', undefined, iso('2024-12-31')],
+    ['manglende til-dato', iso('2024-01-01'), undefined],
+    ['omvendt interval', iso('2024-12-31'), iso('2024-01-01')],
+  ] as const)('%s → undefined', (_beskrivelse, fra, til) => {
+    expect(resolveBeregningsperiodeFerieRamme({
+      tafBeregningsperiodeFra: fra,
+      tafBeregningsperiodeTil: til,
+    })).toBeUndefined();
+  });
+});
+
+describe('TAF- og ferieramme-reserver', () => {
+  it('markerer en arbejdsdagsrække uden arbejdsdage', () => {
+    const result = buildTafDerived({
+      values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
+      tafPerioder: [makeTafRow('r1', iso('2024-11-23'), iso('2024-11-24'))],
+      ferieperioder: [],
+    });
+
+    expect(result.derivedById.r1).toBe(0);
+    expect(result.ingenArbejdsdageById).toEqual({ r1: true });
+  });
+
+  it('returnerer null, når rækkens egen ramme er ugyldig', () => {
+    expect(buildFerieFeriedageById([
+      { id: 'f1', fra: iso('2024-01-01'), til: undefined },
+    ], undefined)).toEqual({ f1: null });
+  });
+
+  it('bygger TAF-ferierammen uden skadedato', () => {
+    const values = makeValues({ tafPerioder: [makeTafRow('t1', '2024-01-01', '2024-01-31')] });
+    expect(resolveTafFerieRamme(values, undefined)).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-31') },
+    ]);
   });
 });
