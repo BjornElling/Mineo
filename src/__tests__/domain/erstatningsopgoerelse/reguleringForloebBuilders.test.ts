@@ -9,6 +9,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/engines/statistikRegulering';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 import type { StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
+import * as statistikRatesData from '../../../data/statistiskeRates';
 import { toISODateString } from '../../../types/branded';
 
 vi.mock('../../../data/klLoenaftaler', async (importActual) => {
@@ -42,6 +43,31 @@ describe('autoritative reguleringsforløb-byggere', () => {
 
     expect(buildStatistikIndexEntries(unknownModel)).toEqual([]);
     expect(buildStatistikForloeb(unknownModel)).toBeUndefined();
+  });
+
+  it('filtrerer uparsbare kvartaler og kvartaler uden gyldig ISO-startdato', () => {
+    const spy = vi.spyOn(statistikRatesData, 'getStatistiskLoenudvikling').mockReturnValue({
+      meta: {
+        id: statistikId('TEST'),
+        navn: 'Test',
+        hjaelpetekst: 'Test',
+      },
+      indeksvaerdier: [
+        { kvartal: 'ikke-et-kvartal' as statistikRatesData.Kvartal, indeksvaerdi: 1 },
+        { kvartal: '0000K1' as statistikRatesData.Kvartal, indeksvaerdi: 2 },
+        { kvartal: '2024K1' as statistikRatesData.Kvartal, indeksvaerdi: 3 },
+      ],
+    });
+
+    try {
+      expect(buildStatistikIndexEntries(statistikId('TEST'))).toEqual([{
+        startIso: toISODateString('2024-01-01'),
+        kvartal: '2024K1',
+        indeksvaerdi: 3,
+      }]);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('bygger KL-lønaftaleserien stigende og filtrerer en uparsbar kildedato', () => {
