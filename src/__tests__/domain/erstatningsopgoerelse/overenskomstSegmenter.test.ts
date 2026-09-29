@@ -194,6 +194,37 @@ describe('overenskomst-segmentbyggere', () => {
     )).toThrow('Loenudvikling kan ikke beregnes: basissats mangler');
   });
 
+  it('afviser offentlig serie med ugyldigt TAF-interval', () => {
+    const konsolideret = createOverenskomst({
+      overenskomstId: 'kl-overenskomst',
+      offentlig: offentligSelection,
+      tafRanges: [{ fra: invalidIso('ikke-en-dato'), til: iso('2024-12-31') }],
+    });
+
+    expect(() => buildOffentligOverenskomstSegmenter(
+      konsolideret,
+      offentligSelection,
+      buildOverenskomstSegmentContext(konsolideret)
+    )).toThrow('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
+  });
+
+  it('bygger nulsegment før offentlig dækning uden Store Bededag', () => {
+    const konsolideret = createOverenskomst({
+      reguleringsdato: iso('2000-01-01'),
+      overenskomstId: 'kl-overenskomst',
+      offentlig: offentligSelection,
+      tafRanges: [{ fra: iso('2000-01-01'), til: iso('2011-12-31') }],
+    });
+
+    const result = buildOffentligOverenskomstSegmenter(
+      konsolideret,
+      offentligSelection,
+      buildOverenskomstSegmentContext(konsolideret)
+    );
+
+    expect(result).toEqual([{ fra: iso('2000-01-01'), til: iso('2011-12-31'), deltaPct: 0 }]);
+  });
+
   it('afviser offentlig serie uden TAF-intervaller', () => {
     const konsolideret = createOverenskomst({
       overenskomstId: 'kl-overenskomst',
