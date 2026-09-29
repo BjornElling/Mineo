@@ -260,6 +260,48 @@ describe('computeTafNettoBeregning', () => {
     expect(result.tabtArbejdsfortjenesteOre).toBe(436380);
   });
 
+  it('samler begge ydelsestyper der udløser TAF-forbehold', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+    values.loenindkomstAnsaettelsesforhold = [
+      createEmployment({ id: 'af-forbehold', loenudviklingBeregningsgrundlag: 'Ingen' }),
+    ];
+    values.offentligeYdelserRows = [
+      {
+        id: 'kontanthjaelp-jan-2024',
+        fraDato: iso('2024-01-01'),
+        tilDato: iso('2024-01-31'),
+        ydelse: asAmount(1000),
+        tillaeg: undefined,
+        ydelsestype: 'kontanthjaelp',
+      },
+      {
+        id: 'ressourceforloebsydelse-jan-2024',
+        fraDato: iso('2024-01-01'),
+        tilDato: iso('2024-01-31'),
+        ydelse: asAmount(500),
+        tillaeg: undefined,
+        ydelsestype: 'ressourceforloebsydelse',
+      },
+    ];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] }
+    );
+
+    expect(result.tafIndtaegter?.forbeholdYdelsestyper).toEqual([
+      'kontanthjaelp',
+      'ressourceforloebsydelse',
+    ]);
+  });
+
   it('bruger arbejdsdage-divisor og arbejdsdage i TAF-perioden for offentlige ydelser', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
