@@ -2776,6 +2776,17 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only UI/PERSIST-batch – TD-408, arbejdsrevision
+
+Batchen tilføjer 5/5 direkte facitter i `useDevtoolsMonitoring.test.tsx` for ugyldig dismissal-id
+og initial snapshot, coalescing og suppression, dismissal med/uden snapshot, schema-sektioner,
+feltissues, UI-metadata, JSON-fallback, route-opdatering og cleanup. Den målrettede hook-/notice-suite
+bestod med 2 filer / 8 tests. `useDevtoolsMonitoring.ts` målte 98,83 % statements / 96,42 % branches /
+100 % functions / 100 % lines. Den defensive timergren, hvor flush kaldes uden et ventende snapshot,
+kan ikke nås gennem hookens egen timeroprettelse og står som reserve. Produktkode, beregningslogik,
+brugeradfærd, schema og persistensformat er uændret; øvrig browser-/platformsparitet og fuld
+fejlrapportsrejse står fortsat åben under `UI-010`/`PERSIST-001`/`TD-022`.
+
 ## Seneste test-only CALC-batch – TD-407, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `manuelProcentsatsForm.test.ts` for konsolidering med og
