@@ -74,6 +74,15 @@ describe('buildEoSvieSmerteRows – tidligere svie-/smertebeløb', () => {
     );
   });
 
+  it('advarer ikke, når satsåret ikke har et maksimum', () => {
+    const row = getTidligereTotalRow({
+      svieSmerteSatserAar: 2030,
+      svieSmerteTidligereTotal: amount(100_000),
+    });
+
+    expect(row?.message).toBeUndefined();
+  });
+
   it('måler mod det FORLIGSREDUCEREDE maksimum, som beregningen bruger', () => {
     // 50 % af 88.500 = 44.250. Et beløb derimellem er over grænsen i denne sag, men ikke i en sag
     // uden forlig.

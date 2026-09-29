@@ -2776,6 +2776,20 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-468, arbejdsrevision
+
+Batchen tilføjer 1 direkte brugerblik-facit i
+`eoRowSvieSmerteTidligereTotalWarning.test.ts` for ukendt satsår, hvor maksimum ikke
+findes, og der derfor ikke skal vises en maksimumsadvarsel. Sammen med
+`svieSmerteEngine.test.ts` og `td020SvieSmerteMaxDownstreamIndependent.test.ts` bestod
+den målrettede kontrol med 3 filer / 25 tests; `svieSmerteMaksimum.ts` målte 100 %
+statements / 100 % branches / 100 % functions / 100 % lines. Den fulde Vitest-suite
+bestod med 969 filer / 9.759 tests. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat
+åben under `CALC-006`/`TD-020`.
+`npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol skal bestå
+før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-467, arbejdsrevision
 
 Batchen tilføjer 1 direkte test i `svieSmerteSatsAar.test.ts` med 5 facitter for
