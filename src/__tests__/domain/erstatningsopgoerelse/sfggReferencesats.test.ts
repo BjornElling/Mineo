@@ -1,13 +1,142 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   getFirstIndtastedeTafFraDato,
+  isSfggNoEligibleDaysNotCalculable,
+  notCalculableSfggReferencesats,
   resolveSfggBaseRate,
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
 } from '../../../domain/erstatningsopgoerelse/engines/sfggReferencesats';
-import { createSfggEmployment, sfggIso as iso } from '../../utils/sfggTestSupport';
+import { asSfggAmount, createSfggEmployment, createSfggIngenRow, sfggIso as iso } from '../../utils/sfggTestSupport';
 
 describe('sfggReferencesats', () => {
+  it('bygger alle kendte ikke-beregnelige referencesatsårsager og genkender nul-dage', () => {
+    const cases = [
+      ['missing_rate', 'Dagssats mangler'],
+      ['per_period_rate', 'Direkte overenskomstsats beregnes pr. periode'],
+      ['missing_referenceperiode', 'Referenceperiode mangler'],
+      ['unresolvable_referenceperiode', 'Referenceperioden kan ikke opgøres'],
+      ['no_calendar_days', 'Ingen kalenderdage i SFGG-perioden'],
+      ['no_workdays', 'Ingen arbejdsdage i SFGG-perioden'],
+    ] as const;
+
+    for (const [kind, reason] of cases) {
+      expect(notCalculableSfggReferencesats(kind)).toEqual({
+        status: 'not_calculable',
+        kind,
+        reason,
+      });
+    }
+
+    expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_calendar_days'))).toBe(true);
+    expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_workdays'))).toBe(true);
+    expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('missing_rate'))).toBe(false);
+  });
+
+  it('beregner manuel referencesats og afviser manglende manuel dagssats', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const employment = createSfggEmployment();
+    const calculator = { sumLoenInRangesKroner: () => 0 };
+
+    expect(resolveSfggBaseRate(
+      values,
+      employment,
+      { ...createSfggIngenRow(employment.id), sfggManuelDagssats: asSfggAmount(123.456) },
+      { kind: 'manuel' },
+      calculator
+    ).sfggReferencesatsOre.status).toBe('ok');
+
+    expect(resolveSfggBaseRate(
+      values,
+      employment,
+      undefined,
+      { kind: 'manuel' },
+      calculator
+    )).toMatchObject({
+      sfggReferenceperiode: null,
+      sfggReferencesatsOre: {
+        status: 'not_calculable',
+        kind: 'missing_rate',
+      },
+      sfggReferencesatsFormula: null,
+    });
+  });
+
+  it('afviser direkte overenskomstsats som referencesats', () => {
+    const result = resolveSfggBaseRate(
+      createErstatningsopgoerelseInitialValues(),
+      createSfggEmployment(),
+      undefined,
+      { kind: 'overenskomst_direkte' },
+      { sumLoenInRangesKroner: () => 0 }
+    );
+
+    expect(result).toMatchObject({
+      sfggReferenceperiode: null,
+      sfggReferencesatsOre: {
+        status: 'not_calculable',
+        kind: 'per_period_rate',
+      },
+      sfggReferencesatsFormula: null,
+    });
+  });
+
+  it('beregner referencesatsformlen og håndterer nul kalender- og arbejdsdage', () => {
+    const employment = createSfggEmployment();
+    const calculator = { sumLoenInRangesKroner: () => 1_000 };
+    const referenceRow = {
+      ...createSfggIngenRow(employment.id),
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-07'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+    };
+
+    const calculable = resolveSfggBaseRate(
+      createErstatningsopgoerelseInitialValues(),
+      employment,
+      referenceRow,
+      { kind: 'ferielov' },
+      calculator
+    );
+    expect(calculable.sfggReferencesatsOre.status).toBe('ok');
+    expect(calculable.sfggReferencesatsFormula).toMatchObject({
+      loenPlusLoen2PlusIkkePensLoenKroner: 1_000,
+      feriePctDecimal: 0.125,
+      divisorDage: 7,
+      divisorLabel: 'kalenderdage',
+    });
+
+    const noCalendarDaysValues = createErstatningsopgoerelseInitialValues();
+    noCalendarDaysValues.ferieperioder = [{ id: 'ferie-weekend', fra: iso('2024-01-06'), til: iso('2024-01-07') }];
+    expect(resolveSfggBaseRate(
+      noCalendarDaysValues,
+      employment,
+      { ...referenceRow, sfggReferenceperiodeFravaersdageUdenLoen: 10 },
+      { kind: 'ferielov' },
+      calculator
+    ).sfggReferencesatsOre).toMatchObject({
+      status: 'not_calculable',
+      kind: 'no_calendar_days',
+    });
+
+    const noWorkdaysValues = createErstatningsopgoerelseInitialValues();
+    noWorkdaysValues.beregnesUdFra = 'Angivet dagsløn';
+    expect(resolveSfggBaseRate(
+      noWorkdaysValues,
+      employment,
+      {
+        ...referenceRow,
+        sfggReferenceperiodeFra: iso('2024-01-06'),
+        sfggReferenceperiodeTil: iso('2024-01-07'),
+      },
+      { kind: 'overenskomst_ferielov' },
+      calculator
+    ).sfggReferencesatsOre).toMatchObject({
+      status: 'not_calculable',
+      kind: 'no_workdays',
+    });
+  });
+
   describe('resolveSfggReferenceperiodeDayCount', () => {
     it('returnerer null ved manglende eller omvendt referenceperiode', () => {
       const values = createErstatningsopgoerelseInitialValues();
