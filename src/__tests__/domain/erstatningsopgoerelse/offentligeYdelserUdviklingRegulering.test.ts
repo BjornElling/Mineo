@@ -10,8 +10,34 @@ import { formatPercent } from '../../../utils/formatUtils';
 import { roundByMethod } from '../../../utils/rounding';
 import { toISODateString } from '../../../types/branded';
 import type { IncomePeriodResult } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import type { OffentligeYdelserUdviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { moneyOre } from '../../../domain/money/money';
 
 const iso = (value: string) => toISODateString(value);
+
+const makeTableModel = (
+  overrides: Partial<OffentligeYdelserUdviklingModel> = {}
+): OffentligeYdelserUdviklingModel => ({
+  reguleringsLabel: 'Statslig regulering per 1. januar',
+  reguleringsBaseIso: iso('2022-01-01'),
+  beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+  entries: [{
+    typeKey: 'dagpenge',
+    label: 'Dagpenge',
+    beregnedeSegmenter: [{
+      kind: 'maaneder',
+      fra: iso('2022-01-01'),
+      til: iso('2022-01-31'),
+      maaneder: 1,
+      maanedsloenOre: moneyOre(100),
+      deltaPct: 0,
+      amountOre: moneyOre(100),
+    }],
+    total: { status: 'ok', value: moneyOre(100) },
+  }],
+  total: { status: 'ok', value: moneyOre(100) },
+  ...overrides,
+});
 
 describe('buildOffentligeYdelserUdviklingModel regulering', () => {
   it('runder den akkumulerede reguleringsprocent til 2 decimaler før både beløb og visning', () => {
@@ -98,5 +124,117 @@ describe('buildOffentligeYdelserReguleringTableData', () => {
     const table = buildOffentligeYdelserReguleringTableData(model);
     expect(table).not.toBeNull();
     expect(table?.rows).toEqual([]);
+  });
+
+  it('returnerer null for Ingen, manglende base eller manglende segmenter', () => {
+    expect(buildOffentligeYdelserReguleringTableData(makeTableModel({ reguleringsLabel: 'Ingen' }))).toBeNull();
+    expect(buildOffentligeYdelserReguleringTableData(makeTableModel({ reguleringsBaseIso: undefined }))).toBeNull();
+    expect(buildOffentligeYdelserReguleringTableData(makeTableModel({ entries: [] }))).toBeNull();
+  });
+
+  it('fejler lukket når visningstabellen mangler en reguleringssats for et fremtidigt år', () => {
+    const model = makeTableModel({
+      entries: [{
+        typeKey: 'dagpenge',
+        label: 'Dagpenge',
+        beregnedeSegmenter: [{
+          kind: 'maaneder',
+          fra: iso('2022-01-01'),
+          til: iso('2100-12-31'),
+          maaneder: 1,
+          maanedsloenOre: moneyOre(100),
+          deltaPct: 0,
+          amountOre: moneyOre(100),
+        }],
+        total: { status: 'ok', value: moneyOre(100) },
+      }],
+    });
+
+    expect(() => buildOffentligeYdelserReguleringTableData(model)).toThrow(
+      'Offentlige ydelser kan ikke beregnes: reguleringssats mangler for 2027'
+    );
+  });
+});
+
+describe('buildOffentligeYdelserUdviklingModel', () => {
+  const baseParams = (overrides: Partial<Parameters<typeof buildOffentligeYdelserUdviklingModel>[0]> = {}) => ({
+    values: { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetFraEetSiden: 'Nej' as const },
+    incomeForBeregningsperiode: {
+      employers: [],
+      benefits: [{ typeKey: 'dagpenge', label: 'Dagpenge', amount: 12000 }],
+    },
+    divisor: 1,
+    tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    tafRanges: [{ fra: iso('2022-01-01'), til: iso('2022-01-31') }],
+    tafArbejdsdageSet: null,
+    reguler: false,
+    reguleringsBaseIso: undefined,
+    ...overrides,
+  });
+
+  it('returnerer null når beregningsperioden ikke indeholder ydelser', () => {
+    expect(buildOffentligeYdelserUdviklingModel(baseParams({
+      incomeForBeregningsperiode: { employers: [], benefits: [] },
+      divisor: null,
+      tafRanges: [],
+    }))).toBeNull();
+  });
+
+  it('afviser manglende divisor og manglende TAF-perioder', () => {
+    expect(() => buildOffentligeYdelserUdviklingModel(baseParams({ divisor: 0 }))).toThrow(
+      'Offentlige ydelser kan ikke beregnes: mangler beregningsgrundlag'
+    );
+    expect(() => buildOffentligeYdelserUdviklingModel(baseParams({ tafRanges: [] }))).toThrow(
+      'Offentlige ydelser kan ikke beregnes: TAF-perioder mangler'
+    );
+    expect(() => buildOffentligeYdelserUdviklingModel(baseParams({
+      reguler: true,
+      reguleringsBaseIso: undefined,
+    }))).toThrow('Offentlige ydelser kan ikke beregnes: reguleringsdato mangler');
+  });
+
+  it('bygger et arbejdsdagssegment og springer et segment uden arbejdsdage over', () => {
+    const model = buildOffentligeYdelserUdviklingModel(baseParams({
+      tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      tafRanges: [
+        { fra: iso('2022-01-01'), til: iso('2022-01-02') },
+        { fra: iso('2022-01-03'), til: iso('2022-01-04') },
+      ],
+      tafArbejdsdageSet: new Set([iso('2022-01-03')]),
+    }));
+
+    expect(model?.entries[0]?.beregnedeSegmenter).toEqual([expect.objectContaining({
+      kind: 'arbejdsdage',
+      fra: iso('2022-01-03'),
+      til: iso('2022-01-04'),
+      arbejdsdage: 1,
+      amountOre: moneyOre(1200000),
+    })]);
+  });
+
+  it('afviser arbejdsdagsberegning uden arbejdsdagesæt', () => {
+    expect(() => buildOffentligeYdelserUdviklingModel(baseParams({
+      tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+    }))).toThrow('Offentlige ydelser kan ikke beregnes: arbejdsdagegrundlag mangler');
+  });
+
+  it('runder midlertidigt EET til hele kroner når togglen er aktiv', () => {
+    const model = buildOffentligeYdelserUdviklingModel(baseParams({
+      values: { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetFraEetSiden: 'Ja' },
+      incomeForBeregningsperiode: {
+        employers: [],
+        benefits: [{ typeKey: 'midlertidigt_eet', label: 'Midlertidigt EET', amount: 10.555 }],
+      },
+    }));
+
+    expect(model?.entries[0]?.beregnedeSegmenter[0]?.amountOre).toBe(moneyOre(1100));
+  });
+});
+
+describe('resolveOffentligeYdelserAkkumuleretReguleringPct', () => {
+  it('fejler lukket når den valgte periode mangler en reguleringssats', () => {
+    expect(() => resolveOffentligeYdelserAkkumuleretReguleringPct(1900, 1900)).toThrow(
+      'Offentlige ydelser kan ikke beregnes: reguleringssats mangler for 1900'
+    );
   });
 });
