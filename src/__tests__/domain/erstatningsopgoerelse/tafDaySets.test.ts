@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import {
   buildDatoSetInclusive,
   buildDatoSetInclusiveFromDates,
+  countFeriedageInRanges,
   buildFerieDageSet,
   buildFerieDageSetForPeriode,
   buildShDageSet,
@@ -531,6 +532,24 @@ describe('buildTafArbejdsdageSetForRange', () => {
 });
 
 describe('buildTafArbejdsdageSetFromRows', () => {
+  it('returnerer tomt sæt for eksplicit tom autoritativ range og bruger rå rækker ellers', () => {
+    const emptyAuthoritative = buildTafArbejdsdageSetFromRows(
+      [{ id: 'taf-1', fra: iso('2024-02-05'), til: iso('2024-02-07'), loseFeriedage: 1 }],
+      [],
+      { authoritativeRanges: [] }
+    );
+    expect(emptyAuthoritative.size).toBe(0);
+
+    const fromRows = buildTafArbejdsdageSetFromRows(
+      [
+        { id: 'invalid', fra: undefined, til: iso('2024-02-07'), loseFeriedage: 2 },
+        { id: 'taf-2', fra: iso('2024-02-05'), til: iso('2024-02-07') },
+      ],
+      []
+    );
+    expect(fromRows).toEqual(new Set([iso('2024-02-05'), iso('2024-02-06'), iso('2024-02-07')]));
+  });
+
   it('placerer løse feriedage ud fra autoritativ clampet range', () => {
     const result = buildTafArbejdsdageSetFromRows(
       [{
@@ -612,6 +631,15 @@ describe('buildTafArbejdsdageSetFromRows', () => {
 });
 
 describe('buildTafFerieFravaerSummary', () => {
+  it('returnerer tom summary uden autoritative ranges', () => {
+    expect(buildTafFerieFravaerSummary([], [], [])).toEqual({
+      ferieperioder: [],
+      feriedage: 0,
+      loseFeriedage: 0,
+      totalFeriedage: 0,
+    });
+  });
+
   it('opsummerer løse feriedage ud fra autoritative ranges', () => {
     const summary = buildTafFerieFravaerSummary(
       [{
@@ -626,5 +654,54 @@ describe('buildTafFerieFravaerSummary', () => {
 
     expect(summary.loseFeriedage).toBe(2);
     expect(summary.totalFeriedage).toBe(2);
+  });
+
+  it('summerer kun gyldige feriedage i autoritative ranges', () => {
+    const summary = buildTafFerieFravaerSummary(
+      [{ id: 'taf-1', fra: iso('2024-03-04'), til: iso('2024-03-15'), loseFeriedage: 0 }],
+      [
+        { id: 'invalid-missing', fra: undefined, til: iso('2024-03-05') },
+        { id: 'invalid-reversed', fra: iso('2024-03-07'), til: iso('2024-03-06') },
+        { id: 'sh-only', fra: iso('2024-01-01'), til: iso('2024-01-01') },
+        { id: 'valid-first', fra: iso('2024-03-05'), til: iso('2024-03-06') },
+        { id: 'valid-second', fra: iso('2024-03-12'), til: iso('2024-03-13') },
+        { id: 'non-overlap', fra: iso('2024-04-01'), til: iso('2024-04-05') },
+      ],
+      [
+        { fra: iso('2024-01-01'), til: iso('2024-01-01') },
+        { fra: iso('2024-03-04'), til: iso('2024-03-08') },
+        { fra: iso('2024-03-11'), til: iso('2024-03-15') },
+      ]
+    );
+
+    expect(summary.ferieperioder).toEqual([
+      { fra: iso('2024-03-05'), til: iso('2024-03-06') },
+      { fra: iso('2024-03-12'), til: iso('2024-03-13') },
+    ]);
+    expect(summary.feriedage).toBe(4);
+    expect(summary.loseFeriedage).toBe(0);
+    expect(summary.totalFeriedage).toBe(4);
+  });
+});
+
+describe('countFeriedageInRanges', () => {
+  it('tæller kun arbejdsferiedage i overlap og afviser ugyldige ferieperioder', () => {
+    const ranges = [{ fra: iso('2024-01-02'), til: iso('2024-01-03') }];
+
+    expect(countFeriedageInRanges({ fra: undefined, til: iso('2024-01-03') }, ranges)).toBeNull();
+    expect(countFeriedageInRanges({ fra: iso('2024-01-03'), til: iso('2024-01-02') }, ranges)).toBeNull();
+    expect(countFeriedageInRanges({ fra: iso('2024-01-01'), til: iso('2024-01-05') }, ranges)).toBe(2);
+    expect(
+      countFeriedageInRanges(
+        { fra: iso('2024-01-01'), til: iso('2024-01-01') },
+        [{ fra: iso('2024-01-01'), til: iso('2024-01-01') }]
+      )
+    ).toBe(0);
+    expect(
+      countFeriedageInRanges(
+        { fra: iso('2024-01-01'), til: iso('2024-01-05') },
+        [{ fra: iso('2024-01-10'), til: iso('2024-01-12') }]
+      )
+    ).toBe(0);
   });
 });
