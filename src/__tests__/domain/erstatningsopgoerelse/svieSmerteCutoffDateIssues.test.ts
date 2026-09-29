@@ -1,8 +1,13 @@
 import { collectSvieSmerteCutoffDateIssues } from '../../../domain/erstatningsopgoerelse/svieSmerteCutoffDateIssues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { evaluateSvieSmertePerioder } from '../../../domain/erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
+import {
+  buildSvieSmerteCutoffErrorMessage,
+  buildSvieSmertePeriodeCutoffErrorMessage,
+  clampSvieSmerteRange,
+} from '../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { resolveFieldIssueTooltip } from '../../../inputCore/inputIssue';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 const eoWith = (overrides: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
@@ -22,6 +27,8 @@ const eoWith = (overrides: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
   ],
   ...overrides,
 });
+
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 describe('collectSvieSmerteCutoffDateIssues', () => {
   it('markerer begge datofelter i en periode efter ménafgørelsen med samme konkrete besked', () => {
@@ -179,5 +186,36 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
       message: 'Til-dato skal være efter fra-dato',
       field: 'til',
     });
+  });
+
+  it('falder tilbage til rå dato-tekst ved runtime-ugyldig cutoff-dato', () => {
+    const invalidDate = invalidIso('2024-99-99');
+
+    expect(buildSvieSmerteCutoffErrorMessage({
+      value: invalidDate,
+      menAfgoerelseDato: invalidDate,
+    })).toBe('Der er angivet svie/smerte efter datoen for en ménafgørelse (2024-99-99)');
+    expect(buildSvieSmertePeriodeCutoffErrorMessage({
+      fra: invalidDate,
+      til: invalidDate,
+      menAfgoerelseDato: invalidDate,
+    })).toBe('Hele perioden ligger efter datoen for ménafgørelsen (2024-99-99)');
+  });
+
+  it('viser hele-perioden-beskeden når fra-datoen ligger på cutoff-siden', () => {
+    expect(buildSvieSmertePeriodeCutoffErrorMessage({
+      fra: toISODateString('2024-09-17'),
+      til: toISODateString('2024-09-20'),
+      menAfgoerelseDato: toISODateString('2024-09-16'),
+    })).toBe('Hele perioden ligger efter datoen for ménafgørelsen (16-09-2024)');
+  });
+
+  it('returnerer null når clamping reducerer perioden til ingenting', () => {
+    expect(clampSvieSmerteRange({
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-10'),
+    }, {
+      minStart: toISODateString('2024-01-11'),
+    })).toBeNull();
   });
 });
