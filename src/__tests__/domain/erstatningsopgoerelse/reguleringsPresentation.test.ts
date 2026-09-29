@@ -680,6 +680,47 @@ describe('reguleringsPresentation', () => {
     expect(rows[1]?.loenudvikling).not.toBe('');
   });
 
+  it('falder tilbage til segmentindeks ved manglende eller ugyldig offentlig lønreference', () => {
+    const cases: Array<{
+      navn: string;
+      offentligLoenType: 'Månedsløn' | 'Timeløn' | undefined;
+      offentligLoenTrin: number | undefined;
+      offentligLoenGruppe: number | undefined;
+    }> = [
+      { navn: 'manglende løntype', offentligLoenType: undefined, offentligLoenTrin: 20, offentligLoenGruppe: 0 },
+      { navn: 'ugyldig løngruppe', offentligLoenType: 'Timeløn', offentligLoenTrin: 20, offentligLoenGruppe: 99 },
+      { navn: 'ugyldigt løntrin', offentligLoenType: 'Timeløn', offentligLoenTrin: 9999, offentligLoenGruppe: 0 },
+    ];
+
+    for (const testCase of cases) {
+      const values = cloneInitialValues();
+      const af = values.loenindkomstAnsaettelsesforhold[0];
+      af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+      af.overenskomstId = 'kl-overenskomst';
+      af.offentligLoenType = testCase.offentligLoenType;
+      af.offentligLoenTrin = testCase.offentligLoenTrin;
+      af.offentligLoenGruppe = testCase.offentligLoenGruppe;
+
+      const rows = buildReguleringIndexRows({
+        segments: [{
+          kind: 'maaneder',
+          fra: iso('2023-06-01'),
+          til: iso('2023-12-31'),
+          maaneder: 7,
+          maanedsloenOre: moneyOre(300_000),
+          deltaPct: 0,
+          amountOre: moneyOre(2_100_000),
+        }],
+        ansaettelsesforhold: af,
+        anvendtReguleringsdato: iso('2023-05-24'),
+        tafBeregningsenhed: 'Måneder',
+      });
+
+      expect(rows, testCase.navn).toHaveLength(1);
+      expect(rows[0]?.indeks, testCase.navn).toBe('100,00');
+    }
+  });
+
   it('viser basisrækken med sin rå satsdato (ikke reguleringsdatoen) når satsen ændrede sig mellem reguleringsdato og vinduets start', () => {
     // Reguleringsdatoen (24-05-2023) ligger før reguleringsvinduets start (01-06-2023), og
     // bygge-anlaeg har en satsændring 01-06-2023. Basisrækken – satsen i kraft PÅ reguleringsdatoen,
