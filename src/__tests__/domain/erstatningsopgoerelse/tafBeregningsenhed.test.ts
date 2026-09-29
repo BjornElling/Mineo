@@ -3,7 +3,12 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import {
+  computeTafBeregningsenhed,
+  TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR,
+  TAF_BEREGNES_SOM,
+  type TafBeregningsenhedInput,
+} from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString } from '../../../types/branded';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
@@ -113,6 +118,70 @@ describe('computeTafBeregningsenhed', () => {
         },
       ],
     });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('stays months with standard settings even when an overlapping income row exists', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenPaaHelligdage: 'Almindelig løn',
+          fuldLoenUnderFerie: 'Ja',
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '1',
+              col1_maaned: '2024',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
+              col2: { kind: 'number', value: 1000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('stays months when non-standard settings have no income-row collection', () => {
+    const employmentWithoutRows = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      loenPaaHelligdage: 'SH-udbetaling',
+      indtaegtsoplysningerTableData: undefined,
+    } as unknown as ReturnType<typeof createDefaultLoenindkomstAnsaettelsesforhold>;
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: [employmentWithoutRows],
+    });
+
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('falder tilbage til måneder når beregningsenheden ikke er angivet', () => {
+    const values = makeValues({ beregnesUdFra: undefined });
+    expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
+  });
+
+  it('falder tilbage til måneder når ansættelsesforhold mangler runtime', () => {
+    const values = {
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      loenindkomstAnsaettelsesforhold: undefined,
+    } as unknown as TafBeregningsenhedInput;
+
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
   });
 
