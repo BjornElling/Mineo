@@ -2787,6 +2787,15 @@ kan ikke nås gennem hookens egen timeroprettelse og står som reserve. Produktk
 brugeradfærd, schema og persistensformat er uændret; øvrig browser-/platformsparitet og fuld
 fejlrapportsrejse står fortsat åben under `UI-010`/`PERSIST-001`/`TD-022`.
 
+## Seneste test-only CALC/DATA-batch – TD-409, arbejdsrevision
+
+Batchen tilføjer 3/3 direkte facitter i `krlRegulering.test.ts` for manglende tabel, tom tabel
+samt håndskrevne gyldige/ugyldige perioder med stigende ISO-sortering. Den målrettede KRL-suite
+bestod med 2 filer / 26 tests. `krlRegulering.ts` målte 100 % statements / 100 % branches /
+100 % functions / 100 % lines. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; den virkelige KRL-katalogproveniens og øvrig KRL-downstream-,
+validator-, dokument- og browserparitet står fortsat åben under `DATA-001`/`CALC-006`/`TD-020`.
+
 ## Seneste test-only CALC-batch – TD-407, arbejdsrevision
 
 Batchen tilføjer 5/5 direkte facitter i `manuelProcentsatsForm.test.ts` for konsolidering med og
