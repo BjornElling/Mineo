@@ -154,6 +154,34 @@ describe('reguleringsPresentation', () => {
     expect(resolveLoenudviklingSegmentBounds([])).toBeNull();
   });
 
+  it('bygger fallback-indeksrække fra segmentet uden basisformel', () => {
+    const ansaettelsesforhold = createDefaultLoenindkomstAnsaettelsesforhold();
+    ansaettelsesforhold.loenudviklingBeregningsgrundlag = 'Ingen';
+
+    const rows = buildReguleringIndexRows({
+      segments: [{
+        kind: 'maaneder',
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-31'),
+        maaneder: 1,
+        maanedsloenOre: moneyOre(100000),
+        deltaPct: 2.5,
+        amountOre: moneyOre(100000),
+      }],
+      ansaettelsesforhold,
+      anvendtReguleringsdato: undefined,
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows).toMatchObject([{
+      fraDato: '01-01-2024',
+      tilDato: '31-01-2024',
+      indeksberegning: '102,50 / 100,00',
+      indeks: '102,50',
+      loenudvikling: '+ 2,50 %',
+    }]);
+  });
+
   describe('resolveLoenudviklingSegmenterForKilde', () => {
     const seg = (fra: string, til: string, deltaPct: number): LoenudviklingSegment => ({
       kind: 'maaneder',
