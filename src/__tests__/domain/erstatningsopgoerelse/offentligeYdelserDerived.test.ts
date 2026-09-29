@@ -21,6 +21,15 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result.ydelsePerDag).toBeNull();
   });
 
+  it('behandler runtime-manglende ydelsestype som ukendt type', () => {
+    const result = deriveOffentligeYdelserRow({
+      ...baseRow,
+      ydelsestype: undefined as unknown as OffentligeYdelserRow['ydelsestype'],
+    });
+
+    expect(result).toEqual({ periodiseringLabel: '', antalDage: null, ydelsePerDag: null });
+  });
+
   it('beregner ydelse pr. dag for kalenderdage', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
