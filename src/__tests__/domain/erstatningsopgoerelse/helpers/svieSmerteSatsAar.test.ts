@@ -3,6 +3,7 @@ import {
   findLatestSvieSmerteSatsAarAtOrBefore,
   getYearOneMonthAfter,
   hasSvieSmerteSatserForAar,
+  erSvieSmerteSatserHoejere,
   resolveSvieSmerteSatsAarForReferenceDate,
 } from '../../../../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 
@@ -36,5 +37,26 @@ describe('svieSmerteSatsAar', () => {
 
   it('returnerer undefined fail-closed, når der ikke findes et komplet satsår på eller før målet', () => {
     expect(findLatestSvieSmerteSatsAarAtOrBefore(2023, completeRates)).toBeUndefined();
+  });
+
+  it('klassificerer højere, uændrede og manglende senere satser', () => {
+    expect(erSvieSmerteSatserHoejere(2025, 2024, completeRates)).toBe(true);
+    expect(erSvieSmerteSatserHoejere(2025, 2025, completeRates)).toBe(false);
+    expect(erSvieSmerteSatserHoejere(2025, 2024, {
+      prDag: { 2024: 230, 2025: 230 },
+      max: { 2024: 88_500, 2025: 92_000 },
+    })).toBe(true);
+    expect(erSvieSmerteSatserHoejere(2025, 2024, {
+      prDag: { 2025: 230 },
+      max: { 2024: 88_500, 2025: 92_000 },
+    })).toBe(true);
+    expect(erSvieSmerteSatserHoejere(2025, 2024, {
+      prDag: { 2024: 230, 2025: 230 },
+      max: { 2025: 92_000 },
+    })).toBe(true);
+    expect(erSvieSmerteSatserHoejere(2025, 2024, {
+      prDag: { 2024: 230, 2025: 230 },
+      max: { 2024: 88_500 },
+    })).toBe(false);
   });
 });
