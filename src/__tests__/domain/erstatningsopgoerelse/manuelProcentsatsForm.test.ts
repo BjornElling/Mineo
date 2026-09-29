@@ -1,5 +1,6 @@
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { manuelProcentsatsForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/manuelProcentsatsForm';
+import * as manuelProcentsatsRegulering from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
 import type {
   FormKonsoliderContext,
   KonsolideretLoenudvikling,
@@ -115,6 +116,10 @@ describe('manuelProcentsatsForm', () => {
 
     expect(() => manuelProcentsatsForm.byggResultat(createKonsolideret({ reguleringsdato: undefined })))
       .toThrow('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
+    const entriesSpy = vi.spyOn(manuelProcentsatsRegulering, 'buildManuelProcentsatsEntries').mockReturnValue([]);
+    expect(() => manuelProcentsatsForm.byggResultat(createKonsolideret()))
+      .toThrow('Loenudvikling kan ikke beregnes: manuel procentsats mangler basisindeks');
+    entriesSpy.mockRestore();
     expect(() => manuelProcentsatsForm.byggResultat(createKonsolideret({ tafRanges: [] })))
       .toThrow('Loenudvikling kan ikke beregnes: ingen manuel procentsats-segmenter');
   });
