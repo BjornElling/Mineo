@@ -27,6 +27,11 @@ describe('calculateKalenderdageInclusive', () => {
   it('returns null for reversed ranges', () => {
     expect(calculateKalenderdageInclusive(iso('2024-02-02'), iso('2024-02-01'))).toBeNull();
   });
+
+  it('returnerer null ved manglende eller ugyldig runtime-dato', () => {
+    expect(calculateKalenderdageInclusive(undefined, iso('2024-02-01'))).toBeNull();
+    expect(calculateKalenderdageInclusive(iso('2024-01-xx'), iso('2024-02-01'))).toBeNull();
+  });
 });
 
 describe('calculateTafAntalMaaneder', () => {
