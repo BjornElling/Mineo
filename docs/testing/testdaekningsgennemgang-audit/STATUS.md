@@ -2776,6 +2776,18 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only CALC-batch – TD-451, arbejdsrevision
+
+Batchen tilføjer 1 direkte facit i `tafCutoffDateIssues.test.ts` for valid typed
+midlertidig afgørelsesdato kombineret med runtime-ugyldig TAF-fra-dato. Sammen med
+`tafPerioderBrugerblik12e.test.ts` bestod den målrettede kontrol med 2 filer / 23 tests;
+`tafCutoffDateIssues.ts` målte 100 % statements / branches / functions / lines. Den fulde
+Vitest-suite bestod med 967 filer / 9.722 tests. Produktkode, beregningslogik, brugeradfærd,
+schema og persistensformat er uændret; øvrig TAF- og reguleringsparitet står fortsat åben
+under `CALC-006`/`TD-020`. `npm run typecheck:test`, målrettet ESLint, diff-,
+encoding- og filnavnskontrol skal bestå før commit. Ændringen er test-only; den samlede
+releasegate skal genkøres efter batchen.
+
 ## Seneste test-only CALC-batch – TD-450, arbejdsrevision
 
 Batchen tilføjer 1 test med 4 direkte facitter i `tableModelRoundTrip.test.ts` for TAF-table-modellens

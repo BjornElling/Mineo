@@ -2,7 +2,7 @@
 import { collectTafCutoffDateIssues } from '../../../domain/erstatningsopgoerelse/tafCutoffDateIssues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { resolveFieldIssueTooltip } from '../../../inputCore/inputIssue';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 // TAF-cutoff mod differencekrav + endeligt/midlertidigt EET som STRUKTURELLE feltfejl.
@@ -127,5 +127,23 @@ describe('collectTafCutoffDateIssues', () => {
 
   it('er tavs når ingen cutoff-dato er sat', () => {
     expect(collectTafCutoffDateIssues(eoWith({}), SKADEDATO_EFTER_2011)).toHaveLength(0);
+  });
+
+  it('fejllukker runtime-ugyldig fra-dato og accepterer typed afgørelsesdato', () => {
+    const issues = collectTafCutoffDateIssues(
+      eoWith({
+        midlertidigtEETAfgorelse: 'Ja',
+        midlertidigEETAfgoerelseDato: toISODateString('2016-02-01'),
+        tafPerioder: [{
+          id: 't',
+          fra: 'ugyldig-dato' as unknown as ISODateString,
+          til: toISODateString('2016-06-30'),
+          loseFeriedage: 0,
+        }],
+      }),
+      SKADEDATO_FOER_2011
+    );
+
+    expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.tafPerioder.til']);
   });
 });
