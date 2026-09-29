@@ -432,6 +432,14 @@ describe('buildFormulaText', () => {
     expect(result).toContain('12 %');
   });
 
+  it('synlig SH/SO og Fritvalg → begge procentkomponenter indgår i første faktor', () => {
+    const result = buildFormulaText({
+      baseValue: 1000, feriePct: 12, fritvalgPct: 4, shSoPct: 3, pensionPct: 0, storeBededagPct: 0,
+    }, allVisible);
+
+    expect(result).toContain('12 % + 3 % + 4 %');
+  });
+
   it('kun pension (showPension=true) → baseValue x (100 % + pensionStr)', () => {
     const components: FormulaComponents = {
       baseValue: 1000, feriePct: 0, fritvalgPct: 0, shSoPct: 0, pensionPct: 10, storeBededagPct: 0,
