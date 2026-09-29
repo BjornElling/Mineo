@@ -2776,6 +2776,16 @@ datoorden ellers giver Fødselsdatoen en bounds-fejl. Produktkode, beregningslog
 persistensformat er uændret. `npm run typecheck:test`, målrettet ESLint, diff-, encoding- og filnavnskontrol
 skal bestå før commit. Ændringen er test-only; den samlede releasegate skal genkøres efter batchen.
 
+## Seneste test-only UI/PERSIST-batch – TD-416, arbejdsrevision
+
+Batchen tilføjer 6/6 direkte facitter i `logger.test.ts` for filnavnshash, deterministisk timestamp,
+persondata-/array-/cirkulærsanering, warning/error-consoleformat, eksplicit og Error-afledt stack,
+ukendt kontekst, tomme data samt lokal håndtering af afvist `saveLogEntry`. Filen bestod med 6/6 tests;
+`logger.ts` målte 100 % statements / 95,83 % branches / 100 % functions / 100 % lines. Den fulde
+Vitest-suite bestod med 952 filer / 9.596 tests. Produktkode, beregningslogik, brugeradfærd, schema og
+persistensformat er uændret; de resterende defensive logger-/sanitizerbranches samt reel
+IndexedDB-/browserplatformsparitet står fortsat åben under `UI-010`/`PERSIST-001`/`TD-022`.
+
 ## Seneste test-only INPUT-batch – TD-415, arbejdsrevision
 
 Batchen tilføjer 2/2 direkte facitter i `numericSafety.test.ts` for ugyldige decimaltegn, tom
