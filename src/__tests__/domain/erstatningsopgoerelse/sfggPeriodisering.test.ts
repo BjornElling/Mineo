@@ -1,5 +1,9 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { buildSfggPeriode } from '../../../domain/erstatningsopgoerelse/engines/sfggPeriodisering';
+import {
+  buildSfggPeriode,
+  resolveSfggCapCutoffDate,
+} from '../../../domain/erstatningsopgoerelse/engines/sfggPeriodisering';
+import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   asSfggAmount as asAmount,
   createSfggEmployment as createEmployment,
@@ -17,6 +21,17 @@ describe('buildSfggPeriode', () => {
     employment: createEmployment(),
     ferieperioder: [] as ErstatningsopgoerelseValues['ferieperioder'],
   };
+
+  it('returnerer ingen cap-dato når firemånedersloftet ikke nås', () => {
+    expect(resolveSfggCapCutoffDate(
+      [iso('2024-01-01'), iso('2024-01-02')],
+      TAF_BEREGNES_SOM.MAANEDER
+    )).toBeNull();
+    expect(resolveSfggCapCutoffDate(
+      [iso('2024-01-01'), iso('2024-01-02')],
+      TAF_BEREGNES_SOM.ARBEJDSDAGE
+    )).toBeNull();
+  });
 
   it('uden afkortninger fratrækker kun ferie fra visningsperioden', () => {
     const periode = buildSfggPeriode({
