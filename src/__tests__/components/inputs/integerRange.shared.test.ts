@@ -13,6 +13,10 @@ describe('integerRange shared helper', () => {
     expect(getIntegerRangeErrorMessage(11, undefined, 10)).toBe('Værdi skal være 10 eller lavere');
   });
 
+  it('viser mellem-besked når værdien er over maksimum med forskellig minimum', () => {
+    expect(getIntegerRangeErrorMessage(15, 2, 9)).toBe('Værdi skal være mellem 2 og 9');
+  });
+
   it('shows the single allowed value when bounds are equal (below)', () => {
     expect(getIntegerRangeErrorMessage(4, 5, 5)).toBe('Værdi skal være 5');
   });
@@ -23,5 +27,9 @@ describe('integerRange shared helper', () => {
 
   it('shows the between message when bounds differ', () => {
     expect(getIntegerRangeErrorMessage(1, 2, 9)).toBe('Værdi skal være mellem 2 og 9');
+  });
+
+  it('tilføjer enhed til begge grænser', () => {
+    expect(getIntegerRangeErrorMessage(1, 2, 9, { unit: 'år' })).toBe('Værdi skal være mellem 2 år og 9 år');
   });
 });
