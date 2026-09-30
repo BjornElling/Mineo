@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { evaluateErstatningsopgoerelseDownloadGates } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import type { EetImportSource } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -210,6 +212,32 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(manual.loenudviklingManuelProcentsatsTableData).toEqual([
       expect.objectContaining({ id: 'procent-1', procent: 3.5 }),
     ]);
+  });
+
+  it('projekterer et aktivt midlertidigt EET-importkald med en tom importkilde', () => {
+    const reader = buildReader({
+      ...buildEoWithEmployment(),
+      midlertidigtEetFraEetSiden: 'Ja',
+      sfggAnsaettelsesforhold: [],
+    }, validStamdata);
+    const midlertidigtEetInsertSource: EetImportSource = {
+      revision: 'eet-r',
+      eetValues: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: undefined,
+        ealAarsloen: undefined,
+        skadelidteFodselsdato: validStamdata.skadelidteFodselsdato,
+      },
+      skadedato: validStamdata.skadedato,
+    };
+
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, {
+      midlertidigtEetInsertSource,
+    });
+
+    expect(projection.snapshot.invariants).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'midlertidigt-eet-source-missing' }),
+    ]));
   });
 
   it('blokerer alle dokumenter når snapshottet fail-closer (skadedato før fødselsdato)', () => {
