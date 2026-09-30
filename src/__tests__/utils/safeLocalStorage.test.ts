@@ -75,6 +75,10 @@ describe('getSafeLocalStorage', () => {
 });
 
 describe('getPersistentLocalStorage', () => {
+  it('returnerer browserens vedvarende localStorage, når den er tilgængelig', () => {
+    expect(getPersistentLocalStorage()).toBe(window.localStorage);
+  });
+
   it('returnerer null når browserens localStorage-getter er blokeret', () => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
     Object.defineProperty(window, 'localStorage', {
