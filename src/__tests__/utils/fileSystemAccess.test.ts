@@ -200,6 +200,15 @@ describe('fileSystemAccess', () => {
       }));
     });
 
+    it('bevarer .eo-suffikset, når det allerede findes', async () => {
+      const handle = makeFileHandle();
+      const picker = vi.fn().mockResolvedValue(handle);
+      setPickerCapability('showSaveFilePicker', picker);
+
+      await expect(saveFileWithPicker('sag.eo')).resolves.toBe(handle);
+      expect(picker).toHaveBeenCalledWith(expect.objectContaining({ suggestedName: 'sag.eo' }));
+    });
+
     it('returnerer null når brugeren annullerer save-dialogen', async () => {
       const abort = Object.assign(new Error('annulleret'), { name: 'AbortError' });
       setPickerCapability('showSaveFilePicker', vi.fn().mockRejectedValue(abort));
