@@ -78,6 +78,18 @@ describe('eoFileCodec', () => {
       await expect(decodeEoFile(content)).rejects.toThrow(/filversion/i);
     });
 
+    it('afviser en dekrypteret array-værdi som ugyldig filstruktur', async () => {
+      const content = await encryptToString([]);
+
+      await expect(decodeEoFile(content)).rejects.toThrow('Ugyldig fil-struktur (ikke et objekt)');
+    });
+
+    it('afviser en ikke-streng filversion før schema-validering', async () => {
+      const content = await encryptToString({ version: 1 });
+
+      await expect(decodeEoFile(content)).rejects.toThrow(/filversion/i);
+    });
+
     it('afviser ugyldig container-struktur med dansk struktur-fejl', async () => {
       const content = await encryptToString({
         version: FILE_FORMAT_VERSION,
