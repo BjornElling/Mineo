@@ -1,3 +1,4 @@
+import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import { createDate } from '../../../utils/dateUtils';
 import {
@@ -7,6 +8,13 @@ import {
 
 describe('shDageOversigt', () => {
   describe('findNamedHolidaysInDateRanges', () => {
+    it('returnerer tom liste ved tomt eller omvendt Date-interval', () => {
+      expect(findNamedHolidaysInDateRanges([])).toEqual([]);
+      expect(findNamedHolidaysInDateRanges([
+        { start: createDate(2024, 5, 10), end: createDate(2024, 5, 1) },
+      ])).toEqual([]);
+    });
+
     it('samler overlappende og sammenhængende perioder uden dubletter', () => {
       const rows = findNamedHolidaysInDateRanges([
         { start: createDate(2023, 11, 25), end: createDate(2023, 11, 26) },
@@ -35,6 +43,15 @@ describe('shDageOversigt', () => {
   });
 
   describe('findNamedHolidaysInIsoRanges', () => {
+    it('returnerer tom liste ved tomt eller malformed ISO-interval', () => {
+      const invalidIso = 'ikke-en-dato' as ISODateString;
+
+      expect(findNamedHolidaysInIsoRanges([])).toEqual([]);
+      expect(findNamedHolidaysInIsoRanges([
+        { fra: invalidIso, til: toISODateString('2024-01-01') },
+      ])).toEqual([]);
+    });
+
     it('returnerer tom liste ved ugyldigt interval', () => {
       const rows = findNamedHolidaysInIsoRanges([
         { fra: toISODateString('2024-01-10'), til: toISODateString('2024-01-01') },
