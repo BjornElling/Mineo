@@ -59,6 +59,30 @@ describe('encryption (AES-GCM)', () => {
     await expect(decryptFromString(JSON.stringify(parsed))).rejects.toBeInstanceOf(EncryptionError);
   });
 
+  it('rejects base64 with whitespace or invalid characters', async () => {
+    const encrypted = await encryptToString({ ok: true });
+    const parsed = JSON.parse(encrypted) as { ivB64: string; ctB64: string };
+    const originalIvB64 = parsed.ivB64;
+
+    parsed.ivB64 = ` ${parsed.ivB64}`;
+    await expect(decryptFromString(JSON.stringify(parsed))).rejects.toMatchObject({
+      message: 'Ugyldigt filformat',
+    });
+
+    parsed.ivB64 = originalIvB64;
+    parsed.ctB64 = '@@@';
+    await expect(decryptFromString(JSON.stringify(parsed))).rejects.toMatchObject({
+      message: 'Ugyldigt filformat',
+    });
+  });
+
+  it('afviser korrekt krypteret JSON, der ikke er et objekt', async () => {
+    const encrypted = await encryptToString(null);
+    await expect(decryptFromString(encrypted)).rejects.toMatchObject({
+      message: 'Ugyldigt filformat',
+    });
+  });
+
   it('rejects random JSON payload', async () => {
     await expect(decryptFromString('{"hello":1}')).rejects.toBeInstanceOf(EncryptionError);
   });
