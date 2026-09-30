@@ -25,6 +25,7 @@ describe('numericSafety', () => {
     expect(hasSafeDecimalDigits('', '1', 2)).toBe(false);
     expect(hasSafeDecimalDigits('1', 'x', 2)).toBe(false);
     expect(hasSafeDecimalDigits('1', '', 2)).toBe(true);
+    expect(hasSafeDecimalDigits('000', '00', 2)).toBe(true);
     expect(isSafeScaledInteger(1n, -1)).toBe(false);
     expect(isSafeScaledInteger(-1n, 0)).toBe(true);
   });
