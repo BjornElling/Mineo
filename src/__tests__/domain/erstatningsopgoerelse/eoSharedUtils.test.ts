@@ -1,5 +1,8 @@
 import {
   detectDecimalPlaces,
+  formatAmount2,
+  formatAmountWithoutTrailingDecimals,
+  formatAnciennitetConversion,
   formatOverenskomstAmount,
   formatOverenskomstPercent,
   formatPercentFixed2,
@@ -8,12 +11,17 @@ import {
   hasExactDisplayedAmountMatch,
   hasPctSourceOrInput,
   normalizeOptionalFreeText,
+  numOrZero,
   parseDanishToIso,
   parseOptionalIsoDate,
+  perioderCoverDate,
+  convertAnciennitetSats,
   resolveAnvendtReguleringsdato,
+  resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
   resolvePctPointFromSatsOrInput,
   resolveStatistikModelId,
+  isAslStatistikModel,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../data/indskudteLoentillaeg';
@@ -54,6 +62,22 @@ describe('eoSharedUtils', () => {
     it('formatterer decimalværdi som procent med to decimaler', () => {
       expect(formatOverenskomstPercent(0.1234)).toBe('12,34 %');
       expect(formatOverenskomstPercent(0)).toBe('0,00 %');
+    });
+  });
+
+  describe('beløbsformat og numeriske guards', () => {
+    it('formatterer beløb med og uden afsluttende decimaler', () => {
+      expect(formatAmount2(1234.5)).toBe('1.234,50');
+      expect(formatAmountWithoutTrailingDecimals(1234)).toBe('1.234');
+      expect(formatAmountWithoutTrailingDecimals(1234.5)).toBe('1.234,50');
+    });
+
+    it('normaliserer ikke-finite værdier til nul', () => {
+      expect(numOrZero(12.5)).toBe(12.5);
+      expect(numOrZero(null)).toBe(0);
+      expect(numOrZero(undefined)).toBe(0);
+      expect(numOrZero(Number.NaN)).toBe(0);
+      expect(numOrZero(Number.POSITIVE_INFINITY)).toBe(0);
     });
   });
 
@@ -228,6 +252,15 @@ describe('eoSharedUtils', () => {
     });
   });
 
+  describe('isAslStatistikModel', () => {
+    it('genkender ASL-labels og afviser andre modeller', () => {
+      expect(isAslStatistikModel('ASL-2024')).toBe(true);
+      expect(isAslStatistikModel(' ASL-årslønsmaksimum ')).toBe(true);
+      expect(isAslStatistikModel('ILON12')).toBe(false);
+      expect(isAslStatistikModel(undefined)).toBe(false);
+    });
+  });
+
   describe('formatDateShort', () => {
     it('formaterer ISO til dansk kort format', () => {
       expect(formatDateShort(toISODateString('2024-01-15'))).toBe('15-01-2024');
@@ -268,6 +301,47 @@ describe('eoSharedUtils', () => {
     it('finder decimaler op til maxPlaces', () => {
       expect(detectDecimalPlaces([1, 1.2, 1.23, 1.2345], 4)).toBe(4);
     });
+
+    it('ignorerer ikke-finite værdier', () => {
+      expect(detectDecimalPlaces([Number.NaN, Number.POSITIVE_INFINITY, 1.2], 4)).toBe(1);
+    });
+  });
+
+  describe('anciennitetskonvertering', () => {
+    const formatAmount = (value: number): string => value.toFixed(2);
+
+    it('konverterer time- og månedssatser i alle retninger', () => {
+      expect(convertAnciennitetSats(100, 'Måned', 'Måned')).toBe(100);
+      expect(convertAnciennitetSats(100, 'Time', 'Måned')).toBeCloseTo(16033, 8);
+      expect(convertAnciennitetSats(16033, 'Måned', 'Time')).toBeCloseTo(100, 8);
+      expect(convertAnciennitetSats(100, 'Time', 'Time')).toBe(100);
+      expect(resolveOffentligLoenEkstraGrundloen(undefined, 'Måned', 'Måned')).toBe(0);
+      expect(resolveOffentligLoenEkstraGrundloen(0, 'Måned', 'Måned')).toBe(0);
+      expect(resolveOffentligLoenEkstraGrundloen(100, 'Måned', 'Måned')).toBe(100);
+    });
+
+    it('viser den konkrete konverteringsformel for alle periodekombinationer', () => {
+      expect(formatAnciennitetConversion(100, 'Måned', 'Måned', formatAmount).displayText)
+        .toBe('100.00 kr./måned');
+      expect(formatAnciennitetConversion(100, 'Time', 'Måned', formatAmount).displayText)
+        .toBe('100.00 kr./time x 160.33 = 16033.00 kr./måned');
+      expect(formatAnciennitetConversion(160.33, 'Måned', 'Time', formatAmount).displayText)
+        .toBe('160.33 kr./måned / 160.33 = 1.00 kr./time');
+      expect(formatAnciennitetConversion(100, 'Time', 'Time', formatAmount).displayText)
+        .toBe('100.00 kr./time');
+    });
+  });
+
+  describe('perioderCoverDate', () => {
+    it('finder en dato inde i en periode og afviser datoer udenfor', () => {
+      const perioder = [{
+        fra: new Date('2024-01-01T00:00:00.000Z'),
+        til: new Date('2024-01-31T00:00:00.000Z'),
+      }];
+      expect(perioderCoverDate(perioder, iso('2024-01-15'))).toBe(true);
+      expect(perioderCoverDate(perioder, iso('2024-02-01'))).toBe(false);
+      expect(perioderCoverDate([], iso('2024-01-15'))).toBe(false);
+    });
   });
 
   describe('resolvePctPointFromSatsOrInput', () => {
@@ -299,6 +373,10 @@ describe('eoSharedUtils', () => {
 
     it('falder tilbage til input pct konverteret til decimal', () => {
       expect(resolvePctDecimalFromSatsOrInput(undefined, 15.3)).toBeCloseTo(0.153, 6);
+    });
+
+    it('returnerer nul når både sats og input mangler', () => {
+      expect(resolvePctDecimalFromSatsOrInput(null, undefined)).toBe(0);
     });
   });
 
