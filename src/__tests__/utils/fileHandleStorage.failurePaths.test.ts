@@ -40,6 +40,7 @@ import {
   saveFileHandleToIndexedDB,
   savePendingPwaOpenRequestToIndexedDB,
 } from '../../utils/fileHandleStorage';
+import { logWarning } from '../../utils/logger';
 
 type StorageErrorResult = Readonly<{ status: 'error'; error: Error }>;
 
@@ -109,6 +110,25 @@ describe('fileHandleStorage – IndexedDB-fejlstier', () => {
 
       await expect(requestPersistentStorage()).resolves.toBe(false);
       expect(persist).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      ['et record med message', { message: 'persist record fejlede' }],
+      ['et record uden message', {}],
+      ['en primitiv værdi', 'persist tekst fejlede'],
+    ])('returnerer false og logger %s ved ukendt persist-fejl', async (_label, error) => {
+      const persist = vi.fn().mockRejectedValue(error);
+      setNavigatorStorage({ persist });
+
+      await expect(requestPersistentStorage()).resolves.toBe(false);
+      expect(logWarning).toHaveBeenCalledWith('Kunne ikke anmode om persistent storage', {
+        context: 'requestPersistentStorage',
+        data: {
+          errorMessage: typeof error === 'string'
+            ? error
+            : 'message' in error ? String(error.message ?? '') : '',
+        },
+      });
     });
   });
 
