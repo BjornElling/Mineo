@@ -7,6 +7,7 @@ import type { TafPerYearBuildOutcome, TafPerYearResult } from '../../../domain/e
 import type { TafPerYearOpreguleretBuildOutcome } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { EetImportContext } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { toISODateString } from '../../../types/branded';
 
 const { tafOutcomeMock, opreguleretOutcomeMock, controlMismatchMock } = vi.hoisted(() => ({
@@ -104,6 +105,91 @@ describe('computeEoSnapshot – direkte invariantbrancher', () => {
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('schema_guard');
     expect(snapshot.invariants.length).toBeGreaterThan(1);
+  });
+
+  it('bevarer gyldig Stamdata ved schema-fejl i EO-sektionen', () => {
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      journalnr: 'TD-563',
+      skadelidte: 'Gyldig Stamdata',
+      skadestype: 'Arbejdsulykke' as const,
+      skadedato: toISODateString('2024-01-01'),
+    };
+    const snapshot = computeEoSnapshot({
+      revision: 'schema-eo-sektion',
+      stamdataValues,
+      eoValues: {} as never,
+    });
+
+    expect(snapshot.status).toBe('fail_closed');
+    expect(snapshot.failClosedReason).toBe('schema_guard');
+    expect(snapshot.input.stamdata).toEqual(expect.objectContaining({
+      journalnr: 'TD-563',
+      skadelidte: 'Gyldig Stamdata',
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2024-01-01'),
+    }));
+    expect(snapshot.input.erstatningsopgoerelse).toBeNull();
+  });
+
+  it('projekterer et gyldigt forlig til beregning og EO-PDF', () => {
+    tafOutcomeMock.mockReturnValue({
+      kind: 'not_applicable',
+      reason: 'missing_loenudvikling',
+    } satisfies TafPerYearBuildOutcome);
+
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
+    eoValues.forligAnsvarsgradProcent = 50;
+
+    const snapshot = computeEoSnapshot({
+      revision: 'forlig-pdf-projection',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('ok');
+    expect(snapshot.data?.engines.forlig).toEqual({ factor: 0.5, label: '50 %' });
+    expect(snapshot.data?.pdfModel.forlig).toEqual({
+      erIndgaaet: true,
+      label: '50 %',
+      dato: null,
+      factor: 0.5,
+    });
+  });
+
+  it('bevarer en ikke-blokerende EET-advarsel som warning-status', () => {
+    tafOutcomeMock.mockReturnValue({
+      kind: 'not_applicable',
+      reason: 'missing_loenudvikling',
+    } satisfies TafPerYearBuildOutcome);
+
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
+    eoValues.midlertidigtEetFraEetSiden = 'Ja';
+    const midlertidigtEetImportContext: EetImportContext = {
+      revision: 'eet-warning',
+      groups: [],
+      issues: [{ id: 'warning:test', severity: 'warning', message: 'EET-advarsel' }],
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'eet-warning-status',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+      midlertidigtEetImportContext,
+    });
+
+    expect(snapshot.status).toBe('warning');
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+      id: 'midlertidigt_eet_source:warning:test',
+      severity: 'warning',
+      blocksAuthoritativeComputation: false,
+      blocksOutputs: [],
+    }));
   });
 
   it('udleder TAF-utilgængelighed og kontrol-mismatch fra den byggede kontrolsnapshot', () => {
