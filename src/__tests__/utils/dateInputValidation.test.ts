@@ -101,4 +101,9 @@ describe('interpretYear', () => {
     expect(interpretYear('x')).toBeNull();
     expect(interpretYear('abcd')).toBeNull();
   });
+
+  it('tomt eller overlangt årstoken → null', () => {
+    expect(interpretYear('')).toBeNull();
+    expect(interpretYear('12345')).toBeNull();
+  });
 });
