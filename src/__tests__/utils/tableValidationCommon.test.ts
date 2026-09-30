@@ -94,6 +94,10 @@ describe('isAmountValueStrict', () => {
     expect(() => isAmountValueStrict({})).toThrow();
   });
 
+  it('objekt med ukendt string-kind → kaster med kinden i DEV', () => {
+    expect(() => isAmountValueStrict({ kind: 'currency' })).toThrow('Ukendt kind "currency"');
+  });
+
   it('number-kind med string value → false', () => {
     expect(isAmountValueStrict({ kind: 'number', value: '100' })).toBe(false);
   });
