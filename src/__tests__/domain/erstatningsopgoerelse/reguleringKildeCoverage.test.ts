@@ -70,4 +70,8 @@ describe('resolveKildeReguleringsIntervalIso', () => {
     af.loenudviklingKRLSatstabel = undefined;
     expect(resolveKildeReguleringsIntervalIso(af)).toBeUndefined();
   });
+
+  it('returnerer undefined uden valgt beregningsgrundlag', () => {
+    expect(resolveKildeReguleringsIntervalIso(baseAf())).toBeUndefined();
+  });
 });
