@@ -73,6 +73,17 @@ const modelWithIndkomst = (indkomst: unknown): EoModel => ({
 } as unknown as EoModel);
 
 describe('EO snapshot PDF projections', () => {
+  it('blokerer EO-PDF-projektionen, når snapshot-data mangler', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToEoDocument({
+      ...snapshot,
+      data: null,
+      input: { stamdata: null, erstatningsopgoerelse: null },
+    } as unknown as EoSnapshot);
+
+    expect(projection.kind).toBe('blocked');
+  });
+
   it.each([
     ['manglende indkomstmodel', null, false],
     ['manglende angivet månedsløn', { beregnesUdFra: 'Angivet månedsløn', maanedsloen: { status: 'not_calculable' } }, true],
