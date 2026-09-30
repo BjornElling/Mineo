@@ -217,6 +217,22 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
     });
 
+    it('ignorerer relaterede platforme, der ikke er webapp', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([{ platform: 'play', url: '/manifest.json' }]);
+
+      await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
+    });
+
+    it('accepterer en webapp-relation uden URL, når app-idet matcher', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedApps([{ platform: 'webapp', id: '/' }]);
+
+      await expect(detectPwaInstallationState()).resolves.toBe('installed');
+    });
+
     it('ignorerer en relation med ugyldig URL uden at fejle installationsflowet', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
