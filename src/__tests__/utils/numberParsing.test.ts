@@ -1,9 +1,12 @@
 import {
   parseAmount,
   parseDanishNumberString,
+  parseOptionalIntegerFromString,
   parsePercentPointString,
   parsePercentToDecimal,
+  toNonNegativeInt,
 } from '../../utils/numberParsing';
+import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 describe('parseDanishNumberString', () => {
   it('bruger skrevne decimalpladser som generisk præcision og kan modtage en eksplicit præcision', () => {
@@ -138,5 +141,36 @@ describe('parseAmount', () => {
 
   it('AmountValue med NaN value → 0', () => {
     expect(parseAmount({ kind: 'number', value: NaN })).toBe(0);
+  });
+
+  it('ukendt runtime-objekt → 0', () => {
+    // Schemaen afviser dette ved normal brug, men parseren skal også fail-close
+    // hvis et utypet runtime-objekt når frem til grænsen.
+    expect(parseAmount({} as unknown as AmountValue)).toBe(0);
+  });
+});
+
+describe('parseOptionalIntegerFromString', () => {
+  it('trimmer og parser heltal', () => {
+    expect(parseOptionalIntegerFromString('  -17 ')).toBe(-17);
+  });
+
+  it('returnerer undefined for tomt eller ikke-numerisk input', () => {
+    expect(parseOptionalIntegerFromString('')).toBeUndefined();
+    expect(parseOptionalIntegerFromString('   ')).toBeUndefined();
+    expect(parseOptionalIntegerFromString('ikke-et-tal')).toBeUndefined();
+  });
+});
+
+describe('toNonNegativeInt', () => {
+  it('trunkerer positive brøker og clampler negative værdier', () => {
+    expect(toNonNegativeInt(4.9)).toBe(4);
+    expect(toNonNegativeInt(-2.1)).toBe(0);
+  });
+
+  it('returnerer 0 for ikke-finite værdier', () => {
+    expect(toNonNegativeInt(NaN)).toBe(0);
+    expect(toNonNegativeInt(Infinity)).toBe(0);
+    expect(toNonNegativeInt(-Infinity)).toBe(0);
   });
 });
