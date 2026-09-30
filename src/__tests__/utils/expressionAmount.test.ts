@@ -286,6 +286,13 @@ describe('parseAmountInput', () => {
     expect(result.error.kind).toBe('number');
     expect(result.error.message).toBe('Beløb kan ikke være negativt');
   });
+
+  it('afviser negativt udtryk når negative beløb er slået fra', () => {
+    expect(parse('1-2', { allowNegative: false })).toEqual({
+      ok: false,
+      error: { kind: 'expression', message: 'Beløb kan ikke være negativt' },
+    });
+  });
 });
 
 // ─── amountValueToNumber ──────────────────────────────────────────────────────
