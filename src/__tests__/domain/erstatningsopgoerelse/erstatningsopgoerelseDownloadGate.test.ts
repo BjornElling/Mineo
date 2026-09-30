@@ -146,6 +146,39 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
   });
 
+  it('rekonstruerer offentlige ydelser og SFGG-rækker i EO-readerprojektionen', () => {
+    const reader = buildReader({
+      ...buildEoWithEmployment(),
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: toISODateString('2022-04-01'),
+        tilDato: toISODateString('2022-04-30'),
+        ydelse: asAmount(1_000),
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Ingen',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    }, validStamdata);
+
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+
+    expect(projection.eoValues.offentligeYdelserRows).toEqual([expect.objectContaining({ id: 'ydelse-1' })]);
+    expect(projection.eoValues.sfggAnsaettelsesforhold).toEqual([
+      expect.objectContaining({ ansaettelsesforholdId: 'af-1', sfggBeregningskilde: 'Ingen' }),
+    ]);
+  });
+
   it('blokerer alle dokumenter når snapshottet fail-closer (skadedato før fødselsdato)', () => {
     const reader = buildReader(buildEoWithEmployment(), {
       ...validStamdata,
