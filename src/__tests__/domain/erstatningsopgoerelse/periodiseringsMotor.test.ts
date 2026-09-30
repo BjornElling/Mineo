@@ -384,6 +384,18 @@ describe('periodiseringsMotor', () => {
     })).toBeNull();
   });
 
+  it('returnerer null ved runtime-ugyldig dato i måneds- og arbejdsdagssporet', () => {
+    const invalid = 'ikke-en-iso-dato' as unknown as ISODateString;
+    expect(optaelMaanederPraecis({ fra: invalid, til: iso('2024-01-31') })).toBeNull();
+    expect(optaelArbejdsdageBreakdown({
+      fra: invalid,
+      til: iso('2024-01-31'),
+      ferieperioder: [],
+      loseFeriedage: 0,
+      context: { kind: 'taf' },
+    })).toBeNull();
+  });
+
   it('optaelMaanederAfrundet returnerer null ved undefined fra', () => {
     const value = optaelMaanederAfrundet({ fra: undefined, til: iso('2024-01-31') });
     expect(value).toBeNull();
