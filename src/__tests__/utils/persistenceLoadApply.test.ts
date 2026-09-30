@@ -123,6 +123,17 @@ describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', (
     expect(applySnapshot).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBeNull();
   });
+
+  it('normaliserer en ukendt apply-fejl fail-closed', () => {
+    const applySnapshot = vi.fn(() => {
+      throw Symbol('ukendt apply-fejl');
+    });
+
+    expect(() => applyAuthoritativeLoadSnapshot({
+      result: { status: 'loaded', source: 'manual', filename: 'sag.eo', snapshot: {} },
+      applySnapshot,
+    })).toThrow('Indlæsning mislykkedes. Ingen data blev anvendt.\n\nUkendt fejl');
+  });
 });
 
 describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
@@ -171,6 +182,25 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
 
     expect(markPendingPwaFileOpenRequestHandledMock).toHaveBeenCalledWith('pwa-open-afsluttet-1');
     expect(result.status).toBe('applied-with-metadata-error');
+  });
+
+  it('normaliserer en ukendt PWA-ack-fejl og stopper efter acknowledgement-forsøget', async () => {
+    markPendingPwaFileOpenRequestHandledMock.mockRejectedValueOnce(Symbol('ukendt PWA-fejl'));
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded',
+      source: 'pwa',
+      filename: 'pwa.eo',
+      requestId: 'req-ukendt-fejl',
+      fileHandle: { name: 'pwa.eo' } as FileSystemFileHandle,
+      snapshot: {},
+    });
+
+    expect(result).toEqual({
+      status: 'applied-with-metadata-error',
+      message: 'Sagen blev indlæst, men PWA-filrequesten kunne ikke ryddes helt.\n\nUkendt fejl',
+    });
+    expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
   });
 
   it('synkroniserer filnavn og rydder et forældet basisnavn', async () => {
@@ -261,5 +291,18 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
     expect(result.status).toBe('applied-with-metadata-error');
     if (result.status !== 'applied-with-metadata-error') return;
     expect(result.message).toContain('Sagen blev indlæst');
+  });
+
+  it('normaliserer en ukendt storagefejl i metadatafasen', async () => {
+    deleteFileHandleFromIndexedDBMock.mockRejectedValueOnce(Symbol('ukendt storagefejl'));
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded', source: 'manual', filename: 'sag.eo', snapshot: {},
+    });
+
+    expect(result).toEqual({
+      status: 'applied-with-metadata-error',
+      message: 'Sagen blev indlæst, men filnavn, filhåndtag eller efterfølgende direkte gem kunne ikke synkroniseres.\n\nUkendt fejl',
+    });
   });
 });
