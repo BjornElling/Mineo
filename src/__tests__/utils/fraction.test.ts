@@ -1,9 +1,16 @@
-import { isFractionDraftAllowed, parseFractionString } from '../../utils/fraction';
+import { getFractionMaxLength, isFractionDraftAllowed, parseFractionString } from '../../utils/fraction';
 
 describe('fraction utils', () => {
+  it('beregner maksimal draftlængde med og uden negativt fortegn', () => {
+    expect(getFractionMaxLength()).toBe(43);
+    expect(getFractionMaxLength(3, true)).toBe(16);
+  });
+
   it('tillader kun tal, komma og brøkstreg i draft', () => {
     expect(isFractionDraftAllowed('123,45/678,9')).toBe(true);
     expect(isFractionDraftAllowed('123.45/678,9')).toBe(false);
+    expect(isFractionDraftAllowed('-12/3', { maxDigits: 2, allowNegative: true })).toBe(true);
+    expect(isFractionDraftAllowed('-12/3', { maxDigits: 2 })).toBe(false);
   });
 
   it('parser kun komma som decimaltegn', () => {
@@ -130,6 +137,9 @@ describe('fraction utils', () => {
   });
 
   it('afviser indre mellemrum og ufuldstændige dele, men trimmer ydre mellemrum', () => {
+    expect(parseFractionString('')).toEqual({ ok: false, reason: 'empty' });
+    expect(parseFractionString('1')).toEqual({ ok: false, reason: 'invalid' });
+    expect(parseFractionString('1/2/3')).toEqual({ ok: false, reason: 'invalid' });
     expect(parseFractionString(' 1/2 ')).toMatchObject({ ok: true, parsed: { value: '1/2' } });
     expect(parseFractionString('1 /2')).toEqual({ ok: false, reason: 'invalid' });
     expect(parseFractionString('1/ 2')).toEqual({ ok: false, reason: 'invalid' });
