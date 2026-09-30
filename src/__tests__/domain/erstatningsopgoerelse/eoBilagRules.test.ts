@@ -5,6 +5,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   getEoBilagAvailability,
+  hasLoenReguleringInModel,
   hasMidlertidigtEetYdelsestype,
   type EoBilagAvailabilityState,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
@@ -527,6 +528,27 @@ describe('getEoBilagAvailability', () => {
 
     // I "Alle" gælder den TAF-krav-baserede afgrænsning ikke; midlertidig EET følger sin egen betingelse.
     expect(result.midlertidigEet.enabled).toBe(true);
+  });
+});
+
+describe('hasLoenReguleringInModel', () => {
+  it('finder regulering i en ansættelsesspecifik serie når top-level-serien er neutral', () => {
+    const model = makeLoenudviklingModel(0);
+    const segment = model.beregnedeSegmenter[0];
+
+    expect(segment).toBeDefined();
+    if (!segment) throw new Error('Testmodellen skal have et top-level-segment');
+
+    expect(hasLoenReguleringInModel({
+      ...model,
+      perAnsaettelse: [{
+        ansaettelsesforholdId: 'af-1',
+        ansaettelsesforholdNavn: 'Ansættelse 1',
+        loenudviklingLabel: 'Statistik',
+        loenudviklingTotal: { status: 'ok', value: moneyOre(100000) },
+        beregnedeSegmenter: [{ ...segment, deltaPct: 2.5 }],
+      }],
+    })).toBe(true);
   });
 });
 
