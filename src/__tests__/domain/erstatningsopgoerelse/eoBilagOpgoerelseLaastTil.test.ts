@@ -1,4 +1,7 @@
-import { __testResolveBilagSelection } from '../../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
+import {
+  __testResolveBilagSelection,
+  __testResolveMidlertidigtEetGroups,
+} from '../../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
@@ -9,11 +12,13 @@ import { toISODateString } from '../../../types/branded';
 // eller håndredigeret i en .eo-fil), blokere dokumentet på et felt, brugeren ikke kan rette.
 
 const buildProjection = (
-  eoBilagSelection: Record<string, boolean>
+  eoBilagSelection?: Record<string, boolean>,
+  eoValues: Partial<ErstatningsopgoerelseReaderProjection['eoValues']> = {},
 ): ErstatningsopgoerelseReaderProjection => ({
   eoValues: {
     ...createErstatningsopgoerelseInitialValues(),
     eoBilagSelection,
+    ...eoValues,
   },
   stamdataValues: { skadedato: toISODateString('2024-07-01') },
   snapshot: { data: undefined },
@@ -37,5 +42,26 @@ describe('bilagsvalg: opgørelsen er låst til', () => {
     expect(selection.opgoerelse).toBe(true);
     expect(selection.shDage).toBe(false);
     expect(selection.sygeferiegodtgoerelse).toBe(false);
+  });
+
+  it('bruger standardvalget og bevarer tilgængeligt midlertidigt EET-bilag', () => {
+    const selection = __testResolveBilagSelection(buildProjection(undefined, {
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      midlertidigtEetFraEetSiden: 'Ja',
+    }));
+
+    expect(selection).toMatchObject({
+      opgoerelse: true,
+      midlertidigEet: true,
+      shDage: false,
+    });
+  });
+
+  it('returnerer ingen EET-grupper, når togglen er aktiv uden snapshotdata', () => {
+    const groups = __testResolveMidlertidigtEetGroups(buildProjection(undefined, {
+      midlertidigtEetFraEetSiden: 'Ja',
+    }));
+
+    expect(groups).toEqual([]);
   });
 });

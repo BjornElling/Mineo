@@ -130,6 +130,9 @@ const resolveMidlertidigtEetGroups = (
     ? (projection.snapshot.data?.midlertidigtEetGroups ?? [])
     : [];
 
+/** Test-adgang til EET-gruppeprojektionen, så den aktive toggle kan prøves uden dokumentrendering. */
+export const __testResolveMidlertidigtEetGroups = resolveMidlertidigtEetGroups;
+
 /**
  * Fælles blokeringsoversættelse for de fire EO-outputs. `gate` dækker række-/invariantniveauet,
  * mens per-dokument-projektionen dækker snapshot-invariant-/fail_closed-niveauet. Begge lag er
