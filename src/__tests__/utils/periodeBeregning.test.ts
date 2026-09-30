@@ -7,6 +7,7 @@ import {
   beregnAntalHverdage,
   beregnFeriedagePaaEtAar,
   beregnMaanedPeriode,
+  erHeleKalendermaaneder,
 } from '../../utils/periodeBeregning';
 import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
@@ -125,6 +126,10 @@ describe('beregnAntalHverdage', () => {
     }
     expect(beregnAntalHverdage(set)).toBe(23);
   });
+
+  it('ignorerer en malformed dato i datoSet', () => {
+    expect(beregnAntalHverdage(new Set(['ikke-en-dato' as ISODateString]))).toBe(0);
+  });
 });
 
 // ─── beregnFeriedagePaaEtAar ──────────────────────────────────────────────────
@@ -196,6 +201,10 @@ describe('erPraecisEtAar', () => {
 
     it('intet datoSet → false', () => {
       expect(erPraecisEtAar('dag', 365)).toBe(false);
+    });
+
+    it('malformed datoSet → false', () => {
+      expect(erPraecisEtAar('dag', 1, new Set(['ikke-en-dato' as ISODateString]))).toBe(false);
     });
   });
 });
@@ -275,5 +284,48 @@ describe('beregnMaanedPeriode', () => {
   it('periodeTekst er formateret korrekt', () => {
     const result = beregnMaanedPeriode([makeRow('1', '2024')]);
     expect(result!.periodeTekst).toContain('2024');
+  });
+});
+
+describe('beregnUgePeriode – fail-safe- og flerårsforløb', () => {
+  it('returnerer null for et omvendt ugeinterval', () => {
+    const rows: StandardLoenTableRow[] = [{ id: 'omvendt', col0_uge: '03/2024', col1_uge: '01/2024' }];
+
+    expect(beregnUgePeriode(rows)).toBeNull();
+  });
+
+  it('returnerer null når alle uger er ugyldige', () => {
+    const rows: StandardLoenTableRow[] = [{ id: 'ugyldig', col0_uge: '00/2024', col1_uge: '01/2024' }];
+
+    expect(beregnUgePeriode(rows)).toBeNull();
+  });
+
+  it('tæller mellemliggende år ved et flerårigt ugeinterval', () => {
+    const rows: StandardLoenTableRow[] = [{ id: 'flerår', col0_uge: '52/2021', col1_uge: '01/2024' }];
+
+    const result = beregnUgePeriode(rows);
+
+    expect(result?.totalEnheder).toBe(106);
+    expect(result?.unikkeEnheder).toBe(106);
+    expect(result?.datoSet.has(toISODateString('2022-01-03'))).toBe(true);
+    expect(result?.datoSet.has(toISODateString('2023-12-25'))).toBe(true);
+  });
+});
+
+describe('erHeleKalendermaaneder – tomt input', () => {
+  it('returnerer null uden perioder', () => {
+    expect(erHeleKalendermaaneder([])).toBeNull();
+  });
+});
+
+describe('beregnDagPeriode – fail-safe-input', () => {
+  it('returnerer null når alle dagdatoer er malformed', () => {
+    const rows: StandardLoenTableRow[] = [{
+      id: 'malformed',
+      col0_dag: 'ikke-en-dato' as ISODateString,
+      col1_dag: 'heller-ikke-en-dato' as ISODateString,
+    }];
+
+    expect(beregnDagPeriode(rows)).toBeNull();
   });
 });
