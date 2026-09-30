@@ -31,4 +31,32 @@ describe('filePersistenceMetadata', () => {
 
     setItemSpy.mockRestore();
   });
+
+  it('rapporterer særskilt når metadata-rollback også fejler', () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'gammel.eo');
+    sessionStorage.setItem(
+      UI_STORAGE_KEYS.lastSavedFilenameBasis,
+      JSON.stringify({ skadelidte: 'Gammel' }),
+    );
+
+    const storagePrototype = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const originalSetItem = storagePrototype.setItem;
+    let callCount = 0;
+    const setItemSpy = vi.spyOn(storagePrototype, 'setItem').mockImplementation(function setItemWithRollbackFailure(
+      this: Storage,
+      key: string,
+      value: string,
+    ): void {
+      callCount += 1;
+      if (callCount === 2 || callCount === 3) throw new Error(callCount === 2 ? 'storage-fejl' : 'rollback-fejl');
+      originalSetItem.call(this, key, value);
+    });
+
+    try {
+      expect(() => persistSavedFilenameMetadata('ny.eo', { skadelidte: 'Ny' }))
+        .toThrow('Den tidligere metadata kunne heller ikke gendannes sikkert');
+    } finally {
+      setItemSpy.mockRestore();
+    }
+  });
 });
