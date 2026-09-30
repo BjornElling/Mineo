@@ -51,6 +51,46 @@ describe('eoSnapshotToInspektionView', () => {
     buildRegulationInspektionSectionsMock.mockReturnValue([]);
   });
 
+  it('returnerer blocked-view når der ikke findes et snapshot', () => {
+    const view = eoSnapshotToInspektionView({
+      snapshot: null,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
+      loenindkomstManuelReguleringInputErrors: {},
+    });
+
+    expect(view).toEqual({
+      kind: 'blocked',
+      severity: 'info',
+      title: 'EO-kontrol kræver et friskt snapshot',
+      message: 'Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
+    });
+  });
+
+  it('returnerer blocked-view når kontrolsnapshot mangler i et ikke-fail-closed snapshot', () => {
+    const view = eoSnapshotToInspektionView({
+      snapshot: {
+        revision: 'rev-missing-inspection',
+        status: 'error',
+        invariants: [],
+        data: null,
+        inspektionSnapshot: null,
+        input: {
+          stamdata: null,
+          erstatningsopgoerelse: null,
+        },
+      } as unknown as EoSnapshot,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
+      loenindkomstManuelReguleringInputErrors: {},
+    });
+
+    expect(view).toEqual({
+      kind: 'blocked',
+      severity: 'info',
+      title: 'EO-kontrol kræver et gyldigt kontrol-snapshot',
+      message: 'Ret valideringsfejlene i sagen og åbn kontrolfanen igen for at bygge kontrolvisningen på korrekt committede data.',
+    });
+  });
+
   it('bruger strukturerede snapshot-data og delegerer builder-kørslen til registry', () => {
     executeEoRowBuilderEntriesBySectionMock.mockReturnValue(new Map([
       ['stamdata', [
@@ -187,6 +227,31 @@ describe('eoSnapshotToInspektionView', () => {
       severity: 'error',
       title: 'EO-kontrol er blokeret',
       message: 'Intern fejl',
+    });
+  });
+
+  it('bruger intern fallbackbesked ved fail_closed snapshot uden invariant', () => {
+    const view = eoSnapshotToInspektionView({
+      snapshot: {
+        revision: 'rev-fail-without-invariant',
+        status: 'fail_closed',
+        invariants: [],
+        data: null,
+        inspektionSnapshot: null,
+        input: {
+          stamdata: null,
+          erstatningsopgoerelse: null,
+        },
+      } as unknown as EoSnapshot,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
+      loenindkomstManuelReguleringInputErrors: {},
+    });
+
+    expect(view).toEqual({
+      kind: 'blocked',
+      severity: 'error',
+      title: 'EO-kontrol er blokeret',
+      message: 'Der opstod en intern fejl i EO-snapshot.',
     });
   });
 
