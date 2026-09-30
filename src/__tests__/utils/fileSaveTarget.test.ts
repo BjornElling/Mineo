@@ -147,6 +147,22 @@ describe('resolveSaveTarget', () => {
     });
   });
 
+  it('afbryder fail-closed, hvis et forældreløst filhandle ikke kan ryddes', async () => {
+    const orphaned = makeHandle('ukendt.eo');
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    mockedLoadFileHandleFromIndexedDB.mockResolvedValue(orphaned);
+    mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
+
+    const target = await resolveSaveTarget(fileData);
+
+    expect(target).toEqual({ kind: 'cancelled' });
+    expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+    expect(mockedLogWarning).toHaveBeenCalledWith(
+      'Ukendt file handle kunne ikke ryddes sikkert; gemning afbrudt',
+      expect.objectContaining({ context: 'resolveSaveTarget.orphanedStoredHandle' }),
+    );
+  });
+
   it('annullerer stille når brugeren afviser tilladelses-prompten på et gemt handle', async () => {
     sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
@@ -186,6 +202,30 @@ describe('resolveSaveTarget', () => {
     });
     if (target.kind !== 'fileHandle') return;
     expect(target.fallbackWarning).toContain('ikke fundet');
+  });
+
+  it.each([
+    ['permission_denied', 'Mineo har ikke længere adgang til den tidligere valgte fil'],
+    ['validation_failed', 'Den tidligere valgte fil kunne ikke bruges til automatisk overskrivning'],
+    ['missing_handle', 'Der var ikke længere en gemt filreference til automatisk overskrivning'],
+  ] as const)('viser den konkrete fallback-advarsel ved %s', async (reason, expectedWarning) => {
+    sessionStorage.setItem('mineo_ui_lastSavedFilename', 'eksisterende.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
+    const stored = makeHandle('eksisterende.eo');
+    const picked = makeHandle('ny.eo');
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+    mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: false, reason });
+    mockedSaveFileWithPicker.mockResolvedValue(picked);
+
+    const target = await resolveSaveTarget(fileData);
+
+    expect(target).toMatchObject({
+      kind: 'fileHandle',
+      fileHandle: picked,
+      persistHandleAfterSuccess: true,
+      fallbackWarning: expect.stringContaining(expectedWarning),
+    });
   });
 
   it('afbryder fail-closed, hvis et ubrugeligt handle ikke kan ryddes', async () => {
