@@ -1,5 +1,6 @@
 import {
   formatPercentDisplay,
+  formatPercentDraft,
   parsePercentDraftForCommit,
 } from '../../utils/percentDraftCore';
 import { MAX_PERCENT_RAW_LENGTH } from '../../utils/percentInputUtils';
@@ -21,6 +22,28 @@ describe('percentDraftCore', () => {
     expect(parsePercentDraftForCommit('-', baseConfig).ok).toBe(false);
     expect(parsePercentDraftForCommit('50,', baseConfig).ok).toBe(false);
     expect(parsePercentDraftForCommit('1'.repeat(MAX_PERCENT_RAW_LENGTH + 1), baseConfig).ok).toBe(false);
+  });
+
+  it('formatterer draft med trimmet præcision og afviser malformed heltal', () => {
+    expect(formatPercentDraft(12.5, 0)).toBe('13');
+    expect(formatPercentDraft(12.5, 2)).toBe('12,5');
+    expect(formatPercentDraft(undefined, 2)).toBe('');
+    expect(formatPercentDraft(Number.NaN, 2)).toBe('');
+    expect(formatPercentDisplay(undefined, true)).toBe('');
+    expect(formatPercentDisplay(Number.POSITIVE_INFINITY, true)).toBe('');
+    expect(parsePercentDraftForCommit('1a', baseConfig)).toEqual({
+      ok: false,
+      errorMessage: 'Ugyldig procent',
+    });
+  });
+
+  it('afviser malformed decimal- og tusindtalsformat', () => {
+    for (const rawValue of ['1,2,3', ',1', '1,a', '1,234', '1.2', '1-2', '1 .000']) {
+      expect(parsePercentDraftForCommit(rawValue, baseConfig)).toEqual({
+        ok: false,
+        errorMessage: 'Ugyldig procent',
+      });
+    }
   });
 
   it('parser hele tal, decimaler og tusindtalsseparatorer', () => {
