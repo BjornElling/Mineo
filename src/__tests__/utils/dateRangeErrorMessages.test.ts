@@ -5,6 +5,7 @@ import {
   resolveDateRangeErrorMessage,
   STATIC_DATE_BOUNDS,
 } from '../../utils/dateRangeErrorMessages';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -252,5 +253,67 @@ describe('resolveDateRangeErrorMessage – årsagsinputs i det umulige interval'
 
     expect(message).not.toContain('Grænserne kommer fra');
     expect(message).not.toBe('');
+  });
+});
+
+describe('resolveDateRangeErrorMessage – max-grænser og direkte Fra/Til-fejl', () => {
+  it('dækker de særskilte max-grænsetyper og deres fallbacktekster', () => {
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2031-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2030-12-31'),
+      special: { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe('Beregningsdato kan senest være 31-12-2030');
+
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2031-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2030-12-31'),
+      special: { maxBoundKind: 'dataCoverageMax' },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe('Datoen kan senest være 31-12-2030');
+
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2025-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2024-12-31'),
+      special: { maxBoundKind: 'foerAfgoerelsesdato', maxBoundReferenceISO: iso('2025-01-02') },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe('Tidl. kap.dato skal være før afgørelsesdatoen (02-01-2025)');
+
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2025-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2024-12-31'),
+      special: { maxBoundKind: 'foerFoersteTafFraDato' },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe('Referenceperioden skal ligge før første TAF-periode (31-12-2024)');
+
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2025-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2024-12-31'),
+      special: { maxBoundKind: 'efterFelt', maxBoundFieldLabel: 'beregningsdatoen', maxBoundReferenceISO: iso('2024-12-30') },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe('Datoen er efter beregningsdatoen (30-12-2024)');
+  });
+
+  it('bruger den direkte Fra/Til-ordensbesked, når ingen mere specifik grænse gælder', () => {
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2025-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2024-12-31'),
+      special: { fraTilRole: 'fra' },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe(DATE_ORDER_ERROR_MESSAGE);
+
+    expect(resolveDateRangeErrorMessage({
+      iso: iso('2019-01-01'),
+      minDate: iso('2020-01-01'),
+      maxDate: iso('2024-12-31'),
+      special: { fraTilRole: 'til' },
+      bounds: STATIC_DATE_BOUNDS,
+    })).toBe(DATE_ORDER_ERROR_MESSAGE);
   });
 });
