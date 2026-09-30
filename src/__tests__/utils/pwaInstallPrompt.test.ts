@@ -30,6 +30,13 @@ const setInstalledRelatedApps = (
   });
 };
 
+const setInstalledRelatedAppsRaw = (result: unknown): void => {
+  Object.defineProperty(navigator, 'getInstalledRelatedApps', {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(result),
+  });
+};
+
 describe('pwaInstallPrompt', () => {
   const originalMatchMedia = window.matchMedia;
 
@@ -63,6 +70,25 @@ describe('pwaInstallPrompt', () => {
     expect(result).toEqual({ kind: 'completed', outcome: 'accepted' });
   });
 
+  it('returnerer dismissed uden at markere installationen som gennemført', async () => {
+    const { requestPwaInstall, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
+    const prompt = vi.fn().mockResolvedValue(undefined);
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as BeforeInstallPromptEvent;
+
+    Object.assign(event, {
+      prompt,
+      userChoice: Promise.resolve({ outcome: 'dismissed', platform: 'web' }),
+    });
+
+    setupPwaInstallPromptCapture();
+    window.dispatchEvent(event);
+
+    await expect(requestPwaInstall()).resolves.toEqual({
+      kind: 'completed',
+      outcome: 'dismissed',
+    });
+  });
+
   it('undertrykker installprompt på unsupported enheder', async () => {
     const { requestPwaInstall, suppressPwaInstallPrompt } = await import('../../utils/pwaInstallPrompt');
     const prompt = vi.fn().mockResolvedValue(undefined);
@@ -82,6 +108,22 @@ describe('pwaInstallPrompt', () => {
     expect(preventDefaultSpy).toHaveBeenCalled();
     expect(prompt).not.toHaveBeenCalled();
     expect(result).toEqual({ kind: 'unavailable', reason: 'promptUnavailable' });
+  });
+
+  it('bevarer capture-tilstanden ved gentaget setup og genkender den gemte prompt', async () => {
+    const { detectPwaInstallationState, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
+    const event = new Event('beforeinstallprompt', { cancelable: true }) as BeforeInstallPromptEvent;
+
+    Object.assign(event, {
+      prompt: vi.fn(),
+      userChoice: Promise.resolve({ outcome: 'dismissed', platform: 'web' }),
+    });
+
+    setupPwaInstallPromptCapture();
+    setupPwaInstallPromptCapture();
+    window.dispatchEvent(event);
+
+    await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
   });
 
   describe('detectPwaInstallationState', () => {
@@ -149,6 +191,14 @@ describe('pwaInstallPrompt', () => {
       await expect(detectPwaInstallationState()).resolves.toBe('unknown');
     });
 
+    it('melder «unknown» når browserens opslag ikke returnerer en liste', async () => {
+      const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setInstalledRelatedAppsRaw({ unexpected: true });
+
+      await expect(detectPwaInstallationState()).resolves.toBe('unknown');
+    });
+
     it('melder «unknown» i browsere helt uden opslag (Safari/Firefox)', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
@@ -170,13 +220,35 @@ describe('pwaInstallPrompt', () => {
     it('ignorerer en relation med ugyldig URL uden at fejle installationsflowet', async () => {
       const { detectPwaInstallationState } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
-      setInstalledRelatedApps([{ platform: 'webapp', url: 'not a URL', id: 'https://mineo.example/' }]);
+      setInstalledRelatedApps([{ platform: 'webapp', url: 'http://[invalid', id: 'https://mineo.example/' }]);
 
       await expect(detectPwaInstallationState()).resolves.toBe('notInstalled');
     });
   });
 
   describe('requestPwaInstall', () => {
+    it('returnerer running når installationskontrollen kaldes inde fra PWA-vinduet', async () => {
+      const { requestPwaInstall } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(true);
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'alreadyInstalled',
+        state: 'running',
+      });
+    });
+
+    it('returnerer installed efter appinstalled-eventet i samme fane', async () => {
+      const { requestPwaInstall, setupPwaInstallPromptCapture } = await import('../../utils/pwaInstallPrompt');
+      setStandaloneDisplayMode(false);
+      setupPwaInstallPromptCapture();
+      window.dispatchEvent(new Event('appinstalled'));
+
+      await expect(requestPwaInstall()).resolves.toEqual({
+        kind: 'alreadyInstalled',
+        state: 'installed',
+      });
+    });
+
     it('finder en kendt installation uden installprompt', async () => {
       const { requestPwaInstall } = await import('../../utils/pwaInstallPrompt');
       setStandaloneDisplayMode(false);
