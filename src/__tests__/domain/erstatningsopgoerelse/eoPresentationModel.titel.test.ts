@@ -48,4 +48,27 @@ describe('buildEoPdfPresentation – dokumentets titel', () => {
     expect(titelFor({ eoNummer: '   ', eoLedsagetekst: 'note' }))
       .toBe('Erstatningsopgørelse (note)');
   });
+
+  it('viser erhvervssygdom som anmeldt og bevarer tomt skadelidtenavn som null', () => {
+    const presentation = buildEoPdfPresentation(
+      {
+        ...STAMDATA_INITIAL_VALUES,
+        skadelidte: '   ',
+        skadestype: 'Erhvervssygdom',
+        skadedato: toISODateString('2024-01-02'),
+      },
+      createErstatningsopgoerelseInitialValues(),
+      { dagsDatoISO: DAGS_DATO }
+    );
+
+    expect(presentation.skadestypeLinje).toBe('Erhvervssygdom anmeldt den 2. januar 2024');
+    expect(presentation.skadelidteNavn).toBeNull();
+
+    const medNavn = buildEoPdfPresentation(
+      { ...STAMDATA_INITIAL_VALUES, skadelidte: 'Anna' },
+      createErstatningsopgoerelseInitialValues(),
+      { dagsDatoISO: DAGS_DATO }
+    );
+    expect(medNavn.skadelidteNavn).toBe('Anna');
+  });
 });
