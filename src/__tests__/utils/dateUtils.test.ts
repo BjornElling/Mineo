@@ -10,6 +10,7 @@ import {
   getDaysInYear,
   getInclusivePeriodEndByMonths,
   getInclusivePeriodEndDanishDate,
+  getTodayCopenhagenISO,
   getTodayLocalISO,
   isLeapYear,
   isoWeekOfDate,
@@ -114,6 +115,18 @@ describe('dateUtils', () => {
     });
   });
 
+  describe('getTodayCopenhagenISO', () => {
+    it('bruger dansk kalenderdag efter tidszonekonvertering', () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-09-30T22:30:00.000Z'));
+        expect(getTodayCopenhagenISO()).toBe(toISODateString('2026-10-01'));
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('isLeapYear', () => {
     it('2024 er skudår (delelig med 4, ikke 100)', () => {
       expect(isLeapYear(2024)).toBe(true);
@@ -156,6 +169,11 @@ describe('dateUtils', () => {
 
       expect(calculateUtcAgeInWholeYears(fodselsdato, new Date(Date.UTC(2025, 5, 14)))).toBe(39);
       expect(calculateUtcAgeInWholeYears(fodselsdato, new Date(Date.UTC(2025, 5, 15)))).toBe(40);
+    });
+
+    it('returnerer undefined ved ugyldige runtime-datoer', () => {
+      expect(calculateUtcAgeInWholeYears(null as never, new Date(Date.UTC(2025, 5, 15)))).toBeUndefined();
+      expect(calculateUtcAgeInWholeYears(new Date('ugyldig'), new Date(Date.UTC(2025, 5, 15)))).toBeUndefined();
     });
   });
 
@@ -298,6 +316,12 @@ describe('dateUtils', () => {
       // ISO: mandag = 1, søndag = 0
       const startDay = interval!.start.getUTCDay();
       expect(startDay).toBe(1); // mandag
+    });
+
+    it('håndterer år hvor 4. januar falder på en søndag', () => {
+      const interval = parseWeekString('1/2015');
+      expect(interval?.start).toEqual(createDate(2014, 11, 29));
+      expect(interval?.end).toEqual(createDate(2015, 0, 4));
     });
 
     it('uge 52/2024 er gyldig', () => {
