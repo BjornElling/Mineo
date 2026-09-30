@@ -1,4 +1,4 @@
-import { roundByMethod } from '../../utils/rounding';
+import { formatRoundedCanonical, roundByMethod } from '../../utils/rounding';
 
 describe('roundByMethod', () => {
   it('rounder halfAwayFromZero symmetrisk for positive og negative halvdele', () => {
@@ -49,5 +49,13 @@ describe('roundByMethod', () => {
     expect(roundByMethod(1.5, 0, 'halfAwayFromZero')).toBe(2);
     expect(roundByMethod(1.49, 0, 'halfAwayFromZero')).toBe(1);
     expect(roundByMethod(-1.5, 0, 'halfAwayFromZero')).toBe(-2);
+  });
+
+  it('formatRoundedCanonical bruger afrundingsmetoden og normaliserer decimalantallet', () => {
+    expect(formatRoundedCanonical(1.235, 2)).toBe('1.24');
+    expect(formatRoundedCanonical(-1.231, 2, 'floor')).toBe('-1.24');
+    expect(formatRoundedCanonical(1.231, 2, 'ceil')).toBe('1.24');
+    expect(formatRoundedCanonical(1.234, 2, 'none')).toBe('1.23');
+    expect(formatRoundedCanonical(1.234, Number.POSITIVE_INFINITY)).toBe('1');
   });
 });
