@@ -20,6 +20,7 @@ import {
 } from '../../../inputCore/evaluationSource';
 import { toISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 
 // EO's download-gate (§3.9): beviser at gaten for de fire EO-dokumenter afledes af den
 // ENE reader-projektion og blokerer på præcis de samme rækker/invarianter som den nuværende view-model – men uden
@@ -155,5 +156,55 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.tafKravGraf.canDownload).toBe(false);
+  });
+
+  it('blokerer på aktiv midlertidig EET-kildefejl selv uden række-fejl', () => {
+    const reader = buildReader({ ...buildEoDownloadableEo(), midlertidigtEetFraEetSiden: 'Ja' }, validStamdata);
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+    const eetError = {
+      id: 'midlertidigt_eet_source:runtime',
+      passed: false,
+      severity: 'error',
+      source: 'system',
+      message: 'Midlertidig EET-kilde mangler',
+      blocksAuthoritativeComputation: false,
+    } as EoInvariant;
+    const withEetError = {
+      ...projection,
+      snapshot: { ...projection.snapshot, invariants: [eetError] },
+    };
+
+    const gates = evaluateErstatningsopgoerelseDownloadGates(withEetError, DEFAULT_EO_ROW_POLICY);
+
+    expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
+    expect(gates.erstatningsopgoerelse.reasons[0]?.kind).toBe('page-errors');
+    expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Midlertidig EET-kilde mangler');
+  });
+
+  it('blokerer fail-closed når rækkeaggregeringen kaster en intern fejl', () => {
+    const reader = buildReader(buildEoDownloadableEo(), validStamdata);
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+
+    expect(projection.snapshot.data).toBeDefined();
+    if (!projection.snapshot.data) throw new Error('Testfixturet skal have snapshotdata');
+
+    const brokenData = new Proxy(projection.snapshot.data, {
+      get(target, property, receiver) {
+        if (property === 'canonicalOutput') throw new Error('syntetisk aggregatorfejl');
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const brokenProjection = {
+      ...projection,
+      snapshot: { ...projection.snapshot, data: brokenData },
+    };
+
+    const gates = evaluateErstatningsopgoerelseDownloadGates(brokenProjection, DEFAULT_EO_ROW_POLICY);
+
+    expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
+    expect(gates.erstatningsopgoerelse.reasons[0]?.kind).toBe('page-errors');
+    expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe(
+      'Beregningens fejloverblik kan ikke vises på grund af en intern fejl'
+    );
   });
 });
