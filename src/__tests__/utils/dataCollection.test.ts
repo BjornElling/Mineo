@@ -1,5 +1,6 @@
 import {
   countFilledFields,
+  countMeaningfulFields,
   isMeaningfulValue,
 } from '../../utils/dataCollection';
 
@@ -113,5 +114,32 @@ describe('dataCollection', () => {
       expect(isMeaningfulValue({ a: undefined })).toBe(false);
       expect(isMeaningfulValue({ a: { b: '' }, c: { d: 1 } })).toBe(true);
     });
+
+    it('afviser ukendte primitive typer som ikke-meningsfulde', () => {
+      expect(isMeaningfulValue(Symbol('opaque'))).toBe(false);
+    });
+  });
+
+  it('tæller et enkelt primitivt leaf-felt separat fra top-level data', () => {
+    expect(countMeaningfulFields('værdi')).toBe(1);
+    expect(countMeaningfulFields('  ')).toBe(0);
+    expect(countMeaningfulFields({ felt: 'værdi' })).toBe(1);
+    expect(countFilledFields('værdi')).toBe(0);
+    expect(countFilledFields({ sektion: 'værdi' })).toBe(1);
+    expect(countFilledFields({ sektion: '' })).toBe(0);
+    expect(countFilledFields({ sektion: '  ' })).toBe(0);
+    expect(countFilledFields({ sektion: null })).toBe(0);
+  });
+
+  it('afviser cykliske og for dybe strukturer fail-closed', () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    expect(isMeaningfulValue(cyclic)).toBe(false);
+
+    let deep: unknown = 'værdi';
+    for (let index = 0; index <= 10; index += 1) {
+      deep = { nested: deep };
+    }
+    expect(isMeaningfulValue(deep)).toBe(false);
   });
 });
