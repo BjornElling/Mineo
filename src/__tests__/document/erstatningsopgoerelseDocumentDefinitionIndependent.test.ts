@@ -2,11 +2,17 @@
 /// <reference types="vitest/globals" />
 
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
+import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import { createDocumentSourceContext } from '../../document/definition/documentSourceContext';
 import {
   erstatningsopgoerelseDocumentDefinition,
   type ErstatningsopgoerelseDocumentInput,
 } from '../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
+import {
+  buildErstatningsopgoerelseReaderProjection,
+} from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
+import type { ErstatningsopgoerelseDownloadGates } from '../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { projectMineoDocumentGateSettings } from '../../document/definition/mineoDocumentDefinition';
 import { createInputEvaluation } from '../../inputCore/inputReader';
@@ -133,5 +139,51 @@ describe('CALC-006/DOC-001 – erstatningsopgørelsens definition og renderer', 
     expect(text).toContain('Transport');
     expect(text).toContain('1.200,00 kr.');
     expect(text).toContain('Erstatningskrav i alt');
+  });
+
+  it('bevarer specifik projektion-blokering efter en godkendt dokumentgate', () => {
+    const catalog = getProductionInputCatalog();
+    const evaluation = createInputEvaluation({
+      input: buildInput(),
+      catalog,
+      sourceToken: createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1)),
+    });
+    const projection = buildErstatningsopgoerelseReaderProjection(evaluation.reader);
+    const blockedSnapshot: EoSnapshot = {
+      ...projection.snapshot,
+      status: 'fail_closed',
+      data: null,
+      failClosedReason: 'runtime_exception',
+    };
+    const gates = {
+      erstatningsopgoerelse: { canDownload: true, reasons: [] },
+      tafFordeltPaaAar: { canDownload: true, reasons: [] },
+      tafOpreguleret: { canDownload: true, reasons: [] },
+      tafKravGraf: { canDownload: true, reasons: [] },
+    } satisfies ErstatningsopgoerelseDownloadGates;
+    const sharedSource = {
+      projection: { ...projection, snapshot: blockedSnapshot },
+      gates,
+    };
+    const context: DocumentSourceContext<typeof gateSettings> = {
+      evaluation,
+      settings: gateSettings,
+      // Testen modellerer den defensive grænse mellem en godkendt fælles gate og en separat
+      // dokumentprojektion, der alligevel svarer blocked. Den tilstand kan ikke nås gennem den
+      // normale delte builder uden at sabotere gate/projektion-pariteten.
+      shared: <T>(_builder: (sourceContext: DocumentSourceContext<typeof gateSettings>) => T): T =>
+        sharedSource as unknown as T,
+    };
+
+    const result = erstatningsopgoerelseDocumentDefinition.project(context, undefined);
+
+    expect(result).toEqual({
+      status: 'blocked',
+      reasons: [{
+        code: 'eo.erstatningsopgoerelse.projection-blocked',
+        message: 'EO-PDF kan ikke genereres for den aktuelle sag.',
+        kind: 'specific',
+      }],
+    });
   });
 });
