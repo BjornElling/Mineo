@@ -63,6 +63,28 @@ describe('scrollToEoRow', () => {
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
   });
 
+  it('understøtter SFGG-eftertabelens særskilte række-id-form', () => {
+    document.body.innerHTML = '<div data-mineo-row-id="post-1"></div>';
+
+    scrollToEoRow('sfgg.eftertabel.eal.post-1');
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  it('finder rækkeankeret gennem querySelectorAll uden CSS.escape', () => {
+    document.body.innerHTML = '<div data-mineo-row-id="fallback-1"></div>';
+    const originalCss = globalThis.CSS;
+    vi.stubGlobal('CSS', undefined);
+
+    try {
+      scrollToEoRow('taf.periode.fallback-1');
+    } finally {
+      vi.stubGlobal('CSS', originalCss);
+    }
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
+  });
+
   it('uses non-animated scroll when reduced motion is preferred', () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
     document.body.innerHTML = '<div data-mineo-row-id="row-rm"></div>';
@@ -79,6 +101,17 @@ describe('scrollToEoRow', () => {
 
     expect(onFailure).toHaveBeenCalledTimes(1);
     expect(onFailure.mock.calls[0][0]).toContain('missing-row');
+  });
+
+  it('returnerer en no-op-cancel, når række-id ikke har en kendt ankerform', () => {
+    const onFailure = vi.fn();
+
+    const cancel = scrollToEoRow('ukendt-raekke-id', { onFailure });
+
+    expect(onFailure).toHaveBeenCalledWith(
+      'No row anchor could be resolved from rowId="ukendt-raekke-id"',
+    );
+    expect(() => cancel()).not.toThrow();
   });
 
   // ── Fokusmålet er en kanonisk feltadresse ───────────────────────────────────────────────────────
