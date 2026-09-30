@@ -38,6 +38,22 @@ describe('tableDuplicateRowDetection', () => {
       expect(normalizeCellValueForDuplicateComparison(Number.NaN)).toBeNull();
       expect(normalizeCellValueForDuplicateComparison(amount(Number.NaN))).toBeNull();
     });
+
+    it('normaliserer boolean og afviser ukendte objekter i DEV', () => {
+      expect(normalizeCellValueForDuplicateComparison(true)).toBe('true');
+      expect(normalizeCellValueForDuplicateComparison(false)).toBe('false');
+      expect(() => normalizeCellValueForDuplicateComparison({ værdi: 1 }))
+        .toThrow('AmountValue: Ukendt kind (ikke-string) i validation.');
+    });
+
+    it('returnerer null for et ukendt objekt i produktion', () => {
+      vi.stubEnv('DEV', false);
+      try {
+        expect(normalizeCellValueForDuplicateComparison({ værdi: 1 })).toBeNull();
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
   });
 
   describe('findDuplicateRows', () => {
