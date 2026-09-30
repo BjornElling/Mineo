@@ -206,6 +206,15 @@ describe('parseAmountInput', () => {
     expect(result.error.message).toBe('Manglende slutparentes');
   });
 
+  it('afviser et ekstra operand efter et ellers gyldigt udtryk', () => {
+    const result = parse('2+3 4');
+
+    expect(result).toEqual({
+      ok: false,
+      error: { kind: 'expression', message: 'Ugyldig operatorfølge' },
+    });
+  });
+
   it('reports division by zero', () => {
     const result = parse('4/0');
     expect(result.ok).toBe(false);
