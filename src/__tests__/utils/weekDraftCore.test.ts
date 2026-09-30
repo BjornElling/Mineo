@@ -55,6 +55,42 @@ describe('parseWeekDraftForCommit', () => {
     });
   });
 
+  it('afviser de øvrige malformed-formatpartitioner', () => {
+    expect(parseWeekDraftForCommit('/05/2020', config)).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt format',
+    });
+    expect(parseWeekDraftForCommit('05/2020/1', { ...config, maxDraftLength: 20 })).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt format',
+    });
+    expect(parseWeekDraftForCommit('05/', config)).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt format',
+    });
+    expect(parseWeekDraftForCommit('05/x', config)).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt format',
+    });
+    expect(parseWeekDraftForCommit('123/2020', { ...config, maxDraftLength: 20 })).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt format',
+    });
+  });
+
+  it('afviser et numerisk årstoken med ugyldig længde', () => {
+    expect(parseWeekDraftForCommit('05/123', config)).toEqual({
+      ok: false,
+      invalidKind: 'malformed',
+      errorMessage: 'Ugyldigt årstal',
+    });
+  });
+
   it('respekterer maxDraftLength', () => {
     expect(parseWeekDraftForCommit('123456789', config)).toEqual({
       ok: false,
