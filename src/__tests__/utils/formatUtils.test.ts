@@ -5,8 +5,11 @@ import {
   formatAsAmountTrimmed,
   formatPercentTrimmedFromRounded4,
   formatPercentRounded4,
+  formatReguleringPctSigned,
+  formatKr,
   isSingularCount,
   formatCountWithUnit,
+  capitalizeFirstCharDa,
 } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 
@@ -33,8 +36,20 @@ describe('formatPercent', () => {
     expect(formatPercent(Infinity)).toBe('');
   });
 
+  it('null og undefined → tom streng', () => {
+    expect(formatPercent(null)).toBe('');
+    expect(formatPercent(undefined)).toBe('');
+  });
+
   it('negativ procent → negativt tal med dansk komma', () => {
     expect(formatPercent(-5.5)).toBe('-5,5 %');
+  });
+});
+
+describe('capitalizeFirstCharDa', () => {
+  it('bevarer tom streng og kapitaliserer dansk tegn', () => {
+    expect(capitalizeFirstCharDa('')).toBe('');
+    expect(capitalizeFirstCharDa('åbning')).toBe('Åbning');
   });
 });
 
@@ -61,6 +76,13 @@ describe('formatCurrency', () => {
 
   it('negativ beløb → negativt format', () => {
     expect(formatCurrency(-1234.56)).toBe('-1.234,56');
+  });
+});
+
+describe('formatKr', () => {
+  it('tilføjer kanonisk kr.-enhed efter valgt præcision', () => {
+    expect(formatKr(1234.56)).toBe('1.235 kr.');
+    expect(formatKr(1234.56, 2)).toBe('1.234,56 kr.');
   });
 });
 
@@ -146,6 +168,17 @@ describe('formatPercentRounded4', () => {
   it('anvender den kanoniske fire-decimal-afrunding og procent-suffiks', () => {
     expect(formatPercentRounded4(22.8178)).toBe('22,8178 %');
     expect(formatPercentRounded4(22.8100)).toBe('22,81 %');
+  });
+});
+
+describe('formatReguleringPctSigned', () => {
+  it('viser positivt og negativt fortegn efter afrunding', () => {
+    expect(formatReguleringPctSigned(3.9)).toBe('+ 3,9 %');
+    expect(formatReguleringPctSigned(-0.5)).toBe('- 0,5 %');
+  });
+
+  it('viser plus for negativ råværdi der afrundes til nul', () => {
+    expect(formatReguleringPctSigned(-0.00001)).toBe('+ 0 %');
   });
 });
 
