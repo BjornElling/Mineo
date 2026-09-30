@@ -7,7 +7,10 @@ vi.mock('../../../utils/logger', () => ({
 
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
-import { eoSnapshotToTafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
+import {
+  eoSnapshotToTafPerYearDocument,
+  tafBeregningsgrundlagAngivetLoenMangler,
+} from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
 import { eoSnapshotToTafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import {
   buildControlMismatchInvariant,
@@ -16,6 +19,8 @@ import {
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { moneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 
@@ -63,7 +68,47 @@ const FAKE_TAF_PER_YEAR_RESULT: TafPerYearResult = {
   samletTafKravOre: moneyOre(0),
 };
 
+const modelWithIndkomst = (indkomst: unknown): EoModel => ({
+  tabtArbejdsfortjeneste: { indkomstSkadestidspunkt: indkomst },
+} as unknown as EoModel);
+
 describe('EO snapshot PDF projections', () => {
+  it.each([
+    ['manglende indkomstmodel', null, false],
+    ['manglende angivet månedsløn', { beregnesUdFra: 'Angivet månedsløn', maanedsloen: { status: 'not_calculable' } }, true],
+    ['beregnelig angivet månedsløn', { beregnesUdFra: 'Angivet månedsløn', maanedsloen: { status: 'ok' } }, false],
+    ['manglende angivet dagsløn', { beregnesUdFra: 'Angivet dagsløn', dagsloen: { status: 'not_calculable' } }, true],
+    ['beregnelig angivet dagsløn', { beregnesUdFra: 'Angivet dagsløn', dagsloen: { status: 'ok' } }, false],
+    ['beregningsperiode', { beregnesUdFra: 'Beregningsperiode' }, false],
+  ])('klassificerer guardens beregningsgrundlag ved %s', (_label, indkomst, expected) => {
+    expect(tafBeregningsgrundlagAngivetLoenMangler(modelWithIndkomst(indkomst))).toBe(expected);
+  });
+
+  it('blokerer TAF-per-år-projektionen, når snapshot-data mangler', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToTafPerYearDocument({
+      ...snapshot,
+      data: undefined,
+      input: { stamdata: null, erstatningsopgoerelse: null },
+    } as unknown as EoSnapshot);
+
+    expect(projection.kind).toBe('blocked');
+  });
+
+  it('blokerer TAF-per-år-projektionen ved en output-blokerende invariant', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToTafPerYearDocument({
+      ...snapshot,
+      status: 'error',
+      invariants: [buildControlMismatchInvariant(['TAF'])],
+    });
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.invariants).toHaveLength(1);
+    expect(projection.message).toContain('kontroluoverensstemmelser');
+  });
+
   it('tillader EO-PDF ved warning-status uden eo_pdf-blokering', () => {
     const snapshot = buildBaseSnapshot();
     const projection = eoSnapshotToEoDocument({
@@ -136,6 +181,26 @@ describe('EO snapshot PDF projections', () => {
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
     expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
+  });
+
+  it('skelner en faktisk TAF-periode uden per-år-fordeling', () => {
+    const snapshot = buildBaseSnapshot();
+    const withTafPeriods = {
+      ...snapshot,
+      data: snapshot.data && {
+        ...snapshot.data,
+        engines: {
+          ...snapshot.data.engines,
+          tafNetto: { ...snapshot.data.engines.tafNetto, harTafPerioder: true },
+          tafPerYear: null,
+        },
+      },
+    };
+    const projection = eoSnapshotToTafPerYearDocument(withTafPeriods);
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.message).toContain('TAF ikke kan fordeles på år');
   });
 
   it('blokerer TAF-opreguleret-PDF når der ikke beregnes TAF i erstatningsperioden', () => {
