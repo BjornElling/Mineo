@@ -179,6 +179,39 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     ]);
   });
 
+  it('rekonstruerer manuelle løn- og procentsatsrækker i det angivne løn-property', () => {
+    const reader = buildReader({
+      ...buildEoWithEmployment(),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingManuelTableData: [{
+          id: 'manuel-1',
+          dato: toISODateString('2022-04-01'),
+          grundloen: asAmount(30_000),
+          feriepenge: 12.5,
+          shSoSats: 1.5,
+          fritvalg: 2,
+          agPension: 8,
+        }],
+        loenudviklingManuelProcentsatsTableData: [{
+          id: 'procent-1',
+          dato: toISODateString('2022-04-01'),
+          procent: 3.5,
+        }],
+      },
+    }, validStamdata);
+
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+    const manual = projection.eoValues.eoAngivetLoenLoenudvikling;
+
+    expect(manual.loenudviklingManuelTableData).toEqual([
+      expect.objectContaining({ id: 'manuel-1', grundloen: asAmount(30_000), feriepenge: 12.5 }),
+    ]);
+    expect(manual.loenudviklingManuelProcentsatsTableData).toEqual([
+      expect.objectContaining({ id: 'procent-1', procent: 3.5 }),
+    ]);
+  });
+
   it('blokerer alle dokumenter når snapshottet fail-closer (skadedato før fødselsdato)', () => {
     const reader = buildReader(buildEoWithEmployment(), {
       ...validStamdata,
