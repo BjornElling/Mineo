@@ -81,6 +81,18 @@ describe('evaluateEoDocumentDownloadGate (A5: ét autoritativt output-gate pr. d
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.message).toBe('Projektion blokeret');
   });
+
+  it('bruger gate-fallback, hvis blokerende rækker mangler en første besked', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      hasBlockingRows: true,
+      blockingRowMessage: null,
+    });
+
+    expect(gate.canDownload).toBe(false);
+    expect(gate.reasons[0]?.kind).toBe('page-errors');
+    expect(gate.reasons[0]?.message).toBe('gate fallback');
+  });
 });
 
 /**
