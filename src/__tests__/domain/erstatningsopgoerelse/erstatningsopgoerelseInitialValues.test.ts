@@ -143,6 +143,15 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.loenindkomstAnsaettelsesforhold).toHaveLength(0);
   });
 
+  it('defaultFuldLoenUnderFerie=false giver Nej på et nyt ansættelsesforhold', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold({
+      ...DEFAULT_APP_SETTINGS,
+      defaultFuldLoenUnderFerie: false,
+    });
+
+    expect(employment.fuldLoenUnderFerie).toBe('Nej');
+  });
+
   it('opretter en synlig Store Bededag-toggle som aktiv ved almindelig løn på helligdage', () => {
     const employment = createDefaultLoenindkomstAnsaettelsesforhold(DEFAULT_APP_SETTINGS);
 
