@@ -38,6 +38,11 @@ describe('resolveYearFromToken', () => {
     expect(resolveYearFromToken('20', 'reject')).toBeNull();
   });
 
+  it('1- og 2-cifret med infer fortolkes via fælles årspolitik', () => {
+    expect(resolveYearFromToken('4', 'infer')).toBe(2004);
+    expect(resolveYearFromToken('20', 'infer')).toBe(2020);
+  });
+
   it('3-cifret og andre længder → null', () => {
     expect(resolveYearFromToken('202', 'infer')).toBeNull();
     expect(resolveYearFromToken('20200', 'infer')).toBeNull();
@@ -53,6 +58,10 @@ describe('parseYearDraftForCommit', () => {
 
   it('bogstaver → "Ugyldigt årstal"', () => {
     expect(parseYearDraftForCommit('20x0', config)).toEqual({ ok: false, errorMessage: 'Ugyldigt årstal' });
+  });
+
+  it('numerisk årstoken med ugyldig længde → "Ugyldigt årstal"', () => {
+    expect(parseYearDraftForCommit('123', config)).toEqual({ ok: false, errorMessage: 'Ugyldigt årstal' });
   });
 
   it('gyldigt år inden for interval', () => {
