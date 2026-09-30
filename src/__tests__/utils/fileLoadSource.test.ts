@@ -10,7 +10,7 @@ import {
   ensureFileHandleReadPermission,
   FileHandleAccessError,
 } from '../../utils/fileSystemAccess';
-import { selectFile, readFile } from '../../utils/fileHelpers';
+import { getStartInValue, selectFile, readFile } from '../../utils/fileHelpers';
 import { MAX_FILE_SIZE } from '../../config/version';
 import { logWarning } from '../../utils/logger';
 
@@ -38,6 +38,7 @@ const mockedOpenFileWithPicker = vi.mocked(openFileWithPicker);
 const mockedEnsurePermission = vi.mocked(ensureFileHandleReadPermission);
 const mockedSelectFile = vi.mocked(selectFile);
 const mockedReadFile = vi.mocked(readFile);
+const mockedGetStartInValue = vi.mocked(getStartInValue);
 const mockedLogWarning = vi.mocked(logWarning);
 
 const makeFile = (name: string, size = 10): File => {
@@ -88,6 +89,24 @@ describe('createManualLoadSource', () => {
     const outcome = await createManualLoadSource().open();
 
     expect(outcome).toEqual({ status: 'cancelled', source: 'manual' });
+  });
+
+  it('File System Access: bruger resolved directory til pickerens startIn', async () => {
+    mockedIsFileSystemAccessSupported.mockReturnValue(true);
+    const file = makeFile('sag.eo');
+    const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
+    const resolvedDirectory = {
+      handle: {} as FileSystemDirectoryHandle,
+      wellKnown: 'desktop' as const,
+      isFallback: false,
+    };
+    mockedOpenFileWithPicker.mockResolvedValue({ file, handle });
+    mockedGetStartInValue.mockReturnValue('desktop');
+
+    await createManualLoadSource(resolvedDirectory).open();
+
+    expect(mockedGetStartInValue).toHaveBeenCalledWith(resolvedDirectory);
+    expect(mockedOpenFileWithPicker).toHaveBeenCalledWith('desktop');
   });
 
   it('Fallback: bruger selectFile + readFile', async () => {
