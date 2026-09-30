@@ -258,6 +258,36 @@ describe('fileSave', () => {
       expect(result.differences?.some((line) => line.includes('stamdata.journalnr'))).toBe(true);
     });
 
+    it('logger en samlet hale når verifikationen finder mere end ti forskelle', async () => {
+      const richExpectedData = eoFileDataSchema.parse({
+        stamdata: {
+          journalnr: 'J-1',
+          advokat: 'Advokat A',
+          sagsbehandler: 'Sagsbehandler B',
+          skadelidte: 'Testperson',
+          skadelidteFodselsdato: toISODateString('1990-01-01'),
+          skadestype: 'Arbejdsulykke',
+          skadedato: toISODateString('2020-01-01'),
+        },
+        forsoergertab: {
+          efterladteFodselsdato: toISODateString('1988-03-04'),
+          beregningsdato: toISODateString('2025-01-15'),
+          virkningsdato: toISODateString('2025-01-01'),
+          koen: 'Kvinde',
+          tilkendtForPeriodeAar: 5,
+        },
+      });
+      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
+        stamdata: { journalnr: 'J-1' },
+        forsoergertab: {},
+      }));
+
+      const result = await verifyAfterSave('encrypted', richExpectedData, false);
+
+      expect(result).toMatchObject({ success: false, kind: 'integrity' });
+      expect(mockedLogError).toHaveBeenCalledWith(expect.stringContaining('flere forskelle'));
+    });
+
     it('læser via file handle når isFileHandle=true', async () => {
       mockedReadFromFileHandle.mockResolvedValueOnce('encrypted');
       mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
@@ -270,6 +300,24 @@ describe('fileSave', () => {
       expect(mockedReadFromFileHandle).toHaveBeenCalledOnce();
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
+    });
+
+    it('returnerer unusable ved exception under read-back', async () => {
+      mockedReadFromFileHandle.mockRejectedValueOnce(new Error('read-back fejlede'));
+      const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
+
+      const result = await verifyAfterSave(handle, expectedData, true);
+
+      expect(result).toEqual({
+        success: false,
+        kind: 'unusable',
+        error: 'Kunne ikke verificere gemt fil',
+        details: 'read-back fejlede',
+      });
+      expect(mockedLogError).toHaveBeenCalledWith(
+        'Verificering fejlede',
+        expect.objectContaining({ context: 'verifyAfterSave' }),
+      );
     });
 
     it('returnerer success ved identisk data via content-verificering', async () => {
