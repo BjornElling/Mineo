@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import {
   normalizeEoBilagIndkomstYdelserMode,
   buildPeriodRangeGroups,
+  splitIsoRangeByCalendarMonthsInclusive,
   splitIsoRangeByCalendarYearsInclusive,
   EO_BILAG_MODE_ALLE,
   EO_BILAG_MODE_PERIODEN,
@@ -337,6 +338,21 @@ describe('splitIsoRangeByCalendarYearsInclusive', () => {
 
   it('kaster ved omvendt interval (fra > til) – fail-closed', () => {
     expect(() => splitIsoRangeByCalendarYearsInclusive(iso('2024-12-31'), iso('2024-01-01'))).toThrow();
+  });
+
+  it('kaster ved ugyldigt år, omvendt månedsinterval og ugyldig måned', () => {
+    expect(() => splitIsoRangeByCalendarYearsInclusive(
+      iso('2024-01-01'),
+      iso('~~~~-12-31'),
+    )).toThrow('splitIsoRangeByCalendarYearsInclusive: ugyldigt år');
+    expect(() => splitIsoRangeByCalendarMonthsInclusive(
+      iso('2024-12-31'),
+      iso('2024-01-01'),
+    )).toThrow('splitIsoRangeByCalendarMonthsInclusive: fra');
+    expect(() => splitIsoRangeByCalendarMonthsInclusive(
+      iso('2024-01-01'),
+      iso('2024-xx-01'),
+    )).toThrow('splitIsoRangeByCalendarMonthsInclusive: ugyldig måned');
   });
 });
 
