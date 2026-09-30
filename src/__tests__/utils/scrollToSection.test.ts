@@ -74,12 +74,23 @@ describe('scrollToSection', () => {
 
   it('kalder onFailure efter maxRetries med en konkret dansk failureMessage', () => {
     const onFailure = vi.fn();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
 
-    scrollToSection('manglende-sektion', { maxRetries: 3, onFailure });
+    try {
+      scrollToSection('manglende-sektion', { maxRetries: 3, onFailure });
 
-    expect(scrollIntoViewMock).not.toHaveBeenCalled();
-    expect(onFailure).toHaveBeenCalledWith(
-      'scrollToSection fejlede efter 3 forsøg for section="manglende-sektion"'
-    );
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+      expect(onFailure).toHaveBeenCalledWith(
+        'scrollToSection fejlede efter 3 forsøg for section="manglende-sektion"'
+      );
+      expect(warnSpy).toHaveBeenCalledWith(
+        'scrollToSection fejlede efter 3 forsøg for section="manglende-sektion"'
+      );
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+      warnSpy.mockRestore();
+    }
   });
 });
