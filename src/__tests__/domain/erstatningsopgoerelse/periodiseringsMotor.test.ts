@@ -370,6 +370,20 @@ describe('periodiseringsMotor', () => {
     expect(value).toBeNull();
   });
 
+  it('returnerer null ved omvendt datointerval i måneds- og arbejdsdagssporet', () => {
+    expect(optaelMaanederPraecis({
+      fra: iso('2024-02-01'),
+      til: iso('2024-01-31'),
+    })).toBeNull();
+    expect(optaelArbejdsdageBreakdown({
+      fra: iso('2024-02-01'),
+      til: iso('2024-01-31'),
+      ferieperioder: [],
+      loseFeriedage: 0,
+      context: { kind: 'taf' },
+    })).toBeNull();
+  });
+
   it('optaelMaanederAfrundet returnerer null ved undefined fra', () => {
     const value = optaelMaanederAfrundet({ fra: undefined, til: iso('2024-01-31') });
     expect(value).toBeNull();
