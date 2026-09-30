@@ -4,12 +4,19 @@ import type {
   TafPeriodeRow,
   FerieperiodeRow,
   OevrigeKravRow,
+  OffentligeYdelserRow,
+  LoenudviklingManuelRow,
+  LoenudviklingManuelProcentsatsRow,
 } from '../../../schemas/formSchemas';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import {
   isSvieSmerteRowEmpty,
   isTafRowEmpty,
   isFerieRowEmpty,
   isOevrigeKravRowEmpty,
+  isOffentligeYdelserRowEmpty,
+  isLoenudviklingManuelRowEmpty,
+  isLoenudviklingManuelProcentsatsRowEmpty,
 } from '../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -141,5 +148,70 @@ describe('isOevrigeKravRowEmpty', () => {
   it('id ignoreres – alle non-id undefined → tom', () => {
     const row: OevrigeKravRow = { id: 'andet-id', dato: undefined, udgiftTil: undefined, beloeb: undefined };
     expect(isOevrigeKravRowEmpty(row)).toBe(true);
+  });
+});
+
+// ─── isOffentligeYdelserRowEmpty ──────────────────────────────────────────
+
+describe('isOffentligeYdelserRowEmpty', () => {
+  const emptyRow = (): OffentligeYdelserRow => ({
+    id: 'r1',
+    fraDato: undefined,
+    tilDato: undefined,
+    ydelse: undefined,
+    tillaeg: undefined,
+    ydelsestype: undefined,
+  });
+  const amount = (value: number): AmountValue => ({ kind: 'number', value });
+
+  it('ignorerer id og whitespace i ydelsestype, men registrerer alle udfyldte felter', () => {
+    expect(isOffentligeYdelserRowEmpty(emptyRow())).toBe(true);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), fraDato: iso('2024-01-01') })).toBe(false);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), tilDato: iso('2024-01-31') })).toBe(false);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), ydelse: amount(100) })).toBe(false);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), tillaeg: amount(10) })).toBe(false);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), ydelsestype: '   ' })).toBe(true);
+    expect(isOffentligeYdelserRowEmpty({ ...emptyRow(), ydelsestype: 'Dagpenge' })).toBe(false);
+  });
+});
+
+// ─── isLoenudviklingManuelRowEmpty ────────────────────────────────────────
+
+describe('isLoenudviklingManuelRowEmpty', () => {
+  const emptyRow = (): LoenudviklingManuelRow => ({
+    id: 'r1',
+    dato: undefined,
+    grundloen: undefined,
+    feriepenge: undefined,
+    shSoSats: undefined,
+    fritvalg: undefined,
+    agPension: undefined,
+  });
+  const amount = (value: number): AmountValue => ({ kind: 'number', value });
+
+  it('registrerer hver enkelt udfyldt lønkolonne og beskytter id-only-rækken', () => {
+    expect(isLoenudviklingManuelRowEmpty(emptyRow())).toBe(true);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), dato: iso('2024-01-01') })).toBe(false);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), grundloen: amount(30_000) })).toBe(false);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), feriepenge: 12.5 })).toBe(false);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), shSoSats: 1.5 })).toBe(false);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), fritvalg: 2 })).toBe(false);
+    expect(isLoenudviklingManuelRowEmpty({ ...emptyRow(), agPension: 8 })).toBe(false);
+  });
+});
+
+// ─── isLoenudviklingManuelProcentsatsRowEmpty ─────────────────────────────
+
+describe('isLoenudviklingManuelProcentsatsRowEmpty', () => {
+  const emptyRow = (): LoenudviklingManuelProcentsatsRow => ({
+    id: 'r1',
+    dato: undefined,
+    procent: undefined,
+  });
+
+  it('registrerer dato eller procent og ignorerer id', () => {
+    expect(isLoenudviklingManuelProcentsatsRowEmpty(emptyRow())).toBe(true);
+    expect(isLoenudviklingManuelProcentsatsRowEmpty({ ...emptyRow(), dato: iso('2024-01-01') })).toBe(false);
+    expect(isLoenudviklingManuelProcentsatsRowEmpty({ ...emptyRow(), procent: 3.5 })).toBe(false);
   });
 });
