@@ -218,6 +218,27 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
   });
 
+  it('returnerer PWA-advarsel og stopper metadatafasen når request-ack kaster', async () => {
+    markPendingPwaFileOpenRequestHandledMock.mockRejectedValueOnce(new Error('PWA-lager fejlede'));
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded',
+      source: 'pwa',
+      filename: 'pwa.eo',
+      requestId: 'req-ack-fejlede',
+      fileHandle: { name: 'pwa.eo' } as FileSystemFileHandle,
+      snapshot: {},
+    });
+
+    expect(result).toEqual({
+      status: 'applied-with-metadata-error',
+      message: 'Sagen blev indlæst, men PWA-filrequesten kunne ikke ryddes helt.\n\nPWA-lager fejlede',
+    });
+    expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
+    expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBeNull();
+  });
+
   it('rydder ikke en nyere PWA-request ved manuel indlæsning', async () => {
     await synchronizeLoadMetadata({
       status: 'loaded',
