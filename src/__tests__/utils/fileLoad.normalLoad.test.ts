@@ -720,4 +720,20 @@ describe('loadFromFileHandle', () => {
     });
     expect(readFileMock).not.toHaveBeenCalled();
   });
+
+  it('mapper en anden PWA-læsefejl til generisk dansk fejl og maskerer CPR', async () => {
+    const getFile = vi.fn().mockRejectedValue(new Error('PWA-fejl for 010190-1234'));
+    const handle = {
+      getFile,
+      queryPermission: vi.fn().mockResolvedValue('granted'),
+    } as unknown as FileSystemFileHandle;
+
+    await expect(loadFromFileHandle(handle, { requestId: 'req-generic' })).rejects.toThrow(
+      'Kunne ikke indlæse fil: PWA-fejl for [CPR]',
+    );
+    expect(logError).toHaveBeenCalledWith(
+      'Hent-operation fejlede',
+      expect.objectContaining({ context: 'loadFromFileHandle' }),
+    );
+  });
 });
