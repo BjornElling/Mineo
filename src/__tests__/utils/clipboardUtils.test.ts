@@ -30,6 +30,11 @@ describe('readClipboardText', () => {
     expect(readClipboardText({ clipboardData: clipboard })).toBe('plain-værdi');
   });
 
+  it('returnerer tom streng når clipboard ikke indeholder tekst', () => {
+    const clipboard = makeClipboard();
+    expect(readClipboardText({ clipboardData: clipboard })).toBe('');
+  });
+
   it('falder tilbage til nativeEvent.clipboardData', () => {
     const clipboard = makeClipboard({ text: 'fra-native' });
     expect(readClipboardText({ nativeEvent: { clipboardData: clipboard } })).toBe('fra-native');
