@@ -2,6 +2,7 @@
 import { logWarning } from '../../utils/logger';
 import {
   verifyDirectoryHandle,
+  verifyFileHandle,
   verifyFileHandleDetailed,
 } from '../../utils/file/fileHandleVerification';
 
@@ -49,6 +50,16 @@ const namedError = (name: string, message: string): Error => Object.assign(new E
 describe('fileHandleVerification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('verifyFileHandle', () => {
+    it('projekterer detailed-resultatet til boolean for valid og manglende handle', async () => {
+      const queryPermission = createPermissionMock('granted');
+      const validHandle = createFileHandle({ queryPermission });
+
+      await expect(verifyFileHandle(validHandle)).resolves.toBe(true);
+      await expect(verifyFileHandle(null)).resolves.toBe(false);
+    });
   });
 
   describe('verifyFileHandleDetailed', () => {
