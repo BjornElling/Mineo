@@ -4,15 +4,20 @@ import {
   validateIsoRange,
   minISO,
   maxISO,
+  startOfYearIso,
   endOfYearIso,
+  startOfMonthIso,
+  endOfMonthIso,
   getDayAfterIso,
   getDayBeforeIso,
+  firstOfMonthAfterIso,
   iterateDatesInclusive,
   iterateIsoDatesInclusive,
   collectIsoDatesInclusive,
   buildIsoDateSetInclusive,
   isoYear,
   parseOptionalIsoDate,
+  sortIsoDates,
   validateISODateRange,
 } from '../../utils/isoDateHelpers';
 
@@ -133,6 +138,16 @@ describe('endOfYearIso', () => {
   });
 });
 
+describe('års- og månedsgrænser', () => {
+  it('returnerer kanoniske start- og slutdatoer inklusive skudår', () => {
+    expect(startOfYearIso(2024)).toBe(toISODateString('2024-01-01'));
+    expect(startOfMonthIso(2024, 2)).toBe(toISODateString('2024-02-01'));
+    expect(endOfMonthIso(2024, 2)).toBe(toISODateString('2024-02-29'));
+    expect(firstOfMonthAfterIso(iso('2024-02-29'))).toBe(toISODateString('2024-03-01'));
+    expect(firstOfMonthAfterIso(iso('2024-12-31'))).toBe(toISODateString('2025-01-01'));
+  });
+});
+
 describe('getDayBeforeIso', () => {
   it('håndterer månedsskift', () => {
     expect(getDayBeforeIso(iso('2025-03-01'))).toBe(toISODateString('2025-02-28'));
@@ -159,6 +174,12 @@ describe('getDayAfterIso', () => {
   it('håndterer årsskifte', () => {
     expect(getDayAfterIso(iso('2024-12-31'))).toBe(toISODateString('2025-01-01'));
   });
+
+  it('returnerer undefined ved manglende eller ugyldig ISO-dato', () => {
+    expect(getDayAfterIso(undefined)).toBeUndefined();
+    expect(getDayAfterIso(iso('ikke-en-dato'))).toBeUndefined();
+    expect(getDayBeforeIso(iso('ikke-en-dato'))).toBeUndefined();
+  });
 });
 
 describe('parseOptionalIsoDate', () => {
@@ -170,6 +191,21 @@ describe('parseOptionalIsoDate', () => {
     expect(parseOptionalIsoDate('15-01-2024')).toBeUndefined();
     expect(parseOptionalIsoDate('2024-02-30')).toBeUndefined();
     expect(parseOptionalIsoDate(undefined)).toBeUndefined();
+  });
+});
+
+describe('sortIsoDates', () => {
+  it('deduplikerer og sorterer ISO-datoer kronologisk', () => {
+    expect(sortIsoDates([
+      iso('2024-03-01'),
+      iso('2024-01-01'),
+      iso('2024-03-01'),
+      iso('2024-02-01'),
+    ])).toEqual([
+      iso('2024-01-01'),
+      iso('2024-02-01'),
+      iso('2024-03-01'),
+    ]);
   });
 });
 
@@ -263,6 +299,13 @@ describe('iterateIsoDatesInclusive', () => {
     iterateIsoDatesInclusive(iso('2024-06-15'), iso('2024-06-14'), () => count++);
     expect(count).toBe(0);
   });
+
+  it('ugyldig ISO-start eller slut giver ingen iterationer', () => {
+    const dates: ISODateString[] = [];
+    iterateIsoDatesInclusive(iso('ikke-en-dato'), iso('2024-06-15'), (date) => dates.push(date));
+    iterateIsoDatesInclusive(iso('2024-06-15'), iso('ikke-en-dato'), (date) => dates.push(date));
+    expect(dates).toEqual([]);
+  });
 });
 
 describe('collectIsoDatesInclusive', () => {
@@ -355,5 +398,12 @@ describe('validateISODateRange', () => {
     const result = validateISODateRange(toISODateString('2023-12-31'), toISODateString('2024-01-01'), toISODateString('2024-12-31'));
     // Fejlbesked skal indeholde datoer i dansk format
     expect(result.errorMessage).toContain('01-01-2024');
+  });
+
+  it('formatterer enkeltstående nedre og øvre grænser', () => {
+    expect(validateISODateRange(toISODateString('2023-12-31'), toISODateString('2024-01-01'), undefined))
+      .toEqual({ isValid: false, errorMessage: 'Dato skal være efter 01-01-2024' });
+    expect(validateISODateRange(toISODateString('2025-01-01'), undefined, toISODateString('2024-12-31')))
+      .toEqual({ isValid: false, errorMessage: 'Dato skal være før 31-12-2024' });
   });
 });
