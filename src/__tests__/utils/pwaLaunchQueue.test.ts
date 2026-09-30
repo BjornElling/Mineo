@@ -74,6 +74,48 @@ describe('pwaLaunchQueue', () => {
     expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
   });
 
+  it('bevarer et statusbærende succesresultat fra IndexedDB', async () => {
+    const storedRequest = {
+      id: 'pwa-open-status-1',
+      createdAtEpochMs: 123,
+      fileHandle: buildFileHandle('status.eo'),
+      fileName: 'status.eo',
+      ignoredFileCount: 0,
+    };
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
+      status: 'ok',
+      value: storedRequest,
+    });
+
+    await pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toEqual(storedRequest);
+  });
+
+  it('afviser durable handoff ved et statusbærende IndexedDB-fejlresultat', async () => {
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({ status: 'failed' });
+
+    await pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+
+    expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+  });
+
+  it('venter på den eksisterende hydration i stedet for at starte en parallel læsning', async () => {
+    let resolveStoredRequest: ((request: unknown) => void) | undefined;
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockImplementationOnce(() => (
+      new Promise((resolve) => {
+        resolveStoredRequest = resolve;
+      })
+    ));
+
+    const firstHydration = pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+    const secondHydration = pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+    resolveStoredRequest?.(null);
+
+    await expect(Promise.all([firstHydration, secondHydration])).resolves.toEqual([undefined, undefined]);
+    expect(loadPendingPwaOpenRequestFromIndexedDBMock).toHaveBeenCalledOnce();
+  });
+
   it('genoptager ikke en allerede afsluttet request efter reload, selv hvis IndexedDB-sletning fejlede', async () => {
     const handledId = 'pwa-open-afsluttet-1';
     window.sessionStorage.setItem(getHandledPwaFileOpenRequestStorageKey(), handledId);
@@ -136,6 +178,54 @@ describe('pwaLaunchQueue', () => {
       fileName: 'før-opdatering.eo',
     }));
 
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('gør ingenting, når launchQueue ikke findes', () => {
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+
+    expect(() => pwaLaunchQueue.setupPwaLaunchQueueConsumer()).not.toThrow();
+  });
+
+  it('ignorerer en launchQueue-callback uden filer', async () => {
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+
+    await consumer?.({ files: [] });
+
+    expect(savePendingPwaOpenRequestToIndexedDBMock).not.toHaveBeenCalled();
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('afviser en launchQueue-request med ugyldigt filnavn', async () => {
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+
+    await consumer?.({ files: [buildFileHandle(' ')] });
+
+    expect(savePendingPwaOpenRequestToIndexedDBMock).not.toHaveBeenCalled();
+    expect(logWarningMock).toHaveBeenCalledWith(
+      'PWA-filåbning blev afvist, fordi browserens request var ugyldig',
+      { context: 'setupPwaLaunchQueueConsumer.invalidRequest' },
+    );
     delete (window as Window & { launchQueue?: unknown }).launchQueue;
   });
 
@@ -225,6 +315,11 @@ describe('pwaLaunchQueue', () => {
       expect.objectContaining({ context: 'hydratePendingPwaFileOpenRequest.load' })
     );
     expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+  });
+
+  it('returnerer false ved retry og gør ingenting ved markering uden pending request', async () => {
+    await expect(pwaLaunchQueue.retryPendingPwaFileOpenRequest()).resolves.toBe(false);
+    await expect(pwaLaunchQueue.markPendingPwaFileOpenRequestHandled('mangler')).resolves.toBeUndefined();
   });
 
   it('dispatches PWA-open event even if persistence of the pending request fails', async () => {
@@ -318,6 +413,76 @@ describe('pwaLaunchQueue', () => {
     delete (window as Window & { launchQueue?: unknown }).launchQueue;
   });
 
+  it('ignorerer markering med et andet request-id', async () => {
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+    await consumer?.({ files: [buildFileHandle()] });
+
+    const request = pwaLaunchQueue.getPendingPwaFileOpenRequest();
+    await pwaLaunchQueue.markPendingPwaFileOpenRequestHandled('andet-id');
+
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBe(request);
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('kaster når markeringens IndexedDB-rydning ikke kan bekræftes', async () => {
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+    await consumer?.({ files: [buildFileHandle()] });
+    const request = pwaLaunchQueue.getPendingPwaFileOpenRequest();
+    deletePendingPwaOpenRequestFromIndexedDBMock.mockResolvedValueOnce(false);
+
+    await expect(pwaLaunchQueue.markPendingPwaFileOpenRequestHandled(request!.id)).rejects.toThrow(
+      'kunne ikke ryddes sikkert',
+    );
+    expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBeNull();
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
+  it('afviser håndtering, hvis browserens midlertidige lager ikke kan markere requesten', async () => {
+    const setConsumerMock = vi.fn();
+    Object.defineProperty(window, 'launchQueue', {
+      configurable: true,
+      value: { setConsumer: setConsumerMock },
+    });
+    pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+    const consumer = setConsumerMock.mock.calls[0]?.[0] as ((params: {
+      files?: ReadonlyArray<FileSystemHandle>;
+      targetURL?: string;
+    }) => Promise<void>) | undefined;
+    await consumer?.({ files: [buildFileHandle()] });
+
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('session storage fejlede');
+    });
+    try {
+      const request = pwaLaunchQueue.getPendingPwaFileOpenRequest();
+      await expect(pwaLaunchQueue.clearPendingPwaFileOpenRequest(request!.id)).rejects.toThrow(
+        'midlertidige lager',
+      );
+      expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toBe(request);
+    } finally {
+      setItemSpy.mockRestore();
+    }
+    delete (window as Window & { launchQueue?: unknown }).launchQueue;
+  });
+
   it('genskaber ikke en håndteret request i IndexedDB, hvis save afsluttes efter clear', async () => {
     const setConsumerMock = vi.fn();
     Object.defineProperty(window, 'launchQueue', {
@@ -377,6 +542,15 @@ describe('pwaLaunchQueue', () => {
       'Ugyldig pending PWA-open request blev fjernet fra IndexedDB',
       expect.objectContaining({ context: 'hydratePendingPwaFileOpenRequest.invalidStoredRequest' })
     );
+  });
+
+  it('blokerer durable handoff, hvis oprydning af ugyldig gemt request fejler', async () => {
+    loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({ invalid: true });
+    deletePendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(false);
+
+    await pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+
+    expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
   });
 
   describe('durable handoff-barriere før opstartens genindlæsning', () => {
