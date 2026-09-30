@@ -212,6 +212,66 @@ describe('EO snapshot PDF projections', () => {
     expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
   });
 
+  it('blokerer TAF-opreguleret-projektionen, når snapshot-data mangler', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToTafPerYearOpreguleretDocument({
+      ...snapshot,
+      data: null,
+      input: { stamdata: null, erstatningsopgoerelse: null },
+    } as unknown as EoSnapshot);
+
+    expect(projection.kind).toBe('blocked');
+  });
+
+  it('blokerer TAF-opreguleret-projektionen, når den angivne løn ikke er beregnelig', () => {
+    const snapshot = buildBaseSnapshot();
+    const withTafAndMissingSalary = {
+      ...snapshot,
+      data: snapshot.data && {
+        ...snapshot.data,
+        pdfModel: {
+          ...snapshot.data.pdfModel,
+          tabtArbejdsfortjeneste: {
+            ...snapshot.data.pdfModel.tabtArbejdsfortjeneste,
+            indkomstSkadestidspunkt: {
+              beregnesUdFra: 'Angivet månedsløn',
+              maanedsloen: { status: 'not_calculable' },
+            },
+          },
+        },
+        engines: {
+          ...snapshot.data.engines,
+          tafPerYear: FAKE_TAF_PER_YEAR_RESULT,
+        },
+      },
+    } as unknown as EoSnapshot;
+    const projection = eoSnapshotToTafPerYearOpreguleretDocument(withTafAndMissingSalary);
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.message).toContain('mangler den angivne måneds-/dagsløn');
+  });
+
+  it('skelner en faktisk TAF-periode uden opreguleret per-år-fordeling', () => {
+    const snapshot = buildBaseSnapshot();
+    const withTafPeriods = {
+      ...snapshot,
+      data: snapshot.data && {
+        ...snapshot.data,
+        engines: {
+          ...snapshot.data.engines,
+          tafNetto: { ...snapshot.data.engines.tafNetto, harTafPerioder: true },
+          tafPerYear: null,
+        },
+      },
+    };
+    const projection = eoSnapshotToTafPerYearOpreguleretDocument(withTafPeriods);
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.message).toContain('TAF ikke kan fordeles på år');
+  });
+
   it('tillader TAF-opreguleret-PDF og forwarder begge engine-resultater når der er TAF', () => {
     const snapshot = buildBaseSnapshot();
     const withTaf = {
