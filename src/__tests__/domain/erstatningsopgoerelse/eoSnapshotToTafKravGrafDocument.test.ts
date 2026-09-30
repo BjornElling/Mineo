@@ -8,6 +8,7 @@ import type { EoSnapshot, EoSnapshotComputedData } from '../../../domain/erstatn
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
@@ -175,6 +176,103 @@ const buildLongSnapshot = (): EoSnapshot => {
 };
 
 describe('eoSnapshotToTafKravGrafDocument', () => {
+  it('blokerer ved manglende snapshot-data', () => {
+    const snapshot = buildSnapshot();
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: null,
+    } as unknown as EoSnapshot);
+
+    expect(projection).toEqual({
+      kind: 'blocked',
+      message: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.',
+      invariants: [],
+    });
+  });
+
+  it('blokerer ved en output-blokerende invariant', () => {
+    const invariant = buildControlMismatchInvariant(['TAF']);
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...buildSnapshot(),
+      status: 'error',
+      invariants: [invariant],
+    });
+
+    expect(projection).toEqual({
+      kind: 'blocked',
+      message: invariant.message,
+      invariants: [invariant],
+    });
+  });
+
+  it('blokerer når der ikke findes et tidsvindue for TAF-grafen', () => {
+    const snapshot = buildSnapshot();
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        pdfModel: {
+          ...snapshot.data?.pdfModel,
+          tafRanges: [],
+          tabtArbejdsfortjeneste: {
+            ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste,
+            indkomstSkadestidspunkt: {
+              ...snapshot.data?.pdfModel.tabtArbejdsfortjeneste.indkomstSkadestidspunkt,
+              skadedato: undefined,
+              periodeTilBeregning: undefined,
+            },
+          },
+        },
+      } as unknown as EoSnapshotComputedData,
+    });
+
+    expect(projection).toEqual({
+      kind: 'blocked',
+      message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er en TAF-periode.',
+      invariants: [],
+    });
+  });
+
+  it('blokerer når TAF-perioden ikke har indkomstsegmenter', () => {
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalIncome = incomeMock.getMockImplementation();
+    incomeMock.mockImplementation(() => ({ employers: [], benefits: [] }));
+
+    try {
+      const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
+
+      expect(projection).toEqual({
+        kind: 'blocked',
+        message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er indkomstsegmenter i TAF-perioden.',
+        invariants: [],
+      });
+    } finally {
+      if (originalIncome) incomeMock.mockImplementation(originalIncome);
+    }
+  });
+
+  it('splittes korrekt over december ved grafens månedlige samples', () => {
+    const snapshot = buildSnapshot();
+    const projection = eoSnapshotToTafKravGrafDocument({
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        pdfModel: {
+          ...snapshot.data?.pdfModel,
+          tafRanges: [{ fra: iso('2024-12-01'), til: iso('2025-01-31') }],
+        },
+      } as EoSnapshotComputedData,
+    });
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments).toContainEqual({
+      fra: iso('2024-12-01'),
+      til: iso('2024-12-31'),
+      amountOre: moneyOre(34_100_00),
+    });
+  });
+
   it('viser hvert ansættelsesforhold som egen serie og beholder offentlige ydelser som egen serie', () => {
     const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
 
@@ -515,6 +613,38 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     // Kort ferie bygges der bro over: hullet 13.-16. juni dækkes af et segment.
     const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
     expect(loenSegments.some((segment) => segment.fra <= iso('2024-06-13') && segment.til >= iso('2024-06-14'))).toBe(true);
+  });
+
+  it('starter et nyt ferie-bånd efter en mellemliggende arbejdsdag', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    try {
+      const projection = buildFerieSnapshot(
+        ['2024-06-13', '2024-06-14', '2024-06-17', '2024-06-18', '2024-06-19', '2024-06-20', '2024-06-21', '2024-06-24',
+          '2024-06-25', '2024-06-26', '2024-06-27', '2024-06-28'],
+        [
+          { fra: '2024-06-01', til: '2024-06-02' },
+          { fra: '2024-06-13', til: '2024-06-30' },
+        ],
+        [
+          { fra: '2024-06-03', til: '2024-06-05' },
+          { fra: '2024-06-10', til: '2024-06-12' },
+        ]
+      );
+
+      expect(projection.kind).toBe('ok');
+      if (projection.kind !== 'ok') throw new Error(projection.message);
+      expect(projection.document.ferieAbsenceMarkers).toEqual([
+        { fra: iso('2024-06-01'), til: iso('2024-06-05') },
+        { fra: iso('2024-06-08'), til: iso('2024-06-12') },
+      ]);
+    } finally {
+      if (originalCtx) ctxMock.mockImplementation(originalCtx);
+      if (originalIncome) incomeMock.mockImplementation(originalIncome);
+    }
   });
 
   it('tegner faktiske indkomstsegmenter helt frem til TAF-periodens sidste indtastede ydelse', () => {
