@@ -18,4 +18,17 @@ describe('selectFile', () => {
     expect(input?.isConnected).toBe(false);
     click.mockRestore();
   });
+
+  it('returnerer null og rydder input-elementet ved direkte annullering', async () => {
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
+    const promise = selectFile('.eo');
+    const input = document.querySelector('input[type="file"]');
+
+    expect(input).not.toBeNull();
+    input?.dispatchEvent(new Event('cancel'));
+
+    await expect(promise).resolves.toBeNull();
+    expect(input?.isConnected).toBe(false);
+    click.mockRestore();
+  });
 });
