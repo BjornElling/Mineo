@@ -6,13 +6,42 @@ import {
   createErstatningsopgoerelseInitialValues,
   createDefaultLoenindkomstAnsaettelsesforhold,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
 // Isolations-tests for det rene Loenindkomst-afledningslag (uden React-render) – jf. arkitektur-kandidat A1.
 // Modstykket til loenindkomstSatsAssessment.test.ts.
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
+
+const createEmptyLoenRow = (): StandardLoenTableRow => ({
+  id: 'row-1',
+  col0_maaned: '',
+  col1_maaned: '',
+  col0_uge: '',
+  col1_uge: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
+  col2: undefined,
+  col3: undefined,
+  col4: undefined,
+  col5: undefined,
+});
+
+const createSfggRow = (ansaettelsesforholdId: string, patch: Partial<SfggRow> = {}): SfggRow => ({
+  ansaettelsesforholdId,
+  sfggBeregningskilde: undefined,
+  sfggManuelDagssats: undefined,
+  sfggManuelBeloebIHenholdTil: undefined,
+  sfggManuelFoerstEfterSygeloen: 'Nej',
+  sfggReferenceperiodeFra: undefined,
+  sfggReferenceperiodeTil: undefined,
+  sfggReferenceperiodeFravaersdageUdenLoen: 0,
+  sfggSatsvalg: undefined,
+  sfggAlleredeBetaltBeloeb: undefined,
+  ...patch,
+});
 
 const baseValues = (): ErstatningsopgoerelseValues => createErstatningsopgoerelseInitialValues();
 
@@ -67,6 +96,17 @@ describe('deriveLoenindkomstVm', () => {
       expect(model.derivedCalculatorByAfId.size).toBe(2);
       expect(model.satserByAfId.has(af1.id)).toBe(true);
       expect(model.satserByAfId.has(af2.id)).toBe(true);
+    });
+  });
+
+  describe('derivedCalculatorByAfId', () => {
+    it('eksponerer en beregner, der bruger ansættelsesforholdets lønrække', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const model = deriveLoenindkomstVm(buildInput([af]));
+      const calculator = model.derivedCalculatorByAfId.get(af.id);
+
+      expect(calculator).toBeDefined();
+      if (calculator) expect(calculator(createEmptyLoenRow())).toBeDefined();
     });
   });
 
@@ -219,6 +259,53 @@ describe('deriveLoenindkomstVm', () => {
       const model = deriveLoenindkomstVm(buildInput([af]));
       expect(model.isOffentligLoenSelectionReady(af)).toBe(true);
     });
+
+    it('bruger Månedsløn som default når offentlig løntype mangler', () => {
+      const af: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'kl-overenskomst',
+        offentligLoenType: undefined,
+        offentligLoenTrin: 30,
+        offentligLoenGruppe: 2,
+      };
+      const model = deriveLoenindkomstVm(buildInput([af]));
+
+      expect(model.isOffentligLoenSelectionReady(af)).toBe(true);
+    });
+
+    it('afviser ukendt løntype og løntrin uden for satsregisteret', () => {
+      const unknownType: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'kl-overenskomst',
+        offentligLoenType: 'Ukendt' as Ansaettelsesforhold['offentligLoenType'],
+        offentligLoenTrin: 30,
+        offentligLoenGruppe: 2,
+      };
+      const invalidTrin: Ansaettelsesforhold = {
+        ...unknownType,
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: 0,
+      };
+      const model = deriveLoenindkomstVm(buildInput([unknownType, invalidTrin]));
+
+      expect(model.isOffentligLoenSelectionReady(unknownType)).toBe(false);
+      expect(model.isOffentligLoenSelectionReady(invalidTrin)).toBe(false);
+    });
+
+    it('afviser manglende eller ugyldig offentlig løngruppe', () => {
+      const af = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'kl-overenskomst',
+        offentligLoenType: 'Månedsløn' as const,
+        offentligLoenTrin: 30,
+      };
+      const missingGroup = { ...af, offentligLoenGruppe: undefined };
+      const invalidGroup = { ...af, offentligLoenGruppe: 5 };
+      const model = deriveLoenindkomstVm(buildInput([missingGroup, invalidGroup]));
+
+      expect(model.isOffentligLoenSelectionReady(missingGroup)).toBe(false);
+      expect(model.isOffentligLoenSelectionReady(invalidGroup)).toBe(false);
+    });
   });
 
   describe('manualBaseRowErrorsByAfId', () => {
@@ -316,6 +403,155 @@ describe('deriveLoenindkomstVm', () => {
         maxFravaersdage: undefined,
         hasNoRelevantDaysError: false,
         dayLabel: null,
+      });
+    });
+
+    it('viser kalenderdage for en gyldig Ferieloven-referenceperiode', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const row = createSfggRow(af.id, {
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: toISODateString('2024-01-01'),
+        sfggReferenceperiodeTil: toISODateString('2024-01-02'),
+      });
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        beregnesUdFra: 'Angivet månedsløn',
+        sfggAnsaettelsesforhold: [row],
+      }));
+
+      expect(model.getSfggReferenceperiodeAvailability(af, row)).toEqual({
+        maxFravaersdage: 2,
+        hasNoRelevantDaysError: false,
+        dayLabel: 'kalenderdage',
+      });
+    });
+
+    it('viser fejl for en arbejdsdags-referenceperiode uden relevante dage', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const row = createSfggRow(af.id, {
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: toISODateString('2024-06-01'),
+        sfggReferenceperiodeTil: toISODateString('2024-06-02'),
+      });
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        beregnesUdFra: 'Angivet dagsløn',
+        sfggAnsaettelsesforhold: [row],
+      }));
+
+      expect(model.getSfggReferenceperiodeAvailability(af, row)).toEqual({
+        maxFravaersdage: 0,
+        hasNoRelevantDaysError: true,
+        dayLabel: 'arbejdsdage',
+      });
+    });
+  });
+
+  describe('getSfggPresentation', () => {
+    it('viser tom SFGG-præsentation uden række eller overenskomst', () => {
+      const af = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        harOverenskomst: false,
+        overenskomstId: undefined,
+      };
+      const model = deriveLoenindkomstVm({
+        ...buildInput([af], { kravPaaTabtArbejdsfortjeneste: 'Nej' }),
+        skadedato: toISODateString('2014-12-31'),
+      });
+
+      expect(model.getSfggPresentation(af)).toMatchObject({
+        show: false,
+        row: undefined,
+        policy: undefined,
+        hasOverenskomst: false,
+        selectedOverenskomstLabel: 'Ingen overenskomst valgt',
+        canShowOverenskomstDetails: true,
+        requiresReferenceperiode: false,
+        showSatsvalg: false,
+        showSharedSfggBefore2015: true,
+      });
+    });
+
+    it('viser Ferieloven-rækken med referenceperiode og før-2015-felt', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Ferieloven' });
+      const model = deriveLoenindkomstVm({
+        ...buildInput([af], {
+          kravPaaTabtArbejdsfortjeneste: 'Ja',
+          sfggAnsaettelsesforhold: [row],
+        }),
+        skadedato: toISODateString('2014-12-31'),
+      });
+
+      expect(model.getSfggPresentation(af)).toMatchObject({
+        show: true,
+        row,
+        policy: undefined,
+        hasOverenskomst: false,
+        selectedOverenskomstLabel: 'Ingen overenskomst valgt',
+        canShowOverenskomstDetails: true,
+        requiresReferenceperiode: true,
+        showSatsvalg: false,
+        showSharedSfggBefore2015: true,
+      });
+    });
+
+    it('viser direkte overenskomstsats og differentieret satsvalg', () => {
+      const af = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'bygge-anlaeg',
+        harOverenskomst: true,
+      };
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Overenskomst' });
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        sfggAnsaettelsesforhold: [row],
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      }));
+
+      expect(model.getSfggPresentation(af)).toMatchObject({
+        row,
+        hasOverenskomst: true,
+        selectedOverenskomstLabel: 'Bygge-/anlægsoverenskomsten',
+        canShowOverenskomstDetails: true,
+        requiresReferenceperiode: false,
+        showSatsvalg: true,
+      });
+    });
+
+    it('bruger referenceperioden for en overenskomst uden direkte satsmodel', () => {
+      const af = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'kl-overenskomst',
+        harOverenskomst: true,
+      };
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Overenskomst' });
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        sfggAnsaettelsesforhold: [row],
+      }));
+
+      expect(model.getSfggPresentation(af)).toMatchObject({
+        hasOverenskomst: true,
+        selectedOverenskomstLabel: expect.any(String),
+        requiresReferenceperiode: true,
+        showSatsvalg: false,
+      });
+    });
+
+    it('falder tilbage til det indtastede ID, når overenskomstmetadata mangler', () => {
+      const af = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        overenskomstId: 'ukendt-overenskomst',
+        harOverenskomst: true,
+      };
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Overenskomst' });
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        sfggAnsaettelsesforhold: [row],
+      }));
+
+      expect(model.getSfggPresentation(af)).toMatchObject({
+        hasOverenskomst: true,
+        selectedOverenskomstLabel: 'ukendt-overenskomst',
+        requiresReferenceperiode: true,
+        showSatsvalg: false,
       });
     });
   });
