@@ -11,6 +11,7 @@ import {
   getSideMenuIconLayout,
   getSideMenuWidth,
   measureContentUiScaleRoot,
+  measureNearestContentUiScale,
   requiredViewportWidthForScale,
   resolveContentUiScale,
   resolveSideMenuScale,
@@ -19,11 +20,16 @@ import {
 
 describe('uiScale', () => {
   const originalInnerWidth = window.innerWidth;
+  const originalUserAgent = window.navigator.userAgent;
 
   afterEach(() => {
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: originalInnerWidth,
+    });
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: originalUserAgent,
     });
     document.documentElement.style.removeProperty(CONTENT_SCALE_CSS_VARIABLE);
   });
@@ -98,6 +104,17 @@ describe('uiScale', () => {
     [0.75, 1, 0.75],
   ] as const)('lader menuen følge den mindste af de to skalaer (%s, %s)', (contentScale, heightFit, expected) => {
     expect(resolveSideMenuScale(contentScale, heightFit)).toBeCloseTo(expected, 10);
+  });
+
+  it('klipper ugyldige menuskalaer og vinduesbredder sikkert', () => {
+    expect(getSideMenuWidth(Number.POSITIVE_INFINITY, true)).toBe(SIDE_MENU_LAYOUT_POLICY.expandedWidthPx);
+    expect(getSideMenuWidth(-1, false)).toBe(0);
+    expect(resolveSideMenuScale(Number.NaN, 0.8)).toBe(0.8);
+    expect(resolveSideMenuScale(0.8, Number.NaN)).toBe(0.8);
+    expect(resolveSideMenuScale(-1, 2)).toBe(0);
+    expect(resolveSideMenuScale(2, -1)).toBe(0);
+    expect(resolveContentUiScale(Number.NaN)).toBe(CONTENT_UI_SCALE_POLICY.minimumScale);
+    expect(resolveContentUiScale(Number.POSITIVE_INFINITY)).toBe(CONTENT_UI_SCALE_POLICY.minimumScale);
   });
 
   it('forankrer kollapsede og udfoldede ikoner på samme akse uafhængigt af skala', () => {
@@ -226,5 +243,49 @@ describe('uiScale', () => {
 
     root.remove();
     expect(measureContentUiScaleRoot(null)).toBe(1);
+  });
+
+  it('måler reel geometri og finder nærmeste skaleringsrod', () => {
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: 'Mozilla/5.0 (content-scale-browser)',
+    });
+
+    const root = document.createElement('main');
+    root.dataset.mineoContentScaleRoot = 'true';
+    Object.defineProperty(root, 'offsetWidth', { configurable: true, value: 1000 });
+    root.getBoundingClientRect = () => ({ width: 750 }) as DOMRect;
+    const child = document.createElement('span');
+    root.append(child);
+    document.body.append(root);
+
+    expect(measureContentUiScaleRoot(root)).toBe(0.75);
+    expect(measureNearestContentUiScale(child)).toBe(0.75);
+    expect(measureNearestContentUiScale(null)).toBe(1);
+
+    root.remove();
+  });
+
+  it('falder tilbage ved ugyldige eller ikke-positive browsermål', () => {
+    Object.defineProperty(window.navigator, 'userAgent', {
+      configurable: true,
+      value: 'Mozilla/5.0 (content-scale-browser)',
+    });
+
+    const cases = [
+      [Number.NaN, 1000],
+      [1000, Number.NaN],
+      [0, 1000],
+      [1000, 0],
+      [Number.MAX_VALUE, Number.MIN_VALUE],
+    ] as const;
+
+    for (const [rectWidth, offsetWidth] of cases) {
+      const root = document.createElement('main');
+      Object.defineProperty(root, 'offsetWidth', { configurable: true, value: offsetWidth });
+      root.getBoundingClientRect = () => ({ width: rectWidth }) as DOMRect;
+
+      expect(measureContentUiScaleRoot(root)).toBe(1);
+    }
   });
 });
