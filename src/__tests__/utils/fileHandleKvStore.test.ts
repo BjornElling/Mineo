@@ -2,6 +2,7 @@ import {
   deleteClientScopedFileHandleValue,
   deleteFileHandleValues,
   readClientScopedFileHandleValueResult,
+  readFileHandleValue,
   readFileHandleValueResult,
   writeClientScopedFileHandleValue,
   writeFileHandleValues,
@@ -9,8 +10,9 @@ import {
 
 type StubStore = Map<string, unknown>;
 
-const createStubIndexedDb = () => {
+const createStubIndexedDb = (storeExists = true) => {
   const data: StubStore = new Map();
+  let createObjectStoreCalls = 0;
 
   const makeRequest = <T>(resolveValue: () => T): IDBRequest<T> => {
     const request: {
@@ -55,6 +57,7 @@ const createStubIndexedDb = () => {
         error: Error | null;
         onsuccess?: () => void;
         onerror?: () => void;
+        onupgradeneeded?: (event: IDBVersionChangeEvent) => void;
       } = {
         result: undefined,
         error: null,
@@ -75,11 +78,15 @@ const createStubIndexedDb = () => {
           set onabort(handler: () => void) { transactionHandlers.onabort = handler; },
         };
         request.result = {
-          objectStoreNames: { contains: () => true },
-          createObjectStore: () => objectStore,
+          objectStoreNames: { contains: () => storeExists },
+          createObjectStore: () => {
+            createObjectStoreCalls += 1;
+            return objectStore;
+          },
           transaction: () => transaction,
           close: () => undefined,
         };
+        request.onupgradeneeded?.({ target: request } as unknown as IDBVersionChangeEvent);
         request.onsuccess?.();
 
         // Requests skal være færdige, før transaktionen committer, som i den rigtige API.
@@ -90,7 +97,7 @@ const createStubIndexedDb = () => {
     },
   };
 
-  return { data, indexedDbStub };
+  return { data, indexedDbStub, getCreateObjectStoreCalls: () => createObjectStoreCalls };
 };
 
 const originalIndexedDbDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
@@ -143,6 +150,7 @@ describe('fileHandleKvStore', () => {
       status: 'ok',
       value: fileHandle,
     });
+    await expect(readFileHandleValue('current_file_handle', 'test')).resolves.toBe(fileHandle);
     await expect(readFileHandleValueResult('default_directory_meta', 'test')).resolves.toEqual({
       status: 'ok',
       value: metadata,
@@ -181,5 +189,21 @@ describe('fileHandleKvStore', () => {
     )).resolves.toEqual({ status: 'ok', value: clientB });
     await expect(readClientScopedFileHandleValueResult('client:a:current-file-handle', 'test'))
       .resolves.toEqual({ status: 'ok', value: null });
+  });
+
+  it('opretter storet i upgrade-grenen, når det ikke findes endnu', async () => {
+    const { indexedDbStub, getCreateObjectStoreCalls } = createStubIndexedDb(false);
+    installStub(indexedDbStub);
+
+    await expect(readFileHandleValueResult('current_file_handle', 'test'))
+      .resolves.toEqual({ status: 'ok', value: null });
+    expect(getCreateObjectStoreCalls()).toBe(1);
+  });
+
+  it('degraderer den korte læsevej til null, når IndexedDB ikke findes', async () => {
+    Reflect.deleteProperty(globalThis, 'indexedDB');
+    Reflect.deleteProperty(globalThis, 'IDBKeyRange');
+
+    await expect(readFileHandleValue('current_file_handle', 'test')).resolves.toBeNull();
   });
 });
