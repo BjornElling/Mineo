@@ -2,6 +2,7 @@
 import {
   readOptionalSessionStorageValue,
   readSessionStorageValue,
+  normalizeStorageWriteError,
   removeOptionalSessionStorageValue,
   removeSessionStorageValue,
   writeOptionalSessionStorageValue,
@@ -122,5 +123,32 @@ describe('safeSessionStorage', () => {
     );
 
     setItemSpy.mockRestore();
+  });
+
+  it('normaliserer en ukendt skrivefejl uden Error-type', () => {
+    expect(normalizeStorageWriteError('blocked').message).toBe(
+      'Browserens midlertidige lager kunne ikke opdateres.'
+    );
+  });
+
+  it('kaster fra strict læsning når sessionStorage ikke findes', () => {
+    const storageSpy = vi.spyOn(window, 'sessionStorage', 'get').mockReturnValue(undefined as unknown as Storage);
+
+    expect(() => readSessionStorageValue('mineo_ui_test')).toThrow('sessionStorage er ikke tilgængelig');
+
+    storageSpy.mockRestore();
+  });
+
+  it('normaliserer en ukendt fejl fra strict sletning', () => {
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const removeItemSpy = vi.spyOn(storageProto, 'removeItem').mockImplementation(() => {
+      throw 'blocked';
+    });
+
+    expect(() => removeSessionStorageValue('mineo_ui_test')).toThrow(
+      'Browserens midlertidige lager kunne ikke opdateres.'
+    );
+
+    removeItemSpy.mockRestore();
   });
 });
