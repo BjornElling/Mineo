@@ -1,5 +1,14 @@
+vi.mock('zod', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('zod')>();
+  return {
+    ...actual,
+    toJSONSchema: vi.fn(actual.toJSONSchema),
+  };
+});
+
 import { computeSchemaFingerprint } from '../../utils/schemaFingerprint';
 import { z } from 'zod';
+import * as zodModule from 'zod';
 
 // ─── computeSchemaFingerprint ─────────────────────────────────────────────────
 
@@ -106,5 +115,15 @@ describe('computeSchemaFingerprint', () => {
     const required = z.object({ navn: z.string() });
     const optional = z.object({ navn: z.string().optional() });
     expect(computeSchemaFingerprint({ s: required })).not.toBe(computeSchemaFingerprint({ s: optional }));
+  });
+
+  it('fejler tydeligt ved en ikke-understøttet værdi i JSON-schema-outputtet', () => {
+    vi.mocked(zodModule.toJSONSchema).mockImplementationOnce(() => ({
+      unsupported: Symbol('ikke-understøttet'),
+    } as never));
+
+    expect(() => computeSchemaFingerprint({ s: z.string() })).toThrow(
+      'stableStringify: unsupported type symbol',
+    );
   });
 });
