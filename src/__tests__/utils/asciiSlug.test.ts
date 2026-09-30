@@ -51,6 +51,10 @@ describe('asciiSlug', () => {
         .toBe('aarsloenberegning_periodeberegning');
     });
 
+    it('bevarer ingen separator når den eksplicit er tom', () => {
+      expect(asciiSlug('A B', { separator: '' })).toBe('ab');
+    });
+
     it('trimmer separatorer fra begge ender', () => {
       expect(asciiSlug('  – hej –  ')).toBe('hej');
       expect(asciiSlug('...test...', { separator: '_' })).toBe('test');
