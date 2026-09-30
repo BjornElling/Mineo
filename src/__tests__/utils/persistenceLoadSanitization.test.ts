@@ -50,6 +50,22 @@ describe('persistenceLoadSanitization', () => {
     });
   });
 
+  it('stripper ukendte felter fra input-siden af en transform-pipe', () => {
+    const schema = z.object({
+      navn: z.string(),
+    }).transform((value) => value.navn);
+
+    const result = stripUnknownFieldsBySchema(schema, {
+      navn: 'Test',
+      uventetFelt: true,
+    });
+
+    expect(result.unknownPaths).toContainEqual(['uventetFelt']);
+    expect(result.sanitized).toEqual({
+      navn: 'Test',
+    });
+  });
+
   it('stripper ukendte felter i objekter inde i et array og rapporterer indekserede stier', () => {
     const schema = z.object({
       items: z.array(
