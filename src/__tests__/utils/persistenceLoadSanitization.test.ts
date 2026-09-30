@@ -1,4 +1,7 @@
-import { stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitization';
+import {
+  sanitizePersistedValueForSchema,
+  stripUnknownFieldsBySchema,
+} from '../../utils/persistenceLoadSanitization';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { z } from 'zod';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -64,6 +67,20 @@ describe('persistenceLoadSanitization', () => {
     expect(result.sanitized).toEqual({
       navn: 'Test',
     });
+  });
+
+  it('normaliserer null før sanitization og rapporterer ukendte felter', () => {
+    const schema = z.object({
+      navn: z.string().optional(),
+    });
+
+    const result = sanitizePersistedValueForSchema(schema, {
+      navn: null,
+      uventetFelt: true,
+    });
+
+    expect(result.unknownPaths).toEqual([['uventetFelt']]);
+    expect(result.sanitized).toEqual({ navn: undefined });
   });
 
   it('stripper ukendte felter i objekter inde i et array og rapporterer indekserede stier', () => {
