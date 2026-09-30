@@ -73,6 +73,16 @@ describe('evaluateEoDocumentDownloadGate (A5: ét autoritativt output-gate pr. d
     expect(gate.reasons[0]?.message).toBe('Autoritativ blokering');
   });
 
+  it('bruger invariant-fallback, når den authoritative liste mangler første besked', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      authoritativeBlockingInvariants: [undefined as unknown as EoInvariant],
+      projection: { kind: 'blocked', message: 'Projektion blokeret' },
+    });
+
+    expect(gate.reasons[0]?.message).toBe('EO-beregningen er blokeret af snapshot-kontroller');
+  });
+
   it('falder tilbage til projektion-beskeden når intet andet blokerer', () => {
     const gate = evaluateEoDocumentDownloadGate({
       ...baseInput,
