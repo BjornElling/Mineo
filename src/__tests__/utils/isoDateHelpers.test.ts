@@ -146,6 +146,18 @@ describe('års- og månedsgrænser', () => {
     expect(firstOfMonthAfterIso(iso('2024-02-29'))).toBe(toISODateString('2024-03-01'));
     expect(firstOfMonthAfterIso(iso('2024-12-31'))).toBe(toISODateString('2025-01-01'));
   });
+
+  it('fejler lukket ved et år udenfor Date-repræsentationen', () => {
+    const urepresenterbartAar = Number.MAX_SAFE_INTEGER;
+    expect(() => startOfYearIso(urepresenterbartAar)).toThrow('Could not construct ISO start-of-year date');
+    expect(() => endOfYearIso(urepresenterbartAar)).toThrow('Could not construct ISO end-of-year date');
+    expect(() => startOfMonthIso(urepresenterbartAar, 1)).toThrow('Could not construct ISO start-of-month date');
+    expect(() => endOfMonthIso(urepresenterbartAar, 1)).toThrow('Could not construct ISO end-of-month date');
+  });
+
+  it('afviser malformed runtime-ISO i næste måneds helper', () => {
+    expect(() => firstOfMonthAfterIso(iso('ikke-en-dato'))).toThrow('Invalid ISODateString invariant');
+  });
 });
 
 describe('getDayBeforeIso', () => {
