@@ -8,6 +8,7 @@ import {
 import {
   erstatningsopgoerelseSchema,
   persistedErstatningsopgoerelseSchema,
+  type LoenudviklingManuelRow,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
@@ -30,6 +31,12 @@ const createValues = (
 });
 
 describe('projectLoenindkomstSatser', () => {
+  it('returnerer samme input, når sagen ikke har ansættelsesforhold', () => {
+    const input = erstatningsopgoerelseSchema.parse({ loenindkomstAnsaettelsesforhold: [] });
+
+    expect(projectLoenindkomstSatser(input, {})).toBe(input);
+  });
+
   it('udleder låste satser uden at mutere det persisterede input', () => {
     const input = createValues({ fritvalgPct: 3.5, storeBededagPct: 9.9 });
 
@@ -53,6 +60,18 @@ describe('projectLoenindkomstSatser', () => {
     expect(projected.loenindkomstAnsaettelsesforhold[0]?.fritvalgPct).toBe(3.5);
   });
 
+  it('genbruger værdien, når en allerede projiceret ansættelse er uændret', () => {
+    const input = createValues({ fritvalgPct: 3.5, storeBededagPct: 9.9 });
+    const projected = projectLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+    const repeated = projectLoenindkomstSatser(projected, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+
+    expect(repeated).toBe(projected);
+  });
+
   it('udelader låste satser fra persistence men bevarer en redigerbar sats', () => {
     const locked = createValues({ fritvalgPct: 3.5, storeBededagPct: 9.9 });
     const unlocked = createValues({ harOverenskomst: false, fritvalgPct: 3.5 });
@@ -66,6 +85,35 @@ describe('projectLoenindkomstSatser', () => {
 
     expect(lockedSave.loenindkomstAnsaettelsesforhold[0]?.fritvalgPct).toBeUndefined();
     expect(unlockedSave.loenindkomstAnsaettelsesforhold[0]?.fritvalgPct).toBe(3.5);
+  });
+
+  it('fjerner låste tillæg fra første manuelt angivne basisrække', () => {
+    const manualRow: LoenudviklingManuelRow = {
+      id: 'manual-base',
+      dato: undefined,
+      grundloen: { kind: 'number', value: 30_000 },
+      feriepenge: 12.5,
+      shSoSats: 5,
+      fritvalg: 3,
+      agPension: 8,
+    };
+    const input = createValues({
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [manualRow],
+    });
+
+    const persisted = omitDerivedLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+    const row = persisted.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData[0];
+
+    expect(row).toEqual({
+      ...manualRow,
+      feriepenge: undefined,
+      shSoSats: undefined,
+      fritvalg: undefined,
+      agPension: undefined,
+    });
   });
 
   it('fjerner et historisk Store Bededag-slot inbound UDEN at rapportere det som tabt data', () => {
