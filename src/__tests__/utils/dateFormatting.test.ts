@@ -6,6 +6,8 @@ import {
   formatISOToDanish,
   formatCopenhagenTimestampSeconds,
   formatCopenhagenISODate,
+  formatDanishDate,
+  formatToISO,
 } from '../../utils/dateFormatting';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -40,6 +42,30 @@ describe('formatISOToDanish', () => {
     const r1 = formatISOToDanish(iso('2024-06-15'));
     const r2 = formatISOToDanish(iso('2024-06-15'));
     expect(r1).toBe(r2);
+  });
+});
+
+// ─── formatDanishDate ─────────────────────────────────────────────────────
+
+describe('formatDanishDate', () => {
+  it('formatterer UTC-dato som dansk numerisk dato', () => {
+    expect(formatDanishDate(utcDate(2024, 6, 15))).toBe('15-06-2024');
+  });
+
+  it('kaster på ugyldig Date', () => {
+    expect(() => formatDanishDate(new Date('ugyldig'))).toThrow();
+  });
+});
+
+// ─── formatToISO ──────────────────────────────────────────────────────────
+
+describe('formatToISO', () => {
+  it('formatterer UTC-dato som ISO-dato', () => {
+    expect(formatToISO(utcDate(2024, 6, 15))).toBe('2024-06-15');
+  });
+
+  it('kaster på ugyldig Date', () => {
+    expect(() => formatToISO(new Date('ugyldig'))).toThrow();
   });
 });
 
