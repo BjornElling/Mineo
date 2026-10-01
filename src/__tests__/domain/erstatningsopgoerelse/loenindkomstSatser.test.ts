@@ -6,7 +6,7 @@ import {
   syncManualBaseRowSatser,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 
 // ─── syncManualBaseRowSatser ──────────────────────────────────────────────────
@@ -479,6 +479,54 @@ describe('buildLoenindkomstRateSegments – Store Bededag', () => {
     expect(segments[0]?.satser.shSoPct).toBeCloseTo(12.9, 10);
     expect(segments[1]?.fra).toBe(toISODateString('2024-03-01'));
     expect(segments[1]?.satser.shSoPct).toBeCloseTo(14.7, 10);
+  });
+
+  it('offentlig KL-overenskomst bruger det offentlige periodesatsopslag', () => {
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        harOverenskomst: true,
+        overenskomstId: 'kl-overenskomst',
+        loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: true,
+        feriePct: 12.5,
+        fritvalgPct: 3,
+        shSoPct: 2,
+        pensionPct: 10,
+      },
+      skadedato: undefined,
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-12-31'),
+    });
+
+    expect(segments.length).toBeGreaterThan(0);
+    expect(segments[0]?.satser.feriePct).toBe(12.5);
+    expect(segments[0]?.satser.storeBededagPct).toBeCloseTo(0.45, 10);
+  });
+
+  it('falder tilbage til basissatser ved runtime-ugyldig offentlig periodegrænse', () => {
+    const ugyldigDato = 'ikke-en-dato' as ISODateString;
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        harOverenskomst: true,
+        overenskomstId: 'kl-overenskomst',
+        loenPaaHelligdage: 'Almindelig løn' as const,
+        beregnStoreBededagstillaeg: true,
+        feriePct: 12.5,
+      },
+      skadedato: undefined,
+      fra: ugyldigDato,
+      til: toISODateString('2024-12-31'),
+    });
+
+    expect(segments).toEqual([
+      expect.objectContaining({
+        fra: ugyldigDato,
+        til: toISODateString('2024-12-31'),
+        satser: expect.objectContaining({ feriePct: 12.5 }),
+      }),
+    ]);
   });
 });
 
