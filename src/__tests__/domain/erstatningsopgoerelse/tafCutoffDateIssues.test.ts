@@ -146,4 +146,21 @@ describe('collectTafCutoffDateIssues', () => {
 
     expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.tafPerioder.til']);
   });
+
+  it('fejllukker runtime-ugyldig til-dato og bevarer fra-fejlen', () => {
+    const issues = collectTafCutoffDateIssues(
+      eoWith({
+        differencekravDato: toISODateString('2015-06-01'),
+        tafPerioder: [{
+          id: 't',
+          fra: toISODateString('2016-01-01'),
+          til: 'ugyldig-dato' as unknown as ISODateString,
+          loseFeriedage: 0,
+        }],
+      }),
+      SKADEDATO_EFTER_2011
+    );
+
+    expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.tafPerioder.fra']);
+  });
 });
