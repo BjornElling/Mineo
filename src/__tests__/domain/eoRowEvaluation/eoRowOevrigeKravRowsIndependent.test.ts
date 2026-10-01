@@ -98,6 +98,25 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     expect(rows[0]?.focusTarget).toEqual(focusOf(eoOevrigeKravDatoField, 'r1'));
   });
 
+  it('bevarer en rød fejl i «Udgift til» som udfyldt celle', () => {
+    const values = valuesWith([{ id: 'r1', dato: iso('2024-04-01'), udgiftTil: undefined, beloeb: amount(250) }]);
+    const issues = buildFieldIssueSet([redIssue(eoOevrigeKravUdgiftTilField, 'r1', 'Udgiften har ugyldig tekst')]);
+
+    const rows = buildEoOevrigeKravRows(values, issues);
+
+    expect(rows).toEqual([
+      {
+        id: 'oevrigekrav.r1',
+        label: 'Øvrigt erstatningskrav',
+        displayValue: 'Fejl (Øvrigt krav (01-04-2024, 250,00 kr.): Udgiften har ugyldig tekst)',
+        status: 'error',
+        message: 'Øvrigt krav (01-04-2024, 250,00 kr.): Udgiften har ugyldig tekst',
+        summaryDisplay: 'messageOnly',
+        focusTarget: focusOf(eoOevrigeKravUdgiftTilField, 'r1'),
+      },
+    ]);
+  });
+
   it('regner en række med kun en rød celle som udfyldt', () => {
     const values = valuesWith([{ id: 'r1', dato: undefined, udgiftTil: undefined, beloeb: undefined }]);
     const issues = buildFieldIssueSet([redIssue(eoOevrigeKravDatoField, 'r1', 'Datoen findes ikke i kalenderen')]);
