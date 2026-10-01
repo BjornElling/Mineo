@@ -92,6 +92,15 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
     expect(errors).toEqual({});
   });
 
+  it('viser nul som forventet sats når tabelværdien er udfyldt uden facitsats', () => {
+    const errors = validateLoenudviklingManualBaseRowSatser(
+      makeBaseRow({ feriepenge: 1 }),
+      { feriePct: undefined, fritvalgPct: undefined, shSoPct: undefined, pensionPct: undefined }
+    );
+
+    expect(errors.feriepenge).toBe('Værdien er ovenfor angivet til 0,00 %');
+  });
+
   it('behandler null som 0 i sats-sammenligning', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
