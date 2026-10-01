@@ -202,6 +202,17 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
     })).toBe('Hele perioden ligger efter datoen for ménafgørelsen (2024-99-99)');
   });
 
+  it('ignorerer runtime-ugyldige fra- og til-datoer i feltissue-projektionen', () => {
+    expect(collectSvieSmerteCutoffDateIssues(eoWith({
+      svieSmertePerioder: [{
+        id: 'ss-1',
+        fra: invalidIso('2024-99-99'),
+        til: invalidIso('heller-ikke-en-dato'),
+        tilstand: 'sygemeldt',
+      }],
+    }))).toEqual([]);
+  });
+
   it('viser hele-perioden-beskeden når fra-datoen ligger på cutoff-siden', () => {
     expect(buildSvieSmertePeriodeCutoffErrorMessage({
       fra: toISODateString('2024-09-17'),
