@@ -7,7 +7,7 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
 // Isolations-tests for det rene Loenindkomst-afledningslag (uden React-render) – jf. arkitektur-kandidat A1.
 // Modstykket til loenindkomstSatsAssessment.test.ts.
@@ -168,6 +168,24 @@ describe('deriveLoenindkomstVm', () => {
       expect(baseDate.iso).toBe(toISODateString('2023-03-10'));
       expect(baseDate.display).toBe('10-03-2023');
       expect(baseDate.errorMessage).toBeUndefined();
+    });
+
+    it('behandler en runtime-ugyldig anvendt reguleringsdato som manglende basisdato', () => {
+      const ugyldigDato = 'ikke-en-dato' as ISODateString;
+      const af: Ansaettelsesforhold = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        saerligFraDatoRegulering: ugyldigDato,
+      };
+      const model = deriveLoenindkomstVm(buildInput([af], {
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeTil: toISODateString('2024-12-31'),
+      }));
+
+      expect(model.getLoenudviklingBaseDate(af)).toEqual({
+        display: '',
+        iso: undefined,
+        errorMessage: 'Skadedato er ikke udfyldt',
+      });
     });
 
     it('returnerer fejlmeddelelse når der ikke kan udledes en reguleringsdato', () => {
