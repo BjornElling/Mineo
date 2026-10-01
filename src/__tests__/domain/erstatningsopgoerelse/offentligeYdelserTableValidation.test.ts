@@ -46,6 +46,10 @@ describe('offentligeYdelserTableValidation', () => {
     it('afviser et beløb med ikke-finite værdi', () => {
       expect(isOffentligeYdelserAmountValueValidForValidation({ kind: 'number', value: Number.NaN })).toBe(false);
     });
+
+    it('afviser en værdi, der ikke er et beløb', () => {
+      expect(isOffentligeYdelserAmountValueValidForValidation(true)).toBe(false);
+    });
   });
 
   describe('isOffentligeYdelserTableValueEffectivelyEmptyForValidation', () => {
@@ -62,6 +66,16 @@ describe('offentligeYdelserTableValidation', () => {
     it('behandler et expression-beløb med tom udtryksstreng som tomt', () => {
       expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(expr(0, ''))).toBe(true);
     });
+
+    it('skelner mellem ikke-tom tekst, finite tal og ugyldige beløb', () => {
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation('25')).toBe(false);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(25)).toBe(false);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(Number.POSITIVE_INFINITY)).toBe(true);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'number', value: Number.NaN })).toBe(true);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation({ kind: 'expression', value: Number.NaN, expression: '25' })).toBe(true);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(expr(100, '25'))).toBe(false);
+      expect(isOffentligeYdelserTableValueEffectivelyEmptyForValidation(true)).toBe(false);
+    });
   });
 
   describe('buildOffentligeYdelserCellKey / parseOffentligeYdelserCellKey', () => {
@@ -69,6 +83,20 @@ describe('offentligeYdelserTableValidation', () => {
       const key = buildOffentligeYdelserCellKey('row-42', 'ydelse');
       expect(key).toBe('row-42:ydelse');
       expect(parseOffentligeYdelserCellKey(key)).toEqual({ rowId: 'row-42', colKey: 'ydelse' });
+    });
+
+    it('afviser ugyldigt rowId og cellKey i udvikling', () => {
+      if (import.meta.env.DEV) {
+        expect(() => buildOffentligeYdelserCellKey('row:42', 'ydelse')).toThrow(
+          'rowId må ikke indeholde ":"',
+        );
+        expect(() => parseOffentligeYdelserCellKey('row-42')).toThrow('Ugyldigt cellKey format');
+        expect(() => parseOffentligeYdelserCellKey('row-42:ukendt')).toThrow('Ugyldigt colKey');
+      } else {
+        expect(buildOffentligeYdelserCellKey('row:42', 'ydelse')).toBe('row:42:ydelse');
+        expect(parseOffentligeYdelserCellKey('row-42')).toBeNull();
+        expect(parseOffentligeYdelserCellKey('row-42:ukendt')).toBeNull();
+      }
     });
   });
 
@@ -108,6 +136,22 @@ describe('offentligeYdelserTableValidation', () => {
       expect(result.summary.firstErrorCell).toEqual({ rowId: 'row-1', colKey: 'fraDato', reason: 'missing' });
     });
 
+    it('peger på manglende slutdato før ydelsestype', () => {
+      const result = getOffentligeYdelserTableValidation({
+        rows: [makeRow({ fraDato: iso('2024-01-01'), ydelse: amount(1000) })],
+      });
+
+      expect(result.summary.firstErrorCell).toEqual({ rowId: 'row-1', colKey: 'tilDato', reason: 'missing' });
+    });
+
+    it('peger på manglende ydelsestype for en komplet periode', () => {
+      const result = getOffentligeYdelserTableValidation({
+        rows: [makeRow({ fraDato: iso('2024-01-01'), tilDato: iso('2024-01-31'), ydelse: amount(1000) })],
+      });
+
+      expect(result.summary.firstErrorCell).toEqual({ rowId: 'row-1', colKey: 'ydelsestype', reason: 'missing' });
+    });
+
     it('flagger en komplet periode+type uden beløb som advarsel', () => {
       const result = getOffentligeYdelserTableValidation({
         rows: [makeRow({ fraDato: iso('2024-01-01'), tilDato: iso('2024-01-31'), ydelsestype: 'dagpenge' })],
@@ -129,7 +173,10 @@ describe('offentligeYdelserTableValidation', () => {
     it('prioriterer input-cellefejl over manglende-felt og peger på første fejlcelle i kolonne-rækkefølge', () => {
       const result = getOffentligeYdelserTableValidation({
         rows: [makeRow({ fraDato: iso('2024-01-01'), tilDato: iso('2024-01-31'), ydelsestype: 'dagpenge', ydelse: amount(1000) })],
-        cellErrorsByCellKey: { [buildOffentligeYdelserCellKey('row-1', 'ydelse')]: true },
+        cellErrorsByCellKey: {
+          [buildOffentligeYdelserCellKey('row-1', 'ydelse')]: true,
+          [buildOffentligeYdelserCellKey('row-1', 'tillaeg')]: true,
+        },
       });
       expect(result.summary.hasErrors).toBe(true);
       expect(result.summary.rowIssues).toContainEqual({ rowId: 'row-1', level: 'error', reason: 'input' });
