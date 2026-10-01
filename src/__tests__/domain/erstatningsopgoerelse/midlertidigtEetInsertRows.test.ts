@@ -5,7 +5,7 @@ import { buildMidlertidigtEetAfgoerelseGroupsFromImportContext } from '../../../
 import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { fromKroner, toKroner } from '../../../domain/money/money';
-import { buildEetImportContext, eetImportContextSchema } from '../../../domain/erhvervsevnetab/eetImportPort';
+import { buildEetImportContext, eetImportContextSchema, type EetImportContext } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { toISODateString } from '../../../types/branded';
 
 const makeValues = (): ErhvervsevnetabComposedValues => ({
@@ -336,5 +336,57 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromImportContext', () => {
         perioder: afgoerelse.perioder,
       })),
     })).toThrow();
+  });
+
+  it('failer lukket hvis importporten modtager en ugyldig fra-dato ved rækkekonvertering', () => {
+    const context = buildEetImportContext({
+      revision: 'invalid-fra-date',
+      eetValues: makeValues(),
+      skadedato: toISODateString('2024-07-01'),
+    }, toISODateString('2026-03-19'));
+    const group = context.groups[0]!;
+    const periode = group.perioder[0]!;
+    // Testen simulerer en korrupt runtime-payload efter schema-grænsen; castet er kun testadgang.
+    const groups = [{
+      ...group,
+      perioder: [{ ...periode, fra: 'invalid-date' }],
+    }] as unknown as EetImportContext['groups'];
+
+    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromImportContext(groups)).toThrow(
+      'CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.'
+    );
+  });
+
+  it('failer lukket hvis importporten modtager en ugyldig til-dato ved rækkekonvertering', () => {
+    const context = buildEetImportContext({
+      revision: 'invalid-til-date',
+      eetValues: makeValues(),
+      skadedato: toISODateString('2024-07-01'),
+    }, toISODateString('2026-03-19'));
+    const group = context.groups[0]!;
+    const periode = group.perioder[0]!;
+    // Testen simulerer en korrupt runtime-payload efter schema-grænsen; castet er kun testadgang.
+    const groups = [{
+      ...group,
+      perioder: [{ ...periode, til: 'invalid-date' }],
+    }] as unknown as EetImportContext['groups'];
+
+    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromImportContext(groups)).toThrow(
+      'CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.'
+    );
+  });
+
+  it('udelader en importgruppe uden perioder', () => {
+    const context = buildEetImportContext({
+      revision: 'empty-period-group',
+      eetValues: makeValues(),
+      skadedato: toISODateString('2024-07-01'),
+    }, toISODateString('2026-03-19'));
+    const group = context.groups[0]!;
+
+    expect(buildMidlertidigtEetAfgoerelseGroupsFromImportContext([{
+      ...group,
+      perioder: [],
+    }])).toEqual([]);
   });
 });
