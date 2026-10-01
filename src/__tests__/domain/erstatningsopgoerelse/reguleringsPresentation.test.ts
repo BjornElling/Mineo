@@ -1264,6 +1264,70 @@ describe('reguleringsPresentation', () => {
     expect(rowsMed.length).toBeGreaterThan(0);
   });
 
+  it('viser ASL-årslønsmaksimum for hvert kalenderår i TAF-perioden', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-01-01'),
+      tafFra: iso('2024-07-01'),
+      tafTil: iso('2025-06-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).toEqual({
+      columns: ['År', 'Maksimum årsløn'],
+      rows: [
+        ['2024', '608.000,00'],
+        ['2025', '632.000,00'],
+      ],
+    });
+  });
+
+  it('afviser ASL-reguleringsværdier når TAF-perioden mangler et år i satsserien', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2026-01-01'),
+      tafFra: iso('2026-01-01'),
+      tafTil: iso('2027-01-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).toBeNull();
+  });
+
+  it('bygger ASL-indeksrækker med årslønsmaksimum som indeksserie', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    const anvendtReguleringsdato = iso('2024-01-01');
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        { kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-12-31'), maaneder: 6, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(18000000) },
+        { kind: 'maaneder', fra: iso('2025-01-01'), til: iso('2025-06-30'), maaneder: 6, maanedsloenOre: moneyOre(3000000), deltaPct: 0, amountOre: moneyOre(18000000) },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato,
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.map((row) => [row.fraDato, row.indeks, row.loenudvikling])).toEqual([
+      ['01-07-2024', '100,00', ''],
+      ['01-01-2025', '103,95', '+ 3,95 %'],
+    ]);
+    expect(rows[1]?.indeksberegning).toBe('(632.000,00 / 608.000,00)');
+  });
+
   it('KL-lønaftaler: kræver motorens kanoniske forløb', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
