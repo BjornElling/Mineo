@@ -142,4 +142,62 @@ describe('tableModel roundtrip', () => {
     expect(back.beloeb?.kind).toBe('expression');
     expect(back.beloeb).toEqual({ kind: 'expression', expression: '50+50', value: 100 });
   });
+
+  it('øvrige krav normaliserer tomme rækker og manglende id', () => {
+    const fromEmpty = ensureOevrigeKravRows([]);
+    expect(fromEmpty).toHaveLength(1);
+    expect(fromEmpty[0]).toMatchObject({ dato: undefined, udgiftTil: undefined, beloeb: undefined });
+
+    const withGeneratedId = ensureOevrigeKravRows([{
+      id: '',
+      dato: toISODateString('2024-01-10'),
+      udgiftTil: 'Medicn',
+      beloeb: { kind: 'number', value: 100 },
+    }]);
+    expect(withGeneratedId[0]?.id).toMatch(/^oevrige_krav_row_/);
+
+    const alreadyEmpty = ensureOevrigeKravRows([{
+      id: 'o-empty',
+      dato: undefined,
+      udgiftTil: undefined,
+      beloeb: undefined,
+    }]);
+    expect(alreadyEmpty).toHaveLength(1);
+
+    expect(committedToOevrigeKravDraftRows([alreadyEmpty[0]!])[0]).toEqual({
+      id: 'o-empty',
+      dato: '',
+      udgiftTil: '',
+      beloeb: '',
+    });
+  });
+
+  it('øvrige krav bevarer tidligere beløb ved ugyldigt draft-beløb', () => {
+    const previous = { kind: 'number', value: 100 } as const;
+    const invalidWithPrevious = oevrigeKravDraftToCommittedRow({
+      id: 'o-invalid',
+      dato: '',
+      udgiftTil: '  ',
+      beloeb: '1,,2',
+    }, {
+      id: 'o-invalid',
+      dato: undefined,
+      udgiftTil: undefined,
+      beloeb: previous,
+    });
+    expect(invalidWithPrevious).toEqual({
+      id: 'o-invalid',
+      dato: undefined,
+      udgiftTil: undefined,
+      beloeb: previous,
+    });
+
+    const invalidWithoutPrevious = oevrigeKravDraftToCommittedRow({
+      id: 'o-invalid-empty',
+      dato: '',
+      udgiftTil: '',
+      beloeb: '1,,2',
+    });
+    expect(invalidWithoutPrevious.beloeb).toBeUndefined();
+  });
 });
