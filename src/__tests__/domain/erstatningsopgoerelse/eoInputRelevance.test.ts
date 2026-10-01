@@ -12,6 +12,7 @@ import {
   erEndeligtEETAfgoerelseAktiv,
   erEETKlageRelevant,
   erBilagsnumreRelevant,
+  erOffentligeYdelserReguleringRelevant,
   erTidligereModtagetTafRelevant,
   erAnsaettelsesforholdOphoertRelevant,
   erSidsteArbejdsdagRelevant,
@@ -94,6 +95,12 @@ describe('eoInputRelevance', () => {
       expect(result.svieSmerteSatserAar).toBeUndefined();
     });
 
+    it('bevarer samme reference når skjulte svie-input allerede er tomme', () => {
+      const values = makeValues({ kravPaaSvieSmerteGodtgoerelse: 'Nej', tidligereSsMax: 'Nej' });
+
+      expect(neutralizeIrrelevantEoInputs(values)).toBe(values);
+    });
+
     it('blanker TAF- og øvrige-krav-rækker når sektionerne ikke er aktive', () => {
       const result = neutralizeIrrelevantEoInputs(
         makeValues({
@@ -129,6 +136,72 @@ describe('eoInputRelevance', () => {
         ansaettelsesforholdOphoert: true,
         sidsteArbejdsdag: iso('2024-01-31'),
       });
+    });
+
+    it('blanker sidste arbejdsdag når aktiv ansættelse ikke er ophørt', () => {
+      const employment = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-aktiv-ikke-ophørt',
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: iso('2024-01-31'),
+      };
+      const original = makeValues({ loenindkomstAnsaettelsesforhold: [employment] });
+      const effective = neutralizeIrrelevantEoInputs(original);
+
+      expect(effective.loenindkomstAnsaettelsesforhold[0]).toMatchObject({
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+      });
+      expect(original.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag).toBe(iso('2024-01-31'));
+    });
+
+    it('bevarer sidste arbejdsdag når aktiv ansættelse er ophørt', () => {
+      const employment = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-aktiv-ophørt',
+        ansatPaaSkadestidspunktet: true,
+        ansaettelsesforholdOphoert: true,
+        sidsteArbejdsdag: iso('2024-01-31'),
+      };
+      const values = makeValues({ loenindkomstAnsaettelsesforhold: [employment] });
+
+      expect(neutralizeIrrelevantEoInputs(values).loenindkomstAnsaettelsesforhold[0]).toBe(employment);
+    });
+
+    it('bevarer ikke-ansat ansættelse uden opsigelse og sidste arbejdsdag', () => {
+      const employment = {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-ikke-ansat',
+        ansatPaaSkadestidspunktet: false,
+        ansaettelsesforholdOphoert: false,
+        sidsteArbejdsdag: undefined,
+      };
+      const values = makeValues({ loenindkomstAnsaettelsesforhold: [employment] });
+
+      expect(neutralizeIrrelevantEoInputs(values).loenindkomstAnsaettelsesforhold[0]).toBe(employment);
+    });
+
+    it('blanker løse feriedage i TAF-rækker når beregningen sker i måneder', () => {
+      const tafPerioder = [
+        { id: 'taf-med-løse-dage', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: 2 },
+        { id: 'taf-uden-løse-dage', fra: iso('2024-02-01'), til: iso('2024-02-29'), loseFeriedage: undefined },
+      ];
+      const values = makeValues({
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        beregnesUdFra: 'Angivet månedsløn',
+        maanedsloenenUdgoer: asAmountValue(42_000),
+        tafPerioder,
+      });
+
+      const effective = neutralizeIrrelevantEoInputs(values);
+
+      expect(effective.tafPerioder).toEqual([
+        { ...tafPerioder[0], loseFeriedage: undefined },
+        tafPerioder[1],
+      ]);
+      expect(values.tafPerioder).toEqual(tafPerioder);
     });
 
     it('UNDTAGELSE: bevarer komprimeret løn-/beregningsgrundlag ved EO 2+ (TAF beregnes fortsat heraf)', () => {
@@ -209,6 +282,12 @@ describe('eoInputRelevance', () => {
     it('erTidligereModtagetTafRelevant følger TAF-sektionen', () => {
       expect(erTidligereModtagetTafRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja' }))).toBe(true);
       expect(erTidligereModtagetTafRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' }))).toBe(false);
+    });
+
+    it('erOffentligeYdelserReguleringRelevant kræver aktiv TAF og beregningsperiode', () => {
+      expect(erOffentligeYdelserReguleringRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja', beregnesUdFra: 'Beregningsperiode' }))).toBe(true);
+      expect(erOffentligeYdelserReguleringRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja', beregnesUdFra: 'Angivet månedsløn' }))).toBe(false);
+      expect(erOffentligeYdelserReguleringRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej', beregnesUdFra: 'Beregningsperiode' }))).toBe(false);
     });
   });
 
