@@ -224,4 +224,58 @@ describe('calculateLoenindkomstRowDerived', () => {
     expect(result.fpFvShSo).toBe(76.05);
     expect(result.samlet).toBe(1075.12);
   });
+
+  it('falder tilbage til standardberegningen ved ugyldig lønperiode', () => {
+    const ansaettelsesforhold = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      loenperiode: 'maaned' as const,
+    };
+    const context = {
+      ...createBaseContext(),
+      loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
+    };
+
+    expect(calculateLoenindkomstRowDerived({
+      row: createEmptyRow(),
+      ansaettelsesforhold,
+      context,
+    })).toEqual({
+      loenPlusLoen2: 0,
+      loenPlusLoen2PlusIkkePensLoen: 0,
+      fpFvShSo: 0,
+      pension: 0,
+      samlet: 0,
+    });
+  });
+
+  it('giver nulresultat når alle arbejdsdage er dækket af ferie eller fravær', () => {
+    const dag = toISODateString('2024-01-11');
+    const ansaettelsesforhold = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      loenperiode: 'dag' as const,
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
+      loenudviklingManuelTableData: [
+        { id: 'base', dato: undefined, grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
+      ],
+    };
+    const context = {
+      ...createBaseContext(),
+      beregnesUdFra: 'Angivet dagsløn' as const,
+      loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
+      ferieperioder: [{ id: 'ferie-1', fra: dag, til: dag }],
+      fravaerPerioder: [],
+    };
+
+    expect(calculateLoenindkomstRowDerived({
+      row: { ...createEmptyRow(), col0_dag: dag, col1_dag: dag, col2: asAmountValue(1000) },
+      ansaettelsesforhold,
+      context,
+    })).toEqual({
+      loenPlusLoen2: 0,
+      loenPlusLoen2PlusIkkePensLoen: 0,
+      fpFvShSo: 0,
+      pension: 0,
+      samlet: 0,
+    });
+  });
 });
