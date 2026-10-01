@@ -30,6 +30,29 @@ describe('tableModel roundtrip', () => {
     expect(back).toEqual(committed[0]);
   });
 
+  it('feriemodellen normaliserer manglende rækker, tomme input og id-fallback', () => {
+    const fromUndefined = ensureTafFerieRows(undefined);
+    expect(fromUndefined).toHaveLength(1);
+    expect(fromUndefined[0]?.id).toMatch(/^taf_ferie_row_/);
+
+    const fromEmpty = ensureFravaerRows([]);
+    expect(fromEmpty).toHaveLength(1);
+    expect(fromEmpty[0]?.id).toMatch(/^fravaer_row_/);
+
+    const withGeneratedId = ensureTafFerieRows([{
+      id: '',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-10'),
+    }]);
+    expect(withGeneratedId[0]?.id).toMatch(/^taf_ferie_row_/);
+
+    expect(committedToFerieDraftRows([{
+      id: 'f-empty',
+      fra: undefined,
+      til: undefined,
+    }])[0]).toEqual({ id: 'f-empty', fra: '', til: '' });
+  });
+
   it('svie/smerte draft↔committed bevarer id og mapper tilstand', () => {
     const committed = [{ id: 's1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-10'), tilstand: 'sygemeldt' }] as const;
     const draft = committedToSvieDraftRows([...committed])[0];
