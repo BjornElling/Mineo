@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+echo "HUSKY PRE-PUSH KØRER"
+
+set -e
+
+# Stop push hvis det låste afhængighedstræ har kendte sårbarheder. `npm audit` slår op i et
+# eksternt advisory-register, der ændrer sig uden at repoet gør det: en advisory publiceret efter
+# sidste commit ville ellers først vise sig i CI's `verify:release:core` og blokere deployen
+# (sket 2026-10-01). Kontrollen kræver netværk og ligger derfor her og ikke i pre-commit;
+# `check-vulnerabilities.mjs` melder en utilgængelig registry som advarsel, så en offline push
+# ikke blokeres af den.
+npm run check:vulnerabilities

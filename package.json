@@ -144,6 +144,6 @@
   "allowScripts": {
     "core-js@3.49.0": true,
     "esbuild@0.28.1": true,
-    "workerd@1.20260908.1": true
+    "workerd@1.20260930.2": true
   }
 }
