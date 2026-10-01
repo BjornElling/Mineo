@@ -3,9 +3,10 @@ import { buildEoAesRows } from '../../../domain/eoRowEvaluation/eoRowOverviewRow
 import { resolveAesDatoEfterOpgoerelseMessage } from '../../../domain/erstatningsopgoerelse/validation/aesDatoEfterOpgoerelse';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 const eoWith = (overrides: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
@@ -47,6 +48,13 @@ describe('resolveAesDatoEfterOpgoerelseMessage', () => {
       endeligtEETAfgorelse: 'Nej',
       endeligEETAfgoerelseDato: iso('2025-06-01'),
     }))).toBeUndefined();
+  });
+
+  it('bevarer en ugyldig runtime-dato i fallbackteksten', () => {
+    expect(resolveAesDatoEfterOpgoerelseMessage('differencekravDato', eoWith({
+      opgørelseLavetDen: invalidIso('0000-00-00'),
+      differencekravDato: iso('2025-06-01'),
+    }))).toBe('Differencekravet er opgjort pr. en dato efter opgørelsens dato (0000-00-00)');
   });
 });
 
