@@ -5,8 +5,10 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   getEoBilagAvailability,
+  hasLoenReguleringEoBilagData,
   hasLoenReguleringInModel,
   hasMidlertidigtEetYdelsestype,
+  shouldIncludeEoReguleringBilag,
   type EoBilagAvailabilityState,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -75,6 +77,33 @@ const makeOffentligeYdelserUdviklingModel = (deltaPct: number): OffentligeYdelse
   ],
   total: { status: 'ok', value: moneyOre(100000) },
 });
+
+const makeBeregningsperiodeReguleringValues = (
+  loenudviklingBeregningsgrundlag: 'Ingen' | 'Statistik'
+): ErstatningsopgoerelseValues => {
+  const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+  employment.loenudviklingBeregningsgrundlag = loenudviklingBeregningsgrundlag;
+  employment.indtaegtsoplysningerTableData = [{
+    id: 'row-1',
+    col0_maaned: '1',
+    col1_maaned: '2024',
+    col0_uge: '',
+    col1_uge: '',
+    col0_dag: undefined,
+    col1_dag: undefined,
+    col2: { kind: 'number', value: 1000 },
+    col3: undefined,
+    col4: undefined,
+    col5: undefined,
+  }];
+
+  return makeValues({
+    beregnesUdFra: 'Beregningsperiode',
+    tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+    tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+    loenindkomstAnsaettelsesforhold: [employment],
+  });
+};
 
 describe('getEoBilagAvailability', () => {
   it('deaktiverer lønindkomst når der ikke er indtastet lønoplysninger i tabellen', () => {
@@ -549,6 +578,35 @@ describe('hasLoenReguleringInModel', () => {
         beregnedeSegmenter: [{ ...segment, deltaPct: 2.5 }],
       }],
     })).toBe(true);
+  });
+});
+
+describe('shouldIncludeEoReguleringBilag', () => {
+  it('udelader bilaget når alle reguleringskilder med indkomst er sat til Ingen', () => {
+    expect(shouldIncludeEoReguleringBilag(makeBeregningsperiodeReguleringValues('Ingen'))).toBe(false);
+  });
+
+  it('medtager bilaget når en reguleringskilde med indkomst er aktiv', () => {
+    expect(shouldIncludeEoReguleringBilag(makeBeregningsperiodeReguleringValues('Statistik'))).toBe(true);
+  });
+
+  it('udelader bilaget ved angivet løn uden valgt lønudvikling', () => {
+    expect(shouldIncludeEoReguleringBilag(makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+    }))).toBe(false);
+  });
+
+  it('afviser ikke-brugbar regulering ved ukendt beregningsmetode', () => {
+    const values = makeValues({
+      beregnesUdFra: 'ukendt' as unknown as ErstatningsopgoerelseValues['beregnesUdFra'],
+    });
+
+    expect(shouldIncludeEoReguleringBilag(values)).toBe(true);
+    expect(hasLoenReguleringEoBilagData(values)).toBe(false);
   });
 });
 
