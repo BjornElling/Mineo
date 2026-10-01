@@ -13,6 +13,7 @@ import {
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
   buildIncomeInputRanges,
+  roundIncomeBenefitAmountKroner,
   resolveArbejdsstedDisplayName,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
@@ -47,6 +48,20 @@ describe('resolveArbejdsstedDisplayName', () => {
     expect(resolveArbejdsstedDisplayName(undefined, 0)).toBe('Arbejdssted 1');
     expect(resolveArbejdsstedDisplayName('', 1)).toBe('Arbejdssted 2');
     expect(resolveArbejdsstedDisplayName('   ', 2)).toBe('Arbejdssted 3');
+  });
+});
+
+describe('roundIncomeBenefitAmountKroner', () => {
+  it('runder midlertidigt EET til hele kroner når det importeres fra EET-siden', () => {
+    expect(roundIncomeBenefitAmountKroner('midlertidigt_eet', 42790.6, true)).toBe(42791);
+  });
+
+  it('runder midlertidigt EET til to decimaler uden EET-side-import', () => {
+    expect(roundIncomeBenefitAmountKroner('midlertidigt_eet', 42790.6, false)).toBe(42790.6);
+  });
+
+  it('runder øvrige ydelser til to decimaler selv når helkroneflaget er sat', () => {
+    expect(roundIncomeBenefitAmountKroner('sygedagpenge', 123.456, true)).toBe(123.46);
   });
 });
 
