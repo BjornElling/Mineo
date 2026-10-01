@@ -12,6 +12,7 @@ import {
   buildTafRanges,
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
+  buildIncomeForRanges,
   buildIncomeInputRanges,
   buildIncomeSourceRanges,
   roundIncomeBenefitAmountKroner,
@@ -212,6 +213,42 @@ describe('buildIncomeSourceRanges', () => {
       { fra: iso('2024-01-01'), til: iso('2024-01-10') },
       { fra: iso('2024-02-01'), til: iso('2024-02-03') },
     ]);
+  });
+});
+
+describe('buildIncomeForRanges', () => {
+  it('returnerer et tomt resultat når der ikke er valgt nogen ranges', () => {
+    expect(buildIncomeForRanges(makeEo(), [])).toEqual({ employers: [], benefits: [] });
+  });
+
+  it('genopbygger context når de nye ranges ligger uden for den leverede context', () => {
+    const eo = makeEo({
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [{
+        id: 'ydelse-februar',
+        fraDato: iso('2024-02-01'),
+        tilDato: iso('2024-02-29'),
+        ydelse: asAmount(2900),
+        tillaeg: undefined,
+        ydelsestype: 'sygedagpenge',
+      }],
+    });
+    const staleContext = {
+      boundsFra: iso('2024-01-01'),
+      boundsTil: iso('2024-01-31'),
+      arbejdsdageSet: new Set<ReturnType<typeof iso>>(),
+      shDaysForYdelser: new Set<ReturnType<typeof iso>>(),
+      loenErrorRowIdsByEmploymentId: new Map<string, ReadonlySet<string>>(),
+    };
+
+    const income = buildIncomeForRanges(
+      eo,
+      [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }],
+      staleContext
+    );
+
+    expect(income.benefits).toHaveLength(1);
+    expect(income.benefits[0]?.amount).toBe(2900);
   });
 });
 
