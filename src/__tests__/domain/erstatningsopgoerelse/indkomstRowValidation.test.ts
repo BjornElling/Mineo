@@ -176,6 +176,20 @@ describe('buildStandardLoenCellErrors', () => {
       const errors = buildStandardLoenCellErrors([ugeRow('r1', '2024', '2024')], 'uge');
       expect(errors['r1:col0_uge']).toBe(true);
     });
+
+    it('fejl for ikke-numerisk uge og år uden for gyldighedsintervallet', () => {
+      const errors = buildStandardLoenCellErrors([
+        ugeRow('r1', 'abc/2024', '1/2004'),
+        ugeRow('r2', '1/abc', '1/2101'),
+      ], 'uge');
+
+      expect(errors).toEqual({
+        'r1:col0_uge': true,
+        'r1:col1_uge': true,
+        'r2:col0_uge': true,
+        'r2:col1_uge': true,
+      });
+    });
   });
 
   describe('loenperiode = dag', () => {
@@ -366,6 +380,45 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
     const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
     expect(result).toEqual([]);
+  });
+
+  it('ignorerer ansættelsesforhold uden id, tomme beløb, ugyldige perioder og arbejdsdage', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'maaned';
+    af.indtaegtsoplysningerTableData = [
+      { ...baseAarsloenRow('zero'), col0_maaned: '6', col1_maaned: '2024', col2: amount(0) },
+      { ...baseAarsloenRow('invalid'), col0_maaned: '13', col1_maaned: '2024', col2: amount(1000) },
+      { ...baseAarsloenRow('workdays'), col0_maaned: '8', col1_maaned: '2024', col2: amount(1000) },
+    ];
+
+    expect(buildStandardLoenZeroArbejdsdageIssues(values, 'ukendt-id')).toEqual([]);
+    expect(buildStandardLoenZeroArbejdsdageIssues(values, af.id)).toEqual([]);
+  });
+
+  it('håndterer manglende runtime-arrays som tomme input', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet dagsløn';
+
+    const udenAnsættelser = {
+      ...values,
+      loenindkomstAnsaettelsesforhold: undefined,
+    } as unknown as Parameters<typeof buildStandardLoenZeroArbejdsdageIssues>[0];
+    expect(buildStandardLoenZeroArbejdsdageIssues(udenAnsættelser, 'ukendt-id')).toEqual([]);
+
+    const af = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      indtaegtsoplysningerTableData: undefined,
+    };
+    const udenPerioderEllerRækker = {
+      ...values,
+      loenindkomstAnsaettelsesforhold: [af],
+      ferieperioder: undefined,
+      fravaerPerioder: undefined,
+    } as unknown as Parameters<typeof buildStandardLoenZeroArbejdsdageIssues>[0];
+    expect(buildStandardLoenZeroArbejdsdageIssues(udenPerioderEllerRækker, af.id)).toEqual([]);
   });
 });
 
