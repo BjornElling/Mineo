@@ -13,6 +13,7 @@ import {
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
   buildIncomeInputRanges,
+  buildIncomeSourceRanges,
   roundIncomeBenefitAmountKroner,
   resolveArbejdsstedDisplayName,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
@@ -146,6 +147,70 @@ describe('buildIncomeInputRanges', () => {
 
     expect(buildIncomeInputRanges(eo)).toEqual([
       { fra: iso('2026-01-01'), til: iso('2026-01-25') },
+    ]);
+  });
+});
+
+describe('buildIncomeSourceRanges', () => {
+  it('udelader manglende, omvendte og runtime-ugyldige ydelsesintervaller og sorterer resten', () => {
+    const eo = makeEo({
+      loenindkomstAnsaettelsesforhold: [],
+      offentligeYdelserRows: [
+        {
+          id: 'ydelse-sen',
+          fraDato: iso('2024-02-01'),
+          tilDato: iso('2024-02-03'),
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+        {
+          id: 'ydelse-samme-fra-laengst',
+          fraDato: iso('2024-01-01'),
+          tilDato: iso('2024-01-10'),
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+        {
+          id: 'ydelse-mangler-til',
+          fraDato: iso('2024-01-01'),
+          tilDato: undefined,
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+        {
+          id: 'ydelse-omvendt',
+          fraDato: iso('2024-03-02'),
+          tilDato: iso('2024-03-01'),
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+        {
+          id: 'ydelse-ugyldig-dato',
+          fraDato: '2024-02-31' as unknown as ReturnType<typeof iso>,
+          tilDato: iso('2024-03-02'),
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+        {
+          id: 'ydelse-samme-fra-kortest',
+          fraDato: iso('2024-01-01'),
+          tilDato: iso('2024-01-05'),
+          ydelse: undefined,
+          tillaeg: undefined,
+          ydelsestype: '',
+        },
+      ],
+    });
+
+    expect(buildIncomeSourceRanges(eo)).toEqual([
+      { fra: iso('2024-01-01'), til: iso('2024-01-05') },
+      { fra: iso('2024-01-01'), til: iso('2024-01-10') },
+      { fra: iso('2024-02-01'), til: iso('2024-02-03') },
     ]);
   });
 });
