@@ -4,10 +4,11 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 
 const iso = (value: string) => toISODateString(value);
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 const amount = (value: number) => ({ kind: 'number' as const, value });
 const manualRow = (id: string, dato: string | undefined) => ({
   id,
@@ -76,6 +77,16 @@ describe('collectManualRegulationDateIssues', () => {
     expect(collectManualRegulationDateIssues(values, stamdata)).toEqual([]);
   });
 
+  it('er tavs når den anvendte reguleringsdato endnu ikke findes', () => {
+    const { values, employment, stamdata } = setup();
+    values.tafBeregningsperiodeTil = undefined;
+    stamdata.skadedato = undefined;
+    employment.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    employment.loenudviklingManuelTableData = [manualRow('base', undefined), manualRow('lig', '2024-01-01')];
+
+    expect(collectManualRegulationDateIssues(values, stamdata)).toEqual([]);
+  });
+
   it('anvender samme regel på sagsniveau ved angivet løn', () => {
     const { values, stamdata } = setup();
     values.beregnesUdFra = 'Angivet månedsløn';
@@ -90,6 +101,26 @@ describe('collectManualRegulationDateIssues', () => {
     expect(issue?.field.address.path).toEqual([
       { kind: 'property', name: 'eoAngivetLoenLoenudvikling' },
       { kind: 'entity', collection: 'loenudviklingManuelProcentsatsTableData', entityId: 'lig' },
+    ]);
+  });
+
+  it('dækker sagsniveauets manuelle beløbstabel og bevarer ugyldig runtime-dato i beskeden', () => {
+    const { values, stamdata } = setup();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.angivetMaanedsloenOpreguleresFraDato = invalidIso('2024-99-99');
+    values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    values.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData = [
+      manualRow('base', undefined),
+      manualRow('lig', '2024-06-01'),
+    ];
+
+    const [issue] = collectManualRegulationDateIssues(values, stamdata);
+    expect(issue?.message).toBe(
+      'Datoen skal være senere end datoen i den låste første række (2024-99-99)'
+    );
+    expect(issue?.field.address.path).toEqual([
+      { kind: 'property', name: 'eoAngivetLoenLoenudvikling' },
+      { kind: 'entity', collection: 'loenudviklingManuelTableData', entityId: 'lig' },
     ]);
   });
 });
