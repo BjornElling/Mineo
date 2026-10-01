@@ -5,6 +5,7 @@ import {
   erstatningsopgoerelseSchema,
   stamdataSchema,
   type ErhvervsevnetabComposedValues,
+  type OffentligeYdelserRow,
 } from '../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
@@ -32,6 +33,7 @@ import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 import {
   buildEetImportContext,
+  type EetImportContext,
   type EetImportSource,
 } from '../../../domain/erhvervsevnetab/eetImportPort';
 
@@ -642,6 +644,141 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.data).not.toBeNull();
     expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))).toBe(false);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
+  });
+
+  it('returnerer en eksplicit source-missing-fejl uden importkontekst', () => {
+    expect(buildMidlertidigtEetSourceResult(undefined)).toEqual({
+      groups: [],
+      issues: [{
+        id: 'midlertidigt-eet-source-missing',
+        severity: 'error',
+        message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
+      }],
+    });
+  });
+
+  it('failer lukket med den konkrete fejl ved korrupt importgruppe', () => {
+    const context = buildEetImportContext({
+      revision: 'transient-invalid-period',
+      eetValues,
+      skadedato: stamdata.skadedato,
+    }, iso('2024-04-30'));
+    const group = context.groups[0]!;
+    const periode = group.perioder[0]!;
+    const corruptGroups = [{
+      ...group,
+      // Testen simulerer en korrupt runtime-payload efter schema-grænsen.
+      perioder: [{ ...periode, fra: 'invalid-date' }],
+    }] as unknown as EetImportContext['groups'];
+
+    const result = buildMidlertidigtEetSourceResult({ ...context, groups: corruptGroups });
+
+    expect(result.groups).toEqual([]);
+    expect(result.issues).toEqual([{
+      id: 'midlertidigt-eet-import-invariant',
+      severity: 'error',
+      message: 'CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.',
+    }]);
+  });
+
+  it('failer lukket med generisk fejltekst ved en ikke-Error runtimefejl', () => {
+    const context = buildEetImportContext({
+      revision: 'transient-unknown-error',
+      eetValues,
+      skadedato: stamdata.skadedato,
+    }, iso('2024-04-30'));
+    const group = context.groups[0]!;
+    const corruptGroups = [{
+      ...group,
+      get perioder(): never {
+        throw Symbol('synthetic transient import failure');
+      },
+    }] as unknown as EetImportContext['groups'];
+
+    const result = buildMidlertidigtEetSourceResult({ ...context, groups: corruptGroups });
+
+    expect(result.groups).toEqual([]);
+    expect(result.issues).toEqual([{
+      id: 'midlertidigt-eet-import-invariant',
+      severity: 'error',
+      message: 'Ukendt fejl i midlertidigt EET-import.',
+    }]);
+  });
+
+  it('fjerner gamle manuelle EET-rækker når importen ikke giver nye virtuelle rækker', () => {
+    const manualRow = {
+      id: 'manual-eet',
+      fraDato: iso('2024-01-01'),
+      tilDato: iso('2024-01-31'),
+      ydelse: asAmountValue(100),
+      tillaeg: undefined,
+      ydelsestype: 'midlertidigt_eet' as const,
+    };
+    const otherRow = {
+      id: 'other-benefit',
+      fraDato: iso('2024-02-01'),
+      tilDato: iso('2024-02-29'),
+      ydelse: asAmountValue(200),
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge' as const,
+    };
+    // Testen simulerer en korrupt runtime-række efter schema-grænsen for den defensive optional chain.
+    const rowWithoutType = { ...otherRow, id: 'missing-type', ydelsestype: undefined } as unknown as OffentligeYdelserRow;
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+      offentligeYdelserRows: [manualRow, otherRow, rowWithoutType],
+    };
+
+    const result = buildEoValuesWithTransientMidlertidigtEet(eoValues, []);
+
+    expect(result.offentligeYdelserRows).toEqual([otherRow, rowWithoutType]);
+    expect(result).not.toBe(eoValues);
+  });
+
+  it('returnerer samme værdier når ydelserækken mangler og importen er tom', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+      // Testen simulerer en korrupt runtime-værdi for den defensive nullish-fallback.
+      offentligeYdelserRows: undefined as unknown as ReturnType<typeof createValidEoBase>['offentligeYdelserRows'],
+    };
+
+    expect(buildEoValuesWithTransientMidlertidigtEet(eoValues, [])).toBe(eoValues);
+  });
+
+  it('bevarer den seneste TAF-slutdato når ranges kommer i faldende rækkefølge', () => {
+    const context = buildMidlertidigtEetImportContext({
+      revision: 'transient-latest-taf-end',
+      eetValues,
+      skadedato: stamdata.skadedato,
+    }, [
+      { fra: iso('2024-01-01'), til: iso('2024-04-30') },
+      { fra: iso('2024-02-01'), til: iso('2024-03-31') },
+    ]);
+
+    expect(context.revision).toBe('transient-latest-taf-end');
+    expect(context.groups).not.toEqual([]);
+  });
+
+  it('udelader en virtuel række med ikke-positiv månedsydelse', () => {
+    const groups: MidlertidigtEetAfgoerelseGroup[] = [{
+      afgoerelsesdato: iso('2024-01-01'),
+      eetPct: 20,
+      rows: [],
+      perioder: [{
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-31'),
+        satsAar: 2024,
+        maanederPraecis: 1,
+        grundydelseAfrundetOre: fromKroner(0),
+        reguleringPct: 0,
+        maanedligYdelseOre: fromKroner(0),
+        beregnetEetOre: fromKroner(0),
+      }],
+    }];
+
+    expect(buildMidlertidigtEetCalculationRows(groups)).toEqual([]);
   });
 
   it('blokerer autoritativ EO-beregning når den aktive EET-kilde har blokerende fejl', () => {
