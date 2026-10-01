@@ -11,7 +11,7 @@ import {
   type LoenudviklingManuelRow,
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { parseInboundPersistedSection } from '../../../utils/inboundPersistedSection';
 
 const createValues = (
@@ -72,6 +72,46 @@ describe('projectLoenindkomstSatser', () => {
     expect(repeated).toBe(projected);
   });
 
+  it('bevarer en tom manuel tabel uden at materialisere en basisrække', () => {
+    const input = createValues({
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [],
+    });
+
+    const projected = projectLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+
+    expect(projected.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData).toEqual([]);
+  });
+
+  it('spejler en eksisterende manuel basisrække med samme række-id', () => {
+    const manualRow: LoenudviklingManuelRow = {
+      id: 'manual-base-projection',
+      dato: undefined,
+      grundloen: { kind: 'number', value: 30_000 },
+      feriepenge: undefined,
+      shSoSats: undefined,
+      fritvalg: undefined,
+      agPension: undefined,
+    };
+    const input = createValues({
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [manualRow, {
+        ...manualRow,
+        id: 'manual-next-procent',
+        dato: toISODateString('2024-01-01'),
+      }],
+    });
+
+    const projected = projectLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+
+    expect(projected.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData[0]?.id)
+      .toBe('manual-base-projection');
+  });
+
   it('udelader låste satser fra persistence men bevarer en redigerbar sats', () => {
     const locked = createValues({ fritvalgPct: 3.5, storeBededagPct: 9.9 });
     const unlocked = createValues({ harOverenskomst: false, fritvalgPct: 3.5 });
@@ -99,7 +139,11 @@ describe('projectLoenindkomstSatser', () => {
     };
     const input = createValues({
       loenudviklingBeregningsgrundlag: 'Manuelt angivet',
-      loenudviklingManuelTableData: [manualRow],
+      loenudviklingManuelTableData: [manualRow, {
+        ...manualRow,
+        id: 'manual-next-procent',
+        dato: toISODateString('2024-01-01'),
+      }],
     });
 
     const persisted = omitDerivedLoenindkomstSatser(input, {
@@ -114,6 +158,70 @@ describe('projectLoenindkomstSatser', () => {
       fritvalg: undefined,
       agPension: undefined,
     });
+    expect(persisted.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData[1]).toEqual({
+      ...manualRow,
+      id: 'manual-next-procent',
+      dato: toISODateString('2024-01-01'),
+    });
+  });
+
+  it('bevarer tillægsfelterne i første basisrække i Beløb-tilstand', () => {
+    const manualRow: LoenudviklingManuelRow = {
+      id: 'manual-base-beloeb',
+      dato: undefined,
+      grundloen: { kind: 'number', value: 30_000 },
+      feriepenge: 12.5,
+      shSoSats: 5,
+      fritvalg: 3,
+      agPension: 8,
+    };
+    const input = createValues({
+      tillaegAngivesSom: 'beloeb',
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [manualRow, {
+        ...manualRow,
+        id: 'manual-next-beloeb',
+        dato: toISODateString('2024-01-01'),
+      }],
+    });
+
+    const persisted = omitDerivedLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+
+    expect(persisted.loenindkomstAnsaettelsesforhold[0]?.loenudviklingManuelTableData).toEqual([
+      manualRow,
+      {
+        ...manualRow,
+        id: 'manual-next-beloeb',
+        dato: toISODateString('2024-01-01'),
+      },
+    ]);
+  });
+
+  it('bruger beregningsperiodens dato, når en særlig reguleringsdato er runtime-ugyldig', () => {
+    const input = createValues({ saerligFraDatoRegulering: undefined });
+    input.loenindkomstAnsaettelsesforhold[0]!.saerligFraDatoRegulering = 'ikke-en-dato' as ISODateString;
+
+    const projected = projectLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+    const persisted = omitDerivedLoenindkomstSatser(input, {
+      skadedato: toISODateString('2024-06-01'),
+    });
+
+    expect(projected.loenindkomstAnsaettelsesforhold[0]?.storeBededagPct).toBeGreaterThan(0);
+    expect(persisted.loenindkomstAnsaettelsesforhold[0]?.fritvalgPct).toBeUndefined();
+  });
+
+  it('bruger en gyldig særlig reguleringsdato og tåler manglende skadedato', () => {
+    const input = createValues({ saerligFraDatoRegulering: toISODateString('2023-01-01') });
+
+    const projected = projectLoenindkomstSatser(input, {});
+    const persisted = omitDerivedLoenindkomstSatser(input, {});
+
+    expect(projected.loenindkomstAnsaettelsesforhold[0]?.storeBededagPct).toBe(0);
+    expect(persisted.loenindkomstAnsaettelsesforhold[0]?.fritvalgPct).toBeUndefined();
   });
 
   it('fjerner et historisk Store Bededag-slot inbound UDEN at rapportere det som tabt data', () => {
