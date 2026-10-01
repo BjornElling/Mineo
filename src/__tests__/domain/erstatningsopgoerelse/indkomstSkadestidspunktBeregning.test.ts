@@ -208,4 +208,84 @@ describe('buildIndkomstSkadestidspunkt', () => {
       pensionLabel: 'Arbejdsgivers pensionsbidrag (4 % af løn + tillæg)',
     });
   });
+
+  it('sorterer flere manuelle satser før reguleringsdatoen og vælger den seneste', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [buildEmployment({
+      tillaegAngivesSom: 'procent',
+      feriePct: 1,
+      fritvalgPct: 1,
+      shSoPct: 1,
+      pensionPct: 1,
+      saerligFraDatoRegulering: iso('2023-12-31'),
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [
+        {
+          id: 'manuel-base',
+          dato: undefined,
+          grundloen: asAmount(30_000),
+          feriepenge: 10,
+          fritvalg: 1,
+          shSoSats: 1,
+          agPension: 1,
+        },
+        {
+          id: 'manuel-senere',
+          dato: iso('2023-12-31'),
+          grundloen: asAmount(30_000),
+          feriepenge: 20,
+          fritvalg: 2,
+          shSoSats: 3,
+          agPension: 4,
+        },
+        {
+          id: 'manuel-tidligere',
+          dato: iso('2023-12-29'),
+          grundloen: asAmount(30_000),
+          feriepenge: 11,
+          fritvalg: 1,
+          shSoSats: 2,
+          agPension: 2,
+        },
+      ],
+      indtaegtsoplysningerTableData: [buildMonthlyIncomeRow('loen-sorteret', 30_000)],
+    })];
+
+    const range = { fra: iso('2024-01-01'), til: iso('2024-01-31') } as const;
+    const model = buildIndkomstSkadestidspunkt(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      { incomeForBeregningsperiode: buildIncomeForRanges(values, [range]) }
+    );
+
+    expect(model?.arbejdssteder[0]).toMatchObject({
+      fpLabel: 'Feriegodtgørelse/-tillæg (20 %) + Fritvalg (2 %) + S/H (3 %)',
+      pensionLabel: 'Arbejdsgivers pensionsbidrag (4 % af løn + tillæg)',
+    });
+  });
+
+  it('beregner dagsløn fra et arbejdsdagsbaseret beregningsgrundlag', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-02');
+    values.tafBeregningsperiodeTil = iso('2024-01-05');
+    values.loenindkomstAnsaettelsesforhold = [buildEmployment({
+      indtaegtsoplysningerTableData: [buildMonthlyIncomeRow('loen-dagsloen', 30_000)],
+    })];
+
+    const range = { fra: iso('2024-01-02'), til: iso('2024-01-05') } as const;
+    const model = buildIndkomstSkadestidspunkt(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      { incomeForBeregningsperiode: buildIncomeForRanges(values, [range]) }
+    );
+
+    expect(model?.arbejdsdage).toBe(4);
+    expect(model?.dagsloen).toMatchObject({ status: 'ok', value: moneyOre(97_210) });
+  });
 });
