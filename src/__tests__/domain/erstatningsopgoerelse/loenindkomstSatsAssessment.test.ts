@@ -68,6 +68,11 @@ describe('isFeriePctRelevant – den godkendte relevansmatrix', () => {
     expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
   });
 
+  it('kræver ikke satsen når lønoplysningsrækkerne mangler ved runtime', () => {
+    const af = employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', indtaegtsoplysningerTableData: undefined });
+    expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
+  });
+
   it('kræver ikke satsen, når årslønnen ikke bygger på en beregningsperiode', () => {
     const af = employment({ loenudviklingBeregningsgrundlag: 'Overenskomst' });
     expect(isFeriePctRelevant(af, 'Angivet månedsløn')).toBe(false);
