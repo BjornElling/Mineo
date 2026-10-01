@@ -127,6 +127,24 @@ const stamdata = {
   skadelidteFodselsdato: iso('1980-01-01'),
 };
 
+const makePdfGroup = (
+  perioder: MidlertidigtEetAfgoerelseGroup['perioder'] = [{
+    fra: iso('2024-01-01'),
+    til: iso('2024-01-31'),
+    satsAar: 2024,
+    maanederPraecis: 1,
+    grundydelseAfrundetOre: fromKroner(1000),
+    reguleringPct: 0,
+    maanedligYdelseOre: fromKroner(100),
+    beregnetEetOre: fromKroner(100),
+  }],
+): MidlertidigtEetAfgoerelseGroup => ({
+  afgoerelsesdato: iso('2024-01-01'),
+  eetPct: 20,
+  rows: [],
+  perioder,
+});
+
 const eetValues: ErhvervsevnetabComposedValues = {
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
   ...FAELLES_AARSLOEN_INITIAL_VALUES,
@@ -505,6 +523,55 @@ describe('midlertidigt EET transient injection', () => {
     expect(roundHeleKroner(raw)).toBe(42790);
     // Divergensen er reel – derfor må fradraget bruge den kanoniske kilde, ikke råvejen.
     expect(sumMidlertidigtEetBeregnetEetKronerForTafRanges(groups, tafRanges)).not.toBe(roundHeleKroner(raw));
+  });
+
+  it('returnerer tomt ved tomme input eller uden overlap', () => {
+    const tafRange = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }];
+    const group = makePdfGroup();
+
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([], tafRange)).toEqual([]);
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([group], [])).toEqual([]);
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges(
+      [makePdfGroup([{ ...group.perioder[0]!, fra: iso('2024-02-01'), til: iso('2024-02-28') }])],
+      tafRange,
+    )).toEqual([]);
+  });
+
+  it('springer korrupte runtime-rækker og manglende grupper over', () => {
+    const validPeriod = makePdfGroup().perioder[0]!;
+    const corruptPerioder = [
+      { ...validPeriod, fra: 'ugyldig-dato' },
+      { ...validPeriod, til: 'ugyldig-dato' },
+      { ...validPeriod, fra: iso('2024-02-01'), til: iso('2024-01-01') },
+    ] as unknown as MidlertidigtEetAfgoerelseGroup['perioder'];
+    // Et sparse array rammer loopets defensive manglende-gruppe-guard. En eksplicit undefined
+    // ville fejle tidligere i outputGroups.map og teste en anden, reel runtime-kontrakt.
+    const corruptGroups = new Array<MidlertidigtEetAfgoerelseGroup>(2);
+    corruptGroups[1] = makePdfGroup(corruptPerioder);
+
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges(
+      corruptGroups,
+      [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
+    )).toEqual([]);
+  });
+
+  it('springer ugyldigt clamp-resultat og ikke-beregnelige beløb over', () => {
+    const validPeriod = makePdfGroup().perioder[0]!;
+    const malformedTafRanges = [{ fra: '2024-01-15x', til: iso('2024-01-31') }] as unknown as Parameters<
+      typeof buildMidlertidigtEetPdfGroupsForTafRanges
+    >[1];
+    const nonFiniteMoneyOre = Number.NaN as unknown as typeof validPeriod.maanedligYdelseOre;
+
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([makePdfGroup()], malformedTafRanges)).toEqual([]);
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([
+      makePdfGroup([{ ...validPeriod, maanedligYdelseOre: fromKroner(-1) }]),
+    ], [{ fra: validPeriod.fra, til: validPeriod.til }])).toEqual([]);
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([
+      makePdfGroup([{ ...validPeriod, maanedligYdelseOre: nonFiniteMoneyOre }]),
+    ], [{ fra: validPeriod.fra, til: validPeriod.til }])).toEqual([]);
+    expect(buildMidlertidigtEetPdfGroupsForTafRanges([
+      makePdfGroup([{ ...validPeriod, maanedligYdelseOre: fromKroner(0.01) }]),
+    ], [{ fra: validPeriod.fra, til: validPeriod.fra }])).toEqual([]);
   });
 
   it('bevarer 2-decimal-afrunding af manuelle midlertidigt_eet-rækker når togglen er slået fra', () => {
