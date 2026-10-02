@@ -18,6 +18,7 @@ const createBaseContext = () => {
     loenindkomstAnsaettelsesforhold: values.loenindkomstAnsaettelsesforhold,
     ferieperioder: values.ferieperioder,
     fravaerPerioder: values.fravaerPerioder,
+    tafPerioder: values.tafPerioder,
   };
 };
 
@@ -148,7 +149,7 @@ describe('calculateLoenindkomstRowDerived', () => {
     expect(result.samlet).toBe(1456.3);
   });
 
-  it('arbejdsdags-sporet respekterer ferie og fravær ved manuel satsfordeling', () => {
+  it('arbejdsdags-sporet respekterer ferien i sin egen periode ved manuel satsfordeling', () => {
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       // Store Bededagstillægget er et eksplicit tilvalg; fixturen tilvælger det, fordi testen måler
@@ -172,8 +173,14 @@ describe('calculateLoenindkomstRowDerived', () => {
       ...createBaseContext(),
       beregnesUdFra: 'Angivet dagsløn' as const,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
-      ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-11'), til: toISODateString('2024-01-11') }],
-      fravaerPerioder: [{ id: 'fravaer-1', fra: toISODateString('2024-01-12'), til: toISODateString('2024-01-12') }],
+      // Ferien fradrages kun i sin egen periode (`resolveIndkomstFerieperioder`): TAF-afsnittets ferie i
+      // TAF-perioden. Ved angivet løn er der ingen beregningsperiode, så to TAF-ferier udgør de to dage.
+      tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: undefined }],
+      ferieperioder: [
+        { id: 'ferie-1', fra: toISODateString('2024-01-11'), til: toISODateString('2024-01-11') },
+        { id: 'ferie-2', fra: toISODateString('2024-01-12'), til: toISODateString('2024-01-12') },
+      ],
+      fravaerPerioder: [],
     };
 
     const result = calculateLoenindkomstRowDerived({
@@ -248,7 +255,7 @@ describe('calculateLoenindkomstRowDerived', () => {
     });
   });
 
-  it('giver nulresultat når alle arbejdsdage er dækket af ferie eller fravær', () => {
+  it('giver nulresultat når alle arbejdsdage er dækket af ferie', () => {
     const dag = toISODateString('2024-01-11');
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -262,6 +269,7 @@ describe('calculateLoenindkomstRowDerived', () => {
       ...createBaseContext(),
       beregnesUdFra: 'Angivet dagsløn' as const,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
+      tafPerioder: [{ id: 'taf-1', fra: dag, til: dag, loseFeriedage: undefined }],
       ferieperioder: [{ id: 'ferie-1', fra: dag, til: dag }],
       fravaerPerioder: [],
     };

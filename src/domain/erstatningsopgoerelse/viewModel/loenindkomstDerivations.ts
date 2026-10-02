@@ -178,6 +178,7 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
           loenindkomstAnsaettelsesforhold,
           ferieperioder,
           fravaerPerioder,
+          tafPerioder: input.eoValues.tafPerioder,
         },
         skadedato,
       })

@@ -96,6 +96,9 @@ TAF-dage = hverdage − SH-dage − feriedage − løse_feriedage
 ```
 
 SH-dage beregnes algoritmisk (påskerelaterede helligdage + faste datoer) via `beregnHelligdage`.
+Store Bededag er helligdag til og med 2023 og almindelig arbejdsdag fra 1. januar 2024. Ved dagsløn er dagen
+dermed kompenseret gennem antallet af arbejdsdage; hvem der i stedet har krav på Store Bededagstillægget, står i
+`src/contracts/indskudte-loentillaeg-contract.md` §2b.
 
 ### Netto-TAF-beregningen
 

@@ -57,7 +57,10 @@ import {
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
 import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
-import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
+import {
+  BEREGNINGSPERIODE_MANGLER_MESSAGE,
+  INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
+} from '../domain/erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import {
   parseOffentligLoenSelection,
@@ -267,8 +270,8 @@ function validateCanonicalRanges(values: ErstatningsopgoerelseValues): Validatio
   addNonNegativeAmount('maanedsloenenUdgoer', values.maanedsloenenUdgoer);
   addNonNegativeAmount('dagsloenenUdgoer', values.dagsloenenUdgoer);
 
-  addDayCount('uspecificeredeFerieFridage', values.uspecificeredeFerieFridage, 366);
-  addDayCount('oevrigeFravaersdage', values.oevrigeFravaersdage, 366);
+  // «Løse ferie-/feriefridage» og «Antal fraværsdage» bærer selv deres loft på descriptoren (BB-264): her
+  // spærrede reglen uden rød celle, og ved 400 gav den en anden linje oven i periodens egen grænse.
   values.tafPerioder.forEach((row, index) => {
     addDayCount(`tafPerioder[${index}].loseFeriedage`, row.loseFeriedage, 999);
   });
@@ -551,7 +554,8 @@ function validateTAF(
   }
 
   errors.push(...validateTafLoseFeriedage(values, options));
-  errors.push(...validateBeregningsperiodeLoseFeriedage(values));
+  // Beregningsperiodens løse dage og fravær vurderes i `beregningsgrundlagCellIssues.ts`, som farver feltet
+  // (BB-264) og også fanger den nævner på 0, der før førte til en intern undtagelse (BB-258).
 
   // Validér beregnesUdFra matchende felter
   errors.push(...validateBeregnesUdFra(values));
@@ -560,6 +564,9 @@ function validateTAF(
   errors.push(...validateLoenudviklingKonsistens(values));
   errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
+  // SIDST og kun uden andre TAF-fejl: reglen er et værn, der standser motoren, når INTET andet gør det. Spærrer en
+  // anden regel allerede (fx manglende indtægtsoplysninger), er den overflødig.
+  if (errors.length === 0) errors.push(...validateBeregningsperiodeIndkomst(values, options));
   // BEMÆRK: Satsdækning for "TAF opreguleret til beregningsåret" valideres IKKE her.
   // Den hører hjemme i compute-laget (buildTafPerYearOpreguleretBuildOutcome), som er
   // den eneste sandhed for hvilke år der reelt skal opreguleres: kun kalenderår med et
@@ -819,32 +826,28 @@ export function validateTafLoseFeriedage(
   });
 }
 
-export function validateBeregningsperiodeLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
+/**
+ * En beregningsperiode uden en eneste indtægt over 0 kr., hvor en lønudvikling skal regulere den. Rækken «Ingen
+ * indkomst i beregningsperioden» viste det allerede, men kun som en række: beregningen kørte alligevel, og
+ * lønudviklingen endte i en intern undtagelse (BB-258). Reglen er derfor også en valideringsfejl, der standser
+ * beregningen før motoren. Betingelsen er netop motorens (`loenudviklingBeregning.ts`): uden indtægt og ydelser
+ * går det kun godt, når alle ansættelsesforhold har lønudvikling «Ingen» – da regnes der nul-segmenter, og rækken
+ * alene spærrer downloaden. Linjen i «Fejl og advarsler» er rækkens; sikkerhedsnettet viser ikke denne oveni.
+ */
+function validateBeregningsperiodeIndkomst(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
   if (values.beregnesUdFra !== 'Beregningsperiode') return [];
-  if (typeof values.uspecificeredeFerieFridage !== 'number') return [];
-  if (!values.tafBeregningsperiodeFra || !values.tafBeregningsperiodeTil) return [];
-
-  const breakdown = calculateTafArbejdsdageBreakdown(
-    values.tafBeregningsperiodeFra,
-    values.tafBeregningsperiodeTil,
-    values.fravaerPerioder ?? [],
-    values.uspecificeredeFerieFridage,
-    {
-      kind: 'beregningsgrundlag',
-      oevrigeFravaersdage:
-        values.oevrigtFravaerUdenLoen === 'Ja' && typeof values.oevrigeFravaersdage === 'number'
-          ? values.oevrigeFravaersdage
-          : 0,
-    }
-  );
-  if (!breakdown) return [];
-  if (values.uspecificeredeFerieFridage <= breakdown.loseFeriedage) return [];
-
-  return [{
-    path: 'uspecificeredeFerieFridage',
-    message: `Uspecificerede ferie-/feriefridage overstiger mulige arbejdsdage i beregningsperioden (maksimalt ${breakdown.loseFeriedage})`,
-    severity: 'error',
-  }];
+  const beregningsperiode = buildBeregningsperiodeRange(values);
+  if (!beregningsperiode) return [];
+  // Et ansættelsesforhold uden valgt lønudvikling spærrer allerede gennem sin egen regel.
+  const kanReguleres = values.loenindkomstAnsaettelsesforhold
+    .some((af) => af.loenudviklingBeregningsgrundlag !== undefined && af.loenudviklingBeregningsgrundlag !== 'Ingen');
+  if (!kanReguleres) return [];
+  const income = buildIncomeForRanges(values, [beregningsperiode], undefined, options?.skadedatoISO);
+  if (income.employers.length > 0 || income.benefits.length > 0) return [];
+  return [{ path: 'tafBeregningsperiodeFra', message: INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE, severity: 'error' }];
 }
 
 /**
@@ -893,17 +896,12 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
   }
 
   if (beregnesUdFra === 'Beregningsperiode') {
-    if (!values.tafBeregningsperiodeFra) {
+    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme, og sikkerhedsnettet viser nu en
+    // validatorregel, som ingen række dækker (BB-265). To beskeder – én pr. dato – gav da en ekstra linje.
+    if (!values.tafBeregningsperiodeFra || !values.tafBeregningsperiodeTil) {
       errors.push({
-        path: 'tafBeregningsperiodeFra',
-        message: 'Beregningsperiode fra-dato mangler',
-        severity: 'error',
-      });
-    }
-    if (!values.tafBeregningsperiodeTil) {
-      errors.push({
-        path: 'tafBeregningsperiodeTil',
-        message: 'Beregningsperiode til-dato mangler',
+        path: !values.tafBeregningsperiodeFra ? 'tafBeregningsperiodeFra' : 'tafBeregningsperiodeTil',
+        message: BEREGNINGSPERIODE_MANGLER_MESSAGE,
         severity: 'error',
       });
     }

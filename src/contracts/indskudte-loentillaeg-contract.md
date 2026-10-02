@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-09-14
+**Senest verificeret mod kode:** 2026-10-02 (§2b: præmissen for kravet; ingen toggle, advarsel eller tillæg ved angivet dagsløn)
 
 ## 1. Scope
 
@@ -42,7 +42,8 @@ Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og
    får `true`, når det oprettes med "Almindelig løn" på helligdage, ellers den passive `false`-værdi.
    Schemaets `false`-default er fortsat kun load-fallback og ændres ikke. En eksisterende, synlig toggle
    er dermed ikke en automatisk beregningsregel – den er stadig kun aktiv efter brugerens valg.
-3. **Skjult værdi bevares, men virker ikke.** Togglen vises kun ved "Almindelig løn". Skifter brugeren
+3. **Skjult værdi bevares, men virker ikke.** Togglen vises kun ved "Almindelig løn" – og på den angivne løn
+   ikke ved "Angivet dagsløn" (§2b). Skifter brugeren
    helligdagsvalget væk, bevares den gemte værdi i sagen, men gater ikke noget – `harValgtStoreBededagstillaeg`
    kræver BEGGE betingelser. Skiftes der tilbage, gælder den tidligere værdi igen. Ingen tavs nulstilling.
 4. **Load af ældre `.eo`-filer.** En fil uden feltet får `true`, hvis dens "Løn på helligdage" er
@@ -56,7 +57,33 @@ Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og
    EO-beregningsfanen. Den blokerer aldrig beregning eller download, og den vises også, mens samme
    lønudviklingskilde har en blokerende fejl. Advarslen bor i RÆKKE-kanalen (`buildEoIndkomstRows`), ikke i
    `erstatningsopgoerelseValidator`: boksen fodres udelukkende af `collectAllEoRows`, så en
-   `severity: 'warning'` fra validatoren ville aldrig nå brugeren.
+   `severity: 'warning'` fra validatoren ville aldrig nå brugeren. Advarslen gives ikke ved "Angivet
+   dagsløn" (§2b).
+
+## 2b. Den juridiske præmis: hvem har krav på tillægget (udvikleren, 2026-10-02)
+
+Præmissen er grundlaget for §2a's standardværdier og advarsel og skal afklare fremtidige spørgsmål om
+tillægget. Den er udviklerens og implementeres som angivet.
+
+- **Baggrund.** Store Bededag blev afskaffet som helligdag fra 1. januar 2024. Programmet tæller derfor
+  dagen som almindelig arbejdsdag fra 2024 (`shDageBeregning.ts` kender den kun som helligdag til og med
+  2023).
+- **Samme løn uanset antallet af arbejdsdage → krav på tillægget.** Den, der får samme løn, uanset hvor
+  mange arbejdsdage måneden har, arbejder fra 2024 én dag mere for samme løn. Det kompenseres med tillægget
+  på 0,45 %. Det gælder ved **"Angivet månedsløn"** og ved en **beregningsperiode, hvor lønnen på helligdage
+  er almindelig (fuld) løn** – netop fordi lønnen da er den samme efter 1. januar 2024, selv om der er en
+  ekstra arbejdsdag.
+- **Dagsløn → aldrig krav på tillægget.** Ved **"Angivet dagsløn"** får skadelidte løn for de dage, der
+  arbejdes. Fra 2024 arbejdes der også på Store Bededag, og i erstatningen indgår dagen blandt de
+  arbejdsdage, der beregnes erstatning for. Dagen er dermed allerede kompenseret, og tillægget på 0,45 %
+  ville kompensere den to gange.
+- **Angivet månedsløn kræver almindelig løn på helligdage.** Bekræftet 2026-10-02: ved "SH-udbetaling" eller
+  "Ingen" er togglen skjult, og tillægget regnes ikke med – også ved angivet månedsløn.
+- **Konsekvenser i programmet.** Ved "Angivet dagsløn" er togglen skjult, og descriptorens relevans giver den som
+  slået fra til alle læsere, så tillægget aldrig regnes med – heller ikke fra en gemt `true` (udviklerafgørelse
+  2026-10-02). Værdien bevares i sagen og bliver sat igen af valget "Angivet månedsløn" (§2a pkt. 2). Advarslen om
+  et fravalgt tillæg (§2a pkt. 5) tier ved "Angivet dagsløn" (BB-267). Prædikatet er
+  `kanDerVaereKravPaaStoreBededagstillaeg` i `storeBededagstillaeg.ts`.
 
 ## 3. Autoritative Kilder
 

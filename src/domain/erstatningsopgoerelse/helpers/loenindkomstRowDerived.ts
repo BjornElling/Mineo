@@ -1,3 +1,4 @@
+import { resolveIndkomstFerieperioder } from './indkomstFerieperioder';
 import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
@@ -16,7 +17,7 @@ import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
 type LoenindkomstAnsaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type LoenindkomstDerivedContext = Pick<
   ErstatningsopgoerelseValues,
-  'beregnesUdFra' | 'tafBeregningsperiodeFra' | 'tafBeregningsperiodeTil' | 'loenindkomstAnsaettelsesforhold' | 'ferieperioder' | 'fravaerPerioder'
+  'beregnesUdFra' | 'tafBeregningsperiodeFra' | 'tafBeregningsperiodeTil' | 'loenindkomstAnsaettelsesforhold' | 'ferieperioder' | 'fravaerPerioder' | 'tafPerioder'
 >;
 
 const buildKalenderdage = (row: StandardLoenTableRow, ansaettelsesforhold: LoenindkomstAnsaettelsesforhold): readonly ISODateString[] => {
@@ -54,7 +55,7 @@ const buildAllocationDates = (
     return Array.from(
       buildLoenArbejdsdageSet(
         { fra, til },
-        [...(context.ferieperioder ?? []), ...(context.fravaerPerioder ?? [])]
+        resolveIndkomstFerieperioder(context)
       )
     ).sort();
   }

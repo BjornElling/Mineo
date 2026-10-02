@@ -91,9 +91,15 @@ export const evaluateEoDocumentDownloadGate = (
     return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-rows', message });
   }
 
-  // Snapshot-, invariant- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i
-  // boksen, og sikkerhedsnettet i `useEoBeregningViewModel` findes netop for at fange dem. De beskriver en
-  // TILSTAND i beregningen frem for et felt, brugeren kan rette.
+  // Blokerer en autoritativ invariant et bygget snapshot, viser boksen ALTID en fejl: sikkerhedsnettet
+  // (`selectEoSafetyNetInvariants`) viser invarianten selv, når ingen række gør. Knappen henviser derfor til boksen som ved en
+  // rækkefejl. Før sagde den «Indtastning mangler» om fx en værdi, der var forkert, ikke manglede (BB-265).
+  if (input.snapshot?.status !== 'fail_closed' && input.authoritativeBlockingInvariants.length > 0) {
+    return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-invariants', message });
+  }
+
+  // Snapshot- og projektionsblokeringer er IKKE rækkefejl: de beskriver en TILSTAND i beregningen frem for et
+  // felt, brugeren kan rette.
   //
   // Scope er derfor `unavailable-calculation` og ikke længere `aggregate`: årsagen er præcis den, scopet
   // navngiver, og klassen (`missing-input`) følger af formen frem for at være et valg, dette kaldssted

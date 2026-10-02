@@ -116,7 +116,7 @@ describe('TD-019 – TAF-beregningsperiode uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'tafBeregningsperiodeFra',
-        message: 'Beregningsperiode fra-dato mangler',
+        message: 'Der mangler indtastninger i perioden til beregning af før-løn',
         severity: 'error',
       }],
     });

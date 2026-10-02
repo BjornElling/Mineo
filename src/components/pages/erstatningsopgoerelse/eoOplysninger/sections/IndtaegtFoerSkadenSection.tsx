@@ -29,7 +29,8 @@ import {
   eoAngivetLoenFilterFields,
   eoAngivetLoenManual,
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
-import type { CollectionRef } from '../../../../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef } from '../../../../../inputCore/fieldAddress';
+import type { FieldRef } from '../../../../../inputCore/fieldDescriptor';
 import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
 import LoenudviklingFields from '../../loenudvikling/LoenudviklingFields';
 import AnciennitetstillaegFields from '../../loenudvikling/AnciennitetstillaegFields';
@@ -111,9 +112,22 @@ export default function IndtaegtFoerSkadenSection() {
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
     manualRegulationDateIssues,
+    tafCellIssues,
+    visBeregningsperiodeFerie,
+    beregningsgrundlagAdvarsler,
   } = useEoOplysningerVm();
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
+
+  // Beregningsgrundlagets regler, der afhænger af perioden og de andre fradrag (overlap med en TAF-periode,
+  // mindst én arbejdsdag tilbage), projekteres fra domænet og gives til feltet her (BB-258, BB-262, BB-264).
+  // Feltets eget issue har forrang i feltet selv (§1.8).
+  const crossFieldIssueFor = <T,>(field: FieldRef<T>) => {
+    const issue = tafCellIssues.get(serializeFieldAddress(field.address));
+    return issue === undefined ? {} : { crossFieldIssue: issue };
+  };
+  const warningProp = (warning: (typeof beregningsgrundlagAdvarsler)[keyof typeof beregningsgrundlagAdvarsler]) =>
+    warning === undefined ? {} : { warning };
 
   // «Angivet løn» har ÉN `Find løntrin`-knap, så finderen behøver ingen nøgle: den åbnes for sagens ene
   // overenskomst og husker bevidst ikke indtastningen mellem åbninger (modsat Lønindkomst).
@@ -216,12 +230,14 @@ export default function IndtaegtFoerSkadenSection() {
                         field={eoTafBeregningsperiodeFraField.bind()}
                         location={eoOplyLocation('erstatningsopgoerelse.tafBeregningsperiodeFra')}
                         name="tafBeregningsperiodeFra"
+                        {...crossFieldIssueFor(eoTafBeregningsperiodeFraField.bind())}
                       />
                       <Typography sx={{ minWidth: 'auto' }}>til:</Typography>
                       <DateField
                         field={eoTafBeregningsperiodeTilField.bind()}
                         location={eoOplyLocation('erstatningsopgoerelse.tafBeregningsperiodeTil')}
                         name="tafBeregningsperiodeTil"
+                        {...crossFieldIssueFor(eoTafBeregningsperiodeTilField.bind())}
                       />
                     </Box>
                   </Box>
@@ -234,25 +250,36 @@ export default function IndtaegtFoerSkadenSection() {
                   fokusnavigationen fører brugeren til (§3.2).
                 */}
 
-                <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
-                <FerieperiodeTable
-                  kind="beregningsperiode"
-                  committedRows={values.fravaerPerioder}
-                  feriedageById={fravaerFeriedageById}
-                  saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
-                />
-
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Uspecificerede ferie-/feriefridage</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <IntegerField
-                      field={eoUspecificeredeFerieFridageField.bind()}
-                      location={eoOplyLocation('erstatningsopgoerelse.uspecificeredeFerieFridage')}
-                      name="uspecificeredeFerieFridage"
-                      width={80}
+                {/*
+                  Ferie og løse dage fradrages kun, når TAF opgøres i arbejdsdage; i måneder skjules de uden en
+                  forklarende linje (BB-263, som BB-247). Værdierne bevares og kommer tilbage med enheden.
+                */}
+                {visBeregningsperiodeFerie && (
+                  <>
+                    <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
+                    <FerieperiodeTable
+                      kind="beregningsperiode"
+                      committedRows={values.fravaerPerioder}
+                      feriedageById={fravaerFeriedageById}
+                      saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
+                      cellIssues={tafCellIssues}
                     />
-                  </Box>
-                </Box>
+
+                    <Box className="row--label-right-hover">
+                      <Typography className="row--text">Løse ferie-/feriefridage</Typography>
+                      <Box className="row--label-right-hover__content">
+                        <IntegerField
+                          field={eoUspecificeredeFerieFridageField.bind()}
+                          location={eoOplyLocation('erstatningsopgoerelse.uspecificeredeFerieFridage')}
+                          name="uspecificeredeFerieFridage"
+                          width={80}
+                          {...crossFieldIssueFor(eoUspecificeredeFerieFridageField.bind())}
+                          {...warningProp(beregningsgrundlagAdvarsler.loseFeriedage)}
+                        />
+                      </Box>
+                    </Box>
+                  </>
+                )}
 
                 <Typography className="row--subheading">Øvrigt fravær i beregningsperioden:</Typography>
 
@@ -280,6 +307,8 @@ export default function IndtaegtFoerSkadenSection() {
                           location={eoOplyLocation('erstatningsopgoerelse.oevrigeFravaersdage')}
                           name="oevrigeFravaersdage"
                           width={80}
+                          {...crossFieldIssueFor(eoOevrigeFravaersdageField.bind())}
+                          {...warningProp(beregningsgrundlagAdvarsler.fravaersdage)}
                         />
                       </Box>
                     </Box>
@@ -292,6 +321,7 @@ export default function IndtaegtFoerSkadenSection() {
                           location={eoOplyLocation('erstatningsopgoerelse.oevrigeFravaersdageBeskrivelse')}
                           name="oevrigeFravaersdageBeskrivelse"
                           width={300}
+                          {...warningProp(beregningsgrundlagAdvarsler.aarsag)}
                           sx={{
                             '& .MuiInputBase-input': {
                               textAlign: 'right',
@@ -314,6 +344,7 @@ export default function IndtaegtFoerSkadenSection() {
                   location={eoOplyLocation('erstatningsopgoerelse.maanedsloenenUdgoer')}
                   name="maanedsloenenUdgoer"
                   width={150}
+                  {...warningProp(beregningsgrundlagAdvarsler.angivetLoen)}
                 />
                 </Box>
               </Box>
@@ -328,6 +359,7 @@ export default function IndtaegtFoerSkadenSection() {
                   location={eoOplyLocation('erstatningsopgoerelse.dagsloenenUdgoer')}
                   name="dagsloenenUdgoer"
                   width={150}
+                  {...warningProp(beregningsgrundlagAdvarsler.angivetLoen)}
                 />
                 </Box>
               </Box>
@@ -350,6 +382,9 @@ export default function IndtaegtFoerSkadenSection() {
                         : 'angivetDagsloenBaseretPaa'
                     }
                     width={300}
+                    // Teksten indsættes i papirets sætning «På baggrund af … lægges en månedsløn til grund»;
+                    // pladsholderen viser formen, så den ikke selv begynder med «baseret på» (BB-272).
+                    placeholder="fx lønsedler for 2017"
                   />
                 </Box>
               </Box>
@@ -395,7 +430,8 @@ export default function IndtaegtFoerSkadenSection() {
                   </Box>
                 </Box>
 
-                {eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn' ? (
+                {/* Aldrig krav på tillægget ved angivet dagsløn (BB-267, `indskudte-loentillaeg-contract.md` §2b). */}
+                {eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn' && values.beregnesUdFra !== 'Angivet dagsløn' ? (
                   <LabeledControlRow label="Beregn Store Bededagstillæg fra 1. januar 2024:">
                     {({ labelledBy, controlId }) => (
                       <ToggleField

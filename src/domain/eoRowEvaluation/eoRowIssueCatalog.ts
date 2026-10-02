@@ -1,3 +1,4 @@
+import { BEREGNINGSPERIODE_MANGLER_MESSAGE } from '../erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
 import {
   eoAngivetMaanedsloenOpreguleresFraDatoField,
   eoBeregnesUdFraField,
@@ -584,7 +585,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     ],
     summaryText: (row, message) => {
       if (message === 'Ikke alle felter udfyldt') {
-        return 'Der mangler indtastninger i perioden til beregning af før-løn';
+        return BEREGNINGSPERIODE_MANGLER_MESSAGE;
       }
       // Øvrige beskeder (overlap, rækkefølge, ugyldig dato) er allerede selvstændige sætninger.
       return message || fallbackIssueText(row, message);

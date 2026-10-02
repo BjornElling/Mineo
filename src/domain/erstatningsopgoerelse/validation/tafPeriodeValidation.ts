@@ -1,4 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
+import { isPeriodOverlapIssue } from '../periodOverlapIssues';
 import { computeRowDateBounds } from '../helpers/rowDateBounds';
 import { getDayBeforeIso, validateISODateRange } from '../../../utils/isoDateHelpers';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
@@ -8,7 +9,7 @@ import { buildTafCutoffErrorMessage, buildTafPeriodeCutoffErrorMessage } from '.
 import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMessages';
 import { resolveSkadestypeDatoLabel } from '../../policies/stamdataCalculations';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
-import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, TAF_OVERLAP_LINJE } from './tafRowRules';
+import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, resolvePeriodeNavneDatoer, TAF_OVERLAP_LINJE } from './tafRowRules';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-periode-rækker.
@@ -50,7 +51,7 @@ const isRed = (issue: FieldIssue | undefined): issue is FieldIssue =>
  * afskæringen, som periodens samlede besked allerede nævner én gang (BB-244).
  */
 const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
-  isRed(issue) && !issue.code.endsWith('.overlap') && !issue.code.endsWith('.tafCutoff');
+  isRed(issue) && !isPeriodOverlapIssue(issue) && !issue.code.endsWith('.tafCutoff');
 
 export type TafPeriodeBoundsContext = Readonly<{
   skadedatoISO: ISODateString | undefined;
@@ -136,7 +137,7 @@ const evaluateOne = (
   // den ene, bærer cellens egen afskæringstekst linjen.
   const periodeBeskedDannes = isNonEmptyString(periode.fra) && isNonEmptyString(periode.til);
   const hoererTilLinjen = (issue: FieldIssue | undefined): issue is FieldIssue =>
-    isRed(issue) && !issue.code.endsWith('.overlap') && (periodeBeskedDannes ? !issue.code.endsWith('.tafCutoff') : true);
+    isRed(issue) && !isPeriodOverlapIssue(issue) && (periodeBeskedDannes ? !issue.code.endsWith('.tafCutoff') : true);
   if (hoererTilLinjen(cellIssues.fra)) dele.push({ message: cellIssues.fra.message.trim(), field: 'fra' });
   if (hoererTilLinjen(cellIssues.til)) dele.push({ message: cellIssues.til.message.trim(), field: 'til' });
   const mangler = assessPeriodeDatoMangler(harFra, harTil);
@@ -161,7 +162,7 @@ const evaluateOne = (
   if (hasOverlap) beskeder.push(TAF_OVERLAP_LINJE);
   return {
     kind: 'error',
-    message: `${buildPeriodeRaekkeNavn('TAF-perioden', periode)}: ${beskeder.join('; ')}`,
+    message: `${buildPeriodeRaekkeNavn('TAF-perioden', { ...periode, ...resolvePeriodeNavneDatoer(periode, cellIssues) })}: ${beskeder.join('; ')}`,
     field: dele[0]!.field,
   };
 };

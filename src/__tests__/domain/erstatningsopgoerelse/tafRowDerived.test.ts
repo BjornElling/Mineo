@@ -3,7 +3,6 @@ import type { TafPeriodeRow, FerieperiodeRow, ErstatningsopgoerelseValues } from
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   buildTafDerived,
-  buildBeregningsperiodeTafOverlap,
   buildFerieFeriedageById,
   resolveBeregningsperiodeFerieRamme,
   resolveTafFerieRamme,
@@ -219,46 +218,6 @@ describe('buildTafDerived', () => {
       });
       expect(Object.keys(result.derivedById)).toHaveLength(0);
     });
-  });
-});
-
-describe('buildBeregningsperiodeTafOverlap', () => {
-  it('returnerer overlap-struktur for gyldig beregningsperiode og taf-periode', () => {
-    const result = buildBeregningsperiodeTafOverlap({
-      values: makeValues({
-        tafBeregningsperiodeFra: iso('2024-01-01'),
-        tafBeregningsperiodeTil: iso('2024-06-30'),
-      }),
-      tafPerioder: [makeTafRow('r1', toISODateString('2024-03-01'), toISODateString('2024-04-30'))],
-    });
-    // Overlap findes: taf-periode er inden for beregningsperiode
-    expect(result).toBeDefined();
-    expect(typeof result).toBe('object');
-  });
-
-  it('returnerer korrekt struktur med tom tafPerioder', () => {
-    const result = buildBeregningsperiodeTafOverlap({
-      values: makeValues({
-        tafBeregningsperiodeFra: iso('2024-01-01'),
-        tafBeregningsperiodeTil: iso('2024-12-31'),
-      }),
-      tafPerioder: [],
-    });
-    expect(result).toBeDefined();
-  });
-
-  it('håndterer rækker med manglende datoer', () => {
-    const result = buildBeregningsperiodeTafOverlap({
-      values: makeValues({
-        tafBeregningsperiodeFra: iso('2024-01-01'),
-        tafBeregningsperiodeTil: iso('2024-12-31'),
-      }),
-      tafPerioder: [
-        makeTafRow('r1', undefined, toISODateString('2024-06-30')),
-        makeTafRow('r2', toISODateString('2024-03-01'), undefined),
-      ],
-    });
-    expect(result).toBeDefined();
   });
 });
 

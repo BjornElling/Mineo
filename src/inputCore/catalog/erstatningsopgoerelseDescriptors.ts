@@ -63,11 +63,16 @@ import type {
   RelevanceRule,
 } from '../fieldDescriptor';
 import {
+  erAngivetLoenGrenRelevant,
+  erBeregningsperiodeFerieRelevant,
+  erBeregningsperiodeValgt,
   erBilagsnumreRelevant,
   erEETKlageRelevant,
   erEndeligtEETAfgoerelseAktiv,
   erMidlertidigtEETAfgoerelseAktiv,
+  erBeregningsperiodeInputRelevant,
   erOevrigeKravSektionAktiv,
+  erOevrigtFravaerRelevant,
   erSvieSmertePeriodeInputRelevant,
   erSvieSmerteSektionAktiv,
   erSvieSmerteTidligereTotalRelevant,
@@ -243,6 +248,7 @@ const amountField = (
   field: string,
   label: string,
   relevance?: RelevanceRule<AmountValue | undefined>,
+  extraValidators: readonly FieldValidator<AmountValue | undefined>[] = [],
 ): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `eo.${field}`,
@@ -253,7 +259,7 @@ const amountField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
-    validators: [amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
+    validators: [...extraValidators, amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
     ...(relevance === undefined ? {} : { relevance }),
   });
 
@@ -261,7 +267,12 @@ const amountField = (
  * EO's heltalsfelter er alle «antal dage»-felter uden noget øvre domænemaksimum. Cifferloftet er derfor
  * den fælles grænse for netop den kategori (§1.2) – ikke et tal skrevet i hånden pr. felt.
  */
-const integerField = (field: string, label: string): FieldDescriptor<number | undefined> =>
+const integerField = (
+  field: string,
+  label: string,
+  validators: readonly FieldValidator<number | undefined>[] = [integerBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
+  relevance?: RelevanceRule<number | undefined>,
+): FieldDescriptor<number | undefined> =>
   defineStructuralField<number | undefined>({
     id: `eo.${field}`,
     template: { section: S, path: [], field },
@@ -274,7 +285,8 @@ const integerField = (field: string, label: string): FieldDescriptor<number | un
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
-    validators: [integerBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
+    validators,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 const choiceField = <T extends string>(
@@ -342,9 +354,9 @@ const requiredJaNejSkjulField = (
 // Hver regel SKAL svare præcis til den betingelse, sektionskomponenten viser feltet under: er relevansen
 // smallere end synligheden, forsvinder en synlig indtastning tavst.
 //
-// Bevidst UDEN for: beregningsgrundlagets mode-felter (`beregnesUdFra`, fravær, angivet løn, lønindkomst),
-// fordi komprimeringen ved EO 2+ skjuler dem i UI'en, mens de forbliver aktive input (se
-// `eoInputRelevance.ts`). Deres synlighed er ikke deres relevans.
+// Beregningsgrundlagets mode-felter følger GRENEN under «Beregnes ud fra» – ikke komprimeringen ved EO 2+,
+// som skjuler dem i UI'en, mens de forbliver aktive input (se `eoInputRelevance.ts`). Deres synlighed ved
+// komprimering er derfor ikke deres relevans; deres gren er (BB-266).
 const readEo = <T>(view: CanonicalView, descriptor: FieldDescriptor<T>): T => view.readCanonical(descriptor.bind());
 
 const whenEo = <T>(isRelevant: (view: CanonicalView) => boolean): RelevanceRule<T> =>
@@ -381,6 +393,40 @@ const tafLoseFeriedageRelevant = (view: CanonicalView): boolean => {
   tafLoseFeriedageRelevansPrView.set(view, relevant);
   return relevant;
 };
+// Beregningsgrundlagets grene (BB-266). Enheden for ferie/løse dage læser hele lønindkomsttræet og huskes
+// pr. view som TAF-rækkernes løse feriedage ovenfor.
+const beregningsperiodeValgt = (view: CanonicalView): boolean =>
+  erBeregningsperiodeValgt({ beregnesUdFra: readEo(view, eoBeregnesUdFraField) });
+const beregningsperiodeInputRelevant = (view: CanonicalView): boolean =>
+  erBeregningsperiodeInputRelevant({
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+  });
+const beregningsperiodeFerieRelevansPrView = new WeakMap<CanonicalView, boolean>();
+const beregningsperiodeFerieRelevant = (view: CanonicalView): boolean => {
+  const cached = beregningsperiodeFerieRelevansPrView.get(view);
+  if (cached !== undefined) return cached;
+  const relevant = erBeregningsperiodeFerieRelevant({
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+    tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
+    tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
+    loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
+  });
+  beregningsperiodeFerieRelevansPrView.set(view, relevant);
+  return relevant;
+};
+const oevrigtFravaerRelevant = (view: CanonicalView): boolean =>
+  erOevrigtFravaerRelevant({
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+    oevrigtFravaerUdenLoen: readEo(view, eoOevrigtFravaerUdenLoenField),
+  });
+const angivetLoenGrenRelevant = (gren: 'Angivet månedsløn' | 'Angivet dagsløn') => (view: CanonicalView): boolean =>
+  erAngivetLoenGrenRelevant({
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+  }, gren);
 const oevrigeKravSektionAktiv = (view: CanonicalView): boolean =>
   erOevrigeKravSektionAktiv({ kravPaaOevrigeErstatningskrav: readEo(view, eoKravPaaOevrigeErstatningskravField) });
 const varigeMenAfgoerelseAktiv = (view: CanonicalView): boolean =>
@@ -706,7 +752,9 @@ export const eoTidligereModtagetTafField = amountField(
 );
 
 // ── Indtægt før skaden (skalarer, fanen lønindkomst) ──────────────────────────────
-export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Komprimér beregning efter første opgørelse', 'Ja');
+// Labels er skærmens tekst (BB-270, BB-211's regel): oplæsning og fejltekster navngav før felter, brugeren ikke
+// kunne genfinde («Komprimér beregning …», «Øvrige fraværsdage», «Beskrivelse af øvrige fraværsdage»).
+export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningEfterFoersteOpgoerelse', 'Skjul beregning efter første opgørelse', 'Ja');
 export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
   'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
@@ -715,27 +763,92 @@ const tafBeregningsperiodePair: DatePairBinding = {
   fra: () => eoTafBeregningsperiodeFraField,
   til: () => eoTafBeregningsperiodeTilField,
 };
+const BEREGNINGSPERIODE_LABEL = 'Periode til beregning af før-løn';
 export const eoTafBeregningsperiodeFraField = dateField(
-  'tafBeregningsperiodeFra', 'Beregningsperiode fra',
+  'tafBeregningsperiodeFra', `${BEREGNINGSPERIODE_LABEL}, fra`,
   dateBounds(systemrammeSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
+  whenEo(beregningsperiodeValgt),
 );
 export const eoTafBeregningsperiodeTilField = dateField(
-  'tafBeregningsperiodeTil', 'Beregningsperiode til',
+  'tafBeregningsperiodeTil', `${BEREGNINGSPERIODE_LABEL}, til`,
   dateBounds(systemrammeSpec, [dateOrderValidator('til', tafBeregningsperiodePair)]),
+  whenEo(beregningsperiodeValgt),
 );
-export const eoUspecificeredeFerieFridageField = integerField('uspecificeredeFerieFridage', 'Uspecificerede ferie-/fridage');
-export const eoOevrigtFravaerUdenLoenField = requiredJaNejField('oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej');
-export const eoOevrigeFravaersdageField = integerField('oevrigeFravaersdage', 'Øvrige fraværsdage');
-export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField('oevrigeFravaersdageBeskrivelse', 'Beskrivelse af øvrige fraværsdage', SHORT_TEXT_MAX_LENGTH);
-export const eoMaanedsloenenUdgoerField = amountField('maanedsloenenUdgoer', 'Månedslønnen udgør');
-export const eoDagsloenenUdgoerField = amountField('dagsloenenUdgoer', 'Dagslønnen udgør');
-export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField('angivetMaanedsloenBaseretPaa', 'Angivet månedsløn baseret på', SHORT_TEXT_MAX_LENGTH);
+
+/**
+ * Dagfelternes faste loft. Det stod før kun i validatoren og spærrede uden rød celle (BB-264); nu bærer feltet
+ * det selv med validatorens ordlyd. Den skarpere grænse – at der skal være noget af perioden tilbage – afhænger af
+ * perioden og de andre fradrag og projekteres derfor i `beregningsgrundlagFradragRules.ts`.
+ */
+const BEREGNINGSGRUNDLAG_DAGE_MAX = 366;
+const beregningsgrundlagDageValidators = (field: string): readonly FieldValidator<number | undefined>[] => [
+  integerBoundsValidator(`eo.${field}.bounds`, 0, undefined),
+  (value) => value === undefined || value <= BEREGNINGSGRUNDLAG_DAGE_MAX
+    ? undefined
+    : {
+      reason: 'bounds',
+      code: `eo.${field}.bounds`,
+      message: `Antal dage skal være mellem 0 og ${BEREGNINGSGRUNDLAG_DAGE_MAX}`,
+    },
+];
+
+// «Løse ferie-/feriefridage» er det faglige navn for dagene – samme navn som TAF-tabellens kolonne (BB-256,
+// BB-270). Feltet hed før «Uspecificerede …». Skjult i måneder (BB-263); se `erBeregningsperiodeFerieRelevant`.
+export const eoUspecificeredeFerieFridageField = integerField(
+  'uspecificeredeFerieFridage', 'Løse ferie-/feriefridage',
+  beregningsgrundlagDageValidators('uspecificeredeFerieFridage'),
+  whenEo(beregningsperiodeFerieRelevant),
+);
+export const eoOevrigtFravaerUdenLoenField = requiredJaNejField(
+  'oevrigtFravaerUdenLoen', 'Øvrigt fravær uden løn', 'Nej', whenEo(beregningsperiodeInputRelevant),
+);
+export const eoOevrigeFravaersdageField = integerField(
+  'oevrigeFravaersdage', 'Antal fraværsdage (mandag-fredag)',
+  beregningsgrundlagDageValidators('oevrigeFravaersdage'),
+  whenEo(oevrigtFravaerRelevant),
+);
+export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField(
+  'oevrigeFravaersdageBeskrivelse', 'Årsag til fravær', SHORT_TEXT_MAX_LENGTH, false, whenEo(oevrigtFravaerRelevant),
+);
+
+// Et beløb på 0 kr. er et grundlag på 0 og førte beregningen ud i en intern undtagelse (BB-258).
+// Udviklerafgørelse 2026-10-02: rød ring frem for at opgøre kravet til 0 kr.
+export const eoMaanedsloenenUdgoerField = amountField(
+  'maanedsloenenUdgoer', 'Månedslønnen udgør', whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
+  [positiveAmountValidator('eo.maanedsloenenUdgoer.positive', 'Månedslønnen skal være større end 0 kr.')],
+);
+export const eoDagsloenenUdgoerField = amountField(
+  'dagsloenenUdgoer', 'Dagslønnen udgør', whenEo(angivetLoenGrenRelevant('Angivet dagsløn')),
+  [positiveAmountValidator('eo.dagsloenenUdgoer.positive', 'Dagslønnen skal være større end 0 kr.')],
+);
+
+/**
+ * Datoen for det angivne beløb kan ikke ligge efter dags dato: et beløb kan ikke afspejle en løn, der endnu
+ * ikke er udbetalt (udviklerafgørelse 2026-10-02, BB-261). Før var loftet systemrammens 31-12 året efter.
+ */
+const angivetLoenDatoSpec: DateBoundsSpec = {
+  min: systemrammeSpec.min,
+  max: () => getToday(),
+  special: () => ({ maxBoundKind: 'dagsDato' }),
+  origin: STATIC_DATE_BOUNDS,
+};
+// De to sæt felter har ordret samme tekst på skærmen; kun den aktive gren er relevant (BB-266). Labelen er
+// skærmens tekst uden den visuelle tankestreg (BB-270).
+export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField(
+  'angivetMaanedsloenBaseretPaa', 'Baseret på', SHORT_TEXT_MAX_LENGTH, false,
+  whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
+);
 export const eoAngivetMaanedsloenOpreguleresFraDatoField = dateField(
-  'angivetMaanedsloenOpreguleresFraDato', 'Angivet månedsløn opreguleres fra', dateBounds(systemrammeSpec),
+  'angivetMaanedsloenOpreguleresFraDato', 'Det angivne beløb afspejler månedslønnen per dato',
+  dateBounds(angivetLoenDatoSpec), whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
 );
-export const eoAngivetDagsloenBaseretPaaField = optionalTextField('angivetDagsloenBaseretPaa', 'Angivet dagsløn baseret på', SHORT_TEXT_MAX_LENGTH);
+export const eoAngivetDagsloenBaseretPaaField = optionalTextField(
+  'angivetDagsloenBaseretPaa', 'Baseret på', SHORT_TEXT_MAX_LENGTH, false,
+  whenEo(angivetLoenGrenRelevant('Angivet dagsløn')),
+);
 export const eoAngivetDagsloenOpreguleresFraDatoField = dateField(
-  'angivetDagsloenOpreguleresFraDato', 'Angivet dagsløn opreguleres fra', dateBounds(systemrammeSpec),
+  'angivetDagsloenOpreguleresFraDato', 'Det angivne beløb afspejler dagslønnen per dato',
+  dateBounds(angivetLoenDatoSpec), whenEo(angivetLoenGrenRelevant('Angivet dagsløn')),
 );
 
 // ── Bilagsnumre (skalarer) ────────────────────────────────────────────────────────
@@ -865,10 +978,11 @@ export const eoFerieperiodeTilField = ferieperiodeDates.til;
 
 // fravaerPerioder (samme rækkeform som ferieperioder)
 export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder', isFerieRowEmpty);
+// Skjult i måneder og uden for en beregningsperiode (BB-263, BB-266); se `erBeregningsperiodeFerieRelevant`.
 const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: systemrammeSpec,
   til: systemrammeSpec,
-});
+}, whenEo(beregningsperiodeFerieRelevant));
 export const eoFravaerPeriodeFraField = fravaerPeriodeDates.fra;
 export const eoFravaerPeriodeTilField = fravaerPeriodeDates.til;
 

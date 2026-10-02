@@ -58,6 +58,9 @@ import {
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { resolveStamdataDatoReferenceFromView } from './stamdataDescriptors';
+// Gensidig import: `erstatningsopgoerelseDescriptors` læser lønindkomsttræet herfra. Begge læser kun den anden
+// inde i en relevansregel – aldrig ved modul-evaluering – så rækkefølgen er ligegyldig.
+import { eoBeregnesUdFraField } from './erstatningsopgoerelseDescriptors';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import type { TafBeregningsenhedEmployment, TafBeregningsenhedLoenRow } from '../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
@@ -501,7 +504,14 @@ export const eoAngivetLoenFields = {
   // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
   // samme konkrete sats, som schemaets `.default()` giver.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
-  beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  // Ved angivet dagsløn er der aldrig krav på tillægget (udviklerafgørelse 2026-10-02, se
+  // `indskudte-loentillaeg-contract.md` §2b): knappen er skjult, og readeren giver den som slået fra til alle læsere,
+  // så en tidligere tilvalgt værdi hverken regnes med eller går tabt. Ved angivet månedsløn sætter valget den igen.
+  beregnStoreBededagstillaeg: createField<boolean>({
+    ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024',
+    controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
+    relevance: (_field, view) => view.readCanonical(eoBeregnesUdFraField.bind()) !== 'Angivet dagsløn',
+  }),
   saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),
   loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),

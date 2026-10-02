@@ -1,3 +1,4 @@
+import { resolveIndkomstFerieperioder } from '../erstatningsopgoerelse/helpers/indkomstFerieperioder';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
@@ -202,7 +203,8 @@ const buildFerieDatesInRange = (
 ): ReadonlySet<ISODateString> => {
   if (!range) return new Set<ISODateString>();
 
-  const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  // Samme ferie som motorens fordeling: hver tabel i sin egen periode.
+  const ferieperioder = resolveIndkomstFerieperioder(values);
   const includeTafLoseFeriedage = options?.includeTafLoseFeriedage === true;
   const includeBeregningsperiodeLoseFeriedage = options?.includeBeregningsperiodeLoseFeriedage === true;
   const beregningsperiodeLoseFeriedage =

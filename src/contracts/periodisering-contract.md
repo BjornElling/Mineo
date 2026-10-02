@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-10-02 (hver ferietabel kun i sin egen periode, `resolveIndkomstFerieperioder`)
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -172,7 +172,10 @@ Ferie-/fraværsfradrag skal følge den konkrete domænesemantik, ikke UI-bekvemm
 
 For EO gælder:
 
-- `ferieperioder` og `fravaerPerioder` indgår i lønsporets arbejdsdagsberegning
+- `ferieperioder` og `fravaerPerioder` indgår i lønsporets arbejdsdagsberegning – hver kun i sin egen periode:
+  `fravaerPerioder` («Ferie i beregningsperioden») i beregningsperioden og `ferieperioder` (TAF-afsnittets ferie) i
+  TAF-perioderne (`resolveIndkomstFerieperioder`, udviklerafgørelse 2026-10-02). Ellers kunne en TAF-ferie ændre
+  fordelingen af beregningsperiodens løn uden at ændre nævneren
 - `øvrige fraværsdage uden løn` reducerer beregningsgrundlaget, men ikke selve TAF-kravet
 - hvis fraværsdage skal udgå af TAF-kravet, skal de udelades af de angivne TAF-perioder
 

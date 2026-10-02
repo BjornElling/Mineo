@@ -12,7 +12,7 @@
  */
 
 import type { EoIssueFocusTarget, EoRowModel } from './eoRowTypes';
-import type { NavigationTarget } from './eoRowNavigationMap';
+import type { EoRowNavigationContext, NavigationTarget } from './eoRowNavigationMap';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type {
   EoRowEvaluationContext,
@@ -200,10 +200,10 @@ const findDuplicateIds = (rows: ReadonlyArray<EoRowWithNavigation>): ReadonlyArr
 /**
  * Tilføjer navigation-metadata til EoRowModel
  */
-const addNavigationMetadata = (row: EoRowModel): EoRowWithNavigation => ({
+const addNavigationMetadata = (row: EoRowModel, context: EoRowNavigationContext): EoRowWithNavigation => ({
   ...row,
   ...resolveEoRowPresentation(row),
-  navigation: getNavigationTargetFromRowId(row.id),
+  navigation: getNavigationTargetFromRowId(row.id, context),
 });
 
 const requireIssueFocusTarget = (row: EoRowWithNavigation): EoNavigableIssueRow => {
@@ -325,7 +325,8 @@ export const collectAllEoRows = (
   const allRows: EoRowModel[] = executeAllEoRowBuilders(ctx);
 
   // Tilføj navigation-metadata til alle rows
-  const rowsWithNavigation = allRows.map(addNavigationMetadata);
+  const navigationContext: EoRowNavigationContext = { skadestype: stamdataValues.skadestype };
+  const rowsWithNavigation = allRows.map((row) => addNavigationMetadata(row, navigationContext));
   // Duplicate-id-check SKAL køre før relevansfiltrering.
   const duplicateIds = findDuplicateIds(rowsWithNavigation);
   if (duplicateIds.length > 0) {

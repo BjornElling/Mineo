@@ -1,3 +1,4 @@
+import { resolveIndkomstFerieperioder } from '../helpers/indkomstFerieperioder';
 import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, TillaegAngivesSom } from '../../../schemas/formSchemas';
 import { dateToISO, isISODateString } from '../../../types/branded';
 import { parseWeekString } from '../../../utils/dateUtils';
@@ -26,6 +27,7 @@ export type AarsloenZeroArbejdsdageValidationInput = Pick<
   | 'loenindkomstAnsaettelsesforhold'
   | 'ferieperioder'
   | 'fravaerPerioder'
+  | 'tafPerioder'
 >;
 
 export const buildLoenindkomstZeroArbejdsdageMessage = (fra: Date, til: Date): string => {
@@ -149,7 +151,7 @@ export const buildStandardLoenZeroArbejdsdageIssues = (
   const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((af) => af.id === employmentId);
   if (!employment) return [];
 
-  const ferieOgFravaersperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  const ferieOgFravaersperioder = resolveIndkomstFerieperioder(values);
   const issues: AarsloenZeroArbejdsdageIssue[] = [];
 
   for (const row of employment.indtaegtsoplysningerTableData ?? []) {

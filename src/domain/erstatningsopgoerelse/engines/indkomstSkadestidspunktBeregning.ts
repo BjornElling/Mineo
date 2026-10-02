@@ -335,7 +335,7 @@ export const buildIndkomstSkadestidspunkt = (
           beregningsgrundlagMellemregningLabel = fradragParts.length > 0
             ? `I perioden var der ${basePart} - ${fradragParts.join(' - ')} =`
             : 'I perioden var der';
-          beregningsgrundlagMellemregningResultat = `${formatDaNumber(arbejdsdage)} arbejdsdage`;
+          beregningsgrundlagMellemregningResultat = `${formatDaNumber(arbejdsdage)} ${dagOrd(arbejdsdage, 'arbejdsdag', 'arbejdsdage')}`;
         }
       }
     }

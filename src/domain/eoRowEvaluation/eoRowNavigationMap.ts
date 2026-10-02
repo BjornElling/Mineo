@@ -5,6 +5,8 @@
  * for at understøtte klikbare links i Beregning-fanen.
  */
 
+import { resolveSkadeEllerAnmeldelsesdatoReference, type StamdataValues } from '../policies/stamdataCalculations';
+
 /**
  * SectionId angiver et scroll-mål i UI'et: værdien skrives som `sectionId` på
  * NavigationTarget og bruges af `scrollToSection` til at finde det tilsvarende
@@ -70,7 +72,15 @@ export type NavigationTarget =
  * @param rowId - Række-id fra builder-funktioner
  * @returns NavigationTarget med kind, path og metadata
  */
-export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget => {
+export type EoRowNavigationContext = Readonly<{
+  /** Afgør «skadedatoen»/«anmeldelsesdatoen» i sektionsnavne, der følger stamdatareferencen. */
+  skadestype?: StamdataValues['skadestype'] | undefined;
+}>;
+
+export const getNavigationTargetFromRowId = (
+  rowId: string,
+  context: EoRowNavigationContext = {},
+): NavigationTarget => {
   // ============================================================================
   // STAMDATA ROWS
   // ============================================================================
@@ -183,7 +193,9 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       tabId: 'eo_oplysninger',
       sectionId: 'taf-beregningsgrundlag',
       tabName: 'EO oplysninger',
-      sectionTitle: 'Indkomstgrundlag',
+      // Linket bærer sektionens SYNLIGE overskrift som alle andre sektionslinks. Det hed «Indkomstgrundlag» –
+      // en overskrift, der ikke findes på skærmen (BB-270).
+      sectionTitle: `Indtægt før ${resolveSkadeEllerAnmeldelsesdatoReference(context.skadestype).labelLower}`,
     };
   }
 

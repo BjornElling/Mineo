@@ -12,6 +12,20 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-10-02 fra Erstatningsopgørelse → Beregningsgrundlaget for TAF (12f) – M-36: en lovlig
+indtastning fører beregningen ud i en intern undtagelse.** Tre værdier, felterne tager imod – 300 fraværsdage i en
+periode på 12 måneder, uspecificerede dage lig det maksimum, boksen selv nævner, og en månedsløn på 0 kr. – giver
+alle «EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl» uden ring og uden link (BB-258,
+**Høj**). Én dag under randen giver i stedet en dagsindkomst på 360.000 kr. uden et ord (BB-259, **Høj**, M-24).
+**Dertil M-35's 12f-kandidat bekræftet i en skarpere form** – i måneder er ferie og uspecificerede dage uvirksomme, men
+de kan stadig spærre (BB-263, **Høj**) – **M-32's mode-felter bekræftet** (BB-266, **Høj** – en skjult værdi spærrer
+med et link til et felt, der ikke findes på skærmen), **M-20 i nabotabellen, som 12e's rettelse ikke nåede** (BB-262,
+BB-264, **Høj**), og **en ny form af M-33: sikkerhedsnettet**, der kun viser validatorens linjer, når ingen anden
+fejl findes, så brugeren møder én fejl ad gangen (BB-265, **Høj**). Dertil en beregningsperiode, der udtyndes tavst af
+huller i lønrækkerne (BB-260, **Høj**, M-28), og som kan række ind over skadedatoen (BB-261), en selvmodsigende Store
+Bededag-advarsel (BB-267), M-05 (BB-268) og fem Lav (BB-269–BB-273). Beregningerne er kontrolregnet og i orden; M-09 og
+M-10 bestået.
+
 **Ét nyt mønster 2026-09-24 fra Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden (12e) – M-35: et
 synligt felt, som den aktuelle beregningsmåde ikke læser.** Det er M-32's spejlbillede: dér blev et skjult felt
 læst, her bliver et synligt felt ikke læst. En ny sag opgøres i måneder, og i måneder fradrages hverken ferie
@@ -1838,6 +1852,12 @@ ene felts egen værdi.
   med én fælles tekst foldede boksen svie/smerte-, TAF- og ferieoverlap sammen til én linje – BB-231's bagside
   på tværs af tabeller.
 - Kandidater, ikke efterprøvet: generelt enhver `warning={resolve…(projection?.…)}`.
+- **Nabotabellen fulgte ikke med, målt 2026-10-02** (`erstatningsopgoerelse-12f.md` BB-262, BB-264). Ferie i
+  beregningsperioden har samme tre regler som TAF-ferien (vindue, overlap, maksimum for uspecificerede dage) plus
+  et loft på 366 for begge dagfelter og overlap med TAF-perioderne – ingen af dem når cellen. 12e's rettelse ramte
+  TAF-sektionens tabeller og kun overlapslinjens TEKST i beregningsgrundlaget. **Læren: en rettelse efter dette
+  mønster skal søges på regelnavnet i alle tabeller af samme rækkeform** (`rg "detectOverlappingPeriods|ligger uden
+  for" src/domain/eoRowEvaluation`), ikke kun i den tabel, fundet målte.
 
 ## M-21 – En CSS-klasse slår komponentens egen farve ihjel
 
@@ -2016,6 +2036,11 @@ rammes.
   beregnet – EET's og forsørgertabs fradragsfelter, EO's reguleringsbilag. Generelt:
   `rg " - \$\{" src/components/pages` over mellemregningstekster med et fradrag i parentes, og
   `rg "Math.max\(0,|clampMoneyOreToZero" src/domain` over de klampede aggregater.
+- **To nye former 2026-10-02, begge i et beregningsGRUNDLAG frem for et krav** (`erstatningsopgoerelse-12f.md`
+  BB-258, BB-259). Dagfelterne i beregningsperioden har loftet 366 – feltets art – mens tallet, de trækkes fra, er
+  periodens arbejdsdage eller måneder. Ved præcis nok dage bliver nævneren 0, og klampningen redder IKKE resultatet:
+  beregningen kaster en undtagelse (M-36). Én dag under bliver nævneren 1, og dagsindkomsten 360.000 kr. Prøven
+  `sæt B lig A` og `sæt B lig A − 1` hører derfor med ved siden af `B større end A`.
 
 ## M-25 – Gaten spørger «findes der noget?», ikke «findes det, brugeren bad om?»
 
@@ -2637,6 +2662,14 @@ besluttet, ikke overset.
   **Tilbage:** beregningsgrundlagets mode-felter (styret af «Beregnes ud fra», komprimeringsundtagelsen)
   og de øvrige fladers betingede sektioner. Prøven for dem er nu enkel: har feltet en synlighedsbetingelse,
   men ingen `relevance` på descriptoren?
+- **Mode-felterne rettet 2026-10-02** (BB-266): de bærer nu relevans efter deres gren i `eoInputRelevance.ts`;
+  komprimeringen ved EO 2+ ændrer den ikke. Tilbage er kun de øvrige fladers betingede sektioner.
+- **Mode-felterne bekræftet 2026-10-02** (`erstatningsopgoerelse-12f.md` BB-266, **Høj**). Ingen af
+  beregningsgrundlagets felter bag «Beregnes ud fra» eller «Øvrigt fravær uden løn» bærer relevans, og en skjult
+  værdi over validatorens loft spærrer: `400` fraværsdage bag en slukket toggle og `999` uspecificerede dage bag
+  «Angivet månedsløn» giver begge «Antal dage skal være mellem 0 og 366» med et link til et felt, der ikke er på
+  skærmen. **Komprimeringsundtagelsen skal holdes ude:** relevansen følger VALGET (grenen), ikke om sektionen er foldet
+  sammen ved EO 2+.
 
 ## M-33 – To lag vurderer samme række hver for sig – og brugeren får begge svar
 
@@ -2695,6 +2728,13 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   et fjerde trin: tast en række, hvor KUN et ikke-datofelt er udfyldt.**
   **Rettet 2026-09-25:** rækkens vurdering tager cellernes feltissues ind, så en rød celle meldes med sin egen
   tekst, og rækkebygger og validator deler ordlyden (`tafRowRules.ts`).
+- **En ny og værre form 2026-10-02: sikkerhedsnettet** (`erstatningsopgoerelse-12f.md` BB-265, **Høj**). Validatorens
+  og de rene feltreglers linjer når kun boksen gennem et net, der tier, så snart én rækkebygger-fejl findes
+  (`useEoBeregningViewModel.ts:496-533`). Uenigheden er altså ikke længere to svar side om side, men ét svar ad gangen:
+  brugeren retter det viste og møder en fejl, der var der hele tiden. Downloadknappens klasse udledes samtidig kun af
+  rækkefejl, så en forkert værdi meldes som «Indtastning mangler». **Prøvens femte trin: kombinér en validatorregel med
+  en vilkårlig rækkefejl andetsteds på fanen og tæl, om begge linjer står der.** Rettelsen er stadig skabelonen –
+  flyt reglen ind i rækkekanalen – og nettet bliver da tomt af sig selv.
 
 ## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
 
@@ -2766,3 +2806,45 @@ ikke bruges.
   **Prøven får et fjerde trin: før et felt skjules, find ALLE læsere af værdien (`rg "\.feltnavn"` i
   `src/domain`), ikke kun den regel, fundet nævner.** Og relevans, der følger en udledt tilstand, kan skifte ved
   en almindelig indtastning – reducerens rydning af skjulte røde felter gælder derfor enhver ændring.
+- **12f-kandidaten bekræftet 2026-10-02** (`erstatningsopgoerelse-12f.md` BB-263, **Høj**). Ferie i beregningsperioden
+  og «Uspecificerede ferie-/feriefridage» er uvirksomme i måneder – trin 4 er gået: beregningen læser dem kun i
+  arbejdsdage, og sygeferiegodtgørelsen læser dem ikke. **Formen er her skarpere end i 12e:** de uvirksomme felter kan
+  stadig SPÆRRE (vindue, overlap, maksimum), så brugeren skal rette en indtastning, der intet gør. «Løn på helligdage»
+  under angivet løn er derimod ikke en forekomst – reguleringen læser den (12i).
+
+## M-36 – En lovlig indtastning fører beregningen ud i en intern undtagelse
+
+> Motoren har en forudsætning – et grundlag større end 0, en nævner større end 0 – og håndhæver den med en
+> undtagelse. Feltreglerne kender ikke forudsætningen, så en værdi, de tager imod, når frem til undtagelsen.
+> Brugeren får «EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl» – ingen ring, intet link,
+> og ingen antydning af, at det er hans tal, der er umuligt.
+
+Formen er værre end en manglende grænse (M-24), fordi programmet faktisk KENDER reglen: den står i koden som
+`throw new Error('… kan ikke beregnes: mangler beregningsgrundlag')`. Den er blot skrevet som et værn mod
+programfejl, ikke som en regel for brugeren. Fail-closed er rigtigt – der regnes ikke på et umuligt grundlag – men
+meddelelsen siger det modsatte af sandheden: at programmet har fejlet, ikke indtastningen.
+
+**Efterprøv, hvor:** `rg "throw new Error\('[^']*kan ikke beregnes" src/domain` (75 forekomster 2026-10-02, alle i
+`src/domain/erstatningsopgoerelse/engines`). For hver:
+
+1. Hvilken tilstand udløser den – et grundlag ≤ 0, en nævner ≤ 0, et tomt segment?
+2. Kan brugeren nå tilstanden med værdier, felterne accepterer? Prøv randen: præcis nok dage til at tømme perioden,
+   beløbet `0`, en periode, der helt dækkes af fravær.
+3. Fanges tilstanden af en feltregel FØR motoren? Gør den ikke, er det en forekomst.
+
+**Skellet mod M-24:** M-24 er den manglende eller forkert placerede grænse; M-36 er det, brugeren ser, når grænsen
+mangler og motoren ikke klamper, men kaster. Rettelsen er to: grænsen på feltet (M-24's) og en meddelelse, der aldrig
+kalder en brugerindtastning for en intern fejl.
+
+- Fundet i: `erstatningsopgoerelse-12f.md` BB-258 (**Høj** – 300 fraværsdage i 12 måneder, uspecificerede dage lig
+  «maksimalt 251», og «Månedslønnen udgør» `0`; alle tre målt med samme undtagelse i `loenudviklingBeregning.ts`).
+- Kandidater, ikke efterprøvet: offentlige ydelsers udvikling (`offentligeYdelserUdviklingBeregning.ts:197`, samme
+  nævner, 12k); «Angivet dagsløn» `0`; lønrækker med kun `0 kr.` i beregningsperioden (12h); reguleringsformerne
+  (`regulering/forms/*.ts`, 12i) og sygeferiegodtgørelsens segmentering (`sfggSegmentering.ts`, 12j).
+- **Rettet for beregningsgrundlaget 2026-10-02** (BB-258): en nævner på 0 i måneder eller arbejdsdage, ferie over hele
+  perioden, en periode uden arbejdsdage og et angivet beløb på 0 kr. er røde feltfejl med grænsen i teksten
+  (`beregningsgrundlagCellIssues.ts`); en periode uden indtægt med en lønudvikling at regulere er en valideringsfejl,
+  der standser motoren. Probet: «Angivet dagsløn» `0` og offentlige ydelser med 0 måneder tilbage var forekomster og er
+  dækket af samme regler; lønrækker med kun `0 kr.` gav kun undtagelsen sammen med en anden lønudvikling end «Ingen»
+  og er dækket. Sygeferiegodtgørelsen (fravær 251–365, dagssats 0) kunne ikke bringes til en undtagelse. **Tilbage:**
+  reguleringsformerne (12i) er ikke probet.

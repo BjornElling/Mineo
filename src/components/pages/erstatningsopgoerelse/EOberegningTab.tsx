@@ -175,7 +175,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
   const renderSystemIssueRows = React.useCallback((rows: readonly SystemIssueRow[]) => {
     return rows.map((row) => (
       <Box
-        key={row.id}
+        // To regler kan dele invariant-id med hver sin besked; nøglen bærer derfor begge (BB-265).
+        key={`${row.id}::${row.message}`}
         className="row--label-right-hover"
         sx={{
           '--label-width': '400px',

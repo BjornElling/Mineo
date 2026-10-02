@@ -209,8 +209,10 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     expect(issueAt(evaluation, eoTafPeriodeTilField.bind('t1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoFerieperiodeFraField.bind('f1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoFerieperiodeTilField.bind('f1'))?.reason).toBe('rule');
-    expect(issueAt(evaluation, eoFravaerPeriodeFraField.bind('fr1'))?.reason).toBe('rule');
-    expect(issueAt(evaluation, eoFravaerPeriodeTilField.bind('fr1'))?.reason).toBe('rule');
+    // «Ferie i beregningsperioden» er skjult i måneder (BB-263), så her – uden et ansættelsesforhold, der gør
+    // enheden til arbejdsdage – er cellen tavs. Kronologien i arbejdsdage dækkes i `beregningsgrundlagBrugerblik12f`.
+    expect(issueAt(evaluation, eoFravaerPeriodeFraField.bind('fr1'))).toBeUndefined();
+    expect(issueAt(evaluation, eoFravaerPeriodeTilField.bind('fr1'))).toBeUndefined();
     expect(issueAt(evaluation, eoSvieSmertePeriodeFraField.bind('s1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoSvieSmertePeriodeTilField.bind('s1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoOffentligeYdelserFraDatoField.bind('o1'))?.reason).toBe('rule');
@@ -235,7 +237,9 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       ],
       // Kontrolgruppe: en urelateret legacy-fejl, som IKKE afhænger af de maskerede datoer. Uden den
       // kunne testen ikke skelne en smal undertrykkelse fra en, der swallower enhver legacy-besked.
-      uspecificeredeFerieFridage: 999,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+      tidligereSsMax: 'Nej',
+      vedroererPeriodeFra: undefined,
     });
     const projection = buildErstatningsopgoerelseReaderProjection(evaluation.reader, { revision: 'r' });
     const failed = projection.snapshot.invariants.filter((i) => !i.passed);
@@ -253,8 +257,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     // Undertrykkelsen skal være SMAL: den urelaterede legacy-fejl må IKKE ryge med. Uden denne
     // kontrolgruppe ville en mutation, der swallowede ENHVER legacy-besked, bestå testen – grøn af
     // tomhed frem for grøn af bevis. Assertionen går på BESKEDEN, fordi id'et for netop denne fejl
-    // omskrives til `beregningsperiode:…` og derfor ikke kan skelne kilden.
-    expect(failed.some((i) => i.message.includes('Uspecificerede ferie-/feriefridage overstiger'))).toBe(true);
+    // er en validatorsti og ikke skelner kilden.
+    expect(failed.some((i) => i.message === 'Vedrører-perioden skal udfyldes når der beregnes svie/smerte')).toBe(true);
     // En anden rækkes reelle tomhed må ikke blive skjult, selv om den har samme feltnavn.
     expect(failed.some((i) => (
       i.message === 'Fra-dato mangler'

@@ -1,4 +1,5 @@
 import type { ISODateString } from '../../types/branded';
+import { kanDerVaereKravPaaStoreBededagstillaeg } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
@@ -269,9 +270,12 @@ export const buildEoIndkomstRows = (
     // færdigopsat (udviklerbeslutning 2026-09-13). Den skal kunne ses, også mens ansættelsesforholdet
     // har en blokerende reguleringsfejl – ellers kan brugeren nå at rette fejlen og downloade uden
     // nogensinde at have set advarslen.
+    //
+    // Ved angivet dagsløn er der aldrig krav på tillægget, og dagsløn slår det fra som standard; en advarsel
+    // ville påtale programmets eget, korrekte valg (BB-267, se `kanDerVaereKravPaaStoreBededagstillaeg`).
     if (
       harTafPeriodeFraStoreBededag
-      && ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn'
+      && kanDerVaereKravPaaStoreBededagstillaeg(values.beregnesUdFra, ansaettelsesforhold.loenPaaHelligdage)
       && ansaettelsesforhold.beregnStoreBededagstillaeg !== true
     ) {
       rows.push({

@@ -39,6 +39,17 @@ import { formatIsoDateLong as formatDateLong } from '../../../../utils/dateForma
 import { parseOptionalIsoDate } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveLoenSkadedatoText } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 
+/**
+ * «- baseret på»-feltets tekst som sætningsled i «På baggrund af … lægges en månedsløn til grund». Feltets
+ * etiket lægger op til at skrive «baseret på lønsedler», og papiret skrev da «På baggrund af baseret på
+ * lønsedler» (BB-272). Et indledende «baseret på» fjernes derfor. Brugerens store og små bogstaver bevares
+ * bevidst: programmet kan ikke skelne et egennavn fra et almindeligt ord (udviklerafgørelse 2026-10-02).
+ */
+const toBaseretPaaSaetningsled = (tekst: string | null | undefined): string => {
+  const trimmed = tekst?.trim() ?? '';
+  return trimmed.replace(/^baseret\s+på\s*:?\s*/iu, '').trim();
+};
+
 export type TafBeregningsgrundlagDeps = Readonly<{
   model: EoModel;
   lineHeight: number;
@@ -240,8 +251,9 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
       }
     }
   } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-    const venstreTekst = indkomst.loenBaseretPaa
-      ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en månedsløn til grund på`
+    const baseretPaa = toBaseretPaaSaetningsled(indkomst.loenBaseretPaa);
+    const venstreTekst = baseretPaa
+      ? `På baggrund af ${baseretPaa} lægges en månedsløn til grund på`
       : 'Der lægges en månedsløn til grund på';
     safeAddLeftRightText(
       venstreTekst,
@@ -250,8 +262,9 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
       { rightFontStyle: 'normal' }
     );
   } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-    const venstreTekst = indkomst.loenBaseretPaa
-      ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en dagsløn til grund på`
+    const baseretPaa = toBaseretPaaSaetningsled(indkomst.loenBaseretPaa);
+    const venstreTekst = baseretPaa
+      ? `På baggrund af ${baseretPaa} lægges en dagsløn til grund på`
       : 'Der lægges en dagsløn til grund på';
     safeAddLeftRightText(
       venstreTekst,

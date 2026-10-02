@@ -9,6 +9,8 @@ const createBaseValues = () => ({
   tafBeregningsperiodeFra: toISODateString('2024-01-01'),
   tafBeregningsperiodeTil: toISODateString('2024-01-03'),
   ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-02'), til: toISODateString('2024-01-02') }],
+  // TAF-afsnittets ferie gælder kun i TAF-perioderne (`resolveIndkomstFerieperioder`).
+  tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-03'), loseFeriedage: undefined }],
 });
 
 describe('eoInspektionKontrolModel arbejdsdag-markering', () => {

@@ -146,14 +146,27 @@ describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
   });
 
   /**
-   * Snapshot-, invariant- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i
-   * boksen (sikkerhedsnettet i `useEoBeregningViewModel` findes netop for at fange dem). At henvise til
+   * En autoritativ invariant på et bygget snapshot står altid i boksen – sikkerhedsnettet
+   * (`selectEoSafetyNetInvariants`) viser den, når ingen række gør – så knappen henviser til boksen. Før sagde
+   * den «Indtastning mangler» om en værdi, der var forkert (BB-265).
+   */
+  it('bruger page-errors ved autoritativ invariant', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      authoritativeBlockingInvariants: [invariant('A')],
+      projection: { kind: 'blocked' as const, message: 'x' },
+    });
+    expect(gate.canDownload).toBe(false);
+    expect(gate.reasons[0]?.kind).toBe('page-errors');
+  });
+
+  /**
+   * Snapshot- og projektionsblokeringer er IKKE rækkefejl: de har ingen garanteret række i boksen. At henvise til
    * "fejl ovenfor" ville pege på en boks, der kan være tom.
    */
   it.each([
     ['manglende snapshot', { snapshot: null, projection: null }],
     ['fail_closed', { snapshot: { status: 'fail_closed', invariants: [invariant('F')] } as unknown as EoSnapshot, projection: { kind: 'blocked' as const, message: 'x' } }],
-    ['autoritativ invariant', { authoritativeBlockingInvariants: [invariant('A')], projection: { kind: 'blocked' as const, message: 'x' } }],
     ['blokeret projektion', { projection: { kind: 'blocked' as const, message: 'Projektion blokeret' } }],
   ])('bruger IKKE page-errors ved %s', (_label, overrides) => {
     const gate = evaluateEoDocumentDownloadGate({ ...baseInput, ...overrides });

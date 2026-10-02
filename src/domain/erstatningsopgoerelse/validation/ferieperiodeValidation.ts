@@ -1,9 +1,10 @@
 import type { ISODateString } from '../../../types/branded';
+import { isPeriodOverlapIssue } from '../periodOverlapIssues';
 import { detectOverlappingPeriods } from '../engines/periodOverlapDetection';
 import { isNonEmptyString } from './eoDateRangeMessages';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
 import type { TafPeriodeEvaluation } from './tafPeriodeValidation';
-import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, FERIE_OVERLAP_LINJE } from './tafRowRules';
+import { assessPeriodeDatoMangler, buildPeriodeRaekkeNavn, FERIE_OVERLAP_LINJE, resolvePeriodeNavneDatoer } from './tafRowRules';
 
 /**
  * Ren (React-/kontrol-frit) blokerings-afgørelse for TAF-ferieperiode-rækker (`taf.ferie.*`) – linjen i
@@ -31,12 +32,13 @@ const isRed = (issue: FieldIssue | undefined): issue is FieldIssue =>
   issue !== undefined && issue.severity === 'error' && issue.message.trim() !== '';
 
 const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
-  isRed(issue) && !issue.code.endsWith('.overlap');
+  isRed(issue) && !isPeriodOverlapIssue(issue);
 
 const evaluateOne = (
   periode: FerieperiodeRowInput,
   cellIssues: FerieperiodeCellIssues,
   hasOverlap: boolean,
+  overlapLinje: string,
 ): TafPeriodeEvaluation => {
   const harFra = isNonEmptyString(periode.fra) || isRed(cellIssues.fra);
   const harTil = isNonEmptyString(periode.til) || isRed(cellIssues.til);
@@ -49,25 +51,30 @@ const evaluateOne = (
   if (mangler) dele.push(mangler);
 
   if (dele.length === 0) {
-    return hasOverlap ? { kind: 'error', message: FERIE_OVERLAP_LINJE, field: 'fra' } : { kind: 'ok' };
+    return hasOverlap ? { kind: 'error', message: overlapLinje, field: 'fra' } : { kind: 'ok' };
   }
   const beskeder = [...new Set(dele.map((del) => del.message))];
-  if (hasOverlap) beskeder.push(FERIE_OVERLAP_LINJE);
+  if (hasOverlap) beskeder.push(overlapLinje);
   return {
     kind: 'error',
-    message: `${buildPeriodeRaekkeNavn('Ferieperioden', periode)}: ${beskeder.join('; ')}`,
+    message: `${buildPeriodeRaekkeNavn('Ferieperioden', resolvePeriodeNavneDatoer(periode, cellIssues))}: ${beskeder.join('; ')}`,
     field: dele[0]!.field,
   };
 };
 
+/**
+ * Gælder begge ferietabeller: TAF-afsnittets og beregningsperiodens (BB-264). `overlapLinje` navngiver
+ * tabellen, så to tabellers overlap ikke foldes sammen til én linje i «Fejl og advarsler» (BB-251).
+ */
 export const evaluateFerieperioder = (
   ferieperioder: ReadonlyArray<FerieperiodeRowInput>,
   cellIssues: (rowId: string) => FerieperiodeCellIssues,
+  overlapLinje: string = FERIE_OVERLAP_LINJE,
 ): ReadonlyMap<string, TafPeriodeEvaluation> => {
   const overlappingIds = detectOverlappingPeriods(ferieperioder);
   const result = new Map<string, TafPeriodeEvaluation>();
   for (const periode of ferieperioder) {
-    result.set(periode.id, evaluateOne(periode, cellIssues(periode.id), overlappingIds.has(periode.id)));
+    result.set(periode.id, evaluateOne(periode, cellIssues(periode.id), overlappingIds.has(periode.id), overlapLinje));
   }
   return result;
 };

@@ -349,6 +349,8 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
       },
     ];
     values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
+    // TAF-afsnittets ferie gælder kun i TAF-perioderne (`resolveIndkomstFerieperioder`).
+    values.tafPerioder = [{ id: 'taf-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31'), loseFeriedage: undefined }];
 
     const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 

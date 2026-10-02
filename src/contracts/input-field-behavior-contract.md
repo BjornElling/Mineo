@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-09-25 (feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
+**Senest verificeret mod kode:** 2026-10-02 (§2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
 revideret efter gennemgang af brugernes forventninger og fejlskærmbilleder: forslag kræver to foregående
 rækker, periodemønstre begrænses til faste uge- og månedsintervaller, sammenhængende fra-/til-perioder
 følges ad, og beløb gentages kun efter to ens værdier, med de beskrevne periode- og grænsevilkår.
@@ -579,8 +579,8 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   0–99 giver 2. Udledningen er ikke kosmetisk: den gør det umuligt for indtastningsgrænsen og
   talværdigrænsen at komme fra hinanden, hvis maksimum senere ændres.
 - **Felter uden øvre domænemaksimum – i praksis «antal dage»-felterne – har 4 cifre** (op til 9999 dage).
-  Det gælder `Uspecificerede ferie-/fridage`, `Øvrige fraværsdage`, `Løse ferie-/feriefridage` og `Fraværsdage uden
-  løn i referenceperioden`.
+  Det gælder beregningsperiodens og TAF-periodernes `Løse ferie-/feriefridage`, `Antal fraværsdage (mandag-fredag)`
+  og `Fraværsdage uden løn i referenceperioden`.
 - **Cifferloftet er en LÆNGDEregel og løsner aldrig feltets talværdigrænse.** En værdi inden for
   cifferantallet, men uden for feltets interval, skal fortsat kunne indtastes og bevares som canonical
   værdi med rød ring og konkret tooltip: méngrad `121` er kontraktens eksempel (§2.3), og den kan stadig

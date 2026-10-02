@@ -3,6 +3,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import { integerAdmission } from '../../../components/inputs/draftAdmission';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { FieldIssue } from '../../inputIssue';
+import type { FieldWarning } from '../../fieldWarning';
 import type { EditorLocation } from '../../editor/fieldEditorState';
 import NumericTextField from './NumericTextField';
 import { resolveIntegerCharPolicy } from './charLengthPolicy';
@@ -29,10 +30,12 @@ export type IntegerFieldProps = Readonly<{
    * descriptorens eget issue har forrang (§1.8).
    */
   crossFieldIssue?: FieldIssue;
+  /** Ikke-blokerende feltadvarsel (gul ring + tooltip), viderestillet uændret til `NumericTextField`. */
+  warning?: FieldWarning;
 }>;
 
 const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
-  ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue }, ref) => {
+  ({ field, location, name, width = 130, placeholder, disabled, singleStageClick = false, inputRef, sx, crossFieldIssue, warning }, ref) => {
     // Fortegn OG cifferloft kommer fra descriptorens codec gennem den DELTE resolver – samme kilde som
     // grid-cellen. Cifferloftet var før valgfrit, og 8 af 12 heltalsfelter havde derfor ingen grænse.
     const { allowNegative, maxDigits, maxDraftLength } = resolveIntegerCharPolicy(field);
@@ -55,6 +58,7 @@ const IntegerField = React.forwardRef<HTMLDivElement, IntegerFieldProps>(
         inputRef={inputRef}
         sx={sx}
         {...(crossFieldIssue === undefined ? {} : { crossFieldIssue })}
+        {...(warning === undefined ? {} : { warning })}
       />
     );
   }

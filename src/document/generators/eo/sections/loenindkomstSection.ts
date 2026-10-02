@@ -126,6 +126,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
           loenindkomstAnsaettelsesforhold: eoValues.loenindkomstAnsaettelsesforhold ?? [],
           ferieperioder: eoValues.ferieperioder,
           fravaerPerioder: eoValues.fravaerPerioder,
+          tafPerioder: eoValues.tafPerioder,
         },
       });
       const rowValues = [

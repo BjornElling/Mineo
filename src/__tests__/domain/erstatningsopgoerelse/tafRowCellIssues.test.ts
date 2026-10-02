@@ -1,4 +1,5 @@
-import { collectTafRowCellIssues, isPeriodOverlapIssue } from '../../../domain/erstatningsopgoerelse/tafRowCellIssues';
+import { collectTafRowCellIssues } from '../../../domain/erstatningsopgoerelse/tafRowCellIssues';
+import { isPeriodOverlapIssue } from '../../../domain/erstatningsopgoerelse/periodOverlapIssues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 

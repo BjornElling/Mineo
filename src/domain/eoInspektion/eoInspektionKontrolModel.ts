@@ -1,3 +1,4 @@
+import { resolveIndkomstFerieperioder } from '../erstatningsopgoerelse/helpers/indkomstFerieperioder';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { ISODateString } from '../../types/branded';
@@ -219,7 +220,8 @@ const addWeekdayNonShDatesFromIsoRange = (
 const buildExplicitFerieSet = (values: ErstatningsopgoerelseValues, shDays: ReadonlySet<ISODateString>): ReadonlySet<ISODateString> => {
   const set = new Set<ISODateString>();
 
-  const ferieRows = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
+  // Samme ferie som motorens fordeling: hver tabel i sin egen periode.
+  const ferieRows = resolveIndkomstFerieperioder(values);
   for (const row of ferieRows) {
     const range = validateIsoRange(row.fra, row.til);
     if (!range) continue;

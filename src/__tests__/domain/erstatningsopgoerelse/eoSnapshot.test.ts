@@ -386,25 +386,8 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.invariants.some((invariant) => invariant.id.includes('taf_perioder:lose_feriedage:'))).toBe(true);
   });
 
-  it('returnerer error uden data ved overbooking af uspecificerede ferie-/fridage', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
-    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
-    eoValues.tafBeregningsperiodeFra = toISODateString('2024-01-01');
-    eoValues.tafBeregningsperiodeTil = toISODateString('2024-01-05');
-    eoValues.uspecificeredeFerieFridage = 10;
-
-    const snapshot = computeEoSnapshot({
-      revision: 'beregningsperiode-lose-feriedage',
-      stamdataValues: STAMDATA_INITIAL_VALUES,
-      eoValues,
-    });
-
-    expect(snapshot.status).toBe('error');
-    expect(snapshot.data).toBeNull();
-    expect(snapshot.inspektionSnapshot).not.toBeNull();
-    expect(snapshot.invariants.some((invariant) => invariant.id === 'beregningsperiode:uspecificerede_feriefridage')).toBe(true);
-  });
+  // «Løse ferie-/feriefridage» ud over periodens arbejdsdage vurderes ikke længere af validatoren, men
+  // projekteres til feltet i readerprojektionen (BB-264); dækket i `beregningsgrundlagBrugerblik12f.test.ts`.
 
   it('behandler manglende lønregulering som valideringsfejl og ikke som fail_closed runtimefejl', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();

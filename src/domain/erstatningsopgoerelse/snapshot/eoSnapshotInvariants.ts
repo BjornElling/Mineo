@@ -1,4 +1,5 @@
 import type { ValidationError } from '../../../types/validation';
+import { BEREGNINGSPERIODE_MANGLER_MESSAGE } from '../validation/beregningsgrundlagFradragRules';
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import type { MoneyOre } from '../../money/money';
 import {
@@ -44,9 +45,6 @@ const buildValidationInvariantId = (error: ValidationError, index: number): stri
   if (path.includes('.loseFeriedage')) {
     return `taf_perioder:lose_feriedage:${path}`;
   }
-  if (path === 'uspecificeredeFerieFridage') {
-    return 'beregningsperiode:uspecificerede_feriefridage';
-  }
   return `validation:${path}`;
 };
 
@@ -75,7 +73,11 @@ const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
   FRA_OG_TIL_DATO_IKKE_ANGIVET_MESSAGE,
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
+  BEREGNINGSPERIODE_MANGLER_MESSAGE,
 ]);
+
+/** De top-level-felter, hvis «mangler»-invariant kan være et maskeringsartefakt. */
+const MASKABLE_TOP_LEVEL_FIELDS: ReadonlySet<string> = new Set(['tafBeregningsperiodeFra', 'tafBeregningsperiodeTil']);
 
 /** De rækkefelter, hvis «mangler»-invariant kan være et maskeringsartefakt. */
 const MASKABLE_ROW_FIELDS: ReadonlySet<string> = new Set(['fra', 'til', 'udgiftTil', 'beloeb']);
@@ -112,6 +114,11 @@ const legacyPathForFieldIssue = (
     // «Beløb er ikke udfyldt» om et beløb, der står i cellen.
     oevrigeKravPerioder: values.oevrigeKravPerioder,
   } as const;
+  // Beregningsperiodens to datoer er top-level-felter; en rød dato er tom for validatoren, som da meldte
+  // perioden ufuldstændig oven i datoens egen fejl.
+  if (issue.field.address.path.length === 0 && MASKABLE_TOP_LEVEL_FIELDS.has(issue.field.address.field)) {
+    return issue.field.address.field;
+  }
   const entity = issue.field.address.path.find((segment) => (
     segment.kind === 'entity' && segment.collection in supportedCollections
   ));

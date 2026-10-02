@@ -74,7 +74,8 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     const beregnesUdFra = page.getByRole('combobox', { name: 'Beregnes ud fra', exact: true });
     await beregnesUdFra.click();
     await page.getByRole('option', { name: 'Angivet dagsløn', exact: true }).click();
-    await expect(storeBededagToggle).not.toBeChecked();
+    // Ved dagsløn er der aldrig krav på tillægget, så knappen er skjult (BB-267).
+    await expect(storeBededagToggle).toBeHidden();
     await beregnesUdFra.click();
     await page.getByRole('option', { name: 'Angivet månedsløn', exact: true }).click();
     await expect(storeBededagToggle).toBeChecked();
@@ -104,7 +105,7 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
       hasText: 'Der vil sædvanligvis være krav på Store Bededagstillæg',
     });
     await expect(warningRow).toBeVisible();
-    const issueLink = warningRow.getByRole('button', { name: 'Indkomstgrundlag', exact: true });
+    const issueLink = warningRow.getByRole('button', { name: 'Indtægt før skadedatoen', exact: true });
     await expect(issueLink).toBeVisible();
     await issueLink.click();
     await expect(page.getByRole('tab', { name: 'EO oplysninger', exact: true })).toHaveAttribute('aria-selected', 'true');

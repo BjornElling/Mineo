@@ -8,6 +8,7 @@ import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowN
 import { resolveEoIssueSummaryText } from '../../../../domain/eoRowEvaluation/eoRowIssueCatalog';
 import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToFieldAddress } from '../../../../utils/scrollToFieldAddress';
+import { selectEoSafetyNetInvariants } from '../../../../domain/erstatningsopgoerelse/eoSafetyNetInvariants';
 import { resolveEoValidationPathAddress, topLevelFieldIssue } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
   ACTION_BLOCKED_INVALID_INPUT_MESSAGE,
@@ -494,43 +495,35 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       });
 
     // SIKKERHEDSNET (garanti: download må ALDRIG blokeres uden en synlig fejl i "Fejl og advarsler").
-    // En autoritativt-blokerende validerings-invariant blokerer download. Den forventes normalt
-    // reproduceret som en synlig række af `collectAllEoRows`, men hvis en row-builder ikke dækker
-    // reglen – eller `eoSnapshot.data` er null, så en resultat-afhængig række ikke kan dannes – ville
-    // download ellers være blokeret med en tom fejlboks. Vises kun når boksen ellers er tom for
-    // error-niveau-indhold, så dette aldrig dublerer en allerede vist, målrettet fejl. Beskeden er
-    // validatorens egen brugervendte tekst.
+    // Hvilke invarianter, der vises, afgøres af `selectEoSafetyNetInvariants`, hvis garanti downloadgaten
+    // forudsætter (`eoDocumentDownloadGate.ts`): alle, når boksen ellers er tom for fejl, og ellers de validatorregler om et navngivet felt, ingen vist
+    // række dækker (BB-265). Beskeden er validatorens egen brugervendte tekst.
     const hasErrorLevelContent =
       rows.length > 0
       || errors.length > 0
       || eetLoebendeErrorRows.length > 0
       || eoRowAggregationErrorMessage !== null;
-    if (!hasErrorLevelContent) {
-      authoritativeBlockingInvariants
-        // EET-kilde-invarianter har deres egen visningskanal (`eetLoebendeIssueRows`) med samme
-        // toggle-styrede synlighed som deres oprettelse (kun når midlertidigt-EET-import er aktiv),
-        // så de er aldrig en usynlig-blokerings-risiko og må ikke dubleres her.
-        .filter((invariant) => !invariant.id.startsWith('midlertidigt_eet_source:'))
-        .forEach((invariant) => {
-          // Nettet dækker per definition regler, INGEN row-builder har dannet en række for, så der er
-          // intet række-id at route fra. Invarianten bærer til gengæld validatorens egen felt-sti som
-          // evidence; navngiver den ét top-level EO-felt, kan rækken få samme link og blinkmarkering som
-          // enhver anden fejl. Kan stien ikke opløses, forbliver rækken tekst uden link – bevidst, frem
-          // for at sende brugeren til et gættet felt.
-          const address = resolveEoValidationPathAddress(invariant.evidence?.[0]);
-          pushIssue({
-            id: `blocking-invariant:${invariant.id}`,
-            message: invariant.message,
-            ...(address === undefined ? {} : {
-              actionLabel: 'EO oplysninger',
-              onAction: () => {
-                setActiveTab('eo_oplysninger');
-                scrollToFieldAddress(address);
-              },
-            }),
-          });
-        });
-    }
+    selectEoSafetyNetInvariants({
+      authoritativeBlockingInvariants,
+      displayedRows: [...errors, ...warnings],
+      hasOtherErrorContent: hasErrorLevelContent,
+    }).forEach((invariant) => {
+      // Invarianten bærer validatorens egen felt-sti som evidence; navngiver den ét top-level EO-felt, kan
+      // rækken få samme link og blinkmarkering som enhver anden fejl. Kan stien ikke opløses, forbliver rækken
+      // tekst uden link – bevidst, frem for at sende brugeren til et gættet felt.
+      const address = resolveEoValidationPathAddress(invariant.evidence?.[0]);
+      pushIssue({
+        id: `blocking-invariant:${invariant.id}`,
+        message: invariant.message,
+        ...(address === undefined ? {} : {
+          actionLabel: 'EO oplysninger',
+          onAction: () => {
+            setActiveTab('eo_oplysninger');
+            scrollToFieldAddress(address);
+          },
+        }),
+      });
+    });
 
     return rows;
   }, [
@@ -539,6 +532,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     eoSnapshot,
     eoRowAggregationErrorMessage,
     errors,
+    warnings,
     eetLoebendeErrorRows,
     isSystemInvariant,
     setActiveTab,

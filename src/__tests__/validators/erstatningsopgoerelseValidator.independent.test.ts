@@ -143,7 +143,8 @@ describe('uafhængige validator-inputs', () => {
       });
     });
 
-    it('rapporterer begge manglende top-level-datoer for Beregningsperiode', () => {
+    // Én mangel, én linje: rækken i «Fejl og advarsler» siger det samme (BB-265).
+    it('rapporterer manglende top-level-datoer for Beregningsperiode som én fejl på fra-datoen', () => {
       const values = parseLiteral({
         ...VALIDATOR_LITERAL,
         kravPaaTabtArbejdsfortjeneste: 'Ja',
@@ -157,12 +158,7 @@ describe('uafhængige validator-inputs', () => {
         errors: [
           {
             path: 'tafBeregningsperiodeFra',
-            message: 'Beregningsperiode fra-dato mangler',
-            severity: 'error',
-          },
-          {
-            path: 'tafBeregningsperiodeTil',
-            message: 'Beregningsperiode til-dato mangler',
+            message: 'Der mangler indtastninger i perioden til beregning af før-løn',
             severity: 'error',
           },
         ],

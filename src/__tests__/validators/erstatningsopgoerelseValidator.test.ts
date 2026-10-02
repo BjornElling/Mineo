@@ -201,9 +201,9 @@ describe('canonical rangevalidering', () => {
     });
     const errors = erstatningsopgoerelseValidator.validateParsed(values).errors;
 
+    // Beregningsgrundlagets dagfelter bærer selv loftet på descriptoren (BB-264); validatoren melder dem ikke.
+    expect(errors.some((error) => error.path === 'uspecificeredeFerieFridage' || error.path === 'oevrigeFravaersdage')).toBe(false);
     expect(errors).toEqual(expect.arrayContaining([
-      expect.objectContaining({ path: 'uspecificeredeFerieFridage', message: 'Antal dage skal være mellem 0 og 366' }),
-      expect.objectContaining({ path: 'oevrigeFravaersdage', message: 'Antal dage skal være mellem 0 og 366' }),
       expect.objectContaining({ path: 'tafPerioder[0].loseFeriedage', message: 'Antal dage skal være mellem 0 og 999' }),
       expect.objectContaining({ path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFravaersdageUdenLoen', message: 'Antal dage skal være mellem 0 og 366' }),
       expect.objectContaining({ path: 'loenindkomstAnsaettelsesforhold[0].offentligLoenTrin', message: 'Løntrin skal være mellem 1 og 55' }),
@@ -1116,7 +1116,7 @@ describe('validateBeregnesUdFra', () => {
       tafBeregningsperiodeFra: iso('2024-01-01'),
       tafBeregningsperiodeTil: undefined,
     });
-    expect(hasError(values, 'Beregningsperiode til-dato mangler')).toBe(true);
+    expect(hasError(values, 'Der mangler indtastninger i perioden til beregning af før-løn')).toBe(true);
   });
 
   it('fanger beregningsperiode fra > til', () => {
@@ -1679,7 +1679,7 @@ describe('samlet validering', () => {
 
   it('default-værdier med TAF giver fejl pga. manglende beregningsperiode', () => {
     const values = makeValues({});
-    expect(hasError(values, 'Beregningsperiode fra-dato mangler')).toBe(true);
+    expect(hasError(values, 'Der mangler indtastninger i perioden til beregning af før-løn')).toBe(true);
   });
 
   it('er valid med komplet svie/smerte (TAF slået fra)', () => {

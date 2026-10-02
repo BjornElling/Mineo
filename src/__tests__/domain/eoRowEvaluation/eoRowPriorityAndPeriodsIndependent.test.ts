@@ -7,7 +7,10 @@ import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregato
 import { buildEoSvieSmerteRows } from '../../../domain/eoRowEvaluation/eoRowSvieSmerteRows';
 import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowTaftRows';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildTestFieldIssueSet } from '../../utils/fieldIssueTestSupport';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -228,6 +231,18 @@ describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
         id: 'fravaer-1',
         fra: iso('2024-01-02'),
         til: undefined,
+      }],
+      // Ferien i beregningsperioden vises kun i arbejdsdage (BB-263): uden løn under ferie bliver enheden det.
+      // Lønnen er 0 kr., så perioden stadig er uden indkomst.
+      loenindkomstAnsaettelsesforhold: [{
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-1',
+        fuldLoenUnderFerie: 'Nej' as const,
+        indtaegtsoplysningerTableData: [{
+          id: 'row-1', col0_maaned: '1', col1_maaned: '2024', col0_uge: '', col1_uge: '',
+          col0_dag: undefined, col1_dag: undefined,
+          col2: { kind: 'number' as const, value: 0 }, col3: undefined, col4: undefined, col5: undefined,
+        }],
       }],
     };
 

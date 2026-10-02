@@ -65,34 +65,3 @@ export const detectOverlappingPeriods = (rows: readonly PeriodRow[]): ReadonlySe
 
   return overlappingIds;
 };
-
-/**
- * Samme detektion, men med modparterne bevaret pr. række.
- *
- * Findes, fordi «Fejl og advarsler» kun viser ÉN linje om overlap (udviklerbeslutning 2026-09-22):
- * så er det den røde celles tooltip, der skal kunne sige HVILKEN periode der overlappes, ellers
- * kan brugeren ikke se hvilke to rækker der er tale om. `detectOverlappingPeriods` beholdes som
- * den enkle prøve for de kaldere, der kun spørger «er der overlap?».
- */
-export const detectOverlappingPeriodPartners = (
-  rows: readonly PeriodRow[],
-): ReadonlyMap<string, readonly string[]> => {
-  const partners = new Map<string, string[]>();
-
-  const add = (id: string, partnerId: string): void => {
-    const existing = partners.get(id);
-    if (existing === undefined) partners.set(id, [partnerId]);
-    else existing.push(partnerId);
-  };
-
-  for (let i = 0; i < rows.length; i++) {
-    for (let j = i + 1; j < rows.length; j++) {
-      if (rowsOverlap(rows[i], rows[j])) {
-        add(rows[i].id, rows[j].id);
-        add(rows[j].id, rows[i].id);
-      }
-    }
-  }
-
-  return partners;
-};

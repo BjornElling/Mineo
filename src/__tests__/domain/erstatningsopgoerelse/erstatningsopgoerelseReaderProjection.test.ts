@@ -60,8 +60,9 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
     beregnesUdFra: 'Beregningsperiode',
     tafBeregningsperiodeFra: toISODateString('2022-04-01'),
     tafBeregningsperiodeTil: toISODateString('2022-06-30'),
+    // TAF-perioden ligger efter beregningsperioden: et overlap er en rød feltfejl (BB-262) og ville spærre.
     tafPerioder: [
-      { id: 'taf-1', fra: toISODateString('2022-04-01'), til: toISODateString('2022-06-30'), loseFeriedage: 2 },
+      { id: 'taf-1', fra: toISODateString('2022-07-01'), til: toISODateString('2022-09-30'), loseFeriedage: 2 },
     ],
     oevrigeKravPerioder: [
       { id: 'ok-1', dato: toISODateString('2022-05-01'), udgiftTil: 'Medicin', beloeb: asAmount(1500) },

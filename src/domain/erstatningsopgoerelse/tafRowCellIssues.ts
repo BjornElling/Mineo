@@ -6,17 +6,25 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, getToday } f
 import {
   eoFerieperiodeFraField,
   eoFerieperiodeTilField,
+  eoTafBeregningsperiodeFraField,
+  eoTafBeregningsperiodeTilField,
   eoTafPeriodeFraField,
   eoTafPeriodeLoseFeriedageField,
   eoTafPeriodeTilField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { isFerieRowEmpty, isTafRowEmpty } from './helpers/rowEmpty';
-import { collectPeriodOverlapIssues } from './periodOverlapIssues';
+import {
+  collectPeriodOverlapIssues,
+  collectSourcesOverlapIssues,
+  tableOverlapSource,
+  type PeriodOverlapSource,
+} from './periodOverlapIssues';
 import { resolveSagensTafCutoffDates } from './tafCutoffDateIssues';
 import { buildFerieCutoffErrorMessage } from './validation/tafPeriodConstraints';
 import { buildTafLoseFeriedageMaxMessage, resolveTafLoseFeriedageMaksimum } from './validation/tafRowRules';
 
-// TAF- og ferierækkernes regler, som ikke kan ligge på descriptoren, projekteret til de konkrete celler.
+// TAF- og ferierækkernes regler, som ikke kan ligge på descriptoren, projekteret til de konkrete celler –
+// inklusive beregningsperiodens to datoer, når de overlapper en TAF-periode (BB-262).
 //
 // Tre regler spærrede opgørelsen uden en eneste rød celle (M-20 i BB-218's form): overlap i begge tabeller
 // (BB-251), for mange løse feriedage (BB-252) og en ferieperiode uden for sit vindue (BB-248). Descriptoren
@@ -88,6 +96,35 @@ const collectTafLoseFeriedageIssues = (
   });
 
 /**
+ * TAF-periodernes overlap – indbyrdes OG mod beregningsperioden – i ét kald, så en TAF-celle, der overlapper
+ * begge, får ét issue med begge modparter (§1.8). Beregningsperioden spærrede før uden en rød celle og med et
+ * link kun til sektionen (BB-262); nu farves dens to datoer og den overlappende TAF-rækkes to datoer, og hver
+ * tooltip navngiver modparten. Beregningsperiodens datoer er readerens: uden «Beregningsperiode» er de tomme.
+ */
+const collectTafOverlapIssues = (values: ErstatningsopgoerelseValues): readonly FieldIssue[] => {
+  const tafSource = tableOverlapSource(
+    'tafPerioder',
+    { ental: 'TAF-perioden', flertal: 'TAF-perioderne' },
+    values.tafPerioder.filter((row) => !isTafRowEmpty(row)),
+    { fra: eoTafPeriodeFraField, til: eoTafPeriodeTilField },
+  );
+  const beregningsperiodeSource: PeriodOverlapSource = {
+    id: 'beregningsperiode',
+    navn: { ental: 'beregningsperioden', flertal: 'beregningsperioderne' },
+    indbyrdes: false,
+    entries: values.beregnesUdFra === 'Beregningsperiode'
+      ? [{
+        id: 'beregningsperiode',
+        fra: values.tafBeregningsperiodeFra,
+        til: values.tafBeregningsperiodeTil,
+        fields: { fra: eoTafBeregningsperiodeFraField.bind(), til: eoTafBeregningsperiodeTilField.bind() },
+      }]
+      : [],
+  };
+  return collectSourcesOverlapIssues([tafSource, beregningsperiodeSource], [['beregningsperiode', 'tafPerioder']]);
+};
+
+/**
  * Alle projekterede regelfejl på TAF-afsnittets to tabeller. Tavst, når TAF-kravet ikke er «Ja»: rækkerne
  * indgår da ikke, og felterne er skjulte. Værdierne er readerens, så en skjult celle allerede er tom.
  */
@@ -97,10 +134,7 @@ export const collectTafRowCellIssues = (
 ): readonly FieldIssue[] => {
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') return [];
   return [
-    ...collectPeriodOverlapIssues(
-      values.tafPerioder.filter((row) => !isTafRowEmpty(row)),
-      { fra: eoTafPeriodeFraField, til: eoTafPeriodeTilField },
-    ),
+    ...collectTafOverlapIssues(values),
     ...collectTafLoseFeriedageIssues(values, stamdata),
     ...collectPeriodOverlapIssues(
       values.ferieperioder.filter((row) => !isFerieRowEmpty(row)),
@@ -110,5 +144,3 @@ export const collectTafRowCellIssues = (
   ];
 };
 
-/** Overlaps-issuets kode – rækkebyggeren skelner overlap (én linje pr. tabel) fra rækkens øvrige fejl. */
-export const isPeriodOverlapIssue = (issue: FieldIssue): boolean => issue.code.endsWith('.overlap');

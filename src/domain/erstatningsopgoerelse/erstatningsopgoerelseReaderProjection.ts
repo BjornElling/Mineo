@@ -155,6 +155,7 @@ import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 import { collectTafRowCellIssues } from './tafRowCellIssues';
+import { collectBeregningsgrundlagCellIssues } from './beregningsgrundlagCellIssues';
 import { collectSvieSmerteCutoffDateIssues } from './svieSmerteCutoffDateIssues';
 import { collectSvieSmerteOverlapIssues } from './svieSmerteOverlapIssues';
 
@@ -744,7 +745,10 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue spærrede før uden rød celle
   // (BB-248, BB-251, BB-252). De projekteres samme vej som cutoffen og blokerer samme gren.
   const tafRowCellIssueList = collectTafRowCellIssues(eoValues, stamdataValues);
-  const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList);
+  // Beregningsgrundlagets ferie, løse dage og fravær spærrede uden rød celle eller endte i en intern
+  // undtagelse (BB-258, BB-264). De projekteres samme vej og blokerer samme gren.
+  const beregningsgrundlagCellIssueList = collectBeregningsgrundlagCellIssues(eoValues);
+  const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList, beregningsgrundlagCellIssueList);
   const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
   // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
   // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).

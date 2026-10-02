@@ -2,7 +2,6 @@ import type { ErstatningsopgoerelseValues, FerieperiodeRow, TafPeriodeRow } from
 import type { ISODateString } from '../../../types/branded';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder } from '../engines/tafCalculations';
-import { computeTafOverlapWithBeregningsperiode } from '../engines/beregningsperiodeTafOverlap';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../validation/tafPeriodConstraints';
 import { harTafPeriodeIngenArbejdsdage } from '../validation/tafRowRules';
 import { countFeriedageInRanges } from '../engines/tafDaySets';
@@ -99,15 +98,3 @@ export const resolveBeregningsperiodeFerieRamme = (
   return fra !== undefined && til !== undefined && fra <= til ? [{ fra, til }] : undefined;
 };
 
-export const buildBeregningsperiodeTafOverlap = (args: {
-  values: ErstatningsopgoerelseValues;
-  tafPerioder: readonly TafPeriodeRow[];
-}) => {
-  return computeTafOverlapWithBeregningsperiode({
-    beregningsperiode: {
-      fra: args.values.tafBeregningsperiodeFra,
-      til: args.values.tafBeregningsperiodeTil,
-    },
-    tafPerioder: args.tafPerioder.map((row) => ({ id: row.id, fra: row.fra, til: row.til })),
-  });
-};

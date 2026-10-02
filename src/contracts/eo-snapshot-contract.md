@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-09-25 (§14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -218,7 +218,10 @@ snapshot til `status: 'error'` med `data: null`.
 Bruges til:
 - Schema-violations
 - Overlap i TAF-perioder
-- Out-of-range ferie/fridage (`loseFeriedage`, `uspecificeredeFerieFridage`)
+- Out-of-range ferie/fridage (`loseFeriedage`, `uspecificeredeFerieFridage`) og fradrag, der ikke efterlader
+  noget af beregningsperioden (løse dage, øvrigt fravær, ferie). Beregningsgrundlagets regler er røde
+  feltissues (`beregningsgrundlagCellIssues.ts`) og bliver invariants ad samme vej som enhver rød feltfejl;
+  før gav en nævner på 0 en intern undtagelse (BB-258).
 - Manglende nødvendige inputfelter (validator-fejl)
 
 **Bounds-violations (§2.2)** (differencekravDato, EET-virkningsdato, ménafgørelsesdato)

@@ -1,3 +1,4 @@
+import { resolveIndkomstFerieperioder } from './indkomstFerieperioder';
 import type {
   StandardLoenTableRow,
   Loenperiode,
@@ -272,7 +273,8 @@ export const buildIncomeCalculationContext = (
     beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? buildLoenArbejdsdageSet(
         { fra: bounds.boundsFra, til: bounds.boundsTil },
-        [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])]
+        // Hver ferietabel i sin egen periode (`resolveIndkomstFerieperioder`).
+        resolveIndkomstFerieperioder(values)
       )
       : new Set<ISODateString>();
   const shDaysForYdelser = buildShDageSetFromIsoRange(bounds.boundsFra, bounds.boundsTil);

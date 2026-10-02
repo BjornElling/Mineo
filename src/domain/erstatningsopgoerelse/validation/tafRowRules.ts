@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues, TafPeriodeRow } from '../../../schemas/formSchemas';
-import { isoToDanish, type ISODateString } from '../../../types/branded';
+import { isISODateString, isoToDanish, type ISODateString } from '../../../types/branded';
+import type { FieldIssue } from '../../../inputCore/inputIssue';
 import type { IsoRange } from '../../../utils/isoDateHelpers';
 import { formatCountWithUnit } from '../../../utils/formatUtils';
 import { calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
@@ -100,6 +101,25 @@ export const buildPeriodeRaekkeNavn = (
   return `${tabel} uden datoer`;
 };
 
+/**
+ * Rækkens datoer til navnet, også når de er røde. Readeren giver en rød dato som tom, så en omvendt række hed
+ * før «Ferieperioden uden datoer», selv om begge datoer står i cellerne (BB-265). Kronologifejlen bærer
+ * modpartens dato (`detail.counterpart`): fra-cellens issue kender til-datoen og omvendt.
+ */
+export const resolvePeriodeNavneDatoer = (
+  row: Readonly<{ fra?: ISODateString | undefined; til?: ISODateString | undefined }>,
+  cellIssues: Readonly<{ fra?: Pick<FieldIssue, 'detail'> | undefined; til?: Pick<FieldIssue, 'detail'> | undefined }>,
+): Readonly<{ fra?: ISODateString; til?: ISODateString }> => {
+  const counterpart = (issue: Pick<FieldIssue, 'detail'> | undefined): ISODateString | undefined => {
+    const value = issue?.detail?.counterpart;
+    return typeof value === 'string' && isISODateString(value) ? value : undefined;
+  };
+  const fra = row.fra ?? counterpart(cellIssues.til);
+  const til = row.til ?? counterpart(cellIssues.fra);
+  return { ...(fra === undefined ? {} : { fra }), ...(til === undefined ? {} : { til }) };
+};
+
 /** Én linje pr. tabel om overlap: den røde celles tooltip navngiver modparten (BB-251). */
 export const TAF_OVERLAP_LINJE = 'Der er overlappende TAF-perioder';
 export const FERIE_OVERLAP_LINJE = 'Der er overlappende ferieperioder';
+export const BEREGNINGSPERIODE_FERIE_OVERLAP_LINJE = 'Der er overlappende ferieperioder i beregningsperioden';

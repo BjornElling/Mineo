@@ -45,6 +45,11 @@ import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhedInp
  * her. Mode-gating af beregningsgrundlaget (hvilket løn-felt der er aktivt afhængigt af
  * `beregnesUdFra`) ejes fortsat af indkomst-motoren, fordi den aktive mode altid er et
  * relevant input – også når UI'en er komprimeret.
+ *
+ * Relevansen efter mode er derimod IKKE komprimeringen: felterne i en fravalgt gren af «Beregnes ud fra»
+ * (og bag «Øvrigt fravær uden løn» eller enheden) bærer descriptor-relevans fra prædikaterne nedenfor, så en
+ * skjult værdi i en fravalgt gren hverken spærrer eller fodrer noget (BB-266). En komprimeret, men valgt
+ * gren forbliver relevant.
  */
 
 /** Svie/smerte-sektionen er aktiv (krav medregnes). */
@@ -90,6 +95,56 @@ export const erTafLoseFeriedageRelevant = (
 ): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values)
   && computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+
+// ── Beregningsgrundlagets mode-felter (BB-266, BB-263) ─────────────────────────────────────────
+//
+// Felterne under «Beregnes ud fra» er relevante efter den GREN, de står i – ikke efter, om sektionen er
+// komprimeret ved EO 2+ (komprimerings-undtagelsen i moduldokumentationen gælder fortsat: en skjult, men
+// aktiv gren bliver ved med at fodre beregningen). Før bar ingen af dem relevans, så en værdi i en
+// fravalgt gren – fx 400 fraværsdage bag et slukket «Øvrigt fravær uden løn» – spærrede opgørelsen med en
+// fejl om et felt, brugeren ikke kunne se.
+//
+// Periodens to datoer følger KUN «Beregnes ud fra»: Lønindkomst læser dem også uden for TAF-sektionen
+// (regulering og enhed). De rene TAF-input – ferie, løse dage, fravær og den angivne løn – kræver desuden,
+// at TAF-sektionen er aktiv, som sektionens egen synlighed.
+
+/** «Periode til beregning af før-løn» er relevant: «Beregnes ud fra» er «Beregningsperiode». */
+export const erBeregningsperiodeValgt = (values: Pick<ErstatningsopgoerelseValues, 'beregnesUdFra'>): boolean =>
+  values.beregnesUdFra === 'Beregningsperiode';
+
+/** Beregningsperiodens TAF-input (fravær) er relevant: TAF-sektionen er aktiv, og grundlaget er en beregningsperiode. */
+export const erBeregningsperiodeInputRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste' | 'beregnesUdFra'>
+): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv(values) && erBeregningsperiodeValgt(values);
+
+/**
+ * «Ferie i beregningsperioden» og «Løse ferie-/feriefridage» er relevante: grundlaget er en beregningsperiode,
+ * og TAF opgøres i ARBEJDSDAGE.
+ *
+ * I måneder fradrages ferie ikke, og intet andet læser de to input: sygeferiegodtgørelsen bruger TAF-afsnittets
+ * EGNE ferieperioder, ikke beregningsperiodens (kontrolleret 2026-10-02, BB-263). Felterne skjules da som
+ * TAF-periodernes løse feriedage (BB-247). Enheden kan skifte ved en indtastning under Lønindkomst; de skjulte
+ * værdier bevares og kommer tilbage med enheden.
+ */
+export const erBeregningsperiodeFerieRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'> & TafBeregningsenhedInput
+): boolean =>
+  erBeregningsperiodeInputRelevant(values)
+  && computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.ARBEJDSDAGE;
+
+/** «Antal fraværsdage» og «Årsag til fravær» er relevante: beregningsperiode og «Øvrigt fravær uden løn» slået til. */
+export const erOevrigtFravaerRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste' | 'beregnesUdFra' | 'oevrigtFravaerUdenLoen'>
+): boolean =>
+  erBeregningsperiodeInputRelevant(values) && values.oevrigtFravaerUdenLoen === 'Ja';
+
+/** Den angivne løns felter er relevante i deres egen gren: TAF-sektionen er aktiv, og «Beregnes ud fra» er grenen. */
+export const erAngivetLoenGrenRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste' | 'beregnesUdFra'>,
+  gren: 'Angivet månedsløn' | 'Angivet dagsløn',
+): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv(values) && values.beregnesUdFra === gren;
 
 /** Øvrige erstatningskrav-sektionen er aktiv (krav medregnes). */
 export const erOevrigeKravSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaOevrigeErstatningskrav'>): boolean =>

@@ -1,4 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
+import type { Beregningsmetode } from '../../../schemas/formSchemas/enumSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 
@@ -37,3 +38,20 @@ export const harStoreBededagstillaegIInterval = (
   til: ISODateString,
   valg: StoreBededagstillaegValg
 ): boolean => harValgtStoreBededagstillaeg(valg) && til >= STORE_BEDEDAG_START && fra <= til;
+
+/**
+ * Hvornår der SÆDVANLIGVIS er krav på tillægget – og dermed grund til at advare, når det er fravalgt.
+ *
+ * Den juridiske præmis (udvikleren, 2026-10-02; se `indskudte-loentillaeg-contract.md` §2b):
+ * - Store Bededag blev afskaffet som helligdag fra 1. januar 2024. Den, der får **samme løn uanset antallet af
+ *   arbejdsdage** – angivet månedsløn, eller en beregningsperiode med almindelig (fuld) løn på helligdage – arbejder
+ *   nu én dag mere for samme løn og kompenseres med tillægget på 0,45 %.
+ * - Den, der aflønnes med en **angivet dagsløn**, får løn for de dage, der arbejdes. Store Bededag er fra 2024 en
+ *   arbejdsdag i TAF-perioden (`shDageBeregning.ts`), så dagen kompenseres allerede gennem antallet af
+ *   arbejdsdage, og der er **aldrig** krav på tillægget. Advarslen tier derfor ved angivet dagsløn (BB-267).
+ */
+export const kanDerVaereKravPaaStoreBededagstillaeg = (
+  beregnesUdFra: Beregningsmetode | undefined,
+  loenPaaHelligdage: string | undefined,
+): boolean =>
+  beregnesUdFra !== 'Angivet dagsløn' && loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;

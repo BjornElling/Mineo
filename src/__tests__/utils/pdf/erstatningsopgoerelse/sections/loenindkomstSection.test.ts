@@ -277,8 +277,16 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
     autoTableMock.mockClear();
     const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.beregnesUdFra = 'Angivet dagsløn';
-    ctx.eoValues.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-01-11'), til: iso('2024-01-11') }];
-    ctx.eoValues.fravaerPerioder = [{ id: 'fravaer-1', fra: iso('2024-01-12'), til: iso('2024-01-12') }];
+    // Hver ferie i sin egen periode (`resolveIndkomstFerieperioder`): to TAF-ferier i TAF-perioden.
+    ctx.eoValues.tafPerioder = [
+      ...ctx.eoValues.tafPerioder,
+      { id: 'taf-ferie', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+    ];
+    ctx.eoValues.ferieperioder = [
+      { id: 'ferie-1', fra: iso('2024-01-11'), til: iso('2024-01-11') },
+      { id: 'ferie-2', fra: iso('2024-01-12'), til: iso('2024-01-12') },
+    ];
+    ctx.eoValues.fravaerPerioder = [];
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0] = {
       ...ctx.eoValues.loenindkomstAnsaettelsesforhold[0],
       loenperiode: 'dag',

@@ -8,7 +8,18 @@ import {
   resolveBeregningsperiodeFerieRamme,
   resolveTafFerieRamme,
 } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
-import { erTafLoseFeriedageRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { erBeregningsperiodeFerieRelevant, erTafLoseFeriedageRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import {
+  evaluateBeregningsgrundlagFradragAdvarsel,
+  resolveBeregningsgrundlagFradrag,
+} from '../../../../domain/erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
+import {
+  resolveAngivetLoenAdvarsel,
+  resolveOevrigeFravaersdageAdvarsel,
+  resolveOevrigtFravaerAarsagAdvarsel,
+} from '../../../../domain/erstatningsopgoerelse/validation/beregningsgrundlagFeltAdvarsler';
+import { createFieldWarning, type FieldWarning } from '../../../../inputCore/fieldWarning';
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
@@ -83,6 +94,26 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     [values],
   );
   const visTafLoseFeriedage = erTafLoseFeriedageRelevant(values);
+  // Beregningsperiodens ferie og løse dage virker kun i arbejdsdage og skjules ellers (BB-263).
+  const visBeregningsperiodeFerie = erBeregningsperiodeFerieRelevant(values);
+  // Beregningsgrundlagets gule ringe – samme regler og tekster som linjerne i «Fejl og advarsler» (BB-259,
+  // BB-268, BB-269). Fradragsadvarslen sidder på hvert indtastet fradrag, der æder perioden.
+  const beregningsgrundlagAdvarsler = React.useMemo(() => {
+    const fradrag = evaluateBeregningsgrundlagFradragAdvarsel(
+      resolveBeregningsgrundlagFradrag(values, computeTafBeregningsenhed(values)),
+    );
+    const warning = (message: string | undefined): FieldWarning | undefined =>
+      message === undefined ? undefined : createFieldWarning(message);
+    return {
+      loseFeriedage: warning(fradrag?.felter.includes('loseFeriedage') ? fradrag.message : undefined),
+      fravaersdage: warning(
+        resolveOevrigeFravaersdageAdvarsel(values)
+        ?? (fradrag?.felter.includes('fravaersdage') ? fradrag.message : undefined),
+      ),
+      aarsag: warning(resolveOevrigtFravaerAarsagAdvarsel(values)),
+      angivetLoen: warning(resolveAngivetLoenAdvarsel(values)),
+    };
+  }, [values]);
   const forligEvaluation = React.useMemo(() => evaluateForligAnsvarsgradRules(values), [values]);
   const forligFejl = React.useMemo(() => ({ harFejl: forligEvaluation.beggeUdfyldt, fejlbesked: forligEvaluation.beggeUdfyldtFejl ?? '' }), [forligEvaluation]);
   const visLoenudviklingFraEO = values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
@@ -113,7 +144,8 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
   return {
     values, skadedatoISO, erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom', forligFejl,
-    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById, visTafLoseFeriedage,
+    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById, visTafLoseFeriedage, visBeregningsperiodeFerie,
+    beregningsgrundlagAdvarsler,
     fravaer: { committedRowsEnsured: values.fravaerPerioder },
     statusSubheaderLabel: formatLabelDayAfterIsoDate('Status ved erstatningsperiodens udløb', values.vedroererPeriodeTil, 'Status').replace(/:$/, ''),
     menAfgoerelseDatoForTabel: values.varigeMenAfgorelse === 'Ja' ? values.menAfgoerelseDato : undefined,
@@ -122,7 +154,9 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     verserendeKlageMen: values.verserendeKlageMen === 'Ja', verserendeKlageEet: values.verserendeKlageEet === 'Ja',
     skalKomprimereIndtaegtFoerSkaden: !erDetteFoersteErstatningsopgoerelse(values.eoNummer) && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja',
     indtaegtFoerSkadenSectionTitle: `Indtægt før ${referencedato.labelLower}`,
-    angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn'}en per dato (hvis forskellige fra ${referencedato.label.toLowerCase()})`,
+    // Bestemt form af både lønnen og referencedatoen (BB-271): «månedslønnen» og «skadedatoen». En bøjning
+    // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».
+    angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedslønnen' : 'dagslønnen'} per dato (hvis forskellig fra ${referencedato.labelLower})`,
     aktivAngivetLoenOpreguleresFraDato, visLoenudviklingFraEO, eoLoenudvikling, loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(), alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(), filteredOverenskomster,
     loenudviklingBasis, erOffentligOverenskomst,

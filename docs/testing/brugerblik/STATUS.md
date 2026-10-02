@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12f – Erstatningsopgørelse → Beregningsgrundlaget for TAF.** 12e er gennemgået 2026-09-24
+- **Næste flade:** **12g – Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser.** 12f er
+  gennemgået, afgjort OG gennemført 2026-10-02 (16 fund, BB-258–BB-273). 12e er gennemgået 2026-09-24
   og afgjort OG gennemført 2026-09-25 (11 fund, BB-247–BB-257). 12d er gennemgået,
   afgjort OG gennemført 2026-09-24 (9 fund, BB-238–BB-246). 12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
   2026-09-22 (11 fund, BB-217–BB-227). Tidligere: 12a er gennemgået
@@ -23,8 +24,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-258
-- **Åbne spørgsmål:** **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
+- **Næste fund-ID:** BB-274
+- **Åbne spørgsmål:** **ingen.** Tidligere: **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
   EET-klage gælder alt EET; den bliver under «Øvrigt», og papiret trykker fortsat én EET-linje), BB-242 ja til en
   gul advarsel, BB-245 ja til «pr.», BB-246 afvist. Tidligere: **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
   årstal har ingen sammenhæng med det krævede satsår. Kravet anses for rejst én måned efter «Opgørelse lavet
@@ -94,7 +95,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12e's elleve fund (BB-247–BB-257) er afgjort og
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12f's 16 fund (BB-258–BB-273) er afgjort og
+  gennemført 2026-10-02** – 15 rettet (BB-261 kun del 2), ét afvist (BB-273); se afsnittet om 12f nedenfor.
+  Tidligere: **ingen.** **Flade 12e's elleve fund (BB-247–BB-257) er afgjort og
   gennemført 2026-09-25** – ti rettet (BB-247 indsnævret), ét afvist (BB-254); se afsnittet om 12e nedenfor.
   Tidligere: **ingen.** **Flade 12d's ni fund (BB-238–BB-246) er afgjort og
   gennemført 2026-09-24** – syv rettet, to afvist; se afsnittet om 12d nedenfor. Tidligere: **ingen.** **Flade 12c's ti fund (BB-228–BB-237) er
@@ -146,7 +149,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-09-25 (**Flade 12e afgjort og gennemført** – se afsnittet om 12e nedenfor.)
+- **Senest opdateret:** 2026-10-02 (**Flade 12f afgjort og gennemført** – se afsnittet om 12f nedenfor.)
+  Tidligere samme dag: (**Flade 12f – Beregningsgrundlaget for TAF – gennemgået: 16 fund, syv Høj, fire
+  Mellem og fem Lav, og ét nyt tværgående mønster M-36** – se afsnittet om 12f nedenfor.)
+  Tidligere: 2026-09-25 (**Flade 12e afgjort og gennemført** – se afsnittet om 12e nedenfor.)
   Tidligere: 2026-09-24 (**Flade 12e – Tabt arbejdsfortjeneste: perioden – gennemgået: 11 fund, tre Høj,
   fem Mellem og tre Lav, og ét nyt tværgående mønster M-35.** Se afsnittet om 12e nedenfor.) Tidligere samme dag:
   (**Flade 12d afgjort og gennemført** – se afsnittet om 12d nedenfor.)
@@ -578,7 +584,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12c | Erstatningsopgørelse – Øvrige erstatningskrav | Afgjort og gennemført | 10 (BB-228–BB-237) | [erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md) |
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Afgjort og gennemført | 9 (BB-238–BB-246) | [erstatningsopgoerelse-12d.md](erstatningsopgoerelse-12d.md) |
 | 12e | Erstatningsopgørelse – TAF: perioden | Afgjort og gennemført | 11 (BB-247–BB-257) | [erstatningsopgoerelse-12e.md](erstatningsopgoerelse-12e.md) |
-| 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Ikke startet | – | – |
+| 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Afgjort og gennemført | 16 (BB-258–BB-273) | [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md) |
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Ikke startet | – | – |
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Ikke startet | – | – |
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Ikke startet | – | – |
@@ -586,6 +592,38 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Beregningsgrundlaget for TAF (12f) – gennemgået, afgjort og gennemført 2026-10-02
+
+**Afgjort og gennemført 2026-10-02:** 15 rettet, ét afvist (BB-273), og BB-261's del 1 afvist. Tre blev afgjort
+efter modsvar: **BB-260** (huller i lønoplysningerne) blev først afvist, fordi dagpenge giver lovlige huller, og
+derefter godkendt som en gul advarsel alene for HELT tomme huller, da dagpenge registreres som offentlig ydelse og
+tæller som indkomst. **BB-261 del 2** fik loft ved dags dato. **BB-272** gennemføres uden ændring af store bogstaver,
+fordi programmet ikke kan kende et egennavn. Ved **BB-267** korrigerede udvikleren præmissen: krav på Store
+Bededagstillæg er der ved angivet månedsløn og ved en beregningsperiode med almindelig løn på helligdage, aldrig ved
+angivet dagsløn; præmissen står nu i `indskudte-loentillaeg-contract.md` §2b. **Bærende ændringer:** ingen lovlig
+indtastning når længere en intern undtagelse – en nævner på 0 er en rød feltfejl med grænsen i teksten (BB-258);
+programmet har én samlet overlapsregel for fra/til-perioder, nu også mellem beregningsperioden og TAF-perioderne
+(BB-262); beregningsgrundlagets mode-felter bærer descriptor-relevans efter deres gren (BB-266, lukker M-32's sidste
+udestående); og sikkerhedsnettet viser en validatorregel om et felt, også når andre fejl står i boksen, uden at
+gentage en linje om samme felt (BB-265). **Opfølgning (BB-267), besvaret samme dag:** knappen «Beregn Store
+Bededagstillæg» skjules ved angivet dagsløn, og tillægget regnes aldrig med dér (gennemført); angivet månedsløn giver
+kun krav ved «Almindelig løn» (uændret). Desuden gennemført: hver ferietabel gælder kun i sin egen periode ved fordelingen af
+lønnen i arbejdsdage (se 12f's åbne spørgsmål).
+
+**16 fund: syv Høj, fire Mellem, fem Lav (fem Fejl, fire Edge case, syv Fornuft) – og ét nyt tværgående mønster
+M-36.** Fladens bærende iagttagelse er, at grundlaget kan blive nul eller næsten nul, uden at nogen regel siger det.
+Tre lovlige indtastninger – 300 fraværsdage i 12 måneder, uspecificerede dage lig det «maksimalt 251», boksen selv
+nævner, og en månedsløn på 0 kr. – giver «intern beregningsfejl» (BB-258, M-36), og én dag under randen giver en
+dagsindkomst på 360.000 kr. uden et ord (BB-259). En beregningsperiode med huller i lønrækkerne halverer månedslønnen
+tavst (BB-260), og perioden kan række ind over skadedatoen (BB-261). **12e's mønstre gik igen i nabotabellen:** ferie i
+beregningsperioden og dagfelterne spærrer uden rød celle (BB-262, BB-264, M-20), og i måneder er ferie og
+uspecificerede dage uvirksomme, men kan stadig spærre (BB-263, M-35). **To fejl i infrastrukturen:** beregningsgrundlagets
+mode-felter mangler M-32's relevans, så en skjult værdi spærrer (BB-266), og validatorens linjer vises kun, når ingen
+anden fejl findes (BB-265, ny form af M-33). Dertil en Store Bededag-advarsel om programmets eget standardvalg
+(BB-267), en dagsløn på 30.000 kr. uden bemærkning (BB-268) og fem Lav om navne og tekst (BB-269–BB-273).
+Beregningsformlerne er kontrolregnet i seks sagsformer og er i orden. Konsollen var tavs uden for BB-258 og BB-265.
+Grundlaget står i [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md).
 
 ## Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden (12e) – gennemgået 2026-09-24, afgjort og gennemført 2026-09-25
 

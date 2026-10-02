@@ -55,7 +55,7 @@ describe('getNavigationTargetFromRowId', () => {
       ],
       [
         'taf.beregningsgrundlag.indkomst',
-        { tabId: 'eo_oplysninger', sectionId: 'taf-beregningsgrundlag', tabName: 'EO oplysninger', sectionTitle: 'Indkomstgrundlag' },
+        { tabId: 'eo_oplysninger', sectionId: 'taf-beregningsgrundlag', tabName: 'EO oplysninger', sectionTitle: 'Indtægt før skadedatoen' },
       ],
       [
         'taf.ophoerSkyldes',

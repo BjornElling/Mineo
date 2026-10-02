@@ -270,6 +270,8 @@ describe('buildEOInspektionModel – ferie-set', () => {
       vedroererPeriodeFra: toISODateString('2024-03-01') as never,
       vedroererPeriodeTil: toISODateString('2024-03-31') as never,
       ferieperioder: [{ id: 'f1', fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-04') }] as never,
+      // TAF-afsnittets ferie gælder kun i TAF-perioderne (`resolveIndkomstFerieperioder`).
+      tafPerioder: [{ id: 't1', fra: toISODateString('2024-03-01'), til: toISODateString('2024-03-31'), loseFeriedage: undefined }] as never,
     });
     const idx = model.tableData.dates.indexOf(toISODateString('2024-03-04') as never);
     expect(idx).toBeGreaterThanOrEqual(0);
@@ -278,9 +280,12 @@ describe('buildEOInspektionModel – ferie-set', () => {
   });
 
   it('fravaerPerioder medregnes i ferie-set', () => {
+    // Beregningsperiodens ferie gælder kun i beregningsperioden (`resolveIndkomstFerieperioder`).
     const model = buildEOInspektionModel({
       ...base(),
-      beregnesUdFra: 'Angivet dagsløn' as const,
+      beregnesUdFra: 'Beregningsperiode' as const,
+      tafBeregningsperiodeFra: toISODateString('2024-03-01') as never,
+      tafBeregningsperiodeTil: toISODateString('2024-03-31') as never,
       vedroererPeriodeFra: toISODateString('2024-03-01') as never,
       vedroererPeriodeTil: toISODateString('2024-03-31') as never,
       fravaerPerioder: [{ id: 'f2', fra: toISODateString('2024-03-05'), til: toISODateString('2024-03-05') }] as never,

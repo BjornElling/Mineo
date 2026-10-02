@@ -91,7 +91,7 @@ describe('eoSnapshotInvariants – direkte partitioner', () => {
     expect(buildValidationInvariants(errors)).toEqual([
       expect.objectContaining({ id: 'taf_perioder:overlap:tafPerioder[0].fra', blocksAuthoritativeComputation: true }),
       expect.objectContaining({ id: 'taf_perioder:lose_feriedage:tafPerioder[0].loseFeriedage', blocksAuthoritativeComputation: true }),
-      expect.objectContaining({ id: 'beregningsperiode:uspecificerede_feriefridage', severity: 'warning', blocksOutputs: [] }),
+      expect.objectContaining({ id: 'validation:uspecificeredeFerieFridage', severity: 'warning', blocksOutputs: [] }),
       expect.objectContaining({ id: 'validation:andetFelt', blocksAuthoritativeComputation: true }),
       expect.objectContaining({ id: 'validation:4', evidence: undefined }),
     ]);
