@@ -22,6 +22,7 @@ import {
 } from '../../money/money';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
+import { resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
 import type { LoenudviklingSegment } from '../shared/eoTypes';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { buildLoenArbejdsdageSet, resolveIncomeAllocationDays } from './periodiseringsMotor';
@@ -247,10 +248,13 @@ const resolveSfggAgPensionPctDecimalForDate = (
   employment: LoenindkomstAnsaettelsesforhold,
   iso: ISODateString
 ): number => {
-  if (!employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) {
+  // Aktiv-prædikatet (toggle OG id), ikke id'et alene: med «Overenskomst» slået fra, men et id stående, regnede
+  // sygeferiegodtgørelsen før med overenskomstens pension, mens kortet viste og regnede med brugerens egen.
+  const aktiv = resolveAktivOverenskomst(employment);
+  if (!aktiv.aktiv || getOffentligOverenskomstTypeById(aktiv.overenskomstId)) {
     return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
   }
-  const overenskomstRef = resolveOverenskomstRef(employment.overenskomstId);
+  const overenskomstRef = resolveOverenskomstRef(aktiv.overenskomstId);
   if (!overenskomstRef) {
     return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
   }
@@ -263,7 +267,10 @@ const resolveSfggAgPensionPctDecimalForDate = (
     dato: toDanishDateString(formatDanishDate(date)),
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
-  return resolvePctDecimalFromSatsOrInput(satser?.agPension, employment.pensionPct);
+  // En privat overenskomst låser pensionen. Før dens første satsperiode har programmet ingen sats, og den
+  // regnes da som 0 – samme regel som lønrækkerne (BB-275). Før faldt den tilbage til kortets pensionsfelt,
+  // som enten var tomt eller satsen på en helt anden dato.
+  return resolvePctDecimalFromSatsOrInput(satser?.agPension ?? 0, employment.pensionPct);
 };
 
 export const buildSfggGrossOre = (

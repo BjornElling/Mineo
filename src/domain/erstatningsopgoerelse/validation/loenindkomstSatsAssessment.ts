@@ -1,4 +1,4 @@
-import type { ErstatningsopgoerelseValues, LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
+import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 
@@ -6,104 +6,93 @@ import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
  * ÉN sats-vurdering for et lønindkomst-ansættelsesforhold.
  *
  * Tidligere blev de samme satser vurderet af to aktive regelsæt: ét producerede de røde feltfejl i
- * brugerfladen, og ét gatede beregning og dokumentdownload. Reglerne var faktisk forskellige – feltvejen
- * krævede feriegodtgørelse ved enhver reguleringsform, gatevejen kun ved `Overenskomst` og
- * `Manuelt angivet`. Et felt kunne derfor stå rødt, mens beregningen kørte videre uden at betragte værdien
- * som påkrævet. Dette modul er nu den ENE kilde, som både feltvisningen og gaten aftager; ét
- * regelsæt kan ikke drifte fra sig selv.
+ * brugerfladen, og ét gatede beregning og dokumentdownload. Dette modul er den ENE kilde, som både
+ * feltvisningen, rækken i «Fejl og advarsler» og validatoren aftager; ét regelsæt kan ikke drifte fra sig selv.
  *
- * Feriegodtgørelsens relevans følger den godkendte relevansmatrix: den er kun påkrævet, når den valgte
- * reguleringsform faktisk læser den (`Overenskomst`/`Manuelt angivet`). Ved `Statistik`, `KRL satstabel`,
- * `KL-lønaftaler`, `Manuel procentsats` og `Ingen` er et tomt felt hverken rødt eller blokerende. En tom
- * reguleringsform blokerer fortsat som et manglende reguleringsvalg – det er dét valg, der markeres og
- * blokerer, ikke satsen. Relevansen afgøres af den AKTUELT valgte form, så et skift begge veje slår
- * markeringen til og fra i samme øjeblik.
+ * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – UANSET beregningsmåde og
+ * reguleringsform. Lønrækkernes tillæg, fradraget for indtægt efter skaden og beregningsgrundlaget læser feltet
+ * i alle former, og en lønmodtager får altid enten feriegodtgørelse eller ferietillæg
+ * (`feriepenge-begreber-contract.md` regel 1). Før krævedes feltet kun ved «Overenskomst» og «Manuelt
+ * angivet», og et tomt felt fjernede tavst 12,5 % af lønnen fra kravet ved de øvrige former (BB-274).
+ *
+ * Et TOMT felt er en manglende indtastning, ikke en forkert: det giver ingen rød ring – brugeren har ikke
+ * skrevet noget – men en blokerende linje i «Fejl og advarsler» (udviklerafgørelse 2026-10-06, jf.
+ * `error-contract.md` §`missing`). En faktisk indtastet værdi under 12 % er rød og blokerer; over 20 % får den
+ * en gul, ikke-blokerende ring (BB-286 – 12 % er sjældent, men lovligt).
  *
  * AFGRÆNSNING mod de LÅSTE satser. Fritvalg, SH/SO, Store Bededagstillæg og arbejdsgiverpension vurderes
- * IKKE for afvigelse: domæneprojektionen erstatter deres eventuelle historiske inputslot med den
- * aktuelle overenskomst-/lovsats, før UI, beregning og dokumenter læser modellen. En afvigelsesregel på
- * det rå slot ville derfor validere en værdi, consumeren ikke bruger.
- * Feriegodtgørelsen er derimod brugerens eget felt og har derfor både et relevans- og et vejledningsben.
+ * IKKE her: domæneprojektionen erstatter deres eventuelle historiske inputslot med den aktuelle
+ * overenskomst-/lovsats, før UI, beregning og dokumenter læser modellen.
  */
 
 /** Det ene satsfelt, vurderingen kan udpege. Feltnavnet er nøglen under ansættelsesforholdet. */
 export type SatsField = 'feriePct';
 
-/** Feltets label, som den vises i brugerfladen – bruges i "Fejl og advarsler"-boksens egen besked. */
+/** Feltets label, som den vises i brugerfladen. */
 export const SATS_FIELD_LABELS: Readonly<Record<SatsField, string>> = Object.freeze({
   feriePct: 'Feriegodtgørelse/-tillæg',
 });
 
+/** Over denne sats får feriegodtgørelsen en gul advarsel (udviklerafgørelse 2026-10-06, BB-286). */
+export const FERIE_PCT_ADVARSELSGRAENSE = 20;
+
 /**
- * Én satsfejl. `kind` skelner "ikke udfyldt" fra "afvigelse", så boksens besked ikke påstår, at en tom
- * værdi er forkert indtastet.
+ * Ét satsfund.
+ * - `missing`: tomt, men påkrævet. Ingen ring; blokerende linje i boksen.
+ * - `deviation`: en indtastet værdi under 12 %. Rød ring; blokerer.
+ * - `unusual`: en indtastet værdi over 20 %. Gul ring; blokerer ikke.
  */
 export type SatsFinding = Readonly<{
   field: SatsField;
   label: string;
   message: string;
-  kind: 'missing' | 'deviation';
+  kind: 'missing' | 'deviation' | 'unusual';
+  severity: 'error' | 'warning';
 }>;
 
-export type SatsAssessmentContext = Readonly<{
-  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
-}>;
-
-type FeriePctRelevanceInput = Pick<
-  LoenindkomstAnsaettelsesforhold,
-  'tillaegAngivesSom' | 'loenudviklingBeregningsgrundlag' | 'indtaegtsoplysningerTableData'
->;
+type FeriePctRequirementInput = Pick<LoenindkomstAnsaettelsesforhold, 'tillaegAngivesSom' | 'indtaegtsoplysningerTableData'>;
 
 /**
- * Ét sandt sted for "læser denne reguleringsform feriegodtgørelses-/tillægsprocenten?".
- *
- * Kun `Overenskomst` og `Manuelt angivet` opregulerer ud fra de indtastede satser; de øvrige former henter
- * lønudviklingen fra en satstabel eller en angivet procent og rører ikke feltet. Beløb-tilstand angiver
- * basis-satserne i første tabelrække, så de skjulte top-satsfelter må ikke kunne markere eller blokere der.
- *
- * Prædikatet er delt af feltmarkeringen, række-evalueringen og `erstatningsopgoerelseValidator`. Drev de
- * betingelsen hver for sig, kunne download blive blokeret uden en synlig fejl i boksen – eller et felt stå
- * rødt, uden at noget faktisk var blokeret.
+ * Ét sandt sted for «skal feriegodtgørelsen være udfyldt?». Beløb-tilstand angiver tillæggene som beløb i
+ * tabellen, så det skjulte procentfelt hverken markeres eller blokerer dér.
  */
-export const isFeriePctRelevant = (
-  af: FeriePctRelevanceInput,
-  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra']
-): boolean => {
-  const grundlag = af.loenudviklingBeregningsgrundlag;
-  return (
-    af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
-    && beregnesUdFra === 'Beregningsperiode'
-    && (grundlag === 'Overenskomst' || grundlag === 'Manuelt angivet')
-    && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
-  );
-};
+export const isFeriePctPaakraevet = (af: FeriePctRequirementInput): boolean =>
+  af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
+  && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
+
+export const FERIE_PCT_MANGLER_BESKED = `${SATS_FIELD_LABELS.feriePct} er ikke udfyldt`;
 
 /**
- * Vurderer satserne for ét ansættelsesforhold. Højst ét fund pr. felt (§1.8); rækkefølgen er den
- * deterministiske prioritet, gaten bruger, når den skal vælge ÉN besked til boksen.
+ * Vurderer satserne for ét ansættelsesforhold. Højst ét fund pr. felt (§1.8).
+ *
+ * `feriePctHarFeltfejl`: feltet har allerede sin egen røde fejl (fx en grænse som `150`). Readeren giver da
+ * feltet som tomt til alle læsere, og vurderingen må ikke kalde en ugyldig indtastning for «ikke udfyldt».
  */
 export const assessLoenindkomstSatser = (
   af: LoenindkomstAnsaettelsesforhold,
-  ctx: SatsAssessmentContext
+  options: Readonly<{ feriePctHarFeltfejl?: boolean }> = {}
 ): readonly SatsFinding[] => {
   if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return [];
 
   const finding = (message: string, kind: SatsFinding['kind']): SatsFinding =>
-    Object.freeze({ field: 'feriePct' as const, label: SATS_FIELD_LABELS.feriePct, message, kind });
+    Object.freeze({
+      field: 'feriePct' as const,
+      label: SATS_FIELD_LABELS.feriePct,
+      message,
+      kind,
+      severity: kind === 'unusual' ? 'warning' as const : 'error' as const,
+    });
 
   if (af.feriePct === undefined) {
-    return isFeriePctRelevant(af, ctx.beregnesUdFra)
-      ? Object.freeze([finding('Feriegodtgørelse/-tillæg skal udfyldes', 'missing')])
-      : [];
+    if (options.feriePctHarFeltfejl === true) return [];
+    return isFeriePctPaakraevet(af) ? Object.freeze([finding(FERIE_PCT_MANGLER_BESKED, 'missing')]) : [];
   }
 
   if (af.feriePct < 12) {
     return Object.freeze([finding(
       // Med løn under ferie får lønmodtageren FERIETILLÆG, ikke feriegodtgørelse
-      // (`feriepenge-begreber-contract.md` regel 2). Teksten sagde før «Løn under ferie beregnes som
-      // feriegodtgørelse» og påstod dermed, at ydelsen ER feriegodtgørelse i netop det ene tilfælde,
-      // hvor den ikke er det. Det korrekte er den beregningstekniske omregning (regel 3): tillægget
-      // OPGØRES som feriegodtgørelse med 12,5 %/15 %.
+      // (`feriepenge-begreber-contract.md` regel 2). Det korrekte er den beregningstekniske omregning
+      // (regel 3): tillægget OPGØRES som feriegodtgørelse med 12,5 %/15 %.
       af.fuldLoenUnderFerie === 'Ja'
         ? 'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
         : 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge',
@@ -111,34 +100,12 @@ export const assessLoenindkomstSatser = (
     )]);
   }
 
+  if (af.feriePct > FERIE_PCT_ADVARSELSGRAENSE) {
+    return Object.freeze([finding(
+      `${SATS_FIELD_LABELS.feriePct} over ${String(FERIE_PCT_ADVARSELSGRAENSE)} % er usædvanligt – kontrollér satsen`,
+      'unusual'
+    )]);
+  }
+
   return [];
-};
-
-/**
- * Én blokerende sats-fejl til "Fejl og advarsler"-boksen: feltets label + en besked, der kan læses UDEN
- * feltets kontekst. Driver `loenindkomst.<af>.satserSkadestidspunkt`-rækken i den autoritative
- * række-evaluerings-motor (jf. B9), hvis `error`-rækker gater produktions-download.
- *
- * Blokeringen udledes af samme vurdering som feltmarkeringen ovenfor. Var det to vurderinger, kunne
- * download blive blokeret uden en synlig besked i boksen – eller et felt stå rødt uden at blokere noget.
- */
-export type SatserError = Readonly<{
-  field: string;
-  message: string;
-  kind: 'missing' | 'deviation';
-}>;
-
-export const resolveSatserErrorField = (
-  af: LoenindkomstAnsaettelsesforhold,
-  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra']
-): SatserError | null => {
-  const finding = assessLoenindkomstSatser(af, { beregnesUdFra })[0];
-  if (finding === undefined) return null;
-  return Object.freeze({
-    field: finding.label,
-    message: finding.kind === 'missing'
-      ? `${finding.label} er ikke udfyldt`
-      : `Forkert værdi indtastet i ${finding.label}`,
-    kind: finding.kind,
-  });
 };

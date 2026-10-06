@@ -85,6 +85,11 @@ export type StyledTextFieldBaseProps = {
    * ring uden tooltip/a11y-tekst ikke kan renderes. En aktiv rød fejl har altid forrang.
    */
   warning?: FieldWarning;
+  /**
+   * Forklarende hover-tekst til et LÅST felt – fx «Fastsat af overenskomsten på 31-05-2018» (BB-287). Vises
+   * kun, når feltet hverken har fejl eller advarsel; de har altid forrang.
+   */
+  infoTooltipText?: string;
   disabled?: boolean;
   disabledAppearance?: 'default' | 'locked';
 
@@ -132,6 +137,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       error = false,
       helperText = '',
       tooltipText,
+      infoTooltipText,
       warning,
       sx = {},
       disabled,
@@ -233,6 +239,8 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const normalizedWarningText = warning?.message.trim() ?? '';
     const showWarning = !showError && normalizedWarningText !== '';
     const resolvedTooltipText = tooltipText ?? helperText;
+    const normalizedInfoTooltipText = infoTooltipText?.trim() ?? '';
+    const showInfoTooltip = !showError && !showWarning && normalizedInfoTooltipText !== '';
     const a11yStatusId = `${resolvedId}-status`;
 
     const describedByBase = htmlInputAttributes?.['aria-describedby'];
@@ -334,12 +342,12 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     return (
       <Tooltip
-        title={showError ? resolvedTooltipText : showWarning ? normalizedWarningText : ''}
+        title={showError ? resolvedTooltipText : showWarning ? normalizedWarningText : showInfoTooltip ? normalizedInfoTooltipText : ''}
         arrow
         placement="top"
-        disableHoverListener={!showError && !showWarning}
-        disableFocusListener={!showError && !showWarning}
-        disableTouchListener={!showError && !showWarning}
+        disableHoverListener={!showError && !showWarning && !showInfoTooltip}
+        disableFocusListener={!showError && !showWarning && !showInfoTooltip}
+        disableTouchListener={!showError && !showWarning && !showInfoTooltip}
       >
         <span style={{ display: 'inline-block', width: wrapperWidth, position: 'relative' }}>
           <TextField

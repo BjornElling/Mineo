@@ -1,4 +1,5 @@
 import React from 'react';
+import OverenskomstFilterLabel from '../common/OverenskomstFilterLabel';
 import { Box, MenuItem, Typography } from '@mui/material';
 import StyledCheckbox from '../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
@@ -252,7 +253,7 @@ const Indstillinger = React.memo(() => {
           <Typography className="row--text">Overenskomstparter</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography className="row--text">L:</Typography>
+              <OverenskomstFilterLabel part="loenmodtager" size="row" />
               <StyledDropdown
                 ariaLabel="Lønmodtager"
                 value={settings.defaultOverenskomstLoenmodtager}
@@ -271,7 +272,7 @@ const Indstillinger = React.memo(() => {
                 ))}
               </StyledDropdown>
 
-              <Typography className="row--text">A:</Typography>
+              <OverenskomstFilterLabel part="arbejdsgiver" size="row" />
               <StyledDropdown
                 ariaLabel="Arbejdsgiver"
                 value={settings.defaultOverenskomstArbejdsgiver}

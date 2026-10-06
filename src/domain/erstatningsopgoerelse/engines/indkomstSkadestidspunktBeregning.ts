@@ -5,7 +5,7 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatPercent, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
-import { buildIncomeForRanges, type IncomeEmployerAmount, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
+import { buildIncomeForRanges, resolveAnsaettelsesforholdNavn, type IncomeEmployerAmount, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
 import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
@@ -196,7 +196,7 @@ export const buildIndkomstSkadestidspunkt = (
         const pensionLabel = mode !== 'beloeb' && pensionPct && pensionPct !== 0
           ? `Arbejdsgivers pensionsbidrag (${formatPercent(pensionPct)} af løn + tillæg)`
           : 'Arbejdsgivers pensionsbidrag';
-        const navn = entry.name !== '' ? entry.name : ((af.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted');
+        const navn = resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, entry.index);
 
         sums.loenPlusLoen2 += entry.breakdown.loenPlusLoen2;
         sums.loenPlusLoen2PlusIkkePensLoen += entry.breakdown.loenPlusLoen2PlusIkkePensLoen;

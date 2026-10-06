@@ -22,6 +22,7 @@ describe('buildEoIndkomstRows display', () => {
     af.overenskomstId = '3f-industriens-funktionaeroverenskomst';
     af.loenudviklingBeregningsgrundlag = 'Statistik';
     af.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
+    af.feriePct = 12.5;
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
@@ -72,7 +73,7 @@ describe('buildEoIndkomstRows display', () => {
     const rows = buildEoIndkomstRows(values, toISODateString('2024-06-01'), {}, undefined, 'Erhvervssygdom');
     const satserRow = rows.find((row) => row.id === `loenindkomst.${af.id}.satserSkadestidspunkt`);
 
-    expect(satserRow?.label).toBe('Satser på anmeldelsesdatoen');
+    expect(satserRow?.label).toBe('Satser på anmeldelsesdatoen (01-06-2024)');
   });
 
   it('falder tilbage til grundlaget når manuel reguleringsform ikke har eget navn', () => {
@@ -160,7 +161,7 @@ describe('buildEoIndkomstRows display', () => {
     expect(warningRow).toMatchObject({
       status: 'warning',
       summaryDisplay: 'messageOnly',
-      summaryText: 'Det angives, at skadelidte er opsagt, men sidste arbejdsdag er ikke indtastet',
+      summaryText: 'Det angives, at skadelidte er opsagt, men sidste dag i ansættelsesforholdet er ikke indtastet',
       focusTarget: {
         kind: 'fieldAddress',
         address: expect.objectContaining({

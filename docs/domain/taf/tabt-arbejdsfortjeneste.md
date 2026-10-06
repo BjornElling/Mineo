@@ -131,6 +131,30 @@ Offentlige ydelser periodiseres forskelligt:
 - De fleste ydelser: hverdage (ekskl. SH-dage). Undtagelse: sygedagpenge **før 2012-07-02** periodiseres på hverdage uden SH-fradrag.
 - Visse ydelser (fx kontanthjælp, ressourceforløbsydelse): kalenderdage.
 
+### Tillægssatser fra en overenskomst
+
+Udviklerbeslutning 2026-10-06 (BB-275, BB-276):
+
+- **En privat overenskomst dikterer tillæggene.** Fritvalg, SH/SO og arbejdsgivers pension er låste, når en
+  privat overenskomst er valgt; et tillæg, overenskomsten ikke giver, er 0 % og stadig låst. Brugeren kan ikke
+  tilføje tillæg ud over overenskomstens. Satsdata håndhæver det ved modul-load
+  (`assertPrivatOverenskomstFastsaetterTillaeg` i `src/data/overenskomstRates.ts`).
+- **De offentlige overenskomster er undtagelsen:** et tillæg uden sats (KL/RLTN helt, Læreroverenskomstens
+  SH/SO) angiver brugeren selv.
+- **Programmet har ingen satser før overenskomstens første satsperiode.** Det skelnes fra 0 %
+  (`OverenskomstSatsBinding.kind === 'utilgaengelig'` i `loenindkomstSatser.ts`):
+  - Ligger datoen, satserne slås op på (reguleringsdatoen), før dækningen, kan beregningsgrundlaget ikke regnes.
+    Felterne står låste og tomme, og en rød, blokerende linje siger fx «Bygge-/anlægsoverenskomsten (3F / Dansk
+    Industri) har ingen satser før 01-03-2011 – vælg en senere reguleringsdato». Er datoen den særlige fra-dato,
+    får feltet rød ring med samme tekst.
+  - Ligger kun lønrækker før dækningen, regnes deres tillæg uden overenskomstens satser (0 %), og en gul,
+    ikke-blokerende linje siger det.
+- **Lønrækkerne følger lønsedlen, grundlaget følger beregningstidspunktet.** Tabellen og lønindkomstbilaget
+  viser hver måneds tillæg med de satser, der gjaldt i måneden. Beregningsgrundlaget for TAF tager lønnen uden
+  tillæg og lægger tillæg og pension til med satserne på reguleringsdatoen. Bilagets satslinjer står derfor under
+  satsoverskriften med datoen og følges af «Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte
+  måned.»
+
 ### TAF fordelt på kalenderår
 
 Til PDF-bilag beregnes TAF fordelt pr. kalenderår. Segmenter splittes ved kalenderårsskift, fradrag prorateres via overlap med TAF-ranges, og individuelle årsbeløb afrundes. Summen af årsbeløb må maksimalt afvige 1 kr. (100 øre) fra det samlede TAF-krav – overskrides dette, returneres fejl (`afrunding_over_100`) og fordeling vises ikke.

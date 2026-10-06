@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
-import { resolveSatserErrorField } from '../erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import { assessLoenindkomstSatser } from '../erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import type { FieldIssue } from '../../inputCore/inputIssue';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
@@ -25,7 +26,6 @@ type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelses
 
 export type IndkomstSectionStatus = Readonly<{
   id: string;
-  headerText: string;
   arbejdsstedNavnDisplay: string;
   arbejdsstedNavnStatus: EoRowStatus;
   satserStatus: EoRowStatus;
@@ -193,20 +193,23 @@ const collectOffentligeYdelserCellErrorsByRow = (
  * en afhængighed, funktionen ikke har, og skjule for næste læser, hvad rækkerne faktisk afhænger af.
  */
 export const buildIndkomstSectionStatuses = (
-  values: ErstatningsopgoerelseValues
+  values: ErstatningsopgoerelseValues,
+  kortFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {}
 ): ReadonlyArray<IndkomstSectionStatus> => {
   const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold ?? [];
 
-  return ansaettelsesforhold.map((af, index) => {
-    const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
+  return ansaettelsesforhold.map((af) => {
     const arbejdsstedNavn = af.navnPaaArbejdssted?.trim() ?? '';
-    const headerText = arbejdsstedNavn !== '' ? `${baseHeaderText} (${arbejdsstedNavn})` : baseHeaderText;
 
-    // Satsvurderingen behøver ikke længere den anvendte reguleringsdato: de datoafhængige afvigelser hørte
-    // til de LÅSTE satser, som nu er afledte felter, reduceren materialiserer.
-    const satserError = resolveSatserErrorField(af, values.beregnesUdFra);
-    const satserStatus: EoRowStatus = satserError ? 'error' : 'ok';
-    const satserMessage = satserError ? satserError.message : 'Ok';
+    // Samme vurdering som feltets ring (`assessLoenindkomstSatser`). Har feriefeltet sin egen røde fejl, læser
+    // readeren det som tomt; vurderingen får det at vide, så en ugyldig værdi ikke også meldes «ikke udfyldt».
+    const feriePctHarFeltfejl = (kortFieldIssues[af.id] ?? [])
+      .some((issue) => issue.field.address.field === 'feriePct');
+    const satserFinding = assessLoenindkomstSatser(af, { feriePctHarFeltfejl })[0];
+    const satserStatus: EoRowStatus = satserFinding === undefined
+      ? 'ok'
+      : satserFinding.severity === 'error' ? 'error' : 'warning';
+    const satserMessage = satserFinding?.message ?? 'Ok';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
     const cellErrors = buildStandardLoenCellErrors(tableRows, af.loenperiode);
@@ -248,7 +251,6 @@ export const buildIndkomstSectionStatuses = (
 
     return {
       id: af.id,
-      headerText,
       arbejdsstedNavnDisplay: arbejdsstedNavn !== '' ? arbejdsstedNavn : '-',
       arbejdsstedNavnStatus: arbejdsstedNavn !== '' ? 'ok' : (values.beregnesUdFra === 'Beregningsperiode' ? 'warning' : 'ok'),
       satserStatus,

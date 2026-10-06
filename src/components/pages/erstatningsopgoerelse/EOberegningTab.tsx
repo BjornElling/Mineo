@@ -98,11 +98,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     // Foldningen forudsætter, at en linje om en bestemt tabelrække NAVNGIVER rækken: to rækker, der
     // mangler det samme, må ikke give ordret samme tekst, for så forsvinder den ene uden rød ring til at
     // udpege den (BB-231). Øvrige krav-rækkerne gør det (`assessOevrigeKravRow`).
+    // Linkets navn er en del af nøglen: to ansættelsesforhold med samme mangel giver ordret samme tekst, men
+    // hvert sit link («Ansættelsesforhold 1»/«2»), og må ikke foldes til én linje (BB-278).
     const seen = new Set<string>();
     const visibleRows = rows.filter((row) => {
-      const text = formatSummaryText(row);
-      if (seen.has(text)) return false;
-      seen.add(text);
+      const linkTitle = row.navigation.kind === 'unsupported' ? '' : row.navigation.sectionTitle;
+      const key = `${formatSummaryText(row)}\u0000${linkTitle}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
 

@@ -20,13 +20,13 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
-import { resolveArbejdsstedDisplayName } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveAnsaettelsesforholdNavn } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 const ROW_HEIGHT = 28;
 
 const resolveEmploymentHeaderTitle = (snapshot: EOInspektionSnapshot, employmentIndex: number): string =>
-  resolveArbejdsstedDisplayName(
+  resolveAnsaettelsesforholdNavn(
     snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex]?.navnPaaArbejdssted,
     employmentIndex
   );

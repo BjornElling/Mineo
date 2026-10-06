@@ -10,8 +10,9 @@ export type StoreBededagstillaegValg = Readonly<{
 }>;
 
 /**
- * Standardvalget for en ny synlig Store Bededag-toggle på en række med almindelig løn på helligdage.
- * Ved andre helligdagsvalg er togglen skjult og får den passive `false`-værdi.
+ * Load-migreringens værdi for en ældre fil UDEN togglen: hidtil beregnedes tillægget netop ved almindelig løn på
+ * helligdage, så det er den kompatibilitetsbevarende værdi. Et NYT kort får altid `true`
+ * (`createDefaultLoenindkomstAnsaettelsesforhold`, BB-281).
  */
 export const resolveDefaultStoreBededagstillaeg = (loenPaaHelligdage: string | undefined): boolean =>
   loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Sideordnet de øvrige tværgående kontrakter. Begrænser enhver domænekontrakt, der producerer
 brugervendt tekst om ferieydelser – herunder `aarsloen-contract.md` og erstatningsopgørelsens kontrakter.
-**Senest verificeret mod kode:** 2026-08-27
+**Senest verificeret mod kode:** 2026-10-06 (§2b: feriesatsens krav og grænser på erstatningsopgørelsens ansættelsesforhold)
 
 ---
 
@@ -51,6 +51,22 @@ Ordene **«feriepengesats»** og **«feriegodtgørelsessats»** må ikke bruges 
 tidligere i Årsløns advarsler, og ingen af dem stod på skærmen: feltet hed en tredje ting. En advarsel
 skal føre brugeren hen til det felt, den handler om, og kan derfor kun bruge feltets synlige navn
 (`form-contract.md` §7: et felt ejer sit navn ét sted).
+
+### 2b. Krav og grænser på erstatningsopgørelsens satsfelt (udviklerbeslutning 2026-10-06)
+
+Gælder «Feriegodtgørelse/-tillæg» på et ansættelsesforhold under Lønindkomst
+(`src/domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment.ts`):
+
+1. **Påkrævet, når kortet har lønoplysninger i procent-tilstand** – uanset beregningsmåde og reguleringsform.
+   Lønrækkernes tillæg, fradraget for indtægt efter skaden og beregningsgrundlaget læser feltet i alle former,
+   og efter regel 1 får en lønmodtager altid en af de to ydelser. Før krævedes feltet kun ved «Overenskomst» og
+   «Manuelt angivet», og et tomt felt fjernede tavst ydelsen fra kravet (BB-274).
+2. **Et tomt felt er en manglende indtastning**: ingen rød ring (brugeren har ikke skrevet noget), men en
+   blokerende linje i «Fejl og advarsler» – «Feriegodtgørelse/-tillæg er ikke udfyldt».
+3. **Under 12 %** er en rød, blokerende feltfejl med vejledningen efter regel 2–3. 12 % er sjældent, men lovligt.
+4. **Over 20 %** giver en gul, ikke-blokerende ring og linje: «Feriegodtgørelse/-tillæg over 20 % er
+   usædvanligt – kontrollér satsen» (BB-286).
+5. I beløb-tilstand er procentfeltet skjult og hverken påkrævet eller markeret.
 
 ---
 

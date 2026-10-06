@@ -159,14 +159,14 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(employment.beregnStoreBededagstillaeg).toBe(true);
   });
 
-  it('opretter den skjulte Store Bededag-toggle passiv ved andet helligdagsvalg', () => {
+  it('opretter også den skjulte Store Bededag-toggle aktiv ved andet helligdagsvalg (uden virkning, mens den er skjult)', () => {
     const employment = createDefaultLoenindkomstAnsaettelsesforhold({
       ...DEFAULT_APP_SETTINGS,
       defaultLoenPaaHelligdage: 'Ingen',
     });
 
     expect(employment.loenPaaHelligdage).toBe('Ingen');
-    expect(employment.beregnStoreBededagstillaeg).toBe(false);
+    expect(employment.beregnStoreBededagstillaeg).toBe(true);
   });
 
   it('defaultSvieSmerteDelvisSygemeldingSats="fuld" → svieSmerteDelvisSygemeldingSats="fuld"', () => {

@@ -174,6 +174,8 @@ const EET_KLAGE_REGULERINGSLINJE =
 const createEmployment = (overrides: Record<string, unknown> = {}) => ({
   ...createDefaultLoenindkomstAnsaettelsesforhold(),
   id: 'af-base',
+  // Procent-tilstand med lønrækker kræver feriegodtgørelsen (BB-274).
+  feriePct: 12.5,
   ...overrides,
 });
 

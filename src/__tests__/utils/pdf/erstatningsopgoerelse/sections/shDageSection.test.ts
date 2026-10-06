@@ -183,6 +183,35 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
 
     expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything());
   });
+
+  // BB-280: grundlaget i arbejdsdage trækker beregningsperiodens SH-dage fra; bilaget skal dokumentere dem,
+  // også når sygeferiegodtgørelsen ikke regner i arbejdsdage.
+  it('viser Beregningsperiode, når beregningsgrundlaget fratrækker SH-dage – uden SFGG i arbejdsdage', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.tafBeregningsperiodeFra = iso('2017-06-01');
+    eoValues.tafBeregningsperiodeTil = iso('2018-05-31');
+    eoValues.tafPerioder = [];
+    const { renderSubheader, safeAddWrappedText, ctx } = makeContext(eoValues);
+
+    renderShDageSection({ ...ctx, beregningsgrundlagFradragerShDage: true });
+
+    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', { addTopSpacing: false });
+    expect(safeAddWrappedText).toHaveBeenCalledWith('1. juni 2017 - 31. maj 2018');
+  });
+
+  it('viser ikke Beregningsperiode, når grundlaget opgøres i måneder og SFGG ikke fratrækker SH-dage', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.tafBeregningsperiodeFra = iso('2017-06-01');
+    eoValues.tafBeregningsperiodeTil = iso('2018-05-31');
+    eoValues.tafPerioder = [];
+    const { renderSubheader, ctx } = makeContext(eoValues);
+
+    renderShDageSection({ ...ctx, beregningsgrundlagFradragerShDage: false });
+
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything());
+  });
 });
 
 describe('renderShDageSection – SFGG-referenceperiode', () => {

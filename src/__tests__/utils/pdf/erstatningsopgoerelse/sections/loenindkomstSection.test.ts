@@ -86,6 +86,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<ReturnType<typeof toISOD
   const ctx: Parameters<typeof renderLoenindkomstSection>[0] = {
     selectedElements,
     eoValues,
+    stamdataValues: { skadedato: iso('2022-01-01'), skadestype: 'Arbejdsulykke' },
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText: vi.fn(),
@@ -174,7 +175,7 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
     expect(ctx.safeAddWrappedText).toHaveBeenCalledWith('Skadelidte er opsagt fra stillingen.');
   });
 
-  it('viser opsigelseslinje med sidste arbejdsdag når dato er angivet', () => {
+  it('viser opsigelseslinje med sidste dag i ansættelsesforholdet når dato er angivet', () => {
     const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
@@ -183,7 +184,7 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
     renderLoenindkomstSection({ ...ctx, formatDateLong: vi.fn(() => '30. april 2024') });
 
     expect(ctx.safeAddWrappedText).toHaveBeenCalledWith(
-      'Skadelidte er opsagt fra stillingen med sidste arbejdsdag 30. april 2024.'
+      'Skadelidte er opsagt fra stillingen med sidste dag i ansættelsesforholdet 30. april 2024.'
     );
   });
 });

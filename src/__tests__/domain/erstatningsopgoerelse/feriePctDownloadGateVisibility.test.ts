@@ -4,23 +4,18 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { isFeriePctRelevant } from '../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import { isFeriePctPaakraevet } from '../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 /**
  * Regressionsværn for den KLASSE af fejl, hvor download af erstatningsopgørelsen blokeres UDEN en
- * synlig fejl i "Fejl og advarsler".
+ * synlig fejl i «Fejl og advarsler».
  *
- * Konkret rapporteret fejl: manglende feriegodtgørelses-/tillægs-procent (`feriePct`). Validatoren
- * kræver den (→ blokerende snapshot-invariant → download blokeret + tooltip), men den autoritative
- * række-motor (`collectAllEoRows` via `buildIndkomstSectionStatuses`) reproducerede den ikke, så boksen
- * forblev tom.
- *
- * Kernen i rettelsen er ÉT sandt sted for "hvornår kræves feriegodtgørelse" (`isFeriePctRelevant`),
- * der driver BEGGE sider. Denne test beviser at de to sider ALTID er enige: validatorens blokering ⟺
- * en synlig `satserSkadestidspunkt`-fejlrække. Hvis de nogensinde drifter igen, bliver testen rød.
+ * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – uanset reguleringsform og
+ * beregningsmåde (BB-274). ÉT prædikat (`isFeriePctPaakraevet`) driver både validatorens blokering og
+ * række-motorens `satserSkadestidspunkt`-fejlrække. Testen beviser at de to sider ALTID er enige.
  */
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -29,13 +24,14 @@ type Grundlag = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][n
 
 const buildScenario = (overrides: Readonly<{
   grundlag: Grundlag;
+  beregnesUdFra?: ErstatningsopgoerelseValues['beregnesUdFra'];
   tillaegAngivesSom?: (typeof TILLAEG_ANGIVES_SOM)[keyof typeof TILLAEG_ANGIVES_SOM];
   feriePct?: number;
   medLoenoplysninger?: boolean;
 }>): ErstatningsopgoerelseValues => {
   const values = createErstatningsopgoerelseInitialValues();
   values.kravPaaTabtArbejdsfortjeneste = 'Ja';
-  values.beregnesUdFra = 'Beregningsperiode';
+  values.beregnesUdFra = overrides.beregnesUdFra ?? 'Beregningsperiode';
   values.loenindkomstAnsaettelsesforhold = [
     {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -53,16 +49,14 @@ const buildScenario = (overrides: Readonly<{
   return values;
 };
 
-/** Blokerer validatoren download pga. manglende feriegodtgørelse? */
-const feriePctBlocksInValidator = (values: ErstatningsopgoerelseValues): boolean =>
+const feriePctErrors = (values: ErstatningsopgoerelseValues) =>
   erstatningsopgoerelseValidator
     .validateParsed(values)
-    .errors.some(
-      (error) =>
-        (error.path ?? '').includes('feriePct') &&
-        error.severity === 'error' &&
-        error.message.includes('Feriegodtgørelse')
-    );
+    .errors.filter((error) => (error.path ?? '').includes('feriePct') && error.severity === 'error');
+
+/** Blokerer validatoren download pga. manglende feriegodtgørelse? */
+const feriePctBlocksInValidator = (values: ErstatningsopgoerelseValues): boolean =>
+  feriePctErrors(values).some((error) => error.message.includes('Feriegodtgørelse'));
 
 /** Viser række-motoren en tilsvarende synlig satser-fejl om feriegodtgørelse? */
 const feriePctShownInRow = (values: ErstatningsopgoerelseValues): boolean =>
@@ -70,39 +64,38 @@ const feriePctShownInRow = (values: ErstatningsopgoerelseValues): boolean =>
     (section) => section.satserStatus === 'error' && section.satserMessage.includes('Feriegodtgørelse')
   );
 
-describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig blokering)', () => {
-  it('manglende feriegodtgørelse (Overenskomst) blokerer OG vises med en "ikke udfyldt"-besked', () => {
-    const values = buildScenario({ grundlag: 'Overenskomst' });
+const ALLE_GRUNDLAG: readonly Grundlag[] = ['Overenskomst', 'Manuelt angivet', 'Statistik', 'KRL satstabel', 'Ingen', undefined];
 
-    expect(feriePctBlocksInValidator(values)).toBe(true);
+describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig blokering)', () => {
+  it.each(ALLE_GRUNDLAG)('manglende feriegodtgørelse blokerer OG vises ved grundlag=%s', (grundlag) => {
+    const values = buildScenario({ grundlag });
+
+    expect(feriePctErrors(values)).toEqual([{
+      path: 'loenindkomstAnsaettelsesforhold[0].feriePct',
+      message: 'Feriegodtgørelse/-tillæg er ikke udfyldt',
+      severity: 'error',
+    }]);
 
     const section = buildIndkomstSectionStatuses(values)[0];
     expect(section?.satserStatus).toBe('error');
-    // "er ikke udfyldt" – IKKE "Forkert værdi indtastet" (intet er indtastet).
+    // «er ikke udfyldt» – IKKE en afvigelsestekst (intet er indtastet).
     expect(section?.satserMessage).toBe('Feriegodtgørelse/-tillæg er ikke udfyldt');
   });
 
-  it('manglende feriegodtgørelse (Manuelt angivet) blokerer OG vises', () => {
-    const values = buildScenario({ grundlag: 'Manuelt angivet' });
-    expect(feriePctBlocksInValidator(values)).toBe(true);
-    expect(feriePctShownInRow(values)).toBe(true);
-  });
-
-  it.each<Grundlag>(['Overenskomst', 'Manuelt angivet', 'Statistik', 'KRL satstabel', 'Ingen'])(
-    'validator og række-motor er enige for grundlag=%s (ingen usynlig blokering)',
-    (grundlag) => {
-      const values = buildScenario({ grundlag });
-      expect(feriePctShownInRow(values)).toBe(feriePctBlocksInValidator(values));
+  it.each<ErstatningsopgoerelseValues['beregnesUdFra']>(['Beregningsperiode', 'Angivet månedsløn'])(
+    'kræver feriegodtgørelsen uanset beregningsmåde (%s)',
+    (beregnesUdFra) => {
+      const values = buildScenario({ grundlag: 'Statistik', beregnesUdFra });
+      expect(feriePctBlocksInValidator(values)).toBe(true);
+      expect(feriePctShownInRow(values)).toBe(true);
     }
   );
 
   it('kræver ikke skjult feriegodtgørelse i Beløb-tilstand', () => {
-    // Beløb-tilstand skjuler top-satsfelterne, så manglende feriePct må hverken blokere download
-    // eller give en usynlig fejlrække.
     const values = buildScenario({ grundlag: 'Overenskomst', tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB });
     expect(feriePctBlocksInValidator(values)).toBe(false);
     expect(feriePctShownInRow(values)).toBe(false);
-    expect(isFeriePctRelevant(values.loenindkomstAnsaettelsesforhold[0], values.beregnesUdFra)).toBe(false);
+    expect(isFeriePctPaakraevet(values.loenindkomstAnsaettelsesforhold[0])).toBe(false);
   });
 
   it('kræver ikke feriegodtgørelse uden indtastede lønoplysninger', () => {
@@ -111,9 +104,27 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
     expect(feriePctShownInRow(values)).toBe(false);
   });
 
-  it('en gyldig feriegodtgørelse (≥12 %) hverken blokerer eller giver fejlrække', () => {
-    const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 12.5 });
+  it('en gyldig feriegodtgørelse (12 %) hverken blokerer eller giver fejlrække', () => {
+    const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 12 });
     expect(feriePctBlocksInValidator(values)).toBe(false);
-    expect(feriePctShownInRow(values)).toBe(false);
+    expect(buildIndkomstSectionStatuses(values)[0]?.satserStatus).toBe('ok');
+  });
+
+  it('en feriegodtgørelse under 12 % giver en rød satsrække', () => {
+    const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 10 });
+    const section = buildIndkomstSectionStatuses(values)[0];
+    expect(section?.satserStatus).toBe('error');
+    // Standardkortet har løn under ferie, så teksten er den beregningstekniske omregning.
+    expect(section?.satserMessage).toBe(
+      'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
+    );
+  });
+
+  it('en feriegodtgørelse over 20 % giver en ikke-blokerende advarselsrække', () => {
+    const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 25 });
+    expect(feriePctBlocksInValidator(values)).toBe(false);
+    const section = buildIndkomstSectionStatuses(values)[0];
+    expect(section?.satserStatus).toBe('warning');
+    expect(section?.satserMessage).toBe('Feriegodtgørelse/-tillæg over 20 % er usædvanligt – kontrollér satsen');
   });
 });

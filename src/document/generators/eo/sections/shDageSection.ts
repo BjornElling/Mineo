@@ -17,6 +17,12 @@ type SHDageSectionContext = Readonly<{
   tafRanges: readonly IsoRange[];
   sfggReferenceperiodeRanges?: readonly IsoRange[];
   harSfggReferenceperiodeMedShFradrag?: boolean;
+  /**
+   * Beregningsgrundlaget opgøres i arbejdsdage og trækker derfor beregningsperiodens SH-dage fra («I perioden
+   * var der 261 hverdage - 10 SH-dage …»). Bilaget skal da dokumentere netop de SH-dage (BB-280) – før kom
+   * afsnittet kun med, når sygeferiegodtgørelsen også regnede i arbejdsdage.
+   */
+  beregningsgrundlagFradragerShDage?: boolean;
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeWrappedText'>;
@@ -50,6 +56,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     tafRanges,
     sfggReferenceperiodeRanges = [],
     harSfggReferenceperiodeMedShFradrag = false,
+    beregningsgrundlagFradragerShDage = false,
     startEoBilagPage,
     renderSubheader,
     writer,
@@ -129,7 +136,10 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
   const mergedSfggReferenceperiodeRanges = mergeIsoDateRanges(sfggReferenceperiodeRanges, { mergeAdjacent: true });
 
-  if (erFoersteOpgoerelse && beregningsperiodeRange && harSfggReferenceperiodeMedShFradrag) {
+  if (
+    beregningsperiodeRange
+    && (beregningsgrundlagFradragerShDage || (erFoersteOpgoerelse && harSfggReferenceperiodeMedShFradrag))
+  ) {
     renderPeriodeSection('Beregningsperiode', beregningsperiodeRange.fra, beregningsperiodeRange.til);
     writer.addSectionSpacer();
   }

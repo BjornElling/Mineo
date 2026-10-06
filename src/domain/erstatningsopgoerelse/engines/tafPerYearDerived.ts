@@ -35,7 +35,7 @@ import {
   segmentAmountOre,
 } from '../snapshot/eoPresentationModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { buildIncomeCalculationContext, buildIncomeForRanges, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
+import { buildIncomeCalculationContext, buildIncomeForRanges, resolveAnsaettelsesforholdNavn, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
 import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
@@ -403,7 +403,7 @@ export const buildTafPerYearBuildOutcome = (
     for (const emp of income.employers) {
       if (emp.amount <= 0) continue;
       const amountOre = fromKroner(roundKroner(emp.amount));
-      deductions.push({ label: emp.name || 'Lønindkomst', amountOre });
+      deductions.push({ label: resolveAnsaettelsesforholdNavn(emp.name, emp.index), amountOre });
     }
     const sortedBenefits = [...income.benefits].sort((a, b) =>
       a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' })

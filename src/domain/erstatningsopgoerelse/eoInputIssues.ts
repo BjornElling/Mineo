@@ -62,6 +62,32 @@ export const selectBlockingLoenindkomstEntityIds = (
 };
 
 /**
+ * Feltissues på et ansættelsesforholds EGNE felter (navn, datoer, satser, anciennitet, løntrin) – ikke
+ * cellerne i de nested tabeller – grupperet pr. ansættelsesforhold i feltkatalogets rækkefølge.
+ *
+ * Findes, så en rød værdi på kortet får sin egen linje med feltets navn og link i «Fejl og advarsler». Før nåede
+ * en bounds-fejl som «Arbejdsgivers pensionsbidrag» `150` kun boksen gennem sikkerhedsnettet: én linje uden
+ * feltnavn, kortets navn eller link, og den forsvandt helt, så snart en anden fejl stod i boksen (BB-277).
+ */
+export const selectLoenindkomstKortFieldIssues = (
+  issues: FieldIssueSet
+): Readonly<Record<string, readonly FieldIssue[]>> => {
+  const byEmployment: Record<string, FieldIssue[]> = {};
+  for (const issue of issues.all) {
+    const [employment, ...rest] = issue.field.address.path;
+    if (
+      employment?.kind !== 'entity'
+      || employment.collection !== 'loenindkomstAnsaettelsesforhold'
+      || rest.length > 0
+    ) {
+      continue;
+    }
+    (byEmployment[employment.entityId] ??= []).push(issue);
+  }
+  return Object.freeze(byEmployment);
+};
+
+/**
  * Finder den første konkrete celleissue pr. ansættelsesforhold i lønindkomstens nested tabeller.
  *
  * Row-builderen bruger resultatet til at pege på den røde celle. Den skal derfor ikke selv scanne

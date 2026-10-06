@@ -18,10 +18,19 @@ import {
   isManuelProcentsatsRowKomplet,
 } from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import {
-  resolveAnvendtReguleringsdatoReferenceText,
-  resolveSkadeEllerAnmeldelsesdatoReference,
-} from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
+  resolveAnvendtReguleringsdatoForAnsaettelsesforhold,
+  resolveSatserHeadingForAnsaettelsesforhold,
+} from '../erstatningsopgoerelse/helpers/satserHeading';
+import {
+  erDatoUdenOverenskomstSatser,
+  formatLoenraekkerUdenOverenskomstSatserBesked,
+  formatReguleringsdatoUdenOverenskomstSatserBesked,
+  resolvePrivatOverenskomstDaekning,
+} from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { hasIndtastetLoenoplysninger } from '../erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
@@ -165,6 +174,70 @@ const resolveTafBoundaryDatesInSkadetPeriode = (
   return { first, last };
 };
 
+/**
+ * Programmet har ikke den valgte private overenskomsts satser på en dato, kortet skal bruge (BB-275).
+ *
+ * - Ligger datoen, satserne slås op på, før overenskomstens første satsperiode, kan beregningsgrundlaget ikke
+ *   regnes: rød, blokerende linje (udviklerafgørelse 2026-10-06). Er datoen den særlige fra-dato, bærer feltet
+ *   selv den røde ring og linjen, og rækken her springes over.
+ * - Ligger kun lønrækker før dækningen, regnes deres tillæg uden overenskomstens satser: gul, ikke-blokerende
+ *   linje (udviklerafgørelse 2026-10-06).
+ *
+ * Begge kræver procent-tilstand og indtastede lønoplysninger: uden dem bruges satserne ikke.
+ */
+const buildOverenskomstSatsDaekningRows = (
+  values: ErstatningsopgoerelseValues,
+  employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+  skadedato: ISODateString | undefined,
+  skadestype: 'Arbejdsulykke' | 'Erhvervssygdom' | undefined,
+  saerligDatoHarFeltfejl: boolean,
+): EoRowModel[] => {
+  if (employment.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return [];
+  if (!hasIndtastetLoenoplysninger(employment.indtaegtsoplysningerTableData ?? [])) return [];
+  const daekning = resolvePrivatOverenskomstDaekning(employment);
+  if (daekning === null) return [];
+
+  const anvendtReguleringsdato = resolveAnvendtReguleringsdatoForAnsaettelsesforhold({
+    values,
+    ansaettelsesforhold: employment,
+    skadedato,
+  });
+  const reguleringsdatoUdenSatser = values.beregnesUdFra === 'Beregningsperiode'
+    && anvendtReguleringsdato !== undefined
+    && erDatoUdenOverenskomstSatser(daekning, anvendtReguleringsdato);
+  if (reguleringsdatoUdenSatser) {
+    if (saerligDatoHarFeltfejl) return [];
+    const message = formatReguleringsdatoUdenOverenskomstSatserBesked(daekning);
+    return [{
+      id: `loenindkomst.${employment.id}.overenskomstSatserMangler`,
+      employmentId: employment.id,
+      label: resolveSatserHeadingForAnsaettelsesforhold({ values, ansaettelsesforhold: employment, skadedato, skadestype }),
+      displayValue: formatStatusMessage('error', message),
+      status: 'error',
+      message,
+      focusTarget: { kind: 'fieldAddress', address: eoEmploymentFields.overenskomstId.bind(employment.id).address },
+    }];
+  }
+
+  const harLoenraekkerFoerDaekning = (employment.indtaegtsoplysningerTableData ?? []).some((row) => {
+    const interval = parseAarsloenRowInterval(row, employment.loenperiode);
+    const start = interval ? dateToISO(interval.start) : undefined;
+    return start !== undefined && erDatoUdenOverenskomstSatser(daekning, start);
+  });
+  if (!harLoenraekkerFoerDaekning) return [];
+  const message = formatLoenraekkerUdenOverenskomstSatserBesked(daekning);
+  return [{
+    id: `loenindkomst.${employment.id}.loenraekkerFoerOverenskomstSatser`,
+    employmentId: employment.id,
+    label: 'Advarsel',
+    displayValue: `Advarsel (${message})`,
+    status: 'warning',
+    summaryDisplay: 'messageOnly',
+    summaryText: message,
+    focusTarget: { kind: 'fieldAddress', address: eoEmploymentFields.overenskomstId.bind(employment.id).address },
+  }];
+};
+
 export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
@@ -172,16 +245,19 @@ export const buildEoIndkomstRows = (
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom',
   loenindkomstTableInputIssues?: Readonly<Record<string, FieldIssue>>,
+  loenindkomstKortFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = rowPolicy.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
   const overenskomstUdloebMaanederGraense = rowPolicy.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
-  const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
 
-  const sections = buildIndkomstSectionStatuses(values);
+  const sections = buildIndkomstSectionStatuses(values, loenindkomstKortFieldIssues);
   sections.forEach((section) => {
     const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
+    const kortFieldIssues = loenindkomstKortFieldIssues[section.id] ?? [];
+    const harFeltfejl = (field: string): boolean =>
+      kortFieldIssues.some((issue) => issue.field.address.field === field);
     const sidsteArbejdsdag =
       employment?.ansaettelsesforholdOphoert === true
         ? employment.sidsteArbejdsdag
@@ -207,13 +283,38 @@ export const buildEoIndkomstRows = (
       status: section.arbejdsstedNavnStatus,
     });
 
+    // Linjen hedder som satsafsnittets overskrift på skærmen, og beskeden er feltets egen regeltekst (BB-284).
+    // Før stod der fast «Satser på skadedatoen» og «Forkert værdi indtastet i …» – en overskrift, skærmen ikke
+    // viste, og en fejl uden den regel, feltet forklarede i sin tooltip.
     rows.push({
       id: `loenindkomst.${section.id}.satserSkadestidspunkt`,
       employmentId: section.id,
-      label: `Satser på ${skadeEllerAnmeldelsesdato.labelLower}`,
+      label: employment === undefined
+        ? 'Satser'
+        : resolveSatserHeadingForAnsaettelsesforhold({ values, ansaettelsesforhold: employment, skadedato, skadestype }),
       displayValue: section.satserStatus === 'ok' ? 'Ja' : formatStatusMessage(section.satserStatus, section.satserMessage),
       status: section.satserStatus,
     });
+
+    // Kortets egne felter med en rød eller gul værdi får hver sin linje med feltets navn og link (BB-277). Før
+    // nåede fx en pensionssats på 150 kun boksen gennem sikkerhedsnettet – uden feltnavn og link – og forsvandt,
+    // så snart en anden fejl stod i boksen.
+    kortFieldIssues.forEach((issue) => {
+      const status: EoRowStatus = issue.severity === 'error' ? 'error' : 'warning';
+      rows.push({
+        id: `loenindkomst.${section.id}.felt.${issue.field.address.field}`,
+        employmentId: section.id,
+        label: issue.field.descriptor.label,
+        displayValue: formatStatusMessage(status, issue.message),
+        status,
+        message: issue.message,
+        focusTarget: { kind: 'fieldAddress', address: issue.field.address },
+      });
+    });
+
+    if (employment !== undefined) {
+      rows.push(...buildOverenskomstSatsDaekningRows(values, employment, skadedato, skadestype, harFeltfejl('saerligFraDatoRegulering')));
+    }
 
     rows.push({
       id: `loenindkomst.${section.id}.loenoplysninger`,
@@ -224,8 +325,9 @@ export const buildEoIndkomstRows = (
       summaryDisplay: 'messageOnly',
     });
 
-    if (employment?.ansaettelsesforholdOphoert === true && !sidsteArbejdsdag) {
-      const message = 'Det angives, at skadelidte er opsagt, men sidste arbejdsdag er ikke indtastet';
+    // En RØD dato læses som tom af readeren; den har sin egen linje ovenfor og er ikke «ikke indtastet» (BB-277).
+    if (employment?.ansaettelsesforholdOphoert === true && !sidsteArbejdsdag && !harFeltfejl('sidsteArbejdsdag')) {
+      const message = 'Det angives, at skadelidte er opsagt, men sidste dag i ansættelsesforholdet er ikke indtastet';
       rows.push({
         id: `loenindkomst.${section.id}.sidsteArbejdsdagMangler`,
         employmentId: section.id,
@@ -246,7 +348,7 @@ export const buildEoIndkomstRows = (
         id: `loenindkomst.${section.id}.loenEfterOphoer`,
         employmentId: section.id,
         label: 'Advarsel',
-        displayValue: `Advarsel (Der er angivet løn efter sidste arbejdsdag (${isoToDanish(sidsteArbejdsdag)}). Kontrollér om dette er korrekt.)`,
+        displayValue: `Advarsel (Der er angivet løn efter sidste dag i ansættelsesforholdet (${isoToDanish(sidsteArbejdsdag)}). Kontrollér om dette er korrekt.)`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
       });

@@ -4,7 +4,7 @@ import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, resolveAnsaettelsesforholdNavn, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { resolveBeregningsperiodeEmployerAtReguleringsdato } from './indkomstSkadestidspunktBeregning';
@@ -337,9 +337,7 @@ export const buildLoenudviklingModel = (
       const strategiData = strategiDataByIndex[employer.index];
       if (!strategiData) continue;
       const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
-      const ansaettelsesforholdNavn = employer.name !== ''
-        ? employer.name
-        : (ansaettelsesforhold.navnPaaArbejdssted?.trim() || 'Arbejdssted');
+      const ansaettelsesforholdNavn = resolveAnsaettelsesforholdNavn(ansaettelsesforhold.navnPaaArbejdssted, employer.index);
 
       perAnsaettelse.push({
         ansaettelsesforholdId: ansaettelsesforhold.id,

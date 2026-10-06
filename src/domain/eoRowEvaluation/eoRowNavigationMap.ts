@@ -75,7 +75,29 @@ export type NavigationTarget =
 export type EoRowNavigationContext = Readonly<{
   /** Afgør «skadedatoen»/«anmeldelsesdatoen» i sektionsnavne, der følger stamdatareferencen. */
   skadestype?: StamdataValues['skadestype'] | undefined;
+  /** Ansættelsesforholdenes id'er i skærmens rækkefølge – navngiver linket til det kort, en linje gælder. */
+  ansaettelsesforholdIds?: readonly string[];
 }>;
+
+/**
+ * Linknavnet for en linje om ét ansættelsesforhold.
+ *
+ * Med flere kort hedder linket kortets nummer, «Ansættelsesforhold 2», så brugeren kan se, hvilket kort linjen
+ * gælder, uden at klikke – og to kort med samme mangel giver to linjer (BB-278). Nummeret står i linket og
+ * ikke foran beskeden: et præfiks med kortets fulde overskrift gjorde de lange satslinjer to-tre linjer høje.
+ * Med ét kort er der intet at skelne, og linket hedder fanens afsnit, «Lønindkomst» – også for
+ * sygeferiegodtgørelsens linjer, som før hed «Ansættelsesforhold» om samme kort.
+ */
+const resolveAnsaettelsesforholdSectionTitle = (
+  rowId: string,
+  context: EoRowNavigationContext,
+): string => {
+  const ids = context.ansaettelsesforholdIds ?? [];
+  if (ids.length <= 1) return 'Lønindkomst';
+  const segments = rowId.split('.');
+  const index = ids.findIndex((id) => segments.includes(id));
+  return index < 0 ? 'Lønindkomst' : `Ansættelsesforhold ${String(index + 1)}`;
+};
 
 export const getNavigationTargetFromRowId = (
   rowId: string,
@@ -124,7 +146,7 @@ export const getNavigationTargetFromRowId = (
       tabId: 'loenindkomst',
       sectionId: 'loenindkomst',
       tabName: 'Lønindkomst',
-      sectionTitle: 'Lønindkomst',
+      sectionTitle: resolveAnsaettelsesforholdSectionTitle(rowId, context),
     };
   }
 
@@ -219,7 +241,7 @@ export const getNavigationTargetFromRowId = (
       tabId: 'loenindkomst',
       sectionId: 'loenindkomst',
       tabName: 'Lønindkomst',
-      sectionTitle: 'Ansættelsesforhold',
+      sectionTitle: resolveAnsaettelsesforholdSectionTitle(rowId, context),
     };
   }
 

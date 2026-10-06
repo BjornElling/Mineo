@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { useNavigate } from 'react-router-dom';
 import { setActiveTabForPage } from '../../../../hooks/usePersistedActiveTab';
 import { APP_ROUTES } from '../../../../config/pageNavigation';
@@ -685,7 +686,15 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       return ['Fejl'];
     }
 
-    const ranges = beregningView?.tafPerioder ?? [];
+    // Er beregningen spærret af en fejl andetsteds (fx en rød sats på et ansættelsesforhold), har snapshottet
+    // ingen perioder. Perioderne findes stadig, og sammendraget skrev før «Ingen perioder angivet» om en sag med
+    // en TAF-periode (BB-277). Faldet tilbage er de indtastede perioder med samme klipning som motoren.
+    // Snapshottets liste er tom (ikke udefineret), når grenen er spærret; samme klipning giver da også en tom liste,
+    // hvis perioderne reelt falder bort.
+    const snapshotRanges = beregningView?.tafPerioder ?? [];
+    const ranges = snapshotRanges.length > 0 ? snapshotRanges : buildTafRanges(eoValues, {
+      ...(stamdataValues.skadedato === undefined ? {} : { skadedatoISO: stamdataValues.skadedato }),
+    });
     return ranges
       .map((range) => {
         const fra = isoToDanish(range.fra);
@@ -693,7 +702,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         return fra && til ? `${fra} - ${til}` : '';
       })
       .filter((value) => value !== '');
-  }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, relevantRows]);
+  }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, relevantRows, stamdataValues.skadedato]);
   const harTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&

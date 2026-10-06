@@ -231,6 +231,7 @@ describe('buildTafPerYearResult', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenperiode: 'dag',
           loenPaaHelligdage: 'SH-udbetaling',
           loenudviklingBeregningsgrundlag: 'Ingen',
@@ -955,6 +956,7 @@ describe('buildTafPerYearResult', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           navnPaaArbejdssted: 'Arbejdssted A',
           loenperiode: 'dag',
           loenudviklingBeregningsgrundlag: 'Ingen',

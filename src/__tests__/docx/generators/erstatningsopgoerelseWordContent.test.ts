@@ -131,6 +131,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-1',
         navnPaaArbejdssted: 'AAB',
+        feriePct: 12.5,
         loenudviklingBeregningsgrundlag: 'Ingen',
         indtaegtsoplysningerTableData: [
           {

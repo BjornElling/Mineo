@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-10-02 (§2b: præmissen for kravet; ingen toggle, advarsel eller tillæg ved angivet dagsløn)
+**Senest verificeret mod kode:** 2026-10-06 (§2a pkt. 2: et nyt ansættelsesforhold får altid togglen slået til)
 
 ## 1. Scope
 
@@ -39,8 +39,10 @@ Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og
 2. **Kontekstafhængig standardværdi på nye data.** En ny EO-sag starter med `true` på den angivne
    løn-toggles skjulte værdi, fordi den første angivne løn-mode er "Angivet månedsløn". Når brugeren vælger
    "Angivet dagsløn", sættes den som en del af samme brugerhandling til `false`. Et nyt ansættelsesforhold
-   får `true`, når det oprettes med "Almindelig løn" på helligdage, ellers den passive `false`-værdi.
-   Schemaets `false`-default er fortsat kun load-fallback og ændres ikke. En eksisterende, synlig toggle
+   får altid `true` – også når det oprettes med et andet helligdagsvalg, hvor togglen er skjult og værdien ikke
+   gater noget (pkt. 3). Vælges "Almindelig løn" senere, vises togglen da slået til som på et kort oprettet med
+   almindelig løn, frem for slået fra med en advarsel om et valg, brugeren aldrig traf (udviklerbeslutning
+   2026-10-06, BB-281). Schemaets `false`-default er fortsat kun load-fallback og ændres ikke. En eksisterende, synlig toggle
    er dermed ikke en automatisk beregningsregel – den er stadig kun aktiv efter brugerens valg.
 3. **Skjult værdi bevares, men virker ikke.** Togglen vises kun ved "Almindelig løn" – og på den angivne løn
    ikke ved "Angivet dagsløn" (§2b). Skifter brugeren

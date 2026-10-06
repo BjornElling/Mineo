@@ -23,7 +23,6 @@ test.describe('Løntrin-finder: åbning, fokusfangst og lukning', { tag: BROWSER
     await page.getByRole('tab', { name: /Lønindkomst/ }).click();
 
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
-    await page.getByRole('button', { name: 'Ja, tilføj' }).click();
     await page.locator('[name$=":harOverenskomst"]').check();
 
     await page.locator('[name$=":overenskomstFilter.arbejdsgiver"]').click();

@@ -9,7 +9,7 @@ import { getAngivetLoenOpreguleresFraDato } from './helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from './helpers/eoSharedUtils';
 import {
   applyAutoSatsFields,
-  isOverenskomstSatsFieldLocked,
+  isOverenskomstSatsFieldDerived,
   syncManualBaseRowSatser,
 } from './helpers/loenindkomstSatser';
 
@@ -97,11 +97,11 @@ export const omitDerivedLoenindkomstSatser = (
         : af.loenudviklingManuelTableData;
       return {
         ...af,
-        ...(isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'fritvalgPct')
+        ...(isOverenskomstSatsFieldDerived(af, anvendtReguleringsdato, 'fritvalgPct')
           ? { fritvalgPct: undefined } : {}),
-        ...(isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'shSoPct')
+        ...(isOverenskomstSatsFieldDerived(af, anvendtReguleringsdato, 'shSoPct')
           ? { shSoPct: undefined } : {}),
-        ...(isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'pensionPct')
+        ...(isOverenskomstSatsFieldDerived(af, anvendtReguleringsdato, 'pensionPct')
           ? { pensionPct: undefined } : {}),
         loenudviklingManuelTableData: manualRows,
       };

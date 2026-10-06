@@ -37,8 +37,6 @@ const LoenindkomstTab = React.memo(({
   // Fanen er nu en komposition: den deler view-modellen med ansættelsesforhold-kortene via
   // konteksten (jf. A1) og beholder kun det fane-niveau-layout (intro, overlay, dialoger).
   const {
-    addDialogOpen,
-    setAddDialogOpen,
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,
@@ -46,7 +44,7 @@ const LoenindkomstTab = React.memo(({
     loentrinFinder,
     totalAnsaettelsesforhold,
     addAnsaettelsesforholdGate,
-    handleAddConfirm,
+    handleAdd,
     handleDeleteConfirm,
   } = vm;
 
@@ -115,9 +113,7 @@ const LoenindkomstTab = React.memo(({
               disabled={addAnsaettelsesforholdGate.disabled}
               tooltip="Tilføj nyt ansættelsesforhold"
               disabledReason={addAnsaettelsesforholdGate.disabledReason}
-              onClick={() => {
-                setAddDialogOpen(true);
-              }}
+              onClick={handleAdd}
             />
           </Box>
         ) : null}
@@ -147,26 +143,6 @@ const LoenindkomstTab = React.memo(({
         triggerRef={loentrinFinder.activeTriggerRef}
         onClose={loentrinFinder.closeFinder}
         onCalculate={loentrinFinder.handleCalculate}
-      />
-
-      {/* Tilføj-dialog */}
-      <ConfirmationDialog
-        open={addDialogOpen}
-        title="Tilføj ansættelsesforhold"
-        message={
-          <>
-            Dette vil tilføje et nyt ansættelsesforhold nederst på siden.
-            <br />
-            <br />
-            Bekræft venligst.
-          </>
-        }
-        confirmText="Ja, tilføj"
-        cancelText="Annuller"
-        onConfirm={handleAddConfirm}
-        onCancel={() => {
-          setAddDialogOpen(false);
-        }}
       />
 
       {/* Slet-dialog */}

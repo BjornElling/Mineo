@@ -325,7 +325,10 @@ export const collectAllEoRows = (
   const allRows: EoRowModel[] = executeAllEoRowBuilders(ctx);
 
   // Tilføj navigation-metadata til alle rows
-  const navigationContext: EoRowNavigationContext = { skadestype: stamdataValues.skadestype };
+  const navigationContext: EoRowNavigationContext = {
+    skadestype: stamdataValues.skadestype,
+    ansaettelsesforholdIds: (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => af.id),
+  };
   const rowsWithNavigation = allRows.map((row) => addNavigationMetadata(row, navigationContext));
   // Duplicate-id-check SKAL køre før relevansfiltrering.
   const duplicateIds = findDuplicateIds(rowsWithNavigation);

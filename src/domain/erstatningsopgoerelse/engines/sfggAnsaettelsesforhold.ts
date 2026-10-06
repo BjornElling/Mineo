@@ -28,6 +28,7 @@ import {
   type SfggSourceKind,
 } from './sfggKilde';
 import { getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
+import { resolveAnsaettelsesforholdNavn } from '../helpers/indtaegtPerioder';
 import {
   SFGG_LOVBESTEMT_FERIEPENGE_PCT,
   notCalculableSfggReferencesats,
@@ -74,8 +75,13 @@ const getSfggRowForEmployment = (
 ): SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined =>
   values.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforholdId);
 
-const getEmploymentName = (employment: LoenindkomstAnsaettelsesforhold): string =>
-  (employment.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted';
+const getEmploymentName = (
+  values: TafCalculationValues,
+  employment: LoenindkomstAnsaettelsesforhold
+): string => resolveAnsaettelsesforholdNavn(
+  employment.navnPaaArbejdssted,
+  (values.loenindkomstAnsaettelsesforhold ?? []).findIndex((entry) => entry.id === employment.id)
+);
 
 const assertNever = (value: never): never => {
   throw new Error(`Uventet SFGG-kildeværdi: ${String(value)}`);
@@ -252,7 +258,7 @@ export const planSfggForAnsaettelsesforhold = (
   if (!hasEligibleDays) {
     return computedResult({
       ansaettelsesforholdId: employment.id,
-      ansaettelsesforholdNavn: getEmploymentName(employment),
+      ansaettelsesforholdNavn: getEmploymentName(values, employment),
       sfggSourceLabel: sfggSource.label,
       sfggSourceKind: sfggSource.kind,
       sfggDayBasis,
@@ -385,7 +391,7 @@ export const planSfggForAnsaettelsesforhold = (
 
       return {
         ansaettelsesforholdId: employment.id,
-        ansaettelsesforholdNavn: getEmploymentName(employment),
+        ansaettelsesforholdNavn: getEmploymentName(values, employment),
         fra: group.fra,
         til: group.til,
         reguleringsindeks: group.reguleringsindeks,
@@ -409,7 +415,7 @@ export const planSfggForAnsaettelsesforhold = (
 
     return {
       ansaettelsesforholdId: employment.id,
-      ansaettelsesforholdNavn: getEmploymentName(employment),
+      ansaettelsesforholdNavn: getEmploymentName(values, employment),
       sfggSourceLabel: sfggSource.label,
       sfggSourceKind: sfggSource.kind,
       sfggDayBasis,

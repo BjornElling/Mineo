@@ -205,6 +205,8 @@ const buildLoenOgYdelserFixture = (): EoFixture => {
       // Golden-tallene er regnet MED Store Bededagstillægget, som nu kræver et eksplicit tilvalg
       // (indskudte-loentillaeg-contract.md §2a).
       beregnStoreBededagstillaeg: true,
+      // Procent-tilstand med lønrækker kræver feriegodtgørelsen (BB-274).
+      feriePct: 12.5,
       loenperiode: 'maaned',
       loenudviklingBeregningsgrundlag: 'Ingen',
       indtaegtsoplysningerTableData: [

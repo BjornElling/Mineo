@@ -540,6 +540,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     values.beregnesUdFra = 'Angivet dagsløn';
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
+      feriePct: 12.5,
       indtaegtsoplysningerTableData: [{
         id: 'loen-jan-2024',
         col0_maaned: '1',

@@ -24,7 +24,10 @@ import {
   buildSvieSmerteContext,
   buildTaftContext,
 } from '../erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
-import { selectBlockingLoenindkomstFieldIssues } from '../erstatningsopgoerelse/eoInputIssues';
+import {
+  selectBlockingLoenindkomstFieldIssues,
+  selectLoenindkomstKortFieldIssues,
+} from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
  * Builder-entry type (meget simpelt)
@@ -97,7 +100,8 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
         ctx.loenindkomstManuelReguleringInputErrors,
         ctx.rowPolicy,
         ctx.stamdataValues.skadestype,
-        selectBlockingLoenindkomstFieldIssues(ctx.eoErrors)
+        selectBlockingLoenindkomstFieldIssues(ctx.eoErrors),
+        selectLoenindkomstKortFieldIssues(ctx.eoErrors)
       ),
   },
 

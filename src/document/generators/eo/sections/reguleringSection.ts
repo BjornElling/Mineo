@@ -14,6 +14,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   formatAmount2,
@@ -486,7 +487,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ansaettelsesforhold.id
     );
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
-    const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${originalIndex + 1}`;
+    const underoverskrift = resolveAnsaettelsesforholdNavn(ansaettelsesforhold.navnPaaArbejdssted, originalIndex);
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (visUnderoverskrift) {
       renderSubheader(underoverskrift, { addTopSpacing: visibleIndex > 0 });

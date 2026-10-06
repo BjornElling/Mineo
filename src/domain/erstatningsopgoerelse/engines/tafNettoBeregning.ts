@@ -5,7 +5,7 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   buildBeregningsperiodeRange,
   buildIncomeForRanges,
-  resolveArbejdsstedDisplayName,
+  resolveAnsaettelsesforholdNavn,
   roundIncomeBenefitAmountKroner,
   type IncomePeriodResult,
   type IsoRange,
@@ -62,7 +62,7 @@ export const buildSfggLoenudviklingMap = (
     employment.id,
     {
       ansaettelsesforholdId: employment.id,
-      ansaettelsesforholdNavn: resolveArbejdsstedDisplayName(employment.navnPaaArbejdssted, index),
+      ansaettelsesforholdNavn: resolveAnsaettelsesforholdNavn(employment.navnPaaArbejdssted, index),
       loenudviklingLabel: loenudvikling.loenudviklingLabel,
       loenudviklingTotal: loenudvikling.loenudviklingTotal,
       beregnedeSegmenter: sharedSegments,
@@ -81,7 +81,7 @@ const buildTafIndtaegterModel = (
   const useWholeKronerForMidlertidigtEet = values.midlertidigtEetFraEetSiden === 'Ja';
   const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
   indtaegter.employers.forEach((entry) => {
-    const label = entry.name !== '' ? entry.name : 'Arbejdssted';
+    const label = resolveAnsaettelsesforholdNavn(entry.name, entry.index);
     employerEntries.push({ label, amountOre: fromKroner(roundKroner(entry.amount)) });
   });
   const benefitEntries = indtaegter.benefits

@@ -1,4 +1,5 @@
 import { Box, MenuItem, Typography } from '@mui/material';
+import OverenskomstFilterLabel from '../../../common/OverenskomstFilterLabel';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -25,7 +26,6 @@ import LabeledControlRow from '../../../layout/LabeledControlRow';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { LOENPERIODE_LABELS } from '../../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
-import { resolveSatserHeading } from './resolveSatserHeading';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
 import {
   formatAnvendtReguleringsdatoInfoTooltip,
@@ -42,9 +42,12 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/st
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import {
-  isOverenskomstSatsFieldLocked,
+  formatOverenskomstUdenSatserTekst,
+  resolveOverenskomstSatsBindings,
+  resolvePrivatOverenskomstDaekning,
   type OverenskomstSatsField,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { isoToDanish } from '../../../../types/branded';
 import LoenudviklingFields from '../loenudvikling/LoenudviklingFields';
 import AnciennitetstillaegFields from '../loenudvikling/AnciennitetstillaegFields';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
@@ -53,11 +56,13 @@ import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoe
 import { APP_ROUTES } from '../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
+import { createFieldWarning } from '../../../../inputCore/fieldWarning';
 import { activeFieldIssue } from '../../../../inputCore/inputIssue';
 import { useInputReadPort } from '../../../../inputCore/react/inputRuntimeContext';
 import {
   erAnsaettelsesforholdOphoertRelevant,
   erSidsteArbejdsdagRelevant,
+  erFuldLoenUnderFerieRelevant,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -95,6 +100,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     skadedato,
     skadestype,
     satsIssues,
+    feriePctAdvarselByAfId,
     manualBaseRowErrorsByAfId,
     manualRegulationDateIssues,
     loentrinFinder,
@@ -107,10 +113,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     totalAnsaettelsesforhold,
     addAnsaettelsesforholdGate,
     showDeleteButton,
-    setAddDialogOpen,
+    handleAdd,
     setDeleteDialogOpen,
     setDeleteTargetId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
+    getSatserHeadingForAnsaettelsesforhold,
     getLoenudviklingBaseDate,
     resolveOverenskomstLabel,
     getFilteredOverenskomsterForAnsaettelsesforhold,
@@ -175,6 +182,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const satsIssueFor = (descriptor: { bind: (...ids: readonly string[]) => FieldRef<number | undefined> }) =>
     satsIssues.get(serializeFieldAddress(field(descriptor).address));
   const feriePctIssue = satsIssueFor(eoEmploymentFields.feriePct);
+  // En usædvanligt høj sats er en gul, ikke-blokerende advarsel (BB-286) – ringen bæres af `warning`, ikke af
+  // fejlkanalen, så den hverken farves rød eller spærrer.
+  const feriePctAdvarsel = feriePctAdvarselByAfId[af.id];
+  const feriePctWarning = feriePctAdvarsel === undefined ? undefined : createFieldWarning(feriePctAdvarsel);
 
   /**
    * Bindingen til den delte Lønudvikling-flade. Adresserne er bundet til NETOP dette
@@ -231,14 +242,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     saerligFraDatoRegulering: af.saerligFraDatoRegulering,
   });
   const anvendtReguleringsdatoReferenceLabel = capitalizeFirstCharDa(anvendtReguleringsdatoReferenceText);
-  const satserHeading = resolveSatserHeading({
-    anvendtReguleringsdato,
-    skadedato: skadedato,
-    skadestype: skadestype,
-    beregnesUdFra,
-    beregningsperiodeTil: tafBeregningsperiodeTil,
-    saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-  });
+  const satserHeading = getSatserHeadingForAnsaettelsesforhold(af);
   const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
   /**
    * Satsfelt der er BRUGERINPUT når det er frit, og AFLEDT når overenskomsten låser det.
@@ -253,14 +257,36 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
    * pension 10,15 %) – to kilder til ét tal, hvor kun den forkerte var synlig. Et låst felt må
    * aldrig bindes til readeren; det er projektionen der ejer værdien.
    */
+  const satsBindings = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato);
+  const privatOverenskomstDaekning = resolvePrivatOverenskomstDaekning(af);
+  const anvendtReguleringsdatoKort = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
+  // Hvorfor et låst satsfelt er låst (BB-287): overenskomsten fastsætter satsen – eller programmet har ingen
+  // satser for den på datoen (BB-275).
+  const lockedSatsTooltip = (satsField: OverenskomstSatsField): string | undefined => {
+    const binding = satsBindings[satsField];
+    if (binding.kind === 'utilgaengelig') {
+      return privatOverenskomstDaekning === null ? undefined : formatOverenskomstUdenSatserTekst(privatOverenskomstDaekning);
+    }
+    return anvendtReguleringsdatoKort === undefined
+      ? 'Fastsat af overenskomsten'
+      : `Fastsat af overenskomsten på ${anvendtReguleringsdatoKort}`;
+  };
   const renderSatsField = (satsField: OverenskomstSatsField) => {
     const shared = {
       name: `${af.id}:${satsField}`,
       placeholder: '0',
       sx: LOCKED_SATS_FIELD_SX,
     } as const;
-    return isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, satsField)
-      ? <DerivedPercentField value={af[satsField]} {...shared} />
+    const lockedTooltip = lockedSatsTooltip(satsField);
+    return satsBindings[satsField].kind !== 'bruger'
+      ? (
+        <DerivedPercentField
+          value={af[satsField]}
+          accessibleName={eoEmploymentFields[satsField].label}
+          {...(lockedTooltip === undefined ? {} : { infoTooltipText: lockedTooltip })}
+          {...shared}
+        />
+      )
       : (
         <PercentField
           field={field(eoEmploymentFields[satsField])}
@@ -386,7 +412,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-              <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
+              <OverenskomstFilterLabel part="loenmodtager" />
               <ChoiceField
                 field={field(eoEmploymentFilterFields.loenmodtager)}
                 location={location('overenskomstFilter.loenmodtager')}
@@ -428,7 +454,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               </ChoiceField>
 
               {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-              <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
+              <OverenskomstFilterLabel part="arbejdsgiver" />
               <ChoiceField
                 field={field(eoEmploymentFilterFields.arbejdsgiver)}
                 location={location('overenskomstFilter.arbejdsgiver')}
@@ -489,19 +515,22 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      <LabeledControlRow label="Fuld løn under ferie:">
-        {({ labelledBy, controlId }) => (
-          <MappedToggleField
-            field={field(eoEmploymentFields.fuldLoenUnderFerie)}
-            location={location('fuldLoenUnderFerie')}
-            checkedValue="Ja"
-            uncheckedValue="Nej"
-            name={`${af.id}:fuldLoenUnderFerie`}
-            id={controlId}
-            labelledBy={labelledBy}
-          />
-        )}
-      </LabeledControlRow>
+      {/* Kun ved beregningsperiode: ved angivet løn ændrer valget intet (BB-285, `erFuldLoenUnderFerieRelevant`). */}
+      {erFuldLoenUnderFerieRelevant({ beregnesUdFra }) && (
+        <LabeledControlRow label="Fuld løn under ferie:">
+          {({ labelledBy, controlId }) => (
+            <MappedToggleField
+              field={field(eoEmploymentFields.fuldLoenUnderFerie)}
+              location={location('fuldLoenUnderFerie')}
+              checkedValue="Ja"
+              uncheckedValue="Nej"
+              name={`${af.id}:fuldLoenUnderFerie`}
+              id={controlId}
+              labelledBy={labelledBy}
+            />
+          )}
+        </LabeledControlRow>
+      )}
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">Løn på helligdage:</Typography>
@@ -609,6 +638,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                   name={`${af.id}:feriePct`}
                   placeholder="0"
                   {...(feriePctIssue === undefined ? {} : { crossFieldIssue: feriePctIssue })}
+                  {...(feriePctWarning === undefined ? {} : { warning: feriePctWarning })}
                   sx={{ width: '100px' }}
                 />
               </Box>
@@ -640,6 +670,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 </Typography>
                 <DerivedPercentField
                   value={af.storeBededagPct}
+                  accessibleName="Store Bededagstillæg"
                   name={`${af.id}:storeBededagPct`}
                   placeholder="0"
                   sx={LOCKED_SATS_FIELD_SX}
@@ -782,9 +813,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             disabled={addAnsaettelsesforholdGate.disabled}
             tooltip="Tilføj nyt ansættelsesforhold"
             disabledReason={addAnsaettelsesforholdGate.disabledReason}
-            onClick={() => {
-              setAddDialogOpen(true);
-            }}
+            onClick={handleAdd}
           />
         )}
 

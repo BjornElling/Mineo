@@ -11,6 +11,16 @@ describe('getNavigationTargetFromRowId', () => {
     });
   });
 
+  it('navngiver linket efter kortets nummer, når der er flere ansættelsesforhold (BB-278)', () => {
+    const context = { ansaettelsesforholdIds: ['af-1', 'af-2'] };
+    expect(getNavigationTargetFromRowId('loenindkomst.af-2.loenoplysninger', context))
+      .toMatchObject({ sectionTitle: 'Ansættelsesforhold 2' });
+    expect(getNavigationTargetFromRowId('sfgg.tabel.x.af-1', context))
+      .toMatchObject({ sectionTitle: 'Ansættelsesforhold 1' });
+    expect(getNavigationTargetFromRowId('sfgg.tabel.x.af-1', { ansaettelsesforholdIds: ['af-1'] }))
+      .toMatchObject({ sectionTitle: 'Lønindkomst' });
+  });
+
   describe('stamdata-rækker', () => {
     it.each([
       ['stamdata.journalnr', 'Sagsinfo'],
@@ -63,7 +73,8 @@ describe('getNavigationTargetFromRowId', () => {
       ],
       [
         'sfgg.tabel.x.af-1',
-        { tabId: 'loenindkomst', sectionId: 'loenindkomst', tabName: 'Lønindkomst', sectionTitle: 'Ansættelsesforhold' },
+        // Uden flere ansættelsesforhold hedder sektionen «Lønindkomst» (BB-278).
+        { tabId: 'loenindkomst', sectionId: 'loenindkomst', tabName: 'Lønindkomst', sectionTitle: 'Lønindkomst' },
       ],
       [
         'oevrigekrav.row-1',

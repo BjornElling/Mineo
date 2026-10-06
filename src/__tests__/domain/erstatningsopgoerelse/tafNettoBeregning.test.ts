@@ -261,7 +261,7 @@ describe('computeTafNettoBeregning', () => {
     expect(result.tabtArbejdsfortjenesteOre).toBe(436380);
   });
 
-  it('bruger Arbejdssted som fallback for en arbejdsgiver uden navn', () => {
+  it('bruger «Ansættelsesforhold 1» som fallback for en arbejdsgiver uden navn', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -293,7 +293,7 @@ describe('computeTafNettoBeregning', () => {
       { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] }
     );
 
-    expect(result.tafIndtaegter?.entries).toContainEqual({ label: 'Arbejdssted', amountOre: moneyOre(100000) });
+    expect(result.tafIndtaegter?.entries).toContainEqual({ label: 'Ansættelsesforhold 1', amountOre: moneyOre(100000) });
   });
 
   it('samler begge ydelsestyper der udløser TAF-forbehold', () => {
