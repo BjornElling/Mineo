@@ -7,11 +7,16 @@ import { addMoneyOre, sumMoneyOre, zeroMoneyOre, type MoneyOre } from '../../mon
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
-import { computeSfggForAnsaettelsesforhold } from './sfggAnsaettelsesforhold';
+import { planSfggForAnsaettelsesforhold } from './sfggAnsaettelsesforhold';
 import { buildDateSetFromRanges } from './isoRangeAlgebra';
 import { buildLoenArbejdsdageSet } from './periodiseringsMotor';
 import { resolveSfggCapCutoffDate } from './sfggPeriodisering';
-import { buildEmploymentSfggCalculator, type PerEmploymentLoenudvikling } from './sfggSegmentering';
+import {
+  buildEmploymentSfggCalculator,
+  buildSfggFeriepengeFradrag,
+  type EmploymentSfggCalculator,
+  type PerEmploymentLoenudvikling,
+} from './sfggSegmentering';
 import type {
   SygeferiegodtgoerelseAnsaettelsesforholdResult,
   SygeferiegodtgoerelseResult,
@@ -61,16 +66,18 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       : null;
   if (tafDateSet.size === 0) return { ...EMPTY_RESULT, firstExcludedDate };
 
-  // Fradraget "feriepenge modtaget" bruger alle arbejdsgivere. Kalkulatorerne etableres én gang
-  // globalt og gives eksplicit til hver ansættelsesberegning, så reglen ikke kan blive lokal.
-  const alleAnsaettelserKalkulatorer = (values.loenindkomstAnsaettelsesforhold ?? []).map(
-    (employment) => buildEmploymentSfggCalculator(employment, values.ferieperioder ?? [])
+  // Fradraget "feriepenge modtaget" bruger alle arbejdsgivere, men kun én gang på tværs af kravene.
+  // Kalkulatorerne etableres én gang globalt, og fradraget fordeles først, når alle krav er planlagt.
+  const kalkulatorer = new Map<string, EmploymentSfggCalculator>(
+    (values.loenindkomstAnsaettelsesforhold ?? []).map((employment) => [
+      employment.id,
+      buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []),
+    ])
   );
-  const perAnsaettelsesforhold: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
-  const perYear = new Map<number, MoneyOre>();
 
-  for (const employment of (values.loenindkomstAnsaettelsesforhold ?? []).filter((entry) => entry.ansatPaaSkadestidspunktet)) {
-    const computation = computeSfggForAnsaettelsesforhold({
+  const computations = (values.loenindkomstAnsaettelsesforhold ?? [])
+    .filter((entry) => entry.ansatPaaSkadestidspunktet)
+    .map((employment) => planSfggForAnsaettelsesforhold({
       values,
       employment,
       tafRanges,
@@ -81,13 +88,21 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       tafDateSetIncludingFirstExcluded,
       tafArbejdsdageSetIncludingFirstExcluded,
       employmentCalculator: buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []),
-      alleAnsaettelserKalkulatorer,
       loenudvikling: args.loenudviklingPerAnsaettelse?.get(employment.id),
-    });
-    if (computation.status === 'skipped') continue;
+    }));
+  const fradrag = buildSfggFeriepengeFradrag({
+    kalkulatorer,
+    krav: computations.flatMap((computation) => computation.status === 'planned' ? [computation.krav] : []),
+  });
 
-    perAnsaettelsesforhold.push(computation.result);
-    for (const entry of computation.result.perYear) {
+  const perAnsaettelsesforhold: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
+  const perYear = new Map<number, MoneyOre>();
+  for (const computation of computations) {
+    if (computation.status === 'skipped') continue;
+    const result = computation.status === 'planned' ? computation.complete(fradrag) : computation.result;
+
+    perAnsaettelsesforhold.push(result);
+    for (const entry of result.perYear) {
       perYear.set(entry.year, addMoneyOre(perYear.get(entry.year) ?? zeroMoneyOre(), entry.amountOre));
     }
   }

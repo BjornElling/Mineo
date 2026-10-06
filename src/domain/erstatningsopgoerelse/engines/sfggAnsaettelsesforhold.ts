@@ -44,6 +44,8 @@ import {
   sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner,
   type EmploymentSfggCalculator,
   type PerEmploymentLoenudvikling,
+  type SfggFeriepengeFradrag,
+  type SfggFradragKrav,
 } from './sfggSegmentering';
 import type {
   SygeferiegodtgoerelseAnsaettelsesforholdResult,
@@ -113,19 +115,25 @@ export type SfggAnsaettelsesforholdContext = Readonly<{
   tafDateSetIncludingFirstExcluded: ReadonlySet<ISODateString>;
   tafArbejdsdageSetIncludingFirstExcluded: ReadonlySet<ISODateString>;
   employmentCalculator: EmploymentSfggCalculator;
-  alleAnsaettelserKalkulatorer: readonly EmploymentSfggCalculator[];
   loenudvikling: PerEmploymentLoenudvikling;
 }>;
 
+// Fradraget for modtagne feriepenge afhænger af de øvrige SFGG-krav (se buildSfggFeriepengeFradrag).
+// Beregningen planlægges derfor først pr. ansættelsesforhold og afsluttes, når alle krav kendes.
 export type SfggAnsaettelsesforholdComputation =
   | Readonly<{ status: 'skipped' }>
-  | Readonly<{ status: 'computed'; result: SygeferiegodtgoerelseAnsaettelsesforholdResult }>;
+  | Readonly<{ status: 'computed'; result: SygeferiegodtgoerelseAnsaettelsesforholdResult }>
+  | Readonly<{
+    status: 'planned';
+    krav: SfggFradragKrav;
+    complete: (fradrag: SfggFeriepengeFradrag) => SygeferiegodtgoerelseAnsaettelsesforholdResult;
+  }>;
 
 const computedResult = (
   result: SygeferiegodtgoerelseAnsaettelsesforholdResult
 ): SfggAnsaettelsesforholdComputation => ({ status: 'computed', result });
 
-export const computeSfggForAnsaettelsesforhold = (
+export const planSfggForAnsaettelsesforhold = (
   context: SfggAnsaettelsesforholdContext
 ): SfggAnsaettelsesforholdComputation => {
   const {
@@ -139,11 +147,8 @@ export const computeSfggForAnsaettelsesforhold = (
     tafDateSetIncludingFirstExcluded,
     tafArbejdsdageSetIncludingFirstExcluded,
     employmentCalculator,
-    alleAnsaettelserKalkulatorer,
     loenudvikling,
   } = context;
-  const buildAlleFeriepengeOreForDates = (dates: readonly ISODateString[]): MoneyOre =>
-    sumMoneyOre(alleAnsaettelserKalkulatorer.map((calculator) => calculator.buildFeriepengeOreForDates(dates)));
 
   const sfggRow = getSfggRowForEmployment(values, employment.id);
   const sfggSource = resolveSfggSource(sfggRow, employment);
@@ -312,132 +317,130 @@ export const computeSfggForAnsaettelsesforhold = (
     }];
   });
 
-  const loenPlusLoen2PlusIkkePensLoenBySegment = new Map<string, number>();
-  const feriepengeBySegment = new Map<string, MoneyOre>();
-  groupedWithEligibleDays.forEach((group, index) => {
-    const loenPlusLoen2PlusIkkePensLoenKroner =
-      sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner(group.dates, employmentCalculator);
-    loenPlusLoen2PlusIkkePensLoenBySegment.set(`${group.fra}:${index}`, loenPlusLoen2PlusIkkePensLoenKroner);
-    feriepengeBySegment.set(
-      `${group.fra}:${index}`,
-      buildAlleFeriepengeOreForDates(group.dates)
-    );
-  });
-
-  const alreadyPaidOre = fromKroner(
-    roundKroner(amountValueToNumber(sfggRow?.sfggAlleredeBetaltBeloeb) ?? 0)
-  );
-  const grossWeights = groupedWithEligibleDays.map((group, index) => ({
-    key: `${group.fra}:${index}`,
-    weight: buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length),
-  }));
-  const allocatedAlreadyPaid = allocateOreByWeights(alreadyPaidOre, grossWeights);
-  const employmentPerYear = new Map<number, MoneyOre>();
-
-  const segments: SygeferiegodtgoerelseSegment[] = groupedWithEligibleDays.map((group, index) => {
-    const key = `${group.fra}:${index}`;
-    const grossOre = buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length);
-    const loenPlusLoen2PlusIkkePensLoenKroner = loenPlusLoen2PlusIkkePensLoenBySegment.get(key) ?? 0;
-    const feriepengeOreAlle = feriepengeBySegment.get(key) ?? zeroMoneyOre();
-    const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? zeroMoneyOre();
-    // feriepengeAfSygeloenOre vises som "Feriepenge modtaget i perioden" og indgår i ligningen:
-    // gross - feriepengeAfSygeloen - alleredeBetalt = beregnetSfggoere
-    // Fradraget kan ikke overstige gross (minus allerede betalt) – cap sikrer at
-    // sum(feriepengeAfSygeloenOre) + sum(beregnetSfggoereOre) = sum(grossOre) holder præcist.
-    const availableAfterAlreadyPaidOre = clampMoneyOreToZero(
-      subtractMoneyOre(grossOre, alreadyPaidSegmentOre)
-    );
-    const feriepengeOre = feriepengeOreAlle < availableAfterAlreadyPaidOre
-      ? feriepengeOreAlle
-      : availableAfterAlreadyPaidOre;
-    const segmentTotalOre = clampMoneyOreToZero(subtractMoneyOre(
-      subtractMoneyOre(grossOre, feriepengeOre),
-      alreadyPaidSegmentOre
-    ));
-
-    const yearDates = new Map<number, ISODateString[]>();
-    group.dates.forEach((iso) => {
-      const year = Number.parseInt(iso.slice(0, 4), 10);
-      const dates = yearDates.get(year) ?? [];
-      dates.push(iso);
-      yearDates.set(year, dates);
-    });
-    const alleAnsaettelserFeriepengeOreByYear = alleAnsaettelserKalkulatorer.reduce(
-      (acc, kalk) => {
-        const byYear = kalk.buildFeriepengeOreByYear(group.dates);
-        byYear.forEach((ore, year) => {
-          acc.set(year, addMoneyOre(acc.get(year) ?? zeroMoneyOre(), ore));
-        });
-        return acc;
-      },
-      new Map<number, MoneyOre>()
-    );
-    const yearAllocations = buildYearAllocationsForGroupedSegment({
-      yearDates,
-      satsOre: group.satsOre,
-      agPensionPct: group.agPensionPct,
-      alreadyPaidSegmentOre,
-      segmentTotalOre,
-      feriepengeOreByYear: alleAnsaettelserFeriepengeOreByYear,
-    });
-    yearAllocations.forEach((amountOre, year) => {
-      employmentPerYear.set(
-        year,
-        addMoneyOre(employmentPerYear.get(year) ?? zeroMoneyOre(), amountOre)
+  const complete = (fradrag: SfggFeriepengeFradrag): SygeferiegodtgoerelseAnsaettelsesforholdResult => {
+    const loenPlusLoen2PlusIkkePensLoenBySegment = new Map<string, number>();
+    const feriepengeBySegment = new Map<string, MoneyOre>();
+    groupedWithEligibleDays.forEach((group, index) => {
+      const loenPlusLoen2PlusIkkePensLoenKroner =
+        sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner(group.dates, employmentCalculator);
+      loenPlusLoen2PlusIkkePensLoenBySegment.set(`${group.fra}:${index}`, loenPlusLoen2PlusIkkePensLoenKroner);
+      feriepengeBySegment.set(
+        `${group.fra}:${index}`,
+        fradrag.forDates(employment.id, group.dates)
       );
     });
+
+    const alreadyPaidOre = fromKroner(
+      roundKroner(amountValueToNumber(sfggRow?.sfggAlleredeBetaltBeloeb) ?? 0)
+    );
+    const grossWeights = groupedWithEligibleDays.map((group, index) => ({
+      key: `${group.fra}:${index}`,
+      weight: buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length),
+    }));
+    const allocatedAlreadyPaid = allocateOreByWeights(alreadyPaidOre, grossWeights);
+    const employmentPerYear = new Map<number, MoneyOre>();
+
+    const segments: SygeferiegodtgoerelseSegment[] = groupedWithEligibleDays.map((group, index) => {
+      const key = `${group.fra}:${index}`;
+      const grossOre = buildSfggGrossOre(group.satsOre, group.agPensionPct, group.dates.length);
+      const loenPlusLoen2PlusIkkePensLoenKroner = loenPlusLoen2PlusIkkePensLoenBySegment.get(key) ?? 0;
+      const feriepengeOreAlle = feriepengeBySegment.get(key) ?? zeroMoneyOre();
+      const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? zeroMoneyOre();
+      // feriepengeAfSygeloenOre vises som "Feriepenge modtaget i perioden" og indgår i ligningen:
+      // gross - feriepengeAfSygeloen - alleredeBetalt = beregnetSfggoere
+      // Fradraget kan ikke overstige gross (minus allerede betalt) – cap sikrer at
+      // sum(feriepengeAfSygeloenOre) + sum(beregnetSfggoereOre) = sum(grossOre) holder præcist.
+      const availableAfterAlreadyPaidOre = clampMoneyOreToZero(
+        subtractMoneyOre(grossOre, alreadyPaidSegmentOre)
+      );
+      const feriepengeOre = feriepengeOreAlle < availableAfterAlreadyPaidOre
+        ? feriepengeOreAlle
+        : availableAfterAlreadyPaidOre;
+      const segmentTotalOre = clampMoneyOreToZero(subtractMoneyOre(
+        subtractMoneyOre(grossOre, feriepengeOre),
+        alreadyPaidSegmentOre
+      ));
+
+      const yearDates = new Map<number, ISODateString[]>();
+      group.dates.forEach((iso) => {
+        const year = Number.parseInt(iso.slice(0, 4), 10);
+        const dates = yearDates.get(year) ?? [];
+        dates.push(iso);
+        yearDates.set(year, dates);
+      });
+      const yearAllocations = buildYearAllocationsForGroupedSegment({
+        yearDates,
+        satsOre: group.satsOre,
+        agPensionPct: group.agPensionPct,
+        alreadyPaidSegmentOre,
+        segmentTotalOre,
+        feriepengeOreByYear: fradrag.byYear(employment.id, group.dates),
+      });
+      yearAllocations.forEach((amountOre, year) => {
+        employmentPerYear.set(
+          year,
+          addMoneyOre(employmentPerYear.get(year) ?? zeroMoneyOre(), amountOre)
+        );
+      });
+
+      return {
+        ansaettelsesforholdId: employment.id,
+        ansaettelsesforholdNavn: getEmploymentName(employment),
+        fra: group.fra,
+        til: group.til,
+        reguleringsindeks: group.reguleringsindeks,
+        satsOre: group.satsOre,
+        agPensionPct: group.agPensionPct,
+        antalDage: group.dates.length,
+        feriepengekravOre: grossOre,
+        beregnetSfggoereOre: segmentTotalOre,
+        loenPlusLoen2PlusIkkePensLoenKroner,
+        feriepengeAfSygeloenOre: feriepengeOre,
+        alleredeBetaltOre: alreadyPaidSegmentOre,
+      };
+    });
+
+    const feriepengeModtagetOre = sumMoneyOre(
+      segments.map((segment) => segment.feriepengeAfSygeloenOre)
+    );
+    const feriepengeModtagetFormula = feriepengeModtagetOre > 0 || segments.some((segment) => segment.loenPlusLoen2PlusIkkePensLoenKroner > 0)
+      ? { totalOre: feriepengeModtagetOre }
+      : null;
 
     return {
       ansaettelsesforholdId: employment.id,
       ansaettelsesforholdNavn: getEmploymentName(employment),
-      fra: group.fra,
-      til: group.til,
-      reguleringsindeks: group.reguleringsindeks,
-      satsOre: group.satsOre,
-      agPensionPct: group.agPensionPct,
-      antalDage: group.dates.length,
-      feriepengekravOre: grossOre,
-      beregnetSfggoereOre: segmentTotalOre,
-      loenPlusLoen2PlusIkkePensLoenKroner,
-      feriepengeAfSygeloenOre: feriepengeOre,
-      alleredeBetaltOre: alreadyPaidSegmentOre,
+      sfggSourceLabel: sfggSource.label,
+      sfggSourceKind: sfggSource.kind,
+      sfggDayBasis,
+      sfggIntroText,
+      sfggReferenceperiodeAuthorityText,
+      sfggReferenceperiodeLabel,
+      sfggDirectRateLabel,
+      sfggFirstTafDayExcludedText,
+      sfggAfterEmployerSickPayText,
+      sfggLovbestemtFeriepengeNote,
+      foerstEfterSygeloen,
+      sfggAfkortninger,
+      segments,
+      perYear: [...employmentPerYear.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([year, amountOre]) => ({ year, amountOre })),
+      feriepengekravTotalOre: sumMoneyOre(segments.map((segment) => segment.feriepengekravOre)),
+      totalOre: sumMoneyOre(segments.map((segment) => segment.beregnetSfggoereOre)),
+      alleredeBetaltOre: alreadyPaidOre,
+      sfggVisningsperiode,
+      sfggReferenceperiode: sfggBaseRate.sfggReferenceperiode,
+      sfggReferencesats: sfggBaseRate.sfggReferencesatsOre,
+      sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
+      feriepengeModtagetFormula,
+      capReachedDate,
     };
-  });
+  };
 
-  const feriepengeModtagetOre = sumMoneyOre(
-    segments.map((segment) => segment.feriepengeAfSygeloenOre)
-  );
-  const feriepengeModtagetFormula = feriepengeModtagetOre > 0 || segments.some((segment) => segment.loenPlusLoen2PlusIkkePensLoenKroner > 0)
-    ? { totalOre: feriepengeModtagetOre }
-    : null;
-
-  return computedResult({
-    ansaettelsesforholdId: employment.id,
-    ansaettelsesforholdNavn: getEmploymentName(employment),
-    sfggSourceLabel: sfggSource.label,
-    sfggSourceKind: sfggSource.kind,
-    sfggDayBasis,
-    sfggIntroText,
-    sfggReferenceperiodeAuthorityText,
-    sfggReferenceperiodeLabel,
-    sfggDirectRateLabel,
-    sfggFirstTafDayExcludedText,
-    sfggAfterEmployerSickPayText,
-    sfggLovbestemtFeriepengeNote,
-    foerstEfterSygeloen,
-    sfggAfkortninger,
-    segments,
-    perYear: [...employmentPerYear.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([year, amountOre]) => ({ year, amountOre })),
-    feriepengekravTotalOre: sumMoneyOre(segments.map((segment) => segment.feriepengekravOre)),
-    totalOre: sumMoneyOre(segments.map((segment) => segment.beregnetSfggoereOre)),
-    alleredeBetaltOre: alreadyPaidOre,
-    sfggVisningsperiode,
-    sfggReferenceperiode: sfggBaseRate.sfggReferenceperiode,
-    sfggReferencesats: sfggBaseRate.sfggReferencesatsOre,
-    sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
-    feriepengeModtagetFormula,
-    capReachedDate,
-  });
+  return {
+    status: 'planned',
+    krav: { ansaettelsesforholdId: employment.id, groups: groupedWithEligibleDays },
+    complete,
+  };
 };

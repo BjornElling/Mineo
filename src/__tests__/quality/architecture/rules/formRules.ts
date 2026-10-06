@@ -665,7 +665,7 @@ export const sfggAnsaettelsesforholdImportBoundary = forbidImports({
   message: (ref) => `Direkte import af intern SFGG-ansættelsesberegning (${ref.moduleSpecifier}).`,
   violatingFixtures: [{
     relativePath: 'src/domain/x.ts',
-    code: "import { computeSfggForAnsaettelsesforhold } from './erstatningsopgoerelse/engines/sfggAnsaettelsesforhold';",
+    code: "import { planSfggForAnsaettelsesforhold } from './erstatningsopgoerelse/engines/sfggAnsaettelsesforhold';",
   }],
   cleanFixtures: [{
     relativePath: 'src/domain/x.ts',

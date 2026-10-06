@@ -237,6 +237,16 @@ Den samlede fradragslinje er summen af disse daglige beløb:
 feriepenge modtaget i perioden (+ AG-pension) = sum(dagens fradrag)
 ```
 
+Fradraget omfatter feriepenge fra alle arbejdsgivere, også arbejdsgivere uden eget SFGG-krav (fx et nyt job
+efter skaden). Hver modtaget krone fratrækkes dog kun én gang på tværs af SFGG-kravene. For hver dag gælder:
+
+- hvert SFGG-krav fratrækker sine egne feriepenge for dagen
+- feriepenge for dagen fra arbejdsgivere uden SFGG-krav den dag fordeles mellem dagens SFGG-krav i forhold til
+  kravenes dagsbeløb (dagssats inkl. AG-pension)
+
+Har kun ét ansættelsesforhold SFGG-krav, fratrækker det derfor alle arbejdsgiveres feriepenge for dagen.
+(Udviklerens afgørelse 2026-10-06; tidligere fratrak hvert krav samtlige arbejdsgiveres feriepenge.)
+
 Kun den almindelige feriepengeprocent indgår i dette fradrag.
 Fritvalg, SH/SO og Store Bededag indgår ikke.
 

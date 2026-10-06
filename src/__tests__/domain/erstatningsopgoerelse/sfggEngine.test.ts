@@ -2509,4 +2509,75 @@ describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
       firstExcludedDate: null,
     });
   });
+
+  describe('fradrag for modtagne feriepenge ved flere SFGG-krav', () => {
+    const juniLoen = (beloeb: number) => [{
+      id: 'r', col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '',
+      col0_dag: iso('2024-06-03'), col1_dag: iso('2024-06-28'),
+      col2: asAmount(beloeb), col3: undefined, col4: undefined, col5: undefined,
+    }];
+    const manuelSfgg = (id: string, dagssats: number) => ({
+      ...createSfggIngenRow(id),
+      sfggBeregningskilde: 'Manuelt angivet' as const,
+      sfggManuelDagssats: asAmount(dagssats),
+    });
+    const compute = (values: ErstatningsopgoerelseValues) => computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-06-03'), til: iso('2024-06-28') }],
+    });
+    const fradragPerKrav = (values: ErstatningsopgoerelseValues) =>
+      compute(values).perAnsaettelsesforhold.map((row) => row.feriepengeModtagetFormula?.totalOre ?? 0);
+
+    it('fratrækker hvert kravs egne feriepenge og ikke de andre kravs', () => {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.eoNummer = '2';
+      values.beregnesUdFra = 'Angivet dagsløn';
+      values.loenindkomstAnsaettelsesforhold = [
+        createEmployment({ id: 'a', loenperiode: 'dag', indtaegtsoplysningerTableData: juniLoen(40000) }),
+        createEmployment({ id: 'b' }),
+      ];
+      values.sfggAnsaettelsesforhold = [manuelSfgg('a', 500), manuelSfgg('b', 500)];
+
+      const result = compute(values);
+      expect(result.perAnsaettelsesforhold.map((row) => ({
+        gross: row.feriepengekravTotalOre,
+        deducted: row.feriepengeModtagetFormula?.totalOre ?? 0,
+        net: row.totalOre,
+      }))).toEqual([
+        { gross: 1000000, deducted: 500000, net: 500000 },
+        { gross: 1000000, deducted: 0, net: 1000000 },
+      ]);
+      expect(result.totalOre).toBe(1500000);
+    });
+
+    it('fordeler feriepenge fra en arbejdsgiver uden SFGG-krav én gang efter kravenes dagsbeløb', () => {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.eoNummer = '2';
+      values.beregnesUdFra = 'Angivet dagsløn';
+      values.loenindkomstAnsaettelsesforhold = [
+        createEmployment({ id: 'a' }),
+        createEmployment({ id: 'b' }),
+        createEmployment({ id: 'c', loenperiode: 'dag', indtaegtsoplysningerTableData: juniLoen(40000) }),
+      ];
+      values.sfggAnsaettelsesforhold = [manuelSfgg('a', 500), manuelSfgg('b', 1000), createSfggIngenRow('c')];
+
+      const [a = 0, b = 0] = fradragPerKrav(values);
+      expect(a + b).toBe(500000);
+      expect(Math.abs(b - 2 * a)).toBeLessThanOrEqual(60);
+    });
+
+    it('lader ét enkelt krav fratrække feriepenge fra alle arbejdsgivere som hidtil', () => {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.eoNummer = '2';
+      values.beregnesUdFra = 'Angivet dagsløn';
+      values.loenindkomstAnsaettelsesforhold = [
+        createEmployment({ id: 'a', loenperiode: 'dag', indtaegtsoplysningerTableData: juniLoen(20000) }),
+        createEmployment({ id: 'c', loenperiode: 'dag', indtaegtsoplysningerTableData: juniLoen(20000) }),
+      ];
+      values.sfggAnsaettelsesforhold = [manuelSfgg('a', 500), createSfggIngenRow('c')];
+
+      expect(fradragPerKrav(values)).toEqual([500000]);
+    });
+  });
 });
