@@ -7,6 +7,7 @@ import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
+import { resolveBeregningsperiodeEmployerAtReguleringsdato } from './indkomstSkadestidspunktBeregning';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
@@ -326,7 +327,13 @@ export const buildLoenudviklingModel = (
     for (const employer of income.employers) {
       const ansaettelsesforhold = ansaettelser[employer.index];
       if (!ansaettelsesforhold) continue;
-      const baseLoen = employer.amount / divisor;
+      // Grundlønnen bruger samme reguleringsdato-satser som visningen af «Indtægt før skadedatoen».
+      const baseLoen = resolveBeregningsperiodeEmployerAtReguleringsdato(
+        values,
+        ansaettelsesforhold,
+        employer,
+        isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : null
+      ).breakdown.samlet / divisor;
       const strategiData = strategiDataByIndex[employer.index];
       if (!strategiData) continue;
       const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);

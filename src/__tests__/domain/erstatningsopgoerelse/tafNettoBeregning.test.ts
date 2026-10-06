@@ -1,7 +1,8 @@
 import { moneyOre } from '../../../domain/money/money';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { applyAutoSatsFields } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import * as indtaegtPerioderModule from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
@@ -722,5 +723,45 @@ describe('computeTafNettoBeregning', () => {
     expect(result.indkomstSkadestidspunkt).toEqual(expectedIndkomstSkadestidspunkt);
     expect(result.loenudvikling).toEqual(expectedLoenudvikling);
     expect(result.sygeferiegodtgoerelse).toEqual(expectedSygeferiegodtgoerelse);
+  });
+
+  it('bruger reguleringsdatoens satser i både visningen og grundlønnen, når satsen ændres i beregningsperioden', () => {
+    // Byggeri og anlæg: AG-pension 8,15 % til og med maj 2023 og 10,15 % fra juni 2023.
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    values.tafBeregningsperiodeFra = iso('2023-01-01');
+    values.tafBeregningsperiodeTil = iso('2023-12-31');
+    values.tafPerioder = [{ id: 'taf', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: 0 }];
+    values.loenindkomstAnsaettelsesforhold = [applyAutoSatsFields({
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      loenperiode: 'maaned',
+      feriePct: 0,
+      storeBededagPct: 0,
+      fuldLoenUnderFerie: 'Ja',
+      loenPaaHelligdage: 'Almindelig løn',
+      loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: Array.from({ length: 12 }, (_, index) => ({
+        id: `loen-${index}`, col0_maaned: String(index + 1), col1_maaned: '2023',
+        col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined,
+        col2: asAmount(30000), col3: undefined, col4: undefined, col5: undefined,
+        fpFvShSoBeloeb: undefined, pensionBeloeb: undefined,
+      })),
+    }, iso('2023-12-31'))];
+    values.sfggAnsaettelsesforhold = [];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-12-31') }] }
+    );
+
+    // 360.000 + S/H 7 % (25.200) + pension 10,15 % af 385.200 (39.097,80) = 424.297,80 → 35.358,15 pr. måned.
+    expect(result.indkomstSkadestidspunkt?.maanedsloen).toEqual({ status: 'ok', value: moneyOre(3535815) });
+    expect(result.loenudvikling?.beregnedeSegmenter).toEqual([
+      expect.objectContaining({ kind: 'maaneder', maaneder: 12, maanedsloenOre: moneyOre(3535815), amountOre: moneyOre(42429780) }),
+    ]);
   });
 });

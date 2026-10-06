@@ -1,11 +1,11 @@
-import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { LoenindkomstAnsaettelsesforhold, StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
-import { isISODateString } from '../../../types/branded';
+import { isISODateString, type ISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatPercent, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
-import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
+import { buildIncomeForRanges, type IncomeEmployerAmount, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaanederPraecis, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
 import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
@@ -35,6 +35,85 @@ const parsePctPoint = (value: string | number | undefined): number | undefined =
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim() !== '') return parsePercentPointString(value) ?? 0;
   return undefined;
+};
+
+// Beregningsperiode-indkomsten opgøres for hele perioden med de satser, der gælder på reguleringsdatoen
+// (udviklerens afgørelse 2026-10-06), ikke med periodens historiske satser. Både visningen af
+// «Indtægt før skadedatoen» og lønudviklingens grundløn bruger denne ene funktion, så de ikke kan afvige.
+export const resolveBeregningsperiodeEmployerAtReguleringsdato = (
+  values: TafCalculationValues,
+  af: LoenindkomstAnsaettelsesforhold,
+  entry: IncomeEmployerAmount,
+  skadedato: ISODateString | null
+) => {
+  const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+    beregnesUdFra: values.beregnesUdFra,
+    angivetLoenMetodeOpreguleresFraDato: undefined,
+    saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    skadedato: skadedato ?? undefined,
+  });
+  const mode = af.tillaegAngivesSom;
+  const satser = (() => {
+    const baseSatser = {
+      feriePct: af.feriePct,
+      fritvalgPct: af.fritvalgPct,
+      shSoPct: af.shSoPct,
+      storeBededagPct: af.storeBededagPct,
+      pensionPct: af.pensionPct,
+    };
+    // Beløb-tilstand: satser bruges aldrig (kernen ignorerer dem), og 'Manuelt angivet'
+    // procent-grenen skal ikke kunne køre. Returnér base uændret.
+    if (mode === 'beloeb') return baseSatser;
+    if (!anvendtReguleringsdato) return baseSatser;
+    if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
+      const manualRows = af.loenudviklingManuelTableData ?? [];
+      // Basisrækken (række 0) repræsenterer satserne pr. reguleringsdatoen og indgår derfor også.
+      const datedRow = manualRows
+        .filter((row) => {
+          return Boolean(row.dato && row.dato <= anvendtReguleringsdato);
+        })
+        .sort((left, right) => {
+          return (left.dato ?? '').localeCompare(right.dato ?? '');
+        })
+        .at(-1);
+      return {
+        feriePct: parsePctPoint(datedRow?.feriepenge) ?? af.feriePct,
+        fritvalgPct: parsePctPoint(datedRow?.fritvalg) ?? af.fritvalgPct,
+        shSoPct: parsePctPoint(datedRow?.shSoSats) ?? af.shSoPct,
+        storeBededagPct: resolveAutoStoreBededagPct(af, anvendtReguleringsdato),
+        pensionPct: parsePctPoint(datedRow?.agPension) ?? af.pensionPct,
+      };
+    }
+    const satssegment = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: af,
+      skadedato: skadedato ?? undefined,
+      fra: anvendtReguleringsdato,
+      til: anvendtReguleringsdato,
+    })[0];
+    return satssegment?.satser ?? baseSatser;
+  })();
+  const recalculatedBreakdown = calculateStandardLoenDerivedFromAmounts(
+    {
+      loen: entry.breakdown.loenPlusLoen2,
+      loen2: 0,
+      ikkePensionsgivende: entry.breakdown.loenPlusLoen2PlusIkkePensLoen - entry.breakdown.loenPlusLoen2,
+      atp: entry.breakdown.atp,
+      // I Beløb-tilstand er tillæggene de allerede periodiserede, indtastede beløb;
+      // de genberegnes ikke fra satser (mode='beloeb' læser disse, ikke satserne).
+      fpFvShSoBeloeb: entry.breakdown.fpFvShSo,
+      pensionBeloeb: entry.breakdown.pension,
+    },
+    {
+      feriePct: satser.feriePct,
+      fritvalgPct: satser.fritvalgPct,
+      shSoPct: satser.shSoPct,
+      storeBededagPct: satser.storeBededagPct,
+      pensionPct: satser.pensionPct,
+    },
+    mode
+  );
+  return { satser, breakdown: recalculatedBreakdown };
 };
 
 export const buildIndkomstSkadestidspunkt = (
@@ -82,8 +161,8 @@ export const buildIndkomstSkadestidspunkt = (
     }
 
     if (periodeTilBeregning) {
-      // Beregningsperiode-indkomsten opgøres med de satser der gælder på reguleringsdato (af.pensionPct m.fl.),
-      // ikke med historisk segmentering – derfor sendes skadedato ikke med her.
+      // Satserne genberegnes på reguleringsdatoen nedenfor (resolveBeregningsperiodeEmployerAtReguleringsdato),
+      // så skadedato sendes ikke med her.
       const incomeForBeregningsperiode =
         options?.incomeForBeregningsperiode
         ?? buildIncomeForRanges(values, [periodeTilBeregning], undefined, undefined);
@@ -92,73 +171,9 @@ export const buildIndkomstSkadestidspunkt = (
       for (const entry of incomeForBeregningsperiode.employers) {
         const af = ansaettelser[entry.index];
         if (!af) continue;
-        const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
-          beregnesUdFra: values.beregnesUdFra,
-          angivetLoenMetodeOpreguleresFraDato: undefined,
-          saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
-          beregningsperiodeTil: values.tafBeregningsperiodeTil,
-          skadedato: skadedato ?? undefined,
-        });
+        const { satser, breakdown: recalculatedBreakdown } =
+          resolveBeregningsperiodeEmployerAtReguleringsdato(values, af, entry, skadedato);
         const mode = af.tillaegAngivesSom;
-        const satser = (() => {
-          const baseSatser = {
-            feriePct: af.feriePct,
-            fritvalgPct: af.fritvalgPct,
-            shSoPct: af.shSoPct,
-            storeBededagPct: af.storeBededagPct,
-            pensionPct: af.pensionPct,
-          };
-          // Beløb-tilstand: satser bruges aldrig (kernen ignorerer dem), og 'Manuelt angivet'
-          // procent-grenen skal ikke kunne køre. Returnér base uændret.
-          if (mode === 'beloeb') return baseSatser;
-          if (!anvendtReguleringsdato) return baseSatser;
-          if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
-            const manualRows = af.loenudviklingManuelTableData ?? [];
-            const datedRow = manualRows
-              .slice(1)
-              .filter((row) => {
-                return Boolean(row.dato && row.dato <= anvendtReguleringsdato);
-              })
-              .sort((left, right) => {
-                return (left.dato ?? '').localeCompare(right.dato ?? '');
-              })
-              .at(-1);
-            return {
-              feriePct: parsePctPoint(datedRow?.feriepenge) ?? af.feriePct,
-              fritvalgPct: parsePctPoint(datedRow?.fritvalg) ?? af.fritvalgPct,
-              shSoPct: parsePctPoint(datedRow?.shSoSats) ?? af.shSoPct,
-              storeBededagPct: resolveAutoStoreBededagPct(af, anvendtReguleringsdato),
-              pensionPct: parsePctPoint(datedRow?.agPension) ?? af.pensionPct,
-            };
-          }
-          const satssegment = buildLoenindkomstRateSegments({
-            ansaettelsesforhold: af,
-            skadedato: skadedato ?? undefined,
-            fra: anvendtReguleringsdato,
-            til: anvendtReguleringsdato,
-          })[0];
-          return satssegment?.satser ?? baseSatser;
-        })();
-        const recalculatedBreakdown = calculateStandardLoenDerivedFromAmounts(
-          {
-            loen: entry.breakdown.loenPlusLoen2,
-            loen2: 0,
-            ikkePensionsgivende: entry.breakdown.loenPlusLoen2PlusIkkePensLoen - entry.breakdown.loenPlusLoen2,
-            atp: entry.breakdown.atp,
-            // I Beløb-tilstand er tillæggene de allerede periodiserede, indtastede beløb;
-            // de genberegnes ikke fra satser (mode='beloeb' læser disse, ikke satserne).
-            fpFvShSoBeloeb: entry.breakdown.fpFvShSo,
-            pensionBeloeb: entry.breakdown.pension,
-          },
-          {
-            feriePct: satser.feriePct,
-            fritvalgPct: satser.fritvalgPct,
-            shSoPct: satser.shSoPct,
-            storeBededagPct: satser.storeBededagPct,
-            pensionPct: satser.pensionPct,
-          },
-          mode
-        );
         const feriePct = parsePctPoint(satser.feriePct);
         const fritvalgPct = parsePctPoint(satser.fritvalgPct);
         const shSoPct = parsePctPoint(satser.shSoPct);

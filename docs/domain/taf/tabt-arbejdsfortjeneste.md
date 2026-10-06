@@ -113,6 +113,10 @@ Alle beløb intern i beregningen håndteres i **øre** (integer) for at undgå f
 
 Komponenterne:
 - **Lønudvikling** (`buildLoenudviklingModel`): beregner hvad skadelidte ville have tjent i TAF-perioden baseret på indkomsten på skadestidspunktet, fremskrevet med lønudviklingsindeks.
+  Ved «Beregningsperiode» beregnes tillæg og AG-pension for hele beregningsperioden med de satser, der gælder
+  på reguleringsdatoen – ikke med periodens historiske satser (udviklerens afgørelse 2026-10-06). Grundlønnen
+  og visningen «Indtægt før skadedatoen» bruger samme funktion
+  (`resolveBeregningsperiodeEmployerAtReguleringsdato`) og kan derfor ikke afvige.
 - **Offentlige ydelsers udvikling** (`buildOffentligeYdelserUdviklingModel`): fremskriver de ydelser, der indgår i den hypotetiske indkomst, og LÆGGES derfor TIL sammen med lønudviklingen – ikke fra. Bemærk at et transient `midlertidigt_eet` fra Erhvervsevnetab-siden behandles her nøjagtigt som øvrige offentlige ydelser.
 - **TAF-indtægter** (`buildIncomeForRanges`): summerer offentlige ydelser (sygedagpenge, dagpenge, kontanthjælp m.fl.) og eventuel lønindkomst i TAF-perioden. Fradraget for `midlertidigt_eet` er UBETINGET: der er ingen 2011-grænse og ingen afhængighed af EET-afgørelsens type, så en delvist endelig afgørelses løbende ydelse fradrages på lige fod med en midlertidigs (jf. `docs/domain/eet/differencekrav.md` §«Delvist endelige afgørelser»).
 - **Konsistens mellem afgørelse og ydelse** (`buildEoMidlertidigtEetKonsistensRows`): en truffet afgørelse er en
