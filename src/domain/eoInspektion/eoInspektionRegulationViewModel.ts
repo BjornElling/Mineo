@@ -1,9 +1,5 @@
-import { getDayBeforeIso } from '../../utils/isoDateHelpers';
-/**
- * Regulation View Model - Indeks visning (rettet)
- */
+/** Kontrolvisningens reguleringstabeller læser motorens autoritative resultat. */
 
-import type { ISODateString } from '../../types/branded';
 
 import type { RowCellValue } from '../eoRowEvaluation/eoRowTypes';
 import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoInspektionFormat';
@@ -19,12 +15,12 @@ import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoer
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { capitalizeFirstCharDa } from '../../utils/formatUtils';
-import { zeroMoneyOre } from '../money/money';
 import { REGULERINGSVAERDIER_FERIE_HEADER } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
   resolveLoenudviklingSegmentBounds,
+  resolveLoenudviklingSegmenterForKilde,
 } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 
 export type RegulationInspektionSection = {
@@ -73,65 +69,6 @@ const buildPercentCell = (value: number): RowCellValue => ({
   rawValue: value,
   displayValue: formatPercent(value, 2),
 });
-
-const buildFallbackSegmentsFromTimeline = (params: Readonly<{
-  entries: readonly RegulationIndexTimeline['ansaettelser'][number]['entries'][number][];
-  tafBeregningsenhed: RegulationIndexTimeline['tafBeregningsenhed'];
-  tafRanges: readonly Readonly<{ fra: ISODateString; til: ISODateString }>[];
-}>): EoCanonicalOutput['regulering']['perAnsaettelse'][number]['loenudviklingSegmenter'] => {
-  const { entries, tafBeregningsenhed, tafRanges } = params;
-  if (entries.length === 0 || tafRanges.length === 0) return [];
-
-  const sortedEntries = [...entries].sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
-  const segments: EoCanonicalOutput['regulering']['perAnsaettelse'][number]['loenudviklingSegmenter'] = [];
-
-  for (const range of tafRanges) {
-    const splitPoints = new Set<ISODateString>([range.fra]);
-    sortedEntries.forEach((entry) => {
-      if (entry.effectiveFrom > range.fra && entry.effectiveFrom <= range.til) {
-        splitPoints.add(entry.effectiveFrom);
-      }
-    });
-    const orderedStarts = [...splitPoints].sort((a, b) => a.localeCompare(b));
-
-    orderedStarts.forEach((fra, index) => {
-      const nextStart = orderedStarts[index + 1];
-      const til = nextStart ? (getDayBeforeIso(nextStart) ?? range.til) : range.til;
-      if (fra > til) return;
-
-      const matchingEntry = [...sortedEntries]
-        .filter((entry) => entry.effectiveFrom <= fra)
-        .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
-      if (!matchingEntry) return;
-
-      const deltaPct = matchingEntry.index - 100;
-      if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
-        segments.push({
-          kind: 'maaneder',
-          fra,
-          til,
-          maaneder: matchingEntry.maaneder ?? 0,
-          maanedsloenOre: zeroMoneyOre(),
-          deltaPct,
-          amountOre: zeroMoneyOre(),
-        });
-        return;
-      }
-
-      segments.push({
-        kind: 'arbejdsdage',
-        fra,
-        til,
-        arbejdsdage: matchingEntry.arbejdsdage ?? 0,
-        dagsloenOre: zeroMoneyOre(),
-        deltaPct,
-        amountOre: zeroMoneyOre(),
-      });
-    });
-  }
-
-  return segments;
-};
 
 const COLUMN_DEFS: ReadonlyArray<Readonly<{
   key: RegulationColumnKey;
@@ -239,7 +176,7 @@ const mergeConsecutiveInspektionRows = (
 };
 
 /**
- * Byg regulation inspektion sections (indeks) pr. ansaettelsesforhold
+ * Bygger reguleringstabeller pr. ansættelsesforhold fra det autoritative resultat.
  */
 export function buildRegulationInspektionSections(
   params: Readonly<{
@@ -256,12 +193,6 @@ export function buildRegulationInspektionSections(
   const loenudviklingsKilderById = new Map(
     resolveLoenudviklingKilde(eoValues).map((ansaettelsesforhold) => [ansaettelsesforhold.id, ansaettelsesforhold] as const)
   );
-  const canonicalSegmentsByEmploymentId = new Map(
-    (canonicalOutput?.regulering.perAnsaettelse ?? []).map((entry) => [entry.ansaettelsesforholdId, entry.loenudviklingSegmenter] as const)
-  );
-  const tafRanges = (canonicalOutput?.periodiseringer.tafPerioder ?? eoValues.tafPerioder ?? [])
-    .flatMap((range) => (range.fra && range.til ? [{ fra: range.fra, til: range.til }] : []));
-
   const sections: RegulationInspektionSection[] = [];
 
   timeline.ansaettelser.forEach((af, idx) => {
@@ -310,20 +241,22 @@ export function buildRegulationInspektionSections(
     ];
 
     const isKlLoenaftalerAnsaettelsesforhold = ansaettelsesforhold?.loenudviklingBeregningsgrundlag === 'KL-lønaftaler';
-    const canonicalSegments = canonicalSegmentsByEmploymentId.get(af.ansaettelsesforholdId) ?? [];
-    const segmentsForInspektion = canonicalSegments.length > 0
-      ? canonicalSegments
-      : isKlLoenaftalerAnsaettelsesforhold
-        ? []
-        : buildFallbackSegmentsFromTimeline({
-          entries: af.entries,
-          tafBeregningsenhed: timeline.tafBeregningsenhed,
-          tafRanges,
-        });
+    const canonicalSegments = resolveLoenudviklingSegmenterForKilde({
+      perAnsaettelse: (canonicalOutput?.regulering.perAnsaettelse ?? []).map((entry) => ({
+        ansaettelsesforholdId: entry.ansaettelsesforholdId,
+        beregnedeSegmenter: entry.loenudviklingSegmenter,
+      })),
+      globaleSegmenter: canonicalOutput?.regulering.loenudviklingSegmenter ?? [],
+      ansaettelsesforholdId: af.ansaettelsesforholdId,
+    });
+    // Kontrolgrundlaget må aldrig blive et alternativt beregningsresultat. Uden canonical
+    // segmenter er der ingen beregnet regulering at vise, heller ikke en syntetisk nul-faktor.
+    const segmentsForInspektion = canonicalSegments;
     const coverageBounds = resolveLoenudviklingSegmentBounds(segmentsForInspektion);
     const reguleringsvaerdierTableData =
       ansaettelsesforhold && coverageBounds
         ? buildReguleringsvaerdierTableData({
+            segments: segmentsForInspektion,
             ansaettelsesforhold,
             anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,

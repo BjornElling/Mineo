@@ -29,6 +29,8 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 import type { ReguleringForloeb } from '../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
+import { FORM_REGISTRY } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringFormRegistry';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 
 const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
@@ -65,12 +67,62 @@ const buildTestForloeb = (
 const buildReguleringsvaerdierTableData = (params: ReguleringsvaerdierParams) =>
   buildReguleringsvaerdierTableDataFromCanonical({
     ...params,
+    segments: params.segments ?? (params.tafFra && params.tafTil
+      && (['Manuelt angivet', 'Overenskomst'].includes(params.ansaettelsesforhold.loenudviklingBeregningsgrundlag ?? '')
+        || params.ansaettelsesforhold.loenudviklingStatistikModel === 'ASL-årslønsmaksimum') ? withEngineEvidence({
+      ...params,
+      segments: [{
+        kind: 'maaneder', fra: params.tafFra, til: params.tafTil, maaneder: 1,
+        maanedsloenOre: moneyOre(100000), amountOre: moneyOre(100000), deltaPct: 0,
+      }],
+    }) : []),
     forloeb: params.forloeb ?? buildTestForloeb(params),
   });
+
+const withEngineEvidence = (params: ReguleringsindeksParams): readonly LoenudviklingSegment[] => {
+  if (params.segments.every((segment) => segment.regulering)) return params.segments;
+  const af = params.ansaettelsesforhold;
+  const basis = af.loenudviklingBeregningsgrundlag;
+  if (!basis || basis === 'Ingen') {
+    return params.segments.map((segment) => ({
+      ...segment,
+      regulering: buildReguleringsbevis(100, 100 + segment.deltaPct, { kind: 'indeks' }),
+    }));
+  }
+  if (basis === 'KL-lønaftaler') {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmountValue(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = params.anvendtReguleringsdato;
+    values.eoAngivetLoenLoenudvikling = { ...values.eoAngivetLoenLoenudvikling, ...af };
+    const model = buildLoenudviklingModel(values, STAMDATA_INITIAL_VALUES, params.tafBeregningsenhed, null, {
+      tafRanges: params.segments.map(({ fra, til }) => ({ fra, til })),
+    });
+    return model.beregnedeSegmenter.map((segment) => {
+      const original = params.segments.find((entry) => entry.fra <= segment.fra && entry.til >= segment.fra);
+      return { ...segment, ...(original?.reguleretLoenOre !== undefined ? { reguleretLoenOre: original.reguleretLoenOre } : {}) };
+    });
+  }
+  const form = FORM_REGISTRY[basis];
+  const resolved = form.konsolider({
+    active: [af], angivetLoen: true, anvendtReguleringsdato: params.anvendtReguleringsdato,
+    tafRanges: params.segments.map(({ fra, til }) => ({ fra, til })),
+    tafBeregningsenhed: params.tafBeregningsenhed,
+    kraeverFeriePctVedBeregningsperiode: false, activeMedSynligeSatserOgLoenoplysninger: [],
+  });
+  if (!resolved.konsolideret) throw new Error('Testens reguleringsform mangler konsolideret grundlag.');
+  // Visningsprøver bruger motorens faktiske satsvalg og brudpunkter; rå felter må ikke genberegne indekset.
+  return form.byggResultat(resolved.konsolideret).segmenter.map((segment) => {
+    const original = params.segments.find((entry) => entry.fra <= segment.fra && entry.til >= segment.fra);
+    if (!original) throw new Error('Motorsegmentet ligger uden for testens indkomstsegmenter.');
+    return { ...original, ...segment };
+  });
+};
 
 const buildReguleringIndexRows = (params: ReguleringsindeksParams) =>
   buildReguleringIndexRowsFromCanonical({
     ...params,
+    segments: withEngineEvidence(params),
     forloeb: params.forloeb ?? buildTestForloeb(params),
   });
 
@@ -154,7 +206,7 @@ describe('reguleringsPresentation', () => {
     expect(resolveLoenudviklingSegmentBounds([])).toBeNull();
   });
 
-  it('bygger fallback-indeksrække fra segmentet uden basisformel', () => {
+  it('viser segmentets autoritative indeks uden at bygge en basisformel fra input', () => {
     const ansaettelsesforhold = createDefaultLoenindkomstAnsaettelsesforhold();
     ansaettelsesforhold.loenudviklingBeregningsgrundlag = 'Ingen';
 
@@ -176,7 +228,7 @@ describe('reguleringsPresentation', () => {
     expect(rows).toMatchObject([{
       fraDato: '01-01-2024',
       tilDato: '31-01-2024',
-      indeksberegning: '102,50 / 100,00',
+      indeksberegning: '(102,50 / 100,00)',
       indeks: '102,50',
       loenudvikling: '+ 2,50 %',
     }]);
@@ -286,6 +338,19 @@ describe('reguleringsPresentation', () => {
       // Meningsfuldhed: der ER reel regulering (ellers ville alt være 100,00 og testen triviel).
       expect([...motorIndeks].some((v) => v !== '100.00')).toBe(true);
       expect(vistIndeks).toEqual(motorIndeks);
+      // En visning må ikke vælge en anden sats, selv hvis et separat råt input peger et andet sted hen.
+      expect(buildReguleringIndexRowsFromCanonical({
+        segments: model.beregnedeSegmenter,
+        ansaettelsesforhold: { ...afForPraesentation, pensionPct: 0, fritvalgPct: 99, overenskomstId: 'kl-overenskomst' },
+        anvendtReguleringsdato: iso('2024-01-01'),
+        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      })).toEqual(indexRows);
+      expect(() => buildReguleringIndexRowsFromCanonical({
+        segments: model.beregnedeSegmenter.map(({ regulering: _regulering, ...segment }) => segment),
+        ansaettelsesforhold: afForPraesentation,
+        anvendtReguleringsdato: iso(REG),
+        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+      })).toThrow('Motorens reguleringsgrundlag mangler ved visning');
     });
   });
 
@@ -697,9 +762,12 @@ describe('reguleringsPresentation', () => {
       tafBeregningsenhed: 'Måneder',
     });
 
-    expect(rows.map((row) => row.fraDato)).toEqual(['01-06-2023', '01-01-2024']);
-    expect(rows[0]?.tilDato).toBe('31-12-2023');
-    expect(rows[1]?.tilDato).toBe('31-12-2025');
+    expect(rows.map((row) => row.fraDato)).toEqual([
+      '01-06-2023', '01-10-2023', '01-01-2024', '01-04-2024',
+      '01-10-2024', '01-10-2025', '01-11-2025',
+    ]);
+    expect(rows[0]?.tilDato).toBe('30-09-2023');
+    expect(rows.at(-1)?.tilDato).toBe('31-12-2025');
     expect(rows[0]?.indeksberegning).toContain('x');
     expect(rows[1]?.indeksberegning).toContain('/');
     for (const row of rows) {
@@ -708,7 +776,7 @@ describe('reguleringsPresentation', () => {
     expect(rows[1]?.loenudvikling).not.toBe('');
   });
 
-  it('falder tilbage til segmentindeks ved manglende eller ugyldig offentlig lønreference', () => {
+  it('viser motorens grundlag uden at genvælge en manglende eller ugyldig offentlig lønreference', () => {
     const cases: Array<{
       navn: string;
       offentligLoenType: 'Månedsløn' | 'Timeløn' | undefined;
@@ -738,6 +806,7 @@ describe('reguleringsPresentation', () => {
           maanedsloenOre: moneyOre(300_000),
           deltaPct: 0,
           amountOre: moneyOre(2_100_000),
+          regulering: buildReguleringsbevis(100, 100, { kind: 'indeks' }),
         }],
         ansaettelsesforhold: af,
         anvendtReguleringsdato: iso('2023-05-24'),
@@ -1293,7 +1362,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingBeregningsgrundlag = 'Statistik';
     af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
 
-    const table = buildReguleringsvaerdierTableData({
+    const table = buildReguleringsvaerdierTableDataFromCanonical({
       ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2026-01-01'),
       tafFra: iso('2026-01-01'),

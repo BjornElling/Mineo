@@ -167,6 +167,15 @@ const decodeStream = (pdf: Uint8Array, streamOffset: number, endStreamOffset: nu
 
   const dictionaryStart = (() => {
     const searchStart = Math.max(0, streamOffset - 4096);
+    const prefix = new TextDecoder('latin1').decode(pdf.slice(searchStart, streamOffset));
+    const objectHeaders = [...prefix.matchAll(/\b\d+\s+\d+\s+obj\b/g)];
+    const objectHeader = objectHeaders.at(-1);
+    if (objectHeader?.index !== undefined) {
+      // /DecodeParms kan være et indlejret dictionary. Den sidste << ville skjule ydre
+      // /Subtype /Image og sende billedets binære bytes gennem tekstparseren.
+      const outerDictionary = prefix.indexOf('<<', objectHeader.index + objectHeader[0].length);
+      if (outerDictionary >= 0) return searchStart + outerDictionary;
+    }
     let candidate = -1;
     for (let offset = searchStart; offset < streamOffset - 1; offset += 1) {
       if (pdf[offset] === 60 && pdf[offset + 1] === 60) candidate = offset;

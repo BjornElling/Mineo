@@ -50,8 +50,8 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
   const columns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => row.id === baseRowId ? baseDateISO : row.dato },
     { colId: 'procent', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => row.procent },
-    { colId: 'indeks', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.indeks },
-    { colId: 'akkumuleret', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.akkumuleretPct },
+    { colId: 'indeks', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.anvendtIndeks },
+    { colId: 'akkumuleret', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.anvendtPct },
   ], [baseDateISO, baseRowId, entryById]);
   const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => table.isRowEmpty(row.id), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
@@ -79,8 +79,8 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
       return <tr key={renderRow.rowId} data-mineo-row-id={renderRow.rowId} style={getStandardGridBodyRowStyle(index)}>
         <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1)} />}</td>
-        <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.indeks, 2) : ''} align="right" /></td>
-        <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.akkumuleretPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.akkumuleretPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !table.isRowEmpty(row.id) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
+        <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.anvendtIndeks, 2) : ''} align="right" /></td>
+        <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.anvendtPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.anvendtPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !table.isRowEmpty(row.id) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
       </tr>;
     })}</tbody>
   </StandardGridTable>;

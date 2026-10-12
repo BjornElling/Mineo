@@ -1,3 +1,4 @@
+import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { manuelProcentsatsForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/manuelProcentsatsForm';
 import * as manuelProcentsatsRegulering from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
@@ -90,11 +91,14 @@ describe('manuelProcentsatsForm', () => {
   it('bygger basis- og kædede reguleringssegmenter samt autoritativt forløb', () => {
     const result = manuelProcentsatsForm.byggResultat(createKonsolideret());
 
-    expect(result.segmenter).toEqual([
+    expect(result.segmenter).toMatchObject([
       { fra: iso('2024-01-01'), til: iso('2024-12-31'), deltaPct: 0 },
       { fra: iso('2025-01-01'), til: iso('2025-12-31'), deltaPct: 10 },
       { fra: iso('2026-01-01'), til: iso('2026-12-31'), deltaPct: 21 },
     ]);
+    for (const segment of result.segmenter) {
+      expect(reguleringsbevisSchema.parse(segment.regulering).appliedDeltaPct).toBe(segment.deltaPct);
+    }
     expect(result.forloeb?.kind).toBe('manuelProcentsats');
     if (result.forloeb?.kind !== 'manuelProcentsats') throw new Error('Manuelt procentsats-forløb mangler');
     expect(result.forloeb.entries.map((entry) => entry.rowId)).toEqual(['base', 'pct-2025', 'pct-2026']);

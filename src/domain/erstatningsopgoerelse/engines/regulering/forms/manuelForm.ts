@@ -1,3 +1,4 @@
+import { buildReguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
@@ -7,7 +8,7 @@ import {
   resolveStoreBededagstillaegPct,
 } from '../../../helpers/storeBededagstillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
-import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
+import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
 import type {
@@ -21,14 +22,7 @@ import type {
   ResolvedStrategi,
 } from '../reguleringForm';
 
-// Pct-/ferie-parsing deler nu de KANONISKE parsere (parsePercentInput / resolveFeriePctForFormula i
-// reguleringFormulaUtils), som præsentationens manuelle indeks-tabel også bruger – så motor og
-// visning kan ikke drive fra hinanden (samme "vist = beregnet"-garanti som R2 giver de migrerede
-// former, her opnået ved delt primitiv frem for et forløb, da 'Manuelt angivet' ikke bærer en
-// periodeserie). De tidligere lokale kopier (parseManualPercentToPct/resolveManualFeriePctPct) var
-// byte-identiske med de kanoniske for alt daværende schema-gyldigt input. Efter schemaernes
-// konvergens til syntaksautoritet er range-valideringen afledt, men den delte parser er fortsat
-// den eneste vej, så motor og præsentation ikke kan drive fra hinanden.
+// Beregningsgrundlag og formelkomponenter emitteres sammen, så visninger ikke vælger satser igen.
 
 const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string => {
   const normalized = rows.map((row) => ({
@@ -166,17 +160,32 @@ const byggResultat = (
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel segmentvaerdi');
       }
-      segments.push({
-        ...segment,
-        deltaPct: roundReguleringDeltaPct((packageValue / basePackage - 1) * 100),
+      const referenceComponents = {
+        ...baseComponents, baseValue: baseComponents.grundloen,
+        storeBededagPct: resolveStoreBededagPctForManualDate(konsolideret.reguleringsdato),
+      };
+      const selectedComponents = segmentRow?.components ?? baseComponents;
+      const periodComponents = {
+        ...selectedComponents, baseValue: selectedComponents.grundloen,
+        storeBededagPct: hasStoreBededagSegmenter
+          ? resolveStoreBededagPctForManualDate(segment.fra)
+          : (segmentRow ? 0 : referenceComponents.storeBededagPct),
+      };
+      const { grundloen: _referenceGrundloen, ...referenceFormula } = referenceComponents;
+      const { grundloen: _periodGrundloen, ...periodFormula } = periodComponents;
+      const regulering = buildReguleringsbevis(basePackage, packageValue, {
+        kind: 'pakke', referenceDate: konsolideret.reguleringsdato,
+        periodRateDate: [segmentRow?.startIso ?? konsolideret.reguleringsdato,
+          hasStoreBededagSegmenter && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
+        ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
+        referenceComponents: referenceFormula, periodComponents: periodFormula,
       });
+      segments.push({ ...segment, deltaPct: regulering.appliedDeltaPct, regulering });
     }
   }
   if (segments.length === 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ingen manuelle segmenter');
   }
-  // 'Manuelt angivet' emitterer bevidst INTET `forloeb`: præsentationen re-deriverer forløbet af de indtastede
-  // rækker via display-parserne, så et emitteret forløb ville være en anden kilde til samme visning.
   return { segmenter: segments };
 };
 

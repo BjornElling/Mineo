@@ -1,3 +1,6 @@
+import { buildReguleringsbevis } from '../reguleringsbevis';
+import { resolveAslAarsloensmaksimumForAar } from '../../../../satser/aslAarsloensmaksimum';
+import { toISODateString } from '../../../../../types/branded';
 import type { ISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
@@ -41,12 +44,12 @@ const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray
 // {deltaPct, manglendeAar}-resultat til et afrundet segment-delta. Dette er det eneste sted de
 // to familier krydser; hold krydsningen navngivet og fail-closed (kast på manglende ASL-indeks
 // mellem basisår og segmentår) frem for et inline motorkald, så familie-grænsen er synlig.
-const aslIndeksTilSegmentDelta = (kildeAar: number, maalAar: number): number => {
+const aslIndeksTilRaaSegmentDelta = (kildeAar: number, maalAar: number): number => {
   const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum({ kildeAar, maalAar });
   if (manglendeAar.length > 0) {
     throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
   }
-  return roundReguleringDeltaPct(deltaPct);
+  return deltaPct;
 };
 
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
@@ -95,11 +98,17 @@ const byggResultat = (
         if (segment.year < baseYear) {
           return buildZeroDeltaSegment(segment);
         }
-        return { fra: segment.fra, til: segment.til, deltaPct: aslIndeksTilSegmentDelta(baseYear, segment.year) };
+        const rawDeltaPct = aslIndeksTilRaaSegmentDelta(baseYear, segment.year);
+        const deltaPct = roundReguleringDeltaPct(rawDeltaPct);
+        const referenceValue = resolveAslAarsloensmaksimumForAar(baseYear);
+        const periodValue = resolveAslAarsloensmaksimumForAar(segment.year);
+        if (referenceValue === undefined || periodValue === undefined) throw new Error('ASL-grundlag mangler');
+        const regulering = buildReguleringsbevis(referenceValue, periodValue, {
+          kind: 'indeks', sourceKind: 'asl', rawDeltaPct, referenceDate: toISODateString(`${baseYear}-01-01`),
+          periodRateDate: toISODateString(`${segment.year}-01-01`), displayDecimals: 2,
+        });
+        return { fra: segment.fra, til: segment.til, deltaPct, regulering };
       });
-    // ASL bruger et per-år-opslag (resolveAslAarsloensmaksimumForAar), ikke en kvartals-
-    // indeksserie – der er ingen periodeserie at emittere som forløb (forloeb udelades →
-    // præsentationen re-deriverer det direkte data-opslag uændret).
     return { segmenter: aslSegments };
   }
 
@@ -144,10 +153,11 @@ const byggResultat = (
         throw new Error('Intern fejl: mangler statistikindeks efter effective base');
       }
       ensurePositiveFiniteNumber(idxEntry.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt indeks for segment');
-      segments.push({
-        ...segment,
-        deltaPct: roundReguleringDeltaPct((idxEntry.indeksvaerdi / effectiveBase.indeksvaerdi - 1) * 100),
+      const regulering = buildReguleringsbevis(effectiveBase.indeksvaerdi, idxEntry.indeksvaerdi, {
+        kind: 'indeks', sourceKind: 'statistik', referenceDate: effectiveBase.startIso,
+        periodRateDate: idxEntry.startIso, displayDecimals: forloeb.displayDecimals,
       });
+      segments.push({ ...segment, deltaPct: regulering.appliedDeltaPct, regulering });
     }
   }
   if (segments.length === 0) {

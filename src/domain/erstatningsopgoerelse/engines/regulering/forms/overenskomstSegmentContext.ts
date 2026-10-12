@@ -16,7 +16,7 @@ import type { KonsolideretLoenudvikling } from '../reguleringForm';
 // konsolideringen (i overenskomstForm) plus preamblen her – reference-opslag og det
 // anciennitetstillæg begge byggere anvender som segment-brudpunkt. Selve base-/segment-opslaget deler de ikke, og
 // de to bevidst forskellige clamp-mekanismer (U4) bor hver i sin bygger. Anciennitetstillæggets
-// resolution deles nu med præsentation og kontrol via `resolveAnciennitetForIndex`.
+// opløsning deles mellem producenterne via `resolveAnciennitetForIndex`; resultatet bæres til visning.
 
 /** Den konsoliderede overenskomst-variant (fælles for privat og offentlig gren). */
 export type KonsolideretOverenskomst = Extract<KonsolideretLoenudvikling, { strategi: 'overenskomst' }>;

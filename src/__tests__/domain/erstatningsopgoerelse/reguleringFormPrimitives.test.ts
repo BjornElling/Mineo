@@ -31,6 +31,7 @@ describe('reguleringFormPrimitives', () => {
       fra: iso('2024-01-01'),
       til: iso('2024-01-04'),
       deltaPct: 0,
+      regulering: { kind: 'ingen', referenceValue: 1, periodValue: 1, rawFactor: 1, rawDeltaPct: 0, appliedDeltaPct: 0 },
     });
   });
 

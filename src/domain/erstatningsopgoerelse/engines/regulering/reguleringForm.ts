@@ -1,3 +1,4 @@
+import type { Reguleringsbevis } from './reguleringsbevis';
 import type { ISODateString } from '../../../../types/branded';
 import type { IsoRange } from '../../helpers/indtaegtPerioder';
 import type { TafBeregningsenhed } from '../../helpers/tafBeregningsenhed';
@@ -29,7 +30,7 @@ export type LoenudviklingStrategi =
   | 'krl'
   | 'klLoenaftaler';
 
-export type LoenreguleringsSegment = Readonly<IsoRange & { deltaPct: number }>;
+export type LoenreguleringsSegment = Readonly<IsoRange & { deltaPct: number; regulering: Reguleringsbevis }>;
 
 export type LoenudviklingAf = LoenudviklingSource;
 export type LoenudviklingManualRow = NonNullable<LoenudviklingAf['loenudviklingManuelTableData']>[number];
@@ -128,10 +129,11 @@ export type KildeReguleringsInterval = Readonly<{
 
 /**
  * Formens beregnings-resultat: de relative deltaPct-segmenter TAF-beregningen bruger, og – for de
- * former der bærer en tidsserie (R2) – det autoritative visnings-`forloeb`. Begge udspringer af
+ * former der bærer en tidsserie – det autoritative visnings-`forloeb`. Hvert segment bærer
+ * evaluerede reference-/periodeværdier og formelkomponenter til visning. Begge udspringer af
  * SAMME kilde-entries i ét kald, så motoren ikke dispatcher formen igen for at re-bygge forløbet
  * (afløser den tidligere parallelle `switch(strategi)`-IIFE i orkestratoren). Former uden
- * migreret forløb (overenskomst/manuel/ASL) udelader `forloeb` (undefined).
+ * selvstændig kildeserie (overenskomst/manuel/ASL) udelader `forloeb` (undefined).
  */
 export type ReguleringResultat = Readonly<{
   segmenter: ReadonlyArray<LoenreguleringsSegment>;

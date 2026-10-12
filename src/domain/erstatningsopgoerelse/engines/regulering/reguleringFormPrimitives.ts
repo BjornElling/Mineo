@@ -1,3 +1,4 @@
+import { buildReguleringsbevis } from './reguleringsbevis';
 import type { ISODateString } from '../../../../types/branded';
 import type { IsoRange } from '../../helpers/indtaegtPerioder';
 import { getDayBeforeIso } from '../../../../utils/isoDateHelpers';
@@ -37,6 +38,7 @@ export const buildSegmentsFromStartDates = (
 export const buildZeroDeltaSegment = (segment: IsoRange): LoenreguleringsSegment => ({
   ...segment,
   deltaPct: 0,
+  regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }),
 });
 
 /**

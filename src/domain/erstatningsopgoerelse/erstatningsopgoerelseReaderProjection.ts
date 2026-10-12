@@ -690,7 +690,9 @@ const buildEoDependencyProjection = (
       stamdata: svieSmerteStamdata,
     },
     forligInput,
-    tafInput: { values: tafValues, stamdata: tafStamdata },
+    // Grenens tracked reader bevarer sit eget read-set, men rå basisrækker må aldrig nå motoren.
+    // Samme satsprojektion bruges af skærm, dokumenter og denne uafhængigt gatede beregningsgren.
+    tafInput: { values: projectLoenindkomstSatser(tafValues, tafStamdata), stamdata: tafStamdata },
     oevrigeKravInput,
     svieSmerteIssues,
     forligIssues,

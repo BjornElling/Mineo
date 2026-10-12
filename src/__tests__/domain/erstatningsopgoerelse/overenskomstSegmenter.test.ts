@@ -1,3 +1,4 @@
+import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { buildOverenskomstSegmentContext } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstSegmentContext';
 import { buildOffentligOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstOffentligSegmenter';
 import { buildPrivatOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstPrivatSegmenter';
@@ -119,10 +120,13 @@ describe('overenskomst-segmentbyggere', () => {
       buildOverenskomstSegmentContext(konsolideret)
     );
 
-    expect(result).toEqual([
+    expect(result).toMatchObject([
       { fra: iso('2000-01-01'), til: iso('2011-02-28'), deltaPct: 0 },
       { fra: iso('2011-03-01'), til: iso('2011-12-31'), deltaPct: 0 },
     ]);
+    for (const segment of result) {
+      expect(reguleringsbevisSchema.parse(segment.regulering).appliedDeltaPct).toBe(segment.deltaPct);
+    }
   });
 
   it('bygger offentlig serie med løntrin, timeløn, Store Bededag og anciennitet', () => {
@@ -222,7 +226,10 @@ describe('overenskomst-segmentbyggere', () => {
       buildOverenskomstSegmentContext(konsolideret)
     );
 
-    expect(result).toEqual([{ fra: iso('2000-01-01'), til: iso('2011-12-31'), deltaPct: 0 }]);
+    expect(result).toEqual([{
+      fra: iso('2000-01-01'), til: iso('2011-12-31'), deltaPct: 0,
+      regulering: { kind: 'ingen', referenceValue: 1, periodValue: 1, rawFactor: 1, rawDeltaPct: 0, appliedDeltaPct: 0 },
+    }]);
   });
 
   it('afviser offentlig serie uden TAF-intervaller', () => {

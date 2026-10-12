@@ -6,7 +6,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import { EoCanonicalOutputSchema, type EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -200,11 +200,13 @@ const projectCanonicalFromPdfModel = (
       pdfModel.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
         ? pdfModel.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value
         : null,
-    loenudviklingSegmenter: [...(pdfModel.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [])],
+    loenudviklingSegmenter: EoCanonicalOutputSchema.shape.regulering.shape.loenudviklingSegmenter.parse(
+      pdfModel.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? []
+    ),
     perAnsaettelse: (pdfModel.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
       ansaettelsesforholdId: entry.ansaettelsesforholdId,
       loenudviklingTotalFoerForligOre: entry.loenudviklingTotal.status === 'ok' ? entry.loenudviklingTotal.value : null,
-      loenudviklingSegmenter: [...entry.beregnedeSegmenter],
+      loenudviklingSegmenter: EoCanonicalOutputSchema.shape.regulering.shape.loenudviklingSegmenter.parse(entry.beregnedeSegmenter),
     })),
   },
 });

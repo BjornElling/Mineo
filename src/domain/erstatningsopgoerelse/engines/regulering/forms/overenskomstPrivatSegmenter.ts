@@ -1,18 +1,21 @@
+import { isEffectivelyZero } from '../../../../../utils/numberComparison';
+import { buildReguleringsbevis, type Reguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
 import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
 import {
+  getOverenskomst,
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
 } from '../../../../../data/overenskomstRates';
-import { parseDanishToIso } from '../../../helpers/eoSharedUtils';
+import { hasAnyPctSourceOrInput, parseDanishToIso } from '../../../helpers/eoSharedUtils';
 import {
   buildPrivateOverenskomstFormulaComponents,
   resolvePrivateOverenskomstBaseContext,
 } from '../../overenskomstReguleringShared';
-import { computeFormulaValue, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
+import { computeFormulaValue } from '../../reguleringFormulaUtils';
 import { resolveOverenskomstEffectiveStartIso } from '../../reguleringCoverage';
 import {
   buildSegmentsFromStartDates,
@@ -75,14 +78,21 @@ export const buildPrivatOverenskomstSegmenter = (
     baseValueSupplement: 0,
     applyStoreBededagstillaeg,
   });
+  // Kildekolonner følger hele overenskomsten, også når en effektiv sats i TAF-perioden er nul.
+  const allSatser = getOverenskomst(overenskomstRef.baseId)?.satser ?? [privateBaseContext.effectiveBase.sats];
+  const tafEnd = konsolideret.tafRanges.map((range) => range.til).sort().at(-1);
+  const sourceColumns: NonNullable<Reguleringsbevis['sourceColumns']> = [
+    ...(!isEffectivelyZero(feriePct) ? ['feriePct' as const] : []),
+    ...(hasAnyPctSourceOrInput(allSatser, (sats) => sats.shSoSats, konsolideret.shSoPct) ? ['shSoPct' as const] : []),
+    ...(hasAnyPctSourceOrInput(allSatser, (sats) => sats.fritvalg, konsolideret.fritvalgPct) ? ['fritvalgPct' as const] : []),
+    ...(applyStoreBededagstillaeg && tafEnd && tafEnd >= STORE_BEDEDAG_START ? ['storeBededagPct' as const] : []),
+    ...(hasAnyPctSourceOrInput(allSatser, (sats) => sats.agPension, konsolideret.pensionPct) ? ['pensionPct' as const] : []),
+  ];
   const basePackage = computeFormulaValue(basePackageComponents);
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
 
-  // Bevidst adskilt fra eoInspektionRegulationCore:
-  // denne motor bygger relative deltaPct-segmenter til TAF-beregning,
-  // mens kontrolmotoren bygger absolutte indeks-entries til visning.
   const segments: LoenreguleringsSegment[] = [];
   for (const range of konsolideret.tafRanges) {
     const fraDa = isoToDanish(range.fra);
@@ -165,10 +175,21 @@ export const buildPrivatOverenskomstSegmenter = (
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
-      segments.push({
-        ...segment,
-        deltaPct: roundReguleringDeltaPct((packageValue / basePackage - 1) * 100),
+      const regulering = buildReguleringsbevis(basePackage, packageValue, {
+        kind: 'pakke', sourceColumns,
+        // Pakken må ikke mærkes med en gammel satsdato, hvis Store Bededag først gælder fra 2024.
+        referenceDate: [parseDanishToIso(privateBaseContext.effectiveBase.sats.fraDato) ?? reguleringsdatoIso,
+          basePackageComponents.storeBededagPct !== 0 ? STORE_BEDEDAG_START : undefined,
+        ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
+        periodRateDate: [parseDanishToIso(effectiveSats.fraDato),
+          applyStoreBededagstillaeg && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
+          anciennitetAktiv ? anciennitetForIndex?.activeFromIso : undefined,
+        ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
+        referenceComponents: basePackageComponents, periodComponents: segmentComponents,
+        wageBaseValue: effectiveSats.grundloen,
+        wageSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
       });
+      segments.push({ ...segment, deltaPct: regulering.appliedDeltaPct, regulering });
     }
   }
   if (segments.length === 0) {

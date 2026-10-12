@@ -5,6 +5,7 @@ import type {
 } from '../../schemas/formSchemas';
 import { isISODateString } from '../../types/branded';
 import { deepEqual } from '../../utils/deepEqual';
+import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { getAngivetLoenOpreguleresFraDato } from './helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from './helpers/eoSharedUtils';
 import {
@@ -13,6 +14,14 @@ import {
   syncManualBaseRowSatser,
 } from './helpers/loenindkomstSatser';
 
+declare const projectedLoenindkomstSatser: unique symbol;
+
+/** Kun satsprojektionen kan attestere, at låste basis- og referencesatser er udledt. */
+export type ProjectedLoenindkomstSatser<T> = Omit<T, 'loenindkomstAnsaettelsesforhold'>
+  & Pick<ErstatningsopgoerelseValues, 'loenindkomstAnsaettelsesforhold'> & Readonly<{
+  [projectedLoenindkomstSatser]: true;
+}>;
+
 /**
  * Udleder de låste overenskomst-/lovsatser til den beregningsklare EO-model.
  *
@@ -20,12 +29,12 @@ import {
  * ikke skrives tilbage til inputaggregatet eller `.eo`. Den manuelle tabels låste basisrække spejles i
  * samme projektion, så UI, beregning og dokumenter fortsat læser én identisk model.
  */
-export const projectLoenindkomstSatser = (
-  eo: PersistedErstatningsopgoerelseValues,
+export const projectLoenindkomstSatser = <T extends TafCalculationValues>(
+  eo: T,
   stamdata: Readonly<{ skadedato?: StamdataValues['skadedato'] }>
-): ErstatningsopgoerelseValues => {
+): ProjectedLoenindkomstSatser<T> => {
   const employments = eo.loenindkomstAnsaettelsesforhold;
-  if (employments.length === 0) return eo;
+  if (employments.length === 0) return eo as ProjectedLoenindkomstSatser<T>;
 
   const angivetLoenMetodeOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(eo);
   let changed = false;
@@ -60,7 +69,8 @@ export const projectLoenindkomstSatser = (
     return af;
   });
 
-  return changed ? { ...eo, loenindkomstAnsaettelsesforhold: nextEmployments } : eo;
+  // Attestationen er kun en typegrænse; hverken brugerinput eller det persisterede schema får et nyt felt.
+  return (changed ? { ...eo, loenindkomstAnsaettelsesforhold: nextEmployments } : eo) as ProjectedLoenindkomstSatser<T>;
 };
 
 /**

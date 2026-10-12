@@ -1,3 +1,5 @@
+import { isEffectivelyZero } from '../../../../../utils/numberComparison';
+import { buildReguleringsbevis, type Reguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
@@ -11,10 +13,11 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../../../data/offentligLoenLookup';
 import { TAF_BEREGNES_SOM } from '../../../helpers/tafBeregningsenhed';
 import {
+  hasAnyPctSourceOrInput,
   parseDanishToIso,
   resolveOffentligLoenEkstraGrundloen,
 } from '../../../helpers/eoSharedUtils';
-import { computeFormulaValue, roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
+import { computeFormulaValue } from '../../reguleringFormulaUtils';
 import { buildOffentligOverenskomstFormulaComponents } from '../../overenskomstReguleringShared';
 import {
   buildSegmentsFromStartDates,
@@ -94,7 +97,7 @@ export const buildOffentligOverenskomstSegmenter = (
     ? offentligEffectiveBase.result.maanedsLoen
     : offentligEffectiveBase.result.timeLoen) + offentligLoenEkstraGrundloen;
   const baseLoen = ensurePositiveFiniteNumber(baseLoenRaw, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
-  const basePackage = computeFormulaValue(buildOffentligOverenskomstFormulaComponents({
+  const basePackageComponents = buildOffentligOverenskomstFormulaComponents({
     grundloen: baseLoen,
     feriePct,
     tillaegsSatser: baseTillaegsSatser,
@@ -103,7 +106,22 @@ export const buildOffentligOverenskomstSegmenter = (
     pensionPctInput: konsolideret.pensionPct,
     applyStoreBededagstillaeg,
     dateIso: reguleringsdatoIso,
-  }));
+  });
+  const tafEnd = konsolideret.tafRanges.map((range) => range.til).sort().at(-1);
+  const sourceStart = getReguleringsDatoIntervalForOverenskomst(konsolideret.overenskomstId)?.fraDato;
+  const sourceEnd = tafEnd ? isoToDanish(tafEnd) : undefined;
+  // Kolonnerne følger alle dækkede tillægskilder frem til TAF-periodens afslutning, ikke kun valgte segmenter.
+  const sourceSatser = sourceStart && sourceEnd
+    ? getOffentligTillaegsSatserForPeriode(konsolideret.overenskomstId, sourceStart, sourceEnd, applyShRegel)
+    : [];
+  const sourceColumns: NonNullable<Reguleringsbevis['sourceColumns']> = [
+    ...(!isEffectivelyZero(feriePct) ? ['feriePct' as const] : []),
+    ...(hasAnyPctSourceOrInput(sourceSatser, (sats) => sats.shSoSats, konsolideret.shSoPct) ? ['shSoPct' as const] : []),
+    ...(hasAnyPctSourceOrInput(sourceSatser, (sats) => sats.fritvalg, konsolideret.fritvalgPct) ? ['fritvalgPct' as const] : []),
+    ...(applyStoreBededagstillaeg && tafEnd && tafEnd >= STORE_BEDEDAG_START ? ['storeBededagPct' as const] : []),
+    ...(hasAnyPctSourceOrInput(sourceSatser, (sats) => sats.agPension, konsolideret.pensionPct) ? ['pensionPct' as const] : []),
+  ];
+  const basePackage = computeFormulaValue(basePackageComponents);
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
@@ -193,7 +211,7 @@ export const buildOffentligOverenskomstSegmenter = (
       const grundloenForSegment = anciennitetAktiv && anciennitetForIndex
         ? grundloenForSegmentBase + anciennitetForIndex.supplementValue
         : grundloenForSegmentBase;
-      const packageValue = computeFormulaValue(buildOffentligOverenskomstFormulaComponents({
+      const segmentComponents = buildOffentligOverenskomstFormulaComponents({
         grundloen: grundloenForSegment,
         feriePct,
         tillaegsSatser: segmentTillaegsSatser,
@@ -202,14 +220,30 @@ export const buildOffentligOverenskomstSegmenter = (
         pensionPctInput: konsolideret.pensionPct,
         applyStoreBededagstillaeg,
         dateIso: segment.fra,
-      }));
+      });
+      const packageValue = computeFormulaValue(segmentComponents);
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
-      segments.push({
-        ...segment,
-        deltaPct: roundReguleringDeltaPct((packageValue / basePackage - 1) * 100),
+      const regulering = buildReguleringsbevis(basePackage, packageValue, {
+        kind: 'pakke', sourceColumns,
+        // Den samlede pakkes dato følger også tillæg, der først træder i kraft efter grundlønnens satsdato.
+        referenceDate: [parseDanishToIso(offentligEffectiveBase.result.effectiveDate) ?? reguleringsdatoIso,
+          baseTillaegsSatser ? parseDanishToIso(baseTillaegsSatser.fraDato) : undefined,
+          basePackageComponents.storeBededagPct !== 0 ? STORE_BEDEDAG_START : undefined,
+        ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
+        periodRateDate: [parseDanishToIso(effectiveSegmentResult.effectiveDate),
+          segmentTillaegsSatser ? parseDanishToIso(segmentTillaegsSatser.fraDato) : undefined,
+          applyStoreBededagstillaeg && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
+          anciennitetAktiv ? anciennitetForIndex?.activeFromIso : undefined,
+        ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
+        referenceComponents: basePackageComponents, periodComponents: segmentComponents,
+        referenceWageBaseValue: baseLoenRaw - offentligLoenEkstraGrundloen,
+        referenceWageSupplement: offentligLoenEkstraGrundloen,
+        wageBaseValue: segmentLoen,
+        wageSupplement: grundloenForSegment - segmentLoen,
       });
+      segments.push({ ...segment, deltaPct: regulering.appliedDeltaPct, regulering });
     }
   }
   if (segments.length === 0) {

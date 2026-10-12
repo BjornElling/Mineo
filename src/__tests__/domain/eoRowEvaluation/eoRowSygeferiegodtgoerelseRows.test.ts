@@ -2,6 +2,7 @@ import { moneyOre } from '../../../domain/money/money';
 import { buildEoSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import * as systemIssueReporterModule from '../../../utils/systemIssueReporter';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -1329,6 +1330,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
                 arbejdsdage: 4,
                 dagsloenOre: moneyOre(0),
                 deltaPct: 0,
+                regulering: buildReguleringsbevis(100, 100, { kind: 'indeks' }),
                 amountOre: moneyOre(0),
               },
               {
@@ -1338,6 +1340,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
                 arbejdsdage: 3,
                 dagsloenOre: moneyOre(0),
                 deltaPct: 5.03,
+                regulering: buildReguleringsbevis(100, 105.03, { kind: 'indeks' }),
                 amountOre: moneyOre(0),
               },
             ],

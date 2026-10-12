@@ -15,6 +15,11 @@ import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment } from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
 import type { OevrigeKravCanonicalInput } from './eoPresentationModel';
+import { reguleringsbevisSchema } from '../engines/regulering/reguleringsbevis';
+import { computeFormulaValue, roundReguleringDeltaPct } from '../engines/reguleringFormulaUtils';
+import { segmentAmountOre } from '../engines/loenudviklingBeregning';
+import { isWithinTolerance } from '../../../utils/numberComparison';
+import { roundByMethod } from '../../../utils/rounding';
 
 const isoDateSchema = isoDateString;
 
@@ -30,6 +35,7 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
     deltaPct: z.number(),
     amountOre: moneyOreSchema,
     reguleretLoenOre: moneyOreSchema.optional(),
+    regulering: reguleringsbevisSchema,
   }).strict(),
   z.object({
     kind: z.literal('arbejdsdage'),
@@ -40,16 +46,46 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
     deltaPct: z.number(),
     amountOre: moneyOreSchema,
     reguleretLoenOre: moneyOreSchema.optional(),
+    regulering: reguleringsbevisSchema,
   }).strict(),
 ]).superRefine((segment, ctx) => {
-  if (segment.reguleretLoenOre === undefined) return;
   const quantity = segment.kind === 'maaneder' ? segment.maaneder : segment.arbejdsdage;
-  const expectedAmountOre = fromKroner(roundKroner((segment.reguleretLoenOre / 100) * quantity));
+  const unitLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+  const bevis = segment.regulering;
+  if (bevis) {
+    const rawFactor = bevis.periodValue / bevis.referenceValue;
+    const expectedDeltaPct = bevis.kind === 'klLoenaftaler'
+      ? roundByMethod(bevis.rawDeltaPct, 8, 'halfAwayFromZero')
+      : roundReguleringDeltaPct(bevis.rawDeltaPct);
+    const componentsMatch = (!bevis.referenceComponents || isWithinTolerance(computeFormulaValue(bevis.referenceComponents), bevis.referenceValue))
+      && (!bevis.periodComponents || isWithinTolerance(computeFormulaValue(bevis.periodComponents), bevis.periodValue));
+    const wageDisplayMatches = (baseValue: number | undefined, supplement: number | undefined, components: typeof bevis.periodComponents): boolean =>
+      baseValue === undefined || (components !== undefined
+        && isWithinTolerance(baseValue + (supplement ?? 0), components.baseValue));
+    const sourceWageMatches = wageDisplayMatches(bevis.wageBaseValue, bevis.wageSupplement, bevis.periodComponents)
+      && wageDisplayMatches(bevis.referenceWageBaseValue, bevis.referenceWageSupplement, bevis.referenceComponents);
+    const klLoenMatch = bevis.kind !== 'klLoenaftaler' || (
+      segment.reguleretLoenOre !== undefined
+      && bevis.referenceValue === unitLoenOre / 100
+      && bevis.periodValue === segment.reguleretLoenOre / 100
+    );
+    if (!componentsMatch || !sourceWageMatches || !klLoenMatch || rawFactor !== bevis.rawFactor
+      || !isWithinTolerance((rawFactor - 1) * 100, bevis.rawDeltaPct)
+      || expectedDeltaPct !== bevis.appliedDeltaPct
+      || segment.deltaPct !== bevis.appliedDeltaPct) {
+      ctx.addIssue({ code: 'custom', path: ['regulering'], message: 'Reguleringsgrundlag og anvendt reguleringsprocent stemmer ikke overens' });
+    }
+  }
+  const expectedAmountOre = segment.reguleretLoenOre !== undefined
+    ? fromKroner(roundKroner((segment.reguleretLoenOre / 100) * quantity))
+    : segmentAmountOre(unitLoenOre / 100, quantity, segment.deltaPct);
   if (segment.amountOre !== expectedAmountOre) {
     ctx.addIssue({
       code: 'custom',
-      path: ['reguleretLoenOre'],
-      message: 'reguleretLoenOre kræver at amountOre er beregnet fra den regulerede enhedsløn',
+      path: [segment.reguleretLoenOre !== undefined ? 'reguleretLoenOre' : 'amountOre'],
+      message: segment.reguleretLoenOre !== undefined
+        ? 'reguleretLoenOre kræver at amountOre er beregnet fra den regulerede enhedsløn'
+        : 'Segmentbeløbet skal svare til enhedsløn, periode og anvendt reguleringsprocent',
     });
   }
 });

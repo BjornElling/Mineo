@@ -4,11 +4,63 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 
 const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
+// Visningstesten leverer et allerede evalueret, håndfast satsgrundlag, uafhængigt af opslagstabellerne.
+const pakkeBevis = (base: number, period: number, date: string,
+  referenceDate: string, feriePct = 0, shSoPct = 0, pensionPct = 0,
+  storeBededagPct = 0, periodShSoPct = shSoPct) => {
+  const referenceComponents = { baseValue: base, feriePct, shSoPct, pensionPct, storeBededagPct, fritvalgPct: 0 };
+  const periodComponents = { ...referenceComponents, baseValue: period, shSoPct: periodShSoPct };
+  const packageValue = (components: typeof referenceComponents) => components.baseValue
+    * (1 + (components.feriePct + components.shSoPct + components.storeBededagPct) / 100) * (1 + components.pensionPct / 100);
+  return buildReguleringsbevis(packageValue(referenceComponents), packageValue(periodComponents), {
+    kind: 'pakke', referenceDate: iso(referenceDate), periodRateDate: iso(date), referenceComponents, periodComponents,
+  });
+};
+
 describe('buildRegulationInspektionSections', () => {
+  it('viser angivet løns globale canonical segmenter uden et per-ansættelse-resultat', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    const sections = buildRegulationInspektionSections({
+      eoValues,
+      stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      timeline: { tafBeregningsenhed: 'Måneder', ansaettelser: [{
+        ansaettelsesforholdId: 'eo-angivet-loen', navn: 'EO-oplysninger',
+        kildeLabel: 'Manuelt angivet', kildeVaerdi: 'Testregulering',
+        referenceIso: iso('2024-01-01'), referenceValue: 100, entries: [],
+      }] },
+      canonicalOutput: {
+        totals: { svieSmerteOre: moneyOre(0), tabtArbejdsfortjenesteFoerForligOre: moneyOre(110_000),
+          tabtArbejdsfortjenesteOre: moneyOre(110_000), oevrigeKravFoerForligOre: moneyOre(0),
+          oevrigeKravOre: moneyOre(0), samletTotalOre: moneyOre(110_000) },
+        svieSmerte: { maxApplied: false },
+        taf: { harTafPerioder: true, offentligeYdelserUdviklingOre: moneyOre(0), tafIndtaegterOre: moneyOre(0),
+          tidligereModtagetTafOre: moneyOre(0), sygeferiegodtgoerelseOre: moneyOre(0) },
+        periodiseringer: { tafPerioder: [{ fra: iso('2024-07-01'), til: iso('2024-07-31') }] },
+        regulering: {
+          loenudviklingTotalFoerForligOre: moneyOre(110_000), perAnsaettelse: [],
+          loenudviklingSegmenter: [{
+            kind: 'maaneder', fra: iso('2024-07-01'), til: iso('2024-07-31'), maaneder: 1,
+            maanedsloenOre: moneyOre(100_000), amountOre: moneyOre(110_000), deltaPct: 10,
+            regulering: pakkeBevis(100, 110, '2024-07-01', '2024-01-01'),
+          }],
+        },
+      },
+    });
+    expect(sections[0]?.tables?.[0]?.rows.map((row) => row.cells)).toEqual([
+      ['01-01-2024', '100,00'], ['01-07-2024', '110,00'],
+    ]);
+    expect(sections[0]?.tables?.[1]?.rows[0]?.cells).toEqual([
+      '01-07-2024', '31-07-2024', '(110,00 / 100,00)', '110,00', '+ 10,00 %',
+    ]);
+  });
+
   it('bygger også beregnet reguleringstabel for ASL-årslønsmaksimum', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
@@ -97,7 +149,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2023-12-31'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(100_000),
-                  deltaPct: 0,
+                  regulering: buildReguleringsbevis(100, 100, { kind: 'indeks', sourceKind: 'asl', referenceDate: iso('2023-05-24'), periodRateDate: iso('2023-01-01') }),
+                  deltaPct: buildReguleringsbevis(100, 100, { kind: 'indeks', sourceKind: 'asl', referenceDate: iso('2023-05-24'), periodRateDate: iso('2023-01-01') }).appliedDeltaPct,
                   amountOre: moneyOre(100_000),
                 },
                 {
@@ -106,7 +159,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2024-12-31'),
                   maaneder: 12,
                   maanedsloenOre: moneyOre(110_000),
-                  deltaPct: 10,
+                  regulering: buildReguleringsbevis(100, 110, { kind: 'indeks', sourceKind: 'asl', referenceDate: iso('2023-05-24'), periodRateDate: iso('2024-01-01') }),
+                  deltaPct: buildReguleringsbevis(100, 110, { kind: 'indeks', sourceKind: 'asl', referenceDate: iso('2023-05-24'), periodRateDate: iso('2024-01-01') }).appliedDeltaPct,
                   amountOre: moneyOre(110_000),
                 },
               ],
@@ -206,7 +260,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2024-12-31'),
                   maaneder: 10,
                   maanedsloenOre: moneyOre(100000),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(136.15, 136.15, '2024-03-01', '2024-03-01', 11.5, 0, 10, .45),
+                  deltaPct: pakkeBevis(136.15, 136.15, '2024-03-01', '2024-03-01', 11.5, 0, 10, .45).appliedDeltaPct,
                   amountOre: moneyOre(100000),
                 },
                 {
@@ -215,7 +270,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2026-02-26'),
                   maaneder: 14,
                   maanedsloenOre: moneyOre(110000),
-                  deltaPct: 10,
+                  regulering: pakkeBevis(136.15, 149.765, '2025-01-01', '2024-03-01', 11.5, 0, 10, .45),
+                  deltaPct: pakkeBevis(136.15, 149.765, '2025-01-01', '2024-03-01', 11.5, 0, 10, .45).appliedDeltaPct,
                   amountOre: moneyOre(110000),
                 },
               ],
@@ -282,7 +338,7 @@ describe('buildRegulationInspektionSections', () => {
     expect(sections[0]?.rows[1]?.label).toBe('Reguleringsdatoen (15-03-2024)');
   });
 
-  it('falder tilbage til tidslinje/TAF-perioder når canonical per-ansættelse-segmenter mangler', () => {
+  it('viser ingen syntetisk beregning uden canonical segmenter', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
@@ -361,9 +417,8 @@ describe('buildRegulationInspektionSections', () => {
     });
 
     expect(sections).toHaveLength(1);
-    expect(sections[0]?.tables).toHaveLength(2);
-    expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
-    expect(sections[0]?.tables?.[1]?.rows[0]?.cells[0]).toBe('01-07-2023');
+    expect(sections[0]?.tables).toHaveLength(1);
+    expect(sections[0]?.tables?.some((table) => table.id.endsWith(':beregnet'))).toBe(false);
   });
 
   it('udelader arbejdsdage-kolonnen og bruger Timeløn ved arbejdsdagsbaseret regulering', () => {
@@ -632,7 +687,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2020-09-30'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(141.2411, 141.7798, '2020-04-01', '2020-01-01'),
+                  deltaPct: pakkeBevis(141.2411, 141.7798, '2020-04-01', '2020-01-01').appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -641,7 +697,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2021-03-31'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(141.2411, 142.8511, '2020-10-01', '2020-01-01'),
+                  deltaPct: pakkeBevis(141.2411, 142.8511, '2020-10-01', '2020-01-01').appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -650,7 +707,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2021-09-30'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(141.2411, 144.2796, '2021-04-01', '2020-01-01'),
+                  deltaPct: pakkeBevis(141.2411, 144.2796, '2021-04-01', '2020-01-01').appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -659,7 +717,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2022-03-31'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(141.2411, 145.6933, '2021-10-01', '2020-01-01'),
+                  deltaPct: pakkeBevis(141.2411, 145.6933, '2021-10-01', '2020-01-01').appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -668,7 +727,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2022-09-30'),
                   maaneder: 6,
                   maanedsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(141.2411, 145.6933, '2022-04-01', '2020-01-01'),
+                  deltaPct: pakkeBevis(141.2411, 145.6933, '2022-04-01', '2020-01-01').appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
               ],
@@ -839,7 +899,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2024-02-29'),
                   arbejdsdage: 1,
                   dagsloenOre: moneyOre(0),
-                  deltaPct: 28.35,
+                  regulering: pakkeBevis(138.15, 138.15, '2024-01-26', '2024-01-26', 16.95, 12.9, 10.15),
+                  deltaPct: pakkeBevis(138.15, 138.15, '2024-01-26', '2024-01-26', 16.95, 12.9, 10.15).appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -848,7 +909,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2025-02-01'),
                   arbejdsdage: 1,
                   dagsloenOre: moneyOre(0),
-                  deltaPct: 34.46,
+                  regulering: pakkeBevis(138.15, 142.65, '2024-03-01', '2024-01-26', 16.95, 12.9, 10.15, 0, 14.7),
+                  deltaPct: pakkeBevis(138.15, 142.65, '2024-03-01', '2024-01-26', 16.95, 12.9, 10.15, 0, 14.7).appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
               ],
@@ -988,7 +1050,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2024-02-29'),
                   arbejdsdage: 0,
                   dagsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(138.15, 138.15, '2024-01-26', '2024-01-26', 16.95, 12.9, 10.15),
+                  deltaPct: pakkeBevis(138.15, 138.15, '2024-01-26', '2024-01-26', 16.95, 12.9, 10.15).appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
                 {
@@ -997,7 +1060,8 @@ describe('buildRegulationInspektionSections', () => {
                   til: iso('2025-02-01'),
                   arbejdsdage: 0,
                   dagsloenOre: moneyOre(0),
-                  deltaPct: 0,
+                  regulering: pakkeBevis(138.15, 142.65, '2024-03-01', '2024-01-26', 16.95, 12.9, 10.15, 0, 14.7),
+                  deltaPct: pakkeBevis(138.15, 142.65, '2024-03-01', '2024-01-26', 16.95, 12.9, 10.15, 0, 14.7).appliedDeltaPct,
                   amountOre: moneyOre(0),
                 },
               ],

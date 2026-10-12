@@ -107,6 +107,7 @@ type ReguleringSectionContext = Readonly<{
     options?: Readonly<{ skadedatoISO?: ISODateString | undefined }>
   ) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
   buildReguleringsvaerdierTableData: (params: Readonly<{
+    segments?: readonly LoenudviklingSegment[];
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
     anvendtReguleringsdato: ISODateString | undefined;
     tafFra: ISODateString;
@@ -558,6 +559,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const reguleringsvaerdierTableData =
       coverageBounds
         ? buildReguleringsvaerdierTableData({
+            segments: perAnsaettelseSegments,
             ansaettelsesforhold,
             anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,

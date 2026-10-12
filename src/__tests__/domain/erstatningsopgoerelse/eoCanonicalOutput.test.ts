@@ -224,6 +224,66 @@ describe('eoCanonicalOutput – fail-closed drift-guard (schema-invariant)', () 
   it('accepterer det uændrede output (success-grenen, kontrol)', () => {
     expect(EoCanonicalOutputSchema.safeParse(buildValidCanonical()).success).toBe(true);
   });
+
+  it('afviser segmenter uden motorens reguleringsgrundlag', () => {
+    const valid = buildValidCanonical();
+    const segments = valid.regulering.loenudviklingSegmenter.map(({ regulering: _regulering, ...segment }) => segment);
+    expect(EoCanonicalOutputSchema.safeParse({
+      ...valid, regulering: { ...valid.regulering, loenudviklingSegmenter: segments },
+    }).success).toBe(false);
+  });
+
+  it.each([
+    { navn: 'anvendt procent', drift: { deltaPct: 21.92 } },
+    { navn: 'segmentbeløb', drift: { amountOre: 123456 } },
+  ])('afviser drift i $navn selv om sammentællingen ellers er gyldig', ({ drift }) => {
+    const valid = buildValidCanonical();
+    expect(EoCanonicalOutputSchema.safeParse({
+      ...valid,
+      regulering: { ...valid.regulering, loenudviklingSegmenter: valid.regulering.loenudviklingSegmenter.map(
+        (segment) => ({ ...segment, ...drift })
+      ) },
+    }).success).toBe(false);
+  });
+
+  it('afviser et vist indeksgrundlag, der ikke svarer til den anvendte faktor', () => {
+    const valid = buildValidCanonical();
+    expect(EoCanonicalOutputSchema.safeParse({
+      ...valid,
+      regulering: { ...valid.regulering, loenudviklingSegmenter: valid.regulering.loenudviklingSegmenter.map(
+        (segment) => ({ ...segment, regulering: { ...segment.regulering, periodValue: 1.0228 } })
+      ) },
+    }).success).toBe(false);
+  });
+
+  it('bevarer manuel procentsats ved en halvgrænse gennem hele snapshot-gaten', () => {
+    const initial = createErstatningsopgoerelseInitialValues();
+    const eoValues = {
+      ...initial,
+      beregnesUdFra: 'Angivet månedsløn' as const,
+      maanedsloenenUdgoer: asAmountValue(30000),
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
+      angivetMaanedsloenOpreguleresFraDato: iso('2024-01-01'),
+      tafPerioder: [{ id: 'taf-half', fra: iso('2024-04-01'), til: iso('2024-04-30') }],
+      eoAngivetLoenLoenudvikling: {
+        ...initial.eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuel procentsats' as const,
+        loenudviklingManuelProcentsatsTableData: [
+          { id: 'basis' },
+          { id: 'første', dato: iso('2024-02-01'), procent: 0.2 },
+          { id: 'anden', dato: iso('2024-03-01'), procent: 2.5 },
+        ],
+      },
+    };
+    const snapshot = computeEoSnapshot({
+      revision: 'half-boundary',
+      stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') },
+      eoValues: withSfggIngenForEmployments(eoValues),
+    });
+    expect(snapshot.status).not.toBe('fail_closed');
+    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingSegmenter[0]?.deltaPct).toBe(2.7);
+    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingTotalFoerForligOre).toBe(3081000);
+  });
 });
 
 describe('eoCanonicalOutput – determinisme over JSON-round-trip (genberegning efter load)', () => {

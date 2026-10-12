@@ -1,3 +1,4 @@
+import { buildReguleringsbevis, type Reguleringsbevis } from './regulering/reguleringsbevis';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
@@ -150,14 +151,12 @@ export const buildLoenudviklingModel = (
       : null;
     const loenudviklingLabel = strategiData.label;
 
-    // Ét dispatch gennem registeret: formen bygger sine deltaPct-segmenter OG sit autoritative
-    // visnings-forløb (R2) fra samme kilde-entries i ét kald. "Ingen" bygges direkte her (zero-
-    // delta med fuld basisløn) og når aldrig registeret. Forløbet emitteres på modellen, så
-    // præsentation/inspektion formatterer samme entries som motoren afleder deltaPct fra (ingen
-    // re-derivation → ingen drift). Former uden migreret forløb bærer forloeb = undefined.
+    // Formen evaluerer satser, reference og periode i ét kald. Reguleringsbeviset følger
+    // det anvendte delta til alle visninger; forløbet bærer kun de selvstændige kildeserier.
+    // "Ingen" bygges direkte her med fuld basisløn og et eksplicit ureguleret grundlag.
     const { segmenter: loenreguleringssegmenter, forloeb } = ((): ReguleringResultat => {
       if (strategiData.strategi === 'ingen') {
-        return { segmenter: tafRanges.map((range) => ({ ...range, deltaPct: 0 })) };
+        return { segmenter: tafRanges.map((range) => ({ ...range, deltaPct: 0, regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }) })) };
       }
       const konsolideret = strategiData.konsolideret;
       if (!konsolideret) {
@@ -192,6 +191,23 @@ export const buildLoenudviklingModel = (
       const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver
         ? fromKroner(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
         : undefined;
+      const segmentRegulering = segment.regulering;
+      if (!klLoenaftalerReguleretLoenResolver && !segmentRegulering) {
+        throw new Error('Lønudvikling mangler autoritativt reguleringsgrundlag');
+      }
+      const regulering: Reguleringsbevis = klLoenaftalerReguleretLoenResolver
+        ? {
+          ...buildReguleringsbevis(baseLoenRounded, klLoenaftalerReguleretLoenResolver.loenAt(segment.fra), {
+            kind: 'klLoenaftaler', referenceDate: konsolideretForBase?.reguleringsdato,
+            periodRateDate: segment.fra,
+            periodePct: konsolideretForBase?.reguleringsdato && segment.fra > konsolideretForBase.reguleringsdato
+              && forloeb?.kind === 'klLoenaftaler'
+              ? forloeb.entries.find((entry) => entry.startIso === segment.fra)?.reguleringsPct
+              : undefined,
+          }),
+          appliedDeltaPct: roundedDeltaPct,
+        }
+        : { ...segmentRegulering, appliedDeltaPct: roundedDeltaPct };
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
           segment.fra,
@@ -210,6 +226,7 @@ export const buildLoenudviklingModel = (
           maaneder: maanederRaw,
           maanedsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
+          regulering,
           amountOre: segmentAmountOre(baseLoenRounded, maanederRaw, roundedDeltaPct),
           ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
@@ -229,6 +246,7 @@ export const buildLoenudviklingModel = (
           arbejdsdage,
           dagsloenOre: baseLoenOre,
           deltaPct: roundedDeltaPct,
+          regulering,
           amountOre: segmentAmountOre(baseLoenRounded, arbejdsdage, roundedDeltaPct),
           ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
@@ -287,6 +305,7 @@ export const buildLoenudviklingModel = (
               ).maaneder,
               maanedsloenOre: zeroMoneyOre(),
               deltaPct: 0,
+              regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }),
               amountOre: zeroMoneyOre(),
             }
             : {
@@ -300,6 +319,7 @@ export const buildLoenudviklingModel = (
               ),
               dagsloenOre: zeroMoneyOre(),
               deltaPct: 0,
+              regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }),
               amountOre: zeroMoneyOre(),
             }
         ));

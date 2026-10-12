@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -47,6 +47,28 @@ arbejdsgiverbetalt sygeløn, men før feriesubtraktion til SFGG-segmentering.
 - Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller kontrollag.
 - Engines arbejder altid på de clampede værdier som snapshot-orchestreringen leverer.
 - Afsluttet canonical input ændres aldrig af clamping.
+
+### 1.1. Beregnet og vist regulering er samme resultat
+
+Godkendt af udvikleren 2026-10-12 efter fundet af 21,92 % i TAF-beregningen mod 2,28 % i reguleringsbilaget.
+
+- TAF-afhængighedsinput og EO's visningsinput skal gennem samme autoritative satsprojektion.
+  Separat dependency-tracking må ændre, hvilke feltissues der spærrer en gren, men aldrig hvilke satser
+  grenen beregner med. Den beregningsklare inputport er nominal og kan ikke erstattes af rå persisted input.
+- Alle reguleringsformer emitterer et schema-valideret reguleringsbevis sammen med hvert anvendt segment:
+  referencegrundlag, periodegrundlag, præcis faktor, anvendt procent efter formens afrunding og relevante
+  formelkomponenter. KL-lønaftaler bevarer trinvis afrunding på lønnen og periodens egen procent.
+- Reguleringsværdier, beregnet regulering, kontrolvisning, PDF og Word formatterer motorens grundlag og
+  resultat. De må ikke vælge alternative referencesatser, genopbygge lønpakker eller beregne et nyt indeks.
+  En sammensat lønpakke dateres tidligst ved den seneste ikrafttræden af dens komponenter, fx 1. januar
+  2024 når Store Bededagstillægget indgår sammen med en grundløn fra 2023. Den må ikke vise tillægget som
+  gældende allerede i 2023 eller erstatte satsdatoen med en vilkårlig senere reguleringsdato.
+- Canonical-output-grænsen kontrollerer forbindelsen mellem grundlag, faktor, anvendt procent og
+  segmentbeløb. Manglende eller modstridende motorgrundlag må ikke blive et gyldigt dokument.
+- En uafhængig kontrol må efterregne resultatet, men aldrig levere alternative reguleringstal til den normale
+  visning. Uden canonical segmenter må kontrollen ikke fremstille et syntetisk beregnet reguleringsforløb.
+- Save og load ændres ikke af dette runtime-resultat. Afledte basisprocenter genskabes gennem den fælles
+  satsprojektion uden at ændre tidligere gyldige filers brugerinput eller indføre ny preflight.
 
 ---
 

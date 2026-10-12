@@ -1,3 +1,4 @@
+import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../data/statistiskeRates';
 import { statistikForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/statistikForm';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -93,10 +94,13 @@ describe('statistikForm', () => {
       tafRanges: [{ fra: iso('2019-01-01'), til: iso('2020-06-30') }],
     }));
 
-    expect(result.segmenter).toEqual([
+    expect(result.segmenter).toMatchObject([
       { fra: iso('2019-01-01'), til: iso('2019-12-31'), deltaPct: 0 },
       { fra: iso('2020-01-01'), til: iso('2020-06-30'), deltaPct: 0 },
     ]);
+    for (const segment of result.segmenter) {
+      expect(reguleringsbevisSchema.parse(segment.regulering).appliedDeltaPct).toBe(segment.deltaPct);
+    }
   });
 
   it('projicerer statistikmodellens kildedækning', () => {

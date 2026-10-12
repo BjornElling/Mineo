@@ -15,19 +15,13 @@ import { convertAnciennitetSats, parseDanishToIso, resolvePctPointFromSatsOrInpu
 import type { FormulaComponents } from './reguleringFormulaUtils';
 
 // =============================================================================
-// Anciennitetstillæg i reguleringsforløb – ét fælles opslag delt af motor, præsentation og kontrol.
-//
-// Tillægget (og dets gate-datoer) blev tidligere udledt tre gange uafhængigt: motorens
-// `overenskomstSegmentContext`, præsentationens reguleringsindeks-tabel og – implicit ved
-// FRAVÆR – kontrol-laget (`eoInspektionRegulationCore`), som slet ikke medtog tillægget og
-// derfor kunne vise et forkert kontrol-indeks (falsk `control:sammentaelling_mismatch`).
-// Resolveren nedenfor er den ENESTE kilde til tillæggets kroneværdi og aktiveringsdato.
-// Selve indeks-/pakkeberegningen forbliver pr. lag (motorens pct-point-formel vs.
-// kontrol-lagets decimal-konvention, jf. B9) – kun opløsningen af brugerinput deles.
+// Anciennitetstillæg i reguleringsforløb – fælles opløsning for motorens to overenskomst-grene.
+// Tillæggets kroneværdi og aktiveringsdato evalueres hos producenten og indgår derefter i
+// segmentets reguleringsbevis. Præsentationen formatterer dette uden nye satsvalg.
 // =============================================================================
 
 /**
- * Anciennitetstillæg der er aktivt fra en given dato, delt af begge overenskomst-grene + kontrol.
+ * Anciennitetstillæg der er aktivt fra en given dato, delt af begge overenskomst-grene.
  * Datoen må efter den nuværende domæneregel kun ligge efter anvendt reguleringsdato, så
  * tillægget er aldrig en del af referenceniveauet (indeks 100). `activeFromIso` bruges til
  * segment-splitting og per-segment-gate; ligger datoen før den viste periode, clampes den op til
@@ -46,7 +40,7 @@ export type AnciennitetForIndexInput = Readonly<{
   overenskomstId: string | undefined;
   tafBeregningsenhed: TafBeregningsenhed;
   anvendtReguleringsdatoIso: ISODateString | undefined;
-  // Periodens grænser (motor: tafRanges min/max; kontrol/præsentation: den viste periodes ISO-span).
+  // Periodens grænser fra motorens tafRanges.
   periodeStartIso: ISODateString;
   periodeEndIso: ISODateString;
 }>;
@@ -163,17 +157,10 @@ export const resolvePrivateOverenskomstBaseContext = (
 };
 
 /**
- * Bygger `FormulaComponents` for den OFFENTLIGE overenskomst-gren (løntrin). Samler den samling
- * motoren (`overenskomstOffentligSegmenter`) og præsentationens reguleringsindeks-tabel før byggede
- * hver for sig – begge i pct-point-konvention med `resolvePctPointFromSatsOrInput` – så vist indeks
- * = den motoren afleder deltaPct fra (én formel-samling, ingen drift). Spejler den private
- * `buildPrivateOverenskomstFormulaComponents`.
- *
- * BEVIDST afgrænsning: kun selve samlingen deles. Base-/sats-UDVÆLGELSEN forbliver pr. lag
- * (motorens U4-clamp + interval-fallback vs. præsentationens effective-base + deltaPct-fallback) –
- * de er to forskellige, bevidst adskilte mekanismer (jf. U4). `grundloen` er allerede summeret af
- * kaldstedet (løn + ekstra grundløn + evt. anciennitetstillæg). Inspektionslaget deles IKKE herfra:
- * det bruger decimal-konvention (`computePackageValueDecimal`) og er B9-isoleret kontrol.
+ * Bygger den offentlige overenskomsts formelkomponenter til producentens reference- og periodepakke.
+ * `grundloen` er allerede summeret af kaldstedet: løn, ekstra grundløn og eventuelt anciennitetstillæg.
+ * Satsvalg og dæknings-fallback ligger i `overenskomstOffentligSegmenter`; alle visninger formatterer
+ * de evaluerede komponenter fra reguleringsbeviset uden selvstændig pakke- eller indeksberegning.
  */
 export const buildOffentligOverenskomstFormulaComponents = (args: Readonly<{
   grundloen: number;

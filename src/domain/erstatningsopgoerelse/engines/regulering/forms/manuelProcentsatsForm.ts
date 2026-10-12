@@ -1,5 +1,5 @@
+import { buildReguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
-import { roundReguleringDeltaPct } from '../../reguleringFormulaUtils';
 import { buildManuelProcentsatsEntries, findManuelProcentsatsEntryForDate } from '../../manuelProcentsatsRegulering';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
 import type {
@@ -70,10 +70,12 @@ const byggResultat = (
       if (!entry) {
         throw new Error('Intern fejl: mangler manuel procentsatsindeks for segment');
       }
-      segments.push({
-        ...segment,
-        deltaPct: roundReguleringDeltaPct(entry.akkumuleretPct),
+      const deltaPct = entry.anvendtPct;
+      const regulering = buildReguleringsbevis(100, entry.indeks, {
+        kind: 'procentsats', rawDeltaPct: entry.akkumuleretPct, referenceDate: konsolideret.reguleringsdato,
+        periodRateDate: entry.startIso, displayDecimals: 2,
       });
+      segments.push({ ...segment, deltaPct, regulering: { ...regulering, appliedDeltaPct: deltaPct } });
     }
   }
   if (segments.length === 0) {

@@ -41,6 +41,11 @@ describe('reguleringFormRegistry', () => {
       fra: iso('2024-01-01'),
       til: iso('2024-12-31'),
       deltaPct: 0,
+      regulering: {
+        kind: 'procentsats', referenceValue: 100, periodValue: 100, rawFactor: 1, rawDeltaPct: 0,
+        appliedDeltaPct: 0, referenceDate: iso('2024-01-01'),
+        periodRateDate: iso('2024-01-01'), displayDecimals: 2,
+      },
     }]);
     expect(result.forloeb?.kind).toBe('manuelProcentsats');
   });

@@ -5,7 +5,8 @@ import {
   readStamdataValues,
 } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { projectLoenindkomstSatser } from '../../../domain/erstatningsopgoerelse/loenindkomstSatsProjection';
+import { omitDerivedLoenindkomstSatser, projectLoenindkomstSatser } from '../../../domain/erstatningsopgoerelse/loenindkomstSatsProjection';
+import { parseInboundPersistedSection } from '../../../utils/inboundPersistedSection';
 import {
   selectBlockingLoenindkomstEntityIds,
   topLevelFieldIssue,
@@ -25,6 +26,7 @@ import { toISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../../schemas/formSchemas';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
+import { createSfggIngenRow } from '../../utils/sfggTestSupport';
 
 // Erstatningsopgørelsens reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen
 // (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt byte-identisk fra readeren (inkl. det nested løntræ), (b)
@@ -120,6 +122,100 @@ const buildReader = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataV
 };
 
 describe('buildErstatningsopgoerelseReaderProjection', () => {
+  it('fører offentlig referencesats for pension videre til SFGG fra samme beregningsklare input', () => {
+    const initial = buildValidEo();
+    const stamdata = { ...validStamdata, skadedato: toISODateString('2024-03-01') };
+    const eo: ErstatningsopgoerelseValues = {
+      ...initial,
+      kravPaaOevrigeErstatningskrav: 'Nej',
+      tafBeregningsperiodeFra: toISODateString('2024-04-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-06-30'),
+      tafPerioder: [{ id: 'taf-public', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }],
+      sfggAnsaettelsesforhold: [{ ...createSfggIngenRow('af-1'), sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmount(100) }],
+      loenindkomstAnsaettelsesforhold: [{
+        ...initial.loenindkomstAnsaettelsesforhold[0],
+        overenskomstId: 'laerer-overenskomsten',
+        pensionPct: undefined,
+        indtaegtsoplysningerTableData: [{ ...initial.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData[0],
+          col1_maaned: '2024' }],
+      }],
+    };
+    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, stamdata));
+    expect(projection.snapshot.status, JSON.stringify(projection.snapshot.invariants)).toBe('ok');
+    expect(projection.eoValues.loenindkomstAnsaettelsesforhold[0].pensionPct).toBeGreaterThan(0);
+    const sfgg = projection.snapshot.data?.engines.tafNetto.sygeferiegodtgoerelse;
+    expect(sfgg?.totalOre).toBeGreaterThan(0);
+    expect(sfgg?.perAnsaettelsesforhold[0]?.segments[0]?.agPensionPct)
+      .toBe(projection.eoValues.loenindkomstAnsaettelsesforhold[0].pensionPct);
+    const direct = computeEoSnapshot({
+      revision: 'direct', eoValues: projection.eoValues, stamdataValues: projection.stamdataValues,
+      eoErrors: EMPTY_FIELD_ISSUE_SET, stamdataErrors: EMPTY_FIELD_ISSUE_SET,
+    });
+    expect(projection.snapshot.data?.engines.tafNetto).toEqual(direct.data?.engines.tafNetto);
+  });
+
+  it('bruger samme manuelle basis med fritvalg og pension efter save/load som skærm og dokument', () => {
+    // Kun anonymiserede, relevante tal fra regressionen. Basisrækkens tillæg er afledte og findes ikke i filen.
+    const stamdata = { ...validStamdata, skadedato: toISODateString('2025-07-11') };
+    const initial = buildValidEo();
+    const eo: ErstatningsopgoerelseValues = {
+      ...initial,
+      kravPaaOevrigeErstatningskrav: 'Nej',
+      sfggAnsaettelsesforhold: [createSfggIngenRow('af-1')],
+      forligAnsvarsgradProcent: undefined,
+      tafBeregningsperiodeFra: toISODateString('2024-07-01'),
+      tafBeregningsperiodeTil: toISODateString('2025-06-30'),
+      vedroererPeriodeFra: toISODateString('2025-07-11'),
+      vedroererPeriodeTil: toISODateString('2026-09-20'),
+      tafPerioder: [{ id: 'taf-regression', fra: toISODateString('2026-05-25'), til: toISODateString('2026-09-20') }],
+      loenindkomstAnsaettelsesforhold: [{
+        ...initial.loenindkomstAnsaettelsesforhold[0],
+        harOverenskomst: false,
+        feriePct: 15,
+        fritvalgPct: 7.43,
+        pensionPct: 12,
+        fuldLoenUnderFerie: 'Ja',
+        beregnStoreBededagstillaeg: true,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelNavn: 'Testregulering',
+        indtaegtsoplysningerTableData: [{
+          ...initial.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData[0],
+          col0_maaned: '6', col1_maaned: '2025', col2: asAmount(33436.04),
+        }],
+        loenudviklingManuelTableData: [
+          { id: 'manual-base', grundloen: asAmount(33436.04) },
+          { id: 'manual-rise', dato: toISODateString('2026-03-01'), grundloen: asAmount(34197.61),
+            feriepenge: 15, fritvalg: 7.43, agPension: 12, shSoSats: 0 },
+        ],
+      }],
+    };
+    const before = buildErstatningsopgoerelseReaderProjection(buildReader(eo, stamdata));
+    const saved = JSON.parse(JSON.stringify(omitDerivedLoenindkomstSatser(eo, stamdata)));
+    expect(saved.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0])
+      .toEqual({ id: 'manual-base', grundloen: asAmount(33436.04) });
+    const loaded = parseInboundPersistedSection('erstatningsopgoerelse', saved, '1.0.0');
+    expect(loaded.ok).toBe(true);
+    expect(loaded.unknownPaths).toEqual([]);
+    expect(loaded.invalidPaths).toEqual([]);
+    expect(loaded.preflightMissingFields).toEqual([]);
+    if (!loaded.ok) throw new Error('Regressionens gyldige input kunne ikke genindlæses');
+    const after = buildErstatningsopgoerelseReaderProjection(buildReader(loaded.data, stamdata));
+    expect(after.snapshot.status, JSON.stringify(after.snapshot.invariants)).toBe('ok');
+    const engine = after.snapshot.data?.engines.tafNetto.loenudvikling;
+    expect(engine).toBeDefined();
+    expect(engine?.beregnedeSegmenter.length).toBeGreaterThan(0);
+    expect(engine?.beregnedeSegmenter.every((segment) => segment.deltaPct === 2.28)).toBe(true);
+    expect(after.snapshot.data?.engines.tafNetto).toEqual(before.snapshot.data?.engines.tafNetto);
+    expect(after.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelTableData[0])
+      .toMatchObject({ feriepenge: 15, fritvalg: 7.43, agPension: 12, grundloen: asAmount(33436.04) });
+    const direct = computeEoSnapshot({
+      revision: 'direct', eoValues: after.eoValues, stamdataValues: after.stamdataValues,
+      eoErrors: EMPTY_FIELD_ISSUE_SET, stamdataErrors: EMPTY_FIELD_ISSUE_SET,
+    });
+    expect(after.snapshot.data?.engines.tafNetto).toEqual(direct.data?.engines.tafNetto);
+  });
+
   it('rekonstruerer EO-værdierne byte-identisk fra readeren (inkl. nested løntræ + collections)', () => {
     const eo = buildValidEo();
     const reader = buildReader(eo, validStamdata);

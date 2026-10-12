@@ -543,7 +543,7 @@ const RAW_REGULERING_SERIES_BINDINGS = new Set([
 export const reguleringCanonicalForloebBoundary = forbidImports({
   id: 'domain/regulering-canonical-forloeb-boundary',
   description:
-    'Reguleringspræsentation og -kontrol må ikke genindlæse statistik-, KRL-, KL- eller manuel-procentsatsserier; de skal læse motorens kanoniske forløb.',
+    'Reguleringspræsentationen formatterer motorens evaluerede grundlag; kontrolserier læses fra motorens kanoniske forløb.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) =>
@@ -554,7 +554,17 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
   appliesTo: (relativePath) =>
     relativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts'
     || relativePath === 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
-  forbidden: (ref) => {
+  forbidden: (ref, fromRelativePath) => {
+    if (fromRelativePath === 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts' && !ref.typeOnly) {
+      if (/\/(?:offentligLoenLookup|overenskomstReguleringShared|reguleringCoverage|aslAarsloensmaksimum|reguleringFormRegistry)$/.test(ref.moduleSpecifier)) return true;
+      const formatOnlyBindings = new Set([
+        'getGrundloenAngivetPerForOverenskomst',
+        'buildFormulaText', 'formatPercentCellFromRaw', 'wrapIndexFormulaAfterSlashWhenLong',
+        'FormulaComponents', 'FormulaVisibility',
+      ]);
+      if (/\/(?:overenskomstRates|reguleringFormulaUtils)$/.test(ref.moduleSpecifier)
+        && (ref.namedBindings.length === 0 || ref.namedBindings.some((binding) => !formatOnlyBindings.has(binding)))) return true;
+    }
     if (/\/(?:statistik|krl|klLoenaftaler|manuelProcentsats)Regulering$/.test(ref.moduleSpecifier)) {
       return true;
     }
@@ -567,6 +577,14 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
   },
   message: (ref) => `Direkte import af reguleringsserie (${ref.moduleSpecifier}) – brug ReguleringForloeb fra motor-modellen.`,
   violatingFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      code: "import { getEffektiveSatserForDato as chooseRate } from '../../../data/overenskomstRates';",
+    },
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      code: "import { computeFormulaValue } from './reguleringFormulaUtils';",
+    },
     {
       relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
       code: "import { buildKrlIndexEntries } from '../erstatningsopgoerelse/engines/krlRegulering';",
@@ -585,6 +603,10 @@ export const reguleringCanonicalForloebBoundary = forbidImports({
     },
   ],
   cleanFixtures: [
+    {
+      relativePath: 'src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts',
+      code: "import { buildFormulaText, type FormulaComponents } from './reguleringFormulaUtils';",
+    },
     {
       relativePath: 'src/domain/eoInspektion/eoInspektionRegulationCore.ts',
       code: "import type { ReguleringForloeb } from '../erstatningsopgoerelse/engines/reguleringForloeb';",

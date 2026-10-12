@@ -147,8 +147,7 @@ const byggResultat = (
     throw new Error('Loenudvikling kan ikke beregnes: overenskomststrategi mangler');
   }
   const ctx = buildOverenskomstSegmentContext(konsolideret);
-  // Overenskomst emitterer bevidst INTET `forloeb`: præsentationen re-deriverer forløbet af overenskomstens
-  // egne reguleringsdatoer, så et emitteret forløb ville være en anden kilde til samme visning.
+  // Satsvalg og pakkeformler bæres på segmenternes reguleringsbevis til alle visninger.
   const segmenter = konsolideret.offentlig
     ? buildOffentligOverenskomstSegmenter(konsolideret, konsolideret.offentlig, ctx)
     : buildPrivatOverenskomstSegmenter(konsolideret, ctx);

@@ -22,6 +22,17 @@ describe('buildManuelProcentsatsEntries', () => {
     expect(entries.map((entry) => entry.akkumuleretPct)).toEqual([0, expect.closeTo(10, 10), expect.closeTo(21, 10)]);
   });
 
+  it('viser det anvendte indeks og den anvendte procent ens ved en binær halvgrænse', () => {
+    const entries = buildManuelProcentsatsEntries({
+      anvendtReguleringsdato: iso('2024-01-01'),
+      rows: [row('base', undefined, 0), row('r1', '2024-02-01', 0.2), row('r2', '2024-03-01', 2.5)],
+    });
+    expect(entries.at(-1)).toMatchObject({
+      indeks: 102.705, akkumuleretPct: 2.7049999999999983,
+      anvendtIndeks: 102.7, anvendtPct: 2.7,
+    });
+  });
+
   it('udelader rækker dateret før reguleringsdatoen fra akkumuleringen og holder entries sorteret', () => {
     // Rækken pr. 2023-06-01 ligger før basisdatoen. Tidligere indgik den både i den akkumulerede
     // procent OG brød entries-listens sortering (basis-entryen ligger forrest med senere dato),

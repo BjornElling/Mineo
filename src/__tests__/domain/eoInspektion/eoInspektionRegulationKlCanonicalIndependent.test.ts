@@ -7,6 +7,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import type { RegulationIndexTimeline } from '../../../domain/eoInspektion/eoInspektionRegulationTypes';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 
 const iso = (value: string): ISODateString => toISODateString(value);
 
@@ -72,6 +73,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
           deltaPct: 0,
           amountOre: moneyOre(600_000),
           reguleretLoenOre: moneyOre(100_000),
+          regulering: buildReguleringsbevis(1000, 1000, { kind: 'klLoenaftaler' }),
         },
         {
           kind: 'maaneder',
@@ -82,6 +84,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
           deltaPct: 10,
           amountOre: moneyOre(660_000),
           reguleretLoenOre: moneyOre(110_000),
+          regulering: buildReguleringsbevis(1000, 1100, { kind: 'klLoenaftaler' }),
         },
       ],
     }],

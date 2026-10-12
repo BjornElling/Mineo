@@ -15,6 +15,7 @@ import type { MoneyOre } from '../../../domain/money/money';
 import { moneyOre } from '../../../domain/money/money';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -154,7 +155,8 @@ describe('eoCanonicalOutput – direkte invariantgrene', () => {
       til: iso('2024-01-31'),
       maaneder: 1,
       maanedsloenOre: moneyOre(10000),
-      deltaPct: 0,
+      deltaPct: 0.01,
+      regulering: { ...buildReguleringsbevis(100, 100.01, { kind: 'klLoenaftaler' }), appliedDeltaPct: 0.01 },
       amountOre: moneyOre(10001),
       reguleretLoenOre: moneyOre(10001),
     };
@@ -164,7 +166,8 @@ describe('eoCanonicalOutput – direkte invariantgrene', () => {
       til: iso('2024-02-01'),
       arbejdsdage: 1,
       dagsloenOre: moneyOre(10000),
-      deltaPct: 0,
+      deltaPct: 0.01,
+      regulering: { ...buildReguleringsbevis(100, 100.01, { kind: 'klLoenaftaler' }), appliedDeltaPct: 0.01 },
       amountOre: moneyOre(10001),
       reguleretLoenOre: moneyOre(10001),
     };

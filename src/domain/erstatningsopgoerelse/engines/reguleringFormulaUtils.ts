@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
@@ -6,17 +7,17 @@ import {
   formatPercentFixed2,
 } from '../helpers/eoSharedUtils';
 
-export type FormulaComponents = Readonly<{
-  /**
-   * Procentfelter angives som procentpoint, fx `12` for 12 % (ikke decimal 0,12).
-   */
-  baseValue: number;
-  feriePct: number;
-  fritvalgPct: number;
-  shSoPct: number;
-  pensionPct: number;
-  storeBededagPct: number;
-}>;
+/** Procentfelter er procentpoint: eksempelvis `12` for 12 %, ikke decimalen 0,12. */
+export const formulaComponentsSchema = z.object({
+  baseValue: z.number().finite(),
+  feriePct: z.number().finite(),
+  fritvalgPct: z.number().finite(),
+  shSoPct: z.number().finite(),
+  pensionPct: z.number().finite(),
+  storeBededagPct: z.number().finite(),
+}).strict();
+
+export type FormulaComponents = Readonly<z.infer<typeof formulaComponentsSchema>>;
 
 export type FormulaVisibility = Readonly<{
   showFritvalg: boolean;

@@ -1,0 +1,640 @@
+{
+  "version": "1.0.0",
+  "_metadata": {
+    "exportDate": "2026-09-25T00:00:00.000Z",
+    "appVersion": "regression-fiktiv",
+    "persistedDataVersion": "3.14",
+    "fieldCount": 338
+  },
+  "data": {
+    "stamdata": {
+      "journalnr": "REGULERING-FIKTIV",
+      "skadelidte": "Fiktiv skadelidt",
+      "skadelidteFodselsdato": "1980-01-01",
+      "skadestype": "Arbejdsulykke",
+      "skadedato": "2025-07-11"
+    },
+    "erstatningsopgoerelse": {
+      "eoNummer": "3",
+      "opgørelseLavetDen": "2026-09-25",
+      "indsaetUdkastStempel": "Ja",
+      "vedroererPeriodeFra": "2026-05-25",
+      "vedroererPeriodeTil": "2026-09-20",
+      "revideretOpgoerelse": "Nej",
+      "midlertidigtEetFraEetSiden": "Nej",
+      "regulerOffentligeYdelser": "Ja",
+      "erstatningsopgoerelseAfsluttesMed": "Ingen",
+      "kravPaaOevrigeErstatningskrav": "Skjul",
+      "oevrigeKravPerioder": [
+        {
+          "id": "fiktiv_1"
+        }
+      ],
+      "offentligeYdelserRows": [
+        {
+          "id": "fiktiv_2",
+          "fraDato": "2026-04-01",
+          "tilDato": "2026-04-26",
+          "ydelse": {
+            "kind": "number",
+            "value": 15255
+          },
+          "tillaeg": {
+            "kind": "expression",
+            "expression": "159*2+318",
+            "value": 636
+          },
+          "ydelsestype": "sygedagpenge"
+        },
+        {
+          "id": "fiktiv_3",
+          "fraDato": "2026-04-27",
+          "tilDato": "2026-05-24",
+          "ydelse": {
+            "kind": "number",
+            "value": 19323
+          },
+          "tillaeg": {
+            "kind": "expression",
+            "expression": "201*2+721-318",
+            "value": 805
+          },
+          "ydelsestype": "sygedagpenge"
+        },
+        {
+          "id": "fiktiv_4",
+          "fraDato": "2026-05-25",
+          "tilDato": "2026-06-21",
+          "ydelse": {
+            "kind": "number",
+            "value": 19323
+          },
+          "tillaeg": {
+            "kind": "number",
+            "value": 805
+          },
+          "ydelsestype": "sygedagpenge"
+        },
+        {
+          "id": "fiktiv_5",
+          "fraDato": "2026-06-22",
+          "tilDato": "2026-07-26",
+          "ydelse": {
+            "kind": "number",
+            "value": 15255
+          },
+          "tillaeg": {
+            "kind": "expression",
+            "expression": "159*2+1442-1124",
+            "value": 636
+          },
+          "ydelsestype": "sygedagpenge"
+        },
+        {
+          "id": "fiktiv_6",
+          "fraDato": "2026-07-27",
+          "tilDato": "2026-08-23",
+          "ydelse": {
+            "kind": "number",
+            "value": 20340
+          },
+          "tillaeg": {
+            "kind": "expression",
+            "expression": "212*2+1866-1442",
+            "value": 848
+          },
+          "ydelsestype": "sygedagpenge"
+        },
+        {
+          "id": "fiktiv_7",
+          "fraDato": "2026-08-24",
+          "tilDato": "2026-09-20",
+          "ydelse": {
+            "kind": "number",
+            "value": 20340
+          },
+          "tillaeg": {
+            "kind": "expression",
+            "expression": "212*2+2290-1866",
+            "value": 848
+          },
+          "ydelsestype": "sygedagpenge"
+        }
+      ],
+      "eoBilagSelection": {
+        "opgoerelse": true,
+        "loenindkomst": true,
+        "offentligeYdelser": true,
+        "midlertidigEet": true,
+        "shDage": false,
+        "regulering": true,
+        "okSatser": true,
+        "sygeferiegodtgoerelse": false
+      },
+      "eoBilagLoenindkomstOgOffentligeYdelserIndgaar": "Perioden",
+      "varigeMenAfgorelse": "Nej",
+      "verserendeKlageMen": "Nej",
+      "midlertidigtEETAfgorelse": "Nej",
+      "endeligtEETAfgorelse": "Nej",
+      "verserendeKlageEet": "Nej",
+      "kravPaaSvieSmerteGodtgoerelse": "Ja",
+      "svieSmerteHelbredsstatus": "Sygemeldt",
+      "tidligereSsMax": "Nej",
+      "svieSmertePerioder": [
+        {
+          "id": "fiktiv_8",
+          "fra": "2025-07-11",
+          "til": "2026-09-20",
+          "tilstand": "sygemeldt"
+        },
+        {
+          "id": "fiktiv_9"
+        }
+      ],
+      "svieSmerteSatserAar": 2026,
+      "svieSmerteDelvisSygemeldingSats": "fuld",
+      "svieSmerteTidligereTotal": {
+        "kind": "number",
+        "value": 79500
+      },
+      "kravPaaTabtArbejdsfortjeneste": "Ja",
+      "tafArbejdsstatus": "Uarbejdsdygtig",
+      "tafPerioder": [
+        {
+          "id": "fiktiv_10",
+          "fra": "2025-08-01",
+          "til": "2026-09-20"
+        },
+        {
+          "id": "fiktiv_11"
+        }
+      ],
+      "ferieperioder": [
+        {
+          "id": "fiktiv_12"
+        }
+      ],
+      "komprimerBeregningEfterFoersteOpgoerelse": "Ja",
+      "beregnesUdFra": "Beregningsperiode",
+      "tafBeregningsperiodeFra": "2024-07-01",
+      "tafBeregningsperiodeTil": "2025-06-30",
+      "fravaerPerioder": [
+        {
+          "id": "fiktiv_13"
+        }
+      ],
+      "uspecificeredeFerieFridage": 30,
+      "oevrigtFravaerUdenLoen": "Nej",
+      "sfggAnsaettelsesforhold": [
+        {
+          "ansaettelsesforholdId": "fiktiv_14",
+          "sfggBeregningskilde": "Ingen",
+          "sfggManuelFoerstEfterSygeloen": "Nej"
+        }
+      ],
+      "loenindkomstAnsaettelsesforhold": [
+        {
+          "id": "fiktiv_14",
+          "navnPaaArbejdssted": "Fiktivt arbejdssted",
+          "harOverenskomst": true,
+          "ansatPaaSkadestidspunktet": true,
+          "ansaettelsesforholdOphoert": false,
+          "fritvalgPct": 7.43,
+          "pensionPct": 12,
+          "tillaegAngivesSom": "procent",
+          "loenperiode": "maaned",
+          "indtaegtsoplysningerTableData": [
+            {
+              "id": "fiktiv_15",
+              "col0_maaned": "7",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 36250.12
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_16",
+              "col0_maaned": "8",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 36250.12
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_17",
+              "col0_maaned": "9",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 36250.12
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_18",
+              "col0_maaned": "10",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 36250.12
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_19",
+              "col0_maaned": "11",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_20",
+              "col0_maaned": "12",
+              "col1_maaned": "2024",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_21",
+              "col0_maaned": "1",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_22",
+              "col0_maaned": "2",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_23",
+              "col0_maaned": "3",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "120,75+2*99",
+                "value": 318.75
+              }
+            },
+            {
+              "id": "fiktiv_24",
+              "col0_maaned": "4",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "-54,61+66,14+2*99",
+                "value": 209.53
+              }
+            },
+            {
+              "id": "fiktiv_25",
+              "col0_maaned": "5",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 32634.39
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_26",
+              "col0_maaned": "6",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 35840.99
+              },
+              "col3": {
+                "kind": "number",
+                "value": 800
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_27",
+              "col0_maaned": "7",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_28",
+              "col0_maaned": "8",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_29",
+              "col0_maaned": "9",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_30",
+              "col0_maaned": "10",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_31",
+              "col0_maaned": "11",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_32",
+              "col0_maaned": "12",
+              "col1_maaned": "2025",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_33",
+              "col0_maaned": "1",
+              "col1_maaned": "2026",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_34",
+              "col0_maaned": "2",
+              "col1_maaned": "2026",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 33436.04
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_35",
+              "col0_maaned": "3",
+              "col1_maaned": "2026",
+              "col0_uge": "",
+              "col1_uge": "",
+              "col2": {
+                "kind": "number",
+                "value": 34197.61
+              },
+              "col3": {
+                "kind": "number",
+                "value": 200
+              },
+              "col5": {
+                "kind": "expression",
+                "expression": "66,14+2*99",
+                "value": 264.14
+              }
+            },
+            {
+              "id": "fiktiv_36",
+              "col0_maaned": "",
+              "col1_maaned": "",
+              "col0_uge": "",
+              "col1_uge": ""
+            }
+          ],
+          "fuldLoenUnderFerie": "Ja",
+          "harAnciennitetstillaegEfterSkadedatoen": false,
+          "anciennitetstillaegSatsAngivesPer": "Måned",
+          "feriePct": 15,
+          "loenPaaHelligdage": "Almindelig løn",
+          "beregnStoreBededagstillaeg": true,
+          "loenudviklingBeregningsgrundlag": "Manuelt angivet",
+          "loenudviklingManuelNavn": "Fiktiv manuel regulering",
+          "loenudviklingManuelTableData": [
+            {
+              "id": "fiktiv_37",
+              "grundloen": {
+                "kind": "number",
+                "value": 33436.04
+              }
+            },
+            {
+              "id": "fiktiv_38",
+              "dato": "2026-03-01",
+              "grundloen": {
+                "kind": "number",
+                "value": 34197.61
+              },
+              "feriepenge": 15,
+              "fritvalg": 7.43,
+              "agPension": 12
+            },
+            {
+              "id": "fiktiv_39"
+            }
+          ],
+          "loenudviklingManuelProcentsatsTableData": [],
+          "offentligLoenType": "Månedsløn",
+          "overenskomstFilter": {}
+        }
+      ],
+      "eoAngivetLoenLoenudvikling": {
+        "harAnciennitetstillaegEfterSkadedatoen": false,
+        "anciennitetstillaegSatsAngivesPer": "Måned",
+        "loenPaaHelligdage": "Almindelig løn",
+        "beregnStoreBededagstillaeg": true,
+        "loenudviklingManuelTableData": [],
+        "loenudviklingManuelProcentsatsTableData": [],
+        "offentligLoenType": "Månedsløn",
+        "overenskomstFilter": {}
+      },
+      "visBilagsnumre": "Nej"
+    }
+  }
+}

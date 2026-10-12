@@ -1,3 +1,4 @@
+import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
 import type { LoenudviklingManuelProcentsatsRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
@@ -15,6 +16,9 @@ export type ManuelProcentsatsEntry = Readonly<{
   procent: number;
   indeks: number;
   akkumuleretPct: number;
+  /** Anvendt regulering og indeks til visning; det rå indeks bevares til næste kædetrin. */
+  anvendtPct: number;
+  anvendtIndeks: number;
   isBase: boolean;
 }>;
 
@@ -32,6 +36,8 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
     procent: 0,
     indeks: MANUEL_PROCENTSATS_BASE_INDEX,
     akkumuleretPct: 0,
+    anvendtPct: 0,
+    anvendtIndeks: MANUEL_PROCENTSATS_BASE_INDEX,
     isBase: true,
   }];
 
@@ -52,12 +58,17 @@ export const buildManuelProcentsatsEntries = (args: Readonly<{
 
   for (const { row } of userRows) {
     runningIndex *= 1 + row.procent / 100;
+    const akkumuleretPct = runningIndex - MANUEL_PROCENTSATS_BASE_INDEX;
+    // Indeks og procent skal vise samme anvendte afrunding, også ved binære halvgrænser.
+    const anvendtPct = roundReguleringDeltaPct(akkumuleretPct);
     entries.push({
       rowId: row.id,
       startIso: row.dato,
       procent: row.procent,
       indeks: runningIndex,
-      akkumuleretPct: runningIndex - MANUEL_PROCENTSATS_BASE_INDEX,
+      akkumuleretPct,
+      anvendtPct,
+      anvendtIndeks: MANUEL_PROCENTSATS_BASE_INDEX + anvendtPct,
       isBase: false,
     });
   }

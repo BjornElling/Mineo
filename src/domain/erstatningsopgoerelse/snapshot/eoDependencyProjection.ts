@@ -5,6 +5,7 @@ import type {
 import type { SvieSmerteEngineInputSnapshot } from '../engines/svieSmerteEngine';
 import type { ForligAnsvarsgradInput } from '../engines/forligsgrad';
 import type { TafCalculationStamdata, TafCalculationValues } from '../engines/tafCalculationInput';
+import type { ProjectedLoenindkomstSatser } from '../loenindkomstSatsProjection';
 
 /**
  * Issue-sættene fra de konkrete reader-projektioner, der bygger hver beregningsgrens input.
@@ -14,7 +15,7 @@ export type EoDependencyProjection = Readonly<{
   svieSmerteInput?: SvieSmerteEngineInputSnapshot;
   forligInput?: ForligAnsvarsgradInput;
   tafInput?: Readonly<{
-    values: TafCalculationValues;
+    values: ProjectedLoenindkomstSatser<TafCalculationValues>;
     stamdata: TafCalculationStamdata;
   }>;
   oevrigeKravInput?: Pick<

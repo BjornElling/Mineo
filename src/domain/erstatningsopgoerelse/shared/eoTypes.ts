@@ -1,3 +1,4 @@
+import type { Reguleringsbevis } from '../engines/regulering/reguleringsbevis';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
@@ -214,6 +215,7 @@ export type LoenudviklingSegment =
     deltaPct: number;
     amountOre: MoneyOre;
     reguleretLoenOre?: MoneyOre;
+    regulering?: Reguleringsbevis;
   }>
   | Readonly<{
     kind: 'arbejdsdage';
@@ -224,6 +226,7 @@ export type LoenudviklingSegment =
     deltaPct: number;
     amountOre: MoneyOre;
     reguleretLoenOre?: MoneyOre;
+    regulering?: Reguleringsbevis;
   }>;
 
 export type LoenudviklingModel = Readonly<{
