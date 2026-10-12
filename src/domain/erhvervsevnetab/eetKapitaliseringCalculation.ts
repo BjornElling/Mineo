@@ -445,7 +445,7 @@ export const computeEetKapitaliseringCalculation = (
     let resolvedTabelvalg = controlTabelvalg;
     let resolvedSaerfaktor = controlSaerfaktor;
     let ageForFactor = controlAge;
-    let kapitaliseringsfaktor: number | null = null;
+    let kapitaliseringsfaktor: number | null;
     let kapitaliseretPgaUnderToAarTilFp = false;
     let koenOpdelt = false;
     const faktorMaanedsAfhaengig = skadedato >= SKAERING_2007_07_01;

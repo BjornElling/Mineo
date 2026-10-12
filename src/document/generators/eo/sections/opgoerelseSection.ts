@@ -323,7 +323,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (sygedage === 0 && delviseSygedage === 0) return '—';
       if (perDagOre === null) return '—';
 
-      let base = '';
+      let base: string;
       if (model.svieSmerte.delvisFaktor === 1) {
         const combined = [
           sygedage > 0 ? formatCountWithUnit(sygedage, 'sygedag', 'sygedage') : '',
@@ -487,7 +487,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           const factorText = erReguleretLoen ? '' : formatReguleringFactorText(segment.deltaPct);
           const fraDisplay = formatDateShort(segment.fra);
           const tilDisplay = formatDateShort(segment.til);
-          let leftText = '';
+          let leftText: string;
           if (segment.kind === 'arbejdsdage') {
             const arbejdsdageText = formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
             const dagsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.dagsloenOre);

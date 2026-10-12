@@ -270,7 +270,7 @@ const commitCandidate = (
       const restored = readSessionStorageValue(key);
       storageRollbackVerified = restored === backup;
       if (!storageRollbackVerified) {
-        throw new Error('Inputenvelopens rollback kunne ikke genlæses byte-for-byte.');
+        throw new Error('Inputenvelopens rollback kunne ikke genlæses byte-for-byte.', { cause: error });
       }
     } catch (rollbackError) {
       rollbackErrors.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
@@ -293,7 +293,8 @@ const commitCandidate = (
     }
     if (rollbackErrors.length > 0) {
       throw new Error(
-        `Inputtransaktionen fejlede, og rollback fejlede: ${rollbackErrors.map((item) => item.message).join(' | ')}`
+        `Inputtransaktionen fejlede, og rollback fejlede: ${rollbackErrors.map((item) => item.message).join(' | ')}`,
+        { cause: error }
       );
     }
     throw error;

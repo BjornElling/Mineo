@@ -192,10 +192,10 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
 
   const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
   const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
-  let fritvalgStiger = false;
-  let shSoStiger = false;
-  let pensionStiger = false;
-  let bededagStiger = false;
+  let fritvalgStiger: boolean;
+  let shSoStiger: boolean;
+  let pensionStiger: boolean;
+  let bededagStiger: boolean;
 
   const normalizeColumn = (value: string): string => value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
   const parseCellPercent = (raw: string | undefined): number | null => {

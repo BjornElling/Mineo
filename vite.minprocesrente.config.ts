@@ -1,6 +1,6 @@
 import { defineConfig, mergeConfig } from 'vite';
 import path from 'node:path';
-import baseConfig from './vite.config';
+import baseConfig from './vite.config.ts';
 
 // Kør altid `npm run build:minprocesrente`; package-scriptet tilføjer index.html
 // og fjerner Mineo-specifikke public/PWA-filer efter Vite-buildet.
@@ -28,7 +28,7 @@ export default defineConfig(
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          index: path.resolve(__dirname, 'minprocesrente.html'),
+          index: path.resolve(import.meta.dirname, 'minprocesrente.html'),
         },
         output: {
           manualChunks: minprocesrenteManualChunks,

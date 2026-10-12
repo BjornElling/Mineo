@@ -438,7 +438,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     // Skadelidtes navn udelades bevidst her: det fremgår allerede af dokumentets brevhoved,
     // så en separat "Skadelidte"-linje i regulerings-bilaget er overflødig.
     writer.writeUnderlinedSubheader('Reguleringsværdier');
-    let tableData: ReturnType<typeof buildOffentligeYdelserReguleringTableData> = null;
+    let tableData: ReturnType<typeof buildOffentligeYdelserReguleringTableData>;
     let tableDataError = false;
     try {
       tableData = buildOffentligeYdelserReguleringTableData(offentligeYdelserUdvikling);

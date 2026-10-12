@@ -1,4 +1,4 @@
-import { createContentUiScaleBootstrapSource } from '../utils/uiScale';
+import { createContentUiScaleBootstrapSource } from '../utils/uiScale.ts';
 
 export const APP_SETTINGS_LOCAL_STORAGE_KEY = 'mineo_app_settings_v1';
 

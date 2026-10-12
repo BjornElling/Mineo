@@ -598,7 +598,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (!bevis) throw new Error('Motorens reguleringsgrundlag mangler ved visning');
     let indeksberegning = '';
     let indeks = '';
-    let loenudvikling = '';
+    let loenudvikling: string;
     let reguleretLoen: string | undefined;
     if (bevis.kind === 'klLoenaftaler') {
       if (segment.reguleretLoenOre === undefined) throw new Error('Motorens regulerede KL-løn mangler ved visning');

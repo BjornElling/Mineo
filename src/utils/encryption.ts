@@ -90,7 +90,7 @@ export const encryptData = async (data: unknown): Promise<EncryptedFileStructure
     ciphertext = await getSubtle().encrypt({ name: 'AES-GCM', iv, tagLength: 128 }, key, plaintext);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    throw new Error(`Kryptering fejlede: ${message}`);
+    throw new Error(`Kryptering fejlede: ${message}`, { cause: error });
   }
 
   return {

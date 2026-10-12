@@ -156,7 +156,7 @@ export const downloadFile = (content: string, filename: string, mimeType = 'appl
     downloadBlob(new Blob([content], { type: mimeType }), filename);
   } catch (error) {
     logError('Fejl ved fil-download', { context: 'downloadFile', error: error instanceof Error ? error : undefined });
-    throw new Error('Kunne ikke downloade fil');
+    throw new Error('Kunne ikke downloade fil', { cause: error });
   }
 };
 

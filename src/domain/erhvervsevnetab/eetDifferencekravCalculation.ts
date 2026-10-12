@@ -282,7 +282,7 @@ const computeProformaKapitalisering = (
 
   const saerfaktor = resolveSaerfaktor(tabeldata, skadedato);
   const useDirectSaerfaktor = tabelvalg.folkepensionsalderMaaneder - age.totalMonths <= 24;
-  let kapitaliseringsfaktor: number | null = null;
+  let kapitaliseringsfaktor: number | null;
   let kapitaliseretPgaUnderToAarTilFp = false;
   let koenOpdelt = false;
   const faktorMaanedsAfhaengig = skadedato >= SKAERING_2007_07_01;
@@ -609,7 +609,7 @@ export const composeEetDifferencekravCalculation = (
   let proformaKapitalisering: EetDifferencekravProformaKapitalisering | null = null;
   let resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null = null;
   let merErstatningPensionsalder: MerErstatningPensionsalderComputation | null = null;
-  let loebendeEetPct = 0;
+  let loebendeEetPct: number;
 
   if (ealResult.computation && beregningsdato && skadedato && fodselsdato && dagFoerBeregningsdato) {
     const loebendeComputation = loebendeResult?.computation ?? null;

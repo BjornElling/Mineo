@@ -8,11 +8,13 @@
  * - Rasterikoner i repoet undgår platformssærheder (fx manglende SVG-support til filikoner).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { Resvg } = require('@resvg/resvg-js');
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { Resvg } from '@resvg/resvg-js';
 
-const ROOT = path.join(__dirname, '..');
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC_SVG = path.join(ROOT, 'public', 'favicon-mineo.svg');
 const OUT_DIR = path.join(ROOT, 'public', 'icons');
 

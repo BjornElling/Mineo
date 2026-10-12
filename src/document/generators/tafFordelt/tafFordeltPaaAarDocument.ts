@@ -158,7 +158,7 @@ export const generateTafFordeltPaaAarDocument = (
       // Se docs/domain/taf/kl-loenaftaler-regulering.md.
       const erReguleretLoen = segment.reguleretLoenOre !== undefined;
       const factorText = erReguleretLoen ? '' : formatReguleringFactorText(segment.deltaPct);
-      let leftText = '';
+      let leftText: string;
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');
         const dagsloenText = formatCurrencyFromOre(segment.reguleretLoenOre ?? segment.unitAmountOre);

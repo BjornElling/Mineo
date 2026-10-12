@@ -1,8 +1,8 @@
 import { defineConfig, mergeConfig, type Connect, type Plugin } from 'vite';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import baseConfig from './vite.config';
-import pwaManifest from './public/manifest.json';
+import baseConfig from './vite.config.ts';
+import pwaManifest from './public/manifest.json' with { type: 'json' };
 
 /**
  * Chrome på desktop sammenligner den installerede PWA med et fuldt origin-bundet app-id i
@@ -70,7 +70,7 @@ const mineoDevPwaManifest = (): Plugin => ({
   },
 });
 
-const SERVICE_WORKER_SOURCE_PATH = path.resolve(__dirname, 'sw/mineoServiceWorker.js');
+const SERVICE_WORKER_SOURCE_PATH = path.resolve(import.meta.dirname, 'sw/mineoServiceWorker.js');
 const SERVICE_WORKER_VERSION_PLACEHOLDER = '__MINEO_BUILD_VERSION__';
 
 /**
@@ -164,7 +164,7 @@ export default defineConfig(
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          index: path.resolve(__dirname, 'index.html'),
+          index: path.resolve(import.meta.dirname, 'index.html'),
         },
       },
     },

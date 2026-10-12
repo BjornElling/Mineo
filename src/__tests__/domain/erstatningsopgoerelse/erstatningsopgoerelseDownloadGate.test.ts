@@ -293,7 +293,12 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
       snapshot: { ...projection.snapshot, data: brokenData },
     };
 
+    // Den syntetiske fejl skal logges som systemfejl; spionen fanger den forventede log, så den ikke
+    // lander som stderr-støj i CI-loggen.
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const gates = evaluateErstatningsopgoerelseDownloadGates(brokenProjection, DEFAULT_EO_ROW_POLICY);
+    expect(consoleError).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
 
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.erstatningsopgoerelse.reasons[0]?.kind).toBe('page-errors');

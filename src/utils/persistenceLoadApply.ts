@@ -57,7 +57,7 @@ export const applyAuthoritativeLoadSnapshot = (args: {
     applySnapshot(fullSnapshot);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);
+    throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`, { cause: error });
   }
 };
 

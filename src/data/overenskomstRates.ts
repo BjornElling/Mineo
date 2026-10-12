@@ -212,7 +212,7 @@ const satserFromTable = (
       const sfggFaglKbh = base.sfggFaglKbh !== undefined ? base.sfggFaglKbh : (rest[idx++] ?? null);
       const sfggFaglProv = base.sfggFaglProv !== undefined ? base.sfggFaglProv : (rest[idx++] ?? null);
       const sfggUfaglKbh = base.sfggUfaglKbh !== undefined ? base.sfggUfaglKbh : (rest[idx++] ?? null);
-      const sfggUfaglProv = base.sfggUfaglProv !== undefined ? base.sfggUfaglProv : (rest[idx++] ?? null);
+      const sfggUfaglProv = base.sfggUfaglProv !== undefined ? base.sfggUfaglProv : (rest[idx] ?? null);
 
     return {
       fritvalg,

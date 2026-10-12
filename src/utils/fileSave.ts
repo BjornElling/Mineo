@@ -283,6 +283,6 @@ export const saveToFile = async (
       throw err;
     }
 
-    throw new Error(`Kunne ikke gemme fil: ${err.message}`);
+    throw new Error(`Kunne ikke gemme fil: ${err.message}`, { cause: error });
   }
 };

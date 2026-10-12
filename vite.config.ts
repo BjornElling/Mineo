@@ -5,9 +5,9 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import path from 'node:path';
 import fs from 'node:fs';
 import react from '@vitejs/plugin-react';
-import { createThemeBootstrapScript } from './src/settings/themeBootstrap';
+import { createThemeBootstrapScript } from './src/settings/themeBootstrap.ts';
 
-const BUILD_INFO_ENV_FILE = path.resolve(__dirname, '.env.build-info.local');
+const BUILD_INFO_ENV_FILE = path.resolve(import.meta.dirname, '.env.build-info.local');
 
 const parseGeneratedBuildInfoEnv = (): Record<string, string> => {
   if (!fs.existsSync(BUILD_INFO_ENV_FILE)) return {};
@@ -64,7 +64,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@mui/utils/isFocusVisible': path.resolve(__dirname, 'src/utils/mui/isFocusVisible.ts'),
+      '@mui/utils/isFocusVisible': path.resolve(import.meta.dirname, 'src/utils/mui/isFocusVisible.ts'),
     },
   },
 

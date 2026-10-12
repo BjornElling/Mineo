@@ -101,7 +101,7 @@ export const openFileWithPicker = async (
       return null;
     }
     logError('Fejl ved fil-åbning:', err);
-    throw new Error(`Kunne ikke åbne fil: ${err.message}`);
+    throw new Error(`Kunne ikke åbne fil: ${err.message}`, { cause: error });
   }
 };
 
@@ -152,7 +152,7 @@ export const saveFileWithPicker = async (
       return null;
     }
     logError('Fejl ved fil-gemning:', err);
-    throw new Error(`Kunne ikke vælge fil-placering: ${err.message}`);
+    throw new Error(`Kunne ikke vælge fil-placering: ${err.message}`, { cause: error });
   }
 };
 
@@ -183,7 +183,7 @@ export const writeToFileHandle = async (fileHandle: FileSystemFileHandle, conten
   } catch (error: unknown) {
     const err = asError(error);
     logError('Fejl ved skrivning til fil:', err);
-    throw new Error(`Kunne ikke skrive fil: ${err.message}`);
+    throw new Error(`Kunne ikke skrive fil: ${err.message}`, { cause: error });
   }
 };
 
@@ -200,6 +200,6 @@ export const readFromFileHandle = async (fileHandle: FileSystemFileHandle): Prom
   } catch (error: unknown) {
     const err = asError(error);
     logError('Fejl ved læsning fra fil:', err);
-    throw new Error(`Kunne ikke læse fil: ${err.message}`);
+    throw new Error(`Kunne ikke læse fil: ${err.message}`, { cause: error });
   }
 };
