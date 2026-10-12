@@ -114,8 +114,9 @@ describe('check-github-actions-runtime', () => {
     expect(deployJob).toContain('uses: actions/download-artifact@v8');
     expect(deployJob).toContain('name: dist');
     expect(deployJob).toContain('path: dist/');
-    expect(deployJob).toContain('command: deploy --config wrangler.mineo.json');
-    expect(deployJob).toContain('command: deploy --config wrangler.minprocesrente.json');
+    expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.mineo.json');
+    expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.minprocesrente.json');
+    expect(deployJob).not.toContain('npm run build');
   });
 
   it('kører alle dedikerede browserprojekter i CI', () => {

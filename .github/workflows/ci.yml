@@ -194,18 +194,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout kun for wrangler-konfigurationerne; der bygges IKKE på ny.
+      # Checkout for wrangler-konfigurationerne og deploy-scriptet; der bygges IKKE på ny.
       - name: Checkout
         uses: actions/checkout@v7
 
-      # wrangler-action installerer wrangler i det udcheckede repo, hvor
-      # package.json's engines kræver Node >=24.18.0. Dette trin sikrer, at
-      # deploy-jobbet bruger samme projekt-runtime som verify-jobbet.
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          package-manager-cache: false
+          cache: npm
+
+      # Udrulningen bruger det låste wrangler fra package-lock.json – samme version, som
+      # `check:dependencies` har kontrolleret – i stedet for den, en action selv installerer.
+      - name: Install dependencies (strict)
+        run: npm ci
 
       - name: Verify GitHub Actions runtimes
         run: npm run check:github-actions-runtime
@@ -216,16 +218,16 @@ jobs:
           name: dist
           path: dist/
 
+      # `deploy-cloudflare.mjs` gentager kun ved forbigående fejl fra Cloudflares API (5xx, timeouts);
+      # en ægte fejl som et ugyldigt token fejler med det samme.
       - name: Deploy Mineo
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.mineo.json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy-cloudflare.mjs wrangler.mineo.json
 
       - name: Deploy MinProcesrente
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.minprocesrente.json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/deploy-cloudflare.mjs wrangler.minprocesrente.json
