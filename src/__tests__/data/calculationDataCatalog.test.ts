@@ -84,7 +84,8 @@ describe('calculationDataCatalog', () => {
       'lovbestemte-satser': '64fc2cb0626d361cd3260d2f904ffe489bc36b5d86c7f6ae64d6abe92bf96005',
       'offentlig-loen-kl': 'd6b006a41c0a896094f95ae6668d48f808010eb8ed135d769006362400643610',
       'offentlig-loen-rltn': '459d6e3bf7963bfda6c7f94b5a400c4a53c1c71598013649ae8ff59e04994305',
-      overenskomster: 'd8aff9f4219b5f30496225fb57d1d9aaa76316515797f2fdbf678a15a58042f2',
+      // Ændret 2026-10-06: Faglærte-overenskomstens fritvalg er 0 i stedet for null (BB-275).
+      overenskomster: '7475b2e049e7b08af92b7ac10b2cea1cca4841ed598aad4b4f151815b0e0898f',
       procesrenter: 'cc7eab66d41839b6996a2cca1eb7866434ad1ca07f3b4e102c71f3c687602150',
       'statistiske-loenindeks': 'df2ee1847d5944a7b601e4ad702f0d108adbf4a355cf9cd424666fe2931fd4af',
       sygedagpenge: '9df1d0da0107b334a33a747f0e1bfcaf99baa474dd6e2a6e62ec9ea697db0e6a',

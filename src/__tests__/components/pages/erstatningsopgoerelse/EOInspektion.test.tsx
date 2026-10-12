@@ -279,7 +279,7 @@ describe('EOInspektion', () => {
     expect(container.querySelectorAll('.content-box')).toHaveLength(2);
   });
 
-  it('bruger Arbejdssted-fallback i lønindkomsttitel når arbejdsstedsnavn mangler', () => {
+  it('bruger «Ansættelsesforhold N»-fallback i lønindkomsttitel når arbejdsstedsnavn mangler', () => {
     eoSnapshotToInspektionViewMock.mockReturnValue({
       kind: 'ready',
       canonicalOutput: undefined,
@@ -319,7 +319,7 @@ describe('EOInspektion', () => {
 
     renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
+    expect(screen.getByText('Ansættelsesforhold 1')).toBeInTheDocument();
     expect(screen.getByText('Navn på arbejdssted')).toBeInTheDocument();
     expect(screen.getByText('ASL-årslønsmaksimum')).toBeInTheDocument();
   });
@@ -397,7 +397,7 @@ describe('EOInspektion', () => {
     renderComponent({ revision: 'rev-1' } as never);
 
     expect(screen.queryByText('Lønindkomst')).not.toBeInTheDocument();
-    expect(screen.queryByText('Arbejdssted 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Ansættelsesforhold 1')).not.toBeInTheDocument();
     expect(screen.queryByText('Navn på arbejdssted')).not.toBeInTheDocument();
   });
 
@@ -508,7 +508,7 @@ describe('EOInspektion', () => {
     renderComponent({ revision: 'rev-1' } as never);
 
     expect(screen.getByText('Sygeferiegodtgørelse')).toBeVisible();
-    expect(screen.getByText('Arbejdssted 1')).toBeVisible();
+    expect(screen.getByText('Ansættelsesforhold 1')).toBeVisible();
     expect(screen.queryByText('Gammel serialisering uden tabel')).not.toBeInTheDocument();
 
     const table = screen.getByRole('table');
@@ -1114,7 +1114,7 @@ describe('EOInspektion', () => {
     const fourthRow = fourthLabel.closest('.row--label-right-hover');
 
     expect(screen.getAllByText('Sygeferiegodtgørelse').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
-    expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
+    expect(screen.getByText('Ansættelsesforhold 1')).toBeInTheDocument();
     expect(screen.getByText('553,50')).toBeInTheDocument();
     expect(screen.queryByText('Sygeferiegodtgørelse fordelt på år')).not.toBeInTheDocument();
     expect(firstRow).not.toBeNull();

@@ -853,7 +853,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       ],
     });
 
-    expect(hasError(values, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(true);
+    expect(hasError(values, 'Feriegodtgørelse/-tillæg er ikke udfyldt')).toBe(true);
   });
 
   it('kræver ikke feriegodtgørelse ved beregningsperiode uden indtastede lønoplysninger', () => {
@@ -873,7 +873,7 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
       ],
     });
 
-    expect(hasError(values, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+    expect(hasError(values, 'Feriegodtgørelse/-tillæg er ikke udfyldt')).toBe(false);
   });
 });
 
@@ -1494,15 +1494,15 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
     // Udfyldt grundløn: ingen top-satsfejl, selv om skjult feriePct ikke er udfyldt.
     const okValues = makeBeloebManual(asAmount(30000), { medLoenoplysninger: true });
     expect(hasError(okValues, 'Grundløn skal udfyldes')).toBe(false);
-    expect(hasError(okValues, 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+    expect(hasError(okValues, 'Feriegodtgørelse/-tillæg er ikke udfyldt')).toBe(false);
 
     // Manglende grundløn: fanges også i Beløb-tilstand.
     expect(hasError(makeBeloebManual(undefined), 'Grundløn skal udfyldes')).toBe(true);
 
     // Skjult feriePct er ikke et krav i Beløb-tilstand; relevante satser hentes fra første
     // manuelle tabelrække.
-    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: true }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
-    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: false }), 'Feriegodtgørelse/-tillæg skal udfyldes')).toBe(false);
+    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: true }), 'Feriegodtgørelse/-tillæg er ikke udfyldt')).toBe(false);
+    expect(hasError(makeBeloebManual(asAmount(30000), { medLoenoplysninger: false }), 'Feriegodtgørelse/-tillæg er ikke udfyldt')).toBe(false);
   });
 
   it('kræver dato på alle aktive manuelle reguleringsrækker efter basisrækken', () => {

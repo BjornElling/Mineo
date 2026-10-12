@@ -49,7 +49,6 @@ test.describe('Dropdown-fokus og lønindkomstvejledning', { tag: BROWSER_LANE_TA
     await expect(page.getByText(EMPLOYMENT_NOTICE)).toBeVisible();
 
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
-    await page.getByRole('button', { name: 'Ja, tilføj' }).click();
 
     await expect(page.getByText(INSERT_EMPLOYMENT_PROMPT, { exact: true })).toHaveCount(0);
     await expect(page.getByText(INSERT_ADDITIONAL_EMPLOYMENT_PROMPT, { exact: true })).toBeVisible();

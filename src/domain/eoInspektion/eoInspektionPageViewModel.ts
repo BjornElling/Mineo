@@ -4,7 +4,7 @@ import type { RegulationInspektionSection } from './eoInspektionRegulationViewMo
 import type { EoRowModel } from '../eoRowEvaluation/eoRowTypes';
 import type { EoInspektionViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
-import { resolveArbejdsstedDisplayName } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveAnsaettelsesforholdNavn } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveSkadeEllerAnmeldelsesdatoReference } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
@@ -83,7 +83,7 @@ const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
     const hasNamedArbejdssted = arbejdsstedNavn !== '' && arbejdsstedNavn !== '-';
     const title = hasNamedArbejdssted
       ? arbejdsstedNavn
-      : `Arbejdssted ${index + 1}`;
+      : `Ansættelsesforhold ${index + 1}`;
     const visibleRows = hasNamedArbejdssted
       ? sectionRows.filter((row) => row.label !== 'Navn på arbejdssted')
       : sectionRows;
@@ -167,7 +167,7 @@ const buildSfggSections = (
 
   return order.map((employmentId, index) => ({
     id: employmentId,
-    title: employmentNamesById.get(employmentId) ?? `Arbejdssted ${index + 1}`,
+    title: employmentNamesById.get(employmentId) ?? `Ansættelsesforhold ${index + 1}`,
     rows: grouped.get(employmentId) ?? [],
     tables: groupedTables.get(employmentId) ?? [],
   }));
@@ -219,7 +219,7 @@ export const buildEOInspektionPageViewModel = (
   const employmentNamesById = new Map(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
       af.id,
-      resolveArbejdsstedDisplayName(af.navnPaaArbejdssted, index),
+      resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, index),
     ] as const)
   );
 

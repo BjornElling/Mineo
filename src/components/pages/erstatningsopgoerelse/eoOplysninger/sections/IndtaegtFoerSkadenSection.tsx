@@ -1,4 +1,5 @@
 import { Box, MenuItem, Typography } from '@mui/material';
+import OverenskomstFilterLabel from '../../../../common/OverenskomstFilterLabel';
 import ContentBox from '../../../../layout/ContentBox';
 import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
@@ -465,7 +466,7 @@ export default function IndtaegtFoerSkadenSection() {
                     <Box className="row--label-right-hover__content">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-                        <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
+                        <OverenskomstFilterLabel part="loenmodtager" />
                         <ChoiceField
                           field={eoAngivetLoenFilterFields.loenmodtager.bind()}
                           location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager')}
@@ -486,7 +487,7 @@ export default function IndtaegtFoerSkadenSection() {
                         </ChoiceField>
 
                         {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-                        <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
+                        <OverenskomstFilterLabel part="arbejdsgiver" />
                         <ChoiceField
                           field={eoAngivetLoenFilterFields.arbejdsgiver.bind()}
                           location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver')}

@@ -126,7 +126,6 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Lønindkomst', exact: true }).click();
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold', exact: true }).click();
-    await page.getByRole('button', { name: 'Ja, tilføj', exact: true }).click();
 
     const holidayPay = page.getByRole('combobox', { name: 'Løn på helligdage', exact: true });
     const storeBededagToggle = page.getByRole('checkbox', {

@@ -829,6 +829,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           navnPaaArbejdssted: 'Ansættelse A',
           // Tilvalgt, så indtægten fortsat bærer Store Bededagstillægget (0,45 %) som før
           // (indskudte-loentillaeg-contract.md §2a).
@@ -877,7 +878,8 @@ describe('eoPdfModel', () => {
     const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
 
     expect(entries).toEqual([
-      { label: 'Ansættelse A', amountOre: moneyOre(100450) },
+      // 1.000 kr. + 12,5 % feriegodtgørelse + 0,45 % Store Bededagstillæg.
+      { label: 'Ansættelse A', amountOre: moneyOre(112950) },
       { label: 'Midlertidigt EET', amountOre: moneyOre(2000) },
       { label: 'Sygedagpenge', amountOre: moneyOre(1000) },
     ]);
@@ -1102,7 +1104,7 @@ describe('eoPdfModel', () => {
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
-      .toThrow('Feriegodtgørelse/-tillæg skal udfyldes');
+      .toThrow('Feriegodtgørelse/-tillæg er ikke udfyldt');
   });
 
   it('beregner statistik-loenudvikling med konsistente segmenter', () => {
@@ -1585,6 +1587,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ASL-årslønsmaksimum'],
@@ -1606,6 +1609,7 @@ describe('eoPdfModel', () => {
         },
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1684,6 +1688,7 @@ describe('eoPdfModel', () => {
         },
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1738,6 +1743,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -1759,6 +1765,7 @@ describe('eoPdfModel', () => {
         },
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           id: 'a2',
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
@@ -2181,6 +2188,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
@@ -2223,6 +2231,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
@@ -2281,6 +2290,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
@@ -2334,6 +2344,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
@@ -2394,6 +2405,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Nej',
           loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
@@ -2674,6 +2686,7 @@ describe('eoPdfModel', () => {
   ] as const)('anvender statistik-fallback (variant B) for manglende basisdækning ved %s', (beregningsmetode) => {
     const baseAf = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      feriePct: 12.5,
       loenudviklingBeregningsgrundlag: 'Statistik' as const,
       loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['SBLON2 (Danmarks Statistik)'],
       indtaegtsoplysningerTableData: [
@@ -2742,6 +2755,7 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          feriePct: 12.5,
           loenudviklingBeregningsgrundlag: 'Statistik',
           loenudviklingStatistikModel: 'SBLON2 (Danmarks Statistik)',
           saerligFraDatoRegulering: iso('2015-01-01'),

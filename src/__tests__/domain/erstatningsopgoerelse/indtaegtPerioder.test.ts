@@ -16,7 +16,7 @@ import {
   buildIncomeInputRanges,
   buildIncomeSourceRanges,
   roundIncomeBenefitAmountKroner,
-  resolveArbejdsstedDisplayName,
+  resolveAnsaettelsesforholdNavn,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import {
@@ -37,19 +37,19 @@ const makeEo = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 
 // ─── buildBeregningsperiodeRange ──────────────────────────────────────────────
 
-describe('resolveArbejdsstedDisplayName', () => {
+describe('resolveAnsaettelsesforholdNavn', () => {
   it('bruger det indtastede arbejdsstednavn når det findes', () => {
-    expect(resolveArbejdsstedDisplayName('Netto', 0)).toBe('Netto');
+    expect(resolveAnsaettelsesforholdNavn('Netto', 0)).toBe('Netto');
   });
 
   it('trimmer indtastet navn', () => {
-    expect(resolveArbejdsstedDisplayName('  Føtex  ', 2)).toBe('Føtex');
+    expect(resolveAnsaettelsesforholdNavn('  Føtex  ', 2)).toBe('Føtex');
   });
 
-  it('falder tilbage til "Arbejdssted N" (1-indekseret) ved manglende navn', () => {
-    expect(resolveArbejdsstedDisplayName(undefined, 0)).toBe('Arbejdssted 1');
-    expect(resolveArbejdsstedDisplayName('', 1)).toBe('Arbejdssted 2');
-    expect(resolveArbejdsstedDisplayName('   ', 2)).toBe('Arbejdssted 3');
+  it('falder tilbage til "Ansættelsesforhold N" (1-indekseret) ved manglende navn', () => {
+    expect(resolveAnsaettelsesforholdNavn(undefined, 0)).toBe('Ansættelsesforhold 1');
+    expect(resolveAnsaettelsesforholdNavn('', 1)).toBe('Ansættelsesforhold 2');
+    expect(resolveAnsaettelsesforholdNavn('   ', 2)).toBe('Ansættelsesforhold 3');
   });
 });
 

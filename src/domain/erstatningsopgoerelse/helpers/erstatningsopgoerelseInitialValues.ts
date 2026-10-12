@@ -12,7 +12,6 @@ import {
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
-import { resolveDefaultStoreBededagstillaeg } from './storeBededagstillaeg';
 
 export const DEFAULT_ANCIENNITET_FIELDS = {
   harAnciennitetstillaegEfterSkadedatoen: false as const,
@@ -56,7 +55,12 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     indtaegtsoplysningerTableData: [],
     fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
     loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-    beregnStoreBededagstillaeg: resolveDefaultStoreBededagstillaeg(safeSettings.defaultLoenPaaHelligdage),
+    // Altid slået TIL på et nyt kort – også når «Løn på helligdage» starter som SH-udbetaling, hvor knappen er
+    // skjult og værdien ikke læses (`harValgtStoreBededagstillaeg` kræver almindelig løn). Vælges «Almindelig løn»
+    // senere, dukker knappen da op som på et kort, der blev oprettet med almindelig løn, i stedet for slået fra
+    // med en advarsel om et valg, brugeren aldrig traf (BB-281). Slår brugeren den selv fra, bevares fravalget
+    // ved skift frem og tilbage (`indskudte-loentillaeg-contract.md` §2a pkt. 3).
+    beregnStoreBededagstillaeg: true,
     saerligFraDatoRegulering: undefined,
     loenudviklingBeregningsgrundlag: undefined,
     loenudviklingStatistikModel: undefined,

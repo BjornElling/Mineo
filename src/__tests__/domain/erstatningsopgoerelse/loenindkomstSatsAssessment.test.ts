@@ -1,23 +1,22 @@
 import {
   assessLoenindkomstSatser,
-  isFeriePctRelevant,
-  resolveSatserErrorField,
+  FERIE_PCT_ADVARSELSGRAENSE,
+  FERIE_PCT_MANGLER_BESKED,
+  isFeriePctPaakraevet,
 } from '../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
-import type { ErstatningsopgoerelseValues, LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
+import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
 import { loenudviklingBeregningsgrundlagEnum } from '../../../schemas/formSchemas/enumSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 /**
- * ÉN sats-vurdering driver både feltmarkeringen og blokeringen.
+ * ÉN sats-vurdering driver både feltmarkeringen og rækken i «Fejl og advarsler».
  *
- * Testene måler den godkendte relevansmatrix eksplicit for ALLE syv reguleringsformer plus den tomme form,
- * og de måler skift begge veje mellem et krævende og et ikke-krævende spor. Det er netop den drift, fundet
- * beskrev: feltvejen krævede feriegodtgørelse ved enhver form, mens gatevejen kun krævede den ved to.
+ * Feriegodtgørelsen er påkrævet, når kortet har lønoplysninger i procent-tilstand – UANSET reguleringsform
+ * (BB-274). Testene måler kravet for ALLE reguleringsformer plus den tomme form, og de måler de to undtagelser:
+ * Beløb-tilstand og et kort uden lønoplysninger.
  */
-
-type Grundlag = LoenindkomstAnsaettelsesforhold['loenudviklingBeregningsgrundlag'];
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -33,162 +32,94 @@ const employment = (overrides: Partial<LoenindkomstAnsaettelsesforhold> = {}): L
   ...overrides,
 });
 
-const ctx = (
-  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'] = 'Beregningsperiode'
-) => ({ beregnesUdFra });
-
-/** De to former, hvis opregulering faktisk læser feriegodtgørelsen. */
-const KRAEVENDE_FORMER: readonly Grundlag[] = ['Overenskomst', 'Manuelt angivet'];
-
-describe('isFeriePctRelevant – den godkendte relevansmatrix', () => {
+describe('isFeriePctPaakraevet – kravet følger kortet, ikke reguleringsformen', () => {
   it.each(loenudviklingBeregningsgrundlagEnum.options)(
-    'afgør relevansen korrekt for reguleringsformen %s',
+    'kræver satsen ved reguleringsformen %s',
     (grundlag) => {
-      const af = employment({ loenudviklingBeregningsgrundlag: grundlag });
-      expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(KRAEVENDE_FORMER.includes(grundlag));
+      expect(isFeriePctPaakraevet(employment({ loenudviklingBeregningsgrundlag: grundlag }))).toBe(true);
     }
   );
 
-  it('kræver ikke satsen, mens reguleringsformen er tom', () => {
-    // En tom form blokerer i stedet som et manglende reguleringsvalg – det valg markeres, ikke satsen.
-    const af = employment({ loenudviklingBeregningsgrundlag: undefined });
-    expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
+  it('kræver satsen, også mens reguleringsformen er tom', () => {
+    expect(isFeriePctPaakraevet(employment({ loenudviklingBeregningsgrundlag: undefined }))).toBe(true);
   });
 
   it('kræver ikke satsen i Beløb-tilstand, hvor de skjulte satsfelter ikke er kilden', () => {
-    const af = employment({
-      loenudviklingBeregningsgrundlag: 'Overenskomst',
-      tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB,
-    });
-    expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
+    expect(isFeriePctPaakraevet(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB }))).toBe(false);
   });
 
   it('kræver ikke satsen uden indtastede lønoplysninger', () => {
-    const af = employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', indtaegtsoplysningerTableData: [] });
-    expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
+    expect(isFeriePctPaakraevet(employment({ indtaegtsoplysningerTableData: [] }))).toBe(false);
   });
 
-  it('kræver ikke satsen når lønoplysningsrækkerne mangler ved runtime', () => {
-    const af = employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', indtaegtsoplysningerTableData: undefined });
-    expect(isFeriePctRelevant(af, 'Beregningsperiode')).toBe(false);
-  });
-
-  it('kræver ikke satsen, når årslønnen ikke bygger på en beregningsperiode', () => {
-    const af = employment({ loenudviklingBeregningsgrundlag: 'Overenskomst' });
-    expect(isFeriePctRelevant(af, 'Angivet månedsløn')).toBe(false);
+  it('kræver ikke satsen, når lønoplysningsrækkerne mangler ved runtime', () => {
+    expect(isFeriePctPaakraevet(employment({ indtaegtsoplysningerTableData: undefined }))).toBe(false);
   });
 });
 
 describe('assessLoenindkomstSatser', () => {
-  it.each(loenudviklingBeregningsgrundlagEnum.options.filter((g) => !KRAEVENDE_FORMER.includes(g)))(
-    'markerer IKKE en tom feriegodtgørelse ved %s',
+  it.each(loenudviklingBeregningsgrundlagEnum.options)(
+    'melder en tom feriegodtgørelse som manglende og blokerende ved %s',
     (grundlag) => {
-      const findings = assessLoenindkomstSatser(
-        employment({ loenudviklingBeregningsgrundlag: grundlag }),
-        ctx()
-      );
-      expect(findings).toEqual([]);
+      const findings = assessLoenindkomstSatser(employment({ loenudviklingBeregningsgrundlag: grundlag }));
+      expect(findings).toEqual([{
+        field: 'feriePct',
+        label: 'Feriegodtgørelse/-tillæg',
+        kind: 'missing',
+        severity: 'error',
+        message: 'Feriegodtgørelse/-tillæg er ikke udfyldt',
+      }]);
+      expect(FERIE_PCT_MANGLER_BESKED).toBe('Feriegodtgørelse/-tillæg er ikke udfyldt');
     }
   );
 
-  it.each(KRAEVENDE_FORMER)('markerer en tom feriegodtgørelse ved %s', (grundlag) => {
-    const findings = assessLoenindkomstSatser(
-      employment({ loenudviklingBeregningsgrundlag: grundlag }),
-      ctx()
-    );
-    expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({
-      field: 'feriePct',
-      kind: 'missing',
-      message: 'Feriegodtgørelse/-tillæg skal udfyldes',
-    });
+  it('melder intet uden lønoplysninger', () => {
+    expect(assessLoenindkomstSatser(employment({ indtaegtsoplysningerTableData: [] }))).toEqual([]);
   });
 
-  it('slår markeringen til og fra ved skift begge veje mellem et krævende og et ikke-krævende spor', () => {
-    const base = employment();
-    // Ikke-krævende → krævende: manglen bliver straks synlig.
-    expect(assessLoenindkomstSatser({ ...base, loenudviklingBeregningsgrundlag: 'Statistik' }, ctx())).toEqual([]);
-    expect(assessLoenindkomstSatser({ ...base, loenudviklingBeregningsgrundlag: 'Overenskomst' }, ctx()))
-      .toHaveLength(1);
-    // Krævende → ikke-krævende: netop denne mangel ophører. Værdien bevares som brugerinput, men læses ikke.
-    expect(assessLoenindkomstSatser({ ...base, loenudviklingBeregningsgrundlag: 'Ingen' }, ctx())).toEqual([]);
+  it('melder ikke «ikke udfyldt», når feltet allerede har sin egen feltfejl', () => {
+    expect(assessLoenindkomstSatser(employment(), { feriePctHarFeltfejl: true })).toEqual([]);
   });
 
-  it('vejleder om satsens størrelse, når den er udfyldt men under 12 % – uanset reguleringsform', () => {
-    // Vejledningen hænger ikke på relevansen: har brugeren SELV skrevet en værdi, er den for lav uanset form.
+  it('vejleder om satsens størrelse som rød afvigelse, når den er udfyldt men under 12 %', () => {
     for (const grundlag of loenudviklingBeregningsgrundlagEnum.options) {
-      const findings = assessLoenindkomstSatser(
-        employment({ loenudviklingBeregningsgrundlag: grundlag, feriePct: 10 }),
-        ctx()
-      );
+      const findings = assessLoenindkomstSatser(employment({ loenudviklingBeregningsgrundlag: grundlag, feriePct: 10 }));
       expect(findings).toHaveLength(1);
-      expect(findings[0]?.kind).toBe('deviation');
-      expect(findings[0]?.message).toBe('Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge');
+      expect(findings[0]).toMatchObject({
+        kind: 'deviation',
+        severity: 'error',
+        message: 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge',
+      });
     }
   });
 
   it('forklarer feriegodtgørelsen anderledes ved fuld løn under ferie', () => {
-    const findings = assessLoenindkomstSatser(
-      employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', feriePct: 10, fuldLoenUnderFerie: 'Ja' }),
-      ctx()
-    );
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 10, fuldLoenUnderFerie: 'Ja' }));
     // Med løn under ferie er ydelsen FERIETILLÆG; den opgøres blot beregningsteknisk som
-    // feriegodtgørelse (`feriepenge-begreber-contract.md` regel 2-3). Teksten sagde før, at ydelsen ER
-    // feriegodtgørelse – altså det modsatte af reglen – i netop det tilfælde, hvor den ikke er det.
+    // feriegodtgørelse (`feriepenge-begreber-contract.md` regel 2-3).
     expect(findings[0]?.message).toBe(
       'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
     );
   });
 
-  it('giver intet fund ved 12 % eller derover', () => {
-    expect(assessLoenindkomstSatser(
-      employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', feriePct: 12.5 }),
-      ctx()
-    )).toEqual([]);
+  it.each([12, 12.5, 15, FERIE_PCT_ADVARSELSGRAENSE])('accepterer %s %% uden fund', (feriePct) => {
+    expect(assessLoenindkomstSatser(employment({ feriePct }))).toEqual([]);
+  });
+
+  it('giver en gul, ikke-blokerende advarsel over 20 %', () => {
+    expect(FERIE_PCT_ADVARSELSGRAENSE).toBe(20);
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 20.5 }));
+    expect(findings).toEqual([{
+      field: 'feriePct',
+      label: 'Feriegodtgørelse/-tillæg',
+      kind: 'unusual',
+      severity: 'warning',
+      message: 'Feriegodtgørelse/-tillæg over 20 % er usædvanligt – kontrollér satsen',
+    }]);
   });
 
   it('vurderer ikke de skjulte satsfelter i Beløb-tilstand', () => {
-    expect(assessLoenindkomstSatser(
-      employment({
-        loenudviklingBeregningsgrundlag: 'Overenskomst',
-        tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB,
-        feriePct: 5,
-      }),
-      ctx()
-    )).toEqual([]);
-  });
-});
-
-describe('resolveSatserErrorField – samme vurdering, boksens formulering', () => {
-  it('siger "ikke udfyldt" om en manglende værdi, ikke "forkert indtastet"', () => {
-    const error = resolveSatserErrorField(
-      employment({ loenudviklingBeregningsgrundlag: 'Overenskomst' }),
-      'Beregningsperiode'
-    );
-    expect(error).toEqual({
-      field: 'Feriegodtgørelse/-tillæg',
-      message: 'Feriegodtgørelse/-tillæg er ikke udfyldt',
-      kind: 'missing',
-    });
-  });
-
-  it('siger "forkert værdi indtastet" om en for lav sats', () => {
-    const error = resolveSatserErrorField(
-      employment({ loenudviklingBeregningsgrundlag: 'Overenskomst', feriePct: 10 }),
-      'Beregningsperiode'
-    );
-    expect(error?.kind).toBe('deviation');
-    expect(error?.message).toBe('Forkert værdi indtastet i Feriegodtgørelse/-tillæg');
-  });
-
-  it('blokerer ikke, hvor vurderingen ikke markerer – feltmarkering og blokering kan ikke drifte', () => {
-    // Dette er fundets kerne: de to sider læser NU samme vurdering, så en tom liste og en null-blokering
-    // følges altid. Krævede gaten mere eller mindre end markeringen, ville netop denne løkke fange det.
-    for (const grundlag of loenudviklingBeregningsgrundlagEnum.options) {
-      const af = employment({ loenudviklingBeregningsgrundlag: grundlag });
-      const marked = assessLoenindkomstSatser(af, ctx()).length > 0;
-      const blocked = resolveSatserErrorField(af, 'Beregningsperiode') !== null;
-      expect(blocked).toBe(marked);
-    }
+    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB, feriePct: 5 }))).toEqual([]);
+    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB }))).toEqual([]);
   });
 });

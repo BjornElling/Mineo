@@ -200,7 +200,6 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     const add = page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' });
     await expect(add).toBeVisible();
     await add.click();
-    await page.getByRole('button', { name: 'Ja, tilføj' }).click();
 
     await page.locator('[name$=":harOverenskomst"]').check();
 

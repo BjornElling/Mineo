@@ -110,7 +110,7 @@ const INDEPENDENT_STATISTIK_MODEL_VALUES: ErstatningsopgoerelseValues = {
     anciennitetstillaegDato: undefined,
     anciennitetstillaegSatsAngivesPer: 'Måned',
     anciennitetstillaegSats: undefined,
-    feriePct: undefined,
+    feriePct: 12.5,
     fritvalgPct: undefined,
     shSoPct: undefined,
     storeBededagPct: 0,

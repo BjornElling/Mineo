@@ -756,6 +756,7 @@ describe('computeEoSnapshot', () => {
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
+        feriePct: 12.5,
         indtaegtsoplysningerTableData: [{
           id: 'loen-jan-2024',
           col0_maaned: '1',

@@ -97,11 +97,16 @@ export const DerivedPercentField = React.forwardRef<HTMLDivElement, Readonly<{
   value: number | undefined;
   name?: string;
   placeholder?: string;
+  /** Feltets eget navn for skærmlæsere – «Beregnet procent» sagde ikke, hvilken sats feltet viser (BB-287). */
+  accessibleName?: string;
+  /** Hvorfor feltet er låst, vist ved hover. */
+  infoTooltipText?: string;
   sx?: SxProps<Theme>;
-}>>(({ value, name, placeholder = DEFAULT_PERCENT_PLACEHOLDER, sx }, ref) => (
+}>>(({ value, name, placeholder = DEFAULT_PERCENT_PLACEHOLDER, accessibleName = 'Beregnet procent', infoTooltipText, sx }, ref) => (
   <StyledTextFieldBase
     ref={ref}
-    accessibleName="Beregnet procent"
+    accessibleName={accessibleName}
+    {...(infoTooltipText === undefined ? {} : { infoTooltipText })}
     name={name}
     draft={formatPercentDisplay(value, true)}
     onDraftChange={() => undefined}

@@ -7,8 +7,11 @@
  * Struktur:
  * - Hver overenskomst har metadata (navn, parter) og historiske satser
  * - Satser er organiseret kronologisk med præcis ikrafttrædelsesdato
- * - Tillæg kan være null (brugeren angiver selv satsen) eller et tal, herunder 0
- *   (autoritiv overenskomstsats som låser feltet)
+ * - En PRIVAT overenskomst fastsætter alle tre tillæg (SH/SO, fritvalg, AG-pension) som et tal, herunder
+ *   0 for et tillæg, overenskomsten ikke giver: den dikterer, hvilke tillæg der gives, og brugeren kan ikke
+ *   tilføje andre (udviklerafgørelse 2026-10-06, BB-275). Håndhævet ved modul-load
+ *   (`assertPrivatOverenskomstFastsaetterTillaeg`).
+ * - Kun de OFFENTLIGE overenskomster kan have null (brugeren angiver selv satsen).
  */
 
 import { danishDateToComparableNumber, toDanishDateString, type DanishDateString } from '../types/branded';
@@ -517,7 +520,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.025 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2027',            162.95,             0.110,            0.1100 ],
@@ -1515,6 +1518,26 @@ export const assertOverenskomstSatserNyesteFoerst = (
 overenskomster.forEach((overenskomst) =>
   assertOverenskomstSatserNyesteFoerst(overenskomst.satser, overenskomst.meta.id)
 );
+
+/**
+ * En privat overenskomst skal fastsætte alle tre tillæg i hver satsperiode. Et null betød før «brugeren
+ * angiver selv satsen» og åbnede feltet for egen indtastning – men en privat overenskomst dikterer, hvilke
+ * tillæg der gives, og brugeren må ikke kunne tilføje andre (BB-275). Et tillæg, overenskomsten ikke giver,
+ * skrives derfor som 0.
+ */
+export const assertPrivatOverenskomstFastsaetterTillaeg = (overenskomst: Overenskomst): void => {
+  if (overenskomst.shDageAlmindeligLoenRegel?.shSoOverride === null) {
+    throw new Error(`Overenskomst "${overenskomst.meta.id}": SH-dage-reglen må ikke fjerne SH/SO-satsen (null) for en privat overenskomst`);
+  }
+  for (const sats of overenskomst.satser) {
+    if (sats.shSoSats === null || sats.fritvalg === null || sats.agPension === null) {
+      throw new Error(
+        `Overenskomst "${overenskomst.meta.id}" (${sats.fraDato}): en privat overenskomst skal fastsætte SH/SO, fritvalg og AG-pension – skriv 0 for et tillæg, den ikke giver`
+      );
+    }
+  }
+};
+overenskomster.forEach(assertPrivatOverenskomstFastsaetterTillaeg);
 offentligeOverenskomstSatser.forEach((entry) =>
   assertOverenskomstSatserNyesteFoerst(entry.satser, entry.id)
 );
@@ -1779,6 +1802,17 @@ const getSatserForAlmindeligLoenPaaShDage = (
 
 export const resolveOverenskomstRef = (rawId: string): OverenskomstRef | undefined =>
   resolveOverenskomstRefFromString(rawId);
+
+/**
+ * Datoen for en PRIVAT overenskomsts første satsperiode – før den har programmet ingen satser for
+ * overenskomsten. `undefined` for en offentlig eller ukendt overenskomst.
+ */
+export const getFoersteSatsDatoForPrivatOverenskomst = (rawId: string): DanishDateString | undefined => {
+  const ref = resolveOverenskomstRefFromString(rawId);
+  if (!ref || offentligOverenskomstTypeById.has(ref.baseId)) return undefined;
+  const satser = overenskomstById.get(ref.baseId)?.satser;
+  return satser?.[satser.length - 1]?.fraDato;
+};
 
 export const getReguleringsDatoIntervalForOverenskomst = (rawId: string): ReguleringsDatoInterval | undefined => {
   const ref = resolveOverenskomstRefFromString(rawId);

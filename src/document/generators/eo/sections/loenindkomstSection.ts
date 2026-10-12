@@ -1,10 +1,12 @@
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
 import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
-import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
-import type { ISODateString } from '../../../../types/branded';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
+import { isISODateString, type ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveSatserHeadingForAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/satserHeading';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
@@ -16,6 +18,7 @@ type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues
 type LoenSectionContext = Readonly<{
   selectedElements: SelectedElements;
   eoValues: ErstatningsopgoerelseValues;
+  stamdataValues: Pick<StamdataValues, 'skadedato' | 'skadestype'>;
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
@@ -42,6 +45,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   const {
     selectedElements,
     eoValues,
+    stamdataValues,
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
@@ -176,9 +180,13 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     );
   });
 
+  const alleAnsaettelser = eoValues.loenindkomstAnsaettelsesforhold ?? [];
   for (const [index, ansaettelsesforhold] of ansaettelserWithRows.entries()) {
-      const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
-      const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
+      // Nummeret er kortets plads på skærmen, ikke pladsen blandt de ansættelsesforhold, bilaget viser.
+      const arbejdsstedNavn = resolveAnsaettelsesforholdNavn(
+        ansaettelsesforhold.navnPaaArbejdssted,
+        alleAnsaettelser.indexOf(ansaettelsesforhold)
+      );
       const shouldAddTopSpacing = index > 0;
       renderSubheader(arbejdsstedNavn, { addTopSpacing: shouldAddTopSpacing });
       const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
@@ -189,26 +197,33 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       // Beløb-tilstand: de skjulte top-satsfelter er ikke dokumentkilde; relevante satser står i
       // lønoplysningerne/manuelle reguleringsrækker, hvor brugeren har indtastet dem.
       if (selectedElements.okSatser && ansaettelsesforhold.tillaegAngivesSom !== 'beloeb') {
-        if (!isZeroPct(ansaettelsesforhold.feriePct)) {
-          writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.fritvalgPct)) {
-          writeLabelValueLine('Fritvalg:', formatPctFromInput(ansaettelsesforhold.fritvalgPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.shSoPct)) {
-          writeLabelValueLine('SH/SO-sats:', formatPctFromInput(ansaettelsesforhold.shSoPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.storeBededagPct)) {
-          writeLabelValueLine('Store Bededagstillæg:', formatPctFromInput(ansaettelsesforhold.storeBededagPct));
-        }
-        if (!isZeroPct(ansaettelsesforhold.pensionPct)) {
-          writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
+        const satsLinjer: ReadonlyArray<readonly [string, number | undefined]> = [
+          ['Feriegodtgørelse/-tillæg:', ansaettelsesforhold.feriePct],
+          ['Fritvalg:', ansaettelsesforhold.fritvalgPct],
+          ['SH/SO-sats:', ansaettelsesforhold.shSoPct],
+          ['Store Bededagstillæg:', ansaettelsesforhold.storeBededagPct],
+          ['Arbejdsgivers pensionsbidrag:', ansaettelsesforhold.pensionPct],
+        ];
+        const synligeSatsLinjer = satsLinjer.filter(([, value]) => !isZeroPct(value));
+        if (synligeSatsLinjer.length > 0) {
+          // Satslinjerne er satserne på reguleringsdatoen – dem, beregningsgrundlaget regner med – mens tabellens
+          // rækker viser lønsedlens tillæg med månedens satser. Uden datoen stod «SH/SO-sats: 3,4 %» over rækker
+          // regnet med 2,7 % (BB-276; rækkerne følger bevidst lønsedlen, udviklerafgørelse 2026-10-06).
+          safeAddWrappedText(`${resolveSatserHeadingForAnsaettelsesforhold({
+            values: eoValues,
+            ansaettelsesforhold,
+            skadedato: isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : undefined,
+            skadestype: stamdataValues.skadestype,
+          })}:`);
+          synligeSatsLinjer.forEach(([label, value]) => writeLabelValueLine(label, formatPctFromInput(value)));
+          safeAddWrappedText('Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte måned.');
         }
       }
       if (ansaettelsesforhold.ansatPaaSkadestidspunktet && ansaettelsesforhold.ansaettelsesforholdOphoert) {
-        const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
-        const opsigelsesLinje = sidsteArbejdsdag
-          ? `Skadelidte er opsagt fra stillingen med sidste arbejdsdag ${sidsteArbejdsdag}.`
+        const sidsteDag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
+        // Feltets egen betegnelse (BB-283): «sidste arbejdsdag» og feltets navn er samme dato.
+        const opsigelsesLinje = sidsteDag
+          ? `Skadelidte er opsagt fra stillingen med sidste dag i ansættelsesforholdet ${sidsteDag}.`
           : 'Skadelidte er opsagt fra stillingen.';
         writer.addSectionSpacer();
         safeAddWrappedText(opsigelsesLinje);

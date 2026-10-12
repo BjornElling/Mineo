@@ -82,7 +82,7 @@ import {
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { readTafBeregningsenhedEmployments } from './erstatningsopgoerelseLoenDescriptors';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
-import { dateBounds, originWhenNarrowed, systemrammeSpec } from './dateBoundsValidators';
+import { dateBounds, originWhenNarrowed, systemrammeSpec, systemrammeTilDagsDatoSpec } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import type { FieldCodec } from '../fieldCodec';
 import {
@@ -826,12 +826,7 @@ export const eoDagsloenenUdgoerField = amountField(
  * Datoen for det angivne beløb kan ikke ligge efter dags dato: et beløb kan ikke afspejle en løn, der endnu
  * ikke er udbetalt (udviklerafgørelse 2026-10-02, BB-261). Før var loftet systemrammens 31-12 året efter.
  */
-const angivetLoenDatoSpec: DateBoundsSpec = {
-  min: systemrammeSpec.min,
-  max: () => getToday(),
-  special: () => ({ maxBoundKind: 'dagsDato' }),
-  origin: STATIC_DATE_BOUNDS,
-};
+const angivetLoenDatoSpec: DateBoundsSpec = systemrammeTilDagsDatoSpec;
 // De to sæt felter har ordret samme tekst på skærmen; kun den aktive gren er relevant (BB-266). Labelen er
 // skærmens tekst uden den visuelle tankestreg (BB-270).
 export const eoAngivetMaanedsloenBaseretPaaField = optionalTextField(

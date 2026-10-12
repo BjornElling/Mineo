@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12g – Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser.** 12f er
+- **Næste flade:** **12h – Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger.** 12g er gennemgået,
+  afgjort OG gennemført 2026-10-06 (15 fund, BB-274–BB-288). 12f er
   gennemgået, afgjort OG gennemført 2026-10-02 (16 fund, BB-258–BB-273). 12e er gennemgået 2026-09-24
   og afgjort OG gennemført 2026-09-25 (11 fund, BB-247–BB-257). 12d er gennemgået,
   afgjort OG gennemført 2026-09-24 (9 fund, BB-238–BB-246). 12c er gennemgået, afgjort OG gennemført 2026-09-23 (10 fund, BB-228–BB-237). 12b er gennemgået
@@ -24,8 +25,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-274
-- **Åbne spørgsmål:** **ingen.** Tidligere: **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
+- **Næste fund-ID:** BB-289
+- **Åbne spørgsmål:** **ingen.** 12g's to faglige spørgsmål er besvaret 2026-10-06: en tom feriesats må ikke
+  regnes stille (BB-274), og «sidste dag i ansættelsesforholdet» og «sidste arbejdsdag» er samme dato (BB-283).
+  Tidligere: **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
   EET-klage gælder alt EET; den bliver under «Øvrigt», og papiret trykker fortsat én EET-linje), BB-242 ja til en
   gul advarsel, BB-245 ja til «pr.», BB-246 afvist. Tidligere: **ingen.** **12b's satsårsspørgsmål er afgjort 2026-09-23: nej** – sygeperiodernes
   årstal har ingen sammenhæng med det krævede satsår. Kravet anses for rejst én måned efter «Opgørelse lavet
@@ -95,7 +98,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12f's 16 fund (BB-258–BB-273) er afgjort og
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** **Flade 12g's 15 fund (BB-274–BB-288) er afgjort og
+  gennemført 2026-10-06** – se afsnittet om 12g nedenfor. Tidligere: **ingen.** **Flade 12f's 16 fund (BB-258–BB-273) er afgjort og
   gennemført 2026-10-02** – 15 rettet (BB-261 kun del 2), ét afvist (BB-273); se afsnittet om 12f nedenfor.
   Tidligere: **ingen.** **Flade 12e's elleve fund (BB-247–BB-257) er afgjort og
   gennemført 2026-09-25** – ti rettet (BB-247 indsnævret), ét afvist (BB-254); se afsnittet om 12e nedenfor.
@@ -149,7 +153,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-02 (**Flade 12f afgjort og gennemført** – se afsnittet om 12f nedenfor.)
+- **Senest opdateret:** 2026-10-06 (**Flade 12g afgjort og gennemført** – se afsnittet om 12g nedenfor.)
+  Tidligere samme dag: (**Flade 12g – Ansættelsesforholdet: ramme, lønforhold og satser – gennemgået: 15
+  fund, fire Høj, syv Mellem og fire Lav, og ét nyt tværgående mønster M-37** – se afsnittet om 12g nedenfor.)
+  Tidligere: 2026-10-02 (**Flade 12f afgjort og gennemført** – se afsnittet om 12f nedenfor.)
   Tidligere samme dag: (**Flade 12f – Beregningsgrundlaget for TAF – gennemgået: 16 fund, syv Høj, fire
   Mellem og fem Lav, og ét nyt tværgående mønster M-36** – se afsnittet om 12f nedenfor.)
   Tidligere: 2026-09-25 (**Flade 12e afgjort og gennemført** – se afsnittet om 12e nedenfor.)
@@ -585,13 +592,62 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12d | Erstatningsopgørelse – AES-afgørelser og afgrænsning | Afgjort og gennemført | 9 (BB-238–BB-246) | [erstatningsopgoerelse-12d.md](erstatningsopgoerelse-12d.md) |
 | 12e | Erstatningsopgørelse – TAF: perioden | Afgjort og gennemført | 11 (BB-247–BB-257) | [erstatningsopgoerelse-12e.md](erstatningsopgoerelse-12e.md) |
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Afgjort og gennemført | 16 (BB-258–BB-273) | [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md) |
-| 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Ikke startet | – | – |
+| 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Afgjort og gennemført | 15 (BB-274–BB-288) | [erstatningsopgoerelse-12g.md](erstatningsopgoerelse-12g.md) |
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Ikke startet | – | – |
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Ikke startet | – | – |
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Ikke startet | – | – |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser (12g) – gennemgået, afgjort og gennemført 2026-10-06
+
+**Afgjort og gennemført 2026-10-06:** 13 godkendt og gennemført, BB-276 afvist som fejl (rækkerne følger bevidst
+lønsedlen), men dets satslinje i bilaget er dateret efter modsvar, og BB-286's præmis om 12 % afvist (gul ring over 20 %
+gennemført). Afgjort efter modsvar: **BB-275** (en privat overenskomst dikterer tillæggene – et tillæg, den ikke har, er
+0 % og låst; en reguleringsdato før overenskomstens satser blokerer med navngiven fejl, lønrækker før dækningen giver en
+gul advarsel, og Faglærte-overenskomstens fritvalg låses til 0 %), **BB-276** (bilagets satslinjer får dato og note) og
+**BB-283** (feltets betegnelse «sidste dag i ansættelsesforholdet» overalt). **Bærende ændringer:** satsbindingen er
+bygget om til tre tilstande – fastsat af overenskomsten, utilgængelig, brugerens eget felt – så et manglende opslag
+aldrig falder tavst tilbage til et tomt brugerfelt (M-37's anden variant); feriesatsen er påkrævet ved alle
+reguleringsformer, men et tomt felt giver ingen ring, kun en blokerende linje (M-37's første variant, udviklerens
+princip: rød ring kun om noget, brugeren har skrevet); kortets egne feltfejl får navngivne linjer med link; og ét
+reservenavn, «Ansættelsesforhold N», overalt. **BB-278** er gennemført i en kortere form end foreslået: kortet
+navngives i linkets navn («Lønindkomst -> Ansættelsesforhold 2») og ikke foran beskeden, så de lange satslinjer ikke
+fylder to-tre linjer.
+
+
+**15 fund: fire Høj, syv Mellem, fire Lav (tre Fejl, fem Edge case, syv Fornuft) – og ét nyt tværgående mønster
+M-37: en manglende sats regnes som 0 % uden et ord.** Fladens bærende iagttagelse er, at kortets satser kan forsvinde
+fra kravet, uden at noget siger det: en tom feriesats trækker 45.000 kr. fra ved lønudvikling «Ingen», mens `0` og `1`
+er røde (BB-274), og en særlig fra-dato uden for overenskomstens satser åbner SH/SO og pension som tomme felter og
+trækker 46.245 kr. fra (BB-275). **Papiret modsiger sig selv to steder:** lønindkomstbilaget regner tillæg med månedens
+satser, mens grundlaget siden 2026-10-06 bruger satserne ved beregningsperiodens udløb (449.201,02 mod 451.245,06 kr. i
+samme pdf, BB-276), og et unavngivet kort hedder «Arbejdssted» i opgørelsen og «Ansættelsesforhold 2» i bilaget
+(BB-279). **En rød sats eller dato på kortet** giver en linje uden navn og link, og Beregning skriver «TAF-periode:
+Ingen perioder angivet» (BB-277). Dertil BB-231's form på kortniveau (BB-278), SH-dage-bilaget uden beregningsperiodens
+SH-dage (BB-280), BB-267's søskende (BB-281), dags dato som loft for den særlige dato (BB-282, BB-261's tvilling),
+sidste dag før skadedatoen (BB-283) og fire Lav. Enhedsskiftet fra Lønindkomst er efterprøvet og følger BB-247's
+afgørelse. M-04, M-09, M-10 og M-32 bestået; konsollen tavs. Grundlaget står i
+[erstatningsopgoerelse-12g.md](erstatningsopgoerelse-12g.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-274 | En tom feriesats regnes som 0 % uden et ord, mens 0 og 1 er røde | **Høj** | Godkendt i ændret form (ingen ring på tomt felt) – gennemført |
+| BB-275 | Overenskomstens satser forsvinder tavst uden for dens dækning | **Høj** | Godkendt efter modsvar – gennemført |
+| BB-276 | Bilag og løntabel regner tillæg med andre satser end grundlaget | **Høj** | Afvist som fejl; bilagets satslinje dateret efter modsvar – gennemført |
+| BB-277 | En rød sats/dato giver en linje uden navn og link og «Ingen perioder angivet» | **Høj** | Godkendt – gennemført |
+| BB-278 | Linjer om et kort siger ikke hvilket; ens linjer for to kort bliver til én | Mellem | Godkendt med forbehold – gennemført i linkets navn |
+| BB-279 | Et unavngivet kort hedder «Arbejdssted» i opgørelsen, «Ansættelsesforhold 2» i bilaget | Mellem | Godkendt – gennemført |
+| BB-280 | SH-dage-bilaget udelader beregningsperiodens SH-dage | Mellem | Godkendt – gennemført |
+| BB-281 | Skift til «Almindelig løn» viser Store Bededag slået fra og advarer straks | Mellem | Godkendt – gennemført |
+| BB-282 | Særlig fra-dato tager imod en dato efter opgørelsen | Mellem | Godkendt – gennemført |
+| BB-283 | Sidste dag kan ligge før skadedatoen; feltet hedder to ting | Mellem | Godkendt efter modsvar – gennemført |
+| BB-284 | Satslinjen hedder «Satser på skadedatoen» og siger «Forkert værdi» | Mellem | Godkendt – gennemført |
+| BB-285 | «Fuld løn under ferie» uvirksom ved angivet løn | Lav | Godkendt efter verifikation – gennemført |
+| BB-286 | Feriesatsen tager 12 %, 25 % og 100 % uden bemærkning | Lav | 12 %-præmissen afvist; gul ring over 20 % gennemført |
+| BB-287 | Låste satsfelter og filtrene «L:»/«A:» forklarer ikke sig selv | Lav | Godkendt – gennemført |
+| BB-288 | «Tilføj» kræver bekræftelse, og det nye kort rulles ikke frem | Lav | Godkendt – gennemført |
 
 ## Erstatningsopgørelse → Beregningsgrundlaget for TAF (12f) – gennemgået, afgjort og gennemført 2026-10-02
 

@@ -72,42 +72,55 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   }), [employments, eoValues, stamdataValues.skadedato, stamdataValues.skadestype]);
 
   /**
-   * Satsvurderingens fund som STRUKTURELLE feltissues.
+   * Satsvurderingens fund som STRUKTURELLE feltissues – kun dem, der hører til en faktisk indtastning.
    *
-   * Reglen er en kryds-felt-regel – feriegodtgørelsens relevans afhænger af reguleringsformen og af, om der
-   * er indtastet lønoplysninger – og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
-   * celles værdi. RESULTATET er til gengæld kanoniske `FieldIssue`s med rigtige feltadresser, så rød
-   * markering, tooltip, fokusnavigation og consumerblokering læser ÉN repræsentation i stedet for en fri
-   * fejltekst uden feltidentitet. `reason: 'rule'` er §1.6-klassifikationen for en feltplaceret domæneregel.
+   * Reglen er en kryds-felt-regel – feriegodtgørelsens krav afhænger af tillægsformen og af, om der er
+   * indtastet lønoplysninger – og kan derfor ikke bo i descriptorens egen validator, som kun ser sin egen
+   * celles værdi. RESULTATET er til gengæld kanoniske `FieldIssue`s med rigtige feltadresser, så ring,
+   * tooltip og fokusnavigation læser ÉN repræsentation. `reason: 'rule'` er §1.6-klassifikationen for en
+   * feltplaceret domæneregel.
+   *
+   * Et TOMT felt giver ingen ring (`missing`): brugeren har ikke skrevet noget, og manglen meldes i «Fejl og
+   * advarsler», hvor den blokerer (udviklerafgørelse 2026-10-06, BB-274).
    */
   const satsIssues = React.useMemo<FieldIssueSet>(() => buildFieldIssueSet(
-    employments.flatMap((employment) => assessLoenindkomstSatser(employment, {
-      beregnesUdFra: eoValues.beregnesUdFra,
-    }).map((finding): FieldIssue => Object.freeze({
-      kind: 'field' as const,
-      code: `erstatningsopgoerelse.loenindkomstSatser.${finding.field}.${finding.kind}`,
-      severity: 'error' as const,
-      field: toAnyFieldRef(eoEmploymentFields[finding.field].bind(employment.id)),
-      reason: 'rule' as const,
-      message: finding.message,
-    })))
-  ), [employments, eoValues.beregnesUdFra]);
+    employments.flatMap((employment) => assessLoenindkomstSatser(employment)
+      .filter((finding) => finding.kind === 'deviation')
+      .map((finding): FieldIssue => Object.freeze({
+        kind: 'field' as const,
+        code: `erstatningsopgoerelse.loenindkomstSatser.${finding.field}.${finding.kind}`,
+        severity: 'error' as const,
+        field: toAnyFieldRef(eoEmploymentFields[finding.field].bind(employment.id)),
+        reason: 'rule' as const,
+        message: finding.message,
+      })))
+  ), [employments]);
+  /** Den gule, ikke-blokerende advarsel om en usædvanligt høj feriesats (BB-286), pr. ansættelsesforhold. */
+  const feriePctAdvarselByAfId = React.useMemo<Readonly<Record<string, string>>>(() => Object.fromEntries(
+    employments.flatMap((employment) => assessLoenindkomstSatser(employment)
+      .filter((finding) => finding.kind === 'unusual')
+      .map((finding) => [employment.id, finding.message] as const))
+  ), [employments]);
 
   // De overenskomst-/lovbundne satser skrives IKKE herfra. Reader-projektionen udleder dem før denne
   // viewmodel, så de aldrig bliver persisteret brugerinput eller et selvstændigt history-trin.
 
-  const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
   const deleteTargetName = employments.find((employment) => employment.id === deleteTargetId)?.navnPaaArbejdssted?.trim() ?? '';
   const loentrinFinder = useLoentrinFinder();
 
-  const handleAddConfirm = React.useCallback(() => {
-    if (rows.rowIds.length < MAX_ANSAETTELSESFORHOLD) {
-      rows.insert(createDefaultLoenindkomstAnsaettelsesforhold(settings));
-    }
-    setAddDialogOpen(false);
+  /**
+   * Tilføj sker uden bekræftelse – Ctrl+Z fortryder handlingen, så en dialog beskyttede ikke mod noget – og
+   * det nye kort rulles frem som ved «Flyt op/ned». Før blev siden stående, og det nye korts top lå under
+   * skærmens kant, så brugeren ikke kunne se, at handlingen lykkedes (BB-288).
+   */
+  const handleAdd = React.useCallback(() => {
+    if (rows.rowIds.length >= MAX_ANSAETTELSESFORHOLD) return;
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold(settings);
+    rows.insert(employment);
+    setScrollTargetId(employment.id);
   }, [rows, settings]);
   const handleDeleteConfirm = React.useCallback(() => {
     if (deleteTargetId === null) return;
@@ -151,11 +164,10 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     skadedato: stamdataValues.skadedato,
     skadestype: stamdataValues.skadestype,
     satsIssues,
+    feriePctAdvarselByAfId,
     loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(),
     alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(),
-    addDialogOpen,
-    setAddDialogOpen,
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,
@@ -177,7 +189,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
         : []
     ),
     showDeleteButton: employments.length > 0,
-    handleAddConfirm,
+    handleAdd,
     handleDeleteConfirm,
     handleMoveUp: (id: string) => move(id, -1),
     handleMoveDown: (id: string) => move(id, 1),

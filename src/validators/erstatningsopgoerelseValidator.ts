@@ -43,7 +43,12 @@ import {
 } from '../domain/erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
-import { isFeriePctRelevant } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import { FERIE_PCT_MANGLER_BESKED, isFeriePctPaakraevet } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import {
+  erDatoUdenOverenskomstSatser,
+  formatReguleringsdatoUdenOverenskomstSatserBesked,
+  resolvePrivatOverenskomstDaekning,
+} from '../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import { erOevrigeKravSektionAktiv } from '../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import {
@@ -563,6 +568,7 @@ function validateTAF(
   // Validér lønudvikling konsistens
   errors.push(...validateLoenudviklingKonsistens(values));
   errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
+  errors.push(...validateLoenindkomstSatsKrav(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
   // SIDST og kun uden andre TAF-fejl: reglen er et værn, der standser motoren, når INTET andet gør det. Spærrer en
   // anden regel allerede (fx manglende indtægtsoplysninger), er den overflødig.
@@ -930,15 +936,52 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
   }
 }
 
-// ---- Øvrige krav ----
+// ---- Lønindkomst ----
 
 /**
- * Validerer øvrige krav-rækker
+ * Satskravene på hvert ansættelsesforhold, uafhængigt af reguleringsform og beregningsmåde.
  *
- * Regler:
- * - Ikke-tomme rækker skal have dato, udgiftTil og beløb udfyldt
- * - Beløb kan ikke være negativt
+ * - Feriegodtgørelsen skal være udfyldt, når kortet har lønoplysninger i procent-tilstand (BB-274). Samme
+ *   prædikat (`isFeriePctPaakraevet`) driver den synlige satslinje i «Fejl og advarsler».
+ * - Ligger datoen, en privat overenskomsts satser slås op på, før overenskomstens første satsperiode, kan
+ *   beregningsgrundlaget ikke regnes (BB-275). Den synlige linje er satslinjen eller den særlige fra-datos ring.
  */
+function validateLoenindkomstSatsKrav(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  (values.loenindkomstAnsaettelsesforhold ?? []).forEach((af, index) => {
+    const path = (field: string): string => `loenindkomstAnsaettelsesforhold[${index}].${field}`;
+    if (isFeriePctPaakraevet(af) && !Number.isFinite(af.feriePct)) {
+      errors.push({ path: path('feriePct'), message: FERIE_PCT_MANGLER_BESKED, severity: 'error' });
+    }
+    if (
+      values.beregnesUdFra !== 'Beregningsperiode'
+      || af.tillaegAngivesSom === 'beloeb'
+      || !hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])
+    ) {
+      return;
+    }
+    const daekning = resolvePrivatOverenskomstDaekning(af);
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: undefined,
+      saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      skadedato: options?.skadedatoISO,
+    });
+    if (daekning !== null && anvendtReguleringsdato !== undefined && erDatoUdenOverenskomstSatser(daekning, anvendtReguleringsdato)) {
+      errors.push({
+        path: path('overenskomstId'),
+        message: formatReguleringsdatoUdenOverenskomstSatserBesked(daekning),
+        severity: 'error',
+      });
+    }
+  });
+  return errors;
+}
+
 function validateLoenudviklingsKravForAktivKilde(
   values: ErstatningsopgoerelseValues,
   options?: ErstatningsopgoerelseValidationOptions
@@ -1044,11 +1087,6 @@ function validateLoenudviklingsKravForAktivKilde(
           severity: 'error',
         });
       }
-      // Ét sandt sted for feriegodtgørelses-kravet: samme prædikat driver den synlige
-      // `satserSkadestidspunkt`-fejlrække, så en blokeret download altid har en besked i boksen.
-      if (isFeriePctRelevant(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
-        errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
-      }
       // Ingen "Løn på helligdage skal vælges"-regel: feltet er required-with-default i det persisterede
       // schema for BEGGE lønkilder (ansættelsesforhold og EO-angivet løn), så `undefined` ikke kan nå hertil.
       // Reglen stod her som et værn, der aldrig kunne fyre – og den skjulte samtidig, at angivet løn manglede
@@ -1095,10 +1133,6 @@ function validateLoenudviklingsKravForAktivKilde(
     // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande. Grundløn/dato-krav gælder ens;
     // i Beløb-tilstand kommer basis-satserne fra første tabelrække, ikke fra det skjulte feriePct-felt.
     if (grundlag === 'Manuelt angivet') {
-      if (isFeriePctRelevant(af, values.beregnesUdFra) && !Number.isFinite(af.feriePct)) {
-        errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
-      }
-
       const rows = af.loenudviklingManuelTableData ?? [];
       const aktiveRows = rows.filter(isManuelAngivetRowAktiv);
 
@@ -1266,6 +1300,15 @@ const buildLoenudviklingsKildeResolutionError = (error: unknown): ValidationErro
   };
 };
 
+// ---- Øvrige krav ----
+
+/**
+ * Validerer øvrige krav-rækker
+ *
+ * Regler:
+ * - Ikke-tomme rækker skal have udgiftTil og beløb udfyldt (datoen er valgfri, BB-229)
+ * - Beløb kan ikke være negativt
+ */
 function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
   // Samme gate som søskendene `validateSvieSmerte`/`validateTAF`. Uden den blev en halvudfyldt række bag

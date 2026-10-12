@@ -9,7 +9,9 @@ import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,
+  getFoersteSatsDatoForPrivatOverenskomst,
   isOffentligOverenskomstId,
+  resolveOverenskomstDisplay,
   resolveOverenskomstRef,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
@@ -24,12 +26,23 @@ import { harAktivOverenskomst, resolveAktivOverenskomst } from './aktivOverensko
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
-// Diskrimineret union: locked === true garanterer et tal. Tidligere var typen
-// `{ locked: boolean; value: number | undefined }`, hvilket tillod den umulige tilstand
-// `{ locked: true, value: undefined }` og krævede tillidsbaseret value-adgang ved callsites.
+/**
+ * Hvor et af de tre overenskomstbundne tillæg kommer fra.
+ *
+ * - `overenskomst`: overenskomsten fastsætter satsen – også 0, når den ikke giver tillægget. Feltet er låst.
+ * - `utilgaengelig`: der er valgt en privat overenskomst, men programmet har ingen satser for den på datoen
+ *   (datoen ligger før overenskomstens første satsperiode). Feltet er låst og tomt, og situationen meldes
+ *   (`resolveOverenskomstSatsDaekning`) – den må ikke ligne en tom indtastning eller et tillæg på 0 %.
+ * - `bruger`: brugerens eget felt – uden aktiv overenskomst, eller ved en offentlig overenskomst uden sats.
+ *
+ * Før var der kun «låst med tal» og «ulåst». Manglede satserne på datoen, faldt programmet tilbage til de
+ * ulåste felter, som brugeren aldrig havde udfyldt, fordi de stod låst – og tillæggene blev tavst 0 %
+ * (BB-275). En privat overenskomst dikterer, hvilke tillæg der gives, så dens felter låses aldrig op.
+ */
 export type OverenskomstSatsBinding =
-  | Readonly<{ locked: true; value: number }>
-  | Readonly<{ locked: false; value: undefined }>;
+  | Readonly<{ kind: 'overenskomst'; value: number }>
+  | Readonly<{ kind: 'utilgaengelig' }>
+  | Readonly<{ kind: 'bruger' }>;
 
 type OverenskomstSatsBindings = Readonly<Record<OverenskomstSatsField, OverenskomstSatsBinding>>;
 
@@ -38,23 +51,59 @@ type AutoSatsFields = Pick<
   'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
 >;
 
-const UNLOCKED_OVERENSKOMST_SATS_BINDINGS: OverenskomstSatsBindings = {
-  fritvalgPct: { locked: false, value: undefined },
-  shSoPct: { locked: false, value: undefined },
-  pensionPct: { locked: false, value: undefined },
+const BRUGER_SATS_BINDINGS: OverenskomstSatsBindings = {
+  fritvalgPct: { kind: 'bruger' },
+  shSoPct: { kind: 'bruger' },
+  pensionPct: { kind: 'bruger' },
 };
 
-const resolveBindingFromDecimal = (value: number | null | undefined): OverenskomstSatsBinding => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return {
-      locked: true,
-      value: round2(value * 100),
-    };
+const UTILGAENGELIGE_SATS_BINDINGS: OverenskomstSatsBindings = {
+  fritvalgPct: { kind: 'utilgaengelig' },
+  shSoPct: { kind: 'utilgaengelig' },
+  pensionPct: { kind: 'utilgaengelig' },
+};
+
+/** Er feltet låst af overenskomsten – også når programmet ingen sats har (`utilgaengelig`)? */
+const isBindingLocked = (binding: OverenskomstSatsBinding): boolean => binding.kind !== 'bruger';
+
+/**
+ * Satsen, en LØNRÆKKE regner med i et segment. Et utilgængeligt opslag regnes bevidst som 0: lønrækker før
+ * overenskomstens første satsperiode får ingen overenskomsttillæg og en gul advarsel (udviklerafgørelse
+ * 2026-10-06). Ligger selve reguleringsdatoen før dækningen, er beregningen i stedet spærret.
+ */
+const resolveSatsForSegment = (binding: OverenskomstSatsBinding, brugerValue: number | undefined): number | undefined => {
+  switch (binding.kind) {
+    case 'overenskomst': return binding.value;
+    case 'utilgaengelig': return 0;
+    case 'bruger': return brugerValue;
   }
-  return {
-    locked: false,
-    value: undefined,
-  };
+};
+
+/**
+ * Satsen, KORTET og beregningsgrundlaget viser og regner med på reguleringsdatoen. Et utilgængeligt opslag
+ * giver et TOMT låst felt, ikke 0: beregningen er spærret, og feltet må ikke påstå en sats, programmet ikke har.
+ */
+const resolveSatsForReguleringsdato = (
+  binding: OverenskomstSatsBinding,
+  brugerValue: number | undefined
+): number | undefined => {
+  switch (binding.kind) {
+    case 'overenskomst': return binding.value;
+    case 'utilgaengelig': return undefined;
+    case 'bruger': return brugerValue;
+  }
+};
+
+const offentligBindingFromDecimal = (value: number | null): OverenskomstSatsBinding =>
+  value === null ? { kind: 'bruger' } : { kind: 'overenskomst', value: round2(value * 100) };
+
+// `assertPrivatOverenskomstFastsaetterTillaeg` garanterer et tal for en privat overenskomst; null er her
+// derfor en brudt datainvariant og må ikke falde stille tilbage til et frit felt.
+const privatBindingFromDecimal = (value: number | null, overenskomstId: string): OverenskomstSatsBinding => {
+  if (value === null) {
+    throw new Error(`Privat overenskomst "${overenskomstId}" mangler en tillægssats – datainvarianten er brudt`);
+  }
+  return { kind: 'overenskomst', value: round2(value * 100) };
 };
 
 const resolveStoreBededagPct = (
@@ -135,29 +184,35 @@ const resolveOverenskomstSatsBindingsForAnvendtReguleringsdato = (
 ): OverenskomstSatsBindings => {
   // Aktiv-prædikatet ejes af `resolveAktivOverenskomst` (§ét sandt sted) – ikke stavet i hånden her.
   const aktiv = resolveAktivOverenskomst(af);
-  if (!aktiv.aktiv || !anvendtReguleringsdato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
+  if (!aktiv.aktiv) return BRUGER_SATS_BINDINGS;
   const overenskomstId = aktiv.overenskomstId;
-  const dato = isoToDanish(anvendtReguleringsdato);
-  if (!dato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
-
   const applyShRegel = af.loenPaaHelligdage === 'Almindelig løn';
-  const satser = isOffentligOverenskomstId(overenskomstId)
-    ? getOffentligTillaegsSatserForDato(overenskomstId, dato, applyShRegel)
-    : (() => {
-      const ref = resolveOverenskomstRef(overenskomstId);
-      if (!ref) return undefined;
-      return getEffektiveSatserForDato({
-        overenskomstId: ref.baseId,
-        dato,
-        applyAlmindeligLoenPaaShDageRegel: applyShRegel,
-      });
-    })();
+  const dato = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
 
-  if (!satser) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
+  if (isOffentligOverenskomstId(overenskomstId)) {
+    // Offentlige overenskomster er undtagelsen: et tillæg uden sats (KL/RLTN helt, Læreroverenskomstens SH/SO)
+    // angiver brugeren selv.
+    const satser = dato ? getOffentligTillaegsSatserForDato(overenskomstId, dato, applyShRegel) : undefined;
+    if (!satser) return BRUGER_SATS_BINDINGS;
+    return {
+      fritvalgPct: offentligBindingFromDecimal(satser.fritvalg),
+      shSoPct: offentligBindingFromDecimal(satser.shSoSats),
+      pensionPct: offentligBindingFromDecimal(satser.agPension),
+    };
+  }
+
+  // En privat overenskomst låser altid sine tillæg. Uden dato kan intet slås op endnu: felterne står låste og
+  // tomme, og den manglende dato meldes der, hvor den indtastes.
+  if (!dato) return UTILGAENGELIGE_SATS_BINDINGS;
+  const ref = resolveOverenskomstRef(overenskomstId);
+  const satser = ref
+    ? getEffektiveSatserForDato({ overenskomstId: ref.baseId, dato, applyAlmindeligLoenPaaShDageRegel: applyShRegel })
+    : undefined;
+  if (!satser) return UTILGAENGELIGE_SATS_BINDINGS;
   return {
-    fritvalgPct: resolveBindingFromDecimal(satser.fritvalg),
-    shSoPct: resolveBindingFromDecimal(satser.shSoSats),
-    pensionPct: resolveBindingFromDecimal(satser.agPension),
+    fritvalgPct: privatBindingFromDecimal(satser.fritvalg, overenskomstId),
+    shSoPct: privatBindingFromDecimal(satser.shSoSats, overenskomstId),
+    pensionPct: privatBindingFromDecimal(satser.agPension, overenskomstId),
   };
 };
 
@@ -171,7 +226,59 @@ export const isOverenskomstSatsFieldLocked = (
   af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
   anvendtReguleringsdato: ISODateString | undefined,
   field: OverenskomstSatsField
-): boolean => resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[field].locked;
+): boolean => isBindingLocked(resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[field]);
+
+/**
+ * Den aktive PRIVATE overenskomsts satsdækning: fra hvilken dato programmet har dens satser. `null`, når kortet
+ * ikke har en aktiv privat overenskomst (offentlige overenskomster melder ikke dækning – deres tillæg uden sats
+ * angiver brugeren selv). `foersteSatsDato` er `undefined` for et overenskomst-id, programmet ikke kender.
+ */
+export type PrivatOverenskomstDaekning = Readonly<{
+  overenskomstId: string;
+  foersteSatsDato: ISODateString | undefined;
+}>;
+
+export const resolvePrivatOverenskomstDaekning = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
+): PrivatOverenskomstDaekning | null => {
+  const aktiv = resolveAktivOverenskomst(af);
+  if (!aktiv.aktiv || isOffentligOverenskomstId(aktiv.overenskomstId)) return null;
+  const foerste = getFoersteSatsDatoForPrivatOverenskomst(aktiv.overenskomstId);
+  return { overenskomstId: aktiv.overenskomstId, foersteSatsDato: foerste ? danishToISO(foerste) : undefined };
+};
+
+/** Har programmet ingen satser for overenskomsten på datoen? */
+export const erDatoUdenOverenskomstSatser = (daekning: PrivatOverenskomstDaekning, dato: ISODateString): boolean =>
+  daekning.foersteSatsDato === undefined || dato < daekning.foersteSatsDato;
+
+/**
+ * «Bygge-/anlægsoverenskomsten (3F / Dansk Industri) har ingen satser før 01-03-2011» – fælles kerne for den
+ * røde fejl ved en reguleringsdato uden satser og den gule advarsel ved lønrækker før dækningen (BB-275).
+ */
+export const formatOverenskomstUdenSatserTekst = (daekning: PrivatOverenskomstDaekning): string => {
+  const navn = resolveOverenskomstDisplay(daekning.overenskomstId);
+  const foerste = daekning.foersteSatsDato ? isoToDanish(daekning.foersteSatsDato) : undefined;
+  return foerste ? `${navn} har ingen satser før ${foerste}` : `${navn} har ingen satser`;
+};
+
+/** Den røde, blokerende besked, når datoen satserne slås op på, ligger før overenskomstens dækning. */
+export const formatReguleringsdatoUdenOverenskomstSatserBesked = (daekning: PrivatOverenskomstDaekning): string =>
+  `${formatOverenskomstUdenSatserTekst(daekning)} – vælg en senere reguleringsdato`;
+
+/** Den gule advarsel, når lønrækker ligger før overenskomstens første satsperiode. */
+export const formatLoenraekkerUdenOverenskomstSatserBesked = (daekning: PrivatOverenskomstDaekning): string =>
+  `${formatOverenskomstUdenSatserTekst(daekning)} – lønrækker før denne dato er regnet uden overenskomstens tillæg`;
+
+/**
+ * Er feltets værdi AFLEDT af overenskomsten – og derfor ikke brugerinput, der gemmes? Kun når overenskomsten
+ * faktisk fastsætter satsen. Ved et utilgængeligt opslag bevares et tidligere indtastet slot i filen: det er
+ * brugerens værdi fra før, og den bliver synlig igen, hvis «Overenskomst» slås fra.
+ */
+export const isOverenskomstSatsFieldDerived = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
+  anvendtReguleringsdato: ISODateString | undefined,
+  field: OverenskomstSatsField
+): boolean => resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[field].kind === 'overenskomst';
 
 const resolveAutoSatsFields = (
   af: Pick<
@@ -185,10 +292,10 @@ const resolveAutoSatsFields = (
   const autoSatser = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato);
 
   return {
-    fritvalgPct: autoSatser.fritvalgPct.locked ? autoSatser.fritvalgPct.value : af.fritvalgPct,
-    shSoPct: autoSatser.shSoPct.locked ? autoSatser.shSoPct.value : af.shSoPct,
+    fritvalgPct: resolveSatsForReguleringsdato(autoSatser.fritvalgPct, af.fritvalgPct),
+    shSoPct: resolveSatsForReguleringsdato(autoSatser.shSoPct, af.shSoPct),
     storeBededagPct: autoStoreBededag,
-    pensionPct: autoSatser.pensionPct.locked ? autoSatser.pensionPct.value : af.pensionPct,
+    pensionPct: resolveSatsForReguleringsdato(autoSatser.pensionPct, af.pensionPct),
   };
 };
 
@@ -287,10 +394,10 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
       til: segment.til,
       satser: {
         feriePct: af.feriePct,
-        fritvalgPct: auto.fritvalgPct.locked ? auto.fritvalgPct.value : af.fritvalgPct,
-        shSoPct: auto.shSoPct.locked ? auto.shSoPct.value : af.shSoPct,
+        fritvalgPct: resolveSatsForSegment(auto.fritvalgPct, af.fritvalgPct),
+        shSoPct: resolveSatsForSegment(auto.shSoPct, af.shSoPct),
         storeBededagPct: resolveStoreBededagPct(af, segment.startDato),
-        pensionPct: auto.pensionPct.locked ? auto.pensionPct.value : af.pensionPct,
+        pensionPct: resolveSatsForSegment(auto.pensionPct, af.pensionPct),
       },
     };
   });

@@ -166,6 +166,20 @@ export const systemrammeSpec: DateBoundsSpec = {
 };
 
 /**
+ * Systemrammens nedre grænse og dags dato som loft – for en dato, lønnen eller beløbet AFSPEJLER: en løn kan
+ * ikke afspejle en dato, der endnu ikke er nået, så en senere dato er en tastefejl i årstallet.
+ *
+ * Delt af de angivne beløbs dato (BB-261) og «Evt. særlig fra-dato for regulering» (BB-282), så de to
+ * datoer, der begge siger «lønnen per denne dato», har samme grænse og samme tooltip («… og dags dato (…)»).
+ */
+export const systemrammeTilDagsDatoSpec: DateBoundsSpec = {
+  min: systemrammeSpec.min,
+  max: () => getToday(),
+  special: () => ({ maxBoundKind: 'dagsDato' }),
+  origin: STATIC_DATE_BOUNDS,
+};
+
+/**
  * Erklæringen OG dens validator i ét kald.
  *
  * Findes for at gøre de to uadskillelige. Var de to separate felter på descriptoren, kunne et felt erklære

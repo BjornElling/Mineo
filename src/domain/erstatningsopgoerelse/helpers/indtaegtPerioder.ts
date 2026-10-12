@@ -65,12 +65,17 @@ export type IncomePeriodResult = Readonly<{
 }>;
 
 /**
- * Kanonisk visningsnavn for et ansættelsesforhold: det indtastede arbejdsstednavn,
- * eller fallback "Arbejdssted N" (1-indekseret) når der ikke er indtastet et navn.
- * `navn` må gerne være utrimmet eller allerede trimmet – funktionen er idempotent.
+ * ENESTE navn for et ansættelsesforhold i dokumenter, bilag og beregningstekster: det indtastede
+ * arbejdsstednavn, ellers kortets egen overskrift på Lønindkomst, «Ansættelsesforhold N» (1-indekseret
+ * position i `loenindkomstAnsaettelsesforhold`).
+ *
+ * Før havde fire moduler reserven «Arbejdssted», ét «Arbejdssted N», ét «Lønindkomst» og to
+ * «Ansættelsesforhold N» – så samme unavngivne ansættelsesforhold hed to ting i ét dokument, og to
+ * unavngivne hed begge «Arbejdssted» (BB-279). `index` er positionen i HELE listen, aldrig i en filtreret
+ * delmængde – ellers flytter nummeret sig væk fra skærmens.
  */
-export const resolveArbejdsstedDisplayName = (navn: string | undefined, index: number): string =>
-  (navn ?? '').trim() || `Arbejdssted ${index + 1}`;
+export const resolveAnsaettelsesforholdNavn = (navn: string | undefined, index: number): string =>
+  (navn ?? '').trim() || `Ansættelsesforhold ${index + 1}`;
 
 export type IncomeCalculationContext = Readonly<{
   boundsFra: ISODateString;

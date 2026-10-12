@@ -22,6 +22,7 @@ import {
 } from '../../money/money';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
+import { resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
 import type { LoenudviklingSegment } from '../shared/eoTypes';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { buildLoenArbejdsdageSet, resolveIncomeAllocationDays } from './periodiseringsMotor';
@@ -247,10 +248,13 @@ const resolveSfggAgPensionPctDecimalForDate = (
   employment: LoenindkomstAnsaettelsesforhold,
   iso: ISODateString
 ): number => {
-  if (!employment.overenskomstId || getOffentligOverenskomstTypeById(employment.overenskomstId)) {
+  // Aktiv-prædikatet (toggle OG id), ikke id'et alene: med «Overenskomst» slået fra, men et id stående, regnede
+  // sygeferiegodtgørelsen før med overenskomstens pension, mens kortet viste og regnede med brugerens egen.
+  const aktiv = resolveAktivOverenskomst(employment);
+  if (!aktiv.aktiv || getOffentligOverenskomstTypeById(aktiv.overenskomstId)) {
     return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
   }
-  const overenskomstRef = resolveOverenskomstRef(employment.overenskomstId);
+  const overenskomstRef = resolveOverenskomstRef(aktiv.overenskomstId);
   if (!overenskomstRef) {
     return resolvePctDecimalFromSatsOrInput(undefined, employment.pensionPct);
   }
@@ -263,7 +267,10 @@ const resolveSfggAgPensionPctDecimalForDate = (
     dato: toDanishDateString(formatDanishDate(date)),
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
-  return resolvePctDecimalFromSatsOrInput(satser?.agPension, employment.pensionPct);
+  // En privat overenskomst låser pensionen. Før dens første satsperiode har programmet ingen sats, og den
+  // regnes da som 0 – samme regel som lønrækkerne (BB-275). Før faldt den tilbage til kortets pensionsfelt,
+  // som enten var tomt eller satsen på en helt anden dato.
+  return resolvePctDecimalFromSatsOrInput(satser?.agPension ?? 0, employment.pensionPct);
 };
 
 export const buildSfggGrossOre = (
@@ -313,6 +320,71 @@ export const allocateOreByWeights = (
     remainder -= 1;
   }
   return result;
+};
+
+export type SfggFeriepengeFradrag = Readonly<{
+  forDates: (ansaettelsesforholdId: string, dates: readonly ISODateString[]) => MoneyOre;
+  byYear: (ansaettelsesforholdId: string, dates: readonly ISODateString[]) => ReadonlyMap<number, MoneyOre>;
+}>;
+
+export type SfggFradragKrav = Readonly<{
+  ansaettelsesforholdId: string;
+  groups: readonly Readonly<{ dates: readonly ISODateString[]; satsOre: MoneyOre; agPensionPct: number }>[];
+}>;
+
+// "Feriepenge modtaget i perioden" omfatter alle arbejdsgivere, men hver modtaget krone fratrækkes
+// kun én gang på tværs af SFGG-kravene. Pr. dag fratrækker hvert krav sine egne feriepenge; feriepenge
+// fra arbejdsgivere uden SFGG-krav den dag fordeles mellem dagens krav efter deres dagsbeløb.
+export const buildSfggFeriepengeFradrag = (args: Readonly<{
+  kalkulatorer: ReadonlyMap<string, EmploymentSfggCalculator>;
+  krav: readonly SfggFradragKrav[];
+}>): SfggFeriepengeFradrag => {
+  const kravByDate = new Map<ISODateString, Array<Readonly<{ key: string; weight: number }>>>();
+  for (const krav of args.krav) {
+    for (const group of krav.groups) {
+      const weight = buildSfggGrossOre(group.satsOre, group.agPensionPct, 1);
+      for (const iso of group.dates) {
+        const entries = kravByDate.get(iso) ?? [];
+        entries.push({ key: krav.ansaettelsesforholdId, weight });
+        kravByDate.set(iso, entries);
+      }
+    }
+  }
+
+  const fradragByDate = new Map<ISODateString, ReadonlyMap<string, MoneyOre>>();
+  const resolveDate = (iso: ISODateString): ReadonlyMap<string, MoneyOre> => {
+    const cached = fradragByDate.get(iso);
+    if (cached) return cached;
+    const dagensKrav = kravByDate.get(iso) ?? [];
+    const kravIds = new Set(dagensKrav.map((entry) => entry.key));
+    let pulje = zeroMoneyOre();
+    args.kalkulatorer.forEach((calculator, id) => {
+      if (!kravIds.has(id)) pulje = addMoneyOre(pulje, calculator.buildFeriepengeOreForDates([iso]));
+    });
+    const andele = allocateOreByWeights(pulje, dagensKrav);
+    const result = new Map<string, MoneyOre>(dagensKrav.map((entry) => [
+      entry.key,
+      addMoneyOre(
+        args.kalkulatorer.get(entry.key)?.buildFeriepengeOreForDates([iso]) ?? zeroMoneyOre(),
+        andele.get(entry.key) ?? zeroMoneyOre()
+      ),
+    ]));
+    fradragByDate.set(iso, result);
+    return result;
+  };
+  const forDate = (id: string, iso: ISODateString): MoneyOre => resolveDate(iso).get(id) ?? zeroMoneyOre();
+
+  return {
+    forDates: (id, dates) => sumMoneyOre(dates.map((iso) => forDate(id, iso))),
+    byYear: (id, dates) => {
+      const byYear = new Map<number, MoneyOre>();
+      for (const iso of dates) {
+        const year = Number.parseInt(iso.slice(0, 4), 10);
+        byYear.set(year, addMoneyOre(byYear.get(year) ?? zeroMoneyOre(), forDate(id, iso)));
+      }
+      return byYear;
+    },
+  };
 };
 
 export const buildYearAllocationsForGroupedSegment = (args: Readonly<{

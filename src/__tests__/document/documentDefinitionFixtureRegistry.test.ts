@@ -331,6 +331,7 @@ const readyTafInput = (): SettledInput => {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'af-1',
         harOverenskomst: false,
+        feriePct: 12.5,
         loenudviklingBeregningsgrundlag: 'Ingen',
         indtaegtsoplysningerTableData: [{
           id: 'af-loen-1',

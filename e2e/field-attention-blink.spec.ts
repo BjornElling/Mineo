@@ -412,14 +412,14 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Lønindkomst' }).click();
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Ja, tilføj' }).click();
     await page.getByRole('tab', { name: 'Beregning' }).click();
 
     await startBlinkSampling(page);
     await clickEoIssueLink(
       page,
       'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt',
-      'Ansættelsesforhold'
+      // Ved ét ansættelsesforhold hedder linket fanens afsnit; kortets nummer bruges først ved flere (BB-278).
+      'Lønindkomst'
     );
 
     await expect(page.getByRole('tab', { name: 'Lønindkomst' })).toHaveAttribute('aria-selected', 'true');
@@ -440,7 +440,6 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Lønindkomst' }).click();
     await page.getByRole('button', { name: 'Tilføj nyt ansættelsesforhold' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Ja, tilføj' }).click();
 
     await page.locator('[name$=":loenudviklingBeregningsgrundlag"]').click();
     await page.getByRole('option', { name: 'Manuelt angivet', exact: true }).click();

@@ -188,6 +188,16 @@ export const erSidsteArbejdsdagRelevant = (
 ): boolean =>
   erAnsaettelsesforholdOphoertRelevant(employment) && employment.ansaettelsesforholdOphoert;
 
+/**
+ * «Fuld løn under ferie» læses kun til at udlede TAF-enheden (måneder/arbejdsdage) og ferieadvarslen – begge
+ * kun ved «Beregningsperiode». Ved angivet måneds- eller dagsløn er enheden fastlagt af valget, og feltet
+ * ændrer intet tal, ingen gate og intet dokument (gennemgået 2026-10-06, BB-285). Det skjules derfor;
+ * værdien bevares og gælder igen, når beregningsperioden vælges.
+ */
+export const erFuldLoenUnderFerieRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'beregnesUdFra'>,
+): boolean => values.beregnesUdFra === 'Beregningsperiode';
+
 /* ----------------------------------------------------------------------------------------
  * Rene synligheds-prædikater (afgørelsesdatoer, klage, bilagsnumre).
  * Gater UI-/PDF-felter der ikke indgår i et beregnet tal. De neutraliseres derfor IKKE i

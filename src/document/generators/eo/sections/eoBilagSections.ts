@@ -48,6 +48,7 @@ import type { SelectedElements } from '../types';
 import { renderLoenindkomstSection } from './loenindkomstSection';
 import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './offentligeYdelserSection';
 import { renderShDageSection } from './shDageSection';
+import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { renderReguleringSection } from './reguleringSection';
 import type { EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { moneyOre, subtractMoneyOre, zeroMoneyOre } from '../../../../domain/money/money';
@@ -346,6 +347,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     renderLoenindkomstSection({
       selectedElements,
       eoValues,
+      stamdataValues,
       startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
@@ -493,6 +495,12 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       tafRanges: model.tafRanges,
       sfggReferenceperiodeRanges,
       harSfggReferenceperiodeMedShFradrag,
+      // Samme betingelse som beregningsgrundlagets SH-fradrag i `renderTafBeregningsgrundlag`: komprimeret
+      // grundlag viser ingen mellemregning, og i måneder trækkes ingen SH-dage fra.
+      beregningsgrundlagFradragerShDage:
+        !model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning
+        && model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt?.beregnesUdFra === 'Beregningsperiode'
+        && model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE,
       startEoBilagPage,
       renderSubheader,
       writer,

@@ -12,6 +12,19 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-10-06 fra Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser (12g) – M-37:
+en manglende sats regnes som 0 % uden et ord.** En tom «Feriegodtgørelse/-tillæg» trækker 45.000 kr. fra kravet ved
+lønudvikling «Ingen», mens `0` og `1` er røde (BB-274, **Høj**), og en særlig fra-dato uden for overenskomstens satser
+åbner SH/SO og pension som tomme felter – kravet falder 46.245 kr. (BB-275, **Høj**). **Dertil M-13 dokument mod
+dokument** (BB-276, **Høj** – lønindkomstbilaget regner tillæg med månedens satser, grundlaget med satserne ved
+beregningsperiodens udløb: 449.201,02 mod 451.245,06 kr. i samme pdf, og bilagets «SH/SO-sats: 3,4 %» står over rækker
+på 2,7 %), **M-19 + M-33 i sikkerhedsnettets form** (BB-277, **Høj** – en rød sats eller dato på kortet giver en linje
+uden navn og link, og Beregning skriver «TAF-periode: Ingen perioder angivet»), **BB-231's form på kortniveau** (BB-278 –
+ens linjer for to kort foldes til én og siger ikke hvilket), **M-13 i navnet** (BB-279 – et unavngivet kort hedder
+«Arbejdssted» i opgørelsen og «Ansættelsesforhold 2» i bilaget), **M-35** (BB-285 – «Fuld løn under ferie» uvirksom ved
+angivet løn), **M-02** (BB-283, BB-284, BB-287), **M-05** (BB-286) og fire lokale (BB-280 SH-dage-bilaget, BB-281
+BB-267's søskende, BB-282 dags dato som loft, BB-288). M-04, M-09, M-10 og M-32 bestået; konsollen tavs.
+
 **Ét nyt mønster 2026-10-02 fra Erstatningsopgørelse → Beregningsgrundlaget for TAF (12f) – M-36: en lovlig
 indtastning fører beregningen ud i en intern undtagelse.** Tre værdier, felterne tager imod – 300 fraværsdage i en
 periode på 12 måneder, uspecificerede dage lig det maksimum, boksen selv nævner, og en månedsløn på 0 kr. – giver
@@ -2848,3 +2861,47 @@ kalder en brugerindtastning for en intern fejl.
   dækket af samme regler; lønrækker med kun `0 kr.` gav kun undtagelsen sammen med en anden lønudvikling end «Ingen»
   og er dækket. Sygeferiegodtgørelsen (fravær 251–365, dagssats 0) kunne ikke bringes til en undtagelse. **Tilbage:**
   reguleringsformerne (12i) er ikke probet.
+
+## M-37 – En manglende sats regnes som 0 % uden et ord
+
+> En procentsats indgår i et beløb, og når den mangler, regnes der videre med 0 %. Ingen ring, ingen linje i boksen,
+> og beløbet bliver mindre. Det gælder både, når brugeren har ladet feltet stå tomt, og når programmet selv skulle
+> have slået satsen op, men ikke har den.
+
+Formen er farlig, fordi 0 % ligner en lovlig værdi: regnestykket går op, papiret er pænt, og skærmen viser bevidst
+ikke kravet (BB-226). Det eneste spor er en afledt kolonne på `0,00 kr.` eller en linje, der mangler i papiret. Den
+er værst, hvor programmet selv ved, at 0 % er forkert – fx når det afviser `1` som for lavt, men lader det tomme
+felt passere.
+
+To varianter:
+
+- **Brugerens tomme felt.** Feltets påkrævethed er bundet til en anden regel end den, der læser værdien (fx «påkrævet
+  ved reguleringsformerne, der opregulerer med satsen», mens grundlaget læser den ved alle).
+- **Programmets tomme opslag.** Et felt, der udfyldes og låses fra en tabel (overenskomst, satstabel), falder tilbage
+  til brugerens felt, når tabellen ikke dækker datoen – og brugerens felt er tomt, fordi det var låst.
+
+**Efterprøv, hvor:** en procentsats indgår i et beløb (`parsePercentToDecimal`, `?? 0` eller `|| 0` på en sats).
+
+1. Lad satsen stå tom i hver af fladens tilstande (reguleringsform, lønperiode, tillæg som procent/beløb). Ændrer
+   papirets beløb sig i forhold til en udfyldt sats, uden at noget på skærmen siger det?
+2. For et opslået felt: flyt opslagsdatoen uden for tabellens dækning (en særlig dato, en tidlig beregningsperiode).
+   Bliver feltet åbent og tomt uden besked?
+3. Er værdien `0` eller en for lav sats rød, mens det tomme felt passerer? Så er reglen der – den rammer blot ikke den
+   tomme form.
+
+**Udviklerens afgørelse 2026-10-06 (BB-274, BB-275):** et tomt felt, brugeren ikke har skrevet i, får ingen rød ring –
+manglen meldes og blokerer i «Fejl og advarsler». En sats, programmet skulle slå op, men ikke har, skelnes fra 0 %: et
+tillæg, en privat overenskomst ikke giver, er 0 % og låst; har programmet ingen satser på reguleringsdatoen, blokeres med
+en navngiven fejl; lønrækker før dækningen regnes uden tillæg med en gul advarsel. Et låst felt låses aldrig op, fordi
+opslaget fejler.
+
+**Skellet mod M-13:** M-13 handler om, at 0 og tomt VISES ens; M-37 om, at tomt REGNES som 0. **Skellet mod M-16:**
+dér afviser motoren noget, feltet tog imod; her tager motoren imod noget, feltet burde have afvist.
+
+- Fundet i: `erstatningsopgoerelse-12g.md` BB-274 (**Høj** – tom «Feriegodtgørelse/-tillæg» ved lønudvikling «Ingen»:
+  kravet 360.000,00 kr. mod 405.000,00 kr. med 12,5 %, mens `0` og `1` er røde) og BB-275 (**Høj** – en særlig
+  fra-dato `01-01-2010` uden for Bygge-/anlægsoverenskomstens satser åbner fritvalg, SH/SO og pension som tomme felter:
+  kravet falder fra 451.245,00 kr. til 405.000,00 kr. uden en linje).
+- Kandidater, ikke efterprøvet: Årslønsberegningens feriesats (`beregnFejlmeddelelser` regner tom som 0 og advarer kun
+  over 0); en beregningsperiode, der slutter før overenskomstens dækning (12g/12i); den manuelle lønudviklings
+  satskolonner (12i); offentlige ydelsers reguleringssatser (12k).

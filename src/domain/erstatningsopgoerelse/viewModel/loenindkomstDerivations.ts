@@ -3,6 +3,7 @@ import type {
   LoenindkomstAnsaettelsesforhold,
   StamdataValues,
 } from '../../../schemas/formSchemas';
+import { resolveSatserHeadingForAnsaettelsesforhold } from '../helpers/satserHeading';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
@@ -92,6 +93,8 @@ export type LoenindkomstFlatModel = Readonly<{
   getAnvendtReguleringsdatoForAnsaettelsesforhold: (
     af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>
   ) => ISODateString | undefined;
+  /** Satsafsnittets overskrift – samme tekst som linjen i «Fejl og advarsler» og bilagets satslinjer. */
+  getSatserHeadingForAnsaettelsesforhold: (af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>) => string;
   getSfggReferenceperiodeAvailability: (
     employment: Ansaettelsesforhold,
     row: SfggRow | undefined
@@ -321,6 +324,12 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     derivedCalculatorByAfId,
     manualBaseRowErrorsByAfId,
     getAnvendtReguleringsdatoForAnsaettelsesforhold,
+    getSatserHeadingForAnsaettelsesforhold: (af) => resolveSatserHeadingForAnsaettelsesforhold({
+      values: eoValues,
+      ansaettelsesforhold: af,
+      skadedato,
+      skadestype,
+    }),
     getSfggReferenceperiodeAvailability,
     getLoenudviklingBaseDate,
     isOffentligLoenSelectionReady,

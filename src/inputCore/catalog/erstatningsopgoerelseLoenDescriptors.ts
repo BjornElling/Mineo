@@ -15,7 +15,7 @@ import {
   type StandardLoenTableRow,
 } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
-import type { ISODateString } from '../../types/branded';
+import { isoToDanish, type ISODateString } from '../../types/branded';
 import {
   booleanFieldCodec,
   createAmountFieldCodec,
@@ -33,7 +33,7 @@ import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import type { CanonicalView, ContextualLabelRule, FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator, RelevanceRule } from '../fieldDescriptor';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
-import { dateBounds, systemrammeSpec } from './dateBoundsValidators';
+import { dateBounds, systemrammeSpec, systemrammeTilDagsDatoSpec } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import type { FieldCodec } from '../fieldCodec';
 import {
@@ -57,7 +57,12 @@ import {
   isLoenudviklingManuelProcentsatsRowEmpty,
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
-import { resolveStamdataDatoReferenceFromView } from './stamdataDescriptors';
+import { resolveStamdataDatoReferenceFromView, stamdataSkadedatoField } from './stamdataDescriptors';
+import {
+  erDatoUdenOverenskomstSatser,
+  formatReguleringsdatoUdenOverenskomstSatserBesked,
+  resolvePrivatOverenskomstDaekning,
+} from '../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 // Gensidig import: `erstatningsopgoerelseDescriptors` læser lønindkomsttræet herfra. Begge læser kun den anden
 // inde i en relevansregel – aldrig ved modul-evaluering – så rækkefølgen er ligegyldig.
 import { eoBeregnesUdFraField } from './erstatningsopgoerelseDescriptors';
@@ -66,6 +71,7 @@ import type { TafBeregningsenhedEmployment, TafBeregningsenhedLoenRow } from '..
 import {
   erAnsaettelsesforholdOphoertRelevant,
   erSidsteArbejdsdagRelevant,
+  erFuldLoenUnderFerieRelevant,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 // Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
@@ -159,11 +165,13 @@ const dateFieldWithBounds = (
 const reqChoiceField = <T extends string>(
   ownerId: string, path: PathSegments, field: string, label: string,
   values: readonly T[], emptyValue: T, controlKind: FieldControlKind = 'choice',
+  relevance?: RelevanceRule<T>,
 ): FieldDescriptor<T> =>
   createField<T>({
     ownerId, path, field, label, controlKind,
     codec: createRequiredChoiceFieldCodec<T>(values, emptyValue),
     emptyValue, isEmpty: () => false,
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 // ── Samlingen loenindkomstAnsaettelsesforhold ──────────────────────────────────────
@@ -192,11 +200,12 @@ const empAmountBounds = (field: string): readonly FieldValidator<AmountValue | u
 const empDate = (
   field: string, label: string, spec: DateBoundsSpec = systemrammeSpec,
   relevance?: RelevanceRule<ISODateString | undefined>,
+  extraValidators: readonly FieldValidator<ISODateString | undefined>[] = [],
 ): FieldDescriptor<ISODateString | undefined> =>
   createField<ISODateString | undefined>({
     ownerId: EMP_ID, path: employmentPath, field, label, controlKind: 'text', codec: dateCodec,
     emptyValue: undefined, isEmpty: isUndefined,
-    ...dateBounds(spec),
+    ...dateBounds(spec, extraValidators),
     ...(relevance === undefined ? {} : { relevance }),
   });
 
@@ -221,6 +230,45 @@ const employmentRelevance = <T,>(
   });
 };
 
+/**
+ * «Sidste dag i ansættelsesforholdet» kan ikke ligge før skadedatoen, når skadelidte var ansat på
+ * skadestidspunktet – én af de to oplysninger er da forkert (udviklerafgørelse 2026-10-06, BB-283). Feltet er
+ * kun relevant (og valideres derfor kun), når både «Ansat på …» og «Opsagt fra stillingen» er slået til. Et
+ * ansættelsesforhold, der sluttede før skaden, angives med «Ansat på …» slået fra.
+ */
+const sidsteDagEfterSkadedatoValidator: FieldValidator<ISODateString | undefined> = (value, field, view) => {
+  if (value === undefined) return undefined;
+  const skadedato = view.readCanonical(stamdataSkadedatoField.bind());
+  if (skadedato === undefined || value >= skadedato) return undefined;
+  const reference = resolveStamdataDatoReferenceFromView(view);
+  return {
+    reason: 'rule',
+    code: `${field.descriptor.id}.foerSkadedato`,
+    message: `Sidste dag i ansættelsesforholdet skal ligge på eller efter ${reference.labelLower} (${isoToDanish(skadedato) ?? skadedato}), når skadelidte var ansat på ${reference.tidspunktBestemt}`,
+  };
+};
+
+/**
+ * Den særlige fra-dato må ikke ligge før den valgte PRIVATE overenskomsts første satsperiode: programmet har
+ * da ingen satser at regne tillæggene med (udviklerafgørelse 2026-10-06, BB-275). I beløb-tilstand bruges
+ * satserne ikke, og datoen markeres ikke.
+ */
+const saerligFraDatoOverenskomstDaekningValidator: FieldValidator<ISODateString | undefined> = (value, field, view) => {
+  if (value === undefined) return undefined;
+  const employmentId = employmentIdFromField(field);
+  if (view.readCanonical(eoEmploymentFields.tillaegAngivesSom.bind(employmentId)) === 'beloeb') return undefined;
+  const daekning = resolvePrivatOverenskomstDaekning({
+    harOverenskomst: view.readCanonical(eoEmploymentFields.harOverenskomst.bind(employmentId)),
+    overenskomstId: view.readCanonical(eoEmploymentFields.overenskomstId.bind(employmentId)),
+  });
+  if (daekning === null || !erDatoUdenOverenskomstSatser(daekning, value)) return undefined;
+  return {
+    reason: 'rule',
+    code: `${field.descriptor.id}.overenskomstDaekning`,
+    message: formatReguleringsdatoUdenOverenskomstSatserBesked(daekning),
+  };
+};
+
 // Navngivne employment-descriptors, som readerprojektion og grid binder direkte. Aggregatarrayet
 // nedenfor afledes fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
 export const eoEmploymentFields = {
@@ -232,13 +280,16 @@ export const eoEmploymentFields = {
   // selv det rigtige navn to steder, så det var descriptorens label, der drev fra dem.
   ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentRelevance(erAnsaettelsesforholdOphoertRelevant) }),
-  sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant)),
+  sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant), [sidsteDagEfterSkadedatoValidator]),
   fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
   shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
   pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),
   tillaegAngivesSom: reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
   loenperiode: reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
-  fuldLoenUnderFerie: reqChoiceField(EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle'),
+  fuldLoenUnderFerie: reqChoiceField(
+    EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle',
+    (_field, view) => erFuldLoenUnderFerieRelevant({ beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()) }),
+  ),
   harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg'),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
@@ -246,7 +297,12 @@ export const eoEmploymentFields = {
   feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
   loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
   beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  saerligFraDatoRegulering: empDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),
+  // Reguleringsdatoen er den dato, lønnen afspejler – en senere dato end i dag er en tastefejl (BB-282).
+  // Labelen er skærmens («Evt. særlig fra-dato …»), så linjen i «Fejl og advarsler» navngiver feltet, som det står.
+  saerligFraDatoRegulering: empDate(
+    'saerligFraDatoRegulering', 'Evt. særlig fra-dato for regulering', systemrammeTilDagsDatoSpec, undefined,
+    [saerligFraDatoOverenskomstDaekningValidator],
+  ),
   loenudviklingBeregningsgrundlag: optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
   loenudviklingKRLSatstabel: optField(EMP_ID, employmentPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
@@ -512,7 +568,7 @@ export const eoAngivetLoenFields = {
     controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
     relevance: (_field, view) => view.readCanonical(eoBeregnesUdFraField.bind()) !== 'Angivet dagsløn',
   }),
-  saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering'),
+  saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', systemrammeTilDagsDatoSpec),
   loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
   loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
   loenudviklingKRLSatstabel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),

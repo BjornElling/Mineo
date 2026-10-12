@@ -301,7 +301,8 @@ describe('sfggSegmentering', () => {
   });
 
   it('vælger den differentierede direkte overenskomstsats efter faggruppe og område', () => {
-    const employment = createSfggEmployment({ overenskomstId: 'bygge-anlaeg' });
+    // Overenskomsten skal være AKTIV (toggle + id), før pensionen hentes fra den.
+    const employment = createSfggEmployment({ harOverenskomst: true, overenskomstId: 'bygge-anlaeg' });
     const baseArgs = {
       iso: iso('2024-01-15'),
       employment,

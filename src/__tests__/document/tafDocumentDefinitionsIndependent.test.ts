@@ -77,6 +77,7 @@ const erstatningsopgoerelse: ErstatningsopgoerelseValues = {
     ...createDefaultLoenindkomstAnsaettelsesforhold(),
     id: 'taf-definition-af-1',
     harOverenskomst: false,
+    feriePct: 12.5,
     loenudviklingBeregningsgrundlag: 'Ingen',
     indtaegtsoplysningerTableData: [{
       id: 'taf-definition-loen-1',

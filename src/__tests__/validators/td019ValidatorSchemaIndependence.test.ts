@@ -765,7 +765,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'loenindkomstAnsaettelsesforhold[0].feriePct',
-        message: 'Feriegodtgørelse/-tillæg skal udfyldes',
+        message: 'Feriegodtgørelse/-tillæg er ikke udfyldt',
         severity: 'error',
       }],
     });
