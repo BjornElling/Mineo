@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import JSZip from 'jszip';
 
-import caseFixture from './fixtures/manuel-regulering-med-tillaeg.json';
+import caseFixture from './fixtures/manuel-regulering-med-tillaeg.json' with { type: 'json' };
 import { encryptToString } from '../src/utils/encryption';
 import { extractPdfText } from '../src/__tests__/utils/pdf/pdfTextExtractor';
 import { expect, login, openPage, test } from './support/mineoTest';
