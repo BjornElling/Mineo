@@ -153,6 +153,7 @@ import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
 import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
+import { collectMissingLoenudviklingReguleringsdatoIssues } from './loenudviklingReguleringsdatoIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 import { collectTafRowCellIssues } from './tafRowCellIssues';
 import { collectBeregningsgrundlagCellIssues } from './beregningsgrundlagCellIssues';
@@ -740,6 +741,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
   // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
   // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
   const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
+  const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
   // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
   // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
   // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
@@ -758,7 +760,11 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
   const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCellIssueList);
   const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
-  const eoFieldIssues = mergeIssues(eoProjection.readIssues(), projectedRowIssues);
+  const eoFieldIssues = mergeIssues(
+    eoProjection.readIssues(),
+    missingLoenudviklingReguleringsdatoIssueList,
+    projectedRowIssues
+  );
   const stamdataFieldIssues = stamdataProjection.readIssues();
   const eoErrors = buildFieldIssueSet(eoFieldIssues);
   const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);

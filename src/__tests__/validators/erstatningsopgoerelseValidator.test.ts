@@ -1218,6 +1218,59 @@ describe('validateLoenudviklingKonsistens', () => {
 // =============================================================================
 
 describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
+  it.each([
+    ['Angivet månedsløn', 'månedsløn'],
+    ['Angivet dagsløn', 'dagsløn'],
+  ] as const)('fanger manglende dato for aktiv %s', (beregnesUdFra, loenLabel) => {
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra,
+      maanedsloenenUdgoer: beregnesUdFra === 'Angivet månedsløn' ? asAmount(30000) : undefined,
+      dagsloenenUdgoer: beregnesUdFra === 'Angivet dagsløn' ? asAmount(1000) : undefined,
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'kl-overenskomst',
+      },
+    });
+
+    expect(hasError(values, `Datoen for den angivne ${loenLabel} skal udfyldes`)).toBe(true);
+  });
+
+  it('accepterer Stamdatas dato som fælles basis for aktiv lønregulering', () => {
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmount(1000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'kl-overenskomst',
+      },
+    });
+
+    expect(hasError(values, 'Datoen for den angivne dagsløn skal udfyldes')).toBe(true);
+    expect(erstatningsopgoerelseValidator.validateParsed(values, { skadedatoISO: iso('2022-01-01') }).errors)
+      .not.toContainEqual(expect.objectContaining({
+        path: 'eoAngivetLoenLoenudvikling.angivetDagsloenOpreguleresFraDato',
+        message: 'Datoen for den angivne dagsløn skal udfyldes, når skadedatoen ikke er udfyldt',
+      }));
+  });
+
+  it('kræver ikke en reguleringsdato, når lønudvikling er Ingen', () => {
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmount(1000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
+    });
+
+    expect(hasError(values, 'Datoen for den angivne dagsløn skal udfyldes')).toBe(false);
+  });
+
   it('fanger manglende statistikmodel ved grundlag=Statistik', () => {
     const values = makeValues({
       beregnesUdFra: 'Angivet månedsløn',

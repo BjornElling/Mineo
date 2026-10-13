@@ -9,6 +9,7 @@ import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
  * Lønindkomsts React-fri afledningsmodel.
  */
 export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel> & Readonly<{
+  eoErrors: FieldIssueSet;
   manualRegulationDateIssues: FieldIssueSet;
   /** TAF-cutoff mod differencekrav/EET, adresseret pr. fra-/til-celle. */
   tafCellIssues: FieldIssueSet;

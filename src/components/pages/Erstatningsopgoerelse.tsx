@@ -63,6 +63,7 @@ const Erstatningsopgoerelse = React.memo(() => {
           <EOOplysningerTab
             values={vm.eoValues}
             stamdataValues={vm.stamdataValues}
+            eoErrors={vm.projection.eoErrors}
             manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
             tafCellIssues={vm.projection.tafCellIssues}
             svieSmerteCellIssues={vm.projection.svieSmerteCellIssues}

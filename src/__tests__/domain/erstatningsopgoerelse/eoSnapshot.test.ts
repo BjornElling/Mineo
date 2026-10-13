@@ -435,6 +435,38 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.invariants.some((invariant) => invariant.message === 'Lønregulering skal vælges, evt. "Ingen"')).toBe(true);
   });
 
+  it('behandler manglende basisdato som valideringsfejl, også når TAF-perioden er udfyldt', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eoValues.beregnesUdFra = 'Angivet dagsløn';
+    eoValues.dagsloenenUdgoer = { kind: 'number', value: 1000 };
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: toISODateString('2022-01-01'), til: toISODateString('2024-12-31'), loseFeriedage: 0 },
+    ];
+    eoValues.eoAngivetLoenLoenudvikling = {
+      ...eoValues.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      overenskomstId: 'kl-overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 26,
+      offentligLoenGruppe: 1,
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'missing-loenregulering-basisdato',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues,
+    });
+
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).toBeUndefined();
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants.some((invariant) => invariant.id ===
+      'validation:eoAngivetLoenLoenudvikling.angivetDagsloenOpreguleresFraDato')).toBe(true);
+    expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
+    expect(reportSystemIssueMock).not.toHaveBeenCalled();
+  });
+
   it('normaliserer tom tidligere modtaget TAF til 0 i totals', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';

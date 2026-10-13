@@ -1,6 +1,7 @@
 export * as eoNummerValidering from './eoNummerValidering';
 export * as indkomstRowValidation from './indkomstRowValidation';
 export * as loenindkomstSatsAssessment from './loenindkomstSatsAssessment';
+export * as loenudviklingReguleringsdato from './loenudviklingReguleringsdato';
 export * as loenudviklingManuelBaseRowValidation from './loenudviklingManuelBaseRowValidation';
 export * as offentligeYdelserTableValidation from './offentligeYdelserTableValidation';
 export * as svieSmerteConstraints from './svieSmerteConstraints';

@@ -104,6 +104,50 @@ test.describe('Erstatningsopgørelse – beregningsgrundlaget for TAF', () => {
     expect(externalRequests).toEqual([]);
   });
 
+  test('manglende basisdato giver feltfejl frem for runtime-fejl', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await fillSag(page);
+
+    // EO-perioden og Stamdatas dato er tomme, mens TAF-perioden er udfyldt. TAF-perioden må ikke blive
+    // brugt som et skjult datogrundlag for lønreguleringen.
+    await openPage(page, 'Stamdata');
+    await setDate(page.locator("input[name='skadedato']"), '');
+    await openPage(page, 'Erstatningsopgørelse');
+    await setDate(page.locator("input[name='vedroererPeriodeFra']"), '');
+    await setDate(page.locator("input[name='vedroererPeriodeTil']"), '');
+    const tafRow = page.locator('table').filter({ hasText: 'TAF-måneder' }).first().locator('tbody tr').first();
+    await setDate(tafRow.getByRole('textbox', { name: 'Fra o.m.', exact: true }), '01-01-2022');
+    await setDate(tafRow.getByRole('textbox', { name: 'Til o.m.', exact: true }), '31-12-2024');
+
+    await vaelgBeregnesUdFra(page, 'Angivet dagsløn');
+    await setFieldValueAndSettle(page.locator("input[name='dagsloenenUdgoer']"), '1000');
+
+    const loenudvikling = page.getByRole('combobox', {
+      name: 'Lønudvikling beregnes ud fra',
+      exact: true,
+    });
+    await loenudvikling.click();
+    await page.getByRole('option', { name: 'Overenskomst', exact: true }).click();
+    await page.locator("input[name='overenskomstFilter.arbejdsgiver']").click();
+    await page.getByRole('option', { name: 'KL', exact: true }).click();
+    await page.locator("input[name='overenskomstId']").click();
+    await page.getByRole('option', { name: /^KL-overenskomsten/ }).first().click();
+    await setFieldValueAndSettle(page.locator("input[name='offentligLoenTrin']"), '26');
+    await setFieldValueAndSettle(page.locator("input[name='offentligLoenGruppe']"), '1');
+
+    const basisdato = page.locator("input[name='angivetDagsloenOpreguleresFraDato']");
+    await expect(basisdato).toHaveAttribute('aria-invalid', 'true');
+    await expect(basisdato).toHaveAccessibleDescription(
+      /Datoen for den angivne dagsløn skal udfyldes, når skadedatoen ikke er udfyldt/
+    );
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
   test('overlap mellem beregningsperioden og en TAF-periode farver begge datoer (BB-262)', async ({
     page,
     runtimeErrors,

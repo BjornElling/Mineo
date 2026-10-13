@@ -16,10 +16,11 @@ import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
 const EOOplysningerTab = React.memo(({
-  values, stamdataValues, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues,
+  values, stamdataValues, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues,
 }: {
   values: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
+  eoErrors: FieldIssueSet;
   manualRegulationDateIssues: FieldIssueSet;
   tafCellIssues: FieldIssueSet;
   svieSmerteCellIssues: FieldIssueSet;
@@ -29,8 +30,8 @@ const EOOplysningerTab = React.memo(({
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
   const baseVm = useEoOplysningerViewModel(values, stamdataValues);
   const vm = React.useMemo(
-    () => ({ ...baseVm, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues }),
-    [baseVm, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues]
+    () => ({ ...baseVm, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues }),
+    [baseVm, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues]
   );
   const { loentrinFinder } = baseVm;
 

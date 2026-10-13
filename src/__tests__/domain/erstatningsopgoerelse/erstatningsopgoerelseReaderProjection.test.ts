@@ -354,6 +354,39 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     }
   );
 
+  it('projekterer manglende basisdato til det aktive angivne lønfelt', () => {
+    const eo = buildValidEo();
+    const withMissingBasisdato: ErstatningsopgoerelseValues = {
+      ...eo,
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmount(1000),
+      eoAngivetLoenLoenudvikling: {
+        ...eo.eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'kl-overenskomst',
+        offentligLoenType: 'Månedsløn',
+        offentligLoenTrin: 26,
+        offentligLoenGruppe: 1,
+      },
+    };
+    const projection = buildErstatningsopgoerelseReaderProjection(
+      buildReader(withMissingBasisdato, { ...validStamdata, skadedato: undefined }),
+      { revision: 'missing-loenregulering-basisdato' }
+    );
+
+    const issue = topLevelFieldIssue(
+      projection.eoErrors,
+      'erstatningsopgoerelse',
+      'angivetDagsloenOpreguleresFraDato'
+    );
+    expect(issue?.reason).toBe('rule');
+    expect(issue?.message).toBe(
+      'Datoen for den angivne dagsløn skal udfyldes, når skadedatoen ikke er udfyldt'
+    );
+    expect(projection.snapshot.status).toBe('error');
+    expect(projection.snapshot.failClosedReason).toBeUndefined();
+  });
+
   it('er tolerant over for en null EO-sektion (tom sag)', () => {
     const reader = buildReader(null, validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'empty' });

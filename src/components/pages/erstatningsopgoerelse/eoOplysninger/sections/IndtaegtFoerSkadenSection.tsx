@@ -112,6 +112,7 @@ export default function IndtaegtFoerSkadenSection() {
     showEoAnciennitetstillaegSection,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
+    eoErrors,
     manualRegulationDateIssues,
     tafCellIssues,
     visBeregningsperiodeFerie,
@@ -125,6 +126,10 @@ export default function IndtaegtFoerSkadenSection() {
   // Feltets eget issue har forrang i feltet selv (§1.8).
   const crossFieldIssueFor = <T,>(field: FieldRef<T>) => {
     const issue = tafCellIssues.get(serializeFieldAddress(field.address));
+    return issue === undefined ? {} : { crossFieldIssue: issue };
+  };
+  const eoFieldIssueFor = <T,>(field: FieldRef<T>) => {
+    const issue = eoErrors.get(serializeFieldAddress(field.address));
     return issue === undefined ? {} : { crossFieldIssue: issue };
   };
   const warningProp = (warning: (typeof beregningsgrundlagAdvarsler)[keyof typeof beregningsgrundlagAdvarsler]) =>
@@ -407,6 +412,9 @@ export default function IndtaegtFoerSkadenSection() {
                         ? 'angivetMaanedsloenOpreguleresFraDato'
                         : 'angivetDagsloenOpreguleresFraDato'
                     }
+                    {...eoFieldIssueFor(values.beregnesUdFra === 'Angivet månedsløn'
+                      ? eoAngivetMaanedsloenOpreguleresFraDatoField.bind()
+                      : eoAngivetDagsloenOpreguleresFraDatoField.bind())}
                   />
                 </Box>
               </Box>

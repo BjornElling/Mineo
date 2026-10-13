@@ -66,6 +66,7 @@ import {
   BEREGNINGSPERIODE_MANGLER_MESSAGE,
   INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
 } from '../domain/erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
+import { buildMissingLoenudviklingReguleringsdatoMessage } from '../domain/erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import {
   parseOffentligLoenSelection,
@@ -1011,7 +1012,7 @@ function validateLoenudviklingsKravForAktivKilde(
       return;
     }
     if (grundlag === 'Ingen') return;
-    const manualBasisdato = resolveAnvendtReguleringsdato({
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
       beregnesUdFra: values.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
       saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering)
@@ -1020,9 +1021,22 @@ function validateLoenudviklingsKravForAktivKilde(
       beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato: options?.skadedatoISO,
     });
-    const manualDateErrorMessage = manualBasisdato === undefined
+    if (
+      anvendtReguleringsdato === undefined &&
+      (values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn')
+    ) {
+      const field = values.beregnesUdFra === 'Angivet månedsløn'
+        ? 'angivetMaanedsloenOpreguleresFraDato'
+        : 'angivetDagsloenOpreguleresFraDato';
+      errors.push({
+        path: path(field),
+        message: buildMissingLoenudviklingReguleringsdatoMessage(values.beregnesUdFra, options?.skadestype),
+        severity: 'error',
+      });
+    }
+    const manualDateErrorMessage = anvendtReguleringsdato === undefined
       ? undefined
-      : `Datoen skal være senere end datoen i den låste første række (${isoToDanish(manualBasisdato) ?? manualBasisdato})`;
+      : `Datoen skal være senere end datoen i den låste første række (${isoToDanish(anvendtReguleringsdato) ?? anvendtReguleringsdato})`;
 
     // Enhver AKTIV reguleringsform regulerer en løn – uden indtastede lønoplysninger findes der
     // intet at regulere, og motoren fail-closer ("mangler beregningsgrundlag"). Kravet hører til
@@ -1142,7 +1156,7 @@ function validateLoenudviklingsKravForAktivKilde(
       const aktiveRowsEfterBasis = rows.slice(1).filter((row) => aktiveRows.includes(row));
 
       rows.slice(1).forEach((row, rowIndex) => {
-        if (isManualRegulationDateOnOrBeforeBasis(row.dato, manualBasisdato)) {
+        if (isManualRegulationDateOnOrBeforeBasis(row.dato, anvendtReguleringsdato)) {
           errors.push({
             path: path(`loenudviklingManuelTableData[${rowIndex + 1}].dato`),
             message: manualDateErrorMessage ?? 'Datoen skal være senere end datoen i den låste første række',
@@ -1182,7 +1196,7 @@ function validateLoenudviklingsKravForAktivKilde(
       const rows = (af.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
       const aktiveRows = rows.filter(isManuelProcentsatsRowAktiv);
       rows.forEach((row, rowIndex) => {
-        if (isManualRegulationDateOnOrBeforeBasis(row.dato, manualBasisdato)) {
+        if (isManualRegulationDateOnOrBeforeBasis(row.dato, anvendtReguleringsdato)) {
           errors.push({
             path: path(`loenudviklingManuelProcentsatsTableData[${rowIndex + 1}].dato`),
             message: manualDateErrorMessage ?? 'Datoen skal være senere end datoen i den låste første række',
