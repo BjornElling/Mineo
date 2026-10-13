@@ -10,14 +10,21 @@ import { aarsloenAslMax } from '../../data/lovbestemteRates';
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
+type ValidationOptions = Parameters<typeof erstatningsopgoerelseValidator.validateParsed>[1];
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return { ...base, ...patch };
 };
 
-const hasError = (values: ErstatningsopgoerelseValues, messagePart: string): boolean => {
-  const result = erstatningsopgoerelseValidator.validate(values);
+const hasError = (
+  values: ErstatningsopgoerelseValues,
+  messagePart: string,
+  options?: ValidationOptions
+): boolean => {
+  const result = options === undefined
+    ? erstatningsopgoerelseValidator.validate(values)
+    : erstatningsopgoerelseValidator.validateParsed(values, options);
   return result.errors.some((e) => e.message.includes(messagePart));
 };
 
@@ -1234,7 +1241,9 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
       },
     });
 
-    expect(hasError(values, `Datoen for den angivne ${loenLabel} skal udfyldes`)).toBe(true);
+    expect(hasError(values, `Datoen for den angivne ${loenLabel} skal udfyldes`, {
+      stamdataContext: { skadedato: undefined, skadestype: undefined },
+    })).toBe(true);
   });
 
   it('accepterer Stamdatas dato som fælles basis for aktiv lønregulering', () => {
@@ -1249,8 +1258,13 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
       },
     });
 
-    expect(hasError(values, 'Datoen for den angivne dagsløn skal udfyldes')).toBe(true);
-    expect(erstatningsopgoerelseValidator.validateParsed(values, { skadedatoISO: iso('2022-01-01') }).errors)
+    expect(hasError(values, 'Datoen for den angivne dagsløn skal udfyldes', {
+      stamdataContext: { skadedato: undefined, skadestype: undefined },
+    })).toBe(true);
+    expect(erstatningsopgoerelseValidator.validateParsed(values, {
+      skadedatoISO: iso('2022-01-01'),
+      stamdataContext: { skadedato: iso('2022-01-01'), skadestype: undefined },
+    }).errors)
       .not.toContainEqual(expect.objectContaining({
         path: 'eoAngivetLoenLoenudvikling.angivetDagsloenOpreguleresFraDato',
         message: 'Datoen for den angivne dagsløn skal udfyldes, når skadedatoen ikke er udfyldt',

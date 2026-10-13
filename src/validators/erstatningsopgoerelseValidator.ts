@@ -815,6 +815,11 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
 type ErstatningsopgoerelseValidationOptions = Readonly<{
   skadedatoISO?: ISODateString | undefined;
   skadestype?: StamdataValues['skadestype'] | undefined;
+  /**
+   * Markerer at validatoren kaldes med den faktiske Stamdata-sektion. Det er vigtigt at skelne mellem en
+   * manglende Stamdata-dato i en sag og en isoleret EO-validator, som med vilje ikke har den sektion med.
+   */
+  stamdataContext?: Pick<StamdataValues, 'skadedato' | 'skadestype'>;
 }>;
 
 /**
@@ -1022,6 +1027,7 @@ function validateLoenudviklingsKravForAktivKilde(
       skadedato: options?.skadedatoISO,
     });
     if (
+      options?.stamdataContext !== undefined &&
       anvendtReguleringsdato === undefined &&
       (values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn')
     ) {
@@ -1030,7 +1036,7 @@ function validateLoenudviklingsKravForAktivKilde(
         : 'angivetDagsloenOpreguleresFraDato';
       errors.push({
         path: path(field),
-        message: buildMissingLoenudviklingReguleringsdatoMessage(values.beregnesUdFra, options?.skadestype),
+        message: buildMissingLoenudviklingReguleringsdatoMessage(values.beregnesUdFra, options.stamdataContext.skadestype),
         severity: 'error',
       });
     }

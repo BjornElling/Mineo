@@ -345,6 +345,10 @@ export const computeEoSnapshot = (args: Readonly<{
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
     skadedatoISO: parsedStamdata.data.skadedato,
     skadestype: parsedStamdata.data.skadestype,
+    stamdataContext: {
+      skadedato: parsedStamdata.data.skadedato,
+      skadestype: parsedStamdata.data.skadestype,
+    },
   });
   const stamdataDateOrderErrors = resolveStamdataDateOrder(parsedStamdata.data).issues.map((issue) => ({
     path: `stamdata.${issue.field}`,
