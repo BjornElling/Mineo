@@ -36,6 +36,8 @@ næste scenarier og historiske fund nedenfor skal læses som tidsstemplet auditd
 - Endelig fuld Vitest-suite: 998/998 testfiler og 10.359/10.359 tests bestået. Alle 6.561 matrixkombinationer er fordelt på 27 tests uden hævet timeout; fuzzingen dækker 300 seedede sager og bruger samme delte dokumentkontekst pr. revision som produktionen.
 - Alle ændringer i projektet committes samlet; `docs/review/regulering-taf-gennemgang-2026-10-13.md` er udtrykkeligt undtaget og er ikke ændret som del af opgaven.
 
+- Efterkontrol af commit `f0979fe0` (2026-10-15): 1.500 sammenhængende og 1.600 tilfældige fuzzsager med nye seeds (20000–21599), 1.400 randomiserede TAF-/SFGG-/periodemutationer og en fornyet analytisk gennemgang af TAF-, periodiserings-, SFGG-, offentlige ydelses- og kontrolkoden gav ingen fund. Fuzzingens fangst af indberettede systemfejl er verificeret ved midlertidigt at fjerne EO-kontrol-rettelsen.
+
 Dækningen er systematisk, men er ikke et matematisk bevis for alle mulige tekst-, række- og datokombinationer.
 
 ## Auditstatus
