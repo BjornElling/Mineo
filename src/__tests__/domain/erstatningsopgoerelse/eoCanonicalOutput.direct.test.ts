@@ -7,6 +7,7 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import {
   buildEoCanonicalOutputFromComputed,
   buildEoComputedTotals,
+  EoCanonicalOutputSchema,
   type EoComputedTotals,
 } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { LoenudviklingModel, LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -68,6 +69,23 @@ const buildCanonicalArgs = () => {
 };
 
 describe('eoCanonicalOutput – direkte invariantgrene', () => {
+  it('validerer KL-nulbasis med nulbeløb og afviser inkonsistente nulsegmenter', () => {
+    const { args } = buildCanonicalArgs();
+    const output = buildEoCanonicalOutputFromComputed(args);
+    const segment = {
+      kind: 'arbejdsdage' as const, fra: iso('2024-01-01'), til: iso('2024-01-31'),
+      arbejdsdage: 22, dagsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0),
+      reguleretLoenOre: moneyOre(0), regulering: buildReguleringsbevis(0, 0, { kind: 'klLoenaftaler' }),
+    };
+    const withSegment = (replacement: LoenudviklingSegment) => ({
+      ...output, regulering: { ...output.regulering, loenudviklingSegmenter: [replacement] },
+    });
+    expect(EoCanonicalOutputSchema.safeParse(withSegment(segment)).success).toBe(true);
+    for (const patch of [{ deltaPct: 1 }, { amountOre: moneyOre(1) }, { reguleretLoenOre: moneyOre(1) }]) {
+      expect(EoCanonicalOutputSchema.safeParse(withSegment({ ...segment, ...patch })).success).toBe(false);
+    }
+  });
+
   it('håndterer både ikke-beregnelig tidligere TAF og forligsfaktor i totalbyggeren', () => {
     const { data } = buildCanonicalArgs();
     const udenTidligereTaf = {

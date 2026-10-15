@@ -8,6 +8,7 @@ import {
   resolveSfggSegmentRateForDate,
 } from '../../../domain/erstatningsopgoerelse/engines/sfggSegmentering';
 import { moneyOre, toKroner } from '../../../domain/money/money';
+import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import {
   asSfggAmount,
   createSfggEmployment,
@@ -253,6 +254,30 @@ describe('sfggSegmentering', () => {
     expect(starts.length).toBeGreaterThan(0);
     expect(starts).toEqual([...starts].sort());
     expect(starts.every((start) => start >= iso('2024-01-01') && start <= iso('2024-12-31'))).toBe(true);
+  });
+
+  it('bevarer referencesatsen ved ægte KL-nulbasis og afviser korrupte nulsegmenter', () => {
+    const segment = {
+      kind: 'arbejdsdage' as const, fra: iso('2024-01-01'), til: iso('2024-12-31'),
+      arbejdsdage: 260, dagsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0),
+      reguleretLoenOre: moneyOre(0), regulering: buildReguleringsbevis(0, 0, { kind: 'klLoenaftaler' }),
+    };
+    const args = {
+      iso: iso('2024-06-01'), employment: createSfggEmployment(), sfggRow: createSfggIngenRow('af-1'),
+      sfggSource: { kind: 'ferielov' as const },
+      sfggBaseRate: {
+        sfggReferenceperiode: { fra: iso('2024-01-01'), til: iso('2024-01-31') },
+        sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(10_000) },
+        sfggReferencesatsFormula: null,
+      },
+    };
+    expect(resolveSfggSegmentRateForDate({ ...args, loenudvikling: { beregnedeSegmenter: [segment] } }))
+      .toEqual({ satsOre: 10_000, agPensionPct: 0, reguleringsindeks: 100 });
+    for (const patch of [{ deltaPct: 1 }, { reguleretLoenOre: moneyOre(1) }, { regulering: undefined }]) {
+      expect(() => resolveSfggSegmentRateForDate({
+        ...args, loenudvikling: { beregnedeSegmenter: [{ ...segment, ...patch }] },
+      })).toThrow('mangler positiv basisløn');
+    }
   });
 
   it('afviser inkonsistent KL-segmentering i referenceforløbet', () => {

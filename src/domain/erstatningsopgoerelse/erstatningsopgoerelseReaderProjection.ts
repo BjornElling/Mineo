@@ -2,7 +2,7 @@ import { createTrackedInputReader, type InputReader } from '../../inputCore/inpu
 import type { FieldRef } from '../../inputCore/fieldDescriptor';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
-import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
+import { buildFieldIssueSet, EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import type {
   ErstatningsopgoerelseValues,
   EOAngivetLoenLoenudvikling,
@@ -145,7 +145,7 @@ import {
   stamdataSkadelidteFodselsdatoField,
   stamdataSkadestypeField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
+import { buildEoRuntimeExceptionSnapshot, computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
 import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
@@ -722,77 +722,104 @@ export const buildErstatningsopgoerelseReaderProjection = (
   const eoProjection = createTrackedInputReader(reader);
   const stamdataProjection = createTrackedInputReader(reader);
   const stamdataValues = readStamdataValues(stamdataProjection.reader);
-  // Låste referencesatser er domæneafledning, ikke persisteret brugerinput.
-  const eoValues = projectLoenindkomstSatser(
-    readErstatningsopgoerelseValues(eoProjection.reader),
-    stamdataValues
-  );
+  let eoValues = readErstatningsopgoerelseValues(eoProjection.reader);
 
-  // Transient midlertidigt-EET-injektion: kun når togglen er 'Ja'.
-  const midlertidigtEetImportContext =
-    eoValues.midlertidigtEetFraEetSiden === 'Ja' && options?.midlertidigtEetInsertSource
-      ? buildMidlertidigtEetImportContext(
-        options.midlertidigtEetInsertSource,
-        buildTafRanges(eoValues, { skadedatoISO: stamdataValues.skadedato })
-      )
-      : undefined;
+  const revision = options?.revision
+    ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`;
 
-  // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
-  // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
-  // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
-  const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
-  const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
-  // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
-  // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
-  // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
-  const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
-  // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue spærrede før uden rød celle
-  // (BB-248, BB-251, BB-252). De projekteres samme vej som cutoffen og blokerer samme gren.
-  const tafRowCellIssueList = collectTafRowCellIssues(eoValues, stamdataValues);
-  // Beregningsgrundlagets ferie, løse dage og fravær spærrede uden rød celle eller endte i en intern
-  // undtagelse (BB-258, BB-264). De projekteres samme vej og blokerer samme gren.
-  const beregningsgrundlagCellIssueList = collectBeregningsgrundlagCellIssues(eoValues);
-  const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList, beregningsgrundlagCellIssueList);
-  const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
-  // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
-  // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
-  const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
-  const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
-  const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCellIssueList);
-  const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
-  const eoFieldIssues = mergeIssues(
-    eoProjection.readIssues(),
-    missingLoenudviklingReguleringsdatoIssueList,
-    projectedRowIssues
-  );
-  const stamdataFieldIssues = stamdataProjection.readIssues();
-  const eoErrors = buildFieldIssueSet(eoFieldIssues);
-  const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
-  const dependencyProjection = buildEoDependencyProjection(
-    reader,
-    eoFieldIssues,
-    { svieSmerte: svieSmerteProjectedIssues, taf: tafProjectedIssues }
-  );
+  // Feltissue-projektionerne, EET-konteksten og dependency-projektionen kører FØR `computeEoSnapshot` og dermed
+  // uden for dens fail-closed-blok. En undtagelse her skal give samme kontrollerede tilstand som en motorfejl
+  // (intern beregningsfejl, alle outputs blokeret) – ikke vælte hele Erstatningsopgørelse-siden.
+  try {
+    // Satsopslag kan kaste ved brudte datainvarianter. Bevar de allerede læste input og feltissues,
+    // hvis afledningen fejler, så fejlen blokerer beregningen uden at vælte formularen.
+    eoValues = projectLoenindkomstSatser(eoValues, stamdataValues);
 
-  const snapshot = computeEoSnapshot({
-    revision: options?.revision ?? `input-${String(reader.sourceToken.inputRevision)}-settings-${String(reader.sourceToken.settingsRevision)}`,
-    stamdataValues,
-    eoValues,
-    stamdataErrors,
-    eoErrors,
-    dependencyProjection,
-    ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
-  });
+    // Transient midlertidigt-EET-injektion: kun når togglen er 'Ja'.
+    const midlertidigtEetImportContext =
+      eoValues.midlertidigtEetFraEetSiden === 'Ja' && options?.midlertidigtEetInsertSource
+        ? buildMidlertidigtEetImportContext(
+          options.midlertidigtEetInsertSource,
+          buildTafRanges(eoValues, { skadedatoISO: stamdataValues.skadedato })
+        )
+        : undefined;
 
-  return {
-    snapshot,
-    eoValues,
-    stamdataValues,
-    eoErrors,
-    stamdataErrors,
-    manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
-    tafCellIssues: buildFieldIssueSet(tafCellIssueList),
-    svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
-    sourceToken: reader.sourceToken,
-  };
+    // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
+    // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
+    // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
+    const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
+    const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
+    // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
+    // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
+    // herfra med samme datogrundlag, som motorens clamping bruger, og bærer selv feltadressen.
+    const tafCutoffDateIssueList = collectTafCutoffDateIssues(eoValues, stamdataValues);
+    // Overlap, for mange løse feriedage og en ferieperiode uden for sit vindue spærrede før uden rød celle
+    // (BB-248, BB-251, BB-252). De projekteres samme vej som cutoffen og blokerer samme gren.
+    const tafRowCellIssueList = collectTafRowCellIssues(eoValues, stamdataValues);
+    // Beregningsgrundlagets ferie, løse dage og fravær spærrede uden rød celle eller endte i en intern
+    // undtagelse (BB-258, BB-264). De projekteres samme vej og blokerer samme gren.
+    const beregningsgrundlagCellIssueList = collectBeregningsgrundlagCellIssues(eoValues);
+    const tafCellIssueList = mergeIssues(tafCutoffDateIssueList, tafRowCellIssueList, beregningsgrundlagCellIssueList);
+    const svieSmerteCutoffDateIssueList = collectSvieSmerteCutoffDateIssues(eoValues);
+    // Overlappet spærrede allerede opgørelsen gennem rækkeevalueringen, men uden en feltadresse og
+    // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
+    const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
+    const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
+    const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCellIssueList);
+    const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
+    const eoFieldIssues = mergeIssues(
+      eoProjection.readIssues(),
+      missingLoenudviklingReguleringsdatoIssueList,
+      projectedRowIssues
+    );
+    const stamdataFieldIssues = stamdataProjection.readIssues();
+    const eoErrors = buildFieldIssueSet(eoFieldIssues);
+    const stamdataErrors = buildFieldIssueSet(stamdataFieldIssues);
+    const dependencyProjection = buildEoDependencyProjection(
+      reader,
+      eoFieldIssues,
+      { svieSmerte: svieSmerteProjectedIssues, taf: tafProjectedIssues }
+    );
+
+    const snapshot = computeEoSnapshot({
+      revision,
+      stamdataValues,
+      eoValues,
+      stamdataErrors,
+      eoErrors,
+      dependencyProjection,
+      ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
+    });
+
+    return {
+      snapshot,
+      eoValues,
+      stamdataValues,
+      eoErrors,
+      stamdataErrors,
+      manualRegulationDateIssues: buildFieldIssueSet(manualRegulationDateIssueList),
+      tafCellIssues: buildFieldIssueSet(tafCellIssueList),
+      svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
+      sourceToken: reader.sourceToken,
+    };
+  } catch (error) {
+    return {
+      snapshot: buildEoRuntimeExceptionSnapshot({
+        revision,
+        error,
+        context: 'erstatningsopgoerelseReaderProjection',
+        inspektionSnapshotAvailable: false,
+        input: { stamdata: stamdataValues, erstatningsopgoerelse: eoValues },
+      }),
+      eoValues,
+      stamdataValues,
+      // Readerens egne røde felter er læst fuldt af værdirekonstruktionen ovenfor og kan stadig vises.
+      eoErrors: buildFieldIssueSet(eoProjection.readIssues()),
+      stamdataErrors: buildFieldIssueSet(stamdataProjection.readIssues()),
+      manualRegulationDateIssues: EMPTY_FIELD_ISSUE_SET,
+      tafCellIssues: EMPTY_FIELD_ISSUE_SET,
+      svieSmerteCellIssues: EMPTY_FIELD_ISSUE_SET,
+      sourceToken: reader.sourceToken,
+    };
+  }
 };

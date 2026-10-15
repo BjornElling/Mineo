@@ -195,6 +195,10 @@ export default function LoenudviklingFields<
                   name={name('offentligLoenType')}
                   width={160}
                   allowEmpty={false}
+                  // Feltet er bevidst valgfrit i schemaet (ældre `.eo`-filer uden det skal kunne indlæses), og hele
+                  // domænet læser en tom værdi som månedsløn. Uden sentinellen kastede `allowEmpty={false}` på en
+                  // sådan sag og væltede siden, så snart en offentlig overenskomst var valgt.
+                  emptyUiValue="Månedsløn"
                 >
                   {offentligLoenTypeEnum.options.map((option) => (
                     <MenuItem key={option} value={option}>

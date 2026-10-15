@@ -12,6 +12,8 @@ import type { EoRowModel } from '../../eoRowEvaluation/eoRowTypes';
 import type { EoCanonicalOutput } from './eoCanonicalOutput';
 import type { EoModel } from './eoPresentationModel';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
+import { safeCompute } from '../../../utils/safeComputation';
+import { isErr } from '../../../types/result';
 
 type EoInspektionViewBlocked = Readonly<{
   kind: 'blocked';
@@ -77,6 +79,30 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
       pdfModel,
     };
 
+    const regulationSectionsResult = safeCompute(() => {
+      const timeline = buildRegulationTimeline({
+        eoValues: erstatningsopgoerelseValues,
+        stamdataValues,
+        loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling ?? null,
+      });
+      return buildRegulationInspektionSections({
+        timeline,
+        canonicalOutput,
+        loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling,
+        eoValues: erstatningsopgoerelseValues,
+        stamdataValues,
+      });
+    }, 'EOInspektion.regulationSections', { code: 'eo_inspektion:regulation_projection' });
+
+    if (isErr(regulationSectionsResult)) {
+      return {
+        kind: 'blocked',
+        severity: 'error',
+        title: 'EO-kontrol er blokeret',
+        message: 'Reguleringsdelen i EO-kontrol kunne ikke vises, fordi kontrolgrundlaget er inkonsistent.',
+      };
+    }
+
     return {
       kind: 'ready',
       canonicalOutput,
@@ -84,17 +110,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
       stamdataValues,
       erstatningsopgoerelseValues,
       rowsBySection: executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx),
-      regulationSections: buildRegulationInspektionSections({
-        timeline: buildRegulationTimeline({
-          eoValues: erstatningsopgoerelseValues,
-          stamdataValues,
-          loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling ?? null,
-        }),
-        canonicalOutput,
-        loenudvikling: pdfModel?.tabtArbejdsfortjeneste.loenudvikling,
-        eoValues: erstatningsopgoerelseValues,
-        stamdataValues,
-      }),
+      regulationSections: regulationSectionsResult.value,
       pdfModel,
     };
   }

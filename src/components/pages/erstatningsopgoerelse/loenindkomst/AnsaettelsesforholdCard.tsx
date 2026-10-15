@@ -37,6 +37,7 @@ import {
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
   resolveOverenskomstDisplay,
+  withGemtOrganisation,
 } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
@@ -446,7 +447,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 }}
               >
                 <MenuItem value="ALLE">Alle</MenuItem>
-                {alleLoenmodtagerOrg.map((org) => (
+                {withGemtOrganisation(alleLoenmodtagerOrg, af.overenskomstFilter.loenmodtager, 'ALLE').map((org) => (
                   <MenuItem key={org} value={org}>
                     {org}
                   </MenuItem>
@@ -488,7 +489,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                 }}
               >
                 <MenuItem value="ALLE">Alle</MenuItem>
-                {alleArbejdsgiverOrg.map((org) => (
+                {withGemtOrganisation(alleArbejdsgiverOrg, af.overenskomstFilter.arbejdsgiver, 'ALLE').map((org) => (
                   <MenuItem key={org} value={org}>
                     {org}
                   </MenuItem>

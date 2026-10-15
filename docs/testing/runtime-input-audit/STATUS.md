@@ -4,6 +4,40 @@ Dette dokument bevarer auditdækning og observationer fra den daværende auditpe
 Det er et historisk auditspor og ikke en aktuel liste over åbne produktmangler; statusser,
 næste scenarier og historiske fund nedenfor skal læses som tidsstemplet auditdokumentation.
 
+## Aktuelt checkpoint – EO-RUNTIME-001
+
+- Dato: 2026-10-15 Europe/Copenhagen
+- Projektstatus: afsluttet; ingen kendte åbne EO-runtimefund efter nedenstående review og verifikation.
+- Flade: `/erstatningsopgoerelse`, alle fire hovedfaner samt EO-kontrol og Kontroltabel
+- Afgrænsning: det aktuelle udviklingsprojekt er EO-inputs runtime-sikkerhed. Den brede audit fra august nedenfor er historik og er ikke en restanceliste for dette projekt.
+- Metode: analytisk review af input → feltissues → dependency-gating → validering → snapshot → visning/dokumentgate, suppleret med kombinationsmatrix, seedet fuzzing, målrettede mutationer, komponentmounting og browserrejser.
+- Review: snapshot, reader-projektion, validator og kontrolprojektion er gennemgået særskilt; eksisterende beløbsformler, satser, persistensschemas og load-adfærd er ikke ændret.
+- Rettelser: manglende manuel basisløn og ukendt overenskomst giver eksisterende slags valideringsfejl; ufuldstændig offentlig indplacering rammer ikke privat satsopslag; valgfri offentlig ansættelsestype kan vises uden crash; gemte organisationsfiltre kan vises og ændres uden at blive overskrevet ved mount.
+- Sikkerhedsnet: satsprojektion, feltissue-/dependency-afledning, validator og kontrolberegningen ved valideringsfejl omfattes nu af kontrolleret fail-closed. Injicerede undtagelser testes særskilt, så sikkerhedsnettet ikke forveksles med korrekt håndtering af forventeligt input.
+- Nyt fund under afslutningsreview: 12 månedslønsrækker på hver 0,01 kr., uden fuld løn under ferie og med KL-lønaftaler, gav afrundet dagsløn 0 og derefter `0/0` i reguleringsbeviset. Udvikleren godkendte 2026-10-15, at afrundet nulbasis beregnes som 0 kr. Beviset registrerer nu faktiske nulbeløb og neutral regulering; canonical- og SFGG-kontroller accepterer kun den konsistente KL-nultilstand. Positive beregninger følger den uændrede kodevej. `eoSnapshot.klNulbasis.test.ts` dækker 0,01/0,07 kr. med og uden SFGG.
+- Testkladders maskinspecifikke logging, `any` og manuelle probes er erstattet af fælles typed runtime-testkæde og målrettede regressioner. Fuzzingen fejler også på schema-ugyldige testdata, kontrolrækkernes skjulte fallback-fejl og systemfejl.
+
+| Input-/afhængighedsområde | Dækning |
+|---|---|
+| Tomme/delvise perioder, kravvalg og beregningsmetoder | `eoInputRuntimeMatrix.test.ts`: 6.561 kombinationer |
+| Offentlige ydelser, SFGG og AES-valg uden datoer | `eoInputRuntimeCoverage.test.ts` og eksisterende domænetests |
+| EO-felter og ansættelsesforhold, grænser og manglende værdier | `eoInputRuntimeFuzz.test.ts`: schemafeltinventar og seedede tilfældige/sammenhængende sager |
+| Løn, reguleringskilder, ferie/fravær, flere ansættelser og EET-import | `eoInputRuntimeMutations.test.ts` samt eksisterende motor-/validatortests |
+| Beregning, EO-kontrol, kontrolrækker og syv dokumentprojektioner | Fælles `helpers/eoRuntimePage.ts`; exception og kontrolleret runtime-fallback tæller begge som fund |
+| Alle fire hovedfaner og begge kontrolfaner | `Erstatningsopgoerelse.runtimeInputSmoke.test.tsx`, inklusive historiske/tomme dropdownværdier |
+| Faktisk indtastning, settle og faneskift | `erstatningsopgoerelse-runtime-input-matrix.spec.ts`; overvåger browserfejl, systemfejl og eksterne requests |
+| Uventet intern fejl i afledningen | `eoSnapshot.validationBranchRuntimeException.test.ts`, `erstatningsopgoerelseReaderProjection.runtimeException.test.ts` og kontrolprojektionens regression |
+
+### Afsluttende verifikation
+
+- Alle fire TypeScript-projekter, lint, encoding-, filnavns-, kontrakt- og E2E-lane-check samt inputinventar (`verify:ledgers`) er bestået.
+- Fuld E2E-banesuite: 248 bestået, 2 forventede skips. Efter den sidste produktionsrettelse er EO-runtime-matricen desuden gentaget: 16/16 bestået i Chrome, Edge, Firefox og WebKit ved 1536×864 og 1920×1080. Ingen runtime-/console-/systemfejl eller eksterne requests i de nye scenarier. Desktop-screenshots er inspiceret uden layoutbrud.
+- E2E-kørslerne byggede begge apps. Separat coverage-/release-/dependency-gate er ikke kørt: opgaven ændrer hverken dependencies, buildkonfiguration eller deployment.
+- Endelig fuld Vitest-suite: 998/998 testfiler og 10.359/10.359 tests bestået. Alle 6.561 matrixkombinationer er fordelt på 27 tests uden hævet timeout; fuzzingen dækker 300 seedede sager og bruger samme delte dokumentkontekst pr. revision som produktionen.
+- Alle ændringer i projektet committes samlet; `docs/review/regulering-taf-gennemgang-2026-10-13.md` er udtrykkeligt undtaget og er ikke ændret som del af opgaven.
+
+Dækningen er systematisk, men er ikke et matematisk bevis for alle mulige tekst-, række- og datokombinationer.
+
 ## Auditstatus
 
 - Samlet auditstatus på tidspunktet: I gang

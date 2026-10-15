@@ -29,7 +29,7 @@ import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
 import { isoDateToDate } from '../../../../domain/dates/isoDate';
 import { MONTH_NAMES_DA } from '../../../../utils/dateFormatting';
-import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg, getOverenskomsterByOrg, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../../../data/overenskomstRates';
+import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg, getOverenskomsterByOrg, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId, withGemtOrganisation } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
@@ -158,7 +158,9 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».
     angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedslønnen' : 'dagslønnen'} per dato (hvis forskellig fra ${referencedato.labelLower})`,
     aktivAngivetLoenOpreguleresFraDato, visLoenudviklingFraEO, eoLoenudvikling, loentrinFinder,
-    alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(), alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(), filteredOverenskomster,
+    alleLoenmodtagerOrg: withGemtOrganisation(getAlleLoenmodtagerOrg(), eoLoenudvikling.overenskomstFilter.loenmodtager, 'ALLE'),
+    alleArbejdsgiverOrg: withGemtOrganisation(getAlleArbejdsgiverOrg(), eoLoenudvikling.overenskomstFilter.arbejdsgiver, 'ALLE'),
+    filteredOverenskomster,
     loenudviklingBasis, erOffentligOverenskomst,
     offentligLoenEkstraGrundloenSuffix: eoLoenudvikling.offentligLoenType === 'Timeløn' ? '/ time' : '/ måned',
     eoAnciennitetSatsPerTekst: values.beregnesUdFra === 'Angivet dagsløn' ? 'time' : 'måned',

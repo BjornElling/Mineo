@@ -15,7 +15,7 @@ import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import type { Calculable, LoenudviklingSegment } from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
 import type { OevrigeKravCanonicalInput } from './eoPresentationModel';
-import { reguleringsbevisSchema } from '../engines/regulering/reguleringsbevis';
+import { isKlNulbasis, reguleringsbevisSchema } from '../engines/regulering/reguleringsbevis';
 import { computeFormulaValue, roundReguleringDeltaPct } from '../engines/reguleringFormulaUtils';
 import { segmentAmountOre } from '../engines/loenudviklingBeregning';
 import { isWithinTolerance } from '../../../utils/numberComparison';
@@ -53,7 +53,7 @@ const loenudviklingSegmentSchema = z.discriminatedUnion('kind', [
   const unitLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
   const bevis = segment.regulering;
   if (bevis) {
-    const rawFactor = bevis.periodValue / bevis.referenceValue;
+    const rawFactor = isKlNulbasis(bevis) ? 1 : bevis.periodValue / bevis.referenceValue;
     const expectedDeltaPct = bevis.kind === 'klLoenaftaler'
       ? roundByMethod(bevis.rawDeltaPct, 8, 'halfAwayFromZero')
       : roundReguleringDeltaPct(bevis.rawDeltaPct);

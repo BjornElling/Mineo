@@ -123,6 +123,25 @@ describe('Indstillinger – hver valgkontrols valgmuligheder er præcis sit sche
 });
 
 describe('Indstillinger – et valg committes med sin egen type', () => {
+  it.each([
+    ['defaultOverenskomstLoenmodtager', 2],
+    ['defaultOverenskomstArbejdsgiver', 3],
+  ] as const)('bevarer en historisk organisation i %s og lader den skifte til Alle', async (setting, index) => {
+    const organisation = 'Historisk organisation';
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({ ...DEFAULT_APP_SETTINGS, [setting]: organisation }));
+    const user = userEvent.setup();
+    await renderIndstillinger();
+
+    const combobox = screen.getAllByRole('combobox')[index];
+    expect(combobox).toHaveValue(organisation);
+    if (combobox === undefined) throw new Error('Organisationsfilteret mangler');
+    await user.click(combobox);
+    const listbox = await screen.findByRole('listbox');
+    expect(within(listbox).getByRole('option', { name: organisation })).toBeInTheDocument();
+    await user.click(within(listbox).getByRole('option', { name: 'Alle' }));
+    expect(combobox).toHaveValue('Alle');
+  });
+
   it('valg i «Opgørelse afsluttes med» skriver den valgte værdi til settings', async () => {
     const user = userEvent.setup();
     await renderIndstillinger();

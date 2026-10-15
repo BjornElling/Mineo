@@ -332,4 +332,51 @@ describe('eoSnapshotToInspektionView', () => {
       | undefined;
     expect(sectionsArg?.loenudvikling).toBeUndefined();
   });
+
+  it('returnerer blocked-view når reguleringsprojektionen kaster på et inkonsistent snapshot', () => {
+    buildRegulationInspektionSectionsMock.mockImplementationOnce(() => {
+      throw new Error('Reguleringsgrundlag mangler');
+    });
+
+    const inspektionSnapshot = {
+      model: {},
+      inspektionDays: [],
+      sammentaellingRows: [],
+      stamdataValues: {},
+      eoValues: {
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
+      },
+      fieldErrors: {
+        stamdata: {},
+        erstatningsopgoerelse: {},
+      },
+    } as unknown as EOInspektionSnapshot;
+
+    const view = eoSnapshotToInspektionView({
+      snapshot: {
+        revision: 'rev-inconsistent-regulation',
+        status: 'ok',
+        invariants: [],
+        inspektionSnapshot,
+        data: {
+          canonicalOutput: {},
+          inspektionSnapshot,
+        },
+        input: {
+          stamdata: {},
+          erstatningsopgoerelse: {},
+        },
+      } as unknown as EoSnapshot,
+      rowPolicy: DEFAULT_EO_ROW_POLICY,
+      loenindkomstManuelReguleringInputErrors: {},
+    });
+
+    expect(view).toEqual({
+      kind: 'blocked',
+      severity: 'error',
+      title: 'EO-kontrol er blokeret',
+      message: 'Reguleringsdelen i EO-kontrol kunne ikke vises, fordi kontrolgrundlaget er inkonsistent.',
+    });
+  });
 });

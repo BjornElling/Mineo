@@ -527,6 +527,19 @@ describe('buildRegulationTimeline – indeks-beregning', () => {
     expect(result.ansaettelser).toHaveLength(0);
   });
 
+  it('kaster ikke for en offentlig overenskomst med ufuldstændig indplacering', () => {
+    // Indplaceringen er en valideringsfejl; kontrolvisningen må ikke falde igennem til det private satsopslag,
+    // som kaster for offentlige id'er og tidligere væltede hele EO-kontrols reguleringsdel.
+    const input = makeInput();
+    const af = input.eoValues.loenindkomstAnsaettelsesforhold[0];
+    af.overenskomstId = 'laerer-overenskomsten';
+    af.offentligLoenType = 'Månedsløn';
+    af.offentligLoenTrin = undefined;
+    af.offentligLoenGruppe = undefined;
+    const result = buildRegulationTimelineFromCanonical({ ...input, loenudvikling: null });
+    expect(result.ansaettelser).toHaveLength(0);
+  });
+
   it('bygger manuel reguleringssektion uden overenskomstId', () => {
     const input = makeInput();
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;

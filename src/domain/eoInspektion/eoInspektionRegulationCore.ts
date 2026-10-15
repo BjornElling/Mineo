@@ -812,6 +812,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     }
 
     if (grundlag === 'Overenskomst') {
+      // En offentlig overenskomst med ufuldstændig indplacering (fx et løntrin, gruppen ikke har) falder igennem
+      // den offentlige gren ovenfor. Det private satsopslag nedenfor kaster for offentlige id'er og væltede
+      // derfor hele EO-kontrols reguleringsdel; indplaceringen er allerede en valideringsfejl, så der vises intet.
+      if (af.overenskomstId && getOffentligOverenskomstTypeById(af.overenskomstId)) continue;
       const ref = af.overenskomstId ? resolveOverenskomstRef(af.overenskomstId) : null;
       if (!ref) continue;
       const overenskomstInterval = af.overenskomstId

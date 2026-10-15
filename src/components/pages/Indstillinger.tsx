@@ -9,7 +9,7 @@ import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBox from '../layout/ContentBox';
 import LabeledControlRow from '../layout/LabeledControlRow';
-import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg } from '../../data/overenskomstRates';
+import { getAlleLoenmodtagerOrg, getAlleArbejdsgiverOrg, withGemtOrganisation } from '../../data/overenskomstRates';
 import DefaultDirectoryRow from './indstillinger/DefaultDirectoryRow';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
@@ -265,7 +265,7 @@ const Indstillinger = React.memo(() => {
                 allowEmpty={false}
               >
                 <MenuItem value="ALLE">Alle</MenuItem>
-                {alleLoenmodtagerOrg.map((org) => (
+                {withGemtOrganisation(alleLoenmodtagerOrg, settings.defaultOverenskomstLoenmodtager, 'ALLE').map((org) => (
                   <MenuItem key={org} value={org}>
                     {org}
                   </MenuItem>
@@ -284,7 +284,7 @@ const Indstillinger = React.memo(() => {
                 allowEmpty={false}
               >
                 <MenuItem value="ALLE">Alle</MenuItem>
-                {alleArbejdsgiverOrg.map((org) => (
+                {withGemtOrganisation(alleArbejdsgiverOrg, settings.defaultOverenskomstArbejdsgiver, 'ALLE').map((org) => (
                   <MenuItem key={org} value={org}>
                     {org}
                   </MenuItem>

@@ -232,6 +232,57 @@ const withForligGate = (
   })
   : output;
 
+/**
+ * Den kontrollerede fail-closed-tilstand for en uventet undtagelse et sted i EO-afledningen: fejlen indberettes,
+ * og siden viser «intern beregningsfejl» med alle outputs blokeret i stedet for at vælte. Delt af selve
+ * snapshot-beregningen og reader-projektionens feltissue-led, som kører før den.
+ */
+export const buildEoRuntimeExceptionSnapshot = (args: Readonly<{
+  revision: string;
+  error: unknown;
+  context: string;
+  inspektionSnapshotAvailable: boolean;
+  input: EoSnapshot['input'];
+}>): EoSnapshot => {
+  const normalizedError = asError(args.error);
+  reportSystemIssue({
+    code: 'eo_snapshot:runtime_exception',
+    area: 'eo',
+    context: args.context,
+    userMessage: 'Uventet runtimefejl i EO-snapshot',
+    revision: args.revision,
+    error: normalizedError,
+    diagnostics: {
+      errorName: normalizedError.name,
+      // Selve snapshot-resultatet sætter inspektionSnapshot til null i fail_closed-stien (se nedenfor).
+      inspektionSnapshotAvailable: args.inspektionSnapshotAvailable,
+    },
+  });
+  return {
+    revision: args.revision,
+    status: 'fail_closed',
+    invariants: [{
+      id: 'runtime_exception',
+      passed: false,
+      severity: 'error' as const,
+      source: 'system' as const,
+      message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
+      evidence: [normalizedError.message],
+      blocksAuthoritativeComputation: true,
+      blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
+    }],
+    data: null,
+    // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
+    // er inspektionSnapshot null. En delvist bygget kontrol-snapshot fra en kørsel der efterfølgende
+    // kastede, må ikke eksponeres som et gyldigt beregningsgrundlag – også selvom
+    // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
+    // inspektionSnapshot. Fail-closed = ingen semi-autoritativ kontrolvisning.
+    inspektionSnapshot: null,
+    input: args.input,
+    failClosedReason: 'runtime_exception',
+  };
+};
+
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -285,171 +336,174 @@ export const computeEoSnapshot = (args: Readonly<{
     };
   }
 
-  // Transient EET-injection: når togglen er 'Ja', erstattes offentligeYdelserRows med en
-  // effektiv version, hvor manuelle midlertidigt_eet-rækker er filtreret væk og virtuelle
-  // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
-  // snapshot.input.erstatningsopgoerelse – kontraktundtagelsen i domain-boundary-contract.md §9
-  // dækker den read-only kobling.
-  const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
-    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetImportContext)
-    : { groups: [], issues: [] };
-  const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
-  const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
-  // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
-  // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke
-  // offentligeYdelserRows. Se eoInputRelevance.ts for relevans-reglerne og den bevidste
-  // komprimerings-undtagelse. Committed input bevares uændret i snapshot.input.
-  const effectiveEoValues = neutralizeIrrelevantEoInputs(
-    buildEoValuesWithTransientMidlertidigtEet(parsedEo.data, midlertidigtEetGroups)
-  );
-  const projectedForligInput = dependencyProjection.forligInput ?? effectiveEoValues;
-  const projectedSvieSmerteInput = dependencyProjection.svieSmerteInput === undefined
-    ? {
-      erstatningsopgoerelse: effectiveEoValues,
-      stamdata: {
-        skadedato: parsedStamdata.data.skadedato,
-        skadestype: parsedStamdata.data.skadestype,
-      },
-    }
-    : {
-      ...dependencyProjection.svieSmerteInput,
-      erstatningsopgoerelse: {
-        ...dependencyProjection.svieSmerteInput.erstatningsopgoerelse,
-        ...projectedForligInput,
-      },
-    };
-  const projectedTafValuesWithTransient = dependencyProjection.tafInput === undefined
-    ? effectiveEoValues
-    : buildEoValuesWithTransientMidlertidigtEet(
-      dependencyProjection.tafInput.values,
-      midlertidigtEetGroups
-    );
-  const projectedTafValues = projectedTafValuesWithTransient.kravPaaTabtArbejdsfortjeneste === 'Ja'
-    ? projectedTafValuesWithTransient
-    : {
-      ...projectedTafValuesWithTransient,
-      tafPerioder: [],
-      ferieperioder: [],
-      tidligereModtagetTaf: undefined,
-    };
-  const projectedTafStamdata = dependencyProjection.tafInput?.stamdata ?? parsedStamdata.data;
-  const projectedOevrigeKravValues = dependencyProjection.oevrigeKravInput ?? effectiveEoValues;
-
-  // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
-  // (systemfejl `eo_snapshot:hidden_angivet_loen_state_invalid`). Den er fjernet, fordi tilstanden ikke
-  // længere kan repræsenteres: feltet er required-with-default i BÅDE schemaet og descriptoren, så hverken
-  // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined` –
-  // gaten var ikke et værn mod en umulig tilstand, men den eneste udgang fra den tilstand, en HELT NY sag
-  // altid startede i. Genindfør den ikke; genindfør i stedet ikke den valgfrihed, den vogtede over.
-
-  const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
-    skadedatoISO: parsedStamdata.data.skadedato,
-    skadestype: parsedStamdata.data.skadestype,
-    stamdataContext: {
-      skadedato: parsedStamdata.data.skadedato,
-      skadestype: parsedStamdata.data.skadestype,
-    },
-  });
-  const stamdataDateOrderErrors = resolveStamdataDateOrder(parsedStamdata.data).issues.map((issue) => ({
-    path: `stamdata.${issue.field}`,
-    message: issue.message,
-    severity: 'error' as const,
-  }));
-  const validationInvariants = [
-    // Readerens maskering gør en rødmarkeret værdi `undefined` for legacy-validatoren, som da melder feltet
-    // TOMT oveni den ægte feltfejl. Undertrykkelsen fjerner netop den usande halvdel; se
-    // `suppressMaskedMissingInvariants`.
-    ...suppressMaskedMissingInvariants(
-      buildValidationInvariants(validationResult.errors),
-      dependencyProjection.aggregateIssues,
-      parsedEo.data
-    ),
-    ...buildValidationInvariants(stamdataDateOrderErrors),
-    ...midlertidigtEetSourceInvariants,
-    // F2: readerens røde feltfejl er BLOKERENDE afhængigheder, ikke kun inspektionsdata. Uden dem ville
-    // motorerne nedenfor køre på readerens maskerede tomværdier og producere falske tal (fx en forligsprocent
-    // på 150 regnet som 100 %).
-    //
-    // EO-sektionen går gennem de STRUKTURELLE issues (problemet): `eoErrors` er en præsentations-projektion med
-    // kun 11 top-level feltnavne, så en rød RÆKKECELLE ville hverken blokere beregningen eller sin egen gren.
-    ...buildStructuralFieldIssueInvariants(dependencyProjection.aggregateIssues),
-  ];
-  if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
-    // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
-    // Kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
-    // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
-    // TAF-ranges bygges fra de rækker der stadig kan parses, så kontrollaget kan vise den samme clamping
-    // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
-    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
-    //
-    // BEVIDST UDELADT (udviklerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
-    // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
-    // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
-    // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
-    // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
-    // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
-    // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
-    // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
-    // "tidligere udbetalt" var 0 – præcis det falske tal, udviklerbeslutningen 2026-07-25 kræver erstattet af `-`.
-    //
-    // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
-    // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
-    // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
-    // top-level feltnavne, så en rød rækkecelle ville være usynlig her.
-    // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
-    // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: udviklerbeslutning 1 kræver, at
-    // før-forlig-resultater består.
-    const svieSmerteForInspektion = blockedDependencies.svieSmerte
-      ? undefined
-      : withForligGate(
-        computeSvieSmerteEngine(projectedSvieSmerteInput),
-        blockedDependencies.forlig
-      );
-    // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
-    // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (udviklerbeslutning 2 kræver
-    // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl – ikke at en ugyldig vises).
-    const tafRangesForInspektion = blockedDependencies.taf
-      ? undefined
-      : buildTafRanges(projectedTafValues, { skadedatoISO: projectedTafStamdata.skadedato });
-    const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
-      revision: args.revision,
-      stamdata: parsedStamdata.data,
-      eoValues: effectiveEoValues,
-      stamdataErrors,
-      eoErrors,
-      ...(tafRangesForInspektion === undefined ? {} : { tafRanges: tafRangesForInspektion }),
-      svieSmerteEngine: svieSmerteForInspektion,
-    });
-    return {
-      revision: args.revision,
-      status: 'error',
-      invariants: validationInvariants,
-      // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
-      // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
-      // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
-      // dér udviklerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
-      data: null,
-      blockedDependencies,
-      // Udviklerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
-      // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
-      // svie/smerte-felt er rødt.
-      readyBranches: Object.freeze({
-        svieSmerte: svieSmerteForInspektion,
-        tafPerioder: tafRangesForInspektion,
-      }),
-      inspektionSnapshot: inspektionSnapshotForValidationError,
-      input: {
-        stamdata: parsedStamdata.data,
-        erstatningsopgoerelse: parsedEo.data,
-      },
-    };
-  }
-
   // inspektionSnapshot deklareres her så catch-blokken har adgang til den,
   // selv hvis en fejl opstår efter at den er bygget inde i try-blokken.
   let inspektionSnapshot: EOInspektionSnapshot | null = null;
 
+  // Hele afledningen efter schema-gaten står i try-blokken – også valideringen og valideringsfejl-grenens
+  // kontrolberegning (S/S-motor, TAF-ranges, kontrol-snapshot). Den gren kørte tidligere uden for blokken, så en
+  // undtagelse dér væltede hele siden i stedet for at ende som den kontrollerede `runtime_exception`-tilstand.
   try {
+    // Transient EET-injection: når togglen er 'Ja', erstattes offentligeYdelserRows med en
+    // effektiv version, hvor manuelle midlertidigt_eet-rækker er filtreret væk og virtuelle
+    // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
+    // snapshot.input.erstatningsopgoerelse – kontraktundtagelsen i domain-boundary-contract.md §9
+    // dækker den read-only kobling.
+    const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
+      ? buildMidlertidigtEetSourceResult(args.midlertidigtEetImportContext)
+      : { groups: [], issues: [] };
+    const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
+    const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
+    // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
+    // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke
+    // offentligeYdelserRows. Se eoInputRelevance.ts for relevans-reglerne og den bevidste
+    // komprimerings-undtagelse. Committed input bevares uændret i snapshot.input.
+    const effectiveEoValues = neutralizeIrrelevantEoInputs(
+      buildEoValuesWithTransientMidlertidigtEet(parsedEo.data, midlertidigtEetGroups)
+    );
+    const projectedForligInput = dependencyProjection.forligInput ?? effectiveEoValues;
+    const projectedSvieSmerteInput = dependencyProjection.svieSmerteInput === undefined
+      ? {
+        erstatningsopgoerelse: effectiveEoValues,
+        stamdata: {
+          skadedato: parsedStamdata.data.skadedato,
+          skadestype: parsedStamdata.data.skadestype,
+        },
+      }
+      : {
+        ...dependencyProjection.svieSmerteInput,
+        erstatningsopgoerelse: {
+          ...dependencyProjection.svieSmerteInput.erstatningsopgoerelse,
+          ...projectedForligInput,
+        },
+      };
+    const projectedTafValuesWithTransient = dependencyProjection.tafInput === undefined
+      ? effectiveEoValues
+      : buildEoValuesWithTransientMidlertidigtEet(
+        dependencyProjection.tafInput.values,
+        midlertidigtEetGroups
+      );
+    const projectedTafValues = projectedTafValuesWithTransient.kravPaaTabtArbejdsfortjeneste === 'Ja'
+      ? projectedTafValuesWithTransient
+      : {
+        ...projectedTafValuesWithTransient,
+        tafPerioder: [],
+        ferieperioder: [],
+        tidligereModtagetTaf: undefined,
+      };
+    const projectedTafStamdata = dependencyProjection.tafInput?.stamdata ?? parsedStamdata.data;
+    const projectedOevrigeKravValues = dependencyProjection.oevrigeKravInput ?? effectiveEoValues;
+
+    // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
+    // (systemfejl `eo_snapshot:hidden_angivet_loen_state_invalid`). Den er fjernet, fordi tilstanden ikke
+    // længere kan repræsenteres: feltet er required-with-default i BÅDE schemaet og descriptoren, så hverken
+    // en nyoprettet sektion, en ældre `.eo` eller readerens tomværdi kan give `undefined` –
+    // gaten var ikke et værn mod en umulig tilstand, men den eneste udgang fra den tilstand, en HELT NY sag
+    // altid startede i. Genindfør den ikke; genindfør i stedet ikke den valgfrihed, den vogtede over.
+
+    const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
+      skadedatoISO: parsedStamdata.data.skadedato,
+      skadestype: parsedStamdata.data.skadestype,
+      stamdataContext: {
+        skadedato: parsedStamdata.data.skadedato,
+        skadestype: parsedStamdata.data.skadestype,
+      },
+    });
+    const stamdataDateOrderErrors = resolveStamdataDateOrder(parsedStamdata.data).issues.map((issue) => ({
+      path: `stamdata.${issue.field}`,
+      message: issue.message,
+      severity: 'error' as const,
+    }));
+    const validationInvariants = [
+      // Readerens maskering gør en rødmarkeret værdi `undefined` for legacy-validatoren, som da melder feltet
+      // TOMT oveni den ægte feltfejl. Undertrykkelsen fjerner netop den usande halvdel; se
+      // `suppressMaskedMissingInvariants`.
+      ...suppressMaskedMissingInvariants(
+        buildValidationInvariants(validationResult.errors),
+        dependencyProjection.aggregateIssues,
+        parsedEo.data
+      ),
+      ...buildValidationInvariants(stamdataDateOrderErrors),
+      ...midlertidigtEetSourceInvariants,
+      // F2: readerens røde feltfejl er BLOKERENDE afhængigheder, ikke kun inspektionsdata. Uden dem ville
+      // motorerne nedenfor køre på readerens maskerede tomværdier og producere falske tal (fx en forligsprocent
+      // på 150 regnet som 100 %).
+      //
+      // EO-sektionen går gennem de STRUKTURELLE issues (problemet): `eoErrors` er en præsentations-projektion med
+      // kun 11 top-level feltnavne, så en rød RÆKKECELLE ville hverken blokere beregningen eller sin egen gren.
+      ...buildStructuralFieldIssueInvariants(dependencyProjection.aggregateIssues),
+    ];
+    if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
+      // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
+      // Kontrol-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
+      // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
+      // TAF-ranges bygges fra de rækker der stadig kan parses, så kontrollaget kan vise den samme clamping
+      // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
+      // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed kontrol-basis.
+      //
+      // BEVIDST UDELADT (udviklerbeslutning, reviewkandidat #23): reguleringsforløbet vises IKKE i denne
+      // fejl-tilstand. Efter #23 er det viste reguleringsforløb udelukkende den kanoniske serie fra det
+      // autoritative pdfModel (ingen re-derivation) – som netop ikke bygges her. Kontrolfanen fail-closer
+      // derfor reguleringsafsnittet til placeholders, indtil valideringsfejlen er løst. Dette er valgt
+      // frem for at genindføre en separat serie-beregning (der ville kunne vise en tabel, som ikke svarer
+      // til nogen autoritativ beregning). Genindfør IKKE et fejl-tilstands-forløb uden en ny beslutning.
+      // ⚠️ F2 (R1): en motor må IKKE køre, hvis en af DENS EGNE afhængigheder er rød. Readeren maskerer en rød
+      // værdi til `undefined`, så et ugatet kald her viste fx et "Beregnet svie/smerte"-beløb regnet som om
+      // "tidligere udbetalt" var 0 – præcis det falske tal, udviklerbeslutningen 2026-07-25 kræver erstattet af `-`.
+      //
+      // Gaten er dependency-specifik: en rød TAF-afhængighed rører ikke
+      // S/S-visningen, og en rød S/S-afhængighed rører ikke TAF-ranges. Kun grenens egne felter gater grenen.
+      // Autoriteten er de STRUKTURELLE feltissues, ikke `eoErrors`-mappet: sidstnævnte kender kun 11
+      // top-level feltnavne, så en rød rækkecelle ville være usynlig her.
+      // Forligsgraden skalerer S/S-satserne (`svieSmerteEngine.ts:234-254`), så en rød forligsprocent er en
+      // reel S/S-afhængighed. Den blokerer dog KUN efter-forlig-resultatet: udviklerbeslutning 1 kræver, at
+      // før-forlig-resultater består.
+      const svieSmerteForInspektion = blockedDependencies.svieSmerte
+        ? undefined
+        : withForligGate(
+          computeSvieSmerteEngine(projectedSvieSmerteInput),
+          blockedDependencies.forlig
+        );
+      // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
+      // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (udviklerbeslutning 2 kræver
+      // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl – ikke at en ugyldig vises).
+      const tafRangesForInspektion = blockedDependencies.taf
+        ? undefined
+        : buildTafRanges(projectedTafValues, { skadedatoISO: projectedTafStamdata.skadedato });
+      const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
+        revision: args.revision,
+        stamdata: parsedStamdata.data,
+        eoValues: effectiveEoValues,
+        stamdataErrors,
+        eoErrors,
+        ...(tafRangesForInspektion === undefined ? {} : { tafRanges: tafRangesForInspektion }),
+        svieSmerteEngine: svieSmerteForInspektion,
+      });
+      return {
+        revision: args.revision,
+        status: 'error',
+        invariants: validationInvariants,
+        // Det AUTORITATIVE aggregat (samlet total + canonicalOutput + pdfModel) forbliver `null`: en sum eller
+        // et fuldt dokument kan ikke være autoritativt, når bare ét led er blokeret.
+        // De uafhængige grene, der STADIG kan beregnes, eksponeres gennem `inspektionSnapshot` ovenfor – det er
+        // dér udviklerbeslutning 2 realiseres: en rød S/S-afhængighed fjerner ikke den gyldige TAF-visning.
+        data: null,
+        blockedDependencies,
+        // Udviklerbeslutning 2 realiseres HER, ikke kun i `inspektionSnapshot`: Beregning-fanen læser
+        // udelukkende snapshottet og skal fortsat kunne vise den gyldige TAF-periodisering, når et
+        // svie/smerte-felt er rødt.
+        readyBranches: Object.freeze({
+          svieSmerte: svieSmerteForInspektion,
+          tafPerioder: tafRangesForInspektion,
+        }),
+        inspektionSnapshot: inspektionSnapshotForValidationError,
+        input: {
+          stamdata: parsedStamdata.data,
+          erstatningsopgoerelse: parsedEo.data,
+        },
+      };
+    }
+
     const tafRanges = buildTafRanges(projectedTafValues, { skadedatoISO: projectedTafStamdata.skadedato });
     const forlig = parseForligsgrad(projectedForligInput);
     const forligFactor = forlig?.factor ?? null;
@@ -585,46 +639,16 @@ export const computeEoSnapshot = (args: Readonly<{
       },
     };
   } catch (error) {
-    const normalizedError = asError(error);
-    reportSystemIssue({
-      code: 'eo_snapshot:runtime_exception',
-      area: 'eo',
+    return buildEoRuntimeExceptionSnapshot({
+      revision: args.revision,
+      error,
       context: 'eoSnapshot.computeEoSnapshot',
-      userMessage: 'Uventet runtimefejl i EO-snapshot',
-      revision: args.revision,
-      error: normalizedError,
-      diagnostics: {
-        errorName: normalizedError.name,
-        // Diagnostisk: var en (delvist bygget) kontrol-snapshot tilgængelig, da exception ramte?
-        // Selve snapshot-resultatet sætter inspektionSnapshot til null i fail_closed-stien (se nedenfor).
-        inspektionSnapshotAvailable: inspektionSnapshot !== null,
-      },
-    });
-    return {
-      revision: args.revision,
-      status: 'fail_closed',
-      invariants: [{
-        id: 'runtime_exception',
-        passed: false,
-        severity: 'error' as const,
-        source: 'system' as const,
-        message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
-        evidence: [normalizedError.message],
-        blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'inspektion', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
-      }],
-      data: null,
-      // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
-      // er inspektionSnapshot null. En delvist bygget kontrol-snapshot fra en kørsel der efterfølgende
-      // kastede, må ikke eksponeres som et gyldigt beregningsgrundlag – også selvom
-      // eoSnapshotToInspektionView allerede router fail_closed til en blokeret tilstand uafhængigt af
-      // inspektionSnapshot. Fail-closed = ingen semi-autoritativ kontrolvisning.
-      inspektionSnapshot: null,
+      // Diagnostisk: var en (delvist bygget) kontrol-snapshot tilgængelig, da exception ramte?
+      inspektionSnapshotAvailable: inspektionSnapshot !== null,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,
       },
-      failClosedReason: 'runtime_exception',
-    };
+    });
   }
 };

@@ -1662,6 +1662,20 @@ export const getAlleArbejdsgiverOrg = (): ReadonlyArray<string> => {
   return Array.from(orgs).sort();
 };
 
+/**
+ * Valgmængden til en organisationsdropdown, udvidet med den gemte værdi, når organisationen ikke (længere) findes
+ * i overenskomstdataene – fx efter en omdøbning, læst fra en ældre `.eo` eller fra programindstillingerne.
+ *
+ * Uden den udvidelse kastede dropdownen i udvikling («value findes ikke blandt options») og stod i produktion låst
+ * med en rød ring, så brugeren ikke kunne nulstille filteret. Værdien vises som den er; intet ændres tavst.
+ */
+export const withGemtOrganisation = (
+  orgs: ReadonlyArray<string>,
+  gemt: string | undefined,
+  ...uiSentinels: readonly string[]
+): ReadonlyArray<string> =>
+  gemt === undefined || orgs.includes(gemt) || uiSentinels.includes(gemt) ? orgs : [...orgs, gemt];
+
 export const getOffentligOverenskomstTypeById = (rawId: string): OffentligOverenskomstType | undefined => {
   const ref = resolveOverenskomstRefFromString(rawId);
   if (!ref) return undefined;

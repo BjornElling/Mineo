@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -334,9 +334,19 @@ Engine-throws på forventelige brugerinputfejl er huller i preflight-dækningen.
 
 Regler:
 - Engines skal returnere nul-output via `buildZeroOutput` for kendte fejltilstande.
+- Godkendt af udvikleren 2026-10-15: Når en positiv indtastet løn giver en enhedsløn, som afrundes til
+  0 kr., beregner KL-lønaftaler nulbasis som 0 kr. De eksisterende beløbsformler og afrundinger bevares.
+  Reguleringsbeviset registrerer faktisk basis- og periodeløn 0 med neutral faktor 1 og regulering 0 %;
+  nulværdier må ikke accepteres som generel erstatning for et manglende eller inkonsistent grundlag.
 - Uventede engine-throws routes til `fail_closed` med `failClosedReason: 'runtime_exception'`.
+  Det gælder HELE afledningen efter schema-gaten – også validatoren, valideringsfejl-grenens
+  kontrolberegning og reader-projektionens feltissue- og dependency-led, som kører før
+  `computeEoSnapshot`. Ingen undtagelse fra EO-afledningen må nå React-træet og vælte siden; den
+  fælles fail-closed-tilstand bygges af `buildEoRuntimeExceptionSnapshot`.
 - Alle forventelige brugerinputfejl skal opdages og rapporteres i validator eller som
-  snapshot-invariants – ikke via engine-throws.
+  snapshot-invariants – ikke via engine-throws. Backstoppet ovenfor er et sikkerhedsnet, ikke en
+  erstatning: `eoInputRuntimeFuzz.test.ts` kører genererede sager gennem hele siden og fejler på
+  enhver `runtime_exception`.
 
 ---
 

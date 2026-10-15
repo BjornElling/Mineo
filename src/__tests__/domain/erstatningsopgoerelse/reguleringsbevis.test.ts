@@ -1,7 +1,7 @@
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { byggReguleringsResultat } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringFormRegistry';
 import type { KonsolideretLoenudvikling } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
-import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
+import { buildReguleringsbevis, reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { computeFormulaValue } from '../../../domain/erstatningsopgoerelse/engines/reguleringFormulaUtils';
 import { toISODateString } from '../../../types/branded';
 
@@ -37,6 +37,21 @@ const models: ReadonlyArray<Readonly<{ name: string; model: KonsolideretLoenudvi
 ];
 
 describe('autoritativt reguleringsgrundlag', () => {
+  it('bevarer KL-lønaftalernes faktiske nulbasis med neutral regulering', () => {
+    const proof = buildReguleringsbevis(0, 0, { kind: 'klLoenaftaler' });
+    expect(proof).toEqual({
+      kind: 'klLoenaftaler', referenceValue: 0, periodValue: 0,
+      rawFactor: 1, rawDeltaPct: 0, appliedDeltaPct: 0,
+    });
+    for (const patch of [
+      { kind: 'ingen' }, { kind: 'indeks' }, { kind: 'procentsats' }, { kind: 'pakke' },
+      { referenceValue: 1 }, { periodValue: 1 }, { referenceValue: -1 },
+      { rawFactor: 2 }, { rawDeltaPct: 1 }, { appliedDeltaPct: 1 },
+    ]) {
+      expect(reguleringsbevisSchema.safeParse({ ...proof, ...patch }).success).toBe(false);
+    }
+  });
+
   it('afviser et lønpakkegrundlag uden de komponenter, som visningen skal vise', () => {
     expect(reguleringsbevisSchema.safeParse({
       kind: 'pakke', referenceValue: 100, periodValue: 102.28,

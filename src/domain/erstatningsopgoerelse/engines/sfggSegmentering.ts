@@ -24,6 +24,7 @@ import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import { resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
 import type { LoenudviklingSegment } from '../shared/eoTypes';
+import { isKlNulbasis } from './regulering/reguleringsbevis';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { buildLoenArbejdsdageSet, resolveIncomeAllocationDays } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates } from './tafDaySets';
@@ -442,6 +443,12 @@ const resolveLoenudviklingSegment = (
 const assertKlSegmentDeltaMatchesReguleretLoen = (segment: LoenudviklingSegment): void => {
   if (segment.reguleretLoenOre === undefined) return;
   const baseLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+  // En positiv indtastet løn kan afrundes til nul pr. enhed. Godkendt 2026-10-15: KL-resolverens
+  // nulresultat er gyldigt, når de faktiske nulbeløb og den neutrale regulering stemmer overens.
+  if (baseLoenOre === 0 && segment.reguleretLoenOre === 0 && segment.deltaPct === 0
+    && segment.regulering && isKlNulbasis(segment.regulering)
+    && segment.regulering.rawFactor === 1 && segment.regulering.rawDeltaPct === 0
+    && segment.regulering.appliedDeltaPct === 0) return;
   if (baseLoenOre <= 0) {
     throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segment mangler positiv basisløn');
   }

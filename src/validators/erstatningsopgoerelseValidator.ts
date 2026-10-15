@@ -67,7 +67,7 @@ import {
   INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
 } from '../domain/erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
 import { buildMissingLoenudviklingReguleringsdatoMessage } from '../domain/erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
-import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
+import { getOffentligOverenskomstTypeById, getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import {
   parseOffentligLoenSelection,
   type OffentligLoenSelectionFailure,
@@ -945,6 +945,12 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
 // ---- Lønindkomst ----
 
 /**
+ * Et overenskomst-id, som valglisten ikke kan give, men en indlæst `.eo` kan bære: overenskomsten er siden fjernet
+ * eller omdøbt i overenskomstdataene. Samme besked fra satskravene og lønreguleringen, så dedupliceringen samler dem.
+ */
+const UKENDT_OVERENSKOMST_BESKED = 'Den valgte overenskomst findes ikke i Mineo – vælg overenskomsten igen';
+
+/**
  * Satskravene på hvert ansættelsesforhold, uafhængigt af reguleringsform og beregningsmåde.
  *
  * - Feriegodtgørelsen skal være udfyldt, når kortet har lønoplysninger i procent-tilstand (BB-274). Samme
@@ -970,6 +976,12 @@ function validateLoenindkomstSatsKrav(
       return;
     }
     const daekning = resolvePrivatOverenskomstDaekning(af);
+    if (daekning !== null && getOverenskomstMetaById(daekning.overenskomstId) === undefined) {
+      // Et ukendt id har ingen satser på nogen dato; dæknings-beskeden ville bede om en senere reguleringsdato,
+      // som intet kan rette.
+      errors.push({ path: path('overenskomstId'), message: UKENDT_OVERENSKOMST_BESKED, severity: 'error' });
+      return;
+    }
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
       beregnesUdFra: values.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: undefined,
@@ -1066,6 +1078,11 @@ function validateLoenudviklingsKravForAktivKilde(
     if (grundlag === 'Overenskomst') {
       if (!af.overenskomstId) {
         errors.push({ path: path('overenskomstId'), message: 'Overenskomst skal vælges', severity: 'error' });
+      } else if (getOverenskomstMetaById(af.overenskomstId) === undefined) {
+        // Valglisten kan ikke give et ukendt id, men en indlæst `.eo` kan bære et id på en overenskomst, der
+        // siden er fjernet eller omdøbt i overenskomstdataene. Uden reglen endte satsopslaget i en intern
+        // beregningsfejl (angivet løn og Beløb-tilstand) eller i en misvisende besked om reguleringsdatoen.
+        errors.push({ path: path('overenskomstId'), message: UKENDT_OVERENSKOMST_BESKED, severity: 'error' });
       } else if (harModstridendeOverenskomstValg(af)) {
         // Id valgt, men togglen slået fra. Satsopslaget falder tilbage til ULÅST, så
         // overenskomstens SH/SO- og pensionssatser IKKE udledes – tidligere skete det tavst,
@@ -1160,6 +1177,14 @@ function validateLoenudviklingsKravForAktivKilde(
       // de efterfølgende rækker. Uden dato ville motoren ellers stille droppe rækken, og
       // reguleringen ville udeblive uden synlig fejl.
       const aktiveRowsEfterBasis = rows.slice(1).filter((row) => aktiveRows.includes(row));
+      // Basisrækkens grundløn er nævneren i hele reguleringen, så den kræves, så snart tabellen er i brug – også
+      // når rækken ellers står tom. I Beløb-tilstand og ved angivet løn udfyldes dens satser ikke automatisk, og
+      // en tom basisrække talte derfor ikke som aktiv: motoren fik en basispakke på 0 og endte i en intern
+      // beregningsfejl i stedet for denne valideringsfejl.
+      const basisRow = rows[0];
+      const grundloenRows = basisRow !== undefined && aktiveRows.length > 0 && !aktiveRows.includes(basisRow)
+        ? [basisRow, ...aktiveRows]
+        : aktiveRows;
 
       rows.slice(1).forEach((row, rowIndex) => {
         if (isManualRegulationDateOnOrBeforeBasis(row.dato, anvendtReguleringsdato)) {
@@ -1177,13 +1202,13 @@ function validateLoenudviklingsKravForAktivKilde(
           message: 'Mindst én manuel reguleringsrække skal udfyldes',
           severity: 'error',
         });
-      } else if (aktiveRows.some((row) => row.grundloen === undefined)) {
+      } else if (grundloenRows.some((row) => row.grundloen === undefined)) {
         errors.push({
           path: path('loenudviklingManuelTableData'),
           message: 'Grundløn skal udfyldes på alle manuelle reguleringsrækker',
           severity: 'error',
         });
-      } else if (aktiveRows.some((row) => (amountValueToNumber(row.grundloen) ?? 0) <= 0)) {
+      } else if (grundloenRows.some((row) => (amountValueToNumber(row.grundloen) ?? 0) <= 0)) {
         errors.push({
           path: path('loenudviklingManuelTableData'),
           message: 'Grundløn skal være større end 0 på alle manuelle reguleringsrækker',
