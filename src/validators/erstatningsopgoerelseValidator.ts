@@ -32,7 +32,7 @@ import {
   resolveTafLoseFeriedageMaksimum,
   TAF_OVERLAP_LINJE,
 } from '../domain/erstatningsopgoerelse/validation/tafRowRules';
-import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   hasFinitePct,
@@ -609,16 +609,8 @@ function validateOffentligeYdelserReguleringssatser(
   if (!bounds) return [];
 
   const errors: ValidationError[] = [];
-  const aktivKilde = resolveAktivEllerFoersteLoenudviklingKilde(values);
-  const reguleringsBaseIso = resolveAnvendtReguleringsdato({
-    beregnesUdFra: values.beregnesUdFra,
-    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
-    saerligFraDatoRegulering: isISODateString(aktivKilde?.saerligFraDatoRegulering)
-      ? aktivKilde.saerligFraDatoRegulering
-      : undefined,
-    beregningsperiodeTil: values.tafBeregningsperiodeTil,
-    skadedato: options?.skadedatoISO,
-  });
+  // Ydelsesniveauet følger beregningsperioden, uafhængigt af jobkortenes rækkefølge og særlige datoer.
+  const reguleringsBaseIso = values.tafBeregningsperiodeTil;
   const minReguleringsdatoIso = `${bounds.minYear}-01-01`;
   if (reguleringsBaseIso !== undefined && reguleringsBaseIso < minReguleringsdatoIso) {
     errors.push({
@@ -699,6 +691,15 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
         ? getOverenskomstSfggPolicy(employment.overenskomstId)
         : undefined;
     const requiresReferenceperiode = sfggKildeUsesReferenceperiode(source.kind);
+    const regulationSource = values.beregnesUdFra === 'Beregningsperiode'
+      ? employment : resolveLoenudviklingKilde(values)[0];
+    const regulationCoverage = regulationSource ? resolveKildeReguleringsIntervalIso(regulationSource) : undefined;
+    if (requiresReferenceperiode && row.sfggReferenceperiodeTil && regulationCoverage?.fraIso &&
+      row.sfggReferenceperiodeTil < regulationCoverage.fraIso) {
+      errors.push({ path: `${errorPathPrefix}.sfggReferenceperiodeTil`, severity: 'error',
+        message: `Referenceperioden slutter før reguleringsgrundlagets første sats (${isoToDanish(regulationCoverage.fraIso)}). Vælg en anden reguleringsform.` });
+    }
+
 
     if (row.sfggBeregningskilde === 'Manuelt angivet' && amountValueToNumber(row.sfggManuelDagssats) === undefined) {
       errors.push({
@@ -1276,7 +1277,7 @@ const validateLoenudviklingDataCoverage = (
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] => {
   const grundlag = af.loenudviklingBeregningsgrundlag;
-  if (grundlag !== 'Statistik' && grundlag !== 'KRL satstabel' && grundlag !== 'KL-lønaftaler') return [];
+  if (!grundlag || grundlag === 'Ingen') return [];
 
   const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
     beregnesUdFra: values.beregnesUdFra,
@@ -1287,17 +1288,30 @@ const validateLoenudviklingDataCoverage = (
   });
   if (!anvendtReguleringsdato) return [];
 
-  // Kildens dæknings-interval hentes via den delte, autoritative opslag
-  // (resolveKildeReguleringsIntervalIso) – samme kilde som row-gaten og note-laget bruger – så
-  // validatorens "efter sidste sats"-grænse ikke kan drive fra dem (R4: ét sted for
-  // dæknings-intervallet, én grundlags→interval-dispatch). Grundlags-filteret ovenfor (kun
-  // Statistik/KRL/KL) er bevaret; Overenskomst gates bevidst ikke her, selvom resolveren også
-  // dækker den. Resolveren returnerer allerede ISO (`tilIso`), så den tidligere danishToISO-konvertering
-  // er unødvendig.
   const coverage = resolveKildeReguleringsIntervalIso(af);
+  const errors: ValidationError[] = [];
+  const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
+  if ((grundlag === 'Manuelt angivet' || grundlag === 'Manuel procentsats') &&
+    tafRanges.some((range) => range.fra < anvendtReguleringsdato)) {
+    return [{ path: path('loenudviklingBeregningsgrundlag'), severity: 'error',
+      message: 'TAF-perioden starter før reguleringsdatoen. Vælg en anden reguleringsform for at nedregulere.' }];
+  }
+  // Den nedre grænse er altid blokerende. Sluttolerancen må aldrig føre en sats bagud.
+  if (coverage?.fraIso) {
+    const fra = isoToDanish(coverage.fraIso) ?? coverage.fraIso;
+    if (anvendtReguleringsdato < coverage.fraIso) {
+      errors.push({ path: resolveLoenudviklingCoveragePath(values, af, path), severity: 'error',
+        message: `Reguleringsdatoen ligger før reguleringsgrundlagets første sats (${fra}). Vælg en anden reguleringsform.` });
+    }
+    const coverageStart = coverage.fraIso;
+    if (tafRanges.some((range) => range.fra < coverageStart)) {
+      errors.push({ path: path('loenudviklingBeregningsgrundlag'), severity: 'error',
+        message: `TAF-perioden starter før reguleringsgrundlagets første sats (${fra}). Vælg en anden reguleringsform.` });
+    }
+  }
+  if (errors.length > 0) return errors;
   if (grundlag === 'Statistik' && isAslStatistikModel((af.loenudviklingStatistikModel ?? '').trim())) {
     const baseYear = Number.parseInt(anvendtReguleringsdato.slice(0, 4), 10);
-    const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
     const maxTafYear = tafRanges.reduce((max, range) => Math.max(max, Number.parseInt(range.til.slice(0, 4), 10)), baseYear);
     const { manglendeAar } = opregulerMedAslAarsloensmaksimum(
       { kildeAar: baseYear, maalAar: maxTafYear },
@@ -1316,7 +1330,9 @@ const validateLoenudviklingDataCoverage = (
   if (anvendtReguleringsdato <= coverage.tilIso) return [];
   const tilDatoDisplay = isoToDanish(coverage.tilIso) ?? coverage.tilIso;
 
-  const sourceLabel = grundlag === 'Statistik'
+  const sourceLabel = grundlag === 'Overenskomst'
+    ? 'overenskomsten'
+    : grundlag === 'Statistik'
     ? `statistikmodellen "${af.loenudviklingStatistikModel ?? ''}"`
     : grundlag === 'KL-lønaftaler'
       ? 'KL-lønaftalerne'

@@ -23,8 +23,10 @@ import {
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import { resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
-import type { LoenudviklingSegment } from '../shared/eoTypes';
 import { isKlNulbasis } from './regulering/reguleringsbevis';
+import { kraevReguleringPaaDato, type ReguleringOpslag, type ReguleringsVaerdi } from './regulering/reguleringOpslag';
+import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
+import type { SygeferiegodtgoerelseSegment } from './sfggResult';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { buildLoenArbejdsdageSet, resolveIncomeAllocationDays } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates } from './tafDaySets';
@@ -430,53 +432,72 @@ export const buildYearAllocationsForGroupedSegment = (args: Readonly<{
   );
 };
 
-export type PerEmploymentLoenudvikling =
-  Readonly<{ beregnedeSegmenter: readonly LoenudviklingSegment[] }>
-  | undefined;
-
-const resolveLoenudviklingSegment = (
-  iso: ISODateString,
-  loenudvikling: PerEmploymentLoenudvikling
-): LoenudviklingSegment | undefined =>
-  loenudvikling?.beregnedeSegmenter.find((entry) => iso >= entry.fra && iso <= entry.til);
-
-const assertKlSegmentDeltaMatchesReguleretLoen = (segment: LoenudviklingSegment): void => {
-  if (segment.reguleretLoenOre === undefined) return;
-  const baseLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+const assertKlKaedeloenMatcherRegulering = (vaerdi: ReguleringsVaerdi): void => {
+  const kaedeloen = vaerdi.klKaedeloen;
+  if (kaedeloen === undefined) return;
+  const { regulering } = vaerdi;
+  const deltaPct = regulering.appliedDeltaPct;
   // En positiv indtastet løn kan afrundes til nul pr. enhed. Godkendt 2026-10-15: KL-resolverens
   // nulresultat er gyldigt, når de faktiske nulbeløb og den neutrale regulering stemmer overens.
-  if (baseLoenOre === 0 && segment.reguleretLoenOre === 0 && segment.deltaPct === 0
-    && segment.regulering && isKlNulbasis(segment.regulering)
-    && segment.regulering.rawFactor === 1 && segment.regulering.rawDeltaPct === 0
-    && segment.regulering.appliedDeltaPct === 0) return;
-  if (baseLoenOre <= 0) {
+  if (kaedeloen.basisLoenOre === 0 && kaedeloen.reguleretLoenOre === 0 && deltaPct === 0
+    && isKlNulbasis(regulering)
+    && regulering.rawFactor === 1 && regulering.rawDeltaPct === 0
+    && regulering.appliedDeltaPct === 0) return;
+  if (kaedeloen.basisLoenOre <= 0) {
     throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segment mangler positiv basisløn');
   }
-  const reproducedOre = fromKroner(roundKroner((baseLoenOre / 100) * (1 + segment.deltaPct / 100)));
-  if (Math.abs(reproducedOre - segment.reguleretLoenOre) > 0) {
+  const reproducedOre = fromKroner(roundKroner((kaedeloen.basisLoenOre / 100) * (1 + deltaPct / 100)));
+  if (Math.abs(reproducedOre - kaedeloen.reguleretLoenOre) > 0) {
     throw new Error('SFGG kan ikke beregnes: KL-lønaftaler-segmentets interne regulering matcher ikke den regulerede løn');
   }
 };
+
+type SfggReguleretSats = Pick<SygeferiegodtgoerelseSegment, 'satsOre' | 'reguleringsindeks' | 'reguleringsgrundlag' | 'klTrin'>;
 
 const resolveAdjustedRate = (
   iso: ISODateString,
   baseRateOre: MoneyOre,
   source: Readonly<{ kind: SfggSourceKind }>,
-  loenudvikling: PerEmploymentLoenudvikling
-): Readonly<{ satsOre: MoneyOre; reguleringsindeks: number | null }> => {
+  reguleringOpslag: ReguleringOpslag | undefined,
+  referenceTil: ISODateString | undefined
+): SfggReguleretSats => {
   if (!sfggKildeUsesReferenceperiode(source.kind)) {
     return { satsOre: baseRateOre, reguleringsindeks: null };
   }
-  const segment = resolveLoenudviklingSegment(iso, loenudvikling);
-  if (!segment) {
-    return { satsOre: baseRateOre, reguleringsindeks: null };
+  // Uden lønmateriale findes intet reguleringsgrundlag. Et udtrykkeligt «Ingen»
+  // håndteres derimod af opslagets neutrale værdi.
+  if (!reguleringOpslag) return { satsOre: baseRateOre, reguleringsindeks: null };
+  if (!referenceTil) throw new Error('SFGG kan ikke beregnes: referenceperiodens slutdato mangler');
+  const vaerdi = kraevReguleringPaaDato(reguleringOpslag, iso);
+  // Manuelle former har intet historisk niveau. En ældre referenceperiode har
+  // eksplicit reguleringsdatoens niveau (afklaringslog 8a).
+  const referenceDato = reguleringOpslag.manuelBasisDato && referenceTil < reguleringOpslag.manuelBasisDato
+    ? reguleringOpslag.manuelBasisDato : referenceTil;
+  const reference = kraevReguleringPaaDato(reguleringOpslag, referenceDato);
+  assertKlKaedeloenMatcherRegulering(vaerdi);
+  assertKlKaedeloenMatcherRegulering(reference);
+  if (vaerdi.klKaedeloen) {
+    // Godkendt 2026-10-16: SFGG har sin egen KL-kæde fra referenceperiodens slutdato.
+    // Lønnens kædeforhold ville ellers overføre afrundingen af et andet beløb, og
+    // gav slet intet reguleringsgrundlag, når jobbet ingen løn havde i beregningsperioden.
+    const resolver = buildKlLoenaftalerReguleretLoenResolver(toKroner(baseRateOre), referenceTil);
+    return {
+      satsOre: fromKroner(resolver.loenAt(iso)),
+      reguleringsindeks: null,
+      klTrin: resolver.trin.filter((trin) => trin.retning === 'frem'
+        ? iso >= referenceTil && trin.dato <= iso
+        : iso < referenceTil && trin.dato > iso),
+    };
   }
-  assertKlSegmentDeltaMatchesReguleretLoen(segment);
-  // I referenceperiode-sporet skal SFGG følge samme procentuelle udvikling
-  // og samme reguleringsdatoer som lønnen.
+  const referenceValue = reference.regulering.periodValue;
+  const periodValue = vaerdi.regulering.periodValue;
+  // Forholdet mellem faktiske kildeværdier, aldrig to allerede afrundede TAF-procenter.
+  const faktor = periodValue / referenceValue;
+  if (!Number.isFinite(faktor) || faktor <= 0) throw new Error('SFGG kan ikke beregnes: ugyldigt reguleringsforhold');
   return {
-    satsOre: fromKroner(roundKroner((baseRateOre / 100) * (1 + segment.deltaPct / 100))),
-    reguleringsindeks: roundByMethod(100 + segment.deltaPct, 2, 'halfAwayFromZero'),
+    satsOre: fromKroner(roundKroner((baseRateOre / 100) * faktor)),
+    reguleringsindeks: roundByMethod(faktor * 100, 2, 'halfAwayFromZero'),
+    reguleringsgrundlag: { referenceValue, periodValue },
   };
 };
 
@@ -517,7 +538,7 @@ export const resolveSfggSegmentBoundaryStarts = (args: Readonly<{
   ranges: readonly IsoRange[];
   employment: LoenindkomstAnsaettelsesforhold;
   sfggSource: Readonly<{ kind: SfggSourceKind }>;
-  loenudvikling: PerEmploymentLoenudvikling;
+  reguleringOpslag: ReguleringOpslag | undefined;
 }>): readonly ISODateString[] => {
   const starts = new Set<ISODateString>();
 
@@ -526,8 +547,9 @@ export const resolveSfggSegmentBoundaryStarts = (args: Readonly<{
       .forEach((start) => starts.add(start));
   }
 
+  // Reguleringens brudpunkter fra opslaget – alle trin, også trin uden TAF-arbejdsdage (fund A4).
   if (sfggKildeUsesReferenceperiode(args.sfggSource.kind)) {
-    args.loenudvikling?.beregnedeSegmenter.forEach((segment) => {
+    args.reguleringOpslag?.segmenter.forEach((segment) => {
       starts.add(segment.fra);
     });
   }
@@ -560,15 +582,15 @@ export const resolveSfggSegmentRateForDate = (args: Readonly<{
     sfggReferencesatsOre: SfggReferencesatsCalculable;
     sfggReferencesatsFormula: SfggReferencesatsFormula | null;
   }>;
-  loenudvikling: PerEmploymentLoenudvikling;
-}>): Readonly<{ satsOre: MoneyOre; agPensionPct: number; reguleringsindeks: number | null }> | null => {
+  reguleringOpslag: ReguleringOpslag | undefined;
+}>): SfggReguleretSats & Readonly<{ agPensionPct: number }> | null => {
   const {
     iso,
     employment,
     sfggRow,
     sfggSource,
     sfggBaseRate,
-    loenudvikling,
+    reguleringOpslag,
   } = args;
 
   if (getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst') {
@@ -590,12 +612,12 @@ export const resolveSfggSegmentRateForDate = (args: Readonly<{
     iso,
     sfggBaseRate.sfggReferencesatsOre.value,
     sfggSource,
-    loenudvikling
+    reguleringOpslag,
+    sfggBaseRate.sfggReferenceperiode?.til
   );
   const agPensionPctDecimal = resolveSfggAgPensionPctDecimalForDate(employment, iso);
   return {
-    satsOre: adjusted.satsOre,
+    ...adjusted,
     agPensionPct: roundByMethod(agPensionPctDecimal * 100, 2, 'halfAwayFromZero'),
-    reguleringsindeks: adjusted.reguleringsindeks,
   };
 };

@@ -4,6 +4,7 @@ import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { SfggDayBasis, SfggSourceKind } from './sfggKilde';
 import type { SfggAfkortning } from './sfggPeriodisering';
 import type { SfggReferencesatsCalculable, SfggReferencesatsFormula } from './sfggReferencesats';
+import type { KlLoenaftalerReguleringTrin } from './klLoenaftalerReguleretLoen';
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdId: string;
@@ -11,6 +12,10 @@ export type SygeferiegodtgoerelseSegment = Readonly<{
   fra: ISODateString;
   til: ISODateString;
   reguleringsindeks: number | null;
+  /** Faktiske værdier bag satsens forhold; bevarer efterregnelighed ved afrundet indeksvisning. */
+  reguleringsgrundlag?: Readonly<{ referenceValue: number; periodValue: number }>;
+  /** SFGG-satsens egen KL-kæde fra referenceperiodens slutdato, med afrunding på hvert trin. */
+  klTrin?: readonly KlLoenaftalerReguleringTrin[];
   satsOre: MoneyOre;
   agPensionPct: number;
   antalDage: number;

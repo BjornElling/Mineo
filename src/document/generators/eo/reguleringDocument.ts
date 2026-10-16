@@ -44,7 +44,7 @@ import type { DanishDateString } from '../../../types/branded';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
 import type { DocumentDownloadFormat } from '../../documentFormat';
-import { ILON12_DISCONTINUED_NOTE } from './reguleringNotes';
+import { ILON12_DISCONTINUED_NOTE } from '../../../data/statistikNotes';
 
 type ReguleringDocumentParams = Readonly<{
   overenskomstLabel: string;

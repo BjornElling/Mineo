@@ -288,4 +288,33 @@ describe('buildIndkomstSkadestidspunkt', () => {
     expect(model?.arbejdsdage).toBe(4);
     expect(model?.dagsloen).toMatchObject({ status: 'ok', value: moneyOre(97_210) });
   });
+  it('Beløb med reference i 2023 og reguleringsdato i 2024 lægger intet tillæg til, uanset togglen (log 9d)', () => {
+    for (const beregnStoreBededagstillaeg of [false, true]) {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.beregnesUdFra = 'Beregningsperiode';
+      values.tafBeregningsperiodeFra = iso('2023-01-01');
+      values.tafBeregningsperiodeTil = iso('2023-01-31');
+      values.loenindkomstAnsaettelsesforhold = [buildEmployment({
+        tillaegAngivesSom: 'beloeb', fuldLoenUnderFerie: 'Ja',
+        loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'SBLON2 (Danmarks Statistik)',
+        loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg,
+        saerligFraDatoRegulering: iso('2024-01-01'),
+        // Skjulte procenter må ikke konkurrere med brugerens tre eksplicitte beløb.
+        feriePct: 50, fritvalgPct: 50, shSoPct: 50, pensionPct: 50,
+        indtaegtsoplysningerTableData: [{ ...buildMonthlyIncomeRow('loen-beloeb', 10000), col1_maaned: '2023',
+          fpFvShSoBeloeb: asAmount(500), pensionBeloeb: asAmount(1000) }],
+      })];
+      const income = buildIncomeForRanges(values, [{ fra: values.tafBeregningsperiodeFra, til: values.tafBeregningsperiodeTil }]);
+      const model = buildIndkomstSkadestidspunkt(values,
+        { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-02-01') }, 'Måneder', { incomeForBeregningsperiode: income });
+      // 10.000 + 500 + 1.000 = 11.500,00 kr. i begge tilstande; ingen ekstra 45,00 kr.
+      expect(model?.arbejdssteder[0]?.breakdown).toMatchObject({
+        loenPlusLoen2Ore: moneyOre(1000000), fpFvShSoOre: moneyOre(50000), pensionOre: moneyOre(100000), samletOre: moneyOre(1150000),
+      });
+      expect(model?.samletBeregningsgrundlagOre).toBe(moneyOre(1150000));
+      expect(model?.maanedsloen).toEqual({ status: 'ok', value: moneyOre(1150000) });
+      expect(model?.arbejdssteder[0]?.fpLabel).not.toContain('Store Bededag');
+    }
+  });
+
 });

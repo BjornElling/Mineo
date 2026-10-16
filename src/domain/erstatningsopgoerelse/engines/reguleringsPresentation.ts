@@ -14,13 +14,14 @@ import {
 import { resolveLoenReferencedatoText } from '../helpers/eoDateReferenceText';
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
-import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
+import { isEffectivelyZero, isWithinTolerance, isGreaterThanWithTolerance } from '../../../utils/numberComparison';
 import { isKRLSatstabelId } from '../../../data/krlRates';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import {
   buildFormulaText, formatPercentCellFromRaw,
   type FormulaComponents, type FormulaVisibility, wrapIndexFormulaAfterSlashWhenLong,
 } from './reguleringFormulaUtils';
+import type { KlLoenaftalerReguleringTrin } from './klLoenaftalerReguleretLoen';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
 
@@ -96,7 +97,7 @@ export const resolveTafDateBounds = (
  * "Beregnet regulering"-tabellen mangle for angivet løn, selvom forløbet faktisk
  * er beregnet og vises korrekt under "Forventet indkomst".
  *
- * Følger samme global-fallback-princip som `buildSfggLoenudviklingMap`
+ * Følger samme global-fallback-princip som `buildSfggReguleringOpslagMap`
  * (tafNettoBeregning.ts): per-ansættelse når den findes, ellers de delte globale
  * segmenter for enkelt-kilde-modeller. Ved en reel per-ansættelse-model uden match
  * (fx et ansættelsesforhold uden indkomst i beregningsperioden) returneres tomt,
@@ -451,7 +452,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const values = new Map<string, number>();
       for (const segment of params.segments ?? []) {
         const bevis = segment.regulering;
-        if (bevis?.sourceKind !== 'asl') return null;
+        if (bevis?.sourceKind !== 'asl') continue;
         if (bevis.referenceDate) values.set(bevis.referenceDate.slice(0, 4), bevis.referenceValue);
         if (bevis.periodRateDate) values.set(bevis.periodRateDate.slice(0, 4), bevis.periodValue);
       }
@@ -533,40 +534,21 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   }
 
   if (grundlag === 'KL-lønaftaler') {
-    // KL-lønaftaler vises som periode-reguleringssats (kilde-værdien). Der vises bevidst
-    // ingen akkumuleret regulering – KL-lønaftaler-modellen kender ikke akkumuleret regulering;
-    // reguleringen sker trinvist på lønnen (jf. "Beregnet regulering"-tabellen og
-    // docs/domain/taf/kl-loenaftaler-regulering.md).
-    const formatKlPct = (value: number): string =>
-      `${formatAsAmount(value, 2)} %`;
-
-    // KL-periodeserien kommer udelukkende fra motorens forløb. Den viste
-    // reguleringssats er nu samme kilde som de brudpunkter beløbet bygger på.
-    const periodStarts = forloeb?.kind === 'klLoenaftaler' ? forloeb.entries : [];
-    if (periodStarts.length === 0) return null;
-
-    const relevantRealDates = resolveRelevantRealDatesForTafScope(
-      periodStarts.map((period) => period.startIso),
-      tafFra,
-      tafTil
-    );
-    if (relevantRealDates.length === 0) return null;
-    // Ingen syntetisk reguleringsdato-række; tabellen viser reguleringssatsen ved reguleringsvinduets
-    // start og hver efterfølgende ændring. Findes ingen sats på/før reguleringsdatoen, viser tabellen
-    // den tidligste kendte sats og ledsages af en note. Hver relevant dato er præcis en periode-
-    // startdato (resolveRelevantRealDatesForTafScope filtrerer kun periodStarts), så den fundne
-    // entry's reguleringsPct er den samme værdi getKlLoenaftalerReguleringPctForDato tidligere slog op.
-    const rows: string[][] = relevantRealDates.flatMap((iso) => {
-      const period = findLatestByDateInSortedList(periodStarts, iso, 'kl:presentation');
-      if (!period) return [];
-      return [[formatDateShort(iso), formatKlPct(period.reguleringsPct)]];
-    });
-    return {
-      columns: ['Fra-dato', 'Regulering'],
-      rows: mergeConsecutiveValueRows(rows),
-      // Kildens uscopede tidligste sats (periodStarts er sorteret stigende), IKKE relevantRealDates[0].
-      tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(periodStarts[0].startIso, anvendtReguleringsdato),
-    };
+    // Samme afrundede kædetrin som beløbet, også trin mellem reference og det viste TAF-vindue.
+    const trin = new Map<string, KlLoenaftalerReguleringTrin>();
+    for (const segment of params.segments ?? []) {
+      for (const step of segment.regulering?.klTrin ?? []) trin.set(`${step.retning}:${step.dato}`, step);
+    }
+    const rows = [...trin.values()].map((step) => [
+      formatDateShort(step.dato), step.retning === 'tilbage' ? 'Baglæns' : 'Fremad',
+      `${formatAsAmount(step.pct, 2)} %`, formatCurrency(step.loenFoer), formatCurrency(step.loenEfter),
+    ]);
+    if (rows.length === 0) {
+      const bevis = params.segments?.find((segment) => segment.regulering?.kind === 'klLoenaftaler')?.regulering;
+      if (!bevis?.referenceDate) return null;
+      rows.push([formatDateShort(bevis.referenceDate), 'Basis', '-', formatCurrency(bevis.referenceValue), formatCurrency(bevis.referenceValue)]);
+    }
+    return { columns: ['Dato', 'Retning', 'Regulering', 'Løn før', 'Løn efter'], rows };
   }
 
   return null;
@@ -639,4 +621,17 @@ export const buildReguleringIndexRows = (params: Readonly<{
   return mergeConsecutiveRowsWithSameCalculation(rows, {
     preserveStartIsos: new Set([STORE_BEDEDAG_START]),
   });
+};
+
+/** Forklaringsteksten beskriver kun komponentstigninger, som motoren faktisk anvender mod sin reference. */
+export const resolveReguleringTillaegsStigninger = (segments: readonly LoenudviklingSegment[]): readonly string[] => {
+  const labels = [
+    ['fritvalgPct', 'fritvalg'], ['shSoPct', 'SH/SO'],
+    ['storeBededagPct', 'st. bededagstillæg'], ['pensionPct', 'pension'],
+  ] as const;
+  return labels.filter(([key]) => segments.some((segment) => {
+    const bevis = segment.regulering;
+    return bevis?.periodComponents !== undefined && bevis.referenceComponents !== undefined
+      && isGreaterThanWithTolerance(bevis.periodComponents[key], bevis.referenceComponents[key]);
+  })).map(([, label]) => label);
 };

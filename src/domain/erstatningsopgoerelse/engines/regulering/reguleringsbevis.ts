@@ -29,6 +29,11 @@ export const reguleringsbevisSchema = z.object({
    */
   wageUnit: z.enum(['Måned', 'Time']).optional(),
   periodePct: z.number().finite().optional(),
+  /** Faktiske, øreafrundede KL-trin i beregningsrækkefølge, også mellem basis og TAF-vinduet. */
+  klTrin: z.array(z.object({
+    dato: isoDateString, pct: z.number().finite(), retning: z.enum(['frem', 'tilbage']),
+    loenFoer: z.number().finite(), loenEfter: z.number().finite(),
+  }).strict()).optional(),
 }).strict().superRefine((bevis, ctx) => {
   if (bevis.referenceValue === 0 || bevis.periodValue === 0) {
     if (!isKlNulbasis(bevis) || bevis.rawFactor !== 1 || bevis.rawDeltaPct !== 0 || bevis.appliedDeltaPct !== 0) {

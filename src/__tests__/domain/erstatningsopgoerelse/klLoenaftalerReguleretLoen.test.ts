@@ -87,3 +87,28 @@ describe('buildKlLoenaftalerReguleretLoenResolver', () => {
     expect(resolver.deltaPctAt(iso('2026-10-01'))).toBe(0);
   });
 });
+
+describe('KL-lønaftaler baglæns', () => {
+  it('dividerer trin for trin og afrunder hvert historisk lønniveau til øre', () => {
+    const resolver = buildKlLoenaftalerReguleretLoenResolver(31_604.04, iso('2026-10-15'));
+    // Håndregnet: 31.604,04 / 1,005 = 31.446,81; / 1,024 = 30.709,78;
+    // / 1,0075 = 30.481,17; / 1,003 = 30.390,00; / 1,013 = 30.000,00.
+    expect(resolver.loenAt(iso('2026-10-01'))).toBe(31_604.04);
+    expect(resolver.loenAt(iso('2026-09-30'))).toBe(31_446.81);
+    expect(resolver.loenAt(iso('2026-03-31'))).toBe(30_709.78);
+    expect(resolver.loenAt(iso('2025-10-31'))).toBe(30_481.17);
+    expect(resolver.loenAt(iso('2025-09-30'))).toBe(30_390);
+    expect(resolver.loenAt(iso('2024-09-30'))).toBe(30_000);
+    expect(resolver.trin.filter((entry) => entry.retning === 'tilbage').slice(0, 2)).toEqual([
+      { dato: iso('2026-10-01'), pct: 0.5, retning: 'tilbage', loenFoer: 31_604.04, loenEfter: 31_446.81 },
+      { dato: iso('2026-04-01'), pct: 2.4, retning: 'tilbage', loenFoer: 31_446.81, loenEfter: 30_709.78 },
+    ]);
+    expect(roundByMethod(31_604.04 * (1 + resolver.deltaPctAt(iso('2024-09-30')) / 100), 2, 'halfAwayFromZero')).toBe(30_000);
+  });
+
+  it('afviser både reference og opslag før første sats', () => {
+    expect(() => buildKlLoenaftalerReguleretLoenResolver(30_000, iso('2005-01-01'))).toThrow(/basisniveau/);
+    const resolver = buildKlLoenaftalerReguleretLoenResolver(30_000, iso('2024-04-01'));
+    expect(() => resolver.loenAt(iso('2005-01-01'))).toThrow(/historisk sats/);
+  });
+});

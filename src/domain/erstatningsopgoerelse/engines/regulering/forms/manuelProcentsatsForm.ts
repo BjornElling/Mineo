@@ -1,4 +1,5 @@
 import { buildReguleringsbevis } from '../reguleringsbevis';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import type { ISODateString } from '../../../../../types/branded';
 import { buildManuelProcentsatsEntries, findManuelProcentsatsEntryForDate } from '../../manuelProcentsatsRegulering';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';
@@ -39,7 +40,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 };
 
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'manualProcentsats') {
     throw new Error('Loenudvikling kan ikke beregnes: manuel procentsats-strategi mangler');
@@ -60,7 +62,7 @@ const byggResultat = (
   }
 
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const starts = new Set<ISODateString>();
     for (const entry of entries) {
       if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);

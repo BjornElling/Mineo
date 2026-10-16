@@ -19,6 +19,7 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { optaelArbejdsdage } from './periodiseringsMotor';
+import type { ReguleringOpslag } from './regulering/reguleringOpslag';
 import { splitRangesAtBoundaryStarts } from './isoRangeAlgebra';
 import {
   getSfggKildeSpec,
@@ -44,7 +45,6 @@ import {
   resolveSfggSegmentRateForDate,
   sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner,
   type EmploymentSfggCalculator,
-  type PerEmploymentLoenudvikling,
   type SfggFeriepengeFradrag,
   type SfggFradragKrav,
 } from './sfggSegmentering';
@@ -121,7 +121,8 @@ export type SfggAnsaettelsesforholdContext = Readonly<{
   tafDateSetIncludingFirstExcluded: ReadonlySet<ISODateString>;
   tafArbejdsdageSetIncludingFirstExcluded: ReadonlySet<ISODateString>;
   employmentCalculator: EmploymentSfggCalculator;
-  loenudvikling: PerEmploymentLoenudvikling;
+  /** Lønnens reguleringsopslag; `undefined`, når ansættelsesforholdet ingen lønudvikling har. */
+  reguleringOpslag: ReguleringOpslag | undefined;
 }>;
 
 // Fradraget for modtagne feriepenge afhænger af de øvrige SFGG-krav (se buildSfggFeriepengeFradrag).
@@ -153,7 +154,7 @@ export const planSfggForAnsaettelsesforhold = (
     tafDateSetIncludingFirstExcluded,
     tafArbejdsdageSetIncludingFirstExcluded,
     employmentCalculator,
-    loenudvikling,
+    reguleringOpslag,
   } = context;
 
   const sfggRow = getSfggRowForEmployment(values, employment.id);
@@ -294,7 +295,7 @@ export const planSfggForAnsaettelsesforhold = (
       ranges: eligibleRanges,
       employment,
       sfggSource,
-      loenudvikling,
+      reguleringOpslag,
     })
   ).flatMap((range) => {
     const rate = resolveSfggSegmentRateForDate({
@@ -303,7 +304,7 @@ export const planSfggForAnsaettelsesforhold = (
       sfggRow,
       sfggSource,
       sfggBaseRate,
-      loenudvikling,
+      reguleringOpslag,
     });
     if (rate === null) return [];
 
@@ -317,6 +318,8 @@ export const planSfggForAnsaettelsesforhold = (
     return [{
       ...range,
       reguleringsindeks: rate.reguleringsindeks,
+      reguleringsgrundlag: rate.reguleringsgrundlag,
+      klTrin: rate.klTrin,
       satsOre: rate.satsOre,
       agPensionPct: rate.agPensionPct,
       dates,
@@ -395,6 +398,8 @@ export const planSfggForAnsaettelsesforhold = (
         fra: group.fra,
         til: group.til,
         reguleringsindeks: group.reguleringsindeks,
+        reguleringsgrundlag: group.reguleringsgrundlag,
+        klTrin: group.klTrin,
         satsOre: group.satsOre,
         agPensionPct: group.agPensionPct,
         antalDage: group.dates.length,

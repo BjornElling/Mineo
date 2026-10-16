@@ -49,7 +49,7 @@ describe('statistikForm', () => {
     })).toThrow('Inkonsistente loenudviklingsindstillinger: statistikmodel');
   });
 
-  it('bygger ASL-segmenter med zero-delta før basisåret og fail-closer ved manglende år', () => {
+  it('nedregulerer ASL-segmenter før basisåret og fail-closer ved manglende år', () => {
     const result = statistikForm.byggResultat(createKonsolideret({
       label: ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
       statistikModel: ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
@@ -58,8 +58,9 @@ describe('statistikForm', () => {
     }));
 
     expect(result.forloeb).toBeUndefined();
-    expect(result.segmenter.find((segment) => segment.fra === iso('2019-01-01'))?.deltaPct).toBe(0);
-    expect(result.segmenter.find((segment) => segment.fra === iso('2021-01-01'))?.deltaPct).toBeGreaterThan(0);
+    // ASL: 539.000 / 551.000 giver −2,18 %; 564.000 / 551.000 giver +2,36 %.
+    expect(result.segmenter.find((segment) => segment.fra === iso('2019-01-01'))?.deltaPct).toBe(-2.18);
+    expect(result.segmenter.find((segment) => segment.fra === iso('2021-01-01'))?.deltaPct).toBe(2.36);
 
     expect(() => statistikForm.byggResultat(createKonsolideret({
       label: ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
@@ -87,13 +88,14 @@ describe('statistikForm', () => {
       .toThrow('ingen statistiksegmenter');
   });
 
-  it('giver zero-delta for statistiksegmenter før den effektive basisdato', () => {
+  it('nedregulerer statistiksegmenter før den effektive basisdato', () => {
     const result = statistikForm.byggResultat(createKonsolideret({
       tafRanges: [{ fra: iso('2019-01-01'), til: iso('2020-06-30') }],
     }));
 
+    // ILON12: (137,2 / 140,1 − 1) × 100 = −2,069950… %, afrundet til −2,07 %.
     expect(result.segmenter).toMatchObject([
-      { fra: iso('2019-01-01'), til: iso('2019-12-31'), deltaPct: 0 },
+      { fra: iso('2019-01-01'), til: iso('2019-12-31'), deltaPct: -2.07 },
       { fra: iso('2020-01-01'), til: iso('2020-06-30'), deltaPct: 0 },
     ]);
     for (const segment of result.segmenter) {

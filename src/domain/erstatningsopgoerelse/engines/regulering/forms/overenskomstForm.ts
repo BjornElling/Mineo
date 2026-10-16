@@ -1,4 +1,5 @@
 import { isISODateString } from '../../../../../types/branded';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import {
@@ -141,7 +142,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 // kontrakt og dæknings-interval), mens segment-byggeriet dispatches til hver sin selvindeholdte
 // bygger baseret på `konsolideret.offentlig` (jf. R6 – den tidligere fælles funktionskrop er delt).
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'overenskomst') {
     throw new Error('Loenudvikling kan ikke beregnes: overenskomststrategi mangler');
@@ -149,8 +151,8 @@ const byggResultat = (
   const ctx = buildOverenskomstSegmentContext(konsolideret);
   // Satsvalg og pakkeformler bæres på segmenternes reguleringsbevis til alle visninger.
   const segmenter = konsolideret.offentlig
-    ? buildOffentligOverenskomstSegmenter(konsolideret, konsolideret.offentlig, ctx)
-    : buildPrivatOverenskomstSegmenter(konsolideret, ctx);
+    ? buildOffentligOverenskomstSegmenter(konsolideret, konsolideret.offentlig, ctx, segmentRanges)
+    : buildPrivatOverenskomstSegmenter(konsolideret, ctx, segmentRanges);
   return { segmenter };
 };
 

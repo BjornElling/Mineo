@@ -11,11 +11,12 @@ import {
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
-import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde } from '../helpers/angivetLoenHelpers';
+import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { isISODateString, type ISODateString } from '../../../types/branded';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
-import { buildTafArbejdsdageSet, buildLoenudviklingModel } from './loenudviklingBeregning';
+import { buildTafArbejdsdageSet, buildLoenudviklingBeregning, type LoenudviklingBeregning } from './loenudviklingBeregning';
+import type { ReguleringOpslag } from './regulering/reguleringOpslag';
 import { buildOffentligeYdelserUdviklingModel } from './offentligeYdelserUdviklingBeregning';
 import { computeSygeferiegodtgoerelse } from './sfggEngine';
 import type { SygeferiegodtgoerelseResult } from './sfggResult';
@@ -42,34 +43,24 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetI
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
-export const buildSfggLoenudviklingMap = (
+/**
+ * Reguleringsopslaget pr. ansættelsesforhold til sygeferiegodtgørelsen. Ved «Beregningsperiode» har hvert
+ * ansættelsesforhold med lønudvikling sit eget opslag; ellers (angivet løn, eller ingen lønindkomst i
+ * beregningsperioden) gælder det fælles opslag for alle ansættelsesforhold.
+ *
+ * Opslaget afhænger ikke af, om TAF-segmenterne har arbejdsdage: før byggede SFGG på de TAF-segmenter,
+ * der overlevede frasorteringen af segmenter uden arbejdsdage, og fik da hverken segment eller regulering
+ * (fund A4) – ved angivet løn kunne hele opslaget forsvinde.
+ */
+export const buildSfggReguleringOpslagMap = (
   values: TafCalculationValues,
-  loenudvikling: LoenudviklingModel | null
-): ReadonlyMap<string, LoenudviklingModel['perAnsaettelse'][number]> | undefined => {
+  loenudvikling: LoenudviklingBeregning | null
+): ReadonlyMap<string, ReguleringOpslag> | undefined => {
   if (!loenudvikling) return undefined;
-
-  if (loenudvikling.perAnsaettelse.length > 0) {
-    return new Map(loenudvikling.perAnsaettelse.map((entry) => [entry.ansaettelsesforholdId, entry]));
-  }
-
-  const sharedSegments = loenudvikling.beregnedeSegmenter;
-  if (sharedSegments.length === 0) return undefined;
-
-  // Shared fallback bruges kun til globale modeller uden per-ansættelse-opdeling
-  // (f.eks. angivet løn med fælles reguleringsforløb). Ved overenskomst-/KRL-/statistikspor
-  // med reel per-ansættelse-beregning forventes buildLoenudviklingModel at udfylde perAnsaettelse.
-  const entries = (values.loenindkomstAnsaettelsesforhold ?? []).map((employment, index) => [
-    employment.id,
-    {
-      ansaettelsesforholdId: employment.id,
-      ansaettelsesforholdNavn: resolveAnsaettelsesforholdNavn(employment.navnPaaArbejdssted, index),
-      loenudviklingLabel: loenudvikling.loenudviklingLabel,
-      loenudviklingTotal: loenudvikling.loenudviklingTotal,
-      beregnedeSegmenter: sharedSegments,
-    },
-  ] as const);
-
-  return new Map(entries);
+  const { perAnsaettelse, faelles } = loenudvikling.reguleringOpslag;
+  if (perAnsaettelse.size > 0) return perAnsaettelse;
+  if (!faelles) return undefined;
+  return new Map((values.loenindkomstAnsaettelsesforhold ?? []).map((employment) => [employment.id, faelles] as const));
 };
 
 const buildTafIndtaegterModel = (
@@ -128,16 +119,8 @@ const resolveOffentligeYdelserReguleringsBaseIso = (
     });
   }
 
-  const aktivKilde = resolveAktivEllerFoersteLoenudviklingKilde(values);
-  return resolveAnvendtReguleringsdato({
-    beregnesUdFra: values.beregnesUdFra,
-    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
-    saerligFraDatoRegulering: isISODateString(aktivKilde?.saerligFraDatoRegulering)
-      ? aktivKilde.saerligFraDatoRegulering
-      : undefined,
-    beregningsperiodeTil: values.tafBeregningsperiodeTil,
-    skadedato: stamdataValues.skadedato,
-  });
+  // Ydelsens niveau følger beregningsperioden og må aldrig afhænge af jobkortenes rækkefølge.
+  return isISODateString(values.tafBeregningsperiodeTil) ? values.tafBeregningsperiodeTil : undefined;
 };
 
 export type TafNettoBeregningResult = Readonly<{
@@ -183,12 +166,13 @@ export const computeTafNettoBeregning = (
       incomeForBeregningsperiode,
     })
     : null;
-  const loenudvikling = harTafPerioder
-    ? buildLoenudviklingModel(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
+  const loenudviklingBeregning = harTafPerioder
+    ? buildLoenudviklingBeregning(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
       tafRanges,
       incomeForBeregningsperiode,
     })
     : null;
+  const loenudvikling = loenudviklingBeregning?.model ?? null;
   const offentligeYdelserReguleringsBaseIso = resolveOffentligeYdelserReguleringsBaseIso(values, stamdataValues);
   const offentligeYdelserDivisor =
     tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
@@ -215,7 +199,7 @@ export const computeTafNettoBeregning = (
       values,
       stamdata: stamdataValues,
       tafRanges,
-      loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, loenudvikling),
+      reguleringOpslagPerAnsaettelse: buildSfggReguleringOpslagMap(values, loenudviklingBeregning),
     })
     : { totalOre: zeroMoneyOre(), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null };
 
@@ -243,7 +227,7 @@ export const computeTafNettoBeregning = (
       };
     }
     // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable –
-    // buildLoenudviklingModel, buildOffentligeYdelserUdviklingModel og buildTafIndtaegterModel
+    // buildLoenudviklingBeregning, buildOffentligeYdelserUdviklingModel og buildTafIndtaegterModel
     // returnerer enten en model med status 'ok' eller kaster en fail-closed invariant-fejl.
     // Status-checks bevares som defensive narrowing, hvis en fremtidig motor introducerer
     // not_calculable uden samtidig at opdatere TAF-formlen.

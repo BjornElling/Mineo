@@ -13,6 +13,7 @@ import {
   createSfggEmployment as createEmployment,
   createSfggIngenRow,
   sfggIso as iso,
+  sfggReguleringOpslagFraSegmenter,
 } from '../../utils/sfggTestSupport';
 
 describe('computeSygeferiegodtgoerelse', () => {
@@ -108,38 +109,36 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-06') }],
-      loenudviklingPerAnsaettelse: new Map([
-        ['af-1', {
-          beregnedeSegmenter: [
-            {
-              kind: 'arbejdsdage' as const,
-              fra: iso('2024-02-01'),
-              til: iso('2024-02-02'),
-              arbejdsdage: 2,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 0,
-              amountOre: moneyOre(0),
-            },
-            {
-              kind: 'arbejdsdage' as const,
-              fra: iso('2024-02-03'),
-              til: iso('2024-02-04'),
-              arbejdsdage: 0,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 2,
-              amountOre: moneyOre(0),
-            },
-            {
-              kind: 'arbejdsdage' as const,
-              fra: iso('2024-02-05'),
-              til: iso('2024-02-06'),
-              arbejdsdage: 2,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 4,
-              amountOre: moneyOre(0),
-            },
-          ],
-        }],
+      reguleringOpslagPerAnsaettelse: new Map([
+        ['af-1', sfggReguleringOpslagFraSegmenter([
+          {
+            kind: 'arbejdsdage' as const,
+            fra: iso('2024-02-01'),
+            til: iso('2024-02-02'),
+            arbejdsdage: 2,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 0,
+            amountOre: moneyOre(0),
+          },
+          {
+            kind: 'arbejdsdage' as const,
+            fra: iso('2024-02-03'),
+            til: iso('2024-02-04'),
+            arbejdsdage: 0,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 2,
+            amountOre: moneyOre(0),
+          },
+          {
+            kind: 'arbejdsdage' as const,
+            fra: iso('2024-02-05'),
+            til: iso('2024-02-06'),
+            arbejdsdage: 2,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 4,
+            amountOre: moneyOre(0),
+          },
+        ], { dato: iso('2024-01-31'), deltaPct: 0 })],
       ]),
     });
 
@@ -1811,29 +1810,27 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }],
-      loenudviklingPerAnsaettelse: new Map([
-        ['af-1', {
-          beregnedeSegmenter: [
-            {
-              kind: 'arbejdsdage',
-              fra: iso('2024-02-26'),
-              til: iso('2024-02-29'),
-              arbejdsdage: 4,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 0,
-              amountOre: moneyOre(0),
-            },
-            {
-              kind: 'arbejdsdage',
-              fra: iso('2024-03-01'),
-              til: iso('2024-03-05'),
-              arbejdsdage: 3,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 5.03,
-              amountOre: moneyOre(0),
-            },
-          ],
-        }],
+      reguleringOpslagPerAnsaettelse: new Map([
+        ['af-1', sfggReguleringOpslagFraSegmenter([
+          {
+            kind: 'arbejdsdage',
+            fra: iso('2024-02-26'),
+            til: iso('2024-02-29'),
+            arbejdsdage: 4,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 0,
+            amountOre: moneyOre(0),
+          },
+          {
+            kind: 'arbejdsdage',
+            fra: iso('2024-03-01'),
+            til: iso('2024-03-05'),
+            arbejdsdage: 3,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 5.03,
+            amountOre: moneyOre(0),
+          },
+        ], { dato: iso('2023-12-31'), deltaPct: 0 })],
       ]),
     });
 
@@ -1941,20 +1938,18 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
-      loenudviklingPerAnsaettelse: new Map([
-        ['af-1', {
-          beregnedeSegmenter: [
-            {
-              kind: 'arbejdsdage',
-              fra: iso('2024-02-01'),
-              til: iso('2024-02-01'),
-              arbejdsdage: 1,
-              dagsloenOre: moneyOre(0),
-              deltaPct: 5.03,
-              amountOre: moneyOre(0),
-            },
-          ],
-        }],
+      reguleringOpslagPerAnsaettelse: new Map([
+        ['af-1', sfggReguleringOpslagFraSegmenter([
+          {
+            kind: 'arbejdsdage',
+            fra: iso('2024-02-01'),
+            til: iso('2024-02-01'),
+            arbejdsdage: 1,
+            dagsloenOre: moneyOre(0),
+            deltaPct: 5.03,
+            amountOre: moneyOre(0),
+          },
+        ], { dato: iso('2024-01-31'), deltaPct: 0 })],
       ]),
     });
 

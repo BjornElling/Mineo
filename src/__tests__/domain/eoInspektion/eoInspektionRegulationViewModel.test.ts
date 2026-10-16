@@ -417,11 +417,11 @@ describe('buildRegulationInspektionSections', () => {
     });
 
     expect(sections).toHaveLength(1);
-    expect(sections[0]?.tables).toHaveLength(1);
+    expect(sections[0]?.tables).toHaveLength(0);
     expect(sections[0]?.tables?.some((table) => table.id.endsWith(':beregnet'))).toBe(false);
   });
 
-  it('udelader arbejdsdage-kolonnen og bruger Timeløn ved arbejdsdagsbaseret regulering', () => {
+  it('viser ingen alternative timelønsværdier uden autoritativt resultat', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
@@ -463,13 +463,7 @@ describe('buildRegulationInspektionSections', () => {
       stamdataValues,
     });
 
-    expect(sections[0]?.tables?.[0]?.columns).toEqual([
-      'Dato',
-      'Timeløn',
-      'Feriegodtg./-till.',
-      'Fritvalg',
-      'Pension',
-    ]);
+    expect(sections[0]?.tables).toEqual([]);
   });
 
   it('sammenklapper uændrede reguleringsværdier og indeksperioder i kontroltabellerne', () => {

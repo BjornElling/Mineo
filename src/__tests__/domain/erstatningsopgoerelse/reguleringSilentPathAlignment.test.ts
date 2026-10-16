@@ -21,8 +21,7 @@ type ReguleringsGrundlagFelter = Pick<
 >;
 
 // En reguleringsdato langt før enhver satstabels første post → motorens
-// "effektive base"-opslag finder ingen sats <= datoen og falder tilbage til
-// ældste sats (resolveEffectiveBaseEntry-fallback).
+// basisopslag finder ingen sats <= datoen og afviser beregningen.
 const REG_DATO_FOER_FOERSTE_SATS = '1900-01-01';
 
 // TAF-perioden lander i en dækket periode, så motoren rent faktisk producerer
@@ -87,23 +86,11 @@ const byggReguleringsvaerdiRowStatus = (konfigurer: (m: ReguleringsGrundlagFelte
   return rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.reguleringsvaerdi`)?.status;
 };
 
-/**
- * S1 – kobling mellem motorens stille fallback og den synlige row-gate.
- *
- * Motoren (`resolveEffectiveBaseEntry`) og row-gaten (`eoRowIndkomstRows`
- * reguleringsvaerdi-row) beregner uafhængigt af hinanden "reguleringsdato < første
- * sats". De aligner i dag udelukkende fordi begge udleder deres første sats fra
- * samme underliggende datatabel. Ændrer den ene sides "første sats"-udledning sig
- * (fx en off-by-one i `getReguleringsDatoIntervalFor…`), kan der åbne sig en
- * **ugated** zone: motoren ankrer stille til ældste sats (tavs under-regulering),
- * mens row-gaten ikke fyrer. Denne test binder de to sider, så en sådan drift fanges.
- */
-describe('regulering S1 – motorens fallback er altid gated af en synlig row-error', () => {
+/** Manglende historisk basis afvises både af motoren og den synlige dækningsgate. */
+describe('regulering S1 – manglende basis fejler i motor og kontrolrække', () => {
   for (const form of FORMER) {
-    it(`${form.navn}: reguleringsdato før første sats → motor falder stille tilbage OG row-gate fyrer error`, () => {
-      // Motor-siden: fallback → ingen throw, model produceres (stille base-skift).
-      const model = byggMotorModel(form.konfigurer);
-      expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
+    it(`${form.navn}: reguleringsdato før første sats → motor afviser og row-gate fyrer error`, () => {
+      expect(() => byggMotorModel(form.konfigurer)).toThrow(/basisindeks/);
 
       // Row-siden: den blokerende gate MÅ fyre, ellers er motorens fallback ugated.
       const rowStatus = byggReguleringsvaerdiRowStatus(form.konfigurer);
@@ -112,18 +99,7 @@ describe('regulering S1 – motorens fallback er altid gated af en synlig row-er
   }
 });
 
-/**
- * S2 – privat overenskomst: reguleringsdato før dækning.
- *
- * Modsat S1 (statistik/KRL, der ankrer til ældste sats) bruger overenskomst-motoren
- * `max(reguleringsdato, dækningsstart)`: ligger reguleringsdatoen før overenskomstens
- * første sats, sættes alle TAF-segmenter før dækningsstarten stille til zero-delta
- * (ingen `!sats`-hul kan ramme et interiort segment, fordi `getSatserForDatoFromList`
- * altid carry-forwarder den seneste sats ≤ dato). Den stille zero-delta MÅ derfor være
- * gated af den samme blokerende row-error, hvis `reguleringsvaerdi.min` =
- * overenskomstens `interval.fraDato`. Denne test binder de to sider for privat
- * overenskomst (Bygge-/anlæg), så en fremtidig drift fanges.
- */
+/** Privat overenskomst må ikke bruge første sats som historisk basis. */
 describe('regulering S2 – privat overenskomst før dækning er gated af en synlig row-error', () => {
   const REG_DATO_FOER_DAEKNING = '1900-01-01';
 
@@ -136,23 +112,21 @@ describe('regulering S2 – privat overenskomst før dækning er gated af en syn
     maal.feriePct = 12.5;
   };
 
-  it('motor producerer stille kun-zero-delta-segmenter OG row-gate fyrer error', () => {
-    // Motor-siden (Angivet månedsløn): ingen throw; alle segmenter før dækning = zero-delta.
+  it('motor afviser manglende satser og row-gate fyrer error', () => {
+    // Motoren afviser manglende dækning; kontrollen nedenfor viser den konkrete fejl.
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
     values.angivetMaanedsloenOpreguleresFraDato = iso(REG_DATO_FOER_DAEKNING);
     values.tafPerioder = [{ id: 'taf-s2', fra: iso('1900-01-01'), til: iso('1900-12-31'), loseFeriedage: 0 }];
     konfigurerOverenskomst(values.eoAngivetLoenLoenudvikling);
-    const model = buildLoenudviklingModel(
+    expect(() => buildLoenudviklingModel(
       values,
       { ...STAMDATA_INITIAL_VALUES, skadedato: iso(REG_DATO_FOER_DAEKNING) },
       TAF_BEREGNES_SOM.MAANEDER,
       null,
       { tafRanges: [{ fra: iso('1900-01-01'), til: iso('1900-12-31') }] }
-    );
-    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
-    expect(model.beregnedeSegmenter.every((s) => s.deltaPct === 0)).toBe(true);
+    )).toThrow(/sats/);
 
     // Row-siden: den blokerende gate MÅ fyre.
     const rowValues = {
@@ -172,20 +146,7 @@ describe('regulering S2 – privat overenskomst før dækning er gated af en syn
   });
 });
 
-/**
- * S3 – offentlig overenskomst (KL/RLTN): reguleringsdato før dækning.
- *
- * Den offentlige gren slår grundlønnen op via `getOffentligLoenForDato`, der
- * carry-forwarder (nyeste regulering ≤ dato) og kun giver `undefined` FØR ældste
- * KL/RLTN-regulering (01-01-2012). Et interiort hul kan derfor ikke ramme et
- * segment (og en manglende løntrin INDEN FOR dækning kaster – degraderer ikke til
- * zero-delta). Ligger reguleringsdatoen før dækningen, falder motoren stille
- * tilbage til ældste sats som effektiv base, og alle TAF-segmenter før basen
- * sættes til zero-delta. Den stille zero-delta MÅ være gated af den samme
- * blokerende row-error, fordi row-gatens `reguleringsvaerdi.min` =
- * `getReguleringsDatoIntervalForOverenskomst(...).fraDato` = ældste KL-sats =
- * motorens fallback-base-start. Denne test binder de to sider (analog til S2).
- */
+/** Offentlig overenskomst må ikke bruge første sats som historisk basis. */
 describe('regulering S3 – offentlig overenskomst før dækning er gated af en synlig row-error', () => {
   const REG_DATO_FOER_DAEKNING = '1900-01-01';
 
@@ -209,23 +170,21 @@ describe('regulering S3 – offentlig overenskomst før dækning er gated af en 
     maal.offentligLoenGruppe = 0;
   };
 
-  it('motor producerer stille kun-zero-delta-segmenter OG row-gate fyrer error', () => {
-    // Motor-siden (Angivet månedsløn): ingen throw; alle segmenter før dækning = zero-delta.
+  it('motor afviser manglende satser og row-gate fyrer error', () => {
+    // Motoren afviser manglende dækning; kontrollen nedenfor viser den konkrete fejl.
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
     values.angivetMaanedsloenOpreguleresFraDato = iso(REG_DATO_FOER_DAEKNING);
     values.tafPerioder = [{ id: 'taf-s3', fra: iso('1900-01-01'), til: iso('1900-12-31'), loseFeriedage: 0 }];
     konfigurerOffentlig(values.eoAngivetLoenLoenudvikling);
-    const model = buildLoenudviklingModel(
+    expect(() => buildLoenudviklingModel(
       values,
       { ...STAMDATA_INITIAL_VALUES, skadedato: iso(REG_DATO_FOER_DAEKNING) },
       TAF_BEREGNES_SOM.MAANEDER,
       null,
       { tafRanges: [{ fra: iso('1900-01-01'), til: iso('1900-12-31') }] }
-    );
-    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
-    expect(model.beregnedeSegmenter.every((s) => s.deltaPct === 0)).toBe(true);
+    )).toThrow(/sats/);
 
     // Row-siden: den blokerende gate MÅ fyre.
     const rowValues = {

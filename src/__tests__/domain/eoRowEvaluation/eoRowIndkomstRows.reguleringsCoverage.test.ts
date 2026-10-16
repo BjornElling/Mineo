@@ -105,7 +105,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(slutRow?.displayValue).not.toBe('(< 6 måneder)');
   });
 
-  it('klassificerer manglende overenskomstdækning som warning når allow=true', () => {
+  it('blokerer manglende startdækning også når allow=true', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.vedroererPeriodeFra = iso('2009-01-01');
@@ -125,7 +125,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
 
     expect(startRow).toBeDefined();
-    expect(startRow?.status).toBe('warning');
+    expect(startRow?.status).toBe('error');
     expect(startRow?.displayValue).toMatch(/^Nej \(først fra /);
   });
 
@@ -201,7 +201,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(slutRow).toBeUndefined();
   });
 
-  it('viser samlet ikke-blokerende dæknings-advarsel ved start-hul (allow=true)', () => {
+  it('viser blokerende startfejl uden en tolereret dæknings-advarsel (allow=true)', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.vedroererPeriodeFra = iso('2009-01-01');
@@ -220,10 +220,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     const prefix = `loenindkomst.${af.id}.regulering`;
     const daekningRow = rows.find((row) => row.id === `${prefix}.daekningAdvarsel`);
 
-    expect(daekningRow).toBeDefined();
-    expect(daekningRow?.status).toBe('warning');
-    expect(daekningRow?.displayValue).toMatch(/Der er ikke reguleringsværdier for hele TAF-perioden – først fra /);
-    expect(daekningRow?.displayValue).not.toMatch(/kun til og med/);
+    expect(daekningRow).toBeUndefined();
+    expect(rows.find((row) => row.id === `${prefix}.startvaerdi`)?.status).toBe('error');
   });
 
   it('viser IKKE samlet dæknings-advarsel når hullet er blokerende (allow=false)', () => {
@@ -288,7 +286,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(daekningRow).toBeDefined();
     expect(daekningRow?.status).toBe('warning');
     // KTO (regioner) starter reelt 01-10-2018 og slutter (nyeste + 6 mdr − 1 dag) længe før 2030.
-    expect(daekningRow?.displayValue).toMatch(/først fra 01-10-2018 og kun til og med /);
+    expect(daekningRow?.displayValue).toMatch(/kun til og med /);
   });
 });
 
@@ -367,7 +365,7 @@ describe('buildEoIndkomstRows escape-hatch – flipper kun severity, ikke værdi
     return values;
   };
 
-  it('start-dæknings-hul: displayValue er identisk for allow=false og allow=true; kun status skifter error↔warning', () => {
+  it('start-dæknings-hul blokerer ens for allow=false og allow=true', () => {
     const values = buildOverenskomstHulValues();
     const prefix = `loenindkomst.${values.loenindkomstAnsaettelsesforhold[0].id}.regulering`;
 
@@ -379,7 +377,7 @@ describe('buildEoIndkomstRows escape-hatch – flipper kun severity, ikke værdi
     const startWarn = rowsWarn.find((row) => row.id === `${prefix}.startvaerdi`);
 
     expect(startError?.status).toBe('error');
-    expect(startWarn?.status).toBe('warning');
+    expect(startWarn?.status).toBe('error');
     // Den viste (beregnede) værdi er uændret – kun severity flytter sig.
     expect(startWarn?.displayValue).toBe(startError?.displayValue);
   });

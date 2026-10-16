@@ -36,7 +36,23 @@ to decimaler, hvorefter den afrundede værdi opreguleres til næste sats osv. De
 afviger fra de øvrige modeller, der beregner ét samlet indeksforhold
 (`løn = basisløn × (1 + akkumuleret/100)`) uden mellemliggende afrunding.
 
+Perioder før reguleringsdatoen beregnes baglæns efter samme kæde, spejlet:
+
+```
+løn_(i-1) = afrund_til_2_decimaler( løn_i ÷ (1 + periodesats_i / 100) )
+```
+
+Hvert trin afrundes til øre, før næste trin beregnes. Basislønnen rummer allerede satsen på
+reguleringsdatoen; ved baglæns passage af den seneste satsdato ophæves denne sats derfor først.
+Bilaget viser de anvendte trin med sats og løn før/efter og forklarer den baglæns beregning.
+Datoer før kildens første sats blokerer altid; et historisk niveau må aldrig erstattes af første sats.
+
 TAF-beløbet for et segment bruger den afrundede løn: `beløb = afrund(reguleret løn × antal)`.
+
+SFGG bruger samme motor, men sin egen referencesats som basis fra referenceperiodens slutdato.
+Den overtager ikke forholdet mellem to afrundede TAF-lønninger. Dermed afhænger SFGG hverken af
+TAF-lønnens størrelse eller af, om jobbet har løn i TAF-beregningsperioden. Dette er godkendt
+2026-10-16; se `../sygeferiegodtgoerelse/sygeferiegodtgoerelse.md` §4.2.
 
 Selve kæden ligger i
 [`src/domain/erstatningsopgoerelse/engines/klLoenaftalerReguleretLoen.ts`](../../../src/domain/erstatningsopgoerelse/engines/klLoenaftalerReguleretLoen.ts).
@@ -86,7 +102,7 @@ tilstedeværelsen af `segment.reguleretLoenOre`. Øvrige modeller er uændrede.
 
 | Visning | Standardmodeller | KL-lønaftaler |
 | --- | --- | --- |
-| **Reguleringsværdier**-tabel | model-specifikke kolonner (fx KRL: reguleringsprocent) | `Fra-dato \| Regulering` (periodesats); **ingen** akkumuleret kolonne |
+| **Reguleringsværdier**-tabel | model-specifikke kolonner (fx KRL: reguleringsprocent) | `Dato \| Retning \| Regulering \| Løn før \| Løn efter`; motorens faktiske kædetrin med øreafrundede lønninger, også mellem basis og TAF-vinduet og ved baglæns beregning; **ingen** akkumuleret kolonne |
 | **Beregnet regulering**-tabel | `Fra-dato \| Til-dato \| Indeksberegning \| Indeks \| Lønudvikling` | `Fra-dato \| Til-dato \| Lønudvikling \| Reguleret løn` – Lønudvikling **gentager periodesatsen** (ikke akkumuleret), Reguleret løn = kæde-opreguleret |
 | **Forventet indkomst**-linje (EO, TAF/år, TAF opreguleret) | `antal á basisløn kr. x (100 % + delta %)` | `antal á reguleret løn kr.` (ingen faktor-tekst) |
 | **Download-dokument** (`KL-lønaftaler`) | – | kompakt `Dato \| Regulering`-tabel (kun periodesatser) |
@@ -98,7 +114,7 @@ tilstedeværelsen af `segment.reguleretLoenOre`. Øvrige modeller er uændrede.
 | Fil | KL-lønaftaler-særlogik |
 | --- | --- |
 | `src/data/klLoenaftaler.ts` | Periode-satser som eneste kilde; ingen akkumuleret KL-satstabel eksporteres |
-| `src/domain/erstatningsopgoerelse/engines/klLoenaftalerReguleretLoen.ts` | KL-lønaftaler-kæde-resolver (`loenAt`/`deltaPctAt`) |
+| `src/domain/erstatningsopgoerelse/engines/klLoenaftalerReguleretLoen.ts` | KL-lønaftaler-kæde-resolver (`loenAt`/`deltaPctAt`/`trin`) |
 | `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts` | Bygger resolver for KL-lønaftaler; sætter `deltaPct` (fuld præcision) og `reguleretLoenOre` |
 | `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts` | KL-lønaftaler-grene i `buildReguleringsvaerdierTableData` og `buildReguleringIndexRows` |
 | `src/domain/erstatningsopgoerelse/engines/tafPerYearDerived.ts` | Propagerer og bruger `reguleretLoenOre` som KL-lønaftaler-enhedsløn i år-segmenter |

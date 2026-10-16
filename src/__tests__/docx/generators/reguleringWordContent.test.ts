@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import { generateReguleringDocument } from '../../../document/generators/eo/reguleringDocument';
-import { ILON12_DISCONTINUED_NOTE } from '../../../document/generators/eo/reguleringNotes';
+import { ILON12_DISCONTINUED_NOTE } from '../../../data/statistikNotes';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 import type { DanishDateString } from '../../../types/branded';
 

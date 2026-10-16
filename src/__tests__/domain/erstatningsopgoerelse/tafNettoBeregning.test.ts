@@ -1,3 +1,4 @@
+import { createSfggIngenRow } from '../../utils/sfggTestSupport';
 import { moneyOre } from '../../../domain/money/money';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -5,11 +6,11 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { applyAutoSatsFields } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import * as indtaegtPerioderModule from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
-import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { buildLoenudviklingBeregning } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sfggEngine';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { buildOffentligeYdelserReguleringTableData } from '../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
-import { buildSfggLoenudviklingMap } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
+import { buildSfggReguleringOpslagMap } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { computeTafBeregningsenhed } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
@@ -59,6 +60,145 @@ const createEmployment = (
 });
 
 describe('computeTafNettoBeregning', () => {
+  it('regulerer SFGG fra referenceperioden med SBLON2 uanset lønnens senere basisdato', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(40000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2025-01-01');
+    values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    values.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'SBLON2 (Danmarks Statistik)';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      indtaegtsoplysningerTableData: [{ id: 'reference', col0_maaned: '1', col1_maaned: '2022', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined, col2: asAmount(62000), col3: undefined, col4: undefined, col5: undefined }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ...createSfggIngenRow('af-1'), sfggBeregningskilde: 'Ferieloven',
+      sfggReferenceperiodeFra: iso('2022-01-01'), sfggReferenceperiodeTil: iso('2022-01-31'),
+    }];
+    const result = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2022-01-01') }, {
+      tafRanges: [2022, 2023, 2024, 2025].map((year) => ({ fra: iso(`${year}-02-01`), til: iso(`${year}-02-07`) })),
+    });
+    // 250 × [111,9; 115,7; 119,6; 125,4] / 111,9, afrundet til øre.
+    expect(result.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments.map((segment) => segment.satsOre))
+      .toEqual([25000, 25849, 26720, 28016]);
+    values.sfggAnsaettelsesforhold[0].sfggBeregningskilde = 'Manuelt angivet';
+    values.sfggAnsaettelsesforhold[0].sfggManuelDagssats = asAmount(250);
+    const manuel = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2022-01-01') }, {
+      tafRanges: [2022, 2023, 2024, 2025].map((year) => ({ fra: iso(`${year}-02-01`), til: iso(`${year}-02-07`) })),
+    });
+    expect(manuel.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments.map((segment) => segment.satsOre))
+      .toEqual([25000, 25000, 25000, 25000]);
+  });
+
+  it('bruger direkte overenskomstsats uden yderligere regulering selv når lønnen følger KRL', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.dagsloenenUdgoer = asAmount(1000);
+    values.angivetDagsloenOpreguleresFraDato = iso('2023-01-01');
+    values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    values.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({ harOverenskomst: true, overenskomstId: 'bygge-anlaeg' })];
+    values.sfggAnsaettelsesforhold = [{ ...createSfggIngenRow('af-1'), sfggBeregningskilde: 'Overenskomst', sfggSatsvalg: 'Ufaglaert-Koebenhavn' }];
+    const result = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') }, {
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    });
+    expect(result.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[0])
+      .toMatchObject({ satsOre: 18445, reguleringsindeks: null, agPensionPct: 10.15 });
+  });
+
+  it('bevarer A4-reguleringen for seks SFGG-dage når løse feriedage fjerner hele TAF-segmentet', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.dagsloenenUdgoer = asAmount(1000);
+    values.angivetDagsloenOpreguleresFraDato = iso('2023-01-01');
+    values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    values.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    values.tafPerioder = [{ id: 'taf', fra: iso('2024-09-23'), til: iso('2024-10-04'), loseFeriedage: 6 }];
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      indtaegtsoplysningerTableData: [{ id: 'reference', col0_maaned: '1', col1_maaned: '2023', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined, col2: asAmount(10000), col3: undefined, col4: undefined, col5: undefined }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ...createSfggIngenRow('af-1'), sfggBeregningskilde: 'Ferieloven',
+      sfggReferenceperiodeFra: iso('2023-01-01'), sfggReferenceperiodeTil: iso('2023-01-31'),
+    }];
+    const result = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') }, {
+      tafRanges: [{ fra: iso('2024-09-23'), til: iso('2024-10-04') }],
+    });
+    expect(result.loenudvikling?.beregnedeSegmenter.map((segment) => segment.fra)).toEqual([iso('2024-10-01')]);
+    expect(result.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[0]).toMatchObject({
+      fra: iso('2024-09-23'), til: iso('2024-09-30'), antalDage: 6,
+      reguleringsindeks: 105.6, satsOre: 6000, feriepengekravOre: 36000,
+    });
+  });
+
+  it('bevarer A3-ydelsesdelen på 132.912 kr. og samme TAF-netto ved ombytning af jobkort', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2022-01-01');
+    values.tafBeregningsperiodeTil = iso('2022-12-31');
+    values.regulerOffentligeYdelser = 'Ja';
+    values.loenindkomstAnsaettelsesforhold = ['2022-12-31', '2024-06-01'].map((dato, index) => createEmployment({
+      id: `af-${index}`, feriePct: 0, pensionPct: 0, fuldLoenUnderFerie: 'Ja',
+      loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+      saerligFraDatoRegulering: iso(dato),
+      indtaegtsoplysningerTableData: [{ id: `loen-${index}`, col0_maaned: '1', col1_maaned: '2022', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined, col2: asAmount(10000), col3: undefined, col4: undefined, col5: undefined }],
+    }));
+    values.offentligeYdelserRows = [{ id: 'dagpenge', fraDato: iso('2022-01-01'), tilDato: iso('2022-12-31'), ydelse: asAmount(120000), tillaeg: undefined, ydelsestype: 'dagpenge' }];
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-15') };
+    const options = { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-12-31') }] };
+    const foer = computeTafNettoBeregning(values, stamdata, options);
+    values.loenindkomstAnsaettelsesforhold.reverse();
+    const efter = computeTafNettoBeregning(values, stamdata, options);
+    expect(foer.offentligeYdelserUdvikling?.total).toEqual({ status: 'ok', value: 13291200 });
+    expect(efter.offentligeYdelserUdvikling?.total).toEqual({ status: 'ok', value: 13291200 });
+    expect(foer.tabtArbejdsfortjenesteOre).toBe(15443442);
+    expect(efter.tabtArbejdsfortjenesteOre).toBe(15443442);
+  });
+
+  it('regulerer SFGG med jobbets Statistik selv om lønnen kun findes i SFGG-referenceperioden', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2023-01-01');
+    values.tafBeregningsperiodeTil = iso('2023-01-31');
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'SBLON2 (Danmarks Statistik)',
+      indtaegtsoplysningerTableData: [{ id: 'reference', col0_maaned: '1', col1_maaned: '2022', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined, col2: asAmount(62000), col3: undefined, col4: undefined, col5: undefined }],
+    })];
+    values.offentligeYdelserRows = [{ id: 'dagpenge', fraDato: iso('2023-01-01'), tilDato: iso('2023-01-31'), ydelse: asAmount(12000), tillaeg: undefined, ydelsestype: 'dagpenge' }];
+    values.sfggAnsaettelsesforhold = [{
+      ...createSfggIngenRow('af-1'), sfggBeregningskilde: 'Ferieloven',
+      sfggReferenceperiodeFra: iso('2022-01-01'), sfggReferenceperiodeTil: iso('2022-01-31'),
+    }];
+    const result = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-02-01') }, {
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+    expect(result.loenudvikling?.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
+    expect(result.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[0])
+      .toMatchObject({ satsOre: 26720, reguleringsindeks: 106.88 });
+    values.loenindkomstAnsaettelsesforhold.push(createEmployment({
+      id: 'af-bp', loenudviklingBeregningsgrundlag: 'Ingen',
+      indtaegtsoplysningerTableData: [{ id: 'loen-bp', col0_maaned: '1', col1_maaned: '2023', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined, col2: asAmount(1000), col3: undefined, col4: undefined, col5: undefined }],
+    }));
+    const medAndetJob = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-02-01') }, {
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+    expect(medAndetJob.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[0])
+      .toMatchObject({ satsOre: 26720, reguleringsindeks: 106.88 });
+    values.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
+    const klUdenLoengrundlag = computeTafNettoBeregning(values, { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-02-01') }, {
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+    expect(klUdenLoengrundlag.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[0])
+      .toMatchObject({ satsOre: 26036, reguleringsindeks: null, klTrin: [
+        { dato: iso('2022-10-01'), pct: 2.55, retning: 'frem', loenFoer: 250, loenEfter: 256.38 },
+        { dato: iso('2023-04-01'), pct: 0.3, retning: 'frem', loenFoer: 256.38, loenEfter: 257.15 },
+        { dato: iso('2023-10-01'), pct: 1.25, retning: 'frem', loenFoer: 257.15, loenEfter: 260.36 },
+      ] });
+  });
+
   it('fremskriver offentlige ydelser fra beregningsperioden som positiv hypotetisk TAF-indkomst', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -166,7 +306,7 @@ describe('computeTafNettoBeregning', () => {
     });
   });
 
-  it('bruger samme særlige reguleringsdato for offentlige ydelser som aktiv lønudvikling', () => {
+  it('forankrer offentlige ydelser i beregningsperiodens slutdato trods et jobs særlige dato', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.tafBeregningsperiodeFra = iso('2024-01-01');
@@ -191,11 +331,11 @@ describe('computeTafNettoBeregning', () => {
       { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }] }
     );
 
-    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-07-01'));
+    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-01-31'));
     expect(result.offentligeYdelserUdvikling?.entries[0]?.beregnedeSegmenter[0]?.deltaPct).toBeCloseTo(3.9, 10);
   });
 
-  it('finder aktiv lønudvikling til reguleringsbase selv når første ansættelsesforhold har Ingen', () => {
+  it('bevarer ydelsesgrundlaget når første ansættelsesforhold har Ingen', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.regulerOffentligeYdelser = 'Ja';
@@ -229,7 +369,7 @@ describe('computeTafNettoBeregning', () => {
       { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }] }
     );
 
-    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-07-01'));
+    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-01-31'));
     expect(result.offentligeYdelserUdvikling?.entries[0]?.beregnedeSegmenter[0]?.deltaPct).toBeCloseTo(3.9, 10);
   });
 
@@ -508,7 +648,7 @@ describe('computeTafNettoBeregning', () => {
       expect.objectContaining({
         fra: iso('2024-03-01'),
         til: iso('2024-03-05'),
-        reguleringsindeks: 105.34,
+        reguleringsindeks: 105.79,
       })
     );
   });
@@ -707,7 +847,7 @@ describe('computeTafNettoBeregning', () => {
 
     const tafBeregningsenhed = computeTafBeregningsenhed(values);
     const expectedIndkomstSkadestidspunkt = buildIndkomstSkadestidspunkt(values, stamdata, tafBeregningsenhed);
-    const expectedLoenudvikling = buildLoenudviklingModel(
+    const expectedLoenudvikling = buildLoenudviklingBeregning(
       values,
       stamdata,
       tafBeregningsenhed,
@@ -718,11 +858,11 @@ describe('computeTafNettoBeregning', () => {
       values,
       stamdata,
       tafRanges,
-      loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, expectedLoenudvikling),
+      reguleringOpslagPerAnsaettelse: buildSfggReguleringOpslagMap(values, expectedLoenudvikling),
     });
 
     expect(result.indkomstSkadestidspunkt).toEqual(expectedIndkomstSkadestidspunkt);
-    expect(result.loenudvikling).toEqual(expectedLoenudvikling);
+    expect(result.loenudvikling).toEqual(expectedLoenudvikling.model);
     expect(result.sygeferiegodtgoerelse).toEqual(expectedSygeferiegodtgoerelse);
   });
 

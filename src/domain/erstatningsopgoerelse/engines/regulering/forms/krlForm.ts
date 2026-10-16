@@ -1,4 +1,5 @@
 import { buildReguleringsbevis } from '../reguleringsbevis';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import type { ISODateString } from '../../../../../types/branded';
 import {
   getKRLSatstabel,
@@ -11,7 +12,6 @@ import { buildKrlIndexEntries } from '../../krlRegulering';
 import {
   assertUniform,
   buildSegmentsFromStartDates,
-  buildZeroDeltaSegment,
   resolveEffectiveBaseEntry,
   toKildeReguleringsIntervalIso,
 } from '../reguleringFormPrimitives';
@@ -48,7 +48,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 };
 
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'krl') {
     throw new Error('Loenudvikling kan ikke beregnes: KRL-strategi mangler');
@@ -80,20 +81,15 @@ const byggResultat = (
   if (!Number.isFinite(basePct) || (100 + basePct) <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: ugyldigt KRL basisindeks');
   }
-  const effectiveBaseStartIso = effectiveBase.startIso;
 
   // Byg segmenter for hvert taf-interval
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const starts = new Set<ISODateString>();
     for (const entry of periodStarts) {
       if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);
     }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
-      if (segment.fra < effectiveBaseStartIso) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
       const idxEntry = findLatestByDateInSortedList(periodStarts, segment.fra, 'krl:segment');
       if (!idxEntry) {
         throw new Error('Intern fejl: mangler KRL-indeks efter effective base');

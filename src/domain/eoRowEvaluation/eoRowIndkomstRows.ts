@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../types/branded';
-import { kanDerVaereKravPaaStoreBededagstillaeg } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { erStoreBededagstillaegRelevant, kanDerVaereKravPaaStoreBededagstillaeg } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
@@ -357,8 +357,7 @@ export const buildEoIndkomstRows = (
 
   const loenudviklingsKilde = resolveLoenudviklingKilde(values);
 
-  // Store Bededagstillægget indgår i lønpakken fra 1. januar 2024, uanset reguleringsform. Advarslen
-  // er derfor kun tidsafgrænset: den vises, når en (færdigclampet) TAF-periode når ind i 2024.
+  // Advarslen kræver både en relevant knap og en TAF-periode fra tillæggets virkningsdato.
   const harTafPeriodeFraStoreBededag = buildTafRanges(values, { skadedatoISO: skadedato })
     .some((range) => range.til >= STORE_BEDEDAG_START);
 
@@ -377,6 +376,13 @@ export const buildEoIndkomstRows = (
     // ville påtale programmets eget, korrekte valg (BB-267, se `kanDerVaereKravPaaStoreBededagstillaeg`).
     if (
       harTafPeriodeFraStoreBededag
+      && erStoreBededagstillaegRelevant({
+        beregnesUdFra: values.beregnesUdFra,
+        loenPaaHelligdage: ansaettelsesforhold.loenPaaHelligdage,
+        reguleringsform: ansaettelsesforhold.loenudviklingBeregningsgrundlag,
+        reguleringsdato: ansaettelsesforhold.saerligFraDatoRegulering ?? values.tafBeregningsperiodeTil,
+        tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
+      })
       && kanDerVaereKravPaaStoreBededagstillaeg(values.beregnesUdFra, ansaettelsesforhold.loenPaaHelligdage)
       && ansaettelsesforhold.beregnStoreBededagstillaeg !== true
     ) {
@@ -642,13 +648,13 @@ export const buildEoIndkomstRows = (
       if (!reguleringsRange.min) {
         return {
           displayValue: 'Nej',
-          status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+          status: 'error' as EoRowStatus,
         };
       }
       if (anvendtReguleringsdato < reguleringsRange.min) {
         return {
           displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
-          status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+          status: 'error' as EoRowStatus,
         };
       }
       return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
@@ -660,7 +666,7 @@ export const buildEoIndkomstRows = (
       if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
       return {
         displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
-        status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+        status: 'error' as EoRowStatus,
       };
     })();
 

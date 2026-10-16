@@ -28,7 +28,16 @@ import { roundKroner } from '../../money/money';
 import { parseDanishToIso } from '../helpers/eoSharedUtils';
 import { klLoenaftalerRaekker } from '../../../data/klLoenaftaler';
 
+export type KlLoenaftalerReguleringTrin = Readonly<{
+  dato: ISODateString;
+  pct: number;
+  retning: 'frem' | 'tilbage';
+  loenFoer: number;
+  loenEfter: number;
+}>;
+
 export type KlLoenaftalerReguleretLoenResolver = Readonly<{
+  trin: readonly KlLoenaftalerReguleringTrin[];
   /** Den opregulerede, afrundede løn (kroner, 2 decimaler) der gælder på en given dato. */
   loenAt: (iso: ISODateString) => number;
   /**
@@ -40,9 +49,9 @@ export type KlLoenaftalerReguleretLoenResolver = Readonly<{
 }>;
 
 /**
- * Bygger en KL-lønaftaler-kæde-resolver fra en basisløn (på reguleringsdatoen) og frem over
- * KL-lønaftalernes reguleringsdatoer. Reguleringsdatoer på eller før selve
- * reguleringsdatoen springes over – basislønnen afspejler allerede lønniveauet dér.
+ * Bygger KL-lønaftalers kædeløn på begge sider af en basisløn på reguleringsdatoen.
+ * Fremad multipliceres hvert efterfølgende trin; baglæns divideres hvert passeret trin.
+ * Basislønnen afspejler allerede satsen på reguleringsdatoen.
  */
 export const buildKlLoenaftalerReguleretLoenResolver = (
   baseLoenRounded: number,
@@ -65,6 +74,7 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
     })
     .sort((a, b) => a.iso.localeCompare(b.iso));
 
+  const trin: KlLoenaftalerReguleringTrin[] = [];
   // Kæden: basis ved reguleringsdatoen, derefter ét trin pr. efterfølgende KL-lønaftaler-dato.
   const chain: Array<Readonly<{ fromIso: ISODateString; loen: number }>> = [
     { fromIso: reguleringsdatoIso, loen: baseLoenRounded },
@@ -79,11 +89,36 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
     if (!Number.isFinite(pct)) {
       throw new Error('Loenudvikling kan ikke beregnes: ikke-finit KL-lønaftaler-periodesats');
     }
+    const loenFoer = current;
     current = roundKroner(current * (1 + pct / 100));
+    trin.push({ dato: iso, pct, retning: 'frem', loenFoer, loenEfter: current });
     chain.push({ fromIso: iso, loen: current });
   }
 
+  // Basislønnen indeholder satsen på reguleringsdatoen. Ved historiske opslag ophæves
+  // hvert passeret trin ved division og øreafrunding, aldrig ved at fratrække procenten.
+  current = baseLoenRounded;
+  for (let i = klLoenaftalerTrinAsc.length - 1; i > 0; i -= 1) {
+    const { iso, pct } = klLoenaftalerTrinAsc[i];
+    if (iso > reguleringsdatoIso) continue;
+    if (!Number.isFinite(pct) || 1 + pct / 100 <= 0) {
+      throw new Error('Loenudvikling kan ikke beregnes: ugyldig KL-lønaftaler-periodesats');
+    }
+    const loenFoer = current;
+    current = roundKroner(current / (1 + pct / 100));
+    chain.push({ fromIso: klLoenaftalerTrinAsc[i - 1].iso, loen: current });
+    trin.push({ dato: iso, pct, retning: 'tilbage', loenFoer, loenEfter: current });
+  }
+  // Fra seneste sats til en basisdato mellem to satser er niveauet uændret.
+  const baseEntry = klLoenaftalerTrinAsc.filter((entry) => entry.iso <= reguleringsdatoIso).at(-1);
+  if (!baseEntry) throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler mangler basisniveau');
+  chain.push({ fromIso: baseEntry.iso, loen: baseLoenRounded });
+  chain.sort((a, b) => a.fromIso.localeCompare(b.fromIso));
+
   const loenAt = (iso: ISODateString): number => {
+    if (iso < klLoenaftalerTrinAsc[0].iso) {
+      throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler mangler historisk sats');
+    }
     let loen = baseLoenRounded;
     for (const entry of chain) {
       if (entry.fromIso > iso) break;
@@ -100,5 +135,5 @@ export const buildKlLoenaftalerReguleretLoenResolver = (
     return roundByMethod((loenAt(iso) / baseLoenRounded - 1) * 100, 8, 'halfAwayFromZero');
   };
 
-  return { loenAt, deltaPctAt };
+  return { loenAt, deltaPctAt, trin };
 };

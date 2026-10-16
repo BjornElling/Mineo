@@ -143,7 +143,7 @@ export const appSettingsSchema = z
     defaultVisBilagsnumre: z.boolean(),
     // Beregningstekniske regel-toggles. Bevidst device-lokale (udviklergodkendt 2026-06-19):
     // de ændrer IKKE de producerede tal, kun validerings-severity for overenskomst-/regulerings-
-    // dækning (warning vs. error). Dokumenteret undtagelse fra app-settings.md §"Beregnings-/regel-
+    // udløb før TAF-periodens slutning (warning vs. error). Nedre dækning blokerer altid. Dokumenteret undtagelse fra app-settings.md §"Beregnings-/regel-
     // toggles"; eneste produktions-callsite er buildEoIndkomstRows. Skal flyttes til .eo-sagsdata
     // hvis to brugere skal se ens validering på samme sag, eller hvis et valg begynder at ændre tal.
     allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean(),

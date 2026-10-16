@@ -1,4 +1,5 @@
 import type { LoenudviklingBeregningsgrundlag } from '../../../../schemas/formSchemas';
+import type { IsoRange } from '../../helpers/indtaegtPerioder';
 import type {
   KonsolideretLoenudvikling,
   LoenudviklingStrategi,
@@ -39,11 +40,12 @@ const FORM_BY_STRATEGI: ReadonlyMap<LoenudviklingStrategi, ReguleringForm> = new
  * (konsolideret er null) og når aldrig hertil.
  */
 export const byggReguleringsResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   const form = FORM_BY_STRATEGI.get(konsolideret.strategi);
   if (!form) {
     throw new Error('Loenudvikling kan ikke beregnes: ukendt strategi');
   }
-  return form.byggResultat(konsolideret);
+  return form.byggResultat(konsolideret, segmentRanges);
 };

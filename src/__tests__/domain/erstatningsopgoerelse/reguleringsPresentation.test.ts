@@ -7,6 +7,7 @@ import {
   resolveLoenudviklingSegmenterForKilde,
   resolveLoenSkadedatoText,
   resolveTafDateBounds,
+  resolveReguleringTillaegsStigninger,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { buildManuelProcentsatsEntries } from '../../../domain/erstatningsopgoerelse/engines/manuelProcentsatsRegulering';
@@ -68,7 +69,7 @@ const buildReguleringsvaerdierTableData = (params: ReguleringsvaerdierParams) =>
   buildReguleringsvaerdierTableDataFromCanonical({
     ...params,
     segments: params.segments ?? (params.tafFra && params.tafTil
-      && (['Manuelt angivet', 'Overenskomst'].includes(params.ansaettelsesforhold.loenudviklingBeregningsgrundlag ?? '')
+      && (['Manuelt angivet', 'Overenskomst', 'KL-lønaftaler'].includes(params.ansaettelsesforhold.loenudviklingBeregningsgrundlag ?? '')
         || params.ansaettelsesforhold.loenudviklingStatistikModel === 'ASL-årslønsmaksimum') ? withEngineEvidence({
       ...params,
       segments: [{
@@ -473,33 +474,6 @@ describe('reguleringsPresentation', () => {
     })).toBe('lønnen på anmeldelsesdatoen');
   });
 
-  it('viser tidligste faktiske sats uden reguleringsdato-række og sætter note ved manglende tidlig dækning', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
-
-    const table = buildReguleringsvaerdierTableData({
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2020-01-01'),
-      tafFra: iso('2020-04-01'),
-      tafTil: iso('2026-02-26'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(table).not.toBeNull();
-    expect(table?.rows.length).toBeGreaterThan(0);
-    // Ingen syntetisk række på reguleringsdatoen (01-01-2020) – den opgivne "referencerække" er fjernet.
-    expect(table?.rows.some((row) => row[0] === '01-01-2020')).toBe(false);
-    // Første række er laasesmedeoverenskomstens tidligste faktiske satsdato.
-    // Hvis overenskomstdata ændres, skal denne forventning opdateres.
-    expect(table?.rows[0]?.[0]).toBe('01-03-2023');
-    // Store Bededag-grænsen bevares fortsat som særskilt række.
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
-    expect(table?.rows.some((row) => row[0] === '01-03-2024')).toBe(true);
-    // Noten oplyser, at reguleringen tager afsæt i den tidligste registrerede sats.
-    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2023-03-01'));
-  });
 
   it('skjuler Fritvalg-kolonne for overenskomst hvor fritvalg er 0 i alle perioder', () => {
     // Regression: bygningsoverenskomsten har fritvalg: 0 (base default) i alle perioder.
@@ -528,31 +502,6 @@ describe('reguleringsPresentation', () => {
     expect(table?.columns).toContain('AG pens. bidrag');
   });
 
-  it('viser tidligste faktiske private overenskomstsats uden reguleringsdato-række og sætter note', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
-    af.feriePct = 12.5;
-    af.shSoPct = 2.7;
-    af.pensionPct = 8.15;
-
-    const table = buildReguleringsvaerdierTableData({
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2020-01-01'),
-      tafFra: iso('2020-04-01'),
-      tafTil: iso('2024-04-30'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(table).not.toBeNull();
-    // Ingen syntetisk række på reguleringsdatoen (01-01-2020).
-    expect(table?.rows.some((row) => row[0] === '01-01-2020')).toBe(false);
-    // Første række er den tidligste faktiske overenskomstsats med de indtastede tillæg.
-    expect(table?.rows[0]?.[0]).toBe('01-03-2023');
-    expect(table?.rows[0]?.[1]).toBe('131,65');
-    expect(table?.tidligsteSatsGaelderFra).toBe(iso('2023-03-01'));
-  });
 
   it('viser overenskomstens tillægskolonner i Beløb-tilstand', () => {
     const values = cloneInitialValues();
@@ -567,8 +516,8 @@ describe('reguleringsPresentation', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2020-01-01'),
-      tafFra: iso('2020-04-01'),
+      anvendtReguleringsdato: iso('2023-03-01'),
+      tafFra: iso('2023-03-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
     });
@@ -578,42 +527,6 @@ describe('reguleringsPresentation', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
-  it('bygger reguleringsindeks-rækker selv når segmenter starter før første overenskomstdækning', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
-
-    const rows = buildReguleringIndexRows({
-      segments: [
-        {
-          kind: 'maaneder',
-          fra: iso('2020-04-01'),
-          til: iso('2024-02-29'),
-          maaneder: 47,
-          maanedsloenOre: moneyOre(100000),
-          deltaPct: 0,
-          amountOre: moneyOre(100000),
-        },
-        {
-          kind: 'maaneder',
-          fra: iso('2024-03-01'),
-          til: iso('2024-03-31'),
-          maaneder: 1,
-          maanedsloenOre: moneyOre(100000),
-          deltaPct: 10,
-          amountOre: moneyOre(100000),
-        },
-      ],
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2020-01-01'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(rows.length).toBeGreaterThan(0);
-    expect(rows[0]?.fraDato).toBe('01-04-2020');
-    expect(rows[0]?.indeks).toBe('100,00');
-  });
 
   it('viser overenskomstindeks med tillæg i Beløb-tilstand', () => {
     const values = cloneInitialValues();
@@ -679,33 +592,6 @@ describe('reguleringsPresentation', () => {
     expect(rows[0]?.loenudvikling).toBe('+ 22,19 %');
   });
 
-  it('viser Store Bededag som særskilt fallback-beregning før første private overenskomstdækning', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
-
-    const rows = buildReguleringIndexRows({
-      segments: [
-        {
-          kind: 'maaneder',
-          fra: iso('2024-01-01'),
-          til: iso('2024-02-29'),
-          maaneder: 2,
-          maanedsloenOre: moneyOre(100000),
-          deltaPct: 0.36,
-          amountOre: moneyOre(100000),
-        },
-      ],
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2020-01-01'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.indeks).not.toBe('100,00');
-    expect(rows[0]?.indeksberegning).toContain('0,45 %');
-  });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i offentlig reguleringsværdier-tabel', () => {
     const values = cloneInitialValues();
@@ -969,45 +855,24 @@ describe('reguleringsPresentation', () => {
     expect(row?.slice(1)).toEqual(['131,65', '12,5 %', '0 %', '12,5 %', '0,45 %', '10,5 %']);
   });
 
-  it('viser KL-lønaftaler med dato og periode-reguleringssats (ingen akkumuleret kolonne)', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
+  it('viser hele den anvendte KL-kæde, også før TAF-vinduet (C1)', () => {
+    const af = cloneInitialValues().loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
-
     const table = buildReguleringsvaerdierTableData({
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2024-04-01'),
-      tafFra: iso('2024-04-01'),
-      tafTil: iso('2026-12-31'),
-      tafBeregningsenhed: 'Måneder',
+      ansaettelsesforhold: af, anvendtReguleringsdato: iso('2024-04-01'),
+      tafFra: iso('2025-10-01'), tafTil: iso('2025-12-31'), tafBeregningsenhed: 'Måneder',
     });
-
-    expect(table?.columns).toEqual(['Fra-dato', 'Regulering']);
-    expect(table?.rows.find((r) => r[0] === '01-10-2024')).toEqual(['01-10-2024', '1,30 %']);
-    expect(table?.rows.find((r) => r[0] === '01-10-2025')).toEqual(['01-10-2025', '0,30 %']);
+    expect(table?.columns).toEqual(['Dato', 'Retning', 'Regulering', 'Løn før', 'Løn efter']);
+    // 30.000 × 1,013 = 30.390,00; næste kædetrin må ikke udelades fordi TAF starter i 2025.
+    expect(table?.rows[0]).toEqual(['01-10-2024', 'Fremad', '1,30 %', '30.000,00', '30.390,00']);
   });
 
-  it('injicerer ingen streg-række på KL-reguleringsdatoen når den ligger midt i en periode', () => {
-    // Regression: reguleringsdato 31-05-2022 lå mellem to KL-satser (01-10-2021 og 01-10-2022) og gav
-    // tidligere en støjrække "31-05-2022 | -". Nu vises kun den gældende sats ved vinduets start.
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
+  it('viser KL-basis med lønnen når ingen kædetrin er passeret', () => {
+    const af = cloneInitialValues().loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
-
-    const table = buildReguleringsvaerdierTableData({
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2022-05-31'),
-      tafFra: iso('2022-05-31'),
-      tafTil: iso('2024-04-30'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(table).not.toBeNull();
-    expect(table?.rows.some((row) => row[0] === '31-05-2022')).toBe(false);
-    // Første række er den senest gældende KL-sats før reguleringsvinduets start.
-    expect(table?.rows[0]).toEqual(['01-10-2021', '1,00 %']);
-    // Sats gælder på/før reguleringsdatoen → ingen note.
-    expect(table?.tidligsteSatsGaelderFra).toBeUndefined();
+    const table = buildReguleringsvaerdierTableData({ ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-04-01'), tafFra: iso('2024-04-01'), tafTil: iso('2024-09-30'), tafBeregningsenhed: 'Måneder' });
+    expect(table?.rows).toEqual([['01-04-2024', 'Basis', '-', '30.000,00', '30.000,00']]);
   });
 
   it('Beregnet regulering for KL-lønaftaler: lønudvikling gentager periodesatsen, reguleret løn er kæde-opreguleret', () => {
@@ -1164,45 +1029,6 @@ describe('reguleringsPresentation', () => {
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
   });
 
-  it('bevarer 01-01-2024 som særskilt indeksrække ved privat overenskomst uden tidlig dækning', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
-    af.loenPaaHelligdage = 'Almindelig løn';
-    af.feriePct = 12.5;
-    af.shSoPct = 2.7;
-    af.pensionPct = 8.15;
-
-    const rows = buildReguleringIndexRows({
-      segments: [
-        {
-          kind: 'maaneder',
-          fra: iso('2017-05-01'),
-          til: iso('2024-02-29'),
-          maaneder: 82,
-          maanedsloenOre: moneyOre(100000),
-          deltaPct: 0,
-          amountOre: moneyOre(100000),
-        },
-        {
-          kind: 'maaneder',
-          fra: iso('2024-03-01'),
-          til: iso('2024-04-30'),
-          maaneder: 2,
-          maanedsloenOre: moneyOre(100000),
-          deltaPct: 11.26,
-          amountOre: moneyOre(100000),
-        },
-      ],
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2017-05-02'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(rows.some((row) => row.fraDato === '01-01-2024' && row.indeks !== '100,00')).toBe(true);
-    expect(rows.some((row) => row.fraDato === '01-03-2024' && row.indeks !== '100,00')).toBe(true);
-  });
 
   it('bruger samme første tabelkolonner som eo-kontrol for manuel arbejdsdagsbaseret regulering', () => {
     const values = cloneInitialValues();
@@ -1432,7 +1258,7 @@ describe('reguleringsPresentation', () => {
     expect(rows[1]?.indeksberegning).toBe('(632.000,00 / 608.000,00)');
   });
 
-  it('KL-lønaftaler: kræver motorens kanoniske forløb', () => {
+  it('KL-lønaftaler: kræver motorens anvendte kædetrin', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
@@ -2362,4 +2188,33 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.rows).toEqual([['01-04-2001', '4,0662 %']]);
   });
+  it('bevarer ASL-værditabellen når TAF starter før basisåret (C2)', () => {
+    const af = cloneInitialValues().loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    const segment: LoenudviklingSegment = { kind: 'maaneder', fra: iso('2023-01-01'), til: iso('2023-12-31'),
+      maaneder: 12, maanedsloenOre: moneyOre(3000000), amountOre: moneyOre(0), deltaPct: -3.8,
+      regulering: buildReguleringsbevis(632000, 608000, { kind: 'indeks', sourceKind: 'asl',
+        referenceDate: iso('2024-01-01'), periodRateDate: iso('2023-01-01') }),
+    };
+    expect(buildReguleringsvaerdierTableDataFromCanonical({ ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-01-01'), tafFra: segment.fra, tafTil: segment.til,
+      tafBeregningsenhed: 'Måneder', segments: [
+        { ...segment, regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }) }, segment,
+      ] })?.rows).toEqual([
+      ['2023', '608.000,00'], ['2024', '632.000,00'],
+    ]);
+  });
+
+  it('forklaringsteksten nævner kun faktisk anvendte komponentstigninger (C4)', () => {
+    const referenceComponents = { baseValue: 100, feriePct: 12.5, shSoPct: 0, fritvalgPct: 7, pensionPct: 9, storeBededagPct: 0 };
+    const segment: LoenudviklingSegment = { kind: 'maaneder', fra: iso('2024-01-01'), til: iso('2024-12-31'),
+      maaneder: 12, maanedsloenOre: moneyOre(3000000), amountOre: moneyOre(0), deltaPct: 1,
+      regulering: buildReguleringsbevis(100, 101, { kind: 'pakke', referenceComponents,
+        periodComponents: { ...referenceComponents, pensionPct: 10, storeBededagPct: 0.45 } }),
+    };
+    // SH er 0 i de evaluerede komponenter, uanset om overenskomstens rå tabel viser en stigning.
+    expect(resolveReguleringTillaegsStigninger([segment])).toEqual(['st. bededagstillæg', 'pension']);
+  });
+
 });

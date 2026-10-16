@@ -444,11 +444,14 @@ describe('BB-267 – Store Bededag ved angivet dagsløn', () => {
     expect(result.projection.eoValues.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg).toBe(false);
   });
 
-  it('advarer fortsat ved angivet månedsløn', () => {
+  it('advarer fortsat ved angivet månedsløn med en reguleringsform, knappen påvirker', () => {
     const base = sag({ beregnesUdFra: 'Angivet månedsløn', maanedsloenenUdgoer: amount(30000) });
     const result = project({
       ...base,
-      eoAngivetLoenLoenudvikling: { ...base.eoAngivetLoenLoenudvikling, loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: false },
+      eoAngivetLoenLoenudvikling: {
+        ...base.eoAngivetLoenLoenudvikling, loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: false,
+        loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', feriePct: 0,
+      },
     });
 
     expect(result.rows.warnings.some((warning) => warning.id.endsWith('storeBededagstillaegFravalgt'))).toBe(true);

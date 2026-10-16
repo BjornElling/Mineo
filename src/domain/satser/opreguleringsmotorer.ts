@@ -192,3 +192,19 @@ export const opregulerMedAkkumuleretReguleringssats = (
   }
   return resultFromFaktor(faktor, []);
 };
+
+/**
+ * Offentlige ydelsers regulering i begge retninger. Bagud bruges det reciprokke
+ * produkt: hvert tidligere års niveau er det senere niveau divideret med årets
+ * reguleringsfaktor. De øvrige opreguleringsbrugeres uændrede tilbageblik er neutralt.
+ */
+export const regulerMedAkkumuleretReguleringssats = (
+  input: OpreguleringInput,
+  satser: YearlyRate = reguleringssats
+): OpreguleringResultat => {
+  if (input.maalAar >= input.kildeAar) return opregulerMedAkkumuleretReguleringssats(input, satser);
+  const fremad = opregulerMedAkkumuleretReguleringssats({
+    kildeAar: input.maalAar, maalAar: input.kildeAar,
+  }, satser);
+  return fremad.manglendeAar.length > 0 ? fremad : resultFromFaktor(1 / fremad.faktor, []);
+};

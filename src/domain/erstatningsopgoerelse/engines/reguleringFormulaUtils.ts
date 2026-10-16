@@ -31,6 +31,7 @@ export type FormulaVisibility = Readonly<{
  * (regulering-redesign R8, mekanisme 1). Alle reguleringsformer (statistik inkl. ASL-krydsningen,
  * KRL, manuel, manuel procentsats, overenskomst offentlig/privat) OG motorens re-runding afrunder
  * deltaPct efter præcis denne politik, så det viste reguleringsindeks kan efterregnes af beløbet.
+ * Negative og positive halvvejspunkter afrundes symmetrisk væk fra nul (fx ±1,235 → ±1,24).
  *
  * Samlet ét sted som en NAVNGIVEN politik frem for spredte magiske `roundByMethod(x, 2, ...)`-kald,
  * så decimalantallet ikke kan drive til en forkert konvention ved en fremtidig ændring. (KL-lønaftaler

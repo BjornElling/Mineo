@@ -1,3 +1,5 @@
+import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
+import { buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import {
@@ -242,4 +244,42 @@ describe('kronetillæg i pakkens enhed', () => {
       expect(segmenter.find((segment) => segment.fra === iso('2024-05-01'))?.deltaPct).toBe(2.58);
     });
   });
+  describe('RLTN via beregningsperiodens samlede motorforløb', () => {
+    // RLTN, trin 1/gruppe 0: 18.813,50 -> 19.075,00 kr./måned og 117,34 -> 118,97 kr./time.
+    // 1.000 kr./måned = 6,24 kr./time; 500 kr./måned = 3,12 kr./time.
+    // Facit: forhøjet grundløn 1,32 % ved oktobertrinnet; anciennitet 2,66 % fra maj.
+    it.each(TAF_ENHEDER.flatMap((tafEnhed) => (['Månedsløn', 'Timeløn'] as const).flatMap((ansaettelse) =>
+      (['Måned', 'Time'] as const).flatMap((enhed) => (['forhoejelse', 'anciennitet'] as const).map((felt) => ({
+        tafEnhed, ansaettelse, enhed, felt,
+      }))))))('$felt, $ansaettelse, TAF i $tafEnhed, angivet pr. $enhed', ({ tafEnhed, ansaettelse, enhed, felt }) => {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.beregnesUdFra = 'Beregningsperiode';
+      values.tafBeregningsperiodeFra = iso('2024-01-01');
+      values.tafBeregningsperiodeTil = iso('2024-01-31');
+      values.loenindkomstAnsaettelsesforhold = [{
+        ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'rltn',
+        loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'rltn-overenskomst',
+        offentligLoenType: ansaettelse, offentligLoenTrin: 1, offentligLoenGruppe: 0,
+        saerligFraDatoRegulering: REGULERINGSDATO, feriePct: 0, loenPaaHelligdage: 'Ingen',
+        fuldLoenUnderFerie: tafEnhed === 'Måneder' ? 'Ja' : 'Nej',
+        offentligLoenEkstraGrundloen: felt === 'forhoejelse' ? amount(enhed === 'Måned' ? 1000 : 6.24) : undefined,
+        offentligLoenEkstraGrundloenAngivesPer: enhed,
+        harAnciennitetstillaegEfterSkadedatoen: felt === 'anciennitet',
+        anciennitetstillaegDato: iso('2024-05-01'),
+        anciennitetstillaegSats: felt === 'anciennitet' ? amount(enhed === 'Måned' ? 500 : 3.12) : undefined,
+        anciennitetstillaegSatsAngivesPer: enhed,
+        indtaegtsoplysningerTableData: [{ id: 'loen', col0_maaned: '1', col1_maaned: '2024',
+          col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined,
+          col2: amount(30000), col3: undefined, col4: undefined, col5: undefined }],
+      }];
+      const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-02-01') };
+      const income = buildIncomeForRanges(values, [{ fra: values.tafBeregningsperiodeFra, til: values.tafBeregningsperiodeTil }]);
+      const basis = buildIndkomstSkadestidspunkt(values, stamdata, tafEnhed, { incomeForBeregningsperiode: income });
+      const model = buildLoenudviklingModel(values, stamdata, tafEnhed, basis, { tafRanges: [TAF] });
+      const dato = iso(felt === 'forhoejelse' ? '2024-10-15' : '2024-05-15');
+      const segment = model.perAnsaettelse[0]?.beregnedeSegmenter.find((entry) => entry.fra <= dato && entry.til >= dato);
+      expect(segment?.deltaPct).toBe(felt === 'forhoejelse' ? 1.32 : 2.66);
+    });
+  });
+
 });

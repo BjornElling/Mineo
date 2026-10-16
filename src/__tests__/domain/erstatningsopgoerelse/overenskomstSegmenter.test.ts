@@ -1,10 +1,7 @@
-import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { buildOverenskomstSegmentContext } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstSegmentContext';
 import { buildOffentligOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstOffentligSegmenter';
 import { buildPrivatOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstPrivatSegmenter';
-import * as overenskomstReguleringShared from '../../../domain/erstatningsopgoerelse/engines/overenskomstReguleringShared';
 import type { KonsolideretLoenudvikling } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
-import { getReguleringsDatoIntervalForOverenskomst } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
@@ -50,11 +47,11 @@ const withSegment = (
 ) => result.find((segment) => segment.fra === date);
 
 describe('overenskomst-segmentbyggere', () => {
-  it('bygger privat serie med før-dækning, første sats, Store Bededag og anciennitet', () => {
+  it('bygger privat serie med historiske satser, Store Bededag og anciennitet', () => {
     const konsolideret = createOverenskomst({
-      reguleringsdato: iso('2000-01-01'),
+      reguleringsdato: iso('2013-01-01'),
       beregnStoreBededagstillaeg: true,
-      tafRanges: [{ fra: iso('2000-01-01'), til: iso('2024-12-31') }],
+      tafRanges: [{ fra: iso('2013-01-01'), til: iso('2024-12-31') }],
       harAnciennitetstillaegEfterSkadedatoen: true,
       anciennitetstillaegDato: iso('2024-06-01'),
       anciennitetstillaegSatsValue: 25,
@@ -64,13 +61,7 @@ describe('overenskomst-segmentbyggere', () => {
       konsolideret,
       buildOverenskomstSegmentContext(konsolideret)
     );
-    const interval = getReguleringsDatoIntervalForOverenskomst('bygge-anlaeg');
-
-    expect(withSegment(result, iso('2000-01-01'))?.deltaPct).toBe(0);
-    expect(interval).toBeDefined();
-    if (!interval) throw new Error('Privat overenskomst mangler dækningsinterval');
-    const firstCoveredDate = toISODateString(interval.fraDato.split('-').reverse().join('-'));
-    expect(withSegment(result, firstCoveredDate)).toBeDefined();
+    expect(withSegment(result, iso('2013-01-01'))?.deltaPct).toBe(0);
     expect(withSegment(result, STORE_BEDEDAG_START)).toBeDefined();
     expect(withSegment(result, iso('2024-06-01'))).toBeDefined();
     expect(result.some((segment) => segment.deltaPct !== 0)).toBe(true);
@@ -85,16 +76,10 @@ describe('overenskomst-segmentbyggere', () => {
     )).toThrow('Loenudvikling kan ikke beregnes: ingen overenskomstsegmenter');
   });
 
-  it('afviser privat serie når basissatsen mangler', () => {
-    const spy = vi.spyOn(overenskomstReguleringShared, 'resolvePrivateOverenskomstBaseContext').mockReturnValue(null);
-    try {
-      expect(() => buildPrivatOverenskomstSegmenter(
-        createOverenskomst(),
-        buildOverenskomstSegmentContext(createOverenskomst())
-      )).toThrow('Loenudvikling kan ikke beregnes: basissats mangler');
-    } finally {
-      spy.mockRestore();
-    }
+  it('afviser privat serie når reguleringsdatoen ligger før første sats', () => {
+    const konsolideret = createOverenskomst({ reguleringsdato: iso('2000-01-01') });
+    expect(() => buildPrivatOverenskomstSegmenter(konsolideret,
+      buildOverenskomstSegmentContext(konsolideret))).toThrow('Loenudvikling kan ikke beregnes: basissats mangler');
   });
 
   it('afviser privat serie med ugyldigt TAF-interval', () => {
@@ -108,24 +93,12 @@ describe('overenskomst-segmentbyggere', () => {
     )).toThrow('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
   });
 
-  it('bygger nulsegment før privat dækning uden Store Bededag', () => {
+  it('afviser TAF før privat dækning, også med en dækket reguleringsdato', () => {
     const konsolideret = createOverenskomst({
-      reguleringsdato: iso('2000-01-01'),
       tafRanges: [{ fra: iso('2000-01-01'), til: iso('2011-12-31') }],
     });
-
-    const result = buildPrivatOverenskomstSegmenter(
-      konsolideret,
-      buildOverenskomstSegmentContext(konsolideret)
-    );
-
-    expect(result).toMatchObject([
-      { fra: iso('2000-01-01'), til: iso('2011-02-28'), deltaPct: 0 },
-      { fra: iso('2011-03-01'), til: iso('2011-12-31'), deltaPct: 0 },
-    ]);
-    for (const segment of result) {
-      expect(reguleringsbevisSchema.parse(segment.regulering).appliedDeltaPct).toBe(segment.deltaPct);
-    }
+    expect(() => buildPrivatOverenskomstSegmenter(konsolideret,
+      buildOverenskomstSegmentContext(konsolideret))).toThrow('Loenudvikling kan ikke beregnes: mangler sats for segment');
   });
 
   it('bygger offentlig serie med løntrin, timeløn, Store Bededag og anciennitet', () => {
@@ -155,27 +128,14 @@ describe('overenskomst-segmentbyggere', () => {
     expect(result.some((segment) => segment.deltaPct !== 0)).toBe(true);
   });
 
-  it('bruger offentlig første dækkede sats ved reguleringsdato før dækningen', () => {
+  it('afviser offentlig reguleringsdato før dækning uanset Store Bededag', () => {
     const konsolideret = createOverenskomst({
-      reguleringsdato: iso('2000-01-01'),
-      overenskomstId: 'kl-overenskomst',
-      beregnStoreBededagstillaeg: true,
-      offentlig: offentligSelection,
+      reguleringsdato: iso('2000-01-01'), overenskomstId: 'kl-overenskomst',
+      beregnStoreBededagstillaeg: true, offentlig: offentligSelection,
       tafRanges: [{ fra: iso('2000-01-01'), til: iso('2024-12-31') }],
     });
-
-    const result = buildOffentligOverenskomstSegmenter(
-      konsolideret,
-      offentligSelection,
-      buildOverenskomstSegmentContext(konsolideret)
-    );
-    const interval = getReguleringsDatoIntervalForOverenskomst('kl-overenskomst');
-
-    expect(withSegment(result, iso('2000-01-01'))?.deltaPct).toBe(0);
-    expect(interval).toBeDefined();
-    if (!interval) throw new Error('Offentlig overenskomst mangler dækningsinterval');
-    const firstCoveredDate = toISODateString(interval.fraDato.split('-').reverse().join('-'));
-    expect(withSegment(result, firstCoveredDate)).toBeDefined();
+    expect(() => buildOffentligOverenskomstSegmenter(konsolideret, offentligSelection,
+      buildOverenskomstSegmentContext(konsolideret))).toThrow('Loenudvikling kan ikke beregnes: basissats mangler');
   });
 
   it('afviser offentlig serie ved ukendt dækningsinterval', () => {
@@ -211,24 +171,13 @@ describe('overenskomst-segmentbyggere', () => {
     )).toThrow('Loenudvikling kan ikke beregnes: ugyldigt segmentinterval');
   });
 
-  it('bygger nulsegment før offentlig dækning uden Store Bededag', () => {
+  it('afviser TAF før offentlig dækning med en dækket reguleringsdato', () => {
     const konsolideret = createOverenskomst({
-      reguleringsdato: iso('2000-01-01'),
-      overenskomstId: 'kl-overenskomst',
-      offentlig: offentligSelection,
+      overenskomstId: 'kl-overenskomst', offentlig: offentligSelection,
       tafRanges: [{ fra: iso('2000-01-01'), til: iso('2011-12-31') }],
     });
-
-    const result = buildOffentligOverenskomstSegmenter(
-      konsolideret,
-      offentligSelection,
-      buildOverenskomstSegmentContext(konsolideret)
-    );
-
-    expect(result).toEqual([{
-      fra: iso('2000-01-01'), til: iso('2011-12-31'), deltaPct: 0,
-      regulering: { kind: 'ingen', referenceValue: 1, periodValue: 1, rawFactor: 1, rawDeltaPct: 0, appliedDeltaPct: 0 },
-    }]);
+    expect(() => buildOffentligOverenskomstSegmenter(konsolideret, offentligSelection,
+      buildOverenskomstSegmentContext(konsolideret))).toThrow('Loenudvikling kan ikke beregnes: mangler sats for segment');
   });
 
   it('afviser offentlig serie uden TAF-intervaller', () => {

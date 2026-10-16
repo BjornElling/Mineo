@@ -1226,7 +1226,7 @@ describe('eoPdfModel', () => {
     expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
-  it('tillader offentlig overenskomst-regulering før 01-01-2012 med fallback-segmenter', () => {
+  it('blokerer offentlig overenskomst-regulering før første sats', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum['Angivet månedsløn'],
       maanedsloenenUdgoer: asAmountValue(32000),
@@ -1249,10 +1249,13 @@ describe('eoPdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2011-12-31') });
 
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-    expect(segments.some((segment) => segment.fra === toISODateString('2010-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2012-01-01'))).toBe(true);
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const snapshot = computeEoSnapshot({ revision: 'coverage-test', stamdataValues: stamdata,
+      eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-24') });
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
   });
 
   // Afklaringslog 10a: anciennitetens enhed ved angivet løn er brugerens eget valg og læses. Testen hævdede
@@ -2672,7 +2675,7 @@ describe('eoPdfModel', () => {
   it.each([
     ['Angivet månedsløn'],
     ['Angivet dagsløn'],
-  ] as const)('anvender statistik-fallback (variant B) for manglende basisdækning ved %s', (beregningsmetode) => {
+  ] as const)('blokerer manglende statistikdækning ved %s', (beregningsmetode) => {
     const baseAf = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       feriePct: 12.5,
@@ -2715,15 +2718,16 @@ describe('eoPdfModel', () => {
       loenindkomstAnsaettelsesforhold: [baseAf],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2015-01-01') });
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-
-    const firstSegment = segments.find((segment) => segment.fra === toISODateString('2015-01-01'));
-    expect(firstSegment?.deltaPct).toBe(0);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2016-01-01') && segment.deltaPct > 0)).toBe(true);
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const snapshot = computeEoSnapshot({ revision: 'coverage-test', stamdataValues: stamdata,
+      eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-24') });
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
   });
 
-  it('anvender statistik-fallback (variant B) for manglende basisdækning ved Beregningsperiode', () => {
+  it('blokerer manglende statistikdækning ved Beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: iso('2023-01-01'),
@@ -2767,11 +2771,13 @@ describe('eoPdfModel', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-
-    expect(segments.some((segment) => segment.fra === toISODateString('2015-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2016-01-01') && segment.deltaPct > 0)).toBe(true);
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const snapshot = computeEoSnapshot({ revision: 'coverage-test', stamdataValues: stamdata,
+      eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-24') });
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
   });
 
   it('afviser ASL-segmenter uden årslønsmaksimum i stedet for 0-regulering', () => {
@@ -2791,7 +2797,7 @@ describe('eoPdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') })).toThrow(
-      'ASL-maks-sats mangler for 2000'
+      'Reguleringsdatoen ligger før reguleringsgrundlagets første sats (01-01-2005)'
     );
   });
 
@@ -2818,7 +2824,7 @@ describe('eoPdfModel', () => {
     expect(segments.some((segment) => segment.deltaPct > 0)).toBe(true);
   });
 
-  it('anvender overenskomst-fallback (privat) for tidlige perioder uden sats', () => {
+  it('blokerer privat overenskomst for tidlige perioder uden sats', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -2836,14 +2842,16 @@ describe('eoPdfModel', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2009-01-01') });
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-
-    expect(segments.some((segment) => segment.fra === toISODateString('2009-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2011-03-01'))).toBe(true);
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const snapshot = computeEoSnapshot({ revision: 'coverage-test', stamdataValues: stamdata,
+      eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-24') });
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
   });
 
-  it('anvender overenskomst-fallback (offentlig) for perioder før 01-01-2012 uden crash', () => {
+  it('blokerer offentlig overenskomst for perioder før første sats', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(32000),
@@ -2864,11 +2872,13 @@ describe('eoPdfModel', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2010-01-01') });
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-
-    expect(segments.some((segment) => segment.fra === toISODateString('2010-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2012-01-01'))).toBe(true);
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const snapshot = computeEoSnapshot({ revision: 'coverage-test', stamdataValues: stamdata,
+      eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-24') });
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.status).toBe('error');
+    expect(snapshot.failClosedReason).not.toBe('runtime_exception');
+    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
   });
 
   it('indsætter Store Bededag som separat segment 01-01-2024 for offentlig overenskomst', () => {

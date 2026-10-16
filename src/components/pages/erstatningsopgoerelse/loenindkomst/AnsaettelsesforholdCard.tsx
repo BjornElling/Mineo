@@ -1,3 +1,4 @@
+import { erStoreBededagstillaegRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
 import OverenskomstFilterLabel from '../../../common/OverenskomstFilterLabel';
 import AddIcon from '@mui/icons-material/Add';
@@ -550,7 +551,12 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         </Box>
       </Box>
 
-      {af.loenPaaHelligdage === 'Almindelig løn' ? (
+      {erStoreBededagstillaegRelevant({
+        beregnesUdFra, loenPaaHelligdage: af.loenPaaHelligdage,
+        reguleringsform: af.loenudviklingBeregningsgrundlag,
+        reguleringsdato: af.saerligFraDatoRegulering ?? tafBeregningsperiodeTil,
+        tillaegAngivesSom: af.tillaegAngivesSom,
+      }) ? (
         <LabeledControlRow label="Beregn Store Bededagstillæg fra 1. januar 2024:">
           {({ labelledBy, controlId }) => (
             <ToggleField
@@ -716,6 +722,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           // route + tabKey er eksplicit navigation-metadata (§3.7); tabellerne bor på Lønindkomstfanen.
           locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
           loenudviklingBasis={loenudviklingBasis}
+          statistikModel={af.loenudviklingStatistikModel}
           erOffentligOverenskomst={erOffentligOverenskomst}
           overenskomstSlot={
             <Box className="row--label-right-hover">

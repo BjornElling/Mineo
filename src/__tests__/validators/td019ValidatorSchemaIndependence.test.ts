@@ -741,6 +741,8 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       ...INDEPENDENT_FERIELOVEN_VALUES,
       loenindkomstAnsaettelsesforhold: [{
         ...INDEPENDENT_FERIELOVEN_VALUES.loenindkomstAnsaettelsesforhold[0],
+        // Basis på TAF-start isolerer feriePct-fejlen fra forbuddet mod manuel nedregulering.
+        saerligFraDatoRegulering: toISODateString('2024-01-01'),
         feriePct: undefined,
         indtaegtsoplysningerTableData: [{
           id: 'loen-manuel-ferie',

@@ -2,9 +2,8 @@
 
 
 import type { RowCellValue } from '../eoRowEvaluation/eoRowTypes';
-import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoInspektionFormat';
+import { formatIsoValue } from './eoInspektionFormat';
 import type { RegulationIndexTimeline } from './eoInspektionRegulationTypes';
-import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { LoenudviklingModel } from '../erstatningsopgoerelse/shared/eoTypes';
 import { resolveForloebForAnsaettelse } from '../erstatningsopgoerelse/engines/reguleringForloeb';
@@ -15,7 +14,6 @@ import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoer
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { capitalizeFirstCharDa } from '../../utils/formatUtils';
-import { REGULERINGSVAERDIER_FERIE_HEADER } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
@@ -45,134 +43,6 @@ export type RegulationInspektionTable = {
 export type RegulationInspektionTableRow = {
   readonly id: string;
   readonly cells: readonly (RowCellValue | string)[];
-};
-
-type RegulationColumnKey =
-  | 'dato'
-  | 'arbejdsdage'
-  | 'maaneder'
-  | 'grundloen'
-  | 'ferie'
-  | 'shSo'
-  | 'fritvalg'
-  | 'storeBededag'
-  | 'pension'
-  | 'pakke'
-  | 'indeks';
-
-const buildCurrencyCell = (value: number): RowCellValue => ({
-  rawValue: value,
-  displayValue: formatAmountDisplay(value),
-});
-
-const buildPercentCell = (value: number): RowCellValue => ({
-  rawValue: value,
-  displayValue: formatPercent(value, 2),
-});
-
-const COLUMN_DEFS: ReadonlyArray<Readonly<{
-  key: RegulationColumnKey;
-  header: string;
-  getCell: (entry: RegulationIndexTimeline['ansaettelser'][number]['entries'][number]) => RowCellValue | string;
-  shouldInclude: (
-    timeline: RegulationIndexTimeline,
-    entries: readonly RegulationIndexTimeline['ansaettelser'][number]['entries'][number][]
-  ) => boolean;
-}>> = [
-  {
-    key: 'dato',
-    header: 'Dato',
-    getCell: (entry) => ({ rawValue: entry.effectiveFrom, displayValue: formatIsoValue(entry.effectiveFrom) }),
-    shouldInclude: () => true,
-  },
-  {
-    key: 'arbejdsdage',
-    header: 'Arbejdsdag',
-    getCell: (entry) => ({
-      rawValue: entry.arbejdsdage ?? 0,
-      displayValue: entry.arbejdsdage !== null ? entry.arbejdsdage.toString() : '-',
-    }),
-    shouldInclude: (timeline) => timeline.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE,
-  },
-  {
-    key: 'maaneder',
-    header: 'Måneder',
-    getCell: (entry) => ({
-      rawValue: entry.maaneder ?? 0,
-      displayValue: entry.maaneder !== null ? formatDecimal(entry.maaneder, 2) : '-',
-    }),
-    shouldInclude: (timeline) => timeline.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER,
-  },
-  {
-    key: 'grundloen',
-    header: 'Grundløn',
-    getCell: (entry) => buildCurrencyCell(entry.grundloen),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.grundloen !== 0),
-  },
-  {
-    key: 'ferie',
-    // Cellen er en PROCENTSATS (`buildPercentCell`), og en sats navngives med den konkrete ydelse –
-    // ikke med fællesbetegnelsen (`feriepenge-begreber-contract.md` §2a).
-    header: REGULERINGSVAERDIER_FERIE_HEADER,
-    getCell: (entry) => buildPercentCell(entry.feriePct),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.feriePct !== 0),
-  },
-  {
-    key: 'shSo',
-    header: 'SH/SO',
-    getCell: (entry) => buildPercentCell(entry.shSoPct),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.shSoPct !== 0),
-  },
-  {
-    key: 'fritvalg',
-    header: 'Fritvalg',
-    getCell: (entry) => buildPercentCell(entry.fritvalgPct),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.fritvalgPct !== 0),
-  },
-  {
-    key: 'storeBededag',
-    header: 'Store Bededag',
-    getCell: (entry) => buildPercentCell(entry.storeBededagPct),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.storeBededagPct !== 0),
-  },
-  {
-    key: 'pension',
-    header: 'Pension',
-    getCell: (entry) => buildPercentCell(entry.pensionPct),
-    shouldInclude: (_timeline, entries) => entries.some((entry) => entry.pensionPct !== 0),
-  },
-];
-
-const resolveVisibleColumnHeader = (
-  column: Readonly<{ key: RegulationColumnKey; header: string }>,
-  timeline: RegulationIndexTimeline
-): string => {
-  if (column.key === 'grundloen') {
-    return timeline.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
-  }
-  return column.header;
-};
-
-const toComparableKontrolCell = (cell: RowCellValue | string): string =>
-  typeof cell === 'string' ? cell : cell.displayValue;
-
-const mergeConsecutiveInspektionRows = (
-  rows: readonly RegulationInspektionTableRow[]
-): readonly RegulationInspektionTableRow[] => {
-  if (rows.length <= 1) return rows;
-  const merged: RegulationInspektionTableRow[] = [];
-  for (const row of rows) {
-    const last = merged[merged.length - 1];
-    const hasSameValues = Boolean(
-      last &&
-      last.cells.length === row.cells.length &&
-      last.cells.slice(1).every((cell, index) => toComparableKontrolCell(cell) === toComparableKontrolCell(row.cells[index + 1]!))
-    );
-    if (!hasSameValues) {
-      merged.push(row);
-    }
-  }
-  return merged;
 };
 
 /**
@@ -240,7 +110,6 @@ export function buildRegulationInspektionSections(
       },
     ];
 
-    const isKlLoenaftalerAnsaettelsesforhold = ansaettelsesforhold?.loenudviklingBeregningsgrundlag === 'KL-lønaftaler';
     const canonicalSegments = resolveLoenudviklingSegmenterForKilde({
       perAnsaettelse: (canonicalOutput?.regulering.perAnsaettelse ?? []).map((entry) => ({
         ansaettelsesforholdId: entry.ansaettelsesforholdId,
@@ -274,33 +143,6 @@ export function buildRegulationInspektionSections(
           id: `${sectionId}:vaerdier:${rowIndex}`,
           cells: row,
         })),
-      });
-    } else if (isKlLoenaftalerAnsaettelsesforhold) {
-      tables.push({
-        id: `${sectionId}:vaerdier`,
-        columns: ['Dato', 'Regulering'],
-        rows: af.entries.map((entry) => ({
-          id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
-          cells: [
-            { rawValue: entry.effectiveFrom, displayValue: formatIsoValue(entry.effectiveFrom) },
-            formatPercent(entry.grundloen, 2),
-          ],
-        })),
-      });
-    } else {
-      const visibleColumns = COLUMN_DEFS.filter((column) =>
-        column.key !== 'arbejdsdage' &&
-        column.key !== 'maaneder' &&
-        column.shouldInclude(timeline, af.entries)
-      );
-      const valueRows = mergeConsecutiveInspektionRows(af.entries.map((entry) => ({
-        id: `regulation.table:${af.ansaettelsesforholdId}:${entry.effectiveFrom}`,
-        cells: visibleColumns.map((column) => column.getCell(entry)),
-      })));
-      tables.push({
-        id: `${sectionId}:vaerdier`,
-        columns: visibleColumns.map((column) => resolveVisibleColumnHeader(column, timeline)),
-        rows: valueRows,
       });
     }
 

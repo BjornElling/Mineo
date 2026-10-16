@@ -1,3 +1,4 @@
+import { ILON12_DISCONTINUED_NOTE } from '../../../../data/statistikNotes';
 import type { ReactNode } from 'react';
 import { Box, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -61,6 +62,7 @@ export type LoenudviklingFieldsProps<
 
   /** Det aktive beregningsgrundlag; styrer hvilke undergrene der vises. */
   loenudviklingBasis: string | undefined;
+  statistikModel: string | undefined;
   erOffentligOverenskomst: boolean;
 
   /** Indholdet af «Overenskomst»-rækken – se komponentens doc. */
@@ -121,6 +123,7 @@ export default function LoenudviklingFields<
   manualPercentLocationPrefix,
   locationNav,
   loenudviklingBasis,
+  statistikModel,
   erOffentligOverenskomst,
   overenskomstSlot,
   onOpenLoentrinFinder,
@@ -298,6 +301,12 @@ export default function LoenudviklingFields<
             </ChoiceField>
           </Box>
         </Box>
+      ) : null}
+
+      {loenudviklingBasis === 'Statistik' && statistikModel === 'ILON12 (Danmarks Statistik)' ? (
+        <Typography className="row--text" sx={{ fontSize: '0.875rem', mb: 1 }}>
+          {ILON12_DISCONTINUED_NOTE}
+        </Typography>
       ) : null}
 
       {loenudviklingBasis === 'KRL satstabel' ? (

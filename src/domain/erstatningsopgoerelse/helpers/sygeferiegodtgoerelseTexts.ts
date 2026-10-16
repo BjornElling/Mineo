@@ -3,11 +3,44 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed, formatPercent } from '../../../utils/formatUtils';
 import { isoToDanish } from '../../../types/branded';
 import type { SfggAfkortning } from '../engines/sfggPeriodisering';
 import type { SfggReferencesatsFormula } from '../engines/sfggReferencesats';
 import type { SfggSource, SfggSourceKind } from '../engines/sfggKilde';
+import type { SygeferiegodtgoerelseSegment } from '../engines/sfggResult';
+import type { MoneyOre } from '../../money/money';
+
+/** Viser motorens faktiske forhold, da et afrundet indeks alene kan give en anden øresats. */
+export const buildSfggReguleretSatsLines = (
+  referencesatsOre: MoneyOre,
+  segments: readonly SygeferiegodtgoerelseSegment[],
+): readonly string[] => {
+  const visteKlTrin = new Set<string>();
+  return segments.flatMap((segment): readonly string[] => {
+    if (segment.klTrin) {
+      // Et senere segment bærer hele kæden. Skriv hvert faktisk trin én gang i bilaget.
+      const nyeTrin = segment.klTrin.filter((trin) => {
+        const key = `${trin.retning}:${trin.dato}`;
+        if (visteKlTrin.has(key)) return false;
+        visteKlTrin.add(key);
+        return true;
+      });
+      if (nyeTrin.length === 0) return [];
+      return [
+        `${isoToDanish(segment.fra)} - ${isoToDanish(segment.til)}:`,
+        ...nyeTrin.map((trin) => `${isoToDanish(trin.dato)}: ${formatAsAmount(trin.loenFoer)} `
+          + `${trin.retning === 'frem' ? 'x' : '/'} (100 % + ${formatPercent(trin.pct)}) `
+          + `= ${formatAsAmount(trin.loenEfter)} kr.`),
+      ];
+    }
+    const grundlag = segment.reguleringsgrundlag;
+    if (!grundlag) return [];
+    return [`${isoToDanish(segment.fra)} - ${isoToDanish(segment.til)}: `
+      + `${formatAsAmount(referencesatsOre / 100)} x ${formatAsAmountTrimmed(grundlag.periodValue, 6)} `
+      + `/ ${formatAsAmountTrimmed(grundlag.referenceValue, 6)} = ${formatAsAmount(segment.satsOre / 100)} kr.`];
+  });
+};
 
 const formatDaCount = (value: number): string => formatAsAmount(value, 0);
 const ensureSentencePunctuation = (value: string): string => (

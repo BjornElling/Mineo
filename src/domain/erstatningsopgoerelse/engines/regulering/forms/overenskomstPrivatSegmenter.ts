@@ -1,4 +1,5 @@
 import { isEffectivelyZero } from '../../../../../utils/numberComparison';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { buildReguleringsbevis, type Reguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
@@ -12,15 +13,10 @@ import {
   getGrundloenAngivetPerForOverenskomst,
 } from '../../../../../data/overenskomstRates';
 import { hasAnyPctSourceOrInput, parseDanishToIso } from '../../../helpers/eoSharedUtils';
-import {
-  buildPrivateOverenskomstFormulaComponents,
-  resolvePrivateOverenskomstBaseContext,
-} from '../../overenskomstReguleringShared';
+import { buildPrivateOverenskomstFormulaComponents } from '../../overenskomstReguleringShared';
 import { computeFormulaValue } from '../../reguleringFormulaUtils';
-import { resolveOverenskomstEffectiveStartIso } from '../../reguleringCoverage';
 import {
   buildSegmentsFromStartDates,
-  buildZeroDeltaSegment,
   ensurePositiveFiniteNumber,
 } from '../reguleringFormPrimitives';
 import type { LoenreguleringsSegment } from '../reguleringForm';
@@ -29,16 +25,13 @@ import type { KonsolideretOverenskomst, OverenskomstSegmentContext } from './ove
 /**
  * Privat overenskomst (pakke-indeks). Bygger relative deltaPct-segmenter mod basispakken via
  * de effektive satser på overenskomstens baseId.
- *
- * U4-clamp: basen clampes til dækningsstart via `max(reguleringsdato, dækningsstart)`
- * (`resolveOverenskomstEffectiveStartIso`). Bevidst adskilt fra den offentlige grens base-
- * fallback – foren dem ikke. Kun Store Bededag må give regulering før første dækkede satsdato.
  */
 export const buildPrivatOverenskomstSegmenter = (
   konsolideret: KonsolideretOverenskomst,
-  ctx: OverenskomstSegmentContext
+  ctx: OverenskomstSegmentContext,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReadonlyArray<LoenreguleringsSegment> => {
-  const { reguleringsdatoIso, overenskomstRef, anciennitetForIndex } = ctx;
+  const { reguleringsdatoIso, reguleringsdatoDa, overenskomstRef, anciennitetForIndex } = ctx;
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
@@ -46,43 +39,28 @@ export const buildPrivatOverenskomstSegmenter = (
   // Privat overenskomst angiver selv sin grundløns enhed; «Ansættelse» findes kun ved offentlig.
   const wageUnit = getGrundloenAngivetPerForOverenskomst(konsolideret.overenskomstId, undefined);
 
-  // Privat overenskomst clamper basen til dækningsstart via max(reguleringsdato, dækningsstart).
-  // Bevidst adskilt fra den offentlige grens clamp (resolveOffentligEffectiveBase), der har sin
-  // egen base-fallback til første dækkede interval (proxy-sats før dækning for Store Bededag).
-  // To forskellige clamp-mekanismer for hver sin datamodel – foren dem ikke (jf. U4).
-  const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
-    konsolideret.overenskomstId,
-    reguleringsdatoIso
-  );
-
-  const privateBaseContext = resolvePrivateOverenskomstBaseContext({
+  const baseSats = getEffektiveSatserForDato({
     overenskomstId: overenskomstRef.baseId,
-    anvendtReguleringsdato: reguleringsdatoIso,
-    effectiveReguleringsdato: effectiveReguleringsdatoIso,
+    dato: reguleringsdatoDa,
     applyAlmindeligLoenPaaShDageRegel: applyShRegel,
-    shSoPctInput: konsolideret.shSoPct,
-    fritvalgPctInput: konsolideret.fritvalgPct,
-    pensionPctInput: konsolideret.pensionPct,
   });
-  if (!privateBaseContext || typeof privateBaseContext.effectiveBase.sats.grundloen !== 'number') {
+  if (!baseSats || typeof baseSats.grundloen !== 'number') {
     throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
   }
-  ensurePositiveFiniteNumber(privateBaseContext.effectiveBase.sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+  ensurePositiveFiniteNumber(baseSats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
 
   const basePackageComponents = buildPrivateOverenskomstFormulaComponents({
-    sats: privateBaseContext.effectiveBase.sats,
-    context: privateBaseContext,
+    sats: baseSats,
     feriePct,
     shSoPctInput: konsolideret.shSoPct,
     fritvalgPctInput: konsolideret.fritvalgPct,
     pensionPctInput: konsolideret.pensionPct,
-    pctBasisRole: 'reference',
     dateIso: reguleringsdatoIso,
     baseValueSupplement: 0,
     applyStoreBededagstillaeg,
   });
   // Kildekolonner følger hele overenskomsten, også når en effektiv sats i TAF-perioden er nul.
-  const allSatser = getOverenskomst(overenskomstRef.baseId)?.satser ?? [privateBaseContext.effectiveBase.sats];
+  const allSatser = getOverenskomst(overenskomstRef.baseId)?.satser ?? [baseSats];
   const tafEnd = konsolideret.tafRanges.map((range) => range.til).sort().at(-1);
   const sourceColumns: NonNullable<Reguleringsbevis['sourceColumns']> = [
     ...(!isEffectivelyZero(feriePct) ? ['feriePct' as const] : []),
@@ -97,7 +75,7 @@ export const buildPrivatOverenskomstSegmenter = (
   }
 
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const fraDa = isoToDanish(range.fra);
     const tilDa = isoToDanish(range.til);
     if (!fraDa || !tilDa) {
@@ -119,15 +97,6 @@ export const buildPrivatOverenskomstSegmenter = (
     if (applyStoreBededagstillaeg && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
-    // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
-    // kan skjule, at effectiveBase kun er en afledt sats for samme dato.
-    if (
-      privateBaseContext.effectiveBase.startIso !== reguleringsdatoIso &&
-      privateBaseContext.effectiveBase.startIso > range.fra &&
-      privateBaseContext.effectiveBase.startIso <= range.til
-    ) {
-      starts.add(privateBaseContext.effectiveBase.startIso);
-    }
     if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
       starts.add(anciennitetForIndex.activeFromIso);
     }
@@ -142,34 +111,18 @@ export const buildPrivatOverenskomstSegmenter = (
         dato: segmentDa,
         applyAlmindeligLoenPaaShDageRegel: applyShRegel,
       });
-      // Før første private overenskomstdækning må kun Store Bededag give regulering.
-      // Øvrige overenskomstbestemte satser må først slå igennem fra første faktiske satsdato.
-      const useStoreBededagOnlyBeforeCoverage =
-        applyStoreBededagstillaeg &&
-        segment.fra >= STORE_BEDEDAG_START &&
-        segment.fra < privateBaseContext.effectiveBase.startIso;
-      if (!sats && !useStoreBededagOnlyBeforeCoverage) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
-      const effectiveSats = sats ?? privateBaseContext.effectiveBase.sats;
-      if (segment.fra < privateBaseContext.effectiveBase.startIso && !useStoreBededagOnlyBeforeCoverage) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
-      if (typeof effectiveSats.grundloen !== 'number') {
+      if (!sats) throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
+      if (typeof sats.grundloen !== 'number') {
         throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
       }
-      ensurePositiveFiniteNumber(effectiveSats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
+      ensurePositiveFiniteNumber(sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
       const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
       const segmentComponents = buildPrivateOverenskomstFormulaComponents({
-        sats: effectiveSats,
-        context: privateBaseContext,
+        sats: sats,
         feriePct,
         shSoPctInput: konsolideret.shSoPct,
         fritvalgPctInput: konsolideret.fritvalgPct,
         pensionPctInput: konsolideret.pensionPct,
-        pctBasisRole: useStoreBededagOnlyBeforeCoverage ? 'reference' : 'segment',
         dateIso: segment.fra,
         baseValueSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
         applyStoreBededagstillaeg,
@@ -181,15 +134,15 @@ export const buildPrivatOverenskomstSegmenter = (
       const regulering = buildReguleringsbevis(basePackage, packageValue, {
         kind: 'pakke', sourceColumns, wageUnit,
         // Pakken må ikke mærkes med en gammel satsdato, hvis Store Bededag først gælder fra 2024.
-        referenceDate: [parseDanishToIso(privateBaseContext.effectiveBase.sats.fraDato) ?? reguleringsdatoIso,
+        referenceDate: [parseDanishToIso(baseSats.fraDato) ?? reguleringsdatoIso,
           basePackageComponents.storeBededagPct !== 0 ? STORE_BEDEDAG_START : undefined,
         ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
-        periodRateDate: [parseDanishToIso(effectiveSats.fraDato),
+        periodRateDate: [parseDanishToIso(sats.fraDato),
           applyStoreBededagstillaeg && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
           anciennitetAktiv ? anciennitetForIndex?.activeFromIso : undefined,
         ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
         referenceComponents: basePackageComponents, periodComponents: segmentComponents,
-        wageBaseValue: effectiveSats.grundloen,
+        wageBaseValue: sats.grundloen,
         wageSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
       });
       segments.push({ ...segment, deltaPct: regulering.appliedDeltaPct, regulering });

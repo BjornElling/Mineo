@@ -1,3 +1,4 @@
+import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildRegulationTimeline } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
@@ -21,7 +22,7 @@ const expectedEntries = [
     effectiveFrom: '2012-10-01',
     grundloen: 15587.08,
     packageValue: 15587.08,
-    index: 100.14455899227606,
+    index: 100.14,
   },
 ] as const;
 
@@ -53,11 +54,17 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('DATA-001/CALC-006 – historisk KL-løn som EO-inspektionsforbruger', () => {
   it('fører 2012-facitter gennem den offentlige lønsti og 01-10-reguleringen', () => {
-    const model = buildRegulationTimeline({
-      eoValues: buildValues(),
-      stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2012-01-01') },
-      loenudvikling: null,
+    const eoValues = buildValues();
+    const stamdataValues = { ...STAMDATA_INITIAL_VALUES, skadedato: eoValues.tafBeregningsperiodeTil };
+    // Angivet løn giver et komplet løngrundlag uden en irrelevant indkomsttabel i denne dataprobe.
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.maanedsloenenUdgoer = { kind: 'number', value: 30000 };
+    eoValues.angivetMaanedsloenOpreguleresFraDato = eoValues.tafBeregningsperiodeTil;
+    eoValues.eoAngivetLoenLoenudvikling = { ...eoValues.eoAngivetLoenLoenudvikling, ...eoValues.loenindkomstAnsaettelsesforhold[0] };
+    const loenudvikling = buildLoenudviklingModel(eoValues, stamdataValues, 'Måneder', null, {
+      tafRanges: [{ fra: eoValues.vedroererPeriodeFra!, til: eoValues.vedroererPeriodeTil! }],
     });
+    const model = buildRegulationTimeline({ eoValues, stamdataValues, loenudvikling });
 
     const ansaettelse = model.ansaettelser[0];
     expect(ansaettelse).toBeDefined();

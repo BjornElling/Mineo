@@ -56,3 +56,16 @@ export const kanDerVaereKravPaaStoreBededagstillaeg = (
   loenPaaHelligdage: string | undefined,
 ): boolean =>
   beregnesUdFra !== 'Angivet dagsløn' && loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+
+/** Knappen læses kun, når valget faktisk kan påvirke løngrundlaget eller reguleringen (log 9b). */
+export const erStoreBededagstillaegRelevant = (valg: Readonly<{
+  beregnesUdFra: Beregningsmetode | undefined;
+  loenPaaHelligdage: string | undefined;
+  reguleringsform: string | undefined;
+  reguleringsdato: ISODateString | undefined;
+  tillaegAngivesSom?: string | undefined;
+}>): boolean => valg.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG
+  && !(valg.beregnesUdFra === 'Beregningsperiode' && valg.tillaegAngivesSom === 'beloeb')
+  && (valg.reguleringsform === 'Overenskomst' || valg.reguleringsform === 'Manuelt angivet'
+    || (valg.beregnesUdFra === 'Beregningsperiode' && valg.tillaegAngivesSom !== 'beloeb'
+      && valg.reguleringsdato !== undefined && valg.reguleringsdato >= STORE_BEDEDAG_START));

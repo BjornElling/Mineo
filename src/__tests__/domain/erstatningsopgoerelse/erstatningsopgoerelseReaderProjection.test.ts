@@ -29,7 +29,7 @@ import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import { createSfggIngenRow } from '../../utils/sfggTestSupport';
 
 // Erstatningsopgørelsens reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen
-// (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt byte-identisk fra readeren (inkl. det nested løntræ), (b)
+// (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt fra readeren med irrelevante felters tomværdi, (b)
 // kører den EKSISTERENDE `computeEoSnapshot` UÆNDRET på de reader-læste værdier (§5.4 hårdt stop mod talændring),
 // (c) fører røde reader-feltfejl ind i eoErrors/stamdataErrors-mappene (top-level + `${afId}:loenindkomst`), og
 // (d) følger Satser-doktrinen: en out-of-bounds værdi skjules af readeren og falder tilbage til sin tomværdi.
@@ -109,14 +109,17 @@ const buildValidEo = (): ErstatningsopgoerelseValues => {
   };
 };
 
-const buildReader = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataValues | null) => {
-  const input = catalog.validateSettledInput({
+const buildInput = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataValues | null) =>
+  catalog.validateSettledInput({
     sections: {
       stamdata, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: eo, erhvervsevnetab: null,
     },
     rejectedInputs: {},
   });
+
+const buildReader = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataValues | null) => {
+  const input = buildInput(eo, stamdata);
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
   return createInputEvaluation({ input, catalog, sourceToken }).reader;
 };
@@ -216,15 +219,22 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
     expect(after.snapshot.data?.engines.tafNetto).toEqual(direct.data?.engines.tafNetto);
   });
 
-  it('rekonstruerer EO-værdierne byte-identisk fra readeren (inkl. nested løntræ + collections)', () => {
+  it('rekonstruerer relevante EO-værdier og maskerer Store Bededag uden at ændre gemt input', () => {
     const eo = buildValidEo();
-    const reader = buildReader(eo, validStamdata);
+    const input = buildInput(eo, validStamdata);
+    const before = structuredClone(input);
+    const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+    const reader = createInputEvaluation({ input, catalog, sourceToken }).reader;
     const rebuilt = readErstatningsopgoerelseValues(reader);
-    // Round-trip: readeren gav præcis de committede canonical værdier tilbage. Fixturet normaliseres gennem samme
-    // Zod-schema som commit-grænsen (fx `loenudviklingManuelNavn: ''` → `undefined`), så vi sammenligner mod den
-    // canonical committede form, ikke den rå pre-commit-litteral.
-    // JSON er den faktiske persistence-/dokumentgrænse; eksplicitte `undefined`-nøgler er semantisk fraværende.
-    expect(JSON.parse(JSON.stringify(rebuilt))).toEqual(JSON.parse(JSON.stringify(erstatningsopgoerelseSchema.parse(eo))));
+    const expected = erstatningsopgoerelseSchema.parse(eo);
+    // I 2022 og med reguleringsformen Ingen har Store Bededag-knappen ingen virkning.
+    // Readeren giver tomværdien false, mens det afsluttede canonical input bevares til senere genvisning.
+    expected.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg = false;
+    expected.loenindkomstAnsaettelsesforhold[0].beregnStoreBededagstillaeg = false;
+    expect(JSON.parse(JSON.stringify(rebuilt))).toEqual(JSON.parse(JSON.stringify(expected)));
+    expect(input).toEqual(before);
+    expect(input.sections.erstatningsopgoerelse?.eoAngivetLoenLoenudvikling.beregnStoreBededagstillaeg).toBe(true);
+    expect(input.sections.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold[0].beregnStoreBededagstillaeg).toBe(true);
     expect(readStamdataValues(reader)).toEqual(stamdataSchema.parse(validStamdata));
   });
 

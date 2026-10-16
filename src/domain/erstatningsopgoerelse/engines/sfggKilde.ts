@@ -32,7 +32,8 @@ export type SfggDayBasis = 'kalenderdage' | 'arbejdsdage';
  * Hvordan dagssatsen fastsættes for kilden:
  * - `ingen`: intet beregningsgrundlag valgt.
  * - `manuel`: fast dagssats fra brugerens input.
- * - `referenceperiode`: beregnet som 12,5 % af referenceperiodens løn og reguleret med lønudviklingen.
+ * - `referenceperiode`: beregnet som 12,5 % af referenceperiodens løn; udviklingen måles fra
+ *   referenceperiodens slutdato med jobbets reguleringsform, uanset overenskomstdækning.
  * - `per_periode_overenskomst`: direkte overenskomstsats, slået op pr. dato (ikke én referencesats).
  */
 export type SfggRateModel =
@@ -57,6 +58,7 @@ export type SfggKildeSpec = Readonly<{
 
 export const SFGG_KILDE_REGISTRY: Readonly<Record<SfggSourceKind, SfggKildeSpec>> = {
   ingen: { kind: 'ingen', rateModel: 'ingen', afterSickPayModel: 'ingen' },
+  // Manuel dagssats er bevidst konstant: typisk fastlagt ved forlig uden senere udvikling.
   manuel: { kind: 'manuel', rateModel: 'manuel', afterSickPayModel: 'manuel' },
   ferielov: { kind: 'ferielov', rateModel: 'referenceperiode', afterSickPayModel: 'ingen' },
   overenskomst_direkte: { kind: 'overenskomst_direkte', rateModel: 'per_periode_overenskomst', afterSickPayModel: 'overenskomst' },
@@ -68,7 +70,7 @@ export const getSfggKildeSpec = (kind: SfggSourceKind): SfggKildeSpec => SFGG_KI
 /**
  * true kun for de kilder, hvor SFGG beregnes som en procentdel af lønnen i en referenceperiode
  * (ferielov + overenskomst-efter-ferielov). Præcis disse kilder – og kun disse – opgøres på
- * kalenderdage ved måneds-TAF, reguleres med lønudviklingens segmenter/reguleringsdatoer, og
+ * kalenderdage ved måneds-TAF, reguleres fra referenceperiodens slutdato med jobbets reguleringsform, og
  * markeres i bilaget som "beregnes som procent af løn". Partitionen bor kun her.
  */
 export const sfggKildeUsesReferenceperiode = (kind: SfggSourceKind): boolean =>

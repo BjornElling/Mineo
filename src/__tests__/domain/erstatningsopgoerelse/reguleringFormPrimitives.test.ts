@@ -61,14 +61,14 @@ describe('reguleringFormPrimitives', () => {
     expect(ensurePositiveFiniteNumber(1.25, 'Ugyldig lønværdi')).toBe(1.25);
   });
 
-  it('vælger seneste basispost, falder tilbage til første post og fejler ved tom serie', () => {
+  it('vælger seneste basispost og fejler før første sats samt ved tom serie', () => {
     const entries = [
       { startIso: iso('2024-01-01'), value: 'første' },
       { startIso: iso('2024-07-01'), value: 'anden' },
     ] as const;
 
     expect(resolveEffectiveBaseEntry(entries, iso('2024-08-01'), 'test', 'mangler')).toEqual(entries[1]);
-    expect(resolveEffectiveBaseEntry(entries, iso('2023-12-01'), 'test', 'mangler')).toEqual(entries[0]);
+    expect(() => resolveEffectiveBaseEntry(entries, iso('2023-12-01'), 'test', 'mangler')).toThrow('mangler');
     expect(() => resolveEffectiveBaseEntry([], iso('2024-01-01'), 'test', 'mangler')).toThrow('mangler');
   });
 

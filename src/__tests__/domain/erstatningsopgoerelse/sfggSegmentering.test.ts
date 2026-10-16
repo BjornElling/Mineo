@@ -14,9 +14,58 @@ import {
   createSfggEmployment,
   createSfggIngenRow,
   sfggIso as iso,
+  sfggReguleringOpslagFraSegmenter,
 } from '../../utils/sfggTestSupport';
 
 describe('sfggSegmentering', () => {
+  it('måler manuel regulering fra basisniveau ved en ældre reference og afviser manglende kildedækning', () => {
+    const opslag = sfggReguleringOpslagFraSegmenter([{
+      kind: 'maaneder', fra: iso('2024-01-01'), til: iso('2024-12-31'), maaneder: 12,
+      maanedsloenOre: moneyOre(300_000), deltaPct: 10, amountOre: moneyOre(3_960_000),
+    }], { dato: iso('2023-12-01'), deltaPct: 0 });
+    const args = {
+      iso: iso('2024-06-01'), employment: createSfggEmployment(), sfggRow: createSfggIngenRow('af-1'),
+      sfggSource: { kind: 'ferielov' as const },
+      sfggBaseRate: {
+        sfggReferenceperiode: { fra: iso('2022-01-01'), til: iso('2022-01-31') },
+        sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(25_000) },
+        sfggReferencesatsFormula: null,
+      },
+    };
+    expect(resolveSfggSegmentRateForDate({ ...args, reguleringOpslag: { ...opslag, manuelBasisDato: iso('2023-12-01') } }))
+      .toMatchObject({ satsOre: 27_500, reguleringsindeks: 110, reguleringsgrundlag: { referenceValue: 100, periodValue: 110 } });
+    expect(() => resolveSfggSegmentRateForDate({ ...args, reguleringOpslag: opslag }))
+      .toThrow('Regulering kan ikke beregnes for 2022-01-31');
+    // Manuel SFGG-sats er konstant, også når den valgte lønregulering ikke dækker referencen.
+    expect(resolveSfggSegmentRateForDate({ ...args, sfggSource: { kind: 'manuel' }, reguleringOpslag: opslag }))
+      .toEqual({ satsOre: 25_000, agPensionPct: 0, reguleringsindeks: null });
+  });
+
+  it.each([0, 1, 300_000, 4_000_000])('bygger SFGG sin egen KL-kæde uanset TAF-basis på %i øre', (tafBasisOre) => {
+    const opslag = sfggReguleringOpslagFraSegmenter([{
+      kind: 'maaneder', fra: iso('2022-01-01'), til: iso('2023-12-31'), maaneder: 24,
+      maanedsloenOre: moneyOre(tafBasisOre), reguleretLoenOre: moneyOre(tafBasisOre),
+      regulering: buildReguleringsbevis(tafBasisOre, tafBasisOre, { kind: 'klLoenaftaler' }),
+      deltaPct: 0, amountOre: moneyOre(0),
+    }]);
+    const rates = ['2022-09-01', '2022-10-01', '2023-04-01', '2023-10-01'].map((dato) => resolveSfggSegmentRateForDate({
+      iso: iso(dato), employment: createSfggEmployment(), sfggRow: createSfggIngenRow('af-1'),
+      sfggSource: { kind: 'ferielov' }, reguleringOpslag: opslag,
+      sfggBaseRate: {
+        sfggReferenceperiode: { fra: iso('2022-01-01'), til: iso('2022-01-31') },
+        sfggReferencesatsOre: { status: 'ok', value: moneyOre(25_000) }, sfggReferencesatsFormula: null,
+      },
+    }));
+    // Øreafrunding af 250 × 1,0255; derpå 256,38 × 1,003; derpå 257,15 × 1,0125.
+    expect(rates.map((rate) => rate?.satsOre)).toEqual([25_000, 25_638, 25_715, 26_036]);
+    expect(rates.map((rate) => rate?.reguleringsindeks)).toEqual([null, null, null, null]);
+    expect(rates[3]?.reguleringsgrundlag).toBeUndefined();
+    expect(rates[3]?.klTrin).toEqual([
+      { dato: iso('2022-10-01'), pct: 2.55, retning: 'frem', loenFoer: 250, loenEfter: 256.38 },
+      { dato: iso('2023-04-01'), pct: 0.3, retning: 'frem', loenFoer: 256.38, loenEfter: 257.15 },
+      { dato: iso('2023-10-01'), pct: 1.25, retning: 'frem', loenFoer: 257.15, loenEfter: 260.36 },
+    ]);
+  });
   it('fordeler øre proportionalt, bevarer rest og håndterer tomme eller nulvægtede segmenter', () => {
     expect([...allocateOreByWeights(moneyOre(10), [])]).toEqual([]);
     expect([...allocateOreByWeights(moneyOre(0), [{ key: 'a', weight: 1 }])]).toEqual([]);
@@ -151,32 +200,30 @@ describe('sfggSegmentering', () => {
   });
 
   it('samler segmentgrænser fra referenceforløb og ignorerer dem for manuel kilde', () => {
-    const loenudvikling = {
-      beregnedeSegmenter: [
-        {
-          kind: 'maaneder' as const,
-          fra: iso('2024-05-01'),
-          til: iso('2024-12-31'),
-          maaneder: 8,
-          maanedsloenOre: moneyOre(300_000),
-          deltaPct: 10,
-          amountOre: moneyOre(2_640_000),
-        },
-        {
-          kind: 'maaneder' as const,
-          fra: iso('2024-01-01'),
-          til: iso('2024-04-30'),
-          maaneder: 4,
-          maanedsloenOre: moneyOre(300_000),
-          deltaPct: 0,
-          amountOre: moneyOre(1_200_000),
-        },
-      ],
-    };
+    const reguleringOpslag = sfggReguleringOpslagFraSegmenter([
+      {
+        kind: 'maaneder' as const,
+        fra: iso('2024-05-01'),
+        til: iso('2024-12-31'),
+        maaneder: 8,
+        maanedsloenOre: moneyOre(300_000),
+        deltaPct: 10,
+        amountOre: moneyOre(2_640_000),
+      },
+      {
+        kind: 'maaneder' as const,
+        fra: iso('2024-01-01'),
+        til: iso('2024-04-30'),
+        maaneder: 4,
+        maanedsloenOre: moneyOre(300_000),
+        deltaPct: 0,
+        amountOre: moneyOre(1_200_000),
+      },
+    ]);
     const args = {
       ranges: [{ fra: iso('2024-01-01'), til: iso('2024-12-31') }],
       employment: createSfggEmployment(),
-      loenudvikling,
+      reguleringOpslag,
     };
 
     expect(resolveSfggSegmentBoundaryStarts({ ...args, sfggSource: { kind: 'ferielov' } })).toEqual([
@@ -194,17 +241,15 @@ describe('sfggSegmentering', () => {
       sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(10_000) },
       sfggReferencesatsFormula: null,
     };
-    const loenudvikling = {
-      beregnedeSegmenter: [{
-        kind: 'maaneder' as const,
-        fra: iso('2024-01-01'),
-        til: iso('2024-12-31'),
-        maaneder: 12,
-        maanedsloenOre: moneyOre(300_000),
-        deltaPct: 10,
-        amountOre: moneyOre(3_960_000),
-      }],
-    };
+    const reguleringOpslag = sfggReguleringOpslagFraSegmenter([{
+      kind: 'maaneder' as const,
+      fra: iso('2024-01-01'),
+      til: iso('2024-12-31'),
+      maaneder: 12,
+      maanedsloenOre: moneyOre(300_000),
+      deltaPct: 10,
+      amountOre: moneyOre(3_960_000),
+    }]);
 
     expect(resolveSfggSegmentRateForDate({
       iso: iso('2024-06-01'),
@@ -212,15 +257,15 @@ describe('sfggSegmentering', () => {
       sfggRow,
       sfggSource: { kind: 'ferielov' },
       sfggBaseRate: referenceBaseRate,
-      loenudvikling,
-    })).toEqual({ satsOre: 11_000, agPensionPct: 0, reguleringsindeks: 110 });
+      reguleringOpslag,
+    })).toEqual({ satsOre: 10_000, agPensionPct: 0, reguleringsindeks: 100, reguleringsgrundlag: { referenceValue: 110, periodValue: 110 } });
     expect(resolveSfggSegmentRateForDate({
       iso: iso('2024-06-01'),
       employment,
       sfggRow,
       sfggSource: { kind: 'manuel' },
       sfggBaseRate: referenceBaseRate,
-      loenudvikling,
+      reguleringOpslag,
     })).toEqual({ satsOre: 10_000, agPensionPct: 0, reguleringsindeks: null });
     expect(resolveSfggSegmentRateForDate({
       iso: iso('2024-06-01'),
@@ -231,7 +276,7 @@ describe('sfggSegmentering', () => {
         ...referenceBaseRate,
         sfggReferencesatsOre: { status: 'not_calculable', kind: 'missing_rate', reason: 'Dagssats mangler' },
       },
-      loenudvikling,
+      reguleringOpslag,
     })).toBeNull();
     expect(resolveSfggSegmentRateForDate({
       iso: iso('2024-06-01'),
@@ -239,7 +284,7 @@ describe('sfggSegmentering', () => {
       sfggRow,
       sfggSource: { kind: 'overenskomst_direkte' },
       sfggBaseRate: referenceBaseRate,
-      loenudvikling,
+      reguleringOpslag,
     })).toBeNull();
   });
 
@@ -248,7 +293,7 @@ describe('sfggSegmentering', () => {
       ranges: [{ fra: iso('2024-01-01'), til: iso('2024-12-31') }],
       employment: createSfggEmployment({ overenskomstId: 'bygge-anlaeg' }),
       sfggSource: { kind: 'manuel' },
-      loenudvikling: undefined,
+      reguleringOpslag: undefined,
     });
 
     expect(starts.length).toBeGreaterThan(0);
@@ -256,7 +301,7 @@ describe('sfggSegmentering', () => {
     expect(starts.every((start) => start >= iso('2024-01-01') && start <= iso('2024-12-31'))).toBe(true);
   });
 
-  it('bevarer referencesatsen ved ægte KL-nulbasis og afviser korrupte nulsegmenter', () => {
+  it('regulerer SFGG uafhængigt af KL-nulbasis og afviser korrupte nulsegmenter', () => {
     const segment = {
       kind: 'arbejdsdage' as const, fra: iso('2024-01-01'), til: iso('2024-12-31'),
       arbejdsdage: 260, dagsloenOre: moneyOre(0), deltaPct: 0, amountOre: moneyOre(0),
@@ -271,11 +316,11 @@ describe('sfggSegmentering', () => {
         sfggReferencesatsFormula: null,
       },
     };
-    expect(resolveSfggSegmentRateForDate({ ...args, loenudvikling: { beregnedeSegmenter: [segment] } }))
-      .toEqual({ satsOre: 10_000, agPensionPct: 0, reguleringsindeks: 100 });
+    expect(resolveSfggSegmentRateForDate({ ...args, reguleringOpslag: sfggReguleringOpslagFraSegmenter([segment]) }))
+      .toMatchObject({ satsOre: 10_400, agPensionPct: 0, reguleringsindeks: null, klTrin: [{ dato: iso('2024-04-01'), pct: 4, retning: 'frem', loenFoer: 100, loenEfter: 104 }] });
     for (const patch of [{ deltaPct: 1 }, { reguleretLoenOre: moneyOre(1) }, { regulering: undefined }]) {
       expect(() => resolveSfggSegmentRateForDate({
-        ...args, loenudvikling: { beregnedeSegmenter: [{ ...segment, ...patch }] },
+        ...args, reguleringOpslag: sfggReguleringOpslagFraSegmenter([{ ...segment, ...patch }]),
       })).toThrow('mangler positiv basisløn');
     }
   });
@@ -295,33 +340,29 @@ describe('sfggSegmentering', () => {
 
     expect(() => resolveSfggSegmentRateForDate({
       ...baseArgs,
-      loenudvikling: {
-        beregnedeSegmenter: [{
-          kind: 'maaneder' as const,
-          fra: iso('2024-01-01'),
-          til: iso('2024-12-31'),
-          maaneder: 12,
-          maanedsloenOre: moneyOre(0),
-          deltaPct: 10,
-          amountOre: moneyOre(0),
-          reguleretLoenOre: moneyOre(0),
-        }],
-      },
+      reguleringOpslag: sfggReguleringOpslagFraSegmenter([{
+        kind: 'maaneder' as const,
+        fra: iso('2024-01-01'),
+        til: iso('2024-12-31'),
+        maaneder: 12,
+        maanedsloenOre: moneyOre(0),
+        deltaPct: 10,
+        amountOre: moneyOre(0),
+        reguleretLoenOre: moneyOre(0),
+      }]),
     })).toThrow('mangler positiv basisløn');
     expect(() => resolveSfggSegmentRateForDate({
       ...baseArgs,
-      loenudvikling: {
-        beregnedeSegmenter: [{
-          kind: 'maaneder' as const,
-          fra: iso('2024-01-01'),
-          til: iso('2024-12-31'),
-          maaneder: 12,
-          maanedsloenOre: moneyOre(300_000),
-          deltaPct: 10,
-          amountOre: moneyOre(3_300_000),
-          reguleretLoenOre: moneyOre(300_001),
-        }],
-      },
+      reguleringOpslag: sfggReguleringOpslagFraSegmenter([{
+        kind: 'maaneder' as const,
+        fra: iso('2024-01-01'),
+        til: iso('2024-12-31'),
+        maaneder: 12,
+        maanedsloenOre: moneyOre(300_000),
+        deltaPct: 10,
+        amountOre: moneyOre(3_300_000),
+        reguleretLoenOre: moneyOre(300_001),
+      }]),
     })).toThrow('interne regulering matcher ikke');
   });
 
@@ -337,7 +378,7 @@ describe('sfggSegmentering', () => {
         sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(1) },
         sfggReferencesatsFormula: null,
       },
-      loenudvikling: undefined,
+      reguleringOpslag: undefined,
     };
     const expected = [
       ['Faglaert-Koebenhavn', 20_790],
@@ -372,7 +413,7 @@ describe('sfggSegmentering', () => {
         sfggReferencesatsOre: { status: 'ok' as const, value: moneyOre(10_000) },
         sfggReferencesatsFormula: null,
       },
-      loenudvikling: undefined,
+      reguleringOpslag: undefined,
     };
 
     expect(resolveSfggSegmentRateForDate({
@@ -387,7 +428,7 @@ describe('sfggSegmentering', () => {
       ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
       employment: unknownEmployment,
       sfggSource: { kind: 'manuel' },
-      loenudvikling: undefined,
+      reguleringOpslag: undefined,
     })).toEqual([]);
   });
 });

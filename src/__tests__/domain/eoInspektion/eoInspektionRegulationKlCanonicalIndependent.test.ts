@@ -73,7 +73,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
           deltaPct: 0,
           amountOre: moneyOre(600_000),
           reguleretLoenOre: moneyOre(100_000),
-          regulering: buildReguleringsbevis(1000, 1000, { kind: 'klLoenaftaler' }),
+          regulering: buildReguleringsbevis(1000, 1000, { kind: 'klLoenaftaler', referenceDate: iso('2024-01-01'), klTrin: [] }),
         },
         {
           kind: 'maaneder',
@@ -84,7 +84,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
           deltaPct: 10,
           amountOre: moneyOre(660_000),
           reguleretLoenOre: moneyOre(110_000),
-          regulering: buildReguleringsbevis(1000, 1100, { kind: 'klLoenaftaler' }),
+          regulering: buildReguleringsbevis(1000, 1100, { kind: 'klLoenaftaler', referenceDate: iso('2024-01-01'), klTrin: [] }),
         },
       ],
     }],

@@ -15,7 +15,7 @@ import type { KonsolideretLoenudvikling } from '../reguleringForm';
 // funktionskrop langs en gren. Dette modul samler det de *faktisk* deler: uniformitets-
 // konsolideringen (i overenskomstForm) plus preamblen her – reference-opslag og det
 // anciennitetstillæg begge byggere anvender som segment-brudpunkt. Selve base-/segment-opslaget deler de ikke, og
-// de to bevidst forskellige clamp-mekanismer (U4) bor hver i sin bygger. Anciennitetstillæggets
+// historiske opslag bruger de faktiske satser uden basisklemmer. Anciennitetstillæggets
 // opløsning deles mellem producenterne via `resolveAnciennitetForIndex`; resultatet bæres til visning.
 
 /** Den konsoliderede overenskomst-variant (fælles for privat og offentlig gren). */
@@ -33,15 +33,8 @@ export type OverenskomstSegmentContext = Readonly<{
 }>;
 
 const resolveKonsolideretAnciennitet = (konsolideret: KonsolideretOverenskomst): AnciennitetForIndex | null => {
-  const tafStartIso = konsolideret.tafRanges.reduce<ISODateString | undefined>(
-    (min, range) => (!min || range.fra < min ? range.fra : min),
-    undefined
-  );
-  const tafEndIso = konsolideret.tafRanges.reduce<ISODateString | undefined>(
-    (max, range) => (!max || range.til > max ? range.til : max),
-    undefined
-  );
-  if (!tafStartIso || !tafEndIso) return null;
+  const anciennitetDato = konsolideret.anciennitetstillaegDato;
+  if (!anciennitetDato) return null;
   return resolveAnciennitetForIndex({
     harAnciennitetstillaeg: konsolideret.harAnciennitetstillaegEfterSkadedatoen,
     anciennitetstillaegDatoIso: konsolideret.anciennitetstillaegDato,
@@ -51,8 +44,8 @@ const resolveKonsolideretAnciennitet = (konsolideret: KonsolideretOverenskomst):
     // Privat overenskomst har ingen offentlig indplacering; dér afgør overenskomstens egen enhed.
     offentligLoenType: konsolideret.offentlig?.loenType,
     anvendtReguleringsdatoIso: konsolideret.reguleringsdato,
-    periodeStartIso: tafStartIso,
-    periodeEndIso: tafEndIso,
+    periodeStartIso: anciennitetDato,
+    periodeEndIso: anciennitetDato,
   });
 };
 

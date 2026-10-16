@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { ILON12_DISCONTINUED_NOTE } from '../src/data/statistikNotes';
 
 import {
   expect,
@@ -42,6 +43,7 @@ const udfyldStoreBededagssag = async (page: Page): Promise<void> => {
   await beregnesUdFra.click();
   await page.getByRole('option', { name: 'Angivet månedsløn', exact: true }).click();
   await setFieldValueAndSettle(page.locator("input[name='maanedsloenenUdgoer']"), '30000');
+  await setDate(page.locator("input[name='angivetMaanedsloenOpreguleresFraDato']"), '01-01-2024');
   await setFieldValueAndSettle(page.locator("input[name='angivetMaanedsloenBaseretPaa']"), 'Månedsløn');
 
   const loenudvikling = page.getByRole('combobox', {
@@ -49,7 +51,9 @@ const udfyldStoreBededagssag = async (page: Page): Promise<void> => {
     exact: true,
   });
   await loenudvikling.click();
-  await page.getByRole('option', { name: 'Ingen', exact: true }).click();
+  await page.getByRole('option', { name: 'Manuelt angivet', exact: true }).click();
+  const basis = page.locator('table').filter({ hasText: 'Grundløn' }).first().locator('tbody tr').first();
+  await setFieldValueAndSettle(basis.getByRole('textbox', { name: 'Grundløn', exact: true }), '30000');
 };
 
 test.describe('Store Bededag-advarsel i EO-beregningen', () => {
@@ -74,8 +78,9 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     const beregnesUdFra = page.getByRole('combobox', { name: 'Beregnes ud fra', exact: true });
     await beregnesUdFra.click();
     await page.getByRole('option', { name: 'Angivet dagsløn', exact: true }).click();
-    // Ved dagsløn er der aldrig krav på tillægget, så knappen er skjult (BB-267).
-    await expect(storeBededagToggle).toBeHidden();
+    // Den godkendte relevansregel viser valget ved manuel regulering; dagslønsvalget starter uden tillæg.
+    await expect(storeBededagToggle).toBeVisible();
+    await expect(storeBededagToggle).not.toBeChecked();
     await beregnesUdFra.click();
     await page.getByRole('option', { name: 'Angivet månedsløn', exact: true }).click();
     await expect(storeBededagToggle).toBeChecked();
@@ -133,6 +138,9 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
       exact: true,
     });
     await expect(holidayPay).toHaveValue('Almindelig løn');
+    await expect(storeBededagToggle).toBeHidden();
+    await page.getByRole('combobox', { name: 'Lønudvikling beregnes ud fra', exact: true }).click();
+    await page.getByRole('option', { name: 'Manuelt angivet', exact: true }).click();
     await expect(storeBededagToggle).toBeChecked();
 
     await holidayPay.click();
@@ -147,4 +155,26 @@ test.describe('Store Bededag-advarsel i EO-beregningen', () => {
     expect(runtimeSignals).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
+  test('skjuler virkningsløs toggle ved angivet Statistik og viser ILON12-noten', async ({
+    page, runtimeErrors, runtimeSignals, externalRequests,
+  }, testInfo) => {
+    await login(page);
+    await udfyldStoreBededagssag(page);
+    const regulation = page.getByRole('combobox', { name: 'Lønudvikling beregnes ud fra', exact: true });
+    await regulation.click();
+    await page.getByRole('option', { name: 'Statistik', exact: true }).click();
+    await expect(page.getByRole('checkbox', { name: 'Beregn Store Bededagstillæg fra 1. januar 2024:', exact: true })).toBeHidden();
+    const model = page.getByRole('combobox', { name: 'Statistisk beregningsmodel', exact: true });
+    await model.click();
+    await page.getByRole('option', { name: 'ILON12 (Danmarks Statistik)', exact: true }).click();
+    await expect(page.getByText(ILON12_DISCONTINUED_NOTE, { exact: true })).toBeVisible();
+    await testInfo.attach('ilon12-note', { body: await page.screenshot(), contentType: 'image/png' });
+    await model.click();
+    await page.getByRole('option', { name: 'SBLON2 (Danmarks Statistik)', exact: true }).click();
+    await expect(page.getByText(ILON12_DISCONTINUED_NOTE, { exact: true })).toBeHidden();
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
 });

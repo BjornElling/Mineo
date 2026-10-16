@@ -59,7 +59,8 @@ describe('krlForm', () => {
     }));
 
     expect(result.segmenter.length).toBeGreaterThan(0);
-    expect(result.segmenter.find((segment) => segment.fra === iso('2018-01-01'))?.deltaPct).toBe(0);
+    // (134,6860 / 137,7253 − 1) × 100 = −2,206784… %, afrundet til −2,21 %.
+    expect(result.segmenter.find((segment) => segment.fra === iso('2018-01-01'))?.deltaPct).toBe(-2.21);
     expect(result.forloeb?.kind).toBe('krl');
     if (result.forloeb?.kind !== 'krl') throw new Error('KRL-forløb mangler');
     expect(result.forloeb.entries.length).toBeGreaterThan(0);

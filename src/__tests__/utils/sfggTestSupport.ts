@@ -3,7 +3,10 @@ import type {
   ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
 } from '../../schemas/formSchemas';
-import { toISODateString } from '../../types/branded';
+import { toISODateString, type ISODateString } from '../../types/branded';
+import { buildReguleringsbevis } from '../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
+import type { ReguleringOpslag, ReguleringOpslagSegment } from '../../domain/erstatningsopgoerelse/engines/regulering/reguleringOpslag';
+import type { LoenudviklingSegment } from '../../domain/erstatningsopgoerelse/shared/eoTypes';
 
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
 
@@ -94,5 +97,40 @@ export const withSfggIngenForEmployments = (
   return {
     ...eoValues,
     sfggAnsaettelsesforhold: [...eoValues.sfggAnsaettelsesforhold, ...added],
+  };
+};
+
+/**
+ * Et reguleringsopslag med givne trin til SFGG-tests, der skal styre reguleringen direkte. Trinets delta
+ * bliver det anvendte delta; et trin med `reguleretLoenOre` bærer KL-lønaftalers kædeløn. Datoer uden for
+ * trinene er uden for dækning.
+ */
+export const sfggReguleringOpslagFraSegmenter = (
+  segmenter: readonly LoenudviklingSegment[],
+  reference?: Readonly<{ dato: ISODateString; deltaPct: number }>
+): ReguleringOpslag => {
+  const opslagSegmenter: ReguleringOpslagSegment[] = segmenter.map((segment) => {
+    const regulering = segment.regulering
+      ? { ...segment.regulering, appliedDeltaPct: segment.deltaPct }
+      : buildReguleringsbevis(100, 100 + segment.deltaPct, { kind: 'procentsats', rawDeltaPct: segment.deltaPct });
+    const basisLoenOre = segment.kind === 'maaneder' ? segment.maanedsloenOre : segment.dagsloenOre;
+    return {
+      fra: segment.fra,
+      til: segment.til,
+      vaerdi: {
+        udfald: 'reguleret',
+        regulering,
+        ...(segment.reguleretLoenOre !== undefined
+          ? { klKaedeloen: { basisLoenOre, reguleretLoenOre: segment.reguleretLoenOre } }
+          : {}),
+      },
+    };
+  });
+  return {
+    segmenter: opslagSegmenter,
+    paaDato: (dato) => reference?.dato === dato
+      ? { udfald: 'reguleret', regulering: buildReguleringsbevis(100, 100 + reference.deltaPct, { kind: 'procentsats' }) }
+      : opslagSegmenter.find((segment) => dato >= segment.fra && dato <= segment.til)?.vaerdi
+      ?? { udfald: 'uden-for-daekning', dato, daekning: {} },
   };
 };

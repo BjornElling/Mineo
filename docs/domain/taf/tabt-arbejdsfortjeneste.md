@@ -390,3 +390,16 @@ EO-domænet bruger den fælles merge-helper i `src/domain/erstatningsopgoerelse/
 ## Status
 
 *Filen er synkroniseret med koden.*
+
+### Regulering før lønnens reguleringsdato
+
+TAF-perioder før reguleringsdatoen nedreguleres efter kildens historiske forløb (BB-261).
+Statistik, KRL og overenskomst bruger samme indeks-/pakkeforhold i begge retninger.
+KL-lønaftaler dividerer baglæns med hvert trins faktor og afrunder lønnen til øre efter hvert trin;
+se `kl-loenaftaler-regulering.md` §1.2. Negative reguleringsprocenter afrundes symmetrisk med positive.
+
+Kilden skal have en sats både på reguleringsdatoen og ved TAF-start. En dato før første sats
+blokerer altid og markeres på feltet; indstillingen for udløbne tabeller vedrører kun TAF-slutningen.
+De to manuelle former kan ikke nedregulere: begynder TAF før reguleringsdatoen, skal der vælges en
+anden reguleringsform. Store Bededag-knappen styrer kun tillæggets egen komponent og ændrer
+ikke adgangen til historiske løn- eller pensionssatser.

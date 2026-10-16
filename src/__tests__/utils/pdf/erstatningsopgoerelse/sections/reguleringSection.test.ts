@@ -1,7 +1,8 @@
+import { buildReguleringsbevis } from '../../../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { moneyOre } from '../../../../../domain/money/money';
 // @vitest-environment jsdom
 import { renderReguleringSection } from '../../../../../document/generators/eo/sections/reguleringSection';
-import { ILON12_DISCONTINUED_NOTE } from '../../../../../document/generators/eo/reguleringNotes';
+import { ILON12_DISCONTINUED_NOTE } from '../../../../../data/statistikNotes';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { PDF_CONTENT_WIDTH_MM } from '../../../../../document/layout/pdfConfig';
@@ -465,6 +466,15 @@ describe('renderReguleringSection – reguleringstekst', () => {
       ],
     }));
 
+    ctx.modelLoenudviklingPerAnsaettelse = [{ ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
+      beregnedeSegmenter: [{ kind: 'maaneder', fra: iso('2025-06-01'), til: iso('2025-08-28'), maaneder: 3,
+        maanedsloenOre: moneyOre(10000), deltaPct: 1, amountOre: moneyOre(30300),
+        regulering: buildReguleringsbevis(100, 101, { kind: 'pakke',
+          referenceComponents: {"baseValue": 100, "feriePct": 0, "shSoPct": 0, "fritvalgPct": 7, "storeBededagPct": 0, "pensionPct": 9},
+          periodComponents: {"baseValue": 100, "feriePct": 0, "shSoPct": 0, "fritvalgPct": 9, "storeBededagPct": 0, "pensionPct": 12},
+        }),
+      }],
+    }];
     renderReguleringSection(ctx);
 
     expect(safeAddWrappedText).toHaveBeenCalledWith(
@@ -502,6 +512,15 @@ describe('renderReguleringSection – reguleringstekst', () => {
       ],
     }));
 
+    ctx.modelLoenudviklingPerAnsaettelse = [{ ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
+      beregnedeSegmenter: [{ kind: 'maaneder', fra: iso('2025-06-01'), til: iso('2025-08-28'), maaneder: 3,
+        maanedsloenOre: moneyOre(10000), deltaPct: 1, amountOre: moneyOre(30300),
+        regulering: buildReguleringsbevis(100, 101, { kind: 'pakke',
+          referenceComponents: {"baseValue": 100, "feriePct": 0, "shSoPct": 0, "fritvalgPct": 0, "storeBededagPct": 0, "pensionPct": 0},
+          periodComponents: {"baseValue": 100, "feriePct": 0, "shSoPct": 0, "fritvalgPct": 0, "storeBededagPct": 0.45, "pensionPct": 0},
+        }),
+      }],
+    }];
     renderReguleringSection(ctx);
 
     expect(safeAddWrappedText).toHaveBeenCalledWith(

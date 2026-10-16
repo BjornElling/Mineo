@@ -59,6 +59,7 @@ import {
   SFGG_TABLE_TOTAL_LABEL,
   buildSfggReferenceperiodeCountLabel,
   formatSfggAfkortningPdfLine,
+  buildSfggReguleretSatsLines,
 } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 
 type StandardPdfWriter = DocumentComposer;
@@ -216,7 +217,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
     const hasRegulatedSfggRate = entry.segments.some((segment) =>
-      typeof segment.reguleringsindeks === 'number' && !isWithinTolerance(segment.reguleringsindeks, 100)
+      (typeof segment.reguleringsindeks === 'number' && !isWithinTolerance(segment.reguleringsindeks, 100))
+        || (segment.klTrin?.length ?? 0) > 0
     );
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
@@ -235,7 +237,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     writer.writeUnderlinedSubheader(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL);
     safeAddWrappedText(
       hasRegulatedSfggRate
-        ? `Kravet beregnes per ${dayUnit} med ${rateLabel} tillagt efterfølgende lønstigninger.`
+        ? `Kravet beregnes per ${dayUnit} med ${rateLabel} reguleret efter lønudviklingen fra referenceperiodens slutdato.`
         : `Kravet beregnes per ${dayUnit} med ${rateLabel}.`
     );
 
@@ -310,6 +312,11 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       hasHeaderRow: true,
       rows: specRows,
     });
+
+    if (entry.sfggReferencesats.status === 'ok' && rows.some((row) => row.reguleringsgrundlag || row.klTrin?.length)) {
+      writer.writeUnderlinedSubheader('Regulering af referencesatsen');
+      buildSfggReguleretSatsLines(entry.sfggReferencesats.value, rows).forEach((line) => safeAddWrappedText(line));
+    }
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
     const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? zeroMoneyOre();

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-10-06 (§2a pkt. 2: et nyt ansættelsesforhold får altid togglen slået til)
+**Senest verificeret mod kode:** 2026-10-16 (relevans og historisk regulering efter TAF-gennemgangen)
 
 ## 1. Scope
 
@@ -44,17 +44,20 @@ Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og
    almindelig løn, frem for slået fra med en advarsel om et valg, brugeren aldrig traf (udviklerbeslutning
    2026-10-06, BB-281). Schemaets `false`-default er fortsat kun load-fallback og ændres ikke. En eksisterende, synlig toggle
    er dermed ikke en automatisk beregningsregel – den er stadig kun aktiv efter brugerens valg.
-3. **Skjult værdi bevares, men virker ikke.** Togglen vises kun ved "Almindelig løn" – og på den angivne løn
-   ikke ved "Angivet dagsløn" (§2b). Skifter brugeren
-   helligdagsvalget væk, bevares den gemte værdi i sagen, men gater ikke noget – `harValgtStoreBededagstillaeg`
-   kræver BEGGE betingelser. Skiftes der tilbage, gælder den tidligere værdi igen. Ingen tavs nulstilling.
+3. **Skjult værdi bevares, men virker ikke (afklaringslog 9b, 2026-10-15).** Ved almindelig løn på
+   helligdage er valget relevant ved Overenskomst og «Manuelt angivet». Ved Beregningsperiode er det
+   desuden relevant for alle reguleringsformer, når den anvendte reguleringsdato er 01-01-2024 eller senere:
+   her påvirker valget løngrundlaget. Beløb-tilstand er undtaget; kun de indtastede beløb gælder.
+   Statistik, KRL, KL-lønaftaler og Manuel procentsats får ikke et særskilt reguleringstillæg.
+   Descriptorens relevans og UI bruger samme regel. Skjulte værdier bevares, men læses som `false`.
+   Knappen styrer kun Store Bededag-komponenten og må aldrig ændre historisk grundløn eller pension.
 4. **Load af ældre `.eo`-filer.** En fil uden feltet får `true`, hvis dens "Løn på helligdage" er
    "Almindelig løn", ellers `false` (`migrateMissingStoreBededagToggle` i `persistedLoadAdapter.ts`). Det er
    den eneste kompatibilitetsbevarende værdi: netop den tilstand beregnede tillægget før. En fil, der
    allerede bærer feltet, beholder altid sin egen værdi. Migreringen er tavs – ingen preflight, ingen
    advarsel, ingen ændret sagsdata.
 5. **Ikke-blokerende advarsel ved fravalg.** Når en TAF-periode når ind i 2024, og en lønudviklingskilde har
-   "Almindelig løn" uden tilvalgt tillæg, vises linjen «Der vil sædvanligvis være krav på Store
+   en relevant knap ved "Almindelig løn" uden tilvalgt tillæg, vises linjen «Der vil sædvanligvis være krav på Store
    Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.» i "Fejl og advarsler" på
    EO-beregningsfanen. Den blokerer aldrig beregning eller download, og den vises også, mens samme
    lønudviklingskilde har en blokerende fejl. Advarslen bor i RÆKKE-kanalen (`buildEoIndkomstRows`), ikke i
@@ -81,11 +84,10 @@ tillægget. Den er udviklerens og implementeres som angivet.
   ville kompensere den to gange.
 - **Angivet månedsløn kræver almindelig løn på helligdage.** Bekræftet 2026-10-02: ved "SH-udbetaling" eller
   "Ingen" er togglen skjult, og tillægget regnes ikke med – også ved angivet månedsløn.
-- **Konsekvenser i programmet.** Ved "Angivet dagsløn" er togglen skjult, og descriptorens relevans giver den som
-  slået fra til alle læsere, så tillægget aldrig regnes med – heller ikke fra en gemt `true` (udviklerafgørelse
-  2026-10-02). Værdien bevares i sagen og bliver sat igen af valget "Angivet månedsløn" (§2a pkt. 2). Advarslen om
-  et fravalgt tillæg (§2a pkt. 5) tier ved "Angivet dagsløn" (BB-267). Prædikatet er
-  `kanDerVaereKravPaaStoreBededagstillaeg` i `storeBededagstillaeg.ts`.
+- **Konsekvenser i programmet.** Advarslen om et fravalgt tillæg tier ved «Angivet dagsløn» (BB-267).
+  Knappens relevans følger den senere, godkendte afklaringslog 9b og §2a pkt. 3, også når brugeren vælger
+  Overenskomst eller «Manuelt angivet» for en angivet dagsløn. Den angivne løn er hele lønnen på datoen,
+  inklusive eventuelt allerede udbetalt tillæg; programmet lægger intet til dette beløb.
 
 ## 3. Autoritative Kilder
 

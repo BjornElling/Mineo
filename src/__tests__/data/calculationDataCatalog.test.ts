@@ -22,6 +22,8 @@ describe('calculationDataCatalog', () => {
       'offentligLoenTypes.ts',
       'rateSeriesIntegrity.ts',
       'retsinfoLinks.ts',
+      // Fælles forklaringstekst til UI og dokumenter, ingen beregningssatser.
+      'statistikNotes.ts',
       'ydelsestyper.ts',
     ]);
     const listTsFiles = (directory: string): string[] => fs.readdirSync(directory, { withFileTypes: true })

@@ -13,7 +13,6 @@ import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import {
   assertUniform,
   buildSegmentsFromStartDates,
-  buildZeroDeltaSegment,
   ensurePositiveFiniteNumber,
   resolveEffectiveBaseEntry,
   toKildeReguleringsIntervalIso,
@@ -45,11 +44,14 @@ const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray
 // to familier krydser; hold krydsningen navngivet og fail-closed (kast på manglende ASL-indeks
 // mellem basisår og segmentår) frem for et inline motorkald, så familie-grænsen er synlig.
 const aslIndeksTilRaaSegmentDelta = (kildeAar: number, maalAar: number): number => {
-  const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum({ kildeAar, maalAar });
+  const { faktor, manglendeAar } = opregulerMedAslAarsloensmaksimum({
+    kildeAar: Math.min(kildeAar, maalAar), maalAar: Math.max(kildeAar, maalAar),
+  });
   if (manglendeAar.length > 0) {
     throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
   }
-  return deltaPct;
+  // Den fælles fremadrettede motor bevares; historiske år bruger det spejlede indeksforhold.
+  return ((maalAar < kildeAar ? 1 / faktor : faktor) - 1) * 100;
 };
 
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
@@ -70,7 +72,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 };
 
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'statistik') {
     throw new Error('Loenudvikling kan ikke beregnes: statistikstrategi mangler');
@@ -93,11 +96,8 @@ const byggResultat = (
     // jf. `opregulerMedAslAarsloensmaksimum`); tal-neutralt via interiort-hul-load-guarden.
     // Det tidligere per-segment-opslag + to-års-injektion var netop den endepunkts-kun-gren,
     // foreningen fjernede – genindfør den ikke.
-    const aslSegments = buildAslReguleringsSegments(konsolideret.tafRanges)
+    const aslSegments = buildAslReguleringsSegments(segmentRanges)
       .map<LoenreguleringsSegment>((segment) => {
-        if (segment.year < baseYear) {
-          return buildZeroDeltaSegment(segment);
-        }
         const rawDeltaPct = aslIndeksTilRaaSegmentDelta(baseYear, segment.year);
         const deltaPct = roundReguleringDeltaPct(rawDeltaPct);
         const referenceValue = resolveAslAarsloensmaksimumForAar(baseYear);
@@ -135,19 +135,14 @@ const byggResultat = (
     'Loenudvikling kan ikke beregnes: mangler basisindeks'
   );
   ensurePositiveFiniteNumber(effectiveBase.indeksvaerdi, 'Loenudvikling kan ikke beregnes: ugyldigt basisindeks');
-  const effectiveBaseStartIso = effectiveBase.startIso;
 
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const starts = new Set<ISODateString>();
     for (const entry of periodStarts) {
       if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);
     }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
-      if (segment.fra < effectiveBaseStartIso) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
       const idxEntry = findLatestByDateInSortedList(periodStarts, segment.fra, 'statistik:segment');
       if (!idxEntry) {
         throw new Error('Intern fejl: mangler statistikindeks efter effective base');

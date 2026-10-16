@@ -406,7 +406,7 @@ const Indstillinger = React.memo(() => {
           </Box>
         </Box>
 
-        <LabeledControlRow label="Tillad regulering med overenskomst, der ikke dækker hele perioden">
+        <LabeledControlRow label="Tillad regulering, når tabellen udløber før TAF-periodens slutning">
           {({ labelledBy, controlId }) => (
             <StyledToggleSwitch
               id={controlId}

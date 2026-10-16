@@ -225,7 +225,7 @@ describe('buildLoenudviklingModel', () => {
     expect(deltaFor('2026-04-01')).toBe(4.80);     // 65,3378
   });
 
-  it('KRL (S1 base-clamp): reguleringsdato før første sats ankrer til ældste sats, segmenter før basen = zero-delta', () => {
+  it('KRL: reguleringsdato før første sats afvises uden basisklemme', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -243,23 +243,13 @@ describe('buildLoenudviklingModel', () => {
       loenudviklingKRLSatstabel: 'KTO (kommuner)',
     };
 
-    const model = buildLoenudviklingModel(
+    expect(() => buildLoenudviklingModel(
       values,
       { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2000-01-01') },
       TAF_BEREGNES_SOM.MAANEDER,
       null,
       { tafRanges: [{ fra: iso('2000-01-01'), til: iso('2002-12-31') }] }
-    );
-
-    // Effektiv base = ældste sats 01-04-2001 (4,0662). Segmentet før basen er zero-delta;
-    // fra og med basen beregnes deltaPct mod 4,0662. (Denne stille clamp gates blokerende
-    // i række-laget – se reguleringSilentPathAlignment.test.ts, S1-blok.)
-    const deltaFor = (fra: string) =>
-      model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
-    expect(deltaFor('2000-01-01')).toBe(0);   // før basen → zero-delta
-    expect(deltaFor('2001-04-01')).toBe(0);   // base → base
-    expect(deltaFor('2001-10-01')).toBe(1.01); // 5,1157 mod 4,0662
-    expect(deltaFor('2002-04-01')).toBe(2.01); // 6,1566 mod 4,0662
+    )).toThrow('mangler KRL basisindeks');
   });
 
   it('KRL (S6-endepunkt): TAF ud over sidste KRL-dato viderefører sidste sats (carry-forward, gated af endDate-row)', () => {
@@ -614,7 +604,7 @@ describe('buildLoenudviklingModel', () => {
     expect(entries.length).toBeGreaterThan(0);
   });
 
-  it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
+  it('afviser manuel regulering for TAF før basis uanset Store Bededag', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.maanedsloenenUdgoer = asAmount(30000);
@@ -643,23 +633,13 @@ describe('buildLoenudviklingModel', () => {
       ],
     };
 
-    const model = buildLoenudviklingModel(
+    expect(() => buildLoenudviklingModel(
       values,
       { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
       TAF_BEREGNES_SOM.MAANEDER,
       null,
       { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
-    );
-
-    const segment2023 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2023-01-01'));
-    const segment2024 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-01-01'));
-
-    expect(segment2023?.deltaPct).toBeLessThan(0);
-    expect(segment2023?.deltaPct).toBe(-0.45);
-    expect(segment2024?.deltaPct).toBe(0);
-
-    // R2 – 'Manuelt angivet' er ikke migreret (kun manuel procentsats, KRL, statistik non-ASL); den bærer intet forløb.
-    expect(model.forloeb).toBeUndefined();
+    )).toThrow('manuel regulering har ingen værdier før reguleringsdatoen');
   });
 
   it('fejl-lukker (kaster) når ASL-basisindeks mangler for reguleringsdatoens år', () => {
@@ -773,13 +753,13 @@ describe('buildLoenudviklingModel', () => {
     expect(aslDelta(2022, 2020)).toBeGreaterThan(aslDelta(2021, 2020));
   });
 
-  it('ASL: segment før basisåret giver bevidst zero-delta (regulering gælder først fra reguleringsdatoen)', () => {
+  it('ASL: segment før basisåret nedreguleres efter det historiske indeks', () => {
     // Reguleringsdato i 2022, men TAF-perioden rækker bagud til 2021. 2021-segmentet
-    // (år < basisår) er zero-delta; 2023-segmentet (år > basisår) regulerer normalt.
+    // (år < basisår) nedreguleres; 2023-segmentet (år > basisår) opreguleres.
     const model = buildAslModel('2022-06-01', { fra: '2021-01-01', til: '2023-12-31' });
     const deltaFor = (fra: string) => model.beregnedeSegmenter.find((s) => s.fra === iso(fra))?.deltaPct;
 
-    expect(deltaFor('2021-01-01')).toBe(0);
+    expect(deltaFor('2021-01-01')).toBe(-1.05);
     expect(deltaFor('2022-01-01')).toBe(0); // basisåret selv
     expect(deltaFor('2023-01-01')).toBe(aslDelta(2023, 2022));
     expect(aslDelta(2023, 2022)).toBeGreaterThan(0);
@@ -799,7 +779,7 @@ describe('buildLoenudviklingModel', () => {
   // ─── Privat overenskomst (punkt 5): robusthed / ingen tavs runtime_exception ──
   //
   // Privat overenskomst har ingen realistisk throw-sti for valid input: basen opløses
-  // altid (fallback til overenskomstens første sats via resolvePrivateOverenskomstBaseContext),
+  // for en dækket reguleringsdato,
   // og `getSatserForDatoFromList` carry-forwarder den seneste sats ≤ dato – så et interiort
   // hul er umuligt, og en TAF-periode UD OVER sidste sats giver carry-forward (ikke throw).
   // De eneste zero-delta-stier er "før dækning"/"før basis", der er gated i row-laget (S2).
@@ -883,17 +863,9 @@ describe('buildLoenudviklingModel', () => {
     ]);
   });
 
-  it('Statistik (ILON12): base-clamp – reguleringsdato før første kvartal → zero-delta før basen (S1)', () => {
-    // reguleringsdato 2004-06-01 ligger før ILON12's første kvartal (2005K1).
-    // Motoren ankrer basen til ældste kvartal (2005K1 = 100) og giver zero-delta for
-    // segmentet før basen. På produkt-niveau blokeres dette af en synlig, blokerende
-    // reguleringsvaerdi-row-error (eoRowIndkomstRows.ts:472), aligned med basen – jf.
-    // punkt 1's S1-afgørelse (bekræftet korrekt, gated). Her verificeres motor-adfærden.
-    expect(statistikDeltas('ILON12 (Danmarks Statistik)', '2004-06-01', { fra: '2004-06-01', til: '2006-12-31' })).toEqual([
-      { fra: iso('2004-06-01'), deltaPct: 0 }, // før effektiv base (2005K1) → zero-delta
-      { fra: iso('2005-01-01'), deltaPct: 0 }, // basen selv
-      { fra: iso('2006-01-01'), deltaPct: 2.9 }, // 102,9 / 100
-    ]);
+  it('Statistik (ILON12): reguleringsdato før første sats afvises', () => {
+    expect(() => statistikDeltas('ILON12 (Danmarks Statistik)', '2004-06-01',
+      { fra: '2004-06-01', til: '2006-12-31' })).toThrow('mangler basisindeks');
   });
 
   it('Statistik (ILON12): efter sidste kvartal – sidste indeks videreføres inden for dæknings-vinduet (S6-endepunkt)', () => {
@@ -1836,14 +1808,8 @@ describe('buildLoenudviklingModel – Overenskomst offentlig (KL)', () => {
     }
   });
 
-  it('S3 / før dækning: reguleringsdato før ældste KL-sats (01-01-2012) → kun zero-delta-segmenter, ingen throw', () => {
-    // Reguleringsdato + TAF før KL-dækningens start. Motoren falder tilbage til
-    // ældste sats som effektiv base (start = 01-01-2012), og alle segmenter før
-    // basen sættes til zero-delta. INGEN throw – den blokerende fejl leveres i
-    // stedet af reguleringsvaerdi-row-gaten (se reguleringSilentPathAlignment S3).
-    const model = byggOffentligModel('1900-01-01', '1900-01-01', '1900-12-31');
-    expect(model.beregnedeSegmenter.length).toBeGreaterThan(0);
-    expect(model.beregnedeSegmenter.every((s) => s.deltaPct === 0)).toBe(true);
+  it('offentlig overenskomst afviser reguleringsdato før første sats', () => {
+    expect(() => byggOffentligModel('1900-01-01', '1900-01-01', '1900-12-31')).toThrow('basissats mangler');
   });
 });
 

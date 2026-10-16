@@ -1,9 +1,9 @@
 import { buildReguleringsbevis } from '../reguleringsbevis';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import type { ISODateString } from '../../../../../types/branded';
 import { amountValueToNumber } from '../../../../../utils/expressionAmount';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
 import {
-  harStoreBededagstillaegIInterval,
   harValgtStoreBededagstillaeg,
   resolveStoreBededagstillaegPct,
 } from '../../../helpers/storeBededagstillaeg';
@@ -77,7 +77,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 };
 
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'manual') {
     throw new Error('Loenudvikling kan ikke beregnes: manuel strategi mangler');
@@ -122,41 +123,36 @@ const byggResultat = (
       };
       const packageValue = computePackageValuePct({
         ...components,
-        // Store Bededag korrigeres pr. faktisk TAF-segment i hasStoreBededagSegmenter-grenen nedenfor.
+        // Store Bededag tilføjes efter den konkrete opslagdato nedenfor.
         storeBededagPct: 0,
       });
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel pakkevaerdi');
       }
-      return { startIso, packageValue, components };
+      return { startIso, components };
     })
     .filter((row): row is Readonly<{
       startIso: ISODateString;
-      packageValue: number;
       components: Readonly<{ grundloen: number; feriePct: number; shSoPct: number; fritvalgPct: number; pensionPct: number }>;
     }> => Boolean(row))
     .sort((a, b) => a.startIso.localeCompare(b.startIso));
 
-  const hasStoreBededagSegmenter = konsolideret.tafRanges.some((range) =>
-    harStoreBededagstillaegIInterval(range.fra, range.til, konsolideret));
-
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const starts = new Set<ISODateString>();
     for (const row of datedRows) {
       if (row.startIso > range.fra && row.startIso <= range.til) starts.add(row.startIso);
     }
-    if (hasStoreBededagSegmenter && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
+    if (harValgtStoreBededagstillaeg(konsolideret) && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
       const segmentRow = findLatestByDateInSortedList(datedRows, segment.fra, 'manual:segment');
-      const packageValue = hasStoreBededagSegmenter
-        ? computePackageValuePct({
-            ...(segmentRow ? segmentRow.components : baseComponents),
-            storeBededagPct: resolveStoreBededagPctForManualDate(segment.fra),
-          })
-        : (segmentRow ? segmentRow.packageValue : basePackage);
+      // Datoens niveau skal også gælde ved SFGG-opslag uden for TAF-perioden.
+      const packageValue = computePackageValuePct({
+        ...(segmentRow ? segmentRow.components : baseComponents),
+        storeBededagPct: resolveStoreBededagPctForManualDate(segment.fra),
+      });
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel segmentvaerdi');
       }
@@ -167,16 +163,14 @@ const byggResultat = (
       const selectedComponents = segmentRow?.components ?? baseComponents;
       const periodComponents = {
         ...selectedComponents, baseValue: selectedComponents.grundloen,
-        storeBededagPct: hasStoreBededagSegmenter
-          ? resolveStoreBededagPctForManualDate(segment.fra)
-          : (segmentRow ? 0 : referenceComponents.storeBededagPct),
+        storeBededagPct: resolveStoreBededagPctForManualDate(segment.fra),
       };
       const { grundloen: _referenceGrundloen, ...referenceFormula } = referenceComponents;
       const { grundloen: _periodGrundloen, ...periodFormula } = periodComponents;
       const regulering = buildReguleringsbevis(basePackage, packageValue, {
         kind: 'pakke', referenceDate: konsolideret.reguleringsdato,
         periodRateDate: [segmentRow?.startIso ?? konsolideret.reguleringsdato,
-          hasStoreBededagSegmenter && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
+          harValgtStoreBededagstillaeg(konsolideret) && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_START : undefined,
         ].filter((date): date is ISODateString => date !== undefined).sort().at(-1),
         referenceComponents: referenceFormula, periodComponents: periodFormula,
       });

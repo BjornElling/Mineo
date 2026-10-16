@@ -147,8 +147,15 @@ export interface ReguleringForm {
   readonly strategi: LoenudviklingStrategi;
   /** Trin 1: uniformitetskontrol + byg formens `KonsolideretLoenudvikling`. */
   konsolider(ctx: FormKonsoliderContext): ResolvedStrategi;
-  /** Trin 2: byg de relative deltaPct-segmenter til TAF-beregning + det autoritative visnings-forløb (R2). */
-  byggResultat(konsolideret: KonsolideretLoenudvikling): ReguleringResultat;
+  /**
+   * Trin 2: byg de relative deltaPct-segmenter + det autoritative visnings-forløb (R2).
+   *
+   * `segmentRanges` er de intervaller, segmenterne bygges over – som standard TAF-perioden. Reguleringsopslaget
+   * pr. dato (`reguleringOpslag.ts`) evaluerer formen på en enkelt dato uden for TAF-perioden ved at give et
+   * étdagsinterval. `konsolideret.tafRanges` forbliver formens kontekst (anciennitetens periode, kildekolonner,
+   * Store Bededag-brud), så en dato evalueres efter de samme regler, uanset hvilket interval der spørges om.
+   */
+  byggResultat(konsolideret: KonsolideretLoenudvikling, segmentRanges?: readonly IsoRange[]): ReguleringResultat;
   /** Kildens dæknings-interval (fodrer validator + row-gate via resolveKildeReguleringsIntervalIso). */
   coverageInterval(af: LoenudviklingAf): KildeReguleringsInterval | undefined;
 }

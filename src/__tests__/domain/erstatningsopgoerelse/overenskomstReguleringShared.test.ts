@@ -2,10 +2,8 @@ import {
   buildOffentligOverenskomstFormulaComponents,
   buildPrivateOverenskomstFormulaComponents,
   resolveAnciennitetForIndex,
-  resolvePrivateOverenskomstBaseContext,
-  type PrivateOverenskomstBaseContext,
 } from '../../../domain/erstatningsopgoerelse/engines/overenskomstReguleringShared';
-import type { OverenskomstId, OverenskomstPeriodeSats } from '../../../data/overenskomstRates';
+import type { OverenskomstPeriodeSats } from '../../../data/overenskomstRates';
 import type { OffentligLoenType } from '../../../data/offentligLoenTypes';
 import type { DanishDateString, ISODateString } from '../../../types/branded';
 
@@ -13,7 +11,6 @@ const iso = (v: string): ISODateString => v as ISODateString;
 
 // bygge-anlaeg angiver grundlønnen pr. time (privat overenskomst).
 const OVERENSKOMST = 'bygge-anlaeg';
-const OVERENSKOMST_ID = OVERENSKOMST as OverenskomstId;
 
 const danish = (v: string): DanishDateString => v as DanishDateString;
 
@@ -29,15 +26,6 @@ const createSats = (overrides: Partial<OverenskomstPeriodeSats> = {}): Overensko
   sfggUfaglKbh: null,
   sfggUfaglProv: null,
   ...overrides,
-});
-
-const basePrivateContext = (useInputPctBasisForMissingBase: boolean): PrivateOverenskomstBaseContext => ({
-  effectiveBase: {
-    startIso: iso('2024-01-01'),
-    sats: createSats({ grundloen: 100 }),
-  },
-  referenceSats: createSats({ shSoSats: 0.01 }),
-  useInputPctBasisForMissingBase,
 });
 
 const baseInput = () => ({
@@ -148,71 +136,6 @@ describe('resolveAnciennitetForIndex', () => {
   });
 });
 
-describe('resolvePrivateOverenskomstBaseContext', () => {
-  const baseArgs = () => ({
-    overenskomstId: OVERENSKOMST_ID,
-    anvendtReguleringsdato: iso('2024-01-01'),
-    effectiveReguleringsdato: iso('2024-01-01'),
-    applyAlmindeligLoenPaaShDageRegel: false,
-    shSoPctInput: undefined,
-    fritvalgPctInput: undefined,
-    pensionPctInput: undefined,
-  });
-
-  it('returnerer den effektive sats og en eksisterende referencesats for en dækket dato', () => {
-    const result = resolvePrivateOverenskomstBaseContext(baseArgs());
-
-    expect(result).not.toBeNull();
-    expect(result?.effectiveBase.startIso).toBe(iso('2024-01-01'));
-    expect(result?.effectiveBase.sats.grundloen).toBe(138.15);
-    expect(result?.referenceSats?.grundloen).toBe(138.15);
-    expect(result?.useInputPctBasisForMissingBase).toBe(false);
-  });
-
-  it('falder tilbage til første sats og bruger inputbasis når datoen ligger før dækningen', () => {
-    const result = resolvePrivateOverenskomstBaseContext({
-      ...baseArgs(),
-      anvendtReguleringsdato: iso('2000-01-01'),
-      effectiveReguleringsdato: iso('2000-01-01'),
-      shSoPctInput: 2,
-    });
-
-    expect(result).not.toBeNull();
-    expect(result?.effectiveBase.startIso).toBe(iso('2011-03-01'));
-    expect(result?.effectiveBase.sats.grundloen).toBe(112.5);
-    expect(result?.referenceSats).toBeUndefined();
-    expect(result?.useInputPctBasisForMissingBase).toBe(true);
-
-    const pensionOnlyInput = resolvePrivateOverenskomstBaseContext({
-      ...baseArgs(),
-      anvendtReguleringsdato: iso('2000-01-01'),
-      effectiveReguleringsdato: iso('2000-01-01'),
-      shSoPctInput: 0,
-      pensionPctInput: 3,
-    });
-    expect(pensionOnlyInput?.useInputPctBasisForMissingBase).toBe(true);
-  });
-
-  it('returnerer null for ugyldig effektiv dato eller ukendt overenskomst', () => {
-    const missingReferenceDate = resolvePrivateOverenskomstBaseContext({
-      ...baseArgs(),
-      anvendtReguleringsdato: iso('ikke-en-dato'),
-    });
-    expect(missingReferenceDate?.effectiveBase.startIso).toBe(iso('2024-01-01'));
-    expect(missingReferenceDate?.referenceSats).toBeUndefined();
-
-    expect(resolvePrivateOverenskomstBaseContext({
-      ...baseArgs(),
-      effectiveReguleringsdato: iso('ikke-en-dato'),
-    })).toBeNull();
-
-    expect(resolvePrivateOverenskomstBaseContext({
-      ...baseArgs(),
-      overenskomstId: 'ukendt-overenskomst' as OverenskomstId,
-    })).toBeNull();
-  });
-});
-
 describe('overenskomstens fælles formelkomponenter', () => {
   it('bygger offentlige komponenter med satser, inputfallback og Store Bededag', () => {
     expect(buildOffentligOverenskomstFormulaComponents({
@@ -252,38 +175,33 @@ describe('overenskomstens fælles formelkomponenter', () => {
     });
   });
 
-  it('bruger reference- eller segmentsatser efter pctbasisrollen', () => {
+  it('bruger satsens egne procenter og input ved manglende sats', () => {
     const sats = createSats({ grundloen: 110, shSoSats: 0.02, fritvalg: 0.03, agPension: 0.04 });
-    const context = basePrivateContext(true);
 
     expect(buildPrivateOverenskomstFormulaComponents({
       sats,
-      context,
       feriePct: 12,
       shSoPctInput: 8,
       fritvalgPctInput: 9,
       pensionPctInput: 10,
-      pctBasisRole: 'reference',
       dateIso: iso('2024-01-01'),
       baseValueSupplement: 5,
       applyStoreBededagstillaeg: true,
     })).toEqual({
       baseValue: 115,
       feriePct: 12,
-      fritvalgPct: 9,
-      shSoPct: 1,
-      pensionPct: 10,
+      fritvalgPct: 3,
+      shSoPct: 2,
+      pensionPct: 4,
       storeBededagPct: 0.45,
     });
 
     expect(buildPrivateOverenskomstFormulaComponents({
       sats,
-      context: basePrivateContext(false),
       feriePct: 12,
       shSoPctInput: 8,
       fritvalgPctInput: 9,
       pensionPctInput: 10,
-      pctBasisRole: 'segment',
       dateIso: iso('2023-12-31'),
       applyStoreBededagstillaeg: false,
     })).toEqual({
@@ -297,12 +215,10 @@ describe('overenskomstens fælles formelkomponenter', () => {
 
     expect(buildPrivateOverenskomstFormulaComponents({
       sats: createSats({ grundloen: null }),
-      context: basePrivateContext(false),
       feriePct: 0,
       shSoPctInput: undefined,
       fritvalgPctInput: undefined,
       pensionPctInput: undefined,
-      pctBasisRole: 'segment',
       dateIso: iso('2023-12-31'),
       applyStoreBededagstillaeg: false,
     }).baseValue).toBe(0);

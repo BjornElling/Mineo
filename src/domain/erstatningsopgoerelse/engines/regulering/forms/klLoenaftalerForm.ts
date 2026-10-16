@@ -1,4 +1,5 @@
 import type { ISODateString } from '../../../../../types/branded';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { klLoenaftalerRaekker, getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../../data/klLoenaftaler';
 import { buildKlLoenaftalerIndexEntries } from '../../klLoenaftalerRegulering';
 import {
@@ -31,7 +32,8 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
 };
 
 const byggResultat = (
-  konsolideret: KonsolideretLoenudvikling
+  konsolideret: KonsolideretLoenudvikling,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReguleringResultat => {
   if (konsolideret.strategi !== 'klLoenaftaler') {
     throw new Error('Loenudvikling kan ikke beregnes: KL-lønaftaler-strategi mangler');
@@ -53,7 +55,7 @@ const byggResultat = (
 
   // Byg segmenter for hvert taf-interval
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const starts = new Set<ISODateString>();
     for (const entry of periodStarts) {
       if (entry.startIso > range.fra && entry.startIso <= range.til) starts.add(entry.startIso);

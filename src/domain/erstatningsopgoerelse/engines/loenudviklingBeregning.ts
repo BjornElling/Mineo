@@ -1,10 +1,8 @@
-import { buildReguleringsbevis, type Reguleringsbevis } from './regulering/reguleringsbevis';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { roundReguleringDeltaPct } from './reguleringFormulaUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, resolveAnsaettelsesforholdNavn, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
@@ -17,11 +15,12 @@ import type { MoneyOre } from '../../money/money';
 import { clampMoneyOreToZero, fromKroner, roundKroner, sumMoneyOre, toKroner, zeroMoneyOre } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
 import { resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared } from '../helpers/eoSharedUtils';
-import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { assertUniform } from './regulering/reguleringFormPrimitives';
-import { FORM_REGISTRY, byggReguleringsResultat } from './regulering/reguleringFormRegistry';
-import type { FormKonsoliderContext, ReguleringResultat, ResolvedStrategi } from './regulering/reguleringForm';
+import { FORM_REGISTRY } from './regulering/reguleringFormRegistry';
+import type { FormKonsoliderContext, KildeReguleringsInterval, ResolvedStrategi } from './regulering/reguleringForm';
+import { buildReguleringOpslag, buildUreguleretOpslag, type ReguleringOpslag } from './regulering/reguleringOpslag';
+import { resolveSfggSource, sfggKildeUsesReferenceperiode } from './sfggKilde';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -72,14 +71,20 @@ type AnvendtReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string 
 // samler konsolidering + segment-byggeri + dæknings-interval. Orkestratoren her udregner de
 // fælles, form-agnostiske værdier én gang og dispatcher til formens `konsolider`; de per-form
 // grene (uniformitet, konsolideret-konstruktion, segment-byggeri) bor i form-modulet (jf. R1).
+// Den resolvede strategi og kildens dækning (til reguleringsopslaget uden for TAF-perioden).
+type ResolvedReguleringsgrundlag = Readonly<{
+  strategiData: ResolvedStrategi;
+  kildeDaekning: KildeReguleringsInterval | undefined;
+}>;
+
 const resolveReguleringsStrategi = (
   values: TafCalculationValues,
   stamdataValues: StamdataValues,
   options: Readonly<{ tafRanges: readonly IsoRange[] }>
-): ResolvedStrategi => {
+): ResolvedReguleringsgrundlag => {
   const ansaettelser = resolveLoenudviklingRows(values);
   const alleIngen = ansaettelser.length > 0 && ansaettelser.every((af) => af.loenudviklingBeregningsgrundlag === 'Ingen');
-  if (alleIngen) return { strategi: 'ingen', label: 'Ingen', konsolideret: null };
+  if (alleIngen) return { strategiData: { strategi: 'ingen', label: 'Ingen', konsolideret: null }, kildeDaekning: undefined };
 
   const active = ansaettelser.filter((af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen');
   if (active.length === 0) {
@@ -116,28 +121,52 @@ const resolveReguleringsStrategi = (
     kraeverFeriePctVedBeregningsperiode,
     activeMedSynligeSatserOgLoenoplysninger,
   };
-  return FORM_REGISTRY[basis].konsolider(ctx);
+  const form = FORM_REGISTRY[basis];
+  return { strategiData: form.konsolider(ctx), kildeDaekning: form.coverageInterval(active[0]) };
 };
 
-export const buildLoenudviklingModel = (
+type LoenudviklingOptions = Readonly<{
+  tafRanges: readonly IsoRange[];
+  incomeForBeregningsperiode?: IncomePeriodResult | null;
+}>;
+
+/**
+ * Lønudviklingens samlede resultat: TAF-modellen og reguleringsopslaget pr. dato (AP2), som TAF-segmenterne
+ * er bygget af, og som sygeferiegodtgørelsen slår op i.
+ */
+export type LoenudviklingBeregning = Readonly<{
+  model: LoenudviklingModel;
+  reguleringOpslag: Readonly<{
+    /**
+     * Ét opslag pr. ansættelsesforhold ved «Beregningsperiode». SFGG kan kræve et opslag,
+     * selv om jobbet kun har løn i SFGG-referenceperioden og ikke i beregningsperioden.
+     */
+    perAnsaettelse: ReadonlyMap<string, ReguleringOpslag>;
+    /**
+     * Et fælles opslag, når lønudviklingen ikke er opdelt pr. ansættelsesforhold: angivet løn, eller
+     * «Beregningsperiode» uden lønindkomst i perioden.
+     */
+    faelles: ReguleringOpslag | null;
+  }>;
+}>;
+
+export const buildLoenudviklingBeregning = (
   values: TafCalculationValues,
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null,
-  options: Readonly<{
-    tafRanges: readonly IsoRange[];
-    incomeForBeregningsperiode?: IncomePeriodResult | null;
-  }>
-): LoenudviklingModel => {
+  options: LoenudviklingOptions
+): LoenudviklingBeregning => {
   const tafRanges = options.tafRanges;
   const buildFromStrategiAndBase = (
-    strategiData: ResolvedStrategi,
+    grundlag: ResolvedReguleringsgrundlag,
     baseLoen: number
   ): Readonly<{
     loenudviklingLabel: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
     loenudviklingTotal: Calculable<MoneyOre>;
     forloeb?: ReguleringForloeb;
+    reguleringOpslag: ReguleringOpslag;
   }> => {
     if (!Number.isFinite(baseLoen) || baseLoen <= 0 || tafRanges.length === 0) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
@@ -148,65 +177,28 @@ export const buildLoenudviklingModel = (
     const tafArbejdageSet = tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? buildTafArbejdsdageSet(values, tafRanges)
       : null;
-    const loenudviklingLabel = strategiData.label;
+    const loenudviklingLabel = grundlag.strategiData.label;
 
-    // Formen evaluerer satser, reference og periode i ét kald. Reguleringsbeviset følger
-    // det anvendte delta til alle visninger; forløbet bærer kun de selvstændige kildeserier.
-    // "Ingen" bygges direkte her med fuld basisløn og et eksplicit ureguleret grundlag.
-    const { segmenter: loenreguleringssegmenter, forloeb } = ((): ReguleringResultat => {
-      if (strategiData.strategi === 'ingen') {
-        return { segmenter: tafRanges.map((range) => ({ ...range, deltaPct: 0, regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }) })) };
-      }
-      const konsolideret = strategiData.konsolideret;
-      if (!konsolideret) {
-        throw new Error('Loenudvikling kan ikke beregnes: strategi mangler');
-      }
-      return byggReguleringsResultat(konsolideret);
-    })();
-
-    if (loenreguleringssegmenter.length === 0) {
-      throw new Error('Loenudvikling kan ikke beregnes: ingen reguleringssegmenter');
-    }
-
-    // KL-lønaftaler regulerer trinvist med afrunding på hvert trin (jf. klLoenaftalerReguleretLoen.ts
-    // og docs/domain/taf/kl-loenaftaler-regulering.md), modsat det enkelt-indeksforhold de
-    // øvrige modeller bruger. For KL-lønaftaler erstattes segmentets deltaPct derfor med den akkumulerede
-    // regulering afledt af den kæde-opregulerede, afrundede løn – i fuld præcision, så
-    // TAF-beløbet bliver præcis afrund(løn × antal). deltaPct holdes som intern repræsentation
-    // (korrekt for tafPerYearDerived og sygeferiegodtgørelse); den vises aldrig som akkumuleret.
-    const konsolideretForBase = strategiData.konsolideret;
-    const klLoenaftalerReguleretLoenResolver =
-      konsolideretForBase?.strategi === 'klLoenaftaler' && konsolideretForBase.reguleringsdato
-        ? buildKlLoenaftalerReguleretLoenResolver(baseLoenRounded, konsolideretForBase.reguleringsdato)
-        : null;
+    // Reguleringsopslaget evaluerer formen ét sted: satser, reference, periode og (for KL-lønaftaler)
+    // kædelønnen. Det rummer ALLE reguleringstrin i TAF-perioden – også trin uden TAF-arbejdsdage, som
+    // sygeferiegodtgørelsen fortsat skal kunne slå op i (fund A4). TAF-beløbet nedenfor frasorterer først
+    // bagefter de trin, der har mængde 0. Reguleringsbeviset følger det anvendte delta til alle visninger;
+    // forløbet bærer kun de selvstændige kildeserier.
+    const reguleringOpslag = buildReguleringOpslag({
+      strategi: grundlag.strategiData,
+      baseLoenRounded,
+      tafRanges,
+      kildeDaekning: grundlag.kildeDaekning,
+    });
+    const forloeb = reguleringOpslag.forloeb;
 
     const beregnedeSegmenter: Array<LoenudviklingModel['beregnedeSegmenter'][number]> = [];
-    for (const segment of loenreguleringssegmenter) {
-      const roundedDeltaPct = klLoenaftalerReguleretLoenResolver
-        ? klLoenaftalerReguleretLoenResolver.deltaPctAt(segment.fra)
-        : roundReguleringDeltaPct(segment.deltaPct);
+    for (const segment of reguleringOpslag.segmenter) {
+      const { regulering, klKaedeloen } = segment.vaerdi;
+      const deltaPct = regulering.appliedDeltaPct;
       // KL-lønaftaler: den opregulerede, afrundede enhedsløn for perioden – bæres med på segmentet,
       // så indkomst-linjerne kan vise "antal á reguleret løn = beløb" uden faktor-tekst.
-      const klLoenaftalerReguleretLoenOre = klLoenaftalerReguleretLoenResolver
-        ? fromKroner(klLoenaftalerReguleretLoenResolver.loenAt(segment.fra))
-        : undefined;
-      const segmentRegulering = segment.regulering;
-      if (!klLoenaftalerReguleretLoenResolver && !segmentRegulering) {
-        throw new Error('Lønudvikling mangler autoritativt reguleringsgrundlag');
-      }
-      const regulering: Reguleringsbevis = klLoenaftalerReguleretLoenResolver
-        ? {
-          ...buildReguleringsbevis(baseLoenRounded, klLoenaftalerReguleretLoenResolver.loenAt(segment.fra), {
-            kind: 'klLoenaftaler', referenceDate: konsolideretForBase?.reguleringsdato,
-            periodRateDate: segment.fra,
-            periodePct: konsolideretForBase?.reguleringsdato && segment.fra > konsolideretForBase.reguleringsdato
-              && forloeb?.kind === 'klLoenaftaler'
-              ? forloeb.entries.find((entry) => entry.startIso === segment.fra)?.reguleringsPct
-              : undefined,
-          }),
-          appliedDeltaPct: roundedDeltaPct,
-        }
-        : { ...segmentRegulering, appliedDeltaPct: roundedDeltaPct };
+      const klLoenaftalerReguleretLoenOre = klKaedeloen?.reguleretLoenOre;
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
         const maanederStats = beregnArbejdsdageOgMaaneder(
           segment.fra,
@@ -224,9 +216,9 @@ export const buildLoenudviklingModel = (
           til: segment.til,
           maaneder: maanederRaw,
           maanedsloenOre: baseLoenOre,
-          deltaPct: roundedDeltaPct,
+          deltaPct,
           regulering,
-          amountOre: segmentAmountOre(baseLoenRounded, maanederRaw, roundedDeltaPct),
+          amountOre: segmentAmountOre(baseLoenRounded, maanederRaw, deltaPct),
           ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
       } else {
@@ -237,6 +229,7 @@ export const buildLoenudviklingModel = (
         if (!Number.isFinite(arbejdsdage)) {
           throw new Error('Loenudvikling kan ikke beregnes: ugyldigt arbejdsdagesegment');
         }
+        // Kun TAF-beløbet frasorterer trin uden arbejdsdage; reguleringsopslaget beholder dem.
         if (arbejdsdage <= 0) continue;
         beregnedeSegmenter.push({
           kind: 'arbejdsdage',
@@ -244,9 +237,9 @@ export const buildLoenudviklingModel = (
           til: segment.til,
           arbejdsdage,
           dagsloenOre: baseLoenOre,
-          deltaPct: roundedDeltaPct,
+          deltaPct,
           regulering,
-          amountOre: segmentAmountOre(baseLoenRounded, arbejdsdage, roundedDeltaPct),
+          amountOre: segmentAmountOre(baseLoenRounded, arbejdsdage, deltaPct),
           ...(klLoenaftalerReguleretLoenOre !== undefined ? { reguleretLoenOre: klLoenaftalerReguleretLoenOre } : {}),
         });
       }
@@ -258,31 +251,53 @@ export const buildLoenudviklingModel = (
         loenudviklingTotal: asCalculable(zeroMoneyOre()),
         beregnedeSegmenter,
         forloeb,
+        reguleringOpslag,
       };
     }
 
     const totalOre = clampMoneyOreToZero(
       sumMoneyOre(beregnedeSegmenter.map((segment) => segment.amountOre))
     );
-    return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter, forloeb };
+    return { loenudviklingLabel, loenudviklingTotal: asCalculable(totalOre), beregnedeSegmenter, forloeb, reguleringOpslag };
   };
 
-  const buildPerAnsaettelseModel = (): LoenudviklingModel => {
+  const buildPerAnsaettelseModel = (): LoenudviklingBeregning => {
     const beregningsperiodeRange = buildBeregningsperiodeRange(values);
     if (!beregningsperiodeRange) {
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
     }
     const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
-    const strategiDataByIndex = ansaettelser.map((ansaettelsesforhold) => resolveReguleringsStrategi({
+    const grundlagByIndex = ansaettelser.map((ansaettelsesforhold) => resolveReguleringsStrategi({
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     }, stamdataValues, { tafRanges }));
     const income =
       options.incomeForBeregningsperiode
       ?? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
+    const opslagPerAnsaettelse = new Map<string, ReguleringOpslag>();
+    const medLoenIGrundlaget = new Set(income.employers.map((employer) => employer.index));
+    ansaettelser.forEach((employment, index) => {
+      if (medLoenIGrundlaget.has(index)) return;
+      const grundlag = grundlagByIndex[index];
+      const sfggRow = values.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === employment.id);
+      if (sfggKildeUsesReferenceperiode(resolveSfggSource(sfggRow, employment).kind)) {
+        // Indeks- og pakkeformer afhænger kun af kildens forhold, ikke af lønbeløbet.
+        // SFGG følger derfor jobbets valgte form, også uden løn i TAF-beregningsperioden.
+        opslagPerAnsaettelse.set(employment.id, buildReguleringOpslag({
+          // KL har ingen TAF-løn her. SFGG regulerer sin egen referencesats i en selvstændig KL-kæde.
+          strategi: grundlag.strategiData, baseLoenRounded: 0, tafRanges, kildeDaekning: grundlag.kildeDaekning,
+        }));
+      } else {
+        opslagPerAnsaettelse.set(employment.id, buildUreguleretOpslag(tafRanges,
+          grundlag.strategiData.strategi === 'ingen' ? 'ikke-valgt' : 'intet-loengrundlag'));
+      }
+    });
     if (income.employers.length === 0) {
-      const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
+      const alleIngen = grundlagByIndex.every((grundlag) => grundlag.strategiData.strategi === 'ingen');
       if (alleIngen || income.benefits.length > 0) {
+        // Uden lønindkomst i beregningsperioden er der ingen TAF-løn at regulere.
+        // SFGG beholder sine selvstændige opslag pr. job ovenfor.
+        const reguleringOpslag = buildUreguleretOpslag(tafRanges, alleIngen ? 'ikke-valgt' : 'intet-loengrundlag');
         // Arbejdsdage-grundlaget afhænger kun af (values, tafRanges) og er dermed loop-invariant.
         // Byg det ÉN gang frem for pr. range – ellers gen-materialiseres hele arbejdsdage-sættet
         // (som selv itererer alle ranges) for hver eneste range = O(ranges² × dage).
@@ -290,44 +305,47 @@ export const buildLoenudviklingModel = (
           tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
             ? null
             : buildTafArbejdsdageSet(values, tafRanges);
-        const beregnedeSegmenter = tafRanges.map<LoenudviklingSegment>((range) => (
+        const beregnedeSegmenter = reguleringOpslag.segmenter.map<LoenudviklingSegment>((segment) => (
           tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER || ingenArbejdsdageSet === null
             ? {
               kind: 'maaneder',
-              fra: range.fra,
-              til: range.til,
+              fra: segment.fra,
+              til: segment.til,
               maaneder: beregnArbejdsdageOgMaaneder(
-                range.fra,
-                range.til,
+                segment.fra,
+                segment.til,
                 new Set<ISODateString>(),
                 new Set<ISODateString>()
               ).maaneder,
               maanedsloenOre: zeroMoneyOre(),
-              deltaPct: 0,
-              regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }),
+              deltaPct: segment.vaerdi.regulering.appliedDeltaPct,
+              regulering: segment.vaerdi.regulering,
               amountOre: zeroMoneyOre(),
             }
             : {
               kind: 'arbejdsdage',
-              fra: range.fra,
-              til: range.til,
+              fra: segment.fra,
+              til: segment.til,
               arbejdsdage: countTafArbejdsdageInRange(
                 ingenArbejdsdageSet,
-                range.fra,
-                range.til
+                segment.fra,
+                segment.til
               ),
               dagsloenOre: zeroMoneyOre(),
-              deltaPct: 0,
-              regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }),
+              deltaPct: segment.vaerdi.regulering.appliedDeltaPct,
+              regulering: segment.vaerdi.regulering,
               amountOre: zeroMoneyOre(),
             }
         ));
         return {
-          loenudviklingLabel: 'Ingen',
-          loenudviklingTotal: asCalculable(zeroMoneyOre()),
-          beregningsenhed: tafBeregningsenhed,
-          beregnedeSegmenter,
-          perAnsaettelse: [],
+          model: {
+            loenudviklingLabel: 'Ingen',
+            loenudviklingTotal: asCalculable(zeroMoneyOre()),
+            beregningsenhed: tafBeregningsenhed,
+            beregnedeSegmenter,
+            perAnsaettelse: [],
+          },
+          reguleringOpslag: { perAnsaettelse: opslagPerAnsaettelse, faelles: reguleringOpslag },
         };
       }
       throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
@@ -352,9 +370,9 @@ export const buildLoenudviklingModel = (
         employer,
         isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : null
       ).breakdown.samlet / divisor;
-      const strategiData = strategiDataByIndex[employer.index];
-      if (!strategiData) continue;
-      const modelForAf = buildFromStrategiAndBase(strategiData, baseLoen);
+      const grundlag = grundlagByIndex[employer.index];
+      if (!grundlag) continue;
+      const modelForAf = buildFromStrategiAndBase(grundlag, baseLoen);
       const ansaettelsesforholdNavn = resolveAnsaettelsesforholdNavn(ansaettelsesforhold.navnPaaArbejdssted, employer.index);
 
       perAnsaettelse.push({
@@ -365,6 +383,7 @@ export const buildLoenudviklingModel = (
         beregnedeSegmenter: modelForAf.beregnedeSegmenter,
         forloeb: modelForAf.forloeb,
       });
+      opslagPerAnsaettelse.set(ansaettelsesforhold.id, modelForAf.reguleringOpslag);
     }
 
     if (perAnsaettelse.length === 0) {
@@ -385,11 +404,14 @@ export const buildLoenudviklingModel = (
     const loenudviklingLabel = labels.length === 1 ? labels[0] : 'Flere reguleringstyper';
 
     return {
-      loenudviklingLabel,
-      loenudviklingTotal: asCalculable(totalOre),
-      beregningsenhed: tafBeregningsenhed,
-      beregnedeSegmenter,
-      perAnsaettelse,
+      model: {
+        loenudviklingLabel,
+        loenudviklingTotal: asCalculable(totalOre),
+        beregningsenhed: tafBeregningsenhed,
+        beregnedeSegmenter,
+        perAnsaettelse,
+      },
+      reguleringOpslag: { perAnsaettelse: opslagPerAnsaettelse, faelles: null },
     };
   };
 
@@ -397,7 +419,7 @@ export const buildLoenudviklingModel = (
     return buildPerAnsaettelseModel();
   }
 
-  const strategiData = resolveReguleringsStrategi(values, stamdataValues, { tafRanges });
+  const grundlag = resolveReguleringsStrategi(values, stamdataValues, { tafRanges });
   const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
     ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
     : null;
@@ -408,16 +430,35 @@ export const buildLoenudviklingModel = (
   if (typeof baseLoen !== 'number') {
     throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
   }
-  const model = buildFromStrategiAndBase(strategiData, baseLoen);
+  const model = buildFromStrategiAndBase(grundlag, baseLoen);
   return {
-    loenudviklingLabel: model.loenudviklingLabel,
-    loenudviklingTotal: model.loenudviklingTotal,
-    beregningsenhed: tafBeregningsenhed,
-    beregnedeSegmenter: model.beregnedeSegmenter,
-    forloeb: model.forloeb,
-    perAnsaettelse: [],
+    model: {
+      loenudviklingLabel: model.loenudviklingLabel,
+      loenudviklingTotal: model.loenudviklingTotal,
+      beregningsenhed: tafBeregningsenhed,
+      beregnedeSegmenter: model.beregnedeSegmenter,
+      forloeb: model.forloeb,
+      perAnsaettelse: [],
+    },
+    // Angivet løn har ét fælles lønudviklingsgrundlag for alle ansættelsesforhold.
+    reguleringOpslag: { perAnsaettelse: new Map(), faelles: model.reguleringOpslag },
   };
 };
+
+/** TAF-modellen alene, når reguleringsopslaget ikke skal bruges. */
+export const buildLoenudviklingModel = (
+  values: TafCalculationValues,
+  stamdataValues: StamdataValues,
+  tafBeregningsenhed: TafBeregningsenhed,
+  indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null,
+  options: LoenudviklingOptions
+): LoenudviklingModel => buildLoenudviklingBeregning(
+  values,
+  stamdataValues,
+  tafBeregningsenhed,
+  indkomstSkadestidspunkt,
+  options
+).model;
 
 const resolveAnvendtReguleringsdato = (
   eoValues: TafCalculationValues,

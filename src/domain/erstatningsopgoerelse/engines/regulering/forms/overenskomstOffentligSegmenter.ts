@@ -1,4 +1,5 @@
 import { isEffectivelyZero } from '../../../../../utils/numberComparison';
+import type { IsoRange } from '../../../helpers/indtaegtPerioder';
 import { buildReguleringsbevis, type Reguleringsbevis } from '../reguleringsbevis';
 import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
@@ -21,7 +22,6 @@ import { computeFormulaValue } from '../../reguleringFormulaUtils';
 import { buildOffentligOverenskomstFormulaComponents } from '../../overenskomstReguleringShared';
 import {
   buildSegmentsFromStartDates,
-  buildZeroDeltaSegment,
   ensurePositiveFiniteNumber,
 } from '../reguleringFormPrimitives';
 import type { LoenreguleringsSegment } from '../reguleringForm';
@@ -33,14 +33,12 @@ type OffentligLoenSelection = NonNullable<KonsolideretOverenskomst['offentlig']>
  * Offentlig overenskomst (KL/RLTN løntrin). Slår grundløn op i løntrins-tabellerne og bygger
  * relative deltaPct-segmenter mod basispakken på reguleringsdatoen.
  *
- * U4-clamp: base-fallback til overenskomstens første dækkede interval (`resolveOffentligEffective-
- * Base`), med proxy-sats før dækning for Store Bededag. Bevidst adskilt fra den private grens
- * `max(reguleringsdato, dækningsstart)`-clamp – foren dem ikke.
  */
 export const buildOffentligOverenskomstSegmenter = (
   konsolideret: KonsolideretOverenskomst,
   offentlig: OffentligLoenSelection,
-  ctx: OverenskomstSegmentContext
+  ctx: OverenskomstSegmentContext,
+  segmentRanges: readonly IsoRange[] = konsolideret.tafRanges
 ): ReadonlyArray<LoenreguleringsSegment> => {
   const { reguleringsdatoIso, reguleringsdatoDa, anciennitetForIndex } = ctx;
 
@@ -62,31 +60,8 @@ export const buildOffentligOverenskomstSegmenter = (
     offentlig.loengruppe
   );
 
-  const resolveOffentligEffectiveBase = (): Readonly<{ startIso: ISODateString; result: NonNullable<typeof baseResult> }> => {
-    if (baseResult) {
-      return { startIso: reguleringsdatoIso, result: baseResult };
-    }
-    const interval = getReguleringsDatoIntervalForOverenskomst(konsolideret.overenskomstId);
-    if (!interval) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    const firstStartIso = parseDanishToIso(interval.fraDato);
-    if (!firstStartIso) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    const firstResult = getOffentligLoenForDato(
-      offentlig.overenskomstType,
-      interval.fraDato,
-      offentlig.loentrin,
-      offentlig.loengruppe
-    );
-    if (!firstResult) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    return { startIso: firstStartIso, result: firstResult };
-  };
-
-  const offentligEffectiveBase = resolveOffentligEffectiveBase();
+  if (!baseResult) throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
+  const offentligEffectiveBase = { startIso: reguleringsdatoIso, result: baseResult };
   const offentligEffectiveBaseDa = isoToDanish(offentligEffectiveBase.startIso);
   if (!offentligEffectiveBaseDa) {
     throw new Error('Intern fejl: ugyldig basisdato');
@@ -130,7 +105,7 @@ export const buildOffentligOverenskomstSegmenter = (
   }
 
   const segments: LoenreguleringsSegment[] = [];
-  for (const range of konsolideret.tafRanges) {
+  for (const range of segmentRanges) {
     const fraDa = isoToDanish(range.fra);
     const tilDa = isoToDanish(range.til);
     if (!fraDa || !tilDa) {
@@ -187,19 +162,8 @@ export const buildOffentligOverenskomstSegmenter = (
         offentlig.loentrin,
         offentlig.loengruppe
       );
-      // Beslutningsnote: Vi bruger første tilgængelige sats som proxy i intervallet
-      // [STORE_BEDEDAG_START, effectiveBase.startIso) for at kunne materialisere
-      // den særskilte Store Bededag-regulering fra 01-01-2024 uden at antage
-      // øvrige lønstigninger før første dækkede satsdato.
-      const useFallbackBaseBeforeCoverage =
-        applyStoreBededagstillaeg &&
-        segment.fra >= STORE_BEDEDAG_START &&
-        segment.fra < offentligEffectiveBase.startIso;
-      const effectiveSegmentResult = segmentResult ?? (useFallbackBaseBeforeCoverage ? offentligEffectiveBase.result : undefined);
-      if (!effectiveSegmentResult || (segment.fra < offentligEffectiveBase.startIso && !useFallbackBaseBeforeCoverage)) {
-        segments.push(buildZeroDeltaSegment(segment));
-        continue;
-      }
+      if (!segmentResult) throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
+      const effectiveSegmentResult = segmentResult;
       const segmentTillaegsSatser = getOffentligTillaegsSatserForDato(
         konsolideret.overenskomstId,
         segmentDa,

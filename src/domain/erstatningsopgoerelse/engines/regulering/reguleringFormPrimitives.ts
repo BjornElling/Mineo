@@ -68,18 +68,10 @@ export const resolveEffectiveBaseEntry = <T extends { startIso: ISODateString }>
   context: string,
   missingMessage: string
 ): T => {
-  // Anker basis til seneste sats <= reguleringsdato. Ligger reguleringsdatoen før
-  // første sats, ankres til ældste sats (fallback); denne "før første sats"-tilstand
-  // er ikke en motorfejl, men gates synligt og blokerende i række-laget
-  // (eoRowIndkomstRows: reguleringsvaerdi-error, aligned med tabellens fraDato).
-  // Se reguleringSilentPathAlignment.test.ts, der pinner den alignment.
+  // Dækningsgaten viser feltfejlen; motoren må aldrig erstatte et manglende historisk niveau.
   const baseEntry = findLatestByDateInSortedList(sortedItems, date, `${context}:base`);
-  if (baseEntry) return baseEntry;
-  const firstEntry = sortedItems[0];
-  if (!firstEntry) {
-    throw new Error(missingMessage);
-  }
-  return firstEntry;
+  if (!baseEntry) throw new Error(missingMessage);
+  return baseEntry;
 };
 
 type UniformPrimitive = string | number | boolean | null;

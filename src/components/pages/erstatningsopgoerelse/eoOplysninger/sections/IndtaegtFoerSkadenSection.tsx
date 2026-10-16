@@ -1,3 +1,4 @@
+import { erStoreBededagstillaegRelevant } from '../../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
 import OverenskomstFilterLabel from '../../../../common/OverenskomstFilterLabel';
 import ContentBox from '../../../../layout/ContentBox';
@@ -443,7 +444,10 @@ export default function IndtaegtFoerSkadenSection() {
                 </Box>
 
                 {/* Aldrig krav på tillægget ved angivet dagsløn (BB-267, `indskudte-loentillaeg-contract.md` §2b). */}
-                {eoLoenudvikling.loenPaaHelligdage === 'Almindelig løn' && values.beregnesUdFra !== 'Angivet dagsløn' ? (
+                {erStoreBededagstillaegRelevant({
+                  beregnesUdFra: values.beregnesUdFra, loenPaaHelligdage: eoLoenudvikling.loenPaaHelligdage,
+                  reguleringsform: eoLoenudvikling.loenudviklingBeregningsgrundlag, reguleringsdato: undefined,
+                }) ? (
                   <LabeledControlRow label="Beregn Store Bededagstillæg fra 1. januar 2024:">
                     {({ labelledBy, controlId }) => (
                       <ToggleField
@@ -470,6 +474,7 @@ export default function IndtaegtFoerSkadenSection() {
                 // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellerne på EO-oplysningerfanen.
                 locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
                 loenudviklingBasis={loenudviklingBasis}
+          statistikModel={eoLoenudvikling.loenudviklingStatistikModel}
                 erOffentligOverenskomst={erOffentligOverenskomst}
                 overenskomstSlot={
                   <Box className="row--label-right-hover">

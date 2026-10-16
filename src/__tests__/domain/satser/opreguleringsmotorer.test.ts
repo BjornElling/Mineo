@@ -3,11 +3,30 @@
 import {
   opregulerMedAslAarsloensmaksimum,
   opregulerMedAkkumuleretReguleringssats,
+  regulerMedAkkumuleretReguleringssats,
   resolveReguleringssatsForAar,
 } from '../../../domain/satser/opreguleringsmotorer';
 import { aarsloenAslMax, reguleringssats, type YearlyRate } from '../../../data/lovbestemteRates';
 
 describe('opreguleringsmotorer', () => {
+  describe('regulerMedAkkumuleretReguleringssats', () => {
+    it('spejler produktet bagud uden at ændre de øvrige brugeres neutrale tilbageblik', () => {
+      const satser = { 2022: 1, 2023: 10, 2024: 20 };
+      const input = { kildeAar: 2024, maalAar: 2022 };
+      expect(regulerMedAkkumuleretReguleringssats(input, satser).faktor).toBeCloseTo(0.7575757575757576, 12);
+      expect(regulerMedAkkumuleretReguleringssats(input, satser).deltaPct).toBeCloseTo(-24.24242424242424, 10);
+      expect(opregulerMedAkkumuleretReguleringssats(input, satser)).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [] });
+      expect(regulerMedAkkumuleretReguleringssats({ kildeAar: 2022, maalAar: 2024 }, satser).faktor).toBeCloseTo(1.32, 12);
+      expect(regulerMedAkkumuleretReguleringssats({ kildeAar: 2022, maalAar: 2022 }, satser)).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [] });
+    });
+
+    it('fejler lukket ved et manglende mellemår og ugyldige år', () => {
+      expect(regulerMedAkkumuleretReguleringssats({ kildeAar: 2024, maalAar: 2022 }, { 2022: 1, 2024: 20 }))
+        .toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [2023] });
+      expect(regulerMedAkkumuleretReguleringssats({ kildeAar: NaN, maalAar: 2022 }).manglendeAar).toEqual([NaN]);
+      expect(regulerMedAkkumuleretReguleringssats({ kildeAar: 2024, maalAar: Infinity }).manglendeAar).toEqual([Infinity]);
+    });
+  });
   describe('opregulerMedAslAarsloensmaksimum', () => {
     it('faktor = idx[målår] / idx[kildeår]', () => {
       const res = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022, maalAar: 2026 });

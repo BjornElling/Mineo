@@ -34,6 +34,7 @@ const makeValues = () => {
   const values = createErstatningsopgoerelseInitialValues();
   values.kravPaaTabtArbejdsfortjeneste = 'Ja';
   values.beregnesUdFra = 'Beregningsperiode';
+  values.tafBeregningsperiodeTil = iso('2024-01-01');
   values.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-03-31'), loseFeriedage: undefined }];
   values.loenindkomstAnsaettelsesforhold = [{
     ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -116,6 +117,7 @@ describe('buildEoIndkomstRows – advarsel ved fravalgt Store Bededagstillæg', 
     values.beregnesUdFra = 'Angivet månedsløn';
     values.eoAngivetLoenLoenudvikling = {
       ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
       loenPaaHelligdage: 'Almindelig løn',
       beregnStoreBededagstillaeg: false,
     };
@@ -130,6 +132,7 @@ describe('buildEoIndkomstRows – advarsel ved fravalgt Store Bededagstillæg', 
     values.beregnesUdFra = 'Angivet dagsløn';
     values.eoAngivetLoenLoenudvikling = {
       ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
       loenPaaHelligdage: 'Almindelig løn',
       beregnStoreBededagstillaeg: true,
     };

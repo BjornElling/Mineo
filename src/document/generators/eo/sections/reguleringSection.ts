@@ -1,10 +1,8 @@
+import { resolveReguleringTillaegsStigninger } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
-  getEffektiveSatserForDato,
   getGrundloenAngivetPerForOverenskomst,
   getOffentligOverenskomstTypeById,
-  getOffentligTillaegsSatserForDato,
-  resolveOverenskomstRef,
 } from '../../../../data/overenskomstRates';
 import type { DocumentComposer } from '../../../model/documentModel';
 import {
@@ -24,8 +22,6 @@ import {
   isAslStatistikModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../data/indskudteLoentillaeg';
-import { harValgtStoreBededagstillaeg } from '../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
 import { formatDanishList } from '../../../../utils/danishListFormatting';
@@ -39,9 +35,7 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import { type ReguleringForloeb, resolveForloebForAnsaettelse } from '../../../../domain/erstatningsopgoerelse/engines/reguleringForloeb';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
-import { parsePercentPointString } from '../../../../utils/numberParsing';
-import { ILON12_DISCONTINUED_NOTE } from '../reguleringNotes';
+import { ILON12_DISCONTINUED_NOTE } from '../../../../data/statistikNotes';
 
 const REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM = 8;
 const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
@@ -127,12 +121,6 @@ type ReguleringSectionContext = Readonly<{
   writer: DocumentComposer;
 }>;
 
-const percentDeltaIsIncrease = (from: number | null | undefined, to: number | null | undefined): boolean => {
-  const a = typeof from === 'number' && Number.isFinite(from) ? from : 0;
-  const b = typeof to === 'number' && Number.isFinite(to) ? to : 0;
-  return isGreaterThanWithTolerance(b, a);
-};
-
 const joinWithCommaAndOg = (parts: readonly string[]): string => {
   return formatDanishList(parts);
 };
@@ -177,101 +165,6 @@ const stripEmptyReguleringsColumns = (
     columns: visibleColumnIndices.map((index) => tableData.columns[index] ?? ''),
     rows: tableData.rows.map((row) => visibleColumnIndices.map((index) => row[index] ?? '')),
   };
-};
-
-const resolveOverenskomstTillægsStigninger = (params: Readonly<{
-  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-  reguleringTableStartIso: ISODateString;
-  tafTilIso: ISODateString;
-  reguleringsvaerdierTableData: ReguleringValuesTableData | null;
-}>): readonly string[] => {
-  const { ansaettelsesforhold, reguleringTableStartIso, tafTilIso, reguleringsvaerdierTableData } = params;
-
-  const startDato = isoToDanish(reguleringTableStartIso);
-  const slutDato = isoToDanish(tafTilIso);
-  if (!startDato || !slutDato) return [];
-
-  const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
-  const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(ansaettelsesforhold);
-  let fritvalgStiger: boolean;
-  let shSoStiger: boolean;
-  let pensionStiger: boolean;
-  let bededagStiger: boolean;
-
-  const normalizeColumn = (value: string): string => value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
-  const parseCellPercent = (raw: string | undefined): number | null => {
-    if (typeof raw !== 'string') return null;
-    const trimmed = raw.trim();
-    if (trimmed === '' || trimmed === '-') return null;
-    const cleaned = trimmed.includes('/')
-      ? (() => {
-          const parts = trimmed.split('/');
-          return parts[parts.length - 1]?.trim() ?? trimmed;
-        })()
-      : trimmed;
-    return parsePercentPointString(cleaned) ?? null;
-  };
-  const resolveIncreaseFromTable = (columnNames: readonly string[]): boolean => {
-    if (!reguleringsvaerdierTableData || reguleringsvaerdierTableData.rows.length < 2) return false;
-    const normalizedColumns = reguleringsvaerdierTableData.columns.map(normalizeColumn);
-    const columnIndex = normalizedColumns.findIndex((column) => columnNames.includes(column));
-    if (columnIndex < 0) return false;
-    const firstRow = reguleringsvaerdierTableData.rows[0];
-    const lastRow = reguleringsvaerdierTableData.rows[reguleringsvaerdierTableData.rows.length - 1];
-    const firstValue = parseCellPercent(firstRow?.[columnIndex]);
-    const lastValue = parseCellPercent(lastRow?.[columnIndex]);
-    return percentDeltaIsIncrease(firstValue, lastValue);
-  };
-
-  fritvalgStiger = resolveIncreaseFromTable(['fritvalg']);
-  shSoStiger = resolveIncreaseFromTable(['sh/so', 'shso']);
-  pensionStiger = resolveIncreaseFromTable(['ag pens. bidrag', 'ag pension', 'pension']);
-  bededagStiger = resolveIncreaseFromTable(['store bededag', 'store bededagstillæg', 'st. bededagstillæg']);
-
-  if (!fritvalgStiger && !shSoStiger && !pensionStiger) {
-    const aktivOverenskomst = resolveAktivOverenskomst(ansaettelsesforhold);
-    if (aktivOverenskomst.aktiv) {
-      const overenskomstId = aktivOverenskomst.overenskomstId;
-      const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
-      if (offentligType) {
-        const start = getOffentligTillaegsSatserForDato(overenskomstId, startDato, applyAlmindeligLoenPaaShDageRegel);
-        const slut = getOffentligTillaegsSatserForDato(overenskomstId, slutDato, applyAlmindeligLoenPaaShDageRegel);
-        fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
-        shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
-        pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
-      } else {
-        const ref = resolveOverenskomstRef(overenskomstId);
-        if (ref) {
-          const start = getEffektiveSatserForDato({
-            overenskomstId: ref.baseId,
-            dato: startDato,
-            applyAlmindeligLoenPaaShDageRegel,
-          });
-          const slut = getEffektiveSatserForDato({
-            overenskomstId: ref.baseId,
-            dato: slutDato,
-            applyAlmindeligLoenPaaShDageRegel,
-          });
-          fritvalgStiger = percentDeltaIsIncrease(start?.fritvalg, slut?.fritvalg);
-          shSoStiger = percentDeltaIsIncrease(start?.shSoSats, slut?.shSoSats);
-          pensionStiger = percentDeltaIsIncrease(start?.agPension, slut?.agPension);
-        }
-      }
-    }
-  }
-
-  const startBededag = applyStoreBededagstillaeg && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-  const slutBededag = applyStoreBededagstillaeg && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-  // Reguleringsperioden kan starte efter 01-01-2024, mens basisrækken i tabellen ligger før.
-  // Derfor skal tekstnoten læse Store Bededag fra samme tabelspænd som de øvrige tillæg.
-  bededagStiger = bededagStiger || isGreaterThanWithTolerance(slutBededag, startBededag);
-
-  const labels: string[] = [];
-  if (fritvalgStiger) labels.push('fritvalg');
-  if (shSoStiger) labels.push('SH/SO');
-  if (bededagStiger) labels.push('st. bededagstillæg');
-  if (pensionStiger) labels.push('pension');
-  return labels;
 };
 
 export const renderReguleringSection = (ctx: ReguleringSectionContext): void => {
@@ -601,13 +494,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const loenudviklingGrundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
     if ((loenudviklingGrundlag === 'Overenskomst' || loenudviklingGrundlag === 'Manuelt angivet') && coverageBounds) {
-      const reguleringTableStartIso = coverageBounds.foerste;
-      const tillægsStigninger = resolveOverenskomstTillægsStigninger({
-        ansaettelsesforhold,
-        reguleringTableStartIso,
-        tafTilIso: coverageBounds.sidste,
-        reguleringsvaerdierTableData,
-      });
+      const tillægsStigninger = resolveReguleringTillaegsStigninger(perAnsaettelseSegments);
       const text = tillægsStigninger.length > 0
         ? `Regulering foretages på baggrund af den procentuelle udvikling i grundløn. Hertil kommer stigninger i ${joinWithCommaAndOg(tillægsStigninger)}.`
         : 'Regulering foretages på baggrund af den procentuelle udvikling i grundløn.';
@@ -621,6 +508,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KL-lønaftaler') {
       writer.addSectionSpacer();
       safeAddWrappedText('Regulering foretages på baggrund af de kommunale lønaftaler, der er indgået med KL.');
+      if (perAnsaettelseSegments.some((segment) => segment.regulering?.klTrin?.some((trin) => trin.retning === 'tilbage'))) {
+        safeAddWrappedText('Før reguleringsdatoen beregnes lønnen baglæns ved at dividere med hvert efterfølgende reguleringstrin og afrunde til øre efter hvert trin.');
+      }
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
       const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
       const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);

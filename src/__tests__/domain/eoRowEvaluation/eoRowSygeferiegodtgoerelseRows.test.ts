@@ -9,6 +9,8 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
+import { sfggReguleringOpslagFraSegmenter } from '../../utils/sfggTestSupport';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString, type ISODateString } from '../../../types/branded';
@@ -211,7 +213,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
         sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
-    const buildLoenudviklingModelSpy = vi.spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel');
+    const buildLoenudviklingBeregningSpy = vi.spyOn(loenudviklingBeregningModule, 'buildLoenudviklingBeregning');
 
     try {
       const rows = buildRows(values, {
@@ -220,7 +222,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
         skadedato: toISODateString('2014-12-31'),
       });
 
-      expect(buildLoenudviklingModelSpy).not.toHaveBeenCalled();
+      expect(buildLoenudviklingBeregningSpy).not.toHaveBeenCalled();
       expect(rows).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -241,7 +243,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
         ])
       );
     } finally {
-      buildLoenudviklingModelSpy.mockRestore();
+      buildLoenudviklingBeregningSpy.mockRestore();
     }
   });
 
@@ -1310,44 +1312,56 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
         loseFeriedage: undefined,
       },
     ];
-    const buildLoenudviklingModelSpy = vi
-      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel')
-      .mockImplementation(() => ({
-        loenudviklingLabel: 'Overenskomst',
-        loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
-        beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
-        beregnedeSegmenter: [],
-        perAnsaettelse: [
-          {
-            ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-            ansaettelsesforholdNavn: values.loenindkomstAnsaettelsesforhold[0].navnPaaArbejdssted ?? '',
-            loenudviklingLabel: 'Overenskomst',
-            loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
-            beregnedeSegmenter: [
-              {
-                kind: 'arbejdsdage',
-                fra: toISODateString('2024-02-26'),
-                til: toISODateString('2024-02-29'),
-                arbejdsdage: 4,
-                dagsloenOre: moneyOre(0),
-                deltaPct: 0,
-                regulering: buildReguleringsbevis(100, 100, { kind: 'indeks' }),
-                amountOre: moneyOre(0),
-              },
-              {
-                kind: 'arbejdsdage',
-                fra: toISODateString('2024-03-01'),
-                til: toISODateString('2024-03-05'),
-                arbejdsdage: 3,
-                dagsloenOre: moneyOre(0),
-                deltaPct: 5.03,
-                regulering: buildReguleringsbevis(100, 105.03, { kind: 'indeks' }),
-                amountOre: moneyOre(0),
-              },
-            ],
+    const buildLoenudviklingBeregningSpy = vi
+      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingBeregning')
+      .mockImplementation(() => {
+        const model: LoenudviklingModel = {
+          loenudviklingLabel: 'Overenskomst',
+          loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
+          beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+          beregnedeSegmenter: [],
+          perAnsaettelse: [
+            {
+              ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+              ansaettelsesforholdNavn: values.loenindkomstAnsaettelsesforhold[0].navnPaaArbejdssted ?? '',
+              loenudviklingLabel: 'Overenskomst',
+              loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
+              beregnedeSegmenter: [
+                {
+                  kind: 'arbejdsdage',
+                  fra: toISODateString('2024-02-26'),
+                  til: toISODateString('2024-02-29'),
+                  arbejdsdage: 4,
+                  dagsloenOre: moneyOre(0),
+                  deltaPct: 0,
+                  regulering: buildReguleringsbevis(100, 100, { kind: 'indeks' }),
+                  amountOre: moneyOre(0),
+                },
+                {
+                  kind: 'arbejdsdage',
+                  fra: toISODateString('2024-03-01'),
+                  til: toISODateString('2024-03-05'),
+                  arbejdsdage: 3,
+                  dagsloenOre: moneyOre(0),
+                  deltaPct: 5.03,
+                  regulering: buildReguleringsbevis(100, 105.03, { kind: 'indeks' }),
+                  amountOre: moneyOre(0),
+                },
+              ],
+            },
+          ],
+        };
+        const segmenter = model.perAnsaettelse[0]?.beregnedeSegmenter ?? [];
+        return {
+          model,
+          reguleringOpslag: {
+            perAnsaettelse: new Map([[values.loenindkomstAnsaettelsesforhold[0].id, sfggReguleringOpslagFraSegmenter(
+              segmenter, { dato: toISODateString('2023-12-31'), deltaPct: 0 }
+            )]]),
+            faelles: null,
           },
-        ],
-      }));
+        };
+      });
 
     try {
       const rows = buildRows(values, {
@@ -1369,7 +1383,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,03 | 69,10 |');
       expect(tableRow?.displayValue).toContain('I alt |  |  |  |  | ');
     } finally {
-      buildLoenudviklingModelSpy.mockRestore();
+      buildLoenudviklingBeregningSpy.mockRestore();
     }
   });
 
@@ -1772,8 +1786,8 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       },
     ];
 
-    const buildLoenudviklingModelSpy = vi
-      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel')
+    const buildLoenudviklingBeregningSpy = vi
+      .spyOn(loenudviklingBeregningModule, 'buildLoenudviklingBeregning')
       .mockImplementation(() => {
         throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
       });
@@ -1807,7 +1821,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       );
     } finally {
       reportSystemIssueSpy.mockRestore();
-      buildLoenudviklingModelSpy.mockRestore();
+      buildLoenudviklingBeregningSpy.mockRestore();
     }
   });
 

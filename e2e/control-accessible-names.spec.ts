@@ -55,7 +55,7 @@ test.describe('Tilgængelige navne på interaktive kontroller', () => {
       'Fuld løn under ferie',
       'Udkast-stempel på nye dokumenter',
       'Bilagsnumre i erstatningsopgørelser',
-      'Tillad regulering med overenskomst, der ikke dækker hele perioden',
+      'Tillad regulering, når tabellen udløber før TAF-periodens slutning',
       'Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse',
       'Vis kontrolfaner på Erstatningsopgørelse-side',
     ]) {

@@ -62,7 +62,7 @@ const buildTimeline = (): RegulationIndexTimeline => ({
 });
 
 describe('CALC-006 – uafhængigt facit for KL-lønaftalers EO-viewmodel', () => {
-  it('viser rå KL-lønaftaleentries i den særskilte reguleringstabel uden canonical segmenter', () => {
+  it('viser ingen egen genberegning uden canonical segmenter', () => {
     const sections = buildRegulationInspektionSections({
       timeline: buildTimeline(),
       canonicalOutput: undefined,
@@ -75,26 +75,6 @@ describe('CALC-006 – uafhængigt facit for KL-lønaftalers EO-viewmodel', () =
 
     expect(sections).toHaveLength(1);
     expect(sections[0]?.header).toBe('Regulering (KL-sted)');
-    expect(sections[0]?.tables).toHaveLength(1);
-    expect(sections[0]?.tables?.[0]).toEqual({
-      id: 'regulation.af-kl-viewmodel:vaerdier',
-      columns: ['Dato', 'Regulering'],
-      rows: [
-        {
-          id: 'regulation.table:af-kl-viewmodel:2024-01-01',
-          cells: [
-            { rawValue: iso('2024-01-01'), displayValue: '01-01-2024' },
-            '12,50%',
-          ],
-        },
-        {
-          id: 'regulation.table:af-kl-viewmodel:2024-07-01',
-          cells: [
-            { rawValue: iso('2024-07-01'), displayValue: '01-07-2024' },
-            '13,75%',
-          ],
-        },
-      ],
-    });
+    expect(sections[0]?.tables).toEqual([]);
   });
 });

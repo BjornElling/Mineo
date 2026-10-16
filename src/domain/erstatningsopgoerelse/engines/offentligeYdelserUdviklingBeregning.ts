@@ -1,5 +1,5 @@
 import {
-  opregulerMedAkkumuleretReguleringssats,
+  regulerMedAkkumuleretReguleringssats,
   resolveReguleringssatsForAar,
 } from '../../satser/opreguleringsmotorer';
 import type { ISODateString } from '../../../types/branded';
@@ -39,7 +39,7 @@ export const resolveOffentligeYdelserAkkumuleretReguleringPct = (
   // Akkumuleret reguleringssats ("tilpasningsprocenten plus to procent") via den
   // fælles motor (default-satser = reguleringssats). Bevarer den eksisterende
   // throw-kontrakt ved manglende sats.
-  const { deltaPct, manglendeAar } = opregulerMedAkkumuleretReguleringssats({
+  const { deltaPct, manglendeAar } = regulerMedAkkumuleretReguleringssats({
     kildeAar: baseYear,
     maalAar: segmentYear,
   });
@@ -90,25 +90,20 @@ export const buildOffentligeYdelserReguleringTableData = (
   const baseYear = Number.parseInt(model.reguleringsBaseIso.slice(0, 4), 10);
   if (!Number.isInteger(baseYear)) return null;
 
-  const sidsteSegmentTil = model.entries
-    .flatMap((entry) => entry.beregnedeSegmenter.map((segment) => segment.til))
-    .sort((a, b) => b.localeCompare(a))[0];
-  if (!sidsteSegmentTil) return null;
-
-  const sidsteYear = Number.parseInt(sidsteSegmentTil.slice(0, 4), 10);
-  if (!Number.isInteger(sidsteYear) || sidsteYear <= baseYear) {
-    return {
-      columns: ['Reguleringsdato', 'Regulering', 'Akkumuleret regulering'],
-      rows: [],
-    };
-  }
+  const segmenter = model.entries.flatMap((entry) => entry.beregnedeSegmenter);
+  if (segmenter.length === 0) return null;
+  const foersteYear = Math.min(...segmenter.map((segment) => Number.parseInt(segment.fra.slice(0, 4), 10)));
+  const sidsteYear = Math.max(...segmenter.map((segment) => Number.parseInt(segment.til.slice(0, 4), 10)));
+  if (!Number.isInteger(foersteYear) || !Number.isInteger(sidsteYear)) return null;
 
   const rows: string[][] = [];
-  for (let year = baseYear + 1; year <= sidsteYear; year += 1) {
-    // Rå per-år-sats til "Regulering"-kolonnen (et andet concern end den akkumulerede
-    // faktor) – men samme fail-closed opslag som motorens dæknings-check via den delte
-    // gateway, så et manglende års-sats behandles identisk i beregning og visning.
-    const sats = resolveReguleringssatsForAar(year);
+  for (let year = Math.min(foersteYear, baseYear + 1); year <= Math.max(sidsteYear, baseYear - 1); year += 1) {
+    if (year === baseYear) continue;
+    // Baglæns viser rækken det spejlede trin fra næste år; fremad årets rå sats.
+    // Begge læses gennem motorens fælles, fail-closed satsopslag.
+    const sats = year < baseYear
+      ? resolveOffentligeYdelserAkkumuleretReguleringPct(year, year + 1)
+      : resolveReguleringssatsForAar(year);
     if (sats === undefined) {
       throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${year}`);
     }

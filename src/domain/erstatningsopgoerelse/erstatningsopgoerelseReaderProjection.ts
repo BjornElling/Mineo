@@ -153,7 +153,7 @@ import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
 import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationDateIssues } from './manualRegulationDateIssues';
-import { collectMissingLoenudviklingReguleringsdatoIssues } from './loenudviklingReguleringsdatoIssues';
+import { collectMissingLoenudviklingReguleringsdatoIssues, collectLoenudviklingCoverageIssues } from './loenudviklingReguleringsdatoIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 import { collectTafRowCellIssues } from './tafRowCellIssues';
 import { collectBeregningsgrundlagCellIssues } from './beregningsgrundlagCellIssues';
@@ -749,6 +749,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
     // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
     // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
+    const regulationCoverageIssueList = collectLoenudviklingCoverageIssues(eoValues, stamdataValues);
     const manualRegulationDateIssueList = collectManualRegulationDateIssues(eoValues, stamdataValues);
     const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
     // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
@@ -767,7 +768,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     // dermed uden rød celle. Projektionen giver reglen samme vej som cutoffen (BB-218).
     const svieSmerteOverlapIssueList = collectSvieSmerteOverlapIssues(eoValues);
     const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
-    const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, tafCellIssueList);
+    const tafProjectedIssues = mergeIssues(manualRegulationDateIssueList, regulationCoverageIssueList, tafCellIssueList);
     const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
     const eoFieldIssues = mergeIssues(
       eoProjection.readIssues(),

@@ -191,20 +191,40 @@ Hvis referencesatsen fremgår direkte af overenskomsten:
 - anvendes den relevante sats frem til den dato, hvor overenskomstdata angiver en forhøjelse
 - fra denne dato anvendes den nye sats
 
-#### 4.2. Overenskomstdækket ansættelsesforhold med ferielovsberegnet sats
+Satsen følger overenskomstens egne daterede satser og reguleres ikke yderligere med TAF-reguleringen,
+heller ikke når ansættelsesforholdets reguleringsform er fx KRL eller Statistik.
 
-Hvis ansættelsesforholdet er overenskomstdækket, men referencesatsen beregnes efter ferieloven:
-- skal SFGG-satsen forhøjes på samme tidspunkt
-- og med samme procentsats
-- som TAF forhøjes efter overenskomsten
+#### 4.2. Sats beregnet fra en referenceperiode
 
-Dette gælder både:
-- almindelig ferielovsmodel
-- ferielovsmodel med alternativ referenceperiode efter overenskomsten
+Fastsættelse og udvikling af satsen er adskilt. Både Ferieloven og overenskomstens ferielovsmodel følger
+ansættelsesforholdets valgte reguleringsform, uanset overenskomstdækning. Satsens basis er
+referenceperiodens slutdato, som kan ligge før TAF-perioden og lønnens reguleringsdato:
 
-#### 4.3. Øvrige tilfælde
+`dagssats(dag) = referencesats × regulering(dag) / regulering(referenceperiodens slutdato)`
 
-I øvrige tilfælde er referencesatsen konstant gennem hele beregningsforløbet.
+Der bruges kildeindeks eller lønpakkeværdier i fuld præcision. Den resulterende dagssats afrundes til øre
+før dagtællingen.
+
+KL-lønaftaler er en særskilt, godkendt regel (2026-10-16): SFGG-dagssatsen har sin egen kæde med
+referencesatsen som basis på referenceperiodens slutdato. Hvert efterfølgende KL-trin anvendes på
+den foregående afrundede dagssats, som afrundes til øre igen. Den samme regel gælder i alle sager, også
+når ansættelsesforholdet ikke har lønindkomst i TAF-beregningsperioden. TAF-lønnens størrelse og
+reguleringsdato indgår ikke i denne kæde. Bilaget viser de faktisk anvendte trin, aldrig akkumuleret
+regulering eller et forhold mellem to TAF-kædelønninger. Eksempel: 250,00 kr. pr. 31-01-2022 giver
+256,38 kr. fra 01-10-2022, 257,15 kr. fra 01-04-2023 og 260,36 kr. fra 01-10-2023.
+For de øvrige former afrundes det viste akkumulerede indeks til to decimaler; de faktiske kildeværdier
+bevares til forklaring.
+Reguleringsopslaget gælder også trin uden TAF-arbejdsdage, fx når løse feriedage fjerner et lønsegment.
+
+Referenceperiodens slutdato før reguleringskildens første sats blokerer beregningen. De to manuelle
+reguleringsformer har ingen historiske værdier: slutter referenceperioden før reguleringsdatoen, anvendes
+reguleringsdatoens niveau. Ligger slutdatoen mere end 12 måneder før reguleringsdatoen, vises en gul,
+ikke-blokerende advarsel. Ved reguleringsformen Ingen er satsen konstant.
+
+#### 4.3. Manuel dagssats
+
+En manuelt angivet dagssats er bevidst konstant gennem hele perioden. Den vil typisk være fastlagt ved
+forlig med skadevolder, hvor der ikke er aftalt senere udvikling. Den følger derfor ingen TAF-regulering.
 
 ### 5. Beregning af kravet
 

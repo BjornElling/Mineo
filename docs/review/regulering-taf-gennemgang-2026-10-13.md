@@ -1,7 +1,32 @@
 # Kritisk gennemgang af regulering af TAF-krav (2026-10-13)
 
-**Status:** Klar til implementering. Alle principspørgsmål er afgjort og godkendt af udvikleren 2026-10-15. Intet er
-rettet i koden.
+**Status 2026-10-16:** AP1 er implementeret i `e5b3d78c`; AP2–AP9 er færdigimplementeret og verificeret.
+Afklaringslog 8d præciserer den efterfølgende godkendelse af SFGG's egen KL-kæde.
+
+**Implementeret:** Enheder og load-migration (AP1), fælles datoopslag uafhængigt af TAF-arbejdsdage (AP2),
+blokerende historisk dækning med røde feltissues (AP3), nedregulering og baglæns KL-kæde (AP4),
+offentlige ydelser fra beregningsperiodens slutdato (AP5), SFGG fra referenceperiodens slutdato (AP6),
+Store Bededag-valgets relevans (AP7), motorbaseret visning og faktisk KL-kæde i PDF/Word (AP8) og
+ILON12-note samt domænedokumentation (AP9).
+
+**Supplerende regressionskontrol:** SFGG reguleres også for et job, hvis løn kun findes i SFGG-referenceperioden.
+En SFGG-reference efter kildens nominelle udløb bruger samme fremførte sidste niveau som den tilladte TAF-periode.
+Der indføres ingen yderligere ændring af filformat eller indlæsningsadfærd efter AP1.
+
+**Sideobservation fra visuel kontrol:** Opgørelsens eksisterende standardtekst kan i en kort prøvesag efterlade
+én linje på en næsten tom side før bilagene. En lang beskrivelse ved «Beregnes som» kan desuden støde sammen
+med labelen i PDF. Begge er eksisterende generelle dokumentlayoutforhold; de nye reguleringstabeller og
+SFGG-formler er kontrolleret særskilt i PDF og Word. De generelle layoutforhold indgår ikke i denne gennemgangs rettelser.
+
+**Slutverifikation:** Alle release-gatens kontroller er gennemført. Den afsluttende Vitest-kørsel med coverage
+bestod med **1.003 testfiler / 10.437 tests**. Den blev kørt med `npx vitest run --coverage --maxWorkers=6`,
+fordi den fuldt parallelle kørsel overbelastede de tunge runtime-smokeprøver; ingen tidslofter er hævet.
+App-, test-, E2E- og Node-typecheck, lint, encoding, casing, afhængigheder/advisories, kontraktstempler,
+offentlige løndata, E2E-indlæsning/baner og inputregistre er kontrolleret. `npm run build:all` bestod for begge apps.
+Den afsluttende `npm run test:e2e` bestod med **249 tests**, mens **2** native LaunchQueue-kapabilitetsprøver
+som forventet sprang over i Firefox og WebKit. Store Bededag-/ILON12-forløbene er afprøvet uden runtimefejl
+eller eksterne requests; desktop-skærmbilledet er inspiceret. De faktiske PDF-/Word-artefakter er kontrolleret
+med håndfacitter og visuel rendering, inklusive begge retninger i KL-kæden og SFGG's egen kæde.
 
 **Sådan læses dokumentet:** Afsnit A–D er de oprindelige fund med supplerende bemærkninger, bevaret som
 begrundelse. Bindende er kun **«Afklaringslog»** og **«Implementeringsplan»** sidst i dokumentet. Er en ældre
@@ -913,6 +938,7 @@ tidligere kommentarer i dokumentet, hvor de er uenige.
 | 8a | B3: SFGG ved manuel regulering | De manuelle former har ingen værdier før reguleringsdatoen. Slutter referenceperioden før reguleringsdatoen, regnes den for at have reguleringsdatoens niveau. Gul, ikke-blokerende advarsel, når referenceperioden slutter mere end 12 måneder før reguleringsdatoen. |
 | 8b | B3: direkte overenskomstsats | Undtagelse fra 8: en direkte overenskomstsats (`overenskomst_direkte`, §4.1) følger overenskomstens egne daterede satser og reguleres ikke yderligere med TAF-reguleringen, heller ikke når jobbets reguleringsform er en anden. |
 | 8c | B3: manuel dagssats | Bevidst designbeslutning: en «Manuel dagssats» er konstant i hele perioden og reguleres ikke. Begrundelse: en manuelt angivet SFGG-sats vil typisk være fastlagt ved forlig med skadevolder, og et sådant rummer ikke mulighed for senere udvikling. Undtagelse fra 8. Skrives ind i `sygeferiegodtgoerelse.md` §4.3 og ved `SFGG_KILDE_REGISTRY` (`manuel`), så det ikke senere fremføres som en fejl. |
+| 8d | B3: selvstændig KL-kæde for SFGG | Godkendt af udvikleren 2026-10-16: ved KL-lønaftaler udvikles SFGG-dagssatsen i sin egen kæde fra referenceperiodens slutdato med øreafrunding efter hvert trin. Reglen gælder ens i alle sager, uanset TAF-lønnens størrelse, reguleringsdato og om jobbet har løn i beregningsperioden. Der anvendes ikke et forhold mellem to TAF-kædelønninger. Bilaget viser SFGG-kædens faktisk anvendte trin. Facit: 250,00 kr. pr. 31-01-2022 → 256,38 kr. fra 01-10-2022 → 257,15 kr. fra 01-04-2023 → 260,36 kr. fra 01-10-2023. |
 | 9 | B2: Store Bededag og reguleringsform | Tillægget lægges ikke på ved Statistik, KRL, KL-lønaftaler og «Manuel procentsats» (indeholdt i indeks/satser, hhv. bevidst fravalg). «Manuelt angivet» beholder tillægget som et lag fra 01-01-2024, ligesom overenskomstformerne. Kommentaren ved `eoRowIndkomstRows.ts:360` («uanset reguleringsform») rettes. |
 | 9a | B2: grundlaget ved beregningsperiode | Ved «Beregningsperiode» med reguleringsdato 01-01-2024 eller senere indgår tillægget i grundlaget for alle reguleringsformer, men kun når «Løn på helligdage» = «Almindelig løn» og knappen «Beregn Store Bededagstillæg» står til (dagens `harValgtStoreBededagstillaeg`). Udviklerens oprindelige svar var for kategorisk. |
 | 9b | B2: knap og advarsel | Knappen «Beregn Store Bededagstillæg» og advarslen «Der vil sædvanligvis være krav på Store Bededagstillæg …» skjules via descriptorens relevansregel, når knappen ingen virkning har. Den har virkning ved Overenskomst og «Manuelt angivet» samt ved «Beregningsperiode» med reguleringsdato 01-01-2024 eller senere. Den gemte værdi bevares og læses ikke, mens den er skjult. |
@@ -1080,8 +1106,9 @@ ikke historisk regulering).
 - Manuel reguleringsform: en referenceperiode, der slutter før reguleringsdatoen, får basisniveau; gul,
   ikke-blokerende advarsel, når afstanden er over 12 måneder (8a).
 - Referenceperiodens slutdato før kildens første sats blokerer efter AP3's regel.
-- `assertKlSegmentDeltaMatchesReguleretLoen` (`sfggSegmentering.ts:442-452`) tilpasses forholdet mellem to
-  kædelønninger.
+- KL-lønaftaler følger den senere godkendelse i log 8d: referencesatsen udvikles i sin egen kæde fra
+  referenceperiodens slutdato med øreafrunding efter hvert trin. Der bruges ingen TAF-kædelønsratio;
+  de faktisk anvendte SFGG-trin bæres til bilagets forklaring.
 
 **Dokumentation:** `docs/domain/sygeferiegodtgoerelse/sygeferiegodtgoerelse.md` §4 omskrives (4.1 direkte sats
 følger overenskomsten; 4.2 referenceperiodesats følger jobbets reguleringsform fra referenceperiodens slutdato;
@@ -1094,6 +1121,8 @@ følger overenskomsten; 4.2 referenceperiodesats følger jobbets reguleringsform
 - Manuel regulering: advarsel ved 13 måneders afstand, ingen ved 11.
 - Direkte overenskomstsats ved KRL: overenskomstens sats, ingen KRL-faktor.
 - Manuel dagssats: konstant i alle år.
+- Egen KL-kæde: 250,00 → 256,38 → 257,15 → 260,36 på datoerne i log 8d, også med forskellige
+  TAF-løngrundlag og når jobbet ingen løn har i beregningsperioden.
 
 ### AP7 – Store Bededag (B2; log 9, 9a, 9b, 9c, 9d)
 

@@ -15,8 +15,8 @@ import {
   buildEmploymentSfggCalculator,
   buildSfggFeriepengeFradrag,
   type EmploymentSfggCalculator,
-  type PerEmploymentLoenudvikling,
 } from './sfggSegmentering';
+import type { ReguleringOpslag } from './regulering/reguleringOpslag';
 import type {
   SygeferiegodtgoerelseAnsaettelsesforholdResult,
   SygeferiegodtgoerelseResult,
@@ -33,7 +33,8 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   values: TafCalculationValues;
   stamdata: StamdataValues;
   tafRanges: readonly IsoRange[];
-  loenudviklingPerAnsaettelse?: ReadonlyMap<string, PerEmploymentLoenudvikling>;
+  /** Lønnens reguleringsopslag pr. ansættelsesforhold (jf. buildSfggReguleringOpslagMap). */
+  reguleringOpslagPerAnsaettelse?: ReadonlyMap<string, ReguleringOpslag>;
 }>): SygeferiegodtgoerelseResult => {
   const { values, stamdata, tafRanges } = args;
   if (tafRanges.length === 0) return EMPTY_RESULT;
@@ -88,7 +89,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       tafDateSetIncludingFirstExcluded,
       tafArbejdsdageSetIncludingFirstExcluded,
       employmentCalculator: buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []),
-      loenudvikling: args.loenudviklingPerAnsaettelse?.get(employment.id),
+      reguleringOpslag: args.reguleringOpslagPerAnsaettelse?.get(employment.id),
     }));
   const fradrag = buildSfggFeriepengeFradrag({
     kalkulatorer,

@@ -1,3 +1,4 @@
+import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { buildRegulationTimeline } from '../../../domain/eoInspektion/eoInspektionRegulationCore';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -34,12 +35,17 @@ const buildValues = (): ErstatningsopgoerelseValues => {
 
 describe('DATA-001/TD-020 – KL-løn som EO-inspektion-consumer', () => {
   it('fører KL-løn og helligdagsregel gennem reguleringstidslinjen', () => {
-    const referenceDate = iso('2024-04-02');
-    const result = buildRegulationTimeline({
-      eoValues: buildValues(),
-      stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadedato: referenceDate },
-      loenudvikling: null,
+    const eoValues = buildValues();
+    const stamdataValues = { ...STAMDATA_INITIAL_VALUES, skadedato: eoValues.tafBeregningsperiodeTil };
+    // Angivet løn giver et komplet løngrundlag uden en irrelevant indkomsttabel i denne dataprobe.
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.maanedsloenenUdgoer = { kind: 'number', value: 30000 };
+    eoValues.angivetMaanedsloenOpreguleresFraDato = eoValues.tafBeregningsperiodeTil;
+    eoValues.eoAngivetLoenLoenudvikling = { ...eoValues.eoAngivetLoenLoenudvikling, ...eoValues.loenindkomstAnsaettelsesforhold[0] };
+    const loenudvikling = buildLoenudviklingModel(eoValues, stamdataValues, 'Måneder', null, {
+      tafRanges: [{ fra: eoValues.vedroererPeriodeFra!, til: eoValues.vedroererPeriodeTil! }],
     });
+    const result = buildRegulationTimeline({ eoValues, stamdataValues, loenudvikling });
 
     const employment = result.ansaettelser[0];
     const entry = employment?.entries[0];
@@ -51,11 +57,11 @@ describe('DATA-001/TD-020 – KL-løn som EO-inspektion-consumer', () => {
     // Håndfacit fra KL-tabellen pr. 01-04-2024, trin 20, gruppe 0:
     // 164,51 kr./time × (1 + 12,5 % feriepenge + 0,45 % Store Bededag)
     // = 185,814045 kr. Der er ingen KL-tillægssats i den separate tillægstabel.
-    expect(employment.referenceIso).toBe(referenceDate);
+    expect(employment.referenceIso).toBe(iso('2024-04-02'));
     expect(employment.referenceValue).toBeCloseTo(185.814045, 10);
     expect(employment.entries).toHaveLength(1);
     expect(entry).toMatchObject({
-      effectiveFrom: referenceDate,
+      effectiveFrom: iso('2024-04-02'),
       grundloen: 164.51,
       feriePct: 0.125,
       shSoPct: 0,

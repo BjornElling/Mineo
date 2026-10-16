@@ -94,6 +94,18 @@ describe('buildOffentligeYdelserReguleringTableData', () => {
     });
   };
 
+  it('nedregulerer ydelser før basisåret og viser de spejlede årstrin', () => {
+    const model = buildModel('2022-01-01', '2023-12-31', '2024-01-31');
+    // 2024-niveau / (1,03 × 1,035) = 93,804... %, anvendt -6,2 % i 2022.
+    expect(model?.entries[0]?.beregnedeSegmenter.map((segment) => ({ deltaPct: segment.deltaPct, amountOre: segment.amountOre })))
+      .toEqual([{ deltaPct: -6.2, amountOre: 13507200 }, { deltaPct: -3.38, amountOre: 13913280 }]);
+    if (!model) throw new Error('Ydelsesmodellen mangler');
+    expect(buildOffentligeYdelserReguleringTableData(model)?.rows).toEqual([
+      ['01-01-2022', '-2,91 %', '-6,2 %'],
+      ['01-01-2023', '-3,38 %', '-3,38 %'],
+    ]);
+  });
+
   it('viser den rå per-år-sats i "Regulering"-kolonnen via den delte gateway', () => {
     // Tabellens "Regulering"-kolonne skal være den enkelte års reguleringssats – netop den
     // værdi den delte fail-closed gateway (resolveReguleringssatsForAar) leverer, så beregning

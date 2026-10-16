@@ -1,3 +1,4 @@
+import { erStoreBededagstillaegRelevant } from '../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { dateRanges_aarsloen, getCurrentYear, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import {
@@ -65,7 +66,7 @@ import {
 } from '../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 // Gensidig import: `erstatningsopgoerelseDescriptors` læser lønindkomsttræet herfra. Begge læser kun den anden
 // inde i en relevansregel – aldrig ved modul-evaluering – så rækkefølgen er ligegyldig.
-import { eoBeregnesUdFraField } from './erstatningsopgoerelseDescriptors';
+import { eoBeregnesUdFraField, eoTafBeregningsperiodeTilField } from './erstatningsopgoerelseDescriptors';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import type { TafBeregningsenhedEmployment, TafBeregningsenhedLoenRow } from '../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
@@ -296,7 +297,19 @@ export const eoEmploymentFields = {
   anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
   feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
   loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
-  beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
+    relevance: (field, view): boolean => {
+      const id = employmentIdFromField(field);
+      return erStoreBededagstillaegRelevant({
+        beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()),
+        loenPaaHelligdage: view.readCanonical(eoEmploymentFields.loenPaaHelligdage.bind(id)),
+        reguleringsform: view.readCanonical(eoEmploymentFields.loenudviklingBeregningsgrundlag.bind(id)),
+        reguleringsdato: view.readCanonical(eoEmploymentFields.saerligFraDatoRegulering.bind(id))
+          ?? view.readCanonical(eoTafBeregningsperiodeTilField.bind()),
+        tillaegAngivesSom: view.readCanonical(eoEmploymentFields.tillaegAngivesSom.bind(id)),
+      });
+    },
+  }),
   // Reguleringsdatoen er den dato, lønnen afspejler – en senere dato end i dag er en tastefejl (BB-282).
   // Labelen er skærmens («Evt. særlig fra-dato …»), så linjen i «Fejl og advarsler» navngiver feltet, som det står.
   saerligFraDatoRegulering: empDate(
@@ -562,13 +575,16 @@ export const eoAngivetLoenFields = {
   // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
   // samme konkrete sats, som schemaets `.default()` giver.
   loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
-  // Ved angivet dagsløn er der aldrig krav på tillægget (udviklerafgørelse 2026-10-02, se
-  // `indskudte-loentillaeg-contract.md` §2b): knappen er skjult, og readeren giver den som slået fra til alle læsere,
-  // så en tidligere tilvalgt værdi hverken regnes med eller går tabt. Ved angivet månedsløn sætter valget den igen.
+  // Skjult input bevares; descriptoren giver alle læsere tomværdien, når valget er uden virkning.
   beregnStoreBededagstillaeg: createField<boolean>({
     ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024',
     controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
-    relevance: (_field, view) => view.readCanonical(eoBeregnesUdFraField.bind()) !== 'Angivet dagsløn',
+    relevance: (_field, view): boolean => erStoreBededagstillaegRelevant({
+      beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()),
+      loenPaaHelligdage: view.readCanonical(eoAngivetLoenFields.loenPaaHelligdage.bind()),
+      reguleringsform: view.readCanonical(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()),
+      reguleringsdato: undefined,
+    }),
   }),
   saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', systemrammeTilDagsDatoSpec),
   loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
