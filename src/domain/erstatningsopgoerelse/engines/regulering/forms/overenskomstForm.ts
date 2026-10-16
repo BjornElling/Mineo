@@ -25,13 +25,17 @@ import type {
   ResolvedStrategi,
 } from '../reguleringForm';
 
+const resolveEffektivEkstraGrundloen = (af: LoenudviklingAf): number => {
+  const value = amountValueToNumber(af.offentligLoenEkstraGrundloen);
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
+};
+
 const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   const {
     active,
     angivetLoen,
     anvendtReguleringsdato,
     tafRanges,
-    tafBeregningsenhed,
     kraeverFeriePctVedBeregningsperiode,
     activeMedSynligeSatserOgLoenoplysninger,
   } = ctx;
@@ -70,13 +74,13 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
     assertUniform(active, (af) => af.offentligLoenType ?? '', 'offentlig løntype');
     assertUniform(active, (af) => af.offentligLoenTrin ?? null, 'offentlig løntrin');
     assertUniform(active, (af) => af.offentligLoenGruppe ?? null, 'offentlig løngruppe');
+    assertUniform(active, resolveEffektivEkstraGrundloen, 'offentlig løn ekstra grundløn');
+    // Enheden har kun betydning, når der er et beløb. Uden beløb må en forskellig (skjult) enhed ikke
+    // blokere en ellers ensartet lønudvikling – samme princip som Store Bededag-knappen ovenfor.
     assertUniform(
       active,
-      (af) => {
-        const value = amountValueToNumber(af.offentligLoenEkstraGrundloen);
-        return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0;
-      },
-      'offentlig løn ekstra grundløn'
+      (af) => (resolveEffektivEkstraGrundloen(af) > 0 ? af.offentligLoenEkstraGrundloenAngivesPer : null),
+      'forhøjet grundløn angives per'
     );
   }
 
@@ -106,7 +110,6 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
   const fritvalgPct = typeof active[0].fritvalgPct === 'number' ? active[0].fritvalgPct : 0;
   const shSoPct = typeof active[0].shSoPct === 'number' ? active[0].shSoPct : 0;
   const pensionPct = typeof active[0].pensionPct === 'number' ? active[0].pensionPct : 0;
-  const offentligLoenEkstraGrundloenRaw = amountValueToNumber(active[0].offentligLoenEkstraGrundloen);
   return {
     strategi: 'overenskomst',
     label,
@@ -121,15 +124,12 @@ const konsolider = (ctx: FormKonsoliderContext): ResolvedStrategi => {
       fritvalgPct,
       shSoPct,
       pensionPct,
-      tafBeregningsenhed,
       harAnciennitetstillaegEfterSkadedatoen: active[0].harAnciennitetstillaegEfterSkadedatoen,
       anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
       anciennitetstillaegSatsAngivesPer: active[0].anciennitetstillaegSatsAngivesPer ?? 'Måned',
       anciennitetstillaegSatsValue: active[0].anciennitetstillaegSats?.value,
-      offentligLoenEkstraGrundloen:
-        typeof offentligLoenEkstraGrundloenRaw === 'number' && Number.isFinite(offentligLoenEkstraGrundloenRaw)
-          ? Math.max(0, offentligLoenEkstraGrundloenRaw)
-          : 0,
+      offentligLoenEkstraGrundloen: resolveEffektivEkstraGrundloen(active[0]),
+      offentligLoenEkstraGrundloenAngivesPer: active[0].offentligLoenEkstraGrundloenAngivesPer,
       offentlig,
       tafRanges,
     },

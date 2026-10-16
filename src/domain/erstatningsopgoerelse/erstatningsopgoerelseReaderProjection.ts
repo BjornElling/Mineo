@@ -293,6 +293,7 @@ const rebuildEmploymentRow = (
     offentligLoenTrin: readOrEmpty(reader, e.offentligLoenTrin.bind(employmentId)),
     offentligLoenGruppe: readOrEmpty(reader, e.offentligLoenGruppe.bind(employmentId)),
     offentligLoenEkstraGrundloen: readOrEmpty(reader, e.offentligLoenEkstraGrundloen.bind(employmentId)),
+    offentligLoenEkstraGrundloenAngivesPer: readOrEmpty(reader, e.offentligLoenEkstraGrundloenAngivesPer.bind(employmentId)),
     overenskomstFilter: {
       loenmodtager: readOrEmpty(reader, eoEmploymentFilterFields.loenmodtager.bind(employmentId)),
       arbejdsgiver: readOrEmpty(reader, eoEmploymentFilterFields.arbejdsgiver.bind(employmentId)),
@@ -331,6 +332,7 @@ const rebuildAngivetLoenLoenudvikling = (reader: InputReader): EOAngivetLoenLoen
     offentligLoenTrin: readOrEmpty(reader, a.offentligLoenTrin.bind()),
     offentligLoenGruppe: readOrEmpty(reader, a.offentligLoenGruppe.bind()),
     offentligLoenEkstraGrundloen: readOrEmpty(reader, a.offentligLoenEkstraGrundloen.bind()),
+    offentligLoenEkstraGrundloenAngivesPer: readOrEmpty(reader, a.offentligLoenEkstraGrundloenAngivesPer.bind()),
     overenskomstFilter: {
       loenmodtager: readOrEmpty(reader, eoAngivetLoenFilterFields.loenmodtager.bind()),
       arbejdsgiver: readOrEmpty(reader, eoAngivetLoenFilterFields.arbejdsgiver.bind()),

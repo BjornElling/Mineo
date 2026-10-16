@@ -12,6 +12,7 @@ import { roundByMethod } from '../../../utils/rounding';
 import { resolveAslAarsloensmaksimumForAar } from '../../../domain/satser/aslAarsloensmaksimum';
 import {
   formatAmountWithoutTrailingDecimals,
+  formatAnciennitetConversion,
   isAslStatistikModel,
   resolveStatistikModelId,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -29,7 +30,12 @@ import {
   type OverenskomstId,
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
-import { toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
+import {
+  resolveOffentligLoenEnhed,
+  resolveOffentligLoenTypeFromLabel,
+  toLoentrin,
+  type Loengruppe,
+} from '../../../data/offentligLoenTypes';
 import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
@@ -51,6 +57,7 @@ type ReguleringDocumentParams = Readonly<{
   offentligLoenTrin?: number;
   offentligLoenGruppe?: number;
   offentligLoenEkstraGrundloen?: number;
+  offentligLoenEkstraGrundloenAngivesPer?: 'Time' | 'Måned';
 }> &
   DocumentCommonOptions;
 
@@ -100,6 +107,7 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
   overenskomstId: string | undefined;
   offentligLoenType: string | undefined;
   offentligLoenEkstraGrundloen: number | undefined;
+  offentligLoenEkstraGrundloenAngivesPer: 'Time' | 'Måned' | undefined;
 }>): string | null => {
   const { overenskomstId, offentligLoenType, offentligLoenEkstraGrundloen } = params;
   if (!overenskomstId) return null;
@@ -107,9 +115,14 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
   if (typeof offentligLoenEkstraGrundloen !== 'number' || !Number.isFinite(offentligLoenEkstraGrundloen)) return null;
   if (offentligLoenEkstraGrundloen <= 0) return null;
 
-  const enhed = offentligLoenType === 'Timeløn' ? 'time' : 'måned';
-  const udenDecimaler = formatAmountWithoutTrailingDecimals(offentligLoenEkstraGrundloen);
-  return `${udenDecimaler} kr./${enhed}`;
+  // Samme tekst som bilaget: beløbet i sin angivne enhed og omregningen til «Ansættelse»-enheden,
+  // når de afviger. Schemaets default er 'Måned', så `?? 'Måned'` er kun defensivt.
+  return formatAnciennitetConversion(
+    offentligLoenEkstraGrundloen,
+    params.offentligLoenEkstraGrundloenAngivesPer ?? 'Måned',
+    resolveOffentligLoenEnhed(resolveOffentligLoenTypeFromLabel(offentligLoenType)),
+    formatAmountWithoutTrailingDecimals
+  ).displayText;
 };
 
 const resolveStatistikModelIdFromLabel = (
@@ -348,6 +361,7 @@ export const generateReguleringDocument = defineDocument<ReguleringDocumentParam
     offentligLoenTrin,
     offentligLoenGruppe,
     offentligLoenEkstraGrundloen,
+    offentligLoenEkstraGrundloenAngivesPer,
   } = params;
   const valgtLabel =
     loenudviklingBasis === 'Statistik'
@@ -367,6 +381,7 @@ export const generateReguleringDocument = defineDocument<ReguleringDocumentParam
     overenskomstId,
     offentligLoenType,
     offentligLoenEkstraGrundloen,
+    offentligLoenEkstraGrundloenAngivesPer,
   });
 
   if (offentligLoenEkstraGrundloenTekst) {

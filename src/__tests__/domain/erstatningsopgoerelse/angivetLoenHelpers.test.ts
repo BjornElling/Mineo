@@ -42,13 +42,29 @@ describe('resolveLoenudviklingKilde', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet dagsløn';
     values.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
-    values.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer = 'Måned';
 
     const result = resolveLoenudviklingKilde(values);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(EO_ANGIVET_LOEN_ID);
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.SH_UDBETALING);
-    expect(result[0].anciennitetstillaegSatsAngivesPer).toBe('Time');
+  });
+
+  // Afklaringslog 10a: enhederne er brugerens valg og udledes aldrig af «Beregnes ud fra». Tidligere tvang
+  // kilden Time ved dagsløn og Måned ved månedsløn, uanset den gemte værdi.
+  it.each([
+    ['Angivet dagsløn', 'Måned', 'Time'],
+    ['Angivet dagsløn', 'Time', 'Måned'],
+    ['Angivet månedsløn', 'Time', 'Time'],
+    ['Angivet månedsløn', 'Måned', 'Måned'],
+  ] as const)('%s bevarer de gemte enheder (anciennitet %s, forhøjet grundløn %s)', (beregnesUdFra, anciennitetEnhed, ekstraEnhed) => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = beregnesUdFra;
+    values.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer = anciennitetEnhed;
+    values.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloenAngivesPer = ekstraEnhed;
+
+    const [kilde] = resolveLoenudviklingKilde(values);
+    expect(kilde?.anciennitetstillaegSatsAngivesPer).toBe(anciennitetEnhed);
+    expect(kilde?.offentligLoenEkstraGrundloenAngivesPer).toBe(ekstraEnhed);
   });
 
   it('EO-kilde har navnPaaArbejdssted = "EO-oplysninger" og loenperiode = maaned', () => {

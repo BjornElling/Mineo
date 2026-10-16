@@ -7,7 +7,6 @@ import type {
   KonsolideretLoenudvikling,
   LoenudviklingManualProcentsatsRow,
 } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type { ISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => value as ISODateString;
@@ -37,7 +36,6 @@ const createContext = (
   angivetLoen: true,
   anvendtReguleringsdato,
   tafRanges: ranges,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
 });

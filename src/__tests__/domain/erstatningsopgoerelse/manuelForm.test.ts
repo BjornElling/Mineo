@@ -1,6 +1,5 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { manuelForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/manuelForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type {
   FormKonsoliderContext,
   KonsolideretLoenudvikling,
@@ -39,7 +38,6 @@ const createContext = (active: readonly LoenudviklingAf[] = [manualAf()]): FormK
   angivetLoen: true,
   anvendtReguleringsdato: iso('2023-01-01'),
   tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }],
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
 });

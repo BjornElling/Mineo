@@ -266,6 +266,26 @@ describe('buildLoenTimeline – offentlig løn-path (KL)', () => {
     expect(result.loenDays[0]?.components.map((component) => component.type)).not.toContain('storeBededag');
   });
 
+  // Fund A1: beløbet står i sin gemte enhed og lægges til løntrinssatsen i «Ansættelse»-enheden. TAF-enheden
+  // indgår ikke (her: angivet dagsløn = TAF i arbejdsdage). Facit: KL trin 20, gruppe 0, 01-10-2023 er
+  // 158,18 kr./time; 1.000 kr./måned ÷ 160,33 = 6,2371… → 6,24 kr./time; 25,00 kr./time lægges til uændret.
+  it.each([
+    ['Måned', 1000, 164.42],
+    ['Time', 25, 183.18],
+  ] as const)('lægger forhøjet grundløn angivet pr. %s til timelønnen i timeenheden', (enhed, beloeb, grundloen) => {
+    const input = makeKLInput([makeRowDay(toISODateString('2024-03-04'), true)], { beregnesUdFra: 'Angivet dagsløn' });
+    const af = input.eoValues.loenindkomstAnsaettelsesforhold[0]!;
+    input.eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...af,
+      offentligLoenEkstraGrundloen: { kind: 'number', value: beloeb },
+      offentligLoenEkstraGrundloenAngivesPer: enhed,
+    }];
+
+    const result = buildLoenTimeline(input);
+    expect(result.loenDays[0]?.components[0]).toMatchObject({ type: 'grundloen', source: 'overenskomst' });
+    expect(result.loenDays[0]?.components[0]?.amount).toBeCloseTo(grundloen, 10);
+  });
+
   it('inkluderer store bededag-komponent for KL-dag efter 2024-01-01', () => {
     const inspektionDays = [makeRowDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(inspektionDays));

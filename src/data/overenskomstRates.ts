@@ -22,7 +22,7 @@ import {
   type DanishDateOrder,
 } from './rateSeriesIntegrity';
 import { getReguleringsDatoIntervalForOffentligLoen } from './offentligLoenLookup';
-import type { OffentligOverenskomstType } from './offentligLoenTypes';
+import { resolveOffentligLoenEnhed, type OffentligLoenType, type OffentligOverenskomstType } from './offentligLoenTypes';
 
 // ===== TYPE DEFINITIONER =====
 
@@ -1605,18 +1605,28 @@ export const formatOverenskomstMetaDisplay = (meta: OverenskomstMeta): string =>
   return `${meta.navn} (${loenPart} / ${arbPart})`;
 };
 
+/**
+ * Lønpakkens enhed: enheden for den grundløn, et kronetillæg (forhøjet grundløn, anciennitetstillæg)
+ * lægges til og derfor skal regnes om til.
+ *
+ * - Offentlig overenskomst (KL/RLTN): «Ansættelse» – løntrinssatsen er en månedsløn eller en timeløn.
+ * - Privat overenskomst: overenskomstens egen `grundloenAngivetPer`; `offentligLoenType` bruges ikke.
+ *
+ * TAF-beregningsenheden indgår bevidst ikke. Den beskriver, hvordan TAF-grundlaget tælles, ikke hvilken
+ * enhed satsen har, og den blev tidligere brugt her med forkerte reguleringer til følge (afklaringslog 10a,
+ * `docs/review/regulering-taf-gennemgang-2026-10-13.md`, fund A1/A2/C5). Parameteren er påkrævet, så hvert
+ * kaldested tager stilling til ansættelsens løntype.
+ */
 export const getGrundloenAngivetPerForOverenskomst = (
   rawId: string,
-  tafBeregnesSom?: 'Måneder' | 'Arbejdsdage'
+  offentligLoenType: OffentligLoenType | undefined
 ): GrundloenAngivetPer | undefined => {
   const meta = getOverenskomstMetaById(rawId);
   if (!meta) return undefined;
 
-  // Offentlige overenskomster (KL/RLTN) styres i runtime af brugerens valg
-  // af TAF-beregningsenhed. Meta-feltet fungerer derfor som fallback/default.
   const offentligType = getOffentligOverenskomstTypeById(rawId);
-  if ((offentligType === 'KL' || offentligType === 'RLTN') && tafBeregnesSom) {
-    return tafBeregnesSom === 'Måneder' ? 'Måned' : 'Time';
+  if (offentligType === 'KL' || offentligType === 'RLTN') {
+    return resolveOffentligLoenEnhed(offentligLoenType);
   }
 
   return meta.grundloenAngivetPer;

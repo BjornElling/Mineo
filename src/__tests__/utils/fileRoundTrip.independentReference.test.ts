@@ -191,6 +191,7 @@ const EXPECTED_LOADED_SNAPSHOT = {
       loenudviklingManuelTableData: [],
       loenudviklingManuelProcentsatsTableData: [],
       offentligLoenType: 'Månedsløn',
+      offentligLoenEkstraGrundloenAngivesPer: 'Måned',
       overenskomstFilter: {},
     },
     visBilagsnumre: 'Nej',

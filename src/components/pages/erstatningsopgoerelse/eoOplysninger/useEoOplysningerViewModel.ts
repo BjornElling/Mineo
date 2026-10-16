@@ -162,8 +162,8 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     alleArbejdsgiverOrg: withGemtOrganisation(getAlleArbejdsgiverOrg(), eoLoenudvikling.overenskomstFilter.arbejdsgiver, 'ALLE'),
     filteredOverenskomster,
     loenudviklingBasis, erOffentligOverenskomst,
-    offentligLoenEkstraGrundloenSuffix: eoLoenudvikling.offentligLoenType === 'Timeløn' ? '/ time' : '/ måned',
-    eoAnciennitetSatsPerTekst: values.beregnesUdFra === 'Angivet dagsløn' ? 'time' : 'måned',
+    // Brugerens eget enhedsvalg – samme felt, som «Satsen angives per» binder (afklaringslog 10a).
+    eoAnciennitetSatsPerTekst: eoLoenudvikling.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned',
     showEoAnciennitetstillaegSection: visLoenudviklingFraEO && loenudviklingBasis === 'Overenskomst' && Boolean(eoLoenudvikling.overenskomstId?.trim()),
     loenudviklingBaseDateISO, loenudviklingBaseDateDisplay,
     loenudviklingBaseDateErrorMessage: `${referencedato.label} er ikke udfyldt`,

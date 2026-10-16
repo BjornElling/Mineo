@@ -48,7 +48,8 @@ const resolveKonsolideretAnciennitet = (konsolideret: KonsolideretOverenskomst):
     satsValue: konsolideret.anciennitetstillaegSatsValue,
     satsAngivesPer: konsolideret.anciennitetstillaegSatsAngivesPer,
     overenskomstId: konsolideret.overenskomstId,
-    tafBeregningsenhed: konsolideret.tafBeregningsenhed,
+    // Privat overenskomst har ingen offentlig indplacering; dér afgør overenskomstens egen enhed.
+    offentligLoenType: konsolideret.offentlig?.loenType,
     anvendtReguleringsdatoIso: konsolideret.reguleringsdato,
     periodeStartIso: tafStartIso,
     periodeEndIso: tafEndIso,

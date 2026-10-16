@@ -97,6 +97,7 @@ const INDEPENDENT_EO_ANGIVET_LOEN_FERIE_PCT_VALUES: ErstatningsopgoerelseValues 
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

@@ -1,7 +1,6 @@
 import type { Reguleringsbevis } from './reguleringsbevis';
 import type { ISODateString } from '../../../../types/branded';
 import type { IsoRange } from '../../helpers/indtaegtPerioder';
-import type { TafBeregningsenhed } from '../../helpers/tafBeregningsenhed';
 import type { KRLSatstabelId } from '../../../../data/krlRates';
 import type { OffentligLoenSelection } from '../../helpers/offentligLoenSelection';
 import type { LoenudviklingSource } from '../../helpers/angivetLoenHelpers';
@@ -55,12 +54,12 @@ export type KonsolideretLoenudvikling =
     fritvalgPct: number;
     shSoPct: number;
     pensionPct: number;
-    tafBeregningsenhed: TafBeregningsenhed;
     harAnciennitetstillaegEfterSkadedatoen: boolean;
     anciennitetstillaegDato: ISODateString | undefined;
     anciennitetstillaegSatsAngivesPer: 'Time' | 'Måned';
     anciennitetstillaegSatsValue: number | undefined;
     offentligLoenEkstraGrundloen: number;
+    offentligLoenEkstraGrundloenAngivesPer: 'Time' | 'Måned';
     offentlig: OffentligLoenSelection | null;
     tafRanges: readonly IsoRange[];
   }>
@@ -112,7 +111,6 @@ export type FormKonsoliderContext = Readonly<{
   angivetLoen: boolean;
   anvendtReguleringsdato: ISODateString | undefined;
   tafRanges: readonly IsoRange[];
-  tafBeregningsenhed: TafBeregningsenhed;
   kraeverFeriePctVedBeregningsperiode: boolean;
   activeMedSynligeSatserOgLoenoplysninger: readonly LoenudviklingAf[];
 }>;

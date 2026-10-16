@@ -173,6 +173,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
       offentligLoenTrin: undefined,
       offentligLoenGruppe: undefined,
       offentligLoenEkstraGrundloen: undefined,
+      offentligLoenEkstraGrundloenAngivesPer: undefined,
     };
     const satstabelInput: ReguleringSatstabelDocumentInput = { interval, stamdata };
 

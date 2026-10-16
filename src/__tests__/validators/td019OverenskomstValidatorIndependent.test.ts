@@ -100,6 +100,7 @@ const INDEPENDENT_OVERENSKOMST_VALUES: ErstatningsopgoerelseValues = {
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',
@@ -163,6 +164,7 @@ const INDEPENDENT_OVERENSKOMST_MODSTRIDENDE_VALG_VALUES: ErstatningsopgoerelseVa
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   }],
   sfggAnsaettelsesforhold: [{

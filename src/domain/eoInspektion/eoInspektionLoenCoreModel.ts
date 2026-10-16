@@ -29,7 +29,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
 import { resolveStoreBededagstillaegPct } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { resolveOffentligLoenEnhed } from '../../data/offentligLoenTypes';
 import {
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
@@ -143,12 +143,12 @@ export function buildLoenTimeline(input: LoenCoreInput): LoenTimeline {
   const feriePct = parsePercentToDecimal(af?.feriePct);
   const loenPaaHelligdage = af?.loenPaaHelligdage;
   const offentligSelection = resolveOffentligLoenSelection(af);
-  const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
+  // Samme enhedsregel som motoren: den gemte enhed regnes om til «Ansættelse»-enheden (fund A1).
   const offentligLoenEkstraGrundloen = af && offentligSelection
     ? resolveOffentligLoenEkstraGrundloen(
         amountValueToNumber(af.offentligLoenEkstraGrundloen),
-        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
-        offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+        af.offentligLoenEkstraGrundloenAngivesPer,
+        resolveOffentligLoenEnhed(offentligSelection.loenType)
       )
     : 0;
 

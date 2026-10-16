@@ -75,10 +75,6 @@ const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: st
   return `${interval.fraDato} - ${interval.tilDato}`;
 };
 
-const getOffentligLoenEkstraGrundloenSuffix = (
-  offentligLoenType: Ansaettelsesforhold['offentligLoenType']
-): string => (offentligLoenType === 'Timeløn' ? '/ time' : '/ måned');
-
 const LOCKED_SATS_FIELD_SX = { width: '100px' } as const;
 
 type Props = Readonly<{
@@ -224,6 +220,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     offentligLoenEkstraGrundloen: {
       field: field(eoEmploymentFields.offentligLoenEkstraGrundloen),
       location: location('offentligLoenEkstraGrundloen'),
+    },
+    offentligLoenEkstraGrundloenAngivesPer: {
+      field: field(eoEmploymentFields.offentligLoenEkstraGrundloenAngivesPer),
+      location: location('offentligLoenEkstraGrundloenAngivesPer'),
     },
   };
 
@@ -725,7 +725,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               </Box>
             </Box>
           }
-          offentligLoenEkstraGrundloenSuffix={getOffentligLoenEkstraGrundloenSuffix(af.offentligLoenType)}
           onOpenLoentrinFinder={openLoentrinFinderForCard}
           loentrinFinderTriggerRef={loentrinFinderTriggerRef}
           baseDateDisplay={loenudviklingBaseDate.display}
@@ -757,6 +756,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
               field: field(eoEmploymentFields.anciennitetstillaegDato),
               location: location('anciennitetstillaegDato'),
             },
+            anciennitetstillaegSatsAngivesPer: {
+              field: field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer),
+              location: location('anciennitetstillaegSatsAngivesPer'),
+            },
             anciennitetstillaegSats: {
               field: field(eoEmploymentFields.anciennitetstillaegSats),
               location: location('anciennitetstillaegSats'),
@@ -775,25 +778,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           harAnciennitetstillaeg={Boolean(af.harAnciennitetstillaegEfterSkadedatoen)}
           referenceText={anvendtReguleringsdatoReferenceText}
           satsPerTekst={anciennitetSatsPerTekst}
-          // Kun Lønindkomst lader brugeren vælge enheden; EO-oplysninger udleder den. Se
-          // `AnciennitetstillaegFields`' doc – forskellen er bevaret, ikke ensrettet.
-          satsEnhedSlot={
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Satsen angives per</Typography>
-              <Box className="row--label-right-hover__content">
-                <ChoiceField
-                  field={field(eoEmploymentFields.anciennitetstillaegSatsAngivesPer)}
-                  location={location('anciennitetstillaegSatsAngivesPer')}
-                  name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
-                  width={160}
-                  allowEmpty={false}
-                >
-                  <MenuItem value="Time">Time</MenuItem>
-                  <MenuItem value="Måned">Måned</MenuItem>
-                </ChoiceField>
-              </Box>
-            </Box>
-          }
           fieldNamePrefix={`${af.id}:`}
         />
       ) : null}

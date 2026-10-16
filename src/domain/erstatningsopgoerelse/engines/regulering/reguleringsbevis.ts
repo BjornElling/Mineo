@@ -22,6 +22,12 @@ export const reguleringsbevisSchema = z.object({
   referenceWageSupplement: z.number().finite().optional(),
   wageBaseValue: z.number().finite().optional(),
   wageSupplement: z.number().finite().optional(),
+  /**
+   * Enheden for pakkens grundløn (og dermed `referenceWage*`/`wage*`): «Ansættelse» ved offentlig
+   * overenskomst, overenskomstens `grundloenAngivetPer` ved privat. Producenten sætter den, og alle
+   * visninger læser den herfra i stedet for at udlede den af TAF-enheden (fund C5).
+   */
+  wageUnit: z.enum(['Måned', 'Time']).optional(),
   periodePct: z.number().finite().optional(),
 }).strict().superRefine((bevis, ctx) => {
   if (bevis.referenceValue === 0 || bevis.periodValue === 0) {
@@ -35,6 +41,9 @@ export const reguleringsbevisSchema = z.object({
     }
   } else if (bevis.referenceComponents || bevis.periodComponents) {
     ctx.addIssue({ code: 'custom', message: 'Formelkomponenter må kun tilhøre en lønpakke' });
+  }
+  if (bevis.wageUnit !== undefined && bevis.kind !== 'pakke') {
+    ctx.addIssue({ code: 'custom', message: 'En lønenhed må kun tilhøre en lønpakke' });
   }
 });
 

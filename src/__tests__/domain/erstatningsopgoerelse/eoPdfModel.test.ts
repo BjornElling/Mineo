@@ -1255,7 +1255,9 @@ describe('eoPdfModel', () => {
     expect(segments.some((segment) => segment.fra >= toISODateString('2012-01-01'))).toBe(true);
   });
 
-  it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
+  // Afklaringslog 10a: anciennitetens enhed ved angivet løn er brugerens eget valg og læses. Testen hævdede
+  // tidligere det modsatte («resolver-immunitet»), fordi enheden blev tvunget efter «Beregnes ud fra».
+  it('bruger den gemte anciennitetsenhed for angivet månedsløn', () => {
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const baseEoLoenudvikling = {
       ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
@@ -1303,24 +1305,11 @@ describe('eoPdfModel', () => {
       throw new Error('Forventet ok lønudvikling for time-varianten');
     }
 
-    expect(timePerLoenudvikling.loenudviklingTotal.value).toBe(monthPerLoenudvikling.loenudviklingTotal.value);
-    expect(
-      timePerLoenudvikling.beregnedeSegmenter.map((segment) => ({
-        kind: segment.kind,
-        fra: segment.fra,
-        til: segment.til,
-        deltaPct: segment.deltaPct,
-        amountOre: segment.amountOre,
-      }))
-    ).toEqual(
-      monthPerLoenudvikling.beregnedeSegmenter.map((segment) => ({
-        kind: segment.kind,
-        fra: segment.fra,
-        til: segment.til,
-        deltaPct: segment.deltaPct,
-        amountOre: segment.amountOre,
-      }))
-    );
+    // 1.200 kr./time × 160,33 er langt mere end 1.200 kr./måned, så tillægget løfter reguleringen mere.
+    expect(timePerLoenudvikling.loenudviklingTotal.value).toBeGreaterThan(monthPerLoenudvikling.loenudviklingTotal.value);
+    const deltaFra = (segments: typeof monthPerLoenudvikling.beregnedeSegmenter) =>
+      segments.find((segment) => segment.fra >= iso('2024-05-01'))?.deltaPct ?? 0;
+    expect(deltaFra(timePerLoenudvikling.beregnedeSegmenter)).toBeGreaterThan(deltaFra(monthPerLoenudvikling.beregnedeSegmenter));
   });
 
   it('beregner manuel regulering med flere TAF-perioder', () => {

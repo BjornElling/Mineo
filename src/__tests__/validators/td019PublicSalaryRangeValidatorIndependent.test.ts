@@ -102,6 +102,7 @@ const INDEPENDENT_PUBLIC_SALARY_AMOUNT_VALUES: ErstatningsopgoerelseValues = {
     offentligLoenTrin: 30,
     offentligLoenGruppe: 2,
     offentligLoenEkstraGrundloen: { kind: 'number', value: -1 },
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

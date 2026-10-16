@@ -172,7 +172,8 @@ const loenRow = (ctx: Context, id: string): StandardLoenTableRow => {
 
 const loenudviklingOgSatser = (ctx: Context, idPrefix: string) => {
   const { rng } = ctx;
-  return {
+  // Trækkene sker i præcis samme rækkefølge som før `offentligLoenEkstraGrundloenAngivesPer` kom til.
+  const foerOffentligLoen = {
     feriePct: optPct(ctx),
     loenPaaHelligdage: rng.pick(loenPaaHelligdageEnum.options),
     beregnStoreBededagstillaeg: rng.chance(0.5),
@@ -195,10 +196,17 @@ const loenudviklingOgSatser = (ctx: Context, idPrefix: string) => {
       dato: optDate(ctx),
       procent: optEnum(ctx, ctx.inBounds ? [0, 0.75, 2, 3.5] : [-5, -0.5, 0, 0.75, 2, 3.5, 10, 100]),
     })),
-    offentligLoenType: optEnum(ctx, offentligLoenTypeEnum.options),
+  };
+  const offentligLoenType = optEnum(ctx, offentligLoenTypeEnum.options);
+  return {
+    ...foerOffentligLoen,
+    offentligLoenType,
     offentligLoenTrin: optWhole(ctx, [26, 0, 1, 11, 15, 20, 30, 35, 41, 50, 99]),
     offentligLoenGruppe: optWhole(ctx, [1, 0, 2, 3, 4, 5, 9]),
     offentligLoenEkstraGrundloen: optAmount(ctx),
+    // Afledt uden et ekstra RNG-træk, så de eksisterende seeds genererer de samme sager som før feltet kom
+    // til. Enheden er bevidst den modsatte af «Ansættelse», så omregningsvejen altid gennemløbes.
+    offentligLoenEkstraGrundloenAngivesPer: offentligLoenType === 'Månedsløn' ? 'Time' as const : 'Måned' as const,
     overenskomstFilter: {
       loenmodtager: optText(ctx),
       arbejdsgiver: optText(ctx),

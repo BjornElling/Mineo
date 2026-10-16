@@ -1059,40 +1059,31 @@ describe('resolveOverenskomstRef', () => {
 
 describe('getGrundloenAngivetPerForOverenskomst', () => {
   it('ukendt ID → undefined', () => {
-    expect(getGrundloenAngivetPerForOverenskomst('nonexistent')).toBeUndefined();
+    expect(getGrundloenAngivetPerForOverenskomst('nonexistent', undefined)).toBeUndefined();
   });
 
   it('tom streng → undefined', () => {
-    expect(getGrundloenAngivetPerForOverenskomst('')).toBeUndefined();
+    expect(getGrundloenAngivetPerForOverenskomst('', undefined)).toBeUndefined();
   });
 
-  it('standard overenskomst → returnerer meta.grundloenAngivetPer', () => {
-    const result = getGrundloenAngivetPerForOverenskomst('bygge-anlaeg');
-    // bygge-anlaeg bruger time-baseret grundløn
-    expect(result).toBeDefined();
-    expect(['Time', 'Måned']).toContain(result);
+  it('privat overenskomst → overenskomstens egen enhed, uanset en (irrelevant) løntype', () => {
+    // bygge-anlaeg angiver grundlønnen pr. time.
+    expect(getGrundloenAngivetPerForOverenskomst('bygge-anlaeg', undefined)).toBe('Time');
+    expect(getGrundloenAngivetPerForOverenskomst('bygge-anlaeg', 'maanedsLoen')).toBe('Time');
   });
 
-  it('KL overenskomst med tafBeregnesSom=Måneder → Måned', () => {
-    const result = getGrundloenAngivetPerForOverenskomst('kl-overenskomst', 'Måneder');
-    expect(result).toBe('Måned');
+  // Afklaringslog 10a: pakkens enhed er «Ansættelse». TAF-enheden indgår ikke (fund A1/A2/C5).
+  it.each([
+    ['kl-overenskomst', 'maanedsLoen', 'Måned'],
+    ['kl-overenskomst', 'timeLoen', 'Time'],
+    ['rltn-overenskomst', 'maanedsLoen', 'Måned'],
+    ['rltn-overenskomst', 'timeLoen', 'Time'],
+  ] as const)('%s med løntype %s → %s', (id, loenType, expected) => {
+    expect(getGrundloenAngivetPerForOverenskomst(id, loenType)).toBe(expected);
   });
 
-  it('KL overenskomst med tafBeregnesSom=Arbejdsdage → Time', () => {
-    const result = getGrundloenAngivetPerForOverenskomst('kl-overenskomst', 'Arbejdsdage');
-    expect(result).toBe('Time');
-  });
-
-  it('RLTN overenskomst med tafBeregnesSom=Måneder → Måned', () => {
-    const result = getGrundloenAngivetPerForOverenskomst('rltn-overenskomst', 'Måneder');
-    expect(result).toBe('Måned');
-  });
-
-  it('KL overenskomst uden tafBeregnesSom → meta.grundloenAngivetPer (ikke override)', () => {
-    // Uden tafBeregnesSom anvendes meta-feltet, ikke offentlig-override
-    const result = getGrundloenAngivetPerForOverenskomst('kl-overenskomst');
-    // KL er offentlig men uden tafBeregnesSom bruges meta
-    expect(result).toBe('Måned');
+  it('offentlig overenskomst uden løntype → Måned (en tom «Ansættelse» læses som månedsløn)', () => {
+    expect(getGrundloenAngivetPerForOverenskomst('kl-overenskomst', undefined)).toBe('Måned');
   });
 });
 

@@ -89,6 +89,7 @@ type LoenudviklingSource = Readonly<{
   offentligLoenTrin: number | undefined;
   offentligLoenGruppe: number | undefined;
   offentligLoenEkstraGrundloen: AmountValue | undefined;
+  offentligLoenEkstraGrundloenAngivesPer: 'Time' | 'Måned' | undefined;
   /** Etiketten for det valgte overenskomst-id. Bevidst scope-specifik – se `resolveCaseOverenskomstLabel`. */
   overenskomstLabel: string;
 }>;
@@ -131,6 +132,7 @@ const readCaseSource = (reader: InputReader): LoenudviklingSource => {
     offentligLoenTrin: readOptional(reader, f.offentligLoenTrin.bind()),
     offentligLoenGruppe: readOptional(reader, f.offentligLoenGruppe.bind()),
     offentligLoenEkstraGrundloen: readOptional(reader, f.offentligLoenEkstraGrundloen.bind()),
+    offentligLoenEkstraGrundloenAngivesPer: readOptional(reader, f.offentligLoenEkstraGrundloenAngivesPer.bind()),
     overenskomstLabel: resolveCaseOverenskomstLabel(overenskomstId),
   };
 };
@@ -149,6 +151,7 @@ const readEmploymentSource = (reader: InputReader, employmentId: string): Loenud
     offentligLoenTrin: readOptional(reader, f.offentligLoenTrin.bind(employmentId)),
     offentligLoenGruppe: readOptional(reader, f.offentligLoenGruppe.bind(employmentId)),
     offentligLoenEkstraGrundloen: readOptional(reader, f.offentligLoenEkstraGrundloen.bind(employmentId)),
+    offentligLoenEkstraGrundloenAngivesPer: readOptional(reader, f.offentligLoenEkstraGrundloenAngivesPer.bind(employmentId)),
     overenskomstLabel: resolveEmploymentOverenskomstLabel(overenskomstId),
   };
 };
@@ -368,6 +371,7 @@ export type ReguleringDocumentInput = ReguleringCommonInput & Readonly<{
   offentligLoenTrin: number | undefined;
   offentligLoenGruppe: number | undefined;
   offentligLoenEkstraGrundloen: number | undefined;
+  offentligLoenEkstraGrundloenAngivesPer: 'Time' | 'Måned' | undefined;
 }>;
 
 export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDocumentInput, ReguleringDocumentRequest> =
@@ -400,6 +404,7 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
           offentligLoenTrin: source.offentligLoenTrin,
           offentligLoenGruppe: source.offentligLoenGruppe,
           offentligLoenEkstraGrundloen: amountValueToNumber(source.offentligLoenEkstraGrundloen),
+          offentligLoenEkstraGrundloenAngivesPer: source.offentligLoenEkstraGrundloenAngivesPer,
         },
       };
     },
@@ -416,6 +421,7 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
         offentligLoenTrin: input.offentligLoenTrin,
         offentligLoenGruppe: input.offentligLoenGruppe,
         offentligLoenEkstraGrundloen: input.offentligLoenEkstraGrundloen,
+        offentligLoenEkstraGrundloenAngivesPer: input.offentligLoenEkstraGrundloenAngivesPer,
         visBrevhoved: ctx.visBrevhoved,
         stamdata: input.stamdata,
       });

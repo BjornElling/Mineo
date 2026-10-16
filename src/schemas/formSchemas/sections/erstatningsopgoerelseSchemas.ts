@@ -261,6 +261,11 @@ const loenudviklingOgSatserShape = {
   offentligLoenTrin: wholeNumber,
   offentligLoenGruppe: wholeNumber,
   offentligLoenEkstraGrundloen: amountValue,
+  // Enheden, beløbet ovenfor er angivet i. Gemmes med beløbet og udledes aldrig af et andet felt
+  // (afklaringslog 10a, `docs/review/regulering-taf-gennemgang-2026-10-13.md`). Ældre filer uden feltet
+  // får ikke denne default, men «Ansættelse»-enheden af load-adapteren (`persistedLoadAdapter.ts`), fordi
+  // det er den enhed, feltet altid har vist.
+  offentligLoenEkstraGrundloenAngivesPer: anciennitetSatsPerEnum.default('Måned'),
   overenskomstFilter: overenskomstFilterSchema.default({}),
 } as const;
 
@@ -338,6 +343,8 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
   overenskomstId: optionalString,
   harAnciennitetstillaegEfterSkadedatoen: z.boolean().default(false),
   anciennitetstillaegDato: optionalIsoDateString,
+  // Før version 3.15 blev værdien hverken vist eller læst ved angivet løn; enheden blev tvunget efter
+  // «Beregnes ud fra». Load-adapteren overskriver derfor den historiske default for ældre filer.
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
   anciennitetstillaegSats: amountValue,
   ...loenudviklingOgSatserShape,

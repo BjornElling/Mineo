@@ -102,6 +102,7 @@ const INDEPENDENT_TAF_LOSE_FERIEDAGE_LOWER_RANGE_VALUES: ErstatningsopgoerelseVa
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

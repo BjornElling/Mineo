@@ -3,6 +3,10 @@ import type { CollectionRef } from '../../../../inputCore/fieldAddress';
 import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 import type { ManualBindings } from '../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import type { AnciennitetSatsPer } from '../../../../schemas/formSchemas';
+
+/** Enheden for et kronetillæg (forhøjet grundløn, anciennitetstillæg). «Dag» tilbydes bevidst ikke. */
+type KronetillaegEnhed = AnciennitetSatsPer;
 
 /**
  * Bindings-seamen for den delte Lønudvikling-flade (`LoenudviklingFields.tsx`).
@@ -65,23 +69,25 @@ export type LoenudviklingBinding<
   offentligLoenTrin: BoundField<number | undefined>;
   offentligLoenGruppe: BoundField<number | undefined>;
   offentligLoenEkstraGrundloen: BoundField<AmountValue | undefined>;
+  offentligLoenEkstraGrundloenAngivesPer: BoundField<KronetillaegEnhed>;
 }>;
 
 /**
  * Bindingerne for den fælles Anciennitetstillæg-blok (`AnciennitetstillaegFields.tsx`).
  *
- * Kun de to felter der er FÆLLES for begge overflader. Enhedsvalget
- * (`anciennitetstillaegSatsAngivesPer`) står bevidst udenfor: det findes kun på Lønindkomst og
- * leveres som slot, fordi EO-oplysninger udleder enheden i stedet. Se komponentens doc.
+ * Alle tre felter er fælles for begge overflader. Enhedsvalget (`anciennitetstillaegSatsAngivesPer`)
+ * fandtes tidligere kun på Lønindkomst, mens EO-oplysninger tvang enheden efter «Beregnes ud fra»;
+ * den forskel er besluttet væk (afklaringslog 10a i `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
  *
  * Modsat `LoenudviklingBinding` er felterne her IKKE generiske. Det er ikke en inkonsekvens:
  * valg-felterne dér bærer hver sin literal-union pr. overflade, mens begge overflader her
- * bruger nøjagtig samme typer (`ISODateString` og `AmountValue`) – og `DateField` fikserer i
- * forvejen sin `field`-prop til `ISODateString`. En typeparameter ville derfor ikke kunne
- * instantieres med noget andet og ville kun sløre, hvad bindingen faktisk kræver.
+ * bruger nøjagtig samme typer (`ISODateString`, `AmountValue` og enhedsvalget) – og `DateField`
+ * fikserer i forvejen sin `field`-prop til `ISODateString`. En typeparameter ville derfor ikke
+ * kunne instantieres med noget andet og ville kun sløre, hvad bindingen faktisk kræver.
  */
 export type AnciennitetstillaegBinding = Readonly<{
   anciennitetstillaegDato: BoundField<ISODateString | undefined>;
+  anciennitetstillaegSatsAngivesPer: BoundField<KronetillaegEnhed>;
   anciennitetstillaegSats: BoundField<AmountValue | undefined>;
 }>;
 

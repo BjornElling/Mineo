@@ -1,7 +1,6 @@
 import { reguleringsbevisSchema } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringsbevis';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../data/statistiskeRates';
 import { statistikForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/statistikForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type {
   FormKonsoliderContext,
   KonsolideretLoenudvikling,
@@ -21,7 +20,6 @@ const createContext = (model = 'ILON12 (Danmarks Statistik)'): FormKonsoliderCon
   angivetLoen: true,
   anvendtReguleringsdato: iso('2020-06-01'),
   tafRanges,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
 });

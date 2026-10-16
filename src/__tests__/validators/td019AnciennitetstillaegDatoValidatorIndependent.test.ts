@@ -139,6 +139,7 @@ const INDEPENDENT_ANCIENNITETSTILLAEG_DATO_VALUES: ErstatningsopgoerelseValues =
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   }],
   eoAngivetLoenLoenudvikling: {
@@ -161,6 +162,7 @@ const INDEPENDENT_ANCIENNITETSTILLAEG_DATO_VALUES: ErstatningsopgoerelseValues =
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

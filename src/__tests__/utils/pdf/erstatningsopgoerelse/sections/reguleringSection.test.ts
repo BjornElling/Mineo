@@ -229,6 +229,62 @@ describe('renderReguleringSection – ansættelsesforhold med regulering', () =>
   });
 });
 
+// Afklaringslog 10a: kronetillæg vises i den enhed, de er angivet i, og med omregningen til lønpakkens enhed
+// («Ansættelse»), når de afviger – samme afrundede værdi, som motoren regner med (vist = beregnet).
+// PDF og Word deler denne dokumentmodel, så teksten gælder begge kanaler.
+describe('renderReguleringSection – kronetillæg og deres enheder', () => {
+  const makeOffentligValues = (patch: Partial<Ansaettelsesforhold>) => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-kl',
+      navnPaaArbejdssted: 'Kommunen',
+      harOverenskomst: true,
+      overenskomstId: 'kl-overenskomst',
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      offentligLoenTrin: 1,
+      offentligLoenGruppe: 0,
+      ...patch,
+    }];
+    return eoValues;
+  };
+
+  it.each([
+    ['Månedsløn', 'Måned', 1000, '+ 1.000 kr./måned'],
+    ['Timeløn', 'Måned', 1000, '+ 1.000 kr./måned / 160,33 = 6,24 kr./time'],
+    ['Månedsløn', 'Time', 6.24, '+ 6,24 kr./time x 160,33 = 1.000,46 kr./måned'],
+    ['Timeløn', 'Time', 25, '+ 25 kr./time'],
+  ] as const)('forhøjet grundløn: %s, angivet pr. %s → «%s»', (offentligLoenType, enhed, beloeb, forventet) => {
+    const { writeLabelValueLine, ctx } = makeContext(makeOffentligValues({
+      offentligLoenType,
+      offentligLoenEkstraGrundloen: { kind: 'number', value: beloeb },
+      offentligLoenEkstraGrundloenAngivesPer: enhed,
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(writeLabelValueLine).toHaveBeenCalledWith('Forhøjet grundløn', forventet);
+  });
+
+  it('anciennitetstillæg regnes om til «Ansættelse»-enheden, ikke til TAF-enheden', () => {
+    const { writeLabelValueLine, ctx } = makeContext(makeOffentligValues({
+      offentligLoenType: 'Timeløn',
+      harAnciennitetstillaegEfterSkadedatoen: true,
+      anciennitetstillaegDato: iso('2024-05-01'),
+      anciennitetstillaegSats: { kind: 'number', value: 500 },
+      anciennitetstillaegSatsAngivesPer: 'Måned',
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(writeLabelValueLine).toHaveBeenCalledWith(
+      'Anciennitetstillæg',
+      '500,00 kr./måned / 160,33 = 3,12 kr./time fra 01-05-2024'
+    );
+  });
+});
+
 describe('renderReguleringSection – loenSkadedatoText input', () => {
   it('videresender anvendtReguleringsdato fra resolveAnvendtReguleringsdato til resolveLoenSkadedatoText', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();

@@ -107,7 +107,6 @@ const withEngineEvidence = (params: ReguleringsindeksParams): readonly Loenudvik
   const resolved = form.konsolider({
     active: [af], angivetLoen: true, anvendtReguleringsdato: params.anvendtReguleringsdato,
     tafRanges: params.segments.map(({ fra, til }) => ({ fra, til })),
-    tafBeregningsenhed: params.tafBeregningsenhed,
     kraeverFeriePctVedBeregningsperiode: false, activeMedSynligeSatserOgLoenoplysninger: [],
   });
   if (!resolved.konsolideret) throw new Error('Testens reguleringsform mangler konsolideret grundlag.');
@@ -729,8 +728,44 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
+    // Satsen er en timeløn («Ansættelse» = Timeløn). Overskriften fulgte tidligere TAF-enheden (Måneder) og
+    // kaldte den «Månedsløn» (fund C5); nu læses enheden fra reguleringsbeviset.
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+  });
+
+  // Fund C5 (facit fra gennemgangen 2026-10-13): KL, trin 1, gruppe 0, Månedsløn og TAF i arbejdsdage.
+  // Løntrinssatserne er månedslønninger og skal stå under «Månedsløn», ikke «Timeløn».
+  it.each([
+    ['Månedsløn', 'Arbejdsdage', 'Månedsløn', ['18.607,42', '19.351,75', '19.603,25']],
+    ['Månedsløn', 'Måneder', 'Månedsløn', ['18.607,42', '19.351,75', '19.603,25']],
+    ['Timeløn', 'Arbejdsdage', 'Timeløn', ['116,05', '120,70', '122,27']],
+    ['Timeløn', 'Måneder', 'Timeløn', ['116,05', '120,70', '122,27']],
+  ] as const)('offentlig %s med TAF i %s vises under «%s»', (loenType, tafBeregningsenhed, header, satser) => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'kl-overenskomst';
+    af.offentligLoenType = loenType;
+    af.offentligLoenTrin = 1;
+    af.offentligLoenGruppe = 0;
+    af.loenPaaHelligdage = 'Ingen';
+    af.beregnStoreBededagstillaeg = false;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-12-01'),
+      tafFra: iso('2024-01-01'),
+      tafTil: iso('2024-12-31'),
+      tafBeregningsenhed,
+    });
+
+    expect(table?.columns[1]).toBe(header);
+    expect(table?.rows.map((row) => [row[0], row[1]])).toEqual([
+      ['01-10-2023', expect.stringContaining(satser[0])],
+      ['01-04-2024', expect.stringContaining(satser[1])],
+      ['01-10-2024', expect.stringContaining(satser[2])],
+    ]);
   });
 
   it('bygger direkte indeksrække for offentlig overenskomst med løn- og tillægskomponenter', () => {

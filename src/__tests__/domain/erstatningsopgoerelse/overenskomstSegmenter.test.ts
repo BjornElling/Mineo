@@ -4,7 +4,6 @@ import { buildOffentligOverenskomstSegmenter } from '../../../domain/erstatnings
 import { buildPrivatOverenskomstSegmenter } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstPrivatSegmenter';
 import * as overenskomstReguleringShared from '../../../domain/erstatningsopgoerelse/engines/overenskomstReguleringShared';
 import type { KonsolideretLoenudvikling } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { getReguleringsDatoIntervalForOverenskomst } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
@@ -34,12 +33,12 @@ const createOverenskomst = (overrides: Partial<Overenskomst> = {}): Overenskomst
   fritvalgPct: 0,
   shSoPct: 0,
   pensionPct: 0,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned',
   anciennitetstillaegSatsValue: undefined,
   offentligLoenEkstraGrundloen: 0,
+  offentligLoenEkstraGrundloenAngivesPer: 'Måned',
   offentlig: null,
   tafRanges: [{ fra: iso('2024-04-01'), til: iso('2025-03-31') }],
   ...overrides,
@@ -135,7 +134,7 @@ describe('overenskomst-segmentbyggere', () => {
       overenskomstId: 'kl-overenskomst',
       loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
       beregnStoreBededagstillaeg: true,
-      tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      offentligLoenEkstraGrundloenAngivesPer: 'Time',
       harAnciennitetstillaegEfterSkadedatoen: true,
       anciennitetstillaegDato: iso('2024-06-01'),
       anciennitetstillaegSatsValue: 25,

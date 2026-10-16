@@ -311,6 +311,8 @@ export const eoEmploymentFields = {
   offentligLoenTrin: emp<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EMP_ID}.offentligLoenTrin.bounds`, 1, 55)]),
   offentligLoenGruppe: emp<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EMP_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
   offentligLoenEkstraGrundloen: emp<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, empAmountBounds('offentligLoenEkstraGrundloen')),
+  // Samme relevans som beløbet (ingen regel): enheden hører til beløbet og må aldrig blive skjult, mens beløbet læses.
+  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned'),
 } as const;
 
 const employmentFields = Object.values(eoEmploymentFields);
@@ -577,6 +579,7 @@ export const eoAngivetLoenFields = {
   offentligLoenTrin: eoLoen<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenTrin.bounds`, 1, 55)]),
   offentligLoenGruppe: eoLoen<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
   offentligLoenEkstraGrundloen: eoLoen<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, eoLoenAmountBounds('offentligLoenEkstraGrundloen')),
+  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned'),
 } as const;
 
 const eoLoenFields = Object.values(eoAngivetLoenFields);

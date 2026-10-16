@@ -111,6 +111,7 @@ const values: ErstatningsopgoerelseValues = {
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: {
       loenmodtager: undefined,
       arbejdsgiver: undefined,
@@ -137,6 +138,7 @@ const values: ErstatningsopgoerelseValues = {
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: {
       loenmodtager: undefined,
       arbejdsgiver: undefined,

@@ -15,7 +15,6 @@ import { resolveLoenReferencedatoText } from '../helpers/eoDateReferenceText';
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
-import { getGrundloenAngivetPerForOverenskomst } from '../../../data/overenskomstRates';
 import { isKRLSatstabelId } from '../../../data/krlRates';
 import { STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import {
@@ -200,29 +199,31 @@ const buildIndexFormulaDisplay = (
   return wrapIndexFormulaAfterSlashWhenLong(formula, 90, !isPlainValue);
 };
 
+/**
+ * Overskriften over pakkens grundløn. Enheden læses fra reguleringsbeviset, som producenten har mærket med
+ * satsens egen enhed («Ansættelse» ved offentlig overenskomst, overenskomstens `grundloenAngivetPer` ved
+ * privat). Den må ikke udledes igen af TAF-enheden: en offentlig månedsløn med TAF i arbejdsdage stod
+ * tidligere som «Timeløn» (fund C5).
+ *
+ * Kun «Manuelt angivet» har ingen satsenhed – brugeren taster grundlønnen uden enhed – og beholder derfor
+ * den hidtidige overskrift efter TAF-enheden. Re-evaluér, hvis den manuelle tabel får en enhed.
+ */
 const resolveReguleringsvaerdierLoenHeader = (
   params: Readonly<{
+    segments: readonly LoenudviklingSegment[] | undefined;
     tafBeregningsenhed: TafBeregningsenhed;
-    loenudviklingBeregningsgrundlag: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]['loenudviklingBeregningsgrundlag'];
-    overenskomstId?: string | undefined;
   }>
 ): 'Timeløn' | 'Månedsløn' => {
-  const { tafBeregningsenhed, loenudviklingBeregningsgrundlag, overenskomstId } = params;
-
-  // Bevidst designafvigelse:
-  // I reguleringstabellens overskrift skal overenskomst-sporet følge selve overenskomstens
-  // `grundloenAngivetPer`, ikke de øvrige runtime-afledte visningsprincipper i EO.
-  // Det er tilsigtet, fordi tabellen her dokumenterer kildedata for regulering, ikke den
-  // beregnede præsentationsenhed fra andre flows. Hvis dette ændres, skal både EO-PDF og
-  // EOInspektion vurderes samlet, da de deler denne builder.
-  if (loenudviklingBeregningsgrundlag === 'Overenskomst' && overenskomstId) {
-    const tafBeregnesSom = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
-    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(overenskomstId, tafBeregnesSom);
-    if (grundloenAngivetPer === 'Time') return 'Timeløn';
-    if (grundloenAngivetPer === 'Måned') return 'Månedsløn';
+  const wageUnits = new Set((params.segments ?? []).flatMap(
+    (segment) => segment.regulering?.wageUnit === undefined ? [] : [segment.regulering.wageUnit]
+  ));
+  if (wageUnits.size > 1) {
+    throw new Error('Reguleringsværdier kan ikke vises: lønpakken har flere enheder');
   }
-
-  return tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+  const [wageUnit] = wageUnits;
+  if (wageUnit === 'Time') return 'Timeløn';
+  if (wageUnit === 'Måned') return 'Månedsløn';
+  return params.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
 };
 
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
@@ -394,9 +395,8 @@ const buildEvaluatedPackageTable = (params: Readonly<{
   const firstDate = rows[0][0];
   return {
     columns: [REGULERINGSVAERDIER_FRA_DATO_HEADER, resolveReguleringsvaerdierLoenHeader({
+      segments: params.segments,
       tafBeregningsenhed: params.tafBeregningsenhed,
-      loenudviklingBeregningsgrundlag: params.ansaettelsesforhold.loenudviklingBeregningsgrundlag,
-      overenskomstId: params.ansaettelsesforhold.overenskomstId,
     }), ...visibleColumns.map(([, label]) => label)],
     rows: mergeConsecutiveValueRows(rows.map(([date, { components, wageBaseValue, wageSupplement }]) => [
       formatDateShort(date), wageSupplement !== undefined && wageSupplement > 0 && wageBaseValue !== undefined

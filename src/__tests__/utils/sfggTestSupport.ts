@@ -46,6 +46,7 @@ export const createSfggEmployment = (
   offentligLoenTrin: patch.offentligLoenTrin,
   offentligLoenGruppe: patch.offentligLoenGruppe,
   offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
+  offentligLoenEkstraGrundloenAngivesPer: patch.offentligLoenEkstraGrundloenAngivesPer ?? 'Måned',
   indtaegtsoplysningerTableData: patch.indtaegtsoplysningerTableData ?? [],
   ...patch,
   loenudviklingManuelProcentsatsTableData: patch.loenudviklingManuelProcentsatsTableData ?? [],

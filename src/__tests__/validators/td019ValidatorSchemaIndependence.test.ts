@@ -96,6 +96,7 @@ const INDEPENDENT_RUNTIME_VALUES: ErstatningsopgoerelseValues = {
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',
@@ -153,6 +154,7 @@ const INDEPENDENT_FERIELOVEN_VALUES: ErstatningsopgoerelseValues = {
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   }],
   sfggAnsaettelsesforhold: [{
@@ -270,6 +272,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         offentligLoenTrin: undefined,
         offentligLoenGruppe: undefined,
         offentligLoenEkstraGrundloen: undefined,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
       }],
       sfggAnsaettelsesforhold: [{
@@ -399,6 +402,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         offentligLoenTrin: undefined,
         offentligLoenGruppe: undefined,
         offentligLoenEkstraGrundloen: undefined,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
       }],
       sfggAnsaettelsesforhold: [{
@@ -488,6 +492,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         offentligLoenTrin: undefined,
         offentligLoenGruppe: undefined,
         offentligLoenEkstraGrundloen: undefined,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
       }],
       sfggAnsaettelsesforhold: [{
@@ -560,6 +565,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         offentligLoenTrin: undefined,
         offentligLoenGruppe: undefined,
         offentligLoenEkstraGrundloen: undefined,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
       }],
       sfggAnsaettelsesforhold: [{
@@ -626,6 +632,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         offentligLoenTrin: undefined,
         offentligLoenGruppe: undefined,
         offentligLoenEkstraGrundloen: undefined,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
       }],
       sfggAnsaettelsesforhold: [{

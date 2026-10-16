@@ -29,6 +29,14 @@ export const resolveOffentligLoenTypeFromLabel = (
   return undefined;
 };
 
+/**
+ * Enheden for løntrinssatsen, «Ansættelse» vælger: månedsløn er pr. måned, timeløn pr. time. Det er den
+ * offentlige lønpakkes enhed, som kronetillæg (forhøjet grundløn, anciennitetstillæg) regnes om til.
+ * En manglende løntype læses som månedsløn, som i resten af domænet.
+ */
+export const resolveOffentligLoenEnhed = (loenType: OffentligLoenType | undefined): 'Time' | 'Måned' =>
+  loenType === 'timeLoen' ? 'Time' : 'Måned';
+
 /** Løngruppe: 0-4 (områdetillægsgruppe) */
 export type Loengruppe = 0 | 1 | 2 | 3 | 4;
 

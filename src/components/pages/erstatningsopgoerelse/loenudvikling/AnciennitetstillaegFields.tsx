@@ -4,6 +4,7 @@ import DateField from '../../../../inputCore/react/fields/DateField';
 import AmountField from '../../../../inputCore/react/fields/AmountField';
 import type { AnciennitetstillaegBinding } from './loenudviklingBinding';
 import LabeledControlRow from '../../../layout/LabeledControlRow';
+import SatsEnhedChoiceField from './SatsEnhedChoiceField';
 
 /**
  * Den fælles Anciennitetstillæg-blok.
@@ -14,17 +15,12 @@ import LabeledControlRow from '../../../layout/LabeledControlRow';
  * det er samme duplikering af samme grund, og derfor samme løsning: ét sted, med bindingen
  * injiceret af ejeren.
  *
- * **`satsEnhedSlot` er en bevidst slot og ikke en prop-flag** – af samme grund som
- * `overenskomstSlot` i `LoenudviklingFields`. De to overflader afgør satsens enhed
- * FORSKELLIGT, og det er en reel funktionsforskel, ikke drift:
- *
- * - **Lønindkomst** lader brugeren VÆLGE (`anciennitetstillaegSatsAngivesPer`: Time/Måned).
- * - **EO-oplysninger** UDLEDER enheden af `beregnesUdFra` og viser intet valg.
- *
- * Forskellen er hverken dokumenteret eller besluttet noget sted, og den er en UI/UX-sag.
- * Fladen bevarer derfor begge adfærd nøjagtigt som de er, frem for at ensarte dem: en
- * sammenlægning her ville ændre brugerfladen på den ene side under dække af en refaktorering.
- * Slotten gør forskellen SYNLIG på begge callsites i stedet for at gemme den i en betingelse.
+ * **Satsens enhed vælges ens på begge overflader.** Lønindkomst lod brugeren vælge
+ * (`anciennitetstillaegSatsAngivesPer`: Time/Måned), mens EO-oplysninger udledte enheden af
+ * «Beregnes ud fra» og ikke viste noget valg. Forskellen er besluttet væk (afklaringslog 10a i
+ * `docs/review/regulering-taf-gennemgang-2026-10-13.md`): enheden gemmes med beløbet og udledes aldrig
+ * af et andet felt. Rækken ligger derfor her som én fælles række i stedet for den tidligere slot, der
+ * kun fandtes for at gøre forskellen synlig.
  */
 export type AnciennitetstillaegFieldsProps = Readonly<{
   /** Adresse + location pr. logisk felt for den aktuelle overflade. */
@@ -41,10 +37,8 @@ export type AnciennitetstillaegFieldsProps = Readonly<{
   harAnciennitetstillaeg: boolean;
   /** Referenceteksten i toggle-rækkens etiket (fx «efter reguleringsdatoen …»). */
   referenceText: string;
-  /** «Sats per {enhed}» – enheden er allerede opløst af ejeren. */
+  /** «Sats per {enhed}» – den valgte enhed, opløst af ejeren fra samme felt som enhedsvalget. */
   satsPerTekst: string;
-  /** Rækken der vælger satsens enhed. `null` når overfladen udleder enheden – se komponentens doc. */
-  satsEnhedSlot: ReactNode;
   /** Suffiks på feltnavne, så to kort på samme side ikke deler `name`. */
   fieldNamePrefix: string;
 }>;
@@ -55,7 +49,6 @@ export default function AnciennitetstillaegFields({
   harAnciennitetstillaeg,
   referenceText,
   satsPerTekst,
-  satsEnhedSlot,
   fieldNamePrefix,
 }: AnciennitetstillaegFieldsProps) {
   return (
@@ -81,7 +74,16 @@ export default function AnciennitetstillaegFields({
             </Box>
           </Box>
 
-          {satsEnhedSlot}
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Satsen angives per</Typography>
+            <Box className="row--label-right-hover__content">
+              <SatsEnhedChoiceField
+                binding={binding.anciennitetstillaegSatsAngivesPer}
+                name={`${fieldNamePrefix}anciennitetstillaegSatsAngivesPer`}
+                width={160}
+              />
+            </Box>
+          </Box>
 
           <Box className="row--label-right-hover">
             <Typography className="row--text">{`Sats per ${satsPerTekst}`}</Typography>

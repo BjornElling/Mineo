@@ -80,7 +80,12 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-09-13: Store Bededagstillæg er nu et eksplicit valg på både ansættelsesforhold og
 // angivet løn. Historiske filer migreres tavst til den tidligere automatiske betydning.
 // PERSISTED_DATA_VERSION bumpet til 3.14 (reel persisted schema- og semantikændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-4ba3da86';
+// Opdateret 2026-10-16: «Forhøjet grundløn ud over løntrin» har fået sin egen gemte enhed
+// (`offentligLoenEkstraGrundloenAngivesPer`) på ansættelsesforhold og angivet løn, og angivet løns
+// anciennitetsenhed læses nu som brugerens valg (afklaringslog 10a/12). Ældre filer får ved indlæsning den
+// enhed, felterne hidtil har vist/brugt. PERSISTED_DATA_VERSION bumpet til 3.15 (reel persisted schema- og
+// semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-fc1d3854';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot – ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

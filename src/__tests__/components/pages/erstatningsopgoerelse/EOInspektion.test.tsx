@@ -369,6 +369,7 @@ describe('EOInspektion', () => {
             offentligLoenTrin: undefined,
             offentligLoenGruppe: undefined,
             offentligLoenEkstraGrundloen: undefined,
+            offentligLoenEkstraGrundloenAngivesPer: 'Måned',
             overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
           },
         ],

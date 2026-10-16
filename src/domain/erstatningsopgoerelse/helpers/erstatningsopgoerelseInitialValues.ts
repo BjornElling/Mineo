@@ -72,6 +72,8 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    // Følger «Ansættelse» ovenfor (Månedsløn), så et nyt kort viser beløbet i løntrinssatsens enhed.
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
   };
 };

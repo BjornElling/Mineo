@@ -735,6 +735,43 @@ describe('buildRegulationTimeline – anciennitetstillæg efter anvendt reguleri
   });
 });
 
+// ─── Kronetillæg i pakkens enhed (fund A1) ───────────────────────────────────
+
+describe('buildRegulationTimeline – forhøjet grundløn i «Ansættelse»-enheden', () => {
+  // A1-facit: KL, trin 1, gruppe 0, Månedsløn, TAF i arbejdsdage (angivet dagsløn), basis 01-04-2024 og
+  // 1.000 kr./måned. Grundlønnen er 19.351,75 + 1.000 = 20.351,75 og fra 01-10-2024 19.603,25 + 1.000 =
+  // 20.603,25. Kontrollen lagde tidligere 160.330 kr. til, fordi beløbet blev læst i TAF-enheden.
+  it('lægger beløbet til i månedsenheden, selv om TAF opgøres i arbejdsdage', () => {
+    const input = makeInput();
+    const values = input.eoValues;
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.dagsloenenUdgoer = { kind: 'number', value: 1000 };
+    values.angivetDagsloenOpreguleresFraDato = toISODateString('2024-04-01');
+    values.vedroererPeriodeFra = toISODateString('2024-04-01');
+    values.vedroererPeriodeTil = toISODateString('2024-12-31');
+    input.stamdataValues.skadedato = iso('2024-04-01');
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      overenskomstId: 'kl-overenskomst',
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 1,
+      offentligLoenGruppe: 0,
+      feriePct: 0,
+      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.INGEN,
+      beregnStoreBededagstillaeg: false,
+      offentligLoenEkstraGrundloen: { kind: 'number', value: 1000 },
+      offentligLoenEkstraGrundloenAngivesPer: 'Måned',
+    };
+
+    const entries = buildRegulationTimeline(input).ansaettelser[0]?.entries ?? [];
+    expect(entries.find((entry) => entry.effectiveFrom === iso('2024-04-01'))?.grundloen).toBe(20351.75);
+    const oktober = entries.find((entry) => entry.effectiveFrom === iso('2024-10-01'));
+    expect(oktober?.grundloen).toBe(20603.25);
+    expect(oktober?.index).toBeCloseTo((20603.25 / 20351.75) * 100, 6);
+  });
+});
+
 // ─── Periode-overgange ────────────────────────────────────────────────────────
 
 describe('buildRegulationTimeline – periode-overgange', () => {

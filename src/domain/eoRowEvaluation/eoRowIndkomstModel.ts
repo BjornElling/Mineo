@@ -166,6 +166,7 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
     af.offentligLoenTrin !== undefined ||
     af.offentligLoenGruppe !== undefined ||
     af.offentligLoenEkstraGrundloen !== undefined ||
+    af.offentligLoenEkstraGrundloenAngivesPer !== 'Måned' ||
     hasNonDefaultOverenskomstFilter
   );
 };

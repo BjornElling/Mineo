@@ -126,6 +126,7 @@ const INDEPENDENT_SVIE_SMERTE_MENAFOERELSE_CUTOFF: ErstatningsopgoerelseValues =
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   }],
   eoAngivetLoenLoenudvikling: {
@@ -148,6 +149,7 @@ const INDEPENDENT_SVIE_SMERTE_MENAFOERELSE_CUTOFF: ErstatningsopgoerelseValues =
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

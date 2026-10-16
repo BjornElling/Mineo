@@ -33,7 +33,8 @@ import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
 import { harValgtStoreBededagstillaeg, resolveStoreBededagstillaegPct } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoDateToDate } from '../dates/isoDate';
 import { beregnArbejdsdageOgMaaneder } from '../erstatningsopgoerelse/engines/arbejdsdageMaaneder';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '../../data/offentligLoenTypes';
 import {
   isAslStatistikModel,
   parseDanishToIso,
@@ -524,7 +525,6 @@ const buildEntryForDate = (args: {
 const resolveInspektionAnciennitet = (args: Readonly<{
   af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   overenskomstId: string;
-  tafBeregningsenhed: TafBeregningsenhed;
   referenceIso: ISODateString;
   eoRange: Readonly<{ fra: ISODateString; til: ISODateString }>;
 }>): AnciennitetForIndex | null =>
@@ -534,7 +534,7 @@ const resolveInspektionAnciennitet = (args: Readonly<{
     satsValue: args.af.anciennitetstillaegSats?.value,
     satsAngivesPer: args.af.anciennitetstillaegSatsAngivesPer,
     overenskomstId: args.overenskomstId,
-    tafBeregningsenhed: args.tafBeregningsenhed,
+    offentligLoenType: resolveOffentligLoenTypeFromLabel(args.af.offentligLoenType),
     anvendtReguleringsdatoIso: args.referenceIso,
     periodeStartIso: args.eoRange.fra,
     periodeEndIso: args.eoRange.til,
@@ -629,10 +629,12 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       if (!overenskomstId) continue;
       const overenskomstInterval = getReguleringsDatoIntervalForOverenskomst(overenskomstId);
       const applyAlmindeligLoenPaaShDageRegel = loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+      // Beløbet står i den gemte enhed og lægges til løntrinssatsen i «Ansættelse»-enheden – samme regel
+      // som motoren. TAF-enheden siger intet om beløbets enhed (fund A1).
       const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
         amountValueToNumber(af.offentligLoenEkstraGrundloen),
-        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
-        offentligSelection.loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+        af.offentligLoenEkstraGrundloenAngivesPer,
+        resolveOffentligLoenEnhed(offentligSelection.loenType)
       );
       const referenceTillaegsSatser = getOffentligTillaegsSatserForDato(
         overenskomstId,
@@ -642,7 +644,6 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       const anciennitet = resolveInspektionAnciennitet({
         af,
         overenskomstId,
-        tafBeregningsenhed,
         referenceIso,
         eoRange,
       });
@@ -845,7 +846,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       }
 
       const anciennitet = af.overenskomstId
-        ? resolveInspektionAnciennitet({ af, overenskomstId: af.overenskomstId, tafBeregningsenhed, referenceIso, eoRange })
+        ? resolveInspektionAnciennitet({ af, overenskomstId: af.overenskomstId, referenceIso, eoRange })
         : null;
 
       const referenceEntry = buildEntryForDate({

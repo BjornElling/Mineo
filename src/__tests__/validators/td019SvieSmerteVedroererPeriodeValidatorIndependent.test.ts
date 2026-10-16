@@ -102,6 +102,7 @@ const INDEPENDENT_SVIE_SMERTE_VEDROERER_PERIODE_VALUES: ErstatningsopgoerelseVal
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

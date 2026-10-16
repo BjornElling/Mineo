@@ -13,6 +13,7 @@ import {
   resolveLoenudviklingKilde,
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '../../../../data/offentligLoenTypes';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
@@ -316,7 +317,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
       aktivOverenskomst.overenskomstId,
-      tafBeregnesSom
+      resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType)
     );
     if (!grundloenAngivetPer) return 'Indtastning mangler';
 
@@ -536,11 +537,16 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         writeLabelValueLine('Indplacering', `Løntrin ${trin}, gruppe ${gruppe}`);
 
         const ekstraGrundloen = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
+        // Beløbet vises i den enhed, det er angivet i, og – når den afviger fra «Ansættelse» – med den
+        // omregning til løntrinssatsens enhed, som motoren regner med (samme afrundede værdi).
         ekstraGrundloenDisplay =
           typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0
-            ? `+ ${formatAmountWithoutTrailingDecimals(ekstraGrundloen)} kr./${
-                ansaettelsesforhold.offentligLoenType === 'Timeløn' ? 'time' : 'måned'
-              }`
+            ? `+ ${formatAnciennitetConversion(
+                ekstraGrundloen,
+                ansaettelsesforhold.offentligLoenEkstraGrundloenAngivesPer,
+                resolveOffentligLoenEnhed(resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType)),
+                formatAmountWithoutTrailingDecimals
+              ).displayText}`
             : null;
       }
     }

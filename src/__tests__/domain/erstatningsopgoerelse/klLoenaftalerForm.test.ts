@@ -3,7 +3,6 @@ import type {
   FormKonsoliderContext,
   KonsolideretLoenudvikling,
 } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => toISODateString(value);
@@ -14,7 +13,6 @@ const createContext = (): FormKonsoliderContext => ({
   angivetLoen: true,
   anvendtReguleringsdato: iso('2024-04-01'),
   tafRanges,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
 });

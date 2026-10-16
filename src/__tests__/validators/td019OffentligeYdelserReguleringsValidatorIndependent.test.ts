@@ -109,6 +109,7 @@ const INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES: ErstatningsopgoerelseVa
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

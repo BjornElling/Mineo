@@ -49,6 +49,7 @@ const createEmployment = (
   offentligLoenTrin: patch.offentligLoenTrin,
   offentligLoenGruppe: patch.offentligLoenGruppe,
   offentligLoenEkstraGrundloen: patch.offentligLoenEkstraGrundloen,
+  offentligLoenEkstraGrundloenAngivesPer: patch.offentligLoenEkstraGrundloenAngivesPer ?? 'Måned',
   overenskomstFilter: patch.overenskomstFilter ?? {
     loenmodtager: undefined,
     arbejdsgiver: undefined,

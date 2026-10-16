@@ -75,7 +75,6 @@ type AnvendtReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string 
 const resolveReguleringsStrategi = (
   values: TafCalculationValues,
   stamdataValues: StamdataValues,
-  tafBeregningsenhed: TafBeregningsenhed,
   options: Readonly<{ tafRanges: readonly IsoRange[] }>
 ): ResolvedStrategi => {
   const ansaettelser = resolveLoenudviklingRows(values);
@@ -114,7 +113,6 @@ const resolveReguleringsStrategi = (
     angivetLoen,
     anvendtReguleringsdato,
     tafRanges: options.tafRanges,
-    tafBeregningsenhed,
     kraeverFeriePctVedBeregningsperiode,
     activeMedSynligeSatserOgLoenoplysninger,
   };
@@ -278,7 +276,7 @@ export const buildLoenudviklingModel = (
     const strategiDataByIndex = ansaettelser.map((ansaettelsesforhold) => resolveReguleringsStrategi({
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
-    }, stamdataValues, tafBeregningsenhed, { tafRanges }));
+    }, stamdataValues, { tafRanges }));
     const income =
       options.incomeForBeregningsperiode
       ?? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
@@ -399,7 +397,7 @@ export const buildLoenudviklingModel = (
     return buildPerAnsaettelseModel();
   }
 
-  const strategiData = resolveReguleringsStrategi(values, stamdataValues, tafBeregningsenhed, { tafRanges });
+  const strategiData = resolveReguleringsStrategi(values, stamdataValues, { tafRanges });
   const maanedsloenBase = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
     ? resolveMaanedsloenBase(values, indkomstSkadestidspunkt)
     : null;

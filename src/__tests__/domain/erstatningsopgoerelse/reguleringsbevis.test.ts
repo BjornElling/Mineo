@@ -14,9 +14,10 @@ const packageCommon = {
   ...common, strategi: 'overenskomst', overenskomstId: 'bygge-anlaeg',
   loenPaaHelligdage: 'Almindelig løn', beregnStoreBededagstillaeg: true,
   feriePct: 12.5, fritvalgPct: 7, shSoPct: 0, pensionPct: 12,
-  tafBeregningsenhed: 'Måneder', harAnciennitetstillaegEfterSkadedatoen: false,
+  harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined, anciennitetstillaegSatsAngivesPer: 'Måned',
-  anciennitetstillaegSatsValue: undefined, offentligLoenEkstraGrundloen: 0, offentlig: null,
+  anciennitetstillaegSatsValue: undefined, offentligLoenEkstraGrundloen: 0,
+  offentligLoenEkstraGrundloenAngivesPer: 'Måned', offentlig: null,
 } as const;
 
 const models: ReadonlyArray<Readonly<{ name: string; model: KonsolideretLoenudvikling }>> = [
@@ -73,6 +74,28 @@ describe('autoritativt reguleringsgrundlag', () => {
         expect(computeFormulaValue(evidence.periodComponents)).toBe(evidence.periodValue);
       }
     }
+  });
+
+  // Fund C5: satsens enhed bæres af beviset, så ingen visning skal udlede den af TAF-enheden.
+  it('mærker lønpakken med satsens egen enhed', () => {
+    const privat = byggReguleringsResultat(packageCommon).segmenter;
+    expect(privat.every((segment) => segment.regulering.wageUnit === 'Time')).toBe(true);
+
+    const offentligModel = models.find((entry) => entry.name === 'offentlig overenskomst')!.model;
+    const offentlig = byggReguleringsResultat(offentligModel).segmenter;
+    expect(offentlig.every((segment) => segment.regulering.wageUnit === 'Måned')).toBe(true);
+
+    if (offentligModel.strategi !== 'overenskomst' || !offentligModel.offentlig) throw new Error('forventede offentlig model');
+    const timeloen = byggReguleringsResultat({
+      ...offentligModel,
+      offentlig: { ...offentligModel.offentlig, loenType: 'timeLoen' },
+    }).segmenter;
+    expect(timeloen.every((segment) => segment.regulering.wageUnit === 'Time')).toBe(true);
+  });
+
+  it('afviser en lønenhed på et grundlag, der ikke er en lønpakke', () => {
+    const proof = buildReguleringsbevis(100, 102, { kind: 'indeks' });
+    expect(reguleringsbevisSchema.safeParse({ ...proof, wageUnit: 'Måned' }).success).toBe(false);
   });
 
   it('bevarer den oprindelige manuelle kædes afrunding ved en binær halvgrænse', () => {

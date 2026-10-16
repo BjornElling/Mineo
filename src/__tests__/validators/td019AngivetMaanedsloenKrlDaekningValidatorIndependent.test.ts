@@ -102,6 +102,7 @@ const INDEPENDENT_ANGIVET_MAANEDSLOEN_KRL_COVERAGE_VALUES: Erstatningsopgoerelse
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
+    offentligLoenEkstraGrundloenAngivesPer: 'Måned',
     overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
   },
   visBilagsnumre: 'Nej',

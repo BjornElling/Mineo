@@ -9,6 +9,7 @@ import AmountField from '../../../../inputCore/react/fields/AmountField';
 import IntegerField from '../../../../inputCore/react/fields/IntegerField';
 import LoenudviklingManuelTable from '../../../tables/LoenudviklingManuelTable';
 import LoenudviklingManuelProcentsatsTable from '../../../tables/LoenudviklingManuelProcentsatsTable';
+import SatsEnhedChoiceField from './SatsEnhedChoiceField';
 import type { CollectionRef, LoenudviklingBinding, LoenudviklingManualBindings } from './loenudviklingBinding';
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../schemas/formSchemas';
@@ -65,7 +66,6 @@ export type LoenudviklingFieldsProps<
   /** Indholdet af «Overenskomst»-rækken – se komponentens doc. */
   overenskomstSlot: ReactNode;
 
-  offentligLoenEkstraGrundloenSuffix: string;
   onOpenLoentrinFinder: () => void;
   /**
    * Ref til `Find løntrin`-knappen. Overlayet gendanner fokus hertil ved lukning
@@ -123,7 +123,6 @@ export default function LoenudviklingFields<
   loenudviklingBasis,
   erOffentligOverenskomst,
   overenskomstSlot,
-  offentligLoenEkstraGrundloenSuffix,
   onOpenLoentrinFinder,
   loentrinFinderTriggerRef,
   baseDateDisplay,
@@ -267,7 +266,14 @@ export default function LoenudviklingFields<
                   name={name('offentligLoenEkstraGrundloen')}
                   width={160}
                 />
-                <Typography className="row--text">{offentligLoenEkstraGrundloenSuffix}</Typography>
+                {/* Enheden er brugerens eget valg og gemmes med beløbet. Den stod før som et fast suffiks efter
+                    «Ansættelse», mens beregningen læste beløbet i TAF-enheden (fund A1). */}
+                <Typography className="row--text">per</Typography>
+                <SatsEnhedChoiceField
+                  binding={binding.offentligLoenEkstraGrundloenAngivesPer}
+                  name={name('offentligLoenEkstraGrundloenAngivesPer')}
+                  width={110}
+                />
               </Box>
             </Box>
           </Box>

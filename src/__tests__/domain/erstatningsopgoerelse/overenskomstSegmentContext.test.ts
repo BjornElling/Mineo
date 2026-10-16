@@ -1,6 +1,5 @@
 import { buildOverenskomstSegmentContext } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstSegmentContext';
 import type { KonsolideretOverenskomst } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstSegmentContext';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 
@@ -21,12 +20,12 @@ const createKonsolideret = (
   fritvalgPct: 0,
   shSoPct: 0,
   pensionPct: 0,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned',
   anciennitetstillaegSatsValue: undefined,
   offentligLoenEkstraGrundloen: 0,
+  offentligLoenEkstraGrundloenAngivesPer: 'Måned',
   offentlig: null,
   tafRanges,
   ...overrides,

@@ -56,7 +56,6 @@ export const resolveLoenudviklingKilde = (
   }
 
   const eo = values.eoAngivetLoenLoenudvikling;
-  const anciennitetSatsAngivesPer = values.beregnesUdFra === 'Angivet dagsløn' ? 'Time' : 'Måned';
   // Lønudviklingsmotoren arbejder på månedlig regulering; angivet dagsløn er kun input-reference.
   const loenudviklingErOverenskomst = eo.loenudviklingBeregningsgrundlag === 'Overenskomst';
   // `loenPaaHelligdage` er required-with-default i det persisterede schema OG i inputdescriptoren, så der
@@ -74,7 +73,9 @@ export const resolveLoenudviklingKilde = (
     sidsteArbejdsdag: undefined,
     harAnciennitetstillaegEfterSkadedatoen: eo.harAnciennitetstillaegEfterSkadedatoen,
     anciennitetstillaegDato: eo.anciennitetstillaegDato,
-    anciennitetstillaegSatsAngivesPer: anciennitetSatsAngivesPer,
+    // Brugerens eget enhedsvalg. Enheden blev tidligere tvunget efter «Beregnes ud fra»; ældre filer får
+    // den tvungne enhed ved indlæsning (`persistedLoadAdapter.ts`), så her udledes intet af et andet felt.
+    anciennitetstillaegSatsAngivesPer: eo.anciennitetstillaegSatsAngivesPer,
     anciennitetstillaegSats: eo.anciennitetstillaegSats,
     feriePct: eo.feriePct,
     fritvalgPct: undefined,
@@ -99,6 +100,7 @@ export const resolveLoenudviklingKilde = (
     offentligLoenTrin: eo.offentligLoenTrin,
     offentligLoenGruppe: eo.offentligLoenGruppe,
     offentligLoenEkstraGrundloen: eo.offentligLoenEkstraGrundloen,
+    offentligLoenEkstraGrundloenAngivesPer: eo.offentligLoenEkstraGrundloenAngivesPer,
     overenskomstFilter: {
       loenmodtager: eo.overenskomstFilter?.loenmodtager,
       arbejdsgiver: eo.overenskomstFilter?.arbejdsgiver,

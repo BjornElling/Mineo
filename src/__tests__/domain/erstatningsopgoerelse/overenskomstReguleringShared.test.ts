@@ -5,23 +5,15 @@ import {
   resolvePrivateOverenskomstBaseContext,
   type PrivateOverenskomstBaseContext,
 } from '../../../domain/erstatningsopgoerelse/engines/overenskomstReguleringShared';
-import { convertAnciennitetSats } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import type { OverenskomstId, OverenskomstPeriodeSats } from '../../../data/overenskomstRates';
-import { getGrundloenAngivetPerForOverenskomst } from '../../../data/overenskomstRates';
-import { round2 } from '../../../utils/roundingShortcuts';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import type { OffentligLoenType } from '../../../data/offentligLoenTypes';
 import type { DanishDateString, ISODateString } from '../../../types/branded';
 
 const iso = (v: string): ISODateString => v as ISODateString;
 
+// bygge-anlaeg angiver grundlønnen pr. time (privat overenskomst).
 const OVERENSKOMST = 'bygge-anlaeg';
 const OVERENSKOMST_ID = OVERENSKOMST as OverenskomstId;
-
-const expectedSupplement = (value: number, per: 'Time' | 'Måned'): number => {
-  const grundloenPer = getGrundloenAngivetPerForOverenskomst(OVERENSKOMST, 'Måneder');
-  expect(grundloenPer).toBeDefined();
-  return round2(convertAnciennitetSats(value, per, grundloenPer!));
-};
 
 const danish = (v: string): DanishDateString => v as DanishDateString;
 
@@ -54,7 +46,7 @@ const baseInput = () => ({
   satsValue: 1000 as number | undefined,
   satsAngivesPer: 'Måned' as 'Time' | 'Måned' | undefined,
   overenskomstId: OVERENSKOMST as string | undefined,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+  offentligLoenType: undefined as OffentligLoenType | undefined,
   anvendtReguleringsdatoIso: iso('2024-01-01') as ISODateString | undefined,
   periodeStartIso: iso('2024-01-01'),
   periodeEndIso: iso('2024-12-31'),
@@ -66,8 +58,8 @@ describe('resolveAnciennitetForIndex', () => {
     expect(result).not.toBeNull();
     // Datoen ligger inden for perioden → ingen clamp.
     expect(result!.activeFromIso).toBe(iso('2024-06-01'));
-    expect(result!.supplementValue).toBeCloseTo(expectedSupplement(1000, 'Måned'), 6);
-    expect(result!.supplementValue).toBeGreaterThan(0);
+    // Håndregnet: 1.000 kr./måned ÷ 160,33 = 6,2371… → 6,24 kr./time (grundlønnens enhed).
+    expect(result!.supplementValue).toBe(6.24);
   });
 
   it('clamper activeFromIso op til periodestart', () => {
@@ -115,34 +107,43 @@ describe('resolveAnciennitetForIndex', () => {
     })).toBeNull();
   });
 
-  it('omregner timesats til grundlønnens enhed', () => {
+  it('bevarer en timesats i en timeangivet grundløn', () => {
     const result = resolveAnciennitetForIndex({ ...baseInput(), satsValue: 60, satsAngivesPer: 'Time' });
     expect(result).not.toBeNull();
-    expect(result!.supplementValue).toBeCloseTo(expectedSupplement(60, 'Time'), 6);
+    expect(result!.supplementValue).toBe(60);
   });
 
-  it('bruger arbejdsdagegrenen og Måned som defensiv standard for satsens enhed', () => {
-    const result = resolveAnciennitetForIndex({
-      ...baseInput(),
-      satsAngivesPer: undefined,
-      tafBeregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE,
-    });
-
-    expect(result).not.toBeNull();
-    expect(result!.supplementValue).toBeCloseTo(expectedSupplement(1000, 'Måned'), 6);
+  it('bruger Måned som defensiv standard for satsens enhed', () => {
+    const result = resolveAnciennitetForIndex({ ...baseInput(), satsAngivesPer: undefined });
+    expect(result!.supplementValue).toBe(6.24);
   });
 
-  it('bevarer en månedssats i månedslønnen for offentlig overenskomst', () => {
+  it('privat overenskomst ignorerer en løntype – overenskomstens egen enhed gælder', () => {
+    const result = resolveAnciennitetForIndex({ ...baseInput(), offentligLoenType: 'maanedsLoen' });
+    expect(result!.supplementValue).toBe(6.24);
+  });
+
+  // Afklaringslog 10a: offentlig pakkes enhed er «Ansættelse», aldrig TAF-enheden (fund A2).
+  // Håndregnede facitter: 500 kr./måned ÷ 160,33 = 3,1185… → 3,12; 3,50 kr./time × 160,33 = 561,155 → 561,16.
+  it.each([
+    ['kl-overenskomst', 'maanedsLoen', 500, 'Måned', 500],
+    ['kl-overenskomst', 'timeLoen', 500, 'Måned', 3.12],
+    ['kl-overenskomst', 'maanedsLoen', 3.5, 'Time', 561.16],
+    ['kl-overenskomst', 'timeLoen', 3.5, 'Time', 3.5],
+    ['rltn-overenskomst', 'maanedsLoen', 500, 'Måned', 500],
+    ['rltn-overenskomst', 'timeLoen', 500, 'Måned', 3.12],
+  ] as const)('%s, løntype %s: %s kr. pr. %s → %s kr. i pakkens enhed', (overenskomstId, offentligLoenType, satsValue, satsAngivesPer, expected) => {
     const result = resolveAnciennitetForIndex({
       ...baseInput(),
-      overenskomstId: 'kl-overenskomst',
-      satsValue: 1000,
-      satsAngivesPer: 'Måned',
+      overenskomstId,
+      offentligLoenType,
+      satsValue,
+      satsAngivesPer,
     });
 
     expect(result).toEqual({
       activeFromIso: iso('2024-06-01'),
-      supplementValue: 1000,
+      supplementValue: expected,
     });
   });
 });

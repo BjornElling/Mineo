@@ -72,7 +72,7 @@ describe('produkt-descriptor-kataloget (§3.2)', () => {
     }
   });
 
-  it('låser baseline-antal mod ledger (239 felter / 16 collections) uden dubletter', () => {
+  it(`låser baseline-antal mod ledger (${EXPECTED_FIELD_REF_COUNT} felter / ${EXPECTED_COLLECTION_COUNT} collections) uden dubletter`, () => {
     expect(productionInputFields).toHaveLength(EXPECTED_FIELD_REF_COUNT);
     expect(productionInputCollections).toHaveLength(EXPECTED_COLLECTION_COUNT);
   });

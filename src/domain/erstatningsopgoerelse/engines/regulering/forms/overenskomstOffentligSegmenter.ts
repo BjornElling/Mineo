@@ -11,7 +11,7 @@ import {
   getReguleringsDatoIntervalForOverenskomst,
 } from '../../../../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../../../data/offentligLoenLookup';
-import { TAF_BEREGNES_SOM } from '../../../helpers/tafBeregningsenhed';
+import { resolveOffentligLoenEnhed } from '../../../../../data/offentligLoenTypes';
 import {
   hasAnyPctSourceOrInput,
   parseDanishToIso,
@@ -46,10 +46,13 @@ export const buildOffentligOverenskomstSegmenter = (
 
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
+  // Pakkens enhed er løntrinssatsens enhed («Ansættelse»). Beløbet regnes om fra den enhed, brugeren har
+  // angivet det i – aldrig fra TAF-enheden, som intet siger om beløbets enhed (fund A1, afklaringslog 10a).
+  const wageUnit = resolveOffentligLoenEnhed(offentlig.loenType);
   const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
     konsolideret.offentligLoenEkstraGrundloen,
-    konsolideret.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måned' : 'Time',
-    offentlig.loenType === 'maanedsLoen' ? 'Måned' : 'Time'
+    konsolideret.offentligLoenEkstraGrundloenAngivesPer,
+    wageUnit
   );
   const feriePct = konsolideret.feriePct;
   const baseResult = getOffentligLoenForDato(
@@ -226,7 +229,7 @@ export const buildOffentligOverenskomstSegmenter = (
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
       const regulering = buildReguleringsbevis(basePackage, packageValue, {
-        kind: 'pakke', sourceColumns,
+        kind: 'pakke', sourceColumns, wageUnit,
         // Den samlede pakkes dato følger også tillæg, der først træder i kraft efter grundlønnens satsdato.
         referenceDate: [parseDanishToIso(offentligEffectiveBase.result.effectiveDate) ?? reguleringsdatoIso,
           baseTillaegsSatser ? parseDanishToIso(baseTillaegsSatser.fraDato) : undefined,

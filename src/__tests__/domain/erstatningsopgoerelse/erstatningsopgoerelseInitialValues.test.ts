@@ -110,6 +110,7 @@ describe('createErstatningsopgoerelseInitialValues – schema-afledte objekt-def
       offentligLoenTrin: undefined,
       offentligLoenGruppe: undefined,
       offentligLoenEkstraGrundloen: undefined,
+      offentligLoenEkstraGrundloenAngivesPer: 'Måned',
       // settings-afledt:
       overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
     });

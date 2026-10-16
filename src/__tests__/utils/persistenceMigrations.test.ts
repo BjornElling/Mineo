@@ -5,6 +5,7 @@ import {
   type MissingPersistedFieldPolicy,
   type PersistedLoadAdapterRegistry,
 } from '../../persistence/persistedLoadAdapter';
+import { parseInboundPersistedSection } from '../../utils/inboundPersistedSection';
 import type {
   EOAngivetLoenLoenudvikling,
   LoenindkomstAnsaettelsesforhold,
@@ -12,7 +13,11 @@ import type {
 
 type HistoricalHolidayPay = 'Almindelig løn' | 'SH-udbetaling' | 'Ingen';
 
-type HistoricalEmploymentFixture = Omit<LoenindkomstAnsaettelsesforhold, 'beregnStoreBededagstillaeg'>;
+// Felter, som de historiske filer i fixturerne ikke bar: Store Bededag-valget (3.14) og forhøjet grundløns enhed (3.15).
+type HistoricalEmploymentFixture = Omit<
+  LoenindkomstAnsaettelsesforhold,
+  'beregnStoreBededagstillaeg' | 'offentligLoenEkstraGrundloenAngivesPer'
+>;
 
 const historicalEmployment = (
   loenPaaHelligdage: HistoricalHolidayPay
@@ -206,11 +211,12 @@ describe('adaptPersistedSectionForLoad', () => {
         '3.10'
       );
 
+      // Kildeversion 3.10 ligger også før kronetillæggenes enheder (3.15); se den særskilte describe nedenfor.
       expect(value).toEqual({
         vedroererPeriodeFra: '2024-01-01',
         loenindkomstAnsaettelsesforhold: [
-          { id: 'af-1', pensionPct: 7.5, beregnStoreBededagstillaeg: false },
-          { id: 'af-2', pensionPct: 3, beregnStoreBededagstillaeg: false },
+          { id: 'af-1', pensionPct: 7.5, beregnStoreBededagstillaeg: false, offentligLoenEkstraGrundloenAngivesPer: 'Måned' },
+          { id: 'af-2', pensionPct: 3, beregnStoreBededagstillaeg: false, offentligLoenEkstraGrundloenAngivesPer: 'Måned' },
         ],
       });
     });
@@ -343,6 +349,133 @@ describe('adaptPersistedSectionForLoad', () => {
         beregnStoreBededagstillaeg: false,
       }));
       expect(migrated.eoAngivetLoenLoenudvikling).not.toHaveProperty('loenPaaHelligdage');
+    });
+  });
+
+  // Afklaringslog 10a og 12 samt AP1's faldgrube (`docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+  describe('kronetillæggenes enheder i filer fra før 3.15', () => {
+    type MigratedEo = {
+      eoAngivetLoenLoenudvikling: Record<string, unknown>;
+      loenindkomstAnsaettelsesforhold: Record<string, unknown>[];
+    };
+    const migrate = (section: unknown, sourceVersion: string): MigratedEo =>
+      adaptPersistedSectionForLoad('erstatningsopgoerelse', section, sourceVersion).value as MigratedEo;
+
+    it.each([
+      ['Månedsløn', 'Måned'],
+      ['Timeløn', 'Time'],
+      [undefined, 'Måned'],
+    ] as const)('forhøjet grundløn ved «Ansættelse» = %s får enheden %s – på kortet og ved angivet løn', (offentligLoenType, enhed) => {
+      const employment = { ...historicalEmployment('Ingen'), offentligLoenType, offentligLoenEkstraGrundloen: { kind: 'number', value: 1000 } };
+      expect(Object.hasOwn(employment, 'offentligLoenEkstraGrundloenAngivesPer')).toBe(false);
+
+      const migrated = migrate({
+        loenindkomstAnsaettelsesforhold: [employment],
+        eoAngivetLoenLoenudvikling: { ...historicalAngivetLoenWithoutHoliday, offentligLoenType },
+      }, '3.14');
+
+      expect(migrated.loenindkomstAnsaettelsesforhold[0]).toEqual(expect.objectContaining({
+        offentligLoenEkstraGrundloen: { kind: 'number', value: 1000 },
+        offentligLoenEkstraGrundloenAngivesPer: enhed,
+      }));
+      expect(migrated.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloenAngivesPer).toBe(enhed);
+    });
+
+    it('rører aldrig en allerede gemt enhed for forhøjet grundløn', () => {
+      const migrated = migrate({
+        loenindkomstAnsaettelsesforhold: [{ ...historicalEmployment('Ingen'), offentligLoenType: 'Timeløn', offentligLoenEkstraGrundloenAngivesPer: 'Måned' }],
+      }, '3.14');
+      expect(migrated.loenindkomstAnsaettelsesforhold[0]?.offentligLoenEkstraGrundloenAngivesPer).toBe('Måned');
+    });
+
+    // Den gemte 'Måned' var en meningsløs schema-default, der aldrig blev vist eller læst: beregningen tvang
+    // Time ved angivet dagsløn. Uden overskrivningen ville tillægget blive ganget med 160,33.
+    it.each([
+      ['Angivet dagsløn', 'Måned', 'Time'],
+      ['Angivet dagsløn', 'Time', 'Time'],
+      ['Angivet månedsløn', 'Time', 'Måned'],
+      ['Angivet månedsløn', 'Måned', 'Måned'],
+    ] as const)('%s: gemt anciennitetsenhed %s indlæses som den tvungne %s', (beregnesUdFra, gemt, forventet) => {
+      for (const sourceVersion of ['legacy-unversioned', '1.0.4', '3.0', '3.13', '3.14']) {
+        const migrated = migrate({
+          beregnesUdFra,
+          eoAngivetLoenLoenudvikling: { ...historicalAngivetLoenWithoutHoliday, anciennitetstillaegSatsAngivesPer: gemt },
+        }, sourceVersion);
+        expect(migrated.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer, sourceVersion).toBe(forventet);
+      }
+    });
+
+    it('sætter den tvungne anciennitetsenhed, også når en ældre fil helt mangler feltet', () => {
+      const { anciennitetstillaegSatsAngivesPer: _udeladt, ...udenEnhed } = historicalAngivetLoenWithoutHoliday;
+      const migrated = migrate({ beregnesUdFra: 'Angivet dagsløn', eoAngivetLoenLoenudvikling: udenEnhed }, '3.14');
+      expect(migrated.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer).toBe('Time');
+    });
+
+    it('lader angivet løns anciennitetsenhed stå ved «Beregningsperiode» og ved manglende beregningsmåde', () => {
+      for (const section of [
+        { beregnesUdFra: 'Beregningsperiode', eoAngivetLoenLoenudvikling: { anciennitetstillaegSatsAngivesPer: 'Time' } },
+        { eoAngivetLoenLoenudvikling: { anciennitetstillaegSatsAngivesPer: 'Time' } },
+      ]) {
+        expect(migrate(section, '3.14').eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer).toBe('Time');
+      }
+    });
+
+    it('migrerer aldrig ansættelseskortets anciennitetsenhed – den var synlig og valgt af brugeren', () => {
+      const migrated = migrate({
+        beregnesUdFra: 'Angivet dagsløn',
+        loenindkomstAnsaettelsesforhold: [{ ...historicalEmployment('Ingen'), anciennitetstillaegSatsAngivesPer: 'Måned' }],
+      }, '3.14');
+      expect(migrated.loenindkomstAnsaettelsesforhold[0]?.anciennitetstillaegSatsAngivesPer).toBe('Måned');
+    });
+
+    it('rører ikke en 3.15-fil: begge enheder er brugerens valg', () => {
+      const section = {
+        beregnesUdFra: 'Angivet dagsløn',
+        loenindkomstAnsaettelsesforhold: [{
+          ...historicalEmployment('Ingen'),
+          beregnStoreBededagstillaeg: false,
+          offentligLoenType: 'Timeløn',
+          offentligLoenEkstraGrundloenAngivesPer: 'Måned',
+        }],
+        eoAngivetLoenLoenudvikling: {
+          ...historicalAngivetLoenWithoutHoliday,
+          beregnStoreBededagstillaeg: false,
+          offentligLoenType: 'Timeløn',
+          anciennitetstillaegSatsAngivesPer: 'Måned',
+          offentligLoenEkstraGrundloenAngivesPer: 'Måned',
+        },
+      };
+      expect(migrate(section, '3.15')).toEqual(section);
+    });
+
+    // Et gennemløb af hele load-kæden (migrering → strip → schema) viser, at en ældre dagslønssag med
+    // anciennitetstillæg indlæses med samme enhed, som beregningen brugte før – dvs. uændret resultat.
+    it('en ældre angivet-dagsløn-sag med anciennitet indlæses med uændret enhed og uden tab', () => {
+      const inbound = parseInboundPersistedSection('erstatningsopgoerelse', {
+        beregnesUdFra: 'Angivet dagsløn',
+        loenindkomstAnsaettelsesforhold: [],
+        eoAngivetLoenLoenudvikling: {
+          ...historicalAngivetLoenWithoutHoliday,
+          harAnciennitetstillaegEfterSkadedatoen: true,
+          anciennitetstillaegDato: '2024-05-01',
+          anciennitetstillaegSats: { kind: 'number', value: 3.12 },
+          anciennitetstillaegSatsAngivesPer: 'Måned',
+          offentligLoenType: 'Timeløn',
+          offentligLoenEkstraGrundloen: { kind: 'number', value: 25 },
+        },
+      }, '3.14');
+
+      expect(inbound.ok).toBe(true);
+      expect(inbound.unknownPaths).toEqual([]);
+      expect(inbound.invalidPaths).toEqual([]);
+      expect(inbound.preflightMissingFields).toEqual([]);
+      if (!inbound.ok) return;
+      expect(inbound.data.eoAngivetLoenLoenudvikling).toEqual(expect.objectContaining({
+        anciennitetstillaegSats: { kind: 'number', value: 3.12 },
+        anciennitetstillaegSatsAngivesPer: 'Time',
+        offentligLoenEkstraGrundloen: { kind: 'number', value: 25 },
+        offentligLoenEkstraGrundloenAngivesPer: 'Time',
+      }));
     });
   });
 

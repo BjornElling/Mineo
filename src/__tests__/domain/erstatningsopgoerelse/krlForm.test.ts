@@ -1,6 +1,5 @@
 import * as krlRates from '../../../data/krlRates';
 import { krlForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/krlForm';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import type {
   FormKonsoliderContext,
   KonsolideretLoenudvikling,
@@ -20,7 +19,6 @@ const createContext = (id = 'KTO (kommuner)'): FormKonsoliderContext => ({
   angivetLoen: true,
   anvendtReguleringsdato: iso('2020-06-01'),
   tafRanges,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
 });

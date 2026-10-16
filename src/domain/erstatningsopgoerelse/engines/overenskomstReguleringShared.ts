@@ -10,7 +10,7 @@ import {
 import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
 import { differsFromZero } from '../../../utils/numberComparison';
 import { round2 } from '../../../utils/roundingShortcuts';
-import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import type { OffentligLoenType } from '../../../data/offentligLoenTypes';
 import { convertAnciennitetSats, parseDanishToIso, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
 import type { FormulaComponents } from './reguleringFormulaUtils';
 
@@ -38,7 +38,8 @@ export type AnciennitetForIndexInput = Readonly<{
   satsValue: number | undefined;
   satsAngivesPer: 'Time' | 'Måned' | undefined;
   overenskomstId: string | undefined;
-  tafBeregningsenhed: TafBeregningsenhed;
+  /** «Ansættelse» ved offentlig overenskomst; `undefined` ved privat, hvor overenskomstens enhed gælder. */
+  offentligLoenType: OffentligLoenType | undefined;
   anvendtReguleringsdatoIso: ISODateString | undefined;
   // Periodens grænser fra motorens tafRanges.
   periodeStartIso: ISODateString;
@@ -46,9 +47,9 @@ export type AnciennitetForIndexInput = Readonly<{
 }>;
 
 /**
- * Udleder anciennitetstillæggets kroneværdi (i grundlønnens enhed) + aktiveringsdato, eller `null`
- * hvis der intet aktivt tillæg er. `anciennitetstillaegSatsAngivesPer` er schema-defaultet til
- * 'Måned', så `?? 'Måned'` er blot defensivt (aldrig nået for schema-gyldigt input).
+ * Udleder anciennitetstillæggets kroneværdi (i lønpakkens enhed, jf. `getGrundloenAngivetPerForOverenskomst`)
+ * + aktiveringsdato, eller `null` hvis der intet aktivt tillæg er. `anciennitetstillaegSatsAngivesPer` er
+ * schema-defaultet til 'Måned', så `?? 'Måned'` er blot defensivt (aldrig nået for schema-gyldigt input).
  */
 export const resolveAnciennitetForIndex = (
   input: AnciennitetForIndexInput
@@ -62,8 +63,7 @@ export const resolveAnciennitetForIndex = (
   if (input.anvendtReguleringsdatoIso && anciennitetDato <= input.anvendtReguleringsdatoIso) return null;
   if (anciennitetDato > input.periodeEndIso) return null;
   if (!input.overenskomstId) return null;
-  const tafBeregnesSom = input.tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
-  const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(input.overenskomstId, tafBeregnesSom);
+  const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(input.overenskomstId, input.offentligLoenType);
   if (!grundloenAngivetPer) return null;
   const supplementValue = convertAnciennitetSats(satsValue, input.satsAngivesPer ?? 'Måned', grundloenAngivetPer);
   const roundedSupplement = round2(supplementValue);

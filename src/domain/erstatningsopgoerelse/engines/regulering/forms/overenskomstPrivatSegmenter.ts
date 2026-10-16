@@ -9,6 +9,7 @@ import {
   getOverenskomst,
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
+  getGrundloenAngivetPerForOverenskomst,
 } from '../../../../../data/overenskomstRates';
 import { hasAnyPctSourceOrInput, parseDanishToIso } from '../../../helpers/eoSharedUtils';
 import {
@@ -42,6 +43,8 @@ export const buildPrivatOverenskomstSegmenter = (
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const applyStoreBededagstillaeg = harValgtStoreBededagstillaeg(konsolideret);
   const feriePct = konsolideret.feriePct;
+  // Privat overenskomst angiver selv sin grundløns enhed; «Ansættelse» findes kun ved offentlig.
+  const wageUnit = getGrundloenAngivetPerForOverenskomst(konsolideret.overenskomstId, undefined);
 
   // Privat overenskomst clamper basen til dækningsstart via max(reguleringsdato, dækningsstart).
   // Bevidst adskilt fra den offentlige grens clamp (resolveOffentligEffectiveBase), der har sin
@@ -176,7 +179,7 @@ export const buildPrivatOverenskomstSegmenter = (
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
       const regulering = buildReguleringsbevis(basePackage, packageValue, {
-        kind: 'pakke', sourceColumns,
+        kind: 'pakke', sourceColumns, wageUnit,
         // Pakken må ikke mærkes med en gammel satsdato, hvis Store Bededag først gælder fra 2024.
         referenceDate: [parseDanishToIso(privateBaseContext.effectiveBase.sats.fraDato) ?? reguleringsdatoIso,
           basePackageComponents.storeBededagPct !== 0 ? STORE_BEDEDAG_START : undefined,

@@ -1,7 +1,6 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { overenskomstForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstForm';
 import type {
   FormKonsoliderContext,
@@ -35,7 +34,6 @@ const createContext = (
   angivetLoen: true,
   anvendtReguleringsdato: iso('2024-04-01'),
   tafRanges,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   kraeverFeriePctVedBeregningsperiode: false,
   activeMedSynligeSatserOgLoenoplysninger: [],
   ...overrides,
@@ -70,12 +68,12 @@ const createPrivateKonsolideret = (
   fritvalgPct: 0,
   shSoPct: 0,
   pensionPct: 0,
-  tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
   harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned',
   anciennitetstillaegSatsValue: undefined,
   offentligLoenEkstraGrundloen: 0,
+  offentligLoenEkstraGrundloenAngivesPer: 'Måned',
   offentlig: null,
   tafRanges,
   ...overrides,
@@ -105,12 +103,12 @@ describe('overenskomstForm', () => {
         fritvalgPct: 3,
         shSoPct: 2,
         pensionPct: 8,
-        tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
         harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSatsValue: undefined,
         offentligLoenEkstraGrundloen: 125,
+        offentligLoenEkstraGrundloenAngivesPer: 'Måned',
         offentlig: null,
         tafRanges,
       },
@@ -138,6 +136,42 @@ describe('overenskomstForm', () => {
         loengruppe: 0,
       },
     });
+  });
+
+  it('bærer forhøjet grundløns gemte enhed videre til segmentbyggeren', () => {
+    const source = createSource({
+      overenskomstId: 'kl-overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 1,
+      offentligLoenGruppe: 0,
+      offentligLoenEkstraGrundloen: amount(10),
+      offentligLoenEkstraGrundloenAngivesPer: 'Time',
+    });
+
+    expect(overenskomstForm.konsolider(createContext([source])).konsolideret).toMatchObject({
+      offentligLoenEkstraGrundloen: 10,
+      offentligLoenEkstraGrundloenAngivesPer: 'Time',
+    });
+  });
+
+  it('kræver ens enhed for forhøjet grundløn kun, når der er et beløb', () => {
+    const offentlig = createSource({
+      overenskomstId: 'kl-overenskomst',
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: 1,
+      offentligLoenGruppe: 0,
+    });
+    // Uden beløb er en forskellig (skjult) enhed uden betydning og må ikke blokere.
+    expect(() => overenskomstForm.konsolider(createContext([
+      offentlig,
+      { ...offentlig, id: 'af-2', offentligLoenEkstraGrundloenAngivesPer: 'Time' },
+    ]))).not.toThrow();
+
+    const medBeloeb = { ...offentlig, offentligLoenEkstraGrundloen: amount(100) };
+    expect(() => overenskomstForm.konsolider(createContext([
+      medBeloeb,
+      { ...medBeloeb, id: 'af-2', offentligLoenEkstraGrundloenAngivesPer: 'Time' },
+    ]))).toThrow('Inkonsistente loenudviklingsindstillinger: forhøjet grundløn angives per');
   });
 
   it('bevarer et gyldigt anciennitetstillæg og bruger Måned som manglende enhedsstandard', () => {

@@ -192,6 +192,88 @@ const migrateMissingStoreBededagToggle = (value: unknown): unknown => {
   };
 };
 
+/**
+ * Første persisted-data-version, hvor begge kronetillæg i reguleringen bærer en gemt enhed, som er
+ * brugerens eget valg (afklaringslog 10a og 12 i `docs/review/regulering-taf-gennemgang-2026-10-13.md`).
+ */
+const FIRST_VERSION_WITH_KRONETILLAEG_ENHEDER = '3.15';
+
+/**
+ * Kildeversionerne fra før {@link FIRST_VERSION_WITH_KRONETILLAEG_ENHEDER}.
+ *
+ * Historiklisten må kun udvides i enden, så positionen før versionen er netop de tidligere udgivelser.
+ * Mængden opslås eksplicit pr. kildeversion; en senere version (3.16 osv.) kommer aldrig med og får
+ * dermed ikke sin gemte enhed overskrevet. Mangler versionen i historikken, stopper modulet ved
+ * indlæsning frem for at migrere alt eller intet tavst.
+ */
+const VERSIONS_BEFORE_KRONETILLAEG_ENHEDER: ReadonlySet<string> = (() => {
+  const index = PERSISTED_DATA_VERSION_HISTORY.indexOf(FIRST_VERSION_WITH_KRONETILLAEG_ENHEDER);
+  if (index < 0) {
+    throw new Error(`Persisted-data-versionen ${FIRST_VERSION_WITH_KRONETILLAEG_ENHEDER} mangler i historikken.`);
+  }
+  return new Set<string>(PERSISTED_DATA_VERSION_HISTORY.slice(0, index));
+})();
+
+/** Den enhed, «Ansættelse» giver: feltet «Forhøjet grundløn» viste altid «/ time» ved Timeløn, ellers «/ måned». */
+const resolveHistoriskAnsaettelsesEnhed = (offentligLoenType: unknown): 'Time' | 'Måned' =>
+  offentligLoenType === 'Timeløn' ? 'Time' : 'Måned';
+
+/**
+ * Den anciennitetsenhed, programmet før 3.15 TVANG ved angivet løn. Andre beregningsmåder (og en
+ * manglende/ukendt værdi) giver `undefined`: der var intet tvunget valg at overføre, og den gemte værdi røres ikke.
+ */
+const resolveHistoriskTvungenAnciennitetsEnhed = (beregnesUdFra: unknown): 'Time' | 'Måned' | undefined => {
+  if (beregnesUdFra === 'Angivet dagsløn') return 'Time';
+  if (beregnesUdFra === 'Angivet månedsløn') return 'Måned';
+  return undefined;
+};
+
+const addMissingEkstraGrundloenEnhed = (source: unknown): unknown => {
+  if (!isRecord(source) || Object.hasOwn(source, 'offentligLoenEkstraGrundloenAngivesPer')) return source;
+  return {
+    ...source,
+    offentligLoenEkstraGrundloenAngivesPer: resolveHistoriskAnsaettelsesEnhed(source.offentligLoenType),
+  };
+};
+
+/**
+ * Overfører kronetillæggenes historiske enheder til de gemte enhedsvalg fra version 3.15.
+ *
+ * 1. «Forhøjet grundløn ud over løntrin» havde ingen gemt enhed, men feltet og bilaget viste altid
+ *    «Ansættelse»-enheden. Det er derfor den enhed, en ældre fil får – på hvert ansættelsesforhold og på
+ *    angivet løn. En allerede gemt enhed røres aldrig.
+ * 2. Angivet løns `anciennitetstillaegSatsAngivesPer` blev gemt med schemaets default 'Måned', men værdien
+ *    blev hverken vist eller læst: beregningen tvang Time ved «Angivet dagsløn» og Måned ved «Angivet
+ *    månedsløn». Den gemte værdi er altså ikke brugerens valg, og den overskrives med den enhed, beregningen
+ *    faktisk brugte. Lod vi den stå, ville en dagslønssags tillæg blive ganget med 160,33. Ansættelseskortets
+ *    anciennitetsenhed var synlig og valgt af brugeren og migreres ikke.
+ *
+ * Den ændrede fortolkning af forhøjet grundløn (beløbet regnes nu i den enhed, feltet viste, ikke i
+ * TAF-enheden) er godkendt af udvikleren uden preflight eller advarsel ved indlæsning (afklaringslog 12).
+ */
+const migrateHistoricalKronetillaegEnheder = (value: unknown): unknown => {
+  if (!isRecord(value)) return value;
+
+  const employments = value.loenindkomstAnsaettelsesforhold;
+  const migratedEmployments = Array.isArray(employments)
+    ? employments.map(addMissingEkstraGrundloenEnhed)
+    : employments;
+
+  const angivetLoen = value.eoAngivetLoenLoenudvikling;
+  const angivetLoenMedEkstraEnhed = addMissingEkstraGrundloenEnhed(angivetLoen);
+  const tvungenAnciennitetsEnhed = resolveHistoriskTvungenAnciennitetsEnhed(value.beregnesUdFra);
+  const migratedAngivetLoen = tvungenAnciennitetsEnhed !== undefined && isRecord(angivetLoenMedEkstraEnhed)
+    ? { ...angivetLoenMedEkstraEnhed, anciennitetstillaegSatsAngivesPer: tvungenAnciennitetsEnhed }
+    : angivetLoenMedEkstraEnhed;
+
+  if (migratedEmployments === employments && migratedAngivetLoen === angivetLoen) return value;
+  return {
+    ...value,
+    ...(migratedEmployments === employments ? {} : { loenindkomstAnsaettelsesforhold: migratedEmployments }),
+    ...(migratedAngivetLoen === angivetLoen ? {} : { eoAngivetLoenLoenudvikling: migratedAngivetLoen }),
+  };
+};
+
 type FieldAlias = Readonly<{
   from: string;
   to: string;
@@ -364,20 +446,30 @@ const adaptLegacyFileDataForLoad = (
   ? migrateLegacyCrossSectionFields(value)
   : { ...value };
 
-const adaptErstatningsopgoerelseForLoad = (value: unknown): PersistedLoadAdaptation => {
+const adaptErstatningsopgoerelseForLoad = (value: unknown, sourceVersion: string): PersistedLoadAdaptation => {
   const withAliases = mapKnownEoFieldAliases(value).value;
   const withoutHistoricalDevelopmentData = removeApprovedHistoricalDevelopmentFields(withAliases);
-  return removeDerivedStoreBededagPct(migrateMissingStoreBededagToggle(withoutHistoricalDevelopmentData));
+  const withStoreBededagToggle = migrateMissingStoreBededagToggle(withoutHistoricalDevelopmentData);
+  // Versionsspecifik, ikke idempotent: en 3.15-fils anciennitetsenhed ved angivet løn er brugerens valg og må
+  // ikke overskrives efter «Beregnes ud fra», som reglen gør for de ældre filer.
+  const withKronetillaegEnheder = VERSIONS_BEFORE_KRONETILLAEG_ENHEDER.has(sourceVersion)
+    ? migrateHistoricalKronetillaegEnheder(withStoreBededagToggle)
+    : withStoreBededagToggle;
+  return removeDerivedStoreBededagPct(withKronetillaegEnheder);
 };
 
 // Registrér alle kendte historiske EO-versioner, også når en version ikke behøver en særskilt
 // strukturændring. Det gør aliaser og afledte slots til en fast del af loadgrænsen og gør et glemt
-// historikpunkt synligt i versionsværnet.
+// historikpunkt synligt i versionsværnet. Hver entry binder sin egen kildeversion, så versionsspecifikke
+// migreringer (fx kronetillæggenes enheder) kan afgøres uden at gætte ud fra payloadens form.
 const PERSISTED_LOAD_ADAPTER_REGISTRY = {
   erstatningsopgoerelse: Object.fromEntries(
     PERSISTED_DATA_VERSION_HISTORY.map((fromVersion) => [
       fromVersion,
-      { toVersion: PERSISTED_DATA_VERSION, adapt: adaptErstatningsopgoerelseForLoad },
+      {
+        toVersion: PERSISTED_DATA_VERSION,
+        adapt: (value: unknown) => adaptErstatningsopgoerelseForLoad(value, fromVersion),
+      },
     ])
   ),
 } satisfies PersistedLoadAdapterRegistry;

@@ -101,7 +101,6 @@ export default function IndtaegtFoerSkadenSection() {
     alleArbejdsgiverOrg,
     filteredOverenskomster,
     erOffentligOverenskomst,
-    offentligLoenEkstraGrundloenSuffix,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
     loenudviklingBaseDateErrorMessage,
@@ -181,6 +180,10 @@ export default function IndtaegtFoerSkadenSection() {
     offentligLoenEkstraGrundloen: {
       field: eoAngivetLoenFields.offentligLoenEkstraGrundloen.bind(),
       location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloen'),
+    },
+    offentligLoenEkstraGrundloenAngivesPer: {
+      field: eoAngivetLoenFields.offentligLoenEkstraGrundloenAngivesPer.bind(),
+      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloenAngivesPer'),
     },
   };
 
@@ -534,7 +537,6 @@ export default function IndtaegtFoerSkadenSection() {
                     </Box>
                   </Box>
                 }
-                offentligLoenEkstraGrundloenSuffix={offentligLoenEkstraGrundloenSuffix}
                 onOpenLoentrinFinder={openLoentrinFinder}
                 loentrinFinderTriggerRef={loentrinFinderTriggerRef}
                 baseDateDisplay={loenudviklingBaseDateDisplay}
@@ -574,6 +576,10 @@ export default function IndtaegtFoerSkadenSection() {
                     field: eoAngivetLoenFields.anciennitetstillaegDato.bind(),
                     location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegDato'),
                   },
+                  anciennitetstillaegSatsAngivesPer: {
+                    field: eoAngivetLoenFields.anciennitetstillaegSatsAngivesPer.bind(),
+                    location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer'),
+                  },
                   anciennitetstillaegSats: {
                     field: eoAngivetLoenFields.anciennitetstillaegSats.bind(),
                     location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.anciennitetstillaegSats'),
@@ -594,8 +600,6 @@ export default function IndtaegtFoerSkadenSection() {
                 harAnciennitetstillaeg={Boolean(eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen)}
                 referenceText={loenudviklingBaseDateReferenceText}
                 satsPerTekst={eoAnciennitetSatsPerTekst}
-                // Denne overflade UDLEDER enheden af `beregnesUdFra` og viser derfor intet valg.
-                satsEnhedSlot={null}
                 fieldNamePrefix=""
               />
             ) : null}
