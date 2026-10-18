@@ -9,6 +9,7 @@ import { pageMessage } from '../../layout/pageMessage';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { erOffentligeYdelserReguleringRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import TransientDateInput from '../../inputs/transient/TransientDateInput';
 import MappedToggleField from '../../../inputCore/react/fields/MappedToggleField';
@@ -112,6 +113,12 @@ type Props = Readonly<{
 const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   const edit = useInputEditPort();
   const rows = values.offentligeYdelserRows;
+  const harOffentligeYdelserIBeregningsgrundlaget = React.useMemo(() => {
+    if (!erOffentligeYdelserReguleringRelevant(values)) return false;
+    const range = buildBeregningsperiodeRange(values);
+    // Brug indkomstmotorens periodisering, så rækker uden for perioden eller uden bidrag ikke aktiverer valget.
+    return range !== undefined && buildIncomeForRanges(values, [range]).benefits.length > 0;
+  }, [values]);
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -458,10 +465,16 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
         */}
         {erOffentligeYdelserReguleringRelevant(values) ? (
           <LabeledControlRow
+            labelSx={harOffentligeYdelserIBeregningsgrundlaget ? {} : {
+              // Rækkens fælles typografi har to klasser; nedtoningen skal have samme specificitet.
+              '&&': { color: 'var(--mineo-color-label-disabled)', cursor: 'default' },
+            }}
             label={(
               <>
                 Offentlige ydelser i beregningsperioden reguleres
-                <InfoTooltipIcon title="Offentlige ydelser fremskrives efter statslig praksis med tilpasningsprocenten + 2 % per 1. januar" />
+                <InfoTooltipIcon title={harOffentligeYdelserIBeregningsgrundlaget
+                  ? 'Offentlige ydelser, der indgår i beregningsgrundlaget, opreguleres til erstatningsåret ved beregning af TAF.'
+                  : 'Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF.'} />
               </>
             )}
           >
@@ -472,6 +485,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name="regulerOffentligeYdelser"
+                disabled={!harOffentligeYdelserIBeregningsgrundlaget}
                 id={controlId}
                 labelledBy={labelledBy}
               />
