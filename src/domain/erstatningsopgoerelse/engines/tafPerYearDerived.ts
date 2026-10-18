@@ -18,7 +18,7 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { TafCalculationValues } from './tafCalculationInput';
 import type { TafNettoBeregningResult } from './tafNettoBeregning';
 import type {
   LoenudviklingSegment,
@@ -26,17 +26,17 @@ import type {
   LoenudviklingModel,
   OffentligeYdelserUdviklingModel,
   TafIndtaegterModel,
-} from '../snapshot/eoPresentationModel';
+} from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
 import type { SygeferiegodtgoerelseResult } from './sfggResult';
 import {
   buildTafArbejdsdageSet,
   countTafArbejdsdageInRange,
   segmentAmountOre,
-} from '../snapshot/eoPresentationModel';
+} from './loenudviklingBeregning';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { buildIncomeCalculationContext, buildIncomeForRanges, resolveAnsaettelsesforholdNavn, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
-import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
+import { buildIncomeCalculationContext } from '../helpers/indtaegtPerioder';
+import { buildTafIndtaegterBeregning } from './tafIndtaegterBeregning';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
@@ -117,7 +117,6 @@ export type TafPerYearResult = Readonly<{
 }>;
 
 export type TafPerYearSource = Readonly<{
-  stamdataValues: StamdataValues;
   loenudvikling: LoenudviklingModel | null;
   offentligeYdelserUdvikling: OffentligeYdelserUdviklingModel | null;
   tafIndtaegter: TafIndtaegterModel | null;
@@ -140,12 +139,10 @@ export type TafPerYearBuildOutcome =
   }>;
 
 export const buildTafPerYearSourceFromComputed = (args: Readonly<{
-  stamdataValues: StamdataValues;
   tafNetto: TafNettoBeregningResult;
   tabtArbejdsfortjenesteOre: MoneyOre;
   forligFactor: number | null;
 }>): TafPerYearSource => ({
-  stamdataValues: args.stamdataValues,
   loenudvikling: args.tafNetto.loenudvikling,
   offentligeYdelserUdvikling: args.tafNetto.offentligeYdelserUdvikling,
   tafIndtaegter: args.tafNetto.tafIndtaegter,
@@ -278,7 +275,7 @@ const allocateOreByWeight = (
 
 export const buildTafPerYearBuildOutcome = (
   source: TafPerYearSource,
-  eoValues: ErstatningsopgoerelseValues,
+  eoValues: TafCalculationValues,
   options: Readonly<{
     tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
     midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -353,7 +350,6 @@ export const buildTafPerYearBuildOutcome = (
   // 2. Byg TAF-ranges og bestem alle relevante årstal
   const tafRanges = options.tafRanges;
   const incomeContext = buildIncomeCalculationContext(eoValues, tafRanges);
-  const useWholeKronerForMidlertidigtEet = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 
   // Samler årstal fra segmenter OG TAF-ranges (fradrag kan dække år uden segmenter)
   const allYearsSet = new Set<number>(yearSegmentsMap.keys());
@@ -396,33 +392,15 @@ export const buildTafPerYearBuildOutcome = (
     // Klip TAF-ranges til det pågældende kalenderår for fradragsberegning
     const yearClippedRanges = yearClippedRangesByYear.get(year) ?? [];
 
-    const income = buildIncomeForRanges(eoValues, yearClippedRanges, incomeContext);
-
-    // Konvertér fradrag til øre – stabil rækkefølge (employers først, derefter benefits)
-    const deductions: TafYearDeduction[] = [];
-    for (const emp of income.employers) {
-      if (emp.amount <= 0) continue;
-      const amountOre = fromKroner(roundKroner(emp.amount));
-      deductions.push({ label: resolveAnsaettelsesforholdNavn(emp.name, emp.index), amountOre });
-    }
-    const sortedBenefits = [...income.benefits].sort((a, b) =>
-      a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' })
-    );
-    for (const ben of sortedBenefits) {
-      if (ben.amount <= 0) continue;
-      // Midlertidigt EET fra EET-siden: per-år-fradraget hentes fra den kanoniske pr.-periode-afrundede
-      // bilagskilde (klippet til årets ranges), så år-linjerne summerer mod bilaget/hovedopgørelsen.
-      // Residual fra perioder der krydser årsskifte absorberes af afrundingslinjen nedenfor.
-      if (ben.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet) {
-        const kanoniskKroner = sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, yearClippedRanges);
-        if (kanoniskKroner > 0) {
-          deductions.push({ label: ben.label, amountOre: fromKroner(kanoniskKroner) });
-        }
-        continue;
-      }
-      const amountOre = fromKroner(roundIncomeBenefitAmountKroner(ben.typeKey, ben.amount, useWholeKronerForMidlertidigtEet));
-      deductions.push({ label: ben.label, amountOre });
-    }
+    const income = buildTafIndtaegterBeregning(eoValues, yearClippedRanges, {
+      midlertidigtEetGroups,
+      incomeContext,
+    });
+    const deductions: TafYearDeduction[] = income.entries
+      // Årsdokumentet har hidtil udeladt importeret EET, når bilagets periodeafrunding giver 0 kr.
+      // Hovedopgørelsen beholder nul-linjen. Kun præsentationen er forskellig; beløbet beregnes fælles.
+      .filter((entry) => !(entry.kind === 'ydelse' && entry.imported && entry.amountOre <= 0))
+      .map(({ label, amountOre }) => ({ label, amountOre }));
     if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseByYear.has(year)) {
       deductions.push({
         label: 'Sygeferiegodtgørelse',
@@ -455,9 +433,10 @@ export const buildTafPerYearBuildOutcome = (
   const reconciledYears = samletTafKravOre === 0
     ? years.map((year) => ({
       ...year,
-      // Når den autoritative EO-total er clampet til 0, må årsfordelingen ikke
-      // fortsat indeholde negative nettobeløb. Årslinjerne skal derfor også være 0,
-      // ellers opstår et kunstigt afstemningsbrud mod facit.
+      // TAF erstatter kun manglende indtægt. Når det samlede krav er 0, er også hvert års
+      // viste krav 0, mens indtægter og fradrag bevares – fx giver lønfremgang intet krav.
+      // Dette er tilsigtet domæneadfærd, ikke en afrundingsfejl (udviklerbeslutning 2026-10-18,
+      // eo-snapshot-contract.md §10.4).
       yearTafFoerForligOre: zeroMoneyOre(),
       yearTafOre: zeroMoneyOre(),
     }))

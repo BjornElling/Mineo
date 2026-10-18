@@ -131,6 +131,7 @@ const FAKE_PRESENTATION: TafPerYearResult = {
 };
 
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
+  afrundingOre: moneyOre(0),
   beregningsAar: 2026,
   years: [
     { year: 2024, yearTafOre: moneyOre(37500000), deltaPct: 5.1234, yearTafOpreguleretOre: moneyOre(39421275) },
@@ -195,9 +196,25 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(opreguleretBeloeb?.style).toBe('bold');
     // Beløbslinjen bruger non-breaking space før "kr."; sammenlign mellemrumsuafhængigt.
     expect(normalized).toContain('778.842,00 kr.');
+    expect(texts).not.toContain('Afrunding');
     // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
     expect(texts).not.toContain('Sygeferiegodtgørelse');
     expect(artifact.filename).toBe('TAF opreguleret til beregningsår.pdf');
+  });
+
+  it.each([1, -1])('viser afrunding på %i øre før den samlede total', async (afrunding) => {
+    const presentation = {
+      ...FAKE_PRESENTATION,
+      afrundingOre: moneyOre(afrunding),
+      samletTafKravOre: moneyOre(FAKE_PRESENTATION.samletTafKravOre + afrunding),
+    };
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(presentation, toISODateString('2026-03-01'));
+    if (outcome.kind !== 'ok') throw new Error('Opreguleringen kunne ikke beregnes.');
+    await generate(pdfSession, { document: { ...FAKE_DOCUMENT, presentation, opreguleret: outcome.result } });
+    const texts = textsOf().map((text) => text.replace(/\s/g, ' '));
+    expect(texts).toContain(afrunding > 0 ? '0,01 kr.' : '- 0,01 kr.');
+    expect(texts.indexOf('Afrunding')).toBeGreaterThan(texts.indexOf('Samlet'));
+    expect(texts.indexOf('Afrunding')).toBeLessThan(texts.indexOf('Samlet TAF opreguleret til 2026'));
   });
 
   it('viser og beregner opreguleringslinjen med fire-decimalers faktor fra beregningsmotoren', () => {

@@ -339,6 +339,11 @@ export const generateTafOpreguleretPaaAarDocument = (
     safeAddLeftRightText(`${opreguleretEntry.year}`, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
   }
 
+  if (opreguleret.afrundingOre !== 0) {
+    const afrundingText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleret.afrundingOre));
+    safeAddLeftRightText('Afrunding', afrundingText, rightMaxWidth, { rightFontStyle: 'normal' });
+  }
+
   // Samlet opreguleret TAF-krav (fed, med streg)
   const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleret.sumOpreguleretOre));
   safeAddLeftRightText(`Samlet TAF opreguleret til ${beregningsAar}`, samletText, rightMaxWidth, {

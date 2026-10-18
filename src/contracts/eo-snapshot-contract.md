@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -65,6 +65,31 @@ Godkendt af udvikleren 2026-10-12 efter fundet af 21,92 % i TAF-beregningen mod 
   gældende allerede i 2023 eller erstatte satsdatoen med en vilkårlig senere reguleringsdato.
 - Canonical-output-grænsen kontrollerer forbindelsen mellem grundlag, faktor, anvendt procent og
   segmentbeløb. Manglende eller modstridende motorgrundlag må ikke blive et gyldigt dokument.
+- Grafens indtægtskilder, perioder og niveauer læses gennem samme indkomstmotor med
+  `data.tafCalculationInput`, som nettoberegningen bruger. Grundlaget inkluderer satsprojektion,
+  relevans og transient midlertidigt EET; `snapshot.input` er det oprindelige brugerinput og må
+  ikke bruges til at genopbygge grafens indkomstgrundlag. Årsfordelingen bruger også dette
+  effektive TAF-input og nettomotorens resultater; opreguleringen bygger videre på årsresultatet.
+  Grafens visuelle normalisering af ferie-/SH-huller og dens udseende bevares.
+- Hovedopgørelsens og årsfordelingens faktiske indkomstfradrag dannes begge af
+  `buildTafIndtaegterBeregning`. Periodiseringsmotoren leverer alle ansættelser og ydelsestyper;
+  den fælles fradragsprojektion ejer navngivning, rækkefølge, beløbsafrunding og koblingen til
+  EET-bilagets periodeafrundede beløb. Årsfordelingen må ikke have sin egen parallelle
+  konvertering fra rå indkomst til fradrag. Sygeferiegodtgørelse tilføjes fra samme selvstændige
+  SFGG-motorresultat som i hovedopgørelsen.
+- Grafen viser faktiske indtægtsniveauer pr. måned eller arbejdsdag, ikke størrelsen af
+  TAF-kravet. Den deler effektivt input og periodiseringsmotor med indkomstfradraget, men
+  dens samples, omregning til niveau og visuelle brobygning er en særskilt præsentation.
+  De må aldrig bruges til at beregne eller afstemme opgørelsernes kronebeløb.
+- Udviklerbeslutning 2026-10-18: Grafen viser hvert ansættelsesforhold som en selvstændig
+  serie, også ved ens arbejdsstednavne. Serieidentiteten følger ansættelsesforholdets id;
+  ydelsesserier følger ydelsestypen. Visningsnavnet må ikke sammenlægge forskellige kilder.
+- Udviklerbeslutning 2026-10-18: Har et graf-sample ingen arbejdsdage efter feriefradrag,
+  fordeles en eventuel indkomst over periodens hverdage eksklusive SH, før feriefradrag.
+  Eksempel: 6.000 kr. i februar 2024 med ferie hele måneden fordeles over 21 hverdage i grafen.
+  Hver kildes niveau afrundes som hidtil til øre. Dette ændrer ikke indkomstfradrag,
+  TAF-arbejdsdage eller krav i opgørelserne. Samples uden indkomst og samples alene med
+  weekend-/SH-dage bevarer den eksisterende visuelle behandling.
 - En uafhængig kontrol må efterregne resultatet, men aldrig levere alternative reguleringstal til den normale
   visning. Uden canonical segmenter må kontrollen ikke fremstille et syntetisk beregnet reguleringsforløb.
 - Save og load ændres ikke af dette runtime-resultat. Afledte basisprocenter genskabes gennem den fælles
@@ -490,10 +515,22 @@ Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs
 3. Acceptabel afrundingsafvigelse:
 - Den samlede forskel mellem årssum og autoritativ total må højst være 1 kr. (100 øre).
 - Overskrides 1 kr., skal systemet være fail-closed: årsfordelingen må ikke vises som gyldig beregning.
+- Udviklerbeslutning 2026-10-18: "TAF opreguleret til beregningsåret" viderefører samme
+  afrundingsbeløb uændret, uden opregulering. Et beløb forskelligt fra 0 vises som en særskilt
+  "Afrunding"-linje efter de opregulerede beløb pr. år og før den samlede total i både PDF og Word.
+  Totalen inkluderer afrundingen; når der ikke sker opregulering, er den derfor identisk med
+  "Samlet TAF-krav" i "TAF fordelt på år". Ved 0 udelades afrundingslinjen som i årsopgørelsen.
 
-4. Clamp-scenarie:
-- Hvis EO-netto clamped til 0, fordi fradrag overstiger lønudvikling, må der ikke vises en misvisende årsfordeling med stor "Afrunding".
-- Systemet skal i dette tilfælde fail-close årsfordelingen.
+4. Intet indtægtstab giver intet TAF-krav:
+- Udviklerbeslutning 2026-10-18: TAF erstatter den indtægt, der mangler efter skaden. Er indtægten
+  efter skaden mindst lige så stor som den beregnede indtægt uden skaden, er TAF-kravet 0 kr.
+  En lønfremgang efter skaden er et almindeligt og gyldigt eksempel på dette.
+- Når den samlede TAF-total er 0 kr., viser årsfordelingen også TAF-kravet som 0 kr. for hvert år.
+  De beregnede indtægter og fradrag bevares og vises fortsat. En linje med 1.000 kr. i beregnet
+  indtægt uden skaden og 1.500 kr. i faktisk indtægt efter skaden viser derfor korrekt et
+  TAF-krav på 0 kr., ikke et negativt krav på -500 kr.
+- Dette er tilsigtet domæneadfærd, ikke en afrundingsfejl eller et ugyldigt dokument.
+  Årsdokumenterne må ikke blokeres alene af denne grund, og forskellen må ikke vises som "Afrunding".
 
 ## 11. TAF-beregningsperiode og SFGG-referenceperiode er adskilte domæner
 

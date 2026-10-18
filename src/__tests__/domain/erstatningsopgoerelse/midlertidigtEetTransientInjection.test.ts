@@ -16,6 +16,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot as computeEoSnapshotRaw } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToTafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetImportContext,
@@ -306,6 +307,17 @@ describe('midlertidigt EET transient injection', () => {
     expect(midlertidigtEetEntry?.amountOre).toBeGreaterThan(0);
     expect(snapshot.inspektionSnapshot?.eoValues.offentligeYdelserRows.some((row) => row.ydelsestype === 'midlertidigt_eet')).toBe(true);
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
+
+    // Grafen skal se samme transiente indkomst som fradraget, selv om de gemte rækker er tomme.
+    const graf = eoSnapshotToTafKravGrafDocument(snapshot);
+    expect(graf.kind).toBe('ok');
+    if (graf.kind !== 'ok') throw new Error(graf.message);
+    const eetSerie = graf.document.series.find((serie) => serie.label === 'Midlertidigt EET');
+    expect(eetSerie?.segments.length).toBeGreaterThan(0);
+    expect(eetSerie?.segments.every((segment) => segment.amountOre > 0)).toBe(true);
+    expect(snapshot.data?.engines.tafPerYear?.years.some((year) =>
+      year.deductions.some((entry) => entry.label === 'Midlertidigt EET' && entry.amountOre > 0)
+    )).toBe(true);
 
     expect(stableGoldenHash({
       groups: snapshot.data?.midlertidigtEetGroups.map((group) => ({

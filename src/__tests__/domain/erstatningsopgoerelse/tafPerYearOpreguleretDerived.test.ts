@@ -46,6 +46,23 @@ const expectedOpregulering = (yearTafOre: number, year: number, beregningsAar: n
 };
 
 describe('buildTafPerYearOpreguleretBuildOutcome', () => {
+  it.each([1, -1, 100, -100])('viderefører årsfordelingens afrunding på %i øre uden opregulering', (afrunding) => {
+    const base = makeResult([makeYear(2024, 287_763_00)]);
+    const result = { ...base, afrundingOre: moneyOre(afrunding), samletTafKravOre: moneyOre(base.samletTafKravOre + afrunding) };
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2026-03-01'));
+    if (outcome.kind !== 'ok') throw new Error('Opreguleringen kunne ikke beregnes.');
+    expect(outcome.result.afrundingOre).toBe(afrunding);
+    expect(outcome.result.years[0].yearTafOpreguleretOre).toBe(313_337_07);
+    expect(outcome.result.sumOpreguleretOre).toBe(313_337_07 + afrunding);
+  });
+
+  it('bevarer hele kravet inklusive afrunding, når der ikke sker opregulering', () => {
+    const base = makeResult([makeYear(2024, 10_000)]);
+    const result = { ...base, afrundingOre: moneyOre(1), samletTafKravOre: moneyOre(10_001) };
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-01'));
+    if (outcome.kind !== 'ok') throw new Error('Opreguleringen kunne ikke beregnes.');
+    expect(outcome.result.sumOpreguleretOre).toBe(result.samletTafKravOre);
+  });
   it('returnerer not_applicable når der ikke er per-år-resultat', () => {
     expect(buildTafPerYearOpreguleretBuildOutcome(null, iso('2024-05-01')).kind).toBe('not_applicable');
     expect(buildTafPerYearOpreguleretBuildOutcome(makeResult([]), iso('2024-05-01')).kind).toBe('not_applicable');

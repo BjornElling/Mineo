@@ -9,7 +9,6 @@ import {
   validateIsoRange,
 } from '../../../utils/isoDateHelpers';
 import { diffUtcDays } from '../../../utils/utcDayMath';
-import { asciiSlug } from '../../../utils/asciiSlug';
 import { roundByMethod } from '../../../utils/rounding';
 import { beregnArbejdsdageOgMaaneder } from '../engines/arbejdsdageMaaneder';
 import { buildDatoSetInclusive, buildFerieDageSet, isWeekdayUtc } from '../engines/tafDaySets';
@@ -18,7 +17,6 @@ import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import {
   buildIncomeCalculationContext,
   buildIncomeForRanges,
-  buildIncomeInputRanges,
   buildIncomeSourceRanges,
   type IncomeCalculationContext,
   resolveAnsaettelsesforholdNavn,
@@ -32,6 +30,8 @@ import {
 } from './eoSnapshotInvariants';
 import type { EoModel } from '../shared/eoTypes';
 import { moneyOre, type MoneyOre } from '../../money/money';
+import { mergeIsoDateRanges } from '../engines/isoRangeAlgebra';
+import { buildLoenArbejdsdageSet } from '../engines/periodiseringsMotor';
 
 const FAR_MELLEMLIGGENDE_PERIODE_DAGE = 180;
 
@@ -86,30 +86,8 @@ const SERIES_COLORS = [
   '#5F6FA8',
 ] as const;
 
-const seriesIdFromLabel = (label: string): string =>
-  asciiSlug(label, { fallback: 'indtaegtskilde' });
-
 const roundOre = (value: number): MoneyOre =>
   moneyOre(roundByMethod(value, 0, 'halfAwayFromZero'));
-
-const mergeRanges = (ranges: readonly TafKravGrafTimeWindow[]): TafKravGrafTimeWindow[] => {
-  const sorted = [...ranges].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0));
-  const merged: TafKravGrafTimeWindow[] = [];
-  for (const range of sorted) {
-    const previous = merged.at(-1);
-    if (!previous) {
-      merged.push(range);
-      continue;
-    }
-    const dayAfterPrevious = getDayAfterIso(previous.til);
-    if (dayAfterPrevious && range.fra <= dayAfterPrevious) {
-      merged[merged.length - 1] = { fra: previous.fra, til: maxISO(previous.til, range.til) };
-      continue;
-    }
-    merged.push(range);
-  }
-  return merged;
-};
 
 const shouldBridgeGap = (left: TafKravGrafTimeWindow, right: TafKravGrafTimeWindow): boolean => {
   const leftEnd = parseISODate(left.til);
@@ -125,7 +103,7 @@ const buildTimeWindows = (
 ): TafKravGrafTimeWindow[] => {
   const skadeRange = skadeDato ? [{ fra: skadeDato, til: skadeDato }] : [];
   const initialRanges = beregningsperiode ? [beregningsperiode, ...skadeRange, ...tafRanges] : [...skadeRange, ...tafRanges];
-  const merged = mergeRanges(initialRanges);
+  const merged = mergeIsoDateRanges(initialRanges, { mergeAdjacent: true });
   if (merged.length <= 1) return merged;
 
   const result: TafKravGrafTimeWindow[] = [];
@@ -228,7 +206,12 @@ const resolveUnitDivisor = (
   context: IncomeCalculationContext | null
 ): number => {
   if (unit === 'arbejdsdag') {
-    return countArbejdsdageInRange(range, context);
+    const arbejdsdage = countArbejdsdageInRange(range, context);
+    // En ferieperiode kan have indkomst, selv om den ingen arbejdsdage har. Grafen fordeler da
+    // indkomsten over hverdage ekskl. SH, før feriefradrag (godkendt 2026-10-18). Dette er kun
+    // et visuelt niveau: opgørelsernes arbejdsdage og beløb ændres ikke. Rene weekend-/SH-samples
+    // får fortsat ingen divisor og følger den eksisterende brobygning.
+    return arbejdsdage > 0 || !context ? arbejdsdage : buildLoenArbejdsdageSet(range, []).size;
   }
   return beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set(), new Set()).maaneder;
 };
@@ -372,21 +355,22 @@ const buildFerieAbsenceMarkers = (
 // ét ansættelsesforhold pr. serie (efter employer.index), derefter offentlige ydelser.
 const BENEFIT_RANK_BASE = 1_000_000;
 
-type SeriesAccumulator = { segments: TafKravGrafSeriesSegment[]; rank: number };
+type SeriesAccumulator = { label: string; segments: TafKravGrafSeriesSegment[]; rank: number };
 
 const appendIncomeSegment = (
-  seriesByLabel: Map<string, SeriesAccumulator>,
+  seriesById: Map<string, SeriesAccumulator>,
+  id: string,
   label: string,
   rank: number,
   segment: TafKravGrafSeriesSegment
 ): void => {
   if (segment.amountOre <= 0) return;
-  const existing = seriesByLabel.get(label);
+  const existing = seriesById.get(id);
   if (existing) {
     existing.segments.push(segment);
     return;
   }
-  seriesByLabel.set(label, { segments: [segment], rank });
+  seriesById.set(id, { label, segments: [segment], rank });
 };
 
 const hasShDay = (
@@ -455,7 +439,7 @@ export const eoSnapshotToTafKravGrafDocument = (
     return { kind: 'blocked', message: blockedMessage, invariants: blockingInvariants };
   }
 
-  const { pdfModel: model, engines } = snapshot.data;
+  const { pdfModel: model, engines, tafCalculationInput } = snapshot.data;
   const presentation = engines.tafPerYear;
   if (!presentation || presentation.years.length === 0) {
     // Skeln årsagen: uden TAF-perioder beregnes der slet ingen tabt arbejdsfortjeneste, hvilket er
@@ -472,8 +456,8 @@ export const eoSnapshotToTafKravGrafDocument = (
   ) ?? null;
   const tafRanges = model.tafRanges.map((range) => ({ fra: range.fra, til: range.til }));
   const skadeIso = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt?.skadedato ?? null;
-  const incomeSourceRanges = buildIncomeSourceRanges(snapshot.input.erstatningsopgoerelse);
-  const incomeRanges = buildIncomeInputRanges(snapshot.input.erstatningsopgoerelse);
+  const incomeSourceRanges = buildIncomeSourceRanges(tafCalculationInput.values);
+  const incomeRanges = mergeIsoDateRanges(incomeSourceRanges, { mergeAdjacent: true });
   const timeWindows = buildTimeWindows([...tafRanges, ...incomeRanges], beregningsperiode, skadeIso);
   if (timeWindows.length === 0) {
     return { kind: 'blocked', message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er en TAF-periode.', invariants: [] };
@@ -483,20 +467,21 @@ export const eoSnapshotToTafKravGrafDocument = (
     ? 'arbejdsdag'
     : 'maaned';
   const sourceRanges = timeWindows;
-  const incomeContext = buildIncomeCalculationContext(snapshot.input.erstatningsopgoerelse, sourceRanges);
-  const useWholeKronerForMidlertidigtEet = snapshot.input.erstatningsopgoerelse.midlertidigtEetFraEetSiden === 'Ja';
-  const seriesByLabel = new Map<string, SeriesAccumulator>();
-  const benefitRankByLabel = new Map<string, number>();
+  const incomeContext = buildIncomeCalculationContext(tafCalculationInput.values, sourceRanges);
+  const useWholeKronerForMidlertidigtEet = tafCalculationInput.values.midlertidigtEetFraEetSiden === 'Ja';
+  // Navnet er kun visning: to ansættelser kan hedde det samme uden at være samme indtægtskilde.
+  const seriesById = new Map<string, SeriesAccumulator>();
+  const benefitRankByType = new Map<string, number>();
 
   for (const sourceRange of sourceRanges) {
     for (const sampleRange of splitRangeByGraphSamples(sourceRange, incomeSourceRanges)) {
       const divisor = resolveUnitDivisor(sampleRange, unit, incomeContext);
       if (divisor <= 0) continue;
       const income = buildIncomeForRanges(
-        snapshot.input.erstatningsopgoerelse,
+        tafCalculationInput.values,
         [sampleRange],
         incomeContext,
-        snapshot.input.stamdata.skadedato
+        tafCalculationInput.stamdata.skadedato
       );
       // Hvert ansættelsesforhold er sin egen serie (ingen sammenlægning af lønindkomst).
       for (const employer of income.employers) {
@@ -506,7 +491,7 @@ export const eoSnapshotToTafKravGrafDocument = (
           til: sampleRange.til,
           amountOre: roundOre((employer.amount * 100) / divisor),
         }, timeWindows)) {
-          appendIncomeSegment(seriesByLabel, label, employer.index, segment);
+          appendIncomeSegment(seriesById, `loen:${employer.id}`, label, employer.index, segment);
         }
       }
       for (const benefit of income.benefits) {
@@ -515,17 +500,17 @@ export const eoSnapshotToTafKravGrafDocument = (
           benefit.amount,
           useWholeKronerForMidlertidigtEet
         );
-        let benefitRank = benefitRankByLabel.get(benefit.label);
+        let benefitRank = benefitRankByType.get(benefit.typeKey);
         if (benefitRank === undefined) {
-          benefitRank = BENEFIT_RANK_BASE + benefitRankByLabel.size;
-          benefitRankByLabel.set(benefit.label, benefitRank);
+          benefitRank = BENEFIT_RANK_BASE + benefitRankByType.size;
+          benefitRankByType.set(benefit.typeKey, benefitRank);
         }
         for (const segment of clampSegmentToWindows({
           fra: sampleRange.fra,
           til: sampleRange.til,
           amountOre: roundOre((benefitKroner * 100) / divisor),
         }, timeWindows)) {
-          appendIncomeSegment(seriesByLabel, benefit.label, benefitRank, segment);
+          appendIncomeSegment(seriesById, `ydelse:${benefit.typeKey}`, benefit.label, benefitRank, segment);
         }
       }
     }
@@ -534,19 +519,19 @@ export const eoSnapshotToTafKravGrafDocument = (
   // FØR bro-bygningen, så markeringen afspejler de faktisk indtastede indkomster.
   const ferieAbsenceMarkers = unit === 'arbejdsdag'
     ? buildFerieAbsenceMarkers(
-      snapshot.input.erstatningsopgoerelse.ferieperioder ?? [],
+      tafCalculationInput.values.ferieperioder ?? [],
       timeWindows,
-      [...seriesByLabel.values()].flatMap((accumulator) => accumulator.segments),
+      [...seriesById.values()].flatMap((accumulator) => accumulator.segments),
       incomeContext?.shDaysForYdelser ?? new Set<ISODateString>()
     )
     : [];
 
-  const series = [...seriesByLabel.entries()]
+  const series = [...seriesById.entries()]
     .sort(([, a], [, b]) => a.rank - b.rank)
-    .map(([label, accumulator], index): TafKravGrafSeries => {
+    .map(([id, accumulator], index): TafKravGrafSeries => {
       const base: TafKravGrafSeries = {
-        id: seriesIdFromLabel(label),
-        label,
+        id,
+        label: accumulator.label,
         color: SERIES_COLORS[index % SERIES_COLORS.length],
         segments: accumulator.segments,
       };
@@ -555,7 +540,7 @@ export const eoSnapshotToTafKravGrafDocument = (
       const bridged = unit === 'arbejdsdag'
         ? bridgeZeroWorkdayGaps(base, timeWindows, (range) => countArbejdsdageInRange(range, incomeContext), ferieAbsenceMarkers)
         : base;
-      return label === 'Sygedagpenge'
+      return id === 'ydelse:sygedagpenge'
         ? stabilizeSygedagpengeShDips(bridged, incomeContext)
         : bridged;
     });

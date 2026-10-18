@@ -12,6 +12,21 @@ import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoer
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
+// Disse graf-fixtures beskriver manuelt input. Produktionssnapshots leverer selv
+// det effektive beregningsinput; importkoblingen testes med en rigtig snapshot-beregning.
+const projectFixture = (snapshot: EoSnapshot) => eoSnapshotToTafKravGrafDocument({
+  ...snapshot,
+  data: snapshot.data && snapshot.input.erstatningsopgoerelse && snapshot.input.stamdata
+    ? {
+      ...snapshot.data,
+      tafCalculationInput: {
+        values: snapshot.input.erstatningsopgoerelse,
+        stamdata: snapshot.input.stamdata,
+      },
+    }
+    : snapshot.data,
+});
+
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -178,7 +193,7 @@ const buildLongSnapshot = (): EoSnapshot => {
 describe('eoSnapshotToTafKravGrafDocument', () => {
   it('blokerer ved manglende snapshot-data', () => {
     const snapshot = buildSnapshot();
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: null,
     } as unknown as EoSnapshot);
@@ -192,7 +207,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
 
   it('blokerer ved en output-blokerende invariant', () => {
     const invariant = buildControlMismatchInvariant(['TAF']);
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...buildSnapshot(),
       status: 'error',
       invariants: [invariant],
@@ -207,7 +222,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
 
   it('blokerer når der ikke findes et tidsvindue for TAF-grafen', () => {
     const snapshot = buildSnapshot();
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: {
         ...snapshot.data,
@@ -239,7 +254,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     incomeMock.mockImplementation(() => ({ employers: [], benefits: [] }));
 
     try {
-      const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
+      const projection = projectFixture(buildSnapshot());
 
       expect(projection).toEqual({
         kind: 'blocked',
@@ -253,7 +268,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
 
   it('splittes korrekt over december ved grafens månedlige samples', () => {
     const snapshot = buildSnapshot();
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: {
         ...snapshot.data,
@@ -274,7 +289,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   });
 
   it('viser hvert ansættelsesforhold som egen serie og beholder offentlige ydelser som egen serie', () => {
-    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
+    const projection = projectFixture(buildSnapshot());
 
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
@@ -304,7 +319,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   });
 
   it('medtager beregningsperioden som separat tidsvindue når der er langt til TAF-perioden', () => {
-    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
+    const projection = projectFixture(buildSnapshot());
 
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
@@ -326,7 +341,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     const originalIncome = incomeMock.getMockImplementation();
 
     // Arbejdsdage i alle måneder af 2024 undtagen juli – juli efterligner en hel
-    // måned dækket af ferie/fravær (0 arbejdsdage → divisor 0 → springes normalt over).
+    // måned dækket af ferie/fravær uden indkomst (broen skal fortsat bevare niveauet).
     const arbejdsdageSet = new Set(
       Array.from({ length: 12 }, (_, monthIndex) => monthIndex + 1)
         .filter((month) => month !== 7)
@@ -341,7 +356,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     }));
     incomeMock.mockImplementation((_values, ranges) => {
       const range = ranges[0];
-      if (!range || !range.fra.startsWith('2024')) return { employers: [], benefits: [] };
+      if (!range || !range.fra.startsWith('2024') || range.fra.startsWith('2024-07')) return { employers: [], benefits: [] };
       return {
         employers: [{ id: 'a', index: 0, name: 'Arbejdsgiver A', amount: 22_000, breakdown: {} as never }],
         benefits: [],
@@ -356,7 +371,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     taf.tafBeregningsenhed = TAF_BEREGNES_SOM.ARBEJDSDAGE;
     taf.indkomstSkadestidspunkt.periodeTilBeregning = undefined;
 
-    const projection = eoSnapshotToTafKravGrafDocument(snapshot);
+    const projection = projectFixture(snapshot);
 
     // Gendan default-mocks før assertions, så intet lækker til øvrige tests.
     if (originalCtx) ctxMock.mockImplementation(originalCtx);
@@ -416,7 +431,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
         },
       },
     } as unknown as EoModel;
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: { ...snapshot.data, pdfModel: model } as EoSnapshotComputedData,
       input: {
@@ -483,7 +498,9 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     }));
     incomeMock.mockImplementation((_values, ranges) => {
       const range = ranges[0];
-      if (!range || !range.fra.startsWith('2024-06')) return { employers: [], benefits: [] };
+      // Fixturen beskriver ferie UDEN indkomst: indkomststubben skal respektere de angivne lønrækker.
+      if (!range || !range.fra.startsWith('2024-06')
+        || !incomeRows.some((row) => row.fra <= range.til && row.til >= range.fra)) return { employers: [], benefits: [] };
       return {
         employers: [{ id: 'af-1', index: 0, name: 'Arbejdsgiver A', amount: 1_000, breakdown: {} as never }],
         benefits: [],
@@ -504,7 +521,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
         },
       },
     } as unknown as EoModel;
-    return eoSnapshotToTafKravGrafDocument({
+    return projectFixture({
       ...snapshot,
       data: { ...snapshot.data, pdfModel: model } as EoSnapshotComputedData,
       input: {
@@ -648,7 +665,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   });
 
   it('tegner faktiske indkomstsegmenter helt frem til TAF-periodens sidste indtastede ydelse', () => {
-    const projection = eoSnapshotToTafKravGrafDocument(buildLongSnapshot());
+    const projection = projectFixture(buildLongSnapshot());
 
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
@@ -728,7 +745,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
         },
       },
     } as unknown as EoModel;
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: {
         ...snapshot.data,
@@ -817,7 +834,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
         },
       },
     } as unknown as EoModel;
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: {
         ...snapshot.data,
@@ -890,7 +907,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
         },
       },
     } as unknown as EoModel;
-    const projection = eoSnapshotToTafKravGrafDocument({
+    const projection = projectFixture({
       ...snapshot,
       data: {
         ...snapshot.data,
@@ -937,7 +954,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   };
 
   it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder', () => {
-    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshotUdenAarsfordeling(false));
+    const projection = projectFixture(buildSnapshotUdenAarsfordeling(false));
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') throw new Error('forventede blocked');
@@ -947,7 +964,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
   });
 
   it('beholder den generiske årsfordelings-besked når der er TAF-perioder men ingen fordeling', () => {
-    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshotUdenAarsfordeling(true));
+    const projection = projectFixture(buildSnapshotUdenAarsfordeling(true));
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') throw new Error('forventede blocked');

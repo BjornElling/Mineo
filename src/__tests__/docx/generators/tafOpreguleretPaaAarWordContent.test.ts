@@ -72,6 +72,7 @@ const FAKE_PRESENTATION: TafPerYearResult = {
 };
 
 const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
+  afrundingOre: moneyOre(0),
   beregningsAar: 2026,
   years: [
     { year: 2024, yearTafOre: moneyOre(37500000), deltaPct: 5.1234, yearTafOpreguleretOre: moneyOre(39421275) },
@@ -99,5 +100,23 @@ describe('tafOpreguleretPaaAar → Word-indhold', () => {
     expect(text).toContain('Opreguleret til beregningsåret');
     expect(text).toContain('Opreguleret til 2026-værdi (100 % + 5,1234 %)');
     expect(text).toContain('Samlet TAF opreguleret til 2026');
+    expect(text).not.toContain('Afrunding');
+  });
+
+  it.each([1, -1])('skriver afrunding på %i øre og den tilpassede total til Word', async (afrunding) => {
+    const { documentXml } = await renderWordDocument((session) => generateTafOpreguleretPaaAarDocument(session, {
+      document: {
+        ...FAKE_DOCUMENT,
+        opreguleret: {
+          ...FAKE_OPREGULERET,
+          afrundingOre: moneyOre(afrunding),
+          sumOpreguleretOre: moneyOre(FAKE_OPREGULERET.sumOpreguleretOre + afrunding),
+        },
+      },
+    }));
+    const text = xmlToPlainText(documentXml).replace(/\s/g, ' ');
+    expect(text).toContain(afrunding > 0 ? '0,01 kr.' : '- 0,01 kr.');
+    expect(text).toContain(afrunding > 0 ? '778.842,01 kr.' : '778.841,99 kr.');
+    expect(text.indexOf('Afrunding')).toBeLessThan(text.indexOf('Samlet TAF opreguleret til 2026'));
   });
 });

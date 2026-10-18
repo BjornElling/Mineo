@@ -17,6 +17,7 @@ import { zeroMoneyOre, type MoneyOre } from '../../money/money';
 import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
+import type { TafCalculationValues, TafCalculationStamdata } from '../engines/tafCalculationInput';
 import { findSfggSixMonthWarningEmploymentIds } from '../engines/sfggWarnings';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from '../engines/tafPerYearDerived';
 import { buildTafPerYearOpreguleretBuildOutcome, type TafPerYearOpreguleretResult } from '../engines/tafPerYearOpreguleretDerived';
@@ -54,6 +55,12 @@ import {
 } from './eoDependencyProjection';
 
 export type EoSnapshotComputedData = Readonly<{
+  /** Samme effektive input som TAF-motoren, inklusive satsprojektion og transient EET-import.
+   * Grafens periodiserede indtægtsniveau må ikke genopbygges fra det oprindelige gemmeinput. */
+  tafCalculationInput: Readonly<{
+    values: TafCalculationValues;
+    stamdata: TafCalculationStamdata;
+  }>;
   engines: Readonly<{
     svieSmerte: SvieSmerteEngineOutput;
     tafNetto: TafNettoBeregningResult;
@@ -525,12 +532,11 @@ export const computeEoSnapshot = (args: Readonly<{
     const presentation = buildEoPdfPresentation(parsedStamdata.data, effectiveEoValues, { dagsDatoISO });
     const tafPerYearOutcome = buildTafPerYearBuildOutcome(
       buildTafPerYearSourceFromComputed({
-        stamdataValues: parsedStamdata.data,
         tafNetto,
         tabtArbejdsfortjenesteOre: totals.tabtArbejdsfortjenesteOre,
         forligFactor,
       }),
-      effectiveEoValues,
+      projectedTafValues,
       { tafRanges, midlertidigtEetGroups }
     );
     const tafPerYearResult = tafPerYearOutcome.kind === 'ok' ? tafPerYearOutcome.result : null;
@@ -602,6 +608,7 @@ export const computeEoSnapshot = (args: Readonly<{
       result: tafNetto.sygeferiegodtgoerelse,
     });
     const data: EoSnapshotComputedData = {
+      tafCalculationInput: { values: projectedTafValues, stamdata: projectedTafStamdata },
       engines: {
         svieSmerte,
         tafNetto,

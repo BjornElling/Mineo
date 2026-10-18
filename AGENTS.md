@@ -31,6 +31,8 @@ betyder Bjørn.
 ## Kommunikation
 Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved væsentlige ændringer eller milepæle. Ingen forklaring ud over det strengt nødvendige.
 
+- **Absolut krav til alle spørgsmål til udvikleren:** Stil spørgsmålet i enkelt, almindeligt dansk med udgangspunkt i, hvordan brugeren oplever forskellen. Beskriv konkret, hvad brugeren ser eller gør i dag, og hvad brugeren vil se eller kunne gøre ved hvert valg. Brug et konkret eksempel, når det gør forskellen tydelig. Undgå indforståede begreber, interne tekniske betegnelser og uforklarede samleord som «årsbeløb». Spørgsmålet skal kunne besvares uden kendskab til koden eller tidligere tekniske forklaringer. Dette gælder alle fremtidige spørgsmål, også afklaringer og anmodninger om godkendelse.
+
 ## Browser-testadgang
 - Browser-verifikation er tilgængelig i Codex CLI og VS Code gennem projektets Playwright-opsætning. Brug den selvstændigt, når browseradfærd er relevant; henvis ikke arbejdet til Codex-appen.
 - Brug det mest reproducerbare niveau, der dækker behovet: (1) eksisterende eller nye Playwright E2E-tests til stabil adfærd og regressionsbeskyttelse; (2) den projektlokale `playwright-cli`-skill til hurtig udforskning og konkret kontrol; (3) Playwright MCP til længere interaktive forløb, hvor vedvarende browserkontekst og accessibility snapshots er en fordel. MCP-konfigurationen ligger i `.codex/config.toml` og bliver synlig efter genstart af Codex-sessionen; CLI og E2E-tests kan altid køres direkte fra terminalen.

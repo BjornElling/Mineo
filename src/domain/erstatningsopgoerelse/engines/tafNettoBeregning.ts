@@ -1,12 +1,9 @@
-import { TAF_FORBEHOLD_YDELSESTYPER } from '../helpers/tafForbehold';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   buildBeregningsperiodeRange,
   buildIncomeForRanges,
-  resolveAnsaettelsesforholdNavn,
-  roundIncomeBenefitAmountKroner,
   type IncomePeriodResult,
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
@@ -31,13 +28,12 @@ import type { MoneyOre } from '../../money/money';
 import {
   clampMoneyOreToZero,
   fromKroner,
-  roundKroner,
   subtractMoneyOre,
   sumMoneyOre,
   zeroMoneyOre,
 } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
-import { sumMidlertidigtEetBeregnetEetKronerForTafRanges } from '../helpers/midlertidigtEetBilagGroups';
+import { buildTafIndtaegterBeregning } from './tafIndtaegterBeregning';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -68,40 +64,11 @@ const buildTafIndtaegterModel = (
   ranges: readonly IsoRange[],
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[]
 ): TafIndtaegterModel => {
-  const indtaegter = buildIncomeForRanges(values, ranges);
-  const useWholeKronerForMidlertidigtEet = values.midlertidigtEetFraEetSiden === 'Ja';
-  const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
-  indtaegter.employers.forEach((entry) => {
-    const label = resolveAnsaettelsesforholdNavn(entry.name, entry.index);
-    employerEntries.push({ label, amountOre: fromKroner(roundKroner(entry.amount)) });
-  });
-  const benefitEntries = indtaegter.benefits
-    .map((entry) => ({
-      label: entry.label,
-      // Midlertidigt EET fra EET-siden: fradraget skal være identisk med "Midlertidig EET"-bilagets
-      // sammentælling, som afrunder PR. PERIODE. Vi henter derfor det kanoniske pr.-periode-afrundede
-      // beløb i stedet for at runde den urundede totalsum én gang (som ellers kan give 1 kr.'s afvigelse
-      // fra bilaget). Se midlertidigtEetBilagGroups.ts.
-      amountOre:
-        entry.typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet
-          ? fromKroner(sumMidlertidigtEetBeregnetEetKronerForTafRanges(midlertidigtEetGroups, ranges))
-          : fromKroner(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
-  const entries = [...employerEntries, ...benefitEntries];
-  const forbeholdYdelsestyper = Array.from(
-    new Set(
-      indtaegter.benefits
-        .map((entry) => entry.typeKey)
-        .filter((typeKey) => TAF_FORBEHOLD_YDELSESTYPER.has(typeKey))
-    )
-  );
-
-  const totalOre = clampMoneyOreToZero(sumMoneyOre(entries.map((entry) => entry.amountOre)));
+  const result = buildTafIndtaegterBeregning(values, ranges, { midlertidigtEetGroups });
   return {
-    entries,
-    forbeholdYdelsestyper,
-    total: asCalculable(totalOre),
+    entries: result.entries.map(({ label, amountOre }) => ({ label, amountOre })),
+    forbeholdYdelsestyper: result.forbeholdYdelsestyper,
+    total: asCalculable(result.totalOre),
   };
 };
 

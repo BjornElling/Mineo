@@ -999,7 +999,6 @@ describe('buildTafPerYearResult', () => {
 
   it('afstemmer enkeltår til 0 når EO-netto er clamped til 0 pga. fradrag over indkomst', () => {
     const source: TafPerYearSource = {
-      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: moneyOre(10000000) },
         beregnedeSegmenter: [
@@ -1198,7 +1197,6 @@ describe('buildTafPerYearResult', () => {
   it('returnerer null når loenudviklingTotal.status !== "ok"', () => {
     // Konstruér et minimalt source-objekt der trigger ikke-ok loenudviklingTotal
     const source: TafPerYearSource = {
-      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'not_calculable', reason: 'test-fejl' },
         beregnedeSegmenter: [
@@ -1235,7 +1233,6 @@ describe('buildTafPerYearResult', () => {
 
   it('KL-subsegmenter beregner årsbeløb fra reguleretLoenOre frem for deltaPct', () => {
     const source: TafPerYearSource = {
-      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: moneyOre(3_100_000) },
         beregnedeSegmenter: [
@@ -1282,7 +1279,6 @@ describe('buildTafPerYearResult', () => {
     // Inkonsistent tilstand: beregningsenhed=MAANEDER men segmenter har kind='arbejdsdage'
     // Forventer at buildSubSegment returnerer null → segment springes over
     const source: TafPerYearSource = {
-      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: moneyOre(0) },
         beregnedeSegmenter: [
@@ -1367,7 +1363,6 @@ describe('buildTafPerYearResult', () => {
     // TAF-perioden dækker kun weekend (lørdag-søndag) → tafArbejdsdageSet bliver tom
     // → alle årsvægte = 0 → allocateOreByWeight tildeler hele tidligereModtagetTaf til første år.
     const source: TafPerYearSource = {
-      stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
       loenudvikling: {
         loenudviklingTotal: { status: 'ok', value: moneyOre(100) },
         beregnedeSegmenter: [
@@ -1485,7 +1480,6 @@ describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
   const okMoney = (value: number) => ({ status: 'ok' as const, value });
 
   const baseSource = (patch: Partial<TafPerYearSource>): TafPerYearSource => ({
-    stamdataValues: makeStamdata({}),
     loenudvikling: {
       loenudviklingLabel: '',
       loenudviklingTotal: okMoney(10_000_00),
@@ -1607,7 +1601,6 @@ describe('buildTafPerYearBuildOutcome: kanonisk midlertidigt EET-fradrag', () =>
   });
 
   const source: TafPerYearSource = {
-    stamdataValues: makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') }),
     loenudvikling: {
       loenudviklingLabel: 'Angivet månedsløn',
       loenudviklingTotal: { status: 'ok', value: moneyOre(1_000_000) },

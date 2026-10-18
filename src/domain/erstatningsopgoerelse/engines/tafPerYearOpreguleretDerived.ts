@@ -34,7 +34,6 @@ import {
   fromKroner,
   roundKroner,
   toKroner,
-  zeroMoneyOre,
 } from '../../money/money';
 import { roundByMethod } from '../../../utils/rounding';
 import { opregulerMedAkkumuleretReguleringssats } from '../../satser/opreguleringsmotorer';
@@ -58,7 +57,9 @@ export type TafPerYearOpreguleretResult = Readonly<{
   /** Beregningsåret, alle år er opreguleret til. */
   beregningsAar: number;
   years: readonly TafOpreguleretYearEntry[];
-  /** Sum af de opregulerede årsbeløb. */
+  /** Årsfordelingens afrunding, videreført uændret uden opregulering. */
+  afrundingOre: MoneyOre;
+  /** Sum af de opregulerede årsbeløb inklusive afrunding. */
   sumOpreguleretOre: MoneyOre;
 }>;
 
@@ -118,7 +119,9 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
   }
 
   const years: TafOpreguleretYearEntry[] = [];
-  let sumOpreguleretOre = zeroMoneyOre();
+  // Afrundingen tilhører den samlede årsfordeling, ikke et bestemt år. Den videreføres
+  // derfor uændret og vises særskilt som i årsopgørelsen (udviklerbeslutning 2026-10-18).
+  let sumOpreguleretOre = tafPerYear.afrundingOre;
 
   for (const yearEntry of tafPerYear.years) {
     const opregulering = opregulerMedAkkumuleretReguleringssats({
@@ -158,6 +161,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
     result: {
       beregningsAar,
       years,
+      afrundingOre: tafPerYear.afrundingOre,
       sumOpreguleretOre,
     },
   };

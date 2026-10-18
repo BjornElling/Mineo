@@ -30,8 +30,8 @@ const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString):
  *
  * Hver (afgørelses-periode × TAF-range)-clamp afrundes til hele kroner PR. PERIODE
  * (`roundHeleKroner`). Både bilaget (dokumentlaget) og TAF-fradraget
- * (`sumMidlertidigtEetBeregnetEetKronerForTafRanges` → `buildTafIndtaegterModel` /
- * `tafPerYearDerived`) afleder deres tal herfra, så den viste bilagssum og det beløb
+ * (`sumMidlertidigtEetBeregnetEetKronerForTafRanges` → `buildTafIndtaegterBeregning`)
+ * afleder deres tal herfra for både hovedopgørelsen og årsfordelingen, så den viste bilagssum og det beløb
  * der faktisk trækkes fra er identiske bit for bit. Tidligere summerede fradraget de
  * urundede periodebeløb og rundede ÉN gang til sidst, hvilket kunne give 1 kr.'s
  * afvigelse fra bilaget (fx bilag 1.390 + 41.401 = 42.791 mod fradrag 42.790).
