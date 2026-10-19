@@ -23,7 +23,8 @@ export type SfggReferencesatsNotCalculableKind =
   | 'missing_referenceperiode'
   | 'unresolvable_referenceperiode'
   | 'no_calendar_days'
-  | 'no_workdays';
+  | 'no_workdays'
+  | 'negative_reference_loen';
 
 export type SfggReferencesatsCalculable =
   | Readonly<{ status: 'ok'; value: MoneyOre }>
@@ -50,6 +51,8 @@ const resolveNotCalculableReason = (kind: SfggReferencesatsNotCalculableKind): s
     case 'unresolvable_referenceperiode': return 'Referenceperioden kan ikke opgøres';
     case 'no_calendar_days': return buildSfggNoEligibleDaysReason('kalenderdage');
     case 'no_workdays': return buildSfggNoEligibleDaysReason('arbejdsdage');
+    case 'negative_reference_loen':
+      return 'Lønnen i referenceperioden er samlet negativ – kontrollér lønrækkerne';
   }
 };
 
@@ -169,6 +172,16 @@ export const resolveSfggBaseRate = (
     };
   }
   const loen = roundKroner(calculator.sumLoenInRangesKroner([{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }]));
+  if (loen < 0) {
+    // Negative lønsedler modregnes (BB-290); er referenceperiodens løn SAMLET negativ, er der ingen positiv løn at
+    // modregne i, og en negativ referencesats giver ingen mening. Samme regel som en samlet negativ kilde i
+    // beregnings- og erstatningsperioden: opgørelsen spærrer med en navngiven fejl (udviklerafgørelse 2026-10-19).
+    return {
+      sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
+      sfggReferencesatsOre: notCalculableSfggReferencesats('negative_reference_loen'),
+      sfggReferencesatsFormula: null,
+    };
+  }
   const feriepengeKroner = loen * SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;
   if (dayCount.divisorDage <= 0) {
     return {

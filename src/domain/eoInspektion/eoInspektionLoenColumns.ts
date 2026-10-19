@@ -514,7 +514,7 @@ export const buildLoenindkomstColumns = (args: {
           issues.push({
             severity: 'error',
             area: 'lønindkomst',
-            message: `Lønindkomst${suffix} (${col.header}): En lønperiode summerer forkert i kontroltabellen (${formatCurrency(actual)} vs ${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
+            message: `Lønindkomst${suffix} (${col.name}): En lønperiode summerer forkert i kontroltabellen (${formatCurrency(actual)} vs ${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
           });
         }
       }
@@ -527,7 +527,7 @@ export const buildLoenindkomstColumns = (args: {
         issues.push({
           severity: 'error',
           area: 'lønindkomst',
-          message: `Lønindkomst${suffix} (${col.header}): Sammentælling i kontroltabellen (${formatCurrency(actual)}) matcher ikke indtastet/beregnet total (${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
+          message: `Lønindkomst${suffix} (${col.name}): Sammentælling i kontroltabellen (${formatCurrency(actual)}) matcher ikke indtastet/beregnet total (${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
         });
       }
     }

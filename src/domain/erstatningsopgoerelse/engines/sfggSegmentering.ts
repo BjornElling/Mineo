@@ -91,7 +91,11 @@ export const buildEmploymentSfggCalculator = (
     const interval = parseAarsloenRowInterval(row, employment.loenperiode);
     if (!interval) continue;
     const derived = calculateStandardLoenRowDerived(row, satser);
-    if (!Number.isFinite(derived.loenPlusLoen2PlusIkkePensLoen) || derived.loenPlusLoen2PlusIkkePensLoen <= 0) continue;
+    // En negativ lønseddel (en tilbagebetaling, en efterregulering) modregnes også her, så sygeferiegodtgørelsen
+    // bygger på samme løn som den tabte arbejdsfortjeneste (udviklerafgørelse 2026-10-19, BB-290). Før sprang
+    // `<= 0` rækken over. Kun en række på 0 kr. bidrager intet. Dagens feriepenge (`buildFeriepengeOreForDate`)
+    // forbliver ikke-negative: en dag, hvis rækker samlet er negative, giver 0 kr. i modtagne feriepenge.
+    if (!Number.isFinite(derived.loenPlusLoen2PlusIkkePensLoen) || derived.loenPlusLoen2PlusIkkePensLoen === 0) continue;
     const intervalFra = dateToISO(interval.start);
     const intervalTil = dateToISO(interval.end);
     if (!intervalFra || !intervalTil) continue;

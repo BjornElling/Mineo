@@ -190,4 +190,31 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
     expect(model.blocks.at(-1)?.kind).toBe('footer');
     expect(artifact.filename).toBe('Årslønsberegning.pdf');
   });
+
+  it('trykker rækkerne kronologisk, uanset skærmens sortering (BB-294)', async () => {
+    // Skærmen er sorteret faldende (februar før januar); dokumentet trykker alligevel januar først.
+    const { session, requests } = createFixtureSession();
+    await generateAarsloenDocument(session, {
+      satser: { feriePct: values.feriePct, pensionPct: values.pensionPct },
+      loenperiode: values.loenperiode,
+      tillaegAngivesSom: values.tillaegAngivesSom,
+      tableData: [...values.tableData].reverse(),
+      beregnetAarsloen: 34_650,
+      omregningTilFuldtAar: values.omregningTilFuldtAar,
+      periodeData,
+      fuldLoenUnderFerie: values.fuldLoenUnderFerie,
+      retTilSjetteFerieuge: values.retTilSjetteFerieuge,
+      antalFeriedage: values.antalFeriedage,
+      loenPaaHelligdage: values.loenPaaHelligdage,
+      shDageAntal: null,
+      beregningsData,
+    });
+
+    const table = requests[0]?.model.blocks.find((block) => block.kind === 'table');
+    if (table?.kind !== 'table') throw new Error('Indtægtstabellen mangler');
+    expect(table.spec.rows.slice(1, 3).map((row) => row.cells.slice(0, 2).map((cell) => cell.text))).toEqual([
+      ['1', '2024'],
+      ['2', '2024'],
+    ]);
+  });
 });

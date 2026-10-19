@@ -5,7 +5,9 @@
   «Ikke-pensionsgivende løn», «ATP og anden løn u. tillæg» og de afledte «FP/FV/SH/SO/St.B.», «Arb.g. Pension» og
   «Samlet løn») – samt opgørelsens bilag «Lønindkomst» (`loenindkomstSection`), de linjer i «Fejl og advarsler», tabellen
   udløser, og tabellens spor i beregningsgrundlaget («Løn i beregningsperioden», «Indtægter i erstatningsperioden»).
-- Gennemgået: 2026-10-19 · commit `2f9a22eb` · **afgjort og gennemført 2026-10-19 for BB-289–BB-292, BB-294–BB-296, BB-298 og BB-299; BB-293 afvist; BB-297 og dele af BB-290, BB-294 og BB-299 afventer udviklerens svar på modsvar**
+- Gennemgået: 2026-10-19 · commit `2f9a22eb` · **afgjort og gennemført 2026-10-19 for alle 11 fund** (tre
+  modsvarsrunder samme dag; de sidste tre spørgsmål – BB-290's sygeferiegodtgørelse, BB-293's opgørelse nr. 2 og BB-297 –
+  godkendt efter anbefalingen og gennemført)
 - Afprøvet i: Chrome headless, lyst tema, 1536×864 (M-09 desuden 1244×620). Sager indlæst gennem «Hent» (krypteret
   `.eo` bygget til formålet), dokumenter hentet som `.pdf` og læst som tekst. Feltfejl aflæst gennem automatiseringsbroen,
   blink gennem `animationstart`. Grundsag som 12g: skadedato `01-06-2018` (arbejdsulykke), TAF-periode og «Vedrører
@@ -71,7 +73,14 @@ Enig, herunder i at det skal udbredes til alle steder, hvor det kunne være aktu
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-36--en-lovlig-indtastning-fører-beregningen-ud-i-en-intern-undtagelse`
 - **Prioritet:** **Høj**
-- **Beslutning:** **GODKENDT (a)** af udvikleren 2026-10-19: en negativ række regnes med og modregnes – også på Offentlige ydelser – med gul ring og ikke-blokerende advarsel. **GENNEMFØRT** 2026-10-19: `indtaegtPerioder.ts` springer ikke længere en negativ række over (lønindkomst og offentlige ydelser), så grundlag og kontroltabel tæller det samme; en række på 0 kr. er uændret. Målt i test: juli 2017 `-2000` giver kravet 402.750,00 kr. (før: «kontroluoverensstemmelser»), og marts/april 2024 `10000`/`-3000` giver et fradrag på 7.875,00 kr. Rækken får gul ring på den negative celle («Rækkens samlede løn er negativ (-2.250,00 kr.) – beløbet modregnes i den øvrige indkomst») og linjen «Lønrækken 07-2017 har negativ samlet løn (-2.250,00 kr.) – beløbet modregnes i den øvrige indkomst». Linket «Kontroltabel» vises kun, når kontrolfanerne er slået til. **Afventer udviklerens svar** på modsvaret nedenfor: et ansættelsesforhold eller en ydelsestype, der SAMLET er negativ i en periode, spærrer indtil videre med en navngiven linje.
+- **Beslutning:** **GODKENDT (a)** af udvikleren 2026-10-19: en negativ række regnes med og modregnes – også på Offentlige ydelser – med gul ring og ikke-blokerende advarsel. **GENNEMFØRT** 2026-10-19: `indtaegtPerioder.ts` springer ikke længere en negativ række over (lønindkomst og offentlige ydelser), så grundlag og kontroltabel tæller det samme; en række på 0 kr. er uændret. Målt i test: juli 2017 `-2000` giver kravet 402.750,00 kr. (før: «kontroluoverensstemmelser»), og marts/april 2024 `10000`/`-3000` giver et fradrag på 7.875,00 kr. Rækken får gul ring på den negative celle («Rækkens samlede løn er negativ (-2.250,00 kr.) – beløbet modregnes i den øvrige indkomst») og linjen «Lønrækken 07-2017 har negativ samlet løn (-2.250,00 kr.) – beløbet modregnes i den øvrige indkomst». Linket «Kontroltabel» vises kun, når kontrolfanerne er slået til. **Samlet negativ kilde afgjort 2026-10-19 (valg A for
+  begge perioder):** et ansættelsesforhold eller en ydelsestype, der samlet er negativ i hele beregningsperioden eller hele
+  erstatningsperioden, spærrer med en rød linje, der navngiver kilden – som allerede gennemført. **Sygeferiegodtgørelsen
+  GODKENDT (valg 1) og GENNEMFØRT** 2026-10-19 (`sfggSegmentering.ts`): en negativ lønseddel trækkes også fra i
+  sygeferiegodtgørelsens referenceløn, så juni 30.000 kr. og juli -2.000 kr. giver 28.000 kr. som i den tabte
+  arbejdsfortjeneste. Er lønnen i referenceperioden samlet negativ, spærrer opgørelsen med «Referencesats: Lønnen i
+  referenceperioden er samlet negativ – kontrollér lønrækkerne» – samme regel som en samlet negativ kilde. Dagens
+  modtagne feriepenge kan fortsat ikke blive negative: en dag, hvis lønsedler samlet er negative, giver 0 kr.
 - **Sådan fremprovokeres det:** Grundsagen. Hver for sig:
   1. En ekstra række Måned `7`, År `2017`, Løn `-2000` (en efterregulering på sin egen linje).
   2. I juni 2017: «Løn (2)» `-40000`.
@@ -124,6 +133,30 @@ gætte, for begge ændrer kravet i en retning, du bør tage stilling til:
    kun positive rækker også før). Eksempel: juni 2017 30.000 kr. og en efterregulering i juli 2017 på -2.000 kr. –
    tabt arbejdsfortjeneste regner med 58.000 kr. for de to måneder, sygeferiegodtgørelsen med 60.000 kr. Skal den
    negative række også trækkes fra i sygeferiegodtgørelsens grundlag? Jeg anbefaler ja, så de to grundlag er ens.
+
+**Tilbagemelding**
+Jeg forstår dine anbefalinger sådan, at en løn-linje som sådan godt i sig selv kan være negativ. Går fx en beregningsperiode fra januar til december, og er maj måned negativ, men den samlede sum for hele perioden positiv, markeres maj måned ikke som fejlbehæftet. Men hvis den samlede løn fra kilden for hele beregningsperioden eller for hele taf-perioden er negativ, udløser det fejl. Hvis det i det væsentligste er den korrekte forståelse af dine anbefalinger, så er jeg enig i de foreslåede løsninger A.
+
+**Modsvar 2 (afventer udviklerens svar)**
+
+Ja, sådan virker det nu, og A står fast for begge perioder. En negativ maj i en beregningsperiode, der samlet er positiv,
+regnes med og trækkes fra; maj får den gule ring og den gule advarsel, du bad om – ikke en rød fejl – og opgørelsen kan
+hentes. Først når den samlede løn fra et ansættelsesforhold (eller det samlede beløb for en ydelsestype) er negativ for
+hele beregningsperioden eller hele erstatningsperioden, spærrer opgørelsen med en rød linje, der navngiver kilden.
+
+Dit svar dækker dog ikke spørgsmål 2 om **sygeferiegodtgørelsen**, som derfor stadig er uændret:
+
+Eksempel: skadelidte har i juni 2017 fået 30.000 kr. og i juli 2017 en lønseddel med en tilbagebetaling på -2.000 kr. Den
+tabte arbejdsfortjeneste regner med 28.000 kr. for de to måneder. Sygeferiegodtgørelsen regner sin sats ud fra 30.000 kr.
+– den springer lønsedlen med tilbagebetalingen over. Samme opgørelse bygger altså på to forskellige lønbeløb for de
+samme to måneder, og sygeferiegodtgørelsen bliver lidt højere, end hvis tilbagebetalingen var trukket fra.
+
+- **Valg 1 (anbefalet):** sygeferiegodtgørelsen trækker også den negative lønseddel fra, så begge beregninger bygger på
+  28.000 kr. I sager med tilbagebetalinger falder sygeferiegodtgørelsen en smule.
+- **Valg 2:** sygeferiegodtgørelsen ser fortsat bort fra negative lønsedler.
+
+**Tilbagemelding**
+Godkendt efter anbefalingen (valg 1), 2026-10-19.
 
 ### BB-291 – En mangel eller fejl i én lønrække meldes som «Måned er ikke angivet» – uden række, én ad gangen, og linket blinker hele kortet
 
@@ -214,8 +247,31 @@ Enig, men det er en situation, hvor jeg let forudser, at der kunne opstå fejl i
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`
 - **Prioritet:** Mellem
-- **Beslutning:** **AFVIST** af udvikleren 2026-10-19: en sum, der svarer til grundlaget, kræver, at delvise lønperioder
-  deles op, og så stemmer bilaget ikke længere med lønsedlerne. Intet ændret. Modsvar nedenfor (afventer udviklerens svar).
+- **Beslutning:** Først **AFVIST** af udvikleren 2026-10-19; efter modsvaret **GODKENDT i ændret form** samme dag:
+  tabellerne må kun indeholde deres værdier (ingen overskrifter, sum eller ekstra rækker), men en kort tekst under
+  tabellen må forklare en lønperiode eller ydelse, som en relevant periode skærer igennem. **GENNEMFØRT** 2026-10-19
+  (`eoBilagDelvisePerioder.ts`): under tabellen står en indledning og én linje pr. overskåret række, fx «Lønperioder, der
+  kun delvist indgår, medregnes forholdsmæssigt:» / «01-05-2018 - 30-06-2018: 31 af 61 kalenderdage i
+  beregningsperioden, 34.303,28 af 67.500,00 kr.» – og «Ydelser, der kun delvist indgår, …» under ydelsesbilagets
+  tabeller. Hver linje holder sig på én linje på papiret (en hel sætning pr. række ombrødes til to og blev tung).
+  Tallene er beregningens egne: linjen læser de samme rækkeandele, som beregningen summerer
+  (`buildIncomeRowSharesForRanges`), og enheden følger beregningen – kalenderdage, arbejdsdage (fx «12 af 21
+  arbejdsdage» i juni 2017, hvor 2. pinsedag og grundlovsdag falder sammen) eller ydelsestypens egen. Beløbet er rækkens
+  «Samlet løn» som i tabellens sidste kolonne. Begrænsninger, så linjen kun står, når den er relevant for netop denne
+  opgørelse:
+  - kun rækker, bilaget faktisk trykker, og kun når en del – ikke hele rækken – ligger i perioden;
+  - erstatningsperioden kun ved krav på tabt arbejdsfortjeneste og efter beregningens egne TAF-perioder (beskåret med
+    skadedatoen og EO-perioden, som beregningen gør);
+  - beregningsperioden kun ved «Beregnes ud fra: Beregningsperiode» og ikke i en senere opgørelse med «Skjul beregning
+    efter første opgørelse» – dér står kun det tidligere beregnede beløb, så der er ingen udregning at afstemme med;
+  - i ydelsesbilaget med periodeoverskrifter forklarer hver gruppe kun sin egen periode;
+  - rækker på 0 kr. og importeret midlertidig EET («Midlertidig EET fra EET-siden», som fradrages efter bilaget
+    «Midlertidig EET») forklares ikke.
+  Målt i browser (E2E): PDF-dokumentets to bilag viser linjerne under tabellerne på én linje hver. **Opgørelse nr. 2
+  GODKENDT (valg 1) og GENNEMFØRT** 2026-10-19: med «Skjul beregning efter første opgørelse: Nej» tager bilaget nu også
+  beregningsperiodens lønsedler og ydelser med under «Perioden», som i opgørelse nr. 1 – og forklarer en overskåret
+  lønseddel dér. Beregningsgrundlaget, fladen og bilaget læser nu én fælles regel for, hvornår udregningen vises
+  (`skalKomprimereIndkomstBeregning`).
 - **Sådan fremprovokeres det:**
   1. Grundsagen plus en række marts 2024 `10000` (indtægt i erstatningsperioden). Hent opgørelsen.
   2. Dato-tilstand: `01-06-2017` – `30-04-2018` `330000` og `01-05-2018` – `30-06-2018` `60000`. Hent opgørelsen.
@@ -262,6 +318,29 @@ Hvad foretrækker du?
    ydelsesbilaget, uden sum og uden ekstra linjer. Rækkerne står som lønsedlerne.
 3. **Overskrifter, «heraf»-linje og sum** som i tabellen ovenfor, i begge bilag.
 
+**Tilbagemelding**
+Jeg har fuld forståelse for det problem, som du sørger at løse, og jeg kunne grundlæggende godt tænke mig, at det fremgik, når lønperioder blev delt over, at det skete, og hvilket beløb, der var indkluderet, og hvordan fordelingen skete. Min begkymring er udelukkende, at det bliver for rodet og tungt rent visuelt. Jeg vil ikke have, at der skrives forklarende linjer ind i selve tabellen under de respektive poster - så bliver det for alvor rodet. Tabellerne skal være en helhed, der kun indeholder deres værdier.
+
+Hvis det kan gøres på en ikke alt for tekst-tung måde med fx en kort, klar præcis forklarende tekst neden under tabellen, og kun når en periode er blevet 'brudt over' i beregningsgrundlaget eller erstatnignsperioden, så må du gerne prøve at skrive det ind - og tilsvarende for offentlige ydelser.
+
+Sørg dog for at tage højde for, at det kun skal fremgå, hvis det er relevant for netop den specifikke opgørelse, så det kun er lønperioder og offentlige ydelser, som den specifikke taf-periode, der skærer over, som beskrives, og at lønperioder og lignende, som skæres over af beregningsperioden, ikke vises med beskrivelse hvis vi er på EO 2 og brugeren har valgt, at beregningsgrundlaget ikke skal vises efter EO 1. Og så videre - tænk selv andre fornuftige begrænsninger igennem.
+
+**Spørgsmål (afventer udviklerens svar) – beregningsperiodens lønsedler i opgørelse nr. 2**
+
+Gennemført som beskrevet i beslutningen ovenfor. Undervejs viste der sig et hul i den modsatte situation af den, du
+nævner: opgørelse nr. 2, hvor brugeren har valgt «Skjul beregning efter første opgørelse: **Nej**».
+
+- *I dag:* opgørelsen viser hele udregningen af lønnen i beregningsperioden, som i opgørelse nr. 1. Men når bilagsvalget
+  «Lønindkomst og offentlige ydelser, der indsættes som bilag» står på «Perioden» (standard), tager bilaget kun
+  lønsedlerne fra erstatningsperioden med – lønsedlerne bag udregningen af lønnen før skaden mangler. Den nye linje kan
+  derfor kun forklare en overskåret lønseddel i beregningsperioden, når bilagsvalget står på «Alle».
+- *Valg 1 (anbefalet):* når udregningen vises, tager bilaget også beregningsperiodens lønsedler med – præcis som i
+  opgørelse nr. 1. Med «Skjul beregning …: Ja» er alt som i dag.
+- *Valg 2:* som i dag – opgørelse nr. 2 viser kun erstatningsperiodens lønsedler i bilaget, også når udregningen vises.
+
+**Tilbagemelding**
+Godkendt efter anbefalingen (valg 1), 2026-10-19.
+
 ### BB-294 – Klik på «Måned» sorterer efter månedsnummer uden år – rækkefølgen gemmes, papiret følger med, og Ctrl+Z fortryder ikke
 
 - **Type:** Fornuft
@@ -270,7 +349,9 @@ Hvad foretrækker du?
 - **Beslutning:** **DELVIST GODKENDT** af udvikleren 2026-10-19: skærmens sortering er en ren visningsdetalje, som programmet
   ikke fortolker; bilagene trykker altid kronologisk. **GENNEMFØRT** 2026-10-19: Lønindkomst-bilaget sorterer efter
   periodens start og slut (`sortStandardLoenRowsChronologically`), ydelsesbilaget efter fra- og til-dato; rækker med samme
-  periode beholder tabellens rækkefølge. Skærmens sortering er uændret. Modsvar om Årsløns dokument nedenfor.
+  periode beholder tabellens rækkefølge. Skærmens sortering er uændret. Efter modsvaret (udvikleren enig) **GENNEMFØRT**
+  samme dag også for **Årsløns dokument**, som nu trykker rækkerne kronologisk; en sortering kan fortsat ikke fortrydes med
+  Ctrl+Z (uskadeligt, da dokumenterne er løsrevet fra skærmens rækkefølge).
 - **Sådan fremprovokeres det:** Grundsagen. Klik kolonneoverskriften «Måned», tryk Ctrl+Z, hent opgørelsen.
 - **Det sker:** Rækkerne bliver «1/2018 2/2018 3/2018 4/2018 5/2018 6/2017 … 12/2017»; andet klik giver «12/2017 …
   6/2017 5/2018 … 1/2018». Ctrl+Z ændrer intet (målt; sletning af en række fortrydes derimod). Rækkefølgen er gemt, og
@@ -296,6 +377,9 @@ regel, og med bilaget løsrevet er skærmens orden uden betydning for papiret. T
    så et klik på «Måned» på Årsløn heller ikke ændrer rækkefølgen i det hentede dokument? Jeg anbefaler ja.
 2. **Ctrl+Z fortryder ikke en sortering**, og rækkefølgen gemmes i `.eo`-filen. Med bilagene løsrevet er det uskadeligt, så
    jeg foreslår ingen ændring – sig til, hvis du vil have, at en sortering kan fortrydes.
+
+**Tilbagemelding**
+Enig
 
 ### BB-295 – En omvendt uge-periode bliver ikke rød, og boksen siger «Ugyldig værdi i Uge fra»
 
@@ -345,8 +429,16 @@ Enig
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-05--ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier`
 - **Prioritet:** Lav
-- **Beslutning:** **DELVIST GODKENDT** af udvikleren 2026-10-19 – betinget af en løsning uden falske positiver. Ikke
-  gennemført; forslag i modsvaret nedenfor afventer udviklerens svar.
+- **Beslutning:** **DELVIST GODKENDT** af udvikleren 2026-10-19 – betinget af en løsning uden falske positiver. Forslaget i
+  modsvaret (kun «ti gange større») **GODKENDT og GENNEMFØRT** samme dag som én fælles regel
+  (`tableAmountOutlierDetection.ts`) på Lønindkomst, Offentlige ydelser og Årsløn: en række, hvis løn er over ti gange
+  medianen af de øvrige rækker i samme gruppe, får gul ring på sine beløbsceller og en linje, fx «Lønrækken 06-2017 er over
+  ti gange højere end ansættelsesforholdets øvrige lønrækker i perioden – kontrollér beløbet». Grupper: Lønindkomst pr.
+  ansættelsesforhold og periode (beregningsperioden, erstatningsperioden, øvrige); Offentlige ydelser pr. ydelsestype og
+  periode («Ydelsen er over ti gange højere end ydelsestypens øvrige rækker i perioden …»); Årsløn hele tabellen («… end
+  tabellens øvrige lønrækker …», i sidens «Advarsler»). Måned: rækkens «Samlet løn»; uge og dato samt ydelser: beløb pr.
+  kalenderdag. Mindst tre andre rækker; rækker under en uge, på 0 kr. eller negative hverken vurderes eller indgår i
+  medianen. Intet spærres, og beregningen er uændret.
 - **Sådan fremprovokeres det:** Grundsagen; juni 2017's Løn `3000000` (et tastet nul for meget to gange).
 - **Det sker:** Ingen ring, ingen linje. Papiret: «Løn i beregningsperioden 3.330.000,00 kr. … Månedsløn: 312.187,50 kr.»
   og **Beregnet krav 3.746.250,00 kr.** – mod 405.000,00 kr. Skærmen viser ikke kravet (BB-226).
@@ -382,6 +474,12 @@ Eksempler: grundsagens juni 2017 på 3.000.000 kr. flages (100 gange medianen 30
 ikke (2 gange); en fratrædelsesgodtgørelse på 400.000 kr. i en månedsrække flages (13 gange) – den er sjælden og fortjener
 et blik. Skal jeg gennemføre det sådan?
 
+**Påmindelse (2026-10-19):** modsvaret er ikke besvaret i anden runde. Intet er ændret – advarslen indføres først, når du
+har sagt ja til forslaget (eller valgt en anden grænse).
+
+**Tilbagemelding**
+Godkendt efter anbefalingen (2026-10-19, samlet svar på de udestående punkter).
+
 ### BB-298 – En lønperiode efter dags dato tages imod uden den gule ring, Årsløn skulle have fået
 
 - **Type:** Edge case
@@ -412,7 +510,21 @@ Enig
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne` og
   `#m-38--en-afgørelse-står-som-gennemført-men-koden-bærer-den-ikke`
 - **Prioritet:** Lav
-- **Beslutning:** **AFVIST** af udvikleren 2026-10-19 (grundlæggende oplysninger, brugeren kender). Udviklerens tillægsønske er **GENNEMFØRT** 2026-10-19: linjen «Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte måned.» er fjernet fra lønindkomst-bilaget. Modsvar om kolonnenavnene nedenfor (afventer udviklerens svar).
+- **Beslutning:** **AFVIST** af udvikleren 2026-10-19 (grundlæggende oplysninger, brugeren kender). Udviklerens tillægsønske er **GENNEMFØRT** 2026-10-19: linjen «Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte måned.» er fjernet fra lønindkomst-bilaget. Kolonnenavnene **GODKENDT** efter modsvaret (samme beløb, samme navn – men kun uden visuelle fejl) og
+  **GENNEMFØRT** 2026-10-19:
+  - Lønindkomst-bilaget og Årsløns dokument læser nu samme erklærede dokumentform (`getStandardLoenDocumentTableHeaders`):
+    bilagets «ATP og løn / u. till./pens.» er blevet Årsløns «ATP mv. / u. tillæg». Den nye form er kortere på begge
+    linjer, så kolonnen hverken bliver bredere eller ombrydes mere; den manuelle ombrydning er bevaret.
+  - Beregningsgrundlagets linje hedder nu kolonnens eget navn, «ATP og anden løn u. tillæg», i stedet for «Arbejdsgivers
+    ATP-bidrag og anden indkomst uden tillæg» (kortere; linjen har fri bredde).
+  - Kontroltabellen havde to egne navne: «Pension» er nu «Arb.g. / Pension» og «Ikke-pens. / givende løn» er nu
+    dokumentformen «Ikke-pens. / giv. løn» (skærmformen «Ikke-pensions-» er for bred til kontroltabellens smallere
+    kolonne). Kontroltabellens integritetsbeskeder satte overskriftens linjeskift midt i teksten; de bruger nu navnet
+    uden linjeskift.
+  - Bevidst uændret: beregningsgrundlagets «Feriepenge m.v.» (Beløb-tilstand) og «Arbejdsgivers pensionsbidrag» er de
+    udskrevne former af «FP/FV/SH/SO/St.B.» og «Arb.g. Pension» i løbende tekst – genkendelige og uden pladsproblem – og
+    i Procent-tilstand navngiver grundlaget satserne enkeltvis, hvilket et kolonnenavn ikke kan.
+  - BB-100 er noteret som afvist (ingen indvending fra udvikleren).
 - **Sådan fremprovokeres det:** Hold musen over kolonneoverskrifterne; hent opgørelsen med en ATP-række; skift til
   «Tillæg angives som» Beløb.
 - **Det sker:** Kun «Løn (2)» har et informationsikon. «FP/FV/SH/SO/St.B.» og «Arb.g. Pension» har ingen forklaring – og
@@ -444,6 +556,9 @@ till./pens.» (bilag), «Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg
    «ATP mv. u. tillæg» i smalle tabeller?
 2. BB-100 (Årsløn, 2026-08-26) accepterede netop disse tooltips og står som gennemført, men de blev aldrig lavet. Jeg
    noterer BB-100 som afvist af samme grund, medmindre du siger andet.
+
+**Tilbagemelding**
+Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme navn på tværs af programmet. Vær dog meget opmærksom på, at rigtig mange af afvigelserne formentlig skyldes pladshensyn, fx. at der kun står 'tillæg' fordi der det pågældende sted ikke var plads til både at skrive 'tillæg og pension', og så videre. Så du må kun ensarte, hvis det kan ske uden at medføre visuelle fejl, fx. at tekst bliver for bred til sin kolonne eller begynder at ombryde på flere linjer end før, og så videre. Bemærk også, at der aktuelt anvendes manuel ombrydning for at sikre et pænt visuelt udtryk - tænk det med ind.
 
 ## Overvejet uden fund
 
@@ -491,11 +606,6 @@ till./pens.» (bilag), «Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg
 
 ## Åbne spørgsmål
 
-Afgjort 2026-10-19: en negativ lønrække regnes med og modregnes (BB-290). Afventer udviklerens svar på modsvarene:
-
-- **BB-290:** skal en kilde, der SAMLET er negativ i en periode, fortsat spærre (anbefalet), og skal
-  sygeferiegodtgørelsen også modregne negative rækker (anbefalet ja)?
-- **BB-293:** bilagets periodeskel og sum – som nu, kun overskrifter, eller overskrifter med «heraf»-linje og sum?
-- **BB-294:** skal Årsløns dokument også trykke rækkerne kronologisk (anbefalet ja)?
-- **BB-297:** gennemføres advarslen kun for «ti gange større» med de foreslåede værn?
-- **BB-299:** er kolonnenavnenes uensartethed også afvist, og noteres BB-100 som afvist?
+Ingen. Afgjort 2026-10-19 i tredje runde efter anbefalingerne: sygeferiegodtgørelsen modregner negative lønsedler
+(BB-290), bilaget tager beregningsperiodens lønsedler med i opgørelse nr. 2, når udregningen vises (BB-293), og en række
+over ti gange de øvrige giver en gul advarsel (BB-297).

@@ -344,7 +344,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).not.toContain('Arbejdsgivers pensionsbidrag');
-    expect(texts).toContain('Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg');
+    expect(texts).toContain('ATP og anden løn u. tillæg');
   });
 
   it('skriver kombineret bilagslinje for løn i sygeperioden og offentlige ydelser', () => {

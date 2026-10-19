@@ -280,12 +280,16 @@ export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
   };
 };
 
-export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
-  totalBeloeb: number;
+/**
+ * Antal af ydelsesrækkens periodiseringsdage, der ligger i `range` – tælleren i
+ * {@link periodiserBeloebForOffentligYdelseMedGrundlag}. Bilagets linje om delvist medregnede ydelser (BB-293) læser
+ * samme tal, så linjen og beregningen ikke kan tælle dagene forskelligt.
+ */
+export const countOffentligYdelseOverlapDage = (args: {
   range: IsoRange;
   grundlag: OffentligYdelsePeriodiseringsGrundlag;
 }): number => {
-  const { totalBeloeb, range, grundlag } = args;
+  const { range, grundlag } = args;
 
   let overlapDage = 0;
   const rangeFraDate = parseISODate(range.fra);
@@ -297,9 +301,7 @@ export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
   const overlapDaysInclusive = countInclusiveUtcDays(overlapStart, overlapEnd);
   if (!overlapDaysInclusive || overlapDaysInclusive <= 0) return 0;
 
-  if (grundlag.periodisering === 'kalenderdage') {
-    return totalBeloeb * (overlapDaysInclusive / grundlag.totalDays);
-  }
+  if (grundlag.periodisering === 'kalenderdage') return overlapDaysInclusive;
 
   const fallbackAllocationDays = grundlag.fallbackAllocationDays;
   iterateDatesInclusive(overlapStart, overlapEnd, (date) => {
@@ -322,7 +324,18 @@ export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
     }
     overlapDage += 1;
   });
+  return overlapDage;
+};
+
+export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
+  totalBeloeb: number;
+  range: IsoRange;
+  grundlag: OffentligYdelsePeriodiseringsGrundlag;
+}): number => {
+  const { totalBeloeb, grundlag } = args;
+  const overlapDage = countOffentligYdelseOverlapDage(args);
   if (overlapDage <= 0) return 0;
+  // Kalenderdage: `periodiseringsDage` er rækkens kalenderdage (`totalDays`), så nævneren er den samme som før.
   return totalBeloeb * (overlapDage / grundlag.periodiseringsDage);
 };
 

@@ -13,6 +13,10 @@ import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/er
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaanederFixed, formatReguleringPct, formatKr } from '../../../layout/documentFormatUtils';
 import type { DocumentComposer } from '../../../model/documentModel';
+import {
+  buildOffentligeYdelserDelvisePerioderLinjer,
+  type EoBilagDelvisPeriode,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagDelvisePerioder';
 import { toKroner } from '../../../../domain/money/money';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
@@ -29,19 +33,27 @@ type OffentligeYdelserSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader' | 'writeBoldSubheaderWithWrappedText'>;
+  /** Perioderne, en delvist medregnet ydelse forklares for under tabellen (BB-293). */
+  delvisePerioder?: readonly EoBilagDelvisPeriode[];
+  writer: Pick<
+    DocumentComposer,
+    'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader' | 'writeBoldSubheaderWithWrappedText' | 'writeWrappedText'
+  >;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader'>;
+  /** Korte linjer under en ydelsestypes tabel – fx om delvist medregnede ydelser (BB-293). */
+  buildLinjerUnderTabel?: (rows: readonly OffentligeYdelserRow[]) => readonly string[];
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeUnderlinedSubheader' | 'writeWrappedText'>;
 }>;
 
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
   const {
     rows,
     visYdelsestypeSubheader = true,
+    buildLinjerUnderTabel,
     writer,
   } = ctx;
   if (rows.length === 0) return;
@@ -103,8 +115,13 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 
   for (const label of groupOrder) {
     if (visYdelsestypeSubheader) writer.writeUnderlinedSubheader(label);
-    const specRows = buildTableRows(grouped.get(label) ?? []);
-    writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
+    const groupRows = grouped.get(label) ?? [];
+    writer.addTable({ columns, hasHeaderRow: true, rows: buildTableRows(groupRows) });
+    const linjer = buildLinjerUnderTabel?.(groupRows) ?? [];
+    if (linjer.length > 0) {
+      writer.addSectionSpacer();
+      linjer.forEach((linje) => writer.writeWrappedText(linje));
+    }
   }
 };
 
@@ -116,6 +133,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     shouldIncludeOffentligYdelseRowInEoBilag,
     eoBilagIndkomstYdelserMode,
     eoBilagIndkomstYdelserRanges,
+    delvisePerioder = [],
     writer,
   } = ctx;
   const writeBoldSubheaderWithWrappedText = writer.writeBoldSubheaderWithWrappedText;
@@ -156,8 +174,19 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       startEoBilagPage('Offentlige ydelser');
       writer.addSectionSpacer();
     }
+    // Hver periodegruppe forklarer kun sin egen periodes overskæringer; uden grupper («Alle») gælder begge (BB-293).
+    const gruppensPerioder = delvisePerioder.filter((periode) =>
+      entry.group.label === null
+      || (entry.group.label === 'Beregningsperiode' && periode.navn === 'beregningsperioden')
+      || (entry.group.label === 'TAF-periode' && periode.navn === 'erstatningsperioden')
+    );
     renderOffentligeYdelserRowsPage({
       rows: entry.rows,
+      buildLinjerUnderTabel: (trykteRaekker) => buildOffentligeYdelserDelvisePerioderLinjer({
+        eoValues,
+        trykteRaekker,
+        perioder: gruppensPerioder,
+      }),
       writer,
     });
   }

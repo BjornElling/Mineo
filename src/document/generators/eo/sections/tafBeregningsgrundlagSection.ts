@@ -25,6 +25,7 @@ import {
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import type { DocumentLabelValueOptions } from '../../../model/documentModel';
+import { resolveStandardLoenColumnLabel } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { formatDanishList } from '../../../../utils/danishListFormatting';
 import {
   formatCountWithUnit,
@@ -149,7 +150,9 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
           amountOre: arbejdssted.breakdown.pensionOre,
         },
         {
-          label: 'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
+          // Kolonnens eget navn, så linjen kan genkendes i bilagets tabel og på skærmen (BB-299). Før hed samme
+          // beløb «Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg» her.
+          label: resolveStandardLoenColumnLabel('col5'),
           amountOre: arbejdssted.breakdown.atpOre,
         },
       ];

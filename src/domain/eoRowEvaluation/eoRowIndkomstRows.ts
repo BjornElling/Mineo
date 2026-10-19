@@ -835,7 +835,7 @@ export const buildEoOffentligeYdelserRows = (
   cellIssues: readonly FieldIssue[] = []
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const statusRows = buildOffentligeYdelserStatusRows(values.offentligeYdelserRows ?? [], cellIssues);
+  const statusRows = buildOffentligeYdelserStatusRows(values.offentligeYdelserRows ?? [], cellIssues, values);
 
   statusRows.forEach((row) => {
     rows.push({

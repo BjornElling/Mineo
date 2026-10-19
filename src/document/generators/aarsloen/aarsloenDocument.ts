@@ -18,9 +18,7 @@ import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import {
-  STANDARD_LOEN_COL2_LABEL,
-  STANDARD_LOEN_COL3_LABEL,
-  resolveStandardLoenDocumentColumnLabel,
+  getStandardLoenDocumentTableHeaders,
   resolveStandardLoenPeriodColumns,
 } from '../../../domain/aarsloen/standardLoenTableColumns';
 import {
@@ -30,6 +28,7 @@ import {
   resolveAarsloenIndtastetEnhedSummary,
 } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
+import { sortStandardLoenRowsChronologically } from '../../../domain/standardLoen/standardLoenRowOrder';
 
 const NBSP = '\u00A0';
 
@@ -142,8 +141,10 @@ const addIndtaegtsoplysningerTable = (
 ): void => {
   writer.writeBoldSubheader('Indtægtsoplysninger');
 
-  // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt
-  const filteredData = tableData.filter(row => {
+  // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt. Dokumentet trykker altid rækkerne
+  // kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen (udviklerafgørelse 2026-10-19, BB-294 –
+  // samme regel som erstatningsopgørelsens bilag).
+  const filteredData = sortStandardLoenRowsChronologically(tableData, loenperiode).filter(row => {
     // Tjek periode-kolonner baseret på loenperiode
     let harPeriode = false;
     if (loenperiode === 'maaned') {
@@ -154,7 +155,7 @@ const addIndtaegtsoplysningerTable = (
       harPeriode = !erCelleTom(row.col0_dag) || !erCelleTom(row.col1_dag);
     }
 
-    // Tjek beløbsfelter (Løn, Løn (2), Ikke-pensionsgivende løn, ATP og anden ikke-FB løn)
+    // Tjek beløbsfelter (Løn, Løn (2), Ikke-pensionsgivende løn, ATP og anden løn u. tillæg)
     const harLoen = !erCelleTom(row.col2) || !erCelleTom(row.col3) || !erCelleTom(row.col4) ||
                      !erCelleTom(row.col5);
 
@@ -162,26 +163,9 @@ const addIndtaegtsoplysningerTable = (
     return harPeriode || harLoen;
   });
 
-  // Headers afhænger af lønperiode
-  const periodHeaders =
-    loenperiode === 'maaned'
-      ? ['Måned', 'År']
-      : loenperiode === 'uge'
-        ? ['Uge fra', 'Uge til']
-        : ['Dato fra', 'Dato til'];
-
-  const headerLabels = [
-    ...periodHeaders,
-    STANDARD_LOEN_COL2_LABEL,
-    STANDARD_LOEN_COL3_LABEL,
-    // Forkortelserne er den ERKLÆREDE dokument-form af de kanoniske kolonnenavne (§3.2a), ikke frie
-    // strenge – et værn beviser, at hver er afledt af navnet. Den viste tekst er uændret.
-    resolveStandardLoenDocumentColumnLabel('col4'),
-    resolveStandardLoenDocumentColumnLabel('col5'),
-    resolveStandardLoenDocumentColumnLabel('fpFvShSoBeloeb'),
-    resolveStandardLoenDocumentColumnLabel('pensionBeloeb'),
-    'Samlet løn',
-  ];
+  // Overskrifterne er kolonnernes ERKLÆREDE dokument-form (§3.2a), fælles med erstatningsopgørelsens
+  // lønindkomst-bilag – et værn beviser, at hver forkortelse er afledt af det kanoniske navn.
+  const headerLabels = getStandardLoenDocumentTableHeaders(loenperiode);
 
   const columnCount = headerLabels.length;
 

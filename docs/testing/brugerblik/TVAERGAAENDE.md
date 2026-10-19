@@ -633,7 +633,9 @@ endelig EET-afgørelse:». Sektionens toggles er korrekte (`LabeledControlRow`),
 - Bemærk også, at alle tekster om samme dato skal bruge den samme korrekte betegnelse.
 - **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-299): lønindkomst-tabellens ATP-kolonne hedder fire
   ting – skærm, EO-bilag, beregningsgrundlag og Årsløns dokument – og BB-111's erklærede dokumentform er ikke brugt af
-  EO's bilag.
+  EO's bilag. **Løst 2026-10-19:** begge dokumenter læser samme erklærede dokumentform
+  (`getStandardLoenDocumentTableHeaders`), kontroltabellen kolonnernes egne navne, og beregningsgrundlaget kolonnens
+  navn «ATP og anden løn u. tillæg».
 
 ## M-03 – Tastning og indsættelse accepterer ikke det samme
 
@@ -737,6 +739,8 @@ langt fra det sted, den blev indtastet.
   sammenhæng*, fordi programmet selv bruger opgørelsens dato som status-dato.
 - **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-297): en lønrække på 3.000.000 kr. blandt elleve à
   30.000 kr. på samme kort giver kravet 3.746.250 kr. uden et ord. Sagens egen sammenhæng er de øvrige rækker.
+  **Løst 2026-10-19:** én fælles regel (`tableAmountOutlierDetection.ts`) – over ti gange medianen af de øvrige rækker i
+  samme periode giver gul ring; kun «større», fordi «mindre» ikke kan skilles fra almindelige små lønsedler.
 
 ## M-06 – Usynlige tegn overlever fra indsættelse
 
@@ -2374,7 +2378,9 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
 - **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-293): lønindkomst-bilaget har ingen sum og blander
   beregningsperiodens og erstatningsperiodens rækker, skønt bilagets eget filter bygger på de samme periodegrupper
   (`periodRangeGroups.ts`); en datorække, der kun delvist ligger i beregningsperioden, trykkes med hele beløbet, mens
-  grundlaget bruger 31 af 61 dage.
+  grundlaget bruger 31 af 61 dage. **Løst 2026-10-19:** tabellen står fortsat som lønsedlerne (udviklerens krav), men
+  under den står én kort linje pr. række, en relevant periode skærer igennem, med dage og medregnet beløb – læst af
+  samme rækkeandele, som beregningen summerer (`buildIncomeRowSharesForRanges`).
 
 ---
 

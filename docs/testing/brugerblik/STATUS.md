@@ -9,7 +9,7 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
 - **Næste flade:** **12i – Erstatningsopgørelse → Lønudvikling og regulering af tabet.** 12h er gennemgået 2026-10-19
-  (11 fund, BB-289–BB-299), afgjort og gennemført samme dag på nær fem modsvar (se 12h-afsnittet). 12g er gennemgået,
+  (11 fund, BB-289–BB-299), afgjort og gennemført samme dag i tre modsvarsrunder (se 12h-afsnittet). 12g er gennemgået,
   afgjort OG gennemført 2026-10-06 (15 fund, BB-274–BB-288). 12f er
   gennemgået, afgjort OG gennemført 2026-10-02 (16 fund, BB-258–BB-273). 12e er gennemgået 2026-09-24
   og afgjort OG gennemført 2026-09-25 (11 fund, BB-247–BB-257). 12d er gennemgået,
@@ -27,9 +27,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
 - **Næste fund-ID:** BB-300
-- **Åbne spørgsmål:** **fem modsvar i 12h** (2026-10-19): BB-290 (samlet negativ kilde; sygeferiegodtgørelsen), BB-293
-  (bilagets periodeskel og sum), BB-294 (Årsløns dokument kronologisk), BB-297 (kun «ti gange større») og BB-299
-  (kolonnenavnene; BB-100). Afgjort samme dag: en negativ lønrække regnes med (BB-290). Tidligere: **ingen.** 12g's to faglige spørgsmål er besvaret 2026-10-06: en tom feriesats må ikke
+- **Åbne spørgsmål:** **ingen fra 12h** – de sidste tre (BB-290's sygeferiegodtgørelse, BB-293's opgørelse nr. 2 og
+  BB-297) er godkendt efter anbefalingen og gennemført 2026-10-19. Tidligere: **ingen.** 12g's to faglige spørgsmål er besvaret 2026-10-06: en tom feriesats må ikke
   regnes stille (BB-274), og «sidste dag i ansættelsesforholdet» og «sidste arbejdsdag» er samme dato (BB-283).
   Tidligere: **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
   EET-klage gælder alt EET; den bliver under «Øvrigt», og papiret trykker fortsat én EET-linje), BB-242 ja til en
@@ -101,8 +100,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **Fem modsvar i flade 12h** (BB-290, BB-293, BB-294, BB-297, BB-299) –
-  se afsnittet om 12h nedenfor; de øvrige er afgjort og gennemført 2026-10-19.
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 12h's 11 fund er afgjort og gennemført 2026-10-19.
   Tidligere: **ingen.** **Flade 12g's 15 fund (BB-274–BB-288) er afgjort og
   gennemført 2026-10-06** – se afsnittet om 12g nedenfor. Tidligere: **ingen.** **Flade 12f's 16 fund (BB-258–BB-273) er afgjort og
   gennemført 2026-10-02** – 15 rettet (BB-261 kun del 2), ét afvist (BB-273); se afsnittet om 12f nedenfor.
@@ -601,23 +599,32 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12e | Erstatningsopgørelse – TAF: perioden | Afgjort og gennemført | 11 (BB-247–BB-257) | [erstatningsopgoerelse-12e.md](erstatningsopgoerelse-12e.md) |
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Afgjort og gennemført | 16 (BB-258–BB-273) | [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md) |
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Afgjort og gennemført | 15 (BB-274–BB-288) | [erstatningsopgoerelse-12g.md](erstatningsopgoerelse-12g.md) |
-| 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Afgjort og gennemført (fem modsvar åbne) | 11 (BB-289–BB-299) | [erstatningsopgoerelse-12h.md](erstatningsopgoerelse-12h.md) |
+| 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Afgjort og gennemført | 11 (BB-289–BB-299) | [erstatningsopgoerelse-12h.md](erstatningsopgoerelse-12h.md) |
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Ikke startet | – | – |
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Ikke startet | – | – |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
 
-## Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger (12h) – gennemgået 2026-10-19, afgjort og gennemført 2026-10-19 (fem modsvar åbne)
+## Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger (12h) – gennemgået, afgjort og gennemført 2026-10-19
 
 **Afgjort og gennemført 2026-10-19:** identiske rækker giver gul ring og advarsel på alle tre tabeller og spærrer ikke
 længere på Årsløn (BB-289); negative rækker regnes med og modregnes med gul ring og advarsel, og «Kontroltabel»-linket
 vises kun, når fanen gør (BB-290); én linje pr. fejlbehæftet løn- og ydelsesrække med cellens tekst og link til cellen
 (BB-291); weekendrækker og rækker med kun tillæg står med deres beløb i tabel og bilag (BB-292); bilagene trykker
 kronologisk (BB-294); ugeparrets og Årsløns datopars rækkefølgetekster (BB-295), ugenummerets tekst (BB-296) og den gule
-ring på fremtidige perioder (BB-298) – de tre sidste lukker M-38's forekomster. BB-293 og BB-299 afvist; linjen om
-månedens satser fjernet fra bilaget. Modsvar åbne: BB-290 (samlet negativ kilde spærrer indtil videre; sygeferiegodtgørelsen),
-BB-293, BB-294 (Årsløn), BB-297 og BB-299 (kolonnenavne).
+ring på fremtidige perioder (BB-298) – de tre sidste lukker M-38's forekomster. Linjen om månedens satser fjernet fra
+bilaget (BB-299).
+
+**Anden modsvarsrunde, afgjort og gennemført 2026-10-19:** en samlet negativ kilde spærrer med navngiven linje i begge
+perioder (BB-290, valg A); under bilagenes tabeller forklarer én kort linje pr. række, hvor meget af en lønseddel eller
+ydelse en relevant periode medregner (BB-293); Årsløns dokument trykker også kronologisk (BB-294); ATP-kolonnen hedder
+det samme i begge dokumenter, kontroltabellen og beregningsgrundlaget (BB-299; BB-100 afvist).
+
+**Tredje runde, afgjort og gennemført 2026-10-19:** sygeferiegodtgørelsen modregner negative lønsedler og spærrer ved en
+samlet negativ referenceløn (BB-290); opgørelse nr. 2 med udregningen vist tager beregningsperiodens lønsedler med i
+bilaget (BB-293); en løn- eller ydelsesrække over ti gange de øvrige i samme periode giver gul ring og advarsel på
+Lønindkomst, Offentlige ydelser og Årsløn (BB-297).
 
 **11 fund: tre Høj, fire Mellem, fire Lav (fem Fejl, tre Edge case, tre Fornuft) – og ét nyt tværgående mønster M-38:
 en afgørelse står som gennemført, men koden bærer den ikke.** Fladens bærende iagttagelse er, at lønindkomst-tabellen
@@ -635,16 +642,16 @@ ikke findes i koden** – M-38. M-09 bestået; konsollen tavs uden for BB-290. G
 | ID | Kort | Prioritet | Beslutning |
 |---|---|---|---|
 | BB-289 | Identiske lønrækker fordobler måneden – dublet-kontrollen nåede ikke EO | **Høj** | Godkendt (gul advarsel) – gennemført |
-| BB-290 | En negativ lønrække giver «kontroluoverensstemmelser» og et dødt link | **Høj** | Godkendt – gennemført · samlet negativ kilde afventer modsvar |
+| BB-290 | En negativ lønrække giver «kontroluoverensstemmelser» og et dødt link | **Høj** | Godkendt – gennemført (også sygeferiegodtgørelsen; samlet negativ kilde spærrer) |
 | BB-291 | Fejl i en lønrække meldes som «Måned er ikke angivet» uden række, og hele kortet blinker | **Høj** | Godkendt – gennemført (også offentlige ydelser) |
 | BB-292 | Medregnede rækker står til 0,00 kr. eller mangler i bilaget | Mellem | Godkendt – gennemført |
-| BB-293 | Bilaget har ingen sum, blander perioderne og trykker delvise rækker fuldt | Mellem | Afvist · modsvar afventer |
-| BB-294 | «Måned» sorterer uden år; rækkefølgen gemmes og trykkes | Mellem | Delvist – bilag kronologisk, gennemført · Årsløn afventer modsvar |
+| BB-293 | Bilaget har ingen sum, blander perioderne og trykker delvise rækker fuldt | Mellem | Godkendt i ændret form – linje under tabellen, gennemført (også opgørelse nr. 2) |
+| BB-294 | «Måned» sorterer uden år; rækkefølgen gemmes og trykkes | Mellem | Delvist – dokumenterne kronologisk (også Årsløn), gennemført |
 | BB-295 | Omvendt uge-periode er ikke rød; boksen siger «Ugyldig værdi i Uge fra» | Mellem | Godkendt – gennemført (også Årsløn) |
 | BB-296 | Uge 53 i et år med 52 uger får den generiske tekst (BB-114) | Lav | Godkendt – gennemført |
-| BB-297 | En måned med 100 gange så meget løn tages imod uden bemærkning | Lav | Delvist · forslag afventer modsvar |
+| BB-297 | En måned med 100 gange så meget løn tages imod uden bemærkning | Lav | Delvist – kun «ti gange større», gennemført (også Årsløn og ydelser) |
 | BB-298 | Fremtidig lønperiode uden gul ring (BB-115) | Lav | Godkendt – gennemført (også Årsløn) |
-| BB-299 | Afledte kolonner uden forklaring; ATP-kolonnen hedder fire ting | Lav | Afvist · tillægsønske gennemført · navne afventer modsvar |
+| BB-299 | Afledte kolonner uden forklaring; ATP-kolonnen hedder fire ting | Lav | Tooltips afvist · tillægsønske og fælles navne gennemført |
 
 ## Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser (12g) – gennemgået, afgjort og gennemført 2026-10-06
 

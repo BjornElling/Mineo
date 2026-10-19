@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { getStandardLoenTableHeaderNodes } from '../../../components/tables/standardLoenTableHeaderNodes';
 import {
-  getStandardLoenTableHeaderNodes,
+  getStandardLoenDocumentTableHeaders,
   getStandardLoenTableHeaders,
   getStandardLoenHeaderIndex,
   resolveStandardLoenColumnLabel,
@@ -38,6 +39,22 @@ describe('standardLoenTableColumns', () => {
       'Løn (2)',
       'Ikke-pensions-\ngivende løn',
       'ATP og anden\nløn u. tillæg',
+      'FP/FV/SH/\nSO/St.B.',
+      'Arb.g.\nPension',
+      'Samlet løn',
+    ]);
+  });
+
+  it('giver dokumenterne én fælles overskriftsform – samme navn for samme beløb i begge dokumenter (BB-299)', () => {
+    // Erstatningsopgørelsens lønindkomst-bilag og Årsløns dokument læser begge denne liste. Bilaget kaldte før
+    // ATP-kolonnen «ATP og løn u. till./pens.»; den fælles form er kortere på begge linjer.
+    expect(getStandardLoenDocumentTableHeaders('dag')).toEqual([
+      'Dato fra',
+      'Dato til',
+      'Løn',
+      'Løn (2)',
+      'Ikke-pens.\ngiv. løn',
+      'ATP mv.\nu. tillæg',
       'FP/FV/SH/\nSO/St.B.',
       'Arb.g.\nPension',
       'Samlet løn',

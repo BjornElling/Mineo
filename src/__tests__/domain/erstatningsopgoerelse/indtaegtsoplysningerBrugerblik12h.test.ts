@@ -20,6 +20,8 @@ import { shouldIncludeLoenRowInEoBilag } from '../../../domain/erstatningsopgoer
 import { sortStandardLoenRowsChronologically } from '../../../domain/standardLoen/standardLoenRowOrder';
 import { renderOffentligeYdelserRowsPage } from '../../../document/generators/eo/sections/offentligeYdelserSection';
 import type { RowSpec } from '../../../document/layout/tableSpec';
+import { renderEoBilagSections } from '../../../document/generators/eo/sections/eoBilagSections';
+import type { DocumentComposer } from '../../../document/model/documentModel';
 
 // Brugerblik 12h (ansættelsesforholdets indtægtsoplysninger), udviklerafgørelser 2026-10-19. Testene går gennem
 // den rigtige reader, så cellens issue, «Fejl og advarsler», blokeringen og kravet læser samme tilstand som skærmen.
@@ -369,10 +371,240 @@ describe('BB-294 – ydelsesbilaget trykker også rækkerne kronologisk', () => 
       writer: {
         addSectionSpacer: () => undefined,
         writeUnderlinedSubheader: () => undefined,
+        writeWrappedText: () => undefined,
         addTable: (table) => { tables.push([...table.rows]); },
       },
     });
 
     expect(tables[0]!.slice(1).map((row) => row.cells[0]?.text)).toEqual(['01-01-2024', '01-02-2024', '01-03-2024']);
+  });
+});
+
+/** Bilagenes tekstlinjer, som de skrives under tabellerne – gennem den rigtige bilagsrenderer og opgørelsens model. */
+const bilagTekstlinjer = (result: ReturnType<typeof project>): readonly string[] => {
+  const model = result.projection.snapshot.data?.pdfModel;
+  if (!model) throw new Error('Opgørelsens model mangler');
+  const linjer: string[] = [];
+  // Kun teksten aflæses; alle øvrige skrivekald er uden betydning for påstandene.
+  const writer = new Proxy({}, {
+    get: (_target, key) => (key === 'writeWrappedText'
+      ? (text: string) => { linjer.push(text); }
+      : () => undefined),
+  }) as DocumentComposer;
+  renderEoBilagSections({
+    writer,
+    model,
+    eoValues: result.projection.eoValues,
+    stamdataValues: result.projection.stamdataValues as StamdataValues,
+    selectedElements: {
+      opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: false,
+      shDage: false, regulering: false, okSatser: false, sygeferiegodtgoerelse: false,
+    },
+  });
+  return linjer;
+};
+const delvisLinjer = (result: ReturnType<typeof project>) =>
+  bilagTekstlinjer(result).filter((linje) => /delvist indgår|i (beregnings|erstatnings)perioden, /.test(linje));
+const datoRaekke = (id: string, fra: string, til: string, loen: number) => ({
+  ...loenRaekker()[0]!, id, col0_maaned: '', col1_maaned: '', col0_dag: iso(fra), col1_dag: iso(til), col2: amount(loen),
+});
+
+describe('BB-293 – bilaget forklarer under tabellen, når en periode skærer igennem en række', () => {
+  it('forklarer en lønseddel, der kun delvist ligger i beregningsperioden, med beregningens egne tal', () => {
+    // 31 af rækkens 61 kalenderdage ligger i beregningsperioden: 60.000 × 31/61 = 30.491,80 kr. i løn og
+    // 34.303,28 kr. med 12,5 % feriegodtgørelse – grundlagets «Løn i beregningsperioden» er 360.491,80 kr.
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        loenperiode: 'dag',
+        indtaegtsoplysningerTableData: [
+          datoRaekke('d1', '2017-06-01', '2018-04-30', 330000),
+          datoRaekke('d2', '2018-05-01', '2018-06-30', 60000),
+        ],
+      })],
+    }));
+
+    expect(result.errorLinjer).toEqual([]);
+    expect(delvisLinjer(result)).toEqual([
+      'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '01-05-2018 - 30-06-2018: 31 af 61 kalenderdage i beregningsperioden, 34.303,28 af 67.500,00 kr.',
+    ]);
+  });
+
+  it('forklarer en lønseddel og en ydelse, der kun delvist ligger i erstatningsperioden', () => {
+    // 15 af 32 kalenderdage (15-12-2023 – 15-01-2024) ligger i erstatningsperioden fra 01-01-2024.
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        loenperiode: 'dag',
+        indtaegtsoplysningerTableData: [
+          datoRaekke('d1', '2017-06-01', '2018-05-31', 360000),
+          datoRaekke('d2', '2023-12-15', '2024-01-15', 10000),
+        ],
+      })],
+      offentligeYdelserRows: [{
+        id: 'y1', fraDato: iso('2023-12-15'), tilDato: iso('2024-01-15'), ydelse: amount(16000), tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+    }));
+
+    expect(result.errorLinjer).toEqual([]);
+    expect(delvisLinjer(result)).toEqual([
+      'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '15-12-2023 - 15-01-2024: 15 af 32 kalenderdage i erstatningsperioden, 5.273,44 af 11.250,00 kr.',
+      'Ydelser, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '15-12-2023 - 15-01-2024: 15 af 32 kalenderdage i erstatningsperioden, 7.500,00 af 16.000,00 kr.',
+    ]);
+  });
+
+  it('skriver ingen linje, når ingen række skæres over', () => {
+    expect(delvisLinjer(project(sag()))).toEqual([]);
+  });
+
+  it('forklarer ikke beregningsperioden i en senere opgørelse, der kun viser det tidligere beregnede beløb', () => {
+    // «Alle» trykker rækkerne fra beregningsperioden, men grundlaget står komprimeret – der er ingen udregning at
+    // afstemme med. Erstatningsperiodens overskæring forklares fortsat.
+    const values = sag({
+      eoNummer: '2',
+      komprimerBeregningEfterFoersteOpgoerelse: 'Ja',
+      eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        loenperiode: 'dag',
+        indtaegtsoplysningerTableData: [
+          datoRaekke('d1', '2017-06-01', '2018-04-30', 330000),
+          datoRaekke('d2', '2018-05-01', '2018-06-30', 60000),
+          datoRaekke('d3', '2023-12-15', '2024-01-15', 10000),
+        ],
+      })],
+    });
+    const result = project(values);
+
+    expect(result.projection.snapshot.data?.pdfModel.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning).toBe(true);
+    expect(delvisLinjer(result)).toEqual([
+      'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '15-12-2023 - 15-01-2024: 15 af 32 kalenderdage i erstatningsperioden, 5.273,44 af 11.250,00 kr.',
+    ]);
+
+    // Samme sag uden komprimering forklarer også beregningsperioden.
+    expect(delvisLinjer(project({ ...values, komprimerBeregningEfterFoersteOpgoerelse: 'Nej' }))).toHaveLength(3);
+  });
+
+  it('tager beregningsperiodens lønsedler med i opgørelse nr. 2, når udregningen vises', () => {
+    // Bilagsvalget «Perioden»: med «Skjul beregning …: Nej» viser opgørelse nr. 2 udregningen og dermed også de
+    // lønsedler, den bygger på – som opgørelse nr. 1. Med «Ja» kun erstatningsperiodens.
+    const values = sag({
+      eoNummer: '2',
+      komprimerBeregningEfterFoersteOpgoerelse: 'Nej',
+      eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        loenperiode: 'dag',
+        indtaegtsoplysningerTableData: [
+          datoRaekke('d1', '2017-06-01', '2018-04-30', 330000),
+          datoRaekke('d2', '2018-05-01', '2018-06-30', 60000),
+          datoRaekke('d3', '2023-12-15', '2024-01-15', 10000),
+        ],
+      })],
+    });
+
+    expect(delvisLinjer(project(values))).toEqual([
+      'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '01-05-2018 - 30-06-2018: 31 af 61 kalenderdage i beregningsperioden, 34.303,28 af 67.500,00 kr.',
+      '15-12-2023 - 15-01-2024: 15 af 32 kalenderdage i erstatningsperioden, 5.273,44 af 11.250,00 kr.',
+    ]);
+    expect(delvisLinjer(project({ ...values, komprimerBeregningEfterFoersteOpgoerelse: 'Ja' }))).toEqual([
+      'Lønperioder, der kun delvist indgår, medregnes forholdsmæssigt:',
+      '15-12-2023 - 15-01-2024: 15 af 32 kalenderdage i erstatningsperioden, 5.273,44 af 11.250,00 kr.',
+    ]);
+  });
+
+  it('forklarer en månedsrække, som beregningsperioden starter midt i, i arbejdsdage, når der regnes i arbejdsdage', () => {
+    // «Fuld løn under ferie: Nej» giver arbejdsdage. Beregningsperioden 15-06-2017 – 14-06-2018 skærer juni 2017 og
+    // juni 2018 over; juni 2017 har 21 arbejdsdage (2. pinsedag og grundlovsdag falder begge 5. juni), og 12 af dem (15. – 30.) ligger i perioden.
+    const result = project(sag({
+      tafBeregningsperiodeFra: iso('2017-06-15'),
+      tafBeregningsperiodeTil: iso('2018-06-14'),
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        fuldLoenUnderFerie: 'Nej',
+        indtaegtsoplysningerTableData: loenRaekker({ maaned: 6, aar: 2017 }, 13),
+      })],
+    }));
+
+    const linjer = delvisLinjer(result);
+    expect(linjer).toHaveLength(3);
+    expect(linjer[1]).toMatch(/^06-2017: 12 af 21 arbejdsdage i beregningsperioden, /);
+    expect(linjer[2]).toMatch(/^06-2018: \d+ af \d+ arbejdsdage i beregningsperioden, /);
+  });
+});
+
+describe('BB-297 – en lønrække over ti gange de øvrige får en gul advarsel', () => {
+  const OUTLIER_LINJE = 'er over ti gange højere end ansættelsesforholdets øvrige lønrækker i perioden – kontrollér beløbet';
+  const outlierLinjer = (result: ReturnType<typeof project>) =>
+    result.warningLinjer.filter((linje) => linje.includes('over ti gange højere'));
+
+  it('advarer om et nul for meget uden at spærre', () => {
+    const [juni, ...resten] = loenRaekker();
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        indtaegtsoplysningerTableData: [{ ...juni!, col2: amount(3000000) }, ...resten],
+      })],
+    }));
+
+    expect(outlierLinjer(result)).toEqual([`Lønrækken 06-2017 ${OUTLIER_LINJE}`]);
+    expect(result.errorLinjer).toEqual([]);
+    expect(result.projection.snapshot.status).toBe('ok');
+  });
+
+  it('advarer ikke om en bonus, en efterregulering eller en lav løn efter skaden', () => {
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        indtaegtsoplysningerTableData: [
+          ...loenRaekker(),
+          raekke('bonus', 12, 2017, 60000),
+          raekke('efterregulering', 3, 2018, 1000),
+          // Erstatningsperioden sammenlignes for sig – 3.000 kr. pr. måned efter skaden er ikke «lavt» mod 30.000 kr.
+          ...[1, 2, 3, 4].map((maaned) => raekke(`efter-${maaned}`, maaned, 2024, 3000)),
+        ],
+      })],
+    }));
+
+    expect(outlierLinjer(result)).toEqual([]);
+  });
+
+  it('vurderer en datorække pr. kalenderdag og springer rækker under en uge over', () => {
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        loenperiode: 'dag',
+        indtaegtsoplysningerTableData: [
+          datoRaekke('d1', '2017-06-01', '2017-06-30', 30000),
+          datoRaekke('d2', '2017-07-01', '2017-07-31', 30000),
+          datoRaekke('d3', '2017-08-01', '2017-08-31', 30000),
+          datoRaekke('d4', '2017-09-01', '2017-09-30', 30000),
+          // To dage med feriepenge: 15.000 kr. pr. dag, men for kort til at blive vurderet.
+          datoRaekke('slutloen', '2017-10-01', '2017-10-02', 30000),
+          // En uge til 80.000 kr. er over 11.000 kr. pr. dag mod ca. 1.000 kr.
+          datoRaekke('uge', '2017-10-03', '2017-10-09', 80000),
+        ],
+      })],
+    }));
+
+    expect(outlierLinjer(result)).toEqual([`Lønrækken 03-10-2017 - 09-10-2017 ${OUTLIER_LINJE}`]);
+  });
+
+  it('advarer også om en ydelse over ti gange ydelsestypens øvrige rækker', () => {
+    const ydelse = (id: string, fra: string, til: string, beloeb: number) => ({
+      id, fraDato: iso(fra), tilDato: iso(til), ydelse: amount(beloeb), tillaeg: undefined, ydelsestype: 'dagpenge',
+    });
+    const result = project(sag({
+      offentligeYdelserRows: [
+        ydelse('y1', '2024-01-01', '2024-01-31', 15000),
+        ydelse('y2', '2024-02-01', '2024-02-29', 15000),
+        ydelse('y3', '2024-03-01', '2024-03-31', 15000),
+        ydelse('y4', '2024-04-01', '2024-04-30', 200000),
+      ],
+    }));
+
+    expect(outlierLinjer(result)).toEqual([
+      'Ydelsen Dagpenge 01-04-2024 - 30-04-2024 er over ti gange højere end ydelsestypens øvrige rækker i perioden – '
+        + 'kontrollér beløbet',
+    ]);
+    expect(result.errorLinjer).toEqual([]);
   });
 });

@@ -198,10 +198,11 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     return map;
   }, [formatAntalDage, rows]);
 
-  // Identisk række og negativt beløb: gul ring og en linje i «Fejl og advarsler» (BB-289/BB-290).
+  // Identisk række, negativt beløb og et usandsynligt højt beløb: gul ring og en linje i «Fejl og advarsler»
+  // (BB-289/BB-290/BB-297).
   const cellWarnings = React.useMemo(
-    () => buildFieldWarningMap(resolveOffentligeYdelserRowWarnings(rows)),
-    [rows]
+    () => buildFieldWarningMap(resolveOffentligeYdelserRowWarnings(rows, values)),
+    [rows, values]
   );
 
   const handleSygedagpengeInsert = React.useCallback(() => {

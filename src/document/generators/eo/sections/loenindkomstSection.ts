@@ -14,6 +14,10 @@ import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 import type { DocumentComposer } from '../../../model/documentModel';
+import {
+  buildLoenindkomstDelvisePerioderLinjer,
+  type EoBilagDelvisPeriode,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagDelvisePerioder';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
@@ -40,6 +44,8 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
+  /** Perioderne, en delvist medregnet lønseddel forklares for under tabellen (BB-293). */
+  delvisePerioder?: readonly EoBilagDelvisPeriode[];
   writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
 }>;
 
@@ -61,6 +67,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     shouldIncludeLoenRowInEoBilag,
     eoBilagIndkomstYdelserMode,
     eoBilagIndkomstYdelserRanges,
+    delvisePerioder = [],
     writer,
   } = ctx;
 
@@ -153,6 +160,21 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     }
 
     writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
+
+    // Tabellen står som lønsedlerne; en kort sætning under den forklarer de rækker, beregningen kun medregner en
+    // del af, fordi perioden skærer igennem dem (BB-293). Ingen linjer inde i tabellen – den skal kun indeholde
+    // sine værdier (udviklerafgørelse 2026-10-19).
+    const delvisePerioderLinjer = buildLoenindkomstDelvisePerioderLinjer({
+      eoValues,
+      ansaettelsesforholdIndex: (eoValues.loenindkomstAnsaettelsesforhold ?? []).indexOf(ansaettelsesforhold),
+      trykteRaekkeIds: rows.map((row) => row.id),
+      perioder: delvisePerioder,
+      skadedato: isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : undefined,
+    });
+    if (delvisePerioderLinjer.length > 0) {
+      writer.addSectionSpacer();
+      delvisePerioderLinjer.forEach((linje) => safeAddWrappedText(linje));
+    }
   };
 
   const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);

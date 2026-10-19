@@ -157,9 +157,18 @@ Udviklerbeslutning 2026-10-06 (BB-275, BB-276):
 - **Negative rækker modregnes** (udviklerafgørelse 2026-10-19, BB-290). En lønrække eller ydelsesrække med negativt
   beløb – en tilbagebetaling, en efterregulering – regnes med og trækkes fra kildens øvrige indtægt i perioden, i både
   beregningsperioden og erstatningsperioden; rækken får en gul, ikke-blokerende advarsel. Er en kildes (et
-  ansættelsesforholds eller en ydelsestypes) indtægt i en periode SAMLET negativ, spærrer opgørelsen med en navngiven
-  linje, indtil udvikleren har afgjort, hvordan det regnes (`negativeIndkomstkilder.ts`). Sygeferiegodtgørelsens grundlag
-  medtager fortsat kun positive rækker.
+  ansættelsesforholds eller en ydelsestypes) indtægt i hele beregningsperioden eller hele erstatningsperioden SAMLET
+  negativ, spærrer opgørelsen med en navngiven linje (udviklerafgørelse 2026-10-19, `negativeIndkomstkilder.ts`).
+  Sygeferiegodtgørelsens referenceløn modregner også negative rækker; er den samlet negativ, spærrer opgørelsen
+  (udviklerafgørelse 2026-10-19).
+- **Delvist medregnede rækker forklares under bilagets tabel** (udviklerafgørelse 2026-10-19, BB-293). Bilagene
+  «Lønindkomst» og «Offentlige ydelser» trykker rækkerne som lønsedlerne med hele beløbet; skærer beregningsperioden
+  eller erstatningsperioden igennem en række, står der under tabellen én linje med antal medregnede dage og det
+  medregnede beløb. Linjen læser de rækkeandele, beregningen selv summerer (`buildIncomeRowSharesForRanges`); de
+  relevante perioder afgøres af `resolveEoBilagDelvisePerioder`. Beregningsperiodens rækker står i bilaget, når
+  opgørelsen viser udregningen af lønnen før skaden (`skalKomprimereIndkomstBeregning`).
+- **Usandsynligt høje beløb** (BB-297): en løn- eller ydelsesrække over ti gange medianen af de øvrige rækker i samme
+  periode giver en gul, ikke-blokerende advarsel; beregningen er uændret.
 - **Identiske rækker** i en indtægtstabel (inden for ét ansættelsesforhold, eller blandt offentlige ydelser) regnes begge
   med og giver en gul, ikke-blokerende advarsel (BB-289).
 

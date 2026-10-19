@@ -7,7 +7,7 @@ import type {
 import type { TafCalculationValues } from '../engines/tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { coerceToISODateString, dateToISO, isISODateString, parseISODate } from '../../../types/branded';
-import { calculateStandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
+import { calculateStandardLoenProjectedAmounts, type StandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAmount } from '../../../utils/numberParsing';
 import { createDate } from '../../../utils/dateUtils';
 import { resolveYdelsestype } from '../../../data/ydelsestyper';
@@ -28,6 +28,7 @@ import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
   buildOffentligYdelsePeriodiseringsGrundlag,
   buildFallbackAllocationDaysForInterval,
+  countOffentligYdelseOverlapDage,
   buildLoenArbejdsdageSet,
   periodiserBeloebForOffentligYdelseMedGrundlag,
   SYGEDAGPENGE_SH_CUTOFF,
@@ -71,8 +72,8 @@ export type IncomePeriodResult = Readonly<{
  * kildens samlede indtægt i perioden negativ, er der ingen positiv indtægt at modregne i, og motorerne
  * (lønudviklingens basisløn, indkomstgrundlaget, fradragets sum) forudsætter en ikke-negativ indtægt pr. kilde.
  * Kilden indgår derfor IKKE i `employers`/`benefits`, men meldes her, så validatoren kan spærre med en
- * navngiven fejl i stedet for, at kilden forsvinder tavst. Hvordan en samlet negativ kilde skal regnes, afventer
- * udviklerens afgørelse.
+ * navngiven fejl i stedet for, at kilden forsvinder tavst (udviklerafgørelse 2026-10-19: en samlet negativ kilde
+ * spærrer i begge perioder).
  */
 export type IncomeNegativeSource = Readonly<
   | { kind: 'employer'; id: string; index: number; name: string; amount: number }
@@ -323,6 +324,234 @@ export const buildIncomeCalculationContext = (
   };
 };
 
+/** Den del af én lønrække, der ligger i perioderne – samme tal, som indgår i ansættelsesforholdets sum. */
+export type LoenRowRangeShare = Readonly<{
+  employmentIndex: number;
+  row: StandardLoenTableRow;
+  /** Dage, rækkens beløb fordeles på: arbejdsdage eller kalenderdage efter beregningsenheden. */
+  allocationDayCount: number;
+  /** Heraf dage i perioderne. */
+  selectedDayCount: number;
+  /** Rækken har ingen arbejdsdage og fordeles på fald-tilbage-dage (periodisering-contract.md §3A). */
+  usesFallbackDays: boolean;
+  projected: StandardLoenProjectedAmounts;
+}>;
+
+/** Den del af én ydelsesrække, der ligger i perioderne. */
+export type YdelseRowRangeShare = Readonly<{
+  row: OffentligeYdelserRow;
+  typeKey: string;
+  label: string;
+  /** Rækkens samlede beløb (ydelse + tillæg). */
+  amount: number;
+  periodiseretAmount: number;
+  periodisering: 'kalenderdage' | 'arbejdsdage';
+  /** Dage, rækkens beløb fordeles på, og heraf dagene i perioderne. */
+  periodiseringsDage: number;
+  overlapDage: number;
+  usesFallbackDays: boolean;
+}>;
+
+export type IncomeRowRangeShares = Readonly<{
+  loenRows: readonly LoenRowRangeShare[];
+  ydelseRows: readonly YdelseRowRangeShare[];
+}>;
+
+/**
+ * Hver løn- og ydelsesrækkes andel i perioderne – rækkerne bag `buildIncomeForRanges`' summer.
+ *
+ * Beregningen summerer netop disse andele, og bilagets linje om delvist medregnede perioder (BB-293) læser dem
+ * herfra. Der er derfor kun én fordelingsregel: linjen kan ikke vise et andet antal dage eller et andet beløb, end
+ * beregningen bruger. Kun rækker med mindst én dag i perioderne kommer med.
+ */
+export const buildIncomeRowSharesForRanges = (
+  values: TafCalculationValues,
+  rawRanges: readonly IsoRange[],
+  context?: IncomeCalculationContext | null,
+  skadedato?: ISODateString
+): IncomeRowRangeShares => {
+  const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
+  const areRangesDisjoint = ranges.every((range, index) => {
+    const previousRange = index === 0 ? undefined : ranges[index - 1];
+    return previousRange ? previousRange.til < range.fra : true;
+  });
+  if (ranges.length === 0 || !areRangesDisjoint) return { loenRows: [], ydelseRows: [] };
+  return buildIncomeRowSharesForMergedRanges(values, ranges, context, skadedato);
+};
+
+const buildIncomeRowSharesForMergedRanges = (
+  values: TafCalculationValues,
+  ranges: readonly IsoRange[],
+  context: IncomeCalculationContext | null | undefined,
+  skadedato: ISODateString | undefined
+): IncomeRowRangeShares => {
+  const beregningsenhed = computeTafBeregningsenhed(values);
+  const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
+  const resolvedContext = (
+    context
+      && areRangesWithinBounds(ranges, context.boundsFra, context.boundsTil)
+      ? context
+      : buildIncomeCalculationContext(values, ranges)
+  );
+  const arbejdsdageSet = resolvedContext?.arbejdsdageSet ?? new Set<ISODateString>();
+  const shDaysForYdelser = resolvedContext?.shDaysForYdelser ?? new Set<ISODateString>();
+  const loenErrorRowIdsByEmploymentId = resolvedContext?.loenErrorRowIdsByEmploymentId
+    ?? new Map<string, ReadonlySet<string>>(
+      ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)])
+    );
+
+  const buildAllocationDates = (
+    interval: DateInterval
+  ): Readonly<{ dates: readonly ISODateString[]; usesFallbackDays: boolean }> => {
+    const allocationDates: ISODateString[] = [];
+    iterateDatesInclusive(interval.start, interval.end, (date) => {
+      const iso = dateToISO(date);
+      if (!iso) return;
+      if (beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && !arbejdsdageSet.has(iso)) return;
+      allocationDates.push(iso);
+    });
+    if (allocationDates.length === 0 && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
+      // Fald-tilbage: en lønperiode der udelukkende består af feriedage har ingen arbejdsdage at
+      // fordele på. Indkomsten må ikke forsvinde – fordel på fald-tilbage-dage, så beløbet fanges.
+      // Dagene tælles ALDRIG som arbejdsdage (nævneren `arbejdsdageSet` er uændret; denne fald-tilbage
+      // gælder kun beløbsfordelingen for netop denne post). Jf. periodisering-contract.md §3A.
+      const fraISO = dateToISO(interval.start);
+      const tilISO = dateToISO(interval.end);
+      if (fraISO && tilISO) {
+        return {
+          dates: Array.from(buildFallbackAllocationDaysForInterval({ fra: fraISO, til: tilISO })).sort(),
+          usesFallbackDays: true,
+        };
+      }
+    }
+    return { dates: allocationDates, usesFallbackDays: false };
+  };
+
+  const loenRows: LoenRowRangeShare[] = [];
+  for (let index = 0; index < ansaettelser.length; index += 1) {
+    const af = ansaettelser[index];
+    const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
+    const classifyLoenRow = (row: StandardLoenTableRow): RowEligibility => {
+      if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) return 'empty';
+      if (errorRowIds.has(row.id)) return 'invalid';
+      const interval = parseAarsloenRowInterval(row, af.loenperiode);
+      if (!interval && import.meta.env.DEV) {
+        throw new Error(
+          `Indkomst-række ${row.id} kan ikke parses til periode, men er ikke markeret som fejl. ` +
+          'Validation/parsing mismatch i fail-closed pipeline.'
+        );
+      }
+      return interval ? 'valid' : 'invalid';
+    };
+    const satser = {
+      feriePct: af.feriePct,
+      fritvalgPct: af.fritvalgPct,
+      shSoPct: af.shSoPct,
+      storeBededagPct: af.storeBededagPct,
+      pensionPct: af.pensionPct,
+    };
+    for (const row of af.indtaegtsoplysningerTableData ?? []) {
+      if (classifyLoenRow(row) !== 'valid') continue;
+      const interval = parseAarsloenRowInterval(row, af.loenperiode);
+      if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
+      const fra = dateToISO(interval.start);
+      const til = dateToISO(interval.end);
+      const allocation = buildAllocationDates(interval);
+      if (allocation.dates.length === 0) continue;
+      const selectedDates = allocation.dates.filter((iso) => isDateInRanges(iso, ranges));
+      if (selectedDates.length === 0) continue;
+
+      const projected = calculateStandardLoenProjectedAmounts(row, satser, {
+        loenperiode: af.loenperiode,
+        allocationDates: allocation.dates,
+        selectedDates,
+        mode: af.tillaegAngivesSom,
+        rateSegments: fra && til
+          ? buildLoenindkomstRateSegments({
+            ansaettelsesforhold: af,
+            skadedato,
+            fra,
+            til,
+          })
+          : undefined,
+      });
+      loenRows.push({
+        employmentIndex: index,
+        row,
+        allocationDayCount: allocation.dates.length,
+        selectedDayCount: selectedDates.length,
+        usesFallbackDays: allocation.usesFallbackDays,
+        projected,
+      });
+    }
+  }
+
+  const classifyOffentligRow = (row: OffentligeYdelserRow): RowEligibility => {
+    const hasAnyFilled =
+      row.fraDato !== undefined ||
+      row.tilDato !== undefined ||
+      (row.ydelsestype?.trim() ?? '') !== '' ||
+      row.ydelse !== undefined ||
+      row.tillaeg !== undefined;
+    if (!hasAnyFilled) return 'empty';
+    // NOTE: Fail-closed efter design.
+    // Offentlige ydelser indgår kun med udfyldt ydelsestype og gyldig periode.
+    if ((row.ydelsestype?.trim() ?? '') === '') return 'invalid';
+    const interval = parseOffentligInterval(row);
+    if (!interval) return 'invalid';
+    return 'valid';
+  };
+  const ydelseRows: YdelseRowRangeShare[] = [];
+  for (const row of values.offentligeYdelserRows ?? []) {
+    if (classifyOffentligRow(row) !== 'valid') continue;
+    const interval = parseOffentligInterval(row);
+    if (!interval) continue;
+    const amount = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
+    if (import.meta.env.DEV) {
+      const hasAmountInput = row.ydelse !== undefined || row.tillaeg !== undefined;
+      if (hasAmountInput && !Number.isFinite(amount)) {
+        throw new Error(`Offentlig ydelse-række ${row.id} har ikke-finite beløb.`);
+      }
+    }
+    // Negative ydelser regnes med som negative lønrækker (BB-290); kun 0 kr. bidrager intet.
+    if (!Number.isFinite(amount) || amount === 0) continue;
+    const resolvedType = resolveYdelsestype(row.ydelsestype?.trim() ?? '');
+    if (!resolvedType) continue;
+    const periodiseringsGrundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval,
+      periodisering: resolvedType.config.periodisering,
+      ydelsestypeKey: resolvedType.key,
+      shDays: shDaysForYdelser,
+      sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
+    });
+    if (!periodiseringsGrundlag) continue;
+    const periodiseretAmount = ranges.reduce((sum, range) => {
+      return sum + periodiserBeloebForOffentligYdelseMedGrundlag({
+        totalBeloeb: amount,
+        range,
+        grundlag: periodiseringsGrundlag,
+      });
+    }, 0);
+    if (!Number.isFinite(periodiseretAmount) || isEffectivelyZero(periodiseretAmount)) continue;
+    ydelseRows.push({
+      row,
+      typeKey: resolvedType.key,
+      label: resolvedType.config.label,
+      amount,
+      periodiseretAmount,
+      periodisering: periodiseringsGrundlag.periodisering,
+      periodiseringsDage: periodiseringsGrundlag.periodiseringsDage,
+      overlapDage: ranges.reduce(
+        (sum, range) => sum + countOffentligYdelseOverlapDage({ range, grundlag: periodiseringsGrundlag }),
+        0
+      ),
+      usesFallbackDays: periodiseringsGrundlag.fallbackAllocationDays !== undefined,
+    });
+  }
+
+  return { loenRows, ydelseRows };
+};
+
 export const buildIncomeForRanges = (
   values: TafCalculationValues,
   rawRanges: readonly IsoRange[],
@@ -355,111 +584,24 @@ export const buildIncomeForRangesDetailed = (
     }
     return { employers: [], benefits: [], negativeSources: [] };
   }
-  const beregningsenhed = computeTafBeregningsenhed(values);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
-  const resolvedContext = (
-    context
-      && areRangesWithinBounds(ranges, context.boundsFra, context.boundsTil)
-      ? context
-      : buildIncomeCalculationContext(values, ranges)
-  );
-  const arbejdsdageSet = resolvedContext?.arbejdsdageSet ?? new Set<ISODateString>();
-  const shDaysForYdelser = resolvedContext?.shDaysForYdelser ?? new Set<ISODateString>();
-  const loenErrorRowIdsByEmploymentId = resolvedContext?.loenErrorRowIdsByEmploymentId
-    ?? new Map<string, ReadonlySet<string>>(
-      ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)])
-    );
+  const shares = buildIncomeRowSharesForMergedRanges(values, ranges, context, skadedato);
   const employers: IncomeEmployerAmount[] = [];
   const negativeSources: IncomeNegativeSource[] = [];
 
-  const buildAllocationDates = (interval: DateInterval): readonly ISODateString[] => {
-    const allocationDates: ISODateString[] = [];
-    iterateDatesInclusive(interval.start, interval.end, (date) => {
-      const iso = dateToISO(date);
-      if (!iso) return;
-      if (beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && !arbejdsdageSet.has(iso)) return;
-      allocationDates.push(iso);
-    });
-    if (allocationDates.length === 0 && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
-      // Fald-tilbage: en lønperiode der udelukkende består af feriedage har ingen arbejdsdage at
-      // fordele på. Indkomsten må ikke forsvinde – fordel på fald-tilbage-dage, så beløbet fanges.
-      // Dagene tælles ALDRIG som arbejdsdage (nævneren `arbejdsdageSet` er uændret; denne fald-tilbage
-      // gælder kun beløbsfordelingen for netop denne post). Jf. periodisering-contract.md §3A.
-      const fraISO = dateToISO(interval.start);
-      const tilISO = dateToISO(interval.end);
-      if (fraISO && tilISO) {
-        return Array.from(buildFallbackAllocationDaysForInterval({ fra: fraISO, til: tilISO })).sort();
-      }
-    }
-    return allocationDates;
-  };
-
-  const buildSelectedDates = (allocationDates: readonly ISODateString[]): readonly ISODateString[] =>
-    allocationDates.filter((iso) => isDateInRanges(iso, ranges));
-
   for (let index = 0; index < ansaettelser.length; index += 1) {
     const af = ansaettelser[index];
-    const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
-    const classifyLoenRow = (row: StandardLoenTableRow): RowEligibility => {
-      if (isLoenRowEffectivelyEmptyForLoenperiode(row, af.loenperiode)) return 'empty';
-      if (errorRowIds.has(row.id)) return 'invalid';
-      const interval = parseAarsloenRowInterval(row, af.loenperiode);
-      if (!interval && import.meta.env.DEV) {
-        throw new Error(
-          `Indkomst-række ${row.id} kan ikke parses til periode, men er ikke markeret som fejl. ` +
-          'Validation/parsing mismatch i fail-closed pipeline.'
-        );
-      }
-      return interval ? 'valid' : 'invalid';
-    };
-    const satser = {
-      feriePct: af.feriePct,
-      fritvalgPct: af.fritvalgPct,
-      shSoPct: af.shSoPct,
-      storeBededagPct: af.storeBededagPct,
-      pensionPct: af.pensionPct,
-    };
     const breakdown = { loenPlusLoen2: 0, loenPlusLoen2PlusIkkePensLoen: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
-    for (const row of af.indtaegtsoplysningerTableData ?? []) {
-      const eligibility = classifyLoenRow(row);
-      if (eligibility !== 'valid') continue;
-      const interval = parseAarsloenRowInterval(row, af.loenperiode);
-      if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
-      const fra = dateToISO(interval.start);
-      const til = dateToISO(interval.end);
-      const allocationDates = buildAllocationDates(interval);
-      if (allocationDates.length === 0) continue;
-      const selectedDates = buildSelectedDates(allocationDates);
-      if (selectedDates.length === 0) continue;
-
-      const projected = calculateStandardLoenProjectedAmounts(row, satser, {
-        loenperiode: af.loenperiode,
-        allocationDates,
-        selectedDates,
-        mode: af.tillaegAngivesSom,
-        rateSegments: fra && til
-          ? buildLoenindkomstRateSegments({
-            ansaettelsesforhold: af,
-            skadedato,
-            fra,
-            til,
-          })
-          : undefined,
-      });
-
-      const loenPlusLoen2Contrib = projected.loenPlusLoen2;
-      const loenPlusLoen2PlusIkkePensLoenContrib = projected.loenPlusLoen2PlusIkkePensLoen;
-      const fpFvShSoStbContrib = projected.fpFvShSo;
-      const pensionContrib = projected.pension;
-      const atpContrib = projected.atp;
-      const samletContrib = projected.samlet;
+    for (const share of shares.loenRows) {
+      if (share.employmentIndex !== index) continue;
+      const projected = share.projected;
       if (
-        !Number.isFinite(loenPlusLoen2Contrib) ||
-        !Number.isFinite(loenPlusLoen2PlusIkkePensLoenContrib) ||
-        !Number.isFinite(fpFvShSoStbContrib) ||
-        !Number.isFinite(pensionContrib) ||
-        !Number.isFinite(atpContrib) ||
-        !Number.isFinite(samletContrib)
+        !Number.isFinite(projected.loenPlusLoen2) ||
+        !Number.isFinite(projected.loenPlusLoen2PlusIkkePensLoen) ||
+        !Number.isFinite(projected.fpFvShSo) ||
+        !Number.isFinite(projected.pension) ||
+        !Number.isFinite(projected.atp) ||
+        !Number.isFinite(projected.samlet)
       ) {
         continue;
       }
@@ -467,12 +609,12 @@ export const buildIncomeForRangesDetailed = (
       // øvrige løn (udviklerafgørelse 2026-10-19, BB-290). Før sprang `samletContrib <= 0` den over, mens
       // kontroltabellen talte den med, så opgørelsen standsede med «kontroluoverensstemmelser». En række på 0 kr.
       // bidrager med 0 og er uændret.
-      breakdown.loenPlusLoen2 += loenPlusLoen2Contrib;
-      breakdown.loenPlusLoen2PlusIkkePensLoen += loenPlusLoen2PlusIkkePensLoenContrib;
-      breakdown.fpFvShSo += fpFvShSoStbContrib;
-      breakdown.pension += pensionContrib;
-      breakdown.atp += atpContrib;
-      breakdown.samlet += samletContrib;
+      breakdown.loenPlusLoen2 += projected.loenPlusLoen2;
+      breakdown.loenPlusLoen2PlusIkkePensLoen += projected.loenPlusLoen2PlusIkkePensLoen;
+      breakdown.fpFvShSo += projected.fpFvShSo;
+      breakdown.pension += projected.pension;
+      breakdown.atp += projected.atp;
+      breakdown.samlet += projected.samlet;
     }
     if (Number.isFinite(breakdown.samlet) && !isEffectivelyZero(breakdown.samlet)) {
       const name = (af.navnPaaArbejdssted ?? '').trim();
@@ -485,63 +627,15 @@ export const buildIncomeForRangesDetailed = (
   }
 
   const benefitsMap = new Map<string, { label: string; typeKey: string; amount: number }>();
-  const classifyOffentligRow = (row: OffentligeYdelserRow): RowEligibility => {
-    const hasAnyFilled =
-      row.fraDato !== undefined ||
-      row.tilDato !== undefined ||
-      (row.ydelsestype?.trim() ?? '') !== '' ||
-      row.ydelse !== undefined ||
-      row.tillaeg !== undefined;
-    if (!hasAnyFilled) return 'empty';
-    // NOTE: Fail-closed efter design.
-    // Offentlige ydelser indgår kun med udfyldt ydelsestype og gyldig periode.
-    if ((row.ydelsestype?.trim() ?? '') === '') return 'invalid';
-    const interval = parseOffentligInterval(row);
-    if (!interval) return 'invalid';
-    return 'valid';
-  };
-  for (const row of values.offentligeYdelserRows ?? []) {
-    if (classifyOffentligRow(row) !== 'valid') continue;
-    const interval = parseOffentligInterval(row);
-    if (!interval) continue;
-    const amount = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
-    if (import.meta.env.DEV) {
-      const hasAmountInput = row.ydelse !== undefined || row.tillaeg !== undefined;
-      if (hasAmountInput && !Number.isFinite(amount)) {
-        throw new Error(`Offentlig ydelse-række ${row.id} har ikke-finite beløb.`);
-      }
-    }
-    // Negative ydelser regnes med som negative lønrækker (BB-290); kun 0 kr. bidrager intet.
-    if (!Number.isFinite(amount) || amount === 0) continue;
-    const rawType = row.ydelsestype?.trim() ?? '';
-    const resolvedType = resolveYdelsestype(rawType);
-    if (!resolvedType) continue;
-    const typeKey = resolvedType.key;
-    const label = resolvedType.config.label;
-    const periodiseringsGrundlag = buildOffentligYdelsePeriodiseringsGrundlag({
-      interval,
-      periodisering: resolvedType.config.periodisering,
-      ydelsestypeKey: typeKey,
-      shDays: shDaysForYdelser,
-      sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
-    });
-    if (!periodiseringsGrundlag) continue;
-    const periodiseretAmount = ranges.reduce((sum, range) => {
-      return sum + periodiserBeloebForOffentligYdelseMedGrundlag({
-        totalBeloeb: amount,
-        range,
-        grundlag: periodiseringsGrundlag,
-      });
-    }, 0);
-    if (!Number.isFinite(periodiseretAmount) || isEffectivelyZero(periodiseretAmount)) continue;
+  for (const share of shares.ydelseRows) {
     // NOTE: Fail-closed semantics kræver sporbar aggregation.
     // Rækker uden type må ikke sammenklappes via label.
-    const key = typeKey !== '' ? `type:${typeKey}` : `row:${row.id}`;
+    const key = share.typeKey !== '' ? `type:${share.typeKey}` : `row:${share.row.id}`;
     const existing = benefitsMap.get(key);
     if (existing) {
-      existing.amount += periodiseretAmount;
+      existing.amount += share.periodiseretAmount;
     } else {
-      benefitsMap.set(key, { label, typeKey, amount: periodiseretAmount });
+      benefitsMap.set(key, { label: share.label, typeKey: share.typeKey, amount: share.periodiseretAmount });
     }
   }
 

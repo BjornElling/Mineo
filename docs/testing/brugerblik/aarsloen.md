@@ -159,7 +159,7 @@ Jeg er enig. Overvej gerne om løsningen for visning er konsekvens med resten af
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Delvist 2026-08-26 – accepteret kun som diskret tooltip; lange forklaringer afvist for en professionel målgruppe (udledt af udviklerens tilbagemelding nedenfor). **Aldrig gennemført** (M-38), og tooltippene er afvist 2026-10-19 ved `erstatningsopgoerelse-12h.md` BB-299 – noteret som afvist, medmindre udvikleren svarer andet på modsvaret dér.
+- **Beslutning:** Delvist 2026-08-26 – accepteret kun som diskret tooltip; lange forklaringer afvist for en professionel målgruppe (udledt af udviklerens tilbagemelding nedenfor). **Aldrig gennemført** (M-38), og tooltippene er afvist 2026-10-19 ved `erstatningsopgoerelse-12h.md` BB-299 (grundlæggende oplysninger, som brugeren kender); udvikleren havde ingen indvendinger mod at notere BB-100 som afvist.
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`, SH/SO `2,5`, Arbejdsgivers pensionsbidrag `12`.
   2. Én lønrække: Løn `30000`, **Ikke-pensionsgivende løn** `1000`.

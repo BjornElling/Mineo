@@ -23,7 +23,7 @@ import { createFieldWarning, type FieldWarning } from '../../../../inputCore/fie
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
-import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
+import { skalKomprimereIndkomstBeregning } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { resolveAnvendtReguleringsdatoReferenceText, resolveSkadeEllerAnmeldelsesdatoReference } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
@@ -152,7 +152,7 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     endeligEETBeregnetDato: values.endeligtEETAfgorelse === 'Ja' ? (values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato) : undefined,
     midlertidigEETBeregnetDato: resolveMidlertidigEetDatoHvisAktiv({ ...values, skadedatoISO }),
     verserendeKlageMen: values.verserendeKlageMen === 'Ja', verserendeKlageEet: values.verserendeKlageEet === 'Ja',
-    skalKomprimereIndtaegtFoerSkaden: !erDetteFoersteErstatningsopgoerelse(values.eoNummer) && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja',
+    skalKomprimereIndtaegtFoerSkaden: skalKomprimereIndkomstBeregning(values),
     indtaegtFoerSkadenSectionTitle: `Indtægt før ${referencedato.labelLower}`,
     // Bestemt form af både lønnen og referencedatoen (BB-271): «månedslønnen» og «skadedatoen». En bøjning
     // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».

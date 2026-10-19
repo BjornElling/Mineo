@@ -206,7 +206,9 @@ export const buildIndkomstSectionStatuses = (
  */
 export const buildOffentligeYdelserStatusRows = (
   rows: ReadonlyArray<OffentligeYdelserRow>,
-  cellIssues: readonly FieldIssue[] = []
+  cellIssues: readonly FieldIssue[] = [],
+  /** Sagens perioder til rimelighedskontrollen (BB-297); uden dem vurderes beløbene ikke. */
+  values?: ErstatningsopgoerelseValues
 ): ReadonlyArray<OffentligeYdelserStatusRow> => {
   if (rows.length === 0) return [];
 
@@ -225,7 +227,7 @@ export const buildOffentligeYdelserStatusRows = (
   const validation = getOffentligeYdelserTableValidation({ rows, cellErrorsByCellKey: cellErrors });
   const issuesByRowId = new Map(validation.summary.rowIssues.map((issue) => [issue.rowId, issue]));
   const warningsByRowId = new Map<string, OffentligeYdelserRowWarning[]>();
-  for (const warning of resolveOffentligeYdelserRowWarnings(rows)) {
+  for (const warning of resolveOffentligeYdelserRowWarnings(rows, values)) {
     warningsByRowId.set(warning.rowId, [...(warningsByRowId.get(warning.rowId) ?? []), warning]);
   }
 
@@ -296,7 +298,7 @@ export const buildOffentligeYdelserStatusRows = (
         message: warning.summaryMessage,
         summaryDisplay: 'messageOnly',
         sourceRowId: row.id,
-        focusColKey: warning.kind === 'negativeAmount' ? 'ydelse' : 'fraDato',
+        focusColKey: warning.kind === 'duplicateRow' ? 'fraDato' : 'ydelse',
       });
     }
     if (!okTypes.has(groupKey)) {

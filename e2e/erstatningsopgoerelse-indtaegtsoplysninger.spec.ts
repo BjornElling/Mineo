@@ -1,4 +1,10 @@
+import { readFile } from 'node:fs/promises';
+
 import type { Locator, Page } from '@playwright/test';
+
+import caseFixture from './fixtures/manuel-regulering-med-tillaeg.json' with { type: 'json' };
+import { encryptToString } from '../src/utils/encryption';
+import { extractPdfText } from '../src/__tests__/utils/pdf/pdfTextExtractor';
 
 import {
   expect,
@@ -111,6 +117,77 @@ test.describe('Erstatningsopgørelse – indtægtsoplysninger', () => {
     await expect.poll(() => recordedBlinks(page)).toContain(maanedsAdresse);
     // Kun cellen blinker – ikke hele kortet.
     expect((await recordedBlinks(page)).every((adresse) => adresse === maanedsAdresse)).toBe(true);
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
+  test('bilaget forklarer under tabellen de lønsedler og ydelser, som en periode skærer igennem (BB-293)', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'showOpenFilePicker', { configurable: true, value: undefined });
+      Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: undefined });
+    });
+    await login(page);
+    await openPage(page, 'Stamdata');
+    // Beregningsperioden 01-07-2024 – 30-06-2025 skærer lønsedlen for juni–juli 2025 over; erstatningsperioden fra
+    // 25-05-2026 skærer lønsedlen og dagpengene for maj–juni 2026 over.
+    const eo = caseFixture.data.erstatningsopgoerelse;
+    const ansaettelse = eo.loenindkomstAnsaettelsesforhold[0]!;
+    const datoRaekke = (id: string, fra: string, til: string, loen: number) => ({
+      id, col0_maaned: '', col1_maaned: '', col0_uge: '', col1_uge: '', col0_dag: fra, col1_dag: til,
+      col2: { kind: 'number', value: loen },
+    });
+    const fixture = {
+      ...caseFixture,
+      data: {
+        ...caseFixture.data,
+        erstatningsopgoerelse: {
+          ...eo,
+          eoNummer: '1',
+          loenindkomstAnsaettelsesforhold: [{
+            ...ansaettelse,
+            loenperiode: 'dag',
+            loenudviklingBeregningsgrundlag: 'Ingen',
+            indtaegtsoplysningerTableData: [
+              datoRaekke('bb293-1', '2024-07-01', '2025-05-31', 400000),
+              datoRaekke('bb293-2', '2025-06-01', '2025-07-31', 72000),
+              datoRaekke('bb293-3', '2026-05-01', '2026-05-31', 31000),
+            ],
+          }],
+          offentligeYdelserRows: [
+            ...eo.offentligeYdelserRows,
+            { id: 'bb293-y', fraDato: '2026-05-11', tilDato: '2026-06-09', ydelse: { kind: 'number', value: 15000 }, ydelsestype: 'dagpenge' },
+          ],
+        },
+      },
+    };
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Hent', exact: true }).click();
+    await (await chooser).setFiles({
+      name: 'fiktiv-bb293.eo', mimeType: 'application/octet-stream',
+      buffer: Buffer.from(await encryptToString(fixture)),
+    });
+    await expect(page.locator('input[name="journalnr"]')).toHaveValue('REGULERING-FIKTIV');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+
+    const button = page.locator('.row--label-right-hover').filter({ hasText: 'Hent opgørelse' }).getByRole('button');
+    await expect(button).toBeEnabled();
+    const download = page.waitForEvent('download');
+    await button.click();
+    const path = await (await download).path();
+    if (path === null) throw new Error('Opgørelsen mangler.');
+    const pdf = await readFile(path);
+    await testInfo.attach('bb293.pdf', { body: pdf, contentType: 'application/pdf' });
+    const text = (await extractPdfText(new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }))).replace(/\s+/g, ' ');
+    expect(text).toContain('01-06-2025 - 31-07-2025: 30 af 61 kalenderdage i beregningsperioden');
+    expect(text).toContain('01-05-2026 - 31-05-2026: 7 af 31 kalenderdage i erstatningsperioden');
+    expect(text).toContain('11-05-2026 - 09-06-2026: 16 af 30 kalenderdage i erstatningsperioden');
 
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);

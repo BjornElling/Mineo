@@ -13,9 +13,9 @@ import {
 //
 // Negative rækker regnes med og modregnes i kildens øvrige indtægt (udviklerafgørelse 2026-10-19). Er kildens
 // samlede indtægt i en periode negativ, er der intet at modregne i: lønudviklingen kan ikke regulere en negativ
-// basisløn, og et negativt fradrag ville forhøje kravet ud over det fulde tab. Indtil udvikleren har afgjort,
-// hvordan det skal regnes, spærrer opgørelsen fail-closed med en navngiven linje – i stedet for at kilden
-// forsvinder tavst eller beregningen ender i en intern undtagelse.
+// basisløn, og et negativt fradrag ville forhøje kravet ud over det fulde tab. Opgørelsen spærrer derfor med en
+// navngiven linje (udviklerafgørelse 2026-10-19, valg A for begge perioder) – i stedet for at kilden forsvinder
+// tavst eller beregningen ender i en intern undtagelse. Brugeren må modregne beløbet i en anden række.
 
 export type NegativIndkomstkildeFund = Readonly<{
   source: IncomeNegativeSource;

@@ -6,7 +6,7 @@ import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../engines/periodiseringsMoto
 import { isoDateToDate } from '../../dates/isoDate';
 import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
-import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
+import { skalKomprimereIndkomstBeregning as resolveSkalKomprimereIndkomstBeregning } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
 import type { Calculable, OevrigeKravCanonicalInput, SvieSmerteIngenBeloebAarsag, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteSectionPresentation } from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
@@ -454,9 +454,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     ydelsesforbeholdLinje,
   ].filter((linje): linje is string => linje !== null);
 
-  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
-  const skalKomprimereIndkomstBeregning =
-    !erFoersteOpgoerelse && values.komprimerBeregningEfterFoersteOpgoerelse === 'Ja';
+  const skalKomprimereIndkomstBeregning = resolveSkalKomprimereIndkomstBeregning(values);
 
   return {
     beregnes,

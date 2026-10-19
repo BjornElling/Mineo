@@ -52,6 +52,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
         writeUnderlinedSubheader: vi.fn(),
+        writeWrappedText: vi.fn(),
       },
       ...override,
     },
@@ -217,6 +218,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
         writeUnderlinedSubheader: vi.fn(),
+        writeWrappedText: vi.fn(),
       },
     });
 

@@ -22,6 +22,7 @@ describe('sfggReferencesats', () => {
       ['unresolvable_referenceperiode', 'Referenceperioden kan ikke opgøres'],
       ['no_calendar_days', 'Ingen kalenderdage i SFGG-perioden'],
       ['no_workdays', 'Ingen arbejdsdage i SFGG-perioden'],
+      ['negative_reference_loen', 'Lønnen i referenceperioden er samlet negativ – kontrollér lønrækkerne'],
     ] as const;
 
     for (const [kind, reason] of cases) {
@@ -81,6 +82,27 @@ describe('sfggReferencesats', () => {
         status: 'not_calculable',
         kind: 'per_period_rate',
       },
+      sfggReferencesatsFormula: null,
+    });
+  });
+
+  it('spærrer med en navngiven fejl, når lønnen i referenceperioden samlet er negativ (BB-290)', () => {
+    const employment = createSfggEmployment();
+    const referenceRow = {
+      ...createSfggIngenRow(employment.id),
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-07'),
+    };
+
+    expect(resolveSfggBaseRate(
+      createErstatningsopgoerelseInitialValues(),
+      employment,
+      referenceRow,
+      { kind: 'ferielov' },
+      { sumLoenInRangesKroner: () => -2_000 }
+    )).toMatchObject({
+      sfggReferenceperiode: { fra: iso('2024-01-01'), til: iso('2024-01-07') },
+      sfggReferencesatsOre: { status: 'not_calculable', kind: 'negative_reference_loen' },
       sfggReferencesatsFormula: null,
     });
   });

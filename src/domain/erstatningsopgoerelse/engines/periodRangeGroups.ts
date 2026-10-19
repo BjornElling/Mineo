@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
-import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
+import { skalKomprimereIndkomstBeregning } from '../validation/eoNummerValidering';
 import { endOfMonthIso, startOfMonthIso, startOfYearIso, endOfYearIso, type IsoRange } from '../../../utils/isoDateHelpers';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
@@ -105,12 +105,15 @@ export const buildPeriodRangeGroups = (
   }
 
   const groups: PeriodRangeGroup[] = [];
-  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(eoValues.eoNummer);
   const beregningsperiodeRange =
     eoValues.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(eoValues) : undefined;
   const tafRanges = buildTafRanges(eoValues);
 
-  if (erFoersteOpgoerelse && beregningsperiodeRange) {
+  // Beregningsperiodens rækker hører med, når opgørelsen viser udregningen af lønnen før skaden – i 1. opgørelse og i
+  // en senere opgørelse med «Skjul beregning efter første opgørelse: Nej». Før fulgte gruppen alene opgørelsens
+  // nummer, så opgørelse nr. 2 viste udregningen uden de lønsedler, den bygger på (udviklerafgørelse 2026-10-19,
+  // BB-293).
+  if (!skalKomprimereIndkomstBeregning(eoValues) && beregningsperiodeRange) {
     groups.push({ label: 'Beregningsperiode', ranges: [beregningsperiodeRange] });
   }
 

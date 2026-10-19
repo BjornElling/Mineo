@@ -12,11 +12,11 @@
 
 import type { DocumentComposer, DocumentLabelValueOptions } from '../../../model/documentModel';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
-import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { capitalizeFirstCharDa, formatPercent as formatPercentUtil, formatAsAmount } from '../../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../../utils/numberComparison';
-import { getStandardLoenTableHeaders, resolveStandardLoenPeriodColumns } from '../../../../domain/aarsloen/standardLoenTableColumns';
+import { getStandardLoenDocumentTableHeaders, resolveStandardLoenPeriodColumns } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   buildEoBilagIndkomstYdelserRanges,
@@ -27,6 +27,7 @@ import {
   hasLoenReguleringEoBilagData,
   hasOffentligeYdelserReguleringInModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
+import { resolveEoBilagDelvisePerioder } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagDelvisePerioder';
 import { parseOptionalIsoDate } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../../utils/dateFormatting';
 import { buildOffentligeYdelserReguleringTableData } from '../../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
@@ -84,14 +85,6 @@ const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdag
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
 
-const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
-  return getStandardLoenTableHeaders(loenperiode).map((header) => {
-    if (header === 'Ikke-pensions-\ngivende løn') return 'Ikke-pens.\ngiv. løn';
-    if (header === 'ATP og anden\nløn u. tillæg') return 'ATP og løn\nu. till./pens.';
-    return header;
-  });
-};
-
 export type RenderEoBilagSectionsContext = Readonly<{
   writer: StandardPdfWriter;
   model: EoModel;
@@ -114,6 +107,12 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
   const eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagIndkomstYdelserRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagIndkomstYdelserMode);
+  // Perioderne, en delvist medregnet lønseddel eller ydelse forklares for under bilagets tabel (BB-293).
+  const delvisePerioder = resolveEoBilagDelvisePerioder({
+    eoValues,
+    tafRanges: model.tafRanges,
+    skalKomprimereIndkomstBeregning: model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning,
+  });
 
   const safeAddWrappedText = (text: string) => {
     writer.writeWrappedText(text);
@@ -362,12 +361,13 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       formatDateLong,
       formatPctFromInput,
       isZeroPct: isEffectivelyZero,
-      getLoenindkomstTableHeaders,
+      getLoenindkomstTableHeaders: getStandardLoenDocumentTableHeaders,
       resolvePeriodColumns: resolveStandardLoenPeriodColumns,
       hasLoenAmountInput,
       shouldIncludeLoenRowInEoBilag,
       eoBilagIndkomstYdelserMode,
       eoBilagIndkomstYdelserRanges,
+      delvisePerioder,
       writer,
     });
   }
@@ -380,6 +380,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       shouldIncludeOffentligYdelseRowInEoBilag,
       eoBilagIndkomstYdelserMode,
       eoBilagIndkomstYdelserRanges,
+      delvisePerioder,
       writer,
     });
   }

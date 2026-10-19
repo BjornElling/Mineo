@@ -202,6 +202,30 @@ describe('evaluateAarsloenDownloadGate', () => {
       .toEqual(evaluateShDageDownloadGate(project(withOneValidMonthRow(withValidStamdata(empty())))));
   });
 
+  it('advarer, men spærrer ikke, når en måned har over ti gange de øvrige månedernes løn (BB-297)', () => {
+    let input = withValidStamdata(empty());
+    const maaned = (id: string, nr: string, beloeb: string) => {
+      input = dispatch(input, insert(emptyRow(id)));
+      input = dispatch(input, settle(aarsloenTableCol0MaanedField.bind(id), nr));
+      input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind(id), '2024'));
+      input = dispatch(input, settle(aarsloenTableCol2Field.bind(id), beloeb));
+    };
+    maaned('r1', '1', '30000');
+    maaned('r2', '2', '30000');
+    maaned('r3', '3', '30000');
+    maaned('r4', '4', '3000000');
+    const projection = project(input);
+
+    expect(projection.tableRowWarnings.filter((warning) => warning.kind === 'amountOutlier').map((warning) => [
+      warning.rowId,
+      warning.summaryMessage,
+    ])).toEqual([[
+      'r4',
+      'Lønrækken 04-2024 er over ti gange højere end tabellens øvrige lønrækker – kontrollér beløbet',
+    ]]);
+    expect(evaluateAarsloenDownloadGate(projection)).toEqual({ canDownload: true, reasons: [] });
+  });
+
   it('blokerer begge dokumentgates ved feriedage over periodens hverdage', () => {
     const projection = project(withFeriedageOverPeriod(withValidStamdata(empty())));
 

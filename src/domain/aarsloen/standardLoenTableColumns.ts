@@ -1,7 +1,5 @@
-import * as React from 'react';
 import type { Loenperiode, StandardLoenTableRow } from '../../schemas/formSchemas';
 import { STANDARD_LOEN_COLUMN_LABELS, type StandardLoenTableColumnKey } from '../../types/table';
-import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
 // Normativt: col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
@@ -19,8 +17,8 @@ import { formatISOToDanish } from '../../utils/dateFormatting';
 /**
  * Kolonner, hvis navn ombrydes i tabeloverskriften. Nøglen er kolonnen; værdien er navnet med et `\n`
  * indsat – og det SKAL være samme tegn i samme rækkefølge som navnet, kun med et linjeskift tilføjet.
- * `standardLoenHeaderLineBreaksArePresentationOnly.test.ts` beviser det ved at strippe skiftene og
- * sammenligne med descriptor-labelen.
+ * `standardLoenDeclaredLabelForms.test.ts` beviser det ved at strippe skiftene og sammenligne med
+ * descriptor-labelen.
  */
 const HEADER_LINE_BREAKS: Readonly<Partial<Record<StandardLoenTableColumnKey, string>>> = Object.freeze({
   col4: 'Ikke-pensions-\ngivende løn',
@@ -44,7 +42,7 @@ const withHeaderLineBreak = (colKey: StandardLoenTableColumnKey): string =>
  * kaldte den noget andet.
  *
  * Formen er derfor ERKLÆRET her, på samme måde som `HEADER_LINE_BREAKS` er den erklærede overskrifts-form,
- * og `standardLoenDocumentAbbreviationsAreDerived.test.ts` beviser, at hver forkortelse er afledt af
+ * og `standardLoenDeclaredLabelForms.test.ts` beviser, at hver forkortelse er afledt af
  * navnet: samme ord i samme rækkefølge, kun forkortet og eventuelt ombrudt. Det VISTE resultat er uændret.
  */
 type DocumentLabelForm = Readonly<{
@@ -151,6 +149,28 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
  * Bruges i stedet for hardkodede integer-konstanter, der tavst ville give forkerte
  * kolonne-lookup ved fremtidige array-ændringer.
  */
+/**
+ * Tabellens overskrifter i et DOKUMENT – samme kolonner og rækkefølge som `getStandardLoenTableHeaders`, men
+ * med kolonnernes erklærede dokument-form. ENESTE kilde for både Årsløns dokument og erstatningsopgørelsens
+ * lønindkomst-bilag.
+ *
+ * Bilaget havde før sin egen oversættelse af skærmens overskrifter, så ATP-kolonnen hed «ATP og løn u.
+ * till./pens.» i bilaget og «ATP mv. u. tillæg» i Årsløns dokument – samme beløb med to navne (BB-299,
+ * udviklerafgørelse 2026-10-19: samme beløb skal have samme navn, når det kan ske uden visuelle fejl). Den
+ * fælles form er kortere end bilagets gamle på begge linjer, så kolonnen hverken bliver bredere eller ombrydes
+ * mere.
+ */
+export const getStandardLoenDocumentTableHeaders = (loenperiode: Loenperiode): readonly string[] => [
+  ...PERIOD_HEADERS[loenperiode],
+  resolveStandardLoenDocumentColumnLabel('col2'),
+  resolveStandardLoenDocumentColumnLabel('col3'),
+  resolveStandardLoenDocumentColumnLabel('col4'),
+  resolveStandardLoenDocumentColumnLabel('col5'),
+  resolveStandardLoenDocumentColumnLabel('fpFvShSoBeloeb'),
+  resolveStandardLoenDocumentColumnLabel('pensionBeloeb'),
+  STANDARD_LOEN_SAMLET_LABEL,
+];
+
 export const getStandardLoenHeaderIndex = (loenperiode: Loenperiode, label: string): number => {
   const headers = getStandardLoenTableHeaders(loenperiode);
   const index = headers.indexOf(label);
@@ -158,19 +178,4 @@ export const getStandardLoenHeaderIndex = (loenperiode: Loenperiode, label: stri
     throw new Error(`CRITICAL: Kolonneoverskrift "${label}" ikke fundet i standardLoenTableHeaders.`);
   }
   return index;
-};
-
-// Tankestregen er en-dash med mellemrum omkring (beslutning 2026-08-19), ikke en bindestreg.
-const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel – værdierne lægges sammen i beregningen';
-
-export const getStandardLoenTableHeaderNodes = (loenperiode: Loenperiode): readonly React.ReactNode[] => {
-  return getStandardLoenTableHeaders(loenperiode).map((header) => {
-    if (header !== STANDARD_LOEN_COL3_LABEL) return header;
-    return React.createElement(
-      'span',
-      undefined,
-      header,
-      React.createElement(InfoTooltipIcon, { title: LOEN_2_TOOLTIP_TEXT })
-    );
-  });
 };

@@ -23,7 +23,7 @@ import {
 import {
   getStandardLoenPeriodKeys,
 } from '../../domain/standardLoen/standardLoenTableValidation';
-import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
+import { getStandardLoenTableHeaderNodes } from './standardLoenTableHeaderNodes';
 import type { StandardLoenTableFieldSet } from '../../domain/standardLoen/standardLoenTableFieldSet';
 import { readStandardLoenTableRows } from '../../domain/standardLoen/standardLoenTableFieldSet';
 import { serializeFieldAddress, type CollectionRef, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';

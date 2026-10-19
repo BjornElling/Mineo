@@ -9,6 +9,16 @@
  */
 
 import type { ISODateString } from '../../types/branded';
+import {
+  resolveStandardLoenColumnLabel,
+  resolveStandardLoenDocumentColumnLabel,
+  STANDARD_LOEN_COL2_LABEL,
+  STANDARD_LOEN_COL3_LABEL,
+  STANDARD_LOEN_COL5_LABEL,
+  STANDARD_LOEN_FPFVSHSO_LABEL,
+  STANDARD_LOEN_PENSION_LABEL,
+  STANDARD_LOEN_SAMLET_LABEL,
+} from '../aarsloen/standardLoenTableColumns';
 
 // LOCKED: Løn/TAF kontrol-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -95,14 +105,25 @@ export const kontrolTabelColumnId = {
   offentlig: (ydelsestypeKey: string): `offentlig:${string}` => `offentlig:${ydelsestypeKey}`,
 } as const;
 
-export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: KontrolTabelWageColumnKey; header: string }>> = [
-  { key: 'grundloen', header: 'Løn' },
-  { key: 'tillaeg', header: 'Løn (2)' },
-  { key: 'ikkePensionsgivende', header: 'Ikke-pens.\ngivende løn' },
-  { key: 'atp', header: 'ATP og anden\nløn u. tillæg' },
-  { key: 'fpFvShSoStb', header: 'FP/FV/SH/\nSO/St.B.' },
-  { key: 'pension', header: 'Pension' },
-  { key: 'samlet', header: 'Samlet løn' },
+/**
+ * Kontroltabellens lønkolonner. Navnene er tabellens egne (`STANDARD_LOEN_COLUMN_LABELS`), så samme beløb hedder
+ * det samme her som på skærmen og i dokumenterne (BB-299, udviklerafgørelse 2026-10-19). Før stod «Pension» og
+ * «Ikke-pens. givende løn» som egne navne.
+ *
+ * - `header` er overskriften med layoutets linjeskift: skærmens form, undtagen «Ikke-pensionsgivende løn», der
+ *   bruger den erklærede dokument-form – skærmformens «Ikke-pensions-» er for bred til kontroltabellens smallere
+ *   kolonne (120 px mod 125 px).
+ * - `name` er navnet uden linjeskift til beskeder; overskriftens `
+` endte før midt i integritetsbeskedens tekst.
+ */
+export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: KontrolTabelWageColumnKey; header: string; name: string }>> = [
+  { key: 'grundloen', header: STANDARD_LOEN_COL2_LABEL, name: resolveStandardLoenColumnLabel('col2') },
+  { key: 'tillaeg', header: STANDARD_LOEN_COL3_LABEL, name: resolveStandardLoenColumnLabel('col3') },
+  { key: 'ikkePensionsgivende', header: resolveStandardLoenDocumentColumnLabel('col4'), name: resolveStandardLoenColumnLabel('col4') },
+  { key: 'atp', header: STANDARD_LOEN_COL5_LABEL, name: resolveStandardLoenColumnLabel('col5') },
+  { key: 'fpFvShSoStb', header: STANDARD_LOEN_FPFVSHSO_LABEL, name: resolveStandardLoenColumnLabel('fpFvShSoBeloeb') },
+  { key: 'pension', header: STANDARD_LOEN_PENSION_LABEL, name: resolveStandardLoenColumnLabel('pensionBeloeb') },
+  { key: 'samlet', header: STANDARD_LOEN_SAMLET_LABEL, name: STANDARD_LOEN_SAMLET_LABEL },
 ];
 
 // Kanoniske predikater/parsere for kolonne-id-grammatikken produceret af `kontrolTabelColumnId`.

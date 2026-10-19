@@ -5,6 +5,8 @@ import { formatAsAmount } from '../../utils/formatUtils';
 import { toAnyFieldRef, type AnyFieldRef, type FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import { DUPLICATE_ROW_WARNING, findDuplicateRows } from '../../utils/tableDuplicateRowDetection';
+import { findAmountOutliers } from '../../utils/tableAmountOutlierDetection';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { getStandardLoenPeriodKeys } from './standardLoenTableValidation';
 import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
@@ -22,8 +24,10 @@ import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
 //    igangværende måned er altså ikke markeret.
 //  - `negativeTotal` – rækkens samlede løn er negativ (BB-290, kun EO). Rækken regnes med og modregnes;
 //    advarslen er der, fordi en negativ lønseddel er sjælden nok til at fortjene et blik.
+//  - `amountOutlier` – rækkens løn er over ti gange højere end de øvrige rækker i samme periode (BB-297). Typisk et
+//    nul for meget; reglen og dens værn mod falske advarsler står i `tableAmountOutlierDetection.ts`.
 
-export type StandardLoenRowWarningKind = 'duplicateRow' | 'futurePeriod' | 'negativeTotal';
+export type StandardLoenRowWarningKind = 'duplicateRow' | 'futurePeriod' | 'negativeTotal' | 'amountOutlier';
 
 export type StandardLoenRowWarning = Readonly<{
   kind: StandardLoenRowWarningKind;
@@ -150,6 +154,45 @@ const futurePeriodCells = (
   });
 };
 
+/** Datorækker kortere end en uge vurderes ikke for et usandsynligt højt beløb (BB-297). */
+const OUTLIER_MIN_DATO_DAGE = 7;
+
+/**
+ * Rækkens sammenlignelige lønniveau: en månedsrækkes samlede løn, ellers samlet løn pr. kalenderdag. `undefined`,
+ * når rækken ikke skal vurderes (ingen periode, eller en datorække kortere end en uge).
+ */
+const outlierComparableValue = (
+  row: StandardLoenTableRow,
+  loenperiode: Loenperiode,
+  total: number
+): number | undefined => {
+  const interval = parseAarsloenRowInterval(row, loenperiode);
+  if (interval === null) return undefined;
+  if (loenperiode === 'maaned') return total;
+  const dage = countInclusiveUtcDays(interval.start, interval.end) ?? 0;
+  if (dage <= 0 || (loenperiode === 'dag' && dage < OUTLIER_MIN_DATO_DAGE)) return undefined;
+  return total / dage;
+};
+
+/** Beløbscellerne med et positivt beløb – dér sidder det tal, brugeren skal kontrollere. */
+const positiveAmountCells = (
+  fieldSet: StandardLoenTableFieldSet,
+  row: StandardLoenTableRow,
+  tillaegAngivesSom: TillaegAngivesSom
+): readonly AnyFieldRef[] => {
+  const candidates = [
+    [row.col2, fieldSet.col2],
+    [row.col3, fieldSet.col3],
+    [row.col4, fieldSet.col4],
+    [row.col5, fieldSet.col5],
+    ...(tillaegAngivesSom === 'beloeb'
+      ? [[row.fpFvShSoBeloeb, fieldSet.fpFvShSoBeloeb], [row.pensionBeloeb, fieldSet.pensionBeloeb]] as const
+      : []),
+  ] as const;
+  return candidates.flatMap(([value, descriptor]) =>
+    value !== undefined && Number.isFinite(value.value) && value.value > 0 ? [bindCell(fieldSet, descriptor, row.id)] : []);
+};
+
 /** De løncelle-adresser, der bærer et negativt beløb – her sidder fortegnet, brugeren skal se på. */
 const negativeAmountCells = (
   fieldSet: StandardLoenTableFieldSet,
@@ -183,6 +226,16 @@ export type ResolveStandardLoenRowWarningsParams = Readonly<{
    * ikke.
    */
   rowTotal?: (row: StandardLoenTableRow) => number;
+  /**
+   * Rimelighedskontrollen (BB-297). `rowTotal` er rækkens samlede løn, som fladen viser den; `group` lægger rækken i
+   * sin periode – der sammenlignes kun inden for samme gruppe – og `sammenligning` navngiver, hvad rækken er
+   * sammenlignet med («ansættelsesforholdets øvrige lønrækker i perioden»).
+   */
+  amountOutlier?: Readonly<{
+    rowTotal: (row: StandardLoenTableRow) => number;
+    group: (row: StandardLoenTableRow) => string;
+    sammenligning: string;
+  }>;
 }>;
 
 export const resolveStandardLoenRowWarnings = ({
@@ -193,6 +246,7 @@ export const resolveStandardLoenRowWarnings = ({
   today,
   errorRowIds,
   rowTotal,
+  amountOutlier,
 }: ResolveStandardLoenRowWarningsParams): readonly StandardLoenRowWarning[] => {
   const warnings: StandardLoenRowWarning[] = [];
   const indexById = new Map(rows.map((row, index) => [row.id, index]));
@@ -204,6 +258,13 @@ export const resolveStandardLoenRowWarnings = ({
     findDuplicateRows(rows, (row) => duplicateComparableValues(row, loenperiode, tillaegAngivesSom)).map((match) => match.row.id)
   );
   const futureMessage = buildFuturePeriodWarningMessage(today);
+  const outlierIds = amountOutlier === undefined
+    ? new Set<string>()
+    : findAmountOutliers(rows.flatMap((row) => {
+      if (isErrorRow(row)) return [];
+      const value = outlierComparableValue(row, loenperiode, amountOutlier.rowTotal(row));
+      return value === undefined ? [] : [{ id: row.id, group: amountOutlier.group(row), value }];
+    }));
 
   for (const row of rows) {
     if (isErrorRow(row)) continue;
@@ -243,6 +304,18 @@ export const resolveStandardLoenRowWarnings = ({
           cells: cells.length > 0 ? cells : [bindCell(fieldSet, fieldSet.col2, row.id)],
         }));
       }
+    }
+    if (amountOutlier !== undefined && outlierIds.has(row.id)) {
+      const cells = positiveAmountCells(fieldSet, row, tillaegAngivesSom);
+      const udsagn = `over ti gange højere end ${amountOutlier.sammenligning} – kontrollér beløbet`;
+      warnings.push(Object.freeze({
+        kind: 'amountOutlier' as const,
+        rowId: row.id,
+        periodLabel,
+        summaryMessage: `${nameOf(row)} er ${udsagn}`,
+        cellMessage: `Lønnen er ${udsagn}`,
+        cells: cells.length > 0 ? cells : [bindCell(fieldSet, fieldSet.col2, row.id)],
+      }));
     }
   }
   return Object.freeze(warnings);

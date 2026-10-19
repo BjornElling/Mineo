@@ -181,6 +181,21 @@ describe('sfggSegmentering', () => {
     expect([...calculator.buildFeriepengeOreByYear(eligibleDates)]).toEqual([[2024, 125_004]]);
   });
 
+  it('modregner en negativ lønseddel i referencelønnen, som den tabte arbejdsfortjeneste gør (BB-290)', () => {
+    // Juni 30.000 kr. og en tilbagebetaling i juli på -2.000 kr.: referencelønnen er 28.000 kr. (før: 30.000 kr.).
+    const maanedsRaekke = (id: string, maaned: string, beloeb: number) => ({
+      id, col0_maaned: maaned, col1_maaned: '2017', col0_uge: '', col1_uge: '', col0_dag: undefined, col1_dag: undefined,
+      col2: asSfggAmount(beloeb), col3: undefined, col4: undefined, col5: undefined,
+    });
+    const calculator = buildEmploymentSfggCalculator(createSfggEmployment({
+      indtaegtsoplysningerTableData: [maanedsRaekke('juni', '6', 30_000), maanedsRaekke('juli', '7', -2_000)],
+    }), []);
+
+    expect(calculator.sumLoenInRangesKroner([{ fra: iso('2017-06-01'), til: iso('2017-07-31') }])).toBeCloseTo(28_000, 6);
+    // En dag, hvis rækker samlet er negative, giver 0 kr. i modtagne feriepenge – aldrig et negativt beløb.
+    expect(calculator.buildFeriepengeOreForDates([iso('2017-07-03')])).toBe(0);
+  });
+
   it('bygger kalender- og arbejdsdagsmængder med sortering og ugyldig periode som tom', () => {
     expect(buildEligibleDatesForSfggRange({
       range: { fra: iso('2024-01-01'), til: iso('2024-01-03') },

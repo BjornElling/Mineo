@@ -18,6 +18,7 @@ import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
+import { calculateStandardLoenRowDerived } from './standardLoenRowCalculations';
 import {
   resolveAarsloenFeriedageOverskriderPeriodenIssue,
   resolveAarsloenOmregningGate,
@@ -254,6 +255,19 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     errorRowIds: new Set(tableValidation.summary.rowIssues
       .filter((issue) => issue.level === 'error')
       .map((issue) => issue.rowId)),
+    // Rimelighedskontrollen (BB-297): Årsløn har ingen beregnings- og erstatningsperiode, så hele tabellen er én
+    // gruppe. Beløbet er rækkens «Samlet løn», som tabellen viser den.
+    amountOutlier: {
+      rowTotal: (row) => calculateStandardLoenRowDerived(row, {
+        feriePct: values.feriePct,
+        fritvalgPct: values.fritvalgPct,
+        shSoPct: values.shSoPct,
+        storeBededagPct: values.storeBededagPct,
+        pensionPct: values.pensionPct,
+      }, { mode: values.tillaegAngivesSom }).samlet,
+      group: () => 'tabellen',
+      sammenligning: 'tabellens øvrige lønrækker',
+    },
   });
   const tableCellWarnings = buildFieldWarningMap(tableRowWarnings);
 
