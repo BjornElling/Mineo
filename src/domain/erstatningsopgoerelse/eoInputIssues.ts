@@ -116,3 +116,60 @@ export const selectBlockingLoenindkomstFieldIssues = (
   }
   return Object.freeze(fieldIssues);
 };
+
+/**
+ * Den første røde celle pr. ansættelsesforhold i de to MANUELLE reguleringstabeller.
+ *
+ * Reguleringslinjen («Manuel regulering: <celle>») skal kun pege på sine egne tabeller. Før genbrugte den
+ * også en rød celle i indtægtstabellen, så samme fejl stod to gange i «Fejl og advarsler» – én gang som
+ * lønrækkens og én gang som reguleringens (M-33). Indtægtstabellens celler har nu deres egne linjer.
+ */
+export const selectManualReguleringFieldIssues = (
+  issues: FieldIssueSet
+): Readonly<Record<string, FieldIssue>> => {
+  const fieldIssues: Record<string, FieldIssue> = {};
+  for (const issue of issues.all) {
+    const [employment, nested] = issue.field.address.path;
+    if (
+      employment?.kind !== 'entity'
+      || employment.collection !== 'loenindkomstAnsaettelsesforhold'
+      || nested?.kind !== 'entity'
+      || !['loenudviklingManuelTableData', 'loenudviklingManuelProcentsatsTableData'].includes(nested.collection)
+      || fieldIssues[employment.entityId] !== undefined
+    ) {
+      continue;
+    }
+    fieldIssues[employment.entityId] = issue;
+  }
+  return Object.freeze(fieldIssues);
+};
+
+/**
+ * Indtægtstabellens røde celler pr. ansættelsesforhold, så hver fejlbehæftet lønrække kan få sin egen linje
+ * med cellens egen tekst og et link til cellen (BB-291).
+ */
+export const selectLoenindkomstTableFieldIssues = (
+  issues: FieldIssueSet
+): Readonly<Record<string, readonly FieldIssue[]>> => {
+  const byEmployment: Record<string, FieldIssue[]> = {};
+  for (const issue of issues.all) {
+    const [employment, nested] = issue.field.address.path;
+    if (
+      employment?.kind !== 'entity'
+      || employment.collection !== 'loenindkomstAnsaettelsesforhold'
+      || nested?.kind !== 'entity'
+      || nested.collection !== 'indtaegtsoplysningerTableData'
+    ) {
+      continue;
+    }
+    (byEmployment[employment.entityId] ??= []).push(issue);
+  }
+  return Object.freeze(byEmployment);
+};
+
+/** Offentlige ydelsers røde celler – til ydelseslinjernes egen tekst og link (BB-291). */
+export const selectOffentligeYdelserFieldIssues = (issues: FieldIssueSet): readonly FieldIssue[] =>
+  issues.all.filter((issue) => {
+    const [segment] = issue.field.address.path;
+    return segment?.kind === 'entity' && segment.collection === 'offentligeYdelserRows';
+  });

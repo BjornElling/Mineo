@@ -12,6 +12,19 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-10-19 fra Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger (12h) – M-38: en
+afgørelse står som gennemført, men koden bærer den ikke.** Fem afgørelser fra Årsløn (2026-08-26) gælder samme
+løntabel, som EO bruger, og står som gennemført i `aarsloen.md` – men dublet-kontrollen (BB-096) er kun koblet på
+Årsløn, og BB-100's tooltips, BB-107's spejlvendte ugetekster, BB-114's ugetekst og BB-115's gule ring findes ingen
+steder. Målt på EO: en identisk dublet fordobler en måned uden et ord, krav 438.750 mod 405.000 kr. (BB-289, **Høj**, også
+**M-23**). **Dertil M-36 i en ny form** (BB-290, **Høj** – en negativ lønrække springes over af grundlaget, men tælles af
+kontroltabellen, så opgørelsen standser med «kontroluoverensstemmelser» og et link til en skjult fane), **M-19 + M-33 i
+tabellens rækkelinje** (BB-291, **Høj** – «Måned er ikke angivet» om en rød måned, uden række, én fejl ad gangen, og
+linket blinker hele kortet; BB-277's navngivne kandidat), **M-13 mod beregningen** (BB-292 – en weekendrække står til 0,00
+kr. i tabel og bilag, men regnes med; en række med kun tillæg mangler i bilaget), **M-28** (BB-293 – bilaget har ingen
+sum og blander beregningsperiode og erstatningsperiode, og en delvis række trykkes med fuldt beløb), **M-07** (BB-295),
+**M-05** (BB-297), **M-02** (BB-299) og én lokal (BB-294 – «Måned» sorterer uden år, permanent). M-09 bestået.
+
 **Ét nyt mønster 2026-10-06 fra Erstatningsopgørelse → Ansættelsesforholdet: ramme, lønforhold og satser (12g) – M-37:
 en manglende sats regnes som 0 % uden et ord.** En tom «Feriegodtgørelse/-tillæg» trækker 45.000 kr. fra kravet ved
 lønudvikling «Ingen», mens `0` og `1` er røde (BB-274, **Høj**), og en særlig fra-dato uden for overenskomstens satser
@@ -618,6 +631,9 @@ endelig EET-afgørelse:». Sektionens toggles er korrekte (`LabeledControlRow`),
   `erhvervsevnetabDescriptors.ts`, `varigeMenDescriptors.ts` og `config/dateRanges.ts`; teksten
   «Grænserne kommer fra Fødselsdato og Skadedato».
 - Bemærk også, at alle tekster om samme dato skal bruge den samme korrekte betegnelse.
+- **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-299): lønindkomst-tabellens ATP-kolonne hedder fire
+  ting – skærm, EO-bilag, beregningsgrundlag og Årsløns dokument – og BB-111's erklærede dokumentform er ikke brugt af
+  EO's bilag.
 
 ## M-03 – Tastning og indsættelse accepterer ikke det samme
 
@@ -719,6 +735,8 @@ langt fra det sted, den blev indtastet.
   afgørelsesdato efter «Opgørelse lavet den» trykkes som status i et papir, der er dateret før den; og et
   differencekrav uden EET-afgørelse giver to modstridende Status-linjer. Begge er usandsynlige *i sagens egen
   sammenhæng*, fordi programmet selv bruger opgørelsens dato som status-dato.
+- **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-297): en lønrække på 3.000.000 kr. blandt elleve à
+  30.000 kr. på samme kort giver kravet 3.746.250 kr. uden et ord. Sagens egen sammenhæng er de øvrige rækker.
 
 ## M-06 – Usynlige tegn overlever fra indsættelse
 
@@ -807,6 +825,10 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
   sætte `minBoundKind`, viser en grænse uden afsender.** Bemærk at `origin`/`derivedDateBounds` IKKE lukker
   hullet: den bruges kun i den umulige-interval-gren (min > max), så et felt kan have en korrekt erklæret
   årsag og alligevel aldrig vise den.
+- **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-295): i lønindkomst-tabellens Uge-tilstand er en
+  omvendt periode slet ikke en feltregel – ingen celle bliver rød, og boksen siger «Ugyldig værdi i Uge fra» – mens
+  Dato-tilstanden i samme tabel har to røde celler med hver sin tekst. Årsløns ugekolonner viser fortsat den fælles
+  «Til-dato skal være efter fra-dato», som BB-107 skulle have rettet (M-38).
 
 ## M-08 – Links er ikke med i tastaturrækkefølgen
 
@@ -1329,6 +1351,10 @@ måles og rettes.
   `formatAmount(x)` i begge generatorer giver to decimaler alle tre steder (`27.111,89 kr.` ordret
   identisk). Det er værd at notere, fordi det bekræfter afgrænsningen fra BB-078/BB-079: Varige méns
   nuldecimalregel er IKKE bredt ud, og mønsteret forlanger enighed, ikke nul decimaler.
+- **Ny form 2026-10-19: skærm og dokument mod BEREGNINGEN** (`erstatningsopgoerelse-12h.md` BB-292). En lønrække uden
+  arbejdsdage står med «Samlet løn 0,00» i både tabel og bilag, mens grundlaget regner dens 2.000 kr. med (visningen
+  fordeler på rækkens arbejdsdage, beregningen bruger reservedage); og en række med kun tillæg udelades af bilaget, men
+  indgår i grundlagets «Feriepenge m.v. 55.000,00 kr.». Prøven: summér bilaget og hold det op mod grundlagets linje.
 
 ## M-14 – En anden fortolkningsvej ved siden af tastningen
 
@@ -1757,6 +1783,10 @@ truffet, ikke et nyt designforslag.
 - Kandidater, ikke efterprøvet: EET efter EAL's spejlede stamdata-rækker (flade 11),
   Erstatningsopgørelsens forudsætningsrækker (flade 12) og enhver tekst af formen «<felt> mangler»,
   der er koblet til en `undefined`-læsning frem for til et tomt felt.
+- **Ny forekomst 2026-10-19 i en tabels rækkelinje** (`erstatningsopgoerelse-12h.md` BB-291, **Høj**): lønindkomst-
+  tabellens røde celler (Måned `13`, År `2030`, omvendte datoer, uge `53/2017`) meldes som «Måned/År/Dato fra/Uge fra er
+  ikke angivet», fordi den gamle rækkeregel læser den maskerede værdi. Linjen navngiver ikke rækken, viser kun den første
+  fejlbehæftede række, og linket blinker hele kortet. Også M-33.
 
 ## M-20 – En feltnær oplysning hentet fra hele sidens beregning
 
@@ -1995,6 +2025,9 @@ og se, om resultatet fordobles.** Gør det det, og nævneren står uændret, er 
   en union i alle tre); EO's lønindkomst-fane (samme tabelkomponent, egen aggregering); forsørgertabs
   og EET's periodetabeller. Generelt: `rg "new Set" src/utils/periodeBeregning.ts` og enhver
   `unikkeEnheder`-agtig nævner.
+- **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-289, **Høj**): EO's lønindkomst-tabel – en ordret kopi
+  af juni 2017 giver «Løn i beregningsperioden 390.000,00 kr. … 12 måneder» og kravet 438.750,00 kr. mod 405.000,00 kr.
+  BB-096's afgjorte løsning (rød dublet-ring på identiske rækker) er kun koblet på Årsløn; se **M-38**.
 
 ## M-24 – Feltets grænse er sat af feltets art, ikke af det tal det trækkes fra
 
@@ -2338,6 +2371,10 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
 - Kandidater, ikke efterprøvet: `eetKapitaliseringCalculation` (delvist, ved BB-176) og EO's øvrige
   rækkebyggere (12c–12l). Generel indgang: `rg "z.object" src/domain/*/**Calculation.ts` for schemaerne,
   og for hver eksport i et `*Calculation.ts` en søgning uden for `src/__tests__`.
+- **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-293): lønindkomst-bilaget har ingen sum og blander
+  beregningsperiodens og erstatningsperiodens rækker, skønt bilagets eget filter bygger på de samme periodegrupper
+  (`periodRangeGroups.ts`); en datorække, der kun delvist ligger i beregningsperioden, trykkes med hele beløbet, mens
+  grundlaget bruger 31 af 61 dage.
 
 ---
 
@@ -2861,6 +2898,13 @@ kalder en brugerindtastning for en intern fejl.
   dækket af samme regler; lønrækker med kun `0 kr.` gav kun undtagelsen sammen med en anden lønudvikling end «Ingen»
   og er dækket. Sygeferiegodtgørelsen (fravær 251–365, dagssats 0) kunne ikke bringes til en undtagelse. **Tilbage:**
   reguleringsformerne (12i) er ikke probet.
+- **Ny form 2026-10-19: kontrollen i stedet for undtagelsen** (`erstatningsopgoerelse-12h.md` BB-290, **Høj**). En
+  lønrække med negativ «Samlet løn» springes tavst over af grundlaget (`indtaegtPerioder.ts`, `samletContrib <= 0`), men
+  tælles af kontroltabellens sammentælling. Brugeren får «Der er konstateret kontroluoverensstemmelser i
+  EO-beregningen.» – igen en meddelelse om, at programmet har fejlet – og et link, «Kontroltabel», til en fane, der er
+  slået fra som standard, så klikket intet gør. Prøven udvides: **en motor, der filtrerer et ikke-positivt beløb fra,
+  er lige så meget en skjult regel som en, der kaster** – `rg "<= 0\) continue" src/domain/erstatningsopgoerelse`.
+  Kandidater: offentlige ydelsers tre filtre i samme fil (12k).
 
 ## M-37 – En manglende sats regnes som 0 % uden et ord
 
@@ -2905,3 +2949,38 @@ dér afviser motoren noget, feltet tog imod; her tager motoren imod noget, felte
 - Kandidater, ikke efterprøvet: Årslønsberegningens feriesats (`beregnFejlmeddelelser` regner tom som 0 og advarer kun
   over 0); en beregningsperiode, der slutter før overenskomstens dækning (12g/12i); den manuelle lønudviklings
   satskolonner (12i); offentlige ydelsers reguleringssatser (12k).
+
+## M-38 – En afgørelse står som gennemført, men koden bærer den ikke
+
+> Revisionssporet siger «implementeret», brugeren ser den gamle adfærd. Enten blev rettelsen aldrig skrevet, eller den
+> blev kun koblet på den ene af to flader, der deler samme komponent.
+
+Mønsteret handler ikke om en oplevelse i sig selv, men om, hvorfor en afgjort oplevelse stadig findes. Det er farligt,
+fordi en senere gennemgang læser afgørelsen som lukket og ikke prøver forholdet igen – og fordi udvikleren mener, at
+han har fået det, han bad om.
+
+Det kan opstå på to måder:
+
+- **Halv udrulning.** Afgørelsen gælder «generelt» eller nævner flere flader, men rettelsen blev koblet på den flade,
+  fundet kom fra. Komponenten er delt, reglen er det ikke.
+- **Udledt status.** Statuslinjen er skrevet bagefter ud fra udviklerens tilbagemelding frem for ud fra koden
+  (`aarsloen.md` fik sine beslutningslinjer 2026-09-17 med forbeholdet «udledt af udviklerens tilbagemelding»).
+
+**Efterprøv, hvor:** en afgørelse om en delt komponent eller med ordet «generelt». For hver: find den tekst eller det
+navn, rettelsen skulle indføre (`rg` på ordlyden), og mål adfærden på HVER flade, komponenten bruges. Mangler teksten i
+koden, er det en forekomst – uanset hvad sporet siger.
+
+- Fundet i: `erstatningsopgoerelse-12h.md` 2026-10-19, fem afgørelser fra `aarsloen.md` (2026-08-26):
+  - **BB-096** – dublet-kontrollen skulle gælde Årsløn, lønindkomst-tabellerne og offentlige ydelser; den er kun koblet
+    på Årsløn (`resolveStandardLoenDuplicateRowIssues` kaldes alene af `aarsloenProjection.ts`). Målt i EO: BB-289.
+  - **BB-100** – diskrete tooltips på «FP/FV/SH/SO/St.B.» og «Arb.g. Pension» findes på ingen af fladerne (BB-299).
+  - **BB-107** – Årsløns omvendte uger viser fortsat den fælles «Til-dato skal være efter fra-dato» (målt); EO's
+    ugekolonner har slet ingen feltregel (BB-295).
+  - **BB-114** – `53/2017` giver fortsat «Der er udfyldt en ugyldig værdi i feltet 'Uge fra'» på begge flader (målt,
+    BB-296).
+  - **BB-115** – den gule ring på en fremtidig lønperiode findes ikke på Årsløn (målt) og ikke i EO (BB-298).
+- Kandidater, ikke efterprøvet: de øvrige 14 af Årsløns udledte beslutningslinjer; enhver afgørelse med «generelt» eller
+  «også på …» i tilbagemeldingen (fx BB-147's tomhedsprincip, BB-228's relevans).
+- **Lukket 2026-10-19 for de fem forekomster:** BB-096 (nu gul advarsel på Årsløn, EO's lønindkomst og offentlige
+  ydelser), BB-107, BB-114 og BB-115 er gennemført i koden på begge flader; BB-100's tooltips er afvist ved BB-299.
+  `aarsloen.md` er rettet.

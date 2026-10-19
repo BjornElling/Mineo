@@ -114,6 +114,9 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         )
         : undefined;
       const detail = dateTooltip === undefined ? rejected.detail : { ...rejected.detail, tooltip: dateTooltip };
+      // Samme princip for en codec-leveret konkret tekst (ugenummeret, BB-296): tooltippet sagde «Uge skal være
+      // mellem 1 og 52 i 2017», mens boksen sagde «ugyldig værdi».
+      const specificMessage = typeof detail?.tooltip === 'string' ? detail.tooltip : undefined;
       issues.push(Object.freeze({
         kind: 'field',
         code: `${field.descriptor.id}.${rejected.reason}`,
@@ -128,7 +131,7 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
         // besked: `01-01-1899` fik den generiske tekst, mens `01-01-2030` fik «Datoen er efter dags dato».
         // Brugeren, der havde tastet et forkert århundrede, fik at vide, at datoen var «ugyldig» – hvilket
         // den ikke er som dato.
-        message: dateTooltip ?? buildFieldIssueMessage(anyRef),
+        message: specificMessage ?? buildFieldIssueMessage(anyRef),
         ...(detail === undefined ? {} : { detail }),
       }));
       continue;

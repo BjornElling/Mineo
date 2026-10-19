@@ -250,7 +250,7 @@ describe('fieldCodecs', () => {
       const week = createWeekFieldCodec({ twoDigitYearPolicy: 'infer', maxDraftLength: 9 });
       // 2021 har 52 uger, 2020 har 53 – grænsen er årsafhængig og skal stå konkret i tooltippen.
       expect(week.parseForSettle('53/2021'))
-        .toMatchObject({ detail: { tooltip: 'Uge skal være mellem 1 og 52' } });
+        .toMatchObject({ detail: { tooltip: 'Uge skal være mellem 1 og 52 i 2021' } });
       expect(week.parseForSettle('53/2020')).toEqual({ status: 'valid', value: '53/2020' });
       expect(week.parseForSettle('0/2020')).toMatchObject({ detail: { tooltip: 'Uge skal være mindst 1' } });
       // Ren formfejl har intet konkret at sige.
@@ -275,9 +275,9 @@ describe('fieldCodecs', () => {
         };
       };
 
-      expect(resolveFieldIssueTooltip(asIssue('53/2021'))).toBe('Uge skal være mellem 1 og 52');
+      expect(resolveFieldIssueTooltip(asIssue('53/2021'))).toBe('Uge skal være mellem 1 og 52 i 2021');
       expect(resolveFieldIssueTooltip(asIssue('xx'))).toBe(FIELD_ISSUE_GENERIC_TOOLTIP);
-      // "Fejl og advarsler" viser fortsat den FULDE besked med feltnavnet – tooltippet er den korte kanal.
+      // Readeren gør den konkrete tekst til issuets besked, så «Fejl og advarsler» siger det samme (BB-296).
       expect(asIssue('53/2021').message)
         .toBe('Der er udfyldt en ugyldig værdi i feltet \'Uge\'');
     });

@@ -45,10 +45,17 @@ import {
   OEVRIGT_FRAVAER_AARSAG_IKKE_UDFYLDT_MESSAGE,
   resolveAngivetLoenAdvarsel,
 } from '../erstatningsopgoerelse/validation/beregningsgrundlagFeltAdvarsler';
+import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import {
   buildBeregningsperiodeIndkomstHullerMessage,
   resolveBeregningsperiodeIndkomstHuller,
 } from '../erstatningsopgoerelse/validation/beregningsperiodeIndkomstHuller';
+
+/** Har en lønindkomst- eller ydelsesrække en fejl, der holder den ude af beregningen? */
+const harFejlIIndkomstraekker = (values: ErstatningsopgoerelseValues): boolean =>
+  values.loenindkomstAnsaettelsesforhold.some((af) =>
+    getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom).size > 0)
+  || getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []).size > 0;
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
@@ -238,7 +245,11 @@ export const buildEoTafBeregningsgrundlagRows = (
 
   // Perioder uden hverken løn eller ydelse udtynder månedslønnen tavst (BB-260). Linjen er gul og fører til
   // Lønindkomst – til det første ansættelsesforhold, eller til perioden, når der kun er ydelser.
-  const indkomstHuller = isBeregningsperiode && beregningsperiodeRangeOk
+  //
+  // Har en lønrække eller ydelsesrække en rød fejl, meldes hullerne ikke: rækken indgår ikke, så dens måned
+  // blev et «hul» – samme ene fejl som en linje mere (BB-291). Rækkens egen linje siger, hvad der skal rettes,
+  // og et reelt hul meldes, så snart den er rettet.
+  const indkomstHuller = isBeregningsperiode && beregningsperiodeRangeOk && !harFejlIIndkomstraekker(values)
     ? resolveBeregningsperiodeIndkomstHuller(values)
     : [];
   if (indkomstHuller.length > 0) {

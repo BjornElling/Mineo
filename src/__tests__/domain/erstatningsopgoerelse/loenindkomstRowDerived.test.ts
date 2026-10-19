@@ -255,7 +255,9 @@ describe('calculateLoenindkomstRowDerived', () => {
     });
   });
 
-  it('giver nulresultat når alle arbejdsdage er dækket af ferie', () => {
+  // BB-292: rækken uden arbejdsdage fordeles på fald-tilbage-dage som i beregningen (periodisering-contract.md
+  // §3A) – før stod den til 0,00 kr. i tabel og bilag, mens grundlaget regnede lønnen med.
+  it('viser lønnen, når alle arbejdsdage er dækket af ferie – samme fald-tilbage som beregningen', () => {
     const dag = toISODateString('2024-01-11');
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -279,11 +281,11 @@ describe('calculateLoenindkomstRowDerived', () => {
       ansaettelsesforhold,
       context,
     })).toEqual({
-      loenPlusLoen2: 0,
-      loenPlusLoen2PlusIkkePensLoen: 0,
-      fpFvShSo: 0,
+      loenPlusLoen2: 1000,
+      loenPlusLoen2PlusIkkePensLoen: 1000,
+      fpFvShSo: 4.5,
       pension: 0,
-      samlet: 0,
+      samlet: 1004.5,
     });
   });
 });

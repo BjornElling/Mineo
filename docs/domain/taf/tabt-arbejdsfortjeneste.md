@@ -152,8 +152,16 @@ Udviklerbeslutning 2026-10-06 (BB-275, BB-276):
 - **Lønrækkerne følger lønsedlen, grundlaget følger beregningstidspunktet.** Tabellen og lønindkomstbilaget
   viser hver måneds tillæg med de satser, der gjaldt i måneden. Beregningsgrundlaget for TAF tager lønnen uden
   tillæg og lægger tillæg og pension til med satserne på reguleringsdatoen. Bilagets satslinjer står derfor under
-  satsoverskriften med datoen og følges af «Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte
-  måned.»
+  satsoverskriften med datoen. Opgørelsen forklarer ikke, at tabellens tillæg er regnet med månedens satser
+  (udviklerafgørelse 2026-10-19, BB-299).
+- **Negative rækker modregnes** (udviklerafgørelse 2026-10-19, BB-290). En lønrække eller ydelsesrække med negativt
+  beløb – en tilbagebetaling, en efterregulering – regnes med og trækkes fra kildens øvrige indtægt i perioden, i både
+  beregningsperioden og erstatningsperioden; rækken får en gul, ikke-blokerende advarsel. Er en kildes (et
+  ansættelsesforholds eller en ydelsestypes) indtægt i en periode SAMLET negativ, spærrer opgørelsen med en navngiven
+  linje, indtil udvikleren har afgjort, hvordan det regnes (`negativeIndkomstkilder.ts`). Sygeferiegodtgørelsens grundlag
+  medtager fortsat kun positive rækker.
+- **Identiske rækker** i en indtægtstabel (inden for ét ansættelsesforhold, eller blandt offentlige ydelser) regnes begge
+  med og giver en gul, ikke-blokerende advarsel (BB-289).
 
 ### TAF fordelt på kalenderår
 

@@ -444,6 +444,12 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       rows.push(issue);
     };
 
+    // Linket til Kontroltabel tilbydes kun, når fanen vises. Den er slået fra som standard, og et klik gjorde da
+    // intet – en blindgyde under en fejl, brugeren ikke selv kan forklare (BB-290).
+    const kontroltabelAction: Pick<SystemIssueRow, 'actionLabel' | 'onAction'> = settings.showEOInspektionMenu
+      ? { actionLabel: 'Kontroltabel', onAction: () => setActiveTab('kontroltabel') }
+      : {};
+
     if (eoSnapshot?.status === 'fail_closed') {
       switch (eoSnapshot.failClosedReason) {
         case 'runtime_exception':
@@ -471,8 +477,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       pushIssue({
         id: 'eo-row-aggregation-failed',
         message: eoRowAggregationErrorMessage,
-        actionLabel: 'Kontroltabel',
-        onAction: () => setActiveTab('kontroltabel'),
+        ...kontroltabelAction,
       });
     }
 
@@ -488,10 +493,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         pushIssue({
           id: invariant.id,
           message: invariant.message,
-          actionLabel: invariant.id === 'control:sammentaelling_mismatch' ? 'Kontroltabel' : undefined,
-          onAction: invariant.id === 'control:sammentaelling_mismatch'
-            ? () => setActiveTab('kontroltabel')
-            : undefined,
+          ...(invariant.id === 'control:sammentaelling_mismatch' ? kontroltabelAction : {}),
         });
       });
 
@@ -529,6 +531,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     return rows;
   }, [
     authoritativeBlockingInvariants,
+    settings.showEOInspektionMenu,
     eoPdfBlockingInvariants,
     eoSnapshot,
     eoRowAggregationErrorMessage,

@@ -26,8 +26,8 @@ import {
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 import type { StandardLoenTableFieldSet } from '../../domain/standardLoen/standardLoenTableFieldSet';
 import { readStandardLoenTableRows } from '../../domain/standardLoen/standardLoenTableFieldSet';
-import { serializeFieldAddress, type CollectionRef, type FieldAddress } from '../../inputCore/fieldAddress';
-import type { FieldIssueSet } from '../../inputCore/inputIssue';
+import { serializeFieldAddress, type CollectionRef, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 import { useInputEvaluation } from '../../inputCore/react';
 import { collectionLocationPrefix } from '../../inputCore/react/cellSpecBuilder';
 import {
@@ -85,11 +85,12 @@ export type StandardLoenTableProps = {
    */
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
   /**
-   * KRYDS-RÆKKE-regler som feltissues (fx identiske rækker). Slås op på cellens egen bundne feltadresse og
-   * gives videre som `collectionRuleIssue`, der er det ENESTE, der kan gøre en celle rød ud over cellens
-   * eget issue. En descriptor-validator kan ikke se andre rækker og kan derfor ikke udtrykke reglen selv.
+   * Rækkernes IKKE-blokerende advarsler (identisk række, periode efter dags dato, negativ samlet løn) som gul
+   * ring pr. celle, slået op på cellens egen bundne feltadresse. Bygges af `buildFieldWarningMap`;
+   * en descriptor-validator kan ikke se andre rækker og kan derfor ikke udtrykke reglerne selv. Cellens eget
+   * røde issue har forrang.
    */
-  ruleIssues?: FieldIssueSet;
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   /**
    * Autofill-suggest i tabellens indtastningsceller (default fra).
    *
@@ -114,7 +115,7 @@ const COL = {
 } as const;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, ruleIssues, autofillSuggest = false }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, cellWarnings, autofillSuggest = false }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -153,19 +154,18 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const { committedById, buildCellSpec } = table;
 
     /**
-     * Kryds-række-issuet for en celle, som en spread-bar prop.
+     * Rækkeadvarslen for en celle, som en spread-bar prop.
      *
      * Opslaget sker på cellens EGEN, allerede bundne feltadresse (§3.2 – hele ejerstien er med), så det ikke
      * kan ramme en anden række eller en anden tabelinstans (EO renderer én løntabel pr. ansættelsesforhold).
-     * `collectionRuleIssue` er det eneste, der kan gøre cellen rød ud over cellens eget issue, og cellens
-     * eget issue har forrang – en ugyldig dato vises altså frem for dubletbeskeden.
+     * Cellens eget røde issue har forrang – en ugyldig dato vises altså frem for den gule ring.
      */
-    const ruleIssueProps = React.useCallback(
+    const cellWarningProps = React.useCallback(
       (cell: Readonly<{ field: Readonly<{ address: FieldAddress }> }>) => {
-        const issue = ruleIssues?.get(serializeFieldAddress(cell.field.address));
-        return issue === undefined ? {} : { collectionRuleIssue: issue };
+        const warning = cellWarnings?.get(serializeFieldAddress(cell.field.address));
+        return warning === undefined ? {} : { warning };
       },
-      [ruleIssues]
+      [cellWarnings]
     );
 
     const getSatserInput = React.useCallback(() => ({
@@ -399,7 +399,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       cell={cell}
                       placeholder={MONTH_FORMAT_PLACEHOLDER}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })() : loenperiode === 'uge' ? (() => {
                     const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col0_uge, COL.period0);
@@ -407,7 +407,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.period0)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })() : (() => {
                     const cell = buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col0_dag, COL.period0);
@@ -415,7 +415,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.period0)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.period0)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })()}
                 </td>
@@ -428,7 +428,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.period1)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })() : loenperiode === 'uge' ? (() => {
                     const cell = buildCellSpec<string | undefined>(renderRow, fieldSet.col1_uge, COL.period1);
@@ -436,7 +436,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.period1)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })() : (() => {
                     const cell = buildCellSpec<ISODateString | undefined>(renderRow, fieldSet.col1_dag, COL.period1);
@@ -444,7 +444,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.period1)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.period1)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />;
                   })()}
                 </td>
@@ -463,7 +463,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                         gridCell={gc(colIdx)}
                         cell={cell}
                         inputRef={registerCellRef(rowId, colIdx)}
-                        {...ruleIssueProps(cell)}
+                        {...cellWarningProps(cell)}
                       />
                     </td>
                   );
@@ -477,7 +477,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.beloeb0)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.beloeb0)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />
                   </td>;
                 })() : (
@@ -494,7 +494,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       gridCell={gc(COL.beloeb1)}
                       cell={cell}
                       inputRef={registerCellRef(rowId, COL.beloeb1)}
-                      {...ruleIssueProps(cell)}
+                      {...cellWarningProps(cell)}
                     />
                   </td>;
                 })() : (

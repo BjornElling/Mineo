@@ -4,6 +4,7 @@ import type {
   EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   Loenperiode,
   OffentligeYdelserRow,
+  TillaegAngivesSom,
 } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatToISO } from '../../../utils/dateFormatting';
@@ -137,6 +138,7 @@ const hasLoenindkomstEoBilagData = (
         mode,
         ranges: group.ranges,
         errorRowIds,
+        tillaegAngivesSom: af.tillaegAngivesSom,
       }))
     );
   });
@@ -325,7 +327,8 @@ export const getEoBilagAvailability = (params: Readonly<{
   };
 };
 
-export const hasNonZeroLoenAmount = (value: StandardLoenTableRow['col2']): boolean => {
+/** Er der tastet et beløb i cellen? En eksplicit 0 tæller med – 0 kr. er en oplysning (BB-098). */
+export const hasLoenAmountInput = (value: StandardLoenTableRow['col2']): boolean => {
   const numeric = amountValueToNumber(value);
   return numeric !== undefined;
 };
@@ -336,17 +339,23 @@ export const shouldIncludeLoenRowInEoBilag = (params: Readonly<{
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   ranges: readonly IsoRange[];
   errorRowIds: ReadonlySet<string>;
+  tillaegAngivesSom?: TillaegAngivesSom;
 }>): boolean => {
-  const { row, loenperiode, mode, ranges, errorRowIds } = params;
-  if (isStandardLoenRowEffectivelyEmpty(row, loenperiode)) return false;
+  const { row, loenperiode, mode, ranges, errorRowIds, tillaegAngivesSom = 'procent' } = params;
+  if (isStandardLoenRowEffectivelyEmpty(row, loenperiode, tillaegAngivesSom)) return false;
   // NOTE: Fail-closed efter design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
+  // I Beløb-tilstand er tillægs- og pensionsbeløbene selv indtastede beløb, som beregningen regner med. En række
+  // med KUN et tillæg (en særskilt feriepengeudbetaling) stod i grundlagets «Feriepenge m.v.», men ikke i bilaget
+  // (BB-292).
   const hasAnyIncomeInput =
-    hasNonZeroLoenAmount(row.col2) ||
-    hasNonZeroLoenAmount(row.col3) ||
-    hasNonZeroLoenAmount(row.col4) ||
-    hasNonZeroLoenAmount(row.col5);
+    hasLoenAmountInput(row.col2) ||
+    hasLoenAmountInput(row.col3) ||
+    hasLoenAmountInput(row.col4) ||
+    hasLoenAmountInput(row.col5) ||
+    (tillaegAngivesSom === 'beloeb'
+      && (hasLoenAmountInput(row.fpFvShSoBeloeb) || hasLoenAmountInput(row.pensionBeloeb)));
   if (!hasAnyIncomeInput) return false;
   return hasAarsloenRowOverlapWithRanges(row, loenperiode, mode, ranges);
 };

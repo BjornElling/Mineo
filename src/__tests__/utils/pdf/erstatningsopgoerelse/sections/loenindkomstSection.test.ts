@@ -96,7 +96,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<ReturnType<typeof toISOD
     isZeroPct: vi.fn(() => true),
     getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
     resolvePeriodColumns: vi.fn((): readonly [string, string] => ['01-10-2022', '31-10-2022']),
-    hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
+    hasLoenAmountInput: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
     shouldIncludeLoenRowInEoBilag: vi.fn(({ ranges }: IncludeLoenRowParams) => {
       return ranges.some((range) => includeRangeFromDates.has(range.fra));
     }),

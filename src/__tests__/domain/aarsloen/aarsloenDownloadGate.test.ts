@@ -189,17 +189,17 @@ describe('evaluateAarsloenDownloadGate', () => {
     expect(gate.canDownload).toBe(true);
   });
 
-  it('blokerer begge dokumentgates ved identiske lønrækker', () => {
+  // Udviklerafgørelse 2026-10-19 (BB-289): identiske rækker er en gul advarsel, ikke en spærring – dobbelt løn
+  // for samme periode kan være reel.
+  it('spærrer ikke ved identiske lønrækker, men advarer med gul ring', () => {
     const projection = project(withDuplicateValidMonthRows(withValidStamdata(empty())));
 
-    expect(projection.duplicateRowIssues.all.length).toBeGreaterThan(0);
-    const aarsloenGate = evaluateAarsloenDownloadGate(projection);
-    const shDageGate = evaluateShDageDownloadGate(projection);
-
-    expectBlocked(aarsloenGate, 'aarsloen:duplicate-rows');
-    expectBlocked(shDageGate, 'aarsloen:sh-duplicate-rows');
-    if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('invalid-input');
-    if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('invalid-input');
+    expect(projection.tableRowWarnings.map((warning) => warning.kind)).toContain('duplicateRow');
+    expect(projection.tableCellWarnings.size).toBeGreaterThan(0);
+    expect(evaluateAarsloenDownloadGate(projection)).toEqual({ canDownload: true, reasons: [] });
+    // SH-dage-dokumentet har sine egne krav; dubletten må ikke ændre dets svar i forhold til én række.
+    expect(evaluateShDageDownloadGate(projection))
+      .toEqual(evaluateShDageDownloadGate(project(withOneValidMonthRow(withValidStamdata(empty())))));
   });
 
   it('blokerer begge dokumentgates ved feriedage over periodens hverdage', () => {

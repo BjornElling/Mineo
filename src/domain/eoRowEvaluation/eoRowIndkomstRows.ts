@@ -32,6 +32,9 @@ import {
 import { hasIndtastetLoenoplysninger } from '../erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
+import { buildLoenindkomstTableLines } from './eoRowLoenindkomstTableLines';
+import { resolveNegativeIndkomstkilder } from '../erstatningsopgoerelse/validation/negativeIndkomstkilder';
+import { getToday } from '../../config/dateRanges';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
@@ -39,9 +42,29 @@ import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWhole
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDato } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { resolveYdelsestype } from '../../data/ydelsestyper';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import {
+  eoOffentligeYdelserFraDatoField,
+  eoOffentligeYdelserTillaegField,
+  eoOffentligeYdelserTilDatoField,
+  eoOffentligeYdelserYdelseField,
+  eoOffentligeYdelserYdelsestypeField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import type { FieldAddress } from '../../inputCore/fieldAddress';
+import type { OffentligeYdelserTableColumnKey } from '../../types/table';
 import { buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
 import { resolveManualRegulationIssue } from './eoManualRegulationIssue';
+
+/** Ydelsescellens feltadresse – linket fra en ydelseslinje fører til netop cellen (BB-291). */
+const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTableColumnKey): FieldAddress => {
+  switch (colKey) {
+    case 'fraDato': return eoOffentligeYdelserFraDatoField.bind(rowId).address;
+    case 'tilDato': return eoOffentligeYdelserTilDatoField.bind(rowId).address;
+    case 'ydelse': return eoOffentligeYdelserYdelseField.bind(rowId).address;
+    case 'tillaeg': return eoOffentligeYdelserTillaegField.bind(rowId).address;
+    case 'ydelsestype': return eoOffentligeYdelserYdelsestypeField.bind(rowId).address;
+  }
+};
 
 const resolveLoenindkomstTableInputIssue = (
   issues: Readonly<Record<string, FieldIssue>> | undefined,
@@ -244,15 +267,19 @@ export const buildEoIndkomstRows = (
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom',
-  loenindkomstTableInputIssues?: Readonly<Record<string, FieldIssue>>,
+  manualReguleringFieldIssues?: Readonly<Record<string, FieldIssue>>,
   loenindkomstKortFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
+  loenindkomstTableCellIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
 ): EoRowModel[] => {
+  const today = getToday();
   const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = rowPolicy.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
   const overenskomstUdloebMaanederGraense = rowPolicy.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
   const sections = buildIndkomstSectionStatuses(values, loenindkomstKortFieldIssues);
+  // Et ansættelsesforhold med samlet negativ løn i en periode spærrer (BB-290, `negativeIndkomstkilder.ts`).
+  const negativeIndkomstkilder = resolveNegativeIndkomstkilder(values, skadedato);
   sections.forEach((section) => {
     const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
     const kortFieldIssues = loenindkomstKortFieldIssues[section.id] ?? [];
@@ -312,17 +339,53 @@ export const buildEoIndkomstRows = (
       });
     });
 
+    negativeIndkomstkilder
+      .filter((fund) => fund.source.kind === 'employer' && fund.source.id === section.id)
+      .forEach((fund) => {
+        rows.push({
+          id: `loenindkomst.${section.id}.negativSamletLoen.${fund.periode}`,
+          employmentId: section.id,
+          label: 'Lønoplysninger',
+          displayValue: formatStatusMessage('error', fund.message),
+          status: 'error',
+          message: fund.message,
+          summaryDisplay: 'messageOnly',
+          summaryText: fund.message,
+          focusTarget: { kind: 'rowId', rowId: section.id },
+        });
+      });
+
     if (employment !== undefined) {
       rows.push(...buildOverenskomstSatsDaekningRows(values, employment, skadedato, skadestype, harFeltfejl('saerligFraDatoRegulering')));
     }
 
-    rows.push({
-      id: `loenindkomst.${section.id}.loenoplysninger`,
-      employmentId: section.id,
-      label: 'Alle lønoplysninger indtastet korrekt',
-      displayValue: section.tableStatus === 'ok' ? 'Ja' : formatStatusMessage(section.tableStatus, section.tableMessage),
-      status: section.tableStatus,
-      summaryDisplay: 'messageOnly',
+    // Én linje pr. lønrække med en fejl eller advarsel, med rækkens navn, cellens egen tekst og link til cellen
+    // (BB-291). Uden linjer står den samlede «Ja»-række, som inspektionen viser.
+    const tableLines = employment === undefined
+      ? []
+      : buildLoenindkomstTableLines(values, employment, loenindkomstTableCellIssues[section.id] ?? [], skadedato, today);
+    if (tableLines.length === 0) {
+      rows.push({
+        id: `loenindkomst.${section.id}.loenoplysninger`,
+        employmentId: section.id,
+        label: 'Alle lønoplysninger indtastet korrekt',
+        displayValue: 'Ja',
+        status: 'ok',
+        summaryDisplay: 'messageOnly',
+      });
+    }
+    tableLines.forEach((line) => {
+      rows.push({
+        id: `loenindkomst.${section.id}.loenoplysninger.${line.key}`,
+        employmentId: section.id,
+        label: 'Lønoplysninger',
+        displayValue: formatStatusMessage(line.status, line.message),
+        status: line.status,
+        message: line.message,
+        summaryDisplay: 'messageOnly',
+        summaryText: line.message,
+        focusTarget: { kind: 'fieldAddress', address: line.focusAddress },
+      });
     });
 
     // En RØD dato læses som tom af readeren; den har sin egen linje ovenfor og er ikke «ikke indtastet» (BB-277).
@@ -523,7 +586,7 @@ export const buildEoIndkomstRows = (
         erBeregningsperiode,
       );
       const inputIssue = erBeregningsperiode
-        ? resolveLoenindkomstTableInputIssue(loenindkomstTableInputIssues, ansaettelsesforhold.id)
+        ? resolveLoenindkomstTableInputIssue(manualReguleringFieldIssues, ansaettelsesforhold.id)
         : undefined;
       const inputIssueFocusTarget = inputIssue
         ? { kind: 'fieldAddress' as const, address: inputIssue.field.address }
@@ -533,7 +596,9 @@ export const buildEoIndkomstRows = (
         ? `Manuel regulering: ${inputIssue.field.descriptor.label}`
         : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering';
 
-      if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
+      // En rød celle i indtægtstabellen har sin egen linje (BB-291) og gør ikke reguleringen ugyldig. I
+      // beregningsperioden kræves derfor en rød celle i en af reguleringens EGNE tabeller.
+      if (manualReguleringInputErrors[ansaettelsesforhold.id] && (!erBeregningsperiode || inputIssue !== undefined)) {
         return {
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
           message: manualIssueMessage,
@@ -766,10 +831,11 @@ export const buildEoIndkomstRows = (
 
 export const buildEoOffentligeYdelserRows = (
   values: ErstatningsopgoerelseValues,
-  skadedatoISO?: ISODateString
+  skadedatoISO?: ISODateString,
+  cellIssues: readonly FieldIssue[] = []
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
-  const statusRows = buildOffentligeYdelserStatusRows(values.offentligeYdelserRows ?? []);
+  const statusRows = buildOffentligeYdelserStatusRows(values.offentligeYdelserRows ?? [], cellIssues);
 
   statusRows.forEach((row) => {
     rows.push({
@@ -781,11 +847,31 @@ export const buildEoOffentligeYdelserRows = (
       // Statusrækkens id er en GRUPPENØGLE pr. ydelsestype og findes ikke i DOM. Modellen har båret den
       // ydelsesrække, beskeden stammer fra, hele vejen hertil, så linket kan forankres til netop den
       // række i tabellen frem for kun at skifte fane.
+      ...(row.status === 'ok' ? {} : { message: row.message, summaryText: row.message }),
       ...(row.sourceRowId === undefined
         ? {}
-        : { focusTarget: { kind: 'rowId' as const, rowId: row.sourceRowId } }),
+        : {
+          focusTarget: row.focusColKey === undefined
+            ? { kind: 'rowId' as const, rowId: row.sourceRowId }
+            : { kind: 'fieldAddress' as const, address: offentligeYdelserCellAddress(row.sourceRowId, row.focusColKey) },
+        }),
     });
   });
+
+  resolveNegativeIndkomstkilder(values, skadedatoISO)
+    .forEach((fund) => {
+      if (fund.source.kind !== 'benefit') return;
+      rows.push({
+        id: `offentligeYdelser.negativSamletYdelse.${fund.source.typeKey}.${fund.periode}`,
+        label: fund.source.label,
+        displayValue: formatStatusMessage('error', fund.message),
+        status: 'error',
+        message: fund.message,
+        summaryDisplay: 'messageOnly',
+        summaryText: fund.message,
+        focusTarget: { kind: 'collectionField', template: eoOffentligeYdelserYdelseField.template },
+      });
+    });
 
   rows.push(...buildEoMidlertidigtEetKonsistensRows(values, skadedatoISO));
 

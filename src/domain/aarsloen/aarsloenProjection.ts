@@ -14,7 +14,7 @@ import {
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
 import { toAnyFieldRef, type FieldRef } from '../../inputCore/fieldDescriptor';
-import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
+import type { FieldIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
@@ -26,10 +26,16 @@ import {
 import { type StandardLoenTableValidationResult } from '../standardLoen/standardLoenTableValidation';
 import {
   readStandardLoenTableRows,
-  resolveStandardLoenDuplicateRowIssues,
   resolveStandardLoenTableValidationFromReader,
 } from '../standardLoen/standardLoenTableFieldSet';
 import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
+import {
+  resolveStandardLoenRowWarnings,
+  type StandardLoenRowWarning,
+} from '../standardLoen/standardLoenRowWarnings';
+import type { SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import { buildFieldWarningMap, type FieldWarning } from '../../inputCore/fieldWarning';
+import { getToday } from '../../config/dateRanges';
 
 // Årsløn-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den
 // offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
@@ -186,13 +192,13 @@ export type AarsloenReaderProjection = Readonly<{
   calculation: AarsloenBeregningState | null;
   fieldIssues: readonly FieldIssue[];
   /**
-   * Løntabellens KRYDS-RÆKKE-dubletter som strukturelle feltissues (brugerkrav 2026-08-26).
-   *
-   * Cellernes egne format-/bounds-issues kommer gennem readerens eget issue-snapshot; dette er den
-   * collection-afhængige regel, en descriptor-validator ikke kan se, fordi den kun kender sin egen celle.
-   * Sættet bærer rigtige feltadresser, så rød markering og tooltip læser ÉN repræsentation.
+   * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret (BB-096/BB-289), og
+   * en periode efter dags dato (BB-115/BB-298). Udviklerafgørelse 2026-10-19: identiske rækker spærrer ikke
+   * længere – dobbelt løn for samme periode kan være reel – men giver gul ring og en linje i «Advarsler».
    */
-  duplicateRowIssues: FieldIssueSet;
+  tableRowWarnings: readonly StandardLoenRowWarning[];
+  /** Advarslerne som gul ring pr. celle (`StandardLoenTable.cellWarnings`). */
+  tableCellWarnings: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   /**
    * Den AFLEDTE grænse for «Antal feriedage»: feltet kan ikke overstige periodens egne hverdage.
    *
@@ -237,18 +243,19 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     ? null
     : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 
-  // Dubletter nuller BEVIDST ikke beregningen. En gentagen række har kendte værdier, så summen er
-  // veldefineret – den er blot sandsynligvis forkert, og det er præcis dét, den røde markering siger. At
-  // skjule hele resultatet ville tømme siden for en fejl, brugeren kan se ved rækken. Dokumentet blokeres
-  // derimod (gaten læser sættet), så et forkert grundlag ikke når modparten.
-  const duplicateRowIssues = buildFieldIssueSet(
-    resolveStandardLoenDuplicateRowIssues(
-      aarsloenStandardLoenFieldSet,
-      values.tableData,
-      values.loenperiode,
-      values.tillaegAngivesSom
-    )
-  );
+  // Rækkeadvarslerne nuller ikke beregningen og spærrer ikke dokumentet: en gentagen række eller en fremtidig
+  // periode har kendte værdier og kan være rigtig. En række med en rød fejl får ingen gul advarsel oveni.
+  const tableRowWarnings = resolveStandardLoenRowWarnings({
+    fieldSet: aarsloenStandardLoenFieldSet,
+    rows: values.tableData,
+    loenperiode: values.loenperiode,
+    tillaegAngivesSom: values.tillaegAngivesSom,
+    today: getToday(),
+    errorRowIds: new Set(tableValidation.summary.rowIssues
+      .filter((issue) => issue.level === 'error')
+      .map((issue) => issue.rowId)),
+  });
+  const tableCellWarnings = buildFieldWarningMap(tableRowWarnings);
 
   // Den AFLEDTE feriedage-grænse udledes af det hverdagstal, motoren netop har beregnet – ikke af en
   // selvstændig genberegning, som kunne komme ud af trit med det tal, siden viser i samme linje. Reglen
@@ -276,7 +283,8 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     omregningGate,
     calculation,
     fieldIssues,
-    duplicateRowIssues,
+    tableRowWarnings,
+    tableCellWarnings,
     feriedageFieldIssues,
     sourceToken: reader.sourceToken,
   });

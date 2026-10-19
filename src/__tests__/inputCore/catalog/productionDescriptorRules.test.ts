@@ -180,6 +180,46 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
     expect(evaluation.reader.read(aarsloenTableCol1UgeField.bind('r1')).status).toBe('error');
   });
 
+  // BB-107/BB-295: hver celle i et omvendt par bærer sin egen udvej med modpartens værdi; ordet «dato» står ikke
+  // i en ugefejl. Samme fælles validator i Årsløn og EO.
+  it('giver hver celle i et omvendt periodepar sin egen tekst med modpartens værdi', () => {
+    let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'uge'));
+    input = dispatch(input, settleField(aarsloenTableCol0UgeField.bind('r1'), '10/2018'));
+    input = dispatch(input, settleField(aarsloenTableCol1UgeField.bind('r1'), '05/2018'));
+    let evaluation = evaluate(input);
+    expect(evaluation.reader.read(aarsloenTableCol0UgeField.bind('r1'))).toMatchObject({
+      status: 'error', issue: { reason: 'rule', message: 'Uge fra skal ligge før eller i uge til (05/2018)' },
+    });
+    expect(evaluation.reader.read(aarsloenTableCol1UgeField.bind('r1'))).toMatchObject({
+      status: 'error', issue: { reason: 'rule', message: 'Uge til skal ligge efter eller i uge fra (10/2018)' },
+    });
+
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));
+    input = dispatch(input, settleField(aarsloenTableCol0DagField.bind('r1'), '01-06-2025'));
+    input = dispatch(input, settleField(aarsloenTableCol1DagField.bind('r1'), '01-01-2025'));
+    evaluation = evaluate(input);
+    expect(evaluation.reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({
+      status: 'error', issue: { message: 'Fra-dato skal være før til-dato (01-01-2025)' },
+    });
+    expect(evaluation.reader.read(aarsloenTableCol1DagField.bind('r1'))).toMatchObject({
+      status: 'error', issue: { message: 'Til-dato skal være efter fra-dato (01-06-2025)' },
+    });
+  });
+
+  // BB-114/BB-296: et ugenummer, året ikke har, bærer grænsen og året – også som issuets besked, så «Fejl og
+  // advarsler» siger det samme som tooltippen.
+  it('bruger ugenummerets konkrete grænse som besked', () => {
+    let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
+    input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'uge'));
+    input = dispatch(input, settleField(aarsloenTableCol0UgeField.bind('r1'), '53/2017'));
+
+    expect(evaluate(input).reader.read(aarsloenTableCol0UgeField.bind('r1'))).toMatchObject({
+      status: 'error',
+      issue: { reason: 'format', message: 'Uge skal være mellem 1 og 52 i 2017' },
+    });
+  });
+
   it('håndhæver Årslønstabellens faste nedre datogrænse', () => {
     let input = dispatch(empty(), insertRow(tableRef, createEmptyStandardLoenRow('r1')));
     input = dispatch(input, setImmediateField(aarsloenLoenperiodeField.bind(), 'dag'));

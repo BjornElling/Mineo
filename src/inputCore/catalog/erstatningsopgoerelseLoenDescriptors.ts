@@ -33,7 +33,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import type { CanonicalView, ContextualLabelRule, FieldAddressTemplate, FieldControlKind, FieldDescriptor, FieldRef, FieldValidator, RelevanceRule } from '../fieldDescriptor';
-import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
+import { dateOrderValidator, weekOrderValidator, type DatePairBinding, type WeekPairBinding } from './dateOrderValidators';
 import { dateBounds, systemrammeSpec, systemrammeTilDagsDatoSpec } from './dateBoundsValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import type { FieldCodec } from '../fieldCodec';
@@ -384,6 +384,11 @@ const stdDagPair: DatePairBinding = {
   til: () => eoStandardRowFields.col1_dag,
   bindIds: stdRowIds,
 };
+const stdUgePair: WeekPairBinding = {
+  fra: () => eoStandardRowFields.col0_uge,
+  til: () => eoStandardRowFields.col1_uge,
+  bindIds: stdRowIds,
+};
 const stdString = (
   field: string, label: string, codec: FieldCodec<string | undefined>,
   validators?: readonly FieldValidator<string | undefined>[],
@@ -407,8 +412,8 @@ export const eoStandardRowFields = {
     integerStringBoundsValidator(`${STD_ID}.col0_maaned.bounds`, 1, 12),
   ]),
   col1_maaned: stdString('col1_maaned', stdLabel.col1_maaned, createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
-  col0_uge: stdString('col0_uge', stdLabel.col0_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear)]),
-  col1_uge: stdString('col1_uge', stdLabel.col1_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear)]),
+  col0_uge: stdString('col0_uge', stdLabel.col0_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('fra', stdUgePair)]),
+  col1_uge: stdString('col1_uge', stdLabel.col1_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('til', stdUgePair)]),
   col0_dag: stdDate('col0_dag', stdLabel.col0_dag, {
     min: () => dateRanges_aarsloen.tabelAarsloenFra.min,
     max: () => dateRanges_aarsloen.tabelAarsloenFra.fallbackMax,

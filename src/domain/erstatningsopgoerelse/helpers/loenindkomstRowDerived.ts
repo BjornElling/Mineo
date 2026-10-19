@@ -8,7 +8,7 @@ import {
   roundStandardLoenAmountToTwoDecimals,
   type StandardLoenRowDerived,
 } from '../../aarsloen/standardLoenRowCalculations';
-import { buildLoenArbejdsdageSet } from '../engines/periodiseringsMotor';
+import { buildLoenArbejdsdageSet, resolveIncomeAllocationDays } from '../engines/periodiseringsMotor';
 import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
@@ -52,12 +52,15 @@ const buildAllocationDates = (
   });
 
   if (tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
-    return Array.from(
-      buildLoenArbejdsdageSet(
-        { fra, til },
-        resolveIndkomstFerieperioder(context)
-      )
-    ).sort();
+    // Samme fald-tilbage som beregningen (`indtaegtPerioder.ts`), kontroltabellen og sygeferiegodtgørelsen
+    // (periodisering-contract.md §3A): en række uden arbejdsdage – en weekend, en periode helt i ferie – fordeles
+    // på fald-tilbage-dage. Uden den viste tabellen og bilaget rækken som 0,00 kr., mens grundlaget regnede
+    // dens løn med (BB-292).
+    const { days } = resolveIncomeAllocationDays(
+      { fra, til },
+      buildLoenArbejdsdageSet({ fra, til }, resolveIndkomstFerieperioder(context))
+    );
+    return Array.from(days).sort();
   }
 
   return buildKalenderdage(row, ansaettelsesforhold);

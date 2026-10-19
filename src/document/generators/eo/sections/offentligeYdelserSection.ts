@@ -81,7 +81,17 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 
   const grouped = new Map<string, OffentligeYdelserRow[]>();
   const groupOrder: string[] = [];
-  for (const row of rows) {
+  // Bilaget trykker altid rækkerne kronologisk, uafhængigt af skærmens sortering (udviklerafgørelse 2026-10-19,
+  // BB-294). Sorteringen er stabil, og rækker uden fra-dato står sidst.
+  const kronologisk = rows
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const leftKey = `${left.row.fraDato ?? '9999-99-99'}|${left.row.tilDato ?? '9999-99-99'}`;
+      const rightKey = `${right.row.fraDato ?? '9999-99-99'}|${right.row.tilDato ?? '9999-99-99'}`;
+      return leftKey === rightKey ? left.index - right.index : (leftKey < rightKey ? -1 : 1);
+    })
+    .map((entry) => entry.row);
+  for (const row of kronologisk) {
     const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
     const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : 'Ikke angivet';
     if (!grouped.has(ydelsestypeLabel)) {

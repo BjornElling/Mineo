@@ -76,8 +76,10 @@ export const parseWeekDraftForCommit = (
   const rangeError = getYearRangeErrorMessage(year, minYear, maxYear);
   if (rangeError !== '') return fail(rangeError);
 
+  // Året står i beskeden, fordi grænsen 52/53 afhænger af det: uden det kan brugeren ikke se, hvorfor uge 53
+  // er gyldig i ét år og ikke i et andet (BB-114/BB-296).
   const maxWeek = yearHas53Weeks(year) ? 53 : 52;
-  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek}`, 'weekNumber');
+  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek} i ${year}`, 'weekNumber');
 
   return { ok: true, value: `${String(weekNum).padStart(2, '0')}/${String(year)}` };
 };

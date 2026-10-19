@@ -14,7 +14,8 @@ import {
   eoOffentligeYdelserYdelseField,
   eoOffentligeYdelserYdelsestypeField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
@@ -33,6 +34,8 @@ export type OffentligeYdelserTableProps = Readonly<{
   derivedByRowId: ReadonlyMap<string, DerivedRow>;
   disableMidlertidigtEetOption: boolean;
   saveOrderPath?: TableSaveOrderPath;
+  /** Rækkernes ikke-blokerende advarsler (identisk række, negativt beløb) som gul ring pr. celle. */
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
 }>;
 
 const collection = eoOffentligeYdelserRowsCollection.template as CollectionRef;
@@ -45,7 +48,13 @@ const OffentligeYdelserTable = React.memo(({
   derivedByRowId,
   disableMidlertidigtEetOption,
   saveOrderPath,
+  cellWarnings,
 }: OffentligeYdelserTableProps) => {
+  // Opslaget sker på cellens egen bundne feltadresse; cellens eget røde issue har forrang.
+  const warningProps = (cell: Readonly<{ field: Readonly<{ address: FieldAddress }> }>) => {
+    const warning = cellWarnings?.get(serializeFieldAddress(cell.field.address));
+    return warning === undefined ? {} : { warning };
+  };
   const table = useCollectionTable({
     collection,
     committedRows,
@@ -95,10 +104,10 @@ const OffentligeYdelserTable = React.memo(({
       const gc = (colIndex: number) => ({ rowId: row.rowId, colIndex });
       const derivedStyle = { ...getStandardGridCellStyle({ align: 'center' }), color: 'var(--mineo-color-active-grid-derived)' };
       return <tr key={row.rowId} data-mineo-row-id={row.rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
-        <td style={getStandardGridCellStyle({ align: 'center' })}><GridDateCell gridCell={gc(0)} cell={table.buildCellSpec(row, eoOffentligeYdelserFraDatoField, 0)} /></td>
-        <td style={getStandardGridCellStyle({ align: 'center' })}><GridDateCell gridCell={gc(1)} cell={table.buildCellSpec(row, eoOffentligeYdelserTilDatoField, 1)} /></td>
-        <td style={getStandardGridCellStyle({ align: 'center' })}><GridAmountCell gridCell={gc(2)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelseField, 2)} /></td>
-        <td style={getStandardGridCellStyle({ align: 'center' })}><GridAmountCell gridCell={gc(3)} cell={table.buildCellSpec(row, eoOffentligeYdelserTillaegField, 3)} /></td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserFraDatoField, 0); return <GridDateCell gridCell={gc(0)} cell={cell} {...warningProps(cell)} />; })()}</td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserTilDatoField, 1); return <GridDateCell gridCell={gc(1)} cell={cell} {...warningProps(cell)} />; })()}</td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserYdelseField, 2); return <GridAmountCell gridCell={gc(2)} cell={cell} {...warningProps(cell)} />; })()}</td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserTillaegField, 3); return <GridAmountCell gridCell={gc(3)} cell={cell} {...warningProps(cell)} />; })()}</td>
         <td style={getStandardGridCellStyle({ align: 'center' })}><GridChoiceCell gridCell={gc(4)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelsestypeField, 4)} placeholder="Vælg...">
           {primaereYdelsestypeKeys.map((key) => <MenuItem key={key} value={key}>{ydelsestyper[key].label}</MenuItem>)}
           <StyledDropdownDivider />

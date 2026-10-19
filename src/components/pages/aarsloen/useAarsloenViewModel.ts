@@ -110,7 +110,7 @@ export function useAarsloenViewModel() {
     () => buildAarsloenReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const { values, tableValidation, omregningGate, duplicateRowIssues, feriedageFieldIssues } = readerProjection;
+  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -138,7 +138,12 @@ export function useAarsloenViewModel() {
   // `metode: 'ingen'` er modellens kanoniske "ingen beregning" – samme variant motoren selv returnerer, når
   // input ikke rækker til en metode. Ingen opdigtede tal.
   const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
-  const fejlmeddelelser = calculation?.fejlmeddelelser ?? [];
+  // Løntabellens rækkeadvarsler (identisk række, periode efter dags dato) står først i «Advarsler»: de navngiver
+  // rækken, den gule ring sidder på (BB-289/BB-298). De er sidens egne og når ikke dokumentet.
+  const fejlmeddelelser = React.useMemo(
+    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(calculation?.fejlmeddelelser ?? [])],
+    [calculation, tableRowWarnings]
+  );
   // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: boksen må ikke kunne vises uden indhold.
   // Her stod tidligere `?? []` på et `string | null`-felt – et tomt array er truthy, så "Kritisk Fejl"-boksen
   // stod permanent øverst på siden UDEN tekst. `pageMessage()` normaliserer null/tom/whitespace til ÉN
@@ -209,7 +214,7 @@ export function useAarsloenViewModel() {
     values,
     tableSatser,
     /** Kryds-række-dubletter som feltissues – gør de gentagne rækkers celler røde. */
-    duplicateRowIssues,
+    tableCellWarnings,
     /** Den afledte feriedage-grænse (feltet må ikke overstige periodens egne hverdage). */
     feriedageIssue: feriedageFieldIssues[0],
     // Omregning

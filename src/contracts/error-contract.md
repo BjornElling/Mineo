@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-31
+**Senest verificeret mod kode:** 2026-10-19
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -230,6 +230,10 @@ Tabellen er en **allowlist**: `REASONS_WITH_SPECIFIC_TOOLTIP` rummer præcis `bo
 `format`-detalje må kun levere feltets konkrete rettelsesvej gennem den strukturerede `tooltip`-nøgle. Enhver
 anden eller ukendt årsag falder i den generiske gren. Det er den sikre default: en ukendt årsag lækker ikke en
 uegnet tekst til tooltippet.
+
+Har en `format`-afvisning en konkret tekst (`detail.tooltip`, eller datofeltets tekst udledt af `dateBounds`), er
+den tekst også issuets fulde **besked**, så boksen og tooltippet siger det samme (BB-128 for datoer, BB-296 for uger:
+«Uge skal være mellem 1 og 52 i 2017»). Kun en afvisning uden konkret tekst får den generiske besked med feltnavnet.
 
 **Tabellen ovenfor gælder FELTETS eget tooltip. Download-knappens tooltip følger en egen, lempet regel
 (udviklerbeslutning 2026-08-13).** Kontrakten krævede tidligere, at `bounds`/`rule` bevarede den fulde konkrete

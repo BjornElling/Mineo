@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
+import { buildFieldWarningMap } from '../../../inputCore/fieldWarning';
+import { resolveOffentligeYdelserRowWarnings } from '../../../domain/erstatningsopgoerelse/validation/eoIncomeRowWarnings';
 import ContentBox from '../../layout/ContentBox';
 import LabeledControlRow from '../../layout/LabeledControlRow';
 import { PageMessageRow } from '../../layout/PageMessageBox';
@@ -196,6 +198,12 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     return map;
   }, [formatAntalDage, rows]);
 
+  // Identisk række og negativt beløb: gul ring og en linje i «Fejl og advarsler» (BB-289/BB-290).
+  const cellWarnings = React.useMemo(
+    () => buildFieldWarningMap(resolveOffentligeYdelserRowWarnings(rows)),
+    [rows]
+  );
+
   const handleSygedagpengeInsert = React.useCallback(() => {
     if (!sygedagpengeFraDato || !sygedagpengeTilDato) return;
 
@@ -385,6 +393,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
             derivedByRowId={derivedByRowId}
             saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
             disableMidlertidigtEetOption={isMidlertidigtEetFraEetSiden}
+            cellWarnings={cellWarnings}
           />
       </ContentBox>
 

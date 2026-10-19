@@ -7,13 +7,12 @@ import type {
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import type { ISODateString } from '../../types/branded';
 import { getCurrentYear, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
-import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
-import { parseWeekString } from '../../utils/dateUtils';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
+import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
 import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
 import { dateBounds } from './dateBoundsValidators';
-import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
+import { dateOrderValidator, weekOrderValidator, type DatePairBinding, type WeekPairBinding } from './dateOrderValidators';
+import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   booleanFieldCodec,
   createBooleanFieldCodec,
@@ -197,11 +196,10 @@ const rowTemplate = (field: string): FieldAddressTemplate => ({
 });
 
 /**
- * Årslønstabellens datokolonner. Rækkens modpart clamper den ene ende, konfigurationen den anden.
- *
- * Issue-koden skifter hermed fra `aarsloen.tableData.<role>.bounds` til descriptorens standardform
- * (`aarsloen.tableData.col0_dag.bounds`). Den gamle form var rolle-baseret og dermed ikke entydig pr.
- * felt; ingen kode eller test bandt på den. Beskedteksten er uændret.
+ * Årslønstabellens datokolonner – samme form som EO-tvillingen (`erstatningsopgoerelseLoenDescriptors.ts`):
+ * konfigurationens ydre grænser som bounds og kronologien som den fælles `dateOrderValidator`, der markerer
+ * begge celler med modpartens dato (BB-107). Tidligere clampede rækkens modpart grænsen her, og begge celler
+ * fik den fælles «Til-dato skal være efter fra-dato» uden dato.
  */
 const dateBoundsSpecFor = (role: 'fra' | 'til'): DateBoundsSpec => ({
   min: () => role === 'fra'
@@ -210,47 +208,21 @@ const dateBoundsSpecFor = (role: 'fra' | 'til'): DateBoundsSpec => ({
   max: () => role === 'fra'
     ? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
     : dateRanges_aarsloen.tabelAarsloenTil.max,
-  // Til-datoen kan ikke ligge før rækkens fra-dato – og omvendt.
-  ...(role === 'til'
-    ? { narrowMin: (context: DateBoundsContext) => counterpartOf(context, 'til') }
-    : { narrowMax: (context: DateBoundsContext) => counterpartOf(context, 'fra') }),
-  special: (context) => {
-    const counterpart = counterpartOf(context, role);
-    const pairBoundIsEffective = role === 'fra'
-      ? counterpart !== undefined && counterpart < dateRanges_aarsloen.tabelAarsloenFra.fallbackMax
-      : counterpart !== undefined && counterpart > dateRanges_aarsloen.tabelAarsloenTil.fallbackMin;
-    return pairBoundIsEffective ? { fraTilRole: role } : undefined;
-  },
-  origin: derivedDateBounds('Dato fra og Dato til i samme række'),
+  origin: STATIC_DATE_BOUNDS,
 });
 
-const counterpartOf = (
-  context: DateBoundsContext,
-  role: 'fra' | 'til'
-): ISODateString | undefined => {
-  const rowId = rowIdOf(context.field);
-  return role === 'fra'
-    ? context.view.readCanonical(aarsloenTableCol1DagField.bind(rowId))
-    : context.view.readCanonical(aarsloenTableCol0DagField.bind(rowId));
+const rowIds = <T,>(field: FieldRef<T>): readonly string[] => [rowIdOf(field)];
+
+const dagPair: DatePairBinding = {
+  fra: () => aarsloenTableCol0DagField,
+  til: () => aarsloenTableCol1DagField,
+  bindIds: rowIds,
 };
 
-const weekOrderValidator = (
-  role: 'fra' | 'til'
-): FieldValidator<string | undefined> => (value, field, view) => {
-  if (value === undefined || value.trim() === '') return undefined;
-  const rowId = rowIdOf(field);
-  const counterpart = role === 'fra'
-    ? view.readCanonical(aarsloenTableCol1UgeField.bind(rowId))
-    : view.readCanonical(aarsloenTableCol0UgeField.bind(rowId));
-  if (counterpart === undefined || counterpart.trim() === '') return undefined;
-  const fra = parseWeekString(role === 'fra' ? value : counterpart);
-  const til = parseWeekString(role === 'til' ? value : counterpart);
-  if (fra === null || til === null || fra.start <= til.end) return undefined;
-  return {
-    reason: 'bounds',
-    code: `aarsloen.tableData.uge.${role}.order`,
-    message: DATE_ORDER_ERROR_MESSAGE,
-  };
+const ugePair: WeekPairBinding = {
+  fra: () => aarsloenTableCol0UgeField,
+  til: () => aarsloenTableCol1UgeField,
+  bindIds: rowIds,
 };
 
 const rowDate = (
@@ -268,7 +240,7 @@ const rowDate = (
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
     relevance: periodIs('dag'),
-    ...dateBounds(dateBoundsSpecFor(role)),
+    ...dateBounds(dateBoundsSpecFor(role), [dateOrderValidator(role, dagPair)]),
   });
 
 const rowString = (
@@ -335,13 +307,13 @@ export const aarsloenTableCol0UgeField = rowString(
   'col0_uge', stdLabel.col0_uge,
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('fra')],
+  [weekYearBoundsValidator('aarsloen.tableData.col0_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('fra', ugePair)],
 );
 export const aarsloenTableCol1UgeField = rowString(
   'col1_uge', stdLabel.col1_uge,
   createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })),
   periodIs('uge'),
-  [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('til')],
+  [weekYearBoundsValidator('aarsloen.tableData.col1_uge.bounds', MIN_YEAR, getCurrentYear), weekOrderValidator('til', ugePair)],
 );
 // Årsløn og EO-lønindkomst har hver sit descriptor-sæt, men viser SAMME tabel med samme overskrifter.
 // Navnene tages derfor fra det ene sted, `STANDARD_LOEN_COLUMN_LABELS` udleder overskrifterne fra – ellers

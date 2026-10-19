@@ -29,6 +29,11 @@ import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
 import { useLoentrinFinder } from '../shared/useLoentrinFinder';
 import { resolveActionGate } from '../../../inputs/actionGate';
+import type { SerializedFieldAddress } from '../../../../inputCore/fieldAddress';
+import { buildFieldWarningMap, type FieldWarning } from '../../../../inputCore/fieldWarning';
+import { resolveLoenindkomstRowWarnings } from '../../../../domain/erstatningsopgoerelse/validation/eoIncomeRowWarnings';
+import { getToday } from '../../../../config/dateRanges';
+import { isISODateString } from '../../../../types/branded';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -102,6 +107,19 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
       .map((finding) => [employment.id, finding.message] as const))
   ), [employments]);
 
+  /**
+   * Indtægtstabellens gule ring pr. ansættelsesforhold: identisk række, periode efter dags dato og negativ
+   * samlet løn (BB-289/BB-290/BB-298). Samme domæneregel giver linjerne i «Fejl og advarsler».
+   */
+  const tableCellWarningsByAfId = React.useMemo<ReadonlyMap<string, ReadonlyMap<SerializedFieldAddress, FieldWarning>>>(() => {
+    const today = getToday();
+    const skadedato = isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : undefined;
+    return new Map(employments.map((employment) => [
+      employment.id,
+      buildFieldWarningMap(resolveLoenindkomstRowWarnings(eoValues, employment, skadedato, today)),
+    ]));
+  }, [employments, eoValues, stamdataValues.skadedato]);
+
   // De overenskomst-/lovbundne satser skrives IKKE herfra. Reader-projektionen udleder dem før denne
   // viewmodel, så de aldrig bliver persisteret brugerinput eller et selvstændigt history-trin.
 
@@ -165,6 +183,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     skadestype: stamdataValues.skadestype,
     satsIssues,
     feriePctAdvarselByAfId,
+    tableCellWarningsByAfId,
     loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(),
     alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(),

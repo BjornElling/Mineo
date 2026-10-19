@@ -20,7 +20,7 @@ import { getStandardLoenTableHeaders, resolveStandardLoenPeriodColumns } from '.
 import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import {
   buildEoBilagIndkomstYdelserRanges,
-  hasNonZeroLoenAmount,
+  hasLoenAmountInput,
   shouldRenderEoIndkomstOgYdelserBilag,
   shouldIncludeLoenRowInEoBilag,
   shouldIncludeOffentligYdelseRowInEoBilag,
@@ -364,7 +364,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       isZeroPct: isEffectivelyZero,
       getLoenindkomstTableHeaders,
       resolvePeriodColumns: resolveStandardLoenPeriodColumns,
-      hasNonZeroLoenAmount,
+      hasLoenAmountInput,
       shouldIncludeLoenRowInEoBilag,
       eoBilagIndkomstYdelserMode,
       eoBilagIndkomstYdelserRanges,

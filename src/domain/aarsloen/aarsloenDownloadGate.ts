@@ -93,22 +93,6 @@ const blockedByCanonicalRange = (
 };
 
 /**
- * Kryds-række-dubletter blokerer begge dokumenter.
- *
- * Issuene er kanoniske `FieldIssue`s med rigtige feltadresser, så `toBlockingCauses` klassificerer dem som
- * `field`-causes → `invalid-input`. Der er ét issue pr. markeret celle i den gentagne række, altså altid
- * flere ad gangen; klasseteksten er derfor det ærlige svar frem for et citat af den første.
- */
-const blockedByDuplicateRows = (
-  projection: AarsloenReaderProjection,
-  code: string
-): DocumentDownloadGateResult | null => {
-  const issues = projection.duplicateRowIssues.all;
-  if (issues.length === 0) return null;
-  return blockDocumentDownloadFromCauses(code, toBlockingCauses(issues), 'Identiske rækker i tabel');
-};
-
-/**
  * Den afledte feriedage-grænse blokerer begge dokumenter.
  *
  * Issuet er ét navngivent felt med en KONKRET grænse i beskeden, så `field`-causen giver et ordret citat i
@@ -134,10 +118,7 @@ export const evaluateAarsloenDownloadGate = (
   if (values.tableData.length === 0) {
     return blockDocumentDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
   }
-  // Gentagne rækker blokerer dokumentet, selv om beregningen kører videre (§ se projektionen). Cellerne er
-  // røde, og causen er derfor `field`-scoped: knappen svarer «Fejl i indtastning», ikke «Indtastning mangler».
-  const duplicateBlocked = blockedByDuplicateRows(projection, 'aarsloen:duplicate-rows');
-  if (duplicateBlocked) return duplicateBlocked;
+  // Gentagne rækker spærrer ikke længere (udviklerafgørelse 2026-10-19, BB-289): de er en gul advarsel.
   const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:feriedage-over-perioden');
   if (feriedageBlocked) return feriedageBlocked;
   if (tableValidation.errors.length > 0) {
@@ -187,8 +168,6 @@ export const evaluateShDageDownloadGate = (
 ): DocumentDownloadGateResult => {
   const rangeBlocked = blockedByCanonicalRange(projection, 'aarsloen:sh-canonical-range-error');
   if (rangeBlocked) return rangeBlocked;
-  const duplicateBlocked = blockedByDuplicateRows(projection, 'aarsloen:sh-duplicate-rows');
-  if (duplicateBlocked) return duplicateBlocked;
   const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:sh-feriedage-over-perioden');
   if (feriedageBlocked) return feriedageBlocked;
 

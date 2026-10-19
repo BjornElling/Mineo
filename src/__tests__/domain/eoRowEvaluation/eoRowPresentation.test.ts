@@ -171,10 +171,13 @@ describe('manual regulering message', () => {
     ];
 
     const rows = buildEoIndkomstRows(values, undefined, {});
-    const row = rows.find((r) => r.id === `loenindkomst.${af.id}.loenoplysninger`);
+    // Én linje pr. lønrække (BB-291), med link til rækkens beløbscelle.
+    const row = rows.find((r) => r.id === `loenindkomst.${af.id}.loenoplysninger.row-1.udenBeloeb`);
 
     expect(row).toBeDefined();
     expect(row?.status).toBe('warning');
     expect(row?.summaryDisplay).toBe('messageOnly');
+    expect(row?.message).toBe('Lønrækken 01-2024 er udfyldt uden beløb');
+    expect(row?.focusTarget).toMatchObject({ kind: 'fieldAddress', address: { field: 'col2' } });
   });
 });

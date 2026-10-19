@@ -1,10 +1,7 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { assessLoenindkomstSatser } from '../erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
-import type { FieldIssue } from '../../inputCore/inputIssue';
-import {
-  getStandardLoenTableValidation,
-  isStandardLoenTableValueEffectivelyEmptyForValidation,
-} from '../standardLoen/standardLoenTableValidation';
+import { FIELD_ISSUE_GENERIC_TOOLTIP, resolveFieldIssueTooltip, type FieldIssue } from '../../inputCore/inputIssue';
+import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../standardLoen/standardLoenTableValidation';
 import {
   OFFENTLIGE_YDELSER_COLUMN_ORDER,
   getOffentligeYdelserRowFilledState,
@@ -13,13 +10,15 @@ import {
 } from '../erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
 import type { EoRowStatus } from './eoRowTypes';
-import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
+import {
+  formatOffentligYdelseRowName,
+  resolveOffentligeYdelserRowWarnings,
+  type OffentligeYdelserRowWarning,
+} from '../erstatningsopgoerelse/validation/eoIncomeRowWarnings';
+import { buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
-import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
-import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
 import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
@@ -30,8 +29,6 @@ export type IndkomstSectionStatus = Readonly<{
   arbejdsstedNavnStatus: EoRowStatus;
   satserStatus: EoRowStatus;
   satserMessage: string;
-  tableStatus: EoRowStatus;
-  tableMessage: string;
 }>;
 
 export type OffentligeYdelserStatusRow = Readonly<{
@@ -48,34 +45,9 @@ export type OffentligeYdelserStatusRow = Readonly<{
    * række kunne fejllinket kun føre til fanen; med den kan det pege på den række, beskeden handler om.
    */
   sourceRowId?: string;
+  /** Cellen, linket skal føre til (BB-291). Uden den forankres linket til rækken. */
+  focusColKey?: OffentligeYdelserTableColumnKey;
 }>;
-
-const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
-  maaned: ['col0_maaned', 'col1_maaned'],
-  uge: ['col0_uge', 'col1_uge'],
-  dag: ['col0_dag', 'col1_dag'],
-};
-
-const countRowsWithPeriodOnly = (
-  rows: ReadonlyArray<Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]>,
-  loenperiode: Loenperiode
-): number => {
-  const [startKey, endKey] = PERIOD_COLUMN_KEYS[loenperiode];
-  return rows.reduce((count, row) => {
-    const startFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[startKey]);
-    const endFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[endKey]);
-    const periodComplete = startFilled && endFilled;
-    if (!periodComplete) return count;
-
-    const hasAmounts =
-      amountValueToNumber(row.col2) !== undefined ||
-      amountValueToNumber(row.col3) !== undefined ||
-      amountValueToNumber(row.col4) !== undefined ||
-      amountValueToNumber(row.col5) !== undefined;
-
-    return hasAmounts ? count : count + 1;
-  }, 0);
-};
 
 const isLoenRowEffectivelyEmpty = (
   row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number],
@@ -189,6 +161,9 @@ const collectOffentligeYdelserCellErrorsByRow = (
 };
 
 /**
+ * Kortets status uden indtægtstabellen: tabellens rækker har deres egne linjer
+ * (`eoRowLoenindkomstTableLines.ts`, BB-291).
+ *
  * Skadedatoen er IKKE længere en parameter: de datoafhængige satsafvigelser hørte til de LÅSTE satser, som
  * nu er afledte felter, reduceren materialiserer. En bevaret, ulæst parameter ville erklære
  * en afhængighed, funktionen ikke har, og skjule for næste læser, hvad rækkerne faktisk afhænger af.
@@ -212,162 +187,125 @@ export const buildIndkomstSectionStatuses = (
       : satserFinding.severity === 'error' ? 'error' : 'warning';
     const satserMessage = satserFinding?.message ?? 'Ok';
 
-    const tableRows = af.indtaegtsoplysningerTableData ?? [];
-    const cellErrors = buildStandardLoenCellErrors(tableRows, af.loenperiode);
-    const tableValidation = getStandardLoenTableValidation({
-      rows: tableRows,
-      loenperiode: af.loenperiode,
-      cellErrorsByCellKey: cellErrors,
-      tillaegAngivesSom: af.tillaegAngivesSom,
-    });
-
-    let tableStatus: EoRowStatus = 'ok';
-    let tableMessage = 'Ok';
-    // Ægte ugyldigt input har forrang og blokerer. "Ingen arbejdsdage"-tilfældet er derimod en
-    // ikke-blokerende advarsel: lønnen medregnes via fald-tilbage-fordeling (jf.
-    // periodisering-contract.md §3A), så download må ikke spærres.
-    const zeroArbejdsdageIssue = buildStandardLoenZeroArbejdsdageIssues(values, af.id)[0];
-    if (tableValidation.summary.hasErrors) {
-      tableStatus = 'error';
-      const firstErrorCell = tableValidation.summary.firstErrorCell;
-      if (!firstErrorCell) {
-        tableMessage = 'Der er en ugyldig værdi i lønoplysningerne';
-      } else if (firstErrorCell.reason === 'input') {
-        tableMessage = `Ugyldig værdi i ${resolveStandardLoenColumnLabel(firstErrorCell.colKey)}`;
-      } else {
-        tableMessage = `${resolveStandardLoenColumnLabel(firstErrorCell.colKey)} er ikke angivet`;
-      }
-    } else if (zeroArbejdsdageIssue) {
-      tableStatus = 'warning';
-      tableMessage = zeroArbejdsdageIssue.message;
-    } else if (tableValidation.summary.hasWarnings) {
-      tableStatus = 'warning';
-      const periodOnlyCount = countRowsWithPeriodOnly(tableRows, af.loenperiode);
-      if (periodOnlyCount <= 1) {
-        tableMessage = 'Lønperiode er udfyldt uden beløb i lønfelterne';
-      } else {
-        tableMessage = `${periodOnlyCount} lønperioder er udfyldt uden beløb i lønfelterne`;
-      }
-    }
-
     return {
       id: af.id,
       arbejdsstedNavnDisplay: arbejdsstedNavn !== '' ? arbejdsstedNavn : '-',
       arbejdsstedNavnStatus: arbejdsstedNavn !== '' ? 'ok' : (values.beregnesUdFra === 'Beregningsperiode' ? 'warning' : 'ok'),
       satserStatus,
       satserMessage,
-      tableStatus,
-      tableMessage,
     };
   });
 };
 
+/**
+ * Offentlige ydelsers linjer: ÉN linje pr. ydelsesrække med en fejl eller advarsel – med rækkens navn, cellens egen
+ * tekst og et link til cellen – og en «ok»-linje pr. ydelsestype uden fund (BB-291's form, udviklerønske
+ * 2026-10-19). Før stod der én linje pr. ydelsestype med den FØRSTE fejl, uden række.
+ *
+ * `cellIssues` er readerens røde celler i tabellen. Rækkerne er readerens værdier, hvor en rød celle er tom.
+ */
 export const buildOffentligeYdelserStatusRows = (
-  rows: ReadonlyArray<OffentligeYdelserRow>
+  rows: ReadonlyArray<OffentligeYdelserRow>,
+  cellIssues: readonly FieldIssue[] = []
 ): ReadonlyArray<OffentligeYdelserStatusRow> => {
   if (rows.length === 0) return [];
 
-  const cellErrors = buildOffentligeYdelserCellErrors(rows);
+  const issuesByCellKey = new Map<string, FieldIssue>();
+  for (const issue of cellIssues) {
+    const segment = issue.field.address.path[0];
+    if (segment?.kind !== 'entity' || segment.collection !== 'offentligeYdelserRows') continue;
+    const colKey = issue.field.address.field;
+    if (!(OFFENTLIGE_YDELSER_COLUMN_ORDER as readonly string[]).includes(colKey)) continue;
+    const key = `${segment.entityId}:${colKey}`;
+    if (!issuesByCellKey.has(key)) issuesByCellKey.set(key, issue);
+  }
+  const cellErrors: Record<string, true> = { ...buildOffentligeYdelserCellErrors(rows) };
+  for (const key of issuesByCellKey.keys()) cellErrors[key] = true;
   const cellErrorsByRowId = collectOffentligeYdelserCellErrorsByRow(cellErrors);
-  const validation = getOffentligeYdelserTableValidation({
-    rows,
-    cellErrorsByCellKey: cellErrors,
-  });
+  const validation = getOffentligeYdelserTableValidation({ rows, cellErrorsByCellKey: cellErrors });
   const issuesByRowId = new Map(validation.summary.rowIssues.map((issue) => [issue.rowId, issue]));
+  const warningsByRowId = new Map<string, OffentligeYdelserRowWarning[]>();
+  for (const warning of resolveOffentligeYdelserRowWarnings(rows)) {
+    warningsByRowId.set(warning.rowId, [...(warningsByRowId.get(warning.rowId) ?? []), warning]);
+  }
 
-  type OffentligeYdelserStatusRowDraft = {
-    id: string;
-    label: string;
-    firstErrorMessage?: string;
-    warningCount: number;
-    /** Rækken bag den FØRSTE fejl – og ellers bag den første advarsel – i gruppen. */
-    firstErrorRowId?: string;
-    firstWarningRowId?: string;
-  };
+  const result: OffentligeYdelserStatusRow[] = [];
+  const okTypes = new Map<string, OffentligeYdelserStatusRow>();
+  const typesWithFindings = new Set<string>();
 
-  const result: OffentligeYdelserStatusRowDraft[] = [];
-  const grouped = new Map<string, OffentligeYdelserStatusRowDraft>();
-
-  for (const row of rows) {
-    const { hasAnyFilled } = getOffentligeYdelserRowFilledState(row);
-    if (!hasAnyFilled) continue;
-
+  rows.forEach((row, index) => {
+    const { hasAnyFilled, periodComplete, fraDatoFilled, ydelsestypeSelected } = getOffentligeYdelserRowFilledState(row);
+    if (!hasAnyFilled) return;
     const typeKey = row.ydelsestype?.trim() ?? '';
     const groupKey = typeKey === '' ? 'mangler-ydelsestype' : `ydelsestype-${typeKey}`;
     const label = typeKey === '' ? 'Uspecificeret' : (ydelsestyper[typeKey]?.label ?? typeKey);
-
-    let group = grouped.get(groupKey);
-    if (!group) {
-      group = {
-        id: groupKey,
-        label,
-        warningCount: 0,
-      };
-      grouped.set(groupKey, group);
-      result.push(group);
-    }
-
+    const rowName = formatOffentligYdelseRowName(row, index);
     const issue = issuesByRowId.get(row.id);
+
     if (issue?.level === 'error') {
-      if (!group.firstErrorMessage) {
-        group.firstErrorRowId = row.id;
-        if (issue.reason === 'input') {
-          const rowErrorKeys = cellErrorsByRowId.get(row.id) ?? new Set<OffentligeYdelserTableColumnKey>();
-          const firstInvalidColumn = OFFENTLIGE_YDELSER_COLUMN_ORDER.find((colKey) => rowErrorKeys.has(colKey));
-          group.firstErrorMessage = firstInvalidColumn
-            ? `Ugyldig værdi i ${resolveOffentligeYdelserColumnLabel(firstInvalidColumn)}`
-            : 'Der er en ugyldig værdi i ydelsesrækken';
-        } else {
-          const state = getOffentligeYdelserRowFilledState(row);
-          if (!state.periodComplete) {
-            group.firstErrorMessage = 'Dato er ikke angivet';
-          } else if (!state.ydelsestypeSelected) {
-            group.firstErrorMessage = 'Ydelsestype er ikke valgt';
-          } else {
-            // Uopnåelig restklasse (en ikke-input-fejl kræver manglende periode eller ydelsestype,
-            // begge fanget ovenfor) – men hold teksten specifik frem for generisk, hvis den nås.
-            group.firstErrorMessage = 'Dato eller ydelsestype er ikke angivet';
-          }
-        }
+      typesWithFindings.add(groupKey);
+      const parts: string[] = [];
+      let focusColKey: OffentligeYdelserTableColumnKey | undefined;
+      const rowErrorKeys = cellErrorsByRowId.get(row.id) ?? new Set<OffentligeYdelserTableColumnKey>();
+      for (const colKey of OFFENTLIGE_YDELSER_COLUMN_ORDER) {
+        if (!rowErrorKeys.has(colKey)) continue;
+        const cellIssue = issuesByCellKey.get(`${row.id}:${colKey}`);
+        const tooltip = cellIssue === undefined ? FIELD_ISSUE_GENERIC_TOOLTIP : resolveFieldIssueTooltip(cellIssue);
+        const text = tooltip === FIELD_ISSUE_GENERIC_TOOLTIP ? 'ugyldig værdi' : tooltip;
+        parts.push(`${resolveOffentligeYdelserColumnLabel(colKey)} – ${text}`);
+        focusColKey ??= colKey;
       }
-      continue;
+      if (!periodComplete && !rowErrorKeys.has('fraDato') && !rowErrorKeys.has('tilDato')) {
+        parts.push('Dato er ikke angivet');
+        focusColKey ??= fraDatoFilled ? 'tilDato' : 'fraDato';
+      }
+      if (!ydelsestypeSelected) {
+        parts.push('Ydelsestype er ikke valgt');
+        focusColKey ??= 'ydelsestype';
+      }
+      result.push({
+        id: `${row.id}.fejl`,
+        label,
+        status: 'error',
+        message: `${rowName}: ${parts.length > 0 ? parts.join('; ') : 'ugyldig værdi'}`,
+        summaryDisplay: 'messageOnly',
+        sourceRowId: row.id,
+        ...(focusColKey === undefined ? {} : { focusColKey }),
+      });
+      return;
     }
 
     if (issue?.level === 'warning') {
-      group.warningCount += 1;
-      group.firstWarningRowId ??= row.id;
-    }
-  }
-
-  return result.map((row) => {
-    if (row.firstErrorMessage) {
-      return {
-        id: row.id,
-        label: row.label,
-        status: 'error' as EoRowStatus,
-        message: row.firstErrorMessage,
+      typesWithFindings.add(groupKey);
+      result.push({
+        id: `${row.id}.udenBeloeb`,
+        label,
+        status: 'warning',
+        message: `${rowName}: Beløb er ikke angivet`,
         summaryDisplay: 'messageOnly',
-        ...(row.firstErrorRowId === undefined ? {} : { sourceRowId: row.firstErrorRowId }),
-      };
+        sourceRowId: row.id,
+        focusColKey: 'ydelse',
+      });
     }
-    if (row.warningCount > 0) {
-      const warningMessage = row.warningCount === 1
-        ? 'Beløb er ikke angivet'
-        : `Beløb er ikke angivet (${row.warningCount} perioder)`;
-      return {
-        id: row.id,
-        label: row.label,
-        status: 'warning' as EoRowStatus,
-        message: warningMessage,
+    for (const warning of warningsByRowId.get(row.id) ?? []) {
+      typesWithFindings.add(groupKey);
+      result.push({
+        id: `${row.id}.${warning.kind}`,
+        label,
+        status: 'warning',
+        message: warning.summaryMessage,
         summaryDisplay: 'messageOnly',
-        ...(row.firstWarningRowId === undefined ? {} : { sourceRowId: row.firstWarningRowId }),
-      };
+        sourceRowId: row.id,
+        focusColKey: warning.kind === 'negativeAmount' ? 'ydelse' : 'fraDato',
+      });
     }
-    return {
-      id: row.id,
-      label: row.label,
-      status: 'ok' as EoRowStatus,
-      message: 'Ok',
-    };
+    if (!okTypes.has(groupKey)) {
+      okTypes.set(groupKey, { id: groupKey, label, status: 'ok', message: 'Ok' });
+    }
   });
+
+  const okRows = Array.from(okTypes.entries())
+    .filter(([groupKey]) => !typesWithFindings.has(groupKey))
+    .map(([, row]) => row);
+  return [...result, ...okRows];
 };

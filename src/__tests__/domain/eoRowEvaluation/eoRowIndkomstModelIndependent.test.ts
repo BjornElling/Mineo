@@ -5,7 +5,9 @@ import { toISODateString, type ISODateString } from '../../../types/branded';
 const iso = (value: string): ISODateString => toISODateString(value);
 
 describe('CALC-006 – uafhængigt facit for samlet ydelsesstatus', () => {
-  it('samler to beløbsfrie perioder og fastholder den første kildesrækkes id', () => {
+  // BB-291: hver beløbsfri periode får sin egen linje med rækkens navn og link til beløbscellen – før blev de
+  // samlet til «Beløb er ikke angivet (2 perioder)» uden at sige hvilke.
+  it('giver hver beløbsfri periode sin egen linje med rækkens periode', () => {
     const rows: readonly OffentligeYdelserRow[] = [
       {
         id: 'dagpenge-periode-1',
@@ -27,14 +29,25 @@ describe('CALC-006 – uafhængigt facit for samlet ydelsesstatus', () => {
 
     const statusRows = buildOffentligeYdelserStatusRows(rows);
 
-    expect(statusRows).toHaveLength(1);
-    expect(statusRows[0]).toEqual({
-      id: 'ydelsestype-dagpenge',
-      label: 'Dagpenge',
-      status: 'warning',
-      message: 'Beløb er ikke angivet (2 perioder)',
-      summaryDisplay: 'messageOnly',
-      sourceRowId: 'dagpenge-periode-1',
-    });
+    expect(statusRows).toEqual([
+      {
+        id: 'dagpenge-periode-1.udenBeloeb',
+        label: 'Dagpenge',
+        status: 'warning',
+        message: 'Ydelsen Dagpenge 01-01-2024 - 05-01-2024: Beløb er ikke angivet',
+        summaryDisplay: 'messageOnly',
+        sourceRowId: 'dagpenge-periode-1',
+        focusColKey: 'ydelse',
+      },
+      {
+        id: 'dagpenge-periode-2.udenBeloeb',
+        label: 'Dagpenge',
+        status: 'warning',
+        message: 'Ydelsen Dagpenge 01-02-2024 - 05-02-2024: Beløb er ikke angivet',
+        summaryDisplay: 'messageOnly',
+        sourceRowId: 'dagpenge-periode-2',
+        focusColKey: 'ydelse',
+      },
+    ]);
   });
 });

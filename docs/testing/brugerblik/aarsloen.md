@@ -30,7 +30,7 @@ handler om tabellen selv, hører sammen med flade 12.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-23**
 - **Prioritet:** Høj
-- **Beslutning:** Delvist 2026-08-26 – fundets kerne afvist (to lønbilag for samme periode er lovligt); i stedet indført en generel dublet-kontrol på identiske rækker (udledt af udviklerens tilbagemelding nedenfor).
+- **Beslutning:** Delvist 2026-08-26 – fundets kerne afvist (to lønbilag for samme periode er lovligt); i stedet indført en generel dublet-kontrol på identiske rækker (udledt af udviklerens tilbagemelding nedenfor). **Ændret 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-289): identiske rækker giver gul ring og en linje i «Advarsler», spærrer ikke; kontrollen er nu også koblet på EO's lønindkomst og offentlige ydelser (M-38).
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som **Måned**. Feriegodtgørelse `12,5`, SH/SO `2,5`, Løn på helligdage
      «SH-udbetaling».
@@ -159,7 +159,7 @@ Jeg er enig. Overvej gerne om løsningen for visning er konsekvens med resten af
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Delvist 2026-08-26 – accepteret kun som diskret tooltip; lange forklaringer afvist for en professionel målgruppe (udledt af udviklerens tilbagemelding nedenfor).
+- **Beslutning:** Delvist 2026-08-26 – accepteret kun som diskret tooltip; lange forklaringer afvist for en professionel målgruppe (udledt af udviklerens tilbagemelding nedenfor). **Aldrig gennemført** (M-38), og tooltippene er afvist 2026-10-19 ved `erstatningsopgoerelse-12h.md` BB-299 – noteret som afvist, medmindre udvikleren svarer andet på modsvaret dér.
 - **Sådan fremprovokeres det:**
   1. Feriegodtgørelse `12,5`, SH/SO `2,5`, Arbejdsgivers pensionsbidrag `12`.
   2. Én lønrække: Løn `30000`, **Ikke-pensionsgivende løn** `1000`.
@@ -380,7 +380,7 @@ Dette er en utilsigtet fejl. Når brugeren har sat standardværdier i indstillin
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md` **M-07** og **M-02**
 - **Prioritet:** Mellem
-- **Beslutning:** Implementeret 2026-08-26 – betinget af en central, arkitektonisk sund løsning (udledt af udviklerens tilbagemelding nedenfor).
+- **Beslutning:** Implementeret 2026-08-26 – betinget af en central, arkitektonisk sund løsning (udledt af udviklerens tilbagemelding nedenfor). **Faktisk gennemført 2026-10-19** (M-38, `erstatningsopgoerelse-12h.md` BB-295): fælles `weekOrderValidator`/`dateOrderValidator` for Årsløn og EO; hver celle sin egen tekst med modpartens værdi.
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som **Uge**. Skriv «Uge fra» `10/2025` og «Uge til» `05/2025`.
   2. Samme prøve i **Dato**-tilstand med `01-06-2025` og `01-01-2025`.
@@ -580,7 +580,7 @@ Jeg vil gerne have en ensartet sprogbrug. Den skal dog være baseret på følgen
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor).
+- **Beslutning:** Implementeret 2026-08-26 (udledt af udviklerens tilbagemelding nedenfor). **Faktisk gennemført 2026-10-19** (M-38, `erstatningsopgoerelse-12h.md` BB-296): «Uge skal være mellem 1 og 52 i 2025» i tooltip og besked for alle ugefelter.
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Uge. Skriv `53/2025` i «Uge fra». (2025 har 52 ISO-uger.)
   2. Prøv derefter `23/2004`.
@@ -604,7 +604,7 @@ Jeg er enig.
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Delvist 2026-08-26 – fremtidig lønperiode er lovlig; kun den gule ring med tooltip er indført (udledt af udviklerens tilbagemelding nedenfor).
+- **Beslutning:** Delvist 2026-08-26 – fremtidig lønperiode er lovlig; kun den gule ring med tooltip er indført (udledt af udviklerens tilbagemelding nedenfor). **Faktisk gennemført 2026-10-19** (M-38, `erstatningsopgoerelse-12h.md` BB-298): gul ring «Perioden ligger efter dags dato (…)» og en linje i «Advarsler»; den igangværende måned markeres ikke.
 - **Sådan fremprovokeres det:**
   1. Løn indtastes som Dato. Skriv `01-12-2026` og `31-12-2026` (dags dato er 25-08-2026).
   2. Samme i Måned-tilstand: `12` / `2026`.

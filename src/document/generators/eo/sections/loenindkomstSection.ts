@@ -1,7 +1,8 @@
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
 import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
-import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues, TillaegAngivesSom } from '../../../../schemas/formSchemas';
+import { sortStandardLoenRowsChronologically } from '../../../../domain/standardLoen/standardLoenRowOrder';
 import { isISODateString, type ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
@@ -28,13 +29,14 @@ type LoenSectionContext = Readonly<{
   isZeroPct: (value: number | undefined) => boolean;
   getLoenindkomstTableHeaders: (loenperiode: Loenperiode) => readonly string[];
   resolvePeriodColumns: (row: StandardLoenTableRow, loenperiode: Loenperiode) => readonly [string, string];
-  hasNonZeroLoenAmount: (value: StandardLoenTableRow['col2']) => boolean;
+  hasLoenAmountInput: (value: StandardLoenTableRow['col2']) => boolean;
   shouldIncludeLoenRowInEoBilag: (params: Readonly<{
     row: StandardLoenTableRow;
     loenperiode: Loenperiode;
     mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
     ranges: readonly IsoRange[];
     errorRowIds: ReadonlySet<string>;
+    tillaegAngivesSom?: TillaegAngivesSom;
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
@@ -55,7 +57,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     isZeroPct,
     getLoenindkomstTableHeaders,
     resolvePeriodColumns,
-    hasNonZeroLoenAmount,
+    hasLoenAmountInput,
     shouldIncludeLoenRowInEoBilag,
     eoBilagIndkomstYdelserMode,
     eoBilagIndkomstYdelserRanges,
@@ -78,15 +80,21 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     errorRowIds: ReadonlySet<string>,
     ranges: readonly IsoRange[]
   ) => {
-    const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
-      return shouldIncludeLoenRowInEoBilag({
-        row,
-        loenperiode: ansaettelsesforhold.loenperiode,
-        mode: normalizedEoBilagMode,
-        ranges,
-        errorRowIds,
-      });
-    });
+    // Bilaget trykker altid rækkerne kronologisk, uafhængigt af den sortering, brugeren har valgt på skærmen
+    // (udviklerafgørelse 2026-10-19, BB-294): skærmens rækkefølge er en visningsdetalje, papiret er et bilag.
+    const rows = sortStandardLoenRowsChronologically(
+      (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
+        return shouldIncludeLoenRowInEoBilag({
+          row,
+          loenperiode: ansaettelsesforhold.loenperiode,
+          mode: normalizedEoBilagMode,
+          ranges,
+          errorRowIds,
+          tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
+        });
+      }),
+      ansaettelsesforhold.loenperiode
+    );
     if (rows.length === 0) return;
 
     const loenperiode = ansaettelsesforhold.loenperiode;
@@ -98,7 +106,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       { index: 5, key: 'col5' as const },
     ];
     const visibleInputColumns = inputColumnDefs.filter((column) =>
-      rows.some((row) => hasNonZeroLoenAmount(row[column.key]))
+      rows.some((row) => hasLoenAmountInput(row[column.key]))
     );
     const headers = [
       allHeaders[0],
@@ -158,6 +166,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
           mode: normalizedEoBilagMode,
           ranges: group.ranges,
           errorRowIds,
+          tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
         })
       );
     })
@@ -176,6 +185,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         mode: normalizedEoBilagMode,
         ranges: combinedRanges,
         errorRowIds,
+        tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
       })
     );
   });
@@ -208,7 +218,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         if (synligeSatsLinjer.length > 0) {
           // Satslinjerne er satserne på reguleringsdatoen – dem, beregningsgrundlaget regner med – mens tabellens
           // rækker viser lønsedlens tillæg med månedens satser. Uden datoen stod «SH/SO-sats: 3,4 %» over rækker
-          // regnet med 2,7 % (BB-276; rækkerne følger bevidst lønsedlen, udviklerafgørelse 2026-10-06).
+          // regnet med 2,7 % (BB-276; rækkerne følger bevidst lønsedlen, udviklerafgørelse 2026-10-06). Den
+          // forklarende linje om månedens satser er fjernet efter udviklerens ønske (BB-299, 2026-10-19): brugeren
+          // forventer adfærden, og datoen i overskriften er nok til at skelne satserne.
           safeAddWrappedText(`${resolveSatserHeadingForAnsaettelsesforhold({
             values: eoValues,
             ansaettelsesforhold,
@@ -216,7 +228,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
             skadestype: stamdataValues.skadestype,
           })}:`);
           synligeSatsLinjer.forEach(([label, value]) => writeLabelValueLine(label, formatPctFromInput(value)));
-          safeAddWrappedText('Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte måned.');
         }
       }
       if (ansaettelsesforhold.ansatPaaSkadestidspunktet && ansaettelsesforhold.ansaettelsesforholdOphoert) {

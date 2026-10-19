@@ -77,6 +77,7 @@ import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/hel
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveNegativeIndkomstkilder } from '../domain/erstatningsopgoerelse/validation/negativeIndkomstkilder';
 import {
   opregulerMedAkkumuleretReguleringssats,
   opregulerMedAslAarsloensmaksimum,
@@ -571,6 +572,13 @@ function validateTAF(
   errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
   errors.push(...validateLoenindkomstSatsKrav(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
+  // En kilde med samlet negativ indtægt i en periode standser motoren (BB-290). Linjen i «Fejl og advarsler» er
+  // rækkens (`eoRowIndkomstRows.ts`); stien er bevidst ikke et top-level felt, så sikkerhedsnettet ikke gentager den.
+  errors.push(...resolveNegativeIndkomstkilder(values, options?.skadedatoISO).map((fund) => ({
+    path: fund.source.kind === 'employer' ? `loenindkomstAnsaettelsesforhold.${fund.source.id}` : 'offentligeYdelserRows',
+    message: fund.message,
+    severity: 'error' as const,
+  })));
   // SIDST og kun uden andre TAF-fejl: reglen er et værn, der standser motoren, når INTET andet gør det. Spærrer en
   // anden regel allerede (fx manglende indtægtsoplysninger), er den overflødig.
   if (errors.length === 0) errors.push(...validateBeregningsperiodeIndkomst(values, options));

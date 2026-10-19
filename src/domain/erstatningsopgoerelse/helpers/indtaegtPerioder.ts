@@ -65,6 +65,32 @@ export type IncomePeriodResult = Readonly<{
 }>;
 
 /**
+ * En indtægtskilde (ansættelsesforhold eller ydelsestype), hvis rækker i perioden SAMLET er negative.
+ *
+ * Negative rækker regnes med og modregnes i kildens øvrige indtægt (udviklerafgørelse 2026-10-19, BB-290). Er
+ * kildens samlede indtægt i perioden negativ, er der ingen positiv indtægt at modregne i, og motorerne
+ * (lønudviklingens basisløn, indkomstgrundlaget, fradragets sum) forudsætter en ikke-negativ indtægt pr. kilde.
+ * Kilden indgår derfor IKKE i `employers`/`benefits`, men meldes her, så validatoren kan spærre med en
+ * navngiven fejl i stedet for, at kilden forsvinder tavst. Hvordan en samlet negativ kilde skal regnes, afventer
+ * udviklerens afgørelse.
+ */
+export type IncomeNegativeSource = Readonly<
+  | { kind: 'employer'; id: string; index: number; name: string; amount: number }
+  | { kind: 'benefit'; typeKey: string; label: string; amount: number }
+>;
+
+export type IncomePeriodResultDetailed = IncomePeriodResult & Readonly<{
+  negativeSources: readonly IncomeNegativeSource[];
+}>;
+
+/**
+ * Under denne grænse er en sum nul. Positive og negative rækker, der går lige op (+x og −x), kan efterlade
+ * flydende-komma-støj som ±1e-13, der ellers ville blive en post på «-0,00 kr.».
+ */
+const INCOME_ZERO_EPSILON = 1e-9;
+const isEffectivelyZero = (amount: number): boolean => Math.abs(amount) < INCOME_ZERO_EPSILON;
+
+/**
  * ENESTE navn for et ansættelsesforhold i dokumenter, bilag og beregningstekster: det indtastede
  * arbejdsstednavn, ellers kortets egen overskrift på Lønindkomst, «Ansættelsesforhold N» (1-indekseret
  * position i `loenindkomstAnsaettelsesforhold`).
@@ -303,8 +329,19 @@ export const buildIncomeForRanges = (
   context?: IncomeCalculationContext | null,
   skadedato?: ISODateString
 ): IncomePeriodResult => {
+  const { employers, benefits } = buildIncomeForRangesDetailed(values, rawRanges, context, skadedato);
+  return { employers, benefits };
+};
+
+/** Som `buildIncomeForRanges`, men med de kilder, der samlet er negative i perioden (BB-290). */
+export const buildIncomeForRangesDetailed = (
+  values: TafCalculationValues,
+  rawRanges: readonly IsoRange[],
+  context?: IncomeCalculationContext | null,
+  skadedato?: ISODateString
+): IncomePeriodResultDetailed => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
-  if (ranges.length === 0) return { employers: [], benefits: [] };
+  if (ranges.length === 0) return { employers: [], benefits: [], negativeSources: [] };
   const areRangesDisjoint = ranges.every((range, index) => {
     if (index === 0) return true;
     const previousRange = ranges[index - 1];
@@ -316,7 +353,7 @@ export const buildIncomeForRanges = (
     if (import.meta.env.DEV) {
       console.warn('Indkomstberegning: overlap i beregnings-ranges; beregning afbrydes fail-closed.');
     }
-    return { employers: [], benefits: [] };
+    return { employers: [], benefits: [], negativeSources: [] };
   }
   const beregningsenhed = computeTafBeregningsenhed(values);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
@@ -333,6 +370,7 @@ export const buildIncomeForRanges = (
       ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)])
     );
   const employers: IncomeEmployerAmount[] = [];
+  const negativeSources: IncomeNegativeSource[] = [];
 
   const buildAllocationDates = (interval: DateInterval): readonly ISODateString[] => {
     const allocationDates: ISODateString[] = [];
@@ -421,11 +459,14 @@ export const buildIncomeForRanges = (
         !Number.isFinite(fpFvShSoStbContrib) ||
         !Number.isFinite(pensionContrib) ||
         !Number.isFinite(atpContrib) ||
-        !Number.isFinite(samletContrib) ||
-        samletContrib <= 0
+        !Number.isFinite(samletContrib)
       ) {
         continue;
       }
+      // En negativ række (en tilbagebetaling, en efterregulering) regnes med og modregnes i ansættelsesforholdets
+      // øvrige løn (udviklerafgørelse 2026-10-19, BB-290). Før sprang `samletContrib <= 0` den over, mens
+      // kontroltabellen talte den med, så opgørelsen standsede med «kontroluoverensstemmelser». En række på 0 kr.
+      // bidrager med 0 og er uændret.
       breakdown.loenPlusLoen2 += loenPlusLoen2Contrib;
       breakdown.loenPlusLoen2PlusIkkePensLoen += loenPlusLoen2PlusIkkePensLoenContrib;
       breakdown.fpFvShSo += fpFvShSoStbContrib;
@@ -433,14 +474,13 @@ export const buildIncomeForRanges = (
       breakdown.atp += atpContrib;
       breakdown.samlet += samletContrib;
     }
-    if (Number.isFinite(breakdown.samlet) && breakdown.samlet > 0) {
-      employers.push({
-        id: af.id,
-        index,
-        name: (af.navnPaaArbejdssted ?? '').trim(),
-        amount: breakdown.samlet,
-        breakdown,
-      });
+    if (Number.isFinite(breakdown.samlet) && !isEffectivelyZero(breakdown.samlet)) {
+      const name = (af.navnPaaArbejdssted ?? '').trim();
+      if (breakdown.samlet > 0) {
+        employers.push({ id: af.id, index, name, amount: breakdown.samlet, breakdown });
+      } else {
+        negativeSources.push({ kind: 'employer', id: af.id, index, name, amount: breakdown.samlet });
+      }
     }
   }
 
@@ -471,7 +511,8 @@ export const buildIncomeForRanges = (
         throw new Error(`Offentlig ydelse-række ${row.id} har ikke-finite beløb.`);
       }
     }
-    if (!Number.isFinite(amount) || amount <= 0) continue;
+    // Negative ydelser regnes med som negative lønrækker (BB-290); kun 0 kr. bidrager intet.
+    if (!Number.isFinite(amount) || amount === 0) continue;
     const rawType = row.ydelsestype?.trim() ?? '';
     const resolvedType = resolveYdelsestype(rawType);
     if (!resolvedType) continue;
@@ -492,7 +533,7 @@ export const buildIncomeForRanges = (
         grundlag: periodiseringsGrundlag,
       });
     }, 0);
-    if (!Number.isFinite(periodiseretAmount) || periodiseretAmount <= 0) continue;
+    if (!Number.isFinite(periodiseretAmount) || isEffectivelyZero(periodiseretAmount)) continue;
     // NOTE: Fail-closed semantics kræver sporbar aggregation.
     // Rækker uden type må ikke sammenklappes via label.
     const key = typeKey !== '' ? `type:${typeKey}` : `row:${row.id}`;
@@ -506,9 +547,13 @@ export const buildIncomeForRanges = (
 
   const benefits: IncomeBenefitAmount[] = [];
   for (const entry of benefitsMap.values()) {
-    if (entry.amount <= 0) continue;
-    benefits.push({ typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
+    if (isEffectivelyZero(entry.amount)) continue;
+    if (entry.amount > 0) {
+      benefits.push({ typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
+    } else {
+      negativeSources.push({ kind: 'benefit', typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
+    }
   }
 
-  return { employers, benefits };
+  return { employers, benefits, negativeSources };
 };

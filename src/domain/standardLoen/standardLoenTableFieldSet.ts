@@ -2,16 +2,13 @@ import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../..
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
-import { toAnyFieldRef, type AnyFieldRef, type FieldDescriptor } from '../../inputCore/fieldDescriptor';
-import type { FieldIssue } from '../../inputCore/inputIssue';
+import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { InputReader } from '../../inputCore/inputReader';
 import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import {
-  getStandardLoenPeriodKeys,
   getStandardLoenTableValidation,
   type StandardLoenTableValidationResult,
 } from './standardLoenTableValidation';
-import { DUPLICATE_ROW_MESSAGE, findDuplicateRows } from '../../utils/tableDuplicateRowDetection';
 
 // Parametrisering af den delte StandardLoenTable: hvert domæne ejer sine konkrete DESCRIPTORER + sin
 // collection, mens rekonstruktionen og cellefejl-indsamlingen er FÆLLES.
@@ -160,86 +157,4 @@ export const resolveStandardLoenTableValidationFromReader = (
     tillaegAngivesSom,
     emptyCompletePeriodLevel,
   });
-};
-
-// ── Kryds-række-dubletter (brugerkrav 2026-08-26) ─────────────────────────────
-
-/**
- * De celler, der indgår i dublet-sammenligningen for den aktuelle tilstand.
- *
- * Kun de relevante kolonner tæller med: den valgte lønperiodes to periodekolonner og tillægsbeløbene kun
- * i Beløb-tilstand, hvor de er redigerbare. Det er samme relevans-afgrænsning, som cellefejl-indsamlingen
- * bruger.
- */
-const duplicateComparableValues = (
-  row: StandardLoenTableRow,
-  loenperiode: Loenperiode,
-  tillaegAngivesSom: TillaegAngivesSom
-): readonly unknown[] => {
-  const [periodStartKey, periodEndKey] = getStandardLoenPeriodKeys(loenperiode);
-  const values: unknown[] = [row[periodStartKey], row[periodEndKey], row.col2, row.col3, row.col4, row.col5];
-  if (tillaegAngivesSom === 'beloeb') {
-    values.push(row.fpFvShSoBeloeb, row.pensionBeloeb);
-  }
-  return values;
-};
-
-/** Markerer de sammenlignede celler i den gentagne række. */
-const duplicateMarkedCellRefs = (
-  fieldSet: StandardLoenTableFieldSet,
-  rowId: string,
-  loenperiode: Loenperiode,
-  tillaegAngivesSom: TillaegAngivesSom
-): readonly Readonly<{ id: string; field: AnyFieldRef }>[] => {
-  // Hver celle bindes med sin egen værditype bevaret; `toAnyFieldRef` udsletter typen først bagefter, så
-  // der ikke er brug for et cast over de heterogene descriptor-typer.
-  const cell = <T>(descriptor: FieldDescriptor<T>) => Object.freeze({
-    id: descriptor.id,
-    field: toAnyFieldRef(bindCell(fieldSet, descriptor, rowId)),
-  });
-
-  const periodCells = loenperiode === 'maaned'
-    ? [cell(fieldSet.col0_maaned), cell(fieldSet.col1_maaned)]
-    : loenperiode === 'uge'
-      ? [cell(fieldSet.col0_uge), cell(fieldSet.col1_uge)]
-      : [cell(fieldSet.col0_dag), cell(fieldSet.col1_dag)];
-
-  const refs = [...periodCells, cell(fieldSet.col2), cell(fieldSet.col3), cell(fieldSet.col4), cell(fieldSet.col5)];
-  if (tillaegAngivesSom === 'beloeb') {
-    refs.push(cell(fieldSet.fpFvShSoBeloeb), cell(fieldSet.pensionBeloeb));
-  }
-  return refs;
-};
-
-/**
- * Løntabellens kryds-række-dubletter som kanoniske `FieldIssue`s.
- *
- * Reglen kan ikke bo i en descriptor-validator: den sammenligner rækken med forudgående rækker, mens en
- * descriptor-validator kun kender sin egen celle. Resultatet bærer derfor rigtige feltadresser, så rød
- * markering, tooltip og fokusnavigation læser én repræsentation.
- */
-export const resolveStandardLoenDuplicateRowIssues = (
-  fieldSet: StandardLoenTableFieldSet,
-  rows: readonly StandardLoenTableRow[],
-  loenperiode: Loenperiode,
-  tillaegAngivesSom: TillaegAngivesSom
-): readonly FieldIssue[] => {
-  const duplicates = findDuplicateRows(rows, (row) =>
-    duplicateComparableValues(row, loenperiode, tillaegAngivesSom));
-  if (duplicates.length === 0) return Object.freeze([]);
-
-  const issues: FieldIssue[] = [];
-  for (const { row } of duplicates) {
-    for (const { id, field } of duplicateMarkedCellRefs(fieldSet, row.id, loenperiode, tillaegAngivesSom)) {
-      issues.push(Object.freeze({
-        kind: 'field' as const,
-        code: `${id}.duplicateRow`,
-        severity: 'error' as const,
-        field,
-        reason: 'rule' as const,
-        message: DUPLICATE_ROW_MESSAGE,
-      }));
-    }
-  }
-  return Object.freeze(issues);
 };

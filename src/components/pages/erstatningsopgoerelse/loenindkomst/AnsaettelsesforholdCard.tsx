@@ -99,6 +99,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     skadestype,
     satsIssues,
     feriePctAdvarselByAfId,
+    tableCellWarningsByAfId,
     manualBaseRowErrorsByAfId,
     manualRegulationDateIssues,
     loentrinFinder,
@@ -701,6 +702,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         tillaegAngivesSom={af.tillaegAngivesSom}
         satser={satserByAfId.get(af.id) ?? {}}
         calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
+        cellWarnings={tableCellWarningsByAfId.get(af.id)}
         useSmallFont={true}
         saveOrderPath={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.${af.id}.indtaegtsoplysningerTableData`}
         autofillSuggest
