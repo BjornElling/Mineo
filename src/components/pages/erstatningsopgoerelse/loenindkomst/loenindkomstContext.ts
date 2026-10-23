@@ -13,7 +13,7 @@ export type LoenindkomstVm = ReturnType<typeof useLoenindkomstViewModel> & Reado
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   tafBeregningsperiodeTil: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
   sfggSixMonthWarningEmploymentIds: readonly string[];
-  manualRegulationDateIssues: FieldIssueSet;
+  loenudviklingIssues: FieldIssueSet;
   onNavigateToTabtArbejdsfortjeneste: () => void;
 }>;
 

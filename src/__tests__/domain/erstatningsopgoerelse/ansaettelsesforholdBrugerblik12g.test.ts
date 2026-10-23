@@ -9,6 +9,7 @@ import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eo
 import { resolveOverenskomstSatsBindings } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { eoEmploymentFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { eoTafBeregningsperiodeTilField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
 import type { FieldRef } from '../../../inputCore/fieldDescriptor';
 import { createInputEvaluation } from '../../../inputCore/inputReader';
@@ -310,5 +311,65 @@ describe('BB-278/BB-279 – flere ansættelsesforhold hedder det samme overalt',
       .toMatchObject({ sectionTitle: 'Ansættelsesforhold 1' });
     expect(getNavigationTargetFromRowId('sfgg.beregningskilde.af-1', { ansaettelsesforholdIds: ['af-1'] }))
       .toMatchObject({ sectionTitle: 'Lønindkomst' });
+  });
+});
+
+// Opfølgning på brugerblik 12i (udviklerafgørelser 2026-10-23): skjulte felter uden for lønudviklingen og den
+// private overenskomsts dobbeltlinje.
+describe('BB-301 – skjulte satser og en skjult beregningsperiode er ikke udfyldt', () => {
+  it('ved «Tillæg angives som» = «Beløb» læses satserne som tomme, og en rød sats spærrer ikke', () => {
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({ tillaegAngivesSom: 'beloeb', feriePct: 12.5, fritvalgPct: 4, pensionPct: 150 })],
+    }));
+
+    expect(issueOf(result, eoEmploymentFields.pensionPct.bind('af-1'))).toBeUndefined();
+    expect(result.errorLinjer.join('\n')).not.toMatch(/pensionsbidrag/);
+    const [af] = result.projection.eoValues.loenindkomstAnsaettelsesforhold;
+    expect(af?.feriePct).toBeUndefined();
+    expect(af?.fritvalgPct).toBeUndefined();
+  });
+
+  it('ved «Procent» er samme røde sats stadig rød', () => {
+    const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ pensionPct: 150 })] }));
+
+    expect(issueOf(result, eoEmploymentFields.pensionPct.bind('af-1'))).toBeDefined();
+  });
+
+  it.each([['Nej', false], ['Skjul', false], ['Ja', true]] as const)(
+    'en rød «Periode til beregning af før-løn» spærrer kun med TAF (%s)',
+    (taf, roed) => {
+      const result = project(sag({
+        kravPaaTabtArbejdsfortjeneste: taf,
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        tafBeregningsperiodeFra: iso('2018-05-31'),
+        tafBeregningsperiodeTil: iso('2017-06-01'),
+      }));
+
+      expect(issueOf(result, eoTafBeregningsperiodeTilField.bind()) !== undefined).toBe(roed);
+      if (!roed) expect(result.projection.eoValues.tafBeregningsperiodeTil).toBeUndefined();
+    },
+  );
+});
+
+describe('BB-306 – en privat overenskomst uden satser på reguleringsdatoen giver én linje', () => {
+  it('lønudviklingens dækningslinje viger for satslinjen, der peger på «Vælg overenskomst»', () => {
+    const result = project(sag({
+      tafBeregningsperiodeFra: iso('2009-06-01'),
+      tafBeregningsperiodeTil: iso('2010-05-31'),
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        harOverenskomst: true,
+        overenskomstId: 'bygge-anlaeg',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        indtaegtsoplysningerTableData: loenRaekker({ maaned: 6, aar: 2009 }),
+      })],
+    }), { skadedato: iso('2010-06-01') });
+
+    const satslinjer = result.rows.errors.filter((row) => (row.summaryText ?? row.message ?? '').includes('har ingen satser før'));
+    expect(satslinjer).toHaveLength(1);
+    expect(satslinjer[0]?.focusTarget).toMatchObject({
+      kind: 'fieldAddress',
+      address: eoEmploymentFields.overenskomstId.bind('af-1').address,
+    });
+    expect(result.errorLinjer.join('\n')).not.toMatch(/ligger før den første sats/);
   });
 });

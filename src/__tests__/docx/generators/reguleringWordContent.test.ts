@@ -80,8 +80,8 @@ describe('regulering → Word-indhold', () => {
 
   // Afklaringslog 10a: forhøjet grundløn vises i sin gemte enhed og omregnet til «Ansættelse»-enheden.
   it.each([
-    ['Timeløn', 'Måned', 'Forhøjelsen udgør 1.000 kr./måned / 160,33 = 6,24 kr./time.'],
-    ['Månedsløn', 'Måned', 'Forhøjelsen udgør 1.000 kr./måned.'],
+    ['Timeløn', 'Måned', 'Forhøjelsen udgør 1.000,00 kr./måned / 160,33 = 6,24 kr./time.'],
+    ['Månedsløn', 'Måned', 'Forhøjelsen udgør 1.000,00 kr./måned.'],
   ] as const)('skriver forhøjet grundløn ved %s angivet pr. %s', async (offentligLoenType, enhed, forventet) => {
     const { documentXml } = await renderWordDocument((session) => generateReguleringDocument(session, {
       overenskomstLabel: 'KL',

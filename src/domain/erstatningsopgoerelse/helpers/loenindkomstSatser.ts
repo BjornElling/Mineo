@@ -23,6 +23,7 @@ import { findLatestByDateKeyInSortedList } from '../engines/reguleringSeriesLook
 import { round2 } from '../../../utils/roundingShortcuts';
 import { generateLoenudviklingRowId, initialLoenudviklingManuelRow } from './eoRowInitialValues';
 import { harAktivOverenskomst, resolveAktivOverenskomst } from './aktivOverenskomst';
+import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
@@ -259,6 +260,21 @@ export const formatOverenskomstUdenSatserTekst = (daekning: PrivatOverenskomstDa
   const navn = resolveOverenskomstDisplay(daekning.overenskomstId);
   const foerste = daekning.foersteSatsDato ? isoToDanish(daekning.foersteSatsDato) : undefined;
   return foerste ? `${navn} har ingen satser før ${foerste}` : `${navn} har ingen satser`;
+};
+
+/**
+ * Meldes reguleringsdatoen allerede som uden overenskomstsatser for kortet? Det gør den, når satserne faktisk
+ * bruges – procent-tilstand og indtastede lønoplysninger – og en privat overenskomst ikke dækker datoen
+ * (`buildOverenskomstSatsDaekningRows`, BB-275). Lønudviklingens dækningsregel bruger svaret til ikke at melde
+ * samme problem en gang til (udviklerafgørelse 2026-10-23, BB-306).
+ */
+export const erReguleringsdatoUdenOverenskomstSatserMeldt = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'tillaegAngivesSom' | 'indtaegtsoplysningerTableData'>,
+  reguleringsdato: ISODateString,
+): boolean => {
+  if (af.tillaegAngivesSom === 'beloeb' || !hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? [])) return false;
+  const daekning = resolvePrivatOverenskomstDaekning(af);
+  return daekning !== null && erDatoUdenOverenskomstSatser(daekning, reguleringsdato);
 };
 
 /** Den røde, blokerende besked, når datoen satserne slås op på, ligger før overenskomstens dækning. */

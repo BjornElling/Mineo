@@ -530,6 +530,13 @@ describe('BB-271/BB-272 – papirets tekst', () => {
 
     expect(linjer.some((linje) => linje.endsWith('| 1 arbejdsdag'))).toBe(true);
   });
+
+  it('kalder beregningsperiodens samlede indkomst pr. måned «Månedsindkomst» (BB-309)', () => {
+    const linjer = papir(sag({}));
+
+    expect(linjer.some((linje) => linje.startsWith('Månedsindkomst: '))).toBe(true);
+    expect(linjer.some((linje) => linje.startsWith('Månedsløn:'))).toBe(false);
+  });
 });
 
 describe('Opfølgning på BB-261 – hver ferietabel i sin egen periode', () => {

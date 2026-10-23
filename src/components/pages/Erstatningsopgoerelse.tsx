@@ -64,7 +64,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             values={vm.eoValues}
             stamdataValues={vm.stamdataValues}
             eoErrors={vm.projection.eoErrors}
-            manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
+            loenudviklingIssues={vm.projection.loenudviklingIssues}
             tafCellIssues={vm.projection.tafCellIssues}
             svieSmerteCellIssues={vm.projection.svieSmerteCellIssues}
           />
@@ -80,7 +80,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={vm.stamdataValues}
               onNavigateToTabtArbejdsfortjeneste={vm.handleNavigateToTabtArbejdsfortjeneste}
               sfggSixMonthWarningEmploymentIds={eoSnapshot.data?.sfggSixMonthWarningEmploymentIds ?? []}
-              manualRegulationDateIssues={vm.projection.manualRegulationDateIssues}
+              loenudviklingIssues={vm.projection.loenudviklingIssues}
             />
           </Box>
         )}

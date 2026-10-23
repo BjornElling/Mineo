@@ -25,11 +25,6 @@ export const formatPercentFixed2 = (value: number): string => {
 
 export const formatAmount2 = (value: number): string => formatAsAmount(value, 2);
 
-export const formatAmountWithoutTrailingDecimals = (value: number): string => {
-  const formatted = formatAmount2(value);
-  return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
-};
-
 export const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
   const asString = typeof value === 'string' ? value : '';
   const trimmed = asString.trim();

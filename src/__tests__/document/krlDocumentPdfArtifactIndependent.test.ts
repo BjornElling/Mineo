@@ -47,13 +47,13 @@ const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\
 describe('TD-014/TD-018 – KRL-registreringens faktiske PDF-artefakt', () => {
   it('bevarer statisk titel, tabelindhold, kilde og filnavn gennem PDF-generatoren', async () => {
     const session = await createRealPdfDocumentSessionForTest();
-    const artifact = await generateKRLDocument(session, { visBrevhoved: false });
+    const artifact = await generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' });
     const text = normalizeText(await extractPdfText(artifact.blob));
 
     expect(artifact.filename).toBe('KRL Satstabeller.pdf');
     expect(artifact.blob.type).toBe('application/pdf');
     expect(text).toContain('KRL Satstabeller');
-    expect(text).toMatch(/Fra-dato\s*KTO \(kommuner\)\s*SHK \(kommuner\)\s*KTO \(regioner\)\s*SHK \(regioner\)/);
+    expect(text).toMatch(/Fra-dato\s*KTO \(kommuner\) \(anvendt\)\s*SHK \(kommuner\)\s*KTO \(regioner\)\s*SHK \(regioner\)/);
     expect(text).toContain('Kilde');
     expect(text).toContain('https://www.krl.dk/#/sats');
 
@@ -65,11 +65,11 @@ describe('TD-014/TD-018 – KRL-registreringens faktiske PDF-artefakt', () => {
   it('bevarer hele tabel- og kildeteksten identisk i PDF og Word', async () => {
     const pdfArtifact = await withDocumentUnavailable(async () => generateKRLDocument(
       await createRealPdfDocumentSessionForTest(),
-      { visBrevhoved: false },
+      { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' },
     ));
     const pdfText = normalizeText(await extractPdfText(pdfArtifact.blob));
     const wordArtifact = await withDocumentUnavailable(() => renderWordDocument((session) =>
-      generateKRLDocument(session, { visBrevhoved: false }),
+      generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' }),
     ));
     const wordText = wordTextWithBoundaries(wordArtifact.documentXml);
 

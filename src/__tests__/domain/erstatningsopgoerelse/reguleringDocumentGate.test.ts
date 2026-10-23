@@ -22,6 +22,7 @@ import {
 } from '../../../inputCore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { eoAngivetLoenFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { eoBeregnesUdFraField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 import { createDocumentSourceContext } from '../../../document/definition/documentSourceContext';
 import { __createTestSourceSettings } from '../../../settings/sourceSettings';
@@ -64,6 +65,9 @@ const dispatch = (input: SettledInput, command: AnyInputCommand): SettledInput =
 
 const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleField(field, raw) as AnyInputCommand;
 
+// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra» (BB-301).
+const angivetLoen = (): SettledInput => dispatch(empty(), settle(eoBeregnesUdFraField.bind(), 'Angivet månedsløn'));
+
 const contextOf = (input: SettledInput) => {
   const evaluation = createInputEvaluation({
     input,
@@ -91,7 +95,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
    * udfylde løntrin, skifter derefter til KL-lønaftaler. De skjulte felter bevares.
    */
   const offentligUdenLoentrinDerefterKl = (): SettledInput => {
-    let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
+    let input = dispatch(angivetLoen(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     // Ingen løntrin/gruppe udfyldt.
     return dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'KL-lønaftaler'));
   };
@@ -112,7 +116,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
   });
 
   it('Statistik blokeres heller ikke af det bevarede offentlige overenskomst-valg', () => {
-    let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
+    let input = dispatch(angivetLoen(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     input = dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'Statistik'));
     const context = contextOf(input);
 
@@ -125,7 +129,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
   });
 
   it('ved grundlaget Overenskomst blokerer et manglende løntrin fortsat', () => {
-    let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
+    let input = dispatch(angivetLoen(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     input = dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'Overenskomst'));
     const context = contextOf(input);
 
@@ -139,7 +143,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
     // §1.6: bounds-validatoren afviser værdien, så den når aldrig `values`; gaten ser et manglende
     // løntrin. Det er DEN kæde, der beskytter opslaget – ikke `toLoentrin`-kaldet i gaten, som har
     // præcis samme 1..55-grænse og derfor aldrig kan afvise en værdi, der slap forbi feltet.
-    let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
+    let input = dispatch(angivetLoen(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     input = dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'Overenskomst'));
     input = dispatch(input, settle(eoAngivetLoenFields.offentligLoenTrin.bind(), '99'));
     input = dispatch(input, settle(eoAngivetLoenFields.offentligLoenGruppe.bind(), '1'));
@@ -152,7 +156,7 @@ describe('reguleringssats-gaten – offentlig-løn-tjekket er bundet til grundla
   });
 
   it('et komplet offentligt Overenskomst-valg giver ready', () => {
-    let input = dispatch(empty(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
+    let input = dispatch(angivetLoen(), settle(eoAngivetLoenFields.overenskomstId.bind(), OFFENTLIG_OVERENSKOMST_ID));
     input = dispatch(input, settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'Overenskomst'));
     input = dispatch(input, settle(eoAngivetLoenFields.offentligLoenTrin.bind(), '43'));
     input = dispatch(input, settle(eoAngivetLoenFields.offentligLoenGruppe.bind(), '1'));

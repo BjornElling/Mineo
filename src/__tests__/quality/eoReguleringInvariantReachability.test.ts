@@ -114,16 +114,8 @@ const UFULDSTAENDIGE_OPSAETNINGER: ReadonlyArray<Readonly<{
       offentligLoenTrin: 30,
     },
   },
-  {
-    navn: 'offentlig overenskomst uden løntype',
-    employment: {
-      harOverenskomst: true,
-      overenskomstId: 'kl-overenskomst',
-      loenudviklingBeregningsgrundlag: 'Overenskomst',
-      offentligLoenTrin: 30,
-      offentligLoenGruppe: 0,
-    },
-  },
+  // «Offentlig overenskomst uden løntype» findes ikke længere: «Ansættelse» kan ikke være tom og er Månedsløn som
+  // standard (BB-300).
   {
     navn: 'overenskomst valgt, men togglen slået fra',
     employment: {
@@ -229,12 +221,11 @@ describe('regulering: defensive motor-invarianter er ikke nåelige gennem UI-inp
     // have afvist den først. Selve runtime_exception-friheden for disse konfigurationer er allerede
     // dækket af fejningen ovenfor – her pinnes udelukkende, at ingen årsag mangler en besked.
     const reasons: readonly OffentligLoenSelectionFailure[] = [
-      'loentype-mangler', 'trin-mangler', 'trin-ugyldig', 'gruppe-mangler', 'gruppe-ugyldig',
+      'trin-mangler', 'trin-ugyldig', 'gruppe-mangler', 'gruppe-ugyldig',
     ];
 
     // Fixturene beviser, at årsagerne er nåelige fra realistisk input – ikke blot deklareret.
     const naaedeAarsager = ([
-      { offentligLoenType: undefined, offentligLoenTrin: undefined, offentligLoenGruppe: undefined },
       { offentligLoenType: 'Månedsløn', offentligLoenTrin: undefined, offentligLoenGruppe: undefined },
       { offentligLoenType: 'Månedsløn', offentligLoenTrin: 99, offentligLoenGruppe: undefined },
       { offentligLoenType: 'Månedsløn', offentligLoenTrin: 30, offentligLoenGruppe: undefined },

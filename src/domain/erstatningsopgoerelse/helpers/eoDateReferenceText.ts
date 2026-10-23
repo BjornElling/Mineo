@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
+import { isEffectivelyZero } from '../../../utils/numberComparison';
 import {
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../policies/stamdataCalculations';
@@ -88,6 +89,38 @@ export const formatAnvendtReguleringsdatoInfoTooltip = (
 ): string => anvendtReguleringsdato === undefined
   ? `Aktuelt kan der ikke anvendes en reguleringsdato, fordi ${referenceText} ikke er udfyldt.`
   : `Aktuelt anvendes ${referenceText}.`;
+
+/**
+ * Hvordan lønnen faktisk er reguleret i forhold til reguleringsdatoen. Afgør sætningen om lønnen, så papiret
+ * ikke siger «tillagt efterfølgende lønstigninger» over en nedregulering eller over et tal uden regulering
+ * (BB-314). Læses af motorens segmenter – den anvendte faktor, ikke den valgte form.
+ */
+export type LoenReguleringsforloeb = 'ingen' | 'efterfoelgende' | 'foerOgEfter';
+
+export const resolveLoenReguleringsforloeb = (
+  segments: ReadonlyArray<Readonly<{ fra: ISODateString; deltaPct: number }>>,
+  anvendtReguleringsdato: ISODateString | undefined
+): LoenReguleringsforloeb => {
+  const regulerede = segments.filter((segment) => !isEffectivelyZero(segment.deltaPct));
+  if (regulerede.length === 0) return 'ingen';
+  return anvendtReguleringsdato !== undefined && regulerede.some((segment) => segment.fra < anvendtReguleringsdato)
+    ? 'foerOgEfter'
+    : 'efterfoelgende';
+};
+
+/** Tillægget efter «lønnen på …»; tomt, når lønnen ikke reguleres. */
+export const resolveLoenReguleringsTillaeg = (forloeb: LoenReguleringsforloeb): string => {
+  if (forloeb === 'ingen') return '';
+  return forloeb === 'foerOgEfter'
+    ? ' reguleret efter lønudviklingen før og efter denne dato'
+    : ' tillagt efterfølgende lønstigninger';
+};
+
+/** Hele sætningen om lønnen: «Opgøres på baggrund af …» uden regulering, ellers «Beregnes som … ». */
+export const buildLoenGrundlagSaetning = (loenReferenceText: string, forloeb: LoenReguleringsforloeb): string =>
+  forloeb === 'ingen'
+    ? `Opgøres på baggrund af ${loenReferenceText}.`
+    : `Beregnes som ${loenReferenceText}${resolveLoenReguleringsTillaeg(forloeb)}.`;
 
 export const resolveLoenReferencedatoText = (params: Readonly<{
   subject: 'lønnen';

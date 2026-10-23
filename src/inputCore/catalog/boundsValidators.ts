@@ -153,7 +153,9 @@ export const positiveAmountValidator = (
   code: string,
   message: string
 ): FieldValidator<AmountValue | undefined> => (value) => {
-  if (value?.value === undefined || value.value !== 0) return undefined;
+  // Også et negativt beløb: et felt, hvis codec tillader minus (de manuelle grundlønninger, BB-308), skal have
+  // samme besked som 0 – «større end 0» er den grænse, brugeren skal ramme.
+  if (value?.value === undefined || value.value > 0) return undefined;
   return { reason: 'rule', code, message };
 };
 

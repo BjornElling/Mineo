@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { erStoreBededagstillaegRelevant } from '../../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
 import OverenskomstFilterLabel from '../../../../common/OverenskomstFilterLabel';
@@ -33,6 +34,7 @@ import {
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { serializeFieldAddress, type CollectionRef } from '../../../../../inputCore/fieldAddress';
 import type { FieldRef } from '../../../../../inputCore/fieldDescriptor';
+import { activeFieldIssue } from '../../../../../inputCore/inputIssue';
 import FerieperiodeTable from '../../../../tables/FerieperiodeTable';
 import LoenudviklingFields from '../../loenudvikling/LoenudviklingFields';
 import AnciennitetstillaegFields from '../../loenudvikling/AnciennitetstillaegFields';
@@ -110,14 +112,19 @@ export default function IndtaegtFoerSkadenSection() {
     reguleringsDatoIntervalDisplay,
     reguleringDocument,
     showEoAnciennitetstillaegSection,
+    visLoenPaaHelligdage,
+    loenudviklingWarnings,
     eoAnciennitetSatsPerTekst,
     loentrinFinder,
     eoErrors,
-    manualRegulationDateIssues,
+    loenudviklingIssues,
     tafCellIssues,
     visBeregningsperiodeFerie,
     beregningsgrundlagAdvarsler,
   } = useEoOplysningerVm();
+
+  // Gruppefeltets input – fokus lander her, når et resultat fra løntrin-finderen er sat ind (BB-310).
+  const gruppeInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
 
@@ -132,18 +139,22 @@ export default function IndtaegtFoerSkadenSection() {
     const issue = eoErrors.get(serializeFieldAddress(field.address));
     return issue === undefined ? {} : { crossFieldIssue: issue };
   };
+  // Lønudviklingens projekterede regel og gule ring på feltets egen adresse (BB-305).
+  const loenudviklingFeedbackFor = <T,>(field: FieldRef<T>) => {
+    const key = serializeFieldAddress(field.address);
+    const issue = activeFieldIssue(loenudviklingIssues, key);
+    const warning = loenudviklingWarnings.get(key);
+    return {
+      ...(issue === undefined ? {} : { crossFieldIssue: issue }),
+      ...(warning === undefined ? {} : { warning }),
+    };
+  };
   const warningProp = (warning: (typeof beregningsgrundlagAdvarsler)[keyof typeof beregningsgrundlagAdvarsler]) =>
     warning === undefined ? {} : { warning };
 
   // «Angivet løn» har ÉN `Find løntrin`-knap, så finderen behøver ingen nøgle: den åbnes for sagens ene
   // overenskomst og husker bevidst ikke indtastningen mellem åbninger (modsat Lønindkomst).
   const loentrinFinderTriggerRef = loentrinFinder.registerTrigger('eoAngivetLoen');
-  const openLoentrinFinder = () => {
-    loentrinFinder.openFinder({
-      overenskomstId: eoLoenudvikling.overenskomstId,
-      offentligLoenType: eoLoenudvikling.offentligLoenType,
-    });
-  };
 
   /**
    * Bindingen til den delte Lønudvikling-flade. «Angivet løn» har én forekomst pr. sag, så
@@ -186,6 +197,20 @@ export default function IndtaegtFoerSkadenSection() {
       field: eoAngivetLoenFields.offentligLoenEkstraGrundloenAngivesPer.bind(),
       location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.offentligLoenEkstraGrundloenAngivesPer'),
     },
+  };
+
+  const openLoentrinFinder = () => {
+    loentrinFinder.openFinder({
+      overenskomstId: eoLoenudvikling.overenskomstId,
+      offentligLoenType: eoLoenudvikling.offentligLoenType,
+      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind (BB-310).
+      ...(loenudviklingBaseDateISO === undefined ? {} : { reguleringsdato: loenudviklingBaseDateISO }),
+      insert: {
+        loentrin: loenudviklingBinding.offentligLoenTrin,
+        gruppe: loenudviklingBinding.offentligLoenGruppe,
+        gruppeInputRef,
+      },
+    });
   };
 
   return (
@@ -426,7 +451,7 @@ export default function IndtaegtFoerSkadenSection() {
 
             {visLoenudviklingFraEO && (
               <>
-                <Box className="row--label-right-hover">
+                {visLoenPaaHelligdage ? <Box className="row--label-right-hover">
                   <Typography className="row--text">Løn på helligdage:</Typography>
                   <Box className="row--label-right-hover__content">
                     <ChoiceField
@@ -441,7 +466,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <MenuItem value="Ingen">Ingen</MenuItem>
                     </ChoiceField>
                   </Box>
-                </Box>
+                </Box> : null}
 
                 {/* Aldrig krav på tillægget ved angivet dagsløn (BB-267, `indskudte-loentillaeg-contract.md` §2b). */}
                 {erStoreBededagstillaegRelevant({
@@ -468,7 +493,8 @@ export default function IndtaegtFoerSkadenSection() {
                 manualPercentCollection={eoAngivetLoenManual.manualPercentCollection.template as CollectionRef}
                 manualRows={eoLoenudvikling.loenudviklingManuelTableData}
                 manualPercentRows={eoLoenudvikling.loenudviklingManuelProcentsatsTableData}
-                manualRuleIssues={manualRegulationDateIssues}
+                loenudviklingIssues={loenudviklingIssues}
+                manualCellWarnings={loenudviklingWarnings}
                 manualLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData"
                 manualPercentLocationPrefix="erstatningsopgoerelse.eoAngivetLoenLoenudvikling.loenudviklingManuelProcentsatsTableData"
                 // route + tabKey er eksplicit navigation-metadata (§3.7); her bor tabellerne på EO-oplysningerfanen.
@@ -544,6 +570,7 @@ export default function IndtaegtFoerSkadenSection() {
                 }
                 onOpenLoentrinFinder={openLoentrinFinder}
                 loentrinFinderTriggerRef={loentrinFinderTriggerRef}
+                gruppeInputRef={gruppeInputRef}
                 baseDateDisplay={loenudviklingBaseDateDisplay}
                 baseDateISO={loenudviklingBaseDateISO}
                 baseDateErrorMessage={loenudviklingBaseDateErrorMessage}
@@ -603,6 +630,7 @@ export default function IndtaegtFoerSkadenSection() {
                   />
                 )}
                 harAnciennitetstillaeg={Boolean(eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen)}
+                datoFeedback={loenudviklingFeedbackFor(eoAngivetLoenFields.anciennitetstillaegDato.bind())}
                 referenceText={loenudviklingBaseDateReferenceText}
                 satsPerTekst={eoAnciennitetSatsPerTekst}
                 fieldNamePrefix=""

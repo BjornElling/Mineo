@@ -25,6 +25,7 @@ import {
   buildTaftContext,
 } from '../erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import {
+  selectAngivetLoenFieldIssues,
   selectManualReguleringFieldIssues,
   selectLoenindkomstTableFieldIssues,
   selectOffentligeYdelserFieldIssues,
@@ -104,7 +105,8 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
         ctx.stamdataValues.skadestype,
         selectManualReguleringFieldIssues(ctx.eoErrors),
         selectLoenindkomstKortFieldIssues(ctx.eoErrors),
-        selectLoenindkomstTableFieldIssues(ctx.eoErrors)
+        selectLoenindkomstTableFieldIssues(ctx.eoErrors),
+        selectAngivetLoenFieldIssues(ctx.eoErrors)
       ),
   },
 

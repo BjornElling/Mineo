@@ -15,6 +15,13 @@
  * VIGTIGT: Alle validerings-funktioner er pure (ingen side effects)
  */
 
+import {
+  formatReguleringsdatoEfterKildeBesked,
+  formatReguleringsdatoFoerKildeBesked,
+  formatTafStartFoerKildeBesked,
+  formatTafStartFoerManuelReguleringsdatoBesked,
+} from '../domain/erstatningsopgoerelse/loenudviklingReguleringsdatoIssues';
+import { resolveReguleringskildeNavn } from '../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
@@ -47,6 +54,7 @@ import { FERIE_PCT_MANGLER_BESKED, isFeriePctPaakraevet } from '../domain/erstat
 import {
   erDatoUdenOverenskomstSatser,
   formatReguleringsdatoUdenOverenskomstSatserBesked,
+  erReguleringsdatoUdenOverenskomstSatserMeldt,
   resolvePrivatOverenskomstDaekning,
 } from '../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
@@ -60,13 +68,17 @@ import {
   resolveSfggReferenceperiodeDayCount,
 } from '../domain/erstatningsopgoerelse/engines/sfggReferencesats';
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
+import { erSfggFeltRelevant } from '../domain/erstatningsopgoerelse/helpers/eoLoenindkomstRelevance';
 import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import {
   BEREGNINGSPERIODE_MANGLER_MESSAGE,
   INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
 } from '../domain/erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
-import { buildMissingLoenudviklingReguleringsdatoMessage } from '../domain/erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
+import {
+  buildMissingLoenudviklingReguleringsdatoMessage,
+  OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
+} from '../domain/erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
 import { getOffentligOverenskomstTypeById, getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import {
   parseOffentligLoenSelection,
@@ -177,7 +189,6 @@ const LOENGRUPPE_RANGE_ERROR_MESSAGE = 'Løngruppe skal være mellem 0 og 4';
 const OFFENTLIG_LOEN_SELECTION_VALIDATION_ISSUE: Readonly<
   Record<OffentligLoenSelectionFailure, Readonly<{ field: string; message: string }>>
 > = {
-  'loentype-mangler': { field: 'offentligLoenType', message: 'Ansættelse skal vælges' },
   'trin-mangler': { field: 'offentligLoenTrin', message: 'Løntrin skal udfyldes' },
   'trin-ugyldig': { field: 'offentligLoenTrin', message: LOENTRIN_RANGE_ERROR_MESSAGE },
   'gruppe-mangler': { field: 'offentligLoenGruppe', message: 'Gruppe skal udfyldes' },
@@ -283,9 +294,9 @@ function validateCanonicalRanges(values: ErstatningsopgoerelseValues): Validatio
     addDayCount(`tafPerioder[${index}].loseFeriedage`, row.loseFeriedage, 999);
   });
 
+  // SFGG-fraværsdagenes loft (366) bærer feltet selv på descriptoren: her spærrede det uden rød ring.
   values.sfggAnsaettelsesforhold.forEach((row, index) => {
     const prefix = `sfggAnsaettelsesforhold[${index}]`;
-    addDayCount(`${prefix}.sfggReferenceperiodeFravaersdageUdenLoen`, row.sfggReferenceperiodeFravaersdageUdenLoen, 366);
     addNonNegativeAmount(`${prefix}.sfggManuelDagssats`, row.sfggManuelDagssats);
     addNonNegativeAmount(`${prefix}.sfggAlleredeBetaltBeloeb`, row.sfggAlleredeBetaltBeloeb);
   });
@@ -662,6 +673,13 @@ function validateOffentligeYdelserReguleringssatser(
   return errors;
 }
 
+/**
+ * «Mangler»-beskederne for SFGG-referenceperioden. Eksporteret, fordi en rød (maskeret) dato også læses som tom
+ * her; `suppressMaskedMissingInvariants` fjerner da den usande «mangler»-linje om en dato, der står i feltet.
+ */
+export const SFGG_REFERENCEPERIODE_FRA_MANGLER_MESSAGE = 'Referenceperiode fra-dato mangler';
+export const SFGG_REFERENCEPERIODE_TIL_MANGLER_MESSAGE = 'Referenceperiode til-dato mangler';
+
 function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
 
@@ -698,15 +716,18 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       source.kind === 'overenskomst_direkte' && employment.overenskomstId
         ? getOverenskomstSfggPolicy(employment.overenskomstId)
         : undefined;
-    const requiresReferenceperiode = sfggKildeUsesReferenceperiode(source.kind);
-    const regulationSource = values.beregnesUdFra === 'Beregningsperiode'
-      ? employment : resolveLoenudviklingKilde(values)[0];
-    const regulationCoverage = regulationSource ? resolveKildeReguleringsIntervalIso(regulationSource) : undefined;
-    if (requiresReferenceperiode && row.sfggReferenceperiodeTil && regulationCoverage?.fraIso &&
-      row.sfggReferenceperiodeTil < regulationCoverage.fraIso) {
-      errors.push({ path: `${errorPathPrefix}.sfggReferenceperiodeTil`, severity: 'error',
-        message: `Referenceperioden slutter før reguleringsgrundlagets første sats (${isoToDanish(regulationCoverage.fraIso)}). Vælg en anden reguleringsform.` });
-    }
+    // Referenceperioden kræves kun, når den også VISES. Ved «Overenskomst» uden en aktiv overenskomst regner
+    // motoren i ferielov-sporet, men sektionen skjuler felterne; kravet gav da «Referenceperiode fra-dato
+    // mangler» om et felt, brugeren ikke kunne se, oven i den egentlige fejl om den manglende overenskomst.
+    const requiresReferenceperiode = sfggKildeUsesReferenceperiode(source.kind)
+      && erSfggFeltRelevant('referenceperiode', {
+        kravPaaTabtArbejdsfortjeneste: values.kravPaaTabtArbejdsfortjeneste,
+        employment,
+        sfggBeregningskilde: row.sfggBeregningskilde,
+      });
+    // En referenceperiode, der slutter før reguleringsgrundlagets første sats, ejes af
+    // `collectLoenudviklingCoverageIssues`: den giver feltet rød ring og spærrer. Samme regel stod også her og
+    // gav samme linje to gange i «Fejl og advarsler».
 
 
     if (row.sfggBeregningskilde === 'Manuelt angivet' && amountValueToNumber(row.sfggManuelDagssats) === undefined) {
@@ -730,7 +751,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (requiresReferenceperiode && !row.sfggReferenceperiodeFra) {
       errors.push({
         path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
-        message: 'Referenceperiode fra-dato mangler',
+        message: SFGG_REFERENCEPERIODE_FRA_MANGLER_MESSAGE,
         severity: 'error',
       });
     }
@@ -738,7 +759,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (requiresReferenceperiode && !row.sfggReferenceperiodeTil) {
       errors.push({
         path: `${errorPathPrefix}.sfggReferenceperiodeTil`,
-        message: 'Referenceperiode til-dato mangler',
+        message: SFGG_REFERENCEPERIODE_TIL_MANGLER_MESSAGE,
         severity: 'error',
       });
     }
@@ -1098,7 +1119,7 @@ function validateLoenudviklingsKravForAktivKilde(
         // med et snapshot der meldte `ok` og regnede videre på ufuldstændige satser.
         errors.push({
           path: path('harOverenskomst'),
-          message: 'Overenskomst skal slås til, når lønudviklingen beregnes ud fra overenskomst',
+          message: OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
           severity: 'error',
         });
       }
@@ -1124,12 +1145,11 @@ function validateLoenudviklingsKravForAktivKilde(
           saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
           angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
         });
-        const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
-          ? `Ansættelsesforhold ${index + 1}: `
-          : '';
+        // Samme tekst som feltets røde ring (`collectAnciennitetstillaegDatoIssues`), så sikkerhedsnettet genkender
+        // linjen som dækket og ikke gentager den uden link (BB-305).
         errors.push({
           path: path('anciennitetstillaegDato'),
-          message: `${employmentPrefix}Dato for anciennitetstillæg skal være efter ${reference}`,
+          message: `Datoen skal være efter ${reference}`,
           severity: 'error',
         });
       }
@@ -1174,7 +1194,7 @@ function validateLoenudviklingsKravForAktivKilde(
       errors.push({ path: path('loenudviklingKRLSatstabel'), message: 'KRL satstabel skal vælges', severity: 'error' });
     }
 
-    errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
+    errors.push(...validateLoenudviklingDataCoverage(values, af, path, options));
 
     // 'Manuelt angivet' er tilgængelig i begge tillægs-tilstande. Grundløn/dato-krav gælder ens;
     // i Beløb-tilstand kommer basis-satserne fra første tabelrække, ikke fra det skjulte feriePct-felt.
@@ -1280,7 +1300,6 @@ const resolveLoenudviklingCoveragePath = (
 const validateLoenudviklingDataCoverage = (
   values: ErstatningsopgoerelseValues,
   af: ReturnType<typeof resolveLoenudviklingKilde>[number],
-  index: number,
   path: (field: string) => string,
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] => {
@@ -1302,19 +1321,25 @@ const validateLoenudviklingDataCoverage = (
   if ((grundlag === 'Manuelt angivet' || grundlag === 'Manuel procentsats') &&
     tafRanges.some((range) => range.fra < anvendtReguleringsdato)) {
     return [{ path: path('loenudviklingBeregningsgrundlag'), severity: 'error',
-      message: 'TAF-perioden starter før reguleringsdatoen. Vælg en anden reguleringsform for at nedregulere.' }];
+      message: formatTafStartFoerManuelReguleringsdatoBesked(anvendtReguleringsdato) }];
   }
-  // Den nedre grænse er altid blokerende. Sluttolerancen må aldrig føre en sats bagud.
+  // Den nedre grænse er altid blokerende. Sluttolerancen må aldrig føre en sats bagud. Beskederne deles med
+  // `collectLoenudviklingCoverageIssues`, som giver linjen og den røde ring; samme tekst her gør, at
+  // sikkerhedsnettet genkender den som dækket (BB-306).
+  const kildeNavn = resolveReguleringskildeNavn(af);
   if (coverage?.fraIso) {
-    const fra = isoToDanish(coverage.fraIso) ?? coverage.fraIso;
-    if (anvendtReguleringsdato < coverage.fraIso) {
-      errors.push({ path: resolveLoenudviklingCoveragePath(values, af, path), severity: 'error',
-        message: `Reguleringsdatoen ligger før reguleringsgrundlagets første sats (${fra}). Vælg en anden reguleringsform.` });
-    }
     const coverageStart = coverage.fraIso;
-    if (tafRanges.some((range) => range.fra < coverageStart)) {
+    if (anvendtReguleringsdato < coverageStart) {
+      // Kortets satsregel melder allerede en privat overenskomst uden satser på datoen (BB-306).
+      const meldtAfSatserne = grundlag === 'Overenskomst' && values.beregnesUdFra === 'Beregningsperiode'
+        && erReguleringsdatoUdenOverenskomstSatserMeldt(af, anvendtReguleringsdato);
+      if (!meldtAfSatserne) {
+        errors.push({ path: resolveLoenudviklingCoveragePath(values, af, path), severity: 'error',
+          message: formatReguleringsdatoFoerKildeBesked(kildeNavn, anvendtReguleringsdato, coverageStart) });
+      }
+    } else if (tafRanges.some((range) => range.fra < coverageStart)) {
       errors.push({ path: path('loenudviklingBeregningsgrundlag'), severity: 'error',
-        message: `TAF-perioden starter før reguleringsgrundlagets første sats (${fra}). Vælg en anden reguleringsform.` });
+        message: formatTafStartFoerKildeBesked(kildeNavn, coverageStart) });
     }
   }
   if (errors.length > 0) return errors;
@@ -1336,22 +1361,10 @@ const validateLoenudviklingDataCoverage = (
   if (!coverage?.tilIso) return [];
 
   if (anvendtReguleringsdato <= coverage.tilIso) return [];
-  const tilDatoDisplay = isoToDanish(coverage.tilIso) ?? coverage.tilIso;
-
-  const sourceLabel = grundlag === 'Overenskomst'
-    ? 'overenskomsten'
-    : grundlag === 'Statistik'
-    ? `statistikmodellen "${af.loenudviklingStatistikModel ?? ''}"`
-    : grundlag === 'KL-lønaftaler'
-      ? 'KL-lønaftalerne'
-      : `KRL-satstabellen "${af.loenudviklingKRLSatstabel ?? ''}"`;
-  const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
-    ? `Ansættelsesforhold ${index + 1}: `
-    : '';
 
   return [{
     path: resolveLoenudviklingCoveragePath(values, af, path),
-    message: `${employmentPrefix}Lønregulering kan ikke beregnes efter ${tilDatoDisplay}, fordi datagrundlaget for ${sourceLabel} mangler.`,
+    message: formatReguleringsdatoEfterKildeBesked(kildeNavn, coverage.tilIso),
     severity: 'error',
   }];
 };

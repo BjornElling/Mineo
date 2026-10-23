@@ -1,7 +1,6 @@
 import {
   formatCurrency,
   formatAsAmount,
-  formatAsAmountTrimmed,
   formatReguleringPctSigned,
 } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
@@ -85,13 +84,6 @@ export const formatCurrencyPerUnit = (
   return `${addNbspAfterMinus(formatAsAmount(amount, decimals))}${NBSP}kr./${unit}`;
 };
 
-export const formatPercentDelta = (value: number): string => {
-  if (!Number.isFinite(value)) return '-';
-  const abs = Math.abs(value);
-  const rounded = roundByMethod(abs, 2, 'halfAwayFromZero');
-  return formatAsAmountTrimmed(rounded, 2);
-};
-
 /**
  * Bygger den kanoniske regulerings-faktortekst til segment-linjer i EO-/TAF-PDF'er:
  * `" x (100 % + X,XX %)"` / `" x (100 % - X,XX %)"`.
@@ -102,14 +94,14 @@ export const formatPercentDelta = (value: number): string => {
  * faktorteksten er ens i hovedopgørelsen, offentlige-ydelser-bilaget og TAF-fordelt-på-år.
  *
  * `decimals` overstyres til 4 for opreguleringsfaktoren i "TAF opreguleret til
- * beregningsåret", hvor faktoren bevidst vises (og beregnes) med fire decimaler. Ved 2
- * decimaler bevares den trimmede visning; ved flere vises et fast antal decimaler.
+ * beregningsåret", hvor faktoren bevidst vises (og beregnes) med fire decimaler. Decimalerne vises
+ * altid fuldt ud («+ 11,40 %»), så procenten står som i bilagets «Beregnet regulering» (BB-318).
  */
 export const formatReguleringFactorText = (deltaPct: number, decimals: number = 2): string => {
   if (!Number.isFinite(deltaPct)) return '';
   const rounded = roundByMethod(deltaPct, decimals, 'halfAwayFromZero');
   if (rounded === 0) return '';
-  const pctText = decimals === 2 ? formatPercentDelta(rounded) : formatAsAmount(Math.abs(rounded), decimals);
+  const pctText = formatAsAmount(Math.abs(rounded), decimals);
   return ` x (100 % ${rounded > 0 ? '+' : '-'} ${pctText} %)`;
 };
 

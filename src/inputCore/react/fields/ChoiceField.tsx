@@ -9,6 +9,7 @@ import type { EditorLocation } from '../../editor/fieldEditorState';
 import { useFieldEditor, type ImmediateCommitOverride } from '../useFieldEditor';
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
+import type { FieldIssue } from '../../inputIssue';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
@@ -50,6 +51,11 @@ export type ChoiceFieldProps<
   containerSx?: SxProps<Theme>;
   /** Domænespecifik atomisk immediate-commit, når valget samtidig skal ændre rækkestruktur. */
   immediateCommitOverride?: ImmediateCommitOverride<TCanonical>;
+  /**
+   * Et projekteret kryds-felt-issue (fx reguleringsgrundlagets dækning, BB-306), som domænet adresserer til
+   * netop dette valg. Feltets eget issue har forrang (§1.8) – samme kontrakt som `DateField`.
+   */
+  crossFieldIssue?: FieldIssue;
 }>;
 
 const ChoiceField = <
@@ -72,6 +78,7 @@ const ChoiceField = <
   iconSx,
   containerSx,
   immediateCommitOverride,
+  crossFieldIssue,
 }: ChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
   const accessibleName = useFieldLabel(field);
   const resolvedAllowEmpty = resolveChoiceAllowEmpty(field, allowEmpty, 'ChoiceField');
@@ -92,7 +99,7 @@ const ChoiceField = <
     [controller, emptyUiValue]
   );
 
-  const issueText = resolveFieldIssueText(controller.issue);
+  const issueText = resolveFieldIssueText(controller.issue, crossFieldIssue);
   const hasError = issueText.message !== undefined;
 
   // `allowEmpty=false` kræver en defineret værdi; descriptorens tomværdi (fx 'dage') er den gyldige default.

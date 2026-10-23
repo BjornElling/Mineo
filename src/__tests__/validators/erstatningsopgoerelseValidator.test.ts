@@ -208,11 +208,12 @@ describe('canonical rangevalidering', () => {
     });
     const errors = erstatningsopgoerelseValidator.validateParsed(values).errors;
 
-    // Beregningsgrundlagets dagfelter bærer selv loftet på descriptoren (BB-264); validatoren melder dem ikke.
-    expect(errors.some((error) => error.path === 'uspecificeredeFerieFridage' || error.path === 'oevrigeFravaersdage')).toBe(false);
+    // Beregningsgrundlagets dagfelter og SFGG-fraværsdagene bærer selv loftet på descriptoren (BB-264, 12i);
+    // validatoren melder dem ikke.
+    expect(errors.some((error) => error.path === 'uspecificeredeFerieFridage' || error.path === 'oevrigeFravaersdage'
+      || error.path === 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFravaersdageUdenLoen')).toBe(false);
     expect(errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ path: 'tafPerioder[0].loseFeriedage', message: 'Antal dage skal være mellem 0 og 999' }),
-      expect.objectContaining({ path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFravaersdageUdenLoen', message: 'Antal dage skal være mellem 0 og 366' }),
       expect.objectContaining({ path: 'loenindkomstAnsaettelsesforhold[0].offentligLoenTrin', message: 'Løntrin skal være mellem 1 og 55' }),
       expect.objectContaining({ path: 'loenindkomstAnsaettelsesforhold[0].offentligLoenGruppe', message: 'Løngruppe skal være mellem 0 og 4' }),
       expect.objectContaining({ path: 'eoAngivetLoenLoenudvikling.offentligLoenTrin', message: 'Løntrin skal være mellem 1 og 55' }),
@@ -703,8 +704,8 @@ describe('SFGG validering', () => {
     // Regressionsværn: brugeren valgte en privat differentieret direkte-sats-overenskomst
     // ('bygge-anlaeg') med SFGG-kilde 'Overenskomst' og slog derefter harOverenskomst fra;
     // overenskomst-ID'et blev hængende. resolveSfggSource behandler dette som overenskomst_ferielov
-    // (referenceperiode-sporet), og validatoren skal følge samme kildeopløsning: kræve
-    // referenceperiode og IKKE kræve satsvalg. Tidligere genudledte validatoren policyen uden
+    // (referenceperiode-sporet), og validatoren skal følge samme kildeopløsning: IKKE kræve
+    // satsvalg. Referenceperioden kræves heller ikke, fordi sektionen skjuler den uden aktiv overenskomst. Tidligere genudledte validatoren policyen uden
     // harOverenskomst-betingelsen og gav selvmodsigende beskeder (satsvalg krævet, referenceperiode
     // sprunget over) i uoverensstemmelse med motoren.
     const values = makeValues({
@@ -739,9 +740,10 @@ describe('SFGG validering', () => {
       }],
     });
 
-    // Følger motoren: referenceperiode-sporet, intet satsvalg-krav.
+    // Intet satsvalg-krav. Referenceperioden er skjult på skærmen, så længe der ikke er en aktiv overenskomst
+    // (brugerblik 12i): et skjult felt er ikke udfyldt og kræves derfor ikke.
     expect(hasError(values, 'Satsvalg mangler')).toBe(false);
-    expect(hasError(values, 'Referenceperiode fra-dato mangler')).toBe(true);
+    expect(hasError(values, 'Referenceperiode fra-dato mangler')).toBe(false);
     // Den primære blokerende besked står stadig, fordi der ikke er en aktiv overenskomst.
     expect(hasError(values, 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst')).toBe(true);
   });
@@ -1331,7 +1333,7 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('før reguleringsgrundlagets første sats (01-01-2005)'),
+      message: expect.stringContaining('ligger før den første sats i ASL-årslønsmaksimum, som er fra 01-01-2005'),
       severity: 'error',
     }));
   });
@@ -1425,7 +1427,7 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-09-2026'),
+      message: expect.stringContaining('har kun satser, der dækker til og med 30-09-2026'),
       severity: 'error',
     }));
   });
@@ -1448,7 +1450,7 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-09-2026'),
+      message: expect.stringContaining('har kun satser, der dækker til og med 30-09-2026'),
       severity: 'error',
     }));
   });
@@ -1473,7 +1475,7 @@ describe('validateLoenudviklingsKravForAktivKilde – Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 31-03-2027'),
+      message: expect.stringContaining('har kun satser, der dækker til og med 31-03-2027'),
       severity: 'error',
     }));
   });

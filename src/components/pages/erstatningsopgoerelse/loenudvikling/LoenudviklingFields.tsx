@@ -15,7 +15,9 @@ import type { CollectionRef, LoenudviklingBinding, LoenudviklingManualBindings }
 import { ASL_AARSLOENSMAKSIMUM_MODEL_LABEL } from '../../../../data/statistiskeRates';
 import { krlSatstabelEnum, offentligLoenTypeEnum } from '../../../../schemas/formSchemas';
 import type { LoenudviklingManuelRow, LoenudviklingManuelProcentsatsRow } from '../../../../schemas/formSchemas';
-import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
+import { activeFieldIssue, type FieldIssueSet } from '../../../../inputCore/inputIssue';
+import { serializeFieldAddress, type SerializedFieldAddress } from '../../../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../../../inputCore/fieldWarning';
 import { createManualRegulationBasisCommitOverride } from '../../../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import type { ReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
 
@@ -54,7 +56,13 @@ export type LoenudviklingFieldsProps<
   manualPercentCollection: CollectionRef;
   manualRows: readonly LoenudviklingManuelRow[];
   manualPercentRows: readonly LoenudviklingManuelProcentsatsRow[];
-  manualRuleIssues: FieldIssueSet;
+  /**
+   * Lønudviklingens projekterede feltfejl (`loenudviklingIssues` i projektionen): de manuelle tabellers celler og
+   * reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra» (BB-306).
+   */
+  loenudviklingIssues: FieldIssueSet;
+  /** Lønudviklingens gule ringe: de manuelle tabellers celler og den forhøjede grundløn (BB-302, BB-313). */
+  manualCellWarnings: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   manualLocationPrefix: string;
   manualPercentLocationPrefix: string;
   /** Navigation-metadata (§3.7) for de to tabeller – fanen adskiller overfladerne. */
@@ -74,6 +82,8 @@ export type LoenudviklingFieldsProps<
    * (jf. `keyboard-navigation.md` §Popup-fokus-restore).
    */
   loentrinFinderTriggerRef: React.RefObject<HTMLButtonElement | null>;
+  /** Gruppefeltets input – fokus lander her, når et resultat fra finderen er sat ind (BB-310). */
+  gruppeInputRef: React.RefObject<HTMLInputElement | null>;
 
   /** Basisrækkens dato i de manuelle tabeller. */
   baseDateDisplay: string;
@@ -118,7 +128,8 @@ export default function LoenudviklingFields<
   manualPercentCollection,
   manualRows,
   manualPercentRows,
-  manualRuleIssues,
+  loenudviklingIssues,
+  manualCellWarnings,
   manualLocationPrefix,
   manualPercentLocationPrefix,
   locationNav,
@@ -128,6 +139,7 @@ export default function LoenudviklingFields<
   overenskomstSlot,
   onOpenLoentrinFinder,
   loentrinFinderTriggerRef,
+  gruppeInputRef,
   baseDateDisplay,
   baseDateISO,
   baseDateErrorMessage,
@@ -144,6 +156,9 @@ export default function LoenudviklingFields<
 }: LoenudviklingFieldsProps<TGrundlag, TStatistikModel, TKrlSatstabel, TOffentligLoenType>) {
   const name = (fieldName: string): string => `${fieldNamePrefix}${fieldName}`;
   const grundlag = binding.loenudviklingBeregningsgrundlag;
+  const grundlagIssue = activeFieldIssue(loenudviklingIssues, serializeFieldAddress(grundlag.field.address));
+  // Gul ring, når den forhøjede grundløn er større end trinlønnen (BB-313).
+  const ekstraGrundloenWarning = manualCellWarnings.get(serializeFieldAddress(binding.offentligLoenEkstraGrundloen.field.address));
   const resolvedBaseDateErrorMessage = baseDateDisplay === '' ? baseDateErrorMessage : undefined;
 
   return (
@@ -165,6 +180,7 @@ export default function LoenudviklingFields<
               hasManualPercentBaseRow,
             })}
             name={name('loenudviklingBeregningsgrundlag')}
+            {...(grundlagIssue === undefined ? {} : { crossFieldIssue: grundlagIssue })}
             width={220}
             allowEmpty={true}
             placeholder="Vælg..."
@@ -196,11 +212,6 @@ export default function LoenudviklingFields<
                   location={binding.offentligLoenType.location}
                   name={name('offentligLoenType')}
                   width={160}
-                  allowEmpty={false}
-                  // Feltet er bevidst valgfrit i schemaet (ældre `.eo`-filer uden det skal kunne indlæses), og hele
-                  // domænet læser en tom værdi som månedsløn. Uden sentinellen kastede `allowEmpty={false}` på en
-                  // sådan sag og væltede siden, så snart en offentlig overenskomst var valgt.
-                  emptyUiValue="Månedsløn"
                 >
                   {offentligLoenTypeEnum.options.map((option) => (
                     <MenuItem key={option} value={option}>
@@ -220,6 +231,7 @@ export default function LoenudviklingFields<
                   field={binding.offentligLoenGruppe.field}
                   location={binding.offentligLoenGruppe.location}
                   name={name('offentligLoenGruppe')}
+                  inputRef={gruppeInputRef}
                   width={70}
                 />
                 <Tooltip title="Find løntrin" arrow>
@@ -268,6 +280,7 @@ export default function LoenudviklingFields<
                   location={binding.offentligLoenEkstraGrundloen.location}
                   name={name('offentligLoenEkstraGrundloen')}
                   width={160}
+                  {...(ekstraGrundloenWarning === undefined ? {} : { warning: ekstraGrundloenWarning })}
                 />
                 {/* Enheden er brugerens eget valg og gemmes med beløbet. Den stod før som et fast suffiks efter
                     «Ansættelse», mens beregningen læste beløbet i TAF-enheden (fund A1). */}
@@ -348,7 +361,8 @@ export default function LoenudviklingFields<
             bindings={manualBindings}
             collection={manualCollection}
             committedRows={manualRows}
-            ruleIssues={manualRuleIssues}
+            ruleIssues={loenudviklingIssues}
+            cellWarnings={manualCellWarnings}
             locationPrefix={manualLocationPrefix}
             baseDateDisplay={baseDateDisplay}
             baseDateISO={baseDateISO}
@@ -370,7 +384,8 @@ export default function LoenudviklingFields<
             bindings={manualBindings}
             collection={manualPercentCollection}
             committedRows={manualPercentRows}
-            ruleIssues={manualRuleIssues}
+            ruleIssues={loenudviklingIssues}
+            cellWarnings={manualCellWarnings}
             locationPrefix={manualPercentLocationPrefix}
             baseDateDisplay={baseDateDisplay}
             baseDateISO={baseDateISO}

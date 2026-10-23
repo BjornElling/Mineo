@@ -34,7 +34,7 @@ const baseInput = () => ({
   satsValue: 1000 as number | undefined,
   satsAngivesPer: 'Måned' as 'Time' | 'Måned' | undefined,
   overenskomstId: OVERENSKOMST as string | undefined,
-  offentligLoenType: undefined as OffentligLoenType | undefined,
+  offentligLoenType: 'Månedsløn' as OffentligLoenType | undefined,
   anvendtReguleringsdatoIso: iso('2024-01-01') as ISODateString | undefined,
   periodeStartIso: iso('2024-01-01'),
   periodeEndIso: iso('2024-12-31'),

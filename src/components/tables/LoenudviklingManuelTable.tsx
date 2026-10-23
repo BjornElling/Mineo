@@ -23,7 +23,8 @@ import {
 } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { resolveManualRegulationBasisRowId } from '../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
-import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 
 const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(
   TWO_DECIMAL_PERCENT_PLACEHOLDER,
@@ -37,7 +38,10 @@ export type LoenudviklingManuelTableProps = Readonly<{
   bindings: ManualBindings;
   collection: CollectionRef;
   committedRows: readonly LoenudviklingManuelRow[];
+  /** Projekterede celleregler (dato før basisdatoen, dublet-dato) – rød ring på cellen. */
   ruleIssues: FieldIssueSet;
+  /** Gule celler: ingen ændringer i lang tid, en grundløn over ti gange rækken før (BB-302, BB-313). */
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   baseDateDisplay: string;
   baseDateISO?: string;
   baseDateErrorMessage?: string;
@@ -59,6 +63,7 @@ export default function LoenudviklingManuelTable({
   collection,
   committedRows,
   ruleIssues,
+  cellWarnings,
   baseDateDisplay,
   baseDateISO,
   baseDateErrorMessage,
@@ -124,7 +129,7 @@ export default function LoenudviklingManuelTable({
     'Feriegodtgørelse/\n-tillæg',
     'SH/SO-sats',
     'Fritvalg',
-    'AG pension',
+    'AG-pension',
   ] as const;
   const keys = ['dato', 'grundloen', 'feriepenge', 'shSoSats', 'fritvalg', 'agPension'] as const;
 
@@ -144,17 +149,26 @@ export default function LoenudviklingManuelTable({
         const isBase = renderRow.rowId === visibleBaseRowId;
         const gc = (colIndex: number) => ({ rowId: renderRow.rowId, colIndex });
         const dateCell = table.buildCellSpec(renderRow, bindings.manualFields.dato, 0);
-        const dateRuleIssue = isBase
-          ? undefined
-          : activeFieldIssue(ruleIssues, serializeFieldAddress(dateCell.field.address));
+        const grundloenCell = table.buildCellSpec(renderRow, bindings.manualFields.grundloen, 1);
+        // Den projekterede regel og den gule advarsel slås op på cellens EGEN bundne adresse (hele ejerstien
+        // er med), så de ikke kan ramme et andet kort.
+        const cellProps = (address: FieldAddress) => {
+          const key = serializeFieldAddress(address);
+          const ruleIssue = activeFieldIssue(ruleIssues, key);
+          const warning = cellWarnings?.get(key);
+          return {
+            ...(ruleIssue === undefined ? {} : { collectionRuleIssue: ruleIssue }),
+            ...(warning === undefined ? {} : { warning }),
+          };
+        };
         const lockedPercent = (key: 'feriepenge' | 'shSoSats' | 'fritvalg' | 'agPension', colIndex: number) => (
           <GridReadOnlyLockedCell gridCell={gc(colIndex)} displayValue={formatLockedPercent(row?.[key])} align="right" errorMessage={baseRowPercentErrors?.[key]} infoTooltipText="Værdien angives ovenfor" placeholder={LOCKED_PERCENT_PLACEHOLDER} />
         );
         return <tr key={renderRow.rowId} data-mineo-row-id={renderRow.rowId} style={getStandardGridBodyRowStyle(rowIndex)}>
           <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase
             ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} />
-            : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
-          <td style={getStandardGridCellStyle({ align: 'right' })}><GridAmountCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualFields.grundloen, 1)} /></td>
+            : <GridDateCell gridCell={gc(0)} cell={dateCell} {...cellProps(dateCell.field.address)} />}</td>
+          <td style={getStandardGridCellStyle({ align: 'right' })}><GridAmountCell gridCell={gc(1)} cell={grundloenCell} {...cellProps(grundloenCell.field.address)} /></td>
           {(['feriepenge', 'shSoSats', 'fritvalg'] as const).map((key, index) => <td key={key} style={getStandardGridCellStyle({ align: 'right' })}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent(key, index + 2) : <GridPercentCell gridCell={gc(index + 2)} cell={table.buildCellSpec(renderRow, bindings.manualFields[key], index + 2)} />}</td>)}
           <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}>{isBase && readOnlyBaseRowPercentFields ? lockedPercent('agPension', 5) : <GridPercentCell gridCell={gc(5)} cell={table.buildCellSpec(renderRow, bindings.manualFields.agPension, 5)} />}{renderRow.kind === 'existing' && !isBase && row !== undefined && !table.isRowEmpty(row.id) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
         </tr>;

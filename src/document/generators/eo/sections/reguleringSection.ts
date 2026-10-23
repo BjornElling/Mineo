@@ -11,13 +11,20 @@ import {
   resolveLoenudviklingKilde,
 } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import {
+  resolveLoenReguleringsforloeb,
+  resolveLoenReguleringsTillaeg,
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '../../../../data/offentligLoenTypes';
 import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
 import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import {
+  REGULERINGSVAERDIER_FERIE_HEADER,
+  REGULERINGSVAERDIER_PENSION_HEADER,
+  REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER,
+} from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   formatAmount2,
-  formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
   isAslStatistikModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -54,8 +61,8 @@ const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
   REGULERINGSVAERDIER_FERIE_HEADER.toLowerCase(),
   'sh/so',
   'fritvalg',
-  'store bededag',
-  'ag pens. bidrag',
+  REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER.toLowerCase(),
+  REGULERINGSVAERDIER_PENSION_HEADER.toLowerCase(),
   // Manuel procentsats-tabellens tal-kolonner: højrejusteres (med større indrykning, se resolver nedenfor).
   'procent',
   'indeks',
@@ -108,7 +115,6 @@ type ReguleringSectionContext = Readonly<{
     anvendtReguleringsdato: ISODateString | undefined;
     tafFra: ISODateString;
     tafTil: ISODateString;
-    tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
     forloeb?: ReguleringForloeb;
   }>) => ReguleringValuesTableData | null;
   buildReguleringIndexRows: (params: Readonly<{
@@ -412,9 +418,12 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         ),
     });
 
+    // Samme regel som forsidens sætning: uden regulering «Opgøres på baggrund af», og nedregulering før
+    // reguleringsdatoen kaldes ikke «efterfølgende lønstigninger» (BB-314).
+    const loenReguleringsforloeb = resolveLoenReguleringsforloeb(perAnsaettelseSegments, anvendtReguleringsdato);
     writeLabelValueLine(
-      'Beregnes som',
-      `${capitalizeFirstCharDa(loenSkadedatoText)} tillagt efterfølgende lønstigninger`
+      loenReguleringsforloeb === 'ingen' ? 'Opgøres på baggrund af' : 'Beregnes som',
+      `${capitalizeFirstCharDa(loenSkadedatoText)}${resolveLoenReguleringsTillaeg(loenReguleringsforloeb)}`
     );
     writeLabelValueLine('Regulering', valgtRegulering);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
@@ -431,15 +440,16 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
         const ekstraGrundloen = amountValueToNumber(ansaettelsesforhold.offentligLoenEkstraGrundloen);
         // Beløbet vises i den enhed, det er angivet i, og – når den afviger fra «Ansættelse» – med den
-        // omregning til løntrinssatsens enhed, som motoren regner med (samme afrundede værdi).
+        // omregning til løntrinssatsens enhed, som motoren regner med (samme afrundede værdi). Samme form
+        // som anciennitetslinjen lige under: beløb med øre og uden fortegn (BB-318).
         ekstraGrundloenDisplay =
           typeof ekstraGrundloen === 'number' && Number.isFinite(ekstraGrundloen) && ekstraGrundloen > 0
-            ? `+ ${formatAnciennitetConversion(
+            ? formatAnciennitetConversion(
                 ekstraGrundloen,
                 ansaettelsesforhold.offentligLoenEkstraGrundloenAngivesPer,
                 resolveOffentligLoenEnhed(resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType)),
-                formatAmountWithoutTrailingDecimals
-              ).displayText}`
+                formatAmount2
+              ).displayText
             : null;
       }
     }
@@ -464,7 +474,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
             anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
-            tafBeregningsenhed: tafBeregnesSom,
             forloeb: perAnsaettelseForloeb,
           })
         : null;

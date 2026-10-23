@@ -23,7 +23,7 @@
  */
 import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId, resolveOverenskomstDisplay } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../data/klLoenaftaler';
-import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
+import { getReguleringsDatoIntervalForKRL, isKRLSatstabelId, type KRLSatstabelId } from '../../data/krlRates';
 import { toLoentrin } from '../../data/offentligLoenTypes';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
@@ -439,24 +439,37 @@ export const reguleringDocumentDefinition: MineoDocumentDefinition<ReguleringDoc
  */
 export type ReguleringSatstabelDocumentInput = ReguleringCommonInput;
 
-export const krlDocumentDefinition: MineoDocumentDefinition<ReguleringSatstabelDocumentInput, ReguleringDocumentRequest> =
+/** KRL-dokumentet fremhæver den satstabel, sagen anvender (BB-317). */
+export type KrlDocumentInput = ReguleringCommonInput & Readonly<{ anvendtSatstabel: KRLSatstabelId }>;
+
+export const krlDocumentDefinition: MineoDocumentDefinition<KrlDocumentInput, ReguleringDocumentRequest> =
   defineMineoDocument({
     id: 'krl',
     // Bevidst UX: KRL bruger samme brevhoved-indstilling som regulering (ingen separat KRL-toggle).
     brevhoved: { kind: 'settings-key', key: 'regulering' },
     labels: { documentName: 'KRL-satstabeller' },
     project: (context, request) => {
-      const common = projectReguleringCommon<ReguleringSatstabelDocumentInput>(context, request);
+      const common = projectReguleringCommon<KrlDocumentInput>(context, request);
       if (common.kind === 'blocked') return common.result;
       if (common.source.basis !== 'KRL satstabel') {
         return blockedProjection('krl:wrong-basis', 'Grundlaget er ikke en KRL-satstabel');
       }
-      return { status: 'ready', input: common.common };
+      // Den fælles gate har allerede krævet satstabellen (dækningsintervallet slås op på den); værnet
+      // her gør kun typen eksplicit.
+      const anvendtSatstabel = common.source.krlSatstabel;
+      if (!isKRLSatstabelId(anvendtSatstabel)) {
+        return blockedProjection('regulering:no-interval', 'Der findes ingen tilgængelige reguleringssatser for det valgte grundlag');
+      }
+      return { status: 'ready', input: { ...common.common, anvendtSatstabel } };
     },
     loadRenderer: async () => {
       const { generateKRLDocument } = await import('../../document/generators/krl/krlDocument');
       return (session, input, ctx) =>
-        generateKRLDocument(session, { visBrevhoved: ctx.visBrevhoved, stamdata: input.stamdata });
+        generateKRLDocument(session, {
+          visBrevhoved: ctx.visBrevhoved,
+          stamdata: input.stamdata,
+          anvendtSatstabel: input.anvendtSatstabel,
+        });
     },
   });
 

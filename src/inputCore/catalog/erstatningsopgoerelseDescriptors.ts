@@ -46,7 +46,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
-import { entityIdForCollection } from '../fieldAddress';
+import { entityIdForCollection, type CollectionRef } from '../fieldAddress';
 import {
   BILAGSNUMMER_MAX_LENGTH,
   COMMENT_TEXT_MAX_LENGTH,
@@ -65,7 +65,6 @@ import type {
 import {
   erAngivetLoenGrenRelevant,
   erBeregningsperiodeFerieRelevant,
-  erBeregningsperiodeValgt,
   erBilagsnumreRelevant,
   erEETKlageRelevant,
   erEndeligtEETAfgoerelseAktiv,
@@ -80,7 +79,12 @@ import {
   erTafLoseFeriedageRelevant,
   erVarigeMenAfgoerelseAktiv,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
-import { readTafBeregningsenhedEmployments } from './erstatningsopgoerelseLoenDescriptors';
+import { erSfggFeltRelevant, type SfggFelt } from '../../domain/erstatningsopgoerelse/helpers/eoLoenindkomstRelevance';
+import {
+  eoEmploymentFields,
+  eoLoenindkomstAnsaettelsesforholdCollection,
+  readTafBeregningsenhedEmployments,
+} from './erstatningsopgoerelseLoenDescriptors';
 import { dateOrderValidator, type DatePairBinding } from './dateOrderValidators';
 import { dateBounds, originWhenNarrowed, systemrammeSpec, systemrammeTilDagsDatoSpec } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
@@ -395,8 +399,6 @@ const tafLoseFeriedageRelevant = (view: CanonicalView): boolean => {
 };
 // Beregningsgrundlagets grene (BB-266). Enheden for ferie/løse dage læser hele lønindkomsttræet og huskes
 // pr. view som TAF-rækkernes løse feriedage ovenfor.
-const beregningsperiodeValgt = (view: CanonicalView): boolean =>
-  erBeregningsperiodeValgt({ beregnesUdFra: readEo(view, eoBeregnesUdFraField) });
 const beregningsperiodeInputRelevant = (view: CanonicalView): boolean =>
   erBeregningsperiodeInputRelevant({
     kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
@@ -758,7 +760,10 @@ export const eoKomprimerBeregningField = requiredJaNejField('komprimerBeregningE
 export const eoBeregnesUdFraField = requiredChoiceField<Beregningsmetode>(
   'beregnesUdFra', 'Beregnes ud fra', ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'], 'Beregningsperiode',
 );
-// Beregningsperioden er ligeledes et dato-par.
+// Beregningsperioden er ligeledes et dato-par. Den vises kun med TAF-sektionen aktiv, og uden TAF er den ikke
+// udfyldt: en rød dato dér spærrede før hele opgørelsen – også svie/smerte – fra et afsnit, der ikke stod på
+// skærmen, og lønindkomst-bilaget slog stadig overenskomstsatser op på dens slutdato (udviklerafgørelse
+// 2026-10-23, BB-301).
 const tafBeregningsperiodePair: DatePairBinding = {
   fra: () => eoTafBeregningsperiodeFraField,
   til: () => eoTafBeregningsperiodeTilField,
@@ -767,28 +772,29 @@ const BEREGNINGSPERIODE_LABEL = 'Periode til beregning af før-løn';
 export const eoTafBeregningsperiodeFraField = dateField(
   'tafBeregningsperiodeFra', `${BEREGNINGSPERIODE_LABEL}, fra`,
   dateBounds(systemrammeSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
-  whenEo(beregningsperiodeValgt),
+  whenEo(beregningsperiodeInputRelevant),
 );
 export const eoTafBeregningsperiodeTilField = dateField(
   'tafBeregningsperiodeTil', `${BEREGNINGSPERIODE_LABEL}, til`,
   dateBounds(systemrammeSpec, [dateOrderValidator('til', tafBeregningsperiodePair)]),
-  whenEo(beregningsperiodeValgt),
+  whenEo(beregningsperiodeInputRelevant),
 );
 
 /**
- * Dagfelternes faste loft. Det stod før kun i validatoren og spærrede uden rød celle (BB-264); nu bærer feltet
- * det selv med validatorens ordlyd. Den skarpere grænse – at der skal være noget af perioden tilbage – afhænger af
- * perioden og de andre fradrag og projekteres derfor i `beregningsgrundlagFradragRules.ts`.
+ * Dagfelternes faste loft (beregningsgrundlaget og SFGG-referenceperiodens fraværsdage). Det stod før kun i
+ * validatoren og spærrede uden rød celle (BB-264); nu bærer feltet det selv med validatorens ordlyd. Den skarpere
+ * grænse – at der skal være noget af perioden tilbage – afhænger af perioden og de andre fradrag og projekteres
+ * derfor i `beregningsgrundlagFradragRules.ts` (SFGG: i validatoren mod referenceperiodens dage).
  */
-const BEREGNINGSGRUNDLAG_DAGE_MAX = 366;
-const beregningsgrundlagDageValidators = (field: string): readonly FieldValidator<number | undefined>[] => [
+const DAGANTAL_MAX = 366;
+const dagAntalValidators = (field: string): readonly FieldValidator<number | undefined>[] => [
   integerBoundsValidator(`eo.${field}.bounds`, 0, undefined),
-  (value) => value === undefined || value <= BEREGNINGSGRUNDLAG_DAGE_MAX
+  (value) => value === undefined || value <= DAGANTAL_MAX
     ? undefined
     : {
       reason: 'bounds',
       code: `eo.${field}.bounds`,
-      message: `Antal dage skal være mellem 0 og ${BEREGNINGSGRUNDLAG_DAGE_MAX}`,
+      message: `Antal dage skal være mellem 0 og ${DAGANTAL_MAX}`,
     },
 ];
 
@@ -796,7 +802,7 @@ const beregningsgrundlagDageValidators = (field: string): readonly FieldValidato
 // BB-270). Feltet hed før «Uspecificerede …». Skjult i måneder (BB-263); se `erBeregningsperiodeFerieRelevant`.
 export const eoUspecificeredeFerieFridageField = integerField(
   'uspecificeredeFerieFridage', 'Løse ferie-/feriefridage',
-  beregningsgrundlagDageValidators('uspecificeredeFerieFridage'),
+  dagAntalValidators('uspecificeredeFerieFridage'),
   whenEo(beregningsperiodeFerieRelevant),
 );
 export const eoOevrigtFravaerUdenLoenField = requiredJaNejField(
@@ -804,7 +810,7 @@ export const eoOevrigtFravaerUdenLoenField = requiredJaNejField(
 );
 export const eoOevrigeFravaersdageField = integerField(
   'oevrigeFravaersdage', 'Antal fraværsdage (mandag-fredag)',
-  beregningsgrundlagDageValidators('oevrigeFravaersdage'),
+  dagAntalValidators('oevrigeFravaersdage'),
   whenEo(oevrigtFravaerRelevant),
 );
 export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField(
@@ -1124,6 +1130,45 @@ export const eoSfggAnsaettelsesforholdCollection = defineStructuralCollection<Sy
   entityIdProperty: 'ansaettelsesforholdId',
 });
 
+/** SFGG-rækkens entity-id – ansættelsesforholdets id, som rækken hører til. */
+const sfggEntityIdOf = <T>(field: FieldRef<T>): string => {
+  const entity = field.address.path.find(
+    (segment) => segment.kind === 'entity' && segment.collection === SFGG
+  );
+  if (entity?.kind !== 'entity') {
+    throw new Error(`EO-feltet ${field.descriptor.id} mangler ${SFGG}-entity`);
+  }
+  return entity.entityId;
+};
+
+/**
+ * SFGG-felternes relevans (BB-228-familien): sektionen vises kun ved TAF-krav «Ja» for et ansættelsesforhold,
+ * der var ansat på skadestidspunktet, og hvert felt kun under sin beregningskilde. Før stod det kun i
+ * `SygeferiegodtgoerelseSection`, så en rød referenceperiode bag «Manuelt angivet» spærrede opgørelsen uden for
+ * skærmen. Prædikatet er det samme, som sektionen viser felterne under (`eoLoenindkomstRelevance.ts`).
+ *
+ * De styrende felter læses rå; prædikatet tjekker selv deres relevans (sektionen før kilden). En SFGG-række uden
+ * ansættelsesforhold vises ingen steder og er derfor irrelevant.
+ */
+const sfggRelevance = <T>(felt: SfggFelt): RelevanceRule<T> => (field, view) => {
+  const employmentId = sfggEntityIdOf(field);
+  const employmentExists = view
+    .listEntityIds(eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef)
+    .includes(employmentId);
+  const e = eoEmploymentFields;
+  return erSfggFeltRelevant(felt, {
+    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+    employment: employmentExists
+      ? {
+        ansatPaaSkadestidspunktet: view.readCanonical(e.ansatPaaSkadestidspunktet.bind(employmentId)),
+        harOverenskomst: view.readCanonical(e.harOverenskomst.bind(employmentId)),
+        overenskomstId: view.readCanonical(e.overenskomstId.bind(employmentId)),
+      }
+      : undefined,
+    sfggBeregningskilde: view.readCanonical(eoSfggBeregningskildeField.bind(employmentId)),
+  });
+};
+
 const sfggField = <T>(
   field: string,
   label: string,
@@ -1132,6 +1177,7 @@ const sfggField = <T>(
   isEmpty: (value: T) => boolean,
   controlKind: FieldControlKind,
   validators?: readonly FieldValidator<T>[],
+  relevance?: RelevanceRule<T>,
 ): FieldDescriptor<T> =>
   defineStructuralField<T>({
     id: `eo.sfggAnsaettelsesforhold.${field}`,
@@ -1144,6 +1190,7 @@ const sfggField = <T>(
     createEmptySection: createEmptyErstatningsopgoerelseSection,
     entityIdProperties: sfggEntityIdProps,
     ...(validators === undefined ? {} : { validators }),
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 export const eoSfggBeregningskildeField = sfggField<SygeferiegodtgoerelseBeregningskilde | undefined>(
@@ -1157,15 +1204,7 @@ export const eoSfggBeregningskildeField = sfggField<SygeferiegodtgoerelseBeregni
 const sfggReferenceperiodePair: DatePairBinding = {
   fra: () => eoSfggReferenceperiodeFraField,
   til: () => eoSfggReferenceperiodeTilField,
-  bindIds: (field) => {
-    const entity = field.address.path.find(
-      (segment) => segment.kind === 'entity' && segment.collection === SFGG
-    );
-    if (entity?.kind !== 'entity') {
-      throw new Error(`EO-feltet ${field.descriptor.id} mangler ${SFGG}-entity`);
-    }
-    return [entity.entityId];
-  },
+  bindIds: (field) => [sfggEntityIdOf(field)],
 };
 export const eoSfggReferenceperiodeFraField = defineStructuralField<ISODateString | undefined>({
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFra',
@@ -1174,6 +1213,7 @@ export const eoSfggReferenceperiodeFraField = defineStructuralField<ISODateStrin
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode fra', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
   ...dateBounds(systemrammeSpec, [dateOrderValidator('fra', sfggReferenceperiodePair)]),
+  relevance: sfggRelevance('referenceperiode'),
 });
 export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateString | undefined>({
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil',
@@ -1182,36 +1222,45 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
   emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode til', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
   ...dateBounds(systemrammeSpec, [dateOrderValidator('til', sfggReferenceperiodePair)]),
+  relevance: sfggRelevance('referenceperiode'),
 });
+// Loftet på 366 dage stod før kun i validatoren og spærrede uden rød ring – og også bag «Manuelt angivet»,
+// hvor feltet ikke vises. Feltet bærer det nu selv med validatorens ordlyd, som beregningsgrundlagets dagfelter.
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
   'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',
   createIntegerFieldCodec({ allowNegative: false, maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS }),
   undefined, isUndefined, 'text',
-  [integerBoundsValidator('eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen.bounds', 0, undefined)],
+  dagAntalValidators('sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen'),
+  sfggRelevance('referenceperiode'),
 );
 export const eoSfggManuelDagssatsField = sfggField<AmountValue | undefined>(
   'sfggManuelDagssats', 'Manuel dagssats',
   createAmountFieldCodec({ allowNegative: false, allowDecimals: true }), undefined, isUndefined, 'text',
   [amountBoundsValidator('eo.sfggAnsaettelsesforhold.sfggManuelDagssats.bounds', 0, undefined)],
+  sfggRelevance('manuel'),
 );
 export const eoSfggManuelBeloebIHenholdTilField = sfggField<string | undefined>(
   'sfggManuelBeloebIHenholdTil', 'Beløb i henhold til',
   createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }), undefined, isUndefined, 'text',
+  undefined, sfggRelevance('manuel'),
 );
 export const eoSfggManuelFoerstEfterSygeloenField = sfggField<JaNej>(
   'sfggManuelFoerstEfterSygeloen', 'Først efter sygeløn',
   createRequiredChoiceFieldCodec<JaNej>(['Ja', 'Nej'], 'Nej'), 'Nej', () => false, 'choice',
+  undefined, sfggRelevance('manuel'),
 );
 export const eoSfggSatsvalgField = sfggField<SygeferiegodtgoerelseSatsvalg | undefined>(
   'sfggSatsvalg', 'Satsvalg',
   createChoiceFieldCodec<SygeferiegodtgoerelseSatsvalg>([
     'Faglaert-Koebenhavn', 'Faglaert-Provinsen', 'Ufaglaert-Koebenhavn', 'Ufaglaert-Provinsen',
   ]), undefined, isUndefined, 'choice',
+  undefined, sfggRelevance('satsvalg'),
 );
 export const eoSfggAlleredeBetaltBeloebField = sfggField<AmountValue | undefined>(
   'sfggAlleredeBetaltBeloeb', 'Allerede betalt beløb',
   createAmountFieldCodec({ allowNegative: false, allowDecimals: true }), undefined, isUndefined, 'text',
   [amountBoundsValidator('eo.sfggAnsaettelsesforhold.sfggAlleredeBetaltBeloeb.bounds', 0, undefined)],
+  sfggRelevance('alleredeBetalt'),
 );
 
 export const erstatningsopgoerelseFields = catalogFields(

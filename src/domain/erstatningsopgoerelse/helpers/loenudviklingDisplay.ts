@@ -33,3 +33,29 @@ export const resolveValgtReguleringDisplayForPdf = (
   const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
   return manuelNavn !== '' ? manuelNavn : 'Manuelt angivet';
 };
+
+/**
+ * Reguleringsgrundlagets navn i en sætning om dets satser («… den første sats i SBLON2, som er fra …»). Statistikkens
+ * og satstabellens kildeangivelse i parentes udelades, så sætningen ikke får to parenteser efter hinanden (BB-306).
+ */
+export const resolveReguleringskildeNavn = (
+  ansaettelsesforhold: Pick<
+    ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
+    'loenudviklingBeregningsgrundlag' | 'loenudviklingStatistikModel' | 'overenskomstId' | 'loenudviklingKRLSatstabel'
+  >
+): string => {
+  switch (ansaettelsesforhold.loenudviklingBeregningsgrundlag) {
+    case 'Statistik':
+      return (ansaettelsesforhold.loenudviklingStatistikModel ?? '').replace(/\s*\([^)]*\)\s*$/, '').trim() || 'statistikken';
+    case 'Overenskomst':
+      return resolveOverenskomstDisplay(ansaettelsesforhold.overenskomstId);
+    case 'KRL satstabel':
+      return ansaettelsesforhold.loenudviklingKRLSatstabel
+        ? formatKRLSatstabelDisplay(ansaettelsesforhold.loenudviklingKRLSatstabel)
+        : 'KRL-satstabellen';
+    case 'KL-lønaftaler':
+      return 'KL-lønaftalerne';
+    default:
+      return 'reguleringsgrundlaget';
+  }
+};

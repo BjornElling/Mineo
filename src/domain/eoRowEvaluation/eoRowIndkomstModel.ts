@@ -123,6 +123,8 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
     af.shSoPct !== undefined ||
     af.storeBededagPct !== undefined ||
     af.pensionPct !== undefined ||
+    // Satserne er tomme for læserne ved «Beløb» (BB-301); selve valget er stadig en indtastning.
+    af.tillaegAngivesSom === 'beloeb' ||
     af.loenperiode !== 'maaned' ||
     af.fuldLoenUnderFerie !== defaultFuldLoenUnderFerie ||
     af.loenPaaHelligdage !== appSettings.defaultLoenPaaHelligdage ||

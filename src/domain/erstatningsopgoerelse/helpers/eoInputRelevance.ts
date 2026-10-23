@@ -2,6 +2,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowEmpty } from './rowEmpty';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhedInput } from './tafBeregningsenhed';
+import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 
 /**
  * Relevans-/neutraliseringslag for erstatningsopgørelse-input.
@@ -104,15 +105,18 @@ export const erTafLoseFeriedageRelevant = (
 // fravalgt gren – fx 400 fraværsdage bag et slukket «Øvrigt fravær uden løn» – spærrede opgørelsen med en
 // fejl om et felt, brugeren ikke kunne se.
 //
-// Periodens to datoer følger KUN «Beregnes ud fra»: Lønindkomst læser dem også uden for TAF-sektionen
-// (regulering og enhed). De rene TAF-input – ferie, løse dage, fravær og den angivne løn – kræver desuden,
-// at TAF-sektionen er aktiv, som sektionens egen synlighed.
+// Alle felterne – også periodens to datoer – kræver, at TAF-sektionen er aktiv, som sektionens egen synlighed.
+// Periodens datoer fulgte før KUN «Beregnes ud fra», fordi Lønindkomst læser dem som reguleringsdato; uden TAF
+// spærrede en skjult, rød dato så hele opgørelsen (udviklerafgørelse 2026-10-23, BB-301).
 
-/** «Periode til beregning af før-løn» er relevant: «Beregnes ud fra» er «Beregningsperiode». */
+/** Grundlaget er en beregningsperiode (lønudviklingsblokken på ansættelsesforholdene vises). */
 export const erBeregningsperiodeValgt = (values: Pick<ErstatningsopgoerelseValues, 'beregnesUdFra'>): boolean =>
   values.beregnesUdFra === 'Beregningsperiode';
 
-/** Beregningsperiodens TAF-input (fravær) er relevant: TAF-sektionen er aktiv, og grundlaget er en beregningsperiode. */
+/**
+ * Beregningsperiodens input («Periode til beregning af før-løn» og fraværet) er relevant: TAF-sektionen er aktiv,
+ * og grundlaget er en beregningsperiode.
+ */
 export const erBeregningsperiodeInputRelevant = (
   values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste' | 'beregnesUdFra'>
 ): boolean =>
@@ -145,6 +149,80 @@ export const erAngivetLoenGrenRelevant = (
   gren: 'Angivet månedsløn' | 'Angivet dagsløn',
 ): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv(values) && values.beregnesUdFra === gren;
+
+/** Den angivne løns lønudvikling vises: TAF-sektionen er aktiv, og «Beregnes ud fra» er en af de to angivne lønninger. */
+export const erAngivetLoenLoenudviklingRelevant = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste' | 'beregnesUdFra'>,
+): boolean =>
+  erAngivetLoenGrenRelevant(values, 'Angivet månedsløn') || erAngivetLoenGrenRelevant(values, 'Angivet dagsløn');
+
+// ── Lønudvikling og anciennitetstillæg (BB-301) ───────────────────────────────────────────────
+//
+// Blokken findes to steder – pr. ansættelsesforhold ved «Beregningsperiode» og for den angivne løn – og hver
+// reguleringsform åbner sine egne felter. Synligheden stod før KUN som JSX-betingelser, så en rød
+// anciennitetsdato, et rødt løntrin eller en rød manuel dato blev ved med at spærre opgørelsen, efter at
+// brugeren havde valgt en anden form, med et link til et felt, der ikke var på skærmen.
+
+/** Et felt (eller en tabel) i lønudviklingsblokken, opdelt efter den betingelse, der viser det. */
+export type LoenudviklingFelt =
+  | 'grundlag'
+  | 'statistikModel'
+  | 'krlSatstabel'
+  | 'overenskomst'
+  | 'manueltAngivet'
+  | 'manuelProcentsats'
+  | 'offentligLoen'
+  | 'anciennitet'
+  | 'anciennitetDetaljer'
+  | 'loenPaaHelligdageVedAngivetLoen';
+
+export type LoenudviklingRelevansInput = Readonly<{
+  /** Blokken vises overhovedet (ansættelsesforhold: «Beregningsperiode»; angivet løn: dens egen gren). */
+  blokVist: boolean;
+  grundlag: string | undefined;
+  overenskomstId: string | undefined;
+  harAnciennitetstillaeg: boolean;
+}>;
+
+const harOverenskomstValgt = (input: LoenudviklingRelevansInput): boolean =>
+  input.grundlag === 'Overenskomst' && (input.overenskomstId?.trim() ?? '') !== '';
+
+/**
+ * Om feltet vises – og dermed læses – i den aktuelle tilstand. Samme betingelser som `LoenudviklingFields` og
+ * `AnciennitetstillaegFields`; kortet og EO-oplysningerfanen afgør selve blokkens synlighed (`blokVist`).
+ */
+export const erLoenudviklingFeltRelevant = (felt: LoenudviklingFelt, input: LoenudviklingRelevansInput): boolean => {
+  if (!input.blokVist) return false;
+  switch (felt) {
+    case 'grundlag':
+      return true;
+    case 'statistikModel':
+      return input.grundlag === 'Statistik';
+    case 'krlSatstabel':
+      return input.grundlag === 'KRL satstabel';
+    case 'overenskomst':
+      return input.grundlag === 'Overenskomst';
+    case 'manueltAngivet':
+      return input.grundlag === 'Manuelt angivet';
+    case 'manuelProcentsats':
+      return input.grundlag === 'Manuel procentsats';
+    case 'offentligLoen':
+      return harOverenskomstValgt(input) && isOffentligOverenskomstId(input.overenskomstId ?? '');
+    case 'anciennitet':
+      return harOverenskomstValgt(input);
+    case 'anciennitetDetaljer':
+      return harOverenskomstValgt(input) && input.harAnciennitetstillaeg;
+    case 'loenPaaHelligdageVedAngivetLoen':
+      // Under angivet løn læses «Løn på helligdage» kun af de to former, der regner med helligdagene
+      // (overenskomstens SH-regel og den manuelle forms Store Bededag). Ved de øvrige ændrede valget intet
+      // tal, men brugeren skulle tage stilling til det (BB-315).
+      return input.grundlag === 'Overenskomst' || input.grundlag === 'Manuelt angivet';
+    default: {
+      const _exhaustive: never = felt;
+      return _exhaustive;
+    }
+  }
+};
 
 /** Øvrige erstatningskrav-sektionen er aktiv (krav medregnes). */
 export const erOevrigeKravSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaOevrigeErstatningskrav'>): boolean =>

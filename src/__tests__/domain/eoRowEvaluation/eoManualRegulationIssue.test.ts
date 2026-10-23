@@ -3,7 +3,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { resolveManualRegulationIssue } from '../../../domain/eoRowEvaluation/eoManualRegulationIssue';
 import {
-  eoAngivetLoenFields,
+  eoAngivetLoenManual,
   eoEmploymentFields,
   eoEmploymentManual,
 } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
@@ -146,7 +146,7 @@ describe('resolveManualRegulationIssue', () => {
     });
   });
 
-  it('bruger angivet løns topfelt for manglende ferieprocent', () => {
+  it('peger under angivet løn på basisrækkens egen celle – der er intet satsfelt over tabellen (BB-307)', () => {
     const source = createSource({
       loenudviklingManuelTableData: [
         withSupplement(manualRow('base'), 'feriepenge', undefined),
@@ -158,7 +158,7 @@ describe('resolveManualRegulationIssue', () => {
 
     expect(issue?.focusTarget).toEqual({
       kind: 'fieldAddress',
-      address: eoAngivetLoenFields.feriePct.bind().address,
+      address: eoAngivetLoenManual.manualFields.feriepenge.bind('base').address,
     });
   });
 
@@ -189,7 +189,7 @@ describe('resolveManualRegulationIssue', () => {
     });
   });
 
-  it('ignorerer tom eller komplet manuel procentsats og kan adressere angivet løn', () => {
+  it('melder en tom procentsats-tabel, ignorerer en komplet og kan adressere angivet løn (BB-303)', () => {
     const empty = createSource({ loenudviklingManuelProcentsatsTableData: [] });
     const complete = createSource({
       loenudviklingManuelProcentsatsTableData: [
@@ -210,7 +210,10 @@ describe('resolveManualRegulationIssue', () => {
       ],
     });
 
-    expect(resolveManualRegulationIssue(empty, 'Manuel procentsats', true)).toBeUndefined();
+    expect(resolveManualRegulationIssue(empty, 'Manuel procentsats', true)).toEqual({
+      message: 'Manuel procentsats mangler: angiv mindst én sats – eller vælg «Ingen»',
+      focusTarget: { kind: 'collectionField', template: eoEmploymentManual.manualPercentFields.dato.template },
+    });
     expect(resolveManualRegulationIssue(complete, 'Manuel procentsats', false)).toBeUndefined();
     expect(resolveManualRegulationIssue(completeManual, 'Manuelt angivet', true)).toBeUndefined();
   });

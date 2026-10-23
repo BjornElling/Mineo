@@ -58,7 +58,7 @@ describe('SFGG-regulering i PDF og Word', () => {
         expect(normalized).toContain('250,00 x 115,7 / 111,9 = 258,49 kr.');
       } else {
         expect(normalized).toContain('01-10-2022: 250,00 x (100 % + 2,55 %) = 256,38 kr.');
-        expect(normalized).toContain('01-04-2023: 256,38 x (100 % + 0,3 %) = 257,15 kr.');
+        expect(normalized).toContain('01-04-2023: 256,38 x (100 % + 0,30 %) = 257,15 kr.');
         expect(normalized).toContain('01-10-2023: 257,15 x (100 % + 1,25 %) = 260,36 kr.');
       }
       expect(text).toContain('referenceperiodens slutdato');

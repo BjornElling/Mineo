@@ -5,6 +5,8 @@ import AmountField from '../../../../inputCore/react/fields/AmountField';
 import type { AnciennitetstillaegBinding } from './loenudviklingBinding';
 import LabeledControlRow from '../../../layout/LabeledControlRow';
 import SatsEnhedChoiceField from './SatsEnhedChoiceField';
+import type { FieldIssue } from '../../../../inputCore/inputIssue';
+import type { FieldWarning } from '../../../../inputCore/fieldWarning';
 
 /**
  * Den fælles Anciennitetstillæg-blok.
@@ -35,6 +37,11 @@ export type AnciennitetstillaegFieldsProps = Readonly<{
   toggleSlot: (binding: Readonly<{ labelledBy: string; controlId: string }>) => ReactNode;
   /** Sand når toggle'en er slået til; styrer om detaljerne vises. */
   harAnciennitetstillaeg: boolean;
+  /**
+   * Datoens projekterede regel og gule advarsel: rød ved en dato på eller før reguleringsdatoen, gul ved en dato
+   * efter erstatningsperioden (BB-305). Ejeren slår dem op på sin egen bundne adresse.
+   */
+  datoFeedback: Readonly<{ crossFieldIssue?: FieldIssue; warning?: FieldWarning }>;
   /** Referenceteksten i toggle-rækkens etiket (fx «efter reguleringsdatoen …»). */
   referenceText: string;
   /** «Sats per {enhed}» – den valgte enhed, opløst af ejeren fra samme felt som enhedsvalget. */
@@ -47,6 +54,7 @@ export default function AnciennitetstillaegFields({
   binding,
   toggleSlot,
   harAnciennitetstillaeg,
+  datoFeedback,
   referenceText,
   satsPerTekst,
   fieldNamePrefix,
@@ -70,6 +78,7 @@ export default function AnciennitetstillaegFields({
                 field={binding.anciennitetstillaegDato.field}
                 location={binding.anciennitetstillaegDato.location}
                 name={`${fieldNamePrefix}anciennitetstillaegDato`}
+                {...datoFeedback}
               />
             </Box>
           </Box>

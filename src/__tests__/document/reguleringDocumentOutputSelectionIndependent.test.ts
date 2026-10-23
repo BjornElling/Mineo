@@ -9,6 +9,7 @@ import {
   type SettledInput,
 } from '../../inputCore';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
+import { eoBeregnesUdFraField } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { eoAngivetLoenFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { stamdataSkadedatoField } from '../../inputCore/catalog/stamdataDescriptors';
 import {
@@ -83,6 +84,9 @@ const dispatch = (input: SettledInput, command: AnyInputCommand): SettledInput =
 
 const settle = <T>(field: FieldRef<T>, raw: string): AnyInputCommand => settleField(field, raw) as AnyInputCommand;
 
+// Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra» (BB-301).
+const angivetLoen = (): SettledInput => dispatch(empty(), settle(eoBeregnesUdFraField.bind(), 'Angivet månedsløn'));
+
 const contextOf = (input: SettledInput, settings: MineoDocumentGateSettings = GATE_SETTINGS) => createDocumentSourceContext(
   createInputEvaluation({
     input,
@@ -103,7 +107,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
 
     for (const [basis, outputId] of expected) {
       const input = dispatch(
-        empty(),
+        angivetLoen(),
         settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), basis),
       );
 
@@ -126,7 +130,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
 
     for (const [basis, outputId] of bases) {
       const input = dispatch(
-        empty(),
+        angivetLoen(),
         settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), basis),
       );
 
@@ -169,7 +173,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
       overenskomstId: undefined,
       statistikModelLabel: undefined,
       applyAlmindeligLoenPaaShDageRegel: false,
-      offentligLoenType: undefined,
+      offentligLoenType: 'Månedsløn',
       offentligLoenTrin: undefined,
       offentligLoenGruppe: undefined,
       offentligLoenEkstraGrundloen: undefined,
@@ -183,7 +187,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
 
     expect((await renderRegulering(session, reguleringInput, { visBrevhoved: false })).filename)
       .toBe('mock-regulering.docx');
-    expect((await renderKrl(session, satstabelInput, { visBrevhoved: false })).filename)
+    expect((await renderKrl(session, { ...satstabelInput, anvendtSatstabel: 'KTO (kommuner)' }, { visBrevhoved: false })).filename)
       .toBe('mock-krl.docx');
     expect((await renderKl(session, satstabelInput, { visBrevhoved: false })).filename)
       .toBe('mock-kl.docx');
@@ -191,7 +195,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
 
   it('fail-closer når en definition møder et andet friskt grundlag', () => {
     let krlInput = dispatch(
-      empty(),
+      angivetLoen(),
       settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'KRL satstabel'),
     );
     krlInput = dispatch(
@@ -199,7 +203,7 @@ describe('DOC-001 – reguleringsdokumentets outputvalg', () => {
       settle(eoAngivetLoenFields.loenudviklingKRLSatstabel.bind(), 'KTO (kommuner)'),
     );
     const klInput = dispatch(
-      empty(),
+      angivetLoen(),
       settle(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind(), 'KL-lønaftaler'),
     );
 

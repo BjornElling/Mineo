@@ -85,7 +85,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // anciennitetsenhed læses nu som brugerens valg (afklaringslog 10a/12). Ældre filer får ved indlæsning den
 // enhed, felterne hidtil har vist/brugt. PERSISTED_DATA_VERSION bumpet til 3.15 (reel persisted schema- og
 // semantikændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-fc1d3854';
+// Opdateret 2026-10-23: «Ansættelse» (`offentligLoenType`) er required-with-default ('Månedsløn') for begge ejere
+// (BB-300), præcis som `loenPaaHelligdage` i 3.12. Ældre `.eo` med et tomt felt indlæses som Månedsløn – det, feltet
+// altid har vist. PERSISTED_DATA_VERSION bumpet til 3.16 (reel persisted schema-/parse-semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-4d182cb2';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot – ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

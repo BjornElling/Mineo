@@ -130,7 +130,6 @@ export function buildRegulationInspektionSections(
             anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
-            tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
             forloeb,
           })
         : null;

@@ -6,7 +6,7 @@ import { parseOffentligLoenSelection } from '../../../domain/erstatningsopgoerel
 describe('parseOffentligLoenSelection', () => {
   const base = {
     offentligType: 'KL' as const,
-    offentligLoenType: 'Månedsløn',
+    offentligLoenType: 'Månedsløn' as const,
     offentligLoenTrin: 30,
     offentligLoenGruppe: 2,
   };
@@ -26,9 +26,11 @@ describe('parseOffentligLoenSelection', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('fejler med loentype-mangler når løntype ikke kan opløses', () => {
-    const result = parseOffentligLoenSelection({ ...base, offentligLoenType: undefined });
-    expect(result).toEqual({ ok: false, reason: 'loentype-mangler' });
+  it('læser Timeløn som timeløn og Månedsløn som månedsløn (løntypen kan ikke mangle, BB-300)', () => {
+    const time = parseOffentligLoenSelection({ ...base, offentligLoenType: 'Timeløn' });
+    const maaned = parseOffentligLoenSelection({ ...base, offentligLoenType: 'Månedsløn' });
+    expect(time.ok && time.selection.loenType).toBe('timeLoen');
+    expect(maaned.ok && maaned.selection.loenType).toBe('maanedsLoen');
   });
 
   it('fejler med trin-mangler når løntrin ikke er et tal', () => {

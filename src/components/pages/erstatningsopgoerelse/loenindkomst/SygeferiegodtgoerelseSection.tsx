@@ -168,7 +168,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {sfgg.canShowOverenskomstDetails && sfgg.showSatsvalg ? (
+      {sfgg.relevanteFelter.satsvalg ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
           <Box className="row--label-right-hover__content">
@@ -189,7 +189,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {sfgg.canShowOverenskomstDetails && sfgg.requiresReferenceperiode ? (
+      {sfgg.relevanteFelter.referenceperiode ? (
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Referenceperiode</Typography>
@@ -235,7 +235,7 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {sfgg.row?.sfggBeregningskilde === 'Manuelt angivet' ? (
+      {sfgg.relevanteFelter.manuel ? (
         <>
           <Box className="row--label-right-hover">
             <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
@@ -277,7 +277,7 @@ const SygeferiegodtgoerelseSection = ({
         </>
       ) : null}
 
-      {sfgg.row?.sfggBeregningskilde !== undefined && sfgg.row.sfggBeregningskilde !== 'Ingen' && sfgg.canShowOverenskomstDetails ? (
+      {sfgg.relevanteFelter.alleredeBetalt ? (
         <Box className="row--label-right-hover">
           <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
           <Box className="row--label-right-hover__content">

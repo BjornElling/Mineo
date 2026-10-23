@@ -97,7 +97,7 @@ const INDEPENDENT_SVIE_SMERTE_SATS_AAR_VALUES: ErstatningsopgoerelseValues = {
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

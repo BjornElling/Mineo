@@ -282,7 +282,7 @@ describe('deriveLoenindkomstVm', () => {
       const af: Ansaettelsesforhold = {
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         overenskomstId: 'kl-overenskomst',
-        offentligLoenType: undefined,
+        offentligLoenType: 'Månedsløn',
         offentligLoenTrin: 30,
         offentligLoenGruppe: 2,
       };

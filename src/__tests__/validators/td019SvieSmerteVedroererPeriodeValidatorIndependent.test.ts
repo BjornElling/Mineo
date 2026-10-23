@@ -98,7 +98,7 @@ const INDEPENDENT_SVIE_SMERTE_VEDROERER_PERIODE_VALUES: ErstatningsopgoerelseVal
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

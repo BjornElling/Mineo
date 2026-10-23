@@ -3,9 +3,10 @@ import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
+import { parseDanishToIso } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { getOverenskomstMetaById, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
-import { getOffentligLoenTabelForDato } from '../../../../data/offentligLoenLookup';
+import { getNyesteOffentligLoenTabelDato, getOffentligLoenTabelForDato } from '../../../../data/offentligLoenLookup';
 
 /**
  * Delt, ren beregnings-/valideringskerne for løntrin-finder-overlayet.
@@ -22,12 +23,27 @@ export type LoentrinFinderErrors = Readonly<{
   dato?: string;
 }>;
 
+export type Loengruppe = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * Ét resultat. Grupper med samme beløb på samme løntrin er samlet i én linje («Løntrin 50, alle grupper») – før
+ * stod de som fem ens linjer (BB-310).
+ */
 export type LoentrinFinderResult = Readonly<{
   loentrin: number | '55+';
-  gruppe: 0 | 1 | 2 | 3 | 4;
+  grupper: readonly Loengruppe[];
   beloeb: number;
   diff: number;
 }>;
+
+/** «Løntrin 38, gruppe 4», «Løntrin 50, alle grupper» eller «Løntrin 12, gruppe 1 og 2». */
+export const formatLoentrinFinderResultLabel = (result: Pick<LoentrinFinderResult, 'loentrin' | 'grupper'>): string => {
+  const trin = `Løntrin ${String(result.loentrin)}`;
+  if (result.grupper.length === LOENGRUPPER.length) return `${trin}, alle grupper`;
+  if (result.grupper.length === 1) return `${trin}, gruppe ${String(result.grupper[0])}`;
+  const sidste = result.grupper[result.grupper.length - 1];
+  return `${trin}, gruppe ${result.grupper.slice(0, -1).join(', ')} og ${String(sidste)}`;
+};
 
 /**
  * Udfald af et beregningsforsøg. `ok: false` betyder at knappen skal "ryste" (shake) og
@@ -35,7 +51,14 @@ export type LoentrinFinderResult = Readonly<{
  */
 export type LoentrinFinderCalculationOutcome =
   | Readonly<{ ok: false; errors: LoentrinFinderErrors }>
-  | Readonly<{ ok: true; results: ReadonlyArray<LoentrinFinderResult> }>;
+  | Readonly<{
+    ok: true;
+    results: ReadonlyArray<LoentrinFinderResult>;
+    /** Datoen for den lønsatstabel, svaret bygger på (BB-310). */
+    satsDato: ISODateString;
+    /** Sand, når tabellen er programmets nyeste – også for en dato langt efter den. */
+    erNyesteSatser: boolean;
+  }>;
 
 export type LoentrinFinderCalculationInput = Readonly<{
   overenskomstId: string | undefined;
@@ -124,13 +147,19 @@ export const calculateLoentrinFinderResults = (
     };
   }
 
-  const results: LoentrinFinderResult[] = [];
+  // Grupper med samme beløb på samme løntrin samles; rækkefølgen er nærmeste beløb først.
+  const results: { loentrin: number | '55+'; grupper: Loengruppe[]; beloeb: number; diff: number }[] = [];
   for (const entry of loenTabel.entries) {
     for (const gruppe of LOENGRUPPER) {
       const beloeb = input.ansaettelse === 'Timeløn' ? entry.timeLoen[gruppe] : entry.maanedsLoen[gruppe];
+      const samme = results.find((result) => result.loentrin === entry.loentrin && result.beloeb === beloeb);
+      if (samme !== undefined) {
+        samme.grupper.push(gruppe);
+        continue;
+      }
       results.push({
         loentrin: entry.loentrin,
-        gruppe,
+        grupper: [gruppe],
         beloeb,
         diff: Math.abs(beloeb - validation.beloebNumber),
       });
@@ -141,8 +170,18 @@ export const calculateLoentrinFinderResults = (
     if (a.diff !== b.diff) return a.diff - b.diff;
     const trinDiff = parseLoentrinSortValue(a.loentrin) - parseLoentrinSortValue(b.loentrin);
     if (trinDiff !== 0) return trinDiff;
-    return a.gruppe - b.gruppe;
+    return (a.grupper[0] ?? 0) - (b.grupper[0] ?? 0);
   });
 
-  return { ok: true, results: results.slice(0, 5) };
+  const satsDato = parseDanishToIso(loenTabel.effectiveDate);
+  if (satsDato === undefined) {
+    return { ok: false, errors: { ...validation.errors, dato: `Der findes ingen satser for ${overenskomstLabel} på den valgte dato` } };
+  }
+  return {
+    ok: true,
+    results: results.slice(0, 5),
+    satsDato,
+    erNyesteSatser: getNyesteOffentligLoenTabelDato(offentligOverenskomstType) === loenTabel.effectiveDate,
+  };
 };
+

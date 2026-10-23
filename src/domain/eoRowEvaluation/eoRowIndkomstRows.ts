@@ -2,11 +2,10 @@ import type { ISODateString } from '../../types/branded';
 import { erStoreBededagstillaegRelevant, kanDerVaereKravPaaStoreBededagstillaeg } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import type { EoRowModel, EoRowStatus } from './eoRowTypes';
+import type { DependencySpec, EoRowModel, EoRowStatus } from './eoRowTypes';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import { isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { resolveKildeReguleringsIntervalIso } from '../erstatningsopgoerelse/helpers/reguleringKildeCoverage';
-import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
@@ -17,7 +16,7 @@ import {
   isManuelProcentsatsRowAktiv,
   isManuelProcentsatsRowKomplet,
 } from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
-import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import { resolveReguleringskildeNavn, resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { resolveAnvendtReguleringsdatoReferenceText } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import {
   resolveAnvendtReguleringsdatoForAnsaettelsesforhold,
@@ -38,10 +37,10 @@ import { getToday } from '../../config/dateRanges';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSettings';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
-import { formatStatusMessage, getRangeForManualRegulering, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
+import { formatStatusMessage, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDato } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { resolveYdelsestype } from '../../data/ydelsestyper';
-import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { eoAngivetLoenFields, eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import {
   eoOffentligeYdelserFraDatoField,
   eoOffentligeYdelserTillaegField,
@@ -51,9 +50,28 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { OffentligeYdelserTableColumnKey } from '../../types/table';
-import { buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildTafRanges, resolveTafBoundaryDatesInSkadetPeriode } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
 import { resolveManualRegulationIssue } from './eoManualRegulationIssue';
+import {
+  formatManualRegulationRowName,
+  manualRegulationFormPrefix,
+  resolveManualRegulationWarnings,
+} from '../erstatningsopgoerelse/manualRegulationIssues';
+import {
+  resolveAnciennitetstillaegEfterTafAdvarsler,
+  resolveAnciennitetstillaegMangel,
+} from '../erstatningsopgoerelse/anciennitetstillaegRules';
+import { resolveForhoejetGrundloenAdvarsler } from '../erstatningsopgoerelse/forhoejetGrundloenRules';
+import {
+  formatReguleringsdatoFoerKildeBesked,
+  formatTafStartFoerKildeBesked,
+  formatTafStartFoerManuelReguleringsdatoBesked,
+} from '../erstatningsopgoerelse/loenudviklingReguleringsdatoIssues';
+import {
+  MANUEL_PROCENTSATS_UDEN_SATSER_BESKED,
+  OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
+} from '../erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
 
 /** Ydelsescellens feltadresse – linket fra en ydelseslinje fører til netop cellen (BB-291). */
 const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTableColumnKey): FieldAddress => {
@@ -65,11 +83,6 @@ const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTa
     case 'ydelsestype': return eoOffentligeYdelserYdelsestypeField.bind(rowId).address;
   }
 };
-
-const resolveLoenindkomstTableInputIssue = (
-  issues: Readonly<Record<string, FieldIssue>> | undefined,
-  employmentId: string,
-): FieldIssue | undefined => issues?.[employmentId];
 
 /**
  * Advarslen om et fravalgt Store Bededagstillæg (ordlyd godkendt af udvikleren).
@@ -166,36 +179,6 @@ export const buildEoMidlertidigtEetKonsistensRows = (
   ];
 };
 
-const resolveTafBoundaryDatesInSkadetPeriode = (
-  values: ErstatningsopgoerelseValues
-): Readonly<{ first?: ISODateString; last?: ISODateString }> => {
-  const periodeTil = isISODateString(values.vedroererPeriodeTil) ? values.vedroererPeriodeTil : undefined;
-  if (!periodeTil) return {};
-  const periodeFra = isISODateString(values.vedroererPeriodeFra) ? values.vedroererPeriodeFra : undefined;
-  const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
-
-  let first: ISODateString | undefined;
-  let last: ISODateString | undefined;
-
-  for (const row of values.tafPerioder ?? []) {
-    if (!isISODateString(row.fra) || !isISODateString(row.til)) continue;
-    if (row.fra > row.til) continue;
-
-    if (periodRange) {
-      if (row.til < periodRange.fra || row.fra > periodRange.til) continue;
-      const firstCandidate = row.fra < periodRange.fra ? periodRange.fra : row.fra;
-      const lastCandidate = row.til > periodRange.til ? periodRange.til : row.til;
-      if (!first || firstCandidate < first) first = firstCandidate;
-      if (!last || lastCandidate > last) last = lastCandidate;
-      continue;
-    }
-
-    if (!first || row.fra < first) first = row.fra;
-    if (!last || row.til > last) last = row.til;
-  }
-
-  return { first, last };
-};
 
 /**
  * Programmet har ikke den valgte private overenskomsts satser på en dato, kortet skal bruge (BB-275).
@@ -264,12 +247,17 @@ const buildOverenskomstSatsDaekningRows = (
 export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
-  manualReguleringInputErrors: Readonly<Record<string, true>> = {},
+  // Ubrugt siden BB-307: de manuelle tabellers røde celler læses nu pr. celle fra `manualReguleringFieldIssues`.
+  // Positionen bevares, så kaldestederne ikke flytter argumenter.
+  _manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   rowPolicy: EoRowPolicy = DEFAULT_EO_ROW_POLICY,
   skadestype?: 'Arbejdsulykke' | 'Erhvervssygdom',
-  manualReguleringFieldIssues?: Readonly<Record<string, FieldIssue>>,
+  /** De manuelle tabellers røde celler pr. ejer (ansættelsesforholdets id eller den angivne løns id). */
+  manualReguleringFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
   loenindkomstKortFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
   loenindkomstTableCellIssues: Readonly<Record<string, readonly FieldIssue[]>> = {},
+  /** Den angivne løns egne felter med en rød værdi (BB-306). */
+  angivetLoenFieldIssues: readonly FieldIssue[] = [],
 ): EoRowModel[] => {
   const today = getToday();
   const rows: EoRowModel[] = [];
@@ -462,33 +450,77 @@ export const buildEoIndkomstRows = (
     }
 
     const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
-    let status: EoRowStatus = 'ok';
-    let message = '-';
+    const ownerFieldIssues = erBeregningsperiode
+      ? loenindkomstKortFieldIssues[ansaettelsesforhold.id] ?? []
+      : angivetLoenFieldIssues;
+    const harFeltfejl = (field: string): boolean =>
+      ownerFieldIssues.some((issue) => issue.field.address.field === field);
+    const feltRowId = (field: string): string => erBeregningsperiode
+      ? `loenindkomst.${ansaettelsesforhold.id}.felt.${field}`
+      : `${loenudviklingRowPrefix}.felt.${field}`;
+    const ownerFieldAddress = (field: keyof typeof eoAngivetLoenFields & keyof typeof eoEmploymentFields) =>
+      erBeregningsperiode
+        ? eoEmploymentFields[field].bind(ansaettelsesforhold.id).address
+        : eoAngivetLoenFields[field].bind().address;
+    const employmentIdProp = erBeregningsperiode ? { employmentId: ansaettelsesforhold.id } : {};
 
-    if (!loenudviklingBasis) {
-      status = 'error';
-      message = 'Lønudvikling beregnes ud fra er ikke valgt';
-    } else if (loenudviklingBasis === 'Overenskomst' && !ansaettelsesforhold.overenskomstId) {
-      status = 'error';
-      message = 'Overenskomst er ikke valgt';
-    } else if (loenudviklingBasis === 'Statistik' && !ansaettelsesforhold.loenudviklingStatistikModel) {
-      status = 'error';
-      message = 'Statistisk beregningsmodel er ikke valgt';
-    } else if (loenudviklingBasis === 'KRL satstabel' && !ansaettelsesforhold.loenudviklingKRLSatstabel) {
-      status = 'error';
-      message = 'KRL satstabel er ikke valgt';
+    // Den angivne løns egne felter med en rød værdi får hver sin linje med feltets navn og link – som
+    // ansættelsesforholdets kortfelter (BB-277). Før nåede de kun boksen gennem sikkerhedsnettet, og kun når intet
+    // andet stod der; en rød løntrin under angivet løn blev i stedet meldt som «Løntrin er ikke angivet» (BB-306).
+    if (!erBeregningsperiode) {
+      angivetLoenFieldIssues.forEach((issue) => {
+        const issueStatus: EoRowStatus = issue.severity === 'error' ? 'error' : 'warning';
+        rows.push({
+          id: feltRowId(issue.field.address.field),
+          label: issue.field.descriptor.label,
+          displayValue: formatStatusMessage(issueStatus, issue.message),
+          status: issueStatus,
+          message: issue.message,
+          focusTarget: { kind: 'fieldAddress', address: issue.field.address },
+        });
+      });
     }
+
+    // «Valgt regulering». Beskederne bruger feltets eget navn (BB-316): før stod der «Regulering er sat til 'KRL',
+    // men ingen KRL-satstabel er valgt» om et felt, der hedder «Satstabel».
+    const valgt = ((): Readonly<{ message: string; focusAddress: FieldAddress }> | undefined => {
+      if (!loenudviklingBasis) {
+        return { message: 'Lønudvikling er ikke angivet', focusAddress: ownerFieldAddress('loenudviklingBeregningsgrundlag') };
+      }
+      if (loenudviklingBasis === 'Overenskomst' && erBeregningsperiode && !ansaettelsesforhold.harOverenskomst) {
+        // Kortets overenskomst er slået fra, men lønudviklingen bygger på den. Linket fører til knappen, ikke til
+        // det skjulte valg (BB-316).
+        return {
+          message: OVERENSKOMST_SKAL_SLAAS_TIL_BESKED,
+          focusAddress: eoEmploymentFields.harOverenskomst.bind(ansaettelsesforhold.id).address,
+        };
+      }
+      if (loenudviklingBasis === 'Overenskomst' && !ansaettelsesforhold.overenskomstId) {
+        return { message: 'Overenskomst er ikke valgt', focusAddress: ownerFieldAddress('overenskomstId') };
+      }
+      if (loenudviklingBasis === 'Statistik' && !ansaettelsesforhold.loenudviklingStatistikModel) {
+        return { message: 'Statistisk beregningsmodel er ikke valgt', focusAddress: ownerFieldAddress('loenudviklingStatistikModel') };
+      }
+      if (loenudviklingBasis === 'KRL satstabel' && !ansaettelsesforhold.loenudviklingKRLSatstabel) {
+        return { message: 'Satstabel er ikke valgt', focusAddress: ownerFieldAddress('loenudviklingKRLSatstabel') };
+      }
+      return undefined;
+    })();
 
     const valgtReguleringRowId = `${loenudviklingRowPrefix}.valgt`;
     rows.push({
       id: valgtReguleringRowId,
+      ...employmentIdProp,
       label: 'Valgt regulering',
-      displayValue: status === 'ok' ? 'Ja' : formatStatusMessage(status, message),
-      status,
-      message: status === 'ok' ? undefined : message,
+      displayValue: valgt === undefined ? 'Ja' : formatStatusMessage('error', valgt.message),
+      status: valgt === undefined ? 'ok' : 'error',
+      ...(valgt === undefined ? {} : {
+        message: valgt.message,
+        summaryText: valgt.message,
+        focusTarget: { kind: 'fieldAddress' as const, address: valgt.focusAddress },
+      }),
     });
-    const harGyldigValgtRegulering = status === 'ok';
-    if (!harGyldigValgtRegulering) {
+    if (valgt !== undefined) {
       return;
     }
 
@@ -506,51 +538,98 @@ export const buildEoIndkomstRows = (
       isOffentligOverenskomstId(ansaettelsesforhold.overenskomstId)
     ) {
       const offentligtRowId = `${loenudviklingRowPrefix}.offentligLoenoplysninger`;
-      const typeLabel = ansaettelsesforhold.offentligLoenType;
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
-
-      let offentligStatus: EoRowStatus = 'ok';
-      let offentligMessage = '';
-
-      if (!typeLabel || !resolveOffentligLoenTypeFromLabel(typeLabel)) {
-        offentligStatus = 'error';
-        offentligMessage = 'Ansættelse er ikke valgt';
-      } else if (typeof trinValue !== 'number') {
-        offentligStatus = 'error';
-        offentligMessage = 'Løntrin er ikke angivet';
-      } else {
-        try {
-          toLoentrin(trinValue);
-        } catch {
-          offentligStatus = 'error';
-          offentligMessage = 'Løntrin skal være mellem 1 og 55';
-        }
-      }
-
-      if (offentligStatus === 'ok') {
-        if (typeof gruppeValue !== 'number') {
-          offentligStatus = 'error';
-          offentligMessage = 'Gruppe er ikke valgt';
-        } else if (gruppeValue < 0 || gruppeValue > 4) {
-          offentligStatus = 'error';
-          offentligMessage = 'Gruppe skal være mellem 0 og 4';
-        }
-      }
-
-      const offentligDisplayValue =
-        offentligStatus === 'ok'
-          ? `${typeLabel}, løntrin ${String(trinValue)}, gruppe ${String(gruppeValue)}`
-          : formatStatusMessage('error', offentligMessage);
+      // Et rødt løntrin eller en rød gruppe har sin egen linje med feltets tekst; readeren giver dem som tomme her,
+      // så de må ikke også meldes som «ikke angivet». Begge mangler meldes på én gang (BB-316).
+      const trinFejl = harFeltfejl('offentligLoenTrin');
+      const gruppeFejl = harFeltfejl('offentligLoenGruppe');
+      const manglerTrin = !trinFejl && typeof trinValue !== 'number';
+      const manglerGruppe = !gruppeFejl && typeof gruppeValue !== 'number';
+      const offentligMessage = manglerTrin && manglerGruppe
+        ? 'Løntrin og gruppe er ikke angivet'
+        : manglerTrin
+          ? 'Løntrin er ikke angivet'
+          : manglerGruppe
+            ? 'Gruppe er ikke angivet'
+            : undefined;
+      const offentligStatus: EoRowStatus = offentligMessage !== undefined || trinFejl || gruppeFejl ? 'error' : 'ok';
 
       rows.push({
         id: offentligtRowId,
+        ...employmentIdProp,
         label: 'KL-/RLTN-oplysninger',
-        displayValue: offentligDisplayValue,
+        displayValue: offentligStatus === 'ok'
+          ? `${ansaettelsesforhold.offentligLoenType}, løntrin ${String(trinValue)}, gruppe ${String(gruppeValue)}`
+          : formatStatusMessage('error', offentligMessage ?? 'Ugyldig indtastning'),
         status: offentligStatus,
+        ...(offentligMessage === undefined ? {} : {
+          message: offentligMessage,
+          summaryText: offentligMessage,
+          focusTarget: {
+            kind: 'fieldAddress' as const,
+            address: ownerFieldAddress(manglerTrin ? 'offentligLoenTrin' : 'offentligLoenGruppe'),
+          },
+        }),
+        // Uden en egen mangel er rækken kun rød, fordi et felt er rødt – og det felts linje er årsagen.
+        dependsOn: [
+          { kind: 'id', id: valgtReguleringRowId },
+          ...(offentligMessage === undefined && trinFejl ? [{ kind: 'id' as const, id: feltRowId('offentligLoenTrin') }] : []),
+          ...(offentligMessage === undefined && gruppeFejl ? [{ kind: 'id' as const, id: feltRowId('offentligLoenGruppe') }] : []),
+        ],
+      });
+
+      // En forhøjet grundløn over selve trinlønnen er gul (BB-313): typisk et månedsbeløb angivet pr. time.
+      resolveForhoejetGrundloenAdvarsler(values, { skadedato })
+        .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
+        .forEach((advarsel) => {
+          const cell = advarsel.cells[0];
+          rows.push({
+            id: `${loenudviklingRowPrefix}.forhoejetGrundloen`,
+            ...employmentIdProp,
+            label: 'Advarsel',
+            displayValue: `Advarsel (${advarsel.summaryMessage})`,
+            status: 'warning',
+            summaryDisplay: 'messageOnly',
+            summaryText: advarsel.summaryMessage,
+            ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
+            dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+          });
+        });
+    }
+
+    // Anciennitetstillægget: slået til uden dato eller sats spærrer (BB-304), og en dato efter erstatningsperioden
+    // advarer (BB-305). Feltrelevansen giver et skjult tillæg som slået fra.
+    const anciennitetMangel = resolveAnciennitetstillaegMangel(values, ansaettelsesforhold);
+    if (anciennitetMangel !== undefined) {
+      rows.push({
+        id: `${loenudviklingRowPrefix}.anciennitetstillaeg`,
+        ...employmentIdProp,
+        label: 'Anciennitetstillæg',
+        displayValue: formatStatusMessage('error', anciennitetMangel.message),
+        status: 'error',
+        message: anciennitetMangel.message,
+        summaryText: anciennitetMangel.message,
+        focusTarget: { kind: 'fieldAddress', address: anciennitetMangel.focusAddress },
         dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
       });
     }
+    resolveAnciennitetstillaegEfterTafAdvarsler(values, tafBoundaryDates.last)
+      .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
+      .forEach((advarsel) => {
+        const cell = advarsel.cells[0];
+        rows.push({
+          id: `${loenudviklingRowPrefix}.anciennitetstillaegEfterTaf`,
+          ...employmentIdProp,
+          label: 'Advarsel',
+          displayValue: `Advarsel (${advarsel.summaryMessage})`,
+          status: 'warning',
+          summaryDisplay: 'messageOnly',
+          summaryText: advarsel.summaryMessage,
+          ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
+          dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+        });
+      });
 
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
       beregnesUdFra: values.beregnesUdFra,
@@ -569,15 +648,67 @@ export const buildEoIndkomstRows = (
       angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
     });
 
+    const erManuel = loenudviklingBasis === 'Manuelt angivet' || loenudviklingBasis === 'Manuel procentsats';
+    const alleVaerdierRowId = `${loenudviklingRowPrefix}.alleVaerdier`;
+
+    // De manuelle tabeller: én linje pr. rød celle med rækkens navn og cellens egen tekst og link – på begge flader
+    // (BB-307, BB-308, form som BB-291). Før stod kun den første røde celle som «Manuel regulering: Dato», og på EO
+    // oplysninger slet ingen; brugeren så i stedet følgen («'Reguleringsværdi på slut-dato …' er ikke angivet»).
+    const manuelCelleRowIds: string[] = [];
+    if (erManuel) {
+      const aktivTabel = loenudviklingBasis === 'Manuel procentsats'
+        ? 'loenudviklingManuelProcentsatsTableData'
+        : 'loenudviklingManuelTableData';
+      const tabelRows: readonly Readonly<{ id: string; dato?: ISODateString | undefined }>[] = loenudviklingBasis === 'Manuel procentsats'
+        ? ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? []
+        : ansaettelsesforhold.loenudviklingManuelTableData ?? [];
+      const prefix = manualRegulationFormPrefix(loenudviklingBasis);
+      (manualReguleringFieldIssues[ansaettelsesforhold.id] ?? [])
+        .filter((issue) => issue.field.address.path.some((segment) => segment.kind === 'entity' && segment.collection === aktivTabel))
+        .forEach((issue) => {
+          const rowSegment = issue.field.address.path.find(
+            (segment): segment is Extract<typeof segment, { kind: 'entity' }> =>
+              segment.kind === 'entity' && segment.collection === aktivTabel
+          );
+          const rowIndex = tabelRows.findIndex((row) => row.id === rowSegment?.entityId);
+          const tabelRow = rowIndex < 0 ? undefined : tabelRows[rowIndex];
+          // En rød dato giver ikke et brugbart navn til rækken; da bruges dens plads i tabellen.
+          const rowName = formatManualRegulationRowName(
+            issue.field.address.field === 'dato' ? undefined : tabelRow,
+            Math.max(rowIndex, 0),
+          );
+          const linje = `${prefix}, ${rowName}: ${issue.message}`;
+          const id = `${loenudviklingRowPrefix}.manuelCelle.${rowSegment?.entityId ?? String(manuelCelleRowIds.length)}.${issue.field.address.field}`;
+          manuelCelleRowIds.push(id);
+          rows.push({
+            id,
+            ...employmentIdProp,
+            label: `${prefix}, ${rowName}`,
+            displayValue: formatStatusMessage('error', issue.message),
+            status: 'error',
+            message: issue.message,
+            summaryText: linje,
+            focusTarget: { kind: 'fieldAddress', address: issue.field.address },
+            dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+          });
+        });
+    }
+
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
         return { displayValue: 'Ingen', status: 'ok' as EoRowStatus, focusTarget: undefined };
       }
-      if (!loenudviklingBasis) {
-        return { displayValue: 'Nej', status: 'error' as EoRowStatus, focusTarget: undefined };
-      }
-      if (loenudviklingBasis !== 'Manuelt angivet' && loenudviklingBasis !== 'Manuel procentsats') {
+      if (!erManuel) {
         return { displayValue: 'Ja', status: 'ok' as EoRowStatus, focusTarget: undefined };
+      }
+
+      // En rød celle har sin egen linje ovenfor; denne række er da kun den samlede status og undertrykkes af den.
+      if (manuelCelleRowIds.length > 0) {
+        return {
+          displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
+          status: 'error' as EoRowStatus,
+          focusTarget: undefined,
+        };
       }
 
       const manualIssue = resolveManualRegulationIssue(
@@ -585,36 +716,25 @@ export const buildEoIndkomstRows = (
         loenudviklingBasis,
         erBeregningsperiode,
       );
-      const inputIssue = erBeregningsperiode
-        ? resolveLoenindkomstTableInputIssue(manualReguleringFieldIssues, ansaettelsesforhold.id)
-        : undefined;
-      const inputIssueFocusTarget = inputIssue
-        ? { kind: 'fieldAddress' as const, address: inputIssue.field.address }
-        : undefined;
-      const focusTarget = inputIssueFocusTarget ?? manualIssue?.focusTarget;
-      const manualIssueMessage = inputIssue
-        ? `Manuel regulering: ${inputIssue.field.descriptor.label}`
-        : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering';
-
-      // En rød celle i indtægtstabellen har sin egen linje (BB-291) og gør ikke reguleringen ugyldig. I
-      // beregningsperioden kræves derfor en rød celle i en af reguleringens EGNE tabeller.
-      if (manualReguleringInputErrors[ansaettelsesforhold.id] && (!erBeregningsperiode || inputIssue !== undefined)) {
-        return {
-          displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
-          message: manualIssueMessage,
-          focusTarget,
-          status: 'error' as EoRowStatus,
-        };
-      }
 
       if (loenudviklingBasis === 'Manuel procentsats') {
         const procentsatsRows = (ansaettelsesforhold.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
         const aktiveRows = procentsatsRows.filter(isManuelProcentsatsRowAktiv);
+        // En procentsats-tabel uden en eneste sats regnes som 0 %, mens papiret skriver «tillagt efterfølgende
+        // lønstigninger». Brugeren har valgt en reguleringsform og glemt satserne (BB-303).
+        if (aktiveRows.length === 0) {
+          return {
+            displayValue: 'Nej',
+            message: manualIssue?.message ?? MANUEL_PROCENTSATS_UDEN_SATSER_BESKED,
+            focusTarget: manualIssue?.focusTarget,
+            status: 'error' as EoRowStatus,
+          };
+        }
         const ok = aktiveRows.every(isManuelProcentsatsRowKomplet);
         return {
           displayValue: ok ? 'Ja' : 'Nej',
           message: ok ? undefined : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
-          focusTarget: ok ? undefined : focusTarget,
+          focusTarget: ok ? undefined : manualIssue?.focusTarget,
           status: ok ? 'ok' : 'error' as EoRowStatus,
         };
       }
@@ -627,7 +747,7 @@ export const buildEoIndkomstRows = (
         return {
           displayValue: 'Nej',
           message: manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
-          focusTarget,
+          focusTarget: manualIssue?.focusTarget,
           status: 'error' as EoRowStatus,
         };
       }
@@ -659,14 +779,15 @@ export const buildEoIndkomstRows = (
       return {
         displayValue: ok ? 'Ja' : 'Nej',
         message: ok ? undefined : manualIssue?.message ?? 'Værdier mangler at blive udfyldt for manuel regulering',
-        focusTarget: ok ? undefined : focusTarget,
+        focusTarget: ok ? undefined : manualIssue?.focusTarget,
         status: ok ? 'ok' : 'error' as EoRowStatus,
       };
     })();
 
     if (loenudviklingBasis !== 'Ingen') {
       rows.push({
-        id: `${loenudviklingRowPrefix}.alleVaerdier`,
+        id: alleVaerdierRowId,
+        ...employmentIdProp,
         label: 'Alle reguleringsværdier udfyldt',
         displayValue: alleReguleringsvaerdierRow.displayValue,
         message: alleReguleringsvaerdierRow.message,
@@ -675,12 +796,35 @@ export const buildEoIndkomstRows = (
           : undefined,
         status: alleReguleringsvaerdierRow.status,
         focusTarget: alleReguleringsvaerdierRow.focusTarget,
-        dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+        dependsOn: [
+          { kind: 'id', id: valgtReguleringRowId },
+          ...manuelCelleRowIds.map((id) => ({ kind: 'id' as const, id })),
+        ],
       });
     }
 
+    // De manuelle tabellers gule advarsler (BB-302, BB-313) – samme domæneregel som fladens gule ring.
+    if (erManuel) {
+      resolveManualRegulationWarnings(values, { skadedato }, tafBoundaryDates.last, overenskomstUdloebMaanederGraense)
+        .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
+        .forEach((advarsel) => {
+          const cell = advarsel.cells[0];
+          rows.push({
+            id: `${loenudviklingRowPrefix}.manuelAdvarsel.${advarsel.kind}.${advarsel.rowId}`,
+            ...employmentIdProp,
+            label: 'Advarsel',
+            displayValue: `Advarsel (${advarsel.summaryMessage})`,
+            status: 'warning',
+            summaryDisplay: 'messageOnly',
+            summaryText: advarsel.summaryMessage,
+            ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
+            // Udløbet er først meningsfuldt, når tabellen er udfyldt; de øvrige gælder den enkelte celle.
+            dependsOn: [{ kind: 'id', id: advarsel.kind === 'udloeb' ? alleVaerdierRowId : valgtReguleringRowId }],
+          });
+        });
+    }
+
     const showReguleringDetails =
-      harGyldigValgtRegulering &&
       alleReguleringsvaerdierRow.status === 'ok' &&
       alleReguleringsvaerdierRow.displayValue === 'Ja';
 
@@ -696,49 +840,66 @@ export const buildEoIndkomstRows = (
       if (kildeInterval) {
         return { min: kildeInterval.fraIso, max: kildeInterval.tilIso };
       }
-      if (loenudviklingBasis === 'Manuelt angivet') {
-        return getRangeForManualRegulering(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
-      }
-      if (loenudviklingBasis === 'Manuel procentsats') {
-        return {
-          min: anvendtReguleringsdato,
-          max: tafBoundaryDates.last ?? anvendtReguleringsdato,
-        };
+      if (erManuel) {
+        // En manuel tabel gælder, til næste række ændrer den: der er intet kildeudløb at måle mod. At den ikke er
+        // ændret i lang tid, er en gul advarsel ovenfor, ikke en manglende reguleringsværdi (BB-302).
+        return { min: anvendtReguleringsdato, max: tafBoundaryDates.last ?? anvendtReguleringsdato };
       }
       return {} as ReguleringsRange;
     })();
 
+    // Kontrolrækkerne nedenfor er kontroltabellens. Et problem, de finder, meldes i «Fejl og advarsler» af det felt,
+    // brugeren skal ændre – reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra» (eller den særlige
+    // fra-dato) og en manglende dato ved sit eget felt. Rækkerne afhænger derfor af de linjer og står kun selv i
+    // boksen, hvis ingen af dem gør – da med en sætning i brugerens sprog, ikke rækkens interne navn (BB-306).
+    const kildeNavn = resolveReguleringskildeNavn(ansaettelsesforhold);
+    const grundlagFocus = { kind: 'fieldAddress' as const, address: ownerFieldAddress('loenudviklingBeregningsgrundlag') };
+    const daekningDependsOn: DependencySpec[] = [
+      { kind: 'id', id: alleVaerdierRowId },
+      { kind: 'id', id: feltRowId('loenudviklingBeregningsgrundlag') },
+      { kind: 'id', id: feltRowId('saerligFraDatoRegulering') },
+      // En privat overenskomst uden satser på reguleringsdatoen meldes af kortets satslinje (BB-306).
+      ...(erBeregningsperiode ? [{ kind: 'id' as const, id: `loenindkomst.${ansaettelsesforhold.id}.overenskomstSatserMangler` }] : []),
+      // En manglende reguleringsdato skyldes en manglende skadedato, beregningsperiode eller angivet dato.
+      { kind: 'id', id: 'stamdata.skadedato' },
+      { kind: 'id', id: 'taf.beregningsgrundlag.beregningsperiode' },
+      { kind: 'id', id: 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato' },
+    ];
+
     const reguleringsvaerdiRowStatus = (() => {
-      if (!anvendtReguleringsdato) return { displayValue: '-', status: 'error' as EoRowStatus };
+      if (!anvendtReguleringsdato) {
+        return { displayValue: '-', status: 'error' as EoRowStatus, summaryText: 'Reguleringsdatoen kan ikke fastlægges – udfyld datoen, lønnen gælder fra' };
+      }
       if (!reguleringsRange.min) {
-        return {
-          displayValue: 'Nej',
-          status: 'error' as EoRowStatus,
-        };
+        return { displayValue: 'Nej', status: 'error' as EoRowStatus, summaryText: undefined };
       }
       if (anvendtReguleringsdato < reguleringsRange.min) {
         return {
           displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
           status: 'error' as EoRowStatus,
+          summaryText: formatReguleringsdatoFoerKildeBesked(kildeNavn, anvendtReguleringsdato, reguleringsRange.min),
         };
       }
-      return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
+      return { displayValue: 'Ja', status: 'ok' as EoRowStatus, summaryText: undefined };
     })();
 
     const startDateRowStatus = (() => {
       const tafStartIso = tafBoundaryDates.first;
-      if (!tafStartIso || !reguleringsRange.min) return { displayValue: '-', status: 'error' as EoRowStatus };
-      if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
+      if (!tafStartIso || !reguleringsRange.min) return { displayValue: '-', status: 'error' as EoRowStatus, summaryText: undefined };
+      if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus, summaryText: undefined };
       return {
         displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
         status: 'error' as EoRowStatus,
+        summaryText: erManuel
+          ? formatTafStartFoerManuelReguleringsdatoBesked(reguleringsRange.min)
+          : formatTafStartFoerKildeBesked(kildeNavn, reguleringsRange.min),
       };
     })();
 
     const endDateRowStatus = (() => {
       const tafEndIso = tafBoundaryDates.last;
-      if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as EoRowStatus };
-      if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
+      if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as EoRowStatus, summaryText: undefined };
+      if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus, summaryText: undefined };
 
       const maanederSidenUdloeb = calculateElapsedWholeMonths(reguleringsRange.max, tafEndIso);
       if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
@@ -753,58 +914,60 @@ export const buildEoIndkomstRows = (
         return {
           displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
           status: 'ok' as EoRowStatus,
+          summaryText: undefined,
         };
       }
 
+      const tilDisplay = isoToDanish(reguleringsRange.max) ?? reguleringsRange.max;
       return {
-        displayValue: `Nej (kun indtil ${isoToDanish(reguleringsRange.max) ?? reguleringsRange.max})`,
+        displayValue: `Nej (kun indtil ${tilDisplay})`,
         status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
+        summaryText: `Der er ikke reguleringsværdier for hele TAF-perioden – ${kildeNavn} dækker kun til og med ${tilDisplay}. `
+          + 'Vælg en anden reguleringsform',
       };
     })();
     const harTafDatointerval = Boolean(tafBoundaryDates.first && tafBoundaryDates.last);
 
-    rows.push({
-      id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
-      label: `Reguleringsværdi på ${anvendtReguleringsdatoReferenceText} for TAF`,
-      displayValue: reguleringsvaerdiRowStatus.displayValue,
-      status: reguleringsvaerdiRowStatus.status,
-      message: buildReguleringsMangelMessage(
-        reguleringsvaerdiRowStatus.status,
-        reguleringsvaerdiRowStatus.displayValue
-      ),
-      dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+    const kontrolRaekke = (
+      id: string,
+      label: string,
+      rowStatus: Readonly<{ displayValue: string; status: EoRowStatus; summaryText: string | undefined }>,
+      extraDependsOn: readonly DependencySpec[] = [],
+    ): EoRowModel => ({
+      id,
+      ...employmentIdProp,
+      label,
+      displayValue: rowStatus.displayValue,
+      status: rowStatus.status,
+      message: buildReguleringsMangelMessage(rowStatus.status, rowStatus.displayValue),
+      ...(rowStatus.status === 'ok' ? {} : {
+        summaryText: rowStatus.summaryText ?? 'Reguleringsgrundlaget dækker ikke reguleringsdatoen – vælg en anden reguleringsform',
+        focusTarget: grundlagFocus,
+      }),
+      dependsOn: [...daekningDependsOn, ...extraDependsOn],
     });
 
-    if (harTafDatointerval) {
-      rows.push({
-        id: `${loenudviklingRowPrefix}.startvaerdi`,
-        label: 'Reguleringsværdi på start-dato for TAF',
-        displayValue: startDateRowStatus.displayValue,
-        status: startDateRowStatus.status,
-        message: buildReguleringsMangelMessage(
-          startDateRowStatus.status,
-          startDateRowStatus.displayValue
-        ),
-        dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
-      });
+    const reguleringsvaerdiRowId = `${loenudviklingRowPrefix}.reguleringsvaerdi`;
+    rows.push(kontrolRaekke(
+      reguleringsvaerdiRowId,
+      `Reguleringsværdi på ${anvendtReguleringsdatoReferenceText} for TAF`,
+      reguleringsvaerdiRowStatus,
+    ));
 
-      rows.push({
-        id: `${loenudviklingRowPrefix}.slutvaerdi`,
-        label: 'Reguleringsværdi på slut-dato for TAF',
-        displayValue: endDateRowStatus.displayValue,
-        status: endDateRowStatus.status,
-        message: buildReguleringsMangelMessage(
-          endDateRowStatus.status,
-          endDateRowStatus.displayValue
-        ),
-        dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
-      });
+    if (harTafDatointerval) {
+      rows.push(kontrolRaekke(
+        `${loenudviklingRowPrefix}.startvaerdi`,
+        'Reguleringsværdi på start-dato for TAF',
+        startDateRowStatus,
+        // Ligger reguleringsdatoen før første sats, gør TAF-starten det også; én linje er nok.
+        [{ kind: 'id', id: reguleringsvaerdiRowId }],
+      ));
 
       // Samlet, ikke-blokerende advarsel når reguleringskilden ikke dækker hele TAF-perioden, men
-      // hullet er tolereret (start/slut-status er 'warning', ikke blokerende 'error'). De tekniske
-      // start/slut-rækker ovenfor bevares; denne række giver den samlede, brugervendte formulering.
+      // hullet er tolereret (start/slut-status er 'warning', ikke blokerende 'error').
       const daekningStartWarning = startDateRowStatus.status === 'warning';
       const daekningSlutWarning = endDateRowStatus.status === 'warning';
+      const daekningAdvarselRowId = `${loenudviklingRowPrefix}.daekningAdvarsel`;
       if (daekningStartWarning || daekningSlutWarning) {
         const startDato = reguleringsRange.min ? (isoToDanish(reguleringsRange.min) ?? reguleringsRange.min) : undefined;
         const slutDato = reguleringsRange.max ? (isoToDanish(reguleringsRange.max) ?? reguleringsRange.max) : undefined;
@@ -814,15 +977,25 @@ export const buildEoIndkomstRows = (
         ].filter((part): part is string => Boolean(part));
         if (detaljer.length > 0) {
           rows.push({
-            id: `${loenudviklingRowPrefix}.daekningAdvarsel`,
+            id: daekningAdvarselRowId,
+            ...employmentIdProp,
             label: 'Advarsel',
             displayValue: `Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden – ${detaljer.join(' og ')}.)`,
             status: 'warning',
             summaryDisplay: 'messageOnly',
-            dependsOn: [{ kind: 'id', id: `${loenudviklingRowPrefix}.alleVaerdier` }],
+            focusTarget: grundlagFocus,
+            dependsOn: [{ kind: 'id', id: alleVaerdierRowId }],
           });
         }
       }
+
+      rows.push(kontrolRaekke(
+        `${loenudviklingRowPrefix}.slutvaerdi`,
+        'Reguleringsværdi på slut-dato for TAF',
+        endDateRowStatus,
+        // Den samlede advarsel ovenfor siger det samme, når hullet er tolereret (indstillingen).
+        [{ kind: 'id', id: daekningAdvarselRowId }],
+      ));
     }
   });
 

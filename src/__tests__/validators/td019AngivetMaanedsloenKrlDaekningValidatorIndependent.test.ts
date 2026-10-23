@@ -98,7 +98,7 @@ const INDEPENDENT_ANGIVET_MAANEDSLOEN_KRL_COVERAGE_VALUES: Erstatningsopgoerelse
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
@@ -126,7 +126,7 @@ describe('TD-019 – KRL-dækning ved angivet månedsløn uden schema-fixture', 
       isValid: false,
       errors: [{
         path: 'beregnesUdFra',
-        message: 'Lønregulering kan ikke beregnes efter 30-09-2026, fordi datagrundlaget for KRL-satstabellen "KTO (kommuner)" mangler.',
+        message: 'KRL-satstabel (KTO, kommuner) har kun satser, der dækker til og med 30-09-2026 – reguleringsdatoen ligger senere. Vælg en anden reguleringsform',
         severity: 'error',
       }],
     });

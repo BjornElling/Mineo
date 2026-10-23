@@ -252,6 +252,10 @@ export const buildEoSygeferiegodtgoerelseRows = (
         displayValue: referenceDisplay,
         status: result.sfggReferencesats.status === 'ok' ? 'ok' : 'error',
         message: result.sfggReferencesats.status === 'ok' ? undefined : result.sfggReferencesats.reason,
+        // Den samme årsag står på «Referencesats»-rækken nedenfor, som altid dannes med fejl, når denne række
+        // har en; den peger på kortet. Uden afhængigheden stod fx «Lønnen i referenceperioden er samlet negativ …»
+        // to gange i «Fejl og advarsler». Rækken beholder sin fejlstatus i oversigten.
+        dependsOn: [{ kind: 'id' as const, id: `sfgg.referencesats.${employment.id}` }],
       });
     }
 

@@ -181,11 +181,14 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     ]);
   });
 
-  it('rekonstruerer manuelle løn- og procentsatsrækker i det angivne løn-property', () => {
+  // Kun den valgte forms tabel læses; den anden er skjult og gives som tom (BB-301), men rækkerne bevares.
+  it('rekonstruerer den valgte manuelle tabel i det angivne løn-property og læser den fravalgte som tom', () => {
     const reader = buildReader({
       ...buildEoWithEmployment(),
+      beregnesUdFra: 'Angivet månedsløn',
       eoAngivetLoenLoenudvikling: {
         ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenudviklingManuelTableData: [{
           id: 'manuel-1',
           dato: toISODateString('2022-04-01'),
@@ -210,7 +213,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
       expect.objectContaining({ id: 'manuel-1', grundloen: asAmount(30_000), feriepenge: 12.5 }),
     ]);
     expect(manual.loenudviklingManuelProcentsatsTableData).toEqual([
-      expect.objectContaining({ id: 'procent-1', procent: 3.5 }),
+      expect.objectContaining({ id: 'procent-1', procent: undefined }),
     ]);
   });
 

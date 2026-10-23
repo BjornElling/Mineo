@@ -1,6 +1,6 @@
+import { MANUEL_PROCENTSATS_UDEN_SATSER_BESKED } from '../erstatningsopgoerelse/validation/loenudviklingReguleringsdato';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
-  eoAngivetLoenFields,
   eoAngivetLoenManual,
   eoEmploymentFields,
   eoEmploymentManual,
@@ -18,7 +18,6 @@ import {
 } from '../erstatningsopgoerelse/helpers/manuelReguleringRowPredicates';
 import type { EoIssueFocusTarget } from './eoRowTypes';
 
-const MANUEL_REGULERING_MANGLE = 'Manuel regulering mangler';
 
 export type ManualRegulationIssue = Readonly<{
   message: string;
@@ -63,9 +62,9 @@ const ownerSupplementField = (
   owner: ManualOwner,
   field: ManuelAngivetSupplementFelt,
 ): FieldDescriptor<number | undefined> | undefined => {
-  if (owner.kind === 'angivetLoen') {
-    return field === 'feriepenge' ? eoAngivetLoenFields.feriePct : undefined;
-  }
+  // Under angivet løn er basisrækkens procentceller brugerens egne; der er ingen satsfelter over tabellen. Linket
+  // pegede før på et felt uden editor, og intet blinkede (BB-307).
+  if (owner.kind === 'angivetLoen') return undefined;
 
   switch (field) {
     case 'feriepenge': return eoEmploymentFields.feriePct;
@@ -82,8 +81,9 @@ const ownerSupplementField = (
 const createIssue = (
   label: string,
   focusTarget: EoIssueFocusTarget,
+  prefix = 'Manuel regulering',
 ): ManualRegulationIssue => ({
-  message: `${MANUEL_REGULERING_MANGLE}: ${label}`,
+  message: `${prefix} mangler: ${label}`,
   focusTarget,
 });
 
@@ -149,13 +149,20 @@ const resolveManuelProcentsatsIssue = (
 ): ManualRegulationIssue | undefined => {
   const rows = (source.loenudviklingManuelProcentsatsTableData ?? []).slice(1);
   const aktiveRows = rows.filter(isManuelProcentsatsRowAktiv);
-  if (aktiveRows.length === 0) return undefined;
+  // En tabel uden en eneste sats regnes ellers som 0 % (BB-303). Linket fører til den første tomme række.
+  if (aktiveRows.length === 0) {
+    return {
+      message: MANUEL_PROCENTSATS_UDEN_SATSER_BESKED,
+      focusTarget: collectionFieldTarget(bindings.manualPercentFields.dato),
+    };
+  }
 
   const manglendeDato = aktiveRows.find((row) => row.dato === undefined);
   if (manglendeDato) {
     return createIssue(
       bindings.manualPercentFields.dato.label,
       fieldTarget(bindings.manualPercentFields.dato, owner, manglendeDato.id),
+      'Manuel procentsats',
     );
   }
 
@@ -164,6 +171,7 @@ const resolveManuelProcentsatsIssue = (
     return createIssue(
       bindings.manualPercentFields.procent.label,
       fieldTarget(bindings.manualPercentFields.procent, owner, manglendeProcent.id),
+      'Manuel procentsats',
     );
   }
 

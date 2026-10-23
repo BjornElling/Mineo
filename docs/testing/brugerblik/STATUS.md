@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12i – Erstatningsopgørelse → Lønudvikling og regulering af tabet.** 12h er gennemgået 2026-10-19
+- **Næste flade:** **12j – Erstatningsopgørelse → Sygeferiegodtgørelse.** 12i er gennemgået 2026-10-20 (19 fund,
+  BB-300–BB-318), afgjort og gennemført 2026-10-23 (BB-312 afvist); de fire tillægsspørgsmål er besvaret og gennemført samme dag. Tidligere: 12h er gennemgået 2026-10-19
   (11 fund, BB-289–BB-299), afgjort og gennemført samme dag i tre modsvarsrunder (se 12h-afsnittet). 12g er gennemgået,
   afgjort OG gennemført 2026-10-06 (15 fund, BB-274–BB-288). 12f er
   gennemgået, afgjort OG gennemført 2026-10-02 (16 fund, BB-258–BB-273). 12e er gennemgået 2026-09-24
@@ -26,8 +27,11 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-300
-- **Åbne spørgsmål:** **ingen fra 12h** – de sidste tre (BB-290's sygeferiegodtgørelse, BB-293's opgørelse nr. 2 og
+- **Næste fund-ID:** BB-319
+- **Åbne spørgsmål:** **ingen.** 12i's fire tillægsspørgsmål er besvaret og gennemført 2026-10-23: BB-301 valg A
+  (skjulte satser ved «Beløb» og beregningsperioden uden TAF er ikke udfyldt), BB-306 (satslinjen står alene med link til
+  «Vælg overenskomst»), BB-312 valg A (uændret) og BB-313 (gul advarsel, når den forhøjede grundløn er større end
+  trinlønnen). Tidligere: **ingen fra 12h** – de sidste tre (BB-290's sygeferiegodtgørelse, BB-293's opgørelse nr. 2 og
   BB-297) er godkendt efter anbefalingen og gennemført 2026-10-19. Tidligere: **ingen.** 12g's to faglige spørgsmål er besvaret 2026-10-06: en tom feriesats må ikke
   regnes stille (BB-274), og «sidste dag i ansættelsesforholdet» og «sidste arbejdsdag» er samme dato (BB-283).
   Tidligere: **ingen.** 12d's fire beslutningspunkter er afgjort 2026-09-24: BB-239 afvist (én
@@ -100,7 +104,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Flade 12h's 11 fund er afgjort og gennemført 2026-10-19.
+- **Fund, der afventer udviklerens afgørelse:** **ingen** – flade 12i er afgjort og gennemført 2026-10-23; de åbne
+  spørgsmål ovenfor er tillæg. Tidligere: **ingen.** Flade 12h's 11 fund er afgjort og
+  gennemført 2026-10-19.
   Tidligere: **ingen.** **Flade 12g's 15 fund (BB-274–BB-288) er afgjort og
   gennemført 2026-10-06** – se afsnittet om 12g nedenfor. Tidligere: **ingen.** **Flade 12f's 16 fund (BB-258–BB-273) er afgjort og
   gennemført 2026-10-02** – 15 rettet (BB-261 kun del 2), ét afvist (BB-273); se afsnittet om 12f nedenfor.
@@ -156,7 +162,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-19 (**Flade 12h afgjort og gennemført; fem modsvar åbne** – se afsnittet om 12h nedenfor.)
+- **Senest opdateret:** 2026-10-23 (**Flade 12i afgjort og gennemført, også de fire tillægsspørgsmål** – se afsnittet om 12i.)
+  Tidligere: 2026-10-20 (**Flade 12i – Lønudvikling og regulering af tabet – gennemgået: 19 fund, ét
+  Kritisk, fire Høj, syv Mellem og syv Lav, ingen nye tværgående mønstre** – se afsnittet om 12i nedenfor.)
+  Tidligere: 2026-10-19 (**Flade 12h afgjort og gennemført; fem modsvar åbne** – se afsnittet om 12h nedenfor.)
   Tidligere samme dag: (**Flade 12h – Ansættelsesforholdets indtægtsoplysninger – gennemgået: 11 fund, tre
   Høj, fire Mellem og fire Lav, og ét nyt tværgående mønster M-38** – se afsnittet om 12h nedenfor.)
   Tidligere: 2026-10-06 (**Flade 12g afgjort og gennemført** – se afsnittet om 12g nedenfor.)
@@ -600,11 +609,58 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12f | Erstatningsopgørelse – Beregningsgrundlaget for TAF | Afgjort og gennemført | 16 (BB-258–BB-273) | [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md) |
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Afgjort og gennemført | 15 (BB-274–BB-288) | [erstatningsopgoerelse-12g.md](erstatningsopgoerelse-12g.md) |
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Afgjort og gennemført | 11 (BB-289–BB-299) | [erstatningsopgoerelse-12h.md](erstatningsopgoerelse-12h.md) |
-| 12i | Erstatningsopgørelse – Lønudvikling og regulering | Ikke startet | – | – |
+| 12i | Erstatningsopgørelse – Lønudvikling og regulering | Afgjort og gennemført | 19 (BB-300–BB-318) | [erstatningsopgoerelse-12i.md](erstatningsopgoerelse-12i.md) |
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Ikke startet | – | – |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Lønudvikling og regulering af tabet (12i) – gennemgået 2026-10-20, afgjort og gennemført 2026-10-23
+
+**Afgjort og gennemført 2026-10-23:** 18 fund gennemført, BB-312 afvist (intet udfyldes automatisk). «Ansættelse» kan ikke
+være tom (BB-300). Skjulte felter er ikke udfyldt – lønudviklingen, anciennitet, de manuelle tabeller, den særlige
+fra-dato, sygeferiegodtgørelsen og indtægtstabellens kolonner – med feltrelevans (BB-301). De to manuelle tabeller deler
+regler: gul advarsel om udløb (BB-302), dublet-dato rød (BB-311), gule rimelighedskontroller (BB-313), og en tom
+procentsats spærrer (BB-303). Anciennitet uden dato/sats spærrer, og datoen har sin grænse ved feltet (BB-304, BB-305).
+Dækningsfejl er én linje ved formen (BB-306), røde celler har hver sin linje på begge flader (BB-307, BB-308).
+Løntrin-finderen kan indsætte (BB-310). Dokumenternes ord og formater er rettet (BB-309, BB-314, BB-317, BB-318).
+Tillægsspørgsmålene er afgjort samme dag: skjulte satser ved «Beløb» og beregningsperioden uden TAF er ikke udfyldt
+(BB-301), den private overenskomst giver én linje (BB-306), den grå pladsholder er uændret (BB-312), og en forhøjet
+grundløn over trinlønnen er gul (BB-313).
+
+
+**19 fund: ét Kritisk, fire Høj, syv Mellem, syv Lav (fem Fejl, fem Edge case, ni Fornuft) – ingen nye tværgående
+mønstre.** Fladens bærende iagttagelse er, at blokken viser én ting og regner på en anden. «Ansættelse» viser «Månedsløn»
+for en tom værdi, og et valg af «Månedsløn» gemmes som tomt, så opgørelsen spærres med «Ansættelse er ikke valgt» uden
+udvej – på begge flader (BB-300). Skjulte felter spærrer med et link til ingenting (BB-301, M-32), en procentsatstabel uden
+satser regnes som 0 % (BB-303, M-37), og et anciennitetstillæg uden dato eller sats droppes, mens papiret trykker
+«Indtastning mangler» (BB-304). Den manuelle tabel «udløber» et år efter sidste række (BB-302). Dertil dækningsfejlens
+dobbeltlinje (BB-306), EO-fladens døde link (BB-307), grundløn 0 (BB-308), «Timeløn» om en manuel grundløn (BB-309),
+løntrin-finderen (BB-310), dubletdatoer (BB-311) og seks Lav. Beregningerne er ikke vurderet (afklaringsloggen fra
+2026-10-13 er bindende). M-09 bestået; konsollen tavs. Grundlaget står i
+[erstatningsopgoerelse-12i.md](erstatningsopgoerelse-12i.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-300 | «Månedsløn» kan ikke vælges – gemmes som tomt og spærrer | **Kritisk** | Gennemført |
+| BB-301 | Skjulte lønudviklingsfelter spærrer med et link til ingenting (M-32) | **Høj** | Gennemført |
+| BB-302 | Manuelt angivet «udløber» et år efter sidste række | **Høj** | Gennemført |
+| BB-303 | Manuel procentsats uden satser regnes som 0 % (M-37) | **Høj** | Gennemført |
+| BB-304 | Anciennitet uden dato/sats droppes; papiret trykker «Indtastning mangler» | **Høj** | Gennemført |
+| BB-305 | Anciennitetsdato før reguleringsdatoen: ingen ring, intet link | Mellem | Gennemført |
+| BB-306 | Dækningsfejl: to linjer, internt rækkenavn, ring på «Til og med» (M-33) | Mellem | Gennemført |
+| BB-307 | Manuel regulering på EO oplysninger: dødt link, rød dato som følgefejl | Mellem | Gennemført |
+| BB-308 | Grundløn 0 spærrer uden ring, link og række – og først til sidst | Mellem | Gennemført |
+| BB-309 | Bilaget kalder en manuel grundløn «Timeløn» | Mellem | Gennemført |
+| BB-310 | Løntrin-finderen: tom dato afgør svaret, tavs efter nyeste tabel, kan ikke indsætte | Mellem | Gennemført |
+| BB-311 | Samme dato to gange i de manuelle tabeller | Mellem | Gennemført |
+| BB-312 | Feriegodtgørelsen skal tastes igen på hver manuel række; «0,00 %» i tomme celler | Lav | Afvist |
+| BB-313 | 100 % og en ti gange så høj grundløn uden bemærkning (M-05) | Lav | Gennemført |
+| BB-314 | «tillagt efterfølgende lønstigninger» ved nedregulering og 0 % (M-11) | Lav | Gennemført |
+| BB-315 | «Løn på helligdage» under angivet løn læses kun ved Overenskomst (M-35) | Lav | Gennemført |
+| BB-316 | Boksens linjer: 'KRL', «Gruppe er ikke valgt», én mangel ad gangen (M-02) | Lav | Gennemført |
+| BB-317 | «KRL Satstabeller» trykker alle fire tabeller | Lav | Gennemført |
+| BB-318 | Samme procent og omregning i to skrivemåder (M-13) | Lav | Gennemført |
 
 ## Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger (12h) – gennemgået, afgjort og gennemført 2026-10-19
 

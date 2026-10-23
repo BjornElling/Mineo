@@ -354,8 +354,8 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
 
       const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'manual-date' });
 
-      expect(projection.manualRegulationDateIssues.all).toHaveLength(1);
-      expect(projection.manualRegulationDateIssues.all[0]?.message).toBe(
+      expect(projection.loenudviklingIssues.all).toHaveLength(1);
+      expect(projection.loenudviklingIssues.all[0]?.message).toBe(
         'Datoen skal være senere end datoen i den låste første række (30-06-2022)'
       );
       expect(selectBlockingLoenindkomstEntityIds(projection.eoErrors)['af-1']).toBe(true);

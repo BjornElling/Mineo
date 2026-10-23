@@ -3,7 +3,7 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
-import { formatAsAmount, formatAsAmountTrimmed, formatPercent } from '../../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import { isoToDanish } from '../../../types/branded';
 import type { SfggAfkortning } from '../engines/sfggPeriodisering';
 import type { SfggReferencesatsFormula } from '../engines/sfggReferencesats';
@@ -30,7 +30,7 @@ export const buildSfggReguleretSatsLines = (
       return [
         `${isoToDanish(segment.fra)} - ${isoToDanish(segment.til)}:`,
         ...nyeTrin.map((trin) => `${isoToDanish(trin.dato)}: ${formatAsAmount(trin.loenFoer)} `
-          + `${trin.retning === 'frem' ? 'x' : '/'} (100 % + ${formatPercent(trin.pct)}) `
+          + `${trin.retning === 'frem' ? 'x' : '/'} (100 % + ${formatAsAmount(trin.pct, 2)} %) `
           + `= ${formatAsAmount(trin.loenEfter)} kr.`),
       ];
     }

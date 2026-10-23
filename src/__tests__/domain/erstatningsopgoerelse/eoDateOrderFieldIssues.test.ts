@@ -293,9 +293,12 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: toISODateString('2022-06-30'),
       tafBeregningsperiodeTil: toISODateString('2022-04-01'),
+      // Parrene skal være SYNLIGE for at være røde (BB-228): SFGG-rækken hører til et ansættelsesforhold med
+      // TAF-krav og en kilde, der viser referenceperioden, og indtægtstabellen indtastes i dage.
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       sfggAnsaettelsesforhold: [{
-        ansaettelsesforholdId: 'sfgg-1',
-        sfggBeregningskilde: undefined,
+        ansaettelsesforholdId: 'employment-1',
+        sfggBeregningskilde: 'Ferieloven',
         sfggReferenceperiodeFra: toISODateString('2022-06-30'),
         sfggReferenceperiodeTil: toISODateString('2022-04-01'),
         sfggReferenceperiodeFravaersdageUdenLoen: undefined,
@@ -308,6 +311,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
       loenindkomstAnsaettelsesforhold: [{
         ...createDefaultLoenindkomstAnsaettelsesforhold(),
         id: 'employment-1',
+        ansatPaaSkadestidspunktet: true,
+        loenperiode: 'dag',
         indtaegtsoplysningerTableData: [{
           ...createEmptyStandardLoenRow('income-1'),
           col0_dag: toISODateString('2022-06-30'),
@@ -317,8 +322,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     });
     expect(issueAt(evaluation, eoTafBeregningsperiodeFraField.bind())?.reason).toBe('rule');
     expect(issueAt(evaluation, eoTafBeregningsperiodeTilField.bind())?.reason).toBe('rule');
-    expect(issueAt(evaluation, eoSfggReferenceperiodeFraField.bind('sfgg-1'))?.reason).toBe('rule');
-    expect(issueAt(evaluation, eoSfggReferenceperiodeTilField.bind('sfgg-1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoSfggReferenceperiodeFraField.bind('employment-1'))?.reason).toBe('rule');
+    expect(issueAt(evaluation, eoSfggReferenceperiodeTilField.bind('employment-1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoStandardRowFields.col0_dag.bind('employment-1', 'income-1'))?.reason).toBe('rule');
     expect(issueAt(evaluation, eoStandardRowFields.col1_dag.bind('employment-1', 'income-1'))?.reason).toBe('rule');
   });

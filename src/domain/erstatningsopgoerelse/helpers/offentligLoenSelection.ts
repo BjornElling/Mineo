@@ -17,8 +17,8 @@
  * feltspecifikke fejlbeskeder er uændrede, når flere felter mangler samtidig.
  */
 
+import type { OffentligLoenTypeLabel } from '../../../schemas/formSchemas';
 import {
-  resolveOffentligLoenTypeFromLabel,
   toLoentrin,
   type Loengruppe,
   type Loentrin,
@@ -34,8 +34,8 @@ export type OffentligLoenSelection = Readonly<{
 }>;
 
 /** Årsag til at en offentlig løn-indplacering ikke kunne parses (feltspecifik). */
+// «Ansættelse» kan ikke være tom (BB-300), så en manglende løntype er ikke længere en årsag.
 export type OffentligLoenSelectionFailure =
-  | 'loentype-mangler'
   | 'trin-mangler'
   | 'trin-ugyldig'
   | 'gruppe-mangler'
@@ -52,14 +52,11 @@ export type OffentligLoenSelectionResult =
  */
 export const parseOffentligLoenSelection = (params: Readonly<{
   offentligType: OffentligOverenskomstType;
-  offentligLoenType: string | undefined;
+  offentligLoenType: OffentligLoenTypeLabel;
   offentligLoenTrin: number | undefined;
   offentligLoenGruppe: number | undefined;
 }>): OffentligLoenSelectionResult => {
-  const loenType = resolveOffentligLoenTypeFromLabel(params.offentligLoenType);
-  if (!loenType) {
-    return { ok: false, reason: 'loentype-mangler' };
-  }
+  const loenType: OffentligLoenType = params.offentligLoenType === 'Timeløn' ? 'timeLoen' : 'maanedsLoen';
 
   if (typeof params.offentligLoenTrin !== 'number') {
     return { ok: false, reason: 'trin-mangler' };

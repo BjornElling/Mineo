@@ -96,7 +96,7 @@ const INDEPENDENT_PUBLIC_SALARY_VALUES: ErstatningsopgoerelseValues = {
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
@@ -114,19 +114,6 @@ const INDEPENDENT_PUBLIC_SALARY_VALUES: ErstatningsopgoerelseValues = {
 };
 
 describe('TD-019 – offentlig løn-validator med KL-overenskomst', () => {
-  it('rapporterer manglende offentlig løntype med præcis feltsti, besked og severity', () => {
-    const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_PUBLIC_SALARY_VALUES);
-
-    expect(result).toEqual({
-      isValid: false,
-      errors: [{
-        path: 'eoAngivetLoenLoenudvikling.offentligLoenType',
-        message: 'Ansættelse skal vælges',
-        severity: 'error',
-      }],
-    });
-  });
-
   it('rapporterer manglende offentlig løntrin med præcis feltsti, besked og severity', () => {
     const result = erstatningsopgoerelseValidator.validateParsed({
       ...INDEPENDENT_PUBLIC_SALARY_VALUES,

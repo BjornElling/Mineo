@@ -320,3 +320,8 @@ export const getReguleringsDatoIntervalForOffentligLoen = (
     order: OFFENTLIG_LOEN_SERIE_ORDER,
     periodeMaaneder: 6,
   });
+
+/** Datoen for den nyeste lønsatstabel for overenskomsttypen (listen er sorteret nyeste først). */
+export const getNyesteOffentligLoenTabelDato = (
+  overenskomstType: OffentligOverenskomstType
+): DanishDateString | undefined => getLookups(overenskomstType)[0]?.effectiveDate;

@@ -1255,7 +1255,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.data).toBeNull();
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
+    expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
   // Afklaringslog 10a: anciennitetens enhed ved angivet løn er brugerens eget valg og læses. Testen hævdede
@@ -2530,7 +2530,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
-    expect(indkomst?.arbejdssteder[0]?.pensionLabel).toBe('Arbejdsgivers pensionsbidrag (10 % af løn + tillæg)');
+    expect(indkomst?.arbejdssteder[0]?.pensionLabel).toBe('Arbejdsgivers pensionsbidrag (10,00 % af løn + tillæg)');
     expect(indkomst?.arbejdssteder[0]?.breakdown.loenPlusLoen2Ore).toBe(2000000);
     expect(indkomst?.arbejdssteder[0]?.breakdown.fpFvShSoOre).toBe(259000);
     expect(indkomst?.arbejdssteder[0]?.breakdown.pensionOre).toBe(225900);
@@ -2610,7 +2610,7 @@ describe('eoPdfModel', () => {
       const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
       const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
-      expect(indkomst?.arbejdssteder[0]?.fpLabel).toContain('Store Bededag (0,45 %)');
+      expect(indkomst?.arbejdssteder[0]?.fpLabel).toContain('Store Bededagstillæg (0,45 %)');
       expect(indkomst?.arbejdssteder[0]?.breakdown.loenPlusLoen2Ore).toBe(2000000);
       expect(indkomst?.arbejdssteder[0]?.breakdown.fpFvShSoOre).toBe(9000);
       expect(indkomst?.arbejdssteder[0]?.breakdown.samletOre).toBe(2009000);
@@ -2666,7 +2666,7 @@ describe('eoPdfModel', () => {
       const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
       const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
-      expect(indkomst?.arbejdssteder[0]?.fpLabel).not.toContain('Store Bededag');
+      expect(indkomst?.arbejdssteder[0]?.fpLabel).not.toContain('Store Bededagstillæg');
       expect(indkomst?.arbejdssteder[0]?.breakdown.fpFvShSoOre).toBe(0);
       expect(indkomst?.samletBeregningsgrundlagOre).toBe(2000000);
     }
@@ -2724,7 +2724,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.data).toBeNull();
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
+    expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
   it('blokerer manglende statistikdækning ved Beregningsperiode', () => {
@@ -2777,7 +2777,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.data).toBeNull();
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
+    expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
   it('afviser ASL-segmenter uden årslønsmaksimum i stedet for 0-regulering', () => {
@@ -2797,7 +2797,7 @@ describe('eoPdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') })).toThrow(
-      'Reguleringsdatoen ligger før reguleringsgrundlagets første sats (01-01-2005)'
+      'Reguleringsdatoen (01-01-2000) ligger før den første sats i ASL-årslønsmaksimum, som er fra 01-01-2005'
     );
   });
 
@@ -2848,7 +2848,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.data).toBeNull();
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
+    expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
   it('blokerer offentlig overenskomst for perioder før første sats', () => {
@@ -2878,7 +2878,7 @@ describe('eoPdfModel', () => {
     expect(snapshot.data).toBeNull();
     expect(snapshot.status).toBe('error');
     expect(snapshot.failClosedReason).not.toBe('runtime_exception');
-    expect(snapshot.invariants.some((issue) => issue.message.includes('før reguleringsgrundlagets første sats'))).toBe(true);
+    expect(snapshot.invariants.some((issue) => issue.message.includes('ligger før den første sats i'))).toBe(true);
   });
 
   it('indsætter Store Bededag som separat segment 01-01-2024 for offentlig overenskomst', () => {

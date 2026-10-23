@@ -36,7 +36,9 @@ import { buildReguleringsbevis } from '../../../domain/erstatningsopgoerelse/eng
 const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
-type ReguleringsvaerdierParams = Parameters<typeof buildReguleringsvaerdierTableDataFromCanonical>[0];
+// TAF-enheden bruges kun til at bygge testens motorbevis; præsentationen læser den ikke.
+type ReguleringsvaerdierParams = Parameters<typeof buildReguleringsvaerdierTableDataFromCanonical>[0]
+  & Readonly<{ tafBeregningsenhed: ReguleringsindeksParams['tafBeregningsenhed'] }>;
 type ReguleringsindeksParams = Parameters<typeof buildReguleringIndexRowsFromCanonical>[0];
 
 const buildTestForloeb = (
@@ -499,7 +501,7 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('Fritvalg');
     expect(table?.columns).toContain('SH/SO');
-    expect(table?.columns).toContain('AG pens. bidrag');
+    expect(table?.columns).toContain('AG-pension');
   });
 
 
@@ -523,7 +525,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededagstillæg', 'AG-pension']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -616,7 +618,7 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     // Satsen er en timeløn («Ansættelse» = Timeløn). Overskriften fulgte tidligere TAF-enheden (Måneder) og
     // kaldte den «Månedsløn» (fund C5); nu læses enheden fra reguleringsbeviset.
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededagstillæg', 'AG-pension']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -700,11 +702,11 @@ describe('reguleringsPresentation', () => {
   it('viser motorens grundlag uden at genvælge en manglende eller ugyldig offentlig lønreference', () => {
     const cases: Array<{
       navn: string;
-      offentligLoenType: 'Månedsløn' | 'Timeløn' | undefined;
+      offentligLoenType: 'Månedsløn' | 'Timeløn';
       offentligLoenTrin: number | undefined;
       offentligLoenGruppe: number | undefined;
     }> = [
-      { navn: 'manglende løntype', offentligLoenType: undefined, offentligLoenTrin: 20, offentligLoenGruppe: 0 },
+      // «Manglende løntype» findes ikke længere: «Ansættelse» er Månedsløn som standard (BB-300).
       { navn: 'ugyldig løngruppe', offentligLoenType: 'Timeløn', offentligLoenTrin: 20, offentligLoenGruppe: 99 },
       { navn: 'ugyldigt løntrin', offentligLoenType: 'Timeløn', offentligLoenTrin: 9999, offentligLoenGruppe: 0 },
     ];
@@ -807,7 +809,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toContain('Store Bededag');
+    expect(table?.columns).toContain('Store Bededagstillæg');
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -827,7 +829,7 @@ describe('reguleringsPresentation', () => {
       tafBeregningsenhed: 'Måneder',
     });
 
-    expect(table?.columns).not.toContain('Store Bededag');
+    expect(table?.columns).not.toContain('Store Bededagstillæg');
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
@@ -852,7 +854,7 @@ describe('reguleringsPresentation', () => {
 
     const row = table?.rows.find((entry) => entry[0] === '01-01-2024');
     expect(row).toBeDefined();
-    expect(row?.slice(1)).toEqual(['131,65', '12,5 %', '0 %', '12,5 %', '0,45 %', '10,5 %']);
+    expect(row?.slice(1)).toEqual(['131,65', '12,50 %', '0,00 %', '12,50 %', '0,45 %', '10,50 %']);
   });
 
   it('viser hele den anvendte KL-kæde, også før TAF-vinduet (C1)', () => {
@@ -1057,7 +1059,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     // SH/SO og Fritvalg er undefined på alle rækker → kolonnerne vises ikke
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'Store Bededagstillæg', 'AG-pension']);
   });
 
   it('viser manuel procentsats med indeks og akkumuleret procent i reguleringsværdier', () => {
@@ -1128,7 +1130,7 @@ describe('reguleringsPresentation', () => {
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableDataFromCanonical({
-      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-07-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder',
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-07-01'), tafTil: iso('2026-12-31'),
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-07-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
@@ -1153,7 +1155,7 @@ describe('reguleringsPresentation', () => {
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableDataFromCanonical({
-      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'), tafBeregningsenhed: 'Måneder',
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'),
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2015-01-01'), tafTil: iso('2018-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
@@ -1182,7 +1184,7 @@ describe('reguleringsPresentation', () => {
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableDataFromCanonical({
-      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder',
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'),
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2005-01-01'), tafTil: iso('2007-12-31'), tafBeregningsenhed: 'Måneder', forloeb: forloeb!,
@@ -1228,7 +1230,6 @@ describe('reguleringsPresentation', () => {
       anvendtReguleringsdato: iso('2026-01-01'),
       tafFra: iso('2026-01-01'),
       tafTil: iso('2027-01-01'),
-      tafBeregningsenhed: 'Måneder',
     });
 
     expect(table).toBeNull();
@@ -1270,7 +1271,7 @@ describe('reguleringsPresentation', () => {
     ];
 
     const vaerdierUden = buildReguleringsvaerdierTableDataFromCanonical({
-      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-04-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder',
+      ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-04-01'), tafTil: iso('2026-12-31'),
     });
     const vaerdierMed = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af, anvendtReguleringsdato, tafFra: iso('2024-04-01'), tafTil: iso('2026-12-31'), tafBeregningsenhed: 'Måneder', forloeb,
@@ -1329,7 +1330,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'SH/SO', 'AG-pension']);
   });
 
   it('skjuler manuel SH/SO-kolonne når alle rækker har shSoSats = undefined, men viser Fritvalg-kolonne når mindst én række har fritvalg > 0', () => {
@@ -1370,7 +1371,7 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('SH/SO');
     expect(table?.columns).toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Fritvalg', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'Fritvalg', 'AG-pension']);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i manuel reguleringsværdier-tabel', () => {
@@ -1418,8 +1419,8 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toContain('Store Bededag');
-    // SH/SO er undefined → kolonne vises ikke; Store Bededag er nu index 4 (Fra-dato, Timeløn, Feriepenge, Fritvalg, Store Bededag, AG pens. bidrag)
+    expect(table?.columns).toContain('Store Bededagstillæg');
+    // SH/SO er undefined → kolonne vises ikke; Store Bededag er nu index 4 (Fra-dato, Grundløn, Feriepenge, Fritvalg, Store Bededagstillæg, AG-pension)
     expect(table?.rows.some((row) => row[0] === '01-01-2024' && row[4] === '0,45 %')).toBe(true);
   });
 
@@ -1459,13 +1460,13 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toContain('Store Bededag');
+    expect(table?.columns).toContain('Store Bededagstillæg');
     // SH/SO og Fritvalg er undefined på alle rækker → kolonner vises ikke
     expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
       '31-12-2023',
       '177,56',
       '16,95 %',
-      '0 %',
+      '0,00 %',
       '14,37 %',
     ]);
   });
@@ -1611,7 +1612,7 @@ describe('reguleringsPresentation', () => {
       '31-12-2023',
       '100,00',
       '16,95 %',
-      '0 %',
+      '0,00 %',
       '10,00 %',
     ]);
   });
@@ -2199,7 +2200,7 @@ describe('reguleringsPresentation', () => {
     };
     expect(buildReguleringsvaerdierTableDataFromCanonical({ ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2024-01-01'), tafFra: segment.fra, tafTil: segment.til,
-      tafBeregningsenhed: 'Måneder', segments: [
+      segments: [
         { ...segment, regulering: buildReguleringsbevis(1, 1, { kind: 'ingen' }) }, segment,
       ] })?.rows).toEqual([
       ['2023', '608.000,00'], ['2024', '632.000,00'],
@@ -2214,7 +2215,7 @@ describe('reguleringsPresentation', () => {
         periodComponents: { ...referenceComponents, pensionPct: 10, storeBededagPct: 0.45 } }),
     };
     // SH er 0 i de evaluerede komponenter, uanset om overenskomstens rå tabel viser en stigning.
-    expect(resolveReguleringTillaegsStigninger([segment])).toEqual(['st. bededagstillæg', 'pension']);
+    expect(resolveReguleringTillaegsStigninger([segment])).toEqual(['Store Bededagstillæg', 'AG-pension']);
   });
 
 });

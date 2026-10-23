@@ -1,7 +1,6 @@
 import {
   detectDecimalPlaces,
   formatAmount2,
-  formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
   formatOverenskomstAmount,
   formatOverenskomstPercent,
@@ -66,10 +65,8 @@ describe('eoSharedUtils', () => {
   });
 
   describe('beløbsformat og numeriske guards', () => {
-    it('formatterer beløb med og uden afsluttende decimaler', () => {
+    it('formatterer beløb med to decimaler', () => {
       expect(formatAmount2(1234.5)).toBe('1.234,50');
-      expect(formatAmountWithoutTrailingDecimals(1234)).toBe('1.234');
-      expect(formatAmountWithoutTrailingDecimals(1234.5)).toBe('1.234,50');
     });
 
     it('normaliserer ikke-finite værdier til nul', () => {

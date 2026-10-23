@@ -1,5 +1,6 @@
 import { resolveIndkomstFerieperioder } from './indkomstFerieperioder';
 import type {
+  ErstatningsopgoerelseValues,
   StandardLoenTableRow,
   Loenperiode,
   OffentligeYdelserRow,
@@ -113,6 +114,41 @@ export type IncomeCalculationContext = Readonly<{
 }>;
 
 type RowEligibility = 'empty' | 'invalid' | 'valid';
+
+/**
+ * TAF-perioderne, beskåret til «Vedrører perioden»: første og sidste dag med TAF i erstatningsperioden. Det er de
+ * grænser, reguleringens dækning måles mod (kontrolrækkerne og de manuelle tabellers advarsel om udløb).
+ */
+export const resolveTafBoundaryDatesInSkadetPeriode = (
+  values: Pick<ErstatningsopgoerelseValues, 'vedroererPeriodeFra' | 'vedroererPeriodeTil' | 'tafPerioder'>
+): Readonly<{ first?: ISODateString; last?: ISODateString }> => {
+  const periodeTil = isISODateString(values.vedroererPeriodeTil) ? values.vedroererPeriodeTil : undefined;
+  if (!periodeTil) return {};
+  const periodeFra = isISODateString(values.vedroererPeriodeFra) ? values.vedroererPeriodeFra : undefined;
+  const periodRange = periodeFra && periodeFra <= periodeTil ? { fra: periodeFra, til: periodeTil } : null;
+
+  let first: ISODateString | undefined;
+  let last: ISODateString | undefined;
+
+  for (const row of values.tafPerioder ?? []) {
+    if (!isISODateString(row.fra) || !isISODateString(row.til)) continue;
+    if (row.fra > row.til) continue;
+
+    if (periodRange) {
+      if (row.til < periodRange.fra || row.fra > periodRange.til) continue;
+      const firstCandidate = row.fra < periodRange.fra ? periodRange.fra : row.fra;
+      const lastCandidate = row.til > periodRange.til ? periodRange.til : row.til;
+      if (!first || firstCandidate < first) first = firstCandidate;
+      if (!last || lastCandidate > last) last = lastCandidate;
+      continue;
+    }
+
+    if (!first || row.fra < first) first = row.fra;
+    if (!last || row.til > last) last = row.til;
+  }
+
+  return { first, last };
+};
 
 /**
  * Afrunding af benefit-beløb til "Indtægter i erstatningsperioden"-linjen og TAF-fordeling.

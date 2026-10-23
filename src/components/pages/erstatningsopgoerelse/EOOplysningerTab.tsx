@@ -16,12 +16,12 @@ import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
 const EOOplysningerTab = React.memo(({
-  values, stamdataValues, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues,
+  values, stamdataValues, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues,
 }: {
   values: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
   eoErrors: FieldIssueSet;
-  manualRegulationDateIssues: FieldIssueSet;
+  loenudviklingIssues: FieldIssueSet;
   tafCellIssues: FieldIssueSet;
   svieSmerteCellIssues: FieldIssueSet;
 }) => {
@@ -30,8 +30,8 @@ const EOOplysningerTab = React.memo(({
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
   const baseVm = useEoOplysningerViewModel(values, stamdataValues);
   const vm = React.useMemo(
-    () => ({ ...baseVm, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues }),
-    [baseVm, eoErrors, manualRegulationDateIssues, tafCellIssues, svieSmerteCellIssues]
+    () => ({ ...baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues }),
+    [baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues]
   );
   const { loentrinFinder } = baseVm;
 
@@ -58,6 +58,10 @@ const EOOplysningerTab = React.memo(({
           onAmountFieldError={loentrinFinder.handleAmountFieldError}
           onDateFieldError={loentrinFinder.handleDateFieldError}
           results={loentrinFinder.results}
+          satsDato={loentrinFinder.satsDato}
+          erNyesteSatser={loentrinFinder.erNyesteSatser}
+          kanIndsaette={loentrinFinder.kanIndsaette}
+          onInsertResult={loentrinFinder.insertResult}
           headingId={loentrinFinder.headingId}
           overenskomstLabel={loentrinFinder.overenskomstLabel}
           inputAmountNumber={loentrinFinder.inputAmountNumber}

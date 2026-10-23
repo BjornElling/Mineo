@@ -116,7 +116,7 @@ const offentligOverenskomstUdenAnsaettelse = (): PersistedErstatningsopgoerelseV
       ...eo.eoAngivetLoenLoenudvikling,
       overenskomstId: 'kl-overenskomst',
       loenudviklingBeregningsgrundlag: 'Overenskomst',
-      offentligLoenType: undefined,
+      offentligLoenType: 'Månedsløn',
     },
     loenindkomstAnsaettelsesforhold: [{
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -124,7 +124,7 @@ const offentligOverenskomstUdenAnsaettelse = (): PersistedErstatningsopgoerelseV
       harOverenskomst: true,
       overenskomstId: 'kl-overenskomst',
       loenudviklingBeregningsgrundlag: 'Overenskomst',
-      offentligLoenType: undefined,
+      offentligLoenType: 'Månedsløn',
     }],
   };
 };

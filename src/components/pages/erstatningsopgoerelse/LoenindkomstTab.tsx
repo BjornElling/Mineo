@@ -18,7 +18,7 @@ type Props = {
   /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
    *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */
   sfggSixMonthWarningEmploymentIds: readonly string[];
-  manualRegulationDateIssues: FieldIssueSet;
+  loenudviklingIssues: FieldIssueSet;
 };
 
 const LoenindkomstTab = React.memo(({
@@ -26,7 +26,7 @@ const LoenindkomstTab = React.memo(({
   stamdataValues,
   onNavigateToTabtArbejdsfortjeneste,
   sfggSixMonthWarningEmploymentIds,
-  manualRegulationDateIssues,
+  loenudviklingIssues,
 }: Props) => {
   // View-model-laget ejer al afledt visningstilstand, lokal UI-state og handlers (jf. A1).
   // Siden er nu en tynd forbruger: den læser kun den flade model og beskriver layout.
@@ -63,7 +63,7 @@ const LoenindkomstTab = React.memo(({
     beregnesUdFra: eoValues.beregnesUdFra,
     tafBeregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
     sfggSixMonthWarningEmploymentIds,
-    manualRegulationDateIssues,
+    loenudviklingIssues,
     onNavigateToTabtArbejdsfortjeneste,
   };
 
@@ -137,6 +137,10 @@ const LoenindkomstTab = React.memo(({
         onAmountFieldError={loentrinFinder.handleAmountFieldError}
         onDateFieldError={loentrinFinder.handleDateFieldError}
         results={loentrinFinder.results}
+        satsDato={loentrinFinder.satsDato}
+        erNyesteSatser={loentrinFinder.erNyesteSatser}
+        kanIndsaette={loentrinFinder.kanIndsaette}
+        onInsertResult={loentrinFinder.insertResult}
         headingId={loentrinFinder.headingId}
         overenskomstLabel={loentrinFinder.overenskomstLabel}
         inputAmountNumber={loentrinFinder.inputAmountNumber}

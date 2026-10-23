@@ -63,7 +63,9 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
     return { values, employment };
   };
 
-  it('markerer reguleringsvalg ved TAF-start før dækning og datoens kildefelt ved basis før dækning', () => {
+  // Ringen sidder på det felt, brugeren skal ændre: reguleringsformen – undtagen ved en særlig fra-dato, som brugeren
+  // selv har sat (BB-306). Beregningsperiodens «Til og med» er rigtig og bærer ingen ring.
+  it('markerer reguleringsvalget ved TAF-start eller basis før dækning, og en særlig fra-dato på sig selv', () => {
     const { values, employment } = setupCoverage();
     const collect = () => collectLoenudviklingCoverageIssues(values, STAMDATA_INITIAL_VALUES);
     expect(collect().map((issue) => issue.field.descriptor.id)).toEqual(['eo.loenindkomstAnsaettelsesforhold.loenudviklingBeregningsgrundlag']);
@@ -71,7 +73,7 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
     expect(collect().map((issue) => issue.field.descriptor.id)).toContain('eo.loenindkomstAnsaettelsesforhold.saerligFraDatoRegulering');
     employment.saerligFraDatoRegulering = undefined;
     values.tafBeregningsperiodeTil = iso('2010-01-01');
-    expect(collect().map((issue) => issue.field.descriptor.id)).toContain('eo.tafBeregningsperiodeTil');
+    expect(collect().map((issue) => issue.field.descriptor.id)).toEqual(['eo.loenindkomstAnsaettelsesforhold.loenudviklingBeregningsgrundlag']);
   });
 
   it.each(['Manuelt angivet', 'Manuel procentsats'] as const)('%s giver rød ring ved TAF før reguleringsdatoen', (basis) => {
@@ -79,7 +81,7 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
     employment.loenudviklingBeregningsgrundlag = basis;
     const issues = collectLoenudviklingCoverageIssues(values, STAMDATA_INITIAL_VALUES);
     expect(issues).toHaveLength(1);
-    expect(issues[0].message).toContain('Vælg en anden reguleringsform for at nedregulere');
+    expect(issues[0].message).toContain('vælg en anden reguleringsform for at regulere lønnen ned');
   });
 
   it('referenceperiodens slutdato før kildens dækning giver rød ring på SFGG-datoen', () => {
@@ -95,13 +97,13 @@ describe('historisk regulering og nedre dækningsgrænse', () => {
     expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil']);
   });
 
-  it('angivet løn binder en for tidlig basisdato til sit synlige datofelt', () => {
+  it('angivet løn med en for tidlig basisdato markerer reguleringsformen, ikke den rigtige dato (BB-306)', () => {
     const { values } = setupCoverage();
     values.beregnesUdFra = 'Angivet dagsløn';
     values.angivetDagsloenOpreguleresFraDato = iso('2010-01-01');
     values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Overenskomst';
     values.eoAngivetLoenLoenudvikling.overenskomstId = 'bygge-anlaeg';
     const issues = collectLoenudviklingCoverageIssues(values, STAMDATA_INITIAL_VALUES);
-    expect(issues.map((issue) => issue.field.descriptor.id)).toContain('eo.angivetDagsloenOpreguleresFraDato');
+    expect(issues.map((issue) => issue.field.descriptor.id)).toEqual(['eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag']);
   });
 });

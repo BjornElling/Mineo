@@ -98,8 +98,6 @@ describe('reguleringFormPrimitives', () => {
       loengruppe: 2,
     });
 
-    expect(() => resolveOffentligLoenSelection({ ...valid, offentligLoenType: undefined }, 'KL'))
-      .toThrow('ansættelse er ikke valgt');
     expect(() => resolveOffentligLoenSelection({ ...valid, offentligLoenTrin: undefined }, 'KL'))
       .toThrow('løntrin mangler');
     expect(() => resolveOffentligLoenSelection({ ...valid, offentligLoenTrin: 0 }, 'KL'))

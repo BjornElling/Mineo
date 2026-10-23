@@ -93,7 +93,7 @@ const INDEPENDENT_EO_ANGIVET_LOEN_FERIE_PCT_VALUES: ErstatningsopgoerelseValues 
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

@@ -1,28 +1,26 @@
 import type { RegulationInspektionSection } from '../../../domain/eoInspektion/eoInspektionRegulationViewModel';
-import { REGULERINGSVAERDIER_FERIE_HEADER } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import {
+  REGULERINGSVAERDIER_FERIE_HEADER,
+  REGULERINGSVAERDIER_PENSION_HEADER,
+  REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER,
+} from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 
-// Kolonner der indeholder numeriske værdier og skal højrestilles med indrykning.
-// 'Grundløn' og 'Pension' er udeladt: resolveHeaderLabel mapper dem til 'Månedsløn'/'Timeløn'
-// og 'AG pens. bidrag' inden dette sæt konsulteres, så de originale navne matcher aldrig.
+// Kolonner der indeholder numeriske værdier og skal højrestilles med indrykning. Lønkolonnen hedder
+// «Timeløn»/«Månedsløn» efter satsens enhed og «Grundløn», når enheden er ukendt («Manuelt angivet»).
 // Feriesatsens navn LÆSES fra sin ene kilde: sættet matcher på overskriftsstrengen, så en håndskrevet
 // kopi ville miste kolonnens højrejustering, så snart overskriften blev rettet ét af de fire steder.
-const NUMERIC_COLUMNS = new Set(['Månedsløn', 'Timeløn', REGULERINGSVAERDIER_FERIE_HEADER, 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag', 'Reguleringsprocent']);
+const NUMERIC_COLUMNS = new Set([
+  'Månedsløn', 'Timeløn', 'Grundløn', REGULERINGSVAERDIER_FERIE_HEADER, 'SH/SO', 'Fritvalg',
+  REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER, REGULERINGSVAERDIER_PENSION_HEADER, 'Reguleringsprocent',
+]);
 const INDEKS_COLUMNS = new Set(['Indeks', 'Lønudvikling']);
 
 export const getRegulationTableColumns = (table: NonNullable<RegulationInspektionSection['tables']>[number]) => {
   const isBeregnetTabel = table.columns.includes('Indeksberegning');
-  const hasArbejdsdageColumn = table.columns.includes('Arbejdsdag') || table.columns.includes('Arbejdsdage');
-  const hasMaanederColumn = table.columns.includes('Måned') || table.columns.includes('Måneder');
 
-  const resolveHeaderLabel = (header: string): string => {
-    if (header === 'Dato') return 'Fra-dato';
-    if (header === 'Arbejdsdag') return 'Arbejdsdage';
-    if (header === 'Måned') return 'Måneder';
-    if (header === 'Pension') return 'AG pens. bidrag';
-    if (header === 'Grundløn' && hasArbejdsdageColumn) return 'Timeløn';
-    if (header === 'Grundløn' && hasMaanederColumn) return 'Månedsløn';
-    return header;
-  };
+  // Kun «Dato» omdøbes. Overskrifterne kommer fra samme præsentation som dokumentet; en omdøbning af
+  // «Grundløn» til «Timeløn»/«Månedsløn» ville påstå en enhed, programmet ikke kender (BB-309).
+  const resolveHeaderLabel = (header: string): string => (header === 'Dato' ? 'Fra-dato' : header);
 
   return table.columns.map((header) => {
     const resolvedHeader = resolveHeaderLabel(header);

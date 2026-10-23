@@ -135,7 +135,7 @@ const INDEPENDENT_ANCIENNITETSTILLAEG_DATO_VALUES: ErstatningsopgoerelseValues =
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
@@ -158,7 +158,7 @@ const INDEPENDENT_ANCIENNITETSTILLAEG_DATO_VALUES: ErstatningsopgoerelseValues =
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,
@@ -185,7 +185,7 @@ describe('TD-019 – anciennitetstillæg-dato uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato',
-        message: 'Ansættelsesforhold 1: Dato for anciennitetstillæg skal være efter beregningsperiodens udløb (31-01-2024)',
+        message: 'Datoen skal være efter beregningsperiodens udløb (31-01-2024)',
         severity: 'error',
       }],
     });

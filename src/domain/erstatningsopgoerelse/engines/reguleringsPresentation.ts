@@ -2,17 +2,16 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../shared/eoTypes';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
-import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import type { TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { clampTafRow, resolveTafConstraintBounds } from '../validation/tafPeriodConstraints';
 import { getDayBeforeIso, maxISO, minISO } from '../../../utils/isoDateHelpers';
 import {
-  formatAmountWithoutTrailingDecimals,
   resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared,
   isAslStatistikModel,
   resolveStatistikModelId,
 } from '../helpers/eoSharedUtils';
 import { resolveLoenReferencedatoText } from '../helpers/eoDateReferenceText';
-import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
 import { isEffectivelyZero, isWithinTolerance, isGreaterThanWithTolerance } from '../../../utils/numberComparison';
 import { isKRLSatstabelId } from '../../../data/krlRates';
@@ -64,7 +63,6 @@ type IndexRowWithIso = ReguleringIndexRow & Readonly<{
 
 export const resolveStatistikModelIdFromLabel = resolveStatistikModelId;
 const formatDateShort = formatISOToDanish;
-const formatPctFromInput = (value: number | undefined): string => formatPercentUtil(value ?? 0);
 
 export const resolveTafDateBounds = (
   eoValues: ErstatningsopgoerelseValues,
@@ -206,16 +204,14 @@ const buildIndexFormulaDisplay = (
  * privat). Den må ikke udledes igen af TAF-enheden: en offentlig månedsløn med TAF i arbejdsdage stod
  * tidligere som «Timeløn» (fund C5).
  *
- * Kun «Manuelt angivet» har ingen satsenhed – brugeren taster grundlønnen uden enhed – og beholder derfor
- * den hidtidige overskrift efter TAF-enheden. Re-evaluér, hvis den manuelle tabel får en enhed.
+ * Uden satsenhed («Manuelt angivet», hvor brugeren taster grundlønnen uden enhed) hedder kolonnen
+ * «Grundløn» som på skærmen. Programmet ved ikke, om beløbet er en time- eller månedsløn; overskriften
+ * efter TAF-enheden påstod det alligevel (BB-309).
  */
 const resolveReguleringsvaerdierLoenHeader = (
-  params: Readonly<{
-    segments: readonly LoenudviklingSegment[] | undefined;
-    tafBeregningsenhed: TafBeregningsenhed;
-  }>
-): 'Timeløn' | 'Månedsløn' => {
-  const wageUnits = new Set((params.segments ?? []).flatMap(
+  segments: readonly LoenudviklingSegment[] | undefined
+): 'Timeløn' | 'Månedsløn' | 'Grundløn' => {
+  const wageUnits = new Set((segments ?? []).flatMap(
     (segment) => segment.regulering?.wageUnit === undefined ? [] : [segment.regulering.wageUnit]
   ));
   if (wageUnits.size > 1) {
@@ -224,11 +220,17 @@ const resolveReguleringsvaerdierLoenHeader = (
   const [wageUnit] = wageUnits;
   if (wageUnit === 'Time') return 'Timeløn';
   if (wageUnit === 'Måned') return 'Månedsløn';
-  return params.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+  return 'Grundløn';
 };
 
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
-const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
+/**
+ * Kolonneoverskrifterne for Store Bededagstillæg og arbejdsgivers pension – samme navne som dokumenternes
+ * øvrige tabeller (BB-309). Eksporteret af samme grund som feriesatsens navn nedenfor: højrejusteringen i
+ * UI og PDF matcher på overskriftsstrengen.
+ */
+export const REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER = 'Store Bededagstillæg';
+export const REGULERINGSVAERDIER_PENSION_HEADER = 'AG-pension';
 
 /**
  * Kolonneoverskriften for feriesatsen. Kolonnen indeholder en PROCENTSATS, og en sats navngives med den
@@ -366,7 +368,6 @@ const mergeConsecutiveRowsWithSameCalculation = (
 const buildEvaluatedPackageTable = (params: Readonly<{
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   anvendtReguleringsdato: ISODateString | undefined;
-  tafBeregningsenhed: TafBeregningsenhed;
   segments?: readonly LoenudviklingSegment[];
 }>): ReguleringValuesTableData | null => {
   const entries = new Map<ISODateString, Readonly<{
@@ -389,22 +390,21 @@ const buildEvaluatedPackageTable = (params: Readonly<{
     || rows.some(([, value]) => !isEffectivelyZero(value.components[key]));
   const percentageColumns = [
     ['feriePct', REGULERINGSVAERDIER_FERIE_HEADER], ['shSoPct', 'SH/SO'],
-    ['fritvalgPct', 'Fritvalg'], ['storeBededagPct', 'Store Bededag'],
+    ['fritvalgPct', 'Fritvalg'], ['storeBededagPct', REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER],
     ['pensionPct', REGULERINGSVAERDIER_PENSION_HEADER],
   ] as const;
   const visibleColumns = percentageColumns.filter(([key]) => show(key));
   const firstDate = rows[0][0];
   return {
-    columns: [REGULERINGSVAERDIER_FRA_DATO_HEADER, resolveReguleringsvaerdierLoenHeader({
-      segments: params.segments,
-      tafBeregningsenhed: params.tafBeregningsenhed,
-    }), ...visibleColumns.map(([, label]) => label)],
+    columns: [REGULERINGSVAERDIER_FRA_DATO_HEADER, resolveReguleringsvaerdierLoenHeader(params.segments),
+      ...visibleColumns.map(([, label]) => label)],
     rows: mergeConsecutiveValueRows(rows.map(([date, { components, wageBaseValue, wageSupplement }]) => [
       formatDateShort(date), wageSupplement !== undefined && wageSupplement > 0 && wageBaseValue !== undefined
-        ? `${formatCurrency(wageBaseValue)} (+ ${formatAmountWithoutTrailingDecimals(wageSupplement)} kr.)`
+        ? `${formatCurrency(wageBaseValue)} (+ ${formatCurrency(wageSupplement)} kr.)`
         : formatCurrency(components.baseValue),
-      ...visibleColumns.map(([key]) => params.ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Manuelt angivet' && key !== 'storeBededagPct'
-        ? formatPercentCellFromRaw(components[key]) : formatPctFromInput(components[key])),
+      // Alle former viser satserne med to decimaler – før stod en overenskomstsats som «12,5 %» og samme
+      // sats under «Manuelt angivet» som «12,50 %» (BB-318).
+      ...visibleColumns.map(([key]) => formatPercentCellFromRaw(components[key])),
     ]), { preserveFirstColumnValues: buildPreservedDateLabels(params.anvendtReguleringsdato) }),
     tidligsteSatsGaelderFra: resolveTidligsteSatsGaelderFra(firstDate, params.anvendtReguleringsdato),
   };
@@ -415,7 +415,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   tafFra: ISODateString;
   tafTil: ISODateString;
-  tafBeregningsenhed: TafBeregningsenhed;
   segments?: readonly LoenudviklingSegment[];
   // Motorens autoritative kildeserie. Både dokument- og kontrolprojektionen modtager samme model;
   // manglende serie fail-closer den pågældende tabel frem for at genindlæse rå kildedata.
@@ -627,7 +626,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
 export const resolveReguleringTillaegsStigninger = (segments: readonly LoenudviklingSegment[]): readonly string[] => {
   const labels = [
     ['fritvalgPct', 'fritvalg'], ['shSoPct', 'SH/SO'],
-    ['storeBededagPct', 'st. bededagstillæg'], ['pensionPct', 'pension'],
+    ['storeBededagPct', 'Store Bededagstillæg'], ['pensionPct', 'AG-pension'],
   ] as const;
   return labels.filter(([key]) => segments.some((segment) => {
     const bevis = segment.regulering;

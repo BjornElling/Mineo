@@ -12,7 +12,7 @@ const expectedRows = [
 describe('DATA-001/TD-020 – KRL-data som dokumentforbruger', () => {
   it('fører statiske KRL-facitter gennem den faktiske Word-generator', async () => {
     const { documentXml } = await renderWordDocument((session) =>
-      generateKRLDocument(session, { visBrevhoved: false })
+      generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' })
     );
     const text = xmlToPlainText(documentXml);
 

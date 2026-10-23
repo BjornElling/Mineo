@@ -20,8 +20,11 @@ import type { MoneyOre } from '../../../../domain/money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import {
+  buildLoenGrundlagSaetning,
   resolveAnvendtReguleringsdatoReference,
   resolveAnvendtReguleringsdatoReferenceText,
+  resolveLoenReguleringsforloeb,
+  resolveLoenReguleringsTillaeg,
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import type { DocumentLabelValueOptions } from '../../../model/documentModel';
@@ -99,7 +102,12 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
 
   if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
     const erArbejdsdage = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-    const loenLabel = erArbejdsdage ? 'Løn per arbejdsdag' : 'Månedsløn';
+    // Ved beregningsperiode er beløbet hele indkomsten inkl. offentlige ydelser – samme tal og navn som
+    // linjen «Månedsindkomst:»/«Dagsindkomst:» nedenfor. Ved angivet løn er det brugerens løn (BB-309).
+    const erIndkomst = indkomst.beregnesUdFra === 'Beregningsperiode';
+    const loenLabel = erArbejdsdage
+      ? (erIndkomst ? 'Dagsindkomst' : 'Løn per arbejdsdag')
+      : (erIndkomst ? 'Månedsindkomst' : 'Månedsløn');
     const beloebDisplay = erArbejdsdage
       ? renderMoneyWithKr(indkomst.dagsloen)
       : renderMoneyWithKr(indkomst.maanedsloen);
@@ -243,8 +251,8 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
         const maanederText = formatMaanederTrimmed(indkomst.maaneder);
         const maanederMedEnhed = `${maanederText} ${isSingularCount(indkomst.maaneder) ? 'måned' : 'måneder'}`;
         const basisText = addends.length > 1
-          ? `Månedsløn: (${addends.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
-          : `Månedsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${maanederMedEnhed} =`;
+          ? `Månedsindkomst: (${addends.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
+          : `Månedsindkomst: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${maanederMedEnhed} =`;
         safeAddLeftRightText(
           basisText,
           renderMoneyWithKr(indkomst.maanedsloen),
@@ -364,17 +372,23 @@ export const resolveTafForventetIndkomstIntroText = (deps: TafForventetIndkomstI
       const datoFragment = resolveLoenDatoFragment({ anvendtReguleringsdato, ansaettelsesforhold: af });
       const tillaeg = entry.loenudviklingLabel === 'Ingen'
         ? ''
-        : ' tillagt efterfølgende lønstigninger';
+        : resolveLoenReguleringsTillaeg(resolveLoenReguleringsforloeb(entry.beregnedeSegmenter, anvendtReguleringsdato));
       return `${entry.ansaettelsesforholdNavn} ${datoFragment}${tillaeg}`;
     });
     const sammensat = formatDanishList(fragmenter);
     return `Beregnes som lønnen opgjort således: ${sammensat}.`;
   };
   const perAnsaettelseTekst = resolvePerAnsaettelseLoenTekst();
-  const loenTekst = perAnsaettelseTekst ?? (
+  const loenTekst = perAnsaettelseTekst ?? buildLoenGrundlagSaetning(
+    loenSkadedatoText,
     loenudvikling?.loenudviklingLabel === 'Ingen' || !loenudvikling
-      ? `Opgøres på baggrund af ${loenSkadedatoText}.`
-      : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`
+      ? 'ingen'
+      : resolveLoenReguleringsforloeb(
+        loenudvikling.perAnsaettelse.length > 0
+          ? loenudvikling.perAnsaettelse.flatMap((entry) => entry.beregnedeSegmenter)
+          : loenudvikling.beregnedeSegmenter,
+        anvendtReguleringsdatoForOpgoerelse
+      )
   );
   if (!harOffentligeYdelserUdvikling) return loenTekst;
   return `${loenTekst}\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`;

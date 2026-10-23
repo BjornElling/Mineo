@@ -368,35 +368,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return firstRowTarget(eoOffentligeYdelserFraDatoField);
   }
 
-  const loenindkomstReguleringMatch = row.id.match(/^loenindkomst\.([^.]+)\.regulering\.(valgt|valgtRegulering)$/);
-  const tafReguleringMatch = row.id.match(/^taf\.beregningsgrundlag\.loenudvikling\.([^.]+)\.(valgt|valgtRegulering)$/);
-  if (loenindkomstReguleringMatch) {
-    const employmentId = loenindkomstReguleringMatch[1]!;
-    if (message === 'Overenskomst er ikke valgt') return target(eoEmploymentFields.overenskomstId.bind(employmentId));
-    if (message === 'Statistisk beregningsmodel er ikke valgt') return target(eoEmploymentFields.loenudviklingStatistikModel.bind(employmentId));
-    if (message === 'KRL satstabel er ikke valgt') return target(eoEmploymentFields.loenudviklingKRLSatstabel.bind(employmentId));
-    return target(eoEmploymentFields.loenudviklingBeregningsgrundlag.bind(employmentId));
-  }
-  if (tafReguleringMatch) {
-    if (message === 'Overenskomst er ikke valgt') return target(eoAngivetLoenFields.overenskomstId.bind());
-    if (message === 'Statistisk beregningsmodel er ikke valgt') return target(eoAngivetLoenFields.loenudviklingStatistikModel.bind());
-    if (message === 'KRL satstabel er ikke valgt') return target(eoAngivetLoenFields.loenudviklingKRLSatstabel.bind());
-    return target(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind());
-  }
-
-  const loenindkomstOffentligMatch = row.id.match(/^loenindkomst\.([^.]+)\.regulering\.offentligLoenoplysninger$/);
-  const tafOffentligMatch = row.id.match(/^taf\.beregningsgrundlag\.loenudvikling\.([^.]+)\.offentligLoenoplysninger$/);
-  if (loenindkomstOffentligMatch) {
-    const employmentId = loenindkomstOffentligMatch[1]!;
-    if (message.startsWith('Løntrin')) return target(eoEmploymentFields.offentligLoenTrin.bind(employmentId));
-    if (message.startsWith('Gruppe')) return target(eoEmploymentFields.offentligLoenGruppe.bind(employmentId));
-    return target(eoEmploymentFields.offentligLoenType.bind(employmentId));
-  }
-  if (tafOffentligMatch) {
-    if (message.startsWith('Løntrin')) return target(eoAngivetLoenFields.offentligLoenTrin.bind());
-    if (message.startsWith('Gruppe')) return target(eoAngivetLoenFields.offentligLoenGruppe.bind());
-    return target(eoAngivetLoenFields.offentligLoenType.bind());
-  }
+  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv deres feltmål fra builderen (BB-316).
 
   const svieSmerteRowId = rowIdSuffix(row.id, 'sviesmerte.periode.');
   if (svieSmerteRowId) {
@@ -613,28 +585,15 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     key: 'loenindkomst-regulering',
     match: { kind: 'regex', regex: /^(loenindkomst\.[^.]+\.regulering|taf\.beregningsgrundlag\.loenudvikling\.[^.]+)\.(valgt|valgtRegulering)$/ },
     when: 'Reguleringsmetoden for lønudvikling mangler eller peger på et ikke-valgt grundlag.',
-    summaryText: (_row, message) => {
-      if (message === 'Lønudvikling beregnes ud fra mangler' || message === 'Lønudvikling beregnes ud fra er ikke valgt') {
-        return 'Lønudvikling er ikke angivet';
-      }
-      if (message === 'Overenskomst er ikke valgt') {
-        return 'Regulering er sat til \'Overenskomst\', men ingen overenskomst er valgt';
-      }
-      if (message === 'Statistisk beregningsmodel er ikke valgt') {
-        return 'Regulering er sat til \'Statistik\', men ingen statistisk beregningsmodel er valgt';
-      }
-      if (message === 'KRL satstabel er ikke valgt') {
-        return 'Regulering er sat til \'KRL\', men ingen KRL-satstabel er valgt';
-      }
-      return undefined;
-    },
+    // Builderen skriver selv linjen med feltets eget navn og link (BB-316); katalogets tidligere omskrivning
+    // («Regulering er sat til 'KRL' …») talte programmets sprog.
+    summaryText: (_row, message) => message || undefined,
   },
   {
     key: 'loenindkomst-offentlig-loen',
     match: { kind: 'regex', regex: /^(loenindkomst\.[^.]+\.regulering|taf\.beregningsgrundlag\.loenudvikling\.[^.]+)\.offentligLoenoplysninger$/ },
     when: 'KL-/RLTN-lønoplysninger (ansættelse, løntrin eller gruppe) mangler eller er uden for gyldigt interval.',
-    // Builderens beskeder ("Ansættelse er ikke valgt", "Løntrin mangler", "Gruppe skal være mellem 0 og 4"
-    // m.fl.) er allerede selvstændige og specifikke; de vises uændret uden label-præfiks.
+    // Builderens beskeder («Løntrin og gruppe er ikke angivet» m.fl.) er selvstændige; de vises uændret.
     summaryText: (_row, message) => message || undefined,
   },
   {

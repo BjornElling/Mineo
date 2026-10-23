@@ -91,7 +91,7 @@ const INDEPENDENT_TAF_BEREGNES_UD_FRA_VALUES: ErstatningsopgoerelseValues = {
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

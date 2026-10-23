@@ -105,7 +105,7 @@ const INDEPENDENT_OFFENTLIGE_YDELSER_REGULERINGS_VALUES: ErstatningsopgoerelseVa
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

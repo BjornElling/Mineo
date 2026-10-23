@@ -289,7 +289,7 @@ describe('buildRegulationInspektionSections', () => {
     // Ingen syntetisk række på reguleringsdatoen (01-01-2020); første række er den tidligste
     // faktiske overenskomstsats fra segmentstarten (01-03-2024).
     expect(sections[0]?.tables?.[0]?.rows.some((row) => row.cells[0] === '01-01-2020')).toBe(false);
-    expect(sections[0]?.tables?.[0]?.rows[0]?.cells).toEqual(['01-03-2024', '136,15', '11,5 %', '0,45 %', '10 %']);
+    expect(sections[0]?.tables?.[0]?.rows[0]?.cells).toEqual(['01-03-2024', '136,15', '11,50 %', '0,45 %', '10,00 %']);
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
 

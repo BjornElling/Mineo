@@ -8,7 +8,9 @@ import {
   resolveBeregningsperiodeFerieRamme,
   resolveTafFerieRamme,
 } from '../../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
-import { erBeregningsperiodeFerieRelevant, erTafLoseFeriedageRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { erBeregningsperiodeFerieRelevant, erLoenudviklingFeltRelevant, erTafLoseFeriedageRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { resolveLoenudviklingFieldWarnings } from '../../../../domain/erstatningsopgoerelse/loenudviklingFieldWarnings';
+import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { computeTafBeregningsenhed } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   evaluateBeregningsgrundlagFradragAdvarsel,
@@ -52,6 +54,12 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: Erstatningsop
 /** Reader-afledt præsentationsmodel for EO-oplysninger; modellen ejer ingen persisted writekanal. */
 export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, stamdataValues: StamdataValues) {
   const skadedatoISO = stamdataValues.skadedato;
+  const { settings } = useAppSettings();
+  // Lønudviklingens gule ringe – samme domæneregel og tolerance som linjerne i «Fejl og advarsler».
+  const loenudviklingWarnings = React.useMemo(
+    () => resolveLoenudviklingFieldWarnings(values, stamdataValues, settings.allowReguleringMedUdloebMedMaaneder),
+    [values, stamdataValues, settings.allowReguleringMedUdloebMedMaaneder]
+  );
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
   const loentrinFinder = useLoentrinFinder();
   // "Antal dage" viser rækkens bidrag til opgørelsen – altså dagene INDEN FOR EO-perioden, ikke
@@ -120,6 +128,12 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
   const loenudviklingBasis = eoLoenudvikling.loenudviklingBeregningsgrundlag;
   const filteredOverenskomster = React.useMemo(() => getOverenskomsterByOrg(eoLoenudvikling.overenskomstFilter.loenmodtager, eoLoenudvikling.overenskomstFilter.arbejdsgiver), [eoLoenudvikling.overenskomstFilter]);
   const erOffentligOverenskomst = Boolean(eoLoenudvikling.overenskomstId && isOffentligOverenskomstId(eoLoenudvikling.overenskomstId));
+  const loenudviklingRelevansInput = {
+    blokVist: visLoenudviklingFraEO,
+    grundlag: loenudviklingBasis,
+    overenskomstId: eoLoenudvikling.overenskomstId,
+    harAnciennitetstillaeg: Boolean(eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen),
+  };
   const aktivAngivetLoenOpreguleresFraDato = values.beregnesUdFra === 'Angivet månedsløn' ? values.angivetMaanedsloenOpreguleresFraDato : values.beregnesUdFra === 'Angivet dagsløn' ? values.angivetDagsloenOpreguleresFraDato : undefined;
   const loenudviklingBaseDateISO = React.useMemo(() => {
     const value = aktivAngivetLoenOpreguleresFraDato || skadedatoISO;
@@ -164,7 +178,10 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     loenudviklingBasis, erOffentligOverenskomst,
     // Brugerens eget enhedsvalg – samme felt, som «Satsen angives per» binder (afklaringslog 10a).
     eoAnciennitetSatsPerTekst: eoLoenudvikling.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned',
-    showEoAnciennitetstillaegSection: visLoenudviklingFraEO && loenudviklingBasis === 'Overenskomst' && Boolean(eoLoenudvikling.overenskomstId?.trim()),
+    // Samme prædikat som felternes relevans (BB-301, BB-315), så synlighed og læsning ikke kan drive fra hinanden.
+    showEoAnciennitetstillaegSection: erLoenudviklingFeltRelevant('anciennitet', loenudviklingRelevansInput),
+    visLoenPaaHelligdage: erLoenudviklingFeltRelevant('loenPaaHelligdageVedAngivetLoen', loenudviklingRelevansInput),
+    loenudviklingWarnings,
     loenudviklingBaseDateISO, loenudviklingBaseDateDisplay,
     loenudviklingBaseDateErrorMessage: `${referencedato.label} er ikke udfyldt`,
     loenudviklingBaseDateReferenceText: resolveAnvendtReguleringsdatoReferenceText({ anvendtReguleringsdato: loenudviklingBaseDateISO, skadedato: skadedatoISO, skadestype: stamdataValues.skadestype, beregnesUdFra: values.beregnesUdFra, beregningsperiodeTil: values.tafBeregningsperiodeTil, saerligFraDatoRegulering: undefined, angivetLoenMetodeOpreguleresFraDato: aktivAngivetLoenOpreguleresFraDato }),

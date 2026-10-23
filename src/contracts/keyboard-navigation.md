@@ -4,7 +4,10 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-09-07 (§Enter har fået en fjerde undtagelse: en grid-celle med et
+**Senest verificeret mod kode:** 2026-10-23 (løntrin-finderens resultatlinjer er med i tab-sekvensen, når de kan sættes
+ind, og en indsætning flytter fokus til «Gruppe» som bevidst undtagelse fra §Popup-fokus-restore – verificeret mod
+`useLoentrinFinder.ts` og `LoentrinFinderOverlay.tsx`, BB-310.)
+2026-09-07 (§Enter har fået en fjerde undtagelse: en grid-celle med et
 synligt autofill-forslag indsætter ghosten uden at flytte fokus. Undtagelsen kan kun ramme en TOM celle, så
 forbuddet mod at overskrive en værdi uden samtykke er strukturelt overholdt. Autofill er kun en
 indtastningsvej: accepten afslutter værdien i den aktuelle celle og rydder et eventuelt Tab-anker. Målt af
@@ -517,7 +520,10 @@ den på det sidst monterede kort, så fokus vender tilbage til det nederste kort
 Løntrin-finder popup (`src/components/pages/erstatningsopgoerelse/shared/LoentrinFinderOverlay.tsx`, anvendt i
 både `Lønindkomst` og `EO-oplysninger`) bruger en eksplicit, hardcoded tab-sekvens:
 
-`Ansættelse -> Beløb -> Dato -> Beregn`
+`Ansættelse -> Beløb -> Dato -> Beregn -> resultatlinjerne`
+
+Resultatlinjerne er kun med i sekvensen, når de kan sættes ind (finderen er åbnet med et indsætningsmål, og løntrinnet er
+ikke «55+»).
 
 Dette er bevidst og normativt for den popup, fordi generisk focus-trap tidligere gav ustabil adfærd med dropdown-popover og fokuslæk til siden bagved.
 
@@ -526,6 +532,10 @@ Krav:
 - `Escape` lukker popup og returnerer fokus til `Find løntrin` (§Popup-fokus-restore).
 - `Enter` på åbne dropdowns håndteres af dropdown selv.
 - `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
+- `Enter`/mellemrum (eller klik) på en resultatlinje sætter løntrin – og gruppen, når linjen kun har én – ind i ét
+  fortryd-trin og lukker popuppen. **Undtagelse fra §Popup-fokus-restore:** fokus lander da i fladens «Gruppe»-felt, ikke
+  på `Find løntrin` (udviklerens ønske, BB-310). `useLoentrinFinder` peger restore-målet om på gruppefeltet før lukningen,
+  så det stadig er den ene restore-vej, der flytter fokus.
 
 Overlayets interne focus-trap ejes af overlay-komponenten selv. `Container` må kun undlade at interferere med popup/portal-subtrees. Overlayet er ansvarligt for at stoppe fokuslæk til siden bagved.
 

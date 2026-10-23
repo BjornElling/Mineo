@@ -32,6 +32,7 @@ import { resolveActionGate } from '../../../inputs/actionGate';
 import type { SerializedFieldAddress } from '../../../../inputCore/fieldAddress';
 import { buildFieldWarningMap, type FieldWarning } from '../../../../inputCore/fieldWarning';
 import { resolveLoenindkomstRowWarnings } from '../../../../domain/erstatningsopgoerelse/validation/eoIncomeRowWarnings';
+import { resolveLoenudviklingFieldWarnings } from '../../../../domain/erstatningsopgoerelse/loenudviklingFieldWarnings';
 import { getToday } from '../../../../config/dateRanges';
 import { isISODateString } from '../../../../types/branded';
 
@@ -120,6 +121,15 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     ]));
   }, [employments, eoValues, stamdataValues.skadedato]);
 
+  /**
+   * Lønudviklingens gule ringe (de manuelle tabeller og anciennitetsdatoen). Tolerancen er Indstillingernes, som i
+   * rækkebyggeren, der giver linjerne i «Fejl og advarsler».
+   */
+  const loenudviklingWarnings = React.useMemo(
+    () => resolveLoenudviklingFieldWarnings(eoValues, stamdataValues, settings.allowReguleringMedUdloebMedMaaneder),
+    [eoValues, stamdataValues, settings.allowReguleringMedUdloebMedMaaneder]
+  );
+
   // De overenskomst-/lovbundne satser skrives IKKE herfra. Reader-projektionen udleder dem før denne
   // viewmodel, så de aldrig bliver persisteret brugerinput eller et selvstændigt history-trin.
 
@@ -184,6 +194,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     satsIssues,
     feriePctAdvarselByAfId,
     tableCellWarningsByAfId,
+    loenudviklingWarnings,
     loentrinFinder,
     alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(),
     alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(),

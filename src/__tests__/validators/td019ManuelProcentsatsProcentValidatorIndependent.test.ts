@@ -99,7 +99,7 @@ const INDEPENDENT_MANUAL_PERCENT_VALUES: ErstatningsopgoerelseValues = {
       { id: 'base', dato: undefined, procent: 0 },
       { id: 'active', dato: toISODateString('2025-01-01'), procent: undefined },
     ],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

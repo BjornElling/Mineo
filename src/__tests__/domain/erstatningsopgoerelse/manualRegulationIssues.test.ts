@@ -1,4 +1,4 @@
-import { collectManualRegulationDateIssues } from '../../../domain/erstatningsopgoerelse/manualRegulationDateIssues';
+import { collectManualRegulationIssues } from '../../../domain/erstatningsopgoerelse/manualRegulationIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -25,7 +25,7 @@ const percentRow = (id: string, dato: string | undefined) => ({
   procent: id === 'base' ? 0 : 2.5,
 });
 
-describe('collectManualRegulationDateIssues', () => {
+describe('collectManualRegulationIssues', () => {
   const setup = () => {
     const values = createErstatningsopgoerelseInitialValues();
     const employment = createDefaultLoenindkomstAnsaettelsesforhold();
@@ -55,7 +55,7 @@ describe('collectManualRegulationDateIssues', () => {
         percentRow('efter', '2024-01-02'),
       ];
 
-      const issues = collectManualRegulationDateIssues(values, stamdata);
+      const issues = collectManualRegulationIssues(values, stamdata);
 
       expect(issues).toHaveLength(2);
       expect(issues.map((issue) => issue.field.address.path.at(-1))).toEqual([
@@ -74,7 +74,7 @@ describe('collectManualRegulationDateIssues', () => {
     employment.loenudviklingManuelTableData = [manualRow('base', undefined), manualRow('foer', '2023-01-01')];
     employment.loenudviklingManuelProcentsatsTableData = [percentRow('base', undefined), percentRow('lig', '2024-01-01')];
 
-    expect(collectManualRegulationDateIssues(values, stamdata)).toEqual([]);
+    expect(collectManualRegulationIssues(values, stamdata)).toEqual([]);
   });
 
   it('er tavs når den anvendte reguleringsdato endnu ikke findes', () => {
@@ -84,7 +84,7 @@ describe('collectManualRegulationDateIssues', () => {
     employment.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     employment.loenudviklingManuelTableData = [manualRow('base', undefined), manualRow('lig', '2024-01-01')];
 
-    expect(collectManualRegulationDateIssues(values, stamdata)).toEqual([]);
+    expect(collectManualRegulationIssues(values, stamdata)).toEqual([]);
   });
 
   it('anvender samme regel på sagsniveau ved angivet løn', () => {
@@ -97,7 +97,7 @@ describe('collectManualRegulationDateIssues', () => {
       percentRow('lig', '2024-02-01'),
     ];
 
-    const [issue] = collectManualRegulationDateIssues(values, stamdata);
+    const [issue] = collectManualRegulationIssues(values, stamdata);
     expect(issue?.field.address.path).toEqual([
       { kind: 'property', name: 'eoAngivetLoenLoenudvikling' },
       { kind: 'entity', collection: 'loenudviklingManuelProcentsatsTableData', entityId: 'lig' },
@@ -114,7 +114,7 @@ describe('collectManualRegulationDateIssues', () => {
       manualRow('lig', '2024-06-01'),
     ];
 
-    const [issue] = collectManualRegulationDateIssues(values, stamdata);
+    const [issue] = collectManualRegulationIssues(values, stamdata);
     expect(issue?.message).toBe(
       'Datoen skal være senere end datoen i den låste første række (2024-99-99)'
     );

@@ -4,6 +4,7 @@ import {
 } from '../../inputCore/inputIssue';
 import type { FieldAddress, SectionKey } from '../../inputCore/fieldAddress';
 import { erstatningsopgoerelseFields } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { EO_ANGIVET_LOEN_ID } from './helpers/angivetLoenHelpers';
 
 /**
  * EO bruger den kanoniske strukturelle issue-model direkte.
@@ -118,31 +119,37 @@ export const selectBlockingLoenindkomstFieldIssues = (
 };
 
 /**
- * Den første røde celle pr. ansættelsesforhold i de to MANUELLE reguleringstabeller.
+ * De røde celler i de to MANUELLE reguleringstabeller pr. ejer: ansættelsesforholdets id eller den angivne løns id.
  *
- * Reguleringslinjen («Manuel regulering: <celle>») skal kun pege på sine egne tabeller. Før genbrugte den
- * også en rød celle i indtægtstabellen, så samme fejl stod to gange i «Fejl og advarsler» – én gang som
- * lønrækkens og én gang som reguleringens (M-33). Indtægtstabellens celler har nu deres egne linjer.
+ * Reguleringslinjerne skal kun pege på deres egne tabeller. Før genbrugte de også en rød celle i indtægtstabellen,
+ * så samme fejl stod to gange i «Fejl og advarsler» (M-33). Hver rød celle får sin egen linje (BB-307, BB-308),
+ * også under angivet løn, hvor de før ikke nåede boksen.
  */
 export const selectManualReguleringFieldIssues = (
   issues: FieldIssueSet
-): Readonly<Record<string, FieldIssue>> => {
-  const fieldIssues: Record<string, FieldIssue> = {};
+): Readonly<Record<string, readonly FieldIssue[]>> => {
+  const byOwner: Record<string, FieldIssue[]> = {};
+  const manualCollections = ['loenudviklingManuelTableData', 'loenudviklingManuelProcentsatsTableData'];
   for (const issue of issues.all) {
-    const [employment, nested] = issue.field.address.path;
-    if (
-      employment?.kind !== 'entity'
-      || employment.collection !== 'loenindkomstAnsaettelsesforhold'
-      || nested?.kind !== 'entity'
-      || !['loenudviklingManuelTableData', 'loenudviklingManuelProcentsatsTableData'].includes(nested.collection)
-      || fieldIssues[employment.entityId] !== undefined
-    ) {
-      continue;
-    }
-    fieldIssues[employment.entityId] = issue;
+    const [owner, nested] = issue.field.address.path;
+    if (nested?.kind !== 'entity' || !manualCollections.includes(nested.collection)) continue;
+    const ownerKey = owner?.kind === 'entity' && owner.collection === 'loenindkomstAnsaettelsesforhold'
+      ? owner.entityId
+      : owner?.kind === 'property' && owner.name === 'eoAngivetLoenLoenudvikling'
+        ? EO_ANGIVET_LOEN_ID
+        : undefined;
+    if (ownerKey === undefined) continue;
+    (byOwner[ownerKey] ??= []).push(issue);
   }
-  return Object.freeze(fieldIssues);
+  return Object.freeze(byOwner);
 };
+
+/** Den angivne løns egne felter (ikke tabellernes celler) med en rød værdi – så de får en linje (BB-306). */
+export const selectAngivetLoenFieldIssues = (issues: FieldIssueSet): readonly FieldIssue[] =>
+  issues.all.filter((issue) => {
+    const path = issue.field.address.path;
+    return path.length === 1 && path[0]?.kind === 'property' && path[0].name === 'eoAngivetLoenLoenudvikling';
+  });
 
 /**
  * Indtægtstabellens røde celler pr. ansættelsesforhold, så hver fejlbehæftet lønrække kan få sin egen linje

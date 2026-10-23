@@ -208,24 +208,8 @@ const CASES: readonly Case[] = [
     expectedFocus: focus(eoEmploymentFields.navnPaaArbejdssted, 'af-1'),
   },
   // ── Lønudvikling / regulering ─────────────────────────────────────────────
-  {
-    name: 'regulering – statistik ikke valgt',
-    row: { id: 'loenindkomst.af-1.regulering.valgt', label: 'Valgt regulering', message: 'Statistisk beregningsmodel er ikke valgt' },
-    expectedSummary: "Regulering er sat til 'Statistik', men ingen statistisk beregningsmodel er valgt",
-    expectedFocus: focus(eoEmploymentFields.loenudviklingStatistikModel, 'af-1'),
-  },
-  {
-    name: 'regulering – KRL ikke valgt',
-    row: { id: 'loenindkomst.af-1.regulering.valgt', label: 'Valgt regulering', message: 'KRL satstabel er ikke valgt' },
-    expectedSummary: "Regulering er sat til 'KRL', men ingen KRL-satstabel er valgt",
-    expectedFocus: focus(eoEmploymentFields.loenudviklingKRLSatstabel, 'af-1'),
-  },
-  {
-    name: 'offentlig løn – løntrin ikke angivet vises uden label-præfiks',
-    row: { id: 'loenindkomst.af-1.regulering.offentligLoenoplysninger', label: 'KL-/RLTN-oplysninger', displayValue: 'Fejl (Løntrin er ikke angivet)' },
-    expectedSummary: 'Løntrin er ikke angivet',
-    expectedFocus: focus(eoEmploymentFields.offentligLoenTrin, 'af-1'),
-  },
+  // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv tekst og feltmål fra builderen (BB-316); de er
+  // dækket i `loenudviklingBrugerblik12i.test.ts`.
   // ── Mén / EET-datoer ──────────────────────────────────────────────────────
   {
     name: 'mén – afgørelsesdato ikke angivet',

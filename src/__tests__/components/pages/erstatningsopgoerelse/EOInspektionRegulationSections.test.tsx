@@ -135,7 +135,9 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
     expect(getByText('1,3800')).toBeVisible();
   });
 
-  it('omdøber standard-kolonneoverskrifter i reguleringstabeller', () => {
+  // Kun «Dato» omdøbes. Lønkolonnen bærer sit navn fra præsentationen; «Grundløn» må ikke blive til
+  // «Timeløn»/«Månedsløn», fordi enheden ikke kendes ved «Manuelt angivet» (BB-309).
+  it('omdøber kun Dato til Fra-dato og beholder Grundløn', () => {
     const sections: RegulationInspektionSection[] = [
       {
         id: 'regulation.timeline',
@@ -144,13 +146,8 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
         tables: [
           {
             id: 'regulation.timeline:table1',
-            columns: ['Dato', 'Arbejdsdag', 'Måned', 'Pension'],
-            rows: [
-              {
-                id: 'timeline.row1',
-                cells: ['01-01-2024', '21', '0,97', '12,50 %'],
-              },
-            ],
+            columns: ['Dato', 'Grundløn', 'AG-pension'],
+            rows: [{ id: 'timeline.row1', cells: ['01-01-2024', '30.000,00', '12,50 %'] }],
           },
         ],
       },
@@ -163,74 +160,10 @@ describe('EOInspektionRegulationSections - Phase 4.5 UI', () => {
     );
 
     expect(screen.getByText('Fra-dato')).toBeInTheDocument();
-    expect(screen.getByText('Arbejdsdage')).toBeInTheDocument();
-    expect(screen.getByText('Måneder')).toBeInTheDocument();
-    expect(screen.getByText('AG pens. bidrag')).toBeInTheDocument();
-    expect(queryByText('Arbejdsdag')).not.toBeInTheDocument();
-    expect(queryByText('Måned')).not.toBeInTheDocument();
-    expect(queryByText('Pension')).not.toBeInTheDocument();
-  });
-
-  it('omdøber Grundløn til Timeløn i arbejdsdagsbaseret reguleringstabel', () => {
-    const sections: RegulationInspektionSection[] = [
-      {
-        id: 'regulation.timeline',
-        header: 'Regulerings-tidslinje',
-        rows: [],
-        tables: [
-          {
-            id: 'regulation.timeline:table1',
-            columns: ['Dato', 'Arbejdsdag', 'Grundløn'],
-            rows: [
-              {
-                id: 'timeline.row1',
-                cells: ['01-01-2024', '21', '245,50'],
-              },
-            ],
-          },
-        ],
-      },
-    ];
-
-    const { queryByText } = render(
-      <MemoryRouter>
-        <EOInspektionRegulationSections sections={sections} />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('Timeløn')).toBeInTheDocument();
-    expect(queryByText('Grundløn')).not.toBeInTheDocument();
-  });
-
-  it('omdøber Grundløn til Månedsløn i månedsbaseret reguleringstabel', () => {
-    const sections: RegulationInspektionSection[] = [
-      {
-        id: 'regulation.timeline',
-        header: 'Regulerings-tidslinje',
-        rows: [],
-        tables: [
-          {
-            id: 'regulation.timeline:table1',
-            columns: ['Dato', 'Måned', 'Grundløn'],
-            rows: [
-              {
-                id: 'timeline.row1',
-                cells: ['01-01-2024', '0,97', '32.500,00'],
-              },
-            ],
-          },
-        ],
-      },
-    ];
-
-    const { queryByText } = render(
-      <MemoryRouter>
-        <EOInspektionRegulationSections sections={sections} />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByText('Månedsløn')).toBeInTheDocument();
-    expect(queryByText('Grundløn')).not.toBeInTheDocument();
+    expect(screen.getByText('Grundløn')).toBeInTheDocument();
+    expect(screen.getByText('AG-pension')).toBeInTheDocument();
+    expect(queryByText('Timeløn')).not.toBeInTheDocument();
+    expect(queryByText('Månedsløn')).not.toBeInTheDocument();
   });
 
   it('indsatter wrap-punkt efter skrastreg i tabelceller', () => {

@@ -12,6 +12,24 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ingen nye mønstre 2026-10-20 fra Erstatningsopgørelse → Lønudvikling og regulering af tabet (12i), men fire tunge
+forekomster af de eksisterende – og blokkens fællesnævner er, at den viser én ting og regner på en anden.** Det tungeste
+fund er lokalt: «Ansættelse» viser «Månedsløn» for en tom værdi, og et valg af «Månedsløn» gemmes som tomt, så en
+offentligt ansat på månedsløn kan ikke opgøres (BB-300, **Kritisk**). **M-32** er den næste: ingen af lønudviklingens
+eller anciennitetens descriptorer bærer relevans, så en rød anciennitetsdato, et rødt løntrin eller en rød manuel dato
+spærrer, efter at blokken er skjult, med et link, der blinker hele kortet (BB-301, **Høj**). **M-37** to gange: en
+procentsatstabel uden satser regnes som 0 % under sætningen «tillagt efterfølgende lønstigninger» (BB-303, **Høj**), og
+et anciennitetstillæg uden dato eller sats droppes, mens papiret trykker «Indtastning mangler» (BB-304, **Høj**). Dertil
+en lokal udløbsregel for den manuelle tabel (BB-302, **Høj**), **M-33** i dækningsfejlens dobbeltlinje (BB-306), M-19
+(BB-307), BB-232's form (BB-308), **M-11** (BB-309 – en manuel grundløn kaldes «Timeløn»; BB-314), M-23 (BB-311), M-05
+(BB-313), **M-35's 12f-henvisning afgjort** (BB-315 – «Løn på helligdage» under angivet løn læses kun ved Overenskomst),
+M-02 (BB-316) og M-13 (BB-318). M-09 bestået; konsollen tavs.
+**Afgjort og gennemført 2026-10-23:** M-32 er lukket for lønudviklingen, anciennitet, de manuelle tabeller, den særlige
+fra-dato, sygeferiegodtgørelsen, indtægtstabellens kolonner, satsfelterne ved «Beløb» og beregningsperioden uden TAF
+(feltrelevans; de to sidste ændrer et beløb og er godkendt 2026-10-23, BB-301). M-33 er lukket for reguleringsdækningen
+(én linje ved formen), sygeferiegodtgørelsens tre dobbeltlinjer og den private overenskomst, hvor satslinjen står alene
+(BB-306). M-37's to nye forekomster spærrer nu (BB-303, BB-304).
+
 **Ét nyt mønster 2026-10-19 fra Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger (12h) – M-38: en
 afgørelse står som gennemført, men koden bærer den ikke.** Fem afgørelser fra Årsløn (2026-08-26) gælder samme
 løntabel, som EO bruger, og står som gennemført i `aarsloen.md` – men dublet-kontrollen (BB-096) er kun koblet på
@@ -2726,6 +2744,12 @@ besluttet, ikke overset.
   «Angivet månedsløn» giver begge «Antal dage skal være mellem 0 og 366» med et link til et felt, der ikke er på
   skærmen. **Komprimeringsundtagelsen skal holdes ude:** relevansen følger VALGET (grenen), ikke om sektionen er foldet
   sammen ved EO 2+.
+- **Lønudviklingen er den sidste EO-blok uden relevans** (`erstatningsopgoerelse-12i.md` BB-301, **Høj**, 2026-10-20).
+  Synligheden er en JSX-betingelse i `LoenudviklingFields`/`AnciennitetstillaegFields` og kortet, ikke en descriptor-regel.
+  Målt: en rød anciennitetsdato efter skift til Statistik, et rødt løntrin eller en negativ forhøjet grundløn efter skift
+  fra Overenskomst, og en rød manuel dato på et kort, hvis lønudvikling er skjult af «Angivet månedsløn» – alle spærrer,
+  og linket blinker hele kortet (91 hændelser). Prøven skal derfor også stilles til blokke, der deles af TO ejere: hver
+  ejer har sin egen synlighedsbetingelse.
 
 ## M-33 – To lag vurderer samme række hver for sig – og brugeren får begge svar
 
@@ -2791,6 +2815,11 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   rækkefejl, så en forkert værdi meldes som «Indtastning mangler». **Prøvens femte trin: kombinér en validatorregel med
   en vilkårlig rækkefejl andetsteds på fanen og tæl, om begge linjer står der.** Rettelsen er stadig skabelonen –
   flyt reglen ind i rækkekanalen – og nettet bliver da tomt af sig selv.
+- **Den manuelle reguleringskandidat og dækningsreglen efterprøvet 2026-10-20** (`erstatningsopgoerelse-12i.md` BB-306,
+  BB-307, BB-308). Her er det kontroltabellens RÆKKER, der når boksen: «'Reguleringsværdi på beregningsperiodens udløb
+  (31-05-2014) for TAF' er ikke angivet (først fra 01-01-2016)» står ved siden af dækningsreglens «Reguleringsdatoen ligger
+  før reguleringsgrundlagets første sats (01-01-2016)», med hvert sit link til hver sin fane. Og «Grundløn skal være større
+  end 0 på alle manuelle reguleringsrækker» er sikkerhedsnettets form: den vises først, når alt andet er rettet.
 
 ## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
 
@@ -2867,6 +2896,11 @@ ikke bruges.
   arbejdsdage, og sygeferiegodtgørelsen læser dem ikke. **Formen er her skarpere end i 12e:** de uvirksomme felter kan
   stadig SPÆRRE (vindue, overlap, maksimum), så brugeren skal rette en indtastning, der intet gør. «Løn på helligdage»
   under angivet løn er derimod ikke en forekomst – reguleringen læser den (12i).
+- **Delvist omgjort 2026-10-20** (`erstatningsopgoerelse-12i.md` BB-315, Lav). Reguleringen læser «Løn på helligdage»
+  under angivet løn kun ved Overenskomst (og «Manuelt angivet» via Store Bededag); ved Statistik er kravet ens for alle
+  tre valg i både måneds- og dagsløn (målt). Store Bededag-knappen fik relevans efter samme virkningsbetingelse
+  (afklaringslog 9b); feltet, den hviler på, fik det ikke. **Læren: «læses af X» skal prøves pr. tilstand, ikke en gang
+  for alle.**
 
 ## M-36 – En lovlig indtastning fører beregningen ud i en intern undtagelse
 
@@ -2955,6 +2989,12 @@ dér afviser motoren noget, feltet tog imod; her tager motoren imod noget, felte
 - Kandidater, ikke efterprøvet: Årslønsberegningens feriesats (`beregnFejlmeddelelser` regner tom som 0 og advarer kun
   over 0); en beregningsperiode, der slutter før overenskomstens dækning (12g/12i); den manuelle lønudviklings
   satskolonner (12i); offentlige ydelsers reguleringssatser (12k).
+- **12i-kandidaterne efterprøvet 2026-10-20** (`erstatningsopgoerelse-12i.md`). De manuelle satskolonner er IKKE en
+  forekomst – en manglende procent spærrer med «Manuel regulering mangler: …» og link til cellen. En beregningsperiode før
+  dækningen spærrer (BB-306). **To nye forekomster:** en «Manuel procentsats» uden andre rækker end basisrækken regnes som
+  0 % uden et ord, mens «Manuelt angivet» spærrer ved samme tomhed (BB-303, **Høj**); og et anciennitetstillæg, der er
+  slået til uden dato eller sats, droppes – papiret trykker «Indtastning mangler» (BB-304, **Høj**). Prøvens trin 1 skal
+  derfor også stilles til en hel TABEL af satser, ikke kun til det enkelte felt.
 
 ## M-38 – En afgørelse står som gennemført, men koden bærer den ikke
 

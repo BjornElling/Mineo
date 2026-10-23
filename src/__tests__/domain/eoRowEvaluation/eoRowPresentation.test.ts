@@ -151,7 +151,7 @@ describe('manual regulering message', () => {
       (candidate) => candidate.id === `loenindkomst.${af.id}.regulering.alleVaerdier`
     );
 
-    expect(row?.message).toBe('Manuel regulering mangler: Procent');
+    expect(row?.message).toBe('Manuel procentsats mangler: Procent');
     expect(row?.focusTarget).toEqual({
       kind: 'fieldAddress',
       address: eoEmploymentManual.manualPercentFields.procent.bind(af.id, 'row-2').address,

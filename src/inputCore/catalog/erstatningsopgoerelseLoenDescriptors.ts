@@ -48,6 +48,7 @@ import {
   integerBoundsValidator,
   integerStringBoundsValidator,
   percentBoundsValidator,
+  positiveAmountValidator,
   weekYearBoundsValidator,
   yearStringBoundsValidator,
 } from './boundsValidators';
@@ -66,13 +67,21 @@ import {
 } from '../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 // Gensidig import: `erstatningsopgoerelseDescriptors` læser lønindkomsttræet herfra. Begge læser kun den anden
 // inde i en relevansregel – aldrig ved modul-evaluering – så rækkefølgen er ligegyldig.
-import { eoBeregnesUdFraField, eoTafBeregningsperiodeTilField } from './erstatningsopgoerelseDescriptors';
+import {
+  eoBeregnesUdFraField,
+  eoKravPaaTabtArbejdsfortjenesteField,
+  eoTafBeregningsperiodeTilField,
+} from './erstatningsopgoerelseDescriptors';
 import { createCollectionRef, type CollectionRef } from '../fieldAddress';
 import type { TafBeregningsenhedEmployment, TafBeregningsenhedLoenRow } from '../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
+  erAngivetLoenLoenudviklingRelevant,
   erAnsaettelsesforholdOphoertRelevant,
+  erBeregningsperiodeValgt,
+  erLoenudviklingFeltRelevant,
   erSidsteArbejdsdagRelevant,
   erFuldLoenUnderFerieRelevant,
+  type LoenudviklingFelt,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 // Produkt-descriptors for EO's nested løntræ (§3.2): samlingen `loenindkomstAnsaettelsesforhold`
@@ -137,10 +146,12 @@ const optField = <T>(
   ownerId: string, path: PathSegments, field: string, label: string,
   controlKind: FieldControlKind, codec: FieldCodec<T | undefined>,
   validators?: readonly FieldValidator<T | undefined>[],
+  relevance?: RelevanceRule<T | undefined>,
 ): FieldDescriptor<T | undefined> =>
   createField<T | undefined>({
     ownerId, path, field, label, controlKind, codec, emptyValue: undefined, isEmpty: isUndefined,
     ...(validators === undefined ? {} : { validators }),
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 /**
@@ -155,11 +166,13 @@ const dateFieldWithBounds = (
   ownerId: string, path: PathSegments, field: string, label: string,
   spec: DateBoundsSpec,
   extraValidators: readonly FieldValidator<ISODateString | undefined>[] = [],
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
   createField<ISODateString | undefined>({
     ownerId, path, field, label, controlKind: 'text', codec: dateCodec,
     emptyValue: undefined, isEmpty: isUndefined,
     ...dateBounds(spec, extraValidators),
+    ...(relevance === undefined ? {} : { relevance }),
   });
 
 // Required-choice (canonical tomhed = defaultværdien; aldrig tom, aldrig rød).
@@ -188,7 +201,8 @@ const EMP_ID = 'eo.loenindkomstAnsaettelsesforhold';
 const emp = <T>(
   field: string, label: string, controlKind: FieldControlKind, codec: FieldCodec<T | undefined>,
   validators?: readonly FieldValidator<T | undefined>[],
-) => optField<T>(EMP_ID, employmentPath, field, label, controlKind, codec, validators);
+  relevance?: RelevanceRule<T | undefined>,
+) => optField<T>(EMP_ID, employmentPath, field, label, controlKind, codec, validators, relevance);
 
 // Delt canonical bounds-validator for procentfelterne (0..100). Codecet afviser ikke længere out-of-bounds;
 // grænsen er nu et afledt bounds-issue (§1.6).
@@ -232,6 +246,21 @@ const employmentRelevance = <T,>(
 };
 
 /**
+ * Lønudviklingens og anciennitetens felter på et ansættelsesforhold er relevante efter blokkens egen synlighed
+ * (BB-301): blokken vises kun ved «Beregningsperiode», og hver reguleringsform åbner sine egne felter.
+ * Prædikatet læser de styrende felter rå og tjekker selv deres relevans i rækkefølge (blok → form → toggle).
+ */
+const employmentLoenudviklingRelevance = <T,>(felt: LoenudviklingFelt): RelevanceRule<T> => (field, view) => {
+  const id = employmentIdFromField(field);
+  return erLoenudviklingFeltRelevant(felt, {
+    blokVist: erBeregningsperiodeValgt({ beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()) }),
+    grundlag: view.readCanonical(eoEmploymentFields.loenudviklingBeregningsgrundlag.bind(id)),
+    overenskomstId: view.readCanonical(eoEmploymentFields.overenskomstId.bind(id)),
+    harAnciennitetstillaeg: view.readCanonical(eoEmploymentFields.harAnciennitetstillaegEfterSkadedatoen.bind(id)),
+  });
+};
+
+/**
  * «Sidste dag i ansættelsesforholdet» kan ikke ligge før skadedatoen, når skadelidte var ansat på
  * skadestidspunktet – én af de to oplysninger er da forkert (udviklerafgørelse 2026-10-06, BB-283). Feltet er
  * kun relevant (og valideres derfor kun), når både «Ansat på …» og «Opsagt fra stillingen» er slået til. Et
@@ -270,6 +299,14 @@ const saerligFraDatoOverenskomstDaekningValidator: FieldValidator<ISODateString 
   };
 };
 
+/**
+ * Satsfelterne vises kun ved «Tillæg angives som» = «Procent», som Årslønstabellens tvilling (`aarsloenDescriptors.ts`).
+ * Uden relevans blev skjulte satser ved med at fodre overenskomstreguleringen og sygeferiegodtgørelsens pension, og
+ * en rød sats spærrede med et link til et felt, brugeren ikke kunne se (udviklerafgørelse 2026-10-23, BB-301).
+ */
+const empSatsRelevance = <T,>(): RelevanceRule<T> => (field, view) =>
+  view.readCanonical(eoEmploymentFields.tillaegAngivesSom.bind(employmentIdFromField(field))) !== 'beloeb';
+
 // Navngivne employment-descriptors, som readerprojektion og grid binder direkte. Aggregatarrayet
 // nedenfor afledes fra dette record, så kataloget ikke kan drive fra de eksporterede refs.
 export const eoEmploymentFields = {
@@ -282,20 +319,20 @@ export const eoEmploymentFields = {
   ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentRelevance(erAnsaettelsesforholdOphoertRelevant) }),
   sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant), [sidsteDagEfterSkadedatoValidator]),
-  fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct')),
-  shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct')),
-  pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct')),
+  fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct'), empSatsRelevance()),
+  shSoPct: emp<number>('shSoPct', 'SH/SO-sats', 'text', percentCodec, empPercentBounds('shSoPct'), empSatsRelevance()),
+  pensionPct: emp<number>('pensionPct', 'Arbejdsgivers pensionsbidrag', 'text', percentCodec, empPercentBounds('pensionPct'), empSatsRelevance()),
   tillaegAngivesSom: reqChoiceField(EMP_ID, employmentPath, 'tillaegAngivesSom', 'Tillæg angives som', tillaegAngivesSomEnum.options, 'procent'),
   loenperiode: reqChoiceField(EMP_ID, employmentPath, 'loenperiode', 'Løn indtastes som', loenperiodeEnum.options, 'maaned'),
   fuldLoenUnderFerie: reqChoiceField(
     EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle',
     (_field, view) => erFuldLoenUnderFerieRelevant({ beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()) }),
   ),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg'),
-  anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
-  anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats')),
-  feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct')),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentLoenudviklingRelevance('anciennitet') }),
+  anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, employmentLoenudviklingRelevance('anciennitetDetaljer')),
+  anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', employmentLoenudviklingRelevance('anciennitetDetaljer')),
+  anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats'), employmentLoenudviklingRelevance('anciennitetDetaljer')),
+  feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct'), empSatsRelevance()),
   loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
   beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
     relevance: (field, view): boolean => {
@@ -312,20 +349,22 @@ export const eoEmploymentFields = {
   }),
   // Reguleringsdatoen er den dato, lønnen afspejler – en senere dato end i dag er en tastefejl (BB-282).
   // Labelen er skærmens («Evt. særlig fra-dato …»), så linjen i «Fejl og advarsler» navngiver feltet, som det står.
+  // Vises kun ved «Beregningsperiode», som resten af lønudviklingen (BB-301).
   saerligFraDatoRegulering: empDate(
-    'saerligFraDatoRegulering', 'Evt. særlig fra-dato for regulering', systemrammeTilDagsDatoSpec, undefined,
+    'saerligFraDatoRegulering', 'Evt. særlig fra-dato for regulering', systemrammeTilDagsDatoSpec,
+    employmentLoenudviklingRelevance('grundlag'),
     [saerligFraDatoOverenskomstDaekningValidator],
   ),
-  loenudviklingBeregningsgrundlag: optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
-  loenudviklingStatistikModel: optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
-  loenudviklingKRLSatstabel: optField(EMP_ID, employmentPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
-  loenudviklingManuelNavn: emp<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
-  offentligLoenType: optField(EMP_ID, employmentPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
-  offentligLoenTrin: emp<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EMP_ID}.offentligLoenTrin.bounds`, 1, 55)]),
-  offentligLoenGruppe: emp<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EMP_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
-  offentligLoenEkstraGrundloen: emp<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, empAmountBounds('offentligLoenEkstraGrundloen')),
-  // Samme relevans som beløbet (ingen regel): enheden hører til beløbet og må aldrig blive skjult, mens beløbet læses.
-  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned'),
+  loenudviklingBeregningsgrundlag: optField(EMP_ID, employmentPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options), undefined, employmentLoenudviklingRelevance('grundlag')),
+  loenudviklingStatistikModel: optField(EMP_ID, employmentPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options), undefined, employmentLoenudviklingRelevance('statistikModel')),
+  loenudviklingKRLSatstabel: optField(EMP_ID, employmentPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options), undefined, employmentLoenudviklingRelevance('krlSatstabel')),
+  loenudviklingManuelNavn: emp<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec, undefined, employmentLoenudviklingRelevance('manueltAngivet')),
+  offentligLoenType: reqChoiceField(EMP_ID, employmentPath, 'offentligLoenType', 'Ansættelse', offentligLoenTypeEnum.options, 'Månedsløn', 'choice', employmentLoenudviklingRelevance('offentligLoen')),
+  offentligLoenTrin: emp<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EMP_ID}.offentligLoenTrin.bounds`, 1, 55)], employmentLoenudviklingRelevance('offentligLoen')),
+  offentligLoenGruppe: emp<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EMP_ID}.offentligLoenGruppe.bounds`, 0, 4)], employmentLoenudviklingRelevance('offentligLoen')),
+  offentligLoenEkstraGrundloen: emp<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, empAmountBounds('offentligLoenEkstraGrundloen'), employmentLoenudviklingRelevance('offentligLoen')),
+  // Samme relevans som beløbet: enheden hører til beløbet og må aldrig blive skjult, mens beløbet læses.
+  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', employmentLoenudviklingRelevance('offentligLoen')),
 } as const;
 
 const employmentFields = Object.values(eoEmploymentFields);
@@ -368,8 +407,22 @@ const stdDate = (
   field: string, label: string,
   spec: DateBoundsSpec,
   extraValidators: readonly FieldValidator<ISODateString | undefined>[] = [],
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
-  dateFieldWithBounds(STD_ID, stdRowPath, field, label, spec, extraValidators);
+  dateFieldWithBounds(STD_ID, stdRowPath, field, label, spec, extraValidators, relevance);
+
+/**
+ * Indtægtstabellens celler følger ansættelsesforholdets valg som Årslønstabellens tvilling
+ * (`aarsloenDescriptors.ts`): periodekolonnerne vises kun under deres «Løn indtastes som», og tillægs- og
+ * pensionsbeløbene kun ved «Tillæg angives som» = «Beløb» (`StandardLoenTable`). Uden relevans blev en rød
+ * uge-celle ved med at spærre opgørelsen, efter at brugeren var skiftet til måneder, med et link til en kolonne,
+ * der ikke stod på skærmen. Alle læsere vælger i forvejen kolonnerne efter de to valg, så ingen beregning læser
+ * de skjulte celler; værdierne bevares og kommer tilbage med valget.
+ */
+const stdLoenperiodeIs = <T,>(loenperiode: PersistedLoenindkomstAnsaettelsesforhold['loenperiode']): RelevanceRule<T> =>
+  (field, view) => view.readCanonical(eoEmploymentFields.loenperiode.bind(employmentIdFromField(field))) === loenperiode;
+const stdTillaegSomBeloeb = <T,>(): RelevanceRule<T> =>
+  (field, view) => view.readCanonical(eoEmploymentFields.tillaegAngivesSom.bind(employmentIdFromField(field))) === 'beloeb';
 
 /**
  * Indtægtstabellens «Dato fra»/«Dato til». Rækkerne ligger NESTET under et
@@ -391,16 +444,19 @@ const stdUgePair: WeekPairBinding = {
 };
 const stdString = (
   field: string, label: string, codec: FieldCodec<string | undefined>,
-  validators?: readonly FieldValidator<string | undefined>[],
+  validators: readonly FieldValidator<string | undefined>[],
+  relevance: RelevanceRule<string | undefined>,
 ): FieldDescriptor<string | undefined> =>
   createField<string | undefined>({
     ownerId: STD_ID, path: stdRowPath, field, label, controlKind: 'text', codec, emptyValue: '', isEmpty: isEmptyString,
-    ...(validators === undefined ? {} : { validators }),
+    validators, relevance,
   });
 
 // Månedskolonnens 1..12 er en canonical bounds-feltvalidator (string-backed, §1.6).
-const stdAmount = (field: string, label: string): FieldDescriptor<AmountValue | undefined> =>
-  optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec);
+const stdAmount = (
+  field: string, label: string, relevance?: RelevanceRule<AmountValue | undefined>,
+): FieldDescriptor<AmountValue | undefined> =>
+  optField<AmountValue>(STD_ID, stdRowPath, field, label, 'text', tableAmountCodec, undefined, relevance);
 
 // Kolonnenavnene er ét sandt sted (`STANDARD_LOEN_COLUMN_LABELS`, §3.2a): descriptor-labelen ER
 // gridoverskriften, så en fejl på en celle navngiver den kolonne, brugeren faktisk ser. `col4`/`col5` hed
@@ -410,26 +466,26 @@ const stdLabel = STANDARD_LOEN_COLUMN_LABELS;
 export const eoStandardRowFields = {
   col0_maaned: stdString('col0_maaned', stdLabel.col0_maaned, createStringBackedFieldCodec(integerCodec(1, 12, 2)), [
     integerStringBoundsValidator(`${STD_ID}.col0_maaned.bounds`, 1, 12),
-  ]),
-  col1_maaned: stdString('col1_maaned', stdLabel.col1_maaned, createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)]),
-  col0_uge: stdString('col0_uge', stdLabel.col0_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('fra', stdUgePair)]),
-  col1_uge: stdString('col1_uge', stdLabel.col1_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('til', stdUgePair)]),
+  ], stdLoenperiodeIs('maaned')),
+  col1_maaned: stdString('col1_maaned', stdLabel.col1_maaned, createStringBackedFieldCodec(createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear() })), [yearStringBoundsValidator(`${STD_ID}.col1_maaned.bounds`, MIN_YEAR, getCurrentYear)], stdLoenperiodeIs('maaned')),
+  col0_uge: stdString('col0_uge', stdLabel.col0_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col0_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('fra', stdUgePair)], stdLoenperiodeIs('uge')),
+  col1_uge: stdString('col1_uge', stdLabel.col1_uge, createStringBackedFieldCodec(createWeekFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_YEAR, maxYear: getCurrentYear(), maxDraftLength: 8 })), [weekYearBoundsValidator(`${STD_ID}.col1_uge.bounds`, MIN_YEAR, getCurrentYear), weekOrderValidator('til', stdUgePair)], stdLoenperiodeIs('uge')),
   col0_dag: stdDate('col0_dag', stdLabel.col0_dag, {
     min: () => dateRanges_aarsloen.tabelAarsloenFra.min,
     max: () => dateRanges_aarsloen.tabelAarsloenFra.fallbackMax,
     origin: STATIC_DATE_BOUNDS,
-  }, [dateOrderValidator('fra', stdDagPair)]),
+  }, [dateOrderValidator('fra', stdDagPair)], stdLoenperiodeIs('dag')),
   col1_dag: stdDate('col1_dag', stdLabel.col1_dag, {
     min: () => dateRanges_aarsloen.tabelAarsloenTil.fallbackMin,
     max: () => dateRanges_aarsloen.tabelAarsloenTil.max,
     origin: STATIC_DATE_BOUNDS,
-  }, [dateOrderValidator('til', stdDagPair)]),
+  }, [dateOrderValidator('til', stdDagPair)], stdLoenperiodeIs('dag')),
   col2: stdAmount('col2', stdLabel.col2),
   col3: stdAmount('col3', stdLabel.col3),
   col4: stdAmount('col4', stdLabel.col4),
   col5: stdAmount('col5', stdLabel.col5),
-  fpFvShSoBeloeb: stdAmount('fpFvShSoBeloeb', stdLabel.fpFvShSoBeloeb),
-  pensionBeloeb: stdAmount('pensionBeloeb', stdLabel.pensionBeloeb),
+  fpFvShSoBeloeb: stdAmount('fpFvShSoBeloeb', stdLabel.fpFvShSoBeloeb, stdTillaegSomBeloeb()),
+  pensionBeloeb: stdAmount('pensionBeloeb', stdLabel.pensionBeloeb, stdTillaegSomBeloeb()),
 } as const;
 
 const standardRowFields = Object.values(eoStandardRowFields);
@@ -498,7 +554,22 @@ export type ManualBindings = Readonly<{
   fields: ReturnType<typeof catalogFields>;
 }>;
 
-const createManualBindings = (ownerId: string, ownerPath: PathSegments): ManualBindings => {
+/**
+ * Grundlønnen i en manuel række skal være større end 0: en løn på 0 eller derunder kan ikke reguleres ud fra, og
+ * motoren afviser den. Reglen stod før kun i validatoren og spærrede uden rød celle – og først når alt andet var
+ * rettet (BB-308, samme form som BB-232).
+ */
+const manualGrundloenPositiveValidator = (code: string): FieldValidator<AmountValue | undefined> =>
+  positiveAmountValidator(code, 'Grundløn skal være større end 0 kr.');
+
+/** Ejerens relevansregel for en af de to manuelle tabeller – samme betingelse, som tabellen vises under. */
+type ManualTableRelevance = <T>(felt: 'manueltAngivet' | 'manuelProcentsats') => RelevanceRule<T>;
+
+const createManualBindings = (
+  ownerId: string,
+  ownerPath: PathSegments,
+  relevance: ManualTableRelevance,
+): ManualBindings => {
   const manualCollection = defineStructuralCollection<LoenudviklingManuelRow>({
     id: `${ownerId}.loenudviklingManuelTableData`,
     template: { section: S, path: ownerPath, collection: MANUAL_ROWS },
@@ -518,17 +589,22 @@ const createManualBindings = (ownerId: string, ownerPath: PathSegments): ManualB
   const manualId = `${ownerId}.loenudviklingManuelTableData`;
   const manualPercentId = `${ownerId}.loenudviklingManuelProcentsatsTableData`;
 
+  // Tabellernes celler er kun relevante, mens deres form er valgt og blokken vises (BB-301): en rød celle i en
+  // fravalgt tabel spærrede før opgørelsen med en linje uden et sted at rette den.
+  const angivet = <T,>(): RelevanceRule<T> => relevance<T>('manueltAngivet');
+  const procentsats = <T,>(): RelevanceRule<T> => relevance<T>('manuelProcentsats');
+  const pctBounds = (id: string) => [percentBoundsValidator(id, { minValue: 0, maxValue: 100, allowDecimals: true })];
   const manualFields = {
-    dato: dateFieldWithBounds(manualId, manualRowPath, 'dato', 'Dato', systemrammeSpec),
-    grundloen: optField<AmountValue>(manualId, manualRowPath, 'grundloen', 'Grundløn', 'text', tableAmountCodec),
-    feriepenge: optField<number>(manualId, manualRowPath, 'feriepenge', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${manualId}.feriepenge.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-    shSoSats: optField<number>(manualId, manualRowPath, 'shSoSats', 'SH/SO-sats', 'text', percentCodec, [percentBoundsValidator(`${manualId}.shSoSats.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-    fritvalg: optField<number>(manualId, manualRowPath, 'fritvalg', 'Fritvalg', 'text', percentCodec, [percentBoundsValidator(`${manualId}.fritvalg.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
-    agPension: optField<number>(manualId, manualRowPath, 'agPension', 'Arbejdsgivers pension', 'text', percentCodec, [percentBoundsValidator(`${manualId}.agPension.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+    dato: dateFieldWithBounds(manualId, manualRowPath, 'dato', 'Dato', systemrammeSpec, [], angivet()),
+    grundloen: optField<AmountValue>(manualId, manualRowPath, 'grundloen', 'Grundløn', 'text', tableAmountCodec, [manualGrundloenPositiveValidator(`${manualId}.grundloen.positive`)], angivet()),
+    feriepenge: optField<number>(manualId, manualRowPath, 'feriepenge', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, pctBounds(`${manualId}.feriepenge.bounds`), angivet()),
+    shSoSats: optField<number>(manualId, manualRowPath, 'shSoSats', 'SH/SO-sats', 'text', percentCodec, pctBounds(`${manualId}.shSoSats.bounds`), angivet()),
+    fritvalg: optField<number>(manualId, manualRowPath, 'fritvalg', 'Fritvalg', 'text', percentCodec, pctBounds(`${manualId}.fritvalg.bounds`), angivet()),
+    agPension: optField<number>(manualId, manualRowPath, 'agPension', 'Arbejdsgivers pension', 'text', percentCodec, pctBounds(`${manualId}.agPension.bounds`), angivet()),
   } as const;
   const manualPercentFields = {
-    dato: dateFieldWithBounds(manualPercentId, manualPercentRowPath, 'dato', 'Dato', systemrammeSpec),
-    procent: optField<number>(manualPercentId, manualPercentRowPath, 'procent', 'Procent', 'text', percentCodec, [percentBoundsValidator(`${manualPercentId}.procent.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
+    dato: dateFieldWithBounds(manualPercentId, manualPercentRowPath, 'dato', 'Dato', systemrammeSpec, [], procentsats()),
+    procent: optField<number>(manualPercentId, manualPercentRowPath, 'procent', 'Procent', 'text', percentCodec, pctBounds(`${manualPercentId}.procent.bounds`), procentsats()),
   } as const;
 
   return {
@@ -550,36 +626,55 @@ const createManualBindings = (ownerId: string, ownerPath: PathSegments): ManualB
   };
 };
 
-export const eoEmploymentManual = createManualBindings(EMP_ID, employmentPath);
+export const eoEmploymentManual = createManualBindings(EMP_ID, employmentPath, employmentLoenudviklingRelevance);
 const employmentManual = eoEmploymentManual;
 
 // ── eoAngivetLoenLoenudvikling (singulært property-objekt) ──────────────────────────
 const EO_LOEN_ID = 'eo.eoAngivetLoenLoenudvikling';
+
+/**
+ * Den angivne løns lønudvikling vises kun under sin egen gren af «Beregnes ud fra» med TAF-sektionen aktiv
+ * (BB-301); felterne indenfor følger reguleringsformen som på ansættelsesforholdet. Komprimeringen ved EO 2+
+ * skjuler blokken, men gør den ikke irrelevant (`eoInputRelevance.ts`).
+ */
+const eoLoenudviklingRelevance = <T,>(felt: LoenudviklingFelt): RelevanceRule<T> => (_field, view) =>
+  erLoenudviklingFeltRelevant(felt, {
+    blokVist: erAngivetLoenLoenudviklingRelevant({
+      kravPaaTabtArbejdsfortjeneste: view.readCanonical(eoKravPaaTabtArbejdsfortjenesteField.bind()),
+      beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()),
+    }),
+    grundlag: view.readCanonical(eoAngivetLoenFields.loenudviklingBeregningsgrundlag.bind()),
+    overenskomstId: view.readCanonical(eoAngivetLoenFields.overenskomstId.bind()),
+    harAnciennitetstillaeg: view.readCanonical(eoAngivetLoenFields.harAnciennitetstillaegEfterSkadedatoen.bind()),
+  });
+
 const eoLoen = <T>(
   field: string, label: string, controlKind: FieldControlKind, codec: FieldCodec<T | undefined>,
   validators?: readonly FieldValidator<T | undefined>[],
-) => optField<T>(EO_LOEN_ID, eoLoenPath, field, label, controlKind, codec, validators);
+  relevance?: RelevanceRule<T | undefined>,
+) => optField<T>(EO_LOEN_ID, eoLoenPath, field, label, controlKind, codec, validators, relevance);
 const eoLoenAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EO_LOEN_ID}.${field}.bounds`, 0, undefined)];
 
 /** Datofelt på det singulære eoLoen-objekt – tvillingen til {@link empDate}. */
 const eoLoenDate = (
   field: string, label: string, spec: DateBoundsSpec = systemrammeSpec,
+  relevance?: RelevanceRule<ISODateString | undefined>,
 ): FieldDescriptor<ISODateString | undefined> =>
-  dateFieldWithBounds(EO_LOEN_ID, eoLoenPath, field, label, spec);
+  dateFieldWithBounds(EO_LOEN_ID, eoLoenPath, field, label, spec, [], relevance);
 
 export const eoAngivetLoenFields = {
-  overenskomstId: eoLoen<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
-  anciennitetstillaegDato: eoLoenDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg'),
-  anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned'),
-  anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats')),
+  overenskomstId: eoLoen<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec, undefined, eoLoenudviklingRelevance('overenskomst')),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: eoLoenudviklingRelevance('anciennitet') }),
+  anciennitetstillaegDato: eoLoenDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, eoLoenudviklingRelevance('anciennitetDetaljer')),
+  anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', eoLoenudviklingRelevance('anciennitetDetaljer')),
+  anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats'), eoLoenudviklingRelevance('anciennitetDetaljer')),
   feriePct: eoLoen<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, [percentBoundsValidator(`${EO_LOEN_ID}.feriePct.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })]),
   // Samme required-choice-kontrakt som ansættelsesforholdets tvilling (`eoEmploymentFields.loenPaaHelligdage`).
-  // Feltet har ingen editor under angivet løn, så dets værdi ER tomværdien – og en tomværdi på `undefined`
-  // ville føde motoren en tilstand, den erklærer umulig. Descriptorens tomværdi skal derfor være den
-  // samme konkrete sats, som schemaets `.default()` giver.
-  loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
+  // Tomværdien er den samme konkrete sats, som schemaets `.default()` giver: en tomværdi på `undefined` ville
+  // føde motoren en tilstand, den erklærer umulig. Feltet vises og læses kun ved de reguleringsformer, der regner
+  // med helligdagene (BB-315); ved de øvrige fik brugeren et valg, der intet ændrede.
+  loenPaaHelligdage: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn', 'choice', eoLoenudviklingRelevance('loenPaaHelligdageVedAngivetLoen')),
   // Skjult input bevares; descriptoren giver alle læsere tomværdien, når valget er uden virkning.
   beregnStoreBededagstillaeg: createField<boolean>({
     ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024',
@@ -592,15 +687,15 @@ export const eoAngivetLoenFields = {
     }),
   }),
   saerligFraDatoRegulering: eoLoenDate('saerligFraDatoRegulering', 'Særlig fra-dato for regulering', systemrammeTilDagsDatoSpec),
-  loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options)),
-  loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options)),
-  loenudviklingKRLSatstabel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options)),
-  loenudviklingManuelNavn: eoLoen<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec),
-  offentligLoenType: optField(EO_LOEN_ID, eoLoenPath, 'offentligLoenType', 'Ansættelse', 'choice', createChoiceFieldCodec(offentligLoenTypeEnum.options)),
-  offentligLoenTrin: eoLoen<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenTrin.bounds`, 1, 55)]),
-  offentligLoenGruppe: eoLoen<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenGruppe.bounds`, 0, 4)]),
-  offentligLoenEkstraGrundloen: eoLoen<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, eoLoenAmountBounds('offentligLoenEkstraGrundloen')),
-  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned'),
+  loenudviklingBeregningsgrundlag: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingBeregningsgrundlag', 'Lønudvikling beregnes ud fra', 'choice', createChoiceFieldCodec(loenudviklingBeregningsgrundlagEnum.options), undefined, eoLoenudviklingRelevance('grundlag')),
+  loenudviklingStatistikModel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingStatistikModel', 'Statistisk beregningsmodel', 'choice', createChoiceFieldCodec(loenudviklingStatistikModelEnum.options), undefined, eoLoenudviklingRelevance('statistikModel')),
+  loenudviklingKRLSatstabel: optField(EO_LOEN_ID, eoLoenPath, 'loenudviklingKRLSatstabel', 'Satstabel', 'choice', createChoiceFieldCodec(krlSatstabelEnum.options), undefined, eoLoenudviklingRelevance('krlSatstabel')),
+  loenudviklingManuelNavn: eoLoen<string>('loenudviklingManuelNavn', 'Navn på reguleringsform', 'text', optionalTextCodec, undefined, eoLoenudviklingRelevance('manueltAngivet')),
+  offentligLoenType: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'offentligLoenType', 'Ansættelse', offentligLoenTypeEnum.options, 'Månedsløn', 'choice', eoLoenudviklingRelevance('offentligLoen')),
+  offentligLoenTrin: eoLoen<number>('offentligLoenTrin', 'Løntrin', 'text', integerCodec(1, 55, 2), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenTrin.bounds`, 1, 55)], eoLoenudviklingRelevance('offentligLoen')),
+  offentligLoenGruppe: eoLoen<number>('offentligLoenGruppe', 'Gruppe', 'text', integerCodec(0, 4, 1), [integerBoundsValidator(`${EO_LOEN_ID}.offentligLoenGruppe.bounds`, 0, 4)], eoLoenudviklingRelevance('offentligLoen')),
+  offentligLoenEkstraGrundloen: eoLoen<AmountValue>('offentligLoenEkstraGrundloen', 'Forhøjet grundløn ud over løntrin', 'text', amountCodec, eoLoenAmountBounds('offentligLoenEkstraGrundloen'), eoLoenudviklingRelevance('offentligLoen')),
+  offentligLoenEkstraGrundloenAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'offentligLoenEkstraGrundloenAngivesPer', 'Forhøjet grundløn angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', eoLoenudviklingRelevance('offentligLoen')),
 } as const;
 
 const eoLoenFields = Object.values(eoAngivetLoenFields);
@@ -612,7 +707,7 @@ export const eoAngivetLoenFilterFields = {
 
 const eoLoenFilterFields = Object.values(eoAngivetLoenFilterFields);
 
-export const eoAngivetLoenManual = createManualBindings(EO_LOEN_ID, eoLoenPath);
+export const eoAngivetLoenManual = createManualBindings(EO_LOEN_ID, eoLoenPath, eoLoenudviklingRelevance);
 const eoLoenManual = eoAngivetLoenManual;
 
 // De navngivne descriptorgrupper eksporteres som records, som readerprojektion og grid binder direkte.

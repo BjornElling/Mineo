@@ -2,7 +2,7 @@ import type { LoenindkomstAnsaettelsesforhold, StamdataValues } from '../../../s
 import type { TafCalculationValues } from './tafCalculationInput';
 import { isISODateString, type ISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { formatAsAmount, formatPercent, isSingularCount } from '../../../utils/formatUtils';
+import { formatAsAmount, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentPointString } from '../../../utils/numberParsing';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { buildIncomeForRanges, resolveAnsaettelsesforholdNavn, type IncomeEmployerAmount, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
@@ -185,16 +185,16 @@ export const buildIndkomstSkadestidspunkt = (
           // En PROCENTSATS navngives med den konkrete ydelse, ikke med fællesbetegnelsen «Feriepenge»
           // (`feriepenge-begreber-contract.md` §2a) – og navnet er feltets eget, så dokumentet og det
           // felt, satsen kommer fra, siger det samme.
-          if (feriePct && feriePct !== 0) pctParts.push(`Feriegodtgørelse/-tillæg (${formatPercent(feriePct)})`);
-          if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
-          if (shSoPct && shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
+          if (feriePct && feriePct !== 0) pctParts.push(`Feriegodtgørelse/-tillæg (${formatPercentFixed2(feriePct)})`);
+          if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercentFixed2(fritvalgPct)})`);
+          if (shSoPct && shSoPct !== 0) pctParts.push(`SH/SO (${formatPercentFixed2(shSoPct)})`);
           if (storeBededagPct && storeBededagPct !== 0) {
-            pctParts.push(`Store Bededag (${formatPercentFixed2(storeBededagPct)})`);
+            pctParts.push(`Store Bededagstillæg (${formatPercentFixed2(storeBededagPct)})`);
           }
         }
         const fpLabel = pctParts.length > 0 ? pctParts.join(' + ') : 'Feriepenge m.v.';
         const pensionLabel = mode !== 'beloeb' && pensionPct && pensionPct !== 0
-          ? `Arbejdsgivers pensionsbidrag (${formatPercent(pensionPct)} af løn + tillæg)`
+          ? `Arbejdsgivers pensionsbidrag (${formatPercentFixed2(pensionPct)} af løn + tillæg)`
           : 'Arbejdsgivers pensionsbidrag';
         const navn = resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, entry.index);
 
@@ -246,7 +246,7 @@ export const buildIndkomstSkadestidspunkt = (
           pensionOre: fromKroner(roundKroner(sums.pension)),
           atpOre: fromKroner(roundKroner(sums.atp)),
           // Samlet beregningsgrundlag summerer de allerede-afrundede arbejdssted-totaler, så
-          // "Månedsløn: (A + B + …) / N" er efterregnelig fra de viste arbejdssted-"I alt:"-beløb.
+          // "Månedsindkomst: (A + B + …) / N" er efterregnelig fra de viste arbejdssted-"I alt:"-beløb.
           samletOre: clampMoneyOreToZero(
             sumMoneyOre(arbejdssteder.map((arbejdssted) => arbejdssted.breakdown.samletOre))
           ),

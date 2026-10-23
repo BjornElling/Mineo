@@ -17,7 +17,7 @@ import {
 // (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). En descriptor-validator måtte da genskabe
 // den udledning inde i inputkernen, og inputkernen ville dermed komme til at kende erstatningsretlige regler.
 //
-// Derfor samme mønster som `manualRegulationDateIssues`: domænet udleder issuet OG binder selv den rigtige
+// Derfor samme mønster som `manualRegulationIssues`: domænet udleder issuet OG binder selv den rigtige
 // feltadresse, og UI'et leverer det til cellen via `collectionRuleIssue`. Reglen bliver et ægte `FieldIssue`
 // og deler dermed adresse med rød ring, tooltip, navigation og blokering – ét sprog, ikke fire.
 //

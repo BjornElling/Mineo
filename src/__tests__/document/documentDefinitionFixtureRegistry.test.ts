@@ -259,6 +259,10 @@ const readyReguleringInput = (
   return replaceSections(input, {
     erstatningsopgoerelse: {
       ...eo,
+      // Den angivne løns lønudvikling læses kun under sin egen gren af «Beregnes ud fra» med TAF-sektionen
+      // aktiv – samme betingelse, som fladen viser den under (BB-301).
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
       eoAngivetLoenLoenudvikling: {
         ...eo.eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: basis,

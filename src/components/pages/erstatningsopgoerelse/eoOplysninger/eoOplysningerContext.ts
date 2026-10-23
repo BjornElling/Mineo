@@ -10,7 +10,7 @@ import type { FieldIssueSet } from '../../../../inputCore/inputIssue';
  */
 export type EoOplysningerVm = ReturnType<typeof useEoOplysningerViewModel> & Readonly<{
   eoErrors: FieldIssueSet;
-  manualRegulationDateIssues: FieldIssueSet;
+  loenudviklingIssues: FieldIssueSet;
   /** TAF-cutoff mod differencekrav/EET, adresseret pr. fra-/til-celle. */
   tafCellIssues: FieldIssueSet;
   /** Svie/smerte-cutoff mod ménafgørelsen, adresseret pr. fra-/til-celle. */

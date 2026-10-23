@@ -12,7 +12,7 @@ import {
 describe('pdfFormatUtils', () => {
   describe('formatReguleringFactorText', () => {
     it('bygger faktortekst med plus for positiv regulering', () => {
-      expect(formatReguleringFactorText(2.5)).toBe(' x (100 % + 2,5 %)');
+      expect(formatReguleringFactorText(2.5)).toBe(' x (100 % + 2,50 %)');
     });
 
     it('bygger faktortekst med minus for negativ regulering', () => {

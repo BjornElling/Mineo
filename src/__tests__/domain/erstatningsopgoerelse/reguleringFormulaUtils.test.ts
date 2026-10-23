@@ -429,7 +429,7 @@ describe('buildFormulaText', () => {
     const result = buildFormulaText(components, allVisible);
     expect(result).toContain('x');
     expect(result).toContain('100 %');
-    expect(result).toContain('12 %');
+    expect(result).toContain('12,00 %');
   });
 
   it('synlig SH/SO og Fritvalg → begge procentkomponenter indgår i første faktor', () => {
@@ -437,7 +437,7 @@ describe('buildFormulaText', () => {
       baseValue: 1000, feriePct: 12, fritvalgPct: 4, shSoPct: 3, pensionPct: 0, storeBededagPct: 0,
     }, allVisible);
 
-    expect(result).toContain('12 % + 3 % + 4 %');
+    expect(result).toContain('(100 % + 12,00 % + 3,00 % + 4,00 %)');
   });
 
   it('kun pension (showPension=true) → baseValue x (100 % + pensionStr)', () => {
@@ -446,7 +446,7 @@ describe('buildFormulaText', () => {
     };
     const result = buildFormulaText(components, allVisible);
     expect(result).toContain('100 %');
-    expect(result).toContain('10 %');
+    expect(result).toContain('(100 % + 10,00 %)');
   });
 
   it('showPension=false → pension udelades selvom pensionPct != 0', () => {

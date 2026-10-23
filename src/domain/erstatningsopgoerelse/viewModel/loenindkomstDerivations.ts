@@ -25,8 +25,13 @@ import {
   resolveSfggReferenceperiodeMaxDate,
   getFirstIndtastedeTafFraDato,
 } from '../engines/sfggReferencesats';
-import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../engines/sfggKilde';
+import { resolveSfggSource } from '../engines/sfggKilde';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
+import {
+  erSfggFeltRelevantForSynlighed,
+  resolveSfggSynlighed,
+  type SfggFelt,
+} from '../helpers/eoLoenindkomstRelevance';
 import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
@@ -134,6 +139,11 @@ export type SfggPresentation = Readonly<{
   canShowOverenskomstDetails: boolean;
   requiresReferenceperiode: boolean;
   showSatsvalg: boolean;
+  /**
+   * Hvilke feltgrupper sektionen viser – samme afgørelse som felternes descriptor-relevans
+   * (`eoLoenindkomstRelevance.ts`), så sektionen ikke kan vise et felt, readeren skjuler, eller omvendt.
+   */
+  relevanteFelter: Readonly<Record<SfggFelt, boolean>>;
   showSharedSfggBefore2015: boolean;
 }>;
 
@@ -287,31 +297,33 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
 
   const getSfggPresentation = (af: Ansaettelsesforhold): SfggPresentation => {
     const row = getSfggRowForAf(af);
-    const policy = af.overenskomstId ? getOverenskomstSfggPolicy(af.overenskomstId) : undefined;
     const overenskomstMeta = af.overenskomstId ? getOverenskomstMetaById(af.overenskomstId) : undefined;
-    const hasOverenskomst = hasSfggSelectedOverenskomst(row, af);
+    // Synligheden afledes af samme prædikat som SFGG-descriptorernes relevans, så et vist felt er et læst felt.
+    const kilde = row?.sfggBeregningskilde;
+    const synlighed = resolveSfggSynlighed({
+      kravPaaTabtArbejdsfortjeneste: eoValues.kravPaaTabtArbejdsfortjeneste,
+      employment: af,
+      sfggBeregningskilde: kilde,
+    });
+    const hasOverenskomst = synlighed.harValgtOverenskomst;
 
     return {
-      show: showSygeferiegodtgoerelseSection(af),
+      show: synlighed.sektionVist,
       row,
-      policy,
+      policy: synlighed.policy,
       hasOverenskomst,
       selectedOverenskomstLabel: hasOverenskomst
         ? (overenskomstMeta?.navn ?? af.overenskomstId!.trim())
         : 'Ingen overenskomst valgt',
-      canShowOverenskomstDetails: row?.sfggBeregningskilde !== 'Overenskomst' || hasOverenskomst,
-      requiresReferenceperiode:
-        row?.sfggBeregningskilde === 'Ferieloven'
-        || (
-          row?.sfggBeregningskilde === 'Overenskomst'
-          && hasOverenskomst
-          && policy?.model !== 'direkte_sats'
-        ),
-      showSatsvalg:
-        row?.sfggBeregningskilde === 'Overenskomst'
-        && hasOverenskomst
-        && policy?.model === 'direkte_sats'
-        && policy.direkteSatsErDifferentieret,
+      canShowOverenskomstDetails: synlighed.overenskomstDetaljerVist,
+      requiresReferenceperiode: synlighed.kraeverReferenceperiode,
+      showSatsvalg: synlighed.satsvalgVist,
+      relevanteFelter: {
+        referenceperiode: erSfggFeltRelevantForSynlighed('referenceperiode', synlighed, kilde),
+        satsvalg: erSfggFeltRelevantForSynlighed('satsvalg', synlighed, kilde),
+        manuel: erSfggFeltRelevantForSynlighed('manuel', synlighed, kilde),
+        alleredeBetalt: erSfggFeltRelevantForSynlighed('alleredeBetalt', synlighed, kilde),
+      },
       showSharedSfggBefore2015: Boolean(skadedato && skadedato < '2015-01-01'),
     };
   };

@@ -60,6 +60,7 @@ import { EO_TAB_KEYS } from '../../../../config/eoTabKeys';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { createFieldWarning } from '../../../../inputCore/fieldWarning';
 import { activeFieldIssue } from '../../../../inputCore/inputIssue';
+import { erLoenudviklingFeltRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { useInputReadPort } from '../../../../inputCore/react/inputRuntimeContext';
 import {
   erAnsaettelsesforholdOphoertRelevant,
@@ -100,8 +101,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     satsIssues,
     feriePctAdvarselByAfId,
     tableCellWarningsByAfId,
+    loenudviklingWarnings,
     manualBaseRowErrorsByAfId,
-    manualRegulationDateIssues,
+    loenudviklingIssues,
     loentrinFinder,
     alleLoenmodtagerOrg,
     alleArbejdsgiverOrg,
@@ -138,14 +140,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   // React efterlod den på det sidst monterede kort: åbnede man finderen fra et andet kort, vendte fokus
   // ved lukning tilbage til det NEDERSTE korts knap (keyboard-navigation.md §Popup-fokus-restore).
   const loentrinFinderTriggerRef = loentrinFinder.registerTrigger(af.id);
-  const openLoentrinFinderForCard = React.useCallback(() => {
-    loentrinFinder.openFinder({
-      overenskomstId: af.overenskomstId,
-      offentligLoenType: af.offentligLoenType,
-      // Lønindkomst husker indtastningen pr. ansættelsesforhold, så en genåbning starter hvor man slap.
-      sessionKey: af.id,
-    });
-  }, [af.id, af.offentligLoenType, af.overenskomstId, loentrinFinder]);
+  const gruppeInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const field = <T,>(descriptor: { bind: (...ids: readonly string[]) => T }): T => descriptor.bind(af.id);
   const inputRead = useInputReadPort();
@@ -302,10 +297,39 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
   );
   const loenudviklingBaseDate = getLoenudviklingBaseDate(af);
+  const openLoentrinFinderForCard = () => {
+    loentrinFinder.openFinder({
+      overenskomstId: af.overenskomstId,
+      offentligLoenType: af.offentligLoenType,
+      // Lønindkomst husker indtastningen pr. ansættelsesforhold, så en genåbning starter hvor man slap.
+      sessionKey: af.id,
+      // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind på kortet (BB-310).
+      ...(anvendtReguleringsdato === undefined ? {} : { reguleringsdato: anvendtReguleringsdato }),
+      insert: {
+        loentrin: loenudviklingBinding.offentligLoenTrin,
+        gruppe: loenudviklingBinding.offentligLoenGruppe,
+        gruppeInputRef,
+      },
+    });
+  };
   const anciennitetSatsPerTekst = af.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned';
-  const showAnciennitetstillaegSection = beregnesUdFra === 'Beregningsperiode'
-    && loenudviklingBasis === 'Overenskomst'
-    && Boolean(af.overenskomstId?.trim());
+  // Samme prædikat som felternes relevans (BB-301), så synlighed og læsning ikke kan drive fra hinanden.
+  const showAnciennitetstillaegSection = erLoenudviklingFeltRelevant('anciennitet', {
+    blokVist: beregnesUdFra === 'Beregningsperiode',
+    grundlag: loenudviklingBasis,
+    overenskomstId: af.overenskomstId,
+    harAnciennitetstillaeg: Boolean(af.harAnciennitetstillaegEfterSkadedatoen),
+  });
+  // Lønudviklingens projekterede feltfejl og gule ringe slås op på feltets egen bundne adresse.
+  const loenudviklingIssueProps = <T,>(ref: FieldRef<T>) => {
+    const key = serializeFieldAddress(ref.address);
+    const issue = activeFieldIssue(loenudviklingIssues, key);
+    const warning = loenudviklingWarnings.get(key);
+    return {
+      ...(issue === undefined ? {} : { crossFieldIssue: issue }),
+      ...(warning === undefined ? {} : { warning }),
+    };
+  };
   const shouldShowReguleringsDatoInterval =
     loenudviklingBasis === 'Overenskomst' ||
     (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
@@ -587,6 +611,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           <Box className="row--label-right-hover__content">
             <DateField
               field={saerligFraDatoReguleringField}
+              {...loenudviklingIssueProps(saerligFraDatoReguleringField)}
               location={location('saerligFraDatoRegulering')}
               name={`${af.id}:saerligFraDatoRegulering`}
             />
@@ -718,7 +743,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           manualPercentCollection={manualPercentCollection}
           manualRows={af.loenudviklingManuelTableData}
           manualPercentRows={af.loenudviklingManuelProcentsatsTableData}
-          manualRuleIssues={manualRegulationDateIssues}
+          loenudviklingIssues={loenudviklingIssues}
+          manualCellWarnings={loenudviklingWarnings}
           manualLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelTableData`}
           manualPercentLocationPrefix={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold:${af.id}:loenudviklingManuelProcentsatsTableData`}
           // route + tabKey er eksplicit navigation-metadata (§3.7); tabellerne bor på Lønindkomstfanen.
@@ -736,6 +762,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
           }
           onOpenLoentrinFinder={openLoentrinFinderForCard}
           loentrinFinderTriggerRef={loentrinFinderTriggerRef}
+          gruppeInputRef={gruppeInputRef}
           baseDateDisplay={loenudviklingBaseDate.display}
           baseDateISO={loenudviklingBaseDate.iso}
           baseDateErrorMessage={loenudviklingBaseDate.errorMessage}
@@ -785,6 +812,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             />
           )}
           harAnciennitetstillaeg={Boolean(af.harAnciennitetstillaegEfterSkadedatoen)}
+          datoFeedback={loenudviklingIssueProps(field(eoEmploymentFields.anciennitetstillaegDato))}
           referenceText={anvendtReguleringsdatoReferenceText}
           satsPerTekst={anciennitetSatsPerTekst}
           fieldNamePrefix={`${af.id}:`}

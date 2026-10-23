@@ -8,7 +8,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('krl → Word-indhold', () => {
   it('skriver titel og kilde til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument((session) => {
-      return generateKRLDocument(session, { visBrevhoved: false });
+      return generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -19,10 +19,23 @@ describe('krl → Word-indhold', () => {
     expect(text).toMatch(/krl\.dk/i);
   });
 
+  it('fremhæver den anvendte satstabel og skriver datoerne ældste først (BB-317)', async () => {
+    const { documentXml } = await renderWordDocument((session) =>
+      generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'SHK (regioner)' }));
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('SHK (regioner) (anvendt)');
+    expect(text).not.toContain('KTO (kommuner) (anvendt)');
+    const datoer = [...text.matchAll(/(\d{2})-(\d{2})-(\d{4})/g)].map(([, d, m, y]) => `${y}-${m}-${d}`);
+    expect(datoer.length).toBeGreaterThan(1);
+    expect(datoer).toEqual([...datoer].sort());
+  });
+
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const { documentXml } = await renderWordDocument((session) => {
       return generateKRLDocument(session, {
         visBrevhoved: true,
+        anvendtSatstabel: 'KTO (kommuner)',
         stamdata: { journalnr: '5566', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });
     });

@@ -105,7 +105,6 @@ export const assertUniform = (
 // zero-delta ved manglende/ugyldig indplacering. Mapper den delte parsers `reason` til de
 // hidtidige beskeder, så adfærd og ordlyd er uændret.
 const OFFENTLIG_LOEN_SELECTION_THROW_MESSAGE: Readonly<Record<OffentligLoenSelectionFailure, string>> = {
-  'loentype-mangler': 'Loenudvikling kan ikke beregnes: ansættelse er ikke valgt',
   'trin-mangler': 'Loenudvikling kan ikke beregnes: løntrin mangler',
   'trin-ugyldig': 'Loenudvikling kan ikke beregnes: løntrin skal være mellem 1 og 55',
   'gruppe-mangler': 'Loenudvikling kan ikke beregnes: gruppe mangler',

@@ -10,9 +10,8 @@ import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../settin
 //  1. **Værdien er brugerens.** Programindstillingerne har en kategori "standardværdier til ny sagsdata"
 //     (`src/contracts/app-settings.md`). Et schema kan ikke udtrykke dem: schemaet er sagsdata-formen og må
 //     ikke afhænge af device-lokale indstillinger.
-//  2. **Schemaets default tjener load-tolerance, ikke en ny sag.** `offentligLoenType` er bevidst `undefined`
-//     i schemaet, så ældre `.eo`-filer uden feltet kan indlæses; en ny sag skal alligevel starte på
-//     "Månedsløn".
+//  2. **Schemaets default tjener load-tolerance, ikke en ny sag.** Et felt, hvis schema-default kun findes for
+//     at ældre `.eo`-filer kan indlæses, men hvor en ny sag skal starte et andet sted.
 //
 // Modstykket er lige så vigtigt: dette er IKKE stedet for felter, hvis ny-sags-værdi allerede ER schemaets
 // default. De ville blot blive en andenudgave af sandheden, som kunne drifte fra schemaet i tavshed.
@@ -48,9 +47,6 @@ export const resolveErstatningsopgoerelseNewCaseDefaults = (
       // Den første angivne løn-mode er månedsløn, og dens synlige toggle skal derfor starte slået til.
       // Valget af dagsløn ændrer dette eksplicit og atomisk til false i EO-oplysninger-fladen.
       beregnStoreBededagstillaeg: true,
-      // `offentligLoenType`'s schema-default er bevidst `undefined` af hensyn til load-tolerance for ældre
-      // `.eo`-filer; en ny sag skal alligevel starte på "Månedsløn".
-      offentligLoenType: 'Månedsløn',
       overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
     },
   };

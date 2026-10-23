@@ -10,6 +10,10 @@ import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../../../utils/safeSessionStorage';
+import { useInputEditPort } from '../../../../inputCore/react/inputRuntimeContext';
+import { inputTransaction, inputTransactionStep, settleField } from '../../../../inputCore/inputReducer';
+import { buildFieldHistoryOrigin } from '../../../../inputCore/editor/fieldEditorEngine';
+import type { BoundField } from '../loenudvikling/loenudviklingBinding';
 import {
   calculateLoentrinFinderResults,
   resolveLoentrinFinderOverenskomstLabel,
@@ -50,6 +54,17 @@ export type LoentrinFinderTarget = Readonly<{
    * fladen huskede bevidst ikke; forskellen er UX, ikke teknik, og er derfor et argument, ikke to hooks.
    */
   sessionKey?: string;
+  /** Reguleringsdatoen – den dato, løntrinnet skal passe til. Datofeltet starter på den (BB-310). */
+  reguleringsdato?: ISODateString;
+  /**
+   * Hvor et valgt resultat sættes ind: kortets løntrin og gruppe, og gruppefeltets input, som fokus lander på
+   * bagefter (udviklerens ønske 2026-10-23, BB-310).
+   */
+  insert?: Readonly<{
+    loentrin: BoundField<number | undefined>;
+    gruppe: BoundField<number | undefined>;
+    gruppeInputRef: React.RefObject<HTMLInputElement | null>;
+  }>;
 }>;
 
 export type UseLoentrinFinderResult = Readonly<{
@@ -67,6 +82,13 @@ export type UseLoentrinFinderResult = Readonly<{
   handleAmountFieldError: (errorMsg: string | undefined) => void;
   handleDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
+  /** Datoen for satstabellen bag resultaterne, og om den er programmets nyeste (BB-310). */
+  satsDato: ISODateString | undefined;
+  erNyesteSatser: boolean;
+  /** Kan et resultat sættes ind i fladen (er finderen åbnet med et indsætningsmål)? */
+  kanIndsaette: boolean;
+  /** Sætter løntrin – og gruppen, når resultatet kun har én – ind og peger fokus-restoren på gruppefeltet. */
+  insertResult: (result: LoentrinFinderResult) => boolean;
   headingId: string;
   overenskomstLabel: string;
   inputAmountNumber: number | undefined;
@@ -82,7 +104,7 @@ export type UseLoentrinFinderResult = Readonly<{
    * brugeren brugte. Gives til `LoentrinFinderOverlay`, der ejer restoren gennem `useDialogFocusRestore`
    * (§Popup-fokus-restore kræver én implementering, og den ligger dér, hvor popupen bor).
    */
-  activeTriggerRef: React.RefObject<HTMLButtonElement | null>;
+  activeTriggerRef: React.RefObject<HTMLElement | null>;
   /**
    * Ref til den `Find løntrin`-knap, der hører til `key`. Hver knap får sin EGEN ref, og den aktive
    * udpeges ved åbning. Én delt ref var en fejl på Lønindkomst-fladen: alle kort bandt samme ref, så
@@ -126,6 +148,9 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   const [amountFieldError, setAmountFieldError] = React.useState<string | undefined>(undefined);
   const [dateFieldError, setDateFieldError] = React.useState<string | undefined>(undefined);
   const [results, setResults] = React.useState<ReadonlyArray<LoentrinFinderResult>>([]);
+  const [satsDato, setSatsDato] = React.useState<ISODateString | undefined>(undefined);
+  const [erNyesteSatser, setErNyesteSatser] = React.useState(false);
+  const edit = useInputEditPort();
 
   const headingId = React.useId();
 
@@ -134,7 +159,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   // Én ref pr. åbnende knap. `activeTriggerRef` peger på den, finderen faktisk blev åbnet fra, og gives
   // videre til overlayet, som ejer fokus-restoren gennem `useDialogFocusRestore`.
   const triggerRefs = React.useRef(new Map<string, React.RefObject<HTMLButtonElement | null>>());
-  const activeTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const activeTriggerRef = React.useRef<HTMLElement | null>(null);
 
   const registerTrigger = React.useCallback((key: string): React.RefObject<HTMLButtonElement | null> => {
     const existing = triggerRefs.current.get(key);
@@ -151,6 +176,8 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     setAmountFieldError(undefined);
     setDateFieldError(undefined);
     setResults([]);
+    setSatsDato(undefined);
+    setErNyesteSatser(false);
   }, []);
 
   const readSessionState = React.useCallback((): LoentrinFinderSessionState => {
@@ -182,7 +209,8 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     setTarget(nextTarget);
     setAnsaettelse(persistedEntry?.ansaettelse ?? nextTarget.offentligLoenType ?? DEFAULT_ANSAETTELSE);
     setBeloeb(persistedEntry?.beloeb);
-    setDato((persistedEntry?.dato as ISODateString | undefined) ?? undefined);
+    // Den gemte indtastning vinder; ellers reguleringsdatoen, som svaret skal passe til (BB-310).
+    setDato((persistedEntry?.dato as ISODateString | undefined) ?? nextTarget.reguleringsdato);
     setOpenForKey(key);
   }, [readSessionState, resetTransientState]);
 
@@ -215,12 +243,35 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
       // der er årsagen – den forklarer, hvad rystelsen kun antydede.
       setErrors(outcome.errors);
       setResults([]);
+      setSatsDato(undefined);
+      setErNyesteSatser(false);
       return;
     }
 
     setErrors({});
     setResults(outcome.results);
+    setSatsDato(outcome.satsDato);
+    setErNyesteSatser(outcome.erNyesteSatser);
   }, [target?.overenskomstId, ansaettelse, beloeb, dato, amountFieldError, dateFieldError]);
+
+  const insertTarget = target?.insert;
+  const insertResult = React.useCallback((result: LoentrinFinderResult): boolean => {
+    // «55+» har intet tal i løntrinsfeltet (1–55) og kan ikke sættes ind.
+    if (insertTarget === undefined || result.loentrin === '55+') return false;
+    const eneGruppe = result.grupper.length === 1 ? result.grupper[0] : undefined;
+    // Én handling og ét fortryd-trin. Er grupperne samlet («alle grupper»), sættes kun løntrinnet ind: gruppen er
+    // brugerens valg, og fokus lander netop på gruppefeltet.
+    edit.dispatch(
+      inputTransaction([
+        inputTransactionStep(settleField(insertTarget.loentrin.field, String(result.loentrin))),
+        ...(eneGruppe === undefined ? [] : [inputTransactionStep(settleField(insertTarget.gruppe.field, String(eneGruppe)))]),
+      ]),
+      buildFieldHistoryOrigin(insertTarget.gruppe.location, insertTarget.gruppe.field),
+    );
+    // Restoren ved lukningen sender fokus hertil i stedet for til «Find løntrin»-knappen.
+    if (insertTarget.gruppeInputRef.current !== null) activeTriggerRef.current = insertTarget.gruppeInputRef.current;
+    return true;
+  }, [edit, insertTarget]);
 
   const inputAmountNumber = React.useMemo(() => amountValueToNumber(beloeb), [beloeb]);
 
@@ -255,6 +306,10 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     handleAmountFieldError,
     handleDateFieldError,
     results,
+    satsDato,
+    erNyesteSatser,
+    kanIndsaette: insertTarget !== undefined,
+    insertResult,
     headingId,
     overenskomstLabel,
     inputAmountNumber,

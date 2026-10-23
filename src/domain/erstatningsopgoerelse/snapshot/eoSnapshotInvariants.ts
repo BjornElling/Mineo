@@ -3,6 +3,8 @@ import { BEREGNINGSPERIODE_MANGLER_MESSAGE } from '../validation/beregningsgrund
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import type { MoneyOre } from '../../money/money';
 import {
+  SFGG_REFERENCEPERIODE_FRA_MANGLER_MESSAGE,
+  SFGG_REFERENCEPERIODE_TIL_MANGLER_MESSAGE,
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
@@ -74,13 +76,17 @@ const MASKING_INDUCED_MISSING_MESSAGES: ReadonlySet<string> = new Set([
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
   BEREGNINGSPERIODE_MANGLER_MESSAGE,
+  SFGG_REFERENCEPERIODE_FRA_MANGLER_MESSAGE,
+  SFGG_REFERENCEPERIODE_TIL_MANGLER_MESSAGE,
 ]);
 
 /** De top-level-felter, hvis «mangler»-invariant kan være et maskeringsartefakt. */
 const MASKABLE_TOP_LEVEL_FIELDS: ReadonlySet<string> = new Set(['tafBeregningsperiodeFra', 'tafBeregningsperiodeTil']);
 
 /** De rækkefelter, hvis «mangler»-invariant kan være et maskeringsartefakt. */
-const MASKABLE_ROW_FIELDS: ReadonlySet<string> = new Set(['fra', 'til', 'udgiftTil', 'beloeb']);
+const MASKABLE_ROW_FIELDS: ReadonlySet<string> = new Set([
+  'fra', 'til', 'udgiftTil', 'beloeb', 'sfggReferenceperiodeFra', 'sfggReferenceperiodeTil',
+]);
 
 /**
  * Fjerner de "mangler"-invarianter, som en STRUKTUREL feltfejl på samme felt allerede har dækket.
@@ -107,12 +113,18 @@ const legacyPathForFieldIssue = (
   issue: FieldIssue,
   values: ErstatningsopgoerelseValues,
 ): string | undefined => {
+  // Rækkernes entity-id'er i validatorens rækkefølge, så et indeks bliver validatorens sti.
+  const rowIds = (rows: ReadonlyArray<Readonly<{ id: string }>>): readonly string[] => rows.map((row) => row.id);
   const supportedCollections = {
-    tafPerioder: values.tafPerioder,
-    svieSmertePerioder: values.svieSmertePerioder,
+    tafPerioder: rowIds(values.tafPerioder),
+    svieSmertePerioder: rowIds(values.svieSmertePerioder),
     // Et beløb på 0 kr. er rødt (BB-232) og læses derfor som tomt: uden denne post fik det også
     // «Beløb er ikke udfyldt» om et beløb, der står i cellen.
-    oevrigeKravPerioder: values.oevrigeKravPerioder,
+    oevrigeKravPerioder: rowIds(values.oevrigeKravPerioder),
+    // En omvendt referenceperiode er rød på begge datoer og derfor tom for validatoren, som da også meldte
+    // «Referenceperiode fra-dato mangler»/«… til-dato mangler» om udfyldte datoer. SFGG-rækkerne
+    // identificeres af ansættelsesforholdets id, ikke af et eget række-id.
+    sfggAnsaettelsesforhold: values.sfggAnsaettelsesforhold.map((row) => row.ansaettelsesforholdId),
   } as const;
   // Beregningsperiodens to datoer er top-level-felter; en rød dato er tom for validatoren, som da meldte
   // perioden ufuldstændig oven i datoens egen fejl.
@@ -125,8 +137,7 @@ const legacyPathForFieldIssue = (
   if (entity?.kind !== 'entity') return undefined;
 
   const collection = entity.collection as keyof typeof supportedCollections;
-  const rows = supportedCollections[collection];
-  const index = rows.findIndex((row) => row.id === entity.entityId);
+  const index = supportedCollections[collection].indexOf(entity.entityId);
   if (index < 0) return undefined;
   if (!MASKABLE_ROW_FIELDS.has(issue.field.address.field)) return undefined;
   return `${collection}[${index}].${issue.field.address.field}`;

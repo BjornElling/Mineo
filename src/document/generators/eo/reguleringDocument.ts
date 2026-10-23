@@ -11,7 +11,7 @@ import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/da
 import { roundByMethod } from '../../../utils/rounding';
 import { resolveAslAarsloensmaksimumForAar } from '../../../domain/satser/aslAarsloensmaksimum';
 import {
-  formatAmountWithoutTrailingDecimals,
+  formatAmount2,
   formatAnciennitetConversion,
   isAslStatistikModel,
   resolveStatistikModelId,
@@ -40,7 +40,7 @@ import {
   getStatistiskLoenudvikling,
   type StatistiskLoenudviklingId,
 } from '../../../data/statistiskeRates';
-import type { DanishDateString } from '../../../types/branded';
+import { danishDateToComparableNumber, type DanishDateString } from '../../../types/branded';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
 import type { DocumentDownloadFormat } from '../../documentFormat';
@@ -121,9 +121,16 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
     offentligLoenEkstraGrundloen,
     params.offentligLoenEkstraGrundloenAngivesPer ?? 'Måned',
     resolveOffentligLoenEnhed(resolveOffentligLoenTypeFromLabel(offentligLoenType)),
-    formatAmountWithoutTrailingDecimals
+    formatAmount2
   ).displayText;
 };
+
+/**
+ * Satsdokumenterne («Regulering», «KRL Satstabeller», «KL-lønaftaler») skrives alle ældste først, som
+ * bilagene i øvrigt (BB-317). Sorteres eksplicit, fordi kilderne ikke er enige om rækkefølgen.
+ */
+const sortChronologically = <T>(items: ReadonlyArray<T>, dato: (item: T) => DanishDateString): T[] =>
+  [...items].sort((a, b) => danishDateToComparableNumber(dato(a)) - danishDateToComparableNumber(dato(b)));
 
 const resolveStatistikModelIdFromLabel = (
   label: string
@@ -179,9 +186,10 @@ const buildOverenskomstTable = (
       return null;
     }
 
-    const satser = getOffentligLoenForPeriode(offentligType, interval.fraDato, interval.tilDato, loentrin, loengruppe)
-      .slice()
-      .reverse();
+    const satser = sortChronologically(
+      getOffentligLoenForPeriode(offentligType, interval.fraDato, interval.tilDato, loentrin, loengruppe),
+      (sats) => sats.effectiveDate
+    );
     const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
       overenskomstId,
       interval.fraDato,
@@ -198,7 +206,7 @@ const buildOverenskomstTable = (
       { header: 'Timeløn' },
       ...(hasShSo ? [{ header: 'SH/SO' }] : []),
       ...(hasFritvalg ? [{ header: 'Fritvalg' }] : []),
-      ...(hasAgPension ? [{ header: 'AG pension' }] : []),
+      ...(hasAgPension ? [{ header: 'AG-pension' }] : []),
     ];
 
     const rows = satser.map((sats) => {
@@ -223,14 +231,12 @@ const buildOverenskomstTable = (
   const ref = resolveOverenskomstRef(overenskomstId);
   if (!ref) return null;
 
-  const satser = getEffektiveSatserForPeriode({
+  const satser = sortChronologically(getEffektiveSatserForPeriode({
     overenskomstId: ref.baseId as OverenskomstId,
     fraDato: interval.fraDato,
     tilDato: interval.tilDato,
     applyAlmindeligLoenPaaShDageRegel,
-  })
-    .slice()
-    .reverse();
+  }), (sats) => sats.fraDato);
 
   const allSatser = getOverenskomst(ref.baseId)?.satser ?? satser;
 
@@ -249,7 +255,7 @@ const buildOverenskomstTable = (
     ...(hasGrundloen ? [{ header: 'Grundløn' }] : []),
     ...(hasShSo ? [{ header: 'SH/SO' }] : []),
     ...(hasFritvalg ? [{ header: 'Fritvalg' }] : []),
-    ...(hasAgPension ? [{ header: 'AG pension' }] : []),
+    ...(hasAgPension ? [{ header: 'AG-pension' }] : []),
     ...(hasSfgg ? [{ header: 'SFGG' }] : []),
     ...(hasSfggFaglKbh ? [{ header: 'SFGG fagl. Kbh' }] : []),
     ...(hasSfggFaglProv ? [{ header: 'SFGG fagl. prov' }] : []),
@@ -307,9 +313,9 @@ const buildStatistikTable = (
   const model = getStatistiskLoenudvikling(modelId);
   if (!model) return null;
 
-  const rows = model.indeksvaerdier
-    .slice()
-    .reverse()
+  // Kvartalsnøglen «ÅÅÅÅKn» sorterer kronologisk som tekst.
+  const rows = [...model.indeksvaerdier]
+    .sort((a, b) => a.kvartal.localeCompare(b.kvartal))
     .map((value): string[] => {
       const match = value.kvartal.match(/^(\d{4})K([1-4])$/);
       if (!match) return [value.kvartal, '', ''];

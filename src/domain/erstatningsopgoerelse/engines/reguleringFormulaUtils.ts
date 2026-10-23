@@ -149,12 +149,13 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
 
   const baseStr = formatCurrency(baseValue);
   // Rækkefølgen af tillægsprocenterne skal følge kolonnerækkefølgen i Reguleringsværdier-tabellen
-  // (Feriepenge, SH/SO, Fritvalg, Store Bededag), så indeksformlen kan aflæses direkte mod tabellen.
-  // Summen er kommutativ, så rækkefølgen påvirker kun den viste tekst, ikke det beregnede indeks.
+  // (Feriegodtg./-till., SH/SO, Fritvalg, Store Bededagstillæg), så indeksformlen kan aflæses direkte mod
+  // tabellen. Summen er kommutativ, så rækkefølgen påvirker kun den viste tekst, ikke det beregnede indeks.
+  // Satserne skrives med to decimaler som i tabellen (BB-318); kun den faste «100 %» står uden.
   const extraParts = [
-    ...(feriePct !== 0 ? [formatPercent(feriePct)] : []),
-    ...(visibility.showShSo && shSoPct !== 0 ? [formatPercent(shSoPct)] : []),
-    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercent(fritvalgPct)] : []),
+    ...(feriePct !== 0 ? [formatPercentFixed2(feriePct)] : []),
+    ...(visibility.showShSo && shSoPct !== 0 ? [formatPercentFixed2(shSoPct)] : []),
+    ...(visibility.showFritvalg && fritvalgPct !== 0 ? [formatPercentFixed2(fritvalgPct)] : []),
     ...(visibility.showStoreBededag && storeBededagPct !== 0 ? [formatPercentFixed2(storeBededagPct)] : []),
   ];
   const factors: string[] = [];
@@ -162,7 +163,7 @@ export const buildFormulaText = (components: FormulaComponents, visibility: Form
     factors.push(`(${[formatPercent(100), ...extraParts].join(' + ')})`);
   }
   if (visibility.showPension && pensionPct !== 0) {
-    factors.push(`(${[formatPercent(100), formatPercent(pensionPct)].join(' + ')})`);
+    factors.push(`(${[formatPercent(100), formatPercentFixed2(pensionPct)].join(' + ')})`);
   }
   if (factors.length === 0) return baseStr;
   return `${baseStr} x ${factors.join(' x ')}`;

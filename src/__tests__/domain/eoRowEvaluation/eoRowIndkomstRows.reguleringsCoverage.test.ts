@@ -43,7 +43,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     expect(reguleringsvaerdiRow?.message).toMatch(/^er ikke angivet/);
   });
 
-  it('markerer manglende slutdækning for manuel regulering med konkret slutdato', () => {
+  it('advarer gult – uden at spærre – når den manuelle tabel ikke er ændret i over et år (BB-302)', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.vedroererPeriodeFra = iso('2024-01-01');
@@ -54,7 +54,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     af.loenudviklingManuelTableData = [
       {
-        ...af.loenudviklingManuelTableData[0],
+        id: 'base',
         dato: toISODateString('2024-01-01'),
         grundloen: amount(100),
         feriepenge: undefined,
@@ -67,14 +67,17 @@ describe('buildEoIndkomstRows regulering details', () => {
     const rows = buildEoIndkomstRows(values, iso('2023-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
+    const advarsel = rows.find((row) => row.id.startsWith(`${prefix}.manuelAdvarsel.udloeb.`));
 
-    expect(slutRow).toBeDefined();
-    expect(slutRow?.status).toBe('error');
-    expect(slutRow?.displayValue).toMatch(/^Nej \(kun indtil /);
-    expect(slutRow?.message).toMatch(/^er ikke angivet \(kun indtil /);
+    expect(slutRow?.status).toBe('ok');
+    expect(advarsel?.status).toBe('warning');
+    expect(advarsel?.summaryText).toBe(
+      'Den manuelle lønudvikling har ingen ændringer efter 01-01-2023 – lønnen er regnet uændret frem til 31-12-2025'
+    );
+    expect(rows.some((row) => row.status === 'error')).toBe(false);
   });
 
-  it('behandler præcis udløbsgrænse som ikke-ok (< grænse er tilladt, = grænse er ikke)', () => {
+  it('advarer ved præcis toleransegrænsen (< grænse er tilladt, = grænse er ikke)', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
     values.vedroererPeriodeFra = iso('2024-01-01');
@@ -85,7 +88,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     af.loenudviklingManuelTableData = [
       {
-        ...af.loenudviklingManuelTableData[0],
+        id: 'base',
         dato: toISODateString('2024-01-02'),
         grundloen: amount(100),
         feriepenge: undefined,
@@ -99,10 +102,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
-    expect(slutRow).toBeDefined();
-    expect(slutRow?.status).toBe('error');
-    expect(slutRow?.displayValue).toMatch(/^Nej \(kun indtil /);
-    expect(slutRow?.displayValue).not.toBe('(< 6 måneder)');
+    expect(slutRow?.status).toBe('ok');
+    expect(rows.some((row) => row.id.startsWith(`${prefix}.manuelAdvarsel.udloeb.`))).toBe(true);
   });
 
   it('blokerer manglende startdækning også når allow=true', () => {
@@ -162,7 +163,7 @@ describe('buildEoIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     af.loenudviklingManuelTableData = [
       {
-        ...af.loenudviklingManuelTableData[0],
+        id: 'base',
         dato: toISODateString('2024-01-01'),
         grundloen: amount(100),
         feriepenge: undefined,
@@ -176,9 +177,8 @@ describe('buildEoIndkomstRows regulering details', () => {
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
-    expect(slutRow).toBeDefined();
     expect(slutRow?.status).toBe('ok');
-    expect(slutRow?.displayValue).toBe('(< 6 måneder)');
+    expect(rows.some((row) => row.id.startsWith(`${prefix}.manuelAdvarsel.udloeb.`))).toBe(false);
   });
 
   it('opretter ikke start/slut-dækningsrows når der ikke findes TAF-boundaries', () => {
@@ -396,13 +396,14 @@ describe('buildEoIndkomstRows alleVaerdier – manuel-form-domæneforskel (U6)',
     return values;
   };
 
-  it('nul aktive rækker: procentsats → ok (base = indeks 100), angivet → error (grundløn kræves) – bevidst domæneforskel', () => {
+  it('nul aktive rækker spærrer i begge manuelle former – en tom procentsats er ikke 0 % (BB-303)', () => {
     const procentsatsValues = buildManualValues('Manuel procentsats');
     const afP = procentsatsValues.loenindkomstAnsaettelsesforhold[0];
     afP.loenudviklingManuelProcentsatsTableData = [{ id: 'base', dato: undefined, procent: 0 }];
     const procentsatsRows = buildEoIndkomstRows(procentsatsValues, iso('2023-01-01'));
     const procentsatsGate = procentsatsRows.find((r) => r.id === `loenindkomst.${afP.id}.regulering.alleVaerdier`);
-    expect(procentsatsGate?.status).toBe('ok');
+    expect(procentsatsGate?.status).toBe('error');
+    expect(procentsatsGate?.message).toBe('Manuel procentsats mangler: angiv mindst én sats – eller vælg «Ingen»');
 
     const angivetValues = buildManualValues('Manuelt angivet');
     const afA = angivetValues.loenindkomstAnsaettelsesforhold[0];

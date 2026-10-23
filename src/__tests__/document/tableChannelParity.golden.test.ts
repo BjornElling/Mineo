@@ -309,7 +309,7 @@ const shDagePerioder = [{ start: new Date(Date.UTC(2024, 0, 1)), end: new Date(D
 // Hver generator: PDF resolved presentation OG Word-tabel-XML skal være uændret.
 const cases: ReadonlyArray<Readonly<{ name: string; run: (session: DocumentGenerationSession) => Promise<DocumentArtifact> }>> = [
   { name: 'klLoenaftaler (ligelig fordeling, centreret)', run: (session) => generateKlLoenaftalerDocument(session, { visBrevhoved: false }) },
-  { name: 'KRL (låste kolonner, tvungen centrering)', run: (session) => generateKRLDocument(session, { visBrevhoved: false }) },
+  { name: 'KRL (låste kolonner, tvungen centrering)', run: (session) => generateKRLDocument(session, { visBrevhoved: false, anvendtSatstabel: 'KTO (kommuner)' }) },
   { name: 'aarsloen (fordelt + formateret total + colSpan + underline)', run: (session) => generateAarsloenDocument(session, aarsloenParams) },
   { name: 'shDage (fordelt/låst + summeret total + mutede rækker + underline)', run: (session) => generateSHDageDocument(session, shDagePerioder, { visBrevhoved: false }) },
   { name: 'renteOversigt (låste kolonner + summeret total + underline)', run: (session) => generateRenteOversigtDocument(session, toISODateString('2024-02-01'), [{ beloeb: 1250, rentedato: toISODateString('2024-01-11'), beregnetRente: 2.25 }, { beloeb: 3400, rentedato: toISODateString('2024-01-20'), beregnetRente: 5.5 }]) },

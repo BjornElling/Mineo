@@ -100,7 +100,7 @@ const INDEPENDENT_SVIE_SMERTE_DELVIS_SATS_VALUES: ErstatningsopgoerelseValues = 
     loenudviklingManuelNavn: undefined,
     loenudviklingManuelTableData: [],
     loenudviklingManuelProcentsatsTableData: [],
-    offentligLoenType: undefined,
+    offentligLoenType: 'Månedsløn',
     offentligLoenTrin: undefined,
     offentligLoenGruppe: undefined,
     offentligLoenEkstraGrundloen: undefined,

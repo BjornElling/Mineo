@@ -257,7 +257,10 @@ const loenudviklingOgSatserShape = {
   loenudviklingManuelNavn: optionalString,
   loenudviklingManuelTableData: z.array(loenudviklingManuelRowSchema).default([]),
   loenudviklingManuelProcentsatsTableData: z.array(loenudviklingManuelProcentsatsRowSchema).default([]),
-  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.optional()),
+  // «Ansættelse» kan ikke være tom (udviklerafgørelse 2026-10-23, BB-300): Månedsløn er feltets standardværdi, som
+  // ved `loenPaaHelligdage` ovenfor. Feltet var `.optional()`, og en tom værdi spærrede opgørelsen med «Ansættelse
+  // er ikke valgt», mens feltet viste «Månedsløn». En ældre fil uden feltet indlæses som det, skærmen viste.
+  offentligLoenType: z.preprocess(normalizeEmptyToUndefined, offentligLoenTypeEnum.default('Månedsløn')),
   offentligLoenTrin: wholeNumber,
   offentligLoenGruppe: wholeNumber,
   offentligLoenEkstraGrundloen: amountValue,

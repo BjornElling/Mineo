@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, IconButton, MenuItem, Typography } from '@mui/material';
+import { Box, Button, IconButton, MenuItem, Tooltip, Typography } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import StyledDropdown from '../../../inputs/StyledDropdown';
 import TransientAmountInput from '../../../inputs/transient/TransientAmountInput';
@@ -11,7 +11,8 @@ import { formatCurrency } from '../../../../utils/formatUtils';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { useOverlayBehavior } from '../../../../hooks/useOverlayBehavior';
 import { CONTENT_SCALE_CSS_VARIABLE } from '../../../../utils/uiScale';
-import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
+import { formatLoentrinFinderResultLabel, type LoentrinFinderErrors, type LoentrinFinderResult } from './loentrinFinderCore';
+import { isoToDanish } from '../../../../types/branded';
 
 /**
  * Delt props-kontrakt for løntrin-finder-overlayet. Komponenten er drevet udelukkende af props,
@@ -36,6 +37,13 @@ export type LoentrinFinderOverlayProps = Readonly<{
   onAmountFieldError: (errorMsg: string | undefined) => void;
   onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
+  /** Satstabellens dato og om den er programmets nyeste (BB-310). */
+  satsDato: ISODateString | undefined;
+  erNyesteSatser: boolean;
+  /** Kan et resultat sættes ind i fladen? Uden indsætningsmål er linjerne kun til læsning. */
+  kanIndsaette: boolean;
+  /** Sætter resultatet ind; `true`, når det lykkedes – overlayet lukker da. */
+  onInsertResult: (result: LoentrinFinderResult) => boolean;
   headingId: string;
   overenskomstLabel: string;
   inputAmountNumber: number | undefined;
@@ -43,7 +51,7 @@ export type LoentrinFinderOverlayProps = Readonly<{
    * Den `Find løntrin`-knap, fokus skal vende tilbage til ved lukning. Sættes af `useLoentrinFinder` ved
    * åbning til NETOP den trigger, brugeren brugte – Lønindkomst har én pr. ansættelsesforhold.
    */
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  triggerRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
   onCalculate: () => void;
 }>;
@@ -60,6 +68,9 @@ export type LoentrinFinderOverlayProps = Readonly<{
  */
 
 
+/** Markerer en indsættelig resultatlinje, så tastaturnavigationen kan finde den. */
+const RESULTAT_ATTRIBUT = 'data-loentrin-resultat';
+
 const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => {
   const {
     open,
@@ -74,6 +85,10 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     onAmountFieldError,
     onDateFieldError,
     results,
+    satsDato,
+    erNyesteSatser,
+    kanIndsaette,
+    onInsertResult,
     headingId,
     overenskomstLabel,
     inputAmountNumber,
@@ -92,7 +107,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
   // `disableEscape`: overlayet ejer selv Escape i en BOBLE-fase-lytter nedenfor, fordi et åbent felt
   // inde i overlayet skal kunne annullere sin egen redigering FØRST (én Escape = én handling). Den
   // lytter kalder `requestClose('escape')`, så lukningen stadig går gennem ét sted.
-  const { overlayRootProps, requestClose } = useOverlayBehavior<HTMLButtonElement>({
+  const { overlayRootProps, requestClose } = useOverlayBehavior<HTMLElement>({
     open,
     onClose: onClose,
     triggerRef,
@@ -120,7 +135,9 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     const ansaettelseInput = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input') ?? null;
     const beloebInput = loentrinFinderBeloebRef.current?.querySelector<HTMLInputElement>('input') ?? null;
     const datoInput = loentrinFinderDatoRef.current?.querySelector<HTMLInputElement>('input') ?? null;
-    const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnRef.current];
+    // De indsættelige resultatlinjer kommer efter «Beregn» (BB-310).
+    const resultater = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(`[${RESULTAT_ATTRIBUT}="true"]`) ?? []);
+    const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnRef.current, ...resultater];
     return orderedElements.filter((item): item is HTMLElement => item !== null);
   }, []);
 
@@ -170,6 +187,8 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
 
         if (activeElement === beregnRef.current) {
           onCalculate();
+        } else if (activeElement?.getAttribute(RESULTAT_ATTRIBUT) === 'true') {
+          activeElement.click();
         }
         return;
       }
@@ -263,6 +282,12 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
       document.removeEventListener('keydown', handleEscapeAfterFields);
     };
   }, [getTabOrder, onCalculate, requestClose, open]);
+
+  const indsaet = (result: LoentrinFinderResult) => {
+    // Lukningen går den fælles vej, så historik-trinnet ryddes; restoren lander på gruppefeltet, som hooken
+    // har udpeget (udviklerens ønske, BB-310). Årsagen svarer til et klik på luk-knappen.
+    if (onInsertResult(result)) requestClose('close-button');
+  };
 
   if (!open) return null;
 
@@ -428,13 +453,35 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
               <Typography className="row--text" sx={{ mb: 1 }}>
                 Nærmeste lønsatser
               </Typography>
+              {/* Hvilken tabel svaret kommer fra – samme løn giver forskellige løntrin efter datoen (BB-310). */}
+              {satsDato === undefined ? null : (
+                <Typography className="row--text" sx={{ mb: 1, color: 'text.secondary' }}>
+                  {erNyesteSatser
+                    ? `Lønsatser pr. ${isoToDanish(satsDato) ?? satsDato} – de nyeste satser i programmet`
+                    : `Lønsatser pr. ${isoToDanish(satsDato) ?? satsDato}`}
+                </Typography>
+              )}
               {results.map((result) => {
                 const isExactMatch = inputAmountNumber === undefined
                   ? false
                   : hasExactDisplayedAmountMatch(inputAmountNumber, result.beloeb);
-                return (
+                const indsaettelig = kanIndsaette && result.loentrin !== '55+';
+                const key = `${String(result.loentrin)}-${result.grupper.join('-')}`;
+                const linje = (
                   <Box
-                    key={`${String(result.loentrin)}-${result.gruppe}`}
+                    key={key}
+                    {...(indsaettelig ? {
+                      role: 'button',
+                      tabIndex: 0,
+                      [RESULTAT_ATTRIBUT]: 'true',
+                      onClick: () => indsaet(result),
+                      onKeyDown: (event: React.KeyboardEvent) => {
+                        if (event.key === ' ') {
+                          event.preventDefault();
+                          indsaet(result);
+                        }
+                      },
+                    } : {})}
                     sx={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -443,16 +490,24 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                       borderRadius: '8px',
                       backgroundColor: 'var(--color-active-bg)',
                       mb: 0.75,
+                      ...(indsaettelig ? {
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s',
+                        '&:hover, &:focus-visible': { backgroundColor: 'var(--color-hover)' },
+                      } : {}),
                     }}
                   >
                     <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
-                      {`Løntrin ${String(result.loentrin)}, gruppe ${result.gruppe}`}
+                      {formatLoentrinFinderResultLabel(result)}
                     </Typography>
                     <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
                       {`${formatCurrency(result.beloeb)} kr.`}
                     </Typography>
                   </Box>
                 );
+                return indsaettelig
+                  ? <Tooltip key={key} title="Indsæt i programmet" arrow placement="left">{linje}</Tooltip>
+                  : linje;
               })}
             </Box>
           ) : null}

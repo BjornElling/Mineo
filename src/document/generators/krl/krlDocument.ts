@@ -2,19 +2,23 @@
  * PDF Generator for KRL Satstabeller
  *
  * Genererer PDF-dokument med én samlet tabel over alle fire KRL satstabeller
- * (KTO kommuner, SHK kommuner, KTO regioner, SHK regioner)
+ * (KTO kommuner, SHK kommuner, KTO regioner, SHK regioner). Den satstabel, sagen anvender, er
+ * fremhævet: «(anvendt)» i overskriften og fed skrift i kolonnen (BB-317).
  */
 
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
-import { krlSatstabeller } from '../../../data/krlRates';
+import { krlSatstabeller, type KRLSatstabelId } from '../../../data/krlRates';
 import { danishToISO, type DanishDateString } from '../../../types/branded';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 
-type KRLDocumentParams = DocumentCommonOptions;
+type KRLDocumentParams = DocumentCommonOptions & Readonly<{
+  /** Satstabellen, sagen anvender – den fremhæves i tabellen. */
+  anvendtSatstabel: KRLSatstabelId;
+}>;
 
 const formatPct = (value: number | undefined): string => {
   if (value === undefined || value === 0) return '';
@@ -36,14 +40,14 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
     }
   }
 
-  // Sortér datoer nyeste først. ISO-strenge (YYYY-MM-DD) sorterer kronologisk
-  // ved ren strengsammenligning, så vi konverterer via den kanoniske danishToISO
-  // i stedet for ad hoc-parsing. Uparselige datoer ('') sorteres sidst.
+  // Sortér datoer ældste først, som de øvrige satsdokumenter og bilagene (BB-317). ISO-strenge
+  // (YYYY-MM-DD) sorterer kronologisk ved ren strengsammenligning, så vi konverterer via den kanoniske
+  // danishToISO i stedet for ad hoc-parsing. Uparselige datoer ('') sorteres først.
   const dates = Array.from(dateSet).sort((a, b) => {
     const isoA = danishToISO(a) ?? '';
     const isoB = danishToISO(b) ?? '';
     if (isoA === isoB) return 0;
-    return isoA > isoB ? -1 : 1;
+    return isoA < isoB ? -1 : 1;
   });
 
   // Byg lookup pr. tabel: fraDato → reguleringsPct
@@ -76,7 +80,7 @@ export const generateKRLDocument = defineDocument<KRLDocumentParams>({
   ),
   brevhoved: ({ visBrevhoved = false, stamdata }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
-  body: (writer) => {
+  body: (writer, { anvendtSatstabel }) => {
   // Byg samlet tabel
   const { rows } = buildCombinedRows();
 
@@ -91,10 +95,16 @@ export const generateKRLDocument = defineDocument<KRLDocumentParams>({
 
   const headerRow: RowSpec = {
     kind: 'header',
-    cells: [{ text: 'Fra-dato' }, ...krlSatstabeller.map((t) => ({ text: t.navn }))],
+    cells: [{ text: 'Fra-dato' }, ...krlSatstabeller.map((t) => (
+      t.id === anvendtSatstabel ? { text: `${t.navn} (anvendt)`, bold: true } : { text: t.navn }
+    ))],
   };
 
-  const dataRows: RowSpec[] = rows.map((row) => ({ cells: row.map((cell) => ({ text: cell })) }));
+  // Kolonne 0 er datoen; satstabellerne følger i `krlSatstabeller`-rækkefølgen.
+  const anvendtKolonne = 1 + krlSatstabeller.findIndex((t) => t.id === anvendtSatstabel);
+  const dataRows: RowSpec[] = rows.map((row) => ({
+    cells: row.map((cell, index) => (index === anvendtKolonne ? { text: cell, bold: true } : { text: cell })),
+  }));
 
   if (dataRows.length === 0) {
     // Tom-fallback: 1 label-celle + én tom celle pr. satstabel, så rækken flugter med headeren.

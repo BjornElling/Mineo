@@ -18,7 +18,8 @@ import { TWO_DECIMAL_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
 import { isISODateString } from '../../types/branded';
 import { resolveManualRegulationBasisRowId } from '../../domain/erstatningsopgoerelse/manualRegulationBasisCommit';
 import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
-import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 
 const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(TWO_DECIMAL_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
 const createEmptyRow = (id: string): LoenudviklingManuelProcentsatsRow => ({ ...initialLoenudviklingManuelProcentsatsRow, id });
@@ -27,7 +28,10 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   bindings: ManualBindings;
   collection: CollectionRef;
   committedRows: readonly LoenudviklingManuelProcentsatsRow[];
+  /** Projekterede celleregler (dato før basisdatoen, dublet-dato) – rød ring på cellen. */
   ruleIssues: FieldIssueSet;
+  /** Gule celler: ingen ændringer i lang tid, en sats over 10 % (BB-302, BB-313). */
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
   baseDateDisplay: string;
   baseDateISO?: string;
   baseDateErrorMessage?: string;
@@ -42,7 +46,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
   locationNav: Readonly<{ route: string; tabKey: string | null }>;
 }>;
 
-export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, ruleIssues, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
+export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, ruleIssues, cellWarnings, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
   const baseRowId = committedRows[0]?.id;
   const table = useCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav });
   const entries = React.useMemo(() => buildManuelProcentsatsEntries({ anvendtReguleringsdato: isISODateString(baseDateISO) ? baseDateISO : undefined, rows: committedRows }), [baseDateISO, committedRows]);
@@ -73,12 +77,20 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
       const entry = isBase ? entries[0] : entryById.get(renderRow.rowId);
       const gc = (colIndex: number) => ({ rowId: renderRow.rowId, colIndex });
       const dateCell = table.buildCellSpec(renderRow, bindings.manualPercentFields.dato, 0);
-      const dateRuleIssue = isBase
-        ? undefined
-        : activeFieldIssue(ruleIssues, serializeFieldAddress(dateCell.field.address));
+      const procentCell = table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1);
+      // Samme opslag som i `LoenudviklingManuelTable`: på cellens egen bundne adresse.
+      const cellProps = (address: FieldAddress) => {
+        const key = serializeFieldAddress(address);
+        const ruleIssue = activeFieldIssue(ruleIssues, key);
+        const warning = cellWarnings?.get(key);
+        return {
+          ...(ruleIssue === undefined ? {} : { collectionRuleIssue: ruleIssue }),
+          ...(warning === undefined ? {} : { warning }),
+        };
+      };
       return <tr key={renderRow.rowId} data-mineo-row-id={renderRow.rowId} style={getStandardGridBodyRowStyle(index)}>
-        <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} collectionRuleIssue={dateRuleIssue} />}</td>
-        <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={table.buildCellSpec(renderRow, bindings.manualPercentFields.procent, 1)} />}</td>
+        <td style={getStandardGridCellStyle({ align: 'center' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(0)} displayValue={baseDateDisplay} align="center" errorMessage={baseDateErrorMessage} infoTooltipText={baseDateInfoTooltipText} /> : <GridDateCell gridCell={gc(0)} cell={dateCell} {...cellProps(dateCell.field.address)} />}</td>
+        <td style={getStandardGridCellStyle({ align: 'right' })}>{isBase ? <GridReadOnlyLockedCell gridCell={gc(1)} displayValue={appendInputUnitSuffix(formatPercentDisplay(0, true), INPUT_UNIT_SUFFIX.percent)} align="right" placeholder={LOCKED_PERCENT_PLACEHOLDER} /> : <GridPercentCell gridCell={gc(1)} cell={procentCell} {...cellProps(procentCell.field.address)} />}</td>
         <td style={getStandardGridCellStyle({ align: 'right' })}><GridReadOnlyLockedCell gridCell={gc(2)} displayValue={entry ? formatAsAmount(entry.anvendtIndeks, 2) : ''} align="right" /></td>
         <td style={rowDeleteLaneStyle(getStandardGridCellStyle({ align: 'right' }))}><GridReadOnlyLockedCell gridCell={gc(3)} displayValue={entry ? `${entry.anvendtPct >= 0 ? '+ ' : '- '}${formatAsAmount(Math.abs(entry.anvendtPct), 2)} %` : ''} align="right" />{renderRow.kind === 'existing' && !isBase && row !== undefined && !table.isRowEmpty(row.id) ? <RowDeleteButton onDelete={() => table.removeRow(row.id)} /> : null}</td>
       </tr>;
