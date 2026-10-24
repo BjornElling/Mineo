@@ -1,46 +1,20 @@
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { APP_ROUTES } from '../../config/pageNavigation';
-import {
-  aslAfgoerelseAfgoerelsesDatoField,
-  aslAfgoerelseAfgoerelseTypeField,
-  aslAfgoerelseEetPctField,
-  aslAfgoerelseKapDatoField,
-  aslAfgoerelseKapPctField,
-  erhvervsevnetabBeregningsdatoField,
-  erhvervsevnetabEalEetPctField,
-  erhvervsevnetabKoenField,
-} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
-import {
-  faellesAarsloenAslAarsloenField,
-  faellesAarsloenEalAarsloenField,
-} from '../../inputCore/catalog/faellesAarsloenDescriptors';
-import {
-  stamdataSkadedatoField,
-  stamdataSkadelidteFodselsdatoField,
-} from '../../inputCore/catalog/stamdataDescriptors';
-import { forligInputFields } from '../erstatningsopgoerelse/forligInputPort';
-import type { FieldAddress } from '../../inputCore/fieldAddress';
-import type { FieldAddressTemplate } from '../../inputCore/fieldDescriptor';
+import type { AttentionTarget } from '../../utils/attentionTarget';
 import type { EetIssue } from './eetTypes';
 import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from './eetIssueCatalog';
+import {
+  resolveEetIssueFocusTarget,
+  type EetIssueFocusContext,
+} from './eetIssueFocusTargets';
 
 export type EetTabNavigation = Readonly<{
   pageName: string;
   sectionName: string;
   route: typeof APP_ROUTES.stamdata | typeof APP_ROUTES.erhvervsevnetab;
   sectionId: string;
-  /** Det konkrete felt, når et issue har én entydig brugerrettelse. */
-  focusFieldAddress?: FieldAddress;
-  /**
-   * Feltet i ASL-tabellens FØRSTE række, når issuet handler om en afgørelse, brugeren endnu ikke har
-   * OPRETTET («Der er ikke indtastet nogen afgørelser»).
-   *
-   * Der findes ingen feltadresse at pege på, før rækken findes, og et sektionsanker blinker hele
-   * ContentBoxen uden at vise HVOR indtastningen hører. Tabellen viser til gengæld altid sin tomme
-   * indtastningsrække, hvis celler bærer en fuldt bundet feltadresse – templaten navngiver den celle
-   * uden at foregive at kende placeholderens runtime-id. Samme model som EO's `collectionField`-mål.
-   */
-  focusFirstRowField?: FieldAddressTemplate;
+  /** Konkret felt, række eller tom tabelcelles inputfelt, hvis issuet har ét. */
+  focusTarget?: AttentionTarget;
 }>;
 
 export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
@@ -101,84 +75,6 @@ const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {
   route: APP_ROUTES.stamdata,
   sectionId: 'stamdata-skadelidte',
 };
-
-const STAMDATA_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
-  'skadedato-missing': stamdataSkadedatoField.bind().address,
-  'field-skadedato': stamdataSkadedatoField.bind().address,
-  'stamdata-date-order:skadedato': stamdataSkadedatoField.bind().address,
-  'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
-  'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
-  'stamdata-date-order:skadelidteFodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
-};
-
-const GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
-  'beregningsdato-missing': erhvervsevnetabBeregningsdatoField.bind().address,
-  'beregningsdato-invalid': erhvervsevnetabBeregningsdatoField.bind().address,
-  'warn-beregningsdato-foer-skadedato': erhvervsevnetabBeregningsdatoField.bind().address,
-  'field-beregningsdato': erhvervsevnetabBeregningsdatoField.bind().address,
-  // Årsagen er beregningsdatoen, ikke de tre datoceller advarslen tidligere pegede på (BB-159).
-  [EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID]: erhvervsevnetabBeregningsdatoField.bind().address,
-  'missing-koen': erhvervsevnetabKoenField.bind().address,
-};
-
-const EAL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
-  // Forligsfelterne bor under «Erstatningsansvarsloven» på EET oplysninger (delt kilde med EO).
-  // Uden disse mål var forligsfejlene de ENESTE linjer i «Fejl og advarsler» uden en henvisning,
-  // og et manglende link læses som «her er intet at rette» (BB-195).
-  'forlig-ansvarsgrad-invalid': forligInputFields.procent.bind().address,
-  'field-forlig-dato': forligInputFields.dato.bind().address,
-  'eal-aarsloen-missing': faellesAarsloenEalAarsloenField.bind().address,
-  'eal-aarsloen-zero': faellesAarsloenEalAarsloenField.bind().address,
-  'field-aarsloen-eal': faellesAarsloenEalAarsloenField.bind().address,
-  'warn-eal-aarsloen-is-max': faellesAarsloenEalAarsloenField.bind().address,
-  'warn-eal-aarsloen-empty-for-2024-07-01': faellesAarsloenEalAarsloenField.bind().address,
-  'eal-eet-pct-invalid': erhvervsevnetabEalEetPctField.bind().address,
-  'eet-pct-missing': erhvervsevnetabEalEetPctField.bind().address,
-  'field-eal-eet-pct': erhvervsevnetabEalEetPctField.bind().address,
-  'warn-eal-eet-under-15': erhvervsevnetabEalEetPctField.bind().address,
-};
-
-const ASL_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
-  'aarsloen-missing': faellesAarsloenAslAarsloenField.bind().address,
-  'aarsloen-zero': faellesAarsloenAslAarsloenField.bind().address,
-  'field-aarsloen-asl': faellesAarsloenAslAarsloenField.bind().address,
-  'aarsloen-over-max': faellesAarsloenAslAarsloenField.bind().address,
-};
-
-/**
- * ASL-issues, hvor den efterspurgte indtastning IKKE FINDES ENDNU – enten fordi der slet ikke er nogen
- * afgørelsesrække, eller fordi en påkrævet celle i en række står tom. Målet er cellen i tabellens første
- * række; den findes altid, fordi tabellen viser en tom indtastningsrække.
- *
- * Uden disse mål faldt issuet igennem til `scrollToSection`, som blinker hele ContentBoxen. For et issue,
- * der beder brugeren om at OPRETTE en afgørelse, gav det ingen anvisning på hvor indtastningen hører – det
- * er samme fejlform som EO's «Der er ikke angivet nogen TAF-periode».
- */
-const ASL_FIRST_ROW_FIELD_BY_ISSUE_ID: Readonly<Record<string, FieldAddressTemplate>> = {
-  // Ingen rækker overhovedet: afgørelsesdatoen er tabellens første kolonne og den naturlige indgang.
-  'asl-afgoerelser-empty': aslAfgoerelseAfgoerelsesDatoField.template,
-  'no-asl-afgoerelser-known-at-beregningsdato': aslAfgoerelseAfgoerelsesDatoField.template,
-  'no-endelig-afgoerelser': aslAfgoerelseAfgoerelseTypeField.template,
-  'missing-afgoerelsesdato': aslAfgoerelseAfgoerelsesDatoField.template,
-  'missing-eet-pct': aslAfgoerelseEetPctField.template,
-  'missing-afgoerelseType': aslAfgoerelseAfgoerelseTypeField.template,
-  'missing-kap-dato': aslAfgoerelseKapDatoField.template,
-  'missing-kap-pct': aslAfgoerelseKapPctField.template,
-  'endelig-under-50-missing-kapitalisering': aslAfgoerelseKapDatoField.template,
-  'delvist-endelig-missing-kapitalisering': aslAfgoerelseKapDatoField.template,
-};
-
-const withFocusField = (
-  navigation: EetTabNavigation,
-  focusFieldAddress: FieldAddress | undefined
-): EetTabNavigation => focusFieldAddress === undefined ? navigation : { ...navigation, focusFieldAddress };
-
-/** Som `withFocusField`, men for den endnu ikke oprettede rækkes celle. */
-const withFirstRowField = (
-  navigation: EetTabNavigation,
-  focusFirstRowField: FieldAddressTemplate | undefined
-): EetTabNavigation =>
-  focusFirstRowField === undefined ? navigation : { ...navigation, focusFirstRowField };
 
 const NAV_EET_GRUNDLAEGGENDE: EetTabNavigation = {
   pageName: 'EET oplysninger',
@@ -287,19 +183,22 @@ const ASL_IDS = new Set([
   'warn-ingen-kap-input',
 ]);
 
-export const resolveEetIssueNavigation = (issueId: string): EetTabNavigation | null => {
-  if (STAMDATA_IDS.has(issueId)) return withFocusField(NAV_STAMDATA_SKADELIDTE, STAMDATA_FIELD_BY_ISSUE_ID[issueId]);
-  if (GRUNDLAEGGENDE_IDS.has(issueId)) return withFocusField(NAV_EET_GRUNDLAEGGENDE, GRUNDLAEGGENDE_FIELD_BY_ISSUE_ID[issueId]);
-  if (EAL_IDS.has(issueId)) return withFocusField(NAV_EET_EAL, EAL_FIELD_BY_ISSUE_ID[issueId]);
-  if (ASL_IDS.has(issueId)) {
-    // Et konkret felt vinder; ellers den tomme indtastningsrækkes celle, hvis issuet efterspørger en
-    // indtastning, der ikke findes endnu; ellers sektionen.
-    return withFirstRowField(
-      withFocusField(NAV_EET_ASL, ASL_FIELD_BY_ISSUE_ID[issueId]),
-      ASL_FIRST_ROW_FIELD_BY_ISSUE_ID[issueId]
-    );
-  }
-  return null;
+export const resolveEetIssueNavigation = (
+  issueId: string,
+  focusContext?: EetIssueFocusContext
+): EetTabNavigation | null => {
+  const navigation = STAMDATA_IDS.has(issueId)
+    ? NAV_STAMDATA_SKADELIDTE
+    : GRUNDLAEGGENDE_IDS.has(issueId)
+      ? NAV_EET_GRUNDLAEGGENDE
+      : EAL_IDS.has(issueId)
+        ? NAV_EET_EAL
+        : ASL_IDS.has(issueId)
+          ? NAV_EET_ASL
+          : null;
+  if (navigation === null) return null;
+  const focusTarget = resolveEetIssueFocusTarget(issueId, focusContext);
+  return focusTarget === undefined ? navigation : { ...navigation, focusTarget };
 };
 
 export const navigationSortKey = (issueId: string): number => {

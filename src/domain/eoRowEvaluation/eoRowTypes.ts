@@ -2,9 +2,8 @@
  * Typer for EO-række-evaluering og den nedstrøms EOInspektion-visning.
  */
 
-import type { FieldAddress } from '../../inputCore/fieldAddress';
-import type { FieldAddressTemplate } from '../../inputCore/fieldDescriptor';
 import type { ISODateString } from '../../types/branded';
+import type { AttentionTarget } from '../../utils/attentionTarget';
 
 /**
  * Status for EO-rækker og integrity-checks
@@ -128,10 +127,7 @@ export type DependencySpec =
  * for netop det felt. Det er samme feltidentitet som `fieldAddress` – kun med rækkeleddet ubundet, fordi
  * placeholderens id dannes i UI'et (`usePlaceholderSlotIds`) og derfor ikke kan kendes i domænet.
  */
-export type EoIssueFocusTarget =
-  | Readonly<{ kind: 'fieldAddress'; address: FieldAddress }>
-  | Readonly<{ kind: 'rowId'; rowId: string }>
-  | Readonly<{ kind: 'collectionField'; template: FieldAddressTemplate }>;
+export type EoIssueFocusTarget = AttentionTarget;
 
 /**
  * Hvilket konkret input i en periode-/tabelrække en fejl er forankret til. Sættes af row-builderne

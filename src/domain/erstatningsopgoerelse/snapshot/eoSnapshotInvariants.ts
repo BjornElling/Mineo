@@ -8,6 +8,7 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
+import type { AttentionTarget } from '../../../utils/attentionTarget';
 import {
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
@@ -33,6 +34,7 @@ export type EoInvariant = Readonly<{
   source: 'validation' | 'system';
   message: string;
   evidence?: ReadonlyArray<string>;
+  focusTarget?: AttentionTarget;
   blocksAuthoritativeComputation: boolean;
   blocksOutputs?: ReadonlyArray<EoProjectionTarget>;
 }>;
@@ -219,6 +221,7 @@ export const buildMidlertidigtEetSourceInvariants = (
     source: 'validation' as const,
     message: issue.message,
     evidence: ['erhvervsevnetab'],
+    ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
     blocksAuthoritativeComputation: issue.severity === 'error',
     blocksOutputs: issue.severity === 'error' ? VALIDATION_BLOCKED_OUTPUTS : [],
   }));

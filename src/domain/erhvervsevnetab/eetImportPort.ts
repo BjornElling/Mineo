@@ -5,7 +5,10 @@ import type { ISODateString } from '../../types/branded';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import { createTrackedInputReader, type InputEvaluation } from '../../inputCore/inputReader';
-import { erhvervsevnetabBeregningsdatoField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import {
+  aslAfgoerelseAfgoerelseTypeField,
+  erhvervsevnetabBeregningsdatoField,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faellesAarsloenDescriptors';
 import {
   stamdataSkadedatoField,
@@ -19,6 +22,7 @@ import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjecti
 import { eetIssueSchema, type EetIssue } from './eetTypes';
 import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType } from './eetAslAfgoerelser';
 import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
+import { resolveEetIssueFocusTarget } from './eetIssueFocusTargets';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
   computeEetLoebendeYdelserForEoImport,
@@ -96,17 +100,21 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   const sourceIssues: EetIssue[] = [];
 
   if (eetProjection.readIssues().length > 0) {
+    const issue = eetProjection.readIssues()[0];
     sourceIssues.push({
       id: 'midlertidigt-eet-source-schema-invalid',
       severity: 'error',
       message: 'Afgørelsen er ikke gyldigt udfyldt.',
+      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
     });
   }
   if (aarsloenProjection.readIssues().length > 0) {
+    const issue = aarsloenProjection.readIssues()[0];
     sourceIssues.push({
       id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
       severity: 'error',
       message: `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke gyldigt udfyldt.`,
+      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
     });
   }
   const skadedatoIssue = skadedatoRead.status === 'error' ? skadedatoRead.issue : undefined;
@@ -123,12 +131,15 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       id: 'midlertidigt-eet-stamdata-date-order',
       severity: 'error',
       message: `Der er angivet en ${datoReference.label.toLowerCase()} før skadelidtes fødselsdato (${fodselsdatoDisplay ?? 'ukendt dato'})`,
+      focusTarget: { kind: 'fieldAddress', address: stamdataSkadedatoField.bind().address },
     });
   } else if (stamdataProjection.readIssues().length > 0) {
+    const issue = stamdataProjection.readIssues()[0];
     sourceIssues.push({
       id: 'midlertidigt-eet-stamdata-schema-invalid',
       severity: 'error',
       message: 'Stamdata kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
     });
   }
 
@@ -161,17 +172,18 @@ export const buildEetImportContext = (
     });
   }
 
-  const hasUnknownAfgoerelseType = source.eetValues.aslAfgoerelser.some((row) =>
+  const unknownAfgoerelseTypeRow = source.eetValues.aslAfgoerelser.find((row) =>
     !isAslAfgoerelseRowEmpty(row)
     && !isKnownAfgoerelseType(row.afgoerelseType)
   );
-  if (hasUnknownAfgoerelseType) {
+  if (unknownAfgoerelseTypeRow) {
     // Relevansfilteret må ikke gøre en malformed, delvist udfyldt afgørelse usynlig. En ukendt type
     // er et invariantbrud, også når rækken ellers ikke ville give en importérbar periode.
     return failedContext(source.revision, {
       id: 'midlertidigt-eet-import-invariant',
       severity: 'error',
       message: 'EET-oplysningerne kunne ikke klargøres sikkert til Erstatningsopgørelsen.',
+      focusTarget: { kind: 'fieldAddress', address: aslAfgoerelseAfgoerelseTypeField.bind(unknownAfgoerelseTypeRow.id).address },
     });
   }
 
@@ -196,9 +208,17 @@ export const buildEetImportContext = (
       skadelidteFodselsdato: source.eetValues.skadelidteFodselsdato,
       slutdato,
     });
-    const issues = result.issues.filter(
-      (issue) => !EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS.has(issue.id)
-    );
+    const focusContext = {
+      aslAfgoerelser: source.eetValues.aslAfgoerelser,
+      skadedato: source.skadedato,
+      skadelidteFodselsdato: source.eetValues.skadelidteFodselsdato,
+    };
+    const issues = result.issues
+      .filter((issue) => !EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS.has(issue.id))
+      .map((issue) => {
+        const focusTarget = issue.focusTarget ?? resolveEetIssueFocusTarget(issue.id, focusContext);
+        return focusTarget === undefined ? issue : { ...issue, focusTarget };
+      });
     const groups = (result.computation?.afgoerelser ?? []).flatMap((afgoerelse) => {
       if (afgoerelse.afgoerelseType === 'Endelig') return [];
       if (afgoerelse.afgoerelseType !== 'Midlertidig' && afgoerelse.afgoerelseType !== 'Delvist endelig') {
@@ -250,7 +270,10 @@ export const buildUnavailableEetImportContext = (
       message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
     }
     : manglerEetBeregningsdato
-      ? MISSING_BEREGNINGSDATO_ISSUE
+      ? {
+        ...MISSING_BEREGNINGSDATO_ISSUE,
+        focusTarget: { kind: 'fieldAddress', address: erhvervsevnetabBeregningsdatoField.bind().address },
+      }
       : {
         id: 'midlertidigt-eet-slutdato-missing',
         severity: 'error',

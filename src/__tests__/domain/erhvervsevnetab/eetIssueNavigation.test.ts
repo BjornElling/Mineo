@@ -44,21 +44,23 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
     });
   });
 
-  it('peger Stamdata-afledte EET-importfejl på Stamdata med konkret felt', () => {
-    expect(resolveMidlertidigtEetIssueNavigation({ id: 'skadedato-missing' })).toEqual({
+  it('fører skadedato-fejl videre til det felt, importporten udpegede', () => {
+    const focusTarget = { kind: 'fieldAddress', address: stamdataSkadedatoField.bind().address } as const;
+    expect(resolveMidlertidigtEetIssueNavigation({ id: 'skadedato-missing', focusTarget })).toEqual({
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldAddress: stamdataSkadedatoField.bind().address,
+      focusTarget,
     });
   });
 
   it('peger skadelidtes fødselsdato-fejl på fødselsdato-feltet', () => {
-    expect(resolveMidlertidigtEetIssueNavigation({ id: 'skadelidte-fodselsdato-missing' })).toEqual({
+    const focusTarget = { kind: 'fieldAddress', address: stamdataSkadelidteFodselsdatoField.bind().address } as const;
+    expect(resolveMidlertidigtEetIssueNavigation({ id: 'skadelidte-fodselsdato-missing', focusTarget })).toEqual({
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldAddress: stamdataSkadelidteFodselsdatoField.bind().address,
+      focusTarget,
     });
   });
 
@@ -67,16 +69,27 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldAddress: undefined,
     });
   });
 
-  it('lader en stamdata-datoordensfejl pege på siden uden at gætte ét af de to felter', () => {
-    expect(resolveMidlertidigtEetIssueNavigation({ id: 'midlertidigt-eet-stamdata-date-order' })).toEqual({
+  it('fører datofejlen til skadedatoen, som er den inputværdi der bryder rækkefølgen', () => {
+    const focusTarget = { kind: 'fieldAddress', address: stamdataSkadedatoField.bind().address } as const;
+    expect(resolveMidlertidigtEetIssueNavigation({ id: 'midlertidigt-eet-stamdata-date-order', focusTarget })).toEqual({
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldAddress: undefined,
+      focusTarget,
+    });
+  });
+
+  it('fører manglende TAF-slutdato til TAF-sektionen i Erstatningsopgørelsen', () => {
+    expect(resolveMidlertidigtEetIssueNavigation({ id: 'midlertidigt-eet-slutdato-missing' })).toEqual({
+      kind: 'erstatningsopgoerelse-tab',
+      pageName: 'Erstatningsopgørelse',
+      tabId: 'eo_oplysninger',
+      tabName: 'EO oplysninger',
+      sectionId: 'taf',
+      sectionTitle: 'Tabt arbejdsfortjeneste',
     });
   });
 });

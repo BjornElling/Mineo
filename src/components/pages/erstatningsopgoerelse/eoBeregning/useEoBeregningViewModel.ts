@@ -43,7 +43,10 @@ import { reportSystemIssue } from '../../../../utils/systemIssueReporter';
 import { safeCompute } from '../../../../utils/safeComputation';
 import { isErr } from '../../../../types/result';
 import { getEoBilagAvailability } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
-import { isOevrigeKravRowEmpty } from '../../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
+import {
+  isOevrigeKravRowEmpty,
+  isTafRowEmpty,
+} from '../../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import {
   INGEN_PERIODER_ANGIVET_TEKST,
   resolveKravIkkeRejstTekst,
@@ -56,6 +59,11 @@ import {
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
+import {
+  eoKravPaaTabtArbejdsfortjenesteField,
+  eoTafPeriodeFraField,
+  eoTafPeriodeTilField,
+} from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 export type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'inspektion' | 'kontroltabel';
 
@@ -105,6 +113,26 @@ const scrollToRowIssueTarget = (
     onFailure?: (reason: string) => void;
   }
 ) => scrollToEoRow(rowId, { focusTarget, ...options });
+
+const resolveManglerTafSlutdatoFocusTarget = (
+  values: ErstatningsopgoerelseReaderProjection['eoValues']
+): EoIssueFocusTarget => {
+  if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
+    return { kind: 'fieldAddress', address: eoKravPaaTabtArbejdsfortjenesteField.bind().address };
+  }
+
+  const row = values.tafPerioder.find((candidate) => !isTafRowEmpty(candidate));
+  if (row === undefined) {
+    return { kind: 'collectionField', template: eoTafPeriodeTilField.template };
+  }
+  if (row.til === undefined) {
+    return { kind: 'fieldAddress', address: eoTafPeriodeTilField.bind(row.id).address };
+  }
+  if (row.fra === undefined) {
+    return { kind: 'fieldAddress', address: eoTafPeriodeFraField.bind(row.id).address };
+  }
+  return { kind: 'rowId', rowId: row.id };
+};
 
 const buildInvariantDiagnostics = (
   invariant: EoInvariant,
@@ -303,7 +331,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       .filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))
       .map((invariant) => {
         const sourceIssueId = invariant.id.replace(/^midlertidigt_eet_source:/, '');
-        const navigation = resolveMidlertidigtEetIssueNavigation({ id: sourceIssueId });
+        const navigation = resolveMidlertidigtEetIssueNavigation({
+          id: sourceIssueId,
+          focusTarget: invariant.focusTarget,
+        });
         return {
           id: invariant.id,
           message: invariant.message,
@@ -311,28 +342,31 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           navigation,
           onAction: () => {
             switch (navigation.kind) {
+              case 'erstatningsopgoerelse-tab': {
+                setActiveTab(navigation.tabId);
+                navigate(APP_ROUTES.erstatningsopgoerelse);
+                const focusTarget = navigation.focusTarget
+                  ?? resolveManglerTafSlutdatoFocusTarget(eoValues);
+                scrollToEoRow('', { focusTarget });
+                break;
+              }
               case 'erhvervsevnetab-tab':
                 setActiveTabForPage('erhvervsevnetab', navigation.tabKey);
                 navigate(APP_ROUTES.erhvervsevnetab);
-                // Markér sektionen, så linket ikke bare skifter fane og efterlader brugeren øverst på
-                // siden uden anvisning. Et konkret felt ville kræve EET's feltdescriptorer, og dem må
-                // EO-siden ikke koble til (domain-boundary-contract §9/§10) – sektionen er den præcision,
-                // grænsen tillader, og den bruger samme delte markering som alle andre links.
-                if (navigation.sectionId) {
-                  scrollToSection(navigation.sectionId, { attention: true });
+                if (navigation.focusTarget) {
+                  scrollToEoRow('', { focusTarget: navigation.focusTarget });
+                } else if (navigation.sectionId) {
+                  // Systemfejl uden et bestemt input må gerne føre til sektionen, men skal ikke få hele
+                  // kortet til at blinke som om alle felter dér var årsagen.
+                  scrollToSection(navigation.sectionId);
                 }
                 break;
               case 'stamdata-page':
                 navigate(APP_ROUTES.stamdata);
-                // Land på det konkrete felt, hvis issuet peger på ét (parallelt til EO-rækkernes
-                // stamdata-sti). Den generiske schema-invalid har intet enkelt felt; den får sektionen,
-                // så linket altid viser brugeren HVOR på siden problemet hører.
-                if (navigation.focusFieldAddress) {
-                  scrollToEoRow('', {
-                    focusTarget: { kind: 'fieldAddress', address: navigation.focusFieldAddress },
-                  });
+                if (navigation.focusTarget) {
+                  scrollToEoRow('', { focusTarget: navigation.focusTarget });
                 } else {
-                  scrollToSection('stamdata-skadelidte', { attention: true });
+                  scrollToSection('stamdata-skadelidte');
                 }
                 break;
               default: {
@@ -343,7 +377,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
           },
         };
       });
-  }, [eoSnapshot, midlertidigtEetFraEetSiden, navigate]);
+  }, [eoSnapshot, eoValues, midlertidigtEetFraEetSiden, navigate, setActiveTab]);
   const eetLoebendeErrorRows = React.useMemo(
     () => eetLoebendeIssueRows.filter((row) => row.severity === 'error'),
     [eetLoebendeIssueRows]

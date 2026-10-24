@@ -10,6 +10,7 @@ import {
   type EetImportSource,
 } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { erhvervsevnetabBeregningsdatoField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { toISODateString } from '../../../types/branded';
 
 const { computeImportMock, reportSystemIssueMock } = vi.hoisted(() => ({
@@ -150,6 +151,10 @@ describe('buildEetImportContext – defensive runtime-facitter', () => {
         issues: [expect.objectContaining({
           id: 'beregningsdato-missing',
           severity: 'error',
+          focusTarget: {
+            kind: 'fieldAddress',
+            address: erhvervsevnetabBeregningsdatoField.bind().address,
+          },
         })],
       }));
   });

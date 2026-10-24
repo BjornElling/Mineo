@@ -116,6 +116,7 @@ describe('collectIncompleteRowIssues – canonical procentgrænser', () => {
     expect(issues).toContainEqual({
       id: 'invalid-eet-pct',
       message: 'EET % skal være mellem 0 og 100 %.',
+      target: { rowId: 'r1', field: 'eetPct' },
     });
   });
 
@@ -132,6 +133,7 @@ describe('collectIncompleteRowIssues – canonical procentgrænser', () => {
     expect(issues).toContainEqual({
       id: 'invalid-kap-pct',
       message: 'Kapitaliseringsprocent skal være mellem 0 og 100 %.',
+      target: { rowId: 'r1', field: 'kapPct' },
     });
   });
 });
@@ -141,17 +143,17 @@ describe('collectIncompleteRowIssues – manglende rækkeoplysninger', () => {
     [
       'afgørelsesdato',
       buildRow({ virkningsDato: toISODateString('2025-01-01'), eetPct: 50, afgoerelseType: 'Midlertidig' }),
-      { id: 'missing-afgoerelsesdato', message: 'Der er en afgørelse uden afgørelsesdato' },
+      { id: 'missing-afgoerelsesdato', message: 'Der er en afgørelse uden afgørelsesdato', target: { rowId: 'r1', field: 'afgoerelsesDato' } },
     ],
     [
       'EET-procent',
       buildRow({ afgoerelsesDato: toISODateString('2025-01-01'), virkningsDato: toISODateString('2025-01-01'), afgoerelseType: 'Midlertidig' }),
-      { id: 'missing-eet-pct', message: 'Der er en afgørelse uden EET %' },
+      { id: 'missing-eet-pct', message: 'Der er en afgørelse uden EET %', target: { rowId: 'r1', field: 'eetPct' } },
     ],
     [
       'afgørelsestype',
       buildRow({ afgoerelsesDato: toISODateString('2025-01-01'), virkningsDato: toISODateString('2025-01-01'), eetPct: 50 }),
-      { id: 'missing-afgoerelseType', message: 'Der er en afgørelse uden afgørelsestype' },
+      { id: 'missing-afgoerelseType', message: 'Der er en afgørelse uden afgørelsestype', target: { rowId: 'r1', field: 'afgoerelseType' } },
     ],
     [
       'kapitaliseringsprocent',
@@ -162,7 +164,7 @@ describe('collectIncompleteRowIssues – manglende rækkeoplysninger', () => {
         kapDato: toISODateString('2025-02-01'),
         afgoerelseType: 'Endelig',
       }),
-      { id: 'kap-dato-without-kap-pct', message: 'Der er indtastet kapitaliseringsdato men ikke -procent' },
+      { id: 'kap-dato-without-kap-pct', message: 'Der er indtastet kapitaliseringsdato men ikke -procent', target: { rowId: 'r1', field: 'kapPct' } },
     ],
     [
       'kapitaliseringsdato',
@@ -173,7 +175,7 @@ describe('collectIncompleteRowIssues – manglende rækkeoplysninger', () => {
         kapPct: 25,
         afgoerelseType: 'Endelig',
       }),
-      { id: 'kap-pct-without-kap-dato', message: 'Der er indtastet kapitaliseringsprocent men ikke -dato' },
+      { id: 'kap-pct-without-kap-dato', message: 'Der er indtastet kapitaliseringsprocent men ikke -dato', target: { rowId: 'r1', field: 'kapDato' } },
     ],
   ] as const)('rapporterer manglende %s med det konkrete issue', (_label, row, expected) => {
     expect(collectIncompleteRowIssues([row])).toContainEqual(expected);
@@ -928,6 +930,7 @@ describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
     expect(issues).toContainEqual({
       id: 'kap-dato-not-after-tidlkap-dato',
       message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives',
+      target: { rowId: 'r1', field: 'kapDato' },
     });
   });
 
@@ -945,6 +948,7 @@ describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
     expect(issues).toContainEqual({
       id: 'virkningsdato-after-tidlkap-dato',
       message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives',
+      target: { rowId: 'r1', field: 'virkningsDato' },
     });
   });
 });

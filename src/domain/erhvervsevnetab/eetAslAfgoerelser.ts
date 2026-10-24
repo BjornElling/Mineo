@@ -632,7 +632,16 @@ export const hasStartedRowMissingEetPct = (rows: readonly AslAfgoerelseRow[]): b
 export type IncompleteRowIssue = Readonly<{
   id: string;
   message: string;
+  target: Readonly<{ rowId: string; field?: AslIssueField }>;
 }>;
+
+export type AslIssueField =
+  | 'afgoerelsesDato'
+  | 'virkningsDato'
+  | 'eetPct'
+  | 'afgoerelseType'
+  | 'kapDato'
+  | 'kapPct';
 
 export const collectIncompleteRowIssues = (
   rows: readonly AslAfgoerelseRow[],
@@ -642,35 +651,59 @@ export const collectIncompleteRowIssues = (
   const issues: IncompleteRowIssue[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
 
-  const hasMissingAfgoerelsesdato = startedRows.some((row) => !coerceToISODateString(row.afgoerelsesDato));
-  if (hasMissingAfgoerelsesdato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato, message: 'Der er en afgørelse uden afgørelsesdato' });
+  const missingAfgoerelsesdatoRow = startedRows.find((row) => !coerceToISODateString(row.afgoerelsesDato));
+  if (missingAfgoerelsesdatoRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelsesdato,
+      message: 'Der er en afgørelse uden afgørelsesdato',
+      target: { rowId: missingAfgoerelsesdatoRow.id, field: 'afgoerelsesDato' },
+    });
   }
 
-  if (hasStartedRowMissingEetPct(rows)) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct, message: MISSING_EET_PCT_MESSAGE });
+  const missingEetPctRow = startedRows.find((row) => {
+    const pct = parseCommittedPercent(row.eetPct);
+    return pct === undefined || pct === 0;
+  });
+  if (missingEetPctRow && hasStartedRowMissingEetPct(rows)) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.missingEetPct,
+      message: MISSING_EET_PCT_MESSAGE,
+      target: { rowId: missingEetPctRow.id, field: 'eetPct' },
+    });
   }
 
-  const invalidEetPctMessage = startedRows
-    .map((row) => validatePercentDivisibleBy5(row.eetPct, 'EET %'))
-    .find((message) => message !== undefined);
-  if (invalidEetPctMessage) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.invalidEetPct, message: invalidEetPctMessage });
+  const invalidEetPct = startedRows
+    .map((row) => ({ row, message: validatePercentDivisibleBy5(row.eetPct, 'EET %') }))
+    .find((entry) => entry.message !== undefined);
+  if (invalidEetPct?.message !== undefined) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.invalidEetPct,
+      message: invalidEetPct.message,
+      target: { rowId: invalidEetPct.row.id, field: 'eetPct' },
+    });
   }
 
-  const invalidKapPctMessage = startedRows
-    .map((row) => validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent'))
-    .find((message) => message !== undefined);
-  if (invalidKapPctMessage) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.invalidKapPct, message: invalidKapPctMessage });
+  const invalidKapPct = startedRows
+    .map((row) => ({ row, message: validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent') }))
+    .find((entry) => entry.message !== undefined);
+  if (invalidKapPct?.message !== undefined) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.invalidKapPct,
+      message: invalidKapPct.message,
+      target: { rowId: invalidKapPct.row.id, field: 'kapPct' },
+    });
   }
 
-  const hasMissingAfgoerelseType = startedRows.some((row) => !row.afgoerelseType);
-  if (hasMissingAfgoerelseType) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelseType, message: 'Der er en afgørelse uden afgørelsestype' });
+  const missingAfgoerelseTypeRow = startedRows.find((row) => !row.afgoerelseType);
+  if (missingAfgoerelseTypeRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.missingAfgoerelseType,
+      message: 'Der er en afgørelse uden afgørelsestype',
+      target: { rowId: missingAfgoerelseTypeRow.id, field: 'afgoerelseType' },
+    });
   }
 
-  const hasEndeligUnder50MissingKap = startedRows.some((row) => {
+  const endeligUnder50MissingKapRow = startedRows.find((row) => {
     if (row.afgoerelseType !== 'Endelig') return false;
     const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
@@ -689,44 +722,64 @@ export const collectIncompleteRowIssues = (
     if (isForcedUnderTwoYears) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
-  if (hasEndeligUnder50MissingKap) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap, message: 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering' });
+  if (endeligUnder50MissingKapRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap,
+      message: 'Endelig afgørelse under 50 % mangler oplysninger om kapitalisering',
+      target: { rowId: endeligUnder50MissingKapRow.id },
+    });
   }
 
-  const hasVirkningsdatoAfterTidlKapDato = startedRows.some(
+  const virkningsdatoAfterTidlKapDatoRow = startedRows.find(
     (row) => validateVirkningsDatoByTidlKapDato(row) !== undefined
   );
-  if (hasVirkningsdatoAfterTidlKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.virkningsdatoAfterTidlKapDato, message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives' });
+  if (virkningsdatoAfterTidlKapDatoRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.virkningsdatoAfterTidlKapDato,
+      message: 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives',
+      target: { rowId: virkningsdatoAfterTidlKapDatoRow.id, field: 'virkningsDato' },
+    });
   }
 
-  const hasKapDatoNotAfterTidlKapDato = startedRows.some(
+  const kapDatoNotAfterTidlKapDatoRow = startedRows.find(
     (row) => validateKapDatoByTidlKapDato(row) !== undefined
   );
-  if (hasKapDatoNotAfterTidlKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoNotAfterTidlKapDato, message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives' });
+  if (kapDatoNotAfterTidlKapDatoRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoNotAfterTidlKapDato,
+      message: 'Ved genoptagne afgørelser skal den nye kapitaliseringsdato angives',
+      target: { rowId: kapDatoNotAfterTidlKapDatoRow.id, field: 'kapDato' },
+    });
   }
 
-  const hasKapDatoWithoutKapPct = startedRows.some(
+  const kapDatoWithoutKapPctRow = startedRows.find(
     (row) =>
       hasTextValue(row.kapDato) &&
       !hasTextValue(row.kapPct) &&
       row.afgoerelseType !== undefined &&
       row.afgoerelseType !== 'Midlertidig'
   );
-  if (hasKapDatoWithoutKapPct) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct, message: 'Der er indtastet kapitaliseringsdato men ikke -procent' });
+  if (kapDatoWithoutKapPctRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoWithoutKapPct,
+      message: 'Der er indtastet kapitaliseringsdato men ikke -procent',
+      target: { rowId: kapDatoWithoutKapPctRow.id, field: 'kapPct' },
+    });
   }
 
-  const hasKapPctWithoutKapDato = startedRows.some(
+  const kapPctWithoutKapDatoRow = startedRows.find(
     (row) =>
       hasTextValue(row.kapPct) &&
       !hasTextValue(row.kapDato) &&
       row.afgoerelseType !== undefined &&
       row.afgoerelseType !== 'Midlertidig'
   );
-  if (hasKapPctWithoutKapDato) {
-    issues.push({ id: INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato, message: 'Der er indtastet kapitaliseringsprocent men ikke -dato' });
+  if (kapPctWithoutKapDatoRow) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.kapPctWithoutKapDato,
+      message: 'Der er indtastet kapitaliseringsprocent men ikke -dato',
+      target: { rowId: kapPctWithoutKapDatoRow.id, field: 'kapDato' },
+    });
   }
 
   return issues;

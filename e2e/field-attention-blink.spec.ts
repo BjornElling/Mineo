@@ -8,6 +8,7 @@ import {
   setVerbatimFieldValueAndSettle,
   test,
 } from './support/mineoTest';
+import { BROWSER_LANE_TAG } from './support/lanes';
 
 /**
  * Browser-verifikation af den delte «peg på dette felt»-blinkmarkering (BF-020/BF-021).
@@ -121,6 +122,9 @@ const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
       targetAddress: string | null;
       /** `name`-attributten på målets eget input, så en påstand kan pege på det konkrete felt. */
       targetInputName: string | null;
+      /** Elementtypen og eventuelt tabelrækkens id på det blinkende mål. */
+      targetTagName: string | null;
+      targetRowId: string | null;
       /** Målets klasseliste på observationstidspunktet. */
       targetClassName: string | null;
       /** Sandt hvis dropdownpilen lå inden for målets rektangel, da blinket blev malet. */
@@ -134,6 +138,8 @@ const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
       complete: false,
       targetAddress: null,
       targetInputName: null,
+      targetTagName: null,
+      targetRowId: null,
       targetClassName: null,
       arrowInsideSurface: null,
       seekedSamplesTaken: false,
@@ -155,6 +161,8 @@ const startBlinkSampling = (page: Page): Promise<void> => page.evaluate(
         state.targetAddress = (inner ?? target).getAttribute(addressAttribute)
           ?? target.getAttribute(addressAttribute);
         state.targetInputName = inner?.getAttribute('name') ?? null;
+        state.targetTagName = target.tagName;
+        state.targetRowId = target.getAttribute('data-mineo-row-id');
 
         // Pilens dækning er også en observation af blinkøjeblikket, ikke af tiden bagefter.
         const arrow = target.parentElement?.querySelector<SVGElement>('svg');
@@ -236,6 +244,8 @@ type BlinkObservation = Readonly<{
   samples: readonly string[];
   targetAddress: string | null;
   targetInputName: string | null;
+  targetTagName: string | null;
+  targetRowId: string | null;
   targetClassName: string | null;
   arrowInsideSurface: boolean | null;
 }>;
@@ -257,6 +267,8 @@ const readBlinkObservation = async (page: Page): Promise<BlinkObservation> => {
       samples: state?.samples ?? [],
       targetAddress: state?.targetAddress ?? null,
       targetInputName: state?.targetInputName ?? null,
+      targetTagName: state?.targetTagName ?? null,
+      targetRowId: state?.targetRowId ?? null,
       targetClassName: state?.targetClassName ?? null,
       arrowInsideSurface: state?.arrowInsideSurface ?? null,
     };
@@ -550,5 +562,239 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
     await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
     await expectLinkedInputToPulse(page, 'ealEetPct', readBlinkObservation(page));
+  });
+
+  test.describe('EET-links fra Erstatningsopgørelsen', { tag: BROWSER_LANE_TAG }, () => {
+    type EetTestDecision = Readonly<{
+      afgoerelsesdato?: string;
+      virkningsdato: string;
+      eetPct: string;
+      type: 'Midlertidig' | 'Endelig';
+    }>;
+
+    const fillEetSource = async (
+      page: Page,
+      decisions: readonly EetTestDecision[],
+      skadedato = '01-01-2020'
+    ): Promise<void> => {
+      await openPage(page, 'Stamdata');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="skadelidteFodselsdato"]'), '01-01-1980');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="skadedato"]'), skadedato);
+
+      await openPage(page, 'Erhvervsevnetab');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="beregningsdato"]'), '01-06-2026');
+      await setFieldValueAndSettle(page.locator('input[name="aslAarsloen"]'), '300000');
+
+      for (const [index, decision] of decisions.entries()) {
+        const row = page.locator('tbody tr[data-mineo-row-id]').nth(index);
+        if (decision.afgoerelsesdato !== undefined) {
+          await setVerbatimFieldValueAndSettle(row.locator('input').nth(0), decision.afgoerelsesdato);
+        }
+        await setVerbatimFieldValueAndSettle(row.locator('input').nth(1), decision.virkningsdato);
+        await setFieldValueAndSettle(row.locator('input').nth(2), decision.eetPct);
+        await row.getByRole('combobox').first().click();
+        await page.getByRole('option', { name: decision.type, exact: true }).click();
+      }
+    };
+
+    const enableEetImport = async (page: Page): Promise<void> => {
+      await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
+      await page.getByRole('checkbox', {
+        name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden',
+        exact: true,
+      }).check();
+      await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+    };
+
+    test('manglende dato blinker det konkrete EET-felt, ikke hele kortet', async ({
+      page,
+      runtimeErrors,
+      runtimeSignals,
+      externalRequests,
+    }, testInfo) => {
+      await login(page);
+      await fillEetSource(page, [{ virkningsdato: '01-06-2020', eetPct: '20', type: 'Midlertidig' }]);
+
+      await openPage(page, 'Erstatningsopgørelse');
+      await page.locator('input[name="kravPaaTabtArbejdsfortjeneste"][value="Ja"]').check();
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeFra"]'), '01-01-2020');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeTil"]'), '31-12-2020');
+      const tafRow = page.locator('[data-section-id="taf"] table').first()
+        .locator('tbody tr[data-mineo-row-id]').first();
+      await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
+      await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(1), '31-12-2020');
+      await enableEetImport(page);
+      await expect(page.getByText('Der er en afgørelse uden afgørelsesdato', { exact: true })).toBeVisible();
+
+      await startBlinkSampling(page);
+      await clickEoIssueLink(
+        page,
+        'Der er en afgørelse uden afgørelsesdato',
+        'EET oplysninger'
+      );
+
+      await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
+      const afgoerelsesdato = page.getByRole('textbox', { name: 'Afgørelsesdato', exact: true }).first();
+      await expect(afgoerelsesdato).toBeVisible();
+      const observed = await readBlinkObservation(page);
+      expect(observed.targetInputName).toBe(await afgoerelsesdato.getAttribute('name'));
+      expect(observed.targetAddress).toContain('"field":"afgoerelsesDato"');
+      expect(observed.targetClassName).toContain(BLINK_CLASS);
+      expect(observed.targetClassName).not.toContain('content-box');
+      expectRedPulse(observed.samples);
+      expect(runtimeErrors).toEqual([]);
+      expect(runtimeSignals).toEqual([]);
+      expect(externalRequests).toEqual([]);
+      if (testInfo.project.name === 'chrome-desktop') {
+        await testInfo.attach('EET-link-markering-desktop', {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        });
+      }
+    });
+
+    test('manglende TAF-slutdato fører til og blinker TAF-valget', async ({
+      page,
+      runtimeErrors,
+      runtimeSignals,
+      externalRequests,
+    }, testInfo) => {
+      await login(page);
+      await fillEetSource(page, [{
+        afgoerelsesdato: '01-06-2020',
+        virkningsdato: '01-06-2020',
+        eetPct: '20',
+        type: 'Midlertidig',
+      }]);
+
+      await openPage(page, 'Erstatningsopgørelse');
+      await page.locator('input[name="kravPaaTabtArbejdsfortjeneste"][value="Nej"]').check();
+      await enableEetImport(page);
+      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi erstatningsperiodens slutdato mangler.';
+      await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
+
+      await startBlinkSampling(page);
+      await clickEoIssueLink(page, issueMessage, 'Tabt arbejdsfortjeneste');
+
+      await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
+      const tafToggle = page.locator('input[name="kravPaaTabtArbejdsfortjeneste"]').first();
+      await expect(tafToggle).toBeVisible();
+      const observed = await readBlinkObservation(page);
+      expect(observed.targetInputName).toBe('kravPaaTabtArbejdsfortjeneste');
+      expect(observed.targetAddress).toContain('"field":"kravPaaTabtArbejdsfortjeneste"');
+      expect(observed.targetClassName).toContain(BLINK_CLASS);
+      expect(observed.targetClassName).not.toContain('content-box');
+      expectRedPulse(observed.samples);
+      expect(runtimeErrors).toEqual([]);
+      expect(runtimeSignals).toEqual([]);
+      expect(externalRequests).toEqual([]);
+      if (testInfo.project.name === 'chrome-desktop') {
+        await testInfo.attach('TAF-link-markering-desktop', {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        });
+      }
+    });
+
+    test('manglende slutdato i en TAF-række blinker den konkrete datocelle', async ({
+      page,
+      runtimeErrors,
+      runtimeSignals,
+      externalRequests,
+    }) => {
+      await login(page);
+      await fillEetSource(page, [{
+        afgoerelsesdato: '01-06-2020',
+        virkningsdato: '01-06-2020',
+        eetPct: '20',
+        type: 'Midlertidig',
+      }]);
+
+      await openPage(page, 'Erstatningsopgørelse');
+      await page.locator('input[name="kravPaaTabtArbejdsfortjeneste"][value="Ja"]').check();
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeFra"]'), '01-01-2020');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeTil"]'), '31-12-2020');
+      const tafRow = page.locator('[data-section-id="taf"] table').first()
+        .locator('tbody tr[data-mineo-row-id]').first();
+      await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
+      await enableEetImport(page);
+
+      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi erstatningsperiodens slutdato mangler.';
+      await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
+      await startBlinkSampling(page);
+      await clickEoIssueLink(page, issueMessage, 'Tabt arbejdsfortjeneste');
+
+      await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
+      const observed = await readBlinkObservation(page);
+      expect(observed.targetTagName).not.toBe('TR');
+      expect(observed.targetRowId).toBeNull();
+      expect(observed.targetAddress).toContain('tafPerioder');
+      expect(observed.targetAddress).toContain('"field":"til"');
+      expect(observed.targetClassName).toContain(BLINK_CLASS);
+      expect(observed.targetClassName).not.toContain('content-box');
+      expectRedPulse(observed.samples);
+      expect(runtimeErrors).toEqual([]);
+      expect(runtimeSignals).toEqual([]);
+      expect(externalRequests).toEqual([]);
+    });
+
+    test('rækkeadvarsel blinker kun den afgørelsesrække, den handler om', async ({
+      page,
+      runtimeErrors,
+      runtimeSignals,
+      externalRequests,
+    }, testInfo) => {
+      await login(page);
+      await fillEetSource(page, [
+        {
+          afgoerelsesdato: '01-06-2018',
+          virkningsdato: '01-06-2018',
+          eetPct: '50',
+          type: 'Endelig',
+        },
+        {
+          afgoerelsesdato: '01-06-2019',
+          virkningsdato: '01-06-2019',
+          eetPct: '20',
+          type: 'Midlertidig',
+        },
+      ], '01-01-2017');
+      const temporaryDecisionRow = page.locator('tbody tr[data-mineo-row-id]').nth(1);
+      const expectedRowId = await temporaryDecisionRow.getAttribute('data-mineo-row-id');
+      expect(expectedRowId).not.toBeNull();
+
+      await openPage(page, 'Erstatningsopgørelse');
+      await page.locator('input[name="kravPaaTabtArbejdsfortjeneste"][value="Ja"]').check();
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeFra"]'), '01-01-2020');
+      await setVerbatimFieldValueAndSettle(page.locator('input[name="vedroererPeriodeTil"]'), '31-12-2020');
+      const tafRow = page.locator('[data-section-id="taf"] table').first()
+        .locator('tbody tr[data-mineo-row-id]').first();
+      await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
+      await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(1), '31-12-2020');
+      await enableEetImport(page);
+
+      const warningMessage = 'Der er angivet en midlertidig afgørelse efter en endelig afgørelse.';
+      await expect(page.getByText(warningMessage, { exact: true })).toBeVisible();
+
+      await startBlinkSampling(page);
+      await clickEoIssueLink(page, warningMessage, 'EET oplysninger');
+      await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
+
+      const observed = await readBlinkObservation(page);
+      expect(observed.targetTagName).toBe('TR');
+      expect(observed.targetRowId).toBe(expectedRowId);
+      expect(observed.targetClassName).toContain(BLINK_CLASS);
+      expect(observed.targetClassName).not.toContain('content-box');
+      expectRedPulse(observed.samples);
+      expect(runtimeErrors).toEqual([]);
+      expect(runtimeSignals).toEqual([]);
+      expect(externalRequests).toEqual([]);
+      if (testInfo.project.name === 'chrome-desktop') {
+        await testInfo.attach('EET-raekkeadvarsel-markering-desktop', {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        });
+      }
+    });
   });
 });

@@ -1,8 +1,4 @@
-import {
-  stamdataSkadedatoField,
-  stamdataSkadelidteFodselsdatoField,
-} from '../../inputCore/catalog/stamdataDescriptors';
-import type { FieldAddress } from '../../inputCore/fieldAddress';
+import type { AttentionTarget } from '../../utils/attentionTarget';
 import type { EetIssue } from './eetTypes';
 import {
   ERHVERVSEVNETAB_TAB_KEYS,
@@ -13,39 +9,32 @@ export { ERHVERVSEVNETAB_TAB_KEYS, type ErhvervsevnetabTabKey } from '../../conf
 
 export type EetIssueNavigationTarget =
   | Readonly<{
+      kind: 'erstatningsopgoerelse-tab';
+      pageName: 'Erstatningsopgørelse';
+      tabId: 'eo_oplysninger';
+      tabName: 'EO oplysninger';
+      sectionId: 'taf';
+      sectionTitle: 'Tabt arbejdsfortjeneste';
+      focusTarget?: AttentionTarget;
+    }>
+  | Readonly<{
       kind: 'erhvervsevnetab-tab';
       pageName: 'Erhvervsevnetab';
       tabKey: ErhvervsevnetabTabKey;
       tabName: string;
       /**
-       * Sektionen på fanen (`data-section-id`), når issuet kan henføres til én. Bevidst en streng og
-       * ikke en feltadresse: EO-siden forbruger denne rute og må ikke koble til EET's feltdescriptorer.
+       * Sektionen på fanen (`data-section-id`), når issuet kan henføres til én. Id'et er ren
+       * navigationsmetadata; et eventuelt fokusmål følger separat med fra EET-importporten.
        */
       sectionId?: string;
+      focusTarget?: AttentionTarget;
     }>
   | Readonly<{
       kind: 'stamdata-page';
       pageName: 'Stamdata';
       sectionTitle: 'Stamdata';
-      /**
-       * Konkret felt at føre brugeren til på Stamdata-siden, hvis issuet peger på ét bestemt felt.
-       * KANONISK feltadresse (§3.2) – samme identitet som EO-rækkernes fokusmål, undo/redo og
-       * save-blokeringens fokus bruger, så der ikke findes en parallel navnestreng-model.
-       */
-      focusFieldAddress?: FieldAddress;
+      focusTarget?: AttentionTarget;
     }>;
-
-// Issue-id → det konkrete Stamdata-felt, så linket lander på feltet og ikke kun siden. Adressen bindes af
-// produktionens egen descriptor, så et omdøbt felt bliver en compilerfejl frem for et link, der lydløst
-// falder tilbage til siden. Den generiske schema-invalid har intet enkelt felt og udelades bevidst.
-const STAMDATA_FIELD_ADDRESS_BY_ISSUE_ID: Readonly<Record<string, FieldAddress>> = {
-  'skadedato-missing': stamdataSkadedatoField.bind().address,
-  'field-skadedato': stamdataSkadedatoField.bind().address,
-  'stamdata-date-order:skadedato': stamdataSkadedatoField.bind().address,
-  'skadelidte-fodselsdato-missing': stamdataSkadelidteFodselsdatoField.bind().address,
-  'field-skadelidte-fodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
-  'stamdata-date-order:skadelidteFodselsdato': stamdataSkadelidteFodselsdatoField.bind().address,
-};
 
 // Issue-id'er der hører til Stamdata-siden (ikke Erhvervsevnetab-fanerne). Sættet matches mod det
 // `midlertidigt_eet_source:`-strippede id fra invarianten. De faktiske producenter er
@@ -65,6 +54,8 @@ const STAMDATA_ISSUE_IDS = new Set([
   'stamdata-date-order:skadedato',
   'stamdata-date-order:skadelidteFodselsdato',
 ]);
+
+const EO_TAB_OPLYSNINGER_ISSUE_IDS = new Set(['midlertidigt-eet-slutdato-missing']);
 
 /**
  * Sektionen på EET-oplysningerfanen pr. issue-id – rene `data-section-id`-strenge.
@@ -104,28 +95,30 @@ const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
 };
 
 export const resolveMidlertidigtEetIssueNavigation = (
-  issue: Pick<EetIssue, 'id'>
+  issue: Pick<EetIssue, 'id' | 'focusTarget'>
 ): EetIssueNavigationTarget => {
+  if (EO_TAB_OPLYSNINGER_ISSUE_IDS.has(issue.id)) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      pageName: 'Erstatningsopgørelse',
+      tabId: 'eo_oplysninger',
+      tabName: 'EO oplysninger',
+      sectionId: 'taf',
+      sectionTitle: 'Tabt arbejdsfortjeneste',
+      ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
+    };
+  }
   if (STAMDATA_ISSUE_IDS.has(issue.id)) {
     return {
       kind: 'stamdata-page',
       pageName: 'Stamdata',
       sectionTitle: 'Stamdata',
-      focusFieldAddress: STAMDATA_FIELD_ADDRESS_BY_ISSUE_ID[issue.id],
+      ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
     };
   }
 
-  // EET-fanen. Målet er BEVIDST kun fanen + sektionen, ikke et konkret felt.
-  //
-  // Det oplagte ville være at genbruge EET-sidens egen `resolveEetIssueNavigation`, som kender feltet.
-  // Men denne modul-sti forbruges af EO's Beregning-fane, og EO-siden må ikke koble til EET's og
-  // faellesAarsloens feltdescriptorer (domain-boundary-contract §9/§10, håndhævet af
-  // `domain/page-section-access-boundary`). En import her ville trække hele descriptor-kataloget ind i
-  // EO's afhængighedsgraf gennem bagdøren.
-  //
-  // Sektions-id'et er derimod en ren streng uden descriptor-kobling, og det er nok til at føre brugeren
-  // til det rigtige sted PÅ fanen med den delte sektionsmarkering – frem for at lande øverst på siden
-  // uden nogen anvisning, som før.
+  // EET-fanen vælges ud fra id'et; det konkrete felt eller den berørte række følger med issuet fra
+  // EET-importporten. EO-siden behøver derfor ikke kende EET's feltdescriptorer.
   return {
     kind: 'erhvervsevnetab-tab',
     pageName: 'Erhvervsevnetab',
@@ -134,5 +127,6 @@ export const resolveMidlertidigtEetIssueNavigation = (
     ...(EET_SECTION_ID_BY_ISSUE_ID[issue.id] === undefined
       ? {}
       : { sectionId: EET_SECTION_ID_BY_ISSUE_ID[issue.id] }),
+    ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
   };
 };
