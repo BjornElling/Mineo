@@ -673,7 +673,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.status).toBe('error');
     expect(snapshot.data).toBeNull();
     expect(snapshot.inspektionSnapshot).not.toBeNull();
-    const sfggInvariant = snapshot.invariants.find((invariant) => invariant.message === 'Beregningsgrundlag for SFGG ikke valgt');
+    const sfggInvariant = snapshot.invariants.find((invariant) => invariant.message === "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt");
     expect(sfggInvariant).toEqual(expect.objectContaining({
       source: 'validation',
       blocksAuthoritativeComputation: true,

@@ -412,54 +412,27 @@ describe('deriveLoenindkomstVm', () => {
     });
   });
 
-  describe('getSfggReferenceperiodeAvailability', () => {
-    it('returnerer ingen-fejl-tilstand når der ikke kan opgøres en referenceperiode', () => {
+  describe('getSfggPresentation – fraværsdagenes enhed (BB-329)', () => {
+    it('tæller fraværsdagene i kalenderdage, når referenceperiode-sporet opgøres i måneder', () => {
       const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const model = deriveLoenindkomstVm(buildInput([af]));
-      const availability = model.getSfggReferenceperiodeAvailability(af, undefined);
-      expect(availability).toEqual({
-        maxFravaersdage: undefined,
-        hasNoRelevantDaysError: false,
-        dayLabel: null,
-      });
-    });
-
-    it('viser kalenderdage for en gyldig Ferieloven-referenceperiode', () => {
-      const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const row = createSfggRow(af.id, {
-        sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: toISODateString('2024-01-01'),
-        sfggReferenceperiodeTil: toISODateString('2024-01-02'),
-      });
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Ferieloven' });
       const model = deriveLoenindkomstVm(buildInput([af], {
         beregnesUdFra: 'Angivet månedsløn',
         sfggAnsaettelsesforhold: [row],
       }));
 
-      expect(model.getSfggReferenceperiodeAvailability(af, row)).toEqual({
-        maxFravaersdage: 2,
-        hasNoRelevantDaysError: false,
-        dayLabel: 'kalenderdage',
-      });
+      expect(model.getSfggPresentation(af).fravaersdageEnhed).toBe('kalenderdage');
     });
 
-    it('viser fejl for en arbejdsdags-referenceperiode uden relevante dage', () => {
+    it('tæller fraværsdagene i arbejdsdage, når opgørelsen sker i arbejdsdage', () => {
       const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const row = createSfggRow(af.id, {
-        sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: toISODateString('2024-06-01'),
-        sfggReferenceperiodeTil: toISODateString('2024-06-02'),
-      });
+      const row = createSfggRow(af.id, { sfggBeregningskilde: 'Ferieloven' });
       const model = deriveLoenindkomstVm(buildInput([af], {
         beregnesUdFra: 'Angivet dagsløn',
         sfggAnsaettelsesforhold: [row],
       }));
 
-      expect(model.getSfggReferenceperiodeAvailability(af, row)).toEqual({
-        maxFravaersdage: 0,
-        hasNoRelevantDaysError: true,
-        dayLabel: 'arbejdsdage',
-      });
+      expect(model.getSfggPresentation(af).fravaersdageEnhed).toBe('arbejdsdage');
     });
   });
 
@@ -571,28 +544,6 @@ describe('deriveLoenindkomstVm', () => {
         requiresReferenceperiode: true,
         showSatsvalg: false,
       });
-    });
-  });
-
-  describe('firstTafFraDato / sfggReferenceperiodeMaxDate', () => {
-    it('udleder tidligste TAF-fra-dato og dagen før som referenceperiodens maks', () => {
-      const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const values = baseValues();
-      const tafPerioder = values.tafPerioder.map((row, index) =>
-        index === 0
-          ? { ...row, fra: toISODateString('2024-05-02'), til: toISODateString('2024-05-31') }
-          : row
-      );
-      const model = deriveLoenindkomstVm(buildInput([af], { tafPerioder }));
-      expect(model.firstTafFraDato).toBe(toISODateString('2024-05-02'));
-      expect(model.sfggReferenceperiodeMaxDate).toBe(toISODateString('2024-05-01'));
-    });
-
-    it('er undefined når ingen TAF-fra-datoer er udfyldt', () => {
-      const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const model = deriveLoenindkomstVm(buildInput([af]));
-      expect(model.firstTafFraDato).toBeUndefined();
-      expect(model.sfggReferenceperiodeMaxDate).toBeUndefined();
     });
   });
 });

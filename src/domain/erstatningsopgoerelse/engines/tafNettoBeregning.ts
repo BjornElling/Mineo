@@ -4,6 +4,7 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   buildBeregningsperiodeRange,
   buildIncomeForRanges,
+  buildTafRangesUdenEoPeriode,
   type IncomePeriodResult,
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
@@ -166,6 +167,7 @@ export const computeTafNettoBeregning = (
       values,
       stamdata: stamdataValues,
       tafRanges,
+      tafRangesSidenSkaden: buildTafRangesUdenEoPeriode(values, { skadedatoISO: stamdataValues.skadedato }),
       reguleringOpslagPerAnsaettelse: buildSfggReguleringOpslagMap(values, loenudviklingBeregning),
     })
     : { totalOre: zeroMoneyOre(), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null };

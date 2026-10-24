@@ -858,6 +858,7 @@ describe('computeTafNettoBeregning', () => {
       values,
       stamdata,
       tafRanges,
+      tafRangesSidenSkaden: tafRanges,
       reguleringOpslagPerAnsaettelse: buildSfggReguleringOpslagMap(values, expectedLoenudvikling),
     });
 

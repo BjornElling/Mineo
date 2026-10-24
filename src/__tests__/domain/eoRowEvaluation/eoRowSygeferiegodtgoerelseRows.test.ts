@@ -14,6 +14,7 @@ import { sfggReguleringOpslagFraSegmenter } from '../../utils/sfggTestSupport';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { toISODateString, type ISODateString } from '../../../types/branded';
+import { eoEmploymentFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
 
@@ -155,9 +156,14 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       (row) => row.id === `sfgg.advarsel.seksmaaneder.${values.loenindkomstAnsaettelsesforhold[0].id}`
     );
     expect(warningRow?.status).toBe('warning');
+    // Samme tekst som på kortet; linket fører til togglen «Opsagt fra stillingen» (BB-325).
     expect(warningRow?.message).toBe(
-      'Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.'
+      "Der er ikke registreret løn fra Arbejdssted 1 efter 31-01-2024. Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da."
     );
+    expect(warningRow?.focusTarget).toEqual({
+      kind: 'fieldAddress',
+      address: eoEmploymentFields.ansaettelsesforholdOphoert.bind(values.loenindkomstAnsaettelsesforhold[0].id).address,
+    });
   });
 
   it('udelader SFGG-fejlrækker for ansættelsesforhold hvor skadelidte ikke var ansat på skadestidspunktet', () => {
@@ -395,7 +401,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
         }),
         expect.objectContaining({
           id: `sfgg.eftertabel.feriepengeModtaget.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
+          label: 'Feriepenge modtaget i perioden (+ AG-pension)',
           displayValue: '0,00',
           status: 'ok',
         }),
@@ -716,7 +722,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
           id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Dagssats',
           status: 'error',
-          message: 'Dagssats er ikke angivet',
+          message: "'Dagssats for sygeferiegodtgørelse' er ikke angivet",
         }),
       ])
     );
@@ -751,7 +757,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
           id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Dagssats',
           status: 'error',
-          message: 'Dagssats er ikke angivet',
+          message: "'Dagssats for sygeferiegodtgørelse' er ikke angivet",
         }),
       ])
     );
@@ -1832,7 +1838,20 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       feriePct: 12.5,
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
       indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }, {
         id: 'loen-jan-2024',
         col0_maaned: '1',
         col1_maaned: '2024',
@@ -1876,7 +1895,7 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: `sfgg.eftertabel.feriepengeModtaget.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
+          label: 'Feriepenge modtaget i perioden (+ AG-pension)',
         }),
       ])
     );
@@ -1889,7 +1908,20 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       feriePct: 12.5,
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
       indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }, {
         id: 'loen-jan-2024',
         col0_maaned: '1',
         col1_maaned: '2024',

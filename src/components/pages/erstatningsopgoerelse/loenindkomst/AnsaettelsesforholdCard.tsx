@@ -320,7 +320,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     overenskomstId: af.overenskomstId,
     harAnciennitetstillaeg: Boolean(af.harAnciennitetstillaegEfterSkadedatoen),
   });
-  // Lønudviklingens projekterede feltfejl og gule ringe slås op på feltets egen bundne adresse.
+  // Lønudviklingens og sygeferiegodtgørelsens projekterede feltfejl og gule ringe slås op på feltets egen bundne
+  // adresse.
   const loenudviklingIssueProps = <T,>(ref: FieldRef<T>) => {
     const key = serializeFieldAddress(ref.address);
     const issue = activeFieldIssue(loenudviklingIssues, key);
@@ -824,6 +825,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         sfgg={sfgg}
         showSfggSixMonthWarning={showSfggSixMonthWarning}
         onNavigateToTabtArbejdsfortjeneste={onNavigateToTabtArbejdsfortjeneste}
+        feedbackFor={loenudviklingIssueProps}
       />
 
       {/* Handlingsknapper – flex-container der fylder ud fra højre */}

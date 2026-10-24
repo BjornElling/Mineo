@@ -30,6 +30,7 @@ import {
   selectLoenindkomstTableFieldIssues,
   selectOffentligeYdelserFieldIssues,
   selectLoenindkomstKortFieldIssues,
+  selectSfggFieldIssues,
 } from '../erstatningsopgoerelse/eoInputIssues';
 
 /**
@@ -127,7 +128,8 @@ export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
         ctx.eoValues,
         ctx.stamdataValues,
         ctx.canonicalOutput,
-        ctx.pdfModel
+        ctx.pdfModel,
+        selectSfggFieldIssues(ctx.eoErrors)
       ),
   },
 

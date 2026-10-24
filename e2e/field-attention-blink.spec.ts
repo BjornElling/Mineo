@@ -417,7 +417,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
     await startBlinkSampling(page);
     await clickEoIssueLink(
       page,
-      'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt',
+      "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt",
       // Ved ét ansættelsesforhold hedder linket fanens afsnit; kortets nummer bruges først ved flere (BB-278).
       'Lønindkomst'
     );

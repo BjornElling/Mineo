@@ -70,6 +70,27 @@ Normative regler:
 - referenceperioden må gerne ligge efter skadedatoen
 - referenceperioden må ikke gå ind i eller overlappe den første TAF-periode
 - forklaringstekst må ikke låse forståelsen til "inden skaden", men skal afspejle, at perioden er referenceperiode før sygefraværet
+- en referenceperiode uden løn er en fejl i indtastningen: fra-datoen får rød ring, og opgørelsen spærres med
+  «Der er ingen løn i referenceperioden (dd-mm-åååå – dd-mm-åååå) – angiv perioden før sygeforløbet» (BB-319). En samlet
+  negativ løn spærrer med sin egen besked (BB-290)
+
+**Korrekt og forventet adfærd: referenceperioden er fri** (udviklerafgørelse 2026-10-24, BB-321). De 4 uger er
+vejledende. Perioden må afvige fra 4 uger og må ligge på et hvilket som helst tidspunkt før første TAF-periode, også
+langt før skaden:
+- ved månedsløn er det forventet og korrekt at bruge en hel kalendermåned i stedet for 4 uger – lønnen tastes
+  månedsvis, så perioden svarer til nøjagtig én lønseddel, og beregningen bliver let at efterprøve
+- afspejler den seneste lønseddel ikke skadelidtes normale lønniveau, bruges en lønseddel længere tilbage i tiden
+
+Programmet kontrollerer derfor hverken periodens længde eller dens placering (ud over grænsen før første TAF-periode)
+og giver ingen advarsel om det.
+
+**Bærende princip: referenceperioden må ikke bindes til skadedatoen** (udviklerafgørelse 2026-10-24, BB-319). Det må
+aldrig igen foreslås eller lægges til grund, at perioden skal slutte før skadedatoen. Skadelidte arbejder ofte videre
+et stykke tid efter skaden, før sygemeldingen; andre sygemeldes straks, men får fuld løn under sygdom i en periode. I
+de tilfælde er det ofte relevant med en periode, der begynder før skadedatoen og strækker sig hen over den, eller som
+først begynder efter den. Den eneste tidsgrænse er første TAF-periode – tilsvarende er det for beregningsperioden kun
+overlap med TAF-perioden, der er forbudt. Princippet er test-sikret i
+`erstatningsopgoerelseReaderProjection.test.ts` («accepterer en referenceperiode efter skadedatoen …»).
 
 Referencesatsen beregnes som:
 
@@ -358,6 +379,13 @@ Den situation må højst give en advarsel om muligt stiltiende ophør.
 
 Når skaden er før `1. januar 2015`, bruges de indtastede TAF-perioder som grundlag for 4-månederstællingen.
 
+Retten er sammenlagt 4 måneder fra tilskadekomsten, uanset omstændighederne, så længe skadelidte er sygemeldt –
+i programmet udtrykt ved TAF-perioder. En ny erstatningsopgørelse starter **ikke** en ny 4-månedersperiode
+(udviklerafgørelse 2026-10-24, BB-320). Optællingen omfatter derfor ALLE indtastede TAF-perioder, også dem, der
+ligger før opgørelsens egen periode («Vedrører perioden»); selve kravet beregnes fortsat kun for opgørelsens
+periode. Er grænsen nået før opgørelsens periode, er kravet `0,00 kr.`, bilaget oplyser ophørsdatoen, og der gives
+ingen fejl.
+
 Der er ingen særskilt grid til supplerende sygeperioder.
 I stedet vises en advarselstekst til brugeren om, at samtlige TAF-perioder siden skaden skal være indtastet, for at 4-månedersgrænsen beregnes korrekt.
 
@@ -416,13 +444,27 @@ Hvis overenskomsten bruger direkte referencesatser uden differentiering:
 #### 8.3. Valg: Ferieloven
 
 Hvis brugeren vælger `Ferieloven`, skal der vises:
-- forklarende tekst om referenceperiode på 4 uger før sygefraværet
 - linjen `Referenceperiode` med `Fra` og `Til`
-- linjen `Evt. ferie- og fraværsdage i referenceperioden uden løn` med integerfelt
+- linjen `Evt. ferie- og fraværsdage uden løn (kalenderdage)` – eller `(arbejdsdage)` – med integerfelt; enheden
+  følger opgørelsen af sygeferiegodtgørelsen (BB-329)
+
+Kravet om en forklarende tekst om «4 uger før sygefraværet» er udgået: perioden er fri (§2.1). Etiketten
+`Referenceperiode` har i stedet et info-ikon med tooltippen «Udgangspunktet er 4 uger før sygeforløbet. Ved månedsløn
+bruges typisk en hel kalendermåned, så perioden svarer til én lønseddel. Perioden kan ligge længere tilbage, hvis de
+seneste lønsedler ikke afspejler det normale lønniveau.» Ved en overenskomst, der følger ferieloven med egen længde
+(fx «3 måneder»), står dens længde i stedet for «4 uger» (BB-321).
+
+Bilaget skriver «Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden.» og påstår ingen længde; linjerne
+lige under viser den faktiske periode og antallet af dage (BB-321).
+
+For datofelterne gælder: en dato på eller efter første TAF-dag får rød ring med «Datoen skal ligge før første
+TAF-periode (dd-mm-åååå)» (BB-322).
 
 For integerfeltet gælder:
 - minimum = `0`
-- maksimum = det samlede antal arbejdsdage i referenceperioden efter fradrag af ferie- og SH-dage
+- maksimum = de dage i referenceperioden, der er tilbage efter fradrag af ferie (og ved arbejdsdage SH-dage),
+  **minus én**, så der altid er mindst én dag at dele lønnen med. Et højere tal giver rød ring med fx «Højst 27
+  fraværsdage – referenceperioden har 28 kalenderdage» (BB-323)
 
 #### 8.4. Valg: Manuelt angivet
 
@@ -433,6 +475,11 @@ Hvis brugeren vælger `Manuelt angivet`, skal der vises:
 
 Togglens default er `nej`.
 Hvis togglen sættes til `ja`, skal samme logik bruges som ved overenskomstbestemt bortfald under arbejdsgiverbetalt sygeløn.
+
+Sygelønnen læses af kortets lønrækker i erstatningsperioden. Er der ingen, beregnes sygeferiegodtgørelse for hele
+perioden; togglen har en info-tooltip, der siger det, og «Fejl og advarsler» viser den gule linje «Der er ikke
+registreret sygeløn i erstatningsperioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for
+hele perioden» – også ved en overenskomst med bortfald under sygeløn (BB-326).
 
 #### 8.5. Valg: Ingen
 
@@ -476,7 +523,7 @@ PDF'en skal kunne oplyse:
 - at SFGG ophørte på en bestemt dato på grund af ansættelsesophør
 - at SFGG ophørte på en bestemt dato, fordi 4-månedersgrænsen blev nået
 - at bestemte perioder er undtaget på grund af arbejdsgiverbetalt sygeløn efter overenskomsten
-- at sygeferiegodtgørelse beregnes med 12,5 % af den ferieberettigede løn, når SFGG beregnes som en procentdel af lønnen, og den indtastede feriepengesats for lønindkomsten afviger fra 12,5 % (jf. afsnit 2.0). Noten vises i referencesats-blokken, umiddelbart efter linjen "Opgøres som den gennemsnitlige feriepengebetaling i … før sygeforløbet." og før referenceperioden.
+- at sygeferiegodtgørelse beregnes med 12,5 % af den ferieberettigede løn, når SFGG beregnes som en procentdel af lønnen, og den indtastede feriepengesats for lønindkomsten afviger fra 12,5 % (jf. afsnit 2.0). Noten vises i referencesats-blokken, umiddelbart efter linjen "Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden." og før referenceperioden.
 
 Hvis både sygelønsperioder og senere ansættelsesophør er relevante, skal begge forklaringer vises i denne rækkefølge:
 - først forklaring om ret først efter ophør af sygeløn
@@ -496,9 +543,18 @@ Ordvalget i denne forklaringstekst er bevidst ikke fastlåst til én kanonisk s�
 
 Hvis der fortsat beregnes SFGG for et ansættelsesforhold 6 måneder efter sidste registrerede lønindkomst, skal der vises én samlet advarsel pr. ansættelsesforhold.
 
-Advarselsteksten skal være:
+Advarselsteksten er den samme på kortet (med gul markering) og i «Fejl og advarsler», hvor linket fører til togglen
+«Opsagt fra stillingen» (BB-325):
 
-`Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.`
+`Der er ikke registreret løn fra <ansættelsesforhold> efter dd-mm-åååå. Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da.`
+
+#### 9.4. Advarsel om en gammel referenceperiode ved manuel regulering
+
+Ved lønudviklingsformerne «Manuelt angivet» og «Manuel procentsats» regnes referenceperiodens løn som lønnen på
+reguleringsdatoen (afklaringslog 8a, 2026-10-13). Slutter referenceperioden mere end 12 måneder før
+reguleringsdatoen, får til-datoen gul ring, og «Fejl og advarsler» viser den gule linje «Referenceperioden slutter
+mere end 12 måneder før reguleringsdatoen (dd-mm-åååå) – satsen er regnet med lønnen på reguleringsdatoen uden
+regulering» (BB-324).
 
 Ved valg af `Ingen` skal EO-kontrol stadig vise én linje med den valgte værdi og ikke yderligere SFGG-indhold.
 
@@ -579,6 +635,11 @@ Der er implementeret særskilt validering for:
 - krav om satsvalg ved differentierede satser
 - ingen arbejdsdage i referenceperioden
 - maksimum for ferie-/fraværsdage uden løn
+- referenceperiode før første TAF-periode
+- referenceperiode uden løn
+
+De fire sidste ligger i `sfggReferenceperiodeRules.ts` og projekteres til feltets egen adresse (rød ring og én linje
+med link i «Fejl og advarsler»), ikke i validatoren (BB-319, BB-322, BB-323).
 
 #### 4. Beregningsmotor
 
@@ -659,7 +720,8 @@ formuleringerne er bevidst holdt fleksible.
 
 Seksmånedersadvarslen beregnes af `findSfggSixMonthWarningEmploymentIds` og vises to steder fra samme
 kilde: inline på Lønindkomst-fanen under SFGG-feltet (via snapshottet) og som en advarselsrække i
-EO-kontrol. Begge læser den samme beregnede liste, så de ikke kan drive fra hinanden.
+EO-kontrol. Begge læser den samme beregnede liste og samme tekst (`buildSfggSeksMaanederBesked`), så de ikke
+kan drive fra hinanden.
 
 ---
 

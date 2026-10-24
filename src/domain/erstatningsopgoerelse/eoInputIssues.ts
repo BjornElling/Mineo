@@ -89,6 +89,24 @@ export const selectLoenindkomstKortFieldIssues = (
 };
 
 /**
+ * Feltissues i sygeferiegodtgørelsens afsnit, grupperet pr. ansættelsesforhold (afsnittets rækker identificeres
+ * af `ansaettelsesforholdId`). Findes af samme grund som `selectLoenindkomstKortFieldIssues`: en rød værdi får sin
+ * egen linje med feltets navn og link. Før nåede afsnittets røde felter kun boksen gennem sikkerhedsnettet – og
+ * kun når intet andet stod der (BB-322, BB-323).
+ */
+export const selectSfggFieldIssues = (
+  issues: FieldIssueSet
+): Readonly<Record<string, readonly FieldIssue[]>> => {
+  const byEmployment: Record<string, FieldIssue[]> = {};
+  for (const issue of issues.all) {
+    const [row, ...rest] = issue.field.address.path;
+    if (row?.kind !== 'entity' || row.collection !== 'sfggAnsaettelsesforhold' || rest.length > 0) continue;
+    (byEmployment[row.entityId] ??= []).push(issue);
+  }
+  return Object.freeze(byEmployment);
+};
+
+/**
  * Finder den første konkrete celleissue pr. ansættelsesforhold i lønindkomstens nested tabeller.
  *
  * Row-builderen bruger resultatet til at pege på den røde celle. Den skal derfor ikke selv scanne

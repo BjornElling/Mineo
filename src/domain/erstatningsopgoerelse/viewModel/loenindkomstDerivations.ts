@@ -20,12 +20,10 @@ import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { offentligLoenTypeEnum } from '../../../schemas/formSchemas';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
-import {
-  resolveSfggReferenceperiodeDayCount,
-  resolveSfggReferenceperiodeMaxDate,
-  getFirstIndtastedeTafFraDato,
-} from '../engines/sfggReferencesats';
-import { resolveSfggSource } from '../engines/sfggKilde';
+import { resolveSfggDayBasis, resolveSfggSource, type SfggDayBasis } from '../engines/sfggKilde';
+import { buildSfggReferenceperiodeTooltip } from '../helpers/sygeferiegodtgoerelseTexts';
+import { buildSfggSeksMaanederBesked } from '../engines/sfggWarnings';
+import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import {
   erSfggFeltRelevantForSynlighed,
@@ -55,12 +53,6 @@ import { resolveSkadeEllerAnmeldelsesdatoReference } from '../helpers/eoDateRefe
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 type Ansaettelsesforhold = LoenindkomstAnsaettelsesforhold;
 type SfggRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
-
-export type SfggReferenceperiodeAvailability = Readonly<{
-  maxFravaersdage: number | undefined;
-  hasNoRelevantDaysError: boolean;
-  dayLabel: 'kalenderdage' | 'arbejdsdage' | null;
-}>;
 
 export type LoenudviklingBaseDate = Readonly<{
   display: string;
@@ -100,10 +92,6 @@ export type LoenindkomstFlatModel = Readonly<{
   ) => ISODateString | undefined;
   /** Satsafsnittets overskrift – samme tekst som linjen i «Fejl og advarsler» og bilagets satslinjer. */
   getSatserHeadingForAnsaettelsesforhold: (af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>) => string;
-  getSfggReferenceperiodeAvailability: (
-    employment: Ansaettelsesforhold,
-    row: SfggRow | undefined
-  ) => SfggReferenceperiodeAvailability;
   getLoenudviklingBaseDate: (af: Ansaettelsesforhold) => LoenudviklingBaseDate;
   isOffentligLoenSelectionReady: (af: Ansaettelsesforhold) => boolean;
   resolveOverenskomstLabel: (overenskomstId: string | undefined) => string;
@@ -125,8 +113,6 @@ export type LoenindkomstFlatModel = Readonly<{
    * konsistent billede, når de afledes i én omgang fra samme række og policy.
    */
   getSfggPresentation: (af: Ansaettelsesforhold) => SfggPresentation;
-  firstTafFraDato: ISODateString | undefined;
-  sfggReferenceperiodeMaxDate: ISODateString | undefined;
 }>;
 
 /** Den samlede SFGG-visningsafledning for ét ansættelsesforhold (jf. `getSfggPresentation`). */
@@ -145,6 +131,12 @@ export type SfggPresentation = Readonly<{
    */
   relevanteFelter: Readonly<Record<SfggFelt, boolean>>;
   showSharedSfggBefore2015: boolean;
+  /** Enheden, fraværsdagene i referenceperioden tælles i – samme som opgørelsen af sygeferiegodtgørelsen (BB-329). */
+  fravaersdageEnhed: SfggDayBasis;
+  /** Info-tooltippen ved «Referenceperiode»: reglens udgangspunkt, og at perioden er fri (BB-321). */
+  referenceperiodeTooltip: string;
+  /** Seksmånedersadvarslens tekst; vises kun, når snapshottet har meldt advarslen for kortet (BB-325). */
+  seksMaanederBesked: string | undefined;
 }>;
 
 /**
@@ -226,25 +218,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
       skadedato,
     });
 
-  const getSfggReferenceperiodeAvailability = (
-    employment: Ansaettelsesforhold,
-    row: SfggRow | undefined
-  ): SfggReferenceperiodeAvailability => {
-    const source = resolveSfggSource(row, employment);
-    const referenceDayCount = resolveSfggReferenceperiodeDayCount(eoValues, row, source);
-    if (!referenceDayCount) {
-      return { maxFravaersdage: undefined, hasNoRelevantDaysError: false, dayLabel: null };
-    }
-    const maxFravaersdage = referenceDayCount.divisorLabel === 'kalenderdage'
-      ? referenceDayCount.kalenderdage
-      : referenceDayCount.divisorDage;
-    return {
-      maxFravaersdage,
-      hasNoRelevantDaysError: maxFravaersdage <= 0,
-      dayLabel: referenceDayCount.divisorLabel,
-    };
-  };
-
   const getLoenudviklingBaseDate = (af: Ansaettelsesforhold): LoenudviklingBaseDate => {
     const iso = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
     const missingDateMessage = `${resolveSkadeEllerAnmeldelsesdatoReference(skadestype).label} er ikke udfyldt`;
@@ -306,6 +279,7 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
       sfggBeregningskilde: kilde,
     });
     const hasOverenskomst = synlighed.harValgtOverenskomst;
+    const source = resolveSfggSource(row, af);
 
     return {
       show: synlighed.sektionVist,
@@ -325,11 +299,11 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
         alleredeBetalt: erSfggFeltRelevantForSynlighed('alleredeBetalt', synlighed, kilde),
       },
       showSharedSfggBefore2015: Boolean(skadedato && skadedato < '2015-01-01'),
+      fravaersdageEnhed: resolveSfggDayBasis(source, computeTafBeregningsenhed(eoValues)),
+      referenceperiodeTooltip: buildSfggReferenceperiodeTooltip(source.kind, af),
+      seksMaanederBesked: buildSfggSeksMaanederBesked(eoValues, af),
     };
   };
-
-  const firstTafFraDato = getFirstIndtastedeTafFraDato(eoValues);
-  const sfggReferenceperiodeMaxDate = resolveSfggReferenceperiodeMaxDate(eoValues);
 
   return {
     satserByAfId,
@@ -342,7 +316,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
       skadedato,
       skadestype,
     }),
-    getSfggReferenceperiodeAvailability,
     getLoenudviklingBaseDate,
     isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
@@ -350,7 +323,5 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     showSygeferiegodtgoerelseSection,
     getSfggRowForAf,
     getSfggPresentation,
-    firstTafFraDato,
-    sfggReferenceperiodeMaxDate,
   };
 }

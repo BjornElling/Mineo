@@ -5,14 +5,13 @@ import type {
 import type { TafCalculationValues } from './tafCalculationInput';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
-import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { parseISODate, type ISODateString } from '../../../types/branded';
 import { fromKroner, roundKroner, type MoneyOre } from '../../money/money';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet } from './tafDaySets';
 import { optaelArbejdsdageBreakdown } from './periodiseringsMotor';
 import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getSfggKildeSpec, resolveSfggDayBasis, type SfggSourceKind } from './sfggKilde';
-import { buildSfggNoEligibleDaysReason } from '../helpers/sygeferiegodtgoerelseTexts';
+import { SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE, buildSfggNoEligibleDaysReason } from '../helpers/sygeferiegodtgoerelseTexts';
 
 export const SFGG_LOVBESTEMT_FERIEPENGE_PCT = 12.5;
 export const SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL = SFGG_LOVBESTEMT_FERIEPENGE_PCT / 100;
@@ -24,6 +23,8 @@ export type SfggReferencesatsNotCalculableKind =
   | 'unresolvable_referenceperiode'
   | 'no_calendar_days'
   | 'no_workdays'
+  | 'no_reference_days'
+  | 'no_reference_loen'
   | 'negative_reference_loen';
 
 export type SfggReferencesatsCalculable =
@@ -45,12 +46,16 @@ export type SfggReferencesatsFormula = Readonly<{
 
 const resolveNotCalculableReason = (kind: SfggReferencesatsNotCalculableKind): string => {
   switch (kind) {
-    case 'missing_rate': return 'Dagssats mangler';
+    case 'missing_rate': return SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE;
     case 'per_period_rate': return 'Direkte overenskomstsats beregnes pr. periode';
     case 'missing_referenceperiode': return 'Referenceperiode mangler';
     case 'unresolvable_referenceperiode': return 'Referenceperioden kan ikke opgøres';
     case 'no_calendar_days': return buildSfggNoEligibleDaysReason('kalenderdage');
     case 'no_workdays': return buildSfggNoEligibleDaysReason('arbejdsdage');
+    // De to næste fanges før motoren af `collectSfggReferenceperiodeIssues` (rød ring på feltet); her står de kun,
+    // så motoren aldrig regner en sats på 0,00 kr. eller dividerer med nul, hvis en kalder går uden om gaten.
+    case 'no_reference_days': return 'Referenceperioden har ingen dage tilbage efter ferie og fravær';
+    case 'no_reference_loen': return 'Der er ingen løn i referenceperioden';
     case 'negative_reference_loen':
       return 'Lønnen i referenceperioden er samlet negativ – kontrollér lønrækkerne';
   }
@@ -125,10 +130,6 @@ export const getFirstIndtastedeTafFraDato = (
   return dates.length === 0 ? undefined : dates.reduce((earliest, current) => current < earliest ? current : earliest);
 };
 
-export const resolveSfggReferenceperiodeMaxDate = (
-  values: TafCalculationValues
-): ISODateString | undefined => getDayBeforeIso(getFirstIndtastedeTafFraDato(values));
-
 export type SfggReferenceLoenCalculator = Readonly<{
   sumLoenInRangesKroner: (ranges: readonly Readonly<{ fra: ISODateString; til: ISODateString }>[]) => number;
 }>;
@@ -182,11 +183,18 @@ export const resolveSfggBaseRate = (
       sfggReferencesatsFormula: null,
     };
   }
+  if (loen === 0) {
+    return {
+      sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
+      sfggReferencesatsOre: notCalculableSfggReferencesats('no_reference_loen'),
+      sfggReferencesatsFormula: null,
+    };
+  }
   const feriepengeKroner = loen * SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;
   if (dayCount.divisorDage <= 0) {
     return {
       sfggReferenceperiode: { fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil },
-      sfggReferencesatsOre: notCalculableSfggReferencesats(dayCount.divisorLabel === 'kalenderdage' ? 'no_calendar_days' : 'no_workdays'),
+      sfggReferencesatsOre: notCalculableSfggReferencesats('no_reference_days'),
       sfggReferencesatsFormula: null,
     };
   }

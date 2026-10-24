@@ -27,6 +27,10 @@ import { erstatningsopgoerelseSchema, stamdataSchema } from '../../../schemas/fo
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import { createSfggIngenRow } from '../../utils/sfggTestSupport';
+import {
+  eoSfggReferenceperiodeFraField,
+  eoSfggReferenceperiodeTilField,
+} from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 // Erstatningsopgørelsens reader-projektion (§3.4/§5.4/§1.10): beviser at projektionen
 // (a) rekonstruerer det fulde EO-/stamdata-værdiobjekt fra readeren med irrelevante felters tomværdi, (b)
@@ -363,6 +367,63 @@ describe('buildErstatningsopgoerelseReaderProjection', () => {
       expect(projection.snapshot.data).toBeNull();
     }
   );
+
+  // Sygeferiegodtgørelsens referenceperiode-regler projekteres som de øvrige: rød ring på feltet og spærret
+  // beregning (BB-319). Perioden januar 2022 har ingen løn – fixturets eneste lønrække er maj 2022.
+  it('projekterer en referenceperiode uden løn til SFGG-feltet og spærrer beregningen', () => {
+    const eo = buildValidEo();
+    const reader = buildReader({
+      ...eo,
+      sfggAnsaettelsesforhold: [{
+        ...createSfggIngenRow('af-1'),
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: toISODateString('2022-01-01'),
+        sfggReferenceperiodeTil: toISODateString('2022-01-28'),
+      }],
+    }, validStamdata);
+
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'sfgg-uden-loen' });
+
+    const expectedAddress = eoSfggReferenceperiodeFraField.bind('af-1').address;
+    const message = 'Der er ingen løn i referenceperioden (01-01-2022 – 28-01-2022) – angiv perioden før sygeforløbet';
+    expect(projection.loenudviklingIssues.all).toEqual([
+      expect.objectContaining({ message, field: expect.objectContaining({ address: expectedAddress }) }),
+    ]);
+    expect(projection.eoErrors.all).toContainEqual(
+      expect.objectContaining({ message, field: expect.objectContaining({ address: expectedAddress }) }),
+    );
+    expect(projection.snapshot.status).toBe('error');
+    expect(projection.snapshot.data).toBeNull();
+  });
+
+  // BÆRENDE PRINCIP (udviklerafgørelse 2026-10-24, BB-319): referenceperioden må ligge efter – eller hen over –
+  // skadedatoen. Skadelidte arbejder ofte videre et stykke tid efter skaden eller får fuld løn under sygdom, før
+  // sygeforløbet begynder. Den eneste tidsgrænse er før første TAF-periode. Foreslå ALDRIG en grænse ved skadedatoen.
+  it('accepterer en referenceperiode efter skadedatoen, når den ligger før første TAF-periode', () => {
+    const eo = buildValidEo();
+    const reader = buildReader({
+      ...eo,
+      sfggAnsaettelsesforhold: [{
+        ...createSfggIngenRow('af-1'),
+        sfggBeregningskilde: 'Ferieloven',
+        // Skadedato 01-03-2022; maj 2022 har løn, første TAF-dag er 01-07-2022.
+        sfggReferenceperiodeFra: toISODateString('2022-05-01'),
+        sfggReferenceperiodeTil: toISODateString('2022-05-31'),
+      }],
+    }, validStamdata);
+
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'sfgg-efter-skadedato' });
+
+    const referenceperiodeAddresses = [
+      eoSfggReferenceperiodeFraField.bind('af-1').address,
+      eoSfggReferenceperiodeTilField.bind('af-1').address,
+    ];
+    const issuesOnReferenceperiode = projection.eoErrors.all.filter((candidate) =>
+      referenceperiodeAddresses.some((address) => JSON.stringify(address) === JSON.stringify(candidate.field.address))
+    );
+    expect(issuesOnReferenceperiode).toEqual([]);
+    expect(projection.loenudviklingIssues.all).toEqual([]);
+  });
 
   it('projekterer manglende basisdato til det aktive angivne lønfelt', () => {
     const eo = buildValidEo();

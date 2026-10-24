@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets �
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12j – Erstatningsopgørelse → Sygeferiegodtgørelse.** 12i er gennemgået 2026-10-20 (19 fund,
+- **Næste flade:** **12k – Erstatningsopgørelse → Offentlige ydelser.** 12j er gennemgået, afgjort og gennemført
+  2026-10-24 (13 fund, BB-319–BB-331); de to modsvar (BB-319, BB-321) er besvaret og gennemført samme dag. Tidligere: 12i er gennemgået 2026-10-20 (19 fund,
   BB-300–BB-318), afgjort og gennemført 2026-10-23 (BB-312 afvist); de fire tillægsspørgsmål er besvaret og gennemført samme dag. Tidligere: 12h er gennemgået 2026-10-19
   (11 fund, BB-289–BB-299), afgjort og gennemført samme dag i tre modsvarsrunder (se 12h-afsnittet). 12g er gennemgået,
   afgjort OG gennemført 2026-10-06 (15 fund, BB-274–BB-288). 12f er
@@ -27,8 +28,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-319
-- **Åbne spørgsmål:** **ingen.** 12i's fire tillægsspørgsmål er besvaret og gennemført 2026-10-23: BB-301 valg A
+- **Næste fund-ID:** BB-332
+- **Åbne spørgsmål:** **ingen.** 12j's to modsvar er besvaret og gennemført 2026-10-24: BB-319 – referenceperioden
+  bindes aldrig til skadedatoen (dokumenteret og test-sikret princip) – og BB-321 – papiret skriver «i
+  referenceperioden», og «Referenceperiode» har en info-tooltip. Tidligere: **to modsvar fra 12j.** Tidligere: **ingen ud over 12j's fund.** Tidligere: **ingen.** 12i's fire tillægsspørgsmål er besvaret og gennemført 2026-10-23: BB-301 valg A
   (skjulte satser ved «Beløb» og beregningsperioden uden TAF er ikke udfyldt), BB-306 (satslinjen står alene med link til
   «Vælg overenskomst»), BB-312 valg A (uændret) og BB-313 (gul advarsel, når den forhøjede grundløn er større end
   trinlønnen). Tidligere: **ingen fra 12h** – de sidste tre (BB-290's sygeferiegodtgørelse, BB-293's opgørelse nr. 2 og
@@ -104,7 +107,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
-- **Fund, der afventer udviklerens afgørelse:** **ingen** – flade 12i er afgjort og gennemført 2026-10-23; de åbne
+- **Fund, der afventer udviklerens afgørelse:** **ingen** – flade 12j er afgjort og gennemført 2026-10-24; de to modsvar
+  er besvaret og gennemført. Tidligere: **flade 12j's 13 fund (BB-319–BB-331)**.
+  Tidligere: **ingen** – flade 12i er afgjort og gennemført 2026-10-23; de åbne
   spørgsmål ovenfor er tillæg. Tidligere: **ingen.** Flade 12h's 11 fund er afgjort og
   gennemført 2026-10-19.
   Tidligere: **ingen.** **Flade 12g's 15 fund (BB-274–BB-288) er afgjort og
@@ -162,7 +167,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-23 (**Flade 12i afgjort og gennemført, også de fire tillægsspørgsmål** – se afsnittet om 12i.)
+- **Senest opdateret:** 2026-10-24 (**Flade 12j afgjort og gennemført** – se afsnittet om 12j.)
+  Tidligere: 2026-10-24 (**Flade 12j – Sygeferiegodtgørelse – gennemgået: 13 fund, to Høj, seks Mellem og fem
+  Lav, ingen nye tværgående mønstre, men en tredje form af M-38** – se afsnittet om 12j.)
+  Tidligere: 2026-10-23 (**Flade 12i afgjort og gennemført, også de fire tillægsspørgsmål** – se afsnittet om 12i.)
   Tidligere: 2026-10-20 (**Flade 12i – Lønudvikling og regulering af tabet – gennemgået: 19 fund, ét
   Kritisk, fire Høj, syv Mellem og syv Lav, ingen nye tværgående mønstre** – se afsnittet om 12i nedenfor.)
   Tidligere: 2026-10-19 (**Flade 12h afgjort og gennemført; fem modsvar åbne** – se afsnittet om 12h nedenfor.)
@@ -610,10 +618,47 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12g | Erstatningsopgørelse – Ansættelsesforhold: ramme, lønforhold og satser | Afgjort og gennemført | 15 (BB-274–BB-288) | [erstatningsopgoerelse-12g.md](erstatningsopgoerelse-12g.md) |
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Afgjort og gennemført | 11 (BB-289–BB-299) | [erstatningsopgoerelse-12h.md](erstatningsopgoerelse-12h.md) |
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Afgjort og gennemført | 19 (BB-300–BB-318) | [erstatningsopgoerelse-12i.md](erstatningsopgoerelse-12i.md) |
-| 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Ikke startet | – | – |
+| 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Afgjort og gennemført | 13 (BB-319–BB-331) | [erstatningsopgoerelse-12j.md](erstatningsopgoerelse-12j.md) |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Sygeferiegodtgørelse (12j) – gennemgået, afgjort og gennemført 2026-10-24
+
+**Afgjort og gennemført 2026-10-24:** alle 13 fund er gennemført; BB-321 delvist (perioden er fri og dokumenteret som
+korrekt adfærd – papirets tekst og skærmens forklaring afventer modsvaret). Referenceperiodens regler – før første
+TAF-dag, fraværsdagenes loft (nu dage minus én) og en periode uden løn – står på feltet med rød ring og én linje med
+link (`sfggReferenceperiodeRules.ts`); den gamle fraværsregel trak i arbejdsdage fraværet fra to gange. 4-månedersgrænsen
+tæller alle TAF-perioder siden skaden (BB-320, `eo-snapshot-contract.md` §2.3 pkt. 6). Log 8a's gule advarsel er koblet
+på (BB-324). Seksmånedersadvarslen, sygelønsadvarslen og «Overenskomst» uden overenskomst siger nu hvad og hvorfor og
+fører til det felt, der skal ændres (BB-325, BB-326, BB-330). Feltnavne i beskeder står i apostroffer (BB-331).
+Modsvar: BB-319 (grænsen ved skadedatoen, anbefalet uændret) og BB-321 (papir og forklaring).
+
+**13 fund: to Høj, seks Mellem, fem Lav (to Fejl, tre Edge case, otte Fornuft) – ingen nye tværgående mønstre, men en
+tredje form af M-38.** Fladens bærende iagttagelse er, at referenceperioden er fri, og at programmet ikke siger, hvad den
+skal være. En periode uden løn giver satsen `0,00 kr.` uden et ord – det naturlige fejlgreb ved opgørelse nr. 2 (BB-319,
+M-37), og papiret påstår «4 uger før sygeforløbet» uanset perioden (BB-321). Ved skader før 2015 beder afsnittet om alle
+TAF-perioder siden skaden, men 4-månedersgrænsen tæller kun opgørelsens egen periode (BB-320). De to grænser, programmet
+kender, står kun i boksen uden ring og link, skønt view-modellen har regnet dem ud (BB-322, BB-323, M-20), og log 8a's gule
+advarsel findes kun som en testet funktion, intet kalder (BB-324, M-38). Beregningerne er ikke vurderet (afklaringsloggen
+fra 2026-10-13 er bindende). M-07, M-09 og M-32 bestået; konsollen tavs. Grundlaget står i
+[erstatningsopgoerelse-12j.md](erstatningsopgoerelse-12j.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-319 | En referenceperiode uden løn giver satsen 0,00 kr. uden et ord (M-37) | **Høj** | Gennemført; modsvar om skadedatoen |
+| BB-320 | Før 2015: 4-månedersgrænsen tæller kun opgørelsens periode, trods bemærkningen (M-11) | **Høj** | Gennemført |
+| BB-321 | Referenceperioden forklares ikke; papiret påstår «4 uger før sygeforløbet» (M-11) | Mellem | Delvist gennemført; modsvar |
+| BB-322 | Referenceperiode i TAF-perioden: to ens linjer, ingen ring, intet link (M-20) | Mellem | Gennemført |
+| BB-323 | For mange fraværsdage: ingen ring, intet link, «maksimalt 28» er selv ugyldigt (M-20, M-24) | Mellem | Gennemført |
+| BB-324 | Log 8a's gule advarsel findes kun som testet funktion (M-38) | Mellem | Gennemført |
+| BB-325 | Seksmånedersbemærkningen: næsten altid, uklar, to ordlyde, linket blinker hele kortet | Mellem | Gennemført |
+| BB-326 | «Først … efter ophør af sygeløn» virker kun gennem lønrækker (M-35) | Mellem | Gennemført |
+| BB-327 | «Regulering af referencesatsen … x 1 / 1» uden regulering (M-11) | Lav | Gennemført |
+| BB-328 | Bilaget: «12,5 %», «+ 8 %», beløb uden øre og «kr.» (M-13) | Lav | Gennemført |
+| BB-329 | Fraværsdage: kalender- eller arbejdsdage står ingen steder | Lav | Gennemført |
+| BB-330 | «Overenskomst» uden overenskomst: «(angivet ovenfor)» og et link til hele kortet (M-02) | Lav | Gennemført |
+| BB-331 | «SFGG» og andre navne end felternes i beskederne (M-02) | Lav | Gennemført (apostroffer) |
 
 ## Erstatningsopgørelse → Lønudvikling og regulering af tabet (12i) – gennemgået 2026-10-20, afgjort og gennemført 2026-10-23
 
@@ -2160,6 +2205,11 @@ systemskalering ændrer den faktiske CSS-viewport.
 ## Tværgående mønstre
 
 Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+
+- **Ingen nye mønstre 2026-10-24 fra 12j, men M-38 har fået en tredje form: testet, men ikke koblet på** (BB-324). Prøven
+  er nu også at finde regel-, advarsels- og grænsefunktioner, som kun deres egen test kalder. Nye forekomster: M-37 i et
+  tomt grundlag (BB-319), M-11 (BB-320, BB-321, BB-327), M-20 (BB-322, BB-323), M-35 (BB-326), M-13 (BB-328), M-02
+  (BB-330, BB-331).
 
 - **Ét nyt mønster 2026-10-19 fra 12h – M-38: en afgørelse står som gennemført, men koden bærer den ikke.** Fem af
   Årsløns afgørelser om den løntabel, EO deler, findes ikke i koden eller kun på Årsløn (BB-096's EO-del, BB-100,

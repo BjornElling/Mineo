@@ -42,9 +42,9 @@ import {
 import { resolveValgtReguleringDisplayForPdf } from '../../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import {
   formatCurrencyFromOre,
-  formatCurrencyFromOreTrimmed,
-  formatMoneyOreWithKrTrimmed,
+  formatMoneyOreWithKr,
 } from '../../../layout/documentFormatUtils';
+import { formatPercentFixed2 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import type { SelectedElements } from '../types';
 import { renderLoenindkomstSection } from './loenindkomstSection';
 import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './offentligeYdelserSection';
@@ -57,6 +57,7 @@ import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/eng
 import {
   SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL,
   SFGG_FERIEPENGE_MODTAGET_LABEL,
+  SFGG_REFERENCEPERIODE_INTRO_TEXT,
   SFGG_TABLE_TOTAL_LABEL,
   buildSfggReferenceperiodeCountLabel,
   formatSfggAfkortningPdfLine,
@@ -179,9 +180,9 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       return;
     }
 
-    safeAddWrappedText(
-      `Opgøres som den gennemsnitlige feriepengebetaling i ${entry.sfggReferenceperiodeLabel} før sygeforløbet.`
-    );
+    // Referenceperioden er fri (BB-321); teksten påstår derfor ingen længde eller placering – linjerne lige under
+    // viser den faktiske periode og antallet af dage.
+    safeAddWrappedText(SFGG_REFERENCEPERIODE_INTRO_TEXT);
     if (entry.sfggLovbestemtFeriepengeNote) {
       safeAddWrappedText(entry.sfggLovbestemtFeriepengeNote);
     }
@@ -199,7 +200,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       `${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} kr.`
     );
     safeAddLeftRightText(
-      `Referencesats (${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} x ${formatPercentUtil(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}) =`,
+      `Referencesats (${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} x ${formatPercentFixed2(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}) =`,
       `${formatCurrencyFromOre(entry.sfggReferencesats.value)} ${resolveSfggReferenceSatsUnit(sfggReferencesatsFormula.divisorLabel)}`,
       standardRightMaxWidth,
       { rightFontStyle: 'bold' }
@@ -259,6 +260,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     }
 
     const antalDageHeader = divisorLabel === 'kalenderdage' ? 'Antal kalenderdage' : 'Antal arbejdsdage';
+    // Procenter med to decimaler og beløb med øre og «kr.», som resten af opgørelsen. Før stod samme beløb som
+    // «56.430» i tabellen og «56.430,00» længere nede (BB-328).
     // Fem centrerede kolonner + en højrejusteret feriepengekrav-kolonne. Auto-bredde
     // (ingen kolonne-styles), som den oprindelige kaldeform.
     const sfggColumns: readonly ColumnSpec[] = [
@@ -285,10 +288,10 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         cells: [
           { text: formatDateShort(row.fra) ?? '' },
           { text: formatDateShort(row.til) ?? '' },
-          { text: formatCurrencyFromOreTrimmed(row.satsOre) },
-          { text: `+ ${formatPercentUtil(row.agPensionPct)}` },
+          { text: formatMoneyOreWithKr(row.satsOre) },
+          { text: `+ ${formatPercentFixed2(row.agPensionPct)}` },
           { text: String(row.antalDage) },
-          { text: formatCurrencyFromOreTrimmed(row.feriepengekravOre) },
+          { text: formatMoneyOreWithKr(row.feriepengekravOre) },
         ],
       })),
     ];
@@ -299,10 +302,10 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       {
         columnCount: 6,
         valueColumnIndex: 5,
-        formatValue: (total) => formatMoneyOreWithKrTrimmed(moneyOre(total)),
+        formatValue: (total) => formatMoneyOreWithKr(moneyOre(total)),
         // Værdierne er allerede hele øre og vises uden yderligere afrunding.
         roundDisplayedValue: (value) => value,
-        valueHasKrSuffix: false,
+        valueHasKrSuffix: true,
       }
     );
     if (totalRow) specRows.push(totalRow);
@@ -312,7 +315,9 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       rows: specRows,
     });
 
-    if (entry.sfggReferencesats.status === 'ok' && rows.some((row) => row.reguleringsgrundlag || row.klTrin?.length)) {
+    // Kun når satsen faktisk ændres – samme prøve som sætningen «… reguleret efter lønudviklingen» ovenfor. Før
+    // trykkes afsnittet, så snart et segment havde et reguleringsgrundlag, også «133,93 x 1 / 1» (BB-327).
+    if (entry.sfggReferencesats.status === 'ok' && hasRegulatedSfggRate) {
       writer.writeUnderlinedSubheader('Regulering af referencesatsen');
       buildSfggReguleretSatsLines(entry.sfggReferencesats.value, rows).forEach((line) => safeAddWrappedText(line));
     }
@@ -324,18 +329,18 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     const feriepengeModtagetLabel = SFGG_FERIEPENGE_MODTAGET_LABEL;
 
     writer.writeUnderlinedSubheader('Beregnet krav');
-    writeLabelValueLine(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, formatCurrencyFromOre(feriepengeHvisIkkeSkadeOre));
+    writeLabelValueLine(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, formatMoneyOreWithKr(feriepengeHvisIkkeSkadeOre));
     writeLabelValueLine(
       feriepengeModtagetLabel,
-      formatCurrencyFromOre(subtractMoneyOre(zeroMoneyOre(), feriepengeModtagetOre))
+      formatMoneyOreWithKr(subtractMoneyOre(zeroMoneyOre(), feriepengeModtagetOre))
     );
     writeLabelValueLine(
       'Allerede betalt sygeferiegodtgørelse i perioden',
-      formatCurrencyFromOre(subtractMoneyOre(zeroMoneyOre(), alleredeBetaltOre))
+      formatMoneyOreWithKr(subtractMoneyOre(zeroMoneyOre(), alleredeBetaltOre))
     );
     safeAddLeftRightText(
       'Beregnet sygeferiegodtgørelse',
-      formatCurrencyFromOre(beregnetSygeferiegodtgoerelseOre),
+      formatMoneyOreWithKr(beregnetSygeferiegodtgoerelseOre),
       standardRightMaxWidth,
       { rightFontStyle: 'bold' }
     );

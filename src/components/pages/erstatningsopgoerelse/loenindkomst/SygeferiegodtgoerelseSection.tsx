@@ -1,4 +1,5 @@
 import { Box, MenuItem, Typography } from '@mui/material';
+import { WarningAmber } from '@mui/icons-material';
 import TextField from '../../../../inputCore/react/fields/TextField';
 import DateField from '../../../../inputCore/react/fields/DateField';
 import ChoiceField, { ChoiceDivider } from '../../../../inputCore/react/fields/ChoiceField';
@@ -19,6 +20,9 @@ import {
   eoSfggAnsaettelsesforholdCollection,
 } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import type { CollectionRef } from '../../../../inputCore/fieldAddress';
+import type { FieldRef } from '../../../../inputCore/fieldDescriptor';
+import type { FieldIssue } from '../../../../inputCore/inputIssue';
+import type { FieldWarning } from '../../../../inputCore/fieldWarning';
 import InfoTooltipIcon from '../../../common/InfoTooltipIcon';
 import LabeledControlRow from '../../../layout/LabeledControlRow';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
@@ -54,6 +58,11 @@ type Props = Readonly<{
   /** Snapshot-observation (ikke en ren af-afledning), derfor stadig en selvstændig prop. */
   showSfggSixMonthWarning: boolean;
   onNavigateToTabtArbejdsfortjeneste: () => void;
+  /**
+   * Projekterede regler og gule ringe på feltets egen bundne adresse – referenceperiodens grænser, fraværsdagenes
+   * loft og en periode uden løn (BB-319, BB-322, BB-323), og en gammel referenceperiode (BB-324).
+   */
+  feedbackFor: <T>(ref: FieldRef<T>) => Readonly<{ crossFieldIssue?: FieldIssue; warning?: FieldWarning }>;
 }>;
 
 /**
@@ -67,6 +76,7 @@ const SygeferiegodtgoerelseSection = ({
   sfgg,
   showSfggSixMonthWarning,
   onNavigateToTabtArbejdsfortjeneste,
+  feedbackFor,
 }: Props) => {
   if (!sfgg.show) return null;
 
@@ -81,13 +91,13 @@ const SygeferiegodtgoerelseSection = ({
     <>
       <Typography className="row--subheading">Sygeferiegodtgørelse</Typography>
 
-      {showSfggSixMonthWarning ? (
+      {/* Samme tekst og samme gule markering som linjen i «Fejl og advarsler» (BB-325). */}
+      {showSfggSixMonthWarning && sfgg.seksMaanederBesked !== undefined ? (
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <Typography className="row--text">
-                Bemærk: Sygeferiegodtgørelsen i dette ansættelsesforhold løber mere end 6 måneder efter sidste indkomst. Kontrollér, om perioden er korrekt.
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20, flexShrink: 0 }} />
+              <Typography className="row--text">{sfgg.seksMaanederBesked}</Typography>
             </Box>
           </Box>
         </Box>
@@ -98,7 +108,7 @@ const SygeferiegodtgoerelseSection = ({
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
               <Typography className="row--text">
-                Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen med
+                Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen
               </Typography>
               <Typography className="row--text">&nbsp;</Typography>
               <Typography
@@ -115,7 +125,7 @@ const SygeferiegodtgoerelseSection = ({
                   font: 'inherit',
                 }}
               >
-                EO Oplysninger
+                EO oplysninger
               </Typography>
               <Typography className="row--text">.</Typography>
             </Box>
@@ -192,26 +202,31 @@ const SygeferiegodtgoerelseSection = ({
       {sfgg.relevanteFelter.referenceperiode ? (
         <>
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Referenceperiode</Typography>
+            {/* Perioden er fri; tooltippen siger reglens udgangspunkt (BB-321). */}
+            <Typography className="row--text">Referenceperiode<InfoTooltipIcon title={sfgg.referenceperiodeTooltip} /></Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <DateField
                   field={eoSfggReferenceperiodeFraField.bind(af.id)}
                   location={location('sfggReferenceperiodeFra')}
                   name={`${af.id}:sfggReferenceperiodeFra`}
+                  {...feedbackFor(eoSfggReferenceperiodeFraField.bind(af.id))}
                 />
                 <Typography className="row--text">til og med</Typography>
                 <DateField
                   field={eoSfggReferenceperiodeTilField.bind(af.id)}
                   location={location('sfggReferenceperiodeTil')}
                   name={`${af.id}:sfggReferenceperiodeTil`}
+                  {...feedbackFor(eoSfggReferenceperiodeTilField.bind(af.id))}
                 />
               </Box>
             </Box>
           </Box>
 
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Evt. ferie- og fraværsdage i referenceperioden uden løn</Typography>
+            {/* Enheden står ved feltet og følger opgørelsen: en uges fravær er 7 kalenderdage eller 5 arbejdsdage
+                (BB-329). «i referenceperioden» er udeladt, fordi feltet står lige under perioden. */}
+            <Typography className="row--text">{`Evt. ferie- og fraværsdage uden løn (${sfgg.fravaersdageEnhed})`}</Typography>
             <Box className="row--label-right-hover__content">
               <IntegerField
                 field={eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(af.id)}
@@ -219,6 +234,7 @@ const SygeferiegodtgoerelseSection = ({
                 name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
                 width={100}
                 placeholder="0"
+                {...feedbackFor(eoSfggReferenceperiodeFravaersdageUdenLoenField.bind(af.id))}
               />
             </Box>
           </Box>
@@ -261,7 +277,15 @@ const SygeferiegodtgoerelseSection = ({
             </Box>
           </Box>
 
-          <LabeledControlRow label="Først sygeferiegodtgørelse efter ophør af sygeløn">
+          {/* Valget virker kun gennem lønrækker i erstatningsperioden; det siger tooltippen (BB-326). */}
+          <LabeledControlRow
+            label={(
+              <>
+                Først sygeferiegodtgørelse efter ophør af sygeløn
+                <InfoTooltipIcon title="Sygelønnen angives som lønrækker på kortet for de måneder, hvor arbejdsgiveren betalte sygeløn. Uden lønrækker i erstatningsperioden beregnes sygeferiegodtgørelse for hele perioden." />
+              </>
+            )}
+          >
             {({ labelledBy, controlId }) => (
               <MappedToggleField
                 field={eoSfggManuelFoerstEfterSygeloenField.bind(af.id)}
@@ -279,7 +303,7 @@ const SygeferiegodtgoerelseSection = ({
 
       {sfgg.relevanteFelter.alleredeBetalt ? (
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
+          <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk udbetalt sygeferiegodtgørelse. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
           <Box className="row--label-right-hover__content">
             <AmountField
               field={eoSfggAlleredeBetaltBeloebField.bind(af.id)}

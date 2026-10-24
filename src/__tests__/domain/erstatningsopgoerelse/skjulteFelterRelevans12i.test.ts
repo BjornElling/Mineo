@@ -257,7 +257,7 @@ describe('skjulte felter på Lønindkomst-fanen (brugerblik 12i)', () => {
       }));
       const messages = failedMessages(result);
       expect(messages).toContain(
-        'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst'
+        "Sygeferiegodtgørelse beregnes ud fra overenskomst, men ansættelsesforholdet har ingen overenskomst – slå 'Overenskomst' til, eller vælg 'Ferieloven'"
       );
       expect(messages).not.toContain('Referenceperiode fra-dato mangler');
       expect(messages).not.toContain('Referenceperiode til-dato mangler');

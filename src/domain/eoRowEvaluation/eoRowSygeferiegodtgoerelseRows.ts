@@ -6,11 +6,24 @@ import { serializeEoRowTable } from './eoRowTypes';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engines/sfggReferencesats';
-import { findSfggSixMonthWarningEmploymentIds } from '../erstatningsopgoerelse/engines/sfggWarnings';
+import {
+  SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED,
+  buildSfggGammelReferenceperiodeBesked,
+  buildSfggSeksMaanederBesked,
+  findSfggSixMonthWarningEmploymentIds,
+  harSfggSygeloenUdenLoenraekker,
+  resolveSfggGamleReferenceperiodeAdvarsler,
+} from '../erstatningsopgoerelse/engines/sfggWarnings';
+import type { FieldIssue } from '../../inputCore/inputIssue';
+import {
+  eoSfggManuelFoerstEfterSygeloenField,
+  eoSfggReferenceperiodeTilField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sfggKilde';
 import { harAktivOverenskomst } from '../erstatningsopgoerelse/helpers/aktivOverenskomst';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
-import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_TABLE_TOTAL_LABEL, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
+import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE, SFGG_TABLE_TOTAL_LABEL, buildSfggOverenskomstManglerBesked, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { zeroMoneyOre } from '../money/money';
@@ -25,9 +38,12 @@ export const buildEoSygeferiegodtgoerelseRows = (
   values: ErstatningsopgoerelseValues,
   stamdata: StamdataValues,
   canonicalOutput?: EoCanonicalOutput,
-  pdfModel?: EoModel
+  pdfModel?: EoModel,
+  /** Afsnittets røde felter pr. ansættelsesforhold (`selectSfggFieldIssues`). */
+  sfggFieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {}
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
+  const gamleReferenceperioder = resolveSfggGamleReferenceperiodeAdvarsler({ values, stamdata });
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
   // Læs seksmåneders-advarslen fra motorens autoritative resultat via den kanoniske helper –
   // samme funktion som snapshottet bruger til den inline-advarsel på Lønindkomst-fanen, så
@@ -82,14 +98,43 @@ export const buildEoSygeferiegodtgoerelseRows = (
     });
 
     if (kilde === 'Overenskomst') {
+      // Uden overenskomst siger linjen, hvad brugeren kan gøre, og linket fører til togglen «Overenskomst» – eller
+      // til «Vælg overenskomst», når togglen er slået til. Før førte det til hele kortet (BB-330).
+      const overenskomstMangler = hasSelectedOverenskomst ? undefined : buildSfggOverenskomstManglerBesked(employment);
       rows.push({
         id: `sfgg.overenskomst.${employment.id}`,
         label: 'Overenskomst (angivet ovenfor)',
         displayValue: overenskomstDisplay,
         status: hasSelectedOverenskomst ? 'ok' : 'error',
         message: hasSelectedOverenskomst ? undefined : 'Ingen overenskomst valgt',
+        ...(overenskomstMangler === undefined ? {} : {
+          summaryText: overenskomstMangler,
+          focusTarget: {
+            kind: 'fieldAddress' as const,
+            address: (employment.harOverenskomst
+              ? eoEmploymentFields.overenskomstId.bind(employment.id)
+              : eoEmploymentFields.harOverenskomst.bind(employment.id)).address,
+          },
+        }),
       });
     }
+
+    // Afsnittets røde felter får hver sin linje med feltets navn og link (BB-322, BB-323; form som BB-277). Har to
+    // felter samme tekst – begge referencedatoer i TAF-perioden – står den én gang og fører til det første felt;
+    // begge felter har stadig rød ring. Før stod samme linje to gange (BB-322).
+    const visteFeltBeskeder = new Set<string>();
+    (sfggFieldIssues[employment.id] ?? []).forEach((issue) => {
+      if (visteFeltBeskeder.has(issue.message)) return;
+      visteFeltBeskeder.add(issue.message);
+      rows.push({
+        id: `sfgg.felt.${issue.field.address.field}.${employment.id}`,
+        label: issue.field.descriptor.label,
+        displayValue: formatStatusMessage('error', issue.message),
+        status: 'error',
+        message: issue.message,
+        focusTarget: { kind: 'fieldAddress', address: issue.field.address },
+      });
+    });
 
     // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper kontrol-sporet her.
     // Det er bevidst: alle efterfølgende overenskomstafledte rækker, inkl. før-2015-bemærkningen,
@@ -200,10 +245,17 @@ export const buildEoSygeferiegodtgoerelseRows = (
     }
 
     let sfggManuelDagssatsMangler: string | undefined;
-    if (sfggSource.kind === 'manuel' && result && result.sfggReferencesats.status !== 'ok') {
+    if (
+      sfggSource.kind === 'manuel'
+      && result
+      && result.sfggReferencesats.status !== 'ok'
+      // Ingen dage i erstatningsperioden (4-månedersgrænsen nået før perioden, ophør eller sygeløn hele perioden)
+      // er et gyldigt krav på 0 kr. og ingen mangel ved dagssatsen (BB-320).
+      && !isSfggNoEligibleDaysNotCalculable(result.sfggReferencesats)
+    ) {
       sfggManuelDagssatsMangler = result.sfggReferencesats.reason;
     } else if (sfggSource.kind === 'manuel' && !result && amountValueToNumber(row?.sfggManuelDagssats) === undefined) {
-      sfggManuelDagssatsMangler = 'Dagssats er ikke angivet';
+      sfggManuelDagssatsMangler = SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE;
     }
 
     let direkteOverenskomstDagssatsMangler: string | undefined;
@@ -408,14 +460,55 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    if (seksMaanedersWarnings.has(employment.id)) {
+    // Samme tekst som på kortet, og linket fører til togglen «Opsagt fra stillingen» (BB-325).
+    const seksMaanederBesked = seksMaanedersWarnings.has(employment.id)
+      ? buildSfggSeksMaanederBesked(values, employment)
+      : undefined;
+    if (seksMaanederBesked !== undefined) {
       rows.push({
         id: `sfgg.advarsel.seksmaaneder.${employment.id}`,
         label: 'Advarsel',
-        displayValue: 'Advarsel (Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.)',
+        displayValue: `Advarsel (${seksMaanederBesked})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
-        message: 'Der beregnes fortsat sygeferiegodtgørelse mere end 6 måneder efter sidste registrerede lønindkomst.',
+        message: seksMaanederBesked,
+        focusTarget: {
+          kind: 'fieldAddress',
+          address: eoEmploymentFields.ansaettelsesforholdOphoert.bind(employment.id).address,
+        },
+      });
+    }
+
+    const gammelReferenceperiode = gamleReferenceperioder.find((advarsel) => advarsel.employmentId === employment.id);
+    if (gammelReferenceperiode !== undefined) {
+      const besked = buildSfggGammelReferenceperiodeBesked(gammelReferenceperiode.reguleringsdato);
+      rows.push({
+        id: `sfgg.advarsel.gammelReferenceperiode.${employment.id}`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (${besked})`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+        message: besked,
+        focusTarget: {
+          kind: 'fieldAddress',
+          address: eoSfggReferenceperiodeTilField.bind(employment.id).address,
+        },
+      });
+    }
+
+    // «Først … efter ophør af sygeløn» uden lønrækker i erstatningsperioden gør ingenting (BB-326).
+    if (result && harSfggSygeloenUdenLoenraekker(result)) {
+      rows.push({
+        id: `sfgg.advarsel.sygeloenUdenLoenraekker.${employment.id}`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (${SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED})`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+        message: SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED,
+        focusTarget: sfggSource.kind === 'manuel'
+          ? { kind: 'fieldAddress', address: eoSfggManuelFoerstEfterSygeloenField.bind(employment.id).address }
+          // Ved en overenskomst er der intet valg at pege på – lønrækkerne på kortet er det, der mangler.
+          : { kind: 'rowId', rowId: employment.id },
       });
     }
 

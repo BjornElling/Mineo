@@ -1,4 +1,5 @@
 import { BEREGNINGSPERIODE_MANGLER_MESSAGE } from '../erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
+import { SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE, SFGG_SATSVALG_MANGLER_MESSAGE } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import {
   eoAngivetMaanedsloenOpreguleresFraDatoField,
   eoBeregnesUdFraField,
@@ -263,10 +264,6 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return target(eoSfggBeregningskildeField.bind(sfggBeregningskildeEmploymentId));
   }
 
-  const sfggOverenskomstEmploymentId = rowIdSuffix(row.id, 'sfgg.overenskomst.');
-  if (sfggOverenskomstEmploymentId) {
-    return target(eoEmploymentFields.overenskomstId.bind(sfggOverenskomstEmploymentId));
-  }
 
   const sfggSatsvalgEmploymentId = rowIdSuffix(row.id, 'sfgg.satsvalg.');
   if (sfggSatsvalgEmploymentId) {
@@ -602,14 +599,12 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     when: 'Sygeferiegodtgørelse kræver et valgt beregningsgrundlag, overenskomst eller satsvalg for ansættelsesforholdet.',
     summaryText: (row, message) => {
       if (row.id.startsWith('sfgg.beregningskilde.')) {
-        if (message === 'Intet valgt') return 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt';
+        if (message === 'Intet valgt') return SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE;
         if (message === 'Ukendt overenskomst-ID') return 'Den valgte overenskomst for sygeferiegodtgørelse er ukendt';
       }
-      if (row.id.startsWith('sfgg.overenskomst.') && message === 'Ingen overenskomst valgt') {
-        return 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt';
-      }
+      // «Overenskomst» uden overenskomst bærer sin egen tekst og sit eget mål fra builderen (BB-330).
       if (row.id.startsWith('sfgg.satsvalg.') && message === 'Intet valgt') {
-        return 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt';
+        return SFGG_SATSVALG_MANGLER_MESSAGE;
       }
       return undefined;
     },

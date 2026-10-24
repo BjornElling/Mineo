@@ -565,7 +565,7 @@ describe('SFGG validering', () => {
       sfggAnsaettelsesforhold: [],
     });
 
-    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(true);
+    expect(hasError(values, "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt")).toBe(true);
   });
 
   it('kræver ikke beregningsgrundlag for SFGG når TAF ikke beregnes', () => {
@@ -575,7 +575,7 @@ describe('SFGG validering', () => {
       sfggAnsaettelsesforhold: [],
     });
 
-    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+    expect(hasError(values, "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt")).toBe(false);
   });
 
   it('kræver ikke beregningsgrundlag for SFGG når ansættelsesforholdet ikke var aktivt på skadestidspunktet', () => {
@@ -585,7 +585,7 @@ describe('SFGG validering', () => {
       sfggAnsaettelsesforhold: [],
     });
 
-    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+    expect(hasError(values, "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt")).toBe(false);
   });
 
   it('tillader eksplicit valg af Ingen uden fejl', () => {
@@ -606,10 +606,12 @@ describe('SFGG validering', () => {
       }],
     });
 
-    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+    expect(hasError(values, "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt")).toBe(false);
   });
 
-  it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
+  // Grænsen ejes nu af `collectSfggReferenceperiodeIssues` (rød ring og én linje med link, BB-322); validatoren
+  // må ikke også melde den, ellers står samme fejl to gange i «Fejl og advarsler».
+  it('overlader grænsen før første TAF-periode til referenceperiode-reglerne', () => {
     const values = makeValues({
       kravPaaTabtArbejdsfortjeneste: 'Ja',
       beregnesUdFra: 'Angivet månedsløn',
@@ -636,7 +638,7 @@ describe('SFGG validering', () => {
       }],
     });
 
-    expect(hasError(values, 'Referenceperioden skal ligge før første TAF-periode')).toBe(true);
+    expect(hasError(values, 'før første TAF-periode')).toBe(false);
   });
 
   it('ignorerer skjulte referenceperiodefelter og satsvalg når SFGG beregnes manuelt', () => {
@@ -697,7 +699,7 @@ describe('SFGG validering', () => {
       }],
     });
 
-    expect(hasError(values, 'Dagssats for sygeferiegodtgørelse mangler')).toBe(true);
+    expect(hasError(values, "'Dagssats for sygeferiegodtgørelse' er ikke angivet")).toBe(true);
   });
 
   it('behandler hængende privat direkte-sats-overenskomst som ferielov-spor når harOverenskomst er slået fra', () => {
@@ -742,10 +744,10 @@ describe('SFGG validering', () => {
 
     // Intet satsvalg-krav. Referenceperioden er skjult på skærmen, så længe der ikke er en aktiv overenskomst
     // (brugerblik 12i): et skjult felt er ikke udfyldt og kræves derfor ikke.
-    expect(hasError(values, 'Satsvalg mangler')).toBe(false);
+    expect(hasError(values, 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt')).toBe(false);
     expect(hasError(values, 'Referenceperiode fra-dato mangler')).toBe(false);
     // Den primære blokerende besked står stadig, fordi der ikke er en aktiv overenskomst.
-    expect(hasError(values, 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst')).toBe(true);
+    expect(hasError(values, "Sygeferiegodtgørelse beregnes ud fra overenskomst, men ansættelsesforholdet har ingen overenskomst – slå 'Overenskomst' til, eller vælg 'Ferieloven'")).toBe(true);
   });
 });
 

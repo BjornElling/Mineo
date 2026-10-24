@@ -1210,7 +1210,7 @@ export const eoSfggReferenceperiodeFraField = defineStructuralField<ISODateStrin
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeFra',
   template: rowTemplate(SFGG, 'sfggReferenceperiodeFra'),
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
-  emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode fra', controlKind: 'text',
+  emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode, fra', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
   ...dateBounds(systemrammeSpec, [dateOrderValidator('fra', sfggReferenceperiodePair)]),
   relevance: sfggRelevance('referenceperiode'),
@@ -1219,7 +1219,7 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
   id: 'eo.sfggAnsaettelsesforhold.sfggReferenceperiodeTil',
   template: rowTemplate(SFGG, 'sfggReferenceperiodeTil'),
   codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
-  emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode til', controlKind: 'text',
+  emptyValue: undefined, isEmpty: isUndefined, label: 'Referenceperiode, til', controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection, entityIdProperties: sfggEntityIdProps,
   ...dateBounds(systemrammeSpec, [dateOrderValidator('til', sfggReferenceperiodePair)]),
   relevance: sfggRelevance('referenceperiode'),
@@ -1227,14 +1227,14 @@ export const eoSfggReferenceperiodeTilField = defineStructuralField<ISODateStrin
 // Loftet på 366 dage stod før kun i validatoren og spærrede uden rød ring – og også bag «Manuelt angivet»,
 // hvor feltet ikke vises. Feltet bærer det nu selv med validatorens ordlyd, som beregningsgrundlagets dagfelter.
 export const eoSfggReferenceperiodeFravaersdageUdenLoenField = sfggField<number | undefined>(
-  'sfggReferenceperiodeFravaersdageUdenLoen', 'Fraværsdage uden løn i referenceperioden',
+  'sfggReferenceperiodeFravaersdageUdenLoen', 'Ferie- og fraværsdage uden løn i referenceperioden',
   createIntegerFieldCodec({ allowNegative: false, maxDigits: UNBOUNDED_DAY_COUNT_MAX_DIGITS }),
   undefined, isUndefined, 'text',
   dagAntalValidators('sfggAnsaettelsesforhold.sfggReferenceperiodeFravaersdageUdenLoen'),
   sfggRelevance('referenceperiode'),
 );
 export const eoSfggManuelDagssatsField = sfggField<AmountValue | undefined>(
-  'sfggManuelDagssats', 'Manuel dagssats',
+  'sfggManuelDagssats', 'Dagssats for sygeferiegodtgørelse',
   createAmountFieldCodec({ allowNegative: false, allowDecimals: true }), undefined, isUndefined, 'text',
   [amountBoundsValidator('eo.sfggAnsaettelsesforhold.sfggManuelDagssats.bounds', 0, undefined)],
   sfggRelevance('manuel'),

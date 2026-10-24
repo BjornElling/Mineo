@@ -293,7 +293,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'sfggAnsaettelsesforhold[0].sfggBeregningskilde',
-        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        message: "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt",
         severity: 'error',
       }],
     });
@@ -312,7 +312,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'sfggAnsaettelsesforhold.sfggBeregningskilde',
-        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        message: "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt",
         severity: 'error',
       }],
     });
@@ -423,7 +423,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'sfggAnsaettelsesforhold[0].sfggBeregningskilde',
-        message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
+        message: "Sygeferiegodtgørelse beregnes ud fra overenskomst, men ansættelsesforholdet har ingen overenskomst – slå 'Overenskomst' til, eller vælg 'Ferieloven'",
         severity: 'error',
       }],
     });
@@ -513,7 +513,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'sfggAnsaettelsesforhold[0].sfggSatsvalg',
-        message: 'Satsvalg mangler',
+        message: 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt',
         severity: 'error',
       }],
     });
@@ -586,7 +586,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'sfggAnsaettelsesforhold[0].sfggManuelDagssats',
-        message: 'Dagssats for sygeferiegodtgørelse mangler',
+        message: "'Dagssats for sygeferiegodtgørelse' er ikke angivet",
         severity: 'error',
       }],
     });
@@ -796,11 +796,6 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
         {
           path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
           message: 'Til-dato skal være efter fra-dato',
-          severity: 'error',
-        },
-        {
-          path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
-          message: 'Ingen arbejdsdage i SFGG-perioden',
           severity: 'error',
         },
       ],

@@ -180,7 +180,7 @@ const CASES: readonly Case[] = [
   {
     name: 'SFGG – beregningskilde ikke valgt',
     row: { id: 'sfgg.beregningskilde.af-1', label: 'Sygeferiegodtgørelse beregnes ud fra', message: 'Intet valgt' },
-    expectedSummary: 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt',
+    expectedSummary: "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt",
     expectedFocus: focus(eoSfggBeregningskildeField, 'af-1'),
   },
   {
@@ -195,12 +195,8 @@ const CASES: readonly Case[] = [
     expectedSummary: 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt',
     expectedFocus: focus(eoSfggSatsvalgField, 'af-1'),
   },
-  {
-    name: 'SFGG – overenskomst ikke valgt',
-    row: { id: 'sfgg.overenskomst.af-1', label: 'Overenskomst (angivet ovenfor)', message: 'Ingen overenskomst valgt' },
-    expectedSummary: 'Det er angivet, at SFGG fastsættes efter overenskomst, men ingen overenskomst er valgt',
-    expectedFocus: focus(eoEmploymentFields.overenskomstId, 'af-1'),
-  },
+  // «SFGG – overenskomst ikke valgt» bærer sin egen tekst og sit eget fokusmål fra row-builderen (BB-330) og er
+  // dækket i `eoRowSygeferiegodtgoerelseRows.test.ts`.
   {
     name: 'lønindkomst – manglende arbejdsstedsnavn peger på tekstfeltet',
     row: { id: 'loenindkomst.af-1.arbejdsstedNavn', label: 'Navn på arbejdssted', message: 'er ikke angivet', status: 'warning' },

@@ -12,6 +12,18 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ingen nye mønstre 2026-10-24 fra Erstatningsopgørelse → Sygeferiegodtgørelse (12j), men M-38 har fået en tredje form:
+reglen er skrevet og testet, men intet kalder den.** Afklaringslog 8a's gule advarsel om en gammel referenceperiode findes
+som `findSfggManualReferenceWarningEmploymentIds` med egen test og bruges ingen steder (BB-324). Samme træk – programmet
+har regnet grænsen ud, men viser den ikke – står bag to **M-20**-forekomster: dagen før første TAF-dag og det højeste
+antal fraværsdage er regnet ud i view-modellen til feltet og ubrugt, så begge regler kun står i boksen uden ring og link
+(BB-322, BB-323). **M-37** i en ny form: ikke en tom sats, men en referenceperiode uden løn – satsen bliver `0,00 kr.`
+uden et ord (BB-319, **Høj**). **M-11** tre gange: bemærkningen om skader før 2015 beder om alle TAF-perioder, men
+4-månedersgrænsen tæller kun opgørelsens egen periode (BB-320, **Høj**); papiret påstår «4 uger før sygeforløbet» over en
+vilkårlig periode (BB-321); og «Regulering af referencesatsen … x 1 / 1» uden regulering (BB-327). Dertil M-35 (BB-326 –
+sygeløn læses kun af lønrækker), M-13 (BB-328), M-02 (BB-330, BB-331) og to lokale (BB-325, BB-329). M-07, M-09 og M-32
+bestået; konsollen tavs.
+
 **Ingen nye mønstre 2026-10-20 fra Erstatningsopgørelse → Lønudvikling og regulering af tabet (12i), men fire tunge
 forekomster af de eksisterende – og blokkens fællesnævner er, at den viser én ting og regner på en anden.** Det tungeste
 fund er lokalt: «Ansættelse» viser «Månedsløn» for en tom værdi, og et valg af «Månedsløn» gemmes som tomt, så en
@@ -2995,6 +3007,10 @@ dér afviser motoren noget, feltet tog imod; her tager motoren imod noget, felte
   0 % uden et ord, mens «Manuelt angivet» spærrer ved samme tomhed (BB-303, **Høj**); og et anciennitetstillæg, der er
   slået til uden dato eller sats, droppes – papiret trykker «Indtastning mangler» (BB-304, **Høj**). Prøvens trin 1 skal
   derfor også stilles til en hel TABEL af satser, ikke kun til det enkelte felt.
+- **Ny form 2026-10-24: et grundlag uden indhold** (`erstatningsopgoerelse-12j.md` BB-319, **Høj**). Sygeferiegodtgørelsens
+  sats er referenceperiodens løn × 12,5 % ÷ dage. Ligger perioden, hvor der ingen lønrækker er, bliver satsen `0,00 kr.`
+  uden ring og linje – mens en samlet NEGATIV løn i samme periode spærrer med en navngiven fejl. Prøven udvides: **en
+  periode, programmet summerer løn over, skal også prøves helt tom** – ikke kun med en tom sats.
 
 ## M-38 – En afgørelse står som gennemført, men koden bærer den ikke
 
@@ -3030,3 +3046,13 @@ koden, er det en forekomst – uanset hvad sporet siger.
 - **Lukket 2026-10-19 for de fem forekomster:** BB-096 (nu gul advarsel på Årsløn, EO's lønindkomst og offentlige
   ydelser), BB-107, BB-114 og BB-115 er gennemført i koden på begge flader; BB-100's tooltips er afvist ved BB-299.
   `aarsloen.md` er rettet.
+- **Tredje form 2026-10-24: testet, men ikke koblet på** (`erstatningsopgoerelse-12j.md` BB-324). Afklaringslog 8a
+  (2026-10-13) bad om en gul advarsel, når referenceperioden slutter mere end 12 måneder før reguleringsdatoen ved de
+  manuelle former. Funktionen findes (`findSfggManualReferenceWarningEmploymentIds`) og har sin egen test, så en søgning
+  efter ordlyden finder den – men intet i programmet kalder den, og brugeren ser intet. Prøven udvides derfor: **find de
+  eksporterede regel-, advarsels- og grænsefunktioner, som kun deres egen test kalder.** Søgt 2026-10-24 over
+  `src/domain` og `src/validators` efter navne med `Warning|Advarsel|MaxDate|Availability|Issues|Bound`: kun denne ene.
+  Søgningen dækker ikke værdier, en view-model regner ud uden at bruge – dem fandt 12j ved læsning (BB-322, BB-323).
+- **Lukket 2026-10-24 for den tredje form:** BB-324's advarsel er koblet på (gul ring på referenceperiodens til-dato og
+  en gul linje), og de to ubrugte værdier i view-modellen bag BB-322 og BB-323 er slettet – reglerne bæres nu af
+  `sfggReferenceperiodeRules.ts` på feltets egen adresse.

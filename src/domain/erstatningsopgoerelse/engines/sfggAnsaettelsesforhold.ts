@@ -60,7 +60,6 @@ import {
   resolveSfggFoerstEfterSygeloen,
   resolveSfggDifferentieretSatsLabel,
   resolveSfggReferenceperiodeAuthorityText,
-  resolveSfggReferenceperiodeLabel,
 } from '../helpers/sygeferiegodtgoerelseTexts';
 
 const resolveSfggOphoerVerb = (
@@ -212,7 +211,6 @@ export const planSfggForAnsaettelsesforhold = (
 
   const sfggIntroText = buildSfggIntroText(sfggRow, employment, sfggSource);
   const sfggReferenceperiodeAuthorityText = resolveSfggReferenceperiodeAuthorityText(sfggSource.kind);
-  const sfggReferenceperiodeLabel = resolveSfggReferenceperiodeLabel(employment);
   const sfggDirectRateLabel = getSfggKildeSpec(sfggSource.kind).rateModel === 'per_periode_overenskomst'
     ? resolveSfggDifferentieretSatsLabel(sfggRow?.sfggSatsvalg)
     : null;
@@ -265,12 +263,12 @@ export const planSfggForAnsaettelsesforhold = (
       sfggDayBasis,
       sfggIntroText,
       sfggReferenceperiodeAuthorityText,
-      sfggReferenceperiodeLabel,
       sfggDirectRateLabel,
       sfggFirstTafDayExcludedText,
       sfggAfterEmployerSickPayText,
       sfggLovbestemtFeriepengeNote,
       foerstEfterSygeloen,
+      sygeloenFratrukket: afterEmployerSickPayExcludedAny,
       sfggAfkortninger,
       segments: [],
       perYear: [],
@@ -426,12 +424,12 @@ export const planSfggForAnsaettelsesforhold = (
       sfggDayBasis,
       sfggIntroText,
       sfggReferenceperiodeAuthorityText,
-      sfggReferenceperiodeLabel,
       sfggDirectRateLabel,
       sfggFirstTafDayExcludedText,
       sfggAfterEmployerSickPayText,
       sfggLovbestemtFeriepengeNote,
       foerstEfterSygeloen,
+      sygeloenFratrukket: afterEmployerSickPayExcludedAny,
       sfggAfkortninger,
       segments,
       perYear: [...employmentPerYear.entries()]

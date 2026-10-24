@@ -92,9 +92,26 @@ export const resolveSfggReferenceperiodeAuthorityText = (sourceKind: SfggSourceK
   return null;
 };
 
-export const resolveSfggReferenceperiodeLabel = (employment: LoenindkomstAnsaettelsesforhold): string => {
-  if (!employment.overenskomstId) return '4 uger';
-  return getOverenskomstSfggPolicy(employment.overenskomstId)?.referenceperiodeLabel ?? '4 uger';
+/**
+ * Referenceperioden er fri (udviklerafgørelse 2026-10-24, BB-321): reglens længde er kun vejledende, og perioden kan
+ * fx være en kalendermåned (én lønseddel) eller ligge langt tilbage. Bilaget påstår derfor ingen længde.
+ */
+export const SFGG_REFERENCEPERIODE_INTRO_TEXT = 'Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden.';
+
+/**
+ * Skærmens forklaring ved «Referenceperiode». Udgangspunktet er overenskomstens længde, når kilden er en overenskomst,
+ * der følger ferieloven med egen længde; ellers ferielovens 4 uger (BB-321).
+ */
+export const buildSfggReferenceperiodeTooltip = (
+  sourceKind: SfggSourceKind,
+  employment: Pick<LoenindkomstAnsaettelsesforhold, 'overenskomstId'>
+): string => {
+  const overenskomstLabel = sourceKind === 'overenskomst_ferielov' && employment.overenskomstId
+    ? getOverenskomstSfggPolicy(employment.overenskomstId)?.referenceperiodeLabel
+    : undefined;
+  return `Udgangspunktet er ${overenskomstLabel ?? '4 uger'} før sygeforløbet. Ved månedsløn bruges typisk en hel `
+    + 'kalendermåned, så perioden svarer til én lønseddel. Perioden kan ligge længere tilbage, hvis de seneste '
+    + 'lønsedler ikke afspejler det normale lønniveau.';
 };
 
 export const resolveSfggDifferentieretSatsLabel = (
@@ -151,15 +168,37 @@ export const SFGG_TABLE_TOTAL_LABEL = 'Samlet';
 
 export const SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL = 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)';
 
-export const SFGG_FERIEPENGE_MODTAGET_LABEL = 'Feriepenge modtaget i perioden (+ AG-pension) =';
+// Uden «=»: linjen er et fradrag, ikke et resultat (BB-328).
+export const SFGG_FERIEPENGE_MODTAGET_LABEL = 'Feriepenge modtaget i perioden (+ AG-pension)';
 
+/**
+ * Ingen dage at beregne sygeferiegodtgørelse for i erstatningsperioden – fx fordi 4-månedersgrænsen er nået før
+ * perioden, ansættelsen er ophørt, eller der er betalt sygeløn hele perioden. Det er et gyldigt resultat (kravet er
+ * 0 kr.), ikke en fejl i indtastningen (BB-320).
+ */
 export const buildSfggNoEligibleDaysReason = (
   dayBasis: 'kalenderdage' | 'arbejdsdage'
 ): string => (
   dayBasis === 'kalenderdage'
-    ? 'Ingen kalenderdage i SFGG-perioden'
-    : 'Ingen arbejdsdage i SFGG-perioden'
+    ? 'Ingen kalenderdage med sygeferiegodtgørelse i erstatningsperioden'
+    : 'Ingen arbejdsdage med sygeferiegodtgørelse i erstatningsperioden'
 );
+
+// Beskederne bruger feltets navn i apostroffer, når det er flere ord – samme form som «Fejl og advarsler»s øvrige
+// linjer (`quoteLabelIfMultiWord`, udviklerafgørelse 2026-10-24, BB-331).
+export const SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE = "'Sygeferiegodtgørelse beregnes ud fra' er ikke valgt";
+export const SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE = "'Dagssats for sygeferiegodtgørelse' er ikke angivet";
+export const SFGG_SATSVALG_MANGLER_MESSAGE = 'Uddannelse og arbejdssted for sygeferiegodtgørelse er ikke valgt';
+
+/**
+ * «Overenskomst» er valgt som grundlag, men kortet har ingen overenskomst. Beskeden siger, hvad brugeren kan gøre –
+ * slå togglen til eller vælge en, eller vælge Ferieloven – frem for at pege på et skjult felt (BB-330).
+ */
+export const buildSfggOverenskomstManglerBesked = (
+  employment: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst'>
+): string => employment.harOverenskomst
+  ? "Sygeferiegodtgørelse beregnes ud fra overenskomst, men der er ikke valgt en overenskomst – vælg en under 'Vælg overenskomst', eller vælg 'Ferieloven'"
+  : "Sygeferiegodtgørelse beregnes ud fra overenskomst, men ansættelsesforholdet har ingen overenskomst – slå 'Overenskomst' til, eller vælg 'Ferieloven'";
 
 export const buildSfggReferenceperiodeCountLabel = (
   formula: SfggReferencesatsFormula

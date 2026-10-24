@@ -22,6 +22,20 @@ import type {
   SygeferiegodtgoerelseResult,
 } from './sfggResult';
 
+/** Dagene, 4-månedersgrænsen tæller – i TAF-enhedens dage. Første sygedag tælles altid med her. */
+const buildSfggCapCountedDates = (
+  ranges: readonly IsoRange[],
+  ferieperioder: TafCalculationValues['ferieperioder'],
+  tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>,
+): ISODateString[] => {
+  if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER) return sortIsoDates(buildDateSetFromRanges(ranges));
+  const arbejdsdage = new Set<ISODateString>();
+  for (const range of ranges) {
+    for (const iso of buildLoenArbejdsdageSet(range, ferieperioder ?? [])) arbejdsdage.add(iso);
+  }
+  return sortIsoDates(arbejdsdage);
+};
+
 const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
   totalOre: zeroMoneyOre(),
   perAnsaettelsesforhold: [],
@@ -33,6 +47,13 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   values: TafCalculationValues;
   stamdata: StamdataValues;
   tafRanges: readonly IsoRange[];
+  /**
+   * ALLE indtastede TAF-perioder siden skaden – også dem før denne opgørelses periode (`buildTafRangesUdenEoPeriode`).
+   * Kun 4-månedersgrænsen ved skader før 2015 læser dem: retten er sammenlagt 4 måneder fra tilskadekomsten, og en
+   * ny opgørelse starter ikke en ny periode (udviklerafgørelse 2026-10-24, BB-320). Før talte grænsen kun
+   * `tafRanges`, så opgørelse nr. 2 begyndte forfra.
+   */
+  tafRangesSidenSkaden: readonly IsoRange[];
   /** Lønnens reguleringsopslag pr. ansættelsesforhold (jf. buildSfggReguleringOpslagMap). */
   reguleringOpslagPerAnsaettelse?: ReadonlyMap<string, ReguleringOpslag>;
 }>): SygeferiegodtgoerelseResult => {
@@ -59,9 +80,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const capReachedDate =
     stamdata.skadedato !== undefined && stamdata.skadedato < '2015-01-01'
       ? resolveSfggCapCutoffDate(
-        tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
-          ? sortIsoDates(tafDateSetIncludingFirstExcluded)
-          : sortIsoDates(tafArbejdsdageSetIncludingFirstExcluded),
+        buildSfggCapCountedDates(args.tafRangesSidenSkaden, values.ferieperioder, tafBeregningsenhed),
         tafBeregningsenhed
       )
       : null;

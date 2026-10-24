@@ -24,6 +24,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: STAMDATA_INITIAL_VALUES,
       tafRanges: [],
+      tafRangesSidenSkaden: [],
     })).toEqual({
       totalOre: moneyOre(0),
       perAnsaettelsesforhold: [],
@@ -42,6 +43,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     })).toEqual({
       totalOre: moneyOre(0),
       perAnsaettelsesforhold: [],
@@ -63,6 +65,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
     const employmentResult = result.perAnsaettelsesforhold[0];
 
@@ -109,6 +112,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-06') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-06') }],
       reguleringOpslagPerAnsaettelse: new Map([
         ['af-1', sfggReguleringOpslagFraSegmenter([
           {
@@ -264,6 +268,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
@@ -324,6 +329,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -399,6 +405,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
       tafRanges: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
+      tafRangesSidenSkaden: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(2);
@@ -442,6 +449,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengekravOre).toBe(10000);
@@ -486,6 +494,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
@@ -518,6 +527,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
@@ -553,6 +563,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-16') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-16') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -591,6 +602,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
       tafRanges: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
+      tafRangesSidenSkaden: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(2);
@@ -636,6 +648,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-09') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-09') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -672,6 +685,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-26'), til: iso('2024-03-05') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-26'), til: iso('2024-03-05') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(2);
@@ -721,6 +735,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     values.sfggAnsaettelsesforhold = [{
@@ -732,6 +747,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(overenskomst.perAnsaettelsesforhold[0]?.sfggReferenceperiode).toEqual(
@@ -800,6 +816,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     values.sfggAnsaettelsesforhold = [{
@@ -812,6 +829,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(novemberDecember.perAnsaettelsesforhold[0]?.sfggReferencesats).not.toEqual(
@@ -840,6 +858,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-06') },
       tafRanges: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
+      tafRangesSidenSkaden: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
     });
 
     expect(result.firstExcludedDate).toBe(iso('2025-01-06'));
@@ -913,6 +932,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-06') },
       tafRanges: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
+      tafRangesSidenSkaden: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
     });
 
     expect(result.firstExcludedDate).toBe(iso('2025-01-06'));
@@ -947,6 +967,10 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-29') },
       tafRanges: [
+        { fra: iso('2024-01-29'), til: iso('2024-01-31') },
+        { fra: iso('2024-02-05'), til: iso('2024-02-06') },
+      ],
+      tafRangesSidenSkaden: [
         { fra: iso('2024-01-29'), til: iso('2024-01-31') },
         { fra: iso('2024-02-05'), til: iso('2024-02-06') },
       ],
@@ -993,6 +1017,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toEqual([
@@ -1067,6 +1092,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-05') },
       tafRanges: [{ fra: iso('2025-01-05'), til: iso('2025-01-10') }],
+      tafRangesSidenSkaden: [{ fra: iso('2025-01-05'), til: iso('2025-01-10') }],
     });
 
     expect(result.firstExcludedDate).toBe(iso('2025-01-05'));
@@ -1097,6 +1123,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-06-09') },
       tafRanges: [{ fra: iso('2025-06-09'), til: iso('2025-06-13') }],
+      tafRangesSidenSkaden: [{ fra: iso('2025-06-09'), til: iso('2025-06-13') }],
     });
 
     expect(result.firstExcludedDate).toBe(iso('2025-06-09'));
@@ -1145,6 +1172,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-01') },
       tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggAfterEmployerSickPayText).toBe(
@@ -1176,11 +1204,57 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggAfterEmployerSickPayText).toBe(
       'I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.'
     );
+  });
+
+  // Retten er sammenlagt 4 måneder fra skaden; opgørelse nr. 2 starter ikke grænsen forfra (BB-320).
+  it('tæller 4-månedersgrænsen over alle TAF-perioder siden skaden, også dem før opgørelsens periode', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-03-01') };
+    const opgoerelsensPeriode = [{ fra: iso('2015-01-01'), til: iso('2015-06-30') }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata,
+      tafRanges: opgoerelsensPeriode,
+      tafRangesSidenSkaden: [{ fra: iso('2014-03-01'), til: iso('2014-12-31') }, ...opgoerelsensPeriode],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-06-30'));
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
+      expect.objectContaining({ aarsag: 'cap4mdr', dato: iso('2014-06-30') }),
+    ]);
+    expect(result.perAnsaettelsesforhold[0]?.segments).toEqual([]);
+    expect(result.totalOre).toBe(0);
+
+    // Kontrol: med kun opgørelsens egne perioder talte grænsen før forfra fra 01-01-2015.
+    const forfra = computeSygeferiegodtgoerelse({
+      values,
+      stamdata,
+      tafRanges: opgoerelsensPeriode,
+      tafRangesSidenSkaden: opgoerelsensPeriode,
+    });
+    expect(forfra.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2015-04-30'));
   });
 
   it('afkorter præ-2015-forløb ved 4 måneder beregnet på kalenderdage når TAF beregnes som måneder', () => {
@@ -1204,6 +1278,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-04-30'));
@@ -1276,6 +1351,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-06-30') }],
+      tafRangesSidenSkaden: [{ fra: iso('2014-01-01'), til: iso('2014-06-30') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-04-30'));
@@ -1357,6 +1433,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-07-01') },
       tafRanges: [{ fra: iso('2014-07-01'), til: iso('2014-12-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2014-07-01'), til: iso('2014-12-31') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.capReachedDate).toBe(iso('2014-11-11'));
@@ -1392,6 +1469,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
@@ -1422,6 +1500,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
@@ -1455,6 +1534,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-03-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-03-15') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggAfkortninger).toEqual([
@@ -1504,6 +1584,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
     const referencesats = result.perAnsaettelsesforhold[0]?.sfggReferencesats;
@@ -1532,7 +1613,20 @@ describe('computeSygeferiegodtgoerelse', () => {
       overenskomstId: 'bygge-anlaeg',
       feriePct: 12.5,
       loenudviklingBeregningsgrundlag: 'Overenskomst',
+      // Referenceperioden (december 2023) skal have løn – en periode uden løn giver ingen sats (BB-319).
       indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(30000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }, {
         id: 'loen-jan-2024',
         col0_maaned: '1',
         col1_maaned: '2024',
@@ -1563,6 +1657,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments.length).toBeGreaterThan(0);
@@ -1615,11 +1710,13 @@ describe('computeSygeferiegodtgoerelse', () => {
       values: baseValues,
       stamdata,
       tafRanges,
+      tafRangesSidenSkaden: tafRanges,
     });
     const changedBeregningsperiodeResult = computeSygeferiegodtgoerelse({
       values: changedBeregningsperiodeValues,
       stamdata,
       tafRanges,
+      tafRangesSidenSkaden: tafRanges,
     });
 
     expect(changedBeregningsperiodeResult).toEqual(baseResult);
@@ -1647,6 +1744,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -1696,6 +1794,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -1743,6 +1842,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: weekendTafRange,
+      tafRangesSidenSkaden: weekendTafRange,
     });
 
     values.sfggAnsaettelsesforhold = [{
@@ -1762,6 +1862,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: weekendTafRange,
+      tafRangesSidenSkaden: weekendTafRange,
     });
 
     expect(ferielovResult.perAnsaettelsesforhold[0]?.segments[0]?.antalDage).toBe(2);
@@ -1810,6 +1911,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }],
       reguleringOpslagPerAnsaettelse: new Map([
         ['af-1', sfggReguleringOpslagFraSegmenter([
           {
@@ -1879,6 +1981,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(2);
@@ -1938,6 +2041,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
       reguleringOpslagPerAnsaettelse: new Map([
         ['af-1', sfggReguleringOpslagFraSegmenter([
           {
@@ -1999,6 +2103,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-01-30') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-29'), til: iso('2024-01-30') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
@@ -2053,6 +2158,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
     const entry = result.perAnsaettelsesforhold[0];
@@ -2103,6 +2209,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     const entry = result.perAnsaettelsesforhold[0];
@@ -2150,6 +2257,7 @@ describe('computeSygeferiegodtgoerelse', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
     expect(result.perAnsaettelsesforhold[0]?.sfggLovbestemtFeriepengeNote).toBeNull();
@@ -2217,8 +2325,8 @@ describe('computeSygeferiegodtgoerelse – feriepenge-fradrag og øre-invariant'
     const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };
     const tafRanges = [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }];
 
-    const withInactive = computeSygeferiegodtgoerelse({ values: buildValues(true), stamdata, tafRanges });
-    const withoutInactive = computeSygeferiegodtgoerelse({ values: buildValues(false), stamdata, tafRanges });
+    const withInactive = computeSygeferiegodtgoerelse({ values: buildValues(true), stamdata, tafRanges, tafRangesSidenSkaden: tafRanges });
+    const withoutInactive = computeSygeferiegodtgoerelse({ values: buildValues(false), stamdata, tafRanges, tafRangesSidenSkaden: tafRanges });
 
     // Kun det aktive ansættelsesforhold producerer et selvstændigt SFGG-krav.
     expect(withInactive.perAnsaettelsesforhold.map((entry) => entry.ansaettelsesforholdId)).toEqual(['af-aktiv']);
@@ -2255,6 +2363,7 @@ describe('computeSygeferiegodtgoerelse – feriepenge-fradrag og øre-invariant'
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }],
     });
 
     const entry = result.perAnsaettelsesforhold[0];
@@ -2296,6 +2405,7 @@ describe('computeSygeferiegodtgoerelse – feriepenge-fradrag og øre-invariant'
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     const entry = result.perAnsaettelsesforhold[0];
@@ -2347,6 +2457,7 @@ describe('computeSygeferiegodtgoerelse – ansættelsesrelevans', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
     expect(result.totalOre).toBe(0);
@@ -2399,6 +2510,7 @@ describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
     });
 
     expect(result).toEqual({
@@ -2412,12 +2524,12 @@ describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
           sfggDayBasis: 'arbejdsdage',
           sfggIntroText: 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.',
           sfggReferenceperiodeAuthorityText: null,
-          sfggReferenceperiodeLabel: '4 uger',
           sfggDirectRateLabel: null,
           sfggFirstTafDayExcludedText: null,
           sfggAfterEmployerSickPayText: null,
           sfggLovbestemtFeriepengeNote: null,
           foerstEfterSygeloen: false,
+          sygeloenFratrukket: false,
           sfggAfkortninger: [],
           segments: [{
             ansaettelsesforholdId: 'af-1',
@@ -2456,12 +2568,12 @@ describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
           sfggDayBasis: 'arbejdsdage',
           sfggIntroText: 'Sygeferiegodtgørelse beregnes i henhold til aftalegrundlaget.',
           sfggReferenceperiodeAuthorityText: null,
-          sfggReferenceperiodeLabel: '4 uger',
           sfggDirectRateLabel: null,
           sfggFirstTafDayExcludedText: null,
           sfggAfterEmployerSickPayText: null,
           sfggLovbestemtFeriepengeNote: null,
           foerstEfterSygeloen: false,
+          sygeloenFratrukket: false,
           sfggAfkortninger: [{
             aarsag: 'ansaettelsesophoer',
             verbum: 'bortfaldt',
@@ -2520,6 +2632,7 @@ describe('computeSygeferiegodtgoerelse – komplet flerårsresultat', () => {
       values,
       stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-06-03'), til: iso('2024-06-28') }],
+      tafRangesSidenSkaden: [{ fra: iso('2024-06-03'), til: iso('2024-06-28') }],
     });
     const fradragPerKrav = (values: ErstatningsopgoerelseValues) =>
       compute(values).perAnsaettelsesforhold.map((row) => row.feriepengeModtagetFormula?.totalOre ?? 0);

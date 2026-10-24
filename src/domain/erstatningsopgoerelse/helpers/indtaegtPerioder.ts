@@ -203,18 +203,32 @@ const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null 
 // indtægtssiden gør. Lå de hver sit sted, kunne de to sider af sammentællingen se forskellige
 // ydelser – se resolverens egen kommentar.
 
-export const buildTafRanges = (
+/**
+ * Alle indtastede TAF-perioder efter trin 1 og 2 i `buildTafRanges` – altså UDEN den stille clamping til
+ * EO-perioden. Bruges kun af sygeferiegodtgørelsens 4-månedersgrænse ved skader før 2015: retten gælder
+ * sammenlagt 4 måneder fra skaden, uanset hvor mange opgørelser forløbet er delt på, så perioder før denne
+ * opgørelses periode skal tælles med (udviklerafgørelse 2026-10-24, BB-320). Kravet selv regnes fortsat kun
+ * for opgørelsens periode.
+ */
+export const buildTafRangesUdenEoPeriode = (
   values: TafCalculationValues,
   options?: Readonly<{ skadedatoISO?: ISODateString }>
 ): IsoRange[] => {
-  // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænser (differencekrav, endelig EET, og ved skader
   //    opstået før 2011-06-16 tillige midlertidig EET) – validator rapporterer violation
   const constraintSource = { ...values, skadedatoISO: options?.skadedatoISO };
   const fejlgivendeBounds = resolveTafFejlgivendeBounds(constraintSource);
   const afterFejlgivende = buildClampedTafRanges(values.tafPerioder ?? [], fejlgivendeBounds);
   // 2. Merge overlappende og tilstødende ranges
-  const merged = mergeIsoDateRanges(afterFejlgivende, { mergeAdjacent: true });
+  return mergeIsoDateRanges(afterFejlgivende, { mergeAdjacent: true });
+};
+
+export const buildTafRanges = (
+  values: TafCalculationValues,
+  options?: Readonly<{ skadedatoISO?: ISODateString }>
+): IsoRange[] => {
+  // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3); trin 1 og 2 i `buildTafRangesUdenEoPeriode`.
+  const merged = buildTafRangesUdenEoPeriode(values, options);
   // 3. Stille clamping mod EO-perioden (ingen fejlindikation)
   const eoBounds = resolveTafEoPeriodeBounds(values);
   const result: IsoRange[] = [];

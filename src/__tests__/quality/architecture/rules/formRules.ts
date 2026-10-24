@@ -698,7 +698,9 @@ export const sfggAnsaettelsesforholdImportBoundary = forbidImports({
 
 export const sfggSegmenteringImportBoundary = forbidImports({
   id: 'domain/sfgg-segmentering-import-boundary',
-  description: 'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer.',
+  description:
+    'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer og referenceperiode-reglen, der skal '
+    + 'summere referenceperiodens løn med præcis samme beregner som motoren (BB-319), så reglen og satsen aldrig er uenige.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggSegmentering.ts'),
@@ -707,6 +709,7 @@ export const sfggSegmenteringImportBoundary = forbidImports({
   allow: [
     'src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts',
     'src/domain/erstatningsopgoerelse/engines/sfggEngine.ts',
+    'src/domain/erstatningsopgoerelse/sfggReferenceperiodeRules.ts',
   ],
   forbidden: (ref) =>
     ref.moduleSpecifier.endsWith('/sfggSegmentering') || ref.moduleSpecifier === './sfggSegmentering',
@@ -723,7 +726,9 @@ export const sfggSegmenteringImportBoundary = forbidImports({
 
 export const sfggWarningsImportBoundary = forbidImports({
   id: 'domain/sfgg-warnings-import-boundary',
-  description: 'SFGG-seksmånedersadvarslen forbruges kun af snapshot og den fælles row-builder.',
+  description:
+    'SFGG-advarslerne forbruges kun af snapshot, den fælles row-builder, feltadvarsels-projektionen (gul ring på en '
+    + 'gammel referenceperiode, BB-324) og Lønindkomst-afledningen (seksmånedersteksten på kortet, BB-325).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggWarnings.ts'),
@@ -732,6 +737,8 @@ export const sfggWarningsImportBoundary = forbidImports({
   allow: [
     'src/domain/eoRowEvaluation/eoRowSygeferiegodtgoerelseRows.ts',
     'src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts',
+    'src/domain/erstatningsopgoerelse/loenudviklingFieldWarnings.ts',
+    'src/domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations.ts',
   ],
   forbidden: (ref) => ref.moduleSpecifier.endsWith('/sfggWarnings') || ref.moduleSpecifier === './sfggWarnings',
   message: (ref) => `SFGG-warning-import (${ref.moduleSpecifier}) uden for de autoritative forbrugere.`,

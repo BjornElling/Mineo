@@ -154,6 +154,7 @@ import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
 import { collectManualRegulationIssues } from './manualRegulationIssues';
 import { collectAnciennitetstillaegDatoIssues } from './anciennitetstillaegRules';
+import { collectSfggReferenceperiodeIssues } from './sfggReferenceperiodeRules';
 import { collectMissingLoenudviklingReguleringsdatoIssues, collectLoenudviklingCoverageIssues } from './loenudviklingReguleringsdatoIssues';
 import { collectTafCutoffDateIssues } from './tafCutoffDateIssues';
 import { collectTafRowCellIssues } from './tafRowCellIssues';
@@ -541,7 +542,9 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   /**
    * Lønudviklingens projekterede feltfejl, adresseret til de berørte felter og celler: de manuelle tabellers
    * datoregler (`manualRegulationIssues.ts`), reguleringsgrundlagets dækning på «Lønudvikling beregnes ud fra»
-   * eller den særlige fra-dato, og anciennitetsdatoen. Fladerne giver dem til felterne som kryds-felt-issues.
+   * eller den særlige fra-dato, og anciennitetsdatoen – samt sygeferiegodtgørelsens referenceperiode, hvis sats
+   * reguleres med lønudviklingen (`sfggReferenceperiodeRules.ts`). Fladerne giver dem til felterne som
+   * kryds-felt-issues.
    */
   loenudviklingIssues: FieldIssueSet;
   /**
@@ -757,6 +760,9 @@ export const buildErstatningsopgoerelseReaderProjection = (
     const regulationCoverageIssueList = collectLoenudviklingCoverageIssues(eoValues, stamdataValues);
     const manualRegulationDateIssueList = collectManualRegulationIssues(eoValues, stamdataValues);
     const anciennitetstillaegDatoIssueList = collectAnciennitetstillaegDatoIssues(eoValues, stamdataValues);
+    // Sygeferiegodtgørelsens referenceperiode: før første TAF-dag, fraværsdagenes loft og en periode uden løn
+    // (BB-319, BB-322, BB-323). Projekteret samme vej, så feltet får rød ring, og TAF-grenen spærres.
+    const sfggReferenceperiodeIssueList = collectSfggReferenceperiodeIssues(eoValues);
     const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
     // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
     // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
@@ -776,6 +782,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     const svieSmerteProjectedIssues = mergeIssues(svieSmerteCutoffDateIssueList, svieSmerteOverlapIssueList);
     const tafProjectedIssues = mergeIssues(
       manualRegulationDateIssueList, regulationCoverageIssueList, anciennitetstillaegDatoIssueList, tafCellIssueList,
+      sfggReferenceperiodeIssueList,
     );
     const projectedRowIssues = mergeIssues(tafProjectedIssues, svieSmerteProjectedIssues);
     const eoFieldIssues = mergeIssues(
@@ -810,6 +817,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
       stamdataErrors,
       loenudviklingIssues: buildFieldIssueSet(mergeIssues(
         manualRegulationDateIssueList, regulationCoverageIssueList, anciennitetstillaegDatoIssueList,
+        sfggReferenceperiodeIssueList,
       )),
       tafCellIssues: buildFieldIssueSet(tafCellIssueList),
       svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),

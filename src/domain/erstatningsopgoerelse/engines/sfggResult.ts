@@ -38,12 +38,13 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   sfggDayBasis: SfggDayBasis;
   sfggIntroText: string | null;
   sfggReferenceperiodeAuthorityText: string | null;
-  sfggReferenceperiodeLabel: string;
   sfggDirectRateLabel: string | null;
   sfggFirstTafDayExcludedText: string | null;
   sfggAfterEmployerSickPayText: string | null;
   sfggLovbestemtFeriepengeNote: string | null;
   foerstEfterSygeloen: boolean;
+  /** Om dage med sygeløn (lønrækker i erstatningsperioden) faktisk er trukket fra perioden. */
+  sygeloenFratrukket: boolean;
   sfggAfkortninger: readonly SfggAfkortning[];
   segments: readonly SygeferiegodtgoerelseSegment[];
   perYear: readonly Readonly<{ year: number; amountOre: MoneyOre }>[];

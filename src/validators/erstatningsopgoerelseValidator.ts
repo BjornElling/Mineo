@@ -63,13 +63,14 @@ import {
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
 } from '../domain/erstatningsopgoerelse/validation/oevrigeKravRowValidation';
-import {
-  getFirstIndtastedeTafFraDato,
-  resolveSfggReferenceperiodeDayCount,
-} from '../domain/erstatningsopgoerelse/engines/sfggReferencesats';
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
 import { erSfggFeltRelevant } from '../domain/erstatningsopgoerelse/helpers/eoLoenindkomstRelevance';
-import { buildSfggNoEligibleDaysReason } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
+import {
+  SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE,
+  SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE,
+  SFGG_SATSVALG_MANGLER_MESSAGE,
+  buildSfggOverenskomstManglerBesked,
+} from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 import {
   BEREGNINGSPERIODE_MANGLER_MESSAGE,
@@ -691,13 +692,11 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     const errorPathPrefix = index >= 0
       ? `sfggAnsaettelsesforhold[${index}]`
       : 'sfggAnsaettelsesforhold';
-    const firstTafFraDato = getFirstIndtastedeTafFraDato(values);
-    const firstTafFraDatoDisplay = firstTafFraDato ? (isoToDanish(firstTafFraDato) ?? firstTafFraDato) : undefined;
 
     if (!row?.sfggBeregningskilde) {
       errors.push({
         path: `${errorPathPrefix}.sfggBeregningskilde`,
-        message: 'Beregningsgrundlag for SFGG ikke valgt',
+        message: SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE,
         severity: 'error',
       });
       return;
@@ -733,7 +732,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (row.sfggBeregningskilde === 'Manuelt angivet' && amountValueToNumber(row.sfggManuelDagssats) === undefined) {
       errors.push({
         path: `${errorPathPrefix}.sfggManuelDagssats`,
-        message: 'Dagssats for sygeferiegodtgørelse mangler',
+        message: SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE,
         severity: 'error',
       });
     }
@@ -743,7 +742,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     if (row.sfggBeregningskilde === 'Overenskomst' && !(employment && harAktivOverenskomst(employment))) {
       errors.push({
         path: `${errorPathPrefix}.sfggBeregningskilde`,
-        message: 'Der skal være valgt en overenskomst på ansættelsesforholdet for at beregne sygeferiegodtgørelse ud fra overenskomst',
+        message: buildSfggOverenskomstManglerBesked(employment),
         severity: 'error',
       });
     }
@@ -777,65 +776,16 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
       });
     }
 
-    if (
-      requiresReferenceperiode &&
-      firstTafFraDato &&
-      row.sfggReferenceperiodeFra &&
-      row.sfggReferenceperiodeFra >= firstTafFraDato
-    ) {
-      errors.push({
-        path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
-        message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
-        severity: 'error',
-      });
-    }
-
-    if (
-      requiresReferenceperiode &&
-      firstTafFraDato &&
-      row.sfggReferenceperiodeTil &&
-      row.sfggReferenceperiodeTil >= firstTafFraDato
-    ) {
-      errors.push({
-        path: `${errorPathPrefix}.sfggReferenceperiodeTil`,
-        message: `Referenceperioden skal ligge før første TAF-periode (${firstTafFraDatoDisplay})`,
-        severity: 'error',
-      });
-    }
+    // Grænsen før første TAF-periode, fraværsdagenes loft og en periode uden løn ejes af
+    // `collectSfggReferenceperiodeIssues`: de giver feltet rød ring og én linje med link. Her stod de to første og
+    // gav to ens linjer uden link (BB-322, BB-323).
 
     if (source.kind === 'overenskomst_direkte' && overenskomstDirekteSatsPolicy?.direkteSatsErDifferentieret && !row.sfggSatsvalg) {
       errors.push({
         path: `${errorPathPrefix}.sfggSatsvalg`,
-        message: 'Satsvalg mangler',
+        message: SFGG_SATSVALG_MANGLER_MESSAGE,
         severity: 'error',
       });
-    }
-
-    if (requiresReferenceperiode && row.sfggReferenceperiodeFra && row.sfggReferenceperiodeTil) {
-      const referenceDayCount = resolveSfggReferenceperiodeDayCount(values, row, source);
-      const availableRelevantDays = referenceDayCount?.divisorLabel === 'kalenderdage'
-        ? referenceDayCount.kalenderdage
-        : (referenceDayCount?.divisorDage ?? 0);
-
-      if (availableRelevantDays <= 0) {
-        errors.push({
-          path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
-          message: buildSfggNoEligibleDaysReason(referenceDayCount?.divisorLabel === 'kalenderdage' ? 'kalenderdage' : 'arbejdsdage'),
-          severity: 'error',
-        });
-      } else if (
-        typeof row.sfggReferenceperiodeFravaersdageUdenLoen === 'number' &&
-        row.sfggReferenceperiodeFravaersdageUdenLoen > availableRelevantDays
-      ) {
-        errors.push({
-          path: `${errorPathPrefix}.sfggReferenceperiodeFravaersdageUdenLoen`,
-          message:
-            referenceDayCount?.divisorLabel === 'kalenderdage'
-              ? `Ferie- og fraværsdage uden løn overstiger mulige kalenderdage i referenceperioden (maksimalt ${availableRelevantDays})`
-              : `Ferie- og fraværsdage uden løn overstiger mulige arbejdsdage i referenceperioden (maksimalt ${availableRelevantDays})`,
-          severity: 'error',
-        });
-      }
     }
   });
 

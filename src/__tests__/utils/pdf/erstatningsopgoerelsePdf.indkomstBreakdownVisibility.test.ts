@@ -179,6 +179,27 @@ const createEmployment = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+// Referenceperioden december 2023 skal have løn – en periode uden løn spærrer (BB-319).
+const medReferenceloenDecember2023 = (eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>) => {
+  const employment = eo.loenindkomstAnsaettelsesforhold[0]!;
+  eo.loenindkomstAnsaettelsesforhold[0] = {
+    ...employment,
+    indtaegtsoplysningerTableData: [{
+      id: 'row-dec-2023',
+      col0_maaned: '12',
+      col1_maaned: '2023',
+      col0_uge: '',
+      col1_uge: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
+      col2: asAmountValue(10000),
+      col3: undefined,
+      col4: undefined,
+      col5: undefined,
+    }, ...employment.indtaegtsoplysningerTableData],
+  };
+};
+
 const buildBaseInput = () => {
   const stamdata: StamdataValues = {
     ...structuredClone(STAMDATA_INITIAL_VALUES),
@@ -1123,6 +1144,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser referencesats-blok med referenceperiodeoplysninger ved referenceperiodebaseret SFGG', () => {
     const { stamdata, eo } = buildBaseInput();
+    medReferenceloenDecember2023(eo);
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
       sfggBeregningskilde: 'Ferieloven',
@@ -1154,7 +1176,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
 
     expect(texts).toContain('Referencesats');
-    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
+    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden.');
     expect(texts).toContain('Referenceperiode');
     expect(texts).toContain('01-12-2023 - 31-12-2023');
     expect(texts).toContain('Lønnen i referenceperioden udgør');
@@ -1204,6 +1226,56 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(sfggPeriodeIndex);
   });
 
+  it('trykker ingen regulering uden regulering og skriver procenter og beløb i opgørelsens form (BB-327, BB-328)', () => {
+    const { stamdata, eo } = buildBaseInput();
+    medReferenceloenDecember2023(eo);
+    eo.loenindkomstAnsaettelsesforhold[0] = { ...eo.loenindkomstAnsaettelsesforhold[0]!, pensionPct: 8 };
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const document = buildProjectedDocument(stamdata, eo);
+    generateErstatningsopgoerelseDocument(pdfSession, stamdata, structuredClone(eo), {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    }, {
+      visUdkastStempel: false,
+      document,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
+
+    // BB-327: lønudvikling «Ingen» – ingen «… x 1 / 1».
+    expect(sfggTexts).not.toContain('Regulering af referencesatsen');
+    // BB-328: procenter med to decimaler, beløb med øre og «kr.», ingen «=» foran fradraget.
+    expect(sfggTexts.some((text) => text.startsWith('Referencesats (10.000,00 x 12,50 % / '))).toBe(true);
+    expect(sfggTexts).toContain('Feriepenge modtaget i perioden (+ AG-pension)');
+    expect(sfggTexts).not.toContain('Feriepenge modtaget i perioden (+ AG-pension) =');
+    const beregnetIndex = sfggTexts.indexOf('Beregnet sygeferiegodtgørelse');
+    expect(beregnetIndex).toBeGreaterThanOrEqual(0);
+    expect(sfggTexts[beregnetIndex + 1]).toMatch(/^\d{1,3}(\.\d{3})*,\d{2}[\u00A0 ]kr\.$/);
+
+    const sfggTableCall = autoTableMock.mock.calls
+      .map((call) => call[1])
+      .find((options: { body?: Array<Array<{ content: string }>> }) =>
+        options.body?.[0]?.some((cell) => cell.content === 'Fra-dato')
+      );
+    const dataRow = sfggTableCall?.body?.[1]?.map((cell: { content: string }) => cell.content) ?? [];
+    expect(dataRow[2]).toMatch(/^\d+,\d{2}[\u00A0 ]kr\.$/);
+    expect(dataRow[3]).toBe('+ 8,00 %');
+    expect(dataRow[5]).toMatch(/^\d{1,3}(\.\d{3})*,\d{2}[\u00A0 ]kr\.$/);
+  });
+
   it('viser flere SFGG-perioder som separate linjer', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tafPerioder = [
@@ -1245,6 +1317,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser ikke SH-dage i SFGG-referenceperiodeblokken når referenceperioden opgøres på kalenderdage', () => {
     const { stamdata, eo } = buildBaseInput();
+    medReferenceloenDecember2023(eo);
     eo.sfggAnsaettelsesforhold = [{
       ansaettelsesforholdId: 'af-1',
       sfggBeregningskilde: 'Ferieloven',
@@ -1511,7 +1584,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
     expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler');
-    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
+    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i referenceperioden.');
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen.');
   });
 
@@ -1797,8 +1870,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
     expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Samlet']);
-    expect(sfggRows).toContainEqual(['01-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
-    expect(sfggRows).not.toContainEqual(['02-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
+    expect(sfggRows).toContainEqual(['01-01-2025', '03-01-2025', '191,40\u00A0kr.', '+ 10,15 %', '2', '421,65 kr.']);
+    expect(sfggRows).not.toContainEqual(['02-01-2025', '03-01-2025', '191,40\u00A0kr.', '+ 10,15 %', '2', '421,65 kr.']);
   });
 
   it('viser overenskomstforklaring om sygeløn i pdf for overenskomster med bortfald under sygeløn', () => {
@@ -1866,7 +1939,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       );
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
-    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '184,45', '+ 10,15 %', '2', '406,34']);
+    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '184,45\u00A0kr.', '+ 10,15 %', '2', '406,34 kr.']);
   });
 
   it('viser "Beregnet krav" med forklaring når hele SFGG-perioden bortfalder på grund af sygeløn', () => {
@@ -1978,8 +2051,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       );
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
-    expect(sfggRows).toContainEqual(['29-01-2024', '31-01-2024', '100', '+ 0 %', '3', '300']);
-    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '100', '+ 0 %', '2', '200']);
+    expect(sfggRows).toContainEqual(['29-01-2024', '31-01-2024', '100,00\u00A0kr.', '+ 0,00 %', '3', '300,00 kr.']);
+    expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '100,00\u00A0kr.', '+ 0,00 %', '2', '200,00 kr.']);
   });
 
   it('viser sygeferiegodtgørelse med 0 kr. i indtægter men udelader 0-fradrag i TAF-mellemregningen', () => {

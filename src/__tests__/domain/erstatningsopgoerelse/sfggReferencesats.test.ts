@@ -5,7 +5,6 @@ import {
   notCalculableSfggReferencesats,
   resolveSfggBaseRate,
   resolveSfggReferenceperiodeDayCount,
-  resolveSfggReferenceperiodeMaxDate,
 } from '../../../domain/erstatningsopgoerelse/engines/sfggReferencesats';
 import { asSfggAmount, createSfggEmployment, createSfggIngenRow, sfggIso as iso } from '../../utils/sfggTestSupport';
 import type { ISODateString } from '../../../types/branded';
@@ -16,12 +15,14 @@ const invalidIso = (value: string): ISODateString => value as unknown as ISODate
 describe('sfggReferencesats', () => {
   it('bygger alle kendte ikke-beregnelige referencesatsårsager og genkender nul-dage', () => {
     const cases = [
-      ['missing_rate', 'Dagssats mangler'],
+      ['missing_rate', "'Dagssats for sygeferiegodtgørelse' er ikke angivet"],
       ['per_period_rate', 'Direkte overenskomstsats beregnes pr. periode'],
       ['missing_referenceperiode', 'Referenceperiode mangler'],
       ['unresolvable_referenceperiode', 'Referenceperioden kan ikke opgøres'],
-      ['no_calendar_days', 'Ingen kalenderdage i SFGG-perioden'],
-      ['no_workdays', 'Ingen arbejdsdage i SFGG-perioden'],
+      ['no_calendar_days', 'Ingen kalenderdage med sygeferiegodtgørelse i erstatningsperioden'],
+      ['no_workdays', 'Ingen arbejdsdage med sygeferiegodtgørelse i erstatningsperioden'],
+      ['no_reference_days', 'Referenceperioden har ingen dage tilbage efter ferie og fravær'],
+      ['no_reference_loen', 'Der er ingen løn i referenceperioden'],
       ['negative_reference_loen', 'Lønnen i referenceperioden er samlet negativ – kontrollér lønrækkerne'],
     ] as const;
 
@@ -36,6 +37,8 @@ describe('sfggReferencesats', () => {
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_calendar_days'))).toBe(true);
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_workdays'))).toBe(true);
     expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('missing_rate'))).toBe(false);
+    // En referenceperiode uden dage er ikke det samme som ingen dage i erstatningsperioden (BB-320, BB-323).
+    expect(isSfggNoEligibleDaysNotCalculable(notCalculableSfggReferencesats('no_reference_days'))).toBe(false);
   });
 
   it('beregner manuel referencesats og afviser manglende manuel dagssats', () => {
@@ -107,7 +110,7 @@ describe('sfggReferencesats', () => {
     });
   });
 
-  it('beregner referencesatsformlen og håndterer nul kalender- og arbejdsdage', () => {
+  it('beregner referencesatsformlen og håndterer en referenceperiode uden kalender- og arbejdsdage', () => {
     const employment = createSfggEmployment();
     const calculator = { sumLoenInRangesKroner: () => 1_000 };
     const referenceRow = {
@@ -142,7 +145,7 @@ describe('sfggReferencesats', () => {
       calculator
     ).sfggReferencesatsOre).toMatchObject({
       status: 'not_calculable',
-      kind: 'no_calendar_days',
+      kind: 'no_reference_days',
     });
 
     const noWorkdaysValues = createErstatningsopgoerelseInitialValues();
@@ -159,7 +162,27 @@ describe('sfggReferencesats', () => {
       calculator
     ).sfggReferencesatsOre).toMatchObject({
       status: 'not_calculable',
-      kind: 'no_workdays',
+      kind: 'no_reference_days',
+    });
+  });
+
+  // Fanges før motoren af referenceperiode-reglerne (BB-319); motoren må alligevel aldrig regne en sats på 0 kr.
+  it('regner ingen sats på 0,00 kr., når der ingen løn er i referenceperioden', () => {
+    const employment = createSfggEmployment();
+    expect(resolveSfggBaseRate(
+      createErstatningsopgoerelseInitialValues(),
+      employment,
+      {
+        ...createSfggIngenRow(employment.id),
+        sfggReferenceperiodeFra: iso('2024-01-01'),
+        sfggReferenceperiodeTil: iso('2024-01-07'),
+      },
+      { kind: 'ferielov' },
+      { sumLoenInRangesKroner: () => 0 }
+    )).toMatchObject({
+      sfggReferenceperiode: { fra: iso('2024-01-01'), til: iso('2024-01-07') },
+      sfggReferencesatsOre: { status: 'not_calculable', kind: 'no_reference_loen' },
+      sfggReferencesatsFormula: null,
     });
   });
 
@@ -283,7 +306,6 @@ describe('sfggReferencesats', () => {
       ];
 
       expect(getFirstIndtastedeTafFraDato(values)).toBe(iso('2024-05-01'));
-      expect(resolveSfggReferenceperiodeMaxDate(values)).toBe(iso('2024-04-30'));
     });
   });
 });
