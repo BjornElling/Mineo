@@ -67,6 +67,8 @@ const Erstatningsopgoerelse = React.memo(() => {
             loenudviklingIssues={vm.projection.loenudviklingIssues}
             tafCellIssues={vm.projection.tafCellIssues}
             svieSmerteCellIssues={vm.projection.svieSmerteCellIssues}
+            isActive={activeTab === TAB_KEYS.EO_OPLYSNINGER}
+            indkomstBeregningKanSkjules={vm.indkomstBeregningKanSkjules}
           />
         </Box>
         {vm.isTabMounted(TAB_KEYS.LOENINDKOMST) && (

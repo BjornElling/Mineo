@@ -46,6 +46,8 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
  * her. Mode-gating af beregningsgrundlaget (hvilket løn-felt der er aktivt afhængigt af
  * `beregnesUdFra`) ejes fortsat af indkomst-motoren, fordi den aktive mode altid er et
  * relevant input – også når UI'en er komprimeret.
+ * UI'en skjuler kun et GYLDIGT grundlag (`kanIndkomstBeregningenSkjules`): er det tomt eller rødt, vises det trods
+ * togglen, så et skjult felt aldrig kan spærre opgørelsen uden at kunne ses.
  *
  * Relevansen efter mode er derimod IKKE komprimeringen: felterne i en fravalgt gren af «Beregnes ud fra»
  * (og bag «Øvrigt fravær uden løn» eller enheden) bærer descriptor-relevans fra prædikaterne nedenfor, så en

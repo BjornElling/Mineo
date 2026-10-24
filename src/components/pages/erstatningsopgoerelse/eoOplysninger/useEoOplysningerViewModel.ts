@@ -36,6 +36,7 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/st
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import { useReguleringDocumentAction } from '../../../../domain/erstatningsopgoerelse/react/useReguleringDocumentAction';
+import { useIndtaegtFoerSkadenSkjult } from './useIndtaegtFoerSkadenSkjult';
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
 
@@ -52,8 +53,18 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: Erstatningsop
 };
 
 /** Reader-afledt præsentationsmodel for EO-oplysninger; modellen ejer ingen persisted writekanal. */
-export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, stamdataValues: StamdataValues) {
+export function useEoOplysningerViewModel(
+  values: ErstatningsopgoerelseValues,
+  stamdataValues: StamdataValues,
+  fane: Readonly<{ isActive: boolean; indkomstBeregningKanSkjules: boolean }>,
+) {
   const skadedatoISO = stamdataValues.skadedato;
+  // Grundlaget skjules kun, når det er gyldigt, og aldrig midt i et besøg på fanen (`useIndtaegtFoerSkadenSkjult`).
+  const skjulIndtaegtFoerSkadenBeregning = useIndtaegtFoerSkadenSkjult({
+    fanenErAktiv: fane.isActive,
+    komprimeringValgt: skalKomprimereIndkomstBeregning(values),
+    kanSkjules: fane.indkomstBeregningKanSkjules,
+  });
   const { settings } = useAppSettings();
   // Lønudviklingens gule ringe – samme domæneregel og tolerance som linjerne i «Fejl og advarsler».
   const loenudviklingWarnings = React.useMemo(
@@ -166,7 +177,7 @@ export function useEoOplysningerViewModel(values: ErstatningsopgoerelseValues, s
     endeligEETBeregnetDato: values.endeligtEETAfgorelse === 'Ja' ? (values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato) : undefined,
     midlertidigEETBeregnetDato: resolveMidlertidigEetDatoHvisAktiv({ ...values, skadedatoISO }),
     verserendeKlageMen: values.verserendeKlageMen === 'Ja', verserendeKlageEet: values.verserendeKlageEet === 'Ja',
-    skalKomprimereIndtaegtFoerSkaden: skalKomprimereIndkomstBeregning(values),
+    skjulIndtaegtFoerSkadenBeregning,
     indtaegtFoerSkadenSectionTitle: `Indtægt før ${referencedato.labelLower}`,
     // Bestemt form af både lønnen og referencedatoen (BB-271): «månedslønnen» og «skadedatoen». En bøjning
     // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».

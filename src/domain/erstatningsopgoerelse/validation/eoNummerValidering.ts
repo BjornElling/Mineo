@@ -37,6 +37,9 @@ export const erDetteFoersteErstatningsopgoerelse = (eoNummer: string | undefined
  * Viser opgørelsen kun det tidligere beregnede beløb i stedet for udregningen af lønnen før skaden? Det gør den fra
  * og med 2. opgørelse, når «Skjul beregning efter første opgørelse» er «Ja». ENESTE kilde for beregningsgrundlaget,
  * fladen og bilagets periodegrupper, så de tre ikke kan være uenige om, hvornår udregningen vises.
+ *
+ * Fladen kræver derudover et gyldigt grundlag og skjuler aldrig midt i et besøg (`kanIndkomstBeregningenSkjules`,
+ * `useIndtaegtFoerSkadenSkjult`). Dokumentet behøver ikke betingelsen: et ugyldigt grundlag spærrer downloaden.
  */
 export const skalKomprimereIndkomstBeregning = (
   values: Readonly<{ eoNummer?: string; komprimerBeregningEfterFoersteOpgoerelse?: string }>

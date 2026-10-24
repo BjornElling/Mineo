@@ -8,6 +8,8 @@ import { useInputEvaluation } from '../../../inputCore/react';
 import { EO_TAB_KEYS, type EoTabKey } from '../../../config/eoTabKeys';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { kanIndkomstBeregningenSkjules } from '../../../domain/erstatningsopgoerelse/indkomstBeregningSkjulning';
+import { projectEoRowPolicy, projectSourceSettings } from '../../../settings/sourceSettings';
 import { EO_OFFENTLIGE_YDELSER_TAB_LABEL } from '../../../domain/erstatningsopgoerelse/eoLabels';
 
 /**
@@ -70,6 +72,14 @@ export function useErstatningsopgoerelseViewModel() {
     [projection.eoErrors]
   );
 
+  // «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag. Gyldigheden læser «Fejl og
+  // advarsler»-rækkerne, som afhænger af rækkepolitikken – samme projektion som Beregning-fanen.
+  const rowPolicy = React.useMemo(() => projectEoRowPolicy(projectSourceSettings(settings)), [settings]);
+  const indkomstBeregningKanSkjules = React.useMemo(
+    () => kanIndkomstBeregningenSkjules(projection, rowPolicy),
+    [projection, rowPolicy]
+  );
+
   const handleNavigateToTabtArbejdsfortjeneste = React.useCallback(() => {
     setActiveTab(EO_TAB_KEYS.EO_OPLYSNINGER);
     scrollToSectionWithRetry('taf');
@@ -110,6 +120,7 @@ export function useErstatningsopgoerelseViewModel() {
     stamdataValues: projection.stamdataValues,
     eoSnapshot: projection.snapshot,
     manuelReguleringInputErrors,
+    indkomstBeregningKanSkjules,
     handleNavigateToTabtArbejdsfortjeneste,
   };
 }

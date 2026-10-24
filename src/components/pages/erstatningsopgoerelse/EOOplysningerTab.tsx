@@ -17,6 +17,7 @@ import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 
 const EOOplysningerTab = React.memo(({
   values, stamdataValues, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues,
+  isActive, indkomstBeregningKanSkjules,
 }: {
   values: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
@@ -24,11 +25,15 @@ const EOOplysningerTab = React.memo(({
   loenudviklingIssues: FieldIssueSet;
   tafCellIssues: FieldIssueSet;
   svieSmerteCellIssues: FieldIssueSet;
+  /** Fanen er den aktive. Den er altid monteret, så et besøg afgrænses af dette flag, ikke af mount. */
+  isActive: boolean;
+  /** `kanIndkomstBeregningenSkjules` fra sidens reader-projektion. */
+  indkomstBeregningKanSkjules: boolean;
 }) => {
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
   // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
-  const baseVm = useEoOplysningerViewModel(values, stamdataValues);
+  const baseVm = useEoOplysningerViewModel(values, stamdataValues, { isActive, indkomstBeregningKanSkjules });
   const vm = React.useMemo(
     () => ({ ...baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues }),
     [baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues]

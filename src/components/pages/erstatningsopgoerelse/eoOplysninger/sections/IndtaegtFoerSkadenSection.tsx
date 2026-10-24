@@ -94,7 +94,7 @@ export default function IndtaegtFoerSkadenSection() {
   const {
     values,
     eoLoenudvikling,
-    skalKomprimereIndtaegtFoerSkaden,
+    skjulIndtaegtFoerSkadenBeregning,
     indtaegtFoerSkadenSectionTitle,
     fravaerFeriedageById,
     angivetLoenOpreguleringLabel,
@@ -231,7 +231,8 @@ export default function IndtaegtFoerSkadenSection() {
           )}
         </LabeledControlRow>
 
-        {!skalKomprimereIndtaegtFoerSkaden && (
+        {/* Kun et gyldigt grundlag skjules, og aldrig midt i et besøg (`useIndtaegtFoerSkadenSkjult`). */}
+        {!skjulIndtaegtFoerSkadenBeregning && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Beregnes ud fra</Typography>
