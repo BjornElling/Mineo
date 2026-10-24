@@ -101,6 +101,9 @@
   "overrides": {
     "dompurify": "^3.4.17",
     "flatted": "^3.4.2",
+    "miniflare": {
+      "undici": "^7.30.1"
+    },
     "qs": "6.16.0",
     "sharp": "0.35.5"
   },
@@ -145,7 +148,7 @@
   },
   "allowScripts": {
     "core-js@3.49.0": true,
-    "esbuild@0.28.1": true,
-    "workerd@1.20260930.2": true
+    "esbuild@0.28.2": true,
+    "workerd@1.20261019.1": true
   }
 }
