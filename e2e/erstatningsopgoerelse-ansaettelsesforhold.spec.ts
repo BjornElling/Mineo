@@ -11,6 +11,14 @@ import {
 
 const setDate = setVerbatimFieldValueAndSettle;
 
+const tomorrowInBrowserCalendar = (page: Page): Promise<string> => page.evaluate(() => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${date.getFullYear()}`;
+});
+
 const fillSag = async (page: Page): Promise<void> => {
   await openPage(page, 'Stamdata');
   await setFieldValueAndSettle(page.getByRole('textbox', { name: 'Journalnr.' }), 'BB-12G');
@@ -104,6 +112,42 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     expect(externalRequests).toEqual([]);
   });
 
+  test('manglende feriesats med en lønrække vises og spærrer, indtil satsen er udfyldt (BB-274)', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await fillSag(page);
+    await page.getByRole('tab', { name: 'Lønindkomst', exact: true }).click();
+    await tilfoejAnsaettelsesforhold(page);
+
+    const loenRaekke = page.locator('table').filter({ hasText: 'ATP og anden' }).first()
+      .locator('tbody tr[data-mineo-row-id]').first().locator('input[data-mineo-field-address]');
+    await setFieldValueAndSettle(loenRaekke.nth(0), '6');
+    await setFieldValueAndSettle(loenRaekke.nth(1), '2017');
+    await setFieldValueAndSettle(loenRaekke.nth(2), '30000');
+
+    const feriePct = page.locator('input[name$=":feriePct"]').first();
+    // Udviklerens godkendte adfærd: et tomt felt får ingen rød ring, men manglen vises på Beregning.
+    await expect(feriePct).toHaveAttribute('aria-invalid', 'false');
+    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+    const summary = errorBox(page);
+    await expect(summary).toContainText(
+      'Satser ved beregningsperiodens udløb (31-05-2018): Feriegodtgørelse/-tillæg er ikke udfyldt'
+    );
+    const downloadButton = page.locator('.row--label-right-hover').filter({ hasText: 'Hent opgørelse' }).getByRole('button');
+    await expect(downloadButton).toBeDisabled();
+
+    await page.getByRole('tab', { name: 'Lønindkomst', exact: true }).click();
+    await setFieldValueAndSettle(feriePct, '12,5');
+    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+    await expect(summary).not.toContainText('Feriegodtgørelse/-tillæg er ikke udfyldt');
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
   test('særlig fra-dato har dags dato som loft, og «Fuld løn under ferie» skjules ved angivet løn', async ({
     page,
     runtimeErrors,
@@ -115,7 +159,7 @@ test.describe('Erstatningsopgørelse – ansættelsesforholdets ramme og satser'
     await tilfoejAnsaettelsesforhold(page);
 
     const saerligDato = page.locator('input[name$=":saerligFraDatoRegulering"]');
-    await setDate(saerligDato, '31-12-2026');
+    await setDate(saerligDato, await tomorrowInBrowserCalendar(page));
     await expect(saerligDato).toHaveAttribute('aria-invalid', 'true');
     await expect(saerligDato).toHaveAccessibleDescription(/Datoen er efter dags dato/);
 

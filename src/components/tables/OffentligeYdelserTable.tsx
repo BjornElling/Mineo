@@ -21,7 +21,7 @@ import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../d
 import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -74,12 +74,13 @@ const OffentligeYdelserTable = React.memo(({
     { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDageDisplay ?? '' },
     { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDagDisplay ?? '' },
   ], [derivedByRowId]);
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
-    reorderRows: table.reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
   const renderOrder = table.buildRenderRows(sortedRows);

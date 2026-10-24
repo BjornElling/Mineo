@@ -13,7 +13,7 @@ import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engi
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
-import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRangesDetailed } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
@@ -113,8 +113,9 @@ export const buildEoTafBeregningsgrundlagRows = (
     })),
   });
 
-  const periodeErrorValue = (() => {
-    if (!hasPeriodeErrors) return undefined;
+  const beregningsperiodeIssueSummary = (() => {
+    const overlapMessage = beregningsperiodeOverlap.firstOverlapMessage;
+    if (!hasPeriodeErrors && overlapMessage === undefined) return undefined;
 
     const parts: string[] = [];
     const fraBeskeder = periodeFraErrors.map((e) => e.message.trim());
@@ -129,8 +130,14 @@ export const buildEoTafBeregningsgrundlagRows = (
     for (const message of tilBeskeder) {
       if (!faelles.includes(message)) parts.push(`Til og med: ${message}`);
     }
-    const hasError = periodeFraErrors.concat(periodeTilErrors).some((e) => e.severity === 'error');
-    return `${hasError ? 'Fejl' : 'Advarsel'} (${parts.join('; ')})`;
+    if (overlapMessage !== undefined && !parts.includes(overlapMessage)) parts.push(overlapMessage);
+
+    const hasError = periodeFraErrors.concat(periodeTilErrors).some((e) => e.severity === 'error')
+      || overlapMessage !== undefined;
+    return {
+      displayValue: `${hasError ? 'Fejl' : 'Advarsel'} (${parts.join('; ')})`,
+      status: hasError ? 'error' as EoRowStatus : 'warning' as EoRowStatus,
+    };
   })();
 
   const beregningsperiodeDisplay = (() => {
@@ -141,9 +148,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     if (!isBeregningsperiode) {
       return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
-    if (periodeErrorValue) {
-      return { displayValue: periodeErrorValue, status: hasPeriodeErrorSeverity ? 'error' as EoRowStatus : 'warning' as EoRowStatus };
-    }
+    if (beregningsperiodeIssueSummary) return beregningsperiodeIssueSummary;
 
     if (filledCount !== 2) {
       return { displayValue: 'Fejl (Ikke alle felter udfyldt)', status: 'error' as EoRowStatus };
@@ -153,10 +158,6 @@ export const buildEoTafBeregningsgrundlagRows = (
     }
     if (periodeFra > periodeTil) {
       return { displayValue: 'Fejl (Til-dato skal være efter fra-dato)', status: 'error' as EoRowStatus };
-    }
-
-    if (beregningsperiodeOverlap.firstOverlapMessage) {
-      return { displayValue: `Fejl (${beregningsperiodeOverlap.firstOverlapMessage})`, status: 'error' as EoRowStatus };
     }
 
     const fraDanish = isoToDanish(periodeFra);
@@ -182,16 +183,20 @@ export const buildEoTafBeregningsgrundlagRows = (
     });
   }
 
-  const indkomstIBeregningsperiodenDisplay = (() => {
-    if (!isBeregningsperiode) return null;
-    const beregningsperiodeRange = buildBeregningsperiodeRange(values);
-    if (!beregningsperiodeRange) return null;
-    const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
-    const hasIncome = income.employers.length > 0 || income.benefits.length > 0;
-    if (hasIncome) return null;
+  const beregningsperiodeRangeForIncome = isBeregningsperiode ? buildBeregningsperiodeRange(values) : null;
+  const beregningsperiodeIncome = beregningsperiodeRangeForIncome
+    ? buildIncomeForRangesDetailed(values, [beregningsperiodeRangeForIncome])
+    : null;
 
-    const fraDanish = isoToDanish(beregningsperiodeRange.fra);
-    const tilDanish = isoToDanish(beregningsperiodeRange.til);
+  const indkomstIBeregningsperiodenDisplay = (() => {
+    if (!beregningsperiodeRangeForIncome || !beregningsperiodeIncome) return null;
+    const hasIncome = beregningsperiodeIncome.employers.length > 0 || beregningsperiodeIncome.benefits.length > 0;
+    // Samlet negativ indkomst har sin egen navngivne fejl. Vis ikke også «Ingen indkomst», som ellers får den
+    // synlige, men negative kilde til at ligne en manglende række (BB-333).
+    if (hasIncome || beregningsperiodeIncome.negativeSources.length > 0) return null;
+
+    const fraDanish = isoToDanish(beregningsperiodeRangeForIncome.fra);
+    const tilDanish = isoToDanish(beregningsperiodeRangeForIncome.til);
     if (!fraDanish || !tilDanish) {
       return {
         label: 'Indkomst',
@@ -208,13 +213,7 @@ export const buildEoTafBeregningsgrundlagRows = (
     };
   })();
 
-  const beregningsperiodeRangeForIncomeWarning = isBeregningsperiode
-    ? buildBeregningsperiodeRange(values)
-    : undefined;
-  const beregningsperiodeIncomeForWarning = beregningsperiodeRangeForIncomeWarning
-    ? buildIncomeForRanges(values, [beregningsperiodeRangeForIncomeWarning])
-    : null;
-  const employersWithIncomeInBeregningsperiode = beregningsperiodeIncomeForWarning?.employers ?? [];
+  const employersWithIncomeInBeregningsperiode = beregningsperiodeIncome?.employers ?? [];
   const hasEmployerIncomeWithoutFuldLoenUnderFerie = employersWithIncomeInBeregningsperiode.some((employer) => {
     const ansaettelsesforhold = (values.loenindkomstAnsaettelsesforhold ?? []).find((af) => af.id === employer.id);
     return ansaettelsesforhold?.fuldLoenUnderFerie === 'Nej';
@@ -317,6 +316,9 @@ export const buildEoTafBeregningsgrundlagRows = (
           displayValue: `Fejl (${evaluation.message})`,
           status: 'error',
           ...(evaluation.field === undefined ? {} : { focusFieldHint: evaluation.field }),
+          ...(evaluation.summaryDeduplicationGroup === undefined
+            ? {}
+            : { summaryDeduplicationGroup: evaluation.summaryDeduplicationGroup }),
         });
         return;
       }

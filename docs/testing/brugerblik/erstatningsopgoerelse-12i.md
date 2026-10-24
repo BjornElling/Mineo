@@ -681,6 +681,39 @@ Enig
 - Gem/Hent-rundturen og tastaturrækkefølgen gennem blokken er ikke afprøvet.
 - Anciennitet og manuel procentsats under angivet løn er kun læst i koden (BB-304, BB-307).
 
+### Efterfølgende dækningstjek mod Brugerblik (2026-10-24)
+
+- **Oprindeligt browsermålt:** Udvalgte reguleringsformer, satser og manuelle tabeller på begge indgange, løntrin-finderen fra begge steder, to kort og PDF-dokumenter. De målte eksempler omfatter flere, men ikke alle, valg, satser og afhængige tilstande.
+- **Inventar og B0:** Rapporten kortlægger flader og felter, men giver ikke en komplet grænsevurdering for hvert felt af erklærede grænser, passende grænser og grænser udledt af sagens øvrige værdier. Enkelte afprøvede feltfejl dokumenterer kun de konkrete værdier.
+- **B6a og kombinationer:** Kildeskift, tilbagevalg, manuelle reguleringer og enkelte tomme/manglende værdier er prøvet. Der er ikke dokumenteret en fuld tilstandsrække fra tom til delvis, gyldig og igen ryddet/ugyldig for alle former og begge indgange eller en udtømmende rækkefølgeprøve. Undo efter indsættelse fra løntrin-finderen er målt; generel tastaturrækkefølge og undo/redo efter kildeskift er ikke.
+- **Kun kodeaflæst eller ikke prøvet:** Anciennitet og manuel procentsats under angivet løn er statisk gennemgået, ikke browsermålt. De konkrete manglende kilder, indeksår og erhvervssygdomsforløb står i de oprindelige huller.
+- **Uddata, persistens og miljø:** Chrome headless og lyst tema; PDF blev læst, Word ikke. `.eo`-sager blev indlæst, men save→load-rundtur og sagsdata-sammenligning blev ikke prøvet. Edge, Firefox, WebKit og mørkt tema er ikke målt.
+- **Efterfølgende audit:** Ingen yderligere konkret brugerfejl blev bekræftet i 12i.
+
+#### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
+
+| Prøve | Browsermålt i den oprindelige kørsel eller efterfølgende audit | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | De syv reguleringsvalg, tilhørende felter, løntrin-finderens to indgange og udvalgte dokumentlabels blev set. | Ingen systematisk vurdering af alle labels, enheder eller om valg af form er forståeligt uden kendskab til programmets opdeling. |
+| A2 – overblik og mangler | Tomt valg, manglende sats, skjulte fejl, manuelle tabeller, deaktivt dokument og «Indtastning mangler» blev målt i de konkrete fund. | Ikke alle færdig-/ikke-færdig-kombinationer eller årsager til inaktive felter/knapper er browserafprøvet. |
+| A3 – rækkefølge | Formskift væk/tilbage, oprettelse af manuel basisrække og løntrin-finderens vej fra begge flader blev afprøvet. | Ingen systematisk inputrækkefølge af alle forudsætninger, navigation mellem faner eller fuldt slut-til-slut-flow for hver form. |
+| A4 – tavshed | Skjulte felter, ikke-dækkende manuel tabel, tom procentsatstabel, manglende anciennitet og forskelle mellem viste og anvendte regulering blev konkret målt. | Ikke alle skjulte værdier er fulgt efter skift/rydning gennem beregning, alle dokumenter og load. |
+| A5 – fejl | Udvalgte røde datoer/satser, manglende kilder, dobbelt besked, forkert link, dubletdatoer og ekstreme satser blev afprøvet. | Ingen komplet prøve af hver fejltekst, grænse, linkfokus og reparationsvej i alle syv former. |
+| A6 – fortrydelse | Escape fra løntrin-finder og undo efter indsættelse fra finderen blev målt; formskift bevarede input. | F5, browser tilbage, save/load, alle feltsettle-forløb og undo/redo efter alle formskift er ikke afprøvet. |
+| A7 – ensartethed | Skærm, PDF, Regulering/KRL/KL-dokumenter og labels mellem de to indgange blev sammenholdt i konkrete forløb. | Word blev ikke hentet; ingen fuld sammenligning af alle satstabeller, talformater og samme felt på alle søsterflader. |
+| A8 – helhed | Flere reguleringsformer blev ført gennem resultat og PDF, og løntrin-finderens to brugerrejser blev gennemført. | Ingen samlet førstegangsbrugerprøve af begge indgange eller vurdering af det værste oversete valg for alle former. |
+| B0 – grænser | Konkrete dato-/satsdækninger, tidligere manuel dato, dubletdatoer, 100 % og en grundløn ti gange øvrige blev prøvet. | Ingen komplet felt-for-felt-inventering af deklarerede, passende og kontekstafledte grænser for alle former. |
+| B1 – feltinput | Udvalgte satser, datoer, manuel procentsats og forhøjet grundløn blev afprøvet; værktøjet afviste bogstaver i løntrin-finderens beløb. | Blanktegn, paste-støj, Unicode, ekstrem længde, formateringsvarianter, Escape/Enter/blur og hele grænsepartitioner er ikke dækket. |
+| B2 – datoer | Manuel dato før basis, dækning efter sidste sats, særlig reguleringsdato og datovalg i løntrin-finder blev afprøvet. | Skudår, ugyldig kalenderdato, præcis før/på/efter alle grænser og ændring af dato efter afhængige felter er ikke prøvet samlet. |
+| B3 – perioder/tabeller | Manuel tabel i omvendt orden, gentagne reguleringsdatoer, manglende tabelsatser og basisrækker blev målt. | Store tabeller, mange dubletter, tomme trailing rows, sletning med afhængigheder og redigering samtidig med indsættelse er ikke dækket. |
+| B4 – kombinationer | Skift mellem de syv former og tilbage, to ansættelsesforhold, løntrin-finder og bestemte anciennitets-/feriesatskombinationer blev prøvet. | Ikke alle rækkefølger eller rydning/ændring af hver forudsætning; kombination med rejected input på andre flader er uafprøvet. |
+| B5 – lovligt, usandsynligt | Procentsats `100` og grundløn ti gange øvrige blev målt; udvikleren godkendte gul advarsel for den store løn. | Andre faktor-10/1000-beløb, alder/datoer langt fra sagen og plausibilitetsbånd for hver form er ikke afsøgt. |
+| B6 – tilstandsskift | Finder åbnet fra begge indgange, Escape/fokusretur og undo efter indsættelse blev målt. | Navigation med åben editor, F5, browser tilbage, save/load, reset, hurtigt gentagne handlinger og alle undo/redo-skift er ikke prøvet. |
+| B6a – tomhed | Tomt reguleringsvalg, manuelle tabeller uden satser og manglende anciennitetsfelter blev prøvet i konkrete forløb. | Ingen systematisk tom → kun formateringsvalg → kun afvist input → delvis → gyldig → ryddet rækkeprøve for hver af de to tabeller og begge indgange. |
+| B7 – nedstrøms | Regulering og forventet indkomst blev fulgt til PDF; løntrin-finderens valg og satstabeller indgik i konkrete output. | Word ikke læst; ingen save→load-rundtur med data-sammenligning; ikke alle felter i alle former er fulgt gennem beregning og hvert dokument. |
+
+Der blev kørt seks browserforløb i den oprindelige gennemgang; matricen gør ikke kilde- eller unit-testbeviser til browserdækning.
+
 ## Åbne spørgsmål
 
 Ingen. Fundenes egne valg og de fire tillægsspørgsmål (BB-301, BB-306, BB-312, BB-313) er afgjort 2026-10-23.

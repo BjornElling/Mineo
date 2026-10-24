@@ -450,7 +450,44 @@ Enig
 - Erhvervssygdom («anmeldelsesdatoen») og offentlige overenskomster (KL/RLTN, løntrin) er ikke afprøvet.
 - Uge- og datolønperiode er ikke afprøvet (BB-105).
 - Tastaturrækkefølgen gennem kortets felter er ikke gennemgået.
-- `Gem`/`Hent` er ikke afprøvet (filvælgeren kan ikke betjenes headless).
+- `Gem`/`Hent` indgik ikke i den oprindelige browserkørsel. Playwright kan automatisere filvælger og
+  download; den senere BB-274-E2E måler en synlig fejl- og reparationssituation, ikke save→load eller
+  en generel persistensrundtur.
+
+### Efterfølgende dækningstjek mod Brugerblik (2026-10-24)
+
+- **Oprindeligt browsermålt:** De konkrete kort, valg, filtre, udvalgte afhængighedsskift, tilføjelse/sletning/fortrydelse og PDF-forløb, der er beskrevet ovenfor. Det er ikke en felt-for-felt-prøve af hele kortet.
+- **Inventar og B0:** Rapporten opremser kortets felter, men dokumenterer ikke for hvert felt alle tre B0-spørgsmål: om grænser er erklæret, om de passer, og om sagen giver skarpere kontekstgrænser. De målte grænser er de konkrete eksempler under fundene; øvrige grænser er ikke browserverificeret.
+- **B6a og afhængigheder:** Tilføjelse, sletning, undo, to kort og udvalgte skjul/bevar- og enhedsskift er målt. Der er ikke dokumenteret en systematisk tom → delvis → gyldig → ryddet/ugyldig prøve af kort og felter eller en fuld kombinations- og rækkefølgeprøve af alle afhængigheder.
+- **Kun kodeaflæst eller ikke prøvet:** Grænsen på ti kort er kun læst i koden. Uge-/datolønperiode, erhvervssygdom og de nævnte offentlige overenskomster er ikke afprøvet. Gem/Hent- og tastaturrækkefølge er heller ikke målt.
+- **Uddata og miljø:** Oprindelig browsermåling var Chrome headless, lyst tema; PDF blev læst, Word ikke. Gem/Hent-rundtur med sagsdata før/efter er ikke udført. Der blev ikke målt i Edge, Firefox, WebKit eller mørkt tema.
+- **Efterfølgende audit:** Ingen yderligere konkret brugerfejl blev bekræftet i 12g. En ny E2E-kontrol målte dog den hidtil
+  ikke-browserverificerede gennemførelse af BB-274: med en faktisk lønrække, men uden feriesats, får feltet ingen rød
+  ring, «Fejl og advarsler» viser den manglende sats, og linjen forsvinder, når `12,5` indtastes. Kørt i Chrome; bestået.
+
+#### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
+
+| Prøve | Browsermålt i den oprindelige kørsel eller efterfølgende audit | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Labels, enheder og sats-/periodeforklaringer blev set i de konkrete lønforløb; valg af måned/dag og procentsats blev afprøvet. | Ingen systematisk vurdering af hvert felts entydighed eller om to fagfolk ville indtaste ens; offentlige overenskomsters felter er ikke prøvet. |
+| A2 – overblik og mangler | Tom feriesats, røde satsværdier, advarsler, fejl og dokumentblokering blev målt i BB-274–286; senere E2E bekræftede blokering og linjeændring med en lønrække. | Hele kortets færdig-/ikke-færdig-tilstand og alle grå/inaktive kontroller er ikke afprøvet. Maksimum 10 kort er kun kodeaflæst. |
+| A3 – rækkefølge | Udvalgte skift mellem ansættelsesstatus, lønform, reguleringsdato og beregningsenhed blev målt; følgevisning på EO oplysninger og PDF blev set. | Ingen gennemgang af alle mulige indtastningsrækkefølger, hele opgaveflowet mellem faner eller alle afhængige felter. |
+| A4 – tavshed | Manglende sats, skjult særlig fra-dato, skjulte værdier ved ændret status og værdier uden virkning i månedsberegning blev konkret afprøvet. | Ikke alle skjulte/neutraliserede værdier blev fulgt gennem beregning, dokument og load; erhvervssygdomsgrenen er ikke prøvet. |
+| A5 – fejl | Udvalgte satser under minimum, dato uden for dækning, navnegrænse, advarsler og dokumentgate blev målt. | Ingen komplet kontrol af alle felters grænser, værktøjstip, links, fokusmål og mulighed for at rette hver fejl. |
+| A6 – fortrydelse | Escape/Annuller, Tilføj, Slet, Flyt, Ctrl+Z og Ctrl+Y blev afprøvet på kort-handlinger. | Felt-redigering efter Escape/Enter/blur, flere undo/redo-trin, F5, navigation, save/load og hurtige handlinger er ikke dækket. |
+| A7 – ensartethed | Skærm, fejlpanel, PDF og enkelte relaterede flader blev sammenholdt for navn, sats og beregningsenhed. | Ingen fuld sammenligning af alle labels, dato-/talformater og samme felttype på alle søsterflader; Word blev ikke læst. |
+| A8 – helhed | Grundsagen og flere konkrete, brugerrelevante valg blev gennemført fra lønindkomst til PDF. | Ingen særskilt førstegangsbrugerprøve af hele fladen eller undersøgelse af værste ubemærkede udfald på tværs af alle tilstande. |
+| B0 – grænser | Konkrete feriesatsgrænser, dato-/satsdækning og maksimum 60 tegn for arbejdsstedsnavn blev prøvet; BB-274's efterkontrol målte den tomme sats. | Ikke et felt-for-felt-eftersyn af erklæret, passende og kontekstafledt min/max. 10-kortsgrænsen er kun læst i koden. |
+| B1 – feltinput | Feriesats `0`, `1`, `11,99`, `12,5`, `25` og `100`, samt arbejdsstedsnavn ved længdegrænsen, blev afprøvet. | Blanktegn, kopieret tekst fra Word/Excel, Unicode, lange tal, støj, decimalvarianter og Escape/Enter/blur for hvert felt er ikke prøvet systematisk. |
+| B2 – datoer | Særlig reguleringsdato og satsernes reference ved skadedato, beregningsperiodeslut og manuel dato blev målt; rød dato efter periodens afslutning blev undersøgt. | Kalenderkanter, skudår, ligedatoer, alle skæringsdatoer og ændring af afhængige datoer efter udfyldning er ikke dækket samlet. |
+| B3 – perioder/tabeller | Ét og to ansættelsesforhold, løn i beregningsperioden og SH-dages visning blev brugt i konkrete scenarier. | Ingen stor kortmængde, dublerede ansættelser, tomme/delvise kort eller afhængighed ved sletning blev afprøvet systematisk. |
+| B4 – kombinationer | Udvalgte kombinationer af ansat/ikke ansat, fuld løn, ferie-/helligdagstillæg, procent/beløb og datoreference blev målt. | Alle A→B→A-skift, forudsætning ryddet efter udfyldning, uenighed på søsterflade og rejected input andetsteds er ikke dækket. |
+| B5 – lovligt, usandsynligt | Feriesatser på `25` og `100` samt konkrete satser uden dækning blev set. | Plausibilitetsbånd for øvrige beløb, procenter og datoer langt fra sagen er ikke gennemgået. |
+| B6 – tilstandsskift | Korttilføjelse, -sletning og -flytning med undo/redo samt dialogens Escape blev målt. | I den oprindelige kørsel blev `Gem`/`Hent`, F5, browser tilbage, navigation med åben editor, felt-undo/redo og gentagne hurtige input ikke prøvet. Playwright kan automatisere filvælger og download; BB-274-E2E er ikke en persistensprøve. |
+| B6a – tomhed | Tom løn-/feriesats, skjulte værdier og korttilføjelse/sletning indgik i konkrete forløb. | Ingen systematisk tom → kun formateringsvalg → kun afvist input → delvis → gyldig → ryddet prøve for hvert felt og kort. |
+| B7 – nedstrøms | Beregningsgrundlag, SH-dage-bilag og PDF for de konkrete fund blev sammenholdt med skærmen. | Ingen save→load-rundtur med sammenligning af sagsdata; Word ikke hentet; ikke alle afledte beregninger og dokumenter er sporet for hvert felt. Senere navngivne E2E-sager er ikke generel save→load-dækning. |
+
+Tabellen skelner den oprindelige Chrome-måling fra den senere BB-274-E2E. Unit-tests og kildekontrol er ikke browserbevis.
 
 ## Åbne spørgsmål
 

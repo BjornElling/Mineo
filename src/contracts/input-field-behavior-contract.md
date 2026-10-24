@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-10-02 (§2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
+**Senest verificeret mod kode:** 2026-10-24 (BB-342: TAF-afskæringerne er inkluderende, og felt-/rækkebeskederne siger «på eller efter»; kontrolleret mod `tafPeriodConstraints.ts`, `svieSmerteConstraints.ts` og de tilhørende grænsetests. Tidligere 2026-10-02: §2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
 revideret efter gennemgang af brugernes forventninger og fejlskærmbilleder: forslag kræver to foregående
 rækker, periodemønstre begrænses til faste uge- og månedsintervaller, sammenhængende fra-/til-perioder
 følges ad, og beløb gentages kun efter to ens værdier, med de beskrevne periode- og grænsevilkår.
@@ -891,8 +891,8 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 - Datoer uden for intervallet bevares med rød ring og konkret tooltip. Feltet er uafhængigt af `Vedrører perioden`.
 - Ligger datoen efter `Opgørelse lavet den`, får den en ikke-blokerende gul ring og en linje i «Fejl og advarsler»:
   «Differencekravet er opgjort pr. en dato efter opgørelsens dato (<dato>)».
-- Dokumentet skriver «Der er opgjort differencekrav i sagen pr. <dato>.», og en TAF-dato efter afskæringen får
-  beskeden «… efter den dato, differencekravet er opgjort pr. (<dato>)» – datoen er den, kravet er opgjort pr.,
+- Dokumentet skriver «Der er opgjort differencekrav i sagen pr. <dato>.», og en TAF-dato på eller efter afskæringen får
+  beskeden «… på eller efter den dato, differencekravet er opgjort pr. (<dato>)» – datoen er den, kravet er opgjort pr.,
   ikke den dag, det blev udregnet.
 - En udfyldt dato afgrænser TAF ved dagen før datoen og supplerer andre afgrænsende datoer. Den erstatter ikke
   andre afgrænsninger; den tidligste relevante dato gælder, også når EET-klagesag ellers er verserende.

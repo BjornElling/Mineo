@@ -1,4 +1,5 @@
 import {
+  assessTafPeriodeRows,
   evaluateTafPerioder,
   type TafPeriodeBoundsContext,
 } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodeValidation';
@@ -39,6 +40,47 @@ const context = (patch: Partial<TafPeriodeBoundsContext> = {}): TafPeriodeBounds
 });
 
 describe('evaluateTafPerioder – direkte rækkegrene', () => {
+  it('deler komplethed, datoorden og overlap i den kanoniske rækkevurdering', () => {
+    const rows = [
+      { id: 'tom' },
+      { id: 'kun-løse-dage', loseFeriedage: 3 },
+      { id: 'omvendt', fra: iso('2024-01-10'), til: iso('2024-01-01') },
+      { id: 'overlap-a', fra: iso('2024-02-01'), til: iso('2024-02-10') },
+      { id: 'overlap-b', fra: iso('2024-02-05'), til: iso('2024-02-15') },
+    ];
+    const assessment = assessTafPeriodeRows(rows);
+    const visible = evaluateTafPerioder(rows, context());
+
+    expect(assessment.get('tom')).toEqual({
+      isActive: false,
+      missingDate: undefined,
+      dateOrderError: false,
+      hasOverlap: false,
+    });
+    expect(assessment.get('kun-løse-dage')?.missingDate).toEqual({
+      message: FRA_OG_TIL_DATO_IKKE_ANGIVET_MESSAGE,
+      field: 'fra',
+    });
+    expect(assessment.get('omvendt')?.dateOrderError).toBe(true);
+    expect(assessment.get('overlap-a')?.hasOverlap).toBe(true);
+    expect(assessment.get('overlap-b')?.hasOverlap).toBe(true);
+    expect(visible.get('kun-løse-dage')?.kind).toBe('error');
+    expect(visible.get('omvendt')?.kind).toBe('error');
+    expect(visible.get('overlap-a')?.kind).toBe('error');
+  });
+
+  it('tæller en afvist rå dato som udfyldt i rækkevisningens delte assessment', () => {
+    const rows = [{ id: 'afvist' }];
+    const assessment = assessTafPeriodeRows(rows, () => ({
+      fra: issue('taf.fra.format', 'Datoen kan ikke læses'),
+    }));
+
+    expect(assessment.get('afvist')).toMatchObject({
+      isActive: true,
+      missingDate: { message: 'Til-dato er ikke angivet', field: 'til' },
+    });
+  });
+
   it('viser samlet datomangel for en række med kun løse feriedage', () => {
     const result = evaluateTafPerioder([
       { id: 'kun-lose', loseFeriedage: 3 },
@@ -70,7 +112,12 @@ describe('evaluateTafPerioder – direkte rækkegrene', () => {
       message: 'TAF-perioden 01-01-2024 - 31-01-2024: Til-datoen skal rettes; For mange løse feriedage; Der er overlappende TAF-perioder',
       field: 'til',
     });
-    expect(result.get('r2')).toEqual({ kind: 'error', message: TAF_OVERLAP_LINJE, field: 'fra' });
+    expect(result.get('r2')).toEqual({
+      kind: 'error',
+      message: TAF_OVERLAP_LINJE,
+      field: 'fra',
+      summaryDeduplicationGroup: 'taf-periode-overlap',
+    });
   });
 
   it('forankrer en cutoff-issue fra en delvist udfyldt række før datomanglen', () => {
@@ -91,8 +138,18 @@ describe('evaluateTafPerioder – direkte rækkegrene', () => {
       { id: 'anden', fra: iso('2024-01-05'), til: iso('2024-01-15') },
     ], context());
 
-    expect(result.get('første')).toEqual({ kind: 'error', message: TAF_OVERLAP_LINJE, field: 'fra' });
-    expect(result.get('anden')).toEqual({ kind: 'error', message: TAF_OVERLAP_LINJE, field: 'fra' });
+    expect(result.get('første')).toEqual({
+      kind: 'error',
+      message: TAF_OVERLAP_LINJE,
+      field: 'fra',
+      summaryDeduplicationGroup: 'taf-periode-overlap',
+    });
+    expect(result.get('anden')).toEqual({
+      kind: 'error',
+      message: TAF_OVERLAP_LINJE,
+      field: 'fra',
+      summaryDeduplicationGroup: 'taf-periode-overlap',
+    });
   });
 
   it('prioriterer datoordrefejlen og forankrer den til til-datoen', () => {

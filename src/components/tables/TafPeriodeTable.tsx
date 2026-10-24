@@ -21,7 +21,7 @@ import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import { createEmptyTafCommittedRow, createTafRowId } from '../../domain/erstatningsopgoerelse/tables/tafTableModel';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -73,12 +73,13 @@ const TafPeriodeTable = React.memo(({
     // route + tabKey er eksplicit navigation-metadata (§3.7); TAF-perioderne bor på EO-oplysningerfanen.
     locationNav: { route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER },
   });
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
-    reorderRows: table.reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
   const renderOrder = table.buildRenderRows(sortedRows);

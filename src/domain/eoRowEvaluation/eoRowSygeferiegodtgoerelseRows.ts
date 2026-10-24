@@ -16,6 +16,7 @@ import {
 } from '../erstatningsopgoerelse/engines/sfggWarnings';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import {
+  eoSfggReferenceperiodeFraField,
   eoSfggManuelFoerstEfterSygeloenField,
   eoSfggReferenceperiodeTilField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
@@ -119,19 +120,32 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
-    // Afsnittets røde felter får hver sin linje med feltets navn og link (BB-322, BB-323; form som BB-277). Har to
-    // felter samme tekst – begge referencedatoer i TAF-perioden – står den én gang og fører til det første felt;
-    // begge felter har stadig rød ring. Før stod samme linje to gange (BB-322).
-    const visteFeltBeskeder = new Set<string>();
-    (sfggFieldIssues[employment.id] ?? []).forEach((issue) => {
-      if (visteFeltBeskeder.has(issue.message)) return;
-      visteFeltBeskeder.add(issue.message);
+    // Hvert rødt felt får sin egen fejl-/advarselslinje med link til feltet. Kun BB-322's to identiske
+    // «før første TAF-periode»-fejl deler én linje; generisk deduplikering skjulte fx den anden dato-grænsefejl.
+    const employmentFieldIssues = sfggFieldIssues[employment.id] ?? [];
+    const tafBoundaryFieldIds = new Set(
+      employmentFieldIssues
+        .filter((issue) => issue.code.endsWith('.foerTaf'))
+        .map((issue) => issue.field.descriptor.id)
+    );
+    const delerTafGraensebesked =
+      tafBoundaryFieldIds.has(eoSfggReferenceperiodeFraField.id)
+      && tafBoundaryFieldIds.has(eoSfggReferenceperiodeTilField.id);
+    employmentFieldIssues.forEach((issue) => {
+      const delerDenneTafGraensebesked = delerTafGraensebesked && issue.code.endsWith('.foerTaf');
       rows.push({
         id: `sfgg.felt.${issue.field.address.field}.${employment.id}`,
         label: issue.field.descriptor.label,
         displayValue: formatStatusMessage('error', issue.message),
         status: 'error',
         message: issue.message,
+        ...(delerDenneTafGraensebesked ? {
+          // Gruppér kun Fra+Til i samme ansættelsesforhold. Et enkelt ugyldigt Til-felt må ikke få Fra-label,
+          // og to arbejdsgiverkort med samme grænsefejl skal fortsat fremgå som to uafhængige rettemål.
+          summaryDeduplicationGroup: `sfgg-referenceperiode-taf-boundary:${employment.id}` as const,
+          // Bevar BB-322's godkendte fælles linjetekst, hvor begge datoer deler samme grænse.
+          summaryText: `${eoSfggReferenceperiodeFraField.label}: ${issue.message}`,
+        } : {}),
         focusTarget: { kind: 'fieldAddress', address: issue.field.address },
       });
     });

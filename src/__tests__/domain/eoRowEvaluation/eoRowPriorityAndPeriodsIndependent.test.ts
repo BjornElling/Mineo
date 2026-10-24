@@ -1,6 +1,7 @@
 import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import {
   eoVedroererPeriodeFraField,
+  eoSvieSmertePeriodeFraField,
   eoTafBeregningsperiodeFraField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
@@ -217,6 +218,26 @@ describe('CALC-006 – uafhængigt rækkeprioritets- og periodefacit', () => {
     expect(rowById(rows, 'sviesmerte.beregnetPeriode')).toMatchObject({
       status: 'error',
       displayValue: 'Fejl (Der er overlappende svie/smerte-perioder)',
+    });
+  });
+
+  it('viser en række med rejected dato, selv når readeren har maskeret alle canonical datoværdier', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
+      tidligereSsMax: 'Nej' as const,
+      svieSmertePerioder: [{ id: 'ss-afvist', fra: undefined, til: undefined, tilstand: undefined }],
+    };
+    const errors = buildTestFieldIssueSet(
+      eoSvieSmertePeriodeFraField.bind('ss-afvist'),
+      "Der er udfyldt en ugyldig værdi i feltet 'Fra o.m.'",
+      'format',
+    );
+
+    const rows = buildEoSvieSmerteRows(values, errors, svieSmerteContext);
+    expect(rowById(rows, 'sviesmerte.periode.ss-afvist')).toMatchObject({
+      status: 'error',
+      displayValue: "Fejl (Der er udfyldt en ugyldig værdi i feltet 'Fra o.m.'; Til-dato og tilstand er ikke angivet)",
     });
   });
 

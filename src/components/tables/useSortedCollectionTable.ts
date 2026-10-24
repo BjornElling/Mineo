@@ -8,9 +8,20 @@ import {
 } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import type { CollectionRef } from '../../inputCore/fieldAddress';
+import { useInputEditPort } from '../../inputCore/react/inputRuntimeContext';
+
+/** Afgrænset capability til sorterbare tabeller; andre collection-tabeller får den ikke gennem `useCollectionTable`. */
+export const usePersistSortedCollectionOrder = (collection: CollectionRef) => {
+  const { persistSortedOrder } = useInputEditPort();
+  return React.useCallback(
+    (rowIds: readonly string[]) => persistSortedOrder(collection, rowIds),
+    [collection, persistSortedOrder]
+  );
+};
 
 /**
- * Rækkefølge-laget for en sorterbar samlingstabel: sortering, persistering af den nye orden,
+ * Rækkefølge-laget for en sorterbar samlingstabel: sortering, persistens af den nye orden,
  * save-order-registreringen og header-bindingen, som ÉN enhed.
  *
  * Tingene hører sammen og skal altid følges: sorterer brugeren, skal den nye orden
@@ -45,22 +56,22 @@ export const useSortedCollectionTable = <TRow>({
   getRowId,
   isRowEmpty,
   columns,
-  reorderRows,
+  persistSortedOrder,
   saveOrderPath,
 }: Readonly<{
   committedRows: readonly TRow[];
   getRowId: (row: TRow) => string;
   isRowEmpty: (row: TRow) => boolean;
   columns: readonly TableSortColumn<TRow>[];
-  /** Persistér den nye rækkefølge. Kaldes i samme event som headerklikket. */
-  reorderRows: (rowIds: readonly string[]) => void;
+  /** Persistér sorteringen uden at gøre den til et undo-trin. Kaldes i samme event som headerklikket. */
+  persistSortedOrder: (rowIds: readonly string[]) => void;
   saveOrderPath: TableSaveOrderPath | undefined;
 }>): UseSortedCollectionTableResult<TRow> => {
   const handleSortedRowsChange = React.useCallback(
     (sorted: readonly TRow[]) => {
-      reorderRows(sorted.map(getRowId));
+      persistSortedOrder(sorted.map(getRowId));
     },
-    [getRowId, reorderRows]
+    [getRowId, persistSortedOrder]
   );
 
   const sort = useTableSort({

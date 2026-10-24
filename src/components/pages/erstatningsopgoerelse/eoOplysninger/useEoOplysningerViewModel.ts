@@ -103,14 +103,22 @@ export function useEoOplysningerViewModel(
   }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
   // Ferietabellernes kolonne tæller de feriedage, beregningen fradrager – inden for TAF-perioderne hhv.
-  // beregningsperioden – og overskriften siger rammen (BB-249).
-  const ferieFeriedageById = React.useMemo(
-    () => buildFerieFeriedageById(values.ferieperioder, resolveTafFerieRamme(values, skadedatoISO)),
+  // beregningsperioden – og overskriftens tooltip følger samme ramme (BB-249, BB-344).
+  const tafFerieRamme = React.useMemo(
+    () => resolveTafFerieRamme(values, skadedatoISO),
     [skadedatoISO, values],
   );
-  const fravaerFeriedageById = React.useMemo(
-    () => buildFerieFeriedageById(values.fravaerPerioder, resolveBeregningsperiodeFerieRamme(values)),
+  const beregningsperiodeFerieRamme = React.useMemo(
+    () => resolveBeregningsperiodeFerieRamme(values),
     [values],
+  );
+  const ferieFeriedageById = React.useMemo(
+    () => buildFerieFeriedageById(values.ferieperioder, tafFerieRamme),
+    [tafFerieRamme, values.ferieperioder],
+  );
+  const fravaerFeriedageById = React.useMemo(
+    () => buildFerieFeriedageById(values.fravaerPerioder, beregningsperiodeFerieRamme),
+    [beregningsperiodeFerieRamme, values.fravaerPerioder],
   );
   const visTafLoseFeriedage = erTafLoseFeriedageRelevant(values);
   // Beregningsperiodens ferie og løse dage virker kun i arbejdsdage og skjules ellers (BB-263).
@@ -169,7 +177,10 @@ export function useEoOplysningerViewModel(
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
   return {
     values, skadedatoISO, erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom', forligFejl,
-    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById, visTafLoseFeriedage, visBeregningsperiodeFerie,
+    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById,
+    harTafFerieRamme: tafFerieRamme !== undefined,
+    harBeregningsperiodeFerieRamme: beregningsperiodeFerieRamme !== undefined,
+    visTafLoseFeriedage, visBeregningsperiodeFerie,
     beregningsgrundlagAdvarsler,
     fravaer: { committedRowsEnsured: values.fravaerPerioder },
     statusSubheaderLabel: formatLabelDayAfterIsoDate('Status ved erstatningsperiodens udløb', values.vedroererPeriodeTil, 'Status').replace(/:$/, ''),

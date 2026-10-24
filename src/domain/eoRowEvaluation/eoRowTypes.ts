@@ -104,6 +104,12 @@ export type EoRowGroup =
   | 'aes.oevrigt'
   | 'aes.differencekrav';
 
+export type EoRowSummaryDeduplicationGroup =
+  | 'sviesmerte-overlap'
+  | 'taf-periode-overlap'
+  | 'ferieperiode-overlap'
+  | `sfgg-referenceperiode-taf-boundary:${string}`;
+
 export type DependencySpec =
   | Readonly<{ kind: 'id'; id: string }>
   | Readonly<{ kind: 'prefix'; prefix: string }>;
@@ -217,6 +223,12 @@ export type EoRowModel = {
   summaryDisplay?: 'default' | 'messageOnly';
   // Optional færdig fejl-/advarselslinje til "Fejl og advarsler".
   summaryText?: string;
+  /**
+   * Identificerer flere rækker, som bevidst skal vises som én fælles fejl-/advarselslinje.
+   * Rækker vises hver for sig som standard. Overlap og de to sammenhørende BB-322-felter opt-in, fordi
+   * alle berørte celler samtidig har en rød markering med konkret tooltip; andre fejl foldes ikke på tekstlig lighed.
+   */
+  summaryDeduplicationGroup?: EoRowSummaryDeduplicationGroup;
   // Optional primært DOM-mål for fejl-/advarselslink. Bruges før række-/sektionsfallback.
   focusTarget?: EoIssueFocusTarget;
   // Optional hint om hvilket felt i en periode-/tabelrække fejlen vedrører (fra/til/tilstand).

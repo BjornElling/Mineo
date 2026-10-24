@@ -52,6 +52,7 @@ import {
   erhvervsevnetabEalEetPctField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import { createTrackedInputReader } from '../../../inputCore/inputReader';
 import {
   stamdataSkadedatoField,
   stamdataSkadelidteFodselsdatoField,
@@ -420,6 +421,16 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
       priority: 'context',
       message: 'Kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.',
     }));
+
+    const result = evaluation.reader.read(aslAfgoerelseKapDatoField.bind('r1'));
+    expect(result).toMatchObject({ status: 'usable', issue: { priority: 'context' } });
+    const defaultTracked = createTrackedInputReader(evaluation.reader);
+    defaultTracked.reader.read(aslAfgoerelseKapDatoField.bind('r1'));
+    expect(defaultTracked.readIssues()).toEqual([]);
+
+    const contextualTracked = createTrackedInputReader(evaluation.reader, { includeContextIssues: true });
+    contextualTracked.reader.read(aslAfgoerelseKapDatoField.bind('r1'));
+    expect(contextualTracked.readIssues()).toContainEqual(result.status === 'usable' ? result.issue : undefined);
   });
 
   it('viser "Kun relevant ved tidligere kapitalisering" før tidl. kap.datoens datogrænse', () => {

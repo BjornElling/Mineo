@@ -4,6 +4,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { collectSfggReferenceperiodeIssues } from '../../../domain/erstatningsopgoerelse/sfggReferenceperiodeRules';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { FieldIssue } from '../../../inputCore/inputIssue';
+import { toAnyFieldRef } from '../../../inputCore/fieldDescriptor';
 import {
   eoSfggManuelFoerstEfterSygeloenField,
   eoSfggReferenceperiodeFraField,
@@ -83,7 +84,7 @@ const buildRows = (
 
 describe('buildEoSygeferiegodtgoerelseRows – brugerblik 12j', () => {
   describe('afsnittets røde felter (BB-322, BB-323)', () => {
-    it('giver én linje med link, når fra og til har samme besked', () => {
+    it('folder kun BB-322-grænsereglen, hvor begge datoer har samme besked', () => {
       const values = baseValues();
       values.sfggAnsaettelsesforhold[0] = {
         ...values.sfggAnsaettelsesforhold[0]!,
@@ -96,13 +97,110 @@ describe('buildEoSygeferiegodtgoerelseRows – brugerblik 12j', () => {
       const feltRows = buildRows(values, { fieldIssues: { 'af-1': issues } })
         .filter((row) => row.id.startsWith('sfgg.felt.'));
 
-      expect(feltRows).toEqual([expect.objectContaining({
-        id: 'sfgg.felt.sfggReferenceperiodeFra.af-1',
-        label: eoSfggReferenceperiodeFraField.label,
-        status: 'error',
-        message: 'Datoen skal ligge før første TAF-periode (01-03-2023)',
-        focusTarget: { kind: 'fieldAddress', address: eoSfggReferenceperiodeFraField.bind('af-1').address },
-      })]);
+      expect(feltRows).toHaveLength(2);
+      expect(feltRows.map((row) => row.summaryDeduplicationGroup)).toEqual([
+        'sfgg-referenceperiode-taf-boundary:af-1',
+        'sfgg-referenceperiode-taf-boundary:af-1',
+      ]);
+      expect(feltRows.map((row) => row.focusTarget)).toEqual([
+        { kind: 'fieldAddress', address: eoSfggReferenceperiodeFraField.bind('af-1').address },
+        { kind: 'fieldAddress', address: eoSfggReferenceperiodeTilField.bind('af-1').address },
+      ]);
+      expect(feltRows.every((row) => row.message === 'Datoen skal ligge før første TAF-periode (01-03-2023)')).toBe(true);
+    });
+
+    it('mærker en alene ugyldig Til-dato som Til og lader den stå alene', () => {
+      const values = baseValues();
+      values.sfggAnsaettelsesforhold[0] = {
+        ...values.sfggAnsaettelsesforhold[0]!,
+        sfggReferenceperiodeFra: iso('2023-02-01'),
+        sfggReferenceperiodeTil: iso('2023-03-01'),
+      };
+      const issue = collectSfggReferenceperiodeIssues(values);
+      expect(issue).toHaveLength(1);
+      expect(issue[0]?.field.descriptor.id).toBe(eoSfggReferenceperiodeTilField.id);
+
+      const row = buildRows(values, { fieldIssues: { 'af-1': issue } })
+        .find((entry) => entry.id === 'sfgg.felt.sfggReferenceperiodeTil.af-1');
+
+      expect(row).toEqual(expect.objectContaining({
+        label: eoSfggReferenceperiodeTilField.label,
+        focusTarget: { kind: 'fieldAddress', address: eoSfggReferenceperiodeTilField.bind('af-1').address },
+      }));
+      expect(row?.summaryText).toBeUndefined();
+      expect(row?.summaryDeduplicationGroup).toBeUndefined();
+    });
+
+    it('folder ikke samme TAF-grænsefejl på tværs af ansættelsesforhold', () => {
+      const values = baseValues();
+      values.sfggAnsaettelsesforhold[0] = {
+        ...values.sfggAnsaettelsesforhold[0]!,
+        sfggReferenceperiodeFra: iso('2023-03-01'),
+        sfggReferenceperiodeTil: iso('2023-03-28'),
+      };
+      values.loenindkomstAnsaettelsesforhold = [
+        ...values.loenindkomstAnsaettelsesforhold,
+        createSfggEmployment({ id: 'af-2', feriePct: 12.5 }),
+      ];
+      values.sfggAnsaettelsesforhold = [
+        ...values.sfggAnsaettelsesforhold,
+        {
+          ...createSfggIngenRow('af-2'),
+          sfggBeregningskilde: 'Ferieloven',
+          sfggReferenceperiodeFra: iso('2023-03-01'),
+          sfggReferenceperiodeTil: iso('2023-03-28'),
+        },
+      ];
+      const issues = collectSfggReferenceperiodeIssues(values);
+      const fieldIssues = Object.fromEntries(
+        ['af-1', 'af-2'].map((id) => [id, issues.filter((issue) => issue.field.address.path.some(
+          (segment) => segment.kind === 'entity' && segment.entityId === id
+        ))])
+      );
+
+      const fieldRows = buildRows(values, { fieldIssues })
+        .filter((row) => row.id.startsWith('sfgg.felt.'));
+
+      expect(fieldRows.map((row) => row.summaryDeduplicationGroup)).toEqual([
+        'sfgg-referenceperiode-taf-boundary:af-1',
+        'sfgg-referenceperiode-taf-boundary:af-1',
+        'sfgg-referenceperiode-taf-boundary:af-2',
+        'sfgg-referenceperiode-taf-boundary:af-2',
+      ]);
+    });
+
+    it('bevarer en linje pr. felt ved ens almindelige datogrænsebeskeder', () => {
+      const fraIssue = collectSfggReferenceperiodeIssues({
+        ...baseValues(),
+        sfggAnsaettelsesforhold: [{
+          ...baseValues().sfggAnsaettelsesforhold[0]!,
+          sfggReferenceperiodeFra: iso('2023-03-01'),
+        }],
+      })[0]!;
+      const tilIssue: FieldIssue = {
+        ...fraIssue,
+        code: `${eoSfggReferenceperiodeTilField.id}.bounds`,
+        field: toAnyFieldRef(eoSfggReferenceperiodeTilField.bind('af-1')),
+        reason: 'bounds',
+        message: 'Dato skal være mellem 01-01-2005 og 31-12-2027',
+      };
+      const sameMessageFraIssue: FieldIssue = {
+        ...fraIssue,
+        code: `${eoSfggReferenceperiodeFraField.id}.bounds`,
+        reason: 'bounds',
+        message: tilIssue.message,
+      };
+
+      const feltRows = buildRows(baseValues(), {
+        fieldIssues: { 'af-1': [sameMessageFraIssue, tilIssue] },
+      }).filter((row) => row.id.startsWith('sfgg.felt.'));
+
+      expect(feltRows).toHaveLength(2);
+      expect(feltRows.map((row) => row.summaryDeduplicationGroup)).toEqual([undefined, undefined]);
+      expect(feltRows.map((row) => row.focusTarget)).toEqual([
+        { kind: 'fieldAddress', address: eoSfggReferenceperiodeFraField.bind('af-1').address },
+        { kind: 'fieldAddress', address: eoSfggReferenceperiodeTilField.bind('af-1').address },
+      ]);
     });
 
     it('giver en linje pr. felt med hver sin besked', () => {

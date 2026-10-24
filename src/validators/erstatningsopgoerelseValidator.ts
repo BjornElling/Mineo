@@ -22,7 +22,7 @@ import {
   formatTafStartFoerManuelReguleringsdatoBesked,
 } from '../domain/erstatningsopgoerelse/loenudviklingReguleringsdatoIssues';
 import { resolveReguleringskildeNavn } from '../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
-import type { ErstatningsopgoerelseValues, StamdataValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues, OevrigeKravRow } from '../schemas/formSchemas';
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
@@ -31,14 +31,13 @@ import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, satserAngi
 import { hasSvieSmerteSatserForAar } from '../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { amountValueToNumber } from '../utils/expressionAmount';
-import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
-import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
+import { isSvieSmerteRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import {
-  assessPeriodeDatoMangler,
   buildTafLoseFeriedageMaxMessage,
   resolveTafLoseFeriedageMaksimum,
   TAF_OVERLAP_LINJE,
 } from '../domain/erstatningsopgoerelse/validation/tafRowRules';
+import { assessTafPeriodeRows } from '../domain/erstatningsopgoerelse/validation/tafPeriodeValidation';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
@@ -62,6 +61,8 @@ import { erOevrigeKravSektionAktiv } from '../domain/erstatningsopgoerelse/helpe
 import {
   OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE,
   OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE,
+  assessOevrigeKravRow,
+  type OevrigeKravRowAssessment,
 } from '../domain/erstatningsopgoerelse/validation/oevrigeKravRowValidation';
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from '../domain/erstatningsopgoerelse/engines/sfggKilde';
 import { erSfggFeltRelevant } from '../domain/erstatningsopgoerelse/helpers/eoLoenindkomstRelevance';
@@ -71,7 +72,8 @@ import {
   SFGG_SATSVALG_MANGLER_MESSAGE,
   buildSfggOverenskomstManglerBesked,
 } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
-import { buildSvieSmerteCutoffErrorMessage } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
+import { resolveSvieSmerteCutoffDate } from '../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
+import { assessSvieSmertePerioder } from '../domain/erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
 import {
   BEREGNINGSPERIODE_MANGLER_MESSAGE,
   INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
@@ -404,27 +406,42 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
 
   const perioder = values.svieSmertePerioder ?? [];
   const nonEmpty = perioder.filter((row) => !isSvieSmerteRowEmpty(row));
+  const rowAssessments = assessSvieSmertePerioder(perioder, {
+    menAfgoerelseDato: resolveSvieSmerteCutoffDate(values),
+    verserendeKlageMen: values.verserendeKlageMen === 'Ja',
+  });
 
-  // Validér at ikke-tomme rækker er fuldt udfyldt
+  // Downloadvalidator og rækkevisningen deler vurderingen af fuldstændighed, datoorden og ménafgørelses-cutoff.
+  // Her oversættes den til validatorens eksisterende feltnavne og fejltekster.
   for (let i = 0; i < perioder.length; i += 1) {
-    const row = perioder[i];
-    if (isSvieSmerteRowEmpty(row)) continue;
-    const errors_ = validateSvieSmerteRowCompleteness(row, i, values);
-    errors.push(...errors_);
+    const assessment = rowAssessments.get(perioder[i].id);
+    if (assessment === undefined || assessment.kind === 'skip') continue;
+    const prefix = `svieSmertePerioder[${i}]`;
+    for (const field of assessment.missingFields) {
+      const label = field === 'fra' ? 'Fra-dato' : field === 'til' ? 'Til-dato' : 'Tilstand';
+      errors.push({ path: `${prefix}.${field}`, message: `${label} mangler`, severity: 'error' });
+    }
+    if (assessment.dateOrderError) {
+      errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
+    }
+    // Som før vurderes cutoff kun, når begge datoer findes, og datoordenen er gyldig.
+    if (!assessment.missingFields.includes('fra')
+      && !assessment.missingFields.includes('til')
+      && !assessment.dateOrderError
+      && assessment.tilCutoffError !== undefined) {
+      errors.push({ path: `${prefix}.til`, message: assessment.tilCutoffError, severity: 'error' });
+    }
   }
 
-  // Validér overlap
+  // Bevar validatorens hidtidige rækkefølge: række-fejl først, overlap derefter.
   if (nonEmpty.length > 1) {
-    const overlapIds = detectOverlappingPeriods(nonEmpty);
-    if (overlapIds.size > 0) {
-      for (let i = 0; i < perioder.length; i += 1) {
-        if (overlapIds.has(perioder[i].id)) {
-          errors.push({
-            path: `svieSmertePerioder[${i}].fra`,
-            message: 'Svie/smerte-perioder overlapper',
-            severity: 'error',
-          });
-        }
+    for (let i = 0; i < perioder.length; i += 1) {
+      if (rowAssessments.get(perioder[i].id)?.hasOverlap === true) {
+        errors.push({
+          path: `svieSmertePerioder[${i}].fra`,
+          message: 'Svie/smerte-perioder overlapper',
+          severity: 'error',
+        });
       }
     }
   }
@@ -470,66 +487,6 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
   return errors;
 }
 
-/**
- * Validér at en ikke-tom svie/smerte-række er fuldt udfyldt og har gyldige datoer.
- * menAfgoerelseDato-grænsen er en fejlgivende bound (jf. eo-snapshot-contract.md §2.2):
- * svie/smerte til-dato >= menAfgoerelseDato (når afgørelse ikke er påklaget) giver feltfejl.
- * Format-validering (isISODateString) er redundant her da validateParsed modtager
- * schema-validerede værdier, men bevares som defensivt invariant-check.
- */
-function validateSvieSmerteRowCompleteness(
-  row: SvieSmertePeriodeRow,
-  index: number,
-  values: ErstatningsopgoerelseValues
-): ValidationError[] {
-  const errors: ValidationError[] = [];
-  const prefix = `svieSmertePerioder[${index}]`;
-
-  const hasFra = typeof row.fra === 'string' && row.fra.trim() !== '';
-  const hasTil = typeof row.til === 'string' && row.til.trim() !== '';
-  const hasTilstand = typeof row.tilstand === 'string' && row.tilstand.trim() !== '';
-
-  if (!hasFra) {
-    errors.push({ path: `${prefix}.fra`, message: 'Fra-dato mangler', severity: 'error' });
-  }
-  if (!hasTil) {
-    errors.push({ path: `${prefix}.til`, message: 'Til-dato mangler', severity: 'error' });
-  }
-  if (!hasTilstand) {
-    errors.push({ path: `${prefix}.tilstand`, message: 'Tilstand mangler', severity: 'error' });
-  }
-
-  // Dato-interval validering. isISODateString-guards er type narrowing – ikke format-validering.
-  // Format er garanteret af Zod-schema (validateParsed modtager kun schema-validerede værdier).
-  if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
-    if (hasDateOrderError(row.fra, row.til)) {
-      errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
-    } else {
-      // Fejlgivende bound: til-dato >= menAfgoerelseDato når afgørelse er truffet og ikke påklaget.
-      // Gælder uanset skadestype (jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2).
-      // Stille clamping mod vedroererPeriodeTil sker i engineen – det er ikke en feltfejl.
-      const menAfgoerelseDato = isISODateString(values.menAfgoerelseDato) ? values.menAfgoerelseDato : undefined;
-      const menBoundActive =
-        values.varigeMenAfgorelse === 'Ja' &&
-        values.verserendeKlageMen === 'Nej' &&
-        menAfgoerelseDato !== undefined;
-      if (menBoundActive && menAfgoerelseDato !== undefined && row.til >= menAfgoerelseDato) {
-        const message = buildSvieSmerteCutoffErrorMessage({
-          value: row.til,
-          menAfgoerelseDato,
-        });
-        errors.push({
-          path: `${prefix}.til`,
-          message: message ?? `Til-dato kan ikke være på eller efter afgørelsesdato for varige mén (${menAfgoerelseDato})`,
-          severity: 'error',
-        });
-      }
-    }
-  }
-
-  return errors;
-}
-
 // ---- TAF (Tabt arbejdsfortjeneste) ----
 
 /**
@@ -550,26 +507,35 @@ function validateTAF(
   if (!beregnes) return errors;
 
   const tafPerioder = values.tafPerioder ?? [];
-  const nonEmpty = tafPerioder.filter((row) => !isTafRowEmpty(row));
+  const rowAssessments = assessTafPeriodeRows(tafPerioder);
 
-  // Validér ikke-tomme rækker er fuldt udfyldt
+  // Vurderingerne deles med rækkevisningen, så gate og synlig række ikke kan drive fra hinanden.
   for (let i = 0; i < tafPerioder.length; i += 1) {
     const row = tafPerioder[i];
-    if (isTafRowEmpty(row)) continue;
-    const errors_ = validateTafRowCompleteness(row, i);
-    errors.push(...errors_);
-  }
-
-  if (nonEmpty.length > 1) {
-    const overlapIds = detectOverlappingPeriods(nonEmpty);
-    for (let i = 0; i < tafPerioder.length; i += 1) {
-      if (!overlapIds.has(tafPerioder[i].id)) continue;
+    const assessment = rowAssessments.get(row.id);
+    if (!assessment?.isActive) continue;
+    if (assessment.missingDate) {
+      errors.push({
+        path: `tafPerioder[${i}].${assessment.missingDate.field}`,
+        message: assessment.missingDate.message,
+        severity: 'error',
+      });
+    } else if (assessment.dateOrderError) {
       errors.push({
         path: `tafPerioder[${i}].fra`,
-        message: TAF_OVERLAP_ERROR_MESSAGE,
+        message: DATE_ORDER_ERROR_MESSAGE,
         severity: 'error',
       });
     }
+  }
+
+  for (let i = 0; i < tafPerioder.length; i += 1) {
+    if (rowAssessments.get(tafPerioder[i].id)?.hasOverlap !== true) continue;
+    errors.push({
+      path: `tafPerioder[${i}].fra`,
+      message: TAF_OVERLAP_ERROR_MESSAGE,
+      severity: 'error',
+    });
   }
 
   errors.push(...validateTafLoseFeriedage(values, options));
@@ -840,22 +806,6 @@ function validateBeregningsperiodeIndkomst(
   const income = buildIncomeForRanges(values, [beregningsperiode], undefined, options?.skadedatoISO);
   if (income.employers.length > 0 || income.benefits.length > 0) return [];
   return [{ path: 'tafBeregningsperiodeFra', message: INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE, severity: 'error' }];
-}
-
-/**
- * Validér at en ikke-tom TAF-række er fuldt udfyldt. Manglerne siges som i «Fejl og advarsler»
- * (`assessPeriodeDatoMangler`): én besked pr. række, også for en række med kun løse feriedage (BB-253).
- */
-function validateTafRowCompleteness(row: TafPeriodeRow, index: number): ValidationError[] {
-  const prefix = `tafPerioder[${index}]`;
-  const hasFra = typeof row.fra === 'string' && row.fra.trim() !== '';
-  const hasTil = typeof row.til === 'string' && row.til.trim() !== '';
-  const mangler = assessPeriodeDatoMangler(hasFra, hasTil);
-  if (mangler) return [{ path: `${prefix}.${mangler.field}`, message: mangler.message, severity: 'error' }];
-  if (isISODateString(row.fra) && isISODateString(row.til) && row.fra > row.til) {
-    return [{ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' }];
-  }
-  return [];
 }
 
 /**
@@ -1352,8 +1302,9 @@ function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationErr
 
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i];
-    if (isOevrigeKravRowEmpty(row)) continue;
-    const errors_ = validateOevrigeKravRowCompleteness(row, i);
+    const assessment = assessOevrigeKravRow(row, {}, undefined);
+    if (assessment.kind === 'empty') continue;
+    const errors_ = validateOevrigeKravRowCompleteness(row, i, assessment);
     errors.push(...errors_);
   }
 
@@ -1366,22 +1317,28 @@ function validateOevrigeKrav(values: ErstatningsopgoerelseValues): ValidationErr
  * Datoen er bevidst VALGFRI (udviklerafgørelse 2026-09-23, BB-229): en udgift kan mangle en nøjagtig dato,
  * og dokumentet trykker den da uden datopræfiks. Et beløb på 0 kr. afvises af feltet selv
  * (`eoOevrigeKravBeloebField`), så cellen bliver rød; reglen stod før kun her, uden rød celle (BB-232).
- * Ordlyden deles med rækkebyggeren gennem `oevrigeKravRowValidation.ts`, så de to lag aldrig beskriver
- * samme mangel forskelligt.
+ * `assessOevrigeKravRow` afgør både tomhed og hvilke påkrævede felter der mangler; validatoren omsætter
+ * samme vurdering til feltadresser, mens rækkebyggeren samler den i én brugerrettet linje.
  */
-function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number): ValidationError[] {
+function validateOevrigeKravRowCompleteness(
+  row: OevrigeKravRow,
+  index: number,
+  assessment: OevrigeKravRowAssessment,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const prefix = `oevrigeKravPerioder[${index}]`;
-
-  const hasUdgiftTil = typeof row.udgiftTil === 'string' && row.udgiftTil.trim() !== '';
   const amountValue = amountValueToNumber(row.beloeb);
 
-  if (!hasUdgiftTil) {
-    errors.push({ path: `${prefix}.udgiftTil`, message: OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE, severity: 'error' });
+  if (assessment.kind !== 'empty' && assessment.kind !== 'ok') {
+    for (const column of assessment.missingColumns) {
+      if (column === 'udgiftTil') {
+        errors.push({ path: `${prefix}.udgiftTil`, message: OEVRIGE_KRAV_UDGIFT_TIL_MANGLER_MESSAGE, severity: 'error' });
+      } else if (column === 'beloeb') {
+        errors.push({ path: `${prefix}.beloeb`, message: OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE, severity: 'error' });
+      }
+    }
   }
-  if (amountValue === undefined) {
-    errors.push({ path: `${prefix}.beloeb`, message: OEVRIGE_KRAV_BELOEB_MANGLER_MESSAGE, severity: 'error' });
-  } else if (amountValue < 0 || Object.is(amountValue, -0)) {
+  if (amountValue !== undefined && (amountValue < 0 || Object.is(amountValue, -0))) {
     errors.push({ path: `${prefix}.beloeb`, message: 'Beløb kan ikke være negativt', severity: 'error' });
   }
 

@@ -250,6 +250,20 @@ Enig
 **Tilbagemelding**
 Enig. Men tænk det for god ordens skyld gerne ind i en samlet løsning på alle de problemer, der er med manglende eller fejlbehæftede indtastninger i feltningerne, så alle rettelser løses som led i én gennemtænkt rettelse.
 
+### BB-332 – To helt ens delvise kravrækker viser stadig kun én fejl
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-40--gentagne-række-fejl-foldes-kun-når-hver-række-kan-ses` (BB-231's gentagne rækkeproblem)
+- **Prioritet:** Mellem
+- **Beslutning:** **Gennemført 2026-10-24** inden for BB-231's godkendelse af én synlig linje pr. mangelfuld række og udviklerens ønske om én samlet løsning.
+- **Sådan fremprovokeres det:** Indtast to øvrige krav med samme dato `15-03-2024`, samme «Udgift til» `Medicin` og uden «Beløb». Gå til «Beregning».
+- **Det sker før rettelsen:** Begge rækker får teksten `Medicin (15-03-2024): «Beløb» er ikke udfyldt`. Den fælles visning folder ens beskeder sammen, så kun første række og dens link vises. Først efter at brugeren retter den, dukker den anden fejl frem.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan tro, at den eneste viste fejl er rettet, og møder så den samme fejl igen for en anden række.
+- **Bedre ville være:** Når beskrivelse, dato og beløb ikke kan skelne gentagne fejl, tilføjes rækkens synlige placering, fx «Øvrigt krav 1» og «Øvrigt krav 2».
+- **Andre steder det kan gælde:** Lønindkomst og sygeferiegodtgørelse bruger også `messageOnly`-rækker. 12h og 12j afprøvede gentagne rækker og fandt ikke samme sammenfoldning.
+
+**Gennemført 2026-10-24 under BB-231's godkendelse:** `assessOevrigeKravRow` bærer nu de manglende felter, som både rækkebyggeren og validatoren bruger; validatoren har ikke længere en parallel tomheds-/mangelvurdering. Rækkebyggeren tilføjer først dato og beløb, derefter «Øvrigt krav N» hvis linjerne stadig ville være identiske. `eoRowOevrigeKravRowsIndependent.test.ts` verificerer to identiske beskeder, to rækkemærkater og hvert sit fokusmål; projektionstesten bevarer desuden fejlen for en delvis række med dato og ignorerer en faktisk tom trailing-række. En browsermåling efter rettelsen er ikke dokumenteret her.
+
 ### BB-232 – Et beløb på `0` tages imod af feltet, men spærrer opgørelsen med en besked, der ikke kan findes
 
 - **Type:** Edge case
@@ -550,9 +564,40 @@ undersøgt og ikke aktuelt, er det fint. Afsluttet.
 - Kun Chrome, lyst tema; kun PDF-kanalen er læst (Word-udgaven bør læses i 12l).
 - **Kontanthjælps-forbeholdet (BB-233) er kun kodeverificeret**, fordi det kræver TAF-perioder og
   offentlige ydelser i perioden. Mekanikken er den samme funktion som klage-forbeholdet, der er målt.
-- `Gem`/`Hent` er ikke afprøvet (filvælgeren kan ikke betjenes headless). Relevant for BB-228: en
-  `.eo`-fil med en halvudfyldt, skjult række vil åbne direkte i blindgyden.
+- `Gem`/`Hent` indgik ikke i den oprindelige browserkørsel. Playwright kan automatisere filvælger og
+  download. Relevant for BB-228: en `.eo`-fil med en halvudfyldt, skjult række vil åbne direkte i
+  blindgyden; senere navngivne loadtests af 12a/12b-sager dækker ikke denne 12c-række eller en generel
+  save→load-rundtur.
 - Undo/redo efter et skift af kravvalget er ikke målt.
 - Indsat tekst fra regneark i tabellen (M-14) er ikke afprøvet; tabellen deler grid-celler med de
   tabeller, hvor M-14 allerede er afgjort.
 - Kontrolfanen «EO-kontrol» er ikke gennemgået (12m).
+
+## Retrospektiv dækningskontrol mod Brugerblik-skillen (2026-10-24)
+
+- **Faktisk målt i den oprindelige browserkørsel:** Chrome headless i lyst tema ved 1536×864 og 1244×620; tom/skjult delvis række, gentagne mangler, ugyldig dato, nulbeløb, beskedlinks og den synlige 60-tegns beskrivelsesadfærd blev undersøgt. PDF blev hentet og læst med layout. Det dækker konkrete B6a- og B4-tilstande, men ikke alle inputpartitioner eller kombinationer.
+- **Senere konkret fund:** BB-332's identiske delvise kravrækker udfyldte et bestemt hul i BB-231-prøven: den oprindelige kørsel brugte forskellige datoer/beskrivelser og opdagede derfor ikke, at to ens beskeder foldes sammen. Efter rettelsen blev både to helt ens delvise rækker og særskilt link pr. række bekræftet i Chrome desktop (øvrige-krav-spec 2/2, 2026-10-24).
+- **Kodeaflæst eller kun delvist målt:** Datoens grænser og beskeder er konkret målt; `0` blev målt før rettelsen som neutral celle med en separat fejlbesked. Den nye positive feltgrænse og fælles rækkebedømmelse er efterfølgende målt i browseren for BB-332. At negativt beløb afvises ved indtastning er aflæst fra codec; validatorens negative beløb blev vurderet som kun nåeligt ved load, ikke målt i brugerforløbet.
+- **Konkrete resterende dækningshuller:** Den dokumenterede B6a-prøve med kun en ugyldig dato viste, at rækken tælles; der er ikke målt en række med kun fejlende råtekst eller en indtastet beskrivelse ryddet igen. Der er ikke målt datagrænserne 0 kr./lige over 0 efter rettelsen, beskrivelsens 59/60/61 tegn, eller flere fejltyper i samme række efter den fælles assessor. Kontanthjælps-forbeholdet er fortsat kun kodeverificeret. Word, `Gem`/`Hent`, undo/redo efter kravvalget, regnearkspaste og kontrolfanen er ikke prøvet.
+
+### Prøvekatalog A1–A8 og B0–B7 – dimension for dimension
+
+Status skelner mellem oprindelig browsermåling, kode-/testaflæsning og konkret manglende prøve.
+
+- **A1 – forventninger:** **Browser:** kravvalgets navn, kolonnerne Dato/Udgift til/Beløb og beskederne blev læst; beskrivelsens længde blev set. **Kode/test:** fælles assessor og cellernes labels. **Uprøvet:** alle tilgængelige navne/enheder i skærmlæser, hjælpetekster og hele dokumentets feltnavne.
+- **A2 – status og mangler:** **Browser:** Ja/Nej/Skjul, skjult delrække, tomt Ja, fejlbeskeder, links, PDF-gate og post-fix identiske gentagne fejl blev målt. **Kode/test:** delte rækkevurderinger og summarytests. **Uprøvet:** alle downloadgate-tilstande og tooltipårsager.
+- **A3 – rækkefølge:** **Browser:** delvis række og valgskift blev prøvet. **Kode:** dato er valgfri, beskrivelse/beløb krævet. **Uprøvet:** indtast felter i alle rækkefølger, ret fejl og tilføj/slet mens en anden celle er åben.
+- **A4 – tavshed:** **Browser:** skjulte værdier bevares ved kravvalgsskift; forbeholdets placering og tomt «Ja» blev undersøgt. **Kode/test:** relevansprojektion og dokumentlinjer. **Uprøvet:** `Gem`/`Hent` af skjult delrække, gamle filer med rejected/ugyldige celler og om genvisning bevarer alle værdier efter load.
+- **A5 – fejl:** **Browser:** ugyldig dato, nulbeløb før rettelse, flere række-mangler, uden-for-periode-advarsel og post-fix BB-332-forløb med identiske rækker og separate links. **Kode/test:** efterfølgende positiv amount-validator, fælles assessor og BB-332 separate rækker. **Uprøvet:** post-fix browserprøve af 0/1 kr., samtidig fejltyper og gul advarsel sammen med rød celle.
+- **A6 – fortrydelse:** **Browser:** ingen undo/redo, Escape eller tilbagevenden efter sletning. **Kode:** fælles tabel-/historymekanisme. **Uprøvet:** fortryd kravvalg, rækkeoprettelse/sletning, sortering og åbne edits ved navigation/F5.
+- **A7 – ensartethed:** **Browser:** PDF-layout, sum og udvalgte rækker blev sammenholdt med tabellen. **Kode/test:** danske beskeder og shared assessor. **Uprøvet:** Word mod PDF, sammenligning med TAF/S/S-fejlordlyd og alle tal-/datovisninger.
+- **A8 – helhedsforløb:** **Browser:** konkrete kravrækker fra input til PDF og samlet sum. **Kode:** forligsreduktion og bilagsadvarsel er sporet. **Uprøvet:** ny bruger fra tom sag til slutdokument, inklusive hvad «Ja» kræver og hvor hvert problem rettes.
+- **B0 – grænser:** **Browser:** 0 kr. før rettelse, datofejl og 60-tegns beskrivelse. **Kode/test:** positiv beløbsgrænse og 60-tegnsloft. **Uprøvet:** 0/1 kr. efter rettelse, 59/60/61 tegn, beløbsekstremer og præcise datokanter.
+- **B1 – enkeltfelt:** **Browser:** ugyldig kalenderdato og nulbeløb. **Kode:** negative beløb kan ikke tastes med codec; load-validatoren er separat. **Uprøvet:** negativ legacyværdi i browserload, whitespace/hårde mellemrum, emoji, Excel-paste, minus alene og slet/undo.
+- **B2 – datoer:** **Browser:** før skadedato, efter dags dato, 31-02 og uden-for-EO-periode. **Kode/test:** bounds og assessor. **Uprøvet:** skudår, datopar med fra=til/omvendt, præcis på EO-periodegrænse og ændret EO-periode efter datoindtastning.
+- **B3 – perioder/tabeller:** **Browser:** flere poster, sortering og dokumentrækkefølge; én ugyldig-dato-række. **Kode/test:** tomhed, identiske fejl og row-specific links. **Uprøvet:** post-fix browserforløb med identiske delrækker, mange rækker, slet/reorder og indsættelse under åben celle.
+- **B4 – kombination/rækkefølge:** **Browser:** Ja→Nej/Skjul→Ja med bevarede værdier; skjult fejl og forbehold afhængigt af andre sider. **Kode/test:** relevansgate. **Uprøvet:** dato/EO-periode ændret efter indtastning, flere fejl i samme række, forudsætning ryddet og afvigelse mellem sagsdata og dokument.
+- **B5 – lovligt/usandsynligt:** **Browser:** en dato uden for perioden udløser ikke-blokerende advarsel. **Kode:** beløb og sum/forlig er kontrolregnet. **Uprøvet:** beløb faktor 10/1000, usædvanligt store lovlige beløb, dato langt fra sagen og tærskelværdier efter rettelsen.
+- **B6 – tilstandsskift:** **Browser:** skift mellem oplysninger og Beregning, links og PDF. **Kode:** fælles history-/persistenceflow. **Uprøvet i den oprindelige kørsel:** undo/redo, `Gem`/`Hent`, F5, browser-tilbage, luk fane, «Slet alt» og åben editor. Playwright kan automatisere filvælger og download; de senere navngivne loadtests dækker andre sager.
+- **B6a – tomhed:** **Browser:** tom tabel/Ja-advarsel, skjult delvis række og række med kun ugyldig dato blev undersøgt. **Kode/test:** ny projection skelner tom trailing række fra påbegyndt delrække; Zod normaliserer gammel alenestående `udgiftTil: ''` til `undefined`. **Uprøvet:** browser-load af eksplicit tom legacycelle, kun rejected råtekst, ryddet tidligere række og post-fix visuelt rækkeantal.
+- **B7 – downstream:** **Browser:** PDF, sorteringsrækkefølge, sum og forligsreduktion blev målt. **Kode/test:** dokumentmodel og beregning er delt; browsermålt gammel `.eo`-adfærd findes for nærliggende 12a/12b-fejl, ikke denne række. **Uprøvet:** Word, save→load af rækkedata, skjulte værdier og dokumentparitet efter ændret kravvalg. De navngivne ældre-filsager er ikke generelle save→load-rundture.

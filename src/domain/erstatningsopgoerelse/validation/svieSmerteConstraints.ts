@@ -40,11 +40,11 @@ export const buildSvieSmerteCutoffErrorMessage = (args: Readonly<{
     return undefined;
   }
   const dateText = isoToDanish(args.menAfgoerelseDato) ?? args.menAfgoerelseDato;
-  return `Der er angivet svie/smerte efter datoen for en ménafgørelse (${dateText})`;
+  return `Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (${dateText})`;
 };
 
 /**
- * Periodens linje i «Fejl og advarsler». Ligger allerede fra-datoen efter ménafgørelsen, ligger hele
+ * Periodens linje i «Fejl og advarsler». Ligger allerede fra-datoen på eller efter ménafgørelsen, ligger hele
  * perioden der, og linjen siger det – samme form som TAF-periodernes (BB-244). Ellers er det til-cellens
  * besked. Cellerne beholder hver sin besked fra `buildSvieSmerteCutoffErrorMessage`.
  */
@@ -56,7 +56,7 @@ export const buildSvieSmertePeriodeCutoffErrorMessage = (args: Readonly<{
   const { fra, til, menAfgoerelseDato } = args;
   if (menAfgoerelseDato === undefined) return undefined;
   if (fra !== undefined && fra >= menAfgoerelseDato) {
-    return `Hele perioden ligger efter datoen for ménafgørelsen (${isoToDanish(menAfgoerelseDato) ?? menAfgoerelseDato})`;
+    return `Hele perioden ligger på eller efter datoen for ménafgørelsen (${isoToDanish(menAfgoerelseDato) ?? menAfgoerelseDato})`;
   }
   return buildSvieSmerteCutoffErrorMessage({ value: til, menAfgoerelseDato });
 };

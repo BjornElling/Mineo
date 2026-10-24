@@ -196,6 +196,42 @@ export const setVerbatimFieldValueAndSettle = async (
 };
 
 /**
+ * Registrerer de faktiske felter, som en fejllink får til at blinke.
+ *
+ * En klasseaflæsning bagefter er ikke nok: blinkklassen forsvinder igen, og en animation kan være
+ * startet og afsluttet, før Playwright når tilbage fra handlingen. Browser-events er den fælles
+ * observation af både mål og gentagne animationer.
+ */
+export const startFieldBlinkRecording = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const recorded = window as Window & { __mineoFieldBlinkAddresses?: string[] };
+    recorded.__mineoFieldBlinkAddresses = [];
+    document.addEventListener('animationstart', (event) => {
+      if (event.animationName !== 'mineoFieldAttentionBlink' || !(event.target instanceof HTMLElement)) return;
+      const target = event.target;
+      const input = target.matches('input[data-mineo-field-address]')
+        ? target
+        : target.querySelector<HTMLElement>('input[data-mineo-field-address]');
+      recorded.__mineoFieldBlinkAddresses?.push(
+        input?.getAttribute('data-mineo-field-address') ?? target.className,
+      );
+    }, true);
+  });
+};
+
+/** Aflæser blinkmål, som allerede er skrevet ned under animationens start. */
+export const readFieldBlinkRecording = (page: Page): Promise<string[]> =>
+  page.evaluate(() => (window as Window & { __mineoFieldBlinkAddresses?: string[] })
+    .__mineoFieldBlinkAddresses ?? []);
+
+/** Nulstiller observationen uden at ændre browserens eventregistrering. */
+export const clearFieldBlinkRecording = (page: Page): Promise<void> =>
+  page.evaluate(() => {
+    (window as Window & { __mineoFieldBlinkAddresses?: string[] })
+      .__mineoFieldBlinkAddresses?.splice(0);
+  });
+
+/**
  * Test-fixture med runtime-orakler slået til fra FØR første navigation.
  *
  * `runtimeSignals` og `externalRequests` opsamles altid; et spec, der ikke hævder på dem, mister dermed

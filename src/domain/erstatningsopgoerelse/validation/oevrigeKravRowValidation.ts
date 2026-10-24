@@ -15,8 +15,9 @@ import type { FieldIssue } from '../../../inputCore/inputIssue';
  *    mangle en nøjagtig dato og trykkes da uden datopræfiks.
  *  - **En rød celle meldes med sin egen tekst**, aldrig som tom. Readeren maskerer en rød værdi til tom, så
  *    en ugyldig dato blev før meldt som «Dato mangler» oveni sin egen fejl (BB-230).
- *  - **Én linje pr. række, med rækkens navn og alle dens mangler**, så to rækker med samme mangel aldrig
- *    giver ens tekst og foldes til én (BB-231), og så en række med tre mangler ikke giver tre linjer.
+ *  - **Én linje pr. række, med rækkens navn og alle dens mangler.** Rækkebyggeren tilføjer dato og beløb,
+ *    når rækker ellers har samme beskrivelse; hvis de stadig er identiske, også rækkens synlige rækkefølge
+ *    (BB-231). En række med flere mangler giver fortsat kun én linje.
  *
  * Feltnavnene står i «» (udviklerafgørelse 2026-09-23, BB-237): «Udgift til» og «Beløb» er også almindelige
  * ord, og brugeren skal kunne se, at de henviser til en kolonne på siden.
@@ -35,8 +36,13 @@ export type OevrigeKravPeriode = Readonly<{ fra: ISODateString; til: ISODateStri
 
 export type OevrigeKravRowAssessment =
   | Readonly<{ kind: 'empty' }>
-  | Readonly<{ kind: 'ok' }>
-  | Readonly<{ kind: 'error' | 'warning'; message: string; focusColumn: OevrigeKravColumn }>;
+  | Readonly<{ kind: 'ok'; missingColumns: readonly [] }>
+  | Readonly<{
+    kind: 'error' | 'warning';
+    message: string;
+    focusColumn: OevrigeKravColumn;
+    missingColumns: readonly OevrigeKravColumn[];
+  }>;
 
 /**
  * En dato uden for opgørelsens «Vedrører perioden». IKKE-blokerende (udviklerafgørelse 2026-09-23, BB-235): en
@@ -83,17 +89,22 @@ export const assessOevrigeKravRow = (
   row: OevrigeKravRow,
   cellIssues: OevrigeKravCellIssues,
   periode: OevrigeKravPeriode | undefined,
-  options: Readonly<{ kvalificeretNavn?: boolean }> = {},
+  options: Readonly<{ kvalificeretNavn?: boolean; rowNumber?: number }> = {},
 ): OevrigeKravRowAssessment => {
   const beloeb = amountValueToNumber(row.beloeb);
-  const harDato = row.dato !== undefined || isRedIssue(cellIssues.dato);
   const harUdgiftTil = hasText(row.udgiftTil) || isRedIssue(cellIssues.udgiftTil);
   const harBeloeb = beloeb !== undefined || isRedIssue(cellIssues.beloeb);
-  if (!harDato && !harUdgiftTil && !harBeloeb) return { kind: 'empty' };
+  // Tomhedsvalideringen har historisk regnet en tilstedeværende tom streng som en påbegyndt række;
+  // bevar det, så blank tekst får mangelfejl i stedet for at forsvinde som en tom række.
+  const harDefineretFeltvaerdi = row.dato !== undefined || row.udgiftTil !== undefined || row.beloeb !== undefined;
+  const harFeltfejl = isRedIssue(cellIssues.dato) || isRedIssue(cellIssues.udgiftTil) || isRedIssue(cellIssues.beloeb);
+  if (!harDefineretFeltvaerdi && !harFeltfejl) return { kind: 'empty' };
 
-  const name = rowName(row, beloeb, options.kvalificeretNavn === true);
+  const baseName = rowName(row, beloeb, options.kvalificeretNavn === true);
+  const name = options.rowNumber === undefined ? baseName : `Øvrigt krav ${options.rowNumber}: ${baseName}`;
   const dele: string[] = [];
   let focusColumn: OevrigeKravColumn | undefined;
+  const missingColumns: OevrigeKravColumn[] = [];
   const noter = (column: OevrigeKravColumn, message: string): void => {
     dele.push(message);
     focusColumn ??= column;
@@ -103,6 +114,8 @@ export const assessOevrigeKravRow = (
 
   const udgiftTilMangler = !harUdgiftTil;
   const beloebMangler = !harBeloeb;
+  if (udgiftTilMangler) missingColumns.push('udgiftTil');
+  if (beloebMangler) missingColumns.push('beloeb');
   if (isRedIssue(cellIssues.udgiftTil)) noter('udgiftTil', cellIssues.udgiftTil.message.trim());
   if (udgiftTilMangler && beloebMangler) {
     noter('udgiftTil', OEVRIGE_KRAV_BEGGE_MANGLER_MESSAGE);
@@ -116,7 +129,7 @@ export const assessOevrigeKravRow = (
   }
 
   if (focusColumn !== undefined) {
-    return { kind: 'error', message: `${name}: ${dele.join('; ')}`, focusColumn };
+    return { kind: 'error', message: `${name}: ${dele.join('; ')}`, focusColumn, missingColumns };
   }
 
   if (periode !== undefined && isOevrigeKravDatoUdenforPeriode(row.dato, periode)) {
@@ -124,8 +137,9 @@ export const assessOevrigeKravRow = (
       kind: 'warning',
       message: `${name}: ${buildOevrigeKravDatoUdenforPeriodeMessage(periode)}`,
       focusColumn: 'dato',
+      missingColumns,
     };
   }
 
-  return { kind: 'ok' };
+  return { kind: 'ok', missingColumns: [] };
 };

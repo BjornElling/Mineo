@@ -145,6 +145,25 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     ]);
   });
 
+  it('skelner også mellem helt ens rækker, så ingen mangel skjules (BB-332)', () => {
+    const rows = buildEoOevrigeKravRows(
+      valuesWith([
+        { id: 'a', dato: iso('2024-03-15'), udgiftTil: 'Medicin', beloeb: undefined },
+        { id: 'b', dato: iso('2024-03-15'), udgiftTil: 'Medicin', beloeb: undefined },
+      ]),
+      EMPTY_FIELD_ISSUE_SET,
+    );
+
+    expect(rows.map((row) => row.message)).toEqual([
+      'Øvrigt krav 1: Medicin (15-03-2024): «Beløb» er ikke udfyldt',
+      'Øvrigt krav 2: Medicin (15-03-2024): «Beløb» er ikke udfyldt',
+    ]);
+    expect(rows.map((row) => row.focusTarget)).toEqual([
+      focusOf(eoOevrigeKravBeloebField, 'a'),
+      focusOf(eoOevrigeKravBeloebField, 'b'),
+    ]);
+  });
+
   it('advarer uden at blokere, når datoen ligger uden for opgørelsens periode (BB-235)', () => {
     const values = valuesWith([
       { id: 'foer', dato: iso('2019-06-15'), udgiftTil: 'Medicin', beloeb: amount(100) },

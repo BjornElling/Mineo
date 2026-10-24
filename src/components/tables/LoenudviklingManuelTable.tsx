@@ -4,6 +4,7 @@ import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { bindSortableHeader, useTableSort } from './useTableSort';
+import { usePersistSortedCollectionOrder } from './useSortedCollectionTable';
 import { useCollectionTable } from './useCollectionTable';
 import {
   GridAmountCell,
@@ -83,6 +84,7 @@ export default function LoenudviklingManuelTable({
     locationPrefix,
     locationNav,
   });
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const columns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: LoenudviklingManuelRow) => row.id === baseRowId ? baseDateISO : row.dato },
     { colId: 'grundloen', getSortValue: (row: LoenudviklingManuelRow) => amountValueToNumber(row.grundloen) },
@@ -91,31 +93,22 @@ export default function LoenudviklingManuelTable({
     { colId: 'fritvalg', getSortValue: (row: LoenudviklingManuelRow) => row.fritvalg },
     { colId: 'agPension', getSortValue: (row: LoenudviklingManuelRow) => row.agPension },
   ], [baseDateISO, baseRowId]);
+  const getRowId = React.useCallback((row: LoenudviklingManuelRow) => row.id, []);
   const sort = useTableSort({
     rows: committedRows,
-    getRowId: (row) => row.id,
+    anchorRowId: baseRowId,
+    getRowId,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
-    onSortedRowsChange: (next) => {
-      const anchored = baseRowId === undefined
-        ? next
-        : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)].filter(
-          (row): row is LoenudviklingManuelRow => row !== undefined
-        );
-      table.reorderRows(anchored.map((row) => row.id));
-    },
+    onSortedRowsChange: (next) => persistSortedOrder(next.map(getRowId)),
   });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
   // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) –
   // ikke ved at permutere en færdigbygget model på plads bagefter.
-  const orderedRows = React.useMemo(() => {
-    const existing = baseRowId === undefined
-      ? sort.sortedRows
-      : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter(
-        (row): row is LoenudviklingManuelRow => row !== undefined
-      );
-    return table.buildRenderRows(existing);
-  }, [baseRowId, committedRows, sort.sortedRows, table]);
+  const orderedRows = React.useMemo(
+    () => table.buildRenderRows(sort.sortedRows),
+    [sort.sortedRows, table]
+  );
   // Fail-closed for ældre/ufuldstændig state: selv uden en canonical basisrække er den første synlige række
   // programstyret. Datoen må aldrig falde tilbage til en redigerbar placeholder.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, orderedRows);

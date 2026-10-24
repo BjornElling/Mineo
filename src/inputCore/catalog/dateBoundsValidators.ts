@@ -91,13 +91,13 @@ export const dateBoundsValidator = (
   const belowMin = minDate !== undefined && value < minDate;
   const aboveMax = maxDate !== undefined && value > maxDate;
   if (!belowMin && !aboveMax) return undefined;
-
   const origin = typeof spec.origin === 'function' ? spec.origin(context) : spec.origin;
   const special = spec.special?.(context);
 
   return {
     reason: 'bounds',
     code: `${field.descriptor.id}.bounds`,
+    ...(spec.issuePriority === undefined ? {} : { priority: spec.issuePriority }),
     message: resolveDateRangeErrorMessage({
       iso: value,
       minDate,

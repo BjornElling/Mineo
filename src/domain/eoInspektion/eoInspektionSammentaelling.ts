@@ -6,11 +6,10 @@ import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
 import { parseDanishNumberString as parseCanonicalDanishNumberString } from '../../utils/numberParsing';
 import { kontrolTabelColumnId } from './eoInspektionLoenTypes';
-import type { EOInspektionModel } from './eoInspektionKontrolModel';
+import type { EOInspektionBeregningsperiodeProjection, EOInspektionModel } from './eoInspektionKontrolModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
-import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { buildFerieDageSetForPeriode, buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
@@ -42,6 +41,7 @@ export type TaftContext = Readonly<{
 
 export type SammentaellingModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
+  tafBranchAvailable: boolean;
   beregningsperiode: SammentaellingControl;
   taf: SammentaellingControl;
   svieSmerteSygedage: SammentaellingControl;
@@ -127,8 +127,9 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
   const beregningsperiodeLabel =
     `Arbejdsdage i beregningsperiode (${ferieShPrefix} ${formatCount(beregningsFerieDageTilLabel)} feriedage og ${formatCount(model.beregningsperiode.shDageCount)} SH-dage)${beregningsEkstraSuffix}`;
 
-  const tafLabel =
-    `Arbejdsdage i TAF-periode (${ferieShPrefix} ${formatCount(tafFerieDageTilLabel)} feriedage og ${formatCount(model.taf.shDageCount)} SH-dage)${tafEkstraSuffix}`;
+  const tafLabel = model.tafBranchAvailable
+    ? `Arbejdsdage i TAF-periode (${ferieShPrefix} ${formatCount(tafFerieDageTilLabel)} feriedage og ${formatCount(model.taf.shDageCount)} SH-dage)${tafEkstraSuffix}`
+    : 'Arbejdsdage i TAF-periode';
 
   const basisRows: SammentaellingDisplayRow[] = [
     {
@@ -341,12 +342,14 @@ export const buildEOInspektionSammentaellingModel = (args: {
   svieSmerteContext: SvieSmerteContext;
   taftContext: TaftContext;
   tafRanges?: readonly IsoRange[];
+  beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
   canonicalOutput?: EoCanonicalOutput;
   sfggResult?: SygeferiegodtgoerelseResult;
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot. Når tilstede bruges dette
    *  direkte i stedet for et nyt kald – sikrer at sammentællingen bruger præcis
    *  det samme resultat som beregningen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;
+  blockedBranches?: Readonly<{ svieSmerte: boolean; taf: boolean }>;
 }): SammentaellingModel => {
   const { values, model } = args;
 
@@ -355,7 +358,9 @@ export const buildEOInspektionSammentaellingModel = (args: {
   const isTafEnabled = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
   const isSvieSmerteEnabled = values.kravPaaSvieSmerteGodtgoerelse === 'Ja';
 
-  const beregningsRange = toIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
+  const beregningsRange = args.beregningsperiodeProjection === undefined
+    ? toIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil)
+    : args.beregningsperiodeProjection.range ?? null;
   const erstatningsRange = toIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
 
   const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange, {
@@ -421,37 +426,13 @@ export const buildEOInspektionSammentaellingModel = (args: {
   const tafShDageCount = tafShDates.size;
 
   /**
-   * Er beregningsperioden et FÆRDIGT og indbyrdes gyldigt input?
-   *
-   * Begge sider af sammentællingskontrollen skal hvile på samme svar. Gjorde de ikke det, blev en
-   * helt almindelig indtastningsfejl til en kontroluoverensstemmelse: den beregnede side kunne ikke
-   * dannes («-»), mens tabelsiden uanfægtet talte arbejdsdage videre. En uoverensstemmelse mellem
-   * «intet tal» og «263» er ikke to opgørelser, der er uenige – det er ÉN opgørelse, der mangler.
-   *
-   * Brugerfund 2026-09-17: en beregningsperiode, der slutter samme dag som TAF-perioden begynder
-   * (01-03-2024 i begge ender), er et overlap. Fejlen er allerede fortalt brugeren som en rød række
-   * («Der er overlap mellem beregningsperioden ... og en TAF-periode», `eoRowTafBeregningsgrundlagRows`),
-   * og den blokerer downloaden ad den vej. Asymmetrien her lagde ovenikøbet
-   * `control:sammentaelling_mismatch` oven på – en SYSTEMFEJL, der åbnede notitsen «Teknisk fejl
-   * registreret» og pegede brugeren mod en kodefejl frem for mod sin egen dato.
+   * Beregningsperiodens to datoer kan stadig afgrænse dens egen arbejdsdags- og indtægtstælling, når
+   * de overlapper en TAF-række. Overlappet spærrer TAF-grenen og vises som sin egen røde fejl; det gør
+   * ikke selve beregningsperioden ulæselig. Ugyldige datofelter får derimod ingen safe range ovenfor.
    */
   const erBeregningsperiodeInputKlar = (() => {
     if (values.beregnesUdFra !== 'Beregningsperiode') return false;
-
-    const periodeFra = values.tafBeregningsperiodeFra;
-    const periodeTil = values.tafBeregningsperiodeTil;
-    if (!periodeFra || !periodeTil) return false;
-    if (periodeFra > periodeTil) return false;
-
-    const overlap = computeTafOverlapWithBeregningsperiode({
-      beregningsperiode: { fra: periodeFra, til: periodeTil },
-      tafPerioder: (values.tafPerioder ?? []).map((periode) => ({
-        id: periode.id,
-        fra: periode.fra,
-        til: periode.til,
-      })),
-    });
-    if (overlap.firstOverlapMessage) return false;
+    if (!beregningsRange) return false;
 
     if (values.oevrigtFravaerUdenLoen === 'Ja' && values.oevrigeFravaersdage === undefined) {
       return false;
@@ -465,8 +446,12 @@ export const buildEOInspektionSammentaellingModel = (args: {
   const beregningsArbejdsdage = erBeregningsperiodeInputKlar
     ? countArbejdsdageInRange(model, beregningsRange)
     : null;
-  const tafArbejdsdageFromTable = isTafEnabled ? countTafDaysFromTable(model) : null;
-  const svieSmerteTabelCounts = isSvieSmerteEnabled ? countSvieSmerteFromTable(model, erstatningsRange) : null;
+  const tafBranchAvailable = args.blockedBranches?.taf !== true;
+  const svieSmerteBranchAvailable = args.blockedBranches?.svieSmerte !== true;
+  const tafArbejdsdageFromTable = isTafEnabled && tafBranchAvailable ? countTafDaysFromTable(model) : null;
+  const svieSmerteTabelCounts = isSvieSmerteEnabled && svieSmerteBranchAvailable
+    ? countSvieSmerteFromTable(model, erstatningsRange)
+    : null;
 
   // Sammentællingen må kun vise autoritative svie/smerte-tal fra snapshot-pipelinen.
   // Hvis engine-output ikke er leveret, vises ingen beregnet værdi.
@@ -478,7 +463,7 @@ export const buildEOInspektionSammentaellingModel = (args: {
     ? { sygedage: svieSmerteEngineCounts.sygedage, delviseSygedage: svieSmerteEngineCounts.delviseSygedage }
     : null;
 
-  const tafBeregnetDays = isTafEnabled
+  const tafBeregnetDays = isTafEnabled && tafBranchAvailable
     ? computeTafArbejdsdageAggregation({
       erstatningsopgoerelse: values,
       tafPerioder: values.tafPerioder ?? [],
@@ -491,10 +476,7 @@ export const buildEOInspektionSammentaellingModel = (args: {
 
   const beregningsperiodeArbejdsdage = (() => {
     if (!erBeregningsperiodeInputKlar) return null;
-
-    const periodeFra = values.tafBeregningsperiodeFra;
-    const periodeTil = values.tafBeregningsperiodeTil;
-    if (!periodeFra || !periodeTil) return null;
+    if (!beregningsRange) return null;
 
     const beregningsFerieperioder = values.fravaerPerioder ?? [];
     const oevrigeFravaersdageValue =
@@ -502,8 +484,8 @@ export const buildEOInspektionSammentaellingModel = (args: {
         ? values.oevrigeFravaersdage
         : 0;
     const breakdown = calculateTafArbejdsdageBreakdown(
-      periodeFra,
-      periodeTil,
+      beregningsRange.fra,
+      beregningsRange.til,
       beregningsFerieperioder,
       typeof values.uspecificeredeFerieFridage === 'number' ? values.uspecificeredeFerieFridage : 0,
       { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
@@ -561,7 +543,7 @@ export const buildEOInspektionSammentaellingModel = (args: {
     ? args.sfggResult.perAnsaettelsesforhold.reduce((sum, entry) => sum + entry.totalOre, 0)
     : null;
 
-  const beregningsperiodeRange = isBeregningsperiode ? buildBeregningsperiodeRange(values) : undefined;
+  const beregningsperiodeRange = isBeregningsperiode ? beregningsRange ?? undefined : undefined;
   const beregningsperiodeRanges = beregningsperiodeRange ? [beregningsperiodeRange] : [];
   // tafRanges skal altid leveres fra engines (clampede); tom liste ved validerings-fejl-sti.
   const tafRanges = isTafEnabled ? (args.tafRanges ?? []) : [];
@@ -616,13 +598,16 @@ export const buildEOInspektionSammentaellingModel = (args: {
     }];
   };
 
-  const tafIndtaegter = [
-    ...buildIndtaegtEntries(tafRanges, 'taf'),
-    ...buildTafHypotetiskIndkomstEntries(),
-  ];
+  const tafIndtaegter = tafBranchAvailable
+    ? [
+      ...buildIndtaegtEntries(tafRanges, 'taf'),
+      ...buildTafHypotetiskIndkomstEntries(),
+    ]
+    : [];
 
   return {
     beregningsenhed,
+    tafBranchAvailable,
     beregningsperiode: buildSammentaellingControl({
       // Grundlaget mangler, når beregningsperioden ikke er et gyldigt, færdigt input – fx to
       // perioder der deler en dag, eller et påkrævet fraværsantal der endnu ikke er tastet.

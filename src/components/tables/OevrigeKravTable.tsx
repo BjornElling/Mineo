@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
@@ -125,13 +125,14 @@ const OevrigeKravTable = React.memo(({ committedRows, saveOrderPath, periode }: 
     { colId: 'udgiftTil', getSortValue: (row: OevrigeKravRow) => row.udgiftTil },
     { colId: 'beloeb', getSortValue: (row: OevrigeKravRow) => amountValueToNumber(row.beloeb) },
   ], []);
+  const persistSortedOrder = usePersistSortedCollectionOrder(collectionRef);
 
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns: sortColumns,
-    reorderRows: table.reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
 

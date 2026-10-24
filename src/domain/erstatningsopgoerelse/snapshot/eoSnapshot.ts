@@ -2,7 +2,11 @@ import { getToday } from '../../../config/dateRanges';
 import { erstatningsopgoerelseSchema, stamdataSchema, type ErstatningsopgoerelseValues, type StamdataValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
-import { buildEOInspektionSnapshot, type EOInspektionSnapshot } from '../../eoInspektion/eoInspektionSnapshot';
+import {
+  buildEOInspektionSnapshot,
+  type EOInspektionBlockedBranches,
+  type EOInspektionSnapshot,
+} from '../../eoInspektion/eoInspektionSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
@@ -46,7 +50,12 @@ import {
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { collectSammentaellingControlMismatchMessages } from '../control/eoControlMismatch';
 import { resolveStamdataDateOrder } from '../../stamdata/stamdataDateOrder';
-import { EMPTY_FIELD_ISSUE_SET, type FieldIssueSet } from '../../../inputCore/inputIssue';
+import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../../inputCore/inputIssue';
+import { eoTafBeregningsperiodeFraField, eoTafBeregningsperiodeTilField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
+import { validateIsoRange } from '../../../utils/isoDateHelpers';
+import type { EOInspektionBeregningsperiodeProjection } from '../../eoInspektion/eoInspektionKontrolModel';
+import { isPeriodOverlapIssue } from '../periodOverlapIssues';
 import {
   EMPTY_EO_DEPENDENCY_PROJECTION,
   resolveEoBlockedDependencies,
@@ -187,7 +196,9 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
   stamdataErrors: FieldIssueSet;
   eoErrors: FieldIssueSet;
   tafRanges?: readonly IsoRange[];
+  beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
   svieSmerteEngine?: SvieSmerteEngineOutput;
+  blockedBranches?: EOInspektionBlockedBranches;
   canonicalOutput?: EoCanonicalOutput;
   sfggResult?: TafNettoBeregningResult['sygeferiegodtgoerelse'];
 }>): EOInspektionSnapshot => {
@@ -198,10 +209,67 @@ const buildInspektionSnapshotForComputed = (args: Readonly<{
     stamdataErrors: args.stamdataErrors,
     eoErrors: args.eoErrors,
     tafRanges: args.tafRanges,
+    beregningsperiodeProjection: args.beregningsperiodeProjection,
     svieSmerteEngine: args.svieSmerteEngine,
+    blockedBranches: args.blockedBranches,
     canonicalOutput: args.canonicalOutput,
     sfggResult: args.sfggResult,
   });
+};
+
+/**
+ * TAF-perioder med røde datofelter må ikke udvide kontroltabellen. Kun overlapissues bevarer rækken:
+ * datoerne er læsbare, og den samlede periodisering kan vise deres forenede interval. Bounds, cutoff og
+ * datoorden gør derimod rækken ugyldig som inspektionsgrundlag.
+ */
+const getTafRowsWithUnsafeDateIssues = (issues: readonly FieldIssue[]): ReadonlySet<string> => {
+  const rowIds = new Set<string>();
+  for (const issue of issues) {
+    const address = issue.field.address;
+    if (
+      address.section !== 'erstatningsopgoerelse'
+      || (address.field !== 'fra' && address.field !== 'til')
+      || isPeriodOverlapIssue(issue)
+    ) {
+      continue;
+    }
+    const row = address.path.find((segment) => segment.kind === 'entity' && segment.collection === 'tafPerioder');
+    if (row?.kind === 'entity') rowIds.add(row.entityId);
+  }
+  return rowIds;
+};
+
+const buildSafeTafRangesForInspektion = (
+  values: TafCalculationValues,
+  skadedatoISO: ISODateString | undefined,
+  issues: readonly FieldIssue[]
+): readonly IsoRange[] => {
+  const invalidRowIds = getTafRowsWithUnsafeDateIssues(issues);
+  const safeValues: TafCalculationValues = {
+    ...values,
+    tafPerioder: (values.tafPerioder ?? []).filter((row) => !invalidRowIds.has(row.id)),
+  };
+  return buildTafRanges(safeValues, { skadedatoISO });
+};
+
+const BEREGNINGS_PERIODE_FIELD_ADDRESSES = new Set([
+  serializeFieldAddress(eoTafBeregningsperiodeFraField.bind().address),
+  serializeFieldAddress(eoTafBeregningsperiodeTilField.bind().address),
+]);
+
+/** Deler den sikre periode mellem tabel og sammentælling; issues bruges kun til at afgøre sikkerheden her. */
+const buildBeregningsperiodeProjectionForInspektion = (
+  values: Pick<TafCalculationValues, 'beregnesUdFra' | 'tafBeregningsperiodeFra' | 'tafBeregningsperiodeTil'>,
+  issues: readonly FieldIssue[],
+): EOInspektionBeregningsperiodeProjection => {
+  const relevantIssues = issues.filter((issue) =>
+    BEREGNINGS_PERIODE_FIELD_ADDRESSES.has(serializeFieldAddress(issue.field.address))
+  );
+  const unsafeDateIssues = relevantIssues.filter((issue) => !isPeriodOverlapIssue(issue));
+  const range = values.beregnesUdFra === 'Beregningsperiode' && unsafeDateIssues.length === 0
+    ? validateIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil)
+    : undefined;
+  return Object.freeze({ range });
 };
 
 /**
@@ -399,6 +467,10 @@ export const computeEoSnapshot = (args: Readonly<{
         tidligereModtagetTaf: undefined,
       };
     const projectedTafStamdata = dependencyProjection.tafInput?.stamdata ?? parsedStamdata.data;
+    const beregningsperiodeProjectionForInspektion = buildBeregningsperiodeProjectionForInspektion(
+      projectedTafValues,
+      dependencyProjection.tafIssues,
+    );
     const projectedOevrigeKravValues = dependencyProjection.oevrigeKravInput ?? effectiveEoValues;
 
     // Her stod tidligere en `invariant_guard` for `eoAngivetLoenLoenudvikling.loenPaaHelligdage === undefined`
@@ -471,20 +543,27 @@ export const computeEoSnapshot = (args: Readonly<{
           computeSvieSmerteEngine(projectedSvieSmerteInput),
           blockedDependencies.forlig
         );
-      // TAF-ranges er periodiseringen, ikke en beløbsberegning, men den læser TAF-grenens datofelter: en rød
-      // TAF-dato ville ellers give en periodisering udledt af en maskeret tomværdi (udviklerbeslutning 2 kræver
-      // omvendt, at en GYLDIG TAF-visning overlever en S/S-fejl – ikke at en ugyldig vises).
-      const tafRangesForInspektion = blockedDependencies.taf
-        ? undefined
-        : buildTafRanges(projectedTafValues, { skadedatoISO: projectedTafStamdata.skadedato });
+      // Kontrolvisningen må vise perioder fra TAF-rækker med læsbare datoer, men aldrig falde tilbage til en
+      // rød datos canonical værdi. Overlap er stadig læsbare perioder og samles af samme range-helper; den
+      // røde fejl blokerer fortsat TAF-beregningen gennem dependency-gaten.
+      const tafRangesForInspektion = buildSafeTafRangesForInspektion(
+        projectedTafValues,
+        projectedTafStamdata.skadedato,
+        dependencyProjection.tafIssues,
+      );
       const inspektionSnapshotForValidationError = buildInspektionSnapshotForComputed({
         revision: args.revision,
         stamdata: parsedStamdata.data,
         eoValues: effectiveEoValues,
         stamdataErrors,
         eoErrors,
-        ...(tafRangesForInspektion === undefined ? {} : { tafRanges: tafRangesForInspektion }),
+        tafRanges: tafRangesForInspektion,
+        beregningsperiodeProjection: beregningsperiodeProjectionForInspektion,
         svieSmerteEngine: svieSmerteForInspektion,
+        blockedBranches: {
+          svieSmerte: blockedDependencies.svieSmerte,
+          taf: blockedDependencies.taf,
+        },
       });
       return {
         revision: args.revision,
@@ -501,7 +580,7 @@ export const computeEoSnapshot = (args: Readonly<{
         // svie/smerte-felt er rødt.
         readyBranches: Object.freeze({
           svieSmerte: svieSmerteForInspektion,
-          tafPerioder: tafRangesForInspektion,
+          tafPerioder: blockedDependencies.taf ? undefined : tafRangesForInspektion,
         }),
         inspektionSnapshot: inspektionSnapshotForValidationError,
         input: {
@@ -557,6 +636,7 @@ export const computeEoSnapshot = (args: Readonly<{
       stamdataErrors,
       eoErrors,
       tafRanges,
+      beregningsperiodeProjection: beregningsperiodeProjectionForInspektion,
       svieSmerteEngine: svieSmerte,
       canonicalOutput,
       sfggResult: tafNetto.sygeferiegodtgoerelse,

@@ -28,6 +28,11 @@ export type KontrolTabelDateSource = Readonly<{
   til: ISODateString | undefined;
 }>;
 
+/** Sikker projektion af beregningsperioden fra EO's TAF-input og dets konkrete feltissues. */
+export type EOInspektionBeregningsperiodeProjection = Readonly<{
+  range: IsoRange | undefined;
+}>;
+
 export type KontrolTabelColumnId =
   | (typeof KONTROL_TABEL_COLUMN_IDS)[keyof typeof KONTROL_TABEL_COLUMN_IDS]
   | `loen:${number}:taf_regulering`
@@ -447,6 +452,7 @@ export const buildEOInspektionModel = (
   options: Readonly<{
     tafRanges?: readonly IsoRange[];
     skadedatoISO?: ISODateString;
+    beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
     /** Clampede svie/smerte-perioder fra engine. Når leveret afspejler kontroltabellen
      *  præcist de perioder der indgik i beregningen – ikke de rå committede datoer. */
     svieSmerteConstrainedPeriods?: readonly SvieSmerteConstrainedPeriod[];
@@ -454,9 +460,16 @@ export const buildEOInspektionModel = (
 ): EOInspektionModel => {
   const erstatningsFra = values.vedroererPeriodeFra;
   const erstatningsTil = values.vedroererPeriodeTil;
-  const beregningsFra = values.tafBeregningsperiodeFra;
-  const beregningsTil = values.tafBeregningsperiodeTil;
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
+  // Snapshot-pipelinen leverer en issue-gatet projektion. Direkte modelkald uden snapshot beholder den
+  // eksisterende rå-inputsti til selvstændige kontrolmodeller og deres tests.
+  const projectedBeregningsperiodeRange = options.beregningsperiodeProjection?.range;
+  const beregningsFra = options.beregningsperiodeProjection === undefined
+    ? values.tafBeregningsperiodeFra
+    : projectedBeregningsperiodeRange?.fra;
+  const beregningsTil = options.beregningsperiodeProjection === undefined
+    ? values.tafBeregningsperiodeTil
+    : projectedBeregningsperiodeRange?.til;
   const menStopDato =
     values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
 

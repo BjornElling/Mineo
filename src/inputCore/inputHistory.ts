@@ -69,6 +69,28 @@ export type InputHistory = Readonly<{
   future: readonly InputHistoryFrame[];
 }>;
 
+/** Opdaterer snapshot-input uden at tilføje eller fjerne en undo-position. */
+export const mapInputHistoryInputs = (
+  history: InputHistory,
+  mapInput: (input: SettledInput) => SettledInput
+): InputHistory => {
+  const mapFrames = (frames: readonly InputHistoryFrame[]): readonly InputHistoryFrame[] => {
+    let changed = false;
+    const mapped = frames.map((frame) => {
+      const input = mapInput(frame.input);
+      if (input === frame.input) return frame;
+      changed = true;
+      return Object.freeze({ ...frame, input });
+    });
+    return changed ? Object.freeze(mapped) : frames;
+  };
+  const past = mapFrames(history.past);
+  const future = mapFrames(history.future);
+  return past === history.past && future === history.future
+    ? history
+    : Object.freeze({ past, future });
+};
+
 export const createInputHistory = (): InputHistory => Object.freeze({
   past: Object.freeze([]),
   future: Object.freeze([]),

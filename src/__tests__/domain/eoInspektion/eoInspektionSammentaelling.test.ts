@@ -1,15 +1,24 @@
 
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
+  buildEOInspektionSammentaellingModel,
   buildSammentaellingDisplayTables,
+  buildSvieSmerteContext,
+  buildTaftContext,
   type SammentaellingModel,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
 import {
   beregnetVaerdi,
   buildSammentaellingControl,
+  collectSammentaellingControlMismatchMessages,
   getSammentaellingControlStatus,
   type SammentaellingControl,
 } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { IsoRange } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { toISODateString } from '../../../types/branded';
 
 /** Kontrolrækker bygges gennem produktionskonstruktøren; brandet lukker håndskrevne literaler ude. */
 const makeControl = (overrides: Readonly<{
@@ -84,6 +93,7 @@ describe('getSammentaellingControlStatus', () => {
 describe('buildSammentaellingDisplayTables', () => {
   const makeModel = (overrides: Partial<SammentaellingModel> = {}): SammentaellingModel => ({
     beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    tafBranchAvailable: true,
     beregningsperiode: {
       ...baseControl,
       ferieDageCount: 5,
@@ -149,5 +159,45 @@ describe('buildSammentaellingDisplayTables', () => {
   it('mærker SFGG-rækken med korrekt label', () => {
     const tables = buildSammentaellingDisplayTables(makeModel());
     expect(tables.sfgg[0]?.label).toBe('Sygeferiegodtgørelse');
+  });
+
+  it('tømmer begge TAF-sammenligningssider, når den røde TAF-række blokerer grenen', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
+      vedroererPeriodeFra: toISODateString('2027-12-01'),
+      vedroererPeriodeTil: toISODateString('2027-12-31'),
+      beregnesUdFra: 'Beregningsperiode' as const,
+      tafBeregningsperiodeFra: toISODateString('2027-12-01'),
+      tafBeregningsperiodeTil: toISODateString('2027-12-31'),
+      tafPerioder: [{
+        id: 'taf-roed-slutdato',
+        fra: toISODateString('2027-12-30'),
+        til: toISODateString('2028-01-10'),
+        loseFeriedage: 0,
+      }],
+      ferieperioder: [],
+      fravaerPerioder: [],
+    };
+    const tafRanges: readonly IsoRange[] = [];
+    const model = buildEOInspektionModel(values, { tafRanges });
+    const sammentaelling = buildEOInspektionSammentaellingModel({
+      values,
+      model,
+      svieSmerteContext: buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values),
+      taftContext: buildTaftContext(STAMDATA_INITIAL_VALUES, values),
+      tafRanges,
+      blockedBranches: { svieSmerte: false, taf: true },
+    });
+    const tafRow = buildSammentaellingDisplayTables(sammentaelling).basis.find((row) => row.key === 'arbejdsdage-taf');
+
+    expect(tafRow?.control).toMatchObject({
+      beregnetDisplay: '-',
+      tabelDisplay: '-',
+      beregnetValue: null,
+      tabelValue: null,
+    });
+    expect(tafRow && getSammentaellingControlStatus(tafRow.control)).toBe('ok');
+    expect(collectSammentaellingControlMismatchMessages(tafRow ? [tafRow] : [])).toEqual([]);
   });
 });

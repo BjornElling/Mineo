@@ -172,7 +172,7 @@ describe('TD-019 – svie/smerte-cutoff uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'svieSmertePerioder[0].til',
-        message: 'Der er angivet svie/smerte efter datoen for en ménafgørelse (05-01-2024)',
+        message: 'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (05-01-2024)',
         severity: 'error',
       }],
     });

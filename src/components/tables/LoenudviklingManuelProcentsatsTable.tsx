@@ -4,6 +4,7 @@ import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { GridReadOnlyLockedCell } from './GridReadOnlyLockedCell';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { bindSortableHeader, useTableSort } from './useTableSort';
+import { usePersistSortedCollectionOrder } from './useSortedCollectionTable';
 import { useCollectionTable } from './useCollectionTable';
 import { GridDateCell, GridPercentCell } from '../../inputCore/react/fields/gridCells';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
@@ -49,6 +50,7 @@ export type LoenudviklingManuelProcentsatsTableProps = Readonly<{
 export default function LoenudviklingManuelProcentsatsTable({ bindings, collection, committedRows, ruleIssues, cellWarnings, baseDateDisplay, baseDateISO, baseDateErrorMessage, baseDateInfoTooltipText, useSmallFont = false, locationPrefix, locationNav }: LoenudviklingManuelProcentsatsTableProps) {
   const baseRowId = committedRows[0]?.id;
   const table = useCollectionTable({ collection, committedRows, createRowId: generateLoenudviklingRowId, createEmptyRow, locationPrefix, locationNav });
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const entries = React.useMemo(() => buildManuelProcentsatsEntries({ anvendtReguleringsdato: isISODateString(baseDateISO) ? baseDateISO : undefined, rows: committedRows }), [baseDateISO, committedRows]);
   const entryById = React.useMemo(() => new Map(entries.map((entry) => [entry.rowId, entry])), [entries]);
   const columns = React.useMemo(() => [
@@ -57,12 +59,19 @@ export default function LoenudviklingManuelProcentsatsTable({ bindings, collecti
     { colId: 'indeks', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.anvendtIndeks },
     { colId: 'akkumuleret', getSortValue: (row: LoenudviklingManuelProcentsatsRow) => entryById.get(row.id)?.anvendtPct },
   ], [baseDateISO, baseRowId, entryById]);
-  const sort = useTableSort({ rows: committedRows, getRowId: (row) => row.id, isRowEmpty: (row) => table.isRowEmpty(row.id), columns, onSortedRowsChange: (next) => table.reorderRows((baseRowId === undefined ? next : [committedRows[0], ...next.filter((row) => row.id !== baseRowId)]).filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined).map((row) => row.id)) });
+  const getRowId = React.useCallback((row: LoenudviklingManuelProcentsatsRow) => row.id, []);
+  const sort = useTableSort({
+    rows: committedRows,
+    anchorRowId: baseRowId,
+    getRowId,
+    isRowEmpty: (row) => table.isRowEmpty(row.id),
+    columns,
+    onSortedRowsChange: (next) => persistSortedOrder(next.map(getRowId)),
+  });
   // Basisrækken er programstyret og ankres først; resten følger sorteringen. Den orden er
   // tabellens visningsorden, og render-modellen bygges af den ÉT sted (`buildRenderRows`) –
   // ikke ved at permutere en færdigbygget model på plads bagefter.
-  const existing = baseRowId === undefined ? sort.sortedRows : [committedRows[0], ...sort.sortedRows.filter((row) => row.id !== baseRowId)].filter((row): row is LoenudviklingManuelProcentsatsRow => row !== undefined);
-  const renderRows = table.buildRenderRows(existing);
+  const renderRows = table.buildRenderRows(sort.sortedRows);
   // Fail-closed for ældre/ufuldstændig state: en manglende canonical basisrække må aldrig gøre første dato
   // redigerbar. Normale valg opretter basisrækken atomisk før tabellen vises.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, renderRows);

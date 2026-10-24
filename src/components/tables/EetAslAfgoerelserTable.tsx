@@ -9,7 +9,7 @@ import {
   emptyAslAfgoerelseRowFields,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import { APP_ROUTES, PAGE_DEFAULT_TAB } from '../../config/pageNavigation';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
@@ -263,13 +263,14 @@ const EetAslAfgoerelserTable = React.memo(
       { colId: 'tidlKapDato', getSortValue: (row: AslAfgoerelseRow) => row.tidlKapDato },
       { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
+    const persistSortedOrder = usePersistSortedCollectionOrder(erhvervsevnetabAslAfgoerelserCollectionRef);
 
     const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
-      reorderRows: table.reorderRows,
+      persistSortedOrder,
       saveOrderPath,
     });
 

@@ -38,6 +38,7 @@ samme transaktion som inputtet.
 | `Ctrl/Cmd+Z` | Undo til seneste inputframe |
 | `Ctrl/Cmd+Y` eller `Ctrl/Cmd+Shift+Z` | Redo |
 | Tekst-/grid-editor åben | Stille no-op; browserens native tekst-undo forhindres |
+| Brugeren sorterer en tabelkolonne | Sorteringen gemmes i input og `.eo`, men laver ikke et undo-/redo-trin; tidligere og fremtidige frames følger den nye rækkefølge |
 | Load/hel-sags-clear | History ryddes efter succesfuld apply |
 | Side-/sektionsreset | Almindelig command, som kan fortrydes |
 | Save | Ingen history-effekt |
@@ -62,6 +63,11 @@ og en no-op giver intet.
 
 Gyldig værdi + rydning af rejection, ny rejection, rækkepromovering og descendant-oprydning er alle dele af den samme
 command. Der er derfor intet behov for coalescing, globale pending-markører eller microtasks.
+
+Kolonnesortering går gennem den samme validerede write- og persistence-grænse, men er ikke en history-command. Den
+reorderer den aktuelle tabelorden og rebases `past` og `future` til den valgte orden uden at tilføje eller fjerne
+frames. Dermed bevarer undo/redo både sorteringen og den eksisterende redo-gren. Denne capability er kun til
+kolonnesortering; almindelig manuel flytning af rækker bruger fortsat en normal undoable `reorderRows`-command.
 
 ## Restore
 
@@ -113,7 +119,8 @@ persistence er upåvirkede.
 
 History behøver ingen særskilt række-draftmodel:
 
-- add/delete/reorder er typed commands,
+- add/delete og almindelig manuel reorder er undoable typed commands; tabelkolonnesortering bruger den separate
+  persistente sorteringsport uden history-trin,
 - første settle i en tom UI-række promoverer række og felt atomisk,
 - sletning fjerner række og descendant-rejections i samme frame,
 - undo gendanner begge dele fra inputframen,
@@ -149,3 +156,4 @@ Arkitekturen er dækket af tests for:
 - historygrænser og redo-gren,
 - stille no-op mens editor er åben,
 - load/hel-sags-clear rydder history, mens side-reset kan fortrydes.
+- sortering uden history-frame, rebasing af både undo- og redo-snapshots, samt bevarelse af almindelig undoable reorder.

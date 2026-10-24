@@ -51,7 +51,14 @@ const evaluateOne = (
   if (mangler) dele.push(mangler);
 
   if (dele.length === 0) {
-    return hasOverlap ? { kind: 'error', message: overlapLinje, field: 'fra' } : { kind: 'ok' };
+    return hasOverlap
+      ? {
+          kind: 'error',
+          message: overlapLinje,
+          field: 'fra',
+          summaryDeduplicationGroup: 'ferieperiode-overlap',
+        }
+      : { kind: 'ok' };
   }
   const beskeder = [...new Set(dele.map((del) => del.message))];
   if (hasOverlap) beskeder.push(overlapLinje);

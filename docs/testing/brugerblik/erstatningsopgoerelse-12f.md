@@ -82,6 +82,23 @@ første opgørelse» er gennemgået i 12a (BB-203). Offentlige ydelser i beregni
 **Tilbagemelding**
 Enig. Og for 0 kr. skal løsningen være: (a) rød ring «Månedslønnen skal være større end 0 kr.» Kontroller venligst gerne, om der er nogen andre lignende problemstillinger, fx. ved 'Angivet dagsløn' og ret også disse.
 
+### BB-333 – «Ingen indkomst i beregningsperioden» står sammen med fejlen om samlet negativ løn eller ydelse
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal – samspil mellem BB-258 og BB-290
+- **Prioritet:** Mellem
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: vis kun den præcise fejl om den negative kilde.
+  **GENNEMFØRT** 2026-10-24: beregningsgrundlagsrækken bruger den detaljerede indkomstprojektion; når perioden har en
+  samlet negativ kilde, udelades «Ingen indkomst», mens den navngivne fejl og eksisterende blokering bevares.
+  Unit- og E2E-regressionstests dækker forløbet.
+- **Sådan fremprovokeres det:** Vælg «Beregningsperiode». Indtast en lønrække eller ydelsesrække i perioden, så kildens samlede beløb bliver negativt, og sørg for, at ingen anden kilde bidrager positivt.
+- **Det sker:** «Fejl og advarsler» viser både den navngivne fejl om den samlede negative løn eller ydelse og «Ingen indkomst i beregningsperioden». Den negative række står samtidig synligt i sin tabel.
+- **Det er uhensigtsmæssigt fordi:** To forklaringer på samme manglende beregningsgrundlag kan få brugeren til at tro, at der mangler en indtægtsrække, selv om den synlige række er årsagen til blokeringen.
+- **Bedre ville være:** Vis kun den navngivne fejl om den samlede negative kilde i denne situation. Behold «Ingen indkomst i beregningsperioden», når der hverken findes en positiv eller en samlet negativ kilde.
+- **Andre steder det kan gælde:** SFGG-referenceperioden skelner mellem ingen løn og samlet negativ løn, og dens rækkevurdering undertrykker gentagne forklaringer. Ingen anden samtidig generisk «Ingen indkomst»-linje blev fundet i EO.
+
+**Kilde- og kombinationskontrol 2026-10-24:** `buildIncomeForRangesDetailed` skiller positive arbejdsgivere og ydelser fra `negativeSources`. Rækken «Ingen indkomst» afgøres ud fra denne projektion, mens `eoRowIndkomstRows.ts` viser de navngivne negativekilde-fejl. Chrome-kontrollen i perioden `01-01-2025`–`31-01-2025` viste begge linjer ved negativ løn alene, negativ ydelse alene og begge negative uden positiv kilde. En positiv arbejdsgiver eller ydelse fjernede den generiske linje, mens fejlene for de særskilte negative kilder blev stående. Konsollen havde 0 fejl og 0 advarsler. De eksisterende 12f- og 12h-tests dækkede hver sin side, men ikke kombinationen; BB-333 har nu egne unit- og E2E-tests.
+
 ### BB-259 – Én arbejdsdag tilbage giver en dagsindkomst på 360.000 kr. uden et ord
 
 - **Type:** Edge case
@@ -196,6 +213,43 @@ Jeg tenderer mod at afvise fundet. Når det er lavet på denne måde, skyldes de
 
 **Tilbagemelding**
 Enig. Der er mange dato-felter i programmet, som er fra- og til-datoer. Hvis det giver mening at lave en samlet løsning til at håndtere overlap, så de alle håndteres ensartet og ud fra en gennemtænkt, stabil løsning, så overvej gerne at implementere en sådan.
+
+### BB-338 – Lønsatsernes reference følger den røde slutdato for beregningsperioden
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal – beregningsperiodens slutdato påvirker lønsatsernes viste reference på Lønindkomst (12h)
+- **Prioritet:** **Mellem**
+- **Beslutning:** **AFVIST – BEHOLD NUVÆRENDE ADFÆRD** (udvikleren, 2026-10-24). Den indtastede reference og satsernes nuværende brug af den bevares, også mens datoen er rød. Ingen produktændring.
+- **Sådan fremprovokeres det:** Vælg «Beregningsperiode». Med skadedato `01-06-2018` indtast beregningsperioden `01-01-2030`–`02-02-2030`, så begge datoer får rød grænse med maksimum `31-12-2027`. Gå derefter til Lønindkomst.
+- **Det sker:** På lønkortet står «Aktuelt anvendes beregningsperiodens udløb (02-02-2030).» og overskriften «Satser ved beregningsperiodens udløb (02-02-2030)». Når slutdatoen midlertidigt ændres til gyldige `31-12-2027`, skifter begge henvisninger til `31-12-2027`; når den ugyldige slutdato gendannes, viser de igen `02-02-2030`. PDF-download er spærret af periodefejlene, men lønsatsernes reference er synlig på den anden fane.
+- **Afgørelsen i praksis:** Browseren viste referenceetiketterne «Aktuelt anvendes beregningsperiodens udløb (02-02-2030)» og «Satser ved beregningsperiodens udløb (02-02-2030)», samtidig med at datoerne var røde. Udvikleren har besluttet, at referencen fortsat skal vises og bruges. Fundet står derfor som afgjort uden kodeændring.
+- **Kilde og følgevirkning:** `erstatningsopgoerelseReaderProjection.ts` læser kontekstfejl sammen med canonical-værdien i den fælles `eoValues`-projektion. `useLoenindkomstViewModel` sender `tafBeregningsperiodeTil` til `deriveLoenindkomstVm`, og både `resolveAnvendtReguleringsdato` og `projectLoenindkomstSatser` bruger slutdatoen. Den viste satsdato er browsermålt; den konkrete ændring af et satsbeløb med valgt overenskomst er ikke målt.
+- **Kontrol af bilagsvælgeren i browseren, 2026-10-24:** Med den røde beregningsperiode `01-01-2030`–`02-02-2030`, TAF `30-01-2030`–`31-01-2030` og en dagpengerække på `10.000,00 kr.` i januar 2030 var både «Offentlige ydelser» og «Regulering» i bilagsvælgeren deaktiveret. «Offentlige ydelser i beregningsperioden reguleres» stod afkrydset, men deaktiveret. Da ydelsesbeløbet blev sat til `0`, var de samme valg stadig deaktiveret med de samme forklaringer. Den tidligere direkte helperreproduktion viste en forskel, som ikke genfindes gennem den faktiske browsersti; den er derfor en falsk positiv som brugeradfærd og dokumenteres ikke som et fund. Ingen ændring af BB-338-afgørelsen.
+
+### BB-339 – En rød fraværsslutdato bevarer de viste feriedagstal
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-41--en-rød-kontekstdato-kan-stadig-påvirke-afledte-visninger`. Browsermålt i fraværstabellen; EO-kontrolsporet er særskilt kontrolleret nedenfor.
+- **Prioritet:** **Mellem**
+- **Beslutning:** **AFGJORT 2026-10-24 – BEHOLD DEN NUVÆRENDE ADFÆRD.** Fraværsrækkens viste «Feriedage» og feriedagene i EO-kontrol bevares, også når en rækkedato er rød. Det gælder også tidligere gemte `.eo`-filer. Ingen produktændring.
+- **Sådan fremprovokeres det:** Med beregningsperiode `01-10-2026`–`31-10-2026`, en lønrække på `30.000,00 kr.` i 10/2026, «Fuld løn under ferie» slået fra og «Løn på helligdage» sat til «Ingen» bliver fraværstabellen synlig. Opret fraværsrækken `29-10-2026`–`10-01-2028`; til-datoen bliver rød med grænsen `31-12-2027`.
+- **Det sker – browsermålt 2026-10-24:** Fraværsrækkens røde slutdato står sammen med «Feriedage» `2`. Udvikleren har besluttet at bevare dette viste antal, også for ældre `.eo`-filer. Der er ikke ændret produktadfærd.
+- **Det sker – EO-kontrol, modelreproduktion:** Med skadedato `01-06-2018`, beregningsperiode `01-12-2027`–`31-12-2027` og fraværsrække `30-12-2027`–`10-01-2028` får `30-12-2027` markeringen «Feriedag», og periodens ferieoptælling viser to dage. Fjernes rækken, forsvinder markeringen, og optællingen bliver nul. Netop dette december-2027-eksempel er reproduceret i modellen.
+- **Efterkontrol – gammel-fil-browserregression, 2026-10-24:** En syntetisk ældre 3.14-fil indlæses uden load-advarsel med beregningsperiode oktober 2026 og fravær fra månedens sidste to hverdage til `10-01-2028`. Til-datoen er rød; «Feriedage» viser `2`, EO-kontrollens ferieoptælling viser `2 feriedage`, begge kalenderdage markeres «Feriedag», der vises ingen «Teknisk fejl registreret», og download er blokeret. Chrome-desktop-testen bestod. Det godkendte dagstal og markeringerne er dermed browsermålt på en gammel-fil-rejse; december-2027-modelscenariet ovenfor er fortsat ikke særskilt browsermålt.
+- **Teknisk spor:** `createTrackedInputReader(..., { includeContextIssues: true })` indsamler kontekstfejlen, men returnerer stadig canonical-datoen. `fravaerPerioder` går videre til inspektionssnapshot uden issue-gating. `buildExplicitFerieSet` i `eoInspektionKontrolModel.ts` og `buildFerieDatesInRange` i `eoInspektionSammentaelling.ts` læser perioderne. Feriedage-cellen i EO-oplysninger bygges fra `values.fravaerPerioder` via `buildFerieFeriedageById`. Ingen af disse forløb ændres, da den viste optælling er godkendt.
+- **Afgrænsning:** TAF-rækkens synlige «TAF-arbejdsdage» er behandlet særskilt under BB-340. Udvikleren har godkendt at bevare rækkens `2`, samtidig med at kontroltabellen undlader at sammenligne den røde række.
+
+### BB-340 – En TAF-række med rød slutdato viser stadig et dagstal
+
+- **Type:** Beslutningskandidat
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-41--en-rød-kontekstdato-kan-stadig-påvirke-afledte-visninger`. Browsermålt i 12f.
+- **Prioritet:** Mellem
+- **Beslutning:** **AFGJORT** af udvikleren 2026-10-24: behold `2` i TAF-rækkens «TAF-arbejdsdage», også når slutdatoen er rød og i tidligere gemte `.eo`-filer. Kontroltabellen må samtidig vise `– / –` for TAF-perioden og dens dagstal, mens rækken er rød, så et delresultat ikke bliver sammenlignet som et fuldt resultat. Ingen produktændring.
+- **Sådan fremprovokeres det:** Med skadedato `01-06-2018` opret TAF-rækken `30-12-2027`–`10-01-2028`, hvor systemets datomaksimum er `31-12-2027`.
+- **Det sker – browsermålt 2026-10-24:** Til-datoen får en rød markering og viser grænsen `31-12-2027`, mens rækkens «TAF-arbejdsdage» viser `2`. I «Beregning» → «Kontroltabel» vises samtidig `– / –` for både TAF-periodens fra/til-interval og «Arbejdsdage i TAF-periode». Når slutdatoen ændres til gyldige `31-12-2027`, viser kontroltabellen `30-12-2027 / 31-12-2027` og `2 / 2`; kalenderens daglige markeringer for 30. og 31. december er ens i begge tilstande.
+- **Efterkontrol – gammel-fil-browserregression, 2026-10-24:** En syntetisk ældre 3.14-fil med TAF `30-12-2027`–`10-01-2028` bevarer rækkens `2`; kontroltabellens røde række viser `– / –`, og ingen teknisk fejl vises. Chrome-desktop-testen bestod. Den manuelle browsermåling ovenfor viste desuden den gyldige kontrast `2 / 2`.
+- **Afgørelsen i praksis:** Brugeren beholder det delvise `2` i TAF-rækken, men kontroltabellen undlader at sammenligne den røde række med TAF-beregningen. Det gælder også for tidligere gemte `.eo`-filer. Denne afgrænsning er særskilt godkendt; den dækker ikke andre kontroltal, som ikke er omtalt her.
+- **Andre steder det kan gælde:** Ingen yderligere brugeradfærd blev bekræftet i denne måling.
 
 ### BB-263 – I måneder tager ferie og uspecificerede dage imod oplysninger, der intet gør – og de kan stadig spærre
 
@@ -530,8 +584,9 @@ Jeg afviser fundet. Hvis brugeren veksler mellem de to, vil det typisk være for
 - **«Ingen ferie i beregningsperiode på > 6 måneder forekommer tvivlsomt»** kommer kun i arbejdsdage og kun uden ferie og
   uspecificerede dage – rimelig og ikke-blokerende.
 - **«Antal fraværsdage er sat til 0»** som advarsel frem for fejl er M-13's afgjorte form.
-- **Feriedage-kolonnen** tæller kun dage i beregningsperioden, og en række helt uden for viser `0`; info-ikonet «Kun dage
-  i beregningsperioden fremgår» er BB-249's afgjorte løsning.
+- **Feriedage-kolonnen** tæller kun dage i beregningsperioden, når en gyldig beregningsperiode findes; en række helt
+  uden for den viser `0`. Uden en gyldig periode tæller den fælles helper hele fraværsrækken, og info-ikonet siger nu
+  det samme. Se 12e/BB-344; komponenttesten kontrollerer også beregningsperiodens forklaring og det bevarede dagstal.
 - **Angivet løn uden «- baseret på»** giver en gul advarsel, og papiret falder pænt tilbage til «Der lægges en månedsløn
   til grund på …».
 - **«Løn på helligdage» under angivet løn** er ikke M-35: den læses af reguleringen (overenskomstsegmenter) og hører i 12i.
@@ -557,8 +612,56 @@ Jeg afviser fundet. Hvis brugeren veksler mellem de to, vil det typisk være for
   afprøvet her.
 - Flere ansættelsesforhold med hver sin enhed er ikke afprøvet (12g).
 - Lønudvikling andet end «Ingen» er ikke afprøvet (12i).
-- `Gem`/`Hent` er ikke afprøvet (filvælgeren kan ikke betjenes headless).
+- `Gem`/`Hent` indgik ikke i den oprindelige browserkørsel. Playwright kan automatisere filvælger og
+  download. De senere BB-339/340-regressioner dækker kun deres navngivne ældre-filsager og er ikke en
+  generel save→load-rundtur for beregningsgrundlaget.
 - Blinkmålet for validatorlinjernes «EO oplysninger»-link er ikke målt.
+- Den oprindelige BB-262-kørsel brugte en gyldig beregningsperiode og afdækkede derfor ikke, at en rød slutdato
+  fortsat bruges som satsreference på Lønindkomst (BB-338). Browserkontrollen 2026-10-24 målte den synlige
+  reference. Udvikleren har afgjort, at den skal bevares, også når datoen er rød; intet satsbeløb med valgt
+  overenskomst/løntrin blev målt.
+- Den oprindelige kørsel dækkede ikke ugyldige kontekstdatoer i kombination med afledte bilag, negative-indkomst-
+  visninger eller gemte/indlæste `.eo`-sager. Efterkontrollen målte fraværsrækkens dagstal (BB-339), TAF-rækkens
+  dagstal og kontroltabellens sammenligning (BB-340), og bilagsvælgeren både med og uden en ydelse i januar 2030.
+  Disse målinger brugte en ny sag, ikke tidligere gemte `.eo`-filer. Satsbeløbet med valgt overenskomst er heller
+  ikke målt. Se katalogafstemningen nedenfor.
+
+## Efterkontrol af Brugerblik-kataloget A1–A8 og B0–B7
+
+Status skelner mellem browsermåling, kildeaflæsning og udækket adfærd. En unit-test eller en kildegennemgang er
+ikke i sig selv browserdækning.
+
+| Prøve | Browsermålt | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Delvist: labels, enheder og fejltekster blev set i de almindelige beregningsforløb; BB-338 målte satsreferenceetiketten med rød periodedato. | Ingen særskilt forståelsestest af felter eller om to fagfolk ville vælge samme input. Satsbeløb med valgt overenskomst er umålt. |
+| A2 – overblik og mangler | Målt: tomt beregningsgrundlag, advarsler, røde felter og downloadblokering i fundene BB-258, BB-262 og BB-264–266. Bilagsvælgerens status blev browserkontrolleret med og uden ydelse i den røde periode og var uændret. | Hele sidens færdig-/ikke-færdig-overblik er ikke gennemgået som en ny bruger. |
+| A3 – rækkefølge | Delvist: Beregningsperiode, beregningsgrundlag og efterfølgende PDF blev brugt i fundenes konkrete forløb. | Ingen systematisk prøve af at udfylde afhængige felter før/efter forudsætninger eller hop mellem faner. |
+| A4 – tavshed | Målt: uvirksomme ferie-/fraværsoplysninger i måneder, beregningsstop ved nulgrundlag og den generiske linje sammen med negative kilder; BB-333's positive/negative kildekombinationer blev også målt. Bilagsvælgeren blev browsermålt med og uden en rød januar-2030-ydelse, uden ændret enablement. BB-344's komponenttest kontrollerer nu, at beregningsgrundlagets dagstal og tooltip begge gælder hele rækken uden gyldig beregningsperiode. | Den konkrete beregningsgrundlagstilstand er ikke målt i browseren. Gamle `.eo`-sagers oplevelse efter load er ikke målt. Andre afledte forbrugere med rød kontekstdato er kun delvist dækket af BB-338–340. |
+| A5 – fejl | Målt: konkrete feltringe, fejl/advarsler, grænsetekster, rækkelinks og downloadgate i BB-258–266 og BB-333. | Ingen komplet gennemgang af alle beskrivelser, tastaturfokus og reparationsforløb for hver fejltype. |
+| A6 – fortrydelse | Ingen særskilt browsermåling i 12f-efterkontrollen. | Undo/redo, Escape, genindlæsning og sletning af rækker i denne flade er udækket. |
+| A7 – ensartethed | Delvist: beregningsperiodens overlap blev sammenholdt med TAF-tabellens kendte overlapform; negative kildefejl blev sammenholdt med SFGG-referenceperiodens adfærd. | Ingen komplet sammenligning af ordlyd, fokus, formatering og inputadfærd med alle søsterflader. |
+| A8 – helhed | Ingen særskilt browsermåling af en førstegangsbruger gennem hele fladen. | Sandsynlige fejltrin, samlet opgaveflow og konsekvensen af oversete input skal stadig vurderes. |
+| B0 – grænser | Målt: nulgrundlag, fradrag der æder perioden, ferie i/uden for vinduet og røde periode-/rækkegrænser. BB-339 målte også en rød fraværsslutdato. | Ikke alle felter, grænser, naboværdier og kontekstafledte min/max er gennemgået felt for felt. |
+| B1 – feltinput | Målt: nul i løngrundlag og negative samlede løn-/ydelseskilder; relevante navngivne fejl blev set. | Blanktegn, paste fra Word/Excel, Unicode, ekstrem længde, decimalstøj, Escape og hver felttypes grænsepartition er ikke systematisk prøvet. |
+| B2 – datoer | Målt: omvendt beregningsperiode, ferieperioder og kontekstdato efter systemgrænsen i BB-339/340. | Skudår, 31-02, ligedato, dag før/efter alle feltspecifikke grænser og ændring af allerede afhængige datoer er ikke dækket samlet. |
+| B3 – perioder/tabeller | Målt: ferieoverlap, beregningsperiode/TAF-overlap, fravær i beregningsperioden og TAF-/ferietællinger. | Tomme trailing rows, dubletter, mange rækker, rækkesletning med afhængigheder og redigering samtidig med rækkeoprettelse er ikke fuldt afprøvet. |
+| B4 – kombinationer | Målt: måned/arbejdsdagsenhed, valg af lønform, ferie/fravær, negative indkomstkilder og rød kontekstdato. | Alle rækkefølger, forudsætningsændringer, krydsflader og kombination med rejected input på en anden flade er ikke prøvet. |
+| B5 – lovligt, usandsynligt | Målt: én tilbageværende arbejdsdag og de viste ekstreme fradrag; PDF-beløbet på 360.000 kr. blev set før rettelsen. | Andre plausibilitetsbånd for beløb, procentsatser, alder og årtier fra sagens datoer er udækket. |
+| B6 – tilstandsskift | Delvist: beregningsenhedens skiftende feltrelevans blev gennemgået i BB-263; tre navngivne gamle-filsager blev efterfølgende browsermålt via hentning af 3.14-fil. | I den oprindelige kørsel: navigation med åben editor, F5, browser tilbage, `Gem`/`Hent`, hurtigt gentagne handlinger og undo/redo i 12f er ikke målt. Playwright kan automatisere filvælger og download; de nye tests dækker kun BB-339/340 og overlap-eksemplet. |
+| B6a – tomhed | Delvist: «Ingen indkomst» blev målt mod ingen, negativ og positiv indkomst; TAF uden rækker er dækket i 12e, ikke som en fuld 12f-rækkeprøve. Beregningsgrundlagets ferie uden gyldig beregningsperiode er komponenttestet under BB-344, ikke browsermålt. | Tom række, kun formateringsvalg, kun ugyldige værdier og hvert enkelt felt i en næsten tom beregningsgrundlagsrække er ikke gennemgået systematisk. |
+| B7 – nedstrøms | Målt: beregningsresultat og PDF for de oprindelige fund; BB-339 målte Feriedage `2`; BB-340 målte TAF-arbejdsdage `2` samtidig med `– / –` i TAF-kontrollens interval og dagstal; bilagsvælgeren blev sammenlignet med og uden en januar-2030-ydelse. Den godkendte overlapvisning er målt til `22 / 22`, mens TAF-kontrollen står `– / –`; alle tre navngivne gamle-fil regressioner bestod i Chrome-desktop. | Samme `.eo` før/efter save/load, en generel save→load-rundtur samt valgt-overenskomstens afledte satsbeløb er ikke browsermålt. |
+
+### Eftermålt og afgjort kontroltal ved overlap i beregningsperioden
+
+Med gyldige datointervaller, der kun var røde på grund af overlap (`beregningsperiode 01-01-2026`–`31-01-2026`, TAF
+`15-01-2026`–`20-01-2026`), viste «Kontroltabel» `22 / 22` for «Arbejdsdage i beregningsperiode». Før den seneste
+rettelse ville den tidligere overlapbetingelse have givet `– / –`; TAF-kontrollen viser fortsat `– / –`. EO-kontrol
+viser samtidig overlapfejlen, og download er blokeret. Autoritativ beregning og PDF bygges ikke i den fejlsti
+(`status: error`, `data: null` i `eoSnapshot.ts`), så målingen er kun et synligt kontroltal. Udvikleren har godkendt
+at bevare `22 / 22`, fordi de sammenlignede værdier er ens, samtidig med at den røde TAF-rækkes interval og
+sammenligning står `– / –`. Der må ikke opstå `control:sammentaelling_mismatch` eller «Teknisk fejl registreret»;
+PDF-download skal fortsat være blokeret. Det samme gælder tidligere gemte `.eo`-filer. En regressionstest med en
+3.14-fil er tilføjet i `e2e/erstatningsopgoerelse-tidligere-filer.spec.ts` og bestod i den samlede Chrome-desktop-kørsel af gamle-filer, TAF-perioder og S/S-cutoff (20/20 tests). Den konkrete overlaptest bekræftede `22 / 22`, TAF `– / –`, ingen teknisk kontrolfejl og fortsat blokeret download.
 
 ## Åbne spørgsmål
 
@@ -572,3 +675,11 @@ fradrog beregningsperiodens – målt 1.607,14 kr. mod 1.569,21 kr. og 1.652,37 
 programmets kontrol meldte uoverensstemmelse. Nu gælder hver ferietabel kun i sin egen periode
 (`resolveIndkomstFerieperioder`) i motorens fordeling, lønindkomstens afledte kolonner, «ingen arbejdsdage»-advarslen
 og kontrollaget. Kun sager med en beregningsperiode efter skaden ændrer tal.
+
+**Efterprøvet 2026-10-24:** BB-333 blev godkendt og gennemført samme dag. Den generiske linje står fortsat, når perioden
+hverken har positiv eller samlet negativ indkomst.
+
+BB-338 er afgjort uden kodeændring: satsreferencen bevares ved rød beregningsperiodeslutdato. BB-339 er afgjort
+uden kodeændring: fraværsrækkens feriedagstal og EO-kontrols ferievisning bevares, også for ældre `.eo`-filer.
+BB-340 er afgjort 2026-10-24 uden kodeændring: TAF-arbejdsdagstallet `2` bevares ved rød slutdato, også for tidligere
+gemte `.eo`-filer.

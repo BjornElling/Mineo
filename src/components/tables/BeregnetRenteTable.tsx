@@ -4,7 +4,7 @@ import DownloadIconButton from '../inputs/DownloadIconButton';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import { formatKr } from '../../utils/formatUtils';
 import { round2, sumRoundedValues } from '../../utils/roundingShortcuts';
 import type { ISODateString } from '../../types/branded';
@@ -277,13 +277,14 @@ const BeregnetRenteTable = React.memo(
       { colId: 'belob', getSortValue: (row: RentekravRow) => amountValueToNumber(row.belob) },
       { colId: 'renterFra', getSortValue: (row: RentekravRow) => row.renterFra },
     ], []);
+    const persistSortedOrder = usePersistSortedCollectionOrder(rentekravRowsCollectionRef);
 
     const { sortedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
-      reorderRows: table.reorderRows,
+      persistSortedOrder,
       saveOrderPath,
     });
 

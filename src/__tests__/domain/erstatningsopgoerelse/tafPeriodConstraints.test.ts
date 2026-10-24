@@ -309,7 +309,16 @@ describe('direkte TAF-cutoff-resolvere', () => {
     expect(buildFerieCutoffErrorMessage({
       value: iso('2024-07-01'),
       differencekravDato: iso('2024-07-01'),
-    })).toBe('Ferien ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    })).toBe('Ferien ligger på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    expect(buildTafCutoffErrorMessage({
+      value: iso('2024-07-01'),
+      differencekravDato: iso('2024-07-01'),
+    })).toBe('Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    expect(buildTafPeriodeCutoffErrorMessage({
+      fra: iso('2024-06-30'),
+      til: iso('2024-07-01'),
+      differencekravDato: iso('2024-07-01'),
+    })).toBe('Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)');
   });
 
   it('returnerer EO-periodens stille bounds uændret', () => {
@@ -339,20 +348,20 @@ describe('direkte TAF-cutoff-resolvere', () => {
       fra: iso('2024-08-01'),
       til: iso('2024-12-31'),
       differencekravDato: iso('2024-07-01'),
-    })).toBe('Hele perioden ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    })).toBe('Hele perioden ligger på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)');
     expect(buildTafPeriodeCutoffErrorMessage({
       fra: iso('2024-01-01'),
       til: iso('2024-06-30'),
       endeligEETDato: iso('2024-03-01'),
-    })).toBe('Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-03-2024)');
+    })).toBe('Der er angivet tabt arbejdsfortjeneste på eller efter datoen for afgørelse om endeligt erhvervsevnetab (01-03-2024)');
     expect(buildFerieCutoffErrorMessage({
       value: iso('2024-06-30'),
       endeligEETDato: iso('2024-03-01'),
-    })).toBe('Ferien ligger efter afgørelsen om endeligt erhvervsevnetab (01-03-2024)');
+    })).toBe('Ferien ligger på eller efter datoen for afgørelse om endeligt erhvervsevnetab (01-03-2024)');
     expect(buildFerieCutoffErrorMessage({
       value: iso('2024-06-30'),
       midlertidigEETDato: iso('2024-03-01'),
-    })).toBe('Ferien ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2024)');
+    })).toBe('Ferien ligger på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (01-03-2024)');
     expect(buildTafCutoffErrorMessage({
       value: iso('2024-01-01'),
       differencekravDato: iso('2024-07-01'),

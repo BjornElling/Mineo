@@ -1,6 +1,6 @@
 import type { ISODateString } from '../types/branded';
 import type { DateRangeBoundsOrigin, DateRangeSpecialErrors } from '../utils/dateRangeErrorMessages';
-import type { CanonicalView, FieldRef } from './fieldDescriptor';
+import type { CanonicalView, FieldIssuePriority, FieldRef } from './fieldDescriptor';
 
 // Datofelters grænse-ERKLÆRING som ren type (§1.6a). Typerne bor her og ikke i
 // `catalog/dateBoundsValidators.ts`, fordi `fieldDescriptor.ts` skal kunne referere dem, mens validatoren
@@ -48,6 +48,12 @@ export type DateBoundsSpec = Readonly<{
   narrowMin?: (context: DateBoundsContext) => ISODateString | undefined;
   /** Skærper `max` når den kan udledes (fx rækkens til-dato, beregningsdato). */
   narrowMax?: (context: DateBoundsContext) => ISODateString | undefined;
+  /**
+   * Gør en fejl mod denne erklærings grænser til en kontekstfejl. Den canonical værdi forbliver da læsbar,
+   * så domænets rækkevurdering kan samle den med andre tværgående fejl; samme domæne skal stadig gate alle
+   * consumers, der bruger værdien.
+   */
+  issuePriority?: FieldIssuePriority;
   /**
    * Beskedens oprindelse. `STATIC_DATE_BOUNDS` når begge grænser er konfigurationskonstanter;
    * `derivedDateBounds('<Felt A> og <Felt B>')` så snart en skærpelse kan gøre intervallet umuligt – ellers

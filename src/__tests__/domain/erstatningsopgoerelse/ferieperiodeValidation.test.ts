@@ -74,7 +74,12 @@ describe('evaluateFerieperioder', () => {
       message: `Ferieperioden 01-01-2024 - 10-01-2024: Ret ferieperioden; ${FERIE_OVERLAP_LINJE}`,
       field: 'fra',
     });
-    expect(result.get('modpart')).toEqual({ kind: 'error', message: FERIE_OVERLAP_LINJE, field: 'fra' });
+    expect(result.get('modpart')).toEqual({
+      kind: 'error',
+      message: FERIE_OVERLAP_LINJE,
+      field: 'fra',
+      summaryDeduplicationGroup: 'ferieperiode-overlap',
+    });
   });
 
   it('viser overlap alene, selv når cellens issue selv er en overlapfejl', () => {
@@ -85,6 +90,11 @@ describe('evaluateFerieperioder', () => {
       ? { fra: issue('ferie.fra.overlap', 'Overlap med en anden ferieperiode') }
       : {});
 
-    expect(result.get('første')).toEqual({ kind: 'error', message: FERIE_OVERLAP_LINJE, field: 'fra' });
+    expect(result.get('første')).toEqual({
+      kind: 'error',
+      message: FERIE_OVERLAP_LINJE,
+      field: 'fra',
+      summaryDeduplicationGroup: 'ferieperiode-overlap',
+    });
   });
 });

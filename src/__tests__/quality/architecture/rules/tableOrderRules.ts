@@ -26,9 +26,8 @@ const isTopLevelTable = (relativePath: string): boolean =>
 /**
  * Tabellerne hvis rækkefølge ejes af `useSortedCollectionTable`.
  *
- * De to `Loenudvikling*`-tabeller står bevidst IKKE her: deres reorder ankrer den
- * programstyrede basisrække på plads, og de registrerer ingen save-order. De deler kun
- * `bindSortableHeader` med de øvrige.
+ * De to `Loenudvikling*`-tabeller har en anden synlig orden, fordi basisrækken altid står først.
+ * De deler stadig den centrale persistensport, men ejer deres egen ankring af rækken.
  */
 const SORTED_ORDER_OWNED_TABLES = [
   'BeregnetRenteTable.tsx',
@@ -39,6 +38,12 @@ const SORTED_ORDER_OWNED_TABLES = [
   'StandardLoenTable.tsx',
   'SvieSmerteTable.tsx',
   'TafPeriodeTable.tsx',
+].map((name) => `${TABLE_SCOPE}${name}`);
+
+const SORT_PERSISTENCE_TABLES = [
+  ...SORTED_ORDER_OWNED_TABLES.map((path) => path.slice(TABLE_SCOPE.length)),
+  'LoenudviklingManuelTable.tsx',
+  'LoenudviklingManuelProcentsatsTable.tsx',
 ].map((name) => `${TABLE_SCOPE}${name}`);
 
 export const tableSortOrderOwnershipRule = defineRule({
@@ -86,4 +91,39 @@ export const tableSortOrderOwnershipRule = defineRule({
   ],
 });
 
-export const TABLE_ORDER_RULES = [tableSortOrderOwnershipRule] as const;
+/** Alle produktionssorteringer skal bruge den afgrænsede ikke-undoable persistensport. */
+export const sortedOrderPersistenceCapabilityRule = defineRule({
+  id: 'form/sorted-order-uses-persisted-sort-capability',
+  description: 'Kolonnesortering skal bruge den fælles history-transparente persistensport.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => collectCalls(entry).some((call) =>
+      call.calleeName === 'useSortedCollectionTable' || call.calleeName === 'useTableSort'
+    ),
+    rationale: 'reglen forudsætter mindst én produktionstabel, der ejer kolonnesortering',
+    minimumMatches: SORT_PERSISTENCE_TABLES.length,
+    requiredPaths: SORT_PERSISTENCE_TABLES,
+  },
+  appliesTo: isTopLevelTable,
+  find: (entry) => {
+    const calls = collectCalls(entry);
+    const ownsSorting = calls.some((call) =>
+      call.calleeName === 'useSortedCollectionTable' || call.calleeName === 'useTableSort'
+    );
+    if (!ownsSorting || calls.some((call) => call.calleeName === 'usePersistSortedCollectionOrder')) return [];
+    return [{
+      position: calls.find((call) => call.calleeName === 'useSortedCollectionTable' || call.calleeName === 'useTableSort')!.position,
+      message: 'En sorterbar tabel skal bruge usePersistSortedCollectionOrder, så sortering ikke optager et undo-trin.',
+    }];
+  },
+  violatingFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const sort = useTableSort({ rows, columns });',
+  }],
+  cleanFixtures: [{
+    relativePath: `${TABLE_SCOPE}XTable.tsx`,
+    code: 'const persistSortedOrder = usePersistSortedCollectionOrder(collection);\nconst sort = useTableSort({ rows, columns, onSortedRowsChange: persistSortedOrder });',
+  }],
+});
+
+export const TABLE_ORDER_RULES = [tableSortOrderOwnershipRule, sortedOrderPersistenceCapabilityRule] as const;

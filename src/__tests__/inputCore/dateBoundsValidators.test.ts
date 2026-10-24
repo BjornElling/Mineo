@@ -55,6 +55,27 @@ describe('dateBoundsValidator', () => {
     expect(validator(toISODateString('2027-01-01'), field, view)).toBeUndefined();
   });
 
+  it('gør fejl mod de erklærede grænser til context, når det er erklæret', () => {
+    const spec: DateBoundsSpec = {
+      min: () => toISODateString('2005-01-01'),
+      max: () => toISODateString('2030-12-31'),
+      narrowMin: () => toISODateString('2010-01-01'),
+      issuePriority: 'context',
+      origin: STATIC_DATE_BOUNDS,
+    };
+
+    expect(validateWith(spec, '2009-12-31')).toMatchObject({ priority: 'context' });
+    expect(validateWith(spec, '2031-01-01')).toMatchObject({ priority: 'context' });
+
+    const withoutPriority: DateBoundsSpec = {
+      min: spec.min,
+      max: spec.max,
+      narrowMin: spec.narrowMin,
+      origin: spec.origin,
+    };
+    expect(validateWith(withoutPriority, '2031-01-01')).not.toHaveProperty('priority');
+  });
+
   it('bevarer den strukturerede oprindelse i issue-detail frem for at kræve tekstfortolkning', () => {
     const spec: DateBoundsSpec = {
       min: () => toISODateString('2010-01-01'),

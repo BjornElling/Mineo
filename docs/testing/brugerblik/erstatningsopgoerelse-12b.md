@@ -715,6 +715,103 @@ Jeg afviser dit fund. Erstatningsopgørelser er lange og komplicerede, og selve 
 **Tilbagemelding**
 Enig
 
+### BB-336 – To svie/smerte-rækker med samme mangel vises som én fejl, og linket peger kun på den første
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-40--gentagne-række-fejl-foldes-kun-når-hver-række-kan-ses`;
+  konkret samme problem som BB-231: fælles foldning skjuler en anden rækkes mangel
+- **Prioritet:** Mellem
+- **Beslutning:** **Gennemført 2026-10-24 under BB-231's godkendelse.** Identiske række-fejl vises hver for sig,
+  medmindre fejlen markerer hver berørt række i tabellen og giver brugeren en synlig forklaring dér.
+- **Sådan fremprovokeres det:**
+  1. Lad krav på svie/smerte være «Ja».
+  2. Opret to perioder, og vælg kun «Sygemeldt» i «Tilstand» for hver. Lad begge fra- og til-datoer stå tomme.
+  3. Gå til «Beregning».
+- **Det sker:** Målt 2026-10-24 i den aktuelle app ved 1280×720. To udfyldte perioder med identiske
+  mangler giver kun én linje: «Fra-dato og til-dato er ikke angivet», med ét link til «Svie- og
+  smertegodtgørelse». Alle seks input i de to rækker har `aria-invalid="false"`. Når linket aktiveres,
+  blinker kun første rækkes «Fra o.m.»-celle. Udfyldes første række derefter med `01-01-2022`–`31-01-2022`,
+  bliver samme fejl synlig igen, og linket blinker anden rækkes «Fra o.m.»-celle.
+
+  Kontrol: hvis de to mangler ikke er ens, vises begge linjer. En række kun med «Sygemeldt» og en række
+  med fra-dato `01-01-2022` og «Sygemeldt» giver «Fra-dato og til-dato er ikke angivet» og «Til-dato er
+  ikke angivet»; de to links blinker henholdsvis første rækkes «Fra o.m.» og anden rækkes «Til o.m.».
+  Foldningen er altså betinget af identisk tekst og samme sektionslink, ikke af at periodetabellen kun
+  viser én fejl generelt.
+- **Hvorfor det er uhensigtsmæssigt:** Brugeren får at vide, at én periode mangler datoer, selv om to
+  perioder mangler dem. Fejlboksen og linket peger kun på den første. Først efter at den er rettet,
+  fortæller programmet, at den anden række også mangler datoer. BB-218's overlaplinjer kunne foldes,
+  fordi begge rækker samtidig fik røde celler med værktøjstekst; det værn findes ikke for en delvist
+  udfyldt periode.
+- **Teknisk spor:** `svieSmertePeriodeValidation.ts:160–167` bygger den samme besked for hver række med
+  samme mangler. `eoRowSvieSmerteRows.ts:89–104` kalder begge rækker «Periode», når datoerne mangler.
+  `eoRowIssueCatalog.ts:370–381` kan målrette den enkelte række via dens ID og manglende felt, men
+  `EOberegningTab.tsx:85–109` folder ens `formatSummaryText` + sektionslink sammen, så kun det første
+  rækkelink bevares. Den fælles renderer er samme mekanisme som BB-218's beslutning aktiverede; BB-231
+  viste dens bagside for øvrige krav.
+- **Dækningshul i den oprindelige kørsel:** 12b prøvede ikke to delvist udfyldte S/S-perioder med samme
+  mangel. Fundet blev fremprovokeret i den kritiske efterprøvning 2026-10-24.
+
+**Gennemført 2026-10-24:** `EOberegningTab` folder nu kun sammen, når rækkemodellen udtrykkeligt angiver en
+`summaryDeduplicationGroup`. Overlap beholder sin fælles linje, fordi hver berørt række samtidig har røde
+datoceller med modpartens periode i tooltippen. Delvise S/S-perioder får ingen sådan gruppe og bevarer hver sin
+besked og rækkespecifikke fokusmål. `svieSmertePeriodeValidation.test.ts` låser overlap-gruppen på overlapfejlen,
+mens øvrige krav-rækkernes regression i `eoRowOevrigeKravRowsIndependent.test.ts` låser separate linjer og links
+for identiske mangler. Den oprindelige 12b-måling er før rettelsen; en browsermåling efter rettelsen er ikke
+dokumenteret her.
+
+### BB-342 – Cutoff-fejlteksten siger «efter» på selve ménafgørelsesdatoen
+
+- **Type:** Fejl
+- **Rækkevidde:** Tværgående med 12e; fælles mønster M-42 i `TVAERGAAENDE.md`.
+- **Prioritet:** Mellem
+- **Beslutning:** **GODKENDT OG GENNEMFØRT** 2026-10-24 som præcisering af fejlteksten. `>=`-grænsen, beregning og
+  blokering er uændret.
+- **Sådan fremprovokeres det:** Sæt ménafgørelsesdatoen til `16-09-2024`, og opret en svie/smerte-periode fra
+  `16-09-2024` til `20-09-2024`.
+- **Det sker:** Fra-datoen bliver rød, og perioden spærrer opgørelsen, fordi svie/smerte ikke må fortsætte på eller
+  efter afgørelsesdatoen. Før rettelsen sagde tooltippen «Der er angivet svie/smerte efter datoen for en
+  ménafgørelse» og rækkens samlede linje «Hele perioden ligger efter datoen for ménafgørelsen», selv om fra-datoen
+  var præcis samme dato. En til-dato lig cutoff fik samme misvisende «efter»-tekst.
+- **Kilde og rettelse:** `buildSvieSmerteCutoffErrorMessage` og `buildSvieSmertePeriodeCutoffErrorMessage` bruger
+  `>=` i `svieSmerteConstraints.ts`. Begge beskeder siger nu «på eller efter». Unit-/validator-tests dækker lighed,
+  og `svie-smerte-men-cutoff.spec.ts` måler fra-dato lig cutoff i browseren. TAF- og ferieformuleringerne er
+  gennemgået under samme BB-342 i 12e; der var også et faktisk mismatch dér, og teksterne er rettet tilsvarende.
+- **Begrænsning:** Dette ændrer kun forklaringen ved den allerede ugyldige grænse. Der er ikke lavet en ny browsermåling
+  af TAF-/ferieteksterne.
+
+**Tværhenvisning:** 12e's BB-342 dokumenterer TAF- og ferieperiodernes konkrete `>=`-mismatch. Begge dele er samlet
+under M-42; ingen af rettelserne ændrer cutoff-reglerne.
+
+### BB-343 – En ufuldstændig S/S-række skjuler cutoff-fejlen og linker til den forkerte dato
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal for svie/smerte; beslægtet med M-42, men kun den ufuldstændige rækkes fejloversigt og link er berørt.
+- **Prioritet:** Mellem
+- **Sådan fremprovokeres det:** Sæt ménafgørelsesdatoen til `10-01-2024`, vælg «Sygemeldt» i en ny svie/smerte-række,
+  sæt «Fra o.m.» til `10-01-2024`, og lad «Til o.m.» stå tom.
+- **Det sker:** Fra-datoen får rød kant og forklarer, at perioden ligger på eller efter ménafgørelsen. I «Fejl og
+  advarsler» står kun «Til-dato er ikke angivet», og linket fokuserer den tomme til-dato. Den røde fra-dato og dens
+  cutoff-grund mangler derfor i rækkens samlede forklaring.
+- **Kilde og rettelse:** `evaluateOne` håndterede den ufuldstændige række før sin samlede cutoff-besked. Den tilføjer
+  nu også den præcise cutoff-besked og forankrer linket til fra-datoen, der skal ændres. En regressionstest låser
+  både besked og fokusmål. Browserregressionen i S/S-cutoff-spec'et bestod i Chrome desktop 2026-10-24; hele
+  spec'et bestod 6/6.
+- **Tidligere gemte `.eo`-filer:** Den samme rettelse gælder en tidligere fil med denne ufuldstændige række; filen
+  indlæses fortsat uden ny advarsel, og den synlige fejloversigt peger på den røde fra-dato.
+
+### BB-346 – En rød Til-dato skjules, når Fra-datoen mangler
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → M-33 og M-42; den spejlvendte delvise S/S-række til BB-343.
+- **Prioritet:** Mellem
+- **Beslutning:** Gennemført 2026-10-24 sammen med den fælles rettelse til ufuldstændige S/S-perioder.
+- **Sådan fremprovokeres det:** Med ménafgørelse `16-09-2024`, lad Fra-datoen stå tom og sæt Til-dato til `01-10-2024`.
+- **Det sker – før rettelsen:** «Fra-dato er ikke angivet» stod alene, selv om den udfyldte Til-dato var rød, fordi den ligger på eller efter ménafgørelsen. Linket pegede på Fra og fortalte ikke brugeren, hvorfor Til også skulle ændres.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan rette Fra og stadig stå tilbage med en rød Til-dato, hvis han ikke selv opdager den uafhængige cutoff-fejl.
+- **Bedre ville være:** Vis cutoff-beskeden sammen med den manglende Fra-dato, og link til den udfyldte Til-dato, der har cutoff-fejlen.
+- **Verifikation:** `svieSmerteCutoffDateIssues.test.ts` låser den spejlvendte kombination: begge beskeder vises, og linkmålet er Til. Chrome-desktop-regressionen viser cutoff-beskeden sammen med «Fra-dato er ikke angivet», og linket blinker Til-feltet; S/S-cutoff-spec'et bestod 6/6 2026-10-24.
+
 ## Efterprøvet efter BB-222's mandat: skjulte felter, der taler
 
 Udvikleren fastslog 2026-09-22, at et skjult felt overalt i programmet skal betragtes som ikke
@@ -807,9 +904,9 @@ konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan 
 - Kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620).
 - **Kun PDF-kanalen er læst.** Word-udgaven af opgørelsen deler generator, men BB-204 viste, at en
   strengfejl kan være synlig i den ene kanal og ikke i den anden. Word-udgaven bør læses, når 12l tages.
-- **`Gem`/`Hent` er ikke afprøvet** – filvælgeren kan ikke betjenes headless. Det er værd at måle her,
-  fordi tre af sektionens kontroller har en standardværdi, og fordi BB-220's `0` og BB-217's rækker
-  uden for perioden er netop den slags, der skal overleve en `.eo`-rundtur uændret.
+- **`Gem`/`Hent` indgik ikke i den oprindelige browserkørsel.** Playwright kan automatisere filvælger og
+  download. Eventuelle senere navngivne `.eo`-loadtests dækker kun deres konkrete sager; en generel
+  save→load-rundtur for 12b og bevarelse af alle S/S-rækker er ikke dokumenteret.
 - **Undo/redo umiddelbart efter at «Tidligere beregnet S/S til max.» er sat** er ikke målt, selv om
   det er det tastetryk, der skjuler mest på én gang.
 - Brevhovedet slået fra er ikke afprøvet.
@@ -867,3 +964,33 @@ konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan 
   `er*Relevant`-prædikat selv kalder prædikatet, eller en samlet filtrering, der gælder ALLE læsere
   og ikke kun talfødende input. Så længe `eoInputRelevance.ts` kun håndhæver synlighed for tal, er
   hver ny advarsel en ny mulighed for samme fejl. Mønsteret er skrevet op som **M-32**.
+
+## Retrospektiv dækningskontrol mod Brugerblik-skillen (2026-10-24)
+
+- **Faktisk målt i den oprindelige browserkørsel:** Chrome i lyst tema ved 1536×864 og 1244×620; rækkegrænserne blev prøvet med overlappende perioder, omvendt fra/til, ménafgørelses-cutoff, valgt «Tilstand» uden datoer og links fra fejlboksen. PDF blev hentet og tekstlæst. Det dækker flere centrale fejltilstande, men ikke hele B0/B1/B3/B4-matricen for hver celle.
+- **Senere browserfund, ikke del af 12b-kørslen:** BB-336 blev konkret målt i den aktuelle app 2026-10-24 ved 1280×720. To rækker med samme mangler blev foldet til én fejl, og linket blinkede kun første række; kontrolforløbet med forskellige mangler viste begge. Det beviser et konkret hul i den oprindelige kørsel, ikke en observation fra 2026-09-22. BB-218's oprindelige overlappede celler er målt før rettelsen; rapporten peger på unit-testen for rettelsen, men dokumenterer ikke en browsermåling af røde celler og én tilbageværende linje efter rettelsen.
+- **Kodeaflæst eller kun delvist målt:** Satsåret beskrives som 2005–2026, og den overskredne-grænsebesked er målt; rapporten anfører ikke de konkrete browserindtastninger ved 2005, 2026 og umiddelbart uden for begge grænser. Periodens omvendte datoer og cutoff er målt, men ikke «fra = til», ugyldig kalenderdato eller indsætning af fejlende tekst. Beløbseksemplerne er kontrolregnet mod motor-/præsentationskode; de beviser ikke alle randtilstande i den synlige form.
+- **Konkrete resterende dækningshuller:** Der blev kun prøvet en række med valg af «Tilstand» alene; tom trailing række og ugyldig værdi alene er ikke dokumenteret som browserprøver. TAF/løn i samme sag blev ikke oprettet, så interaktionen med overlappende sygeperioder blev ikke set. Word, `Gem`/`Hent`, undo/redo efter «Tidligere beregnet S/S til max.», brevhoved slået fra og kontrolfanen er ikke prøvet. Ingen rapporteret prøvekørsel dokumenterer paste fra regneark, Escape eller ændring af beregnings-/EO-perioden efter at S/S-rækker er udfyldt.
+
+### Prøvekatalog A1–A8 og B0–B7 – dimension for dimension
+
+Status skelner mellem oprindelig browsermåling, senere browsermåling, kode-/testaflæsning og konkret
+manglende prøve.
+
+- **A1 – forventninger:** **Browser:** labels, satsårsforslag, periodekolonner og S/S-ordlyd blev læst i konkrete tilstande. **Kode/test:** efterfølgende label- og fejltekstændringer er dækket af komponent-/unit-tests. **Uprøvet:** felt-for-felt kontrol af alle tilgængelige navne, enheder og formatforventninger i samtlige tilstande.
+- **A2 – status og mangler:** **Browser:** manglende dato/tilstand, overlap, cutoff, sammendragstilstande og downloadblokering blev set; BB-336-identiske mangler blev målt efterfølgende. **Kode/test:** fælles evaluator og gate testes. **Uprøvet:** alle mulige blokeringstilstande, inklusive PDF/Word-gateparitet og hver forklaring på en inaktiv knap.
+- **A3 – rækkefølge:** **Browser:** valg af tilstand før datoer og fejl-linkets navigering. **Kode:** periodevurderingen genberegnes fra afsluttet input. **Uprøvet:** udfyld datoer før tilstand, ændr dato/grænse efter udfyldning, ryd forudsætning og gå frem/tilbage mellem valg.
+- **A4 – tavshed:** **Browser:** skjulte værdier, tidligere S/S-beløb og dokumentets beregningslinjer blev undersøgt; et skjult-beløbspåvirket maksimum blev målt som konkret beregningsfejl. **Kode/test:** relevansprojektion, engine og dokumentlinjer er læst/testet. **Uprøvet:** gamle `.eo`-filer med skjulte/rejected perioder samt save/load-paritet for skjulte værdier.
+- **A5 – fejl:** **Browser:** overlap, omvendt interval, ménafgørelses-cutoff, grænser og fejllinks; BB-336 efter rettelsen i Chrome-E2E. **Kode/test:** unit-/snapshottests dækker grupperet overlap og separate delvise fejl. **Uprøvet:** post-fix browserkontrol af overlapceller og fælles linje, ugyldig kalenderdato, fra=til samt alle kombinationer af cutoff, overlap og bounds.
+- **A6 – fortrydelse:** **Browser:** ingen undo/redo- eller Escape-forløb. **Kode:** fælles history-infrastruktur findes. **Uprøvet:** fortryd «Tidligere beregnet S/S til max.», rækkeændring/sletning, navigation med åben editor, F5 og luk fanen.
+- **A7 – ensartethed:** **Browser:** PDF-tekst/layout blev læst; udvalgte skærmtekster og PDF-linjer blev sammenholdt. **Kode/test:** S/S-feltetiketter, summaries og dokumentgenerator er gennemgået. **Uprøvet:** Word mod PDF, accessibility-navne i alle valg og sammenligning af format/ordlyd med TAF og øvrige krav.
+- **A8 – helhedsforløb:** **Browser:** konkrete S/S-forløb fra indtastning til PDF og link tilbage. **Kode:** S/S-beløb, satsår og periodeafhængigheder er sporet. **Uprøvet:** ny bruger fra tom EO til færdigt dokument med alle krav og uden kendskab til «EO-kontrol».
+- **B0 – grænser:** **Browser:** periodegrænser, cutoff og satsår uden for interval blev prøvet; satsårsteksten blev målt. **Kode/test:** årssatsgrænser og nye row bounds. **Uprøvet:** eksakte 2005/2026 og 2004/2027 i synligt input, alle datogrænser ved lighed/dagen før/dagen efter samt numeriske beløbsgrænser.
+- **B1 – enkeltfelt:** **Browser:** valg af tilstand, konkrete datoer og satsår. **Kode:** codecs afviser/afgrænser formater. **Uprøvet:** 31-02, mellemrum/linjeskift, emoji, paste, kun minus/komma, ekstremt tidligere-totalbeløb, sletning og Escape.
+- **B2 – datoer:** **Browser:** overlap, omvendt fra/til og ménafgørelses-cutoff; senere ældre-filtest dækker dato før skade. **Kode/test:** date-order, cutoff og bounds. **Uprøvet:** fra=til, skudår/ugyldig kalenderdato, præcise boundskanter og ændret ménafgørelsesdato efter periodetastning.
+- **B3 – perioder/tabeller:** **Browser:** overlappende rækker og én delvis række; senere BB-336-browserforløb brugte to identiske delvise rækker. **Kode/test:** overlapgrupper og rækkeidentiteter. **Uprøvet:** mange rækker, sletning/reorder, tom trailing række, ugyldig alene-række, perioder med hul og række indsat under åben redigering.
+- **B4 – kombination/rækkefølge:** **Browser:** max-toggle, satsår, delvis sygemelding, cutoff og skjult beløb blev kombineret. **Kode/test:** relevans- og engineprojektion. **Uprøvet:** alle A→B→A-forløb, værdier før valg, ændret EO-periode efter rækker og samtidige TAF/lønperioder.
+- **B5 – lovligt/usandsynligt:** **Browser:** satsårsforslag og dokumenteret periodeafgrænsning. **Kode:** advarselsregel og rate-data. **Uprøvet:** lovlige men ekstreme tidligere beløb, datoer langt fra sagen og satser lige over/under tærskler.
+- **B6 – tilstandsskift:** **Browser:** tab til Beregning, link tilbage til felt og download. **Kode:** fælles revision/history-/document gate. **Uprøvet i den oprindelige kørsel:** undo/redo, `Gem`/`Hent`, F5, browser-tilbage, luk fane og åben editor på tværs af navigation. Playwright kan automatisere filvælger og download; senere navngivne loadtests dækker kun deres konkrete sager.
+- **B6a – tomhed:** **Browser:** en række med kun «Tilstand» alene blev talt som udfyldt; en helt ugyldig og en tom trailing række blev ikke prøvet i den oprindelige kørsel. **Kode/test:** evaluatorens `skip`-/fejlgrene og overlap. **Uprøvet:** hver tomhedstilstand browsermålt, især kun rejected råtekst, ryddet række og persistence af blanke celler.
+- **B7 – downstream:** **Browser:** PDF og EO-kontrol viste dage, satser, maksimum og beløb; download blev blokeret af fejl. **Kode/test:** engine, dokument og gate er sporet. **Uprøvet:** Word, generel save→load-rundtur, skjult værdis paritet, antal/dokument efter præcise periodegrænser og TAF-afhængigheder i samme sag. Senere tests af navngivne ældre `.eo`-sager er ikke universel persistensdækning.

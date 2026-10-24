@@ -22,6 +22,7 @@ export default function TabtArbejdsfortjenesteSection() {
     values,
     tafDerived,
     ferieFeriedageById,
+    harTafFerieRamme,
     tafCellIssues,
     visTafLoseFeriedage,
   } = useEoOplysningerVm();
@@ -64,6 +65,7 @@ export default function TabtArbejdsfortjenesteSection() {
               kind="taf"
               committedRows={values.ferieperioder}
               feriedageById={ferieFeriedageById}
+              harPeriodeRamme={harTafFerieRamme}
               saveOrderPath="erstatningsopgoerelse.ferieperioder"
               cellIssues={tafCellIssues}
             />

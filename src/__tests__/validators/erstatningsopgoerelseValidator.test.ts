@@ -766,6 +766,40 @@ describe('øvrige krav validering', () => {
     expect(hasError(values, '«Udgift til» er ikke udfyldt')).toBe(true);
   });
 
+  it('behandler en tilstedeværende, men tom tekstværdi som en delvis række', () => {
+    const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
+      oevrigeKravPerioder: [
+        { id: 'tom-tekst', dato: undefined, udgiftTil: '', beloeb: undefined },
+      ],
+    });
+
+    expect(errorPathsForMessage(values, '«Udgift til» er ikke udfyldt')).toEqual(['oevrigeKravPerioder[0].udgiftTil']);
+    expect(errorPathsForMessage(values, '«Beløb» er ikke udfyldt')).toEqual(['oevrigeKravPerioder[0].beloeb']);
+  });
+
+  it('bruger rækkens fælles vurdering, men bevarer én validatorfejl pr. manglende felt', () => {
+    const values = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
+      oevrigeKravPerioder: [
+        { id: '1', dato: iso('2024-01-01'), udgiftTil: undefined, beloeb: undefined },
+      ],
+    });
+
+    expect(oevrigeKravErrors(values)).toEqual([
+      {
+        path: 'oevrigeKravPerioder[0].udgiftTil',
+        message: '«Udgift til» er ikke udfyldt',
+        severity: 'error',
+      },
+      {
+        path: 'oevrigeKravPerioder[0].beloeb',
+        message: '«Beløb» er ikke udfyldt',
+        severity: 'error',
+      },
+    ]);
+  });
+
   it.each(['Nej', 'Skjul'] as const)('validerer ikke rækkerne, når kravvalget er «%s» (BB-228)', (kravvalg) => {
     const values = makeValues({
       kravPaaOevrigeErstatningskrav: kravvalg,

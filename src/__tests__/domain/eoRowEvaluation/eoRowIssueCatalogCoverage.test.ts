@@ -124,10 +124,10 @@ const CASES: readonly Case[] = [
     row: {
       id: 'taf.periode.taf-1',
       label: 'Periode',
-      message: 'Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-01-2025)',
+      message: 'Der er angivet tabt arbejdsfortjeneste på eller efter datoen for afgørelse om endeligt erhvervsevnetab (01-01-2025)',
       focusFieldHint: 'fra',
     },
-    expectedSummary: 'Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (01-01-2025)',
+    expectedSummary: 'Der er angivet tabt arbejdsfortjeneste på eller efter datoen for afgørelse om endeligt erhvervsevnetab (01-01-2025)',
     expectedFocus: focus(eoTafPeriodeFraField, 'taf-1'),
   },
   {

@@ -3,7 +3,7 @@
 Dokumentet bevarer beslutninger og observationer fra Brugerblik-gennemgangen og fører samtidig dens
 fremdrift. Afsnittene under flade-tabellen er et **historisk auditspor**: formuleringer som «Afventer
 udvikleren» og historiske næste-trin beskriver status på det tidspunkt, hvor det pågældende afsnit blev
-skrevet. Kun flade-tabellen og de tre punkter nedenfor er aktuelle; produktets øvrige status står i
+skrevet. Kun flade-tabellen og de fire punkter nedenfor er aktuelle; produktets øvrige status står i
 `AGENTS.md`.
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
@@ -28,8 +28,38 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-332
-- **Åbne spørgsmål:** **ingen.** 12j's to modsvar er besvaret og gennemført 2026-10-24: BB-319 – referenceperioden
+- **Næste fund-ID:** BB-347
+- **Kritisk efterreview:** Gennemgangen af 12a–12j tilføjede BB-332–BB-346. BB-332, BB-333, BB-336, BB-337
+  og BB-341 er gennemført; BB-334/335's nye fejl blev godkendt for ældre `.eo`-filer uden load-advarsel. BB-337 er
+  gennemført fælles for alle sorterbare tabeller: første Ctrl+Z fortryder indtastningen og bevarer sorteringen. BB-338
+  er afgjort uden kodeændring: den indtastede satsreference bevares også, når datoen er rød. BB-339 er afgjort uden
+  kodeændring: fraværsrækkens «Feriedage» og EO-kontrols ferieoptælling bevares, også for tidligere gemte `.eo`-filer.
+  BB-340 er afgjort uden kodeændring: TAF-rækkens «TAF-arbejdsdage» `2` bevares ved rød slutdato, mens TAF-rækkens
+  interval og sammenlignende kontroltal er `– / –`; dette gælder også tidligere gemte `.eo`-filer. BB-341 retter
+  generisk sammenfoldning af SFGG-systemgrænsefejl; BB-322's eksplicitte fælles fejl bevares. BB-345 afgrænser nu
+  denne fælles linje til begge datoer i samme ansættelsesforhold; en enkelt Til-fejl får ikke længere Fra-label, og to
+  ansættelsesforhold kan ikke foldes sammen. Unit-test og Chrome-desktop-browserregression bestod (11/11 og 6/6). BB-346
+  dækker den spejlvendte S/S-række, hvor Til ligger på ménafgørelsens cutoff og Fra mangler; fejlvisningen er rettet
+  sammen med BB-343 og har unit-test. Spejlbilledet blev browsermålt i Chrome desktop; S/S-cutoff-spec'et bestod 6/6.
+  Udvikleren har desuden
+  bekræftet det generelle princip, at ændringer, der gælder tidligere gemte `.eo`-filer, skal gælde dem: ja.
+  BB-342 blev tilføjet efter review som tværgående fund i 12b/12e: S/S-, TAF- og ferie-cutoffdatoer var ugyldige ved
+  lighed, men fejlteksterne sagde «efter». Tekster og lighedstests er rettet til «på eller efter»; S/S har også en
+  browserregression for fra-dato lig cutoff, uden beregningsændring. M-42 samler mønsteret. Udvikleren har godkendt
+  overlapvisningen målt i 12f: beregningsperioden beholder `22 / 22`, fordi de sammenlignede værdier er ens; den røde
+  TAF-række viser `- / -`, så kontrollen ikke melder en falsk uoverensstemmelse. Download er fortsat blokeret, og
+  autoritativ beregning/PDF bygges ikke. Afgørelsen gælder også tidligere gemte `.eo`-filer. Den gamle-fil E2E-regression
+  bestod i Chrome-desktop. BB-343 blev fundet i den kritiske S/S-gennemgang: en ufuldstændig række med
+  Fra på cutoff viste kun den manglende Til-dato i oversigten og linkede dertil, mens Fra-cellen var rød for cutoff.
+  Rækevurderingen viser nu begge forhold og linker til Fra; unit-test og browserregression bestod som led i
+  Chrome-desktop-kørslen (S/S-cutoff-spec 6/6). **BB-344** blev tilføjet efter review af 12e: når der ikke findes en gyldig periode, viser ferietabellen
+  hele rækken. Udvikleren godkendte 2026-10-24 at beholde dagstallet og præcisere tooltippen; samme forklaring gælder
+  nu også fraværsrækken i 12f. Chrome-desktop-E2E kontrollerer TAF-tilstanden før/efter en periode indtastes, og
+  komponenttest kontrollerer begge varianter. BB-242's godkendte gule advarsel gælder også
+  tidligere `.eo`-filer efter udviklerens beslutning 2026-10-24; den giver ingen load-preflight eller sagsdatamutation.
+  Den målrettede 3.14-regression bestod i Chrome desktop: datoerne blev bevaret, advarslen stod efter load,
+  `Hent` forblev aktiv, og filen udløste ingen preflight eller sagsdatamutation (ældre-filspec 12/12).
+  **12j's to oprindelige modsvar er fortsat besvaret og gennemført 2026-10-24:** BB-319 – referenceperioden
   bindes aldrig til skadedatoen (dokumenteret og test-sikret princip) – og BB-321 – papiret skriver «i
   referenceperioden», og «Referenceperiode» har en info-tooltip. Tidligere: **to modsvar fra 12j.** Tidligere: **ingen ud over 12j's fund.** Tidligere: **ingen.** 12i's fire tillægsspørgsmål er besvaret og gennemført 2026-10-23: BB-301 valg A
   (skjulte satser ved «Beløb» og beregningsperioden uden TAF er ikke udfyldt), BB-306 (satslinjen står alene med link til
@@ -107,6 +137,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   uenighed til 11e). **Flade 11a's spørgsmål er afgjort 2026-09-03:** «Bemærk»-boksens to forbehold er en
   påmindelse til den, der taster, og skal **ikke** i de fire EET-dokumenter. Flade 11b og 11c rejste ingen
   nye åbne spørgsmål.
+- **Dækningsrettelse 2026-10-24:** De oprindelige browserkørsler 12a–12g udelod `Gem`/`Hent`; det skyldtes
+  ikke, at filvælger eller download er umulig at styre headless. Playwright kan automatisere begge dele.
+  Rapporternes matricer skelner nu mellem den oprindelige måling og senere navngivne tests. De senere
+  tests dækker kun deres konkrete sager og dokumenterer ikke en generel save→load-rundtur.
 - **Fund, der afventer udviklerens afgørelse:** **ingen** – flade 12j er afgjort og gennemført 2026-10-24; de to modsvar
   er besvaret og gennemført. Tidligere: **flade 12j's 13 fund (BB-319–BB-331)**.
   Tidligere: **ingen** – flade 12i er afgjort og gennemført 2026-10-23; de åbne
@@ -204,7 +238,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   «Dato mangler» om datoer på skærmen; `suppressMaskedMissingInvariants` dækker ikke rækkecellerne.
   **BB-233 handler om papiret:** forbeholdet om en verserende EET-klage (og om kontanthjælp) trykkes kun,
   når øvrige krav er «Ja», og en ny sag starter på «Skjul». **BB-231 er bagsiden af BB-218's foldning:** to
-  rækker med samme mangel giver én linje, fordi foldningen også rammer linjer uden rød ring.
+  rækker med samme mangel giver én linje, fordi foldningen også rammer linjer uden rød ring. BB-332 genbekræftede det
+  med helt identiske rækker; begge er nu dækket af M-40's regel om kun at folde række-fejl, når alle rækker har en
+  synlig cellemarkering.
   Beregningsformlerne (sum og forlig) er kontrolregnet og i orden. M-09 bestået; M-23 uden genstand.
   Konsollen var tavs.)
 - **Tidligere: 2026-09-22** (**Flade 12b afgjort af udvikleren: seks godkendt, to delvist, to
@@ -840,8 +876,9 @@ Grundlaget står i [erstatningsopgoerelse-12f.md](erstatningsopgoerelse-12f.md).
 **Afgjort og gennemført 2026-09-25:** ti rettet, ét afvist (BB-254). Fire blev afgjort efter modsvar: **BB-247**
 blev indsnævret, da ferieperioderne viste sig at virke i måneder gennem sygeferiegodtgørelsen – kun «Løse
 ferie-/feriefridage» skjules; **BB-248** spærrer fortsat i alle tre vinduer, nu med rød celle og fladens ordlyd;
-**BB-250** blev godkendt, da afvisningen ramte den tavse afgrænsning, som fundet ikke rørte – overskriften har nu
-BB-217's form; **BB-254** forbliver afvist, også for papirets regnestykke. **To ting rakte ud over fundene:** (1)
+**BB-250** blev godkendt, da afvisningen ramte den tavse afgrænsning, som fundet ikke rørte – overskriften fik
+BB-217's form; 2026-09-28 blev overskriften forkortet igen, og rammen står nu i info-tooltipet. **BB-254** forbliver
+afvist, også for papirets regnestykke. **To ting rakte ud over fundene:** (1)
 BB-247's relevans følger beregningsenheden, som kan skifte ved en indtastning under Lønindkomst, så reducerens
 rydning af et skjult rødt felt gælder nu enhver ændring, ikke kun et valg (`form-contract.md` §7 pkt. 5). Det
 rettede en eksisterende fejl: «Nummer» fra 2 til 1 med ugyldig tekst i «Svie/smerte-krav i tidligere
@@ -854,7 +891,8 @@ ferieperiode uden for det vindue, valideringen har lånt fra TAF-perioderne (BB-
 neutrale celler – BB-218's navngivne søskende, bekræftet. **Det nye mønster M-35 er M-32's spejlbillede:** en ny
 sag opgøres i måneder, hvor ferie og løse feriedage ikke fradrages, men ferietabellen og «Løse feriedage» står
 uændret og tager imod – målt 180.000,00 kr. med og uden 11 feriedage og 5 løse (BB-247). BB-217's form to gange
-(BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnens overskrift siger ikke, at den er klemt), M-33's
+(BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnens overskrift siger ikke, at den er klemt; begge
+forklaringer blev senere flyttet fra overskriften til info-ikonets tooltip i commit `b0485bb2`), M-33's
 TAF-kandidat bekræftet (BB-253), et regnestykke der ikke går op, når «allerede modtaget» overstiger kravet
 (BB-254, «360.000,00 kr. - 500.000,00 kr. = 0,00 kr.»), og tre Lav (BB-255–BB-257). Beregningerne er
 kontrolregnet og i orden. Seks fund afventer udviklerens afgørelse helt eller delvist (BB-247, BB-248(b), BB-254,
@@ -865,8 +903,8 @@ BB-255(b), BB-256, BB-257); resten kan agenten afgøre. Grundlaget står i
 |---|---|---|---|
 | BB-247 | I måneder tager ferie og løse feriedage imod oplysninger, der intet gør | **Høj** | Rettet (indsnævret: kun løse feriedage skjules) |
 | BB-248 | En ferieperiode uden for sit vindue spærrer uden rød celle og med en intern besked | **Høj** | Rettet (spærrer fortsat, rød celle) |
-| BB-249 | «Feriedage» tæller hele ferierækken, også dage uden for TAF-perioden | Mellem | Rettet |
-| BB-250 | TAF-kolonnen tæller kun EO-perioden uden at sige det; en række helt uden for står med 0 | Mellem | Rettet efter modsvar |
+| BB-249 | «Feriedage» tæller hele ferierækken, også dage uden for TAF-perioden | Mellem | Rettet; rammeforklaring i info-tooltip |
+| BB-250 | TAF-kolonnen tæller kun EO-perioden uden at sige det; en række helt uden for står med 0 | Mellem | Rettet efter modsvar; rammeforklaring i info-tooltip |
 | BB-251 | Overlappende TAF- og ferieperioder spærrer uden rød celle | **Høj** | Rettet |
 | BB-252 | For mange løse feriedage spærrer uden rød celle og uden link | Mellem | Rettet |
 | BB-253 | To lag vurderer TAF-rækken; en række med kun løse feriedage spærrer uden link | Mellem | Rettet |
@@ -883,7 +921,10 @@ placering og papirets ene EET-linje blev forelagt som opfølgning og besvaret «
 fundene:** BB-240's svar bad om et systematisk mønster – afgørelsen er en oplysning, der altid trykkes og aldrig
 blokerer; den ydelse, den udløser, er en forventning, der kun giver en ikke-blokerende advarsel, i begge retninger.
 Mønsteret dækker også midlertidigt EET indsat fra Erhvervsevnetab-siden (12k's kandidat). Tabellen nedenfor viser
-den oprindelige beslutningsstatus.
+den oprindelige beslutningsstatus. **Ældre `.eo`-filer (afgjort 2026-10-24):** BB-242's gule advarsel vises også
+efter load af en tidligere gemt fil, hvis en afgørelsesdato ligger efter «Opgørelse lavet den». Værdierne bevares;
+der indføres ingen preflight eller sagsdatamutation. Den målrettede 3.14-regression bestod i Chrome desktop
+2026-10-24; begge datoer blev bevaret, advarslen stod efter load, og `Hent` forblev aktiv (ældre-filspec 12/12).
 
 **9 fund: to Høj, tre Mellem, fire Lav – og ét nyt tværgående mønster M-34.** Sektionen regner intet selv,
 men hver dato bliver en afskæringsdato for svie/smerte eller TAF, og undtagelserne (klage, 2011-grænsen)
@@ -933,6 +974,17 @@ beslutning står i [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md).
 | BB-226 | Sektionens eneste resultat – beløbet – findes kun i PDF'en og på en fane, der er slået fra | Mellem |
 | BB-225 | «Tidligere svie- og smertegodtgørelse» står over ét felt om den NUVÆRENDE periode | Lav |
 | BB-227 | Fire tilstande, ét ord: «Nej» i Beregning-fanens sammendrag | Lav |
+| BB-336 | To svie/smerte-rækker med samme mangel vises som én fejl, og linket peger kun på den første | Mellem · Gennemført 2026-10-24 (M-40, under BB-231's godkendelse) |
+| BB-337 | Sortering bruger en skjult Ctrl+Z-handling mellem indtastninger | Mellem · Gennemført 2026-10-24, fælles sorteringsport |
+| BB-338 | Lønsatsernes reference følger den røde slutdato for beregningsperioden | Mellem · afgjort 2026-10-24 – uændret |
+| BB-339 | Rød fraværsslutdato bevarer ferieoptællinger i tabellen og EO-kontrol | Mellem · afgjort 2026-10-24 – uændret, også for ældre `.eo`-filer |
+| BB-340 | TAF-række med rød slutdato viser fortsat et delvist «TAF-arbejdsdage»-tal | Mellem · afgjort 2026-10-24 – behold `2`, også i ældre `.eo` |
+| BB-341 | To SFGG-systemgrænsefejl foldes til én linje med link til første dato | Mellem · Gennemført 2026-10-24; BB-322 har fortsat eksplicit gruppe |
+| BB-342 | Cutoff-datoen beskrives som «efter», selv når rækken står på samme dato | Mellem · Gennemført 2026-10-24; besked og grænsetests rettet |
+| BB-343 | En ufuldstændig S/S-række skjuler cutoff-fejlen og linker til den forkerte dato | Mellem · Rækevurdering rettet; Chrome-desktop-browserregression bestod 2026-10-24 (S/S-cutoff-spec 6/6) |
+| BB-344 | Ferietællingen viser hele rækken under en forklaring om TAF-perioden | Lav · Gennemført 2026-10-24; dagstallet bevares, og TAF-/beregningsperiode-tooltip følger samme ramme som tællingen |
+| BB-345 | SFGG's fælles TAF-grænsefejl kan navngive forkert dato eller skjule et ansættelsesforhold | Mellem · Gennemført 2026-10-24; unit-test 11/11 og E2E 6/6 |
+| BB-346 | En rød Til-dato skjules, når Fra-datoen mangler | Mellem · Gennemført sammen med BB-343; unit-test og Chrome-desktop-browserregression bestod 2026-10-24 (S/S-cutoff-spec 6/6) |
 
 **Fire af de elleve fund har samme rod, og den er M-28's rækkebygger-indgang fra BB-202.**
 `buildEoSvieSmerteRows` producerer fire færdigformulerede rækker – «Satser per dag/max (forlig på 50 %)

@@ -262,6 +262,11 @@ erstatningsperioden. Forelagt igen. **Udviklerens svar: ja, gul advarsel.**
 (01-02-2025)». Virkningsdatoerne er udenfor. Papir, beløb og download er uændrede. `DateField` har fået
 `warning`-proppen, som `TextField` og cellerne havde. Reglen bor i `aesDatoEfterOpgoerelse.ts` og læses af både
 feltet og rækken. Test: `aesDatoEfterOpgoerelse.test.ts`. «Evt. dato for forlig» (12a) er ikke omfattet.
+**Ældre filer (afgjort 2026-10-24):** Den godkendte, ikke-blokerende advarsel gælder også tidligere gemte `.eo`-filer.
+En fil med «Opgørelse lavet den» `01-02-2025` og ménafgørelsesdato `01-06-2025` indlæses med begge værdier intakte;
+advarslen vises efter load uden ny preflight eller ændring af sagsdata. Den låste 3.14-regression bestod i Chrome
+desktop 2026-10-24: datoerne blev læst uændret efter load, advarslen stod i «Fejl og advarsler», og `Hent`
+forblev aktiv. Hele ældre-filspec'et bestod 12/12.
 
 ### BB-243 – Afgørelsesdatoerne hedder noget andet i «Fejl og advarsler» end på skærmen
 
@@ -446,9 +451,43 @@ uden en endelig ASL-afgørelse; kombinationen er derfor lovlig.
 - Kun Chrome, lyst tema; kun PDF-kanalen er læst.
 - Erhvervssygdom (anmeldelsesdato minus 5 år som nedre grænse, og om 2011-grænsen skal læses på
   anmeldelsesdatoen) er ikke afprøvet; 2011-reglen læser feltet `skadedato` uanset skadestype.
-- `Gem`/`Hent` er ikke afprøvet (filvælgeren kan ikke betjenes headless). Relevant for BB-239(b).
+- `Gem`/`Hent` indgik ikke i den oprindelige browserkørsel. Playwright kan styre filvælgeren headless; den
+  målrettede BB-242-regression målte load af den låste 3.14-fil, intakte datoer, den godkendte advarsel og aktiv
+  `Hent` efter load. Det er ikke en save→load-rundtur af samme sag. Relevant for BB-239(b).
 - Tastatur/Tab-rækkefølge gennem sektionen er ikke målt; den følger DOM-rækkefølgen, hvor EET-klagen
   kommer efter den endelige afgørelse.
+- De oprindelige kørsler kombinerede ikke en rød skadedato-grænse på en svie-/smerte-række med overlap mod en anden
+  række. Den kombination er ikke målt i browseren; hverken overlapfundene eller nyere kildekontroller beviser i sig
+  selv, hvordan begge forklaringer vises i cellen og i «Fejl og advarsler».
+- Ældre `.eo`-filer med allerede gemte datoer uden for de nuværende grænser er ikke genåbnet som del af den
+  oprindelige 12d-kørsel. Den godkendte BB-242-advarsel gælder efter udviklerens afgørelse 2026-10-24 også gamle filer;
+  3.14-regressionen målte bevarede datoer, den nye advarsel og fravær af load-preflight/dataændring i Chrome desktop
+  2026-10-24 (1 test; ældre-filspec 12/12).
+
+## Efterkontrol af Brugerblik-kataloget A1–A8 og B0–B7
+
+Status skelner mellem browsermåling, kildeaflæsning og udækket adfærd. En unit-test eller en kildegennemgang er
+ikke i sig selv browserdækning.
+
+| Prøve | Browsermålt | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Delvist: afgørelsesfelternes labels, klagetoggles, feltfejl og konkrete datoer blev brugt i sagerne. | Ingen særskilt forståelsestest af hvad en ny bruger forventer af hver afgørelsestype eller om feltnavnene adskilles tydeligt. |
+| A2 – overblik og mangler | Målt: røde afskårne kravdatoer, link i «Fejl og advarsler» og spærret PDF-download; også manglende dato som advarsel. | Hele sektionens udfyldningsstatus og alle inaktive tilstandes forklaring er ikke gennemgået samlet. |
+| A3 – rækkefølge | Delvist: afgørelser, klagevalg, TAF/svie-smerte og PDF blev gennemløbet i konkrete rækkefølger. | Ingen systematisk prøve af at indtaste afhængige perioder før afgørelsesdatoerne eller arbejde mellem faner. |
+| A4 – tavshed | Målt: klage ændrer afskæring, virkningsdato har forrang, og datoer kan være skjulte bag relevansvalg; dokumentets Status-linjer blev læst. BB-242's 3.14-loadtest målte bevarede datoer og advarsel uden preflight/dataændring. | Øvrige downstream-forbrugere uden for 12d er ikke målt. |
+| A5 – fejl | Målt: konkrete afskæringstekster, dato i beskeden, min/max og manglende-dato-advarsel; links og downloadgate blev fulgt. | Rød skadedato sammen med overlap på samme række er fortsat udækket i browseren. |
+| A6 – fortrydelse | Målt: «Ja» → dato → «Nej» og Ctrl+Z/Ctrl+Y; gyldig skjult dato gendannes, rød dato ryddes. | Rækkesletning, Escape, navigation og genindlæsning er ikke prøvet i denne sektion. |
+| A7 – ensartethed | Delvist: afskæringstekster i felter og PDF-status blev sammenholdt; virkningsdatoens prioritet blev efterprøvet. | Ingen fuld tværflade- eller tværbrowser-sammenligning af ordlyd, fokus og datoformatering. |
+| A8 – helhed | Ingen særskilt browsermåling af førstegangsbrugerens fulde arbejdsforløb. | Sandsynlig indtastningsrækkefølge, forveksling af midlertidig/endelig afgørelse og samlet overskuelighed er udækket. |
+| B0 – grænser | Målt: før/efter 16-06-2011, afgørelsesafskæringer, dato før/efter grænse og dags dato samt konkrete min/max-tekster. | Ikke alle datofelters deklarerede grænser og naboværdier er afprøvet felt for felt. Erhvervssygdommens anmeldelsesdato-gulv er udækket. |
+| B1 – feltinput | Delvist: gyldige og manglende datoer samt `31-02-2024` blev prøvet. | Blanktegn, pasteformater, tocifret år, Escape, slettede værdier og tekst-/tallængder er ikke systematisk dækket. |
+| B2 – datoer | Målt: datoernes kronologi, skæringsdatoer, afskæringsdagen før afgørelse, umulig dato og virkningsdato efter afgørelsesdato. | Skudårsgrænser og afhængige datoers ændring efter udfyldning er ikke gennemgået fuldt. |
+| B3 – perioder/tabeller | Delvist: afskæringer på TAF- og svie/smerte-rækker blev fulgt til felter og dokument. | Rækkeoverlap kombineret med rød systemgrænse, tomme rækker, dubletter og rækkeafhængig sletning er ikke dækket her. |
+| B4 – kombinationer | Målt: klage med differencekrav, midlertidig/endelig afgørelse, virkningsdato og relevansvalg. | Alle togglerækkefølger og variationer med andre faners allerede afsluttede eller rejected input er ikke prøvet. |
+| B5 – lovligt, usandsynligt | Delvist: virkningsdato efter afgørelsesdato og dato efter dags dato blev efterprøvet. | Lovlige, men mistænkeligt fjerne datoer og realistiske sammenhænge med anmeldelses-/skadedato er ikke systematisk undersøgt. |
+| B6 – tilstandsskift | Målt: toggle og dato med undo/redo; ingen gemt/indlæst fil blev anvendt. | F5, tilbageknap, faneskift med åben editor, `Gem`/`Hent` og hurtige handlinger er udækket. |
+| B6a – tomhed | Delvist: manglende afgørelsesdato og skjult dato under toggle blev observeret. | Tomme/halvt udfyldte tabelrækker og værdier, der kun er ugyldige, findes ikke som særskilt prøve i denne sektion. |
+| B7 – nedstrøms | Målt: felter påvirker TAF/S/S, advarsler, PDF-statuslinjer og downloadgate. BB-242's 3.14-loadforløb bestod i Chrome desktop og efterlod download aktiv. | Kontroltabellen i 12m og andre consumers af afgørelsesdatoerne er ikke dækket af disse browserforløb. |
 
 ## Åbne spørgsmål
 

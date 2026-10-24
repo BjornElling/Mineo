@@ -2,12 +2,14 @@ import * as React from 'react';
 import { useSyncExternalStore } from 'react';
 import type { InputCatalog } from '../fieldCatalog';
 import type { SettledInput } from '../settledInput';
+import type { CollectionRef } from '../fieldAddress';
 import { sourceTokensEqual, type EvaluationSourceToken, type InputRevision } from '../evaluationSource';
 import { captureStableInput, readSourceToken } from '../runtime/evaluationSourceBinding';
 import type { FieldIssueSnapshot } from '../inputIssue';
 import type { InputEvaluation } from '../inputReader';
 import {
   dispatchInput,
+  dispatchPersistedSortOrder,
   type DispatchInputResult,
   type StructuralCommandKind,
 } from '../runtime/dispatchInput';
@@ -99,6 +101,8 @@ export type InputEditPort = Readonly<{
     command: InputSurfaceCommand<TField, TEntity> & { kind: TKind },
     ...origin: OriginArgs<TKind>
   ) => DispatchInputResult;
+  /** Persiste en tabelsortering uden history-trin; undo/redo-snapshots rebases med samme rækkefølge. */
+  persistSortedOrder: (collection: CollectionRef, orderedEntityIds: readonly string[]) => DispatchInputResult;
   registry: ActiveEditorRegistry;
 }>;
 
@@ -339,6 +343,8 @@ export const createInputRuntimeBinding = (
       dispatch: ((command: InputSurfaceCommand, origin?: HistoryOrigin) =>
         dispatchInput(store, catalog, command, origin === undefined ? {} : { origin })
       ) as InputEditPort['dispatch'],
+      persistSortedOrder: (collection: CollectionRef, orderedEntityIds: readonly string[]) =>
+        dispatchPersistedSortOrder(store, catalog, collection, orderedEntityIds),
       registry,
     }),
   });

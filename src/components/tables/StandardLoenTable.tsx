@@ -48,7 +48,7 @@ import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton, rowDeleteLaneStyle } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 // Den delte StandardLoenTable. Tabellen renderes i to kontekster: Årsløn (top-level `aarsloen.tableData`) og EO's
@@ -247,13 +247,14 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       },
       { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
     ], [beloebMode, calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
+    const persistSortedOrder = usePersistSortedCollectionOrder(collection);
 
     const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
       committedRows,
       getRowId: (row) => row.id,
       isRowEmpty: (row) => table.isRowEmpty(row.id),
       columns: sortColumns,
-      reorderRows: table.reorderRows,
+      persistSortedOrder,
       saveOrderPath,
     });
 

@@ -15,7 +15,7 @@ import {
   type SammentaellingModel,
 } from './eoInspektionSammentaelling';
 import type { SammentaellingDisplayRow } from '../erstatningsopgoerelse/control/eoControlMismatch';
-import type { EOInspektionModel } from './eoInspektionKontrolModel';
+import type { EOInspektionBeregningsperiodeProjection, EOInspektionModel } from './eoInspektionKontrolModel';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
 
 /**
@@ -40,6 +40,12 @@ export type EOInspektionSnapshot = Readonly<{
   }>;
 }>;
 
+/** Beregningsgrene, som skal være tomme i kontrolvisningen, fordi deres egne inputs har røde fejl. */
+export type EOInspektionBlockedBranches = Readonly<{
+  svieSmerte: boolean;
+  taf: boolean;
+}>;
+
 const buildInspektionDaysFromModel = (model: EOInspektionModel): readonly RowDay[] => {
   const { tableData } = model;
   return tableData.dates.map((iso, rowIndex) => ({
@@ -62,8 +68,11 @@ export const buildEOInspektionSnapshot = (args: {
   /** Clampede TAF-ranges fra engines. Når disse er leveret afspejler kontroltabellen
    *  præcis de perioder der indgik i beregningen – ikke de rå committede datoer. */
   tafRanges?: readonly IsoRange[];
+  beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot-pipelinen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;
+  /** Egenfejl i en gren må ikke udløse fallback til rå input i kontrolvisningen. */
+  blockedBranches?: EOInspektionBlockedBranches;
   canonicalOutput?: EoCanonicalOutput;
   sfggResult?: SygeferiegodtgoerelseResult;
 }): EOInspektionSnapshot => {
@@ -73,7 +82,10 @@ export const buildEOInspektionSnapshot = (args: {
   const model = buildEOInspektionModel(eoValues, {
     tafRanges,
     skadedatoISO: stamdataValues.skadedato,
-    svieSmerteConstrainedPeriods: args.svieSmerteEngine?.constrainedPeriods,
+    beregningsperiodeProjection: args.beregningsperiodeProjection,
+    svieSmerteConstrainedPeriods: args.blockedBranches?.svieSmerte === true
+      ? []
+      : args.svieSmerteEngine?.constrainedPeriods,
   });
   const inspektionDays = buildInspektionDaysFromModel(model);
   const sammentaelling = buildEOInspektionSammentaellingModel({
@@ -82,6 +94,8 @@ export const buildEOInspektionSnapshot = (args: {
     svieSmerteContext,
     taftContext,
     tafRanges,
+    beregningsperiodeProjection: args.beregningsperiodeProjection,
+    blockedBranches: args.blockedBranches,
     canonicalOutput: args.canonicalOutput,
     sfggResult: args.sfggResult,
     svieSmerteEngine: args.svieSmerteEngine,

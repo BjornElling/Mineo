@@ -232,7 +232,7 @@ describe('B9: katalog over række-evalueringens unikke gate-bidrag (golden maste
           "eoRowErrors": [
             {
               "id": "taf.periode.taf-1",
-              "message": "TAF-perioden ⟨dato⟩ - ⟨dato⟩: Hele perioden ligger efter den dato, differencekravet er opgjort pr. (⟨dato⟩)",
+              "message": "TAF-perioden ⟨dato⟩ - ⟨dato⟩: Hele perioden ligger på eller efter den dato, differencekravet er opgjort pr. (⟨dato⟩)",
             },
           ],
           "projectionKind": "ok",

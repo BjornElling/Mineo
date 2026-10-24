@@ -42,14 +42,17 @@ tom for alle læsere, men den bevares og kommer tilbage, hvis enheden skifter. �
 derimod i begge enheder, fordi sygeferiegodtgørelsen bruger ferieperioderne også i måneder.
 
 **Tabellernes afledte kolonner tæller det, der regnes med, og info-tooltipet siger rammen** (BB-217, BB-249,
-BB-250): «TAF-måneder» / «TAF-arbejdsdage» tæller rækkens del inden for opgørelsen, og «Feriedage» tæller
+BB-250, BB-344): «TAF-måneder» / «TAF-arbejdsdage» tæller rækkens del inden for opgørelsen, og «Feriedage» tæller
 ferierækkens feriedage inden for TAF-perioderne (`countFeriedageInRanges`, samme optælling som ferielinjen i
-dokumentet). Info-tooltipet siger henholdsvis «Kun TAF-måneder i EO-perioden fremgår», «Kun TAF-arbejdsdage i
-EO-perioden fremgår», «Kun dage i TAF-perioden fremgår» og «Kun dage i beregningsperioden fremgår».
+dokumentet). Info-tooltipet siger «Kun dage i TAF-perioden fremgår», når en gyldig TAF-periode findes. Hvis ingen
+gyldig periode findes, tæller funktionen hele ferierækken, og tooltippen siger «Tallet gælder hele ferierækken,
+når ingen gyldig TAF-periode er angivet». Beregningsgrundlagets ferietabel følger samme regel med beregningsperioden
+og fraværsrækken. TAF-afledningerne siger fortsat henholdsvis «Kun TAF-måneder i EO-perioden fremgår» og «Kun
+TAF-arbejdsdage i EO-perioden fremgår».
 
 **Ferieperiodens vindue spærrer fortsat** (udviklerafgørelse 2026-09-25, BB-248): en ferie før skadedatoen,
-efter dags dato eller efter en afskæring fradrages aldrig, men spærrer opgørelsen med rød celle og en besked
-i fladens sprog («Ferien ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)»), så brugeren
+efter dags dato eller på eller efter en afskæring fradrages aldrig, men spærrer opgørelsen med rød celle og en besked
+i fladens sprog («Ferien ligger på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)»), så brugeren
 retter den, før en senere ændret periode gør den virksom. Reglen projekteres til cellen i
 `tafRowCellIssues.ts` sammen med overlappet i begge tabeller og maksimum for løse feriedage.
 

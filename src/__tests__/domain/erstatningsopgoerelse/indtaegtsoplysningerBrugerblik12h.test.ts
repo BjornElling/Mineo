@@ -284,6 +284,20 @@ describe('BB-291 – én linje pr. fejlbehæftet lønrække med cellens egen tek
     ]));
   });
 
+  it('bevarer to ens advarsler for to lønrækker uden beløb', () => {
+    const row = loenRaekker()[0]!;
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        indtaegtsoplysningerTableData: [
+          { ...row, id: 'uden-beloeb-1', col2: undefined },
+          { ...row, id: 'uden-beloeb-2', col2: undefined },
+        ],
+      })],
+    }));
+
+    expect(result.warningLinjer.filter((line) => line === 'Lønrækken 06-2017 er udfyldt uden beløb')).toHaveLength(2);
+  });
+
   it('gør en omvendt uge-periode rød på begge celler med hver sin udvej (BB-295)', () => {
     const result = project(sag({
       loenindkomstAnsaettelsesforhold: [ansaettelse({

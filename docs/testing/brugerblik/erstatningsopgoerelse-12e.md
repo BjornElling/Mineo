@@ -149,6 +149,32 @@ Når felterne er uvirksomme, er jeg enig i, at de bør skjules. Der behøver ikk
 **Tilbagemelding**
 Enig, men med et lille forbehold. Det er uhensigtsmæssigt, at der kan bibeholdes ugyldige datoer i programmet, blot fordi de ikke påvirker beregningen lige nu og her. Hvis beregnings- eller erstatningsperioden senere ændres, vil der da pludselig blive introduceret en blokerende fejl fra nogle værdier, som brugeren har indtastet på et tidligere tidspunkt. Så jeg ville gerne, hvis der kunne gøres opmærksom på fejlen, så brugeren har et incitament til at rette den, uanset at den ikke påvirker den nuværende beregning.
 
+### BB-342 – Cutoff-fejlteksten siger «efter» på selve afskæringsdatoen
+
+- **Type:** Fejl
+- **Rækkevidde:** Tværgående med 12b's ménafgørelses-cutoff; fælles mønster M-42 i `TVAERGAAENDE.md`.
+- **Prioritet:** Mellem
+- **Beslutning:** **GODKENDT OG GENNEMFØRT** 2026-10-24 som rettelse af misvisende fejltekst. Cutoff-datoen er ugyldig,
+  fordi TAF og ferie afgrænses til dagen før; beskeden siger nu «på eller efter». Svie/smerte følger samme `>=`-regel.
+  Ingen beregningsregel er ændret.
+- **Sådan fremprovokeres det:** Differencekrav opgjort pr. `01-07-2024`; sæt en ferieperiodes fra-dato eller TAF-periodens
+  slutdato til præcis `01-07-2024`. TAF-periodens seneste gyldige dag er `30-06-2024`. Svie/smerte-søsterforløbet er
+  dokumenteret i 12b: fra-dato lig ménafgørelsesdatoen.
+- **Det sker:** Før rettelsen blev datoen rød og download blokeret, men cellen sagde «Ferien ligger efter den dato,
+  differencekravet er opgjort pr. (01-07-2024)» eller «Der er angivet tabt arbejdsfortjeneste efter den dato…» –
+  selv om feltet stod på samme dato. Samme `>=`-regel gjaldt endelig og midlertidig EET, feriecellens tekst og periodens
+  samlede linje. S/S-felterne havde tilsvarende tekster («efter datoen for en ménafgørelse») under samme `>=`-grænse.
+- **Kilde og testdækning:** `collectTafCutoffsRamtAf` i `tafPeriodConstraints.ts` bruger `value >= cutoff`; de fælles
+  beskedformater brugte altid ordet «efter». `tafPeriodConstraints.test.ts` forventede tidligere «efter» ved lighed,
+  så testen fastholdt fejlen. Teksterne er nu samlet rettet til «på eller efter», og tests dækker lighed for ferie,
+  TAF-celle og periodens linje samt de øvrige cutoff-typer. S/S har særskilte unit-/validatorfacitter og en E2E-test,
+  der måler fra-dato lig cutoff. Det er ikke en ny browsermåling af TAF-/ferieteksterne.
+- **Begrænsning:** Ændringen påvirker kun den forklarende tekst. Afskæringen, den røde markering, blokeringen og
+  dokumentets beregning er uændrede.
+
+**Tværhenvisning:** 12b dokumenterer samme fejl i ménafgørelsens svie/smerte-cutoff. Begge forekomster er samlet
+under M-42 i `TVAERGAAENDE.md`.
+
 ### BB-249 – «Feriedage» tæller hele ferierækken, også de dage, der ikke fradrages
 
 - **Type:** Fornuft
@@ -156,12 +182,15 @@ Enig, men med et lille forbehold. Det er uhensigtsmæssigt, at der kan bibeholde
   (BB-217's form)
 - **Prioritet:** Mellem
 - **Beslutning:** **GODKENDT** af udvikleren 2026-09-25 som én samlet løsning for alle afledte kolonner (efter
-  modsvar, se BB-250): kolonnen viser det tal, der regnes med, og overskriften siger rammen. **GENNEMFØRT**
+  modsvar, se BB-250): kolonnen viser det tal, der regnes med, og dens overskrift forklarer rammen. **GENNEMFØRT**
   2026-09-25: «Feriedage (i TAF-perioden)» tæller ferierækkens feriedage inden for TAF-perioderne
   (`countFeriedageInRanges`, samme optælling som dokumentets ferielinje) – målt 10 og 0 i fundets sag.
   Beregningsgrundlagets ferietabel (12f) følger samme form: «Feriedage (i beregningsperioden)». Findes rammen
   endnu ikke (ingen gyldig TAF-række / ingen beregningsperiode), tælles rækken for sig, som svie/smerte-tabellen
-  gør uden en EO-periode.
+  gør uden en EO-periode. **Senere ændring 2026-09-28:** commit `b0485bb2` forkortede de to overskrifter til
+  «Feriedage» og flyttede rammeforklaringen til info-ikonets tooltip («Kun dage i TAF-perioden fremgår» /
+  «Kun dage i beregningsperioden fremgår»). Det oprindelige 10/0-tal blev ikke genmålt efter denne tekstflytning;
+  2026-10-24 målte BB-344 tooltippen i TAF-tilstanden uden gyldig periode.
 - **Sådan fremprovokeres det:** Dagsløn. TAF `01-01-2024` – `30-06-2024`. Ferie `17-06-2024` – `12-07-2024` og
   `01-10-2024` – `11-10-2024`. Hent opgørelsen.
 - **Det sker:** Ferietabellen skriver **20** og **9**. Kun 10 dage fradrages: TAF-kolonnen går fra 124 til
@@ -183,6 +212,18 @@ Begge løsninger er som sådan problematiske. Brugeren indtaster en ferieperiode
 
 Jeg vil gerne have, at de steder, hvor problemstillingen er aktuel, får én samlet, logisk løsning, måske ved at teksten ændres til "Feriedage i TAF-perioden" eller noget i det stil. Se gerne hvad vi gjorde sidst og overveje, hvilken løsning, der er bedst.
 
+### BB-344 – Ferietællingen viser hele rækken under en forklaring om TAF-perioden
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`; samme tællefunktion bruges i 12f.
+- **Prioritet:** Lav
+- **Beslutning:** **Godkendt og gennemført 2026-10-24:** Behold rækkens dagstal, og sig i tooltippen, at tallet gælder hele rækken, når der ikke findes en gyldig TAF-periode. Når perioden findes, beholdes forklaringen om dage i TAF-perioden.
+- **Sådan fremprovokeres det:** Åbn en ny sag, lad TAF-periodetabellen stå uden en gyldig periode, og indtast ferie `01-03-2024`–`15-03-2024` i «Evt. ferie i perioden».
+- **Det sker – før rettelsen, browsermålt i Chrome 2026-10-24:** Ferierækken viser `11` under kolonnen «Feriedage», mens kolonneikonets tekst siger «Kun dage i TAF-perioden fremgår». Da ingen gyldig TAF-periode er angivet, tælles hele ferierækken (`buildFerieFeriedageById` bruger rækkens egen periode som fallback), ikke dage i en TAF-periode.
+- **Det er uhensigtsmæssigt fordi:** Brugeren får ikke at vide, at tallet viser hele ferierækken, fordi der endnu ikke findes en gyldig TAF-periode. Det ligner samme afgrænsede antal, som kolonneforklaringen lover.
+- **Rettelse og kontrol:** Tooltippen følger nu den samme periodeafgrænsning som tællefunktionen. Uden gyldig TAF-periode står «Tallet gælder hele ferierækken, når ingen gyldig TAF-periode er angivet»; når rammen udfyldes, skifter teksten til «Kun dage i TAF-perioden fremgår». Chrome-desktop-E2E kontrollerer begge tekster og at en ferie på 11 arbejdsdage fortsat viser `11` uden TAF-periode og `0`, når den indtastede TAF-periode ligger uden for ferien.
+- **Andre steder det kan gælde:** Beregningsgrundlagets ferietabel i 12f bruger samme tællefunktion. Den får samme mønster med sin egen forklaring om hele fraværsrækken; komponenttest kontrollerer teksten og at dagstallet ikke skjules.
+
 ### BB-250 – TAF-kolonnen tæller kun det, der ligger i EO-perioden, men siger det ikke – og en række helt uden for står med 0
 
 - **Type:** Fornuft
@@ -190,8 +231,10 @@ Jeg vil gerne have, at de steder, hvor problemstillingen er aktuel, får én sam
   (BB-217's form)
 - **Prioritet:** Mellem
 - **Beslutning:** Først **afvist**, derefter **GODKENDT efter modsvar** 2026-09-25. **GENNEMFØRT** 2026-09-25:
-  «TAF-måneder (i EO-perioden)» / «TAF-arbejdsdage (i EO-perioden)». Afgrænsningen forbliver tavs; der er ingen
-  ny advarsel.
+  «TAF-måneder (i EO-perioden)» / «TAF-arbejdsdage (i EO-perioden)». **Senere ændring 2026-09-28:** commit
+  `b0485bb2` forkortede overskrifterne til «TAF-måneder» / «TAF-arbejdsdage» og flyttede rammeforklaringen til
+  info-ikonets tooltip («Kun TAF-måneder i EO-perioden fremgår» / «Kun TAF-arbejdsdage i EO-perioden fremgår»).
+  Afgrænsningen forbliver tavs; der er ingen ny advarsel.
   **Modsvar 2026-09-25:** afvisningen begrundede, at tavs afgrænsning til EO-perioden er korrekt. Det var ikke
   til debat – fundet foreslog kun overskriften, ordret som udvikleren selv krævede for svie/smerte ved BB-217, og
   BB-249's tilbagemelding bad om én samlet løsning. Udvikleren valgte samme form overalt.
@@ -446,13 +489,51 @@ Enig
 - Beregningsenheden er kun styret gennem «Angivet månedsløn/dagsløn»; skiftet via Lønindkomst (12g) er ikke
   målt.
 - Erhvervssygdom (skadedato-gulvet er anmeldelsesdato minus 5 år) er ikke afprøvet for ferieperioderne.
-- `Gem`/`Hent` er ikke afprøvet (filvælgeren kan ikke betjenes headless).
+- `Gem`/`Hent` indgik ikke i den oprindelige browserkørsel. Playwright kan automatisere filvælger og
+  download; senere navngivne ældre `.eo`-sager dækker kun de konkrete loadscenarier, ikke en generel
+  save→load-rundtur for TAF- og ferierækker.
 - Forlig om ansvarsgrad kombineret med «allerede modtaget» er ikke afprøvet.
+- De oprindelige overlapscenarier brugte gyldige datoer. E2E-regressionen `erstatningsopgoerelse-taf-perioder.spec.ts`
+  måler nu én supplerende kombination i Chrome: to overlappende ferieperioder i 2099 med rød systemgrænse, præcise
+  rækkefejl og blokeret download. TAF-tabellens tilsvarende grænse+overlap og Erhvervssygdomsgrænser er ikke målt
+  i samme test.
+- Ældre `.eo`-filer med TAF- eller feriedatoer uden for de nuværende grænser er ikke genåbnet i den oprindelige
+  12e-kørsel.
+- **Efterkontrol 2026-10-24 (BB-340 i 12f):** TAF-rækken `30-12-2027`–`10-01-2028` beholder «TAF-arbejdsdage» `2`
+  ved rød slutdato; EO-kontrol viser samtidig `– / –` for TAF-intervallet og arbejdsdagssammenligningen. Med gyldig
+  slutdato `31-12-2027` vises intervallet og `2 / 2` igen. Udvikleren har godkendt dette som den tilsigtede opdeling,
+  også for tidligere gemte `.eo`-filer; ingen kodeændring.
+
+## Efterkontrol af Brugerblik-kataloget A1–A8 og B0–B7
+
+Status skelner mellem browsermåling, kildeaflæsning og udækket adfærd. En unit-test eller en kildegennemgang er
+ikke i sig selv browserdækning.
+
+| Prøve | Browsermålt | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Delvist: de oprindelige målinger så kontekstuelle «Feriedage (i TAF-perioden)»/«Feriedage (i beregningsperioden)»-overskrifter samt «TAF-måneder»/«TAF-arbejdsdage», løse feriedage, periodefelter og rækketal. Efter 2026-09-28 står rammen i et info-tooltip; BB-344 målte først den misvisende tekst uden periode og efter rettelsen begge forklaringer i Chrome desktop. | Ingen særskilt førstegangsforståelsestest af enheder, labels eller hvilke oplysninger der bruges i hver enhed. Den oprindelige 10/0-måling er ikke gentaget efter overskriftsændringen. |
+| A2 – overblik og mangler | Målt: «Ja» uden rækker, «Nej», delvis række, advarsler, cellefejl og downloadblokering. | Hele sidens færdig-/ikke-færdig-overblik og forklaring af alle inaktive handlinger er ikke gennemgået som helhed. |
+| A3 – rækkefølge | Delvist: kravvalg → perioder/ferie → beregning → PDF blev udført i de almindelige sager. | Ingen systematisk omvendt rækkefølge eller ændring af løngrundlag efter udfyldte TAF-perioder. |
+| A4 – tavshed | Målt: månedsløns ferieinput og løse dage tages imod uden at påvirke TAF-måneder; BB-248's fejl gav tidligere kun samlet besked, og efterrettelsen viser celler. BB-344's rettede E2E viser hele ferierækkens dagstal med forklarende tooltip uden periode og den afgrænsede optælling, når TAF-perioden udfyldes. | Beregningsenhed afledt af Lønindkomst (12g) er ikke målt her. Gamle `.eo`-filer er ikke prøvet. |
+| A5 – fejl | Målt: overlappende ferie, perioder uden for vindue, for mange fradrag, datoorden, konkret fejltekst/link og gate. BB-342 code-review-testede cutoff-lighed i ferie-/TAF-fejltekst. | Grænse + overlap i TAF-rækken er ikke browsermålt sammen; Erhvervssygdommens datogulv er ikke prøvet. |
+| A6 – fortrydelse | Målt: sletning af ferierække og Ctrl+Z gendanner begge datoer. | Escape, undo/redo på kravvalg, rækkeafhængigheder, navigation og genindlæsning er ikke målt. |
+| A7 – ensartethed | Delvist: kravvalg/advarsel og tabelmønster blev sammenlignet med 12b; overlap/rækkeform blev sammenholdt med 12f. | Ingen fuld sammenligning af alle tabelværktøjer, fokus, formateringer og dokumentordlyd på søsterflader. |
+| A8 – helhed | Ingen særskilt browsermåling af en ny bruger, der udfylder hele TAF-fladen uden instruktion. | Sandsynlige fejltrin, rækkefølge mellem TAF og andre EO-sektioner samt samlet dokumentforståelse er udækket. |
+| B0 – grænser | Målt: skadedato-/difference-/EET-/dagsdato-vinduer, periodeafskæring og grænse for løse dage/fradrag i fundene. | Ikke alle deklarerede dato- og beløbsgrænser samt naboværdier er prøvet systematisk. Erhvervssygdomsgrænsen mangler. |
+| B1 – feltinput | Målt: negativt «allerede modtaget» blev afvist, og gyldige/manglende/for mange dage blev brugt. | Mellemrum, paste fra dokument, Unicode, ekstrem længde, decimalformat, Escape og felt-for-felt partition er udækket. |
+| B2 – datoer | Målt: periodeforløb, afskæringer og datoorden i både TAF- og ferierække. BB-342 har unit coverage for en række på selve cutoff-dagen. | Skudår, ugyldig kalenderdato, ligedato ved øvrige feltgrænser og ændring af afhængige datoer efter indtastning er ikke samlet dækket. |
+| B3 – perioder/tabeller | Målt: «Ja» uden række, delvis række, overlap mellem ferieperioder og ferie uden for beregningsvinduet. Supplerende E2E måler to ferieoverlap i 2099 med rød systemgrænse. | TAF-grænse + overlap, dubletter, mange rækker og sletning af en række med downstream-afhængighed mangler browsermåling. |
+| B4 – kombinationer | Målt: måned/dagsløn, ferie/fradrag, TAF-kravvalg og afgørelsesafskæringer. | Enhedsskift via felter på Lønindkomst (12g), forlig + allerede modtaget og krydsflade/rejected-input-kombinationer er udækket. |
+| B5 – lovligt, usandsynligt | Delvist: store fradrag og perioder, der giver 0 TAF, blev set. | Usandsynligt lange forløb, beløbsfejl med faktor 10/1000 og aldre langt fra sagens øvrige datoer er ikke undersøgt. |
+| B6 – tilstandsskift | Målt: slet række efterfulgt af Ctrl+Z. | I den oprindelige kørsel: faneskift, navigation, F5, browser tilbage, `Gem`/`Hent`, Escape og hurtig gentagen rækkeoprettelse er ikke dækket. Playwright kan automatisere filvælger og download; senere navngivne ældre-filsager er ikke generelle rundture. |
+| B6a – tomhed | Delvist: «Ja» uden rækker, skjult/afslået krav, en halvudfyldt TAF-række og ferieindtastning uden en gyldig TAF-periode blev set. | Tom række efter rydning, kun visningsvalg, kun ugyldige datoer og hvert felt som eneste udfyldte værdi er ikke systematisk prøvet. |
+| B7 – nedstrøms | Målt: rækkeantal/dage, beregningsbeløb, PDF-tekst, advarsler og downloadgate blev sammenholdt. | Save/load af samme sag og kontroltabel-forbrugere er ikke dækket af 12e-browsermålingerne. Senere navngivne gamle-filsager i 12d/12f er ikke en generel TAF-/ferie-rundtur. |
 
 ## Åbne spørgsmål
 
-Ingen. Alle elleve fund er afgjort 2026-09-25: ni rettet (BB-247 indsnævret, BB-248–BB-253, BB-255–BB-257) og ét
-afvist (BB-254). BB-247, BB-248, BB-250 og BB-254 blev afgjort efter modsvar.
+De elleve oprindelige fund er afgjort 2026-09-25: ni rettet (BB-247 indsnævret, BB-248–BB-253, BB-255–BB-257) og
+ét afvist (BB-254). BB-247, BB-248, BB-250 og BB-254 blev afgjort efter modsvar. Den kritiske efterkontrol tilføjede
+BB-344 er godkendt og gennemført 2026-10-24.
 
 **Henvisning til 12f:** «Ferie i beregningsperioden» og «Uspecificerede ferie-/feriefridage» er ikke skjult i
 måneder – deres virkning i måneder er ikke undersøgt her og hører til 12f's gennemgang.

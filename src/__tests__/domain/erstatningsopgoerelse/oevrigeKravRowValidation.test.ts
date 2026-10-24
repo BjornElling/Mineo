@@ -45,11 +45,13 @@ describe('assessOevrigeKravRow', () => {
     }, periode)).toEqual({ kind: 'empty' });
   });
 
+
   it('samler begge påkrævede mangler og fokuserer på Udgift til', () => {
     expect(assessOevrigeKravRow(row({ dato: iso('2024-01-10') }), {}, periode)).toEqual({
       kind: 'error',
       message: 'Øvrigt krav (10-01-2024): «Udgift til» og «Beløb» er ikke udfyldt',
       focusColumn: 'udgiftTil',
+      missingColumns: ['udgiftTil', 'beloeb'],
     });
   });
 
@@ -58,16 +60,21 @@ describe('assessOevrigeKravRow', () => {
       kind: 'error',
       message: 'Apotek: «Beløb» er ikke udfyldt',
       focusColumn: 'beloeb',
+      missingColumns: ['beloeb'],
     });
     expect(assessOevrigeKravRow(row({ dato: iso('2024-01-10'), beloeb: amount(1234) }), {}, periode)).toEqual({
       kind: 'error',
       message: 'Øvrigt krav (10-01-2024, 1.234,00 kr.): «Udgift til» er ikke udfyldt',
       focusColumn: 'udgiftTil',
+      missingColumns: ['udgiftTil'],
     });
   });
 
   it('behandler datoen som valgfri for en ellers komplet række', () => {
-    expect(assessOevrigeKravRow(row({ udgiftTil: 'Transport', beloeb: amount(250) }), {}, undefined)).toEqual({ kind: 'ok' });
+    expect(assessOevrigeKravRow(row({ udgiftTil: 'Transport', beloeb: amount(250) }), {}, undefined)).toEqual({
+      kind: 'ok',
+      missingColumns: [],
+    });
   });
 
   it('viser en dato uden for perioden som warning og kan kvalificere rækkenavnet', () => {
@@ -77,11 +84,13 @@ describe('assessOevrigeKravRow', () => {
       kind: 'warning',
       message: 'Medicin: Datoen ligger uden for opgørelsens periode (01-01-2024 - 31-01-2024)',
       focusColumn: 'dato',
+      missingColumns: [],
     });
     expect(assessOevrigeKravRow(krav, {}, periode, { kvalificeretNavn: true })).toEqual({
       kind: 'warning',
       message: 'Medicin (01-02-2024, 100,00 kr.): Datoen ligger uden for opgørelsens periode (01-01-2024 - 31-01-2024)',
       focusColumn: 'dato',
+      missingColumns: [],
     });
   });
 
@@ -94,6 +103,7 @@ describe('assessOevrigeKravRow', () => {
       kind: 'error',
       message: 'Medicin: Datoen kan ikke bruges',
       focusColumn: 'dato',
+      missingColumns: [],
     });
     expect(assessOevrigeKravRow(
       row({ dato: iso('2024-01-10'), beloeb: amount(100) }),
@@ -106,6 +116,7 @@ describe('assessOevrigeKravRow', () => {
       kind: 'error',
       message: 'Øvrigt krav (10-01-2024, 100,00 kr.): Udgiftsteksten er ugyldig; Beløbet er ugyldigt',
       focusColumn: 'udgiftTil',
+      missingColumns: [],
     });
   });
 });

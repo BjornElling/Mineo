@@ -90,8 +90,9 @@ feriedagstal, mens kravet er det samme (BB-247, **Høj**). **Dertil M-20 i BB-21
 samme to tabeller:** overlap (BB-251, **Høj**), for mange løse feriedage (BB-252) og en ferieperiode uden for
 det vindue, valideringen har lånt fra TAF-perioderne – hvor descriptoren selv siger systemrammen (BB-248,
 **Høj**, også M-33). Alle tre spærrer uden rød celle; kun afskæringen fra 12d når cellen. **BB-217's form
-to gange** (BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnen tæller rigtigt, men overskriften
-siger det ikke). **M-33's navngivne TAF-kandidat bekræftet** (BB-253 – en række med kun løse feriedage spærrer
+to gange** (BB-249 – «Feriedage» tæller hele rækken; BB-250 – TAF-kolonnen tæller rigtigt, men den oprindelige
+overskrift sagde det ikke). Løsningen blev senere forkortet til overskrifter med et info-ikon, som bærer
+rammeforklaringen. **M-33's navngivne TAF-kandidat bekræftet** (BB-253 – en række med kun løse feriedage spærrer
 med «Fra-dato mangler» uden link, og BB-231's bagside folder en TAF- og en feriemangel til én linje). M-05 +
 M-13 (BB-254 – «360.000,00 kr. - 500.000,00 kr. = 0,00 kr.»), M-02 (BB-255) og to lokale M-13-forekomster
 (BB-256, BB-257). M-09, M-10 og M-32 bestået; konsollen tavs.
@@ -1920,6 +1921,9 @@ ene felts egen værdi.
   «Beløb er ikke angivet», hvis link fører til første række; den anden rækkes mangel står ingen steder.
   BB-218's foldning forudsatte, at den røde ring bærer udpegningen. **Prøven: for hver `messageOnly`-række
   pr. tabelrække, nævner teksten rækken? Gør den ikke, og farver reglen ikke cellen, forsvinder række nr. 2.**
+- **Gentagne række-fejl har deres eget mønster, M-40.** BB-336's to S/S-rækker med samme mangel har
+  neutrale celler og ét fælles link; det handler om, hvornår en renderer må folde række-fejl, ikke om en
+  feltnær oplysning er afhængig af hele sidens beregning. Se M-40 for den afgrænsede regel og rettelsen.
 - **BB-218's navngivne søskende bekræftet 2026-09-24, og tabellen har TRE regler, der ikke når cellen**
   (`erstatningsopgoerelse-12e.md` BB-248, BB-251, BB-252). TAF- og ferietabellen får kun afskæringen fra 12d ind
   som `collectionRuleIssue`; overlap, maksimum for løse feriedage og ferieperiodens vindue spærrer alle
@@ -2411,6 +2415,15 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   grundlaget bruger 31 af 61 dage. **Løst 2026-10-19:** tabellen står fortsat som lønsedlerne (udviklerens krav), men
   under den står én kort linje pr. række, en relevant periode skærer igennem, med dage og medregnet beløb – læst af
   samme rækkeandele, som beregningen summerer (`buildIncomeRowSharesForRanges`).
+- **Ny forekomst 2026-10-24 i 12e, BB-344:** «Feriedage»-kolonnen viser `11` for hele den indtastede ferieperiode,
+  når der endnu ikke findes en gyldig TAF-periode, mens tooltippen siger «Kun dage i TAF-perioden fremgår».
+  `buildFerieFeriedageById` bruger ferieperiodens egne datoer, når rammen er `undefined`; samme funktion og statiske
+  tooltip bruges i 12f, hvor beregningsgrundlagets ferietabel dermed har samme mismatch, når beregningsperioden ikke
+  er gyldig. Den konkrete 12e-adfærd er browsermålt; 12f-søsterfladen er kun kodeverificeret.
+- **Afgørelse og rettelse 2026-10-24, BB-344:** Udvikleren godkendte at beholde dagstallet og præcisere tooltippen.
+  Ferietabellen genbruger nu den samme afledte periode både til optælling og til valg af forklaring. Chrome-desktop-
+  E2E kontrollerer TAF-tooltippen uden periode, dagstallet `11`, og skiftet til periode-tooltip samt `0`, når TAF-
+  perioden ligger uden for ferien. Komponenttest dækker også fraværsrækken i beregningsgrundlaget.
 
 ---
 
@@ -2800,9 +2813,10 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
 3. Fravælg sektionens kravvalg og se, om boksen stadig taler (M-32-formen).
 
 - Fundet i: `erstatningsopgoerelse-12c.md` BB-228, BB-229, BB-230, BB-232 og BB-237.
-- Kandidater, ikke efterprøvet: svie/smerte-perioder («Fra-dato mangler» / «Til-dato mangler» /
-  «Tilstand mangler», validatorlinje 459–465 – 12b målte kun, at en række med kun «Tilstand» spærrer uden
-  rød celle), TAF- og ferieperioder (879/882, 12e), de manuelle reguleringsrækker (1154–1199, 12i).
+- Bekræftet i svie/smerte i 12b, BB-343/346: en ufuldstændig række viste kun manglende felter og kunne skjule en
+  cutoff-fejl på den udfyldte dato. Rettelsen viser begge forhold og linker til den udfyldte, røde celle; den er
+  browsermålt for Fra-cutoff + manglende Til, og unit-testet for den spejlvendte Til-cutoff + manglende Fra.
+- Kandidater, ikke efterprøvet: TAF- og ferieperioder (879/882, 12e), de manuelle reguleringsrækker (1154–1199, 12i).
 - **Bemærk skellet mod BB-083's afgjorte princip:** at en ren mangel i en halvfærdig række ikke får rød
   ring, er afgjort og korrekt. M-33 handler ikke om ringen, men om at samme mangel meldes to gange med to
   alvorsgrader, og om at det lag, der blokerer, ikke kan pege.
@@ -3056,3 +3070,158 @@ koden, er det en forekomst – uanset hvad sporet siger.
 - **Lukket 2026-10-24 for den tredje form:** BB-324's advarsel er koblet på (gul ring på referenceperiodens til-dato og
   en gul linje), og de to ubrugte værdier i view-modellen bag BB-322 og BB-323 er slettet – reglerne bæres nu af
   `sfggReferenceperiodeRules.ts` på feltets egen adresse.
+
+## M-39 – Gamle filer får nye blokerende feltfejl efter indlæsning
+
+> En tidligere gemt sag indlæses uden fejl, og alle dens værdier bevares. Alligevel får brugeren straks en ny rød
+> fejl og kan ikke hente det samme dokument, som kunne hentes, da filen blev gemt.
+
+En ændring af feltgrænser eller dokumentkrav kan påvirke allerede udgivne `.eo`-filer, selv om schema og loader
+stadig accepterer dem. Brugeren har ikke ændret sagen, men oplever den som fejlbehæftet efter indlæsning. Det er en
+ændret load-oplevelse og kan blokere arbejdet, så den skal vurderes før en ny regel indføres.
+
+**Efterprøv, hvor:** en ny blokerende feltregel eller dokumentgate anvender en værdi, der allerede kunne gemmes i
+tidligere versioner. Brug konkrete gamle filer: bekræft, at de indlæses uden preflight, at data bevares, og om den
+nye fejl efterfølgende spærrer for samme handling. Dæk hele forløbet fra gammel fil til brugerens næste handling,
+ikke kun schema, validator og gate hver for sig.
+
+- **Fundet i:** `erstatningsopgoerelse-12a.md` BB-334 og BB-335. En 3.15-fil med periode før skadedatoen bevares,
+  men den nye datogrænse blokerer dokumentdownload. En anden 3.15-fil uden skadelidtes navn og med
+  «Underskrift-linje» bevares også, men den nye navnefejl blokerer download.
+- **Beslutning 2026-10-24:** Udvikleren har godkendt, at begge nye fejl også gælder tidligere gyldige `.eo`-filer.
+  Load-adfærd og gemte værdier ændres ikke; brugeren ser den nye fejl efter indlæsning og må rette sagen, før
+  dokumentet kan hentes. Begge komplette forløb fra synlig «Hent» til fejl og downloadgate er dækket af
+  `erstatningsopgoerelse-tidligere-filer.spec.ts`.
+
+## M-40 – Gentagne række-fejl foldes kun, når hver række kan ses
+
+> Én fælles fejltekst og ét link kan skjule, at den samme fejl findes i flere rækker. Sammenfoldning er kun tryg,
+> når hver berørt række samtidig er tydeligt markeret dér, hvor brugeren kan rette den.
+
+Fejl fra forskellige tabelrækker kan have identisk tekst og samme sektionslink, selv om hvert issue har sit eget
+rækkespecifikke fokusmål. Hvis den fælles fejlvisning fjerner dubletter alene ud fra teksten og linket, ser brugeren
+én fejl, klikker til første række og tror, at resten også er løst. Når første række rettes, kommer den samme linje
+tilbage for næste række.
+
+**Efterprøv, hvor:** en fejlrenderer deduplikerer linjer, der kommer fra flere rækker i samme tabel. Indtast to rækker,
+der giver samme besked, og følg linket. Fold kun, hvis alle berørte rækker har en synlig cellemarkering med tooltip,
+der viser hvilken anden række eller periode fejlen gælder. Uden den markering skal hver række have sin egen synlige,
+handlingsbare linje og sit eget fokusmål.
+
+- **Fundet i 12c, BB-231** (`erstatningsopgoerelse-12c.md`): to øvrige krav-rækker uden beløb blev foldet til én linje;
+  linket førte til første række. Den oprindelige rettelse gjorde hver linje unik med rækkens beskrivelse og eventuelt
+  dato/beløb.
+- **Genbekræftet i 12c, BB-332** (`erstatningsopgoerelse-12c.md`, 2026-10-24): to rækker med samme dato,
+  beskrivelse og manglende beløb gav stadig identisk tekst. Rækkebyggeren føjer nu «Øvrigt krav 1»/«Øvrigt krav 2» til,
+  når de øvrige værdier ikke kan skelne dem.
+- **Ny forekomst i 12b, BB-336** (`erstatningsopgoerelse-12b.md`, målt 2026-10-24): to S/S-perioder med kun
+  «Sygemeldt» gav én fejl og ét link, selv om ingen af de seks dato-celler var røde. Linket blinkede kun første række.
+  To forskellige mangler gav fortsat hver sin linje og det korrekte link.
+- **Ny forekomst i 12j, BB-341** (`erstatningsopgoerelse-12j.md`, browsermålt 2026-10-24): to SFGG-referencefelter
+  uden for systemets øvre dato-grænse var begge røde med samme besked, men blev foldet til én linje og ét link til første
+  felt. De generiske systemgrænsefejl vises nu hver for sig; BB-322's to felter deler fortsat kun linje, fordi de har en
+  eksplicit gruppe og hver sin røde grænse-tooltip.
+- **Ny forekomst i 12j, BB-345** (`erstatningsopgoerelse-12j.md`, kodebekræftet 2026-10-24): den eksplicitte
+  BB-322-gruppe var global for alle ansættelsesforhold og blev givet også til én enkelt ugyldig Til-dato. Derfor kunne
+  linjen sige «Referenceperiode, fra», mens linket åbnede Til, og ens fejl på to ansættelsesforhold kunne blive foldet
+  til én. Gruppen er nu begrænset til det samtidige Fra+Til-par inden for samme ansættelsesforhold og får dets id.
+- **Sammenfoldning kræver eksplicit opt-in.** BB-218-overlap må vises én gang, fordi begge berørte rækker samtidig har
+  røde datoceller, og hver tooltip udpeger modperioden. BB-322's to sammenhørende SFGG-felter må dele én linje af samme
+  regel, fordi begge celler er røde med samme konkrete «før første TAF-periode»-grænse. Koden angiver derfor en
+  eksplicit `summaryDeduplicationGroup` for disse tilfælde; generiske ens tekster – herunder BB-341's to
+  systemgrænsefejl – foldes ikke.
+- **Rettelse og testgrundlag, 2026-10-24:** `EOberegningTab` bruger kun eksplicitte grupper til sammenfoldning;
+  ugrupperede rækker beholder deres rækkeidentitet. `svieSmertePeriodeValidation.test.ts` låser forskellen mellem
+  overlapfejl og manglende datoer, og `eoRowOevrigeKravRowsIndependent.test.ts` låser separate beskeder og fokusmål for
+  identiske øvrige-krav-rækker. `eoRowSygeferiegodtgoerelseRowsBrugerblik12j.test.ts` og E2E låser BB-322's eksplicitte
+  gruppe mod BB-341's separate systemgrænsefejl. E2E-specsene for BB-332 (`erstatningsopgoerelse-oevrige-krav.spec.ts`)
+  og BB-336 (`svie-smerte-men-cutoff.spec.ts`) hævder nu de to fejl og hvert sit link efter rettelserne. Chrome-desktop-
+  E2E for BB-336 bestod i reviewrunden sammen med cutoff-sagerne (5/5 i S/S-spec'et). BB-332's post-fix Chrome-desktop-
+  E2E blev nu kørt og bestod 2/2: ens delvise kravrækker gav to fejl, og hvert link åbnede sin række. BB-345's Chrome-desktop-regression loader to
+  ansættelsesforhold, kræver to linjer og kontrollerer bagefter den præcise Til-label ved delvis fejl; SFGG-spec'et
+  bestod 6/6.
+- **Kandidater, ikke verificerede fund:** andre `messageOnly`-rækker, hvor rækkeidentiteten ikke står i teksten.
+  12h/12j's gentagne rækkeprøver er allerede beskrevet i deres rapporter som uden samme sammenfoldning; de skal ikke
+  genåbnes uden en ny konkret reproduktion.
+
+## M-41 – En rød kontekstdato kan stadig påvirke afledte visninger
+
+> Et datofelt kan være rødt, mens en anden del af Mineo stadig bruger datoen til at vise en tælling, en label eller et valg.
+
+`InputReader` kan bevare en schema-gyldig canonical dato og samtidig knytte et context-issue til den. Det er nyttigt,
+når datoen skal kunne ses og rettes, og når en bestemt gren skal blokere. Men `includeContextIssues` indsamler issues;
+det gør ikke datoen ubrugelig for alle læsere. Den brede `eoValues`-projektion indeholder fortsat canonical-værdien,
+så enhver afledt consumer, der læser projektionen direkte, kan bruge den røde dato uden selv at tage stilling til dens
+issue.
+
+**Efterprøv, hvor:** følg hver context-red dato fra læseren gennem beregninger, tabelceller, kontrolmodeller,
+labels/selectors, dokumentmodel og downloadgate. Skeln mellem en autoritativ beregning, som skal blokeres af issue,
+en read-only inspektion, der må vise en sikker delmængde, og en consumer hvor udvikleren udtrykkeligt har valgt at
+bevare den røde værdi. En fejl ét sted beviser ikke, at de øvrige consumers er gatede.
+
+- **Browsermålt og afgjort i 12f, BB-339:** en fraværsrække `29-10-2026`–`10-01-2028` havde rød til-dato med
+  grænse `31-12-2027`, mens tabellens «Feriedage» stadig viste `2`. Udvikleren har besluttet at bevare dette
+  tal, også for tidligere gemte `.eo`-filer; ingen kodeændring.
+- **Reproduceret i inspektionsmodel, ikke browsermålt i EO-kontrol, og afgjort under BB-339:** med
+  beregningsperiode `01-12-2027`–
+  `31-12-2027` og fraværsrække `30-12-2027`–`10-01-2028` bliver `30-12-2027` markeret «Feriedag», og
+  beregningsperiodens ferieoptælling bliver `2`. Når rækken fjernes, forsvinder markeringen, og optællingen bliver
+  `0`. Det viser en konkret modelvej til kontroltabellen, men ikke hvad en browserbruger ser i «Beregning» →
+  «EO-kontrol». Udvikleren har besluttet at bevare denne ferievisning, også for ældre `.eo`-filer.
+- **Browsermålt og afgjort i 12f, BB-340:** en TAF-række `30-12-2027`–`10-01-2028` havde rød til-dato,
+  men rækkens «TAF-arbejdsdage» viste `2`. I EO-kontrol viste den røde række samtidig `– / –` for både TAF-periodens
+  interval og «Arbejdsdage i TAF-periode»; med slutdato `31-12-2027` blev intervallet `30-12-2027 / 31-12-2027` og
+  kontrollen `2 / 2`. Udvikleren har godkendt netop denne opdeling: bevar rækkens `2`, men undlad kontrollen af den
+  røde række, også i tidligere gemte `.eo`-filer. Dagkalenderens markeringer for 30. og 31. december ændrede sig ikke.
+- **Kildeaflæst:** `buildErstatningsopgoerelseReaderProjection` slår context-issues til, men beholder canonical
+  værdier i `eoValues`. TAF- og scalar-beregningsperiodeprojektionerne i `eoSnapshot.ts` filtrerer bestemte input
+  lokalt; `ferieperioder` og `fravaerPerioder` sendes videre til `buildEOInspektionSnapshotForComputed` uden
+  tilsvarende ejer-gate. `buildExplicitFerieSet` i `eoInspektionKontrolModel.ts` og `buildFerieDatesInRange` /
+  `calculateTafArbejdsdageBreakdown` i `eoInspektionSammentaelling.ts` læser perioderne. Den synlige Feriedage-celle
+  bygges desuden fra `values.fravaerPerioder` i `useEoOplysningerViewModel`; TAF-rækkens dagstal bygges i
+  `buildTafDerived`, som afgrænser datoen til grænsen og stadig viser et delresultat.
+- **Bilagsvælgeren – browsermålt uden forskel:** med rød beregningsperiode `01-01-2030`–`02-02-2030`, TAF
+  `30-01-2030`–`31-01-2030` og en dagpengerække på `10.000,00 kr.` i januar 2030 var valgene «Offentlige ydelser» og
+  «Regulering» begge deaktiveret. Reguleringstoggle stod afkrydset, men deaktiveret. Da ydelsen blev sat til `0`, var
+  de samme valg stadig deaktiveret med samme begrundelser. En tidligere direkte helperreproduktion, der viste ændret
+  availability for konstruerede canonical værdier, forudsiger således ikke den faktiske browseradfærd og er en falsk
+  positiv som brugerfund. Ingen selectorændring er godkendt eller gennemført. BB-338's særskilte satsreference er
+  afgjort: den indtastede reference bevares også, når datoen er rød; et konkret satsbeløb med valgt overenskomst er
+  ikke målt.
+- **Browsermålt og afgjort overlapkontrol:** beregningsperiode `01-01-2026`–`31-01-2026` og TAF
+  `15-01-2026`–`20-01-2026` gav `22 / 22` for «Arbejdsdage i beregningsperiode» i kontroltabellen, selv om begge
+  perioder var røde for overlap. TAF-kontrolrækken viste `– / –`. Udvikleren har godkendt at bevare `22 / 22`, fordi
+  værdierne er ens, mens den røde TAF-gren holdes uden sammenligning. EO-kontrol viser overlapfejlen; `eoSnapshot.ts`
+  returnerer `status: error` og `data: null`, så autoritativ beregning/PDF ikke bygges og download forbliver spærret.
+  Tidligere gemte `.eo`-filer er omfattet. Den tilføjede 3.14-regression bestod i Chrome-desktop sammen med de øvrige
+  gamle-fil- og cutoff-cases.
+- **Rettelsesregel:** `eoValues` er en læseprojektion, ikke en garanti for at alle værdier er sikre til enhver
+  afledt visning. Den consumer, der udleder en tælling, label, selector eller dokumentværdi, skal modtage eller
+  bygge en typed projektion, der også bærer relevante issues, og eksplicit vælge hvilke rækker/værdier der er sikre
+  til netop den brug. Saml række-issue-udtræk og sikre periodefiltre ét sted, hvor de har samme regler. Bevar
+  autoritative beregninger og runtime-branch-isolation. Hvis udvikleren udtrykkeligt vælger at bevare en bestemt
+  visning trods et issue, som BB-338's satsreference, BB-339's ferieoptællinger og BB-340's TAF-rækketal, dokumenteres
+  valget ved den consumer; det må ikke blive en implicit egenskab ved at alle consumers modtager rå canonical-værdier.
+- **Teststatus:** eksisterende tests dækker readerens context-issue-semantik og den lokale TAF-/beregningsperiode-
+  filtrering. Gammel 3.14-fil-regression i `e2e/erstatningsopgoerelse-tidligere-filer.spec.ts` bestod i Chrome-desktop
+  for BB-339's «Feriedage»/kalendermarkeringer, BB-340's rækkevisning `2` og kontrol `– / –`, samt overlapvisningen
+  `22 / 22` mod TAF `– / –`; download var fortsat blokeret, og ingen af forløbene viste «Teknisk fejl registreret».
+  Bilagsvælgerens helperreproduktion er ikke en runtime-observation; browseren viste ingen enablementforskel med/uden
+  den røde januar-2030-ydelse. Den samlede målrettede E2E-kørsel af gamle filer, TAF-perioder og S/S-cutoff bestod 20/20.
+
+## M-42 – En inkluderende cutoff kræver «på eller efter» i fejlteksten
+
+> Når den ugyldige grænse er `værdi >= cutoff`, må teksten ikke kun sige «efter» – samme dato er også ugyldig.
+
+- **Fund i 12b, BB-342:** En svie/smerte-periode fra samme dato som ménafgørelsen bliver rød, men dens celle- og
+  periodebesked sagde tidligere «efter». Lighed er omfattet af `buildSvieSmerteCutoffErrorMessage` og
+  `buildSvieSmertePeriodeCutoffErrorMessage` i `svieSmerteConstraints.ts`.
+- **Fund i 12e, BB-342:** TAF- og ferieperioder på differencekravets, endelige EET's eller aktive midlertidige EET's
+  dato bliver afvist, men beskeden sagde tidligere «efter». `collectTafCutoffsRamtAf` i `tafPeriodConstraints.ts`
+  bruger `value >= cutoff` for både celle- og periodeteksterne.
+- **Rettelse, 2026-10-24:** Teksterne for de tre cutoffs og begge periodetyper i TAF/ferie samt S/S-felt og samlet
+  periode siger nu «på eller efter». Der er ingen ændring af de aktive datoer, feltissues, beregningsresultater eller
+  downloadgate.
+- **Dækning:** TAF/ferie har unit-tests for lighed på celle- og periodetekster samt cutoff-kilder. S/S har særskilte
+  unit-/validatorfacitter og E2E for fra-dato lig cutoff. Browseren har ikke særskilt målt TAF-/ferieteksterne ved
+  lighed.

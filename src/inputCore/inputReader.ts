@@ -168,7 +168,7 @@ export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCata
 // gater den berørte beregning.
 
 export type ReadFieldResult<T> =
-  | Readonly<{ status: 'usable'; value: T }>
+  | Readonly<{ status: 'usable'; value: T; issue?: FieldIssue }>
   | Readonly<{ status: 'error'; issue: FieldIssue }>;
 
 /**
@@ -181,9 +181,9 @@ export type ReadFieldResult<T> =
  * læser. En `context`-fejl returnerer værdien, fordi den er canonical; den relevante domæneprojektion skal
  * i stedet vise issuet og gate sin egen beregning.
  *
- * En projektion, der skal samle fejl fra flere reads, bruger `createTrackedInputReader`. Dermed kommer
- * issue-sættet fra de konkrete `FieldRef`s, projektionen faktisk læste, ikke fra en efterfølgende
- * sektionsscan eller en manuel tekstliste.
+ * En projektion, der skal samle fejl fra flere reads, bruger `createTrackedInputReader`. Den samler almindelige
+ * blokerende issues fra de konkrete `FieldRef`s, projektionen faktisk læste. En context-fejl bevarer en canonical
+ * værdi som usable og skal kun optages i en gren, der udtrykkeligt ejer dens blokering.
  */
 export type InputReader = Readonly<{
   sourceToken: EvaluationSourceToken;
@@ -210,8 +210,13 @@ export type TrackedInputReader = Readonly<{
   readIssues: () => readonly FieldIssue[];
 }>;
 
-/** Binder en issue-opsamler til præcis de feltreferencer, consumerens projektion læser. */
-export const createTrackedInputReader = (reader: InputReader): TrackedInputReader => {
+/**
+ * Binder issue-opsamleren til de refs, projektionen læser. Context-fejl optages kun ved eksplicit valg.
+ */
+export const createTrackedInputReader = (
+  reader: InputReader,
+  options: Readonly<{ includeContextIssues?: boolean }> = {},
+): TrackedInputReader => {
   const issues = new Map<string, FieldIssue>();
   return Object.freeze({
     reader: Object.freeze({
@@ -222,6 +227,8 @@ export const createTrackedInputReader = (reader: InputReader): TrackedInputReade
       read: <T>(field: FieldRef<T>): ReadFieldResult<T> => {
         const result = reader.read(field);
         if (result.status === 'error') {
+          issues.set(serializeFieldAddress(field.address), result.issue);
+        } else if (options.includeContextIssues === true && result.issue !== undefined) {
           issues.set(serializeFieldAddress(field.address), result.issue);
         }
         return result;
@@ -252,9 +259,10 @@ const createInputReader = (options: Readonly<{
       }
       const issue = activeFieldIssue(options.issues, serializeFieldAddress(field.address));
       // En kontekstregel markerer værdien, men gør den ikke rejected. Den må derfor ikke maskere canonical input;
-      // den konkrete domæneprojektion skal både vise issuet og blokere sin egen afhængighed.
+      // den konkrete domæneprojektion skal både vise issuet og blokere sin egen afhængighed. Issuet følger med
+      // værdien, så en tracked projektion kan bevare det, mens den læser videre med canonical værdier.
       if (issue !== undefined && issue.priority !== 'context') return Object.freeze({ status: 'error', issue });
-      return Object.freeze({ status: 'usable', value });
+      return Object.freeze({ status: 'usable', value, ...(issue === undefined ? {} : { issue }) });
     },
     labelOf: <T>(field: FieldRef<T>): string => {
       // Et feltNAVN er metadata om feltet, ikke dets værdi, og kræver derfor ikke, at feltets entity

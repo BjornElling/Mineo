@@ -121,16 +121,16 @@ const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
   helePerioden: (dateText: string) => string;
 }>>> = {
   differencekrav: {
-    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter den dato, differencekravet er opgjort pr. (${d})`,
-    helePerioden: (d) => `Hele perioden ligger efter den dato, differencekravet er opgjort pr. (${d})`,
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (${d})`,
+    helePerioden: (d) => `Hele perioden ligger på eller efter den dato, differencekravet er opgjort pr. (${d})`,
   },
   endeligEet: {
-    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${d})`,
-    helePerioden: (d) => `Hele perioden ligger efter afgørelsen om endeligt erhvervsevnetab (${d})`,
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste på eller efter datoen for afgørelse om endeligt erhvervsevnetab (${d})`,
+    helePerioden: (d) => `Hele perioden ligger på eller efter datoen for afgørelse om endeligt erhvervsevnetab (${d})`,
   },
   midlertidigEet: {
-    efter: (d) => `Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${d})`,
-    helePerioden: (d) => `Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (${d})`,
+    efter: (d) => `Der er angivet tabt arbejdsfortjeneste på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (${d})`,
+    helePerioden: (d) => `Hele perioden ligger på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (${d})`,
   },
 };
 
@@ -140,9 +140,9 @@ const TAF_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, Readonly<{
  * rette den, før en senere ændret periode gør den virksom. Beskeden siger derfor, HVORFOR datoen ikke går.
  */
 const FERIE_CUTOFF_TEKST: Readonly<Record<TafCutoffKilde, (dateText: string) => string>> = {
-  differencekrav: (d) => `Ferien ligger efter den dato, differencekravet er opgjort pr. (${d})`,
-  endeligEet: (d) => `Ferien ligger efter afgørelsen om endeligt erhvervsevnetab (${d})`,
-  midlertidigEet: (d) => `Ferien ligger efter afgørelsen om midlertidigt erhvervsevnetab (${d})`,
+  differencekrav: (d) => `Ferien ligger på eller efter den dato, differencekravet er opgjort pr. (${d})`,
+  endeligEet: (d) => `Ferien ligger på eller efter datoen for afgørelse om endeligt erhvervsevnetab (${d})`,
+  midlertidigEet: (d) => `Ferien ligger på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (${d})`,
 };
 
 /** De afskæringer, `value` ligger på eller efter, i datoorden. */

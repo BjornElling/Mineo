@@ -25,6 +25,13 @@ import {
   resolveSvieSmerteSatsAarForReferenceDate,
 } from '../erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import { activeFieldIssue } from '../../inputCore/inputIssue';
+import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import {
+  eoSvieSmertePeriodeFraField,
+  eoSvieSmertePeriodeTilField,
+  eoSvieSmertePeriodeTilstandField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 
 export const buildEoSvieSmerteRows = (
@@ -55,7 +62,6 @@ export const buildEoSvieSmerteRows = (
 
   // 2) Periode rows fra tabellen - kun hvis synlig
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
-  const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
   // Periode-blokering (komplethed, dato-grænser, overlap, rækkefølge) afgøres af den delte,
   // autoritative validering i domænets validerings-lag (`svieSmertePeriodeValidation`) – ÉN
   // sandhedskilde. Denne builder RENDERER kun resultatet; dens `error`-rækker gater PDF-download
@@ -66,7 +72,20 @@ export const buildEoSvieSmerteRows = (
     menAfgoerelseDatoForTabel: context.menAfgoerelseDatoForTabel,
     menAfgoerelseDato: context.menAfgoerelseDato ?? resolveSvieSmerteCutoffDate(values),
     verserendeKlageMen: context.verserendeKlageMen,
-  });
+  }, (rowId) => ({
+    fra: activeFieldIssue(errors, serializeFieldAddress(eoSvieSmertePeriodeFraField.bind(rowId).address)),
+    til: activeFieldIssue(errors, serializeFieldAddress(eoSvieSmertePeriodeTilField.bind(rowId).address)),
+    tilstand: activeFieldIssue(errors, serializeFieldAddress(eoSvieSmertePeriodeTilstandField.bind(rowId).address)),
+  }));
+  // En afvist rå dato er maskeret fra `values`, men tæller stadig som rækkens fejl og må ikke forsvinde fra
+  // beregningsoversigten. Evaluatorens `skip`-gren er den fælles definition af en helt tom række.
+  const harPerioder = perioder.some((periode) => periodeEvaluations.get(periode.id)?.kind !== 'skip');
+
+  const gentagneFejl = new Map<string, number>();
+  for (const evaluation of periodeEvaluations.values()) {
+    if (evaluation.kind !== 'error' || evaluation.summaryDeduplicationGroup !== undefined) continue;
+    gentagneFejl.set(evaluation.message, (gentagneFejl.get(evaluation.message) ?? 0) + 1);
+  }
 
   // Samler alle periode-fejl til senere brug
   const periodeFejlBeskeder: string[] = [];
@@ -79,7 +98,7 @@ export const buildEoSvieSmerteRows = (
       status: 'ok',
     });
   } else {
-    perioder.forEach((periode) => {
+    perioder.forEach((periode, index) => {
       const evaluation = periodeEvaluations.get(periode.id) ?? { kind: 'ok' as const };
       // Helt tom række springes over (ingen fejl, ingen visning).
       if (evaluation.kind === 'skip') return;
@@ -102,6 +121,13 @@ export const buildEoSvieSmerteRows = (
           displayValue,
           status: 'error',
           focusFieldHint: evaluation.field,
+          ...(evaluation.summaryDeduplicationGroup === undefined
+            ? {}
+            : { summaryDeduplicationGroup: evaluation.summaryDeduplicationGroup }),
+          ...(evaluation.summaryDeduplicationGroup === undefined
+            && (gentagneFejl.get(evaluation.message) ?? 0) > 1
+            ? { summaryText: `Svie/smerte-periode ${index + 1}: ${evaluation.message}` }
+            : {}),
         });
         return;
       }

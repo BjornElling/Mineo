@@ -238,6 +238,9 @@ export const buildEoTaftRows = (
         displayValue: `Fejl (${evaluation.message})`,
         status: 'error',
         focusFieldHint: evaluation.field,
+        ...(evaluation.summaryDeduplicationGroup === undefined
+          ? {}
+          : { summaryDeduplicationGroup: evaluation.summaryDeduplicationGroup }),
       });
       // Den gule ring står ved cellerne uanset rækkens andre fejl; linjen skal derfor også.
       pushIngenArbejdsdageAdvarsel(periode);
@@ -330,6 +333,9 @@ export const buildEoTaftRows = (
           displayValue: `Fejl (${evaluation.message})`,
           status: 'error',
           focusFieldHint: evaluation.field,
+          ...(evaluation.summaryDeduplicationGroup === undefined
+            ? {}
+            : { summaryDeduplicationGroup: evaluation.summaryDeduplicationGroup }),
         });
         return;
       }

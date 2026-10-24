@@ -11,7 +11,7 @@ describe('buildTafPeriodeCutoffErrorMessage', () => {
       fra: iso('2024-01-01'),
       til: iso('2024-12-31'),
       midlertidigEETDato: iso('2023-03-01'),
-    })).toBe('Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2023)');
+    })).toBe('Hele perioden ligger på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (01-03-2023)');
   });
 
   it('bruger til-cellens besked, når kun til-datoen ligger efter afskæringen', () => {
@@ -19,7 +19,7 @@ describe('buildTafPeriodeCutoffErrorMessage', () => {
       fra: iso('2024-01-01'),
       til: iso('2024-12-31'),
       differencekravDato: iso('2024-07-01'),
-    })).toBe('Der er angivet tabt arbejdsfortjeneste efter den dato, differencekravet er opgjort pr. (01-07-2024)');
+    })).toBe('Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)');
   });
 
   it('nævner flere afskæringer i datoorden, hver én gang', () => {
@@ -29,8 +29,8 @@ describe('buildTafPeriodeCutoffErrorMessage', () => {
       endeligEETDato: iso('2024-03-01'),
       differencekravDato: iso('2024-07-01'),
     })).toBe(
-      'Hele perioden ligger efter afgørelsen om endeligt erhvervsevnetab (01-03-2024); '
-      + 'Der er angivet tabt arbejdsfortjeneste efter den dato, differencekravet er opgjort pr. (01-07-2024)'
+      'Hele perioden ligger på eller efter datoen for afgørelse om endeligt erhvervsevnetab (01-03-2024); '
+      + 'Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)'
     );
   });
 
@@ -107,7 +107,7 @@ describe('evaluateTafPerioder', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'TAF-perioden 01-01-2024 - 31-12-2024: Hele perioden ligger efter afgørelsen om midlertidigt erhvervsevnetab (01-03-2023)',
+      message: 'TAF-perioden 01-01-2024 - 31-12-2024: Hele perioden ligger på eller efter datoen for afgørelse om midlertidigt erhvervsevnetab (01-03-2023)',
       field: 'fra',
     });
   });

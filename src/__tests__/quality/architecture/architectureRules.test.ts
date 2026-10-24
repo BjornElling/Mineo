@@ -55,6 +55,7 @@ const EXPECTED_ARCHITECTURE_RULE_IDS: readonly string[] = [
   'form/placeholder-identity-single-owner',
   'form/restore-target-attributes',
   'form/row-delete-lane-cell-single-source',
+  'form/sorted-order-uses-persisted-sort-capability',
   'form/table-sort-order-owned-by-hook',
   'input/cell-binding-single-source',
   'input/contextual-field-label-single-authority',

@@ -97,6 +97,7 @@ export default function IndtaegtFoerSkadenSection() {
     skjulIndtaegtFoerSkadenBeregning,
     indtaegtFoerSkadenSectionTitle,
     fravaerFeriedageById,
+    harBeregningsperiodeFerieRamme,
     angivetLoenOpreguleringLabel,
     visLoenudviklingFraEO,
     loenudviklingBasis,
@@ -297,6 +298,7 @@ export default function IndtaegtFoerSkadenSection() {
                       kind="beregningsperiode"
                       committedRows={values.fravaerPerioder}
                       feriedageById={fravaerFeriedageById}
+                      harPeriodeRamme={harBeregningsperiodeFerieRamme}
                       saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
                       cellIssues={tafCellIssues}
                     />

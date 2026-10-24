@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-08-26
+**Senest verificeret mod kode:** 2026-10-24
 
 ## 1. Scope
 
@@ -29,6 +29,13 @@ Fokus-origin er en DISKRIMINERET union, så de to slags commits ikke kan forveks
 - `kind: 'collection'` – en strukturel rækkehandling (insert/delete/reorder). Den har intet enkelt felt at
   fokusere, men bærer collectionen og en obligatorisk destination (`route`/`tabKey`), så en restore navigerer til
   den tabel, ændringen kom fra.
+
+En sortering, brugeren vælger på en tabelkolonne, er en særskilt, godkendt undtagelse: den nye rækkefølge gemmes i
+den aktuelle inputtilstand og `.eo`-filen, men sorteringen opretter, fjerner eller flytter ikke et undo-/redo-frame.
+Eksisterende `past`- og `future`-frames rebases til den valgte rækkefølge. Derfor fortryder første Ctrl+Z efter en
+indtastning og en sortering indtastningen, mens sorteringen bliver stående; en eksisterende redo-gren bevares også.
+Kun kolonne-sortering må bruge den særskilte sorteringsport. Almindelig rækkeomarrangering, fx brugerens manuelle
+flytning af et ansættelsesforhold, er fortsat en undoable `reorderRows`-command.
 
 Unionen gør to fejl urepræsenterbare: et feltcommit uden adresse, og en rækkehandling uden destination. Begge var
 tidligere blot valgfrie felter på én fælles type.
@@ -60,6 +67,9 @@ input eller begge dele. No-op giver intet trin. Separate writes må ikke efterf�
 microtasks eller timeouts.
 
 En strukturel command, fx rækkesletning, fanger hele den atomiske ændring inklusive descendant-rejections i samme frame.
+Kolonne-sortering er ikke en history-command: den bruger samme validerede input-/storage-write som en rækkefølgeændring,
+men rebases snapshots uden at ændre history-pegeren eller slette en redo-gren. Denne særlige indgang er kun til
+sorterbare tabellers visningssortering; øvrige `reorderRows`-commands følger den almindelige capture-regel.
 
 ## 4. Restore
 
@@ -116,9 +126,11 @@ ikke gendannes med undo/redo. Recovery fra en korrupt current-session sker kun g
 og følger samme clear-regel. Ejeransvaret ligger i den fælles replace-command og må ikke duplikeres i load-callsites.
 
 En side-/sektionsreset er derimod en normal command og kan fortrydes, medmindre en mere specifik godkendt produktregel
-siger andet. Det samme gælder almindelige strukturelle rækkehandlinger og atomiske transaktioner, der sletter
-manuelle rækker. Save ændrer ikke history. Popup-dialoger for disse reversible sletninger må ikke nævne fortrydelse;
-popup-dialoger for autoritative replacements og clears skal følge `critical-action-contract.md` §8.
+siger andet. Det samme gælder almindelige strukturelle rækkehandlinger – herunder manuel flytning, insert og delete –
+og atomiske transaktioner, der sletter manuelle rækker. Kolonnesortering er undtagelsen beskrevet i §1: rækkefølgen
+persisteres, men sorteringen kan ikke selv fortrydes og må ikke forbruge eller ændre et undo-/redo-trin. Save ændrer
+ikke history. Popup-dialoger for disse reversible sletninger må ikke nævne fortrydelse; popup-dialoger for autoritative
+replacements og clears skal følge `critical-action-contract.md` §8.
 
 ## 7. Afledt state
 

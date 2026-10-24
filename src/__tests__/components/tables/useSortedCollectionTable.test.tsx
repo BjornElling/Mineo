@@ -61,18 +61,19 @@ const readRegisteredOrder = (): readonly string[] => {
 };
 
 type HarnessProps = Readonly<{
-  reorderRows: (ids: readonly string[]) => void;
+  persistSortedOrder: (ids: readonly string[]) => void;
+  committedRows?: readonly Row[];
   saveOrderPath?: TableSaveOrderPath;
 }>;
 
-const Harness = ({ reorderRows, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps) => {
+const Harness = ({ persistSortedOrder, committedRows = rows, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps) => {
   const memoColumns = React.useMemo(() => columns, []);
   const result = useSortedCollectionTable<Row>({
-    committedRows: rows,
+    committedRows,
     getRowId,
     isRowEmpty,
     columns: memoColumns,
-    reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
   const sortableHeader = result.sortableHeader('navn');
@@ -92,12 +93,35 @@ const Harness = ({ reorderRows, saveOrderPath = SAVE_ORDER_PATH }: HarnessProps)
   );
 };
 
+const AnchoredHarness = ({
+  committedRows,
+  persistSortedOrder,
+}: Readonly<{
+  committedRows: readonly Row[];
+  persistSortedOrder: (ids: readonly string[]) => void;
+}>) => {
+  const sort = useTableSort({
+    rows: committedRows,
+    anchorRowId: 'basis',
+    getRowId,
+    isRowEmpty,
+    columns,
+    onSortedRowsChange: (next) => persistSortedOrder(next.map(getRowId)),
+  });
+  const header = bindSortableHeader(sort, 'navn');
+  return <div>
+    <button type="button" data-testid="sort-base" onClick={header.onClick}>navn</button>
+    <span data-testid="base-role">{header.sortRole}:{String(header.sortDirection)}</span>
+    <span data-testid="base-ids">{sort.sortedRows.map((row) => `${row.id}:${row.navn}`).join(',')}</span>
+  </div>;
+};
+
 describe('useSortedCollectionTable', () => {
   beforeEach(clearTableSaveOrderRegistryForTests);
   afterEach(clearTableSaveOrderRegistryForTests);
 
   it('render-rækkerne følger den sorterede orden, og placeholderen holdes i bunden', async () => {
-    render(<Harness reorderRows={() => {}} />);
+    render(<Harness persistSortedOrder={() => {}} />);
 
     // Usorteret: de committede rækkers egen orden, placeholder sidst.
     expect(screen.getByTestId('render-ids').textContent).toBe('b,a,c,placeholder-1');
@@ -113,21 +137,108 @@ describe('useSortedCollectionTable', () => {
   it('persisterer den nye orden i SAMME event som headerklikket', async () => {
     // Kravet er ikke kosmetisk: en save/download i samme task må aldrig kunne se den gamle
     // orden, mens tabellen allerede viser den nye.
-    const reorderCalls: readonly string[][] = [];
-    const reorderRows = (ids: readonly string[]) => {
-      (reorderCalls as string[][]).push([...ids]);
+    const persistCalls: readonly string[][] = [];
+    const persistSortedOrder = (ids: readonly string[]) => {
+      (persistCalls as string[][]).push([...ids]);
     };
-    render(<Harness reorderRows={reorderRows} />);
+    render(<Harness persistSortedOrder={persistSortedOrder} />);
 
     await act(async () => {
       screen.getByTestId('sort-navn').click();
     });
 
-    expect(reorderCalls).toEqual([['a', 'b', 'c']]);
+    expect(persistCalls).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('skriver ikke rækkefølge, når tabellen endnu ikke har en aktiv sortering', () => {
+    const persistCalls: string[][] = [];
+    const persistSortedOrder = (ids: readonly string[]) => persistCalls.push([...ids]);
+    const view = render(<Harness committedRows={rows} persistSortedOrder={persistSortedOrder} />);
+    const changedRows: readonly Row[] = [rows[2]!, rows[1]!, rows[0]!];
+
+    view.rerender(<Harness committedRows={changedRows} persistSortedOrder={persistSortedOrder} />);
+
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('c,a,b');
+    expect(persistCalls).toEqual([]);
+  });
+
+  it('konvergerer sorteringen efter delete → sort → undo og bevarer den ved remount', async () => {
+    const initialRows: readonly Row[] = [
+      { id: 'c', navn: 'Charlie', tal: 3 },
+      { id: 'a', navn: 'Alpha', tal: 1 },
+      { id: 'b', navn: 'Beta', tal: 2 },
+    ];
+    const persistCalls: string[][] = [];
+    const persistSortedOrder = (ids: readonly string[]) => persistCalls.push([...ids]);
+    const view = render(<Harness committedRows={initialRows} persistSortedOrder={persistSortedOrder} />);
+
+    // Rækken slettes før sorteringen. Sortering rebases den gamle undo-frame, hvor den slettede række
+    // foreløbigt havner efter de kendte id'er.
+    const afterDelete: readonly Row[] = [initialRows[0]!, initialRows[2]!];
+    view.rerender(<Harness committedRows={afterDelete} persistSortedOrder={persistSortedOrder} />);
+    await act(async () => {
+      screen.getByTestId('sort-navn').click();
+    });
+    expect(persistCalls).toEqual([['b', 'c']]);
+
+    // Sorteringsdispatchen har nu gjort den aktuelle rækkefølge kanonisk.
+    const afterSort: readonly Row[] = [initialRows[2]!, initialRows[0]!];
+    view.rerender(<Harness committedRows={afterSort} persistSortedOrder={persistSortedOrder} />);
+
+    // Undo genskaber rækken i den gamle frame. Den aktive sortering viser den korrekte orden straks og
+    // konvergensgemmer den uden at lægge endnu et undo-trin oven på sletningen.
+    const afterUndo: readonly Row[] = [initialRows[2]!, initialRows[0]!, initialRows[1]!];
+    view.rerender(<Harness committedRows={afterUndo} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('a,b,c');
+    expect(persistCalls).toEqual([['b', 'c'], ['a', 'b', 'c']]);
+
+    // Modeller det kanoniske input efter konvergensen, og genåbn tabellen, hvor sort-state ellers nulstilles.
+    const convergedRows: readonly Row[] = [initialRows[1]!, initialRows[2]!, initialRows[0]!];
+    view.rerender(<Harness committedRows={convergedRows} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('a,b,c');
+    expect(persistCalls).toEqual([['b', 'c'], ['a', 'b', 'c']]);
+    view.unmount();
+
+    render(<Harness committedRows={convergedRows} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('a,b,c');
+    expect(persistCalls).toEqual([['b', 'c'], ['a', 'b', 'c']]);
+  });
+
+  it('persisterer en ny synlig orden efter ændring af sorteringsværdier og gendanner den ved undo', async () => {
+    const initialRows: readonly Row[] = [
+      { id: 'a', navn: 'Alpha', tal: 1 },
+      { id: 'b', navn: 'Beta', tal: 2 },
+      { id: 'c', navn: 'Charlie', tal: 3 },
+    ];
+    const persistCalls: string[][] = [];
+    const persistSortedOrder = (ids: readonly string[]) => persistCalls.push([...ids]);
+    const view = render(<Harness committedRows={initialRows} persistSortedOrder={persistSortedOrder} />);
+
+    await act(async () => {
+      screen.getByTestId('sort-navn').click();
+    });
+    expect(persistCalls).toEqual([['a', 'b', 'c']]);
+
+    const editedRows: readonly Row[] = [
+      initialRows[0]!,
+      { ...initialRows[1]!, navn: 'Zulu' },
+      initialRows[2]!,
+    ];
+    view.rerender(<Harness committedRows={editedRows} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('a,c,b');
+    expect(persistCalls).toEqual([['a', 'b', 'c'], ['a', 'c', 'b']]);
+
+    // En undo af feltændringen ændrer sorteringsværdien igen. Den nuværende active sort genberegner og
+    // persisterer rækkefølgen, så næste undo/redo heller ikke taber brugerens sortering.
+    view.rerender(<Harness committedRows={editedRows} persistSortedOrder={persistSortedOrder} />);
+    const undoRows: readonly Row[] = [initialRows[0]!, initialRows[2]!, initialRows[1]!];
+    view.rerender(<Harness committedRows={undoRows} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('sorted-ids').textContent).toBe('a,b,c');
+    expect(persistCalls).toEqual([['a', 'b', 'c'], ['a', 'c', 'b'], ['a', 'b', 'c']]);
   });
 
   it('registrerer save-order i den rækkefølge brugeren ser', async () => {
-    render(<Harness reorderRows={() => {}} />);
+    render(<Harness persistSortedOrder={() => {}} />);
 
     expect(readRegisteredOrder()).toEqual(['b', 'a', 'c']);
 
@@ -152,7 +263,7 @@ describe('useSortedCollectionTable', () => {
         getRowId,
         isRowEmpty,
         columns: memoColumns,
-        reorderRows: () => {},
+        persistSortedOrder: () => {},
         saveOrderPath: SAVE_ORDER_PATH,
       }) as unknown as Record<string, unknown>;
       return null;
@@ -165,7 +276,7 @@ describe('useSortedCollectionTable', () => {
   });
 
   it('sortableHeader giver alle tre props fra ét colId', async () => {
-    render(<Harness reorderRows={() => {}} />);
+    render(<Harness persistSortedOrder={() => {}} />);
 
     expect(screen.getByTestId('sort-role').textContent).toBe('none');
 
@@ -204,5 +315,31 @@ describe('bindSortableHeader', () => {
 
     expect(screen.getByTestId('role').textContent).toBe('primary');
     expect(screen.getByTestId('ids').textContent).toBe('c,b,a');
+  });
+
+  it('holder basisrækken først ved headerklik og konvergerer kun de øvrige rækker efter inputændring', async () => {
+    const initialRows: readonly Row[] = [
+      { id: 'basis', navn: 'Låst', tal: 0 },
+      { id: 'c', navn: 'Charlie', tal: 3 },
+      { id: 'b', navn: 'Beta', tal: 2 },
+    ];
+    const persistCalls: string[][] = [];
+    const persistSortedOrder = (ids: readonly string[]) => persistCalls.push([...ids]);
+    const view = render(<AnchoredHarness committedRows={initialRows} persistSortedOrder={persistSortedOrder} />);
+
+    await act(async () => {
+      screen.getByTestId('sort-base').click();
+    });
+    expect(screen.getByTestId('base-role').textContent).toBe('primary:asc');
+    expect(persistCalls).toEqual([['basis', 'b', 'c']]);
+
+    const changedRows: readonly Row[] = [
+      initialRows[0]!,
+      initialRows[2]!,
+      { ...initialRows[1]!, navn: 'Anton' },
+    ];
+    view.rerender(<AnchoredHarness committedRows={changedRows} persistSortedOrder={persistSortedOrder} />);
+    expect(screen.getByTestId('base-ids').textContent).toBe('basis:Låst,c:Anton,b:Beta');
+    expect(persistCalls).toEqual([['basis', 'b', 'c'], ['basis', 'c', 'b']]);
   });
 });

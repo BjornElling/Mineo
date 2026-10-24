@@ -160,6 +160,5 @@ export const useCollectionRowCommands = <TEntity>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dispatch, collectionKey, rowOrigin]
   );
-
   return React.useMemo(() => Object.freeze({ insert, remove, reorder }), [insert, remove, reorder]);
 };

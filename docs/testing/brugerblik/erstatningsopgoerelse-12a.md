@@ -301,6 +301,23 @@ Dato skal være mellem 01-06-2018 og dags dato (15-09-2026)
 **Tilbagemelding**
 Enig, dog med den korrektion, at når skadestypen er erhvervssygdomme skal bunden følge det tilsvarende mønster for andre steder, hvor bunden gerne må være en dato før anmeldelsesdatoen - jeg mener det er et år før eller noget i den stil.
 
+### BB-334 – En gammel sag med periode før skaden indlæses, men kan ikke længere hentes
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-39--gamle-filer-får-nye-blokerende-feltfejl-efter-indlæsning`
+- **Prioritet:** Høj
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: den nye blokering gælder også tidligere gyldige `.eo`-filer.
+  Filen indlæses fortsat uden preflight, og den røde fejl efter indlæsning er tilsigtet.
+- **Sådan fremprovokeres det:** Åbn en tidligere gyldig `.eo`-fil fra version 3.15 med skadedato `01-06-2018` og «Vedrører perioden fra» `01-01-2010`; til-dato er `31-12-2018`.
+- **Det sker:** Filen indlæses uden preflight, og datoerne bevares. Efter indlæsning får fra-datoen en rød fejl, fordi den nuværende grænse starter ved skadedatoen. EO-opgørelsen kan ikke hentes, før sagen ændres.
+- **Det er uhensigtsmæssigt fordi:** Udvikleren godkendte, at en ny indtastning ikke må begynde før skaden, men den tidligere gyldige fil gav ingen besked eller mulighed for at vælge, om dens allerede gemte periode også skulle behandles sådan.
+- **Godkendt løsning:** Lad datogrænsen også gælde for en gammel værdi. Bevar perioden fra filen uændret ved load, vis den røde fejl efter indlæsning, og lad først sagen blive hentbar, når brugeren retter perioden.
+- **Andre steder det kan gælde:** BB-335 viser samme belastning af en tidligere sag fra en anden ny downloadregel.
+
+**Kilde- og browserverificeret 2026-10-24:** 3.15 accepteres uden preflight, og loaderen ændrer ikke perioden. Den nye røde issue kommer fra dato-descriptoren og ender i EO-downloadgaten. E2E-testen `erstatningsopgoerelse-tidligere-filer.spec.ts` indlæser en 3.15-fil via «Hent» og bekræfter, at datoen bevares, bliver rød og blokerer download.
+
+**Afgrænsning af fixture:** E2E-containeren er syntetisk: den tager den versionsmærkede 3.14-testfil og tilføjer 3.15's nye enhedsfelt på ansættelser og angivet løn. Den afprøver dermed 3.15-loadgrenen med den relevante payloadform, men er ikke en byte-for-byte arkiveret `.eo` fra en faktisk 3.15-installation.
+
 ### BB-210 – «Status ved erstatningsperiodens udløb» bliver til «Status den 1. januar 2019» – dagen EFTER udløbet
 
 - **Type:** Fornuft
@@ -454,6 +471,23 @@ Jeg afviser fundet. Det vil være velkendt og forudsigeligt for brugeren, hvad d
 **Tilbagemelding**
 Enig
 
+### BB-335 – En gammel sag uden skadelidtes navn får ny downloadblokering efter indlæsning
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-39--gamle-filer-får-nye-blokerende-feltfejl-efter-indlæsning`
+- **Prioritet:** Høj
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: den nye blokering gælder også tidligere gyldige `.eo`-filer.
+  Filen indlæses fortsat uden preflight, og den røde fejl efter indlæsning er tilsigtet.
+- **Sådan fremprovokeres det:** Åbn en tidligere gyldig `.eo`-fil fra version 3.15 uden feltet «Skadelidte», hvor «Erstatningsopgørelse afsluttes med» allerede står på «Underskrift-linje».
+- **Det sker:** Filen indlæses uden preflight, og det tomme navn samt afslutningsvalget bevares. Derefter får sagen en ny blokerende fejl: «Skadelidtes navn skal angives, når opgørelsen afsluttes med en underskrift-linje». Dokumentet kan ikke hentes.
+- **Det er uhensigtsmæssigt fordi:** Udvikleren godkendte, at nye sager skal have navn for at hente en underskriftslinje, men havde ikke taget stilling til, at en tidligere hentbar sag nu blokeres ved næste besøg.
+- **Godkendt løsning:** Lad navnekravet også gælde for en gammel fil med «Underskrift-linje». Bevar det tomme navn og afslutningsvalget ved load, vis den røde fejl efter indlæsning, og lad først sagen blive hentbar, når brugeren retter en af de to værdier.
+- **Andre steder det kan gælde:** BB-334 viser samme mønster for en ny datogrænse.
+
+**Kilde- og browserverificeret 2026-10-24:** 3.15 accepteres uden preflight; det manglende navn og «Underskrift-linje» bevares. Fejlrækken i `eoRowStamdataModel` aktiverer den fælles downloadgate. E2E-testen `erstatningsopgoerelse-tidligere-filer.spec.ts` indlæser den gamle fil via «Hent» og bekræfter, at navn og afslutningsvalg bevares, fejlen vises, og download er blokeret.
+
+**Afgrænsning af fixture:** Som ved BB-334 er 3.15-containeren bygget fra den låste 3.14-testfil med 3.15's nye enhedsfelt tilføjet. Testen bruger derfor en historisk versionsgren og payloadform, men ikke et arkiveret brugerartefakt.
+
 ### BB-215 – En opgørelse uden et eneste krav kan hentes uden en advarsel
 
 - **Type:** Edge case
@@ -556,9 +590,9 @@ Enig
 - **PDF-kanalen er ikke læst.** Alle dokumenter er hentet som `.docx`. Dobbelt mellemrum (BB-204),
   `*skadelidtes navn*` (BB-214) og de manglende bilagsreferencer (BB-207) er verificeret i Word-XML;
   PDF-udgaven er kildelæst (samme generator, samme model) og ikke målt.
-- **`Gem`/`Hent` er ikke afprøvet.** Værd at måle her, fordi «Indsæt udkast-stempel»,
-  «Skjul beregning efter første opgørelse» og «Indsæt bilagsnumre» alle har en standardværdi, og fordi
-  BB-203's toggle kan komme tilbage afkrydset efter en Hent.
+- **`Gem`/`Hent` indgik ikke i den oprindelige browserkørsel.** Playwright kan automatisere filvælger og
+  download. Senere navngivne `.eo`-loadtests dækker kun deres konkrete sager; de dokumenterer ikke en
+  generel Gem→Hent-rundtur for 12a eller at BB-203's toggle bevares efter alle save/load-forløb.
 - **Undo/redo umiddelbart efter en ændring af «Nummer»** er ikke målt – det er netop det tastetryk, der
   flytter mest (BB-202, BB-203).
 - **Brevhovedet slået fra** for Erstatningsopgørelse er ikke afprøvet; i den tilstand står
@@ -569,15 +603,33 @@ Enig
 
 ## Åbne spørgsmål
 
-1. **Skal «Nummer» overhovedet kunne afgøre, om sagen regnes som første opgørelse?** Reglen er i dag
-   udledt af feltets tekst og fejler for enhver skrivemåde med et foranstillet ord eller bogstav
-   («Nr. 2», «EO2», «A2» regnes alle som første). Spørgsmålet er, om udvikleren vil (a) beholde
-   udledningen og blot vise dens resultat på skærmen, eller (b) gøre «Er dette sagens første
-   erstatningsopgørelse?» til et eksplicit Ja/Nej-valg, hvor nummeret kun foreslår svaret. Valget
-   afgør, om BB-202 er en visningsrettelse eller en ny kontrol.
-2. **Skal en erstatningsopgørelse kunne vedrøre en periode, der begynder før skadedatoen?**
-   Fladens øvrige otte datoer har skadedatoen som gulv; «Vedrører perioden» har 01-01-2005. Er der en
-   sagstype, hvor perioden lovligt ligger før skaden – eller er gulvet blot aldrig sat (BB-209)?
-3. **Skal en opgørelse uden et eneste krav kunne hentes tavst?** Den kan i dag (BB-215). Er en
-   opgørelse på 0 kr. et legitimt produkt – fx en «nulopgørelse» til modparten – eller er det altid en
-   glemt indstilling?
+De tre oprindelige spørgsmål er afgjort 2026-09-17: BB-202 afvist; BB-209 afgjort som nej til en periode før skaden, med erhvervssygdomsgrænsen fra anmeldelsesdato minus fem år; BB-215 godkendt som en ikke-blokerende advarsel. BB-334 og BB-335 blev godkendt 2026-10-24: de nye fejl gælder også allerede gemte filer, uden en ny load-advarsel.
+
+## Retrospektiv dækningskontrol mod Brugerblik-skillen (2026-10-24)
+
+- **Faktisk målt i browseren:** Chrome i lyst tema ved 1536×864 og 1244×620; konkrete forløb om «Nummer», periode- og fremtidsdato, forligsparret, bilagsnumrenes oprindelige længde på 60 tegn, toggle-værdier og dokumentets Word-output. Det dokumenterer flere kritiske tilstandsskift, men er ikke et felt-for-felt B0-inventar.
+- **Kun kode/testverificeret efter den oprindelige kørsel:** Bilagsnumrenes nye loft på 12 tegn er dokumenteret som implementeret og dækket af `fieldCharLengthPolicy.test.ts`, men rapporten måler ikke i browseren, at grænsen nu stopper ved 12. PDF-kanalen er kun kildelæst. BB-334/335's gamle `.eo`-forløb blev først målt særskilt 2026-10-24; de var ikke dækket af 12a-kørslen.
+- **Konkrete resterende dækningshuller:** Den gamle 60-tegnsadfærd blev målt i ét bilagsfelt og antaget at gælde alle syv; rapporten dokumenterer ingen browserprøve af det nye 12-tegns loft eller af 11/12/13 tegn. PDF-download, `Gem`/`Hent`, undo/redo efter «Nummer», brevhoved slået fra og 512-tegnskommentarens faktiske dokumentombrydning er ikke målt. Der er heller ikke dokumenteret inputprøver for tabulator/Escape, ugyldig dato midt i indtastning eller ændring af «Vedrører perioden» efter at kravfelterne er udfyldt.
+
+### Prøvekatalog A1–A8 og B0–B7 – dimension for dimension
+
+Status skelner mellem oprindelig browsermåling, kode-/testaflæsning og konkret manglende prøve.
+«Ikke relevant» betyder, at dimensionen ikke findes på 12a-fladen.
+
+- **A1 – forventninger:** **Browser:** «Nummer», periodeparret, forligsparret og betingede felter blev udfyldt og læst på skærmen. **Kode/test:** 12-tegnspolitikken er dækket for de syv bilagsfelter. **Uprøvet:** alle labels, tilgængelige navne, enheder og formatforventninger felt for felt; 11/12/13 tegn i browseren.
+- **A2 – status og mangler:** **Browser:** nummerændringers følgefelter, delvist periodepar og dokumentudfald blev set. **Kode/test:** dokumentmodel og downloadgate for gennemgåede felter. **Uprøvet:** samtlige blokerede/ikke-blokerede kombinationer og årsager til inaktive handlinger, især hver bilagsfejl.
+- **A3 – rækkefølge:** **Browser:** `2` mod `Nr. 2` giver forskellige synlige felter. **Kode:** nummerets beregningsafhængigheder er læst. **Uprøvet:** udfyld afhængige felter først, skift nummer bagefter, ryd det, og kør `2 → Nr. 2 → 2`.
+- **A4 – tavshed:** **Browser:** tidligere S/S-beløb bevares, når nummeret skjuler feltet, og kommer frem igen; Word-output er inspiceret. **Kode/test:** skjulte værdier og downstream-læsere er gennemgået. **Uprøvet:** save/load, skjulte rejected/røde værdier og ændring af periode efter at krav er udfyldt.
+- **A5 – fejl:** **Browser:** fremtidsdato, manglende periodehalvdel, uforeneligt forligspar; 3.15-filer med periode før skade og manglende navn blev målt særskilt 2026-10-24. **Kode/test:** grænser og fælles downloadgate. **Uprøvet:** ugyldig kalenderdato, umulige grænser, hver AES-dato og fejlene i PDF såvel som Word.
+- **A6 – fortrydelse:** **Browser:** ingen undo/redo-, Escape- eller genindlæsningsforløb. **Kode:** delt history-/persistensmekanisme findes. **Uprøvet:** fortryd nummer-/toggleændring, rydning, navigation med åben editor, F5 og luk fanen.
+- **A7 – ensartethed:** **Browser:** Word-titel og udvalgte dokumentlinjer er sammenholdt med skærmen. **Kode/test:** titel og bilagsadvarsel bruger fælles model/regelkilde. **Uprøvet:** PDF mod Word for samme sag, alle tilgængelige navne og alle danske tal-/datoformater.
+- **A8 – helhedsforløb:** **Browser:** enkelte indtastningsforløb ender i Word. **Kode:** nummer, periode og forlig føder øvrige EO-flader. **Uprøvet:** ny bruger fra tom sag til færdigt dokument uden forkundskab eller forudvalgt arbejdsgang.
+- **B0 – grænser:** **Browser:** datogrænser, forligsgrænser og gammel 60-tegnsadfærd i ét bilagsfelt. **Kode/test:** nyt 12-tegnsloft dækker syv felter. **Uprøvet:** 11/12/13 tegn for alle felter, hver datogrænse og faktisk layout ved 512 tegn.
+- **B1 – enkeltfelt:** **Browser:** konkrete fritekst-, dato-, tal- og brøktilfælde. **Kode:** codecs/længdegrænser for resten. **Uprøvet:** blanktegn, hårde mellemrum, emoji, regnearkspaste, minus/komma alene, Escape og sletning efter gyldig værdi.
+- **B2 – datoer:** **Browser:** før skade, efter dags dato og manglende periodeside. **Kode/test:** skadedato-, anmeldelses- og skæringsdatoafhængigheder. **Uprøvet:** 31-02, skudår, præcis på/dagen før/dagen efter hver grænse, omvendt periode og ændret skadedato efter afhængige indtastninger.
+- **B3 – perioder/tabeller:** **Ikke relevant:** 12a har ingen gentaget inputtabel; «Vedrører perioden» er et feltpar. Rækkesletning, sortering og store tabeller er derfor ikke dækket på denne flade.
+- **B4 – kombination/rækkefølge:** **Browser:** nummer skjuler/viser felter; forligsprocent/brøk og toggles påvirker papir. **Kode:** nummerets downstream-afhængigheder. **Uprøvet:** udfyld før forudsætning, ryd forudsætning, A→B→A med data og modstrid mellem periode og allerede udfyldte krav.
+- **B5 – lovligt/usandsynligt:** **Browser:** ingen systematisk lovlige outlier-prøve; den målte fremtidsdato er ugyldig. **Kode:** forligsgrad skalerer beløb. **Uprøvet:** usædvanlig, men lovlig forligsgrad, meget lang ledsagetekst og bilagsværdier lige under loftet.
+- **B6 – tilstandsskift:** **Browser:** normale settles/faneskift. **Kode:** fælles history- og save/load-flow. **Uprøvet i den oprindelige kørsel:** undo/redo, F5, luk fane, browser-tilbage med åben editor, `Gem`/`Hent` og «Slet alt». Playwright kan automatisere filvælger og download; senere navngivne `.eo`-loadtests er ikke en generel rundtur.
+- **B6a – tomhed:** **Browser:** eksisterende værdier bevares ved toggle fra/til; S/S-beløb ved nummerændring. **Kode:** descriptorernes relevans/tomhed. **Uprøvet:** tomme standarder felt for felt, ryddet felt efter tidligere værdi og om tomme dokumentfelter bliver fravær eller nul.
+- **B7 – downstream:** **Browser:** Word viser titel, periode, bemærkninger og bilagsreferencer; nummerændring påvirker sektioner. **Kode/test:** beregnings- og dokumentforbrug af periode/forlig. **Uprøvet:** PDF og save→load round-trip, inklusive præcis før/efter-paritet. Senere navngivne tests af ældre `.eo`-sager dækker kun de pågældende loadscenarier, ikke en generel 12a-rundtur.

@@ -9,6 +9,7 @@ export {
 } from './slimInputStore';
 export {
   dispatchInput,
+  dispatchPersistedSortOrder,
   type DispatchInputOptions,
   type DispatchInputResult,
   type RuntimeInputCommand,

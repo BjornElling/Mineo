@@ -36,11 +36,11 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(issues.map((issue) => issue.field.address.field).sort()).toEqual(['fra', 'til']);
     expect(new Set(issues.map((issue) => issue.message))).toEqual(new Set([
-      'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)',
+      'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024)',
     ]));
     expect(issues.every((issue) => issue.reason === 'rule' && issue.priority === 'context')).toBe(true);
     expect(resolveFieldIssueTooltip(issues[0]!)).toBe(
-      'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)'
+      'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024)'
     );
   });
 
@@ -56,6 +56,23 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(issues).toHaveLength(1);
     expect(issues[0]?.field.address.field).toBe('til');
+    expect(issues[0]?.message).toBe('Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024)');
+  });
+
+  it('beskriver en fra-dato på cutoffen som på eller efter', () => {
+    const issues = collectSvieSmerteCutoffDateIssues(eoWith({
+      svieSmertePerioder: [{
+        id: 'ss-1',
+        fra: toISODateString('2024-09-16'),
+        til: toISODateString('2024-09-20'),
+        tilstand: 'sygemeldt',
+      }],
+    }));
+
+    expect(issues).toHaveLength(2);
+    expect(new Set(issues.map((issue) => issue.message))).toEqual(new Set([
+      'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024)',
+    ]));
   });
 
   const cutoffContext = {
@@ -76,7 +93,7 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'Der er angivet svie/smerte efter datoen for en ménafgørelse (16-09-2024)',
+      message: 'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024)',
       field: 'til',
     });
   });
@@ -86,7 +103,7 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'Hele perioden ligger efter datoen for ménafgørelsen (16-09-2024)',
+      message: 'Hele perioden ligger på eller efter datoen for ménafgørelsen (16-09-2024)',
       field: 'fra',
     });
   });
@@ -119,7 +136,7 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
     expect(collectSvieSmerteCutoffDateIssues(eoWith(overrides))).toHaveLength(0);
   });
 
-  it('navngiver én manglende celle og vælger fra-feltet', () => {
+  it('viser ménafgørelses-cutoff og manglende Fra-dato sammen', () => {
     const evaluation = evaluateSvieSmertePerioder([{
       id: 'ss-1',
       fra: undefined,
@@ -129,8 +146,8 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'Fra-dato er ikke angivet',
-      field: 'fra',
+      message: 'Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (16-09-2024); Fra-dato er ikke angivet',
+      field: 'til',
     });
   });
 
@@ -194,12 +211,12 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
     expect(buildSvieSmerteCutoffErrorMessage({
       value: invalidDate,
       menAfgoerelseDato: invalidDate,
-    })).toBe('Der er angivet svie/smerte efter datoen for en ménafgørelse (2024-99-99)');
+    })).toBe('Der er angivet svie/smerte på eller efter datoen for en ménafgørelse (2024-99-99)');
     expect(buildSvieSmertePeriodeCutoffErrorMessage({
       fra: invalidDate,
       til: invalidDate,
       menAfgoerelseDato: invalidDate,
-    })).toBe('Hele perioden ligger efter datoen for ménafgørelsen (2024-99-99)');
+    })).toBe('Hele perioden ligger på eller efter datoen for ménafgørelsen (2024-99-99)');
   });
 
   it('ignorerer runtime-ugyldige fra- og til-datoer i feltissue-projektionen', () => {
@@ -218,7 +235,7 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
       fra: toISODateString('2024-09-17'),
       til: toISODateString('2024-09-20'),
       menAfgoerelseDato: toISODateString('2024-09-16'),
-    })).toBe('Hele perioden ligger efter datoen for ménafgørelsen (16-09-2024)');
+    })).toBe('Hele perioden ligger på eller efter datoen for ménafgørelsen (16-09-2024)');
   });
 
   it('returnerer null når clamping reducerer perioden til ingenting', () => {

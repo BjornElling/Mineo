@@ -18,7 +18,7 @@ import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { createEmptyFerieCommittedRow, createFravaerRowId, createTafFerieRowId } from '../../domain/erstatningsopgoerelse/tables/ferieTableModel';
 import { useCollectionTable } from './useCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 
@@ -26,6 +26,8 @@ export type FerieperiodeTableProps = Readonly<{
   kind: 'taf' | 'beregningsperiode';
   committedRows: readonly FerieperiodeRow[];
   feriedageById: Readonly<Record<string, number | null>>;
+  /** Samme periodeafgrænsning, som `feriedageById` er beregnet imod. */
+  harPeriodeRamme: boolean;
   saveOrderPath?: TableSaveOrderPath;
   /**
    * Rækkereglerne, der ikke kan ligge på descriptoren – overlap og feriens vindue (projekteret fra domænet,
@@ -34,18 +36,29 @@ export type FerieperiodeTableProps = Readonly<{
   cellIssues?: FieldIssueSet;
 }>;
 
-/**
- * Kolonnen tæller de feriedage, beregningen fradrager. Ikonets tooltip siger rammen (BB-249).
- */
-const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], Readonly<{ label: string; tooltip: string }>>> = {
-  taf: { label: 'Feriedage', tooltip: 'Kun dage i TAF-perioden fremgår' },
-  beregningsperiode: { label: 'Feriedage', tooltip: 'Kun dage i beregningsperioden fremgår' },
+/** Kolonnens forklaring følger den periodeafgrænsning, som også styrer det viste dagstal (BB-249, BB-344). */
+const FERIEDAGE_OVERSKRIFT: Readonly<Record<FerieperiodeTableProps['kind'], Readonly<{
+  label: string;
+  periodeTooltip: string;
+  udenPeriodeTooltip: string;
+}>>> = {
+  taf: {
+    label: 'Feriedage',
+    periodeTooltip: 'Kun dage i TAF-perioden fremgår',
+    udenPeriodeTooltip: 'Tallet gælder hele ferierækken, når ingen gyldig TAF-periode er angivet',
+  },
+  beregningsperiode: {
+    label: 'Feriedage',
+    periodeTooltip: 'Kun dage i beregningsperioden fremgår',
+    udenPeriodeTooltip: 'Tallet gælder hele fraværsrækken, når ingen gyldig beregningsperiode er angivet',
+  },
 };
 
 const FerieperiodeTable = React.memo(({
   kind,
   committedRows,
   feriedageById,
+  harPeriodeRamme,
   saveOrderPath,
   cellIssues,
 }: FerieperiodeTableProps) => {
@@ -71,12 +84,13 @@ const FerieperiodeTable = React.memo(({
     { colId: 'til', getSortValue: (row: FerieperiodeRow) => row.til },
     { colId: 'feriedage', getSortValue: (row: FerieperiodeRow) => feriedageById[row.id] ?? undefined },
   ], [feriedageById]);
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
-    reorderRows: table.reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
   const renderRows = table.buildRenderRows(sortedRows);
@@ -93,7 +107,11 @@ const FerieperiodeTable = React.memo(({
           <StandardLooseHeaderCell sx={{ width: 180 }} {...sortableHeader('til')}>Til o.m.</StandardLooseHeaderCell>
           <StandardLooseHeaderCell sx={{ width: 260 }} {...sortableHeader('feriedage')}>
             {FERIEDAGE_OVERSKRIFT[kind].label}
-            <InfoTooltipIcon title={FERIEDAGE_OVERSKRIFT[kind].tooltip} />
+            <InfoTooltipIcon
+              title={harPeriodeRamme
+                ? FERIEDAGE_OVERSKRIFT[kind].periodeTooltip
+                : FERIEDAGE_OVERSKRIFT[kind].udenPeriodeTooltip}
+            />
           </StandardLooseHeaderCell>
         </TableRow>
       </TableHead>

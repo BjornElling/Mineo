@@ -139,6 +139,28 @@ describe('buildEoTafBeregningsgrundlagRows visibility', () => {
     expect(indkomstRow).toBeUndefined();
   });
 
+  it('does not add a generic missing-indkomst row when a source is already reported as negative', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: toISODateString('2025-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2025-01-31'),
+      offentligeYdelserRows: [
+        {
+          id: 'negative-dagpenge',
+          fraDato: toISODateString('2025-01-01'),
+          tilDato: toISODateString('2025-01-31'),
+          ydelse: asAmountValue(-1000),
+          tillaeg: undefined,
+          ydelsestype: 'dagpenge',
+        },
+      ],
+    });
+
+    const rows = buildEoTafBeregningsgrundlagRows(values, EMPTY_FIELD_ISSUE_SET, STAMDATA_INITIAL_VALUES);
+
+    expect(rows.find((row) => row.id === 'taf.beregningsgrundlag.indkomst')).toBeUndefined();
+  });
+
   it('hides Antal fraværsdage og Beskrivelse når Øvrigt fravær uden løn er Nej', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',

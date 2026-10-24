@@ -9,6 +9,7 @@ export type EoRowPresentation = Readonly<{
   message?: string;
   summaryText?: string;
   summaryDisplay: 'default' | 'messageOnly';
+  summaryDeduplicationGroup?: EoRowModel['summaryDeduplicationGroup'];
   focusTarget?: EoRowModel['focusTarget'];
 }>;
 
@@ -46,6 +47,9 @@ export const resolveEoRowPresentation = (row: EoRowModel): EoRowPresentation => 
     message,
     summaryText: row.summaryText ?? resolveEoIssueSummaryText(rowWithPresentation),
     summaryDisplay,
+    ...(row.summaryDeduplicationGroup === undefined
+      ? {}
+      : { summaryDeduplicationGroup: row.summaryDeduplicationGroup }),
     focusTarget: row.focusTarget ?? resolveEoIssueFocusTarget(rowWithPresentation),
   };
 };

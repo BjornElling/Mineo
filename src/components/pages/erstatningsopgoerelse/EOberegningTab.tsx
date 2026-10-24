@@ -90,20 +90,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
       ? <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
       : <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
 
-    // Samme sætning vises ÉN gang. To overlappende perioder gav før to ordret ens linjer, som
-    // ikke kunne skelnes fra hinanden – og nu, hvor overlappet også farver cellerne, bæres
-    // udpegningen af den røde rings tooltip (BB-218). Rækkerne selv foldes IKKE: de gater
-    // download hver for sig, og kun visningen er dublet.
-    // Første forekomst beholdes, så linjens link peger på den første berørte række.
-    // Foldningen forudsætter, at en linje om en bestemt tabelrække NAVNGIVER rækken: to rækker, der
-    // mangler det samme, må ikke give ordret samme tekst, for så forsvinder den ene uden rød ring til at
-    // udpege den (BB-231). Øvrige krav-rækkerne gør det (`assessOevrigeKravRow`).
-    // Linkets navn er en del af nøglen: to ansættelsesforhold med samme mangel giver ordret samme tekst, men
-    // hvert sit link («Ansættelsesforhold 1»/«2»), og må ikke foldes til én linje (BB-278).
+    // Rækker vises hver for sig. Kun overlap, hvis rækkevurderingen udtrykkeligt angiver samme
+    // `summaryDeduplicationGroup`, må foldes: hver berørt celle har da sin egen røde ring og tooltip
+    // (BB-218, BB-251). At udlede foldningen af ens tekst skjulte andre rækkers mangler, når reglen
+    // ikke farvede cellerne (BB-231, BB-336).
     const seen = new Set<string>();
     const visibleRows = rows.filter((row) => {
       const linkTitle = row.navigation.kind === 'unsupported' ? '' : row.navigation.sectionTitle;
-      const key = `${formatSummaryText(row)}\u0000${linkTitle}`;
+      const presentationIdentity = row.summaryDeduplicationGroup === undefined
+        ? `row:${row.id}`
+        : `group:${row.summaryDeduplicationGroup}`;
+      const key = `${formatSummaryText(row)}\u0000${linkTitle}\u0000${presentationIdentity}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

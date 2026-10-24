@@ -137,7 +137,7 @@ gætte, for begge ændrer kravet i en retning, du bør tage stilling til:
 **Tilbagemelding**
 Jeg forstår dine anbefalinger sådan, at en løn-linje som sådan godt i sig selv kan være negativ. Går fx en beregningsperiode fra januar til december, og er maj måned negativ, men den samlede sum for hele perioden positiv, markeres maj måned ikke som fejlbehæftet. Men hvis den samlede løn fra kilden for hele beregningsperioden eller for hele taf-perioden er negativ, udløser det fejl. Hvis det i det væsentligste er den korrekte forståelse af dine anbefalinger, så er jeg enig i de foreslåede løsninger A.
 
-**Modsvar 2 (afventer udviklerens svar)**
+**Modsvar 2 – besvaret 2026-10-19**
 
 Ja, sådan virker det nu, og A står fast for begge perioder. En negativ maj i en beregningsperiode, der samlet er positiv,
 regnes med og trækkes fra; maj får den gule ring og den gule advarsel, du bad om – ikke en rød fejl – og opgørelsen kan
@@ -157,6 +157,11 @@ samme to måneder, og sygeferiegodtgørelsen bliver lidt højere, end hvis tilba
 
 **Tilbagemelding**
 Godkendt efter anbefalingen (valg 1), 2026-10-19.
+
+**Efterfølgende samspil med BB-258 i 12f, fundet 2026-10-24:** Når løn eller ydelse samlet er negativ i
+beregningsperioden, viser rækken både denne navngivne fejl og den generiske «Ingen indkomst i beregningsperioden».
+Se BB-333 i `erstatningsopgoerelse-12f.md`: efter udviklerens godkendelse vises nu kun den præcise fejl om den
+negative kilde. Den separate gulmarkering for en negativ enkeltrække og reglen for samlet negativ kilde er uændrede.
 
 ### BB-291 – En mangel eller fejl i én lønrække meldes som «Måned er ikke angivet» – uden række, én ad gangen, og linket blinker hele kortet
 
@@ -381,6 +386,20 @@ regel, og med bilaget løsrevet er skærmens orden uden betydning for papiret. T
 **Tilbagemelding**
 Enig
 
+### BB-337 – Sortering bruger en skjult Ctrl+Z-handling mellem indtastninger
+
+- **Type:** Fornuft
+- **Rækkevidde:** Fælles sortering i alle sorterbare tabeller.
+- **Prioritet:** Mellem
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: første Ctrl+Z fortryder seneste redigering, mens sorteringen bliver stående. Gælder alle sorterbare tabeller.
+- **Sådan fremprovokeres det:** I lønindkomsttabellen: indtast `100` i en lønrække og afslut feltet; sortér derefter efter «Måned»; tryk Ctrl+Z én gang og derefter endnu en gang.
+- **Det sker – browsermålt:** Efter første Ctrl+Z er både sorteringen og `100` stadig synlige. Først efter andet Ctrl+Z forsvinder `100`. Sorteringsrækkefølgen var allerede særskilt godkendt ved BB-294 til at blive gemt i `.eo` og fortsat styre dokumentrækkefølgen.
+- **Det er uhensigtsmæssigt fordi:** Brugeren får ingen synlig reaktion på første Ctrl+Z og må gentage handlingen for at fortryde sin seneste indtastning.
+- **Bedre ville være:** Sorteringen gemmes fortsat i `.eo`, men opretter ikke et undo-trin. Første Ctrl+Z fortryder beløbsændringen og lader sorteringsrækkefølgen stå. Almindelig manuel flytning af rækker forbliver fortrydelig.
+- **Andre steder det kan gælde:** Samme rettelse skal gælde alle sorterbare tabeller; øvrige callsites er dækket af den fælles port og arkitekturværn.
+
+**Gennemført 2026-10-24:** Den fælles sorteringsport skriver den sorterede rækkefølge uden at oprette et history-frame og rebases både undo- og redo-snapshots. Alle kolonne-sorterbare tabeller bruger den port; almindelig `reorderRows` er fortsat undoable. Unit-tests dækker edit → sort → undo/redo, sortering med en eksisterende redo-gren og almindelig undoable reorder. E2E i denne løntabel bekræfter, at første Ctrl+Z rydder beløbet og bevarer den viste sortering.
+
 ### BB-295 – En omvendt uge-periode bliver ikke rød, og boksen siger «Ugyldig værdi i Uge fra»
 
 - **Type:** Edge case
@@ -604,8 +623,42 @@ Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme
 - Tastaturrækkefølgen i tabellen og meget lange tabeller (ydelse) er ikke afprøvet.
 - Komprimeret beregning efter første opgørelse og erhvervssygdom er ikke afprøvet.
 
+### Efterfølgende dækningstjek mod Brugerblik (2026-10-24)
+
+- **Oprindeligt browsermålt:** De konkrete lønrækker, fejl/advarsler, udvalgte negative og nulbeløb, hul og delperioder, sortering samt PDF-bilag beskrevet ovenfor. Det afprøvede katalog dækker ikke alle indtastningsformater, grænser, rækker eller kombinationer.
+- **Inventar og B0:** Feltlisten er identificeret, men rapporten har ikke en fuld felt-for-felt-vurdering af erklærede grænser, deres egnethed og kontekstuelle grænser. De målte fejl omkring enkelte periodeværdier og beløb kan ikke stå i stedet for den vurdering.
+- **B6a og afhængigheder:** Der er målt udvalgte tomme, nul-, beløbsfri, delvist dækkede og dublerede rækker samt række-sletning/undo. Der er ikke dokumenteret en komplet cyklus, hvor hver rækkeform udfyldes, ryddes igen eller kun får et formateringsvalg/afvist tekst, og dens synlighed, beregningsbidrag og dokumentvirkning følges. Skift og rækkefølge er kun dækket i de konkrete forløb under fundene.
+- **Uddata, persistens og miljø:** De oprindelige forløb brugte Chrome headless og lyst tema; PDF blev læst, Word ikke. `.eo`-fixtures blev indlæst, men ingen save→load-rundtur sammenlignede sagsdata før og efter. Edge, Firefox, WebKit og mørkt tema er ikke målt.
+- **Efterfølgende auditfund, browsermålt:** BB-337 reproducerede, at sorteringen lagde et skjult undo-trin mellem indtastningen og Ctrl+Z. Det er nu rettet fælles for sorterbare tabeller; den aktuelle E2E bekræfter, at første Ctrl+Z fortryder beløbet og bevarer sorteringen. Dette ændrer ikke BB-294's godkendte persistente rækkefølge i `.eo` og dokumenterne. BB-291's aktuelle E2E-kontrol klikker på begge identiske advarselslinks og kontrollerer, at hvert link blinker feltet i sin egen række; denne kontrol var ikke dokumenteret i den oprindelige Brugerblik-kørsel.
+
+#### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
+
+| Prøve | Browsermålt i den oprindelige kørsel eller efterfølgende audit | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Måned-/år-/uge-/datoperioder, lønfelter, afledte kolonner og udvalgte visningsnavne blev set i konkrete lønrækker. | Ingen systematisk afprøvning af om alle labels, enheder og formater er selvforklarende før indtastning. |
+| A2 – overblik og mangler | Manglende periode, beløbsløse rækker, nulbeløb, fejl/advarsler og downloadgate blev målt. | Hele tabellens status ved tom, delvis og færdig sag er ikke kortlagt; alle inaktive handlingers årsag er ikke prøvet. |
+| A3 – rækkefølge | Beregningsperiode, erstatningsperiode, hul, delperioder og sortering blev afprøvet; rækkernes forskellige beregnings-/fradragsroller blev fulgt til PDF. | Ingen fuld arbejdsrækkefølge på tværs af faner eller kombinationsprøve af alle forudsætninger. |
+| A4 – tavshed | Dublet der fordobler beløb, negative rækker, ignorering uden for perioder, nulbeløb og manglende beløb blev målt. | Alle inputværdier er ikke fulgt gennem beregning og dokument; uenighed med andre flader og gamle sagers load-oplevelse er ikke målt. |
+| A5 – fejl | Omvendte ugeperioder, ikke-eksisterende uge, negativ række, manglende rækkeoplysninger, links og advarsler blev prøvet. Senere BB-291 E2E måler begge identiske links mod hver sin række. | Ingen komplet kontrol af alle grænsetekster, keyboard-fokus og fejlreparationer. |
+| A6 – fortrydelse | Rækkesletning med Ctrl+Z og sortering/persistens blev målt; efterfølgende BB-337 E2E bekræfter, at første Ctrl+Z fortryder indtastningen efter sortering, som nu bliver stående. | Save/load, F5, Escape/blur på alle felter, flere undo-/redo-grene og manuel reorder er ikke browserafprøvet i denne flade. |
+| A7 – ensartethed | Skærmtal, bilag, Beregningsgrundlag og dokumentrækkefølge blev sammenholdt; BB-294's godkendte persistente sortering gælder fortsat. | Word blev ikke læst; alle navne, beløbsformater og sammenlignelige tabeller på søsterflader er ikke gennemgået. |
+| A8 – helhed | Grundsag med 12 månedsrækker blev ført gennem fejl, beregning og PDF for de konkrete fund. | Ingen førstegangsbrugerprøve af hele fladen eller særskilt gennemgang af værste ubemærkede udfald. |
+| B0 – grænser | Konkrete nul-/negative beløb, ugeperiode og 100-gange-større række blev prøvet. | Ingen felt-for-felt-kontrol af erklærede, passende og kontekstafledte grænser; naboværdier mangler på de fleste felter. |
+| B1 – feltinput | `0`, negativ løn, `100+50`, punktum som tusindtalsseparator og tomme beløb blev målt. | Paste fra Word/Excel, hårde mellemrum, Unicode, ekstrem længde, decimalstøj og tastatursettle for alle felttyper er ikke systematisk prøvet. |
+| B2 – datoer | Ugefejl, periodehuller, periodeopdeling, perioder omkring beregnings- og erstatningsvinduer blev målt. | Skudår, ugyldig kalenderdato, ligedatoer og datoændring efter udfyldte afhængige felter er ikke gennemgået samlet. |
+| B3 – perioder/tabeller | Dubleret måned, samme periode med forskellige beløb, overlap, huller, 12 rækker, 0-beløb og rækkesletning blev afprøvet. | Meget store tabeller, trailing tomme rækker, tilføjelse under aktiv editor og sletning af række med afledte afhængigheder er ikke dækket systematisk. |
+| B4 – kombinationer | Beregnings-/erstatningsperioder, løntyper, negative/positive komponenter og sortering blev kombineret i udvalgte forløb. | Ikke alle rækkefølger for valg, ændring/rydning af forudsætninger eller uenighed med andre flader/rejected input er prøvet. |
+| B5 – lovligt, usandsynligt | En løn 100 gange de øvrige blev prøvet; senere blev den godkendte gule advarsel bekræftet. | Andre faktor-10/1000-beløb, usandsynlige perioder og plausible grænser er ikke afsøgt. |
+| B6 – tilstandsskift | Rækkesletning/undo og den konkrete sortering/undo blev målt; BB-337 E2E kontrollerer den rettede adfærd. | F5, browser tilbage, faneskift med åben editor, save/load, hurtigt gentagne handlinger og generel redo efter sortering er ikke browsermålt. |
+| B6a – tomhed | Tomme, beløbsfrie, nul-, delvise og dublerede lønrækker samt perioder uden dækning blev målt. | Række med kun formateringsvalg, kun afvist råtekst og fuld tom → delvis → gyldig → ryddet cyklus for hver rækkeform er ikke prøvet. |
+| B7 – nedstrøms | Lønrækker blev fulgt til beregningsgrundlag og PDF-bilag, inklusive sorteret rækkefølge. | Ingen save→load-sammenligning af alle sagsdata; Word ikke læst; ikke alle værdier eller opgørelse nr. 2 er fulgt gennem samtlige dokumenter. |
+
+Matricen adskiller den oprindelige browserkørsel fra efterfølgende BB-337/BB-291-kontroller. Kildegennemgang og unit-tests er ikke browserbevis.
+
 ## Åbne spørgsmål
 
-Ingen. Afgjort 2026-10-19 i tredje runde efter anbefalingerne: sygeferiegodtgørelsen modregner negative lønsedler
+BB-337 er godkendt og gennemført 2026-10-24. BB-294's særskilt godkendte persistente sortering og ikke-fortrydelige rækkefølge står ved magt.
+
+De oprindelige spørgsmål er afgjort 2026-10-19 i tredje runde efter anbefalingerne: sygeferiegodtgørelsen modregner negative lønsedler
 (BB-290), bilaget tager beregningsperiodens lønsedler med i opgørelse nr. 2, når udregningen vises (BB-293), og en række
 over ti gange de øvrige giver en gul advarsel (BB-297).

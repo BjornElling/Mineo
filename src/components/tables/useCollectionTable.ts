@@ -31,11 +31,8 @@ export type RenderRow = CollectionRenderRow;
  * fordi netop de to tabeller, der viser flere tomme rækker, var blandt dem der gik uden om hooken –
  * altså præcis den «tre af fire rigtigt»-fejlmåde, hele rækkefølge-laget findes for at forhindre.
  *
- * `buildRenderRows` er en FUNKTION og ikke en `displayRows`-parameter, fordi rækkefølge-laget
- * har brug for `reorderRows` fra denne hook, mens render-modellen har brug for rækkefølge-lagets
- * `sortedRows`. Som parameter ville de to hooks skulle kaldes i en rækkefølge, ingen af dem kan
- * opfylde; som funktion forsvinder afhængigheden, og kaldstedet får stadig kun ét sted at bygge
- * modellen.
+ * `buildRenderRows` tager visningsrækkefølgen som argument, så tabelkomponenten bygger render-modellen ét sted,
+ * efter sorteringen har produceret sin orden.
  */
 export const useCollectionTable = <TRow extends Readonly<{ id: string }>>({
   collection,

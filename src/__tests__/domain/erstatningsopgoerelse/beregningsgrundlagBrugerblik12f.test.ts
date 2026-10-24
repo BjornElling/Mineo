@@ -5,6 +5,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
+import { buildEoTafBeregningsgrundlagRows } from '../../../domain/eoRowEvaluation/eoRowTafBeregningsgrundlagRows';
 import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { selectEoSafetyNetInvariants } from '../../../domain/erstatningsopgoerelse/eoSafetyNetInvariants';
 import { renderTafBeregningsgrundlag } from '../../../document/generators/eo/sections/tafBeregningsgrundlagSection';
@@ -36,6 +37,7 @@ import { getDayAfterIso } from '../../../utils/isoDateHelpers';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
+import { buildTestFieldIssueSet } from '../../utils/fieldIssueTestSupport';
 
 // Brugerblik 12f (beregningsgrundlaget for TAF), udviklerafgørelser 2026-10-02. Testene går gennem den rigtige
 // reader, så felternes issues, «Fejl og advarsler» og blokeringen læser samme tilstand som skærmen.
@@ -293,6 +295,27 @@ describe('BB-262 – overlap mellem beregningsperioden og en TAF-periode', () =>
     expect(row?.focusTarget).toEqual({ kind: 'fieldAddress', address: eoTafBeregningsperiodeFraField.bind().address });
     // Overlappet siges én gang – ikke også én gang pr. dato i samme linje.
     expect(result.errorLinjer.filter((linje) => linje.includes('overlap'))).toHaveLength(1);
+  });
+
+  it('samler dato-grænse og TAF-overlap som strukturerede dele af samme periodelinje', () => {
+    const values = sag({
+      tafBeregningsperiodeFra: iso('2017-06-01'),
+      tafBeregningsperiodeTil: iso('2018-05-31'),
+      tafPerioder: [{ id: 'overlap', fra: iso('2018-01-01'), til: iso('2018-01-31'), loseFeriedage: undefined }],
+    });
+    const error = 'Fra-datoen kan ikke bruges';
+    const rows = buildEoTafBeregningsgrundlagRows(
+      values,
+      buildTestFieldIssueSet(eoTafBeregningsperiodeFraField.bind(), error),
+      stamdata
+    );
+    const row = rows.find((candidate) => candidate.id === 'taf.beregningsgrundlag.beregningsperiode');
+    if (!row) throw new Error('Forventede beregningsperiode-række');
+
+    expect(row.status).toBe('error');
+    expect(row.displayValue).toContain(`Fra og med: ${error}`);
+    expect(row.displayValue).toContain('; Der er overlap mellem beregningsperioden (');
+    expect(row.displayValue.match(/Der er overlap mellem beregningsperioden/g)).toHaveLength(1);
   });
 });
 

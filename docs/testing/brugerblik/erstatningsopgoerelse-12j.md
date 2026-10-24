@@ -5,7 +5,7 @@
   fraværsdagene, de manuelle felter, satsvalget ved direkte overenskomstsatser, «Evt. allerede betalt …», de to
   bemærkninger (seks måneder og skade før 2015) – og opgørelsens bilag «Sygeferiegodtgørelse» samt linjen
   «Sygeferiegodtgørelse» under «Indtægter i erstatningsperioden».
-- Gennemgået: 2026-10-24 · commit `2ab74987` · **afgjort og gennemført 2026-10-24** (alle 13 fund gennemført; de
+- Gennemgået: 2026-10-24 · commit `a0a7995e` · **afgjort og gennemført 2026-10-24** (alle 13 fund gennemført; de
   supplerende tilbagemeldinger på BB-319 og BB-321 er gennemført samme dag).
 - Afprøvet i: Chrome headless, lyst tema, 1536×864 (M-09 desuden 1244×620), mod e2e-buildet. 41 sager indlæst gennem
   «Hent» (krypteret `.eo` bygget til formålet), kildeskift foretaget i brugerfladen, hvor overgangen selv var genstand
@@ -229,6 +229,30 @@ TAF-periode (01-03-2023)» – hvis link blinker datoen (målt med `animationsta
 fra validatoren til `sfggReferenceperiodeRules.ts`; den ubrugte værdi i view-modellen er slettet. Samme vej får nu også
 afsnittets øvrige røde felter (fx omvendt periode) en linje med link, og en referenceperiode, der slutter før
 reguleringsgrundlagets første sats, får den røde ring, den manglede på kortet.
+
+### BB-341 – To referencefelter med samme systemgrænsefejl vises som én linje
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-40--gentagne-række-fejl-foldes-kun-når-hver-række-kan-ses`; genbruger BB-322's eksplicitte undtagelse for to felter, der deler én regel.
+- **Prioritet:** Mellem
+- **Beslutning:** **GENNEMFØRT** 2026-10-24. Ændrer kun fejlvisningen; ældre `.eo`-filer indlæses uændret og viser samme nye feltnære feedback.
+- **Sådan fremprovokeres det:** Indlæs en tidligere gemt `.eo`-sag med SFGG-referenceperioden `01-01-2030`–`01-02-2030`, mens systemets tilladte dato slutter `31-12-2027`.
+- **Det sker – browsermålt før rettelsen:** Begge datofelter får rød ring med samme systemgrænsebesked, men «Fejl og advarsler» viser kun én linje og ét link. Linket blinker kun det første datofelt; brugeren får ikke at vide, at felt nr. 2 også skal rettes. Det er en anden fejltilstand end BB-322: her er det systemgrænsen, ikke «før første TAF-periode», der gør begge felter ugyldige.
+- **Det er uhensigtsmæssigt fordi:** De to synligt røde felter er uafhængige rettemål. Når identiske tekster foldes generisk, må brugeren opdage det andet link eller selv lede efter den anden dato.
+- **Bedre ville være:** Vis en fejl-/advarselslinje og et link for hvert rødt felt. Fold kun BB-322's to «før første TAF-periode»-fejl eksplicit, hvor begge cellers røde tooltip viser samme fælles grænse.
+- **Verifikation:** `eoRowSygeferiegodtgoerelseRowsBrugerblik12j.test.ts` kontrollerer, at generiske ens grænsebeskeder forbliver to rækker uden deduplikeringsgruppe, og at BB-322 stadig har sin eksplicitte gruppe. E2E i `erstatningsopgoerelse-sygeferiegodtgoerelse.spec.ts` indlæser en tidligere `.eo`-fixture, klikker begge identiske links og kontrollerer, at hver blinker sit eget felt.
+
+### BB-345 – En fælles TAF-grænsefejl kan pege på den forkerte dato eller skjule et andet ansættelsesforhold
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-40--gentagne-række-fejl-foldes-kun-når-hver-række-kan-ses`; afgrænset til SFGG-referenceperioder.
+- **Prioritet:** Mellem
+- **Beslutning:** **Gennemført** 2026-10-24 som en præcisering af BB-322's godkendte sammenfoldning.
+- **Sådan fremprovokeres det:** Sæt første TAF-dag til `01-03-2023`, og indtast SFGG-referenceperioden `01-02-2023`–`01-03-2023`. Kun Til-datoen overskrider grænsen. Gentag derefter med to ansættelsesforhold, hvor begge Fra- og Til-datoer ligger på eller efter første TAF-dag.
+- **Det sker – kodebekræftet før rettelsen:** Den første sag giver ét link til Til-datoen, men linjeteksten siger «Referenceperiode, fra». I den anden sag havde fejlene fra begge ansættelsesforhold samme globale sammenfoldningsgruppe og tekst; `EOberegningTab` skjulte derfor den ene ansættelsesrække i fejloversigten, selv om dens felter fortsat var røde.
+- **Det er uhensigtsmæssigt fordi:** Brugeren får en forkert rettelabel i den delvise række og kan tro, at fejlen på det andet ansættelsesforhold forsvinder, når det første kort rettes.
+- **Bedre ville være:** Et enkelt rødt felt navngives efter det felt, linket faktisk åbner. Kun Fra+Til-fejl i samme ansættelsesforhold deler BB-322's fælles linje; identiske fejl på to ansættelsesforhold får hver sin linje og hvert sit link.
+- **Verifikation:** `eoRowSygeferiegodtgoerelseRowsBrugerblik12j.test.ts` dækker alene ugyldig Til-dato og særskilte grupper pr. ansættelsesforhold. Browserregressionen i `erstatningsopgoerelse-sygeferiegodtgoerelse.spec.ts` loader to ansættelsesforhold, kræver to linjer og retter derefter kun det første korts Fra-dato; den kræver både en præcis Til-label og fortsat en separat fælles linje for det andet kort. Chrome-desktop-spec'et bestod 6/6 2026-10-24.
 
 ### BB-323 – For mange fraværsdage i referenceperioden: ingen ring, intet link – og det oplyste maksimum er selv ugyldigt
 
@@ -536,11 +560,52 @@ forkortelsen.
 
 ## Dækningshuller
 
-- Kun Chrome, lyst tema; kun PDF-kanalen er læst (Word deler dokumentmodellen).
-- Lønudvikling med Overenskomst, Statistik, KRL og KL er ikke afprøvet for satsens regulering (afklaringslog 8 og 8d er
-  bindende); kun «Ingen» og «Manuel procentsats».
-- Gem/Hent-rundturen, tastaturrækkefølgen gennem afsnittet og undo/redo efter et kildeskift er ikke afprøvet.
-- Erhvervssygdom («anmeldelsesdatoen») og skader før 2015 i arbejdsdage er ikke afprøvet.
+- **Browsere og tema:** kun Chrome headless og lyst tema. Edge, Firefox, WebKit og mørkt tema er ikke kontrolleret.
+- **Dokumentkanal:** PDF er hentet og læst som tekst. Word er ikke hentet eller visuelt kontrolleret; den delte
+  dokumentmodel er ikke i sig selv evidens for ens formatering eller output.
+- **Lønreguleringens kilder:** Overenskomst, Statistik, KRL og KL er ikke afprøvet for reguleringen af
+  sygeferiegodtgørelsens referencesats (afklaringslog 8 og 8d er bindende); prøverne dækkede kun «Ingen» og
+  «Manuel procentsats».
+- **Gem/Hent:** de opstillede `.eo`-sager blev hentet, men en save→load-rundtur med sammenligning af sagsdata er ikke
+  afprøvet.
+- **Tilstandsskift:** tastaturrækkefølgen gennem afsnittet og undo/redo efter et kildeskift er ikke afprøvet.
+- **Dato- og enhedsgrænser:** erhvervssygdom («anmeldelsesdatoen») og skader før 2015 med arbejdsdagsbaseret SFGG er
+  ikke afprøvet.
+
+### Efterfølgende dækningstjek mod Brugerblik (2026-10-24)
+
+- **Oprindeligt browsermålt:** 41 forberedte `.eo`-sager blev indlæst; udvalgte kildeskift, perioder, satser, to kort, fejl/advarsler, PDF-tekst og animationernes links blev målt i Chrome headless med lyst tema. Det er konkrete scenarier, ikke en fuld gennemgang af alle felt- og tilstandskombinationer.
+- **Inventar og B0:** Felterne er identificeret, men rapporten dokumenterer ikke et komplet B0-eftersyn for hvert felt: erklærede grænser, om de passer, og kontekstgrænser afledt af andre datoer eller valg. De målte dato- og satsgrænser gælder de konkrete eksempler.
+- **B6a og afhængigheder:** Skift mellem kilder og tilbage igen, udvalgte nulværdier, to kort og enkelte manglende/ugyldige værdier er prøvet. Der er ikke dokumenteret en systematisk tilstandsrække fra tom til delvis, gyldig og igen ryddet/ugyldig for alle kilder, rækker og afhængige valg eller alle rækkefølger.
+- **Kun kodeaflæst eller ikke prøvet:** Tastaturrækkefølgen og undo/redo efter kildeskift, overenskomst-/Statistik-/KRL-/KL-regulering af referencesatsen, erhvervssygdom og arbejdsdagsbaseret SFGG før 2015 er ikke browserafprøvet i denne kørsel.
+- **Uddata og persistens:** PDF blev hentet og læst; Word blev hverken hentet eller visuelt kontrolleret. De 41 `.eo`-filer var fixtures til indlæsning, ikke en save→load-rundtur med sammenligning af sagsdata.
+- **Efterfølgende audit:** BB-341 blev reproduceret i browseren og gennemført som beskrevet ovenfor. En ny E2E-kontrol af den godkendte
+  BB-319-afgrænsning brugte løn i december 2023, efter skadedatoen `01-03-2023` og før et TAF-forløb fra januar 2024.
+  Begge referencefelter forblev gyldige, og ingen «ingen løn i referenceperioden»-fejl blev vist. Kørt i Chrome; bestået.
+
+#### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
+
+| Prøve | Browsermålt i den oprindelige kørsel eller efterfølgende audit | Kildeaflæst eller fortsat udækket |
+|---|---|---|
+| A1 – forventning | Labels, referenceperiode, satskilder, dagstælling og forklaring på periodens længde blev set i konkrete SFGG-forløb; BB-321's tooltip blev efterfølgende E2E-kontrolleret. | Ingen systematisk afprøvning af om alle felter/enheder er entydige for en ny bruger eller om to fagfolk ville vælge samme data. |
+| A2 – overblik og mangler | Tom kilde, manglende satsvalg, ugyldige referencefelter, grænsefejl og dokumentblokering blev målt i de oprindelige fund. | Ikke alle kombinationer af komplet, delvis og manglende SFGG-input eller alle inaktive felters årsag er afprøvet. |
+| A3 – rækkefølge | Kildeskift og tilbagevalg, særlige referenceperioder, fravær/ansættelsesophør og dokumentforløb blev prøvet i valgte sager. | Ingen fuld arbejdsgang for alle kilder og afhængigheder, inklusive udfyldning før forudsætningen og navigation mellem flader. |
+| A4 – tavshed | Referenceperiode uden løn, 0-sats, firemånedersloft, ubrugte beregnede grænser og navngivne bilagslinjer blev undersøgt. | Ikke alle kilders skjulte/neutraliserede værdier er fulgt efter ændring/rydning gennem beregning, dokument og indlæsning. |
+| A5 – fejl | Omvendt/referenceperiode ved TAF-grænse, systemdato, for mange fraværsdage og manglende sats/kilde blev målt. BB-341 E2E klikker begge ens fejl-links og kontrollerer hver sin dato. | Ingen komplet kontrol af alle fejltekster, grænser, fokusmål og reparationer for hvert kildevalg. |
+| A6 – fortrydelse | Ingen fuld undo-/redo-katalogprøve blev dokumenteret i den oprindelige kørsel. | Undo/redo, Escape, rækkesletning, reset og save/load under aktivt SFGG-forløb mangler browserbevis. |
+| A7 – ensartethed | SFGG-skærm, «Fejl og advarsler», PDF og linjen under indtægter blev sammenholdt i konkrete fund. | Word blev ikke hentet; ikke alle begreber og talformater er sammenlignet med løntabeller, kontrolfanen og søsterflader. |
+| A8 – helhed | 41 forberedte `.eo`-sager blev indlæst og udvalgte fulde SFGG-forløb fulgt til PDF. | Ingen særskilt førstegangsbrugerprøve af hele fladen eller gennemgang af det værste ubemærkede udfald i alle tilstande. |
+| B0 – grænser | Konkrete datogrænser, før-TAF-regel, referenceperiodedage og før-2015-loft blev målt for udvalgte sager. | Ingen felt-for-felt-liste med erklæret, passende og kontekstafledt min/max for alle SFGG-felter. |
+| B1 – feltinput | Datoer, nul-dagssats, `50`/`28` fraværsdage og udvalgte satser/valg blev prøvet. | Paste-støj, blanktegn, Unicode, meget lange værdier, decimalvarianter og format-/tastaturpartitioner for hvert felt er ikke dækket. |
+| B2 – datoer | Referenceperiode før/efter TAF, omvendt periode, systemets datomaksimum, ansættelsesophør og før-2015-snit blev målt. | Skudår, ugyldig kalenderdato, ligedato og alle nabodage omkring hver grænse samt ændring efter afhængige felter er ikke prøvet samlet. |
+| B3 – perioder/tabeller | Udvalgte perioder, referenceperiode uden løn, fraværsdage, to ansættelsesforhold og før-2015-afkortning blev afprøvet. | Dublerede eller mange SFGG-rækker, tomme/delvise tabeller, overlap/huller og sletning af afhængige rækker er ikke systematisk dækket. |
+| B4 – kombinationer | Skift mellem kilder, tilbagevalg, overenskomstpolitik, 0-sats, ansættelsesophør og skade før/efter 2015 indgik i valgte kombinationer. | Alle valg-rækkefølger, rydning af forudsætninger, modsatrettede data på andre flader og rejected input er ikke prøvet. |
+| B5 – lovligt, usandsynligt | Dagssats `0`, fravær `50`, og «Evt. allerede betalt» `100.000 kr.` over det beregnede beløb blev målt. | Andre faktor-10/1000-satser, usandsynlige perioder og plausibilitetsbånd er ikke vurderet eller afprøvet systematisk. |
+| B6 – tilstandsskift | De oprindelige 41 `.eo`-filer blev hentet gennem brugerfladen; efterfølgende BB-341 loader også en tidligere fil. | Ingen save→load-rundtur med før/efter-datasammenligning, undo/redo, F5, browser tilbage, åben editor eller hurtigt gentagne handlinger. |
+| B6a – tomhed | Tom kilde, tom referenceperiode, manglende satsvalg og en nul-sats indgik i konkrete målinger. | Ingen komplet tom → kun valg → kun afvist input → delvis → gyldig → ryddet prøve for hver kilde, række og felt. |
+| B7 – nedstrøms | Udvalgte SFGG-værdier blev fulgt til beregning, indtægtsfradrag og PDF; E2E målte efterfølgende BB-319 og BB-341. | Word ikke hentet; ingen streng save→load-sammenligning eller gennemgang af hvert felts visning i alle dokumenter og kontrolflader. |
+
+Oprindelig kørsel og efterfølgende E2E er adskilt i kolonnen; de 41 fixtures er load-bevis, ikke roundtrip-bevis. Kildeaflæsning er ikke browsermåling.
 
 ## Åbne spørgsmål
 

@@ -6,7 +6,7 @@ import {
   removeSessionStorageValue,
 } from '../../utils/safeSessionStorage';
 import type { InputCatalog } from '../fieldCatalog';
-import { fieldAddressSchema } from '../fieldAddress';
+import { fieldAddressSchema, type CollectionRef } from '../fieldAddress';
 import {
   isStructuralInputCommand,
   reduceInputCommand,
@@ -15,6 +15,7 @@ import {
 } from '../inputReducer';
 import {
   createInputHistory,
+  mapInputHistoryInputs,
   pushInputHistory,
   redoInputHistory,
   undoInputHistory,
@@ -113,6 +114,10 @@ export type DispatchInputOptions = Readonly<{
   /** Deterministisk tidsstempel til test; ellers `Date.now()`. */
   now?: number;
 }>;
+
+type DispatchBehavior =
+  | Readonly<{ kind: 'ordinary' }>
+  | Readonly<{ kind: 'persistedSortOrder'; collection: CollectionRef }>;
 
 /**
  * Options for en STRUKTUREL rækkecommand: origin er PÅKRÆVET.
@@ -332,6 +337,35 @@ export function dispatchInput<TField, TEntity>(
   command: RuntimeInputCommand<TField, TEntity>,
   options: DispatchInputOptions = {}
 ): DispatchInputResult {
+  return dispatchInputWithBehavior(store, catalog, command, options, { kind: 'ordinary' });
+}
+
+/**
+ * Gemmer en tabelsortering gennem samme validerede write-port uden at gøre sorteringen til en undo-handling.
+ * Historiske snapshots får den nye rækkefølge rebased, så næste Ctrl+Z fortryder den seneste redigering og lader
+ * sorteringen stå. Kun tabelsorteringslaget må bruge denne indgang; almindelig rækkeomarrangering er fortsat undoable.
+ */
+export const dispatchPersistedSortOrder = (
+  store: SlimInputStore,
+  catalog: InputCatalog,
+  collection: CollectionRef,
+  orderedEntityIds: readonly string[],
+  now?: number
+): DispatchInputResult => dispatchInputWithBehavior(
+  store,
+  catalog,
+  { kind: 'reorderRows', collection, orderedEntityIds },
+  now === undefined ? {} : { now },
+  { kind: 'persistedSortOrder', collection }
+);
+
+const dispatchInputWithBehavior = <TField, TEntity>(
+  store: SlimInputStore,
+  catalog: InputCatalog,
+  command: RuntimeInputCommand<TField, TEntity>,
+  options: DispatchInputOptions,
+  behavior: DispatchBehavior
+): DispatchInputResult => {
   const before = store.getState();
 
   // §1.12: efter en hydrationsfejl er kun `Slet alt` (clearCase) tilladt; alt andet er fail-closed.
@@ -342,7 +376,23 @@ export function dispatchInput<TField, TEntity>(
   // Runtime-værnet, FØR reducer, storage, store og history: en strukturel rækkeændring uden navigerbar
   // destination afvises uden nogen observerbar mutation. Overloadene fanger det i compileren; dette fanger
   // et cast, et `as any` eller et kald fra utypet kode.
-  assertStructuralOrigin(command, options.origin);
+  if (behavior.kind === 'ordinary') {
+    assertStructuralOrigin(command, options.origin);
+  } else if (command.kind !== 'reorderRows' || command.collection !== behavior.collection) {
+    throw new Error('Inputruntime: persisteret sortering kræver en matchende reorderRows-command.');
+  }
+
+  if (behavior.kind === 'persistedSortOrder' && command.kind === 'reorderRows') {
+    // En tom tabel kan godt have et synligt sortérbart headerklik. Reduceren ville ellers skrive en tom samling
+    // ind i en hidtil tom sektion og oprette en revision, selv om ingen række skiftede plads.
+    const currentIds = catalog.listEntityIds(before.input.sections, behavior.collection);
+    if (
+      currentIds.length === command.orderedEntityIds.length
+      && currentIds.every((id, index) => id === command.orderedEntityIds[index])
+    ) {
+      return Object.freeze({ changed: false, revision: before.revision });
+    }
+  }
 
   const committedAt = options.now ?? Date.now();
 
@@ -368,7 +418,38 @@ export function dispatchInput<TField, TEntity>(
   const authoritative = isAuthoritativeReplacement(command);
   const nextHistory = authoritative
     ? createInputHistory() // §3.7: hel-sags-replacement rydder history.
-    : pushInputHistory(before.history, before.input, options.origin);
+    : behavior.kind === 'persistedSortOrder'
+      ? rebaseSortedCollectionOrder(before.history, catalog, behavior.collection, reduced.input)
+      : pushInputHistory(before.history, before.input, options.origin);
 
   return commitCandidate(store, catalog, before, reduced.input, nextHistory, committedAt, authoritative);
-}
+};
+
+/**
+ * Rebasing gennem snapshots gør rækkefølgen til den valgte gemte tabelorden, ikke til en ekstra undo-position.
+ * Historiske rækker, der ikke findes i den sorterede tilstand (fx en senere gendannet række), bevarer deres
+ * indbyrdes rækkefølge og placeres efter de rækker, sorteringen kender.
+ */
+const rebaseSortedCollectionOrder = (
+  history: InputHistory,
+  catalog: InputCatalog,
+  collection: CollectionRef,
+  sortedInput: SettledInput
+): InputHistory => {
+  const sortedIds = catalog.listEntityIds(sortedInput.sections, collection);
+  const membershipProbe = { section: collection.section, path: collection.path, field: '__sort_order__' } as const;
+
+  return mapInputHistoryInputs(history, (input) => {
+    if (!catalog.containsAddressEntities(input.sections, membershipProbe)) return input;
+    const existingIds = catalog.listEntityIds(input.sections, collection);
+    const existingIdSet = new Set(existingIds);
+    const rankedIds = sortedIds.filter((id) => existingIdSet.has(id));
+    const rankedIdSet = new Set(rankedIds);
+    const nextIds = [...rankedIds, ...existingIds.filter((id) => !rankedIdSet.has(id))];
+    if (nextIds.every((id, index) => id === existingIds[index])) return input;
+    return catalog.validateSettledInput({
+      ...input,
+      sections: catalog.reorderEntities(input.sections, collection, nextIds),
+    });
+  });
+};

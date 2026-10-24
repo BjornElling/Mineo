@@ -218,11 +218,13 @@ const skadedatoMinRuleFor = (
  * håndhæve den, så datoer før skadedagen kunne afsluttes canonical og nå hele vejen til PDF.
  */
 const skadedatoBoundedSpec = (
-  range: Readonly<{ fallbackMin: ISODateString; max: ISODateString }>
+  range: Readonly<{ fallbackMin: ISODateString; max: ISODateString }>,
+  options: Readonly<{ issuePriority?: 'context' }> = {},
 ): DateBoundsSpec => ({
   min: () => range.fallbackMin,
   max: () => range.max,
   narrowMin: (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate,
+  ...(options.issuePriority === undefined ? {} : { issuePriority: options.issuePriority }),
   special: (context) => {
     const rule = skadedatoMinRuleFor(context, range.fallbackMin);
     // Max-erklæringen står for sig og gælder uanset min-skærpelsen. Før blev «dags dato»-grenen genkendt
@@ -247,6 +249,13 @@ const skadedatoBoundedSpec = (
     (context) => skadedatoMinRuleFor(context, range.fallbackMin).minDate > range.fallbackMin
   ),
 });
+
+// Overlap-regler læser begge canonical datoer, også når en dato har en rød bounds-fejl. Den ejergren optager
+// context-issuet i sit dependency-read-set og blokerer beregningen; andre consumers må ikke omgå den gate.
+const systemrammeRelationalSpec: DateBoundsSpec = {
+  ...systemrammeSpec,
+  issuePriority: 'context',
+};
 
 const amountField = (
   field: string,
@@ -771,12 +780,12 @@ const tafBeregningsperiodePair: DatePairBinding = {
 const BEREGNINGSPERIODE_LABEL = 'Periode til beregning af før-løn';
 export const eoTafBeregningsperiodeFraField = dateField(
   'tafBeregningsperiodeFra', `${BEREGNINGSPERIODE_LABEL}, fra`,
-  dateBounds(systemrammeSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
+  dateBounds(systemrammeRelationalSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
   whenEo(beregningsperiodeInputRelevant),
 );
 export const eoTafBeregningsperiodeTilField = dateField(
   'tafBeregningsperiodeTil', `${BEREGNINGSPERIODE_LABEL}, til`,
-  dateBounds(systemrammeSpec, [dateOrderValidator('til', tafBeregningsperiodePair)]),
+  dateBounds(systemrammeRelationalSpec, [dateOrderValidator('til', tafBeregningsperiodePair)]),
   whenEo(beregningsperiodeInputRelevant),
 );
 
@@ -940,11 +949,11 @@ const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Ti
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-  }),
+  }, { issuePriority: 'context' }),
   til: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMax,
-  }),
+  }, { issuePriority: 'context' }),
 }, whenEo(tafSektionAktiv));
 export const eoTafPeriodeFraField = tafPeriodeDates.fra;
 export const eoTafPeriodeTilField = tafPeriodeDates.til;
@@ -971,8 +980,8 @@ export const eoFerieperioderCollection = topLevelCollection<FerieperiodeRow>('fe
 // Ferieperioderne er erklæret `unconstrained` i konfigurationen (optjeningsår kan ligge før skaden), så de
 // får systemets ydre ramme frem for en skadedato-grænse – nok til at fange et forkert århundrede.
 const ferieperiodeDates = rowDatePair('ferieperioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
-  fra: systemrammeSpec,
-  til: systemrammeSpec,
+  fra: systemrammeRelationalSpec,
+  til: systemrammeRelationalSpec,
 }, whenEo(tafSektionAktiv));
 export const eoFerieperiodeFraField = ferieperiodeDates.fra;
 export const eoFerieperiodeTilField = ferieperiodeDates.til;
@@ -981,8 +990,8 @@ export const eoFerieperiodeTilField = ferieperiodeDates.til;
 export const eoFravaerPerioderCollection = topLevelCollection<FerieperiodeRow>('fravaerPerioder', isFerieRowEmpty);
 // Skjult i måneder og uden for en beregningsperiode (BB-263, BB-266); se `erBeregningsperiodeFerieRelevant`.
 const fravaerPeriodeDates = rowDatePair('fravaerPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
-  fra: systemrammeSpec,
-  til: systemrammeSpec,
+  fra: systemrammeRelationalSpec,
+  til: systemrammeRelationalSpec,
 }, whenEo(beregningsperiodeFerieRelevant));
 export const eoFravaerPeriodeFraField = fravaerPeriodeDates.fra;
 export const eoFravaerPeriodeTilField = fravaerPeriodeDates.til;
@@ -993,14 +1002,16 @@ export const eoSvieSmertePerioderCollection = topLevelCollection<SvieSmertePerio
   isSvieSmerteRowEmpty
 );
 const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
+  // Lad rækkevurderingen se den canonical dato før skadedatoen, så den kan samle grænsefejl og overlap.
+  // S/S-grenen gates fortsat af begge røde issues i snapshot-projektionen.
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
-  }),
+  }, { issuePriority: 'context' }),
   til: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.fallbackMin,
     max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
-  }),
+  }, { issuePriority: 'context' }),
 }, whenEo(svieSmertePeriodeInputRelevant));
 export const eoSvieSmertePeriodeFraField = svieSmertePeriodeDates.fra;
 export const eoSvieSmertePeriodeTilField = svieSmertePeriodeDates.til;

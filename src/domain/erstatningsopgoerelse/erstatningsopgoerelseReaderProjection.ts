@@ -389,12 +389,18 @@ const rebuildSvieSmerteRow = (reader: InputReader, rowId: string): SvieSmertePer
   tilstand: readOrEmpty(reader, eoSvieSmertePeriodeTilstandField.bind(rowId)),
 });
 
-const rebuildOevrigeKravRow = (reader: InputReader, rowId: string): OevrigeKravRow => ({
-  id: rowId,
-  dato: readOrEmpty(reader, eoOevrigeKravDatoField.bind(rowId)),
-  udgiftTil: readOrEmpty(reader, eoOevrigeKravUdgiftTilField.bind(rowId)),
-  beloeb: readOrEmpty(reader, eoOevrigeKravBeloebField.bind(rowId)),
-});
+const rebuildOevrigeKravRow = (reader: InputReader, rowId: string): OevrigeKravRow => {
+  const harInput = reader.hasEntityInput(eoOevrigeKravPerioderCollection.template as CollectionRef, rowId);
+  return {
+    id: rowId,
+    dato: readOrEmpty(reader, eoOevrigeKravDatoField.bind(rowId)),
+    // `readOrEmpty` giver tekstfeltets tomværdi (`''`) også for en uberørt standardrække. Hold den
+    // som `undefined` dér, så den fælles rækkevurdering kan ignorere rækken; en eksplicit gemt `''`
+    // tæller derimod som afsluttet input og skal fortsat give de mangelfejl, den historiske validator gav.
+    udgiftTil: harInput ? readOrEmpty(reader, eoOevrigeKravUdgiftTilField.bind(rowId)) : undefined,
+    beloeb: readOrEmpty(reader, eoOevrigeKravBeloebField.bind(rowId)),
+  };
+};
 
 const rebuildOffentligeYdelserRow = (reader: InputReader, rowId: string): OffentligeYdelserRow => ({
   id: rowId,
@@ -591,7 +597,9 @@ const buildEoDependencyProjection = (
   };
   readOrEmpty(forlig.reader, eoForligDatoField.bind());
 
-  const svieSmerte = createTrackedInputReader(reader);
+  // Skadedatoens narrowMin-fejl er en context-fejl, så rækken skal kunne se den canonical dato og samtidig
+  // samle grænsefejlen med overlap. S/S-grenen optager derfor dens issue i sin egen gate; andre grene gør ikke.
+  const svieSmerte = createTrackedInputReader(reader, { includeContextIssues: true });
   const svieSmerteValues: SvieSmerteCalculationValues = {
     kravPaaSvieSmerteGodtgoerelse: readOrEmpty(svieSmerte.reader, eoKravPaaSvieSmerteGodtgoerelseField.bind()),
     tidligereSsMax: readOrEmpty(svieSmerte.reader, eoTidligereSsMaxField.bind()),
@@ -614,7 +622,9 @@ const buildEoDependencyProjection = (
     skadestype: readOrEmpty(svieSmerte.reader, stamdataSkadestypeField.bind()),
   };
 
-  const taf = createTrackedInputReader(reader);
+  // TAF-rækken skal bruge canonical datoer til at vise overlap sammen med en skadedato-grænsefejl. Fejlen
+  // bliver derfor optaget i TAF-grenens gate, så datoen aldrig når en motor eller et dokument.
+  const taf = createTrackedInputReader(reader, { includeContextIssues: true });
   const tafValues: TafCalculationValues = {
     eoNummer: readOrEmpty(taf.reader, eoNummerField.bind()),
     opgørelseLavetDen: readOrEmpty(taf.reader, eoOpgørelseLavetDenField.bind()),
@@ -729,7 +739,9 @@ export const buildErstatningsopgoerelseReaderProjection = (
   reader: InputReader,
   options?: Readonly<{ revision?: string; midlertidigtEetInsertSource?: EetImportSource | null }>
 ): ErstatningsopgoerelseReaderProjection => {
-  const eoProjection = createTrackedInputReader(reader);
+  // Context-bounds bevarer canonical datoer, så rækkeoversigter og overlapsrelationer kan vise den konkrete
+  // fejl sammen med relationen. EO's grenprojektioner optager samme issues og spærrer deres engines.
+  const eoProjection = createTrackedInputReader(reader, { includeContextIssues: true });
   const stamdataProjection = createTrackedInputReader(reader);
   const stamdataValues = readStamdataValues(stamdataProjection.reader);
   let eoValues = readErstatningsopgoerelseValues(eoProjection.reader);

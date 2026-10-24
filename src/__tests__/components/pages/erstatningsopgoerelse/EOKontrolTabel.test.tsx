@@ -58,6 +58,7 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
 
   const base: SammentaellingModel = {
     beregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    tafBranchAvailable: true,
     beregningsperiode: baseControl,
     taf: baseControl,
     svieSmerteSygedage: baseControl,

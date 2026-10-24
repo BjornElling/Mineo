@@ -16,7 +16,7 @@ import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { createEmptySvieCommittedRow, createSvieRowId } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
 import { useCollectionTable } from './useCollectionTable';
-import { useSortedCollectionTable } from './useSortedCollectionTable';
+import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
@@ -50,12 +50,13 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
     { colId: 'antalDage', getSortValue: (row: SvieSmertePeriodeRow) => derivedById[row.id]?.antalDage ?? undefined },
     { colId: 'tilstand', getSortValue: (row: SvieSmertePeriodeRow) => row.tilstand },
   ], [derivedById]);
+  const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const { sortedRows, sortableHeader } = useSortedCollectionTable({
     committedRows,
     getRowId: (row) => row.id,
     isRowEmpty: (row) => table.isRowEmpty(row.id),
     columns,
-    reorderRows: table.reorderRows,
+    persistSortedOrder,
     saveOrderPath,
   });
   const renderRows = table.buildRenderRows(sortedRows);

@@ -92,7 +92,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     hydrate({ ...createErstatningsopgoerelseInitialValues(), ferieperioder: rows });
 
     renderInRuntime(
-      <FerieperiodeTable kind="taf" committedRows={rows} feriedageById={{ 'ferie-1': 3 }} />
+      <FerieperiodeTable kind="taf" committedRows={rows} feriedageById={{ 'ferie-1': 3 }} harPeriodeRamme />
     );
 
     expect(dataRows()).toHaveLength(2);
@@ -100,6 +100,38 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(within(dataRows()[0]!).getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Feriedage')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Kun dage i TAF-perioden fremgår' })).toBeInTheDocument();
+  });
+
+  it('forklarer at dagstallet gælder hele rækken, når periodeafgrænsningen mangler', () => {
+    const ferieRows = [{ id: 'ferie-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-15') }];
+    const fravaerRows = [{ id: 'fravaer-1', fra: toISODateString('2024-03-01'), til: toISODateString('2024-03-12') }];
+    hydrate({ ...createErstatningsopgoerelseInitialValues(), ferieperioder: ferieRows, fravaerPerioder: fravaerRows });
+
+    renderInRuntime(
+      <>
+        <FerieperiodeTable
+          kind="taf"
+          committedRows={ferieRows}
+          feriedageById={{ 'ferie-1': 11 }}
+          harPeriodeRamme={false}
+        />
+        <FerieperiodeTable
+          kind="beregningsperiode"
+          committedRows={fravaerRows}
+          feriedageById={{ 'fravaer-1': 8 }}
+          harPeriodeRamme={false}
+        />
+      </>
+    );
+
+    expect(screen.getByRole('img', {
+      name: 'Tallet gælder hele ferierækken, når ingen gyldig TAF-periode er angivet',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('img', {
+      name: 'Tallet gælder hele fraværsrækken, når ingen gyldig beregningsperiode er angivet',
+    })).toBeInTheDocument();
+    expect(screen.getByText('11')).toBeInTheDocument();
+    expect(screen.getByText('8')).toBeInTheDocument();
   });
 
   it('offentlige ydelser renderer canonical beløb og afledte kolonner', () => {

@@ -39,6 +39,31 @@ const summaryRow = (page: Page) => page.locator('.row--label-right-hover').filte
 
 // Flade 12c (BB-228–BB-237): én vurdering pr. række, skjulte rækker er tavse, og sammendraget nævner kravet.
 test.describe('Erstatningsopgørelse – øvrige krav', () => {
+  test('viser begge fejl, når to delvise kravrækker er helt ens (BB-332)', async ({
+    page,
+    runtimeErrors,
+    runtimeSignals,
+    externalRequests,
+  }, testInfo) => {
+    await login(page);
+    await fillSag(page);
+
+    for (const index of [0, 1]) {
+      await setDate(oevrigeKravRow(page, index).nth(0), '15-03-2024');
+      await setFieldValueAndSettle(oevrigeKravRow(page, index).nth(1), 'Medicin');
+    }
+
+    await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+    await expect(errorBox(page)).toContainText('Øvrigt krav 1: Medicin (15-03-2024): «Beløb» er ikke udfyldt');
+    await expect(errorBox(page)).toContainText('Øvrigt krav 2: Medicin (15-03-2024): «Beløb» er ikke udfyldt');
+    await expect(errorBox(page).getByRole('button', { name: 'Øvrige erstatningskrav', exact: true })).toHaveCount(2);
+    await errorBox(page).screenshot({ path: testInfo.outputPath('ens-delvise-kravraekker.png') });
+
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
   test('melder én linje pr. række og tier om en række bag «Skjul»', async ({ page, runtimeErrors, externalRequests }) => {
     await login(page);
     await fillSag(page);

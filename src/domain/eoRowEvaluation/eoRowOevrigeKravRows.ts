@@ -43,7 +43,7 @@ export const buildEoOevrigeKravRows = (
   const periode = values.vedroererPeriodeFra !== undefined && values.vedroererPeriodeTil !== undefined
     ? { fra: values.vedroererPeriodeFra, til: values.vedroererPeriodeTil }
     : undefined;
-  const vurder = (krav: OevrigeKravRow, kvalificeretNavn: boolean) => assessOevrigeKravRow(
+  const vurder = (krav: OevrigeKravRow, kvalificeretNavn: boolean, rowNumber?: number) => assessOevrigeKravRow(
     krav,
     {
       dato: cellIssue(errors, eoOevrigeKravDatoField, krav.id),
@@ -51,21 +51,35 @@ export const buildEoOevrigeKravRows = (
       beloeb: cellIssue(errors, eoOevrigeKravBeloebField, krav.id),
     },
     periode,
-    { kvalificeretNavn }
+    { kvalificeretNavn, ...(rowNumber === undefined ? {} : { rowNumber }) }
   );
-  const foersteVurderinger = (values.oevrigeKravPerioder ?? []).map((krav) => ({ krav, vurdering: vurder(krav, false) }));
-  // «Fejl og advarsler» folder ordret ens linjer til én (BB-218). To rækker med samme beskrivelse og samme
-  // mangel ville derfor blive til én linje, og den anden række ville først vise sig, når den første var rettet
-  // (BB-231). Sådanne rækker navngives med dato og beløb, så hver række har sin egen linje.
+  const foersteVurderinger = (values.oevrigeKravPerioder ?? []).map((krav, index) => ({
+    krav,
+    index,
+    vurdering: vurder(krav, false),
+  }));
+  // Identiske rækker får et kvalificeret navn (BB-231), så brugeren kan skelne deres separate linjer og vælge det
+  // rette krav. Fejloversigten folder kun overlap med en eksplicit deduplikeringsgruppe.
   const beskedAntal = new Map<string, number>();
   for (const { vurdering } of foersteVurderinger) {
     if (vurdering.kind === 'error' || vurdering.kind === 'warning') {
       beskedAntal.set(vurdering.message, (beskedAntal.get(vurdering.message) ?? 0) + 1);
     }
   }
-  const vurderinger = foersteVurderinger.map(({ krav, vurdering }) =>
+  const kvalificeredeVurderinger = foersteVurderinger.map(({ krav, index, vurdering }) =>
     (vurdering.kind === 'error' || vurdering.kind === 'warning') && (beskedAntal.get(vurdering.message) ?? 0) > 1
-      ? { krav, vurdering: vurder(krav, true) }
+      ? { krav, index, vurdering: vurder(krav, true) }
+      : { krav, index, vurdering });
+  const kvalificeredeBeskedAntal = new Map<string, number>();
+  for (const { vurdering } of kvalificeredeVurderinger) {
+    if (vurdering.kind === 'error' || vurdering.kind === 'warning') {
+      kvalificeredeBeskedAntal.set(vurdering.message, (kvalificeredeBeskedAntal.get(vurdering.message) ?? 0) + 1);
+    }
+  }
+  const vurderinger = kvalificeredeVurderinger.map(({ krav, index, vurdering }) =>
+    (vurdering.kind === 'error' || vurdering.kind === 'warning')
+      && (kvalificeredeBeskedAntal.get(vurdering.message) ?? 0) > 1
+      ? { krav, vurdering: vurder(krav, true, index + 1) }
       : { krav, vurdering });
   const udfyldte = vurderinger.filter(({ vurdering }) => vurdering.kind !== 'empty');
 

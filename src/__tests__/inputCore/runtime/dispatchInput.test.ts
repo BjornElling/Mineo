@@ -5,6 +5,7 @@ import {
 } from '../../../inputCore/runtime/slimInputStore';
 import {
   dispatchInput,
+  dispatchPersistedSortOrder,
   initializeInputRuntime,
   captureStableInput,
   captureStableInputEvaluation,
@@ -30,6 +31,7 @@ import {
   createEmptySettledInput,
   serializeFieldAddress,
   type InputCatalog,
+  type CollectionRef,
   type FieldRef,
   type SettledInput,
 } from '../../../inputCore';
@@ -46,6 +48,12 @@ import {
   rentekravRowsRef,
   testRowOrigin,
 } from '../testCatalog';
+import { buildProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
+import {
+  eoLoenindkomstAnsaettelsesforholdCollection,
+  eoLoenindkomstStandardRowsCollection,
+} from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { persistedErstatningsopgoerelseSchema } from '../../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 
 const key = getCurrentInputEnvelopeStorageKey();
 
@@ -562,6 +570,304 @@ describe('dispatchInput – restoredOrigin surfaces kun ved en gennemført undo/
   });
 });
 
+describe('dispatchPersistedSortOrder – sortering deler ikke undo-historikken', () => {
+  it('sortering af en tom samling er en ren no-op uden sektionsoprettelse eller historikændring', () => {
+    const before = store.getState();
+    const writes = countWrites(store);
+
+    const result = dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), [], 1);
+
+    writes.stop();
+    expect(result).toEqual({ changed: false, revision: before.revision });
+    expect(store.getState()).toBe(before);
+    expect(writes.count()).toBe(0);
+    expect(store.getState().input.sections.renteberegning).toBeNull();
+    expect(sessionStorage.getItem(key)).toBeNull();
+  });
+
+  it('sortering af en tom undo-tilstand bevarer en række i redo-grenen', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), {
+      now: 1,
+      origin: testRowOrigin(),
+    });
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 2 });
+    const before = store.getState();
+    expect(before.input.sections.renteberegning).toBeNull();
+    expect(before.history.future).toHaveLength(1);
+
+    const result = dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), [], 3);
+
+    expect(result.changed).toBe(false);
+    expect(store.getState()).toBe(before);
+    expect(store.getState().history.future).toHaveLength(1);
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 4 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r1']);
+  });
+
+  it('fortryder seneste feltændring direkte og bevarer sorteringen gennem undo, redo og session-save', () => {
+    const rowOrigin = testRowOrigin();
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: rowOrigin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: rowOrigin });
+    const amountOrigin = {
+      kind: 'field' as const,
+      field: belobField.bind('r1').address,
+      editorLocationId: 'test.rentekrav:r1:belob',
+      route: '/renteberegning',
+      tabKey: null,
+    };
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '100'), { now: 3, origin: amountOrigin });
+    const undoDepthBeforeSort = store.getState().history.past.length;
+
+    const sort = dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r2', 'r1'], 4);
+
+    expect(sort.changed).toBe(true);
+    expect(store.getState().history.past).toHaveLength(undoDepthBeforeSort);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+    expect(readStoredInput()?.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+
+    const undo = dispatchInput(store, catalog, { kind: 'undo' }, { now: 5 });
+    expect(undo.restoredOrigin).toEqual(amountOrigin);
+    expect(canonical(store.getState().input, belobField.bind('r1'))).toBeUndefined();
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 6 });
+    expect(canonical(store.getState().input, belobField.bind('r1'))?.value).toBe(100);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+  });
+
+  it('bevarer også en allerede eksisterende redo-gren gennem sortering', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: testRowOrigin() });
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '100'), {
+      now: 3,
+      origin: {
+        kind: 'field',
+        field: belobField.bind('r1').address,
+        editorLocationId: 'test.rentekrav:r1:belob',
+        route: '/renteberegning',
+        tabKey: null,
+      },
+    });
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 4 });
+    expect(store.getState().history.future).toHaveLength(1);
+
+    dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r2', 'r1'], 5);
+    expect(store.getState().history.future).toHaveLength(1);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 6 });
+    expect(canonical(store.getState().input, belobField.bind('r1'))?.value).toBe(100);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+  });
+
+  it('bevarer sorteringen når en feltændring sker efter sorteringen og derefter fortrydes/gentages', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: testRowOrigin() });
+    dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r2', 'r1'], 3);
+    const amountOrigin = {
+      kind: 'field' as const,
+      field: belobField.bind('r1').address,
+      editorLocationId: 'test.rentekrav:r1:belob',
+      route: '/renteberegning',
+      tabKey: null,
+    };
+
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '200'), { now: 4, origin: amountOrigin });
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 5 });
+    expect(canonical(store.getState().input, belobField.bind('r1'))).toBeUndefined();
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 6 });
+    expect(canonical(store.getState().input, belobField.bind('r1'))?.value).toBe(200);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+  });
+
+  it('bevarer insert- og delete-historik uden at gøre sorteringen til et undo-trin', () => {
+    const origin = testRowOrigin();
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r3')), { now: 3, origin });
+    dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r3', 'r1', 'r2'], 4);
+
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 5 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r1', 'r2']);
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 6 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r1', 'r2']);
+
+    dispatchInput(store, catalog, deleteRow(rentekravRowsRef(), 'r1'), { now: 7, origin });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r2']);
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 8 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r1', 'r2']);
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 9 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r2']);
+  });
+
+  it('sorterer kendte rækker og bevarer en allerede slettet rækkes historik gennem undo og redo', () => {
+    const origin = testRowOrigin();
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r3')), { now: 3, origin });
+    dispatchInput(store, catalog, deleteRow(rentekravRowsRef(), 'r2'), { now: 4, origin });
+
+    dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r3', 'r1'], 5);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r1']);
+
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 6 });
+    // Den historiske række findes ikke i den sorterede tilstand, så dens gamle placering kendes ikke af
+    // sorteringslisten. Den bevares efter de rangerede rækker uden at tabe data eller ændre deres indbyrdes orden.
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r1', 'r2']);
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 7 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r3', 'r1']);
+  });
+
+  it('en ny inputændring efter sortering rydder fortsat redo-grenen', () => {
+    const origin = testRowOrigin();
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin });
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '100'), {
+      now: 3,
+      origin: {
+        kind: 'field',
+        field: belobField.bind('r1').address,
+        editorLocationId: 'test.rentekrav:r1:belob',
+        route: '/renteberegning',
+        tabKey: null,
+      },
+    });
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 4 });
+    expect(store.getState().history.future).toHaveLength(1);
+
+    dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r2', 'r1'], 5);
+    expect(store.getState().history.future).toHaveLength(1);
+
+    dispatchInput(store, catalog, settleField(belobField.bind('r1'), '250'), {
+      now: 6,
+      origin: {
+        kind: 'field',
+        field: belobField.bind('r1').address,
+        editorLocationId: 'test.rentekrav:r1:belob',
+        route: '/renteberegning',
+        tabKey: null,
+      },
+    });
+    expect(store.getState().history.future).toHaveLength(0);
+    dispatchInput(store, catalog, { kind: 'redo' }, { now: 7 });
+    expect(canonical(store.getState().input, belobField.bind('r1'))?.value).toBe(250);
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r2', 'r1']);
+  });
+
+  it('afviser en ukendt collection-sti og ugyldig rækkefølge før mutation', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
+    const before = store.getState();
+    const storedBefore = sessionStorage.getItem(key);
+    const nestedWithSameName = {
+      ...rentekravRowsRef(),
+      path: [{ kind: 'entity' as const, collection: 'rentekravRows', entityId: 'r1' }],
+    };
+    const nestedUnderMissingParent = {
+      ...rentekravRowsRef(),
+      path: [{ kind: 'entity' as const, collection: 'rentekravRows', entityId: 'missing-parent' }],
+    };
+
+    expect(() => dispatchPersistedSortOrder(store, catalog, nestedWithSameName, ['r1'], 2)).toThrow();
+    // Selv den tidlige tom/no-op-vej skal validere collection-ref og parent før retur.
+    expect(() => dispatchPersistedSortOrder(store, catalog, nestedUnderMissingParent, [], 3)).toThrow();
+    expect(() => dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['missing'], 4)).toThrow();
+    expect(store.getState()).toBe(before);
+    expect(sessionStorage.getItem(key)).toBe(storedBefore);
+  });
+
+  it('sorterer kun den nested collection under den angivne parent, også i historiske frames', () => {
+    catalog = buildProductionInputCatalog();
+    store = __createSlimInputTestStore();
+    const parsed = persistedErstatningsopgoerelseSchema.parse({
+      loenindkomstAnsaettelsesforhold: [
+        { id: 'employment-1', indtaegtsoplysningerTableData: [{ id: 'a' }, { id: 'b' }] },
+        { id: 'employment-2', indtaegtsoplysningerTableData: [{ id: 'c' }, { id: 'd' }] },
+      ],
+    });
+    const employmentCollection = eoLoenindkomstAnsaettelsesforholdCollection.template as CollectionRef;
+    const origin = testRowOrigin('loenindkomstAnsaettelsesforhold');
+    for (const employment of parsed.loenindkomstAnsaettelsesforhold) {
+      dispatchInput(store, catalog, insertRow(employmentCollection, employment), { origin });
+    }
+    const rowsFor = (employmentId: string): CollectionRef => ({
+      section: 'erstatningsopgoerelse',
+      path: [{ kind: 'entity', collection: 'loenindkomstAnsaettelsesforhold', entityId: employmentId }],
+      collection: eoLoenindkomstStandardRowsCollection.template.collection,
+    });
+    const parentInsertHistoryDepth = store.getState().history.past.length;
+
+    dispatchPersistedSortOrder(store, catalog, rowsFor('employment-1'), ['b', 'a']);
+
+    const employmentRows = store.getState().input.sections.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold;
+    expect(employmentRows?.find((row) => row.id === 'employment-1')?.indtaegtsoplysningerTableData.map((row) => row.id))
+      .toEqual(['b', 'a']);
+    expect(employmentRows?.find((row) => row.id === 'employment-2')?.indtaegtsoplysningerTableData.map((row) => row.id))
+      .toEqual(['c', 'd']);
+    expect(store.getState().history.past).toHaveLength(parentInsertHistoryDepth);
+
+    dispatchInput(store, catalog, { kind: 'undo' });
+    const afterUndo = store.getState().input.sections.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold;
+    expect(afterUndo?.map((row) => row.id)).toEqual(['employment-1']);
+    expect(afterUndo?.[0]?.indtaegtsoplysningerTableData.map((row) => row.id)).toEqual(['b', 'a']);
+
+    dispatchInput(store, catalog, { kind: 'redo' });
+    const afterRedo = store.getState().input.sections.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold;
+    expect(afterRedo?.find((row) => row.id === 'employment-1')?.indtaegtsoplysningerTableData.map((row) => row.id))
+      .toEqual(['b', 'a']);
+    expect(afterRedo?.find((row) => row.id === 'employment-2')?.indtaegtsoplysningerTableData.map((row) => row.id))
+      .toEqual(['c', 'd']);
+  });
+
+  it('ruller sortering atomisk tilbage når sessionstorage afviser skrivningen', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: testRowOrigin() });
+    const before = store.getState();
+    const storedBefore = sessionStorage.getItem(key);
+    const realStorage = window.sessionStorage;
+    let stored = storedBefore;
+    let writes = 0;
+    const throwingStorage: Storage = {
+      getItem: (storageKey) => storageKey === key ? stored : null,
+      setItem: (storageKey, value) => {
+        writes += 1;
+        if (writes === 1) throw new DOMException('lager fyldt', 'QuotaExceededError');
+        if (storageKey === key) stored = value;
+      },
+      removeItem: (storageKey) => { if (storageKey === key) stored = null; },
+      clear: () => undefined,
+      key: () => null,
+      length: 1,
+    };
+    Object.defineProperty(window, 'sessionStorage', { value: throwingStorage, configurable: true });
+    try {
+      expect(() => dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), ['r2', 'r1'], 3)).toThrow();
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', { value: realStorage, configurable: true });
+    }
+
+    expect(store.getState()).toBe(before);
+    expect(store.getState().history).toBe(before.history);
+    expect(sessionStorage.getItem(key)).toBe(storedBefore);
+  });
+
+  it('almindelig reorderRows er fortsat en undoable rækkehandling', () => {
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
+    dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r2')), { now: 2, origin: testRowOrigin() });
+    const historyDepth = store.getState().history.past.length;
+
+    dispatchInput(store, catalog, reorderRows(rentekravRowsRef(), ['r2', 'r1']), {
+      now: 3,
+      origin: testRowOrigin(),
+    });
+
+    expect(store.getState().history.past).toHaveLength(historyDepth + 1);
+    dispatchInput(store, catalog, { kind: 'undo' }, { now: 4 });
+    expect(store.getState().input.sections.renteberegning?.rentekravRows.map((row) => row.id)).toEqual(['r1', 'r2']);
+  });
+});
+
 describe('dispatchInput – styrende valg rydder skjult+rødt som ét trin (§1.9/§3.6/§7.5)', () => {
   it('setImmediateField der gør et felt med aktiv bounds-fejl skjult rydder canonical som ét trin; bevarer gyldigt nabofelt', () => {
     dispatchInput(store, catalog, insertRow(rentekravRowsRef(), makeRow('r1')), { now: 1, origin: testRowOrigin() });
@@ -648,6 +954,7 @@ describe('initializeInputRuntime – hydration og fail-closed (§1.12/§3.10)', 
 
     // Normale writes er blokeret …
     expect(() => dispatchInput(store, catalog, settleField(aargangField.bind(), '2020'))).toThrow(/blokeret/);
+    expect(() => dispatchPersistedSortOrder(store, catalog, rentekravRowsRef(), [])).toThrow(/blokeret/);
     expect(sessionStorage.getItem(key)).toBe('korrupt envelope}{'); // stadig uændret
 
     // … men `Slet alt` rydder kilden og ophæver blokeringen (§1.12).

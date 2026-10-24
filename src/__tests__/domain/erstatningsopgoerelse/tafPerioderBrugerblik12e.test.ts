@@ -5,10 +5,13 @@ import { buildFerieFeriedageById, resolveTafFerieRamme } from '../../../domain/e
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import {
+  eoTafBeregningsperiodeFraField,
+  eoTafBeregningsperiodeTilField,
   eoFerieperiodeFraField,
   eoFerieperiodeTilField,
   eoTafPeriodeFraField,
   eoTafPeriodeLoseFeriedageField,
+  eoTafPeriodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
 import type { FieldRef } from '../../../inputCore/fieldDescriptor';
@@ -115,7 +118,7 @@ describe('BB-248 – en ferieperiode uden for sit vindue', () => {
       'efter differencekravet',
       ferie('f1', '2024-07-01', '2024-07-12'),
       { differencekravDato: iso('2024-07-01') },
-      'Ferien ligger efter den dato, differencekravet er opgjort pr. (01-07-2024)',
+      'Ferien ligger på eller efter den dato, differencekravet er opgjort pr. (01-07-2024)',
       'Ferieperioden 01-07-2024 - 12-07-2024',
     ],
   ])('%s: rød celle med fladens ordlyd, én linje med rækkens navn, og opgørelsen spærres', (_navn, raekke, patch, besked, navn) => {
@@ -171,6 +174,75 @@ describe('BB-251 – overlap', () => {
     expect(cellMessage(projection, eoFerieperiodeTilField.bind('f2'))).toBe('Perioden overlapper perioden 01-03-2024 - 15-03-2024');
     expect([...new Set(errorLinjer)]).toEqual(['Der er overlappende TAF-perioder', 'Der er overlappende ferieperioder']);
   });
+
+  it('viser overlap også når en dato i rækken samtidig fejler på skadedatoens nedre grænse', () => {
+    const { projection, rows } = project(dagsloenSag({
+      tafPerioder: [
+        taf('før-skadedato', '2018-05-31', '2018-06-02'),
+        taf('efter-skadedato', '2018-06-01', '2018-06-03'),
+      ],
+    }));
+
+    expect(projection.eoValues.tafPerioder[0]).toMatchObject({
+      fra: iso('2018-05-31'),
+      til: iso('2018-06-02'),
+    });
+    expect(projection.eoErrors.get(serializeFieldAddress(eoTafPeriodeFraField.bind('før-skadedato').address))?.message)
+      .toBe('Datoen kan ikke være før skadedatoen (01-06-2018)');
+    expect(cellMessage(projection, eoTafPeriodeFraField.bind('før-skadedato')))
+      .toContain('Perioden overlapper');
+    expect(cellMessage(projection, eoTafPeriodeTilField.bind('før-skadedato')))
+      .toBe('Perioden overlapper perioden 01-06-2018 - 03-06-2018');
+    expect(cellMessage(projection, eoTafPeriodeFraField.bind('efter-skadedato')))
+      .toBe('Perioden overlapper perioden 31-05-2018 - 02-06-2018');
+    expect(rows.errors.some((row) => row.summaryText?.includes('Datoen kan ikke være før skadedatoen'))).toBe(true);
+    expect(rows.errors.some((row) => row.summaryText?.includes('overlappende TAF-perioder'))).toBe(true);
+    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
+    expect(projection.snapshot.readyBranches?.tafPerioder).toBeUndefined();
+  });
+
+  it('viser overlap, når en TAF-rækkes dato samtidig ligger efter den øvre grænse', () => {
+    const { projection, rows } = project(dagsloenSag({
+      tafPerioder: [
+        taf('efter-ramme-1', '2030-01-01', '2030-02-01'),
+        taf('efter-ramme-2', '2030-01-15', '2030-02-03'),
+      ],
+    }));
+    const firstFrom = serializeFieldAddress(eoTafPeriodeFraField.bind('efter-ramme-1').address);
+
+    expect(projection.eoValues.tafPerioder[0]?.fra).toBe(iso('2030-01-01'));
+    expect(projection.eoErrors.get(firstFrom)?.message).toContain('Dato skal være mellem');
+    expect(cellMessage(projection, eoTafPeriodeFraField.bind('efter-ramme-1'))).toContain('Perioden overlapper');
+    expect(cellMessage(projection, eoTafPeriodeTilField.bind('efter-ramme-1'))).toContain('Perioden overlapper');
+    expect(rows.errors.some((row) => row.summaryText?.includes('Dato skal være mellem'))).toBe(true);
+    expect(rows.errors.some((row) => row.summaryText?.includes('overlappende TAF-perioder'))).toBe(true);
+    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
+    expect(projection.snapshot.data).toBeNull();
+    expect(projection.snapshot.readyBranches?.tafPerioder).toBeUndefined();
+  });
+
+  it('finder overlap med TAF-beregningsperioden, når begge perioder ligger uden for ydre datogrænse', () => {
+    const { projection, rows } = project(dagsloenSag({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2030-01-01'),
+      tafBeregningsperiodeTil: iso('2030-02-02'),
+      tafPerioder: [
+        taf('ta-1', '2030-01-01', '2030-02-01'),
+        taf('ta-2', '2030-01-15', '2030-02-03'),
+      ],
+    }));
+    const calcFrom = serializeFieldAddress(eoTafBeregningsperiodeFraField.bind().address);
+    const calcTo = serializeFieldAddress(eoTafBeregningsperiodeTilField.bind().address);
+
+    expect(projection.eoValues.tafBeregningsperiodeFra).toBe(iso('2030-01-01'));
+    expect(projection.eoErrors.get(calcFrom)?.message).toContain('Dato skal være mellem');
+    expect(projection.tafCellIssues.get(calcFrom)?.message).toContain('overlap');
+    expect(projection.tafCellIssues.get(calcTo)?.message).toContain('overlap');
+    expect(rows.errors.some((row) => row.id === 'taf.beregningsgrundlag.beregningsperiode'
+      && row.displayValue.includes('overlap'))).toBe(true);
+    expect(projection.snapshot.blockedDependencies?.taf).toBe(true);
+    expect(projection.snapshot.data).toBeNull();
+  });
 });
 
 describe('BB-252 – for mange løse feriedage', () => {
@@ -218,13 +290,13 @@ describe('BB-253 – én vurdering pr. række', () => {
       tafPerioder: [taf('t1', '2024-08-01', undefined)],
     }));
     expect(errorLinjer).toEqual([
-      'TAF-perioden fra 01-08-2024: Der er angivet tabt arbejdsfortjeneste efter den dato, differencekravet er opgjort pr. (01-07-2024); Til-dato er ikke angivet',
+      'TAF-perioden fra 01-08-2024: Der er angivet tabt arbejdsfortjeneste på eller efter den dato, differencekravet er opgjort pr. (01-07-2024); Til-dato er ikke angivet',
     ]);
   });
 
   it('melder en rød celle med sin egen tekst, ikke som manglende', () => {
     const { errorLinjer } = project(dagsloenSag({ tafPerioder: [taf('t1', '2017-01-01', '2024-06-30')] }));
-    expect(errorLinjer).toEqual(['TAF-perioden til 30-06-2024: Datoen kan ikke være før skadedatoen (01-06-2018)']);
+    expect(errorLinjer).toEqual(['TAF-perioden 01-01-2017 - 30-06-2024: Datoen kan ikke være før skadedatoen (01-06-2018)']);
   });
 });
 
