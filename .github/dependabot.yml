@@ -4,3 +4,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
+
+  # Kun sikkerhedsopdateringer: `open-pull-requests-limit: 0` slår de almindelige versions-PR'er
+  # fra, mens Dependabot security updates (slået til i repoets indstillinger) stadig åbner en PR,
+  # når en advisory rammer det låste træ. Uden denne post viste en ny advisory sig først som en
+  # afvist push i pre-push-hookens `check:vulnerabilities` (sket 2026-10-24).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
