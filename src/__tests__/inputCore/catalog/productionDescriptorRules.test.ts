@@ -40,6 +40,10 @@ import {
   eoOffentligeYdelserYdelseField,
   eoOevrigeKravBeloebField,
   eoOevrigeKravDatoField,
+  eoSvieSmertePeriodeFraField,
+  eoSvieSmertePeriodeTilField,
+  eoTafPeriodeFraField,
+  eoTafPeriodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import {
   erhvervsevnetabBeregningsdatoField,
@@ -69,7 +73,7 @@ import {
   eoEmploymentFields,
   eoStandardRowFields,
 } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
-import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const catalog = getProductionInputCatalog();
 const token = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
@@ -86,6 +90,39 @@ const employmentCollectionRef = createCollectionRef({
 });
 
 describe('produktdescriptors – dato-, periode- og relevansregler', () => {
+  it('genlæser dags dato og årsgrænsen efter midnat med det samme katalog og input', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date(2030, 11, 31, 23, 59));
+      const input = dispatch(empty(), resetSection('erstatningsopgoerelse', {
+        ...createErstatningsopgoerelseInitialValues(),
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        tidligereSsMax: 'Nej',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        svieSmertePerioder: [{ id: 'ss', fra: toISODateString('2031-01-01'), til: toISODateString('2031-01-01') }],
+        tafPerioder: [{ id: 'taf', fra: toISODateString('2032-01-01'), til: toISODateString('2032-01-01') }],
+      }));
+      const fields = [
+        eoSvieSmertePeriodeFraField.bind('ss'),
+        eoSvieSmertePeriodeTilField.bind('ss'),
+        eoTafPeriodeFraField.bind('taf'),
+        eoTafPeriodeTilField.bind('taf'),
+      ];
+      const before = evaluate(input);
+      for (const field of fields) {
+        expect(before.reader.read(field)).toMatchObject({ issue: { reason: 'bounds' } });
+      }
+      vi.setSystemTime(new Date(2031, 0, 1, 0, 1));
+      const after = evaluate(input);
+      for (const field of fields) {
+        expect(after.reader.read(field).status).toBe('usable');
+        expect(after.reader.read(field).issue).toBeUndefined();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   /**
    * Feltets label er kontekstuel: `Skadedato` hedder `Anmeldelsesdato`, når skadestypen er
    * Erhvervssygdom. Testen måler, at den AKTUELLE label – ikke descriptorens statiske navn – følger med

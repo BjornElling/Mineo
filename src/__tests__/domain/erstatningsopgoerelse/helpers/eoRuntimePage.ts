@@ -36,6 +36,7 @@ vi.mock('../../../../utils/systemIssueReporter', () => ({
 import { buildMidlertidigtEetInsertSource } from '../../../../domain/erhvervsevnetab/eetImportPort';
 import type { ErhvervsevnetabValues, FaellesAarsloenValues } from '../../../../schemas/formSchemas';
 import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
+import { collectSammentaellingControlMismatchMessages } from '../../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 
 export type EoRuntimeCase = GeneratedEoCase & Readonly<{
   erhvervsevnetab?: ErhvervsevnetabValues;
@@ -98,6 +99,11 @@ export const runEoPage = (generated: EoRuntimeCase): Failure[] => {
   }));
   if (projection !== undefined) {
     const { snapshot } = projection;
+    if (snapshot.inspektionSnapshot) {
+      for (const message of collectSammentaellingControlMismatchMessages(snapshot.inspektionSnapshot.sammentaellingRows)) {
+        failures.push({ seed: generated.seed, stage: 'sammentaelling', message });
+      }
+    }
     const statusKey = snapshot.status === 'error'
       ? `error:${snapshot.invariants.filter((invariant) => invariant.severity === 'error').map((invariant) => invariant.id.split(':').slice(0, 2).join(':')).sort().join(',').slice(0, 120)}`
       : snapshot.status;

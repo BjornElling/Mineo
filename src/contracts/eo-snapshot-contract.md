@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -474,6 +474,18 @@ Den sidste peger på en generalisering af reglen: **de to sider skal også forst
 Enhver normalisering af en gemt værdi (label→nøgle, versalisering, alias) skal ligge ét sted, som
 begge sider bruger – ellers kan de se forskellige ydelser og melde en uoverensstemmelse, der kun er en
 opslagsforskel.
+
+Fradrag i tabelsiden skal afspejle motorens normalisering og placering af dagene. Løse
+feriedage tælles gennem `buildTafFerieFravaerSummary`, så et negativt antal ikke øger
+dagstallet, og et for stort antal i én TAF-periode ikke trækkes fra en anden periode.
+Øvrige fraværsdage normaliseres med `toNonNegativeInt` som i den eksisterende dagmotor.
+Kontrollen må fortsat melde faktiske afvigelser mellem to dannede opgørelser.
+
+Regressionerne dækkes af `eoInspektionDayInputParity.test.ts` og
+`eoInspektionIncomeInputParity.test.ts`. Runtime-fuzzingen kontrollerer desuden samtlige
+sammentællingsrækker gennem readeren, også når andre inputfejl blokerer opgørelsen.
+`eoInspektionRejectedInputParity.test.ts` afslutter indtastninger gennem feltmotoren og
+kontrollerer eksplicit tal/bindestreg-pariteten ved rejected tekst og røde canonical felter.
 
 ---
 

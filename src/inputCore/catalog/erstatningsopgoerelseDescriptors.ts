@@ -948,11 +948,12 @@ export const eoTafPerioderCollection = topLevelCollection<TafPeriodeRow>('tafPer
 const tafPeriodeDates = rowDatePair('tafPerioder', 'fra', 'til', 'Fra o.m.', 'Til o.m.', {
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-    max: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
+    // Bevar getterens dagsaktuelle grænse, også når kataloget overlever et årsskifte.
+    get max() { return dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax; },
   }, { issuePriority: 'context' }),
   til: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMin,
-    max: dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMax,
+    get max() { return dateRanges_erstatningsopgoerelse.tabelTAFTil.fallbackMax; },
   }, { issuePriority: 'context' }),
 }, whenEo(tafSektionAktiv));
 export const eoTafPeriodeFraField = tafPeriodeDates.fra;
@@ -1006,11 +1007,12 @@ const svieSmertePeriodeDates = rowDatePair('svieSmertePerioder', 'fra', 'til', '
   // S/S-grenen gates fortsat af begge røde issues i snapshot-projektionen.
   fra: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-    max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
+    // Et åbent program skal læse den nye dags dato ved næste evaluering efter midnat.
+    get max() { return dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax; },
   }, { issuePriority: 'context' }),
   til: skadedatoBoundedSpec({
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.fallbackMin,
-    max: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
+    get max() { return dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max; },
   }, { issuePriority: 'context' }),
 }, whenEo(svieSmertePeriodeInputRelevant));
 export const eoSvieSmertePeriodeFraField = svieSmertePeriodeDates.fra;

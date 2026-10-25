@@ -4,14 +4,14 @@ import type { ISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
-import { parseDanishNumberString as parseCanonicalDanishNumberString } from '../../utils/numberParsing';
+import { parseDanishNumberString as parseCanonicalDanishNumberString, toNonNegativeInt } from '../../utils/numberParsing';
 import { kontrolTabelColumnId } from './eoInspektionLoenTypes';
 import type { EOInspektionBeregningsperiodeProjection, EOInspektionModel } from './eoInspektionKontrolModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { buildIncomeForRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { buildFerieDageSetForPeriode, buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
+import { buildFerieDageSetForPeriode, buildShDageSetFromIsoRange, buildTafFerieFravaerSummary } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sfggResult';
@@ -508,19 +508,19 @@ export const buildEOInspektionSammentaellingModel = (args: {
     beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       && values.oevrigtFravaerUdenLoen === 'Ja'
       && typeof values.oevrigeFravaersdage === 'number'
-      ? values.oevrigeFravaersdage
+      ? toNonNegativeInt(values.oevrigeFravaersdage)
       : 0;
   const beregningsTabelFradrag = beregningsLoseFeriedage + beregningsOevrigeFravaersdage;
 
-  const tafLoseFeriedage = (values.tafPerioder ?? []).reduce((sum, row) => {
-    const validRange = getValidTafRange(row);
-    if (!validRange) return sum;
-    const range = clampTafRange(validRange, tafBounds);
-    if (!range) return sum;
-    const next = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
-    return sum + next;
-  }, 0);
-  const tafLoseFeriedageForControl = isTafEnabled && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? tafLoseFeriedage : 0;
+  // Motoren fradrager kun faktisk placerede dage i hver periode. Et råt indtastet antal kan
+  // være negativt eller overstige én periodes plads og må ikke fradrages i en anden periode.
+  const tafLoseFeriedageForControl = isTafEnabled && beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+    ? buildTafFerieFravaerSummary(
+      values.tafPerioder ?? [],
+      values.ferieperioder ?? [],
+      args.tafRanges ?? buildTafRanges(values, { skadedatoISO: args.taftContext.skadedatoISO }),
+    ).loseFeriedage
+    : 0;
   const tafTabelFradrag = tafLoseFeriedageForControl;
 
   const withTabelFradragDisplay = (tableValue: number | null, fradrag: number): string => {
