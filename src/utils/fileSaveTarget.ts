@@ -4,6 +4,8 @@ import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
   saveFileWithPicker,
+  toFileHandleAccessError,
+  FileHandleAccessError,
 } from './fileSystemAccess';
 import {
   requestPersistentStorage,
@@ -19,6 +21,19 @@ import {
   loadStoredFilenameBasis,
 } from './filePersistenceMetadata';
 import { readOptionalSessionStorageValue } from './safeSessionStorage';
+import { readFileContentFingerprint, readSavedFileContentFingerprint } from './fileContentFingerprint';
+
+export type SaveConflict = 'changed' | 'unverifiable';
+export type SaveConflictDecision = 'overwrite' | 'saveAs' | 'cancel';
+export type ResolveSaveConflict = (conflict: SaveConflict) => Promise<SaveConflictDecision>;
+
+const fingerprintSaveTarget = async (handle: FileSystemFileHandle): Promise<string> => {
+  try {
+    return await readFileContentFingerprint(handle);
+  } catch (error) {
+    throw toFileHandleAccessError(error, 'write') ?? error;
+  }
+};
 
 /**
  * Typet gem-port: HVOR det verificerede `.eo`-artefakt skal skrives hen.
@@ -36,6 +51,8 @@ export type SaveTarget =
       fileHandle: FileSystemFileHandle;
       /** Om det (netop valgte) handle først skal persisteres til IndexedDB EFTER en lykket write+verify. */
       persistHandleAfterSuccess: boolean;
+      /** Den filrevision brugeren har accepteret. Kontrolleres igen efter åbning af skrivestreamen. */
+      expectedFingerprint: string;
       /** Advarsel hvis et tidligere handle måtte kasseres, så brugeren blev sendt til pickeren. */
       fallbackWarning?: string;
     }
@@ -64,24 +81,9 @@ const hasFilenameBasisChanged = (
 };
 
 /**
- * Peger det gemte handle på den fil, DENNE fane mener at arbejde på?
- *
- * Sagsdata og `lastSavedFilename` ligger i sessionStorage, som er fanens eget; selve filhåndtaget
- * ligger i IndexedDB, som er FÆLLES for alle faner i browseren. To åbne faner er to selvstændige
- * sager, men de deler ét håndtag – og det peger altid på den SIDST rørte fil i browseren. Uden denne
- * prøve kunne fane A's `Gem` derfor skrive sin egen sag ind i den fil, fane B sidst gemte til: begge
- * de eksisterende betingelser var opfyldt (fane A's eget stamdatagrundlag er uændret, og håndtaget er
- * gyldigt og tilgængeligt), så håndtaget blev genbrugt tavst, og fane B's fil blev overskrevet uden
- * filvælger, uden advarsel og med ordet «Gemt» som kvittering.
- *
- * Sammenligningen kan laves direkte på `handle.name`, fordi det er PRÆCIS den værdi, `fileSave.ts`
- * skrev til `lastSavedFilename` ved sidste gem (`filename = target.fileHandle.name`). Der er derfor
- * intet nyt at persistere, og de to sider kan ikke komme ud af sync med hinanden.
- *
- * Passer navnene ikke, er håndtaget ikke et verificerbart overwrite-mål for denne fane, og
- * gem-flowet falder tilbage til filvælgeren med fanens eget filnavn som forslag – samme vej som når
- * håndtaget er ugyldigt. Det koster ét ekstra valg i en sjælden situation og gør en tavs
- * overskrivning af en ANDEN sag umulig.
+ * Klientscopet IndexedDB adskiller fanernes filhåndtag. Navneprøven er et ekstra værn
+ * mod forældet metadata i samme fane; den er ikke bevis for filens indhold eller identitet.
+ * Indholdskonflikter kontrolleres separat før genbrug og igen under skrivningen.
  */
 const doesHandleMatchTabFilename = (
   fileHandle: FileSystemFileHandle,
@@ -127,7 +129,8 @@ const isUserDismissedPermissionPrompt = (
  */
 export const resolveSaveTarget = async (
   fileData: EoFileContainer,
-  resolvedDirectory?: ResolvedDirectory
+  resolvedDirectory?: ResolvedDirectory,
+  resolveConflict?: ResolveSaveConflict
 ): Promise<SaveTarget> => {
   if (isFileSystemAccessSupported()) {
     await requestPersistentStorage();
@@ -156,13 +159,8 @@ export const resolveSaveTarget = async (
           return { kind: 'cancelled' };
         } else {
           fallbackWarning = buildInvalidHandleUserWarning(handleVerification);
-          logWarning('Tidligere file handle kunne ikke genbruges - sletter fra IndexedDB', {
-            context: 'resolveSaveTarget.invalidStoredHandle',
-            data: {
-              reason: handleVerification.reason,
-              detail: handleVerification.detail,
-            },
-          });
+          // Forventelige filændringer forklares via fallbackWarning. Verifikationen logger
+          // selv uventede fejl; en ekstra warning her gør normal genvalg til en runtime-alarm.
           const deleted = await deleteFileHandleFromIndexedDB();
           if (!deleted) {
             // Et gammelt handle må ikke blive liggende, mens et nyt filnavn eventuelt gemmes:
@@ -213,8 +211,30 @@ export const resolveSaveTarget = async (
     }
 
     if (shouldUseExistingHandle && fileHandle) {
-      // Handle er gyldigt – browseren håndterer overskrivning; intet nyt at persistere.
-      return { kind: 'fileHandle', fileHandle, persistHandleAfterSuccess: false };
+      let currentFingerprint: string | null = null;
+      try {
+        currentFingerprint = await fingerprintSaveTarget(fileHandle);
+      } catch (error) {
+        if (!(error instanceof FileHandleAccessError)) throw error;
+        // En eksisterende fil kan være ulæselig eller erstattet af en for stor fil.
+        // Giv adgang til et andet mål frem for at gentage samme fejl ved hvert Gem.
+        if (!await deleteFileHandleFromIndexedDB()) throw error;
+        fallbackWarning = 'Den tidligere valgte fil kunne ikke kontrolleres og bliver derfor ikke overskrevet automatisk. Vælg filplacering igen.';
+        fileHandle = null;
+      }
+      if (currentFingerprint !== null && fileHandle) {
+        const previousFingerprint = readSavedFileContentFingerprint();
+        if (previousFingerprint !== currentFingerprint) {
+          const decision = await resolveConflict?.(previousFingerprint ? 'changed' : 'unverifiable') ?? 'cancel';
+          if (decision === 'cancel') return { kind: 'cancelled' };
+          if (decision === 'overwrite') {
+            return { kind: 'fileHandle', fileHandle, persistHandleAfterSuccess: false, expectedFingerprint: currentFingerprint };
+          }
+          // Bevar den gamle kobling ved annulleret Gem som. Nyt mål lagres efter verificeret gem.
+        } else {
+          return { kind: 'fileHandle', fileHandle, persistHandleAfterSuccess: false, expectedFingerprint: currentFingerprint };
+        }
+      }
     }
 
     const currentFilename = generateFilename(fileData.data);
@@ -229,9 +249,16 @@ export const resolveSaveTarget = async (
       return { kind: 'cancelled' };
     }
 
+    if (fileHandle && !await deleteFileHandleFromIndexedDB()) {
+      throw new Error('Det tidligere filhåndtag kunne ikke ryddes. Filen blev ikke skrevet. Prøv Gem igen.');
+    }
+
     // Persistér først EFTER lykket write+verify, så et halvt gem ikke efterlader et nyt "autoritativt"
     // overskrivnings-target i IndexedDB.
-    return { kind: 'fileHandle', fileHandle: picked, persistHandleAfterSuccess: true, fallbackWarning };
+    return {
+      kind: 'fileHandle', fileHandle: picked, persistHandleAfterSuccess: true, fallbackWarning,
+      expectedFingerprint: await fingerprintSaveTarget(picked),
+    };
   }
 
   // Fallback til klassisk download (Firefox m.fl.). Det er en forventet browserforskel og

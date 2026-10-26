@@ -2,6 +2,7 @@ import {
   deletePendingPwaOpenRequestFromIndexedDB,
   loadPendingPwaOpenRequestFromIndexedDB,
   savePendingPwaOpenRequestToIndexedDB,
+  prepareFileOperationStorageSession,
 } from './fileHandleStorage';
 import { isFileSystemFileHandle } from './fileSystemAccess';
 import { logWarning, sanitizeFilenameForLog } from './logger';
@@ -179,7 +180,8 @@ export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
         // reload; ryd op best effort, men lad aldrig oprydningen genaktivere requesten.
         pendingRequest = null;
         pendingRequestGeneration += 1;
-        if (!(await persistPendingPwaFileOpenRequestState())) {
+        if (!(await settleBeforeDeadline(persistPendingPwaFileOpenRequestState(), hydrationDeadline, false))) {
+          pendingRequestHydrationFailed = true;
           logWarning('Afsluttet PWA-fil-request kunne ikke ryddes fra IndexedDB', {
             context: 'hydratePendingPwaFileOpenRequest.handledRequestCleanup',
           });
@@ -198,7 +200,7 @@ export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {
       });
       // Oprydningen skal gennem samme serialiserede kø som saves/deletes. En ny launchQueue-fil kan
       // ankomme mens den ugyldige record fjernes; en direkte delete ville da kunne slette den nye request.
-      if (!(await persistPendingPwaFileOpenRequestState())) {
+      if (!(await settleBeforeDeadline(persistPendingPwaFileOpenRequestState(), hydrationDeadline, false))) {
         pendingRequestHydrationFailed = true;
       }
     }
@@ -231,7 +233,7 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
     const primaryHandle = handles[0];
     const parsedRequest = pwaFileOpenRequestSchema.safeParse({
-      id: `pwa-open-${getFileOperationClientSessionId()}-${++requestCounter}`,
+      id: `pwa-open-${getFileOperationClientSessionId().replace(':', '-')}-${++requestCounter}`,
       createdAtEpochMs: Date.now(),
       fileHandle: primaryHandle,
       fileName: primaryHandle.name,
@@ -271,13 +273,26 @@ export const setupPwaLaunchQueueConsumer = (): void => {
  * må opstarten ikke genindlæse: brugerens fil vejer tungere end at komme på nyeste version straks.
  */
 export const awaitDurablePendingPwaFileOpenHandoff = async (): Promise<boolean> => {
+  if (pendingRequestHydrationFailed) return false;
   await hydratePendingPwaFileOpenRequest();
   if (pendingRequestHydrationFailed) return false;
+
+  const deadline = Date.now() + PWA_STORAGE_HANDOFF_TIMEOUT_MS;
+  let reloadStable: boolean;
+  try {
+    // Genbind memory-cachen efter pagehide før read-back. Et runtime-scope uden
+    // dokumentejerskab kan ikke findes igen efter reload og er derfor ingen handoff.
+    const session = await settleBeforeDeadline(prepareFileOperationStorageSession(), deadline, null);
+    if (!session) return false;
+    reloadStable = session.reloadStable;
+    if (!reloadStable && pendingRequest !== null) return false;
+  } catch {
+    return false;
+  }
 
   // En ny launchQueue-callback kan starte mellem to await-punkter. Versionsreloaden må først
   // frigives, når både persistence-køen og den læste record beskriver samme stabile generation.
   // En deadline er nødvendig, så en defekt IndexedDB ikke kan holde hele opstarten fast for evigt.
-  const deadline = Date.now() + PWA_STORAGE_HANDOFF_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const generationBeforePersistence = pendingRequestGeneration;
     const persisted = await settleBeforeDeadline(persistPendingRequestQueue, deadline, false);
@@ -291,6 +306,7 @@ export const awaitDurablePendingPwaFileOpenHandoff = async (): Promise<boolean> 
 
     const stored = pwaFileOpenRequestSchema.safeParse(storedRead.value);
     if (pendingRequest === null) return storedRead.value === null;
+    if (!reloadStable) return false;
     return stored.success && stored.data.id === pendingRequest.id;
   }
 

@@ -16,6 +16,7 @@ const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
 type PendingPwaConfirmation = Readonly<{
   requestId: string;
   fileName: string;
+  requiresConfirmation?: true;
 }>;
 
 type UsePwaLaunchQueueArgs = {
@@ -62,7 +63,11 @@ export const usePwaLaunchQueue = ({
 
   const updatePendingConfirmation = React.useCallback((request: PwaFileOpenRequest | null): void => {
     const confirmation = request
-      ? { requestId: request.id, fileName: request.fileName }
+      ? {
+          requestId: request.id,
+          fileName: request.fileName,
+          ...(request.requiresConfirmation === true ? { requiresConfirmation: true as const } : {}),
+        }
       : null;
     pendingConfirmationRef.current = confirmation;
     setPendingPwaConfirmation(confirmation);
@@ -77,7 +82,7 @@ export const usePwaLaunchQueue = ({
     }
   }, [updatePendingConfirmation]);
 
-  const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false): void => {
+  const processNextPwaFileOpenRequest = React.useCallback((allowAlreadyAttempted = false, confirmedRequestId?: string): void => {
     if (isPwaLoadInProgressRef.current || isFileOperationInProgress()) return;
     if (pendingLoadResultOpen || pendingOverwriteApplyOpen || pendingResetConfirmationOpen) return;
     if (queuedWhileBusyRef.current || pendingConfirmationRef.current !== null) return;
@@ -86,6 +91,14 @@ export const usePwaLaunchQueue = ({
     if (!request) return;
     if (activePwaRequestIdRef.current === request.id) return;
     if (!allowAlreadyAttempted && request.id === lastAttemptedRequestIdRef.current) return;
+
+    // En request overtaget fra en tidligere session har ikke denne sessions brugerhandling
+    // som autoritet. Kun et klik på bekræftelsen af netop dens id må starte indlæsningen.
+    if (request.requiresConfirmation === true && confirmedRequestId !== request.id) {
+      queuedWhileBusyRef.current = true;
+      updatePendingConfirmation(request);
+      return;
+    }
 
     activePwaRequestIdRef.current = request.id;
     lastAttemptedRequestIdRef.current = request.id;
@@ -110,6 +123,7 @@ export const usePwaLaunchQueue = ({
     pendingOverwriteApplyOpen,
     pendingResetConfirmationOpen,
     queueLatestRequest,
+    updatePendingConfirmation,
   ]);
 
   const promoteQueuedRequest = React.useCallback((): void => {
@@ -143,11 +157,12 @@ export const usePwaLaunchQueue = ({
     if (confirmedRequestId !== latestRequest.id) {
       lastAttemptedRequestIdRef.current = null;
     }
-    processNextPwaFileOpenRequest(true);
+    processNextPwaFileOpenRequest(true, confirmedRequestId);
   }, [processNextPwaFileOpenRequest, updatePendingConfirmation]);
 
   const ignoreQueuedPwaFileOpen = React.useCallback((): void => {
     const ignoredRequestId = pendingConfirmationRef.current?.requestId;
+    if (ignoredRequestId) lastAttemptedRequestIdRef.current = ignoredRequestId;
     updatePendingConfirmation(null);
     queuedWhileBusyRef.current = false;
     void clearPendingPwaFileOpenRequest(ignoredRequestId).catch((error: unknown) => {

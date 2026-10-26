@@ -1,12 +1,9 @@
 import { countFilledFields, countMeaningfulFields } from './dataCollection';
 import { type ResolvedDirectory } from './fileHelpers';
-import {
-  logWarning,
-  logError,
-} from './logger';
+import { logError } from './logger';
 import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { persistenceSchemas, PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../config/persistenceRegistry';
-import { FileHandleAccessError } from './fileSystemAccess';
+import { toFileHandleAccessError } from './fileSystemAccess';
 import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
 import { type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { decodeEoFile } from './eoFileCodec';
@@ -23,6 +20,7 @@ import {
 } from './fileLoadSource';
 
 import { isRecord } from './typeGuards';
+import { createFileContentFingerprint } from './fileContentFingerprint';
 
 const formatPathSegments = (segments: readonly (string | number)[]): string => {
   let out = '';
@@ -70,9 +68,10 @@ const processDecryptedContainer = (args: {
   filename: string;
   source: 'manual' | 'pwa';
   fileHandle?: FileSystemFileHandle;
+  fileFingerprint?: string;
   requestId?: string;
 }): LoadFileResult => {
-  const { fileContainer, filename, source, fileHandle, requestId } = args;
+  const { fileContainer, filename, source, fileHandle, fileFingerprint, requestId } = args;
   const rawFileData = fileContainer.data as Record<string, unknown>;
   const sourcePersistedDataVersion =
     fileContainer._metadata.persistedDataVersion ?? LEGACY_PERSISTED_DATA_VERSION;
@@ -202,6 +201,7 @@ const processDecryptedContainer = (args: {
     requestId,
     filename,
     fileHandle,
+    fileFingerprint,
     fieldCount: loadedFieldCount,
     // Metadatafeltet i den gamle fil kan tælle tavst ignorerede felter. Det udleverede load-tal
     // skal derfor være det samme rensede tal, som preflight bruger – ikke den rå metadata-værdi.
@@ -240,12 +240,16 @@ const loadFromSource = async (source: LoadSource): Promise<LoadFileResult> => {
 
   assertLoadableEoFile(outcome.file);
   const fileContent = await outcome.readContent();
+  // Brug indholdet fra samme File-snapshot som load. Et nyt getFile() her kunne
+  // ellers godkende eksterne ændringer, som aldrig blev indlæst i sagen.
+  const fileFingerprint = outcome.fileHandle ? await createFileContentFingerprint(fileContent) : undefined;
   const fileContainer = await decodeEoFile(fileContent);
   return processDecryptedContainer({
     fileContainer,
     filename: outcome.file.name,
     source: outcome.source,
     fileHandle: outcome.fileHandle,
+    fileFingerprint,
     requestId: outcome.requestId,
   });
 };
@@ -257,6 +261,9 @@ const loadFromSource = async (source: LoadSource): Promise<LoadFileResult> => {
  * Kilde-specifik mapping (fx PWA-handle-tilladelse) skal ske FØR denne kaldes.
  */
 const mapGenericLoadError = (error: unknown, context: string): never => {
+  const accessError = toFileHandleAccessError(error, 'read');
+  if (accessError) throw accessError;
+
   if (error instanceof FileSelectionError) {
     throw error;
   }
@@ -291,22 +298,6 @@ export const loadFromFileHandle = async (
   try {
     return await loadFromSource(createPwaLoadSource(fileHandle, options?.requestId));
   } catch (error: unknown) {
-    // Kilde-specifik mapping FØRST: revoked/manglende tilladelse eller flyttet/slettet fil vises
-    // som en handlingsanvisende dansk besked i stedet for en rå DOMException. Ingen sagsdata røres
-    // (vi fejler før apply).
-    if (error instanceof FileHandleAccessError) {
-      logWarning('Hent (handle) afvist pga. manglende fil-tilladelse', { context: 'loadFromFileHandle.permission' });
-      throw error;
-    }
-    if (error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) {
-      logWarning('Hent (handle) afvist af browseren', { context: 'loadFromFileHandle.permission', data: { name: error.name } });
-      throw new FileHandleAccessError('Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.', { cause: error });
-    }
-    if (error instanceof DOMException && error.name === 'NotFoundError') {
-      logWarning('Hent (handle) fejlede: filen blev ikke fundet', { context: 'loadFromFileHandle.notFound' });
-      throw new FileHandleAccessError('Filen blev ikke fundet – den er måske flyttet eller slettet. Vælg filen igen via Hent.', { cause: error });
-    }
-
     return mapGenericLoadError(error, 'loadFromFileHandle');
   }
 };

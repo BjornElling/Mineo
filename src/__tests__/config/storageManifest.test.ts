@@ -45,6 +45,7 @@ describe('reset-policyen (getCaseScopedSessionStorageKeys)', () => {
     // Filnavns-metadata og de to sagsnære hjælpeflader beskriver PRÆCIS den sag, der slettes.
     expect(caseScoped).toContain(UI_STORAGE_KEYS.lastSavedFilename);
     expect(caseScoped).toContain(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+    expect(caseScoped).toContain(UI_STORAGE_KEYS.pendingPwaSourceSession);
     expect(caseScoped).toContain(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
     expect(caseScoped).toContain(UI_STORAGE_KEYS.loentrinFinderOverlay);
     // Uafhængig UI-/devtools-tilstand beskriver ikke sagen og ryddes bevidst IKKE (contract §3.7).

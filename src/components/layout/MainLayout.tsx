@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SideMenu from './SideMenu';
 import Container from './Container';
@@ -168,8 +168,11 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
 
   // Restore-målet for `Slet alt`-bekræftelsen. Se dialogen nedenfor for hvorfor den skal være eksplicit.
   const sletAltButtonRef = React.useRef<HTMLButtonElement>(null);
+  const gemButtonRef = React.useRef<HTMLButtonElement>(null);
 
   const {
+    pendingSaveConflict,
+    decideSaveConflict,
     pendingLoadResult,
     pendingOverwriteApply,
     dismissPendingLoad,
@@ -249,6 +252,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         onHent={handleHent}
         onSletAlt={handleSletAlt}
         sletAltButtonRef={sletAltButtonRef}
+        gemButtonRef={gemButtonRef}
         contentScale={contentScale}
       />
       <Container
@@ -274,6 +278,25 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         />
         {children}
       </Container>
+
+      <ConfirmationDialog
+        open={pendingSaveConflict !== null}
+        title={pendingSaveConflict === 'changed' ? 'Filen er ændret' : 'Filen kan være ændret'}
+        message={pendingSaveConflict === 'changed'
+          ? 'Filen er ændret uden for dette Mineo-vindue siden Hent eller seneste Gem. Hvis du overskriver, bliver filens indhold erstattet af indtastningerne i dette vindue. Du kan også gemme i en anden fil og bevare den ændrede fil.'
+          : 'Mineo kan ikke afgøre, om filen er ændret siden Hent eller seneste Gem. Hvis du overskriver, bliver filens indhold erstattet af indtastningerne i dette vindue. Du kan også gemme i en anden fil og bevare den eksisterende fil.'}
+        cancelText="Annuller"
+        confirmText="Overskriv"
+        confirmColor="error"
+        onCancel={() => decideSaveConflict('cancel')}
+        onConfirm={() => decideSaveConflict('overwrite')}
+        restoreFocusTo={gemButtonRef}
+        extraActions={(
+          <Button variant="outlined" sx={{ borderRadius: '10px' }} onClick={() => decideSaveConflict('saveAs')}>
+            Gem i en anden fil
+          </Button>
+        )}
+      />
 
       <ConfirmationDialog
         // Preflight og overskrivning er to beslutninger i SAMME load-flow. Én dialoginstans bevarer
@@ -380,7 +403,9 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
         title="En anden fil er klar til at blive indlæst"
         message={
           pendingPwaConfirmation
-            ? `Filen “${pendingPwaConfirmation.fileName}” blev åbnet, mens en anden filhandling var i gang. Vil du indlæse den nu?`
+            ? pendingPwaConfirmation.requiresConfirmation
+              ? `Filen “${pendingPwaConfirmation.fileName}” venter fra en tidligere Mineo-session. Vil du indlæse den nu?`
+              : `Filen “${pendingPwaConfirmation.fileName}” blev åbnet, mens en anden filhandling var i gang. Vil du indlæse den nu?`
             : ''
         }
         cancelText="Annuller"

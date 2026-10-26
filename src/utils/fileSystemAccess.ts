@@ -1,5 +1,7 @@
 import { logWarning, logError, sanitizeFilenameForLog } from './logger';
-import { asError } from './typeGuards';
+import { asError, getErrorName } from './typeGuards';
+import { readFileContentFingerprint } from './fileContentFingerprint';
+import { MAX_FILE_SIZE } from '../config/version';
 
 /**
  * Tjekker om File System Access API er tilgængelig i browseren.
@@ -22,6 +24,31 @@ export class FileHandleAccessError extends Error {
     this.name = 'FileHandleAccessError';
   }
 }
+
+/** Forventelige ændringer i filsystemet vises som handlingsfejl uden teknisk runtime-alarm. */
+export const toFileHandleAccessError = (error: unknown, operation: 'read' | 'write'): FileHandleAccessError | null => {
+  if (error instanceof FileHandleAccessError) return error;
+  const name = getErrorName(error);
+  const messages: Readonly<Record<string, string>> = operation === 'read'
+    ? {
+        NotFoundError: 'Filen blev ikke fundet – den er måske flyttet eller slettet. Vælg filen igen via Hent.',
+        NotAllowedError: 'Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.',
+        SecurityError: 'Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.',
+        NotReadableError: 'Filen kunne ikke læses – den kan være ændret eller i brug af et andet program. Vælg filen igen via Hent.',
+        AbortError: 'Indlæsningen blev afbrudt. Ingen data blev indlæst. Prøv Hent igen.',
+      }
+    : {
+        NotFoundError: 'Filen eller mappen blev ikke fundet – den er måske flyttet eller slettet. Prøv Gem igen, og vælg filplacering igen.',
+        NotAllowedError: 'Mineo har ikke længere adgang til at gemme filen. Prøv Gem igen, og vælg en filplacering med skriveadgang.',
+        SecurityError: 'Browseren tillader ikke at gemme filen her. Prøv Gem igen, og vælg filplacering igen.',
+        NoModificationAllowedError: 'Filen kan ikke overskrives lige nu – den kan være skrivebeskyttet eller i brug af et andet program. Luk eventuelt filen dér, og prøv Gem igen.',
+        NotReadableError: 'Filen kunne ikke kontrolleres – den kan være ændret eller i brug af et andet program. Prøv Gem igen.',
+        QuotaExceededError: 'Der er ikke plads til at gemme filen. Frigør plads, eller prøv Gem igen med en anden filplacering.',
+        AbortError: 'Skrivningen til filen blev afbrudt. Filen er ikke bekræftet gemt. Prøv Gem igen.',
+      };
+  const message = messages[name];
+  return message ? new FileHandleAccessError(message, { cause: error }) : null;
+};
 
 type FileSystemPermissionDescriptor = { mode?: 'read' | 'readwrite' };
 type FileSystemHandleWithPermissions = FileSystemFileHandle & {
@@ -97,9 +124,11 @@ export const openFileWithPicker = async (
 
   } catch (error: unknown) {
     const err = asError(error);
-    if (err.name === 'AbortError') {
+    if (getErrorName(error) === 'AbortError') {
       return null;
     }
+    const accessError = toFileHandleAccessError(error, 'read');
+    if (accessError) throw accessError;
     logError('Fejl ved fil-åbning:', err);
     throw new Error(`Kunne ikke åbne fil: ${err.message}`, { cause: error });
   }
@@ -148,9 +177,11 @@ export const saveFileWithPicker = async (
 
   } catch (error: unknown) {
     const err = asError(error);
-    if (err.name === 'AbortError') {
+    if (getErrorName(error) === 'AbortError') {
       return null;
     }
+    const accessError = toFileHandleAccessError(error, 'write');
+    if (accessError) throw accessError;
     logError('Fejl ved fil-gemning:', err);
     throw new Error(`Kunne ikke vælge fil-placering: ${err.message}`, { cause: error });
   }
@@ -169,19 +200,52 @@ export const isFileSystemFileHandle = (value: unknown): value is FileSystemFileH
 /**
  * Skriver indhold til en fil via file handle
  */
-export const writeToFileHandle = async (fileHandle: FileSystemFileHandle, content: string): Promise<void> => {
+export const writeToFileHandle = async (
+  fileHandle: FileSystemFileHandle,
+  content: string,
+  expectedFingerprint?: string,
+  isSourceStillCurrent?: () => boolean,
+): Promise<void> => {
+  let writable: FileSystemWritableFileStream | undefined;
   try {
     // Opret en writable stream
-    const writable = await fileHandle.createWritable();
+    const options = { mode: 'exclusive' as const, keepExistingData: false };
+    writable = await fileHandle.createWritable(options);
+
+    // Kontrollen i filvælgerforløbet er ikke nok: en anden gemning kan afsluttes,
+    // mens denne stream åbnes. Kontrollér den accepterede revision under skrivelåsen.
+    if (expectedFingerprint !== undefined && await readFileContentFingerprint(fileHandle) !== expectedFingerprint) {
+      throw new FileHandleAccessError('Filen blev ændret igen, mens gemningen var i gang. Intet blev skrevet. Prøv Gem igen.');
+    }
+    if (isSourceStillCurrent && !isSourceStillCurrent()) {
+      throw new FileHandleAccessError('Gem blev afbrudt, fordi sagen blev ændret undervejs. Prøv at gemme igen.');
+    }
 
     // Skriv indholdet
     await writable.write(content);
+
+    // Write ligger i en midlertidig fil indtil close. Et eksternt program kan have
+    // ændret originalen imens, selv om browserens egen eksklusive lås er taget.
+    if (expectedFingerprint !== undefined && await readFileContentFingerprint(fileHandle) !== expectedFingerprint) {
+      throw new FileHandleAccessError('Filen blev ændret igen, mens gemningen var i gang. Intet blev skrevet. Prøv Gem igen.');
+    }
 
     // Luk filen
     await writable.close();
 
   } catch (error: unknown) {
+    // En fejlet skrivning må aldrig lukkes som et vellykket commit. Abort frigiver
+    // midlertidige bytes og låse, så næste Gem kan forsøges uden en efterladt stream.
+    if (writable) {
+      try {
+        await writable.abort();
+      } catch {
+        // Streamen kan allerede være fejlet/lukket. Bevar den oprindelige skrivefejl.
+      }
+    }
     const err = asError(error);
+    const accessError = toFileHandleAccessError(error, 'write');
+    if (accessError) throw accessError;
     logError('Fejl ved skrivning til fil:', err);
     throw new Error(`Kunne ikke skrive fil: ${err.message}`, { cause: error });
   }
@@ -193,12 +257,17 @@ export const writeToFileHandle = async (fileHandle: FileSystemFileHandle, conten
 export const readFromFileHandle = async (fileHandle: FileSystemFileHandle): Promise<string> => {
   try {
     const file = await fileHandle.getFile();
+    if (file.size > MAX_FILE_SIZE) {
+      throw new FileHandleAccessError('Filen er blevet for stor til at kunne kontrolleres sikkert. Filen er ikke bekræftet gemt.');
+    }
     const content = await file.text();
 
     return content;
 
   } catch (error: unknown) {
     const err = asError(error);
+    const accessError = toFileHandleAccessError(error, 'read');
+    if (accessError) throw accessError;
     logError('Fejl ved læsning fra fil:', err);
     throw new Error(`Kunne ikke læse fil: ${err.message}`, { cause: error });
   }

@@ -61,6 +61,8 @@ const ns = (suffix: string): string => `${resolveStorageNamespace()}_${suffix}`;
 const UI_STORAGE_KEY_SUFFIXES = {
   lastSavedFilename: 'ui_lastSavedFilename',
   lastSavedFilenameBasis: 'ui_lastSavedFilenameBasis',
+  lastSavedFileFingerprint: 'ui_lastSavedFileFingerprint',
+  pendingPwaSourceSession: 'legacy_pending_pwa_client_session',
   loentrinFinderOverlay: 'ui_loentrinFinderOverlay',
   eoOffentligeYdelserHelpers: 'ui_eoOffentligeYdelserHelpers',
   devtoolsLastSeenIssueId: 'ui_devtools_lastSeenIssueId',
@@ -86,6 +88,8 @@ const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 const SESSION_RESET_POLICY = {
   lastSavedFilename: 'caseScoped',
   lastSavedFilenameBasis: 'caseScoped',
+  lastSavedFileFingerprint: 'caseScoped',
+  pendingPwaSourceSession: 'caseScoped',
   loentrinFinderOverlay: 'caseScoped',
   eoOffentligeYdelserHelpers: 'caseScoped',
   devtoolsLastSeenIssueId: 'deviceScoped',
@@ -165,6 +169,10 @@ export const getBootReloadVersionStorageKey = (): ManifestStorageKey =>
  */
 export const getFileOperationClientSessionStorageKey = (): ManifestStorageKey =>
   asManifestKey(ns(FILE_OPERATION_CLIENT_SESSION_SUFFIX));
+
+/** Kildescope til en ventende request fra tidligere kode eller en session uden Web Locks. */
+export const getPendingPwaSourceSessionStorageKey = (): ManifestStorageKey =>
+  UI_STORAGE_KEYS.pendingPwaSourceSession;
 
 /** Senest afsluttede PWA-request i denne fane; afværger replay hvis IndexedDB-delete fejler. */
 export const getHandledPwaFileOpenRequestStorageKey = (): ManifestStorageKey =>

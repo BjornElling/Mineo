@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { webcrypto } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
 import { FileHandleAccessError } from '../../utils/fileSystemAccess';
 import { encryptToString } from '../../utils/encryption';
@@ -94,6 +94,7 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.source).toBe('manual');
     expect(result.snapshot).toBeDefined();
     expect(result.snapshot.stamdata).toBeDefined();
+    expect(result.fileFingerprint).toBeUndefined();
   });
 
   it('indlæser historiske EO-feltnavne uden ny preflight', async () => {
@@ -683,6 +684,8 @@ describe('loadFromFileHandle', () => {
     expect(result.source).toBe('pwa');
     expect(result.requestId).toBe('req-1');
     expect(result.snapshot.stamdata).toBeDefined();
+    expect(result.fileFingerprint).toBe(createHash('sha256').update(content, 'utf8').digest('hex'));
+    expect(handle.getFile).toHaveBeenCalledOnce();
   });
 
   it('afviser med handlingsanvisende dansk besked når læse-tilladelsen er trukket tilbage', async () => {

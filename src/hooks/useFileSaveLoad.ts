@@ -2,6 +2,8 @@ import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { APP_ROUTES } from '../config/pageNavigation';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
+import type { ResolveSaveConflict, SaveConflict, SaveConflictDecision } from '../utils/fileSaveTarget';
+import { FileHandleAccessError } from '../utils/fileSystemAccess';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
 import type {
@@ -115,6 +117,8 @@ type UseFileSaveLoadArgs = {
 };
 
 type UseFileSaveLoadResult = {
+  pendingSaveConflict: SaveConflict | null;
+  decideSaveConflict: (decision: SaveConflictDecision) => void;
   pendingLoadResult: PendingLoadApply | null;
   pendingOverwriteApply: PendingOverwriteApply | null;
   /** Afviser den aktive load-dialog (preflight eller overwrite) og fører flowet tilbage til idle. */
@@ -156,7 +160,7 @@ const resolveSaveError = (error: unknown): OverlayData => {
 };
 
 const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
-  if (error instanceof FileSelectionError) {
+  if (error instanceof FileSelectionError || error instanceof FileHandleAccessError) {
     return { message: error.message, expected: true };
   }
 
@@ -230,6 +234,36 @@ export const useFileSaveLoad = ({
   const [resetFlow, setResetFlow] = React.useState<ResetFlowState>({ phase: 'idle' });
   const activeFileOperationRef = React.useRef<FileOperationKind | null>(null);
   const [activeFileOperation, setActiveFileOperation] = React.useState<FileOperationKind | null>(null);
+  const [pendingSaveConflict, setPendingSaveConflict] = React.useState<SaveConflict | null>(null);
+  const saveConflictResolverRef = React.useRef<((decision: SaveConflictDecision) => void) | null>(null);
+  const mountedRef = React.useRef(true);
+
+  const decideSaveConflict = React.useCallback((decision: SaveConflictDecision): void => {
+    const resolve = saveConflictResolverRef.current;
+    saveConflictResolverRef.current = null;
+    setPendingSaveConflict(null);
+    resolve?.(decision);
+  }, []);
+
+  const resolveSaveConflict: ResolveSaveConflict = React.useCallback((conflict) => new Promise((resolve) => {
+    if (!mountedRef.current) {
+      resolve('cancel');
+      return;
+    }
+    saveConflictResolverRef.current = resolve;
+    setPendingSaveConflict(conflict);
+  }), []);
+
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      // En lukket shell må ikke efterlade et Gem, der senere kan skrive uden en synlig beslutning.
+      mountedRef.current = false;
+      const resolve = saveConflictResolverRef.current;
+      saveConflictResolverRef.current = null;
+      resolve?.('cancel');
+    };
+  }, []);
 
   const beginFileOperation = React.useCallback((kind: FileOperationKind, showBusyWarning: boolean): boolean => {
     if (activeFileOperationRef.current !== null) {
@@ -303,6 +337,7 @@ export const useFileSaveLoad = ({
   const handleGem = React.useCallback(async () => {
     if (!beginFileOperation('save', true)) return;
     const focusBeforeAction = captureActiveElement();
+    let conflictDialogOpened = false;
     try {
       // §1.4: save settler først den åbne editor. Et fail-closed `blocked` (uventet settle-fejl) fokuserer
       // settle-målet og stopper; et fejlende settle er derimod ikke en blokering (fejlen fanges af evaluateSave).
@@ -357,18 +392,22 @@ export const useFileSaveLoad = ({
       const result: SaveFileResult = await saveToFile(
         snapshot,
         resolvedDirectory,
-        () => ops.file.isSaveSourceStillCurrent(saveOutcome.token)
+        () => ops.file.isSaveSourceStillCurrent(saveOutcome.token),
+        (conflict) => {
+          conflictDialogOpened = true;
+          return resolveSaveConflict(conflict);
+        },
       );
 
       if (result.status === 'cancelled') {
-        focusBeforeAction?.focus();
+        if (!conflictDialogOpened) focusBeforeAction?.focus();
         return;
       }
 
       if (result.status === 'stale') {
         // Sagen blev ændret, mens gem-dialogen var åben. Intet er skrevet; brugeren gemmer igen mod den
         // aktuelle tilstand (fail-closed frem for at skrive en ældre sag).
-        focusBeforeAction?.focus();
+        if (!conflictDialogOpened) focusBeforeAction?.focus();
         showOverlay({
           message: 'Gem blev afbrudt, fordi sagen blev ændret undervejs. Prøv at gemme igen.',
           type: 'warning',
@@ -376,16 +415,16 @@ export const useFileSaveLoad = ({
         return;
       }
 
-      focusBeforeAction?.focus();
+      if (!conflictDialogOpened) focusBeforeAction?.focus();
       markSaved(savedInputRevision);
       showOverlay({
         message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
         type: result.warning ? 'warning' : 'success',
       });
     } catch (error) {
-      focusBeforeAction?.focus();
+      if (!conflictDialogOpened) focusBeforeAction?.focus();
       const overlay = resolveSaveError(error);
-      if (!(error instanceof SaveValidationError)) {
+      if (!(error instanceof SaveValidationError) && !(error instanceof FileHandleAccessError)) {
         console.error('Gem fejlede:', error);
       }
       showOverlay(overlay);
@@ -396,6 +435,7 @@ export const useFileSaveLoad = ({
     beginFileOperation,
     criticalActions,
     ops.file,
+    resolveSaveConflict,
     finishFileOperation,
     markSaved,
     navigate,
@@ -631,6 +671,8 @@ export const useFileSaveLoad = ({
   }, [loadFlow]);
 
   return {
+    pendingSaveConflict,
+    decideSaveConflict,
     pendingLoadResult,
     pendingOverwriteApply,
     dismissPendingLoad,

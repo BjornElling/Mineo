@@ -101,6 +101,8 @@ interface SideMenuProps {
   onGem: () => void;
   onHent: () => void;
   onSletAlt: () => void;
+  /** Restore-mål for en konflikt ved Gem – se `FileOperationItem.buttonRef`. */
+  gemButtonRef?: React.RefObject<HTMLButtonElement | null>;
   /** Restore-mål for `Slet alt`-bekræftelsen – se `FileOperationItem.buttonRef`. */
   sletAltButtonRef: React.RefObject<HTMLButtonElement | null>;
   /**
@@ -117,6 +119,7 @@ const SideMenu = React.memo(({
   onGem,
   onHent,
   onSletAlt,
+  gemButtonRef,
   sletAltButtonRef,
   contentScale,
 }: SideMenuProps) => {
@@ -182,10 +185,10 @@ const SideMenu = React.memo(({
 
   // Fil-operationer (inkluderer callbacks, så skal forblive inde i komponenten)
   const fileOperations = React.useMemo((): FileOperationItem[] => [
-    { id: 'gem', label: 'Gem', icon: <Save />, action: onGem },
+    { id: 'gem', label: 'Gem', icon: <Save />, action: onGem, buttonRef: gemButtonRef },
     { id: 'hent', label: 'Hent', icon: <BrowserUpdated />, action: onHent },
     { id: 'slet-alt', label: 'Slet\u00A0alt', icon: <DeleteForever />, action: onSletAlt, buttonRef: sletAltButtonRef }
-  ], [onGem, onHent, onSletAlt, sletAltButtonRef]);
+  ], [onGem, onHent, onSletAlt, gemButtonRef, sletAltButtonRef]);
 
   const toggleMenu = React.useCallback(() => {
     setIsExpanded(prev => {

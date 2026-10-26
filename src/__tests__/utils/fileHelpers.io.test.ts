@@ -118,6 +118,31 @@ describe('fileHelpers – fil-I/O', () => {
     }
   });
 
+  it.each(['NotReadableError', 'NotFoundError', 'NotAllowedError'])('bevarer FileReader-fejltypen %s', async (name) => {
+    const error = new DOMException('Filen er ændret', name);
+    const readAsText = vi.spyOn(FileReader.prototype, 'readAsText').mockImplementation(function (this: FileReader) {
+      Object.defineProperty(this, 'error', { value: error });
+      this.onerror?.(new ProgressEvent('error') as ProgressEvent<FileReader>);
+    });
+    try {
+      await expect(readFile(new File(['indhold'], 'sag.eo'))).rejects.toBe(error);
+    } finally {
+      readAsText.mockRestore();
+    }
+  });
+
+  it('afslutter også Promise ved afbrudt FileReader', async () => {
+    const readAsText = vi.spyOn(FileReader.prototype, 'readAsText').mockImplementation(function (this: FileReader) {
+      this.onabort?.(new ProgressEvent('abort') as ProgressEvent<FileReader>);
+    });
+    try {
+      await expect(readFile(new File(['indhold'], 'sag.eo'))).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      readAsText.mockRestore();
+    }
+  });
+
+
   it('afviser FileReader-resultat som ikke er tekst', async () => {
     vi.useRealTimers();
     const file = new File(['indhold'], 'sag.eo', { type: 'application/octet-stream' });

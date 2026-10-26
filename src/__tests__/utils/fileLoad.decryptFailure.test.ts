@@ -3,7 +3,8 @@ import { webcrypto } from 'node:crypto';
 import { loadFromFile } from '../../utils/fileLoad';
 import { CalculationError } from '../../utils/errorMessages';
 
-vi.mock('../../utils/fileSystemAccess', () => ({
+vi.mock('../../utils/fileSystemAccess', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../utils/fileSystemAccess')>(),
   isFileSystemAccessSupported: () => false,
   openFileWithPicker: vi.fn(),
   readFromFileHandle: vi.fn(),

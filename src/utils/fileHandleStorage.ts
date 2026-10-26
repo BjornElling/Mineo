@@ -14,10 +14,61 @@ import {
 import type { PwaFileOpenRequest } from '../schemas/pwaFileOpenRequestSchema';
 import { pwaFileOpenRequestSchema } from '../schemas/pwaFileOpenRequestSchema';
 import type { IndexedDbResult } from './indexedDbStore';
-import { getFileOperationClientSessionId } from './fileOperationClientSession';
+import {
+  withFileOperationClientSession,
+  readPendingPwaSourceSessionId,
+  clearPendingPwaSourceSessionId,
+  preservePendingPwaSourceSessionId,
+  type FileOperationClientSession,
+} from './fileOperationClientSession';
 
-const getClientScopedFileHandleKey = (kind: 'current-file-handle' | 'pending-pwa-open-request'): string =>
-  `client:${getFileOperationClientSessionId()}:${kind}`;
+type ClientRecordKind = 'current-file-handle' | 'pending-pwa-open-request';
+const getClientScopedFileHandleKey = (id: string, kind: ClientRecordKind): string => `client:${id}:${kind}`;
+let storageSessionId: string | null = null;
+let knownCurrentHandle: FileSystemFileHandle | null | undefined;
+let knownPendingRequest: PwaFileOpenRequest | null | undefined;
+let clientStorageQueue: Promise<unknown> = Promise.resolve();
+
+const prepareClientStorage = async (session: FileOperationClientSession): Promise<void> => {
+  if (storageSessionId !== null && storageSessionId !== session.id) {
+    if (!session.resumedAfterPageHide) {
+      knownCurrentHandle = undefined;
+      knownPendingRequest = undefined;
+    }
+    // Efter pagehide bruges altid et nyt scope. Kun dette dokuments kendte værdier
+    // må følge med; det tidligere scopes records kan nu tilhøre en anden klient.
+    if (knownCurrentHandle) {
+      const saved = await writeClientScopedFileHandleValue(
+        getClientScopedFileHandleKey(session.id, 'current-file-handle'), knownCurrentHandle,
+        'restoreCurrentFileHandleAfterPageHide',
+      );
+      if (saved.status !== 'ok') throw new Error('Filhåndtaget kunne ikke gemmes til senere direkte Gem.');
+    }
+    if (knownPendingRequest) {
+      const saved = await writeClientScopedFileHandleValue(
+        getClientScopedFileHandleKey(session.id, 'pending-pwa-open-request'), knownPendingRequest,
+        'restorePendingPwaRequestAfterPageHide',
+      );
+      if (saved.status !== 'ok') throw new Error('PWA-filrequest kunne ikke gemmes sikkert.');
+    }
+  }
+  storageSessionId = session.id;
+};
+
+const runClientStorageOperation = <T>(work: (session: FileOperationClientSession) => Promise<T>): Promise<T> => {
+  // Genbinding og operation serialiseres sammen: en samtidig PWA-write må ikke
+  // få en ældre memory-værdi skrevet oven på sin nyere request under et scopeskift.
+  const operation = clientStorageQueue.then(() => withFileOperationClientSession(async (session) => {
+    await prepareClientStorage(session);
+    return work(session);
+  }));
+  clientStorageQueue = operation.catch(() => undefined);
+  return operation;
+};
+
+/** Sikrer også genpersistens efter bfcache før en versions-reload må overvejes. */
+export const prepareFileOperationStorageSession = (): Promise<FileOperationClientSession> =>
+  runClientStorageOperation(async (session) => session);
 
 /**
  * De navngivne fil-handle-operationer, som resten af appen bruger.
@@ -73,21 +124,27 @@ export const requestPersistentStorage = async (): Promise<boolean> => {
 export const saveFileHandleToIndexedDB = async (
   fileHandle: FileSystemFileHandle
 ): Promise<boolean> => {
-  const result = await writeClientScopedFileHandleValue(
-    getClientScopedFileHandleKey('current-file-handle'),
-    fileHandle,
-    'saveFileHandleToIndexedDB',
-  );
-  return result.status === 'ok';
+  return runClientStorageOperation(async (session) => {
+    const result = await writeClientScopedFileHandleValue(
+      getClientScopedFileHandleKey(session.id, 'current-file-handle'),
+      fileHandle,
+      'saveFileHandleToIndexedDB',
+    );
+    if (result.status === 'ok') knownCurrentHandle = fileHandle;
+    return result.status === 'ok';
+  }).catch(() => false);
 };
 
 /** Henter det gemte file handle, eller `null` hvis der ikke findes et brugbart. */
 export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandle | null> => {
-  const result = await readClientScopedFileHandleValueResult<FileSystemFileHandle>(
-    getClientScopedFileHandleKey('current-file-handle'),
-    'loadFileHandleFromIndexedDB',
-  );
-  return result.status === 'ok' ? result.value : null;
+  return runClientStorageOperation(async (session) => {
+    const result = await readClientScopedFileHandleValueResult<FileSystemFileHandle>(
+      getClientScopedFileHandleKey(session.id, 'current-file-handle'),
+      'loadFileHandleFromIndexedDB',
+    );
+    if (result.status === 'ok') knownCurrentHandle = result.value;
+    return result.status === 'ok' ? result.value : null;
+  }).catch(() => null);
 };
 
 /**
@@ -98,11 +155,15 @@ export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandl
  * tilstand og returnerer `true`.
  */
 export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
-  const result = await deleteClientScopedFileHandleValue(
-    getClientScopedFileHandleKey('current-file-handle'),
-    'deleteFileHandleFromIndexedDB',
-  );
-  return result.status === 'ok' || result.status === 'unavailable';
+  return runClientStorageOperation(async (session) => {
+    const result = await deleteClientScopedFileHandleValue(
+      getClientScopedFileHandleKey(session.id, 'current-file-handle'),
+      'deleteFileHandleFromIndexedDB',
+    );
+    const deleted = result.status === 'ok' || result.status === 'unavailable';
+    if (deleted) knownCurrentHandle = null;
+    return deleted;
+  }).catch(() => false);
 };
 
 /**
@@ -173,25 +234,65 @@ export const savePendingPwaOpenRequestToIndexedDB = async (
 ): Promise<boolean> => {
   if (!pwaFileOpenRequestSchema.safeParse(request).success) return false;
 
-  const result = await writeClientScopedFileHandleValue(
-    getClientScopedFileHandleKey('pending-pwa-open-request'),
-    request,
-    'savePendingPwaOpenRequestToIndexedDB',
-  );
-  return result.status === 'ok';
+  return runClientStorageOperation(async (session) => {
+    const result = await writeClientScopedFileHandleValue(
+      getClientScopedFileHandleKey(session.id, 'pending-pwa-open-request'),
+      request,
+      'savePendingPwaOpenRequestToIndexedDB',
+    );
+    if (result.status === 'ok') knownPendingRequest = request;
+    // Uden Web Locks kan scope ikke genbruges efter F5. Bevar derfor kun en
+    // pending-alias til den seneste eksplicit modtagne fil, aldrig til current handle.
+    return result.status === 'ok' && (session.reloadStable || preservePendingPwaSourceSessionId(session.id));
+  }).catch(() => false);
 };
 
 export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<
   IndexedDbResult<StoredPendingPwaOpenRequest | null>
-> => readClientScopedFileHandleValueResult<StoredPendingPwaOpenRequest>(
-  getClientScopedFileHandleKey('pending-pwa-open-request'),
-  'loadPendingPwaOpenRequestFromIndexedDB',
-);
+> => runClientStorageOperation(async (session) => {
+  const result = await readClientScopedFileHandleValueResult<StoredPendingPwaOpenRequest>(
+    getClientScopedFileHandleKey(session.id, 'pending-pwa-open-request'),
+    'loadPendingPwaOpenRequestFromIndexedDB',
+  );
+  const legacy = readPendingPwaSourceSessionId();
+  if (result.status === 'ok' && legacy !== null) {
+    if (result.value !== null) {
+      if (session.reloadStable) clearPendingPwaSourceSessionId(legacy);
+    } else {
+      // Kun den eksakte pending-record læses. Legacy current handle og gamle
+      // requests skrives/slettes aldrig; en anden gammel klient kan stadig eje dem.
+      const previous = await readClientScopedFileHandleValueResult<unknown>(
+        getClientScopedFileHandleKey(legacy, 'pending-pwa-open-request'),
+        'loadLegacyPendingPwaOpenRequest',
+      );
+      if (previous.status !== 'ok') return previous;
+      if (previous.value !== null) {
+        const parsed = pwaFileOpenRequestSchema.safeParse(previous.value);
+        if (!parsed.success) return { status: 'error' as const, error: new Error('PWA-filrequest kunne ikke læses.') };
+        const migrated = { ...parsed.data, requiresConfirmation: true };
+        const copied = await writeClientScopedFileHandleValue(
+          getClientScopedFileHandleKey(session.id, 'pending-pwa-open-request'), migrated,
+          'copyLegacyPendingPwaOpenRequest',
+        );
+        if (copied.status !== 'ok') return copied;
+        knownPendingRequest = migrated;
+        if (session.reloadStable) clearPendingPwaSourceSessionId(legacy);
+        return { status: 'ok' as const, value: migrated };
+      }
+      if (session.reloadStable) clearPendingPwaSourceSessionId(legacy);
+    }
+  }
+  if (result.status === 'ok') knownPendingRequest = result.value;
+  return result;
+}).catch((error: unknown) => ({ status: 'error', error: error instanceof Error ? error : new Error('PWA-filrequest kunne ikke læses.') }));
 
 export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolean> => {
-  const result = await deleteClientScopedFileHandleValue(
-    getClientScopedFileHandleKey('pending-pwa-open-request'),
-    'deletePendingPwaOpenRequestFromIndexedDB',
-  );
-  return result.status === 'ok';
+  return runClientStorageOperation(async (session) => {
+    const result = await deleteClientScopedFileHandleValue(
+      getClientScopedFileHandleKey(session.id, 'pending-pwa-open-request'),
+      'deletePendingPwaOpenRequestFromIndexedDB',
+    );
+    if (result.status === 'ok') knownPendingRequest = null;
+    return result.status === 'ok';
+  }).catch(() => false);
 };

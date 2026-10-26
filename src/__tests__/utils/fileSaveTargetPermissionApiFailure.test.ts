@@ -14,7 +14,8 @@ import {
 import type { EoFileContainer } from '../../schemas/eoFileSchema';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 
-vi.mock('../../utils/fileSystemAccess', () => ({
+vi.mock('../../utils/fileSystemAccess', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../utils/fileSystemAccess')>(),
   isFileSystemAccessSupported: vi.fn(),
   isFileSystemFileHandle: vi.fn(),
   saveFileWithPicker: vi.fn(),
@@ -30,6 +31,12 @@ vi.mock('../../utils/fileHandleStorage', () => ({
 vi.mock('../../utils/fileHelpers', () => ({
   generateFilename: vi.fn(() => 'foreslaaet-navn'),
   getStartInValue: vi.fn(() => 'desktop'),
+}));
+
+vi.mock('../../utils/fileContentFingerprint', () => ({
+  readFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
+  readSavedFileContentFingerprint: vi.fn(() => 'fingerprint'),
+  createFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -93,6 +100,7 @@ describe('resolveSaveTarget – permission API-fejl', () => {
       kind: 'fileHandle',
       fileHandle: pickedHandle,
       persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
       fallbackWarning:
         'Mineo kunne ikke bekræfte adgangen til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.',
     });

@@ -78,12 +78,44 @@ describe('MainLayout (PWA concurrency)', () => {
     pendingPwaRequest = null;
     window.sessionStorage.clear();
     vi.clearAllMocks();
+    vi.mocked(loadFromFileHandle).mockReset();
     vi.useRealTimers();
     hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
   });
 
   afterEach(() => {
     hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+  });
+
+  it.each(['Indlæs fil', 'Annuller'])('tilbyder en tidligere sessions fil og udfører valget %s', async (action) => {
+    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
+    if (action === 'Indlæs fil') {
+      loadFromFileHandleMock.mockResolvedValueOnce({ status: 'cancelled', source: 'pwa' });
+    }
+    pendingPwaRequest = {
+      id: 'pwa-open-tidligere-1',
+      createdAtEpochMs: Date.now(),
+      fileHandle: {} as FileSystemFileHandle,
+      fileName: 'Tidligere sag.eo',
+      ignoredFileCount: 0,
+      requiresConfirmation: true,
+    };
+    render(
+      <AppSettingsProvider>
+        <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout><div /></MainLayout>
+          </MemoryRouter>
+        </ProductionInputRuntimeProvider>
+      </AppSettingsProvider>,
+    );
+
+    await screen.findByText('En anden fil er klar til at blive indlæst');
+    expect(screen.getByText(/Filen “Tidligere sag\.eo” venter fra en tidligere Mineo-session/)).toBeInTheDocument();
+    expect(loadFromFileHandleMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: action }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(loadFromFileHandleMock).toHaveBeenCalledTimes(action === 'Indlæs fil' ? 1 : 0);
   });
 
   it('køer seneste PWA-fil under preflight og kræver bekræftelse før indlæsning', async () => {

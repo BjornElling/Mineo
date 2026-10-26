@@ -79,6 +79,8 @@ type LoadedFileData = {
   requestId?: string;
   /** File System Access handle (hvis tilgængeligt). */
   fileHandle?: FileSystemFileHandle;
+  /** Fingerprint af netop de bytes, der blev indlæst, til kontrol før næste direkte Gem. */
+  fileFingerprint?: string;
   // Informative metadata (ikke aflæst af apply-/UI-laget; bæres til logning/debug og fremtidig brug).
   /** Antal felter der faktisk blev indlæst i denne version. */
   fieldCount?: number;

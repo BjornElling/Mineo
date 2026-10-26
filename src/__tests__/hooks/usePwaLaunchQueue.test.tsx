@@ -66,6 +66,68 @@ describe('usePwaLaunchQueue', () => {
     vi.useRealTimers();
   });
 
+  it('tilbyder en request fra en tidligere session og indlæser først efter aktiv bekræftelse', async () => {
+    const request: PwaFileOpenRequest = { ...makeRequest('pwa-open-tidligere-1'), requiresConfirmation: true };
+    const handleHentFromPwaRequest = vi.fn<HookArgs['handleHentFromPwaRequest']>().mockResolvedValue('applied');
+    pwaMocks.getPendingPwaFileOpenRequest.mockReturnValue(request);
+    const { result } = renderHook(() => usePwaLaunchQueue(baseArgs({ handleHentFromPwaRequest })));
+
+    expect(handleHentFromPwaRequest).not.toHaveBeenCalled();
+    expect(result.current.pendingPwaConfirmation).toEqual({
+      requestId: request.id, fileName: request.fileName, requiresConfirmation: true,
+    });
+
+    act(() => { result.current.confirmQueuedPwaFileOpen(); });
+    await flushPromises();
+    expect(handleHentFromPwaRequest).toHaveBeenCalledOnce();
+    expect(handleHentFromPwaRequest).toHaveBeenCalledWith(request);
+    expect(result.current.pendingPwaConfirmation).toBeNull();
+  });
+
+  it('annullerer en request fra en tidligere session uden indlæsning eller automatisk gentagelse', async () => {
+    const request: PwaFileOpenRequest = { ...makeRequest('pwa-open-tidligere-2'), requiresConfirmation: true };
+    const handleHentFromPwaRequest = vi.fn<HookArgs['handleHentFromPwaRequest']>().mockResolvedValue('applied');
+    pwaMocks.getPendingPwaFileOpenRequest.mockReturnValue(request);
+    const { result, rerender } = renderHook(() => usePwaLaunchQueue(baseArgs({ handleHentFromPwaRequest })));
+
+    act(() => { result.current.ignoreQueuedPwaFileOpen(); });
+    await flushPromises();
+    rerender();
+    expect(pwaMocks.clearPendingPwaFileOpenRequest).toHaveBeenCalledWith(request.id);
+    expect(handleHentFromPwaRequest).not.toHaveBeenCalled();
+    expect(result.current.pendingPwaConfirmation).toBeNull();
+  });
+
+  it('kræver et nyt klik hvis en anden gammel request har erstattet den bekræftede', async () => {
+    const first: PwaFileOpenRequest = { ...makeRequest('pwa-open-tidligere-3'), requiresConfirmation: true };
+    const latest: PwaFileOpenRequest = { ...makeRequest('pwa-open-tidligere-4'), requiresConfirmation: true };
+    const handleHentFromPwaRequest = vi.fn<HookArgs['handleHentFromPwaRequest']>().mockResolvedValue('applied');
+    pwaMocks.getPendingPwaFileOpenRequest.mockReturnValue(first);
+    const { result } = renderHook(() => usePwaLaunchQueue(baseArgs({ handleHentFromPwaRequest })));
+    pwaMocks.getPendingPwaFileOpenRequest.mockReturnValue(latest);
+
+    act(() => { result.current.confirmQueuedPwaFileOpen(); });
+    expect(handleHentFromPwaRequest).not.toHaveBeenCalled();
+    expect(result.current.pendingPwaConfirmation?.requestId).toBe(latest.id);
+
+    act(() => { result.current.confirmQueuedPwaFileOpen(); });
+    await flushPromises();
+    expect(handleHentFromPwaRequest).toHaveBeenCalledOnce();
+    expect(handleHentFromPwaRequest).toHaveBeenCalledWith(latest);
+  });
+
+  it('tilbyder også en tidligere sessions request, når den først opdages af retry-timeren', async () => {
+    vi.useFakeTimers();
+    const request: PwaFileOpenRequest = { ...makeRequest('pwa-open-tidligere-5'), requiresConfirmation: true };
+    const handleHentFromPwaRequest = vi.fn<HookArgs['handleHentFromPwaRequest']>().mockResolvedValue('applied');
+    const { result } = renderHook(() => usePwaLaunchQueue(baseArgs({ locationPathname: '/open', handleHentFromPwaRequest })));
+    pwaMocks.getPendingPwaFileOpenRequest.mockReturnValue(request);
+
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect(handleHentFromPwaRequest).not.toHaveBeenCalled();
+    expect(result.current.pendingPwaConfirmation?.requestId).toBe(request.id);
+  });
+
   it('behandler en eksplicit PWA-event når hooken er klar', async () => {
     const request = makeRequest('pwa-open-event-1');
     const handleHentFromPwaRequest = vi.fn<HookArgs['handleHentFromPwaRequest']>().mockResolvedValue('applied');

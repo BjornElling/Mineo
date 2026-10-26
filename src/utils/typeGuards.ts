@@ -20,3 +20,7 @@ export const isRecord = (value: unknown): value is Record<string, unknown> => {
 export const asError = (value: unknown): Error => {
   return value instanceof Error ? value : new Error(String(value));
 };
+
+/** DOMException og fejl fra andre realms behøver ikke være instanceof Error. */
+export const getErrorName = (value: unknown): string =>
+  isRecord(value) && typeof value.name === 'string' ? value.name : '';

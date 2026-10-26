@@ -81,10 +81,11 @@ export const verifyFileHandleDetailed = async (
       const errMessage = permError instanceof Error ? permError.message : isRecord(permError) ? String(permError.message ?? '') : undefined;
 
       if (errName === 'NotFoundError') {
-        logWarning('Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet');
+        // Sletning/flytning er en forventelig filændring. Kalderen tilbyder et nyt gem-mål;
+        // en teknisk advarsel ville fejlagtigt tænde programmets runtime-alarm.
         return { valid: false, reason: 'not_found', detail: errMessage };
       }
-      if (errName === 'NotAllowedError') {
+      if (errName === 'NotAllowedError' || errName === 'SecurityError') {
         return { valid: false, reason: 'permission_denied', detail: errMessage };
       }
 
@@ -162,6 +163,9 @@ export const verifyDirectoryHandle = async (
     } catch (permError: unknown) {
       // Permission kan fejle hvis mappen er slettet
       const permErr = permError instanceof Error ? permError : isRecord(permError) ? permError : null;
+      if (permErr?.name === 'NotFoundError' || permErr?.name === 'NotAllowedError' || permErr?.name === 'SecurityError') {
+        return false;
+      }
       logWarning('Directory permission tjek fejlede', {
         context: 'verifyDirectoryHandle.permissionCheck',
         data: {

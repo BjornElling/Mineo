@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { installFileOperationLocks } from '../fixtures/fileOperationLocks';
 
 const writeClientScopedFileHandleValueMock = vi.hoisted(() => vi.fn());
 
@@ -14,14 +15,18 @@ vi.mock('../../utils/file/fileHandleKvStore', async (importOriginal) => {
 import { getFileOperationClientSessionStorageKey } from '../../config/storageManifest';
 import {
   __resetFileOperationClientSessionForTests,
+  ensureFileOperationClientSession,
 } from '../../utils/fileOperationClientSession';
 import {
   savePendingPwaOpenRequestToIndexedDB,
   type StoredPendingPwaOpenRequest,
 } from '../../utils/fileHandleStorage';
 
+let restoreLocks: () => void;
+
 describe('fileHandleStorage – klientscopet save af pending PWA-request', () => {
   beforeEach(() => {
+    restoreLocks = installFileOperationLocks();
     sessionStorage.clear();
     __resetFileOperationClientSessionForTests();
     writeClientScopedFileHandleValueMock.mockReset();
@@ -32,12 +37,13 @@ describe('fileHandleStorage – klientscopet save af pending PWA-request', () =>
   });
 
   afterEach(() => {
+    restoreLocks();
     sessionStorage.clear();
     __resetFileOperationClientSessionForTests();
   });
 
   it('skriver en gyldig pending-request under den aktuelle klients session-scopede nøgle', async () => {
-    const sessionId = 'client-isolated-pwa-save-session-1';
+    const sessionId = 'owned:client-isolated-pwa-save-session-1';
     const pendingRequest: StoredPendingPwaOpenRequest = {
       id: 'pwa-open-client-1',
       createdAtEpochMs: 1_700_000_000_000,
@@ -51,6 +57,7 @@ describe('fileHandleStorage – klientscopet save af pending PWA-request', () =>
     };
 
     sessionStorage.setItem(getFileOperationClientSessionStorageKey(), sessionId);
+    await ensureFileOperationClientSession();
 
     await expect(savePendingPwaOpenRequestToIndexedDB(pendingRequest)).resolves.toBe(true);
 

@@ -4,6 +4,20 @@ import type { ApplicableLoadFileResult } from '../types/fileOperations';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
+import { UI_STORAGE_KEYS } from '../config/storageManifest';
+import {
+  readSessionStorageValue,
+  removeOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from './safeSessionStorage';
+
+const invalidateSavedFilenameBasis = (): string | null => {
+  const previous = readSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+  if (previous !== null && !removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis)) {
+    throw new Error('Browserens midlertidige lager kunne ikke opdatere filnavnsoplysninger.');
+  }
+  return previous;
+};
 
 const buildAuthoritativeLoadSnapshot = (
   partialSnapshot: Partial<Record<PersistedSectionKey, unknown>> | undefined
@@ -50,12 +64,23 @@ export const applyAuthoritativeLoadSnapshot = (args: {
   applySnapshot: ApplyLoadedSnapshot;
 }): void => {
   const { result, applySnapshot } = args;
-  // result.snapshot er pre-valideret af fileLoad-pipelinen; denne funktion ejer kun den atomiske apply.
+  // result.snapshot er pre-valideret af fileLoad-pipelinen.
   const fullSnapshot = buildAuthoritativeLoadSnapshot(result.snapshot);
 
+  let previousBasis: string | null = null;
+  let invalidated = false;
   try {
+    // Samme filnavn og stamdata beviser ikke, at den indlæste fil er det gamle
+    // gem-mål. Fjern koblingen før sagsinput ændres, også hvis browseren genindlæses.
+    previousBasis = invalidateSavedFilenameBasis();
+    invalidated = true;
     applySnapshot(fullSnapshot);
   } catch (error) {
+    if (invalidated && previousBasis !== null) {
+      // Apply-fejl bevarer den gamle sag. Mislykkes rollback af metadata, er en
+      // ekstra filvælger næste gang sikker; det ukendte mål må ikke godkendes.
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis, previousBasis);
+    }
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`, { cause: error });
   }
@@ -70,6 +95,15 @@ export const applyAuthoritativeLoadSnapshot = (args: {
 export const synchronizeLoadMetadata = async (
   result: ApplicableLoadFileResult
 ): Promise<PersistenceLoadApplyResult> => {
+  // Den nye sag er allerede anvendt. Den gamle kobling må heller ikke genbruges,
+  // når filerne har samme navn og stamdata, eller når PWA-ack fejler før handle-write.
+  let invalidationError: Error | null = null;
+  try {
+    invalidateSavedFilenameBasis();
+  } catch (error) {
+    invalidationError = error instanceof Error ? error : new Error('Ukendt fejl');
+  }
+
   // En PWA-request er forbrugt, så snart den autoritative replacement er lykkedes. Metadata er
   // efterfølgende device-lokal convenience; lader vi dens fejl forhindre acknowledgement, genafspilles
   // samme fil efter næste boot og kan overskrive den netop indlæste sag igen.
@@ -86,10 +120,9 @@ export const synchronizeLoadMetadata = async (
   }
 
   try {
-    // Handle/metadata er et samlet overwrite-target, men IndexedDB og sessionStorage kan ikke
-    // deltage i samme transaktion. Skriv derfor det potentielt fejlende IDB-led først: ved fejl
-    // forbliver den gamle metadata koblet til det gamle handle, og næste Gem kan ikke genbruge en
-    // delvist indlæst target-record. Metadata skrives først, når handle-leddet er bekræftet.
+    if (invalidationError !== null) throw invalidationError;
+    // Handle/metadata er et samlet overwrite-target. Den tidligere basis er ugyldiggjort
+    // ovenfor; en fejl i et af lagene må derfor ikke godkende det gamle mål igen.
     if (result.fileHandle) {
       const saved = await saveFileHandleToIndexedDB(result.fileHandle);
       if (!saved) throw new Error('Filhåndtaget kunne ikke gemmes til senere direkte Gem.');
@@ -101,6 +134,7 @@ export const synchronizeLoadMetadata = async (
     persistLoadedFilenameMetadata({
       filename: result.filename,
       stamdata: result.snapshot?.stamdata,
+      fingerprint: result.fileFingerprint,
     });
 
     return { status: 'applied' };

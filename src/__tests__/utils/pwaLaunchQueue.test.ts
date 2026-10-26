@@ -1,15 +1,18 @@
 // @vitest-environment jsdom
 import { getHandledPwaFileOpenRequestStorageKey } from '../../config/storageManifest';
+import { installFileOperationLocks } from '../fixtures/fileOperationLocks';
 
 const loadPendingPwaOpenRequestFromIndexedDBMock = vi.fn();
 const deletePendingPwaOpenRequestFromIndexedDBMock = vi.fn();
 const savePendingPwaOpenRequestToIndexedDBMock = vi.fn();
+const prepareFileOperationStorageSessionMock = vi.fn();
 const logWarningMock = vi.fn();
 
 vi.mock('../../utils/fileHandleStorage', () => ({
   savePendingPwaOpenRequestToIndexedDB: (...args: unknown[]) => savePendingPwaOpenRequestToIndexedDBMock(...args),
   loadPendingPwaOpenRequestFromIndexedDB: () => loadPendingPwaOpenRequestFromIndexedDBMock(),
   deletePendingPwaOpenRequestFromIndexedDB: () => deletePendingPwaOpenRequestFromIndexedDBMock(),
+  prepareFileOperationStorageSession: () => prepareFileOperationStorageSessionMock(),
 }));
 
 vi.mock('../../utils/logger', async (importOriginal) => {
@@ -37,6 +40,8 @@ describe('pwaLaunchQueue', () => {
     loadPendingPwaOpenRequestFromIndexedDBMock.mockReset();
     deletePendingPwaOpenRequestFromIndexedDBMock.mockReset();
     savePendingPwaOpenRequestToIndexedDBMock.mockReset();
+    prepareFileOperationStorageSessionMock.mockReset();
+    prepareFileOperationStorageSessionMock.mockResolvedValue({ id: 'client-stable-test-session', reloadStable: true });
     logWarningMock.mockReset();
     savePendingPwaOpenRequestToIndexedDBMock.mockResolvedValue(true);
     deletePendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue(true);
@@ -44,6 +49,48 @@ describe('pwaLaunchQueue', () => {
     deletePendingPwaOpenRequestFromIndexedDBMock.mockClear();
     savePendingPwaOpenRequestToIndexedDBMock.mockClear();
     logWarningMock.mockClear();
+  });
+
+  it('accepterer en normal ny PWA-request efter at et owned-scope er erhvervet', async () => {
+    const restoreLocks = installFileOperationLocks();
+    const client = await import('../../utils/fileOperationClientSession');
+    try {
+      await client.ensureFileOperationClientSession();
+      const setConsumer = vi.fn();
+      Object.defineProperty(window, 'launchQueue', { configurable: true, value: { setConsumer } });
+      pwaLaunchQueue.setupPwaLaunchQueueConsumer();
+      const consumer = setConsumer.mock.calls[0]?.[0] as (params: { files: FileSystemFileHandle[] }) => Promise<void>;
+
+      await consumer({ files: [buildFileHandle('ny-fil.eo')] });
+
+      expect(pwaLaunchQueue.getPendingPwaFileOpenRequest()).toMatchObject({ fileName: 'ny-fil.eo' });
+      expect(logWarningMock).not.toHaveBeenCalled();
+    } finally {
+      client.__resetFileOperationClientSessionForTests();
+      restoreLocks();
+      Reflect.deleteProperty(window, 'launchQueue');
+    }
+  });
+
+  it.each(['handled', 'invalid'] as const)('afslutter hydration når oprydning af %s request hænger', async (kind) => {
+    if (kind === 'handled') {
+      const id = 'pwa-open-already-handled-1';
+      sessionStorage.setItem(getHandledPwaFileOpenRequestStorageKey(), id);
+      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
+        id, createdAtEpochMs: 1, fileHandle: buildFileHandle(), fileName: 'test.eo', ignoredFileCount: 0,
+      });
+    } else loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({ invalid: true });
+    deletePendingPwaOpenRequestFromIndexedDBMock.mockImplementation(() => new Promise(() => undefined));
+    vi.useFakeTimers();
+    try {
+      const hydration = pwaLaunchQueue.hydratePendingPwaFileOpenRequest();
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      await expect(hydration).resolves.toBeUndefined();
+      expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('rehydrates a persisted pending request and keeps it pending until it is marked handled', async () => {
@@ -554,6 +601,34 @@ describe('pwaLaunchQueue', () => {
   });
 
   describe('durable handoff-barriere før opstartens genindlæsning', () => {
+    it('afviser handoff når identiteten kun er et runtime-scope', async () => {
+      prepareFileOperationStorageSessionMock.mockResolvedValue({ id: 'runtime-test-session', reloadStable: false });
+      loadPendingPwaOpenRequestFromIndexedDBMock.mockResolvedValue({
+        id: 'pwa-open-runtime-pending-1', createdAtEpochMs: 1, fileHandle: buildFileHandle(), fileName: 'test.eo', ignoredFileCount: 0,
+      });
+
+      expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(false);
+    });
+
+    it('tillader versionsreload uden Web Locks når ingen pending-fil findes', async () => {
+      prepareFileOperationStorageSessionMock.mockResolvedValue({ id: 'runtime-test-session', reloadStable: false });
+
+      expect(await pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff()).toBe(true);
+    });
+
+    it('afviser handoff når genpersistens efter pagehide hænger over timeout-loftet', async () => {
+      prepareFileOperationStorageSessionMock.mockImplementation(() => new Promise(() => undefined));
+      vi.useFakeTimers();
+      try {
+        const barrier = pwaLaunchQueue.awaitDurablePendingPwaFileOpenHandoff();
+        await vi.advanceTimersByTimeAsync(5_000);
+
+        await expect(barrier).resolves.toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     // Opstartens opdateringsbarriere kan genindlæse dokumentet. En `.eo`-request, browseren afleverede
     // få millisekunder forinden, lever da kun i hukommelsen, mens IndexedDB-skrivningen er undervejs –
     // en genindlæsning ville tabe brugerens fil. Boot skal derfor kunne vente på den durable handoff.

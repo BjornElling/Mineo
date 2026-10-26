@@ -25,6 +25,13 @@ import {
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import type { SettledInput } from '../../../inputCore/settledInput';
+import { saveToFile } from '../../../utils/fileSave';
+import type { ResolveSaveConflict, SaveConflictDecision } from '../../../utils/fileSaveTarget';
+
+vi.mock('../../../utils/fileSave', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../utils/fileSave')>(),
+  saveToFile: vi.fn(),
+}));
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
@@ -95,6 +102,38 @@ beforeEach(() => {
 
 afterEach(() => {
   hydrateSlimInputStoreForTest(slimInputStore, emptyInput());
+});
+
+describe('MainLayout – filkonflikt ved Gem', () => {
+  it.each([
+    ['Overskriv', 'overwrite'],
+    ['Gem i en anden fil', 'saveAs'],
+    ['Annuller', 'cancel'],
+  ] as const)('viser de tre valg og sender %s videre', async (label, decision) => {
+    const input = emptyInput();
+    hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput({
+      ...input,
+      sections: { ...input.sections, stamdata: { journalnr: 'FILKONFLIKT' } },
+    }));
+    let chosen: SaveConflictDecision | undefined;
+    vi.mocked(saveToFile).mockImplementationOnce(async (_snapshot, _directory, _fresh, resolveConflict) => {
+      chosen = await (resolveConflict as ResolveSaveConflict)('changed');
+      return { status: 'cancelled' };
+    });
+    renderLayout();
+    await clickMainLayoutAction('Gem');
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Filen er ændret');
+    expect(dialog).toHaveTextContent('siden Hent eller seneste Gem');
+    for (const name of ['Annuller', 'Gem i en anden fil', 'Overskriv']) {
+      expect(screen.getByRole('button', { name })).toBeVisible();
+    }
+    await clickMainLayoutAction(label);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(chosen).toBe(decision);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Gem' })).toHaveFocus());
+  });
 });
 
 describe('MainLayout – overlayet ejer Ctrl+S (BB-050)', () => {

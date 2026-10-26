@@ -127,14 +127,12 @@ describe('fileHandleVerification', () => {
         reason: 'not_found',
         detail: 'Filen findes ikke længere',
       });
-      expect(logWarning).toHaveBeenCalledWith(
-        'Fil blev ikke fundet - er sandsynligvis blevet slettet eller flyttet',
-      );
+      expect(logWarning).not.toHaveBeenCalled();
     });
 
-    it('returnerer permission_denied ved NotAllowedError', async () => {
+    it.each(['NotAllowedError', 'SecurityError'])('returnerer permission_denied ved %s uden teknisk alarm', async (name) => {
       const queryPermission = vi.fn<PermissionMethod>().mockRejectedValue(
-        namedError('NotAllowedError', 'Adgang afvist'),
+        namedError(name, 'Adgang afvist'),
       );
       const handle = createFileHandle({ queryPermission });
 
@@ -143,6 +141,7 @@ describe('fileHandleVerification', () => {
         reason: 'permission_denied',
         detail: 'Adgang afvist',
       });
+      expect(logWarning).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -230,8 +229,6 @@ describe('fileHandleVerification', () => {
     });
 
     it.each([
-      namedError('NotFoundError', 'Mappen findes ikke længere'),
-      namedError('NotAllowedError', 'Adgang til mappen blev afvist'),
       { name: 'UkendtFejl', message: 'Ukendt directory-fejl' },
       'Ukendt primitivfejl',
     ] as const)('returnerer false og logger ved permission-fejlen %o', async (error) => {
@@ -245,6 +242,14 @@ describe('fileHandleVerification', () => {
           context: 'verifyDirectoryHandle.permissionCheck',
         }),
       );
+    });
+
+    it.each(['NotFoundError', 'NotAllowedError', 'SecurityError'])('afviser forventelig mappeændring %s uden teknisk alarm', async (name) => {
+      const handle = createDirectoryHandle({
+        queryPermission: vi.fn<PermissionMethod>().mockRejectedValue(namedError(name, 'Mappen kan ikke bruges')),
+      });
+      await expect(verifyDirectoryHandle(handle)).resolves.toBe(false);
+      expect(logWarning).not.toHaveBeenCalled();
     });
 
     it('returnerer false når directory-handle-inspektionen kaster', async () => {

@@ -32,10 +32,7 @@ describe('PERSIST-002 – PWA-filhandle med SecurityError', () => {
 
     expect(getFile).toHaveBeenCalledOnce();
     expect(readFileMock).not.toHaveBeenCalled();
-    expect(logWarningMock).toHaveBeenCalledWith(
-      'Hent (handle) afvist af browseren',
-      { context: 'loadFromFileHandle.permission', data: { name: 'SecurityError' } },
-    );
+    expect(logWarningMock).not.toHaveBeenCalled();
     expect(logErrorMock).not.toHaveBeenCalled();
   });
 });

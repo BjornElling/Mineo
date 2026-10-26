@@ -205,6 +205,30 @@ property-rækkefølger, ekstra whitespace og øvrige ækvivalente JSON-varianter
 
 ## 5. `.eo` save-garantier
 
+### Eksterne filændringer (udviklerens afgørelse 2026-10-26)
+
+Sletning, flytning og tilbagekaldt adgang er forventelige filhændelser, ikke tekniske runtimefejl.
+Et ubrugeligt tidligere gem-mål kasseres verificerbart, og brugeren vælger filplacering igen.
+Annullering ændrer ikke sagsinput og må ikke markere sagen som gemt.
+
+Før direkte overskrivning sammenlignes filens aktuelle indhold med SHA-256 af det indhold, der faktisk
+blev indlæst eller sidst gemt. Afviger indholdet, vælger brugeren mellem **Overskriv**, **Gem i en anden fil**
+og **Annuller**. Mangler et gyldigt tidligere fingerprint, forklarer samme dialog, at Mineo ikke kan afgøre,
+om filen er ændret. Fingerprint er valideret, sagsnær browsermetadata og ændrer aldrig `.eo`-formatet.
+Ældre filer indlæses som hidtil; en allerede åben session uden fingerprint kræver et eksplicit valg før
+første direkte overskrivning. F5 bevarer et gyldigt fingerprint; `Slet alt` fjerner det.
+
+Den accepterede filrevision kontrolleres igen efter åbning af en eksklusiv skrivestream. Ændres filen
+eller sagsrevisionen under åbningen, afbrydes uden write/close. Ved skrivefejl forsøges abort; fejlet
+oprydning må ikke maskere den oprindelige fejl. En gemning kvitteres først efter verificeret read-back.
+Der kan ikke loves en atomisk sammenlign-og-skriv-transaktion mod eksterne programmer eller cloudsync;
+en ændring efter sidste kontrol opdages ved read-back eller næste Gem, afhængigt af tidspunktet.
+
+Før en indlæst sag anvendes, fjernes den gamle filnavnsbasis verificerbart. Kan dette ikke bekræftes,
+afbrydes indlæsning med den eksisterende apply-fejl, og sagsinput bevares. Senere fejl i handle-/metadata-
+synkronisering må ikke efterlade den tidligere fil som et godkendt gem-mål, heller ikke ved samme navn
+og stamdata eller efter F5.
+
 1. `.eo` indeholder alt schema-valideret brugerinput og kun canonical sagsinput.
 2. Rejected inputs, åbne drafts, UI-state, device-lokale defaults, issues, history og afledte værdier inkluderes ikke.
    Felter, der kun er redigerbare uden en aktiv referencesats, gemmes kun som input i den redigerbare gren.
@@ -256,6 +280,25 @@ uden filvælger, uden advarsel og med ordet «Gemt» som kvittering. Det er det 
 brugerarbejde forsvinder uden brugerens handling, og programmet melder succes. Navneprøven er et
 sekundært værn mod forkert eller forældet handle i samme klient. Fail-closed-reglen gælder som ellers:
 kan det kasserede håndtag ikke ryddes verificerbart, afbrydes gemningen.
+
+`sessionStorage` kan kopieres ved duplikering af en fane og er derfor ikke alene bevis for ejerskab.
+Klientscopet kræver en eksklusiv Web Lock før klientafgrænsede IndexedDB-operationer. Et optaget ID
+giver et nyt scope; den anden klients records må ikke læses eller flyttes. Nye ejerskabs-ID'er er
+markeret med `owned:`, så allerede åben kode fra en tidligere udgivelse ikke kan dele dette scope.
+Et legacy-scope giver ingen direkte-gem-handle i den nye kode; første Gem går til filvælgeren.
+
+`pagehide` frigiver ejerskabet, når allerede startede storage-operationer er afsluttet. Ved senere
+genoptagelse bruges nyt scope med genpersistens af dokumentets egne kendte handles og ventende
+requests. Et ukendt mål fører sikkert til filvalg; sagsinput og drafts berøres ikke. Der indføres ingen
+`pageshow`-genindlæsning. Uden bekræftet, reload-stabilt ejerskab må en pending PWA-handoff ikke
+meldes durable og udløse en versionsreload.
+
+Overgangen fra tidligere udgivelser bevarer en eksakt legacy pending-request via en særskilt,
+valideret alias. Alias etableres verificerbart før klient-ID'et udskiftes og ryddes først efter sikker
+overtagelse. Kun pending-requesten læses; den gamle klients scope skrives eller slettes aldrig.
+En overtaget request har `requiresConfirmation=true` og tilbydes med **Indlæs fil**/**Annuller**,
+også når sagen ellers er tom. Dette og første filvalg efter opdatering er godkendt af udvikleren
+2026-10-26. `.eo`-container og sagsinput ændres ikke.
 
 **Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, udviklerens afgørelse
 2026-08-25).** Skadelidtes navn, skadestype og skadedato afgør, hvilket filnavn `Gem` foreslår. Retter

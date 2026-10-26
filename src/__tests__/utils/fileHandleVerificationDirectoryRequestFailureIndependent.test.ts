@@ -14,7 +14,7 @@ const logWarningMock = vi.mocked(logWarning);
 describe('PERSIST-002 – directory permission-request-fejl', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returnerer false og logger requestPermission-fejl uden at godkende mappen', async () => {
+  it('returnerer false uden teknisk alarm ved afvist requestPermission', async () => {
     const queryPermission = vi.fn<PermissionMethod>().mockResolvedValue('prompt');
     const requestPermission = vi.fn<PermissionMethod>().mockRejectedValue(
       new DOMException('Brugerhandling kræves', 'NotAllowedError'),
@@ -32,15 +32,6 @@ describe('PERSIST-002 – directory permission-request-fejl', () => {
 
     expect(queryPermission).toHaveBeenCalledWith({ mode: 'read' });
     expect(requestPermission).toHaveBeenCalledWith({ mode: 'read' });
-    expect(logWarningMock).toHaveBeenCalledWith(
-      'Directory permission tjek fejlede',
-      {
-        context: 'verifyDirectoryHandle.permissionCheck',
-        data: {
-          errorName: 'NotAllowedError',
-          errorMessage: 'Brugerhandling kræves',
-        },
-      },
-    );
+    expect(logWarningMock).not.toHaveBeenCalled();
   });
 });

@@ -36,6 +36,7 @@ vi.mock('../../utils/pwaLaunchQueue', () => ({
 }));
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   sessionStorage.clear();
   vi.clearAllMocks();
   saveFileHandleToIndexedDBMock.mockResolvedValue(true);
@@ -43,6 +44,82 @@ beforeEach(() => {
 });
 
 describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', () => {
+  it('fjerner gammel filkobling før en sag med samme filnavn og stamdata anvendes', () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'sag.eo');
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Samme person"}');
+    const applySnapshot = vi.fn(() => {
+      expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+    });
+
+    applyAuthoritativeLoadSnapshot({
+      result: {
+        status: 'loaded', source: 'manual', filename: 'sag.eo',
+        snapshot: { stamdata: { skadelidte: 'Samme person' } },
+      },
+      applySnapshot,
+    });
+
+    expect(applySnapshot).toHaveBeenCalledOnce();
+    // Fraværet er persisteret og beskytter derfor også efter en reload mellem apply og metadata.
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+  });
+
+  it.each(['kast', 'no-op'] as const)('afviser load før sagsændring når gammel kobling ikke kan ryddes (%s)', (failure) => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      if (failure === 'kast') throw new Error('Browserlageret er utilgængeligt');
+    });
+    const applySnapshot = vi.fn();
+
+    expect(() => applyAuthoritativeLoadSnapshot({
+      result: { status: 'loaded', source: 'manual', filename: 'ny.eo', snapshot: {} },
+      applySnapshot,
+    })).toThrow('Indlæsning mislykkedes. Ingen data blev anvendt.');
+
+    expect(applySnapshot).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBe('{"skadelidte":"Gammel"}');
+  });
+
+  it('kræver ikke oprydningsadgang når ingen tidligere kobling findes', () => {
+    const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('Browserlageret er utilgængeligt');
+    });
+    const applySnapshot = vi.fn();
+
+    applyAuthoritativeLoadSnapshot({
+      result: { status: 'loaded', source: 'manual', filename: 'ny.eo', snapshot: {} },
+      applySnapshot,
+    });
+
+    expect(applySnapshot).toHaveBeenCalledOnce();
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+
+  it('gendanner den gamle filkobling når sagsinput ikke kunne anvendes', () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+
+    expect(() => applyAuthoritativeLoadSnapshot({
+      result: { status: 'loaded', source: 'manual', filename: 'ny.eo', snapshot: {} },
+      applySnapshot: () => { throw new Error('Apply-fejl'); },
+    })).toThrow('Ingen data blev anvendt.');
+
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBe('{"skadelidte":"Gammel"}');
+  });
+
+  it('bevarer et ugyldigt gem-mål hvis metadata-rollback efter apply-fejl heller ikke kunne skrives', () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Rollback-fejl');
+    });
+
+    expect(() => applyAuthoritativeLoadSnapshot({
+      result: { status: 'loaded', source: 'manual', filename: 'ny.eo', snapshot: {} },
+      applySnapshot: () => { throw new Error('Apply-fejl'); },
+    })).toThrow('Apply-fejl');
+
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+  });
+
   it('bygger et fuldt replace-snapshot over alle persisterede sektioner', () => {
     const applySnapshot = vi.fn();
 
@@ -75,7 +152,7 @@ describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', (
     }
   });
 
-  it('rører INGEN metadata-grænse – den er en selvstændig, senere fase', () => {
+  it('skriver ikke nyt gem-mål eller PWA-metadata i den synkrone fase', () => {
     applyAuthoritativeLoadSnapshot({
       result: {
         status: 'loaded',
@@ -137,6 +214,35 @@ describe('applyAuthoritativeLoadSnapshot – den synkrone, autoritative fase', (
 });
 
 describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
+  it('binder den indlæste fils fingerprint til det nye gem-mål', async () => {
+    const fingerprint = 'a'.repeat(64);
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded', source: 'manual', filename: 'sag.eo', snapshot: {},
+      fileHandle: { name: 'sag.eo' } as FileSystemFileHandle,
+      fileFingerprint: fingerprint,
+    });
+
+    expect(result.status).toBe('applied');
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFileFingerprint)).toBe(fingerprint);
+  });
+
+  it('acknowledger en anvendt PWA-fil selv om metadata-oprydningen ikke kan bekræftes', async () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('Browserlageret er utilgængeligt');
+    });
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded', source: 'pwa', filename: 'sag.eo', requestId: 'anvendt-pwa-request', snapshot: {},
+    });
+
+    expect(result.status).toBe('applied-with-metadata-error');
+    expect(markPendingPwaFileOpenRequestHandledMock).toHaveBeenCalledWith('anvendt-pwa-request');
+    expect(saveFileHandleToIndexedDBMock).not.toHaveBeenCalled();
+    expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['gemme', () => saveFileHandleToIndexedDBMock, { fileHandle: { name: 'sag.eo' } as FileSystemFileHandle }],
     ['rydde', () => deleteFileHandleFromIndexedDBMock, {}],
@@ -150,7 +256,7 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
     expect(result.status).toBe('applied-with-metadata-error');
   });
 
-  it('skriver ikke ny filnavnsmetadata når handle-leddet fejler', async () => {
+  it('ugyldiggør gammelt gem-mål når handle-leddet fejler', async () => {
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'gammel.eo');
     sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
     saveFileHandleToIndexedDBMock.mockResolvedValueOnce(false);
@@ -165,7 +271,61 @@ describe('synchronizeLoadMetadata – den asynkrone metadatafase', () => {
 
     expect(result.status).toBe('applied-with-metadata-error');
     expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename)).toBe('gammel.eo');
-    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBe('{"skadelidte":"Gammel"}');
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+  });
+
+  it.each(['handle', 'fallback', 'pwa-ack'] as const)(
+    'bevarer ikke direkte gem-adgang til en tidligere kopi med samme navn og stamdata ved %s-fejl',
+    async (failure) => {
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'sag.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Samme person"}');
+      if (failure === 'handle') saveFileHandleToIndexedDBMock.mockResolvedValueOnce(false);
+      if (failure === 'fallback') deleteFileHandleFromIndexedDBMock.mockResolvedValueOnce(false);
+      if (failure === 'pwa-ack') markPendingPwaFileOpenRequestHandledMock.mockRejectedValueOnce(new Error('PWA-fejl'));
+
+      const result = await synchronizeLoadMetadata({
+        status: 'loaded',
+        source: failure === 'pwa-ack' ? 'pwa' : 'manual',
+        filename: 'sag.eo',
+        snapshot: { stamdata: { skadelidte: 'Samme person' } },
+        ...(failure !== 'fallback' ? { fileHandle: { name: 'sag.eo' } as FileSystemFileHandle } : {}),
+        ...(failure === 'pwa-ack' ? { requestId: 'afsluttet-sag' } : {}),
+      });
+
+      expect(result.status).toBe('applied-with-metadata-error');
+      expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+    },
+  );
+
+  it('ugyldiggør det gamle mål før den første asynkrone metadatahandling', async () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    markPendingPwaFileOpenRequestHandledMock.mockImplementationOnce(async () => {
+      expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
+    });
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded', source: 'pwa', filename: 'sag.eo', requestId: 'req-1', snapshot: {},
+    });
+
+    expect(result.status).toBe('applied');
+  });
+
+  it('godkender kun det nye mål når handle og filnavnsmetadata begge kunne skrives', async () => {
+    sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{"skadelidte":"Gammel"}');
+    const setItem = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+      if (key === UI_STORAGE_KEYS.lastSavedFilenameBasis) throw new Error('Metadata-write fejlede');
+      setItem.call(this, key, value);
+    });
+
+    const result = await synchronizeLoadMetadata({
+      status: 'loaded', source: 'manual', filename: 'ny.eo',
+      fileHandle: { name: 'ny.eo' } as FileSystemFileHandle,
+      snapshot: { stamdata: { skadelidte: 'Ny' } },
+    });
+
+    expect(result.status).toBe('applied-with-metadata-error');
+    expect(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)).toBeNull();
   });
 
   it('afslutter PWA-requesten før en efterfølgende metadatafejl kan give replay', async () => {

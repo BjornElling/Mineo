@@ -23,12 +23,20 @@ import { VERSION } from '../../config/buildInfo';
 import { FILE_FORMAT_VERSION } from '../../config/version';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import {
+  FileHandleAccessError,
   saveFileWithPicker,
   writeToFileHandle,
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
 } from '../../utils/fileSystemAccess';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import { MAX_FILE_SIZE } from '../../config/version';
+
+vi.mock('../../utils/fileContentFingerprint', () => ({
+  readFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
+  readSavedFileContentFingerprint: vi.fn(() => 'fingerprint'),
+  createFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
+}));
 
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
@@ -42,7 +50,8 @@ vi.mock('../../utils/encryption', () => ({
   decryptFromString: vi.fn(),
 }));
 
-vi.mock('../../utils/fileSystemAccess', () => ({
+vi.mock('../../utils/fileSystemAccess', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../utils/fileSystemAccess')>(),
   isFileSystemAccessSupported: vi.fn(),
   isFileSystemFileHandle: vi.fn(),
   saveFileWithPicker: vi.fn(),
@@ -452,6 +461,30 @@ describe('fileSave', () => {
           persistedDataVersion: PERSISTED_DATA_VERSION,
         }),
       }));
+    });
+
+    it('overskriver aldrig en fil med et artefakt der er for stort til senere Hent', async () => {
+      mockedEncryptToString.mockResolvedValueOnce('x'.repeat(MAX_FILE_SIZE + 1));
+      await expect(saveToFile(snapshot)).rejects.toBeInstanceOf(SaveValidationError);
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+      expect(mockedWriteToFileHandle).not.toHaveBeenCalled();
+      expect(mockedDownloadFile).not.toHaveBeenCalled();
+      expect(mockedLogError).not.toHaveBeenCalled();
+    });
+
+    it('melder ikke succes eller teknisk fejl når filen forsvinder under read-back', async () => {
+      const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(handle);
+      mockedEncryptToString.mockResolvedValueOnce('encrypted');
+      mockedWriteToFileHandle.mockResolvedValue(undefined);
+      const error = new FileHandleAccessError('Filen blev ikke fundet');
+      mockedReadFromFileHandle.mockRejectedValueOnce(error);
+      await expect(saveToFile(snapshot)).rejects.toBe(error);
+      expect(mockedSaveFileHandleToIndexedDB).not.toHaveBeenCalled();
+      expect(persistSavedFilenameMetadataMock).not.toHaveBeenCalled();
+      expect(mockedLogError).not.toHaveBeenCalled();
     });
 
     it('persisterer først nyt file handle efter write og verificering er lykkedes', async () => {

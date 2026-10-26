@@ -5,8 +5,8 @@ import {
   logError,
   logWarning,
 } from './logger';
-import { writeToFileHandle } from './fileSystemAccess';
-import { saveFileHandleToIndexedDB } from './fileHandleStorage';
+import { FileHandleAccessError, writeToFileHandle } from './fileSystemAccess';
+import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer } from '../schemas/eoFileSchema';
 import type {
@@ -22,7 +22,9 @@ import {
 import { asError } from './typeGuards';
 import { applyRegisteredTableSaveOrder } from './tableSaveOrderRegistry';
 import { persistSavedFilenameMetadata } from './filePersistenceMetadata';
-import { resolveSaveTarget } from './fileSaveTarget';
+import { resolveSaveTarget, type ResolveSaveConflict } from './fileSaveTarget';
+import { createFileContentFingerprint } from './fileContentFingerprint';
+import { MAX_FILE_SIZE } from '../config/version';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -111,7 +113,8 @@ const throwIfVerificationFailed = (
 export const saveToFile = async (
   snapshot: SaveSnapshot,
   resolvedDirectory?: ResolvedDirectory,
-  isSourceStillCurrent?: () => boolean
+  isSourceStillCurrent?: () => boolean,
+  resolveConflict?: ResolveSaveConflict
 ): Promise<SaveFileResult> => {
 
   try {
@@ -146,9 +149,14 @@ export const saveToFile = async (
 
     // 5. Krypter data
     const encrypted = await encodeEoFile(fileData);
+    // Load har samme størrelsesgrænse. Afvis før filvalg/write, så et for stort
+    // artefakt aldrig overskriver en brugbar fil med noget, Mineo ikke kan åbne igen.
+    if (new Blob([encrypted]).size > MAX_FILE_SIZE) {
+      throw new SaveValidationError('Filen er for stor til at kunne indlæses igen. Gemningen blev afbrudt; dine indtastninger er bevaret.');
+    }
 
     // 6. Resolver det typede gem-mål (genbrug handle / picker / fallback-download / annulleret).
-    const target = await resolveSaveTarget(fileData, resolvedDirectory);
+    const target = await resolveSaveTarget(fileData, resolvedDirectory, resolveConflict);
     if (target.kind === 'cancelled') {
       return { status: 'cancelled' };
     }
@@ -171,7 +179,7 @@ export const saveToFile = async (
       fallbackWarning = target.fallbackWarning;
 
       // Skriv til fil
-      await writeToFileHandle(target.fileHandle, encrypted);
+      await writeToFileHandle(target.fileHandle, encrypted, target.expectedFingerprint, isSourceStillCurrent);
       filename = target.fileHandle.name;
 
       // VERIFICER at filen er gemt korrekt. File System Access-sinken understøtter read-back:
@@ -207,7 +215,7 @@ export const saveToFile = async (
 
       // Gem filnavn og stamdata til sessionStorage (til validering ved næste gem)
       try {
-        persistSavedFilenameMetadata(filename, fileData.data.stamdata);
+        persistSavedFilenameMetadata(filename, fileData.data.stamdata, await createFileContentFingerprint(encrypted));
       } catch {
         metadataWarnings.push('Filen blev gemt, men filnavnsoplysninger til næste Gem kunne ikke synkroniseres.');
       }
@@ -269,7 +277,10 @@ export const saveToFile = async (
 
     // Sikkerhed: Log kun fejltype, ikke følsomme data
     const safeErrorMessage = err.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
-    if (err instanceof SaveValidationError) {
+    if (err instanceof SaveValidationError || err instanceof FileHandleAccessError) {
+      // Næste Gem skal give mulighed for en anden placering, også hvis browserens
+      // permission stadig siger granted, mens operativsystemet afviser skrivningen.
+      if (err instanceof FileHandleAccessError) await deleteFileHandleFromIndexedDB();
       throw err;
     }
 

@@ -5,6 +5,7 @@ import {
   writeOptionalSessionStorageValue,
 } from './safeSessionStorage';
 import { isRecord } from './typeGuards';
+import { fileContentFingerprintSchema } from './fileContentFingerprint';
 
 export type SavedFilenameBasis = {
   skadelidte?: string;
@@ -101,13 +102,14 @@ const applyMetadataUpdates = (updates: readonly MetadataUpdate[]): void => {
   }
 };
 
-// Save-flow skriver begge værdier ubetinget, fordi det valgte filnavn bliver
+// Save-flow skriver værdierne samlet, fordi det valgte filnavn bliver
 // det nye autoritative grundlag for efterfølgende overwrite-beslutninger.
-export const persistSavedFilenameMetadata = (filename: string, stamdata: unknown): void => {
+export const persistSavedFilenameMetadata = (filename: string, stamdata: unknown, fingerprint?: string): void => {
   const basis = JSON.stringify(buildFilenameBasisFromStamdata(stamdata));
   applyMetadataUpdates([
     { key: UI_STORAGE_KEYS.lastSavedFilename, value: filename },
     { key: UI_STORAGE_KEYS.lastSavedFilenameBasis, value: basis },
+    { key: UI_STORAGE_KEYS.lastSavedFileFingerprint, value: fingerprint === undefined ? null : fileContentFingerprintSchema.parse(fingerprint) },
   ]);
 };
 
@@ -117,8 +119,9 @@ export const persistSavedFilenameMetadata = (filename: string, stamdata: unknown
 export const persistLoadedFilenameMetadata = (args: {
   filename?: string;
   stamdata?: unknown;
+  fingerprint?: string;
 }): void => {
-  const { filename, stamdata } = args;
+  const { filename, stamdata, fingerprint } = args;
 
   const basis = buildFilenameBasisFromStamdata(stamdata);
   const hasAnyBasisValue = Object.values(basis).some((value) => typeof value === 'string' && value.trim() !== '');
@@ -127,6 +130,10 @@ export const persistLoadedFilenameMetadata = (args: {
   updates.push({
     key: UI_STORAGE_KEYS.lastSavedFilenameBasis,
     value: hasAnyBasisValue ? JSON.stringify(basis) : null,
+  });
+  updates.push({
+    key: UI_STORAGE_KEYS.lastSavedFileFingerprint,
+    value: fingerprint === undefined ? null : fileContentFingerprintSchema.parse(fingerprint),
   });
   applyMetadataUpdates(updates);
 };

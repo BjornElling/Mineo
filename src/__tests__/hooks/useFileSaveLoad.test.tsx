@@ -3,6 +3,8 @@ import { hydrateSlimInputStoreForTest } from '../../test/actSafeInputStore';
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import type { LoadFileResult, LoadPreflightWarning, SaveFileResult } from '../../types/fileOperations';
+import type { ResolveSaveConflict, SaveConflictDecision } from '../../utils/fileSaveTarget';
+import { FileHandleAccessError } from '../../utils/fileSystemAccess';
 
 // ─── I/O-grænse-mocks ───────────────────────────────────────────────────────
 // useFileSaveLoad ejer orkestreringen (preflight-gating, atomisk apply, fokus-restore,
@@ -79,6 +81,7 @@ import { FileSelectionError } from '../../utils/fileLoadSource';
 type HookApi = ReturnType<typeof useFileSaveLoad>;
 
 type HarnessHandles = {
+  unmount: () => void;
   api: HookApi | null;
   markSaved: ReturnType<typeof vi.fn<(revision: number) => void>>;
   showOverlay: ReturnType<typeof vi.fn<(overlay: OverlayData) => void>>;
@@ -138,6 +141,7 @@ const renderHook = (
   }
 
   const handles: HarnessHandles = {
+    unmount: () => {},
     api: null,
     markSaved: vi.fn<(revision: number) => void>(),
     showOverlay: vi.fn<(overlay: OverlayData) => void>(),
@@ -158,11 +162,12 @@ const renderHook = (
     return null;
   };
 
-  render(
+  const view = render(
     <ProductionInputRuntimeProvider binding={createProductionInputRuntimeBinding()}>
       <Harness />
     </ProductionInputRuntimeProvider>,
   );
+  handles.unmount = view.unmount;
   return handles;
 };
 
@@ -202,6 +207,68 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleGem', () => {
+    it.each(['overwrite', 'saveAs', 'cancel'] as const)('afventer filkonflikt og sender valget %s videre med låsen holdt', async (decision) => {
+      const handles = renderHook({ hasData: true });
+      let chosen: SaveConflictDecision | undefined;
+      saveToFileMock.mockImplementationOnce(async (...args) => {
+        const resolveConflict = args[3] as ResolveSaveConflict;
+        chosen = await resolveConflict('changed');
+        return chosen === 'cancel' ? { status: 'cancelled' } : { status: 'saved', filename: 'sag.eo' };
+      });
+      let pendingSave: Promise<void> | undefined;
+      await act(async () => {
+        pendingSave = handles.api?.handleGem();
+      });
+      expect(handles.api?.pendingSaveConflict).toBe('changed');
+      expect(handles.api?.fileOperationInProgress).toBe(true);
+      expect(handles.markSaved).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+      expect(loadFromFileMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        handles.api?.decideSaveConflict(decision);
+        await pendingSave;
+      });
+      expect(chosen).toBe(decision);
+      expect(handles.api?.pendingSaveConflict).toBeNull();
+      expect(handles.api?.fileOperationInProgress).toBe(false);
+      expect(handles.markSaved).toHaveBeenCalledTimes(decision === 'cancel' ? 0 : 1);
+    });
+
+    it('annullerer en uafklaret filkonflikt ved unmount', async () => {
+      const handles = renderHook({ hasData: true });
+      let chosen: SaveConflictDecision | undefined;
+      saveToFileMock.mockImplementationOnce(async (...args) => {
+        chosen = await (args[3] as ResolveSaveConflict)('unverifiable');
+        return { status: 'cancelled' };
+      });
+      let pendingSave: Promise<void> | undefined;
+      await act(async () => {
+        pendingSave = handles.api?.handleGem();
+      });
+      expect(handles.api?.pendingSaveConflict).toBe('unverifiable');
+      await act(async () => {
+        handles.unmount();
+        await pendingSave;
+      });
+      expect(chosen).toBe('cancel');
+      expect(handles.markSaved).not.toHaveBeenCalled();
+    });
+
+    it('viser forventelig skrivefejl uden teknisk console.error', async () => {
+      const handles = renderHook({ hasData: true });
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      saveToFileMock.mockRejectedValueOnce(new FileHandleAccessError('Filen kan ikke skrives.'));
+      await act(async () => { await handles.api?.handleGem(); });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(handles.markSaved).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Filen kan ikke skrives.', type: 'error' });
+      consoleErrorSpy.mockRestore();
+    });
+
     it('blokerer gem ved ugyldige felter og rører aldrig saveToFile', async () => {
       const handles = renderHook({ rejected: true });
 
@@ -359,6 +426,17 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleHent – atomisk preflight-gating', () => {
+    it('viser forventelig adgangsfejl uden teknisk console.error', async () => {
+      const handles = renderHook();
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      loadFromFileMock.mockRejectedValueOnce(new FileHandleAccessError('Filen blev ikke fundet.'));
+      await act(async () => { await handles.api?.handleHent(); });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
+      expect(handles.showOverlay).toHaveBeenCalledWith({ message: 'Filen blev ikke fundet.', type: 'error' });
+      consoleErrorSpy.mockRestore();
+    });
+
     it('viser filvalideringsfejl uden teknisk console.error', async () => {
       const handles = renderHook();
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

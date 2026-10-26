@@ -186,8 +186,10 @@ export const readFile = (file: File | null | undefined): Promise<string> => {
     };
 
     reader.onerror = () => {
-      reject(new Error('Kunne ikke læse fil'));
+      // Bevar browserens fejltype, så load kan forklare fx ekstern ændring/adgangstab.
+      reject(reader.error ?? new Error('Kunne ikke læse fil'));
     };
+    reader.onabort = () => reject(new DOMException('Fil-læsningen blev afbrudt', 'AbortError'));
 
     reader.readAsText(file);
   });

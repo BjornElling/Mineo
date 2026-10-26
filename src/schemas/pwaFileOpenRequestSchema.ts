@@ -22,6 +22,8 @@ export const pwaFileOpenRequestSchema = z.object({
   fileHandle: fileSystemFileHandleSchema,
   fileName: z.string().trim().min(1),
   ignoredFileCount: z.number().int().nonnegative(),
+  /** Legacy-requestens klient kan ikke bevises; brugeren skal vælge Indlæs fil aktivt. */
+  requiresConfirmation: z.boolean().optional(),
 });
 
 export type PwaFileOpenRequest = z.infer<typeof pwaFileOpenRequestSchema>;

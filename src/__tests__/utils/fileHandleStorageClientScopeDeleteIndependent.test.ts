@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { installFileOperationLocks } from '../fixtures/fileOperationLocks';
 
 const deleteClientScopedFileHandleValueMock = vi.hoisted(() => vi.fn());
 
@@ -14,11 +15,15 @@ vi.mock('../../utils/file/fileHandleKvStore', async (importOriginal) => {
 import { getFileOperationClientSessionStorageKey } from '../../config/storageManifest';
 import {
   __resetFileOperationClientSessionForTests,
+  ensureFileOperationClientSession,
 } from '../../utils/fileOperationClientSession';
 import { deleteFileHandleFromIndexedDB } from '../../utils/fileHandleStorage';
 
+let restoreLocks: () => void;
+
 describe('fileHandleStorage – klientscopet delete af file handle', () => {
   beforeEach(() => {
+    restoreLocks = installFileOperationLocks();
     sessionStorage.clear();
     __resetFileOperationClientSessionForTests();
     deleteClientScopedFileHandleValueMock.mockReset();
@@ -29,13 +34,15 @@ describe('fileHandleStorage – klientscopet delete af file handle', () => {
   });
 
   afterEach(() => {
+    restoreLocks();
     sessionStorage.clear();
     __resetFileOperationClientSessionForTests();
   });
 
   it('sletter det aktive file handle under den aktuelle klients session-scopede nøgle', async () => {
-    const sessionId = 'client-isolated-delete-session-1';
+    const sessionId = 'owned:client-isolated-delete-session-1';
     sessionStorage.setItem(getFileOperationClientSessionStorageKey(), sessionId);
+    await ensureFileOperationClientSession();
 
     await expect(deleteFileHandleFromIndexedDB()).resolves.toBe(true);
 

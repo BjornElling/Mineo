@@ -14,6 +14,13 @@ import {
 import type { EoFileContainer } from '../../schemas/eoFileSchema';
 import { logWarning } from '../../utils/logger';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import { readFileContentFingerprint, readSavedFileContentFingerprint } from '../../utils/fileContentFingerprint';
+
+vi.mock('../../utils/fileContentFingerprint', () => ({
+  readFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
+  readSavedFileContentFingerprint: vi.fn(() => 'fingerprint'),
+  createFileContentFingerprint: vi.fn().mockResolvedValue('fingerprint'),
+}));
 
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
@@ -21,7 +28,8 @@ vi.mock('../../utils/logger', () => ({
   sanitizeFilenameForLog: (value: unknown) => String(value ?? ''),
 }));
 
-vi.mock('../../utils/fileSystemAccess', () => ({
+vi.mock('../../utils/fileSystemAccess', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../utils/fileSystemAccess')>(),
   isFileSystemAccessSupported: vi.fn(),
   isFileSystemFileHandle: vi.fn(),
   saveFileWithPicker: vi.fn(),
@@ -59,6 +67,8 @@ describe('resolveSaveTarget', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    vi.mocked(readFileContentFingerprint).mockResolvedValue('fingerprint');
+    vi.mocked(readSavedFileContentFingerprint).mockReturnValue('fingerprint');
     mockedRequestPersistentStorage.mockResolvedValue(true);
     mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(true);
     mockedIsFileSystemFileHandle.mockImplementation(
@@ -103,7 +113,7 @@ describe('resolveSaveTarget', () => {
 
     const target = await resolveSaveTarget(fileData);
 
-    expect(target).toEqual({ kind: 'fileHandle', fileHandle: handle, persistHandleAfterSuccess: false });
+    expect(target).toEqual({ kind: 'fileHandle', fileHandle: handle, persistHandleAfterSuccess: false, expectedFingerprint: 'fingerprint' });
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
   });
 
@@ -129,6 +139,7 @@ describe('resolveSaveTarget', () => {
       kind: 'fileHandle',
       fileHandle: picked,
       persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
     });
   });
 
@@ -148,6 +159,7 @@ describe('resolveSaveTarget', () => {
       kind: 'fileHandle',
       fileHandle: picked,
       persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
     });
   });
 
@@ -203,9 +215,11 @@ describe('resolveSaveTarget', () => {
       kind: 'fileHandle',
       fileHandle: picked,
       persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
     });
     if (target.kind !== 'fileHandle') return;
     expect(target.fallbackWarning).toContain('ikke fundet');
+    expect(mockedLogWarning).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -228,6 +242,7 @@ describe('resolveSaveTarget', () => {
       kind: 'fileHandle',
       fileHandle: picked,
       persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
       fallbackWarning: expect.stringContaining(expectedWarning),
     });
   });
@@ -289,6 +304,7 @@ describe('resolveSaveTarget', () => {
         kind: 'fileHandle',
         fileHandle: picked,
         persistHandleAfterSuccess: true,
+      expectedFingerprint: 'fingerprint',
       });
       expect(mockedSaveFileWithPicker).toHaveBeenCalledOnce();
       // Identitetsprøven afgør sagen FØR permission-verifikationen; der er intet at verificere på et
@@ -343,6 +359,7 @@ describe('resolveSaveTarget', () => {
         kind: 'fileHandle',
         fileHandle: stored,
         persistHandleAfterSuccess: false,
+        expectedFingerprint: 'fingerprint',
       });
       expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
     });
@@ -356,5 +373,69 @@ describe('resolveSaveTarget', () => {
     const target = await resolveSaveTarget(fileData);
 
     expect(target).toEqual({ kind: 'cancelled' });
+  });
+
+  describe('eksterne ændringer', () => {
+    const setupConflict = () => {
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, 'sag.eo');
+      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, '{}');
+      const stored = makeHandle('sag.eo');
+      const picked = makeHandle('sag.eo');
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(stored);
+      mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: true });
+      mockedSaveFileWithPicker.mockResolvedValue(picked);
+      vi.mocked(readFileContentFingerprint).mockResolvedValue('changed');
+      return { stored, picked };
+    };
+
+    it.each(['cancel', 'overwrite', 'saveAs'] as const)('respekterer valget %s uden teknisk alarm', async (decision) => {
+      const { stored, picked } = setupConflict();
+      const decide = vi.fn().mockResolvedValue(decision);
+      const target = await resolveSaveTarget(fileData, undefined, decide);
+      expect(decide).toHaveBeenCalledWith('changed');
+      if (decision === 'cancel') expect(target).toEqual({ kind: 'cancelled' });
+      else expect(target).toMatchObject({
+        kind: 'fileHandle',
+        fileHandle: decision === 'overwrite' ? stored : picked,
+        persistHandleAfterSuccess: decision === 'saveAs',
+        expectedFingerprint: 'changed',
+      });
+      expect(mockedDeleteFileHandleFromIndexedDB).toHaveBeenCalledTimes(decision === 'saveAs' ? 1 : 0);
+      expect(mockedSaveFileWithPicker).toHaveBeenCalledTimes(decision === 'saveAs' ? 1 : 0);
+      expect(mockedLogWarning).not.toHaveBeenCalled();
+    });
+
+    it('spørger ved manglende tidligere filindhold og afbryder uden callback', async () => {
+      setupConflict();
+      vi.mocked(readSavedFileContentFingerprint).mockReturnValue(null);
+      const decide = vi.fn().mockResolvedValue('cancel');
+      await expect(resolveSaveTarget(fileData, undefined, decide)).resolves.toEqual({ kind: 'cancelled' });
+      expect(decide).toHaveBeenCalledWith('unverifiable');
+      await expect(resolveSaveTarget(fileData)).resolves.toEqual({ kind: 'cancelled' });
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+    });
+
+    it('bevarer gammel kobling hvis Gem i en anden fil annulleres', async () => {
+      setupConflict();
+      mockedSaveFileWithPicker.mockResolvedValue(null);
+      await expect(resolveSaveTarget(fileData, undefined, async () => 'saveAs')).resolves.toEqual({ kind: 'cancelled' });
+      expect(mockedDeleteFileHandleFromIndexedDB).not.toHaveBeenCalled();
+    });
+
+    it('skriver ikke til nyt mål hvis gammel kobling ikke kunne fjernes', async () => {
+      setupConflict();
+      mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
+      await expect(resolveSaveTarget(fileData, undefined, async () => 'saveAs')).rejects.toThrow('Filen blev ikke skrevet');
+    });
+
+    it('tilbyder en anden placering når den tidligere fil ikke kan læses sikkert', async () => {
+      const { picked } = setupConflict();
+      vi.mocked(readFileContentFingerprint).mockRejectedValueOnce(new DOMException('Filen er ændret', 'NotReadableError'));
+      const target = await resolveSaveTarget(fileData);
+      expect(target).toMatchObject({ kind: 'fileHandle', fileHandle: picked, fallbackWarning: expect.stringContaining('kunne ikke kontrolleres') });
+      expect(mockedDeleteFileHandleFromIndexedDB).toHaveBeenCalledOnce();
+      expect(mockedLogWarning).not.toHaveBeenCalled();
+    });
   });
 });

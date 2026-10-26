@@ -45,10 +45,7 @@ describe('PERSIST-002 – PWA permission-request-fejl', () => {
     expect(queryPermission).toHaveBeenCalledWith({ mode: 'read' });
     expect(requestPermission).toHaveBeenCalledWith({ mode: 'read' });
     expect(getFile).not.toHaveBeenCalled();
-    expect(logWarningMock).toHaveBeenCalledWith(
-      'Hent (handle) afvist af browseren',
-      { context: 'loadFromFileHandle.permission', data: { name: 'NotAllowedError' } },
-    );
+    expect(logWarningMock).not.toHaveBeenCalled();
     expect(logErrorMock).not.toHaveBeenCalled();
   });
 });

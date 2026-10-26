@@ -2,7 +2,7 @@ import { eoFileContainerSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { decryptFromString } from './encryption';
-import { isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
+import { FileHandleAccessError, isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
 import { logError, logWarning } from './logger';
 import type {
   SaveSnapshot,
@@ -256,6 +256,7 @@ export const verifyAfterSave = async (
       verified: true,
     };
   } catch (error) {
+    if (error instanceof FileHandleAccessError) throw error;
     logError('Verificering fejlede', {
       context: 'verifyAfterSave',
       error: error instanceof Error ? error : undefined,
