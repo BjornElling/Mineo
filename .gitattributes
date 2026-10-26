@@ -1,1 +1,19 @@
+# LF i både Git og working tree, også på Windows med core.autocrlf=true.
+# Git genkender binære filer automatisk og bevarer deres bytes.
 * text=auto eol=lf
+
+# Kendte binærformater må aldrig normaliseres, heller ikke hvis indhold ligner tekst.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.xls binary
+*.xlsx binary
+*.docx binary
+*.zip binary
+*.eo binary
+*.ttf binary
+*.woff binary
+*.woff2 binary

@@ -4,6 +4,9 @@ echo "HUSKY PRE-COMMIT KØRER"
 
 set -e
 
+# Kontrollér både disk og staged indhold før de dyrere kontroller.
+npm run check:line-endings
+
 # Stop commit hvis kildekode, testkode eller E2E-konfiguration ikke typechecker, eller hvis lint fejler.
 # Den samme samlede gate bruges af release-flowet, så et normalt commit ikke kan komme foran den
 # kontrol, GitHub ellers først ville udføre efter commit.

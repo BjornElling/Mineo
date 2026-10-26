@@ -62,6 +62,13 @@ Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved v
 - Log ind gennem den synlige loginformular. Omgå ikke gaten ved at manipulere browser-storage.
 - Kontrollér som minimum den ændrede brugerrejse, forventet synlig tekst/tilstand samt nye `console.error`- og ukontrollerede page-fejl. Ved synlige UI-ændringer inspiceres også et screenshot i relevant desktop-viewport. Stop alle ad hoc-browser- og udviklingsserverprocesser efter kontrollen.
 
+## Linjeskift
+- Alle tekstfiler bruger LF, både på disken og i Git. Binære filer bevares byte for byte. Skriv CR i testdata som en escape-sekvens (`\r`), aldrig som et faktisk CR i kildefilen.
+- `.gitattributes` styrer Git-checkout på alle platforme; `.editorconfig` styrer editorer. Bevar begge regler. Globale Git-indstillinger behøver ikke ændres.
+- `npm run check:line-endings` kontrollerer tracked og ikke-ignorerede nye filer på disken samt det faktiske Git-index. Kontrollen kører først i pre-commit og i `verify:release:core` i CI.
+- Ved CRLF: kør `npm run fix:line-endings`, gennemse diffen og stage igen med `git add`. Rettelsen ændrer kun CRLF til LF på disken, aldrig staging. Enkeltstående CR kræver manuel vurdering. Kontrollen kan stadig fejle, indtil indexet er opdateret.
+- Ved ændring af Git-reglen: brug `git add --renormalize .` efter normalisering på disken og kontrollér den staged diff. Omgå aldrig hooken.
+
 ## Git-rettigheder
 Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktive arbejdsværktøjer som `git stash` i det omfang, du finder det relevant. Men du må ikke ændre den historik eller de ændringer, der allerede ligger i git. Konkret:
 - **Commit kun på eksplicit besked.** Du committer kun, når udvikleren udtrykkeligt beder om det. Udgangspunktet er, at du committer **alle** uncommittede ændringer i working tree. Hvis udvikleren specifikt beder om kun at committe ændringerne fra den konkrete opgave, afgrænser du committen til disse ændringer og lader øvrige uncommittede ændringer stå urørte. Du committer som udgangspunkt altid til main, medmindre udvikleren specifikt beder om at der oprettes en branch.
@@ -76,7 +83,7 @@ Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktiv
   - Body er valgfri og kun til kontekst der ikke kan rummes i subject (hvorfor, ikke hvad). Saml relateret arbejde i subject frem for at flytte det til body.
 - **Slet aldrig andres uncommitted ændringer.** Du må aldrig bruge `git checkout`, `git restore`, `git reset`, reverse-patches (`git apply -R`) eller tilsvarende til at føre filer tilbage til en tidligere git-version, hvis det kan slette uncommitted ændringer, du ikke selv med sikkerhed har lavet. Er der tvivl om ejerskab eller formål, stopper du og spørger. Skal du fjerne dine egne ændringer i en fil, hvor der også findes andres ændringer, må du kun fjerne præcist dine egne hunks med manuel patch efter at have inspiceret diffen.
 - **Push aldrig.** Du må under ingen omstændigheder pushe til git, og du må heller ikke spørge om lov til at pushe. Kun brugeren pusher.
-- **Pre-commit hook (forventet).** En Husky-hook (`.husky/pre-commit`) kører automatisk ved hvert commit: encoding/mojibake-tjek (`check:mojibake`) og filnavns-casing-tjek (`check:filename-case`). Programversion regenereres ikke i pre-commit; build-info genereres af `scripts/generate-build-info.mjs` før dev/build/test/CI. Hooken printer `HUSKY PRE-COMMIT KØRER`. Omgå den aldrig med `--no-verify`. Fejler den (typisk mojibake eller casing), så ret årsagen i stedet for at springe den over.
+- **Pre-commit hook (forventet).** En Husky-hook (`.husky/pre-commit`) kører automatisk ved hvert commit: LF-kontrol af disk og Git-index (`check:line-endings`), encoding/mojibake-tjek (`check:mojibake`) og filnavns-casing-tjek (`check:filename-case`). Programversion regenereres ikke i pre-commit; build-info genereres af `scripts/generate-build-info.mjs` før dev/build/test/CI. Hooken printer `HUSKY PRE-COMMIT KØRER`. Omgå den aldrig med `--no-verify`. Fejler den (typisk mojibake eller casing), så ret årsagen i stedet for at springe den over.
 - **Pre-push hook.** `.husky/pre-push` kører `check:vulnerabilities` (`npm audit`), så en nyligt publiceret advisory fanges før push i stedet for i CI's release-gate. Kun brugeren pusher, men fejler hooken for brugeren, rettes det med `npm audit fix` (husk at opdatere versionspinnede `allowScripts`-nøgler i `package.json`, hvis en pakke med install-scripts flytter version).
 
 ## Reviews og subagents

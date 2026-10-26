@@ -63,6 +63,8 @@
     "pretest:watch": "npm run check:types",
     "generate:icons": "node scripts/generate-pwa-icons.js",
     "check:filename-case": "node scripts/check-filename-case.mjs",
+    "check:line-endings": "node scripts/check-line-endings.mjs",
+    "fix:line-endings": "node scripts/check-line-endings.mjs --fix",
     "check:mojibake": "node scripts/check-mojibake.mjs",
     "verify:ledgers": "node scripts/architecture/verify-input-ledgers.mjs",
     "check:commit-msg": "node scripts/check-commit-msg.mjs",
@@ -94,7 +96,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs",
     "check:offentlig-loen": "node scripts/import-offentlig-loen.mjs --check",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "verify:release:core": "npm run check:dependencies && npm run check:runtime && npm run check:github-actions-runtime && npm run check:types && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run check:e2e-lanes && npm run check:e2e-load && npm run verify:ledgers && npm run test:coverage --ignore-scripts && npm run build:all",
+    "verify:release:core": "npm run check:line-endings && npm run check:dependencies && npm run check:runtime && npm run check:github-actions-runtime && npm run check:types && npm run lint && npm run check:mojibake && npm run check:filename-case && npm run check:offentlig-loen && npm run check:contract-verification && npm run check:e2e-lanes && npm run check:e2e-load && npm run verify:ledgers && npm run test:coverage --ignore-scripts && npm run build:all",
     "verify:release": "npm run verify:release:core && npm run test:e2e",
     "check": "npm run verify:release"
   },

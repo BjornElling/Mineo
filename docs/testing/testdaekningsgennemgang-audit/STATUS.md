@@ -2479,7 +2479,8 @@ skal genkøres efter batchen.
 
 ## Seneste test-only CALC-batch – TD-352, arbejdsrevision `ad9e89fe`
 
-Batchen tilføjer ét end-to-end-facit i `eetDifferencekravCalculation.ts` for den manglende2024-reguleringssats i restydelsesforløbet. Den målrettede fil bestod med 43/43, hele
+Batchen tilføjer ét end-to-end-facit i `eetDifferencekravCalculation.ts` for den manglende
+2024-reguleringssats i restydelsesforløbet. Den målrettede fil bestod med 43/43, hele
 EET-domænesuiten med 25 filer / 472 tests, og afgrænset coverage blev 92,62 % statements /
 88,63 % branches / 100 % functions / 94,38 % lines. Det samme issue rapporteres også
 upstream af løbende-ydelser, så testen fastholder den observerbare Differencekrav-gate,
