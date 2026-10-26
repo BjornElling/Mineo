@@ -1,5 +1,5 @@
 import { generateFilename, type ResolvedDirectory, getStartInValue } from './fileHelpers';
-import { getTimestamp, logWarning } from './logger';
+import { logWarning } from './logger';
 import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
@@ -119,28 +119,11 @@ const isUserDismissedPermissionPrompt = (
   verification.detail === 'permission=prompt';
 
 /**
- * En klassisk browser-download kan ikke overskrive en valgt fil og returnerer heller ikke det navn,
- * browseren faktisk vælger. Genbrug af det gamle navn får typisk browseren til at lave `(... 1).eo`,
- * mens Mineo fejlagtigt kvitterede med "Gemt" som om den oprindelige fil var opdateret. Et entydigt,
- * tidsstemplet navn gør den nyeste fil synlig og forhindrer, at brugeren ved næste Hent vælger forgængeren.
- */
-export const createVersionedDownloadFilename = (
-  fileData: EoFileContainer,
-  savedAtIso = getTimestamp()
-): string => {
-  const timestamp = savedAtIso
-    .replace('T', ' kl. ')
-    .replace(/:/g, '.')
-    .replace('Z', '');
-  return `${generateFilename(fileData.data)} - gemt ${timestamp}.eo`;
-};
-
-/**
  * Resolver det autoritative gem-mål ud fra det aktuelle miljø og tidligere gem-metadata.
  *
  * File System Access: genbrug et gyldigt persisteret handle når stamdata er uændret; ellers (eller ved
  * et ubrugeligt handle) åbn pickeren med et foreslået filnavn. Ingen File System Access: fallback til
- * klassisk browser-download med et stamdata-afledt eller sidst-gemt filnavn.
+ * klassisk browser-download med et stamdata-afledt filnavn.
  */
 export const resolveSaveTarget = async (
   fileData: EoFileContainer,
@@ -254,7 +237,7 @@ export const resolveSaveTarget = async (
   // Fallback til klassisk download (Firefox m.fl.). Det er en forventet browserforskel og
   // skal derfor ikke registreres som en teknisk advarsel.
 
-  const filename = createVersionedDownloadFilename(fileData);
+  const filename = `${generateFilename(fileData.data)}.eo`;
   return {
     kind: 'download',
     filename,

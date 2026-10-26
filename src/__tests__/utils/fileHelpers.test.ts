@@ -177,6 +177,17 @@ describe('sanitizeFilename', () => {
     expect(sanitizeFilename('CON')).toBe('CON_');
   });
 
+  it('bevarer Unicode og andre tegn, som Windows accepterer', () => {
+    const name = "Jürgen Müller, Zoë O'Connor (sag #1) + 50% & € – 東京 😀";
+    expect(sanitizeFilename(name)).toBe(name);
+    expect(sanitizeFilename('Mu\u0308ller')).toBe('Mu\u0308ller');
+  });
+
+  it('fjerner alle Windows-ulovlige tegn og kontroltegn', () => {
+    const invalid = '<>:"/\\|?*' + Array.from({ length: 32 }, (_, code) => String.fromCharCode(code)).join('');
+    expect(sanitizeFilename(`Jür${invalid}gen`)).toBe('Jürgen');
+  });
+
   it('begrænser lange navne efter rensning', () => {
     const result = sanitizeFilename('a'.repeat(151));
 
@@ -203,6 +214,16 @@ describe('generateFilename og getStartInValue', () => {
         skadestype: 'Vælg skadestype',
       },
     })).toBe('Mineo - Anna');
+  });
+
+  it('bruger journalnummer som reserve, når navn, skadestype og skadedato mangler', () => {
+    expect(generateFilename({ stamdata: { journalnr: 'J-12345', skadestype: 'Vælg skadestype' } }))
+      .toBe('Mineo - J-12345 - Erstatningsopgørelse');
+  });
+
+  it('bruger standardnavnet, når alle navneoplysninger mangler', () => {
+    expect(generateFilename({ stamdata: {} })).toBe('Mineo - Erstatningsopgørelse');
+    expect(generateFilename(null)).toBe('Mineo - Erstatningsopgørelse');
   });
 
   it('returnerer et verificeret handle og ellers well-known fallback', () => {

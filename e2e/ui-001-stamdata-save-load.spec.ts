@@ -43,7 +43,7 @@ test.describe('UI-001 – Stamdata Gem/Hent', () => {
     await setFieldValueAndSettle(journalnr, 'UI001-FIKTIV-SAG');
     await setFieldValueAndSettle(advokat, 'AB');
     await setFieldValueAndSettle(sagsbehandler, 'CD');
-    await setFieldValueAndSettle(skadelidte, 'Fiktiv person');
+    await setFieldValueAndSettle(skadelidte, 'Fiktiv Jürgen Müller (sag #1)');
     await setFieldValueAndSettle(foedselsdato, '01-01-1980');
     await skadetype.click();
     await page.getByRole('option', { name: 'Arbejdsulykke', exact: true }).click();
@@ -52,7 +52,7 @@ test.describe('UI-001 – Stamdata Gem/Hent', () => {
     const saveDownloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Gem', exact: true }).click();
     const savedDownload = await saveDownloadPromise;
-    expect(savedDownload.suggestedFilename()).toMatch(/\.eo$/i);
+    expect(savedDownload.suggestedFilename()).toBe('Mineo - Fiktiv Jürgen Müller (sag #1) - Arbejdsulykke - 01-02-2020.eo');
 
     const savedPath = await savedDownload.path();
     expect(savedPath).not.toBeNull();
@@ -89,7 +89,7 @@ test.describe('UI-001 – Stamdata Gem/Hent', () => {
     await expect(journalnr).toHaveValue('UI001-FIKTIV-SAG');
     await expect(advokat).toHaveValue('AB');
     await expect(sagsbehandler).toHaveValue('CD');
-    await expect(skadelidte).toHaveValue('Fiktiv person');
+    await expect(skadelidte).toHaveValue('Fiktiv Jürgen Müller (sag #1)');
     await expect(foedselsdato).toHaveValue('01-01-1980');
     await expect(skadetype).toHaveValue('Arbejdsulykke');
     await expect(skadedato).toHaveValue('01-02-2020');

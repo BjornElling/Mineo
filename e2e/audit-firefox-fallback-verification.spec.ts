@@ -83,7 +83,7 @@ const expectFallbackBranch = async (page: Page): Promise<void> => {
 test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, CRASH-001)', () => {
 
   /**
-   * Gem gennem fallback-download skal give filen et nyt navn og gøre det klart, at den tidligere
+   * Gem gennem fallback-download skal bruge sagens filnavn og gøre det klart, at den tidligere
    * fil ikke er overskrevet. Ellers vælger brugeren let den gamle fil næste gang og oplever datatab.
    */
   test('OBS-005: Gem via fallback-download peger på den nye fil', async ({ page, runtimeErrors, runtimeSignals }) => {
@@ -98,7 +98,7 @@ test.describe('Efterkontrol: Firefox-fallback og filvælger (OBS-005, OBS-028, C
     const downloadPromise = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Gem' }).click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/ - gemt \d{4}-\d{2}-\d{2} kl\. \d{2}\.\d{2}\.\d{2}\.\d{3}\.eo$/);
+    expect(download.suggestedFilename()).toBe('Mineo - SAVE1 - Erstatningsopgørelse.eo');
     await expect(page.getByText('Din browser kan ikke overskrive en eksisterende .eo-fil.', { exact: false })).toBeVisible();
 
     // Fundets kerne: den synlige tekniske ramme ved en normal, lykket filhandling.

@@ -28,10 +28,10 @@ export const sanitizeFilename = (name: string | null | undefined, fallback = FAL
     return fallback;
   }
 
-  // Behold kun alfanumeriske tegn, mellemrum, bindestreger, underscores og punktummer
+  // Fjern kun Windows-ulovlige tegn og kontroltegn; en tilladelsesliste taber fx ü og é.
   let safe = name
     .split('')
-    .filter(c => /[a-zA-Z0-9æøåÆØÅ \-_.]/.test(c))
+    .filter(c => c.charCodeAt(0) > 31 && !/[<>:"/\\|?*]/.test(c))
     .join('');
 
   // Reducer multiple mellemrum til ét
@@ -97,7 +97,8 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
       parts.push(sanitizeFilename(formattedSkadedato ?? skadedato));
     }
 
-    if (parts.length === 0) {
+    // Præfikset er altid med; ét element betyder derfor, at ingen primære felter er udfyldt.
+    if (parts.length === 1) {
       // Hvis ingen primære felter er udfyldt, brug journalnr hvis tilgængeligt
       if (journalnr) {
         return `${EO_FILENAME_PREFIX} - ${sanitizeFilename(journalnr)} - ${FALLBACK_FILENAME}`;
