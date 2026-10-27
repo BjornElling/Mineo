@@ -200,6 +200,11 @@ export function useAarsloenViewModel() {
     tillaegAngivesSom: values.tillaegAngivesSom,
     omregningAktiveret: canShowOmregning,
   });
+  // …og dér, hvor de læses: placeringen afgøres alene af tillægsgrundlaget øverst på siden, så omregningen
+  // længere nede aldrig får valgene til at dukke op i Lønforhold ovenfor (siden udfyldes oppefra og ned).
+  const loenforholdValgPlacering: 'loenforhold' | 'beregningsprincipper' | null = !visLoenforholdValg
+    ? null
+    : values.tillaegAngivesSom === 'overenskomst' ? 'loenforhold' : 'beregningsprincipper';
 
   // «Fejl og advarsler» samler alle blokerende fejl og mangler samt advarslerne (BB-350).
   const issueRows = React.useMemo(() => buildAarsloenIssueRows({
@@ -252,7 +257,7 @@ export function useAarsloenViewModel() {
     omregningAktiveret,
     decideOmregningToggle,
     canShowOmregning,
-    visLoenforholdValg,
+    loenforholdValgPlacering,
     // Beregning
     harFatalBeregningsFejl,
     beregnetAarsloen,

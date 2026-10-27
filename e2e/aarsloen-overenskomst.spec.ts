@@ -5,7 +5,8 @@ test.describe('Årsløn med overenskomstens satser på én dato', () => {
     await login(page);
     await openPage(page, 'Årslønsberegning');
 
-    // I Procent uden helårsomregning læses ferie- og helligdagsvalget ikke og vises derfor ikke (BB-353).
+    // I Procent uden helårsomregning læses ferie- og helligdagsvalget ikke og vises derfor ikke (BB-353); med
+    // omregning står det under Beregningsprincipper, aldrig ovenfor i Lønforhold (siden udfyldes oppefra og ned).
     await expect(page.getByRole('checkbox', { name: 'Fuld løn under ferie:', exact: true })).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Løn på helligdage', exact: true })).toHaveCount(0);
     await setFieldValueAndSettle(page.locator('input[name="feriePct"]'), '12,5');

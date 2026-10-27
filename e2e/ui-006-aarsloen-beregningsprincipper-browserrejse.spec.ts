@@ -55,6 +55,11 @@ test.describe('UI-006 – Årslønnens beregningsprincipper', () => {
     const antalFeriedage = page.locator('input[name="antalFeriedage"]');
 
     await expect(fuldLoenUnderFerie).toBeChecked();
+    // Uden overenskomst står valgene under omregningen – aldrig ovenfor i Lønforhold (siden udfyldes oppefra og ned).
+    const boks = (titel: string) => page.locator('.content-box').filter({ has: page.locator('.section-header', { hasText: titel }) });
+    await expect(boks('Beregningsprincipper').getByRole('checkbox', { name: 'Fuld løn under ferie:', exact: true })).toBeVisible();
+    await expect(boks('Beregningsprincipper').getByRole('combobox', { name: 'Løn på helligdage', exact: true })).toBeVisible();
+    await expect(boks('Lønforhold').getByRole('checkbox', { name: 'Fuld løn under ferie:', exact: true })).toHaveCount(0);
     await expect(retTilSjetteFerieuge).toBeHidden();
     await expect(antalFeriedage).toBeHidden();
 

@@ -14,13 +14,62 @@ import type { AarsloenTillaegsgrundlag } from '../../../schemas/formSchemas/sect
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
- * Lønforhold: tillægsgrundlaget og de valg, satserne og helårsomregningen hviler på (BB-347/BB-348).
+ * «Fuld løn under ferie» og «Løn på helligdage» står dér, hvor de læses (BB-353): i Overenskomst her i Lønforhold
+ * (satsopslaget), ellers i Beregningsprincipper under omregningen (helårsomregningen). Placeringen afhænger kun af
+ * tillægsgrundlaget øverst på siden – siden udfyldes oppefra og ned, og intet længere nede må få et nyt valg til at
+ * dukke op ovenfor.
+ */
+export const AarsloenFuldLoenUnderFerieRow = React.memo(() => {
+  const { fields, locations } = useAarsloenVm();
+  return (
+    <LabeledControlRow label="Fuld løn under ferie:">
+      {({ labelledBy, controlId }) => (
+        <ToggleField
+          name="fuldLoenUnderFerie"
+          field={fields.fuldLoenUnderFerie}
+          location={locations.fuldLoenUnderFerie}
+          id={controlId}
+          labelledBy={labelledBy}
+        />
+      )}
+    </LabeledControlRow>
+  );
+});
+
+AarsloenFuldLoenUnderFerieRow.displayName = 'AarsloenFuldLoenUnderFerieRow';
+
+export const AarsloenLoenPaaHelligdageRow = React.memo(() => {
+  const { fields, locations } = useAarsloenVm();
+  return (
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">Løn på helligdage:</Typography>
+      <Box className="row--label-right-hover__content">
+        <ChoiceField<LoenPaaHelligdage>
+          name="loenPaaHelligdage"
+          field={fields.loenPaaHelligdage}
+          location={locations.loenPaaHelligdage}
+          width={185}
+          allowEmpty={false}
+        >
+          <MenuItem value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>
+          <MenuItem value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>
+          <MenuItem value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
+        </ChoiceField>
+      </Box>
+    </Box>
+  );
+});
+
+AarsloenLoenPaaHelligdageRow.displayName = 'AarsloenLoenPaaHelligdageRow';
+
+/**
+ * Lønforhold: tillægsgrundlaget og de valg, satserne hviler på (BB-347/BB-348).
  *
- * Rækkefølgen følger Lønindkomst-kortet: overenskomsten står før det, den låser. «Fuld løn under ferie» og «Løn
- * på helligdage» vises kun, når de læses – altid i Overenskomst, ellers kun ved aktiv omregning (BB-353).
+ * Rækkefølgen følger Lønindkomst-kortet: overenskomsten står før det, den låser. Boksens rækker afhænger kun af
+ * valg i boksen selv, ovenfor – aldrig af noget længere nede på siden (se rækkerne ovenfor).
  */
 const AarsloenLoenforholdSection = React.memo(() => {
-  const { fields, locations, values, visLoenforholdValg } = useAarsloenVm();
+  const { fields, locations, values, loenforholdValgPlacering } = useAarsloenVm();
   const harOverenskomst = values.tillaegAngivesSom === 'overenskomst';
 
   return (
@@ -64,36 +113,10 @@ const AarsloenLoenforholdSection = React.memo(() => {
         </>
       )}
 
-      {visLoenforholdValg && (
+      {loenforholdValgPlacering === 'loenforhold' && (
         <>
-          <LabeledControlRow label="Fuld løn under ferie:">
-            {({ labelledBy, controlId }) => (
-              <ToggleField
-                name="fuldLoenUnderFerie"
-                field={fields.fuldLoenUnderFerie}
-                location={locations.fuldLoenUnderFerie}
-                id={controlId}
-                labelledBy={labelledBy}
-              />
-            )}
-          </LabeledControlRow>
-
-          <Box className="row--label-right-hover">
-            <Typography className="row--text">Løn på helligdage:</Typography>
-            <Box className="row--label-right-hover__content">
-              <ChoiceField<LoenPaaHelligdage>
-                name="loenPaaHelligdage"
-                field={fields.loenPaaHelligdage}
-                location={locations.loenPaaHelligdage}
-                width={185}
-                allowEmpty={false}
-              >
-                <MenuItem value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>
-                <MenuItem value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>
-                <MenuItem value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
-              </ChoiceField>
-            </Box>
-          </Box>
+          <AarsloenFuldLoenUnderFerieRow />
+          <AarsloenLoenPaaHelligdageRow />
         </>
       )}
 

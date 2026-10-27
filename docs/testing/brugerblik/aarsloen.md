@@ -885,6 +885,7 @@ angives som → satsoverskrift → «Indtægtsoplysninger» → tabel.
 - **Type:** Fornuft · **Rækkevidde:** Mønster → `TVAERGAAENDE.md` M-35 · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
 - **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
 - **Gennemført 2026-10-27:** «Fuld løn under ferie» og «Løn på helligdage» vises kun i Overenskomst eller ved aktiv omregning, efter det nye prædikat `erAarsloenLoenforholdValgRelevante`.
+- **Opfølgende udviklerafgørelse 2026-10-27:** Siden udfyldes oppefra og ned; et valg længere nede må aldrig få rækker til at dukke op ovenfor. Gennemført: uden overenskomst står de to valg i Beregningsprincipper under omregningen, lige over 6. ferieuge/feriedage og SH-dage; i Overenskomst står de fortsat i Lønforhold.
 - **Sådan fremprovokeres det:** Procent, uden omregning, én række 30.000 kr., ferie 12,5 %, SH/SO 4 %. Skift helligdage
   til «Ingen», slå Fuld løn under ferie fra.
 - **Det sker:** Sammentællingen bliver på 34.950,00 kr.; intet ændrer sig. Før ændringen var valgene inaktive uden

@@ -7,9 +7,11 @@ import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import IntegerField from '../../../inputCore/react/fields/IntegerField';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import { useAarsloenVm } from './aarsloenContext';
+import { AarsloenFuldLoenUnderFerieRow, AarsloenLoenPaaHelligdageRow } from './AarsloenLoenforholdSection';
 
 /**
- * Beregningsprincipper: omregning til fuldt år og de felter, den låser op.
+ * Beregningsprincipper: omregning til fuldt år og de felter, den låser op – uden overenskomst også «Fuld løn under
+ * ferie» og «Løn på helligdage», der da kun læses af omregningen (BB-353).
  *
  * Omregning-togglen er et ALMINDELIGT persisteret felt gennem `ToggleField` (§3.2/§3.7) – gaten leveres som dens
  * `commit`-override, så en ugyldig aktivering afvises uden at feltbindingen eller undo/redo-fokusmetadataen
@@ -48,6 +50,10 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           <Typography className="row--text">{vm.indtastetEnhedSummary.value}</Typography>
         </Box>
 
+        {/* Uden overenskomst læses ferie-/helligdagsvalget kun af omregningen og står derfor her, lige over det,
+            det styrer (BB-353) – ikke i Lønforhold, hvor det ville dukke op ovenfor ved aktivering. */}
+        {vm.loenforholdValgPlacering === 'beregningsprincipper' && <AarsloenFuldLoenUnderFerieRow />}
+
         {/* Ret til 6. ferieuge – kun synlig hvis IKKE fuld løn under ferie */}
         <Box sx={{ display: vm.shouldShowFerieFields ? 'block' : 'none' }}>
           <LabeledControlRow label="Ret til 6. ferieuge:">
@@ -81,6 +87,8 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
             </Box>
           </Box>
         </Box>
+
+        {vm.loenforholdValgPlacering === 'beregningsprincipper' && <AarsloenLoenPaaHelligdageRow />}
 
         {/* SH-dage – kun synlig hvis dropdown er 'SH-udbetaling' eller 'Ingen' */}
         <Box sx={{ display: vm.shouldShowShDageFields ? 'block' : 'none' }}>
