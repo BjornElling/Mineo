@@ -28,7 +28,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-347
+- **Næste fund-ID:** BB-357
+- **Efterreview af Årsløn 2026-10-27** (commit `634bce97`, overenskomst som tillægsgrundlag): 10 fund, BB-347–BB-356,
+  i `aarsloen.md` §«Efterreview 2026-10-27». Afgjort og gennemført samme dag (BB-350 korrigeret af udvikleren til én «Fejl og advarsler»-boks).
 - **Kritisk efterreview:** Gennemgangen af 12a–12j tilføjede BB-332–BB-346. BB-332, BB-333, BB-336, BB-337
   og BB-341 er gennemført; BB-334/335's nye fejl blev godkendt for ældre `.eo`-filer uden load-advarsel. BB-337 er
   gennemført fælles for alle sorterbare tabeller: første Ctrl+Z fortryder indtastningen og bevarer sorteringen. BB-338
@@ -638,7 +640,7 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
 | 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
 | 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
-| 9 | Årslønsberegning | Afgjort | 21 (BB-096–BB-116) | [aarsloen.md](aarsloen.md) |
+| 9 | Årslønsberegning | Afgjort; efterreview 2026-10-27 afgjort og gennemført | 21 (BB-096–BB-116) + 10 (BB-347–BB-356) | [aarsloen.md](aarsloen.md) |
 | 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
 | 11a | Erhvervsevnetab – EET oplysninger | Afgjort | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |

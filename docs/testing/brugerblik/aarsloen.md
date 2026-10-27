@@ -761,3 +761,195 @@ Ingen af de 21 fund handler om et forkert regnestykke; BB-096 og BB-097 handler 
    indeværende år i alle tre tilstande.
 4. **Skal «Fuld løn under ferie» og «Løn på helligdage» fra Indstillinger gælde Årsløn?** (BB-106)
    I dag gør kun «Løn indtastes som» det, selv om alle tre felter hedder det samme begge steder.
+
+---
+
+# Efterreview 2026-10-27 – Overenskomst som tillægsgrundlag
+
+**Status: afgjort og gennemført 2026-10-27** (afgørelserne og gennemførelsen står under hvert fund). Verificeret med typecheck, lint, hele vitest-suiten (10.956 tests), 73 e2e-tests i Chrome (Årsløn, Lønindkomst m.fl.) og en visuel kontrol i browseren uden konsolfejl.
+
+- Omfang: commit `634bce97` («Beregn årslønnens tillæg ud fra overenskomstens satser»): valget «Overenskomst»,
+  organisationsfiltre, overenskomstvælger, «Reguleringsdato», Store Bededag-tilvalget og flytningen af «Fuld løn under
+  ferie» og «Løn på helligdage» op i den første boks.
+- Afprøvet i: Chromium headless 1536×864 mod dev-serveren; konsollen overvåget, **0 fejl, 0 advarsler**. BB-347–BB-350
+  er rejst af udvikleren selv og her efterprøvet og udbygget.
+
+## Fladen kort (efter ændringen)
+
+Boksen «Satser» rummer nu: Løn indtastes som · Fuld løn under ferie · Løn på helligdage · Tillæg beregnes på baggrund af
+(Procent/Beløb/Overenskomst) · [ved Overenskomst: L-/A-filter, overenskomstvælger, Reguleringsdato, Store
+Bededag-tilvalg] · de fem satsfelter. Derefter Indtægtsoplysninger, Beregningsprincipper (omregning, 6. ferieuge,
+feriedage, SH-dage), Advarsler og Beregning. Lønindkomst-kortet viser samme indhold som: «Lønforhold» → Overenskomst ·
+vælger · Fuld løn under ferie · Løn på helligdage · Store Bededag · særlig fra-dato · Løn indtastes som · Tillæg
+angives som → satsoverskrift → «Indtægtsoplysninger» → tabel.
+
+## Fund
+
+### BB-347 – Indholdet står i en anden rækkefølge end på Lønindkomst
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig. Årsløn må gerne få flere indholdsbokse. Lønindkomst-fanen skal blive i den nuværende indholdsboks, eventuelt med ændret placering og flere eller andre underoverskrifter, hvor det er relevant.
+- **Gennemført 2026-10-27:** Årsløn har nu boksene Lønforhold → Satser → Indtægtsoplysninger → Beregningsprincipper → Fejl og advarsler → Beregning. Lønforhold følger Lønindkomsts rækkefølge: tillægsgrundlag → overenskomstvælger → Reguleringsdato → Fuld løn under ferie → Løn på helligdage → Store Bededag-tilvalg.
+- **Sådan fremprovokeres det:** Åbn Årsløn og Lønindkomst, vælg overenskomst begge steder.
+- **Det sker:** Årsløn starter med «Løn indtastes som» og har overenskomstvalget efter helligdagsvalget; Lønindkomst
+  starter med overenskomsten og har «Løn indtastes som» lige før satserne.
+- **Det er uhensigtsmæssigt fordi:** Samme bruger udfylder samme oplysninger fra samme lønsedler på to flader og kan
+  ikke bruge sin vane fra den ene på den anden. Overenskomsten låser de andre felter og bør stå før det, den låser.
+- **Bedre ville være:** Årsløn følger Lønindkomsts rækkefølge: tillægsgrundlag/overenskomst → vælger → dato → Fuld løn
+  under ferie → Løn på helligdage → Store Bededag-tilvalg → satser → (Løn indtastes som, se BB-348) → tabel. Den
+  forskellige mekanisme (kontakt på Lønindkomst, tredje valgmulighed på Årsløn) kan bevares: Beløb + overenskomst
+  betyder intet på Årsløn, hvor der ikke reguleres.
+- **Andre steder det kan gælde:** kun de to lønflader.
+
+### BB-348 – «Satser» dækker nu mest valg, og «Løn indtastes som» står langt fra tabellen
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig – se BB-347: Årsløn deles i flere bokse; på Lønindkomst flyttes «Løn indtastes som» inden for det eksisterende kort.
+- **Gennemført 2026-10-27:** Ny boks «Lønforhold» (`AarsloenLoenforholdSection.tsx`); «Satser» rummer kun de fem procentfelter og skjules i Beløb. «Løn indtastes som» står øverst i «Indtægtsoplysninger» på Årsløn og – inden for det eksisterende kort – lige under underoverskriften «Indtægtsoplysninger» på Lønindkomst.
+- **Sådan fremprovokeres det:** Vælg «Overenskomst».
+- **Det sker:** Under «Satser» står ni rækker, hvoraf kun de to sidste er satser. «Løn indtastes som» styrer alene
+  tabellens kolonner, men står øverst i en anden boks end tabellen.
+- **Det er uhensigtsmæssigt fordi:** Overskriften lover noget andet end indholdet, og det valg, der ændrer tabellens
+  udseende, er adskilt fra tabellen af hele overenskomstblokken.
+- **Bedre ville være:** To bokse svarende til Lønindkomsts underoverskrifter: **«Lønforhold»** (ferie-/helligdagsvalg,
+  tillægsgrundlag, overenskomst, dato, Store Bededag-tilvalg) og **«Satser»** (de fem procentfelter; skjult i Beløb).
+  «Løn indtastes som» flyttes ind i «Indtægtsoplysninger» lige over tabellen – og tilsvarende på Lønindkomst, ellers
+  genopstår BB-347 med omvendt fortegn.
+- **Andre steder det kan gælde:** Lønindkomst-kortet (`AnsaettelsesforholdCard.tsx`).
+
+### BB-349 – En manglende dato forklares som manglende satsdækning, og Store Bededag viser 0,00 %
+
+- **Type:** Fejl · **Rækkevidde:** Mønster → `TVAERGAAENDE.md` M-37 · **Prioritet:** Høj · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** Uden overenskomst: tooltip «Vælg overenskomst og reguleringsdato for at hente overenskomstens satser». Uden gyldig dato: «Angiv en gyldig reguleringsdato for at hente overenskomstens satser». Dækningsteksten bruges kun ved en dato før dækningen. Store Bededagstillæg står tomt uden gyldig dato. Den fælles `resolveLockedOverenskomstSatsTooltip` tager nu en tekst for manglende dato, så Lønindkomst ved manglende anvendt dato viser sin eksisterende «Aktuelt kan der ikke anvendes en reguleringsdato, fordi … ikke er udfyldt.» i stedet for dækningsteksten.
+- **Sådan fremprovokeres det:** «Overenskomst» → Bygge-/anlægsoverenskomsten → ingen dato. Hold musen over Fritvalg,
+  SH/SO-sats eller pension.
+- **Det sker:** Tooltippen siger «Bygge-/anlægsoverenskomsten (3F / Dansk Industri) har ingen satser før 01-03-2011»,
+  selv om der ingen dato er. Datofeltet har hverken tooltip eller markering. «Store Bededagstillæg» står låst med
+  **0,00 %** uden dato og ved en ugyldig dato (`31-02-2024`). Ved KL uden dato er der slet ingen forklaring.
+- **Det er uhensigtsmæssigt fordi:** Teksten peger på et dækningsproblem, der ikke findes, og skjuler, at kun datoen
+  mangler. 0,00 % ligner en kendt sats – præcis den sammenblanding af «ukendt» og «0 %», BB-275 afgjorde imod.
+- **Bedre ville være:** Uden gyldig dato står de låste felter tomme med tooltippen «Angiv reguleringsdato for at hente
+  overenskomstens satser»; Store Bededagstillæg står tomt; dækningsteksten bruges kun, når en gyldig dato ligger før
+  dækningen.
+- **Andre steder det kan gælde:** `resolveLockedOverenskomstSatsTooltip` deles med Lønindkomst; uverificeret kandidat er
+  et ansættelsesforhold, hvis anvendte dato endnu ikke kendes (tom TAF-periode).
+
+### BB-350 – Blokerende mangler står i den gule «Advarsler»-boks og i dobbelt
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Korrigeret: «Advarsler»-boksen ændres til en «Fejl og advarsler»-boks magen til de øvrige siders. ALLE blokerende fejl og mangler vises i den – ikke under de enkelte felter, hvilket ville afvige fra programmets generelle layout.
+- **Gennemført 2026-10-27:** «Advarsler», «Kritisk Fejl» og «Dokument-fejl» er erstattet af én «Fejl og advarsler»-boks med samme opbygning som de øvrige siders (rødt/gult ikon, link til sektionen). Den rummer alle blokerende fejl og mangler – feltfejl med feltets navn («Reguleringsdato: Datoen findes ikke i kalenderen»), «Overenskomst mangler», «Reguleringsdato mangler», lønrækkernes cellefejl («Lønrække 1, Løn: beløbet mangler»), en kritisk beregningsfejl og et afbrudt dokument – efterfulgt af advarslerne. Ved felterne er der fortsat kun rød ring og tooltip. En helt tom tabel på en ny sag giver ingen linje. Rækkerne bygges i `aarsloenIssueRows.ts`.
+- **Sådan fremprovokeres det:** Vælg «Overenskomst» uden mere; skriv derefter `31-02-2024` i datoen.
+- **Det sker:** «Advarsler» viser «Der er ikke valgt en overenskomst» og «Angiv en reguleringsdato». De spærrer
+  beregning («Sammentælling» = «—») og dokument (knappens tooltip: «Indtastning mangler»), men står i boksen for
+  ikke-blokerende advarsler. Den ugyldige dato står både under feltet og i «Advarsler» som «Datoen findes ikke i
+  kalenderen», uden feltnavn. I Procent-tilstand kommer feltfejl aldrig i «Advarsler».
+- **Det er uhensigtsmæssigt fordi:** «Advarsel» betyder ellers «du kan fortsætte». Her kan han ikke, og knappens
+  «Indtastning mangler» siger ikke hvad.
+- **Bedre ville være:** De to mangler vises som blokerende mangler med feltnavn (fx i «Dokument-fejl», som er sidens
+  blokerende boks), og en feltfejl, der allerede står ved feltet, gentages ikke uden feltnavn i «Advarsler».
+- **Andre steder det kan gælde:** ingen kendt; Årsløn er eneste flade med en ren «Advarsler»-boks.
+
+### BB-351 – Tillægsfelterne står åbne, indtil overenskomst og dato kendes – så erstattes det indtastede tavst
+
+- **Type:** Edge case · **Rækkevidde:** Lokal · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** `resolveAarsloenSatsBindings` låser fritvalg, SH/SO og pension (tomme) i Overenskomst, indtil overenskomst og gyldig dato kendes – også for offentlige overenskomster. Låsning, descriptor-relevans og projektion bruger samme funktion. Brugerens tidligere tal bevares i inputtet og ses igen ved skift til Procent.
+- **Sådan fremprovokeres det:** «Overenskomst» → Læreroverenskomsten → `9` i pension → dato `01-03-2024`.
+- **Det sker:** Uden valgt overenskomst står Fritvalg, SH/SO og pension åbne. Ved offentlig overenskomst er de åbne,
+  indtil datoen kommer; så skifter pension fra `9,00` til låst `17,30` uden besked. (`9` er ikke tabt – det kommer igen
+  ved skift til Procent – men er usynligt.)
+- **Det er uhensigtsmæssigt fordi:** Brugeren inviteres til at taste noget, programmet straks overskriver, og kan tro,
+  at hans eget tal er brugt.
+- **Bedre ville være:** I Overenskomst-tilstand står de tre felter låste og tomme (tooltip som BB-349), indtil
+  overenskomst og dato kendes; derefter åbnes kun felter, overenskomsten ikke har sats for.
+- **Andre steder det kan gælde:** Lønindkomst ved offentlig overenskomst uden anvendt dato (uverificeret).
+
+### BB-352 – Programmet advarer mod en SH/SO-sats, det selv har sat og låst
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Spørgsmålet kan ikke besvares uden dato – satserne i Bygge-/anlægsoverenskomsten varierer over tid. Men i perioden ca. 2024–2026 var satsen ved fuld løn på helligdage korrekt 8,8 %. Satsen er altså overenskomstens egen; advarslen springes derfor over for satser, overenskomsten har fastsat og låst.
+- **Gennemført 2026-10-27:** SH/SO-advarslerne springes over, når SH/SO-satsen er fastsat og låst af overenskomsten. En manuel SH/SO-sats (fx Læreroverenskomsten) vurderes fortsat.
+- **Sådan fremprovokeres det:** Bygge-/anlægsoverenskomsten, `01-03-2024`, helligdage «Almindelig løn», én lønrække.
+- **Det sker:** SH/SO står låst på `8,80`, og «Advarsler» siger «En SH/SO-sats på 8,8 % gør det usandsynligt, at der
+  betales almindelig løn på SH-dage.» Lønindkomst har ingen tilsvarende advarsel.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan ikke rette satsen; enten er advarslen forkert for en overenskomst,
+  eller også er helligdagsvalget forkert – det sidste siger teksten ikke.
+- **Bedre ville være:** Udvikleren afgør, om 8,80 % er rigtig ved almindelig løn på helligdage. Ja → advarslen
+  springes over for låste satser. Nej → advarslen peger på «Løn på helligdage».
+- **Andre steder det kan gælde:** de øvrige ferie-/SH-advarsler i `beregnFejlmeddelelser`, når satsen er låst.
+
+### BB-353 – «Fuld løn under ferie» og «Løn på helligdage» står åbne uden virkning i Procent og Beløb
+
+- **Type:** Fornuft · **Rækkevidde:** Mønster → `TVAERGAAENDE.md` M-35 · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** «Fuld løn under ferie» og «Løn på helligdage» vises kun i Overenskomst eller ved aktiv omregning, efter det nye prædikat `erAarsloenLoenforholdValgRelevante`.
+- **Sådan fremprovokeres det:** Procent, uden omregning, én række 30.000 kr., ferie 12,5 %, SH/SO 4 %. Skift helligdage
+  til «Ingen», slå Fuld løn under ferie fra.
+- **Det sker:** Sammentællingen bliver på 34.950,00 kr.; intet ændrer sig. Før ændringen var valgene inaktive uden
+  omregning; nu er de altid åbne. Felterne, de styrer (6. ferieuge, feriedage, SH-dage), står fortsat i
+  «Beregningsprincipper».
+- **Det er uhensigtsmæssigt fordi:** Det er BB-285's situation: et valg, der ser virksomt ud, men intet gør – og når
+  det gør noget (med omregning), viser virkningen sig i en anden boks.
+- **Bedre ville være:** Valgene vises, når de læses: altid i Overenskomst (satsopslaget), ellers kun ved aktiv
+  omregning – som Lønindkomsts `erFuldLoenUnderFerieRelevant`.
+- **Andre steder det kan gælde:** ingen nye.
+
+### BB-354 – Samme sats giver advarsel i Overenskomst, men ikke i Procent
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Lav · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** Løst gennem BB-353: ferie-/SH-advarslerne følger nu samme prædikat som de to valgs synlighed, så samme sats og samme synlige valg vurderes ens i Procent og Overenskomst. **Opfølgende udviklerafgørelse 2026-10-27:** advarslen om en feriesats over 20 % gives i både Procent og Overenskomst – også i tidligere gemte sager (en ny, ikke-blokerende advarsel efter load er godkendt) – og på Lønindkomst. Gennemført: Årsløn giver nu den gule ring og linjen i begge tilstande; Lønindkomst gav den allerede med og uden overenskomst (nu dækket af en test).
+- **Sådan fremprovokeres det:** Uden omregning: SH/SO 4 % og helligdage «Ingen» i Procent; derefter det samme i
+  Overenskomst med Læreroverenskomsten (manuel SH/SO).
+- **Det sker:** Procent: ingen advarsel. Overenskomst: «En SH/SO-sats på 4 % gør det usandsynligt, at der ikke er ret
+  til SH-betaling på helligdage.»
+- **Det er uhensigtsmæssigt fordi:** Samme tal og samme valg vurderes forskelligt efter, hvor de andre satser kommer fra.
+- **Bedre ville være:** Én regel for ferie-/SH-advarslerne, uanset tillægsgrundlag (fx altid, når satserne bruges).
+- **Andre steder det kan gælde:** ingen.
+
+### BB-355 – Dokumentet siger ikke, at satserne er overenskomstens, eller fra hvilken dato
+
+- **Type:** Fornuft · **Rækkevidde:** Mønster → `TVAERGAAENDE.md` M-15 · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** Dokumentets satsafsnit indledes med «Overenskomst» og «Satser pr.» (`resolveAarsloenSatsKilde`).
+- **Sådan fremprovokeres det:** Hent årslønsdokumentet i Overenskomst-tilstand. Kodelæst: dokumentets input bærer
+  hverken overenskomst eller dato, og tillægsgrundlaget normaliseres til «procent».
+- **Det sker:** Papiret viser satserne, som om brugeren havde tastet dem.
+- **Det er uhensigtsmæssigt fordi:** Modparten kan ikke se, hvor fx 10,15 % pension kommer fra, eller at én dags
+  satser er brugt på alle lønrækker.
+- **Bedre ville være:** Én linje i satsafsnittet: «Satser fastsat efter Bygge-/anlægsoverenskomsten (3F / Dansk
+  Industri) pr. 01-03-2024.»
+- **Andre steder det kan gælde:** EO-dokumentets lønindkomstafsnit (uverificeret).
+
+### BB-356 – «Reguleringsdato» står uden forklaring på en flade, hvor intet reguleres
+
+- **Type:** Fornuft · **Rækkevidde:** Lokal · **Prioritet:** Lav · **Beslutning:** Afgjort og gennemført 2026-10-27
+- **Udviklerens afgørelse 2026-10-27:** Enig i anbefalingen.
+- **Gennemført 2026-10-27:** Info-ikon ved «Reguleringsdato»: «Overenskomstens satser på denne dato anvendes på alle lønrækker.»
+- **Sådan fremprovokeres det:** Vælg «Overenskomst».
+- **Det sker:** Feltet hedder «Reguleringsdato» uden info-ikon. Datoen vælger kun, hvilke satser der gælder for alle
+  rækker; Lønindkomsts tilsvarende felt hedder «Evt. særlig fra-dato for regulering» og har en forklaring.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan tro, at lønnen reguleres frem til datoen.
+- **Bedre ville være:** Info-ikon: «Overenskomstens satser på denne dato anvendes på alle lønrækker.» Kontraktens
+  afgørelse om én dato for alle rækker genåbnes ikke.
+- **Andre steder det kan gælde:** ingen.
+
+## Overvejet uden fund
+
+- Overenskomst → Procent bevarer de manuelle satser (e2e-dækket, set igen her).
+- Dato før dækningen (`01-01-2010`) giver rød dato med navngivet tekst og spærrer – som afgjort i BB-275.
+- Store Bededag-tilvalget skjules ved helligdage «Ingen»/«SH-udbetaling» – samme regel som Lønindkomst.
+- Læreroverenskomstens SH/SO forbliver manuel ved siden af låste naboer – samme adfærd som Lønindkomst.
+- Gyldig Bygge-sag beregner (36.101,66 kr. for én række på 30.000 kr. uden feriesats) uden konsolfejl.
+
+## Dækningshuller
+
+- Dokumentet er ikke hentet og læst (BB-355 er kodelæst).
+- Gem/Hent og undo/redo i Overenskomst-tilstand er ikke afprøvet (e2e-specet dækker reload og ét undo).
+- Omregning til fuldt år kombineret med Overenskomst er ikke afprøvet i browseren.
+
+## Åbne spørgsmål
+
+Ingen – begge spørgsmål er besvaret 2026-10-27 (se BB-347/BB-348 og BB-352).

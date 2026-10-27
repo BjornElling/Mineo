@@ -218,4 +218,30 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
       ['2', '2024'],
     ]);
   });
+
+  it('angiver overenskomst og satsdato før satserne, når satserne er overenskomstens (BB-355)', async () => {
+    const { session, requests } = createFixtureSession();
+    await generateAarsloenDocument(session, {
+      satser: { feriePct: 12.5, shSoPct: 8.8, pensionPct: 10.15 },
+      loenperiode: values.loenperiode,
+      satsKilde: { overenskomst: 'Bygge-/anlægsoverenskomsten (3F / Dansk Industri)', dato: '01-03-2024' },
+      tillaegAngivesSom: 'procent',
+      tableData: values.tableData,
+      beregnetAarsloen: 34_650,
+      omregningTilFuldtAar: false,
+      periodeData: null,
+      fuldLoenUnderFerie: true,
+      retTilSjetteFerieuge: false,
+      antalFeriedage: undefined,
+      loenPaaHelligdage: LOEN_PAA_HELLIGDAGE.ALMINDELIG,
+      shDageAntal: null,
+      beregningsData,
+    });
+    const rows = labelValues(requests[0]?.model.blocks ?? []);
+    expect(rows.slice(0, 3)).toEqual([
+      { label: 'Overenskomst', value: 'Bygge-/anlægsoverenskomsten (3F / Dansk Industri)' },
+      { label: 'Satser pr.', value: '01-03-2024' },
+      { label: 'Feriegodtgørelse/-tillæg', value: '12,5 %' },
+    ]);
+  });
 });

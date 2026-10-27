@@ -176,13 +176,18 @@ export const isOverenskomstSatsFieldDerived = (
   field: OverenskomstSatsField
 ): boolean => resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[field].kind === 'overenskomst';
 
-/** Samme forklaring ved låste satsfelter på årsløn og lønindkomst. */
+/**
+ * Samme forklaring ved låste satsfelter på årsløn og lønindkomst. Mangler datoen, er det DEN, der forklares –
+ * dækningsteksten («har ingen satser før …») gælder kun en dato, der faktisk ligger før dækningen (BB-349).
+ */
 export const resolveLockedOverenskomstSatsTooltip = (
   binding: OverenskomstSatsBinding,
   daekning: PrivatOverenskomstDaekning | null,
   reguleringsdato: ISODateString | undefined,
+  manglendeDatoTekst?: string,
 ): string | undefined => {
   if (binding.kind === 'utilgaengelig') {
+    if (reguleringsdato === undefined) return manglendeDatoTekst;
     return daekning === null ? undefined : formatOverenskomstUdenSatserTekst(daekning);
   }
   return reguleringsdato === undefined

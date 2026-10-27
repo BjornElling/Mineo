@@ -22,8 +22,9 @@ import { aarsloenSchema, type AarsloenValues, type StandardLoenTableRow } from '
 import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { buildAarsloenReaderProjection, readAarsloenValues } from '../../../domain/aarsloen/aarsloenProjection';
 import { evaluateAarsloenDownloadGate } from '../../../domain/aarsloen/aarsloenDownloadGate';
-import { resolveAarsloenOverenskomstValg } from '../../../domain/aarsloen/aarsloenTillaeg';
-import { resolveOverenskomstSatsBindings } from '../../../domain/loen/overenskomstSatser';
+import { AARSLOEN_MANGLENDE_DATO_TOOLTIP, resolveAarsloenLaastSatsTooltip, resolveAarsloenSatsBindings, resolveAarsloenSatsKilde } from '../../../domain/aarsloen/aarsloenTillaeg';
+import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRows';
+import { resolveLockedOverenskomstSatsTooltip } from '../../../domain/loen/overenskomstSatser';
 import { resolveHoejFeriePctAdvarsel } from '../../../domain/loen/feriePctAdvarsel';
 import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../../../domain/loen/storeBededagstillaeg';
 import { projectEoSave } from '../../../persistence/eoSaveProjection';
@@ -145,7 +146,7 @@ describe('årslønnens overenskomstgrundlag', () => {
     expect(evaluateAarsloenDownloadGate(result).canDownload).toBe(false);
   });
 
-  it('bevarer offentlige manuelle satsfelter ved en dato uden for grænserne og spærrer resultatet', () => {
+  it('låser de offentlige satsfelter uden gyldig dato, bevarer brugerens tal og spærrer resultatet (BB-351)', () => {
     const input = inputFor({
       overenskomstId: 'laerer-overenskomsten', reguleringsdato: iso('2100-01-01'),
       fritvalgPct: 3, shSoPct: 4, pensionPct: 5,
@@ -156,17 +157,20 @@ describe('årslønnens overenskomstgrundlag', () => {
     expect(result.values.reguleringsdato).toBeUndefined();
     expect(result.fieldIssues).toEqual(expect.arrayContaining([expect.objectContaining({ reason: 'bounds' })]));
 
-    // UI'ens låsning læser den vurderede dato; descriptoren læser den rå dato. De skal vise samme felter.
-    const uiBindings = resolveOverenskomstSatsBindings(resolveAarsloenOverenskomstValg(result.values), result.values.reguleringsdato);
-    for (const [key, descriptor, expected] of [
-      ['fritvalgPct', aarsloenFritvalgPctField, 3],
-      ['shSoPct', aarsloenShSoPctField, 4],
-      ['pensionPct', aarsloenPensionPctField, 5],
+    // UI'ens låsning læser den vurderede dato; descriptoren læser den rå dato. Begge låser: felterne står tomme,
+    // indtil datoen er gyldig, så intet tastet tal kan erstattes tavst. Brugerens tal bevares i inputtet.
+    const uiBindings = resolveAarsloenSatsBindings(result.values);
+    for (const [key, descriptor] of [
+      ['fritvalgPct', aarsloenFritvalgPctField],
+      ['shSoPct', aarsloenShSoPctField],
+      ['pensionPct', aarsloenPensionPctField],
     ] as const) {
-      expect(uiBindings[key].kind).toBe('bruger');
-      expect(reader.read(descriptor.bind())).toMatchObject({ status: 'usable', value: expected });
-      expect(result.values[key]).toBe(expected);
+      expect(uiBindings[key].kind).toBe('utilgaengelig');
+      expect(reader.read(descriptor.bind())).toMatchObject({ status: 'usable', value: undefined });
+      expect(result.values[key]).toBeUndefined();
+      expect(input.sections.aarsloen).toMatchObject({ [key]: expect.any(Number) });
     }
+    expect(result.values.storeBededagPct).toBeUndefined();
   });
 
   it('advarer om 12,5 procent sammen med fuld løn under ferie, også uden helårsomregning', () => {
@@ -200,16 +204,19 @@ describe('årslønnens overenskomstgrundlag', () => {
     expect(medOmregning.calculation?.fejlmeddelelser).toContain(ferieugeTekst);
   });
 
-  it('bevarer procenttilstandens hidtidige advarsler og giver den ingen nye overenskomstadvarsler', () => {
+  it('giver procenttilstanden den høje feriesats-advarsel, men ingen øvrige overenskomstadvarsler', () => {
     const values = {
       tillaegAngivesSom: 'procent', feriePct: 21, shSoPct: 0,
       fuldLoenUnderFerie: false, retTilSjetteFerieuge: false, beregnStoreBededagstillaeg: false,
     } as const;
     const udenOmregning = project(values);
     const medOmregning = project({ ...values, omregningTilFuldtAar: true });
-    expect(udenOmregning.calculation?.fejlmeddelelser).toEqual([]);
+    // Den høje feriesats advares i Procent som i Overenskomst og på Lønindkomst (udviklerafgørelse 2026-10-27).
+    const hoejFerie = resolveHoejFeriePctAdvarsel(21);
+    expect(udenOmregning.calculation?.fejlmeddelelser).toEqual([hoejFerie]);
     expect(medOmregning.calculation?.fejlmeddelelser).toEqual([
       'En sats for Feriegodtgørelse/-tillæg på 21 % skaber en klar formodning for, at der er ret til 6. ferieuge.',
+      hoejFerie,
     ]);
   });
 
@@ -274,5 +281,88 @@ describe('årslønnens overenskomstgrundlag', () => {
       expect(aarsloenSchema.parse(adapted.value)).toEqual(oldSection);
     }
     expect(createAarsloenInitialValues().beregnStoreBededagstillaeg).toBe(true);
+  });
+});
+
+describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
+  it('advarer ikke om en SH/SO-sats, overenskomsten selv har fastsat og låst (BB-352)', () => {
+    const result = project({ loenPaaHelligdage: 'Almindelig løn' });
+    expect(result.values.shSoPct).toBe(8.8);
+    expect(result.calculation?.fejlmeddelelser.some((tekst) => tekst.startsWith('En SH/SO-sats'))).toBe(false);
+  });
+
+  it('vurderer fortsat en manuel SH/SO-sats ved en offentlig overenskomst uden SH/SO-sats', () => {
+    const result = project({ overenskomstId: 'laerer-overenskomsten', loenPaaHelligdage: 'Ingen', shSoPct: 4 });
+    expect(result.calculation?.fejlmeddelelser).toContain(
+      'En SH/SO-sats på 4 % gør det usandsynligt, at der ikke er ret til SH-betaling på helligdage.'
+    );
+  });
+
+  it('forklarer en manglende dato som manglende dato og viser ikke Store Bededag som 0 % (BB-349)', () => {
+    const values = project({ reguleringsdato: undefined }).values;
+    const bindings = resolveAarsloenSatsBindings(values);
+    expect(bindings.pensionPct.kind).toBe('utilgaengelig');
+    expect(resolveAarsloenLaastSatsTooltip(bindings.pensionPct, values)).toBe(AARSLOEN_MANGLENDE_DATO_TOOLTIP);
+    expect(values.storeBededagPct).toBeUndefined();
+
+    const udenOverenskomst = project({ overenskomstId: undefined, reguleringsdato: undefined }).values;
+    expect(resolveAarsloenLaastSatsTooltip(bindings.pensionPct, udenOverenskomst))
+      .toBe('Vælg overenskomst og reguleringsdato for at hente overenskomstens satser');
+  });
+
+  it('beholder dækningsteksten for en gyldig dato før overenskomstens første satser', () => {
+    expect(resolveLockedOverenskomstSatsTooltip(
+      { kind: 'utilgaengelig' },
+      { overenskomstId: 'bygge-anlaeg', foersteSatsDato: iso('2011-03-01') },
+      iso('2010-01-01'),
+      AARSLOEN_MANGLENDE_DATO_TOOLTIP,
+    )).toContain('har ingen satser før 01-03-2011');
+  });
+
+  it('låser også offentlige satsfelter, indtil overenskomst og dato er valgt (BB-351)', () => {
+    const udenDato = resolveAarsloenSatsBindings(project({ overenskomstId: 'laerer-overenskomsten', reguleringsdato: undefined }).values);
+    expect(udenDato.pensionPct.kind).toBe('utilgaengelig');
+    const udenValg = resolveAarsloenSatsBindings(project({ overenskomstId: undefined }).values);
+    expect(udenValg.fritvalgPct.kind).toBe('utilgaengelig');
+    const medDato = resolveAarsloenSatsBindings(project({ overenskomstId: 'laerer-overenskomsten' }).values);
+    expect(medDato.shSoPct.kind).toBe('bruger');
+    expect(medDato.pensionPct.kind).toBe('overenskomst');
+  });
+
+  it('samler manglende forudsætninger som blokerende fejl med feltets sektion (BB-350)', () => {
+    const result = project({ overenskomstId: undefined, reguleringsdato: undefined });
+    const rows = buildAarsloenIssueRows({
+      beregningsFejl: null,
+      fieldIssues: result.fieldIssues,
+      feriedageIssues: [],
+      tableErrors: result.tableValidation.errors,
+      tableRowIds: result.values.tableData.map((r) => r.id),
+      downloadError: null,
+      warnings: ['En advarsel'],
+    });
+    expect(rows).toEqual([
+      expect.objectContaining({ severity: 'error', message: 'Overenskomst mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
+      expect.objectContaining({ severity: 'error', message: 'Reguleringsdato mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
+      expect.objectContaining({ severity: 'warning', message: 'En advarsel' }),
+    ]);
+  });
+
+  it('navngiver feltet foran en feltfejl', () => {
+    const input = settle(inputFor(), aarsloenReguleringsdatoField.bind(), '31-02-2024');
+    const result = buildAarsloenReaderProjection(readerFor(input));
+    const rows = buildAarsloenIssueRows({
+      beregningsFejl: null, fieldIssues: result.fieldIssues, feriedageIssues: [], tableErrors: [],
+      tableRowIds: [], downloadError: null, warnings: [],
+    });
+    expect(rows[0]?.message.startsWith('Reguleringsdato')).toBe(true);
+  });
+
+  it('angiver overenskomst og satsdato som dokumentets kilde til satserne (BB-355)', () => {
+    expect(resolveAarsloenSatsKilde(project().values)).toEqual({
+      overenskomst: 'Bygge-/anlægsoverenskomsten (3F / Dansk Industri)',
+      dato: '01-03-2024',
+    });
+    expect(resolveAarsloenSatsKilde(project({ tillaegAngivesSom: 'procent' }).values)).toBeNull();
+    expect(resolveAarsloenSatsKilde(project({ reguleringsdato: undefined }).values)).toBeNull();
   });
 });

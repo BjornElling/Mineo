@@ -162,8 +162,8 @@ export const resolveAarsloenFieldErrorGate = (
         issues.push({ kind: 'consumer', consumerId: 'aarsloen', severity: 'error', reason: 'missing', code: `${ref.descriptor.id}.missing`, field: toAnyFieldRef(ref), message });
       }
     };
-    checkRequired(scalarRefs.overenskomstId, 'Der er ikke valgt en overenskomst');
-    checkRequired(scalarRefs.reguleringsdato, 'Angiv en reguleringsdato');
+    checkRequired(scalarRefs.overenskomstId, 'Overenskomst mangler');
+    checkRequired(scalarRefs.reguleringsdato, 'Reguleringsdato mangler');
   }
 
   if (options.omregningAktiveret && !values.fuldLoenUnderFerie) {

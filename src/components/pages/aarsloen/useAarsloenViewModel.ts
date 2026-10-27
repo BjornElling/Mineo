@@ -33,12 +33,14 @@ import type { FieldRef } from '../../../inputCore/fieldDescriptor';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import {
+  erAarsloenLoenforholdValgRelevante,
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
 } from '../../../domain/policies/aarsloenPolicy';
 import type { StandardLoenTableHandle } from '../../../types/handles';
 import type { LoenPaaHelligdage } from '../../../schemas/formSchemas/enumSchemas';
-import { firstPageMessage, pageMessage, withPageMessages } from '../../layout/pageMessage';
+import { firstPageMessage, hasPageMessage, pageMessage, withPageMessages } from '../../layout/pageMessage';
+import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRows';
 
 /**
  * Årslønsberegnings ene kanoniske viewmodel (`page-component-contract.md` §4.4).
@@ -152,14 +154,14 @@ export function useAarsloenViewModel() {
   const beregningsData = calculation?.beregningsData ?? AARSLOEN_BEREGNING_INGEN;
   // Løntabellens rækkeadvarsler (identisk række, periode efter dags dato) står først i «Advarsler»: de navngiver
   // rækken, den gule ring sidder på (BB-289/BB-298). De er sidens egne og når ikke dokumentet.
-  const fejlmeddelelser = React.useMemo(
-    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(values.tillaegAngivesSom === 'overenskomst' ? readerProjection.fieldIssues.map((issue) => issue.message) : []), ...(calculation?.fejlmeddelelser ?? [])],
-    [calculation, tableRowWarnings, readerProjection.fieldIssues, values.tillaegAngivesSom]
+  const advarsler = React.useMemo(
+    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(calculation?.fejlmeddelelser ?? [])],
+    [calculation, tableRowWarnings]
   );
-  // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: boksen må ikke kunne vises uden indhold.
+  // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: rækken må ikke kunne vises uden indhold.
   // Her stod tidligere `?? []` på et `string | null`-felt – et tomt array er truthy, så "Kritisk Fejl"-boksen
   // stod permanent øverst på siden UDEN tekst. `pageMessage()` normaliserer null/tom/whitespace til ÉN
-  // fraværs-variant, og `PageMessageBox` ejer værnet. Se `components/layout/pageMessage.ts` for fejlklassen.
+  // fraværs-variant, og `hasPageMessage` afgør, om den står i «Fejl og advarsler». Se `components/layout/pageMessage.ts`.
   const beregningsFejl = pageMessage(calculation?.beregningsFejl);
 
   // Dokument-download. Begge outputs deler ÉN kildekontekst, så årsløns-projektionen kun bygges én gang pr.
@@ -184,15 +186,31 @@ export function useAarsloenViewModel() {
     await shDageDownload.download(undefined);
   }, [shDageDownload]);
 
-  // De to outputs deler fejlboksen. Gate-blokeringer bærer ingen besked (knappernes tooltip ejer årsagen),
-  // så boksen viser kun et stale-afbrud eller en død DEV-server. En blokeret årsløn-download besvares
-  // visuelt med shake + celle-flash.
+  // De to outputs deler én linje i «Fejl og advarsler». Gate-blokeringer bærer ingen besked (felt- og cellefejl
+  // står allerede i boksen; en helt tom tabel er ikke en fejl), så linjen viser kun et stale-afbrud eller en død DEV-server.
+  // En blokeret årsløn-download besvares desuden med celle-flash.
   const downloadErrorMessage = firstPageMessage(
     pageMessage(aarsloenDownload.errorMessage),
     pageMessage(shDageDownload.errorMessage)
   );
 
   const canShowOmregning = omregningAktiveret && periodeData !== null;
+  // «Fuld løn under ferie» og «Løn på helligdage» vises kun, når de læses (BB-353) – samme prædikat som advarslerne.
+  const visLoenforholdValg = erAarsloenLoenforholdValgRelevante({
+    tillaegAngivesSom: values.tillaegAngivesSom,
+    omregningAktiveret: canShowOmregning,
+  });
+
+  // «Fejl og advarsler» samler alle blokerende fejl og mangler samt advarslerne (BB-350).
+  const issueRows = React.useMemo(() => buildAarsloenIssueRows({
+    beregningsFejl: hasPageMessage(beregningsFejl) ? beregningsFejl.text : null,
+    fieldIssues: readerProjection.fieldIssues,
+    feriedageIssues: feriedageFieldIssues,
+    tableErrors: tableValidation.errors,
+    tableRowIds: values.tableData.map((row) => row.id),
+    downloadError: hasPageMessage(downloadErrorMessage) ? downloadErrorMessage.text : null,
+    warnings: advarsler,
+  }), [advarsler, beregningsFejl, downloadErrorMessage, feriedageFieldIssues, readerProjection.fieldIssues, tableValidation.errors, values.tableData]);
   const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
   const shouldShowFerieFields = React.useMemo(() => shouldShowAarsloenFerieFields(values), [values]);
   const shouldShowShDageFields = React.useMemo(() => shouldShowAarsloenShDageFields(values), [values]);
@@ -234,12 +252,13 @@ export function useAarsloenViewModel() {
     omregningAktiveret,
     decideOmregningToggle,
     canShowOmregning,
+    visLoenforholdValg,
     // Beregning
     harFatalBeregningsFejl,
     beregnetAarsloen,
     beregningsData,
     beregningsFejl,
-    fejlmeddelelser,
+    issueRows,
     shDageAntal,
     indtastetEnhedSummary,
     visDownloadVedSammentaelling,

@@ -5,8 +5,8 @@ import type {
 } from '../../schemas/formSchemas/enumSchemas';
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import { aarsloenTillaegsgrundlagEnum, type AarsloenTillaegsgrundlag } from '../../schemas/formSchemas/sections/aarsloenSchemas';
-import { resolveOverenskomstSatsBindings, resolvePrivatOverenskomstDaekning, erDatoUdenOverenskomstSatser, formatReguleringsdatoUdenOverenskomstSatserBesked } from '../../domain/loen/overenskomstSatser';
-import { resolveAarsloenSatsdato } from '../../domain/aarsloen/aarsloenTillaeg';
+import { resolvePrivatOverenskomstDaekning, erDatoUdenOverenskomstSatser, formatReguleringsdatoUdenOverenskomstSatserBesked } from '../../domain/loen/overenskomstSatser';
+import { resolveAarsloenSatsBindings } from '../../domain/aarsloen/aarsloenTillaeg';
 import type { ISODateString } from '../../types/branded';
 import { getCurrentYear, dateRanges_aarsloen, dateRange_systemramme, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
@@ -87,11 +87,12 @@ const percentField = (field: string, label: string): FieldDescriptor<number | un
       if (view.readCanonical(aarsloenTillaegAngivesSomField.bind()) !== 'overenskomst' || field === 'feriePct') return true;
       if (field === 'storeBededagPct') return false;
       if (field !== 'fritvalgPct' && field !== 'shSoPct' && field !== 'pensionPct') return false;
-      return resolveOverenskomstSatsBindings({
-        harOverenskomst: true,
+      return resolveAarsloenSatsBindings({
+        tillaegAngivesSom: 'overenskomst',
         overenskomstId: view.readCanonical(aarsloenOverenskomstIdField.bind()),
         loenPaaHelligdage: view.readCanonical(aarsloenLoenPaaHelligdageField.bind()),
-      }, resolveAarsloenSatsdato(view.readCanonical(aarsloenReguleringsdatoField.bind())))[field].kind === 'bruger';
+        reguleringsdato: view.readCanonical(aarsloenReguleringsdatoField.bind()),
+      })[field].kind === 'bruger';
     },
     validators: [percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })],
   });

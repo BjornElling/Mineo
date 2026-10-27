@@ -3,15 +3,12 @@ import { Box, Typography } from '@mui/material';
 
 import { AarsloenVmProvider } from './aarsloen/aarsloenContext';
 import { useAarsloenViewModel } from './aarsloen/useAarsloenViewModel';
+import AarsloenLoenforholdSection from './aarsloen/AarsloenLoenforholdSection';
 import AarsloenSatserSection from './aarsloen/AarsloenSatserSection';
 import AarsloenIndtaegtSection from './aarsloen/AarsloenIndtaegtSection';
 import AarsloenBeregningsprincipperSection from './aarsloen/AarsloenBeregningsprincipperSection';
 import AarsloenBeregningSection from './aarsloen/AarsloenBeregningSection';
-import {
-  AarsloenAdvarslerSection,
-  AarsloenDokumentFejlSection,
-  AarsloenKritiskFejlSection,
-} from './aarsloen/AarsloenMeddelelserSections';
+import { AarsloenFejlOgAdvarslerSection } from './aarsloen/AarsloenMeddelelserSections';
 
 /**
  * Årslønsberegning: beregner årsløn ud fra satser og indtægtsoplysninger.
@@ -27,12 +24,11 @@ const Aarsloen = React.memo(() => {
       <Box>
         <Typography className="page-title">Årslønsberegning</Typography>
 
-        <AarsloenKritiskFejlSection />
+        <AarsloenLoenforholdSection />
         <AarsloenSatserSection />
         <AarsloenIndtaegtSection />
         <AarsloenBeregningsprincipperSection />
-        <AarsloenAdvarslerSection />
-        <AarsloenDokumentFejlSection />
+        <AarsloenFejlOgAdvarslerSection />
         <AarsloenBeregningSection />
       </Box>
     </AarsloenVmProvider>

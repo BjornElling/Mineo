@@ -118,6 +118,11 @@ describe('assessLoenindkomstSatser', () => {
     }]);
   });
 
+  it.each([false, true])('advarser om den høje feriesats både med og uden overenskomst (overenskomst: %s)', (harOverenskomst) => {
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 25, harOverenskomst, overenskomstId: harOverenskomst ? 'bygge-anlaeg' : undefined }));
+    expect(findings).toEqual([expect.objectContaining({ kind: 'unusual', severity: 'warning' })]);
+  });
+
   it('vurderer ikke de skjulte satsfelter i Beløb-tilstand', () => {
     expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB, feriePct: 5 }))).toEqual([]);
     expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB }))).toEqual([]);

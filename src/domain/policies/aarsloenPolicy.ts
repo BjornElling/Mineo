@@ -54,3 +54,13 @@ export const shouldShowAarsloenShDageFields = (aarsloen: AarsloenValues | null):
   );
 };
 
+
+/**
+ * Relevans for «Fuld løn under ferie» og «Løn på helligdage» – og dermed for de satsadvarsler, der holder
+ * satserne op mod dem (BB-353/BB-354). Overenskomstens satsopslag læser dem altid; ellers læses de kun af
+ * helårsomregningen. Synligheden og advarslerne spørger begge her, så et skjult valg aldrig kan advares om.
+ */
+export const erAarsloenLoenforholdValgRelevante = (valg: Readonly<{
+  tillaegAngivesSom: AarsloenValues['tillaegAngivesSom'];
+  omregningAktiveret: boolean;
+}>): boolean => valg.tillaegAngivesSom === 'overenskomst' || valg.omregningAktiveret;

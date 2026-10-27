@@ -2045,7 +2045,7 @@ export const messageBoxGuardedByPageMessageRule = defineRule({
       + 'er den ene render-vej for fejlbokse holdt op med at eksistere',
     requiredPaths: [
       PAGE_MESSAGE_VIEW_OWNER,
-      'src/components/pages/aarsloen/AarsloenMeddelelserSections.tsx',
+      'src/components/pages/renteberegning/RenteberegningTab.tsx',
     ],
   },
   appliesTo: (relativePath) => relativePath.startsWith('src/components/pages/'),

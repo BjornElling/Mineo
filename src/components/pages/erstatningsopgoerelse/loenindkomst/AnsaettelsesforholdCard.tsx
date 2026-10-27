@@ -257,7 +257,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       sx: LOCKED_SATS_FIELD_SX,
     } as const;
     const lockedTooltip = resolveLockedOverenskomstSatsTooltip(
-      satsBindings[satsField], privatOverenskomstDaekning, anvendtReguleringsdato
+      satsBindings[satsField], privatOverenskomstDaekning, anvendtReguleringsdato,
+      formatAnvendtReguleringsdatoInfoTooltip(anvendtReguleringsdatoReferenceText, undefined),
     );
     return satsBindings[satsField].kind !== 'bruger'
       ? (
@@ -512,19 +513,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       )}
 
       <Box className="row--label-right-hover">
-        <Typography className="row--text">Løn indtastes som:</Typography>
-        <Box className="row--label-right-hover__content">
-          <RadioField
-            field={field(eoEmploymentFields.loenperiode)}
-            location={location('loenperiode')}
-            name={`${af.id}:loenperiode`}
-            row={true}
-            options={LOENPERIODE_LABELS.options}
-          />
-        </Box>
-      </Box>
-
-      <Box className="row--label-right-hover">
         <Typography className="row--text">Tillæg angives som</Typography>
         <Box className="row--label-right-hover__content">
           <ChoiceField
@@ -613,6 +601,19 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       ) : null}
 
       <Typography className="row--subheading">Indtægtsoplysninger</Typography>
+      {/* Lønperioden styrer kun tabellens kolonner og står derfor lige over tabellen (BB-348). */}
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">Løn indtastes som:</Typography>
+        <Box className="row--label-right-hover__content">
+          <RadioField
+            field={field(eoEmploymentFields.loenperiode)}
+            location={location('loenperiode')}
+            name={`${af.id}:loenperiode`}
+            row={true}
+            options={LOENPERIODE_LABELS.options}
+          />
+        </Box>
+      </Box>
       <StandardLoenTable
         fieldSet={standardLoenFieldSet}
         loenperiode={af.loenperiode}

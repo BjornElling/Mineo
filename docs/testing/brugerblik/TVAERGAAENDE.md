@@ -2927,6 +2927,8 @@ ikke bruges.
   tre valg i både måneds- og dagsløn (målt). Store Bededag-knappen fik relevans efter samme virkningsbetingelse
   (afklaringslog 9b); feltet, den hviler på, fik det ikke. **Læren: «læses af X» skal prøves pr. tilstand, ikke en gang
   for alle.**
+- **Ny forekomst 2026-10-27** (`aarsloen.md` BB-353, Mellem). Årslønnens «Fuld løn under ferie» og «Løn på helligdage»
+  blev flyttet op og gjort altid åbne; i Procent/Beløb uden omregning læses de ikke (målt: 34.950,00 kr. uændret). **Rettet 2026-10-27:** synlighed og de advarsler, der holder satserne op mod valgene, deler nu prædikatet `erAarsloenLoenforholdValgRelevante`.
 
 ## M-36 – En lovlig indtastning fører beregningen ud i en intern undtagelse
 
@@ -3025,6 +3027,10 @@ dér afviser motoren noget, feltet tog imod; her tager motoren imod noget, felte
   sats er referenceperiodens løn × 12,5 % ÷ dage. Ligger perioden, hvor der ingen lønrækker er, bliver satsen `0,00 kr.`
   uden ring og linje – mens en samlet NEGATIV løn i samme periode spærrer med en navngiven fejl. Prøven udvides: **en
   periode, programmet summerer løn over, skal også prøves helt tom** – ikke kun med en tom sats.
+- **Ny form 2026-10-27: ukendt opslagsdato vist som 0 %** (`aarsloen.md` BB-349, **Høj**). Årslønnens Overenskomst uden
+  (gyldig) reguleringsdato: Store Bededagstillæg står låst på `0,00 %`, og de låste tillæg forklares med
+  dækningsteksten «… har ingen satser før 01-03-2011». Beregningen spærrer korrekt – det er visningen, der påstår en
+  kendt sats. Prøven udvides: **opslagsdatoen skal også prøves tom og ugyldig**, ikke kun uden for dækningen. **Rettet 2026-10-27:** felterne står tomme med en tooltip om det, der mangler; den fælles tooltip-funktion tager nu en tekst for manglende dato, som også Lønindkomst bruger.
 
 ## M-38 – En afgørelse står som gennemført, men koden bærer den ikke
 

@@ -154,7 +154,7 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
     expect(screen.getByText('Sammentælling af løn fra tabellen:').parentElement?.textContent).toContain('—');
   });
 
-  // ── "Kritisk Fejl"-boksen: findes KUN med indhold ──────────────────────────────────────────────────────
+  // ── «Fejl og advarsler»-boksen: findes KUN med indhold (afløste «Kritisk Fejl», BB-350) ────────────────────
   //
   // Regression: boksen stod permanent øverst på siden og var TOM. Viewmodellen skrev `?? []` på et
   // `string | null`-felt; et tomt array er truthy, så boksens eget værn (`if (!beregningsFejl)`) slap igennem,
@@ -163,9 +163,9 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
   // Begge retninger måles, og det er bevidst: en test der kun tjekker "boksen er væk på en ren sag" ville
   // også være grøn, hvis boksen aldrig kunne vises. Den anden retning beviser, at overskriften stadig HAR en
   // levende vej – ellers var værnet grønt af tomhed.
-  const kritiskFejlBox = (): HTMLElement | null => screen.queryByText('Kritisk Fejl');
+  const kritiskFejlBox = (): HTMLElement | null => screen.queryByText('Fejl og advarsler');
 
-  it('viser INGEN "Kritisk Fejl"-boks på en sag uden beregningsfejl', () => {
+  it('viser INGEN fejlboks på en sag uden fejl og advarsler', () => {
     hydrateAarsloen({
       loenperiode: 'maaned',
       feriePct: 10,
@@ -177,14 +177,14 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
     expect(kritiskFejlBox()).toBeNull();
   });
 
-  it('viser INGEN "Kritisk Fejl"-boks på en helt fresh sag (aarsloen = null)', () => {
+  it('viser INGEN fejlboks på en helt fresh sag (aarsloen = null)', () => {
     // Den tilstand brugeren så fejlen i: en tom side, hvor der intet er at klage over.
     hydrateAarsloen(null);
     renderAarsloen();
     expect(kritiskFejlBox()).toBeNull();
   });
 
-  it('viser "Kritisk Fejl"-boksen MED en læsbar besked, når en beregning KASTER', async () => {
+  it('viser fejlboksen MED en læsbar besked, når en beregning KASTER', async () => {
     // Boksens eneste NÅBARE indhold er en intern undtagelse, fanget af `safeCompute`.
     //
     // Det er en pointe i sig selv. `computeAarsloenBeregning` sætter også `beregningsFejl` fra
@@ -211,12 +211,12 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
       });
       renderAarsloen();
 
+      // Den kritiske fejl står nu i «Fejl og advarsler» sammen med alle andre blokerende fejl (BB-350).
       const header = kritiskFejlBox();
       expect(header).not.toBeNull();
       // Boksens brødtekst – ikke overskriften selv – skal have synligt indhold. En boks med overskrift og intet
       // indhold er værre end ingen boks: den påstår en fejl uden at kunne navngive den.
-      const boxText = header?.parentElement?.textContent?.replace('Kritisk Fejl', '').trim() ?? '';
-      expect(boxText.length).toBeGreaterThan(0);
+      expect(header?.parentElement?.textContent).toContain('Fejl ved beregning af periode-data');
       expect(logErrorMock).toHaveBeenCalledWith(
         'Systemfejl registreret: Beregningsfejl',
         expect.any(Object),

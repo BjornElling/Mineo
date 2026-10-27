@@ -1,6 +1,6 @@
 import { resolveHoejFeriePctAdvarsel } from '../loen/feriePctAdvarsel';
 import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../loen/storeBededagstillaeg';
-import { resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
+import { resolveAarsloenSatsBindings, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 import { beregnOmregnetAarsloen } from './aarsloenCalculations';
 import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from './standardLoenRowCalculations';
 import {
@@ -8,7 +8,7 @@ import {
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
 } from './aarsloenValidationPolicies';
-import { erAarsloenFerieFelterRelevant, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
+import { erAarsloenFerieFelterRelevant, erAarsloenLoenforholdValgRelevante, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
 import { beregnSHDageForDatoSet } from '../dates/shDageBeregning';
 import type { AarsloenValues } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
@@ -136,17 +136,25 @@ export const computeAarsloenBeregning = ({
   // relevans-prædikat, som styrer feltsynligheden (`aarsloen-contract.md` §2-regel 5) – ikke en parallel
   // regel: descriptorernes `relevance` og `resolveAarsloenCanonicalRangeIssues` spørger om præcis det samme.
   const satserErIBrug = erAarsloenSatsFelterRelevante(tillaegAngivesSom);
-  // Overenskomstens forudsætninger gælder også uden helårsomregning. Skjulte ferieugevalg må ikke advare.
-  const fejlmeddelelser = satserErIBrug && (omregningAktiveret || tillaegAngivesSom === 'overenskomst') && periodeData !== null
-    ? beregnFejlmeddelelser(feriePct, shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage, { medtagFerieuge: omregningAktiveret })
+  // Ferie-/SH-advarslerne holder satserne op mod «Fuld løn under ferie» og «Løn på helligdage» og følger derfor
+  // samme relevans som de to valgs synlighed – ens i Procent og Overenskomst (BB-353/BB-354). Skjulte
+  // ferieugevalg må ikke advare. En SH/SO-sats, overenskomsten selv har fastsat og låst, kan brugeren ikke rette;
+  // den er overenskomstens egen og vurderes ikke (BB-352).
+  const shSoErLaast = tillaegAngivesSom === 'overenskomst' && resolveAarsloenSatsBindings(values).shSoPct.kind !== 'bruger';
+  const fejlmeddelelser = satserErIBrug && erAarsloenLoenforholdValgRelevante({ tillaegAngivesSom, omregningAktiveret }) && periodeData !== null
+    ? beregnFejlmeddelelser(feriePct, shSoErLaast ? undefined : shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage, { medtagFerieuge: omregningAktiveret })
     : [];
 
-  if (tillaegAngivesSom === 'overenskomst' && periodeData !== null) {
+  // Den høje feriesats vurderes, når satserne bruges – i Procent som i Overenskomst og som på Lønindkomst.
+  // Udviklerafgørelse 2026-10-27: gælder også tidligere gemte sager (en ny, ikke-blokerende advarsel efter load).
+  if (satserErIBrug && periodeData !== null) {
     const hoejFerie = resolveHoejFeriePctAdvarsel(feriePct);
+    if (hoejFerie !== undefined) fejlmeddelelser.push(hoejFerie);
+  }
+  if (tillaegAngivesSom === 'overenskomst' && periodeData !== null) {
     const fravalgtBededag = resolveFravalgtStoreBededagstillaegAdvarsel(values.reguleringsdato, {
       loenPaaHelligdage, beregnStoreBededagstillaeg: values.beregnStoreBededagstillaeg,
     });
-    if (hoejFerie !== undefined) fejlmeddelelser.push(hoejFerie);
     if (fravalgtBededag !== undefined) fejlmeddelelser.push(fravalgtBededag);
   }
 

@@ -1,60 +1,81 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 
 import ContentBox from '../../layout/ContentBox';
-import { PageMessageBox } from '../../layout/PageMessageBox';
+import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
+import type { AarsloenIssueRow, AarsloenIssueTarget } from '../../../domain/aarsloen/aarsloenIssueRows';
 import { useAarsloenVm } from './aarsloenContext';
 
+const ROW_SX = {
+  '--label-width': '400px',
+  display: 'grid',
+  gridTemplateColumns: '1fr max-content',
+  alignItems: 'flex-start',
+  gap: 1,
+  '& > :first-of-type': { minWidth: 0, overflowWrap: 'break-word' },
+  '& .row--label-right-hover__content': {
+    minWidth: 'max-content',
+    flexWrap: 'nowrap',
+    whiteSpace: 'nowrap',
+    alignSelf: 'flex-start',
+  },
+} as const;
+
+const LINK_SX = {
+  cursor: 'pointer',
+  border: 0,
+  background: 'transparent',
+  p: 0,
+  m: 0,
+  font: 'inherit',
+} as const;
+
 /**
- * Årsløns meddelelsesbokse. Hver vises kun, når den har indhold.
+ * «Fejl og advarsler» – magen til de øvrige siders boks (BB-350, udviklerafgørelse 2026-10-27).
  *
- * De er BEVIDST tre selvstændige komponenter frem for én: rækkefølgen på siden er ikke sammenhængende. Den
- * kritiske fejl står ØVERST (før Satser), mens advarsler og dokument-fejl står mellem Beregningsprincipper og
- * Beregning. En samlet komponent kunne ikke gengive den placering uden at flytte noget synligt.
- *
- * De to fejlbokse ejer IKKE deres eget synlighedsværn – det ligger i `PageMessageBox`. Den kritiske boks stod
- * tidligere permanent og tom øverst på siden, fordi den håndrullede værnet (`if (!beregningsFejl)`) på en værdi,
- * hvor truthiness ikke betød "har indhold"; se `components/layout/pageMessage.ts`.
+ * ALLE blokerende fejl og mangler står her: feltfejl, manglende overenskomstforudsætninger, lønrækkernes
+ * cellefejl, en kritisk beregningsfejl og et afbrudt dokument. Ved felterne er der kun rød ring og tooltip. Boksen
+ * RENDERER kun – rækkerne formuleres i `buildAarsloenIssueRows`. Linket fører til feltet eller lønrækkens celle.
  */
+export const AarsloenFejlOgAdvarslerSection = React.memo(() => {
+  const { issueRows, tabelRef } = useAarsloenVm();
 
-export const AarsloenKritiskFejlSection = React.memo(() => {
-  const { beregningsFejl } = useAarsloenVm();
-  return <PageMessageBox title="Kritisk Fejl" message={beregningsFejl} />;
-});
+  const goTo = React.useCallback((target: AarsloenIssueTarget) => {
+    if (target.kind === 'field') scrollToFieldAddress(target.address);
+    else tabelRef.current?.flashError(target.error);
+  }, [tabelRef]);
 
-AarsloenKritiskFejlSection.displayName = 'AarsloenKritiskFejlSection';
+  if (issueRows.length === 0) return null;
 
-/**
- * Advarsler. Boksen RENDERER kun – den formulerer ikke.
- *
- * Teksten om 6. ferieuge stod tidligere hardkodet her, uden om `beregnFejlmeddelelser`. Den omgik derfor
- * både den kanoniske procentformattering (den skrev den rå værdi) og feltets eget navn, og den var ikke
- * omfattet af den relevans-gating, der slukker satsadvarslerne i Beløb-tilstand. Advarslerne leveres nu
- * af den fælles projektion med deres ordlyd, formattering og relevansregel.
- */
-export const AarsloenAdvarslerSection = React.memo(() => {
-  const { fejlmeddelelser } = useAarsloenVm();
-  if (fejlmeddelelser.length === 0) return null;
+  const renderRow = (row: AarsloenIssueRow) => (
+    <Box key={row.id} className="row--label-right-hover" sx={ROW_SX}>
+      <Typography className="row--text">{row.message}</Typography>
+      <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+        {row.target !== undefined && (
+          <Typography
+            className="row--text icon-text-link"
+            component="button"
+            type="button"
+            onClick={() => { if (row.target !== undefined) goTo(row.target); }}
+            sx={LINK_SX}
+          >
+            {row.target.sectionName}
+          </Typography>
+        )}
+        {row.severity === 'error'
+          ? <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
+          : <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />}
+      </Box>
+    </Box>
+  );
 
   return (
     <ContentBox className="content-box">
-      <Typography className="section-header">Advarsler</Typography>
-
-      {fejlmeddelelser.map((fejl, index) => (
-        <Box key={index} className="row--label-right-hover">
-          <Typography className="row--text">{fejl}</Typography>
-          <Box />
-        </Box>
-      ))}
+      <Typography className="section-header">Fejl og advarsler</Typography>
+      {issueRows.map(renderRow)}
     </ContentBox>
   );
 });
 
-AarsloenAdvarslerSection.displayName = 'AarsloenAdvarslerSection';
-
-export const AarsloenDokumentFejlSection = React.memo(() => {
-  const { downloadErrorMessage } = useAarsloenVm();
-  return <PageMessageBox title="Dokument-fejl" message={downloadErrorMessage} />;
-});
-
-AarsloenDokumentFejlSection.displayName = 'AarsloenDokumentFejlSection';
+AarsloenFejlOgAdvarslerSection.displayName = 'AarsloenFejlOgAdvarslerSection';

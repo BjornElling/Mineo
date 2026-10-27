@@ -96,9 +96,13 @@ const formatPdfPercent = (pct: string | number | undefined): string => {
  * Tilføj satser-sektion som almindelige tekstlinjer
  * VIGTIGT: Filtrerer tomme/nul satser - skip hele sektionen hvis ingen satser er udfyldt
  */
+/** Overenskomst og satsdato, når satserne er overenskomstens (BB-355). */
+type AarsloenDocumentSatsKilde = Readonly<{ overenskomst: string; dato: string }>;
+
 const addSatserSection = (
   writer: DocumentComposer,
   satser: StandardLoenSatserInput,
+  satsKilde: AarsloenDocumentSatsKilde | null,
 ): void => {
   // Definer alle mulige satser
   const satsDefinitioner: Array<{ key: keyof StandardLoenSatserInput; label: string }> = [
@@ -113,17 +117,24 @@ const addSatserSection = (
   const udfyldteSatser = satsDefinitioner.filter(sats => !erSatsUdeladt(satser[sats.key]));
 
   // Hvis ingen satser er udfyldt, skip hele sektionen
-  if (udfyldteSatser.length === 0) {
+  if (udfyldteSatser.length === 0 && satsKilde === null) {
     return;
   }
 
   writer.writeBoldSubheader('Satser');
+  // Kilden står før satserne, så læseren ser, at de er overenskomstens – og at én dags satser gælder alle rækker.
   writeLabelValueRows(
     writer,
-    udfyldteSatser.map((sats) => ({
-      label: sats.label,
-      value: formatPdfPercent(satser[sats.key]),
-    }))
+    [
+      ...(satsKilde === null ? [] : [
+        { label: 'Overenskomst', value: satsKilde.overenskomst },
+        { label: 'Satser pr.', value: satsKilde.dato },
+      ]),
+      ...udfyldteSatser.map((sats) => ({
+        label: sats.label,
+        value: formatPdfPercent(satser[sats.key]),
+      })),
+    ]
   );
   writer.addSectionSpacer();
 };
@@ -485,6 +496,7 @@ const addBeregningSection = (
 type GenerateAarsloenDocumentParams = DocumentCommonOptions & Readonly<{
   satser: StandardLoenSatserInput;
   loenperiode: Loenperiode;
+  satsKilde?: AarsloenDocumentSatsKilde | null;
   tillaegAngivesSom: TillaegAngivesSom;
   tableData: readonly StandardLoenTableRow[];
   beregnetAarsloen: number;
@@ -512,6 +524,7 @@ export const generateAarsloenDocument = defineDocument<GenerateAarsloenDocumentP
   const {
     satser,
     loenperiode,
+    satsKilde = null,
     tillaegAngivesSom,
     tableData,
     beregnetAarsloen,
@@ -528,7 +541,7 @@ export const generateAarsloenDocument = defineDocument<GenerateAarsloenDocumentP
   // Tilføj satser-sektion (kun hvis der er udfyldte satser). I Beløb-tilstand bruges satserne
   // ikke (tillæg er indtastet som beløb i tabellen), og sektionen udelades.
   if (tillaegAngivesSom !== 'beloeb') {
-    addSatserSection(writer, satser);
+    addSatserSection(writer, satser, satsKilde);
   }
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
