@@ -10,9 +10,9 @@ import { getAngivetLoenOpreguleresFraDato } from './helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from './helpers/eoSharedUtils';
 import {
   applyAutoSatsFields,
-  isOverenskomstSatsFieldDerived,
   syncManualBaseRowSatser,
 } from './helpers/loenindkomstSatser';
+import { isOverenskomstSatsFieldDerived } from '../loen/overenskomstSatser';
 
 declare const projectedLoenindkomstSatser: unique symbol;
 

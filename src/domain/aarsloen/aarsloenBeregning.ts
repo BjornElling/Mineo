@@ -1,3 +1,6 @@
+import { resolveHoejFeriePctAdvarsel } from '../loen/feriePctAdvarsel';
+import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../loen/storeBededagstillaeg';
+import { resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 import { beregnOmregnetAarsloen } from './aarsloenCalculations';
 import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from './standardLoenRowCalculations';
 import {
@@ -102,7 +105,7 @@ export const computeAarsloenBeregning = ({
             shSoPct,
             storeBededagPct,
             pensionPct,
-          }, { mode: tillaegAngivesSom });
+          }, { mode: resolveAarsloenTillaegsMode(tillaegAngivesSom) });
           return sum + roundStandardLoenAmountToTwoDecimals(derived.samlet);
         }, 0),
         'aarsloenBeregning.aarsloenBeregning'
@@ -127,15 +130,25 @@ export const computeAarsloenBeregning = ({
   }
   const beregningsData = valueOrNull(beregningsDataResult) ?? { metode: 'ingen' as const, erEtAar: false };
 
-  // Advarslerne handler UDELUKKENDE om satserne, og satserne er kun i brug i Procent-tilstand. I
+  // Advarslerne handler UDELUKKENDE om satserne, og satserne bruges i Procent- og Overenskomst-tilstand. I
   // Beløb-tilstand er procentfelterne både skjulte og neutraliserede i beregningen, så en advarsel om dem
   // ville pege på et felt, brugeren ikke kan se, om en sats programmet ikke bruger. Betingelsen er samme
   // relevans-prædikat, som styrer feltsynligheden (`aarsloen-contract.md` §2-regel 5) – ikke en parallel
   // regel: descriptorernes `relevance` og `resolveAarsloenCanonicalRangeIssues` spørger om præcis det samme.
   const satserErIBrug = erAarsloenSatsFelterRelevante(tillaegAngivesSom);
-  const fejlmeddelelser = satserErIBrug && omregningAktiveret && periodeData !== null
-    ? beregnFejlmeddelelser(feriePct, shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage)
+  // Overenskomstens forudsætninger gælder også uden helårsomregning. Skjulte ferieugevalg må ikke advare.
+  const fejlmeddelelser = satserErIBrug && (omregningAktiveret || tillaegAngivesSom === 'overenskomst') && periodeData !== null
+    ? beregnFejlmeddelelser(feriePct, shSoPct, fuldLoenUnderFerie, retTilSjetteFerieuge, loenPaaHelligdage, { medtagFerieuge: omregningAktiveret })
     : [];
+
+  if (tillaegAngivesSom === 'overenskomst' && periodeData !== null) {
+    const hoejFerie = resolveHoejFeriePctAdvarsel(feriePct);
+    const fravalgtBededag = resolveFravalgtStoreBededagstillaegAdvarsel(values.reguleringsdato, {
+      loenPaaHelligdage, beregnStoreBededagstillaeg: values.beregnStoreBededagstillaeg,
+    });
+    if (hoejFerie !== undefined) fejlmeddelelser.push(hoejFerie);
+    if (fravalgtBededag !== undefined) fejlmeddelelser.push(fravalgtBededag);
+  }
 
   let beregningsFejl: string | null = null;
   if (canonicalRangeIssues.length > 0) beregningsFejl = canonicalRangeIssues[0]?.message ?? 'Ugyldigt beregningsinput';

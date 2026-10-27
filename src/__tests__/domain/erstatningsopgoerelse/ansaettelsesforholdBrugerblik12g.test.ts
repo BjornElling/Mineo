@@ -6,7 +6,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eoRowNavigationMap';
-import { resolveOverenskomstSatsBindings } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { resolveOverenskomstSatsBindings } from '../../../domain/loen/overenskomstSatser';
 import { getProductionInputCatalog } from '../../../inputCore/catalog/productionCatalog';
 import { eoEmploymentFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { eoTafBeregningsperiodeTilField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';

@@ -29,8 +29,8 @@ AarsloenKritiskFejlSection.displayName = 'AarsloenKritiskFejlSection';
  *
  * Teksten om 6. ferieuge stod tidligere hardkodet her, uden om `beregnFejlmeddelelser`. Den omgik derfor
  * både den kanoniske procentformattering (den skrev den rå værdi) og feltets eget navn, og den var ikke
- * omfattet af den relevans-gating, der slukker satsadvarslerne i Beløb-tilstand. Alle advarsler dannes nu
- * ét sted, så de deler ordlyd, formattering og relevansregel.
+ * omfattet af den relevans-gating, der slukker satsadvarslerne i Beløb-tilstand. Advarslerne leveres nu
+ * af den fælles projektion med deres ordlyd, formattering og relevansregel.
  */
 export const AarsloenAdvarslerSection = React.memo(() => {
   const { fejlmeddelelser } = useAarsloenVm();

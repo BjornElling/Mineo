@@ -1,4 +1,4 @@
-import { erStoreBededagstillaegRelevant } from '../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { erStoreBededagstillaegRelevant } from '../../domain/loen/storeBededagstillaeg';
 import { dateRanges_aarsloen, getCurrentYear, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import {
@@ -64,7 +64,7 @@ import {
   erDatoUdenOverenskomstSatser,
   formatReguleringsdatoUdenOverenskomstSatserBesked,
   resolvePrivatOverenskomstDaekning,
-} from '../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+} from '../../domain/loen/overenskomstSatser';
 // Gensidig import: `erstatningsopgoerelseDescriptors` læser lønindkomsttræet herfra. Begge læser kun den anden
 // inde i en relevansregel – aldrig ved modul-evaluering – så rækkefølgen er ligegyldig.
 import {

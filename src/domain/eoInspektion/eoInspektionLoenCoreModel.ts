@@ -28,7 +28,7 @@ import {
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
-import { resolveStoreBededagstillaegPct } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { resolveStoreBededagstillaegPct } from '../loen/storeBededagstillaeg';
 import { resolveOffentligLoenEnhed } from '../../data/offentligLoenTypes';
 import {
   resolveOffentligLoenEkstraGrundloen,

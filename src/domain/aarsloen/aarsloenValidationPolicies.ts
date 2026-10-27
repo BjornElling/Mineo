@@ -34,7 +34,7 @@ export const resolveAarsloenCanonicalRangeIssues = (
 ): readonly AarsloenCanonicalRangeIssue[] => {
   const issues: AarsloenCanonicalRangeIssue[] = [];
 
-  if (values.tillaegAngivesSom === 'procent') {
+  if (values.tillaegAngivesSom !== 'beloeb') {
     for (const field of AARSLOEN_PERCENT_FIELDS) {
       const value = values[field];
       if (value !== undefined && (value < 0 || value > 100)) {
@@ -130,8 +130,8 @@ const FERIE_SATS_FELTNAVN = 'Feriegodtgørelse/-tillæg';
 /**
  * Beregner advarselsteksterne for årslønsberegning.
  *
- * ALLE sidens advarsler dannes her – også den om 6. ferieuge, der tidligere stod som løs, hardkodet prosa i
- * `AarsloenMeddelelserSections.tsx` og dermed uden om både den kanoniske procentformattering og feltnavnet.
+ * Ferie-/SH-advarslerne dannes her, herunder 6. ferieuge. Overenskomsttilstandens fælles advarsler om
+ * høj feriesats og fravalgt Store Bededagstillæg samles med disse i beregningsprojektionen.
  *
  * @param feriePct - Feriegodtgørelse/-tillæg i procent
  * @param shSoPct - SH/SO procent
@@ -145,7 +145,8 @@ export const beregnFejlmeddelelser = (
   shSoPct: number | undefined,
   fuldLoenUnderFerie: boolean,
   retTilSjetteFerieuge: boolean,
-  loenPaaHelligdage: LoenPaaHelligdage
+  loenPaaHelligdage: LoenPaaHelligdage,
+  options: Readonly<{ medtagFerieuge?: boolean }> = {},
 ): string[] => {
   const errors: string[] = [];
 
@@ -189,7 +190,7 @@ export const beregnFejlmeddelelser = (
   }
 
   // FEJL 5: 6. ferieuge med for lav feriegodtgørelse
-  if (!fuldLoenUnderFerie && retTilSjetteFerieuge && ferieProcent > 0 && ferieProcent < 15.0) {
+  if (options.medtagFerieuge !== false && !fuldLoenUnderFerie && retTilSjetteFerieuge && ferieProcent > 0 && ferieProcent < 15.0) {
     errors.push(
       'Retten til 6. ferieuge vil typisk skulle omsættes til feriegodtgørelse med 15 %.'
     );
@@ -201,7 +202,7 @@ export const beregnFejlmeddelelser = (
   // om `formatPercent` (den skrev den rå værdi, så `12,5` blev til «12,5 %», mens de øvrige advarsler
   // skriver den formatterede) og med feltnavnet «feriegodtgørelsessats», som ikke står nogen steder på
   // skærmen. Betingelsen er uændret; kun ejerskabet og ordlyden er samlet.
-  if (!fuldLoenUnderFerie && !retTilSjetteFerieuge && ferieProcent >= 15.0) {
+  if (options.medtagFerieuge !== false && !fuldLoenUnderFerie && !retTilSjetteFerieuge && ferieProcent >= 15.0) {
     errors.push(
       `En sats for ${FERIE_SATS_FELTNAVN} på ${formatPercent(ferieProcent)} skaber en klar formodning for, at der er ret til 6. ferieuge.`
     );

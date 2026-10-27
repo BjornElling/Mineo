@@ -278,9 +278,8 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
       ],
     });
     renderAarsloen();
-    // StyledToggleSwitch eksponerer role="checkbox"; første = omregning-toggle. Committed false → ikke aktiveret.
-    const toggles = screen.getAllByRole('checkbox');
-    expect(toggles[0]).not.toBeChecked();
+    // Navnet fastholder den rigtige toggle, når andre forudsætninger flyttes op på siden.
+    expect(screen.getByRole('checkbox', { name: 'Omregning til fuldt år:' })).not.toBeChecked();
   });
 
   it('canonical datoordensfejl i stamdata blokerer årslønsdokumentet', async () => {
@@ -390,8 +389,8 @@ describe('Årsløn – placeholders viser kun værdiens FORM', () => {
     const monthInput = within(monthCell).getByRole('textbox') as HTMLInputElement;
     expect(monthInput.placeholder).toBe('mm');
 
-    // StyledToggleSwitch eksponerer role="checkbox"; første = omregning-toggle.
-    await user.click(screen.getAllByRole('checkbox')[0]);
+    // Omregningsvalget findes ved sit navn, uafhængigt af placeringen af de øvrige valg.
+    await user.click(screen.getByRole('checkbox', { name: 'Omregning til fuldt år:' }));
 
     await waitFor(() => {
       // Markeringen er den DELTE blink-klasse – ikke en ny placeholdertekst og ikke en tabel-lokal
@@ -419,7 +418,7 @@ describe('Årsløn – placeholders viser kun værdiens FORM', () => {
       renderAarsloen();
 
       const monthCell = getDataRowCells(0)[0];
-      const toggle = screen.getAllByRole('checkbox')[0];
+      const toggle = screen.getByRole('checkbox', { name: 'Omregning til fuldt år:' });
       const isMarked = () => monthCell.querySelector(`.${FIELD_ATTENTION_BLINK_CLASS}`) !== null;
 
       for (const attempt of [1, 2, 3]) {

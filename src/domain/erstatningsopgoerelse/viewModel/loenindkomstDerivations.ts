@@ -9,12 +9,10 @@ import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import type { StandardLoenTableSatser } from '../../../types/table';
 import {
-  getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
   isOffentligOverenskomstId,
   resolveOverenskomstDisplay,
-  type OverenskomstMeta,
 } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { offentligLoenTypeEnum } from '../../../schemas/formSchemas';
@@ -95,9 +93,6 @@ export type LoenindkomstFlatModel = Readonly<{
   getLoenudviklingBaseDate: (af: Ansaettelsesforhold) => LoenudviklingBaseDate;
   isOffentligLoenSelectionReady: (af: Ansaettelsesforhold) => boolean;
   resolveOverenskomstLabel: (overenskomstId: string | undefined) => string;
-  getFilteredOverenskomsterForAnsaettelsesforhold: (
-    af: Ansaettelsesforhold
-  ) => ReadonlyArray<OverenskomstMeta>;
 
   // Per-af kort-afledninger der tidligere blev udregnet inde i AnsaettelsesforholdCard FRA eoValues.
   // Eksponeres her, så kortet ikke længere behøver rå committed EO-state.
@@ -256,12 +251,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
   const resolveOverenskomstLabel = (overenskomstId: string | undefined): string =>
     resolveOverenskomstDisplay(overenskomstId, 'Ingen valgt');
 
-  const getFilteredOverenskomsterForAnsaettelsesforhold = (
-    af: Ansaettelsesforhold
-  ): ReadonlyArray<OverenskomstMeta> =>
-    // overenskomstFilter er altid til stede (ikke-optional i schema)
-    getOverenskomsterByOrg(af.overenskomstFilter.loenmodtager, af.overenskomstFilter.arbejdsgiver);
-
   const showSygeferiegodtgoerelseSection = (af: Ansaettelsesforhold): boolean =>
     shouldRequireSygeferiegodtgoerelseInput(eoValues, af);
 
@@ -319,7 +308,6 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
     getLoenudviklingBaseDate,
     isOffentligLoenSelectionReady,
     resolveOverenskomstLabel,
-    getFilteredOverenskomsterForAnsaettelsesforhold,
     showSygeferiegodtgoerelseSection,
     getSfggRowForAf,
     getSfggPresentation,

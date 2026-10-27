@@ -22,7 +22,7 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sfggKilde';
-import { harAktivOverenskomst } from '../erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { harAktivOverenskomst } from '../loen/aktivOverenskomst';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE, SFGG_TABLE_TOTAL_LABEL, buildSfggOverenskomstManglerBesked, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';

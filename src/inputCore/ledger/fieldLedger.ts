@@ -44,6 +44,8 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
   aarsloen: {
     feriePct: t('percent'), fritvalgPct: t('percent'), shSoPct: t('percent'), storeBededagPct: t('percent'),
     pensionPct: t('percent'), loenperiode: c(), tillaegAngivesSom: c(), loenPaaHelligdage: c(),
+    overenskomstId: c('optionalText'), overenskomstLoenmodtager: c('optionalText'),
+    overenskomstArbejdsgiver: c('optionalText'), reguleringsdato: t('date'), beregnStoreBededagstillaeg: tog(),
     omregningTilFuldtAar: tog(), fuldLoenUnderFerie: tog(), retTilSjetteFerieuge: tog(), antalFeriedage: t('integer'),
   },
   faellesAarsloen: { aslAarsloen: t('amount'), ealAarsloen: t('amount') },
@@ -133,4 +135,4 @@ export const TOP_LEVEL_FIELD_CODECS: Readonly<Record<SectionKey, Readonly<Record
 };
 
 /** Baseline-count (§6). Låst mod de levende schemas i completeness-testen – ingen placeholder. */
-export const EXPECTED_FIELD_REF_COUNT = 243;
+export const EXPECTED_FIELD_REF_COUNT = 248;

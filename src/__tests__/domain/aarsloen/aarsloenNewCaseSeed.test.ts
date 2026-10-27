@@ -27,6 +27,7 @@ describe('aarsloenNewCaseSeed (§1.12)', () => {
     expect(createAarsloenNewCaseSeed(settings)()).toEqual({
       aarsloen: {
         tableData: [],
+        beregnStoreBededagstillaeg: true,
         loenperiode: 'dag',
         fuldLoenUnderFerie: false,
         loenPaaHelligdage: 'Ingen',

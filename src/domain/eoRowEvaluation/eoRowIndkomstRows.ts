@@ -1,5 +1,6 @@
+import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../loen/storeBededagstillaeg';
 import type { ISODateString } from '../../types/branded';
-import { erStoreBededagstillaegRelevant, kanDerVaereKravPaaStoreBededagstillaeg } from '../erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { erStoreBededagstillaegRelevant, kanDerVaereKravPaaStoreBededagstillaeg } from '../loen/storeBededagstillaeg';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type { DependencySpec, EoRowModel, EoRowStatus } from './eoRowTypes';
@@ -27,7 +28,7 @@ import {
   formatLoenraekkerUdenOverenskomstSatserBesked,
   formatReguleringsdatoUdenOverenskomstSatserBesked,
   resolvePrivatOverenskomstDaekning,
-} from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
+} from '../loen/overenskomstSatser';
 import { hasIndtastetLoenoplysninger } from '../erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
@@ -83,16 +84,6 @@ const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTa
     case 'ydelsestype': return eoOffentligeYdelserYdelsestypeField.bind(rowId).address;
   }
 };
-
-/**
- * Advarslen om et fravalgt Store Bededagstillæg (ordlyd godkendt af udvikleren).
- *
- * Den bor i række-kanalen og IKKE i `erstatningsopgoerelseValidator`: «Fejl og advarsler» på
- * EO-beregningsfanen fodres udelukkende af `collectAllEoRows`, så en `severity: 'warning'` fra
- * validatoren blev aldrig vist for brugeren.
- */
-const STORE_BEDEDAGSTILLAEG_FRAVALGT_ADVARSEL =
-  'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.';
 
 /**
  * Er der midlertidigt EET blandt de offentlige ydelser? Enten indsættes det fra Erhvervsevnetab-siden
@@ -409,8 +400,8 @@ export const buildEoIndkomstRows = (
   const loenudviklingsKilde = resolveLoenudviklingKilde(values);
 
   // Advarslen kræver både en relevant knap og en TAF-periode fra tillæggets virkningsdato.
-  const harTafPeriodeFraStoreBededag = buildTafRanges(values, { skadedatoISO: skadedato })
-    .some((range) => range.til >= STORE_BEDEDAG_START);
+  const tafDatoFraStoreBededag = buildTafRanges(values, { skadedatoISO: skadedato })
+    .find((range) => range.til >= STORE_BEDEDAG_START)?.til;
 
   loenudviklingsKilde.forEach((ansaettelsesforhold) => {
     const erBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
@@ -425,8 +416,11 @@ export const buildEoIndkomstRows = (
     //
     // Ved angivet dagsløn er der aldrig krav på tillægget, og dagsløn slår det fra som standard; en advarsel
     // ville påtale programmets eget, korrekte valg (BB-267, se `kanDerVaereKravPaaStoreBededagstillaeg`).
+    const storeBededagFravalgtAdvarsel = resolveFravalgtStoreBededagstillaegAdvarsel(
+      tafDatoFraStoreBededag, ansaettelsesforhold,
+    );
     if (
-      harTafPeriodeFraStoreBededag
+      storeBededagFravalgtAdvarsel !== undefined
       && erStoreBededagstillaegRelevant({
         beregnesUdFra: values.beregnesUdFra,
         loenPaaHelligdage: ansaettelsesforhold.loenPaaHelligdage,
@@ -435,7 +429,6 @@ export const buildEoIndkomstRows = (
         tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
       })
       && kanDerVaereKravPaaStoreBededagstillaeg(values.beregnesUdFra, ansaettelsesforhold.loenPaaHelligdage)
-      && ansaettelsesforhold.beregnStoreBededagstillaeg !== true
     ) {
       rows.push({
         id: erBeregningsperiode
@@ -443,7 +436,7 @@ export const buildEoIndkomstRows = (
           : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}.storeBededagstillaegFravalgt`,
         ...(erBeregningsperiode ? { employmentId: ansaettelsesforhold.id } : {}),
         label: 'Advarsel',
-        displayValue: `Advarsel (${STORE_BEDEDAGSTILLAEG_FRAVALGT_ADVARSEL})`,
+        displayValue: `Advarsel (${storeBededagFravalgtAdvarsel})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
       });

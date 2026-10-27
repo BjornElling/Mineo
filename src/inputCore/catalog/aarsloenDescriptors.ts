@@ -2,11 +2,13 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type {
   LoenPaaHelligdage,
   Loenperiode,
-  TillaegAngivesSom,
 } from '../../schemas/formSchemas/enumSchemas';
 import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aarsloenSchemas';
+import { aarsloenTillaegsgrundlagEnum, type AarsloenTillaegsgrundlag } from '../../schemas/formSchemas/sections/aarsloenSchemas';
+import { resolveOverenskomstSatsBindings, resolvePrivatOverenskomstDaekning, erDatoUdenOverenskomstSatser, formatReguleringsdatoUdenOverenskomstSatserBesked } from '../../domain/loen/overenskomstSatser';
+import { resolveAarsloenSatsdato } from '../../domain/aarsloen/aarsloenTillaeg';
 import type { ISODateString } from '../../types/branded';
-import { getCurrentYear, dateRanges_aarsloen, MIN_YEAR } from '../../config/dateRanges';
+import { getCurrentYear, dateRanges_aarsloen, dateRange_systemramme, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
 import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
@@ -19,6 +21,7 @@ import {
   createAmountFieldCodec,
   createDateFieldCodec,
   createIntegerFieldCodec,
+  createOptionalTextFieldCodec,
   createPercentFieldCodec,
   createRequiredChoiceFieldCodec,
   createStringBackedFieldCodec,
@@ -27,7 +30,7 @@ import {
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { entityIdForCollection } from '../fieldAddress';
-import { digitsRequiredFor } from './fieldLengthLimits';
+import { digitsRequiredFor, SHORT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import type {
   CanonicalView,
   FieldAddressTemplate,
@@ -54,7 +57,8 @@ import {
 // Produkt-descriptors for `aarsloen`-sektionen (§3.2). Måned/år bevarer schemaets historiske
 // canonical strengrepræsentation via string-backed codec; ugefelterne er allerede canonical strenge.
 
-const createEmptyAarsloenSection = (): unknown => ({ tableData: [] });
+// En materialiseret sektion og descriptorens tomværdi skal være enige; ny-sags-seeden tilvælger særskilt.
+const createEmptyAarsloenSection = (): unknown => ({ tableData: [], beregnStoreBededagstillaeg: false });
 
 const isPercentMode = <T>(_field: FieldRef<T>, view: CanonicalView): boolean =>
   view.readCanonical(aarsloenTillaegAngivesSomField.bind()) !== 'beloeb';
@@ -78,7 +82,17 @@ const percentField = (field: string, label: string): FieldDescriptor<number | un
     label,
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
-    relevance: isPercentMode,
+    relevance: (ref, view) => {
+      if (!isPercentMode(ref, view)) return false;
+      if (view.readCanonical(aarsloenTillaegAngivesSomField.bind()) !== 'overenskomst' || field === 'feriePct') return true;
+      if (field === 'storeBededagPct') return false;
+      if (field !== 'fritvalgPct' && field !== 'shSoPct' && field !== 'pensionPct') return false;
+      return resolveOverenskomstSatsBindings({
+        harOverenskomst: true,
+        overenskomstId: view.readCanonical(aarsloenOverenskomstIdField.bind()),
+        loenPaaHelligdage: view.readCanonical(aarsloenLoenPaaHelligdageField.bind()),
+      }, resolveAarsloenSatsdato(view.readCanonical(aarsloenReguleringsdatoField.bind())))[field].kind === 'bruger';
+    },
     validators: [percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })],
   });
 
@@ -99,13 +113,13 @@ export const aarsloenLoenperiodeField = defineStructuralField<Loenperiode>({
   createEmptySection: createEmptyAarsloenSection,
 });
 
-export const aarsloenTillaegAngivesSomField = defineStructuralField<TillaegAngivesSom>({
+export const aarsloenTillaegAngivesSomField = defineStructuralField<AarsloenTillaegsgrundlag>({
   id: 'aarsloen.tillaegAngivesSom',
   template: { section: 'aarsloen', path: [], field: 'tillaegAngivesSom' },
-  codec: createRequiredChoiceFieldCodec<TillaegAngivesSom>(['procent', 'beloeb'], 'procent'),
+  codec: createRequiredChoiceFieldCodec(aarsloenTillaegsgrundlagEnum.options, 'procent'),
   emptyValue: 'procent',
   isEmpty: () => false,
-  label: 'Tillæg angives som',
+  label: 'Tillæg beregnes på baggrund af',
   controlKind: 'choice',
   createEmptySection: createEmptyAarsloenSection,
 });
@@ -139,6 +153,47 @@ const toggle = (field: string, label: string, emptyValue: boolean): FieldDescrip
 export const aarsloenOmregningTilFuldtAarField = toggle('omregningTilFuldtAar', 'Omregning til fuldt år', false);
 export const aarsloenFuldLoenUnderFerieField = toggle('fuldLoenUnderFerie', 'Fuld løn under ferie', true);
 export const aarsloenRetTilSjetteFerieugeField = toggle('retTilSjetteFerieuge', 'Ret til 6. ferieuge', true);
+
+const isOverenskomstMode = <T>(_field: FieldRef<T>, view: CanonicalView): boolean =>
+  view.readCanonical(aarsloenTillaegAngivesSomField.bind()) === 'overenskomst';
+
+const overenskomstText = (field: string, label: string): FieldDescriptor<string | undefined> =>
+  defineStructuralField<string | undefined>({
+    id: `aarsloen.${field}`,
+    template: { section: 'aarsloen', path: [], field },
+    codec: createOptionalTextFieldCodec({ maxLength: SHORT_TEXT_MAX_LENGTH }),
+    emptyValue: undefined, isEmpty: isEmptyString, label, controlKind: 'choice',
+    createEmptySection: createEmptyAarsloenSection, relevance: isOverenskomstMode,
+  });
+
+export const aarsloenOverenskomstIdField = overenskomstText('overenskomstId', 'Vælg overenskomst');
+export const aarsloenOverenskomstLoenmodtagerField = overenskomstText('overenskomstLoenmodtager', 'Lønmodtagerorganisation');
+export const aarsloenOverenskomstArbejdsgiverField = overenskomstText('overenskomstArbejdsgiver', 'Arbejdsgiverorganisation');
+export const aarsloenReguleringsdatoField = defineStructuralField<ISODateString | undefined>({
+  id: 'aarsloen.reguleringsdato',
+  template: { section: 'aarsloen', path: [], field: 'reguleringsdato' },
+  codec: createDateFieldCodec({ twoDigitYearPolicy: 'infer' }),
+  emptyValue: undefined, isEmpty: isUndefined, label: 'Reguleringsdato', controlKind: 'text',
+  createEmptySection: createEmptyAarsloenSection, relevance: isOverenskomstMode,
+  ...dateBounds({ min: () => dateRange_systemramme.min, max: () => dateRange_systemramme.max, origin: STATIC_DATE_BOUNDS }, [
+    (value, field, view) => {
+      if (value === undefined) return undefined;
+      const daekning = resolvePrivatOverenskomstDaekning({ harOverenskomst: true, overenskomstId: view.readCanonical(aarsloenOverenskomstIdField.bind()) });
+      if (daekning === null || !erDatoUdenOverenskomstSatser(daekning, value)) return undefined;
+      return { reason: 'rule', code: `${field.descriptor.id}.overenskomstDaekning`, message: formatReguleringsdatoUdenOverenskomstSatserBesked(daekning) };
+    },
+  ]),
+});
+
+// Optional bevarer gamle sager uden et nyt automatisk tilvalg. Kun den nye overenskomsttilstand læser valget.
+export const aarsloenBeregnStoreBededagstillaegField = defineStructuralField<boolean>({
+  id: 'aarsloen.beregnStoreBededagstillaeg',
+  template: { section: 'aarsloen', path: [], field: 'beregnStoreBededagstillaeg' },
+  codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
+  label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle',
+  createEmptySection: createEmptyAarsloenSection,
+  relevance: (field, view) => isOverenskomstMode(field, view) && view.readCanonical(aarsloenLoenPaaHelligdageField.bind()) === 'Almindelig løn',
+});
 
 // Cifferloftet UDLEDES af maksimum, så indtastningsgrænsen og talværdigrænsen ikke kan komme fra hinanden.
 const ANTAL_FERIEDAGE_MIN = 0;
@@ -326,6 +381,11 @@ export const aarsloenTableFpFvShSoBeloebField = rowAmount('fpFvShSoBeloeb', stdL
 export const aarsloenTablePensionBeloebField = rowAmount('pensionBeloeb', stdLabel.pensionBeloeb, isAmountMode);
 
 export const aarsloenFields = catalogFields(
+  aarsloenOverenskomstIdField,
+  aarsloenOverenskomstLoenmodtagerField,
+  aarsloenOverenskomstArbejdsgiverField,
+  aarsloenReguleringsdatoField,
+  aarsloenBeregnStoreBededagstillaegField,
   aarsloenFeriePctField,
   aarsloenFritvalgPctField,
   aarsloenShSoPctField,

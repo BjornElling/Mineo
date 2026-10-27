@@ -14,7 +14,7 @@ import {
   aarsloenTillaegAngivesSomField,
 } from '../../inputCore/catalog/aarsloenDescriptors';
 import { toAnyFieldRef, type FieldRef } from '../../inputCore/fieldDescriptor';
-import type { FieldIssue } from '../../inputCore/inputIssue';
+import type { FieldIssue, ConsumerIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
 import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
@@ -37,12 +37,11 @@ import {
 import type { SerializedFieldAddress } from '../../inputCore/fieldAddress';
 import { buildFieldWarningMap, type FieldWarning } from '../../inputCore/fieldWarning';
 import { getToday } from '../../config/dateRanges';
+import { aarsloenOverenskomstIdField, aarsloenOverenskomstLoenmodtagerField, aarsloenOverenskomstArbejdsgiverField, aarsloenReguleringsdatoField, aarsloenBeregnStoreBededagstillaegField } from '../../inputCore/catalog/aarsloenDescriptors';
+import { applyAarsloenOverenskomstSatser, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 
-// Årsløn-projektionen (§3.4/§5.4). En ALMINDELIG ren funktion over den
-// offentlige `InputReader`, der genopbygger et komplet, schema-formet `AarsloenValues`-objekt fra readeren, så de
-// EKSISTERENDE beregningsindgange (`computeAarsloenBeregning`, `useAarsloenDocumentGates`) kan køre UÆNDRET på det – nul
-// talændring (§5.4 hårdt stop). Det er den sanktionerede fremflytning i §5.4: en migreret formular må ikke holde
-// sin beregnings-/dokumentconsumer i live på rå sektioner, så consumeren fødes her gennem readeren i stedet.
+// Årsløn-projektionen samler afsluttet input, afledte satser, validering og beregning fra samme revision.
+// Consumerne læser udelukkende denne projektion; overenskomstens satser skrives aldrig tilbage i inputtet.
 //
 // To komplementære reads (begge rene, ingen rå sektioner):
 //  - `readAarsloenValues(reader)`: rekonstruerer `AarsloenValues` UDEN at blokere. En rød feltfejl skjules,
@@ -52,6 +51,11 @@ import { getToday } from '../../config/dateRanges';
 //    Tabelcellefejl isoleres pr. række (§1.10) og indgår derfor ikke i gaten.
 
 const scalarRefs = {
+  overenskomstId: aarsloenOverenskomstIdField.bind(),
+  overenskomstLoenmodtager: aarsloenOverenskomstLoenmodtagerField.bind(),
+  overenskomstArbejdsgiver: aarsloenOverenskomstArbejdsgiverField.bind(),
+  reguleringsdato: aarsloenReguleringsdatoField.bind(),
+  beregnStoreBededagstillaeg: aarsloenBeregnStoreBededagstillaegField.bind(),
   feriePct: aarsloenFeriePctField.bind(),
   fritvalgPct: aarsloenFritvalgPctField.bind(),
   shSoPct: aarsloenShSoPctField.bind(),
@@ -95,7 +99,12 @@ export const readAarsloenTableRows = (reader: InputReader): StandardLoenTableRow
 export const readAarsloenValues = (reader: InputReader): AarsloenValues => {
   const tableData = readAarsloenTableRows(reader);
 
-  return {
+  return applyAarsloenOverenskomstSatser({
+    overenskomstId: readOrEmpty(reader, scalarRefs.overenskomstId, undefined),
+    overenskomstLoenmodtager: readOrEmpty(reader, scalarRefs.overenskomstLoenmodtager, undefined),
+    overenskomstArbejdsgiver: readOrEmpty(reader, scalarRefs.overenskomstArbejdsgiver, undefined),
+    reguleringsdato: readOrEmpty(reader, scalarRefs.reguleringsdato, undefined),
+    beregnStoreBededagstillaeg: readOrEmpty(reader, scalarRefs.beregnStoreBededagstillaeg, false),
     feriePct: readOrEmpty(reader, scalarRefs.feriePct, aarsloenFeriePctField.emptyValue),
     fritvalgPct: readOrEmpty(reader, scalarRefs.fritvalgPct, aarsloenFritvalgPctField.emptyValue),
     shSoPct: readOrEmpty(reader, scalarRefs.shSoPct, aarsloenShSoPctField.emptyValue),
@@ -110,7 +119,7 @@ export const readAarsloenValues = (reader: InputReader): AarsloenValues => {
     retTilSjetteFerieuge: readOrEmpty(reader, scalarRefs.retTilSjetteFerieuge, aarsloenRetTilSjetteFerieugeField.emptyValue),
     antalFeriedage: readOrEmpty(reader, scalarRefs.antalFeriedage, aarsloenAntalFeriedageField.emptyValue),
     tableData,
-  };
+  });
 };
 
 const PERCENT_SCALAR_REFS: readonly FieldRef<number | undefined>[] = [
@@ -133,14 +142,28 @@ export const resolveAarsloenFieldErrorGate = (
   reader: InputReader,
   values: AarsloenValues,
   options: Readonly<{ omregningAktiveret: boolean }>
-): readonly FieldIssue[] => {
-  const issues: FieldIssue[] = [];
+): readonly (FieldIssue | ConsumerIssue)[] => {
+  const issues: (FieldIssue | ConsumerIssue)[] = [];
 
-  if (values.tillaegAngivesSom === 'procent') {
+  if (values.tillaegAngivesSom !== 'beloeb') {
     for (const ref of PERCENT_SCALAR_REFS) {
       const result = reader.read(ref);
       if (result.status === 'error') issues.push(result.issue);
     }
+  }
+
+  if (values.tillaegAngivesSom === 'overenskomst') {
+    const checkRequired = <T,>(ref: FieldRef<T>, message: string): void => {
+      const result = reader.read(ref);
+      if (result.status === 'error') {
+        issues.push(result.issue);
+      } else if (typeof result.value === 'string' ? result.value.trim() === '' : !result.value) {
+        // Tomt opslag må aldrig ligne kendte satser på 0 %.
+        issues.push({ kind: 'consumer', consumerId: 'aarsloen', severity: 'error', reason: 'missing', code: `${ref.descriptor.id}.missing`, field: toAnyFieldRef(ref), message });
+      }
+    };
+    checkRequired(scalarRefs.overenskomstId, 'Der er ikke valgt en overenskomst');
+    checkRequired(scalarRefs.reguleringsdato, 'Angiv en reguleringsdato');
   }
 
   if (options.omregningAktiveret && !values.fuldLoenUnderFerie) {
@@ -191,7 +214,7 @@ export type AarsloenReaderProjection = Readonly<{
    * mens gaten er rød – hverken på siden eller i dokumentpreflighten.
    */
   calculation: AarsloenBeregningState | null;
-  fieldIssues: readonly FieldIssue[];
+  fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   /**
    * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret (BB-096/BB-289), og
    * en periode efter dags dato (BB-115/BB-298). Udviklerafgørelse 2026-10-19: identiske rækker spærrer ikke
@@ -214,7 +237,8 @@ export type AarsloenReaderProjection = Readonly<{
 /** Bygger den kanoniske reader-projektion for Årsløn fra én afsluttet inputrevision. */
 export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenReaderProjection => {
   const values = readAarsloenValues(reader);
-  const tableValidation = resolveStandardLoenTableValidation(reader, values.loenperiode, values.tillaegAngivesSom);
+  const tableMode = resolveAarsloenTillaegsMode(values.tillaegAngivesSom);
+  const tableValidation = resolveStandardLoenTableValidation(reader, values.loenperiode, tableMode);
   const omregningGate = resolveAarsloenOmregningGate({
     requestedEnabled: values.omregningTilFuldtAar,
     tableData: values.tableData,
@@ -250,7 +274,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     fieldSet: aarsloenStandardLoenFieldSet,
     rows: values.tableData,
     loenperiode: values.loenperiode,
-    tillaegAngivesSom: values.tillaegAngivesSom,
+    tillaegAngivesSom: tableMode,
     today: getToday(),
     errorRowIds: new Set(tableValidation.summary.rowIssues
       .filter((issue) => issue.level === 'error')
@@ -264,7 +288,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
         shSoPct: values.shSoPct,
         storeBededagPct: values.storeBededagPct,
         pensionPct: values.pensionPct,
-      }, { mode: values.tillaegAngivesSom }).samlet,
+      }, { mode: tableMode }).samlet,
       group: () => 'tabellen',
       sammenligning: 'tabellens øvrige lønrækker',
     },

@@ -50,12 +50,12 @@ import {
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdatoReferenceText } from '../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { FERIE_PCT_MANGLER_BESKED, isFeriePctPaakraevet } from '../domain/erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
+import { erReguleringsdatoUdenOverenskomstSatserMeldt } from '../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import {
   erDatoUdenOverenskomstSatser,
   formatReguleringsdatoUdenOverenskomstSatserBesked,
-  erReguleringsdatoUdenOverenskomstSatserMeldt,
   resolvePrivatOverenskomstDaekning,
-} from '../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+} from '../domain/loen/overenskomstSatser';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import { erOevrigeKravSektionAktiv } from '../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import {
@@ -87,7 +87,7 @@ import {
   parseOffentligLoenSelection,
   type OffentligLoenSelectionFailure,
 } from '../domain/erstatningsopgoerelse/helpers/offentligLoenSelection';
-import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/loen/aktivOverenskomst';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../utils/dateOrderValidation';

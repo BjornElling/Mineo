@@ -1,3 +1,4 @@
+import { resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 /**
  * Årsløns to dokumentdefinitioner.
  *
@@ -58,7 +59,7 @@ export type AarsloenDocumentInput = Readonly<{
     pensionPct: number | undefined;
   }>;
   loenperiode: Loenperiode;
-  tillaegAngivesSom: AarsloenValues['tillaegAngivesSom'];
+  tillaegAngivesSom: ReturnType<typeof resolveAarsloenTillaegsMode>;
   tableData: AarsloenValues['tableData'];
   beregnetAarsloen: number;
   omregningTilFuldtAar: boolean;
@@ -115,7 +116,7 @@ export const aarsloenDocumentDefinition: MineoDocumentDefinition<AarsloenDocumen
             pensionPct: values.pensionPct,
           },
           loenperiode: values.loenperiode,
-          tillaegAngivesSom: values.tillaegAngivesSom,
+          tillaegAngivesSom: resolveAarsloenTillaegsMode(values.tillaegAngivesSom),
           tableData: values.tableData,
           beregnetAarsloen: calculation.beregnetAarsloen,
           omregningTilFuldtAar: projection.omregningGate.effectiveEnabled,
@@ -135,7 +136,7 @@ export const aarsloenDocumentDefinition: MineoDocumentDefinition<AarsloenDocumen
       return (session, input, ctx) => generateAarsloenDocument(session, {
         satser: input.satser,
         loenperiode: input.loenperiode,
-        tillaegAngivesSom: input.tillaegAngivesSom,
+        tillaegAngivesSom: resolveAarsloenTillaegsMode(input.tillaegAngivesSom),
         tableData: input.tableData,
         beregnetAarsloen: input.beregnetAarsloen,
         omregningTilFuldtAar: input.omregningTilFuldtAar,

@@ -1,3 +1,5 @@
+import { aarsloenOverenskomstIdField, aarsloenOverenskomstLoenmodtagerField, aarsloenOverenskomstArbejdsgiverField, aarsloenReguleringsdatoField, aarsloenBeregnStoreBededagstillaegField } from '../../../inputCore/catalog/aarsloenDescriptors';
+import type { AarsloenTillaegsgrundlag } from '../../../schemas/formSchemas/sections/aarsloenSchemas';
 import * as React from 'react';
 
 import { APP_ROUTES } from '../../../config/pageNavigation';
@@ -35,7 +37,7 @@ import {
   shouldShowAarsloenShDageFields,
 } from '../../../domain/policies/aarsloenPolicy';
 import type { StandardLoenTableHandle } from '../../../types/handles';
-import type { LoenPaaHelligdage, TillaegAngivesSom } from '../../../schemas/formSchemas/enumSchemas';
+import type { LoenPaaHelligdage } from '../../../schemas/formSchemas/enumSchemas';
 import { firstPageMessage, pageMessage, withPageMessages } from '../../layout/pageMessage';
 
 /**
@@ -58,7 +60,7 @@ const pensionPctRef = aarsloenPensionPctField.bind();
 const loenperiodeRef = aarsloenLoenperiodeField.bind();
 // Påkrævet valg (allowEmpty=false): descriptorens værditype er ikke-optionel, men Choice-/radio-skallen
 // er typet på `TValue | undefined`. Værdien er altid defineret (tomværdi 'procent'/'maaned'); widening er sikker.
-const tillaegAngivesSomRef = aarsloenTillaegAngivesSomField.bind() as FieldRef<TillaegAngivesSom | undefined>;
+const tillaegAngivesSomRef = aarsloenTillaegAngivesSomField.bind() as FieldRef<AarsloenTillaegsgrundlag | undefined>;
 const loenPaaHelligdageRef = aarsloenLoenPaaHelligdageField.bind() as FieldRef<LoenPaaHelligdage | undefined>;
 const fuldLoenUnderFerieRef = aarsloenFuldLoenUnderFerieField.bind();
 const retTilSjetteFerieugeRef = aarsloenRetTilSjetteFerieugeField.bind();
@@ -70,6 +72,11 @@ const loc = (field: string): EditorLocation =>
   ({ locationId: `aarsloen:${field}`, route: APP_ROUTES.aarsloen, tabKey: null });
 
 const FIELDS = Object.freeze({
+  overenskomstId: aarsloenOverenskomstIdField.bind(),
+  overenskomstLoenmodtager: aarsloenOverenskomstLoenmodtagerField.bind(),
+  overenskomstArbejdsgiver: aarsloenOverenskomstArbejdsgiverField.bind(),
+  reguleringsdato: aarsloenReguleringsdatoField.bind(),
+  beregnStoreBededagstillaeg: aarsloenBeregnStoreBededagstillaegField.bind(),
   feriePct: feriePctRef,
   fritvalgPct: fritvalgPctRef,
   shSoPct: shSoPctRef,
@@ -85,6 +92,11 @@ const FIELDS = Object.freeze({
 });
 
 const LOCATIONS = Object.freeze({
+  overenskomstId: loc('overenskomstId'),
+  overenskomstLoenmodtager: loc('overenskomstLoenmodtager'),
+  overenskomstArbejdsgiver: loc('overenskomstArbejdsgiver'),
+  reguleringsdato: loc('reguleringsdato'),
+  beregnStoreBededagstillaeg: loc('beregnStoreBededagstillaeg'),
   feriePct: loc('feriePct'),
   fritvalgPct: loc('fritvalgPct'),
   shSoPct: loc('shSoPct'),
@@ -141,8 +153,8 @@ export function useAarsloenViewModel() {
   // Løntabellens rækkeadvarsler (identisk række, periode efter dags dato) står først i «Advarsler»: de navngiver
   // rækken, den gule ring sidder på (BB-289/BB-298). De er sidens egne og når ikke dokumentet.
   const fejlmeddelelser = React.useMemo(
-    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(calculation?.fejlmeddelelser ?? [])],
-    [calculation, tableRowWarnings]
+    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(values.tillaegAngivesSom === 'overenskomst' ? readerProjection.fieldIssues.map((issue) => issue.message) : []), ...(calculation?.fejlmeddelelser ?? [])],
+    [calculation, tableRowWarnings, readerProjection.fieldIssues, values.tillaegAngivesSom]
   );
   // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: boksen må ikke kunne vises uden indhold.
   // Her stod tidligere `?? []` på et `string | null`-felt – et tomt array er truthy, så "Kritisk Fejl"-boksen

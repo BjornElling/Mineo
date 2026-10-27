@@ -1,3 +1,4 @@
+import { resolveAarsloenTillaegsMode } from '../../domain/aarsloen/aarsloenTillaeg';
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 
@@ -89,7 +90,7 @@ describe('CALC-002 – uafhængigt Metode A-facit gennem Årsløn-dokumentgræns
         pensionPct: values.pensionPct,
       },
       loenperiode: values.loenperiode,
-      tillaegAngivesSom: values.tillaegAngivesSom,
+      tillaegAngivesSom: resolveAarsloenTillaegsMode(values.tillaegAngivesSom),
       tableData: values.tableData,
       beregnetAarsloen: calculation.beregnetAarsloen,
       omregningTilFuldtAar: values.omregningTilFuldtAar,

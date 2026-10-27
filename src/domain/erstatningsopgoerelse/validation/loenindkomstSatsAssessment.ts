@@ -1,3 +1,5 @@
+import { resolveHoejFeriePctAdvarsel } from '../../loen/feriePctAdvarsel';
+export { FERIE_PCT_ADVARSELSGRAENSE } from '../../loen/feriePctAdvarsel';
 import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
@@ -32,9 +34,6 @@ export type SatsField = 'feriePct';
 export const SATS_FIELD_LABELS: Readonly<Record<SatsField, string>> = Object.freeze({
   feriePct: 'Feriegodtgørelse/-tillæg',
 });
-
-/** Over denne sats får feriegodtgørelsen en gul advarsel (udviklerafgørelse 2026-10-06, BB-286). */
-export const FERIE_PCT_ADVARSELSGRAENSE = 20;
 
 /**
  * Ét satsfund.
@@ -100,11 +99,9 @@ export const assessLoenindkomstSatser = (
     )]);
   }
 
-  if (af.feriePct > FERIE_PCT_ADVARSELSGRAENSE) {
-    return Object.freeze([finding(
-      `${SATS_FIELD_LABELS.feriePct} over ${String(FERIE_PCT_ADVARSELSGRAENSE)} % er usædvanligt – kontrollér satsen`,
-      'unusual'
-    )]);
+  const hoejSatsAdvarsel = resolveHoejFeriePctAdvarsel(af.feriePct);
+  if (hoejSatsAdvarsel !== undefined) {
+    return Object.freeze([finding(hoejSatsAdvarsel, 'unusual')]);
   }
 
   return [];

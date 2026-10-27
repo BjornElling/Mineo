@@ -1,10 +1,10 @@
 import {
   applyAutoSatsFields,
   buildLoenindkomstRateSegments,
-  isOverenskomstSatsFieldLocked,
   resolveAutoStoreBededagPct,
   syncManualBaseRowSatser,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { isOverenskomstSatsFieldLocked } from '../../../domain/loen/overenskomstSatser';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';

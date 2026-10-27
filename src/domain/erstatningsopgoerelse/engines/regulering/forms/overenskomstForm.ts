@@ -15,7 +15,7 @@ import {
 import { buildOverenskomstSegmentContext } from './overenskomstSegmentContext';
 import { buildOffentligOverenskomstSegmenter } from './overenskomstOffentligSegmenter';
 import { buildPrivatOverenskomstSegmenter } from './overenskomstPrivatSegmenter';
-import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
+import { harValgtStoreBededagstillaeg } from '../../../../loen/storeBededagstillaeg';
 import type {
   FormKonsoliderContext,
   KildeReguleringsInterval,

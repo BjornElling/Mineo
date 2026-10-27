@@ -1,6 +1,6 @@
-import { erStoreBededagstillaegRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { erStoreBededagstillaegRelevant } from '../../../../domain/loen/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
-import OverenskomstFilterLabel from '../../../common/OverenskomstFilterLabel';
+import OverenskomstVaelger from '../../../common/OverenskomstVaelger';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
@@ -34,22 +34,18 @@ import {
   resolveSkadeEllerAnmeldelsesdatoReference,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import {
-  formatOverenskomstMetaDisplay,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
-  resolveOverenskomstDisplay,
-  withGemtOrganisation,
 } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
 import {
-  formatOverenskomstUdenSatserTekst,
+  resolveLockedOverenskomstSatsTooltip,
   resolveOverenskomstSatsBindings,
   resolvePrivatOverenskomstDaekning,
   type OverenskomstSatsField,
-} from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
-import { isoToDanish } from '../../../../types/branded';
+} from '../../../../domain/loen/overenskomstSatser';
 import LoenudviklingFields from '../loenudvikling/LoenudviklingFields';
 import AnciennitetstillaegFields from '../loenudvikling/AnciennitetstillaegFields';
 import SygeferiegodtgoerelseSection from './SygeferiegodtgoerelseSection';
@@ -105,8 +101,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     manualBaseRowErrorsByAfId,
     loenudviklingIssues,
     loentrinFinder,
-    alleLoenmodtagerOrg,
-    alleArbejdsgiverOrg,
     // Løntabellens per-ansættelsesforhold-input: satsrækken og den afledte rækkeberegner slås op på `af.id`
     // og gives til `StandardLoenTable` nedenfor.
     satserByAfId,
@@ -121,7 +115,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     getSatserHeadingForAnsaettelsesforhold,
     getLoenudviklingBaseDate,
     resolveOverenskomstLabel,
-    getFilteredOverenskomsterForAnsaettelsesforhold,
     getSfggPresentation,
     handleMoveUp,
     handleMoveDown,
@@ -257,25 +250,15 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
    */
   const satsBindings = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato);
   const privatOverenskomstDaekning = resolvePrivatOverenskomstDaekning(af);
-  const anvendtReguleringsdatoKort = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
-  // Hvorfor et låst satsfelt er låst (BB-287): overenskomsten fastsætter satsen – eller programmet har ingen
-  // satser for den på datoen (BB-275).
-  const lockedSatsTooltip = (satsField: OverenskomstSatsField): string | undefined => {
-    const binding = satsBindings[satsField];
-    if (binding.kind === 'utilgaengelig') {
-      return privatOverenskomstDaekning === null ? undefined : formatOverenskomstUdenSatserTekst(privatOverenskomstDaekning);
-    }
-    return anvendtReguleringsdatoKort === undefined
-      ? 'Fastsat af overenskomsten'
-      : `Fastsat af overenskomsten på ${anvendtReguleringsdatoKort}`;
-  };
   const renderSatsField = (satsField: OverenskomstSatsField) => {
     const shared = {
       name: `${af.id}:${satsField}`,
       placeholder: '0',
       sx: LOCKED_SATS_FIELD_SX,
     } as const;
-    const lockedTooltip = lockedSatsTooltip(satsField);
+    const lockedTooltip = resolveLockedOverenskomstSatsTooltip(
+      satsBindings[satsField], privatOverenskomstDaekning, anvendtReguleringsdato
+    );
     return satsBindings[satsField].kind !== 'bruger'
       ? (
         <DerivedPercentField
@@ -435,112 +418,20 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
       </LabeledControlRow>
 
       <Box sx={{ display: showOverenskomst ? 'block' : 'none' }}>
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Vælg overenskomst</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-              <OverenskomstFilterLabel part="loenmodtager" />
-              <ChoiceField
-                field={field(eoEmploymentFilterFields.loenmodtager)}
-                location={location('overenskomstFilter.loenmodtager')}
-                name={`${af.id}:overenskomstFilter.loenmodtager`}
-                emptyUiValue="ALLE"
-                width={120}
-                allowEmpty={false}
-                sx={{
-                  '& .MuiInputBase-root': {
-                    height: '24px !important',
-                    minHeight: '24px !important',
-                    paddingRight: '20px !important',
-                  },
-                  '& .MuiInputBase-input': {
-                    fontSize: '11px !important',
-                    padding: '0 4px 0 8px !important',
-                    lineHeight: '24px',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    fontSize: '12px !important',
-                  },
-                }}
-                iconSx={{
-                  fontSize: '16px',
-                  right: 2,
-                }}
-                optionSx={{
-                  fontSize: '11px',
-                  minHeight: '24px',
-                  padding: '3px 8px',
-                }}
-              >
-                <MenuItem value="ALLE">Alle</MenuItem>
-                {withGemtOrganisation(alleLoenmodtagerOrg, af.overenskomstFilter.loenmodtager, 'ALLE').map((org) => (
-                  <MenuItem key={org} value={org}>
-                    {org}
-                  </MenuItem>
-                ))}
-              </ChoiceField>
-
-              {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-              <OverenskomstFilterLabel part="arbejdsgiver" />
-              <ChoiceField
-                field={field(eoEmploymentFilterFields.arbejdsgiver)}
-                location={location('overenskomstFilter.arbejdsgiver')}
-                name={`${af.id}:overenskomstFilter.arbejdsgiver`}
-                emptyUiValue="ALLE"
-                width={120}
-                allowEmpty={false}
-                sx={{
-                  '& .MuiInputBase-root': {
-                    height: '24px !important',
-                    minHeight: '24px !important',
-                    paddingRight: '20px !important',
-                  },
-                  '& .MuiInputBase-input': {
-                    fontSize: '11px !important',
-                    padding: '0 4px 0 8px !important',
-                    lineHeight: '24px',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    fontSize: '12px !important',
-                  },
-                }}
-                iconSx={{
-                  fontSize: '16px',
-                  right: 2,
-                }}
-                optionSx={{
-                  fontSize: '11px',
-                  minHeight: '24px',
-                  padding: '3px 8px',
-                }}
-              >
-                <MenuItem value="ALLE">Alle</MenuItem>
-                {withGemtOrganisation(alleArbejdsgiverOrg, af.overenskomstFilter.arbejdsgiver, 'ALLE').map((org) => (
-                  <MenuItem key={org} value={org}>
-                    {org}
-                  </MenuItem>
-                ))}
-              </ChoiceField>
-
-              <ChoiceField
-                field={field(eoEmploymentFields.overenskomstId)}
-                location={location('overenskomstId')}
-                name={`${af.id}:overenskomstId`}
-                width={460}
-                placeholder="Vælg overenskomst..."
-                allowEmpty={true}
-                getOptionLabel={(id) => resolveOverenskomstDisplay(typeof id === 'string' ? id : String(id))}
-              >
-                {getFilteredOverenskomsterForAnsaettelsesforhold(af).map((meta) => (
-                  <MenuItem key={meta.id} value={meta.id}>
-                    {formatOverenskomstMetaDisplay(meta)}
-                  </MenuItem>
-                ))}
-              </ChoiceField>
-            </Box>
-          </Box>
-        </Box>
+        <OverenskomstVaelger
+          namePrefix={af.id}
+          overenskomst={{ field: field(eoEmploymentFields.overenskomstId), location: location('overenskomstId') }}
+          loenmodtager={{
+            field: field(eoEmploymentFilterFields.loenmodtager),
+            location: location('overenskomstFilter.loenmodtager'),
+            value: af.overenskomstFilter.loenmodtager,
+          }}
+          arbejdsgiver={{
+            field: field(eoEmploymentFilterFields.arbejdsgiver),
+            location: location('overenskomstFilter.arbejdsgiver'),
+            value: af.overenskomstFilter.arbejdsgiver,
+          }}
+        />
       </Box>
 
       {/* Kun ved beregningsperiode: ved angivet løn ændrer valget intet (BB-285, `erFuldLoenUnderFerieRelevant`). */}

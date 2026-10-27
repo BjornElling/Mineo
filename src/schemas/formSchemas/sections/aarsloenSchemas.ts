@@ -6,8 +6,13 @@ import {
   decimalNumber,
   tableAmountCellValue,
   tableIsoDateCellString,
+  optionalString,
+  optionalIsoDateString,
 } from '../baseSchemas';
 import { loenPaaHelligdageEnum, loenperiodeEnum, tillaegAngivesSomEnum } from '../enumSchemas';
+
+export const aarsloenTillaegsgrundlagEnum = z.enum([...tillaegAngivesSomEnum.options, 'overenskomst']);
+export type AarsloenTillaegsgrundlag = z.infer<typeof aarsloenTillaegsgrundlagEnum>;
 
 export const standardLoenTableRowSchema = z.object({
   id: entityId(),
@@ -51,8 +56,14 @@ export const aarsloenSchema = z.object({
   // at injicere device-lokale app-settings under load.
   loenperiode: loenperiodeEnum.default('maaned'),
   // 'procent' = nuværende adfærd (default, passiv load-fallback for ældre .eo); 'beloeb' =
-  // tillægsbeløb angives direkte i tabellen, og sats-blokken skjules.
-  tillaegAngivesSom: tillaegAngivesSomEnum.default('procent'),
+  // tillægsbeløb angives direkte i tabellen, og sats-blokken skjules. 'overenskomst' udleder
+  // datoens satser uden at ændre de manuelle inputslots.
+  tillaegAngivesSom: aarsloenTillaegsgrundlagEnum.default('procent'),
+  overenskomstId: optionalString,
+  overenskomstLoenmodtager: optionalString,
+  overenskomstArbejdsgiver: optionalString,
+  reguleringsdato: optionalIsoDateString,
+  beregnStoreBededagstillaeg: z.boolean().optional(),
   tableData: z.array(standardLoenTableRowSchema).default([]),
   omregningTilFuldtAar: z.boolean().default(false),
   fuldLoenUnderFerie: z.boolean().default(true),

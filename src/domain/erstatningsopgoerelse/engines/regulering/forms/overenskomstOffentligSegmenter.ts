@@ -5,7 +5,7 @@ import type { ISODateString } from '../../../../../types/branded';
 import { isoToDanish } from '../../../../../types/branded';
 import { LOEN_PAA_HELLIGDAGE } from '../../../../../types/loen';
 import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
-import { harValgtStoreBededagstillaeg } from '../../../helpers/storeBededagstillaeg';
+import { harValgtStoreBededagstillaeg } from '../../../../loen/storeBededagstillaeg';
 import {
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,

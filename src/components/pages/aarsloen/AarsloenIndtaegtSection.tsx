@@ -1,3 +1,4 @@
+import { resolveAarsloenTillaegsMode } from '../../../domain/aarsloen/aarsloenTillaeg';
 import React from 'react';
 import { Typography } from '@mui/material';
 
@@ -25,7 +26,7 @@ const AarsloenIndtaegtSection = React.memo(() => {
         fieldSet={aarsloenStandardLoenFieldSet}
         loenperiode={values.loenperiode}
         locationNav={tableLocationNav}
-        tillaegAngivesSom={values.tillaegAngivesSom}
+        tillaegAngivesSom={resolveAarsloenTillaegsMode(values.tillaegAngivesSom)}
         satser={tableSatser}
         useSmallFont={true}
         saveOrderPath="aarsloen.tableData"

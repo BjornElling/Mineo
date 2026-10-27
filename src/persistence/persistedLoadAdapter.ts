@@ -7,7 +7,7 @@ import {
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { isRecord } from '../utils/typeGuards';
 import { countMeaningfulFields } from '../utils/dataCollection';
-import { resolveDefaultStoreBededagstillaeg } from '../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { resolveDefaultStoreBededagstillaeg } from '../domain/loen/storeBededagstillaeg';
 
 export type PersistedLoadAdaptation = Readonly<{
   value: unknown;
@@ -476,9 +476,17 @@ const PERSISTED_LOAD_ADAPTER_REGISTRY = {
   ),
 } satisfies PersistedLoadAdapterRegistry;
 
-// Listen er bevidst tom, indtil brugeren ved et konkret nyt felt vælger, om en gammel fil uden
-// værdien skal udløse preflight eller have en navngiven standardværdi indsat tavst.
-const MISSING_PERSISTED_FIELD_POLICIES: readonly MissingPersistedFieldPolicy[] = [];
+// Udviklerbeslutning 2026-10-27: ældre årslønssager beholder tal og valg uden ny advarsel.
+// De nye overenskomstfelter er tomme; hverken satsopslag eller Store Bededag aktiveres ved load.
+const MISSING_PERSISTED_FIELD_POLICIES: readonly MissingPersistedFieldPolicy[] = [
+  'overenskomstId', 'overenskomstLoenmodtager', 'overenskomstArbejdsgiver', 'reguleringsdato', 'beregnStoreBededagstillaeg',
+].map((field) => ({
+  sectionKey: 'aarsloen',
+  sourceVersions: PERSISTED_DATA_VERSION_HISTORY.slice(0, PERSISTED_DATA_VERSION_HISTORY.indexOf('3.17')),
+  path: [field],
+  value: () => undefined,
+  behavior: 'silentDefault',
+}));
 
 /**
  * Den obligatoriske adapter for én indkommende persisteret sektion.

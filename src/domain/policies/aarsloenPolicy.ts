@@ -1,6 +1,6 @@
+import { resolveAarsloenTillaegsMode } from '../aarsloen/aarsloenTillaeg';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, type Loenperiode } from '../../types/loen';
-import type { TillaegAngivesSom } from '../../schemas/formSchemas';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 
 export type AarsloenValues = PersistedSectionMap['aarsloen'];
@@ -15,7 +15,7 @@ export const resolveAarsloenDefaultLoenperiode = (aarsloen: AarsloenValues | nul
 export const hasAarsloenEffectiveRows = (aarsloen: AarsloenValues | null): boolean => {
   if (!aarsloen) return false;
   if (!Array.isArray(aarsloen.tableData) || aarsloen.tableData.length === 0) return false;
-  return aarsloen.tableData.some((row) => !isStandardLoenRowEffectivelyEmpty(row, aarsloen.loenperiode, aarsloen.tillaegAngivesSom));
+  return aarsloen.tableData.some((row) => !isStandardLoenRowEffectivelyEmpty(row, aarsloen.loenperiode, resolveAarsloenTillaegsMode(aarsloen.tillaegAngivesSom)));
 };
 
 /**
@@ -38,7 +38,7 @@ export const erAarsloenFerieFelterRelevant = (fuldLoenUnderFerie: boolean): bool
  * satsadvarsler spørger alle om det samme – uden prædikatet kunne en advarsel om en sats blive stående,
  * efter at programmet var holdt op med at bruge den, og pege på et felt, brugeren ikke længere kan se.
  */
-export const erAarsloenSatsFelterRelevante = (tillaegAngivesSom: TillaegAngivesSom): boolean =>
+export const erAarsloenSatsFelterRelevante = (tillaegAngivesSom: AarsloenValues['tillaegAngivesSom']): boolean =>
   tillaegAngivesSom !== 'beloeb';
 
 export const shouldShowAarsloenFerieFields = (aarsloen: AarsloenValues | null): boolean => {

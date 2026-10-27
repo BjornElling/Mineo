@@ -5,7 +5,7 @@ import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, St
 import { sortStandardLoenRowsChronologically } from '../../../../domain/standardLoen/standardLoenRowOrder';
 import { isISODateString, type ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
-import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { resolveAktivOverenskomst } from '../../../../domain/loen/aktivOverenskomst';
 import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveSatserHeadingForAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/satserHeading';
 import type { SelectedElements } from '../types';

@@ -35,8 +35,9 @@ export const resolveAarsloenNewCaseDefaults = (settings?: AppSettings): Aarsloen
 
 export const createAarsloenNewCaseSeed = (settings?: AppSettings): NewCaseSeed => () => ({
   aarsloen: {
-    // Sektionens eneste ikke-defaultede felt: en ny sag har ingen lønperioderækker.
+    // Nye sager starter uden lønperioder og med samme Store Bededag-tilvalg som Lønindkomst.
     tableData: [],
+    beregnStoreBededagstillaeg: true,
     ...resolveAarsloenNewCaseDefaults(settings),
   },
 });

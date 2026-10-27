@@ -25,7 +25,6 @@ import { assessLoenindkomstSatser } from '../../../../domain/erstatningsopgoerel
 import { buildFieldIssueSet, type FieldIssue, type FieldIssueSet } from '../../../../inputCore/inputIssue';
 import { toAnyFieldRef } from '../../../../inputCore/fieldDescriptor';
 import { deriveLoenindkomstVm } from '../../../../domain/erstatningsopgoerelse/viewModel/loenindkomstDerivations';
-import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg } from '../../../../data/overenskomstRates';
 import { scrollTargetIntoView } from '../../../../utils/scrollTargetIntoView';
 import { useLoentrinFinder } from '../shared/useLoentrinFinder';
 import { resolveActionGate } from '../../../inputs/actionGate';
@@ -196,8 +195,6 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     tableCellWarningsByAfId,
     loenudviklingWarnings,
     loentrinFinder,
-    alleLoenmodtagerOrg: getAlleLoenmodtagerOrg(),
-    alleArbejdsgiverOrg: getAlleArbejdsgiverOrg(),
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,

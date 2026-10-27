@@ -120,6 +120,7 @@ const EXPECTED_LOADED_SNAPSHOT = {
   satser: { aargang: 2025 },
   aarsloen: {
     feriePct: 12.5,
+    beregnStoreBededagstillaeg: true,
     loenperiode: 'dag',
     tillaegAngivesSom: 'procent',
     tableData: [{ id: 'loen-1', col2: { kind: 'number', value: 1000 } }],

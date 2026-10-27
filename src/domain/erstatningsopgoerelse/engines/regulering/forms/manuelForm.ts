@@ -6,7 +6,7 @@ import { STORE_BEDEDAG_START } from '../../../../../data/indskudteLoentillaeg';
 import {
   harValgtStoreBededagstillaeg,
   resolveStoreBededagstillaegPct,
-} from '../../../helpers/storeBededagstillaeg';
+} from '../../../../loen/storeBededagstillaeg';
 import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
 import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';

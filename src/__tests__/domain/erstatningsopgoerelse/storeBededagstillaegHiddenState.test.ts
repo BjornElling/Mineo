@@ -2,7 +2,7 @@ import { manuelForm } from '../../../domain/erstatningsopgoerelse/engines/regule
 import { overenskomstForm } from '../../../domain/erstatningsopgoerelse/engines/regulering/forms/overenskomstForm';
 import type { FormKonsoliderContext } from '../../../domain/erstatningsopgoerelse/engines/regulering/reguleringForm';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { resolveStoreBededagstillaegPct } from '../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { resolveStoreBededagstillaegPct } from '../../../domain/loen/storeBededagstillaeg';
 import { toISODateString } from '../../../types/branded';
 
 const contextFor = (

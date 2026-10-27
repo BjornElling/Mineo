@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-26
+**Senest verificeret mod kode:** 2026-10-27
 
 ---
 
@@ -42,6 +42,24 @@
 
 ---
 
+## 2b. Overenskomst som tillægsgrundlag
+
+Årslønnens «Tillæg beregnes på baggrund af» har valgene Procent, Beløb og Overenskomst. EO beholder sit eksisterende valg mellem Procent og Beløb. Fuld løn under ferie og Løn på helligdage vises efter Løn indtastes som, uafhængigt af omregning til fuldt år. De øvrige omregningsvalg forbliver under Beregningsprincipper.
+
+I Overenskomst vises samme organisationsfiltre og overenskomstvælger som på Lønindkomst samt en særskilt Reguleringsdato. `domain/loen/overenskomstSatser.ts` ejer fælles satsbindinger, dækning og tooltiptekster. Årsløn anvender den valgte datos satser på **alle** lønrækker, også før datoen og ved satsskift i perioden. Der periodiseres ikke, og der gives ikke advarsel om lønrækker før overenskomstens dækning. Manglende overenskomst/dato, ugyldig dato og privat overenskomst uden satser på datoen spærrer beregning og dokument.
+
+Feriegodtgørelse/-tillæg indtastes altid manuelt. Fritvalg, SH/SO og arbejdsgiverpension fastsættes og låses af overenskomsten; ved offentlige tillæg uden sats forbliver feltet manuelt som på Lønindkomst. Helligdagsvalget indgår i det fælles satsopslag, herunder tilpasning af både SH/SO og fritvalg.
+
+Store Bededagstillæg har i Overenskomst samme til-/fravalg som på Lønindkomst. Valget vises kun ved Almindelig løn på helligdage, og satsen udledes af den valgte reguleringsdato og tilvalget gennem den eksisterende fælles regel: 0,45 % fra 1. januar 2024, ellers 0 %. Ved fravalg fra 2024 genbruges Lønindkomsts ikke-blokerende advarsel. Nye sager starter med tilvalget slået til. Procent- og Beløb-tilstandenes eksisterende adfærd ændres ikke.
+
+Årslønnens eksisterende ferie-/SH-advarsler vurderes også uden helårsomregning i Overenskomst. Advarsler om 6. ferieuge vises fortsat kun ved aktiv omregning, hvor valget er synligt. En feriesats over 20 % får samme gule ring og tekst som på Lønindkomst; EO’s beregningstekniske minimum på 12 % gælder ikke årsløn. Manglende eller ugyldige overenskomstforudsætninger forklares i Advarsler.
+
+Automatiske satser udledes kun i `readAarsloenValues`; de skrives ikke tilbage i inputaggregatet. Tidligere manuelt input bevares ved tilstandsskift og i save/load. Den fælles løntabel og dokumentgenerator modtager det afledte satsæt med normaliseret Procent-tilstand, så ingen parallel beregningsmotor indføres.
+
+Version 3.17 tilføjer årslønnens eget tillægsgrundlag samt optional `overenskomstId`, `overenskomstLoenmodtager`, `overenskomstArbejdsgiver`, `reguleringsdato` og `beregnStoreBededagstillaeg`. Udviklerbeslutning 2026-10-27: tidligere gemte sager bevarer alle hidtidige værdier uden ny advarsel; de nye felter er tomme. Den eksplicitte historiske load-policy indsætter kun `undefined`, aldrig lokale indstillinger eller automatiske satser.
+
+---
+
 ## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
 Årsløn er **bevidst ikke** snapshot-first. Den ready inputprojektion og section-lokale engine-/calculations-model i §1
@@ -72,5 +90,5 @@ ansættelsesforhold, sygeferiegodtgørelse) og i begge fladers dokumenter. Regle
 tværgående `feriepenge-begreber-contract.md` og gælder hele programmet.
 
 Konsekvens her: satsfeltet hedder «Feriegodtgørelse/-tillæg», fordi det rummer begge ydelser. Sidens
-advarselstekster om dets sats bruger feltets eget navn og dannes ét sted, i `beregnFejlmeddelelser`
-(`aarsloenValidationPolicies.ts`) – ikke som løs prosa i sidekomponenterne.
+advarselstekster om dets sats bruger feltets eget navn og kommer fra `beregnFejlmeddelelser`
+(`aarsloenValidationPolicies.ts`) samt den fælles `resolveHoejFeriePctAdvarsel` – ikke som løs prosa i sidekomponenterne.

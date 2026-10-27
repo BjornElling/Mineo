@@ -1,3 +1,4 @@
+import { resolveAarsloenTillaegsMode } from '../../domain/aarsloen/aarsloenTillaeg';
 import type { DocumentBlock } from '../../document/model/documentModel';
 import type {
   DocumentGenerationSession,
@@ -124,7 +125,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
         pensionPct: values.pensionPct,
       },
       loenperiode: values.loenperiode,
-      tillaegAngivesSom: values.tillaegAngivesSom,
+      tillaegAngivesSom: resolveAarsloenTillaegsMode(values.tillaegAngivesSom),
       tableData: values.tableData,
       beregnetAarsloen: 34_650,
       omregningTilFuldtAar: values.omregningTilFuldtAar,
@@ -197,7 +198,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
     await generateAarsloenDocument(session, {
       satser: { feriePct: values.feriePct, pensionPct: values.pensionPct },
       loenperiode: values.loenperiode,
-      tillaegAngivesSom: values.tillaegAngivesSom,
+      tillaegAngivesSom: resolveAarsloenTillaegsMode(values.tillaegAngivesSom),
       tableData: [...values.tableData].reverse(),
       beregnetAarsloen: 34_650,
       omregningTilFuldtAar: values.omregningTilFuldtAar,

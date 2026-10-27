@@ -1,7 +1,7 @@
-import type { ISODateString } from '../../../types/branded';
-import type { Beregningsmetode } from '../../../schemas/formSchemas/enumSchemas';
-import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../data/indskudteLoentillaeg';
+import type { ISODateString } from '../../types/branded';
+import type { Beregningsmetode } from '../../schemas/formSchemas/enumSchemas';
+import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
+import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../data/indskudteLoentillaeg';
 
 /** Det fælles, persisted valg som alene kan aktivere Store Bededagstillægget. */
 export type StoreBededagstillaegValg = Readonly<{
@@ -69,3 +69,13 @@ export const erStoreBededagstillaegRelevant = (valg: Readonly<{
   && (valg.reguleringsform === 'Overenskomst' || valg.reguleringsform === 'Manuelt angivet'
     || (valg.beregnesUdFra === 'Beregningsperiode' && valg.tillaegAngivesSom !== 'beloeb'
       && valg.reguleringsdato !== undefined && valg.reguleringsdato >= STORE_BEDEDAG_START));
+
+/** Fælles, ikke-blokerende forklaring ved fravalg efter tillæggets virkningsdato. */
+export const resolveFravalgtStoreBededagstillaegAdvarsel = (
+  dato: ISODateString | undefined,
+  valg: StoreBededagstillaegValg,
+): string | undefined => dato !== undefined && dato >= STORE_BEDEDAG_START
+  && valg.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG
+  && valg.beregnStoreBededagstillaeg !== true
+  ? 'Der vil sædvanligvis være krav på Store Bededagstillæg fra 1. januar 2024 ved almindelig løn på helligdage.'
+  : undefined;

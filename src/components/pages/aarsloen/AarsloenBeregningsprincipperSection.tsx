@@ -1,14 +1,11 @@
 import React from 'react';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
 import LabeledControlRow from '../../layout/LabeledControlRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import IntegerField from '../../../inputCore/react/fields/IntegerField';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
-import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
-import type { LoenPaaHelligdage } from '../../../schemas/formSchemas/enumSchemas';
 import { useAarsloenVm } from './aarsloenContext';
 
 /**
@@ -51,19 +48,6 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
           <Typography className="row--text">{vm.indtastetEnhedSummary.value}</Typography>
         </Box>
 
-        <LabeledControlRow label="Fuld løn under ferie:">
-          {({ labelledBy, controlId }) => (
-            <ToggleField
-              name="fuldLoenUnderFerie"
-              field={fields.fuldLoenUnderFerie}
-              location={locations.fuldLoenUnderFerie}
-              id={controlId}
-              labelledBy={labelledBy}
-              disabled={!canShowOmregning}
-            />
-          )}
-        </LabeledControlRow>
-
         {/* Ret til 6. ferieuge – kun synlig hvis IKKE fuld løn under ferie */}
         <Box sx={{ display: vm.shouldShowFerieFields ? 'block' : 'none' }}>
           <LabeledControlRow label="Ret til 6. ferieuge:">
@@ -95,24 +79,6 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 {...(vm.feriedageIssue === undefined ? {} : { crossFieldIssue: vm.feriedageIssue })}
               />
             </Box>
-          </Box>
-        </Box>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Løn på helligdage:</Typography>
-          <Box className="row--label-right-hover__content">
-            <ChoiceField<LoenPaaHelligdage>
-              name="loenPaaHelligdage"
-              field={fields.loenPaaHelligdage}
-              location={locations.loenPaaHelligdage}
-              width={185}
-              allowEmpty={false}
-              disabled={!canShowOmregning}
-            >
-              <MenuItem value={LOEN_PAA_HELLIGDAGE.ALMINDELIG}>Almindelig løn</MenuItem>
-              <MenuItem value={LOEN_PAA_HELLIGDAGE.SH_UDBETALING}>SH-udbetaling</MenuItem>
-              <MenuItem value={LOEN_PAA_HELLIGDAGE.INGEN}>Ingen</MenuItem>
-            </ChoiceField>
           </Box>
         </Box>
 

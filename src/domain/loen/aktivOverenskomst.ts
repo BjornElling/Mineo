@@ -1,4 +1,8 @@
-import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
+/** De to styrende valg, uafhængigt af den side der bruger overenskomsten. */
+export type OverenskomstValg = Readonly<{
+  harOverenskomst?: boolean | undefined;
+  overenskomstId?: string | undefined;
+}>;
 
 /**
  * ÉN sandhed for "har dette ansættelsesforhold en aktiv overenskomst, og hvilken?".
@@ -24,7 +28,7 @@ export type AktivOverenskomst =
 const INAKTIV: AktivOverenskomst = { aktiv: false, overenskomstId: undefined };
 
 export const resolveAktivOverenskomst = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
+  af: OverenskomstValg
 ): AktivOverenskomst => {
   if (!af.harOverenskomst) return INAKTIV;
   const overenskomstId = af.overenskomstId?.trim();
@@ -34,7 +38,7 @@ export const resolveAktivOverenskomst = (
 
 /** Kortform, når kun ja/nej er interessant. */
 export const harAktivOverenskomst = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
+  af: OverenskomstValg
 ): boolean => resolveAktivOverenskomst(af).aktiv;
 
 /**
@@ -44,5 +48,5 @@ export const harAktivOverenskomst = (
  * validatoren gør den derfor synlig, når reguleringsformen er "Overenskomst".
  */
 export const harModstridendeOverenskomstValg = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
+  af: OverenskomstValg
 ): boolean => !af.harOverenskomst && Boolean(af.overenskomstId?.trim());

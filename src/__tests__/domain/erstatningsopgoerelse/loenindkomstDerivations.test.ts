@@ -364,16 +364,6 @@ describe('deriveLoenindkomstVm', () => {
     });
   });
 
-  describe('getFilteredOverenskomsterForAnsaettelsesforhold', () => {
-    it('returnerer en liste (ufiltreret når intet filter er sat)', () => {
-      const af = createDefaultLoenindkomstAnsaettelsesforhold();
-      const model = deriveLoenindkomstVm(buildInput([af]));
-      const result = model.getFilteredOverenskomsterForAnsaettelsesforhold(af);
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThan(0);
-    });
-  });
-
   describe('resolveOverenskomstLabel', () => {
     it('returnerer "Ingen valgt" når intet er valgt', () => {
       const af = createDefaultLoenindkomstAnsaettelsesforhold();

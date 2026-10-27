@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { erStoreBededagstillaegRelevant } from '../../../../../domain/erstatningsopgoerelse/helpers/storeBededagstillaeg';
+import { erStoreBededagstillaegRelevant } from '../../../../../domain/loen/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
 import OverenskomstFilterLabel from '../../../../common/OverenskomstFilterLabel';
 import ContentBox from '../../../../layout/ContentBox';

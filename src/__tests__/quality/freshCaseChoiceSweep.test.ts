@@ -81,6 +81,10 @@ const sweepableFields = staticChoiceFields
  * datadrevet – ikke fordi det er besværligt at opregne.
  */
 const OPEN_ENDED_CHOICE_FIELD_IDS: readonly string[] = [
+  // Samme overenskomstkatalog og organisationsfiltre som lønindkomst – ingen lukket codec-valgmængde.
+  'aarsloen.overenskomstId',
+  'aarsloen.overenskomstLoenmodtager',
+  'aarsloen.overenskomstArbejdsgiver',
   'eo.eoAngivetLoenLoenudvikling.overenskomstId',
   'eo.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager',
   'eo.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver',

@@ -16,7 +16,7 @@ import {
   resolveLoenReguleringsTillaeg,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '../../../../data/offentligLoenTypes';
-import { resolveAktivOverenskomst } from '../../../../domain/erstatningsopgoerelse/helpers/aktivOverenskomst';
+import { resolveAktivOverenskomst } from '../../../../domain/loen/aktivOverenskomst';
 import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
   REGULERINGSVAERDIER_FERIE_HEADER,

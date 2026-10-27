@@ -7,7 +7,7 @@ import {
   getOverenskomstSfggPolicy,
 } from '../../../data/overenskomstRates';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
-import { harAktivOverenskomst, resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
+import { harAktivOverenskomst, resolveAktivOverenskomst } from '../../loen/aktivOverenskomst';
 
 /**
  * SFGG-kildemodulet: ét sted der definerer, hvad hver af de fem SFGG-beregningskilder "er".

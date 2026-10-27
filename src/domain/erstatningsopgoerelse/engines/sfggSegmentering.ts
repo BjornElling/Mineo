@@ -22,7 +22,7 @@ import {
 } from '../../money/money';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
-import { resolveAktivOverenskomst } from '../helpers/aktivOverenskomst';
+import { resolveAktivOverenskomst } from '../../loen/aktivOverenskomst';
 import { isKlNulbasis } from './regulering/reguleringsbevis';
 import { kraevReguleringPaaDato, type ReguleringOpslag, type ReguleringsVaerdi } from './regulering/reguleringOpslag';
 import { buildKlLoenaftalerReguleretLoenResolver } from './klLoenaftalerReguleretLoen';

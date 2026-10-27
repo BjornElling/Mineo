@@ -20,13 +20,18 @@
   "aarsloen": {
     "fields": [
       "antalFeriedage",
+      "beregnStoreBededagstillaeg",
       "feriePct",
       "fritvalgPct",
       "fuldLoenUnderFerie",
       "loenperiode",
       "loenPaaHelligdage",
       "omregningTilFuldtAar",
+      "overenskomstArbejdsgiver",
+      "overenskomstId",
+      "overenskomstLoenmodtager",
       "pensionPct",
+      "reguleringsdato",
       "retTilSjetteFerieuge",
       "shSoPct",
       "storeBededagPct",
