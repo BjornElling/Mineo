@@ -3,7 +3,9 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-10-26 (Udviklerens afgørelse: download-fallbacken bruger sagens
+**Senest verificeret mod kode:** 2026-10-27 (§6: iterativ dybdekontrol før rekursiv load-behandling og
+egne datafelter ved normalisering, schema- og versionsopslag. Historiske filer og begge åbningsveje dækkes
+af regressionstests.) Tidligere 2026-10-26 (Udviklerens afgørelse: download-fallbacken bruger sagens
 filnavn uden tilføjet dato og klokkeslæt. Mangler navn, skadestype og skadedato, bruges journalnummeret
 som reserve og ellers standardnavnet. Gem-kvitteringen forklarer fortsat, at download er en ny fil. Tidligere 2026-08-27:
 PWA-load og .eo-sanitization er adversarialt gennemgået:
@@ -335,6 +337,11 @@ muteres ikke.
 7. Godkendt load oversætter canonical sektioner til gyldige settled felter, har ingen rejected inputs og erstatter hele
    inputaggregaten i én transaktion.
 8. Manuel og PWA-initieret load må først starte fil-I/O efter `prepare('load')=committed`.
+
+Begge filåbningsveje kontrollerer dekrypteret JSON iterativt før rekursiv normalisering og migrering.
+Mere end 128 objekt-/arrayniveauer afvises med den eksisterende formatfejl. Loftet ligger langt over de faste
+gyldige sagsstrukturer og ændrer hverken filformat, historiske migreringer eller gyldige feltværdier.
+Filnøgler må ikke ændre objekters prototype eller vælge arvede schemafelter/adaptertrin; de behandles som data.
 
 Den kanoniske rækkefølge er:
 

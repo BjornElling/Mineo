@@ -4,6 +4,17 @@ import {
 } from '../../persistence/persistedLoadAdapter';
 
 describe('persistedLoadAdapter', () => {
+  it.each(['__proto__', 'constructor', 'toString', 'hasOwnProperty'])(
+    'behandler versionsstrengen %s som ukendt frem for et arvet adaptertrin',
+    (version) => {
+      const source = { kravPaaTabtArbejdsfortjeneste: 'Nej' };
+      const adapted = adaptPersistedSectionForLoad('erstatningsopgoerelse', source, version);
+
+      expect(adapted).toEqual({ value: source, preflightMissingFields: [] });
+      expect(source).toEqual({ kravPaaTabtArbejdsfortjeneste: 'Nej' });
+    },
+  );
+
   it('bruger samme godkendte tavse undtagelse før filoptælling og ved sektionsload', () => {
     const source = {
       stamdata: { journalnr: 'J-1' },

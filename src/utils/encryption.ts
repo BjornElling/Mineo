@@ -9,6 +9,9 @@ import { z } from 'zod';
 // - ivB64/ctB64 er standard base64 (ikke URL-safe)
 const KEY_MATERIAL = 'MINEO_OBFUSCATION_KEY_V1';
 const AES_GCM_IV_BYTES = 12;
+// Gyldige sagsdata har en fast, lav objektdybde. Loftet ligger langt over den struktur
+// og stopper ondsindet indlejring før loadets rekursive normalisering og migrering.
+const MAX_DECRYPTED_JSON_DEPTH = 128;
 
 export class EncryptionError extends Error {
   constructor(message: string) {
@@ -16,6 +19,25 @@ export class EncryptionError extends Error {
     this.name = 'EncryptionError';
   }
 }
+
+const assertSafePayloadDepth = (value: object): void => {
+  // Kontrollen er selv iterativ, så en lille fil med tusindvis af indlejringer
+  // ikke kan udtømme call stack, mens vi forsøger at afvise den.
+  const pending: { value: object; depth: number }[] = [{ value, depth: 1 }];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current) break;
+    if (current.depth > MAX_DECRYPTED_JSON_DEPTH) {
+      throw new EncryptionError('Ugyldigt filformat');
+    }
+    const children: unknown[] = Object.values(current.value);
+    for (const child of children) {
+      if (child !== null && typeof child === 'object') {
+        pending.push({ value: child, depth: current.depth + 1 });
+      }
+    }
+  }
+};
 
 const encryptedFileSchema = z.object({
   version: z.number().int(),
@@ -151,6 +173,7 @@ export const decryptData = async (fileContent: unknown): Promise<unknown> => {
     throw new EncryptionError('Ugyldigt filformat');
   }
 
+  assertSafePayloadDepth(data);
   return data;
 };
 

@@ -4,11 +4,11 @@ export const nullToUndefinedDeep = (value: unknown): unknown => {
   // Denne hjælper antager bevidst almindelige JSON-lignende objekter brugt i persistence.
   // Send ikke klasse-instanser (fx Date), Maps, Sets eller objekter med symbol-nøgler.
   if (typeof value === 'object' && value !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      result[k] = nullToUndefinedDeep(v);
-    }
-    return result;
+    // fromEntries bevarer også en egen __proto__-nøgle som data. Tildeling til {}
+    // ville ændre prototypen og kunne gøre filens skjulte felter til indlæst sagsdata.
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, nullToUndefinedDeep(child)]),
+    );
   }
   return value;
 };

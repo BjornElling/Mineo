@@ -67,7 +67,9 @@ export const createPersistedSectionLoadAdapter = (
   configuration: PersistedLoadAdapterConfiguration
 ): PersistedSectionLoadAdapter => (pageKey, value, sourceVersion) => {
   const normalized = nullToUndefinedDeep(value);
-  const step = configuration.transitions[pageKey]?.[sourceVersion];
+  const versions = configuration.transitions[pageKey];
+  // Versionsstrengen kommer fra filen. Arvede navne er ukendte versioner, ikke adaptertrin.
+  const step = versions && Object.hasOwn(versions, sourceVersion) ? versions[sourceVersion] : undefined;
   const transitioned = step === undefined ? normalized : (() => {
   // Gør `toVersion` load-bearing: en entry hvis mål ikke er den aktuelle version er en
   // fejlkonfigureret overgang (kun single-hop `fromVersion -> current` er tilladt). Stop

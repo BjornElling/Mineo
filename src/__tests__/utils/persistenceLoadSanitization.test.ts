@@ -10,6 +10,19 @@ import { optionalAmountValueSchema } from '../../schemas/amountExpressionSchema'
 import { adaptPersistedSectionForLoad } from '../../persistence/persistedLoadAdapter';
 
 describe('persistenceLoadSanitization', () => {
+  it.each(['__proto__', 'constructor', 'prototype', 'toString', 'hasOwnProperty'])(
+    'behandler %s som et ukendt datafelt frem for et arvet schema',
+    (key) => {
+      const source = { journalnr: 'J-1', [key]: { journalnr: 'FORFALSKET' } };
+      const result = sanitizePersistedValueForSchema(stamdataSchema, source);
+
+      expect(result.unknownPaths).toEqual([[key]]);
+      expect(result.sanitized).toEqual({ journalnr: 'J-1' });
+      expect(Object.getPrototypeOf(result.sanitized)).toBe(Object.prototype);
+      expect(source).toEqual({ journalnr: 'J-1', [key]: { journalnr: 'FORFALSKET' } });
+    },
+  );
+
   // Guard mod Zod-opgradering: hvis unwrapSchema lydløst no-op'er på en ny `.def`-pipe-struktur, ville
   // ukendte felter IKKE blive strippet (jf. ADVARSEL i persistenceLoadSanitization.ts). Denne test fanger
   // det for HVER persisteret sektion ved at kræve at en probe-nøgle altid rapporteres som ukendt.

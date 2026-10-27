@@ -1,6 +1,22 @@
 import { nullToUndefinedDeep } from '../../utils/nullToUndefinedDeep';
 
 describe('nullToUndefinedDeep', () => {
+  it('bevarer specielle JSON-nøgler som egne datafelter uden at ændre prototypen', () => {
+    const source: unknown = JSON.parse('{"__proto__":{"journalnr":"FORFALSKET","tom":null},"constructor":{"prototype":{"tom":null}},"prototype":null,"journalnr":"ÆGTE"}');
+    const result = nullToUndefinedDeep(source);
+
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(true);
+    expect(result).toEqual({
+      ['__proto__']: { journalnr: 'FORFALSKET', tom: undefined },
+      constructor: { prototype: { tom: undefined } },
+      prototype: undefined,
+      journalnr: 'ÆGTE',
+    });
+    expect(source).toEqual(JSON.parse('{"__proto__":{"journalnr":"FORFALSKET","tom":null},"constructor":{"prototype":{"tom":null}},"prototype":null,"journalnr":"ÆGTE"}'));
+  });
+
   describe('primitive værdier', () => {
     it('null → undefined', () => expect(nullToUndefinedDeep(null)).toBeUndefined());
     it('string → uændret', () => expect(nullToUndefinedDeep('hello')).toBe('hello'));

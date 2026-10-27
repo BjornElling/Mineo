@@ -87,14 +87,17 @@ export const stripUnknownFieldsBySchema = (
     const unknownPaths: UnknownPath[] = [];
 
     for (const [key, val] of Object.entries(value)) {
-      const childSchema = shape[key];
-      if (!childSchema) {
+      // Filens nøgler må kun vælge egne schemafelter, aldrig fx Object.prototype.constructor.
+      if (!Object.hasOwn(shape, key)) {
         unknownPaths.push([key]);
         continue;
       }
 
+      const childSchema = shape[key];
       const child = stripUnknownFieldsBySchema(childSchema, val);
-      sanitized[key] = child.sanitized;
+      Object.defineProperty(sanitized, key, {
+        value: child.sanitized, enumerable: true, writable: true, configurable: true,
+      });
       for (const path of child.unknownPaths) {
         unknownPaths.push([key, ...path]);
       }

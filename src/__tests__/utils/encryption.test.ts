@@ -16,6 +16,23 @@ const flipLastChar = (value: string): string => {
 };
 
 describe('encryption (AES-GCM)', () => {
+  it('afviser ekstremt indlejrede data med den eksisterende formatfejl før load-behandling', async () => {
+    const payload: unknown = JSON.parse('['.repeat(129) + 'null' + ']'.repeat(129));
+    const encrypted = await encryptToString(payload);
+
+    await expect(decryptFromString(encrypted)).rejects.toMatchObject({
+      name: 'EncryptionError',
+      message: 'Ugyldigt filformat',
+    });
+  });
+
+  it('bevarer data ved den tilladte dybde uden at fortolke parenteser i tekst som struktur', async () => {
+    const payload: unknown = JSON.parse('['.repeat(128) + JSON.stringify('[[[ \\"tekst\\" ]]]') + ']'.repeat(128));
+    const encrypted = await encryptToString(payload);
+
+    expect(await decryptFromString(encrypted)).toEqual(payload);
+  });
+
   it('roundtrips data', async () => {
     const payload = {
       a: 1,
