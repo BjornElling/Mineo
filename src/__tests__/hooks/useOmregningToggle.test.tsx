@@ -84,7 +84,8 @@ describe('useOmregningToggle', () => {
     await act(async () => {
       lastDecision = lastDecide?.(true) ?? null;
     });
-    expect(showMissingEntryError).toHaveBeenCalled();
+    // En afvist toggle må ikke føre brugeren væk fra togglen: cellen blinker, hvor den står.
+    expect(showMissingEntryError).toHaveBeenCalledWith(expect.anything(), 'inPlace');
     expect(flashError).not.toHaveBeenCalled();
     expect(lastDecision).toBe('reject');
   });
@@ -126,7 +127,7 @@ describe('useOmregningToggle', () => {
       issue: 'invalid',
       rowId: 'r2',
       colKey: 'col1_maaned',
-    });
+    }, 'inPlace');
     expect(lastDecision).toBe('reject');
   });
 
@@ -240,7 +241,7 @@ describe('useOmregningToggle', () => {
     });
 
     // Ryster + peger på første periodecelle (ingen konkret fejlcelle); ingen direkte celle-fejl.
-    expect(showNeedsPeriodHint).toHaveBeenCalled();
+    expect(showNeedsPeriodHint).toHaveBeenCalledWith('inPlace');
     expect(showMissingEntryError).not.toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
     expect(lastDecision).toBe('reject');

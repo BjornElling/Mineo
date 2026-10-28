@@ -174,11 +174,10 @@ export function useAarsloenViewModel() {
   const runAarsloenDownload = React.useCallback(async () => {
     const outcome = await aarsloenDownload.download(undefined);
     if (outcome.status === 'rejected' && outcome.rejection.kind === 'gate-blocked') {
-      // Rystelsen er fjernet; celle-flashet er bevaret. Det var den del af den gamle
-      // feedback, der PEGEDE et sted hen – rystelsen fortalte kun, at noget var galt, hvilket
-      // knappens tooltip allerede sagde mere præcist.
+      // En blokeret knap ryster ikke (kun toggles gør, page-component-contract §11.1); celle-flashet
+      // PEGER derimod et sted hen. Knappen er en bevidst handling, så cellen må gerne scrolles frem.
       const firstError = tableValidation.errors[0];
-      if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError);
+      if (firstError?.kind === 'cell') tabelRef.current?.flashError(firstError, 'scrollIntoView');
     }
   }, [aarsloenDownload, tableValidation.errors]);
 

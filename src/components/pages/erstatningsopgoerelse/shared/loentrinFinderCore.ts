@@ -46,8 +46,8 @@ export const formatLoentrinFinderResultLabel = (result: Pick<LoentrinFinderResul
 };
 
 /**
- * Udfald af et beregningsforsøg. `ok: false` betyder at knappen skal "ryste" (shake) og
- * at de medfølgende errors skal vises; `ok: true` betyder gyldige resultater og ryddede errors.
+ * Udfald af et beregningsforsøg. `ok: false` betyder at de medfølgende errors skal vises
+ * på de felter, der er årsagen; `ok: true` betyder gyldige resultater og ryddede errors.
  */
 export type LoentrinFinderCalculationOutcome =
   | Readonly<{ ok: false; errors: LoentrinFinderErrors }>
@@ -111,7 +111,7 @@ const validateLoentrinFinderInput = (
 
 /**
  * Kerneberegning: inputvalidering + satstabel-opslag + resultatbygning/-sortering (top-5).
- * Ren funktion uden side-effekter – kalderen mapper udfaldet til React-state og shake.
+ * Ren funktion uden side-effekter – kalderen mapper udfaldet til React-state.
  */
 export const calculateLoentrinFinderResults = (
   input: LoentrinFinderCalculationInput

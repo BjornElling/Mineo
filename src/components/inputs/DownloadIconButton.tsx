@@ -30,8 +30,8 @@ type Props = Readonly<{
  * eller en CSV-download hvor dokumentformatet er irrelevant).
  *
  * **Ingen shake.** Knappen havde tidligere en `shake`-prop, der rystede den ved en blokeret
- * aktivering. Rystelsen er fjernet i hele programmet (udviklerbeslutning 2026-08-15), så der er
- * ÉN afvisningsmåde: knappen er synligt inaktiv med årsagen i tooltippet. Fokusspringet til det
+ * aktivering. Knapper ryster ikke (udviklerbeslutning 2026-08-15; kun toggles gør, jf.
+ * `page-component-contract.md` §11.1): knappen er synligt inaktiv med årsagen i tooltippet. Fokusspringet til det
  * blokerende felt er bevaret – det er den del af den gamle feedback, der faktisk pegede brugeren
  * et sted hen. Genindfør ikke en shake-prop her.
  */

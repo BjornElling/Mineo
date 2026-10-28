@@ -21,6 +21,14 @@ test.describe('Offentlige ydelser – regulering følger beregningsgrundlaget', 
     await expect(page.getByRole('tooltip')).toHaveText(inactiveText);
     await page.screenshot({ path: testInfo.outputPath('regulering-inaktiv.png') });
 
+    // Et klik på den inaktive toggle ryster den (page-component-contract §11.1b). MUI giver den
+    // deaktiverede switch-knap `pointer-events: none`, så klikket skal fanges på switchens rod.
+    const switchRoot = page.locator('.MuiSwitch-root').filter({ has: toggle });
+    const checkedBefore = await toggle.isChecked();
+    await switchRoot.click();
+    await expect(switchRoot).toHaveClass(/mineo-toggle-refusal-shake/);
+    expect(await toggle.isChecked()).toBe(checkedBefore);
+
     const row = page.locator('table').filter({ hasText: 'Ydelse' }).first().locator('tbody tr[data-mineo-row-id]').first();
     const inputs = row.locator('input[data-mineo-field-address]');
     await setVerbatimFieldValueAndSettle(inputs.nth(0), '01-01-2021');

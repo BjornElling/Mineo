@@ -14,15 +14,14 @@ import {
 // Toggle-felt (§1.3/§3.6): en boolsk immediate-commit control. Klik/Enter/Space committer STRAKS via
 // `commitImmediate` – ingen draft/settle-fase. Modtager kun sin `field`/`location`; den viste checked-tilstand
 // læses fra den afsluttede revision gennem editor-controlleren. Feltet har BEVIDST ingen ref-videreførsel:
-// den fandtes alene for at give en gate-afvisning adgang til switchens `shake()`, og rystelsen er fjernet
-// i hele programmet. En afvisning peger nu på den konkrete fejlcelle i stedet.
+// en afvisning (`'reject'`) får switchen til at ryste af sig selv, så en gate behøver ingen adgang til den.
 
 /**
  * En callsite-ejet afslutning af togglen (§1.11). Kaldes med den ønskede næste værdi og afgør, hvad der sker:
  *
  * - `'commit'` – adapteren skriver værdien gennem sin normale `commitImmediate`. En gate bruger dette for den
  *   tilladte ændring; skrivevejen forbliver dermed adapterens.
- * - `'reject'` – ingen skrivning; kontrollen bliver stående (gate-afvisning).
+ * - `'reject'` – ingen skrivning; kontrollen bliver stående og ryster (gate-afvisning).
  * - `'handled'` – callsitet har selv afsluttet ændringen, typisk som én atomisk transaktion, der også rører
  *   andre felter eller rækker. Adapteren skriver da ikke oveni.
  *

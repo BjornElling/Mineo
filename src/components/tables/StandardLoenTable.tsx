@@ -11,7 +11,7 @@ import type {
   StandardLoenTableFirstErrorCell,
   StandardLoenTableSatser,
 } from '../../types/table';
-import type { StandardLoenTableHandle } from '../../types/handles';
+import type { CellPointMode, StandardLoenTableHandle } from '../../types/handles';
 import { createRowId } from '../../utils/rowId';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import { blinkFieldAttention } from '../../inputCore/react/fieldAttentionBlink';
@@ -290,18 +290,18 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, []);
 
     /**
-     * Scroll cellen frem og lad den blinke. Den ENE peg-vej for alle tre handles.
+     * Lad cellen blinke – og scroll den frem, når `mode` tillader det. Den ENE peg-vej for alle tre handles.
      *
      * "Indtastning mangler" bruger SAMME visuelle idiom som en fejlflash frem for at overtage
-     * placeholderens semantiske ansvar: cellen scrolles ind og blinker rødt, mens placeholderen
-     * fortsat kun viser værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`). Markeringen er ikke en
-     * feltfejl (§1.7) – den gør ikke feltet rødt og blokerer intet; den lokaliserer blot cellen.
+     * placeholderens semantiske ansvar: cellen blinker rødt, mens placeholderen fortsat kun viser
+     * værdiens FORM (`mm`/`åååå`/`uu/åååå`/`dd-mm-åååå`). Markeringen er ikke en feltfejl (§1.7) – den
+     * gør ikke feltet rødt og blokerer intet; den lokaliserer blot cellen.
      */
-    const pointAtCell = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey): void => {
+    const pointAtCell = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, mode: CellPointMode): void => {
       if (!isVisibleColKey(colKey)) return;
       const el = cellRefsByCellKeyRef.current[`${rowId}:${resolveColIdxFromKey(colKey)}`];
       if (!el) return;
-      scrollTargetIntoView(el, { force: true });
+      if (mode === 'scrollIntoView') scrollTargetIntoView(el, { force: true });
       // Den delte markering: samme mekanisme, som fejllinks, save-blokeringen og undo/redo bruger –
       // og den ENESTE, der genstarter animationen ved en gentagen peg-handling.
       blinkFieldAttention(el);
@@ -310,20 +310,20 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     React.useImperativeHandle(
       ref,
       () => ({
-        showMissingEntryError: (cell: StandardLoenTableFirstErrorCell) => {
+        showMissingEntryError: (cell: StandardLoenTableFirstErrorCell, mode) => {
           if (cell.reason !== 'missing') return;
-          pointAtCell(cell.rowId, cell.colKey);
+          pointAtCell(cell.rowId, cell.colKey, mode);
         },
-        flashError: (error) => {
-          pointAtCell(error.rowId, error.colKey);
+        flashError: (error, mode) => {
+          pointAtCell(error.rowId, error.colKey, mode);
         },
-        showNeedsPeriodHint: () => {
+        showNeedsPeriodHint: (mode) => {
           // Den FØRSTE viste række, uanset om den er committet eller en placeholder – altså render-
           // modellens første række, ikke to separate opslag der kan blive uenige.
           const firstRowId = renderRows[0]?.rowId;
           if (firstRowId === undefined) return;
           const [periodStartKey] = getStandardLoenPeriodKeys(loenperiode);
-          pointAtCell(firstRowId, periodStartKey);
+          pointAtCell(firstRowId, periodStartKey, mode);
         },
       }),
       [loenperiode, pointAtCell, renderRows]

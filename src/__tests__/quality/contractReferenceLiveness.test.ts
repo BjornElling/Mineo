@@ -124,18 +124,18 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'StyledToggleSwitchHandle',
     direction: 'absent',
     note:
-      'Slettet sammen med rystelsen (udviklerbeslutning 2026-08-15). Handlet havde præcis ét medlem, '
-      + '`shake()`, og fandtes alene for at ryste togglen ved en afvist aktivering. Kontrakten navngiver '
-      + 'det for at forbyde dets genkomst: der er nu ÉN afvisningsmåde – synligt inaktiv knap med '
-      + 'årsagen i tooltippet.',
+      'Slettet 2026-08-15. Handlet havde præcis ét medlem, `shake()`, som en gate skulle huske at kalde '
+      + 'ved en afvist aktivering. Togglens rystelse er genindført 2026-10-28, men ejes nu af '
+      + '`StyledToggleSwitch` selv og udløses af afvisningen (§11.1b). Kontrakten navngiver handlet for '
+      + 'at forbyde dets genkomst.',
   },
   {
     contract: 'src/contracts/page-component-contract.md',
     reference: 'useShakeFlag',
     direction: 'absent',
     note:
-      'Samme sletning: den delte shake-hook er væk, så en genindførelse kræver, at nogen bygger '
-      + 'mekanikken op igen frem for at kalde en eksisterende hook.',
+      'Samme sletning: den state-baserede shake-hook kunne ikke genstarte animationen ved et gentaget '
+      + 'klik. Erstattet af DOM-effekten `shakeRefusedToggle` (§11.1b).',
   },
   {
     contract: 'src/contracts/document-output-contract.md',

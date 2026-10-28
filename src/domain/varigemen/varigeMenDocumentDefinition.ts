@@ -5,7 +5,7 @@
  * Stamdata-projektionen bliver – som for Forsørgertab – en dependency på outputtet frem for en
  * stille `return` i click-handleren.
  *
- * Sidens shake- og fokus-feedback ved en blokeret aktivering er ren præsentation og bliver
+ * Sidens fokus-feedback ved en blokeret aktivering er ren præsentation og bliver
  * bevidst IKKE en del af definitionen: siden reagerer på `download()`s `rejected`-udfald. Gaten
  * afgør HVAD der er blokeret; siden afgør hvordan det vises.
  */

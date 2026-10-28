@@ -3,12 +3,14 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-08-27 (§11.1a's universelle regel for grå knapper er målt af
+**Senest verificeret mod kode:** 2026-10-28 (§11.1a's universelle regel for grå knapper er målt af
 `actionGate.test.ts` og `disabledActionButtons.test.tsx`: de to generiske tekster er de SAMME
 konstanter, downloadgaten bruger, klikket er tavst på både mus og Enter, årsagen findes kun i
-tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. Forbuddet mod rystelse
-i §11.1 er verificeret ved, at hele mekanikken er slettet – `useShakeFlag` og
-`StyledToggleSwitchHandle` er håndhævede fraværspåstande i `contractReferenceLiveness.test.ts`)
+tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. §11.1b's
+afvisningsrystelse for toggles er målt af `StyledToggleSwitch.test.tsx`, og at en afvist omregning
+blinker årsagen uden at scrolle, af `useOmregningToggle.test.tsx`. De gamle shake-mekanikker
+`useShakeFlag` og `StyledToggleSwitchHandle` er håndhævede fraværspåstande i
+`contractReferenceLiveness.test.ts`)
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -507,12 +509,11 @@ programmet (udviklerbeslutning 2026-07-31) og gælder uanset, hvornår blokering
 - Et visuelt svar er stadig tilladt og ønsket, hvor det findes – men det skal PEGE et sted hen:
   fokus på det første blokerende felt, eller et flash af den fejlende celle. Det er ikke en besked,
   men en henvisning til dét, brugeren skal rette.
-- **Rystelse er forbudt.** Knapper må ikke ryste ved en blokeret aktivering (udviklerbeslutning
+- **Knapper ryster ikke.** En knap må ikke ryste ved en blokeret aktivering (udviklerbeslutning
   2026-08-15). En rystelse siger kun «noget er galt» – hvilket tooltippet allerede har sagt mere
   præcist – og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
-  spærret. Der er derfor ÉN afvisningsmåde i hele programmet: knappen er synligt og reelt inaktiv
-  med årsagen i tooltippet. Mekanikken er slettet (`useShakeFlag`, `StyledToggleSwitchHandle` og
-  alle `shake`-props), så en genindførelse kræver, at nogen bygger den op igen.
+  spærret. En knap har ÉN afvisningsmåde: den er synligt og reelt inaktiv med årsagen i tooltippet.
+  Knappernes `shake`-props er slettet. Toggles er den ene bevidste undtagelse – se §11.1b.
 - Årsagerne bevares på udfaldet som auditdata (`rejection.reasons`) og som tooltip-kilde. Ingen
   årsagsliste må være tom – men "synlig" betyder her tooltip og audit, ikke en tekstknude.
 
@@ -593,6 +594,38 @@ brugeren – kontrakten forbød det i forvejen, men intet målte det.
 En flade må heller ikke lægge sin egen `??`-fallback eller ternary oven på gatens svar. EO's fire knapper
 gjorde netop det og kastede gatens årsag væk for en hardkodet streng; den beslutning hører i gaten (klassen
 `page-errors`), ikke i den flade der tegner knappen.
+
+#### 11.1b Toggles ryster, når de afviser et klik
+
+En toggle, der ikke vil flytte sig, ryster (udviklerbeslutning 2026-10-28). Det gælder begge måder,
+en toggle kan afvise et klik på:
+
+- **Gate-afvisning** – togglen ser aktiv ud, men dens afslutning afviser ændringen
+  (`ToggleCommitOverride` → `'reject'`, eller en `onCommit`, der returnerer `false`). Eksempler:
+  «Omregning til fuldt år» uden gyldige lønperioder, og «Midlertidigt EET fra EET-siden», når
+  ændringen ikke kan gennemføres. Gælder både aktivering og fravalg.
+- **Inaktiv toggle** – togglen er grå (`disabled` / `unavailableReason`), og brugeren klikker alligevel.
+
+Hvorfor toggles og ikke knapper: en toggle er en tilstandskontrol. Brugeren klikker og forventer, at
+knoppen flytter sig; bliver den stående, ligner det et klik, der ikke blev registreret. Rystelsen er det
+fysiske «nej» – knoppen prøver og bliver stående. En knap har ingen tilstand, der kunne have flyttet sig,
+og dens tooltip forklarer allerede blokeringen.
+
+Regler:
+
+- **Togglen ejer rystelsen.** `StyledToggleSwitch` ryster selv på enhver afvisning – ingen callsite
+  kalder den, og der findes ingen `shake`-prop eller imperativt handle. Det tidligere
+  `StyledToggleSwitchHandle` og `useShakeFlag` genindføres ikke: de krævede, at hver gate huskede at
+  ryste. Animationen (0,5 s, ±4 px) bor i `sharedApp.css` og udløses af `shakeRefusedToggle` som en ren
+  DOM-effekt, så et gentaget klik altid genstarter den. Ved `prefers-reduced-motion` bliver den en kort
+  rød kant om sporet.
+- **Henvisning til årsagen blinker på stedet.** Kender gaten en konkret årsag i samme visning (fx den
+  manglende lønperiode i tabellen), blinker den rødt med den delte feltmarkering – men siden SCROLLER
+  IKKE, og fokus flytter sig ikke (`CellPointMode` `'inPlace'`). Brugeren forsøgte at slå noget til, ikke
+  at blive ført hen til årsagen. Kun et link eller en knap, brugeren bevidst klikker for at blive ført
+  hen til problemet, må scrolle (`'scrollIntoView'`).
+- **Ingen henvisning for en inaktiv toggle.** En grå toggle forklarer sig i sit tooltip; den ryster, men
+  peger ikke på noget.
 
 ### 11.2 Fælles komponenter før lokal speciallogik
 

@@ -5,6 +5,10 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
+import {
+  TOGGLE_REFUSAL_SHAKE_CLASS,
+  TOGGLE_REFUSAL_SHAKE_DURATION_MS,
+} from '../../../components/inputs/toggleRefusalShake';
 
 /**
  * Test-wrapper der simulerer korrekt controlled usage.
@@ -204,10 +208,10 @@ describe('StyledToggleSwitch', () => {
   // ===========================================================================
 
   describe('ingen imperativ ref-flade', () => {
-    it('eksponerer INTET handle – rystelsen og dens `shake()` er slettet', () => {
-      // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som
-      // omregnings-gaten kaldte ved en afvist aktivering. Rystelsen er fjernet i hele programmet
-      // (udviklerbeslutning 2026-08-15), og handlet bortfaldt med den.
+    it('eksponerer INTET handle – rystelsen udløses af afvisningen, ikke udefra', () => {
+      // Kontakten havde et `StyledToggleSwitchHandle` med præcis ét medlem, `shake()`, som en gate
+      // skulle huske at kalde. Rystelsen er genindført (udviklerbeslutning 2026-10-28), men ejes nu af
+      // kontakten selv og udløses af en afvist commit – se describe-blokken herunder.
       //
       // Testen måler fraværet på den ENESTE måde, der ikke kan blive grøn af tomhed: den renderer
       // komponenten med en ref og fastslår, at intet bliver tildelt. Ville nogen genindføre et
@@ -224,6 +228,111 @@ describe('StyledToggleSwitch', () => {
 
       expect(screen.getByRole('checkbox', { name: 'Test toggle' })).toBeInTheDocument();
       expect(ref.current).toBeNull();
+    });
+  });
+
+  // ===========================================================================
+  // AFVISNINGSRYSTELSE (page-component-contract §11.1b)
+  // ===========================================================================
+
+  describe('afvisningsrystelse', () => {
+    const switchRoot = (toggle: HTMLElement): HTMLElement => {
+      const root = toggle.closest<HTMLElement>('.MuiSwitch-root');
+      if (root === null) throw new Error('Switchens rod blev ikke fundet');
+      return root;
+    };
+
+    const renderRefusingToggle = (props: { disabled?: boolean; withLabel?: boolean } = {}) => {
+      const onCommit = vi.fn(() => false);
+      render(
+        <StyledToggleSwitch
+          {...(props.withLabel === false ? { ariaLabel: 'Afvisende toggle' } : { visibleLabel: 'Afvisende toggle' })}
+          checked={false}
+          disabled={props.disabled ?? false}
+          onCommit={onCommit}
+        />
+      );
+      return { toggle: screen.getByRole('checkbox'), onCommit };
+    };
+
+    it('ryster, når onCommit afviser et klik, og bliver stående', async () => {
+      const user = userEvent.setup();
+      const { toggle, onCommit } = renderRefusingToggle();
+
+      await user.click(toggle);
+
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(toggle).not.toBeChecked();
+      expect(switchRoot(toggle)).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+    });
+
+    it.each([' ', '{Enter}'])('ryster, når onCommit afviser tastaturaktivering (%j)', async (key) => {
+      const user = userEvent.setup();
+      const { toggle, onCommit } = renderRefusingToggle();
+
+      toggle.focus();
+      await user.keyboard(key);
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(switchRoot(toggle)).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+    });
+
+    it('ryster ikke, når commit accepteres', async () => {
+      const user = userEvent.setup();
+      const { toggle } = renderControlledToggle(false);
+
+      await user.click(toggle);
+
+      expect(toggle).toBeChecked();
+      expect(switchRoot(toggle)).not.toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+    });
+
+    it('ryster ved klik på den synlige tekst af en inaktiv toggle', async () => {
+      const user = userEvent.setup();
+      const { toggle, onCommit } = renderRefusingToggle({ disabled: true });
+
+      // Klik på den synlige tekst: labelen videresender ikke klik til et disabled input.
+      await user.click(screen.getByText('Afvisende toggle'));
+
+      expect(onCommit).not.toHaveBeenCalled();
+      expect(switchRoot(toggle)).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+    });
+
+    it('ryster ved klik på roden af en inaktiv toggle uden synlig label', async () => {
+      const { toggle, onCommit } = renderRefusingToggle({ disabled: true, withLabel: false });
+
+      // MUI giver den deaktiverede switch-knap `pointer-events: none`; klikket lander på roden.
+      act(() => {
+        switchRoot(toggle).click();
+      });
+
+      expect(onCommit).not.toHaveBeenCalled();
+      expect(switchRoot(toggle)).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+    });
+
+    it('fjerner klassen efter animationen og genstarter den ved et nyt klik', async () => {
+      vi.useFakeTimers();
+      const { toggle } = renderRefusingToggle();
+      const root = switchRoot(toggle);
+
+      act(() => {
+        toggle.click();
+      });
+      expect(root).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+
+      act(() => {
+        vi.advanceTimersByTime(TOGGLE_REFUSAL_SHAKE_DURATION_MS - 1);
+        toggle.click();
+      });
+      // Det gentagne klik nulstiller timeren, så rystelsen ikke klippes af den første oprydning.
+      act(() => {
+        vi.advanceTimersByTime(TOGGLE_REFUSAL_SHAKE_DURATION_MS - 1);
+      });
+      expect(root).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(root).not.toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);
     });
   });
 

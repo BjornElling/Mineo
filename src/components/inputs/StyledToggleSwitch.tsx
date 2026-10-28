@@ -2,8 +2,11 @@ import React from 'react';
 import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import { accessibleNameAttributes, type AccessibleNameProps } from './accessibleName';
+import { shakeRefusedToggle } from './toggleRefusalShake';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  // MUI 7's SwitchBase videresender ikke længere `inputRef`; input-elementets ref går gennem slottet.
+  ref: React.Ref<HTMLInputElement>;
   'data-mineo-field-address'?: string;
   'data-mineo-editor-location-id'?: string;
 };
@@ -69,10 +72,13 @@ type StyledToggleSwitchOwnProps = {
 type StyledToggleSwitchProps = StyledToggleSwitchOwnProps & AccessibleNameProps;
 
 /**
- * Kontakten har BEVIDST ingen imperativ ref-flade. Den havde tidligere et `StyledToggleSwitchHandle`
- * med præcis ét medlem – `shake()` – som omregnings-gaten kaldte ved en afvist aktivering. Rystelsen
- * er fjernet i hele programmet (udviklerbeslutning 2026-08-15), og dermed bortfaldt hele
- * handlet. Genindfør hverken `forwardRef` eller `useImperativeHandle` her uden et reelt medlem.
+ * Afvisningsrystelse (udviklerbeslutning 2026-10-28): kontakten ryster SELV, når et klik ikke flytter
+ * den – når `onCommit` afviser ændringen (returnerer `false`), og når en inaktiv kontakt klikkes. Ingen
+ * callsite skal huske at ryste; afvisningen ER signalet. Se `toggleRefusalShake.ts`.
+ *
+ * Kontakten har derfor stadig ingen imperativ ref-flade: rystelsen udløses af selve afvisningen, ikke
+ * af en gate, der kalder ind i komponenten. Det tidligere `StyledToggleSwitchHandle.shake()` krævede, at
+ * hver gate huskede kaldet; nu kan en afvist toggle ikke stå tavs.
  */
 const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const {
@@ -92,6 +98,12 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   // attribut: navnet kommer fra FormControlLabel's <label>-binding nedenfor.
   const nameAttributes = accessibleNameAttributes(props, `StyledToggleSwitch(${resolvedName})`);
   const { visibleLabel } = props;
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Rystelsen lægges på switchens rod, så kun kontakten bevæger sig – ikke en tilknyttet label.
+  const shake = React.useCallback(() => {
+    shakeRefusedToggle(inputRef.current?.closest<HTMLElement>('.MuiSwitch-root'));
+  }, []);
 
   /**
    * Én semantisk handling: toggle committed state.
@@ -101,11 +113,23 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
    *
    * Guard mod redundante commits: Hvis nextChecked === checked, gør intet.
    * Dette beskytter mod edge cases ved hurtige gentagne keydowns.
+   *
+   * Afviser `onCommit` ændringen, bliver kontakten stående – og ryster, så klikket ikke ligner et, der
+   * ikke blev registreret.
    */
   const commitToggle = React.useCallback((nextChecked: boolean) => {
     if (nextChecked === checked) return;
-    onCommit(createCommitEvent(nextChecked));
-  }, [onCommit, checked]);
+    if (!onCommit(createCommitEvent(nextChecked))) shake();
+  }, [onCommit, checked, shake]);
+
+  /**
+   * Et klik på en INAKTIV kontakt. MUI giver den deaktiverede switch-knap `pointer-events: none`, og en
+   * `<label>` videresender ikke klik til et disabled input – så klikket når aldrig `onChange`. Det fanges
+   * derfor på den yderste flade (label eller switch-rod), som stadig modtager pointer-events.
+   */
+  const handleDisabledClick = React.useCallback(() => {
+    if (disabled) shake();
+  }, [disabled, shake]);
 
   /**
    * Håndter MUI Switch onChange (pointer-input).
@@ -154,6 +178,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const inputSlotProps: ToggleInputSlotProps = {
     id: resolvedId,
     name: resolvedName,
+    ref: inputRef,
     role: 'checkbox',
     onKeyDown: handleKeyDown,
     'aria-checked': checked,
@@ -172,6 +197,8 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
       value={value}
       slotProps={{
         input: inputSlotProps,
+        // Med synlig label fanger labelen klikket (den omslutter roden); ellers er roden yderst.
+        ...(visibleLabel === undefined ? { root: { onClick: handleDisabledClick } } : {}),
       }}
       sx={{
         margin: 0,
@@ -206,6 +233,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
         control={switchComponent}
         label={visibleLabel}
         labelPlacement={labelPlacement}
+        onClick={handleDisabledClick}
         sx={{
           '& .MuiFormControlLabel-label': {
             color: 'text.primary',

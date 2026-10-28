@@ -34,9 +34,9 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   AccessibleNameProps;
 
 /**
- * Ingen ref-videreførsel: den fandtes alene for switchens `shake()`-handle, som er slettet sammen med
- * rystelsen. Uden den er komponenten en almindelig generisk funktion og behøver hverken
- * `forwardRef` eller den type-assertion, der før skulle genskabe generiskheden bagefter.
+ * Ingen ref-videreførsel: switchen ryster selv ved en afvisning, så intet udefra skal kunne nå den.
+ * Komponenten er derfor en almindelig generisk funktion og behøver hverken `forwardRef` eller den
+ * type-assertion, der før skulle genskabe generiskheden bagefter.
  */
 const MappedToggleField = <TValue,>(
   props: MappedToggleFieldProps<TValue>

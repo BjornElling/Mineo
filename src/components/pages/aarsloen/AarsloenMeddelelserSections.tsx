@@ -43,7 +43,7 @@ export const AarsloenFejlOgAdvarslerSection = React.memo(() => {
 
   const goTo = React.useCallback((target: AarsloenIssueTarget) => {
     if (target.kind === 'field') scrollToFieldAddress(target.address);
-    else tabelRef.current?.flashError(target.error);
+    else tabelRef.current?.flashError(target.error, 'scrollIntoView');
   }, [tabelRef]);
 
   if (issueRows.length === 0) return null;

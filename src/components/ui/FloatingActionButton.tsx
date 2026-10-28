@@ -32,10 +32,10 @@ type FloatingActionButtonProps = {
  * §11.1): knappen bliver stående som nedtonet og reelt inaktiv, årsagen vises kun i tooltippet, og et
  * klik er tavst.
  *
- * **Rystelsen er fjernet** (udviklerbeslutning 2026-08-15). Knappen ryster tidligere ved klik,
- * MENS den fremstod aktiv – den var kun visuelt dæmpet, ikke slået fra. Det gav to modstridende svar
- * på samme klik og oplyste knappen som brugbar for en skærmlæser. Programmet har nu ÉN afvisningsmåde:
- * knappen er ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
+ * **Knapper ryster ikke** (udviklerbeslutning 2026-08-15; kun toggles gør, jf. §11.1). Knappen
+ * rystede tidligere ved klik, MENS den fremstod aktiv – den var kun visuelt dæmpet, ikke slået fra. Det
+ * gav to modstridende svar på samme klik og oplyste knappen som brugbar for en skærmlæser. Knappen er
+ * nu ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
  */
 const FloatingActionButton = React.memo(({
   onClick,

@@ -1370,7 +1370,7 @@ export const persistedControlsUseFieldFamilyRule = defineRule({
       relativePath: 'src/components/pages/NySide.tsx',
       code: '// Tidligere brugte vi StyledToggleSwitch direkte her; nu ToggleField.\nconst C = () => <ToggleField field={r} location={l} />;',
     },
-    // En TYPE-import af handlen er ikke en rendering (Årsløn beholder netop den for sin shake-ref).
+    // En TYPE-import er ikke en rendering. (Typenavnet er et historisk eksempel; reglen ser kun på JSX.)
     {
       relativePath: 'src/components/pages/Aarsloen.tsx',
       code: "import type { StyledToggleSwitchHandle } from '../../types/handles';\nconst r = React.useRef<StyledToggleSwitchHandle | null>(null);",
