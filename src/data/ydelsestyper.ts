@@ -171,3 +171,21 @@ export const primaereYdelsestypeKeys: readonly YdelsestypeKey[] =
 /** Ydelsestyperne UNDER stregen: de supplerende posteringer, alfabetisk efter label. */
 export const supplerendeYdelsestypeKeys: readonly YdelsestypeKey[] =
   [...SUPPLERENDE_YDELSESTYPE_KEYS].sort(byDanishLabel);
+
+/**
+ * Rækkens ydelsestype som kanonisk nøgle – også når en ældre fil bærer den viste label (se `resolveYdelsestype`).
+ * Tom giver `''`; en ukendt værdi gives tilbage trimmet, så den stadig kan sammenlignes og vises.
+ *
+ * Alle, der sammenligner, grupperer eller viser rækkens type, går gennem denne vej. Før slog flere lag den rå værdi
+ * op: en række gemt som «Kontanthjælp» stod på skærmen uden type og uden dagkolonner, mens beregningen trak den fra;
+ * dublet-kontrollen og midlertidigt-EET-togglen så den ikke, og bilaget trykte en manuel «Midlertidigt EET», som
+ * beregningen ikke brugte (BB-364). Den gemte værdi ændres ikke.
+ */
+export const canonicalYdelsestypeKey = (raw: string | undefined): string => {
+  const trimmed = raw?.trim() ?? '';
+  if (trimmed === '') return '';
+  return resolveYdelsestype(trimmed)?.key ?? trimmed;
+};
+
+export const erMidlertidigtEetYdelsestype = (raw: string | undefined): boolean =>
+  canonicalYdelsestypeKey(raw) === 'midlertidigt_eet';

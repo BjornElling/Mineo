@@ -11,7 +11,7 @@ import {
   eoOffentligeYdelserYdelseField,
   eoOffentligeYdelserYdelsestypeField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { ydelsestypeKeys, ydelsestyper, type YdelsestypeKey } from '../../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, ydelsestypeKeys, ydelsestyper, type YdelsestypeKey } from '../../../data/ydelsestyper';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 
 /**
@@ -39,7 +39,8 @@ export const buildOffentligeYdelserAutofillModel = (
       choiceAutofillColumn(
         4,
         eoOffentligeYdelserYdelsestypeField,
-        rows.map((row) => row?.ydelsestype),
+        // Forslaget er den kanoniske nøgle, også når rækken er gemt med sin label (BB-364).
+        rows.map((row) => (row === undefined ? undefined : (canonicalYdelsestypeKey(row.ydelsestype) || undefined))),
         (value) => ydelsestyper[value]?.label,
         availableYdelsestyper,
       ),

@@ -8,7 +8,9 @@ skrevet. Kun flade-tabellen og de fire punkter nedenfor er aktuelle; produktets 
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12k – Erstatningsopgørelse → Offentlige ydelser.** 12j er gennemgået, afgjort og gennemført
+- **Næste flade:** **12l – Erstatningsopgørelse → Beregning: fejlpanelet, sammentællingen og bilagsvalgene.** 12k er
+  gennemgået, afgjort og gennemført 2026-10-29 (11 fund, BB-357–BB-367; BB-359 afvist som overlapregel); fire modsvar og
+  det nye BB-368 afventer udvikleren. Tidligere: 12j er gennemgået, afgjort og gennemført
   2026-10-24 (13 fund, BB-319–BB-331); de to modsvar (BB-319, BB-321) er besvaret og gennemført samme dag. Tidligere: 12i er gennemgået 2026-10-20 (19 fund,
   BB-300–BB-318), afgjort og gennemført 2026-10-23 (BB-312 afvist); de fire tillægsspørgsmål er besvaret og gennemført samme dag. Tidligere: 12h er gennemgået 2026-10-19
   (11 fund, BB-289–BB-299), afgjort og gennemført samme dag i tre modsvarsrunder (se 12h-afsnittet). 12g er gennemgået,
@@ -28,7 +30,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-357
+- **Næste fund-ID:** BB-369
 - **Efterreview af Årsløn 2026-10-27** (commit `634bce97`, overenskomst som tillægsgrundlag): 10 fund, BB-347–BB-356,
   i `aarsloen.md` §«Efterreview 2026-10-27». Afgjort og gennemført samme dag (BB-350 korrigeret af udvikleren til én «Fejl og advarsler»-boks).
 - **Kritisk efterreview:** Gennemgangen af 12a–12j tilføjede BB-332–BB-346. BB-332, BB-333, BB-336, BB-337
@@ -143,7 +145,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   ikke, at filvælger eller download er umulig at styre headless. Playwright kan automatisere begge dele.
   Rapporternes matricer skelner nu mellem den oprindelige måling og senere navngivne tests. De senere
   tests dækker kun deres konkrete sager og dokumenterer ikke en generel save→load-rundtur.
-- **Fund, der afventer udviklerens afgørelse:** **ingen** – flade 12j er afgjort og gennemført 2026-10-24; de to modsvar
+- **Fund, der afventer udviklerens afgørelse:** **fire modsvar fra 12k** – sygedagpenge-hjælperen (BB-359), Lønindkomst
+  ved TAF «Nej» (BB-360), tooltippens ordlyd (BB-361) – og **BB-368** (en afgørelse uden virkningsdato udelades tavst).
+  Tidligere: **flade 12k's 11 fund (BB-357–BB-367)** og fladens tre åbne spørgsmål (BB-358, BB-360, BB-363). Tidligere: **ingen** – flade 12j er afgjort og gennemført 2026-10-24; de to modsvar
   er besvaret og gennemført. Tidligere: **flade 12j's 13 fund (BB-319–BB-331)**.
   Tidligere: **ingen** – flade 12i er afgjort og gennemført 2026-10-23; de åbne
   spørgsmål ovenfor er tillæg. Tidligere: **ingen.** Flade 12h's 11 fund er afgjort og
@@ -203,7 +207,11 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-24 (**Flade 12j afgjort og gennemført** – se afsnittet om 12j.)
+- **Senest opdateret:** 2026-10-29 (**Flade 12k afgjort og gennemført; fire modsvar og BB-368 forelagt** – se afsnittet
+  om 12k.)
+  Tidligere: 2026-10-29 (**Flade 12k – Offentlige ydelser – gennemgået: 11 fund, ét Kritisk, to Høj, fem
+  Mellem og tre Lav, og ét nyt tværgående mønster M-43** – se afsnittet om 12k.)
+  Tidligere: 2026-10-24 (**Flade 12j afgjort og gennemført** – se afsnittet om 12j.)
   Tidligere: 2026-10-24 (**Flade 12j – Sygeferiegodtgørelse – gennemgået: 13 fund, to Høj, seks Mellem og fem
   Lav, ingen nye tværgående mønstre, men en tredje form af M-38** – se afsnittet om 12j.)
   Tidligere: 2026-10-23 (**Flade 12i afgjort og gennemført, også de fire tillægsspørgsmål** – se afsnittet om 12i.)
@@ -657,9 +665,49 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12h | Erstatningsopgørelse – Ansættelsesforhold: indtægtsoplysninger | Afgjort og gennemført | 11 (BB-289–BB-299) | [erstatningsopgoerelse-12h.md](erstatningsopgoerelse-12h.md) |
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Afgjort og gennemført | 19 (BB-300–BB-318) | [erstatningsopgoerelse-12i.md](erstatningsopgoerelse-12i.md) |
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Afgjort og gennemført | 13 (BB-319–BB-331) | [erstatningsopgoerelse-12j.md](erstatningsopgoerelse-12j.md) |
-| 12k | Erstatningsopgørelse – Offentlige ydelser | Ikke startet | – | – |
+| 12k | Erstatningsopgørelse – Offentlige ydelser | Afgjort og gennemført; modsvar afventer | 12 (BB-357–BB-368) | [erstatningsopgoerelse-12k.md](erstatningsopgoerelse-12k.md) |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Offentlige ydelser (12k) – gennemgået, afgjort og gennemført 2026-10-29
+
+**Afgjort og gennemført 2026-10-29:** ni fund er gennemført; BB-359 er afvist som overlapregel (reglen for ens rækker
+gælder uændret). Midlertidigt EET hentes nu også, når EET-siden har en advarsel; kun en fejl spærrer, og linjen siger
+følgen (BB-357). Henter togglen intet i TAF-perioden efter afgørelsens dato, får den gul ring og en linje på
+Beregning-fanen (BB-358) – den sidste udvej mod et tavst EET-tab. Ved TAF «Nej» er fanens felter ikke relevante, og fanen
+forklarer det (BB-360). «Tillæg» overalt med informationsikon (BB-361), datoerne følger sagens ramme (BB-362), kommentaren
+trykkes altid ét sted (BB-363), en ydelsestype gemt som label forstås overalt (BB-364), en periode uden arbejdsdage får gul
+ring på ydelser OG lønindkomst (BB-365), hjælperens datopar markerer begge felter (BB-366), og bilaget hedder
+«Midlertidigt EET» med «I alt» (BB-367). Den udvidede EET-undersøgelse fandt BB-368. Modsvar: BB-359 (hjælperen),
+BB-360 (Lønindkomst har samme fejl, målt), BB-361 (tooltippens ordlyd). Vitest, de berørte E2E-specs og en ny
+browserregression (`offentlige-ydelser-brugerblik-12k.spec.ts`) bestod.
+
+
+**11 fund: ét Kritisk, to Høj, fem Mellem, tre Lav (én Fejl, fem Edge case, fem Fornuft) – ét nyt tværgående mønster,
+M-43.** Fladens bærende iagttagelse er, at det midlertidige EET kan forsvinde af opgørelsen uden et ord. En ikke-blokerende
+advarsel på Erhvervsevnetab-siden (10 %-trin, midlertidig efter endelig) får importen til at opgive alt: kravet blev
+`58.387 kr.` for højt, og den eneste linje handler om EET-sidens procent (BB-357, M-43). Har EET-siden ingen midlertidig
+afgørelse, fradrages intet, og der er slet ingen linje; togglen viser aldrig, hvad den henter (BB-358, M-25). Overlappende
+rækker af samme ydelse lægges sammen uden en bemærkning, og sygedagpenge-hjælperen indsætter oven i rækker, der står
+(BB-359, M-23). Dertil TAF «Nej» med en ufærdig række (BB-360), «Tillæg»/«Ydelse (2)» mod BB-116's afgørelse (BB-361),
+ydelsernes datoer låst til sygedagpengesatserne (BB-362) og en kommentar, der tavst udelades (BB-363). M-37's og M-36's
+kandidater efterprøvet uden forekomst; M-07 (tabellen) og M-13 bestået; konsollen tavs. Grundlaget står i
+[erstatningsopgoerelse-12k.md](erstatningsopgoerelse-12k.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-357 | En advarsel på EET-siden fjerner hele det midlertidige EET fra opgørelsen (M-43) | **Kritisk** | Gennemført |
+| BB-358 | EET-togglen viser ikke, hvad den henter, og tier, når intet hentes (M-25) | **Høj** | Gennemført (uden linje under togglen) |
+| BB-359 | Overlappende rækker af samme ydelse lægges sammen uden et ord, også fra sygedagpenge-hjælperen (M-23) | **Høj** | Afvist som overlapregel; modsvar om hjælperen |
+| BB-360 | TAF «Nej»: en ufærdig ydelsesrække spærrer; «Alle» trykker bilaget alligevel (M-32) | Mellem | Gennemført; modsvar om Lønindkomst |
+| BB-361 | «Tillæg» på skærmen, «Ydelse (2)» i boks og bilag; BB-116 ikke ført over (M-38) | Mellem | Gennemført; modsvar om tooltippen |
+| BB-362 | Alle ydelsesrækker låst til sygedagpengesatsernes dækning 03-01-2005 – 03-01-2027 (M-24) | Mellem | Gennemført |
+| BB-363 | Kommentaren udelades tavst uden bilag eller uden rækker (M-12) | Mellem | Gennemført |
+| BB-364 | Ydelsestype gemt som visningsnavn står tom, men regnes med; dublet og toggle ser den ikke (M-14) | Mellem | Gennemført |
+| BB-365 | Feriepenge i en weekend: tomme dagkolonner, men fuldt medregnet | Lav | Gennemført (også lønindkomst) |
+| BB-366 | Sygedagpenge-hjælperens omvendte periode markerer kun til-feltet (M-07) | Lav | Gennemført |
+| BB-367 | «Midlertidigt EET»/«Midlertidig EET», og bilaget har ingen sum (M-01) | Lav | Gennemført |
+| BB-368 | En afgørelse uden virkningsdato udelades tavst af EET-sidens beregninger (M-43) | **Høj** | Afventer |
 
 ## Erstatningsopgørelse → Sygeferiegodtgørelse (12j) – gennemgået, afgjort og gennemført 2026-10-24
 

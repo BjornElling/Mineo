@@ -12,6 +12,8 @@ import { sumMaanedsbroekForInterval } from '../../dates/maanedsbroek';
 import { splitIsoRangeByCalendarMonthsInclusive } from '../engines/periodRangeGroups';
 import { toKroner } from '../../money/money';
 import type { IsoRange } from '../../../utils/isoDateHelpers';
+import { resolveMidlertidigEetDato } from '../validation/tafPeriodConstraints';
+import { erMidlertidigtEetYdelsestype } from '../../../data/ydelsestyper';
 
 export type MidlertidigtEetTransientResult = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -36,11 +38,33 @@ export const buildMidlertidigtEetImportContext = (
     : buildUnavailableEetImportContext(source, 'taf_slutdato_missing');
 };
 
+const MIDLERTIDIGT_EET_IMPORT_FAILURE_PREFIX = 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden';
+
+/**
+ * En fejl, der spærrer importen, siger FØLGEN først: «Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden:
+ * <årsag>». Årsagen alene («Der er en afgørelse uden afgørelsesdato») læses i EO som en bemærkning om EET-siden – og
+ * ikke som, at fradraget er faldet bort (BB-357). Beskeder, der allerede nævner midlertidigt EET, står urørte.
+ */
+const describeImportFailure = (issue: EetIssue): EetIssue => {
+  if (issue.severity !== 'error' || issue.message.startsWith('Midlertidigt EET')) return issue;
+  const cause = issue.message.trim();
+  // Et ord med versal efterfulgt af minuskel er sætningsbegyndelsen; forkortelser som «EET-…» og «ASL» bevares.
+  const causeInSentence = /^\p{Lu}\p{Ll}/u.test(cause)
+    ? `${cause.charAt(0).toLocaleLowerCase('da-DK')}${cause.slice(1)}`
+    : cause;
+  return { ...issue, message: `${MIDLERTIDIGT_EET_IMPORT_FAILURE_PREFIX}: ${causeInSentence}` };
+};
+
 /**
  * Adapterer den schema-validerede EET-importport til EO's virtuelle grupper.
  *
  * Returnerer altid både `groups` og `issues` samtidigt, så EOberegningTab og snapshot
  * kan dele samme beregningsresultat uden at kalde `computeEetLoebendeYdelser` to gange.
+ *
+ * Kun en FEJL stopper importen. En advarsel fra EET-siden (fx en procent uden for 10 %-trinnene eller en
+ * midlertidig afgørelse efter en endelig) følger med som advarsel, og fradraget er det samme, som EET-siden selv
+ * regner. Før opgav importen alle perioder ved den mindste linje fra EET-siden – også en advarsel – og kravet
+ * blev det fulde fradrag for højt uden et ord om, at fradraget var faldet bort (BB-357, mønster M-43).
  */
 export const buildMidlertidigtEetSourceResult = (
   context: EetImportContext | null | undefined
@@ -48,14 +72,16 @@ export const buildMidlertidigtEetSourceResult = (
   if (!context) {
     return {
       groups: [],
-      issues: [{
+      issues: [describeImportFailure({
         id: 'midlertidigt-eet-source-missing',
         severity: 'error',
         message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
-      }],
+      })],
     };
   }
-  if (context.issues.length > 0) return { groups: [], issues: context.issues };
+  if (context.issues.some((issue) => issue.severity === 'error')) {
+    return { groups: [], issues: context.issues.map(describeImportFailure) };
+  }
   let groups: readonly MidlertidigtEetAfgoerelseGroup[];
   try {
     groups = buildMidlertidigtEetAfgoerelseGroupsFromImportContext(context.groups);
@@ -64,17 +90,61 @@ export const buildMidlertidigtEetSourceResult = (
     return {
       groups: [],
       issues: [
-        {
+        ...context.issues,
+        describeImportFailure({
           id: 'midlertidigt-eet-import-invariant',
           severity: 'error',
           message,
-        },
+        }),
       ],
     };
   }
   return {
     groups,
     issues: context.issues,
+  };
+};
+
+export const MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID = 'midlertidigt-eet-ingen-ydelser-i-taf';
+
+export const MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_MESSAGE =
+  'Erhvervsevnetab-siden har ingen midlertidig afgørelse med ydelser i TAF-perioden – der fradrages intet midlertidigt EET';
+
+/**
+ * Togglen er slået til, men importen giver ingen løbende ydelse i TAF-perioden: en ikke-blokerende advarsel
+ * (BB-358, udviklerafgørelse 2026-10-29). Uden den så det udfald, hvor intet trækkes fra, ud præcis som det, hvor
+ * fradraget er gjort – og den eksisterende advarsel om en afgørelse uden ydelser tav, fordi togglen tæller som ydelser.
+ *
+ * Advarslen gælder kun, når TAF-perioden helt eller delvist ligger på eller efter den midlertidige afgørelses dato på
+ * EO oplysninger (virkningsdatoen, ellers afgørelsesdatoen): før den dato løber der endnu ingen ydelse. Er der ingen
+ * afgørelse på EO oplysninger, siger konsistensadvarslen det allerede; spærrer importen, siger fejlen det.
+ *
+ * Det er den sidste udvej mod et tavst tab af midlertidigt EET: uanset hvorfor importen kommer tom tilbage – ingen
+ * midlertidig afgørelse, ydelser kun uden for TAF-perioden eller en afgørelse, EET-siden ikke kan periodisere – står
+ * der en linje.
+ */
+export const resolveMidlertidigtEetIngenYdelserIssue = (args: Readonly<{
+  values: Pick<
+    ErstatningsopgoerelseValues,
+    'midlertidigtEetFraEetSiden' | 'midlertidigtEETAfgorelse' | 'midlertidigEETVirkningsdato' | 'midlertidigEETAfgoerelseDato'
+  >;
+  tafRanges: readonly IsoRange[];
+  result: MidlertidigtEetTransientResult;
+}>): EetIssue | undefined => {
+  const { values, tafRanges, result } = args;
+  if (values.midlertidigtEetFraEetSiden !== 'Ja') return undefined;
+  if (result.issues.some((issue) => issue.severity === 'error')) return undefined;
+  const afgoerelsensDato = resolveMidlertidigEetDato(values);
+  if (afgoerelsensDato === undefined) return undefined;
+  if (!tafRanges.some((range) => range.til >= afgoerelsensDato)) return undefined;
+  const harYdelseITafPerioden = result.groups.some((group) => group.perioder.some((periode) =>
+    periode.beregnetEetOre > 0 && tafRanges.some((range) => periode.fra <= range.til && range.fra <= periode.til)
+  ));
+  if (harYdelseITafPerioden) return undefined;
+  return {
+    id: MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID,
+    severity: 'warning',
+    message: MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_MESSAGE,
   };
 };
 
@@ -95,7 +165,7 @@ export const buildEoValuesWithTransientMidlertidigtEet = <
 ): T => {
   if (eoValues.midlertidigtEetFraEetSiden !== 'Ja') return eoValues;
   const baseRows = (eoValues.offentligeYdelserRows ?? []).filter(
-    (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
+    (row) => !erMidlertidigtEetYdelsestype(row.ydelsestype)
   );
   const virtualRows = buildMidlertidigtEetCalculationRows(groups);
   if (virtualRows.length === 0) {

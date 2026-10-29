@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { Box, Tooltip } from '@mui/material';
 import StyledToggleSwitch from '../../../components/inputs/StyledToggleSwitch';
+import type { FieldWarning } from '../../fieldWarning';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import type { FieldRef } from '../../fieldDescriptor';
 import type { EditorLocation } from '../../editor/fieldEditorState';
@@ -29,6 +31,11 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
    * ikke med boolean, så callsitet arbejder i feltets eget domæne. Udelades for en almindelig ét-felts-toggle.
    */
   commit?: ToggleCommitOverride<NoInfer<TValue>>;
+  /**
+   * Ikke-blokerende advarsel: gul ring om switchen og teksten som tooltip – samme signal som tekstfelternes gule
+   * kant. Bruges, når valget er gyldigt, men ikke giver det, brugeren bad om (BB-358).
+   */
+  warning?: FieldWarning;
 }> &
   // Obligatorisk tilgængeligt navn – samme krav som ToggleField, jf. components/inputs/accessibleName.ts.
   AccessibleNameProps;
@@ -51,6 +58,7 @@ const MappedToggleField = <TValue,>(
     name,
     id,
     commit,
+    warning,
   } = props;
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
@@ -67,7 +75,7 @@ const MappedToggleField = <TValue,>(
     [checkedValue, commit, controller, uncheckedValue]
   );
 
-  return (
+  const toggle = (
     <StyledToggleSwitch
       checked={checked}
       onCommit={handleCommit}
@@ -78,6 +86,24 @@ const MappedToggleField = <TValue,>(
       {...(id === undefined ? {} : { id })}
       restoreTargetAttributes={restoreTargetAttributes}
     />
+  );
+  if (warning === undefined) return toggle;
+
+  return (
+    <Tooltip title={warning.message} arrow placement="top">
+      <Box
+        component="span"
+        data-mineo-field-warning=""
+        sx={{
+          display: 'inline-flex',
+          borderRadius: '14px',
+          outline: '1px solid var(--color-status-warning)',
+          outlineOffset: '2px',
+        }}
+      >
+        {toggle}
+      </Box>
+    </Tooltip>
   );
 };
 

@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import {
   expect,
+  fillMinimalTafGrundlag,
   login,
   openPage,
   setFieldValueAndSettle,
@@ -25,10 +26,11 @@ const fillErstatningsopgoerelseSag = async (page: Page): Promise<void> => {
   await setFieldValueAndSettle(page.locator("input[name='eoNummer']"), 'EO-002');
   await setDate(page.locator("input[name='opgørelseLavetDen']"), '01-02-2022');
   await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Nej']").check();
-  await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Nej']").check();
   await page.locator("input[name='kravPaaOevrigeErstatningskrav'][value='Nej']").check();
   await setDate(page.locator("input[name='vedroererPeriodeFra']"), '01-01-2022');
   await setDate(page.locator("input[name='vedroererPeriodeTil']"), '31-12-2022');
+  // Ydelserne bruges kun ved krav på tabt arbejdsfortjeneste (BB-360); grundlaget gør rækken til eneste fejl.
+  await fillMinimalTafGrundlag(page, { fra: '01-01-2022', til: '31-12-2022' });
 
   await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
   const table = page.locator('table').filter({ hasText: 'Ydelse' }).first();

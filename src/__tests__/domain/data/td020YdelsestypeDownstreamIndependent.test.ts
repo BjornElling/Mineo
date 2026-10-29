@@ -24,6 +24,7 @@ describe('DATA-001/TD-020 – ydelsestype som downstream-consumer', () => {
       periodiseringLabel: 'Arbejdsdage',
       antalDage: 2,
       ydelsePerDag: 1000,
+      ingenArbejdsdage: false,
     });
   });
 });

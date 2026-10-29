@@ -40,7 +40,7 @@ import { DEFAULT_EO_ROW_POLICY, type EoRowPolicy } from '../../settings/sourceSe
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
 import { formatStatusMessage, calculateElapsedWholeMonths, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDato } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
-import { resolveYdelsestype } from '../../data/ydelsestyper';
+import { erMidlertidigtEetYdelsestype } from '../../data/ydelsestyper';
 import { eoAngivetLoenFields, eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import {
   eoOffentligeYdelserFraDatoField,
@@ -94,7 +94,7 @@ const offentligeYdelserCellAddress = (rowId: string, colKey: OffentligeYdelserTa
 const harMidlertidigtEetYdelser = (values: ErstatningsopgoerelseValues): boolean => {
   if (values.midlertidigtEetFraEetSiden === 'Ja') return true;
   return (values.offentligeYdelserRows ?? []).some((row) => {
-    if (resolveYdelsestype(row.ydelsestype ?? '')?.key !== 'midlertidigt_eet') return false;
+    if (!erMidlertidigtEetYdelsestype(row.ydelsestype)) return false;
     const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
     const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
     return ydelseBeloeb + tillaegBeloeb > 0;

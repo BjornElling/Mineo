@@ -8,7 +8,7 @@ import {
   getOffentligeYdelserTableValidation,
   parseOffentligeYdelserCellKey,
 } from '../erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
-import { ydelsestyper } from '../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, ydelsestyper } from '../../data/ydelsestyper';
 import type { EoRowStatus } from './eoRowTypes';
 import {
   formatOffentligYdelseRowName,
@@ -240,7 +240,7 @@ export const buildOffentligeYdelserStatusRows = (
   rows.forEach((row, index) => {
     const { hasAnyFilled, periodComplete, fraDatoFilled, ydelsestypeSelected } = getOffentligeYdelserRowFilledState(row);
     if (!hasAnyFilled) return;
-    const typeKey = row.ydelsestype?.trim() ?? '';
+    const typeKey = canonicalYdelsestypeKey(row.ydelsestype);
     const groupKey = typeKey === '' ? 'mangler-ydelsestype' : `ydelsestype-${typeKey}`;
     const label = typeKey === '' ? 'Uspecificeret' : (ydelsestyper[typeKey]?.label ?? typeKey);
     const rowName = formatOffentligYdelseRowName(row, index);
@@ -300,7 +300,7 @@ export const buildOffentligeYdelserStatusRows = (
         message: warning.summaryMessage,
         summaryDisplay: 'messageOnly',
         sourceRowId: row.id,
-        focusColKey: warning.kind === 'duplicateRow' ? 'fraDato' : 'ydelse',
+        focusColKey: warning.kind === 'duplicateRow' || warning.kind === 'ingenArbejdsdage' ? 'fraDato' : 'ydelse',
       });
     }
     if (!okTypes.has(groupKey)) {

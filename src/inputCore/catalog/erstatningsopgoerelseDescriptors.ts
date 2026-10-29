@@ -26,7 +26,6 @@ import {
   getCurrentYear,
   getToday,
   dateRanges_erstatningsopgoerelse,
-  dateRanges_offentligeYdelser,
   MIN_SVIESMERTE_YEAR,
 } from '../../config/dateRanges';
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
@@ -107,7 +106,6 @@ import {
   stamdataSkadestypeField,
   withStamdataDatoReference,
 } from './stamdataDescriptors';
-import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { evaluateForligsgrad } from '../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import {
@@ -509,7 +507,8 @@ export const eoVedroererPeriodeTilField = dateField(
   ),
 );
 export const eoRevideretOpgoerelseField = requiredJaNejField('revideretOpgoerelse', 'Revideret opgørelse', 'Nej');
-export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL, 'Nej');
+// Hører til Offentlige ydelser-fanen og dermed til TAF-kravet (BB-360, se `offentligeYdelserDates`).
+export const eoMidlertidigtEetFraEetSidenField = requiredJaNejField('midlertidigtEetFraEetSiden', EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL, 'Nej', whenEo(tafSektionAktiv));
 export const eoRegulerOffentligeYdelserField = requiredJaNejField('regulerOffentligeYdelser', 'Regulér offentlige ydelser', 'Ja');
 
 export const eoForligAnsvarsgradProcentField: FieldDescriptor<number | undefined> = defineStructuralField<number | undefined>({
@@ -612,7 +611,7 @@ export const eoForligDatoField: FieldDescriptor<ISODateString | undefined> = def
 export const eoKravPaaOevrigeErstatningskravField = requiredJaNejSkjulField('kravPaaOevrigeErstatningskrav', 'Er der øvrige krav i erstatningsperioden', 'Ja');
 // §3.4: «Maksimumlængden er 512 tegn.»
 export const eoOffentligeYdelserKommentarerField = optionalTextField(
-  'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true
+  'offentligeYdelserKommentarer', 'Kommentarer', COMMENT_TEXT_MAX_LENGTH, true, whenEo(tafSektionAktiv)
 );
 // Feltet hed «Særlige kommentarer», sektionen på skærmen «Eventuelle særlige kommentarer» og dokumentets
 // overskrift «Særlige bemærkninger» – tre navne for én ting (BB-212). Sagen hedder nu «Særlige bemærkninger»
@@ -1084,24 +1083,20 @@ export const eoOffentligeYdelserRowsCollection = topLevelCollection<OffentligeYd
   'offentligeYdelserRows',
   isOffentligeYdelserRowEmpty
 );
-// Offentlige ydelser har sin EGEN ramme: satsdækningen for sygedagpenge og ATP, ikke skadedatoen.
-// Grænserne stod hidtil kun som `minDate`/`maxDate`-props på inputkomponenten i `OffentligeYdelserTab.tsx`
-// – altså som en visuel hjælp uden et issue bag, så en dato uden for satsdækningen blev afsluttet
-// canonical uden fejl. Konfigurationen er nu den håndhævede kilde.
+// Ydelsesrækkerne følger sagens ydre ramme – som lønrækkerne, der også kan ligge i beregningsperioden før skaden.
+// De var tidligere låst til sygedagpengesatsernes dækning, fordi tabellen og sygedagpenge-hjælperen delte én
+// grænsekonfiguration: alle 15 ydelsestyper blev røde fra satstabellens sidste dato, og en sag, hvis TAF-periode
+// nåede forbi den, kunne ikke registrere en eneste ydelse, før satserne var udvidet i koden (BB-362). Kun hjælperens
+// to datofelter er bundet til satsdækningen (`dateRanges_sygedagpengeIndsaettelse`).
+//
+// Hele fanen hører til kravet på tabt arbejdsfortjeneste: ved TAF «Nej» bruges intet fra den, og en ufærdig række må
+// hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle» (BB-360, mønster M-32). Relevansen
+// står derfor på hvert af fanens felter (rækkerne, midlertidigt-EET-togglen og kommentaren), og fanen viser kun en
+// forklaring, så længe der ikke er krav.
 const offentligeYdelserDates = rowDatePair(
   'offentligeYdelserRows', 'fraDato', 'tilDato', 'Fra dato', 'Til dato',
-  {
-    fra: {
-      min: () => dateRanges_offentligeYdelser.fraDato.min,
-      max: () => dateRanges_offentligeYdelser.fraDato.fallbackMax,
-      origin: STATIC_DATE_BOUNDS,
-    },
-    til: {
-      min: () => dateRanges_offentligeYdelser.tilDato.fallbackMin,
-      max: () => dateRanges_offentligeYdelser.tilDato.max,
-      origin: STATIC_DATE_BOUNDS,
-    },
-  },
+  { fra: systemrammeSpec, til: systemrammeSpec },
+  whenEo(tafSektionAktiv),
 );
 export const eoOffentligeYdelserFraDatoField = offentligeYdelserDates.fra;
 export const eoOffentligeYdelserTilDatoField = offentligeYdelserDates.til;
@@ -1115,6 +1110,7 @@ const offentligYdelseAmount = (field: string, label: string): FieldDescriptor<Am
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
+    relevance: whenEo(tafSektionAktiv),
   });
 export const eoOffentligeYdelserYdelseField = offentligYdelseAmount('ydelse', 'Ydelse');
 export const eoOffentligeYdelserTillaegField = offentligYdelseAmount('tillaeg', 'Tillæg');
@@ -1130,6 +1126,7 @@ export const eoOffentligeYdelserYdelsestypeField = defineStructuralField<string 
   label: 'Ydelsestype',
   controlKind: 'choice',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
+  relevance: whenEo(tafSektionAktiv),
 });
 
 // sfggAnsaettelsesforhold – samling med custom entity-id (`ansaettelsesforholdId`).

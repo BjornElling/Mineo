@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
-import { buildFieldWarningMap } from '../../../inputCore/fieldWarning';
+import { buildFieldWarningMap, type FieldWarning } from '../../../inputCore/fieldWarning';
 import { resolveOffentligeYdelserRowWarnings } from '../../../domain/erstatningsopgoerelse/validation/eoIncomeRowWarnings';
 import ContentBox from '../../layout/ContentBox';
 import LabeledControlRow from '../../layout/LabeledControlRow';
@@ -10,7 +10,10 @@ import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
-import { erOffentligeYdelserReguleringRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import {
+  erOffentligeYdelserReguleringRelevant,
+  erTabtArbejdsfortjenesteSektionAktiv,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import TransientDateInput from '../../inputs/transient/TransientDateInput';
@@ -26,8 +29,9 @@ import {
   buildSygedagpengeRowsForRange,
   SygedagpengeCoverageError,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
-import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
-import { derivedDateBounds } from '../../../utils/dateRangeErrorMessages';
+import { dateRanges_sygedagpengeIndsaettelse } from '../../../config/dateRanges';
+import { erMidlertidigtEetYdelsestype } from '../../../data/ydelsestyper';
+import { buildDateOrderMessage } from '../../../inputCore/catalog/dateOrderValidators';
 import { isISODateString, type ISODateString } from '../../../types/branded';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
@@ -107,12 +111,14 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 
 type Props = Readonly<{
   values: ErstatningsopgoerelseValues;
+  /** Gul ring på midlertidigt-EET-togglen, når den intet henter i TAF-perioden (BB-358). */
+  midlertidigtEetToggleWarning?: FieldWarning | undefined;
 }>;
 
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ values }: Props) => {
+const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning }: Props) => {
   const edit = useInputEditPort();
   const rows = values.offentligeYdelserRows;
   const harOffentligeYdelserIBeregningsgrundlaget = React.useMemo(() => {
@@ -283,6 +289,19 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   }, []);
 
   /**
+   * Hjælperens omvendte periode markerer BEGGE felter med tabellens to tekster – en kronologifejl kan rettes fra begge
+   * sider, og to datopar på samme fane må ikke sige det samme forskelligt (BB-366). Felternes egne fejl (format og
+   * satsdækning) har forrang; kronologien udledes af de to afsluttede datoer.
+   */
+  const sygedagpengeOrderReversed = sygedagpengeFraDato !== undefined
+    && sygedagpengeTilDato !== undefined
+    && sygedagpengeFraDato > sygedagpengeTilDato;
+  const sygedagpengeFraErrorShown = sygedagpengeFraError
+    ?? (sygedagpengeOrderReversed ? buildDateOrderMessage('fra', sygedagpengeTilDato) : undefined);
+  const sygedagpengeTilErrorShown = sygedagpengeTilError
+    ?? (sygedagpengeOrderReversed ? buildDateOrderMessage('til', sygedagpengeFraDato) : undefined);
+
+  /**
    * «Indsæt»-knappens gate. Årsagen klassificeres frem for at blive skrevet i hånden, så knappen
    * bruger programmets universelle tekster for grå knapper (§11.1) – samme to klasser og samme
    * ordlyd som de deaktiverede downloadknapper.
@@ -290,13 +309,13 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
    * Rækkefølgen betyder ikke noget her; `resolveActionGate` ejer forrangen (ugyldigt slår manglende).
    */
   const sygedagpengeInsertGate = React.useMemo(() => resolveActionGate([
-    ...(sygedagpengeFraError || sygedagpengeTilError
+    ...(sygedagpengeFraErrorShown !== undefined || sygedagpengeTilErrorShown !== undefined
       ? [{ kind: 'invalid-input' } as const]
       : []),
     ...(!sygedagpengeFraDato || !sygedagpengeTilDato
       ? [{ kind: 'missing-input' } as const]
       : []),
-  ]), [sygedagpengeFraDato, sygedagpengeFraError, sygedagpengeTilDato, sygedagpengeTilError]);
+  ]), [sygedagpengeFraDato, sygedagpengeFraErrorShown, sygedagpengeTilDato, sygedagpengeTilErrorShown]);
 
   const isMidlertidigtEetFraEetSiden = values.midlertidigtEetFraEetSiden === 'Ja';
 
@@ -310,7 +329,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
   const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean): boolean => {
     try {
       const rowDeletes = nextChecked
-        ? rows.filter((row) => row.ydelsestype?.trim() === 'midlertidigt_eet')
+        ? rows.filter((row) => erMidlertidigtEetYdelsestype(row.ydelsestype))
           .map((row) => inputTransactionStep(deleteRow(OFFENTLIGE_YDELSER_COLLECTION, row.id)))
         : [];
       const fieldSteps = [
@@ -364,7 +383,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     if (!nextChecked) {
       return commitMidlertidigtEetToggle(false) ? 'handled' : 'reject';
     }
-    const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
+    const hasExistingMidlertidigtEetRows = rows.some((row) => erMidlertidigtEetYdelsestype(row.ydelsestype));
     if (!hasExistingMidlertidigtEetRows) {
       return commitMidlertidigtEetToggle(true) ? 'handled' : 'reject';
     }
@@ -380,6 +399,21 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
     }
     return didCommit;
   }, [commitMidlertidigtEetToggle]);
+
+  // Ved TAF «Nej»/«Skjul» bruges intet fra fanen: felterne er ikke relevante (descriptorerne), og fanen siger det i
+  // stedet for at vise en tabel, der ingen virkning har (BB-360). Rækkerne står urørte og vises igen ved «Ja».
+  if (!erTabtArbejdsfortjenesteSektionAktiv(values)) {
+    return (
+      <ContentBox className="content-box">
+        <Typography className="section-header">{EO_OFFENTLIGE_YDELSER_TAB_LABEL}</Typography>
+        <Typography className="row--text" data-testid="offentlige-ydelser-uden-taf">
+          {values.kravPaaTabtArbejdsfortjeneste === 'Skjul'
+            ? 'Tabt arbejdsfortjeneste er skjult i opgørelsen – ydelserne indgår ikke i opgørelsen.'
+            : 'Der er ikke krav på tabt arbejdsfortjeneste – ydelserne indgår ikke i opgørelsen.'}
+        </Typography>
+      </ContentBox>
+    );
+  }
 
   return (
     <>
@@ -413,13 +447,11 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
                 setSygedagpengeFraDato(next);
               }}
               onReject={handleSygedagpengeFraError}
-              errorMessage={sygedagpengeFraError}
+              {...(sygedagpengeFraErrorShown === undefined ? {} : { errorMessage: sygedagpengeFraErrorShown })}
               width={130}
-              minDate={dateRanges_offentligeYdelser.fraDato.min}
-              maxDate={sygedagpengeTilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
-              specialRangeErrors={{ fraTilRole: 'fra' }}
-              // Max kommer fra til-datoen; parret kan derfor gøre intervallet umuligt.
-              bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
+              // Kun satsdækningen; kronologien mod til-datoen udledes ovenfor og markerer begge felter.
+              minDate={dateRanges_sygedagpengeIndsaettelse.fraDato.min}
+              maxDate={dateRanges_sygedagpengeIndsaettelse.fraDato.fallbackMax}
             />
             <Typography className="row--text">-</Typography>
             <TransientDateInput
@@ -430,13 +462,10 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
                 setSygedagpengeTilDato(next);
               }}
               onReject={handleSygedagpengeTilError}
-              errorMessage={sygedagpengeTilError}
+              {...(sygedagpengeTilErrorShown === undefined ? {} : { errorMessage: sygedagpengeTilErrorShown })}
               width={130}
-              minDate={sygedagpengeFraDato ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
-              maxDate={dateRanges_offentligeYdelser.tilDato.max}
-              specialRangeErrors={{ fraTilRole: 'til' }}
-              // Min kommer fra fra-datoen; samme udledning fra den anden side.
-              bounds={derivedDateBounds('Fra-dato og til-dato i sygedagpenge-indsættelsen')}
+              minDate={dateRanges_sygedagpengeIndsaettelse.tilDato.fallbackMin}
+              maxDate={dateRanges_sygedagpengeIndsaettelse.tilDato.max}
             />
             <InlineActionButton
               onClick={handleSygedagpengeInsert}
@@ -460,6 +489,7 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
               name="midlertidigtEetFraEetSiden"
               ariaLabel={EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL}
               commit={decideMidlertidigtEetToggle}
+              {...(midlertidigtEetToggleWarning === undefined ? {} : { warning: midlertidigtEetToggleWarning })}
             />
           </Box>
         </Box>
@@ -505,7 +535,11 @@ const OffentligeYdelserTab = React.memo(({ values }: Props) => {
       </ContentBox>
 
       <ContentBox className="content-box">
-        <Typography className="section-header">Kommentarer</Typography>
+        <Typography className="section-header">
+          Kommentarer
+          {/* Hvor kommentaren står, kunne før kun ses ved at læse papiret igennem (BB-363). */}
+          <InfoTooltipIcon title="Kommentaren trykkes i bilaget «Offentlige ydelser». Trykkes bilaget ikke, står den i opgørelsen under «Indtægter i erstatningsperioden»." />
+        </Typography>
         <MultilineTextField
           field={eoOffentligeYdelserKommentarerField.bind()}
           // route + tabKey er eksplicit navigation-metadata (§3.7); feltet bor på Offentlige ydelser-fanen.

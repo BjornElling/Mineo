@@ -27,7 +27,7 @@ describe('deriveOffentligeYdelserRow', () => {
       ydelsestype: undefined as unknown as OffentligeYdelserRow['ydelsestype'],
     });
 
-    expect(result).toEqual({ periodiseringLabel: '', antalDage: null, ydelsePerDag: null });
+    expect(result).toEqual({ periodiseringLabel: '', antalDage: null, ydelsePerDag: null, ingenArbejdsdage: false });
   });
 
   it('beregner ydelse pr. dag for kalenderdage', () => {
@@ -163,6 +163,31 @@ describe('deriveOffentligeYdelserRow', () => {
     };
 
     const result = deriveOffentligeYdelserRow(row);
+    expect(result.antalDage).toBe(10);
+    expect(result.ydelsePerDag).toBe(100);
+  });
+
+  it('viser fald-tilbage-dagene for en arbejdsdagsydelse i en ren weekend – samme dage som beregningen (BB-365)', () => {
+    const result = deriveOffentligeYdelserRow({
+      ...baseRow,
+      fraDato: toISODateString('2026-06-06'),
+      tilDato: toISODateString('2026-06-07'),
+      ydelsestype: 'feriepenge',
+      ydelse: asAmountValue(3000),
+    });
+
+    expect(result).toEqual({ periodiseringLabel: 'Arbejdsdage', antalDage: 2, ydelsePerDag: 1500, ingenArbejdsdage: true });
+  });
+
+  it('forstår en ydelsestype gemt med sin label (BB-364)', () => {
+    const result = deriveOffentligeYdelserRow({
+      ...baseRow,
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-10'),
+      ydelsestype: 'Kontanthjælp',
+      ydelse: asAmountValue(1000),
+    });
+
     expect(result.antalDage).toBe(10);
     expect(result.ydelsePerDag).toBe(100);
   });

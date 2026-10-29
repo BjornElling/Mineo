@@ -38,7 +38,7 @@ test('TAF-grafen kan hentes med midlertidigt EET fra Erhvervsevnetab-siden', asy
   await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
   await page.getByRole('checkbox', { name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', exact: true }).check();
   await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: 'Midlertidig EET', exact: true })).toBeChecked();
+  await expect(page.getByRole('checkbox', { name: 'Midlertidigt EET', exact: true })).toBeChecked();
   const graf = page.locator('.row--label-right-hover').filter({ hasText: 'Visuel graf over indtægtsniveau' });
   const button = graf.getByRole('button');
   await expect(button).toBeEnabled();

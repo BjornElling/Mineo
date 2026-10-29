@@ -11,6 +11,7 @@ import { formatToISO } from '../../../utils/dateFormatting';
 import { coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { differsFromZero } from '../../../utils/numberComparison';
 import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRowCalculations';
+import { erMidlertidigtEetYdelsestype } from '../../../data/ydelsestyper';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
@@ -163,7 +164,7 @@ const hasOffentligeYdelserEoBilagData = (
 export const hasMidlertidigtEetYdelsestype = (
   values: Pick<ErstatningsopgoerelseValues, 'offentligeYdelserRows'>
 ): boolean => {
-  return (values.offentligeYdelserRows ?? []).some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
+  return (values.offentligeYdelserRows ?? []).some((row) => erMidlertidigtEetYdelsestype(row.ydelsestype));
 };
 
 const hasReguleringSelection = (values: ErstatningsopgoerelseValues): boolean => {

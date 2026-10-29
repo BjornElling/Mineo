@@ -9,7 +9,9 @@ import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../../domain
 import {
   renderMidlertidigtEetSection,
   renderOffentligeYdelserSection,
+  resolveOffentligeYdelserKommentarUdenBilag,
 } from '../../../../../document/generators/eo/sections/offentligeYdelserSection';
+import { resolveOffentligeYdelserKommentarTilOpgoerelse } from '../../../../../document/generators/eo/sections/eoBilagSections';
 import { toISODateString } from '../../../../../types/branded';
 import type { TableSpec } from '../../../../../document/layout/tableSpec';
 import { renderPdfTableSpec } from '../../../../../pdf/infrastructure/pdfTableRenderer';
@@ -477,3 +479,90 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     expect(renderSubheader).toHaveBeenCalledWith('Afgørelse 16. juli 2025 (60 %)', { addTopSpacing: false });
   });
 });
+
+describe('BB-367: bilaget «Midlertidigt EET»', () => {
+  const periode = (fra: string, til: string, beloeb: number) => ({
+    fra: iso(fra),
+    til: iso(til),
+    satsAar: 2024,
+    maanederPraecis: 1,
+    grundydelseAfrundetOre: fromKroner(1000),
+    reguleringPct: 0,
+    maanedligYdelseOre: fromKroner(beloeb),
+    beregnetEetOre: fromKroner(beloeb),
+  });
+  const render = (groups: Parameters<typeof renderMidlertidigtEetSection>[0]['groups']) => {
+    const startEoBilagPage = vi.fn();
+    const addTable = vi.fn();
+    renderMidlertidigtEetSection({
+      groups,
+      tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-12-31') }],
+      startEoBilagPage,
+      renderSubheader: vi.fn(),
+      writer: { addSectionSpacer: vi.fn(), addTable },
+    });
+    const tables = addTable.mock.calls.map(([spec]) => spec as TableSpec);
+    return { startEoBilagPage, tables };
+  };
+
+  it('hedder «Midlertidigt EET» ligesom ydelsestypen og fradragslinjen', () => {
+    const { startEoBilagPage } = render([{ afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
+    expect(startEoBilagPage).toHaveBeenCalledWith('Midlertidigt EET');
+  });
+
+  it('slutter med «I alt» over alle afgørelser, når der er mere end én række', () => {
+    const { tables } = render([
+      { afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] },
+      { afgoerelsesdato: iso('2024-03-01'), eetPct: 30, rows: [], perioder: [periode('2024-03-01', '2024-03-31', 1500)] },
+    ]);
+
+    expect(tables).toHaveLength(2);
+    expect(tables[0]!.rows.some((row) => row.kind === 'total')).toBe(false);
+    const total = tables[1]!.rows.at(-1)!;
+    expect(total.kind).toBe('total');
+    const texts = total.cells.map((cell) => cell.text.replace(/\s/g, ' '));
+    expect(texts).toEqual(expect.arrayContaining(['I alt', '2.500 kr.']));
+  });
+
+  it('har ingen «I alt» med én række', () => {
+    const { tables } = render([{ afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
+    expect(tables[0]!.rows.some((row) => row.kind === 'total')).toBe(false);
+  });
+});
+
+describe('BB-363: kommentaren står altid ét sted', () => {
+  const values = (rows: ReturnType<typeof createErstatningsopgoerelseInitialValues>['offentligeYdelserRows']) => ({
+    ...createErstatningsopgoerelseInitialValues(),
+    kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
+    eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle' as const,
+    offentligeYdelserKommentarer: 'Ingen ydelser modtaget.',
+    offentligeYdelserRows: rows,
+  });
+  const enRaekke = [{
+    id: 'y-1', fraDato: iso('2024-01-01'), tilDato: iso('2024-01-31'),
+    ydelse: { kind: 'number' as const, value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge',
+  }];
+
+  it('trykkes i opgørelsen, når tabellen er tom', () => {
+    expect(resolveOffentligeYdelserKommentarTilOpgoerelse(values([]), { offentligeYdelser: true })).toBe('Ingen ydelser modtaget.');
+  });
+
+  it('trykkes i opgørelsen, når bilaget er fravalgt', () => {
+    expect(resolveOffentligeYdelserKommentarTilOpgoerelse(values(enRaekke), { offentligeYdelser: false })).toBe('Ingen ydelser modtaget.');
+  });
+
+  it('trykkes kun i bilaget, når bilaget trykkes', () => {
+    expect(resolveOffentligeYdelserKommentarTilOpgoerelse(values(enRaekke), { offentligeYdelser: true })).toBeUndefined();
+  });
+
+  it('trykkes ingen steder, når feltet er tomt', () => {
+    expect(resolveOffentligeYdelserKommentarUdenBilag({
+      eoValues: { ...values([]), offentligeYdelserKommentarer: '   ' },
+      shouldIncludeOffentligYdelseRowInEoBilag: () => true,
+      eoBilagIndkomstYdelserMode: 'Alle',
+      eoBilagIndkomstYdelserRanges: [],
+      bilagetTrykkes: false,
+    })).toBeUndefined();
+  });
+});
+

@@ -11,6 +11,8 @@ import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatnings
 import { kanIndkomstBeregningenSkjules } from '../../../domain/erstatningsopgoerelse/indkomstBeregningSkjulning';
 import { projectEoRowPolicy, projectSourceSettings } from '../../../settings/sourceSettings';
 import { EO_OFFENTLIGE_YDELSER_TAB_LABEL } from '../../../domain/erstatningsopgoerelse/eoLabels';
+import { MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
+import { createFieldWarning, type FieldWarning } from '../../../inputCore/fieldWarning';
 
 /**
  * Erstatningsopgørelses ene kanoniske viewmodel på PAGE-niveau (`page-component-contract.md` §4.4).
@@ -108,6 +110,17 @@ export function useErstatningsopgoerelseViewModel() {
     [activeTab, visitedTabs]
   );
 
+  /**
+   * Midlertidigt-EET-togglens gule ring (BB-358): samme advarsel, som «Fejl og advarsler» viser på Beregning-fanen,
+   * læst fra snapshottet, så fanen og beregningen ikke kan svare forskelligt.
+   */
+  const midlertidigtEetToggleWarning = React.useMemo<FieldWarning | undefined>(() => {
+    const invariant = (projection.snapshot.invariants ?? []).find(
+      (candidate) => candidate.id === `midlertidigt_eet_source:${MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID}`
+    );
+    return invariant === undefined ? undefined : createFieldWarning(invariant.message);
+  }, [projection.snapshot]);
+
   return {
     activeTab,
     setActiveTab,
@@ -119,6 +132,7 @@ export function useErstatningsopgoerelseViewModel() {
     eoValues: projection.eoValues,
     stamdataValues: projection.stamdataValues,
     eoSnapshot: projection.snapshot,
+    midlertidigtEetToggleWarning,
     manuelReguleringInputErrors,
     indkomstBeregningKanSkjules,
     handleNavigateToTabtArbejdsfortjeneste,

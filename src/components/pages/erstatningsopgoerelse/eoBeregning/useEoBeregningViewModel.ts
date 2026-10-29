@@ -60,7 +60,6 @@ import {
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
 import {
-  eoKravPaaTabtArbejdsfortjenesteField,
   eoTafPeriodeFraField,
   eoTafPeriodeTilField,
 } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
@@ -117,10 +116,7 @@ const scrollToRowIssueTarget = (
 const resolveManglerTafSlutdatoFocusTarget = (
   values: ErstatningsopgoerelseReaderProjection['eoValues']
 ): EoIssueFocusTarget => {
-  if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
-    return { kind: 'fieldAddress', address: eoKravPaaTabtArbejdsfortjenesteField.bind().address };
-  }
-
+  // Kun TAF «Ja» kan give fejlen: uden TAF-krav er midlertidigt-EET-togglen ikke relevant og importerer intet (BB-360).
   const row = values.tafPerioder.find((candidate) => !isTafRowEmpty(candidate));
   if (row === undefined) {
     return { kind: 'collectionField', template: eoTafPeriodeTilField.template };

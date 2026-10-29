@@ -41,6 +41,8 @@ type OpgorelseSectionContext = Readonly<{
   doubleLineHeight: number;
   afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   rightColumnWidth: number;
+  /** Kommentaren til de offentlige ydelser, når bilaget ikke trykker den (BB-363). */
+  offentligeYdelserKommentar?: string | undefined;
   // Beløbslinjen har en kalder-bestemt minimumsbredde på højre kolonne, som
   // composeren ikke selv kender. Derfor er dette den ene render-hjælper der
   // fortsat sendes ind frem for at blive kaldt direkte på writer.
@@ -624,6 +626,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddLeftRightText('I alt', formatMoneyOreWithKr(tafIndtaegterTotalOre), rightMaxWidth, { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } });
       } else if (skalViseTotal) {
         safeAddLeftRightText('I alt', '—', rightMaxWidth, { rightFontStyle: 'normal', separatorAboveValue: { widthMm: rightColumnWidth, gapMm: 4 } });
+      }
+      if (ctx.offentligeYdelserKommentar !== undefined) {
+        writer.addSectionSpacer();
+        writer.writeBoldSubheaderWithWrappedText('Kommentarer til offentlige ydelser', ctx.offentligeYdelserKommentar);
       }
     }
     writeCombinedBilagReferenceLinje(bilag.loenISygeperioden, bilag.offentligeYdelser);

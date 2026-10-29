@@ -256,7 +256,7 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
   });
 
   it('blokerer på aktiv midlertidig EET-kildefejl selv uden række-fejl', () => {
-    const reader = buildReader({ ...buildEoDownloadableEo(), midlertidigtEetFraEetSiden: 'Ja' }, validStamdata);
+    const reader = buildReader(buildEoDownloadableEo(), validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
     const eetError = {
       id: 'midlertidigt_eet_source:runtime',
@@ -266,8 +266,10 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
       message: 'Midlertidig EET-kilde mangler',
       blocksAuthoritativeComputation: false,
     } as EoInvariant;
+    // Gaten læser togglen fra projektionen; her isoleres gatens egen regel fra TAF-relevansen (se næste test).
     const withEetError = {
       ...projection,
+      eoValues: { ...projection.eoValues, midlertidigtEetFraEetSiden: 'Ja' as const },
       snapshot: { ...projection.snapshot, invariants: [eetError] },
     };
 
@@ -276,6 +278,24 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.erstatningsopgoerelse.reasons[0]?.kind).toBe('page-errors');
     expect(gates.erstatningsopgoerelse.reasons[0]?.message).toBe('Midlertidig EET-kilde mangler');
+  });
+
+  it('ved TAF «Nej» spærrer hverken midlertidigt-EET-togglen eller en ufærdig ydelsesrække (BB-360)', () => {
+    const reader = buildReader({
+      ...buildEoDownloadableEo(),
+      midlertidigtEetFraEetSiden: 'Ja',
+      offentligeYdelserRows: [
+        // Ufærdig række uden ydelsestype og en række med omvendte datoer – begge spærrede før.
+        { id: 'y-1', fraDato: toISODateString('2022-06-01'), tilDato: toISODateString('2022-06-30'), ydelse: asAmount(5000), tillaeg: undefined, ydelsestype: undefined },
+        { id: 'y-2', fraDato: toISODateString('2022-06-30'), tilDato: toISODateString('2022-06-01'), ydelse: asAmount(5000), tillaeg: undefined, ydelsestype: 'dagpenge' },
+      ],
+      eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
+    }, validStamdata);
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+
+    expect(projection.eoValues.midlertidigtEetFraEetSiden).toBe('Nej');
+    expect(projection.eoValues.offentligeYdelserRows.every((row) => row.ydelsestype === undefined && row.fraDato === undefined)).toBe(true);
+    expect(evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY).erstatningsopgoerelse.canDownload).toBe(true);
   });
 
   it('blokerer fail-closed når rækkeaggregeringen kaster en intern fejl', () => {

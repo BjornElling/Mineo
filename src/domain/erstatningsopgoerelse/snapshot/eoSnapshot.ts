@@ -13,6 +13,7 @@ import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
+  resolveMidlertidigtEetIngenYdelserIssue,
 } from '../helpers/midlertidigtEetTransientInjection';
 import { neutralizeIrrelevantEoInputs } from '../helpers/eoInputRelevance';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
@@ -428,7 +429,16 @@ export const computeEoSnapshot = (args: Readonly<{
       ? buildMidlertidigtEetSourceResult(args.midlertidigtEetImportContext)
       : { groups: [], issues: [] };
     const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
-    const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
+    // Samme TAF-perioder, som importens slutdato udledes af (`erstatningsopgoerelseReaderProjection`).
+    const midlertidigtEetIngenYdelserIssue = resolveMidlertidigtEetIngenYdelserIssue({
+      values: parsedEo.data,
+      tafRanges: buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato }),
+      result: midlertidigtEetSourceResult,
+    });
+    const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants([
+      ...midlertidigtEetSourceResult.issues,
+      ...(midlertidigtEetIngenYdelserIssue === undefined ? [] : [midlertidigtEetIngenYdelserIssue]),
+    ]);
     // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
     // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke
     // offentligeYdelserRows. Se eoInputRelevance.ts for relevans-reglerne og den bevidste

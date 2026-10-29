@@ -12,6 +12,16 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ét nyt mønster 2026-10-29 fra Erstatningsopgørelse → Offentlige ydelser (12k): M-43 – en advarsel får en import til at
+give nul.** Midlertidigt EET hentet fra Erhvervsevnetab-siden opgives helt, når EET-siden har en ikke-blokerende advarsel
+(10 %-trin, midlertidig efter endelig); i den målte sag bliver kravet `58.387 kr.` for højt, og den eneste linje handler om
+EET-sidens procent (BB-357, **Kritisk**). Samme toggle tier, når intet hentes (BB-358, **Høj**, M-25). **M-23** i en bredere
+form: ikke kun ordrette dubletter, men overlappende rækker af samme ydelse lægges sammen – og sygedagpenge-hjælperen
+indsætter oven i rækker, der står (BB-359, **Høj**). **M-38** igen: BB-116's afgørelse om «Løn (2)» er ikke ført over på
+ydelsestabellen, som kalder kolonnen «Tillæg» på skærmen og «Ydelse (2)» alle andre steder (BB-361). Dertil M-32 (BB-360),
+M-24 (BB-362), M-12 (BB-363), M-14 (BB-364), M-07 (BB-366), M-01 (BB-367) og én lokal (BB-365). M-37's og M-36's
+12k-kandidater er efterprøvet uden forekomst; M-07 (tabellen) og M-13 bestået; konsollen tavs.
+
 **Ingen nye mønstre 2026-10-24 fra Erstatningsopgørelse → Sygeferiegodtgørelse (12j), men M-38 har fået en tredje form:
 reglen er skrevet og testet, men intet kalder den.** Afklaringslog 8a's gule advarsel om en gammel referenceperiode findes
 som `findSfggManualReferenceWarningEmploymentIds` med egen test og bruges ingen steder (BB-324). Samme træk – programmet
@@ -2066,6 +2076,11 @@ og se, om resultatet fordobles.** Gør det det, og nævneren står uændret, er 
 - **Ny forekomst 2026-10-19** (`erstatningsopgoerelse-12h.md` BB-289, **Høj**): EO's lønindkomst-tabel – en ordret kopi
   af juni 2017 giver «Løn i beregningsperioden 390.000,00 kr. … 12 måneder» og kravet 438.750,00 kr. mod 405.000,00 kr.
   BB-096's afgjorte løsning (rød dublet-ring på identiske rækker) er kun koblet på Årsløn; se **M-38**.
+- **Bredere form 2026-10-29: delvist overlap, ikke kun ordrette dubletter** (`erstatningsopgoerelse-12k.md` BB-359, **Høj**).
+  Kontanthjælp i to månedsrækker plus en samlerække for begge måneder giver «Kontanthjælp 40.000,00 kr.» mod 20.000 kr.,
+  uden ring og linje; dublet-kontrollen (BB-289) ser kun ordrette gentagelser. «Indsæt maksimal sygedagpengesats» lægger
+  sine rækker oven i rækker, der allerede dækker perioden. Prøven udvides: **indtast også en samlerække over to rækker, der
+  står** – ikke kun den samme række to gange.
 
 ## M-24 – Feltets grænse er sat af feltets art, ikke af det tal det trækkes fra
 
@@ -3076,6 +3091,10 @@ koden, er det en forekomst – uanset hvad sporet siger.
 - **Lukket 2026-10-24 for den tredje form:** BB-324's advarsel er koblet på (gul ring på referenceperiodens til-dato og
   en gul linje), og de to ubrugte værdier i view-modellen bag BB-322 og BB-323 er slettet – reglerne bæres nu af
   `sfggReferenceperiodeRules.ts` på feltets egen adresse.
+- **Ny forekomst 2026-10-29: en navneafgørelse ikke ført over på søstertabellen** (`erstatningsopgoerelse-12k.md` BB-361).
+  BB-116 fastslog, at de to beløbskolonner hedder det samme («Løn»/«Løn (2)») med informationsikon på den anden. Offentlige
+  ydelser kalder kolonnen «Tillæg» på skærmen uden ikon, men «Ydelse (2)» i «Fejl og advarsler» og bilaget; ikonets tekst
+  findes som `getOffentligeYdelserTableHeaderNodes`, som kun en test kalder – den tredje form igen.
 
 ## M-39 – Gamle filer får nye blokerende feltfejl efter indlæsning
 
@@ -3231,3 +3250,27 @@ bevare den røde værdi. En fejl ét sted beviser ikke, at de øvrige consumers 
 - **Dækning:** TAF/ferie har unit-tests for lighed på celle- og periodetekster samt cutoff-kilder. S/S har særskilte
   unit-/validatorfacitter og E2E for fra-dato lig cutoff. Browseren har ikke særskilt målt TAF-/ferieteksterne ved
   lighed.
+
+## M-43 – En advarsel får en import til at give nul
+
+> En flade henter et beregnet beløb fra en anden flade. Importen opgiver alt, så snart kildefladen har en linje – også en
+> ikke-blokerende advarsel. Beløbet bliver 0, knappen er aktiv, og den eneste linje brugeren ser, er kildefladens egen
+> advarsel, som ikke siger noget om følgen.
+
+Formen er farlig, fordi advarslens alvor bliver vendt om på vejen. På kildefladen betyder den «bemærk dette – der regnes
+alligevel»; i den importerende flade betyder den «intet regnes», men den står ordret ens begge steder. Fail-closed er rigtigt
+for en FEJL; for en advarsel er det et stille fravalg.
+
+**Efterprøv, hvor:** en importport eller adapter, der returnerer tomme grupper eller `computation: null` ved
+`issues.length > 0` uden at filtrere på `severity`. `rg "issues\.length > 0\)" src/domain`. For hver: kan listen indeholde
+advarsler, og hvad sker der så med beløbet i den modtagende flade?
+
+- Fundet i: `erstatningsopgoerelse-12k.md` BB-357 (**Kritisk** – midlertidigt EET på `55 %` eller en midlertidig afgørelse
+  efter en endelig: EET-siden regner løbende ydelser, opgørelsen fradrager `0 kr.` i stedet for `58.387 kr.`).
+  Mekanikken: `midlertidigtEetTransientInjection.ts:58`.
+  **Gennemført 2026-10-29:** kun en fejl stopper importen; en advarsel følger med, og en tom import uden fejl giver
+  BB-358's gule advarsel.
+- Fundet i: `erstatningsopgoerelse-12k.md` BB-368 (**Høj** – en afgørelse uden virkningsdato springes tavst over i
+  EET-sidens beregninger og dermed i importen; samme følge ad en anden vej). Afventer udvikleren.
+- Efterprøvet 2026-10-29 uden fund: `forsoergertabAslYdelser.ts:331` (listen rummer kun fejl, og den spærrer);
+  `eetImportPort.ts:167` (kildens egne linjer er altid fejl).

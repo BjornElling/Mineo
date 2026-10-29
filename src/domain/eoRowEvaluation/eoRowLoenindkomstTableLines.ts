@@ -9,7 +9,7 @@ import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTabl
 import { formatStandardLoenRowName, type StandardLoenRowWarning } from '../standardLoen/standardLoenRowWarnings';
 import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
 import { createEoStandardLoenFieldSet } from '../erstatningsopgoerelse/eoStandardLoenFieldSet';
-import { buildStandardLoenCellErrors, buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
+import { buildStandardLoenCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import { resolveLoenindkomstRowWarnings } from '../erstatningsopgoerelse/validation/eoIncomeRowWarnings';
 import type { EoRowStatus } from './eoRowTypes';
 
@@ -114,9 +114,6 @@ export const buildLoenindkomstTableLines = (
   const warningRowIds = new Set(validation.summary.rowIssues
     .filter((issue) => issue.level === 'warning')
     .map((issue) => issue.rowId));
-  const zeroArbejdsdageByRowId = new Map(
-    buildStandardLoenZeroArbejdsdageIssues(values, ansaettelsesforhold.id).map((issue) => [issue.rowId, issue])
-  );
   const rowWarningsByRowId: ReadonlyMap<string, readonly StandardLoenRowWarning[]> = groupBy(
     resolveLoenindkomstRowWarnings(values, ansaettelsesforhold, skadedato, today),
     (warning) => warning.rowId
@@ -160,15 +157,7 @@ export const buildLoenindkomstTableLines = (
         focusAddress: cellAddress(fieldSet, row.id, 'col2'),
       });
     }
-    const zeroArbejdsdage = zeroArbejdsdageByRowId.get(row.id);
-    if (zeroArbejdsdage !== undefined) {
-      lines.push({
-        key: `${row.id}.ingenArbejdsdage`,
-        status: 'warning',
-        message: zeroArbejdsdage.message,
-        focusAddress: cellAddress(fieldSet, row.id, zeroArbejdsdage.colKeys[0] ?? 'col2'),
-      });
-    }
+    // «Ingen arbejdsdage» kommer nu med rækkeadvarslerne nedenfor (ring på periodecellerne + linjen, BB-365).
     for (const warning of rowWarningsByRowId.get(row.id) ?? []) {
       const focus = warning.cells[0];
       if (focus === undefined) continue;

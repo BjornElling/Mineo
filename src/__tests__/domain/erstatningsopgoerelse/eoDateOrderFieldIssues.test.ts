@@ -345,3 +345,28 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     expect(blocking.every((i) => i.blocksAuthoritativeComputation)).toBe(true);
   });
 });
+
+describe('Offentlige ydelser: rækkernes datoer følger sagens ramme, ikke sygedagpengesatserne (BB-362)', () => {
+  const medYdelse = (fra: string, til: string): ErstatningsopgoerelseValues => ({
+    ...baseEo(),
+    kravPaaTabtArbejdsfortjeneste: 'Ja',
+    offentligeYdelserRows: [{
+      id: 'y-1', fraDato: toISODateString(fra), tilDato: toISODateString(til),
+      ydelse: { kind: 'number', value: 10000 }, tillaeg: undefined, ydelsestype: 'foertidspension',
+    }],
+  });
+
+  it('tager imod en ydelse efter sygedagpengesatsernes sidste dato og før 2005-01-03', () => {
+    for (const [fra, til] of [['2027-01-01', '2027-01-31'], ['2005-01-01', '2005-01-02']] as const) {
+      const evaluation = buildReader(medYdelse(fra, til));
+      expect(issueAt(evaluation, eoOffentligeYdelserFraDatoField.bind('y-1'))).toBeUndefined();
+      expect(issueAt(evaluation, eoOffentligeYdelserTilDatoField.bind('y-1'))).toBeUndefined();
+    }
+  });
+
+  it('markerer stadig en dato uden for systemrammen', () => {
+    const evaluation = buildReader(medYdelse('2004-12-01', '2004-12-31'));
+    expect(issueAt(evaluation, eoOffentligeYdelserFraDatoField.bind('y-1'))?.reason).toBe('bounds');
+  });
+});
+

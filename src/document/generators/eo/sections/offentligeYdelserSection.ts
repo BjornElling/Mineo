@@ -2,11 +2,11 @@ import { amountValueToDisplayString, amountValueToNumber } from '../../../../uti
 import { formatIsoDateLong as formatAfgoerelsesdato } from '../../../../utils/dateFormatting';
 import { formatAsAmount, formatPercentRounded4 } from '../../../../utils/formatUtils';
 import { roundByMethod } from '../../../../utils/rounding';
-import { ydelsestyper } from '../../../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
+import { buildSummedTotalRowSpec, type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetBilagGroups';
@@ -104,7 +104,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
     })
     .map((entry) => entry.row);
   for (const row of kronologisk) {
-    const ydelsestypeKey = row.ydelsestype?.trim() ?? '';
+    const ydelsestypeKey = canonicalYdelsestypeKey(row.ydelsestype);
     const ydelsestypeLabel = ydelsestypeKey ? (ydelsestyper[ydelsestypeKey]?.label ?? ydelsestypeKey) : 'Ikke angivet';
     if (!grouped.has(ydelsestypeLabel)) {
       grouped.set(ydelsestypeLabel, []);
@@ -125,6 +125,56 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   }
 };
 
+type OffentligeYdelserBilagGroupsInput = Pick<
+  OffentligeYdelserSectionContext,
+  'eoValues' | 'shouldIncludeOffentligYdelseRowInEoBilag' | 'eoBilagIndkomstYdelserMode' | 'eoBilagIndkomstYdelserRanges'
+>;
+
+/**
+ * Bilagets rækker pr. periodegruppe – grupper uden rækker udelades. Den ENE afgørelse af, om bilaget «Offentlige
+ * ydelser» har noget at trykke; kommentarens placering læser samme svar (BB-363).
+ */
+export const buildOffentligeYdelserBilagGroups = (
+  input: OffentligeYdelserBilagGroupsInput
+): readonly Readonly<{ group: ReturnType<typeof buildPeriodRangeGroups>[number]; rows: readonly OffentligeYdelserRow[] }>[] => {
+  const { eoValues, shouldIncludeOffentligYdelseRowInEoBilag, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges } = input;
+  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
+  const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
+
+  // Bemærk: midlertidigt_eet-rækker filtreres IKKE fra her – det er tilsigtet.
+  // Offentlige ydelser viser de faktiske beløb som brugeren har importeret (rå EET-beløb pr. periode),
+  // mens renderMidlertidigtEetSection viser beregningsprincipperne (grundydelse, regulering, mdr., osv.).
+  // De to sektioner er komplementære og tjener forskelligt formål i bilagets dokumentation.
+  const kandidatRaekker = eoValues.offentligeYdelserRows ?? [];
+
+  const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);
+  return rangeGroups.map((group) => ({
+    group,
+    rows: kandidatRaekker.filter((row) => shouldIncludeOffentligYdelseRowInEoBilag({
+      row,
+      mode: normalizedEoBilagMode,
+      ranges: group.ranges,
+      errorRowIds: offentligeErrorRowIds,
+    })),
+  })).filter((entry) => entry.rows.length > 0);
+};
+
+/**
+ * Kommentaren til de offentlige ydelser, når den IKKE står i bilaget – ellers `undefined`.
+ *
+ * Kommentaren trykkes altid: i bilaget «Offentlige ydelser», når det trykkes, og ellers under «Indtægter i
+ * erstatningsperioden». Før stod den kun nederst i bilaget og forsvandt tavst, når bilaget var fravalgt – eller når
+ * tabellen var tom, som er netop dér, feltet naturligt bruges til at forklare hvorfor (BB-363).
+ */
+export const resolveOffentligeYdelserKommentarUdenBilag = (
+  input: OffentligeYdelserBilagGroupsInput & Readonly<{ bilagetTrykkes: boolean }>
+): string | undefined => {
+  const kommentarer = input.eoValues.offentligeYdelserKommentarer?.trim() ?? '';
+  if (kommentarer === '') return undefined;
+  if (input.bilagetTrykkes && buildOffentligeYdelserBilagGroups(input).length > 0) return undefined;
+  return kommentarer;
+};
+
 export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionContext): void => {
   const {
     eoValues,
@@ -137,28 +187,13 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     writer,
   } = ctx;
   const writeBoldSubheaderWithWrappedText = writer.writeBoldSubheaderWithWrappedText;
-  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
 
-  const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
-
-  // Bemærk: midlertidigt_eet-rækker filtreres IKKE fra her – det er tilsigtet.
-  // Offentlige ydelser viser de faktiske beløb som brugeren har importeret (rå EET-beløb pr. periode),
-  // mens renderMidlertidigtEetSection viser beregningsprincipperne (grundydelse, regulering, mdr., osv.).
-  // De to sektioner er komplementære og tjener forskelligt formål i bilagets dokumentation.
-  const kandidatRaekker = eoValues.offentligeYdelserRows ?? [];
-
-  const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);
-  const groupedRows = rangeGroups.map((group) => ({
-    group,
-    rows: kandidatRaekker.filter((row) => {
-      return shouldIncludeOffentligYdelseRowInEoBilag({
-        row,
-        mode: normalizedEoBilagMode,
-        ranges: group.ranges,
-        errorRowIds: offentligeErrorRowIds,
-      });
-    }),
-  })).filter((entry) => entry.rows.length > 0);
+  const groupedRows = buildOffentligeYdelserBilagGroups({
+    eoValues,
+    shouldIncludeOffentligYdelseRowInEoBilag,
+    eoBilagIndkomstYdelserMode,
+    eoBilagIndkomstYdelserRanges,
+  });
   const skalVisePeriodeSubheadings = groupedRows.length > 1;
 
   if (groupedRows.length === 0) return;
@@ -192,13 +227,17 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
   }
 
   // Kommentarer (hvis udfyldt) renderes under en underoverskrift nederst på bilaget,
-  // i samme stil som procesrente-PDF'ens kommentarafsnit.
+  // i samme stil som procesrente-PDF'ens kommentarafsnit. Trykkes bilaget ikke, står kommentaren i stedet under
+  // «Indtægter i erstatningsperioden» (`resolveOffentligeYdelserKommentarUdenBilag`, BB-363).
   const kommentarer = eoValues.offentligeYdelserKommentarer?.trim() ?? '';
   if (kommentarer !== '') {
     writer.addSectionSpacer();
     writeBoldSubheaderWithWrappedText('Kommentarer', kommentarer);
   }
 };
+
+/** Samme navn som ydelsestypen, togglen og fradragslinjen (BB-367). */
+export const MIDLERTIDIGT_EET_BILAG_TITLE = 'Midlertidigt EET';
 
 type MidlertidigtEetSectionContext = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -235,25 +274,39 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     ],
   };
 
-  const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
+  const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges)
+    .filter((group) => group.perioder.length > 0);
+  // Bilagets sum ER fradragslinjen «Midlertidigt EET» (rækkerne er den kanoniske kilde til fradraget). Med mere end
+  // én række slutter bilaget derfor med «I alt», så læseren ikke selv skal lægge sammen – heller ikke på tværs af
+  // flere afgørelser (BB-367).
+  const alleRaekker = clampedGroups.flatMap((group) => group.perioder);
+  const totalRow = alleRaekker.length > 1
+    ? buildSummedTotalRowSpec(
+      'I alt',
+      alleRaekker.map((row) => toKroner(row.beregnetEetOre)),
+      {
+        columnCount: columns.length,
+        valueColumnIndex: columns.length - 1,
+        formatValue: (total) => formatKr(total),
+        // Rækkerne er allerede hele kroner (`buildMidlertidigtEetPdfGroupsForTafRanges`).
+        roundDisplayedValue: (value) => value,
+        valueHasKrSuffix: true,
+      }
+    )
+    : null;
 
-  let bilagIndex = 0;
-  for (const group of clampedGroups) {
+  clampedGroups.forEach((group, groupIndex) => {
     const perioder = group.perioder;
-    if (perioder.length === 0) continue;
-
-    if (bilagIndex === 0) {
-      startEoBilagPage('Midlertidig EET');
-      writer.addSectionSpacer();
-    } else {
-      writer.addSectionSpacer();
+    if (groupIndex === 0) {
+      startEoBilagPage(MIDLERTIDIGT_EET_BILAG_TITLE);
     }
-    bilagIndex++;
+    writer.addSectionSpacer();
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
     const pctText = Number.isFinite(group.eetPct) ? ` (${formatPercentRounded4(group.eetPct)})` : '';
-    renderSubheader(`Afgørelse ${datoText}${pctText}`, { addTopSpacing: bilagIndex > 1 });
+    renderSubheader(`Afgørelse ${datoText}${pctText}`, { addTopSpacing: groupIndex > 0 });
 
+    const erSidsteGruppe = groupIndex === clampedGroups.length - 1;
     const specRows: RowSpec[] = [
       ydelserHeader,
       ...perioder.map(
@@ -269,8 +322,9 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
           ],
         })
       ),
+      ...(erSidsteGruppe && totalRow !== null ? [totalRow] : []),
     ];
 
     writer.addTable({ columns, hasHeaderRow: true, rows: specRows });
-  }
+  });
 };

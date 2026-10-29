@@ -280,7 +280,7 @@ describe('buildOffentligeYdelserStatusRows', () => {
     const result = buildOffentligeYdelserStatusRows(rows);
 
     expect(result[0]?.status).toBe('error');
-    expect(result[0]?.message).toBe('Ydelsen Dagpenge 01-01-2024 - 31-01-2024: Ydelse (2) – ugyldig værdi');
+    expect(result[0]?.message).toBe('Ydelsen Dagpenge 01-01-2024 - 31-01-2024: Tillæg – ugyldig værdi');
     expect(result[0]?.summaryDisplay).toBe('messageOnly');
   });
 

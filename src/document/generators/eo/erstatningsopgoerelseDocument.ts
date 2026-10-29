@@ -14,7 +14,7 @@ import { logWarning } from '../../../utils/logger';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import type { SelectedElements } from './types';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
-import { renderEoBilagSections } from './sections/eoBilagSections';
+import { renderEoBilagSections, resolveOffentligeYdelserKommentarTilOpgoerelse } from './sections/eoBilagSections';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
@@ -137,6 +137,7 @@ export const generateErstatningsopgoerelseDocument = (
     doubleLineHeight,
     afsluttesMed,
     rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
+    offentligeYdelserKommentar: resolveOffentligeYdelserKommentarTilOpgoerelse(eoValues, selectedElements),
     safeAddLeftRightText,
     writer,
   });

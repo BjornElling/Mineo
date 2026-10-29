@@ -196,6 +196,32 @@ export const setVerbatimFieldValueAndSettle = async (
 };
 
 /**
+ * Det mindste TAF-grundlag, der gør en Erstatningsopgørelse hentbar: krav på TAF, én TAF-periode, angivet
+ * månedsløn uden lønudvikling og arbejdssituationen. Står på EO oplysninger-fanen.
+ *
+ * Offentlige ydelser bruges kun ved krav på tabt arbejdsfortjeneste (BB-360). Specs, der før satte TAF «Nej» for at
+ * slippe for TAF-grundlaget, bruger denne i stedet, så ydelsesrækken stadig indgår.
+ */
+export const fillMinimalTafGrundlag = async (
+  page: Page,
+  tafPeriode: Readonly<{ fra: string; til: string }>,
+): Promise<void> => {
+  await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Ja']").check();
+  const tafRow = page.locator('[data-section-id="taf"] table').first()
+    .locator('tbody tr[data-mineo-row-id]').first().locator('input[data-mineo-field-address]');
+  await setVerbatimFieldValueAndSettle(tafRow.nth(0), tafPeriode.fra);
+  await setVerbatimFieldValueAndSettle(tafRow.nth(1), tafPeriode.til);
+  await page.getByRole('combobox', { name: 'Arbejdssituation', exact: true }).click();
+  await page.getByRole('option', { name: 'Uarbejdsdygtig', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Beregnes ud fra', exact: true }).click();
+  await page.getByRole('option', { name: 'Angivet månedsløn', exact: true }).click();
+  await setFieldValueAndSettle(page.locator("input[name='maanedsloenenUdgoer']"), '30000');
+  await setFieldValueAndSettle(page.locator("input[name='angivetMaanedsloenBaseretPaa']"), 'Månedsløn');
+  await page.getByRole('combobox', { name: 'Lønudvikling beregnes ud fra', exact: true }).click();
+  await page.getByRole('option', { name: 'Ingen', exact: true }).click();
+};
+
+/**
  * Registrerer de faktiske felter, som en fejllink får til at blinke.
  *
  * En klasseaflæsning bagefter er ikke nok: blinkklassen forsvinder igen, og en animation kan være

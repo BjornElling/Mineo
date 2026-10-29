@@ -47,7 +47,11 @@ import {
 import { formatPercentFixed2 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import type { SelectedElements } from '../types';
 import { renderLoenindkomstSection } from './loenindkomstSection';
-import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './offentligeYdelserSection';
+import {
+  renderMidlertidigtEetSection,
+  renderOffentligeYdelserSection,
+  resolveOffentligeYdelserKommentarUdenBilag,
+} from './offentligeYdelserSection';
 import { renderShDageSection } from './shDageSection';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { renderReguleringSection } from './reguleringSection';
@@ -94,6 +98,27 @@ export type RenderEoBilagSectionsContext = Readonly<{
   selectedElements: SelectedElements;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }>;
+
+/**
+ * Kommentaren til de offentlige ydelser, som opgørelsen selv skal trykke under «Indtægter i erstatningsperioden»,
+ * fordi bilaget «Offentlige ydelser» ikke trykkes (fravalgt eller uden rækker) – ellers `undefined` (BB-363). Samme
+ * gate som bilaget nedenfor, så kommentaren altid står præcis ét sted.
+ */
+export const resolveOffentligeYdelserKommentarTilOpgoerelse = (
+  eoValues: ErstatningsopgoerelseValues,
+  selectedElements: Pick<SelectedElements, 'offentligeYdelser'>
+): string | undefined => {
+  const eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar =
+    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
+  return resolveOffentligeYdelserKommentarUdenBilag({
+    eoValues,
+    shouldIncludeOffentligYdelseRowInEoBilag,
+    eoBilagIndkomstYdelserMode,
+    eoBilagIndkomstYdelserRanges: buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagIndkomstYdelserMode),
+    bilagetTrykkes: selectedElements.offentligeYdelser
+      && shouldRenderEoIndkomstOgYdelserBilag(eoValues, eoBilagIndkomstYdelserMode),
+  });
+};
 
 /**
  * Renderer hele bilags-sekvensen for et erstatningsopgørelses-dokument.

@@ -18,7 +18,7 @@ import { serializeFieldAddress, type CollectionRef, type FieldAddress, type Seri
 import type { FieldWarning } from '../../inputCore/fieldWarning';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { generateOffentligYdelseRowId, initialOffentligYdelseRow } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
-import { primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, primaereYdelsestypeKeys, supplerendeYdelsestypeKeys, ydelsestypeKeys, ydelsestyper } from '../../data/ydelsestyper';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { useCollectionTable } from './useCollectionTable';
 import { usePersistSortedCollectionOrder, useSortedCollectionTable } from './useSortedCollectionTable';
@@ -27,6 +27,7 @@ import { APP_ROUTES } from '../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../config/eoTabKeys';
 import { AutofillSuggestProvider } from '../../inputCore/react/autofillSuggestContext';
 import { buildOffentligeYdelserAutofillModel } from './autofill/offentligeYdelserAutofillModel';
+import { getOffentligeYdelserTableHeaderNodes } from './offentligeYdelserTableHeaderNodes';
 
 type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
 export type OffentligeYdelserTableProps = Readonly<{
@@ -69,7 +70,7 @@ const OffentligeYdelserTable = React.memo(({
     { colId: 'tilDato', getSortValue: (row: OffentligeYdelserRow) => row.tilDato ?? '' },
     { colId: 'ydelse', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.ydelse) },
     { colId: 'tillaeg', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.tillaeg) },
-    { colId: 'ydelsestype', getSortValue: (row: OffentligeYdelserRow) => row.ydelsestype ?? '' },
+    { colId: 'ydelsestype', getSortValue: (row: OffentligeYdelserRow) => canonicalYdelsestypeKey(row.ydelsestype) },
     { colId: 'periodisering', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.periodiseringLabel ?? '' },
     { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDageDisplay ?? '' },
     { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDagDisplay ?? '' },
@@ -94,11 +95,11 @@ const OffentligeYdelserTable = React.memo(({
       : ydelsestypeKeys,
   );
 
-  const headers = ['Fra dato', 'Til dato', 'Ydelse', 'Tillæg', 'Ydelsestype', 'Periodisering', 'Antal dage', 'Ydelse per dag'];
+  const headers = getOffentligeYdelserTableHeaderNodes();
   const sortIds = ['fraDato', 'tilDato', 'ydelse', 'tillaeg', 'ydelsestype', 'periodisering', 'antalDage', 'ydelsePerDag'] as const;
   return <AutofillSuggestProvider model={autofillModel}><StandardGridTable tableWidth="1130px" useSmallFont>
     <colgroup>{['120px', '120px', '130px', '130px', '200px', '160px', '110px', '160px'].map((width, index) => <col key={index} style={{ width }} />)}</colgroup>
-    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={header} {...sortableHeader(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
+    <thead><tr>{headers.map((header, index) => <StandardGridHeaderCell key={sortIds[index]} {...sortableHeader(sortIds[index])}>{header}</StandardGridHeaderCell>)}</tr></thead>
     <tbody>{renderOrder.map((row, rowIndex) => {
       const committed = table.committedById.get(row.rowId);
       const derived = committed === undefined ? undefined : derivedByRowId.get(committed.id);
@@ -109,7 +110,7 @@ const OffentligeYdelserTable = React.memo(({
         <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserTilDatoField, 1); return <GridDateCell gridCell={gc(1)} cell={cell} {...warningProps(cell)} />; })()}</td>
         <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserYdelseField, 2); return <GridAmountCell gridCell={gc(2)} cell={cell} {...warningProps(cell)} />; })()}</td>
         <td style={getStandardGridCellStyle({ align: 'center' })}>{(() => { const cell = table.buildCellSpec(row, eoOffentligeYdelserTillaegField, 3); return <GridAmountCell gridCell={gc(3)} cell={cell} {...warningProps(cell)} />; })()}</td>
-        <td style={getStandardGridCellStyle({ align: 'center' })}><GridChoiceCell gridCell={gc(4)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelsestypeField, 4)} placeholder="Vælg...">
+        <td style={getStandardGridCellStyle({ align: 'center' })}><GridChoiceCell gridCell={gc(4)} cell={table.buildCellSpec(row, eoOffentligeYdelserYdelsestypeField, 4)} placeholder="Vælg..." resolveDisplayValue={canonicalYdelsestypeKey}>
           {primaereYdelsestypeKeys.map((key) => <MenuItem key={key} value={key}>{ydelsestyper[key].label}</MenuItem>)}
           <StyledDropdownDivider />
           {supplerendeYdelsestypeKeys.map((key) => <MenuItem key={key} value={key} disabled={key === 'midlertidigt_eet' && disableMidlertidigtEetOption}>{ydelsestyper[key].label}</MenuItem>)}

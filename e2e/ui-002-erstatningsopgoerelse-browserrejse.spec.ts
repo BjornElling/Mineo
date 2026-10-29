@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 
 import {
   expect,
+  fillMinimalTafGrundlag,
   login,
   openPage,
   setFieldValueAndSettle,
@@ -34,10 +35,10 @@ test.describe('UI-002 – erstatningsopgørelsens række til dokument', () => {
     await setFieldValueAndSettle(page.locator("input[name='eoNummer']"), 'EO-002');
     await setDate(page.locator("input[name='opgørelseLavetDen']"), '01-02-2022');
     await page.locator("input[name='kravPaaSvieSmerteGodtgoerelse'][value='Nej']").check();
-    await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Nej']").check();
     await page.locator("input[name='kravPaaOevrigeErstatningskrav'][value='Nej']").check();
     await setDate(page.locator("input[name='vedroererPeriodeFra']"), '01-01-2022');
     await setDate(page.locator("input[name='vedroererPeriodeTil']"), '31-12-2022');
+    await fillMinimalTafGrundlag(page, { fra: '01-01-2022', til: '31-01-2022' });
 
     await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
     const table = page.locator('table').filter({ hasText: 'Ydelse' }).first();

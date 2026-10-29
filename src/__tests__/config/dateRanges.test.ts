@@ -5,7 +5,7 @@ import {
   MIN_SVIESMERTE_YEAR,
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
-  dateRanges_offentligeYdelser,
+  dateRanges_sygedagpengeIndsaettelse,
   dateRanges_aarsloen,
   dateRanges_varigemen,
   computeSkadedatoMinRule,
@@ -184,15 +184,15 @@ describe('dateRanges_erstatningsopgoerelse', () => {
   });
 });
 
-describe('dateRanges_offentligeYdelser', () => {
+describe('dateRanges_sygedagpengeIndsaettelse', () => {
   it('afgrænser fra-dato til seneste fælles startdato for sygedagpenge og ATP', () => {
-    expect(dateRanges_offentligeYdelser.fraDato.min).toBe(toISODateString('2005-01-03'));
-    expect(dateRanges_offentligeYdelser.fraDato.fallbackMax).toBe(toISODateString('2027-01-03'));
+    expect(dateRanges_sygedagpengeIndsaettelse.fraDato.min).toBe(toISODateString('2005-01-03'));
+    expect(dateRanges_sygedagpengeIndsaettelse.fraDato.fallbackMax).toBe(toISODateString('2027-01-03'));
   });
 
   it('afgrænser til-dato til tidligste fælles slutdato for sygedagpenge og ATP', () => {
-    expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe(toISODateString('2005-01-03'));
-    expect(dateRanges_offentligeYdelser.tilDato.max).toBe(toISODateString('2027-01-03'));
+    expect(dateRanges_sygedagpengeIndsaettelse.tilDato.fallbackMin).toBe(toISODateString('2005-01-03'));
+    expect(dateRanges_sygedagpengeIndsaettelse.tilDato.max).toBe(toISODateString('2027-01-03'));
   });
 });
 

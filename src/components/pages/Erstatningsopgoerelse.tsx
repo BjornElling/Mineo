@@ -92,7 +92,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             hidden={activeTab !== TAB_KEYS.OFFENTLIGE_YDELSER}
             sx={{ display: activeTab === TAB_KEYS.OFFENTLIGE_YDELSER ? 'block' : 'none' }}
           >
-            <OffentligeYdelserTab values={vm.eoValues} />
+            <OffentligeYdelserTab values={vm.eoValues} midlertidigtEetToggleWarning={vm.midlertidigtEetToggleWarning} />
           </Box>
         )}
         {vm.isTabMounted(TAB_KEYS.BEREGNING) && (

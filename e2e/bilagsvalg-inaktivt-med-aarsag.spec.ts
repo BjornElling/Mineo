@@ -68,16 +68,16 @@ const bilagHoverFlade = (page: Page, label: string) =>
   page.locator('.mineo-disabled-hover-target').filter({ hasText: label }).first();
 
 test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
-  test('Midlertidig EET forklares med indstillingens navn og fane', async ({ page, runtimeErrors }) => {
+  test('Midlertidigt EET forklares med indstillingens navn og fane', async ({ page, runtimeErrors }) => {
     await login(page);
     await openPage(page, 'Erstatningsopgørelse');
     await page.getByRole('tab', { name: 'Beregning' }).click();
 
-    const bilag = page.getByRole('checkbox', { name: 'Midlertidig EET' });
+    const bilag = page.getByRole('checkbox', { name: 'Midlertidigt EET' });
     await expect(bilag).toBeVisible();
     await expect(bilag).toBeDisabled();
 
-    await page.getByText('Midlertidig EET', { exact: true }).hover();
+    await page.getByText('Midlertidigt EET', { exact: true }).hover();
     await expect(page.getByRole('tooltip')).toHaveText(MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST);
 
     expect(runtimeErrors).toEqual([]);

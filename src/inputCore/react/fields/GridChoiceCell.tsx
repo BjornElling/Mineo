@@ -71,6 +71,12 @@ export type GridChoiceCellProps<
    * Descriptorens eget issue har forrang (§1.8).
    */
   collectionRuleIssue?: FieldIssue;
+  /**
+   * Den VISTE option for en afsluttet værdi, når feltet kan bære en historisk stavemåde af samme valg – fx en
+   * ydelsestype gemt med sin label frem for nøglen (BB-364). Ændrer kun visningen; canonical input er urørt, og et
+   * nyt valg skriver som altid optionens egen værdi.
+   */
+  resolveDisplayValue?: (value: TValue) => TValue;
   sx?: SxProps<Theme>;
 }>;
 
@@ -79,7 +85,7 @@ const GridChoiceCellInner = <
   TEntity,
   TCanonical extends TValue | undefined,
 >(
-  { gridCell, cell, children, ariaLabel, getOptionLabel, allowEmpty, placeholder, collectionRuleIssue, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
+  { gridCell, cell, children, ariaLabel, getOptionLabel, allowEmpty, placeholder, collectionRuleIssue, resolveDisplayValue, sx }: GridChoiceCellProps<TValue, TEntity, TCanonical>
 ): React.ReactElement => {
   const gridApi = useGridCoreApi();
   const resolvedAllowEmpty = resolveChoiceAllowEmpty(cell.field, allowEmpty, 'GridChoiceCell');
@@ -258,7 +264,9 @@ const GridChoiceCellInner = <
       restoreTargetAttributes={restoreTargetAttributes}
       width="100%"
       expectedOptionValues={cell.field.descriptor.codec.options}
-      value={controller.value === undefined ? undefined : controller.value as TValue}
+      value={controller.value === undefined
+        ? undefined
+        : (resolveDisplayValue?.(controller.value as TValue) ?? controller.value as TValue)}
       allowEmpty
       placeholder={autofillSuggestion?.displayText ?? placeholder}
       additionalDescribedBy={autofillSuggestion === null ? undefined : autofillId}

@@ -731,7 +731,7 @@ describe('midlertidigt EET transient injection', () => {
       issues: [{
         id: 'midlertidigt-eet-source-missing',
         severity: 'error',
-        message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
+        message: 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
       }],
     });
   });
@@ -756,7 +756,7 @@ describe('midlertidigt EET transient injection', () => {
     expect(result.issues).toEqual([{
       id: 'midlertidigt-eet-import-invariant',
       severity: 'error',
-      message: 'CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.',
+      message: 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.',
     }]);
   });
 
@@ -780,7 +780,7 @@ describe('midlertidigt EET transient injection', () => {
     expect(result.issues).toEqual([{
       id: 'midlertidigt-eet-import-invariant',
       severity: 'error',
-      message: 'Ukendt fejl i midlertidigt EET-import.',
+      message: 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: ukendt fejl i midlertidigt EET-import.',
     }]);
   });
 
@@ -945,8 +945,127 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.invariants).toContainEqual(expect.objectContaining({
       id: 'midlertidigt_eet_source:midlertidigt-eet-source-schema-invalid',
       severity: 'error',
-      message: 'Der mangler en afgørelse med EET-procent.',
+      message: 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: der mangler en afgørelse med EET-procent.',
       blocksAuthoritativeComputation: true,
     }));
   });
+
+  describe('BB-357: en advarsel fra Erhvervsevnetab-siden fjerner ikke fradraget', () => {
+    const eoMedToggle = () => ({ ...createValidEoBase(), midlertidigtEetFraEetSiden: 'Ja' as const });
+    const eetMedProcent = (eetPct: number): ErhvervsevnetabComposedValues => ({
+      ...eetValues,
+      aslAfgoerelser: eetValues.aslAfgoerelser.map((row) => ({ ...row, eetPct })),
+    });
+
+    it('importerer perioderne og fører advarslen med som ikke-blokerende linje', () => {
+      const snapshot = computeEoSnapshot({
+        revision: 'bb-357-advarsel',
+        stamdataValues: stamdata,
+        eoValues: eoMedToggle(),
+        eetImportSource: { eetValues: eetMedProcent(10), skadedato: stamdata.skadedato },
+      });
+
+      expect(snapshot.data).not.toBeNull();
+      expect(snapshot.data?.midlertidigtEetGroups.length).toBeGreaterThan(0);
+      expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+        id: 'midlertidigt_eet_source:warn-asl-eet-under-15',
+        severity: 'warning',
+        blocksAuthoritativeComputation: false,
+      }));
+      expect(snapshot.invariants.some((invariant) => invariant.severity === 'error')).toBe(false);
+    });
+
+    it('trækker det samme fra som uden advarslen – kun procenten bestemmer beløbet', () => {
+      const medAdvarsel = buildMidlertidigtEetSourceResult(buildEetImportContext(
+        { revision: 'r', eetValues: eetMedProcent(10), skadedato: stamdata.skadedato }, iso('2024-04-30')
+      ));
+      const kontekstUdenAdvarsel = buildEetImportContext(
+        { revision: 'r', eetValues: eetMedProcent(10), skadedato: stamdata.skadedato }, iso('2024-04-30')
+      );
+      const udenAdvarsel = buildMidlertidigtEetSourceResult({ ...kontekstUdenAdvarsel, issues: [] });
+
+      expect(medAdvarsel.issues.map((issue) => issue.severity)).toEqual(['warning']);
+      expect(medAdvarsel.groups).toEqual(udenAdvarsel.groups.map((group) => ({ ...group, rows: expect.any(Array) })));
+      expect(medAdvarsel.groups.flatMap((group) => group.perioder)).toEqual(udenAdvarsel.groups.flatMap((group) => group.perioder));
+    });
+
+    it('lader en fejl spærre importen med en linje, der siger følgen', () => {
+      const context = buildEetImportContext(
+        { revision: 'r', eetValues, skadedato: stamdata.skadedato }, iso('2024-04-30')
+      );
+      const result = buildMidlertidigtEetSourceResult({
+        ...context,
+        issues: [
+          { id: 'missing-afgoerelsesdato', severity: 'error', message: 'Der er en afgørelse uden afgørelsesdato' },
+          { id: 'warn-asl-eet-under-15', severity: 'warning', message: 'Advarsel' },
+        ],
+      });
+
+      expect(result.groups).toEqual([]);
+      expect(result.issues).toEqual([
+        {
+          id: 'missing-afgoerelsesdato',
+          severity: 'error',
+          message: 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: der er en afgørelse uden afgørelsesdato',
+        },
+        { id: 'warn-asl-eet-under-15', severity: 'warning', message: 'Advarsel' },
+      ]);
+    });
+  });
+
+  describe('BB-358: togglen henter intet i TAF-perioden', () => {
+    const INGEN_YDELSER_ID = 'midlertidigt_eet_source:midlertidigt-eet-ingen-ydelser-i-taf';
+    const eoMedAfgoerelse = (virkningsdato: string) => ({
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+      midlertidigtEETAfgorelse: 'Ja' as const,
+      midlertidigEETAfgoerelseDato: iso('2024-02-01'),
+      midlertidigEETVirkningsdato: iso(virkningsdato),
+    });
+    const kunEndelig: ErhvervsevnetabComposedValues = {
+      ...eetValues,
+      aslAfgoerelser: eetValues.aslAfgoerelser.map((row) => ({ ...row, afgoerelseType: 'Endelig' as const, eetPct: 50 })),
+    };
+
+    it('advarer ikke-blokerende, når TAF-perioden ligger efter afgørelsens virkningsdato', () => {
+      const snapshot = computeEoSnapshot({
+        revision: 'bb-358-ingen-ydelser',
+        stamdataValues: stamdata,
+        eoValues: eoMedAfgoerelse('2024-01-01'),
+        eetImportSource: { eetValues: kunEndelig, skadedato: stamdata.skadedato },
+      });
+
+      expect(snapshot.data).not.toBeNull();
+      expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+        id: INGEN_YDELSER_ID,
+        severity: 'warning',
+        message: 'Erhvervsevnetab-siden har ingen midlertidig afgørelse med ydelser i TAF-perioden – der fradrages intet midlertidigt EET',
+        blocksAuthoritativeComputation: false,
+      }));
+    });
+
+    it('tier, når hele TAF-perioden ligger før afgørelsens virkningsdato', () => {
+      const snapshot = computeEoSnapshot({
+        revision: 'bb-358-foer-virkning',
+        stamdataValues: stamdata,
+        eoValues: eoMedAfgoerelse('2024-05-01'),
+        eetImportSource: { eetValues: kunEndelig, skadedato: stamdata.skadedato },
+      });
+
+      expect(snapshot.invariants.some((invariant) => invariant.id === INGEN_YDELSER_ID)).toBe(false);
+    });
+
+    it('tier, når importen giver ydelser i TAF-perioden', () => {
+      const snapshot = computeEoSnapshot({
+        revision: 'bb-358-med-ydelser',
+        stamdataValues: stamdata,
+        eoValues: eoMedAfgoerelse('2024-01-01'),
+        eetImportSource: { eetValues, skadedato: stamdata.skadedato },
+      });
+
+      expect(snapshot.data?.midlertidigtEetGroups.length).toBeGreaterThan(0);
+      expect(snapshot.invariants.some((invariant) => invariant.id === INGEN_YDELSER_ID)).toBe(false);
+    });
+  });
 });
+

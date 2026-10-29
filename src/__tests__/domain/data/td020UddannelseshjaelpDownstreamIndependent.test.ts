@@ -25,6 +25,7 @@ describe('DATA-001/TD-020 – uddannelseshjælp som downstream-consumer', () => 
       periodiseringLabel: 'Kalenderdage',
       antalDage: 4,
       ydelsePerDag: 375,
+      ingenArbejdsdage: false,
     });
   });
 });

@@ -624,14 +624,12 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(1), '31-12-2020');
       await enableEetImport(page);
-      await expect(page.getByText('Der er en afgørelse uden afgørelsesdato', { exact: true })).toBeVisible();
+      // En fejl, der spærrer importen, siger følgen først (BB-357).
+      const issueMessage = 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden: der er en afgørelse uden afgørelsesdato';
+      await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
 
       await startBlinkSampling(page);
-      await clickEoIssueLink(
-        page,
-        'Der er en afgørelse uden afgørelsesdato',
-        'EET oplysninger'
-      );
+      await clickEoIssueLink(page, issueMessage, 'EET oplysninger');
 
       await expect(page.getByRole('tab', { name: 'EET oplysninger' })).toHaveAttribute('aria-selected', 'true');
       const afgoerelsesdato = page.getByRole('textbox', { name: 'Afgørelsesdato', exact: true }).first();
@@ -653,12 +651,14 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       }
     });
 
-    test('manglende TAF-slutdato fører til og blinker TAF-valget', async ({
+    test('ved TAF «Nej» er der ingen EET-import at spærre – fanen forklarer det (BB-360)', async ({
       page,
       runtimeErrors,
       runtimeSignals,
       externalRequests,
-    }, testInfo) => {
+    }) => {
+      // Før kunne togglen stå tændt ved TAF «Nej» og spærre opgørelsen med «… slutdato mangler», selv om intet fra
+      // fanen bruges. Fanens felter er nu ikke relevante uden TAF-krav, og fanen siger det i stedet for at vise dem.
       await login(page);
       await fillEetSource(page, [{
         afgoerelsesdato: '01-06-2020',
@@ -669,31 +669,21 @@ test.describe('Blinkmarkeringen males i browseren', () => {
 
       await openPage(page, 'Erstatningsopgørelse');
       await page.locator('input[name="kravPaaTabtArbejdsfortjeneste"][value="Nej"]').check();
-      await enableEetImport(page);
-      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi erstatningsperiodens slutdato mangler.';
-      await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
+      await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
+      await expect(page.getByText(
+        'Der er ikke krav på tabt arbejdsfortjeneste – ydelserne indgår ikke i opgørelsen.',
+        { exact: true }
+      )).toBeVisible();
+      await expect(page.getByRole('checkbox', {
+        name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden',
+        exact: true,
+      })).toHaveCount(0);
 
-      await startBlinkSampling(page);
-      await clickEoIssueLink(page, issueMessage, 'Tabt arbejdsfortjeneste');
-
-      await expect(page.getByRole('tab', { name: 'EO oplysninger' })).toHaveAttribute('aria-selected', 'true');
-      const tafToggle = page.locator('input[name="kravPaaTabtArbejdsfortjeneste"]').first();
-      await expect(tafToggle).toBeVisible();
-      const observed = await readBlinkObservation(page);
-      expect(observed.targetInputName).toBe('kravPaaTabtArbejdsfortjeneste');
-      expect(observed.targetAddress).toContain('"field":"kravPaaTabtArbejdsfortjeneste"');
-      expect(observed.targetClassName).toContain(BLINK_CLASS);
-      expect(observed.targetClassName).not.toContain('content-box');
-      expectRedPulse(observed.samples);
+      await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
+      await expect(page.getByText(/Midlertidigt EET kan ikke/)).toHaveCount(0);
       expect(runtimeErrors).toEqual([]);
       expect(runtimeSignals).toEqual([]);
       expect(externalRequests).toEqual([]);
-      if (testInfo.project.name === 'chrome-desktop') {
-        await testInfo.attach('TAF-link-markering-desktop', {
-          body: await page.screenshot(),
-          contentType: 'image/png',
-        });
-      }
     });
 
     test('manglende slutdato i en TAF-række blinker den konkrete datocelle', async ({

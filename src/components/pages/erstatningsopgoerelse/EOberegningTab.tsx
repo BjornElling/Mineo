@@ -435,7 +435,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
               />
               {renderBilagCheckbox('loenindkomst', 'Lønindkomst')}
               {renderBilagCheckbox('offentligeYdelser', 'Offentlige ydelser')}
-              {renderBilagCheckbox('midlertidigEet', 'Midlertidig EET')}
+              {renderBilagCheckbox('midlertidigEet', 'Midlertidigt EET')}
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {renderBilagCheckbox('regulering', 'Regulering')}

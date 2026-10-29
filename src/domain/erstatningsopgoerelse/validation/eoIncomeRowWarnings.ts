@@ -15,21 +15,28 @@ import {
   eoOffentligeYdelserYdelseField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { DUPLICATE_ROW_WARNING, findDuplicateRows } from '../../../utils/tableDuplicateRowDetection';
-import { resolveYdelsestype } from '../../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, resolveYdelsestype } from '../../../data/ydelsestyper';
 import {
+  periodCells,
   resolveStandardLoenRowWarnings,
   type StandardLoenRowWarning,
 } from '../../standardLoen/standardLoenRowWarnings';
 import { createEoStandardLoenFieldSet } from '../eoStandardLoenFieldSet';
 import { calculateLoenindkomstRowDerived } from '../helpers/loenindkomstRowDerived';
-import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from './indkomstRowValidation';
+import {
+  buildStandardLoenZeroArbejdsdageIssues,
+  getOffentligeYdelserErrorRowIdSet,
+  getStandardLoenErrorRowIdSet,
+} from './indkomstRowValidation';
 import { getOffentligeYdelserRowFilledState } from './offentligeYdelserTableValidation';
+import { deriveOffentligeYdelserRow } from '../helpers/offentligeYdelserDerived';
 
 // EO's indtægtstabellers IKKE-blokerende rækkeadvarsler – gul ring på cellen og en linje i «Fejl og advarsler»
 // (udviklerafgørelser 2026-10-19):
 //  - lønindkomst (pr. ansættelsesforhold, aldrig på tværs): identisk række (BB-289), periode efter dags dato
 //    (BB-298) og negativ samlet løn (BB-290) – den fælles løntabelregel, `standardLoenRowWarnings.ts`;
-//  - offentlige ydelser: identisk række (BB-289) og negativt beløb (BB-290);
+//  - offentlige ydelser: identisk række (BB-289), negativt beløb (BB-290) og en arbejdsdags-periodiseret ydelse i en
+//    periode uden arbejdsdage (BB-365; samme regel som lønnens og TAF-periodernes);
 //  - begge: et beløb over ti gange højere end de øvrige rækker i samme periode (BB-297, `tableAmountOutlierDetection.ts`).
 // Alle regnes med i beregningen; advarslen beder kun brugeren om at se efter.
 
@@ -67,8 +74,20 @@ export const resolveLoenindkomstRowWarnings = (
   // Samme «Samlet løn», som tabellen og bilaget viser for rækken.
   const rowTotal = (row: (typeof rows)[number]): number =>
     calculateLoenindkomstRowDerived({ row, ansaettelsesforhold, context: values, skadedato }).samlet;
-  return resolveStandardLoenRowWarnings({
-    fieldSet: createEoStandardLoenFieldSet(ansaettelsesforhold.id),
+  const fieldSet = createEoStandardLoenFieldSet(ansaettelsesforhold.id);
+  // Løn i en periode uden arbejdsdage: samme gule ring på periodecellerne som TAF-perioderne og de offentlige
+  // ydelser (BB-365). Før stod den kun som linje i «Fejl og advarsler» uden markering i tabellen.
+  const ingenArbejdsdage: readonly StandardLoenRowWarning[] = buildStandardLoenZeroArbejdsdageIssues(values, ansaettelsesforhold.id)
+    .map((issue) => Object.freeze({
+      kind: 'ingenArbejdsdage' as const,
+      rowId: issue.rowId,
+      periodLabel: undefined,
+      summaryMessage: issue.message,
+      cellMessage: issue.message,
+      cells: periodCells(fieldSet, issue.rowId, ansaettelsesforhold.loenperiode),
+    }));
+  const standard = resolveStandardLoenRowWarnings({
+    fieldSet,
     rows,
     loenperiode: ansaettelsesforhold.loenperiode,
     tillaegAngivesSom: ansaettelsesforhold.tillaegAngivesSom,
@@ -87,9 +106,10 @@ export const resolveLoenindkomstRowWarnings = (
       sammenligning: 'ansættelsesforholdets øvrige lønrækker i perioden',
     },
   });
+  return [...ingenArbejdsdage, ...standard];
 };
 
-export type OffentligeYdelserRowWarningKind = 'duplicateRow' | 'negativeAmount' | 'amountOutlier';
+export type OffentligeYdelserRowWarningKind = 'duplicateRow' | 'negativeAmount' | 'amountOutlier' | 'ingenArbejdsdage';
 
 export type OffentligeYdelserRowWarning = Readonly<{
   kind: OffentligeYdelserRowWarningKind;
@@ -123,6 +143,9 @@ const ydelseCells = (rowId: string): readonly AnyFieldRef[] => [
   toAnyFieldRef(eoOffentligeYdelserTillaegField.bind(rowId)),
 ];
 
+/** Ordlyden fra BB-365: perioden er næsten sikkert en tastefejl, men beløbet regnes med (fald-tilbage-dagene). */
+const INGEN_ARBEJDSDAGE_UDSAGN = 'kontrollér datoerne. Beløbet medregnes i perioden.';
+
 /** Ydelsesrækker kortere end en uge vurderes ikke for et usandsynligt højt beløb (BB-297). */
 const OUTLIER_MIN_YDELSE_DAGE = 7;
 
@@ -139,7 +162,7 @@ export const resolveOffentligeYdelserRowWarnings = (
   const nameOf = (row: OffentligeYdelserRow): string => formatOffentligYdelseRowName(row, indexById.get(row.id) ?? 0);
   const duplicateIds = new Set(findDuplicateRows(
     rows.filter((row) => getOffentligeYdelserRowFilledState(row).hasAnyFilled),
-    (row) => [row.fraDato, row.tilDato, row.ydelse, row.tillaeg, row.ydelsestype]
+    (row) => [row.fraDato, row.tilDato, row.ydelse, row.tillaeg, canonicalYdelsestypeKey(row.ydelsestype)]
   ).map((match) => match.row.id));
 
   // Rimelighedskontrollen (BB-297): ydelse pr. kalenderdag, sammenlignet inden for ydelsestype og periode.
@@ -148,7 +171,7 @@ export const resolveOffentligeYdelserRowWarnings = (
     if (errorRowIds.has(row.id)) return [];
     const fra = coerceToISODateString(row.fraDato);
     const til = coerceToISODateString(row.tilDato);
-    const typeKey = row.ydelsestype?.trim() ?? '';
+    const typeKey = canonicalYdelsestypeKey(row.ydelsestype);
     if (fra === undefined || til === undefined || typeKey === '') return [];
     const fraDato = parseISODate(fra);
     const tilDato = parseISODate(til);
@@ -185,6 +208,18 @@ export const resolveOffentligeYdelserRowWarnings = (
         summaryMessage: `${nameOf(row)} er negativ (${amount}) – beløbet modregnes i den øvrige indkomst`,
         cellMessage: `Rækkens samlede beløb er negativt (${amount}) – beløbet modregnes i den øvrige indkomst`,
         cells: negativeCells.length > 0 ? negativeCells : [toAnyFieldRef(eoOffentligeYdelserYdelseField.bind(row.id))],
+      }));
+    }
+    if (deriveOffentligeYdelserRow(row).ingenArbejdsdage && (ydelse ?? 0) + (tillaeg ?? 0) !== 0) {
+      warnings.push(Object.freeze({
+        kind: 'ingenArbejdsdage' as const,
+        rowId: row.id,
+        summaryMessage: `${nameOf(row)} indeholder ingen arbejdsdage – ${INGEN_ARBEJDSDAGE_UDSAGN}`,
+        cellMessage: `Perioden indeholder ingen arbejdsdage – ${INGEN_ARBEJDSDAGE_UDSAGN}`,
+        cells: [
+          toAnyFieldRef(eoOffentligeYdelserFraDatoField.bind(row.id)),
+          toAnyFieldRef(eoOffentligeYdelserTilDatoField.bind(row.id)),
+        ],
       }));
     }
     if (outlierIds.has(row.id)) {

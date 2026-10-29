@@ -27,7 +27,10 @@ import type { StandardLoenTableFieldSet } from './standardLoenTableFieldSet';
 //  - `amountOutlier` – rækkens løn er over ti gange højere end de øvrige rækker i samme periode (BB-297). Typisk et
 //    nul for meget; reglen og dens værn mod falske advarsler står i `tableAmountOutlierDetection.ts`.
 
-export type StandardLoenRowWarningKind = 'duplicateRow' | 'futurePeriod' | 'negativeTotal' | 'amountOutlier';
+//  - `ingenArbejdsdage` – rækkens periode har løn, men ingen arbejdsdage, når TAF opgøres i arbejdsdage (kun EO;
+//    bygges i `eoIncomeRowWarnings.ts`, fordi reglen kræver sagens ferie og beregningsenhed – BB-365).
+
+export type StandardLoenRowWarningKind = 'duplicateRow' | 'futurePeriod' | 'negativeTotal' | 'amountOutlier' | 'ingenArbejdsdage';
 
 export type StandardLoenRowWarning = Readonly<{
   kind: StandardLoenRowWarningKind;
@@ -85,7 +88,7 @@ export const formatStandardLoenRowName = (
 const bindCell = <T>(fieldSet: StandardLoenTableFieldSet, descriptor: FieldDescriptor<T>, rowId: string): AnyFieldRef =>
   toAnyFieldRef(bindCollectionCell(fieldSet.collection, descriptor, rowId));
 
-const periodCells = (fieldSet: StandardLoenTableFieldSet, rowId: string, loenperiode: Loenperiode): readonly AnyFieldRef[] =>
+export const periodCells = (fieldSet: StandardLoenTableFieldSet, rowId: string, loenperiode: Loenperiode): readonly AnyFieldRef[] =>
   loenperiode === 'maaned'
     ? [bindCell(fieldSet, fieldSet.col0_maaned, rowId), bindCell(fieldSet, fieldSet.col1_maaned, rowId)]
     : loenperiode === 'uge'

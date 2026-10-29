@@ -422,31 +422,35 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
 };
 
 // ============================================================================
-// OFFENTLIGE YDELSER (ERSTATNINGSOPGØRELSE)
+// SYGEDAGPENGE-INDSÆTTELSEN (ERSTATNINGSOPGØRELSE → OFFENTLIGE YDELSER)
 // ============================================================================
 
 /**
- * Dato-intervaller for Offentlige ydelser-tabel
+ * Dato-intervaller for «Indsæt maksimal sygedagpengesats for perioden».
+ *
+ * Gælder KUN hjælperens to datofelter: den kan kun indsætte, hvor både sygedagpenge- og ATP-satserne er kendt. Selve
+ * ydelsestabellen følger sagens ydre ramme (`systemrammeSpec`); før delte den disse grænser, og alle ydelsestyper blev
+ * røde fra satstabellens sidste dato (BB-362).
  */
-export interface DateRanges_OffentligeYdelser {
+export interface DateRanges_SygedagpengeIndsaettelse {
   readonly fraDato: DynamicMaxDateRange;
   readonly tilDato: DynamicMinDateRange;
 }
 
-export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
+export const dateRanges_sygedagpengeIndsaettelse: DateRanges_SygedagpengeIndsaettelse = {
   fraDato: {
     type: 'dynamic-max',
     min: SYGEDAGPENGE_INSERT_MIN_DATE,
     max: 'DYNAMIC', // Den laveste værdi af: tilDato (hvis udfyldt) eller fallbackMax
     fallbackMax: SYGEDAGPENGE_INSERT_MAX_DATE,
-    notes: 'Fra den seneste af de tidligste fra-datoer for sygedagpenge og ATP til tilDato (eller den tidligste fælles slutdato). Disse tabelgrænser gælder hele Offentlige ydelser-tabellen, fordi sygedagpenge-hjælperen kræver fælles satsdækning i hele intervallet.',
+    notes: 'Fra den seneste af de tidligste fra-datoer for sygedagpenge og ATP til tilDato (eller den tidligste fælles slutdato).',
   },
   tilDato: {
     type: 'dynamic-min',
     min: 'DYNAMIC', // Den højeste værdi af: fraDato (hvis udfyldt) eller fallbackMin
     fallbackMin: SYGEDAGPENGE_INSERT_MIN_DATE,
     max: SYGEDAGPENGE_INSERT_MAX_DATE,
-    notes: 'Fra fraDato (eller den seneste af de tidligste fra-datoer for sygedagpenge og ATP) til den tidligste fælles slutdato. Valget er bevidst fælles for hele tabellen og ikke kun sygedagpenge-hjælperen.',
+    notes: 'Fra fraDato (eller den seneste af de tidligste fra-datoer for sygedagpenge og ATP) til den tidligste fælles slutdato.',
   },
 };
 

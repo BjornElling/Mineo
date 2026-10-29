@@ -92,6 +92,8 @@ const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
   'eet-pct-missing': 'eet-oplysninger-eal',
   'eal-aarsloen-missing': 'eet-oplysninger-eal',
   'eal-aarsloen-zero': 'eet-oplysninger-eal',
+  // EO's egen advarsel om, at importen intet gav i TAF-perioden (BB-358): det, der mangler, er en afgørelse.
+  'midlertidigt-eet-ingen-ydelser-i-taf': 'eet-oplysninger-asl',
 };
 
 export const resolveMidlertidigtEetIssueNavigation = (
