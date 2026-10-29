@@ -141,6 +141,9 @@ export const buildEoMidlertidigtEetKonsistensRows = (
   const harYdelser = harMidlertidigtEetYdelser(values);
 
   if (values.midlertidigtEETAfgorelse !== 'Ja') {
+    // Med togglen slået til siger snapshottets EET-linje, om der hentes noget (BB-372); denne linje gælder kun
+    // ydelser, brugeren selv har tastet. Før udløste togglen alene den, også når intet var indtastet eller hentet.
+    if (values.midlertidigtEetFraEetSiden === 'Ja') return [];
     return harYdelser
       ? [{
         id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',

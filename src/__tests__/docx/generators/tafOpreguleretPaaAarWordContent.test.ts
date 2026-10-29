@@ -13,7 +13,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 // wiring-testen) og verificerer, at opregulerings-indholdet når .docx'en.
 const FAKE_MODEL = {
   brevhoved: null,
-  titel: 'TAF opreguleret til beregningsår',
+  titel: 'TAF opreguleret til beregningsåret',
   periodeDisplay: '01-01-2024 - 31-12-2025',
   skadelidteNavn: 'Test Person',
   skadestypeLinje: 'Arbejdsulykke den 1. januar 2024',

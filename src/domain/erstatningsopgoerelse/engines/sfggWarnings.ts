@@ -115,7 +115,7 @@ export const buildSfggSeksMaanederBesked = (
  * beregnes perioden fuldt, og valget gør intet synligt (BB-326).
  */
 export const SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED =
-  'Der er ikke registreret sygeløn i erstatningsperioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for hele perioden';
+  'Der er ikke registreret sygeløn i EO-perioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for hele perioden';
 
 export const harSfggSygeloenUdenLoenraekker = (result: SygeferiegodtgoerelseAnsaettelsesforholdResult): boolean =>
   result.foerstEfterSygeloen && !result.sygeloenFratrukket && result.segments.length > 0;

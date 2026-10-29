@@ -12,6 +12,13 @@ udløsende fund er afvist, forsvinder ikke automatisk – men det skal læses me
 ellers genopdager den næste flade et forhold, der er afgjort. Beslutningerne står i sin helhed i
 `stamdata.md`; nedenfor er de skrevet ind i det enkelte mønster.
 
+**Ingen nye mønstre 2026-10-29 fra Erstatningsopgørelse → Beregning (12l), men to bekræftede forekomster.** **M-33's
+sikkerhedsnet:** en tom referenceperiode på sygeferiegodtgørelsen kendes kun af validatoren og spærrer alle fire dokumenter
+med to linjer uden link, uden ansættelsesforholdets navn og uden rød ring (BB-369, **Høj**). **M-25 i bilagsvalgene:**
+«Midlertidigt EET» er aktivt, blot fordi togglen er slået til, og «Sygeferiegodtgørelse» er aktivt ved TAF «Nej» med
+«Alle» – begge står markeret, og bilaget udgår tavst (BB-372, BB-373). Resten er lokale: de tre TAF-dokumenter spærres af
+fejl i krav, de ikke viser, og deres tooltips siger «Opgørelse …» eller «Indtastning mangler» (BB-370, BB-371).
+
 **Ét nyt mønster 2026-10-29 fra Erstatningsopgørelse → Offentlige ydelser (12k): M-43 – en advarsel får en import til at
 give nul.** Midlertidigt EET hentet fra Erhvervsevnetab-siden opgives helt, når EET-siden har en ikke-blokerende advarsel
 (10 %-trin, midlertidig efter endelig); i den målte sag bliver kravet `58.387 kr.` for højt, og den eneste linje handler om
@@ -2213,6 +2220,11 @@ trykke. Den skal spørge, om alt det, brugeren har udfyldt, er kommet med.
   `renderBilagCheckbox` med et `bilagAvailability`-opslag og kommenteret regel om, at et utilgængeligt
   bilagsvalg aldrig skjules, men vises inaktivt med årsagen. `rg "unavailableReason=\{null\}" src/components`
   giver de tre EET-undtagelser plus EO's `lockedOn`-«Opgørelse», som er et andet tilfælde.
+- **Bekræftet i EO's egne bilagsvalg 2026-10-29** (`erstatningsopgoerelse-12l.md` BB-372, BB-373). Modellen har samme hul:
+  rådigheden spørger om en forudsætning, ikke om indholdet. «Midlertidigt EET» er aktivt, når togglen er slået til, også
+  når intet hentes; «Sygeferiegodtgørelse» er aktivt ved TAF «Nej» med «Alle», selvom bilaget ikke trykkes. Begge står
+  markeret, og papiret mangler bilaget uden spor. **Prøven for bilagsvalg:** gør forudsætningen sand og indholdet tomt,
+  og se, om valget stadig er aktivt.
 
 ## M-26 – Et delt felt med to hjem
 
@@ -2861,6 +2873,11 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   (31-05-2014) for TAF' er ikke angivet (først fra 01-01-2016)» står ved siden af dækningsreglens «Reguleringsdatoen ligger
   før reguleringsgrundlagets første sats (01-01-2016)», med hvert sit link til hver sin fane. Og «Grundløn skal være større
   end 0 på alle manuelle reguleringsrækker» er sikkerhedsnettets form: den vises først, når alt andet er rettet.
+- **Sygeferiegodtgørelsens referenceperiode bekræftet 2026-10-29** (`erstatningsopgoerelse-12l.md` BB-369, **Høj**). Den
+  manglende periode har ingen række i rækkebyggeren. Validatorens «Referenceperiode fra-dato mangler»/«… til-dato mangler»
+  når derfor kun boksen gennem sikkerhedsnettet. Linjerne har intet link, fordi nettet kun kan pege på felter øverst på EO
+  oplysninger, og de nævner ikke ansættelsesforholdet. Datofelterne er ikke røde, og alle fire dokumenter er spærret.
+  Kandidat: en manglende «Sygeferiegodtgørelse beregnes ud fra» (uverificeret).
 
 ## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
 

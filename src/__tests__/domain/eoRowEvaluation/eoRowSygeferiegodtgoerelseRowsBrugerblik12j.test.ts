@@ -269,7 +269,7 @@ describe('buildEoSygeferiegodtgoerelseRows – brugerblik 12j', () => {
     it('advarer med link til valget, når der ingen lønrækker er i erstatningsperioden', () => {
       expect(manuel([loenRaekke('2', '2023', 30000)])).toEqual(expect.objectContaining({
         status: 'warning',
-        message: 'Der er ikke registreret sygeløn i erstatningsperioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for hele perioden',
+        message: 'Der er ikke registreret sygeløn i EO-perioden – angiv sygelønnen som lønrækker, ellers beregnes sygeferiegodtgørelse for hele perioden',
         focusTarget: { kind: 'fieldAddress', address: eoSfggManuelFoerstEfterSygeloenField.bind('af-1').address },
       }));
     });

@@ -65,7 +65,7 @@ vi.mock('jspdf', () => ({ default: MockJsPDF }));
 
 const FAKE_MODEL = {
   brevhoved: null,
-  titel: 'TAF opreguleret til beregningsår',
+  titel: 'TAF opreguleret til beregningsåret',
   periodeDisplay: '01-01-2024 - 31-12-2025',
   skadelidteNavn: 'Test Person',
   skadestypeLinje: 'Arbejdsulykke den 1. januar 2024',
@@ -199,7 +199,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(texts).not.toContain('Afrunding');
     // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
     expect(texts).not.toContain('Sygeferiegodtgørelse');
-    expect(artifact.filename).toBe('TAF opreguleret til beregningsår.pdf');
+    expect(artifact.filename).toBe('TAF opreguleret til beregningsåret.pdf');
   });
 
   it.each([1, -1])('viser afrunding på %i øre før den samlede total', async (afrunding) => {

@@ -108,3 +108,33 @@ describe('collectAllEoRows – suppression af sekundær svie/smerte-advarsel', (
     expect(warningIds).not.toContain('sviesmerte.ophoerSkyldes');
   });
 });
+
+// Parallelt til `taf.perioder.clampedAway`: perioder, der alle ligger uden for EO-perioden, giver 0 kr. og en gul linje,
+// der siger det – og den sekundære «Ikke rejst …»-advarsel står ikke ved siden af (BB-374).
+describe('collectAllEoRows – svie/smerte-perioder uden for EO-perioden (BB-374)', () => {
+  const eoValues = (fra: string, til: string) => ({
+    ...createErstatningsopgoerelseInitialValues(),
+    kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
+    kravPaaTabtArbejdsfortjeneste: 'Nej' as const,
+    tidligereSsMax: 'Nej' as const,
+    vedroererPeriodeFra: iso('2026-05-25'),
+    vedroererPeriodeTil: iso('2026-09-20'),
+    svieSmertePerioder: [{ id: 'ss-1', fra: iso(fra), til: iso(til), tilstand: 'sygemeldt' as const }],
+  });
+  const stamdata = { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadedato: iso('2025-07-11') };
+
+  it('advarer, når alle perioder ligger før EO-perioden', () => {
+    const { warnings } = collectAllEoRows(stamdata, EMPTY_FIELD_ISSUE_SET, eoValues('2025-07-11', '2026-03-31'), EMPTY_FIELD_ISSUE_SET);
+    const advarsel = warnings.find((row) => row.id === 'sviesmerte.perioder.clampedAway');
+
+    expect(advarsel?.summaryText).toBe(
+      'Der er indtastet svie/smerte-perioder, men ingen af perioderne ligger inden for EO-perioden. Svie/smerte beregnes derfor til 0 kr.'
+    );
+    expect(warnings.map((row) => row.id)).not.toContain('sviesmerte.ophoerSkyldes');
+  });
+
+  it('tier, når en periode ligger i EO-perioden', () => {
+    const { warnings } = collectAllEoRows(stamdata, EMPTY_FIELD_ISSUE_SET, eoValues('2026-06-01', '2026-06-30'), EMPTY_FIELD_ISSUE_SET);
+    expect(warnings.map((row) => row.id)).not.toContain('sviesmerte.perioder.clampedAway');
+  });
+});

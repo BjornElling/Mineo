@@ -48,6 +48,7 @@ import {
   isTafRowEmpty,
 } from '../../../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import {
+  INGEN_PERIODE_I_EO_PERIODEN_TEKST,
   INGEN_PERIODER_ANGIVET_TEKST,
   resolveKravIkkeRejstTekst,
   resolveOevrigeKravSummaryText,
@@ -681,8 +682,9 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       skadedatoISO: stamdataValues.skadedato,
       loenudvikling: eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling,
       offentligeYdelserUdvikling: eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling,
+      midlertidigtEetGroups: eoSnapshot?.data?.midlertidigtEetGroups,
     }),
-    [eoValues, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling, stamdataValues.skadedato]
+    [eoValues, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling, eoSnapshot?.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling, eoSnapshot?.data?.midlertidigtEetGroups, stamdataValues.skadedato]
   );
   const beregnesSvieSmerte = eoValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   const beregnesTabtArbejdsfortjeneste = eoValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
@@ -696,14 +698,16 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     // og som driver synlig UI-forgrening (antal linjer afgør ental/flertal i etiketten).
     return svieSmerteRow?.lines ?? [];
   }, [beregnesSvieSmerte, svieSmerteRow]);
-  const harSvieSmertePerioder =
-    beregnesSvieSmerte &&
-    (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
-    svieSmerteLines.length > 0;
+  const harIndtastedeSvieSmertePerioder =
+    beregnesSvieSmerte && (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand);
+  const harSvieSmertePerioder = harIndtastedeSvieSmertePerioder && svieSmerteLines.length > 0;
   // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode (BB-227); ordene deles med de to
-  // andre krav i `eoBeregningSummaryTexts.ts`.
+  // andre krav i `eoBeregningSummaryTexts.ts`. Står der perioder, som alle ligger uden for EO-perioden, siger
+  // rækken netop det – ikke at der intet er angivet (BB-374).
   const svieSmerteFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaSvieSmerteGodtgoerelse)
-    ?? (eoValues.tidligereSsMax === 'Ja' ? 'Maksimum nået i tidligere opgørelse' : INGEN_PERIODER_ANGIVET_TEKST);
+    ?? (eoValues.tidligereSsMax === 'Ja'
+      ? 'Maksimum nået i tidligere opgørelse'
+      : harIndtastedeSvieSmertePerioder ? INGEN_PERIODE_I_EO_PERIODEN_TEKST : INGEN_PERIODER_ANGIVET_TEKST);
   const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : [svieSmerteFravalgtTekst];
   const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
     ? 'Svie/smerte-perioder'
@@ -736,14 +740,15 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       })
       .filter((value) => value !== '');
   }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, relevantRows, stamdataValues.skadedato]);
-  const harTafPerioder =
+  const harIndtastedeTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
-    (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
-    tafPerioderLabels.length > 0;
+    (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number');
+  const harTafPerioder = harIndtastedeTafPerioder && tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
   // Samme ord som svie/smerte-rækken: «Nej» dækkede før både et fravalgt krav og et rejst krav uden
-  // perioder (BB-234).
-  const tafFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaTabtArbejdsfortjeneste) ?? INGEN_PERIODER_ANGIVET_TEKST;
+  // perioder (BB-234), og perioder uden for EO-perioden er ikke «ingen perioder» (BB-374).
+  const tafFravalgtTekst = resolveKravIkkeRejstTekst(eoValues.kravPaaTabtArbejdsfortjeneste)
+    ?? (harIndtastedeTafPerioder ? INGEN_PERIODE_I_EO_PERIODEN_TEKST : INGEN_PERIODER_ANGIVET_TEKST);
   const tafSummaryLines = harTafPerioder ? tafPerioderLines : [tafFravalgtTekst];
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 

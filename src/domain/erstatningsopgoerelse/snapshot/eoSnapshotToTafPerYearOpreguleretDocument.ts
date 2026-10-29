@@ -1,12 +1,15 @@
 import type { TafPerYearResult } from '../engines/tafPerYearDerived';
 import type { TafPerYearOpreguleretResult } from '../engines/tafPerYearOpreguleretDerived';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
-import type { EoInvariant } from './eoSnapshotInvariants';
 import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
 } from './eoSnapshotInvariants';
-import { tafBeregningsgrundlagAngivetLoenMangler } from './eoSnapshotToTafPerYearDocument';
+import {
+  buildIngenTafIEoPeriodenBlocked,
+  tafBeregningsgrundlagAngivetLoenMangler,
+  type EoDocumentProjectionBlocked,
+} from './eoSnapshotToTafPerYearDocument';
 import type { EoModel } from '../shared/eoTypes';
 
 export type TafPerYearOpreguleretDocument = Readonly<{
@@ -19,7 +22,7 @@ export type TafPerYearOpreguleretDocument = Readonly<{
 
 export type TafPerYearOpreguleretDocumentProjection =
   | Readonly<{ kind: 'ok'; document: TafPerYearOpreguleretDocument }>
-  | Readonly<{ kind: 'blocked'; message: string; invariants: readonly EoInvariant[] }>;
+  | EoDocumentProjectionBlocked;
 
 export const eoSnapshotToTafPerYearOpreguleretDocument = (
   snapshot: EoSnapshot
@@ -50,10 +53,12 @@ export const eoSnapshotToTafPerYearOpreguleretDocument = (
   // indtægtsniveau" og "TAF-krav fordelt på kalenderår".
   const presentation = snapshot.data.engines.tafPerYear;
   if (!presentation || presentation.years.length === 0) {
-    const message = snapshot.data.engines.tafNetto.harTafPerioder
-      ? 'TAF opreguleret til beregningsåret kan ikke genereres, fordi TAF ikke kan fordeles på år.'
-      : 'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
-    return { kind: 'blocked', message, invariants: [] };
+    if (!snapshot.data.engines.tafNetto.harTafPerioder) return buildIngenTafIEoPeriodenBlocked(snapshot);
+    return {
+      kind: 'blocked',
+      message: 'TAF opreguleret til beregningsåret kan ikke genereres, fordi TAF ikke kan fordeles på år.',
+      invariants: [],
+    };
   }
 
   if (tafBeregningsgrundlagAngivetLoenMangler(snapshot.data.pdfModel)) {

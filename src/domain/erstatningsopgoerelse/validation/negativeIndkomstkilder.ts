@@ -25,11 +25,17 @@ export type NegativIndkomstkildeFund = Readonly<{
 
 const formatKroner = (amount: number): string => `${formatAsAmount(amount, 2)} kr.`;
 
+// Fladen siger «EO-perioden» – den korte form – om erstatningsperioden (BB-375).
+const PERIODE_TEKST: Readonly<Record<NegativIndkomstkildeFund['periode'], string>> = {
+  beregningsperioden: 'beregningsperioden',
+  erstatningsperioden: 'EO-perioden',
+};
+
 const buildMessage = (source: IncomeNegativeSource, periode: NegativIndkomstkildeFund['periode']): string =>
   source.kind === 'employer'
-    ? `Lønnen fra ${resolveAnsaettelsesforholdNavn(source.name, source.index)} er samlet negativ i ${periode} `
+    ? `Lønnen fra ${resolveAnsaettelsesforholdNavn(source.name, source.index)} er samlet negativ i ${PERIODE_TEKST[periode]} `
       + `(${formatKroner(source.amount)}). En samlet negativ løn kan ikke indgå i beregningen – kontrollér lønrækkerne`
-    : `${source.label} er samlet negativ i ${periode} (${formatKroner(source.amount)}). En samlet negativ ydelse `
+    : `${source.label} er samlet negativ i ${PERIODE_TEKST[periode]} (${formatKroner(source.amount)}). En samlet negativ ydelse `
       + 'kan ikke indgå i beregningen – kontrollér ydelsesrækkerne';
 
 /** Kilderne med samlet negativ indtægt – i beregningsperioden (ved «Beregningsperiode») og i erstatningsperioden. */

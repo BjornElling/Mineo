@@ -538,7 +538,7 @@ describe('getEoBilagAvailability', () => {
         }),
       });
 
-      const forventetAarsag = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden';
+      const forventetAarsag = 'Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden';
       for (const key of ['loenindkomst', 'offentligeYdelser', 'midlertidigEet', 'regulering', 'shDage', 'sygeferiegodtgoerelse'] as const) {
         expect(result[key].enabled).toBe(false);
         expect(disabledReasonOf(result[key])).toBe(forventetAarsag);
@@ -546,18 +546,36 @@ describe('getEoBilagAvailability', () => {
     }
   );
 
-  it('rører ikke bilag i Alle selvom der ikke er krav på tabt arbejdsfortjeneste', () => {
-    const result = getEoBilagAvailability({
-      eoValues: makeValues({
-        kravPaaTabtArbejdsfortjeneste: 'Nej',
-        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
-        midlertidigtEetFraEetSiden: 'Ja',
-      }),
-    });
+  it.each(['Nej', 'Skjul'] as const)(
+    'giver alle valg samme grund ved TAF %s – også med «Alle» (BB-373)',
+    (kravPaaTabtArbejdsfortjeneste) => {
+      const result = getEoBilagAvailability({
+        eoValues: makeValues({
+          kravPaaTabtArbejdsfortjeneste,
+          eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
+          midlertidigtEetFraEetSiden: 'Ja',
+          sfggAnsaettelsesforhold: [{
+            ansaettelsesforholdId: 'af-1',
+            sfggBeregningskilde: 'Ferieloven',
+            sfggReferenceperiodeFra: undefined,
+            sfggReferenceperiodeTil: undefined,
+            sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+            sfggManuelDagssats: undefined,
+            sfggManuelBeloebIHenholdTil: undefined,
+            sfggManuelFoerstEfterSygeloen: 'Nej',
+            sfggSatsvalg: undefined,
+            sfggAlleredeBetaltBeloeb: undefined,
+          }],
+        }),
+      });
 
-    // I "Alle" gælder den TAF-krav-baserede afgrænsning ikke; midlertidig EET følger sin egen betingelse.
-    expect(result.midlertidigEet.enabled).toBe(true);
-  });
+      // Før lovede «Sygeferiegodtgørelse» et bilag, der ikke kom, og de øvrige gav grunde, der ikke passede.
+      for (const key of ['loenindkomst', 'offentligeYdelser', 'midlertidigEet', 'regulering', 'shDage', 'sygeferiegodtgoerelse'] as const) {
+        expect(result[key].enabled).toBe(false);
+        expect(disabledReasonOf(result[key])).toBe('Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden');
+      }
+    }
+  );
 });
 
 describe('hasLoenReguleringInModel', () => {

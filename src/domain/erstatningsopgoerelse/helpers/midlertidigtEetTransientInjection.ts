@@ -14,6 +14,7 @@ import { toKroner } from '../../money/money';
 import type { IsoRange } from '../../../utils/isoDateHelpers';
 import { resolveMidlertidigEetDato } from '../validation/tafPeriodConstraints';
 import { erMidlertidigtEetYdelsestype } from '../../../data/ydelsestyper';
+import { eoMidlertidigtEETAfgorelseField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 export type MidlertidigtEetTransientResult = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
@@ -146,6 +147,44 @@ export const resolveMidlertidigtEetIngenYdelserIssue = (args: Readonly<{
     severity: 'warning',
     message: MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_MESSAGE,
   };
+};
+
+export const MIDLERTIDIGT_EET_UDEN_AFGOERELSE_INTET_HENTET_ID = 'midlertidigt-eet-uden-afgoerelse-intet-hentet';
+export const MIDLERTIDIGT_EET_UDEN_AFGOERELSE_HENTET_ID = 'midlertidigt-eet-uden-afgoerelse-hentet';
+
+/**
+ * Togglen er slået til, men «Midlertidigt EET-afgørelse» på EO oplysninger er ikke `Ja` (BB-372, udviklerafgørelse
+ * 2026-10-29). To tilstande med hver sin gule linje – før stod «Der er indtastet midlertidige EET-ydelser, men ikke
+ * angivet en afgørelse» i begge, også når intet var indtastet eller hentet:
+ *
+ *  - importen giver intet: der fradrages intet, og det siger linjen;
+ *  - importen giver ydelser: de fradrages (valg A – fradraget følger togglen, ikke valget på EO oplysninger), og
+ *    linjen påpeger uoverensstemmelsen mellem de to sider.
+ *
+ * Ikke-blokerende som BB-240's mønster: afgørelsen er en oplysning, ydelsen en forventning. En blokerende importfejl
+ * siger selv sit; så tier denne.
+ */
+export const resolveMidlertidigtEetUdenAfgoerelseIssue = (args: Readonly<{
+  values: Pick<ErstatningsopgoerelseValues, 'midlertidigtEetFraEetSiden' | 'midlertidigtEETAfgorelse'>;
+  result: MidlertidigtEetTransientResult;
+}>): EetIssue | undefined => {
+  const { values, result } = args;
+  if (values.midlertidigtEetFraEetSiden !== 'Ja' || values.midlertidigtEETAfgorelse === 'Ja') return undefined;
+  if (result.issues.some((issue) => issue.severity === 'error')) return undefined;
+  const focusTarget = { kind: 'fieldAddress' as const, address: eoMidlertidigtEETAfgorelseField.bind().address };
+  return result.groups.length === 0
+    ? {
+      id: MIDLERTIDIGT_EET_UDEN_AFGOERELSE_INTET_HENTET_ID,
+      severity: 'warning',
+      message: 'Midlertidigt EET hentes fra Erhvervsevnetab-siden, men der er ikke angivet en midlertidig EET-afgørelse – der fradrages intet midlertidigt EET',
+      focusTarget,
+    }
+    : {
+      id: MIDLERTIDIGT_EET_UDEN_AFGOERELSE_HENTET_ID,
+      severity: 'warning',
+      message: 'Erhvervsevnetab-siden har en midlertidig afgørelse, men der er ikke angivet en midlertidig EET-afgørelse på EO oplysninger',
+      focusTarget,
+    };
 };
 
 /**

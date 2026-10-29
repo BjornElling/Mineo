@@ -277,7 +277,7 @@ export const buildUnavailableEetImportContext = (
       : {
         id: 'midlertidigt-eet-slutdato-missing',
         severity: 'error',
-        message: 'Midlertidigt EET kan ikke importeres, fordi erstatningsperiodens slutdato mangler.',
+        message: 'Midlertidigt EET kan ikke importeres, fordi EO-periodens slutdato mangler.',
       };
   return failedContext(source?.revision ?? 'missing-source', issue);
 };

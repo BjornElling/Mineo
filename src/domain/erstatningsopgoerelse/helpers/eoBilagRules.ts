@@ -20,6 +20,7 @@ import { parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
 import type { LoenudviklingModel, LoenudviklingSegment, OffentligeYdelserUdviklingModel } from '../shared/eoTypes';
+import type { MidlertidigtEetAfgoerelseGroup } from './midlertidigtEetInsertRows';
 import {
   EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL,
   EO_OFFENTLIGE_YDELSER_TAB_LABEL,
@@ -110,9 +111,11 @@ export type EoBilagAvailabilityState =
 export type EoBilagAvailabilityMap = Readonly<Record<EoBilagDynamicSelectionKey, EoBilagAvailabilityState>>;
 
 // Bilagsvalgenes tooltips: ÉN kort sætning uden punktum, jf. `page-component-contract.md` §10.5 punkt 3.
-const EO_BILAG_PERIOD_FILTER_REASON = 'Der er ingen TAF-perioder i EO-perioden';
+// De to første er også de tre TAF-dokumenters årsag, når der intet er at fordele (BB-371): samme tilstand, samme ord.
+// Fladen siger «EO-perioden» – den korte form – i boks, bilagsvalg og tooltips (BB-375).
+export const EO_INGEN_TAF_PERIODER_I_EO_PERIODEN = 'Der er ingen TAF-perioder i EO-perioden';
 
-const EO_BILAG_INGEN_TAF_KRAV_REASON = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden';
+export const EO_INGEN_TAF_KRAV_I_EO_PERIODEN = 'Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden';
 
 const EO_BILAG_INGEN_REGULERING_I_TAF_REASON = 'Der sker ingen regulering i TAF-perioden';
 
@@ -241,16 +244,21 @@ export const getEoBilagAvailability = (params: Readonly<{
   skadedatoISO?: ISODateString | undefined;
   loenudvikling?: LoenudviklingModel | null;
   offentligeYdelserUdvikling?: OffentligeYdelserUdviklingModel | null;
+  /**
+   * Afgørelserne, togglen henter fra Erhvervsevnetab-siden. `undefined`, når beregningen ikke foreligger – så
+   * vides det ikke, og valget står som før.
+   */
+  midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }>): EoBilagAvailabilityMap => {
-  const { eoValues, skadedatoISO, loenudvikling, offentligeYdelserUdvikling } = params;
+  const { eoValues, skadedatoISO, loenudvikling, offentligeYdelserUdvikling, midlertidigtEetGroups } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
-  // Uden TAF-krav findes der ingen erstatningsperiode at filtrere bilag efter, og alle disse
-  // bilag dokumenterer alene TAF-beregningen. Når bilag samtidig er sat til "Perioden", er der
-  // derfor intet relevant at vise – så alle dynamiske valg deaktiveres. Bevidst kun for "Perioden":
-  // "Alle" medtager oplysningerne uafhængigt af perioden, jf. brugervalgt afgrænsning.
-  if (eoBilagMode === 'Perioden' && eoValues.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
-    const disabled: EoBilagAvailabilityState = { enabled: false, disabledReason: EO_BILAG_INGEN_TAF_KRAV_REASON };
+  // Uden TAF-krav dokumenterer ingen af disse bilag noget: de hører alene til TAF-beregningen, og lønindkomst
+  // og ydelser er ikke relevante ved TAF «Nej» (BB-360). Alle dynamiske valg deaktiveres derfor med samme grund –
+  // også ved «Alle». Undtagelsen for «Alle» gav ét valg, der lovede et bilag, som ikke kom, og grunde, der ikke
+  // passede på sagen (BB-373).
+  if (eoValues.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
+    const disabled: EoBilagAvailabilityState = { enabled: false, disabledReason: EO_INGEN_TAF_KRAV_I_EO_PERIODEN };
     return {
       loenindkomst: disabled,
       offentligeYdelser: disabled,
@@ -286,7 +294,7 @@ export const getEoBilagAvailability = (params: Readonly<{
       : {
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
-            ? EO_BILAG_PERIOD_FILTER_REASON
+            ? EO_INGEN_TAF_PERIODER_I_EO_PERIODEN
             : 'Der er ingen lønoplysninger i TAF-perioden',
         },
     offentligeYdelser: harOffentligeYdelser
@@ -294,21 +302,25 @@ export const getEoBilagAvailability = (params: Readonly<{
       : {
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
-            ? EO_BILAG_PERIOD_FILTER_REASON
+            ? EO_INGEN_TAF_PERIODER_I_EO_PERIODEN
             : 'Der er ingen offentlige ydelser i TAF-perioden',
         },
-    midlertidigEet: midlertidigtEetFraEetSiden
-      ? { enabled: true }
-      : {
+    // Henter togglen intet, trykkes bilaget ikke (`eoBilagSections`). Valget stod alligevel markeret og aktivt, og
+    // papiret så færdigt ud (BB-372).
+    midlertidigEet: !midlertidigtEetFraEetSiden
+      ? {
           enabled: false,
           disabledReason: `Indstillingen «${EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL}» er slået fra på fanen «${EO_OFFENTLIGE_YDELSER_TAB_LABEL}»`,
-        },
+        }
+      : midlertidigtEetGroups !== undefined && midlertidigtEetGroups.length === 0
+        ? { enabled: false, disabledReason: 'Der hentes ingen midlertidige EET-ydelser fra Erhvervsevnetab-siden' }
+        : { enabled: true },
     regulering: kanViseIndkomstOgYdelserBilag && harRegulering
       ? { enabled: true }
       : {
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
-            ? EO_BILAG_PERIOD_FILTER_REASON
+            ? EO_INGEN_TAF_PERIODER_I_EO_PERIODEN
             : harValgtReguleringMedBeregnetGrundlag
               ? EO_BILAG_INGEN_REGULERING_I_TAF_REASON
               : 'Der er ingen løn eller offentlige ydelser, der reguleres',

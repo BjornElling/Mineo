@@ -13,8 +13,8 @@ export type EetIssueNavigationTarget =
       pageName: 'Erstatningsopgørelse';
       tabId: 'eo_oplysninger';
       tabName: 'EO oplysninger';
-      sectionId: 'taf';
-      sectionTitle: 'Tabt arbejdsfortjeneste';
+      sectionId: 'taf' | 'aes';
+      sectionTitle: 'Tabt arbejdsfortjeneste' | 'AES-afgørelser';
       focusTarget?: AttentionTarget;
     }>
   | Readonly<{
@@ -56,6 +56,9 @@ const STAMDATA_ISSUE_IDS = new Set([
 ]);
 
 const EO_TAB_OPLYSNINGER_ISSUE_IDS = new Set(['midlertidigt-eet-slutdato-missing']);
+
+/** Linjerne om en manglende midlertidig EET-afgørelse på EO oplysninger (BB-372) – fører til «AES-afgørelser». */
+const EO_AES_ISSUE_IDS = new Set(['midlertidigt-eet-uden-afgoerelse-intet-hentet', 'midlertidigt-eet-uden-afgoerelse-hentet']);
 
 /**
  * Sektionen på EET-oplysningerfanen pr. issue-id – rene `data-section-id`-strenge.
@@ -99,6 +102,17 @@ const EET_SECTION_ID_BY_ISSUE_ID: Readonly<Record<string, string>> = {
 export const resolveMidlertidigtEetIssueNavigation = (
   issue: Pick<EetIssue, 'id' | 'focusTarget'>
 ): EetIssueNavigationTarget => {
+  if (EO_AES_ISSUE_IDS.has(issue.id)) {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      pageName: 'Erstatningsopgørelse',
+      tabId: 'eo_oplysninger',
+      tabName: 'EO oplysninger',
+      sectionId: 'aes',
+      sectionTitle: 'AES-afgørelser',
+      ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
+    };
+  }
   if (EO_TAB_OPLYSNINGER_ISSUE_IDS.has(issue.id)) {
     return {
       kind: 'erstatningsopgoerelse-tab',

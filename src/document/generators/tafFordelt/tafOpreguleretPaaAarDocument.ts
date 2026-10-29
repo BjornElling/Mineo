@@ -50,7 +50,8 @@ import {
 import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 
 const NBSP = '\u00A0';
-const FILE_BASE_NAME = 'TAF opreguleret til beregningsår';
+// Knap, titel og fil bærer samme navn (BB-376).
+const FILE_BASE_NAME = 'TAF opreguleret til beregningsåret';
 const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
@@ -74,7 +75,7 @@ export const generateTafOpreguleretPaaAarDocument = (
   const { model, presentation, opreguleret } = options.document;
   const { eoValues, stamdataValues, selectedElements, midlertidigtEetGroups } = options;
 
-  const titel = 'TAF opreguleret til beregningsår';
+  const titel = FILE_BASE_NAME;
 
   const generate = defineDocument<void>({
     title: titel,

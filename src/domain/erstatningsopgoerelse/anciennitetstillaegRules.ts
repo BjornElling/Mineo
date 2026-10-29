@@ -110,7 +110,7 @@ export const resolveAnciennitetstillaegMangel = (
 };
 
 /** Gul advarsel: tillægget opnås først efter erstatningsperioden og ændrer derfor intet (BB-305). */
-export const ANCIENNITETSTILLAEG_EFTER_TAF_ADVARSEL = 'Tillægget opnås først efter erstatningsperioden og indgår ikke';
+export const ANCIENNITETSTILLAEG_EFTER_TAF_ADVARSEL = 'Tillægget opnås først efter EO-perioden og indgår ikke';
 
 export const erAnciennitetstillaegEfterTafPerioden = (
   source: Pick<LoenudviklingSource, 'loenudviklingBeregningsgrundlag' | 'harAnciennitetstillaegEfterSkadedatoen' | 'anciennitetstillaegDato'>,

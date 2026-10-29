@@ -19,6 +19,9 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { createInputEvaluation } from '../../inputCore/inputReader';
+import { erstatningsopgoerelseDocumentDefinition } from '../../domain/erstatningsopgoerelse/eoDocumentDefinitions';
+import { resolveBlockedGateTooltip } from '../../document/layout/documentGateTypes';
+import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
 import {
   createEvaluationSourceToken,
   createInputRevision,
@@ -163,6 +166,9 @@ const projectTafGraf = (): TafKravGrafDocumentInput => {
   return result.input;
 };
 
+const tooltipOf = (result: DocumentProjectionResult<unknown>): string | undefined =>
+  result.status === 'blocked' ? resolveBlockedGateTooltip(result.reasons) : undefined;
+
 describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
   it('blokerer alle tre TAF-definitioner, når sagen ikke beregner TAF', () => {
     const withoutTaf: ErstatningsopgoerelseValues = {
@@ -180,6 +186,70 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
     expect(blockedFordelt.status).toBe('blocked');
     expect(blockedOpreguleret.status).toBe('blocked');
     expect(blockedGraf.status).toBe('blocked');
+    // Knappen siger tilstanden, ikke «Indtastning mangler» – TAF «Nej» er et valg, ikke en mangel (BB-371).
+    for (const result of [blockedFordelt, blockedOpreguleret, blockedGraf]) {
+      expect(tooltipOf(result)).toBe('Der er ikke krav på tabt arbejdsfortjeneste i EO-perioden');
+    }
+  });
+
+  it('siger «Der er ingen TAF-perioder i EO-perioden», når TAF er rejst uden periode i EO-perioden (BB-371)', () => {
+    const tafFoerEoPerioden: ErstatningsopgoerelseValues = {
+      ...erstatningsopgoerelse,
+      tafPerioder: [{ id: 'taf-foer', fra: iso('2024-01-01'), til: iso('2024-03-31'), loseFeriedage: 0 }],
+      vedroererPeriodeFra: iso('2024-06-01'),
+    };
+    for (const definition of [
+      tafFordeltPaaAarDocumentDefinition,
+      tafOpreguleretPaaAarDocumentDefinition,
+      tafKravGrafDocumentDefinition,
+    ]) {
+      expect(tooltipOf(definition.project(context(tafFoerEoPerioden), undefined)))
+        .toBe('Der er ingen TAF-perioder i EO-perioden');
+    }
+  });
+
+  describe('fejl i krav, TAF-dokumenterne ikke viser (BB-370)', () => {
+    const medFejlISvieSmerteOgOevrigeKrav: ErstatningsopgoerelseValues = {
+      ...erstatningsopgoerelse,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+      tidligereSsMax: 'Nej',
+      // Omvendt periode: rød fejl i svie/smerte.
+      svieSmertePerioder: [{ id: 'ss-omvendt', fra: iso('2024-10-01'), til: iso('2024-09-20'), tilstand: 'sygemeldt' }],
+      kravPaaOevrigeErstatningskrav: 'Ja',
+      // En post uden beløb: fejl i øvrige krav.
+      oevrigeKravPerioder: [{ id: 'oevrige-medicin', dato: iso('2024-08-01'), udgiftTil: 'Medicin' }],
+    };
+
+    it('spærrer opgørelsen, men ikke de tre TAF-dokumenter – og tallene er de samme som uden fejlene', () => {
+      const ctx = context(medFejlISvieSmerteOgOevrigeKrav);
+      expect(erstatningsopgoerelseDocumentDefinition.project(ctx, undefined).status).toBe('blocked');
+
+      const fordelt = tafFordeltPaaAarDocumentDefinition.project(ctx, undefined);
+      const opreguleret = tafOpreguleretPaaAarDocumentDefinition.project(ctx, undefined);
+      const graf = tafKravGrafDocumentDefinition.project(ctx, undefined);
+      if (fordelt.status !== 'ready') throw new Error(JSON.stringify(fordelt.reasons));
+      expect(opreguleret.status).toBe('ready');
+      expect(graf.status).toBe('ready');
+
+      // Varianten uden de to krav regner TAF præcis som sagen uden fejl.
+      expect(fordelt.input.document.presentation).toEqual(projectTafFordelt().document.presentation);
+    });
+
+    it('spærrer fortsat med en TAF-relevant fejl, og tooltippen nævner dokumentet', () => {
+      const medTafFejl: ErstatningsopgoerelseValues = {
+        ...medFejlISvieSmerteOgOevrigeKrav,
+        tafPerioder: [{ id: 'taf-omvendt', fra: iso('2024-12-31'), til: iso('2024-07-01'), loseFeriedage: 0 }],
+      };
+      const ctx = context(medTafFejl);
+      expect(tooltipOf(tafFordeltPaaAarDocumentDefinition.project(ctx, undefined)))
+        .toBe('TAF fordelt på kalenderår kan ikke hentes, når der er fejl ovenfor');
+      expect(tooltipOf(tafOpreguleretPaaAarDocumentDefinition.project(ctx, undefined)))
+        .toBe('TAF opreguleret til beregningsåret kan ikke hentes, når der er fejl ovenfor');
+      expect(tooltipOf(tafKravGrafDocumentDefinition.project(ctx, undefined)))
+        .toBe('Visuel graf over indtægtsniveau kan ikke hentes, når der er fejl ovenfor');
+      expect(tooltipOf(erstatningsopgoerelseDocumentDefinition.project(ctx, undefined)))
+        .toBe('Opgørelse kan ikke hentes, når der er fejl ovenfor');
+    });
   });
 
   it('fører TAF fordelt på år gennem definitionen til Word', async () => {
@@ -192,8 +262,9 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
       renderer(session, input, { visBrevhoved: false })
     );
 
-    expect(filename).toContain('Tabt arbejdsfortjeneste fordelt på år');
-    expect(xmlToPlainText(documentXml)).toContain('Tabt arbejdsfortjeneste fordelt på år');
+    // Samme navn som knappen (BB-376).
+    expect(filename).toContain('TAF fordelt på kalenderår');
+    expect(xmlToPlainText(documentXml)).toContain('TAF fordelt på kalenderår');
   });
 
   it('fører TAF opreguleret til beregningsår gennem definitionen til Word', async () => {
@@ -206,8 +277,8 @@ describe('CALC-006/DOC-001 – TAF-dokumentdefinitioner og renderers', () => {
       renderer(session, input, { visBrevhoved: false })
     );
 
-    expect(filename).toContain('TAF opreguleret til beregningsår');
-    expect(xmlToPlainText(documentXml)).toContain('TAF opreguleret til beregningsår');
+    expect(filename).toContain('TAF opreguleret til beregningsåret');
+    expect(xmlToPlainText(documentXml)).toContain('TAF opreguleret til beregningsåret');
   });
 
   it('fører TAF-kravgrafen gennem definitionen til Word', async () => {

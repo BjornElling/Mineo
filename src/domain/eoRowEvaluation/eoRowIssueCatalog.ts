@@ -431,6 +431,11 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return target(eoTafBeregningsperiodeFraField.bind());
   }
 
+  if (row.id === 'sviesmerte.perioder.clampedAway') {
+    // Som TAF nedenfor: ingen enkelt række er årsagen, men første rækkes fra-celle er indgangen til tabellen.
+    return firstRowTarget(eoSvieSmertePeriodeFraField);
+  }
+
   if (row.id === 'taf.perioder.clampedAway') {
     // Alle indtastede perioder ligger uden for EO-perioden. Der ER indtastede rækker her, men ingen
     // ENKELT af dem er årsagen – modsætningen mellem tabellen og EO-perioden er det. Fra-cellen i
@@ -501,6 +506,14 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
     // indtastningsrække findes. Fra-cellen i den første række er præcis det felt, brugeren skal udfylde
     // for at få advarslen væk.
     focusTarget: () => firstRowTarget(eoSvieSmertePeriodeFraField),
+  },
+  {
+    key: 'svie-smerte-uden-for-eo-perioden',
+    match: { kind: 'id', id: 'sviesmerte.perioder.clampedAway' },
+    when: 'Der er indtastet svie/smerte-perioder, men alle ligger uden for EO-perioden; den sekundære advarsel om ufuldstændig dækning vises ikke.',
+    suppresses: [
+      { kind: 'id', id: 'sviesmerte.ophoerSkyldes' },
+    ],
   },
   {
     key: 'svie-smerte-tidligere-total',

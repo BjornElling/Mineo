@@ -64,11 +64,14 @@ export const DOWNLOAD_BLOCKED_INVALID_INPUT_MESSAGE = FIELD_ISSUE_GENERIC_TOOLTI
  * uændret fra EO's tidligere page-lokale konstant, så brugeren ser samme tekst som før – den er blot
  * flyttet fra en hardkodet ternary i `EOberegningTab` ind i gaten, hvor beslutningen hører.
  *
- * "Opgørelse" frem for "Dokumentet": klassen bruges KUN af Erstatningsopgørelse (§4 i planen), fordi det er
- * den eneste flade med en fejlboks, der blokerer download. Skulle en anden flade få en tilsvarende boks,
- * skal teksten generaliseres i samme ændring – ikke suppleres med en parallel konstant.
+ * Teksten nævner det dokument, knappen henter. Klassen bruges KUN af Erstatningsopgørelse (§4 i planen), fordi
+ * det er den eneste flade med en fejlboks, der blokerer download – men fladen har fire knapper, og de tre
+ * TAF-dokumenter sagde «Opgørelse kan ikke hentes …» om sig selv (BB-370). Uden navn er det opgørelsen.
  */
-export const DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
+export const buildDownloadBlockedByPageErrorsMessage = (documentName = 'Opgørelse'): string =>
+  `${documentName} kan ikke hentes, når der er fejl ovenfor`;
+
+export const DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE = buildDownloadBlockedByPageErrorsMessage();
 
 /**
  * Årsagens brugerrettede klasse. Se modulets hoveddoc for hvorfor det er en typet klassifikation og ikke
@@ -89,6 +92,8 @@ export type DocumentDownloadGateReason = Readonly<{
    */
   message: string;
   kind: DocumentDownloadGateReasonKind;
+  /** Kun for `page-errors`: det dokument, knappen henter, som tooltippen nævner. */
+  documentName?: string;
 }>;
 
 /**
@@ -289,7 +294,7 @@ export const allowDocumentDownload = (): DocumentDownloadGateResult => ({
 export const resolveDocumentGateTooltip = (reason: DocumentDownloadGateReason): string => {
   switch (reason.kind) {
     case 'page-errors':
-      return DOWNLOAD_BLOCKED_BY_PAGE_ERRORS_MESSAGE;
+      return buildDownloadBlockedByPageErrorsMessage(reason.documentName);
     case 'specific':
       return reason.message;
     case 'invalid-input':
@@ -387,7 +392,7 @@ export const blockDocumentDownloadForInvalidInput = (
  * deler brugerteksten.
  */
 export const blockDocumentDownloadForPageErrors = (
-  reason: Readonly<{ code: string; message: string }>
+  reason: Readonly<{ code: string; message: string; documentName?: string }>
 ): DocumentDownloadGateResult => ({
   canDownload: false,
   reasons: [{ ...reason, kind: 'page-errors' }],

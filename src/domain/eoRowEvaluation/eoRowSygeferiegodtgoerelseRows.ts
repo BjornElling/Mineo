@@ -21,7 +21,8 @@ import {
   eoSfggReferenceperiodeTilField,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { eoEmploymentFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
-import { hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sfggKilde';
+import { hasSfggSelectedOverenskomst, resolveSfggSource, sfggKildeUsesReferenceperiode } from '../erstatningsopgoerelse/engines/sfggKilde';
+import { erSfggFeltRelevant } from '../erstatningsopgoerelse/helpers/eoLoenindkomstRelevance';
 import { harAktivOverenskomst } from '../loen/aktivOverenskomst';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE, SFGG_TABLE_TOTAL_LABEL, buildSfggOverenskomstManglerBesked, buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation, resolveSfggFoerstEfterSygeloen } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
@@ -30,6 +31,9 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import { zeroMoneyOre } from '../money/money';
 import type { ErstatningsopgoerelseValues, StamdataValues } from './eoRowShared';
 import { formatRowCount, formatStatusMessage } from './eoRowShared';
+
+/** En tom dato i referenceperioden (BB-369). Feltets navn står foran: «Referenceperiode, fra: …». */
+const SFGG_REFERENCEPERIODE_DATO_MANGLER = 'Datoen er ikke udfyldt';
 
 const formatIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
   `${isoToDanish(range.fra) ?? range.fra} - ${isoToDanish(range.til) ?? range.til}`;
@@ -149,6 +153,36 @@ export const buildEoSygeferiegodtgoerelseRows = (
         focusTarget: { kind: 'fieldAddress', address: issue.field.address },
       });
     });
+
+    // En tom referenceperiode spærrer i validatoren, men nåede før kun boksen gennem sikkerhedsnettet: to linjer uden
+    // link og uden ansættelsesforhold (BB-369). Her får hver tom dato sin linje med link til feltet, i samme form som
+    // periodens øvrige regler. Prædikatet er validatorens: kun når perioden bruges OG vises. Et felt med en rød fejl
+    // springes over – readeren har maskeret værdien, og feltets egen linje står allerede ovenfor.
+    const kraeverReferenceperiode = sfggKildeUsesReferenceperiode(sfggSource.kind)
+      && erSfggFeltRelevant('referenceperiode', {
+        kravPaaTabtArbejdsfortjeneste: values.kravPaaTabtArbejdsfortjeneste,
+        employment,
+        sfggBeregningskilde: kilde,
+      });
+    if (kraeverReferenceperiode) {
+      const feltMedFejl = new Set(employmentFieldIssues.map((issue) => issue.field.descriptor.id));
+      const tommeDatoer = [
+        { field: eoSfggReferenceperiodeFraField, value: row?.sfggReferenceperiodeFra, key: 'fra' },
+        { field: eoSfggReferenceperiodeTilField, value: row?.sfggReferenceperiodeTil, key: 'til' },
+      ] as const;
+      for (const dato of tommeDatoer) {
+        if (dato.value !== undefined || feltMedFejl.has(dato.field.id)) continue;
+        rows.push({
+          id: `sfgg.referenceperiodeMangler.${dato.key}.${employment.id}`,
+          label: dato.field.label,
+          displayValue: formatStatusMessage('error', SFGG_REFERENCEPERIODE_DATO_MANGLER),
+          status: 'error',
+          message: SFGG_REFERENCEPERIODE_DATO_MANGLER,
+          summaryText: `${dato.field.label}: ${SFGG_REFERENCEPERIODE_DATO_MANGLER}`,
+          focusTarget: { kind: 'fieldAddress', address: dato.field.bind(employment.id).address },
+        });
+      }
+    }
 
     // Når brugeren har valgt "Overenskomst" uden faktisk overenskomst-ID, stopper kontrol-sporet her.
     // Det er bevidst: alle efterfølgende overenskomstafledte rækker, inkl. før-2015-bemærkningen,

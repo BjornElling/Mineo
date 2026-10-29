@@ -38,7 +38,7 @@ test('opreguleret TAF viser samme afrundingslinje som TAF fordelt på år', asyn
   await openPage(page, 'Erstatningsopgørelse');
   await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
 
-  for (const label of ['TAF-krav fordelt på kalenderår', 'TAF opreguleret til beregningsåret']) {
+  for (const label of ['TAF fordelt på kalenderår', 'TAF opreguleret til beregningsåret']) {
     const row = page.locator('.row--label-right-hover').filter({ hasText: label });
     await expect(row.getByRole('button')).toBeEnabled();
     const download = page.waitForEvent('download');
@@ -48,7 +48,7 @@ test('opreguleret TAF viser samme afrundingslinje som TAF fordelt på år', asyn
     const pdf = await readFile(path);
     const text = (await extractPdfText(new Blob([new Uint8Array(pdf)], { type: 'application/pdf' }))).replace(/\s+/g, ' ');
     expect(text).toMatch(/Afrunding\s+-\s*0,01 kr\./);
-    expect(text.indexOf('Afrunding')).toBeLessThan(text.indexOf(label.startsWith('TAF-krav') ? 'Samlet TAF-krav' : 'Samlet TAF opreguleret'));
+    expect(text.indexOf('Afrunding')).toBeLessThan(text.indexOf(label === 'TAF fordelt på kalenderår' ? 'Samlet TAF-krav' : 'Samlet TAF opreguleret'));
     await testInfo.attach(label, { body: pdf, contentType: 'application/pdf' });
   }
   await testInfo.attach('afrunding-download-desktop', { body: await page.screenshot(), contentType: 'image/png' });

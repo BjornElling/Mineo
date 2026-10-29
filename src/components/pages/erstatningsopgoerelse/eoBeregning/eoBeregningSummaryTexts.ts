@@ -22,6 +22,12 @@ export const INGEN_PERIODER_ANGIVET_TEKST = 'Ingen perioder angivet';
 export const INGEN_POSTER_ANGIVET_TEKST = 'Ingen poster angivet';
 
 /**
+ * Et rejst krav, hvis perioder alle ligger uden for EO-perioden. «Ingen perioder angivet» modsagde her den tabel,
+ * brugeren lige havde udfyldt (BB-374).
+ */
+export const INGEN_PERIODE_I_EO_PERIODEN_TEKST = 'Ingen periode i EO-perioden';
+
+/**
  * Øvrige krav-rækken viser antallet af poster, ikke beløbet (BB-226's afgørelse: sammendraget viser, hvilke
  * ydelser der indgår, ikke hvad de beløber sig til).
  */

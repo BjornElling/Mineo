@@ -21,6 +21,7 @@ const baseInput = {
   hasBlockingRows: false,
   failClosedFallback: 'fail-closed fallback',
   gateFallback: 'gate fallback',
+  documentName: 'Opgørelse',
 };
 
 describe('evaluateEoDocumentDownloadGate (A5: ét autoritativt output-gate pr. dokument)', () => {
@@ -173,5 +174,23 @@ describe('evaluateEoDocumentDownloadGate – brugerrettet tooltip', () => {
     expect(gate.canDownload).toBe(false);
     expect(gate.reasons[0]?.kind).not.toBe('page-errors');
     expect(resolveBlockedGateTooltip(gate.reasons)).toBe(DOWNLOAD_BLOCKED_MISSING_INPUT_MESSAGE);
+  });
+
+  it('nævner det dokument, knappen henter, når fejlboksen spærrer (BB-370)', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      hasBlockingRows: true,
+      blockingRowMessage: 'Række-fejl',
+      documentName: 'TAF fordelt på kalenderår',
+    });
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe('TAF fordelt på kalenderår kan ikke hentes, når der er fejl ovenfor');
+  });
+
+  it('citerer en projektion, der selv siger tilstanden – ikke «Indtastning mangler» (BB-371)', () => {
+    const gate = evaluateEoDocumentDownloadGate({
+      ...baseInput,
+      projection: { kind: 'blocked', message: 'Der er ingen TAF-perioder i EO-perioden', specific: true },
+    });
+    expect(resolveBlockedGateTooltip(gate.reasons)).toBe('Der er ingen TAF-perioder i EO-perioden');
   });
 });

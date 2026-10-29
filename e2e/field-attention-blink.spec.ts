@@ -709,7 +709,7 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
       await enableEetImport(page);
 
-      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi erstatningsperiodens slutdato mangler.';
+      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi EO-periodens slutdato mangler.';
       await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
       await startBlinkSampling(page);
       await clickEoIssueLink(page, issueMessage, 'Tabt arbejdsfortjeneste');

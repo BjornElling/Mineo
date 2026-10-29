@@ -162,7 +162,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     const artifact = await generateTafFordeltPaaAarDocument(pdfSession, { document: FAKE_DOCUMENT });
     const instance = MockJsPDF.instances.at(-1);
     expect(instance).toBeInstanceOf(MockJsPDF);
-    expect(artifact.filename).toBe('Tabt arbejdsfortjeneste fordelt på år.pdf');
+    expect(artifact.filename).toBe('TAF fordelt på kalenderår.pdf');
   });
 
   it('gemmer PDF med udkast-suffix når visUdkastStempel=true', async () => {
@@ -172,7 +172,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
       document: FAKE_DOCUMENT,
       visUdkastStempel: true,
     });
-    expect(artifact.filename).toBe('Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+    expect(artifact.filename).toBe('TAF fordelt på kalenderår (udkast).pdf');
   });
 
   it('prepender journalnr i filnavn når journalnr er udfyldt', async () => {
@@ -188,7 +188,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
       },
       visUdkastStempel: true,
     });
-    expect(artifact.filename).toBe('1234 - Tabt arbejdsfortjeneste fordelt på år (udkast).pdf');
+    expect(artifact.filename).toBe('1234 - TAF fordelt på kalenderår (udkast).pdf');
   });
 
   it('viser negativt beløb for negativt I alt pr. år', async () => {

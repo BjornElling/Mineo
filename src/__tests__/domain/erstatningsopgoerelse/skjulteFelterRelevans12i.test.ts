@@ -313,6 +313,7 @@ describe('skjulte felter på Lønindkomst-fanen (brugerblik 12i)', () => {
       expect(result.issueAt(eoSfggReferenceperiodeTilField.bind(AF))?.reason).toBe('rule');
       expect(linjerMed(result, 'Referenceperiode fra-dato mangler')).toEqual([]);
       expect(linjerMed(result, 'Referenceperiode til-dato mangler')).toEqual([]);
+      expect(linjerMed(result, 'Datoen er ikke udfyldt')).toEqual([]);
       expect(failedMessages(result)).not.toContain('Referenceperiode fra-dato mangler');
       expect(failedMessages(result)).not.toContain('Referenceperiode til-dato mangler');
     });
@@ -325,6 +326,12 @@ describe('skjulte felter på Lønindkomst-fanen (brugerblik 12i)', () => {
         'Referenceperiode fra-dato mangler',
         'Referenceperiode til-dato mangler',
       ]));
+      // Boksen viser én linje pr. dato med feltets navn – ikke validatorens to linjer uden link (BB-369).
+      expect(linjerMed(result, 'Datoen er ikke udfyldt')).toEqual([
+        'Referenceperiode, fra: Datoen er ikke udfyldt',
+        'Referenceperiode, til: Datoen er ikke udfyldt',
+      ]);
+      expect(linjerMed(result, 'Referenceperiode fra-dato mangler')).toEqual([]);
     });
 
     it('melder en referenceperiode før reguleringsgrundlagets første sats én gang, på feltet (V6)', () => {

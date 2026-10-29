@@ -121,7 +121,7 @@ export const buildEoTaftRows = (
     rows.push({
       id: 'taf.perioder.clampedAway',
       label: 'Advarsel',
-      displayValue: 'Advarsel (Der er indtastet TAF-perioder, men ingen af perioderne ligger inden for erstatningsperioden. TAF beregnes derfor til 0 kr.)',
+      displayValue: 'Advarsel (Der er indtastet TAF-perioder, men ingen af perioderne ligger inden for EO-perioden. TAF beregnes derfor til 0 kr.)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
     });

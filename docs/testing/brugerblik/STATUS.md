@@ -8,7 +8,9 @@ skrevet. Kun flade-tabellen og de fire punkter nedenfor er aktuelle; produktets 
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12l – Erstatningsopgørelse → Beregning: fejlpanelet, sammentællingen og bilagsvalgene.** 12k er
+- **Næste flade:** **12m – Erstatningsopgørelse → EO-gennemsyn og Kontroltabel.** 12l er gennemgået, afgjort og
+  gennemført 2026-10-29 (11 fund, BB-369–BB-379; BB-377–BB-379 afvist); modsvarene til BB-372 og BB-377 er besvaret og
+  gennemført samme dag. Tidligere: **12l – Erstatningsopgørelse → Beregning.** 12k er
   gennemgået, afgjort og gennemført 2026-10-29 (12 fund, BB-357–BB-368; BB-359 afvist som overlapregel); de fire modsvar og
   BB-368 er besvaret og gennemført samme dag, også informationsikonet ved EET-sidens «Virkningsdato». Tidligere: 12j er gennemgået, afgjort og gennemført
   2026-10-24 (13 fund, BB-319–BB-331); de to modsvar (BB-319, BB-321) er besvaret og gennemført samme dag. Tidligere: 12i er gennemgået 2026-10-20 (19 fund,
@@ -30,7 +32,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-369
+- **Næste fund-ID:** BB-380
 - **Efterreview af Årsløn 2026-10-27** (commit `634bce97`, overenskomst som tillægsgrundlag): 10 fund, BB-347–BB-356,
   i `aarsloen.md` §«Efterreview 2026-10-27». Afgjort og gennemført samme dag (BB-350 korrigeret af udvikleren til én «Fejl og advarsler»-boks).
 - **Kritisk efterreview:** Gennemgangen af 12a–12j tilføjede BB-332–BB-346. BB-332, BB-333, BB-336, BB-337
@@ -145,7 +147,9 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   ikke, at filvælger eller download er umulig at styre headless. Playwright kan automatisere begge dele.
   Rapporternes matricer skelner nu mellem den oprindelige måling og senere navngivne tests. De senere
   tests dækker kun deres konkrete sager og dokumenterer ikke en generel save→load-rundtur.
-- **Fund, der afventer udviklerens afgørelse:** **ingen** – 12k er afgjort og gennemført 2026-10-29. Tidligere: **ét
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Tidligere: to modsvar fra 12l (BB-372, BB-377) og flade
+  12l's 11 fund (BB-369–BB-379) – afgjort og gennemført 2026-10-29. Tidligere: **ingen** – 12k er
+  afgjort og gennemført 2026-10-29. Tidligere: **ét
   opfølgende spørgsmål fra 12k** (BB-368, besvaret: informationsikon). Tidligere: **fire modsvar fra 12k** og **BB-368** – besvaret og gennemført 2026-10-29.
   Tidligere: **flade 12k's 11 fund (BB-357–BB-367)** og fladens tre åbne spørgsmål (BB-358, BB-360, BB-363). Tidligere: **ingen** – flade 12j er afgjort og gennemført 2026-10-24; de to modsvar
   er besvaret og gennemført. Tidligere: **flade 12j's 13 fund (BB-319–BB-331)**.
@@ -207,7 +211,12 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-29 (**Flade 12k: de fire modsvar og BB-368 besvaret og gennemført** – se afsnittet om 12k.)
+- **Senest opdateret:** 2026-10-29 (**Flade 12l: modsvarene til BB-372 og BB-377 besvaret og gennemført** – se
+  afsnittet om 12l.)
+  Tidligere: 2026-10-29 (**Flade 12l afgjort og gennemført; modsvar til BB-372 og BB-377 forelagt**.)
+  Tidligere: 2026-10-29 (**Flade 12l – Beregning – gennemgået: 11 fund, ét Høj, fem Mellem og fem Lav, ingen
+  nye tværgående mønstre** – se afsnittet om 12l.)
+  Tidligere: 2026-10-29 (**Flade 12k: de fire modsvar og BB-368 besvaret og gennemført** – se afsnittet om 12k.)
   Tidligere: 2026-10-29 (**Flade 12k afgjort og gennemført; fire modsvar og BB-368 forelagt**.)
   Tidligere: 2026-10-29 (**Flade 12k – Offentlige ydelser – gennemgået: 11 fund, ét Kritisk, to Høj, fem
   Mellem og tre Lav, og ét nyt tværgående mønster M-43** – se afsnittet om 12k.)
@@ -666,8 +675,35 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12i | Erstatningsopgørelse – Lønudvikling og regulering | Afgjort og gennemført | 19 (BB-300–BB-318) | [erstatningsopgoerelse-12i.md](erstatningsopgoerelse-12i.md) |
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Afgjort og gennemført | 13 (BB-319–BB-331) | [erstatningsopgoerelse-12j.md](erstatningsopgoerelse-12j.md) |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Afgjort og gennemført | 12 (BB-357–BB-368) | [erstatningsopgoerelse-12k.md](erstatningsopgoerelse-12k.md) |
-| 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Ikke startet | – | – |
+| 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Afgjort og gennemført | 11 (BB-369–BB-379) | [erstatningsopgoerelse-12l.md](erstatningsopgoerelse-12l.md) |
 | 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+
+## Erstatningsopgørelse → Beregning: fejlpanelet, sammentællingen og bilagsvalgene (12l) – gennemgået 2026-10-29
+
+**11 fund: ét Høj, fem Mellem, fem Lav (én Fejl, to Edge case, otte Fornuft) – ingen nye tværgående mønstre.** Fladens
+bærende iagttagelse er, at knapperne og bilagsvalgene ikke siger det, programmet ved. En tom referenceperiode på
+sygeferiegodtgørelsen spærrer alle fire dokumenter med to linjer uden link, uden ansættelsesforholdets navn og uden rød ring
+(BB-369, M-33's sikkerhedsnet). De tre TAF-dokumenter spærres af fejl i svie/smerte og øvrige krav med tooltippen «Opgørelse
+kan ikke hentes …» (BB-370) og siger «Indtastning mangler» ved TAF «Nej» eller perioder uden for erstatningsperioden
+(BB-371). «Midlertidigt EET» og – ved TAF «Nej» med «Alle» – «Sygeferiegodtgørelse» står markeret og aktive, men bilaget
+udgår tavst (BB-372, BB-373, M-25; BB-372 var forudsagt i 12k BB-358). Sammendraget skriver «Ingen perioder angivet» om
+tastede perioder uden for erstatningsperioden (BB-374). Dertil fem Lav om ord og forklaringer (BB-375–BB-379).
+Sammentællingen er kontrolregnet og i orden; undo, bevarede bilagsvalg og bilagsrækkefølgen bestod; konsollen tavs.
+Grundlaget står i [erstatningsopgoerelse-12l.md](erstatningsopgoerelse-12l.md).
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-369 | Tom referenceperiode (sygeferiegodtgørelse) spærrer alt med to linjer uden link og navn (M-33) | **Høj** | Godkendt – gennemført |
+| BB-370 | Fejl i svie/smerte eller øvrige krav spærrer TAF-dokumenterne; tooltip siger «Opgørelse» | Mellem | Godkendt – gennemført |
+| BB-371 | TAF-dokumenterne siger «Indtastning mangler» ved TAF «Nej» og perioder uden for erstatningsperioden | Mellem | Godkendt – gennemført |
+| BB-372 | «Midlertidigt EET» markeret og aktivt, men bilaget udgår tavst (M-25) | Mellem | Godkendt efter modsvar – gennemført |
+| BB-373 | TAF «Nej» + «Alle»: «Sygeferiegodtgørelse» trykkes ikke; øvrige valg giver forkerte grunde (M-25) | Mellem | Godkendt – gennemført |
+| BB-374 | «Ingen perioder angivet» om tastede perioder uden for erstatningsperioden | Mellem | Godkendt – gennemført |
+| BB-375 | «EO-perioden»/«erstatningsperioden»/«Vedrører perioden» i samme boks | Lav | Godkendt – gennemført («EO-perioden») |
+| BB-376 | Knap, titel og filnavn hedder forskelligt for to alternative dokumenter | Lav | Godkendt – gennemført |
+| BB-377 | Bilagsvalgene styrer også «TAF opreguleret til beregningsåret» uden at sige det | Lav | Afvist; modsvar besvaret (uændret) |
+| BB-378 | «Perioden» siger ikke, hvilken periode | Lav | Afvist |
+| BB-379 | «Opgørelse» står gråt og låst uden tooltip | Lav | Afvist |
 
 ## Erstatningsopgørelse → Offentlige ydelser (12k) – gennemgået, afgjort og gennemført 2026-10-29
 

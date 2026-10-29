@@ -318,8 +318,70 @@ export const createInputEvaluation = (options: Readonly<{
     buildFieldIssueSet([...deriveFieldIssueSet(validation, options.catalog).all]),
     options.sourceToken
   );
-  return Object.freeze({
+  const evaluation: InputEvaluation = Object.freeze({
     issues,
     reader: createInputReader({ input: validation.input, catalog: options.catalog, issues }),
+  });
+  evaluationSources.set(evaluation, Object.freeze({
+    input: validation.input,
+    catalog: options.catalog,
+    sourceToken: options.sourceToken,
+  }));
+  return evaluation;
+};
+
+/**
+ * Kilden bag hver evaluering, så en kontrafaktisk variant kan dannes uden at give consumers adgang til de rå
+ * sektioner. Et `WeakMap` frem for et felt på `InputEvaluation`: typen skal fortsat kun udlevere reader og issues.
+ */
+const evaluationSources = new WeakMap<InputEvaluation, Readonly<{
+  input: SettledInput;
+  catalog: InputCatalog;
+  sourceToken: EvaluationSourceToken;
+}>>();
+
+/**
+ * Én canonical værdi, en kontrafaktisk evaluering læser i stedet for den indtastede. Formen binder feltet og
+ * værdien til samme `T`, så en liste af erstatninger for felter af forskellig type stadig er typesikker.
+ */
+export type CanonicalOverride = <R>(apply: <T>(field: FieldRef<T>, value: T) => R) => R;
+
+export const canonicalOverride = <T>(field: FieldRef<T>, value: T): CanonicalOverride =>
+  (apply) => apply(field, value);
+
+/**
+ * Samme afsluttede input, men med enkelte canonical værdier erstattet – fx et krav sat til «Skjul». Hele
+ * evalueringen dannes på ny: relevans, feltissues og reader følger de erstattede værdier, præcis som hvis brugeren
+ * selv havde valgt dem. Det er det, der gør varianten sikker: et felt, valget skjuler, er tavst og tomt for enhver
+ * læser, ikke kun for den, der husker at filtrere det fra.
+ *
+ * Bruges af erstatningsopgørelsens TAF-dokumenter, der ikke må spærres af fejl i krav, de ikke viser (BB-370).
+ * Den indtastede tilstand ændres aldrig – varianten er en ny, uafhængig evaluering med samme token.
+ *
+ * Returnerer `undefined` for en evaluering, der ikke er dannet af {@link createInputEvaluation}; så findes der
+ * ingen kilde at danne varianten af, og kalderen skal blive ved den indtastede.
+ */
+export const createCounterfactualInputEvaluation = (
+  evaluation: InputEvaluation,
+  overrides: readonly CanonicalOverride[]
+): InputEvaluation | undefined => {
+  const source = evaluationSources.get(evaluation);
+  if (source === undefined) return undefined;
+  let sections = source.input.sections;
+  const rejectedInputs = { ...source.input.rejectedInputs };
+  for (const override of overrides) {
+    override((field, value) => {
+      if (!source.catalog.isKnownField(field)) {
+        throw new Error('createCounterfactualInputEvaluation: ukendt feltreference');
+      }
+      sections = field.descriptor.writeCanonical(structuredClone(sections), field.address, value);
+      // XOR-invarianten: en erstattet værdi kan ikke samtidig have afvist råtekst.
+      delete rejectedInputs[serializeFieldAddress(field.address)];
+    });
+  }
+  return createInputEvaluation({
+    input: { ...source.input, sections, rejectedInputs },
+    catalog: source.catalog,
+    sourceToken: source.sourceToken,
   });
 };

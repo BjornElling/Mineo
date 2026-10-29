@@ -2,6 +2,7 @@ import {
   allowDocumentDownload,
   blockDocumentDownloadForPageErrors,
   blockDocumentDownloadFromCauses,
+  blockDocumentDownloadWithSpecificReason,
   type DocumentDownloadGateResult,
 } from '../../../document/layout/documentGateTypes';
 import type { EoInvariant } from './eoSnapshotInvariants';
@@ -25,7 +26,7 @@ import type { EoSnapshot } from './eoSnapshot';
  */
 export type EoDownloadProjectionStatus =
   | Readonly<{ kind: 'ok' }>
-  | Readonly<{ kind: 'blocked'; message: string }>
+  | Readonly<{ kind: 'blocked'; message: string; specific?: true }>
   | null;
 
 export type EvaluateEoDocumentDownloadGateInput = Readonly<{
@@ -43,6 +44,8 @@ export type EvaluateEoDocumentDownloadGateInput = Readonly<{
   failClosedFallback: string;
   /** Endelig fallback-besked når intet andet leverede en årsag. */
   gateFallback: string;
+  /** Det dokument, knappen henter – nævnt i tooltippen, når fejlboksen er årsagen (BB-370). */
+  documentName: string;
 }>;
 
 /**
@@ -88,14 +91,28 @@ export const evaluateEoDocumentDownloadGate = (
   // viewmodellens `isActive`-guard (§A2.1 – en gate må ikke afhænge af mount/fane). Viewmodellens guard er
   // ren render-optimering; begge kalder samme funktion på samme projektion, så teksten kan ikke drifte.
   if (input.hasBlockingRows) {
-    return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-rows', message });
+    return blockDocumentDownloadForPageErrors({
+      code: 'erstatningsopgoerelse:pdf-blocked-by-rows',
+      message,
+      documentName: input.documentName,
+    });
   }
 
   // Blokerer en autoritativ invariant et bygget snapshot, viser boksen ALTID en fejl: sikkerhedsnettet
   // (`selectEoSafetyNetInvariants`) viser invarianten selv, når ingen række gør. Knappen henviser derfor til boksen som ved en
   // rækkefejl. Før sagde den «Indtastning mangler» om fx en værdi, der var forkert, ikke manglede (BB-265).
   if (input.snapshot?.status !== 'fail_closed' && input.authoritativeBlockingInvariants.length > 0) {
-    return blockDocumentDownloadForPageErrors({ code: 'erstatningsopgoerelse:pdf-blocked-by-invariants', message });
+    return blockDocumentDownloadForPageErrors({
+      code: 'erstatningsopgoerelse:pdf-blocked-by-invariants',
+      message,
+      documentName: input.documentName,
+    });
+  }
+
+  // Siger projektionen selv tilstanden – fx at der ikke er TAF i EO-perioden – er dens besked det, brugeren skal
+  // læse. «Indtastning mangler» sendte brugeren på jagt efter et tomt felt, der ikke fandtes (BB-371).
+  if (input.snapshot?.status !== 'fail_closed' && input.projection?.kind === 'blocked' && input.projection.specific) {
+    return blockDocumentDownloadWithSpecificReason({ code: 'erstatningsopgoerelse:pdf-blocked', message });
   }
 
   // Snapshot- og projektionsblokeringer er IKKE rækkefejl: de beskriver en TILSTAND i beregningen frem for et

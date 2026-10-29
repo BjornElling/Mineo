@@ -84,9 +84,8 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     }))).toEqual([]);
   });
 
-  it('advarer, når midlertidigt EET indsættes fra Erhvervsevnetab-siden uden en afgørelse', () => {
-    expect(advarselIds(efter2011({ midlertidigtEETAfgorelse: 'Nej', midlertidigtEetFraEetSiden: 'Ja' })))
-      .toEqual(['midlertidigtEetKonsistens.ydelerUdenAfgorelse:warning']);
+  it('overlader togglen uden afgørelse til snapshottets EET-linje, der ved, om noget hentes (BB-372)', () => {
+    expect(advarselIds(efter2011({ midlertidigtEETAfgorelse: 'Nej', midlertidigtEetFraEetSiden: 'Ja' }))).toEqual([]);
   });
 
   it('viser advarsel når midlertidige EET-ydelser er indtastet uden afgørelse', () => {

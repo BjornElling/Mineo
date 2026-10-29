@@ -35,6 +35,9 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 
+const SVIE_SMERTE_PERIODER_UDEN_FOR_EO_PERIODEN =
+  'Der er indtastet svie/smerte-perioder, men ingen af perioderne ligger inden for EO-perioden. Svie/smerte beregnes derfor til 0 kr.';
+
 export const buildEoSvieSmerteRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldIssues,
@@ -593,6 +596,24 @@ export const buildEoSvieSmerteRows = (
       { kind: 'prefix', prefix: 'sviesmerte.periode.' },
     ],
   });
+
+  // Alle perioder ligger uden for EO-perioden: kravet bliver 0 kr., og intet sagde det. Samme advarsel som TAF's
+  // `taf.perioder.clampedAway` (BB-374); kataloget lader den erstatte «Ikke rejst svie/smerte-krav for hele perioden».
+  if (
+    values.kravPaaSvieSmerteGodtgoerelse === 'Ja'
+    && harPerioder
+    && !harPeriodeFejl
+    && 'lines' in beregnetPeriodeResult
+    && beregnetPeriodeResult.lines.length === 0
+  ) {
+    rows.push({
+      id: 'sviesmerte.perioder.clampedAway',
+      label: 'Advarsel',
+      displayValue: `Advarsel (${SVIE_SMERTE_PERIODER_UDEN_FOR_EO_PERIODEN})`,
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    });
+  }
 
   // 7) Antal svie/smerte dage i erstatningsperioden
   const antalDageResult = (() => {

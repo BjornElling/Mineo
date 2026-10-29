@@ -693,7 +693,9 @@ describe('midlertidigt EET transient injection', () => {
     });
 
     expect(snapshot.data).not.toBeNull();
-    expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))).toBe(false);
+    // Ingen kildefejl. Den eneste EET-linje er BB-372's gule: togglen henter intet, og afgørelsen er ikke angivet.
+    expect(snapshot.invariants.filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')).map((invariant) => invariant.id))
+      .toEqual(['midlertidigt_eet_source:midlertidigt-eet-uden-afgoerelse-intet-hentet']);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
   });
 
@@ -721,7 +723,9 @@ describe('midlertidigt EET transient injection', () => {
     });
 
     expect(snapshot.data).not.toBeNull();
-    expect(snapshot.invariants.some((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))).toBe(false);
+    // Ingen kildefejl. Den eneste EET-linje er BB-372's gule: togglen henter intet, og afgørelsen er ikke angivet.
+    expect(snapshot.invariants.filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')).map((invariant) => invariant.id))
+      .toEqual(['midlertidigt_eet_source:midlertidigt-eet-uden-afgoerelse-intet-hentet']);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
   });
 

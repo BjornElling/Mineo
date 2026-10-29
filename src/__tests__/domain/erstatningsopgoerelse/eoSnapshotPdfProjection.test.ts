@@ -191,7 +191,9 @@ describe('EO snapshot PDF projections', () => {
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
-    expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
+    // Tilstanden med bilagsvalgenes ord, citeret af gaten (BB-371).
+    expect(projection.message).toMatch(/^Der er (ikke krav på tabt arbejdsfortjeneste|ingen TAF-perioder) i EO-perioden$/);
+    expect(projection.specific).toBe(true);
   });
 
   it('skelner en faktisk TAF-periode uden per-år-fordeling', () => {
@@ -220,7 +222,9 @@ describe('EO snapshot PDF projections', () => {
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
-    expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
+    // Tilstanden med bilagsvalgenes ord, citeret af gaten (BB-371).
+    expect(projection.message).toMatch(/^Der er (ikke krav på tabt arbejdsfortjeneste|ingen TAF-perioder) i EO-perioden$/);
+    expect(projection.specific).toBe(true);
   });
 
   it('blokerer TAF-opreguleret-projektionen, når snapshot-data mangler', () => {

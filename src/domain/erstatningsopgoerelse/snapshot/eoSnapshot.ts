@@ -14,6 +14,7 @@ import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
   resolveMidlertidigtEetIngenYdelserIssue,
+  resolveMidlertidigtEetUdenAfgoerelseIssue,
 } from '../helpers/midlertidigtEetTransientInjection';
 import { neutralizeIrrelevantEoInputs } from '../helpers/eoInputRelevance';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
@@ -435,9 +436,14 @@ export const computeEoSnapshot = (args: Readonly<{
       tafRanges: buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato }),
       result: midlertidigtEetSourceResult,
     });
+    const midlertidigtEetUdenAfgoerelseIssue = resolveMidlertidigtEetUdenAfgoerelseIssue({
+      values: parsedEo.data,
+      result: midlertidigtEetSourceResult,
+    });
     const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants([
       ...midlertidigtEetSourceResult.issues,
       ...(midlertidigtEetIngenYdelserIssue === undefined ? [] : [midlertidigtEetIngenYdelserIssue]),
+      ...(midlertidigtEetUdenAfgoerelseIssue === undefined ? [] : [midlertidigtEetUdenAfgoerelseIssue]),
     ]);
     // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
     // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke

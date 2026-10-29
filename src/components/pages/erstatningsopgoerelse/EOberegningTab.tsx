@@ -468,7 +468,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">
-            TAF-krav fordelt på kalenderår
+            TAF fordelt på kalenderår
             <InfoTooltipIcon title="Til brug for skattemyndighedernes fordeling på relevante skatteår" />
           </Typography>
           <Box className="row--label-right-hover__content">

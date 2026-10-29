@@ -8,7 +8,8 @@
  * er blevet dependencies på outputtet.
  *
  * Alle fire deler ÉN projektion og ÉT gate-sæt gennem `context.shared`, så den dyre
- * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst – ikke fire.
+ * `collectAllEoRows`-aggregering kører én gang pr. kildekontekst – ikke fire. Kun når et TAF-dokument er spærret,
+ * danner de tre TAF-dokumenter deres egen variant uden svie/smerte og øvrige krav (`readTafEoSource`).
  */
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
@@ -24,6 +25,11 @@ import {
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 
 import type { DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
+import { canonicalOverride, createCounterfactualInputEvaluation } from '../../inputCore/inputReader';
+import {
+  eoKravPaaOevrigeErstatningskravField,
+  eoKravPaaSvieSmerteGodtgoerelseField,
+} from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { buildMidlertidigtEetInsertSource } from '../erhvervsevnetab/eetImportPort';
 import type { SelectedElements } from '../../document/generators/eo/types';
 import type { MidlertidigtEetAfgoerelseGroup } from './helpers/midlertidigtEetInsertRows';
@@ -93,6 +99,41 @@ const readSharedEoSource = (context: DocumentSourceContext<MineoDocumentGateSett
   };
 };
 
+const TAF_DOCUMENT_KEYS = ['tafFordeltPaaAar', 'tafOpreguleret', 'tafKravGraf'] as const satisfies readonly EoDocumentKey[];
+
+/**
+ * Kilden for de tre TAF-dokumenter: sagen, som den ville se ud, hvis svie/smerte og øvrige krav var «Skjul».
+ *
+ * Ingen af de tre viser svie/smerte eller øvrige krav, men de delte opgørelsens spærring, så en fejl i et af de to
+ * krav spærrede dokumentet til skattemyndighederne (BB-370, udviklerafgørelse 2026-10-29). Varianten er en hel ny
+ * evaluering (`createCounterfactualInputEvaluation`), ikke et filter på fejllisten: de to krav og alt bag dem er
+ * skjult for enhver læser – snapshot, rækker, gate og dokument – så hverken en fejl eller et tal derfra kan nå de
+ * tre dokumenter. TAF afhænger ikke af de to krav, så tallene er de samme som i den indtastede sag.
+ *
+ * Varianten dannes kun, når et TAF-dokument er spærret, og et af kravene er rejst. Ellers er den indtastede sag
+ * allerede svaret, og den dyre projektion køres ikke to gange.
+ */
+const readTafEoSource = (context: DocumentSourceContext<MineoDocumentGateSettings>): SharedEoSource => {
+  const shared = context.shared(readSharedEoSource);
+  const { eoValues } = shared.projection;
+  const harKravAtSkjule = eoValues.kravPaaSvieSmerteGodtgoerelse !== 'Skjul'
+    || eoValues.kravPaaOevrigeErstatningskrav !== 'Skjul';
+  if (!harKravAtSkjule || TAF_DOCUMENT_KEYS.every((key) => shared.gates[key].canDownload)) return shared;
+
+  const evaluation = createCounterfactualInputEvaluation(context.evaluation, [
+    canonicalOverride(eoKravPaaSvieSmerteGodtgoerelseField.bind(), 'Skjul'),
+    canonicalOverride(eoKravPaaOevrigeErstatningskravField.bind(), 'Skjul'),
+  ]);
+  if (evaluation === undefined) return shared;
+  const projection = buildErstatningsopgoerelseReaderProjection(evaluation.reader, {
+    midlertidigtEetInsertSource: buildMidlertidigtEetInsertSource(evaluation),
+  });
+  return { projection, gates: evaluateErstatningsopgoerelseDownloadGates(projection, context.settings) };
+};
+
+/** Test-adgang til TAF-dokumenternes kilde (BB-370). */
+export const __testReadTafEoSource = readTafEoSource;
+
 /**
  * Bilagsvalget, som det gælder for det FRISKE snapshot: sagens gemte valg, hvor hvert dynamisk
  * bilag slås fra, hvis det ikke er tilgængeligt i den aktuelle beregning. Var før `resolveFreshBilag`
@@ -104,6 +145,7 @@ const resolveBilagSelection = (projection: ErstatningsopgoerelseReaderProjection
     skadedatoISO: projection.stamdataValues.skadedato,
     loenudvikling: projection.snapshot.data?.pdfModel.tabtArbejdsfortjeneste.loenudvikling,
     offentligeYdelserUdvikling: projection.snapshot.data?.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling,
+    midlertidigtEetGroups: projection.snapshot.data?.midlertidigtEetGroups,
   });
   const selection: SelectedElements = { ...(projection.eoValues.eoBilagSelection ?? DEFAULT_EO_BILAG_SELECTION) };
   for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
@@ -160,13 +202,14 @@ const blockedFromProjection = blockedProjectionWithSpecificReason;
  */
 const projectEoDocument = <TDocument, TInput>(
   context: DocumentSourceContext<MineoDocumentGateSettings>,
+  source: (context: DocumentSourceContext<MineoDocumentGateSettings>) => SharedEoSource,
   gateKey: EoDocumentKey,
   toDocument: (projection: ErstatningsopgoerelseReaderProjection) =>
     | Readonly<{ kind: 'ok'; document: TDocument }>
     | Readonly<{ kind: 'blocked'; message: string }>,
   toInput: (projection: ErstatningsopgoerelseReaderProjection, document: TDocument) => TInput
 ): DocumentProjectionResult<TInput> => {
-  const { projection, gates } = context.shared(readSharedEoSource);
+  const { projection, gates } = context.shared(source);
   const gate = gates[gateKey];
   if (!gate.canDownload) return blockedFromGate(gate);
 
@@ -197,6 +240,7 @@ export const erstatningsopgoerelseDocumentDefinition: MineoDocumentDefinition<Er
     labels: { documentName: 'erstatningsopgørelse' },
     project: (context) => projectEoDocument(
       context,
+      readSharedEoSource,
       'erstatningsopgoerelse',
       (projection) => eoSnapshotToEoDocument(projection.snapshot),
       (projection, document) => ({
@@ -240,9 +284,10 @@ export const tafFordeltPaaAarDocumentDefinition: MineoDocumentDefinition<TafFord
   defineMineoDocument({
     id: 'taf-fordelt-paa-aar',
     brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
-    labels: { documentName: 'TAF fordelt på år' },
+    labels: { documentName: 'TAF fordelt på kalenderår' },
     project: (context) => projectEoDocument(
       context,
+      readTafEoSource,
       'tafFordeltPaaAar',
       (projection) => eoSnapshotToTafPerYearDocument(projection.snapshot),
       (projection, document) => ({
@@ -278,9 +323,10 @@ export const tafOpreguleretPaaAarDocumentDefinition: MineoDocumentDefinition<Taf
   defineMineoDocument({
     id: 'taf-opreguleret-paa-aar',
     brevhoved: { kind: 'settings-key', key: 'erstatningsopgoerelse' },
-    labels: { documentName: 'TAF opreguleret til beregningsår' },
+    labels: { documentName: 'TAF opreguleret til beregningsåret' },
     project: (context) => projectEoDocument(
       context,
+      readTafEoSource,
       'tafOpreguleret',
       (projection) => eoSnapshotToTafPerYearOpreguleretDocument(projection.snapshot),
       (projection, document) => ({
@@ -323,6 +369,7 @@ export const tafKravGrafDocumentDefinition: MineoDocumentDefinition<TafKravGrafD
     labels: { documentName: 'visuel graf over indtægtsniveau' },
     project: (context) => projectEoDocument(
       context,
+      readTafEoSource,
       'tafKravGraf',
       (projection) => eoSnapshotToTafKravGrafDocument(projection.snapshot),
       (projection, document) => ({

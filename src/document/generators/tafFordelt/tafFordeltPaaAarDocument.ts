@@ -27,7 +27,8 @@ import { addMoneyOre } from '../../../domain/money/money';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
 const NBSP = '\u00A0';
-const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
+// Knap, titel og fil bærer samme navn, så brugeren genfinder filen under det navn, der stod ved knappen (BB-376).
+const FILE_BASE_NAME = 'TAF fordelt på kalenderår';
 const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
@@ -45,7 +46,7 @@ export const generateTafFordeltPaaAarDocument = (
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation } = options.document;
 
-  const titel = 'Tabt arbejdsfortjeneste fordelt på år';
+  const titel = FILE_BASE_NAME;
 
   const generate = defineDocument<void>({
     title: titel,

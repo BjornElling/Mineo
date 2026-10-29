@@ -23,7 +23,10 @@ import {
   roundIncomeBenefitAmountKroner,
 } from '../helpers/indtaegtPerioder';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
-import type { EoInvariant } from './eoSnapshotInvariants';
+import {
+  buildIngenTafIEoPeriodenBlocked,
+  type EoDocumentProjectionBlocked,
+} from './eoSnapshotToTafPerYearDocument';
 import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
@@ -73,7 +76,7 @@ export type TafKravGrafDocument = Readonly<{
 
 export type TafKravGrafDocumentProjection =
   | Readonly<{ kind: 'ok'; document: TafKravGrafDocument }>
-  | Readonly<{ kind: 'blocked'; message: string; invariants: readonly EoInvariant[] }>;
+  | EoDocumentProjectionBlocked;
 
 const SERIES_COLORS = [
   '#2F6B9A',
@@ -444,10 +447,12 @@ export const eoSnapshotToTafKravGrafDocument = (
   if (!presentation || presentation.years.length === 0) {
     // Skeln årsagen: uden TAF-perioder beregnes der slet ingen tabt arbejdsfortjeneste, hvilket er
     // en anden (og hyppigere) situation end at en faktisk TAF-beregning ikke kan fordeles på år.
-    const message = engines.tafNetto.harTafPerioder
-      ? 'Visuel graf over indtægtsniveau kan ikke genereres, fordi TAF ikke kan fordeles på år.'
-      : 'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
-    return { kind: 'blocked', message, invariants: [] };
+    if (!engines.tafNetto.harTafPerioder) return buildIngenTafIEoPeriodenBlocked(snapshot);
+    return {
+      kind: 'blocked',
+      message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi TAF ikke kan fordeles på år.',
+      invariants: [],
+    };
   }
 
   const beregningsperiode = validateIsoRange(

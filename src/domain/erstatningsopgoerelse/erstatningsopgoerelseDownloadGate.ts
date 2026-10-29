@@ -40,16 +40,27 @@ export type ErstatningsopgoerelseDownloadGates = Readonly<Record<EoDocumentKey, 
 
 const FALLBACK_MESSAGE: Record<EoDocumentKey, string> = {
   erstatningsopgoerelse: 'Opgørelsen kan ikke hentes for den aktuelle sag',
-  tafFordeltPaaAar: 'TAF fordelt på år kan ikke genereres for den aktuelle sag',
+  tafFordeltPaaAar: 'TAF fordelt på kalenderår kan ikke genereres for den aktuelle sag',
   tafOpreguleret: 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag',
   tafKravGraf: 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag',
 };
 
+/** Dokumentets navn, som knappen står ved – tooltippens subjekt, når fejlboksen spærrer (BB-370, BB-376). */
+export const EO_DOCUMENT_NAME: Readonly<Record<EoDocumentKey, string>> = {
+  erstatningsopgoerelse: 'Opgørelse',
+  tafFordeltPaaAar: 'TAF fordelt på kalenderår',
+  tafOpreguleret: 'TAF opreguleret til beregningsåret',
+  tafKravGraf: 'Visuel graf over indtægtsniveau',
+};
+
 
 /** Én dokument-projektions gate-relevante status (kun `kind` + `message` aflæses af gaten). */
-const toProjectionStatus = (
-  projection: Readonly<{ kind: 'ok' }> | Readonly<{ kind: 'blocked'; message: string }> | null
-): EoDownloadProjectionStatus => projection;
+type EoDocumentProjectionStatus =
+  | Readonly<{ kind: 'ok' }>
+  | Readonly<{ kind: 'blocked'; message: string; specific?: true }>
+  | null;
+
+const toProjectionStatus = (projection: EoDocumentProjectionStatus): EoDownloadProjectionStatus => projection;
 
 /**
  * Den samlede række-/EET-blokerings-tilstand, som gaten forbruger – udledt af reader-projektionens rekonstruerede
@@ -126,7 +137,7 @@ export const evaluateErstatningsopgoerelseDownloadGates = (
 
   const gateFor = (
     key: EoDocumentKey,
-    documentProjection: Readonly<{ kind: 'ok' }> | Readonly<{ kind: 'blocked'; message: string }> | null
+    documentProjection: EoDocumentProjectionStatus
   ): DocumentDownloadGateResult =>
     evaluateEoDocumentDownloadGate({
       snapshot,
@@ -136,6 +147,7 @@ export const evaluateErstatningsopgoerelseDownloadGates = (
       hasBlockingRows,
       failClosedFallback: FALLBACK_MESSAGE[key],
       gateFallback: FALLBACK_MESSAGE[key],
+      documentName: EO_DOCUMENT_NAME[key],
     });
 
   return {

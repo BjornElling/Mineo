@@ -72,7 +72,7 @@ describe('tafFordeltPaaAar → Word-indhold', () => {
 
     const text = xmlToPlainText(documentXml);
     expect(filename).toMatch(/\.docx$/);
-    expect(text).toContain('Tabt arbejdsfortjeneste fordelt på år');
+    expect(text).toContain('TAF fordelt på kalenderår');
     expect(text).toContain('Erstatningsperiode med tabt arbejdsfortjeneste');
     expect(text).toContain('2024');
     // Fradragslinje + total skal med, ellers er der tabt indhold.

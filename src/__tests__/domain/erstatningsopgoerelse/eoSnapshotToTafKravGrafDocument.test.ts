@@ -942,6 +942,13 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     const snapshot = buildSnapshot();
     return {
       ...snapshot,
+      input: {
+        ...snapshot.input,
+        erstatningsopgoerelse: {
+          ...snapshot.input.erstatningsopgoerelse,
+          kravPaaTabtArbejdsfortjeneste: 'Ja',
+        } as EoSnapshot['input']['erstatningsopgoerelse'],
+      },
       data: {
         ...snapshot.data,
         engines: {
@@ -953,14 +960,14 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     };
   };
 
-  it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder', () => {
+  it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder – med bilagsvalgenes ord (BB-371)', () => {
     const projection = projectFixture(buildSnapshotUdenAarsfordeling(false));
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') throw new Error('forventede blocked');
-    expect(projection.message).toBe(
-      'Dokumentet kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.'
-    );
+    expect(projection.message).toBe('Der er ingen TAF-perioder i EO-perioden');
+    // Beskeden er tilstanden selv, så gaten citerer den frem for «Indtastning mangler».
+    expect(projection.specific).toBe(true);
   });
 
   it('beholder den generiske årsfordelings-besked når der er TAF-perioder men ingen fordeling', () => {
