@@ -11,7 +11,8 @@ import {
   eoSvieSmertePeriodeTilstandField,
   eoSvieSmertePerioderCollection,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { serializeFieldAddress, type CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
 import type { SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { createEmptySvieCommittedRow, createSvieRowId } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
@@ -29,12 +30,14 @@ export type SvieSmerteTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
   /** Rækkeregler projekteret pr. konkret datocelle: ménafgørelsens cutoff og periodeoverlap. */
   cellIssues?: FieldIssueSet;
+  /** Gule ringe pr. celle: en sammenhængende periode med samme tilstand skrevet i to rækker. */
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
 }>;
 
 const createEmptyRow = (id: string): SvieSmertePeriodeRow => createEmptySvieCommittedRow(id);
 const collection = eoSvieSmertePerioderCollection.template as CollectionRef;
 
-const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath, cellIssues }: SvieSmerteTableProps) => {
+const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath, cellIssues, cellWarnings }: SvieSmerteTableProps) => {
   const table = useCollectionTable({
     collection,
     committedRows,
@@ -80,16 +83,20 @@ const SvieSmerteTable = React.memo(({ committedRows, derivedById, saveOrderPath,
           cellIssues?.get(serializeFieldAddress(cell.field.address));
         const fraIssue = issueFor(fraCell);
         const tilIssue = issueFor(tilCell);
+        const fraWarning = cellWarnings?.get(serializeFieldAddress(fraCell.field.address));
+        const tilWarning = cellWarnings?.get(serializeFieldAddress(tilCell.field.address));
         return <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 0 }}
             cell={fraCell}
             {...(fraIssue === undefined ? {} : { collectionRuleIssue: fraIssue })}
+            {...(fraWarning === undefined ? {} : { warning: fraWarning })}
           /></TableCell>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 1 }}
             cell={tilCell}
             {...(tilIssue === undefined ? {} : { collectionRuleIssue: tilIssue })}
+            {...(tilWarning === undefined ? {} : { warning: tilWarning })}
           /></TableCell>
           <TableCell><Typography variant="body1">{committed === undefined ? '' : (derivedById[committed.id]?.antalDage ?? '')}</Typography></TableCell>
           <RowDeleteLaneCell>

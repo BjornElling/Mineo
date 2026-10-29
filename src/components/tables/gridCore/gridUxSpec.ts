@@ -121,32 +121,17 @@ export const GRID_UX_SPEC = {
 
   autofillSuggest: {
     /**
-     * Autofill-suggest (normativ; se `input-field-behavior-contract.md` §1.5).
+     * Autofill-suggest. Reglerne er normative i `input-field-behavior-contract.md` §1.5 og implementeret ÉT
+     * sted, i `src/inputCore/autofill/`; denne post gentager dem ikke, så de ikke kan drive.
      *
-     * Tilvalg pr. TABEL: en tabel uden `AutofillSuggestProvider` har ingen autofill. Aktiv i EO's
-     * løntabeller (én pr. ansættelsesforhold) og i Offentlige ydelser.
-     *
-     * - Ghosten står KUN i den fokuserede, ulåste celle, hvis AFSLUTTEDE værdi er tom, og hvis input er
-     *   tomt. En celle med en afsluttet værdi – eller med en igangværende indtastning – har aldrig en
-     *   ghost, heller ikke mens draften er slettet i en åben editor. Ghosten forsvinder med fokus, også
-     *   når fokus forlader tabellen.
-     * - Mønstret dannes af de udfyldte celler i SAMME kolonne i rækkerne OVER cellen, i visningsorden.
-     *   To prøver er nok. Tomme, delvise og fejlbehæftede celler springes over.
-     * - Enter indsætter ghosten gennem den normale settle-vej og beholder fokus i cellen. Accepten
-     *   rydder et eventuelt Tab-anker; næste almindelige navigation starter derfor i den samme celle.
-     *   Uden ghost er Enter uændret. Shift+Enter accepterer aldrig.
-     *   Uden ghost er Enter uændret. Shift+Enter accepterer aldrig.
-     * - Datoer, uger og måneder krydser årsskiftet. Beløb gør IKKE: falder rækkens periodestart i et nyt
-     *   kalenderår, foreslås intet beløb.
-     * - Afledte kolonner har ingen autofill. Dropdown-celler har det heller ikke, bortset fra Offentlige
-     *   ydelsers Ydelsestype: den kan kun gentage et aktivt, valgbart katalogvalg, og et klik åbner stadig
-     *   menuen uden stiltiende valg.
+     * Tilvalg pr. TABEL: en tabel uden `AutofillSuggestProvider` har ingen autofill. Aktiv i løntabellerne
+     * (Årsløn og EO's ansættelsesforhold), Offentlige ydelser og renteberegningens kravtabel (Renteberegning
+     * og MinProcesrente).
      */
     optInPerTable: true,
     onlyInFocusedEmptyCell: true,
     minimumSamples: 2,
     enterAcceptsAndKeepsFocus: true,
-    amountsStopAtCalendarYearChange: true,
   },
 
   rows: {

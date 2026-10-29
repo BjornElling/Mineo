@@ -12,6 +12,7 @@ import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/va
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
 import { resolveSvieSmerteCutoffDate } from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
+import { resolveSvieSmerteSammenhaengendePerioder } from '../erstatningsopgoerelse/validation/sammenhaengendePerioderAdvarsler';
 import { mergeDateRanges } from '../erstatningsopgoerelse/engines/isoRangeAlgebra';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
@@ -177,6 +178,22 @@ export const buildEoSvieSmerteRows = (
         });
       }
     });
+  }
+
+  // En sammenhængende periode med samme tilstand skrevet i to rækker: ikke-blokerende, samme tekst som de
+  // gule ringe.
+  if (periodeErSynlig) {
+    for (const advarsel of resolveSvieSmerteSammenhaengendePerioder(values)) {
+      rows.push({
+        id: `sviesmerte.sammenhaengende.${advarsel.rowId}`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (${advarsel.summaryMessage})`,
+        status: 'warning',
+        message: advarsel.summaryMessage,
+        summaryDisplay: 'messageOnly',
+        focusTarget: { kind: 'fieldAddress', address: advarsel.focusField.address },
+      });
+    }
   }
 
   const harPeriodeFejl = periodeFejlBeskeder.length > 0;

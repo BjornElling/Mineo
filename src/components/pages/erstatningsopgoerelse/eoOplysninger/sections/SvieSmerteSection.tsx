@@ -42,6 +42,7 @@ export default function SvieSmerteSection() {
     values,
     svie,
     svieSmerteCellIssues,
+    svieSmerteCellWarnings,
   } = useEoOplysningerVm();
   // Gul ring ved feltet, ikke kun en linje i boksen på Beregning-fanen: brugeren står HER og taster
   // beløbet, og et beløb over maksimum gør hele kravet til 0 (BB-219, samme afgørelse som BB-207).
@@ -101,6 +102,7 @@ export default function SvieSmerteSection() {
                   derivedById={svie.derivedById}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                   cellIssues={svieSmerteCellIssues}
+                  cellWarnings={svieSmerteCellWarnings}
                 />
 
                 <Box className="row--label-right-hover">

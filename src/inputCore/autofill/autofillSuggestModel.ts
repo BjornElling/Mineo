@@ -22,6 +22,7 @@ export type AutofillSampleValue =
   | Readonly<{ kind: 'monthOfYear'; month: number }>
   | Readonly<{ kind: 'year'; year: number }>
   | Readonly<{ kind: 'amount'; value: number }>
+  | Readonly<{ kind: 'integer'; value: number }>
   | Readonly<{ kind: 'choice'; value: string }>;
 
 export type AutofillColumnKind = AutofillSampleValue['kind'];
@@ -90,15 +91,3 @@ export type AutofillSuggestModel = Readonly<{
   rowIds: readonly string[];
   columns: readonly AutofillColumn[];
 }>;
-
-/**
- * Den tomme model: ingen rækker, ingen kolonner, ingen forslag.
- *
- * Findes for de tabeller, hvor autofill er et TILVALG pr. kaldssted – løntabellen renderes både på
- * Årsløn og under hvert af EO's ansættelsesforhold, og kun EO's udgave har funktionen slået til.
- * Alternativet – at udelade provideren i den ene gren – ville betyde to renderveje for samme tabel.
- */
-export const EMPTY_AUTOFILL_SUGGEST_MODEL: AutofillSuggestModel = Object.freeze({
-  rowIds: Object.freeze([]),
-  columns: Object.freeze([]),
-});

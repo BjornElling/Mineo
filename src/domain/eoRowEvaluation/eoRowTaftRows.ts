@@ -37,6 +37,7 @@ import {
   harTafPeriodeIngenArbejdsdage,
   TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE,
 } from '../erstatningsopgoerelse/validation/tafRowRules';
+import { resolveTafSammenhaengendePerioder } from '../erstatningsopgoerelse/validation/sammenhaengendePerioderAdvarsler';
 
 const resolveFolkepensionsdato = (
   fodselsdato: ISODateString | undefined,
@@ -302,6 +303,19 @@ export const buildEoTaftRows = (
     }
 
   });
+
+  // En sammenhængende periode skrevet i to rækker: ikke-blokerende, samme tekst som de gule ringe.
+  for (const advarsel of resolveTafSammenhaengendePerioder(values)) {
+    rows.push({
+      id: `taf.sammenhaengende.${advarsel.rowId}`,
+      label: 'Advarsel',
+      displayValue: `Advarsel (${advarsel.summaryMessage})`,
+      status: 'warning',
+      message: advarsel.summaryMessage,
+      summaryDisplay: 'messageOnly',
+      focusTarget: { kind: 'fieldAddress', address: advarsel.focusField.address },
+    });
+  }
 
   // 2) Ferieperiode-rækker fra tabellen
   // Ferieperiodens linje samler rækkens røde celler (vinduet og overlappet projekteres til cellerne i

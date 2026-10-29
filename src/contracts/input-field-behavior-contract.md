@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-10-24 (BB-342: TAF-afskæringerne er inkluderende, og felt-/rækkebeskederne siger «på eller efter»; kontrolleret mod `tafPeriodConstraints.ts`, `svieSmerteConstraints.ts` og de tilhørende grænsetests. Tidligere 2026-10-02: §2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
+**Senest verificeret mod kode:** 2026-10-29 (§1.5: hele kalendermåneder måles i måneder, autofill også på Årsløn og renteberegningen; §5.1: sammenhængende perioder giver gul advarsel; kontrolleret mod `autofillSuggestEngine.ts` og `sammenhaengendePerioderAdvarsler.ts`. Tidligere 2026-10-24: BB-342: TAF-afskæringerne er inkluderende, og felt-/rækkebeskederne siger «på eller efter»; kontrolleret mod `tafPeriodConstraints.ts`, `svieSmerteConstraints.ts` og de tilhørende grænsetests. Tidligere 2026-10-02: §2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
 revideret efter gennemgang af brugernes forventninger og fejlskærmbilleder: forslag kræver to foregående
 rækker, periodemønstre begrænses til faste uge- og månedsintervaller, sammenhængende fra-/til-perioder
 følges ad, og beløb gentages kun efter to ens værdier, med de beskrevne periode- og grænsevilkår.
@@ -267,7 +267,9 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 
 ### 1.5 Autofill-suggest i tabelceller
 
-Autofill er aktiv i erstatningsopgørelsens løntabeller og Offentlige ydelsers ydelsestabel. Forslaget er
+Autofill er aktiv i løntabellerne (Årsløn og erstatningsopgørelsens ansættelsesforhold), Offentlige ydelsers
+ydelsestabel og renteberegningens kravtabel (Renteberegning og MinProcesrente). Reglerne er de samme i alle
+tabeller og implementeret ét sted. Forslaget er
 kun en synlig ghost i den fokuserede, tomme celle. Enter indsætter den viste værdi; øvrig navigation og
 accept følger reglerne nedenfor og `keyboard-navigation.md`.
 
@@ -311,7 +313,11 @@ næste fra-dato ikke falde inde i den seneste periode, som 23-05 efter en period
   identiske værdier. Udtryk sammenlignes på deres canonical talværdi.
 - Hvis målrækkens kendte indtjeningsperiode er længere end en af perioderne, der bar de to ens beløb,
   vises beløbet ikke. Det forhindrer eksempelvis, at samme total foreslås for fem uger efter to
-  fireugersperioder. Hvis målrækkens periode endnu ikke er udfyldt, kan denne sammenligning ikke foretages.
+  fireugersperioder. Er alle tre perioder hele kalendermåneder (fx 01-04 til 30-04 eller 15-01 til 14-02),
+  måles de i måneder, så april efter januar og februar ikke tæller som længere; ellers måles i kalenderdage.
+  Hvis målrækkens periode endnu ikke er udfyldt, kan denne sammenligning ikke foretages.
+- Et beløb uden tilknyttet periode (renteberegningens krav) og et heltal (tillægstiden) gentages kun, når de
+  to foregående værdier er ens.
 - Ved en periode, der krydser et årsskifte eller grænser ved 31. december/1. januar eller ved
   28./29. februar/1. marts, må forskellige beløb over grænsen foreslå den seneste værdi. Både de to
   beløbsceller og periodens relevante datoer skal være brugbare. Dette dækker forventelige lønændringer
@@ -908,6 +914,9 @@ bærende regel, og nedenstående er dens feltspecifikke følger.
 - En dato i en Erhvervssygdom-række må ligge før anmeldelsesdatoen efter den fælles særregel for sådanne sager;
   anmeldelsesdatoen er ikke i sig selv en nedre grænse. De øvrige aktive systemgrænser gælder fortsat.
 - Overlap mellem perioder giver rød markering af de involverede datofelter og konkret overlap-tooltip.
+- To perioder med samme tilstand, hvor den ene begynder dagen efter, at den anden slutter, giver gul ring på
+  de to datoer, der mødes, og en ikke-blokerende linje i «Fejl og advarsler»: perioden kan skrives i én
+  række. Forskellig tilstand giver ingen advarsel. TAF-perioderne følger samme regel uden tilstandskravet.
 
 ### 5.2 `Fra-dato`
 

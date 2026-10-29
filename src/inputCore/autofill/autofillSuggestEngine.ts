@@ -16,7 +16,7 @@ import type {
   AutofillSuggestModel,
   AutofillSuggestion,
 } from './autofillSuggestModel';
-import { addDays, createDate, getDaysInMonth, parseWeekString } from '../../utils/dateUtils';
+import { addDays, addMonths, createDate, getDaysInMonth, parseWeekString } from '../../utils/dateUtils';
 import { diffUtcDays } from '../../utils/utcDayMath';
 import { dateToISO, parseISODate } from '../../types/branded';
 
@@ -162,7 +162,27 @@ const pickWeek = (sample: AutofillSampleValue): WeekAutofillValue | null =>
   sample.kind === 'week' ? { week: sample.week, year: sample.year } : null;
 const pickMonth = (sample: AutofillSampleValue) => (sample.kind === 'monthOfYear' ? sample.month : null);
 
-type PeriodSpan = Readonly<{ start: Date; end: Date; length: number }>;
+/**
+ * En beløbsrækkes dækkede periode. `days` er kalenderdagene; `months` er antallet af HELE kalendermåneder,
+ * når perioden er netop det (01-04 til 30-04, 15-01 til 14-03), ellers `null`.
+ */
+type PeriodSpan = Readonly<{ start: Date; end: Date; days: number; months: number | null }>;
+
+/**
+ * Antal hele kalendermåneder fra `start` til og med `end`, eller `null`, hvis perioden ikke slutter dagen før
+ * samme dato et helt antal måneder senere. `addMonths` clamper til månedens sidste dag, så formen holder
+ * gennem februar.
+ */
+const wholeCalendarMonths = (start: Date, end: Date): number | null => {
+  const monthDiff = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth();
+  for (const months of [monthDiff, monthDiff + 1]) {
+    if (months >= 1 && addDays(addMonths(start, months), -1).getTime() === end.getTime()) return months;
+  }
+  return null;
+};
+
+const spanOf = (start: Date, end: Date): PeriodSpan =>
+  ({ start, end, days: diffUtcDays(start, end) + 1, months: wholeCalendarMonths(start, end) });
 
 const periodSpanAt = (model: AutofillSuggestModel, column: AutofillColumn, rowIndex: number): PeriodSpan | null => {
   const indices = column.amountPeriodColIndices;
@@ -177,13 +197,13 @@ const periodSpanAt = (model: AutofillSuggestModel, column: AutofillColumn, rowIn
     const start = parseISODate(from.iso);
     const end = parseISODate(to.iso);
     if (start === undefined || end === undefined || end.getTime() < start.getTime()) return null;
-    return { start, end, length: diffUtcDays(start, end) + 1 };
+    return spanOf(start, end);
   }
   if (from.kind === 'week' && to.kind === 'week') {
     const startInterval = parseWeekString(`${String(from.week)}/${String(from.year)}`);
     const endInterval = parseWeekString(`${String(to.week)}/${String(to.year)}`);
     if (startInterval === null || endInterval === null || endInterval.end.getTime() < startInterval.start.getTime()) return null;
-    return { start: startInterval.start, end: endInterval.end, length: diffUtcDays(startInterval.start, endInterval.end) / 7 + 1 };
+    return spanOf(startInterval.start, endInterval.end);
   }
   if (from.kind === 'monthOfYear' && to.kind === 'year') {
     const monthColumn = fromColumn;
@@ -192,9 +212,7 @@ const periodSpanAt = (model: AutofillSuggestModel, column: AutofillColumn, rowIn
     const linkedMonth = monthColumn.samples[rowIndex];
     const linkedYear = yearColumn.samples[rowIndex];
     if (linkedMonth?.kind !== 'monthOfYear' || linkedYear?.kind !== 'year') return null;
-    const start = createDate(linkedYear.year, linkedMonth.month - 1, 1);
-    const end = createDate(linkedYear.year, linkedMonth.month, 0);
-    return { start, end, length: 1 };
+    return spanOf(createDate(linkedYear.year, linkedMonth.month - 1, 1), createDate(linkedYear.year, linkedMonth.month, 0));
   }
   return null;
 };
@@ -214,12 +232,23 @@ const crossesSalaryIncreaseBoundary = (span: PeriodSpan): boolean => {
   return false;
 };
 
+/**
+ * Er målrækkens periode længere end en af de to, der bar de ens beløb?
+ *
+ * Er alle tre perioder hele kalendermåneder, måles de i MÅNEDER. Ellers ville April (30 dage) efter januar
+ * (31) og februar (28) tælle som «længere» og skjule et månedsbeløb, der står to gange lige over – netop det
+ * mønster, gentagelsen er til for. Andre perioder måles i kalenderdage, så fem uger efter to fireugersperioder
+ * stadig undertrykkes.
+ */
 const isCurrentPeriodLonger = (model: AutofillSuggestModel, column: AutofillColumn, rowIndex: number): boolean => {
   const current = periodSpanAt(model, column, rowIndex);
   const previous = periodSpanAt(model, column, rowIndex - 1);
   const beforePrevious = periodSpanAt(model, column, rowIndex - 2);
-  return current !== null && previous !== null && beforePrevious !== null
-    && current.length > Math.min(previous.length, beforePrevious.length);
+  if (current === null || previous === null || beforePrevious === null) return false;
+  if (current.months !== null && previous.months !== null && beforePrevious.months !== null) {
+    return current.months > Math.min(previous.months, beforePrevious.months);
+  }
+  return current.days > Math.min(previous.days, beforePrevious.days);
 };
 
 // Uens beløb må kun springe gentagelseskravet over, når perioderne viser en forventelig satsgrænse.
@@ -245,13 +274,13 @@ export const projectAutofillColumnValue = (
   const column = columnAt(model, colIndex);
   if (column === null || rowIndex < 0) return null;
 
-  // Regel 3: både beløb og katalogvalg kræver to ens værdier. Beløb har desuden periodelængde- og
+  // Regel 3: beløb, heltal og katalogvalg kræver to ens værdier. Beløb har desuden periodelængde- og
   // grænsevilkår; ét udfyldt felt over målet kan ikke begrunde en gentagelse.
-  if (column.kind === 'amount' || column.kind === 'choice') {
+  if (column.kind === 'amount' || column.kind === 'integer' || column.kind === 'choice') {
     const above = column.samples[rowIndex - 1];
     const before = column.samples[rowIndex - 2];
     if (above === undefined || above.kind !== column.kind || before === undefined || before.kind !== column.kind) return null;
-    if (column.kind === 'choice') return before.value === above.value ? above : null;
+    if (column.kind !== 'amount') return before.value === above.value ? above : null;
     if (before.value === above.value) return isCurrentPeriodLonger(model, column, rowIndex) ? null : above;
     return hasSalaryIncreaseBoundary(model, column, rowIndex) ? above : null;
   }

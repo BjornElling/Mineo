@@ -168,6 +168,22 @@ export const amountAutofillColumn = (
 });
 
 /**
+ * Heltalskolonne (renteberegningens tillægstid). Den gentages på samme vilkår som et beløb uden periode: to
+ * ens værdier lige over målet. Prøven skal være et sikkert heltal; et tolerant load kan bære andet.
+ */
+export const integerAutofillColumn = (
+  colIndex: number,
+  descriptor: FieldDescriptor<number | undefined>,
+  values: readonly (number | undefined)[]
+): AutofillColumn => Object.freeze({
+  colIndex,
+  kind: 'integer' as const,
+  samples: Object.freeze(values.map((value): AutofillSampleValue | undefined =>
+    value === undefined || !Number.isSafeInteger(value) ? undefined : { kind: 'integer', value })),
+  format: (value) => (value.kind === 'integer' ? suggestionFromCodec(descriptor.codec, value.value) : null),
+});
+
+/**
  * Dropdown-kolonne med et lukket, kendt katalog. Ukendte eller historiske værdier bliver aldrig prøver:
  * autofill må ikke gøre en gammel værdi, som brugeren ikke længere kan vælge, til et nyt valg.
  */

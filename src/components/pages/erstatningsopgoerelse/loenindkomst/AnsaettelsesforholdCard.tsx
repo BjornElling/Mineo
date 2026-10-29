@@ -623,7 +623,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         cellWarnings={tableCellWarningsByAfId.get(af.id)}
         useSmallFont={true}
         saveOrderPath={`erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.${af.id}.indtaegtsoplysningerTableData`}
-        autofillSuggest
         // route + tabKey er eksplicit navigation-metadata (§3.7); tabellen bor på Lønindkomstfanen.
         locationNav={{ route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.LOENINDKOMST }}
       />

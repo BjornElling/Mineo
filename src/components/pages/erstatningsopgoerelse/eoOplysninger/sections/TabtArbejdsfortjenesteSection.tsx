@@ -21,6 +21,7 @@ export default function TabtArbejdsfortjenesteSection() {
   const {
     values,
     tafDerived,
+    tafCellWarnings,
     ferieFeriedageById,
     harTafFerieRamme,
     tafCellIssues,
@@ -57,7 +58,7 @@ export default function TabtArbejdsfortjenesteSection() {
               saveOrderPath="erstatningsopgoerelse.tafPerioder"
               cellIssues={tafCellIssues}
               visLoseFeriedage={visTafLoseFeriedage}
-              ingenArbejdsdageById={tafDerived.ingenArbejdsdageById}
+              cellWarnings={tafCellWarnings}
             />
 
             <Typography className="row--subheading">Evt. ferie i perioden:</Typography>

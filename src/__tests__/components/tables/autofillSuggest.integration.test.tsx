@@ -307,7 +307,7 @@ const MAANED_LOENRAEKKER = [
   { id: 'loen-2', col0_maaned: '12', col1_maaned: '2025', col2: amount(30000) },
 ] as const;
 
-const renderLoentabel = (autofillSuggest: boolean): void => {
+const renderLoentabel = (): void => {
   const rows = MAANED_LOENRAEKKER.map((row) => ({ ...row }));
   hydrate({
     aarsloen: { ...createAarsloenInitialValues(), loenperiode: 'maaned', tableData: rows },
@@ -318,7 +318,6 @@ const renderLoentabel = (autofillSuggest: boolean): void => {
       loenperiode="maaned"
       satser={{}}
       locationNav={{ route: APP_ROUTES.aarsloen, tabKey: null }}
-      {...(autofillSuggest ? { autofillSuggest: true } : {})}
     />
   );
 };
@@ -326,14 +325,8 @@ const renderLoentabel = (autofillSuggest: boolean): void => {
 describe('Autofill-suggest i løntabellen', () => {
   afterEach(cleanup);
 
-  it('er slået FRA, når kaldsstedet ikke tilvælger den', async () => {
-    renderLoentabel(false);
-    await focusTableElement(cellInput(2, 'Måned'));
-    expect(cellInput(2, 'Måned')).toHaveAttribute('placeholder', 'mm');
-  });
-
-  it('foreslår januar og det nye årstal efter december, når den er tilvalgt', async () => {
-    renderLoentabel(true);
+  it('foreslår januar og det nye årstal efter december i Årsløns tabel', async () => {
+    renderLoentabel();
 
     await focusTableElement(cellInput(2, 'Måned'));
     expect(cellInput(2, 'Måned')).toHaveAttribute('placeholder', '1');
@@ -347,7 +340,7 @@ describe('Autofill-suggest i løntabellen', () => {
   });
 
   it('foreslår måned, år og lønbeløb hen over årsskiftet', async () => {
-    renderLoentabel(true);
+    renderLoentabel();
     // Alle tre celler ovenover er udfyldte, så alle tre har en ghost. Måneden wrapper til januar, og
     // årstallet følger med til 2026 – det er kravet «altid skifte af årstal ved årsskiftet».
     await focusTableElement(cellInput(2, 'Måned'));
@@ -373,7 +366,6 @@ describe('Autofill-suggest i løntabellen', () => {
         loenperiode="maaned"
         satser={{}}
         locationNav={{ route: APP_ROUTES.aarsloen, tabKey: null }}
-        autofillSuggest
       />
     );
 

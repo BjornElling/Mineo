@@ -3,9 +3,11 @@ import { buildStandardLoenAutofillModel } from '../../../components/tables/autof
 import { createEoStandardLoenFieldSet } from '../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import { isAmountExpressionDraftAllowed } from '../../../utils/numericDraftAdmission';
 import { resolveAutofillSuggestion } from '../../../inputCore/autofill/autofillSuggestEngine';
-import { EMPTY_AUTOFILL_SUGGEST_MODEL } from '../../../inputCore/autofill/autofillSuggestModel';
 import { createEmptyStandardLoenRow } from '../../../domain/aarsloen/standardLoenRowInitialValues';
-import type { OffentligeYdelserRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
+import type { OffentligeYdelserRow, RentekravRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
+import { buildRentekravAutofillModel } from '../../../components/tables/autofill/rentekravAutofillModel';
+import { createEmptyRentekravCommittedRow } from '../../../domain/renteberegning/rentekravTableModel';
+import type { RowId } from '../../../utils/rowId';
 import { toISODateString } from '../../../types/branded';
 
 // Motoren er ren, men prøves gennem de RIGTIGE modelbyggere og de RIGTIGE produktionsdescriptorer.
@@ -62,7 +64,7 @@ const loenModel = (
 describe('resolveAutofillSuggestion', () => {
   describe('grundregler', () => {
     it('giver intet forslag uden model', () => {
-      expect(resolveAutofillSuggestion(EMPTY_AUTOFILL_SUGGEST_MODEL, 'ny', 0)).toBeNull();
+      expect(resolveAutofillSuggestion({ rowIds: [], columns: [] }, 'ny', 0)).toBeNull();
     });
 
     it('giver intet forslag for en ukendt række eller kolonne', () => {
@@ -202,6 +204,48 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(mixedLengths, 'r4', YDELSE_COL.ydelse)).toBeNull();
     });
 
+    it('måler hele kalendermåneder i måneder, så april ikke er «længere» end januar og februar', () => {
+      // Udviklerens skærmbillede 2026-10-29: 30 dage i april er flere end februars 28, men begge er én måned.
+      const model = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-01-01'), tilDato: iso('2026-01-31'), ydelse: amount(12345) }),
+        ydelseRow('r2', { fraDato: iso('2026-02-01'), tilDato: iso('2026-02-28'), ydelse: amount(12345) }),
+        ydelseRow('r3', { fraDato: iso('2026-03-01'), tilDato: iso('2026-03-31'), ydelse: amount(12345) }),
+        ydelseRow('r4', { fraDato: iso('2026-04-01'), tilDato: iso('2026-04-30') }),
+      ], []);
+      expect(resolveAutofillSuggestion(model, 'r4', YDELSE_COL.ydelse)?.displayText).toBe('12.345,00');
+
+      // Også forskudte måneder (15. til 14.) og en løntabel i dage.
+      const forskudt = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-01-15'), tilDato: iso('2026-02-14'), ydelse: amount(500) }),
+        ydelseRow('r2', { fraDato: iso('2026-02-15'), tilDato: iso('2026-03-14'), ydelse: amount(500) }),
+        ydelseRow('r3', { fraDato: iso('2026-03-15'), tilDato: iso('2026-04-14') }),
+      ], []);
+      expect(resolveAutofillSuggestion(forskudt, 'r3', YDELSE_COL.ydelse)?.displayText).toBe('500,00');
+
+      const dagsloen = loenModel([
+        loenRow('l1', { col0_dag: iso('2026-01-01'), col1_dag: iso('2026-01-31'), col2: amount(30000) }),
+        loenRow('l2', { col0_dag: iso('2026-02-01'), col1_dag: iso('2026-02-28'), col2: amount(30000) }),
+        loenRow('l3', { col0_dag: iso('2026-03-01'), col1_dag: iso('2026-03-31') }),
+      ], { loenperiode: 'dag', trailingRowIds: [] });
+      expect(resolveAutofillSuggestion(dagsloen, 'l3', LOEN_COL.col2)?.displayText).toBe('30.000,00');
+    });
+
+    it('undertrykker stadig to måneder efter to enkeltmåneder og en måned efter to fireugersperioder', () => {
+      const toMaaneder = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-01-01'), tilDato: iso('2026-01-31'), ydelse: amount(12345) }),
+        ydelseRow('r2', { fraDato: iso('2026-02-01'), tilDato: iso('2026-02-28'), ydelse: amount(12345) }),
+        ydelseRow('r3', { fraDato: iso('2026-03-01'), tilDato: iso('2026-04-30') }),
+      ], []);
+      expect(resolveAutofillSuggestion(toMaaneder, 'r3', YDELSE_COL.ydelse)).toBeNull();
+
+      const efterFireuger = ydelserModel([
+        ydelseRow('r1', { fraDato: iso('2026-01-05'), tilDato: iso('2026-02-01'), ydelse: amount(12345) }),
+        ydelseRow('r2', { fraDato: iso('2026-02-02'), tilDato: iso('2026-03-01'), ydelse: amount(12345) }),
+        ydelseRow('r3', { fraDato: iso('2026-03-02'), tilDato: iso('2026-04-01') }),
+      ], []);
+      expect(resolveAutofillSuggestion(efterFireuger, 'r3', YDELSE_COL.ydelse)).toBeNull();
+    });
+
     it('bruger seneste beløb ved grænsen til 1. marts, også i skudår', () => {
       const model = ydelserModel([
         ydelseRow('r1', { fraDato: iso('2024-02-01'), tilDato: iso('2024-02-28'), ydelse: amount(3000) }),
@@ -237,6 +281,38 @@ describe('resolveAutofillSuggestion', () => {
         ]);
         expect(resolveAutofillSuggestion(model, 'ny', YDELSE_COL.ydelse)).toBeNull();
       }
+    });
+  });
+
+  describe('renteberegningens kravtabel', () => {
+    const RENTE_COL = { belob: 0, renterFra: 1, tillaegstid: 2 } as const;
+    const renteRow = (id: string, row: Partial<RentekravRow>): RentekravRow => ({
+      ...createEmptyRentekravCommittedRow(id as RowId),
+      ...row,
+    });
+    const renteModel = (rows: readonly RentekravRow[]) => buildRentekravAutofillModel(
+      [...rows.map((row) => row.id), 'ny'],
+      new Map(rows.map((row) => [row.id, row]))
+    );
+
+    it('foreslår næste månedlige forfaldsdato, et gentaget beløb og en gentaget tillægstid', () => {
+      const model = renteModel([
+        renteRow('k1', { belob: amount(8000), renterFra: iso('2026-01-01'), tillaegstid: 30 }),
+        renteRow('k2', { belob: amount(8000), renterFra: iso('2026-02-01'), tillaegstid: 30 }),
+      ]);
+      expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.renterFra)?.displayText).toBe('01-03-2026');
+      expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.belob)?.displayText).toBe('8.000,00');
+      expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.tillaegstid)).toEqual({ displayText: '30', rawText: '30' });
+    });
+
+    it('gentager ikke forskellige beløb eller tillægstider', () => {
+      const model = renteModel([
+        renteRow('k1', { belob: amount(8000), renterFra: iso('2025-12-01'), tillaegstid: 30 }),
+        renteRow('k2', { belob: amount(8200), renterFra: iso('2026-01-01'), tillaegstid: 14 }),
+      ]);
+      // Uden periode findes ingen lønændringsgrænse, der kunne lade et nyt beløb gå videre.
+      expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.belob)).toBeNull();
+      expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.tillaegstid)).toBeNull();
     });
   });
 

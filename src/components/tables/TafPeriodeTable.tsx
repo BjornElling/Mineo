@@ -10,13 +10,10 @@ import {
   eoTafPeriodeTilField,
   eoTafPerioderCollection,
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
-import { serializeFieldAddress, type CollectionRef } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type CollectionRef, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldIssue, FieldIssueSet } from '../../inputCore/inputIssue';
-import { createFieldWarning } from '../../inputCore/fieldWarning';
-import {
-  TAF_LOSE_FERIEDAGE_LABEL,
-  TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE,
-} from '../../domain/erstatningsopgoerelse/validation/tafRowRules';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
+import { TAF_LOSE_FERIEDAGE_LABEL } from '../../domain/erstatningsopgoerelse/validation/tafRowRules';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import { createEmptyTafCommittedRow, createTafRowId } from '../../domain/erstatningsopgoerelse/tables/tafTableModel';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
@@ -42,8 +39,11 @@ export type TafPeriodeTableProps = Readonly<{
    * (BB-247). Skjult er ikke udfyldt: værdierne bevares og kommer tilbage, hvis enheden skifter.
    */
   visLoseFeriedage: boolean;
-  /** Rækker, hvis periode inden for opgørelsen ikke har én arbejdsdag – gul ring (BB-257). */
-  ingenArbejdsdageById?: Readonly<Record<string, boolean>>;
+  /**
+   * Gule ringe pr. celle: en periode uden arbejdsdage inden for opgørelsen (BB-257) og en sammenhængende
+   * periode skrevet i to rækker. Ikke-blokerende.
+   */
+  cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
 }>;
 
 const createEmptyRow = (id: string): TafPeriodeRow => createEmptyTafCommittedRow(id);
@@ -56,7 +56,7 @@ const TafPeriodeTable = React.memo(({
   saveOrderPath,
   cellIssues,
   visLoseFeriedage,
-  ingenArbejdsdageById,
+  cellWarnings,
 }: TafPeriodeTableProps) => {
   const columns = React.useMemo(() => [
     { colId: 'fra', getSortValue: (row: TafPeriodeRow) => row.fra },
@@ -111,21 +111,20 @@ const TafPeriodeTable = React.memo(({
         const fraIssue = issueFor(fraCell);
         const tilIssue = issueFor(tilCell);
         const loseIssue = issueFor(loseCell);
-        const ingenArbejdsdage = committed !== undefined && ingenArbejdsdageById?.[committed.id] === true
-          ? createFieldWarning(TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE)
-          : undefined;
+        const fraWarning = cellWarnings?.get(serializeFieldAddress(fraCell.field.address));
+        const tilWarning = cellWarnings?.get(serializeFieldAddress(tilCell.field.address));
         return <TableRow key={row.rowId} data-mineo-row-id={row.rowId}>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 0 }}
             cell={fraCell}
             {...(fraIssue === undefined ? {} : { collectionRuleIssue: fraIssue })}
-            {...(ingenArbejdsdage === undefined ? {} : { warning: ingenArbejdsdage })}
+            {...(fraWarning === undefined ? {} : { warning: fraWarning })}
           /></TableCell>
           <TableCell><GridDateCell
             gridCell={{ rowId: row.rowId, colIndex: 1 }}
             cell={tilCell}
             {...(tilIssue === undefined ? {} : { collectionRuleIssue: tilIssue })}
-            {...(ingenArbejdsdage === undefined ? {} : { warning: ingenArbejdsdage })}
+            {...(tilWarning === undefined ? {} : { warning: tilWarning })}
           /></TableCell>
           {visLoseFeriedage ? (
             <TableCell><GridIntegerCell

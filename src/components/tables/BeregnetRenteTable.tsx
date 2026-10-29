@@ -45,6 +45,8 @@ import {
   rentekravEnhedField,
 } from '../../inputCore/catalog/renteberegningDescriptors';
 import type { TillaegstidEnhed } from '../../schemas/formSchemas/enumSchemas';
+import { AutofillSuggestProvider } from '../../inputCore/react/autofillSuggestContext';
+import { buildRentekravAutofillModel } from './autofill/rentekravAutofillModel';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 
 // BeregnetRenteTable: Rækkeinfrastruktur, celleværdier og
@@ -304,7 +306,11 @@ const BeregnetRenteTable = React.memo(
       return values.length > 1 ? sumRoundedValues(values, round2) : null;
     }, [committedRows, rowProjections, table]);
 
+    // Samme visningsorden som rækkerne nedenfor; bygget pr. render af samme grund som i `StandardLoenTable`.
+    const autofillModel = buildRentekravAutofillModel(renderRows.map((row) => row.rowId), committedById);
+
     return (
+      <AutofillSuggestProvider model={autofillModel}>
       <StandardLooseTable
         immediateEditing={isMobile}
         sx={{
@@ -410,6 +416,7 @@ const BeregnetRenteTable = React.memo(
           </TableFooter>
         )}
       </StandardLooseTable>
+      </AutofillSuggestProvider>
     );
   }
 );

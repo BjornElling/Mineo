@@ -21,7 +21,14 @@ import {
   resolveOevrigeFravaersdageAdvarsel,
   resolveOevrigtFravaerAarsagAdvarsel,
 } from '../../../../domain/erstatningsopgoerelse/validation/beregningsgrundlagFeltAdvarsler';
-import { createFieldWarning, type FieldWarning } from '../../../../inputCore/fieldWarning';
+import { buildFieldWarningMap, createFieldWarning, type FieldWarning } from '../../../../inputCore/fieldWarning';
+import { toAnyFieldRef } from '../../../../inputCore/fieldDescriptor';
+import { eoTafPeriodeFraField, eoTafPeriodeTilField } from '../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE } from '../../../../domain/erstatningsopgoerelse/validation/tafRowRules';
+import {
+  resolveSvieSmerteSammenhaengendePerioder,
+  resolveTafSammenhaengendePerioder,
+} from '../../../../domain/erstatningsopgoerelse/validation/sammenhaengendePerioderAdvarsler';
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
@@ -102,6 +109,21 @@ export function useEoOplysningerViewModel(
     })),
   }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
+  // Periodetabellernes gule ringe: en TAF-periode uden arbejdsdage (BB-257) og en sammenhængende periode
+  // skrevet i to rækker – samme regler og tekster som linjerne i «Fejl og advarsler».
+  const tafCellWarnings = React.useMemo(() => buildFieldWarningMap([
+    ...values.tafPerioder
+      .filter((row) => tafDerived.ingenArbejdsdageById[row.id] === true)
+      .map((row) => ({
+        cells: [toAnyFieldRef(eoTafPeriodeFraField.bind(row.id)), toAnyFieldRef(eoTafPeriodeTilField.bind(row.id))],
+        cellMessage: TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE,
+      })),
+    ...resolveTafSammenhaengendePerioder(values).flatMap((advarsel) => advarsel.cellWarnings),
+  ]), [tafDerived, values]);
+  const svieSmerteCellWarnings = React.useMemo(
+    () => buildFieldWarningMap(resolveSvieSmerteSammenhaengendePerioder(values).flatMap((advarsel) => advarsel.cellWarnings)),
+    [values],
+  );
   // Ferietabellernes kolonne tæller de feriedage, beregningen fradrager – inden for TAF-perioderne hhv.
   // beregningsperioden – og overskriftens tooltip følger samme ramme (BB-249, BB-344).
   const tafFerieRamme = React.useMemo(
@@ -177,7 +199,7 @@ export function useEoOplysningerViewModel(
   const reguleringDocument = useReguleringDocumentAction(CASE_REGULERING_REQUEST);
   return {
     values, skadedatoISO, erErhvervssygdom: stamdataValues.skadestype === 'Erhvervssygdom', forligFejl,
-    svie, tafDerived, ferieFeriedageById, fravaerFeriedageById,
+    svie, tafDerived, tafCellWarnings, svieSmerteCellWarnings, ferieFeriedageById, fravaerFeriedageById,
     harTafFerieRamme: tafFerieRamme !== undefined,
     harBeregningsperiodeFerieRamme: beregningsperiodeFerieRamme !== undefined,
     visTafLoseFeriedage, visBeregningsperiodeFerie,
