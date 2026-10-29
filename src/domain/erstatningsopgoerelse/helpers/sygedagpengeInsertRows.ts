@@ -16,7 +16,8 @@ import {
   buildSygedagpengeGrundlagPrKalenderuge,
   type KalenderugeSygedagpengeGrundlag,
 } from '../engines/periodiseringsMotor';
-import type { ISODateString } from '../../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../../types/branded';
+import { canonicalYdelsestypeKey } from '../../../data/ydelsestyper';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
 type SygedagpengeSegment = Readonly<{
@@ -239,3 +240,33 @@ export const buildSygedagpengeRowsForRange = (
  *   led, så uge-afrundingen er uændret. Komprimeringen er rent kosmetisk: den evaluerede sum
  *   er identisk med den ukomprimerede form.
  */
+
+/**
+ * De sygedagpengerækker i tabellen, hvis periode rammer hjælperens periode – i tabellens rækkefølge.
+ *
+ * Hjælperen lægger sine rækker til de eksisterende. Står der allerede sygedagpenge for nogle af dagene (typisk fra
+ * udbetalingsspecifikationerne), ville samme dage blive trukket fra to gange, og fordi hjælperen regner
+ * maksimumssatsen, er beløbene sjældent ens, så dublet-reglen tier. Brugeren bekræfter derfor indsættelsen
+ * (udviklerafgørelse 2026-10-29, BB-359 valg B). Ydelsestypen slås op kanonisk, så en række gemt med sin label tæller.
+ */
+export const findOverlappingSygedagpengeRows = (
+  rows: readonly OffentligeYdelserRow[],
+  fra: ISODateString,
+  til: ISODateString
+): readonly OffentligeYdelserRow[] =>
+  rows.filter((row) => {
+    if (canonicalYdelsestypeKey(row.ydelsestype) !== 'sygedagpenge') return false;
+    const rowFra = coerceToISODateString(row.fraDato);
+    const rowTil = coerceToISODateString(row.tilDato);
+    if (rowFra === undefined || rowTil === undefined || rowFra > rowTil) return false;
+    return rowFra <= til && fra <= rowTil;
+  });
+
+/** «Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026 og 22-06-2026 - 26-07-2026.» */
+export const formatSygedagpengeOverlapBesked = (rows: readonly OffentligeYdelserRow[]): string => {
+  const perioder = rows.map((row) => `${formatISOToDanish(row.fraDato)} - ${formatISOToDanish(row.tilDato)}`);
+  const liste = perioder.length <= 1
+    ? (perioder[0] ?? '')
+    : `${perioder.slice(0, -1).join(', ')} og ${perioder[perioder.length - 1]}`;
+  return `Der står allerede sygedagpenge for ${liste}. Kontrollér, at perioden ikke bliver indtastet to gange.`;
+};

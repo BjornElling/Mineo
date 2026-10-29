@@ -3271,6 +3271,6 @@ advarsler, og hvad sker der så med beløbet i den modtagende flade?
   **Gennemført 2026-10-29:** kun en fejl stopper importen; en advarsel følger med, og en tom import uden fejl giver
   BB-358's gule advarsel.
 - Fundet i: `erstatningsopgoerelse-12k.md` BB-368 (**Høj** – en afgørelse uden virkningsdato springes tavst over i
-  EET-sidens beregninger og dermed i importen; samme følge ad en anden vej). Afventer udvikleren.
+  EET-sidens beregninger og dermed i importen; samme følge ad en anden vej). **Gennemført 2026-10-29:** en tom virkningsdato er afgørelsesdatoen (udviklerens valg B).
 - Efterprøvet 2026-10-29 uden fund: `forsoergertabAslYdelser.ts:331` (listen rummer kun fejl, og den spærrer);
   `eetImportPort.ts:167` (kildens egne linjer er altid fejl).

@@ -8,7 +8,7 @@ import ContentBox from '../../layout/ContentBox';
 import LabeledControlRow from '../../layout/LabeledControlRow';
 import { PageMessageRow } from '../../layout/PageMessageBox';
 import { pageMessage } from '../../layout/pageMessage';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import {
   erOffentligeYdelserReguleringRelevant,
@@ -27,6 +27,8 @@ import InlineActionButton from '../../inputs/InlineActionButton';
 import { resolveActionGate } from '../../inputs/actionGate';
 import {
   buildSygedagpengeRowsForRange,
+  findOverlappingSygedagpengeRows,
+  formatSygedagpengeOverlapBesked,
   SygedagpengeCoverageError,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
 import { dateRanges_sygedagpengeIndsaettelse } from '../../../config/dateRanges';
@@ -140,6 +142,10 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
   const [sygedagpengeInsertError, setSygedagpengeInsertError] = React.useState<string | null>(null);
   const [midlertidigtEetToggleError, setMidlertidigtEetToggleError] = React.useState<string | null>(null);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
+  const [pendingSygedagpengeInsert, setPendingSygedagpengeInsert] = React.useState<Readonly<{
+    rows: readonly OffentligeYdelserRow[];
+    message: string;
+  }> | null>(null);
 
   const readHelpersSessionState = React.useCallback((): OffentligeYdelserHelpersSessionState => {
     try {
@@ -211,6 +217,35 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
     [rows, values]
   );
 
+  /** Indsætter hjælperens rækker i én strukturel transaktion og rydder hjælperens datoer. */
+  const commitSygedagpengeRows = React.useCallback((generatedRows: readonly OffentligeYdelserRow[]) => {
+    suppressSygedagpengeFieldCommitRef.current = true;
+    const insertIndex = rows.findIndex((row) => row.fraDato === undefined
+      && row.tilDato === undefined
+      && row.ydelse === undefined
+      && row.tillaeg === undefined
+      && row.ydelsestype === undefined);
+    const baseIndex = insertIndex < 0 ? rows.length : insertIndex;
+    edit.dispatch(
+      structuralInputTransaction(generatedRows.map((row, index) => inputTransactionStep(insertRow(
+        OFFENTLIGE_YDELSER_COLLECTION,
+        row,
+        baseIndex + index
+      )))),
+      buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
+    );
+    shouldFocusSygedagpengeFraRef.current = true;
+    setSygedagpengeFraDato(undefined);
+    setSygedagpengeTilDato(undefined);
+    setSygedagpengeFraError(undefined);
+    setSygedagpengeTilError(undefined);
+    // Tæt koblet til det transiente datofelts commit-timing: suppression skal overleve
+    // det blur/commit, som klik på "Indsæt" udløser i samme frame, men må ikke blive hængende længere.
+    requestAnimationFrame(() => {
+      suppressSygedagpengeFieldCommitRef.current = false;
+    });
+  }, [rows, edit]);
+
   const handleSygedagpengeInsert = React.useCallback(() => {
     if (!sygedagpengeFraDato || !sygedagpengeTilDato) return;
 
@@ -249,32 +284,15 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
     }
 
     setSygedagpengeInsertError(null);
-    suppressSygedagpengeFieldCommitRef.current = true;
-    const insertIndex = rows.findIndex((row) => row.fraDato === undefined
-      && row.tilDato === undefined
-      && row.ydelse === undefined
-      && row.tillaeg === undefined
-      && row.ydelsestype === undefined);
-    const baseIndex = insertIndex < 0 ? rows.length : insertIndex;
-    edit.dispatch(
-      structuralInputTransaction(generatedRows.map((row, index) => inputTransactionStep(insertRow(
-        OFFENTLIGE_YDELSER_COLLECTION,
-        row,
-        baseIndex + index
-      )))),
-      buildRowHistoryOrigin(OFFENTLIGE_YDELSER_COLLECTION, OFFENTLIGE_YDELSER_ROW_ORIGIN)
-    );
-    shouldFocusSygedagpengeFraRef.current = true;
-    setSygedagpengeFraDato(undefined);
-    setSygedagpengeTilDato(undefined);
-    setSygedagpengeFraError(undefined);
-    setSygedagpengeTilError(undefined);
-    // Tæt koblet til det transiente datofelts commit-timing: suppression skal overleve
-    // det blur/commit, som klik på "Indsæt" udløser i samme frame, men må ikke blive hængende længere.
-    requestAnimationFrame(() => {
-      suppressSygedagpengeFieldCommitRef.current = false;
-    });
-  }, [rows, edit, sygedagpengeFraDato, sygedagpengeTilDato]);
+    // Står der allerede sygedagpenge for nogle af dagene, bekræfter brugeren først – ellers trækkes de samme dage fra
+    // to gange uden et ord (BB-359 valg B).
+    const overlap = findOverlappingSygedagpengeRows(rows, sygedagpengeFraDato, sygedagpengeTilDato);
+    if (overlap.length > 0) {
+      setPendingSygedagpengeInsert({ rows: generatedRows, message: formatSygedagpengeOverlapBesked(overlap) });
+      return;
+    }
+    commitSygedagpengeRows(generatedRows);
+  }, [commitSygedagpengeRows, rows, sygedagpengeFraDato, sygedagpengeTilDato]);
 
   const handleSygedagpengeFraError = React.useCallback((error: string | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
@@ -550,6 +568,19 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
           placeholder="Indtast eventuelle kommentarer her..."
         />
       </ContentBox>
+
+      <ConfirmationDialog
+        open={pendingSygedagpengeInsert !== null}
+        title="Sygedagpenge for perioden er allerede indtastet"
+        message={pendingSygedagpengeInsert?.message ?? ''}
+        confirmText="Indsæt alligevel"
+        cancelText="Annuller"
+        onConfirm={() => {
+          if (pendingSygedagpengeInsert !== null) commitSygedagpengeRows(pendingSygedagpengeInsert.rows);
+          setPendingSygedagpengeInsert(null);
+        }}
+        onCancel={() => setPendingSygedagpengeInsert(null)}
+      />
 
       <ConfirmationDialog
         open={midlertidigtEetConfirmDialogOpen}

@@ -54,6 +54,7 @@ import {
   NON_ENDELIG_AFTER_ENDELIG_WARNING_ID,
   parseCommittedPercent,
   resolveNonEndeligAfterEndeligWarning,
+  resolveAslVirkningsdato,
 } from './eetAslAfgoerelser';
 import {
   fromKroner,
@@ -180,7 +181,8 @@ const collectResolvedAfgoerelser = (
     const eetPct = parsePct(row.eetPct);
     if (eetPct === undefined) continue;
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    // Uden særskilt virkningsdato har afgørelsen virkning fra afgørelsesdatoen (BB-368); før blev den sprunget tavst over.
+    const virkningsdato = resolveAslVirkningsdato(row);
     if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType) continue;
 
     resolved.push({

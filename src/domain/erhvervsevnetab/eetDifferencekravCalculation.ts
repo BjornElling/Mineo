@@ -38,7 +38,7 @@ import {
   computeMerErstatningPensionsalder,
   type MerErstatningPensionsalderComputation,
 } from './eetMerErstatningPensionsalderCalculation';
-import { hasTextValue } from './eetAslAfgoerelser';
+import { hasTextValue, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
@@ -133,9 +133,9 @@ export const filterAslRowsKnownAtBeregningsdato = (
   if (!beregningsdato) return rows;
   return rows.filter((row) => {
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    const virkningsdato = resolveAslVirkningsdato(row);
     // Fane 5 afgrænser kun på virkningsdato. Afgørelsesdatoen kan godt ligge efter beregningsdatoen
-    // uden at afskære beregningen, men rækken skal stadig være en gyldig afgørelse med begge datoer.
+    // uden at afskære beregningen; uden særskilt virkningsdato gælder afgørelsesdatoen (BB-368).
     if (afgoerelsesdato === undefined || virkningsdato === undefined) return false;
     return virkningsdato <= beregningsdato;
   });
@@ -165,7 +165,7 @@ const analyzeAslRowsAtBeregningsdato = (
     hasAnyEnteredRows = true;
 
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    const virkningsdato = resolveAslVirkningsdato(row);
     const kapDato = coerceToISODateString(row.kapDato);
     const eetPct = parseCommittedPercent(row.eetPct);
 

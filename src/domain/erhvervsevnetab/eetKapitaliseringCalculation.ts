@@ -21,7 +21,7 @@ import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
+import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -233,7 +233,7 @@ const collectResolvedRows = (
     result.push({
       rowId: row.id,
       afgoerelsesdato,
-      virkningsdato: coerceToISODateString(row.virkningsDato) ?? null,
+      virkningsdato: resolveAslVirkningsdato(row) ?? null,
       eetPct: parseCommittedPercent(row.eetPct) ?? 0,
       kapDato: coerceToISODateString(row.kapDato) ?? null,
       kapPct: kapPct ?? 0,

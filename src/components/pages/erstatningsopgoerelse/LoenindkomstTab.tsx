@@ -10,6 +10,7 @@ import { LoenindkomstVmProvider, type LoenindkomstVm } from './loenindkomst/loen
 import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
+import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
 type Props = {
   eoValues: ErstatningsopgoerelseValues;
@@ -66,6 +67,21 @@ const LoenindkomstTab = React.memo(({
     loenudviklingIssues,
     onNavigateToTabtArbejdsfortjeneste,
   };
+
+  // Ved TAF «Nej»/«Skjul» bruges intet fra fanen: ansættelsesforholdenes felter er ikke relevante (descriptorerne), og
+  // fanen siger det i stedet for at vise kort, der ingen virkning har (BB-360). Kortene står urørte og vises igen ved «Ja».
+  if (!erTabtArbejdsfortjenesteSektionAktiv(eoValues)) {
+    return (
+      <ContentBox className="content-box">
+        <Typography className="section-header">Ansættelsesforhold</Typography>
+        <Typography className="row--text" data-testid="loenindkomst-uden-taf">
+          {eoValues.kravPaaTabtArbejdsfortjeneste === 'Skjul'
+            ? 'Tabt arbejdsfortjeneste er skjult i opgørelsen – lønindkomsten indgår ikke i opgørelsen.'
+            : 'Der er ikke krav på tabt arbejdsfortjeneste – lønindkomsten indgår ikke i opgørelsen.'}
+        </Typography>
+      </ContentBox>
+    );
+  }
 
   return (
     <LoenindkomstVmProvider value={ctxValue}>

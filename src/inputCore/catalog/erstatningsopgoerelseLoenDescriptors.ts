@@ -81,6 +81,7 @@ import {
   erLoenudviklingFeltRelevant,
   erSidsteArbejdsdagRelevant,
   erFuldLoenUnderFerieRelevant,
+  erTabtArbejdsfortjenesteSektionAktiv,
   type LoenudviklingFelt,
 } from '../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 
@@ -110,6 +111,24 @@ const integerCodec = (minValue: number, maxValue: number, maxDigits: number): Fi
   createIntegerFieldCodec({ allowNegative: false, minValue, maxValue, maxDigits });
 
 /**
+ * Lønindkomst-fanen hører til kravet på tabt arbejdsfortjeneste: ved TAF «Nej»/«Skjul» bruges intet fra den, og en
+ * ufærdig lønrække må hverken spærre opgørelsen eller trykkes – heller ikke med bilagsvalget «Alle» (udviklerafgørelse
+ * 2026-10-29, BB-360 – samme regel som Offentlige ydelser). Hvert felt under et ansættelsesforhold – også rækkerne i
+ * dets tabeller – får derfor TAF-sektionen som forudsætning oven i sin egen relevans. Fanen viser kun en forklaring.
+ */
+const withEmploymentTafRelevance = <T,>(
+  path: PathSegments,
+  relevance: RelevanceRule<T> | undefined
+): RelevanceRule<T> | undefined => {
+  const first = path[0];
+  if (first === undefined || first.kind !== 'entity' || first.collection !== EMPLOYMENTS) return relevance;
+  return (field, view) =>
+    erTabtArbejdsfortjenesteSektionAktiv({
+      kravPaaTabtArbejdsfortjeneste: view.readCanonical(eoKravPaaTabtArbejdsfortjenesteField.bind()),
+    }) && (relevance === undefined || relevance(field, view));
+};
+
+/**
  * `createField` bygger en descriptor på en fast owner-sti. `id` udledes af sti+felt, så `overenskomstFilter`
  * under de to ejere (employment-række vs. eoLoen-property) får entydige id'er.
  */
@@ -126,7 +145,9 @@ const createField = <T>(options: Readonly<{
   relevance?: RelevanceRule<T>;
   validators?: readonly FieldValidator<T>[];
   dateBounds?: DateBoundsSpec;
-}>): FieldDescriptor<T> => defineStructuralField<T>({
+}>): FieldDescriptor<T> => {
+  const relevance = withEmploymentTafRelevance(options.path, options.relevance);
+  return defineStructuralField<T>({
   id: `${options.ownerId}.${options.field}`,
   template: { section: S, path: options.path, field: options.field },
   codec: options.codec,
@@ -134,12 +155,13 @@ const createField = <T>(options: Readonly<{
   isEmpty: options.isEmpty,
   label: options.label,
   ...(options.contextualLabel === undefined ? {} : { contextualLabel: options.contextualLabel }),
-  ...(options.relevance === undefined ? {} : { relevance: options.relevance }),
+  ...(relevance === undefined ? {} : { relevance }),
   controlKind: options.controlKind,
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   ...(options.validators === undefined ? {} : { validators: options.validators }),
   ...(options.dateBounds === undefined ? {} : { dateBounds: options.dateBounds }),
-});
+  });
+};
 
 // Optionelle felter (canonical tomhed = undefined).
 const optField = <T>(

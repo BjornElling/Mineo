@@ -28,6 +28,7 @@ import {
   resolveNonEndeligAfterEndeligWarning,
   validatePercentDivisibleBy5,
   validatePercentDivisibleBy5FromValue,
+  resolveAslVirkningsdato,
 } from './eetAslAfgoerelser';
 import { round0, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
@@ -168,7 +169,7 @@ const resolveEetPctFromAslRows = (
   );
 
   const withVirkningsdato = sameAfgoerelsesdato
-    .map((entry) => ({ ...entry, virkningsdato: coerceToISODateString(entry.row.virkningsDato) }))
+    .map((entry) => ({ ...entry, virkningsdato: resolveAslVirkningsdato(entry.row) }))
     .filter(
       (entry): entry is { row: AslAfgoerelseRow; afgoerelsesdato: ISODateString; virkningsdato: ISODateString } =>
         entry.virkningsdato !== undefined

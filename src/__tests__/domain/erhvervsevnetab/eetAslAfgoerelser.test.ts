@@ -23,6 +23,7 @@ import {
   validatePercentNotZero,
   validateVirkningsDatoByTidlKapDato,
   validateTidlKapDatoByAfgoerelsestype,
+  resolveAslVirkningsdato,
   resolveNonEndeligAfterEndeligRows,
   resolveNonEndeligAfterEndeligWarning,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -900,20 +901,33 @@ describe('genoptagelsesdatoer og ikke-endelig-advarsel', () => {
     );
   });
 
-  it('springer ufuldstændige rækker over ved opløsning af advarselsdata', () => {
+  it('springer rækker uden afgørelsesdato eller type over ved opløsning af advarselsdata', () => {
     const resolved = resolveNonEndeligAfterEndeligRows([
       buildRow({
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         afgoerelseType: 'Endelig',
       }),
-      buildRow({
-        afgoerelsesDato: toISODateString('2024-02-01'),
-        afgoerelseType: 'Midlertidig',
-      }),
+      buildRow({ virkningsDato: toISODateString('2024-02-01'), afgoerelseType: 'Midlertidig' }),
+      buildRow({ afgoerelsesDato: toISODateString('2024-03-01') }),
     ]);
 
     expect(resolved).toHaveLength(1);
+  });
+
+  it('læser en tom virkningsdato som afgørelsesdatoen (BB-368)', () => {
+    const resolved = resolveNonEndeligAfterEndeligRows([
+      buildRow({
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
+        afgoerelseType: 'Endelig',
+      }),
+      buildRow({ afgoerelsesDato: toISODateString('2024-02-01'), afgoerelseType: 'Midlertidig' }),
+    ]);
+
+    expect(resolved.map((row) => row.virkningsdato)).toEqual([toISODateString('2024-01-01'), toISODateString('2024-02-01')]);
+    expect(resolveAslVirkningsdato({ afgoerelsesDato: toISODateString('2024-02-01'), virkningsDato: undefined }))
+      .toBe(toISODateString('2024-02-01'));
   });
 
   it('giver den konkrete issue når ny kapitaliseringsdato ikke ligger efter tidligere dato', () => {

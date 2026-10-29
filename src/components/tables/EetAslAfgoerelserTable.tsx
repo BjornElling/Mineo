@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { MenuItem, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { RowDeleteButton, RowDeleteLaneCell } from './RowDeleteButton';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
 import {
@@ -44,6 +45,7 @@ import {
   resolveKapitaliseringUnder15Warning,
 } from '../../domain/erhvervsevnetab/eetFieldWarnings';
 import type { EetKapitaliseringComputation } from '../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import { ASL_VIRKNINGSDATO_INFO } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 
 // EetAslAfgoerelserTable: Rækkeinfrastruktur, celleværdier
 // og celleredigering går nu udelukkende gennem inputCore – som StandardLoenTable/BeregnetRenteTable:
@@ -304,7 +306,11 @@ const EetAslAfgoerelserTable = React.memo(
         <TableHead>
           <TableRow>
             <StandardLooseHeaderCell {...sortableHeader('afgoerelsesDato')}>Afgørelsesdato</StandardLooseHeaderCell>
-            <StandardLooseHeaderCell {...sortableHeader('virkningsDato')}>Virkningsdato</StandardLooseHeaderCell>
+            <StandardLooseHeaderCell {...sortableHeader('virkningsDato')}>
+              Virkningsdato
+              {/* En tom virkningsdato er afgørelsesdatoen (`resolveAslVirkningsdato`, BB-368); overskriften sagde det ikke. */}
+              <InfoTooltipIcon title={ASL_VIRKNINGSDATO_INFO} />
+            </StandardLooseHeaderCell>
             <StandardLooseHeaderCell {...sortableHeader('eetPct')}>EET %</StandardLooseHeaderCell>
             <StandardLooseHeaderCell {...sortableHeader('afgoerelseType')}>Afgørelsestype</StandardLooseHeaderCell>
             <StandardLooseHeaderCell {...sortableHeader('kapDato')}>Kap.dato</StandardLooseHeaderCell>

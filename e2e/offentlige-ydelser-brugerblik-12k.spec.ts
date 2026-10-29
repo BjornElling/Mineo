@@ -105,4 +105,77 @@ test.describe('Erstatningsopgørelse – Offentlige ydelser (12k)', () => {
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);
   });
+
+  test('hjælperen beder om bekræftelse, før den indsætter oven i eksisterende sygedagpenge (BB-359)', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await fillSag(page);
+    await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
+
+    const table = page.locator('table').filter({ hasText: 'Ydelsestype' }).first();
+    const row = table.locator('tbody tr[data-mineo-row-id]').first();
+    const inputs = row.locator('input[data-mineo-field-address]');
+    await setDate(inputs.nth(0), '25-05-2026');
+    await setDate(inputs.nth(1), '21-06-2026');
+    await setFieldValueAndSettle(inputs.nth(2), '10000');
+    await row.getByRole('combobox').click();
+    await page.getByRole('option', { name: 'Sygedagpenge', exact: true }).click();
+
+    await setDate(page.getByRole('textbox', { name: 'Fra-dato', exact: true }), '01-06-2026');
+    await setDate(page.getByRole('textbox', { name: 'Til-dato', exact: true }), '30-06-2026');
+    const rowsBefore = await table.locator('tbody tr[data-mineo-row-id]').count();
+    await page.getByRole('button', { name: 'Indsæt', exact: true }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText(
+      'Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026. Kontrollér, at perioden ikke bliver indtastet to gange.'
+    );
+    await dialog.getByRole('button', { name: 'Annuller', exact: true }).click();
+    await expect(table.locator('tbody tr[data-mineo-row-id]')).toHaveCount(rowsBefore);
+
+    await page.getByRole('button', { name: 'Indsæt', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Indsæt alligevel', exact: true }).click();
+    await expect(table.locator('tbody tr[data-mineo-row-id]')).not.toHaveCount(rowsBefore);
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
+  test('ved TAF «Nej» forklarer Lønindkomst og Offentlige ydelser, at de ikke indgår (BB-360)', async ({
+    page,
+    runtimeErrors,
+    externalRequests,
+  }) => {
+    await login(page);
+    await fillSag(page);
+    await page.locator("input[name='kravPaaTabtArbejdsfortjeneste'][value='Nej']").check();
+
+    await page.getByRole('tab', { name: 'Lønindkomst', exact: true }).click();
+    await expect(page.getByText(
+      'Der er ikke krav på tabt arbejdsfortjeneste – lønindkomsten indgår ikke i opgørelsen.', { exact: true }
+    )).toBeVisible();
+    await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
+    await expect(page.getByText(
+      'Der er ikke krav på tabt arbejdsfortjeneste – ydelserne indgår ikke i opgørelsen.', { exact: true }
+    )).toBeVisible();
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
+  test('EET-sidens kolonne «Virkningsdato» siger, at den er frivillig (BB-368)', async ({ page, runtimeErrors, externalRequests }) => {
+    await login(page);
+    await openPage(page, 'Erhvervsevnetab');
+    const ikon = page.getByRole('img', { name: 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.', exact: true });
+    await expect(ikon).toBeVisible();
+    await ikon.hover();
+    await expect(page.getByRole('tooltip', { name: 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.' })).toBeVisible();
+
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
 });
+

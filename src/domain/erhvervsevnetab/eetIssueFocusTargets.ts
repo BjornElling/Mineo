@@ -36,6 +36,7 @@ import {
   parseCommittedPercent,
   validateDuplicateAfgoerelse,
   type AslIssueField,
+  resolveAslVirkningsdato,
 } from './eetAslAfgoerelser';
 import { harEetTitrinAfvigelse, resolveEetUnder15Warning } from './eetFieldWarnings';
 
@@ -115,7 +116,7 @@ const asRowTarget = (rowId: string): AttentionTarget => ({ kind: 'rowId', rowId 
 const findResolvedRows = (rows: readonly AslAfgoerelseRow[]) => rows.flatMap((row) => {
   const eetPct = parseCommittedPercent(row.eetPct);
   const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-  const virkningsdato = coerceToISODateString(row.virkningsDato);
+  const virkningsdato = resolveAslVirkningsdato(row);
   if (eetPct === undefined || eetPct === 0 || !afgoerelsesdato || !virkningsdato || !isKnownAfgoerelseType(row.afgoerelseType)) {
     return [];
   }

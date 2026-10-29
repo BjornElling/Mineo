@@ -298,6 +298,21 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     expect(evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY).erstatningsopgoerelse.canDownload).toBe(true);
   });
 
+  it('ved TAF «Nej» spærrer en ufærdig lønrække heller ikke (BB-360, Lønindkomst)', () => {
+    const employment = buildEoWithEmployment().loenindkomstAnsaettelsesforhold[0]!;
+    const reader = buildReader({
+      ...buildEoDownloadableEo(),
+      eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
+      loenindkomstAnsaettelsesforhold: [{
+        ...employment,
+        indtaegtsoplysningerTableData: [{ ...employment.indtaegtsoplysningerTableData[0]!, col0_maaned: '13' }],
+      }],
+    }, validStamdata);
+    const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });
+
+    expect(evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY).erstatningsopgoerelse.canDownload).toBe(true);
+  });
+
   it('blokerer fail-closed når rækkeaggregeringen kaster en intern fejl', () => {
     const reader = buildReader(buildEoDownloadableEo(), validStamdata);
     const projection = buildErstatningsopgoerelseReaderProjection(reader, { revision: 'r' });

@@ -100,6 +100,25 @@ const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
  * null betyder "kan ikke afgøres fail-closed", fordi mindst én afgørelsesdato mangler.
  * Kaldere skal i så fald behandle kandidaterne som ikke-dokumenteret tidligere.
  */
+/**
+ * Afgørelsens virkningsdato: den indtastede, ellers afgørelsesdatoen. Feltet er frivilligt – en afgørelse uden særskilt
+ * virkningsdato har virkning fra afgørelsesdatoen, som på EO oplysninger (udviklerafgørelse 2026-10-29, BB-368).
+ *
+ * En indtastet virkningsdato lig afgørelsesdatoen er derfor præcis det samme som en tom – ingen regel må behandle de
+ * to forskelligt eller advare om den ene (udviklerafgørelse 2026-10-29).
+ *
+ * Alle beregninger og regler, der bruger virkningsdatoen, går gennem denne vej. Før sprang løbende ydelser,
+ * kapitalisering, differencekrav og EO-importen en afgørelse uden virkningsdato tavst over: beløbet forsvandt uden et
+ * ord. Kun visningsadvarsler om selve cellen læser den rå værdi, så en tom celle aldrig markeres for sin egen tomhed.
+ */
+/** Kolonneoverskriftens forklaring af reglen nedenfor (udviklerens ordlyd 2026-10-29). */
+export const ASL_VIRKNINGSDATO_INFO = 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.';
+
+export const resolveAslVirkningsdato = (
+  row: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
+): ISODateString | undefined =>
+  coerceToISODateString(row.virkningsDato) ?? coerceToISODateString(row.afgoerelsesDato);
+
 const compareAfgoerelseOrder = (
   left: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>,
   right: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
@@ -111,8 +130,8 @@ const compareAfgoerelseOrder = (
     return leftAfgoerelsesdatoIso < rightAfgoerelsesdatoIso ? -1 : 1;
   }
 
-  const leftVirkningsdatoIso = coerceToISODateString(left.virkningsDato);
-  const rightVirkningsdatoIso = coerceToISODateString(right.virkningsDato);
+  const leftVirkningsdatoIso = resolveAslVirkningsdato(left);
+  const rightVirkningsdatoIso = resolveAslVirkningsdato(right);
   if (leftVirkningsdatoIso === undefined || rightVirkningsdatoIso === undefined) return 0;
   if (leftVirkningsdatoIso !== rightVirkningsdatoIso) {
     return leftVirkningsdatoIso < rightVirkningsdatoIso ? -1 : 1;
@@ -156,14 +175,14 @@ export const validateDuplicateAfgoerelse = (
   allRows: readonly AslAfgoerelseRow[] = [row]
 ): string | undefined => {
   const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
-  const virkningsdatoIso = coerceToISODateString(row.virkningsDato);
+  const virkningsdatoIso = resolveAslVirkningsdato(row);
 
   if (!afgoerelsesdatoIso || !virkningsdatoIso) return undefined;
 
   for (const candidate of allRows) {
     if (candidate.id === row.id) continue;
     const candidateAfgoerelsesdatoIso = coerceToISODateString(candidate.afgoerelsesDato);
-    const candidateVirkningsdatoIso = coerceToISODateString(candidate.virkningsDato);
+    const candidateVirkningsdatoIso = resolveAslVirkningsdato(candidate);
 
     if (
       candidateAfgoerelsesdatoIso === afgoerelsesdatoIso &&
@@ -263,7 +282,7 @@ export const validateKapDatoByAfgoerelsestype = (
   fodselsdato: ISODateString | undefined = undefined
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
-  const virkningsdatoIso = coerceToISODateString(row.virkningsDato);
+  const virkningsdatoIso = resolveAslVirkningsdato(row);
   const kapDatoIso = coerceToISODateString(row.kapDato);
   if (afgoerelsestype === undefined || afgoerelsestype === 'Midlertidig') {
     if (hasTextValue(row.kapDato)) {
@@ -400,7 +419,9 @@ export const validateVirkningsDatoByTidlKapDato = (
 ): string | undefined => {
   const tidlKapDatoIso = coerceToISODateString(row.tidlKapDato);
   if (tidlKapDatoIso === undefined) return undefined;
-  const virkningsdatoIso = coerceToISODateString(row.virkningsDato);
+  // En tom virkningsdato er afgørelsesdatoen; ligger den efter den tidligere kapitalisering, skal den oprindelige
+  // virkningsdato netop angives.
+  const virkningsdatoIso = resolveAslVirkningsdato(row);
   if (virkningsdatoIso === undefined) return undefined;
   if (virkningsdatoIso > tidlKapDatoIso) {
     return 'Ved genoptagelse af en tidligere afgørelse skal den oprindelige virkningsdato angives.';
@@ -554,7 +575,7 @@ export const resolveNonEndeligAfterEndeligRows = (
   const resolved: NonEndeligAfterEndeligRow[] = [];
   for (const row of rows) {
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const virkningsdato = coerceToISODateString(row.virkningsDato);
+    const virkningsdato = resolveAslVirkningsdato(row);
     if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType) continue;
     resolved.push({ afgoerelsesdato, virkningsdato, afgoerelseType: row.afgoerelseType });
   }

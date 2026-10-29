@@ -564,7 +564,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
   });
 
-  it('ser bort fra ufuldstændige afgørelser uden dokumenteret afgørelsesdato og virkningsdato på beregningsdatoen', () => {
+  it('regner en afgørelse uden virkningsdato fra afgørelsesdatoen (BB-368)', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -601,11 +601,9 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
+    // Før blev a2 sprunget tavst over, og dens beløb forsvandt af differencekravet.
     expect(result.hasBlockingErrors).toBe(false);
-    expect(result.computation?.afgoerelser).toHaveLength(1);
-    expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
-    expect(result.computation?.proformaKapitalisering).toBeNull();
-    expect(result.computation?.resterendeLoebendeYdelser?.loebendeEetPct).toBe(30);
+    expect(result.computation?.afgoerelser.map((afgoerelse) => afgoerelse.rowId)).toEqual(['a1', 'a2']);
   });
 
   it('vurderer beregningsdato-advarsler mod den brugerangivne beregningsdato selv om løbende fradrag stopper dagen før', () => {

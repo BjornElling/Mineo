@@ -1067,5 +1067,17 @@ describe('midlertidigt EET transient injection', () => {
       expect(snapshot.invariants.some((invariant) => invariant.id === INGEN_YDELSER_ID)).toBe(false);
     });
   });
-});
 
+  it('importerer en midlertidig afgørelse uden virkningsdato fra afgørelsesdatoen (BB-368)', () => {
+    const udenVirkningsdato: ErhvervsevnetabComposedValues = {
+      ...eetValues,
+      aslAfgoerelser: eetValues.aslAfgoerelser.map((row) => ({ ...row, virkningsDato: undefined })),
+    };
+    const result = buildMidlertidigtEetSourceResult(buildEetImportContext(
+      { revision: 'bb-368', eetValues: udenVirkningsdato, skadedato: stamdata.skadedato }, iso('2024-04-30')
+    ));
+
+    expect(result.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+    expect(result.groups.flatMap((group) => group.perioder)[0]?.fra).toBe(iso('2024-02-01'));
+  });
+});

@@ -6,7 +6,7 @@
   «Offentlige ydelser» (`offentligeYdelserSection`) og bilaget «Midlertidig EET» (`renderMidlertidigtEetSection`).
 - Gennemgået: 2026-10-29 · commit `bd236954`
 - Afgjort og gennemført: 2026-10-29 – ni fund gennemført, BB-359 afvist som overlapregel; fire modsvar og det nye BB-368
-  afventer udvikleren (se «Åbne spørgsmål»)
+  er besvaret og gennemført samme dag, også det opfølgende spørgsmål under BB-368
 - Afprøvet i: Chrome headless, lyst tema, 1536×864, mod e2e-buildet. 24 sager indlæst gennem «Hent» (krypteret `.eo` bygget
   til formålet på den låste 3.14-testfil), to UI-forløb (sygedagpenge-hjælperen, EET-togglen, sortering, en ugyldig celle,
   kommentarfeltet). Dokumenter hentet som `.pdf` og læst som tekst; feltfejl aflæst gennem automatiseringsbroen.
@@ -132,8 +132,8 @@ Ingen preflight og ingen ændret sagsdata (jf. det bekræftede princip om, at æ
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-23--aggregatet-af-dublerer-tiden-men-ikke-pengene`
 - **Prioritet:** **Høj**
-- **Beslutning:** **AFVIST** af udvikleren 2026-10-29 som overlapregel; reglen for ens rækker gælder uændret. Modsvar om
-  sygedagpenge-hjælperen nedenfor.
+- **Beslutning:** **AFVIST** af udvikleren 2026-10-29 som overlapregel; reglen for ens rækker gælder uændret.
+  Sygedagpenge-hjælperen: **valg B** (bekræftelse) godkendt og **GENNEMFØRT** 2026-10-29.
 - **Sådan fremprovokeres det:**
   1. Grundsagen plus Kontanthjælp `01-06-2026` – `30-06-2026` `10.000`, `01-07-2026` – `31-07-2026` `10.000` og en
      samlerække `01-06-2026` – `31-07-2026` `20.000` (den typiske dobbeltindtastning: månedsrækker og en samlet udbetaling).
@@ -159,13 +159,42 @@ gul ring og linje, når periode, ydelsestype og alle beløbsceller er ens. Krite
 forskel er rettet: en række gemt med ydelsestypens label («Kontanthjælp») og en med nøglen blev ikke set som ens (BB-364).
 Der er ingen ny overlapregel.
 
+**Modsvar – sygedagpenge-hjælperen** (besvaret)
+
+Dit svar dækker tilfælde 1 (månedsrækker og en samlerække) – dér er det en bevidst afvejning. Tilfælde 2 er ikke dækket
+og har en anden karakter: her er det programmet selv, der lægger rækkerne i tabellen.
+
+*Eksempel:* tabellen har sygedagpenge `25-05-2026` – `21-06-2026` og `22-06-2026` – `26-07-2026` fra
+udbetalingsspecifikationerne. Brugeren vil «fylde ud» og bruger «Indsæt maksimal sygedagpengesats for perioden» på
+`01-06-2026` – `30-06-2026`. Hjælperen indsætter `22.539,00` for juni oveni. Beløbene er ikke ens (hjælperen regner
+maksimumssatsen), så dublet-reglen tier, og juni trækkes fra to gange.
+
+- *Valg A (anbefalet):* når hjælperens periode rammer dage, hvor der allerede står sygedagpenge, indsættes rækkerne som
+  nu, men linjen under hjælperen siger: «Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026 og 22-06-2026 -
+  26-07-2026 – kontrollér, at perioden ikke er indtastet to gange.» Ingen ring og ingen varig advarsel; beskeden
+  forsvinder ved næste indsættelse.
+- *Valg B:* som A, men med en bekræftelse før indsættelsen («Indsæt alligevel» / «Annuller»).
+- *Valg C:* uændret.
+
+**Supplerende tilbagemelding**
+Jeg vil gerne have, at vi går med Valg B.
+
+**Gennemført 2026-10-29 (valg B):** rammer hjælperens periode dage, hvor der allerede står sygedagpenge, spørger en dialog
+først: «Sygedagpenge for perioden er allerede indtastet» – «Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026.
+Kontrollér, at perioden ikke bliver indtastet to gange.» med «Indsæt alligevel» og «Annuller». «Annuller» indsætter intet
+og bevarer hjælperens datoer, så de kan rettes. En række gemt med ydelsestypens label tæller med (BB-364). Unit- og
+browsertest.
+
+**Supplerende bemærkning**
+Jeg vil gerne have justeret, så der ikke indsættes en linje under hjælperen. Brugeren skal have vist en bekræftelsesdialog, men hvis brugeren har accepteret den, skal det blot indsættes uden yderligere.
+
 ### BB-360 – Ved TAF «Nej» spærrer en ufærdig ydelsesrække opgørelsen, selv om intet fra fanen bruges – og «Alle» trykker bilaget alligevel
 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-32--et-skjult-felt-er-ikke-udfyldt--men-kun-nogle-af-dets-læsere-ved-det`
 - **Prioritet:** Mellem
-- **Beslutning:** **GODKENDT** af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29 for Offentlige ydelser. Modsvar om
-  Lønindkomst nedenfor.
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29 for Offentlige ydelser og – efter
+  modsvaret (valg A) – for Lønindkomst.
 - **Sådan fremprovokeres det:**
   1. «Krav på tabt arbejdsfortjeneste» `Nej`, og en ekstra række `01-06-2026` – `30-06-2026` `5.000` uden ydelsestype.
   2. Samme med en dagpengerække med omvendte datoer.
@@ -188,13 +217,37 @@ kommentaren – ikke relevante for nogen læser: de spærrer ikke, trykkes ikke 
 længere spærre med «… slutdato mangler». Fanen viser i stedet kun «Der er ikke krav på tabt arbejdsfortjeneste –
 ydelserne indgår ikke i opgørelsen.» Rækkerne står gemt og vises igen ved «Ja».
 
+*Valg, jeg har truffet:* tabellen skjules frem for at stå synlig og virkningsløs. Det er programmets faste mønster for
+felter bag et valg, og det eneste, der hænger sammen med reglen om, at et felt, der skjules med en rød fejl, ryddes (kan
+fortrydes med Ctrl+Z). Konkret: står der en række med omvendte datoer, og brugeren slår TAF til «Nej», ryddes de to røde
+datoer; gyldige rækker røres ikke. En indlæst fil ændres aldrig.
+
+**Modsvar – Lønindkomst ved TAF «Nej»** (besvaret)
+
+Fundets «andre steder» er nu målt: Lønindkomst har præcis samme fejl. Med TAF «Nej» og en lønrække med måned `13` er
+«Hent opgørelse» grå med «Værdi skal være mellem 1 og 12», og «Alle» trykker lønindkomstbilaget, selv om intet fra fanen
+bruges.
+
+- *Valg A (anbefalet):* samme løsning som Offentlige ydelser – fanen viser kun «Der er ikke krav på tabt
+  arbejdsfortjeneste – lønindkomsten indgår ikke i opgørelsen.», og rækkerne hverken spærrer eller trykkes.
+- *Valg B:* uændret.
+
+**Supplerende tilbagemelding**
+Enig. Vi går med Valg A.
+
+**Gennemført 2026-10-29 (valg A):** ved TAF «Nej» (og «Skjul») er alle felter under et ansættelsesforhold – også
+lønrækkerne og lønudviklingens tabeller – ikke relevante: de spærrer ikke, og lønindkomstbilaget trykkes ikke, heller ikke
+med «Alle». Fanen viser kun «Der er ikke krav på tabt arbejdsfortjeneste – lønindkomsten indgår ikke i opgørelsen.»
+Kortene står gemt og vises igen ved «Ja». Lønindkomsten bruges ingen steder uden for TAF-kravet (kontrolleret). Samme
+følge som for ydelserne: røde celler ryddes, når brugeren skifter til «Nej» (kan fortrydes); en indlæst fil ændres aldrig.
+
 ### BB-361 – Anden beløbskolonne hedder «Tillæg» på skærmen, men «Ydelse (2)» i «Fejl og advarsler» og bilaget
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-38--en-afgørelse-står-som-gennemført-men-koden-bærer-den-ikke`
 - **Prioritet:** Mellem
-- **Beslutning:** **GODKENDT** af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29 med ét ords afvigelse i tooltippen –
-  se modsvaret.
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29; tooltippens «ydelser» godkendt efter
+  modsvaret.
 - **Sådan fremprovokeres det:** Se kolonneoverskrifterne; skriv `12x` i «Tillæg» på første række; hent opgørelsen.
 - **Det sker:** Overskrifterne er «Fra dato | Til dato | Ydelse | Tillæg | …», uden informationsikon. Boksen skriver «Ydelsen
   Sygedagpenge 01-04-2026 - 26-04-2026: Ydelse (2) – ugyldig værdi», og bilaget har kolonnerne «Fra-dato Til-dato Ydelse
@@ -217,6 +270,19 @@ Alene for din forståelses skyld, skal Ydelse og Tillæg behandles på samme må
 **Gennemført 2026-10-29:** kolonnen hedder «Tillæg» på skærmen, i «Fejl og advarsler» («Ydelsen Sygedagpenge … : Tillæg –
 ugyldig værdi») og i bilaget («Fra-dato Til-dato Ydelse Tillæg I alt»). «Tillæg» har informationsikonet. Navnenes
 begrundelse står i koden og i `form-contract.md`.
+
+**Modsvar – tooltippens ordlyd** (besvaret)
+
+Du skrev «samme tooltip-meddelelse, altså "Opdelingen af løn er rent visuel – værdierne lægges sammen i beregningen"».
+Over ydelsestabellen ville «løn» læses som en fejl, så jeg har brugt samme sætning med fanens eget ord: «Opdelingen af
+ydelser er rent visuel – værdierne lægges sammen i beregningen». Vil du hellere have den ordrette løn-tekst eller en
+tredje form (fx «Opdelingen i ydelse og tillæg …»), er det én linje at ændre.
+
+**Supplerende tilbagemelding**
+Enig i dit genpres og løsningsforslag. 'Værdierne' er et godt udtryk at bruge. Behold det.
+
+**Afsluttet 2026-10-29:** uændret – tooltippen lyder «Opdelingen af ydelser er rent visuel – værdierne lægges sammen i
+beregningen».
 
 ### BB-362 – Alle ydelsesrækker er låst til sygedagpengesatsernes dækning, 03-01-2005 – 03-01-2027
 
@@ -373,6 +439,89 @@ Enig.
 med «I alt» – på tværs af afgørelserne, så summen er fradragslinjen. («Midlertidig EET-afgørelse» på EO oplysninger og i
 TAF-afgrænsningen bevares: dér bøjes efter «afgørelse».)
 
+### BB-368 – En afgørelse uden virkningsdato udelades tavst af alle beregninger på Erhvervsevnetab-siden
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-43--en-advarsel-får-en-import-til-at-give-nul`
+- **Prioritet:** **Høj**
+- **Beslutning:** **Valg B** besluttet af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29, også informationsikonet ved
+  EET-sidens kolonneoverskrift (valg A).
+- **Fundet:** 2026-10-29 i den udvidede undersøgelse under BB-357 (kildeaflæst og bekræftet i koden, ikke målt i browser).
+- **Sådan fremprovokeres det:** Erhvervsevnetab-siden med én afgørelse: afgørelsesdato `01-03-2023`, EET `15 %`,
+  Midlertidig – virkningsdato tom. På Erstatningsopgørelsen er togglen slået til.
+- **Det sker:** Afgørelsen springes over i alle beregninger uden et ord (`eetLoebendeYdelserCalculation.ts:184`). Siden
+  har regler for manglende afgørelsesdato, EET % og afgørelsestype, men ingen for manglende virkningsdato. Løbende ydelser
+  viser ingen ydelse, differencekravets fradrag mister afgørelsens beløb, og EO-importen giver nul. På EO dækker BB-358's
+  nye advarsel nu tilfældet, når der ikke er andre afgørelser – men har sagen to afgørelser, og kun den ene mangler
+  virkningsdatoen, forsvinder dens beløb stadig tavst, både på EET-siden og i EO.
+- **Bedre ville være** – forelægges:
+  - *Valg A (anbefalet):* som de tre andre manglende felter: rød ring på virkningsdatoen og «Der er en afgørelse uden
+    virkningsdato», der spærrer EET-sidens beregninger – og dermed EO-importen med «Midlertidigt EET kan ikke hentes fra
+    Erhvervsevnetab-siden: der er en afgørelse uden virkningsdato».
+  - *Valg B:* en tom virkningsdato læses som afgørelsesdatoen; ingen ny fejl. Ændrer beløbene i de berørte sager.
+  - *Følgen for tidligere gemte filer:* en fil med en sådan afgørelse viser efter indlæsning den røde fejl (A) eller nye
+    beløb (B). Ingen preflight og ingen ændret sagsdata.
+
+**Supplerende tilbagemelding**
+Valg B er det korrekte. Det fremgår af den brugerrettede tekst i programmet, at indtastning af virkningsdato er valgfri, og hvis der ikke indtastes en virkningsdato, lægges det til grund, at afgørelsen har virkning fra afgørelsesdatoen, og det derfor ikke er påkrævet at indtaste en særskilt virkningsdato.
+
+**Gennemført 2026-10-29 (valg B):** en tom virkningsdato læses som afgørelsesdatoen overalt på Erhvervsevnetab-siden –
+løbende ydelser, kapitalisering, EET efter EAL, differencekravet, advarslerne og EO-importen går gennem én regel
+(`resolveAslVirkningsdato`). Afgørelsen i eksemplet giver nu løbende ydelse fra `01-03-2023` og hentes ind i EO. Den
+gemte værdi ændres ikke; cellen står fortsat tom.
+
+*To følger, du bør kende:*
+
+- To afgørelser med samme afgørelsesdato, hvor den ene har en tom virkningsdato og den anden virkningsdato lig
+  afgørelsesdatoen, er nu den samme afgørelse to gange og får den eksisterende røde fejl «Der er angivet to identiske
+  afgørelser med samme afgørelsesdato og virkningsdato». Det følger af reglen; før blev den ene sprunget over.
+- Ved en genoptagelse («Hvis genopt. – tidl. kap.dato» udfyldt) med tom virkningsdato gælder afgørelsesdatoen. Ligger den
+  efter den tidligere kapitalisering, får den tomme virkningsdato den eksisterende røde fejl «Ved genoptagelse af en
+  tidligere afgørelse skal den oprindelige virkningsdato angives» – det er netop den oplysning, der mangler.
+
+*Tidligere gemte filer:* en sag med en afgørelse uden virkningsdato får efter indlæsning beløb for den afgørelse (før
+nul) og i de to tilfælde ovenfor en rød fejl. Ingen preflight og ingen ændret sagsdata.
+
+**Opfølgende spørgsmål – EET-sidens kolonneoverskrift** (besvaret)
+
+Din præmis holder på EO oplysninger, hvor feltet hedder «Virkningsdato (hvis forskellig fra afgørelsesdatoen)». I EET-sidens
+afgørelsestabel står der kun «Virkningsdato», og intet sted siger, at kolonnen er frivillig, eller hvad der gælder, når
+den står tom. Reglen er nu den samme begge steder, men brugeren af EET-siden kan ikke se den.
+
+- *Valg A (anbefalet):* et informationsikon ved overskriften «Virkningsdato» med «Udfyldes kun, hvis den er forskellig fra
+  afgørelsesdatoen. Tom betyder virkning fra afgørelsesdatoen.»
+- *Valg B:* uændret.
+
+**Opfølgende tilbagemelding**
+Enig i valg A - sørg dog for at kontrollere grundigt, at koden og programmets funktionalitet i øvrigt også faktisk anvender og håndhæver denne regel, og at det er grundigt testdækket. I forhold til tooltip dog en lille justering til teksten. Jeg vil foretrække, at den blot lyder «Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.»
+
+Bemærk desuden, at det ingen af stederne skal håndteres som en fejl eller med en advarsel, hvis brugeren indtaster en virkningsdato, der er den samme som afgørelsesdatoen. Den situation skal håndteres som hvis der var indtastet en afgørelsesdato uden en virkningsdato.
+
+**Gennemført 2026-10-29 (valg A med din ordlyd):** EET-sidens kolonne «Virkningsdato» har et informationsikon med
+«Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.»
+
+*Kontrollen af reglen:* alle steder, der læser virkningsdatoen til en beregning eller en regel, går nu gennem én funktion
+(`resolveAslVirkningsdato`): løbende ydelser og deres periodisering, kapitaliseringen, EET efter EAL, differencekravet
+(også «kendt på beregningsdatoen»), afgørelsernes rækkefølge, dublet-reglen, «Kap.dato før virkningsdato», genoptagelses-
+reglen, advarslen om en midlertidig afgørelse efter en endelig, fokusmålene og EO-importen. Den rå værdi læses kun tre
+steder, hvor det er rigtigt: om rækken er tom, cellens egen grænse og advarsel (en tom celle markeres aldrig for sin egen
+tomhed) og sorteringen af kolonnen.
+
+*Virkningsdato lig afgørelsesdatoen:* ingen regel nogen steder sammenligner de to datoer, og hverken EET-siden eller EO
+oplysninger giver en fejl eller advarsel, når de er ens. Det er nu test-sikret: en ny test regner hele Erhvervsevnetab-siden
+(løbende ydelser, kapitalisering, EET efter EAL og differencekrav) og EO-importen med tre afgørelser – én gang med tomme
+virkningsdatoer og én gang med virkningsdato lig afgørelsesdatoen – og kræver samme tal, samme linjer og ingen fejl eller
+advarsel om virkningsdatoen (`eetVirkningsdatoFallback.test.ts`). EO oplysninger brugte allerede samme regel
+(«Uden virkningsdato bruges afgørelsesdatoen»).
+
+*Én følge af din regel, som stemmer med den:* to rækker med samme afgørelsesdato – den ene med tom virkningsdato, den
+anden med virkningsdato lig afgørelsesdatoen – er nu den samme afgørelse to gange og får den eksisterende røde fejl om to
+identiske afgørelser. Fejlen handler om de to rækker, ikke om den indtastede virkningsdato; præcis det samme sker, hvis
+begge virkningsdatoer er tomme.
+
+*Ikke omfattet:* Forsørgertab-siden har sin egen «Virkningsdato» uden en afgørelsesdato ved siden af; reglen gælder ikke
+dér.
+
 ## Overvejet uden fund
 
 - **Ufærdige rækker** giver præcise linjer med rækkens navn og link, uden rød ring (BB-274/BB-291's form): «Ydelsesrække 7:
@@ -414,3 +563,8 @@ TAF-afgrænsningen bevares: dér bøjes efter «afgørelse».)
   sum er kildeaflæst.
 - **Sygedagpenge-hjælperen** hen over et satsårsskifte og SH-dage er ikke målt.
 - **Gem/Hent-rundtur**, tastaturrækkefølge og undo/redo efter hjælperens indsættelse er ikke afprøvet.
+
+## Åbne spørgsmål
+
+Ingen. De tre oprindelige spørgsmål, de fire modsvar og det opfølgende spørgsmål under BB-368 er besvaret og gennemført
+2026-10-29.

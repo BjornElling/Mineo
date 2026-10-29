@@ -16,6 +16,8 @@ import { buildSygedagpengeGrundlagPrKalenderuge } from '../../../domain/erstatni
 import {
   assertSygedagpengeRangeFullyCovered,
   buildSygedagpengeRowsForRange,
+  findOverlappingSygedagpengeRows,
+  formatSygedagpengeOverlapBesked,
   splitSygedagpengeRateSegments,
   SygedagpengeCoverageError,
 } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
@@ -310,5 +312,37 @@ describe('sygedagpengeInsertRows', () => {
       fraDato: toISODateString('2026-12-29'),
       tilDato: toISODateString('2027-01-03'),
     });
+  });
+});
+
+describe('findOverlappingSygedagpengeRows (BB-359 valg B)', () => {
+  const row = (id: string, fra: string, til: string, ydelsestype: string) => ({
+    id,
+    fraDato: toISODateString(fra),
+    tilDato: toISODateString(til),
+    ydelse: { kind: 'number' as const, value: 1000 },
+    tillaeg: undefined,
+    ydelsestype,
+  });
+
+  it('finder sygedagpengerækker, der rammer hjælperens periode – også en gemt med sin label', () => {
+    const rows = [
+      row('a', '2026-05-25', '2026-06-21', 'sygedagpenge'),
+      row('b', '2026-06-22', '2026-07-26', 'Sygedagpenge'),
+      row('c', '2026-06-01', '2026-06-30', 'kontanthjaelp'),
+      row('d', '2026-07-01', '2026-07-31', 'sygedagpenge'),
+    ];
+
+    const overlap = findOverlappingSygedagpengeRows(rows, toISODateString('2026-06-01'), toISODateString('2026-06-30'));
+
+    expect(overlap.map((candidate) => candidate.id)).toEqual(['a', 'b']);
+    expect(formatSygedagpengeOverlapBesked(overlap)).toBe(
+      'Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026 og 22-06-2026 - 26-07-2026. Kontrollér, at perioden ikke bliver indtastet to gange.'
+    );
+  });
+
+  it('finder intet, når perioderne ikke rører hinanden', () => {
+    const rows = [row('a', '2026-05-01', '2026-05-31', 'sygedagpenge')];
+    expect(findOverlappingSygedagpengeRows(rows, toISODateString('2026-06-01'), toISODateString('2026-06-30'))).toEqual([]);
   });
 });
