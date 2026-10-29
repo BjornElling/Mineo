@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-29 (importadvarsler og importfejl; 11.009 tests og 39 målrettede browserkontroller bestået). Tidligere 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -669,6 +669,15 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   ikke direkte fra inputaggregatet.
 
 **Issues fra EET-løbende-ydelser:**
+- Kun errors stopper importen; warnings bevares sammen med de beregnede perioder. En advarsel må
+  ikke fjerne et ellers gyldigt midlertidigt EET-fradrag (udviklerafgørelse 2026-10-29, BB-357).
+- Blokerende importfejl skal forklare følgen først: "Midlertidigt EET kan ikke hentes fra
+  Erhvervsevnetab-siden: <årsag>". En besked, der allerede begynder med "Midlertidigt EET",
+  bevares. Issue-id, severity og fokusmål ændres ikke.
+- Når importen er slået til uden errors, men ingen positiv importeret ydelse overlapper TAF-perioderne,
+  vises en ikke-blokerende advarsel, hvis mindst én TAF-periode når den midlertidige afgørelses aktive dato
+  på EO oplysninger. Den aktive dato er virkningsdatoen, ellers afgørelsesdatoen. Uden denne dato
+  eller med alle TAF-perioder før datoen vises denne advarsel ikke (BB-358).
 - Når togglen er `'Ja'`, bruger EOberegningTab samme canonical import-context/projektion
   som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
   til Erhvervsevnetab-siden. Errors blokerer download af **alle fire** Beregning-fane-dokumenter

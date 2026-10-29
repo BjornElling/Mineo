@@ -133,7 +133,7 @@ export const useGridCellSurface = <T, TEntity = unknown>(
   const candidateSuggestion = useAutofillSuggestion(
     gridCell.rowId,
     gridCell.colIndex,
-    !locked && isFocused && isCellEmptyForSuggest
+    !locked && !isEditing && isFocused && isCellEmptyForSuggest
   );
   // Forslaget skal kunne TASTES i cellen. Accept skriver råteksten direkte som draft og går derfor uden om
   // `onDraftChange`, hvor familiens tegn- og længdeprædikat ellers håndhæves (§1.2). Kontrollen sker her

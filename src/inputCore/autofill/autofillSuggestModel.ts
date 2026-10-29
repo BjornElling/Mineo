@@ -79,6 +79,8 @@ export type AutofillColumn = Readonly<{
   pairedDateRole?: 'start' | 'end';
   /** Periodekolonner, der bestemmer beløbets dækkede kalenderdage. */
   amountPeriodColIndices?: readonly [number, number];
+  /** Heltallets enhed pr. række. Gentagelse kræver samme enhed i begge prøver og målrækken. */
+  integerUnits?: readonly string[];
 }>;
 
 /**

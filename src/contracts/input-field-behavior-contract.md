@@ -317,7 +317,8 @@ næste fra-dato ikke falde inde i den seneste periode, som 23-05 efter en period
   måles de i måneder, så april efter januar og februar ikke tæller som længere; ellers måles i kalenderdage.
   Hvis målrækkens periode endnu ikke er udfyldt, kan denne sammenligning ikke foretages.
 - Et beløb uden tilknyttet periode (renteberegningens krav) og et heltal (tillægstiden) gentages kun, når de
-  to foregående værdier er ens.
+  to foregående værdier er ens. Tillægstiden kræver desuden, at begge foregående rækker og målrækken har
+  samme enhed. To gange 2 måneder foreslår derfor ikke 2 i en ny række med enheden Dage.
 - Ved en periode, der krydser et årsskifte eller grænser ved 31. december/1. januar eller ved
   28./29. februar/1. marts, må forskellige beløb over grænsen foreslå den seneste værdi. Både de to
   beløbsceller og periodens relevante datoer skal være brugbare. Dette dækker forventelige lønændringer

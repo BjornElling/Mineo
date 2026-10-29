@@ -280,6 +280,11 @@ export const projectAutofillColumnValue = (
     const above = column.samples[rowIndex - 1];
     const before = column.samples[rowIndex - 2];
     if (above === undefined || above.kind !== column.kind || before === undefined || before.kind !== column.kind) return null;
+    if (column.kind === 'integer' && column.integerUnits !== undefined) {
+      const unit = column.integerUnits[rowIndex];
+      // Samme tal i måneder og dage er ikke samme tillægstid; målrækkens valgte enhed skal også passe.
+      if (unit === undefined || column.integerUnits[rowIndex - 1] !== unit || column.integerUnits[rowIndex - 2] !== unit) return null;
+    }
     if (column.kind !== 'amount') return before.value === above.value ? above : null;
     if (before.value === above.value) return isCurrentPeriodLonger(model, column, rowIndex) ? null : above;
     return hasSalaryIncreaseBoundary(model, column, rowIndex) ? above : null;

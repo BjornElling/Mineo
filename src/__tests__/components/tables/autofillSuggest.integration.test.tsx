@@ -5,6 +5,9 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
+import BeregnetRenteTable from '../../../components/tables/BeregnetRenteTable';
+import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
+import { readRentekravCommittedRows } from '../../../domain/renteberegning/renteberegningReaderProjection';
 import { aarsloenStandardLoenFieldSet } from '../../../domain/aarsloen/aarsloenStandardLoenFieldSet';
 import { createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import { APP_ROUTES } from '../../../config/pageNavigation';
@@ -18,7 +21,7 @@ import { getProductionInputCatalog } from '../../../inputCore/catalog/production
 import { slimInputStore } from '../../../inputCore/runtime/slimInputStore';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
-import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, RenteberegningValues } from '../../../schemas/formSchemas';
 import {
   changeTableInput,
   focusTableElement,
@@ -37,10 +40,11 @@ const amount = (value: number) => ({ kind: 'number' as const, value });
 const hydrate = (sections: Readonly<{
   erstatningsopgoerelse?: ErstatningsopgoerelseValues | null;
   aarsloen?: Record<string, unknown> | null;
+  renteberegning?: RenteberegningValues | null;
 }>): void => {
   const input = catalog.validateSettledInput({
     sections: {
-      stamdata: null, satser: null, faellesAarsloen: null, renteberegning: null,
+      stamdata: null, satser: null, faellesAarsloen: null, renteberegning: sections.renteberegning ?? null,
       varigemen: null, forsoergertab: null, erhvervsevnetab: null,
       aarsloen: sections.aarsloen ?? null,
       erstatningsopgoerelse: sections.erstatningsopgoerelse ?? null,
@@ -256,6 +260,21 @@ describe('Autofill-suggest i Offentlige ydelser-tabellen', () => {
     expect(screen.queryByText(/^Forslag:/)).not.toBeInTheDocument();
   });
 
+  it('accepterer ikke et forslag, når brugeren har åbnet og tømt en editor', async () => {
+    renderYdelser(MAANEDSRAEKKER);
+    const fraDato = cellInput(2, 'Fra dato');
+    await openTableInputEditing(fraDato, '0');
+    await changeTableInput(fraDato, '');
+
+    expect(fraDato).toHaveAttribute('placeholder', '');
+    expect(screen.queryByText(/^Forslag:/)).not.toBeInTheDocument();
+    const before = undoDepth();
+    await keyDownTableElement(fraDato, { key: 'Enter' });
+
+    expect(cellInput(2, 'Fra dato')).toHaveValue('');
+    expect(undoDepth()).toBe(before);
+  });
+
   it('lader Shift+Enter navigere opad uden at indsætte forslaget', async () => {
     renderYdelser(MAANEDSRAEKKER);
     await focusTableElement(cellInput(2, 'Fra dato'));
@@ -306,6 +325,52 @@ const MAANED_LOENRAEKKER = [
   { id: 'loen-1', col0_maaned: '11', col1_maaned: '2025', col2: amount(30000) },
   { id: 'loen-2', col0_maaned: '12', col1_maaned: '2025', col2: amount(30000) },
 ] as const;
+
+const RenteAutofillTable = (): React.ReactElement => {
+  const evaluation = useInputEvaluation();
+  return (
+    <BeregnetRenteTable
+      committedRows={readRentekravCommittedRows(evaluation.reader)}
+      rowProjections={new Map()}
+      onDownloadSpecifikation={async () => {}}
+      locationNav={{ route: APP_ROUTES.renteberegning, tabKey: null }}
+      documentDownloadFormat="pdf"
+      resolveDownloadGate={() => ({ canDownload: false })}
+    />
+  );
+};
+
+describe('Autofill-suggest i rentetabellen', () => {
+  afterEach(cleanup);
+
+  const renderRentetabel = (): void => {
+    hydrate({ renteberegning: {
+      beregningsdato: iso('2026-12-31'),
+      rentekravRows: [
+        { id: 'krav-1', belob: amount(8000), renterFra: iso('2026-01-01'), tillaegstid: 30, enhed: 'dage' },
+        { id: 'krav-2', belob: amount(8000), renterFra: iso('2026-02-01'), tillaegstid: 30, enhed: 'dage' },
+      ],
+    } });
+    renderInRuntime(<RenteAutofillTable />);
+  };
+
+  it.each([
+    ['Beløb', '8.000,00'],
+    ['Forfaldsdato', '01-03-2026'],
+    ['Tillægstid', '30'],
+  ])('accepterer den viste ghost i %s gennem feltmotoren', async (label, suggestion) => {
+    renderRentetabel();
+    const input = cellInput(2, label);
+    await focusTableElement(input);
+    expect(input).toHaveAttribute('placeholder', suggestion);
+    const before = undoDepth();
+    await keyDownTableElement(input, { key: 'Enter' });
+
+    expect(cellInput(2, label)).toHaveValue(suggestion);
+    expect(document.activeElement).toBe(cellInput(2, label));
+    expect(undoDepth()).toBe(before + 1);
+  });
+});
 
 const renderLoentabel = (): void => {
   const rows = MAANED_LOENRAEKKER.map((row) => ({ ...row }));

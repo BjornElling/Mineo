@@ -46,8 +46,19 @@ test.describe('Erstatningsopgørelse – Offentlige ydelser (12k)', () => {
     await setDate(page.locator("input[name='midlertidigEETAfgoerelseDato']"), '15-01-2026');
 
     await page.getByRole('tab', { name: 'Offentlige ydelser', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', exact: true }).check();
+    const eetToggle = page.getByRole('checkbox', { name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden', exact: true });
+    await eetToggle.focus();
+    await eetToggle.press('Enter');
     const ring = page.locator('[data-mineo-field-warning]');
+    await expect(ring).toBeVisible();
+    await expect(eetToggle).toBeFocused();
+    await eetToggle.press('Space');
+    await expect(eetToggle).not.toBeChecked();
+    await expect(eetToggle).toBeFocused();
+    await expect(ring).toHaveCount(0);
+    await eetToggle.press('Enter');
+    await expect(eetToggle).toBeChecked();
+    await expect(eetToggle).toBeFocused();
     await expect(ring).toBeVisible();
     await ring.hover();
     await expect(page.getByRole('tooltip', { name: INGEN_EET_YDELSER, exact: true })).toBeVisible();

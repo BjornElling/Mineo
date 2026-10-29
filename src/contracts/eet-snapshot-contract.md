@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-09-09
+**Senest verificeret mod kode:** 2026-10-29 (frivillig ASL-virkningsdato; 11.009 tests bestået). Tidligere 2026-09-09
 
 ---
 
@@ -50,6 +50,16 @@ kan vise eller gemme et resultat fra en blokeret projektion.
 
 Projektionerne er dele af det Zod-validerede `EetSnapshot`; view- og dokumentprojektioner må
 kun formatere eller udvælge disse data.
+
+### ASL-afgørelsens virkningsdato
+
+Virkningsdatoen er frivillig. Uden særskilt virkningsdato bruges afgørelsesdatoen i alle beregninger,
+valideringsregler, afgørelsessorteringer og EO-importen gennem `resolveAslVirkningsdato` i
+`eetAslAfgoerelser.ts` (udviklerafgørelse 2026-10-29, BB-368). En tom virkningsdato og en virkningsdato
+lig afgørelsesdatoen skal give samme beregning og samme issues. Kun advarsler om den udtrykkeligt
+indtastede dato læser den rå feltværdi. Den udledte dato skrives aldrig tilbage til sagsdata.
+
+Reglen dækkes af `src/__tests__/domain/erhvervsevnetab/eetVirkningsdatoFallback.test.ts`.
 
 ### 2.1 Løbende ydelsers perioder
 

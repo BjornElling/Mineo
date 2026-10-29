@@ -314,6 +314,23 @@ describe('resolveAutofillSuggestion', () => {
       expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.belob)).toBeNull();
       expect(resolveAutofillSuggestion(model, 'ny', RENTE_COL.tillaegstid)).toBeNull();
     });
+
+    it('gentager kun tillægstid, når begge prøver og målrækken har samme enhed', () => {
+      for (const units of [
+        ['maaneder', 'maaneder', 'dage'],
+        ['dage', 'maaneder', 'maaneder'],
+        ['maaneder', 'dage', 'maaneder'],
+        ['maaneder', 'maaneder', 'maaneder'],
+      ] as const) {
+        const rows = [
+          renteRow('k1', { tillaegstid: 2, enhed: units[0] }),
+          renteRow('k2', { tillaegstid: 2, enhed: units[1] }),
+          renteRow('k3', { enhed: units[2] }),
+        ];
+        const suggestion = resolveAutofillSuggestion(renteModel(rows), 'k3', RENTE_COL.tillaegstid);
+        expect(suggestion).toEqual(units.every((unit) => unit === units[2]) ? { displayText: '2', rawText: '2' } : null);
+      }
+    });
   });
 
   describe('ydelsestype-dropdownen', () => {

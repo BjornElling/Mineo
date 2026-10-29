@@ -87,17 +87,17 @@ const MappedToggleField = <TValue,>(
       restoreTargetAttributes={restoreTargetAttributes}
     />
   );
-  if (warning === undefined) return toggle;
-
+  // Bevar samme træ, når advarslen skifter: ellers bliver det fokuserede input udskiftet ved klik,
+  // så brugeren ikke kan slå valget fra igen med Enter eller mellemrum.
   return (
-    <Tooltip title={warning.message} arrow placement="top">
+    <Tooltip title={warning?.message ?? ''} arrow placement="top">
       <Box
         component="span"
-        data-mineo-field-warning=""
+        {...(warning === undefined ? {} : { 'data-mineo-field-warning': '' })}
         sx={{
           display: 'inline-flex',
           borderRadius: '14px',
-          outline: '1px solid var(--color-status-warning)',
+          outline: warning === undefined ? 'none' : '1px solid var(--color-status-warning)',
           outlineOffset: '2px',
         }}
       >

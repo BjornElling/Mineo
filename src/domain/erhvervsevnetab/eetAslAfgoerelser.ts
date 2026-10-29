@@ -94,12 +94,9 @@ export const KAP_PCT_UNDER_TO_AAR_MESSAGE =
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
-/**
- * Returnerer rækkefølge mellem to afgørelser.
- *
- * null betyder "kan ikke afgøres fail-closed", fordi mindst én afgørelsesdato mangler.
- * Kaldere skal i så fald behandle kandidaterne som ikke-dokumenteret tidligere.
- */
+/** Kolonneoverskriftens forklaring af reglen nedenfor (udviklerens ordlyd 2026-10-29). */
+export const ASL_VIRKNINGSDATO_INFO = 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.';
+
 /**
  * Afgørelsens virkningsdato: den indtastede, ellers afgørelsesdatoen. Feltet er frivilligt – en afgørelse uden særskilt
  * virkningsdato har virkning fra afgørelsesdatoen, som på EO oplysninger (udviklerafgørelse 2026-10-29, BB-368).
@@ -111,14 +108,17 @@ const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
  * kapitalisering, differencekrav og EO-importen en afgørelse uden virkningsdato tavst over: beløbet forsvandt uden et
  * ord. Kun visningsadvarsler om selve cellen læser den rå værdi, så en tom celle aldrig markeres for sin egen tomhed.
  */
-/** Kolonneoverskriftens forklaring af reglen nedenfor (udviklerens ordlyd 2026-10-29). */
-export const ASL_VIRKNINGSDATO_INFO = 'Udfyldes kun, hvis den er forskellig fra afgørelsesdatoen.';
-
 export const resolveAslVirkningsdato = (
   row: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
 ): ISODateString | undefined =>
   coerceToISODateString(row.virkningsDato) ?? coerceToISODateString(row.afgoerelsesDato);
 
+/**
+ * Returnerer rækkefølge mellem to afgørelser.
+ *
+ * null betyder "kan ikke afgøres fail-closed", fordi mindst én afgørelsesdato mangler.
+ * Kaldere skal i så fald behandle kandidaterne som ikke-dokumenteret tidligere.
+ */
 const compareAfgoerelseOrder = (
   left: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>,
   right: Pick<AslAfgoerelseRow, 'afgoerelsesDato' | 'virkningsDato'>
