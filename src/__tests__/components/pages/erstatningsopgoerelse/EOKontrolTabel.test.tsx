@@ -179,7 +179,8 @@ describe('EOKontrolTabel', () => {
     expect(screen.queryByTestId('ErrorOutlinedIcon')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregningsperiode')).not.toBeInTheDocument();
     expect(screen.queryByText('TAF-periode')).not.toBeInTheDocument();
-    expect(screen.getAllByText('Enhed')).toHaveLength(2);
+    expect(screen.getAllByText('Enhed')).toHaveLength(1);
+    expect(screen.getByText('Beløb')).toBeInTheDocument();
   });
 
   it('bruger oversigtens nye betegnelser (BB-387)', () => {

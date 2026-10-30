@@ -50,7 +50,7 @@ const renderRows = (rows: readonly EoRowModel[]) => rows.map((row) => (
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
       <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>
-      {getStatusIcon(row.status)}
+      {getStatusIcon(row.status, row.displayValue)}
     </Box>
   </Box>
 ));
@@ -62,7 +62,7 @@ const renderRegulationRows = (rows: NonNullable<RegulationInspektionSection['row
       <Typography className="row--text" sx={getDisplayValueSx(typeof row.value === 'string' ? row.value : row.value.displayValue)}>
         {typeof row.value === 'string' ? row.value : row.value.displayValue}
       </Typography>
-      {getStatusIcon('ok')}
+      {getStatusIcon('ok', typeof row.value === 'string' ? row.value : row.value.displayValue)}
     </Box>
   </Box>
 ));
@@ -114,7 +114,7 @@ const renderCombinedTafRegulationValueRow = (
           >
             {stripFirstAvailableDateFromRegulationDisplayValue(part.displayValue)}
           </Typography>
-          {getStatusIcon(part.status)}
+          {getStatusIcon(part.status, stripFirstAvailableDateFromRegulationDisplayValue(part.displayValue))}
         </React.Fragment>
       ))}
     </Box>
@@ -205,7 +205,7 @@ const renderSfggRow = (row: EoRowModel) => (
       >
         {row.displayValue}
       </Typography>
-      {getStatusIcon(row.status)}
+      {getStatusIcon(row.status, row.displayValue)}
     </Box>
   </Box>
 );

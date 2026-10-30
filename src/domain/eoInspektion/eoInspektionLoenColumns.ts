@@ -345,7 +345,8 @@ export const buildLoenindkomstColumns = (args: {
   if (ansaettelser.length > 0) {
     columns.push({
       id: kontrolTabelColumnId.taf,
-      header: 'TAF dag',
+      // Samme skrivemåde som «SH-dag» og «Svie/smerte-dag» (BB-387).
+      header: 'TAF-dag',
       align: 'center',
       width: columnWidthPx,
       borderLeft: true,

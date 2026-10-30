@@ -289,3 +289,20 @@ tilstanden.
 ## Åbne spørgsmål
 
 - Ingen ud over fundene.
+
+## Efterfølgende rettelser (2026-10-30)
+
+Med udviklerens tilladelse til at rette øvrige problematiske forhold og tilfældighedsfund:
+
+- **EO-kontrol: «-» uden mærke.** En række med status ok og værdien `-` får intet grønt ✓ (fx «Måneder: -» og
+  «Arbejdsdage: -» ved en tom beregningsperiode) – samme princip som sammentællingen (BB-386). Pladsen bevares, så
+  værdierne står lige. Fejl- og advarselsrækker med `-` beholder kryds og trekant.
+- **«TAF-dag».** Dagtabellens «TAF dag» skrives som «SH-dag» og «Svie/smerte-dag».
+- **Sammentællingens to «Enhed».** Sygeferiegodtgørelsens gruppe hedder nu «Beløb»; dagtællingerne øverst beholder «Enhed».
+- **«(< 6 måneder)» (Dækningshuller ovenfor).** Rækken «Reguleringsværdi på … slut-dato for TAF» siger nu «Ja (sidste værdi
+  under 6 måneder før)» i stedet for kun «(< 6 måneder)», så den svarer på rækkens spørgsmål som naborækkerne. Ren
+  ordlyd; status og beregning er uændrede. Ikke målt i browseren (kræver samme særlige sag som før).
+- **Ikke ændret:** TAF-dagenes afskæring ved midlertidigt EET fra Erhvervsevnetab-siden (Dækningshuller). En TAF-periode
+  forbi afskæringen er i forvejen rød og spærrer TAF-grenen, så sammentællingen tømmes, og forskellen kan ikke give en
+  uoverensstemmelse. At flytte afskæringen ville ændre, hvilke dage tabellen viser som TAF-dage – det er beregningslogik
+  og forelægges, hvis det ønskes.

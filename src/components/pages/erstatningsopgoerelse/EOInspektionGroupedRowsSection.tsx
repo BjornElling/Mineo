@@ -32,7 +32,7 @@ const renderInspektionRow = (row: EoRowModel) => (
       >
         {row.displayValue}
       </Typography>
-      {getStatusIcon(row.status)}
+      {getStatusIcon(row.status, row.displayValue)}
     </Box>
   </Box>
 );

@@ -40,4 +40,22 @@ describe('EOInspektionRowsSection', () => {
     expect(value).toHaveStyle({ whiteSpace: 'pre-line', textAlign: 'right' });
     expect(value.textContent).toContain('\n12-08-2025 - 22-09-2025\n');
   });
+
+  it('giver en ok-række med «-» intet mærke, men beholder ✓ ved en værdi og kryds ved en fejl', () => {
+    render(
+      <MemoryRouter>
+        <EOInspektionRowsSection
+          title="Indtægt før skadedatoen"
+          rows={[
+            { id: 'tom', label: 'Måneder', displayValue: '-', status: 'ok' },
+            { id: 'vaerdi', label: 'Beregnes ud fra', displayValue: 'Beregningsperiode', status: 'ok' },
+            { id: 'fejl', label: 'Periode', displayValue: '-', status: 'error' },
+          ]}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByTestId('CheckIcon')).toHaveLength(1);
+    expect(screen.getAllByTestId('ErrorOutlinedIcon')).toHaveLength(1);
+  });
 });

@@ -908,7 +908,9 @@ export const buildEoIndkomstRows = (
         // blokeres med synlig fejl); rækkens 'ok' er en bevidst, sikker asymmetri, ikke tavs
         // under-regulering.
         return {
-          displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
+          // «Ja» som naborækkerne: værdien dækker slutdatoen, fordi sidste sats videreføres. Før stod kun
+          // «(< 6 måneder)», som ikke svarede på rækkens spørgsmål.
+          displayValue: `Ja (sidste værdi under ${overenskomstUdloebMaanederGraense} måneder før)`,
           status: 'ok' as EoRowStatus,
           summaryText: undefined,
         };

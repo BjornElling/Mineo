@@ -424,7 +424,7 @@ describe('buildEOInspektionModel – columnRawValues', () => {
 // ─── Loen/offentligeydelser kolonner (smoke-tests) ────────────────────────────
 
 describe('buildEOInspektionModel – loenindkomst og offentligeydelser kolonner (smoke)', () => {
-  it('viser kun én fælles TAF dag-kolonne selv ved flere ansættelsesforhold', () => {
+  it('viser kun én fælles TAF-dag-kolonne selv ved flere ansættelsesforhold', () => {
     const model = buildEOInspektionModel({
       ...base(),
       vedroererPeriodeFra: toISODateString('2024-01-01') as never,
@@ -486,7 +486,7 @@ describe('buildEOInspektionModel – loenindkomst og offentligeydelser kolonner 
     const tafReguleringColumns = model.columns.filter((column) => column.id.includes(':taf_regulering'));
 
     expect(tafDayColumns).toHaveLength(1);
-    expect(tafDayColumns[0]?.header).toBe('TAF dag');
+    expect(tafDayColumns[0]?.header).toBe('TAF-dag');
     expect(tafReguleringColumns).toHaveLength(2);
     expect(tafReguleringColumns[0]?.borderLeft).toBe(true);
     expect(tafReguleringColumns[1]?.borderLeft).toBe(true);

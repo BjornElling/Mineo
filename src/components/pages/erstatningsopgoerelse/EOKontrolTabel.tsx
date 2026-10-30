@@ -323,7 +323,8 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
           {renderSammentaellingTable('Enhed', sammentaellingTables.basis)}
           {renderSammentaellingTable('Beregningsperiode', sammentaellingTables.beregningsperiode)}
           {renderSammentaellingTable('TAF-periode', sammentaellingTables.taf)}
-          {renderSammentaellingTable('Enhed', sammentaellingTables.sfgg)}
+          {/* Beløbsgruppen hed også «Enhed» som dagtællingerne øverst; to ens overskrifter over forskellige størrelser. */}
+          {renderSammentaellingTable('Beløb', sammentaellingTables.sfgg)}
         </ContentBox>
       )}
 

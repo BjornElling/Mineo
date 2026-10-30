@@ -28,7 +28,7 @@ const EOInspektionRowsSection = React.memo<{
           <Typography className="row--text">{row.label}</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
             <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>
-            {getStatusIcon(row.status)}
+            {getStatusIcon(row.status, row.displayValue)}
           </Box>
         </Box>
       ))}
