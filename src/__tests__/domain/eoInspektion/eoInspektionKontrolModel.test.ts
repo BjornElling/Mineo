@@ -325,7 +325,8 @@ describe('buildEOInspektionModel – TAF fallback', () => {
     const cutoffIndex = model.tableData.dates.indexOf(toISODateString('2024-01-10') as never);
 
     expect(model.tableData.tafDayStatusByIndex[beforeCutoffIndex]).toBe('Ja');
-    expect(model.tableData.tafDayStatusByIndex[cutoffIndex]).toBe('-');
+    // Afskæringsdagen er ikke en TAF-dag og bærer afskæringens navn.
+    expect(model.tableData.tafDayStatusByIndex[cutoffIndex]).toBe('Midlertidigt EET');
   });
 });
 

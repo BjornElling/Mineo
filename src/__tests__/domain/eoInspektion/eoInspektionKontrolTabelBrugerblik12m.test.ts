@@ -71,11 +71,11 @@ const employmentColumnIds = (model: ReturnType<typeof buildEOInspektionModel>): 
 
 describe('Kontroltabellen – brugerblik 12m', () => {
   describe('BB-388: ansættelsesforholdskolonner kun med TAF-krav', () => {
-    it('har ingen ansættelsesforholdskolonner uden TAF, men beholder TAF-dagskolonnen', () => {
+    it('har hverken ansættelsesforholds- eller TAF-dagskolonner uden TAF', () => {
       const model = buildEOInspektionModel(values({ kravPaaTabtArbejdsfortjeneste: 'Nej' }), { tafRanges: [] });
 
       expect(employmentColumnIds(model)).toEqual([]);
-      expect(model.columns.some((column) => column.id === 'base:taf_day')).toBe(true);
+      expect(model.columns.some((column) => column.id === 'base:taf_day')).toBe(false);
     });
 
     it('har ansættelsesforholdets kolonner med TAF-krav', () => {

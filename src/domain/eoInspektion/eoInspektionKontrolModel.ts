@@ -22,6 +22,8 @@ import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../u
 import type { RowDay } from '../eoRowEvaluation/eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
+import { resolveMidlertidigEetDato, resolveTafCutoffDates } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../erstatningsopgoerelse/helpers/eoConstants';
 
 export type KontrolTabelDateSource = Readonly<{
   label: string;
@@ -102,6 +104,7 @@ type EOInspektionTableData = Readonly<{
 
 export type EOInspektionModel = Readonly<{
   sources: readonly KontrolTabelDateSource[];
+  tafAfskaering: readonly KontrolTabelTafAfskaeringRaekke[];
   combinedMinFra: ISODateString | undefined;
   combinedMaxTil: ISODateString | undefined;
   tableFra: ISODateString | undefined;
@@ -205,6 +208,60 @@ const computeSummaryTableRange = (
 export const harKontrolTabelAnsaettelsesforholdKolonner = (
   values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'>
 ): boolean => erTabtArbejdsfortjenesteSektionAktiv(values);
+
+export type KontrolTabelTafAfskaeringRaekke = Readonly<{
+  label: string;
+  dato: ISODateString;
+}>;
+
+/**
+ * Oversigten over de datoer, der kan afslutte TAF, og om de gør det i sagen.
+ *
+ * Reglen er den, motoren og valideringen bruger (`resolveTafCutoffDates`): TAF ophører fra og med differencekravets
+ * dato og det endelige EET's dato. Det midlertidige EET's dato afslutter kun TAF for skader før 16-06-2011; for
+ * senere skader fortsætter TAF. Under en verserende klage over EET afslutter ingen EET-dato TAF. Oversigten viser
+ * også de EET-datoer, der IKKE afslutter TAF, og hvorfor, så tabellen tydeligt viser, hvilken regel den håndhæver.
+ */
+export const buildTafAfskaeringOversigt = (
+  values: ErstatningsopgoerelseValues,
+  skadedatoISO: ISODateString | undefined
+): readonly KontrolTabelTafAfskaeringRaekke[] => {
+  if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return [];
+  const cutoffs = resolveTafCutoffDates({ ...values, skadedatoISO });
+  const skaeringsdato = isoToDanish(TAF_MIDLERTIDIG_EET_SKAERINGSDATO) ?? TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
+  const klage = values.verserendeKlageEet === 'Ja';
+  const rows: KontrolTabelTafAfskaeringRaekke[] = [];
+
+  if (cutoffs.differencekravDato) {
+    rows.push({ label: 'TAF ophører: differencekrav opgjort pr.', dato: cutoffs.differencekravDato });
+  }
+
+  const endeligDato = values.endeligtEETAfgorelse === 'Ja'
+    ? values.endeligEETVirkningsdato ?? values.endeligEETAfgoerelseDato
+    : undefined;
+  if (cutoffs.endeligEETDato) {
+    rows.push({ label: 'TAF ophører: endeligt EET', dato: cutoffs.endeligEETDato });
+  } else if (endeligDato && klage) {
+    rows.push({ label: 'Endeligt EET – TAF fortsætter (verserende klage)', dato: endeligDato });
+  }
+
+  const midlertidigDato = resolveMidlertidigEetDato(values);
+  if (cutoffs.midlertidigEETDato) {
+    rows.push({
+      label: `TAF ophører: midlertidigt EET (skade før ${skaeringsdato})`,
+      dato: cutoffs.midlertidigEETDato,
+    });
+  } else if (midlertidigDato) {
+    const grund = klage
+      ? 'verserende klage'
+      : skadedatoISO === undefined
+        ? 'skadedato mangler'
+        : `skade fra ${skaeringsdato}`;
+    rows.push({ label: `Midlertidigt EET – TAF fortsætter (${grund})`, dato: midlertidigDato });
+  }
+
+  return rows.sort((left, right) => left.dato.localeCompare(right.dato));
+};
 
 const buildIsoIndex = (dates: readonly ISODateString[]): ReadonlyMap<ISODateString, number> => {
   const map = new Map<ISODateString, number>();
@@ -527,6 +584,8 @@ export const buildEOInspektionModel = (
     ? resolvedTafRanges.reduce<ISODateString | undefined>((acc, r) => maxISO(acc, r.til), undefined)
     : undefined;
 
+  const tafAfskaering = buildTafAfskaeringOversigt(values, options.skadedatoISO);
+
   const sources: KontrolTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
     {
@@ -550,6 +609,7 @@ export const buildEOInspektionModel = (
   if (!tableFra || !tableTil || tableFra > tableTil) {
     return {
       sources,
+      tafAfskaering,
       combinedMinFra,
       combinedMaxTil,
       tableFra,
@@ -681,15 +741,35 @@ export const buildEOInspektionModel = (
     },
   ];
 
+  // TAF-dagene beregnes ét sted og læses både af kolonnen og af sammentællingen; før blev de beregnet to gange.
+  const tafDayStatusByIndex = buildTafDayStatusValues({
+    dates,
+    erstatningsFra,
+    erstatningsTil,
+    cutoffs: resolveTafCutoffDates({ ...values, skadedatoISO: options.skadedatoISO }),
+    tafDates,
+    isWorkdayByIndex,
+    isWithinBeregningsByIndex,
+  });
+  // Kolonnen er grundlaget for sammentællingens TAF-dage og vises derfor, når der er TAF-krav – også uden et
+  // ansættelsesforhold (angivet løn), hvor den før manglede, selvom dagene blev talt.
+  const tafDayColumns: KontrolTabelColumnData[] = isTafEnabledForSource
+    ? [{
+      id: KONTROL_TABEL_COLUMN_IDS.tafDay,
+      // Samme skrivemåde som «SH-dag» og «Svie/smerte-dag» (BB-387).
+      header: 'TAF-dag',
+      align: 'center',
+      width: DEFAULT_COLUMN_WIDTH_PX,
+      borderLeft: true,
+      values: tafDayStatusByIndex,
+    }]
+    : [];
+
   const { columns: loenColumns, integrityIssues: loenIssues } = buildLoenindkomstColumns({
     dates,
     isoIndex,
     values,
-    erstatningsFra,
-    erstatningsTil,
-    tafDates,
     isWorkdayByIndex,
-    isWithinBeregningsByIndex,
     tableFra,
     tableTil,
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,
@@ -721,20 +801,7 @@ export const buildEOInspektionModel = (
     }),
   }));
 
-  const columnData: KontrolTabelColumnData[] = [...baseColumns, ...loenColumns, ...offentligeColumns];
-  const tafDayStatusByIndex = buildTafDayStatusValues({
-    dates,
-    erstatningsFra,
-    erstatningsTil,
-    differencekravDato: values.differencekravDato,
-    endeligEetDato:
-      values.endeligtEETAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
-        ? values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato
-        : undefined,
-    tafDates,
-    isWorkdayByIndex,
-    isWithinBeregningsByIndex,
-  });
+  const columnData: KontrolTabelColumnData[] = [...baseColumns, ...tafDayColumns, ...loenColumns, ...offentligeColumns];
   const columnRawValues = new Map<KontrolTabelColumnId, readonly number[]>();
   for (const col of columnData) {
     if (col.rawValues) {
@@ -782,6 +849,7 @@ export const buildEOInspektionModel = (
 
   return {
     sources,
+    tafAfskaering,
     combinedMinFra,
     combinedMaxTil,
     tableFra,

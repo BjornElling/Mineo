@@ -306,3 +306,25 @@ Med udviklerens tilladelse til at rette øvrige problematiske forhold og tilfæl
   forbi afskæringen er i forvejen rød og spærrer TAF-grenen, så sammentællingen tømmes, og forskellen kan ikke give en
   uoverensstemmelse. At flytte afskæringen ville ændre, hvilke dage tabellen viser som TAF-dage – det er beregningslogik
   og forelægges, hvis det ønskes.
+
+## Kontroltabellen som selvstændig kontrolberegning: TAF's afskæring ved EET (2026-10-30)
+
+Udviklerens krav: kontroltabellen er en særskilt, parallel opgørelse, som skal stemme nøjagtigt med den tekniske
+beregning, og den skal selv håndhæve – og vise – TAF's afskæring ved EET. Gennemført samme dag; reglen står normativt i
+`eo-snapshot-contract.md` §6.2.
+
+- **Reglen** er programmets eksisterende (motor, validering og EO-kontrol): TAF ophører fra og med differencekravets
+  dato, det endelige EET's dato og – kun for skader før 16-06-2011 – det midlertidige EET's dato. For senere skader
+  fortsætter TAF uanset midlertidigt EET. Under verserende klage over EET afskærer ingen EET-dato. Skæringsdatoen i
+  programmet er **16-06-2011** (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO`).
+- **Før** kendte kontroltabellen kun det endelige EET og differencekravet og stolede i øvrigt på motorens afgrænsede
+  TAF-perioder. Den midlertidige EET-afskæring var dækningshullet ovenfor. Den endelige EET-afskæring krævede desuden
+  «Verserende klage: Nej» udtrykkeligt, mens motoren afskærer, medmindre der ER en klage.
+- **Nu** henter tabellen afskæringerne fra samme opslag som motoren (`resolveTafCutoffDates`) og anvender dem selv. Får
+  den TAF-perioder, der ikke er afgrænset, tæller den ikke dagene efter afskæringen, og sammentællingen melder
+  forskellen.
+- **Synligt:** afskæringsdagen står i TAF-dagskolonnen som «Midlertidigt EET», «Endeligt EET» eller «Differencekrav».
+  Under perioderne i oversigten står fx «TAF ophører: midlertidigt EET (skade før 16-06-2011)», og en EET-dato, der IKKE
+  afskærer, står med grunden: «Midlertidigt EET – TAF fortsætter (skade fra 16-06-2011)» eller «… (verserende klage)».
+- **TAF-dagskolonnen** vises nu, når der er TAF-krav, også uden et ansættelsesforhold (angivet løn). Før manglede den
+  dér, selvom sammentællingen talte dens dage. Uden TAF-krav vises den ikke.

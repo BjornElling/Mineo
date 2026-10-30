@@ -14,6 +14,7 @@ import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoInspektionOffentligeYdelserColumns';
 import type { KontrolTabelColumnId, KontrolTabelIntegrityIssue } from './eoInspektionKontrolModel';
 import { kontrolTabelColumnId, WAGE_COLUMNS } from './eoInspektionLoenTypes';
+import type { resolveTafCutoffDates } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { buildFallbackAllocationDaysForInterval } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
@@ -73,12 +74,52 @@ const buildAllocationDates = (
   return allocationDates;
 };
 
+export type TafAfskaeringKilde = 'differencekrav' | 'endeligEet' | 'midlertidigEet';
+
+/** Markøren i TAF-dagskolonnen på den dag, TAF ophører, og kildens navn i oversigten. */
+export const TAF_AFSKAERING_MARKOER: Readonly<Record<TafAfskaeringKilde, string>> = {
+  endeligEet: 'Endeligt EET',
+  midlertidigEet: 'Midlertidigt EET',
+  differencekrav: 'Differencekrav',
+};
+
+/**
+ * Den dag, TAF ophører fra og med: den tidligste af de AKTIVE afskæringer. Afskæringerne kommer fra
+ * `resolveTafCutoffDates` – samme opslag som motorens clamping og valideringens feltfejl – så tabellen anvender
+ * præcis samme regel: differencekravets dato, det endelige EET's dato og, kun for skader før 16-06-2011, det
+ * midlertidige EET's dato; ingen af EET-datoerne under en verserende klage.
+ */
+export const resolveTafAfskaering = (
+  cutoffs: ReturnType<typeof resolveTafCutoffDates>
+): Readonly<{ dato: ISODateString; kilde: TafAfskaeringKilde }> | undefined => {
+  // Rækkefølgen afgør markøren, når to afskæringer falder på samme dag.
+  const kandidater: ReadonlyArray<Readonly<{ dato: ISODateString | undefined; kilde: TafAfskaeringKilde }>> = [
+    { dato: cutoffs.endeligEETDato, kilde: 'endeligEet' },
+    { dato: cutoffs.midlertidigEETDato, kilde: 'midlertidigEet' },
+    { dato: cutoffs.differencekravDato, kilde: 'differencekrav' },
+  ];
+  let tidligste: Readonly<{ dato: ISODateString; kilde: TafAfskaeringKilde }> | undefined;
+  for (const kandidat of kandidater) {
+    if (kandidat.dato === undefined) continue;
+    if (tidligste === undefined || kandidat.dato < tidligste.dato) tidligste = { dato: kandidat.dato, kilde: kandidat.kilde };
+  }
+  return tidligste;
+};
+
+/**
+ * TAF-dagskolonnen: «Ja» for en TAF-dag, `-` for en dag i scope uden TAF, tom uden for scope, og kildens
+ * markør (fx «Midlertidigt EET») på den dag, TAF ophører.
+ *
+ * Kontroltabellen er en selvstændig kontrol af beregningen og anvender derfor selv afskæringerne – også
+ * selvom `tafDates` fra motoren allerede er afgrænset. Skulle en TAF-dag nogensinde slippe igennem motoren efter
+ * en afskæring, tæller tabellen den ikke, og sammentællingen melder uoverensstemmelsen. Før kendte tabellen kun
+ * det endelige EET og differencekravet, ikke den midlertidige EET-afskæring for skader før 16-06-2011.
+ */
 export const buildTafDayStatusValues = (args: Readonly<{
   dates: readonly ISODateString[];
   erstatningsFra: ISODateString | undefined;
   erstatningsTil: ISODateString | undefined;
-  differencekravDato: ISODateString | undefined;
-  endeligEetDato: ISODateString | undefined;
+  cutoffs: ReturnType<typeof resolveTafCutoffDates>;
   tafDates: ReadonlySet<ISODateString>;
   isWorkdayByIndex: readonly boolean[];
   isWithinBeregningsByIndex: readonly boolean[];
@@ -87,13 +128,13 @@ export const buildTafDayStatusValues = (args: Readonly<{
     dates,
     erstatningsFra,
     erstatningsTil,
-    differencekravDato,
-    endeligEetDato,
+    cutoffs,
     tafDates,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
   } = args;
 
+  const afskaering = resolveTafAfskaering(cutoffs);
   const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
   const hasErstatningsRange = erstatningsRange != null;
   const isWithinErstatningsByIndex: ReadonlyArray<boolean> = dates.map((iso) =>
@@ -110,38 +151,31 @@ export const buildTafDayStatusValues = (args: Readonly<{
     // udløser en falsk control:sammentaelling_mismatch. `tafDates` er allerede clampet mod EO-perioden, når
     // den findes, så fald-tilbaget ændrer intet i det tilfælde.
     const within = hasErstatningsRange ? isWithinErstatningsByIndex[i] : true;
-    const isWork = isWorkdayByIndex[i];
 
     if (!within) {
       tafStatus[i] = 0;
       continue;
     }
-
-    if (endeligEetDato && iso === endeligEetDato) {
+    // Afskæringsdagen selv er ikke en TAF-dag (motorens grænse er dagen før).
+    if (afskaering && iso === afskaering.dato) {
       tafStatus[i] = 2;
       continue;
     }
-    if (endeligEetDato && iso > endeligEetDato) {
+    if (afskaering && iso > afskaering.dato) {
       tafStatus[i] = 0;
       continue;
     }
-
-    if (differencekravDato && iso >= differencekravDato) {
-      tafStatus[i] = 0;
-      continue;
-    }
-
     if (!tafDates.has(iso)) {
       tafStatus[i] = 0;
       continue;
     }
 
-    tafStatus[i] = isWork ? 1 : 0;
+    tafStatus[i] = isWorkdayByIndex[i] ? 1 : 0;
   }
 
   return dates.map((iso, rowIndex) => {
     const code = tafStatus[rowIndex];
-    // En dag i TAF-perioden (tafDates), en TAF-dag/endeligt-EET-markør (code !== 0) eller en dag
+    // En dag i TAF-perioden (tafDates), en TAF-dag/afskæringsmarkør (code !== 0) eller en dag
     // i beregningsperioden er altid i scope og skal vises – også når der ikke er angivet en
     // erstatningsperiode. Når EO-perioden findes, gælder `tafDates ⊆ erstatningsRange`, så de
     // ekstra led medfører `isWithinErstatningsByIndex` og ændrer derfor intet i det tilfælde.
@@ -151,7 +185,7 @@ export const buildTafDayStatusValues = (args: Readonly<{
       code !== 0 ||
       tafDates.has(iso);
     if (!isVisibleScope) return '';
-    if (code === 2) return 'Endeligt EET';
+    if (code === 2 && afskaering) return TAF_AFSKAERING_MARKOER[afskaering.kilde];
     if (code === 1) return 'Ja';
     return isWithinErstatningsByIndex[rowIndex] || tafDates.has(iso) ? '-' : '';
   });
@@ -289,11 +323,7 @@ export const buildLoenindkomstColumns = (args: {
   dates: readonly ISODateString[];
   isoIndex: ReadonlyMap<ISODateString, number>;
   values: ErstatningsopgoerelseValues;
-  erstatningsFra: ISODateString | undefined;
-  erstatningsTil: ISODateString | undefined;
-  tafDates: ReadonlySet<ISODateString>;
   isWorkdayByIndex: readonly boolean[];
-  isWithinBeregningsByIndex: readonly boolean[];
   tableFra: ISODateString;
   tableTil: ISODateString;
   columnWidthPx: number;
@@ -306,11 +336,7 @@ export const buildLoenindkomstColumns = (args: {
     dates,
     isoIndex,
     values,
-    erstatningsFra,
-    erstatningsTil,
-    tafDates,
     isWorkdayByIndex,
-    isWithinBeregningsByIndex,
     tableFra,
     tableTil,
     columnWidthPx,
@@ -324,35 +350,7 @@ export const buildLoenindkomstColumns = (args: {
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const globalPeriodiseringErKalenderdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.MAANEDER;
 
-  const endeligEetDato =
-    values.endeligtEETAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
-      ? values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato
-      : undefined;
-  const differencekravDato = values.differencekravDato;
-
   const hasMultiple = ansaettelser.length > 1;
-  const tafValues = buildTafDayStatusValues({
-    dates,
-    erstatningsFra,
-    erstatningsTil,
-    differencekravDato,
-    endeligEetDato,
-    tafDates,
-    isWorkdayByIndex,
-    isWithinBeregningsByIndex,
-  });
-
-  if (ansaettelser.length > 0) {
-    columns.push({
-      id: kontrolTabelColumnId.taf,
-      // Samme skrivemåde som «SH-dag» og «Svie/smerte-dag» (BB-387).
-      header: 'TAF-dag',
-      align: 'center',
-      width: columnWidthPx,
-      borderLeft: true,
-      values: tafValues,
-    });
-  }
 
   // Ændret 2026-10-30 (BB-388, udviklerafgørelse): uden TAF-krav ingen ansættelsesforholdskolonner. Det er
   // præsentation, ikke parity: sammentællingens ansættelsesforholdsrækker følger samme gate.

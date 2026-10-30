@@ -19,6 +19,7 @@ import { EMPTY_FIELD_ISSUE_SET } from '../../../../inputCore/inputIssue';
 const makeModel = (patch: Partial<EOInspektionModel>): EOInspektionModel => {
   const base: EOInspektionModel = {
     sources: [],
+    tafAfskaering: [],
     combinedMinFra: undefined,
     combinedMaxTil: undefined,
     tableFra: undefined,

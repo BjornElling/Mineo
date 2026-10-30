@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-10-29 (importadvarsler og importfejl; 11.009 tests og 39 målrettede browserkontroller bestået). Tidligere 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
+**Senest verificeret mod kode:** 2026-10-30 (§6.2: kontroltabellen som selvstændig kontrolberegning og TAF's afskæring ved EET; 11.049 tests og 16 målrettede browserkontroller bestået). Tidligere 2026-10-29 (importadvarsler og importfejl; 11.009 tests og 39 målrettede browserkontroller bestået). Tidligere 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
 sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
 descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
 Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
@@ -486,6 +486,37 @@ Regressionerne dækkes af `eoInspektionDayInputParity.test.ts` og
 sammentællingsrækker gennem readeren, også når andre inputfejl blokerer opgørelsen.
 `eoInspektionRejectedInputParity.test.ts` afslutter indtastninger gennem feltmotoren og
 kontrollerer eksplicit tal/bindestreg-pariteten ved rejected tekst og røde canonical felter.
+
+### 6.2 Kontroltabellen er en selvstændig kontrolberegning (normativ)
+
+Kontroltabellens formål er at være en **særskilt, parallel opgørelse** af skadelidtes krav: en dag-for-dag-tabel
+med sammentælling, som holdes op mod den tekniske beregning bag erstatningsopgørelsen. De to skal stemme
+nøjagtigt; en uoverensstemmelse er altid et ægte fund (§6.1), aldrig en visningsforskel
+(udviklerafgørelse 2026-10-30).
+
+Heraf følger:
+
+1. **Samme regler, egen anvendelse.** Tabellen anvender selv de regler, der afgrænser kravet – den overtager ikke
+   blot motorens resultat. Reglerne hentes fra samme kilde som motoren og valideringen, så de ikke kan drive fra
+   hinanden, men tabellen håndhæver dem uafhængigt. Slipper en dag igennem motoren i strid med en regel, tæller
+   tabellen den ikke, og sammentællingen melder det.
+2. **TAF's afskæring ved EET.** TAF ophører fra og med (afskæringsdagen er ikke en TAF-dag):
+   - differencekravets dato («Evt. differencekrav opgjort per»),
+   - det endelige EET's virkningsdato (ellers afgørelsesdato),
+   - det midlertidige EET's virkningsdato (ellers afgørelsesdato) – **kun for skader før 16-06-2011**
+     (`TAF_MIDLERTIDIG_EET_SKAERINGSDATO`). For skader fra den dato fortsætter TAF uanset en midlertidig
+     EET-afgørelse og afgrænses af det endelige EET.
+   - Under en verserende klage over EET afslutter ingen EET-dato TAF.
+
+   Kilden er `resolveTafCutoffDates` (motorens clamping, valideringens feltfejl og EO-kontrollens rækker).
+   Kontroltabellen anvender den i TAF-dagskolonnen (`buildTafDayStatusValues`), markerer afskæringsdagen med
+   kildens navn («Midlertidigt EET», «Endeligt EET», «Differencekrav») og viser under perioderne, hvilke datoer der
+   afslutter TAF – og hvilke EET-datoer der IKKE gør, med grunden (skade fra 16-06-2011, verserende klage).
+3. **Synligt grundlag.** Det, sammentællingen tæller, står i tabellen: TAF-dagskolonnen vises, når der er TAF-krav,
+   også uden et ansættelsesforhold.
+
+Dækket af `eoInspektionTafAfskaering.test.ts` (inkl. tabellens egen afgrænsning af uafgrænsede TAF-perioder) og
+`e2e/kontroltabel-brugerblik-12m.spec.ts`.
 
 ---
 

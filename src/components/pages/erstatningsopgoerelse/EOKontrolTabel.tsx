@@ -103,6 +103,18 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
       ],
     });
 
+    // TAF's afskæringer står under perioderne, så det er synligt, hvilken regel TAF-dagskolonnen håndhæver – også
+    // når en EET-dato netop IKKE afslutter TAF (skade fra 16-06-2011 eller verserende klage).
+    model.tafAfskaering.forEach((afskaering, index) => {
+      rows.push({
+        key: `taf-afskaering:${afskaering.label}`,
+        cells: [afskaering.label, formatIso(afskaering.dato), '-'],
+        rowSx: index === 0
+          ? { '& .MuiTableCell-root': { borderTop: '1px solid var(--color-table-border) !important' } }
+          : undefined,
+      });
+    });
+
     return rows;
   }, [formatIso, model]);
 
