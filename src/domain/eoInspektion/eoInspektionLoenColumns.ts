@@ -26,6 +26,7 @@ import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 export type KontrolTabelColumnData = Readonly<{
   id: KontrolTabelColumnId;
   header: string;
+  name?: string;
   align: 'left' | 'center' | 'right';
   width: number;
   borderLeft?: boolean;
@@ -298,6 +299,8 @@ export const buildLoenindkomstColumns = (args: {
   columnWidthPx: number;
   integrityTolerance: number;
   errorRowIdsByIndex: ReadonlyArray<ReadonlySet<string>>;
+  /** Se `harKontrolTabelAnsaettelsesforholdKolonner`. TAF-dagskolonnen er ikke omfattet. */
+  medAnsaettelsesforholdKolonner: boolean;
 }): Readonly<{ columns: ReadonlyArray<KontrolTabelColumnData>; integrityIssues: ReadonlyArray<KontrolTabelIntegrityIssue> }> => {
   const {
     dates,
@@ -313,6 +316,7 @@ export const buildLoenindkomstColumns = (args: {
     columnWidthPx,
     integrityTolerance,
     errorRowIdsByIndex,
+    medAnsaettelsesforholdKolonner,
   } = args;
 
   const columns: KontrolTabelColumnData[] = [];
@@ -349,8 +353,11 @@ export const buildLoenindkomstColumns = (args: {
     });
   }
 
-  for (let afIndex = 0; afIndex < ansaettelser.length; afIndex += 1) {
-    const af = ansaettelser[afIndex];
+  // Ændret 2026-10-30 (BB-388, udviklerafgørelse): uden TAF-krav ingen ansættelsesforholdskolonner. Det er
+  // præsentation, ikke parity: sammentællingens ansættelsesforholdsrækker følger samme gate.
+  const kolonneAnsaettelser = medAnsaettelsesforholdKolonner ? ansaettelser : [];
+  for (let afIndex = 0; afIndex < kolonneAnsaettelser.length; afIndex += 1) {
+    const af = kolonneAnsaettelser[afIndex];
     const suffix = hasMultiple ? ` (${afIndex + 1})` : '';
     const errorRowIds = errorRowIdsByIndex[afIndex] ?? new Set<string>();
 
@@ -542,6 +549,7 @@ export const buildLoenindkomstColumns = (args: {
       columns.push({
         id: kontrolTabelColumnId.loenWage(afIndex, col.key),
         header,
+        name: col.name,
         align: 'right',
         width: columnWidthPx,
         rawValues: Array.from(amountsByIndex),

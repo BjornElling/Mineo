@@ -82,8 +82,12 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
       const basisRows = summary.locator('table').first().locator('tbody tr');
       await expect(basisRows).toHaveCount(4);
       for (const row of await basisRows.all()) {
-        await expect(row.getByRole('cell').nth(2)).toHaveText(await row.getByRole('cell').nth(1).innerText());
-        await expect(row.getByRole('cell').last().locator('svg')).toHaveCSS('color', 'rgb(16, 185, 129)');
+        const beregnet = await row.getByRole('cell').nth(1).innerText();
+        await expect(row.getByRole('cell').nth(2)).toHaveText(beregnet);
+        const mark = row.getByRole('cell').last().locator('svg');
+        // En række uden tal har intet mærke (BB-386); en række med tal er grøn – aldrig rød.
+        if (beregnet.trim() === '-') await expect(mark).toHaveCount(0);
+        else await expect(mark).toHaveCSS('color', 'rgb(16, 185, 129)');
       }
     }
     await page.getByRole('tab', { name: 'EO oplysninger', exact: true }).click();

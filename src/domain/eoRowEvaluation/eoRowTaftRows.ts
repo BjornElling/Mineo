@@ -98,7 +98,7 @@ export const buildEoTaftRows = (
     return [
       {
         id: 'taf.ingenTafIEoPerioden',
-        label: 'Advarsel',
+        label: 'Periode',
         displayValue: 'Advarsel (Der er ikke angivet nogen TAF-periode i EO-perioden)',
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -120,7 +120,7 @@ export const buildEoTaftRows = (
   if (authoritativeTafRanges && authoritativeTafRanges.length === 0 && hasValidTafPerioder) {
     rows.push({
       id: 'taf.perioder.clampedAway',
-      label: 'Advarsel',
+      label: 'Perioder',
       displayValue: 'Advarsel (Der er indtastet TAF-perioder, men ingen af perioderne ligger inden for EO-perioden. TAF beregnes derfor til 0 kr.)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
@@ -208,7 +208,7 @@ export const buildEoTaftRows = (
     const message = `${buildPeriodeRaekkeNavn('TAF-perioden', periode)}: ${TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE}`;
     rows.push({
       id: `taf.ingenArbejdsdage.${periode.id}`,
-      label: 'Advarsel',
+      label: 'Periode',
       displayValue: `Advarsel (${message})`,
       status: 'warning',
       message,
@@ -295,7 +295,7 @@ export const buildEoTaftRows = (
     if (folkepensionsdato && displayTil >= folkepensionsdato) {
       rows.push({
         id: `taf.folkepensionsalder.${periode.id}`,
-        label: 'Advarsel',
+        label: 'Periode',
         displayValue: `Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (${isoToDanish(folkepensionsdato)}).)`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -308,7 +308,7 @@ export const buildEoTaftRows = (
   for (const advarsel of resolveTafSammenhaengendePerioder(values)) {
     rows.push({
       id: `taf.sammenhaengende.${advarsel.rowId}`,
-      label: 'Advarsel',
+      label: 'Periode',
       displayValue: `Advarsel (${advarsel.summaryMessage})`,
       status: 'warning',
       message: advarsel.summaryMessage,

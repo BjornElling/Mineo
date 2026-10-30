@@ -34,6 +34,17 @@ type EoInspektionViewReady = Readonly<{
 }>;
 
 export type EoInspektionView = EoInspektionViewBlocked | EoInspektionViewReady;
+
+/**
+ * Fanen uden kontrolgrundlag. Teksten talte før om «snapshot» og «committed data» og bad brugeren åbne fanen igen,
+ * men grundlaget kommer først, når beregningens fejl er rettet (BB-389). Kontroltabellen siger det samme.
+ */
+const EO_KONTROL_BEREGNING_STOPPET: EoInspektionViewBlocked = Object.freeze({
+  kind: 'blocked',
+  severity: 'info',
+  title: 'EO-kontrol kan ikke vises, fordi beregningen er stoppet',
+  message: 'Se «Fejl og advarsler» under Beregning.',
+});
 export type { EoInspektionViewReady };
 
 export const eoSnapshotToInspektionView = (args: Readonly<{
@@ -43,12 +54,7 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
 }>): EoInspektionView => {
   const snapshot = args.snapshot ?? null;
   if (!snapshot) {
-    return {
-      kind: 'blocked',
-      severity: 'info',
-      title: 'EO-kontrol kræver et friskt snapshot',
-      message: 'Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
-    };
+    return EO_KONTROL_BEREGNING_STOPPET;
   }
 
   // fail_closed routes altid til fejlvisning – uanset om inspektionSnapshot er tilstede.
@@ -117,10 +123,5 @@ export const eoSnapshotToInspektionView = (args: Readonly<{
 
   // Alle ikke-fail_closed snapshots har gyldigt input, men manglende inspektionSnapshot
   // skyldes at valideringen blokerede engine-kørslen. Vis den relevante fejlbesked.
-  return {
-    kind: 'blocked',
-    severity: 'info',
-    title: 'EO-kontrol kræver et gyldigt kontrol-snapshot',
-    message: 'Ret valideringsfejlene i sagen og åbn kontrolfanen igen for at bygge kontrolvisningen på korrekt committede data.',
-  };
+  return EO_KONTROL_BEREGNING_STOPPET;
 };

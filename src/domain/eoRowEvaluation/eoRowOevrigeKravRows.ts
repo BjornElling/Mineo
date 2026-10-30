@@ -89,8 +89,8 @@ export const buildEoOevrigeKravRows = (
       // passere som et færdigt krav (BB-236). Advarslen blokerer ikke.
       rows.push({
         id: 'oevrigekrav.empty',
-        label: 'Ingen',
-        displayValue: '-',
+        label: 'Øvrige krav',
+        displayValue: 'Advarsel (Der er ikke indtastet øvrige krav)',
         status: 'warning',
         message: 'Der er ikke indtastet øvrige krav',
         summaryDisplay: 'messageOnly',
@@ -99,8 +99,8 @@ export const buildEoOevrigeKravRows = (
     } else {
       rows.push({
         id: 'oevrigekrav.empty',
-        label: 'Ingen',
-        displayValue: '-',
+        label: 'Øvrige krav',
+        displayValue: 'Ingen',
         status: 'ok',
       });
     }
@@ -153,8 +153,9 @@ export const buildEoSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      label: harKommentarer ? 'Bemærkning:' : 'Ingen',
-      displayValue: harKommentarer ? kommentarer.trim() : '-',
+      // Etiketten er emnet og værdien svaret – før stod svaret «Ingen» som etiket med værdien «-» (BB-384).
+      label: 'Bemærkninger',
+      displayValue: harKommentarer ? kommentarer.trim() : 'Ingen',
       status: 'ok',
     },
   ];
@@ -193,7 +194,7 @@ export const buildEoBilagsnumreRows = (
   const filledEntries = entries.filter((e) => isNonEmptyString(e.value));
 
   if (filledEntries.length === 0) {
-    return [{ id: 'bilagsnumre.ingen', label: 'Ingen', displayValue: '-', status: 'ok' }];
+    return [{ id: 'bilagsnumre.ingen', label: 'Bilagsnumre', displayValue: 'Ingen', status: 'ok' }];
   }
 
   return filledEntries.map((entry) => {

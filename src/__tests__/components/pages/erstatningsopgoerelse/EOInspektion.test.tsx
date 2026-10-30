@@ -790,7 +790,7 @@ describe('EOInspektion', () => {
 
     renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.queryByText('Svie og smerte')).not.toBeInTheDocument();
+    expect(screen.queryByText('Svie- og smertegodtgørelse')).not.toBeInTheDocument();
     expect(screen.queryByText('Hvilket års svie/smerte-satser lægges til grund?')).not.toBeInTheDocument();
     expect(screen.queryByText('Svie/smerte-satsen for 2026 kan anvendes.')).not.toBeInTheDocument();
   });
@@ -837,7 +837,7 @@ describe('EOInspektion', () => {
 
     renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.getByText('Svie og smerte')).toBeInTheDocument();
+    expect(screen.getByText('Svie- og smertegodtgørelse')).toBeInTheDocument();
     expect(screen.getByText('Tidligere beregnet S/S til max.')).toBeInTheDocument();
     expect(screen.getByText('Ja')).toBeInTheDocument();
     expect(screen.queryByText('Hvilket års svie/smerte-satser lægges til grund?')).not.toBeInTheDocument();
@@ -917,7 +917,7 @@ describe('EOInspektion', () => {
     renderComponent({ revision: 'rev-1' } as never);
 
     expect(screen.queryByText('Tabt arbejdsfortjeneste')).not.toBeInTheDocument();
-    expect(screen.queryByText('TAF beregningsgrundlag')).not.toBeInTheDocument();
+    expect(screen.queryByText('Indtægt før skadedatoen')).not.toBeInTheDocument();
     expect(screen.queryByText('Lønindkomst')).not.toBeInTheDocument();
     expect(screen.queryByText('Offentlige ydelser')).not.toBeInTheDocument();
     expect(screen.queryByText('Regulering (Tandlægerne Toft og Vedsted)')).not.toBeInTheDocument();

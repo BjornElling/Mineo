@@ -8,7 +8,8 @@ skrevet. Kun flade-tabellen og de fire punkter nedenfor er aktuelle; produktets 
 
 Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brugerblik/SKILL.md`.
 
-- **Næste flade:** **12m – Erstatningsopgørelse → EO-gennemsyn og Kontroltabel.** 12l er gennemgået, afgjort og
+- **Næste flade:** **ingen – alle flader 1–12m er gennemgået, og dermed også flade 12.** 12m (EO-kontrol og Kontroltabel) er
+  gennemgået, godkendt og gennemført 2026-10-30 (10 fund, BB-380–BB-389, alle godkendt). Tidligere: **12m.** 12l er gennemgået, afgjort og
   gennemført 2026-10-29 (11 fund, BB-369–BB-379; BB-377–BB-379 afvist); modsvarene til BB-372 og BB-377 er besvaret og
   gennemført samme dag. Tidligere: **12l – Erstatningsopgørelse → Beregning.** 12k er
   gennemgået, afgjort og gennemført 2026-10-29 (12 fund, BB-357–BB-368; BB-359 afvist som overlapregel); de fire modsvar og
@@ -32,7 +33,7 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   trykt» kan stilles i én kørsel; det er lært af flade 11, hvor M-13's og M-31's prøver kræver, at samme
   kørsel har læst både skærmen og papiret. **Flade 12 er først `Gennemgået`, når alle tretten bidder er
   det.**
-- **Næste fund-ID:** BB-380
+- **Næste fund-ID:** BB-390
 - **Efterreview af Årsløn 2026-10-27** (commit `634bce97`, overenskomst som tillægsgrundlag): 10 fund, BB-347–BB-356,
   i `aarsloen.md` §«Efterreview 2026-10-27». Afgjort og gennemført samme dag (BB-350 korrigeret af udvikleren til én «Fejl og advarsler»-boks).
 - **Kritisk efterreview:** Gennemgangen af 12a–12j tilføjede BB-332–BB-346. BB-332, BB-333, BB-336, BB-337
@@ -147,7 +148,8 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   ikke, at filvælger eller download er umulig at styre headless. Playwright kan automatisere begge dele.
   Rapporternes matricer skelner nu mellem den oprindelige måling og senere navngivne tests. De senere
   tests dækker kun deres konkrete sager og dokumenterer ikke en generel save→load-rundtur.
-- **Fund, der afventer udviklerens afgørelse:** **ingen.** Tidligere: to modsvar fra 12l (BB-372, BB-377) og flade
+- **Fund, der afventer udviklerens afgørelse:** **ingen** – 12m's 10 fund (BB-380–BB-389) er godkendt og gennemført
+  2026-10-30. Tidligere: **flade 12m's 10 fund.** Tidligere: **ingen.** Tidligere: to modsvar fra 12l (BB-372, BB-377) og flade
   12l's 11 fund (BB-369–BB-379) – afgjort og gennemført 2026-10-29. Tidligere: **ingen** – 12k er
   afgjort og gennemført 2026-10-29. Tidligere: **ét
   opfølgende spørgsmål fra 12k** (BB-368, besvaret: informationsikon). Tidligere: **fire modsvar fra 12k** og **BB-368** – besvaret og gennemført 2026-10-29.
@@ -211,7 +213,11 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-29 (**Flade 12l: modsvarene til BB-372 og BB-377 besvaret og gennemført** – se
+- **Senest opdateret:** 2026-10-30 (**Flade 12m godkendt og gennemført: alle 10 fund (BB-380–BB-389)** – se afsnittet om
+  12m.)
+  Tidligere: 2026-10-30 (**Flade 12m – EO-kontrol og Kontroltabel – gennemgået: 10 fund, to Mellem og otte Lav,
+  ingen nye tværgående mønstre**.)
+  Tidligere: 2026-10-29 (**Flade 12l: modsvarene til BB-372 og BB-377 besvaret og gennemført** – se
   afsnittet om 12l.)
   Tidligere: 2026-10-29 (**Flade 12l afgjort og gennemført; modsvar til BB-372 og BB-377 forelagt**.)
   Tidligere: 2026-10-29 (**Flade 12l – Beregning – gennemgået: 11 fund, ét Høj, fem Mellem og fem Lav, ingen
@@ -676,7 +682,39 @@ Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
 | 12j | Erstatningsopgørelse – Sygeferiegodtgørelse | Afgjort og gennemført | 13 (BB-319–BB-331) | [erstatningsopgoerelse-12j.md](erstatningsopgoerelse-12j.md) |
 | 12k | Erstatningsopgørelse – Offentlige ydelser | Afgjort og gennemført | 12 (BB-357–BB-368) | [erstatningsopgoerelse-12k.md](erstatningsopgoerelse-12k.md) |
 | 12l | Erstatningsopgørelse – Beregning, sammentælling og bilagsvalg | Afgjort og gennemført | 11 (BB-369–BB-379) | [erstatningsopgoerelse-12l.md](erstatningsopgoerelse-12l.md) |
-| 12m | Erstatningsopgørelse – EO-gennemsyn og Kontroltabel | Ikke startet | – | – |
+| 12m | Erstatningsopgørelse – EO-kontrol og Kontroltabel | Afgjort og gennemført | 10 (BB-380–BB-389) | [erstatningsopgoerelse-12m.md](erstatningsopgoerelse-12m.md) |
+
+## Erstatningsopgørelse → EO-kontrol og Kontroltabel (12m) – gennemgået, godkendt og gennemført 2026-10-30
+
+**10 fund: to Mellem, otte Lav (to Edge case, otte Fornuft) – ingen nye tværgående mønstre.** De to kontrolfaner er slået
+fra som standard og taler programmets sprog frem for brugerens. Det ene egentlige vildspor er tom-tilstanden: «Kan ikke
+oprette kontroltabel» nævner skadedatoen som tilstrækkelig, men tabellen bygges ikke af den, og listen udelader tre af de
+veje, der virker (BB-380). CSV-eksporten mister ansættelsesforholdenes navne, så to ansættelsesforholds kolonner hedder
+ens (BB-381), og filen hedder altid «kontroltabel.csv» (BB-382). Resten er ord og form: afsnitsnavne, der ikke svarer
+til EO oplysningers sektioner (BB-383), «ok»/«Ja»/«-» for samme tilstand (BB-384), «ugyldig» om en tom periode (BB-385),
+grønt ✓ for ingenting (BB-386), «Tabelperiode (definerende)» (BB-387), en tom «TAF-regulering»-kolonne uden TAF (BB-388)
+og «snapshot»/«committed data» i de spærrede tilstande (BB-389, kildeaflæst). Sammentællingen stemte i alle 13 målte
+sager; konsollen tavs. Med 12m er alle tretten bidder af flade 12 gennemgået. Grundlaget står i
+[erstatningsopgoerelse-12m.md](erstatningsopgoerelse-12m.md).
+
+**Afgjort 2026-10-30:** udvikleren godkendte alle fund og forslag; alle er gennemført samme dag. Ud over forslagene er
+«tom» i sammentællingen gjort til én definition, som både sammenligningen og visningen læser, så samme tomhed ikke kan
+vises som `-` på den ene side og `0,00` på den anden med et rødt kryds imellem (udviklerens krav ved godkendelsen). BB-384
+dækker alle 21 rækker med etiketten «Advarsel», ikke kun den målte.
+
+| ID | Kort | Prioritet | Beslutning |
+|---|---|---|---|
+| BB-380 | «Kan ikke oprette kontroltabel» nævner skadedatoen, men tabellen bygges ikke af den | Mellem | Godkendt og gennemført 2026-10-30 |
+| BB-381 | CSV med to ansættelsesforhold: samme kolonnenavne to gange, intet navn | Mellem | Godkendt og gennemført 2026-10-30 |
+| BB-382 | CSV-filen hedder altid «kontroltabel.csv» | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-383 | EO-kontrols afsnit hedder noget andet end EO oplysningers sektioner | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-384 | «ok»/«Ja»/«-» for samme tilstand; etiket og værdi byttet om («Ingen», «Advarsel») | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-385 | Tom beregningsperiode: «ugyldig» på EO-kontrol, «mangler» i «Fejl og advarsler» | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-386 | «Sammentælling»: ✓ for ingenting, tomme tabeloverskrifter, «1 SH-dage» | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-387 | «Laveste/højeste dato (beregnet)», «Tabelperiode (definerende)», «S/H dag» mod «SH-dage» | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-388 | Uden TAF: tom kolonne «TAF-regulering» under «Ansættelsesforhold 1» | Lav | Godkendt og gennemført 2026-10-30 |
+| BB-389 | Spærrede tilstande taler om «snapshot» og lover en automatisk opdatering | Lav | Godkendt og gennemført 2026-10-30 |
+
 
 ## Erstatningsopgørelse → Beregning: fejlpanelet, sammentællingen og bilagsvalgene (12l) – gennemgået 2026-10-29
 

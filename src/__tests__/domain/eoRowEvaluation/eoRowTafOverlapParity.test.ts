@@ -246,7 +246,7 @@ describe('buildEoTaftRows overlap parity', () => {
     expect(rows).toEqual([
       {
         id: 'taf.ingenTafIEoPerioden',
-        label: 'Advarsel',
+        label: 'Periode',
         displayValue: 'Advarsel (Der er ikke angivet nogen TAF-periode i EO-perioden)',
         status: 'warning',
         summaryDisplay: 'messageOnly',

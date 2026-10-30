@@ -2,8 +2,10 @@ import {
   beregnetVaerdi,
   buildSammentaellingControl,
   collectSammentaellingControlMismatchMessages,
+  formatSammentaellingVaerdi,
   getSammentaellingControlStatus,
   grundlagMangler,
+  SAMMENTAELLING_TOM_VISNING,
   type SammentaellingControl,
   type SammentaellingDisplayRow,
 } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
@@ -23,9 +25,26 @@ const control = (overrides: Readonly<{
 });
 
 describe('eoControlMismatch (produktions-ejet kontrol-/audit-kerne)', () => {
-  it('null/0 mod null/0 er ok (tomt mod tomt)', () => {
-    expect(getSammentaellingControlStatus(control({ beregnetValue: 0, tabelValue: null }))).toBe('ok');
-    expect(getSammentaellingControlStatus(control({ beregnetValue: null, tabelValue: 0 }))).toBe('ok');
+  it('null/0 mod null/0 er tomt mod tomt: ingen uoverensstemmelse og intet mærke (BB-386)', () => {
+    expect(getSammentaellingControlStatus(control({ beregnetValue: 0, tabelValue: null }))).toBe('tom');
+    expect(getSammentaellingControlStatus(control({ beregnetValue: null, tabelValue: 0 }))).toBe('tom');
+  });
+
+  it('et beløb under en halv øre er tomt i både sammenligning og visning', () => {
+    // Før stod «0,00» over for «-» med et rødt kryds mellem to sider, der begge reelt var tomme.
+    expect(getSammentaellingControlStatus(control({ beregnetValue: 0.004, tabelValue: null }))).toBe('tom');
+    expect(formatSammentaellingVaerdi(0.004, () => '0,00')).toBe(SAMMENTAELLING_TOM_VISNING);
+    expect(formatSammentaellingVaerdi(0, () => '0')).toBe(SAMMENTAELLING_TOM_VISNING);
+    expect(formatSammentaellingVaerdi(null, () => 'x')).toBe(SAMMENTAELLING_TOM_VISNING);
+    expect(formatSammentaellingVaerdi(0.006, () => '0,01')).toBe('0,01');
+  });
+
+  it('tomt mod tomt med et vist tal (fradrag ved siden af) er kontrolleret og får ✓', () => {
+    expect(getSammentaellingControlStatus(control({
+      beregnetValue: 0,
+      tabelValue: 0,
+      tabelDisplay: '2 (- 2)',
+    }))).toBe('ok');
   });
 
   it('lille floating-forskel inden for 0.005 er ok', () => {
@@ -60,7 +79,7 @@ describe('eoControlMismatch (produktions-ejet kontrol-/audit-kerne)', () => {
     });
 
     it('giver ingen uoverensstemmelse', () => {
-      expect(getSammentaellingControlStatus(udenGrundlag)).toBe('ok');
+      expect(getSammentaellingControlStatus(udenGrundlag)).toBe('tom');
       expect(collectSammentaellingControlMismatchMessages([
         { key: 'uden-grundlag', label: 'Arbejdsdage i beregningsperiode', control: udenGrundlag },
       ])).toEqual([]);

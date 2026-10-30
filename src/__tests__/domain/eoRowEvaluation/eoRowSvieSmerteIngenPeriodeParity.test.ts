@@ -35,7 +35,7 @@ describe('buildEoSvieSmerteRows – ingen svie/smerte-perioder i EO-perioden', (
 
     expect(advarsel).toEqual({
       id: 'sviesmerte.ingenSvieSmerteIEoPerioden',
-      label: 'Advarsel',
+      label: 'Periode',
       displayValue: 'Advarsel (Der er ikke angivet nogen svie/smerte-periode i EO-perioden)',
       status: 'warning',
       summaryDisplay: 'messageOnly',

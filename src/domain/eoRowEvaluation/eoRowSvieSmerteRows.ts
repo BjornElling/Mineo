@@ -189,7 +189,7 @@ export const buildEoSvieSmerteRows = (
     for (const advarsel of resolveSvieSmerteSammenhaengendePerioder(values)) {
       rows.push({
         id: `sviesmerte.sammenhaengende.${advarsel.rowId}`,
-        label: 'Advarsel',
+        label: 'Periode',
         displayValue: `Advarsel (${advarsel.summaryMessage})`,
         status: 'warning',
         message: advarsel.summaryMessage,
@@ -215,7 +215,7 @@ export const buildEoSvieSmerteRows = (
   if (ingenSvieSmertePerioderIEoPerioden) {
     rows.push({
       id: 'sviesmerte.ingenSvieSmerteIEoPerioden',
-      label: 'Advarsel',
+      label: 'Periode',
       displayValue: 'Advarsel (Der er ikke angivet nogen svie/smerte-periode i EO-perioden)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
@@ -608,7 +608,7 @@ export const buildEoSvieSmerteRows = (
   ) {
     rows.push({
       id: 'sviesmerte.perioder.clampedAway',
-      label: 'Advarsel',
+      label: 'Perioder',
       displayValue: `Advarsel (${SVIE_SMERTE_PERIODER_UDEN_FOR_EO_PERIODEN})`,
       status: 'warning',
       summaryDisplay: 'messageOnly',

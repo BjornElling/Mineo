@@ -147,7 +147,7 @@ export const buildEoMidlertidigtEetKonsistensRows = (
     return harYdelser
       ? [{
         id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
-        label: 'Advarsel',
+        label: 'Midlertidigt EET',
         displayValue: 'Advarsel (Der er indtastet midlertidige EET-ydelser, men ikke angivet en afgørelse)',
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -165,7 +165,7 @@ export const buildEoMidlertidigtEetKonsistensRows = (
   return [
     {
       id: 'midlertidigtEetKonsistens.afgorelseUdenYdelser',
-      label: 'Advarsel',
+      label: 'Midlertidigt EET',
       displayValue: 'Advarsel (Der er angivet en midlertidig EET-afgørelse men ikke indtastet ydelser)',
       status: 'warning',
       summaryDisplay: 'messageOnly',
@@ -229,7 +229,7 @@ const buildOverenskomstSatsDaekningRows = (
   return [{
     id: `loenindkomst.${employment.id}.loenraekkerFoerOverenskomstSatser`,
     employmentId: employment.id,
-    label: 'Advarsel',
+    label: 'Overenskomst',
     displayValue: `Advarsel (${message})`,
     status: 'warning',
     summaryDisplay: 'messageOnly',
@@ -376,7 +376,7 @@ export const buildEoIndkomstRows = (
       rows.push({
         id: `loenindkomst.${section.id}.sidsteArbejdsdagMangler`,
         employmentId: section.id,
-        label: 'Advarsel',
+        label: 'Sidste dag i ansættelsesforholdet',
         displayValue: `Advarsel (${message})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -392,7 +392,7 @@ export const buildEoIndkomstRows = (
       rows.push({
         id: `loenindkomst.${section.id}.loenEfterOphoer`,
         employmentId: section.id,
-        label: 'Advarsel',
+        label: 'Løn efter ophør',
         displayValue: `Advarsel (Der er angivet løn efter sidste dag i ansættelsesforholdet (${isoToDanish(sidsteArbejdsdag)}). Kontrollér om dette er korrekt.)`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -438,7 +438,7 @@ export const buildEoIndkomstRows = (
           ? `loenindkomst.${ansaettelsesforhold.id}.storeBededagstillaegFravalgt`
           : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}.storeBededagstillaegFravalgt`,
         ...(erBeregningsperiode ? { employmentId: ansaettelsesforhold.id } : {}),
-        label: 'Advarsel',
+        label: 'Store Bededagstillæg',
         displayValue: `Advarsel (${storeBededagFravalgtAdvarsel})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -583,7 +583,7 @@ export const buildEoIndkomstRows = (
           rows.push({
             id: `${loenudviklingRowPrefix}.forhoejetGrundloen`,
             ...employmentIdProp,
-            label: 'Advarsel',
+            label: 'Grundløn',
             displayValue: `Advarsel (${advarsel.summaryMessage})`,
             status: 'warning',
             summaryDisplay: 'messageOnly',
@@ -617,7 +617,7 @@ export const buildEoIndkomstRows = (
         rows.push({
           id: `${loenudviklingRowPrefix}.anciennitetstillaegEfterTaf`,
           ...employmentIdProp,
-          label: 'Advarsel',
+          label: 'Anciennitetstillæg',
           displayValue: `Advarsel (${advarsel.summaryMessage})`,
           status: 'warning',
           summaryDisplay: 'messageOnly',
@@ -808,7 +808,7 @@ export const buildEoIndkomstRows = (
           rows.push({
             id: `${loenudviklingRowPrefix}.manuelAdvarsel.${advarsel.kind}.${advarsel.rowId}`,
             ...employmentIdProp,
-            label: 'Advarsel',
+            label: 'Reguleringsværdier',
             displayValue: `Advarsel (${advarsel.summaryMessage})`,
             status: 'warning',
             summaryDisplay: 'messageOnly',
@@ -975,7 +975,7 @@ export const buildEoIndkomstRows = (
           rows.push({
             id: daekningAdvarselRowId,
             ...employmentIdProp,
-            label: 'Advarsel',
+            label: 'Reguleringsværdier',
             displayValue: `Advarsel (Der er ikke reguleringsværdier for hele TAF-perioden – ${detaljer.join(' og ')}.)`,
             status: 'warning',
             summaryDisplay: 'messageOnly',
@@ -1010,7 +1010,8 @@ export const buildEoOffentligeYdelserRows = (
     rows.push({
       id: `offentligeYdelser.${row.id}`,
       label: row.label,
-      displayValue: row.status === 'ok' ? 'ok' : formatStatusMessage(row.status, row.message),
+      // «Ja» som lønindkomstens «Alle lønoplysninger indtastet korrekt»; før stod det engelske «ok» (BB-384).
+      displayValue: row.status === 'ok' ? 'Ja' : formatStatusMessage(row.status, row.message),
       status: row.status,
       summaryDisplay: row.summaryDisplay ?? 'default',
       // Statusrækkens id er en GRUPPENØGLE pr. ydelsestype og findes ikke i DOM. Modellen har båret den

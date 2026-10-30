@@ -1,7 +1,5 @@
 export const CSV_DELIMITER = ';';
 
-export const normalizeCsvHeader = (value: string): string => value.replace(/\s*\n\s*/g, ' ').trim();
-
 export const escapeCsvCell = (value: string): string => {
   const needsQuotes = value.includes(CSV_DELIMITER) || value.includes('"') || value.includes('\n') || value.includes('\r');
   if (!needsQuotes) return value;

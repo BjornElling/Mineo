@@ -10,6 +10,7 @@ import EOInspektionRegulationSections from './EOInspektionRegulationSections';
 import EOInspektionRowsSection from './EOInspektionRowsSection';
 import EOInspektionEmploymentSections from './EOInspektionEmploymentSections';
 import EOInspektionGroupedRowsSection from './EOInspektionGroupedRowsSection';
+import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 type EOInspektionProps = Readonly<{
   eoSnapshot?: EoSnapshot | null;
@@ -49,20 +50,25 @@ const EOInspektion = ({ eoSnapshot = null, manuelReguleringInputErrors }: EOInsp
     settings
   );
 
+  // Afsnittene hedder det samme som sektionerne på EO oplysninger, så et kryds kan føres tilbage til sit felt
+  // (BB-383). Før stod «AES», «Svie og smerte» og «TAF beregningsgrundlag».
   return (
     <Box>
       <EOInspektionRowsSection title="Stamdata" rows={pageView.stamdataRows} />
       <EOInspektionRowsSection title="Erstatningsopgørelse" rows={pageView.erstatningsopgoerelseRows} />
       <EOInspektionRowsSection title="Forlig" rows={pageView.forligRows} />
-      <EOInspektionRowsSection title="AES" rows={pageView.aesRows} />
+      <EOInspektionRowsSection title="AES-afgørelser" rows={pageView.aesRows} />
       {pageView.showSvieSmerteSection && (
-        <EOInspektionRowsSection title="Svie og smerte" rows={pageView.svieSmerteRows} />
+        <EOInspektionRowsSection title="Svie- og smertegodtgørelse" rows={pageView.svieSmerteRows} />
       )}
       {pageView.showTabtArbejdsfortjenesteSections && (
         <EOInspektionRowsSection title="Tabt arbejdsfortjeneste" rows={pageView.tafRows} />
       )}
       {pageView.showTabtArbejdsfortjenesteSections && (
-        <EOInspektionRowsSection title="TAF beregningsgrundlag" rows={pageView.tafBeregningsgrundlagRows} />
+        <EOInspektionRowsSection
+          title={`Indtægt før ${resolveSkadeEllerAnmeldelsesdatoReference(view.stamdataValues.skadestype).labelLower}`}
+          rows={pageView.tafBeregningsgrundlagRows}
+        />
       )}
       {pageView.showTabtArbejdsfortjenesteSections && (
         pageView.employmentSections.length > 0

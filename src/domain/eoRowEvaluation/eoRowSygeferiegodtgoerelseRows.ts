@@ -515,7 +515,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     if (seksMaanederBesked !== undefined) {
       rows.push({
         id: `sfgg.advarsel.seksmaaneder.${employment.id}`,
-        label: 'Advarsel',
+        label: 'Opsagt fra stillingen',
         displayValue: `Advarsel (${seksMaanederBesked})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -532,7 +532,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
       const besked = buildSfggGammelReferenceperiodeBesked(gammelReferenceperiode.reguleringsdato);
       rows.push({
         id: `sfgg.advarsel.gammelReferenceperiode.${employment.id}`,
-        label: 'Advarsel',
+        label: 'Referenceperiode',
         displayValue: `Advarsel (${besked})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -548,7 +548,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
     if (result && harSfggSygeloenUdenLoenraekker(result)) {
       rows.push({
         id: `sfgg.advarsel.sygeloenUdenLoenraekker.${employment.id}`,
-        label: 'Advarsel',
+        label: 'Sygeløn',
         displayValue: `Advarsel (${SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED})`,
         status: 'warning',
         summaryDisplay: 'messageOnly',

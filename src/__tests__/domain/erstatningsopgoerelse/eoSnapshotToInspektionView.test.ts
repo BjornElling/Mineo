@@ -61,8 +61,8 @@ describe('eoSnapshotToInspektionView', () => {
     expect(view).toEqual({
       kind: 'blocked',
       severity: 'info',
-      title: 'EO-kontrol kræver et friskt snapshot',
-      message: 'Åbn kontrolfanen igen fra Erstatningsopgørelse for at bygge snapshot på committed data.',
+      title: 'EO-kontrol kan ikke vises, fordi beregningen er stoppet',
+      message: 'Se «Fejl og advarsler» under Beregning.',
     });
   });
 
@@ -86,8 +86,8 @@ describe('eoSnapshotToInspektionView', () => {
     expect(view).toEqual({
       kind: 'blocked',
       severity: 'info',
-      title: 'EO-kontrol kræver et gyldigt kontrol-snapshot',
-      message: 'Ret valideringsfejlene i sagen og åbn kontrolfanen igen for at bygge kontrolvisningen på korrekt committede data.',
+      title: 'EO-kontrol kan ikke vises, fordi beregningen er stoppet',
+      message: 'Se «Fejl og advarsler» under Beregning.',
     });
   });
 

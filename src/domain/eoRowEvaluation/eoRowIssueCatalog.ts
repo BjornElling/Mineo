@@ -1,4 +1,3 @@
-import { BEREGNINGSPERIODE_MANGLER_MESSAGE } from '../erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
 import { SFGG_BEREGNINGSKILDE_MANGLER_MESSAGE, SFGG_SATSVALG_MANGLER_MESSAGE } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import {
   eoAngivetMaanedsloenOpreguleresFraDatoField,
@@ -565,13 +564,9 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
       { kind: 'id', id: 'taf.beregningsgrundlag.maaneder' },
       { kind: 'prefix', prefix: 'taf.beregningsgrundlag.ferie.' },
     ],
-    summaryText: (row, message) => {
-      if (message === 'Ikke alle felter udfyldt') {
-        return BEREGNINGSPERIODE_MANGLER_MESSAGE;
-      }
-      // Øvrige beskeder (overlap, rækkefølge, ugyldig dato) er allerede selvstændige sætninger.
-      return message || fallbackIssueText(row, message);
-    },
+    // Rækken bærer selv «Fejl og advarsler»'s ordlyd for en manglende periode (BB-385); overlap, rækkefølge og
+    // ugyldig dato er ligeledes selvstændige sætninger.
+    summaryText: (row, message) => message || fallbackIssueText(row, message),
   },
   {
     key: 'forlig-ansvarsgrad',

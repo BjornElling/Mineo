@@ -1,15 +1,10 @@
 import {
   CSV_DELIMITER,
   escapeCsvCell,
-  normalizeCsvHeader,
   toCsvScalar,
 } from '../../../domain/eoInspektion/csvUtils';
 
 describe('CSV-hjælpere', () => {
-  it('normaliserer flerlinjede overskrifter uden at ændre deres indhold', () => {
-    expect(normalizeCsvHeader('  Første\n   anden\r\n tredje  ')).toBe('Første anden tredje');
-  });
-
   it('escaper kun celler, som CSV-formatet kræver', () => {
     expect(CSV_DELIMITER).toBe(';');
     expect(escapeCsvCell('Almindelig tekst')).toBe('Almindelig tekst');

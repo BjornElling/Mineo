@@ -9,21 +9,29 @@ import {
   type SammentaellingControl,
   type SammentaellingDisplayRow,
 } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
-import { CSV_DELIMITER, escapeCsvCell, normalizeCsvHeader, toCsvScalar } from '../../../domain/eoInspektion/csvUtils';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { buildKontrolTabelCsv, KONTROLTABEL_CSV_TITEL } from '../../../domain/eoInspektion/eoInspektionCsv';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 import { downloadFile } from '../../../utils/fileHelpers';
-import { isAmountColumnId, parseEmploymentIndexFromColumnId } from '../../../domain/eoInspektion/eoInspektionLoenTypes';
+import { parseEmploymentIndexFromColumnId } from '../../../domain/eoInspektion/eoInspektionLoenTypes';
+import { resolveSagsFilnavn } from '../../../document/documentFileName';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
 import { resolveAnsaettelsesforholdNavn } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { resolveSkadeEllerAnmeldelsesdatoReference } from '../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 
 const ROW_HEIGHT = 28;
+
+/**
+ * Tabellen dannes af sagens perioder, og listen nævner præcis de seks kilder, modellen læser
+ * (`eoInspektionKontrolModel.ts`, `sources`). Før stod skadedatoen på listen, selv om tabellen ikke bygges af den,
+ * og tre af de virksomme veje manglede (BB-380).
+ */
+const INGEN_PERIODER_TEKST =
+  'Kontroltabellen dannes af sagens perioder. Udfyld mindst én af: «Vedrører perioden», beregningsperioden, en TAF- '
+  + 'eller svie/smerte-periode, lønindkomst eller offentlige ydelser.';
 
 const resolveEmploymentHeaderTitle = (snapshot: EOInspektionSnapshot, employmentIndex: number): string =>
   resolveAnsaettelsesforholdNavn(
@@ -42,7 +50,6 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
   const theme = useTheme();
   const snapshot = inspektionSnapshot;
   const model = snapshot?.model ?? null;
-  const stamdataDatoLabel = resolveSkadeEllerAnmeldelsesdatoReference(snapshot?.stamdataValues.skadestype).label;
   const [showPendingSnapshotInfo, setShowPendingSnapshotInfo] = React.useState(false);
 
   React.useEffect(() => {
@@ -75,7 +82,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
 
     rows.push({
       key: 'combined',
-      cells: ['Laveste/højeste dato (beregnet)', formatIso(model.combinedMinFra), formatIso(model.combinedMaxTil)],
+      cells: ['Sagens første og sidste dato', formatIso(model.combinedMinFra), formatIso(model.combinedMaxTil)],
       rowSx: {
         '& .MuiTableCell-root': {
           borderTop: '1px solid var(--color-table-border) !important',
@@ -86,7 +93,7 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
     rows.push({
       key: 'table-range',
       cells: [
-        'Tabelperiode (definerende)',
+        'Tabellen viser (hele måneder)',
         <Box key="fra" component="span" sx={{ fontWeight: 600 }}>
           {formatIso(model.summaryTableFra)}
         </Box>,
@@ -100,12 +107,16 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
   }, [formatIso, model]);
 
   const sammentaellingTables = React.useMemo(() => {
-    const renderControl = (control: SammentaellingControl): React.ReactElement => {
-      const status = getSammentaellingControlStatus(control);
-      if (status === 'ok') {
-        return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
+    const renderControl = (control: SammentaellingControl): React.ReactElement | null => {
+      switch (getSammentaellingControlStatus(control)) {
+        case 'ok':
+          return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
+        case 'error':
+          return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
+        case 'tom':
+          // Intet er kontrolleret; et grønt ✓ ville påstå det modsatte (BB-386).
+          return null;
       }
-      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
     };
 
     const toTableRows = (displayRows: readonly SammentaellingDisplayRow[]): StandardDisplayTableRow[] => {
@@ -233,37 +244,33 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
    * gælde, og hovedet vil klæbe forkert overalt undtagen ved fuld skala.
    */
   const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)) - 2, [theme]);
-  const canDownloadKontrolTabel = Boolean(model?.tableFra && model?.tableTil);
-
-  // Format\u00e9r en bel\u00f8bscelle til CSV fra den r\u00e5 numeriske model-v\u00e6rdi via den kanoniske
-  // formatCurrency. Spejler model-kolonnens displayformat (0 \u2192 tom celle), s\u00e5 CSV-output
-  // er identisk med tabellen uden at parse den allerede formaterede displaystreng.
-  const formatCsvAmountCell = React.useCallback((rawValue: number | undefined): string => {
-    if (rawValue === undefined || rawValue === 0) return '';
-    return formatCurrency(rawValue);
-  }, []);
+  // Samme betingelse som tom-tilstanden nedenfor: knappen og forklaringen kan ikke være uenige om, hvorvidt der
+  // er en tabel.
+  const canDownloadKontrolTabel = Boolean(model && model.rowCount > 0);
 
   const handleDownloadKontrolTabel = React.useCallback(() => {
-    if (!canDownloadKontrolTabel || !model) return;
+    if (!canDownloadKontrolTabel || !snapshot) return;
+    downloadFile(
+      buildKontrolTabelCsv(snapshot.model, (employmentIndex) => resolveEmploymentHeaderTitle(snapshot, employmentIndex)),
+      resolveSagsFilnavn(KONTROLTABEL_CSV_TITEL, 'csv', snapshot.stamdataValues.journalnr),
+      'text/csv;charset=utf-8'
+    );
+  }, [canDownloadKontrolTabel, snapshot]);
 
-    const headers = model.columns.map((column) => escapeCsvCell(normalizeCsvHeader(column.header)));
-    const lines: string[] = [];
-    lines.push(headers.join(CSV_DELIMITER));
-
-    for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
-      const cells = model.columns.map((column) => {
-        if (isAmountColumnId(column.id)) {
-          const rawValues = model.columnRawValues.get(column.id);
-          return escapeCsvCell(formatCsvAmountCell(rawValues?.[rowIndex]));
-        }
-        return escapeCsvCell(toCsvScalar(column.getCell(rowIndex)));
-      });
-      lines.push(cells.join(CSV_DELIMITER));
-    }
-
-    const content = `\ufeff${lines.join('\r\n')}`;
-    downloadFile(content, 'kontroltabel.csv', 'text/csv;charset=utf-8');
-  }, [canDownloadKontrolTabel, formatCsvAmountCell, model]);
+  const renderSammentaellingTable = (firstHeader: string, rows: readonly StandardDisplayTableRow[]): React.ReactNode =>
+    // En gruppe uden rækker står ikke som en tom overskrift, der ligner noget, der ikke er indlæst (BB-386).
+    rows.length === 0 ? null : (
+      <StandardDisplayTable
+        useSmallFont
+        columns={[
+          { header: firstHeader, align: 'left', width: 520 },
+          { header: 'Beregnet', align: 'center', width: 160 },
+          { header: 'Tabel', align: 'center', width: 160 },
+          { header: 'Kontrol', align: 'center', width: 120 },
+        ]}
+        rows={rows}
+      />
+    );
 
   return (
     <Box>
@@ -281,98 +288,49 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
               ]}
               rows={summaryRows}
             />
+            {/* Forklaringen står her, hvor knappen er grå – før stod den nederst under to tabeller med `-` (BB-380). */}
+            {snapshot.model.rowCount === 0 && (
+              <Alert severity="info" sx={{ borderRadius: '10px', mt: 1 }}>
+                {INGEN_PERIODER_TEKST}
+              </Alert>
+            )}
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download tabel (CSV-format)</Typography>
               <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
                 <DocumentDownloadButton
                   onClick={handleDownloadKontrolTabel}
                   disabled={!canDownloadKontrolTabel}
+                  disabledReason="Der er ingen perioder at vise"
                   label="Download tabel (CSV-format)"
                 />
               </Box>
             </Box>
           </>
         ) : showPendingSnapshotInfo ? (
+          // Tilstanden opstår kun, når beregningen er stoppet, og den forsvinder først, når fejlen er rettet. Teksten
+          // lovede før, at «snapshottet bygges automatisk ved første visit» (BB-389). Samme tekst som EO-kontrol.
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
-            <AlertTitle sx={{ fontWeight: 500 }}>Kontroltabellen er ikke opdateret endnu</AlertTitle>
-            Snapshottet bygges automatisk ved første visit til fanen.
+            <AlertTitle sx={{ fontWeight: 500 }}>Kontroltabellen kan ikke vises, fordi beregningen er stoppet</AlertTitle>
+            Se «Fejl og advarsler» under Beregning.
           </Alert>
         ) : null}
       </ContentBox>
 
-      <ContentBox className="content-box">
-        <Typography className="section-header">Sammentælling</Typography>
-
-        <StandardDisplayTable
-          useSmallFont
-          columns={[
-            { header: 'Enhed', align: 'left', width: 520 },
-            { header: 'Beregnet', align: 'center', width: 160 },
-            { header: 'Tabel', align: 'center', width: 160 },
-            { header: 'Kontrol', align: 'center', width: 120 },
-          ]}
-          rows={sammentaellingTables.basis}
-        />
-
-        <StandardDisplayTable
-          useSmallFont
-          columns={[
-            { header: 'Beregningsperiode', align: 'left', width: 520 },
-            { header: 'Beregnet', align: 'center', width: 160 },
-            { header: 'Tabel', align: 'center', width: 160 },
-            { header: 'Kontrol', align: 'center', width: 120 },
-          ]}
-          rows={sammentaellingTables.beregningsperiode}
-        />
-
-        <StandardDisplayTable
-          useSmallFont
-          columns={[
-            { header: 'TAF-periode', align: 'left', width: 520 },
-            { header: 'Beregnet', align: 'center', width: 160 },
-            { header: 'Tabel', align: 'center', width: 160 },
-            { header: 'Kontrol', align: 'center', width: 120 },
-          ]}
-          rows={sammentaellingTables.taf}
-        />
-
-        <StandardDisplayTable
-          useSmallFont
-          columns={[
-            { header: 'Enhed', align: 'left', width: 520 },
-            { header: 'Beregnet', align: 'center', width: 160 },
-            { header: 'Tabel', align: 'center', width: 160 },
-            { header: 'Kontrol', align: 'center', width: 120 },
-          ]}
-          rows={sammentaellingTables.sfgg}
-        />
-      </ContentBox>
+      {/* Uden kontrolgrundlag er der intet at tælle sammen; tomme tabeller ville ligne noget, der ikke er indlæst. */}
+      {snapshot && (
+        <ContentBox className="content-box">
+          <Typography className="section-header">Sammentælling</Typography>
+          {renderSammentaellingTable('Enhed', sammentaellingTables.basis)}
+          {renderSammentaellingTable('Beregningsperiode', sammentaellingTables.beregningsperiode)}
+          {renderSammentaellingTable('TAF-periode', sammentaellingTables.taf)}
+          {renderSammentaellingTable('Enhed', sammentaellingTables.sfgg)}
+        </ContentBox>
+      )}
 
       <Box>
         {/* snapshot.model er non-optional på EOInspektionSnapshot; efter !snapshot-guarden
             er modellen derfor garanteret til stede, så ingen non-null-assertion er nødvendig. */}
-        {!snapshot ? null : snapshot.model.rowCount === 0 ? (
-          <Alert severity="info" sx={{ borderRadius: '10px' }}>
-            <AlertTitle sx={{ fontWeight: 500 }}>Kan ikke oprette kontroltabel</AlertTitle>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              Der mangler dato-oplysninger til at oprette tidslinjen. Kontroltabellen kræver mindst én af følgende:
-            </Typography>
-            <Box component="ul" sx={{ m: 0, pl: 2 }}>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Stamdata:</strong> {stamdataDatoLabel}
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Erstatningsopgørelse:</strong> Periode (fra/til)
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>TAF-perioder:</strong> Mindst én periode med fra/til-dato
-              </Typography>
-              <Typography component="li" variant="body2">
-                <strong>Svie/smerte-perioder:</strong> Mindst én periode med fra/til-dato
-              </Typography>
-            </Box>
-          </Alert>
-        ) : (
+        {!snapshot || snapshot.model.rowCount === 0 ? null : (
           <VirtualizedDisplayTable
             columns={tableColumns}
             headerRows={tableHeaderRows}

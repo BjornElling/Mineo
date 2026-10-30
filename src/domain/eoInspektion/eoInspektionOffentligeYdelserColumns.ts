@@ -17,6 +17,8 @@ import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 export type OffentligYdelseCoreColumn = Readonly<{
   typeKey: string;
   header: string;
+  /** Ydelsens navn uden `tabelLabel`s linjeskift (CSV-filens kolonnenavn). */
+  name: string;
   amountsByIndex: Float64Array;
 }>;
 
@@ -247,9 +249,10 @@ export const buildOffentligeYdelserColumns = (args: {
 
   const columns = typeOrder.map((typeKey) => {
     const config = ydelsestyper[typeKey];
-    const header = config?.tabelLabel ?? config?.label ?? typeKey;
+    const name = config?.label ?? typeKey;
+    const header = config?.tabelLabel ?? name;
     const amountsByIndex = byType.get(typeKey) ?? new Float64Array(dates.length);
-    return { typeKey, header, amountsByIndex };
+    return { typeKey, header, name, amountsByIndex };
   });
 
   return { columns, integrityIssues: issues };

@@ -14,7 +14,6 @@ import {
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
-import { toISODateString } from '../../../../types/branded';
 import { EMPTY_FIELD_ISSUE_SET } from '../../../../inputCore/inputIssue';
 
 const makeModel = (patch: Partial<EOInspektionModel>): EOInspektionModel => {
@@ -111,13 +110,13 @@ describe('EOKontrolTabel', () => {
     renderComponent({ isActive: true });
 
     expect(screen.getByText('Kontroltabel')).toBeInTheDocument();
-    expect(screen.queryByText('Kontroltabellen er ikke opdateret endnu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kontroltabellen kan ikke vises, fordi beregningen er stoppet')).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(999);
     });
 
-    expect(screen.queryByText('Kontroltabellen er ikke opdateret endnu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kontroltabellen kan ikke vises, fordi beregningen er stoppet')).not.toBeInTheDocument();
 
     vi.useRealTimers();
   });
@@ -132,20 +131,63 @@ describe('EOKontrolTabel', () => {
     });
 
     expect(screen.getByText('Kontroltabel')).toBeInTheDocument();
-    expect(screen.getByText('Kontroltabellen er ikke opdateret endnu')).toBeInTheDocument();
+    expect(screen.getByText('Kontroltabellen kan ikke vises, fordi beregningen er stoppet')).toBeInTheDocument();
+    expect(screen.getByText('Se «Fejl og advarsler» under Beregning.')).toBeInTheDocument();
+    // Uden kontrolgrundlag er der intet at tælle sammen (BB-389).
+    expect(screen.queryByText('Sammentælling')).not.toBeInTheDocument();
 
     vi.useRealTimers();
   });
 
-  it('viser den normale tom-tabel advarsel når snapshot findes men ikke kan bygge rækker', () => {
-    const snapshot = makeSnapshot(makeModel({ rowCount: 0, tableFra: toISODateString('2026-01-01'), tableTil: toISODateString('2026-01-31') }));
+  it('forklarer tom-tilstanden med de kilder, tabellen faktisk dannes af (BB-380)', () => {
+    const snapshot = makeSnapshot(makeModel({ rowCount: 0 }));
 
     renderComponent({
       inspektionSnapshot: snapshot,
     });
 
     expect(screen.getByText('Sammentælling')).toBeInTheDocument();
-    expect(screen.getByText('Kan ikke oprette kontroltabel')).toBeInTheDocument();
+    const forklaring = screen.getByText(/Kontroltabellen dannes af sagens perioder/);
+    expect(forklaring).toHaveTextContent(
+      'Udfyld mindst én af: «Vedrører perioden», beregningsperioden, en TAF- eller svie/smerte-periode, lønindkomst eller offentlige ydelser.'
+    );
+    expect(forklaring).not.toHaveTextContent('Skadedato');
+    // Forklaringen står over sammentællingen, ved den grå knap – ikke nederst.
+    expect(forklaring.compareDocumentPosition(screen.getByText('Sammentælling')) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+  });
+
+  it('viser intet mærke for en række uden tal og udelader tomme grupper (BB-386)', () => {
+    const tom = buildSammentaellingControl({ beregnet: beregnetVaerdi(null, '-'), tabel: { value: null, display: '-' } });
+    const ok = buildSammentaellingControl({ beregnet: beregnetVaerdi(5, '5'), tabel: { value: 5, display: '5' } });
+    const snapshot: EOInspektionSnapshot = {
+      ...makeSnapshot(makeModel({ rowCount: 0 })),
+      sammentaellingTables: {
+        basis: [
+          { key: 'tom', label: 'Svie/smerte, sygedage', control: tom },
+          { key: 'ok', label: 'Arbejdsdage i TAF-periode', control: ok },
+        ],
+        beregningsperiode: [],
+        taf: [],
+        sfgg: [{ key: 'sfgg', label: 'Sygeferiegodtgørelse', control: tom }],
+      },
+    };
+
+    renderComponent({ inspektionSnapshot: snapshot });
+
+    expect(screen.getAllByTestId('CheckIcon')).toHaveLength(1);
+    expect(screen.queryByTestId('ErrorOutlinedIcon')).not.toBeInTheDocument();
+    expect(screen.queryByText('Beregningsperiode')).not.toBeInTheDocument();
+    expect(screen.queryByText('TAF-periode')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Enhed')).toHaveLength(2);
+  });
+
+  it('bruger oversigtens nye betegnelser (BB-387)', () => {
+    renderComponent({ inspektionSnapshot: makeSnapshot(makeModel({ rowCount: 0 })) });
+
+    expect(screen.getByText('Sagens første og sidste dato')).toBeInTheDocument();
+    expect(screen.getByText('Tabellen viser (hele måneder)')).toBeInTheDocument();
+    expect(screen.queryByText('Tabelperiode (definerende)')).not.toBeInTheDocument();
   });
 
 });

@@ -56,7 +56,7 @@ describe('getSammentaellingControlStatus', () => {
     expect(getSammentaellingControlStatus(control)).toBe('ok');
   });
 
-  it('returns ok when values are 0/null but display as "-"', () => {
+  it('returns tom (no mark) when values are 0/null and display as "-"', () => {
     const control: SammentaellingControl = {
       ...baseControl,
       beregnetDisplay: '-',
@@ -64,7 +64,7 @@ describe('getSammentaellingControlStatus', () => {
       beregnetValue: null,
       tabelValue: 0,
     };
-    expect(getSammentaellingControlStatus(control)).toBe('ok');
+    expect(getSammentaellingControlStatus(control)).toBe('tom');
   });
 
   it('returns ok when values are within rounding tolerance', () => {
@@ -119,13 +119,13 @@ describe('buildSammentaellingDisplayTables', () => {
 
   it('viser udspecificeret feriedage og SH-dage for TAF-periode', () => {
     const tables = buildSammentaellingDisplayTables(makeModel());
-    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (inkl. 2 feriedage og 1 SH-dage)');
+    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (inkl. 2 feriedage og 1 SH-dag)');
   });
 
   it('viser minus-prefix når TAF beregnes som arbejdsdage', () => {
     const tables = buildSammentaellingDisplayTables(makeModel({ beregningsenhed: TAF_BEREGNES_SOM.ARBEJDSDAGE }));
     expect(tables.basis[0]?.label).toBe('Arbejdsdage i beregningsperiode (- 5 feriedage og 3 SH-dage)');
-    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (- 2 feriedage og 1 SH-dage)');
+    expect(tables.basis[1]?.label).toBe('Arbejdsdage i TAF-periode (- 2 feriedage og 1 SH-dag)');
   });
 
   it('viser ekstra parentes med løse feriedage/øvrigt fravær når de findes', () => {
@@ -197,7 +197,7 @@ describe('buildSammentaellingDisplayTables', () => {
       beregnetValue: null,
       tabelValue: null,
     });
-    expect(tafRow && getSammentaellingControlStatus(tafRow.control)).toBe('ok');
+    expect(tafRow && getSammentaellingControlStatus(tafRow.control)).toBe('tom');
     expect(collectSammentaellingControlMismatchMessages(tafRow ? [tafRow] : [])).toEqual([]);
   });
 });

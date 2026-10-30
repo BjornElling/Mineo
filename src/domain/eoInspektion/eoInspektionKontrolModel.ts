@@ -21,6 +21,7 @@ import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/taf
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
 import type { RowDay } from '../eoRowEvaluation/eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { erTabtArbejdsfortjenesteSektionAktiv } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 
 export type KontrolTabelDateSource = Readonly<{
   label: string;
@@ -42,6 +43,8 @@ export type KontrolTabelColumnId =
 export type KontrolTabelColumn = Readonly<{
   id: KontrolTabelColumnId;
   header: string;
+  /** Navnet uden overskriftens layout-linjeskift og forkortelser; CSV-filens kolonnenavn. */
+  name: string;
   align: 'left' | 'center' | 'right';
   width: number;
   borderLeft?: boolean;
@@ -76,6 +79,8 @@ export type KontrolTabelRow = Readonly<{
 export type KontrolTabelColumnData = Readonly<{
   id: KontrolTabelColumnId;
   header: string;
+  /** Se {@link KontrolTabelColumn.name}; udeladt er det overskriften, som da ikke har linjeskift. */
+  name?: string;
   align: 'left' | 'center' | 'right';
   width: number;
   borderLeft?: boolean;
@@ -116,6 +121,12 @@ export type EOInspektionModel = Readonly<{
 
 const DEFAULT_TABLE_WIDTH_PX = 1200;
 const DEFAULT_COLUMN_WIDTH_PX = 120;
+
+/**
+ * «Svie/smerte-dag» som sammentællingens «Svie/smerte»-rækker (BB-387); før «S/S dag». Brudt efter bindestregen,
+ * fordi hele ordet ikke kan stå på én linje i kolonnens 120 px.
+ */
+const SVIE_SMERTE_DAG_HEADER = 'Svie/smerte-\ndag';
 
 const INTEGRITY_TOLERANCE_KR = 0.05;
 
@@ -185,6 +196,15 @@ const computeSummaryTableRange = (
 
   return { fra: tableFra, til: tableTil };
 };
+
+/**
+ * Kontroltabellen har ansættelsesforholdskolonner (TAF-regulering og lønkolonnerne) kun med TAF-krav. Uden TAF
+ * stod en tom «TAF-regulering» under et navnløst «Ansættelsesforhold 1» (BB-388). Sammentællingens
+ * ansættelsesforholdsrækker læser de samme kolonner og følger derfor samme gate.
+ */
+export const harKontrolTabelAnsaettelsesforholdKolonner = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaTabtArbejdsfortjeneste'>
+): boolean => erTabtArbejdsfortjenesteSektionAktiv(values);
 
 const buildIsoIndex = (dates: readonly ISODateString[]): ReadonlyMap<ISODateString, number> => {
   const map = new Map<ISODateString, number>();
@@ -630,7 +650,8 @@ export const buildEOInspektionModel = (
     },
     {
       id: KONTROL_TABEL_COLUMN_IDS.shDay,
-      header: 'S/H dag',
+      // Samme navn som sammentællingens «SH-dage» (BB-387); før «S/H dag».
+      header: 'SH-dag',
       align: 'center',
       width: DEFAULT_COLUMN_WIDTH_PX,
       values: isShByIndex.map((value) => (value ? 'x' : '')),
@@ -651,7 +672,8 @@ export const buildEOInspektionModel = (
     },
     {
       id: KONTROL_TABEL_COLUMN_IDS.ssDay,
-      header: 'S/S dag',
+      header: SVIE_SMERTE_DAG_HEADER,
+      name: 'Svie/smerte-dag',
       align: 'center',
       width: DEFAULT_COLUMN_WIDTH_PX,
       borderLeft: true,
@@ -673,6 +695,7 @@ export const buildEOInspektionModel = (
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,
     integrityTolerance: INTEGRITY_TOLERANCE_KR,
     errorRowIdsByIndex: loenErrorRowIdsByIndex,
+    medAnsaettelsesforholdKolonner: harKontrolTabelAnsaettelsesforholdKolonner(values),
   });
 
   const { columns: offentlige, integrityIssues: offentligeIssues } = buildOffentligeYdelserColumns({
@@ -687,6 +710,7 @@ export const buildEOInspektionModel = (
   const offentligeColumns: KontrolTabelColumnData[] = offentlige.map((c, idx) => ({
     id: kontrolTabelColumnId.offentlig(c.typeKey),
     header: c.header,
+    name: c.name,
     align: 'right',
     width: DEFAULT_COLUMN_WIDTH_PX,
     borderLeft: idx === 0,
@@ -720,6 +744,7 @@ export const buildEOInspektionModel = (
   const columns: KontrolTabelColumn[] = columnData.map((col) => ({
     id: col.id,
     header: col.header,
+    name: col.name ?? col.header,
     align: col.align,
     width: col.width,
     borderLeft: col.borderLeft,

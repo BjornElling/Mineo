@@ -43,10 +43,19 @@ export const resolveDocumentFileName = (
   isDraft: boolean,
   format: DocumentDownloadFormat,
   journalnr?: string
-): string => {
+): string => resolveSagsFilnavn(
+  `${baseTitle}${isDraft ? ' (udkast)' : ''}`,
+  DOCUMENT_EXTENSION_BY_FORMAT[format],
+  journalnr
+);
+
+/**
+ * Filnavnsreglen for alt, der hentes til en sag: `{journalnr} - {titel}.{endelse}`, eller `{titel}.{endelse}` uden
+ * journalnr. Dokumenterne bruger den gennem {@link resolveDocumentFileName}; kontroltabellens CSV-fil bruger den
+ * direkte, så filen kan genfindes på sagen (BB-382) – før hed den altid «kontroltabel.csv».
+ */
+export const resolveSagsFilnavn = (titel: string, extension: string, journalnr?: string): string => {
   const safeJournalnr = typeof journalnr === 'string' ? sanitizeFilenamePart(journalnr.trim()) : '';
   const prefix = safeJournalnr !== '' ? `${safeJournalnr} - ` : '';
-  const safeTitle = sanitizeFilenamePart(baseTitle);
-  const extension = DOCUMENT_EXTENSION_BY_FORMAT[format];
-  return `${prefix}${safeTitle}${isDraft ? ' (udkast)' : ''}.${extension}`;
+  return `${prefix}${sanitizeFilenamePart(titel)}.${extension}`;
 };

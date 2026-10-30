@@ -107,7 +107,13 @@ export const buildSammentaellingControl = (input: SammentaellingControlInput): S
   } as SammentaellingControl;
 };
 
-export type SammentaellingControlStatus = 'ok' | 'error';
+/**
+ * - `ok`: begge sider har et tal, og de stemmer.
+ * - `tom`: ingen af siderne har et tal; der er intet kontrolleret, og rækken får intet mærke (BB-386). Før fik
+ *   den et grønt ✓, også når grundlaget manglede.
+ * - `error`: siderne er uenige.
+ */
+export type SammentaellingControlStatus = 'ok' | 'tom' | 'error';
 
 export type SammentaellingDisplayRow = Readonly<{
   key: string;
@@ -115,22 +121,40 @@ export type SammentaellingDisplayRow = Readonly<{
   control: SammentaellingControl;
 }>;
 
-export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
-  // Eksplicit domænevalg: lille tolerance (0.005) for floating-afrunding; 0 og null behandles som tomt ("-") i UI.
-  const EPS = 0.005;
-  const normalizedBeregnet = control.beregnetValue === null || control.beregnetValue === 0 ? null : control.beregnetValue;
-  const normalizedTabel = control.tabelValue === null || control.tabelValue === 0 ? null : control.tabelValue;
+/** Eksplicit domænevalg: lille tolerance for floating-afrunding (en halv øre). */
+const SAMMENTAELLING_TOLERANCE = 0.005;
 
-  if (normalizedBeregnet === null && normalizedTabel === null) {
-    return 'ok';
+/**
+ * Den ENE definition af en side uden værdi. Både sammenligningen og visningen ({@link formatSammentaellingVaerdi})
+ * læser den, så «tom» ikke kan betyde én ting i tallet og en anden i det viste: en side, der vises som `-`, er tom
+ * for kontrollen, og en side, kontrollen regner for tom, vises som `-`. Uden den koblingen kunne et beløb under en
+ * halv øre stå som «0,00» over for en tabelside «-» og give et rødt kryds mellem to tomme sider.
+ */
+export const erSammentaellingVaerdiTom = (value: number | null | undefined): boolean =>
+  value === null || value === undefined || !Number.isFinite(value) || Math.abs(value) <= SAMMENTAELLING_TOLERANCE;
+
+/** Visningen af en side: {@link SAMMENTAELLING_TOM_VISNING}, når siden er tom, ellers den formaterede værdi. */
+export const formatSammentaellingVaerdi = (value: number | null, format: (value: number) => string): string =>
+  value === null || erSammentaellingVaerdiTom(value) ? SAMMENTAELLING_TOM_VISNING : format(value);
+
+export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
+  const beregnetTom = erSammentaellingVaerdiTom(control.beregnetValue);
+  const tabelTom = erSammentaellingVaerdiTom(control.tabelValue);
+
+  if (beregnetTom && tabelTom) {
+    // Begge tomme er overensstemmelse. Mærket afgøres af det VISTE: står der et tal på en af siderne (fx et
+    // tabeltal med sit fradrag ved siden af, der netto giver 0), er der kontrolleret noget, og rækken får ✓.
+    return control.beregnetDisplay === SAMMENTAELLING_TOM_VISNING && control.tabelDisplay === SAMMENTAELLING_TOM_VISNING
+      ? 'tom'
+      : 'ok';
   }
 
+  const beregnet = beregnetTom ? 0 : control.beregnetValue;
+  const tabel = tabelTom ? 0 : control.tabelValue;
   if (
-    typeof normalizedBeregnet === 'number' &&
-    typeof normalizedTabel === 'number' &&
-    Number.isFinite(normalizedBeregnet) &&
-    Number.isFinite(normalizedTabel) &&
-    Math.abs(normalizedBeregnet - normalizedTabel) <= EPS
+    typeof beregnet === 'number'
+    && typeof tabel === 'number'
+    && Math.abs(beregnet - tabel) <= SAMMENTAELLING_TOLERANCE
   ) {
     return 'ok';
   }

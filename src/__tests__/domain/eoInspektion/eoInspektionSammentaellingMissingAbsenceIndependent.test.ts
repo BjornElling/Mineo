@@ -66,6 +66,6 @@ describe('EO-sammentællingens manglende øvrige fraværsdage', () => {
   it('melder ingen kontroluoverensstemmelse, mens fraværsantallet mangler', () => {
     // Den ægte mangel bæres af det røde felt; en systemfejl oven i ville sende brugeren efter en
     // kodefejl i stedet for efter sin egen indtastning.
-    expect(getSammentaellingControlStatus(buildSammentaelling().beregningsperiode)).toBe('ok');
+    expect(getSammentaellingControlStatus(buildSammentaelling().beregningsperiode)).toBe('tom');
   });
 });

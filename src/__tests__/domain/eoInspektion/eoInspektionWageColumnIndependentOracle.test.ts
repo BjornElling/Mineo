@@ -40,7 +40,8 @@ const createBelobModeValues = (): ErstatningsopgoerelseValues => {
 
   values.vedroererPeriodeFra = date;
   values.vedroererPeriodeTil = date;
-  values.kravPaaTabtArbejdsfortjeneste = 'Nej';
+  // Lønkolonnerne findes kun med TAF-krav (BB-388); TAF-dagene er tomme, fordi testen ikke giver TAF-perioder.
+  values.kravPaaTabtArbejdsfortjeneste = 'Ja';
   values.loenindkomstAnsaettelsesforhold = [employment];
   return values;
 };

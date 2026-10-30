@@ -199,8 +199,8 @@ describe('CALC-006 – uafhængigt facit for øvrige kravrækker', () => {
     expect(rows).toEqual([
       {
         id: 'oevrigekrav.empty',
-        label: 'Ingen',
-        displayValue: '-',
+        label: 'Øvrige krav',
+        displayValue: 'Advarsel (Der er ikke indtastet øvrige krav)',
         status: 'warning',
         message: 'Der er ikke indtastet øvrige krav',
         summaryDisplay: 'messageOnly',

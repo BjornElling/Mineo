@@ -32,7 +32,7 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     expect(rows).toEqual([
       {
         id: 'midlertidigtEetKonsistens.afgorelseUdenYdelser',
-        label: 'Advarsel',
+        label: 'Midlertidigt EET',
         displayValue: 'Advarsel (Der er angivet en midlertidig EET-afgørelse men ikke indtastet ydelser)',
         status: 'warning',
         summaryDisplay: 'messageOnly',
@@ -109,13 +109,13 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
       {
         id: 'offentligeYdelser.ydelsestype-midlertidigt_eet',
         label: 'Midlertidigt EET',
-        displayValue: 'ok',
+        displayValue: 'Ja',
         status: 'ok',
         summaryDisplay: 'default',
       },
       {
         id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
-        label: 'Advarsel',
+        label: 'Midlertidigt EET',
         displayValue: 'Advarsel (Der er indtastet midlertidige EET-ydelser, men ikke angivet en afgørelse)',
         status: 'warning',
         summaryDisplay: 'messageOnly',

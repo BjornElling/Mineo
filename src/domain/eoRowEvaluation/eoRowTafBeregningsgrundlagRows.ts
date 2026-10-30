@@ -36,6 +36,7 @@ import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferie
 import { BEREGNINGSPERIODE_FERIE_OVERLAP_LINJE, TAF_LOSE_FERIEDAGE_LABEL } from '../erstatningsopgoerelse/validation/tafRowRules';
 import {
   evaluateBeregningsgrundlagFradragAdvarsel,
+  BEREGNINGSPERIODE_MANGLER_MESSAGE,
   INGEN_INDKOMST_I_BEREGNINGSPERIODEN_MESSAGE,
   resolveBeregningsgrundlagFradrag,
 } from '../erstatningsopgoerelse/validation/beregningsgrundlagFradragRules';
@@ -150,8 +151,10 @@ export const buildEoTafBeregningsgrundlagRows = (
     }
     if (beregningsperiodeIssueSummary) return beregningsperiodeIssueSummary;
 
+    // Samme ordlyd som «Fejl og advarsler» (BB-385); før stod «Ikke alle felter udfyldt», som kataloget
+    // oversatte til netop denne sætning.
     if (filledCount !== 2) {
-      return { displayValue: 'Fejl (Ikke alle felter udfyldt)', status: 'error' as EoRowStatus };
+      return { displayValue: `Fejl (${BEREGNINGSPERIODE_MANGLER_MESSAGE})`, status: 'error' as EoRowStatus };
     }
     if (!periodeFra || !periodeTil) {
       return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as EoRowStatus };
@@ -168,6 +171,14 @@ export const buildEoTafBeregningsgrundlagRows = (
 
     return { displayValue: `${fraDanish} - ${tilDanish}`, status: 'ok' as EoRowStatus };
   })();
+
+  /**
+   * Perioden er ikke tastet færdig, og intet andet er galt med den. Manglen står én gang, på periodens egen række;
+   * «Arbejdsdage» og «Måneder» viser da `-` i stedet for at kalde en tom periode «ugyldig» (BB-385).
+   */
+  const beregningsperiodeMangler = isBeregningsperiode
+    && beregningsperiodeIssueSummary === undefined
+    && !(isNonEmptyString(periodeFra) && isNonEmptyString(periodeTil));
 
   const beregningsperiodeRangeOk =
     Boolean(periodeFra && periodeTil && periodeFra <= periodeTil) &&
@@ -430,7 +441,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   }
 
   const arbejdsdageRow = (() => {
-    if (!isBeregningsperiode) {
+    if (!isBeregningsperiode || beregningsperiodeMangler) {
       return { label: 'Arbejdsdage', displayValue: '-', status: 'ok' as EoRowStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {
@@ -489,7 +500,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   }
 
   const maanederRow = (() => {
-    if (!isBeregningsperiode) {
+    if (!isBeregningsperiode || beregningsperiodeMangler) {
       return { label: 'Måneder', displayValue: '-', status: 'ok' as EoRowStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {

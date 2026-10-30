@@ -66,13 +66,13 @@ fladerækkefølgen selv foreskriver.
 | 12j | Sygeferiegodtgørelse | Lønindkomst: kortets sygeferiegodtgørelses-afsnit, herunder 6-måneders-advarslen, kildevalget og periodiseringen | Sygeferiegodtgørelses-bilaget i `eoBilagSections` |
 | 12k | Offentlige ydelser | Hele fanen: ydelsestabellen, «Tilføj særligt» (maksimal sygedagpengesats, midlertidigt EET hentet fra EET-siden) og «Kommentarer» | `offentligeYdelserSection` og `renderMidlertidigtEetSection` |
 | 12l | Beregning: fejlpanelet, sammentællingen og bilagsvalgene | Beregning-fanen i sin helhed: «Fejl og advarsler», «Beregning» (sammendragslinjerne og «Hent opgørelse»), «Bilag» (syv valg plus Alle/Perioden) og «Alternative beregninger» (TAF fordelt på kalenderår, TAF opreguleret, TAF-kravgrafen) – alle downloadknapper og deres gates | `opgoerelseSection` (opgørelsens forside og sammentælling), `eoBilagSections`' sammensætning, og de tre alternative dokumenter |
-| 12m | EO-gennemsyn og Kontroltabel | De to kontrolfaner, der kun vises når indstillingen «Vis kontrolfaner på Erstatningsopgørelse-side» er slået til | – |
+| 12m | EO-kontrol og Kontroltabel | De to kontrolfaner, der kun vises når indstillingen «Vis kontrolfaner på Erstatningsopgørelse-side» er slået til | – |
 
 **Dækningskontrol.** Delingen er lagt, så hvert af Erstatningsopgørelsens elementer optræder præcis én
 gang. Før flade 12 erklæres `Gennemgået`, holdes den op mod disse seks lister:
 
 - **Fanerne:** EO oplysninger (12a–12f) · Lønindkomst (12g, 12h, 12j) · Offentlige ydelser (12k) ·
-  Beregning (12l) · EO-gennemsyn og Kontroltabel (12m). **12i går på tværs af de to første.**
+  Beregning (12l) · EO-kontrol og Kontroltabel (12m). **12i går på tværs af de to første.**
 - **De ni sektioner på EO oplysninger:** Erstatningsopgørelse (12a) · Forlig (12a) · Eventuelle særlige
   kommentarer (12a) · Bilagsnumre (12a) · Svie- og smertegodtgørelse (12b) · Øvrige erstatningskrav (12c) ·
   AES-afgørelser (12d) · Tabt arbejdsfortjeneste (12e) · Indtægt før skadedatoen (12f, med

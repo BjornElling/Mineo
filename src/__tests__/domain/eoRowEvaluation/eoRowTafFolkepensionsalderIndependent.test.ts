@@ -130,7 +130,7 @@ describe('CALC-006 – uafhængigt facit for TAF efter folkepensionsalder', () =
 
     expect(rows.find((row) => row.id === 'taf.folkepensionsalder.taf-folkepensionsalder-facit')).toEqual({
       id: 'taf.folkepensionsalder.taf-folkepensionsalder-facit',
-      label: 'Advarsel',
+      label: 'Periode',
       displayValue: 'Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (01-01-2015).)',
       status: 'warning',
       summaryDisplay: 'messageOnly',

@@ -6,7 +6,11 @@ import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
 import { parseDanishNumberString as parseCanonicalDanishNumberString, toNonNegativeInt } from '../../utils/numberParsing';
 import { kontrolTabelColumnId } from './eoInspektionLoenTypes';
-import type { EOInspektionBeregningsperiodeProjection, EOInspektionModel } from './eoInspektionKontrolModel';
+import {
+  harKontrolTabelAnsaettelsesforholdKolonner,
+  type EOInspektionBeregningsperiodeProjection,
+  type EOInspektionModel,
+} from './eoInspektionKontrolModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { buildIncomeForRanges, buildTafRanges, type IsoRange } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
@@ -19,6 +23,7 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import {
   beregnetVaerdi,
   buildSammentaellingControl,
+  formatSammentaellingVaerdi,
   grundlagMangler,
   type SammentaellingControl,
   type SammentaellingDisplayRow,
@@ -124,11 +129,19 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     ? ` (- ${formatCount(tafLoseFerieTilLabel)} løse ferie-/feriefridage)`
     : '';
 
+  // Ental ved én dag: «1 SH-dag», ikke «1 SH-dage» (BB-386).
+  const formatDage = (value: number | null | undefined, ental: string, flertal: string): string => {
+    const text = formatCount(value);
+    return `${text} ${text === '1' ? ental : flertal}`;
+  };
+  const feriedage = (value: number | null | undefined): string => formatDage(value, 'feriedag', 'feriedage');
+  const shDage = (value: number | null | undefined): string => formatDage(value, 'SH-dag', 'SH-dage');
+
   const beregningsperiodeLabel =
-    `Arbejdsdage i beregningsperiode (${ferieShPrefix} ${formatCount(beregningsFerieDageTilLabel)} feriedage og ${formatCount(model.beregningsperiode.shDageCount)} SH-dage)${beregningsEkstraSuffix}`;
+    `Arbejdsdage i beregningsperiode (${ferieShPrefix} ${feriedage(beregningsFerieDageTilLabel)} og ${shDage(model.beregningsperiode.shDageCount)})${beregningsEkstraSuffix}`;
 
   const tafLabel = model.tafBranchAvailable
-    ? `Arbejdsdage i TAF-periode (${ferieShPrefix} ${formatCount(tafFerieDageTilLabel)} feriedage og ${formatCount(model.taf.shDageCount)} SH-dage)${tafEkstraSuffix}`
+    ? `Arbejdsdage i TAF-periode (${ferieShPrefix} ${feriedage(tafFerieDageTilLabel)} og ${shDage(model.taf.shDageCount)})${tafEkstraSuffix}`
     : 'Arbejdsdage i TAF-periode';
 
   const basisRows: SammentaellingDisplayRow[] = [
@@ -234,10 +247,10 @@ const buildFerieDatesInRange = (
 
 const formatDaInt = (value: number): string => formatAsAmountTrimmed(value, 0);
 
-const formatOptionalInt = (value: number | null): string => (value === null || value === 0 ? '-' : formatDaInt(value));
+// Begge sider vises gennem kontrollens egen tom-definition, så en side vist som `-` også er tom for sammenligningen.
+const formatOptionalInt = (value: number | null): string => formatSammentaellingVaerdi(value, formatDaInt);
 
-const formatOptionalAmount = (value: number | null): string =>
-  value === null || value === 0 ? '-' : formatCurrency(value);
+const formatOptionalAmount = (value: number | null): string => formatSammentaellingVaerdi(value, formatCurrency);
 
 const parseDanishNumberString = (value: string): number | null => parseCanonicalDanishNumberString(value) ?? null;
 
@@ -552,7 +565,10 @@ export const buildEOInspektionSammentaellingModel = (args: {
     const income = buildIncomeForRanges(values, ranges);
     const entries: SammentaellingDisplayRow[] = [];
 
-    income.employers.forEach((entry, index) => {
+    // Samme gate som kontroltabellens ansættelsesforholdskolonner: uden dem findes tabelsiden ikke, og en
+    // ansættelsesforholdsrække ville da stå med et beregnet beløb over for en tom tabel (BB-388).
+    const employers = harKontrolTabelAnsaettelsesforholdKolonner(values) ? income.employers : [];
+    employers.forEach((entry, index) => {
       const baseLabel = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
       const navn = entry.name.trim();
       const label = navn !== '' ? `${baseLabel} (${navn})` : baseLabel;

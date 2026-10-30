@@ -8,7 +8,7 @@ const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('buildEoOevrigeKravRows visibility', () => {
-  it('viser "Ingen" til venstre når der hverken er øvrige krav eller særlige intro-linjer', () => {
+  it('viser «Øvrige krav: Ingen» når der hverken er øvrige krav eller særlige intro-linjer', () => {
     const values = createErstatningsopgoerelseInitialValues();
 
     const rows = buildEoOevrigeKravRows(values, EMPTY_FIELD_ISSUE_SET);
@@ -16,8 +16,8 @@ describe('buildEoOevrigeKravRows visibility', () => {
     expect(rows).toEqual([
       {
         id: 'oevrigekrav.empty',
-        label: 'Ingen',
-        displayValue: '-',
+        label: 'Øvrige krav',
+        displayValue: 'Ingen',
         status: 'ok',
       },
     ]);
