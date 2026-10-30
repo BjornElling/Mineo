@@ -49,6 +49,5 @@ describe('DATA-001/CALC-006/TD-020 – midlertidigt EET som EO-downstream-consum
     ]);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[1]]).toBe(true);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

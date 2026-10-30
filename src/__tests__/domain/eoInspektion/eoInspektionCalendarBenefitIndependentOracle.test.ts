@@ -61,6 +61,5 @@ describe('CALC-006 / TD-016 – uafhængigt kalenderdags-downstreamfacit', () =>
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[2] ?? -1]).toBe(false);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[3] ?? -1]).toBe(true);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(400);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

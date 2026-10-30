@@ -31,7 +31,6 @@ const verifyIncome = (values: ErstatningsopgoerelseValues) => {
     ...controls.beregningsperiodeIndtaegter,
     ...controls.tafIndtaegter,
   ])).toEqual([]);
-  expect(model.integrityIssues.filter((issue) => issue.severity === 'error')).toEqual([]);
   return controls;
 };
 

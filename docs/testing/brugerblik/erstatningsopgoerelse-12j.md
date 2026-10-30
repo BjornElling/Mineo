@@ -71,9 +71,14 @@ kontrolrækkerne 12m's.
 **Tilbagemelding**
 Enig
 
+**Gennemført 2026-10-24:** en referenceperiode uden løn giver fra-datoen rød ring med «Der er ingen løn i
+referenceperioden (01-12-2023 – 28-12-2023) – angiv perioden før sygeforløbet», og «Fejl og advarsler» viser samme
+linje med link til datoen. Opgørelsen kan ikke hentes, før perioden er rettet. En samlet negativ løn spærrer som før
+med sin egen besked (BB-290). Grænsen før første TAF-periode er uændret (se modsvaret).
+
 **Modsvar – fundets sidste sætning om skadedatoen** (besvaret nedenfor)
 
-Spærringen af en referenceperiode uden løn er gennemført (se BB-319's gennemførelse nedenfor). Fundet sluttede dog med en
+Spærringen af en referenceperiode uden løn er gennemført (se BB-319's gennemførelse ovenfor). Fundet sluttede dog med en
 overvejelse om, at perioden skal slutte før *skadedatoen* i stedet for før *denne opgørelses første TAF-dag*. Dit «Enig»
 kan læses som en godkendelse også af den, men jeg har ikke gennemført den, fordi den passer dårligt med dit svar under
 BB-321 (perioden er fri) og vil spærre rigtige sager:
@@ -88,11 +93,6 @@ den nye spærring, fordi der normalt ikke er løn i den periode.
 - *Valg A (anbefalet):* grænsen forbliver «før første TAF-periode i denne opgørelse».
 - *Valg B:* grænsen flyttes til «før skadedatoen»; sagen i eksemplet kan da ikke bruge december 2023.
 
-**Gennemført 2026-10-24:** en referenceperiode uden løn giver fra-datoen rød ring med «Der er ingen løn i
-referenceperioden (01-12-2023 – 28-12-2023) – angiv perioden før sygeforløbet», og «Fejl og advarsler» viser samme
-linje med link til datoen. Opgørelsen kan ikke hentes, før perioden er rettet. En samlet negativ løn spærrer som før
-med sin egen besked (BB-290). Grænsen før første TAF-periode er uændret (se modsvaret).
-
 **Supplerende tilbagemelding**
 Referenceperioden skal ikke sættes til at slutte før skadesdatoen. Det er et væsentligt princip, der gerne må dokumenteres og test-sikres, så det aldrig igen foreslås eller lægges til grund. Det vil ofre ske, at den skadelidte arbejder videre i noget tid efter skaden, før vedkommende sygemeldes. Andre skadelidte sygemeldes straks men modtager fuld løn under sygdom i en periode. I de scenarier vil det ofte være relevant at have en beregningsperiode, der starter før skadesdagen og strækker sig ind over denne, eller i visse tilfælde først starter efter skadedatoen. Det er kun beregningsperioden og TAF-perioden, der ikke må overlappe.
 
@@ -101,6 +101,10 @@ regel i `sygeferiegodtgoerelse.md` §2.1: referenceperioden må ikke bindes til 
 strække sig hen over skadedatoen eller først begynde efter den; det må aldrig igen foreslås. Det er test-sikret i
 `erstatningsopgoerelseReaderProjection.test.ts`, hvor en referenceperiode efter skadedatoen og før første TAF-periode
 hverken giver feltfejl eller spærrer.
+
+**Efterfølgende audit 2026-10-24 (flyttet fra «Dækningshuller»):** En ny E2E-kontrol af den godkendte
+BB-319-afgrænsning brugte løn i december 2023, efter skadedatoen `01-03-2023` og før et TAF-forløb fra januar 2024.
+Begge referencefelter forblev gyldige, og ingen «ingen løn i referenceperioden»-fejl blev vist. Kørt i Chrome; bestået.
 
 ### BB-320 – Ved skader før 2015 tæller 4-månedersgrænsen kun opgørelsens egen periode, selv om afsnittet beder om alle TAF-perioder siden skaden
 
@@ -353,6 +357,32 @@ ophører da.» På kortet står den med advarslens gule ikon, og linket blinker 
 står i apostroffer efter din afgørelse under BB-331 (fundet foreslog «»). Advarslen står stadig i de samme sager som
 før; det har fundet ikke bedt om at ændre.
 
+**Forelagt 2026-10-30 (fundets uafklarede første halvdel – hyppigheden):** Valg A: kun en neutral oplysning på kortet,
+ikke en gul linje i «Fejl og advarsler». Valg B: kun når der slet ingen løn er registreret efter skadedatoen. Valg C:
+uændret. Anbefaling A.
+
+**Tilbagemelding 2026-10-30**
+5. Vi går med B. Det skal dokumenteres, at det potentielt kan give alvorlige fejlberegninger for brugeren, hvis vedkommende blot ukritisk fortsætter med at opgøre sygeferiegodtgørelse længe efter at skadelidtes tilknytning til arbejdsgiveren er ophørt, så der skal være advarsler om det på beregningsiden, men kun i det omfang, at det afspejler, at der ikke længere er nogen form for lønydelser fra arbejdsgiveren. I praksis indebærer det vel i virkeligheden, at de 6 måneder skal regnes fra udløbet af den seneste lønperiode fra arbejdsgiveren.
+
+**Modsvar 2026-10-30 (besvaret samme dag):** Forelæggelsens præmis var forkert. Den regel, tilbagemeldingen
+beskriver, er den, der gælder i dag: advarslen regnes allerede seks måneder fra udløbet af den seneste lønrække
+(`sfggWarnings.ts:13-44`), og sygeløn og løn efter ophør indtastes også som lønrækker – modellen har ingen anden kilde til
+arbejdsgiverbetalt løn. I de 22 af 41 sager er der netop ikke registreret løn efter beregningsperioden, så advarslen er
+dér berettiget efter tilbagemeldingens egen formulering; valg B ville heller ikke ændre hyppigheden, fordi de samme sager
+ingen løn har efter skadedatoen. To små afvigelser fra formuleringen: rækker med kun tillæg (FP/FV/SH/SO) eller kun
+arbejdsgiverpension tæller ikke som løn, og et ansættelsesforhold helt uden lønrækker får ingen advarsel. Ingen
+kodeændring er foretaget. Forslag: behold reglen, gør begrundelsen normativ, og luk de to huller.
+
+**Tilbagemelding 2026-10-30**
+ja tak
+
+**Gennemført 2026-10-30:** Reglen og begrundelsen (risikoen for alvorlige fejlberegninger) står normativt i
+`docs/domain/sygeferiegodtgoerelse/sygeferiegodtgoerelse.md` §9.3. De to huller er lukket i `sfggWarnings.ts`:
+tillæg og arbejdsgiverpension tæller som lønydelse i Beløb-tilstand (i Procent-tilstand er de afledt af lønnen), og et
+ansættelsesforhold uden registreret lønydelse får advarslen, når sygeferiegodtgørelsen løber mere end seks måneder fra
+sin første dag – teksten er da «Der er ikke registreret løn fra Firma A. Er skadelidte opsagt, …». Selve beregningen er
+uændret. Unit-tests og sygeferiegodtgørelsens E2E-spec (6/6) består.
+
 ### BB-326 – «Først sygeferiegodtgørelse efter ophør af sygeløn» virker kun gennem lønrækker i erstatningsperioden – uden dem gør «Ja» ingenting
 
 - **Type:** Fornuft
@@ -579,9 +609,8 @@ forkortelsen.
 - **B6a og afhængigheder:** Skift mellem kilder og tilbage igen, udvalgte nulværdier, to kort og enkelte manglende/ugyldige værdier er prøvet. Der er ikke dokumenteret en systematisk tilstandsrække fra tom til delvis, gyldig og igen ryddet/ugyldig for alle kilder, rækker og afhængige valg eller alle rækkefølger.
 - **Kun kodeaflæst eller ikke prøvet:** Tastaturrækkefølgen og undo/redo efter kildeskift, overenskomst-/Statistik-/KRL-/KL-regulering af referencesatsen, erhvervssygdom og arbejdsdagsbaseret SFGG før 2015 er ikke browserafprøvet i denne kørsel.
 - **Uddata og persistens:** PDF blev hentet og læst; Word blev hverken hentet eller visuelt kontrolleret. De 41 `.eo`-filer var fixtures til indlæsning, ikke en save→load-rundtur med sammenligning af sagsdata.
-- **Efterfølgende audit:** BB-341 blev reproduceret i browseren og gennemført som beskrevet ovenfor. En ny E2E-kontrol af den godkendte
-  BB-319-afgrænsning brugte løn i december 2023, efter skadedatoen `01-03-2023` og før et TAF-forløb fra januar 2024.
-  Begge referencefelter forblev gyldige, og ingen «ingen løn i referenceperioden»-fejl blev vist. Kørt i Chrome; bestået.
+- **Efterfølgende audit:** BB-341 blev reproduceret i browseren og gennemført som beskrevet ovenfor. En ny E2E-kontrol af den
+  godkendte BB-319-afgrænsning (referenceperiode efter skadedatoen) bestod; den står under BB-319.
 
 #### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
 
@@ -609,4 +638,5 @@ Oprindelig kørsel og efterfølgende E2E er adskilt i kolonnen; de 41 fixtures e
 
 ## Åbne spørgsmål
 
-Ingen. Modsvarene på BB-319 og BB-321 er besvaret og gennemført 2026-10-24; BB-323's bemærkning var til orientering.
+Ingen. Modsvarene på BB-319 og BB-321 er besvaret og gennemført 2026-10-24 og står under fundene; BB-323's bemærkning
+var til orientering.

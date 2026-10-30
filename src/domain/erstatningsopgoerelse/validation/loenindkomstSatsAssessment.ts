@@ -1,8 +1,8 @@
 import { resolveHoejFeriePctAdvarsel } from '../../loen/feriePctAdvarsel';
 export { FERIE_PCT_ADVARSELSGRAENSE } from '../../loen/feriePctAdvarsel';
+import { erFeriePctPaakraevet, FERIE_PCT_MANGLER_BESKED } from '../../loen/feriePctKrav';
 import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
-import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 
 /**
  * ÉN sats-vurdering for et lønindkomst-ansættelsesforhold.
@@ -52,14 +52,18 @@ export type SatsFinding = Readonly<{
 type FeriePctRequirementInput = Pick<LoenindkomstAnsaettelsesforhold, 'tillaegAngivesSom' | 'indtaegtsoplysningerTableData'>;
 
 /**
- * Ét sandt sted for «skal feriegodtgørelsen være udfyldt?». Beløb-tilstand angiver tillæggene som beløb i
- * tabellen, så det skjulte procentfelt hverken markeres eller blokerer dér.
+ * «Skal feriegodtgørelsen være udfyldt?» for ét ansættelsesforhold – den fælles regel med Årsløn
+ * (`domain/loen/feriePctKrav.ts`). Beløb-tilstand angiver tillæggene som beløb i tabellen, så det skjulte
+ * procentfelt hverken markeres eller blokerer dér. EO opgør altid satsen som feriegodtgørelse (regel 3).
  */
 export const isFeriePctPaakraevet = (af: FeriePctRequirementInput): boolean =>
-  af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB
-  && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
+  erFeriePctPaakraevet({
+    satserErIBrug: af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB,
+    loenraekker: af.indtaegtsoplysningerTableData ?? [],
+    satsenOpgoeresSomFeriegodtgoerelse: true,
+  });
 
-export const FERIE_PCT_MANGLER_BESKED = `${SATS_FIELD_LABELS.feriePct} er ikke udfyldt`;
+export { FERIE_PCT_MANGLER_BESKED };
 
 /**
  * Vurderer satserne for ét ansættelsesforhold. Højst ét fund pr. felt (§1.8).

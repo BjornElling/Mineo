@@ -1,18 +1,14 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO } from '../../types/branded';
-import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 import { resolveYdelsestype, ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
 import { isoDateToDate } from '../dates/isoDate';
-import type { KontrolTabelIntegrityIssue } from './eoInspektionKontrolModel';
 import {
   buildOffentligYdelsePeriodiseringsGrundlag,
   isOffentligYdelseDatoMedregnet as isOffentligYdelseDatoMedregnetCentral,
-  type OffentligYdelsePeriodiseringsGrundlag,
 } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
-import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 
 export type OffentligYdelseCoreColumn = Readonly<{
   typeKey: string;
@@ -56,77 +52,31 @@ export const buildOffentligeYdelserColumns = (args: {
   values: ErstatningsopgoerelseValues;
   shDays: ReadonlySet<ISODateString>;
   sygedagpengeShCutoff: ISODateString;
-  integrityTolerance: number;
   errorRowIds: ReadonlySet<string>;
 }): Readonly<{
   columns: ReadonlyArray<OffentligYdelseCoreColumn>;
-  integrityIssues: ReadonlyArray<KontrolTabelIntegrityIssue>;
 }> => {
-  const { dates, isoIndex, values, shDays, sygedagpengeShCutoff, integrityTolerance, errorRowIds } = args;
+  const { dates, isoIndex, values, shDays, sygedagpengeShCutoff, errorRowIds } = args;
 
   const byType = new Map<string, Float64Array>();
   const typeOrder: string[] = [];
-  const expectedTotalsByType = new Map<string, number>();
-  const issues: KontrolTabelIntegrityIssue[] = [];
-  const parsedRowsByType = new Map<
-    string,
-    Array<Readonly<{
-      id: string;
-      label: string;
-      range: Readonly<{ fra: ISODateString; til: ISODateString }>;
-      total: number;
-      config: Readonly<{ periodisering: Periodisering; periodiseringLabel: string }>;
-      periodiseringsGrundlag: OffentligYdelsePeriodiseringsGrundlag;
-    }>>
-  >();
 
   for (const row of values.offentligeYdelserRows ?? []) {
     if (errorRowIds.has(row.id)) continue;
     const rawType = row.ydelsestype?.trim() ?? '';
-    if (rawType === '') {
-      // Fejl hvis beløb er angivet uden ydelsestype
-      const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
-      if (hasAnyValue) {
-        issues.push({
-          severity: 'error',
-          area: 'offentlige ydelser',
-          message: `Offentlig ydelse (række ${row.id}): Beløb er angivet uden ydelsestype – vælg en ydelsestype.`,
-        });
-      }
-      continue;
-    }
+    if (rawType === '') continue;
     // Samme kanoniske opslag som indtægtssiden bruger. Et direkte `ydelsestyper[rawType]` ville
     // ikke forstå en gemt LABEL («Sygedagpenge»), og kolonnen ville udeblive, mens indtægtssiden
     // regnede videre – netop den asymmetri, der meldte en falsk `control:sammentaelling_mismatch`.
     const resolved = resolveYdelsestype(rawType);
-    if (!resolved) {
-      const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
-      if (hasAnyValue) {
-        issues.push({
-          severity: 'warning',
-          area: 'offentlige ydelser',
-          message: `Offentlig ydelse (række ${row.id}): Ukendt ydelsestype "${rawType}" – kan ikke vises i kontroltabellen.`,
-        });
-      }
-      continue;
-    }
+    if (!resolved) continue;
     const typeKey = resolved.key;
     const config = resolved.config;
 
     const fraISO = parseOffentligDato(row.fraDato);
     const tilISO = parseOffentligDato(row.tilDato);
     const range = validateIsoRange(fraISO, tilISO);
-    if (!range) {
-      const hasAnyValue = parseAmount(row.ydelse) + parseAmount(row.tillaeg) !== 0;
-      if (hasAnyValue) {
-        issues.push({
-          severity: 'warning',
-          area: 'offentlige ydelser',
-          message: `Offentlig ydelse (række ${row.id}, ${config.label}): Ugyldigt dato-interval (${row.fraDato || '-'} → ${row.tilDato || '-'}) – kan ikke periodiseres/vises.`,
-        });
-      }
-      continue;
-    }
+    if (!range) continue;
 
     const total = parseAmount(row.ydelse) + parseAmount(row.tillaeg);
     if (total === 0) continue;
@@ -140,17 +90,8 @@ export const buildOffentligeYdelserColumns = (args: {
       shDays,
       sygedagpengeShCutoff,
     });
-    if (!periodiseringsGrundlag || periodiseringsGrundlag.periodiseringsDage <= 0) {
-      issues.push({
-        severity: 'warning',
-        area: 'offentlige ydelser',
-        message: `Offentlig ydelse (række ${row.id}, ${config.label}): Perioden indeholder ingen periodiseringsdage (${config.periodiseringLabel}) – beløbet vises ikke i kontroltabellen.`,
-      });
-      continue;
-    }
+    if (!periodiseringsGrundlag || periodiseringsGrundlag.periodiseringsDage <= 0) continue;
     const dayCount = periodiseringsGrundlag.periodiseringsDage;
-
-    expectedTotalsByType.set(typeKey, (expectedTotalsByType.get(typeKey) ?? 0) + total);
 
     let amounts = byType.get(typeKey);
     if (!amounts) {
@@ -159,10 +100,6 @@ export const buildOffentligeYdelserColumns = (args: {
       byType.set(typeKey, amounts);
       typeOrder.push(typeKey);
     }
-
-    const parsedForType = parsedRowsByType.get(typeKey) ?? [];
-    parsedForType.push({ id: row.id, label: config.label, range, total, config, periodiseringsGrundlag });
-    parsedRowsByType.set(typeKey, parsedForType);
 
     const perDay = total / dayCount;
     iterateDatesInclusive(start, end, (d) => {
@@ -179,74 +116,6 @@ export const buildOffentligeYdelserColumns = (args: {
     });
   }
 
-  for (const [typeKey, rowsForType] of parsedRowsByType) {
-    const amounts = byType.get(typeKey);
-    if (!amounts) continue;
-
-    const hasOverlapById = new Map<string, boolean>();
-    for (let i = 0; i < rowsForType.length; i += 1) {
-      for (let j = i + 1; j < rowsForType.length; j += 1) {
-        const a = rowsForType[i];
-        const b = rowsForType[j];
-        const overlaps = !(a.range.til < b.range.fra || b.range.til < a.range.fra);
-        if (!overlaps) continue;
-        hasOverlapById.set(a.id, true);
-        hasOverlapById.set(b.id, true);
-      }
-    }
-
-    for (const row of rowsForType) {
-      if (hasOverlapById.get(row.id) === true) continue;
-
-      let actual = 0;
-      const start = isoDateToDate(row.range.fra);
-      const end = isoDateToDate(row.range.til);
-      iterateDatesInclusive(start, end, (d) => {
-        const iso = dateToISO(d);
-        if (!iso) return;
-        const idx = isoIndex.get(iso);
-        if (idx === undefined) return;
-        if (
-          row.periodiseringsGrundlag.fallbackAllocationDays
-            ? !row.periodiseringsGrundlag.fallbackAllocationDays.has(iso)
-            : !isOffentligYdelseDatoMedregnet(iso, d, shDays, row.config.periodisering, typeKey, row.range.til, sygedagpengeShCutoff)
-        ) return;
-        actual += amounts[idx] ?? 0;
-      });
-
-      if (!isWithinIntegrityTolerance(actual, row.total, integrityTolerance)) {
-        issues.push({
-          severity: 'error',
-          area: 'offentlige ydelser',
-          message: `Offentlig ydelse (række ${row.id}, ${row.label}): Sammentælling i kontroltabellen (${formatCurrency(actual)}) matcher ikke indtastet total (${formatCurrency(row.total)}) (afvigelse ${formatCurrency(Math.abs(actual - row.total))}, tolerance ${formatCurrency(integrityTolerance)}).`,
-        });
-      }
-    }
-  }
-
-  for (const [typeKey, expected] of expectedTotalsByType) {
-    const amounts = byType.get(typeKey);
-    if (!amounts) {
-      const label = ydelsestyper[typeKey]?.label ?? typeKey;
-      issues.push({
-        severity: 'error',
-        area: 'offentlige ydelser',
-        message: `Offentlige ydelser (${label}): Beløbet er indtastet, men ydelsen fremgår ikke af kontroltabellen.`,
-      });
-      continue;
-    }
-
-    const actual = sumFloat64Array(amounts);
-    if (!isWithinIntegrityTolerance(actual, expected, integrityTolerance)) {
-      const label = ydelsestyper[typeKey]?.label ?? typeKey;
-      issues.push({
-        severity: 'error',
-        area: 'offentlige ydelser',
-        message: `Offentlige ydelser (${label}): Sammentælling i kontroltabellen (${formatCurrency(actual)}) matcher ikke indtastet total (${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
-      });
-    }
-  }
-
   const columns = typeOrder.map((typeKey) => {
     const config = ydelsestyper[typeKey];
     const name = config?.label ?? typeKey;
@@ -255,5 +124,5 @@ export const buildOffentligeYdelserColumns = (args: {
     return { typeKey, header, name, amountsByIndex };
   });
 
-  return { columns, integrityIssues: issues };
+  return { columns };
 };

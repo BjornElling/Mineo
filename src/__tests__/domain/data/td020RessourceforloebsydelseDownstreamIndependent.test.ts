@@ -50,6 +50,5 @@ describe('DATA-001/CALC-006/TD-020 – ressourceforløbsydelse som EO-downstream
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[2]]).toBe(false);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[3]]).toBe(false);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(2800);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

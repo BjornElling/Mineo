@@ -6,9 +6,9 @@
 - **Afgjort: 2026-08-19.** Alle tretten fund er besvaret – **seks accepteret og gennemført** (BB-049,
   BB-050, BB-053, BB-055, BB-056, BB-057), **seks afvist** (BB-051, BB-052, BB-058, BB-060, BB-061 og
   BB-059's mitigering) og **ét delvist gennemført efter modpres** (BB-054: den dobbelte adfærd afvist,
-  spærringen af tasten fjernet). Udfaldet pr. fund står ved hvert fund nedenfor; de gennemførte er
-  opsummeret i «Gennemført i kode» til sidst.
-- Afprøvet i: Chrome (Chromium 1536×864), headless. Filvælgeren kan ikke betjenes headless –
+  spærringen af tasten fjernet). Udfaldet pr. fund – også kode, kontrakt og værn for de
+  gennemførte – står ved hvert fund nedenfor.
+- Afprøvet i: Chrome (Chromium 1536×864), headless. Filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] –
   se Dækningshuller.
 
 ## Fladen kort
@@ -101,9 +101,13 @@ fire røde), og den femte er modprøven, der viser, at håndtaget stadig genbrug
 fil. Prøverne er skruet sammen, så de kan SKELNE identitetsprøven fra den konkurrerende stamdata-prøve:
 basis er uændret, og verifikationen ville have svaret `valid: true`.
 
-**Dækningshullet står stadig åbent:** filvælgeren kan ikke betjenes headless, så selve den forkerte
+**Dækningshullet står stadig åbent:** filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»], så selve den forkerte
 overskrivning er aldrig set i drift – hverken før eller efter. Rettelsen hviler på mutationstest af
 mekanismen. Efterprøv manuelt med to faner og to rigtige filer.
+
+**Gennemført i kode (2026-08-19):** Kode: `utils/fileSaveTarget.ts` (`doesHandleMatchTabFilename` +
+forklarende `fallbackWarning`) · Kontrakt: `persistence-contract.md` §5 · Værn: 5 prøver i
+`fileSaveTarget.test.ts`, 4 mutationstestet + 1 modprøve.
 
 ### BB-050 – Ctrl+Z ændrer sagen bag en åben bekræftelsesdialog
 
@@ -154,6 +158,11 @@ kun talte om Tab, mens fundet handler om genveje. Nye prøver i `useUndoRedoShor
 målt på den åbne «Slet alt»-dialog). **Begge er mutationstestet**, og begge har en modprøve, der viser,
 at genvejen virker igen, når overlayet er lukket – uden den ville en genvej, der ALDRIG gør noget, også
 bestå.
+
+**Gennemført i kode (2026-08-19):** Kode: `inputCore/react/useUndoRedoShortcuts.ts`,
+`components/layout/MainLayout.tsx` (`hasOpenOverlay()`, ingen `preventDefault()`) · Kontrakt:
+`keyboard-navigation.md` §Overlay-adfærd · Værn: 2+2 prøver i `useUndoRedoShortcuts.test.tsx` og
+`MainLayout.shortcutsAndMessages.test.tsx`, alle mutationstestet, hver med modprøve.
 
 ### BB-051 – Sidemenuen kan ikke nås med tastaturet, når fokus én gang har været i indholdet
 
@@ -294,6 +303,11 @@ prøver i `MainLayout.shortcutsAndMessages.test.tsx`, **begge mutationstestet** 
 måler netop det målte tilfælde: en anden besked 4,7 sekund inde i den førstes levetid overlever forbi
 det tidspunkt, hvor den arvede nedtælling ville have lukket den.
 
+**Gennemført i kode (2026-08-19):** Kode: `components/layout/MainLayout.tsx` (besked-identitet som
+React-`key`, `presentOverlay` som ene kilde, id-betinget `onClose`) · Kontrakt:
+`keyboard-navigation.md` §Escape/beskeder · Værn: 2 prøver i
+`MainLayout.shortcutsAndMessages.test.tsx`, mutationstestet.
+
 ### BB-054 – Ctrl+Z gør ingenting, mens et felt er åbent – heller ikke browserens egen fortrydelse
 
 - **Type:** Fornuft
@@ -364,6 +378,10 @@ mere at fortryde». Det er stadig sandt, og det er ikke rettet: begge er tavse. 
 det acceptabelt – Ctrl+Z i et åbent felt gør nu det, brugeren forventer af et tekstfelt, så anledningen
 til at undre sig er væk.
 
+**Gennemført i kode (2026-08-19, delvist):** Kode: `inputCore/react/useUndoRedoShortcuts.ts` (synkron
+`registry.getEditing()`, spærring fjernet) · Kontrakt: samme som BB-050 · Værn:
+`MainLayout.undoRedoEditorGuard.test.tsx` (rettet påstand, begrundet).
+
 ### BB-055 – Den rigtige adgangskode med et usynligt mellemrum afvises som «Forkert adgangskode»
 
 - **Type:** Edge case
@@ -424,6 +442,9 @@ Rettelsen er placeret dér, hvor case-neutraliseringen allerede boede, frem for 
 kalderen; et trim i login-siden ville have lukket netop dette hul og efterladt den næste kalder med
 samme fejl. To nye prøver i `auth.test.ts` dækker begge retninger.
 
+**Gennemført i kode (2026-08-19):** Kode: `auth/auth.ts` (`trim()` i `hashPassword`) · Kontrakt:
+`auth-gate-contract.md` §2.3 · Værn: 2 prøver i `auth.test.ts` (begge retninger).
+
 ### BB-056 – Kan ikke logge ind, når browseren ikke må gemme login-status – én besked for to årsager
 
 - **Type:** Edge case
@@ -468,6 +489,10 @@ Prøven i `LoginPage.test.tsx` er skruet sammen, så den kan SKELNE: den hævder
 vises, OG at den generiske tekst IKKE gør – og den generiske prøve ved siden af bruger en almindelig
 `Error` og kræver den generiske tekst. Uden begge halvdele ville en implementation, der altid viser den
 samme sætning, kunne bestå. Reglen er normativ i `auth-gate-contract.md` §2.7.
+
+**Gennemført i kode (2026-08-19):** Kode: `auth/auth.ts` (`AuthStorageUnavailableError`),
+`auth/LoginPage.tsx` (forgrening på typen) · Kontrakt: `auth-gate-contract.md` §2.7 · Værn: 2 prøver
+i `LoginPage.test.tsx` + 4 i `auth.test.ts`.
 
 ### BB-057 – 404-siden er en hvid blindgyde uden menu og uden vej tilbage
 
@@ -532,6 +557,10 @@ inde i shell-routen, at `AuthGate` ikke selv erklærer routes, og at device-gate
 - **Ingen ny route i kataloget.** 404 er bevidst IKKE tilføjet `ALL_APP_PAGE_ROUTES`: den er ikke en side
   i inventaret, men svaret på alt, inventaret ikke dækker. Rute-inventarets egen guard (som fejler ved
   import, hvis kataloget og `App.tsx` driver fra hinanden) er dermed uændret gyldig.
+
+**Gennemført i kode (2026-08-19):** Kode: `components/system/PageNotFound.tsx` (ny), `App.tsx`
+(catch-all inde i shell-routen) · Kontrakt: `app-shell-contract.md` §2.2 · Værn: 5 prøver i
+`PageNotFound.test.tsx`, heraf 3 strukturelle garantier.
 
 ### BB-058 – `Slet alt` advarer og kvitterer, også når der intet er at slette
 
@@ -739,7 +768,7 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
 
 ## Dækningshuller
 
-- **Selve skrivningen til disk kan ikke afprøves headless.** `showSaveFilePicker` og
+- **Selve skrivningen til disk kan ikke afprøves headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»].** `showSaveFilePicker` og
   `showOpenFilePicker` findes i den headless browser, men åbner ingen dialog, og kaldet falder
   tilbage som «brugeren annullerede». `Gem` til en fil, `Hent` fra en fil, overskrivnings- og
   preflight-dialogerne og filnavnsforslaget er derfor **ikke** set i drift. BB-049's mekanisme er
@@ -781,7 +810,7 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
   efter at have gemt, åbner næste `Gem` filvælgeren med et NYT filnavn, og han ender med to filer
   for samme sag uden at få det at vide. Skal programmet i stedet spørge «Skal sagen gemmes i den
   hidtidige fil eller i en ny?» – eller er to filer det rigtige udfald? (Forholdet er udledt af
-  koden; det kan ikke afprøves headless, jf. Dækningshuller.)
+  koden; det kan ikke afprøves headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»], jf. Dækningshuller.)
 
   **Uændret af BB-049's rettelse, men værd at kende sammenhængen:** de to forhold deler samme
   beslutningspunkt i `resolveSaveTarget`. BB-049 tilføjede en betingelse (håndtaget skal være fanens
@@ -800,14 +829,6 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
 
 ## Gennemført i kode (2026-08-19)
 
-| Fund | Kode | Kontrakt | Værn |
-|---|---|---|---|
-| BB-049 | `utils/fileSaveTarget.ts` (`doesHandleMatchTabFilename` + forklarende `fallbackWarning`) | `persistence-contract.md` §5 | 5 prøver i `fileSaveTarget.test.ts`, 4 mutationstestet + 1 modprøve |
-| BB-050 | `inputCore/react/useUndoRedoShortcuts.ts`, `components/layout/MainLayout.tsx` (`hasOpenOverlay()`, ingen `preventDefault()`) | `keyboard-navigation.md` §Overlay-adfærd | 2+2 prøver i `useUndoRedoShortcuts.test.tsx` og `MainLayout.shortcutsAndMessages.test.tsx`, alle mutationstestet, hver med modprøve |
-| BB-053 | `components/layout/MainLayout.tsx` (besked-identitet som React-`key`, `presentOverlay` som ene kilde, id-betinget `onClose`) | `keyboard-navigation.md` §Escape/beskeder | 2 prøver i `MainLayout.shortcutsAndMessages.test.tsx`, mutationstestet |
-| BB-054 (delvist) | `inputCore/react/useUndoRedoShortcuts.ts` (synkron `registry.getEditing()`, spærring fjernet) | samme som BB-050 | `MainLayout.undoRedoEditorGuard.test.tsx` (rettet påstand, begrundet) |
-| BB-055 | `auth/auth.ts` (`trim()` i `hashPassword`) | `auth-gate-contract.md` §2.3 | 2 prøver i `auth.test.ts` (begge retninger) |
-| BB-056 | `auth/auth.ts` (`AuthStorageUnavailableError`), `auth/LoginPage.tsx` (forgrening på typen) | `auth-gate-contract.md` §2.7 | 2 prøver i `LoginPage.test.tsx` + 4 i `auth.test.ts` |
-| BB-057 | `components/system/PageNotFound.tsx` (ny), `App.tsx` (catch-all inde i shell-routen) | `app-shell-contract.md` §2.2 | 5 prøver i `PageNotFound.test.tsx`, heraf 3 strukturelle garantier |
-
-Fuld vitest grøn efter rettelserne. `npm run lint` og `npm run check:types` grønne.
+Kode, kontrakt og værn for de gennemførte fund (BB-049, BB-050, BB-053, BB-054 delvist, BB-055,
+BB-056, BB-057) står under hvert fund. Fuld vitest grøn efter rettelserne. `npm run lint` og
+`npm run check:types` grønne.

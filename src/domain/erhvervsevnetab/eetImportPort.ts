@@ -15,7 +15,7 @@ import {
   stamdataSkadestypeField,
   stamdataSkadelidteFodselsdatoField,
 } from '../../inputCore/catalog/stamdataDescriptors';
-import { isoToDanish } from '../../types/branded';
+import { isISODateString, isoToDanish } from '../../types/branded';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
@@ -149,6 +149,26 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
     skadedato: skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined,
     ...(sourceIssues.length === 0 ? {} : { issues: Object.freeze(sourceIssues) }),
   });
+};
+
+/**
+ * Kapitaliseringsdatoerne for de delvist endelige afgørelser på Erhvervsevnetab-siden, sorteret og uden dubletter.
+ *
+ * Den ENESTE EO-læsning af EET-siden uden for midlertidigt EET-togglen (`domain-boundary-contract.md` §9 pkt. 11):
+ * EO bruger datoerne alene til en gul, ikke-blokerende advarsel, når TAF fortsætter forbi en kapitalisering
+ * (BB-187, udviklerafgørelse 2026-10-30). Ingen beregning på EO læser dem. Datoen læses af samme committed
+ * rækkeprojektion som importen, så en rød kapitaliseringsdato er tom her og meldes på Erhvervsevnetab-siden.
+ */
+export const resolveDelvistEndeligeKapitaliseringsdatoer = (
+  source: EetImportSource | null | undefined
+): readonly ISODateString[] => {
+  if (!source) return [];
+  const datoer = new Set<ISODateString>();
+  for (const row of source.eetValues.aslAfgoerelser) {
+    if (isAslAfgoerelseRowEmpty(row) || row.afgoerelseType !== 'Delvist endelig') continue;
+    if (isISODateString(row.kapDato)) datoer.add(row.kapDato);
+  }
+  return Object.freeze([...datoer].sort((left, right) => left.localeCompare(right)));
 };
 
 const failedContext = (

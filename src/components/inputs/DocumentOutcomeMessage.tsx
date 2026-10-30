@@ -31,7 +31,7 @@ const DocumentOutcomeMessage = React.memo(({ message }: DocumentOutcomeMessagePr
 
   return (
     <Box className="row--label-right-hover" data-testid="document-outcome-message">
-      <Typography className="row--text" sx={{ color: 'error.main' }}>
+      <Typography className="row--text row--text-error">
         {message}
       </Typography>
       <Box className="row--label-right-hover__content" />

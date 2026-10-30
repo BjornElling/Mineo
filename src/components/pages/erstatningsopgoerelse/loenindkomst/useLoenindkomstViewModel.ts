@@ -100,6 +100,15 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
         message: finding.message,
       })))
   ), [employments]);
+  /**
+   * Den påkrævede feriesats er tom (BB-274's `missing`) – samme vurdering som linjen i «Fejl og advarsler». Tabellens
+   * afledte kolonner viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
+   */
+  const feriePctManglerByAfId = React.useMemo<ReadonlySet<string>>(() => new Set(
+    employments
+      .filter((employment) => assessLoenindkomstSatser(employment).some((finding) => finding.kind === 'missing'))
+      .map((employment) => employment.id)
+  ), [employments]);
   /** Den gule, ikke-blokerende advarsel om en usædvanligt høj feriesats (BB-286), pr. ansættelsesforhold. */
   const feriePctAdvarselByAfId = React.useMemo<Readonly<Record<string, string>>>(() => Object.fromEntries(
     employments.flatMap((employment) => assessLoenindkomstSatser(employment)
@@ -193,6 +202,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     satsIssues,
     feriePctAdvarselByAfId,
     tableCellWarningsByAfId,
+    feriePctManglerByAfId,
     loenudviklingWarnings,
     loentrinFinder,
     deleteDialogOpen,

@@ -7,7 +7,7 @@ import {
   harValgtStoreBededagstillaeg,
   resolveStoreBededagstillaegPct,
 } from '../../../../loen/storeBededagstillaeg';
-import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../../../../standardLoen/loenoplysningerInput';
 import { computePackageValuePct, parsePercentInput, resolveFeriePctForFormula } from '../../reguleringFormulaUtils';
 import { findLatestByDateInSortedList } from '../../reguleringSeriesLookup';
 import { assertUniform, buildSegmentsFromStartDates } from '../reguleringFormPrimitives';

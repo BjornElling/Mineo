@@ -40,20 +40,20 @@ type LoentrinFinderSessionState = z.infer<typeof loentrinFinderSessionStateSchem
 
 /**
  * Det, brugeren åbner finderen FOR. Begge flader har præcis ét overenskomst-id og én
- * ansættelsestype som udgangspunkt; `sessionKey` er til stede, når fladen også skal huske
- * indtastningen på tværs af åbninger.
+ * ansættelsestype som udgangspunkt.
  */
 export type LoentrinFinderTarget = Readonly<{
   overenskomstId: string | undefined;
   offentligLoenType: OffentligLoenTypeLabel | undefined;
   /**
-   * Nøglen, indtastningen huskes under i sessionStorage. Udelades den, huskes intet.
+   * Den åbnende kontrols nøgle – den samme, knappen er registreret under (`registerTrigger`). Den bærer både
+   * fokus-restoren og den huskede indtastning, så en genåbning på samme nøgle starter dér, brugeren slap.
    *
-   * Lønindkomst husker per ansættelsesforhold (`af.id`), fordi samme side kan have flere kort med hver
-   * sin løn – dét gør genåbning til en reel bekvemmelighed. EO-oplysninger har kun ét sæt felter, og
-   * fladen huskede bevidst ikke; forskellen er UX, ikke teknik, og er derfor et argument, ikke to hooks.
+   * Påkrævet, så de to flader er opsat ens (BB-310, udviklerafgørelse 2026-10-30): Lønindkomst nøgler pr.
+   * ansættelsesforhold (`af.id`), EO oplysninger med sin ene nøgle (`EO_OPLYSNINGER_LOENTRIN_FINDER_KEY`). Før
+   * var nøglen valgfri, EO huskede intet, og EO's åbning brugte en anden nøgle end knappens registrering.
    */
-  sessionKey?: string;
+  key: string;
   /** Reguleringsdatoen – den dato, løntrinnet skal passe til. Datofeltet starter på den (BB-310). */
   reguleringsdato?: ISODateString;
   /**
@@ -116,8 +116,8 @@ export type UseLoentrinFinderResult = Readonly<{
 
 const DEFAULT_ANSAETTELSE: OffentligLoenTypeLabel = 'Månedsløn';
 
-/** Fladens identitet, når den kun har én åbnende kontrol og derfor ikke behøver en nøgle. */
-const SINGLE_TARGET_KEY = 'single';
+/** EO oplysningers ene åbnende kontrol («Indtægt før skadedatoen»). */
+export const EO_OPLYSNINGER_LOENTRIN_FINDER_KEY = 'eoAngivetLoen';
 
 /**
  * Løntrin-finder-overlayets state machine. ÉN hook for begge flader (Lønindkomst pr.
@@ -127,10 +127,10 @@ const SINGLE_TARGET_KEY = 'single';
  * sessionStorage-roundtrippet til forskel. Duplikeringen var reel: den samme keyboard-effekt og de
  * samme seks state-felter stod to steder og skulle rettes to steder – fx blev fokus-restoren
  * (§Popup-fokus-restore) tilføjet i begge, mens fejlen med den delte trigger-ref kun fandtes i den ene.
- * Forskellene er nu argumenter (`sessionKey`, åbne-nøgle), ikke kopier.
+ * Den eneste forskel er nu nøglen (`key`): ét kort pr. ansættelsesforhold mod EO oplysningers ene kontrol.
  *
  * Bevidst page-lokal og transient: overlayet skriver aldrig til persisteret sagsdata (jf.
- * `mineo-field-pattern` §3 «Transiente felter deltager ikke» i undo/redo). `sessionKey`-persistensen er
+ * `mineo-field-pattern` §3 «Transiente felter deltager ikke» i undo/redo). Nøgle-persistensen er
  * ren UX-bekvemmelighed og ligger under en `caseScoped` nøgle, så `Slet alt` rydder den.
  *
  * Al FOKUSADFÆRD ejes af `LoentrinFinderOverlay`: både tastaturnavigationen inde i popupen og
@@ -198,13 +198,11 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
 
   const openFinder = React.useCallback((nextTarget: LoentrinFinderTarget) => {
     resetTransientState();
-    const key = nextTarget.sessionKey ?? SINGLE_TARGET_KEY;
+    const { key } = nextTarget;
     // Peg restore-målet på den knap, der åbnede – FØR overlayet monterer og flytter fokus.
     activeTriggerRef.current = triggerRefs.current.get(key)?.current ?? null;
 
-    const persistedEntry = nextTarget.sessionKey === undefined
-      ? undefined
-      : readSessionState()[nextTarget.sessionKey];
+    const persistedEntry = readSessionState()[key];
 
     setTarget(nextTarget);
     setAnsaettelse(persistedEntry?.ansaettelse ?? nextTarget.offentligLoenType ?? DEFAULT_ANSAETTELSE);
@@ -280,17 +278,16 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     [target?.overenskomstId]
   );
 
-  // Husk indtastningen, så en genåbning på samme nøgle starter der, brugeren slap. Kun for flader der
-  // har bedt om det (`sessionKey`).
-  const sessionKey = target?.sessionKey;
+  // Husk indtastningen, så en genåbning på samme nøgle starter der, brugeren slap – ens på begge flader.
+  const targetKey = target?.key;
   React.useEffect(() => {
-    if (!open || sessionKey === undefined) return;
+    if (!open || targetKey === undefined) return;
 
     writeSessionState({
       ...readSessionState(),
-      [sessionKey]: { ansaettelse, beloeb, dato },
+      [targetKey]: { ansaettelse, beloeb, dato },
     });
-  }, [open, sessionKey, ansaettelse, beloeb, dato, readSessionState, writeSessionState]);
+  }, [open, targetKey, ansaettelse, beloeb, dato, readSessionState, writeSessionState]);
 
   return {
     open,

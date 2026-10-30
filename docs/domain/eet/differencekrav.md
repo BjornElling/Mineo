@@ -94,10 +94,10 @@ Konsekvenser:
 - **I Erstatningsopgørelsen:** importen af midlertidigt EET medtager både `Midlertidig` og
   `Delvist endelig` på fuldstændig lige fod (`eetImportPort.ts`), og fradraget i tabt
   arbejdsfortjeneste er dermed det samme for de to typer. Reglens anden halvdel – at
-  **kapitaliseringsdatoen bringer retten til tabt arbejdsfortjeneste til ophør** – er en
-  TAF-afgrænsning og ligger uden for EET-siden; den er ikke implementeret som en automatisk
-  afgrænsning, og TAF-perioden indtastes fortsat manuelt på Erstatningsopgørelsen. Se
-  «Åbne forhold» nederst.
+  **kapitaliseringsdatoen bringer retten til tabt arbejdsfortjeneste til ophør** – er
+  udgangspunktet, men ikke en automatisk afgrænsning: TAF-perioden indtastes fortsat manuelt, og
+  TAF efter kapitaliseringen giver en gul, ikke-blokerende advarsel (udviklerafgørelse 2026-10-30,
+  se «Åbne forhold» nederst).
 
 Forholdet er besværligt, og ved tvivlstilfælde skal udvikleren spørges.
 
@@ -272,17 +272,27 @@ Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse.
 
 ## Åbne forhold
 
-**Kapitaliseringsdatoen som TAF-afgrænsning (ikke implementeret).** Reglen ovenfor har en anden
-halvdel, der hører på Erstatningsopgørelsen: kapitaliseringsdatoen bringer retten til tabt
-arbejdsfortjeneste til ophør. Den findes i dag ikke i koden. TAF-periodens fejlgivende lofter kommer
-udelukkende fra manuelt indtastede EO-felter (`midlertidigtEETAfgorelse`, `endeligtEETAfgorelse` m.fl.
-i `tafPeriodConstraints.ts`), og ingen af dem læser EET's `kapDato`. En TAF-periode kan derfor
-uhindret fortsætte forbi en kapitalisering. Dertil kender EO kun kategorierne «midlertidig» og
-«endelig»: en delvist endelig afgørelse har intet eget felt, og ved skader før 16-06-2011 må brugeren
-registrere den som «midlertidig» for at afgrænse TAF. Endelig er fradraget for `midlertidigt_eet` i
-TAF ubetinget – uden 2011-grænse og uden afgørelsestype-afhængighed – hvilket er i orden efter reglen,
-men er udokumenteret uden for denne note. En eventuel ændring er beregningslogik på en anden flade og
-kræver sin egen specifikation fra udvikleren.
+**Kapitaliseringsdatoen og TAF – afgjort 2026-10-30 (BB-187), gul advarsel.** Udviklerens afgørelse:
+
+> Det forudsætningsvise udgangspunkt for delvist endelige afgørelser er, at de i forhold til TAF burde
+> behandles som endelige erhvervsevnetabsafgørelser, altså stoppe retten til TAF på
+> kapitaliseringstidspunktet. Men der vil hypotetisk set kunne opstå situationer, hvor TAF alligevel
+> fortsætter efter kapitalisering af en delvist endelig EET-afgørelse. Det er et alvorligt og absolut
+> krav, at der ved TAF efter kapitaliseringsdatoen for en delvist endelig EET-afgørelse gives meddelelse
+> til brugeren, men det skal kun være gule, ikke-blokerende advarsler.
+
+Gennemført: ligger en TAF-periode på Erstatningsopgørelsen (efter programmets øvrige grænser) på eller
+efter kapitaliseringsdatoen for en delvist endelig afgørelse på Erhvervsevnetab-siden, får rækkens
+datoer en gul ring, og «Fejl og advarsler» viser en linje med link. Beregningen er uændret, og
+advarslen gælder uanset togglen for midlertidigt EET og uanset en verserende klage. Normativt i
+`eo-snapshot-contract.md` §2.2a og `domain-boundary-contract.md` §9 pkt. 11; reglen er
+`resolveTafEfterKapitaliseringAdvarsler`.
+
+**Fortsat åbent:** EO kender kun kategorierne «midlertidig» og «endelig»; en delvist endelig afgørelse
+har intet eget felt på EO oplysninger, og ved skader før 16-06-2011 må brugeren registrere den som
+«midlertidig» for at afgrænse TAF. Fradraget for `midlertidigt_eet` i TAF er ubetinget – uden
+2011-grænse og uden afgørelsestype-afhængighed – hvilket er i orden efter reglen. En automatisk
+afskæring ved kapitaliseringen kræver en ny specifikation fra udvikleren.
 
 ---
 

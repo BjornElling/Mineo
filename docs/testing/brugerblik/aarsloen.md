@@ -58,10 +58,23 @@ handler om tabellen selv, hører sammen med flade 12.
   `datoSet`, altså en union) og i **Uge**-tilstand. Uverificerede kandidater: EO's lønindkomst-fane
   (samme tabelkomponent, egen aggregering), forsørgertabs og EET's periodetabeller.
 
+**Åbent spørgsmål (2026-08-25):** Skal to lønrækker med samme periode kunne stå? Der findes et lovligt
+tilfælde – to ansættelsesforhold i samme måned – hvor beløbene rigtigt lægges sammen. Men så er det
+*dagene*, der tælles forkert, ikke pengene: perioden bidrager kun én måneds arbejdsdage til nævneren.
+Skal overlappende perioder (a) blokere, (b) give en advarsel, eller (c) tælles med i nævneren én gang
+pr. række? Valget ændrer tal.
+
 **Tilbagemelding**
 Jeg afviser delvist dit fund. Ved årslønsberegning vil det ofte ske, at der er to lønbilag for samme periode, herunder fx ved løn fra to ansættelsesforhold. Behovet for at kunne lave en sådan beregning uden at få fejl, overstiger den potentielle risiko for, at der ved en fejl indtastes to lønbeløb for samme periode.
 
 jeg vil dog gerne have, at der generelt - det vil sige ikke kun her - laves en kontrol af indtastninger i tabeller, hvor hvis der indtastes to rækker med nøjagtig samme indhold, altså samme fra- og til-dato, og samme beregnede beløb (dvs. det beregnede slutresultat, ikke nødvendigvs det nøjagtig indtastning) i alle indtastnings-felterne i rækken, så skal det flages som en fejl. Umiddelbart kan jeg komme i tanke om årsløn-tabellen, lønindkomst-tabeller (her skal det vurderes inden for hvert individuelt ansættelsesforhold, ikke på tværs af ansættelsesforhold), og på fanen med offentlige ydelser.
+
+**Gennemført 2026-08-26** (commit `447905ca`): Fundet blev vendt om. Fundets krav – at to lønrækker med
+samme periode skal blokere – er afvist, fordi to lønbilag for samme måned er et lovligt og almindeligt
+tilfælde (to ansættelsesforhold). I stedet kom en GENEREL dublet-kontrol på rækker, der er identiske i
+alle indtastningsfelter, målt på det BEREGNEDE beløb, så `1000 + 1000` og `2000` tæller som samme række.
+Kontrollen deles af Årsløn, lønindkomst-tabellerne (pr. ansættelsesforhold, ikke på tværs) og
+offentlige ydelser.
 
 ### BB-097 – «Antal feriedage» kan overstige periodens egne hverdage: -76 arbejdsdage og en årsløn på 0,00 kr.
 
@@ -122,10 +135,18 @@ Jeg tænker, at det bliver uhensigtsmæssigt med en egentlig begrænsning i brug
   (`isStandardLoenTableCellEffectivelyEmpty` mod
   `isStandardLoenTableValueEffectivelyEmptyForValidation`). Uverificeret.
 
+**Åbent spørgsmål (2026-08-25):** Skal en lønrække med 0,00 kr. kunne indgå? Enten er 0 kr. en lovlig
+periode uden løn (dokumentet dannes), eller også er 0 kr. en fejl (rødt felt). I dag er den ingen af
+delene.
+
 **Tilbagemelding**
 For renteberegning skal 0 kr. være en forkert indtastning, der skal give fejlmeddelelse. Det giver ikke mening at beregne renter af 0 kr.
 
 Når det kommer til løn, årslønsberegning, offentlige ydelser med videre, vil det til gengæld være fuldt ud acceptabel adfærd, at der angives 0 kr. Brugeren kan fx have behov for at tydeliggøre, at der i en måned ikke har været nogen lønindkomst - så er det væsentlig mere tydeligt, hvis der er indtastet perioden og 0 kr., end hvis perioden blot manglede i oversigten og kunne se ud som om, den var glemt.
+
+**Gennemført 2026-08-26** (commit `447905ca`): `0 kr.` er en lovlig lønrække. Nullet er brugerens måde
+at vise, at en måned var uden indkomst, frem for at udelade perioden og lade den ligne en forglemmelse.
+Kun i renteberegningen er 0 kr. en fejl.
 
 ### BB-099 – Tabellens «Samlet løn» regner videre på en rød sats, som om den var tom
 
@@ -153,6 +174,21 @@ Når det kommer til løn, årslønsberegning, offentlige ydelser med videre, vil
 
 **Tilbagemelding**
 Jeg er enig. Overvej gerne om løsningen for visning er konsekvens med resten af programmets adfærd. Hvis ikke, så overvej gerne, om der bør være én eller flere standardiserede måder at vise dette.
+
+**Gennemført 2026-10-30** (fundet var registreret som gennemført, men var det ikke – opdaget ved gennemgangen af
+åbne punkter 2026-10-30): de tre afledte kolonner viser `—` – samme pladsholder som sammentællingen, altså
+programmets ene visning af «kan ikke beregnes» – når en af tabellens satser er rød. Betingelsen er Årslønnens egen
+beregningsgate: gaten og tabellen læser samme satsfelter fra samme liste (`satsRefs`). På EO ser hvert
+ansættelsesforhold kun sine egne satser. I Beløb-tilstand vises brugerens egne beløb uændret.
+
+**Udvidet 2026-10-30** (samme betingelse som sammentællingen i to tilfælde mere):
+- en **tom, påkrævet feriesats** efter den fælles feriesatsregel (M-37, se «Efterreview 2026-10-30 – tom
+  feriesats»): rækkerne var regnet med satsen som 0 %, mens gaten sagde, at feltet manglede. Tabellen får svaret
+  fra fladens egen kravregel – på Årsløn projektionens `feriePctMangler`, på EO satsvurderingens `missing` – så den
+  ikke kan blive uenig med linjen i «Fejl og advarsler»;
+- en **rød beløbscelle i selve rækken**: readeren læste cellen som tom, så rækkens «Samlet løn» blev regnet uden den.
+  Nu viser netop den række `—`; naborækkerne regnes uændret. En rød periodecelle ændrer ikke rækkens beløb og tæller
+  ikke.
 
 ### BB-100 – Tillæggenes beregningsgrundlag er usynligt, og de to kolonner følger modsatte regler
 
@@ -372,6 +408,10 @@ Dette er ikke en fejl og jeg afviser dit fund. Brugeren vil vide og forvente, at
 - **Andre steder det kan gælde:** Enhver indstilling under «Standardværdier», hvis label går igen på
   en flade, den ikke virker på.
 
+**Åbent spørgsmål (2026-08-25):** Skal «Fuld løn under ferie» og «Løn på helligdage» fra Indstillinger
+gælde Årsløn? I dag gør kun «Løn indtastes som» det, selv om alle tre felter hedder det samme begge
+steder.
+
 **Tilbagemelding**
 Dette er en utilsigtet fejl. Når brugeren har sat standardværdier i indstillinger, skal de slå igennem på nye sager og ved Slet alt alle steder i programmet, hvor de pågældende felter anvendes. Jeg tror kun, at det er i erstatningsopgørelse og årsløn, og det skal rettes, hvis det ikke gælder fuldt ud i årsløn.
 
@@ -575,6 +615,11 @@ Jeg vil gerne have en ensartet sprogbrug. Den skal dog være baseret på følgen
 
 - Begrebet 'feriepenge' er en sproglig fællesnævner, der sprogligt anvendes, når der er tale om selve den formelle ret til de to ydelser. Når der er tale om selve procentsatsen for en ydelse, anvendes det korrekte navn for den specifikke ydelse, men når lønmodtagerens generelle ret til ferieydelse omtales, og det potentielt kan være enten den ene eller anden, anvendes 'feriepenge' ofte som en sikker fællesbetegnelse.
 
+**Gennemført 2026-08-26** (commit `447905ca`): Fundet blev til en tværgående kontrakt om
+feriepenge-begreberne, ikke en tekstrettelse: en løn tillægges enten feriegodtgørelse eller
+ferietillæg, aldrig begge, og «feriepenge» er alene den sproglige fællesnævner for retten til en af de
+to – ikke navnet på en procentsats.
+
 ### BB-114 – Et ugenummer, der ikke findes i det valgte år, får den generiske «ugyldig værdi»-tekst
 
 - **Type:** Fornuft
@@ -620,6 +665,9 @@ Jeg er enig.
   kan være relevant – bør en fremtidig periode i det mindste give en ikke-blokerende gul advarsel.
 - **Andre steder det kan gælde:** `dateRanges_aarsloen` bruges kun her, men `dateCurrentYearEnd()`
   bruges bredere. Uverificeret.
+
+**Åbent spørgsmål (2026-08-25):** Skal en lønperiode kunne ligge i fremtiden? Grænsen er i dag 31.
+december i indeværende år i alle tre tilstande.
 
 **Tilbagemelding**
 Jeg afviser delvist fundet. Det er ikke en egentlig fejl. Lønsedler udstedes ofte månedsvist forud, og i visse særlige tilfælde kan det være relevant at angive et lønbeløb som udtryk for den samlede løn i året, fx. for pædagogisk at vise, at der er tale om den samlede lønydelse i et år, selvom året ikke er udløbet, for derved at tydeliggøre, at der ikke kommer flere ydelser i året.
@@ -667,19 +715,7 @@ hvert fund. Til forskel fra de øvrige fladerapporter har denne aldrig haft et *
 fund, så den enkelte linje er en sammenfatning af tilbagemeldingen – ikke en selvstændig afgørelse.
 Er en sammenfatning for skarp eller for blød, er tilbagemeldingen under fundet den gældende kilde.
 
-De tre tungeste udfald er værd at kende, fordi de ændrede fundets præmis:
-
-- **BB-096** blev vendt om. Fundets krav – at to lønrækker med samme periode skal blokere – er afvist,
-  fordi to lønbilag for samme måned er et lovligt og almindeligt tilfælde (to ansættelsesforhold). I
-  stedet kom en GENEREL dublet-kontrol på rækker, der er identiske i alle indtastningsfelter, målt på
-  det BEREGNEDE beløb, så `1000 + 1000` og `2000` tæller som samme række. Kontrollen deles af Årsløn,
-  lønindkomst-tabellerne (pr. ansættelsesforhold, ikke på tværs) og offentlige ydelser.
-- **BB-098** afgjorde, at `0 kr.` er en lovlig lønrække. Nullet er brugerens måde at vise, at en måned
-  var uden indkomst, frem for at udelade perioden og lade den ligne en forglemmelse. Kun i
-  renteberegningen er 0 kr. en fejl.
-- **BB-113** blev til en tværgående kontrakt om feriepenge-begreberne, ikke en tekstrettelse: en løn
-  tillægges enten feriegodtgørelse eller ferietillæg, aldrig begge, og «feriepenge» er alene den
-  sproglige fællesnævner for retten til en af de to – ikke navnet på en procentsats.
+De tre tungeste udfald ændrede fundets præmis og står nu under hvert sit fund: BB-096, BB-098 og BB-113.
 
 ## Overvejet uden fund
 
@@ -735,7 +771,7 @@ Ingen af de 21 fund handler om et forkert regnestykke; BB-096 og BB-097 handler 
 - **PDF-kanalen er ikke læst.** Begge dokumenter er hentet som `.docx` (formatet skiftet i
   Indstillinger) og læst linje for linje. De to kanaler deler generator, men PDF'ens tabellayout og
   linjeskift i overskrifterne er ikke set.
-- **`Gem`/`Hent` af sagen er ikke afprøvet** – filvælgeren kan ikke betjenes headless (samme hul som
+- **`Gem`/`Hent` af sagen er ikke afprøvet** – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som
   BB-049). Rejected råtekst i en lønrække er derfor ikke ført gennem et gem.
 - **Undo/redo er ikke afprøvet på fladen.** Særligt interessant ville være Ctrl+Z efter et
   lønperiodeskift (BB-105) og efter en afvist omregnings-aktivering (BB-102).
@@ -750,17 +786,8 @@ Ingen af de 21 fund handler om et forkert regnestykke; BB-096 og BB-097 handler 
 
 ## Åbne spørgsmål
 
-1. **Skal to lønrækker med samme periode kunne stå?** (BB-096) Der findes et lovligt tilfælde – to
-   ansættelsesforhold i samme måned – hvor beløbene rigtigt lægges sammen. Men så er det *dagene*, der
-   tælles forkert, ikke pengene: perioden bidrager kun én måneds arbejdsdage til nævneren. Skal
-   overlappende perioder (a) blokere, (b) give en advarsel, eller (c) tælles med i nævneren én gang pr.
-   række? Valget ændrer tal.
-2. **Skal en lønrække med 0,00 kr. kunne indgå?** (BB-098) Enten er 0 kr. en lovlig periode uden løn
-   (dokumentet dannes), eller også er 0 kr. en fejl (rødt felt). I dag er den ingen af delene.
-3. **Skal en lønperiode kunne ligge i fremtiden?** (BB-115) Grænsen er i dag 31. december i
-   indeværende år i alle tre tilstande.
-4. **Skal «Fuld løn under ferie» og «Løn på helligdage» fra Indstillinger gælde Årsløn?** (BB-106)
-   I dag gør kun «Løn indtastes som» det, selv om alle tre felter hedder det samme begge steder.
+Ingen – de fire oprindelige spørgsmål står nu under BB-096, BB-098, BB-106 og BB-115, hvor udviklerens
+tilbagemelding besvarer dem.
 
 ---
 
@@ -954,3 +981,49 @@ angives som → satsoverskrift → «Indtægtsoplysninger» → tabel.
 ## Åbne spørgsmål
 
 Ingen – begge spørgsmål er besvaret 2026-10-27 (se BB-347/BB-348 og BB-352).
+
+# Efterreview 2026-10-30 – tom feriesats (M-37)
+
+Fundet kom ikke af en ny gennemgang af fladen. Det er en kandidat fra `TVAERGAAENDE.md` M-37 («en manglende sats regnes
+som 0 % uden et ord»), som blev efterprøvet i kildekoden ved gennemgangen af åbne punkter 2026-10-30 og forelagt udvikleren.
+Det har intet eget BB-nummer, fordi det er BB-274's (12g) «Andre steder»-kandidat.
+
+- **Type:** Edge case · **Rækkevidde:** Mønster (M-37) · **Prioritet:** Mellem · **Beslutning:** Afgjort og gennemført
+  2026-10-30
+- **Sådan fremprovokeres det:** Procent-tilstand, «Omregning til fuldt år» slået til, «Fuld løn under ferie» fra, én
+  lønrække på 30.000 kr. «Feriegodtgørelse/-tillæg» står tomt.
+- **Det sker:** Årslønnen regnes uden feriegodtgørelse – ingen ring, ingen linje, dokumentet kan hentes, og dokumentet
+  springer satslinjen over. Skriver brugeren `1`, kommer derimod den gule advarsel «En sats for Feriegodtgørelse/-tillæg
+  på 1,00 % gør det usandsynligt, at der ikke er ret til fuld løn under ferie». `parsePct` gør tomt til 0, og advarslen
+  kræver en sats over 0 (`aarsloenValidationPolicies.ts`).
+- **Det er uhensigtsmæssigt fordi:** Det glemte felt – det hyppigste – behandles mildere end en forkert værdi, og på
+  Erstatningsopgørelsen blokerer præcis samme mangel (BB-274).
+- **Forelagt:** A) som på EO: ingen rød ring på et urørt felt, men en blokerende linje «Feriegodtgørelse/-tillæg er ikke
+  udfyldt», når satserne er i brug og «Fuld løn under ferie» er fra – med fuld løn under ferie må feltet stå tomt eller være
+  0; B) samme betingelse, men gul; C) uændret.
+
+**Tilbagemelding 2026-10-30**
+Vi går med A. Sørg for at sikre, at de to generelt følges ad, så hvis vi senere ændre forudsætningen, ændres den begge steder.
+
+**Gennemført 2026-10-30:**
+
+- **Én fælles regel.** `domain/loen/feriePctKrav.ts` er det eneste sted, hvor kravet står: satsen er påkrævet, når
+  satserne er i brug (ikke Beløb), løntabellen har indtastede beløb, og satsen opgøres som feriegodtgørelse. EO's
+  `isFeriePctPaakraevet` og Årsløns feltgate kalder begge den, og linjen «Feriegodtgørelse/-tillæg er ikke udfyldt» er én
+  konstant. Også «har løntabellen beløb?» er flyttet til ét fælles sted (`domain/standardLoen/loenoplysningerInput.ts`). En
+  test låser, at de to flader giver samme svar og samme tekst.
+- **Den ene bevidste forskel** er det tredje led og er et argument, ikke en kopi. EO opgør altid satsen beregningsteknisk
+  som feriegodtgørelse, også ved løn under ferie (`feriepenge-begreber-contract.md` regel 3), så dér er kravet ubetinget.
+  Årsløn regner med den faktiske ydelse: ved fuld løn under ferie er satsen ferietillægget, så feltet må stå tomt dér. Også
+  0 behandles forskelligt, uændret: på EO er en indtastet sats under 12 % rød; på Årsløn er `0` en lovlig, udfyldt værdi.
+- **Årsløn nu:** tom sats uden fuld løn under ferie giver ingen rød ring, men linjen «Feriegodtgørelse/-tillæg er ikke
+  udfyldt» i «Fejl og advarsler» med link til feltet. Beregningen vises ikke, som ved en manglende overenskomst («Tomt
+  opslag må aldrig ligne kendte satser på 0 %»), og begge dokumenter er spærret med «Indtastning mangler».
+- **«Fuld løn under ferie» læses kun, når valget vises** (BB-353). I Procent uden omregning er valget skjult og tæller som
+  sin standardværdi (fuld løn) efter M-32, så et usynligt valg aldrig kræver feltet – heller ikke hvis det er gemt som
+  «fra».
+- **Tidligere gemte sager:** en gemt Årsløn med de tre forudsætninger og tom sats indlæses uændret, men har nu den
+  blokerende linje, og beregningen vises ikke, før satsen er udfyldt. Det følger udviklerens generelle afgørelse om, at
+  ændringer gælder tidligere gemte `.eo`-filer (STATUS.md, kritisk efterreview).
+- Tests: `feriePctKrav.test.ts` (den fælles regel og EO's kald af den), `aarsloenProjection.test.ts` (syv tilstande) og
+  `aarsloenDownloadGate.test.ts` (spærret som mangel).

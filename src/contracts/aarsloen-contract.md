@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-10-27
+**Senest verificeret mod kode:** 2026-10-30
 
 ---
 
@@ -35,7 +35,7 @@
 `aarsloenSchema` (`src/schemas/formSchemas/sections/aarsloenSchemas.ts`) er eneste sandhedskilde for sektionens persisterede form. For at en ældre `.eo` uden et felt ikke fejler hele sektionen (jf. `persistence-contract.md` forward/backward-tolerant load), bærer de påkrævede felter faste schema-defaults, der matcher det en ny, tom sag starter med:
 
 - `loenperiode` → `'maaned'`, `tillaegAngivesSom` → `'procent'`, `tableData` → `[]`, `omregningTilFuldtAar` → `false`, `fuldLoenUnderFerie` → `true`, `retTilSjetteFerieuge` → `true`, `loenPaaHelligdage` → `'Almindelig løn'`.
-- Procentfelterne (`feriePct`, `fritvalgPct`, `shSoPct`, `storeBededagPct`, `pensionPct`) og `antalFeriedage` er optional; manglende værdi forbliver `undefined`.
+- Procentfelterne (`feriePct`, `fritvalgPct`, `shSoPct`, `storeBededagPct`, `pensionPct`) og `antalFeriedage` er optional; manglende værdi forbliver `undefined`. `feriePct` er dog påkrævet efter den fælles regel med erstatningsopgørelsen (`feriepenge-begreber-contract.md` §2c): uden fuld løn under ferie er et tomt felt en blokerende mangel uden rød ring, og beregningen vises ikke.
 - `tillaegAngivesSom` bestemmer, hvordan lønindkomst-tillæg angives: `'procent'` lader programmet beregne FP/FV/SH/SO- og Arb.g. Pension-beløbene ud fra satserne, mens `'beloeb'` lader brugeren angive beløbene direkte i tabelrækkernes `fpFvShSoBeloeb`/`pensionBeloeb`-felter. De to tilstande er ligestillede; kun den aktive tilstands input fodrer beregning og dokumenter – den fravalgte tilstands persisterede input bevares, men ignoreres (samme relevans-princip som §2-regel 5). At gøre `tillaegAngivesSom` default-bærende og tilføje de to nye række-felter blev bogført som et `PERSISTED_DATA_VERSION`-bump; den aktuelle version står i `src/config/persistenceVersion.ts`.
 
 `loenperiode`-defaulten er **bevidst statisk** og ikke settings-styret: en ny sag sætter feltet fra `defaultLoenIndtastesSom` via `createAarsloenInitialValues`, men schema-defaulten rammer kun load af en fil hvor feltet helt mangler – og `persistence-contract.md` forbyder at injicere device-lokale app-settings under load. At gøre felterne default-bærende ændrer schema-fingerprintet (input-optional) og er bogført som `PERSISTED_DATA_VERSION`-bump.

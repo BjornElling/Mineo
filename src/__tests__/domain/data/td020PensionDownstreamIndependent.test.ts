@@ -47,6 +47,5 @@ describe('DATA-001/CALC-006/TD-020 – pension som EO-downstream-consumer', () =
       false,
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

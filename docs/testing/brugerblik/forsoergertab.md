@@ -30,7 +30,7 @@ beregninger** – og det er den forskel, de tungeste fund bor i.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på` og
   `TVAERGAAENDE.md#m-25--gaten-spørger-findes-der-noget-ikke-findes-det-brugeren-bad-om`
 - **Prioritet:** **Høj**
-- **Beslutning:** Godkendt 2026-08-28
+- **Beslutning:** Godkendt og implementeret 2026-08-28 – se **Udfald** nedenfor.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `15-03-1975`, Skadedato `10-06-2020`.
   2. Forsørgertab: Beregningsdato `01-07-2025`, Skadelidtes årsløn (efter ASL) `400.000`,
@@ -677,10 +677,10 @@ bevidst urørt – fundet handlede om gangetegnet.
 - **Rækkevidde:** Lokal (samme mellemregning bruges af Erhvervsevnetab efter EAL)
 - **Prioritet:** Mellem
 - **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
-- **Baggrund:** Fundet er en direkte følge af udviklerens svar på åbent spørgsmål 2 (2026-08-27):
-  årslønnen har intet loft, men det **beregnede beløb** har – erstatningsansvarslovens loft for 30 %
-  erhvervsevnetabserstatning, som programmet allerede indregner. Loftet er efterprøvet, det virker – og
-  det er usynligt.
+- **Baggrund:** Fundet er en direkte følge af udviklerens svar på åbent spørgsmål 2 (2026-08-27, gengivet
+  nedenfor under fundet): årslønnen har intet loft, men det **beregnede beløb** har – erstatningsansvarslovens
+  loft for 30 % erhvervsevnetabserstatning, som programmet allerede indregner. Loftet er efterprøvet, det
+  virker – og det er usynligt.
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `15-03-1975`, Skadedato `10-06-2020`.
   2. Forsørgertab: Beregningsdato `01-07-2025`, årsløn efter ASL `400.000`, Startdato for ASL-ydelse
@@ -711,6 +711,24 @@ bevidst urørt – fundet handlede om gangetegnet.
   **Erhvervsevnetab efter EAL** (flade 11) bruger. Efterprøv, om EET viser reduktionen til maksimum, og
   om andre steder har en synlig min-grænse og en usynlig maks-grænse for samme tal.
 
+**Forudgående åbent spørgsmål 2 – Skal EAL-årslønnen have et loft eller et rimelighedssignal? · AFGJORT
+2026-08-27 – NEJ**
+
+**Udviklerens svar:** skadelidtes årsløn har ikke et loft. Der er derimod et loft på, hvad både det
+maksimale og det minimale **beregnede beløb** kan udgøre. Loftet svarer til loftet for 30 %
+erhvervsevnetabserstatning efter EAL, som programmet allerede indregner, og mindstebeløbet for
+forsørgertab beregnes automatisk efter de årlige takster.
+
+**Efterprøvet, og præmissen holder.** `erhvervsevnetabEalMax[2025] = 11.052.000 kr.` anvendes i
+`eetEalCalculation.ts` (`eetReduceretTilMaks` / `eetAnvendtOre`), og `foersoergertabEalMin[2025] =
+1.182.500 kr.` som minimum. Målt i drift: en EAL-årsløn på `4.000.000 kr.` giver et beregnet beløb på
+`13.761.000 kr.`, som sættes ned til `11.052.000 kr.` **Feltet skal derfor ikke have et loft eller en
+advarsel, og M-05's spor er lukket for dette felt.**
+
+**Men efterprøvningen afdækkede et nyt fund, som svaret gør synligt: BB-133.** Loftet virker – og det er
+usynligt. Sætningen over det reducerede beløb siger «Det beregnede forsørgertab skal **ikke forhøjes**,
+dvs. udgør», mens minimum har sin egen navngivne linje. Se fundet ovenfor.
+
 **Tilbagemelding (indhentet 2026-08-28)**
 Symmetri med minimum: loftet får sin egen linje, når det er relevant, og slutsætningen bliver tredelt.
 
@@ -729,7 +747,7 @@ nøjagtig det samme; de stod før som hver sin inline ternary.
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
 - **Beslutning:** Implementeret 2026-08-28 – se **Udfald** nedenfor.
-- **Baggrund:** Fundet er, hvad der står tilbage af åbent spørgsmål 3, efter at udvikleren har afgjort
+- **Baggrund:** Fundet er, hvad der står tilbage af åbent spørgsmål 3 (gengivet nedenfor under fundet), efter at udvikleren har afgjort
   (2026-08-27), at det er **skadelidtes** køn. **Min oprindelige antagelse om, at det var efterladtes,
   var forkert** – rækkens placering blandt skadelidtes oplysninger er altså korrekt, og det er kun
   navnet, der mangler.
@@ -749,6 +767,22 @@ nøjagtig det samme; de stod før som hver sin inline ternary.
   («Skadelidtes fødselsdato», «Efterladtes alder på beregningsdatoen»). Dokumentets linje «Køn» følger med.
 - **Andre steder det kan gælde:** Erhvervsevnetab har sit eget `koen`-felt
   (`erhvervsevnetabDescriptors.ts`); efterprøv, om det er navngivet entydigt dér.
+
+**Forudgående åbent spørgsmål 3 – Hvis køn spørger rækken «Køn» om? · AFGJORT 2026-08-27 – SKADELIDTES**
+
+**Udviklerens svar:** det er skadelidtes køn, ikke den efterladtes.
+
+**Min antagelse var forkert, og det er værd at skrive ned hvorfor.** Jeg sluttede «efterladtes» af
+mekanikken: tabelrækkerne slås op på **efterladtes** alder (`calculateAgeYearsMonths(efterladteFodselsdato,
+beregningsdato)`), og den kønsopdelte variant vælges i samme opslag – så jeg læste kønnet som hørende til
+samme person som alderen. **Læren er generel og hører til M-11's familie: en parameters ejer kan ikke
+udledes af, hvilket opslag den indgår i.** Et opslag kan blande to personers oplysninger, og hvem en
+værdi tilhører, er en domæneoplysning, ikke en kodeoplysning – den skal spørges om, ikke gættes.
+
+**Konsekvensen for fladen:** rækkens **placering** blandt skadelidtes oplysninger er dermed korrekt og
+skal ikke flyttes. Tilbage står, at rækken ikke siger, hvis køn den spørger om, og at ASL-panelets
+gengivelse står under «Kapitaliseringsbekendtgørelse», hvor den læses som efterladtes. Det er skrevet
+op som **BB-134** (Lav) ovenfor.
 
 **Tilbagemelding (indhentet 2026-08-28)**
 «Skadelidtes køn» begge steder – i indtastningen og i dokumentet.
@@ -814,7 +848,7 @@ som fladens øvrige rækker, der navngiver deres person.
 - Kun Chrome, lyst tema, 1536×864. Ingen måling ved 1244×620 eller i de tre øvrige motorer.
 - **PDF-kanalen er læst 2026-08-27** (BB-133's kørsel) og er **ordret identisk med skærmen og med
   `.docx`** for hele dokumentet. Sidebrud og tabelbredder er stadig ikke bedømt visuelt.
-- **`Gem`/`Hent` er ikke afprøvet** – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- **`Gem`/`Hent` er ikke afprøvet** – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049).
 - **Brevhovedet er ikke slået til** i nogen af kørslerne; dokumenternes brevhoved-linjer er derfor ikke set.
 - BB-118's paste er sendt som en syntetisk `ClipboardEvent` med `DataTransfer`, ikke gennem systemets
   udklipsholder. Tastet input gav samme resultat (`400000,50` → `4.000.005`), så mekanismen er dobbelt målt.
@@ -823,6 +857,9 @@ som fladens øvrige rækker, der navngiver deres person.
   kodeverificeret.
 
 ## Åbne spørgsmål
+
+Ingen. Spørgsmål 2 og 3 (afgjort 2026-08-27) står under de fund, de førte til: BB-133 og BB-134. Spørgsmål 1
+førte ikke til et selvstændigt fund og står derfor her.
 
 ### 1. Hvor mange måneder er allerede udbetalt? · AFGJORT 2026-09-04 – DAGBASERET OPTJENINGSTÆLLING
 
@@ -933,36 +970,3 @@ begreb, og begge formler var interne konsistente – derfor fangede ingen test d
 i at vælge den rigtige formel, men i at fjerne den ene**, så der kun er én kilde. Prøven for de
 resterende flader: når to steder i samme opgørelse regner det samme tal, spørg om det ene kan **afledes**
 af det andet frem for at blive genberegnet.
-
-### 2. Skal EAL-årslønnen have et loft eller et rimelighedssignal? · AFGJORT 2026-08-27 – NEJ
-
-**Udviklerens svar:** skadelidtes årsløn har ikke et loft. Der er derimod et loft på, hvad både det
-maksimale og det minimale **beregnede beløb** kan udgøre. Loftet svarer til loftet for 30 %
-erhvervsevnetabserstatning efter EAL, som programmet allerede indregner, og mindstebeløbet for
-forsørgertab beregnes automatisk efter de årlige takster.
-
-**Efterprøvet, og præmissen holder.** `erhvervsevnetabEalMax[2025] = 11.052.000 kr.` anvendes i
-`eetEalCalculation.ts` (`eetReduceretTilMaks` / `eetAnvendtOre`), og `foersoergertabEalMin[2025] =
-1.182.500 kr.` som minimum. Målt i drift: en EAL-årsløn på `4.000.000 kr.` giver et beregnet beløb på
-`13.761.000 kr.`, som sættes ned til `11.052.000 kr.` **Feltet skal derfor ikke have et loft eller en
-advarsel, og M-05's spor er lukket for dette felt.**
-
-**Men efterprøvningen afdækkede et nyt fund, som svaret gør synligt: BB-133.** Loftet virker – og det er
-usynligt. Sætningen over det reducerede beløb siger «Det beregnede forsørgertab skal **ikke forhøjes**,
-dvs. udgør», mens minimum har sin egen navngivne linje. Se fundet ovenfor.
-
-### 3. Hvis køn spørger rækken «Køn» om? · AFGJORT 2026-08-27 – SKADELIDTES
-
-**Udviklerens svar:** det er skadelidtes køn, ikke den efterladtes.
-
-**Min antagelse var forkert, og det er værd at skrive ned hvorfor.** Jeg sluttede «efterladtes» af
-mekanikken: tabelrækkerne slås op på **efterladtes** alder (`calculateAgeYearsMonths(efterladteFodselsdato,
-beregningsdato)`), og den kønsopdelte variant vælges i samme opslag – så jeg læste kønnet som hørende til
-samme person som alderen. **Læren er generel og hører til M-11's familie: en parameters ejer kan ikke
-udledes af, hvilket opslag den indgår i.** Et opslag kan blande to personers oplysninger, og hvem en
-værdi tilhører, er en domæneoplysning, ikke en kodeoplysning – den skal spørges om, ikke gættes.
-
-**Konsekvensen for fladen:** rækkens **placering** blandt skadelidtes oplysninger er dermed korrekt og
-skal ikke flyttes. Tilbage står, at rækken ikke siger, hvis køn den spørger om, og at ASL-panelets
-gengivelse står under «Kapitaliseringsbekendtgørelse», hvor den læses som efterladtes. Det er skrevet
-op som **BB-134** (Lav) ovenfor.

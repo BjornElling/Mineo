@@ -23,7 +23,7 @@ import { AarsloenFuldLoenUnderFerieRow, AarsloenLoenPaaHelligdageRow } from './A
  */
 const AarsloenBeregningsprincipperSection = React.memo(() => {
   const vm = useAarsloenVm();
-  const { fields, locations, canShowOmregning } = vm;
+  const { fields, locations, canShowOmregning, omregningAktiveret } = vm;
 
   return (
     <ContentBox className="content-box">
@@ -44,8 +44,11 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
         )}
       </LabeledControlRow>
 
-      <Box sx={{ display: canShowOmregning ? 'block' : 'none' }}>
-        <Box className="row--label-right-hover">
+      {/* Omregningens INDTASTNINGER følger den effektive omregning, ikke om der findes et resultat: en blokerende fejl i
+          netop disse felter (fx en tom feriesats ved «Fuld løn under ferie» fra eller et rødt antal feriedage) må aldrig
+          skjule de felter, der retter den. Kun resultatlinjen kræver et resultat. */}
+      <Box sx={{ display: omregningAktiveret ? 'block' : 'none' }}>
+        <Box className="row--label-right-hover" sx={{ display: canShowOmregning ? 'flex' : 'none' }}>
           <Typography className="row--text">{`${vm.indtastetEnhedSummary.label}:`}</Typography>
           <Typography className="row--text">{vm.indtastetEnhedSummary.value}</Typography>
         </Box>
@@ -64,7 +67,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 location={locations.retTilSjetteFerieuge}
                 id={controlId}
                 labelledBy={labelledBy}
-                disabled={!canShowOmregning}
+                disabled={!omregningAktiveret}
               />
             )}
           </LabeledControlRow>
@@ -81,7 +84,7 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 location={locations.antalFeriedage}
                 placeholder="0"
                 width={50}
-                disabled={!canShowOmregning}
+                disabled={!omregningAktiveret}
                 {...(vm.feriedageIssue === undefined ? {} : { crossFieldIssue: vm.feriedageIssue })}
               />
             </Box>
@@ -96,7 +99,8 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
             <Typography className="row--text">Antal SH-dage i de indtastede perioder:</Typography>
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography className="row--text">{vm.shDageAntal ?? 0}</Typography>
+                {/* Uden resultat er antallet ukendt – «—» som sammentællingen, ikke et opdigtet 0 (BB-099). */}
+                <Typography className="row--text">{vm.shDageAntal ?? '—'}</Typography>
                 <DocumentDownloadButton
                   onClick={() => void vm.runShDageDownload()}
                   disabled={!vm.shDageDownload.canDownload}

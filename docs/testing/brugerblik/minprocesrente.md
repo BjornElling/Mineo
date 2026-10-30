@@ -431,9 +431,21 @@ fortsat blev regnet med det. Den overgang findes ikke længere: en desktop blive
 telefon har aldrig kunnet vise kolonnerne. Målt i browseren – også ved rotation, hvor skiftet før var
 muligt.
 
-Bemærk, at det åbne spørgsmål 2 nedenfor dermed står uafklaret som et selvstændigt spørgsmål: skal
+Bemærk, at det åbne spørgsmål nedenfor dermed står uafklaret som et selvstændigt spørgsmål: skal
 telefonen kunne bruge tillægstid overhovedet? Det er ikke længere et fund, men et valg om
 telefonudgavens omfang.
+
+**Åbent spørgsmål – skal tillægstid kunne bruges på telefon?** I dag findes kolonnerne «Evt.
+tillægstid», «Enhed» og «Rentedato» kun på den store skærm. Er det en bevidst forenkling af
+telefonudgaven – eller skal telefonen kunne det samme, blot i en anden opstilling? Svaret afgør, om
+BB-046 skal løses ved at *vise* rentedatoen eller ved at *give adgang til* tillægstiden.
+
+**BESVARET OG LUKKET 2026-08-25: nej – forenklingen er bevidst.** Udviklerens svar: der er ikke
+plads til alle felterne i telefonvisningen, heller ikke vandret, så telefonen har med vilje kun ét
+datofelt, og **forfaldsdatoen lægges direkte til grund for renteberegningen** (rentedato =
+forfaldsdato). BB-046 kræver derfor ingen af de to udfald: der er ingen skjult tillægstid at vise
+rentedatoen for, fordi BB-045's enhedslås gør, at en telefon aldrig ser desktopopstillingen.
+Afgrænsningen er normativ i `renteberegning-contract.md` §2.12.
 
 ### BB-047 – «Slet alle indtastninger» kan ikke nås med tastaturet
 
@@ -566,13 +578,5 @@ rydde rækkespecifikationens baseline, og fanen ville advare om arbejde, brugere
    alle tre flader med samme felt (denne side, Mineos Renteberegning og Varige mén) – altså også dér,
    hvor argumentet for forudfyldning var stærkest. Ingen kodeændring; feltet er tomt i forvejen.
    Afgørelsen er normativ i `renteberegning-contract.md` §2.12 og `varigemen-contract.md` §2.10.
-2. **Skal tillægstid kunne bruges på telefon?** I dag findes kolonnerne «Evt. tillægstid», «Enhed»
-   og «Rentedato» kun på den store skærm. Er det en bevidst forenkling af telefonudgaven – eller
-   skal telefonen kunne det samme, blot i en anden opstilling? Svaret afgør, om BB-046 skal løses
-   ved at *vise* rentedatoen eller ved at *give adgang til* tillægstiden.
-   **BESVARET OG LUKKET 2026-08-25: nej – forenklingen er bevidst.** Udviklerens svar: der er ikke
-   plads til alle felterne i telefonvisningen, heller ikke vandret, så telefonen har med vilje kun ét
-   datofelt, og **forfaldsdatoen lægges direkte til grund for renteberegningen** (rentedato =
-   forfaldsdato). BB-046 kræver derfor ingen af de to udfald: der er ingen skjult tillægstid at vise
-   rentedatoen for, fordi BB-045's enhedslås gør, at en telefon aldrig ser desktopopstillingen.
-   Afgrænsningen er normativ i `renteberegning-contract.md` §2.12.
+2. **Skal tillægstid kunne bruges på telefon?** Besvaret og lukket 2026-08-25; spørgsmålet og
+   svaret står under BB-046.

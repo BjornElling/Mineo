@@ -9,7 +9,7 @@ import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { resolveBeregningsperiodeEmployerAtReguleringsdato } from './indkomstSkadestidspunktBeregning';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
-import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../../standardLoen/loenoplysningerInput';
 import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment } from '../shared/eoTypes';
 import type { MoneyOre } from '../../money/money';
 import { clampMoneyOreToZero, fromKroner, roundKroner, sumMoneyOre, toKroner, zeroMoneyOre } from '../../money/money';

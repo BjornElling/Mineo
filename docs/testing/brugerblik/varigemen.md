@@ -40,7 +40,8 @@ sit eget dokument.
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-20--en-feltnær-oplysning-hentet-fra-hele-sidens-beregning`
 - **Prioritet:** Høj
-- **Beslutning:** Agent afgør (genskaber den aftalte adfærd fra `BF-017` og `varigemen-contract.md` §2.8)
+- **Beslutning:** Agent afgør (genskaber den aftalte adfærd fra `BF-017` og `varigemen-contract.md` §2.8).
+  **Accepteret af udvikleren – gennemført 2026-08-20.**
 - **Sådan fremprovokeres det:**
   1. `Slet alt`, gå til Varige mén → Ménberegning.
   2. Skriv `5` i Méngrad og tryk Tab. (Méngrad er fanens første felt – det er den naturlige rækkefølge.)
@@ -93,6 +94,9 @@ Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den in
 
 **Rettet (2026-08-20).** Advarslen vises nu kun for méngrad 1–4. Feltets nedre bounds-grænse (`MENGRAD_MIN` i `varigeMenDescriptors.ts`) er ændret fra 1 til 5, hvilket automatisk ændrer tooltip-teksten til "mellem 5 og 120" (afledt af grænserne, ikke en separat streng).
 
+**Kontrakt (fra STATUS.md, 2026-08-21):** `varigemen-contract.md` har fået en rettet **§2.8** (advarslens
+grænse er 1–4 %, ikke 5).
+
 ### BB-064 – En udfyldt stamdato meldes som «Mangler», mens samme skærm citerer dens værdi
 
 - **Type:** Fornuft
@@ -100,6 +104,7 @@ Dette er en eklatant fejl. Der skal ikke gives advarsel ved 5 %. Kun når den in
 - **Prioritet:** Høj
 - **Beslutning:** Agent afgør for mekanikken (programmet har allerede løsningen, se nedenfor);
   **Afventer udvikleren** for ordlyden, hvis den skal være en anden end Forsørgertabs.
+  **Afgjort 2026-08-20: gennemført efter udviklerens alternative løsning** (to standardbeskeder).
 - **Sådan fremprovokeres det:**
   1. Stamdata: Skadedato `10-06-2020` (gyldig), Fødselsdato `01-01-2035`.
   2. Gå til Varige mén → Ménberegning.
@@ -138,6 +143,9 @@ alder-rækkerne viser nu ÉN af de to universelle standardbeskeder (`ACTION_BLOC
 konstanter som download-knappens tooltip bruger via `actionGate.ts`) i stedet for at citere feltets
 specifikke fejltekst. Den udspecificerede fejl står stadig ordret i tooltip og i selve Stamdata-feltet.
 
+**Udbredt samme dag (fra STATUS.md):** BB-064/BB-065's sondring er med commit `789d11f7` udbredt til
+EO-beregningsfanens skadedato-række.
+
 ### BB-065 – Satsrækken siger «Beregningsdato mangler» om en udfyldt, rød beregningsdato
 
 - **Type:** Fornuft
@@ -164,13 +172,15 @@ Samme som ovenfor. Hvis du er enig i præmissen kunne jeg godt tænke mig, at n�
 
 **Rettet (2026-08-20).** Samme mekanik som BB-064: satsrækken viser nu "Indtastning mangler" eller
 "Fejl i indtastning" i stedet for at citere/fejlbenævne beregningsdatoens specifikke fejl.
+Udbredt med commit `789d11f7`, se BB-064.
 
 ### BB-066 – Alder-rækken viser fødselsdatoens fejl, men aldrig skadedatoens
 
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (samme mekanik som BB-064)
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør (retter en asymmetri i den samme række; ingen ny adfærdsklasse)
+- **Beslutning:** Agent afgør (retter en asymmetri i den samme række; ingen ny adfærdsklasse).
+  **Accepteret – gennemført 2026-08-20.**
 - **Sådan fremprovokeres det:** (a) Fødselsdato `99-99-9999`, gyldig skadedato. (b) Gyldig
   fødselsdato, Skadedato `31-12-2030`.
 - **Det sker (målt):** (a) «Alder på skadestidspunkt → Der er udfyldt en ugyldig værdi i feltet
@@ -195,7 +205,9 @@ fødselsdatoens (begge er nu underlagt den samme to-klasse-standardbesked som BB
 - **Type:** Fejl
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-21--en-css-klasse-slår-komponentens-egen-farve-ihjel`
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør (genskaber den hensigt, koden udtrykker; ingen ny UI-beslutning)
+- **Beslutning:** Agent afgør (genskaber den hensigt, koden udtrykker; ingen ny UI-beslutning).
+  **Afvist af udvikleren 2026-08-20** (fra STATUS.md) – en nedtoning kan gøre netop fejllinjerne til dem,
+  brugeren overser.
 - **Sådan fremprovokeres det:** Åbn fanen med tom sag og aflæs farven på de tre «mangler»-tekster.
 - **Det sker (målt):** Alle tre – «Mangler (angiv i Stamdata)» (to gange), «Indtastning mangler» og
   «Beregningsdato mangler» – rendres i `rgba(0, 0, 0, 0.87)`, altså **præcis samme farve som en
@@ -224,6 +236,20 @@ fødselsdatoens (begge er nu underlagt den samme to-klasse-standardbesked som BB
 
 **Tilbagemelding**
 Jeg er ikke afvisende over for din anbefaling, men jeg er bange for, at resultatet kan blive det modsatte. At brugeren ser de almindelige linjer med almindelig tekstfarve og ikke rigtig registrerer at der er nedtonede linjer, som indeholder fejl. Fejlene er jo vel nærmest det væsentligste for brugeren at forholde sig til.
+
+**Afvist (fra STATUS.md, 2026-08-20):** en nedtoning kan gøre netop fejllinjerne til dem, brugeren
+overser. Ingen kodeændring. **Konsekvens for M-21:** en død farve-prop er kun et fund, hvis den ønskede
+farve gør oplysningen lettere at opdage. `DocumentOutcomeMessage` er stadig kandidaten, fordi den trækker
+den vej (en fejl, der ikke er rød). Foreslå ikke nedtoning af «mangler»-linjer igen.
+
+**Rettet 2026-10-30 (M-21, teknisk defekt):** kandidaten var reel – `sx={{ color: 'error.main' }}` (én klasse) tabte
+til `.MuiTypography-root.row--text` (to klasser), så fejlbeskeden ved et mislykket dokumentdownload stod i almindelig
+sort. Fejllinjer bærer nu modifikatoren `row--text-error` med eget farvetoken (`--mineo-color-row-text-error`, samme
+værdi som MUI's `error.main` i lyst og mørkt tema). Rettet samme sted i `DocumentOutcomeMessage` og i
+`PageMessageBox`/`PageMessageRow` (de kanoniske røde fejlrækker, med samme defekt). Komponenttesten måler nu klassen og
+CSS-reglen frem for blot at der findes en klasse. Ikke ændret: de neutrale farver (`text.secondary`, `text.disabled`)
+på andre `row--text`-elementer (`MirroredStamdataRow`, `Satser`, `MenberegningTab`, `LoentrinFinderOverlay`) er døde
+på samme måde, men ikke en fejlvisning – efter afgørelsen ovenfor er de ikke et fund.
 
 ### BB-068 – «Indsæt dags dato» vil indsætte en afvist dato fra 1. januar 2027
 
@@ -259,12 +285,16 @@ Jeg anerkender problemet. Jeg vil gerne have den foreslåede mulighed a), altså
 beregningsdatoens interval. De øvrige fire flader med samme knap (nævnt under "Andre steder det kan
 gælde") er IKKE efterprøvet eller rettet her – kun Varige mén var i scope for denne gennemgang.
 
+**Udbredt samme dag (fra STATUS.md):** BB-068's mønster er med commit `789d11f7` udbredt til EET's og
+forsørgertabs beregningsdatofelter.
+
 ### BB-069 – Et blokeret klik på en aktiv downloadknap giver intet svar, og fokus ryger til siden
 
 - **Type:** Fejl
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Agent afgør (den tilsigtede feedback er beskrevet i koden og virker ikke)
+- **Beslutning:** Agent afgør (den tilsigtede feedback er beskrevet i koden og virker ikke).
+  **Accepteret – gennemført 2026-08-20.**
 - **Sådan fremprovokeres det:**
   1. Færdig, gyldig sag – downloadknappen er aktiv («Download som PDF»).
   2. Dobbeltklik Méngrad og skriv `121`. Knappen er stadig aktiv (korrekt: en åben draft ændrer
@@ -400,6 +430,10 @@ af samme betingelse i `varigeMenDocument.ts` for PDF'en. De øvrige nævnte fore
 `forsoergertabDocument.ts`) er IKKE rettet her – de hører til flade 10/11 og er uden for denne
 gennemgangs scope.
 
+**Sporet lukket (kontrolleret 2026-10-30):** de øvrige forekomster er rettet senere. Teksten udledes nu
+af `resolveStamdataDatoReference` (`stamdataCalculations.ts`: «skadestidspunkt»/«anmeldelsestidspunkt»).
+Ordet står kun tilbage i kommentarer og interne navne, og `MenberegningTab.tsx` henviser til BB-121.
+
 ### BB-073 – Aldersreduktionen vises som «- 0 %» og «- 0,00 kr.» for alle under 40 år
 
 - **Type:** Fornuft
@@ -513,7 +547,7 @@ Jeg forstår dit synspunkt men afviser det. Der anvendes placeholders i meget vi
   kræver en systemdato i 2027. Efterprøv med en faked clock, eller manuelt efter nytår.
 - **`DocumentOutcomeMessage`s røde fejlbesked (BB-067's alvorligste kandidat) er ikke set i drift.**
   Specificitets-mekanismen er målt syntetisk på netop `row--text`, så konklusionen følger, men den
-  konkrete besked kræver et fejlende download at fremprovokere.
+  konkrete besked kræver et fejlende download at fremprovokere. (2026-10-30: rettet, se BB-067.)
 - **Dokumentet er kun kontrolleret som PDF.** Word-udgaven deler generator og bør have samme
   indhold, men er ikke hentet. Brevhoved var slået fra (standard), så brevhovedets indhold er ikke
   set på denne flade.
@@ -692,7 +726,8 @@ udpeget som næste kandidat.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-13--nul-er-en-oplysning-ikke-et-fravær`
 - **Prioritet:** Lav
-- **Beslutning:** Agent afgør (rent teknisk; ingen synlig ændring i dag)
+- **Beslutning:** Agent afgør (rent teknisk; ingen synlig ændring i dag). **Accepteret – gennemført
+  2026-08-21.**
 - **Sådan fremprovokeres det:** Kan **ikke** fremprovokeres med de nuværende data – alle 22 satser
   er hele kroner, så de tre steder viser i dag det samme. Fundet er den latente uenighed bag.
 - **Det sker:** Fanen Satser formaterer satsen med `formatAsAmountTrimmed(sats, 2)`, fane 1 og
@@ -724,6 +759,15 @@ får ører – og det er en beregningsbeslutning, ikke en visningsbeslutning. Af
 alligevel: `aldersreduktionBeloeb` er defineret som differencen mod den oprundede godtgørelse, så
 grundbeløb og reduktion har samme decimaldel og forskydes ens af visningens afrunding. De tre viste
 linjer går derfor op, også med en øre-sats. Det er dækket af en test.
+
+**Gennemført i kode (fra STATUS.md):** `components/tables/VarigeMenSatserTable.tsx`,
+`components/pages/varigemen/MenberegningTab.tsx` og
+`document/generators/varigemen/varigeMenDocument.ts` (alle beløb gennem `formatKr`, nul decimaler).
+`src/contracts/varigemen-contract.md` har fået **§2.9** som normativ visningsregel og et sjette punkt i
+minimumstestfladen. `docs/domain/varigemen/varige-men.md` er ført ajour med visningsreglen og de to nye
+testfiler. Ny test `VarigeMen.heleKronerVisning.test.tsx` (begge faner + afstemning af de tre viste
+linjer) og et nyt værn i `varigeMenWordContent.test.ts` (dokumentkanalen). **Begge værn er
+mutationstestet:** med `formatKr(…, 2)` genindsat bliver alle tre påstande røde.
 
 ### BB-079 – Samme sats står med og uden ører tre linjer fra hinanden på fane 1
 
@@ -805,7 +849,8 @@ Se BB-078 for den fulde rettelse og for afgrænsningen mod andre ydelser.
   afhænger af motor eller tema.
 - **Det juridiske spørgsmål i BB-075 er ikke afgjort, kun målt.** Jeg har fastslået, at programmet
   siger to forskellige ting om samme tal, ikke hvilken af dem der er rigtig; det kræver en vurdering
-  af EAL § 4 over for ASL § 18, som ligger uden for skillens mandat (§6).
+  af EAL § 4 over for ASL § 18, som ligger uden for skillens mandat (§6). **Opdateret 2026-10-30:** afgjort
+  2026-08-21 – satsen er fælles for de to love, og BB-075 er afvist (se fundet).
 - **BB-078 er pr. konstruktion ikke målt i drift** – den kræver en sats med ører, og datasættet har
   kun hele kroner. Mekanismen er læst i de tre formateringskald.
 
@@ -813,4 +858,5 @@ Se BB-078 for den fulde rettelse og for afgrænsningen mod andre ydelser.
 
 Ingen ud over de to, fane 1 allerede har rejst (forudfyldt beregningsdato; advarsel ved tyve år
 mellem skadedato og beregningsdato). Fanen tilføjer ingen nye – BB-075 er ikke et åbent spørgsmål,
-men et fund med to mulige udfald, som begge kræver en rettelse.
+men et fund med to mulige udfald, som begge kræver en rettelse. **Opdateret 2026-10-30:** BB-075 er afvist
+2026-08-21 – satsen er fælles, og ingen rettelse var nødvendig (se fundet).

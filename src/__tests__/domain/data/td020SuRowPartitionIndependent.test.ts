@@ -60,6 +60,5 @@ describe('DATA-001/CALC-006/TD-020 – flere SU-rækker i samme EO-kolonne', () 
       '450,00',
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1500);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

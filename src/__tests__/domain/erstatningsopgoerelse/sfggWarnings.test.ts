@@ -114,9 +114,12 @@ describe('buildSfggSeksMaanederBesked', () => {
     );
   });
 
-  it('giver ingen tekst uden registreret løn', () => {
+  it('udelader datoen uden registreret løn (BB-325, 2026-10-30)', () => {
     const { values } = buildWarningCase('2024-09-02', 0);
-    expect(buildSfggSeksMaanederBesked(values, values.loenindkomstAnsaettelsesforhold[0]!)).toBeUndefined();
+    values.loenindkomstAnsaettelsesforhold[0] = { ...values.loenindkomstAnsaettelsesforhold[0]!, navnPaaArbejdssted: 'Firma A' };
+    expect(buildSfggSeksMaanederBesked(values, values.loenindkomstAnsaettelsesforhold[0]!)).toBe(
+      "Der er ikke registreret løn fra Firma A. Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da."
+    );
   });
 });
 
@@ -179,9 +182,39 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
     expect(findSfggSixMonthWarningEmploymentIds(afterThreshold)).toEqual(['af-1']);
   });
 
-  it('ignorerer ansættelsesforhold uden positiv registreret lønindkomst', () => {
-    const { values, result } = buildWarningCase('2024-08-01', 0);
+  it('regner uden registreret løn de seks måneder fra sygeferiegodtgørelsens første dag (BB-325)', () => {
+    const kortVarig = buildWarningCase('2024-08-01', 0);
+    expect(findSfggSixMonthWarningEmploymentIds(kortVarig)).toEqual([]);
 
+    const langVarig = buildWarningCase('2024-08-01', 0);
+    const [segment] = langVarig.result.perAnsaettelsesforhold[0]!.segments;
+    const result = {
+      ...langVarig.result,
+      perAnsaettelsesforhold: [{
+        ...langVarig.result.perAnsaettelsesforhold[0]!,
+        segments: [segment!, { ...segment!, fra: iso('2025-02-02'), til: iso('2025-02-02') }],
+      }],
+    };
+    expect(findSfggSixMonthWarningEmploymentIds({ values: langVarig.values, result })).toEqual(['af-1']);
+  });
+
+  it('tæller tillæg og arbejdsgiverpension som løn i Beløb-tilstand, ikke i Procent-tilstand (BB-325)', () => {
+    const { values, result } = buildWarningCase('2024-08-01');
+    const employment = values.loenindkomstAnsaettelsesforhold[0]!;
+    const tillaegsraekke = {
+      ...employment.indtaegtsoplysningerTableData[0]!,
+      id: 'tillaeg-jul-2024',
+      col0_maaned: '7',
+      col2: undefined,
+      fpFvShSoBeloeb: asAmount(500),
+    };
+    values.loenindkomstAnsaettelsesforhold = [{
+      ...employment,
+      indtaegtsoplysningerTableData: [...employment.indtaegtsoplysningerTableData, tillaegsraekke],
+    }];
+    expect(findSfggSixMonthWarningEmploymentIds({ values, result })).toEqual(['af-1']);
+
+    values.loenindkomstAnsaettelsesforhold = [{ ...values.loenindkomstAnsaettelsesforhold[0]!, tillaegAngivesSom: 'beloeb' }];
     expect(findSfggSixMonthWarningEmploymentIds({ values, result })).toEqual([]);
   });
 

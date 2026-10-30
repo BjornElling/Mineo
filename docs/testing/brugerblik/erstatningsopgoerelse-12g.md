@@ -70,6 +70,17 @@ sygeferiegodtgørelsen i 12j. Satsafsnittet er med her, fordi dets satser er det
 **Tilbagemelding**
 Jeg vil ikke have, at et ikke-udfyldt felt skal give rød ring, når brugeren ikke engang har indtastet noget endnu. Det er ikke en ønskværdige UI. Dette er baggrunden for den aktuelle tilstand. Men jeg vil være meget interesseret i, hvis der kunne laves en sikring mod manglende og uønskede indtastninger, fx. ved at de giver fejl og blokerer download på selve beregning-fanen, og der må også gerne fortsat komme rød ring og fejl i indtastningsfeltet, så længe det bare sker på baggrund af en faktisk indtastning, som brugeren har foretaget. 
 
+**Fagligt spørgsmål, besvaret 2026-10-06:** en tom feriesats må ikke regnes stille – den blokerer.
+
+**Efterfølgende audit 2026-10-24:** En ny E2E-kontrol målte den hidtil ikke-browserverificerede gennemførelse af
+BB-274: med en faktisk lønrække, men uden feriesats, får feltet ingen rød ring, «Fejl og advarsler» viser den manglende
+sats, og linjen forsvinder, når `12,5` indtastes. Kørt i Chrome; bestået.
+
+**Udbredt til Årsløn 2026-10-30 (M-37):** fundets «Andre steder»-kandidat er afgjort af udvikleren («de to skal generelt
+følges ad, så hvis vi senere ændrer forudsætningen, ændres den begge steder»). Kravet er nu ÉN fælles regel for begge
+lønflader (`domain/loen/feriePctKrav.ts`), og EO's `isFeriePctPaakraevet` er et tyndt kald af den. EO's adfærd er uændret.
+Se [aarsloen.md](aarsloen.md) §«Efterreview 2026-10-30 – tom feriesats (M-37)».
+
 ### BB-275 – Når overenskomsten ikke har satser på reguleringsdatoen, forsvinder SH/SO og pension tavst
 
 - **Type:** Edge case
@@ -300,6 +311,9 @@ Enig
 Der kan dog sagtens opstå situationer, hvor skadelidte er opsagt og har haft sidste dag i ansættelsesforholdet før skadesdatoen. Har skadelidte fx. fra 12 til 6 måneder før skaden haft ét arbejde, og i perioden 6 måneder før skaden og fremefter haft et andet, vil det være helt almindeligt og forventeligt, at beregningsperioden udgør 12 måneder før skaden, og dermed indkluderer begge ansættelsesforhold, hvoraf det ene er opsagt før skaden.
 Men enig i, at hvis det angives, at skadelidte både havde sidste arbejdsdag før skadesdatoen, og det angives, at skadelidte var ansat på skadestidspunktet, så er det en fejl, og den skal vises med rød ring og være blokerende for download.
 
+**Fagligt spørgsmål (b), besvaret 2026-10-06:** «sidste dag i ansættelsesforholdet» og «sidste arbejdsdag» er samme
+dato; efter modsvar bruges feltets betegnelse overalt.
+
 ### BB-284 – Satslinjen i boksen hedder «Satser på skadedatoen» og siger «Forkert værdi» om en regel, feltet forklarer
 
 - **Type:** Fornuft
@@ -461,9 +475,8 @@ Enig
 - **B6a og afhængigheder:** Tilføjelse, sletning, undo, to kort og udvalgte skjul/bevar- og enhedsskift er målt. Der er ikke dokumenteret en systematisk tom → delvis → gyldig → ryddet/ugyldig prøve af kort og felter eller en fuld kombinations- og rækkefølgeprøve af alle afhængigheder.
 - **Kun kodeaflæst eller ikke prøvet:** Grænsen på ti kort er kun læst i koden. Uge-/datolønperiode, erhvervssygdom og de nævnte offentlige overenskomster er ikke afprøvet. Gem/Hent- og tastaturrækkefølge er heller ikke målt.
 - **Uddata og miljø:** Oprindelig browsermåling var Chrome headless, lyst tema; PDF blev læst, Word ikke. Gem/Hent-rundtur med sagsdata før/efter er ikke udført. Der blev ikke målt i Edge, Firefox, WebKit eller mørkt tema.
-- **Efterfølgende audit:** Ingen yderligere konkret brugerfejl blev bekræftet i 12g. En ny E2E-kontrol målte dog den hidtil
-  ikke-browserverificerede gennemførelse af BB-274: med en faktisk lønrække, men uden feriesats, får feltet ingen rød
-  ring, «Fejl og advarsler» viser den manglende sats, og linjen forsvinder, når `12,5` indtastes. Kørt i Chrome; bestået.
+- **Efterfølgende audit:** Ingen yderligere konkret brugerfejl blev bekræftet i 12g. En ny E2E-kontrol af BB-274's
+  gennemførelse er beskrevet under fundet.
 
 #### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
 
@@ -491,5 +504,4 @@ Tabellen skelner den oprindelige Chrome-måling fra den senere BB-274-E2E. Unit-
 
 ## Åbne spørgsmål
 
-Ingen. Besvaret 2026-10-06: en tom feriesats må ikke regnes stille – den blokerer (BB-274), og «sidste dag i
-ansættelsesforholdet» og «sidste arbejdsdag» er samme dato (BB-283 b).
+Ingen. De to faglige spørgsmål er besvaret 2026-10-06 og står under BB-274 og BB-283.

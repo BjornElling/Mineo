@@ -1,4 +1,9 @@
 import {
+  aarsloenFeriePctField,
+  aarsloenFritvalgPctField,
+  aarsloenPensionPctField,
+  aarsloenShSoPctField,
+  aarsloenStoreBededagPctField,
   aarsloenTableCol0DagField,
   aarsloenTableCol0MaanedField,
   aarsloenTableCol0UgeField,
@@ -40,5 +45,12 @@ export const aarsloenStandardLoenFieldSet: StandardLoenTableFieldSet = {
   col5: aarsloenTableCol5Field,
   fpFvShSoBeloeb: aarsloenTableFpFvShSoBeloebField,
   pensionBeloeb: aarsloenTablePensionBeloebField,
+  satsRefs: [
+    aarsloenFeriePctField.bind(),
+    aarsloenFritvalgPctField.bind(),
+    aarsloenShSoPctField.bind(),
+    aarsloenStoreBededagPctField.bind(),
+    aarsloenPensionPctField.bind(),
+  ],
   createRow: createEmptyStandardLoenRow,
 };

@@ -97,6 +97,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     satsIssues,
     feriePctAdvarselByAfId,
     tableCellWarningsByAfId,
+    feriePctManglerByAfId,
     loenudviklingWarnings,
     manualBaseRowErrorsByAfId,
     loenudviklingIssues,
@@ -285,8 +286,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     loentrinFinder.openFinder({
       overenskomstId: af.overenskomstId,
       offentligLoenType: af.offentligLoenType,
-      // Lønindkomst husker indtastningen pr. ansættelsesforhold, så en genåbning starter hvor man slap.
-      sessionKey: af.id,
+      // Nøglen er kortets egen: knappen er registreret under den, og indtastningen huskes pr. ansættelsesforhold.
+      key: af.id,
       // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind på kortet (BB-310).
       ...(anvendtReguleringsdato === undefined ? {} : { reguleringsdato: anvendtReguleringsdato }),
       insert: {
@@ -619,6 +620,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         loenperiode={af.loenperiode}
         tillaegAngivesSom={af.tillaegAngivesSom}
         satser={satserByAfId.get(af.id) ?? {}}
+        paakraevetSatsMangler={feriePctManglerByAfId.has(af.id)}
         calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
         cellWarnings={tableCellWarningsByAfId.get(af.id)}
         useSmallFont={true}

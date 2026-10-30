@@ -246,7 +246,6 @@ describe('EOInspektion – kontroltabel med statisk facit', () => {
     expect(julyFirstIndex).toBe(0);
     expect(amounts?.slice(0, 7)).toEqual([200, 200, 200, 200, 200, 0, 0]);
     expect(amounts?.reduce((sum, value) => sum + value, 0)).toBe(1000);
-    expect(model.integrityIssues).toEqual([]);
   });
 
   it('markerer hverdage, SH-dag, Endeligt EET og differencekrav med separat statisk dagsfacit', () => {
@@ -298,6 +297,5 @@ describe('EOInspektion – kontroltabel med statisk facit', () => {
     const amounts = model.columnRawValues.get('offentlig:sygedagpenge');
     expect(amounts?.slice(0, 7)).toEqual([0, 0, 0, 0, 0, 1000, 1000]);
     expect(amounts?.reduce((sum, value) => sum + value, 0)).toBe(2000);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

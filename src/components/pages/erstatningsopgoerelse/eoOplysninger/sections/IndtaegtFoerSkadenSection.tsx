@@ -42,6 +42,7 @@ import { capitalizeFirstCharDa } from '../../../../../utils/formatUtils';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../../../../../data/overenskomstRates';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
+import { EO_OPLYSNINGER_LOENTRIN_FINDER_KEY } from '../../shared/useLoentrinFinder';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 import { createEoBeregningsgrundlagCommitOverride } from '../../../../../domain/erstatningsopgoerelse/angivetLoenBeregningsgrundlagCommit';
@@ -155,7 +156,7 @@ export default function IndtaegtFoerSkadenSection() {
 
   // «Angivet løn» har ÉN `Find løntrin`-knap, så finderen behøver ingen nøgle: den åbnes for sagens ene
   // overenskomst og husker bevidst ikke indtastningen mellem åbninger (modsat Lønindkomst).
-  const loentrinFinderTriggerRef = loentrinFinder.registerTrigger('eoAngivetLoen');
+  const loentrinFinderTriggerRef = loentrinFinder.registerTrigger(EO_OPLYSNINGER_LOENTRIN_FINDER_KEY);
 
   /**
    * Bindingen til den delte Lønudvikling-flade. «Angivet løn» har én forekomst pr. sag, så
@@ -204,6 +205,8 @@ export default function IndtaegtFoerSkadenSection() {
     loentrinFinder.openFinder({
       overenskomstId: eoLoenudvikling.overenskomstId,
       offentligLoenType: eoLoenudvikling.offentligLoenType,
+      // Samme nøgle som knappens registrering: fokus vender tilbage hertil, og indtastningen huskes (BB-310).
+      key: EO_OPLYSNINGER_LOENTRIN_FINDER_KEY,
       // Løntrinnet skal passe til lønnen på reguleringsdatoen, og et valgt resultat sættes ind (BB-310).
       ...(loenudviklingBaseDateISO === undefined ? {} : { reguleringsdato: loenudviklingBaseDateISO }),
       insert: {

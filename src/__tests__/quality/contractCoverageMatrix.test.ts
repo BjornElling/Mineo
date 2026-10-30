@@ -188,7 +188,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     // erstatningsopgørelsen. Testen hævder, at advarselsteksterne bruger feltets eget navn.
     contractPath: 'src/contracts/feriepenge-begreber-contract.md',
     requiredTestPaths: [
+      'src/__tests__/domain/aarsloen/aarsloenProjection.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
+      'src/__tests__/domain/loen/feriePctKrav.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatsAssessment.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/reguleringsPresentation.test.ts',
     ],

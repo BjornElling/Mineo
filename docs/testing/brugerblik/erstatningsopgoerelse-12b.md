@@ -215,7 +215,7 @@ Der må gerne komme gul ring og advarsel i fejl og advarsler-boksen, hvis der er
 
 Jeg er delvist enig i behovet for at ændre formuleringen omkring max svie-smerte ved forlig. Den nuværende formulering addresserer på sin vis problemet ved at sætte dem i parentes, så brugeren kan udlede, at det både er 50 % af dags-satsen og max-beløbet: "50 % af (230 kr. pr. sygedag, dog højst **88.500** kr.)" men måske man kan lave en formulering i stil med "50 %, svarende til 115 kr. pr. sygedag, dog højst 44.250 kr." eller noget i den stil?
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-09-22)**
 Din løsning er bedre end min, og den er indarbejdet. Men den har en rækkefølge-binding, du bør kende,
 før den sættes i værk: **den formulering, du vil genbruge, findes ikke endnu.** Togglen «Tidligere
 beregnet S/S til max.» skriver i dag ordret «Ingen» – det er præcis dét, BB-221 er skrevet om, og som du
@@ -248,7 +248,7 @@ Det er både beregningsteknisk og ud fra brugerens forventninger den samme tilst
   rummede et svie/smerte-krav, og derfor ved en fejl kan taste `0`. Advarslen skal altså blive stående
   ved `0`. **Den anden halvdel af fundet er ikke afgjort hermed:** dokumentets «Der er opgjort svie- og
   smertegodtgørelse med 0 kr. for tidligere perioder.» siger fortsat det modsatte af advarslen i samme
-  sag. Presset på uenigheden skærm/papir – se «Åbne spørgsmål».
+  sag. Presset på uenigheden skærm/papir – se modsvaret nedenfor.
   **AFGJORT OG GENNEMFØRT** 2026-09-22 efter modsvaret: udvikleren er enig i, at dokumentet ikke
   skal skrive «med 0 kr.» – teksten er selvmodsigende. Advarslens `> 0`-prøve står derfor
   uændret (et indtastet 0 behandles bevidst som tomt), og præsentationsmodellen spejler nu samme
@@ -278,7 +278,7 @@ Det er både beregningsteknisk og ud fra brugerens forventninger den samme tilst
 **Tilbagemelding**
 Hvad svie/smerte angår må det forventes, at brugere vil være i tvivl om, hvad de skal indtaste i anden opgørelse i den situation, hvor der ikke er et svie-smerte krav i første opgørelse, og at brugere ved en fejl vil udfylde feltet med 0. Det er derfor korrekt og ønskelig adfærd, at det netop i denne situation behandles ens om brugeren indtaster 0 eller lader feltet være tomt.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-09-22)**
 Din begrundelse er god, og jeg presser ikke på indtastningssiden: `0` og tomt skal behandles ens, og
 advarslen bliver stående. Det er indarbejdet.
 
@@ -366,8 +366,10 @@ Enig
   **GENNEMFØRT** 2026-09-22, lokalt OG som gennemgang. Lokalt: `shouldShowSatsYearSuggestionWarning`
   kalder nu `erSvieSmertePeriodeInputRelevant`. Gennemgangen fandt **tre yderligere forekomster,
   som alle er rettet** – se «Efterprøvet efter BB-222's mandat» nedenfor – og **to, som IKKE er
-  rettet**, fordi de kræver en arkitekturbeslutning, udvikleren skal træffe (se «Åbne spørgsmål»).
+  rettet**, fordi de kræver en arkitekturbeslutning, udvikleren skal træffe (se de to spørgsmål nedenfor).
   Dækket af `eoRowSvieSmerteSatsAarSkjultFelt.test.ts`.
+  **De to spørgsmål AFGJORT** 2026-09-23 af BB-228's tilbagemelding (12c): én fælles løsning – feltets
+  `relevance` i inputkernen (fra STATUS.md).
 - **Sådan fremprovokeres det:**
   1. Sæt «Opgørelse lavet den» til `01-02-2025` og satsår til `2024`, så advarslen «Svie/smerte-satsen
      for 2025 kan anvendes.» står i «Fejl og advarsler».
@@ -394,7 +396,7 @@ Enig
 **Tilbagemelding**
 Enig. Og undersøg meget gerne om samme fejl måtte optræder andre steder i andre, lignende sammenhænge i programmet. Det er en generel og universiel regel i programmet, at et felt, der er skjult skal betragtes som ikke udfyldt og aldrig må kunne påvirke beregninger eller fejlmeddelelser. Denne adfærd burde allerede var inarbejdet strukturelt, så det er udtryk for en fejl ved arkitekturen, at denne konkrete fejl alligevel har kunnet opstå.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-09-22)**
 Din diagnose er rigtig, og jeg presser ikke imod den – jeg presser på, at den er **større**, end den
 lyder, og at der er én ting i din formulering, jeg ikke kan gennemføre uden dit svar.
 
@@ -442,6 +444,67 @@ venligst, at undtagelsen består.
 Godt fanget! Denne særlige undtagelse skal fortsat bevares.
 Herudover følger jeg din anbefaling.
 
+**Efterprøvet efter BB-222's mandat: skjulte felter, der taler (2026-09-22)**
+
+Udvikleren fastslog 2026-09-22, at et skjult felt overalt i programmet skal betragtes som ikke
+udfyldt og aldrig må påvirke beregninger eller fejlmeddelelser. Gennemgangen dækkede alle
+prædikater i `eoInputRelevance.ts` og de rækkebyggere, dokumentbyggere og validatorer, der læser
+felter bag dem. **Fem forekomster ud over BB-222 selv. Tre er rettet; to kræver en beslutning.**
+
+**Rettet:**
+
+- **Ménlinjen modsagde sig selv i opgørelsen.** `eoPresentationSectionBuilders` skrev «Der er den
+  … **ikke** truffet afgørelse om varige mén. **Afgørelsen er påklaget.**» Klagefeltet vises kun,
+  når der ER truffet en ménafgørelse, så i netop denne gren er feltet garanteret skjult – og en
+  stale «Ja» talte alligevel. Sætningen gik til modparten. Nu skrives kun førstedelen.
+- **EET-linjen havde nøjagtig samme fejl** samme sted: «Der er den … ikke truffet afgørelse om
+  erhvervsevnetab … Afgørelsen er påklaget.» Rettet på samme måde.
+- **Et skjult `verserendeKlageEet` slukkede en TAF-afgrænsning.** `eoPeriodeBlockingContext` læste
+  feltet uden `erEETKlageRelevant`, så en stale «Ja» – efterladt da begge EET-afgørelser blev sat
+  til «Nej» – suspenderede differencekravets cutoff. Virkningen var ikke kosmetisk: rækken
+  `taf.ophoerSkyldes` skiftede fra en ok-række til en advarsel, og TAF-/ferieperiodernes
+  grænsevalidering blev lempet. Samme gate er lagt på de to dokumentsteder, der læser feltet uden
+  for en afgørelses-gren, og på oversigtsrækken `aes.verserendeKlageEet`, som kunne gå rød på et
+  tomt felt, der ikke var på skærmen.
+
+**Ikke rettet – kræver udviklerens beslutning, se de to spørgsmål nedenfor:** validatoren læser bevidst
+RÅ værdier (`eoSnapshot.ts` sender `parsedEo.data`, ikke de neutraliserede), og dens egen
+dokumentation begrunder det udtrykkeligt. Det står i direkte modstrid med den nye regel, og
+konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan se eller rette.
+
+**Åbent spørgsmål (a): Skal validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen
+efter BB-222's mandat, og det er den eneste udestående del af mandatet. `computeEoSnapshot` giver
+rækkebyggerne de neutraliserede værdier (`effectiveEoValues`), men giver `validateParsed` de RÅ
+(`parsedEo.data`). `validateCanonicalRanges` begrunder det udtrykkeligt i koden: grænserne ligger
+der, «så snapshot- og dokumentgates også ser fejl i felter, som ikke aktuelt er mountet eller
+aktive». Den hensigt – «ikke mountet er ikke det samme som ikke valideret» – står i direkte
+modstrid med den nye regel.
+**Konsekvensen i dag:** et negativt beløb tastet i fx «Svie/smerte opgjort i tidligere
+erstatningsopgørelser» og derefter skjult (ved at sætte «Tidligere beregnet S/S til max.» til Ja)
+giver fortsat en **blokerende** fejl «Beløb kan ikke være negativt» på et felt, brugeren ikke kan
+se – download er spærret, og fejlen kan ikke findes. Beregningen er samtidig rigtig, fordi værdien
+ER neutraliseret for motorerne. Samme form rammer `regulerOffentligeYdelser`, hvis
+validator-guard kun tjekker `beregnesUdFra` og ikke også, om TAF-sektionen er aktiv.
+**Hvorfor jeg ikke har rettet det:** at skifte til `effectiveEoValues` ville fjerne begge
+forekomster på én gang, men det vender bevidst en dokumenteret arkitekturbeslutning og ændrer,
+hvad der blokerer download på tværs af hele fladen – også i tilfælde, ingen har målt. Det er
+udviklerens beslutning, ikke agentens. Alternativet er at lade validatoren beholde de rå værdier
+og i stedet gate de enkelte regler på deres egne prædikater; det er mere kirurgisk, men efterlader
+formen levende, så den kan opstå igen ved næste nye regel.
+
+**Åbent spørgsmål (b): Hvilken form skal den strukturelle sikring have efter BB-222's mandat?** Reglen er afgjort, og
+de fem konkrete forekomster er rettet, men håndhævelsen er ikke afgjort. Udvikleren fulgte
+anbefalingen (oprydning nu, struktur som selvstændig opgave), så det udestående er, hvordan
+garantien gøres strukturel: en AST-regel, der kræver, at et issue om et felt bag et
+`er*Relevant`-prædikat selv kalder prædikatet, eller en samlet filtrering, der gælder ALLE læsere
+og ikke kun talfødende input. Så længe `eoInputRelevance.ts` kun håndhæver synlighed for tal, er
+hver ny advarsel en ny mulighed for samme fejl. Mønsteret er skrevet op som **M-32**.
+
+**AFGJORT 2026-09-23 (fra STATUS.md):** 12b's spørgsmål (a) og (b) er besvaret af BB-228's tilbagemelding:
+udvikleren bad om én fælles løsning, og den er feltets `relevance` i inputkernen – validatoren, rækkerne,
+dokumentet og beregningen læser nu alle et skjult felt som tomt. Se BB-228 i
+[erstatningsopgoerelse-12c.md](erstatningsopgoerelse-12c.md).
+
 ### BB-223 – Satsårets «én måned efter»-regel er usynlig: knappen indsætter 2025 i 2026, og advarslen skjuler det valgte år
 
 - **Type:** Fornuft
@@ -450,7 +513,8 @@ Herudover følger jeg din anbefaling.
 - **Prioritet:** Mellem
 - **Beslutning:** **AFVIST** af udvikleren 2026-09-22. Præmissen anerkendes, men det er ikke et reelt
   problem: brugeren må forventes at kende den juridiske regel om, at satsen én måned efter kan
-  anvendes, så advarslen orienterer om et forhold, brugeren allerede kender.
+  anvendes, så advarslen orienterer om et forhold, brugeren allerede kender. Det tilknyttede
+  satsårsspørgsmål er afgjort og gennemført 2026-09-23 – se nederst i fundet.
 - **Sådan fremprovokeres det:**
   1. «Opgørelse lavet den» = `01-02-2025`, satsår = `2024`.
   2. Læs advarslen i «Fejl og advarsler».
@@ -482,6 +546,24 @@ Herudover følger jeg din anbefaling.
 **Tilbagemelding**
 Jeg anerkender præmissen for din tilbagemelding, men er ikke enig i, at det er et reelt problem. Brugeren må forventes at kende den juridiske regel om, at satsen en måned efter kan anvendes - så det er en orientering om et forhold, som brugeren allerede kender til.
 
+**Åbent spørgsmål (rejst ved gennemgangen 2026-09-22): Skal satsåret vælges af brugeren, eller skal det følge en regel?** Feltet er i dag et frit årstal
+mellem 2005 og den aktuelle satsdækning, uden nogen sammenhæng med de perioder, kravet dækker: en
+sag med sygeperioder udelukkende i 2019 kan uden en eneste bemærkning opgøres med 2026-satser
+(`250 kr./dag` mod `205 kr./dag`, altså 22 % højere). Den eneste kontrol er forslaget om året én
+måned efter opgørelsens dato (BB-223). Spørgsmålet er, om det er den rigtige arbejdsdeling – eller
+om programmet bør advare, når satsåret ligger langt fra perioderne, sådan som det i dag advarer, når
+det ligger før opgørelsen. Det er en beregningsteknisk vurdering, ikke en teknisk, og er derfor ikke
+registreret som et fund.
+**AFGJORT** af udvikleren 2026-09-23: **nej.** Sygeperiodernes årstal har ingen sammenhæng med det
+satsår, der kræves. Det er lovbestemt, at der – uanset sygeperiodens placering – kan rejses krav med den
+sats, der var gældende én måned efter, kravet blev rejst, og kravet anses for rejst én måned efter
+«Opgørelse lavet den». Brugeren angiver selv satsåret; programmet giver alene en ikke-blokerende advarsel,
+hvis et senere års (højere) sats kunne være anvendt. **GENNEMFØRT** 2026-09-23: reglen er dokumenteret
+normativt i `eo-snapshot-contract.md` §16. Den eksisterende advarsel fulgte den i forvejen, men er skærpet
+på to punkter: den tier nu, når det senere år ikke har en højere sats, og den virker også ved årsskiftet,
+hvor næste års satser endnu ikke findes – så advarer den om det nyeste år med satser (fx en opgørelse
+lavet 15-12-2026 med satsår 2024 giver «Svie/smerte-satsen for 2026 kan anvendes.», hvor den før tav).
+
 ### BB-224 – Fem felter i sektionen hedder noget andet, end skærmen siger – og ét af dem hedder fire ting
 
 - **Type:** Fornuft
@@ -495,7 +577,7 @@ Jeg anerkender præmissen for din tilbagemelding, men er ikke enig i, at det er 
   **udbetalte** beløb, der fradrages i den konkrete opgørelsesperiode, og selve opgørelsen af beløbet er
   et **krav**. Ensretning må derfor kun ske dér, hvor det er samme indhold under forskellige navne
   afhængigt af, om det vises på skærmen eller i dokumentet. Forudsætningen for at røre ved ordlyden er
-  en afklaring af, hvad feltet faktisk indeholder – se «Åbne spørgsmål».
+  en afklaring af, hvad feltet faktisk indeholder – se modsvaret nedenfor.
   **AFKLARET OG GENNEMFØRT** 2026-09-22 efter modsvaret: udvikleren fastslog, at brugeren for
   tidligere erstatningsperioder skal indtaste **det, der blev opgjort** – om det faktisk blev betalt
   er uden betydning. Den modsatte regel gælder den aktuelle periode, hvor kun det **udbetalte**
@@ -546,7 +628,7 @@ Grundlæggende enig. Når det kommer til svie-/smertegodtgørelse er 'opgjort' d
 
 Jeg er derfor lidt bekymret for, om du er ved at ensarte forskellige navne med forskellige betydninger. Hvis imidlertid der er tale om samme indhold, der blot har forskellige navne afhængig af, om det vises på skærmen eller i et dokument, er jeg enig i, at det vil være hensigtsmæssigt at ensarte.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-09-22)**
 Din bekymring er berettiget, og jeg har trukket ensretningen tilbage. *Opgjort*, *udbetalt* og *krav* er
 ikke synonymer, og et brugerblik skal ikke plane fagsprog ud. Navnerettelsen (tilgængeligt navn = synlig
 etiket) står tilbage som godkendt og er ren dublering.
@@ -783,11 +865,39 @@ dokumenteret her.
 **Tværhenvisning:** 12e's BB-342 dokumenterer TAF- og ferieperiodernes konkrete `>=`-mismatch. Begge dele er samlet
 under M-42; ingen af rettelserne ændrer cutoff-reglerne.
 
+**Forekomsten i 12e: TAF og ferie** (stod som selvstændigt BB-342-afsnit i 12e; flyttet hertil ordret
+2026-10-30, så fundet har ét sted – overskrift: «Cutoff-fejlteksten siger «efter» på selve afskæringsdatoen»)
+
+- **Type:** Fejl
+- **Rækkevidde:** Tværgående med 12b's ménafgørelses-cutoff; fælles mønster M-42 i `TVAERGAAENDE.md`.
+- **Prioritet:** Mellem
+- **Beslutning:** **GODKENDT OG GENNEMFØRT** 2026-10-24 som rettelse af misvisende fejltekst. Cutoff-datoen er ugyldig,
+  fordi TAF og ferie afgrænses til dagen før; beskeden siger nu «på eller efter». Svie/smerte følger samme `>=`-regel.
+  Ingen beregningsregel er ændret.
+- **Sådan fremprovokeres det:** Differencekrav opgjort pr. `01-07-2024`; sæt en ferieperiodes fra-dato eller TAF-periodens
+  slutdato til præcis `01-07-2024`. TAF-periodens seneste gyldige dag er `30-06-2024`. Svie/smerte-søsterforløbet er
+  dokumenteret i 12b: fra-dato lig ménafgørelsesdatoen.
+- **Det sker:** Før rettelsen blev datoen rød og download blokeret, men cellen sagde «Ferien ligger efter den dato,
+  differencekravet er opgjort pr. (01-07-2024)» eller «Der er angivet tabt arbejdsfortjeneste efter den dato…» –
+  selv om feltet stod på samme dato. Samme `>=`-regel gjaldt endelig og midlertidig EET, feriecellens tekst og periodens
+  samlede linje. S/S-felterne havde tilsvarende tekster («efter datoen for en ménafgørelse») under samme `>=`-grænse.
+- **Kilde og testdækning:** `collectTafCutoffsRamtAf` i `tafPeriodConstraints.ts` bruger `value >= cutoff`; de fælles
+  beskedformater brugte altid ordet «efter». `tafPeriodConstraints.test.ts` forventede tidligere «efter» ved lighed,
+  så testen fastholdt fejlen. Teksterne er nu samlet rettet til «på eller efter», og tests dækker lighed for ferie,
+  TAF-celle og periodens linje samt de øvrige cutoff-typer. S/S har særskilte unit-/validatorfacitter og en E2E-test,
+  der måler fra-dato lig cutoff. Det er ikke en ny browsermåling af TAF-/ferieteksterne.
+- **Begrænsning:** Ændringen påvirker kun den forklarende tekst. Afskæringen, den røde markering, blokeringen og
+  dokumentets beregning er uændrede.
+
+**Tværhenvisning:** 12b dokumenterer samme fejl i ménafgørelsens svie/smerte-cutoff. Begge forekomster er samlet
+under M-42 i `TVAERGAAENDE.md`.
+
 ### BB-343 – En ufuldstændig S/S-række skjuler cutoff-fejlen og linker til den forkerte dato
 
 - **Type:** Fejl
 - **Rækkevidde:** Lokal for svie/smerte; beslægtet med M-42, men kun den ufuldstændige rækkes fejloversigt og link er berørt.
 - **Prioritet:** Mellem
+- **Beslutning:** Gennemført 2026-10-24 (rækkevurdering rettet; browserregression bestod).
 - **Sådan fremprovokeres det:** Sæt ménafgørelsesdatoen til `10-01-2024`, vælg «Sygemeldt» i en ny svie/smerte-række,
   sæt «Fra o.m.» til `10-01-2024`, og lad «Til o.m.» stå tom.
 - **Det sker:** Fra-datoen får rød kant og forklarer, at perioden ligger på eller efter ménafgørelsen. I «Fejl og
@@ -811,34 +921,6 @@ under M-42; ingen af rettelserne ændrer cutoff-reglerne.
 - **Det er uhensigtsmæssigt fordi:** Brugeren kan rette Fra og stadig stå tilbage med en rød Til-dato, hvis han ikke selv opdager den uafhængige cutoff-fejl.
 - **Bedre ville være:** Vis cutoff-beskeden sammen med den manglende Fra-dato, og link til den udfyldte Til-dato, der har cutoff-fejlen.
 - **Verifikation:** `svieSmerteCutoffDateIssues.test.ts` låser den spejlvendte kombination: begge beskeder vises, og linkmålet er Til. Chrome-desktop-regressionen viser cutoff-beskeden sammen med «Fra-dato er ikke angivet», og linket blinker Til-feltet; S/S-cutoff-spec'et bestod 6/6 2026-10-24.
-
-## Efterprøvet efter BB-222's mandat: skjulte felter, der taler
-
-Udvikleren fastslog 2026-09-22, at et skjult felt overalt i programmet skal betragtes som ikke
-udfyldt og aldrig må påvirke beregninger eller fejlmeddelelser. Gennemgangen dækkede alle
-prædikater i `eoInputRelevance.ts` og de rækkebyggere, dokumentbyggere og validatorer, der læser
-felter bag dem. **Fem forekomster ud over BB-222 selv. Tre er rettet; to kræver en beslutning.**
-
-**Rettet:**
-
-- **Ménlinjen modsagde sig selv i opgørelsen.** `eoPresentationSectionBuilders` skrev «Der er den
-  … **ikke** truffet afgørelse om varige mén. **Afgørelsen er påklaget.**» Klagefeltet vises kun,
-  når der ER truffet en ménafgørelse, så i netop denne gren er feltet garanteret skjult – og en
-  stale «Ja» talte alligevel. Sætningen gik til modparten. Nu skrives kun førstedelen.
-- **EET-linjen havde nøjagtig samme fejl** samme sted: «Der er den … ikke truffet afgørelse om
-  erhvervsevnetab … Afgørelsen er påklaget.» Rettet på samme måde.
-- **Et skjult `verserendeKlageEet` slukkede en TAF-afgrænsning.** `eoPeriodeBlockingContext` læste
-  feltet uden `erEETKlageRelevant`, så en stale «Ja» – efterladt da begge EET-afgørelser blev sat
-  til «Nej» – suspenderede differencekravets cutoff. Virkningen var ikke kosmetisk: rækken
-  `taf.ophoerSkyldes` skiftede fra en ok-række til en advarsel, og TAF-/ferieperiodernes
-  grænsevalidering blev lempet. Samme gate er lagt på de to dokumentsteder, der læser feltet uden
-  for en afgørelses-gren, og på oversigtsrækken `aes.verserendeKlageEet`, som kunne gå rød på et
-  tomt felt, der ikke var på skærmen.
-
-**Ikke rettet – kræver udviklerens beslutning, se «Åbne spørgsmål»:** validatoren læser bevidst
-RÅ værdier (`eoSnapshot.ts` sender `parsedEo.data`, ikke de neutraliserede), og dens egen
-dokumentation begrunder det udtrykkeligt. Det står i direkte modstrid med den nye regel, og
-konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan se eller rette.
 
 ## Overvejet uden fund
 
@@ -921,49 +1003,8 @@ konsekvensen er, at blokerende fejl kan hænge på felter, brugeren hverken kan 
 
 ## Åbne spørgsmål
 
-- **Skal satsåret vælges af brugeren, eller skal det følge en regel?** Feltet er i dag et frit årstal
-  mellem 2005 og den aktuelle satsdækning, uden nogen sammenhæng med de perioder, kravet dækker: en
-  sag med sygeperioder udelukkende i 2019 kan uden en eneste bemærkning opgøres med 2026-satser
-  (`250 kr./dag` mod `205 kr./dag`, altså 22 % højere). Den eneste kontrol er forslaget om året én
-  måned efter opgørelsens dato (BB-223). Spørgsmålet er, om det er den rigtige arbejdsdeling – eller
-  om programmet bør advare, når satsåret ligger langt fra perioderne, sådan som det i dag advarer, når
-  det ligger før opgørelsen. Det er en beregningsteknisk vurdering, ikke en teknisk, og er derfor ikke
-  registreret som et fund.
-  **AFGJORT** af udvikleren 2026-09-23: **nej.** Sygeperiodernes årstal har ingen sammenhæng med det
-  satsår, der kræves. Det er lovbestemt, at der – uanset sygeperiodens placering – kan rejses krav med den
-  sats, der var gældende én måned efter, kravet blev rejst, og kravet anses for rejst én måned efter
-  «Opgørelse lavet den». Brugeren angiver selv satsåret; programmet giver alene en ikke-blokerende advarsel,
-  hvis et senere års (højere) sats kunne være anvendt. **GENNEMFØRT** 2026-09-23: reglen er dokumenteret
-  normativt i `eo-snapshot-contract.md` §16. Den eksisterende advarsel fulgte den i forvejen, men er skærpet
-  på to punkter: den tier nu, når det senere år ikke har en højere sats, og den virker også ved årsskiftet,
-  hvor næste års satser endnu ikke findes – så advarer den om det nyeste år med satser (fx en opgørelse
-  lavet 15-12-2026 med satsår 2024 giver «Svie/smerte-satsen for 2026 kan anvendes.», hvor den før tav).
-- **Skal validatoren læse de neutraliserede værdier i stedet for de rå?** Rejst af gennemgangen
-  efter BB-222's mandat, og det er den eneste udestående del af mandatet. `computeEoSnapshot` giver
-  rækkebyggerne de neutraliserede værdier (`effectiveEoValues`), men giver `validateParsed` de RÅ
-  (`parsedEo.data`). `validateCanonicalRanges` begrunder det udtrykkeligt i koden: grænserne ligger
-  der, «så snapshot- og dokumentgates også ser fejl i felter, som ikke aktuelt er mountet eller
-  aktive». Den hensigt – «ikke mountet er ikke det samme som ikke valideret» – står i direkte
-  modstrid med den nye regel.
-  **Konsekvensen i dag:** et negativt beløb tastet i fx «Svie/smerte opgjort i tidligere
-  erstatningsopgørelser» og derefter skjult (ved at sætte «Tidligere beregnet S/S til max.» til Ja)
-  giver fortsat en **blokerende** fejl «Beløb kan ikke være negativt» på et felt, brugeren ikke kan
-  se – download er spærret, og fejlen kan ikke findes. Beregningen er samtidig rigtig, fordi værdien
-  ER neutraliseret for motorerne. Samme form rammer `regulerOffentligeYdelser`, hvis
-  validator-guard kun tjekker `beregnesUdFra` og ikke også, om TAF-sektionen er aktiv.
-  **Hvorfor jeg ikke har rettet det:** at skifte til `effectiveEoValues` ville fjerne begge
-  forekomster på én gang, men det vender bevidst en dokumenteret arkitekturbeslutning og ændrer,
-  hvad der blokerer download på tværs af hele fladen – også i tilfælde, ingen har målt. Det er
-  udviklerens beslutning, ikke agentens. Alternativet er at lade validatoren beholde de rå værdier
-  og i stedet gate de enkelte regler på deres egne prædikater; det er mere kirurgisk, men efterlader
-  formen levende, så den kan opstå igen ved næste nye regel.
-- **Hvilken form skal den strukturelle sikring have efter BB-222's mandat?** Reglen er afgjort, og
-  de fem konkrete forekomster er rettet, men håndhævelsen er ikke afgjort. Udvikleren fulgte
-  anbefalingen (oprydning nu, struktur som selvstændig opgave), så det udestående er, hvordan
-  garantien gøres strukturel: en AST-regel, der kræver, at et issue om et felt bag et
-  `er*Relevant`-prædikat selv kalder prædikatet, eller en samlet filtrering, der gælder ALLE læsere
-  og ikke kun talfødende input. Så længe `eoInputRelevance.ts` kun håndhæver synlighed for tal, er
-  hver ny advarsel en ny mulighed for samme fejl. Mønsteret er skrevet op som **M-32**.
+Ingen. Fladens tre åbne spørgsmål er afgjort og står nu under de fund, de vedrører: satsåret under BB-223,
+validatorens rå værdier og den strukturelle sikring under BB-222.
 
 ## Retrospektiv dækningskontrol mod Brugerblik-skillen (2026-10-24)
 

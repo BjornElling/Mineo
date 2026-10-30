@@ -54,6 +54,5 @@ describe('DATA-001/CALC-006/TD-020 – førtidspension som EO-downstream-consume
     ]);
     expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[2]]).toBe(true);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(3200);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

@@ -62,6 +62,36 @@ som generel indvending. Det, der stadig tæller, er, hvis et valg får en virkni
 dets egen etiket – ikke at virkningen indtræffer på det tidspunkt, etiketten lægger op til.
 Mønsteret er skrevet om efter dette (`TVAERGAAENDE.md` M-12).
 
+**Opfølgende spørgsmål 1 (rejst ved gennemgangen, tidligere under «Åbne spørgsmål»).** **Skal
+«Standardværdier» kunne anvendes på den åbne sag?** BB-023 foreslår kun en forklarende
+linje, fordi kontrakten er entydig: defaults må aldrig overskrive en igangværende sag. Men det
+efterlader et reelt behov ubesvaret – brugeren, der opdager midt i en sag, at han vil have
+underskrift-linje i stedet for godkendelse, skal rette feltet manuelt inde i sagen. Er det den
+rigtige arbejdsgang, eller mangler der en «anvend på denne sag også»-mulighed? Spørgsmålet er
+rent brugervendt; kontraktens forbud gælder det automatiske, ikke det brugeren udtrykkeligt beder om.
+
+**Tilbagemelding**
+Nej, aldrig. Standardværdier er kun for nye sager og efter 'Slet alt'.
+
+**Afgjort 2026-08-18 – LUKKET.** Ingen «anvend på denne sag også»-mulighed, hverken automatisk eller
+som en handling brugeren beder om. Kontraktens forbud i `app-settings.md` er dermed ikke kun teknisk
+begrundet, men også den ønskede brugeradfærd: de to veje ind i en sag er ny sag og «Slet alt», og
+der kommer ikke en tredje. **Genåbn ikke.**
+
+**Opfølgende spørgsmål 2 (rejst ved gennemgangen, tidligere under «Åbne spørgsmål»).** **Bør de fire
+bokse sige, hvornår deres indhold virker?** Fladen rummer i dag tre forskellige
+tidspunkter for virkning: straks («System», «Kontrol»), straks på den åbne sag men kun for
+validering («Beregningsteknisk»), og først ved næste nye sag («Standardværdier»). De tre er
+umulige at skelne fra rækkerne selv. Skal hver boks have én linje, der siger hvornår – eller er
+det at fylde fladen med tekst for en forskel, de færreste støder på?
+
+**Tilbagemelding**
+Nej, de følger den forventelige og mest naturlige adfærd, som brugeren vil regne med.
+
+**Afgjort 2026-08-18 – LUKKET.** Ingen forklarende linjer i nogen af de fire bokse. Sammen med
+BB-023 lukker dette hele «fladen bør sige hvornår»-sporet. Fundene fra en senere flade skal derfor
+ikke foreslå forklarende tekst om tidspunktet for en indstillings virkning.
+
 ### BB-024 – Farvetemaet kan ikke stilles tilbage til at følge computeren
 
 - **Type:** Fornuft
@@ -337,6 +367,57 @@ grænsen som variabel og dermed lover en form, den ikke kan udfylde for én af s
 rækken faktisk kan ses. Registreret som dækningshul frem for som fund, da jeg ikke har set rækken
 i en kørende sag.
 
+**Opfølgning 2026-10-30 (fra `erstatningsopgoerelse-12m.md` §«Efterfølgende rettelser»):** rækken «Reguleringsværdi
+på … slut-dato for TAF» siger nu «Ja (sidste værdi under N måneder før)» i stedet for kun «(< N måneder)» – ren
+ordlyd, status og beregning uændrede. Fortsat ikke målt i browseren; kræver en overenskomst-, KRL-, KL- eller
+statistiksag, hvis sidste sats ligger kort før TAF-slutdatoen.
+
+### BB-036 – «Nulstil» får browserens sorte fokusramme
+
+- **Type:** Fornuft (udviklerens eget fund)
+- **Rækkevidde:** Mønster – se «Andre steder» nedenfor
+- **Prioritet:** Lav
+- **Beslutning:** Gennemført 2026-08-18
+
+**Udviklerens fund (tidligere afsnittet «Mit eget supplerende fund»):**
+Når 'nulstil' får fokus, ser det ikke kønt ud. der kommer en sort boks rundt om selve teksten - det afviger fra resten af sidens hover-effekt og er ikke særlig elegang. jeg kunne godt tænke mig en hover-effekt, der er bedre i tråd med resten af programmet. måske en grå cirkel eller en grå firkant eller noget helt tredje.
+
+- **Det sker (målt):** Knappen havde ingen fokus-styling og fik derfor browserens standard:
+  `outline: rgb(16,16,16) auto` med `border-radius: 0` – en skarp, næsten sort firkant tæt om
+  bogstaverne. Naboknappen «Vælg mappe» er en rund MUI-IconButton uden outline, og programmets
+  øvrige fokusmarkering (`.auth-login-button`) er en primærfarvet ramme med luft omkring. «Nulstil»
+  lignede altså hverken sin nabo eller resten af programmet.
+- **Præcisering af fundet:** det er **fokus**, ikke hover, der ser forkert ud. Hover-effekten
+  findes allerede (understregning + primærfarve) og er uændret. Rammen kommer kun frem ved
+  tastaturnavigation – eller ved klik, hvis man ikke skelner; se `:focus-visible` nedenfor.
+- **Gennemført:** ny fælles klasse `.text-action-button` i `layout.css` – en **udfyldt, afrundet
+  flade uden ring**, med samme tone som det aktive menupunkt i sidemenuen
+  (`--color-active-bg-hover`). Ingen outline overhovedet.
+
+  **To forsøg undervejs; begge forkastet efter at være set i browseren:**
+
+  1. *Primærfarvet ring* (som Log ind-knappen). Afvist af udvikleren: den så «fjollet og forkert»
+     ud. Grunden er reel – login-siden står uden for app-shellen og har sit eget udtryk, så dens
+     fokusramme er ikke sidernes sprog. Inde i programmet lagde ringen en form oven på et element,
+     der ellers ingen form har.
+  2. *Neutral grå flade* (`--color-hover`). Målt til at være reelt usynlig: knappen ligger inde i
+     en række, der **selv** toner sig grå ved hover, så grå på grå forsvandt bag understregningen.
+     En fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
+
+  Den valgte tone er programmets egen «dette element er aktivt nu»-farve og findes i begge temaer:
+  `rgba(25,118,210,0.12)` i lyst, `rgba(144,202,249,0.18)` i mørkt – begge efterprøvet visuelt.
+  Padding giver fladen plads at være i; en modsvarende negativ margin gør, at naboerne ikke
+  flytter sig, når fokus rammer.
+- **`:focus-visible` frem for `:focus`:** en museklikker skal ikke se en fokusramme, kun
+  tastaturbrugeren. Det er også grunden til, at rammen ikke er en «hover-effekt» – de to tilstande
+  skal ikke se ens ud.
+- **Andre steder det kan gælde (ikke rettet):** samme mangel findes på alle tekstbaserede knapper,
+  dvs. de øvrige elementer med `data-mineo-focusable-button` som ikke er MUI-IconButtons.
+  Konkrete kandidater: `InlineActionButton`, `LazyChunkRecoveryNotice`, `Overlay`'s knap,
+  `SpecifikationDownloadBox`. Klassen er lavet fælles, så de kan tage den, men jeg har kun sat den
+  på «Nulstil» – resten bør efterprøves visuelt på deres egne flader frem for at blive ændret
+  usete.
+
 ## Overvejet uden fund
 
 - **Alle tyve kontroller kan nås med Tab, i den rækkefølge de står visuelt** – målt hele vejen
@@ -383,80 +464,9 @@ i en kørende sag.
 - **Teksten `(< N måneder)` på EO-kontrolfanen er ikke set i en kørende sag.** Fra BB-029's
   afgørelse: ved grænsen `0` kan den gren aldrig nås, så teksten `(< 0 måneder)` er uopnåelig.
   Udfaldet er korrekt, men formuleringen lover en form, den ikke kan udfylde for én af sine tretten
-  værdier. Efterprøv den, når flade 12 (EO-kontrol) gennemgås – ikke som et fund herfra.
+  værdier. Efterprøv den, når flade 12 (EO-kontrol) gennemgås – ikke som et fund herfra. (Ordlyden er
+  ændret 2026-10-30, men rækken er fortsat ikke set; se opfølgningen under BB-029.)
 
 ## Åbne spørgsmål
 
-1. **Skal «Standardværdier» kunne anvendes på den åbne sag?** BB-023 foreslår kun en forklarende
-   linje, fordi kontrakten er entydig: defaults må aldrig overskrive en igangværende sag. Men det
-   efterlader et reelt behov ubesvaret – brugeren, der opdager midt i en sag, at han vil have
-   underskrift-linje i stedet for godkendelse, skal rette feltet manuelt inde i sagen. Er det den
-   rigtige arbejdsgang, eller mangler der en «anvend på denne sag også»-mulighed? Spørgsmålet er
-   rent brugervendt; kontraktens forbud gælder det automatiske, ikke det brugeren udtrykkeligt beder om.
-
-**Tilbagemelding**
-Nej, aldrig. Standardværdier er kun for nye sager og efter 'Slet alt'.
-
-**Afgjort 2026-08-18 – LUKKET.** Ingen «anvend på denne sag også»-mulighed, hverken automatisk eller
-som en handling brugeren beder om. Kontraktens forbud i `app-settings.md` er dermed ikke kun teknisk
-begrundet, men også den ønskede brugeradfærd: de to veje ind i en sag er ny sag og «Slet alt», og
-der kommer ikke en tredje. **Genåbn ikke.**
-
-2. **Bør de fire bokse sige, hvornår deres indhold virker?** Fladen rummer i dag tre forskellige
-   tidspunkter for virkning: straks («System», «Kontrol»), straks på den åbne sag men kun for
-   validering («Beregningsteknisk»), og først ved næste nye sag («Standardværdier»). De tre er
-   umulige at skelne fra rækkerne selv. Skal hver boks have én linje, der siger hvornår – eller er
-   det at fylde fladen med tekst for en forskel, de færreste støder på?
-
-**Tilbagemelding**
-Nej, de følger den forventelige og mest naturlige adfærd, som brugeren vil regne med.
-
-**Afgjort 2026-08-18 – LUKKET.** Ingen forklarende linjer i nogen af de fire bokse. Sammen med
-BB-023 lukker dette hele «fladen bør sige hvornår»-sporet. Fundene fra en senere flade skal derfor
-ikke foreslå forklarende tekst om tidspunktet for en indstillings virkning.
-
-## Mit eget supplerende fund
-
-Når 'nulstil' får fokus, ser det ikke kønt ud. der kommer en sort boks rundt om selve teksten - det afviger fra resten af sidens hover-effekt og er ikke særlig elegang. jeg kunne godt tænke mig en hover-effekt, der er bedre i tråd med resten af programmet. måske en grå cirkel eller en grå firkant eller noget helt tredje.
-
-### BB-036 – «Nulstil» får browserens sorte fokusramme
-
-- **Type:** Fornuft (udviklerens eget fund)
-- **Rækkevidde:** Mønster – se «Andre steder» nedenfor
-- **Prioritet:** Lav
-- **Beslutning:** Gennemført 2026-08-18
-- **Det sker (målt):** Knappen havde ingen fokus-styling og fik derfor browserens standard:
-  `outline: rgb(16,16,16) auto` med `border-radius: 0` – en skarp, næsten sort firkant tæt om
-  bogstaverne. Naboknappen «Vælg mappe» er en rund MUI-IconButton uden outline, og programmets
-  øvrige fokusmarkering (`.auth-login-button`) er en primærfarvet ramme med luft omkring. «Nulstil»
-  lignede altså hverken sin nabo eller resten af programmet.
-- **Præcisering af fundet:** det er **fokus**, ikke hover, der ser forkert ud. Hover-effekten
-  findes allerede (understregning + primærfarve) og er uændret. Rammen kommer kun frem ved
-  tastaturnavigation – eller ved klik, hvis man ikke skelner; se `:focus-visible` nedenfor.
-- **Gennemført:** ny fælles klasse `.text-action-button` i `layout.css` – en **udfyldt, afrundet
-  flade uden ring**, med samme tone som det aktive menupunkt i sidemenuen
-  (`--color-active-bg-hover`). Ingen outline overhovedet.
-
-  **To forsøg undervejs; begge forkastet efter at være set i browseren:**
-
-  1. *Primærfarvet ring* (som Log ind-knappen). Afvist af udvikleren: den så «fjollet og forkert»
-     ud. Grunden er reel – login-siden står uden for app-shellen og har sit eget udtryk, så dens
-     fokusramme er ikke sidernes sprog. Inde i programmet lagde ringen en form oven på et element,
-     der ellers ingen form har.
-  2. *Neutral grå flade* (`--color-hover`). Målt til at være reelt usynlig: knappen ligger inde i
-     en række, der **selv** toner sig grå ved hover, så grå på grå forsvandt bag understregningen.
-     En fokusmarkering, tastaturbrugeren ikke kan se, er ingen markering.
-
-  Den valgte tone er programmets egen «dette element er aktivt nu»-farve og findes i begge temaer:
-  `rgba(25,118,210,0.12)` i lyst, `rgba(144,202,249,0.18)` i mørkt – begge efterprøvet visuelt.
-  Padding giver fladen plads at være i; en modsvarende negativ margin gør, at naboerne ikke
-  flytter sig, når fokus rammer.
-- **`:focus-visible` frem for `:focus`:** en museklikker skal ikke se en fokusramme, kun
-  tastaturbrugeren. Det er også grunden til, at rammen ikke er en «hover-effekt» – de to tilstande
-  skal ikke se ens ud.
-- **Andre steder det kan gælde (ikke rettet):** samme mangel findes på alle tekstbaserede knapper,
-  dvs. de øvrige elementer med `data-mineo-focusable-button` som ikke er MUI-IconButtons.
-  Konkrete kandidater: `InlineActionButton`, `LazyChunkRecoveryNotice`, `Overlay`'s knap,
-  `SpecifikationDownloadBox`. Klassen er lavet fælles, så de kan tage den, men jeg har kun sat den
-  på «Nulstil» – resten bør efterprøves visuelt på deres egne flader frem for at blive ændret
-  usete.
+**Ingen.** Fladens to spørgsmål er besvaret og lukket 2026-08-18; de står som opfølgende spørgsmål under BB-023.

@@ -18,7 +18,7 @@ import { useAarsloenVm } from './aarsloenContext';
  * download-blokeringens celle-flash bruger den.
  */
 const AarsloenIndtaegtSection = React.memo(() => {
-  const { fields, locations, tabelRef, tableLocationNav, tableSatser, values, tableCellWarnings } = useAarsloenVm();
+  const { fields, locations, tabelRef, tableLocationNav, tableSatser, values, tableCellWarnings, feriePctMangler } = useAarsloenVm();
 
   return (
     <ContentBox className="content-box">
@@ -45,6 +45,7 @@ const AarsloenIndtaegtSection = React.memo(() => {
         locationNav={tableLocationNav}
         tillaegAngivesSom={resolveAarsloenTillaegsMode(values.tillaegAngivesSom)}
         satser={tableSatser}
+        paakraevetSatsMangler={feriePctMangler}
         useSmallFont={true}
         saveOrderPath="aarsloen.tableData"
         cellWarnings={tableCellWarnings}

@@ -49,6 +49,5 @@ describe('td020EfterloenDownstreamIndependent', () => {
     ]);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[3]]).toBe(false);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

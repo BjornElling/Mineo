@@ -32,7 +32,6 @@ const makeModel = (patch: Partial<EOInspektionModel>): EOInspektionModel => {
     columns: [],
     rows: [],
     tableWidthPx: 1200,
-    integrityIssues: [],
     tableData: {
       dates: [],
       weekdayIndexByRow: [],

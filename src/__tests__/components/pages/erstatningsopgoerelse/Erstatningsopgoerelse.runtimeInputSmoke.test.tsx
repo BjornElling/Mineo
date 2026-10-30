@@ -164,11 +164,14 @@ describe('Erstatningsopgørelse – alle faner monteres uden runtimefejl', () =>
     expect(await renderAllTabs(stamdata, ukendtOrganisationIFilteret('ALLE', 'ALLE'))).toEqual([]);
   }, 60_000);
 
+  // De genererede sager er filens tungeste (seed 13: ~6 s isoleret, ~11 s under coverage). I den fulde, parallelle
+  // coverage-gate er de målt over 60 s på samme commit, som består isoleret – en load-afhængig `testTimeout`, ikke en
+  // defekt (se vandrende timeouts i gaten). Grænsen er derfor hævet for netop dem.
   it.each([
     ...[3, 11, 17, 29].map((seed) => ['tilfaeldig', seed] as const),
     ...[2, 7, 13, 31].map((seed) => ['sammenhaengende', seed] as const),
   ])('monterer en genereret sag (%s, seed %i)', async (mode, seed) => {
     const generated = generateEoCase(seed, mode);
     expect(await renderAllTabs(generated.stamdata, generated.erstatningsopgoerelse)).toEqual([]);
-  }, 60_000);
+  }, 180_000);
 });

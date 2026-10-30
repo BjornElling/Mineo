@@ -29,7 +29,7 @@ import {
   formatReguleringsdatoUdenOverenskomstSatserBesked,
   resolvePrivatOverenskomstDaekning,
 } from '../loen/overenskomstSatser';
-import { hasIndtastetLoenoplysninger } from '../erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../standardLoen/loenoplysningerInput';
 import { TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserStatusRows } from './eoRowIndkomstModel';
 import { buildLoenindkomstTableLines } from './eoRowLoenindkomstTableLines';

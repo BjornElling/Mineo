@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Prioritet:** Sideordnet de øvrige tværgående kontrakter. Begrænser enhver domænekontrakt, der producerer
 brugervendt tekst om ferieydelser – herunder `aarsloen-contract.md` og erstatningsopgørelsens kontrakter.
-**Senest verificeret mod kode:** 2026-10-06 (§2b: feriesatsens krav og grænser på erstatningsopgørelsens ansættelsesforhold)
+**Senest verificeret mod kode:** 2026-10-30 (§2c: ét feriesatskrav for Årsløn og erstatningsopgørelsen)
 
 ---
 
@@ -68,6 +68,22 @@ Gælder «Feriegodtgørelse/-tillæg» på et ansættelsesforhold under Lønindk
    usædvanligt – kontrollér satsen» (BB-286).
 5. I beløb-tilstand er procentfeltet skjult og hverken påkrævet eller markeret.
 
+### 2c. Ét krav for begge lønflader (udviklerbeslutning 2026-10-30, M-37)
+
+Om satsen er påkrævet, afgøres ÉT sted for både Årsløn og erstatningsopgørelsens ansættelsesforhold:
+`erFeriePctPaakraevet` i `src/domain/loen/feriePctKrav.ts`. De to flader skal følges ad, så en ændret forudsætning ændres
+begge steder. Satsen er påkrævet, når
+
+1. satserne er i brug (tillæggene angives i procent, ikke som beløb),
+2. løntabellen har indtastede beløb (`hasIndtastetLoenoplysninger`, `src/domain/standardLoen/loenoplysningerInput.ts`), og
+3. satsen OPGØRES som feriegodtgørelse.
+
+Led 3 er den eneste bevidste forskel og gives som argument. Erstatningsopgørelsen opgør altid satsen som feriegodtgørelse
+(regel 3), så dér er kravet ubetinget. Årsløn regner med den faktiske ydelse: ved «Fuld løn under ferie» er satsen
+ferietillægget, og feltet må stå tomt. Er valget skjult, tæller det som sin standardværdi (fuld løn). Manglen meldes
+ens på begge flader – uden rød ring – med `FERIE_PCT_MANGLER_BESKED` («Feriegodtgørelse/-tillæg er ikke udfyldt») og
+blokerer. Grænserne for en INDTASTET værdi er fortsat fladernes egne (§2b pkt. 3 gælder kun erstatningsopgørelsen).
+
 ---
 
 ## 3. Autoritative kilder
@@ -90,6 +106,8 @@ Gælder «Feriegodtgørelse/-tillæg» på et ansættelsesforhold under Lønindk
 - `src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatsAssessment.test.ts` – hævder regel 2-3 i
   vejledningsteksten ved fuld løn under ferie: ydelsen er ferietillæg, som blot OPGØRES som
   feriegodtgørelse.
+- `src/__tests__/domain/loen/feriePctKrav.test.ts` – hævder §2c: erstatningsopgørelsens krav er den fælles regel, og
+  begge flader skriver samme linje. `src/__tests__/domain/aarsloen/aarsloenProjection.test.ts` hævder Årsløns tilstande.
 - `src/__tests__/domain/erstatningsopgoerelse/reguleringsPresentation.test.ts` – hævder
   reguleringstabellernes kolonneoverskrift for feriesatsen.
 

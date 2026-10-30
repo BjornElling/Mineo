@@ -543,10 +543,25 @@ Ordvalget i denne forklaringstekst er bevidst ikke fastlåst til én kanonisk s�
 
 Hvis der fortsat beregnes SFGG for et ansættelsesforhold 6 måneder efter sidste registrerede lønindkomst, skal der vises én samlet advarsel pr. ansættelsesforhold.
 
+**Formål og alvor (udvikleren 2026-10-30).** Fortsætter brugeren ukritisk med at opgøre sygeferiegodtgørelse længe
+efter, at skadelidtes tilknytning til arbejdsgiveren er ophørt, kan det give alvorlige fejlberegninger. Advarslen skal
+derfor gives, men kun i det omfang den afspejler, at der ikke længere er nogen form for lønydelse fra arbejdsgiveren:
+de 6 måneder regnes fra udløbet af den seneste lønperiode fra arbejdsgiveren. Advarslen er gul og ikke-blokerende.
+
+- **Lønydelse fra arbejdsgiveren** er enhver lønrække med et positivt beløb i lønkolonnerne (løn, sygeløn og løn efter
+  ophør indtastes alle som lønrækker) og – i Beløb-tilstand, hvor de er indtastede beløb – også i «FP/FV/SH/SO/St.B.»
+  eller «Arb.g. Pension». I Procent-tilstand er de to afledt af lønkolonnerne og tæller ikke selvstændigt.
+- **Uden nogen registreret lønydelse** regnes de 6 måneder fra sygeferiegodtgørelsens første dag, og teksten udelader
+  datoen.
+- Afgrænsningen gælder kun advarslen; hvilke dage der beregnes SFGG for, er uændret.
+
 Advarselsteksten er den samme på kortet (med gul markering) og i «Fejl og advarsler», hvor linket fører til togglen
 «Opsagt fra stillingen» (BB-325):
 
 `Der er ikke registreret løn fra <ansættelsesforhold> efter dd-mm-åååå. Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da.`
+
+Uden registreret lønydelse: `Der er ikke registreret løn fra <ansættelsesforhold>. Er skadelidte opsagt, …` (resten
+som ovenfor).
 
 #### 9.4. Advarsel om en gammel referenceperiode ved manuel regulering
 

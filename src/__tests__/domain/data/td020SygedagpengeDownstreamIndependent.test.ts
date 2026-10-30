@@ -51,6 +51,5 @@ describe('DATA-001/TD-020 – sygedagpenge som downstream-consumer', () => {
     ]);
     expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[2]]).toBe(true);
     expect(model.tableData.isSognehelligdagByIndex[relevantIndexes[3]]).toBe(true);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

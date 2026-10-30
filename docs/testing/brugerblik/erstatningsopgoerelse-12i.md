@@ -7,7 +7,7 @@
   tre dokumenter (Regulering, KRL Satstabeller, KL-lønaftaler), opgørelsens bilag «Regulering» og afsnittet «Forventet
   indkomst», samt løntrin-finderen («Find løntrin»), prøvet fra begge indgange.
 - Gennemgået: 2026-10-20 · commit `1e5fe24a` · **afgjort og gennemført 2026-10-23** (18 af 19 fund gennemført, BB-312
-  afvist); de fire tillægsspørgsmål (BB-301, BB-306, BB-312, BB-313) er besvaret og gennemført samme dag – ingen åbne
+  afvist); de fire tillægsspørgsmål (BB-301, BB-306, BB-312, BB-313) er besvaret og gennemført samme dag – ingen åbne.
 - Afprøvet i: Chrome headless, lyst tema, 1536×864 (M-09 desuden 1244×620), mod e2e-buildet. Sager indlæst gennem «Hent»
   (krypteret `.eo` bygget til formålet, `persistedDataVersion` 3.15), valg foretaget gennem brugerfladen, hvor overgangen
   selv var genstand for prøven. Dokumenter hentet som `.pdf` og læst som tekst; feltfejl aflæst gennem
@@ -54,6 +54,7 @@ prøvet her efter 12f's henvisning.
 - **Beslutning:** **GODKENDT** af udvikleren 2026-10-23. **GENNEMFØRT** 2026-10-23: «Ansættelse» er et påkrævet valg med
   Månedsløn som standard (som «Løn på helligdage»). Et valg af «Månedsløn» gemmes som Månedsløn, linjen «Ansættelse er ikke
   valgt» findes ikke længere, og en ældre fil med et tomt felt indlæses som Månedsløn – det, feltet hele tiden viste.
+  Den ændrede indlæste værdi er udtrykkeligt godkendt 2026-10-30 (se nederst).
 - **Sådan fremprovokeres det:**
   1. EO oplysninger: «Beregnes ud fra» Angivet månedsløn `30.000`. «Lønudvikling beregnes ud fra» Overenskomst, «Vælg
      overenskomst» KL-overenskomsten. Gå til Beregning.
@@ -85,6 +86,19 @@ tomt (enten fra før feltet fandtes, eller fordi brugeren valgte «Timeløn» og
 «Månedsløn» valgt. Skærmen viste allerede «Månedsløn» i de sager, så brugeren ser intet nyt – men opgørelsen, som før var
 spærret med «Ansættelse er ikke valgt», kan nu hentes og regnes som månedsløn. Jeg har læst din tilbagemelding (feltet må
 aldrig være tomt, Månedsløn er standard) som en godkendelse af netop det. Sig til, hvis ikke.
+
+**Forelagt igen 2026-10-30** (gennemgangen af åbne punkter): godkendelsen af den ændrede indlæste værdi var ikke
+udtrykkelig, og en ændret indlæst værdi i en tidligere gemt `.eo`-fil er en særskilt godkendelsesgate. Valgene var A)
+godkend som det er, eller B) en gul advarsel efter indlæsning i de berørte filer («Ansættelse er sat til Månedsløn –
+kontrollér»).
+
+**Tilbagemelding 2026-10-30**
+Vi går med A, godkend som det er.
+
+**Afgjort 2026-10-30:** ændringen af den indlæste værdi er hermed udtrykkeligt godkendt. En tidligere gemt `.eo`-fil med
+tom «Ansættelse» ved en offentlig overenskomst (KL/RLTN) indlæses som Månedsløn og kan hentes, hvor den før var spærret
+med «Ansættelse er ikke valgt». Ingen advarsel efter indlæsning og ingen kodeændring; gennemførelsen fra 2026-10-23 står
+uændret.
 
 ### BB-301 – Skjulte felter i lønudviklingen spærrer opgørelsen med et link til et felt, der ikke er på skærmen
 
@@ -121,7 +135,7 @@ aldrig være tomt, Månedsløn er standard) som en godkendelse af netop det. Sig
 **Tilbagemelding**
 Enig. Det er udtryk for endnu et eksempel på en gammel fejl, der burde være rettet konsekvent og alle steder - men ved en fejl ikke er rettet her. Undersøg bredt, om der er andre tilsvarende situationer, hvor skjulte indtastninger kan påvirke og blokere indtastninger, og ret dem konsekvent, og så vidt muligt gerne ved brug af den standardiserede løsning, som programmet allerede har for sådanne.
 
-**Modsvar (afventer udviklerens svar) – to steder, hvor et skjult felt stadig ændrer et tal**
+**Modsvar (besvaret 2026-10-23) – to steder, hvor et skjult felt stadig ændrer et tal**
 
 Den brede gennemgang fandt seks steder ud over lønudviklingen. Fire er rettet som ovenfor (sygeferiegodtgørelsen, hvor
 for mange fraværsdage nu også får rød ring på feltet; indtægtstabellens kolonner efter «Løn indtastes som» og «Tillæg
@@ -396,6 +410,7 @@ Enig, og undersøg gerne bredt, om der måtte være andre steder, hvor programme
   reguleringsdatoen; over resultaterne står «Lønsatser pr. 01-04-2018» (og «– de nyeste satser i programmet», når det er
   dem); ens beløb samles («Løntrin 50, alle grupper»); linjerne har hover og tooltip «Indsæt i programmet», og et klik (eller
   Enter/mellemrum) sætter løntrin og gruppe ind, lukker overlayet og sætter fokus i «Gruppe». Ét Ctrl+Z fortryder indsætningen.
+  Hukommelsen på EO oplysninger: afgjort og **GENNEMFØRT** 2026-10-30 (se nederst).
 - **Sådan fremprovokeres det:** Kort med KL-overenskomsten. «Find løntrin», Månedsløn `31.000`:
   1. Dato `01-06-2018` → Beregn. 2. Dato `01-06-2030` → Beregn. 3. `52.000`, dato `01-06-2024` → Beregn.
 - **Det sker:** 1 «Løntrin 38, gruppe 4 – 30.986,17 kr.» øverst; 2 «Løntrin 27, gruppe 0 – 30.981,50 kr.» – satserne fra
@@ -419,6 +434,19 @@ Enig. Måske en meningsfyldt løsning kunne være, at på satsfinderen får ræk
   «Gruppe», så brugeren selv vælger. Grupperne har samme løn på datoen, men programmet skal ikke gætte på én af dem.
 - «55+» kan ikke sættes ind (løntrinsfeltet tager 1–55) og har derfor ingen hover.
 - EO oplysninger husker fortsat ikke finderens felter mellem åbninger (Lønindkomst gør) – uændret.
+
+**Forelagt 2026-10-30** (gennemgangen af åbne punkter): forskellen var bevidst i koden, men aldrig forelagt. Valgene var
+A) husk på begge flader, eller B) behold forskellen.
+
+**Tilbagemelding 2026-10-30**
+vi går med A, og gør gerne sådan, at de to i det omfang det giver mening, er opsat ens og følges ad.
+
+**Gennemført 2026-10-30:** finderen husker beløb, dato og ansættelse mellem åbninger også på EO oplysninger, som på
+Lønindkomst – kun mens programmet er åbent, og `Slet alt` rydder det. De to indgange er nu opsat ens: finderen åbnes altid
+med én påkrævet nøgle, som både knappens fokus-restore og den huskede indtastning hænger på (Lønindkomst pr.
+ansættelsesforhold, EO oplysninger med sin ene nøgle). Der er ingen særgren tilbage for den ene flade. Ensretningen rettede
+samtidig en skjult skævhed: EO's knap var registreret under én nøgle, mens åbningen brugte en anden, så fokus-restoren
+ikke kendte knappen. Komponenttest: genåbning på EO oplysninger viser det indtastede beløb.
 
 ### BB-311 – To rækker med samme dato i de manuelle tabeller tages imod uden et ord – procentsatserne lægges oven i hinanden
 
@@ -474,7 +502,7 @@ Det er korrekt og ønskelig adfærd, at ved regulering er det en blokerende fejl
 **Tilbagemelding**
 Ikke enig. Felter i tabeller med manuel regulering/procentsats må ikke automatisk udfyldes, heller ikke feriegodtgørelse, selvom udvikling af procentsatsen er sjælden. Det vil dog ske en sjælden gang imellem. Du må gerne lave andre, sekundære forbedringer, men brugeren skal være tvunget til selv at indtaste de løbende reguleringer.
 
-**Spørgsmål (afventer udviklerens svar) – den grå «0,00 %» i en tom celle**
+**Spørgsmål (besvaret 2026-10-23) – den grå «0,00 %» i en tom celle**
 
 Den anden halvdel af fundet er ikke besvaret: en tom procentcelle viser en grå «0,00 %», der ligner en indtastet værdi, og
 linjen «Manuel regulering mangler: Feriegodtgørelse/-tillæg» peger på den. Jeg har ikke ændret den, fordi den grå
@@ -510,7 +538,7 @@ Det vil for en bruger være helt uforståeligt, hvis der bare står et procentte
 **Tilbagemelding**
 Enig.
 
-**Spørgsmål (afventer udviklerens svar) – «Evt. forhøjet grundløn udover løntrin»**
+**Spørgsmål (besvaret 2026-10-23) – «Evt. forhøjet grundløn udover løntrin»**
 
 Fundet nævnte også, at 500 kr. pr. time (80.165 kr. om måneden oven på en trinløn på 27.157 kr.) tages imod uden
 bemærkning, men foreslog ingen grænse. Jeg har derfor ikke indført en. Forslag: gul ring og linje, når den forhøjede

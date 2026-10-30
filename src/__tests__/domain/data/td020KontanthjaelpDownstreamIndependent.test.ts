@@ -49,6 +49,5 @@ describe('td020KontanthjaelpDownstreamIndependent', () => {
     ]);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[3]]).toBe(false);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1000);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

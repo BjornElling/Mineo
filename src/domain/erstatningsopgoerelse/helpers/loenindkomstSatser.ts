@@ -19,7 +19,7 @@ import { findLatestByDateKeyInSortedList } from '../engines/reguleringSeriesLook
 import { round2 } from '../../../utils/roundingShortcuts';
 import { generateLoenudviklingRowId, initialLoenudviklingManuelRow } from './eoRowInitialValues';
 import { harAktivOverenskomst } from '../../loen/aktivOverenskomst';
-import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../../standardLoen/loenoplysningerInput';
 
 import {
   resolveOverenskomstSatsBindings,

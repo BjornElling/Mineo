@@ -41,6 +41,7 @@ kandidat ved BB-240.
 - **Prioritet:** Mellem
 - **Beslutning:** Agent afgør – reglen er dokumenteret («Differencekrav-grænsen gælder altid»,
   `docs/domain/taf/tabt-arbejdsfortjeneste.md` §Clamping), og rød-celle-valideringen følger den allerede.
+  **GODKENDT** af udvikleren («Enig») og **GENNEMFØRT** 2026-09-24.
 - **Sådan fremprovokeres det:**
   1. TAF-periode `01-01-2024` – `30-06-2024`. «Evt. differencekrav opgjort per» `01-07-2024`.
   2. «Truffet afgørelse om endeligt erhvervsevnetab» Ja, dato `01-09-2024`.
@@ -85,7 +86,8 @@ før og efter differencekravet, påklaget). Kandidaterne i 12m (`eoInspektionSam
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal (placeringsspørgsmålet er det, udvikleren bad om at få undersøgt ved BB-233)
 - **Prioritet:** **Høj**
-- **Beslutning:** Afventer udvikleren (UI/UX og beregning)
+- **Beslutning:** **AFVIST** af udvikleren 2026-09-24 (opdelingen); opfølgningen om placering og papirets ene
+  EET-linje besvaret «som i dag» samme dag. **Lukket uden ændring.**
 - **Sådan fremprovokeres det:**
   1. Skadedato `01-06-2010` (før 16. juni 2011). TAF-periode `01-01-2024` – `31-12-2024`.
   2. Midlertidig EET-afgørelse Ja, dato `01-03-2023`. Endelig EET-afgørelse Ja, dato `01-09-2024`.
@@ -140,6 +142,8 @@ trykker fortsat kun én EET-linje som i dag. **Lukket uden ændring.**
 - **Beslutning:** Agent afgør – advarslens ordlyd er godkendt og uændret; det er dens udløser, der læser
   det forkerte prædikat. Fradragsreglen er dokumenteret som ubetinget («ingen 2011-grænse»,
   `tabt-arbejdsfortjeneste.md` §TAF-indtægter).
+  **DELVIST GODKENDT** af udvikleren 2026-09-24 (ikke-blokerende advarsel som systematisk mønster) og
+  **GENNEMFØRT** samme dag.
 - **Sådan fremprovokeres det:**
   1. Skadedato `01-06-2018`. TAF-periode `01-01-2024` – `31-12-2024`, ingen offentlige ydelser.
   2. «Truffet afgørelse om midlertidigt erhvervsevnetab» Ja, dato `01-03-2023`.
@@ -196,6 +200,7 @@ Test: `eoRowMidlertidigtEetKonsistensIndependent.test.ts`.
   udelader en oplysning, skærmen har)
 - **Prioritet:** Mellem
 - **Beslutning:** Agent afgør – konvergens mod BF-054, som udvikleren har afgjort for EET-afgørelserne.
+  **GODKENDT** af udvikleren («Enig») og **GENNEMFØRT** 2026-09-24.
 - **Sådan fremprovokeres det:**
   1. Svie/smerte-periode `01-01-2024` – `31-12-2024`. «Truffet afgørelse om varige mén» Nej. Hent.
   2. Slå den til uden at taste en dato. Hent igen. Slå derefter «Verserende klagesag over ménafgørelse?»
@@ -231,7 +236,8 @@ tilføje. Test: `eoPdfModel.test.ts` («trykker en ménafgørelse uden dato …�
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-05--ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier`
 - **Prioritet:** Mellem
-- **Beslutning:** Afventer udvikleren (ny advarsel)
+- **Beslutning:** **GODKENDT** af udvikleren 2026-09-24 efter genforelæggelse (gul advarsel) og **GENNEMFØRT**
+  samme dag; gælder også tidligere gemte `.eo`-filer (afgjort 2026-10-24).
 - **Sådan fremprovokeres det:** «Opgørelse lavet den» `01-02-2025`. «Dato for første ménafgørelse»
   `01-06-2025`. Hent opgørelsen.
 - **Det sker:** Feltet er neutralt (grænsen er dags dato), boksen er tavs, og papiret – dateret «1. februar
@@ -273,7 +279,8 @@ forblev aktiv. Hele ældre-filspec'et bestod 12/12.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02--beskeder-med-hardkodede-feltnavne` (BB-211/BB-224/BB-237's form)
 - **Prioritet:** Lav
-- **Beslutning:** Agent afgør (ren navnedublering, samme mekanik som BB-224's godkendte rettelse)
+- **Beslutning:** Agent afgør (ren navnedublering, samme mekanik som BB-224's godkendte rettelse).
+  **GODKENDT** af udvikleren («Enig») og **GENNEMFØRT** 2026-09-24.
 - **Sådan fremprovokeres det:** Tast en rød dato (`01-01-2017`) i hvert af sektionens datofelter efter tur
   og læs boksens linje og feltets tilgængelige navn.
 - **Det sker:**
@@ -311,7 +318,7 @@ differencekrav opgjort per» – og `buildEoAesRows` læser samme `label`. Mangl
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** Agent afgør
+- **Beslutning:** Agent afgør. **GODKENDT** af udvikleren («Enig») og **GENNEMFØRT** 2026-09-24.
 - **Sådan fremprovokeres det:** Skadedato `01-06-2010`. Midlertidig EET-afgørelse `01-03-2023`. TAF-periode
   `01-01-2024` – `31-12-2024`. Gå til Beregning.
 - **Det sker:** Begge celler er røde med hver sin korrekte tooltip. Boksen viser én linje med samme sætning
@@ -342,7 +349,7 @@ opdateret. Test: `tafPeriodeCutoffMessage.test.ts`.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-11--programmets-egne-påstande-om-sig-selv` (SAGEN-formen: en linje
   om sagen, hvor programmet kun kender sin egen afgrænsning)
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (ordlyd i dokumentet)
+- **Beslutning:** **GODKENDT** af udvikleren («Enig») og **GENNEMFØRT** 2026-09-24.
 - **Sådan fremprovokeres det:** «Evt. differencekrav opgjort per» `01-07-2024`, TAF til `30-06-2024`.
   Hent opgørelsen.
 - **Det sker:** Feltet spørger om den dato, differencekravet er opgjort **pr.** – beregningsdatoen, som
@@ -369,7 +376,7 @@ TAF-cellens besked er «Der er angivet tabt arbejdsfortjeneste efter den dato, d
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-05--ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier`
 - **Prioritet:** Lav
-- **Beslutning:** Afventer udvikleren (forudsætter en faglig afklaring, se forslaget)
+- **Beslutning:** **AFVIST** af udvikleren 2026-09-24. **Lukket uden ændring.**
 - **Sådan fremprovokeres det:** Begge EET-toggles Nej. «Evt. differencekrav opgjort per» `01-07-2024`. TAF
   til `30-06-2024`. Hent opgørelsen.
 - **Det sker:** Ingen advarsel. Papirets Status skriver i to linjer i træk: **«Der er opgjort differencekrav i

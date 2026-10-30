@@ -25,7 +25,7 @@ import {
 } from '../../domain/standardLoen/standardLoenTableValidation';
 import { getStandardLoenTableHeaderNodes } from './standardLoenTableHeaderNodes';
 import type { StandardLoenTableFieldSet } from '../../domain/standardLoen/standardLoenTableFieldSet';
-import { readStandardLoenTableRows } from '../../domain/standardLoen/standardLoenTableFieldSet';
+import { hasStandardLoenRowBeloebFejl, hasStandardLoenSatsFejl, readStandardLoenTableRows } from '../../domain/standardLoen/standardLoenTableFieldSet';
 import { serializeFieldAddress, type CollectionRef, type FieldAddress, type SerializedFieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldWarning } from '../../inputCore/fieldWarning';
 import { useInputEvaluation } from '../../inputCore/react';
@@ -90,6 +90,11 @@ export type StandardLoenTableProps = {
    * røde issue har forrang.
    */
   cellWarnings?: ReadonlyMap<SerializedFieldAddress, FieldWarning>;
+  /**
+   * En påkrævet sats er tom efter fladens egen kravregel (M-37: Årslønnens projektion, EO's satsvurdering). De
+   * afledte kolonner viser da «—» som sammentællingen (BB-099). Udeladt = ingen påkrævet sats mangler.
+   */
+  paakraevetSatsMangler?: boolean;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -107,7 +112,7 @@ const COL = {
 } as const;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, cellWarnings }, ref) => {
+  ({ fieldSet, loenperiode, satser, tillaegAngivesSom = 'procent', paakraevetSatsMangler = false, useSmallFont = false, saveOrderPath, calculateDerivedRow, locationNav, cellWarnings }, ref) => {
     const beloebMode = tillaegAngivesSom === 'beloeb';
     const evaluation = useInputEvaluation();
     const collection: CollectionRef = fieldSet.collection;
@@ -167,6 +172,23 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       storeBededagPct: satser?.bededag,
       pensionPct: satser?.pension,
     }), [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
+
+    // En rød sats skjules af readeren bag sin tomværdi, og en tom påkrævet sats er ukendt. Uden denne gren viste
+    // rækken et tal regnet med satsen som 0 % – ved siden af en sammentælling, der siger «kan ikke beregnes»
+    // (BB-099). Det samme gælder en rød beløbscelle i rækken selv. De afledte kolonner viser da samme «—» som
+    // sammentællingen; beløbene i Beløb-tilstand er brugerens egne og vises uændret.
+    const satsFejl = hasStandardLoenSatsFejl(evaluation.reader, fieldSet, tillaegAngivesSom, { paakraevetSatsMangler });
+    // Rækkerne med en rød beløbscelle afgøres én gang pr. revision – ikke pr. celle, sortering og render. Kun en
+    // committet række har celler i readeren; pladsholderrækken har intet at være rødt i.
+    const rowsWithBeloebFejl = React.useMemo(
+      () => new Set(Array.from(committedById.keys())
+        .filter((rowId) => hasStandardLoenRowBeloebFejl(evaluation.reader, fieldSet, rowId, tillaegAngivesSom))),
+      [committedById, evaluation.reader, fieldSet, tillaegAngivesSom]
+    );
+    const isDerivedUnknown = React.useCallback(
+      (rowId: string): boolean => satsFejl || rowsWithBeloebFejl.has(rowId),
+      [rowsWithBeloebFejl, satsFejl]
+    );
 
     const calculateRow = React.useCallback(
       (row: StandardLoenTableRow): { col6: number; col7: number; col8: number } => {
@@ -229,16 +251,16 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         colId: 'col-6',
         getSortValue: (row: StandardLoenTableRow) => beloebMode
           ? amountValueToNumber(resolveCommittedRow(row).fpFvShSoBeloeb)
-          : calculateRow(resolveCommittedRow(row)).col6,
+          : isDerivedUnknown(row.id) ? undefined : calculateRow(resolveCommittedRow(row)).col6,
       },
       {
         colId: 'col-7',
         getSortValue: (row: StandardLoenTableRow) => beloebMode
           ? amountValueToNumber(resolveCommittedRow(row).pensionBeloeb)
-          : calculateRow(resolveCommittedRow(row)).col7,
+          : isDerivedUnknown(row.id) ? undefined : calculateRow(resolveCommittedRow(row)).col7,
       },
-      { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
-    ], [beloebMode, calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
+      { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => (isDerivedUnknown(row.id) ? undefined : calculateRow(resolveCommittedRow(row)).col8) },
+    ], [beloebMode, calculateRow, isDerivedUnknown, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
     const persistSortedOrder = usePersistSortedCollectionOrder(collection);
 
     const { sortedRows: sortedCommittedRows, sortableHeader } = useSortedCollectionTable({
@@ -375,6 +397,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
             const rowId = renderRow.rowId;
             const committedRow = committedById.get(rowId) ?? fieldSet.createRow(rowId);
             const calculated = calculateRow(committedRow);
+            const derivedUnknown = isDerivedUnknown(rowId);
+            const formatDerivedKr = (value: number): string => (derivedUnknown ? '—' : formatKr(value, 2));
             const gc = (colIndex: number) => ({ rowId, colIndex });
 
             return (
@@ -473,7 +497,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   </td>;
                 })() : (
                   <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
-                    {formatKr(calculated.col6, 2)}
+                    {formatDerivedKr(calculated.col6)}
                   </td>
                 )}
 
@@ -490,7 +514,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   </td>;
                 })() : (
                   <td style={{ ...getStandardGridCellStyle({ align: 'right' }), padding: '4px', color: 'var(--mineo-color-active-grid-derived)' }}>
-                    {formatKr(calculated.col7, 2)}
+                    {formatDerivedKr(calculated.col7)}
                   </td>
                 )}
 
@@ -502,7 +526,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     color: 'var(--mineo-color-active-grid-derived)',
                   })}
                 >
-                  {formatKr(calculated.col8, 2)}
+                  {formatDerivedKr(calculated.col8)}
                   {renderRow.kind === 'existing' && (
                     <RowDeleteButton onDelete={() => table.removeRow(rowId)} />
                   )}

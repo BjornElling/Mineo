@@ -43,6 +43,5 @@ describe('CALC-006 – uafhængigt EOInspektion-periodefacit', () => {
     expect(amounts?.reduce((sum, value) => sum + value, 0)).toBe(300);
     expect(model.getCell(28, 'offentlig:sygedagpenge')).toBe('150,00');
     expect(model.getCell(29, 'offentlig:sygedagpenge')).toBe('150,00');
-    expect(model.integrityIssues).toEqual([]);
   });
 });

@@ -76,6 +76,12 @@ gennemgået – det hører i 12b/12c/12e.
 **Tilbagemelding**
 Jeg afviser fundet. Det er ikke et reelt problem. Brugeren skal kunne indtaste hvadend brugeren føler for i nummer-feltet, men vil stort set uden undtagelser bruge tal. Den primære konsekvens af at bruge tal er, at programmet kan genkende, når der i givet fald ikke er tale om første opgørelser, og da skjuler overflødige værdier, hvis brugeren har slået denne valgmulighed til. Hvis brugeren indtaster noget andet end tal, vil en tekstlinje alligevel ikke kunne gennemskue, hvad det indebærer, og dermed heller ikke bidrage med noget. Den nuværende løsning er uskadelig og fin.
 
+**Modsvar og endelig afgørelse – fladens åbne spørgsmål (1), afgjort 2026-09-17 (fra STATUS.md):**
+**Må «Nummer» afgøre, om sagen regnes som første opgørelse? JA** – udledningen beholdes uændret.
+Feltet skal kunne tage hvad brugeren vil; i praksis skrives tal, og en tekstlinje kan alligevel ikke
+gennemskue en fritekst. Udvikleren fastholdt svaret, da beregningskonsekvensen (`2` og `Nr. 2` giver
+forskellige beløb i samme sag) blev forelagt igen. BB-202 er dermed afvist, ikke udskudt.
+
 ### BB-203 – Ét tastetryk skjuler beregningsgrundlaget bag en toggle, brugeren aldrig så, og som kommer frem afkrydset
 
 - **Type:** Fornuft
@@ -273,6 +279,12 @@ Dato skal være mellem 01-06-2018 og 15-09-2026
 til
 Dato skal være mellem 01-06-2018 og dags dato (15-09-2026)
 
+**Gennemført 2026-09-17 (fra STATUS.md):** BB-208 bruger udviklerens egen ordlyd «… og dags dato
+(DD-MM-ÅÅÅÅ)» rullet ud overalt hvor loftet er dagen i dag. **BB-208 havde en dybere årsag end fundet
+beskrev:** dags dato-grenen blev genkendt på `origin.kind === 'static'`, så en skadedato-skærpet MIN-grænse
+slukkede MAX-sidens tekst. Grenen hviler nu på en eksplicit `maxBoundKind: 'dagsDato'`, og rettelsen
+rammer derfor også Stamdatas Fødselsdato og Skadedato.
+
 ### BB-209 – «Vedrører perioden» er den eneste dato på fladen uden bund i sagens egen skadedato
 
 - **Type:** Edge case
@@ -300,6 +312,11 @@ Dato skal være mellem 01-06-2018 og dags dato (15-09-2026)
 
 **Tilbagemelding**
 Enig, dog med den korrektion, at når skadestypen er erhvervssygdomme skal bunden følge det tilsvarende mønster for andre steder, hvor bunden gerne må være en dato før anmeldelsesdatoen - jeg mener det er et år før eller noget i den stil.
+
+**Fladens åbne spørgsmål (2), afgjort 2026-09-17 (fra STATUS.md):** **Må en opgørelse vedrøre en periode
+FØR skadedatoen? NEJ** – begge periodefelter bruger nu samme spec som fladens øvrige otte datoer, hvilket
+efter udviklerens korrektion også giver dem erhvervssygdoms-reglen (anmeldelsesdato minus 5 år) i stedet
+for en ny, parallel regel (BB-209). Se BB-334 nedenfor for virkningen på tidligere gemte filer.
 
 ### BB-334 – En gammel sag med periode før skaden indlæses, men kan ikke længere hentes
 
@@ -513,6 +530,10 @@ Enig
 **Tilbagemelding**
 Enig
 
+**Fladens åbne spørgsmål (3), afgjort 2026-09-17 (fra STATUS.md):** **Må en opgørelse uden et eneste krav
+hentes tavst? NEJ, men den må stadig hentes** – en bevidst nulopgørelse er et legitimt produkt, så
+advarslen er ikke-blokerende (BB-215).
+
 ### BB-216 – M-27 bekræftet på 12a: en rød Skadedato slukker «Opgørelse lavet den»s egen regel
 
 - **Type:** Edge case
@@ -603,7 +624,10 @@ Enig
 
 ## Åbne spørgsmål
 
-De tre oprindelige spørgsmål er afgjort 2026-09-17: BB-202 afvist; BB-209 afgjort som nej til en periode før skaden, med erhvervssygdomsgrænsen fra anmeldelsesdato minus fem år; BB-215 godkendt som en ikke-blokerende advarsel. BB-334 og BB-335 blev godkendt 2026-10-24: de nye fejl gælder også allerede gemte filer, uden en ny load-advarsel.
+Ingen. De tre oprindelige spørgsmål er afgjort 2026-09-17 og står under de fund, de vedrører: BB-202
+afvist; BB-209 afgjort som nej til en periode før skaden, med erhvervssygdomsgrænsen fra anmeldelsesdato
+minus fem år; BB-215 godkendt som en ikke-blokerende advarsel. BB-334 og BB-335 blev godkendt 2026-10-24:
+de nye fejl gælder også allerede gemte filer, uden en ny load-advarsel – se de to fund.
 
 ## Retrospektiv dækningskontrol mod Brugerblik-skillen (2026-10-24)
 

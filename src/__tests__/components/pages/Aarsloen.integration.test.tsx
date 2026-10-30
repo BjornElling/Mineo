@@ -154,6 +154,80 @@ describe('Årsløn – siden og løntabellen over grid-adapteren', () => {
     expect(screen.getByText('Sammentælling af løn fra tabellen:').parentElement?.textContent).toContain('—');
   });
 
+  it('en rød sats giver «—» i rækkens afledte kolonner, ikke et tal regnet med satsen som 0 % (BB-099)', () => {
+    // Før viste rækken «0,00 kr.» / «1.000,00 kr.» ved siden af sammentællingens «—» – et forkert resultat,
+    // ikke et fravær. Løn-kolonnerne er brugerens egne og vises uændret.
+    hydrateAarsloen({
+      loenperiode: 'maaned',
+      feriePct: 150,
+      pensionPct: 10,
+      tableData: [
+        { id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: amount(1000) } as StandardLoenTableRow,
+      ],
+    });
+    renderAarsloen();
+    const cells = getDataRowCells(0);
+    expect(cells[6]?.textContent).toBe('—');
+    expect(cells[7]?.textContent).toBe('—');
+    expect(cells[8]?.textContent).toBe('—');
+    expect(screen.getByText('Sammentælling af løn fra tabellen:').parentElement?.textContent).toContain('—');
+  });
+
+  it('en tom, påkrævet feriesats giver «—» i rækkens afledte kolonner som i sammentællingen (BB-099, M-37)', () => {
+    // Kravet er den fælles feriesatsregel: satserne er i brug, tabellen har beløb, og «Fuld løn under ferie» er
+    // fra. Rækken må ikke vise et tal regnet med satsen som 0 %, mens gaten siger, at feltet mangler.
+    hydrateAarsloen({
+      loenperiode: 'maaned',
+      omregningTilFuldtAar: true,
+      fuldLoenUnderFerie: false,
+      pensionPct: 10,
+      tableData: [
+        { id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: amount(1000) } as StandardLoenTableRow,
+      ],
+    });
+    renderAarsloen();
+    const cells = getDataRowCells(0);
+    expect(cells[6]?.textContent).toBe('—');
+    expect(cells[7]?.textContent).toBe('—');
+    expect(cells[8]?.textContent).toBe('—');
+    expect(screen.getByText('Sammentælling af løn fra tabellen:').parentElement?.textContent).toContain('—');
+  });
+
+  it('en rød beløbscelle giver «—» i netop den rækkes afledte kolonner; naborækken regnes uændret (BB-099)', () => {
+    hydrateAarsloen({
+      loenperiode: 'maaned',
+      feriePct: 10,
+      tableData: [
+        { id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: amount(1000), col3: amount(20_000_000) } as StandardLoenTableRow,
+        { id: 'r2', col0_maaned: '2', col1_maaned: '2024', col2: amount(1000) } as StandardLoenTableRow,
+      ],
+    });
+    renderAarsloen();
+    const rows = screen.getAllByRole('row').slice(1);
+    const rowFor = (rowId: string): HTMLElement[] => {
+      const row = rows.find((candidate) => candidate.getAttribute('data-mineo-row-id') === rowId);
+      if (row === undefined) throw new Error(`række ${rowId} mangler`);
+      return within(row).getAllByRole('cell');
+    };
+    expect(rowFor('r1')[6]?.textContent).toBe('—');
+    expect(rowFor('r1')[8]?.textContent).toBe('—');
+    expect(rowFor('r2')[6]?.textContent).toContain('100,00');
+    expect(rowFor('r2')[8]?.textContent).toContain('1.100,00');
+  });
+
+  it('i Beløb-tilstand læses satserne ikke, så en rød sats ændrer ikke rækkens beløb (BB-099)', () => {
+    hydrateAarsloen({
+      loenperiode: 'maaned',
+      tillaegAngivesSom: 'beloeb',
+      feriePct: 150,
+      tableData: [
+        { id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: amount(1000), fpFvShSoBeloeb: amount(100) } as StandardLoenTableRow,
+      ],
+    });
+    renderAarsloen();
+    expect(getDataRowCells(0)[8]?.textContent).toContain('1.100,00');
+  });
+
   // ── «Fejl og advarsler»-boksen: findes KUN med indhold (afløste «Kritisk Fejl», BB-350) ────────────────────
   //
   // Regression: boksen stod permanent øverst på siden og var TOM. Viewmodellen skrev `?? []` på et

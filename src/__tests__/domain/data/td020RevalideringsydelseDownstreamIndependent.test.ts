@@ -51,6 +51,5 @@ describe('DATA-001/CALC-006/TD-020 – revalideringsydelse som EO-downstream-con
     ]);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[3]]).toBe(false);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(2000);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

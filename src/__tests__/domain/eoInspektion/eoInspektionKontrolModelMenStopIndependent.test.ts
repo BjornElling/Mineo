@@ -3,6 +3,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
+import { resolveSvieSmerteCutoffDate } from '../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
 
 const iso = (value: string): ISODateString => toISODateString(value);
 
@@ -36,6 +37,20 @@ describe('EOInspektion – uafhængigt facit for mén-stop i S/S-tidslinjen', ()
 
     // Den rå S/S-periode fortsætter efter 03-05, men mén-afgørelsen stopper den.
     expect(statuses).toEqual(['Ja', 'Ja', 'Varige Mén', '-', '-']);
-    expect(model.integrityIssues).toEqual([]);
+  });
+
+  // Kontroltabellen skal håndhæve svie/smerte-motorens regel, ikke en egen kopi (eo-snapshot-contract.md §6.2).
+  // Matricen holder tabellens stopdato op mod motorens opslag for alle kombinationer af afgørelse og klage.
+  it.each([
+    { varigeMenAfgorelse: 'Ja', verserendeKlageMen: 'Nej' },
+    { varigeMenAfgorelse: 'Ja', verserendeKlageMen: 'Ja' },
+    { varigeMenAfgorelse: 'Nej', verserendeKlageMen: 'Nej' },
+    { varigeMenAfgorelse: 'Nej', verserendeKlageMen: 'Ja' },
+  ] as const)('stopper på samme dato som motoren: afgørelse $varigeMenAfgorelse, klage $verserendeKlageMen', (kombination) => {
+    const values: ErstatningsopgoerelseValues = { ...buildValues(), ...kombination };
+    const model = buildEOInspektionModel(values);
+    const rowIndex = model.tableData.dates.indexOf(iso('2024-05-03'));
+    const motorensStopdato = resolveSvieSmerteCutoffDate(values);
+    expect(model.getCell(rowIndex, 'base:ss_day')).toBe(motorensStopdato === iso('2024-05-03') ? 'Varige Mén' : 'Ja');
   });
 });

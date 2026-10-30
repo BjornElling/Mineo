@@ -113,6 +113,11 @@ beregningsperiode, fravær, lønindkomst). De skjules også, når beregningen ko
 indgår da stadig i beregningen – deres synlighed er altså ikke deres relevans, og de kræver hver sin regel.
 De hører til 12f–12j og bør gennemgås dér med samme mekanisme.
 
+**Følge for 12b (fra STATUS.md):** 12b's spørgsmål (a) og (b) – om validatoren skal læse de neutraliserede
+værdier, og hvilken form den strukturelle sikring efter BB-222's mandat skal have – er besvaret 2026-09-23 af
+denne tilbagemelding: udvikleren bad om én fælles løsning, og den er feltets `relevance` i inputkernen. Se
+BB-222 i [erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md).
+
 ### BB-229 – Én manglende dato giver to linjer med to alvorsgrader og to ordlyde
 
 - **Type:** Fornuft
@@ -262,7 +267,7 @@ Enig. Men tænk det for god ordens skyld gerne ind i en samlet løsning på alle
 - **Bedre ville være:** Når beskrivelse, dato og beløb ikke kan skelne gentagne fejl, tilføjes rækkens synlige placering, fx «Øvrigt krav 1» og «Øvrigt krav 2».
 - **Andre steder det kan gælde:** Lønindkomst og sygeferiegodtgørelse bruger også `messageOnly`-rækker. 12h og 12j afprøvede gentagne rækker og fandt ikke samme sammenfoldning.
 
-**Gennemført 2026-10-24 under BB-231's godkendelse:** `assessOevrigeKravRow` bærer nu de manglende felter, som både rækkebyggeren og validatoren bruger; validatoren har ikke længere en parallel tomheds-/mangelvurdering. Rækkebyggeren tilføjer først dato og beløb, derefter «Øvrigt krav N» hvis linjerne stadig ville være identiske. `eoRowOevrigeKravRowsIndependent.test.ts` verificerer to identiske beskeder, to rækkemærkater og hvert sit fokusmål; projektionstesten bevarer desuden fejlen for en delvis række med dato og ignorerer en faktisk tom trailing-række. En browsermåling efter rettelsen er ikke dokumenteret her.
+**Gennemført 2026-10-24 under BB-231's godkendelse:** `assessOevrigeKravRow` bærer nu de manglende felter, som både rækkebyggeren og validatoren bruger; validatoren har ikke længere en parallel tomheds-/mangelvurdering. Rækkebyggeren tilføjer først dato og beløb, derefter «Øvrigt krav N» hvis linjerne stadig ville være identiske. `eoRowOevrigeKravRowsIndependent.test.ts` verificerer to identiske beskeder, to rækkemærkater og hvert sit fokusmål; projektionstesten bevarer desuden fejlen for en delvis række med dato og ignorerer en faktisk tom trailing-række. En browsermåling efter rettelsen er ikke dokumenteret her. **Rettet i dokumentationen 2026-10-30:** browsermålingen er dokumenteret i den retrospektive kontrol nedenfor – to helt ens delvise rækker og særskilt link pr. række er bekræftet i Chrome desktop (øvrige-krav-spec 2/2, 2026-10-24).
 
 ### BB-232 – Et beløb på `0` tages imod af feltet, men spærrer opgørelsen med en besked, der ikke kan findes
 

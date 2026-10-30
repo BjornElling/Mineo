@@ -148,7 +148,11 @@ import {
 import { buildEoRuntimeExceptionSnapshot, computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
-import type { EetImportSource } from '../erhvervsevnetab/eetImportPort';
+import { resolveDelvistEndeligeKapitaliseringsdatoer, type EetImportSource } from '../erhvervsevnetab/eetImportPort';
+import {
+  resolveTafEfterKapitaliseringAdvarsler,
+  type TafEfterKapitaliseringAdvarsel,
+} from './validation/tafEfterKapitaliseringAdvarsel';
 import type { EoDependencyProjection } from './snapshot/eoDependencyProjection';
 import type { SvieSmerteCalculationValues } from './engines/svieSmerteEngine';
 import type { TafCalculationValues } from './engines/tafCalculationInput';
@@ -564,6 +568,12 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
    * projektionen ville spærre opgørelsen uden at farve en celle.
    */
   svieSmerteCellIssues: FieldIssueSet;
+  /**
+   * TAF efter kapitaliseringen af en delvist endelig EET-afgørelse (BB-187): de gule ringe i TAF-tabellen. Samme
+   * advarsler giver linjerne i «Fejl og advarsler» gennem snapshottet, så fanen og beregningen ikke kan svare
+   * forskelligt.
+   */
+  tafEfterKapitaliseringAdvarsler: readonly TafEfterKapitaliseringAdvarsel[];
   // EO-dokumenterne læser `stamdataValues`, mens blokeringen sker gennem snapshottets strukturelle
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
@@ -766,6 +776,13 @@ export const buildErstatningsopgoerelseReaderProjection = (
         )
         : undefined;
 
+    // Uafhængigt af togglen: en delvist endelig afgørelses kapitalisering giver kun en gul advarsel, når TAF
+    // fortsætter forbi den – aldrig en afskæring eller en anden beregning (§9 pkt. 11).
+    const tafEfterKapitaliseringAdvarsler = resolveTafEfterKapitaliseringAdvarsler(eoValues, {
+      skadedatoISO: stamdataValues.skadedato,
+      kapitaliseringsdatoer: resolveDelvistEndeligeKapitaliseringsdatoer(options?.midlertidigtEetInsertSource),
+    });
+
     // Dependency-gatingens autoritet: de STRUKTURELLE røde feltissues i EO-sektionen.
     // `eoErrors` ovenfor er en PRÆSENTATIONS-projektion med kun 11 top-level feltnavne + løn-aggregatet; den kan
     // ikke se en rød rækkecelle, og en gate bygget på den lod motoren regne på readerens maskerede tomværdi.
@@ -819,6 +836,9 @@ export const buildErstatningsopgoerelseReaderProjection = (
       eoErrors,
       dependencyProjection,
       ...(midlertidigtEetImportContext === undefined ? {} : { midlertidigtEetImportContext }),
+      ...(tafEfterKapitaliseringAdvarsler.length === 0
+        ? {}
+        : { tafEfterKapitaliseringIssues: tafEfterKapitaliseringAdvarsler.map((advarsel) => advarsel.issue) }),
     });
 
     return {
@@ -833,6 +853,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
       )),
       tafCellIssues: buildFieldIssueSet(tafCellIssueList),
       svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
+      tafEfterKapitaliseringAdvarsler,
       sourceToken: reader.sourceToken,
     };
   } catch (error) {
@@ -852,6 +873,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
       loenudviklingIssues: EMPTY_FIELD_ISSUE_SET,
       tafCellIssues: EMPTY_FIELD_ISSUE_SET,
       svieSmerteCellIssues: EMPTY_FIELD_ISSUE_SET,
+      tafEfterKapitaliseringAdvarsler: [],
       sourceToken: reader.sourceToken,
     };
   }

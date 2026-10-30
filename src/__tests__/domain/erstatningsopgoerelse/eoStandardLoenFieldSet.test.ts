@@ -4,6 +4,8 @@ import {
   eoStandardLoenCollectionRef,
 } from '../../../domain/erstatningsopgoerelse/eoStandardLoenFieldSet';
 import {
+  hasStandardLoenRowBeloebFejl,
+  hasStandardLoenSatsFejl,
   readStandardLoenTableRows,
   resolveStandardLoenTableValidationFromReader,
 } from '../../../domain/standardLoen/standardLoenTableFieldSet';
@@ -98,5 +100,75 @@ describe('eoStandardLoenFieldSet', () => {
     const reader = buildReader(eo);
     expect(resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-1'), reader, 'maaned', 'procent').errors).toEqual([]);
     expect(resolveStandardLoenTableValidationFromReader(createEoStandardLoenFieldSet('af-2'), reader, 'maaned', 'procent').errors.length).toBeGreaterThan(0);
+  });
+
+  // BB-099: den delte tabel viser «—» i de afledte kolonner, når en sats er rød. Satserne bor på
+  // ansættelsesforholdet, så feltsættet skal binde DETTE forholds satser – ikke naboens.
+  describe('hasStandardLoenSatsFejl', () => {
+    const buildEoWithSatser = (af1: Partial<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]>) => {
+      const base = createErstatningsopgoerelseInitialValues();
+      return {
+        ...base,
+        loenindkomstAnsaettelsesforhold: [
+          { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', ...af1 },
+          { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-2', feriePct: 12.5 },
+        ],
+      };
+    };
+
+    it('er sand for en sats uden for 0–100 på netop dette ansættelsesforhold', () => {
+      const reader = buildReader(buildEoWithSatser({ feriePct: 150 }));
+      expect(hasStandardLoenSatsFejl(reader, createEoStandardLoenFieldSet('af-1'), 'procent')).toBe(true);
+      expect(hasStandardLoenSatsFejl(reader, createEoStandardLoenFieldSet('af-2'), 'procent')).toBe(false);
+    });
+
+    it('er falsk for gyldige og tomme satser', () => {
+      const reader = buildReader(buildEoWithSatser({ feriePct: 12.5, pensionPct: undefined }));
+      expect(hasStandardLoenSatsFejl(reader, createEoStandardLoenFieldSet('af-1'), 'procent')).toBe(false);
+    });
+
+    it('er falsk i Beløb-tilstand, hvor satserne ikke læses', () => {
+      const reader = buildReader(buildEoWithSatser({ feriePct: 150, tillaegAngivesSom: 'beloeb' }));
+      expect(hasStandardLoenSatsFejl(reader, createEoStandardLoenFieldSet('af-1'), 'beloeb')).toBe(false);
+    });
+
+    it('er sand, når fladens kravregel melder en tom påkrævet sats – men ikke i Beløb-tilstand (M-37)', () => {
+      const reader = buildReader(buildEoWithSatser({ feriePct: undefined }));
+      const fieldSet = createEoStandardLoenFieldSet('af-1');
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { paakraevetSatsMangler: true })).toBe(true);
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { paakraevetSatsMangler: false })).toBe(false);
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'beloeb', { paakraevetSatsMangler: true })).toBe(false);
+    });
+  });
+
+  // BB-099, rækkeformen: en rød beløbscelle læses som tom, så rækkens afledte kolonner ellers blev regnet uden den.
+  describe('hasStandardLoenRowBeloebFejl', () => {
+    const buildEoWithRows = (rows: readonly StandardLoenTableRow[], tillaegAngivesSom: 'procent' | 'beloeb' = 'procent') => {
+      const base = createErstatningsopgoerelseInitialValues();
+      return {
+        ...base,
+        loenindkomstAnsaettelsesforhold: [
+          { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', feriePct: 12.5, tillaegAngivesSom, indtaegtsoplysningerTableData: [...rows] },
+        ],
+      };
+    };
+    const tooLarge = { kind: 'number' as const, value: 20_000_000 };
+
+    it('er sand kun for rækken med den røde beløbscelle', () => {
+      const reader = buildReader(buildEoWithRows([
+        { ...emptyRow('r1'), col0_maaned: '1', col1_maaned: '2022', col3: tooLarge },
+        { ...emptyRow('r2'), col0_maaned: '2', col1_maaned: '2022', col2: { kind: 'number', value: 1000 } },
+      ]));
+      const fieldSet = createEoStandardLoenFieldSet('af-1');
+      expect(hasStandardLoenRowBeloebFejl(reader, fieldSet, 'r1', 'procent')).toBe(true);
+      expect(hasStandardLoenRowBeloebFejl(reader, fieldSet, 'r2', 'procent')).toBe(false);
+    });
+
+    it('læser tillægsbeløbene kun i Beløb-tilstand', () => {
+      const row = { ...emptyRow('r1'), col0_maaned: '1', col1_maaned: '2022', fpFvShSoBeloeb: tooLarge };
+      const fieldSet = createEoStandardLoenFieldSet('af-1');
+      expect(hasStandardLoenRowBeloebFejl(buildReader(buildEoWithRows([row])), fieldSet, 'r1', 'procent')).toBe(false);
+      expect(hasStandardLoenRowBeloebFejl(buildReader(buildEoWithRows([row], 'beloeb')), fieldSet, 'r1', 'beloeb')).toBe(true);
+    });
   });
 });

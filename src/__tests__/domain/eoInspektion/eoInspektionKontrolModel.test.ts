@@ -26,11 +26,6 @@ describe('buildEOInspektionModel – tom input (ingen datoer)', () => {
     expect(model.combinedMinFra).toBeUndefined();
     expect(model.combinedMaxTil).toBeUndefined();
   });
-
-  it('integrityIssues er tom ved tomt input', () => {
-    const model = buildEOInspektionModel(base());
-    expect(model.integrityIssues).toHaveLength(0);
-  });
 });
 
 // ─── Kilde-bounds (sources) ────────────────────────────────────────────────────
@@ -632,39 +627,5 @@ describe('buildEOInspektionModel – loenindkomst og offentligeydelser kolonner 
     const columnIds = model.columns.map((c) => c.id);
     const hasOffentligKolonne = columnIds.some((id) => id.startsWith('offentlig:'));
     expect(hasOffentligKolonne).toBe(true);
-  });
-
-  it('integrityIssues er tom ved gyldig model med lønindkomst', () => {
-    const model = buildEOInspektionModel({
-      ...base(),
-      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
-      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
-      loenindkomstAnsaettelsesforhold: [
-        {
-          id: 'af-1',
-          navnPaaArbejdssted: 'Test',
-          harOverenskomst: true,
-          overenskomstId: 'bygge-anlaeg',
-          ansatPaaSkadestidspunktet: true,
-          ansaettelsesforholdOphoert: false,
-          sidsteArbejdsdag: undefined,
-          feriePct: 12.5,
-          fritvalgPct: undefined,
-          shSoPct: undefined,
-          storeBededagPct: undefined,
-          pensionPct: undefined,
-          loenperiode: 'maaned',
-          fuldLoenUnderFerie: 'Nej',
-          loenPaaHelligdage: 'Almindelig',
-          saerligFraDatoRegulering: undefined,
-          loenudviklingBeregningsgrundlag: 'Ingen',
-          loenudviklingStatistikModel: undefined,
-          loenudviklingManuelTableData: [],
-          indtaegtsoplysningerTableData: [],
-        },
-      ] as never,
-    });
-    const errors = model.integrityIssues.filter((i) => i.severity === 'error');
-    expect(errors).toHaveLength(0);
   });
 });

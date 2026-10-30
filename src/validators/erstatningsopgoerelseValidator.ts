@@ -88,7 +88,7 @@ import {
   type OffentligLoenSelectionFailure,
 } from '../domain/erstatningsopgoerelse/helpers/offentligLoenSelection';
 import { harAktivOverenskomst, harModstridendeOverenskomstValg } from '../domain/loen/aktivOverenskomst';
-import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../domain/standardLoen/loenoplysningerInput';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { DATE_ORDER_ERROR_MESSAGE, hasDateOrderError } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';

@@ -449,10 +449,8 @@ export const buildEoSvieSmerteRows = (
       return { displayValue: 'Fejl (Vedrører perioden er ikke angivet)', status: 'error' as EoRowStatus };
     }
 
-    // Parse menAfgoerelseDato hvis udfyldt - men kun hvis feltet er synligt og der ikke er verserende klage
-    const varigeMenErSynlig = values.varigeMenAfgorelse === 'Ja';
-    const shouldApplyMenCutoff = varigeMenErSynlig && !context.verserendeKlageMen;
-    const menAfgoerelseDato = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
+    // Ménafgørelsens stopdato – motorens eget opslag, så reglen (afgørelse «Ja» og klage «Nej») kun står ét sted.
+    const menAfgoerelseDato = resolveSvieSmerteCutoffDate(values);
 
     try {
       // Konverter svie/smerte perioder til Date objekter, grupperet efter tilstand
@@ -641,10 +639,8 @@ export const buildEoSvieSmerteRows = (
       return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
-    // Kun brug menAfgoerelseDato hvis feltet er synligt og der ikke er verserende klage
-    const varigeMenErSynlig = values.varigeMenAfgorelse === 'Ja';
-    const shouldApplyMenCutoff = varigeMenErSynlig && !context.verserendeKlageMen;
-    const menAfgoerelseDato = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
+    // Ménafgørelsens stopdato – motorens eget opslag, så reglen (afgørelse «Ja» og klage «Nej») kun står ét sted.
+    const menAfgoerelseDato = resolveSvieSmerteCutoffDate(values);
 
     try {
       // Gruppér perioder efter tilstand
@@ -811,12 +807,11 @@ export const buildEoSvieSmerteRows = (
       };
     }
 
+    const menStopdato = resolveSvieSmerteCutoffDate(values);
     if (
       lastSvieSmerteKravDato &&
-      values.varigeMenAfgorelse === 'Ja' &&
-      values.verserendeKlageMen === 'Nej' &&
-      values.menAfgoerelseDato &&
-      getDayBeforeIso(values.menAfgoerelseDato) === lastSvieSmerteKravDato
+      menStopdato &&
+      getDayBeforeIso(menStopdato) === lastSvieSmerteKravDato
     ) {
       return { displayValue: 'Ménafgørelse', status: 'ok' as EoRowStatus };
     }

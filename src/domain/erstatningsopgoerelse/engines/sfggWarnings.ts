@@ -9,13 +9,25 @@ import { hasPositiveSfggIncome } from './sfggPeriodisering';
 import { resolveSfggSource, sfggKildeUsesReferenceperiode } from './sfggKilde';
 import { resolveLoenudviklingKilde, getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
+import { amountValueToNumber } from '../../../utils/expressionAmount';
 
-const getLastIncomeDate = (
-  employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
-): ISODateString | null => {
+type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+
+/**
+ * Seksmånedersadvarslen skal afspejle, at der ikke længere er NOGEN form for lønydelse fra arbejdsgiveren
+ * (udvikleren 2026-10-30, BB-325). Ud over lønkolonnerne tæller derfor også tillæg og arbejdsgiverpension, men
+ * kun i Beløb-tilstand, hvor de er indtastede beløb; i Procent-tilstand er de afledt af lønkolonnerne. Bevidst
+ * bredere end `hasPositiveSfggIncome`, som afgrænser selve beregningen og ikke ændres af advarslen.
+ */
+const hasPositiveEmployerPayment = (row: Employment['indtaegtsoplysningerTableData'][number], employment: Employment): boolean =>
+  hasPositiveSfggIncome(row)
+  || (employment.tillaegAngivesSom === 'beloeb'
+    && [row.fpFvShSoBeloeb, row.pensionBeloeb].some((value) => (amountValueToNumber(value) ?? 0) > 0));
+
+const getLastIncomeDate = (employment: Employment): ISODateString | null => {
   let latest: ISODateString | null = null;
   for (const row of employment.indtaegtsoplysningerTableData ?? []) {
-    if (!hasPositiveSfggIncome(row)) continue;
+    if (!hasPositiveEmployerPayment(row, employment)) continue;
     const interval = parseAarsloenRowInterval(row, employment.loenperiode);
     if (!interval) continue;
     const iso = dateToISO(interval.end);
@@ -32,9 +44,10 @@ export const findSfggSixMonthWarningEmploymentIds = (args: Readonly<{
   for (const employment of args.values.loenindkomstAnsaettelsesforhold ?? []) {
     const calculation = args.result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     if (!calculation || calculation.segments.length === 0) continue;
-    const lastIncomeDate = getLastIncomeDate(employment);
-    if (!lastIncomeDate) continue;
-    const date = parseISODate(lastIncomeDate);
+    // Uden registreret løn regnes de seks måneder fra sygeferiegodtgørelsens første dag (BB-325, 2026-10-30).
+    const anchor = getLastIncomeDate(employment) ?? calculation.segments[0]?.fra;
+    if (!anchor) continue;
+    const date = parseISODate(anchor);
     if (!date) continue;
     const thresholdIso = dateToISO(addMonths(date, 6));
     const latestSegmentDate = calculation.segments[calculation.segments.length - 1]?.til;
@@ -98,15 +111,15 @@ export const buildSfggGammelReferenceperiodeBesked = (reguleringsdato: ISODateSt
  */
 export const buildSfggSeksMaanederBesked = (
   values: Pick<ErstatningsopgoerelseValues, 'loenindkomstAnsaettelsesforhold'>,
-  employment: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
-): string | undefined => {
+  employment: Employment,
+): string => {
   const lastIncomeDate = getLastIncomeDate(employment);
-  if (!lastIncomeDate) return undefined;
   const navn = resolveAnsaettelsesforholdNavn(
     employment.navnPaaArbejdssted,
     values.loenindkomstAnsaettelsesforhold.findIndex((entry) => entry.id === employment.id),
   );
-  return `Der er ikke registreret løn fra ${navn} efter ${isoToDanish(lastIncomeDate) ?? lastIncomeDate}. `
+  const efter = lastIncomeDate ? ` efter ${isoToDanish(lastIncomeDate) ?? lastIncomeDate}` : '';
+  return `Der er ikke registreret løn fra ${navn}${efter}. `
     + "Er skadelidte opsagt, angives det under 'Opsagt fra stillingen' – retten til sygeferiegodtgørelse ophører da.";
 };
 

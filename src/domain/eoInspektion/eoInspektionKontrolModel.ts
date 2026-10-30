@@ -23,6 +23,7 @@ import type { RowDay } from '../eoRowEvaluation/eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 import { resolveMidlertidigEetDato, resolveTafCutoffDates } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { resolveSvieSmerteCutoffDate } from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../erstatningsopgoerelse/helpers/eoConstants';
 
 export type KontrolTabelDateSource = Readonly<{
@@ -63,12 +64,6 @@ export const KONTROL_TABEL_COLUMN_IDS = {
   ssDay: 'base:ss_day',
   tafDay: 'base:taf_day',
 } as const;
-
-export type KontrolTabelIntegrityIssue = Readonly<{
-  severity: 'warning' | 'error';
-  area: 'kontroltabel' | 'lønindkomst' | 'offentlige ydelser';
-  message: string;
-}>;
 
 export { kontrolTabelColumnId };
 export type { KontrolTabelWageColumnKey };
@@ -117,7 +112,6 @@ export type EOInspektionModel = Readonly<{
   columns: readonly KontrolTabelColumn[];
   rows: readonly KontrolTabelRow[];
   tableWidthPx: number;
-  integrityIssues: readonly KontrolTabelIntegrityIssue[];
   tableData: EOInspektionTableData;
   columnRawValues: ReadonlyMap<KontrolTabelColumnId, readonly number[]>;
 }>;
@@ -131,8 +125,6 @@ const DEFAULT_COLUMN_WIDTH_PX = 120;
  */
 const SVIE_SMERTE_DAG_HEADER = 'Svie/smerte-\ndag';
 
-const INTEGRITY_TOLERANCE_KR = 0.05;
-
 const weekdayNamesDa: ReadonlyArray<string> = [
   'Søndag',
   'Mandag',
@@ -142,38 +134,6 @@ const weekdayNamesDa: ReadonlyArray<string> = [
   'Fredag',
   'Lørdag',
 ];
-
-const validateColumnIds = (columns: readonly KontrolTabelColumnData[]): ReadonlyArray<KontrolTabelIntegrityIssue> => {
-  const emptyIds: string[] = [];
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const col of columns) {
-    const id = col.id;
-    if (id.trim() === '') emptyIds.push(id);
-    if (seen.has(id)) duplicates.add(id);
-    seen.add(id);
-  }
-
-  const issues: KontrolTabelIntegrityIssue[] = [];
-  if (emptyIds.length > 0) {
-    issues.push({
-      severity: 'error',
-      area: 'kontroltabel',
-      message: 'Kontroltabel: En eller flere kolonner har tomt kolonne-ID (programfejl).',
-    });
-  }
-  if (duplicates.size > 0) {
-    const list = Array.from(duplicates).slice(0, 8).join(', ');
-    issues.push({
-      severity: 'error',
-      area: 'kontroltabel',
-      message: `Kontroltabel: Dobbelt kolonne-ID fundet (programfejl): ${list}${duplicates.size > 8 ? ' …' : ''}.`,
-    });
-  }
-
-  return issues;
-};
 
 const computeSummaryTableRange = (
   combinedMinFra: ISODateString | undefined,
@@ -547,8 +507,10 @@ export const buildEOInspektionModel = (
   const beregningsTil = options.beregningsperiodeProjection === undefined
     ? values.tafBeregningsperiodeTil
     : projectedBeregningsperiodeRange?.til;
-  const menStopDato =
-    values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
+  // Ménafskæringen hentes fra samme opslag som svie/smerte-motoren (`resolveSvieSmerteCutoffDate`), så
+  // kontroltabellen håndhæver motorens regel og ikke en egen kopi, der kan drive fra den (som TAF's EET-afskæring
+  // ovenfor; eo-snapshot-contract.md §6.2).
+  const menStopDato = resolveSvieSmerteCutoffDate(values);
 
   const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
     getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)
@@ -622,7 +584,6 @@ export const buildEOInspektionModel = (
       columns: [],
       rows: [],
       tableWidthPx: DEFAULT_TABLE_WIDTH_PX,
-      integrityIssues: [],
       tableData: {
         dates: [],
         weekdayIndexByRow: [],
@@ -765,7 +726,7 @@ export const buildEOInspektionModel = (
     }]
     : [];
 
-  const { columns: loenColumns, integrityIssues: loenIssues } = buildLoenindkomstColumns({
+  const { columns: loenColumns } = buildLoenindkomstColumns({
     dates,
     isoIndex,
     values,
@@ -773,18 +734,16 @@ export const buildEOInspektionModel = (
     tableFra,
     tableTil,
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,
-    integrityTolerance: INTEGRITY_TOLERANCE_KR,
     errorRowIdsByIndex: loenErrorRowIdsByIndex,
     medAnsaettelsesforholdKolonner: harKontrolTabelAnsaettelsesforholdKolonner(values),
   });
 
-  const { columns: offentlige, integrityIssues: offentligeIssues } = buildOffentligeYdelserColumns({
+  const { columns: offentlige } = buildOffentligeYdelserColumns({
     dates,
     isoIndex,
     values,
     shDays,
     sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
-    integrityTolerance: INTEGRITY_TOLERANCE_KR,
     errorRowIds: offentligeErrorRowIds,
   });
   const offentligeColumns: KontrolTabelColumnData[] = offentlige.map((c, idx) => ({
@@ -825,11 +784,6 @@ export const buildEOInspektionModel = (
     return { key: iso, cells };
   });
   const tableWidthPx = Math.max(DEFAULT_TABLE_WIDTH_PX, columnData.length * DEFAULT_COLUMN_WIDTH_PX + 40);
-  const integrityIssues: KontrolTabelIntegrityIssue[] = [
-    ...validateColumnIds(columnData),
-    ...loenIssues,
-    ...offentligeIssues,
-  ];
 
   // Summary-tabellen bruger samme interval som kontroltabellen (månedsgrænser).
   const tafColumnIds = columnData
@@ -862,7 +816,6 @@ export const buildEOInspektionModel = (
     columns,
     rows,
     tableWidthPx,
-    integrityIssues,
     tableData: {
       dates,
       weekdayIndexByRow,

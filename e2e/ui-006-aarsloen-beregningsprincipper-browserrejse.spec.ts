@@ -69,6 +69,14 @@ test.describe('UI-006 – Årslønnens beregningsprincipper', () => {
     await expect(retTilSjetteFerieuge).toBeChecked();
     await expect(antalFeriedage).toBeVisible();
 
+    // Uden fuld løn under ferie er feriesatsen påkrævet (M-37, fælles regel med EO). Manglen blokerer beregning og
+    // dokumenter – men skjuler aldrig de valg, der udløser den (valget står stadig, så brugeren kan fortryde).
+    const manglendeFeriesats = page.getByText('Feriegodtgørelse/-tillæg er ikke udfyldt', { exact: true });
+    await expect(manglendeFeriesats).toBeVisible();
+    await expect(fuldLoenUnderFerie).toBeVisible();
+    await setFieldValueAndSettle(page.locator('input[name="feriePct"]'), '12,5');
+    await expect(manglendeFeriesats).toHaveCount(0);
+
     const loenPaaHelligdage = page.getByRole('combobox', {
       name: 'Løn på helligdage',
       exact: true,

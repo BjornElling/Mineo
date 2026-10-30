@@ -99,6 +99,9 @@ Enig. Og for 0 kr. skal løsningen være: (a) rød ring «Månedslønnen skal v�
 
 **Kilde- og kombinationskontrol 2026-10-24:** `buildIncomeForRangesDetailed` skiller positive arbejdsgivere og ydelser fra `negativeSources`. Rækken «Ingen indkomst» afgøres ud fra denne projektion, mens `eoRowIndkomstRows.ts` viser de navngivne negativekilde-fejl. Chrome-kontrollen i perioden `01-01-2025`–`31-01-2025` viste begge linjer ved negativ løn alene, negativ ydelse alene og begge negative uden positiv kilde. En positiv arbejdsgiver eller ydelse fjernede den generiske linje, mens fejlene for de særskilte negative kilder blev stående. Konsollen havde 0 fejl og 0 advarsler. De eksisterende 12f- og 12h-tests dækkede hver sin side, men ikke kombinationen; BB-333 har nu egne unit- og E2E-tests.
 
+**Efterprøvet 2026-10-24:** BB-333 blev godkendt og gennemført samme dag. Den generiske linje står fortsat, når perioden
+hverken har positiv eller samlet negativ indkomst.
+
 ### BB-259 – Én arbejdsdag tilbage giver en dagsindkomst på 360.000 kr. uden et ord
 
 - **Type:** Edge case
@@ -214,6 +217,17 @@ Jeg tenderer mod at afvise fundet. Når det er lavet på denne måde, skyldes de
 **Tilbagemelding**
 Enig. Der er mange dato-felter i programmet, som er fra- og til-datoer. Hvis det giver mening at lave en samlet løsning til at håndtere overlap, så de alle håndteres ensartet og ud fra en gennemtænkt, stabil løsning, så overvej gerne at implementere en sådan.
 
+**Eftermålt og afgjort kontroltal ved overlap i beregningsperioden (2026-10-24):** Med gyldige datointervaller, der kun
+var røde på grund af overlap (`beregningsperiode 01-01-2026`–`31-01-2026`, TAF
+`15-01-2026`–`20-01-2026`), viste «Kontroltabel» `22 / 22` for «Arbejdsdage i beregningsperiode». Før den seneste
+rettelse ville den tidligere overlapbetingelse have givet `– / –`; TAF-kontrollen viser fortsat `– / –`. EO-kontrol
+viser samtidig overlapfejlen, og download er blokeret. Autoritativ beregning og PDF bygges ikke i den fejlsti
+(`status: error`, `data: null` i `eoSnapshot.ts`), så målingen er kun et synligt kontroltal. Udvikleren har godkendt
+at bevare `22 / 22`, fordi de sammenlignede værdier er ens, samtidig med at den røde TAF-rækkes interval og
+sammenligning står `– / –`. Der må ikke opstå `control:sammentaelling_mismatch` eller «Teknisk fejl registreret»;
+PDF-download skal fortsat være blokeret. Det samme gælder tidligere gemte `.eo`-filer. En regressionstest med en
+3.14-fil er tilføjet i `e2e/erstatningsopgoerelse-tidligere-filer.spec.ts` og bestod i den samlede Chrome-desktop-kørsel af gamle-filer, TAF-perioder og S/S-cutoff (20/20 tests). Den konkrete overlaptest bekræftede `22 / 22`, TAF `– / –`, ingen teknisk kontrolfejl og fortsat blokeret download.
+
 ### BB-338 – Lønsatsernes reference følger den røde slutdato for beregningsperioden
 
 - **Type:** Fejl
@@ -241,7 +255,7 @@ Enig. Der er mange dato-felter i programmet, som er fra- og til-datoer. Hvis det
 
 ### BB-340 – En TAF-række med rød slutdato viser stadig et dagstal
 
-- **Type:** Beslutningskandidat
+- **Type:** Edge case (oprindeligt registreret som «Beslutningskandidat»; rettet til en gyldig type 2026-10-30)
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-41--en-rød-kontekstdato-kan-stadig-påvirke-afledte-visninger`. Browsermålt i 12f.
 - **Prioritet:** Mellem
 - **Beslutning:** **AFGJORT** af udvikleren 2026-10-24: behold `2` i TAF-rækkens «TAF-arbejdsdage», også når slutdatoen er rød og i tidligere gemte `.eo`-filer. Kontroltabellen må samtidig vise `– / –` for TAF-perioden og dens dagstal, mens rækken er rød, så et delresultat ikke bliver sammenlignet som et fuldt resultat. Ingen produktændring.
@@ -250,6 +264,11 @@ Enig. Der er mange dato-felter i programmet, som er fra- og til-datoer. Hvis det
 - **Efterkontrol – gammel-fil-browserregression, 2026-10-24:** En syntetisk ældre 3.14-fil med TAF `30-12-2027`–`10-01-2028` bevarer rækkens `2`; kontroltabellens røde række viser `– / –`, og ingen teknisk fejl vises. Chrome-desktop-testen bestod. Den manuelle browsermåling ovenfor viste desuden den gyldige kontrast `2 / 2`.
 - **Afgørelsen i praksis:** Brugeren beholder det delvise `2` i TAF-rækken, men kontroltabellen undlader at sammenligne den røde række med TAF-beregningen. Det gælder også for tidligere gemte `.eo`-filer. Denne afgrænsning er særskilt godkendt; den dækker ikke andre kontroltal, som ikke er omtalt her.
 - **Andre steder det kan gælde:** Ingen yderligere brugeradfærd blev bekræftet i denne måling.
+
+**Efterkontrol 2026-10-24 (noteret i 12e's dækningshuller):** TAF-rækken `30-12-2027`–`10-01-2028` beholder
+«TAF-arbejdsdage» `2` ved rød slutdato; EO-kontrol viser samtidig `– / –` for TAF-intervallet og
+arbejdsdagssammenligningen. Med gyldig slutdato `31-12-2027` vises intervallet og `2 / 2` igen. Udvikleren har godkendt
+dette som den tilsigtede opdeling, også for tidligere gemte `.eo`-filer; ingen kodeændring.
 
 ### BB-263 – I måneder tager ferie og uspecificerede dage imod oplysninger, der intet gør – og de kan stadig spærre
 
@@ -424,6 +443,10 @@ Når den skadelidtes løn beregnes som dagsløn, får vedkommende løn på de da
 Når den skadelidtes løn beregnes som måneder, får vedkommende samme løn uanset hvor mange arbejdsdage, der er i en måned. For at kompensere for, at der fra 2024 skal abrejdes på én dag mere end normalt, får alle lønmodtagere, der aflønnes månedsvist, et tillæg på 0,45 % for at kompensere for arbejdet på store bededag.
 
 Så med det afsæt tænker jeg, at det korrekte svar er (a) advarslen tier ved «Angivet dagsløn», hvor fraværet af tillægget er standarden.
+
+**Opfølgende spørgsmål, besvaret 2026-10-02:** knappen «Beregn Store Bededagstillæg» skjules ved angivet dagsløn, og
+tillægget regnes da aldrig med (gennemført); angivet månedsløn giver kun krav ved «Almindelig løn» på helligdage (som i
+dag).
 
 ### BB-268 – En månedsløn tastet som dagsløn giver 7.620.000 kr. uden bemærkning
 
@@ -651,35 +674,16 @@ ikke i sig selv browserdækning.
 | B6a – tomhed | Delvist: «Ingen indkomst» blev målt mod ingen, negativ og positiv indkomst; TAF uden rækker er dækket i 12e, ikke som en fuld 12f-rækkeprøve. Beregningsgrundlagets ferie uden gyldig beregningsperiode er komponenttestet under BB-344, ikke browsermålt. | Tom række, kun formateringsvalg, kun ugyldige værdier og hvert enkelt felt i en næsten tom beregningsgrundlagsrække er ikke gennemgået systematisk. |
 | B7 – nedstrøms | Målt: beregningsresultat og PDF for de oprindelige fund; BB-339 målte Feriedage `2`; BB-340 målte TAF-arbejdsdage `2` samtidig med `– / –` i TAF-kontrollens interval og dagstal; bilagsvælgeren blev sammenlignet med og uden en januar-2030-ydelse. Den godkendte overlapvisning er målt til `22 / 22`, mens TAF-kontrollen står `– / –`; alle tre navngivne gamle-fil regressioner bestod i Chrome-desktop. | Samme `.eo` før/efter save/load, en generel save→load-rundtur samt valgt-overenskomstens afledte satsbeløb er ikke browsermålt. |
 
-### Eftermålt og afgjort kontroltal ved overlap i beregningsperioden
+## Observation om beregningslogikken (godkendt og gennemført 2026-10-02)
 
-Med gyldige datointervaller, der kun var røde på grund af overlap (`beregningsperiode 01-01-2026`–`31-01-2026`, TAF
-`15-01-2026`–`20-01-2026`), viste «Kontroltabel» `22 / 22` for «Arbejdsdage i beregningsperiode». Før den seneste
-rettelse ville den tidligere overlapbetingelse have givet `– / –`; TAF-kontrollen viser fortsat `– / –`. EO-kontrol
-viser samtidig overlapfejlen, og download er blokeret. Autoritativ beregning og PDF bygges ikke i den fejlsti
-(`status: error`, `data: null` i `eoSnapshot.ts`), så målingen er kun et synligt kontroltal. Udvikleren har godkendt
-at bevare `22 / 22`, fordi de sammenlignede værdier er ens, samtidig med at den røde TAF-rækkes interval og
-sammenligning står `– / –`. Der må ikke opstå `control:sammentaelling_mismatch` eller «Teknisk fejl registreret»;
-PDF-download skal fortsat være blokeret. Det samme gælder tidligere gemte `.eo`-filer. En regressionstest med en
-3.14-fil er tilføjet i `e2e/erstatningsopgoerelse-tidligere-filer.spec.ts` og bestod i den samlede Chrome-desktop-kørsel af gamle-filer, TAF-perioder og S/S-cutoff (20/20 tests). Den konkrete overlaptest bekræftede `22 / 22`, TAF `– / –`, ingen teknisk kontrolfejl og fortsat blokeret download.
-
-## Åbne spørgsmål
-
-Alle 16 fund er afgjort 2026-10-02, og BB-267's to opfølgende spørgsmål er besvaret samme dag: knappen «Beregn
-Store Bededagstillæg» skjules ved angivet dagsløn, og tillægget regnes da aldrig med (gennemført); angivet månedsløn
-giver kun krav ved «Almindelig løn» på helligdage (som i dag).
-
-Én observation om beregningslogikken blev godkendt og gennemført samme dag: i arbejdsdage blev lønnen i
+Én observation om beregningslogikken, uden eget fund-ID, blev godkendt og gennemført samme dag som fundene: i arbejdsdage blev lønnen i
 beregningsperioden fordelt efter BÅDE beregningsperiodens og TAF-afsnittets ferie, mens dagene, den deles med, kun
 fradrog beregningsperiodens – målt 1.607,14 kr. mod 1.569,21 kr. og 1.652,37 kr. med samme 252 arbejdsdage, og
 programmets kontrol meldte uoverensstemmelse. Nu gælder hver ferietabel kun i sin egen periode
 (`resolveIndkomstFerieperioder`) i motorens fordeling, lønindkomstens afledte kolonner, «ingen arbejdsdage»-advarslen
 og kontrollaget. Kun sager med en beregningsperiode efter skaden ændrer tal.
 
-**Efterprøvet 2026-10-24:** BB-333 blev godkendt og gennemført samme dag. Den generiske linje står fortsat, når perioden
-hverken har positiv eller samlet negativ indkomst.
+## Åbne spørgsmål
 
-BB-338 er afgjort uden kodeændring: satsreferencen bevares ved rød beregningsperiodeslutdato. BB-339 er afgjort
-uden kodeændring: fraværsrækkens feriedagstal og EO-kontrols ferievisning bevares, også for ældre `.eo`-filer.
-BB-340 er afgjort 2026-10-24 uden kodeændring: TAF-arbejdsdagstallet `2` bevares ved rød slutdato, også for tidligere
-gemte `.eo`-filer.
+Ingen. Alle 16 oprindelige fund er afgjort 2026-10-02; BB-333 og BB-338–BB-340 fra den kritiske efterkontrol er afgjort
+2026-10-24 (se de enkelte fund).

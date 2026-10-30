@@ -114,6 +114,15 @@ Enig
 **Tilbagemelding**
 Det er kun forsørgertab, der sammenblander skadelidtes forhold med andres. Det er unikt for forsørgertab. Alle andre sider, inklusiv erhvervsevnetab, omhandler udelukkende om skadelidtes forhold - så det vil være oplagt og velkendt for brugerne, at der er tale om skadelidtes køn.
 
+**Gennemført 2026-09-03: BB-137 er afvist for Erhvervsevnetab, men tilbagemeldingens egen begrundelse rettede Forsørgertab.**
+Udvikleren skrev, at «det er kun forsørgertab, der sammenblander skadelidtes forhold med andres». Netop dér
+stod to visningssteder tilbage med et bart «Køn» efter BB-134: ASL-halvdelens forudsætningsrække på skærmen
+(`ForsoergertabAslSection.tsx`) og den tilsvarende linje i dokumentet (`forsoergertabDocument.ts`) – på en
+flade, hvis anden halvdel har en efterladt-tabel. Begge siger nu «Skadelidtes køn», og ordlyden er samlet i
+`FORSOERGERTAB_SKADELIDTES_KOEN_LABEL`, som også er blevet feltets `label`, så fejltekster og oplæsning bruger
+samme navn. Erhvervsevnetab beholder «Køn» efter afgørelsen. **BB-134's lære gentog sig præcist:** en godkendt
+ordlyd skal søges som begreb, ikke som streng – rettelsen ramte igen kun de steder, nogen huskede.
+
 ### BB-138 – Beregningsdatoens nedre grænse siger ikke, at den kommer fra Skadedato – fire datoer længere ned gør
 
 - **Type:** Fornuft
@@ -179,6 +188,13 @@ Enig
 **Tilbagemelding**
 Jeg er i tvivl om, hvorvidt jeg er enig. Det risikerer at tilføre mere visuelt rod at indføje nye linjer. Min forståelse er, at en ugyldig skadesdato vil få rød ring og blokere download, og når brugeren har udfyldt med en gyldig skadedato, vil der blive givet fejl i blandt andet årsløn-funktionen, hvis den er angivet højere end den tilladte max-årsløn i det pågældende år. Hvis det er tilfældet, virker det som et fornuftigt kompromis, herunder i forhold til brugervendt orientering.
 
+**Gennemført 2026-09-03: BB-139 og BB-142 er afgjort hver sin vej, og grænsen mellem dem står nu i kontrakten.** BB-142's
+afvisning fastlægger, at indtastningsfaner kun viser fejl som rød eller gul ring med tooltip. BB-139's
+rettelse er en tekstlinje på samme fane – men ikke fanens egen fejl: det er den fælles, navigerbare
+«Ugyldig værdi (ret i Stamdata)»-række for en FREMMED forudsætning, som brugeren ikke kan rette her, og som
+gør fanens egne regler tavse. Undtagelsen er skrevet ind i `error-contract.md` §3.1 pkt. 3, så den ikke kan
+læses som en generel åbning for fritekstfejl på indtastningsflader.
+
 ### BB-140 – Sortering flytter dublet-fejlen til den anden række
 
 - **Type:** Edge case
@@ -216,6 +232,16 @@ Jeg er i tvivl om, hvorvidt jeg er enig. Det risikerer at tilføre mere visuelt 
 
 **Tilbagemelding**
 Ikke sikker på, om jeg er enig. Brugeren vil naturligt forvente, at det er række nr. to med identisk indhold, der er fejlen og skal rettes - ikke nødvendigvis den række med mindst indhold.
+
+**Gennemført 2026-09-03: BB-140 kunne ikke implementeres som udvikleren beskrev den, og udfaldet er bedre.** Tilbagemeldingen var,
+at «brugeren vil naturligt forvente, at det er række nr. to med identisk indhold, der er fejlen». Det kan
+programmet ikke afgøre pålideligt: «nr. to» er en plads i en liste, og et klik på en kolonneoverskrift skriver
+netop den liste om – det var selve fundet. Der findes ingen anden stabil identitet at hænge «nr. to» på, fordi
+de to rækkers datoer pr. definition er ens. **Løsningen er derfor, at BEGGE dubletrækker markeres**
+(`validateDuplicateAfgoerelse` returnerer nu beskeden for enhver række med en tvilling, uanset plads). Det er
+samme form som M-07's regel for to felter, der tilsammen udløser én fejl, og markeringen kan ikke længere
+flyttes af en sortering. Prisen er, at brugeren selv vælger, hvilken af de to identiske rækker han sletter –
+men de er identiske på netop de felter, reglen handler om.
 
 ### BB-141 – Under 15 %-advarslen står ved EET %-cellen, men findes kun på en anden fane for Kap. %
 
@@ -269,6 +295,8 @@ Delvist enig, men der er en særlig omstændighed, du mangler at have med i betr
 
 **Tilbagemelding**
 Jeg afviser fundet. EET-siden med indtastningsfelter skal kun vise fejl i faktisk foretagne indtastninger, dvs. med rød eller gul ring og tooltip. Det er kun på undersiderne, der skal vises tekster med fejlbeskrivelser. Dette er et bevidst designvalg.
+
+**Afgjort 2026-09-03:** grænsen mellem denne afvisning og BB-139's rettelse er beskrevet under BB-139 og står i `error-contract.md` §3.1 pkt. 3.
 
 ### BB-143 – To felter, der begge heder «EET %», behandler 0 modsat
 
@@ -422,6 +450,11 @@ Jeg er enig i fundet, og vi havde samme forhold på renteberegning-siden, hvor d
 **Tilbagemelding**
 Enig
 
+**Gennemført 2026-09-03: BB-148's rettelse dækker tre celler, ikke to.** Fundet navngav Kap.dato og Kap. %. Ved siden af dem stod
+en tredje af samme slags, som fundet ikke så: «Tidligere kapitaliseringsdato **må ikke udfyldes ved**
+midlertidig eller ikke-valgt afgørelsestype.» Alle tre siger nu reglen forlæns
+(`TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE`). Navnene er de fulde, jf. BB-145's afvisning.
+
 ### BB-149 – Køn-rækken skydes ind OVER det felt, der frembragte den
 
 - **Type:** Fornuft
@@ -563,7 +596,7 @@ Jeg afviser fundet. Bemærk-sektionen findes hovedsageligt som en juridisk ansva
 
 - Kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620). Mørkt tema og de tre øvrige browsere er ikke
   målt.
-- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049). BB-147's
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049). BB-147's
   påstand om, at dropdown-rækken gemmes, hviler derfor på `isAslAfgoerelseRowPersistenceEmpty`, ikke på en
   målt fil.
 - Dokumentindhold er ikke hentet på denne fane; den har ingen downloadknap. BB-137's dokumentdel hviler på
@@ -592,39 +625,8 @@ BB-131's og BB-094's afvisninger og hviler på samme præmis: målgruppen kender
 
 ## Gennemført i kode – 2026-09-03
 
-**Alle 17 fund er afgjort:** elleve implementeret, seks afvist. Fire forhold rækker ud over det enkelte fund
-og er værd at kende, før nogen genlæser afsnittet ovenfor.
-
-**1. BB-140 kunne ikke implementeres som udvikleren beskrev den, og udfaldet er bedre.** Tilbagemeldingen var,
-at «brugeren vil naturligt forvente, at det er række nr. to med identisk indhold, der er fejlen». Det kan
-programmet ikke afgøre pålideligt: «nr. to» er en plads i en liste, og et klik på en kolonneoverskrift skriver
-netop den liste om – det var selve fundet. Der findes ingen anden stabil identitet at hænge «nr. to» på, fordi
-de to rækkers datoer pr. definition er ens. **Løsningen er derfor, at BEGGE dubletrækker markeres**
-(`validateDuplicateAfgoerelse` returnerer nu beskeden for enhver række med en tvilling, uanset plads). Det er
-samme form som M-07's regel for to felter, der tilsammen udløser én fejl, og markeringen kan ikke længere
-flyttes af en sortering. Prisen er, at brugeren selv vælger, hvilken af de to identiske rækker han sletter –
-men de er identiske på netop de felter, reglen handler om.
-
-**2. BB-137 er afvist for Erhvervsevnetab, men tilbagemeldingens egen begrundelse rettede Forsørgertab.**
-Udvikleren skrev, at «det er kun forsørgertab, der sammenblander skadelidtes forhold med andres». Netop dér
-stod to visningssteder tilbage med et bart «Køn» efter BB-134: ASL-halvdelens forudsætningsrække på skærmen
-(`ForsoergertabAslSection.tsx`) og den tilsvarende linje i dokumentet (`forsoergertabDocument.ts`) – på en
-flade, hvis anden halvdel har en efterladt-tabel. Begge siger nu «Skadelidtes køn», og ordlyden er samlet i
-`FORSOERGERTAB_SKADELIDTES_KOEN_LABEL`, som også er blevet feltets `label`, så fejltekster og oplæsning bruger
-samme navn. Erhvervsevnetab beholder «Køn» efter afgørelsen. **BB-134's lære gentog sig præcist:** en godkendt
-ordlyd skal søges som begreb, ikke som streng – rettelsen ramte igen kun de steder, nogen huskede.
-
-**3. BB-148's rettelse dækker tre celler, ikke to.** Fundet navngav Kap.dato og Kap. %. Ved siden af dem stod
-en tredje af samme slags, som fundet ikke så: «Tidligere kapitaliseringsdato **må ikke udfyldes ved**
-midlertidig eller ikke-valgt afgørelsestype.» Alle tre siger nu reglen forlæns
-(`TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE`). Navnene er de fulde, jf. BB-145's afvisning.
-
-**4. BB-139 og BB-142 er afgjort hver sin vej, og grænsen mellem dem står nu i kontrakten.** BB-142's
-afvisning fastlægger, at indtastningsfaner kun viser fejl som rød eller gul ring med tooltip. BB-139's
-rettelse er en tekstlinje på samme fane – men ikke fanens egen fejl: det er den fælles, navigerbare
-«Ugyldig værdi (ret i Stamdata)»-række for en FREMMED forudsætning, som brugeren ikke kan rette her, og som
-gør fanens egne regler tavse. Undtagelsen er skrevet ind i `error-contract.md` §3.1 pkt. 3, så den ikke kan
-læses som en generel åbning for fritekstfejl på indtastningsflader.
+**Alle 17 fund er afgjort:** elleve implementeret, seks afvist. De fire forhold, der rakte ud over det
+enkelte fund, står under BB-140, BB-137, BB-148 og BB-139 (med henvisning fra BB-142).
 
 ---
 
@@ -864,6 +866,8 @@ Enig. Undgå gerne for meget visuelt rod, dog. Beregningerne er i forvejen lange
 **Tilbagemelding**
 Jeg afviser fundet. Brugeren bliver allerede orienteret om årsagen med denne tekst "Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau.". Tjek gerne, at teksten vises i alle de tilfælde, hvor problemstillingen kunne opstå og være relevant. Hvis den gør det, er dit fund ubegrundet.
 
+**Efterprøvet 2026-09-03 (fra STATUS.md):** BB-157's afvisning bad om en kontrol af, at niveauskift-noten vises i alle relevante tilfælde; den holder – `visGrundydelseNiveauSkift` er sand netop når grundlønnen er i 2003-niveau OG tabellen har rækker både før og fra 2024, altså i præcis de tilfælde, hvor «Regulering»-kolonnen skifter målestok.
+
 ### BB-158 – En EET-procent, programmet selv kalder ugyldig, er kun en gul advarsel på en anden fane
 
 - **Type:** Edge case
@@ -894,6 +898,8 @@ Jeg afviser fundet. Brugeren bliver allerede orienteret om årsagen med denne te
 
 **Tilbagemelding**
 Jeg er kun delvist enig. Selvom juraen siger, at der er særlige mindstegrænser og fastsatte procentsatser for erhvervsevnetab, som ikke kan fraviges, vil det nogen gange alligevel være nødvendigt at kunne lave teoretiske beregninger af værdien for sådanne. Derfor skal der konsekvent kun vises advarsler for indtastninger som er under mindstegrænserne eller uden for de faste procentsatser. Dog skal erhvervsevnetabsprocenter altid være delelige med 5, og de skal være større end nul og højst være hundrede - så fejl vedrørende dette skal gøre dem røde. Rent formuleringsmæssigt er det udtryk for en korrekt gengivelse af juraen at angive, at det er ugyldigt, når der indtastes en EET-procent under mindstegrænsen eller uden for de fastsatte procentsater, men programmet skal alligevel muliggøre dette. Brugeren skal blot advares om, at det er en ikke-lovmæssig beregning. Find en god balance og brug den gerne konsekvent.
+
+**Senere (2026-09-03):** halen «– beregningen er derfor ikke lovmæssig» er fjernet igen overalt ved BB-173 – se dér.
 
 ### BB-159 – De tre «efter beregningsdatoen»-advarsler står kun i en boks på de andre faner
 
@@ -1189,7 +1195,7 @@ Enig. Sørg for at finde en god, velstruktureret måde at gøre det på.
 - PDF-kanalen er ikke læst; alle dokumenter er hentet som `.docx`. BB-160, BB-161, BB-162 og BB-163
   hviler derfor på Word-udgaven plus kildelæsning af den fælles generator (de to kanaler deler
   `loebendeYdelserDocument.ts`).
-- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049).
   BB-164's persistensdel hviler på de to felters `bilagToggle`-erklæring, ikke på en målt fil.
 - Brevhovedet er ikke slået til i nogen kørsel, så BB-161's «forsiden nævner ikke beregningsdatoen» er
   målt uden brevhoved. Brevhovedet bærer journalnr., advokat, sagsbehandler og dags dato og indeholder
@@ -1287,6 +1293,16 @@ Beregning af kapitalbeløb på selve den specifikke fane er uafhængig af beregn
 
 Bemærk, at forholdet er helt omvendt ved beregning af differencekrav - her beregnes kapitaliseringsværdier særskilt, og der medregnes kun kapitalisering, der ligger før beregningsdatoen.
 
+**Trukket tilbage 2026-09-03: BB-166 var mit fund, og præmissen var forkert.** Jeg læste de to faners uenighed som en
+selvmodsigelse, programmet skjulte for brugeren. Den rigtige læsning er, at hver fane opgør sin egen
+ydelse: et kapitalbeløb hører til sin kapitaliseringsdato, og fanen er derfor bevidst uafhængig af
+beregningsdatoen – ville den lade beregningsdatoen påvirke kapitaliseringerne, VILLE det være fejlen.
+Det omvendte gælder i differencekravet, hvor kapitaliseringsværdier beregnes særskilt og kun medregnes
+før beregningsdatoen. Fundet er trukket tilbage og genrejses ikke. **Læren for mønsteret «to flader,
+to svar»:** to flader, der svarer forskelligt på det, der ser ud som samme spørgsmål, er kun et fund,
+hvis de faktisk besvarer samme spørgsmål. Afklar først, hvad hver flade opgør – ellers registreres en
+korrekt arbejdsdeling som en selvmodsigelse.
+
 ### BB-167 – «Beregningsdato» står øverst i hver afgørelsesboks og styrer intet på fanen
 
 - **Type:** Fornuft
@@ -1319,6 +1335,13 @@ Bemærk, at forholdet er helt omvendt ved beregning af differencekrav - her bere
 
 **Tilbagemelding**
 Jeg er enig i fundet. Eftersom beregningsdatoen ingen betydning har for beregningerne på selve kapitalisering-fanen, bør den heller ikke fremgå, hverken på siden eller dokumenterne. Bemærk, at dette princip kun gør sig gældende for kapitalisering-fanen. På differencekrav-siden indgår en særskilt beregning af kapitalisering, som er afhængig af beregningsdatoen, hvor den derfor er relevant at vise.
+
+**Gennemført 2026-09-03: BB-167's rettelse er hele forklaringen på, hvorfor BB-166 ikke er en fejl.** Beregningsdatoen er
+væk fra fanen – ikke flyttet op i «Beregning»-boksen, som fundet foreslog, for der er ingen dato at
+vise på en flade, hvis resultat ikke afhænger af en. Rækken var netop det, der fik den bevidste
+uafhængighed til at ligne en fejl: den stod øverst i hver boks som en forudsætning, intet i boksen
+læste. Princippet gælder KUN kapitalisering-fanen; på differencekrav er beregningsdatoen en ægte
+afhængighed for proformakapitaliseringen og skal blive vist.
 
 ### BB-168 – Ved ≤ 2 år til folkepension er både «udfyld» og «lad stå tomt» en fejl, og ingen af beskederne siger hvad der skal stå
 
@@ -1365,6 +1388,14 @@ Jeg er enig i fundet. Eftersom beregningsdatoen ingen betydning har for beregnin
 
 **Tilbagemelding**
 Jeg er enig.
+
+**Efterprøvet i browseren** på BB-168's egen sag (fødselsdato `01-01-1958`, skadedato `01-06-2018`,
+beregningsdato `01-07-2026`, ASL-årsløn `400.000`, én endelig afgørelse `01-06-2023` på 40 % med
+Kap.dato og Kap. % TOMME): begge celler står neutrale (`aria-invalid = false`), fanen viser ingen
+«Fejl og advarsler»-boks, downloadknappen er aktiv, og specifikationen skriver «Afgørelse 1. juni 2023
+(40 %)», «Kapitaliseringsprocent 40 %», «Reguleringsprocent (01-06-2023)», «Kapitaliseret pga. ≤ 2 år
+til folkepension? Ja», «Særfaktor (≤ 2 år til folkepension) 1,245» og kapitalbeløbet `169.591 kr.` –
+samme tal som den håndregnede kontrol i «Fladen kort». Ingen Beregningsdato-række nogen steder.
 
 ### BB-169 – Skadelidtes folkepensionsalder er 68 år i den ene boks og 69 år i den anden
 
@@ -1446,6 +1477,10 @@ Jeg afviser fundet. Det er tilstrækkeligt velkendt for brugeren, at erstatninge
 **Tilbagemelding**
 Beregningerne på kapitalisering-siden er gengivelser af afgørelser, som er modtaget fra en offentlig myndighed, hvor mellemregningerne har været inkluderet. På denne specifikke fane kan vi derfor tillade os at lempe kravet til efterberegning.
 
+**Gennemført 2026-09-03:** afgørelsens egen EET-procent står i boksens overskrift; løsningen er fælles med BB-171 og beskrevet dér. BB-170's øvrige del – forudsætningsblok med
+skadedato og årsløn, grundlønnen som formel – er droppet efter udviklerens lempelse: fanen gengiver en
+myndighedsafgørelse, hvis mellemregninger har stået i den.
+
 ### BB-171 – To afgørelser truffet samme dag giver to bokse med samme overskrift
 
 - **Type:** Edge case
@@ -1471,6 +1506,16 @@ Beregningerne på kapitalisering-siden er gengivelser af afgørelser, som er mod
 
 **Tilbagemelding**
 Jeg vil gerne begrænse mængden af visuelt rod, så jeg er enig i, at i det tilfælde, hvor der er tale om to afgørelser med identiske overskrifter, vil det være relevant at udspecificere nærmere, hvilken der er hvilken. Men kun i det tilfælde - ikke generelt, der er den nuværende tekst fint dækkende.
+
+**Gennemført 2026-09-03: BB-170's og BB-171's løsninger faldt sammen til én, og BB-171's «kun ved kollision» blev opgivet.**
+Udviklerens ønske var at udspecificere overskriften alene i de tilfælde, hvor to afgørelser har
+identisk overskrift. Det er ikke gennemførligt uden at gøre det værre: overskriften ville skifte form,
+når en anden række i tabellen ændres, og i dokumentet, hvor de to sider ikke kan ses samtidig, kan
+læseren ikke se, at der ER en kollision at udspecificere for. Løsningen på BB-170 – afgørelsens egen
+EET-procent i overskriften, som Løbende ydelser allerede gør – dækker begge behov ubetinget og koster
+fire tegn: «Afgørelse 1. juni 2023 (40 %)». Den skiller samtidig to afgørelser fra samme dag med
+forskellig EET %, så BB-171's kollisionsfald skrumper til «samme dato OG samme EET %», hvor rækken
+«Kapitaliseringsdato» inde i boksen gør arbejdet.
 
 ### BB-172 – Dokumentet siger «< 2 år» og «≤ 2 år» om samme regel i to linjer i træk
 
@@ -1500,6 +1545,10 @@ Jeg vil gerne begrænse mængden af visuelt rod, så jeg er enig i, at i det til
 **Tilbagemelding**
 Jeg er enig. ≤ 2 år skal være den korrekte og universelt anvendte betegnelse hver gang noget relaterer til dette.
 
+**Gennemført 2026-09-03:** særfaktor-etiketten er en delt konstant (fælles lære med BB-176, se dér). BB-172's `≤` bliver dog
+normaliseret til `<=` i PDF-kanalen, fordi jsPDF-fonten ikke kan sætte tegnet; begge linjer
+normaliseres ens, så kravet om én operator holder også der.
+
 ### BB-173 – Kapitaliseringens 15 %-advarsel siger ikke, hvad den betyder, hvor EET-procentens gør
 
 - **Type:** Fornuft
@@ -1526,6 +1575,16 @@ Jeg er enig. ≤ 2 år skal være den korrekte og universelt anvendte betegnelse
 
 **Tilbagemelding**
 Jeg er enig i fundet, men ikke i løsningen. Halen med " – beregningen er derfor ikke lovmæssig" er problemet og burde ikke være der.
+
+**Gennemført 2026-09-03: BB-173 endte med omvendt fortegn, og det omgør BB-158.** Fundet var, at Kap. %-advarslen manglede
+halen «– beregningen er derfor ikke lovmæssig», som EET %-advarslen havde. Udviklerens svar var, at
+halen selv er problemet. Jeg pressede på, fordi BB-158 (2026-09-01) netop havde indført den og
+forlangt den brugt konsekvent, og fordi fjernelsen også rammer
+`warn-invalid-eet-pct-after-2024-07-01`. Afgørelsen blev alligevel at fjerne den overalt: hvad der kan
+bruges juridisk, er brugerens vurdering, ikke programmets. Halen er derfor fjernet fra
+`EET_UNDER_15_WARNING` og `EET_TITRIN_FRA_2024_WARNING`, og konstanten
+`IKKE_LOVMAESSIG_BEREGNING_SUFFIX` findes ikke længere. Testen, der låste halen, er vendt om, så den
+nu låser fraværet – ellers ville næste læsning af BB-158 genindføre den i god tro.
 
 ### BB-174 – Fanen viser to kapitalbeløb og ingen sum – heller ikke den samlede kapitaliseringsprocent, som feltreglen håndhæver
 
@@ -1612,6 +1671,14 @@ Enig i rettelsen til kapitaliseringsprocent. Ikke enig i rettelsen til Faktorops
 **Tilbagemelding**
 Enig
 
+**Gennemført 2026-09-03: Tre af rettelserne fjernede en «bevidst forskel» mellem skærm og dokument.** Rækkebuilderen bar
+tre erklærede options, fordi de to kanaler med vilje skrev det samme forskelligt. To af dem var selve
+fundet: særfaktor-etiketten (`<` mod `≤`, BB-172) og reguleringsdatoens format (lang mod kort,
+BB-176). Begge er nu delte konstanter, og `KapitaliseringRowOptions` har kun Køn-rækkens synlighed
+tilbage. **Læren:** en erklæret option, der bærer to skrivemåder af samme oplysning, er ikke en løsning
+på divergensen – den er divergensen, dokumenteret. En option skal bære en forskel, der har en grund
+(Køn-rækkens tomme værdi hører på en indtastningsflade, ikke i et dokument).
+
 ## Overvejet uden fund
 
 - **Beregningen er kontrolregnet i tre sagsformer og er i orden** (se «Fladen kort»): 2003-niveau uden
@@ -1668,7 +1735,7 @@ Enig
 - PDF-kanalen er ikke læst; dokumentet er hentet som `.docx`. De to kanaler deler
   `kapitaliseringDocument.ts` og den delte rækkebuilder, så BB-170, BB-172 og BB-176 hviler på
   Word-udgaven plus kildelæsning.
-- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049).
 - Brevhovedet er ikke slået til i nogen kørsel; BB-170's «dokumentet nævner ikke skadedatoen» er målt uden
   brevhoved, som heller ikke bærer skadedatoen (kildelæst).
 - «Meget mange afgørelser» (B3) er ikke målt; højst to kapitaliserede afgørelser er brugt. Med én boks pr.
@@ -1680,65 +1747,9 @@ Enig
 
 ## Gennemført i kode – 2026-09-03
 
-**Alle elleve fund er afgjort:** seks implementeret, to delvist, to afvist, ét trukket tilbage. Fem
-forhold rækker ud over det enkelte fund og er værd at kende, før nogen genlæser afsnittet ovenfor.
-
-**1. BB-166 var mit fund, og præmissen var forkert.** Jeg læste de to faners uenighed som en
-selvmodsigelse, programmet skjulte for brugeren. Den rigtige læsning er, at hver fane opgør sin egen
-ydelse: et kapitalbeløb hører til sin kapitaliseringsdato, og fanen er derfor bevidst uafhængig af
-beregningsdatoen – ville den lade beregningsdatoen påvirke kapitaliseringerne, VILLE det være fejlen.
-Det omvendte gælder i differencekravet, hvor kapitaliseringsværdier beregnes særskilt og kun medregnes
-før beregningsdatoen. Fundet er trukket tilbage og genrejses ikke. **Læren for mønsteret «to flader,
-to svar»:** to flader, der svarer forskelligt på det, der ser ud som samme spørgsmål, er kun et fund,
-hvis de faktisk besvarer samme spørgsmål. Afklar først, hvad hver flade opgør – ellers registreres en
-korrekt arbejdsdeling som en selvmodsigelse.
-
-**2. BB-167's rettelse er hele forklaringen på, hvorfor BB-166 ikke er en fejl.** Beregningsdatoen er
-væk fra fanen – ikke flyttet op i «Beregning»-boksen, som fundet foreslog, for der er ingen dato at
-vise på en flade, hvis resultat ikke afhænger af en. Rækken var netop det, der fik den bevidste
-uafhængighed til at ligne en fejl: den stod øverst i hver boks som en forudsætning, intet i boksen
-læste. Princippet gælder KUN kapitalisering-fanen; på differencekrav er beregningsdatoen en ægte
-afhængighed for proformakapitaliseringen og skal blive vist.
-
-**3. BB-173 endte med omvendt fortegn, og det omgør BB-158.** Fundet var, at Kap. %-advarslen manglede
-halen «– beregningen er derfor ikke lovmæssig», som EET %-advarslen havde. Udviklerens svar var, at
-halen selv er problemet. Jeg pressede på, fordi BB-158 (2026-09-01) netop havde indført den og
-forlangt den brugt konsekvent, og fordi fjernelsen også rammer
-`warn-invalid-eet-pct-after-2024-07-01`. Afgørelsen blev alligevel at fjerne den overalt: hvad der kan
-bruges juridisk, er brugerens vurdering, ikke programmets. Halen er derfor fjernet fra
-`EET_UNDER_15_WARNING` og `EET_TITRIN_FRA_2024_WARNING`, og konstanten
-`IKKE_LOVMAESSIG_BEREGNING_SUFFIX` findes ikke længere. Testen, der låste halen, er vendt om, så den
-nu låser fraværet – ellers ville næste læsning af BB-158 genindføre den i god tro.
-
-**4. BB-170's og BB-171's løsninger faldt sammen til én, og BB-171's «kun ved kollision» blev opgivet.**
-Udviklerens ønske var at udspecificere overskriften alene i de tilfælde, hvor to afgørelser har
-identisk overskrift. Det er ikke gennemførligt uden at gøre det værre: overskriften ville skifte form,
-når en anden række i tabellen ændres, og i dokumentet, hvor de to sider ikke kan ses samtidig, kan
-læseren ikke se, at der ER en kollision at udspecificere for. Løsningen på BB-170 – afgørelsens egen
-EET-procent i overskriften, som Løbende ydelser allerede gør – dækker begge behov ubetinget og koster
-fire tegn: «Afgørelse 1. juni 2023 (40 %)». Den skiller samtidig to afgørelser fra samme dag med
-forskellig EET %, så BB-171's kollisionsfald skrumper til «samme dato OG samme EET %», hvor rækken
-«Kapitaliseringsdato» inde i boksen gør arbejdet. BB-170's øvrige del – forudsætningsblok med
-skadedato og årsløn, grundlønnen som formel – er droppet efter udviklerens lempelse: fanen gengiver en
-myndighedsafgørelse, hvis mellemregninger har stået i den.
-
-**5. Tre af rettelserne fjernede en «bevidst forskel» mellem skærm og dokument.** Rækkebuilderen bar
-tre erklærede options, fordi de to kanaler med vilje skrev det samme forskelligt. To af dem var selve
-fundet: særfaktor-etiketten (`<` mod `≤`, BB-172) og reguleringsdatoens format (lang mod kort,
-BB-176). Begge er nu delte konstanter, og `KapitaliseringRowOptions` har kun Køn-rækkens synlighed
-tilbage. **Læren:** en erklæret option, der bærer to skrivemåder af samme oplysning, er ikke en løsning
-på divergensen – den er divergensen, dokumenteret. En option skal bære en forskel, der har en grund
-(Køn-rækkens tomme værdi hører på en indtastningsflade, ikke i et dokument). BB-172's `≤` bliver dog
-normaliseret til `<=` i PDF-kanalen, fordi jsPDF-fonten ikke kan sætte tegnet; begge linjer
-normaliseres ens, så kravet om én operator holder også der.
-
-**Efterprøvet i browseren** på BB-168's egen sag (fødselsdato `01-01-1958`, skadedato `01-06-2018`,
-beregningsdato `01-07-2026`, ASL-årsløn `400.000`, én endelig afgørelse `01-06-2023` på 40 % med
-Kap.dato og Kap. % TOMME): begge celler står neutrale (`aria-invalid = false`), fanen viser ingen
-«Fejl og advarsler»-boks, downloadknappen er aktiv, og specifikationen skriver «Afgørelse 1. juni 2023
-(40 %)», «Kapitaliseringsprocent 40 %», «Reguleringsprocent (01-06-2023)», «Kapitaliseret pga. ≤ 2 år
-til folkepension? Ja», «Særfaktor (≤ 2 år til folkepension) 1,245» og kapitalbeløbet `169.591 kr.` –
-samme tal som den håndregnede kontrol i «Fladen kort». Ingen Beregningsdato-række nogen steder.
+**Alle elleve fund er afgjort:** seks implementeret, to delvist, to afvist, ét trukket tilbage. De fem
+forhold, der rakte ud over det enkelte fund, står under BB-166, BB-167, BB-173, BB-171 (og BB-170) samt
+BB-176 (og BB-172); browserefterprøvningen står under BB-168.
 
 **Gates:** 8193 unit-tests grønne, 156 e2e-tests grønne, `check:types`, `lint`, `check:mojibake` og
 `verify:ledgers` rene. Karakteriseringstestens fire golden-hashes er opdateret, og snapshottet blev
@@ -1863,12 +1874,22 @@ Se tilbagemelding på BB-177. Den korrekte, ønskværdige og forventelige adfær
 
 Jeg er dog enig i, at det vil være hensigtsmæssigt at gentage advarslen om, at der er indtastet en midlertidig afgørelse efter en endelig.
 
+**AFGJORT 2026-09-04 (åbent spørgsmål rejst ved gennemgangen): Skal en senere midlertidig afgørelse kunne fortrænge en tidligere endelig, når
+EAL-kravet opgøres?** **Ja – sorteringen står uændret.** Mangler en særskilt EET-procent efter EAL,
+lægges den seneste procent efter ASL til grund uden skelen til, om den er midlertidig eller endelig,
+fordi erstatningsansvarsloven ikke kender et midlertidigt erhvervsevnetab. Den samme begrundelse
+afgjorde BB-177. Fanen siger nu, at der er to afgørelser at vælge imellem (BB-178's advarselsdel), men
+vælger fortsat den seneste. `resolveLoebendeEetPct` i differencekravet bruger samme rækkefølge og er
+dermed fortsat korrekt spejlet.
+
+**Gennemført 2026-09-04 (fra STATUS.md):** `warn-non-endelig-after-endelig` fandtes ét sted (løbende ydelser) og var låst til den motors egen `ResolvedAfgoerelse`-type, så EAL-motoren ikke kunne genbruge den. Den er flyttet til `eetAslAfgoerelser.ts` som `resolveNonEndeligAfterEndeligWarning` med sin egen smalle rækketype, og løbende ydelser kalder den delte regel.
+
 ### BB-179 – En afgørelse truffet efter beregningsdatoen giver et fuldt EAL-krav her og blokerer nabofanen helt
 
 - **Type:** Edge case
 - **Rækkevidde:** Lokal
 - **Prioritet:** Mellem
-- **Beslutning:** Afvist for denne fane 2026-09-04 – EET efter EAL lægger forudsætningsvist ASL-procenten til grund, og afgørelsens tidspunkt er derfor uden betydning for EAL-kravet. **Uenigheden med Differencekrav er ikke løst her, men flyttet:** se det omformulerede åbne spørgsmål nedenfor og flade 11e
+- **Beslutning:** Afvist for denne fane 2026-09-04 – EET efter EAL lægger forudsætningsvist ASL-procenten til grund, og afgørelsens tidspunkt er derfor uden betydning for EAL-kravet. **Afvist i sin helhed samme dag:** Differencekravs blokering er korrekt, fordi differencekrav forudsætter krav efter både ASL og EAL – se modsvaret og afgørelsen nedenfor
 - **Sådan fremprovokeres det:**
   1. Grundlaget som i BB-177, men **Beregningsdato `01-01-2021`**.
   2. Én afgørelsesrække: Afgørelsesdato `01-06-2024`, Virkningsdato `01-06-2024`, EET % `30`, **Endelig**.
@@ -1933,6 +1954,13 @@ differencekravet forudsætter en dobbeltdækket sag og skal kunne periodisere AS
 BB-166's lære i en ny form** – dér var det arbejdsdelingen mellem to beregninger, her er det
 forudsætningerne for to flader. Prøven for de resterende flader: før en divergens registreres, afklar
 om de to flader har samme INPUT-forudsætning, ikke blot om de viser samme tal.
+
+**AFGJORT 2026-09-04 (åbent spørgsmål rejst ved gennemgangen): Skal en afgørelse, der er truffet efter beregningsdatoen, bære EAL-kravet?**
+**Ja på EAL-fanen, og Differencekravs blokering er samtidig korrekt.** Differencekrav opstår
+udelukkende, når der er krav efter BÅDE ASL og EAL, så fladens forudsætninger er anderledes end ved
+en «ren» EET efter EAL – og en fejlmeddelelse kan derfor være relevant dér uden at være det her,
+selv om de udspringer af samme forhold. De to svar er ikke en selvmodsigelse, og der er ingen
+udestående uenighed at tage op på 11e (BB-179).
 
 ### BB-180 – Fanen bruger den ene af to udfyldte årsløn- og procentkilder og siger aldrig hvilken
 
@@ -2273,7 +2301,7 @@ Jeg afviser fundet. Kapitaliseringsfaktor er det samme begreb i EAL og ASL. Enes
 - Kun Chrome, lyst tema, 1536×864. Mørkt tema og de tre øvrige browsere er ikke målt.
 - PDF-kanalen er ikke læst; dokumentet er hentet som `.docx`. De to kanaler deler `renderEfterEalBody`, så
   BB-182 hviler på Word-udgaven plus kildelæsning.
-- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049).
 - Brevhovedet er ikke slået til i nogen kørsel. BB-182 er målt uden brevhoved; brevhovedet bærer kun
   journalnr., advokat, sagsbehandler og dags dato (kildelæst), så det lukker ikke hullet.
 - `warn-eal-aarsloen-empty-for-2024-07-01` er ikke målt (kræver en skadedato fra 1. juli 2024 og frem);
@@ -2287,19 +2315,6 @@ Jeg afviser fundet. Kapitaliseringsfaktor er det samme begreb i EAL og ASL. Enes
 
 ## Åbne spørgsmål
 
-- **AFGJORT 2026-09-04: Skal en senere midlertidig afgørelse kunne fortrænge en tidligere endelig, når
-  EAL-kravet opgøres?** **Ja – sorteringen står uændret.** Mangler en særskilt EET-procent efter EAL,
-  lægges den seneste procent efter ASL til grund uden skelen til, om den er midlertidig eller endelig,
-  fordi erstatningsansvarsloven ikke kender et midlertidigt erhvervsevnetab. Den samme begrundelse
-  afgjorde BB-177. Fanen siger nu, at der er to afgørelser at vælge imellem (BB-178's advarselsdel), men
-  vælger fortsat den seneste. `resolveLoebendeEetPct` i differencekravet bruger samme rækkefølge og er
-  dermed fortsat korrekt spejlet.
-- **AFGJORT 2026-09-04: Skal en afgørelse, der er truffet efter beregningsdatoen, bære EAL-kravet?**
-  **Ja på EAL-fanen, og Differencekravs blokering er samtidig korrekt.** Differencekrav opstår
-  udelukkende, når der er krav efter BÅDE ASL og EAL, så fladens forudsætninger er anderledes end ved
-  en «ren» EET efter EAL – og en fejlmeddelelse kan derfor være relevant dér uden at være det her,
-  selv om de udspringer af samme forhold. De to svar er ikke en selvmodsigelse, og der er ingen
-  udestående uenighed at tage op på 11e (BB-179).
 - **AFGJORT 2026-09-04: Gælder 10 %-trinnene for erhvervsevnetabsprocenten efter EAL?** **Nej – de nye
   10 %-intervaller gælder kun erhvervsevnetab efter ASL.** Efter EAL anvendes fortsat de gamle
   intervaller: 15 % som mindstegrænse og derefter løbende 5 %-intervaller op til 100 %. Antagelsen bag
@@ -2506,6 +2521,77 @@ Begrebet 'delvist endelige afgørelser' er en kompliceret størrelse rent formul
 
 Jeg er bange for, at formuligeringerne bliver for lange og kluntede, hvis man skal have beskrevet alt dette, og brugeren ved godt, at den løbende ydelse fra en delvist endelig afgørelse i praksis bare er en midlertidig ydelse. Hvis du kan finde en god, kort, præcis måde at formulere dette på, så fint, men hvis ikke, så undgå at drukne dokumenter i lange, komplicerede beskrivelser, der bare skaber unødvendigt rod.
 
+**Åbent spørgsmål til udvikleren, rejst ved gennemgangen 2026-09-07:** **Skal løbende ydelser under en DELVIST ENDELIG afgørelse fradrages i differencekravet ved skader fra
+16. juni 2011?** `skalFradragForetages` (`eetDifferencekravCalculation.ts:505-511`) returnerer `true` for
+`'Endelig'` alene, så en delvist endelig afgørelse behandles som en midlertidig. I den målte sag betyder
+det, at 66.827 kr. faktisk udbetalte løbende ydelser ikke fradrages. Spørgsmålet er rejst her og ikke
+afgjort, fordi det er beregningslogik; BB-187 registrerer alene, at TEKSTEN begrunder sig med en regel om
+midlertidige ydelser, som ikke omfatter rækkens egen type. **Svaret afgør, om BB-187 er en tekstrettelse
+eller en beregningsrettelse.**
+
+**Tilbagemelding på spørgsmålet**
+Nej. Og det skal skrives ind i kontrakter eller anden dokumentation at delvist endelige afgørelser skal behandles sådan, at alle de løbende ydelser beregningsteknisk skal håndteres som midlertidig løbende erhervsevnetab, hvorimod kapitalbeløbet skal behandles som et kapitalbeløb efter reglerne for endelige afgørelser. Konsekvensen af dette bliver, at for skader fra 16. juni 2011 skal løbende ydelser trækkes fra i TAF, samtidig med at kapitaliseringsdatoen stopper retten til TAF. Det er besværligt, og ved tvivlstilfælde skal udvikleren spørges.
+
+**Afgjort 2026-09-09.** Svaret er **nej** – `skalFradragForetages` er uændret, og fane 5's beløb er
+dermed de samme. Reglen er skrevet normativt ind i `src/contracts/eet-snapshot-contract.md` og i
+`docs/domain/eet/differencekrav.md` §«Delvist endelige afgørelser». BB-187 er dermed en TEKSTrettelse,
+og den er gennemført.
+
+**TAF-følgen er undersøgt, ikke ændret** (udviklerens valg: «Dokumentér + undersøg TAF-siden og
+forelæg fund»). Tre fund, alle med kildehenvisning i domænedokumentets nye §«Åbne forhold»:
+
+1. **Reglens første halvdel holder.** EO-importen medtager `Midlertidig` OG `Delvist endelig` på
+   fuldstændig lige fod (`eetImportPort.ts:178-181`, `:202-212`); der findes ingen kodegren, der
+   behandler de to typer forskelligt. Kapitaliseringen reducerer den løbende ydelse fra
+   kapitaliseringsdatoen og afslutter den kun ved fuld kapitalisering
+   (`eetLoebendePerioder.ts:433-443`) – præcis som reglen forudsætter. Fradraget i TAF er ubetinget:
+   `tafNettoBeregning.ts:86-98` mapper alle ydelser uden type-, dato- eller 2011-filter.
+2. **Anden halvdel findes slet ikke i koden.** Intet sted bruger EET's `kapDato` til at afgrænse en
+   TAF-periode – `rg "kapDato|kapitaliseringsdato" src/domain/erstatningsopgoerelse` giver nul træf, og
+   `TafCalculationValues` indeholder hverken kapitaliseringsdato eller afgørelsestype. TAF-periodens
+   fejlgivende lofter kommer udelukkende fra manuelt indtastede EO-felter
+   (`tafPeriodConstraints.ts:133-148`). En TAF-periode kan derfor uhindret fortsætte forbi en
+   kapitalisering, mens importen samtidig fradrager den reducerede løbende ydelse i den periode.
+3. **«Delvist endelig» er usynlig på EO-siden.** Brugeren har kun to kategorier
+   (`midlertidigtEETAfgorelse`/`endeligtEETAfgorelse`), så en delvist endelig afgørelse må registreres
+   som «midlertidig» for at afgrænse TAF ved skader før 16-06-2011 – programmet spørger ikke og
+   påtaler ikke. Koblingen er dertil kontraktligt forbudt i dag (`domain-boundary-contract.md:163`), så
+   en automatisk afgrænsning kræver BÅDE en kontraktændring og en specifikation fra udvikleren.
+
+**Forelagt 2026-10-30** som tre valg: A – automatisk afskæring af TAF ved kapitaliseringen (kræver
+kontraktændring, en regel for flere og delvise kapitaliseringer og gør tidligere gemte `.eo`-filer røde);
+B – en gul, ikke-blokerende advarsel, når TAF-perioden fortsætter efter kapitaliseringsdatoen på
+Erhvervsevnetab-siden, uden beregningsændring; C – et manuelt felt «Kapitaliseringsdato» under
+AES-afgørelser. Anbefaling: B.
+
+**Tilbagemelding 2026-10-30**
+Vi vælger løsning B. Følgende skal dokumenteres: det forudsætningsvise udgangspunkt for delvist endelig afgørelser er, at de i forhold til taf burde behandles som endelige erhvervsevnetabsafgørelser, altså stoppe retten til taf på kapitaliseringstidspunktet. Men der vil hypotetisk set kunne opstå situationer, hvor TAF alligevel fortsætter efter kapitalisering af en delvist endelig EET-afgørelser, så jeg vil gerne have, at det er et alvorligt og absolut krav, at ved taf efter kapitaliseringsdatoen for en delvist endelig eet-afgørelse, skal der gives meddelelse til brugeren, men det skal kun være gule ikke-blokerende advarsler.
+
+**Gennemført 2026-10-30:** ligger en TAF-periode på Erstatningsopgørelsen på eller efter
+kapitaliseringsdatoen for en delvist endelig afgørelse på Erhvervsevnetab-siden, får rækkens til-dato en
+gul ring med «Der er angivet tabt arbejdsfortjeneste på eller efter kapitaliseringsdatoen for den delvist
+endelige afgørelse om erhvervsevnetab på Erhvervsevnetab-siden (01-03-2024). TAF ophører som udgangspunkt
+ved kapitaliseringen». Ligger hele perioden efter, får også fra-datoen en gul ring («Hele perioden ligger på
+eller efter …»). «Fejl og advarsler» på Beregning viser en gul linje pr. række – «TAF-perioden 01-06-2023 -
+31-12-2024 fortsætter på eller efter kapitaliseringsdatoen … – TAF ophører som udgangspunkt ved
+kapitaliseringen» – med linket «Tabt arbejdsfortjeneste», der fører til rækkens dato. Beregningen og alle
+download-gates er uændrede. Valgt og dokumenteret:
+
+- Prøven bruger rækkens BEREGNEDE periode, efter de øvrige afskæringer og EO-perioden: TAF, der i forvejen er
+  afskåret før kapitaliseringen, giver ingen advarsel om dage, der ikke regnes.
+- Datoen er inklusiv som de øvrige afskæringsdatoer. Ved flere delvist endelige afgørelser er den tidligste
+  kapitaliseringsdato afgørende.
+- Advarslen gælder uanset togglen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» og uanset en
+  verserende EET-klage – kravet er absolut, og reglen er ingen afskæring, som klagen kunne suspendere.
+- Kun `Delvist endelig`-afgørelser med en gyldig kapitaliseringsdato tæller; en rød kapitaliseringsdato
+  meldes på Erhvervsevnetab-siden.
+- Tidligere gemte `.eo`-filer får advarslen ved load uden preflight og uden ændret sagsdata.
+- Kontraktændring: `domain-boundary-contract.md` §9 pkt. 11 giver EO en snæver læsning af
+  kapitaliseringsdatoerne, alene til advarslen. Reglen er normativ i `eo-snapshot-contract.md` §2.2a og i
+  `docs/domain/eet/differencekrav.md` §«Åbne forhold». Kode: `tafEfterKapitaliseringAdvarsel.ts`,
+  `eetImportPort.ts` (`resolveDelvistEndeligeKapitaliseringsdatoer`); test:
+  `tafEfterKapitaliseringAdvarsel.test.ts`.
+
 ### BB-188 – Et afkrydset bilag kan udgå af dokumentet uden et ord, mens to andre bilag gøres inaktive med en grund
 
 - **Type:** Edge case
@@ -2555,6 +2641,13 @@ Jeg er enig. Hvis der ikke er noget indhold i et givent bilag, skal boksen gøre
 
 Jeg vil desuden gerne have at der også indsættes et lockedOn opgørelses-felt for differencekrav magen til det på EO. Hvis det ændrer schama eller andet tilsvarende, som kan give problemer med bagudkompatibilitet, så sørg for at tage højde for det. Det burde dog ikke være tilfældet. Opgørelsen dannes altid - både nu og med ændringen. Eneste forskel er, at der nu vises en symbolsk boks, hvor det fremgår.
 
+**Gennemført 2026-09-09: Bilagsvalgene har fået EO's model.** Ét `getEetDifferencekravBilagAvailability`-opslag deles af
+fladen og dokumentkilden, tilgængeligheden er en discriminated union (så «inaktiv uden årsag» ikke kan
+konstrueres), og et gemt valg for et bilag uden indhold slås fra i kilden. Det nye `opgoerelse`-felt er
+et **persistensskridt**: `PERSISTED_DATA_VERSION` er bumpet til `3.13`, og feltet er
+required-with-default `true`, så en ældre `.eo` indlæses uændret og uden preflight-afvigelse – den får
+præcis den tilstand, filen reelt havde.
+
 ### BB-189 – «Pensionsalderen er ikke forhøjet i perioden» er forkert, når årsagen er, at der ikke er nogen kapitalisering
 
 - **Type:** Fornuft
@@ -2588,6 +2681,17 @@ Jeg vil desuden gerne have at der også indsættes et lockedOn opgørelses-felt 
 
 **Tilbagemelding**
 Jeg er enig. Men dit forslag til meddelelse bliver meget langt og kluntet. Kan det gøres kortere og mere præcist, eventuelt bare i retning af, at der ikke er nogen kapitaliseringsafgørelser at forhøje.
+
+**Gennemført 2026-09-09: BB-189's afvisning af den gamle tooltiptekst var mere end en formsag.** Den e2e-test, der låste
+teksten («Pensionsalderen er ikke forhøjet i perioden»), stod på en sag med skadedato 01-01-2010 og
+beregningsdato 01-01-2025 – hvor folkepensionsalderen blev forhøjet BÅDE 2015 og 2020. Testen låste
+altså en påstand, der var usand i netop sin egen fixture. Den er nu vendt om og hævder den nye,
+tilstandsspecifikke årsag samt fraværet af den gamle.
+
+**Gennemført 2026-09-09: Det tavse fradrag er lukket.** Mer-erstatningens issues blev skrevet i en lokal liste, der aldrig
+blev merget: fejlede et opslag, udgik fradraget tavst, og differencekravet blev tilsvarende for HØJT.
+Beregningen af fradrag 4 er flyttet op FØR blocking-evalueringen, så opslagsfejlen nu blokerer
+downloaden med sin konkrete årsag. Ingen sag, der regner i dag, ændrer beløb.
 
 ### BB-190 – Hele bilaget «Forhøjet pensionsalder» trykker beløb uden «kr.»
 
@@ -2818,6 +2922,8 @@ Enig
 **Tilbagemelding**
 Enig
 
+**Gennemført 2026-09-09:** forligsfelternes flytning og forligets to grundlag er udviklerens nye opgave samme dag og står samlet under «Gennemført i kode – 2026-09-09» nedenfor.
+
 ### BB-196 – Boksen skriver «indeholder en ugyldig værdi», hvor programmet selv har den konkrete sætning
 
 - **Type:** Fornuft
@@ -2961,6 +3067,11 @@ Jeg er ikke sikker på, om jeg kan huske præmisserne for oplysningerne korrekt,
 **Tilbagemelding**
 Enig
 
+**Gennemført 2026-09-09: BB-199 krævede en rettelse på SKÆRMEN, ikke i dokumentet.** Fundet læste som en dokumentafvigelse,
+men dokumentet skrev i forvejen kortformen; det var skærmen, der stod i langform ved siden af
+proformaboksens «Kapitaliseringsdato 01-06-2022». Fane 4's egen Beregningsdato-række er urørt, fordi
+den ikke har en nabodatorække at være uenig med – det er en observation, ikke et nyt fund.
+
 ### BB-200 – Forligsprocenten står som «50,00» i feltet og «50 %» i sætningen, og grænsen siger «mellem 1,00 og 100,00»
 
 - **Type:** Fornuft
@@ -3039,45 +3150,6 @@ Jeg forstår din anbefaling sådan, at der er tale om en ren visnings-ændring, 
 
 **Tilbagemelding**
 Jeg forstår tanken bag ændringsforslaget, men det har en relevant pædagogisk værdi at tydeliggøre, at beregningen er bekendt med afgørelserne, og at der ikke er sket kapitalisering i de pågældende afgørelser - uanset at dette beror på en underliggende juridisk præmis om, at der slet ikke kan ske kapitalisering af midlertidige afgørelser.
-
-## Åbne spørgsmål til udvikleren
-
-**Skal løbende ydelser under en DELVIST ENDELIG afgørelse fradrages i differencekravet ved skader fra
-16. juni 2011?** `skalFradragForetages` (`eetDifferencekravCalculation.ts:505-511`) returnerer `true` for
-`'Endelig'` alene, så en delvist endelig afgørelse behandles som en midlertidig. I den målte sag betyder
-det, at 66.827 kr. faktisk udbetalte løbende ydelser ikke fradrages. Spørgsmålet er rejst her og ikke
-afgjort, fordi det er beregningslogik; BB-187 registrerer alene, at TEKSTEN begrunder sig med en regel om
-midlertidige ydelser, som ikke omfatter rækkens egen type. **Svaret afgør, om BB-187 er en tekstrettelse
-eller en beregningsrettelse.**
-
-**Tilbagemelding**
-Nej. Og det skal skrives ind i kontrakter eller anden dokumentation at delvist endelige afgørelser skal behandles sådan, at alle de løbende ydelser beregningsteknisk skal håndteres som midlertidig løbende erhervsevnetab, hvorimod kapitalbeløbet skal behandles som et kapitalbeløb efter reglerne for endelige afgørelser. Konsekvensen af dette bliver, at for skader fra 16. juni 2011 skal løbende ydelser trækkes fra i TAF, samtidig med at kapitaliseringsdatoen stopper retten til TAF. Det er besværligt, og ved tvivlstilfælde skal udvikleren spørges.
-
-**Afgjort 2026-09-09.** Svaret er **nej** – `skalFradragForetages` er uændret, og fane 5's beløb er
-dermed de samme. Reglen er skrevet normativt ind i `src/contracts/eet-snapshot-contract.md` og i
-`docs/domain/eet/differencekrav.md` §«Delvist endelige afgørelser». BB-187 er dermed en TEKSTrettelse,
-og den er gennemført.
-
-**TAF-følgen er undersøgt, ikke ændret** (udviklerens valg: «Dokumentér + undersøg TAF-siden og
-forelæg fund»). Tre fund, alle med kildehenvisning i domænedokumentets nye §«Åbne forhold»:
-
-1. **Reglens første halvdel holder.** EO-importen medtager `Midlertidig` OG `Delvist endelig` på
-   fuldstændig lige fod (`eetImportPort.ts:178-181`, `:202-212`); der findes ingen kodegren, der
-   behandler de to typer forskelligt. Kapitaliseringen reducerer den løbende ydelse fra
-   kapitaliseringsdatoen og afslutter den kun ved fuld kapitalisering
-   (`eetLoebendePerioder.ts:433-443`) – præcis som reglen forudsætter. Fradraget i TAF er ubetinget:
-   `tafNettoBeregning.ts:86-98` mapper alle ydelser uden type-, dato- eller 2011-filter.
-2. **Anden halvdel findes slet ikke i koden.** Intet sted bruger EET's `kapDato` til at afgrænse en
-   TAF-periode – `rg "kapDato|kapitaliseringsdato" src/domain/erstatningsopgoerelse` giver nul træf, og
-   `TafCalculationValues` indeholder hverken kapitaliseringsdato eller afgørelsestype. TAF-periodens
-   fejlgivende lofter kommer udelukkende fra manuelt indtastede EO-felter
-   (`tafPeriodConstraints.ts:133-148`). En TAF-periode kan derfor uhindret fortsætte forbi en
-   kapitalisering, mens importen samtidig fradrager den reducerede løbende ydelse i den periode.
-3. **«Delvist endelig» er usynlig på EO-siden.** Brugeren har kun to kategorier
-   (`midlertidigtEETAfgorelse`/`endeligtEETAfgorelse`), så en delvist endelig afgørelse må registreres
-   som «midlertidig» for at afgrænse TAF ved skader før 16-06-2011 – programmet spørger ikke og
-   påtaler ikke. Koblingen er dertil kontraktligt forbudt i dag (`domain-boundary-contract.md:163`), så
-   en automatisk afgrænsning kræver BÅDE en kontraktændring og en specifikation fra udvikleren.
 
 ## Overvejet uden fund
 
@@ -3162,7 +3234,7 @@ forelæg fund»). Tre fund, alle med kildehenvisning i domænedokumentets nye §
 
 - Kun Chrome, lyst tema, 1536×864 (M-09 desuden 1244×620). Mørkt tema og de tre øvrige browsere er ikke
   målt.
-- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless (samme hul som BB-049).
+- `Gem`/`Hent` er ikke afprøvet – filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme hul som BB-049).
   Bilagsvalgenes og de to togglers overlevelse gennem en `.eo`-runde hviler derfor på schemaet, ikke på en
   målt fil. Det er værd at måle, fordi begge toggles har `true` som default: en ældre fil uden felterne får
   dem sat til Ja.
@@ -3181,12 +3253,13 @@ forelæg fund»). Tre fund, alle med kildehenvisning i domænedokumentets nye §
 
 **Alle 17 fund er afgjort:** **tolv implementeret** (BB-187, BB-188, BB-189, BB-190, BB-191, BB-192,
 BB-193, BB-194, BB-195, BB-196, BB-199, BB-200), **ét delvist** (BB-201) og **fire afvist** (BB-185,
-BB-186, BB-197, BB-198). Det åbne spørgsmål er besvaret uden en beregningsændring.
+BB-186, BB-197, BB-198). Det åbne spørgsmål er besvaret uden en beregningsændring (se BB-187). Noterne om
+BB-188, BB-189 og BB-199 står under fundene.
 
 Dertil kom **én ny opgave fra udvikleren samme dag**, som er større end noget enkeltfund: forligsfelterne
 er flyttet, og «EET efter EAL» reducerer nu selv med forligsgraden.
 
-**1. Forliget om ansvarsgrad har fået sin plads – og to grundlag.** De tre felter er flyttet fra
+**Forliget om ansvarsgrad har fået sin plads – og to grundlag.** De tre felter er flyttet fra
 Differencekravs «Valgmuligheder» til «EET oplysninger → Erstatningsansvarsloven». Fane 4 viser nu en
 «Forlig om ansvarsgrad»-blok med prosa-sætningen og en bundlinje, der ganger forligsgraden på
 («50 % x (2.787.000 kr. - 501.660 kr.) =»), mens fane 5 reducerer sit EGET beløb efter alle fire
@@ -3198,29 +3271,6 @@ differencekravets graf sender `forlig: null` med en note ved kaldet. Reglen er n
 `eet-snapshot-contract.md` §4.1 og i begge domænedokumenter og er testdækket i
 `eetForligGrundlag.test.ts` samt i e2e-specen `eetForligAnsvarsgrad.spec.ts`. Differencekravdokumentets
 EAL-bilag viser det ureducerede krav med én linje om, at forliget anvendes på forsiden.
-
-**2. BB-189's afvisning af den gamle tooltiptekst var mere end en formsag.** Den e2e-test, der låste
-teksten («Pensionsalderen er ikke forhøjet i perioden»), stod på en sag med skadedato 01-01-2010 og
-beregningsdato 01-01-2025 – hvor folkepensionsalderen blev forhøjet BÅDE 2015 og 2020. Testen låste
-altså en påstand, der var usand i netop sin egen fixture. Den er nu vendt om og hævder den nye,
-tilstandsspecifikke årsag samt fraværet af den gamle.
-
-**3. Det tavse fradrag er lukket.** Mer-erstatningens issues blev skrevet i en lokal liste, der aldrig
-blev merget: fejlede et opslag, udgik fradraget tavst, og differencekravet blev tilsvarende for HØJT.
-Beregningen af fradrag 4 er flyttet op FØR blocking-evalueringen, så opslagsfejlen nu blokerer
-downloaden med sin konkrete årsag. Ingen sag, der regner i dag, ændrer beløb.
-
-**4. Bilagsvalgene har fået EO's model.** Ét `getEetDifferencekravBilagAvailability`-opslag deles af
-fladen og dokumentkilden, tilgængeligheden er en discriminated union (så «inaktiv uden årsag» ikke kan
-konstrueres), og et gemt valg for et bilag uden indhold slås fra i kilden. Det nye `opgoerelse`-felt er
-et **persistensskridt**: `PERSISTED_DATA_VERSION` er bumpet til `3.13`, og feltet er
-required-with-default `true`, så en ældre `.eo` indlæses uændret og uden preflight-afvigelse – den får
-præcis den tilstand, filen reelt havde.
-
-**5. BB-199 krævede en rettelse på SKÆRMEN, ikke i dokumentet.** Fundet læste som en dokumentafvigelse,
-men dokumentet skrev i forvejen kortformen; det var skærmen, der stod i langform ved siden af
-proformaboksens «Kapitaliseringsdato 01-06-2022». Fane 4's egen Beregningsdato-række er urørt, fordi
-den ikke har en nabodatorække at være uenig med – det er en observation, ikke et nyt fund.
 
 **Gates:** 8400 unit-tests grønne (633 filer), 170 e2e-tests grønne på basisbanen, `typecheck`,
 `typecheck:test`, `typecheck:e2e`, `lint` og `check:mojibake` rene. Karakteriseringstestens EAL-hash er

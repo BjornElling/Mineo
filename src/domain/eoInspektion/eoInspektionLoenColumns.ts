@@ -12,7 +12,7 @@ import {
 } from '../../data/overenskomstRates';
 import { getReguleringsDatoer } from '../../data/offentligLoenLookup';
 import { parseOffentligDato } from './eoInspektionOffentligeYdelserColumns';
-import type { KontrolTabelColumnId, KontrolTabelIntegrityIssue } from './eoInspektionKontrolModel';
+import type { KontrolTabelColumnId } from './eoInspektionKontrolModel';
 import { kontrolTabelColumnId, WAGE_COLUMNS } from './eoInspektionLoenTypes';
 import type { resolveTafCutoffDates } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -20,7 +20,6 @@ import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indta
 import { buildFallbackAllocationDaysForInterval } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { buildLoenindkomstRateSegments } from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
-import { sumFloat64Array, isWithinIntegrityTolerance } from './mathUtils';
 
 // LOCKED: Løn/TAF kontrol-clusteret er færdig‑porteret.
 // Ændr kun ved parity‑brud og dokumentér årsag.
@@ -327,11 +326,10 @@ export const buildLoenindkomstColumns = (args: {
   tableFra: ISODateString;
   tableTil: ISODateString;
   columnWidthPx: number;
-  integrityTolerance: number;
   errorRowIdsByIndex: ReadonlyArray<ReadonlySet<string>>;
   /** Se `harKontrolTabelAnsaettelsesforholdKolonner`. TAF-dagskolonnen er ikke omfattet. */
   medAnsaettelsesforholdKolonner: boolean;
-}): Readonly<{ columns: ReadonlyArray<KontrolTabelColumnData>; integrityIssues: ReadonlyArray<KontrolTabelIntegrityIssue> }> => {
+}): Readonly<{ columns: ReadonlyArray<KontrolTabelColumnData> }> => {
   const {
     dates,
     isoIndex,
@@ -340,24 +338,19 @@ export const buildLoenindkomstColumns = (args: {
     tableFra,
     tableTil,
     columnWidthPx,
-    integrityTolerance,
     errorRowIdsByIndex,
     medAnsaettelsesforholdKolonner,
   } = args;
 
   const columns: KontrolTabelColumnData[] = [];
-  const issues: KontrolTabelIntegrityIssue[] = [];
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const globalPeriodiseringErKalenderdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.MAANEDER;
-
-  const hasMultiple = ansaettelser.length > 1;
 
   // Ændret 2026-10-30 (BB-388, udviklerafgørelse): uden TAF-krav ingen ansættelsesforholdskolonner. Det er
   // præsentation, ikke parity: sammentællingens ansættelsesforholdsrækker følger samme gate.
   const kolonneAnsaettelser = medAnsaettelsesforholdKolonner ? ansaettelser : [];
   for (let afIndex = 0; afIndex < kolonneAnsaettelser.length; afIndex += 1) {
     const af = kolonneAnsaettelser[afIndex];
-    const suffix = hasMultiple ? ` (${afIndex + 1})` : '';
     const errorRowIds = errorRowIdsByIndex[afIndex] ?? new Set<string>();
 
     const reguleringFlags = buildOverenskomstRegulering(
@@ -412,61 +405,23 @@ export const buildLoenindkomstColumns = (args: {
       arraysByKey.set(col.key, new Float64Array(dates.length));
     }
 
-    const expectedTotalsByKey = new Map<(typeof WAGE_COLUMNS)[number]['key'], number>();
-    for (const col of includeKeys) expectedTotalsByKey.set(col.key, 0);
-
-    const parsedRows: Array<
-      Readonly<{
-        interval: DateInterval;
-        amounts: Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>>;
-        periodiseringsdage: number;
-        allocationSet: ReadonlySet<ISODateString>;
-      }>
-    > = [];
-
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
       if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode, af.tillaegAngivesSom)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
-      if (!interval) {
-        const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, []);
-        const hasAny = includeKeys.some((k) => amounts[k.key] !== 0);
-        if (hasAny) {
-          issues.push({
-            severity: 'warning',
-            area: 'lønindkomst',
-            message: `Lønindkomst${suffix}: En lønrække kan ikke periodiseres pga. ugyldigt/løst dato-interval – beløb kan mangle i kontroltabellen.`,
-          });
-        }
-        continue;
-      }
+      if (!interval) continue;
 
       const startISO = dateToISO(interval.start);
       const endISO = dateToISO(interval.end);
       if (!startISO || !endISO) continue;
 
       const allocationDates = buildAllocationDates(interval, isoIndex, isPeriodiseringsdag);
-      if (allocationDates.length <= 0) {
-        issues.push({
-          severity: 'warning',
-          area: 'lønindkomst',
-          message: `Lønindkomst${suffix}: Ingen periodiseringsdage i en lønperiode – beløb kan ikke fordeles og vil mangle i kontroltabellen.`,
-        });
-        continue;
-      }
+      if (allocationDates.length <= 0) continue;
 
       const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, allocationDates);
       const hasAny = includeKeys.some((k) => amounts[k.key] !== 0);
       if (!hasAny) continue;
-
-      const periodiseringsdage = allocationDates.length;
-      const allocationSet: ReadonlySet<ISODateString> = new Set(allocationDates);
-
-      for (const col of includeKeys) {
-        expectedTotalsByKey.set(col.key, (expectedTotalsByKey.get(col.key) ?? 0) + amounts[col.key]);
-      }
-      parsedRows.push({ interval, amounts, periodiseringsdage, allocationSet });
 
       for (const iso of allocationDates) {
         const idx = isoIndex.get(iso);
@@ -477,64 +432,6 @@ export const buildLoenindkomstColumns = (args: {
           if (!array) continue;
           array[idx] += projectedForDay[col.key];
         }
-      }
-    }
-
-    for (let i = 0; i < parsedRows.length; i += 1) {
-      const a = parsedRows[i];
-      const aStartISO = dateToISO(a.interval.start);
-      const aEndISO = dateToISO(a.interval.end);
-      if (!aStartISO || !aEndISO) continue;
-
-      let overlaps = false;
-      for (let j = 0; j < parsedRows.length; j += 1) {
-        if (i === j) continue;
-        const b = parsedRows[j];
-        const bStartISO = dateToISO(b.interval.start);
-        const bEndISO = dateToISO(b.interval.end);
-        if (!bStartISO || !bEndISO) continue;
-        if (!(aEndISO < bStartISO || bEndISO < aStartISO)) {
-          overlaps = true;
-          break;
-        }
-      }
-      if (overlaps) continue;
-
-      for (const col of includeKeys) {
-        const expected = a.amounts[col.key] ?? 0;
-        if (expected === 0) continue;
-        const arr = arraysByKey.get(col.key);
-        if (!arr) continue;
-
-        // Summér over rækkens faktiske fordelingsdage (allocationSet), ikke over isPeriodiseringsdag:
-        // ved fald-tilbage (hel ferie) er fordelingsdagene netop IKKE arbejdsdage, så et
-        // isPeriodiseringsdag-filter ville udelade dem og udløse et falsk sammentællings-mismatch.
-        let actual = 0;
-        for (const iso of a.allocationSet) {
-          const idx = isoIndex.get(iso);
-          if (idx === undefined) continue;
-          actual += arr[idx] ?? 0;
-        }
-
-        if (!isWithinIntegrityTolerance(actual, expected, integrityTolerance)) {
-          issues.push({
-            severity: 'error',
-            area: 'lønindkomst',
-            message: `Lønindkomst${suffix} (${col.name}): En lønperiode summerer forkert i kontroltabellen (${formatCurrency(actual)} vs ${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
-          });
-        }
-      }
-    }
-
-    for (const col of includeKeys) {
-      const expected = expectedTotalsByKey.get(col.key) ?? 0;
-      const actual = sumFloat64Array(arraysByKey.get(col.key) ?? new Float64Array(dates.length));
-      if (!isWithinIntegrityTolerance(actual, expected, integrityTolerance)) {
-        issues.push({
-          severity: 'error',
-          area: 'lønindkomst',
-          message: `Lønindkomst${suffix} (${col.name}): Sammentælling i kontroltabellen (${formatCurrency(actual)}) matcher ikke indtastet/beregnet total (${formatCurrency(expected)}) (afvigelse ${formatCurrency(Math.abs(actual - expected))}, tolerance ${formatCurrency(integrityTolerance)}).`,
-        });
       }
     }
 
@@ -557,5 +454,5 @@ export const buildLoenindkomstColumns = (args: {
     }
   }
 
-  return { columns, integrityIssues: issues };
+  return { columns };
 };

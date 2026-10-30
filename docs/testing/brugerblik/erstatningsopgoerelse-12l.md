@@ -5,6 +5,8 @@
   kalenderår, TAF opreguleret til beregningsåret, visuel graf over indtægtsniveau) – samt opgørelsens forside og
   sammentælling (`opgoerelseSection`), bilagenes sammensætning (`eoBilagSections`) og de tre alternative dokumenter.
 - Gennemgået: 2026-10-29 · commit `a7d91ae3`
+- Afgjort og gennemført: 2026-10-29 – otte fund gennemført, BB-377–BB-379 afvist; modsvarene til BB-372 og BB-377 er
+  besvaret samme dag
 - Afprøvet i: Chrome headless, lyst tema, 1536×864, mod e2e-buildet. 20 sager indlæst gennem «Hent» (krypteret `.eo` bygget
   til formålet på den låste testfil «REGULERING-FIKTIV»), ét UI-forløb (skift til «Alle», Ctrl+Z, fravalg af et bilag
   gennem TAF «Nej» → «Ja»). For hver sag er fanens tekst, alle bilagsvalg (markeret, aktiv, tooltip) og de fire
@@ -61,7 +63,6 @@ knapperne. Kontrolfanerne er 12m's.
 **Tilbagemelding**
 Enig
 
-
 **Gennemført 2026-10-29:** hver tom dato i referenceperioden får sin egen linje, «Referenceperiode, fra: Datoen er ikke
 udfyldt» (og «…, til: …»), i samme form som periodens øvrige regler. Linket fører til «Lønindkomst» – ved flere
 ansættelsesforhold «Ansættelsesforhold 2» – og blinkmarkerer feltet. Validatorens to linjer uden link står ikke længere i
@@ -89,9 +90,11 @@ mangel giver hver sine linjer. Kravet om en referenceperiode er uændret.
   fælles spærring (forudsigelighed, udviklerbeslutning 2026-08-13), bør i det mindste dokumentnavnet rettes.
 - **Andre steder det kan gælde:** Ingen kendte; Erhvervsevnetab-fanerne har hver sin gate (uverificeret).
 
+**Åbent spørgsmål** (fra rapportens oprindelige «Åbne spørgsmål»): BB-370 indeholder ét valg: om TAF-dokumenterne skal
+kunne hentes, mens et andet krav har fejl.
+
 **Tilbagemelding**
 Enig
-
 
 **Gennemført 2026-10-29:** fejl i svie/smerte og øvrige krav spærrer ikke længere de tre TAF-dokumenter. De dannes, som
 om de to krav var «Skjul», så hverken en fejl eller et tal derfra kan nå dem; TAF-tallene er de samme som i sagen uden
@@ -121,7 +124,6 @@ indtægtsniveau …»; «Hent opgørelse» siger fortsat «Opgørelse kan ikke h
 
 **Tilbagemelding**
 Enig
-
 
 **Gennemført 2026-10-29:** de tre knapper siger tilstanden med bilagsvalgenes ord: ved TAF «Nej» eller «Skjul» «Der er
 ikke krav på tabt arbejdsfortjeneste i EO-perioden», og ved TAF «Ja» uden periode i EO-perioden «Der er ingen
@@ -219,7 +221,6 @@ Erhvervsevnetab-siden»; det gemte valg kommer igen, når der er noget at hente.
 **Tilbagemelding**
 Enig
 
-
 **Gennemført 2026-10-29:** ved TAF «Nej» eller «Skjul» er alle seks bilagsvalg inaktive med «Der er ikke krav på tabt
 arbejdsfortjeneste i EO-perioden» – også ved «Alle». Det gemte valg kommer igen ved TAF «Ja».
 
@@ -245,7 +246,6 @@ arbejdsfortjeneste i EO-perioden» – også ved «Alle». Det gemte valg kommer
 
 **Tilbagemelding**
 Enig
-
 
 **Gennemført 2026-10-29:** står der perioder, som alle ligger uden for EO-perioden, skriver sammendraget «Ingen periode i
 EO-perioden»; «Ingen perioder angivet» står kun ved en tom tabel. Svie/smerte har fået TAF's advarsel: «Der er indtastet
@@ -402,4 +402,4 @@ Jeg afviser. Dette er selvforklarende. Brugeren har ingen interesse i kun at få
 
 ## Åbne spørgsmål
 
-- Ingen ud over fundene. BB-370 indeholder ét valg: om TAF-dokumenterne skal kunne hentes, mens et andet krav har fejl.
+- Ingen. Valget i BB-370 er flyttet ind under fundet og afgjort dér.

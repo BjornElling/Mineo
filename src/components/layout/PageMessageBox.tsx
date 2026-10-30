@@ -39,7 +39,7 @@ export const PageMessageBox = React.memo(({ title, message, isError = true }: Pa
   return (
     <ContentBox className="content-box">
       <Typography className="section-header">{title}</Typography>
-      <Typography className="row--text" sx={isError ? { color: 'error.main' } : undefined}>
+      <Typography className={isError ? 'row--text row--text-error' : 'row--text'}>
         {message.text}
       </Typography>
     </ContentBox>
@@ -71,7 +71,7 @@ export const PageMessageRow = React.memo((
 
   return (
     <Box className="row--label-right-hover">
-      <Typography className="row--text" sx={isError ? { color: 'error.main' } : undefined}>
+      <Typography className={isError ? 'row--text row--text-error' : 'row--text'}>
         {message.text}
       </Typography>
       {rightCellHasContentClass ? <Box className="row--label-right-hover__content" /> : <Box />}

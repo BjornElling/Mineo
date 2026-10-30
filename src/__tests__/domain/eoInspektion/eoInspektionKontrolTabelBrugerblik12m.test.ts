@@ -185,6 +185,11 @@ describe('Kontroltabellen – brugerblik 12m', () => {
       expect(headers).toContain('Kommunen (1) – Løn');
       expect(headers).toContain('Kommunen (2) – Løn');
       expect(new Set(headers).size).toBe(headers.length);
+      // Kolonne-id'erne er cellernes nøgle. Den tidligere runtime-kontrol af dem var en urenderet tekst-issue og er
+      // fjernet med integritetskanalen (12m, 2026-10-30); entydigheden låses derfor her.
+      const ids = model.columns.map((column) => column.id);
+      expect(ids.every((id) => id.trim() !== '')).toBe(true);
+      expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('har ingen linjeskift i kolonnenavnene og BOM, semikolon og CRLF i filen', () => {

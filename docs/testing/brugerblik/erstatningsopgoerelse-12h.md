@@ -107,7 +107,7 @@ Enig, herunder i at det skal udbredes til alle steder, hvor det kunne være aktu
 **Tilbagemelding**
 En negativ række regnes med. Også hvis det sker på siden med Offentlige ydelser. Det vil kunne ske, at der fx. er udbetalt for meget løn på én lønseddel, og senere udstedes ny lønseddel med tilbagebetalingskrav. Det skal programmet kunne håndtere. Men jeg vil have, at det skal give gul ring og ikke-blokerende advarsel på beregning-siden i begge tilfælde.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-10-19)**
 
 Dit eksempel – for meget løn på én lønseddel og et tilbagebetalingskrav på en senere – virker nu: de to sedler hører til
 samme ansættelsesforhold, og tilbagebetalingen trækkes fra den øvrige løn. Men svaret dækker ikke to tilfælde, hvor der
@@ -208,6 +208,10 @@ negative kilde. Den separate gulmarkering for en negativ enkeltrække og reglen 
 **Tilbagemelding**
 Enig, og overvej gerne en fælles, samlet løsning, og om der også bør tages højde for Offentlige ydelser.
 
+**Efterfølgende audit 2026-10-24 (flyttet fra «Dækningshuller»):** BB-291's aktuelle E2E-kontrol klikker på begge
+identiske advarselslinks og kontrollerer, at hvert link blinker feltet i sin egen række; denne kontrol var ikke
+dokumenteret i den oprindelige Brugerblik-kørsel.
+
 ### BB-292 – Rækker, som beregningen medregner, står med 0,00 kr. eller mangler helt i bilaget
 
 - **Type:** Fejl
@@ -298,7 +302,7 @@ Enig, men det er en situation, hvor jeg let forudser, at der kunne opstå fejl i
 **Tilbagemelding**
 Jeg er ikke enig. Din pointe er valid, men du har ikke tænkt den til ende, særlig i forhold til, når en beregnings- eller erstatningsperiode starter eller slutter midt i en lønperiode. I de situationer vil man ikke bare uden videre kunne få en korrekt I alt sum ved kun at vise perioderne i beregnings- eller erstatningsperioden, for i start/slut medregnes kun delvise lønperioder. Da ville det være nødvendigt i oversigten at dele perioden op og kun vise den del af lønnen i perioden, som hører til erstatnings-/beregningsperioden, og så stemmer oversigten pludselig ikke længere med lønsedlerne. Og det skaber da blot et andet problem, som er lige så stort og forvirrende, som det oprindelige problem, der blev forsøgt løst.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-10-19)**
 
 Jeg er enig i, at bilagets rækker skal stemme med lønsedlerne. Men forslaget delte ikke rækkerne op: den delvise række
 skulle stå uændret med lønsedlens fulde beløb og blot have en ekstra linje under sig. I sag 2 ville bilaget se sådan ud:
@@ -330,7 +334,7 @@ Hvis det kan gøres på en ikke alt for tekst-tung måde med fx en kort, klar pr
 
 Sørg dog for at tage højde for, at det kun skal fremgå, hvis det er relevant for netop den specifikke opgørelse, så det kun er lønperioder og offentlige ydelser, som den specifikke taf-periode, der skærer over, som beskrives, og at lønperioder og lignende, som skæres over af beregningsperioden, ikke vises med beskrivelse hvis vi er på EO 2 og brugeren har valgt, at beregningsgrundlaget ikke skal vises efter EO 1. Og så videre - tænk selv andre fornuftige begrænsninger igennem.
 
-**Spørgsmål (afventer udviklerens svar) – beregningsperiodens lønsedler i opgørelse nr. 2**
+**Spørgsmål (besvaret 2026-10-19) – beregningsperiodens lønsedler i opgørelse nr. 2**
 
 Gennemført som beskrevet i beslutningen ovenfor. Undervejs viste der sig et hul i den modsatte situation af den, du
 nævner: opgørelse nr. 2, hvor brugeren har valgt «Skjul beregning efter første opgørelse: **Nej**».
@@ -373,7 +377,7 @@ Godkendt efter anbefalingen (valg 1), 2026-10-19.
 **Tilbagemelding**
 Delvist enig. Du må gerne være medspiller på at vurdere hensigtsmæssigheden af denne løsning: Jeg tænker, at bilaget altid bør vise rækkerne i korrekt kronologisk sorteringsrækkefølge, og dermed være fuldstændig løsrevet af den sortering, som brugeren har valgt på skærmen. Sorteringen på skærmen er dermed en ren visningsdetalje. Til gengæld skal brugeren ikke tvinges ind i en ramme, hvor vedkommende klikker på sortering efter måned, hvorefter programmet også indfortolker en sortering efter år for at gøre det kronologisk. På skærmen får brugeren præcis, hvad brugeren vælger af sortering, uden hjælp fra programmet, men i bilagene sker sortering automatisk i kronologisk rækkefølge, uden relation til hvilken sortering brugeren har valgt at få vist på skærmen.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-10-19)**
 
 Enig, og gennemført for opgørelsens to bilag. Jeg er enig i ikke at lade «Måned» sortere efter år: det ville være en skjult
 regel, og med bilaget løsrevet er skærmens orden uden betydning for papiret. To ting står tilbage:
@@ -391,9 +395,9 @@ Enig
 - **Type:** Fornuft
 - **Rækkevidde:** Fælles sortering i alle sorterbare tabeller.
 - **Prioritet:** Mellem
-- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: første Ctrl+Z fortryder seneste redigering, mens sorteringen bliver stående. Gælder alle sorterbare tabeller.
+- **Beslutning:** **GODKENDT** af udvikleren 2026-10-24: første Ctrl+Z fortryder seneste redigering, mens sorteringen bliver stående. Gælder alle sorterbare tabeller. **GENNEMFØRT** 2026-10-24.
 - **Sådan fremprovokeres det:** I lønindkomsttabellen: indtast `100` i en lønrække og afslut feltet; sortér derefter efter «Måned»; tryk Ctrl+Z én gang og derefter endnu en gang.
-- **Det sker – browsermålt:** Efter første Ctrl+Z er både sorteringen og `100` stadig synlige. Først efter andet Ctrl+Z forsvinder `100`. Sorteringsrækkefølgen var allerede særskilt godkendt ved BB-294 til at blive gemt i `.eo` og fortsat styre dokumentrækkefølgen.
+- **Det sker – browsermålt:** Efter første Ctrl+Z er både sorteringen og `100` stadig synlige. Først efter andet Ctrl+Z forsvinder `100`. Sorteringsrækkefølgen var allerede særskilt godkendt ved BB-294 til at blive gemt i `.eo` og fortsat styre dokumentrækkefølgen. **Rettet i dokumentationen 2026-10-30:** sorteringen gemmes i `.eo` og styrer skærmen, men bilagene trykkes altid kronologisk uanset skærmens sortering (BB-294; `sortStandardLoenRowsChronologically` i lønindkomstbilaget og Årsløns dokument).
 - **Det er uhensigtsmæssigt fordi:** Brugeren får ingen synlig reaktion på første Ctrl+Z og må gentage handlingen for at fortryde sin seneste indtastning.
 - **Bedre ville være:** Sorteringen gemmes fortsat i `.eo`, men opretter ikke et undo-trin. Første Ctrl+Z fortryder beløbsændringen og lader sorteringsrækkefølgen stå. Almindelig manuel flytning af rækker forbliver fortrydelig.
 - **Andre steder det kan gælde:** Samme rettelse skal gælde alle sorterbare tabeller; øvrige callsites er dækket af den fælles port og arkitekturværn.
@@ -471,7 +475,7 @@ Enig
 **Tilbagemelding**
 Delvist enig, men jeg foregriber, at det vil skabe en betydelig risiko for falske positive. Hvis den skadelidte fx har et job med fast løn, men på et tidspunkt får en lønseddel med en mindre regulering af lønnen på grund af efterregulering med overenskomstmæssige stigninger, hvilket er meget almindeligt, og derfor får fx. 1000 kr. udbetalt på én lønseddel, vil mange af disse tilfælde blive flaget som falsk positive. Tilsvarende hvis skadelidtes ansættelsesforhold fx. ophører den 2. i en måned, og der dermed reelt blot er tale om en meget kort lønperiode. Hvis du kan finde en god, gennemtænkt løsning, der tager højde for alle sådanne situationer, så er jeg enig i, at perioder med en løn, der fx. er ti gange større eller mindre end normen, bør flages med en gul ring og ikke-blokerende advarsel.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-10-19)**
 
 Jeg kan ikke finde en løsning for **«ti gange mindre»**, der undgår de falske positiver, du nævner. En efterregulering på
 1.000 kr., en løn for to dage, en måned med orlov, en deltidsmåned og en lønseddel med en ren tilbagebetaling ligner alle
@@ -563,7 +567,7 @@ Jeg afviser fundet. Der er tale om grundlæggende informationer, som brugeren vi
 
 Herudover vil jeg i relation til dette, men i øvrigt uafhængigt af fundet, gerne have, at dette "Tillæg i tabellen er beregnet med de satser, der gjaldt i den enkelte måned." ikke længere angives i opgørelserne. Brugeren vil forvente den adfærd, som programmet har, og det behøver ikke blive forklaret.
 
-**Modsvar (afventer udviklerens svar)**
+**Modsvar (besvaret 2026-10-19)**
 
 Begrundelsen dækker tooltippene, men fundet havde en anden halvdel: **samme kolonne hedder fire forskellige ting.** Den, der
 læser skærmen, bilaget og beregningsgrundlaget side om side, ser «ATP og anden løn u. tillæg» (skærm), «ATP og løn u.
@@ -612,7 +616,8 @@ Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme
 - **12k:** dublet-kontrollen og de negative beløb i offentlige ydelser (BB-289, BB-290), deres bilag (BB-292, BB-293).
 - **12l/12m:** «Kontroltabel»-linket, når kontrolfanerne er slået fra (BB-290).
 - **Årsløn (uden for 12h):** BB-107, BB-114 og BB-115 står som gennemført, men findes ikke i koden; BB-100's tooltip
-  heller ikke (M-38).
+  heller ikke (M-38). *Senere afgjort 2026-10-19:* BB-107, BB-114 og BB-115 er gennemført på Årsløn via BB-295, BB-296
+  og BB-298; BB-100 er noteret som afvist under BB-299.
 
 ## Dækningshuller
 
@@ -629,7 +634,7 @@ Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme
 - **Inventar og B0:** Feltlisten er identificeret, men rapporten har ikke en fuld felt-for-felt-vurdering af erklærede grænser, deres egnethed og kontekstuelle grænser. De målte fejl omkring enkelte periodeværdier og beløb kan ikke stå i stedet for den vurdering.
 - **B6a og afhængigheder:** Der er målt udvalgte tomme, nul-, beløbsfri, delvist dækkede og dublerede rækker samt række-sletning/undo. Der er ikke dokumenteret en komplet cyklus, hvor hver rækkeform udfyldes, ryddes igen eller kun får et formateringsvalg/afvist tekst, og dens synlighed, beregningsbidrag og dokumentvirkning følges. Skift og rækkefølge er kun dækket i de konkrete forløb under fundene.
 - **Uddata, persistens og miljø:** De oprindelige forløb brugte Chrome headless og lyst tema; PDF blev læst, Word ikke. `.eo`-fixtures blev indlæst, men ingen save→load-rundtur sammenlignede sagsdata før og efter. Edge, Firefox, WebKit og mørkt tema er ikke målt.
-- **Efterfølgende auditfund, browsermålt:** BB-337 reproducerede, at sorteringen lagde et skjult undo-trin mellem indtastningen og Ctrl+Z. Det er nu rettet fælles for sorterbare tabeller; den aktuelle E2E bekræfter, at første Ctrl+Z fortryder beløbet og bevarer sorteringen. Dette ændrer ikke BB-294's godkendte persistente rækkefølge i `.eo` og dokumenterne. BB-291's aktuelle E2E-kontrol klikker på begge identiske advarselslinks og kontrollerer, at hvert link blinker feltet i sin egen række; denne kontrol var ikke dokumenteret i den oprindelige Brugerblik-kørsel.
+- **Efterfølgende auditfund, browsermålt:** BB-337 reproducerede, at sorteringen lagde et skjult undo-trin mellem indtastningen og Ctrl+Z. Det er nu rettet fælles for sorterbare tabeller; den aktuelle E2E bekræfter, at første Ctrl+Z fortryder beløbet og bevarer sorteringen. Dette ændrer ikke BB-294's godkendte persistente rækkefølge i `.eo` og dokumenterne. **Rettet i dokumentationen 2026-10-30:** rækkefølgen persisteres kun i `.eo`; dokumenterne trykker altid kronologisk (BB-294). BB-291's efterfølgende E2E-kontrol af de to identiske links står under fundet.
 
 #### Afstemning mod hele prøvekataloget A1–A8 og B0–B7
 
@@ -641,7 +646,7 @@ Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme
 | A4 – tavshed | Dublet der fordobler beløb, negative rækker, ignorering uden for perioder, nulbeløb og manglende beløb blev målt. | Alle inputværdier er ikke fulgt gennem beregning og dokument; uenighed med andre flader og gamle sagers load-oplevelse er ikke målt. |
 | A5 – fejl | Omvendte ugeperioder, ikke-eksisterende uge, negativ række, manglende rækkeoplysninger, links og advarsler blev prøvet. Senere BB-291 E2E måler begge identiske links mod hver sin række. | Ingen komplet kontrol af alle grænsetekster, keyboard-fokus og fejlreparationer. |
 | A6 – fortrydelse | Rækkesletning med Ctrl+Z og sortering/persistens blev målt; efterfølgende BB-337 E2E bekræfter, at første Ctrl+Z fortryder indtastningen efter sortering, som nu bliver stående. | Save/load, F5, Escape/blur på alle felter, flere undo-/redo-grene og manuel reorder er ikke browserafprøvet i denne flade. |
-| A7 – ensartethed | Skærmtal, bilag, Beregningsgrundlag og dokumentrækkefølge blev sammenholdt; BB-294's godkendte persistente sortering gælder fortsat. | Word blev ikke læst; alle navne, beløbsformater og sammenlignelige tabeller på søsterflader er ikke gennemgået. |
+| A7 – ensartethed | Skærmtal, bilag, Beregningsgrundlag og dokumentrækkefølge blev sammenholdt; BB-294's godkendte persistente sortering gælder fortsat (rettet 2026-10-30: i `.eo` og på skærmen; bilag trykkes altid kronologisk). | Word blev ikke læst; alle navne, beløbsformater og sammenlignelige tabeller på søsterflader er ikke gennemgået. |
 | A8 – helhed | Grundsag med 12 månedsrækker blev ført gennem fejl, beregning og PDF for de konkrete fund. | Ingen førstegangsbrugerprøve af hele fladen eller særskilt gennemgang af værste ubemærkede udfald. |
 | B0 – grænser | Konkrete nul-/negative beløb, ugeperiode og 100-gange-større række blev prøvet. | Ingen felt-for-felt-kontrol af erklærede, passende og kontekstafledte grænser; naboværdier mangler på de fleste felter. |
 | B1 – feltinput | `0`, negativ løn, `100+50`, punktum som tusindtalsseparator og tomme beløb blev målt. | Paste fra Word/Excel, hårde mellemrum, Unicode, ekstrem længde, decimalstøj og tastatursettle for alle felttyper er ikke systematisk prøvet. |
@@ -656,6 +661,8 @@ Du må gerne samle dem. Der er tale om samme beløb, og det må gerne have samme
 Matricen adskiller den oprindelige browserkørsel fra efterfølgende BB-337/BB-291-kontroller. Kildegennemgang og unit-tests er ikke browserbevis.
 
 ## Åbne spørgsmål
+
+Ingen. Afgørelserne står under de enkelte fund; resumé:
 
 BB-337 er godkendt og gennemført 2026-10-24. BB-294's særskilt godkendte persistente sortering og ikke-fortrydelige rækkefølge står ved magt.
 

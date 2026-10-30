@@ -70,6 +70,5 @@ describe('DATA-001/CALC-006/TD-020 – flere kontanthjælpsrækker i samme EO-ko
       true,
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1680);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

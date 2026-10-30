@@ -1,5 +1,5 @@
 import { createCollectionRef, type CollectionRef } from '../../inputCore/fieldAddress';
-import { eoStandardRowFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { eoEmploymentFields, eoStandardRowFields } from '../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
 import { createEmptyStandardLoenRow } from '../aarsloen/standardLoenRowInitialValues';
 import type { StandardLoenTableFieldSet } from '../standardLoen/standardLoenTableFieldSet';
 
@@ -49,5 +49,12 @@ export const createEoStandardLoenFieldSet = (employmentId: string): StandardLoen
   col5: eoStandardRowFields.col5,
   fpFvShSoBeloeb: eoStandardRowFields.fpFvShSoBeloeb,
   pensionBeloeb: eoStandardRowFields.pensionBeloeb,
+  // EO har ingen Store Bededag-sats som felt (tillægget afledes); de fire satser er ansættelsesforholdets egne.
+  satsRefs: [
+    eoEmploymentFields.feriePct.bind(employmentId),
+    eoEmploymentFields.fritvalgPct.bind(employmentId),
+    eoEmploymentFields.shSoPct.bind(employmentId),
+    eoEmploymentFields.pensionPct.bind(employmentId),
+  ],
   createRow: createEmptyStandardLoenRow,
 });

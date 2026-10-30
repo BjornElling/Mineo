@@ -384,7 +384,7 @@ mens en påstand om HVILKEN DATO der styrer et tal kan fremprovokeres på ét fo
 **M-15's spor LUKKET for hele programmet** (BB-094 afvist som BB-040) og **M-13's fjerde form afvist**
 (BB-095, fortegnets skrivemåde).
 
-**M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** Det er det
+**M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** (Afgjort 2026-08-22, se `renteberegning.md` BB-080.) Det er det
 bredeste mønster siden M-21 og det første, der handler om en afhængighed på tværs af FLADER: hver af
 programmets dokumentdefinitioner kræver en `ready` stamdataprojektion, uanset om dokumentet trykker
 et brevhoved. En rød dato i Stamdata slukker derfor downloadknapperne på flader, der ikke viser en
@@ -846,7 +846,7 @@ virkningsdatoer, kapitaliseringsdatoer, min-/maks-par.
 - Kandidater, ikke efterprøvet: alle periodetabeller med fra/til-kolonner. Bemærk især den fælles
   `DATE_ORDER_ERROR_MESSAGE`, som begge parter i et fra/til-par får i dag – samme tekst på to felter
   med hver sin udvej.
-- **Kandidaten er bekræftet 2026-08-25 på Årsløn** (`aarsloen.md` BB-107, Mellem, afventer udvikleren).
+- **Kandidaten er bekræftet 2026-08-25 på Årsløn** (`aarsloen.md` BB-107, Mellem, afventer udvikleren; afgjort 2026-08-26, gennemført 2026-10-19 via `erstatningsopgoerelse-12h.md` BB-295).
   Uge fra `10/2025` + Uge til `05/2025` gør begge celler røde med ordret samme tooltip: «Til-dato skal
   være efter fra-dato». Samme i datotilstand. **To skærpelser af mønsteret følger af målingen:**
   (1) teksten er skrevet fra TIL-feltets synsvinkel, så FRA-feltet beder brugeren rette noget, han
@@ -1190,6 +1190,11 @@ handler nu om en manglende valgmulighed – ikke om manglende forklaring. **Et f
 > Skærmen og dokumentet bruger hver sin prøve for «er der noget at vise her?», og de er kun enige,
 > så længe ingen værdi er nul.
 
+**Status 2026-10-30:** Reguleringsdokumentets kandidat (`reguleringDocument.ts` ~199-251, `sats > 0`) er efterprøvet og
+LUKKET uden fund: prøven afgør kun, om en hel tillægskolonne vises, ud fra overenskomstens samlede satsdata – en kolonne
+udgår alene, når overenskomsten slet ikke har tillægget (fx Hoteloverenskomstens `fritvalg: 0`). Ingen år eller rækker
+falder bort, og manuel regulering går ikke gennem prøven.
+
 En visningsflade skjuler en række, når der ikke er nogen værdi. Et dokument skjuler den, når værdien
 ikke er **større end nul**. De to prøver ser ens ud og er ens i praksis – indtil datasættet
 indeholder et lovligt nul. Så viser skærmen «0 %» eller «0 kr.», og dokumentet udelader rækken
@@ -1486,7 +1491,7 @@ tolerancen skal ligge i, hvilke tegn der springes, ikke i en udledning af en væ
   linjeskiftet er præcis det, et regneark leverer. **Den åbne prøve er derfor ny og smal: hvad SKAL et
   linjeskift betyde i en indsat tekst?** Ved tastning afslutter det værdien; i paste forsvinder det.
   Behandles det som en afslutning, bliver cellen `1.000,00` i stedet for en afvist streng – uden at
-  reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt udvikleren.
+  reglen udvides. Spørgsmålet gælder alle tabelceller, ikke kun beløb, og det er forelagt udvikleren. (Afgjort, se `renteberegning.md` BB-088: højst ét decimalkomma pr. talled.)
 - **Ny forekomst 2026-08-27, og den er mønsterets DYRESTE hidtil** (`forsoergertab.md` BB-118, **Høj**).
   Samme spørgsmål som BB-088, men om **decimalkommaet** i et beløbsfelt uden decimaler – og med et
   langt værre udfald, fordi resultatet ikke bliver afvist, men accepteret. Målt: `551.000,00` indsat i
@@ -1962,6 +1967,11 @@ ene felts egen værdi.
 > Koden beder om en nedtonet farve, stylesheetet siger noget andet – og stylesheetet vinder, uden at
 > nogen får besked.
 
+**Status 2026-10-30:** Den alvorligste kandidat, `DocumentOutcomeMessage`s fejlbesked, er bekræftet og RETTET sammen med
+`PageMessageBox`/`PageMessageRow`: fejltekster bærer nu modifikatoren `row--text-error`
+(`.MuiTypography-root.row--text.row--text-error`, token `--mineo-color-row-text-error`, lyst og mørkt tema) i stedet for
+en `sx`-farve, der tabte til `.row--text`. De nedtonede (ikke-fejl) rækkefarver er uændrede efter BB-067's afgørelse.
+
 Programmets typografi er defineret som `.MuiTypography-root.<klasse> { color: … }`. En sådan regel
 har **to** klasser i selektoren. En farve, komponenten selv beder om – MUI's `color`-prop eller
 `sx={{ color }}` – ender i en genereret klasse med **én**. Enkeltklassen taber altid, uanset
@@ -2068,7 +2078,7 @@ beviser, at det har set overlappet. Det bruger bare kun viden ét af de to stede
 `sum / antalEnheder × norm`. Prøven er konkret og tager et minut: **indtast den samme række to gange
 og se, om resultatet fordobles.** Gør det det, og nævneren står uændret, er det en forekomst.
 
-- Fundet i: `aarsloen.md` BB-096 (Høj, afventer udvikleren). To identiske lønrækker (Måned `1`, År `2025`,
+- Fundet i: `aarsloen.md` BB-096 (Høj, afventer udvikleren; afgjort 2026-08-26, se fundet). To identiske lønrækker (Måned `1`, År `2025`,
   Løn `30.000`) gav sammentællingen `69.000,00 kr.`, tidslinjen «23 hverdage - 1 SH-dag = 22
   arbejdsdage» og resultatet **`793.500,00 kr.`** mod `396.750,00 kr.` for én række. Ingen rød celle,
   ingen advarsel, begge dokumenter kunne hentes.
@@ -2108,7 +2118,7 @@ kan trykkes i et dokument, og det ser ud som et svar.
 resultat, er det en forekomst. Læs derefter feltets erklærede grænse og spørg, om den overhovedet kan
 rammes.
 
-- Fundet i: `aarsloen.md` BB-097 (Høj, afventer udvikleren). «Antal feriedage» = `99` i en måned med 23
+- Fundet i: `aarsloen.md` BB-097 (Høj, afventer udvikleren; afgjort 2026-08-26, se fundet). «Antal feriedage» = `99` i en måned med 23
   hverdage gav «Hverdage i beregningsperioden (23 hverdage - 99 feriedage): **-76 hverdage**» og
   «Beregnet årsløn (33.750,00 / **-76** × 231): **0,00 kr.**» – med **aktiv** downloadknap.
 - **To lærer af fundet, som gælder mønsteret generelt.** (1) Grænsen `0–99` er valgt efter feltets art;
@@ -2205,7 +2215,7 @@ trykke. Den skal spørge, om alt det, brugeren har udfyldt, er kommet med.
   reguleringsbilaget. Generelt: `rg "!canShow|=== null \?" src/domain` over dokumentdefinitioner og
   generatorer, og hvert tabelopslag, hvis datasætdækning er smallere end det felt, der slår op i det.
 - **Den navngivne kandidat «Erhvervsevnetab» er efterprøvet 2026-09-07 og BEKRÆFTET** (`erhvervsevnetab.md`
-  BB-188, Mellem, afventer udvikleren). Formen er dertil skærpet ét trin: på differencekravet har brugeren
+  BB-188, Mellem, afventer udvikleren; afgjort og gennemført 2026-09-09, se fundet). Formen er dertil skærpet ét trin: på differencekravet har brugeren
   **selv afkrydset** det bilag, der udgår. Målt: en sag med kun midlertidige afgørelser regner
   (`2.275.852 kr.`), har ingen «Fejl og advarsler»-boks og aktiv downloadknap, mens bilagsvalget
   «Kapitalisering» står afkrydset og aktivt – og det hentede dokument har ingen Kapitalisering-side, heller
@@ -2253,7 +2263,7 @@ er én og den samme.
 værdi på den ene flade, gå til den anden og se, om den står der** – og sammenlign så rækkens label,
 feltets `aria-label` og dokumentets label for samme felt.
 
-- Fundet i: `forsoergertab.md` BB-123 og BB-124 (begge Mellem, afventer udvikleren).
+- Fundet i: `forsoergertab.md` BB-123 og BB-124 (begge Mellem, afventer udvikleren; afgjort 2026-08-28, se fundene).
   `faellesAarsloen.aslAarsloen` og `.ealAarsloen` renderes af både **Forsørgertab** og
   **Erhvervsevnetab**. Målt: `551.000` skrevet på Forsørgertab står på Erhvervsevnetab, uden at nogen af
   siderne siger det. Hvert felt bærer tre navne – ASL: «Skadelidtes årsløn (efter ASL)» / «Årsløn» /
@@ -2304,7 +2314,7 @@ ulovlige værdi igen.** Bliver den nu accepteret uden et ord, er det en forekoms
 det den rigtige adfærd at acceptere værdien (og det er det ofte – fail-open er nødvendigt, når
 forudsætningen mangler), skal fladen sige, at kontrollen ikke kunne udføres, og hvor forudsætningen står.
 
-- Fundet i: `erhvervsevnetab.md` BB-139 (Mellem, afventer udvikleren). Målt: Skadedato `99-99-9999` i
+- Fundet i: `erhvervsevnetab.md` BB-139 (Mellem, afventer udvikleren; afgjort 2026-09-03, se fundet). Målt: Skadedato `99-99-9999` i
   Stamdata → «Skadelidtes årsløn (efter ASL)» accepterer `9.999.000 kr.` uden rød kant og uden besked
   (skadesårets maksimum er 527.000 kr. for 2018), og Afgørelsesdato accepterer `01-01-2006`. Rettes
   Skadedato bagefter, bliver begge felter røde – skaden er altså reversibel, men usynlig i det øjeblik den
@@ -2356,13 +2366,13 @@ tabellen står allerede i nabofeltets etiket («Bkg. 1233/2018, **tabel A**»), 
 manglende. Trin 3 hører derfor med til prøven: **står oplysningen allerede et andet sted i samme boks?**
 Er svaret ja, er træffet et kodefund og hører et andet sted hen.
 
-- Fundet i: `erhvervsevnetab.md` BB-152 (Mellem, afventer udvikleren). En 30 %-afgørelses første halvår
+- Fundet i: `erhvervsevnetab.md` BB-152 (Mellem, afventer udvikleren; afgjort 2026-09-01, se fundet). En 30 %-afgørelses første halvår
   er regnet med **5 %** (`10.635,34 kr.` mod de øvrige rækkers `63.812,07 kr.`), fordi den tidligere
   afgørelse fortsat blev udbetalt frem til skæringsdatoen `01-07-2022`. Skæringsdatoen ligger i outputtet
   som `skaeringsDato`, sammen med flaget `harOverlap` – og `rg "skaeringsDato|harOverlap" src/` giver kun
   domænemodulet selv. Boksens overskrift siger «(30 %)», og der findes ikke ét tal på siden, differencen
   kan udledes af.
-- Fundet i: `erhvervsevnetab.md` BB-156 (Mellem, afventer udvikleren). Tabellens `Grundydelse 53.176,72`
+- Fundet i: `erhvervsevnetab.md` BB-156 (Mellem, afventer udvikleren; afgjort 2026-09-01, se fundet). Tabellens `Grundydelse 53.176,72`
   `+ 55,4 %` giver `82.636,62 / 12 = 6.886,39`, mens kolonnen «Ydelse/md.» skriver `6.887` – fordi
   årsydelsen oprundes til nærmeste 12 kr. (`82.644`) før divisionen, og fordi «Grundydelse» er et
   årsbeløb. **`buildLoebendeAarsydelseReguleringSteps` beregner præcis de to mellemtrin pr. satsår** og
@@ -2397,7 +2407,7 @@ Er svaret ja, er træffet et kodefund og hører et andet sted hen.
   træf skal nu bedømmes på, om VALGET er overraskende, før det bliver et fund. Det er samme skelnen som
   trin 3's, blot om målgruppens forventning frem for om domænets arbejdsdeling.
 - **`eetDifferencekravCalculation` er efterprøvet 2026-09-07 og gav mønsterets største enkeltfund**
-  (`erhvervsevnetab.md` BB-194, Mellem, afventer udvikleren). `merErstatningEventSchema` bærer `alderAar`,
+  (`erhvervsevnetab.md` BB-194, Mellem, afventer udvikleren; afgjort og gennemført 2026-09-09, se fundet). `merErstatningEventSchema` bærer `alderAar`,
   `alderMaaneder`, `faktorMaanedsAfhaengig`, `gammel.folkepensionsalderLabel`,
   `ny.folkepensionsalderLabel`, `afgoerelsesdato` og `kapitaliseringsdato` – **syv felter, hvoraf ingen
   renderes** (målt: `rg "event\.alderAar|event\.faktorMaanedsAfhaengig|\.gammel\.folkepensionsalderLabel"`
@@ -2673,6 +2683,11 @@ fortsat, hvor to flader faktisk besvarer samme spørgsmål.
 
 ## M-32 – Et skjult felt er ikke udfyldt – men kun nogle af dets læsere ved det
 
+**Status 2026-10-30:** Kandidaterne Erhvervsevnetab, Forsørgertab og Årsløn er efterprøvet uden fund. Årsløn har allerede
+`relevance` på sine descriptorer og neutraliserer satserne i Beløb-tilstand; på Erhvervsevnetab og Forsørgertab skjules
+kun «Køn», og kun når beregningen ikke bruger det (det vises igen ved fejl). Afgørelsestabellernes irrelevante celler
+skjules ikke, men valideres synligt (BB-150, BB-201). Forbehold: målrettet søgning, ikke en udtømmende feltliste.
+
 > Et felt skjules af en betingelse. Beregningen respekterer det: værdien neutraliseres, før motorerne
 > kører. Men feltets ØVRIGE læsere – advarsler, forslag, statuslinjer, dokumentafsnit – spørger ikke om
 > synlighed. De bliver stående og taler om et felt, brugeren ikke kan se, og som programmet selv
@@ -2765,7 +2780,8 @@ besluttet, ikke overset.
   inline-betingelser.
 - **Den strukturelle sikring er selve opgaven, ikke den lokale rettelse.** Så længe et prædikat kun
   håndhæves for talfødende input, er hver ny advarsel en ny mulighed for samme fejl. Formen, sikringen
-  skal have, er ikke afgjort.
+  skal have, er ikke afgjort. (Afgjort for EO 2026-09-23: feltets `relevance` i inputkernen, se
+  `erstatningsopgoerelse-12c.md` BB-228; de øvrige flader er fortsat ikke efterprøvet.)
 - **Ny forekomst 2026-09-23, og den er en ren forglemmelse, ikke en arkitekturkollision**
   (`erstatningsopgoerelse-12c.md` BB-228, **Høj**). `validateOevrigeKrav` validerer øvrige krav-rækkerne
   også, når kravvalget er «Nej» eller «Skjul», så en halvudfyldt, skjult række spærrer opgørelsen med
@@ -3011,6 +3027,12 @@ kalder en brugerindtastning for en intern fejl.
 > En procentsats indgår i et beløb, og når den mangler, regnes der videre med 0 %. Ingen ring, ingen linje i boksen,
 > og beløbet bliver mindre. Det gælder både, når brugeren har ladet feltet stå tomt, og når programmet selv skulle
 > have slået satsen op, men ikke har den.
+
+**Status 2026-10-30:** Kandidaten «Årsløns feriesats: en tom sats regnes som 0» er bekræftet, forelagt og GENNEMFØRT efter
+udviklerens valg A: Årsløn følger nu EO's BB-274-regel gennem ÉN fælles regel, `erFeriePctPaakraevet`
+(`src/domain/loen/feriePctKrav.ts`), med samme tekst «Feriegodtgørelse/-tillæg er ikke udfyldt» på begge flader. Bevidst
+forskel: på Årsløn kræves satsen ikke ved fuld løn under ferie. Se aarsloen.md §«Efterreview 2026-10-30 – tom feriesats
+(M-37)».
 
 Formen er farlig, fordi 0 % ligner en lovlig værdi: regnestykket går op, papiret er pænt, og skærmen viser bevidst
 ikke kravet (BB-226). Det eneste spor er en afledt kolonne på `0,00 kr.` eller en linje, der mangler i papiret. Den

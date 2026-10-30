@@ -152,6 +152,68 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
   });
 });
 
+/**
+ * M-37 (udviklerafgørelse 2026-10-30): en tom feriesats regnes ikke længere stille som 0 %. Reglen er den FÆLLES
+ * med EO's BB-274 (`domain/loen/feriePctKrav.ts`): ingen rød ring, men en blokerende mangel med samme ordlyd.
+ */
+describe('Feriegodtgørelse/-tillæg er påkrævet uden fuld løn under ferie (M-37)', () => {
+  const medLoenraekke = (input: SettledInput): SettledInput => {
+    let next = dispatch(input, insert(emptyRow('r1')));
+    next = dispatch(next, settle(aarsloenTableCol0MaanedField.bind('r1'), '1'));
+    next = dispatch(next, settle(aarsloenTableCol1MaanedField.bind('r1'), '2025'));
+    return dispatch(next, settle(col2Ref('r1'), '30000'));
+  };
+  const udenFuldLoen = (input: SettledInput): SettledInput => {
+    const next = dispatch(input, setImmediateField(aarsloenOmregningTilFuldtAarField.bind(), true) as AnyInputCommand);
+    return dispatch(next, setImmediateField(aarsloenFuldLoenUnderFerieField.bind(), false) as AnyInputCommand);
+  };
+
+  it('tom sats uden fuld løn under ferie → blokerende mangel med EO\'s ordlyd og intet resultat', () => {
+    const projection = buildAarsloenReaderProjection(reader(udenFuldLoen(medLoenraekke(empty()))));
+
+    expect(projection.fieldIssues).toEqual([
+      expect.objectContaining({ kind: 'consumer', reason: 'missing', message: 'Feriegodtgørelse/-tillæg er ikke udfyldt' }),
+    ]);
+    expect(projection.calculation).toBeNull();
+  });
+
+  it('udfyldt sats uden fuld løn under ferie → ingen mangel', () => {
+    const projection = buildAarsloenReaderProjection(reader(dispatch(udenFuldLoen(medLoenraekke(empty())), settle(feriePctRef, '12,5'))));
+    expect(projection.fieldIssues).toHaveLength(0);
+  });
+
+  it('bevidst 0 % uden fuld løn under ferie er en udfyldt værdi, ikke en mangel', () => {
+    const projection = buildAarsloenReaderProjection(reader(dispatch(udenFuldLoen(medLoenraekke(empty())), settle(feriePctRef, '0'))));
+    expect(projection.fieldIssues).toHaveLength(0);
+  });
+
+  it('fuld løn under ferie → feltet må stå tomt (satsen er ferietillægget)', () => {
+    const projection = buildAarsloenReaderProjection(reader(medLoenraekke(empty())));
+    expect(projection.values.fuldLoenUnderFerie).toBe(true);
+    expect(projection.fieldIssues).toHaveLength(0);
+  });
+
+  it('skjult «Fuld løn under ferie» tæller som sin tomværdi, også hvis den er gemt som fra (M-32)', () => {
+    // Omregningen slås fra igen: i Procent er valget nu skjult (BB-353), så det gemte «fra» må ikke kræve feltet.
+    let input = udenFuldLoen(medLoenraekke(empty()));
+    input = dispatch(input, setImmediateField(aarsloenOmregningTilFuldtAarField.bind(), false) as AnyInputCommand);
+    const projection = buildAarsloenReaderProjection(reader(input));
+    expect(projection.values.fuldLoenUnderFerie).toBe(false);
+    expect(projection.fieldIssues).toHaveLength(0);
+  });
+
+  it('beløb-tilstand → satsen læses ikke og kræves ikke', () => {
+    let input = udenFuldLoen(medLoenraekke(empty()));
+    input = dispatch(input, setImmediateField(tillaegAngivesSomRef, 'beloeb') as AnyInputCommand);
+    expect(buildAarsloenReaderProjection(reader(input)).fieldIssues).toHaveLength(0);
+  });
+
+  it('ingen lønoplysninger → ingen mangel', () => {
+    const projection = buildAarsloenReaderProjection(reader(udenFuldLoen(empty())));
+    expect(projection.fieldIssues).toHaveLength(0);
+  });
+});
+
 describe('buildAarsloenReaderProjection', () => {
   it('samler tabelvalidering fra samme reader-revision', () => {
     const input = dispatch(empty(), settle(feriePctRef, '12'));
@@ -202,6 +264,8 @@ describe('buildAarsloenReaderProjection', () => {
     input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind('r1'), '2024'));
     input = dispatch(input, settle(col2Ref('r1'), '1000'));
     input = dispatch(input, settle(aarsloenAntalFeriedageField.bind(), '24'));
+    // Uden fuld løn under ferie er satsen påkrævet (M-37); uden den findes der intet resultat at afgrænse.
+    input = dispatch(input, settle(feriePctRef, '12,5'));
 
     const projection = buildAarsloenReaderProjection(reader(input));
 

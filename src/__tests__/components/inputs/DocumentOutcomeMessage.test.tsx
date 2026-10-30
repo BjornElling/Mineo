@@ -9,6 +9,8 @@
 //
 // Den modsatte grænse er lige så vigtig og pinnes nedenfor: en GATE-blokering må ikke nå rækken. En
 // deaktiveret knap svarer aldrig med tekst – tooltippet ejer årsagen (udviklerbeslutning 2026-07-31).
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import DocumentOutcomeMessage from '../../../components/inputs/DocumentOutcomeMessage';
 import { resolveDocumentOutcomeMessage } from '../../../document/definition/documentMessages';
@@ -140,13 +142,17 @@ describe('DocumentOutcomeMessage', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('markerer beskeden som fejl, så den er visuelt adskilt fra almindelig rækketekst', () => {
+  it('markerer beskeden som fejl med fejlklassen, der faktisk slår rækketekstens farve', () => {
+    // Før: `sx={{ color: 'error.main' }}` gav en emotion-klasse med én klasses specificitet, som tabte til
+    // `.MuiTypography-root.row--text` (to klasser) – teksten stod i almindelig sort (M-21). Den gamle test målte
+    // kun, at der fandtes en klasse. Nu bærer teksten modifikatoren, og stylesheetet skal have en regel for den
+    // med mindst samme specificitet som rækketekstens farve.
     render(<DocumentOutcomeMessage message="En fejl" />);
-    const row = screen.getByTestId('document-outcome-message');
-    // MUI oversætter `sx={{ color: 'error.main' }}` til en emotion-klasse; assertionen måler at teksten
-    // faktisk får en egen farve frem for at arve rækkens.
-    const text = row.querySelector('.row--text');
+    const text = screen.getByTestId('document-outcome-message').querySelector('.row--text');
     expect(text).not.toBeNull();
-    expect(text?.className).not.toBe('');
+    expect(text?.classList.contains('row--text-error')).toBe(true);
+
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/typography.css'), 'utf-8');
+    expect(css).toMatch(/\.MuiTypography-root\.row--text\.row--text-error\s*\{[^}]*color:\s*var\(--mineo-color-row-text-error\)/);
   });
 });

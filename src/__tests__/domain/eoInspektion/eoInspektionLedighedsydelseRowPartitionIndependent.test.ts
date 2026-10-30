@@ -71,6 +71,5 @@ describe('CALC-006 / TD-020 – flere ledighedsydelsesrækker i EO-inspektionen'
       false,
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1400);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

@@ -15,7 +15,7 @@
 // Testen dækker desuden vejen TILBAGE: Escape fra overlayet skal returnere fokus til knappen
 // (keyboard-navigation.md §Popup-fokus-restore). Uden det krav endte fokus på `body`, og
 // tastaturbrugeren måtte tabbe forfra gennem siden – registreret som Q-001 i runtime-input-auditen.
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -162,6 +162,28 @@ describe('»Find løntrin« indgår i tastatur-sekvensen', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(finder).toHaveFocus());
     expect(document.activeElement).not.toBe(document.body);
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  /**
+   * BB-310 (udviklerafgørelse 2026-10-30): EO oplysninger husker indtastningen mellem åbninger, som Lønindkomst gør
+   * pr. ansættelsesforhold. Før startede finderen forfra hver gang på denne flade.
+   */
+  it('husker beløbet, når finderen lukkes og åbnes igen', async () => {
+    const user = userEvent.setup();
+    renderSurface();
+
+    const finder = await screen.findByRole('button', { name: 'Find løntrin' });
+    await user.click(finder);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('textbox', { name: 'Månedsløn' }));
+    await user.keyboard('40000');
+    await user.keyboard('{Tab}');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    await user.click(finder);
+    const reopened = await screen.findByRole('dialog');
+    expect(within(reopened).getByRole('textbox', { name: 'Månedsløn' })).not.toHaveValue('');
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('åbner overlayet på mellemrum, når den er nået med Tab', async () => {

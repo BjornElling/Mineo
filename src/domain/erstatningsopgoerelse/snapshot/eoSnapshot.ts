@@ -10,6 +10,7 @@ import {
 import { parseForligsgrad } from '../engines/forligsgrad';
 import type { MidlertidigtEetAfgoerelseGroup } from '../helpers/midlertidigtEetInsertRows';
 import type { EetImportContext } from '../../erhvervsevnetab/eetImportPort';
+import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
@@ -377,6 +378,12 @@ export const computeEoSnapshot = (args: Readonly<{
    * form-state. Se `domain-boundary-contract.md` §9 og `eo-snapshot-contract.md`.
    */
   midlertidigtEetImportContext?: EetImportContext;
+  /**
+   * Gule advarsler om TAF efter kapitaliseringen af en delvist endelig EET-afgørelse (BB-187), dannet af
+   * `resolveTafEfterKapitaliseringAdvarsler` i reader-projektionen. Uafhængige af togglen ovenfor og uden
+   * virkning på beregningen; se `domain-boundary-contract.md` §9 pkt. 11.
+   */
+  tafEfterKapitaliseringIssues?: readonly EetIssue[];
 }>): EoSnapshot => {
   const dagsDatoISO = args.dagsDatoISO ?? getToday();
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
@@ -444,6 +451,9 @@ export const computeEoSnapshot = (args: Readonly<{
       ...midlertidigtEetSourceResult.issues,
       ...(midlertidigtEetIngenYdelserIssue === undefined ? [] : [midlertidigtEetIngenYdelserIssue]),
       ...(midlertidigtEetUdenAfgoerelseIssue === undefined ? [] : [midlertidigtEetUdenAfgoerelseIssue]),
+      // Samme EET-kanal som importens linjer, men aldrig blokerende: kun `warning` slipper igennem, så en fejl her
+      // ikke kan blive en ny spærring, ingen har godkendt.
+      ...(args.tafEfterKapitaliseringIssues ?? []).filter((issue) => issue.severity === 'warning'),
     ]);
     // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
     // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke

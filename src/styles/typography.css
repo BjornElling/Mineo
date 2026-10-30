@@ -66,6 +66,7 @@
   --mineo-color-section-header: var(--color-text-primary);
   --mineo-color-row-text: var(--color-text-primary);
   --mineo-color-row-text-mineo: var(--color-text-primary);
+  --mineo-color-row-text-error: var(--color-text-error);
   --mineo-color-row-subheading: var(--color-text-primary);
   --mineo-color-row-subheading-underlined: var(--color-text-primary);
 
@@ -219,6 +220,12 @@
   font-weight: var(--font-weight-regular);
   color: var(--mineo-color-row-text);
   line-height: var(--line-height-base);
+}
+
+/* Fejllinje i en række. Klassen er nødvendig: reglen ovenfor har to klasser og slår derfor MUI's
+   `sx`-farve (én klasse), så `sx={{ color: 'error.main' }}` på en `row--text` blev aldrig rød (M-21). */
+.MuiTypography-root.row--text.row--text-error {
+  color: var(--mineo-color-row-text-error);
 }
 
 /* Mineo-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */

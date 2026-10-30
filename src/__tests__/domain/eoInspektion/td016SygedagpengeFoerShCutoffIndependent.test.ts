@@ -75,6 +75,5 @@ describe('TD-016 / CALC-006 – uafhængigt sygedagpengefacit før SH-cutoff', (
       '180,00',
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(900);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

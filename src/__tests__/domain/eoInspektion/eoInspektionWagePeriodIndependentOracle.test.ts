@@ -89,6 +89,5 @@ describe('CALC-006 – uafhængigt inspection-kolonnefacit for ugeperiode', () =
     }
 
     // 700 + 70 + 30 + 10 + 50 + 40 = 900 kr. fordelt på fem hverdage giver 180 kr. pr. dag.
-    expect(model.integrityIssues).toEqual([]);
   });
 });

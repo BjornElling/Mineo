@@ -54,9 +54,6 @@ trækkes fra i TAF-afsnittet, hører i 12k og 12j.
   undtagelse, og indtastningen kunne ikke gennemføres; den er rettet med samme rydning. Dækket af
   `relevanceCleanupOnTextSettle.test.ts`, `tafPerioderBrugerblik12e.test.ts` og
   `e2e/erstatningsopgoerelse-taf-perioder.spec.ts`.
-  **Modsvar 2026-09-25:** under implementeringen viste det sig, at ferieperioderne IKKE er virkningsløse i
-  måneder – sygeferiegodtgørelsen bruger dem i begge enheder. Udvikleren valgte derfor kun at skjule løse
-  feriedage, som reelt er uvirksomme i måneder; ferietabellen vises altid, og ingen beregning er ændret.
 - **Sådan fremprovokeres det:**
   1. Ny sag, TAF ud fra angivet månedsløn `30.000 kr.` TAF-periode `01-01-2024` – `30-06-2024`, «Løse
      feriedage» `5`.
@@ -94,6 +91,10 @@ Delvist enig. Teknisk set er det ikke selve den omstændighed, at tabt arbejdsfo
 
 Når felterne er uvirksomme, er jeg enig i, at de bør skjules. Der behøver ikke bliver skrevet en meddelelse til brugeren om dette - bare skjul dem.
 
+**Modsvar 2026-09-25:** under implementeringen viste det sig, at ferieperioderne IKKE er virkningsløse i
+måneder – sygeferiegodtgørelsen bruger dem i begge enheder. Udvikleren valgte derfor kun at skjule løse
+feriedage, som reelt er uvirksomme i måneder; ferietabellen vises altid, og ingen beregning er ændret.
+
 ### BB-248 – En ferieperiode uden for sit tilladte vindue spærrer opgørelsen uden rød celle og med en intern besked
 
 - **Type:** Fejl
@@ -107,9 +108,6 @@ Når felterne er uvirksomme, er jeg enig i, at de bør skjules. Der behøver ikk
   differencekravet er opgjort pr. (01-07-2024)» (tilsvarende for endeligt og midlertidigt EET) – og blokerer
   TAF-grenen som enhver rød feltfejl. «Fejl og advarsler» viser én linje pr. række med rækkens navn, fx
   «Ferieperioden 01-07-2017 - 14-07-2017: Ferien ligger før skadedatoen (01-06-2018)».
-  **Modsvar 2026-09-25:** jeg pressede på, at nr. 2 (sommerferien efter afskæringen) typisk er rigtige data, og
-  at netop spærringen er det, der gør en tidligere indtastet ferie blokerende, når en afskæring senere tastes.
-  Udvikleren fastholdt, at alle tre skal spærre med rød ring.
 - **Sådan fremprovokeres det:** Dagsløn, TAF `01-01-2024` – `31-12-2024` (eller til `30-06-2024`). Tast én af
   disse ferierækker og gå til Beregning:
   1. `01-07-2017` – `14-07-2017` (før skadedatoen `01-06-2018`).
@@ -149,31 +147,14 @@ Når felterne er uvirksomme, er jeg enig i, at de bør skjules. Der behøver ikk
 **Tilbagemelding**
 Enig, men med et lille forbehold. Det er uhensigtsmæssigt, at der kan bibeholdes ugyldige datoer i programmet, blot fordi de ikke påvirker beregningen lige nu og her. Hvis beregnings- eller erstatningsperioden senere ændres, vil der da pludselig blive introduceret en blokerende fejl fra nogle værdier, som brugeren har indtastet på et tidligere tidspunkt. Så jeg ville gerne, hvis der kunne gøres opmærksom på fejlen, så brugeren har et incitament til at rette den, uanset at den ikke påvirker den nuværende beregning.
 
-### BB-342 – Cutoff-fejlteksten siger «efter» på selve afskæringsdatoen
+**Modsvar 2026-09-25:** jeg pressede på, at nr. 2 (sommerferien efter afskæringen) typisk er rigtige data, og
+at netop spærringen er det, der gør en tidligere indtastet ferie blokerende, når en afskæring senere tastes.
+Udvikleren fastholdt, at alle tre skal spærre med rød ring.
 
-- **Type:** Fejl
-- **Rækkevidde:** Tværgående med 12b's ménafgørelses-cutoff; fælles mønster M-42 i `TVAERGAAENDE.md`.
-- **Prioritet:** Mellem
-- **Beslutning:** **GODKENDT OG GENNEMFØRT** 2026-10-24 som rettelse af misvisende fejltekst. Cutoff-datoen er ugyldig,
-  fordi TAF og ferie afgrænses til dagen før; beskeden siger nu «på eller efter». Svie/smerte følger samme `>=`-regel.
-  Ingen beregningsregel er ændret.
-- **Sådan fremprovokeres det:** Differencekrav opgjort pr. `01-07-2024`; sæt en ferieperiodes fra-dato eller TAF-periodens
-  slutdato til præcis `01-07-2024`. TAF-periodens seneste gyldige dag er `30-06-2024`. Svie/smerte-søsterforløbet er
-  dokumenteret i 12b: fra-dato lig ménafgørelsesdatoen.
-- **Det sker:** Før rettelsen blev datoen rød og download blokeret, men cellen sagde «Ferien ligger efter den dato,
-  differencekravet er opgjort pr. (01-07-2024)» eller «Der er angivet tabt arbejdsfortjeneste efter den dato…» –
-  selv om feltet stod på samme dato. Samme `>=`-regel gjaldt endelig og midlertidig EET, feriecellens tekst og periodens
-  samlede linje. S/S-felterne havde tilsvarende tekster («efter datoen for en ménafgørelse») under samme `>=`-grænse.
-- **Kilde og testdækning:** `collectTafCutoffsRamtAf` i `tafPeriodConstraints.ts` bruger `value >= cutoff`; de fælles
-  beskedformater brugte altid ordet «efter». `tafPeriodConstraints.test.ts` forventede tidligere «efter» ved lighed,
-  så testen fastholdt fejlen. Teksterne er nu samlet rettet til «på eller efter», og tests dækker lighed for ferie,
-  TAF-celle og periodens linje samt de øvrige cutoff-typer. S/S har særskilte unit-/validatorfacitter og en E2E-test,
-  der måler fra-dato lig cutoff. Det er ikke en ny browsermåling af TAF-/ferieteksterne.
-- **Begrænsning:** Ændringen påvirker kun den forklarende tekst. Afskæringen, den røde markering, blokeringen og
-  dokumentets beregning er uændrede.
+### BB-342 – Cutoff-fejlteksten siger «efter» på selve afskæringsdatoen (henvisning)
 
-**Tværhenvisning:** 12b dokumenterer samme fejl i ménafgørelsens svie/smerte-cutoff. Begge forekomster er samlet
-under M-42 i `TVAERGAAENDE.md`.
+Fundet er samlet ét sted 2026-10-30: TAF- og ferieforekomsten står ordret under BB-342 i
+[erstatningsopgoerelse-12b.md](erstatningsopgoerelse-12b.md) i afsnittet «Forekomsten i 12e: TAF og ferie».
 
 ### BB-249 – «Feriedage» tæller hele ferierækken, også de dage, der ikke fradrages
 
@@ -235,9 +216,6 @@ Jeg vil gerne have, at de steder, hvor problemstillingen er aktuel, får én sam
   `b0485bb2` forkortede overskrifterne til «TAF-måneder» / «TAF-arbejdsdage» og flyttede rammeforklaringen til
   info-ikonets tooltip («Kun TAF-måneder i EO-perioden fremgår» / «Kun TAF-arbejdsdage i EO-perioden fremgår»).
   Afgrænsningen forbliver tavs; der er ingen ny advarsel.
-  **Modsvar 2026-09-25:** afvisningen begrundede, at tavs afgrænsning til EO-perioden er korrekt. Det var ikke
-  til debat – fundet foreslog kun overskriften, ordret som udvikleren selv krævede for svie/smerte ved BB-217, og
-  BB-249's tilbagemelding bad om én samlet løsning. Udvikleren valgte samme form overalt.
 - **Sådan fremprovokeres det:**
   1. Månedsløn. TAF `01-07-2023` – `30-06-2024` og `01-02-2025` – `28-02-2025`.
   2. «Nummer» `2`. TAF `01-07-2023` – `31-12-2023` (fra sidste opgørelse) og `01-01-2024` – `31-12-2024`.
@@ -257,6 +235,10 @@ Jeg vil gerne have, at de steder, hvor problemstillingen er aktuel, får én sam
 
 **Tilbagemelding**
 Jeg afviser fundet. Det er programmets korrekte og forventelige adfærd, at brugeren indtaster samtlige oplysninger om skadelidtes forhold, også forhold, der ligger uden for den aktuelle erstatningsperiode. Brugeren laver da løbende erstatningsopgørelse 1 for perioden xx-xx, og derefter erstatningsopgørelse 2 for periode yy-yy, og så videre. Og det er en helt normalt og forventelig adfærd, at brugeren senere fx vil skulle revidere erstatningsopgørelse 1, og i den forbindelse danner et nyt dokument med en ny opgørelse 1, derved at brugeren blot indtaster den EO-periode, som denne vedrører, og ændrer opgørelsens nummer til 1. Programmet beror dermed på en grundlæggende, bærende præmis om, at alle TAF- og Svie/smerte-perioder indtastet, men at programmet kun danner en opgørelse svarende til EO perioden, og clamper tavst. Dette er korrekt og ønskelig adfærd.
+
+**Modsvar 2026-09-25:** afvisningen begrundede, at tavs afgrænsning til EO-perioden er korrekt. Det var ikke
+til debat – fundet foreslog kun overskriften, ordret som udvikleren selv krævede for svie/smerte ved BB-217, og
+BB-249's tilbagemelding bad om én samlet løsning. Udvikleren valgte samme form overalt.
 
 ### BB-251 – Overlappende TAF- og ferieperioder spærrer opgørelsen uden en eneste rød celle
 
@@ -359,8 +341,7 @@ Enig
   og `#m-13--nul-er-en-oplysning-ikke-et-fravær` (BB-160's form: et aritmetisk falsk regnestykke i papiret)
 - **Prioritet:** Mellem
 - **Beslutning:** **AFVIST** af udvikleren 2026-09-25: at selskabet har betalt mere, end programmet opgør, er
-  normalt. **Modsvar 2026-09-25:** jeg spurgte, om papiret i det mindste skulle sige klemningen («… = -140.000,00
-  kr., som sættes til 0,00 kr.»); udvikleren valgte at lade papiret stå. Intet ændret.
+  normalt. Intet ændret (se modsvaret nedenfor).
 - **Sådan fremprovokeres det:** Månedsløn. TAF `01-01-2024` – `31-12-2024`. «Evt. allerede modtaget tabt
   arbejdsfortjeneste …» `500.000`. Hent opgørelsen.
 - **Det sker:** Feltet er neutralt, boksen er væk (ingen fejl eller advarsler), og papiret skriver:
@@ -379,6 +360,9 @@ Enig
 
 **Tilbagemelding**
 Jeg afviser fundet. hvis der allerede er modtaget erstatning, vil det bero på en anden opgørelse, som forsikringsselskabet har lavet. opgørelserne er ikke nødvendigvis ens - og det er en helt normal og forventligt forekommende omstændighed, at et forsikringsselskab kan have betalt mere i erstatning for en EO-periode, end programmet opgør kravet til.
+
+**Modsvar 2026-09-25:** jeg spurgte, om papiret i det mindste skulle sige klemningen («… = -140.000,00
+kr., som sættes til 0,00 kr.»); udvikleren valgte at lade papiret stå. Intet ændret.
 
 ### BB-255 – Beløbsfeltet hedder tre ting
 
@@ -482,6 +466,8 @@ Enig
 - **12g:** beregningsenheden kan skifte af to valg på Lønindkomst («Løn på helligdage», «Fuld løn under ferie»);
   det er BB-247's bagside og skal prøves fra dén side.
 - **12b:** BB-254's form på svie/smertes «allerede modtaget» og M-33's svie/smerte-kandidat.
+- **12f:** «Ferie i beregningsperioden» og «Uspecificerede ferie-/feriefridage» er ikke skjult i måneder – deres
+  virkning i måneder er ikke undersøgt her og hører til 12f's gennemgang (afgjort dér ved BB-263).
 
 ## Dækningshuller
 
@@ -499,10 +485,7 @@ Enig
   i samme test.
 - Ældre `.eo`-filer med TAF- eller feriedatoer uden for de nuværende grænser er ikke genåbnet i den oprindelige
   12e-kørsel.
-- **Efterkontrol 2026-10-24 (BB-340 i 12f):** TAF-rækken `30-12-2027`–`10-01-2028` beholder «TAF-arbejdsdage» `2`
-  ved rød slutdato; EO-kontrol viser samtidig `– / –` for TAF-intervallet og arbejdsdagssammenligningen. Med gyldig
-  slutdato `31-12-2027` vises intervallet og `2 / 2` igen. Udvikleren har godkendt dette som den tilsigtede opdeling,
-  også for tidligere gemte `.eo`-filer; ingen kodeændring.
+- **Efterkontrol 2026-10-24:** TAF-rækkens dagstal ved rød slutdato er målt og afgjort under BB-340 i 12f.
 
 ## Efterkontrol af Brugerblik-kataloget A1–A8 og B0–B7
 
@@ -531,9 +514,6 @@ ikke i sig selv browserdækning.
 
 ## Åbne spørgsmål
 
-De elleve oprindelige fund er afgjort 2026-09-25: ni rettet (BB-247 indsnævret, BB-248–BB-253, BB-255–BB-257) og
+Ingen. De elleve oprindelige fund er afgjort 2026-09-25: ti rettet (BB-247 indsnævret, BB-248–BB-253, BB-255–BB-257) og
 ét afvist (BB-254). BB-247, BB-248, BB-250 og BB-254 blev afgjort efter modsvar. Den kritiske efterkontrol tilføjede
-BB-344 er godkendt og gennemført 2026-10-24.
-
-**Henvisning til 12f:** «Ferie i beregningsperioden» og «Uspecificerede ferie-/feriefridage» er ikke skjult i
-måneder – deres virkning i måneder er ikke undersøgt her og hører til 12f's gennemgang.
+BB-342 og BB-344; begge er godkendt og gennemført 2026-10-24.

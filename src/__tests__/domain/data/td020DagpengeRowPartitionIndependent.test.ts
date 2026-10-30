@@ -69,6 +69,5 @@ describe('DATA-001/CALC-006/TD-020 – flere dagpengerrækker i samme EO-kolonne
       true,
     ]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1400);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

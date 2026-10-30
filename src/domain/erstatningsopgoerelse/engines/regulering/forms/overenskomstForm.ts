@@ -6,7 +6,7 @@ import {
   getReguleringsDatoIntervalForOverenskomst,
   getOffentligOverenskomstTypeById,
 } from '../../../../../data/overenskomstRates';
-import { hasIndtastetLoenoplysninger } from '../../../helpers/loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../../../../standardLoen/loenoplysningerInput';
 import {
   assertUniform,
   resolveOffentligLoenSelection,

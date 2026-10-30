@@ -426,7 +426,7 @@ uddybende baggrund.
 ## Dækningshuller
 
 - **Gem/Hent-rundturen med et ugyldigt satsår** kunne ikke afprøves: «Gem» bruger browserens
-  filgemmedialog (`showSaveFilePicker`), som er utilgængelig headless – klikket giver hverken fil,
+  filgemmedialog (`showSaveFilePicker`), som er utilgængelig headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] – klikket giver hverken fil,
   dialog eller besked, også når året er gyldigt. Kontrakten siger, at et velformet år uden for
   intervallet **kan** gemmes i `.eo` og bæres tilbage som et rødt feltissue; at det faktisk sker,
   og hvad brugeren møder, når han åbner en sådan fil, er derfor ikke set. Bør efterprøves som

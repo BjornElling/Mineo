@@ -37,6 +37,8 @@ import {
 import type { SerializedFieldAddress } from '../../inputCore/fieldAddress';
 import { buildFieldWarningMap, type FieldWarning } from '../../inputCore/fieldWarning';
 import { getToday } from '../../config/dateRanges';
+import { erFeriePctPaakraevet, FERIE_PCT_MANGLER_BESKED } from '../loen/feriePctKrav';
+import { erAarsloenLoenforholdValgRelevante, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
 import { aarsloenOverenskomstIdField, aarsloenOverenskomstLoenmodtagerField, aarsloenOverenskomstArbejdsgiverField, aarsloenReguleringsdatoField, aarsloenBeregnStoreBededagstillaegField } from '../../inputCore/catalog/aarsloenDescriptors';
 import { applyAarsloenOverenskomstSatser, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 
@@ -122,13 +124,32 @@ export const readAarsloenValues = (reader: InputReader): AarsloenValues => {
   });
 };
 
-const PERCENT_SCALAR_REFS: readonly FieldRef<number | undefined>[] = [
-  scalarRefs.feriePct,
-  scalarRefs.fritvalgPct,
-  scalarRefs.shSoPct,
-  scalarRefs.storeBededagPct,
-  scalarRefs.pensionPct,
-];
+/**
+ * Den tomme, påkrævede feriesats som mangel uden rød ring (M-37). Kravet er den FÆLLES regel med EO; et rødt felt
+ * har allerede sin egen fejl i feltgaten. «Fuld løn under ferie» læses kun, når valget vises (BB-353) – skjult
+ * tæller det som sin tomværdi (M-32), så et usynligt valg aldrig kræver feltet.
+ *
+ * Feltgaten og løntabellens afledte kolonner (BB-099, `hasStandardLoenSatsFejl`) læser begge denne funktion, så
+ * tabellen viser «—» på præcis samme betingelse, som gaten nægter at beregne.
+ */
+export const resolveAarsloenFeriePctManglerIssue = (
+  reader: InputReader,
+  values: AarsloenValues,
+  options: Readonly<{ omregningAktiveret: boolean }>
+): ConsumerIssue | null => {
+  const fuldLoenUnderFerie = erAarsloenLoenforholdValgRelevante({
+    tillaegAngivesSom: values.tillaegAngivesSom,
+    omregningAktiveret: options.omregningAktiveret,
+  }) ? values.fuldLoenUnderFerie : aarsloenFuldLoenUnderFerieField.emptyValue;
+  if (!erFeriePctPaakraevet({
+    satserErIBrug: erAarsloenSatsFelterRelevante(values.tillaegAngivesSom),
+    loenraekker: values.tableData,
+    satsenOpgoeresSomFeriegodtgoerelse: !fuldLoenUnderFerie,
+  })) return null;
+  const result = reader.read(scalarRefs.feriePct);
+  if (result.status !== 'usable' || result.value !== undefined) return null;
+  return { kind: 'consumer', consumerId: 'aarsloen', severity: 'error', reason: 'missing', code: `${scalarRefs.feriePct.descriptor.id}.missing`, field: toAnyFieldRef(scalarRefs.feriePct), message: FERIE_PCT_MANGLER_BESKED };
+};
 
 /**
  * Samler de RØDE feltfejl på de fatale beregningsinput (satsprocenter + antalFeriedage) og
@@ -145,8 +166,9 @@ export const resolveAarsloenFieldErrorGate = (
 ): readonly (FieldIssue | ConsumerIssue)[] => {
   const issues: (FieldIssue | ConsumerIssue)[] = [];
 
+  // Satsfelterne er løntabellens (`satsRefs`), så tabellens afledte kolonner og denne gate læser samme felter (BB-099).
   if (values.tillaegAngivesSom !== 'beloeb') {
-    for (const ref of PERCENT_SCALAR_REFS) {
+    for (const ref of aarsloenStandardLoenFieldSet.satsRefs) {
       const result = reader.read(ref);
       if (result.status === 'error') issues.push(result.issue);
     }
@@ -165,6 +187,9 @@ export const resolveAarsloenFieldErrorGate = (
     checkRequired(scalarRefs.overenskomstId, 'Overenskomst mangler');
     checkRequired(scalarRefs.reguleringsdato, 'Reguleringsdato mangler');
   }
+
+  const feriePctMangler = resolveAarsloenFeriePctManglerIssue(reader, values, options);
+  if (feriePctMangler !== null) issues.push(feriePctMangler);
 
   if (options.omregningAktiveret && !values.fuldLoenUnderFerie) {
     const result = reader.read(scalarRefs.antalFeriedage);
@@ -216,6 +241,11 @@ export type AarsloenReaderProjection = Readonly<{
   calculation: AarsloenBeregningState | null;
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   /**
+   * Den påkrævede feriesats er tom (M-37) – samme svar, som feltgaten blokerer på. Løntabellens afledte kolonner
+   * viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
+   */
+  feriePctMangler: boolean;
+  /**
    * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret (BB-096/BB-289), og
    * en periode efter dags dato (BB-115/BB-298). Udviklerafgørelse 2026-10-19: identiske rækker spærrer ikke
    * længere – dobbelt løn for samme periode kan være reel – men giver gul ring og en linje i «Advarsler».
@@ -249,6 +279,9 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
   const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   });
+  const feriePctMangler = resolveAarsloenFeriePctManglerIssue(reader, values, {
+    omregningAktiveret: omregningGate.effectiveEnabled,
+  }) !== null;
   // Aggregatet afhænger af ALLE medregnede rækker, også de celler §1.10 isolerer.
   //
   // Rækkeisolationen er stadig rigtig: en fejl i række 2 må ikke ødelægge række 2's naboer, og cellen skal
@@ -321,6 +354,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     omregningGate,
     calculation,
     fieldIssues,
+    feriePctMangler,
     tableRowWarnings,
     tableCellWarnings,
     feriedageFieldIssues,

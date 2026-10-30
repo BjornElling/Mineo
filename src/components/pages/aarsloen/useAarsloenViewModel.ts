@@ -124,7 +124,7 @@ export function useAarsloenViewModel() {
     () => buildAarsloenReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues } = readerProjection;
+  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues, feriePctMangler } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -194,10 +194,13 @@ export function useAarsloenViewModel() {
   );
 
   const canShowOmregning = omregningAktiveret && periodeData !== null;
-  // «Fuld løn under ferie» og «Løn på helligdage» vises kun, når de læses (BB-353) – samme prædikat som advarslerne.
+  // «Fuld løn under ferie» og «Løn på helligdage» vises kun, når de læses (BB-353) – samme prædikat som advarslerne
+  // og feltgaten (`resolveAarsloenFeriePctManglerIssue`): omregningens EFFEKTIVE tilstand, ikke om der findes et
+  // resultat. Hang synligheden på resultatet, skjulte en blokerende mangel, som valget selv udløser (tom feriesats ved
+  // «Fuld løn under ferie» fra, M-37), netop det valg – en blindgyde, hvor fejlen ikke kunne rettes.
   const visLoenforholdValg = erAarsloenLoenforholdValgRelevante({
     tillaegAngivesSom: values.tillaegAngivesSom,
-    omregningAktiveret: canShowOmregning,
+    omregningAktiveret,
   });
   // …og dér, hvor de læses: placeringen afgøres alene af tillægsgrundlaget øverst på siden, så omregningen
   // længere nede aldrig får valgene til at dukke op i Lønforhold ovenfor (siden udfyldes oppefra og ned).
@@ -247,6 +250,8 @@ export function useAarsloenViewModel() {
     tabelRef,
     values,
     tableSatser,
+    /** Den påkrævede feriesats er tom (M-37): tabellens afledte kolonner viser «—» som sammentællingen (BB-099). */
+    feriePctMangler,
     /** Kryds-række-dubletter som feltissues – gør de gentagne rækkers celler røde. */
     tableCellWarnings,
     /** Den afledte feriedage-grænse (feltet må ikke overstige periodens egne hverdage). */

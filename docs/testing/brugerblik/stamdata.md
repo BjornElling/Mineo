@@ -31,15 +31,15 @@ under fundet, sammen med agentens efterprøvning af præmisserne.
 | ID | Afgørelse | Kode skal ændres |
 |---|---|---|
 | BB-001 | Afvist – skiftet må ske tavst; brugeren orienteres via den afledte datofejl | Nej |
-| BB-002 | Accepteret – al tekst om datoen skal følge skadestypens navngivning | **Ja** |
+| BB-002 | Accepteret – al tekst om datoen skal følge skadestypens navngivning | **Ja** – gennemført 2026-08-16 (`190f9453`) |
 | BB-003 | Afvist – tastning må ikke tolke på 3. ciffer; paste må gerne være mere tolerant | Nej |
-| BB-004 | Blokeringen er allerede gældende og målt; de to initialfelter skal ned på 6 tegn | **Ja** (ny længdekategori) |
+| BB-004 | Blokeringen er allerede gældende og målt; de to initialfelter skal ned på 6 tegn | **Ja** (ny længdekategori) – gennemført 2026-08-16 (`190f9453`) |
 | BB-005 | Afvist – der skal ikke være nogen nedre aldersgrænse | Nej |
 | BB-006 | Afvist – manglende indtastninger meldes dér, hvor de bruges, aldrig på Stamdata | Nej |
-| BB-007 | Accepteret – indsat tekst normaliseres, men uden at forstyrre de øvrige normaliseringer | **Ja** |
+| BB-007 | Accepteret – indsat tekst normaliseres, men uden at forstyrre de øvrige normaliseringer | **Ja** – gennemført 2026-08-16 (`190f9453`) |
 | BB-008 | Afvist | Nej |
 | BB-009 | Accepteret som den er – én gennemgående regel for tocifrede årstal | Nej |
-| BB-010 | Afvist for markeringen – begge felter skal fortsat markeres; ordlyden skal derimod være feltspecifik | **Ja** (kun ordlyd) |
+| BB-010 | Afvist for markeringen – begge felter skal fortsat markeres; ordlyden skal derimod være feltspecifik | **Ja** (kun ordlyd) – gennemført 2026-08-16 (`190f9453`) |
 
 **Om kontrakterne.** Fire af afgørelserne hører hjemme i `src/contracts/`, men er bevidst **ikke**
 skrevet ind endnu: en kontraktændring skal bære et opdateret «Senest verificeret mod kode»-stempel
@@ -53,6 +53,10 @@ BB-001's navnemekanik kunne på samme måde skrives ind uden kodeændring, men S
 bevidst ikke omfattet af `input-field-behavior-contract.md` endnu (§6), så den hører til, når
 BB-002-rettelsen alligevel åbner den kontrakt.
 
+**Status (verificeret mod koden 2026-10-30):** kontraktændringerne fulgte med rettelserne i commit `190f9453`
+(2026-08-16): `error-contract.md` og `input-field-behavior-contract.md` (verifikationsstempel 2026-08-16 og §6.1
+«Stamdata»).
+
 ## Fund
 
 ### BB-001 – Skadestypen omdøber datofeltet og genfortolker den dato, der allerede står i det
@@ -60,7 +64,8 @@ BB-002-rettelsen alligevel åbner den kontrakt.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-01-kontekstuelle-feltnavne`
 - **Prioritet:** Høj
-- **Beslutning:** **Afvist af udvikleren 2026-08-16** – med én faktuel korrektion fra agenten
+- **Beslutning:** **Afvist af udvikleren 2026-08-16** – med én faktuel korrektion fra agenten. Kontraktdelen er
+  gennemført 2026-08-16 (`190f9453`)
 - **Sådan fremprovokeres det:**
   1. Lad Skadestype stå tom. Feltet nederst hedder «Skadedato».
   2. Skriv `01-06-2020` i Skadedato og tryk Tab.
@@ -124,12 +129,17 @@ kontekstuelle navneregel (`ContextualLabelRule` i `fieldDescriptor.ts`). Stamdat
 omfattet af `input-field-behavior-contract.md` (§6), så tilføjelsen er en ny feltsektion dér – ikke en
 rettelse i en eksisterende.
 
+**Gennemført 2026-08-16** (commit `190f9453`; verificeret mod koden 2026-10-30): `input-field-behavior-contract.md`
+§6.1 «Stamdata» siger nu: «Ændring af skadestype omdøber kun feltet og fejlteksterne; den indtastede dato bevares
+uændret.» Den afledte orientering er fortsat ikke afprøvet i browseren (se Dækningshuller).
+
 ### BB-002 – Fejlbeskeder kalder feltet «Skadedato», når det på skærmen hedder «Anmeldelsesdato»
 
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-02-beskeder-med-hardkodede-feltnavne`
 - **Prioritet:** Høj
-- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes; ordlyden forelægges
+- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes; ordlyden forelægges. **Gennemført
+  2026-08-16** (commit `190f9453`)
 - **Sådan fremprovokeres det:**
   1. Vælg Skadestype = «Erhvervssygdom». Datofeltet hedder nu «Anmeldelsesdato».
   2. Skriv `01-06-2020` i Anmeldelsesdato.
@@ -191,6 +201,11 @@ bruger derfor konsekvent **skadedatoen** / **anmeldelsesdatoen** i alle afledte 
    `input-field-behavior-contract.md`'s stamdataafsnit får den nye ordlyd. Begge med opdateret
    verifikationsstempel, når koden er rettet og målt.
 
+**Gennemført 2026-08-16** (commit `190f9453` «Gør stamdatareferencer og tekst-paste konsekvente»; verificeret mod
+koden 2026-10-30): `resolveStamdataDatoReference` i `stamdataCalculations.ts` er navneopslaget og bruges af
+`dateRangeErrorMessages.ts`, EET, forsørgertab, varige mén og EO. Punkterne ovenfor blev skrevet om i samme commit,
+så de beskriver den gennemførte løsning. Kontrakten står i `input-field-behavior-contract.md` §6.1.
+
 ### BB-003 – En dato tastet som seks cifre bliver til «01» – den samme tekst indsat virker
 
 - **Type:** Edge case
@@ -244,7 +259,8 @@ kontraktrevision få begrundelsen med, så beslutningen ikke genåbnes af den n�
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-04-lydløs-afkortning-ved-længdegrænse`
 - **Prioritet:** Mellem
 - **Beslutning:** **Afgjort af udvikleren 2026-08-16.** Princippet er allerede den gældende, målte
-  adfærd; de to initialfelter skal derimod have en grænse på **6 tegn** i stedet for 60
+  adfærd; de to initialfelter skal derimod have en grænse på **6 tegn** i stedet for 60. **Gennemført
+  2026-08-16** (commit `190f9453`)
 - **Sådan fremprovokeres det:**
   1. Indsæt `Advokatfirmaet Jensen og Partnere I/S, Att. Line Bruun Madsen` i feltet «Advokat».
   2. Tryk Tab.
@@ -328,6 +344,11 @@ sammen med de øvrige tekstfelter (`93b21494`). Det ændrer intet ved afgørelse
 5. **Kontrakt (sammen med rettelsen).** `input-field-behavior-contract.md` §2.5 «Frie tekstfelter»
    bærer i dag kategorien på 60 tegn som den udviklergodkendte værdi; den skal have initialkategorien med
    og navngive de to felter, den gælder for.
+
+**Gennemført 2026-08-16** (commit `190f9453`; verificeret mod koden 2026-10-30): `INITIALER_MAX_LENGTH = 6` i
+`stamdataDescriptors.ts` bruges af `stamdataAdvokatField` og `stamdataSagsbehandlerField`; de øvrige stamdatafelter
+beholder 60. `input-field-behavior-contract.md` §6.1: «`Advokat` og `Sagsbehandler` er enkeltlinjefelter med højst
+6 tegn. … et eksisterende længere input afkortes ikke ved `.eo`-load.»
 
 ### BB-005 – Ingen rimelighedskontrol af alder: en 2-årig med erhvervssygdom går glat igennem
 
@@ -419,7 +440,7 @@ isolationsværn er kørt grønne efter tilføjelsen.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-06-usynlige-tegn-overlever-fra-indsættelse`
 - **Prioritet:** Lav
 - **Beslutning:** **Accepteret af udvikleren 2026-08-16** – med udtrykkeligt krav om, at normaliseringen
-  ikke må forstyrre de øvrige normaliseringer
+  ikke må forstyrre de øvrige normaliseringer. **Gennemført 2026-08-16** (commit `190f9453`)
 - **Sådan fremprovokeres det:**
   1. Kopiér `Sag 2024-<hårdt mellemrum>117<tabulator>/` og på næste linje `Afd. 3` fra et
      Word-dokument.
@@ -491,6 +512,10 @@ antages.
    indsat tekst tegnnormaliseres før feltets egen paste-behandling, og at normaliseringen pr.
    definition er uden virkning for de familier, der filtrerer på tegnsæt.
 
+**Gennemført 2026-08-16** (commit `190f9453`; verificeret mod koden 2026-10-30): `normalizeClipboardText` i
+`inputPasteNormalization.ts` kaldes fra `pasteSplice.ts` med codec'ets `preservesLineBreaks`; kontrakten står i
+`input-field-behavior-contract.md` §1.2a.
+
 ### BB-008 – «Advokat/Sagsbehandler»: to ens felter, hvor kun rækkefølgen fortæller, hvad der er hvad
 
 - **Type:** Fornuft
@@ -509,7 +534,8 @@ antages.
 
 **Udviklerens afgørelse.** Fundet afvises; det er ikke et faktisk problem. Ingen kodeændring.
 Bemærk, at feltbredden og læsbarheden af de samme to felter fortsat er i spil under BB-004's åbne
-spørgsmål – det er en anden sag end etiketten.
+spørgsmål – det er en anden sag end etiketten. (Det spørgsmål er siden lukket 2026-08-16 med grænsen på 6 tegn;
+se BB-004.)
 
 ### BB-009 – Fødselsår 1927-1931 kan ikke skrives med to cifre, og fejlen forklarer ikke hvorfor
 
@@ -549,7 +575,8 @@ fundets forslag om en særregel for fødselsdato bortfalder.
 - **Type:** Fornuft
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-07-parvise-grænser-markerer-begge-parter`
 - **Prioritet:** Lav
-- **Beslutning:** **Afvist af udvikleren 2026-08-16 for markeringen; ordlyden skal derimod rettes**
+- **Beslutning:** **Afvist af udvikleren 2026-08-16 for markeringen; ordlyden skal derimod rettes.** Ordlyden
+  er **gennemført 2026-08-16** (commit `190f9453`)
 - **Sådan fremprovokeres det:** Udfyld Skadedato korrekt, og skriv derefter en fødselsdato, der
   ligger efter den.
 - **Det sker:** Begge felter bliver røde med hver sin tooltip, selv om brugeren kun har rørt det ene.
@@ -590,6 +617,10 @@ I [dateRangeErrorMessages.ts](../../../src/utils/dateRangeErrorMessages.ts):
 
 Begge tekster går uændret videre til «Fejl og advarsler»-boksene, fordi `bounds`-beskeder citeres
 ordret (`project_field_tooltip_vs_error_box`). Ordlyden forelægges udvikleren, før den skrives ind.
+
+**Gennemført 2026-08-16** (commit `190f9453`; verificeret mod koden 2026-10-30): de to tekster står ordret som
+foreslået i `dateRangeErrorMessages.ts` og `stamdataDateOrder.ts` og er normative i
+`input-field-behavior-contract.md` §6.1.
 
 ---
 
@@ -636,15 +667,11 @@ ordret (`project_field_tooltip_vs_error_box`). Ordlyden forelægges udvikleren, 
 
 ## Åbne spørgsmål
 
-**Ingen.** Alle spørgsmål på denne flade er besvaret af udvikleren 2026-08-16 – først de tre
-oprindelige (BB-001: datoen bevares uændret; BB-005: ingen aldersgrænse; BB-010: begge felter markeres
-fortsat), og derefter de tre, som svarene rejste:
+**Ingen.** Alle spørgsmål på denne flade er besvaret af udvikleren 2026-08-16 og står under fundene: de tre
+oprindelige under BB-001 (datoen bevares uændret), BB-005 (ingen aldersgrænse) og BB-010 (begge felter markeres
+fortsat), og de tre, som svarene rejste, under BB-001 (skadestypens skjulte beregningsvirkning: skiftet må ske
+tavst) og BB-004 (6 tegn i initialfelterne; læsbarheden bortfalder på Stamdata og efterprøves dér, hvor et
+60-tegns-felt faktisk er smalt, `TVAERGAAENDE.md` M-04).
 
-1. **Skadestypens skjulte beregningsvirkning (BB-001):** skiftet må fortsat ske tavst. Brugeren
-   orienteres gennem den afledte fejl på det datofelt, hvis grænse flyttede sig.
-2. **Grænsen for de to initialfelter (BB-004):** 6 tegn, både ved tastning og indsættelse.
-3. **Læsbarhed af korte tekstfelter (BB-004):** bortfalder på Stamdata med den nye grænse;
-   efterprøves i stedet dér, hvor et 60-tegns-felt faktisk er smalt (`TVAERGAAENDE.md` M-04).
-
-Fladen er dermed færdigbehandlet. Tre rettelser står klar til gennemførelse: BB-002 + BB-010's ordlyd
-(én kodeændring), BB-004's længdekategori og BB-007's normalisering.
+Fladen er dermed færdigbehandlet. De tre rettelser – BB-002 + BB-010's ordlyd (én kodeændring), BB-004's
+længdekategori og BB-007's normalisering – er gennemført 2026-08-16 i commit `190f9453`.

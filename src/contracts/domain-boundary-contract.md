@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-09-09
+**Senest verificeret mod kode:** 2026-10-30
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -172,7 +172,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    - `erhvervsevnetab`
    - `faellesAarsloen`
    - `stamdata`
-2. Undtagelsen gælder togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" på *Offentlige ydelser*-fanen, samt den virtuelle injection denne toggle aktiverer i EO-beregning og PDF-bilag "Midlertidig EET".
+2. Undtagelsen gælder togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" på *Offentlige ydelser*-fanen, samt den virtuelle injection denne toggle aktiverer i EO-beregning og PDF-bilag "Midlertidig EET". Den eneste læsning uden for togglen er pkt. 11.
 3. EET-domænet eksponerer en typed, read-only og Zod-valideret importport, der bygger på samme
    canonical beregningskerne som EET-snapshottet. EO modtager portens import-context som eksplicit snapshot-input og må ikke læse
    EET-engines eller deres interne resultatformer direkte.
@@ -193,6 +193,12 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    Importens feltissues bindes til de konkrete top-level- og rækkerefs, importprojektionen læser; en bred
    sektionsscan eller et parallelt inventar af tekst-id'er er ikke en gyldig dependency-grænse.
 10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en – så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
+11. **Kapitaliseringsdatoen for en delvist endelig afgørelse (advarsel alene).** Som eneste læsning uden for
+    togglen må EO gennem EET-portens `resolveDelvistEndeligeKapitaliseringsdatoer` læse kapitaliseringsdatoerne for
+    afgørelser af typen `Delvist endelig`. De må KUN bruges til den gule, ikke-blokerende advarsel om TAF efter
+    kapitaliseringen (`eo-snapshot-contract.md` §2.2a, BB-187) – aldrig til en afskæring, clamping, beregning,
+    blokering eller dokumenttekst. Læsningen bruger samme committed rækkeprojektion som importen og skriver intet
+    tilbage. En udvidelse til beregningsvirkning kræver en ny kontraktændring og udviklerens specifikation.
 
 ---
 

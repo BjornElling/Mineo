@@ -47,6 +47,5 @@ describe('DATA-001/CALC-006/TD-020 – flextilskud som EO-downstream-consumer', 
     ]);
     expect(relevantIndexes.map((index) => model.tableData.isWorkdayByIndex[index])).toEqual([false, false]);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(900);
-    expect(model.integrityIssues).toEqual([]);
   });
 });

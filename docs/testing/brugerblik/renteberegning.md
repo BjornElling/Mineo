@@ -93,6 +93,17 @@ rettelsen». De efterfølgende reproduktionstrin og målinger bevares som det te
 **Tilbagemelding**
 Jeg accepterer løsningen og rettelsen. Men er den implementeret alle steder, hvor problemet kunne være aktuelt. Undersøg det venligst nøje, og hvis ikke, så find på en lignende løsning de øvrige steder. Overvej desuden om princippet bør forankres i en kontrakt.
 
+**Efterprøvet 2026-08-25 (fra STATUS.md):** Krav: stamdata er kun en dokumentafhængighed, når
+brevhovedet er slået til. Alle syv flader kalder `projectStamdataForDocumentIfEnabled` med deres eget
+brevhoved-flag; **ingen ubetinget kaldsside tilbage** i produktionskoden. Blokeringsteksten er `'Ret
+fejlen i Stamdata'` (`documentOutcome.ts`). Kontrakt: `document-output-contract.md` §Gate-deling – og
+håndhævet som **typegrænse**: en `project`, der læser formatvalget, kompilerer ikke.
+**Ét sted er læst og bevidst ikke ændret:** EO's fire outputs (`eoDocumentDefinitions.ts`) læser
+stamdata **ubetinget**, og det er korrekt – dér er skadestype, skadedato og fødselsdato reelt
+*beregningsinput*, ikke kun brevhovedstof. BB-080's regel er, at stamdata ikke må være en
+dokumentafhængighed, **når den kun bruges til brevhovedet**; den siger ikke, at stamdata aldrig må
+blokere. Forskellen er værd at kende, før nogen «ensretter» EO med de øvrige syv flader.
+
 ### BB-081 – Oversigtsdokumentets kolonne «Rente fra» viser rentedatoen, ikke den dato skærmen kalder «Renter fra»
 
 - **Type:** Fejl
@@ -135,6 +146,12 @@ Jeg accepterer løsningen og rettelsen. Men er den implementeret alle steder, hv
 **Tilbagemelding**
 Jeg vil gerne have ændret udtrykket 'Renter fra' til 'Forfaldsdato'. Det er den juridiske korrekte terminologi. Sørg for at gøre det konsekvent. Jeg kan desuden ikke se, om rettelserne til dette punkt også slår igennem på minprocesrente-siden. Hvis ikke, vil jeg gerne have, at du overvejer nøje, om ikke de bør, og retter, hvis du er enig.
 
+**Gennemført (fra STATUS.md og BB-091):** Tilbagemeldingen gjorde «Forfaldsdato» til kravets
+forfaldsdato, og ensretningen blev kørt i hele programmet (commit `504031ef`): fane 1's kolonne,
+feltets label, fejlbeskederne og beregningsforudsætningen bruger nu ordet i den betydning. Men
+Tillægssats-tabellens kolonne hed allerede «Forfaldsdato» om noget helt andet (en sats' ikrafttræden,
+`01-08-2002`) og blev derfor ikke rørt – den rest er BB-091 på fane 2.
+
 ### BB-082 – Skærmen lægger ikke rentebeløbene sammen; kun dokumentet gør
 
 - **Type:** Fornuft
@@ -171,7 +188,9 @@ Jeg accepterer rettelsen, dog med den rent visuelle ændring, at teksten og det 
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på`
 - **Prioritet:** Mellem
-- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Beslutning:** Afgjort – rettet i review 2026-08-22; rettelsen **afvist** af udvikleren og fjernet
+  igen (fundet er ikke en fejl), jf. tilbagemeldingen og efterprøvningen nedenfor. «Resultat» og «nu
+  efter rettelsen» beskriver den fjernede rettelse.
 - **Resultat:** En manglende beløbs-/datopartner markeres nu direkte på det felt, der skal udfyldes,
   med den konkrete regeltekst.
 - **Brugerens oplevelse – før rettelsen:** Brugeren kunne udfylde et beløb i en række uden dato,
@@ -200,6 +219,11 @@ Jeg accepterer rettelsen, dog med den rent visuelle ændring, at teksten og det 
   ufuldstændig række: Årsløns lønrækker, EO's Lønindkomst og Offentlige ydelser.
 
 **Jeg accepterer ikke rettelsen. Den er forkert og den er kontrakt-stridig. Rettelsen resulterer i, at allerede mens brugeren indtaster, og beløbet er indtastet, men inden brugeren overhovedet når til at angive resten af datoerne, får brugeren en fejlmeddelelse om manglende indtastninger. Det er ukorrekt adfærd - både her og i programmet i øvrigt. Det oprindelige fund er ikke en fejl og skulle ikke have været ændret. Det vil være åbenlyst for brugeren, at en fejlmeddelelse om manglende indtastninger relaterer til ufuldstændige rækker. Fjern rettelsen og opdater kontrakter til at afspejle den korrekte tilgang i denne slags situationer."
+
+**Efterprøvet 2026-08-25 (fra STATUS.md):** Krav: en delvist udfyldt række må ikke få rødt partnerfelt.
+Rettelsen er **fjernet**; de to tilbageværende `rule`-validatorer er ægte egen-værdi-regler
+(nul-beløb, rentedato forbi beregningsdato) og returnerer `undefined`, når partneren mangler.
+Kontrakt: `input-field-behavior-contract.md` §1.0a.
 
 ### BB-084 – En række, hvis eneste indhold er en afvist værdi, regnes for tom: ingen slet-knap og ingen ny indtastningsrække
 
@@ -241,6 +265,11 @@ Jeg accepterer rettelsen, dog med den rent visuelle ændring, at teksten og det 
 **Tilbagemelding**
 Jeg er enig i fundet og i rettelsen - både her og andre steder i programmet. Programmet må ikke opfatte en række som tom, blot fordi den kun indeholder ugyldige indtastninger. Programmet skal kigge på indtastninger alene, når det kommer til at vurdere, om en række er tom eller ej. Bemærk, at der er en undtagelse derved, at de særlige typer dropdowns, der har en defaultværdi og ikke kan tømmes, ikke skal betragtes som ændrede, hvis kun dropdownværdien er ændret. Hvis ikke dropdownen er af denne særlige type, skal det betragtes som en ændret række, hvis der er valgt en dropdown-værdi. Disse principper bør formentlig skrives ind i kontrakter.
 
+**Efterprøvet 2026-08-25 (fra STATUS.md):** Krav: ugyldig indtastning gør ikke en række «tom».
+Centralt i `fieldCatalog.ts` (`hasEntityInput` læser `rejectedInputs`), som alle ti tabeller arver via
+`useCollectionTable`. Dropdown-undtagelsen er implementeret pr. descriptor. Kontrakt:
+`input-field-behavior-contract.md` §1.0a.
+
 ### BB-085 – Rækkens downloadikon forsvinder i stedet for at blive inaktivt med en årsag
 
 - **Type:** Fornuft
@@ -273,6 +302,11 @@ Jeg er enig i fundet og i rettelsen - både her og andre steder i programmet. Pr
 
 **Tilbagemelding**
 Jeg er enig i fundet og løsningen - både her og i resten af programmet. Download-ikoner skal ikke forsvinde ved manglende eller fejlbehæftede indtastninger. De skal deaktiveres med tooltip.
+
+**Efterprøvet 2026-08-25 (fra STATUS.md):** Krav: download-ikoner deaktiveres, forsvinder ikke. Fælles
+`DownloadIconButton` med obligatorisk tooltip; **den flade du navngav** (regulering pr.
+ansættelsesforhold) renderer nu ubetinget med `disabled`. Kontrakt: `page-component-contract.md`
+§11.1a – udvidet til **enhver** deaktiveret handling.
 
 ### BB-086 – «Slet alt»-bekræftelsens overskrift er ordret navnet på sidens egen, fortrydelige slet-knap
 
@@ -354,7 +388,9 @@ Jeg anerkender fundet og rettelsen.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-14--en-anden-fortolkningsvej-ved-siden-af-tastningen`
 - **Prioritet:** Lav
-- **Beslutning:** Afgjort – rettet i review 2026-08-22
+- **Beslutning:** Afgjort – rettet i review 2026-08-22; rettelsen erstattet efter udviklerens
+  tilbagemelding af en universel regel om højst ét decimalkomma pr. talled (se efterprøvningen
+  nedenfor). «Resultat» og «nu efter rettelsen» beskriver den erstattede linjeskift-rettelse.
 - **Resultat:** Paste af flere linjer i numeriske felter bruger første linje som feltets værdi, så
   linjeskift ikke smelter en hel regnearkskolonne sammen til én afvist draft.
 - **Brugerens oplevelse – før rettelsen:** Når brugeren indsatte flere beløb fra et regneark i en
@@ -385,6 +421,14 @@ Jeg anerkender fundet og rettelsen.
 
 **Tilbagemelding**
 Det er et relevant fund at addressere, men jeg er ikke enig i fremgangsmåden. Det indfører parallel logik at lave særregler for indsætning af rækker fra regneark og for linjeskifte. Plus fejlen vidner i realiteten om en anden, underliggende problematik om, at et beløbfelt tillader indtastning af to kommaer. Det burde det ikke. Der burde ske en automatisk blokering af yderligere kommaer efter det første. Dette vil formentlig også være relevant i andre felter, hvor der kan indtastes kommaer - fx. i procentfelter. Jeg har ikke testet, om problemet også opstår der, men hvis det gør, bør det også retets der. Lav en universiel rettelse på alle de inputfelter, hvor det kunne være aktuelt.
+
+**Efterprøvet 2026-08-25 (fra STATUS.md):** Krav: højst ét decimalkomma pr. talled. Universelt på
+tegn-prædikatet i `numericDraftAdmission.ts`; **virker også for procent- og brøkfelter**. Ingen
+linjeskift-særregel tilbage. Kontrakt: `input-field-behavior-contract.md` §1.2 + §Talled.
+Værnet ligger på `onDraftChange`, ikke på keydown, og keydown-filteret er *afledt* af samme prædikat
+(`keyFilterFromAdmission`). Det er grunden til, at rettelsen holder for paste, for tabelceller og for
+transiente overlay-felter uden tre separate implementeringer – og det er samme arkitektur som
+tegnværnet.
 
 ### BB-089 – «Rentedato» betyder to forskellige ting på sidens to faner
 
@@ -500,7 +544,7 @@ Jeg anerkender fundet og rettelsen.
 
 ## Dækningshuller
 
-- **`Gem`/`Hent` af rentekrav-tabellen er ikke målt.** Filvælgeren kan ikke betjenes headless (samme
+- **`Gem`/`Hent` af rentekrav-tabellen er ikke målt.** Filvælgeren kan ikke betjenes headless [rettet 2026-10-30: Playwright kan automatisere både filvælger og download – se STATUS.md, «Dækningsrettelse 2026-10-24»] (samme
   hul som `globalshell.md` BB-049). Round-trip af rækkefølgen efter en sortering
   (`saveOrderPath="renteberegning.rentekravRows"`) er derfor uverificeret i drift.
 - **PDF-kanalens indhold er ikke læst.** Begge dokumenter er hentet og læst som `.docx`; PDF-udgaven
@@ -562,9 +606,6 @@ nedre grænse for fane 1's datofelter. Fanen er derfor programmets eneste sted, 
 kontrollere, hvilken sats hans rentekrav er beregnet efter – og fanens tungeste fund er, at den to
 steder siger noget andet, end beregningen gør.
 
-**Tilbagemelding**
-Jeg anerkender fundet og præmissen, og jeg vil meget gerne have ensartet formuleringer for ensartet indhold i programmet. I denne kontekst lyder 'Gælder fra' godt.
-
 ## Fund
 
 ### BB-091 – Tillægssatsens datokolonne heder «Forfaldsdato», mens nabotabellens identiske kolonne heder «Gælder fra»
@@ -609,8 +650,19 @@ Jeg anerkender fundet og præmissen, og jeg vil meget gerne have ensartet formul
   omdøbning: **søg det nye ord i hele programmet, før det tages i brug** – en ensretning, der kun ser
   på de steder, hvor det gamle ord stod, efterlader de steder, hvor det nye ord allerede stod.
 
+**Tilbagemelding** (stod oprindeligt under fanens «Fladen kort»)
+Jeg anerkender fundet og præmissen, og jeg vil meget gerne have ensartet formuleringer for ensartet indhold i programmet. I denne kontekst lyder 'Gælder fra' godt.
+
 **Tilbagemelding**
 Se ovenfor i seneste fund - jeg er enig. 'Gælder fra' lyder godt her. Jeg vil gerne have ensartede formuleringer for ensartet indhold.
+
+**Gennemført i kode 2026-08-25:**
+- `components/pages/renteberegning/RentesatserTab.tsx` – Tillægssats-tabellens kolonne heder «Gælder
+  fra».
+- `components/tables/InterestRatesTable.tsx` – `dateColumnHeader` er nu obligatorisk uden default
+  «Rentedato», og den ubrugte `rateColumnHeader`-prop er væk.
+- `src/contracts/renteberegning-contract.md` – ny bindende **§2.9** (terminologi: forfaldsdato mod
+  rentedato, «Gælder fra» om en sats' ikrafttræden).
 
 ### BB-092 – Programmet vælger tillægssatsen efter rentedatoen, men fanen og beregningsforudsætningen siger forfaldsdatoen
 
@@ -671,6 +723,10 @@ beskriver i tilbagemeldingen til BB-093. Kontrakten er derfor skrevet med de to 
 (§2.10) frem for som én sætning om «satsen». Beregningen er uændret; det er alene teksterne, der er
 rettet ind efter den.
 
+**Gennemført i kode 2026-08-25:** `domain/renteberegning/renteCalculationPrinciples.ts` –
+forudsætningen siger «rentedato» i stedet for «forfaldsdato». Teksten deles med standalone
+MinProcesrente og trykkes i begge dokumenter.
+
 ### BB-093 – De to satstabeller ser ens ud, men den ene sats skifter under beregningen og den anden ligger fast
 
 - **Type:** Fornuft
@@ -726,6 +782,20 @@ og det er værd at have på papiret, hvis nogen senere læser de to fund i samme
 fastlåst i kontrakt, som du beder om, og de to sætninger er sat ind – de er begrundelsen for, at
 fundet ikke blot lukkes som «adfærden er rigtig»: adfærden VAR rigtig, det var kun brugeren, der ikke
 kunne se den.
+
+**Gennemført i kode 2026-08-25:**
+- `components/pages/renteberegning/RentesatserTab.tsx` – hver af de to bokse har fået én sætning om,
+  hvordan dens egen sats virker. Hver boks' to sætninger står på hver sin `row--text`-linje, altså samme
+  stakkede form som fane 1's fire beregningstekniske forudsætninger; ingen ny styling er indført.
+- `src/contracts/renteberegning-contract.md` – ny bindende **§2.10** (satsvalg: periodisk
+  referencesats, tillægssats fastlåst pr. krav på rentedatoen), plus et syvende punkt i
+  minimumstestfladen.
+- `src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts` – tre nye tests hævder §2.10 på
+  motoren: tillægssatsen er den samme i alle perioder for et krav med rentedato før `01-03-2013`,
+  referencesatsen skifter ved halvårsskiftet i samme beregning, og et krav med rentedato efter
+  satsskiftet får den nye tillægssats.
+- `docs/domain/renteberegning/renter.md` – principperne, satstabellen og eksemplet er ført ajour, og
+  «kravetsdato» i prosaen er blevet «forfaldsdato» (kodens `kravetDato` er urørt).
 
 ### BB-094 – Satsfanen siger ikke, hvor langt satserne er fastsat – og dens nyeste række dækker kun halvdelen af de datoer, fane 1 tager imod
 
@@ -783,6 +853,15 @@ betingelsen er faldet væk. Til gengæld er den tavse fejl, halvårsguarden nu f
 gjorde fundets ajourførings-halvdel værd at rejse: mangler et halvår i tabellen, viderefører
 satsopslaget forrige halvårs sats uden et ord. Efter guarden kan appen ikke starte med den fejl.
 
+**Gennemført i kode 2026-08-25** (følge af svaret ovenfor; selve fundet er afvist):
+- `data/interestRates.ts` – halvårsinddelingen er uforanderlig og håndhæves nu ved modul-load: en
+  referencesats med anden ikrafttræden end `01-01`/`01-07` og et manglende halvår i kæden er begge
+  datafejl, der stopper appen frem for at give en tavst forkert sats. Tillægssatsernes sortering
+  håndhæves tilsvarende, fordi `MIN_SURCHARGE_DATE` læses positionelt. Begge grene af halvårsguarden
+  er mutationstestet.
+- `src/__tests__/data/interestRates.test.ts` – ny påstand om, at referencesatsserien er en ubrudt
+  kæde af halvår (det manglende halvår var ikke dækket før).
+
 ### BB-095 – Negative referencesatser vises med et mellemrum mellem minus og tal, og «-» er programmets tegn for «ingen værdi»
 
 - **Type:** Fornuft
@@ -824,6 +903,9 @@ Til gengæld var den skrevet som `formatPercent(...).replace('-', '- ')`, altså
 det første bindestreg i strengen; den er nu et eksplicit fortegnsvalg med en kommentar om, at formen
 er din beslutning og ikke må bredes til `formatPercent`. Samme visning, men den kan ikke længere
 forsvinde som «oprydning» i en senere refaktor.
+
+**Gennemført i kode 2026-08-25:** `components/tables/InterestRatesTable.tsx` – fortegnsformen «- 0,45 %»
+er gjort eksplicit med en kommentar om, at den er en bevidst undtagelse.
 
 ## Overvejet uden fund
 
@@ -902,36 +984,6 @@ forsvinde som «oprydning» i en senere refaktor.
   der faktisk sidder i 2028, vil desuden opleve, at «Indsæt dags dato» og feltets grænser har flyttet
   sig; den samlede oplevelse dér er ikke set.
 
-## Gennemført i kode 2026-08-25
-
-- `components/pages/renteberegning/RentesatserTab.tsx` – Tillægssats-tabellens kolonne heder «Gælder
-  fra» (BB-091), hver af de to bokse har fået én sætning om, hvordan dens egen sats virker (BB-093),
-  og lovhenvisningerne er rettet til «§ 5, stk. 1, 2. pkt.» (referencesats) og «§ 5, stk. 1»
-  (tillægssats) efter udviklerens afgørelse – åbent spørgsmål 1 er dermed lukket. Hver boks' to
-  sætninger står på hver sin `row--text`-linje, altså samme stakkede form som fane 1's fire
-  beregningstekniske forudsætninger; ingen ny styling er indført.
-- `data/interestRates.ts` – halvårsinddelingen er uforanderlig og håndhæves nu ved modul-load: en
-  referencesats med anden ikrafttræden end `01-01`/`01-07` og et manglende halvår i kæden er begge
-  datafejl, der stopper appen frem for at give en tavst forkert sats. Tillægssatsernes sortering
-  håndhæves tilsvarende, fordi `MIN_SURCHARGE_DATE` læses positionelt. Begge grene af halvårsguarden
-  er mutationstestet.
-- `components/tables/InterestRatesTable.tsx` – `dateColumnHeader` er nu obligatorisk uden default
-  «Rentedato» (BB-091), den ubrugte `rateColumnHeader`-prop er væk, og fortegnsformen «- 0,45 %» er
-  gjort eksplicit med en kommentar om, at den er en bevidst undtagelse (BB-095).
-- `domain/renteberegning/renteCalculationPrinciples.ts` – forudsætningen siger «rentedato» i stedet for
-  «forfaldsdato» (BB-092). Teksten deles med standalone MinProcesrente og trykkes i begge dokumenter.
-- `src/contracts/renteberegning-contract.md` – nye bindende **§2.9** (terminologi: forfaldsdato mod
-  rentedato, «Gælder fra» om en sats' ikrafttræden) og **§2.10** (satsvalg: periodisk referencesats,
-  tillægssats fastlåst pr. krav på rentedatoen), plus et syvende punkt i minimumstestfladen.
-- `src/__tests__/data/interestRates.test.ts` – ny påstand om, at referencesatsserien er en ubrudt
-  kæde af halvår (det manglende halvår var ikke dækket før).
-- `src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts` – tre nye tests hævder §2.10 på
-  motoren: tillægssatsen er den samme i alle perioder for et krav med rentedato før `01-03-2013`,
-  referencesatsen skifter ved halvårsskiftet i samme beregning, og et krav med rentedato efter
-  satsskiftet får den nye tillægssats.
-- `docs/domain/renteberegning/renter.md` – principperne, satstabellen og eksemplet er ført ajour, og
-  «kravetsdato» i prosaen er blevet «forfaldsdato» (kodens `kravetDato` er urørt).
-
 ## Åbne spørgsmål
 
 1. **Er «jf. rentelovens § 5» og «jf. rentelovens § 5, stk. 2» de rigtige henvisninger?** Fanen
@@ -948,6 +1000,9 @@ forsvinde som «oprydning» i en senere refaktor.
    Referencesats-boksen henviser nu til **«§ 5, stk. 1, 2. pkt.»** og Tillægssats-boksen til
    **«§ 5, stk. 1»**. Bestemmelsens ordlyd og fordelingen af de to oplysninger står i
    `renteberegning-contract.md` §2.11, så henvisningen ikke kan «rettes» tilbage.
+   **Gennemført i kode 2026-08-25:** i `components/pages/renteberegning/RentesatserTab.tsx` er
+   lovhenvisningerne rettet til «§ 5, stk. 1, 2. pkt.» (referencesats) og «§ 5, stk. 1» (tillægssats)
+   efter udviklerens afgørelse – åbent spørgsmål 1 er dermed lukket.
 2. **Skal Tillægssats-tabellen fortsat vise 7 %-rækken lige så fremtrædende som den gældende sats?**
    `01-08-2002 / 7 %` gælder kun krav med rentedato før `01-03-2013`, og fane 1's datofelter tager
    imod fra `01-01-2005`, så rækken er fortsat nåbar – men den bliver stadig mere historisk, og den er

@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { isOevrigeKravRowEmpty } from './rowEmpty';
-import { hasIndtastetLoenoplysninger } from './loenoplysningerInput';
+import { hasIndtastetLoenoplysninger } from '../../standardLoen/loenoplysningerInput';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 
 /**

@@ -44,7 +44,7 @@ Bilagsvalgene og forsiden er 12l's, kontrolrækkerne 12m's.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-43--en-advarsel-får-en-import-til-at-give-nul`
 - **Prioritet:** **Kritisk**
 - **Beslutning:** **GODKENDT** af udvikleren 2026-10-29. **GENNEMFØRT** 2026-10-29. Den udvidede undersøgelse fandt ét
-  hul mere, BB-368 nedenfor, som forelægges.
+  hul mere, BB-368 nedenfor, som blev forelagt og er afgjort og gennemført samme dag (valg B).
 - **Sådan fremprovokeres det:** Grundsagen med «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» slået til og på
   Erhvervsevnetab-siden én afgørelse (afgørelsesdato `15-01-2026`, virkningsdato `01-08-2025`, Midlertidig, ASL-årsløn
   `450.000 kr.`), skiftevis med:
@@ -187,6 +187,10 @@ browsertest.
 
 **Supplerende bemærkning**
 Jeg vil gerne have justeret, så der ikke indsættes en linje under hjælperen. Brugeren skal have vist en bekræftelsesdialog, men hvis brugeren har accepteret den, skal det blot indsættes uden yderligere.
+
+**Gennemført 2026-10-29** (konstateret i koden ved dokumentgennemgangen 2026-10-30, commit `d435d195`): der står ingen
+linje under hjælperen. Overlap giver kun bekræftelsesdialogen; «Indsæt alligevel» indsætter rækkerne uden yderligere
+besked (`OffentligeYdelserTab.tsx`, `handleSygedagpengeInsert`).
 
 ### BB-360 – Ved TAF «Nej» spærrer en ufærdig ydelsesrække opgørelsen, selv om intet fra fanen bruges – og «Alle» trykker bilaget alligevel
 
@@ -550,8 +554,11 @@ dér.
 ## Henvisninger til andre bidder
 
 - **12l:** bilagsvalget «Midlertidig EET» er aktivt, når der intet er at trykke (BB-358); «Alle» trykker ydelsesbilaget ved TAF
-  «Nej» (BB-360).
+  «Nej» (BB-360). Begge er afgjort og gennemført i 12l som BB-372 og BB-373.
 - **12m:** kontroltabellens integritetslinjer nævner rækkens interne id («Offentlig ydelse (række …)»), kildeaflæst.
+  Ikke behandlet i 12m-rapporten; teksten står uændret i koden (`eoInspektionOffentligeYdelserColumns.ts`, konstateret ved
+  dokumentgennemgangen 2026-10-30). **Afgjort og gennemført 2026-10-30:** linjerne er fjernet sammen med hele den
+  urenderede integritetskanal – se 12m, «Kontroltabellens urenderede integritetstjek (forelagt 2026-10-30)».
 
 ## Dækningshuller
 

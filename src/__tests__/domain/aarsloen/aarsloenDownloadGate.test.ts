@@ -133,7 +133,15 @@ const withFeriedageOverPeriod = (input: SettledInput): SettledInput => {
   let next = withOneValidMonthRow(input);
   next = dispatch(next, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
   next = dispatch(next, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
+  // Uden fuld løn under ferie er satsen påkrævet (M-37); uden den blokerer manglen før feriedagenes grænse.
+  next = dispatch(next, settle(aarsloenFeriePctField.bind(), '12,5'));
   return dispatch(next, settle(aarsloenAntalFeriedageField.bind(), '24'));
+};
+
+const withTomFeriesatsUdenFuldLoen = (input: SettledInput): SettledInput => {
+  let next = withOneValidMonthRow(input);
+  next = dispatch(next, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+  return dispatch(next, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
 };
 
 const expectBlocked = (
@@ -237,6 +245,17 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(shDageGate, 'aarsloen:sh-feriedage-over-perioden');
     if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('specific');
     if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('specific');
+  });
+
+  // M-37: en tom feriesats uden fuld løn under ferie er en MANGEL – «Indtastning mangler», ikke «Fejl i indtastning».
+  it('blokerer årslønsdokumentet som mangel ved tom feriesats uden fuld løn under ferie', () => {
+    const projection = project(withTomFeriesatsUdenFuldLoen(withValidStamdata(empty())));
+    const gate = evaluateAarsloenDownloadGate(projection);
+
+    expectBlocked(gate, 'aarsloen:fatal-calculation-error');
+    expect(projection.fieldIssues).toEqual([
+      expect.objectContaining({ reason: 'missing', message: 'Feriegodtgørelse/-tillæg er ikke udfyldt' }),
+    ]);
   });
 
   it('tillader download, når aktiv omregning har periode-data', () => {

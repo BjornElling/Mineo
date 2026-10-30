@@ -57,6 +57,13 @@ const STAMDATA_ISSUE_IDS = new Set([
 
 const EO_TAB_OPLYSNINGER_ISSUE_IDS = new Set(['midlertidigt-eet-slutdato-missing']);
 
+/**
+ * Præfikset for EO's advarsel om TAF efter kapitaliseringen af en delvist endelig afgørelse (BB-187). Det står her,
+ * fordi navigationen er dets eneste fortolker; producenten er `tafEfterKapitaliseringAdvarsel.ts`. Hver TAF-række
+ * har sit eget id (`<præfiks>:<rækkens id>`), så invariant-id'erne er entydige.
+ */
+export const TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX = 'taf-efter-delvist-endelig-kapitalisering';
+
 /** Linjerne om en manglende midlertidig EET-afgørelse på EO oplysninger (BB-372) – fører til «AES-afgørelser». */
 const EO_AES_ISSUE_IDS = new Set(['midlertidigt-eet-uden-afgoerelse-intet-hentet', 'midlertidigt-eet-uden-afgoerelse-hentet']);
 
@@ -113,7 +120,9 @@ export const resolveMidlertidigtEetIssueNavigation = (
       ...(issue.focusTarget === undefined ? {} : { focusTarget: issue.focusTarget }),
     };
   }
-  if (EO_TAB_OPLYSNINGER_ISSUE_IDS.has(issue.id)) {
+  // TAF efter en delvist endelig afgørelses kapitalisering (BB-187): id'et bærer rækkens id, så præfikset afgør.
+  // Linket fører til TAF-rækken på EO oplysninger – det er dér, brugeren tager stilling – ikke til EET-siden.
+  if (EO_TAB_OPLYSNINGER_ISSUE_IDS.has(issue.id) || issue.id.startsWith(`${TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX}:`)) {
     return {
       kind: 'erstatningsopgoerelse-tab',
       pageName: 'Erstatningsopgørelse',

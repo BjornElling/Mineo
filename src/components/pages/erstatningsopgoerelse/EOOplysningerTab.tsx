@@ -14,10 +14,11 @@ import OevrigeKravSection from './eoOplysninger/sections/OevrigeKravSection';
 import SaerligeKommentarerSection from './eoOplysninger/sections/SaerligeKommentarerSection';
 import BilagsnumreSection from './eoOplysninger/sections/BilagsnumreSection';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
+import type { TafEfterKapitaliseringAdvarsel } from '../../../domain/erstatningsopgoerelse/validation/tafEfterKapitaliseringAdvarsel';
 
 const EOOplysningerTab = React.memo(({
   values, stamdataValues, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues,
-  isActive, indkomstBeregningKanSkjules,
+  tafEfterKapitaliseringAdvarsler, isActive, indkomstBeregningKanSkjules,
 }: {
   values: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
@@ -25,6 +26,8 @@ const EOOplysningerTab = React.memo(({
   loenudviklingIssues: FieldIssueSet;
   tafCellIssues: FieldIssueSet;
   svieSmerteCellIssues: FieldIssueSet;
+  /** `tafEfterKapitaliseringAdvarsler` fra sidens reader-projektion (BB-187). */
+  tafEfterKapitaliseringAdvarsler: readonly TafEfterKapitaliseringAdvarsel[];
   /** Fanen er den aktive. Den er altid monteret, så et besøg afgrænses af dette flag, ikke af mount. */
   isActive: boolean;
   /** `kanIndkomstBeregningenSkjules` fra sidens reader-projektion. */
@@ -33,7 +36,11 @@ const EOOplysningerTab = React.memo(({
   // View-model-laget bygges her og deles med sektion-komponenterne via konteksten (jf. A1):
   // hver sektion forbruger `useEoOplysningerVm()` i stedet for at modtage props. Fanen er nu en
   // ren komposition af sektioner + den side-lokale løntrin-finder-overlay.
-  const baseVm = useEoOplysningerViewModel(values, stamdataValues, { isActive, indkomstBeregningKanSkjules });
+  const baseVm = useEoOplysningerViewModel(
+    values,
+    stamdataValues,
+    { isActive, indkomstBeregningKanSkjules, tafEfterKapitaliseringAdvarsler },
+  );
   const vm = React.useMemo(
     () => ({ ...baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues }),
     [baseVm, eoErrors, loenudviklingIssues, tafCellIssues, svieSmerteCellIssues]

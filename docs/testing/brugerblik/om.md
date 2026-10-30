@@ -123,6 +123,14 @@ skal kunne læses på ti sekunder. Det, der skal frem, er hvornår arbejdet fors
 ved det – begge dele står nu i tre linjer. Rettelsen gennemføres sammen med BB-012, da de rammer
 samme tekstboks.
 
+**Gennemført 2026-08-16** (commit `1a91572f` «Gennemfør aftalte tekstrettelser på Om-siden»): «Persondata»-boksens
+sætning 2 og 3 er erstattet med den aftalte ordlyd (står ordret under BB-012), i én omgang med BB-012. Ren tekst i
+[Mineo.tsx](../../../src/components/pages/Mineo.tsx): ingen mekanik, ingen kontraktændring, intet nyt værn.
+
+**Note ved oprydningen 2026-10-30:** den aktuelle sidste sætning i koden afviger fra den aftalte ordlyd efter en
+senere ændring: «Indtastede oplysninger kan udelukkende bevares ved brug af programmets gem-funktion, der lagrer dem
+som en krypteret .eo-fil på din computer.» Fanen og gem-funktionen står der fortsat, så fundets ærinde er opfyldt.
+
 ---
 
 ### BB-012 – «Der indsamles, gemmes eller transmitteres ingen data» – programmet gemmer og henter faktisk noget
@@ -229,6 +237,14 @@ ikke modbevises med et netværksvindue.
 [Mineo.tsx](../../../src/components/pages/Mineo.tsx) under overskriften «Persondata». Ingen mekanik,
 ingen kontrakt, intet nyt værn – ren tekst. Rettelsen er gennemført i én omgang sammen med BB-011.
 
+**Gennemført 2026-08-16** (commit `1a91572f`): sætning 2 og 3 i «Persondata» erstattet med den aftalte ordlyd,
+sammen med BB-011.
+
+**Note ved oprydningen 2026-10-30:** den aktuelle anden sætning i koden afviger fra den aftalte ordlyd efter en
+senere ændring: «Der indsamles ingen persondata eller brugsstatistik, og ingen oplysninger om dig eller om din sag
+forlader computeren. Computeren kontakter udelukkende serveren for at indlæse og installere programmet og for at
+hente opdateringer.» De tre unøjagtigheder, modpresset gjaldt, er fortsat væk.
+
 ---
 
 ### BB-013 – Søskendesiderne åbner oven i programmet og skubber sagen til side
@@ -316,6 +332,9 @@ ikke opstå.
 2. **BB-016:** `tabIndex={-1}` på `ExternalLink` gør beslutningen om, at eksterne links ikke er en
    del af tastaturrækkefølgen, til en **erklæret og håndhævet** regel i stedet for en følge af, at
    sidens Tab-sekvens tilfældigvis ikke optager `<a>`. Se noten under BB-016.
+
+**Status ved fladens afslutning:** linkreglen er udviklerens eget arbejde og lå i arbejdstræet uden for
+Brugerbliks rettelsesliste (tidligere afsnittet «Gennemførte rettelser»).
 
 ---
 
@@ -546,6 +565,11 @@ installationen (endnu). Et forslag, der kan tages med BB-018's tekstrettelse og 
 adresselinjen eller browserens menu.» Sig til, hvis den skal med – ellers falder den bort sammen med
 resten af fundet.
 
+**Udfald (fra fladens afslutning 2026-08-16, tidligere under «Åbne spørgsmål»):** forslaget er udeladt, sådan som
+det blev stillet. Den alternative overskrift («Installationen skal startes fra browseren» i stedet for
+«Installationsdialogen kunne ikke åbnes») falder bort efter den regel, jeg selv satte, da den blev foreslået;
+BB-018's gennemførte rettelse ændrer derfor ikke denne overskrift.
+
 ---
 
 ### BB-018 – Tre ord for den samme handling: download, hente, installere
@@ -553,7 +577,8 @@ resten af fundet.
 - **Type:** Fornuft
 - **Rækkevidde:** Lokal
 - **Prioritet:** Lav
-- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes
+- **Beslutning:** **Accepteret af udvikleren 2026-08-16** – skal rettes. **Gennemført 2026-08-16** (commit
+  `1a91572f`)
 - **Sådan fremprovokeres det:** Læs «Teknisk» fra ende til anden og klik derefter på knappen.
 - **Det sker:** Afsnittet siger «skal du **installere** et hjælpeprogram», «Det kan **hentes** via
   **linket** nedenfor», knappen hedder «**Download** hjælpeprogram», den efterfølgende linje siger
@@ -612,6 +637,10 @@ skriver «skal du installere et hjælpeprogram» og dialogerne «Du behøver ikk
 begge er infinitiv og skal **ikke** have accent. Reglen rammer altså præcis ét sted på fladen: selve
 knappen. Det er også kun -ere-verberne, mønsteret gælder; programmets øvrige knapper («Gem»,
 «Hent», «Åbn program», «Luk») er ikke omfattet og ændres ikke.
+
+**Gennemført 2026-08-16** (commit `1a91572f`): «Teknisk»-boksens brødtekst, knaplabelen «Installér hjælpeprogram»
+og de to dialogtekster bruger ét ord for handlingen. Ren tekst i
+[Mineo.tsx](../../../src/components/pages/Mineo.tsx).
 
 ---
 
@@ -822,30 +851,11 @@ opgaven. Forslaget bortfalder.
 - **Vandret rullebjælke ved 1366 px.** Indholdet kan rulles 158 px sidelæns, men om browseren tegner
   en synlig rullebjælke afhænger af platformens indstilling; den automatiserede browser tegnede ingen.
 
-## Gennemførte rettelser
-
-Fladen efterlod **to tekstrettelser**. Begge er ren tekst i
-[Mineo.tsx](../../../src/components/pages/Mineo.tsx): ingen mekanik, ingen kontraktændring, intet nyt
-værn. De kan gennemføres i én omgang.
-
-| Rettelse | Hvad | Fra fund |
-|---|---|---|
-| «Persondata»-boksen | Sætning 2 og 3 erstattet med den aftalte ordlyd (står ordret under BB-012) | BB-011 + BB-012 |
-| «Teknisk»-boksen | Brødtekst, knaplabel «Installér hjælpeprogram» og to dialogtekster bruger ét ord for handlingen | BB-018 |
-
-**Gennemført undervejs:** BB-013's generelle linkregel (`ExternalLink`/`InternalLink`, AST-værn og
-e2e-måling) er allerede i arbejdstræet – den er udviklerens eget arbejde og ligger uden for denne
-rettelsesliste.
-
 ## Åbne spørgsmål
 
 **Ingen.** Alle tolv fund er afgjort, og de to oprindelige spørgsmål er besvaret undervejs:
 arbejdsfladen dækker 1244×620 CSS-px ved 100 % browserzoom (BB-015), og ordlyden i «Persondata» er
-aftalt ordret under BB-011 og BB-012.
-
-Ét forslag er fortsat udeladt, sådan som det blev stillet: **BB-017's
-alternative overskrift** til fejldialogen («Installationen skal startes fra browseren» i stedet for
-«Installationsdialogen kunne ikke åbnes»). Den falder bort efter den regel, jeg selv satte, da den
-blev foreslået; BB-018's gennemførte rettelse ændrer derfor ikke denne overskrift.
+aftalt ordret under BB-011 og BB-012. De to tekstrettelser (BB-011 + BB-012 og BB-018) og udfaldet af
+BB-017's alternative overskrift står under de respektive fund.
 
 Fladen er dermed færdigbehandlet.

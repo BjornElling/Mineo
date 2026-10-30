@@ -29,6 +29,7 @@ import {
   resolveSvieSmerteSammenhaengendePerioder,
   resolveTafSammenhaengendePerioder,
 } from '../../../../domain/erstatningsopgoerelse/validation/sammenhaengendePerioderAdvarsler';
+import type { TafEfterKapitaliseringAdvarsel } from '../../../../domain/erstatningsopgoerelse/validation/tafEfterKapitaliseringAdvarsel';
 import { evaluateForligAnsvarsgradRules } from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { clampSvieSmerteRange, resolveSvieSmerteEoPeriodeBounds } from '../../../../domain/erstatningsopgoerelse/validation/svieSmerteConstraints';
@@ -63,7 +64,12 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: Erstatningsop
 export function useEoOplysningerViewModel(
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  fane: Readonly<{ isActive: boolean; indkomstBeregningKanSkjules: boolean }>,
+  fane: Readonly<{
+    isActive: boolean;
+    indkomstBeregningKanSkjules: boolean;
+    /** Sidens reader-projektion: TAF efter en delvist endelig kapitalisering (BB-187). */
+    tafEfterKapitaliseringAdvarsler: readonly TafEfterKapitaliseringAdvarsel[];
+  }>,
 ) {
   const skadedatoISO = stamdataValues.skadedato;
   // Grundlaget skjules kun, når det er gyldigt, og aldrig midt i et besøg på fanen (`useIndtaegtFoerSkadenSkjult`).
@@ -109,8 +115,9 @@ export function useEoOplysningerViewModel(
     })),
   }), [values.svieSmertePerioder, eoPeriodeBounds]);
   const tafDerived = React.useMemo(() => buildTafDerived({ values, tafPerioder: values.tafPerioder, ferieperioder: values.ferieperioder, skadedatoISO }), [skadedatoISO, values]);
-  // Periodetabellernes gule ringe: en TAF-periode uden arbejdsdage (BB-257) og en sammenhængende periode
-  // skrevet i to rækker – samme regler og tekster som linjerne i «Fejl og advarsler».
+  // Periodetabellernes gule ringe: en TAF-periode uden arbejdsdage (BB-257), en sammenhængende periode
+  // skrevet i to rækker og TAF efter en delvist endelig kapitalisering (BB-187) – samme regler og tekster som
+  // linjerne i «Fejl og advarsler».
   const tafCellWarnings = React.useMemo(() => buildFieldWarningMap([
     ...values.tafPerioder
       .filter((row) => tafDerived.ingenArbejdsdageById[row.id] === true)
@@ -119,7 +126,8 @@ export function useEoOplysningerViewModel(
         cellMessage: TAF_PERIODE_UDEN_ARBEJDSDAGE_MESSAGE,
       })),
     ...resolveTafSammenhaengendePerioder(values).flatMap((advarsel) => advarsel.cellWarnings),
-  ]), [tafDerived, values]);
+    ...fane.tafEfterKapitaliseringAdvarsler.flatMap((advarsel) => advarsel.cellWarnings),
+  ]), [fane.tafEfterKapitaliseringAdvarsler, tafDerived, values]);
   const svieSmerteCellWarnings = React.useMemo(
     () => buildFieldWarningMap(resolveSvieSmerteSammenhaengendePerioder(values).flatMap((advarsel) => advarsel.cellWarnings)),
     [values],

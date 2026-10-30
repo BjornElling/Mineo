@@ -2,7 +2,7 @@ import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../..
 import type { ISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
-import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
+import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import type { InputReader } from '../../inputCore/inputReader';
 import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import {
@@ -31,6 +31,12 @@ export type StandardLoenTableFieldSet = Readonly<{
   col5: FieldDescriptor<AmountValue | undefined>;
   fpFvShSoBeloeb: FieldDescriptor<AmountValue | undefined>;
   pensionBeloeb: FieldDescriptor<AmountValue | undefined>;
+  /**
+   * De bundne satsfelter, tabellens afledte kolonner regnes med (feriegodtgørelse, fritvalg, SH/SO, Store Bededag og
+   * pension – dem, siden har). Satserne bor uden for collectionen (Årslønnens skalarer, EO's ansættelsesforhold), så
+   * de er bundne refs og ikke celle-descriptorer. Læses af `hasStandardLoenSatsFejl`.
+   */
+  satsRefs: readonly FieldRef<number | undefined>[];
   /** Opret en fuldt schemaformet tom række for collectionen. */
   createRow: (id: string) => StandardLoenTableRow;
 }>;
@@ -92,6 +98,56 @@ export const readStandardLoenTableRows = (
 ): StandardLoenTableRow[] => rowIdsFor(fieldSet, reader).map((rowId) => rebuildRow(reader, fieldSet, rowId));
 
 /**
+ * Om tabellens satser er ukendte i en tilstand, hvor satserne læses (BB-099): en sats står med en rød fejl,
+ * eller en påkrævet sats er tom (`paakraevetSatsMangler`, den fælles feriesatsregel M-37).
+ *
+ * Readeren skjuler en rød sats bag sin tomværdi, så rækkens afledte kolonner ellers ville blive regnet med satsen
+ * som 0 % og vise et forkert tal ved siden af en sammentælling, der netop siger «kan ikke beregnes». Betingelsen er
+ * den samme som Årslønnens feltgate (`resolveAarsloenFieldErrorGate`): en rød sats tæller, medmindre tillæggene
+ * angives som beløb – dér læses satserne ikke. `paakraevetSatsMangler` leveres af fladens egen kravregel (Årsløn:
+ * projektionens `feriePctMangler`; EO: satsvurderingens `missing`), så gaten og tabellen læser samme svar.
+ */
+export const hasStandardLoenSatsFejl = (
+  reader: InputReader,
+  fieldSet: StandardLoenTableFieldSet,
+  tillaegAngivesSom: TillaegAngivesSom,
+  options: Readonly<{ paakraevetSatsMangler?: boolean }> = {}
+): boolean =>
+  tillaegAngivesSom !== 'beloeb'
+  && (options.paakraevetSatsMangler === true || fieldSet.satsRefs.some((ref) => reader.read(ref).status === 'error'));
+
+/** Rækkens beløbsceller, der indgår i de afledte kolonner: løn 2–5 og, i Beløb-tilstand, tillægsbeløbene 6/7. */
+const amountCellsFor = (
+  fieldSet: StandardLoenTableFieldSet,
+  tillaegAngivesSom: TillaegAngivesSom
+): readonly (readonly [number, FieldDescriptor<AmountValue | undefined>])[] => [
+  [2, fieldSet.col2],
+  [3, fieldSet.col3],
+  [4, fieldSet.col4],
+  [5, fieldSet.col5],
+  ...(tillaegAngivesSom === 'beloeb'
+    ? [[6, fieldSet.fpFvShSoBeloeb], [7, fieldSet.pensionBeloeb]] as const
+    : []),
+];
+
+/**
+ * Om én af rækkens egne beløbsceller står med en rød fejl (BB-099, rækkeformen).
+ *
+ * Readeren læser den røde celle som tom, så rækkens «Samlet løn» ellers blev regnet uden den. Sammentællingen
+ * regner ikke på en række med en `invalid`-celle; rækkens afledte kolonner viser da samme «—». Cellerne er de
+ * samme, valideringen (`collectCellErrorsByCellKey`) læser. En rød periodecelle ændrer ikke rækkens beløb og
+ * tæller derfor ikke her.
+ */
+export const hasStandardLoenRowBeloebFejl = (
+  reader: InputReader,
+  fieldSet: StandardLoenTableFieldSet,
+  rowId: string,
+  tillaegAngivesSom: TillaegAngivesSom
+): boolean =>
+  amountCellsFor(fieldSet, tillaegAngivesSom)
+    .some(([, descriptor]) => reader.read(bindCell(fieldSet, descriptor, rowId)).status === 'error');
+
+/**
  * Kolonneindeks pr. rækkecelle: periodekolonnerne 0/1 for den aktuelle lønperiode; beløb 2–5;
  * tillægsbeløb 6/7 kun i Beløb-tilstand. Kun de relevante kolonner læses (§1.9: en skjult/irrelevant
  * celle må ikke overblokere).
@@ -127,13 +183,8 @@ const collectCellErrorsByCellKey = (
 
   for (const rowId of rowIds) {
     recordPeriodCells(rowId);
-    record(rowId, 2, fieldSet.col2);
-    record(rowId, 3, fieldSet.col3);
-    record(rowId, 4, fieldSet.col4);
-    record(rowId, 5, fieldSet.col5);
-    if (tillaegAngivesSom === 'beloeb') {
-      record(rowId, 6, fieldSet.fpFvShSoBeloeb);
-      record(rowId, 7, fieldSet.pensionBeloeb);
+    for (const [colIndex, descriptor] of amountCellsFor(fieldSet, tillaegAngivesSom)) {
+      record(rowId, colIndex, descriptor);
     }
   }
   return cellErrors;

@@ -148,8 +148,16 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   ikke, at filvælger eller download er umulig at styre headless. Playwright kan automatisere begge dele.
   Rapporternes matricer skelner nu mellem den oprindelige måling og senere navngivne tests. De senere
   tests dækker kun deres konkrete sager og dokumenterer ikke en generel save→load-rundtur.
-- **Fund, der afventer udviklerens afgørelse:** **ingen** – 12m's 10 fund (BB-380–BB-389) er godkendt og gennemført
-  2026-10-30. Tidligere: **flade 12m's 10 fund.** Tidligere: **ingen.** Tidligere: to modsvar fra 12l (BB-372, BB-377) og flade
+- **Fund, der afventer udviklerens afgørelse:** **ingen.** Modsvaret til BB-325 (12j) er besvaret og gennemført
+  2026-10-30: reglen beholdes, begrundelsen er normativ, og de to huller (tillæg/pension i Beløb-tilstand, ingen
+  lønrækker) er lukket. Tidligere: **ét modsvar til BB-325** (12j): udviklerens valg B byggede på en
+  forkert præmis i forelæggelsen – den beskrevne regel (seks måneder fra udløbet af seneste lønperiode) er den, der
+  gælder i dag. Tidligere samme dag: **seks forelagte punkter** fra den samlede gennemgang af alle rapporter for åbne
+  forhold (2026-10-30) – BB-187 (gul advarsel ved TAF efter kapitalisering af delvist endelig EET), M-37 (tom feriesats i
+  Årsløn, fælles regel med EO), BB-300 (godkendt som det er), BB-310 (løntrin-finderen husker på begge flader), BB-325
+  og kontroltabellens urenderede integritetstjek (fjernet; kontrolfanen er passiv) – afgjort og gennemført samme dag. Samtidig gennemført uden forelæggelse: BB-099 (godkendt 2026-08-25, aldrig implementeret),
+  kontroltabellens mén-afskæring fra motorens opslag og M-21's røde fejlfarve. Tidligere: **ingen** – 12m's 10 fund
+  (BB-380–BB-389) er godkendt og gennemført 2026-10-30. Tidligere: **flade 12m's 10 fund.** Tidligere: **ingen.** Tidligere: to modsvar fra 12l (BB-372, BB-377) og flade
   12l's 11 fund (BB-369–BB-379) – afgjort og gennemført 2026-10-29. Tidligere: **ingen** – 12k er
   afgjort og gennemført 2026-10-29. Tidligere: **ét
   opfølgende spørgsmål fra 12k** (BB-368, besvaret: informationsikon). Tidligere: **fire modsvar fra 12k** og **BB-368** – besvaret og gennemført 2026-10-29.
@@ -213,7 +221,10 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
   gennemførelsesafsnit, den manglede, med henvisning til commit `447905ca`.
   Samtidig sagde 11e's afsnit «Alle afventer udviklerens afgørelse» om en flade, tabellen markerede
   gennemført, og tre fladeoverskrifter manglede deres afgørelsesdato.
-- **Senest opdateret:** 2026-10-30 (**Flade 12m godkendt og gennemført: alle 10 fund (BB-380–BB-389)** – se afsnittet om
+- **Senest opdateret:** 2026-10-30 (**Samlet gennemgang af alle rapporter for åbne forhold, og omstrukturering:** al
+  korrespondance om et fund står nu under fundet i fladefilen; efterstillede afsnit er flyttet ind. Seks punkter forelagt
+  og afgjort, se «Fund, der afventer udviklerens afgørelse».)
+  Tidligere: 2026-10-30 (**Flade 12m godkendt og gennemført: alle 10 fund (BB-380–BB-389)** – se afsnittet om
   12m.)
   Tidligere: 2026-10-30 (**Flade 12m – EO-kontrol og Kontroltabel – gennemgået: 10 fund, to Mellem og otte Lav,
   ingen nye tværgående mønstre**.)
@@ -649,24 +660,24 @@ Fremdrift for UI/UX-fornufts- og edge case-gennemgangen. Se `.claude/skills/brug
 ## Flader
 
 Rækkefølgen er fastlagt i `.claude/skills/brugerblik/references/flader.md` (små flader først).
-Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren`.
+Status: `Ikke startet` · `I gang` · `Gennemgået` · `Afventer udvikleren` · `Afgjort` · `Afgjort og gennemført`.
 
 | # | Flade | Status | Fund | Dokument |
 |---|---|---|---|---|
-| 1 | Stamdata | Gennemgået | 10 (BB-001–BB-010) | [stamdata.md](stamdata.md) |
-| 2 | Om | Gennemgået | 12 (BB-011–BB-022) | [om.md](om.md) |
-| 3 | Indstillinger | Gennemgået | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
-| 4 | Satser | Gennemgået | 6 (BB-030–BB-035) | [satser.md](satser.md) |
-| 5 | MinProcesrente | Afgjort | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
-| 6 | Global shell | Afgjort | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
-| 7a | Varige mén – Ménberegning | Afgjort | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
-| 7b | Varige mén – Satser | Afgjort | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
-| 8a | Renteberegning – Beregning | Afgjort | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
-| 8b | Renteberegning – Satser | Afgjort | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
+| 1 | Stamdata | Afgjort og gennemført | 10 (BB-001–BB-010) | [stamdata.md](stamdata.md) |
+| 2 | Om | Afgjort og gennemført | 12 (BB-011–BB-022) | [om.md](om.md) |
+| 3 | Indstillinger | Afgjort og gennemført | 8 (BB-023–BB-029, BB-036) | [indstillinger.md](indstillinger.md) |
+| 4 | Satser | Afgjort og gennemført | 6 (BB-030–BB-035) | [satser.md](satser.md) |
+| 5 | MinProcesrente | Afgjort og gennemført | 12 (BB-037–BB-048) | [minprocesrente.md](minprocesrente.md) |
+| 6 | Global shell | Afgjort og gennemført | 13 (BB-049–BB-061) | [globalshell.md](globalshell.md) |
+| 7a | Varige mén – Ménberegning | Afgjort og gennemført | 13 (BB-062–BB-074) | [varigemen.md](varigemen.md) |
+| 7b | Varige mén – Satser | Afgjort og gennemført | 5 (BB-075–BB-079) | [varigemen.md](varigemen.md) |
+| 8a | Renteberegning – Beregning | Afgjort og gennemført | 11 (BB-080–BB-090) | [renteberegning.md](renteberegning.md) |
+| 8b | Renteberegning – Satser | Afgjort og gennemført | 5 (BB-091–BB-095) | [renteberegning.md](renteberegning.md) |
 | 9 | Årslønsberegning | Afgjort; efterreview 2026-10-27 afgjort og gennemført | 21 (BB-096–BB-116) + 10 (BB-347–BB-356) | [aarsloen.md](aarsloen.md) |
-| 10 | Forsørgertab | Afgjort | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
-| 11a | Erhvervsevnetab – EET oplysninger | Afgjort | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
-| 11b | Erhvervsevnetab – Løbende ydelser | Afgjort | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 10 | Forsørgertab | Afgjort og gennemført | 18 (BB-117–BB-134) | [forsoergertab.md](forsoergertab.md) |
+| 11a | Erhvervsevnetab – EET oplysninger | Afgjort og gennemført | 17 (BB-135–BB-151) | [erhvervsevnetab.md](erhvervsevnetab.md) |
+| 11b | Erhvervsevnetab – Løbende ydelser | Afgjort og gennemført | 14 (BB-152–BB-165) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11c | Erhvervsevnetab – Kapitalisering | Afgjort og gennemført | 11 (BB-166–BB-176) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11d | Erhvervsevnetab – EET efter EAL | Afgjort og gennemført | 8 (BB-177–BB-184) | [erhvervsevnetab.md](erhvervsevnetab.md) |
 | 11e | Erhvervsevnetab – Differencekrav | Afgjort og gennemført | 17 (BB-185–BB-201) | [erhvervsevnetab.md](erhvervsevnetab.md) |
@@ -981,7 +992,7 @@ udestående); og sikkerhedsnettet viser en validatorregel om et felt, også når
 gentage en linje om samme felt (BB-265). **Opfølgning (BB-267), besvaret samme dag:** knappen «Beregn Store
 Bededagstillæg» skjules ved angivet dagsløn, og tillægget regnes aldrig med dér (gennemført); angivet månedsløn giver
 kun krav ved «Almindelig løn» (uændret). Desuden gennemført: hver ferietabel gælder kun i sin egen periode ved fordelingen af
-lønnen i arbejdsdage (se 12f's åbne spørgsmål).
+lønnen i arbejdsdage (se 12f's «Observation om beregningslogikken»).
 
 **16 fund: syv Høj, fire Mellem, fem Lav (fem Fejl, fire Edge case, syv Fornuft) – og ét nyt tværgående mønster
 M-36.** Fladens bærende iagttagelse er, at grundlaget kan blive nul eller næsten nul, uden at nogen regel siger det.
@@ -1251,7 +1262,7 @@ ikke gennemgået (12m).
 
 **17 fund: to Høj, elleve Mellem, fire Lav. Alle afgjort 2026-09-09:** tolv implementeret, ét delvist
 (BB-201) og fire afvist (BB-185, BB-186, BB-197, BB-198). Det fulde grundlag med målte tal står i
-[erhvervsevnetab.md](erhvervsevnetab.md) under «Gennemført i kode – 2026-09-09», som også beskriver den
+[erhvervsevnetab.md](erhvervsevnetab.md) under de enkelte fund og «Gennemført i kode – 2026-09-09», som også beskriver den
 større opgave, udvikleren gav samme dag: forligsfelterne er flyttet til «EET oplysninger», og «EET efter
 EAL» reducerer nu selv med forligsgraden på et andet grundlag end differencekravet.
 
@@ -1591,7 +1602,7 @@ ikke hentet; M-21's kandidat `DocumentOutcomeMessage.tsx:34` kunne ikke fremprov
 
 **17 fund: ni Mellem, otte Lav, ingen Høj. Elleve implementeret, seks afvist.** Det fulde grundlag med målte
 tal, udviklerens tilbagemeldinger og de fire udfald, der rækker ud over fanen, står i
-[erhvervsevnetab.md](erhvervsevnetab.md) under «Gennemført i kode – 2026-09-03».
+[erhvervsevnetab.md](erhvervsevnetab.md) under de enkelte fund (fane 1).
 
 | ID | Kort | Prioritet |
 |---|---|---|
@@ -2318,12 +2329,12 @@ BB-004's nye længdekategori (6 tegn til initialfelterne) og BB-007's normaliser
 
 ## Åbne spørgsmål
 
-**Ét åbent fra flade 10 (Forsørgertab).** To af de tre er afgjort 2026-08-27; alle tre er udfoldet i
+**Ét åbent fra flade 10 (Forsørgertab).** (Pr. 2026-10-30: også det tredje er afgjort 2026-09-04 – dagbaseret optjeningstælling, se punktet øverst og [forsoergertab.md](forsoergertab.md).) To af de tre er afgjort 2026-08-27; alle tre er udfoldet i
 [forsoergertab.md](forsoergertab.md).
 
 | Spørgsmål | Status |
 |---|---|
-| Hvor mange måneder er allerede udbetalt? Tabellen «Løbende ydelse» summerer til **60,7323 måneder**, mens den resterende periode regnes af **62 hele kalendermåneder** – to læsninger, der begge er sammenhængende, brugt i hver sin halvdel af samme skærm | **ÅBENT.** Sagen, der skal indtastes, og de efterregnede tal står i fundrapporten. Forskellen er **9.360 kr.** i kapitalbeløbet, og fortegnet vender modsat af, hvad jeg først skrev: den nuværende læsning er den gunstigste for efterladte. Visningen er præciseret til «Resterende periode (hele år og måneder)», fordi kapitaliseringstabellen bruger hele år og måneder ved opslag |
+| Hvor mange måneder er allerede udbetalt? Tabellen «Løbende ydelse» summerer til **60,7323 måneder**, mens den resterende periode regnes af **62 hele kalendermåneder** – to læsninger, der begge er sammenhængende, brugt i hver sin halvdel af samme skærm | **ÅBENT** (afgjort 2026-09-04: dagbaseret optjeningstælling; `alleredeUdbetaltMaaneder` afledes af tabellens sum). Sagen, der skal indtastes, og de efterregnede tal står i fundrapporten. Forskellen er **9.360 kr.** i kapitalbeløbet, og fortegnet vender modsat af, hvad jeg først skrev: den nuværende læsning er den gunstigste for efterladte. Visningen er præciseret til «Resterende periode (hele år og måneder)», fordi kapitaliseringstabellen bruger hele år og måneder ved opslag |
 | Skal «Skadelidtes årsløn efter EAL» have et loft eller et rimelighedssignal? | **AFGJORT: NEJ.** Årslønnen har intet loft; loftet ligger på det **beregnede** beløb (EAL-loftet for 30 % erhvervsevnetab) og indregnes allerede. Efterprøvet i drift – men loftet er usynligt for brugeren, hvilket er **BB-133** |
 | Hvis køn spørger rækken «Køn» om? | **AFGJORT: SKADELIDTES.** Min antagelse om efterladtes var forkert; rækkens placering er dermed korrekt, og kun navnet mangler (**BB-134**) |
 
@@ -2332,7 +2343,7 @@ domæneoplysning af mekanikken – at et manglende loft på feltet betød et man
 kønsopdelt tabelopslag på efterladtes alder også var opdelt efter efterladtes køn. Begge slutninger var
 forkerte. **En parameters ejer og en grænses placering er domæneoplysninger, ikke kodeoplysninger.**
 
-**Fire står fortsat åbne fra flade 9** (Årslønsberegning) – se [aarsloen.md](aarsloen.md).
+**Fire står fortsat åbne fra flade 9** (Årslønsberegning) – se [aarsloen.md](aarsloen.md). (Pr. 2026-10-30: alle fire er afgjort 2026-08-26 og står under BB-096, BB-098, BB-115 og BB-106.)
 
 **Fra flade 1–8: INGEN TILBAGE. Alle otte spørgsmål er afgjort 2026-08-25**, og ingen af de otte
 afgørelser krævede en kodeændring – de fastholdt alle den nuværende adfærd, som nu er normativ, så den
@@ -2382,7 +2393,7 @@ systemskalering ændrer den faktiske CSS-viewport.
 
 ## Tværgående mønstre
 
-Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
+Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md) (pr. 2026-10-30: 43, M-01–M-43).
 
 - **Ingen nye mønstre 2026-10-24 fra 12j, men M-38 har fået en tredje form: testet, men ikke koblet på** (BB-324). Prøven
   er nu også at finde regel-, advarsels- og grænsefunktioner, som kun deres egen test kalder. Nye forekomster: M-37 i et
@@ -2429,7 +2440,7 @@ Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   dataafhængig dækningsgrænse skal ikke skrives i tekst, når målgruppen kan læse den af datasættets
   egne rækker. **M-13:** fjerde form – fortegnets skrivemåde (`- 0,45 %` med mellemrum, BB-095) –
   **afvist**: `-` som fravær står altid alene i en celle, så de to læsninger kan ikke støde sammen.
-- **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** «En usynlig
+- **M-22 er tilføjet 2026-08-21 fra Renteberegning → Beregning og afventer udvikleren.** (Afgjort 2026-08-22, se `renteberegning.md` BB-080; efterprøvet bestået på Årsløn, Forsørgertab og 11e.) «En usynlig
   dokumentafhængighed på en anden flade slukker knappen»: hver dokumentdefinition kræver en `ready`
   stamdataprojektion, uanset om dokumentet trykker et brevhoved – så en rød dato i Stamdata slukker
   downloadknappen på flader, der ikke viser en eneste stamdataoplysning. Målt på tre flader
@@ -2495,7 +2506,8 @@ Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
   - **M-15 – skærmen tier, hvor dokumentet taler.** Spejlbilledet af M-13: generatoren skriver et
     forbehold til tallet, og skærmen har ingen pendant. **Afvist for MinProcesrentes vedkommende**
     (BB-040): brugerne bruger PDF'erne, og bristen er accepteret. Mønsteret står som en åben
-    kandidat for EO's dokumenter og reguleringsbilaget, hvor tallet oftere læses på skærmen.
+    kandidat for EO's dokumenter og reguleringsbilaget, hvor tallet oftere læses på skærmen. (Pr. 2026-10-30:
+    sporet er lukket for hele programmet, se M-15 i `TVAERGAAENDE.md`.)
   - **M-16 – en komplet række, programmet ikke vil regne på.** Motoren har flere afvisningsgrunde
     end feltmodellen har fejl; afvisningen kommer derfor ud som et fravær (`-`, forsvundet ikon, grå
     knap) og spærrer hele fladens dokumenter. **Gennemført for rentetabellen** (BB-037, BB-038): de
@@ -2527,7 +2539,7 @@ Otteogtredive mønstre i [TVAERGAAENDE.md](TVAERGAAENDE.md).
     give samme resultat som tastning, også når `01-02-2026` derved bliver `102` i et årsfelt. Mønsteret
     hedder nu *«en anden fortolkningsvej ved siden af tastningen»* og handler om paste-only fortolkere,
     der udleder en værdi af hele teksten – og som kun kaldes i et tomt felt. Åben kandidat:
-    datofelternes `normalizeDatePaste`, den ene tilbageværende fortolker.
+    datofelternes `normalizeDatePaste`, den ene tilbageværende fortolker. (Pr. 2026-10-30: rettet ved BB-042.)
 
 - **M-12 er KRAFTIGT INDSNÆVRET samme dag efter udviklerens afgørelser – læs den nye form, ikke den
   oprindelige.** Mønsteret samlede oprindelig tre fravær (ingen kvittering, forskudt virkning, ingen

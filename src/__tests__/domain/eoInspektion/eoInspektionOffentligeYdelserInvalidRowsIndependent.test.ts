@@ -23,7 +23,9 @@ const valuesWithRows = (rows: readonly OffentligeYdelserRow[]): Erstatningsopgoe
 });
 
 describe('CALC-006 – uafhængigt facit for ugyldige offentlige ydelsesrækker', () => {
-  it('viser kun ikke-tomme fejlgrene og ignorerer tilsvarende tomme rækker', () => {
+  // De tidligere urenderede tekst-issues om rækkerne er fjernet (12m, udviklerafgørelse 2026-10-30): kontrolfanen
+  // er passiv. Facit er nu alene, at ingen af rækkerne giver en kolonne.
+  it('giver ingen kolonne for rækker uden type, med ukendt type eller med ugyldigt interval', () => {
     const rows: OffentligeYdelserRow[] = [
       {
         id: 'blank-type-med-beloeb',
@@ -80,27 +82,9 @@ describe('CALC-006 – uafhængigt facit for ugyldige offentlige ydelsesrækker'
       values: valuesWithRows(rows),
       shDays: new Set<ISODateString>(),
       sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
-      integrityTolerance: 0.05,
       errorRowIds: new Set<string>(),
     });
 
     expect(result.columns).toEqual([]);
-    expect(result.integrityIssues).toEqual([
-      {
-        severity: 'error',
-        area: 'offentlige ydelser',
-        message: 'Offentlig ydelse (række blank-type-med-beloeb): Beløb er angivet uden ydelsestype – vælg en ydelsestype.',
-      },
-      {
-        severity: 'warning',
-        area: 'offentlige ydelser',
-        message: 'Offentlig ydelse (række ukendt-type-med-beloeb): Ukendt ydelsestype "ukendt-ydelse" – kan ikke vises i kontroltabellen.',
-      },
-      {
-        severity: 'warning',
-        area: 'offentlige ydelser',
-        message: 'Offentlig ydelse (række ugyldigt-interval-med-beloeb, Sygedagpenge): Ugyldigt dato-interval (2024-01-12 → 2024-01-08) – kan ikke periodiseres/vises.',
-      },
-    ]);
   });
 });

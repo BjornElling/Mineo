@@ -56,6 +56,7 @@ import {
 import type { EoIssueFocusTarget } from '../../../../domain/eoRowEvaluation/eoRowTypes';
 import {
   resolveMidlertidigtEetIssueNavigation,
+  TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX,
   type EetIssueNavigationTarget,
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
@@ -323,9 +324,12 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
    * parallelt.
    */
   const eetLoebendeIssueRows = React.useMemo<readonly EetIssueRow[]>(() => {
-    if (!midlertidigtEetFraEetSiden) return [];
+    // Advarslen om TAF efter en delvist endelig kapitalisering (BB-187) går gennem samme EET-kanal, men gælder
+    // uanset togglen; importens egne linjer vises kun, når togglen er slået til.
+    const kapitaliseringPrefix = `midlertidigt_eet_source:${TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX}:`;
     return (eoSnapshot?.invariants ?? [])
-      .filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))
+      .filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')
+        && (midlertidigtEetFraEetSiden || invariant.id.startsWith(kapitaliseringPrefix)))
       .map((invariant) => {
         const sourceIssueId = invariant.id.replace(/^midlertidigt_eet_source:/, '');
         const navigation = resolveMidlertidigtEetIssueNavigation({

@@ -4,6 +4,7 @@
   kun vises, når «Vis kontrolfaner på Erstatningsopgørelse-side» er slået til under Indstillinger (standard: fra).
   «Kontroltabel» rummer oversigten over intervaller, «Download tabel (CSV-format)», «Sammentælling» og dag-for-dag-tabellen.
 - Gennemgået: 2026-10-30 · commit `e8173c8b`
+- Afgjort og gennemført: 2026-10-30 – alle ti fund godkendt og gennemført samme dag
 - Afprøvet i: Chrome headless, lyst tema, 1536×864, mod e2e-buildet. 13 sager indlæst gennem «Hent» (krypteret `.eo` bygget
   på den låste 3.14-testfil «REGULERING-FIKTIV»), en tom sag og to UI-forløb (fanerne slået fra og til, mens «Kontroltabel» er
   aktiv; piletaster og Tab fra hovedfanerne). For hver sag er «Beregning», «EO-kontrol» og «Kontroltabel» aflæst som tekst,
@@ -187,6 +188,11 @@ læser – en side, der vises som `-`, er tom for kontrollen, og omvendt. Før k
 begge reelt var tomme. En test bygger sammentællingen i flere sager og kræver, at ingen række nogensinde er rød med `-`
 på begge sider, og at en række kun er umærket med `-` på begge sider.
 
+**Efterfølgende rettelse 2026-10-30** (flyttet fra «Efterfølgende rettelser»): **Sammentællingens to «Enhed».**
+Sygeferiegodtgørelsens gruppe hedder nu «Beløb»; dagtællingerne øverst beholder «Enhed».
+
+Samme princip («-» uden mærke) er bagefter ført over på EO-kontrol; se «Efterfølgende rettelser» nedenfor.
+
 ### BB-387 – Kontroltabellens oversigt bruger betegnelser, brugeren ikke kan afkode
 
 - **Type:** Fornuft
@@ -208,6 +214,9 @@ på begge sider, og at en række kun er umærket med `-` på begge sider.
 «SH-dag» og «Svie/smerte-dag». «Svie/smerte-dag» er målt i browseren: hele ordet kan ikke stå på én linje i 120 px, så
 overskriften brydes efter bindestregen («Svie/smerte-» / «dag»), som de øvrige to-linjers overskrifter; i CSV-filen står
 den samlet. «TAF dag» er ikke ændret (ikke en del af forslaget).
+
+**Efterfølgende rettelse 2026-10-30** (flyttet fra «Efterfølgende rettelser»): **«TAF-dag».** Dagtabellens «TAF dag»
+skrives som «SH-dag» og «Svie/smerte-dag».
 
 ### BB-388 – Uden TAF står en tom kolonne «TAF-regulering» under «Ansættelsesforhold 1»
 
@@ -279,11 +288,13 @@ tilstanden.
 - Teksten «(< N måneder)» i «Reguleringsværdi på … slut-dato for TAF» (indstillinger.md, BB-029) er ikke set: den kræver
   en overenskomst-, KRL-, KL- eller statistiksag, hvis sidste sats ligger kort før TAF-slutdatoen. Kildeaflæst
   (`eoRowIndkomstRows.ts:900-915`): værdien er alene «(< 6 måneder)» uden «Ja», mens naborækkerne siger «Ja». Bør måles,
-  hvis en sådan sag bygges.
+  hvis en sådan sag bygges. *Ordlyden er rettet 2026-10-30 (se «Efterfølgende rettelser»); målingen i browseren står
+  fortsat åben.*
 - En sammentælling med uoverensstemmelse (rødt kryds) er ikke fremprovokeret.
 - Kildeaflæst, ikke målt: dagtabellens «TAF dag» og sammentællingens TAF-dage afskærer ved endeligt EET og differencekrav,
   men ikke ved midlertidigt EET hentet fra Erhvervsevnetab-siden, som valideringen gør (`resolveTafCutoffDates`). En
   TAF-periode forbi den afskæring er i forvejen rød, så forskellen ses kun i en sag med fejl. Teknisk – agentens bord.
+  *Løst 2026-10-30: kontroltabellen håndhæver nu selv afskæringen; se «Kontroltabellen som selvstændig kontrolberegning».*
 - Kun Chrome, lyst tema, 1536×864.
 
 ## Åbne spørgsmål
@@ -297,15 +308,14 @@ Med udviklerens tilladelse til at rette øvrige problematiske forhold og tilfæl
 - **EO-kontrol: «-» uden mærke.** En række med status ok og værdien `-` får intet grønt ✓ (fx «Måneder: -» og
   «Arbejdsdage: -» ved en tom beregningsperiode) – samme princip som sammentællingen (BB-386). Pladsen bevares, så
   værdierne står lige. Fejl- og advarselsrækker med `-` beholder kryds og trekant.
-- **«TAF-dag».** Dagtabellens «TAF dag» skrives som «SH-dag» og «Svie/smerte-dag».
-- **Sammentællingens to «Enhed».** Sygeferiegodtgørelsens gruppe hedder nu «Beløb»; dagtællingerne øverst beholder «Enhed».
+- **«TAF-dag»** er flyttet ind under BB-387 og **sammentællingens to «Enhed»** under BB-386.
 - **«(< 6 måneder)» (Dækningshuller ovenfor).** Rækken «Reguleringsværdi på … slut-dato for TAF» siger nu «Ja (sidste værdi
   under 6 måneder før)» i stedet for kun «(< 6 måneder)», så den svarer på rækkens spørgsmål som naborækkerne. Ren
   ordlyd; status og beregning er uændrede. Ikke målt i browseren (kræver samme særlige sag som før).
 - **Ikke ændret:** TAF-dagenes afskæring ved midlertidigt EET fra Erhvervsevnetab-siden (Dækningshuller). En TAF-periode
   forbi afskæringen er i forvejen rød og spærrer TAF-grenen, så sammentællingen tømmes, og forskellen kan ikke give en
   uoverensstemmelse. At flytte afskæringen ville ændre, hvilke dage tabellen viser som TAF-dage – det er beregningslogik
-  og forelægges, hvis det ønskes.
+  og forelægges, hvis det ønskes. *Udvikleren krævede det samme dag; gennemført, se næste afsnit.*
 
 ## Kontroltabellen som selvstændig kontrolberegning: TAF's afskæring ved EET (2026-10-30)
 
@@ -328,3 +338,33 @@ beregning, og den skal selv håndhæve – og vise – TAF's afskæring ved EET.
   afskærer, står med grunden: «Midlertidigt EET – TAF fortsætter (skade fra 16-06-2011)» eller «… (verserende klage)».
 - **TAF-dagskolonnen** vises nu, når der er TAF-krav, også uden et ansættelsesforhold (angivet løn). Før manglede den
   dér, selvom sammentællingen talte dens dage. Uden TAF-krav vises den ikke.
+
+## Kontroltabellens urenderede integritetstjek (forelagt 2026-10-30)
+
+Fundet har intet BB-nummer; det blev rejst som henvisning fra 12k («Henvisninger til andre bidder») og konstateret ved
+dokumentgennemgangen 2026-10-30.
+
+**Forelagt:** kontroltabellens model byggede en liste af tekst-issues (`integrityIssues`) – fx «Offentlig ydelse (række
+‹internt id›): Beløb er angivet uden ydelsestype …», «… kan ikke periodiseres/vises», «Lønindkomst: En lønrække kan ikke
+periodiseres …» og selvtjek af, at kolonnernes summer svarede til de indtastede totaler. Listen blev aldrig vist nogen
+steder. Valg A: vise linjerne med rækkens navn i stedet for id. Valg B: fjerne de urenderede tjek.
+
+**Udviklerens svar (ordret):** «6. Vi går med B. Kontrolfanen skal være et passivt kontrolmiddel, og det skal
+dokumenteres, at forudsætningen for dets eksistens er, at brugeren kun vil se det, når der opstår advarsler om
+uoverensstemmelser. Det er dermed afgørende at kontrolfanen beregner forholdene effektivt og ud fra et princip om
+dobbelte beregninger, der sammenholdes - men at beskrivende tekst alene kan have til formål at tydeliggøre en fejl, som
+brugeren i forvejen er blevet advaret om.»
+
+**Gennemført 2026-10-30:**
+- Hele `integrityIssues`-kanalen er fjernet: kilderne var offentlige ydelser, lønindkomst og en kontrol af
+  kolonne-id'er; ingen af dem blev læst uden for modellen. Med dem forsvandt selvtjekkenes tolerancekonstant og
+  hjælpemodulet `mathUtils.ts`, som kun de brugte.
+- Kolonnerne, dag-for-dag-fordelingen og sammentællingen (den dobbelte beregning, der sammenholdes med motoren) er
+  uændrede. Rækker uden ydelsestype, med ukendt type, med ugyldigt interval eller uden periodiseringsdage giver som før
+  ingen kolonne; de står i forvejen med egne fejl i «Fejl og advarsler».
+- Princippet er gjort normativt i `src/contracts/eo-snapshot-contract.md` §6.2 pkt. 5: kontrolfanerne er passive,
+  findes for at efterprøve med dobbelte beregninger, og tekst må kun tydeliggøre en fejl, brugeren allerede er advaret
+  om.
+- Samtidig hentes kontroltabellens ménafskæring af svie/smerte fra motorens eget opslag (`resolveSvieSmerteCutoffDate`)
+  i stedet for en egen kopi af betingelsen (§6.2 pkt. 4). Betingelserne var i praksis ens, fordi «Verserende klage
+  (mén)» altid har værdien «Nej» eller «Ja»; ændringen fjerner muligheden for, at de driver fra hinanden.

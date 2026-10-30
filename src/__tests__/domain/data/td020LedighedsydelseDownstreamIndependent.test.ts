@@ -52,6 +52,5 @@ describe('td020LedighedsydelseDownstreamIndependent', () => {
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[1]]).toBe(false);
     expect(model.tableData.isWorkdayByIndex[relevantIndexes[2]]).toBe(false);
     expect(amounts.reduce((sum, value) => sum + value, 0)).toBe(1200);
-    expect(model.integrityIssues).toEqual([]);
   });
 });
