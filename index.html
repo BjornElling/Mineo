@@ -3,23 +3,57 @@
   <head>
     <meta charset="UTF-8" />
     <!-- MINEO_THEME_BOOTSTRAP -->
+    <!-- MINEO_STARTUP_UPDATE_FONT -->
+    <!-- Venteskærmens farver er programmets egne temafarver (layout.css); `startupUpdateScreen.test.ts` måler pariteten. -->
     <style>
       html { background-color: var(--mineo-startup-background); }
       #mineo-startup-update {
+        --mineo-startup-update-surface: #f8f9fa;
+        --mineo-startup-update-text: rgba(0, 0, 0, 0.87);
+        --mineo-startup-update-primary: #1976d2;
         position: fixed;
         inset: 0;
-        display: grid;
-        place-content: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
         padding: 32px;
-        background-color: var(--mineo-startup-background);
-        color: rgba(0, 0, 0, 0.87);
+        background-color: var(--mineo-startup-update-surface);
+        color: var(--mineo-startup-update-text);
         font-family: 'Montserrat', sans-serif;
-        font-size: 28px;
-        font-weight: 400;
+        font-size: 20px;
+        font-weight: 500;
+        line-height: 1.5;
         text-align: center;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      html[data-mineo-theme='dark'] #mineo-startup-update {
+        --mineo-startup-update-surface: #141414;
+        --mineo-startup-update-text: rgba(255, 255, 255, 0.87);
+        --mineo-startup-update-primary: #90caf9;
       }
       #mineo-startup-update[hidden] { display: none; }
-      html[data-mineo-theme='dark'] #mineo-startup-update { color: rgba(255, 255, 255, 0.87); }
+      #mineo-startup-update p { margin: 0; }
+      .mineo-startup-update-dots { display: flex; gap: 8px; }
+      .mineo-startup-update-dots span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--mineo-startup-update-primary);
+        opacity: 0.35;
+        animation: mineo-startup-update-dot 1.2s ease-in-out infinite;
+      }
+      .mineo-startup-update-dots span:nth-child(2) { animation-delay: 0.15s; }
+      .mineo-startup-update-dots span:nth-child(3) { animation-delay: 0.3s; }
+      @keyframes mineo-startup-update-dot {
+        0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+        40% { opacity: 1; transform: translateY(-4px); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .mineo-startup-update-dots span { opacity: 0.6; animation: none; }
+      }
     </style>
     <link rel="icon" type="image/svg+xml" href="/favicon-mineo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -45,7 +79,7 @@
   </head>
   <body>
     <noscript>Du skal aktivere JavaScript for at køre denne applikation.</noscript>
-    <div id="root"><div id="mineo-startup-update" role="status" hidden>Vent venligst, opdatering indlæses</div></div>
+    <div id="root"><div id="mineo-startup-update" hidden><p role="status">Vent venligst, opdatering indlæses</p><span class="mineo-startup-update-dots" aria-hidden="true"><span></span><span></span><span></span></span></div></div>
     <!-- Kommentar (dansk): Vite loader din entry via ES-moduler -->
     <script type="module" src="/src/main.tsx"></script>
     <!-- MINEO_STARTUP_UPDATE -->

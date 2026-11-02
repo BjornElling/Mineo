@@ -189,6 +189,19 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
 
   const importBootstrap = async () => import('../../../apps/mineo/serviceWorkerBootstrap');
 
+  /**
+   * Et igangsat reload holder opstarten tilbage, til browseren river dokumentet ned – det sker aldrig
+   * i jsdom. Testen venter derfor på det første af de to udfald: afsluttet opstart eller nyt reload.
+   */
+  const bootUntilSettledOrReloaded = async (pending: Promise<void>): Promise<void> => {
+    const reloadsBefore = reloadSpy.mock.calls.length;
+    let settled = false;
+    void pending.then(() => { settled = true; });
+    await vi.waitFor(() => {
+      if (!settled && reloadSpy.mock.calls.length === reloadsBefore) throw new Error('Opstarten venter stadig.');
+    });
+  };
+
   it('renderer straks uden reload, når den udrullede version er dokumentets egen', async () => {
     // Den normale vej: ingen ny version ⇒ ingen ventetid overhovedet.
     buildServiceWorkerContainer(buildRegistration());
@@ -205,7 +218,7 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     buildServiceWorkerContainer(buildRegistration({ waiting }));
 
     const { ensureLatestVersionBeforeRender } = await importBootstrap();
-    await ensureLatestVersionBeforeRender();
+    await bootUntilSettledOrReloaded(ensureLatestVersionBeforeRender());
 
     // `SKIP_WAITING` er nødvendig: en ventende worker aktiverer ellers først ved NUL klienter, og
     // en genindlæsning når aldrig nul.
@@ -281,7 +294,7 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     buildServiceWorkerContainer(buildRegistration({ installing, waiting: null }));
 
     const { ensureLatestVersionBeforeRender } = await importBootstrap();
-    await ensureLatestVersionBeforeRender();
+    await bootUntilSettledOrReloaded(ensureLatestVersionBeforeRender());
 
     expect(installing.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
     expect(reloadSpy).toHaveBeenCalledTimes(1);
@@ -302,7 +315,7 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     // Precachen bliver færdig; workeren står nu som `waiting`, præcis som i browseren.
     registration.waiting = installing;
     installing.setState('installed');
-    await pending;
+    await bootUntilSettledOrReloaded(pending);
 
     // …og først efter den bekræftede aktivering genindlæses der.
     expect(installing.state).toBe('activated');
@@ -357,7 +370,7 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     buildServiceWorkerContainer(buildRegistration({ waiting: buildServiceWorker('installed') }));
 
     const first = await importBootstrap();
-    await first.ensureLatestVersionBeforeRender();
+    await bootUntilSettledOrReloaded(first.ensureLatestVersionBeforeRender());
     expect(reloadSpy).toHaveBeenCalledTimes(1);
 
     // Anden opstart mod SAMME udrullede version (markøren står i sessionStorage): ingen løkke.
@@ -467,13 +480,36 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('renderer ikke i dokumentet, mens det igangsatte reload river det ned', async () => {
+    // Kun urets timere forfalskes: workerens versionssvar går gennem en ægte MessageChannel.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      stubDeployedVersion(DEPLOYED_NEWER_VERSION);
+      buildServiceWorkerContainer(buildRegistration({ waiting: buildServiceWorker('installed') }));
+
+      const { ensureLatestVersionBeforeRender } = await importBootstrap();
+      let finished = false;
+      const pending = ensureLatestVersionBeforeRender().then(() => { finished = true; });
+      while (reloadSpy.mock.calls.length === 0) await new Promise((resolve) => setImmediate(resolve));
+      await vi.advanceTimersByTimeAsync(14999);
+      expect(finished).toBe(false);
+
+      // Udebliver navigationen, starter den nuværende version alligevel.
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(finished).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('genindlæser først EFTER at den nye worker er bekræftet aktiv', async () => {
     stubDeployedVersion(DEPLOYED_NEWER_VERSION);
     const waiting = buildServiceWorker('installed');
     buildServiceWorkerContainer(buildRegistration({ waiting }));
 
     const { ensureLatestVersionBeforeRender } = await importBootstrap();
-    await ensureLatestVersionBeforeRender();
+    await bootUntilSettledOrReloaded(ensureLatestVersionBeforeRender());
 
     expect(waiting.state).toBe('activated');
     expect(reloadSpy).toHaveBeenCalledTimes(1);
@@ -488,7 +524,7 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
       const bootstrap = await importBootstrap();
       bootstrap.__resetServiceWorkerBootstrapForTests();
       buildServiceWorkerContainer(buildRegistration({ waiting: buildServiceWorker('installed') }));
-      await bootstrap.ensureLatestVersionBeforeRender();
+      await bootUntilSettledOrReloaded(bootstrap.ensureLatestVersionBeforeRender());
     }
 
     // Hvert versionsspring forsøges præcis én gang: to distinkte mål ⇒ højst to genindlæsninger.

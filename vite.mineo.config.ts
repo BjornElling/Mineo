@@ -146,9 +146,37 @@ const mineoPwaArtifacts = (): Plugin => {
   };
 };
 
+const STARTUP_UPDATE_FONT_MARKER = '<!-- MINEO_STARTUP_UPDATE_FONT -->';
+const STARTUP_UPDATE_FONT_ASSET = /^assets\/montserrat-latin-500-normal-[A-Za-z0-9_-]+\.woff2$/;
+
+/**
+ * Venteskærmen vises, før programkoden og dermed fontsource-stylesheetet er hentet. Uden en egen
+ * `@font-face` i HTML'en ville den stå i browserens standardskrift og skifte til Montserrat midt i
+ * visningen. Fladen peger på præcis den fil, buildet selv emitterer og precacher; browseren henter
+ * den først, når skærmen faktisk vises. Mangler filen, fejler buildet hellere end at skrive en død sti.
+ */
+const mineoStartupUpdateFont = (): Plugin => ({
+  name: 'mineo-startup-update-font',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, context) {
+      if (!html.includes(STARTUP_UPDATE_FONT_MARKER) || !context.bundle) return html;
+      const fontFile = Object.keys(context.bundle).find((fileName) => STARTUP_UPDATE_FONT_ASSET.test(fileName));
+      if (!fontFile) {
+        throw new Error('Venteskærmens Montserrat-font (latin 500) blev ikke fundet i buildet.');
+      }
+      return html.replace(
+        STARTUP_UPDATE_FONT_MARKER,
+        `<style>@font-face{font-family:'Montserrat';font-style:normal;font-weight:500;font-display:swap;src:url('/${fontFile}') format('woff2')}</style>`,
+      );
+    },
+  },
+});
+
 export default defineConfig(
   mergeConfig(baseConfig, {
-    plugins: [mineoPwaArtifacts(), mineoDevPwaManifest()],
+    plugins: [mineoPwaArtifacts(), mineoDevPwaManifest(), mineoStartupUpdateFont()],
     server: {
       // Mineos modultræ er stort, og den første transform af det koster over 30 sekunder på
       // Windows. Uden opvarmning betales den regning først når browserne forbinder – og under en

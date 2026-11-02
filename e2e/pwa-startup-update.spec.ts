@@ -35,7 +35,13 @@ test.describe('Venteskærm ved en ny programversion', () => {
               const screen = page.getByRole('status');
               await expect(screen).toHaveText('Vent venligst, opdatering indlæses');
               await expect(screen).toBeVisible();
-              await expect(screen).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(43, 43, 43)' : 'rgb(233, 236, 239)');
+              // Programmets egen flade, så overgangen til programmet ikke skifter baggrund.
+              await expect(page.locator('#mineo-startup-update')).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(20, 20, 20)' : 'rgb(248, 249, 250)');
+              // Programkoden er holdt tilbage, så Montserrat kan kun komme fra HTML'ens egen skriftflade.
+              await expect.poll(() => page.evaluate(async () => {
+                await document.fonts.ready;
+                return [...document.fonts].some((font) => font.family.replace(/['"]/g, '') === 'Montserrat' && font.status === 'loaded');
+              })).toBe(true);
               await page.screenshot({ path: testInfo.outputPath('venteskaerm.png') });
             } finally {
               releaseAssets();

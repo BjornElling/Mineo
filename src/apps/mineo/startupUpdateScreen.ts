@@ -9,7 +9,10 @@ export const createStartupUpdateScreenScript = (version: string): string => `
 (function () {
   var screen = document.getElementById('mineo-startup-update');
   if (!screen || !('caches' in window)) return;
-  caches.keys().then(function (names) {
+  // Et blokeret lager kan afvise synkront i stedet for gennem løftet; opstarten må ingen af dem mærke.
+  var keys;
+  try { keys = caches.keys(); } catch (error) { return; }
+  keys.then(function (names) {
     var prefix = 'mineo-build-assets:';
     if (!names.some(function (name) { return name.indexOf(prefix) === 0; })) return;
     var current = prefix + ${JSON.stringify(version)};

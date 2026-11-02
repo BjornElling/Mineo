@@ -107,7 +107,7 @@ const probeDeployedVersion = async (deadline: number): Promise<string | null> =>
  * kode, det skulle rette. `writeOptionalSessionStorageValue` læser skrivningen tilbage, så et
  * tavst no-op-lager ikke kan forveksles med en succes.
  */
-const reloadOnceForDeployedVersion = (deployedVersion: string): void => {
+const reloadOnceForDeployedVersion = (deployedVersion: string): boolean => {
   const key = getBootReloadVersionStorageKey();
 
   /*
@@ -126,12 +126,24 @@ const reloadOnceForDeployedVersion = (deployedVersion: string): void => {
   const [storedSource, ...attemptedTargets] = attempted;
 
   const targets = storedSource === VERSION ? attemptedTargets : [];
-  if (targets.includes(deployedVersion)) return;
+  if (targets.includes(deployedVersion)) return false;
 
   const nextMarker = [VERSION, ...targets, deployedVersion].join('|');
-  if (!writeOptionalSessionStorageValue(key, nextMarker)) return;
+  if (!writeOptionalSessionStorageValue(key, nextMarker)) return false;
   window.location.reload();
+  return true;
 };
+
+/**
+ * `reload()` river ikke dokumentet ned med det samme: det lever, indtil det nye svar er modtaget.
+ * Opstarten må ikke rendere imens – programmet ville blinke frem under venteskærmen, og en ventende
+ * `.eo`-fil kunne nå at blive taget i brug og markeret håndteret i et dokument, der aldrig viser den.
+ * Loftet er kun et værn mod en navigation, der uventet udebliver.
+ */
+const RELOAD_RENDER_HOLD_MS = 15000;
+
+const holdRenderWhileReloading = (): Promise<void> =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, RELOAD_RENDER_HOLD_MS));
 
 /**
  * Venter til den nye builds worker har en KOMPLET precache – dvs. har nået `installed`.
@@ -362,7 +374,7 @@ const runBootUpdatePass = async (screen: ReturnType<typeof createStartupUpdateSc
   // Opdateringen sker så ved næste opstart.
   if (!(await awaitDurablePendingPwaFileOpenHandoff())) return;
 
-  reloadOnceForDeployedVersion(deployedVersion);
+  if (reloadOnceForDeployedVersion(deployedVersion)) await holdRenderWhileReloading();
 };
 
 /**
