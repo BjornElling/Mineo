@@ -86,7 +86,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       expect(result.issues).toContainEqual({
         id: 'aarsloen-max-missing',
         severity: 'error',
-        message: 'ASL-maks-sats mangler for år 2025 (satser findes kun for 2005–2026).',
+        message: 'ASL-maks-sats mangler for år 2025 (satser findes kun for 2005–2027).',
       });
     } finally {
       aarsloenAslMax[2025] = original;
@@ -702,7 +702,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       kapitaliseringspct: 25,
       erstatningsniveau: 0.83,
       amFaktor: 0.92,
-      kapitaliseringsaar: 2027,
+      kapitaliseringsaar: 2028,
       before2024Skade: false,
     }, issues);
 
@@ -710,7 +710,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(issues).toContainEqual({
       id: 'reguleringssats-missing',
       severity: 'error',
-      message: 'Reguleringssats mangler for år 2027',
+      message: 'Reguleringssats mangler for år 2028',
     });
   });
 

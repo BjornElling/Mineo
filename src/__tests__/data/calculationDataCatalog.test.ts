@@ -79,11 +79,11 @@ describe('calculationDataCatalog', () => {
       // ferietillæg er et rent fremtidigt udviklingsprojekt og ikke må indregnes nogen steder
       // (udviklerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
       'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
-      kapitaliseringsbekendtgoerelser: '9e5d18bdaf8b554717ce3ee22c73bc409bff2ac4c45fc28f840bb59e831d615b',
-      kapitaliseringstabeller: 'deb01298b81aa7886facb52faef0bec1b5a320c93fd2b729ecb19576d3367eea',
+      kapitaliseringsbekendtgoerelser: '696a0023f6cbfcbdc97b1e37f7dc7b2cfad399e2d4f8dd9c406e6a3940cdc54d',
+      kapitaliseringstabeller: '2922b85b4c7be096731ee2a1afc2eb25176ca848d76fdec613a80236dff253e1',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
-      'lovbestemte-satser': '64fc2cb0626d361cd3260d2f904ffe489bc36b5d86c7f6ae64d6abe92bf96005',
+      'lovbestemte-satser': 'e30834b2ecd5a082c6a3b2c0be209e3118974914d224e268c05bc8cc2ec8f420',
       'offentlig-loen-kl': 'd6b006a41c0a896094f95ae6668d48f808010eb8ed135d769006362400643610',
       'offentlig-loen-rltn': '459d6e3bf7963bfda6c7f94b5a400c4a53c1c71598013649ae8ff59e04994305',
       // Ændret 2026-10-06: Faglærte-overenskomstens fritvalg er 0 i stedet for null (BB-275).
@@ -105,7 +105,8 @@ describe('calculationDataCatalog', () => {
 
   it('bevarer kapitaliseringsfaktorer og tabelvalg identisk med payloaden før katalogiseringen', () => {
     const legacyShape = Object.fromEntries(
-      Object.entries(kapitaliseringsTabelDataById).map(([id, entry]) => [id, {
+      // Nye vejledninger ændrer ikke dette historiske facit fra før katalogiseringen.
+      Object.entries(kapitaliseringsTabelDataById).filter(([id]) => id !== '10253/2026').map(([id, entry]) => [id, {
         kapitaliseringsId: entry.kapitaliseringsId,
         kapitaliseringsType: entry.kapitaliseringsType,
         erhvervsevnetabTabelvalg: entry.erhvervsevnetabTabelvalg,

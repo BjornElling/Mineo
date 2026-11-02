@@ -116,6 +116,7 @@ const INDEPENDENT_SVIE_SMERTE_SATS_AAR_VALUES: ErstatningsopgoerelseValues = {
 
 describe('TD-019 – svie/smerte-satsår uden tilgængelige satser', () => {
   it('rapporterer ukendt satsår med præcis feltsti, besked og severity', () => {
+    // ASL har satser for 2027, men beskeden skal fortsat afspejle svie/smerte-dækningen.
     const result = erstatningsopgoerelseValidator.validateParsed(INDEPENDENT_SVIE_SMERTE_SATS_AAR_VALUES);
 
     expect(result).toEqual({

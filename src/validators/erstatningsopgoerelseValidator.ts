@@ -27,7 +27,7 @@ import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, isoToDanish, type ISODateString } from '../types/branded';
-import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, satserAngivAarYearBounds } from '../data/lovbestemteRates';
+import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmerteMaxYearBounds } from '../data/lovbestemteRates';
 import { hasSvieSmerteSatserForAar } from '../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import { resolveKildeReguleringsIntervalIso } from '../domain/erstatningsopgoerelse/helpers/reguleringKildeCoverage';
 import { amountValueToNumber } from '../utils/expressionAmount';
@@ -457,9 +457,10 @@ function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationErro
       });
     } else {
       if (!hasSvieSmerteSatserForAar(satserAar)) {
+        // Nye ASL-satsår udvider oversigten, men ikke de tilgængelige svie/smerte-satser.
         errors.push({
           path: 'svieSmerteSatserAar',
-          message: `Satser findes ikke for år ${satserAar} (tilgængelige: ${satserAngivAarYearBounds.minYear}–${satserAngivAarYearBounds.maxYear})`,
+          message: `Satser findes ikke for år ${satserAar} (tilgængelige: ${svieSmerteMaxYearBounds.minYear}–${svieSmerteMaxYearBounds.maxYear})`,
           severity: 'error',
         });
       }

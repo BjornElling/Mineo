@@ -57,7 +57,7 @@ describe('validateAslAarsloenBySkadesaarMax', () => {
     expect(msg).toContain('2099');
     // Beskeden oplyser de konkrete dækkede år (kanonisk min–max fra satstabellen).
     expect(msg).toContain('2005');
-    expect(msg).toContain('2026');
+    expect(msg).toContain('2027');
   });
 
   it('årsløn på præcis maks → ingen fejl (grænsen er inklusiv)', () => {

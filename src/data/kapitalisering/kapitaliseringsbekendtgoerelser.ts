@@ -86,6 +86,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoI
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
       { kapitaliseringsdatoFra: '2025-12-31', id: '10183/2025' },
       { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
+      { kapitaliseringsdatoFra: '2027-01-01', id: '10253/2026' },
     ],
   },
 
@@ -118,6 +119,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoI
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
       { kapitaliseringsdatoFra: '2025-12-31', id: '10183/2025' },
       { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
+      { kapitaliseringsdatoFra: '2027-01-01', id: '10253/2026' },
     ],
   },
 
@@ -145,6 +147,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoI
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
       { kapitaliseringsdatoFra: '2025-12-31', id: '10183/2025' },
       { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
+      { kapitaliseringsdatoFra: '2027-01-01', id: '10253/2026' },
     ],
   },
 
@@ -159,6 +162,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoI
       { kapitaliseringsdatoFra: '2025-01-01', id: '10029/2024' },
       { kapitaliseringsdatoFra: '2025-12-31', id: '10183/2025' },
       { kapitaliseringsdatoFra: '2026-01-01', id: '10056/2025' },
+      { kapitaliseringsdatoFra: '2027-01-01', id: '10253/2026' },
     ],
   },
 

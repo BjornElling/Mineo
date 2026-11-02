@@ -11,6 +11,10 @@ import { toISODateString, type ISODateString } from '../../../types/branded';
 const iso = (value: string) => toISODateString(value);
 
 describe('uafhængigt sats → beregning → dokument-facit', () => {
+  it('regulerer fra 2026 til 2027 med 2,9 procent fra bekendtgørelse 701/2026', () => {
+    expect(resolveOffentligeYdelserAkkumuleretReguleringPct(2027, 2026)).toBeCloseTo(2.9, 12);
+  });
+
   const values = () => ({
     ...createErstatningsopgoerelseInitialValues(),
     midlertidigtEetFraEetSiden: 'Nej' as const,
@@ -157,8 +161,8 @@ describe('uafhængigt sats → beregning → dokument-facit', () => {
   });
 
   it('fail-closer ved manglende reguleringssats både i motor og dokumenttabel', () => {
-    expect(() => resolveOffentligeYdelserAkkumuleretReguleringPct(2027, 2026))
-      .toThrow('reguleringssats mangler for 2027');
+    expect(() => resolveOffentligeYdelserAkkumuleretReguleringPct(2028, 2027))
+      .toThrow('reguleringssats mangler for 2028');
 
     const baseModel = buildOffentligeYdelserUdviklingModel({
       values: values(),
@@ -182,10 +186,10 @@ describe('uafhængigt sats → beregning → dokument-facit', () => {
       ...baseModel,
       entries: [{
         ...entry,
-        beregnedeSegmenter: [{ ...segment, til: iso('2027-01-01') }],
+        beregnedeSegmenter: [{ ...segment, til: iso('2028-01-01') }],
       }],
     };
     expect(() => buildOffentligeYdelserReguleringTableData(modelWithMissingRate))
-      .toThrow('reguleringssats mangler for 2027');
+      .toThrow('reguleringssats mangler for 2028');
   });
 });

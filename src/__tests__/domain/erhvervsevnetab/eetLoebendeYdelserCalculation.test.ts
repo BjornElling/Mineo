@@ -290,7 +290,7 @@ describe('computeEetLoebendeYdelser', () => {
       expect(result.issues).toContainEqual({
         id: 'aarsloen-max-missing',
         severity: 'error',
-        message: 'ASL-maks-sats mangler for år 2019 (satser findes kun for 2005–2026).',
+        message: 'ASL-maks-sats mangler for år 2019 (satser findes kun for 2005–2027).',
       });
     } finally {
       aarsloenAslMax[2019] = original;
@@ -1589,14 +1589,14 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: toISODateString('2027-12-31'),
+        beregningsdato: toISODateString('2028-12-31'),
         aslAarsloen: asAmount(500000),
         aslAfgoerelser: [
           {
             id: 'a1',
             fsTilbageholdtEet: 'Nej',
-            afgoerelsesDato: toISODateString('2027-01-01'),
-            virkningsDato: toISODateString('2027-01-01'),
+            afgoerelsesDato: toISODateString('2028-01-01'),
+            virkningsDato: toISODateString('2028-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1610,7 +1610,7 @@ describe('computeEetLoebendeYdelser', () => {
     });
 
     expect(result.computation).toBeNull();
-    expect(result.issues.some((issue) => issue.id === 'reguleringssats-missing-2027')).toBe(true);
+    expect(result.issues.some((issue) => issue.id === 'reguleringssats-missing-2028')).toBe(true);
   });
 
   it('samler tilbagevirkende perioder over flere år under afgørelsesårets sats', () => {

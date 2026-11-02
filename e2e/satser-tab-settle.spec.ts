@@ -10,10 +10,10 @@ test.describe('Satser – afslutning af singleton-draft med Tab', () => {
     await expect(input).toBeVisible();
     await expect(input).toHaveValue('2026');
 
-    await setFieldValueAndSettle(input, '2027');
+    await setFieldValueAndSettle(input, '2099');
 
     await expect(input).toBeFocused();
-    await expect(input).toHaveValue('2027');
+    await expect(input).toHaveValue('2099');
     await expect(input).toHaveAttribute('aria-invalid', 'true');
     await expect(download).toBeDisabled();
     await expect(page.getByText('Vælg et gyldigt år for at se satserne.')).toBeVisible();

@@ -33,7 +33,7 @@ const findAldersraekke = <T extends Readonly<{ alder: number }>>(
 };
 
 describe('TD-020 – uafhængige dataendepunkter', () => {
-  it('registrerer alle 33 kapitaliseringstabeller med deres PDF-kilde', () => {
+  it('registrerer alle 34 kapitaliseringstabeller med deres PDF-kilde', () => {
     // Dette er en uafhængig mængde fra katalogets afledte Object.keys-kontrol. Den
     // fanger en bortfaldet tabel eller en ny tabel uden registrering i index.ts.
     const forventedeIds = [
@@ -42,6 +42,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       '10141/2022',
       '10183/2025',
       '1022/2009',
+      '10253/2026',
       '1047/2008',
       '1068/2003',
       '1156/2017',
@@ -101,6 +102,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
         'Vejl. 10056 2025.pdf',
         'Vejl. 10141 2022.pdf',
         'Vejl. 10183 2025.pdf',
+        'Vejl. 10253 2026.pdf',
         'Vejl. 9376 2024.pdf',
         'Vejl. 9741 2020.pdf',
         'Vejl. 9820 2023.pdf',

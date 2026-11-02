@@ -236,6 +236,7 @@ export const ASL_MAX_AARSLOEN_2003 = 367000;
 
 // Godtgørelse for varige mén (§ 18, stk. 3, 3. pkt.)
 export const varigeMenPrGrad: YearlyRate = {
+  2027: 11355,
   2026: 11035,
   2025: 10530,
   2024: 10135,
@@ -301,6 +302,7 @@ export const getSatserCompleteYearBounds = (): YearBounds => {
 
 // Maksimum årsløn (§ 24, stk. 10)
 export const aarsloenAslMax: YearlyRate = {
+  2027: 682000,
   2026: 662000,
   2025: 632000,
   2024: 608000,
@@ -379,6 +381,7 @@ export const ASL_MAX_AARSLOEN_2024: number = (() => {
 // Minimum årsløn (§ 24, stk. 10)
 // OBS: 2024 bevidst udeladt!
 export const aarsloenAslMin: YearlyRate = {
+  2027: 288000,
   2026: 280000,
   2025: 267000,
   2023: 219000,
@@ -416,6 +419,7 @@ export const aarsloenAslMinFra20240701: YearlyRate = {
 
 // Overgangsbeløb (§ 19, stk. 1)
 export const overgangsbeloeb: YearlyRate = {
+  2027: 214000,
   2026: 208000,
   2025: 198500,
   2024: 191000,
@@ -472,6 +476,7 @@ export const reguleringsprocentErhvervsevnetabFoer2024: YearlyRate = {
 
 // Reguleringsprocent for erhvervsevnetab (fra 2024)
 export const reguleringsprocentErhvervsevnetabFra2024: YearlyRate = {
+  2027: 12.1,
   2026: 8.9,
   2025: 3.9,
   2024: 0.0,
@@ -559,6 +564,7 @@ export const friProcesBarn: YearlyRate = {
 
 // Reguleringssats (EAL § 15, stk. 1 / ASL § 25, stk. 1-2)
 export const reguleringssats: YearlyRate = {
+  2027: 2.9,
   2026: 4.8,
   2025: 3.9,
   2024: 3.5,
@@ -677,6 +683,7 @@ export const ealReference: YearlyReference = toYearlyReferenceText(ealReferenceD
 export const ealReferenceLinks = toYearlyRetsinfoLinks(ealReferenceData);
 
 const aslReferenceData: YearlyRetsinfoReferences = {
+  2027: [vejl(10257, 2026)],
   2026: [vejl(10058, 2025)],
   2025: [vejl(9915, 2024)],
   2024: [vejl(9822, 2023)],
@@ -706,6 +713,7 @@ export const aslReference: YearlyReference = toYearlyReferenceText(aslReferenceD
 export const aslReferenceLinks = toYearlyRetsinfoLinks(aslReferenceData);
 
 const kapitaliseringData: YearlyRetsinfoReferences = {
+  2027: [vejl(10253, 2026)],
   2026: [vejl(10056, 2025)],
   2025: [vejl(10029, 2024)],
   2006: [bkg(1068, 2003)],
@@ -818,6 +826,7 @@ export const friProcesReference: YearlyReference = toYearlyReferenceText(friProc
 export const friProcesReferenceLinks = toYearlyRetsinfoLinks(friProcesReferenceData);
 
 const reguleringssatsReferenceData: YearlyRetsinfoReferences = {
+  2027: [bkg(701, 2026)],
   2026: [bkg(1056, 2025)],
   2025: [bkg(983, 2024)],
   2024: [bkg(1101, 2023)],

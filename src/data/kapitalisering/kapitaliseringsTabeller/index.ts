@@ -4,6 +4,7 @@ import * as k10056_2025 from './10056-2025';
 import * as k10141_2022 from './10141-2022';
 import * as k10183_2025 from './10183-2025';
 import * as k1022_2009 from './1022-2009';
+import * as k10253_2026 from './10253-2026';
 import * as k1047_2008 from './1047-2008';
 import * as k1068_2003 from './1068-2003';
 import * as k1156_2017 from './1156-2017';
@@ -144,6 +145,7 @@ export const kapitaliseringsTabelDataById: Readonly<Record<string, Kapitaliserin
   [k10141_2022.kapitaliseringsId]: createKapitaliseringsEntry(k10141_2022),
   [k10183_2025.kapitaliseringsId]: createKapitaliseringsEntry(k10183_2025),
   [k1022_2009.kapitaliseringsId]: createKapitaliseringsEntry(k1022_2009),
+  [k10253_2026.kapitaliseringsId]: createKapitaliseringsEntry(k10253_2026),
   [k1047_2008.kapitaliseringsId]: createKapitaliseringsEntry(k1047_2008),
   [k1068_2003.kapitaliseringsId]: createKapitaliseringsEntry(k1068_2003),
   [k1156_2017.kapitaliseringsId]: createKapitaliseringsEntry(k1156_2017),
@@ -202,7 +204,7 @@ const TILLADETE_MANGLENDE_EET_TABELREFERENCER = new Set([
   '1403/2011:L',
 ]);
 
-/** Fail-closed validering af de 33 kilde-PDF'ers normaliserede runtime-payload. */
+/** Fail-closed validering af kilde-PDF'ernes normaliserede runtime-payload. */
 export const assertKapitaliseringsTabelDataIntegritet = (
   entries: Readonly<Record<string, KapitaliseringsTabelData>>,
   expectedMissingTableReferences: ReadonlySet<string> = TILLADETE_MANGLENDE_EET_TABELREFERENCER,

@@ -143,6 +143,34 @@ describe('svieSmertePrDag', () => {
 // ─── getSatserForYear ──────────────────────────────────────────────────────────
 
 describe('getSatserForYear', () => {
+  it('viser de eksisterende ASL-satsrækker for 2027 fra vejledning 10257/2026', () => {
+    // Facit fra https://www.retsinformation.dk/eli/retsinfo/2026/10257, afsnit 1–2.
+    const satser = getSatserForYear(2027);
+    expect(satser.asl).toEqual({
+      varigeMenPrGrad: 11355,
+      aarsloenAslMax: 682000,
+      aarsloenMin: 288000,
+      aarsloenMinFoer2024: null,
+      aarsloenMinFra2024: null,
+      overgangsbelob: 214000,
+      reguleringProcentErhvervsevnetab: null,
+      reguleringProcentErhvervsevnetabFoer2024: null,
+      reguleringProcentErhvervsevnetabFra2024: 12.1,
+    });
+    expect(satser.referencer.aslReferenceLinks).toEqual([
+      { label: 'Vejl. 10257/2026', url: 'https://www.retsinformation.dk/eli/retsinfo/2026/10257' },
+    ]);
+    expect(satser.referencer.kapitaliseringLinks).toEqual([
+      { label: 'Vejl. 10253/2026', url: 'https://www.retsinformation.dk/eli/retsinfo/2026/10253' },
+    ]);
+    // Bekendtgørelse 701/2026 § 2: tilpasningsprocent 0,9 + 2 procentpoint.
+    expect(satser.diverse.reguleringssats).toBe(2.9);
+    expect(satser.referencer.reguleringssatsReferenceLinks).toEqual([
+      { label: 'Bkg. 701/2026', url: 'https://www.retsinformation.dk/eli/lta/2026/701' },
+    ]);
+    expect(satserAngivAarYearBounds.maxYear).toBeGreaterThanOrEqual(2027);
+  });
+
   describe('kendte satser for 2024', () => {
     it('eal.svieSmertePrDag = 230', () => {
       const satser = getSatserForYear(2024);
@@ -332,9 +360,9 @@ describe('satserAngivAarYearBounds', () => {
 });
 
 describe('eetYearBounds', () => {
-  it('maxYear er capped af kapitaliseringsbekendtgørelsernes fælles max-år', () => {
-    const expectedMaxYear = Number.parseInt(eetKapitaliseringsDatoMaxFraBekendtgoerelser.slice(0, 4), 10);
-    expect(eetYearBounds.maxYear).toBe(expectedMaxYear);
+  it('venter på de øvrige beregningssatser, selv om kapitaliseringstabellerne dækker 2027', () => {
+    expect(eetKapitaliseringsDatoMaxFraBekendtgoerelser).toBe('2027-12-31');
+    expect(eetYearBounds.maxYear).toBe(2026);
   });
 });
 

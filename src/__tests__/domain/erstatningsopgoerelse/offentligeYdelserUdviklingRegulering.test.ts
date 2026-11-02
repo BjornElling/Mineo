@@ -164,7 +164,7 @@ describe('buildOffentligeYdelserReguleringTableData', () => {
     });
 
     expect(() => buildOffentligeYdelserReguleringTableData(model)).toThrow(
-      'Offentlige ydelser kan ikke beregnes: reguleringssats mangler for 2027'
+      'Offentlige ydelser kan ikke beregnes: reguleringssats mangler for 2028'
     );
   });
 });

@@ -113,10 +113,10 @@ describe('Satser download-gate – afsluttet ugyldigt årstal blokerer download'
 
     await user.dblClick(input);
     await user.clear(input);
-    await user.type(input, '2027');
+    await user.type(input, String(satserAngivAarYearBounds.maxYear + 1));
     await user.keyboard('{Tab}');
 
-    expect(input).toHaveValue('2027');
+    expect(input).toHaveValue(String(satserAngivAarYearBounds.maxYear + 1));
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(getDownloadButton()).toBeDisabled();
 

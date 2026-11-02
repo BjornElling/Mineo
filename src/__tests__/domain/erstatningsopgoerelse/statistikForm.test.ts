@@ -65,8 +65,8 @@ describe('statistikForm', () => {
     expect(() => statistikForm.byggResultat(createKonsolideret({
       label: ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
       statistikModel: ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
-      tafRanges: [{ fra: iso('2020-01-01'), til: iso('2027-12-31') }],
-    }))).toThrow('mangler ASL indeks for 2027');
+      tafRanges: [{ fra: iso('2020-01-01'), til: iso('2028-12-31') }],
+    }))).toThrow('mangler ASL indeks for 2028');
   });
 
   it('bygger statistikforløb og afviser model-, dato- og tomheds-gates', () => {
@@ -110,7 +110,7 @@ describe('statistikForm', () => {
     });
     expect(statistikForm.coverageInterval(statistikAf(ASL_AARSLOENSMAKSIMUM_MODEL_LABEL))).toEqual({
       fraIso: iso('2005-01-01'),
-      tilIso: iso('2026-12-31'),
+      tilIso: iso('2027-12-31'),
     });
     expect(statistikForm.coverageInterval(statistikAf('ukendt statistikmodel'))).toBeUndefined();
   });

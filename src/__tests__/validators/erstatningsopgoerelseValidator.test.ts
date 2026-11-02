@@ -475,17 +475,17 @@ describe('regulering af offentlige ydelser – satsdækning', () => {
       ...patch,
     });
 
-  it('fanger TAF-slutår efter reguleringssatsens dækning (2026)', () => {
+  it('fanger TAF-slutår efter reguleringssatsens dækning (2027)', () => {
     const values = makeRegulerValues({
-      tafBeregningsperiodeFra: iso('2027-01-01'),
-      tafBeregningsperiodeTil: iso('2027-12-31'),
+      tafBeregningsperiodeFra: iso('2028-01-01'),
+      tafBeregningsperiodeTil: iso('2028-12-31'),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2027-01-01'), til: iso('2027-12-31') },
+        { id: 'taf-1', fra: iso('2028-01-01'), til: iso('2028-12-31') },
       ],
       offentligeYdelserRows: [{
         id: 'ydelse-1',
-        fraDato: toISODateString('2027-01-01'),
-        tilDato: toISODateString('2027-12-31'),
+        fraDato: toISODateString('2028-01-01'),
+        tilDato: toISODateString('2028-12-31'),
         ydelse: asAmount(1000),
         tillaeg: undefined,
         ydelsestype: 'dagpenge',
@@ -496,7 +496,7 @@ describe('regulering af offentlige ydelser – satsdækning', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'regulerOffentligeYdelser',
-      message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2027. Der kan ikke beregnes regulering efter 2026.',
+      message: 'Regulering af offentlige ydelser kan ikke beregnes, fordi der mangler reguleringssats for 2028. Der kan ikke beregnes regulering efter 2027.',
       severity: 'error',
     }));
   });

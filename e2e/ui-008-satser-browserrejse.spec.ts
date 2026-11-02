@@ -10,6 +10,40 @@ import {
 } from './support/mineoTest';
 
 test.describe('UI-008 – Satser', () => {
+  test('viser ASL-satserne for 2027 og deres kilde', async ({ page, runtimeErrors, externalRequests }) => {
+    await login(page);
+    await openPage(page, 'Satser');
+    await setFieldValueAndSettle(page.locator('input[name="aargang"]'), '2027');
+    await expect(page.getByText('Arbejdsskadesatser 2027', { exact: true })).toBeVisible();
+    const aslSection = page.locator('.content-box').filter({
+      has: page.getByText('Arbejdsskadesikringsloven', { exact: true }),
+    });
+    for (const [label, value] of [
+      ['Godtgørelse for varige mén', '11.355 kr./méngrad'],
+      ['Maksimum årsløn', '682.000 kr.'],
+      ['Minimum årsløn', '288.000 kr.'],
+      ['Overgangsbeløb', '214.000 kr.'],
+      ['Reguleringsprocent for erhvervsevnetab (fra 2024)', '12,1 %'],
+    ]) {
+      await expect(aslSection.locator('.row--label-right-hover').filter({
+        has: page.getByText(`${label}:`, { exact: true }),
+      })).toContainText(value);
+    }
+    await expect(page.getByRole('link', { name: 'Vejl. 10257/2026', exact: true }))
+      .toHaveAttribute('href', 'https://www.retsinformation.dk/eli/retsinfo/2026/10257');
+    await expect(page.getByRole('link', { name: 'Vejl. 10253/2026', exact: true }))
+      .toHaveAttribute('href', 'https://www.retsinformation.dk/eli/retsinfo/2026/10253');
+    await expect(page.getByRole('link', { name: 'Bkg. 701/2026', exact: true }))
+      .toHaveAttribute('href', 'https://www.retsinformation.dk/eli/lta/2026/701');
+    await expect(page.locator('.row--label-right-hover').filter({
+      has: page.getByText('Reguleringssats:', { exact: true }),
+    })).toContainText('2,9 %');
+    await aslSection.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: 'test-results/asl-2027.png', fullPage: true });
+    expect(runtimeErrors).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+
   test('vælger 2024, viser de delte minimumssatser og henter PDF-specifikationen', async ({
     page,
     runtimeErrors,

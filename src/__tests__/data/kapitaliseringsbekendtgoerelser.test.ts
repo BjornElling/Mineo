@@ -28,6 +28,15 @@ const readKapitaliseringsTabelFilnavne = (): string[] => {
 };
 
 describe('kapitaliseringsbekendtgørelser', () => {
+  it('skifter til 10253/2026 ved årsskiftet 2027 og afviser 2028 for alle understøttede skadesperioder', () => {
+    for (const skadedato of ['2005-01-01', '2007-07-01', '2011-01-01', '2021-01-01']) {
+      expect(resolveIdForDatoer(toISODateString(skadedato), toISODateString('2026-12-31'))).toBe('10056/2025');
+      expect(resolveIdForDatoer(toISODateString(skadedato), toISODateString('2027-01-01'))).toBe('10253/2026');
+      expect(resolveIdForDatoer(toISODateString(skadedato), toISODateString('2027-12-31'))).toBe('10253/2026');
+      expect(resolveIdForDatoer(toISODateString(skadedato), toISODateString('2028-01-01'))).toBeNull();
+    }
+  });
+
   it('max-dato dækker mindst indeværende kalenderår – fejler hvis data ikke opdateres årligt', () => {
     const currentYear = new Date().getFullYear();
     expect(eetKapitaliseringsDatoMaxFraBekendtgoerelser >= `${currentYear}-01-01`).toBe(true);
@@ -105,6 +114,8 @@ describe('kapitaliseringsbekendtgørelser', () => {
       ['9376/2024', 'forsoergertabTabeller', ['S']],
       ['10056/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
       ['10056/2025', 'forsoergertabTabeller', ['Z']],
+      ['10253/2026', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
+      ['10253/2026', 'forsoergertabTabeller', ['Z']],
       ['10183/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
       ['10183/2025', 'forsoergertabTabeller', ['Z']],
       ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['O', 'P']],
@@ -130,6 +141,8 @@ describe('kapitaliseringsbekendtgørelser', () => {
       ['9376/2024', 'forsoergertabTabeller', ['P']],
       ['10056/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
       ['10056/2025', 'forsoergertabTabeller', ['T']],
+      ['10253/2026', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
+      ['10253/2026', 'forsoergertabTabeller', ['T']],
       ['10183/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
       ['10183/2025', 'forsoergertabTabeller', ['T']],
       ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['H', 'I', 'J', 'K']],
