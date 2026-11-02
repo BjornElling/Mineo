@@ -314,6 +314,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/apps/minprocesrente/useStandaloneExitGuard.test.tsx',
       'src/__tests__/apps/shared/vitePreloadRecovery.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts',
+      'src/__tests__/apps/mineo/startupUpdateScreen.test.ts',
       'src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts',
       'src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx',
       'src/__tests__/components/system/UnsupportedDevicePage.test.tsx',

@@ -55,6 +55,7 @@ export const createThemeBootstrapScript = (): string => {
     document.head.appendChild(meta);
   }
   meta.content = config.colors[themeMode];
+  document.documentElement.style.setProperty('--mineo-startup-background', config.colors[themeMode]);
   ${createContentUiScaleBootstrapSource()}
 })();`;
 };

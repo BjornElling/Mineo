@@ -26,6 +26,8 @@ type FakeRegistration = {
   installing: FakeServiceWorker | null;
   waiting: FakeServiceWorker | null;
   update: ReturnType<typeof vi.fn>;
+  addEventListener: ReturnType<typeof vi.fn>;
+  removeEventListener: ReturnType<typeof vi.fn>;
 };
 
 const DOCUMENT_VERSION = '2026.08.12';
@@ -107,6 +109,8 @@ const buildRegistration = (options: {
   installing: options.installing ?? null,
   waiting: options.waiting ?? null,
   update: vi.fn(async () => undefined),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
 });
 
 const buildServiceWorkerContainer = (
@@ -226,6 +230,47 @@ describe('serviceWorkerBootstrap – ny session = ny version, åben session urø
     expect(container.getRegistration).not.toHaveBeenCalled();
     expect(waiting.postMessage).not.toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
     expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('viser en reel installation på /open i mindst ét sekund uden aktivering eller reload', async () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<div id="root"><div id="mineo-startup-update" hidden></div></div>';
+    try {
+      const installing = buildServiceWorker('installing');
+      const registration = buildRegistration({ installing });
+      buildServiceWorkerContainer(registration);
+      window.location.pathname = '/open';
+      const { ensureLatestVersionBeforeRender } = await importBootstrap();
+      let finished = false;
+      const pending = ensureLatestVersionBeforeRender().then(() => { finished = true; });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(document.getElementById('mineo-startup-update')?.hidden).toBe(false);
+      await vi.advanceTimersByTimeAsync(999);
+      expect(finished).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await pending;
+      expect(finished).toBe(true);
+      expect(installing.postMessage).not.toHaveBeenCalled();
+      expect(reloadSpy).not.toHaveBeenCalled();
+      expect(registration.removeEventListener).toHaveBeenCalledWith('updatefound', expect.any(Function));
+    } finally {
+      document.body.innerHTML = '';
+      vi.useRealTimers();
+    }
+  });
+
+  it('viser ikke venteskærmen ved en allerede klargjort build på /open', async () => {
+    document.body.innerHTML = '<div id="root"><div id="mineo-startup-update" hidden></div></div>';
+    try {
+      buildServiceWorkerContainer(buildRegistration({ waiting: buildServiceWorker('installed') }));
+      window.location.pathname = '/open';
+      const { ensureLatestVersionBeforeRender } = await importBootstrap();
+      await ensureLatestVersionBeforeRender();
+      expect(document.getElementById('mineo-startup-update')?.hidden).toBe(true);
+      expect(reloadSpy).not.toHaveBeenCalled();
+    } finally {
+      document.body.innerHTML = '';
+    }
   });
 
   it('sender aktiveringsbeskeden til den konkrete installerede worker', async () => {

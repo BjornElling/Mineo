@@ -3,7 +3,8 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter – men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-09-17 (§8's lazy-recovery: `vite:preloadError` undertrykkes nu KUN for en
+**Senest verificeret mod kode:** 2026-11-02 (§8's venteskærm før render og uændrede filåbningsværn).
+Tidligere 2026-09-17 (§8's lazy-recovery: `vite:preloadError` undertrykkes nu KUN for en
 fejlet CSS-preload. En generel `preventDefault()` fik `await import(...)` til at resolve med `undefined`, så en
 manglende chunk blev en TypeError og dermed en systemfejl-popup i stedet for den tilbudte genindlæsning.
 Målt af `apps/shared/vitePreloadRecovery.test.ts` og `document/documentLifecycleMatrix.test.ts`.
@@ -23,7 +24,7 @@ Det øverste runtime-lag, der binder programmet sammen, og isolationen mellem de
 - Vite lazy-load-recovery: `src/apps/shared/vitePreloadRecovery.ts` (sidste sikkerhedsnet for et manglende lazy asset; den normale deploybeskyttelse ligger i service-workerens versionscache).
 - Service-worker-kilde: `sw/mineoServiceWorker.js` (skabelon; buildet substituerer versionen og emitterer `sw.js`).
 - Delt device-aflæsning: `src/utils/clientDevice.ts` (rene browser-/skærmcapabilities og orienteringsstabile touch-klassifikationer, uden app-shell-render-beslutninger).
-- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, versionsprobe og opstartens ene opdateringsbarriere – der findes hverken opdateringsstatus eller brugerbekræftet reload, jf. §2.8).
+- Mineo-specifik opstart: `src/apps/mineo/serviceWorkerBootstrap.ts` (service-worker-registrering, versionsprobe og opstartens ene opdateringsbarriere) og `startupUpdateScreen.ts` (passiv venteskærm før render, jf. §2.8).
 - Lazy-recoverylinje: `src/components/system/LazyChunkRecoveryNotice.tsx` (sidste værn for en manglende lazy chunk; **ikke** en opdateringslinje).
 - PWA-filåbning: `src/utils/pwaLaunchQueue.ts` (launchQueue-consumer og versionssikker pending request).
 - PWA-cachepolitik: `public/_headers` (revalidering af HTML, SPA-ruter, manifest, service worker og assetmanifest; immutable hashed assets).
@@ -72,11 +73,15 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    Workerens build-version ligger **i dens bytes**, ikke kun i registrerings-URL'ens query. Kilden er `sw/mineoServiceWorker.js` (bevidst uden for `public/`, så publicDir-kopieringen ikke overskriver det emitterede output), og `vite.mineo.config.ts` substituerer versionen ved build. Uden indbagt version ville `registration.update()` aldrig kunne opdage en deploy: query'en er den samme, så længe klienten kører den samme build, og filens bytes ville være identiske på tværs af deploys. `pwa-assets.json` bærer samme version, og workeren **afviser at installere** mod et manifest fra en anden build – ellers kunne en cache navngivet én build blive fyldt med en anden builds assets, og den kørende builds egne lazy chunks aldrig blive cachet.
 
-8. **Ny session = ny version. Åben session = urørt.** Programmet har **ingen** synlig opdaterings-UI og kræver **ingen** brugerhandling for at komme på nyeste version. Én regel styrer det hele:
+8. **Ny session = ny version. Åben session = urørt.** Opdatering kræver **ingen** brugerhandling. En midlertidig venteskærm kan kun vises før render; en åben session har ingen opdaterings-UI. Én regel styrer det hele:
 
    > En ny session starter altid på den nyeste version, der kan klargøres **komplet**. En åben session skifter **aldrig** version.
 
-   **Før render** er intet brugerarbejde i fare, og hele opdateringen sker dér – som en barriere, ikke et væddeløb mod uret. `ensureLatestVersionBeforeRender` sammenligner `pwa-assets.json`'s `version` med dokumentets `VERSION`. Er de ens (langt det almindeligste), ventes der **slet ikke**. Er de forskellige, føres den nye build hele vejen frem, i denne rækkefølge: komplet precache (`installed`) → aktivering af præcis den worker (`SKIP_WAITING`) → **bekræftet `activated`** → genindlæsning.
+   **Før render** er intet brugerarbejde i fare, og hele opdateringen sker dér – som en barriere, ikke et væddeløb mod uret. `ensureLatestVersionBeforeRender` sammenligner `pwa-assets.json`'s `version` med dokumentets `VERSION`. Er de ens, udløses ingen versionsgenindlæsning. Er de forskellige, føres den nye build hele vejen frem, i denne rækkefølge: komplet precache (`installed`) → aktivering af præcis den worker (`SKIP_WAITING`) → **bekræftet `activated`** → genindlæsning.
+
+   **Venteskærmen er passiv.** Den viser »Vent venligst, opdatering indlæses« i 28 px almindelig skrift på programmets temabestemte baggrund. HTML aflæser cache-navne før appens JavaScript: findes en tidligere Mineo-builds cache, men ikke den aktuelle builds precache, vises skærmen allerede under hentning af programkoden. En eksisterende cache skal indeholde den aktuelle hash-navngivne entry; en tom cache efter afbrudt installation er ikke tilstrækkelig. Bootstrap kan også vise skærmen ved en reel worker-installation med eksisterende controller eller et bekræftet nyere manifest. Førstegangsbesøg og normal opstart med den aktuelle cache viser ingen venteskærm og har ingen ekstra minimumsventetid. Cache-læsefejl viser ingen skærm og blokerer ikke opstart. Der skrives ingen nye browserlagrede markører.
+
+   Når skærmen vises, bliver den stående i mindst 1.000 ms og erstattes ved første React-render. Minimumsventen før reload ligger **før** den sidste durable filkontrol. Sene cache-/worker-signaler må ikke vise skærmen efter afsluttet bootstrap. Visningen hverken aktiverer workers, ændrer `.eo`-load eller løsner `/open`-værnet.
 
    Rækkefølgen er ufravigelig. `installed` alene er **ikke** en tilstrækkelig barriere: en installeret worker står i `waiting`, og et dokument beholder sin controller hele sin levetid. Genindlæstes der dér, ville den nye HTML køre under den **gamle** worker, det nye dokument ville se «samme version» og returnere med det samme – og den nye worker kunne blive stående ventende i det uendelige.
 
@@ -250,7 +255,8 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 - `src/__tests__/apps/shared/vitePreloadRecovery.test.ts` (Vite-signal er kun sidste sikkerhedsnet og må ikke genindlæse en aktiv sag uvarslet).
 - `src/__tests__/main.pwaLaunchQueue.test.ts` (Mineo-entryen leverer consumer-registrering og rehydrering til shellen i rækkefølge).
 - `src/__tests__/utils/pwaLaunchQueue.test.ts` (pending request overlever versionsskift; ny launch vinder over gammel persisted request; schema-validering, utilgængelig IndexedDB og ustabil handoff stopper ikke-sikkert reload).
-- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (uændret version renderer straks uden ventetid; ny version genindlæses først efter komplet precache, matchende indbygget worker-version og bekræftet `activated`; installeret-men-aldrig-aktiv reloader ikke; `redundant`, timeout, offline, uskrivbar markør og fejlet registrering reloader ikke; flappende origin går i ro i stedet for at reloade i ring; ubekræftet `.eo`-handoff reloader ikke; ingen opdateringslinje-API eksporteres).
+- `src/__tests__/apps/mineo/serviceWorkerBootstrap.test.ts` (uændret version renderer straks uden ventetid; ny version genindlæses først efter komplet precache, matchende indbygget worker-version og bekræftet `activated`; installeret-men-aldrig-aktiv reloader ikke; `redundant`, timeout, offline, uskrivbar markør og fejlet registrering reloader ikke; flappende origin går i ro i stedet for at reloade i ring; ubekræftet `.eo`-handoff reloader ikke; `/open` viser en reel installation i mindst ét sekund uden aktivering eller reload; ingen opdateringslinje-API eksporteres).
+- `src/__tests__/apps/mineo/startupUpdateScreen.test.ts` og `e2e/pwa-startup-update.spec.ts` (tidlig visning, minimumstid, temaer, normal opstart uden skærm og afvisning af sene signaler).
 - `src/__tests__/apps/mineo/serviceWorkerProtocol.test.ts` (workeren kræver en komplet versionscache, navngiver den efter den indbagte version, afviser et manifest fra en anden build, serverer kun immutable hashed assets, springer ikke selv ventetiden over og overtager aldrig eksisterende klienter).
 - `src/__tests__/components/system/LazyChunkRecoveryNotice.test.tsx` (lazy-recoverylinjen bruger reload-barrieren og viser ingen opdateringstekst).
 - `e2e/pwa-file-open.spec.ts` (launchQueue-consumer registreres i den fulde loginrejse i Chrome, Edge, Firefox og WebKit).

@@ -6,6 +6,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import react from '@vitejs/plugin-react';
 import { createThemeBootstrapScript } from './src/settings/themeBootstrap.ts';
+import { createStartupUpdateScreenScript } from './src/apps/mineo/startupUpdateScreen.ts';
 
 const BUILD_INFO_ENV_FILE = path.resolve(import.meta.dirname, '.env.build-info.local');
 
@@ -52,6 +53,9 @@ export default defineConfig({
         return html.replace(
           MINEO_THEME_BOOTSTRAP_MARKER,
           `<script>${createThemeBootstrapScript()}</script>`
+        ).replace(
+          '<!-- MINEO_STARTUP_UPDATE -->',
+          `<script>${createStartupUpdateScreenScript(generatedBuildInfoEnv.VITE_APP_VERSION ?? '0.0.0.dev')}</script>`
         );
       },
     },

@@ -3,6 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <!-- MINEO_THEME_BOOTSTRAP -->
+    <style>
+      html { background-color: var(--mineo-startup-background); }
+      #mineo-startup-update {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        padding: 32px;
+        background-color: var(--mineo-startup-background);
+        color: rgba(0, 0, 0, 0.87);
+        font-family: 'Montserrat', sans-serif;
+        font-size: 28px;
+        font-weight: 400;
+        text-align: center;
+      }
+      #mineo-startup-update[hidden] { display: none; }
+      html[data-mineo-theme='dark'] #mineo-startup-update { color: rgba(255, 255, 255, 0.87); }
+    </style>
     <link rel="icon" type="image/svg+xml" href="/favicon-mineo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#e9ecef" />
@@ -27,8 +45,9 @@
   </head>
   <body>
     <noscript>Du skal aktivere JavaScript for at køre denne applikation.</noscript>
-    <div id="root"></div>
+    <div id="root"><div id="mineo-startup-update" role="status" hidden>Vent venligst, opdatering indlæses</div></div>
     <!-- Kommentar (dansk): Vite loader din entry via ES-moduler -->
     <script type="module" src="/src/main.tsx"></script>
+    <!-- MINEO_STARTUP_UPDATE -->
   </body>
 </html>

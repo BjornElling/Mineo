@@ -1,4 +1,5 @@
 import { VERSION } from '../../config/buildInfo';
+import { createStartupUpdateScreen } from './startupUpdateScreen';
 import { getBootReloadVersionStorageKey } from '../../config/storageManifest';
 import { awaitDurablePendingPwaFileOpenHandoff } from '../../utils/pwaLaunchQueue';
 import {
@@ -264,7 +265,10 @@ const activateNewBuildWorker = async (
   return waitForWorkerState(pending, (state) => state === 'activated', remaining());
 };
 
-const registerServiceWorker = async (deadline: number): Promise<ServiceWorkerRegistration | null> => {
+const registerServiceWorker = async (
+  deadline: number,
+  onUpdate: () => void,
+): Promise<ServiceWorkerRegistration | null> => {
   // Query'en er cache-buster, ikke versionskilde: workerens egen version er indbagt i dens bytes,
   // så `registration.update()` kan opdage en deploy på den SAMME URL.
   const serviceWorkerUrl = `/sw.js?v=${encodeURIComponent(VERSION)}`;
@@ -282,13 +286,26 @@ const registerServiceWorker = async (deadline: number): Promise<ServiceWorkerReg
     // for at afvise løftet. Det er den forventede testisolering, ikke en brugbar registration, og
     // den naive adgang til `registration.update()` ville derfor skabe en falsk runtime-advarsel.
     if (!registration) return null;
+    const observeInstallation = (): void => {
+      // Kun en reel installation med en eksisterende controller er en opdatering.
+      // En gammel controller alene er ikke bevis: den nye build kan allerede være cached.
+      if (navigator.serviceWorker.controller && registration.installing) onUpdate();
+    };
+    observeInstallation();
+    registration.addEventListener('updatefound', observeInstallation);
     // `update()` lover en afsluttet Promise<void>, ikke et boolsk resultat. Et separat true-svar
     // gør timeout/failure synligt uden at forveksle den normale `undefined` med et afslag.
-    const updated = await settleBeforeDeadline(
-      registration.update().then(() => true),
-      deadline,
-      false,
-    );
+    let updated: boolean;
+    try {
+      updated = await settleBeforeDeadline(
+        registration.update().then(() => true),
+        deadline,
+        false,
+      );
+      observeInstallation();
+    } finally {
+      registration.removeEventListener('updatefound', observeInstallation);
+    }
     if (!updated) return null;
     return registration;
   } catch (error) {
@@ -297,7 +314,7 @@ const registerServiceWorker = async (deadline: number): Promise<ServiceWorkerReg
   }
 };
 
-const runBootUpdatePass = async (): Promise<void> => {
+const runBootUpdatePass = async (screen: ReturnType<typeof createStartupUpdateScreen>): Promise<void> => {
   // Gaten på opstartsfasen ligger HER, i det ene forløb: efter render må en ny worker aldrig
   // aktiveres, og en gate spredt ud over kaldsstederne ville før eller siden blive glemt ét af dem.
   if (!isBootPhase) return;
@@ -308,13 +325,16 @@ const runBootUpdatePass = async (): Promise<void> => {
   if (isPwaFileOpenRoute()) {
     // Bevar worker-registrering og mulighed for fuld precache, men spring alt over, som kan gøre
     // launchQueue-leveringen ikke-deterministisk i denne filåbningssession.
-    await registerServiceWorker(deadline);
+    await registerServiceWorker(deadline, screen.show);
     return;
   }
 
   const [registration, deployedVersion] = await Promise.all([
-    registerServiceWorker(deadline),
-    probeDeployedVersion(deadline),
+    registerServiceWorker(deadline, screen.show),
+    probeDeployedVersion(deadline).then((version) => {
+      if (hadControllerAtBoot && version !== null && version !== VERSION) screen.show();
+      return version;
+    }),
   ]);
 
   // Uopløselig version (offline/fejl) eller uændret version: den normale, hurtige vej. Ingen
@@ -333,6 +353,9 @@ const runBootUpdatePass = async (): Promise<void> => {
   // i et nyt dokument under den gamle worker.
   if (!(await activateNewBuildWorker(registration, deployedVersion, deadline))) return;
 
+  // Vent før den sidste filkontrol – aldrig mellem bekræftet handoff og reload.
+  await screen.waitForMinimumDisplay();
+
   // Sidste tjek før dokumentet rives ned: en `.eo`-fil, browseren afleverede få millisekunder
   // forinden, kan stadig være undervejs til IndexedDB. Kan den durable handoff ikke bekræftes, må
   // der ikke genindlæses – brugerens fil vejer tungere end at komme på nyeste version med det samme.
@@ -350,18 +373,20 @@ export const ensureLatestVersionBeforeRender = async (): Promise<void> => {
   // Det lokale E2E-preview kører mod et immutabelt build for at undgå Vites samtidige lazy-transformer
   // og springer derfor worker-opstarten over. CI's artefakttest bruger produktionsbuildet; dér kan
   // Playwright stadig blokere worker-API'en, og den situation håndteres fail-safe i registration-leddet.
-  if (import.meta.env.MODE === 'e2e') return;
-  if (!import.meta.env.PROD) return;
-  if (typeof navigator === 'undefined') return;
-  if (!('serviceWorker' in navigator)) return;
-
+  const screen = createStartupUpdateScreen();
   try {
-    await runBootUpdatePass();
+    if (import.meta.env.MODE === 'e2e') return;
+    if (!import.meta.env.PROD) return;
+    if (typeof navigator === 'undefined') return;
+    if (!('serviceWorker' in navigator)) return;
+    await runBootUpdatePass(screen);
   } catch {
     // Fail-safe: enhver uventet fejl i opdateringsforløbet må aldrig forhindre programmet i at
     // starte på den version, der allerede er hentet.
   } finally {
     isBootPhase = false;
+    screen.close();
+    await screen.waitForMinimumDisplay();
   }
 };
 
