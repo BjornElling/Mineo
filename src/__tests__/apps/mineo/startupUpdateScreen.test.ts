@@ -37,7 +37,8 @@ describe('startupUpdateScreen', () => {
 
   it('medregner HTML-visningen i minimumstiden og lukker for sene svar', async () => {
     await runEarlyScript(['mineo-build-assets:gammel']);
-    await vi.advanceTimersByTimeAsync(700);
+    // performance.now() indeholder brøkdele; nedrunding ville forkorte minimumsvisningen.
+    await vi.advanceTimersByTimeAsync(700.5);
     const screen = createStartupUpdateScreen();
     screen.show();
     screen.close();

@@ -34,6 +34,11 @@ const releaseGateBuildsBothVariants = (scripts: PackageScripts): boolean => {
   return REQUIRED_BUILD_SCRIPTS.every((script) => reached.has(script));
 };
 
+const commitGateRunsQualityGuards = (scripts: PackageScripts, hook: string): boolean =>
+  /^\s*npm run check:commit\s*$/m.test(hook)
+  && reachableScripts('check:commit', scripts).has('check:quality')
+  && scripts['check:quality'] === 'vitest run src/__tests__/quality';
+
 describe('verify:release:core – build-wiringens liveness', () => {
   it('når begge deploybare buildvarianter gennem build:all', () => {
     const scripts = readPackageScripts();
@@ -50,5 +55,33 @@ describe('verify:release:core – build-wiringens liveness', () => {
     };
 
     expect(releaseGateBuildsBothVariants(scripts)).toBe(false);
+  });
+});
+
+describe('pre-commit – kvalitetsværnenes liveness', () => {
+  const readHook = (): string => readFileSync(join(repoRoot, '.husky/pre-commit'), 'utf8');
+
+  it('kører hele quality-mappen gennem den faste commit-kontrol', () => {
+    expect(commitGateRunsQualityGuards(readPackageScripts(), readHook())).toBe(true);
+  });
+
+  it('afviser fjernelse af quality-kontrollen fra den levende commit-kæde', () => {
+    const scripts = readPackageScripts();
+    const original = scripts['check:commit']!;
+    const changed = original.replace(/\s*&& npm run check:quality\b/, '');
+    expect(changed).not.toBe(original);
+    expect(commitGateRunsQualityGuards({ ...scripts, 'check:commit': changed }, readHook())).toBe(false);
+  });
+
+  it('afviser et håndvalgt udsnit i stedet for hele quality-mappen', () => {
+    const scripts = { ...readPackageScripts(), 'check:quality': 'vitest run src/__tests__/quality/e2eLoginAwaitGuard.test.ts' };
+    expect(commitGateRunsQualityGuards(scripts, readHook())).toBe(false);
+  });
+
+  it('afviser en hook, der ikke længere kalder commit-kontrollen', () => {
+    const original = readHook();
+    const changed = original.replace(/^npm run check:commit\s*$/m, '');
+    expect(changed).not.toBe(original);
+    expect(commitGateRunsQualityGuards(readPackageScripts(), changed)).toBe(false);
   });
 });

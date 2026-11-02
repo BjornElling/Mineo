@@ -26,17 +26,25 @@ test.describe('Venteskærm ved en ny programversion', () => {
           await assetsHeld;
           await route.continue();
         });
-        const started = login(page, path);
-        try {
-          const screen = page.getByRole('status');
-          await expect(screen).toHaveText('Vent venligst, opdatering indlæses');
-          await expect(screen).toBeVisible();
-          await expect(screen).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(43, 43, 43)' : 'rgb(233, 236, 239)');
-          await page.screenshot({ path: testInfo.outputPath('venteskaerm.png') });
-        } finally {
-          releaseAssets();
+        // Opstarten og målingen skal køre samtidig: login kan først afsluttes, når målingen
+        // frigiver programkoden. Begge forløb afventes, også hvis målingen fejler.
+        const startupResults = await Promise.allSettled([
+          (async () => { await login(page, path); })(),
+          (async () => {
+            try {
+              const screen = page.getByRole('status');
+              await expect(screen).toHaveText('Vent venligst, opdatering indlæses');
+              await expect(screen).toBeVisible();
+              await expect(screen).toHaveCSS('background-color', colorScheme === 'dark' ? 'rgb(43, 43, 43)' : 'rgb(233, 236, 239)');
+              await page.screenshot({ path: testInfo.outputPath('venteskaerm.png') });
+            } finally {
+              releaseAssets();
+            }
+          })(),
+        ]);
+        for (const result of startupResults) {
+          if (result.status === 'rejected') throw result.reason;
         }
-        await started;
         await expect(page.locator('#mineo-startup-update')).toHaveCount(0);
         const duration = await page.evaluate(() => {
           const probe = (window as Window & { __startupUpdateProbe?: { shownAt: number; removedAt: number } }).__startupUpdateProbe;

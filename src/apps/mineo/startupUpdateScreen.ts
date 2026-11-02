@@ -1,3 +1,5 @@
+import { roundByMethod } from '../../utils/rounding.ts';
+
 /**
  * Kører fra HTML før appens modultræ hentes. En tidligere versionscache og fravær af den nye
  * builds precache viser, at dette er en opdatering, ikke et førstegangsbesøg eller en normal opstart.
@@ -50,7 +52,7 @@ export const createStartupUpdateScreen = (): Readonly<{
       const shownAt = Number(screen.dataset.shownAt);
       if (!Number.isFinite(shownAt)) return;
       const remaining = 1000 - (performance.now() - shownAt);
-      if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, Math.ceil(remaining)));
+      if (remaining > 0) await new Promise<void>((resolve) => window.setTimeout(resolve, roundByMethod(remaining, 0, 'ceil')));
     },
     // Et sent worker-svar må ikke lægge venteskærmen oven på en allerede startet session.
     // React erstatter selve skærmen ved sit første render, også på opstartens fejlsti.

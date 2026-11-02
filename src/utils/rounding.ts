@@ -5,8 +5,8 @@
  * og garanterer at -0 aldrig returneres.
  */
 
-import { assertNever } from './assertNever';
-import { normalizeZero } from './amountInputUtils';
+import { assertNever } from './assertNever.ts';
+import { normalizeZero } from './amountInputUtils.ts';
 
 /**
  * Rounding-metoder understøttet af systemet.
