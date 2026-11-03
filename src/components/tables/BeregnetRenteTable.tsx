@@ -310,7 +310,7 @@ const BeregnetRenteTable = React.memo(
     const autofillModel = buildRentekravAutofillModel(renderRows.map((row) => row.rowId), committedById);
 
     return (
-      <AutofillSuggestProvider model={autofillModel}>
+      <AutofillSuggestProvider model={autofillModel} enabled={!isMobile}>
       <StandardLooseTable
         immediateEditing={isMobile}
         sx={{

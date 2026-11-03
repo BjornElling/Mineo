@@ -126,7 +126,7 @@ export const GRID_UX_SPEC = {
      *
      * Tilvalg pr. TABEL: en tabel uden `AutofillSuggestProvider` har ingen autofill. Aktiv i løntabellerne
      * (Årsløn og EO's ansættelsesforhold), Offentlige ydelser og renteberegningens kravtabel (Renteberegning
-     * og MinProcesrente).
+     * og MinProcesrente). Aldrig i mobilvisning: MinProcesrentes mobilopstilling sætter `enabled={false}`.
      */
     optInPerTable: true,
     onlyInFocusedEmptyCell: true,

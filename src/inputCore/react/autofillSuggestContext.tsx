@@ -18,13 +18,23 @@ const AutofillSuggestContext = React.createContext<AutofillSuggestContextValue |
 
 export type AutofillSuggestProviderProps = Readonly<{
   model: AutofillSuggestModel;
+  /**
+   * `false` slår autofill fra for hele tabellen, præcis som en tabel uden provider. Bruges af
+   * MinProcesrentes mobilopstilling: autofill vises aldrig i mobilvisning (udviklerbeslutning 2026-11-03).
+   * Provideren monteres fortsat, så træets form ikke afhænger af flaget.
+   */
+  enabled?: boolean;
   children: React.ReactNode;
 }>;
 
-export const AutofillSuggestProvider = ({ model, children }: AutofillSuggestProviderProps): React.ReactElement => {
-  const value = React.useMemo<AutofillSuggestContextValue>(
-    () => ({ resolve: (rowId, colIndex) => resolveAutofillSuggestion(model, rowId, colIndex) }),
-    [model]
+export const AutofillSuggestProvider = ({
+  model,
+  enabled = true,
+  children,
+}: AutofillSuggestProviderProps): React.ReactElement => {
+  const value = React.useMemo<AutofillSuggestContextValue | null>(
+    () => (enabled ? { resolve: (rowId, colIndex) => resolveAutofillSuggestion(model, rowId, colIndex) } : null),
+    [model, enabled]
   );
   return <AutofillSuggestContext.Provider value={value}>{children}</AutofillSuggestContext.Provider>;
 };

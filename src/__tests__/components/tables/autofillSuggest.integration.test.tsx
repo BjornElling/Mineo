@@ -326,10 +326,11 @@ const MAANED_LOENRAEKKER = [
   { id: 'loen-2', col0_maaned: '12', col1_maaned: '2025', col2: amount(30000) },
 ] as const;
 
-const RenteAutofillTable = (): React.ReactElement => {
+const RenteAutofillTable = ({ isMobile = false }: { isMobile?: boolean }): React.ReactElement => {
   const evaluation = useInputEvaluation();
   return (
     <BeregnetRenteTable
+      isMobile={isMobile}
       committedRows={readRentekravCommittedRows(evaluation.reader)}
       rowProjections={new Map()}
       onDownloadSpecifikation={async () => {}}
@@ -343,7 +344,7 @@ const RenteAutofillTable = (): React.ReactElement => {
 describe('Autofill-suggest i rentetabellen', () => {
   afterEach(cleanup);
 
-  const renderRentetabel = (): void => {
+  const renderRentetabel = (isMobile = false): void => {
     hydrate({ renteberegning: {
       beregningsdato: iso('2026-12-31'),
       rentekravRows: [
@@ -351,8 +352,21 @@ describe('Autofill-suggest i rentetabellen', () => {
         { id: 'krav-2', belob: amount(8000), renterFra: iso('2026-02-01'), tillaegstid: 30, enhed: 'dage' },
       ],
     } });
-    renderInRuntime(<RenteAutofillTable />);
+    renderInRuntime(<RenteAutofillTable isMobile={isMobile} />);
   };
+
+  // Udviklerbeslutning 2026-11-03: autofill vises aldrig i mobilvisning (MinProcesrentes mobilopstilling).
+  it.each([
+    ['Beløb', '0,00'],
+    ['Forfaldsdato', 'dd-mm-åååå'],
+  ])('viser ingen ghost i %s i mobilvisning', async (label, formatPlaceholder) => {
+    renderRentetabel(true);
+    const input = cellInput(2, label);
+    await focusTableElement(input);
+
+    expect(cellInput(2, label)).toHaveAttribute('placeholder', formatPlaceholder);
+    expect(screen.queryByText(/^Forslag:/)).not.toBeInTheDocument();
+  });
 
   it.each([
     ['Beløb', '8.000,00'],

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-10-29 (§1.5: hele kalendermåneder måles i måneder, autofill også på Årsløn og renteberegningen; §5.1: sammenhængende perioder giver gul advarsel; kontrolleret mod `autofillSuggestEngine.ts` og `sammenhaengendePerioderAdvarsler.ts`. Tidligere 2026-10-24: BB-342: TAF-afskæringerne er inkluderende, og felt-/rækkebeskederne siger «på eller efter»; kontrolleret mod `tafPeriodConstraints.ts`, `svieSmerteConstraints.ts` og de tilhørende grænsetests. Tidligere 2026-10-02: §2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
+**Senest verificeret mod kode:** 2026-11-03 (§1.5: autofill vises aldrig i MinProcesrentes mobilopstilling; kontrolleret mod `autofillSuggestContext.tsx`, `BeregnetRenteTable.tsx` og mobiltestene i `autofillSuggest.integration.test.tsx`. Tidligere 2026-10-29: §1.5: hele kalendermåneder måles i måneder, autofill også på Årsløn og renteberegningen; §5.1: sammenhængende perioder giver gul advarsel; kontrolleret mod `autofillSuggestEngine.ts` og `sammenhaengendePerioderAdvarsler.ts`. Tidligere 2026-10-24: BB-342: TAF-afskæringerne er inkluderende, og felt-/rækkebeskederne siger «på eller efter»; kontrolleret mod `tafPeriodConstraints.ts`, `svieSmerteConstraints.ts` og de tilhørende grænsetests. Tidligere 2026-10-02: §2.8: dagfelternes navne følger skærmen, «Antal fraværsdage (mandag-fredag)». Tidligere 2026-09-25: feltet hedder «Løse ferie-/feriefridage». §1.5 blev samme dag
 revideret efter gennemgang af brugernes forventninger og fejlskærmbilleder: forslag kræver to foregående
 rækker, periodemønstre begrænses til faste uge- og månedsintervaller, sammenhængende fra-/til-perioder
 følges ad, og beløb gentages kun efter to ens værdier, med de beskrevne periode- og grænsevilkår.
@@ -269,7 +269,9 @@ en åben editor indsættes ved markørens position og følger den åbne editors 
 
 Autofill er aktiv i løntabellerne (Årsløn og erstatningsopgørelsens ansættelsesforhold), Offentlige ydelsers
 ydelsestabel og renteberegningens kravtabel (Renteberegning og MinProcesrente). Reglerne er de samme i alle
-tabeller og implementeret ét sted. Forslaget er
+tabeller og implementeret ét sted. Autofill vises aldrig i mobilvisning: MinProcesrentes mobilopstilling
+(samme enhedsgenkendelse som opstillingen selv) slår den fra via providerens `enabled`, og Mineo vises
+slet ikke på mobil. Forslaget er
 kun en synlig ghost i den fokuserede, tomme celle. Enter indsætter den viste værdi; øvrig navigation og
 accept følger reglerne nedenfor og `keyboard-navigation.md`.
 
