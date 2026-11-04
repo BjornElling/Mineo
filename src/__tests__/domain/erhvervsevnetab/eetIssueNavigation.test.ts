@@ -1,6 +1,7 @@
 import {
   ERHVERVSEVNETAB_TAB_KEYS,
   resolveMidlertidigtEetIssueNavigation,
+  TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX,
 } from '../../../domain/erhvervsevnetab/eetIssueNavigation';
 import {
   stamdataSkadedatoField,
@@ -82,8 +83,8 @@ describe('resolveMidlertidigtEetIssueNavigation', () => {
     });
   });
 
-  it('fører manglende TAF-slutdato til TAF-sektionen i Erstatningsopgørelsen', () => {
-    expect(resolveMidlertidigtEetIssueNavigation({ id: 'midlertidigt-eet-slutdato-missing' })).toEqual({
+  it('fører advarslen om TAF efter en kapitalisering til TAF-sektionen i Erstatningsopgørelsen', () => {
+    expect(resolveMidlertidigtEetIssueNavigation({ id: `${TAF_EFTER_KAPITALISERING_ISSUE_ID_PREFIX}:taf-1` })).toEqual({
       kind: 'erstatningsopgoerelse-tab',
       pageName: 'Erstatningsopgørelse',
       tabId: 'eo_oplysninger',

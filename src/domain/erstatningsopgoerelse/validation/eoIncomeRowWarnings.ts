@@ -15,7 +15,7 @@ import {
   eoOffentligeYdelserYdelseField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { DUPLICATE_ROW_WARNING, findDuplicateRows } from '../../../utils/tableDuplicateRowDetection';
-import { canonicalYdelsestypeKey, resolveYdelsestype } from '../../../data/ydelsestyper';
+import { canonicalYdelsestypeKey, erMidlertidigtEetYdelsestype, resolveYdelsestype } from '../../../data/ydelsestyper';
 import {
   periodCells,
   resolveStandardLoenRowWarnings,
@@ -38,7 +38,9 @@ import { deriveOffentligeYdelserRow } from '../helpers/offentligeYdelserDerived'
 //  - offentlige ydelser: identisk række (BB-289), negativt beløb (BB-290) og en arbejdsdags-periodiseret ydelse i en
 //    periode uden arbejdsdage (BB-365; samme regel som lønnens og TAF-periodernes);
 //  - begge: et beløb over ti gange højere end de øvrige rækker i samme periode (BB-297, `tableAmountOutlierDetection.ts`).
-// Alle regnes med i beregningen; advarslen beder kun brugeren om at se efter.
+// Alle regnes med i beregningen; advarslen beder kun brugeren om at se efter. Eneste undtagelse er en manuel
+// midlertidigt EET-række, mens midlertidigt EET hentes fra Erhvervsevnetab-siden: den medregnes ikke, og advarslen
+// siger netop det (udviklerafgørelse 2026-11-04).
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -109,7 +111,12 @@ export const resolveLoenindkomstRowWarnings = (
   return [...ingenArbejdsdage, ...standard];
 };
 
-export type OffentligeYdelserRowWarningKind = 'duplicateRow' | 'negativeAmount' | 'amountOutlier' | 'ingenArbejdsdage';
+export type OffentligeYdelserRowWarningKind =
+  | 'duplicateRow'
+  | 'negativeAmount'
+  | 'amountOutlier'
+  | 'ingenArbejdsdage'
+  | 'midlertidigtEetMedregnesIkke';
 
 export type OffentligeYdelserRowWarning = Readonly<{
   kind: OffentligeYdelserRowWarningKind;
@@ -182,8 +189,24 @@ export const resolveOffentligeYdelserRowWarnings = (
   }));
 
   const warnings: OffentligeYdelserRowWarning[] = [];
+  const hentesFraEetSiden = values?.midlertidigtEetFraEetSiden === 'Ja';
   for (const row of rows) {
     if (errorRowIds.has(row.id)) continue;
+    // Når midlertidigt EET hentes fra Erhvervsevnetab-siden, springer beregningen manuelle midlertidigt EET-rækker
+    // over (`buildEoValuesWithTransientMidlertidigtEet`). Slås hentningen til i tabellen, slettes rækkerne efter en
+    // bekræftelse – men en indlæst fil kan have begge dele, og så stod rækken i tabellen uden at blive medregnet
+    // og uden et ord om det. Rækkens øvrige advarsler er da uden betydning og udelades.
+    if (hentesFraEetSiden && erMidlertidigtEetYdelsestype(row.ydelsestype)
+      && getOffentligeYdelserRowFilledState(row).hasAnyFilled) {
+      warnings.push(Object.freeze({
+        kind: 'midlertidigtEetMedregnesIkke' as const,
+        rowId: row.id,
+        summaryMessage: `${nameOf(row)} medregnes ikke, fordi midlertidigt EET hentes fra Erhvervsevnetab-siden`,
+        cellMessage: 'Rækken medregnes ikke, fordi midlertidigt EET hentes fra Erhvervsevnetab-siden',
+        cells: ydelseCells(row.id),
+      }));
+      continue;
+    }
     if (duplicateIds.has(row.id)) {
       warnings.push(Object.freeze({
         kind: 'duplicateRow' as const,

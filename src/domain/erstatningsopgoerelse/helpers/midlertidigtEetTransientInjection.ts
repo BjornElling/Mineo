@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import {
   buildEetImportContext,
-  buildUnavailableEetImportContext,
+  buildEmptyEetImportContext,
   type EetImportContext,
   type EetImportSource,
 } from '../../erhvervsevnetab/eetImportPort';
@@ -23,8 +23,12 @@ export type MidlertidigtEetTransientResult = Readonly<{
 
 /**
  * Den fælles EO-wiring fra schema-valideret EET-kilde og clampede TAF-ranges til importporten.
- * Komponenten og snapshot-testene bruger samme funktion, så valg af seneste TAF-slutdato og
- * fail-closed-fejlen ved manglende periode ikke kan drive fra hinanden.
+ * Komponenten og snapshot-testene bruger samme funktion, så valg af seneste TAF-slutdato ikke kan
+ * drive fra hinanden.
+ *
+ * Uden en clampet TAF-periode er der intet at fradrage i, og importen giver en tom context UDEN issue
+ * (udviklerafgørelse 2026-11-04). Før spærrede en rød fejl alle EO-dokumenter – også når TAF-perioderne
+ * blot lå uden for EO-perioden og stille var skåret væk. Ufuldstændige TAF-perioder giver deres egne fejl.
  */
 export const buildMidlertidigtEetImportContext = (
   source: EetImportSource,
@@ -36,7 +40,7 @@ export const buildMidlertidigtEetImportContext = (
   );
   return slutdato
     ? buildEetImportContext(source, slutdato)
-    : buildUnavailableEetImportContext(source, 'taf_slutdato_missing');
+    : buildEmptyEetImportContext(source);
 };
 
 const MIDLERTIDIGT_EET_IMPORT_FAILURE_PREFIX = 'Midlertidigt EET kan ikke hentes fra Erhvervsevnetab-siden';

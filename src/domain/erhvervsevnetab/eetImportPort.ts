@@ -5,10 +5,7 @@ import type { ISODateString } from '../../types/branded';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import { createTrackedInputReader, type InputEvaluation } from '../../inputCore/inputReader';
-import {
-  aslAfgoerelseAfgoerelseTypeField,
-  erhvervsevnetabBeregningsdatoField,
-} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import { aslAfgoerelseAfgoerelseTypeField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { faellesAarsloenAslAarsloenField } from '../../inputCore/catalog/faellesAarsloenDescriptors';
 import {
   stamdataSkadedatoField,
@@ -20,8 +17,7 @@ import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
-import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType } from './eetAslAfgoerelser';
-import { MISSING_BEREGNINGSDATO_ISSUE } from './eetIssueCatalog';
+import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import { resolveEetIssueFocusTarget } from './eetIssueFocusTargets';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
@@ -62,7 +58,6 @@ export type EetImportSource = Readonly<{
  * Listen er udledt af importens transitive call-graph (`eetLoebendeYdelserCalculation.ts`
  * → `computeEetLoebendeYdelserForContext` + `eetAslAfgoerelser.ts`):
  *
- * - `erhvervsevnetab.beregningsdato`: EET-beregningsdatoen (falder tilbage til TAF-slutdatoen, men læses).
  * - `erhvervsevnetab.aslAfgoerelser.*`: hele afgørelsesrækken – datoer, procenter, type og
  *   `fsTilbageholdtEet` – er periodiseringens og beløbenes grundlag.
  * - `faellesAarsloen.aslAarsloen`: `grundloen` ganges ind i HVERT periodebeløb, og feltet giver selv
@@ -71,6 +66,10 @@ export type EetImportSource = Readonly<{
  *   folkepensionsafgrænsningen af den løbende ydelse.
  *
  * BEVIDST UDE – læst, men uden talvirkning eller slet ikke læst:
+ * - `erhvervsevnetab.beregningsdato`: importen afgrænses alene af TAF-slutdatoen, fordi løbende EET forudsættes
+ *   at fortsætte til folkepensionsalderen, medmindre en afgørelse kapitaliseres (`eo-snapshot-contract.md` §13).
+ *   Datoen blev tidligere læst som fallback-kilde, og en tom eller rød EET-beregningsdato – fx et år uden
+ *   reguleringssats, som kun EAL-beregningen har brug for – spærrede derfor hele importen uden talvirkning.
  * - `faellesAarsloen.ealAarsloen`: læses ikke af EO-importen. EAL-årslønnen hører til EET-sidens
  *   EAL-beregning og er ikke en del af importens typed read-set.
  * - `erhvervsevnetab.ealEetPct`, `koen`, `bilag*`-toggles og de to differencekrav-toggles: ikke læst på
@@ -85,14 +84,12 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   const eetProjection = createTrackedInputReader(evaluation.reader);
   const aarsloenProjection = createTrackedInputReader(evaluation.reader);
   const stamdataProjection = createTrackedInputReader(evaluation.reader);
-  const beregningsdatoRead = eetProjection.reader.read(erhvervsevnetabBeregningsdatoField.bind());
   const aslAarsloenRead = aarsloenProjection.reader.read(faellesAarsloenAslAarsloenField.bind());
   const skadedatoRead = stamdataProjection.reader.read(stamdataSkadedatoField.bind());
   const skadestypeRead = stamdataProjection.reader.read(stamdataSkadestypeField.bind());
   const fodselsdatoRead = stamdataProjection.reader.read(stamdataSkadelidteFodselsdatoField.bind());
   const eetValues: ErhvervsevnetabComposedValues = {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
-    beregningsdato: beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined,
     aslAfgoerelser: readAslAfgoerelserCommittedRows(eetProjection.reader),
     aslAarsloen: aslAarsloenRead.status === 'usable' ? aslAarsloenRead.value : undefined,
     skadelidteFodselsdato: fodselsdatoRead.status === 'usable' ? fodselsdatoRead.value : undefined,
@@ -171,6 +168,33 @@ export const resolveDelvistEndeligeKapitaliseringsdatoer = (
   return Object.freeze([...datoer].sort((left, right) => left.localeCompare(right)));
 };
 
+export type EetAfgoerelseDatoer = Readonly<{
+  afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
+  afgoerelsesdato: ISODateString;
+  /** Udledt som i beregningen: den særskilte virkningsdato, ellers afgørelsesdatoen (BB-368). */
+  virkningsdato: ISODateString;
+}>;
+
+/**
+ * Datoerne for Erhvervsevnetab-sidens afgørelser, læst af samme committed rækkeprojektion som importen.
+ *
+ * EO bruger dem alene, mens midlertidigt EET hentes fra siden, til en gul advarsel, når datoerne for den
+ * midlertidige eller endelige afgørelse på EO oplysninger ikke svarer til en afgørelse her
+ * (`domain-boundary-contract.md` §9 pkt. 12, udviklerafgørelse 2026-11-04). Ingen beregning læser dem.
+ */
+export const resolveEetAfgoerelseDatoer = (
+  source: EetImportSource | null | undefined
+): readonly EetAfgoerelseDatoer[] => {
+  if (!source) return [];
+  return Object.freeze(source.eetValues.aslAfgoerelser.flatMap((row) => {
+    if (isAslAfgoerelseRowEmpty(row) || !isKnownAfgoerelseType(row.afgoerelseType)) return [];
+    const afgoerelsesdato = isISODateString(row.afgoerelsesDato) ? row.afgoerelsesDato : undefined;
+    const virkningsdato = resolveAslVirkningsdato(row);
+    if (afgoerelsesdato === undefined || virkningsdato === undefined) return [];
+    return [Object.freeze({ afgoerelseType: row.afgoerelseType, afgoerelsesdato, virkningsdato })];
+  }));
+};
+
 const failedContext = (
   revision: string,
   issue: EetIssue
@@ -178,6 +202,17 @@ const failedContext = (
   revision,
   groups: [],
   issues: [issue],
+});
+
+/**
+ * Importen uden noget at fradrage: ingen clampet TAF-periode (og dermed ingen slutdato) eller ingen midlertidig
+ * eller delvist endelig afgørelse. Tom og uden issue – det er ikke en fejl, at der intet midlertidigt EET er at
+ * trække fra (`eo-snapshot-contract.md` §13).
+ */
+export const buildEmptyEetImportContext = (source: EetImportSource): EetImportContext => eetImportContextSchema.parse({
+  revision: source.revision,
+  groups: [],
+  issues: [],
 });
 
 export const buildEetImportContext = (
@@ -211,17 +246,11 @@ export const buildEetImportContext = (
     !isAslAfgoerelseRowEmpty(row)
     && (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig')
   );
-  if (!hasImportRelevantRow) {
-    return eetImportContextSchema.parse({
-      revision: source.revision,
-      groups: [],
-      issues: [],
-    });
-  }
+  if (!hasImportRelevantRow) return buildEmptyEetImportContext(source);
 
   try {
-    // Importen er en særskilt canonical context: TAF-slutdatoen afgrænser ydelsen og kan
-    // erstatte en manglende EET-beregningsdato. Selve beregningskernen er den samme som siden.
+    // Importen er en særskilt canonical context: TAF-slutdatoen afgrænser ydelsen i stedet for
+    // EET-sidens beregningsdato. Selve beregningskernen er den samme som siden.
     const result = computeEetLoebendeYdelserForEoImport({
       erhvervsevnetab: source.eetValues,
       skadedato: source.skadedato,
@@ -274,30 +303,4 @@ export const buildEetImportContext = (
       message: 'EET-oplysningerne kunne ikke klargøres sikkert til Erstatningsopgørelsen.',
     });
   }
-};
-
-export const buildUnavailableEetImportContext = (
-  source: EetImportSource | null | undefined,
-  reason: 'source_missing' | 'taf_slutdato_missing'
-): EetImportContext => {
-  const manglerEetBeregningsdato = source !== null
-    && source !== undefined
-    && !source.eetValues.beregningsdato;
-  const issue: EetIssue = reason === 'source_missing'
-    ? {
-      id: 'midlertidigt-eet-source-missing',
-      severity: 'error',
-      message: 'EET-oplysningerne kunne ikke indlæses sikkert til Erstatningsopgørelsen.',
-    }
-    : manglerEetBeregningsdato
-      ? {
-        ...MISSING_BEREGNINGSDATO_ISSUE,
-        focusTarget: { kind: 'fieldAddress', address: erhvervsevnetabBeregningsdatoField.bind().address },
-      }
-      : {
-        id: 'midlertidigt-eet-slutdato-missing',
-        severity: 'error',
-        message: 'Midlertidigt EET kan ikke importeres, fordi EO-periodens slutdato mangler.',
-      };
-  return failedContext(source?.revision ?? 'missing-source', issue);
 };

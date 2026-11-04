@@ -209,7 +209,7 @@ const collectResolvedAfgoerelser = (
  * blot TAF-slutdatoen, og en EET-afgørelse med virkning efter erstatningsperiodens udløb er helt
  * normal (fx en opgørelse lavet – evt. revideret – før EET-afgørelsen er truffet). Derfor
  * undertrykkes netop disse advarsler i EO-import-konteksten. Filtreringen sker ved EO-import-grænsen
- * (`buildMidlertidigtEetSourceResult`), så erhvervsevnetab-sidens egen visning er upåvirket.
+ * (`buildEetImportContext`), så erhvervsevnetab-sidens egen visning er upåvirket.
  * Se `eo-snapshot-contract.md` §13.
  */
 export const EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS: ReadonlySet<string> = new Set([
@@ -335,11 +335,14 @@ const buildLoebendeYdelsesRows = (
 const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculationResult => {
   const issues: EetIssue[] = [];
 
-  const beregningsdatoInput = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
-  // EO-importen har sin egen eksplicitte port, så TAF-slutdatoen ikke kan sive ind i
-  // EET-sidens beregning som en skjult optional override.
-  const beregningsdato = beregningsdatoInput
-    ?? (input.context.kind === 'eo_import' ? input.context.slutdato : undefined);
+  // I EO-importen er TAF-slutdatoen den eneste afgrænsning: løbende EET forudsættes at fortsætte til
+  // folkepensionsalderen, medmindre en afgørelse kapitaliseres (eo-snapshot-contract.md §13). EET-sidens
+  // beregningsdato er en opgørelsesdato for EET-sidens egne beregninger og læses derfor slet ikke her –
+  // før kunne en tom eller rød EET-beregningsdato spærre importen uden at ændre et eneste beløb.
+  // Den eksplicitte context forhindrer omvendt, at TAF-slutdatoen siver ind i EET-sidens beregning.
+  const beregningsdato = input.context.kind === 'eo_import'
+    ? input.context.slutdato
+    : coerceToISODateString(input.erhvervsevnetab.beregningsdato);
   const skadedato = input.skadedato;
   const stamdataDatoReference = resolveStamdataDatoReference(input.skadestype);
   const fodselsdato = input.skadelidteFodselsdato;
@@ -435,11 +438,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const { resolvedRows: resolvedAfgoerelserWithKapitalisering, events: kapitaliseringEvents } =
     buildKapitaliseringEvents(resolvedAfgoerelser, skadedato, fodselsdato);
 
-  const loebendeYdelserSlutdato = input.context.kind === 'eo_import'
-    ? input.context.slutdato
-    : beregningsdato;
-
-  const periodeplan = buildLoebendePeriodeplan(resolvedAfgoerelserWithKapitalisering, kapitaliseringEvents, fodselsdato, loebendeYdelserSlutdato);
+  const periodeplan = buildLoebendePeriodeplan(resolvedAfgoerelserWithKapitalisering, kapitaliseringEvents, fodselsdato, beregningsdato);
 
   const computations: EetLoebendeAfgoerelseComputation[] = [];
 

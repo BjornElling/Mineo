@@ -2250,21 +2250,38 @@ describe('computeEetLoebendeYdelserForEoImport', () => {
     expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
   });
 
-  it('lader EO-importens slutdato afgrænse perioden, mens en udfyldt beregningsdato bevares', () => {
-    const result = computeEetLoebendeYdelserForEoImport({
-      erhvervsevnetab: {
-        ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: toISODateString('2024-12-31'),
-        aslAarsloen: asAmount(300000),
-        aslAfgoerelser: [midlertidigRow],
-      },
+  // Løbende EET forudsættes at fortsætte til folkepension, medmindre en afgørelse kapitaliseres. I importen er
+  // TAF-slutdatoen derfor den eneste afgrænsning – en EET-beregningsdato før eller efter den ændrer intet.
+  it.each([
+    ['efter', '2024-12-31'],
+    ['før', '2024-02-29'],
+  ])('ignorerer en EET-beregningsdato %s EO-importens slutdato', (_label, beregningsdato) => {
+    const input = {
       skadedato: toISODateString('2024-01-01'),
       skadelidteFodselsdato: toISODateString('1980-01-01'),
       slutdato: toISODateString('2024-04-30'),
+    };
+    const result = computeEetLoebendeYdelserForEoImport({
+      ...input,
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString(beregningsdato),
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [midlertidigRow],
+      },
+    });
+    const udenBeregningsdato = computeEetLoebendeYdelserForEoImport({
+      ...input,
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: undefined,
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [midlertidigRow],
+      },
     });
 
-    // Udfyldt beregningsdato bevares i computation, men importens slutdato afgrænser perioden.
-    expect(result.computation?.beregningsdato).toBe(toISODateString('2024-12-31'));
+    expect(result).toEqual(udenBeregningsdato);
+    expect(result.computation?.beregningsdato).toBe(toISODateString('2024-04-30'));
     expect(result.computation?.afgoerelser.flatMap((a) => a.perioder).at(-1)?.til).toBe(toISODateString('2024-04-30'));
   });
 

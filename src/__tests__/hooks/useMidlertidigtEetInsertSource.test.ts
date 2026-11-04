@@ -28,11 +28,13 @@ const buildEvaluation = (options?: Readonly<{
   aslAarsloen?: number;
   foedselsdato?: string;
   skadedato?: string;
+  beregningsdato?: string | null;
   invalidSkadestype?: boolean;
 }>) => {
+  const beregningsdato = options?.beregningsdato === undefined ? '2026-03-01' : options.beregningsdato;
   const erhvervsevnetab: ErhvervsevnetabValues = {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
-    beregningsdato: toISODateString('2026-03-01'),
+    beregningsdato: beregningsdato === null ? undefined : toISODateString(beregningsdato),
     ealEetPct: options?.eetPct ?? 25,
     aslAfgoerelser: [{
       id: 'afg-1',
@@ -96,6 +98,18 @@ describe('buildMidlertidigtEetInsertSource', () => {
 
     // Readeren maskerer fortsat den røde værdi – men den er ikke en importafhængighed.
     expect(source.eetValues.ealEetPct).toBeUndefined();
+    expect(source.issues).toBeUndefined();
+  });
+
+  // EET-sidens beregningsdato er en opgørelsesdato for EET-sidens egne beregninger. Importen afgrænses af
+  // TAF-slutdatoen, så en tom eller rød EET-beregningsdato må hverken spærre importen eller nå den.
+  it.each([
+    ['tom', null],
+    ['før skadedatoen (rød bounds-fejl)', '2023-06-30'],
+  ])('blokerer IKKE importen ved en %s EET-beregningsdato', (_label, beregningsdato) => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({ beregningsdato }));
+
+    expect(source.eetValues.beregningsdato).toBeUndefined();
     expect(source.issues).toBeUndefined();
   });
 

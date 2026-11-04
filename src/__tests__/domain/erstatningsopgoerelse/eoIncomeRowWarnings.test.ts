@@ -69,6 +69,37 @@ describe('resolveOffentligeYdelserRowWarnings', () => {
 
     expect(warnings.filter((warning) => warning.kind === 'ingenArbejdsdage')).toEqual([]);
   });
+
+  // En indlæst fil kan have manuelle midlertidigt EET-rækker, mens hentningen fra Erhvervsevnetab-siden er slået
+  // til. Beregningen springer dem over; før stod de i tabellen uden et ord om det (udviklerafgørelse 2026-11-04).
+  it('advarer om manuelle midlertidigt EET-rækker, der ikke medregnes, mens EET hentes fra Erhvervsevnetab-siden', () => {
+    const rows = [
+      ydelse('eet', { ydelsestype: 'midlertidigt_eet' }),
+      ydelse('dublet', { ydelsestype: 'midlertidigt_eet' }),
+      ydelse('kontant', {}),
+    ];
+    const values = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetFraEetSiden: 'Ja' as const };
+
+    const warnings = resolveOffentligeYdelserRowWarnings(rows, values);
+
+    // Rækkens øvrige advarsler (her dubletten) udelades: rækken regnes slet ikke med.
+    expect(warnings.map((warning) => [warning.rowId, warning.kind])).toEqual([
+      ['eet', 'midlertidigtEetMedregnesIkke'],
+      ['dublet', 'midlertidigtEetMedregnesIkke'],
+    ]);
+    expect(warnings[0]).toEqual(expect.objectContaining({
+      summaryMessage: 'Ydelsen Midlertidigt EET 01-06-2026 - 30-06-2026 medregnes ikke, fordi midlertidigt EET hentes fra Erhvervsevnetab-siden',
+      cellMessage: 'Rækken medregnes ikke, fordi midlertidigt EET hentes fra Erhvervsevnetab-siden',
+    }));
+  });
+
+  it('advarer ikke om manuelle midlertidigt EET-rækker, når hentningen er slået fra', () => {
+    const values = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetFraEetSiden: 'Nej' as const };
+
+    const warnings = resolveOffentligeYdelserRowWarnings([ydelse('eet', { ydelsestype: 'midlertidigt_eet' })], values);
+
+    expect(warnings.filter((warning) => warning.kind === 'midlertidigtEetMedregnesIkke')).toEqual([]);
+  });
 });
 
 describe('resolveLoenindkomstRowWarnings', () => {

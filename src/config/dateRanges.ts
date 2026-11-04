@@ -605,7 +605,7 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
     min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
-    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). En dato efter beregningsdatoen giver kun en gul advarsel i tabellen, ikke et lavere max.',
   },
   // ASL afgørelser tabel – kolonne 2: Virkningsdato
   tabelVirkningsdato: {
@@ -613,7 +613,7 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
     min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
-    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). En dato efter beregningsdatoen giver kun en gul advarsel i tabellen, ikke et lavere max.',
   },
   // ASL afgørelser tabel – kolonne 4: Kapitaliseringsdato
   tabelKapitaliseringsdato: {
@@ -621,7 +621,7 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
     min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
-    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning). En dato efter beregningsdatoen giver kun en gul advarsel i tabellen, ikke et lavere max.',
   },
   // ASL afgørelser tabel – kolonne 7: Evt. tidl. kap.dato
   tabelTidlKapitaliseringsdato: {

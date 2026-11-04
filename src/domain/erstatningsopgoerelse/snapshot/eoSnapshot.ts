@@ -384,6 +384,12 @@ export const computeEoSnapshot = (args: Readonly<{
    * virkning på beregningen; se `domain-boundary-contract.md` §9 pkt. 11.
    */
   tafEfterKapitaliseringIssues?: readonly EetIssue[];
+  /**
+   * Gule advarsler om datoer for EET-afgørelserne på EO oplysninger, der ikke genfindes på Erhvervsevnetab-siden,
+   * dannet af `resolveEetAfgoerelseDatoAdvarsler` i reader-projektionen. Kun mens togglen er «Ja» og uden virkning
+   * på beregningen; se `domain-boundary-contract.md` §9 pkt. 12.
+   */
+  eetAfgoerelseDatoIssues?: readonly EetIssue[];
 }>): EoSnapshot => {
   const dagsDatoISO = args.dagsDatoISO ?? getToday();
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
@@ -454,6 +460,8 @@ export const computeEoSnapshot = (args: Readonly<{
       // Samme EET-kanal som importens linjer, men aldrig blokerende: kun `warning` slipper igennem, så en fejl her
       // ikke kan blive en ny spærring, ingen har godkendt.
       ...(args.tafEfterKapitaliseringIssues ?? []).filter((issue) => issue.severity === 'warning'),
+      ...(parsedEo.data.midlertidigtEetFraEetSiden === 'Ja' ? args.eetAfgoerelseDatoIssues ?? [] : [])
+        .filter((issue) => issue.severity === 'warning'),
     ]);
     // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
     // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke

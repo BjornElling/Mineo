@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-10-30
+**Senest verificeret mod kode:** 2026-11-04 (§9 pkt. 10 og 12: manuelle midlertidigt EET-rækker under togglen og afgørelsesdatoernes advarsel; 11.146 tests og 12 målrettede browserkontroller bestået). Tidligere 2026-10-30
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -192,13 +192,18 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    EET-rækker".
    Importens feltissues bindes til de konkrete top-level- og rækkerefs, importprojektionen læser; en bred
    sektionsscan eller et parallelt inventar af tekst-id'er er ikke en gyldig dependency-grænse.
-10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en – så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
+10. Virtuelle rækker injiceres aldrig i inputaggregatet. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen slås til, slettes eksisterende manuelle `midlertidigt_eet`-rækker efter brugerens bekræftelse, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en – så der altid er præcis én kilde til midlertidigt EET-data ad gangen. Står der alligevel manuelle rækker, mens togglen er aktiv (fx fra en indlæst fil), filtreres de væk fra beregningen og får en gul rækkeadvarsel; de slettes aldrig af load.
 11. **Kapitaliseringsdatoen for en delvist endelig afgørelse (advarsel alene).** Som eneste læsning uden for
     togglen må EO gennem EET-portens `resolveDelvistEndeligeKapitaliseringsdatoer` læse kapitaliseringsdatoerne for
     afgørelser af typen `Delvist endelig`. De må KUN bruges til den gule, ikke-blokerende advarsel om TAF efter
     kapitaliseringen (`eo-snapshot-contract.md` §2.2a, BB-187) – aldrig til en afskæring, clamping, beregning,
     blokering eller dokumenttekst. Læsningen bruger samme committed rækkeprojektion som importen og skriver intet
     tilbage. En udvidelse til beregningsvirkning kræver en ny kontraktændring og udviklerens specifikation.
+12. **Afgørelsernes datoer (advarsel alene, kun under togglen).** Mens togglen er aktiv, må EO gennem EET-portens
+    `resolveEetAfgoerelseDatoer` læse type, afgørelsesdato og udledt virkningsdato for Erhvervsevnetab-sidens
+    afgørelser. De må KUN bruges til den gule advarsel om datoer på EO oplysninger, der ikke genfindes på
+    Erhvervsevnetab-siden (`eo-snapshot-contract.md` §13) – aldrig til en afskæring, beregning, blokering eller
+    dokumenttekst.
 
 ---
 

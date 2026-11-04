@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-10-29 (frivillig ASL-virkningsdato; 11.009 tests bestået). Tidligere 2026-09-09
+**Senest verificeret mod kode:** 2026-11-04 (§5: importen afgrænses af TAF-slutdatoen og læser ikke beregningsdatoen; 11.146 tests bestået). Tidligere 2026-10-29 (frivillig ASL-virkningsdato; 11.009 tests bestået). Tidligere 2026-09-09
 
 ---
 
@@ -189,7 +189,10 @@ Importrelevante grupper må kun være `Midlertidig` eller `Delvist endelig`. Uke
 Ændringer i EET-issue-typer skal altid revurdere EO-konsekvensen, fordi EO bevidst propagerer EET-issues ukritisk, når importen er aktiv.
 
 Importporten bruger samme canonical løbende-ydelser-kerne som `EetSnapshot`, men en særskilt
-eksplicit `eo_import`-context, fordi TAF-slutdatoen er importens afgrænsning. Contexten skal indeholde de canonical grupper og issues, som EO behøver, samt
+eksplicit `eo_import`-context, fordi TAF-slutdatoen er importens afgrænsning. Præmissen er, at løbende EET
+fortsætter til dagen før folkepensionsdatoen, medmindre en afgørelse kapitaliseres eller afløses; derfor
+læser importen ikke EET-sidens beregningsdato, som kun er opgørelsesdato for sidens egne beregninger og
+fortsat er påkrævet dér (`eo-snapshot-contract.md` §13). Contexten skal indeholde de canonical grupper og issues, som EO behøver, samt
 tilstrækkelig identitet/revision til deterministisk cache-invalidering. Pengefelter forbliver
 `MoneyOre` gennem porten. Kun EO-adapteren, der bygger `AmountValue`, må konvertere til kroner.
 

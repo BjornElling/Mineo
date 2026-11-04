@@ -148,7 +148,12 @@ import {
 import { buildEoRuntimeExceptionSnapshot, computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
 import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
-import { resolveDelvistEndeligeKapitaliseringsdatoer, type EetImportSource } from '../erhvervsevnetab/eetImportPort';
+import {
+  resolveDelvistEndeligeKapitaliseringsdatoer,
+  resolveEetAfgoerelseDatoer,
+  type EetImportSource,
+} from '../erhvervsevnetab/eetImportPort';
+import { resolveEetAfgoerelseDatoAdvarsler } from './validation/eetAfgoerelseDatoAdvarsel';
 import {
   resolveTafEfterKapitaliseringAdvarsler,
   type TafEfterKapitaliseringAdvarsel,
@@ -776,6 +781,13 @@ export const buildErstatningsopgoerelseReaderProjection = (
         )
         : undefined;
 
+    // Kun mens togglen er «Ja»: datoerne for EET-afgørelserne på EO oplysninger skal genfindes på
+    // Erhvervsevnetab-siden – ellers en gul linje, uden virkning på beregningen (§9 pkt. 12).
+    const eetAfgoerelseDatoIssues = resolveEetAfgoerelseDatoAdvarsler(
+      eoValues,
+      resolveEetAfgoerelseDatoer(options?.midlertidigtEetInsertSource),
+    );
+
     // Uafhængigt af togglen: en delvist endelig afgørelses kapitalisering giver kun en gul advarsel, når TAF
     // fortsætter forbi den – aldrig en afskæring eller en anden beregning (§9 pkt. 11).
     const tafEfterKapitaliseringAdvarsler = resolveTafEfterKapitaliseringAdvarsler(eoValues, {
@@ -839,6 +851,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
       ...(tafEfterKapitaliseringAdvarsler.length === 0
         ? {}
         : { tafEfterKapitaliseringIssues: tafEfterKapitaliseringAdvarsler.map((advarsel) => advarsel.issue) }),
+      ...(eetAfgoerelseDatoIssues.length === 0 ? {} : { eetAfgoerelseDatoIssues }),
     });
 
     return {

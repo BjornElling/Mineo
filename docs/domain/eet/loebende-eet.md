@@ -19,6 +19,8 @@ Fane 2 opgør, hvad skadelidte har haft ret til i løbende månedlig ydelse fra 
 
 Resultatet bruges direkte i differencekravet (fane 5) – med den ene forskel at fane 5 beregner frem til og med dagen før beregningsdatoen i stedet for beregningsdatoen selv.
 
+Beregningsdatoen bringer ikke ydelsen til ophør; den er blot det punkt, kravet gøres op til. Et indtastet erhvervsevnetab forudsættes at løbe fortløbende frem til dagen før folkepensionsdatoen, medmindre det kapitaliseres eller afløses af en senere afgørelse (Trin 4). Samme kerne bruges, når Erstatningsopgørelsen henter midlertidigt EET: dér er TAF-periodens slutdato opgørelsesdatoen, og fanens beregningsdato indgår slet ikke (`eo-snapshot-contract.md` §13).
+
 ### Centrale skæringsdatoer
 
 Fire datoer styrer beregningsreglerne:

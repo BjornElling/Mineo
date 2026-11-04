@@ -388,7 +388,7 @@ describe('midlertidigt EET transient injection', () => {
     expect(importedRows.at(-1)?.tilDato).toBe(toISODateString('2024-04-30'));
   });
 
-  it('importerer midlertidigt EET uden EET-beregningsdato ved at bruge TAF-slutdatoen som fallback', () => {
+  it('importerer midlertidigt EET uden EET-beregningsdato, afgrænset af TAF-slutdatoen', () => {
     const eoValues = {
       ...createValidEoBase(),
       midlertidigtEetFraEetSiden: 'Ja' as const,
@@ -419,33 +419,56 @@ describe('midlertidigt EET transient injection', () => {
     expect(importedRows.at(-1)?.tilDato).toBe(toISODateString('2024-04-30'));
   });
 
-  it('blokerer fortsat midlertidigt EET-import uden beregningsdato når der ingen TAF-periode findes til fallback', () => {
+  // Uden en TAF-periode i EO-perioden er der intet at trække midlertidigt EET fra. Det er ikke en fejl, og
+  // importen må ikke spærre dokumenterne – heller ikke når EET-siden selv har fejl
+  // (udviklerafgørelse 2026-11-04). Før gav det en rød fejl, der spærrede alle fire dokumenter.
+  it.each([
+    ['ingen TAF-perioder', []],
+    ['TAF-perioder uden for EO-perioden', [{ id: 'taf-1', fra: iso('2025-02-01'), til: iso('2025-04-30'), loseFeriedage: 0 }]],
+  ])('spærrer ikke importen, når der er %s', (_label, tafPerioder) => {
     const eoValues = {
       ...createValidEoBase(),
       midlertidigtEetFraEetSiden: 'Ja' as const,
-      tafPerioder: [],
+      tafPerioder,
     };
 
     const snapshot = computeEoSnapshot({
-      revision: 'midlertidigt-eet-uden-beregningsdato-uden-taf',
+      revision: 'midlertidigt-eet-uden-taf',
       stamdataValues: stamdata,
       eoValues,
       eetImportSource: {
-        eetValues: {
-          ...eetValues,
-          beregningsdato: undefined,
-        },
+        eetValues: { ...eetValues, aslAarsloen: undefined },
         skadedato: stamdata.skadedato,
       },
     });
 
-    // Uden TAF-periode findes ingen fallback-slutdato; importen fail-closer på manglende beregningsdato.
-    expect(snapshot.data).toBeNull();
-    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
-      id: 'midlertidigt_eet_source:beregningsdato-missing',
-      severity: 'error',
-      blocksAuthoritativeComputation: true,
-    }));
+    expect(snapshot.invariants.filter((invariant) =>
+      invariant.id.startsWith('midlertidigt_eet_source:') && invariant.severity === 'error'
+    )).toEqual([]);
+  });
+
+  // Datoadvarslen (EO oplysninger ↔ Erhvervsevnetab-siden) er gul og følger togglen: den når «Fejl og advarsler»
+  // gennem samme EET-kanal som importens linjer, men aldrig når hentningen er slået fra.
+  it.each([
+    ['Ja', true],
+    ['Nej', false],
+  ] as const)('viser datoadvarslen som gul linje kun med togglen (%s)', (toggle, forventet) => {
+    const datoIssue = {
+      id: 'eo-midlertidig-eet-dato-uden-eet-afgoerelse',
+      severity: 'warning' as const,
+      message: 'Virkningsdatoen svarer ikke til nogen midlertidig afgørelse på Erhvervsevnetab-siden',
+    };
+    const snapshot = computeEoSnapshot({
+      revision: `eet-dato-advarsel-${toggle}`,
+      stamdataValues: stamdata,
+      eoValues: { ...createValidEoBase(), midlertidigtEetFraEetSiden: toggle },
+      eetImportSource: { eetValues, skadedato: stamdata.skadedato },
+      eetAfgoerelseDatoIssues: [datoIssue],
+    });
+
+    const linje = snapshot.invariants.find((invariant) =>
+      invariant.id === 'midlertidigt_eet_source:eo-midlertidig-eet-dato-uden-eet-afgoerelse');
+    expect(linje === undefined ? undefined : linje.severity).toBe(forventet ? 'warning' : undefined);
   });
 
   it('holder Midlertidig EET-bilagets sammentælling identisk med TAF-fradraget', () => {

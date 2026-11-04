@@ -6,11 +6,9 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
   buildEetImportContext,
-  buildUnavailableEetImportContext,
   type EetImportSource,
 } from '../../../domain/erhvervsevnetab/eetImportPort';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
-import { erhvervsevnetabBeregningsdatoField } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { toISODateString } from '../../../types/branded';
 
 const { computeImportMock, reportSystemIssueMock } = vi.hoisted(() => ({
@@ -125,48 +123,5 @@ describe('buildEetImportContext – defensive runtime-facitter', () => {
       code: 'eet_import_port:runtime',
       area: 'calculation',
     }));
-  });
-
-  it('viser source-missing, når der ikke findes en importkilde', () => {
-    expect(buildUnavailableEetImportContext(null, 'source_missing')).toEqual({
-      revision: 'missing-source',
-      groups: [],
-      issues: [expect.objectContaining({
-        id: 'midlertidigt-eet-source-missing',
-        severity: 'error',
-      })],
-    });
-  });
-
-  it('viser manglende beregningsdato, når slutdatoen mangler og kilden ikke har datoen', () => {
-    const source = buildSource();
-    const sourceWithoutBeregningsdato: EetImportSource = {
-      ...source,
-      eetValues: { ...source.eetValues, beregningsdato: undefined },
-    };
-
-    expect(buildUnavailableEetImportContext(sourceWithoutBeregningsdato, 'taf_slutdato_missing'))
-      .toEqual(expect.objectContaining({
-        revision: 'eet-import-runtime',
-        issues: [expect.objectContaining({
-          id: 'beregningsdato-missing',
-          severity: 'error',
-          focusTarget: {
-            kind: 'fieldAddress',
-            address: erhvervsevnetabBeregningsdatoField.bind().address,
-          },
-        })],
-      }));
-  });
-
-  it('viser manglende slutdato, når importkilden ellers har beregningsdato', () => {
-    expect(buildUnavailableEetImportContext(buildSource(), 'taf_slutdato_missing'))
-      .toEqual(expect.objectContaining({
-        revision: 'eet-import-runtime',
-        issues: [expect.objectContaining({
-          id: 'midlertidigt-eet-slutdato-missing',
-          severity: 'error',
-        })],
-      }));
   });
 });
