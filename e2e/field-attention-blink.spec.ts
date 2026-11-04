@@ -709,7 +709,10 @@ test.describe('Blinkmarkeringen males i browseren', () => {
       await setVerbatimFieldValueAndSettle(tafRow.locator('input').nth(0), '01-01-2020');
       await enableEetImport(page);
 
-      const issueMessage = 'Midlertidigt EET kan ikke importeres, fordi EO-periodens slutdato mangler.';
+      // Uden en fuldstændig TAF-periode er der intet at importere. TAF-fejlen ejer derfor
+      // linket til den manglende dato; EET-importen må ikke tilføje en følgefejl.
+      await expect(page.getByText(/Midlertidigt EET kan ikke/)).toHaveCount(0);
+      const issueMessage = 'TAF-perioden fra 01-01-2020: Til-dato er ikke angivet';
       await expect(page.getByText(issueMessage, { exact: true })).toBeVisible();
       await startBlinkSampling(page);
       await clickEoIssueLink(page, issueMessage, 'Tabt arbejdsfortjeneste');
