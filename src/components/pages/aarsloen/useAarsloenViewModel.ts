@@ -124,7 +124,7 @@ export function useAarsloenViewModel() {
     () => buildAarsloenReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues, feriePctMangler } = readerProjection;
+  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues, feriePctMangler, feriePctRuleIssue } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -256,6 +256,8 @@ export function useAarsloenViewModel() {
     tableCellWarnings,
     /** Den afledte feriedage-grænse (feltet må ikke overstige periodens egne hverdage). */
     feriedageIssue: feriedageFieldIssues[0],
+    /** Feriegodtgørelse ved fuld løn under ferie – satsfeltets røde ring (`feriepenge-begreber-contract.md` §2c). */
+    feriePctRuleIssue,
     // Omregning
     omregningChecked,
     omregningAktiveret,

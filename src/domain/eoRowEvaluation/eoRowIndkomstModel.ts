@@ -183,7 +183,7 @@ export const buildIndkomstSectionStatuses = (
     // readeren det som tomt; vurderingen får det at vide, så en ugyldig værdi ikke også meldes «ikke udfyldt».
     const feriePctHarFeltfejl = (kortFieldIssues[af.id] ?? [])
       .some((issue) => issue.field.address.field === 'feriePct');
-    const satserFinding = assessLoenindkomstSatser(af, { feriePctHarFeltfejl })[0];
+    const satserFinding = assessLoenindkomstSatser(af, { beregnesUdFra: values.beregnesUdFra, feriePctHarFeltfejl })[0];
     const satserStatus: EoRowStatus = satserFinding === undefined
       ? 'ok'
       : satserFinding.severity === 'error' ? 'error' : 'warning';

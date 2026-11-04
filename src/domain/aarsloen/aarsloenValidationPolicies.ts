@@ -7,6 +7,7 @@
 import type { AarsloenValues, StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
+import { ferieYdelseNavn, resolveFerieYdelse } from '../loen/feriePctYdelse';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
 import { getStandardLoenTableValidation } from '../standardLoen/standardLoenTableValidation';
 import type { StandardLoenTableValidationSummary } from '../../types/table';
@@ -114,24 +115,15 @@ export const harTabelValideringsFejl = (
 };
 
 /**
- * Feltets eget navn i advarselsteksterne (§3.2a: et felt ejer sit navn ÉT sted).
- *
- * Teksterne kaldte tidligere feltet «feriepengesats» og «feriegodtgørelsessats» – to ord, hvoraf ingen stod
- * på skærmen, hvor feltet hedder «Feriegodtgørelse/-tillæg». En advarsel skal føre brugeren hen til det
- * felt, den handler om, og kan derfor kun bruge feltets synlige navn.
- *
- * Se `aarsloen-contract.md` §5 for de kanoniske feriepenge-begreber: 'feriegodtgørelse' og 'ferietillæg' er
- * de to konkrete ydelser (aldrig begge på én gang), mens 'feriepenge' kun bruges om den generelle RET, hvor
- * det kan være den ene eller den anden. Når der som her er tale om selve PROCENTSATSEN, er feltets eget
- * navn det korrekte – ikke fællesbetegnelsen.
- */
-const FERIE_SATS_FELTNAVN = 'Feriegodtgørelse/-tillæg';
-
-/**
- * Beregner advarselsteksterne for årslønsberegning.
+ * Beregner advarselstekster for årslønsberegning.
  *
  * Ferie-/SH-advarslerne dannes her, herunder 6. ferieuge. Overenskomsttilstandens fælles advarsler om
  * høj feriesats og fravalgt Store Bededagstillæg samles med disse i beregningsprojektionen.
+ *
+ * Satsen navngives med den ydelse, den ER (`feriepenge-begreber-contract.md` §2d): under 12 % ferietillæg, ellers
+ * feriegodtgørelse. Teksterne brugte før feltets generiske navn «Feriegodtgørelse/-tillæg» om en konkret sats.
+ * Feriegodtgørelse ved fuld løn under ferie er ikke længere en advarsel her, men en rød feltfejl
+ * (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`, udviklerafgørelse 2026-11-04).
  *
  * @param feriePct - Feriegodtgørelse/-tillæg i procent
  * @param shSoPct - SH/SO procent
@@ -154,18 +146,12 @@ export const beregnFejlmeddelelser = (
 
   const ferieProcent = parsePct(feriePct);
   const shProcent = parsePct(shSoPct);
+  const ferieSats = `${ferieYdelseNavn(ferieProcent)} på ${formatPercent(ferieProcent)}`;
 
-  // FEJL 1: Feriegodtgørelse konflik (for høj sats MED fuld løn)
-  if (ferieProcent >= 12.0 && fuldLoenUnderFerie) {
+  // FEJL 2: et ferietillæg UDEN fuld løn under ferie
+  if (ferieProcent > 0 && resolveFerieYdelse(ferieProcent) === 'ferietillaeg' && !fuldLoenUnderFerie) {
     errors.push(
-      `En sats for ${FERIE_SATS_FELTNAVN} på ${formatPercent(ferieProcent)} gør det højst usandsynligt, at der er ret til løn under ferie.`
-    );
-  }
-
-  // FEJL 2: Feriegodtgørelse konflik (for lav sats UDEN fuld løn)
-  if (ferieProcent > 0 && ferieProcent < 12.0 && !fuldLoenUnderFerie) {
-    errors.push(
-      `En sats for ${FERIE_SATS_FELTNAVN} på ${formatPercent(ferieProcent)} gør det usandsynligt, at der ikke er ret til fuld løn under ferie.`
+      `${ferieSats} gør det usandsynligt, at der ikke er ret til fuld løn under ferie.`
     );
   }
 
@@ -204,7 +190,7 @@ export const beregnFejlmeddelelser = (
   // skærmen. Betingelsen er uændret; kun ejerskabet og ordlyden er samlet.
   if (options.medtagFerieuge !== false && !fuldLoenUnderFerie && !retTilSjetteFerieuge && ferieProcent >= 15.0) {
     errors.push(
-      `En sats for ${FERIE_SATS_FELTNAVN} på ${formatPercent(ferieProcent)} skaber en klar formodning for, at der er ret til 6. ferieuge.`
+      `${ferieSats} skaber en klar formodning for, at der er ret til 6. ferieuge.`
     );
   }
 

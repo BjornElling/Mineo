@@ -23,6 +23,7 @@ import {
 import type { KlLoenaftalerReguleringTrin } from './klLoenaftalerReguleretLoen';
 import type { ReguleringForloeb } from './reguleringForloeb';
 import { findLatestByDateInSortedList } from './reguleringSeriesLookup';
+import { resolveFaellesFerieYdelse } from '../../loen/feriePctYdelse';
 
 export type ReguleringIndexRow = Readonly<{
   fraDato: string;
@@ -233,16 +234,23 @@ export const REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER = 'Store Bededagstillæg';
 export const REGULERINGSVAERDIER_PENSION_HEADER = 'AG-pension';
 
 /**
- * Kolonneoverskriften for feriesatsen. Kolonnen indeholder en PROCENTSATS, og en sats navngives med den
- * konkrete ydelse – ikke med fællesbetegnelsen «Feriepenge», som den hed før
- * (`feriepenge-begreber-contract.md` §2a).
+ * Kolonneoverskrifterne for feriesatsen. Kolonnen indeholder en PROCENTSATS, og en sats navngives med den
+ * konkrete ydelse, den er (`feriepenge-begreber-contract.md` §2d): «Feriegodtg.» eller «Ferietill.» – den
+ * generiske «Feriegodtg./-till.» kun, når tabellens rækker rummer begge ydelser.
  *
- * Konstanten findes, fordi navnet bruges FIRE steder: tre overskriftslister og som nøgle i
- * placeholder-rækkens celleobjekt, der slår op på netop overskriftsnavnet. Højrejusteringen i UI og PDF
- * matcher desuden på strengen (`regulationTableColumns.ts`, `reguleringSection.ts`), så et navn skrevet
- * i hånden fire steder ville miste justeringen, så snart ét af dem blev rettet.
+ * Højrejusteringen i UI og PDF matcher på overskriftsstrengen (`regulationTableColumns.ts`,
+ * `reguleringSection.ts`), så de læser alle tre former herfra; en håndskrevet kopi ville miste justeringen, så
+ * snart en overskrift blev rettet.
  */
-export const REGULERINGSVAERDIER_FERIE_HEADER = 'Feriegodtg./-till.';
+export const REGULERINGSVAERDIER_FERIE_HEADERS = Object.freeze({
+  feriegodtgoerelse: 'Feriegodtg.',
+  ferietillaeg: 'Ferietill.',
+  begge: 'Feriegodtg./-till.',
+});
+
+const resolveReguleringsvaerdierFerieHeader = (satser: readonly number[]): string =>
+  // Et 0 er ingen sats at navngive efter (kolonnen vises også, når kilden har den, men satsen er 0).
+  REGULERINGSVAERDIER_FERIE_HEADERS[resolveFaellesFerieYdelse(satser.filter((sats) => !isEffectivelyZero(sats))) ?? 'begge'];
 
 /**
  * Afgør, om Reguleringsværdier-tabellen skal ledsages af en note om, at kilden ikke har satser
@@ -389,7 +397,7 @@ const buildEvaluatedPackageTable = (params: Readonly<{
   const show = (key: keyof FormulaComponents) => sourceColumns.has(key)
     || rows.some(([, value]) => !isEffectivelyZero(value.components[key]));
   const percentageColumns = [
-    ['feriePct', REGULERINGSVAERDIER_FERIE_HEADER], ['shSoPct', 'SH/SO'],
+    ['feriePct', resolveReguleringsvaerdierFerieHeader(rows.map(([, value]) => value.components.feriePct))], ['shSoPct', 'SH/SO'],
     ['fritvalgPct', 'Fritvalg'], ['storeBededagPct', REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER],
     ['pensionPct', REGULERINGSVAERDIER_PENSION_HEADER],
   ] as const;

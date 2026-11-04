@@ -120,7 +120,7 @@ describe('buildIndkomstSkadestidspunkt', () => {
     expect(model.arbejdssteder).toHaveLength(1);
     expect(model.arbejdssteder[0]).toMatchObject({
       navn: 'Arbejdsgiver A',
-      fpLabel: 'Feriegodtgørelse/-tillæg (12,50 %) + Fritvalg (2,00 %) + SH/SO (1,00 %) + Store Bededagstillæg (0,45 %)',
+      fpLabel: 'Feriegodtgørelse (12,50 %) + Fritvalg (2,00 %) + SH/SO (1,00 %) + Store Bededagstillæg (0,45 %)',
       pensionLabel: 'Arbejdsgivers pensionsbidrag (4,00 % af løn + tillæg)',
     });
     expect(model.offentligeYdelser).toEqual([{ label: 'Dagpenge', amountOre: moneyOre(100_000) }]);
@@ -204,7 +204,7 @@ describe('buildIndkomstSkadestidspunkt', () => {
     );
 
     expect(model?.arbejdssteder[0]).toMatchObject({
-      fpLabel: 'Feriegodtgørelse/-tillæg (20,00 %) + Fritvalg (2,00 %) + SH/SO (3,00 %)',
+      fpLabel: 'Feriegodtgørelse (20,00 %) + Fritvalg (2,00 %) + SH/SO (3,00 %)',
       pensionLabel: 'Arbejdsgivers pensionsbidrag (4,00 % af løn + tillæg)',
     });
   });
@@ -263,7 +263,7 @@ describe('buildIndkomstSkadestidspunkt', () => {
     );
 
     expect(model?.arbejdssteder[0]).toMatchObject({
-      fpLabel: 'Feriegodtgørelse/-tillæg (20,00 %) + Fritvalg (2,00 %) + SH/SO (3,00 %)',
+      fpLabel: 'Feriegodtgørelse (20,00 %) + Fritvalg (2,00 %) + SH/SO (3,00 %)',
       pensionLabel: 'Arbejdsgivers pensionsbidrag (4,00 % af løn + tillæg)',
     });
   });

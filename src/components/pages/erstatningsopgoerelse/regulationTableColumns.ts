@@ -1,16 +1,16 @@
 import type { RegulationInspektionSection } from '../../../domain/eoInspektion/eoInspektionRegulationViewModel';
 import {
-  REGULERINGSVAERDIER_FERIE_HEADER,
+  REGULERINGSVAERDIER_FERIE_HEADERS,
   REGULERINGSVAERDIER_PENSION_HEADER,
   REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 
 // Kolonner der indeholder numeriske værdier og skal højrestilles med indrykning. Lønkolonnen hedder
 // «Timeløn»/«Månedsløn» efter satsens enhed og «Grundløn», når enheden er ukendt («Manuelt angivet»).
-// Feriesatsens navn LÆSES fra sin ene kilde: sættet matcher på overskriftsstrengen, så en håndskrevet
-// kopi ville miste kolonnens højrejustering, så snart overskriften blev rettet ét af de fire steder.
+// Feriesatsens navne LÆSES fra deres ene kilde: sættet matcher på overskriftsstrengen, så en håndskrevet
+// kopi ville miste kolonnens højrejustering, så snart en overskrift blev rettet.
 const NUMERIC_COLUMNS = new Set([
-  'Månedsløn', 'Timeløn', 'Grundløn', REGULERINGSVAERDIER_FERIE_HEADER, 'SH/SO', 'Fritvalg',
+  'Månedsløn', 'Timeløn', 'Grundløn', ...Object.values(REGULERINGSVAERDIER_FERIE_HEADERS), 'SH/SO', 'Fritvalg',
   REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER, REGULERINGSVAERDIER_PENSION_HEADER, 'Reguleringsprocent',
 ]);
 const INDEKS_COLUMNS = new Set(['Indeks', 'Lønudvikling']);

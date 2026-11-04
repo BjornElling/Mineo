@@ -159,28 +159,19 @@ describe('beregnFejlmeddelelser', () => {
     });
   });
 
-  describe('FEJL 1: høj feriepct med fuld løn', () => {
-    it('feriePct >= 12 OG fuld løn → fejl', () => {
-      const errors = beregnFejlmeddelelser(12, 0, true, false, 'Almindelig løn');
-      expect(errors.length).toBeGreaterThanOrEqual(1);
-      expect(errors.some(e => e.includes('Feriegodtgørelse/-tillæg'))).toBe(true);
-    });
-
-    it('feriePct = 12.5 med fuld løn → fejl', () => {
-      const errors = beregnFejlmeddelelser(12.5, 0, true, false, 'Almindelig løn');
-      expect(errors.some(e => e.includes('Feriegodtgørelse/-tillæg'))).toBe(true);
-    });
-
-    it('feriePct = 11.9 med fuld løn → ingen FEJL 1', () => {
-      const errors = beregnFejlmeddelelser(11.9, 0, true, false, 'Almindelig løn');
-      expect(errors.filter(e => e.includes('fuld løn under ferie'))).toHaveLength(0);
+  // Feriegodtgørelse med fuld løn under ferie er ikke længere en advarsel her, men en rød feltfejl i projektionen
+  // (`resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue`, udviklerafgørelse 2026-11-04).
+  describe('feriegodtgørelse med fuld løn er ikke en advarsel', () => {
+    it.each([11.9, 12, 12.5])('feriePct = %s med fuld løn → ingen advarsel om ferien', (feriePct) => {
+      const errors = beregnFejlmeddelelser(feriePct, 0, true, false, 'Almindelig løn');
+      expect(errors).toHaveLength(0);
     });
   });
 
   describe('FEJL 2: lav feriepct uden fuld løn', () => {
-    it('feriePct > 0 og < 12 uden fuld løn → fejl', () => {
+    it('feriePct > 0 og < 12 uden fuld løn → fejl, der navngiver ydelsen som ferietillæg', () => {
       const errors = beregnFejlmeddelelser(5, 0, false, false, 'Almindelig løn');
-      expect(errors.length).toBeGreaterThanOrEqual(1);
+      expect(errors).toContain('Ferietillæg på 5 % gør det usandsynligt, at der ikke er ret til fuld løn under ferie.');
     });
 
     it('feriePct = 0 uden fuld løn → ingen FEJL 2', () => {
@@ -255,10 +246,10 @@ describe('beregnFejlmeddelelser', () => {
       expect(errors.some((e) => e.includes('klar formodning for, at der er ret til 6. ferieuge'))).toBe(true);
     });
 
-    it('bruger feltets eget navn og den kanoniske procentformattering', () => {
+    it('navngiver satsen som feriegodtgørelse med den kanoniske procentformattering', () => {
       const errors = beregnFejlmeddelelser(16, 0, false, false, 'Almindelig løn');
       expect(errors).toContain(
-        'En sats for Feriegodtgørelse/-tillæg på 16 % skaber en klar formodning for, at der er ret til 6. ferieuge.'
+        'Feriegodtgørelse på 16 % skaber en klar formodning for, at der er ret til 6. ferieuge.'
       );
     });
 

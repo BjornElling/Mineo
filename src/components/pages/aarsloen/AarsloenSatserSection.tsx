@@ -4,7 +4,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import PercentField, { DerivedPercentField } from '../../../inputCore/react/fields/PercentField';
 import { createFieldWarning } from '../../../inputCore/fieldWarning';
-import { resolveHoejFeriePctAdvarsel } from '../../../domain/loen/feriePctAdvarsel';
+import { resolveHoejFeriePctAdvarsel } from '../../../domain/loen/feriePctYdelse';
 import { resolveAarsloenLaastSatsTooltip, resolveAarsloenSatsBindings } from '../../../domain/aarsloen/aarsloenTillaeg';
 import type { OverenskomstSatsField } from '../../../domain/loen/overenskomstSatser';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
@@ -18,11 +18,12 @@ import { useAarsloenVm } from './aarsloenContext';
  * overenskomst og gyldig dato kendes (BB-351); Store Bededagstillæg er altid afledt.
  */
 const AarsloenSatserSection = React.memo(() => {
-  const { fields, locations, values } = useAarsloenVm();
+  const { fields, locations, values, feriePctRuleIssue } = useAarsloenVm();
   if (values.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return null;
 
   const harOverenskomst = values.tillaegAngivesSom === 'overenskomst';
-  const hoejFerieAdvarsel = resolveHoejFeriePctAdvarsel(values.feriePct);
+  // Højst ét fund pr. felt: den røde regel tier den gule advarsel om en høj sats.
+  const hoejFerieAdvarsel = feriePctRuleIssue === undefined ? resolveHoejFeriePctAdvarsel(values.feriePct) : undefined;
   const ferieWarning = hoejFerieAdvarsel === undefined ? undefined : createFieldWarning(hoejFerieAdvarsel);
   const bindings = resolveAarsloenSatsBindings(values);
   const renderSats = (sats: OverenskomstSatsField) => {
@@ -40,7 +41,7 @@ const AarsloenSatserSection = React.memo(() => {
         <Box sx={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text" sx={{ minWidth: '160px' }}>Feriegodtgørelse/-tillæg:</Typography>
-            <PercentField field={fields.feriePct} location={locations.feriePct} name="feriePct" {...(ferieWarning === undefined ? {} : { warning: ferieWarning })} placeholder="0" sx={{ width: '100px' }} />
+            <PercentField field={fields.feriePct} location={locations.feriePct} name="feriePct" {...(feriePctRuleIssue === undefined ? {} : { crossFieldIssue: feriePctRuleIssue })} {...(ferieWarning === undefined ? {} : { warning: ferieWarning })} placeholder="0" sx={{ width: '100px' }} />
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>

@@ -89,7 +89,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
    * advarsler», hvor den blokerer (udviklerafgørelse 2026-10-06, BB-274).
    */
   const satsIssues = React.useMemo<FieldIssueSet>(() => buildFieldIssueSet(
-    employments.flatMap((employment) => assessLoenindkomstSatser(employment)
+    employments.flatMap((employment) => assessLoenindkomstSatser(employment, { beregnesUdFra: eoValues.beregnesUdFra })
       .filter((finding) => finding.kind === 'deviation')
       .map((finding): FieldIssue => Object.freeze({
         kind: 'field' as const,
@@ -99,22 +99,25 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
         reason: 'rule' as const,
         message: finding.message,
       })))
-  ), [employments]);
+  ), [employments, eoValues.beregnesUdFra]);
   /**
    * Den påkrævede feriesats er tom (BB-274's `missing`) – samme vurdering som linjen i «Fejl og advarsler». Tabellens
    * afledte kolonner viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
    */
   const feriePctManglerByAfId = React.useMemo<ReadonlySet<string>>(() => new Set(
     employments
-      .filter((employment) => assessLoenindkomstSatser(employment).some((finding) => finding.kind === 'missing'))
+      .filter((employment) => assessLoenindkomstSatser(employment, { beregnesUdFra: eoValues.beregnesUdFra }).some((finding) => finding.kind === 'missing'))
       .map((employment) => employment.id)
-  ), [employments]);
-  /** Den gule, ikke-blokerende advarsel om en usædvanligt høj feriesats (BB-286), pr. ansættelsesforhold. */
+  ), [employments, eoValues.beregnesUdFra]);
+  /**
+   * Den gule, ikke-blokerende advarsel pr. ansættelsesforhold: et ferietillæg ved løn under ferie (§2b) eller en
+   * usædvanligt høj feriesats (BB-286).
+   */
   const feriePctAdvarselByAfId = React.useMemo<Readonly<Record<string, string>>>(() => Object.fromEntries(
-    employments.flatMap((employment) => assessLoenindkomstSatser(employment)
+    employments.flatMap((employment) => assessLoenindkomstSatser(employment, { beregnesUdFra: eoValues.beregnesUdFra })
       .filter((finding) => finding.kind === 'unusual')
       .map((finding) => [employment.id, finding.message] as const))
-  ), [employments]);
+  ), [employments, eoValues.beregnesUdFra]);
 
   /**
    * Indtægtstabellens gule ring pr. ansættelsesforhold: identisk række, periode efter dags dato og negativ

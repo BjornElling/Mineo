@@ -525,7 +525,7 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'SH/SO', 'Fritvalg', 'Store Bededagstillæg', 'AG-pension']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg.', 'SH/SO', 'Fritvalg', 'Store Bededagstillæg', 'AG-pension']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -618,7 +618,7 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     // Satsen er en timeløn («Ansættelse» = Timeløn). Overskriften fulgte tidligere TAF-enheden (Måneder) og
     // kaldte den «Månedsløn» (fund C5); nu læses enheden fra reguleringsbeviset.
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg./-till.', 'Store Bededagstillæg', 'AG-pension']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriegodtg.', 'Store Bededagstillæg', 'AG-pension']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
@@ -1059,7 +1059,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     // SH/SO og Fritvalg er undefined på alle rækker → kolonnerne vises ikke
-    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'Store Bededagstillæg', 'AG-pension']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg.', 'Store Bededagstillæg', 'AG-pension']);
   });
 
   it('viser manuel procentsats med indeks og akkumuleret procent i reguleringsværdier', () => {
@@ -1330,7 +1330,7 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'SH/SO', 'AG-pension']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg.', 'SH/SO', 'AG-pension']);
   });
 
   it('skjuler manuel SH/SO-kolonne når alle rækker har shSoSats = undefined, men viser Fritvalg-kolonne når mindst én række har fritvalg > 0', () => {
@@ -1371,7 +1371,34 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).not.toContain('SH/SO');
     expect(table?.columns).toContain('Fritvalg');
-    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg./-till.', 'Fritvalg', 'AG-pension']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Grundløn', 'Feriegodtg.', 'Fritvalg', 'AG-pension']);
+  });
+
+  // Kolonnen navngiver satsen med den ydelse, den er (`feriepenge-begreber-contract.md` §2d): under 12 % ferietillæg.
+  // Rummer rækkerne begge ydelser, er kolonnen generisk.
+  it.each([
+    [1, 1, 'Ferietill.'],
+    [12.5, 15, 'Feriegodtg.'],
+    [1, 12.5, 'Feriegodtg./-till.'],
+  ] as const)('navngiver feriekolonnen efter rækkernes ydelse (%s %% og %s %% → %s)', (foerste, anden, header) => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = foerste;
+    af.loenudviklingManuelTableData = [
+      { id: 'm1', dato: undefined, grundloen: asAmountValue(133.40), feriepenge: foerste, shSoSats: undefined, fritvalg: 0, agPension: 8.15 },
+      { id: 'm2', dato: toISODateString('2023-06-01'), grundloen: asAmountValue(137.90), feriepenge: anden, shSoSats: undefined, fritvalg: 0, agPension: 8.15 },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-01-01'),
+      tafFra: iso('2023-01-01'),
+      tafTil: iso('2023-12-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table?.columns[2]).toBe(header);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i manuel reguleringsværdier-tabel', () => {

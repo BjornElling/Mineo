@@ -38,6 +38,8 @@ import type { SerializedFieldAddress } from '../../inputCore/fieldAddress';
 import { buildFieldWarningMap, type FieldWarning } from '../../inputCore/fieldWarning';
 import { getToday } from '../../config/dateRanges';
 import { erFeriePctPaakraevet, FERIE_PCT_MANGLER_BESKED } from '../loen/feriePctKrav';
+import { ferieYdelseNavn, resolveFerieYdelse } from '../loen/feriePctYdelse';
+import { formatPercent } from '../../utils/formatUtils';
 import { erAarsloenLoenforholdValgRelevante, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
 import { aarsloenOverenskomstIdField, aarsloenOverenskomstLoenmodtagerField, aarsloenOverenskomstArbejdsgiverField, aarsloenReguleringsdatoField, aarsloenBeregnStoreBededagstillaegField } from '../../inputCore/catalog/aarsloenDescriptors';
 import { applyAarsloenOverenskomstSatser, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
@@ -152,6 +154,37 @@ export const resolveAarsloenFeriePctManglerIssue = (
 };
 
 /**
+ * Feriegodtgørelse OG fuld løn under ferie (udviklerafgørelse 2026-11-04, `feriepenge-begreber-contract.md` §2c).
+ *
+ * Lønmodtageren får enten ferietillæg (løn under ferie) eller feriegodtgørelse – aldrig begge (regel 1). En sats på
+ * 12 % eller derover er feriegodtgørelse, og lagt oven i en løn, der allerede dækker ferien, bliver årslønnen ca.
+ * 11,5 % for høj. Det er derfor en rød feltfejl på satsen, som standser beregningen og spærrer download – ikke den
+ * advarselslinje, det var før. Erstatningsopgørelsens tvungne både-og (regel 3) gælder ikke her.
+ *
+ * Valget læses kun, når det vises (BB-353); skjult tæller det ikke, og satsen er da blot den indtastede ydelse.
+ */
+export const resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue = (
+  values: AarsloenValues,
+  options: Readonly<{ omregningAktiveret: boolean }>
+): FieldIssue | null => {
+  if (!erAarsloenSatsFelterRelevante(values.tillaegAngivesSom)) return null;
+  if (!erAarsloenLoenforholdValgRelevante({
+    tillaegAngivesSom: values.tillaegAngivesSom,
+    omregningAktiveret: options.omregningAktiveret,
+  }) || !values.fuldLoenUnderFerie) return null;
+  if (values.feriePct === undefined || resolveFerieYdelse(values.feriePct) !== 'feriegodtgoerelse') return null;
+  return Object.freeze({
+    kind: 'field' as const,
+    code: `${scalarRefs.feriePct.descriptor.id}.feriegodtgoerelseVedFuldLoen`,
+    severity: 'error' as const,
+    field: toAnyFieldRef(scalarRefs.feriePct),
+    reason: 'rule' as const,
+    message: `${ferieYdelseNavn(values.feriePct)} på ${formatPercent(values.feriePct)} kan ikke kombineres med fuld løn `
+      + 'under ferie – angiv ferietillægget (typisk 1 %), eller vælg Nej til «Fuld løn under ferie»',
+  });
+};
+
+/**
  * Samler de RØDE feltfejl på de fatale beregningsinput (satsprocenter + antalFeriedage) og
  * undertrykker et misvisende beregnet resultat. Betingelserne spejler
  * `resolveAarsloenCanonicalRangeIssues` PRÆCIST (§1.9: et
@@ -190,6 +223,8 @@ export const resolveAarsloenFieldErrorGate = (
 
   const feriePctMangler = resolveAarsloenFeriePctManglerIssue(reader, values, options);
   if (feriePctMangler !== null) issues.push(feriePctMangler);
+  const feriegodtgoerelseVedFuldLoen = resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue(values, options);
+  if (feriegodtgoerelseVedFuldLoen !== null) issues.push(feriegodtgoerelseVedFuldLoen);
 
   if (options.omregningAktiveret && !values.fuldLoenUnderFerie) {
     const result = reader.read(scalarRefs.antalFeriedage);
@@ -245,6 +280,8 @@ export type AarsloenReaderProjection = Readonly<{
    * viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
    */
   feriePctMangler: boolean;
+  /** Satsfeltets røde regel – feriegodtgørelse ved fuld løn under ferie – til feltets ring; også i `fieldIssues`. */
+  feriePctRuleIssue: FieldIssue | undefined;
   /**
    * Løntabellens IKKE-blokerende rækkeadvarsler: en række, der gentager en tidligere ordret (BB-096/BB-289), og
    * en periode efter dags dato (BB-115/BB-298). Udviklerafgørelse 2026-10-19: identiske rækker spærrer ikke
@@ -282,6 +319,9 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
   const feriePctMangler = resolveAarsloenFeriePctManglerIssue(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   }) !== null;
+  const feriePctRuleIssue = resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue(values, {
+    omregningAktiveret: omregningGate.effectiveEnabled,
+  }) ?? undefined;
   // Aggregatet afhænger af ALLE medregnede rækker, også de celler §1.10 isolerer.
   //
   // Rækkeisolationen er stadig rigtig: en fejl i række 2 må ikke ødelægge række 2's naboer, og cellen skal
@@ -355,6 +395,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     calculation,
     fieldIssues,
     feriePctMangler,
+    feriePctRuleIssue,
     tableRowWarnings,
     tableCellWarnings,
     feriedageFieldIssues,

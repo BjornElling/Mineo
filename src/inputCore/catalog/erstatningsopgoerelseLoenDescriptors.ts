@@ -1,4 +1,5 @@
 import { erStoreBededagstillaegRelevant } from '../../domain/loen/storeBededagstillaeg';
+import { FERIE_PCT_MAKS, FERIE_PCT_OVER_MAKS_BESKED, FERIE_SATS_FELTNAVN } from '../../domain/loen/feriePctYdelse';
 import { dateRanges_aarsloen, getCurrentYear, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import {
@@ -230,6 +231,10 @@ const emp = <T>(
 // grænsen er nu et afledt bounds-issue (§1.6).
 const empPercentBounds = (field: string): readonly FieldValidator<number | undefined>[] =>
   [percentBoundsValidator(`${EMP_ID}.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })];
+// Feriesatsen har sit eget loft: feriegodtgørelse er aldrig over 25 % (`feriepenge-begreber-contract.md` §2d). Samme
+// validator på ansættelsesforholdet og i den manuelle lønudviklingstabel, så de to indtastninger af samme sats følges ad.
+const feriePctBounds = (code: string): readonly FieldValidator<number | undefined>[] =>
+  [percentBoundsValidator(code, { minValue: 0, maxValue: FERIE_PCT_MAKS, allowDecimals: true, message: FERIE_PCT_OVER_MAKS_BESKED })];
 const empAmountBounds = (field: string): readonly FieldValidator<AmountValue | undefined>[] =>
   [amountBoundsValidator(`${EMP_ID}.${field}.bounds`, 0, undefined)];
 
@@ -354,7 +359,7 @@ export const eoEmploymentFields = {
   anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, employmentLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', employmentLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats'), employmentLoenudviklingRelevance('anciennitetDetaljer')),
-  feriePct: emp<number>('feriePct', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, empPercentBounds('feriePct'), empSatsRelevance()),
+  feriePct: emp<number>('feriePct', FERIE_SATS_FELTNAVN, 'text', percentCodec, feriePctBounds(`${EMP_ID}.feriePct.bounds`), empSatsRelevance()),
   loenPaaHelligdage: reqChoiceField(EMP_ID, employmentPath, 'loenPaaHelligdage', 'Løn på helligdage', loenPaaHelligdageEnum.options, 'Almindelig løn'),
   beregnStoreBededagstillaeg: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'beregnStoreBededagstillaeg', label: 'Beregn Store Bededagstillæg fra 1. januar 2024', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false,
     relevance: (field, view): boolean => {
@@ -619,7 +624,7 @@ const createManualBindings = (
   const manualFields = {
     dato: dateFieldWithBounds(manualId, manualRowPath, 'dato', 'Dato', systemrammeSpec, [], angivet()),
     grundloen: optField<AmountValue>(manualId, manualRowPath, 'grundloen', 'Grundløn', 'text', tableAmountCodec, [manualGrundloenPositiveValidator(`${manualId}.grundloen.positive`)], angivet()),
-    feriepenge: optField<number>(manualId, manualRowPath, 'feriepenge', 'Feriegodtgørelse/-tillæg', 'text', percentCodec, pctBounds(`${manualId}.feriepenge.bounds`), angivet()),
+    feriepenge: optField<number>(manualId, manualRowPath, 'feriepenge', FERIE_SATS_FELTNAVN, 'text', percentCodec, feriePctBounds(`${manualId}.feriepenge.bounds`), angivet()),
     shSoSats: optField<number>(manualId, manualRowPath, 'shSoSats', 'SH/SO-sats', 'text', percentCodec, pctBounds(`${manualId}.shSoSats.bounds`), angivet()),
     fritvalg: optField<number>(manualId, manualRowPath, 'fritvalg', 'Fritvalg', 'text', percentCodec, pctBounds(`${manualId}.fritvalg.bounds`), angivet()),
     agPension: optField<number>(manualId, manualRowPath, 'agPension', 'Arbejdsgivers pension', 'text', percentCodec, pctBounds(`${manualId}.agPension.bounds`), angivet()),

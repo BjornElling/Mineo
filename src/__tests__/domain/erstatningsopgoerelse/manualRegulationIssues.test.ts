@@ -1,4 +1,4 @@
-import { collectManualRegulationIssues } from '../../../domain/erstatningsopgoerelse/manualRegulationIssues';
+import { collectManualRegulationIssues, resolveManualRegulationWarnings } from '../../../domain/erstatningsopgoerelse/manualRegulationIssues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -122,5 +122,82 @@ describe('collectManualRegulationIssues', () => {
       { kind: 'property', name: 'eoAngivetLoenLoenudvikling' },
       { kind: 'entity', collection: 'loenudviklingManuelTableData', entityId: 'lig' },
     ]);
+  });
+});
+
+// Den manuelle tabels feriesats er samme sats som ansættelsesforholdets, fra en senere dato, og vurderes ens
+// (udviklerafgørelse 2026-11-04): et ferietillæg (under 12 %) er gult ved løn under ferie og rødt, når brugeren har
+// svaret Nej til fuld løn under ferie; over 20 % er gult.
+describe('den manuelle tabels feriesats', () => {
+  const setup = (fuldLoenUnderFerie: 'Ja' | 'Nej', feriepenge: number, tillaegAngivesSom: 'procent' | 'beloeb' = 'procent') => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeTil = iso('2024-01-01');
+    values.loenindkomstAnsaettelsesforhold = [employment];
+    employment.fuldLoenUnderFerie = fuldLoenUnderFerie;
+    employment.tillaegAngivesSom = tillaegAngivesSom;
+    employment.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    employment.loenudviklingManuelTableData = [
+      { ...manualRow('base', undefined), feriepenge },
+      { ...manualRow('senere', '2024-06-01'), feriepenge },
+    ];
+    const stamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+    return { values, stamdata };
+  };
+  const feriesatsAdvarsler = (values: ReturnType<typeof setup>['values'], stamdata: StamdataValues) =>
+    resolveManualRegulationWarnings(values, stamdata, undefined, 0).filter((advarsel) => advarsel.kind === 'feriesats');
+
+  it('gør et ferietillæg rødt, når brugeren har svaret Nej til fuld løn under ferie', () => {
+    const { values, stamdata } = setup('Nej', 1);
+    const issues = collectManualRegulationIssues(values, stamdata);
+    // Basisrækkens sats er en låst kopi af ansættelsesforholdets felt, som vurderes dér.
+    expect(issues).toEqual([expect.objectContaining({
+      reason: 'rule',
+      severity: 'error',
+      message: expect.stringMatching(/^Ferietillæg på 1 % forudsætter løn under ferie/),
+    })]);
+    expect(issues[0]?.field.address.path.at(-1)).toEqual(expect.objectContaining({ entityId: 'senere' }));
+    expect(issues[0]?.field.address.field).toBe('feriepenge');
+    expect(feriesatsAdvarsler(values, stamdata)).toEqual([]);
+  });
+
+  it('giver et gult ferietillæg ved løn under ferie, uden at spærre', () => {
+    const { values, stamdata } = setup('Ja', 1);
+    expect(collectManualRegulationIssues(values, stamdata)).toEqual([]);
+    const advarsler = feriesatsAdvarsler(values, stamdata);
+    expect(advarsler).toHaveLength(1);
+    expect(advarsler[0]?.cellMessage).toMatch(/^Ferietillæg på 1 %: /);
+    expect(advarsler[0]?.summaryMessage).toMatch(/^Manuel regulering, række 01-06-2024: Ferietillæg på 1 %: /);
+  });
+
+  it('giver en gul advarsel over 20 % og intet fund ved almindelig feriegodtgørelse', () => {
+    const hoej = setup('Nej', 22);
+    expect(feriesatsAdvarsler(hoej.values, hoej.stamdata).map((advarsel) => advarsel.cellMessage))
+      .toEqual(['Feriegodtgørelse over 20 % er usædvanligt – kontrollér satsen']);
+    const almindelig = setup('Nej', 12.5);
+    expect(collectManualRegulationIssues(almindelig.values, almindelig.stamdata)).toEqual([]);
+    expect(feriesatsAdvarsler(almindelig.values, almindelig.stamdata)).toEqual([]);
+  });
+
+  it('vurderer basisrækken i Beløb-tilstand, hvor brugeren selv skriver dens sats', () => {
+    const { values, stamdata } = setup('Nej', 1, 'beloeb');
+    expect(collectManualRegulationIssues(values, stamdata).map((issue) => issue.field.address.path.at(-1)))
+      .toEqual([
+        expect.objectContaining({ entityId: 'base' }),
+        expect.objectContaining({ entityId: 'senere' }),
+      ]);
+  });
+
+  it('læser ved den angivne løn ikke et «Fuld løn under ferie», der ikke stilles – et ferietillæg er gult', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-02-01');
+    values.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    values.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData = [{ ...manualRow('base', undefined), feriepenge: 1 }];
+    const stamdata: StamdataValues = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+
+    expect(collectManualRegulationIssues(values, stamdata)).toEqual([]);
+    expect(feriesatsAdvarsler(values, stamdata)).toHaveLength(1);
   });
 });

@@ -13,6 +13,7 @@ import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRa
 import { type ColumnSpec, type RowSpec } from '../../../layout/tableSpec';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
+import { ferieYdelseNavn } from '../../../../domain/loen/feriePctYdelse';
 import type { DocumentComposer } from '../../../model/documentModel';
 import {
   buildLoenindkomstDelvisePerioderLinjer,
@@ -230,7 +231,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       // lønoplysningerne/manuelle reguleringsrækker, hvor brugeren har indtastet dem.
       if (selectedElements.okSatser && ansaettelsesforhold.tillaegAngivesSom !== 'beloeb') {
         const satsLinjer: ReadonlyArray<readonly [string, number | undefined]> = [
-          ['Feriegodtgørelse/-tillæg:', ansaettelsesforhold.feriePct],
+          // Satsen navngives med den ydelse, den er (`feriepenge-begreber-contract.md` §2d).
+          [`${ferieYdelseNavn(ansaettelsesforhold.feriePct)}:`, ansaettelsesforhold.feriePct],
           ['Fritvalg:', ansaettelsesforhold.fritvalgPct],
           ['SH/SO-sats:', ansaettelsesforhold.shSoPct],
           ['Store Bededagstillæg:', ansaettelsesforhold.storeBededagPct],

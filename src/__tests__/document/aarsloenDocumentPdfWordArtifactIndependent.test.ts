@@ -129,7 +129,7 @@ const withDocumentUnavailable = async <T>(run: () => Promise<T>): Promise<T> => 
 const expectedContent = [
   'Årslønsberegning',
   'Satser',
-  'Feriegodtgørelse/-tillæg',
+  'Ferietillæg',
   '10 %',
   'Arbejdsgivers pensionsbidrag',
   '5 %',

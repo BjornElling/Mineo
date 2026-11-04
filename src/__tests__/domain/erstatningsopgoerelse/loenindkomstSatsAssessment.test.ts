@@ -57,11 +57,14 @@ describe('isFeriePctPaakraevet – kravet følger kortet, ikke reguleringsformen
   });
 });
 
+const BP = { beregnesUdFra: 'Beregningsperiode' } as const;
+const ANGIVET = { beregnesUdFra: 'Angivet månedsløn' } as const;
+
 describe('assessLoenindkomstSatser', () => {
   it.each(loenudviklingBeregningsgrundlagEnum.options)(
     'melder en tom feriegodtgørelse som manglende og blokerende ved %s',
     (grundlag) => {
-      const findings = assessLoenindkomstSatser(employment({ loenudviklingBeregningsgrundlag: grundlag }));
+      const findings = assessLoenindkomstSatser(employment({ loenudviklingBeregningsgrundlag: grundlag }), BP);
       expect(findings).toEqual([{
         field: 'feriePct',
         label: 'Feriegodtgørelse/-tillæg',
@@ -74,57 +77,69 @@ describe('assessLoenindkomstSatser', () => {
   );
 
   it('melder intet uden lønoplysninger', () => {
-    expect(assessLoenindkomstSatser(employment({ indtaegtsoplysningerTableData: [] }))).toEqual([]);
+    expect(assessLoenindkomstSatser(employment({ indtaegtsoplysningerTableData: [] }), BP)).toEqual([]);
   });
 
   it('melder ikke «ikke udfyldt», når feltet allerede har sin egen feltfejl', () => {
-    expect(assessLoenindkomstSatser(employment(), { feriePctHarFeltfejl: true })).toEqual([]);
+    expect(assessLoenindkomstSatser(employment(), { ...BP, feriePctHarFeltfejl: true })).toEqual([]);
   });
 
-  it('vejleder om satsens størrelse som rød afvigelse, når den er udfyldt men under 12 %', () => {
-    for (const grundlag of loenudviklingBeregningsgrundlagEnum.options) {
-      const findings = assessLoenindkomstSatser(employment({ loenudviklingBeregningsgrundlag: grundlag, feriePct: 10 }));
-      expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatchObject({
-        kind: 'deviation',
-        severity: 'error',
-        message: 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge',
-      });
-    }
+  // Udviklerafgørelse 2026-11-04: under 12 % er satsen et FERIETILLÆG. Erstatningsopgørelsen kræver beregningsteknisk
+  // feriegodtgørelse også ved løn under ferie, men et ferietillæg kan i sjældne tilfælde være rigtigt – derfor gult.
+  it.each([0, 1, 2.95, 11.99])('giver en gul advarsel om et ferietillæg på %s %% ved løn under ferie', (feriePct) => {
+    const findings = assessLoenindkomstSatser(employment({ feriePct, fuldLoenUnderFerie: 'Ja' }), BP);
+    expect(findings).toEqual([expect.objectContaining({ kind: 'unusual', severity: 'warning' })]);
+    expect(findings[0]?.message).toMatch(/^Ferietillæg på /);
   });
 
-  it('forklarer feriegodtgørelsen anderledes ved fuld løn under ferie', () => {
-    const findings = assessLoenindkomstSatser(employment({ feriePct: 10, fuldLoenUnderFerie: 'Ja' }));
-    // Med løn under ferie er ydelsen FERIETILLÆG; den opgøres blot beregningsteknisk som
-    // feriegodtgørelse (`feriepenge-begreber-contract.md` regel 2-3).
+  it('navngiver ferietillægget og vejleder om den beregningstekniske feriegodtgørelse', () => {
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 1, fuldLoenUnderFerie: 'Ja' }), BP);
     expect(findings[0]?.message).toBe(
-      'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
+      'Ferietillæg på 1 %: i erstatningsopgørelsen angives løn under ferie normalt beregningsteknisk som '
+        + 'feriegodtgørelse – 12,5 %, eller 15 % ved ret til 6. ferieuge, plus et eventuelt forhøjet ferietillæg'
     );
   });
 
-  it.each([12, 12.5, 15, FERIE_PCT_ADVARSELSGRAENSE])('accepterer %s %% uden fund', (feriePct) => {
-    expect(assessLoenindkomstSatser(employment({ feriePct }))).toEqual([]);
+  it('gør et ferietillæg rødt og blokerende, når brugeren har svaret Nej til fuld løn under ferie', () => {
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 1, fuldLoenUnderFerie: 'Nej' }), BP);
+    expect(findings).toEqual([expect.objectContaining({
+      kind: 'deviation',
+      severity: 'error',
+      message: 'Ferietillæg på 1 % forudsætter løn under ferie, men «Fuld løn under ferie» er Nej. '
+        + 'Uden løn under ferie angives feriegodtgørelsen: typisk 12,5 %, eller 15 % ved ret til 6. ferieuge',
+    })]);
+  });
+
+  it('læser ikke et skjult «Fuld løn under ferie»: uden beregningsperiode er et ferietillæg kun gult', () => {
+    // Skjult giver readeren valget som tomværdien «Nej»; det må ikke gøre satsen rød.
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 1, fuldLoenUnderFerie: 'Nej' }), ANGIVET);
+    expect(findings).toEqual([expect.objectContaining({ kind: 'unusual', severity: 'warning' })]);
+  });
+
+  it.each([12, 12.5, 15, 16.95, FERIE_PCT_ADVARSELSGRAENSE])('accepterer feriegodtgørelse på %s %% uden fund', (feriePct) => {
+    expect(assessLoenindkomstSatser(employment({ feriePct }), BP)).toEqual([]);
+    expect(assessLoenindkomstSatser(employment({ feriePct, fuldLoenUnderFerie: 'Ja' }), BP)).toEqual([]);
   });
 
   it('giver en gul, ikke-blokerende advarsel over 20 %', () => {
     expect(FERIE_PCT_ADVARSELSGRAENSE).toBe(20);
-    const findings = assessLoenindkomstSatser(employment({ feriePct: 20.5 }));
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 20.5 }), BP);
     expect(findings).toEqual([{
       field: 'feriePct',
       label: 'Feriegodtgørelse/-tillæg',
       kind: 'unusual',
       severity: 'warning',
-      message: 'Feriegodtgørelse/-tillæg over 20 % er usædvanligt – kontrollér satsen',
+      message: 'Feriegodtgørelse over 20 % er usædvanligt – kontrollér satsen',
     }]);
   });
 
   it.each([false, true])('advarser om den høje feriesats både med og uden overenskomst (overenskomst: %s)', (harOverenskomst) => {
-    const findings = assessLoenindkomstSatser(employment({ feriePct: 25, harOverenskomst, overenskomstId: harOverenskomst ? 'bygge-anlaeg' : undefined }));
+    const findings = assessLoenindkomstSatser(employment({ feriePct: 25, harOverenskomst, overenskomstId: harOverenskomst ? 'bygge-anlaeg' : undefined }), BP);
     expect(findings).toEqual([expect.objectContaining({ kind: 'unusual', severity: 'warning' })]);
   });
 
   it('vurderer ikke de skjulte satsfelter i Beløb-tilstand', () => {
-    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB, feriePct: 5 }))).toEqual([]);
-    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB }))).toEqual([]);
+    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB, feriePct: 5 }), BP)).toEqual([]);
+    expect(assessLoenindkomstSatser(employment({ tillaegAngivesSom: TILLAEG_ANGIVES_SOM.BELOEB }), BP)).toEqual([]);
   });
 });

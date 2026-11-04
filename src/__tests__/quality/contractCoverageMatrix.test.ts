@@ -185,13 +185,16 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   },
   {
     // Sprogreglerne om ferieydelser er tværgående: samme formuleringer bruges på Årsløn og i
-    // erstatningsopgørelsen. Testen hævder, at advarselsteksterne bruger feltets eget navn.
+    // erstatningsopgørelsen. Testene hævder, at satsen navngives efter den ydelse, den er (§2d), og satsreglerne.
     contractPath: 'src/contracts/feriepenge-begreber-contract.md',
     requiredTestPaths: [
+      'src/__tests__/domain/loen/loenSatsAdvarsler.test.ts',
+      'src/__tests__/domain/aarsloen/aarsloenOverenskomst.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenProjection.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
       'src/__tests__/domain/loen/feriePctKrav.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatsAssessment.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/manualRegulationIssues.test.ts',
       'src/__tests__/domain/erstatningsopgoerelse/reguleringsPresentation.test.ts',
     ],
   },

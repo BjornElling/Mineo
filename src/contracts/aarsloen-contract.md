@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-10-30
+**Senest verificeret mod kode:** 2026-11-04
 
 ---
 
@@ -56,7 +56,7 @@ Feriegodtgørelse/-tillæg indtastes altid manuelt. Fritvalg, SH/SO og arbejdsgi
 
 Store Bededagstillæg har i Overenskomst samme til-/fravalg som på Lønindkomst. Valget vises kun ved Almindelig løn på helligdage, og satsen udledes af den valgte reguleringsdato og tilvalget gennem den eksisterende fælles regel: 0,45 % fra 1. januar 2024, ellers 0 %; uden gyldig dato er satsen ukendt og vises tom, ikke 0 % (BB-349). Ved fravalg fra 2024 genbruges Lønindkomsts ikke-blokerende advarsel. Nye sager starter med tilvalget slået til. Procent- og Beløb-tilstandenes eksisterende adfærd ændres ikke.
 
-Årslønnens eksisterende ferie-/SH-advarsler vurderes også uden helårsomregning i Overenskomst. Advarsler om 6. ferieuge vises fortsat kun ved aktiv omregning, hvor valget er synligt. En SH/SO-sats, overenskomsten selv har fastsat og låst, vurderes ikke (BB-352). En feriesats over 20 % får i Procent og Overenskomst samme gule ring og tekst som på Lønindkomst – også i tidligere gemte sager (udviklerafgørelse 2026-10-27); EO’s beregningstekniske minimum på 12 % gælder ikke årsløn.
+Årslønnens eksisterende ferie-/SH-advarsler vurderes også uden helårsomregning i Overenskomst. Advarsler om 6. ferieuge vises fortsat kun ved aktiv omregning, hvor valget er synligt. En SH/SO-sats, overenskomsten selv har fastsat og låst, vurderes ikke (BB-352). En feriesats over 20 % får i Procent og Overenskomst samme gule ring og tekst som på Lønindkomst – også i tidligere gemte sager (udviklerafgørelse 2026-10-27); over 25 % er den rød. Feriegodtgørelse (12 % og derover) sammen med vist «Fuld løn under ferie» = Ja er en rød, blokerende feltfejl, ikke en advarsel, og advarselsteksterne navngiver ydelsen efter satsen (udviklerafgørelse 2026-11-04, `feriepenge-begreber-contract.md` §2c–2d). EO’s tvungne både-og gælder ikke årsløn.
 
 **Fejl og advarsler** (BB-350): boksen er magen til de øvrige siders og samler ALLE blokerende fejl og mangler – feltfejl med feltets navn, «Overenskomst mangler»/«Reguleringsdato mangler», lønrækkernes cellefejl, en kritisk beregningsfejl og et afbrudt dokument – efterfulgt af advarslerne. Hver række linker til feltet eller cellen. Ved felterne er der kun rød ring og tooltip, ingen tekst. Rækkerne bygges i `aarsloenIssueRows.ts`.
 

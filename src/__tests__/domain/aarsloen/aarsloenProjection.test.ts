@@ -132,7 +132,8 @@ describe('resolveAarsloenFieldErrorGate (spejler resolveAarsloenCanonicalRangeIs
   });
 
   it('ingen røde felter → tom gate', () => {
-    const input = dispatch(empty(), settle(feriePctRef, '12'));
+    // 1 % er et ferietillæg og forenelig med standardens fuld løn under ferie; 12 % ville være rødt (§2c).
+    const input = dispatch(empty(), settle(feriePctRef, '1'));
     const values = readAarsloenValues(reader(input));
     expect(resolveAarsloenFieldErrorGate(reader(input), values, { omregningAktiveret: true })).toHaveLength(0);
   });

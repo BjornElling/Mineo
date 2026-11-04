@@ -124,7 +124,7 @@ describe('CALC-002 – uafhængigt Metode A-facit gennem Årsløn-dokumentgræns
 
     const expectedContent = [
       'Årslønsberegning',
-      'Feriegodtgørelse/-tillæg',
+      'Ferietillæg',
       '10 %',
       'Arbejdsgivers pensionsbidrag',
       '5 %',

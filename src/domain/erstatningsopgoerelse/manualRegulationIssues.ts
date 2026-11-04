@@ -24,15 +24,19 @@ import {
   isManuelProcentsatsRowAktiv,
 } from './helpers/manuelReguleringRowPredicates';
 import { getRangeForManualRegulering, calculateElapsedWholeMonths } from '../eoRowEvaluation/eoRowShared';
+import { TILLAEG_ANGIVES_SOM } from '../../types/loen';
+import { vurderEoFeriesats, type EoFeriesatsFund } from './validation/loenindkomstSatsAssessment';
 
 // De to manuelle reguleringsformer – «Manuelt angivet» og «Manuel procentsats» – er samme slags tabel: en låst
 // basisrække på reguleringsdatoen og brugerens efterfølgende rækker. Reglerne for dem bor derfor ét sted og
 // gælder begge former og begge ejere (ansættelsesforholdet ved «Beregningsperiode» og den angivne løn). Før
 // havde de hver sin håndfuld regler, og de afveg uden grund (BB-302, BB-303, BB-311).
 //
-//  - Røde fejl (spærrer): en dato på eller før basisdatoen, og to rækker med samme dato (BB-311).
-//  - Gule advarsler (spærrer ikke): ingen ændringer i lang tid (BB-302), en procentsats over 10 % og en
-//    grundløn over ti gange rækken før (BB-313).
+//  - Røde fejl (spærrer): en dato på eller før basisdatoen, to rækker med samme dato (BB-311), og et ferietillæg
+//    trods «Fuld løn under ferie» = Nej.
+//  - Gule advarsler (spærrer ikke): ingen ændringer i lang tid (BB-302), en procentsats over 10 %, en
+//    grundløn over ti gange rækken før (BB-313), og et ferietillæg ved løn under ferie eller en feriesats over 20 %.
+//  Feriesatsen vurderes som ansættelsesforholdets satsfelt (`vurderEoFeriesats`, udviklerafgørelse 2026-11-04).
 
 export type ManualRegulationBasis = 'Manuelt angivet' | 'Manuel procentsats';
 
@@ -47,6 +51,13 @@ export type ActiveManualRegulationTable = Readonly<{
   anvendtReguleringsdato: ISODateString | undefined;
   bindings: ManualBindings;
   bindIds: (rowId: string) => readonly string[];
+  /** Svaret på «Fuld løn under ferie», når det stilles (ansættelsesforhold ved beregningsperiode). */
+  fuldLoenUnderFerie: 'Ja' | 'Nej' | undefined;
+  /**
+   * Basisrækkens satser er låste kopier af ansættelsesforholdets satsfelter, som vurderes dér. Kun ved den angivne
+   * løn og i Beløb-tilstand skriver brugeren dem selv i basisrækken.
+   */
+  basisSatserLaast: boolean;
 }>;
 
 /** Navnet på formen i en linje i «Fejl og advarsler». */
@@ -90,6 +101,8 @@ export const resolveActiveManualRegulationTables = (
         }),
         bindings: eoEmploymentManual,
         bindIds: (rowId) => [employment.id, rowId],
+        fuldLoenUnderFerie: employment.fuldLoenUnderFerie,
+        basisSatserLaast: employment.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB,
       });
     }
   }
@@ -112,6 +125,8 @@ export const resolveActiveManualRegulationTables = (
       }),
       bindings: eoAngivetLoenManual,
       bindIds: (rowId) => [rowId],
+      fuldLoenUnderFerie: undefined,
+      basisSatserLaast: false,
     });
   }
   return tables;
@@ -132,6 +147,22 @@ const ruleIssue = (
     message,
     ...(detail === undefined ? {} : { detail: Object.freeze(detail) }),
   });
+
+/** Feriesatsens fund pr. række i en «Manuelt angivet»-tabel; låste basissatser er vurderet på ansættelsesforholdet. */
+const resolveFeriesatsFund = (
+  table: ActiveManualRegulationTable,
+): readonly Readonly<{ row: LoenudviklingManuelRow; index: number; fund: EoFeriesatsFund }>[] => {
+  if (table.basis !== 'Manuelt angivet') return [];
+  return (table.rows as readonly LoenudviklingManuelRow[]).flatMap((row, index) => {
+    if (index === 0 && table.basisSatserLaast) return [];
+    if (!hasFinitePct(row.feriepenge)) return [];
+    const fund = vurderEoFeriesats(row.feriepenge, table.fuldLoenUnderFerie);
+    return fund === undefined ? [] : [{ row, index, fund }];
+  });
+};
+
+const feriesatsCell = (table: ActiveManualRegulationTable, row: LoenudviklingManuelRow): AnyFieldRef =>
+  toAnyFieldRef(table.bindings.manualFields.feriepenge.bind(...table.bindIds(row.id)));
 
 /**
  * Datofejlene i den aktive manuelle tabel, adresseret til de berørte datoceller. En inaktiv tabels bevarede
@@ -172,6 +203,11 @@ export const collectManualRegulationIssues = (
       }
       seenDates.add(row.dato);
     });
+    for (const { row, fund } of resolveFeriesatsFund(table)) {
+      if (fund.kind !== 'deviation') continue;
+      const field = feriesatsCell(table, row);
+      issues.push(ruleIssue(field, `${field.descriptor.id}.ferietillaegUdenLoenUnderFerie`, fund.message));
+    }
   }
   return Object.freeze(issues);
 };
@@ -183,7 +219,7 @@ export const MANUEL_PROCENTSATS_ADVARSELSGRAENSE = 10;
 /** En grundløn over så mange gange rækken før er sandsynligvis et nul for meget (BB-313, som BB-297). */
 export const MANUEL_GRUNDLOEN_SPRING_FAKTOR = 10;
 
-export type ManualRegulationWarningKind = 'udloeb' | 'storProcentsats' | 'grundloenSpring';
+export type ManualRegulationWarningKind = 'udloeb' | 'storProcentsats' | 'grundloenSpring' | 'feriesats';
 
 export type ManualRegulationWarning = Readonly<{
   ownerKey: string;
@@ -298,6 +334,17 @@ const resolveGrundloenWarnings = (table: ActiveManualRegulationTable): ManualReg
   return warnings;
 };
 
+const resolveFeriesatsWarnings = (table: ActiveManualRegulationTable): ManualRegulationWarning[] =>
+  resolveFeriesatsFund(table).flatMap(({ row, index, fund }) => fund.kind !== 'unusual' ? [] : [{
+    ownerKey: table.ownerKey,
+    basis: table.basis,
+    kind: 'feriesats' as const,
+    rowId: row.id,
+    summaryMessage: `${manualRegulationFormPrefix(table.basis)}, ${formatManualRegulationRowName(row, index)}: ${fund.message}`,
+    cellMessage: fund.message,
+    cells: [feriesatsCell(table, row)],
+  }]);
+
 /**
  * De manuelle tabellers gule advarsler. Rene funktioner af input og indstillingens tolerance, så rækkebyggeren
  * (linjen i «Fejl og advarsler») og fladen (den gule ring) får præcis samme svar.
@@ -314,7 +361,9 @@ export const resolveManualRegulationWarnings = (
   resolveActiveManualRegulationTables(values, stamdata).flatMap((table) => {
     const udloeb = resolveUdloebWarning(table, tafSlut, udloebToleranceMaaneder);
     return [
-      ...(table.basis === 'Manuel procentsats' ? resolveProcentsatsWarnings(table) : resolveGrundloenWarnings(table)),
+      ...(table.basis === 'Manuel procentsats'
+        ? resolveProcentsatsWarnings(table)
+        : [...resolveGrundloenWarnings(table), ...resolveFeriesatsWarnings(table)]),
       ...(udloeb === undefined ? [] : [udloeb]),
     ];
   });

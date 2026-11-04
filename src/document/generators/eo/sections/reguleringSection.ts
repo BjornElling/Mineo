@@ -19,7 +19,7 @@ import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '..
 import { resolveAktivOverenskomst } from '../../../../domain/loen/aktivOverenskomst';
 import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
-  REGULERINGSVAERDIER_FERIE_HEADER,
+  REGULERINGSVAERDIER_FERIE_HEADERS,
   REGULERINGSVAERDIER_PENSION_HEADER,
   REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER,
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
@@ -58,7 +58,7 @@ const MANUEL_PROCENTSATS_NUMBER_HEADERS = new Set(['procent', 'indeks', 'akkumul
 // (manuel procentsats), deler de fire tilbageværende kolonner hele tabelbredden ligeligt.
 const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
   // Sættet slår op på det lowercased overskriftsnavn; navnet ejes af `reguleringsPresentation.ts`.
-  REGULERINGSVAERDIER_FERIE_HEADER.toLowerCase(),
+  ...Object.values(REGULERINGSVAERDIER_FERIE_HEADERS).map((header) => header.toLowerCase()),
   'sh/so',
   'fritvalg',
   REGULERINGSVAERDIER_STORE_BEDEDAG_HEADER.toLowerCase(),

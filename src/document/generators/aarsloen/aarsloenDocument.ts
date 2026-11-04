@@ -29,6 +29,7 @@ import {
 } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
 import { sortStandardLoenRowsChronologically } from '../../../domain/standardLoen/standardLoenRowOrder';
+import { ferieYdelseNavn } from '../../../domain/loen/feriePctYdelse';
 
 const NBSP = '\u00A0';
 
@@ -106,7 +107,9 @@ const addSatserSection = (
 ): void => {
   // Definer alle mulige satser
   const satsDefinitioner: Array<{ key: keyof StandardLoenSatserInput; label: string }> = [
-    { key: 'feriePct', label: 'Feriegodtgørelse/-tillæg' },
+    // Satsen navngives med den ydelse, den er (`feriepenge-begreber-contract.md` §2d).
+    // Satsinputtets type tillader en tekst; den kan ikke klassificeres sikkert og får feltets generiske navn.
+    { key: 'feriePct', label: ferieYdelseNavn(typeof satser.feriePct === 'number' ? satser.feriePct : undefined) },
     { key: 'fritvalgPct', label: 'Fritvalg' },
     { key: 'shSoPct', label: 'SH/SO-sats' },
     { key: 'storeBededagPct', label: 'Store Bededagstillæg' },

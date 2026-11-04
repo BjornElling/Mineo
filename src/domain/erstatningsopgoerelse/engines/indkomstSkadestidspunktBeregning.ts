@@ -26,6 +26,7 @@ import {
 import { asCalculable } from '../shared/eoTypes';
 import { formatPercentFixed2, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
+import { ferieYdelseNavn } from '../../loen/feriePctYdelse';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
@@ -182,10 +183,9 @@ export const buildIndkomstSkadestidspunkt = (
         // Beløb-tilstand: labels må ikke påstå procentsatser, da tillæggene er indtastede beløb.
         const pctParts: string[] = [];
         if (mode !== 'beloeb') {
-          // En PROCENTSATS navngives med den konkrete ydelse, ikke med fællesbetegnelsen «Feriepenge»
-          // (`feriepenge-begreber-contract.md` §2a) – og navnet er feltets eget, så dokumentet og det
-          // felt, satsen kommer fra, siger det samme.
-          if (feriePct && feriePct !== 0) pctParts.push(`Feriegodtgørelse/-tillæg (${formatPercentFixed2(feriePct)})`);
+          // En PROCENTSATS navngives med den konkrete ydelse, den er – ferietillæg under 12 %, ellers
+          // feriegodtgørelse – ikke med fællesbetegnelsen «Feriepenge» (`feriepenge-begreber-contract.md` §2d).
+          if (feriePct && feriePct !== 0) pctParts.push(`${ferieYdelseNavn(feriePct)} (${formatPercentFixed2(feriePct)})`);
           if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercentFixed2(fritvalgPct)})`);
           if (shSoPct && shSoPct !== 0) pctParts.push(`SH/SO (${formatPercentFixed2(shSoPct)})`);
           if (storeBededagPct && storeBededagPct !== 0) {

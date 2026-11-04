@@ -25,7 +25,7 @@ import { evaluateAarsloenDownloadGate } from '../../../domain/aarsloen/aarsloenD
 import { AARSLOEN_MANGLENDE_DATO_TOOLTIP, resolveAarsloenLaastSatsTooltip, resolveAarsloenSatsBindings, resolveAarsloenSatsKilde } from '../../../domain/aarsloen/aarsloenTillaeg';
 import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRows';
 import { resolveLockedOverenskomstSatsTooltip } from '../../../domain/loen/overenskomstSatser';
-import { resolveHoejFeriePctAdvarsel } from '../../../domain/loen/feriePctAdvarsel';
+import { resolveHoejFeriePctAdvarsel } from '../../../domain/loen/feriePctYdelse';
 import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../../../domain/loen/storeBededagstillaeg';
 import { projectEoSave } from '../../../persistence/eoSaveProjection';
 import { adaptPersistedSectionForLoad } from '../../../persistence/persistedLoadAdapter';
@@ -53,7 +53,9 @@ const inputFor = (patch: Partial<AarsloenValues> = {}): SettledInput => catalog.
       tillaegAngivesSom: 'overenskomst',
       overenskomstId: 'bygge-anlaeg',
       reguleringsdato: iso('2024-03-01'),
+      // 12,5 % er feriegodtgørelse og kan ikke kombineres med fuld løn under ferie (rød, udviklerafgørelse 2026-11-04).
       feriePct: 12.5,
+      fuldLoenUnderFerie: false,
       tableData: [row('r1', '1')],
       ...patch,
     },
@@ -173,13 +175,37 @@ describe('årslønnens overenskomstgrundlag', () => {
     expect(result.values.storeBededagPct).toBeUndefined();
   });
 
-  it('advarer om 12,5 procent sammen med fuld løn under ferie, også uden helårsomregning', () => {
-    const result = project();
+  it('gør feriegodtgørelse sammen med fuld løn under ferie rød og spærrende, også uden helårsomregning', () => {
+    const result = project({ fuldLoenUnderFerie: true });
     expect(result.omregningGate.effectiveEnabled).toBe(false);
-    expect(result.calculation?.fejlmeddelelser).toContain(
-      'En sats for Feriegodtgørelse/-tillæg på 12,5 % gør det højst usandsynligt, at der er ret til løn under ferie.'
-    );
+    const besked = 'Feriegodtgørelse på 12,5 % kan ikke kombineres med fuld løn under ferie – angiv ferietillægget '
+      + '(typisk 1 %), eller vælg Nej til «Fuld løn under ferie»';
+    expect(result.feriePctRuleIssue).toMatchObject({ kind: 'field', severity: 'error', reason: 'rule', message: besked });
+    expect(result.fieldIssues).toContainEqual(result.feriePctRuleIssue);
+    expect(result.calculation).toBeNull();
+    expect(evaluateAarsloenDownloadGate(result).canDownload).toBe(false);
+  });
+
+  it('godtager et ferietillæg sammen med fuld løn under ferie', () => {
+    const result = project({ fuldLoenUnderFerie: true, feriePct: 1 });
+    expect(result.feriePctRuleIssue).toBeUndefined();
+    expect(result.fieldIssues).toEqual([]);
     expect(evaluateAarsloenDownloadGate(result).canDownload).toBe(true);
+  });
+
+  it('vurderer ikke et skjult «Fuld løn under ferie»: i Procent uden omregning er 12,5 % blot feriegodtgørelse', () => {
+    const result = project({ tillaegAngivesSom: 'procent', fuldLoenUnderFerie: true });
+    expect(result.feriePctRuleIssue).toBeUndefined();
+    expect(result.fieldIssues).toEqual([]);
+  });
+
+  it('gør en feriesats over 25 % rød med feltets egen grænse', () => {
+    const input = settle(inputFor(), aarsloenFeriePctField.bind(), '26');
+    const result = buildAarsloenReaderProjection(readerFor(input));
+    expect(result.fieldIssues).toContainEqual(expect.objectContaining({
+      reason: 'bounds', message: 'Feriegodtgørelse kan ikke overstige 25 %',
+    }));
+    expect(result.calculation).toBeNull();
   });
 
   it('genbruger den høje ferieadvarsel og Bededag-fravalgets tekst uden at blokere dokumentet', () => {
@@ -215,7 +241,7 @@ describe('årslønnens overenskomstgrundlag', () => {
     const hoejFerie = resolveHoejFeriePctAdvarsel(21);
     expect(udenOmregning.calculation?.fejlmeddelelser).toEqual([hoejFerie]);
     expect(medOmregning.calculation?.fejlmeddelelser).toEqual([
-      'En sats for Feriegodtgørelse/-tillæg på 21 % skaber en klar formodning for, at der er ret til 6. ferieuge.',
+      'Feriegodtgørelse på 21 % skaber en klar formodning for, at der er ret til 6. ferieuge.',
       hoejFerie,
     ]);
   });

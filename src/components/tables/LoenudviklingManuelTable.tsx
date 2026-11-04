@@ -112,8 +112,8 @@ export default function LoenudviklingManuelTable({
   // Fail-closed for ældre/ufuldstændig state: selv uden en canonical basisrække er den første synlige række
   // programstyret. Datoen må aldrig falde tilbage til en redigerbar placeholder.
   const visibleBaseRowId = resolveManualRegulationBasisRowId(committedRows, orderedRows);
-  // Kolonnen indeholder en PROCENTSATS, og en sats navngives med den konkrete ydelse – ikke med
-  // fællesbetegnelsen «Feriepenge», som kolonnen hed før (`feriepenge-begreber-contract.md` §2a).
+  // Kolonnen er et INDTASTNINGSFELT for satsen og bærer derfor feltets generiske navn, der ikke skifter med
+  // indtastningen (`feriepenge-begreber-contract.md` §2a) – ikke fællesbetegnelsen «Feriepenge», som den hed før.
   // Navnet er descriptorens, så tabelhoved og feltfejl ikke kan kalde samme celle to ting; linjeskiftet
   // er ren layout for den 140 px brede kolonne, præcis som i løntabellens overskrifter.
   const headers = [

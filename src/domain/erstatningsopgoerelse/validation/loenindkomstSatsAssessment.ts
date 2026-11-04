@@ -1,7 +1,14 @@
-import { resolveHoejFeriePctAdvarsel } from '../../loen/feriePctAdvarsel';
-export { FERIE_PCT_ADVARSELSGRAENSE } from '../../loen/feriePctAdvarsel';
+import {
+  FERIE_SATS_FELTNAVN,
+  ferieYdelseNavn,
+  resolveFerieYdelse,
+  resolveHoejFeriePctAdvarsel,
+} from '../../loen/feriePctYdelse';
+export { FERIE_PCT_ADVARSELSGRAENSE } from '../../loen/feriePctYdelse';
 import { erFeriePctPaakraevet, FERIE_PCT_MANGLER_BESKED } from '../../loen/feriePctKrav';
-import type { LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, LoenindkomstAnsaettelsesforhold } from '../../../schemas/formSchemas';
+import { formatPercent } from '../../../utils/formatUtils';
+import { erFuldLoenUnderFerieRelevant } from '../helpers/eoInputRelevance';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 /**
@@ -19,8 +26,7 @@ import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
  *
  * Et TOMT felt er en manglende indtastning, ikke en forkert: det giver ingen rød ring – brugeren har ikke
  * skrevet noget – men en blokerende linje i «Fejl og advarsler» (udviklerafgørelse 2026-10-06, jf.
- * `error-contract.md` §`missing`). En faktisk indtastet værdi under 12 % er rød og blokerer; over 20 % får den
- * en gul, ikke-blokerende ring (BB-286 – 12 % er sjældent, men lovligt).
+ * `error-contract.md` §`missing`). En indtastet værdi vurderes af {@link vurderEoFeriesats}.
  *
  * AFGRÆNSNING mod de LÅSTE satser. Fritvalg, SH/SO, Store Bededagstillæg og arbejdsgiverpension vurderes
  * IKKE her: domæneprojektionen erstatter deres eventuelle historiske inputslot med den aktuelle
@@ -32,14 +38,14 @@ export type SatsField = 'feriePct';
 
 /** Feltets label, som den vises i brugerfladen. */
 export const SATS_FIELD_LABELS: Readonly<Record<SatsField, string>> = Object.freeze({
-  feriePct: 'Feriegodtgørelse/-tillæg',
+  feriePct: FERIE_SATS_FELTNAVN,
 });
 
 /**
  * Ét satsfund.
  * - `missing`: tomt, men påkrævet. Ingen ring; blokerende linje i boksen.
- * - `deviation`: en indtastet værdi under 12 %. Rød ring; blokerer.
- * - `unusual`: en indtastet værdi over 20 %. Gul ring; blokerer ikke.
+ * - `deviation`: et ferietillæg (under 12 %), selv om brugeren har svaret Nej til fuld løn under ferie. Rød ring; blokerer.
+ * - `unusual`: et ferietillæg ved løn under ferie, eller en sats over 20 %. Gul ring; blokerer ikke.
  */
 export type SatsFinding = Readonly<{
   field: SatsField;
@@ -65,15 +71,66 @@ export const isFeriePctPaakraevet = (af: FeriePctRequirementInput): boolean =>
 
 export { FERIE_PCT_MANGLER_BESKED };
 
+/** Den indtastede satsfejl eller -advarsel – uden felt; ansættelsesforholdet og den manuelle tabel adresserer den selv. */
+export type EoFeriesatsFund = Readonly<{ kind: 'deviation' | 'unusual'; message: string }>;
+
+/**
+ * Vurderer en INDTASTET feriesats i erstatningsopgørelsen (`feriepenge-begreber-contract.md` §2b, udviklerafgørelse
+ * 2026-11-04). Deles af ansættelsesforholdets satsfelt og den manuelle lønudviklingstabels kolonne, som er samme sats
+ * fra en senere dato.
+ *
+ * Erstatningsopgørelsen opgør TAF med en tvungen både-og: også ved løn under ferie skal satsen beregningsteknisk
+ * angives som feriegodtgørelse (regel 3). En sats under 12 % er et FERIETILLÆG og er derfor næsten altid en fejl –
+ * men ikke altid, så den advarer kun (gul). Har brugeren derimod svaret Nej til fuld løn under ferie, siger satsen og
+ * svaret hinanden imod: uden løn under ferie og med kun et ferietillæg mangler ydelsen reelt, og det er rødt.
+ * Satser over 25 % er feltets egen røde grænse (descriptoren), så de når ikke hertil.
+ *
+ * @param fuldLoenUnderFerie Svaret, NÅR spørgsmålet stilles (beregningsperiode) – ellers `undefined`.
+ */
+export const vurderEoFeriesats = (
+  feriePct: number,
+  fuldLoenUnderFerie: 'Ja' | 'Nej' | undefined,
+): EoFeriesatsFund | undefined => {
+  if (resolveFerieYdelse(feriePct) === 'ferietillaeg') {
+    const sats = formatPercent(feriePct);
+    return fuldLoenUnderFerie === 'Nej'
+      ? {
+        kind: 'deviation',
+        message: `${ferieYdelseNavn(feriePct)} på ${sats} forudsætter løn under ferie, men «Fuld løn under ferie» er Nej. `
+          + 'Uden løn under ferie angives feriegodtgørelsen: typisk 12,5 %, eller 15 % ved ret til 6. ferieuge',
+      }
+      : {
+        kind: 'unusual',
+        message: `${ferieYdelseNavn(feriePct)} på ${sats}: i erstatningsopgørelsen angives løn under ferie normalt `
+          + 'beregningsteknisk som feriegodtgørelse – 12,5 %, eller 15 % ved ret til 6. ferieuge, plus et eventuelt '
+          + 'forhøjet ferietillæg',
+      };
+  }
+  const hoejSatsAdvarsel = resolveHoejFeriePctAdvarsel(feriePct);
+  return hoejSatsAdvarsel === undefined ? undefined : { kind: 'unusual', message: hoejSatsAdvarsel };
+};
+
+/** Svaret på «Fuld løn under ferie», når spørgsmålet stilles – ellers `undefined` (et skjult valg vurderes ikke). */
+export const resolveEoFuldLoenUnderFerieSvar = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'fuldLoenUnderFerie'>,
+  beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'],
+): 'Ja' | 'Nej' | undefined =>
+  erFuldLoenUnderFerieRelevant({ beregnesUdFra }) ? af.fuldLoenUnderFerie : undefined;
+
 /**
  * Vurderer satserne for ét ansættelsesforhold. Højst ét fund pr. felt (§1.8).
  *
- * `feriePctHarFeltfejl`: feltet har allerede sin egen røde fejl (fx en grænse som `150`). Readeren giver da
- * feltet som tomt til alle læsere, og vurderingen må ikke kalde en ugyldig indtastning for «ikke udfyldt».
+ * `beregnesUdFra`: «Fuld løn under ferie» stilles kun ved beregningsperiode; et skjult valg læses som tomværdien
+ * «Nej» og må ikke gøre et ferietillæg rødt.
+ * `feriePctHarFeltfejl`: feltet har allerede sin egen røde fejl (fx over 25 %). Readeren giver da feltet som tomt
+ * til alle læsere, og vurderingen må ikke kalde en ugyldig indtastning for «ikke udfyldt».
  */
 export const assessLoenindkomstSatser = (
   af: LoenindkomstAnsaettelsesforhold,
-  options: Readonly<{ feriePctHarFeltfejl?: boolean }> = {}
+  options: Readonly<{
+    beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
+    feriePctHarFeltfejl?: boolean;
+  }>,
 ): readonly SatsFinding[] => {
   if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return [];
 
@@ -91,22 +148,6 @@ export const assessLoenindkomstSatser = (
     return isFeriePctPaakraevet(af) ? Object.freeze([finding(FERIE_PCT_MANGLER_BESKED, 'missing')]) : [];
   }
 
-  if (af.feriePct < 12) {
-    return Object.freeze([finding(
-      // Med løn under ferie får lønmodtageren FERIETILLÆG, ikke feriegodtgørelse
-      // (`feriepenge-begreber-contract.md` regel 2). Det korrekte er den beregningstekniske omregning
-      // (regel 3): tillægget OPGØRES som feriegodtgørelse med 12,5 %/15 %.
-      af.fuldLoenUnderFerie === 'Ja'
-        ? 'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
-        : 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge',
-      'deviation'
-    )]);
-  }
-
-  const hoejSatsAdvarsel = resolveHoejFeriePctAdvarsel(af.feriePct);
-  if (hoejSatsAdvarsel !== undefined) {
-    return Object.freeze([finding(hoejSatsAdvarsel, 'unusual')]);
-  }
-
-  return [];
+  const fund = vurderEoFeriesats(af.feriePct, resolveEoFuldLoenUnderFerieSvar(af, options.beregnesUdFra));
+  return fund === undefined ? [] : Object.freeze([finding(fund.message, fund.kind)]);
 };

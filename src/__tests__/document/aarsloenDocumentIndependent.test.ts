@@ -155,7 +155,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
 
     const valuesInDocument = labelValues(model.blocks);
     expect(valuesInDocument).toEqual(expect.arrayContaining([
-      { label: 'Feriegodtgørelse/-tillæg', value: '10 %' },
+      { label: 'Ferietillæg', value: '10 %' },
       { label: 'Arbejdsgivers pensionsbidrag', value: '5 %' },
       { label: 'Antal måneder i de indtastede perioder', value: '2 måneder' },
       { label: 'Sammentælling af løn fra tabellen', value: '34.650,00 kr.' },
@@ -241,7 +241,7 @@ describe('Årsløn – uafhængigt downstream-facit for dokumentgeneratoren', ()
     expect(rows.slice(0, 3)).toEqual([
       { label: 'Overenskomst', value: 'Bygge-/anlægsoverenskomsten (3F / Dansk Industri)' },
       { label: 'Satser pr.', value: '01-03-2024' },
-      { label: 'Feriegodtgørelse/-tillæg', value: '12,5 %' },
+      { label: 'Feriegodtgørelse', value: '12,5 %' },
     ]);
   });
 });

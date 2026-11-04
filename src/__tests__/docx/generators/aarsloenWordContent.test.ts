@@ -63,7 +63,7 @@ describe('aarsloen → Word-indhold', () => {
     expect(text).toContain('Årslønsberegning');
     // Satser-sektion + en konkret label
     expect(text).toContain('Satser');
-    expect(text).toContain('Feriegodtgørelse/-tillæg');
+    expect(text).toContain('Feriegodtgørelse');
     // Indtægtsoplysninger-tabel + total
     expect(text).toContain('Indtægtsoplysninger');
     expect(text).toContain('I alt');
@@ -112,7 +112,7 @@ describe('aarsloen → Word-indhold', () => {
 
     const text = xmlToPlainText(documentXml);
     // Satser-blokken er udeladt i Beløb-tilstand.
-    expect(text).not.toContain('Feriegodtgørelse/-tillæg');
+    expect(text).not.toContain('Feriegodtgørelse');
     // De indtastede tillægsbeløb vises i tabellen (dansk formattering).
     expect(text).toContain('4.218,00');
     expect(text).toContain('2.581,92');

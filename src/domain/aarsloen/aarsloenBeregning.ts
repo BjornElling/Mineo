@@ -1,4 +1,4 @@
-import { resolveHoejFeriePctAdvarsel } from '../loen/feriePctAdvarsel';
+import { resolveHoejFeriePctAdvarsel } from '../loen/feriePctYdelse';
 import { resolveFravalgtStoreBededagstillaegAdvarsel } from '../loen/storeBededagstillaeg';
 import { resolveAarsloenSatsBindings, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 import { beregnOmregnetAarsloen } from './aarsloenCalculations';

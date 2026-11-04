@@ -164,11 +164,20 @@ describe('BB-274 – en tom feriesats regnes ikke stille som 0 %', () => {
 });
 
 describe('BB-284/BB-286 – satslinjen bruger skærmens overskrift og feltets egen tekst', () => {
-  it('en for lav sats er rød, og linjen gentager feltets regel ordret', () => {
-    const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ feriePct: 5 })] }));
+  it('et ferietillæg ved løn under ferie er gult, og linjen gentager feltets regel ordret', () => {
+    const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ feriePct: 5, fuldLoenUnderFerie: 'Ja' })] }));
+
+    expect(result.warningLinjer).toContain(
+      'Satser ved beregningsperiodens udløb (31-05-2018): Ferietillæg på 5 %: i erstatningsopgørelsen angives løn under ferie normalt beregningsteknisk som feriegodtgørelse – 12,5 %, eller 15 % ved ret til 6. ferieuge, plus et eventuelt forhøjet ferietillæg'
+    );
+    expect(result.rows.errors).toEqual([]);
+  });
+
+  it('et ferietillæg uden løn under ferie er rødt og spærrer', () => {
+    const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ feriePct: 5, fuldLoenUnderFerie: 'Nej' })] }));
 
     expect(result.errorLinjer).toContain(
-      'Satser ved beregningsperiodens udløb (31-05-2018): Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
+      'Satser ved beregningsperiodens udløb (31-05-2018): Ferietillæg på 5 % forudsætter løn under ferie, men «Fuld løn under ferie» er Nej. Uden løn under ferie angives feriegodtgørelsen: typisk 12,5 %, eller 15 % ved ret til 6. ferieuge'
     );
   });
 
@@ -179,11 +188,20 @@ describe('BB-284/BB-286 – satslinjen bruger skærmens overskrift og feltets eg
     expect(result.projection.snapshot.status).toBe('ok');
   });
 
+  it('over 25 % er feltets egen røde grænse og spærrer', () => {
+    const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ feriePct: 26 })] }));
+
+    expect(issueOf(result, eoEmploymentFields.feriePct.bind('af-1'))).toMatchObject({
+      reason: 'bounds', message: 'Feriegodtgørelse kan ikke overstige 25 %',
+    });
+    expect(result.projection.snapshot.data).toBeNull();
+  });
+
   it('over 20 % er en gul advarsel, der ikke spærrer', () => {
     const result = project(sag({ loenindkomstAnsaettelsesforhold: [ansaettelse({ feriePct: 25 })] }));
 
     expect(result.warningLinjer).toContain(
-      'Satser ved beregningsperiodens udløb (31-05-2018): Feriegodtgørelse/-tillæg over 20 % er usædvanligt – kontrollér satsen'
+      'Satser ved beregningsperiodens udløb (31-05-2018): Feriegodtgørelse over 20 % er usædvanligt – kontrollér satsen'
     );
     expect(result.rows.errors).toEqual([]);
     expect(result.projection.snapshot.status).toBe('ok');

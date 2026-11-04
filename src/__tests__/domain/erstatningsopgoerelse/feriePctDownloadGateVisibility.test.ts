@@ -110,14 +110,13 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
     expect(buildIndkomstSectionStatuses(values)[0]?.satserStatus).toBe('ok');
   });
 
-  it('en feriegodtgørelse under 12 % giver en rød satsrække', () => {
+  it('et ferietillæg (under 12 %) ved løn under ferie giver en gul, ikke-blokerende satsrække', () => {
+    // Standardkortet har løn under ferie; udviklerafgørelse 2026-11-04: kun en advarsel, aldrig en blokering.
     const values = buildScenario({ grundlag: 'Overenskomst', feriePct: 10 });
+    expect(feriePctBlocksInValidator(values)).toBe(false);
     const section = buildIndkomstSectionStatuses(values)[0];
-    expect(section?.satserStatus).toBe('error');
-    // Standardkortet har løn under ferie, så teksten er den beregningstekniske omregning.
-    expect(section?.satserMessage).toBe(
-      'Ved løn under ferie opgøres ferietillægget beregningsteknisk som feriegodtgørelse (12,5 %, eller 15 % ved ret til 6. ferieuge)'
-    );
+    expect(section?.satserStatus).toBe('warning');
+    expect(section?.satserMessage).toMatch(/^Ferietillæg på 10 %: /);
   });
 
   it('en feriegodtgørelse over 20 % giver en ikke-blokerende advarselsrække', () => {
@@ -125,6 +124,6 @@ describe('feriegodtgørelse: download-blokering ⟺ synlig fejl (ingen usynlig b
     expect(feriePctBlocksInValidator(values)).toBe(false);
     const section = buildIndkomstSectionStatuses(values)[0];
     expect(section?.satserStatus).toBe('warning');
-    expect(section?.satserMessage).toBe('Feriegodtgørelse/-tillæg over 20 % er usædvanligt – kontrollér satsen');
+    expect(section?.satserMessage).toBe('Feriegodtgørelse over 20 % er usædvanligt – kontrollér satsen');
   });
 });

@@ -7,6 +7,7 @@ import type { StandardLoenTableRow } from '../../schemas/formSchemas/sections/aa
 import { aarsloenTillaegsgrundlagEnum, type AarsloenTillaegsgrundlag } from '../../schemas/formSchemas/sections/aarsloenSchemas';
 import { resolvePrivatOverenskomstDaekning, erDatoUdenOverenskomstSatser, formatReguleringsdatoUdenOverenskomstSatserBesked } from '../../domain/loen/overenskomstSatser';
 import { resolveAarsloenSatsBindings } from '../../domain/aarsloen/aarsloenTillaeg';
+import { FERIE_PCT_MAKS, FERIE_PCT_OVER_MAKS_BESKED, FERIE_SATS_FELTNAVN } from '../../domain/loen/feriePctYdelse';
 import type { ISODateString } from '../../types/branded';
 import { getCurrentYear, dateRanges_aarsloen, dateRange_systemramme, MIN_YEAR } from '../../config/dateRanges';
 import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
@@ -94,10 +95,13 @@ const percentField = (field: string, label: string): FieldDescriptor<number | un
         reguleringsdato: view.readCanonical(aarsloenReguleringsdatoField.bind()),
       })[field].kind === 'bruger';
     },
-    validators: [percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })],
+    validators: [field === 'feriePct'
+      // Feriegodtgørelse er aldrig over 25 % (`feriepenge-begreber-contract.md` §2d) – samme grænse som Lønindkomst.
+      ? percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: FERIE_PCT_MAKS, allowDecimals: true, message: FERIE_PCT_OVER_MAKS_BESKED })
+      : percentBoundsValidator(`aarsloen.${field}.bounds`, { minValue: 0, maxValue: 100, allowDecimals: true })],
   });
 
-export const aarsloenFeriePctField = percentField('feriePct', 'Feriegodtgørelse/-tillæg');
+export const aarsloenFeriePctField = percentField('feriePct', FERIE_SATS_FELTNAVN);
 export const aarsloenFritvalgPctField = percentField('fritvalgPct', 'Fritvalg');
 export const aarsloenShSoPctField = percentField('shSoPct', 'SH/SO-sats');
 export const aarsloenStoreBededagPctField = percentField('storeBededagPct', 'Store Bededagstillæg');
