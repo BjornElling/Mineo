@@ -42,7 +42,8 @@ describe('InlineActionButton: deaktiveret', () => {
       </InlineActionButton>
     );
 
-    act(() => screen.getByRole('button', { name: 'Indsæt' }).focus());
+    // Fokus kan montere MUI's ripple via en Promise, så også efterarbejdet skal blive i act.
+    await act(async () => screen.getByRole('button', { name: 'Indsæt' }).focus());
     await user.keyboard('{Enter}');
     expect(onClick).not.toHaveBeenCalled();
   });
@@ -83,7 +84,7 @@ describe('InlineActionButton: deaktiveret', () => {
 
     const button = screen.getByRole('button', { name: 'Indsæt' });
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    act(() => button.focus());
+    await act(async () => button.focus());
     expect(document.activeElement).toBe(button);
   });
 

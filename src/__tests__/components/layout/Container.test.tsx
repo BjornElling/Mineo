@@ -11,7 +11,7 @@ import { StandardGridTable } from '../../../components/tables/StandardGridTable'
 import SideTab from '../../../components/layout/SideTab';
 
 /**
- * Container keyboard navigation tests
+ * Tests af tastaturnavigation i Container.
  *
  * Disse tests verificerer den normative keyboard-kontrakt:
  * - Tab/Shift+Tab flytter fokus uden at selektere indhold
@@ -507,7 +507,8 @@ describe('Container keyboard navigation', () => {
     const button = screen.getByRole('button', { name: 'Indsæt' });
     const field3 = screen.getByTestId('field3');
 
-    (button as HTMLButtonElement).focus();
+    // Fokus opdaterer også MUI-knappens focus state og skal afsluttes inden tastaturhandlingen.
+    await act(async () => { button.focus(); });
     expect(document.activeElement).toBe(button);
 
     await user.keyboard('{Enter}');
@@ -532,7 +533,7 @@ describe('Container keyboard navigation', () => {
     const button = screen.getByRole('button', { name: 'Indsæt' });
     const field3 = screen.getByTestId('field3');
 
-    (button as HTMLButtonElement).focus();
+    await act(async () => { button.focus(); });
     expect(document.activeElement).toBe(button);
 
     await user.keyboard('{Enter}');
@@ -606,7 +607,7 @@ describe('Container keyboard navigation', () => {
 
     render(<DynamicAction />);
     const button = screen.getByRole('button', { name: 'Indsæt dags dato' });
-    button.focus();
+    await act(async () => { button.focus(); });
 
     await user.keyboard('{Enter}');
     expect(screen.getByTestId('dynamic-action-value')).toHaveTextContent('efter');

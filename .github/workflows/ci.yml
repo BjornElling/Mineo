@@ -11,7 +11,7 @@ on:
 jobs:
   verify:
     name: Verify release core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
@@ -26,6 +26,9 @@ jobs:
           # npm-cachen holder kun registry-tarballs; `npm ci` installerer stadig præcis det låste
           # træ og kontrollerer hver tarballs integrity-hash mod package-lock.json.
           cache: npm
+
+      - name: Setup npm from packageManager
+        run: npm install --global "$(node --print 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).packageManager')"
 
       - name: Install dependencies (strict)
         run: npm ci
@@ -89,7 +92,7 @@ jobs:
   e2e:
     name: E2E (${{ matrix.project }})
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Projekterne er E2E-suitens baner (se `playwright.config.ts`): basisbanen i Chrome kører alle
     # specs, de øvrige motorer kører kun det, der er tagget `@browsere`, og de to
     # minimumsviewporter kun det, der er tagget `@viewporter`. CI kører dermed nøjagtig samme
@@ -134,6 +137,9 @@ jobs:
           # npm-cachen holder kun registry-tarballs; `npm ci` installerer stadig præcis det låste
           # træ og kontrollerer hver tarballs integrity-hash mod package-lock.json.
           cache: npm
+
+      - name: Setup npm from packageManager
+        run: npm install --global "$(node --print 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).packageManager')"
 
       - name: Install dependencies (strict)
         run: npm ci
@@ -191,7 +197,7 @@ jobs:
   deploy:
     needs: [verify, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     steps:
       # Checkout for wrangler-konfigurationerne og deploy-scriptet; der bygges IKKE på ny.
@@ -206,6 +212,9 @@ jobs:
 
       # Udrulningen bruger det låste wrangler fra package-lock.json – samme version, som
       # `check:dependencies` har kontrolleret – i stedet for den, en action selv installerer.
+      - name: Setup npm from packageManager
+        run: npm install --global "$(node --print 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).packageManager')"
+
       - name: Install dependencies (strict)
         run: npm ci
 

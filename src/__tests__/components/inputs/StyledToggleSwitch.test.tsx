@@ -270,7 +270,7 @@ describe('StyledToggleSwitch', () => {
       const user = userEvent.setup();
       const { toggle, onCommit } = renderRefusingToggle();
 
-      toggle.focus();
+      await act(async () => toggle.focus());
       await user.keyboard(key);
       expect(onCommit).toHaveBeenCalledTimes(1);
       expect(switchRoot(toggle)).toHaveClass(TOGGLE_REFUSAL_SHAKE_CLASS);

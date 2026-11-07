@@ -127,7 +127,8 @@ export default defineConfig({
   test: {
     // Playwright-specifikationer tilhører en separat browser-runner og må aldrig
     // blive indlæst som Vitest-suiter under den almindelige test- eller coverage-gate.
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // Stryker kopierer tests til en sandbox; Vitest må ikke indsamle kopierne ved en samtidig kørsel.
+    exclude: [...configDefaults.exclude, 'e2e/**', '.stryker-tmp/**'],
     environment: 'node',
     // Testfilerne er isolerede, men fork-poolen kopierer Vite/MUI-modultræet
     // til hvert worker-process. Thread-poolen bevarer samme isolation og

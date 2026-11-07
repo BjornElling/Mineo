@@ -18,10 +18,9 @@ const getWorkflowJob = (workflow: string, jobId: string, nextJobId?: string): st
   return workflow.slice(contentStart, end);
 };
 
-const withWorkflowFixture = (workflow: string, nodeVersion = 'v24.18.0'): string => {
+const withWorkflowFixture = (workflow: string): string => {
   const fixtureRoot = mkdtempSync(join(repoRoot, 'tmp-github-actions-runtime-'));
   mkdirSync(join(fixtureRoot, '.github', 'workflows'), { recursive: true });
-  writeFileSync(join(fixtureRoot, '.nvmrc'), `${nodeVersion}\n`);
   writeFileSync(join(fixtureRoot, '.github', 'workflows', 'fixture.yml'), workflow);
   return fixtureRoot;
 };
@@ -40,7 +39,7 @@ describe('check-github-actions-runtime', () => {
     expect(result.problems).toEqual([]);
     expect(result.workflowCount).toBeGreaterThan(0);
     expect(result.externalActionCount).toBeGreaterThan(0);
-    expect(result.projectNodeMajor).toBe(24);
+    expect(result.minimumActionNodeMajor).toBe(24);
   });
 
   it('er koblet ind i den release-gate, der skal beskytte deployet', () => {
@@ -76,15 +75,26 @@ describe('check-github-actions-runtime', () => {
     ]);
   });
 
-  it('afviser en godkendt action når projektet kræver en nyere Node-major', () => {
+  it('tillader en Node 24-action når projektet bruger Node 26', () => {
     const fixtureRoot = withWorkflowFixture(
       'jobs:\n  check:\n    steps:\n      - uses: actions/checkout@v7\n',
-      'v25.0.0',
+    );
+    writeFileSync(join(fixtureRoot, '.nvmrc'), '26.13.0\n');
+
+    expect(validateGitHubActionsRuntime(fixtureRoot).problems).toEqual([]);
+  });
+
+  it('kontrollerer action-runtime uden at kræve projektets .nvmrc', () => {
+    const fixtureRoot = withWorkflowFixture(
+      'jobs:\n  check:\n    steps:\n      - uses: actions/setup-node@v7\n',
     );
 
-    expect(validateGitHubActionsRuntime(fixtureRoot).problems).toEqual([
-      "fixture.yml:4: 'actions/checkout@v7' kører på Node 24, men projektet kræver Node 25 eller nyere.",
-    ]);
+    expect(validateGitHubActionsRuntime(fixtureRoot)).toEqual({
+      problems: [],
+      minimumActionNodeMajor: 24,
+      workflowCount: 1,
+      externalActionCount: 1,
+    });
   });
 
   it('kobler verify-, E2E- og deploy-job til samme dist-artefakt', () => {
@@ -117,6 +127,21 @@ describe('check-github-actions-runtime', () => {
     expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.mineo.json');
     expect(deployJob).toContain('node scripts/deploy-cloudflare.mjs wrangler.minprocesrente.json');
     expect(deployJob).not.toContain('npm run build');
+  });
+
+  it('installerer projektets npm før det låste træ på alle CI-jobs', () => {
+    for (const name of ['ci.yml', 'dependency-advisories.yml']) {
+      const workflow = readFileSync(join(repoRoot, '.github', 'workflows', name), 'utf8');
+      const jobs = workflow.slice(workflow.indexOf('\njobs:\n')).split(/\n {2}[a-z][a-z0-9_-]*:\n/).slice(1);
+      expect(jobs.length).toBeGreaterThan(0);
+      for (const job of jobs) {
+        expect(job).toContain('runs-on: ubuntu-26.04');
+        const npmSetup = job.indexOf('run: npm install --global');
+        expect(npmSetup).toBeGreaterThan(0);
+        expect(job.slice(npmSetup, job.indexOf('run: npm ci'))).toContain('.packageManager');
+        expect(job.indexOf('run: npm ci')).toBeGreaterThan(npmSetup);
+      }
+    }
   });
 
   it('kører alle dedikerede browserprojekter i CI', () => {

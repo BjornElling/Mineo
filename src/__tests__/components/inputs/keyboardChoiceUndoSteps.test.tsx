@@ -97,9 +97,9 @@ const renderEnhedDropdown = () => {
 };
 
 describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, udviklerbeslutning)', () => {
-  it('to bogstavtryk i en LUKKET dropdown giver to fortryd-trin', () => {
+  it('to bogstavtryk i en LUKKET dropdown giver to fortryd-trin', async () => {
     const combobox = renderEnhedDropdown();
-    act(() => combobox.focus());
+    await act(async () => combobox.focus());
     const before = undoDepth();
 
     fireEvent.keyDown(combobox, { key: 'u' });
@@ -114,9 +114,9 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, udvikle
     ).toBe(before + 2);
   });
 
-  it('et tryk, der ikke ændrer valget, giver intet trin (det er ændringen der tæller)', () => {
+  it('et tryk, der ikke ændrer valget, giver intet trin (det er ændringen der tæller)', async () => {
     const combobox = renderEnhedDropdown();
-    act(() => combobox.focus());
+    await act(async () => combobox.focus());
 
     fireEvent.keyDown(combobox, { key: 'u' });
     const afterFirst = undoDepth();
@@ -140,10 +140,10 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, udvikle
     expect(undoDepth()).toBe(before);
   });
 
-  it('kontrollen kan FEJLE: uden et tastedrevet valg stiger dybden ikke af sig selv', () => {
+  it('kontrollen kan FEJLE: uden et tastedrevet valg stiger dybden ikke af sig selv', async () => {
     // Uden denne kontrast kunne testene ovenfor bestå af, at dybden voksede ved enhver render.
     const combobox = renderEnhedDropdown();
-    act(() => combobox.focus());
+    await act(async () => combobox.focus());
     const before = undoDepth();
     fireEvent.keyDown(combobox, { key: 'z' });
     expect(undoDepth()).toBe(before);
@@ -158,6 +158,7 @@ describe('dropdown: hvert tastedrevet valg er sit eget undo-trin (§2.6, udvikle
  * ender i præcis samme commit: `useContainerKeyboardNavigation` oversætter dem til et `click()` på den
  * valgte radio, og den vej er dækket af `Container.test.tsx` («Enter på radiobutton …», «pil+wrap i
  * radiogruppe»). Antallet af history-trin afgøres derfor det samme sted, uanset hvilken tast der brugtes.
+ * Fokus afventes med async act, fordi MUI's lazy ripple kan fortsætte via en Promise efter fokus-eventet.
  */
 const renderEnhedRadio = () => {
   dispatchInput(
@@ -188,12 +189,12 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, udvi
     renderEnhedRadio();
     const before = undoDepth();
 
-    act(() => screen.getByRole('radio', { name: 'Uger' }).focus());
+    await act(async () => screen.getByRole('radio', { name: 'Uger' }).focus());
     await user.keyboard(' ');
     expect(canonicalEnhed()).toBe('uger');
     expect(undoDepth()).toBe(before + 1);
 
-    act(() => screen.getByRole('radio', { name: 'Måneder' }).focus());
+    await act(async () => screen.getByRole('radio', { name: 'Måneder' }).focus());
     await user.keyboard(' ');
     expect(canonicalEnhed()).toBe('maaneder');
     expect(
@@ -206,7 +207,7 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, udvi
     const user = userEvent.setup();
     renderEnhedRadio();
 
-    act(() => screen.getByRole('radio', { name: 'Uger' }).focus());
+    await act(async () => screen.getByRole('radio', { name: 'Uger' }).focus());
     await user.keyboard(' ');
     const afterFirst = undoDepth();
 
@@ -216,11 +217,11 @@ describe('radiogruppe: hvert tastedrevet valg er sit eget undo-trin (§2.7, udvi
     expect(undoDepth()).toBe(afterFirst);
   });
 
-  it('kontrollen kan FEJLE: uden et tastedrevet valg stiger dybden ikke af sig selv', () => {
+  it('kontrollen kan FEJLE: uden et tastedrevet valg stiger dybden ikke af sig selv', async () => {
     // Samme kontrast som for dropdownen: dybden må ikke vokse ved ren render eller fokus.
     renderEnhedRadio();
     const before = undoDepth();
-    act(() => screen.getByRole('radio', { name: 'Måneder' }).focus());
+    await act(async () => screen.getByRole('radio', { name: 'Måneder' }).focus());
     expect(undoDepth()).toBe(before);
   });
 });

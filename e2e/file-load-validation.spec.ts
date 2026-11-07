@@ -57,14 +57,14 @@ const buildLegacyPartialFile = async (page: Page): Promise<Buffer> => {
 // Chrome/Edge bruger den native File System Access-picker, som Playwright ikke kan sende en fil til.
 // Denne fil tildeles derfor WebKit-projektet i playwright.config.ts og kører dér uden at skippe.
 test.describe('Filvalidering ved Hent', () => {
+  // Listeneren holder browserens filvælger åben; uden den annullerer headless WebKit før filvalget.
 
   test('viser forventelig filfejl uden teknisk fejlregistrering', async ({ page, runtimeErrors }) => {
     await login(page);
+    const chooserPromise = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'Hent' }).click();
-
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toBeAttached();
-    await fileInput.setInputFiles({
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
       name: 'forkert.yml',
       mimeType: 'text/yaml',
       buffer: Buffer.from('ikke en Mineo-fil'),
@@ -82,10 +82,10 @@ test.describe('Filvalidering ved Hent', () => {
     const nameInput = page.locator("input[name='skadelidte']");
     await setVerbatimFieldValueAndSettle(nameInput, 'Aktiv sag før indlæsning');
 
+    const chooserPromise = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'Hent' }).click();
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toBeAttached();
-    await fileInput.setInputFiles({
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
       name: 'aeldre-sag.eo',
       mimeType: 'application/octet-stream',
       buffer: await buildLegacyPartialFile(page),
@@ -124,10 +124,10 @@ test.describe('Filvalidering ved Hent', () => {
     const nameInput = page.locator("input[name='skadelidte']");
     await setVerbatimFieldValueAndSettle(nameInput, 'Aktiv sag før afvisning');
 
+    const chooserPromise = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'Hent' }).click();
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toBeAttached();
-    await fileInput.setInputFiles({
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
       name: 'aeldre-sag.eo',
       mimeType: 'application/octet-stream',
       buffer: await buildLegacyPartialFile(page),
