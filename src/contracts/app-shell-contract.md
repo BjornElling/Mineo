@@ -3,16 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter – men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-11-02 (§8's venteskærm: udseende, egen skriftflade og intet render efter igangsat reload).
-Tidligere 2026-09-17 (§8's lazy-recovery: `vite:preloadError` undertrykkes nu KUN for en
-fejlet CSS-preload. En generel `preventDefault()` fik `await import(...)` til at resolve med `undefined`, så en
-manglende chunk blev en TypeError og dermed en systemfejl-popup i stedet for den tilbudte genindlæsning.
-Målt af `apps/shared/vitePreloadRecovery.test.ts` og `document/documentLifecycleMatrix.test.ts`.
-Tidligere 2026-08-27: PWA-filhandlerens `/open`-route registrerer fortsat worker og cache,
-men må ikke aktivere eller genindlæse før launchQueue kan have leveret filen. Tidligere 2026-08-19: §2.2 har fået to præciseringer, som 404-siden hviler på:
-device-gatens tidlige `return` betyder, at rutetræet – catch-all'en inklusive – aldrig monteres på
-mobil, og at auth-gaten dækker catch-all'en på samme måde som de navngivne routes. Baggrund:
-brugerfundet BB-057; målt af `components/system/PageNotFound.test.tsx`.)
+**Senest verificeret mod kode:** 2026-11-11
 
 ## 1. Scope
 
@@ -104,7 +95,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    **Ingen bfcache-genindlæsning.** En gendannelse fra browserens back/forward-cache er **ikke** en ny session: brugeren vender tilbage til sit eget, igangværende arbejde. En `pageshow`-lytter, der genindlæste ved `event.persisted`, ville kunne skifte build midt i en sag og kaste en åben editors draft væk uden om `CriticalActionCoordinator`.
 
-   **Bevidst forkastet: én model for browser, en anden for PWA.** Idéen – lad browserfanen altid køre nyeste version, og lad kun den installerede PWA vente til næste opstart – blev vurderet og afvist (udviklerbeslutning 2026-08-12). Tre grunde: (1) `display-mode: standalone` fortæller, hvordan vinduet blev *åbnet*, ikke om der er arbejde i gang; et browserfaneblad kan sagtens rumme en timegammel, halvfærdig erstatningsopgørelse, så en datasikkerhedsregel hængt på et *visnings*-signal er kun rigtig ved et tilfælde. (2) «Altid nyeste» i browseren betyder enten intet eller et tvunget reload midt i brugerens arbejde – altså opdateringslinjen ad bagdøren for én launch-mode. (3) To modeller fordobler edge-case-matricen for en sondring, der ikke følger det, invariantet beskytter. Det, idéen var ude efter, leverer no-store-HTML'en allerede: enhver ny fane, navigation eller genindlæsning henter nyeste HTML, så «åbne et faneblad» *er* en ny session. Grænsen er **sessionsstart**, ikke **launch-mode**.
+   **Samme opdateringsmodel gælder browser og PWA.** Grænsen er sessionsstart, ikke visningsform: begge kan rumme arbejde, der ikke må afbrydes af en opdatering. En ny fane, navigation eller genindlæsning henter nyeste HTML.
 
    Vites `vite:preloadError` er alene sidste sikkerhedsnet for fejl, der ikke burde være mulige efter en komplet versionscache. Det må aldrig kalde `location.reload()` selv. Signalet offentliggøres som en ventende recovery, og `LazyChunkRecoveryNotice` tilbyder en brugerudløst reload gennem `CriticalActionCoordinator`; dermed bliver også en åben draft enten afsluttet eller eksplicit blokeret før navigation. Linjen er **ikke** en opdateringslinje – den dækker kun manglende chunks (se Kendte Undtagelser 4). Vite-recovery installeres centralt af `bootstrapClientApp` før enhver dynamisk style-, route-, renderer- eller writer-import.
 
@@ -290,13 +281,7 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    en desktop. Den viewport-responsive styling, der er tilbage på listen nedenfor, er derfor kun
    *finjustering inden for* en valgt opstilling (skriftstørrelser, footer-kolonner) – aldrig valget selv.
 
-   Reglen findes, fordi de to beslutninger tidligere havde hver sit grundlag: opstillingen skiftede på
-   `useMediaQuery(down('sm'))`, mens indholdsboksens breddeoverstyring lå i `@media (pointer: coarse)`. Et
-   smalt musevindue faldt derfor ned mellem dem og fik telefonens tre kolonner med desktopbredden på 1200 px
-   – dårligere end begge de layouts, der findes (BB-045) – og skjulte samtidig tillægstid, enhed og den
-   afledte rentedato, mens renten fortsat blev regnet med tillægstiden (BB-046). **Indholdsboksens bredde
-   hører derfor til opstillingsvalget** og bor i sidens `isMobile`-blok, ikke i en `@media`-forespørgsel i
-   `minprocesrente.css`.
+   Indholdsboksens bredde følger opstillingsvalget og styres i sidens `isMobile`-blok. En separat viewport- eller pointerafhængig bredde kunne ellers give telefonopstilling med desktopbredde.
 
    | Fil | Begrundelse |
    |---|---|
@@ -306,15 +291,11 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
    | `src/components/pages/renteberegning/RenteberegningTab.tsx` | **Delt** (`Renteberegning` + standalone). Den ene breakpointregel er `overflowX: { xs: 'hidden', sm: 'auto' }`; fanens øvrige mobiladfærd kører på en eksplicit `isMobile`-prop, ikke på breakpoints. |
    | `src/components/ui/ScrollToTopButton.tsx` | Mineo-lokal, men bevidst: device-gaten kræver **touch-lighed**, så et smalt ikke-touch desktopvindue slipper igennem. Reglen flytter kun knappen tættere på hjørnet. |
 
-   Den tidligere formulering ("variant-lokal – ikke delt/global") var **ikke længere korrekt**: to af filerne er delt med Mineo. Præmissen er korrigeret frem for at splitte fladerne i to kopier, fordi breakpointsene aldrig tænder på Mineos desktop-flade.
-
    **Input-modalitet er ikke omfattet.** `@media (pointer: coarse)` og `@media (hover: hover|none)` er affordances efter inputenhed – de rammer touch-capable desktops, som gaten bevidst slipper igennem – og er derfor tilladt overalt.
 
    Fillisten er **håndhævet**, ikke kun beskrevet: `shell/viewport-responsive-styling-allowlist` i arkitektur-harnesset (`src/__tests__/quality/architecture/rules/responsiveStylingRules.ts`) gør en ny viewport-responsiv fil rød, og harnessets anti-rot-kontrol fjerner en post, der ikke længere udløser reglen. `.css`-filer ligger uden for kilde-grafen og er derfor kun auditeret her. Risiko: ingen for Mineo. Re-evaluering hvis standalone gøres desktop-only.
 
-   `src/apps/minprocesrente/minprocesrente.css` stod på listen indtil verifikationen 2026-08-19, hvor den viste sig **forældet**: filens eneste `@media` er `(pointer: coarse)` – netop den form, afsnittet ovenfor udtrykkeligt holder uden for undtagelsen. Viewport-forespørgslen forsvandt i `13022592`, og posten overlevede sit eget mål, fordi anti-rot-kontrollen kun kan se TS/TSX. Det er den præcise pris ved, at CSS kun auditeres i prosa her: driften fanges først ved næste verifikation, ikke af harnesset.
-
-   Filens `(pointer: coarse)`-blok ejer fortsat mobilens normale sidescroll (`html`/`body`/`#root`), som er en ægte input-modalitets-affordance. Men `#root .content-box`-bredden er FLYTTET ud af den 2026-08-19 og ind i sidens `isMobile`-blok, jf. afsnittet ovenfor: bredden er en del af opstillingsvalget, og `(pointer: coarse)` er et andet grundlag end det, opstillingen vælges på. Genindfør den ikke i CSS'en.
+   `src/apps/minprocesrente/minprocesrente.css` bruger `(pointer: coarse)` til mobilens normale sidescroll. Indholdsboksens bredde styres i sidens `isMobile`-blok, så den følger opstillingsvalget.
 
 4. **Deploybeskyttelsen er stærk, men ikke absolut.** Versionscachen dækker det almindelige forløb: en åben build beholder sine egne hash-navngivne lazy chunks, også efter at origin kun har den nyeste build. To forhold ligger uden for klientens kontrol:
 
@@ -325,7 +306,6 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 
    I begge tilfælde overtager `vite:preloadError`-linjen, som gør fejlen synlig og tilbyder en input-sikret genindlæsning frem for en runtime-fejl. Det er præcis den situation, hvor linjen ER bydende nødvendig. Re-evaluering ville kræve, at origin beholdt tidligere builds assets – en deploy-beslutning, ikke en klientside-beslutning.
 
-   **Bemærk:** kravet «frem for en runtime-fejl» blev først indfriet 2026-09-17. Indtil da undertrykte linjen ALLE preload-fejl, hvorved `await import(...)` resolverede med `undefined`, og kaldestedet kastede en TypeError – som endte i systemfejl-notitsen. Se §8's afsnit om, hvorfor kun CSS-grenen må undertrykkes.
 
 5. **Hard-stop-siden deler DATA med app-shellen, aldrig styling.** `UnsupportedDevicePage` renderes af `bootstrapClientApp.tsx` på en sti, der bevidst ikke indlæser app-stylesheet og ikke opretter et MUI-tema (kun to Montserrat-vægte hentes). Siden er derfor **inline-stylet i sin helhed**, og dens bundle er det eneste en mobilbruger nogensinde downloader.
 

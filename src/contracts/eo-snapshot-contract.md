@@ -7,15 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-11-11 (§14: tidligere opbrugt svie/smerte-maksimum vises ved både Ja og Nej; reader-, dokumentmodel- og PDF-tests samt browserkontrol bestået). Tidligere 2026-11-04 (§13: løbende EET indtil kapitalisering, ingen spærring uden TAF-periode, afgørelsesdatoernes advarsel og manuelle EET-rækker under togglen; 11.146 tests og 12 målrettede browserkontroller bestået). Tidligere 2026-10-30 (§6.2 pkt. 4–5: kontroltabellens ménafskæring fra motorens opslag, og kontrolfanerne som passivt kontrolmiddel uden den urenderede integritetskanal). Tidligere 2026-10-30 (§6.2: kontroltabellen som selvstændig kontrolberegning og TAF's afskæring ved EET; 11.049 tests og 16 målrettede browserkontroller bestået). Tidligere 2026-10-29 (importadvarsler og importfejl; 11.009 tests og 39 målrettede browserkontroller bestået). Tidligere 2026-10-25 (§6.1: ensartede fradrag og tal/bindestreg ved mangelfuldt, rejected og rødt canonical input; 10.748 tests og 2 målrettede e2e-tests bestået). Tidligere 2026-10-24 (§2.3 pkt. 6: sygeferiegodtgørelsens 4-månedersgrænse tæller alle TAF-perioder siden skaden før den stille EO-periode-clamping; 10.594 tests og 258 e2e-tests bestået). Tidligere 2026-10-24 (§14: «Skjul beregning efter første opgørelse» skjuler kun et gyldigt grundlag og aldrig midt i et besøg; 10.568 tests bestået). Tidligere 2026-10-18 (§1.1 og §10: fælles TAF-indkomstfradrag, grafens kilder og ferieindtægt samt afrunding i opreguleret TAF; beregnings-, dokument- og browserkontrol bestået). Tidligere 2026-10-15 (§3.1: runtime-afgrænsning og godkendt KL-nulbasis; 10.359 tests samt EO-browsermatrix bestået). Tidligere 2026-10-12 (§1.1: fælles beregningsgrundlag og reguleringsresultat). Tidligere 2026-10-02 (§3.1: beregningsgrundlagets fradrag, der ikke efterlader noget af perioden, er røde feltissues og blokerer som invariants (BB-258). Tidligere 2026-09-25: §14: TAF-periodernes løse feriedage er irrelevante og neutraliseres, når TAF opgøres i måneder. Tidligere 2026-09-23: §16 er ny: svie/smerte-satsåret er lovbestemt og uafhængigt af
-sygeperiodernes placering, og programmet advarer alene om en senere, højere sats. §14 har fået læsegrænsen: EO-felterne bag et valg bærer
-descriptorens `relevance`, så også validatoren og række-evalueringen ser et skjult felt som tomt.
-Tidligere 2026-09-17: §2.3 punkt 5a er ny: alle overlap er ugyldige, og
-indtastede perioder omfortolkes ikke – `periodOverlapDetection` bruger nu den kanoniske
-`utils/closedDateRange` i stedet for sin egen kopi af uligheden. §6.1 er ny: sammentællingskontrollens
-to sider deler nu inputgate OG dataforståelse. `SammentaellingControl` er gjort nominal med `buildSammentaellingControl`
-som eneste konstruktør, og `resolveYdelsestype` er konsolideret i `data/ydelsestyper`, så tre
-bekræftede indgange til en falsk `control:sammentaelling_mismatch` er lukket. Tidligere 2026-08-28.)
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 
@@ -543,8 +535,7 @@ Heraf følger:
    derfor at beregne forholdene effektivt og efter princippet om **dobbelte beregninger, der sammenholdes**
    (sammentællingen, §6.1). Beskrivende tekst på fanerne må alene have til formål at tydeliggøre en fejl, som
    brugeren i forvejen er advaret om – fanerne må ikke selv rejse fejl, advarsler eller selvtjek, som ikke allerede
-   står i «Fejl og advarsler». Den tidligere urenderede integritetskanal (tekst-issues om rækker, der ikke
-   kunne periodiseres, og om kolonnesummer) er derfor fjernet; dobbeltberegningen og sammentællingen er uændrede.
+   står i «Fejl og advarsler».
 
 Dækket af `eoInspektionTafAfskaering.test.ts` (inkl. tabellens egen afgrænsning af uafgrænsede TAF-perioder),
 `eoInspektionKontrolModelMenStopIndependent.test.ts` (ménafskæringen mod motorens opslag) og
@@ -710,8 +701,7 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
   eksisterende kalenderdags-periodisering inden for rækken svarer til x/dage-i-måneden og ikke et
   gennemsnit over hele EET-perioden. Periodernes samlede beløb bevares.
 - Importportens beløb er `MoneyOre`. EO-adapteren konverterer først til kroner, når den
-  konstruerer den eksisterende `AmountValue` til den virtuelle række; der må ikke være en
-  tidligere krone-float-grænse mellem EET og EO.
+  konstruerer `AmountValue` til den virtuelle række; grænsen mellem EET og EO bruger ikke krone-float.
 
 **Autoritativt midlertidigt EET-fradrag (kanonisk kilde):**
 - Det beløb der faktisk trækkes fra i TAF-beregningen for `midlertidigt_eet` afledes af den

@@ -3,9 +3,8 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-10-29 (§9: ydelsesparret hedder «Ydelse»/«Tillæg» på skærm, i «Fejl og advarsler» og i bilaget og summeres (BB-361). Tidligere 2026-09-25: §7 pkt. 5: rydningen af et skjult rødt felt gælder enhver ændring, ikke kun et valg. Tidligere 2026-08-28: relevans er nu en hard læsegrænse i `InputReader`. Tidligere 2026-08-26:
-kompatibilitetsafgrænsningen mellem intern runtime-arkitektur og persistensgrænsen er præciseret. Tidligere 2026-08-19: §8.2a er implementeret og verificeret: længdepolitikken erklæres
-på codecet/`charLengthPolicy.ts` og læses af både formular- og gridfladen; paste afgrænses i `spliceDraftWithPaste`)
+**Senest verificeret mod kode:** 2026-11-11
+
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
 Denne kontrakt beskriver den gældende interne runtime-arkitektur. Der findes ingen parallel inputmodel, ingen

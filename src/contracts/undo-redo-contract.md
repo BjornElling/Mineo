@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet
 `docs/architecture/undo-redo-architecture.md`.
-**Senest verificeret mod kode:** 2026-10-24
+**Senest verificeret mod kode:** 2026-11-11
 
 ## 1. Scope
 
@@ -17,10 +17,9 @@ Undo/redo omfatter kun autoritativ inputdata:
 Det omfatter ikke åbne drafts, afledte issues, gates, beregninger, browserens native tekst-history, AppSettings,
 `.eo`-filer eller selve `sessionStorage`-envelopen. History er runtime-only og persisteres aldrig.
 
-Et frame bærer INTET fejlsnapshot. Det midlertidige `fieldErrors`-kompatibilitetsfelt er fjernet sammen med den
-komponentrapporterede fejlmodel: issues er nu rene afledninger af den gendannede revision, så de kan ikke drifte
-fra inputtet. `InputHistoryFrame` er derfor præcis `{ input, origin? }`. Dette forbud gælder den slettede interne
-runtime-model og begrænser ikke de persistensadaptere, som `.eo`-load kræver for historiske filer.
+Et frame bærer intet fejlsnapshot: issues afledes af den gendannede revision og kan derfor ikke drifte fra
+inputtet. `InputHistoryFrame` er præcis `{ input, origin? }`. Dette begrænser ikke persistensadapterne, som
+`.eo`-load kræver for historiske filer.
 
 Fokus-origin er en DISKRIMINERET union, så de to slags commits ikke kan forveksles:
 
@@ -37,8 +36,7 @@ indtastning og en sortering indtastningen, mens sorteringen bliver stående; en 
 Kun kolonne-sortering må bruge den særskilte sorteringsport. Almindelig rækkeomarrangering, fx brugerens manuelle
 flytning af et ansættelsesforhold, er fortsat en undoable `reorderRows`-command.
 
-Unionen gør to fejl urepræsenterbare: et feltcommit uden adresse, og en rækkehandling uden destination. Begge var
-tidligere blot valgfrie felter på én fælles type.
+Unionen gør et feltcommit uden adresse og en rækkehandling uden destination urepræsenterbare.
 
 ## 2. Keyboard-adfærd
 
@@ -115,7 +113,7 @@ Fallback til det element, der tilfældigvis har DOM-fokus efter blur, er ikke en
 
 **En felt-origin, hvis fokusmål aldrig kan findes, er et brud på denne kontrakt, ikke et normalt udfald.** Efter
 en gennemført restore er originens tilstand aktuel igen, så dens editorlokation skal eksistere i DOM. Den fælles
-restore-løkke opgiver derfor ikke længere tavst: opbruges forsøgene, uden at brugeren selv har flyttet fokus,
+restore-løkke opgiver derfor ikke tavst: opbruges forsøgene, uden at brugeren selv har flyttet fokus,
 rapporteres den brudte invariant høj-lydt i udvikling (jf. console-politikken) og tavst i produktion, hvor
 manglende fokus er en skavank og ikke må blive til en fejlskærm.
 

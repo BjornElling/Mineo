@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-10-19
+**Senest verificeret mod kode:** 2026-11-11
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -235,10 +235,8 @@ Har en `format`-afvisning en konkret tekst (`detail.tooltip`, eller datofeltets 
 den tekst også issuets fulde **besked**, så boksen og tooltippet siger det samme (BB-128 for datoer, BB-296 for uger:
 «Uge skal være mellem 1 og 52 i 2017»). Kun en afvisning uden konkret tekst får den generiske besked med feltnavnet.
 
-**Tabellen ovenfor gælder FELTETS eget tooltip. Download-knappens tooltip følger en egen, lempet regel
-(udviklerbeslutning 2026-08-13).** Kontrakten krævede tidligere, at `bounds`/`rule` bevarede den fulde konkrete
-besked også i download-tooltippen. Det krav er lempet, fordi en downloadknap kan være blokeret af FLERE
-uafhængige input på én gang, hvor feltet altid er blokeret af præcis sit eget:
+**Tabellen ovenfor gælder feltets eget tooltip. Download-knappens tooltip følger en særskilt regel,**
+fordi en downloadknap kan være blokeret af flere uafhængige input på én gang:
 
 > En download-tooltip citerer kun en konkret besked, når gate-producenten eksplicit har angivet **præcis én**
 > blokerende årsag med scope `field` eller `row` – inkl. feltets issue eller en stabil rækkeidentitet. Er

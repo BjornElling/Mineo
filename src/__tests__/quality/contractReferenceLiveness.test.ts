@@ -23,7 +23,7 @@
  * (fraværsværn), og bruger navne-MØNSTRE (`XxxVmProvider`) som ikke er symboler. En regel om, at alt
  * navngivet skal eksistere, ville presse fraværsværnene ud af kontrakterne og dermed slette den eneste
  * beskrivelse af, hvad der er revet ned. Hver undtagelse bærer derfor en retning og en begrundelse – og
- * `absent`-retningen HÅNDHÆVES: genopstår `documentService.ts`, bliver denne test rød.
+ * `absent`-retningen HÅNDHÆVES: genopstår en forbudt reference, bliver testen rød.
  *
  * **Afgrænsning.** Kun sti-/filnavnereferencer og camelCase-/PascalCase-/SCREAMING_CASE-symboler kontrolleres.
  * Rene små bogstaver i backticks er i kontrakterne overvejende enum-værdier og dansk prosa (`ready`,
@@ -139,12 +139,6 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
   },
   {
     contract: 'src/contracts/document-output-contract.md',
-    reference: 'documentService.ts',
-    direction: 'absent',
-    note: 'Eksplicit fraværsværn: afviklingen bor i definition/documentLifecycle.ts. Kontrakten skriver selv, at navnet står her som fraværsværn.',
-  },
-  {
-    contract: 'src/contracts/document-output-contract.md',
     reference: 'blockedProjectionForInvalidInput',
     direction: 'absent',
     note:
@@ -188,24 +182,6 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'captureCoalescing',
     direction: 'absent',
     note: 'Slettet history-capture-primitiv; §9s fraværsregel.',
-  },
-  {
-    contract: 'src/contracts/indskudte-loentillaeg-contract.md',
-    reference: 'SAERLIGT_FERIETILLAEG_PCT_FOER',
-    direction: 'absent',
-    note: 'Særligt ferietillæg er forbudt i koden; satsdataene blev slettet 2026-07-31 og må ikke genindføres.',
-  },
-  {
-    contract: 'src/contracts/indskudte-loentillaeg-contract.md',
-    reference: '_EFTER',
-    direction: 'absent',
-    note: 'Halen af `SAERLIGT_FERIETILLAEG_PCT_FOER`/`_EFTER`-skrivemåden; samme fraværsværn.',
-  },
-  {
-    contract: 'src/contracts/indskudte-loentillaeg-contract.md',
-    reference: 'SAERLIGT_FERIETILLAEG_FORHOEJELSE_START',
-    direction: 'absent',
-    note: 'Samme fraværsværn som ovenfor.',
   },
   {
     contract: 'src/contracts/app-shell-contract.md',
@@ -304,7 +280,6 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     ['useCellInvalidDraftChannel', 'Slettet celle-kanal for ugyldige drafts.'],
     ['fieldAddressVersion', 'Slettet adressebro. Envelopen har ét current-only format uden adresseoversættelse.'],
     ['FormPersistenceContext', 'Slettet broker-context; consumers får InputReader eller godkendte projektioner.'],
-    ['SAERLIGT_FERIETILLAEG_SATSTRAPPE', 'Særligt ferietillæg er forbudt i koden; satsdataene blev slettet 2026-07-31.'],
   ] as const).flatMap(([name, note]) =>
     ([
       'src/contracts/error-contract.md',
@@ -332,12 +307,6 @@ const REFERENCE_EXCEPTIONS: readonly ContractReference[] = [
     reference: 'useStyledFieldAdapter',
     direction: 'absent',
     note: 'Slettet forgænger. Kontrakten navngiver den, så en læser af ældre commits kan finde efterfølgeren.',
-  },
-  {
-    contract: 'src/contracts/critical-action-contract.md',
-    reference: 'useGridRowPersistenceCore',
-    direction: 'absent',
-    note: 'Slettet forgænger; må ikke forveksles med den aktive useGridCoreController. Navngivet netop for at afværge den forveksling.',
   },
   // §12s opremsning af `legacy/forbidden-identifier`-navnene. Hvert navn ER selve forbuddet.
   ...(['executeLegacyInputTransaction', 'useDraftLifecycle', 'legacyGridTransactionBridge',
@@ -444,8 +413,7 @@ describe('kontrakternes kodereferencer er levende', () => {
 
   /**
    * `absent` er en PÅSTAND, ikke en undertrykkelse. Uden denne test ville et fraværsværn være en
-   * bekvem måde at tie en reel drift ihjel på – og en genopstået `documentService.ts` ville passere
-   * ubemærket, selv om kontrakten udtrykkeligt forbyder den.
+   * bekvem måde at tie en reel drift ihjel på – en forbudt reference ville passere ubemærket.
    */
   it('hvert fraværsværn holder – det navngivne er faktisk væk', () => {
     const failures: string[] = [];

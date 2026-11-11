@@ -3,14 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-10-28 (§11.1a's universelle regel for grå knapper er målt af
-`actionGate.test.ts` og `disabledActionButtons.test.tsx`: de to generiske tekster er de SAMME
-konstanter, downloadgaten bruger, klikket er tavst på både mus og Enter, årsagen findes kun i
-tooltippet, og knappen forbliver fokusérbar med årsagen i `aria-describedby`. §11.1b's
-afvisningsrystelse for toggles er målt af `StyledToggleSwitch.test.tsx`, og at en afvist omregning
-blinker årsagen uden at scrolle, af `useOmregningToggle.test.tsx`. De gamle shake-mekanikker
-`useShakeFlag` og `StyledToggleSwitchHandle` er håndhævede fraværspåstande i
-`contractReferenceLiveness.test.ts`)
+**Senest verificeret mod kode:** 2026-11-11
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -513,7 +506,7 @@ programmet (udviklerbeslutning 2026-07-31) og gælder uanset, hvornår blokering
   2026-08-15). En rystelse siger kun «noget er galt» – hvilket tooltippet allerede har sagt mere
   præcist – og den forvekslede to ting: en knap, der ryster, fremstår aktiv, selv om den er
   spærret. En knap har ÉN afvisningsmåde: den er synligt og reelt inaktiv med årsagen i tooltippet.
-  Knappernes `shake`-props er slettet. Toggles er den ene bevidste undtagelse – se §11.1b.
+  Toggles er den ene bevidste undtagelse – se §11.1b.
 - Årsagerne bevares på udfaldet som auditdata (`rejection.reasons`) og som tooltip-kilde. Ingen
   årsagsliste må være tom – men "synlig" betyder her tooltip og audit, ikke en tekstknude.
 

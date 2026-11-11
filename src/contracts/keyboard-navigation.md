@@ -4,43 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-10-23 (løntrin-finderens resultatlinjer er med i tab-sekvensen, når de kan sættes
-ind, og en indsætning flytter fokus til «Gruppe» som bevidst undtagelse fra §Popup-fokus-restore – verificeret mod
-`useLoentrinFinder.ts` og `LoentrinFinderOverlay.tsx`, BB-310.)
-2026-09-07 (§Enter har fået en fjerde undtagelse: en grid-celle med et
-synligt autofill-forslag indsætter ghosten uden at flytte fokus. Undtagelsen kan kun ramme en TOM celle, så
-forbuddet mod at overskrive en værdi uden samtykke er strukturelt overholdt. Autofill er kun en
-indtastningsvej: accepten afslutter værdien i den aktuelle celle og rydder et eventuelt Tab-anker. Målt af
-`src/__tests__/components/tables/autofillSuggest.integration.test.tsx`.)
-2026-08-27 (nyt normativt afsnit under §Overlay-adfærd: «`Ctrl+S`
-annonceres ikke i brugerfladen». Udviklerens afgørelse, ingen kodeændring; afsnittet fastholder den bestående
-tavshed, så en «hjælpsom» `Gem (Ctrl+S)`-tooltip ikke sniger sig ind senere. Verificeret begge veje:
-genvejen ER registreret (`MainLayout.tsx` – og den spørger `hasOpenOverlay()` før `preventDefault()`),
-og «Ctrl» findes ikke i én eneste brugervendt streng i `src/` – kun i kommentarer og kontrakter.
-Sidemenuens tooltip er `title={item.label}` med det bare `label: 'Gem'`, og `Hent`/`Slet alt` har
-fortsat ingen genveje. Hele kontrakten er gennemgået ved samme lejlighed – overlay-reglen,
-popup-fokus-restore, feltidentiteten, «peg på dette felt», beskedidentiteten, opt-in-listen og samtlige
-nævnte filer, symboler og AST-regler er stikprøvet, og ingen påstand var blevet usand. Tidligere stempel
-2026-08-19: to nye normative afsnit fra brugerblikket på global
-shell: §Overlay-adfærd → «Globale genveje er UVIRKSOMME, mens et overlay er åbent» (BB-050) og
-beskedreglen «hver ny besked starter sin EGEN nedtælling» under §Escape (BB-053). Begge er
-mutationstestet – genvejene i `useUndoRedoShortcuts.test.tsx` og
-`MainLayout.shortcutsAndMessages.test.tsx`, som også bærer beskedidentiteten. Samme dag: Renteberegnings
-«Slet alle indtastninger» er tilføjet opt-in-listen og målt: knappen bærer
-`data-mineo-focusable-button`, og Tab-ringen rammer den – verificeret i browseren og af
-`standaloneCalculatorPage.test.tsx`. «Slet rækken» står fortsat uden for navigationen. Baggrund:
-brugerfundet BB-047)
-2026-08-16 (eksterne web-links har fælles link-primitive og er ude af
-Tab-rækkefølgen; knappernes opt-in-afgrænsning er målt mod
-`CONTAINER_FOCUSABLE_SELECTOR` og erklæret som en truffet beslutning; Escape-reglen og de to
-toggle-/checkbox-taster er verificeret mod `StyledDropdown`, `useTransientDraft`,
-`LoentrinFinderOverlay`, `StyledToggleSwitch` og `StyledCheckbox` og dækket af
-`dropdownFeedbackAndKeys.test.tsx` samt `loentrinFinder.sharedHook.test.tsx`. §Overlay-adfærd er målt i
-alle fire browsere af `e2e/overlay-behaviour.spec.ts` – tab-fangst for BEGGE monteringsformer,
-tilbage-knappen, og at hver af de tre øvrige lukkeveje forbruger sit historik-trin; `Container`s
-overlay-værn er mutationstestet. §«Peg på dette felt»-markeringen er målt af
-`e2e/attention-blink-repeat.spec.ts`, som tæller `animationstart`: tre udløsninger giver tre
-genstarter, hvor den deklarative form gav én).
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 
@@ -74,8 +38,7 @@ Alle tastatur-navigation skal:
 
 **Knapper er OPT-IN, og afgrænsningen er en truffet beslutning.** Container-navigationen medtager kun
 knapper, der bærer `data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
-`gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Målingen
-2026-08-15 opgjorde hvad der står udenfor: de almindelige handlingsknapper
+`gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Udenfor står de almindelige handlingsknapper
 (`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til toppen»
 (`ScrollToTopButton`), info-ikonet (`InfoTooltipIcon`) og de blå genvejslinks til Stamdata.
 En knap uden markøren er fortsat mus-kun.
@@ -338,12 +301,6 @@ igen – ellers ville næste tilbage-tryk ramme et dødt trin og se ud, som om k
 uanset hvad der ligger ovenpå. De skal spørge `hasOpenOverlay()` og returnere UDEN
 `preventDefault()`, når svaret er ja: tasten er ikke programmets, mens overlayet ejer den.
 
-Reglen er skrevet ind, fordi koden sagde noget andet end regelsættet. Et `Ctrl+Z` bag en åben
-«Slet alt»-bekræftelse ryddede feltet BAG dialogen, mens dialogen blev stående og spurgte uændret om
-noget andet; `Ctrl+S` startede tilsvarende et helt gem – med filvælger og det hele – bag den åbne
-bekræftelse. Brugeren svarede altså på et spørgsmål om en sag, der ikke længere var den, han kiggede
-på, og han kunne ikke se det: fortrydelsens egen markering af feltet foregik bag dialogen.
-
 Fraværet af `preventDefault()` er en del af reglen, ikke en detalje. Spærrer genvejen tasten uden at
 bruge den, mister brugeren også browserens egen adfærd, og tasten bliver et sort hul.
 
@@ -354,14 +311,10 @@ i `e2e/shell-shortcuts-and-not-found.spec.ts` for den fulde rejse i en rigtig br
 
 **Følgeregel: en genvej, der ikke handler, må heller ikke SPÆRRE tasten.** Mens en felteditor er åben,
 er programmets fortrydelse bevidst uvirksom (§1.4) – Ctrl+Z har præcis én funktion, at føre den seneste
-AFSLUTTEDE feltændring tilbage. Men `preventDefault()` lå tidligere ubetinget FØR den prøve, så
-browserens egen tekstfortrydelse blev slået ihjel samtidig: brugeren stod med et felt fuldt af tekst og
-en tast, der hverken gjorde det ene eller det andet. Nul funktioner plus en spærring er ikke «én
-funktion». Prøven for en åben editor skal derfor være SYNKRON (`ActiveEditorRegistry.getEditing()`) –
-`prepare()` er asynkron, og når dens `noop` foreligger, er hændelsen længe returneret, og
-`preventDefault()` kan ikke længere undlades. Udviklerbeslutning 2026-08-19 (BB-054): den dobbelte adfærd
-er afvist, spærringen fjernet. Virkningen kan kun måles i en rigtig browser; jsdom har ingen
-tekstfortrydelse.
+AFSLUTTEDE feltændring tilbage. Browserens egen tekstfortrydelse skal fortsat virke. Prøven for en åben
+editor skal være synkron (`ActiveEditorRegistry.getEditing()`), fordi `prepare()` er asynkron og hændelsen
+allerede er returneret, når dens `noop` foreligger. Virkningen kan kun måles i en rigtig browser; jsdom har
+ingen tekstfortrydelse.
 
 ### `Ctrl+S` annonceres ikke i brugerfladen (normativ, udviklerens afgørelse 2026-08-25)
 
@@ -566,10 +519,7 @@ Det betyder:
   har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd
   (`Enter` og mellemrum).
   Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
-- **`Slet alle indtastninger` kom med 2026-08-19 (BB-047).** Knappen stod i en række, der ser ud præcis
-  som `Download samlet oversigt` lige over den, men manglede markøren og indgik derfor aldrig i ringen.
-  To knapper, der er tegnet ens og står under hinanden, må ikke opføre sig forskelligt over for
-  tastaturet. Bemærk at rækkens `Slet rækken`-ikon fortsat bevidst står UDEN for navigationen.
+- Rækkens `Slet rækken`-ikon står bevidst uden for navigationen.
 - **Opt-in'et er en forudsætning for `Enter`, ikke kun for Tab.** Uden markøren er knappen ikke i
   fokusinventaret, og `Enter` falder igennem til den generiske «flyt til næste felt»-vej frem for at
   ramme knap-undtagelsen. Mellemrum virker alligevel gennem native knapsemantik, så en manglende

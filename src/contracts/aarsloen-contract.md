@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-11-04
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 
@@ -36,9 +36,9 @@
 
 - `loenperiode` → `'maaned'`, `tillaegAngivesSom` → `'procent'`, `tableData` → `[]`, `omregningTilFuldtAar` → `false`, `fuldLoenUnderFerie` → `true`, `retTilSjetteFerieuge` → `true`, `loenPaaHelligdage` → `'Almindelig løn'`.
 - Procentfelterne (`feriePct`, `fritvalgPct`, `shSoPct`, `storeBededagPct`, `pensionPct`) og `antalFeriedage` er optional; manglende værdi forbliver `undefined`. `feriePct` er dog påkrævet efter den fælles regel med erstatningsopgørelsen (`feriepenge-begreber-contract.md` §2c): uden fuld løn under ferie er et tomt felt en blokerende mangel uden rød ring, og beregningen vises ikke.
-- `tillaegAngivesSom` bestemmer, hvordan lønindkomst-tillæg angives: `'procent'` lader programmet beregne FP/FV/SH/SO- og Arb.g. Pension-beløbene ud fra satserne, mens `'beloeb'` lader brugeren angive beløbene direkte i tabelrækkernes `fpFvShSoBeloeb`/`pensionBeloeb`-felter. De to tilstande er ligestillede; kun den aktive tilstands input fodrer beregning og dokumenter – den fravalgte tilstands persisterede input bevares, men ignoreres (samme relevans-princip som §2-regel 5). At gøre `tillaegAngivesSom` default-bærende og tilføje de to nye række-felter blev bogført som et `PERSISTED_DATA_VERSION`-bump; den aktuelle version står i `src/config/persistenceVersion.ts`.
+- `tillaegAngivesSom` bestemmer, hvordan lønindkomst-tillæg angives: `'procent'` lader programmet beregne FP/FV/SH/SO- og Arb.g. Pension-beløbene ud fra satserne, mens `'beloeb'` lader brugeren angive beløbene direkte i tabelrækkernes `fpFvShSoBeloeb`/`pensionBeloeb`-felter. Overenskomst udleder satserne fra den valgte overenskomst og dato. Kun den aktive tilstands input fodrer beregning og dokumenter – den fravalgte tilstands persisterede input bevares, men ignoreres (samme relevans-princip som §2-regel 5).
 
-`loenperiode`-defaulten er **bevidst statisk** og ikke settings-styret: en ny sag sætter feltet fra `defaultLoenIndtastesSom` via `createAarsloenInitialValues`, men schema-defaulten rammer kun load af en fil hvor feltet helt mangler – og `persistence-contract.md` forbyder at injicere device-lokale app-settings under load. At gøre felterne default-bærende ændrer schema-fingerprintet (input-optional) og er bogført som `PERSISTED_DATA_VERSION`-bump.
+`loenperiode`-defaulten er **bevidst statisk** og ikke settings-styret: en ny sag sætter feltet fra `defaultLoenIndtastesSom` via `createAarsloenInitialValues`, men schema-defaulten rammer kun load af en fil hvor feltet helt mangler – og `persistence-contract.md` forbyder at injicere device-lokale app-settings under load.
 
 ---
 
@@ -62,7 +62,7 @@ Store Bededagstillæg har i Overenskomst samme til-/fravalg som på Lønindkomst
 
 Automatiske satser udledes kun i `readAarsloenValues`; de skrives ikke tilbage i inputaggregatet. Tidligere manuelt input bevares ved tilstandsskift og i save/load. Den fælles løntabel og dokumentgenerator modtager det afledte satsæt med normaliseret Procent-tilstand, så ingen parallel beregningsmotor indføres.
 
-Version 3.17 tilføjer årslønnens eget tillægsgrundlag samt optional `overenskomstId`, `overenskomstLoenmodtager`, `overenskomstArbejdsgiver`, `reguleringsdato` og `beregnStoreBededagstillaeg`. Udviklerbeslutning 2026-10-27: tidligere gemte sager bevarer alle hidtidige værdier uden ny advarsel; de nye felter er tomme. Den eksplicitte historiske load-policy indsætter kun `undefined`, aldrig lokale indstillinger eller automatiske satser.
+For filer fra før version 3.17 uden `overenskomstId`, `overenskomstLoenmodtager`, `overenskomstArbejdsgiver`, `reguleringsdato` eller `beregnStoreBededagstillaeg` bevarer load de gemte værdier uden ny advarsel. De manglende felter forbliver `undefined`; lokale indstillinger og automatiske satser indsættes ikke.
 
 ---
 

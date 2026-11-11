@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-10-02 (hver ferietabel kun i sin egen periode, `resolveIndkomstFerieperioder`)
+**Senest verificeret mod kode:** 2026-11-11
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -53,7 +53,7 @@ Begge er kanoniske inden for hver sin halvdel, og ingen af dem må reimplementer
 Wrappers og adaptere er tilladt, når de kun:
 
 - konverterer inputformat
-- tilpasser returtype til et ældre API
+- tilpasser returtype til forbrugerens API
 - videresender til den kanoniske motor uden parallel domænelogik
 
 Wrappers må ikke genimplementere periodiseringsregler.

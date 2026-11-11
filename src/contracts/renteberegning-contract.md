@@ -3,17 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-27 (§Regel 12's fire afgrænsninger er tilføjet samme dag og
-verificeret som gældende adfærd: `createRenteberegningInitialValues` sætter `beregningsdato: undefined`,
-kommentarfeltet er fladens ene felt, 7 %-rækken står ligeværdigt, og telefonopstillingen har ét
-datofelt. §Regel 8's uforanderlige halvårsinddeling og §Regel 11's
-lovhenvisninger er tilføjet efter udviklerens afgørelse samme dag; halvårsguarden i
-`src/data/interestRates.ts` er mutationstestet i begge grene. §Regel 9–10 er nye og verificeret mod
-`procesrenteCalculator.ts`: tillægssatsen slås op på rentedatoen og genbruges for alle perioder,
-referencesatsen slås op pr. halvårsstart. Beregningen er uændret; de brugervendte tekster, der sagde
-«forfaldsdato», er rettet til «rentedato». §Regel 7's paste-afgrænsning blev verificeret 2026-08-11:
-`maxDraftLength` håndhæves også ved paste, og integrationstesten «afgrænser et indsat trecifret tal
-som ved tastning» måler at et paste af `987` giver `98` uden fejltilstand)
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 

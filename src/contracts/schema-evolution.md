@@ -2,9 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-08-27 (load-adapteren samler de versionsbårne overgange, den lukkede
-ignore-liste og politikken for fremtidige manglende felter; isolerbare ugyldige felter bevares pr. sektion og
-rapporteres som `invalidField` i preflight; struktur der fortsat ikke kan valideres droppes fail-closed.)
+**Senest verificeret mod kode:** 2026-11-11
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---

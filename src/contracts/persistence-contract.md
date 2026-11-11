@@ -3,29 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter.
-**Senest verificeret mod kode:** 2026-10-27 (§6: iterativ dybdekontrol før rekursiv load-behandling og
-egne datafelter ved normalisering, schema- og versionsopslag. Historiske filer og begge åbningsveje dækkes
-af regressionstests.) Tidligere 2026-10-26 (Udviklerens afgørelse: download-fallbacken bruger sagens
-filnavn uden tilføjet dato og klokkeslæt. Mangler navn, skadestype og skadedato, bruges journalnummeret
-som reserve og ellers standardnavnet. Gem-kvitteringen forklarer fortsat, at download er en ny fil. Tidligere 2026-08-27:
-PWA-load og .eo-sanitization er adversarialt gennemgået:
-filhåndtag og pending PWA-requests er klientscopede i origin-fælles IndexedDB, en afsluttet request
-kan ikke replayes efter en fejlet oprydning, PWA-acknowledgement går før øvrig metadata, og isolerbare
-ugyldige felter bevarer resten af sektionen via preflight. Tidligere 2026-08-25: nyt normativt afsnit i §5: et ændret filnavns-relevant
-stamdatafelt giver bevidst en NY fil – hverken en «hidtidig fil eller ny?»-dialog eller tavs
-videreskrivning under et navn, der ikke længere passer til sagen. Udviklerens afgørelse, ingen kodeændring;
-afsnittet beskriver den bestående adfærd, så den ikke senere «rettes». Verificeret mod
-`fileSaveTarget.ts`: `hasFilenameBasisChanged` sammenligner de tre felter, `resolveSaveTarget` sletter
-håndtaget ved ændring, og `suggestedFilename` bruger da det nygenererede navn. Reglen står ved siden af
-BB-049's navneprøve, fordi begge bor i samme beslutning og ellers kan forveksles. Hele kontrakten er
-gennemgået ved samme lejlighed – §1–§11 er stikprøvet mod de nævnte moduler, symboler og AST-regel-id'er,
-og ingen påstand var blevet usand. Tidligere stempel 2026-08-19: et persisteret filhåndtag må kun
-genbruges til direkte overskrivning, når dets `name` er identisk med fanens eget `lastSavedFilename` –
-brugerfundet BB-049, hvor `Gem` i én fane kunne overskrive den anden fanes fil tavst, fordi håndtaget
-ligger i den browser-fælles IndexedDB og sagen i den fane-lokale sessionStorage. Reglen er mutationstestet
-i `fileSaveTarget.test.ts`. Samme dag: PWA-køens afbryd-valg hedder «Annuller» som i programmets
-øvrige dialoger; current-sessionens kildeversioner er begrænset til eksplicit understøttede versioner, og
-device-lokal metadata valideres før visning. Verificeret mod de berørte moduler og tests.)
+**Senest verificeret mod kode:** 2026-11-11
 
 Denne kontrakt samler de trust-kritiske regler for runtime-persistence, `.eo`, save/load og autoritative replacements.
 Der findes ingen per-sektion-storage og ingen `invalidDrafts`: sagsinput ligger i én current-session-envelope med ét
@@ -299,8 +277,7 @@ Overgangen fra tidligere udgivelser bevarer en eksakt legacy pending-request via
 valideret alias. Alias etableres verificerbart før klient-ID'et udskiftes og ryddes først efter sikker
 overtagelse. Kun pending-requesten læses; den gamle klients scope skrives eller slettes aldrig.
 En overtaget request har `requiresConfirmation=true` og tilbydes med **Indlæs fil**/**Annuller**,
-også når sagen ellers er tom. Dette og første filvalg efter opdatering er godkendt af udvikleren
-2026-10-26. `.eo`-container og sagsinput ændres ikke.
+også når sagen ellers er tom.
 
 **Ændret filnavns-relevant stamdata giver en NY fil, ikke en dialog (normativ, udviklerens afgørelse
 2026-08-25).** Skadelidtes navn, skadestype og skadedato afgør, hvilket filnavn `Gem` foreslår. Retter
@@ -309,9 +286,7 @@ og næste `Gem` går til filvælgeren med det NYE filnavn som forslag. Resultate
 sag, og **det er det rigtige udfald**: filnavnet følger sagens egne oplysninger, og en fil, der er
 skrevet under det gamle navn, forbliver den, den var. Programmet skal derfor **ikke** spørge «Skal
 sagen gemmes i den hidtidige fil eller i en ny?», og det skal heller ikke tavst skrive videre til den
-hidtidige fil under et navn, der ikke længere passer til sagen. Ingen kodeændring – den nuværende
-adfærd ER afgørelsen; den skrives her, fordi den ellers ligner en overset mangel, og fordi et svar
-ville skulle skrives ind netop her i `resolveSaveTarget`.
+hidtidige fil under et navn, der ikke længere passer til sagen.
 
 En PWA-filrequest registreres før service-worker-opstart og React-render. Dens fil-handle ligger i memory straks og
 persisteres under den aktuelle klients id som pending request. En live launchQueue-request, der ankommer mens en

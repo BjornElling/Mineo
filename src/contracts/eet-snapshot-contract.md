@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-11-04 (§5: importen afgrænses af TAF-slutdatoen og læser ikke beregningsdatoen; 11.146 tests bestået). Tidligere 2026-10-29 (frivillig ASL-virkningsdato; 11.009 tests bestået). Tidligere 2026-09-09
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 

@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* – en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-10-16 (relevans og historisk regulering efter TAF-gennemgangen)
+**Senest verificeret mod kode:** 2026-11-11 (relevans og historisk regulering efter TAF-gennemgangen)
 
 ## 1. Scope
 
@@ -29,8 +29,7 @@ Autoritativ datafil: `src/data/indskudteLoentillaeg.ts`.
 
 ## 2a. Store Bededagstillægget er et eksplicit tilvalg (udviklerbeslutninger 2026-09-13 og 2026-09-14)
 
-Tillægget blev tidligere beregnet automatisk, alene fordi "Løn på helligdage" stod på "Almindelig løn".
-Det er ophævet. Reglerne herunder er bindende for alle beregnings-, kontrol- og dokumentflader:
+Reglerne herunder er bindende for alle beregnings-, kontrol- og dokumentflader:
 
 1. **To flader, samme regel.** Togglen er persisteret sagsdata og findes både pr. ansættelsesforhold
    (`loenindkomstAnsaettelsesforhold[].beregnStoreBededagstillaeg`, brugt ved "Beregningsperiode") og på
@@ -125,12 +124,8 @@ Det betyder konkret:
   brug". Data, der kun venter på at blive koblet ind, læses som en forudsætning om, at tillægget skal
   bruges – og er derfor selv en fejl.
 
-Fandtes der kode, der lagde op til eller forudsatte tillægget, er det en **fejl, der skal korrigeres, gerne
-ved at slette**. Det skete 2026-07-31: `SAERLIGT_FERIETILLAEG_SATSTRAPPE`,
-`SAERLIGT_FERIETILLAEG_PCT_FOER`/`_EFTER` og `SAERLIGT_FERIETILLAEG_FORHOEJELSE_START` blev fjernet fra
-`src/data/indskudteLoentillaeg.ts`, og satstrappen blev fjernet fra `beregningsdataCatalog`'s
-`indskudte-loentillaeg`-payload. Tillægget må herefter kun optræde i implementeringsplanen og i
-dokumentation, der – som dette afsnit – forklarer, at det udelukkende er et fremtidigt projekt.
+Tillægget må kun optræde i implementeringsplanen og i dokumentation, der forklarer, at det er et
+fremtidigt projekt.
 
 **Værn:** `indskudteLoentillaeg.test.ts` § "Særligt ferietillæg er ikke i programmet" måler modulets
 faktiske eksportflade, så en genindførelse af satserne gør testen rød.

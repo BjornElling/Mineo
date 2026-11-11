@@ -3,8 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-08-27 (§Regel 10 er ny og verificeret: `varigeMenInitialValues`
-sætter `beregningsdato: undefined`, så feltet er tomt ved åbning)
+**Senest verificeret mod kode:** 2026-11-11
 
 ---
 
@@ -50,7 +49,7 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
     brugeren udfylder selv eller bruger «Indsæt dags dato». Det gælder, selv om beregningsdatoen i
     praksis næsten altid er «i dag»: en urørt sag må ikke bære en værdi, brugeren ikke selv har
     skrevet, for så er «Slet alle indtastninger» aktiv fra begyndelsen, og `Gem` har noget at gemme,
-    som ikke er brugerens indtastning. `varigeMenInitialValues` sætter derfor
+    som ikke er brugerens indtastning. `VARIGE_MEN_INITIAL_VALUES` sætter derfor
     `beregningsdato: undefined`. Afgørelsen blev truffet på tværs af de tre flader med samme felt
     (Varige mén, Renteberegning og standalone MinProcesrente) og er den samme dér.
 11. **Afstanden mellem skadedato og beregningsdato udløser ingen advarsel (udviklerens afgørelse
@@ -58,8 +57,7 @@ Varige mén er et persisted domæne med sektionen `varigemen`.
     en indvending, og det er den rigtige adfærd. Tyve år mellem de to datoer er lovligt, forekommer i
     praksis, og målgruppen er professionelle brugere, der ved, hvilken dato der styrer satsopslaget.
     Fanen må derfor ikke få en gul feltadvarsel, en forklarende linje eller anden markering af «stor
-    afstand», og en sådan grænse må ikke opfindes i domænet. Ingen kodeændring – den nuværende tavshed
-    ER afgørelsen. Reglen afgrænser `M-05` (advarsel ved en værdi, der er usandsynlig i sagens egen
+    afstand», og en sådan grænse må ikke opfindes i domænet. Reglen afgrænser `M-05` (advarsel ved en værdi, der er usandsynlig i sagens egen
     sammenhæng): afstanden mellem de to datoer er ikke i sig selv usandsynlig, og en advarsel her ville
     ramme almindelige, korrekte sager.
 

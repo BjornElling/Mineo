@@ -3,9 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-09-17 (§A5 har fået punkt 4: en manglende lazy chunk er afvisningen
-`chunk-unavailable` med lokal besked, ikke en systemfejl. Målt af `document/documentLifecycleMatrix.test.ts`
-og `components/inputs/DocumentOutcomeMessage.test.tsx`. Tidligere 2026-08-27.)
+**Senest verificeret mod kode:** 2026-11-11
 
 ## Scope
 
@@ -221,7 +219,7 @@ view-models filtrerede visningsliste, men af gatens egen rene projektion.
 
 #### Årsagens form bestemmer klassen (`classifyBlockingCause`)
 
-Skelnen er brugerens, formuleret 2026-08-15 og gældende for HELE programmet – ikke kun for downloadknapper:
+Skelnen gælder for hele programmet – ikke kun for downloadknapper:
 «Fejl i indtastning» bruges, når der ER indtastet noget, men indtastningen er forkert (feltet får rød ring,
 uanset om årsagen er format eller en grænse); «Indtastning mangler», når en indtastning mangler.
 
@@ -244,10 +242,7 @@ aggregat uden klasse kan ikke konstrueres.
 **Håndhævelse.** `document/gate-class-hardcoded-invalid-input` (arkitektur-manifestet) forbyder
 `blockDocumentDownloadForInvalidInput` / `invalidInputReason` / den slettede
 `blockedProjectionForInvalidInput` uden for en auditeret allowlist, hvor grenen er beviseligt ét-klasset.
-Reglen findes efter et brugerfund 2026-08-15: Årslønssidens gate kollapsede hele `tableValidation.errors`
-til én hardkodet klasse og svarede «Fejl i indtastning» på en lønrække med komplet periode og intet beløb,
-selv om `TableError.issue` allerede skelnede `invalid` fra `partial_period`/`missing_amount`. Samme form
-fandtes på Renteberegning. Kontrakten forbød det i forvejen i ord; nu er forbuddet målt.
+Årsager til manglende og ugyldigt input må ikke samles i en hardkodet klasse.
 
 ## A6. Domænespecifikke projektioner
 
@@ -639,7 +634,7 @@ Ved review af en ny eller ændret generator er det derfor kun to ting, der kræv
 - PDF-tabelrenderer: `src/pdf/infrastructure/pdfTableRenderer.ts` og `pdfDocumentTableRenderer.ts`.
 - Word-tabelrenderer: den modulprivate `createDocxTable` i `src/docx/infrastructure/docxWriter.ts` (bevidst ikke eksporteret – kun writeren selv renderer tabeller).
 - Word-vandmærke: `src/docx/infrastructure/docxWatermark.ts`.
-- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). Der findes ingen afviklende dokumentservice og ingen `documentService.ts` – navnet står her som fraværsværn. `src/document/service/` rummer alene runtime-fejlporte og ejer ikke afviklingen (§A7.1).
+- Download-entrypoint og livscyklus: `src/document/definition/documentLifecycle.ts` (ét entrypoint, håndhævet af `document/lifecycle-single-entrypoint`). `src/document/service/` rummer runtime-fejlporte og ejer ikke afviklingen (§A7.1).
 - Layout-konstanter: `src/document/layout/pdfConfig.ts`.
 
 ## C2. Testkobling

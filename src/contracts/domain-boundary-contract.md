@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-11-04 (§9 pkt. 10 og 12: manuelle midlertidigt EET-rækker under togglen og afgørelsesdatoernes advarsel; 11.146 tests og 12 målrettede browserkontroller bestået). Tidligere 2026-10-30
+**Senest verificeret mod kode:** 2026-11-11
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 

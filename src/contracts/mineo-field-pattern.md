@@ -3,9 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer feltdescriptors, codecs, felt-editor og surface-adaptere.
-**Senest verificeret mod kode:** 2026-08-19 (regel 8–10 er implementeret og verificeret: ciffergrænser pr.
-talled for beløb/procent, erklæret `maxLength` for tekstfelter, paste-afgrænsning i `spliceDraftWithPaste` og
-afvisning af gentagne dato-separatorer samt fælles tilgængelige navne)
+**Senest verificeret mod kode:** 2026-11-11
 
 Denne kontrakt fastlægger ét fælles feltmønster for formularfelter og tabelceller. Mønstret ER den
 implementerede arkitektur; der findes ingen parallel inputmodel ved siden af den – se §10 og

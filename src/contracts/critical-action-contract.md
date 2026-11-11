@@ -3,10 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Underordnet form-, persistence- og dokument-output-kontrakterne for deres dataregler.
-**Senest verificeret mod kode:** 2026-08-24 (§3's nye faneskift-række er målt af `PageTabs.test.tsx`:
-en RIGTIG editor registreres i coordinatorens registry, og testen kræver, at settle sker FØR skiftet –
-rækkefølgen er mutationstestet. En modprøve uden åben editor sikrer, at barrieren ikke blokerer et
-almindeligt faneskift)
+**Senest verificeret mod kode:** 2026-11-11
 
 ## 1. Scope
 
@@ -105,19 +102,12 @@ input- eller settingsrevisionen ændret, evalueres preflight på ny, eller handl
 - Coordinator og policy ligger i den fælles critical-action-infrastruktur.
 - Felt-editor-state machine og grid-adaptere er registrerede deltagere.
 - Inputtransaktionsrunneren ejer settle og storagekvittering.
-- Dokumentdefinitionen ejer gate/preflight; dokumentservicen er mekanisk afvikling.
+- Dokumentdefinitionen ejer gate/preflight; dokumentlivscyklussen ejer afvikling og download.
 
 Deltager-registreringen sker ét sted: `useFieldEditor`, som både form-fladen (`useFormFieldSurface`) og
 grid-fladen (`useGridCellSurface`) bygger på. Navnet er en implementering, ikke et normativt API-navn –
 kontrakten binder deltager-ROLLEN, ikke hooket.
 
-De to navne `useStyledFieldAdapter` og `useGridRowPersistenceCore` er slettede forgængere og må ikke
-genindføres; de står her alene, så en læser af ældre commits kan finde efterfølgeren.
-
-Forveksl ikke `useGridRowPersistenceCore` (slettet) med `useGridCoreController`
-(`src/components/tables/useGridCoreController.ts`), som er i aktiv brug: den er grid-fladens ene
-fokus-/edit-celle-autoritet og aftages af `StandardGridTable` og `StandardLooseTable`. Navnene ligner
-hinanden, men kun det første er en forgænger.
 
 ## 7. Reset, `Slet alt` og load – ingen settle
 
