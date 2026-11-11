@@ -29,10 +29,14 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 1. **Tynde app-entries; ét sted ejer opstart.** Hver entry (`main.tsx`, `minprocesrenteMain.tsx`) skal være tynd: den vælger app-roden og leverer variant-specifik opstart som callbacks, men delegerer al fælles runtime-opstart (device-gate, render-beslutning, install-prompt) til `bootstrapClientApp`. Device-gate-logik må aldrig duplikeres i en entry.
 
    Efter device-gaten og før app-roden returneres fra `renderApp`, initialiseres variantens ene aktive inputruntime
-   præcis én gang gennem `bootstrapProductionInputRuntime()`; en entry/provider-remount må aldrig rehydrere.
-   **Entries kalder ikke `initializeInputRuntime` direkte** – den ligger bag `bootstrapProductionInputRuntime`,
-   som ejer idempotens-guarden (`src/inputCore/react/productionInputRuntime.tsx`); et direkte kald ville omgå
-   netop den guard, reglen findes for. **Hver variant har præcis ÉN inputruntime** – der findes ikke og må ikke
+   præcis én gang gennem `bootstrapInputRuntime({ catalog, seedNewCase? })` i
+   `src/inputCore/react/inputRuntimeHost.ts`; en entry/provider-remount må aldrig rehydrere. Mineo kalder den via
+   `bootstrapProductionInputRuntime()` (fuldt produktionskatalog + domænets ny-sags-seed); MinProcesrente kalder
+   den direkte med `getRenteberegningInputCatalog()`. MinProcesrente må ikke importere `productionCatalog.ts`,
+   `productionInputRuntime.tsx` eller barrel-modulet `inputCore/react`: de trækker alle descriptors og deres
+   satstabeller ind i opstartschunken (håndhævet af `scripts/verify-build-artifacts.mjs`).
+   **Entries kalder ikke `initializeInputRuntime` direkte** – den ligger bag `bootstrapInputRuntime`,
+   som ejer idempotens-guarden; et direkte kald ville omgå netop den guard, reglen findes for. **Hver variant har præcis ÉN inputruntime** – der findes ikke og må ikke
    indføres en anden persistence-provider ved siden af den.
    Standalone-entryen binder tilsvarende sin egen runtime atomisk med surface og consumers.
    Standalone-entryens namespace-side-effect skal være etableret før enhver

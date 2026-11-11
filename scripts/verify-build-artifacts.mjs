@@ -48,10 +48,16 @@ const manifestSources = Object.entries(manifest)
  * - Entry-chunken har et budget pr. variant med ca. 15 % luft. I Mineo hentes og evalueres den, før
  *   opstartens opdateringstjek kan vise venteskærmen, så programmet hører hjemme bag den dynamiske
  *   import i `src/main.tsx`. MinProcesrentes entry bærer selve beregneren og er derfor større.
+ *
+ * MinProcesrentes opstartsvej må desuden aldrig nå sats-, løn- eller kapitaliseringstabellerne. De kommer kun
+ * med, hvis noget i standalone-grafen importerer Mineos fulde felt-katalog (`productionCatalog.ts`,
+ * `productionInputRuntime.tsx` eller barrel-modulet `inputCore/react`); standalone bruger
+ * `renteberegningCatalog.ts` gennem `inputRuntimeHost.ts`. Datachunkene er særskilte grupper, så de ville
+ * ikke tælle med i entry-budgettet – derfor tjekkes de statiske imports eksplicit nedenfor.
  */
 const KB = 1000; // Samme enhed som Vites build-rapport.
 const MAX_CHUNK_BYTES = 750 * KB;
-const ENTRY_CHUNK_BUDGET_BYTES = { mineo: 560 * KB, minprocesrente: 1100 * KB };
+const ENTRY_CHUNK_BUDGET_BYTES = { mineo: 560 * KB, minprocesrente: 960 * KB };
 
 const entryFiles = new Set(
   Object.values(manifest)
@@ -211,6 +217,22 @@ if (variant === 'mineo') {
         }
       }
     }
+  }
+  const minprocesrenteEntry = Object.values(manifest).find((entry) => entry?.isEntry === true);
+  const staticallyLoaded = new Set();
+  const pending = [...(minprocesrenteEntry?.imports ?? [])];
+  while (pending.length > 0) {
+    const key = pending.pop();
+    if (staticallyLoaded.has(key)) continue;
+    staticallyLoaded.add(key);
+    pending.push(...(manifest[key]?.imports ?? []));
+  }
+  const loadedDataChunk = [...staticallyLoaded].find((key) => /(^|\/)_?data-/.test(key));
+  if (loadedDataChunk !== undefined) {
+    throw new Error(
+      `MinProcesrentes opstartsvej indlæser datachunken ${loadedDataChunk}. Standalone må kun bruge `
+      + 'renteberegningCatalog.ts via inputRuntimeHost.ts – ikke productionCatalog, productionInputRuntime eller inputCore/react-barrel.',
+    );
   }
   if (!manifestSources.some((source) => source.endsWith('minprocesrente.html'))) {
     throw new Error('MinProcesrente-buildets manifest mangler standalone-entryen.');

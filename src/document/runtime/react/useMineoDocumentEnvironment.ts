@@ -12,7 +12,7 @@
  */
 import React from 'react';
 import { useDocumentInputAccess } from '../../../inputCore/react';
-import { readPublishedSourceSettings } from '../../../inputCore/react/productionInputRuntime';
+import { readPublishedSourceSettings } from '../../../inputCore/react/inputRuntimeHost';
 import type { DocumentBrevhovedType } from '../../layout/documentBrevhoved';
 import type { DocumentExecutionEnvironment } from '../../definition/documentExecutionEnvironment';
 import type { MineoDocumentGateSettings } from '../../definition/mineoDocumentDefinition';

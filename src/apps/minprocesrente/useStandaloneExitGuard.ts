@@ -1,5 +1,6 @@
 import React from 'react';
-import { useCriticalInputActions, useSettledSnapshot } from '../../inputCore/react';
+import { useSettledSnapshot } from '../../inputCore/react/inputRuntimeContext';
+import { useCriticalInputActions } from '../../inputCore/react/useInputEvaluation';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import type { DocumentOutcome } from '../../document/definition/documentOutcome';
 

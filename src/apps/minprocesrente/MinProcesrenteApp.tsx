@@ -6,7 +6,7 @@ import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/
 import {
   ProductionInputRuntimeProvider,
 } from '../../inputCore/react/productionInputRuntimeProvider';
-import type { InputRuntimeBinding } from '../../inputCore/react';
+import type { InputRuntimeBinding } from '../../inputCore/react/inputRuntimeContext';
 
 const theme = buildTheme('light');
 
