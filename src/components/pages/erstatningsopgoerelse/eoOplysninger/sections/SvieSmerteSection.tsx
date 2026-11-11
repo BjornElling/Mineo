@@ -20,7 +20,7 @@ import { useFieldEditor } from '../../../../../inputCore/react/useFieldEditor';
 import { createFieldWarning } from '../../../../../inputCore/fieldWarning';
 import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../../../../../domain/erstatningsopgoerelse/helpers/svieSmerteMaksimum';
 import {
-  erSvieSmerteSektionAktiv,
+  erSvieSmerteTidligereMaxRelevant,
   erSvieSmertePeriodeInputRelevant,
   erSvieSmerteTidligereTotalRelevant,
 } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
@@ -73,7 +73,7 @@ export default function SvieSmerteSection() {
           </Box>
         </Box>
 
-        {erSvieSmerteSektionAktiv(values) && (
+        {erSvieSmerteTidligereMaxRelevant(values) && (
           <>
             <LabeledControlRow label="Tidligere beregnet S/S til max.">
               {({ labelledBy, controlId }) => (
@@ -94,7 +94,7 @@ export default function SvieSmerteSection() {
             {erSvieSmertePeriodeInputRelevant(values) && (
               <>
                 <Typography className="row--subheading">
-                  Periode:
+                  Samlet svie/smerte-periode:
                   <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
                 </Typography>
                 <SvieSmerteTable

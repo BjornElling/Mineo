@@ -1,7 +1,7 @@
 # Brugerblik – Erstatningsopgørelse → Tabt arbejdsfortjeneste: perioden (12e)
 
 - Rute/placering: `/erstatningsopgoerelse` → fanen «EO oplysninger», sektionen **Tabt arbejdsfortjeneste**
-  (kravvalget, periodetabellen med «Løse feriedage» og den afledte kolonne, «Evt. ferie i perioden» og «Evt.
+  (kravvalget, periodetabellen med «Løse feriedage» og den afledte kolonne, «Evt. ferie i TAF-perioden» og «Evt.
   allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode») – samt TAF-afsnittets
   periodeliste, ferielinje og «Tidligere betalt erstatning» i opgørelsen og TAF-linjerne i «Fejl og advarsler».
 - Gennemgået: 2026-09-24 · commit `d5c51762`
@@ -44,7 +44,7 @@ trækkes fra i TAF-afsnittet, hører i 12k og 12j.
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-35--et-synligt-felt-som-den-aktuelle-beregningsmåde-ikke-læser`
 - **Prioritet:** **Høj**
 - **Beslutning:** **GODKENDT delvist** af udvikleren 2026-09-25 og **indsnævret efter modsvar** (se nedenfor):
-  i måneder skjules kolonnen «Løse ferie-/feriefridage» uden en forklarende linje; «Evt. ferie i perioden» bliver
+  i måneder skjules kolonnen «Løse ferie-/feriefridage» uden en forklarende linje; «Evt. ferie i TAF-perioden» bliver
   stående. **GENNEMFØRT** 2026-09-25: descriptoren bærer relevansen `erTafLoseFeriedageRelevant` (sektionen aktiv
   OG TAF i arbejdsdage), så readeren giver en skjult værdi som tom for alle læsere, og værdien bevares og kommer
   tilbage, hvis enheden skifter. Fordi enheden i «Beregningsperiode»-grenen udledes af lønindkomstens rækker, har
@@ -57,7 +57,7 @@ trækkes fra i TAF-afsnittet, hører i 12k og 12j.
 - **Sådan fremprovokeres det:**
   1. Ny sag, TAF ud fra angivet månedsløn `30.000 kr.` TAF-periode `01-01-2024` – `30-06-2024`, «Løse
      feriedage» `5`.
-  2. «Evt. ferie i perioden» `01-03-2024` – `15-03-2024`. Hent opgørelsen.
+  2. «Evt. ferie i TAF-perioden» `01-03-2024` – `15-03-2024`. Hent opgørelsen.
   3. Gentag med angivet dagsløn `1.500 kr.`
 - **Det sker:** Med månedsløn står ferierækken med «Feriedage **11**», og «Løse feriedage» `5` tages imod
   uden markering. Den afledte kolonne skriver «TAF-måneder **6**» – samme tal som uden ferie og løse dage –
@@ -76,7 +76,7 @@ trækkes fra i TAF-afsnittet, hører i 12k og 12j.
   ét ord i en kolonneoverskrift.
 - **Bedre ville være:** Sektionen siger det, når ferien ikke bruges. To muligheder, som udvikleren kan vælge
   imellem:
-  (a) I måneder skjules «Evt. ferie i perioden» og kolonnen «Løse feriedage», og der står i stedet én linje:
+  (a) I måneder skjules «Evt. ferie i TAF-perioden» og kolonnen «Løse feriedage», og der står i stedet én linje:
   «Tabt arbejdsfortjeneste opgøres i måneder. Ferie og løse feriedage fradrages derfor ikke.» Skjult er
   ikke udfyldt (M-32), så indtastede værdier bevares, men læses ikke, og kommer tilbage, hvis enheden skifter.
   (b) Felterne bliver stående, men tabellen får samme linje over sig, og en udfyldt ferierække eller et
@@ -199,7 +199,7 @@ Jeg vil gerne have, at de steder, hvor problemstillingen er aktuel, får én sam
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-28--den-manglende-oplysning-ligger-allerede-i-beregningsoutputtet`; samme tællefunktion bruges i 12f.
 - **Prioritet:** Lav
 - **Beslutning:** **Godkendt og gennemført 2026-10-24:** Behold rækkens dagstal, og sig i tooltippen, at tallet gælder hele rækken, når der ikke findes en gyldig TAF-periode. Når perioden findes, beholdes forklaringen om dage i TAF-perioden.
-- **Sådan fremprovokeres det:** Åbn en ny sag, lad TAF-periodetabellen stå uden en gyldig periode, og indtast ferie `01-03-2024`–`15-03-2024` i «Evt. ferie i perioden».
+- **Sådan fremprovokeres det:** Åbn en ny sag, lad TAF-periodetabellen stå uden en gyldig periode, og indtast ferie `01-03-2024`–`15-03-2024` i «Evt. ferie i TAF-perioden».
 - **Det sker – før rettelsen, browsermålt i Chrome 2026-10-24:** Ferierækken viser `11` under kolonnen «Feriedage», mens kolonneikonets tekst siger «Kun dage i TAF-perioden fremgår». Da ingen gyldig TAF-periode er angivet, tælles hele ferierækken (`buildFerieFeriedageById` bruger rækkens egen periode som fallback), ikke dage i en TAF-periode.
 - **Det er uhensigtsmæssigt fordi:** Brugeren får ikke at vide, at tallet viser hele ferierækken, fordi der endnu ikke findes en gyldig TAF-periode. Det ligner samme afgrænsede antal, som kolonneforklaringen lover.
 - **Rettelse og kontrol:** Tooltippen følger nu den samme periodeafgrænsning som tællefunktionen. Uden gyldig TAF-periode står «Tallet gælder hele ferierækken, når ingen gyldig TAF-periode er angivet»; når rammen udfyldes, skifter teksten til «Kun dage i TAF-perioden fremgår». Chrome-desktop-E2E kontrollerer begge tekster og at en ferie på 11 arbejdsdage fortsat viser `11` uden TAF-periode og `0`, når den indtastede TAF-periode ligger uden for ferien.

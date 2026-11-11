@@ -72,7 +72,7 @@ import {
   erOevrigeKravSektionAktiv,
   erOevrigtFravaerRelevant,
   erSvieSmertePeriodeInputRelevant,
-  erSvieSmerteSektionAktiv,
+  erSvieSmerteTidligereMaxRelevant,
   erSvieSmerteTidligereTotalRelevant,
   erTabtArbejdsfortjenesteSektionAktiv,
   erTafLoseFeriedageRelevant,
@@ -373,8 +373,8 @@ const readEo = <T>(view: CanonicalView, descriptor: FieldDescriptor<T>): T => vi
 const whenEo = <T>(isRelevant: (view: CanonicalView) => boolean): RelevanceRule<T> =>
   (_field, view) => isRelevant(view);
 
-const svieSmerteSektionAktiv = (view: CanonicalView): boolean =>
-  erSvieSmerteSektionAktiv({ kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField) });
+const svieSmerteTidligereMaxRelevant = (view: CanonicalView): boolean =>
+  erSvieSmerteTidligereMaxRelevant({ kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField) });
 const svieSmertePeriodeInputRelevant = (view: CanonicalView): boolean =>
   erSvieSmertePeriodeInputRelevant({
     kravPaaSvieSmerteGodtgoerelse: readEo(view, eoKravPaaSvieSmerteGodtgoerelseField),
@@ -711,7 +711,7 @@ export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
   'svieSmerteHelbredsstatus', 'Helbredsforhold', ['Sygemeldt', 'Delvist Sygemeldt', 'Raskmeldt'],
 );
 export const eoTidligereSsMaxField = requiredJaNejField(
-  'tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej', whenEo(svieSmerteSektionAktiv),
+  'tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej', whenEo(svieSmerteTidligereMaxRelevant),
 );
 // Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..getCurrentYear er det afledte bounds-issue.
 export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefined>({

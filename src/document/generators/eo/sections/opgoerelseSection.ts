@@ -184,7 +184,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   }
 
   // 'Skjul' udelader emnet HELT fra PDF'en (ingen overskrift, intet "Ingen").
-  // 'Nej' (beregnes === false uden skjul) viser fortsat overskrift + "Ingen".
+  // 'Nej' viser overskriften med "Ingen" eller oplysningen om tidligere opbrugt maksimum.
   if (!model.svieSmerte.skjul) {
   renderSectionHeader('Svie- og smertegodtgørelse');
   assertModelInvariant(

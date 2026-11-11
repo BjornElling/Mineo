@@ -59,6 +59,10 @@ import { isOffentligOverenskomstId } from '../../../data/overenskomstRates';
 export const erSvieSmerteSektionAktiv = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse'>): boolean =>
   values.kravPaaSvieSmerteGodtgoerelse === 'Ja';
 
+/** Tidligere opbrugt maksimum kan oplyses, selv om der ikke rejses et aktuelt krav. */
+export const erSvieSmerteTidligereMaxRelevant = (values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse'>): boolean =>
+  values.kravPaaSvieSmerteGodtgoerelse !== 'Skjul';
+
 /**
  * Svie/smerte-periodeinput (perioder, sats-år, "allerede modtaget") er relevant.
  * Skjules når sektionen er fra, eller når "tidligere beregnet S/S til max" er slået til.

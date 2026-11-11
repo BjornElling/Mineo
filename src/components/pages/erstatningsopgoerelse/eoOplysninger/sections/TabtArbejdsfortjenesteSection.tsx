@@ -48,7 +48,7 @@ export default function TabtArbejdsfortjenesteSection() {
         {erTabtArbejdsfortjenesteSektionAktiv(values) && (
           <>
             <Typography className="row--subheading">
-              Periode:
+              Samlet TAF-periode:
               <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
             </Typography>
             <TafPeriodeTable
@@ -61,7 +61,10 @@ export default function TabtArbejdsfortjenesteSection() {
               cellWarnings={tafCellWarnings}
             />
 
-            <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
+            <Typography className="row--subheading">
+              Evt. ferie i TAF-perioden:
+              <InfoTooltipIcon title="Indsæt al ferie i hele TAF-perioden. Ferie i tidligere TAF-perioder skal ikke slettes ved senere opgørelse." />
+            </Typography>
             <FerieperiodeTable
               kind="taf"
               committedRows={values.ferieperioder}

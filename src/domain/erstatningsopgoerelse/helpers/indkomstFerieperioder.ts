@@ -25,7 +25,7 @@ const clipTo = (rows: readonly FerieperiodeRow[], ranges: readonly Range[]): Fer
 
 /**
  * De ferieperioder, lønnen fordeles efter i arbejdsdage – hver tabel KUN i sin egen periode: «Ferie i
- * beregningsperioden» i beregningsperioden og TAF-afsnittets «Evt. ferie i perioden» i TAF-perioderne.
+ * beregningsperioden» i beregningsperioden og TAF-afsnittets «Evt. ferie i TAF-perioden» i TAF-perioderne.
  *
  * Før blev de to tabeller lagt sammen over hele tidslinjen. En TAF-ferie dateret i (eller lige før) en
  * beregningsperiode efter skaden ændrede da, hvordan en lønrække blev fordelt i beregningsperioden, mens

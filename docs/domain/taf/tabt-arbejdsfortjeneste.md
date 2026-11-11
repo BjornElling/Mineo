@@ -38,7 +38,7 @@ Faktor: 1 arbejdsdag = 0,048 måneder (4,8 %).
 **Skjult i måneder, men ikke ferieperioderne** (udviklerafgørelse 2026-09-25, BB-247). Kolonnen «Løse
 ferie-/feriefridage» skjules, når TAF opgøres i måneder: hverken TAF-kravet eller sygeferiegodtgørelsen
 læser den. Skjult er ikke udfyldt – descriptorens relevans (`erTafLoseFeriedageRelevant`) giver værdien som
-tom for alle læsere, men den bevares og kommer tilbage, hvis enheden skifter. «Evt. ferie i perioden» vises
+tom for alle læsere, men den bevares og kommer tilbage, hvis enheden skifter. «Evt. ferie i TAF-perioden» vises
 derimod i begge enheder, fordi sygeferiegodtgørelsen bruger ferieperioderne også i måneder.
 
 **Tabellernes afledte kolonner tæller det, der regnes med, og info-tooltipet siger rammen** (BB-217, BB-249,

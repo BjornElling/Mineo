@@ -410,9 +410,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(tafBlock).not.toContain('01-01-2024 - 31-01-2024');
   });
 
-  it('viser kun maksimum-sætningen i svie/smerte-sektionen når tidligere S/S max er valgt trods stale felter', () => {
+  it.each(['Ja', 'Nej'] as const)('viser kun maksimum-sætningen ved krav=%s når tidligere S/S max er valgt trods bevarede felter', (krav) => {
     const { stamdata, eo } = buildBaseInput();
-    eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eo.kravPaaSvieSmerteGodtgoerelse = krav;
     eo.tidligereSsMax = 'Ja';
     eo.svieSmerteHelbredsstatus = 'Sygemeldt';
     eo.svieSmerteSatserAar = 2026;
@@ -426,13 +426,33 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
 
-    // «Ingen» er forbeholdt kravvalget «Nej». En udtømt ramme er et andet juridisk udsagn og
-    // skrives som sådan (BB-221).
+    // Den oplyste udtømte ramme forklarer fraværet af et beløb ved både Ja og Nej til aktuelt krav.
     expect(svieBlock).toContain('Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.');
     expect(svieBlock).not.toContain('Ingen');
     expect(svieBlock).not.toContain('Den 1. februar 2024 var skadelidte fortsat sygemeldt.');
     expect(svieBlock).not.toContain('Sygeperiode med svie- og smertegodtgørelse');
     expect(svieBlock).not.toContain('01-01-2024 - 31-01-2024');
+  });
+
+  it('udelader svie/smerte ved Skjul selv med tidligere maksimum valgt', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Skjul';
+    eo.tidligereSsMax = 'Ja';
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).not.toContain('Svie- og smertegodtgørelse');
+    expect(texts).not.toContain('Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.');
+  });
+
+  it('skriver Ingen ved Nej uden tidligere maksimum valgt', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eo.tidligereSsMax = 'Nej';
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const svieBlock = getTextsBetween(texts, 'Svie- og smertegodtgørelse', 'Tabt arbejdsfortjeneste');
+    expect(svieBlock).toContain('Ingen');
+    expect(svieBlock).not.toContain('Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.');
   });
 
   it('skriver maksimum-sætningen i stedet for et misvisende "(reduceret til max)" ved 0 kr.', () => {

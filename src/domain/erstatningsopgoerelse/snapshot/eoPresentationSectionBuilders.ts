@@ -13,7 +13,7 @@ import type { MoneyOre } from '../../money/money';
 import { moneyOre, zeroMoneyOre } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
-import { erEETKlageRelevant } from '../helpers/eoInputRelevance';
+import { erEETKlageRelevant, erSvieSmerteTidligereMaxRelevant } from '../helpers/eoInputRelevance';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
@@ -71,7 +71,7 @@ export const buildSvieSmerteModel = (
   // indtastet beløb, der æder hele maksimum. De er beregningsteknisk og forventningsmæssigt samme
   // tilstand og får derfor samme årsag og samme sætning i papiret (BB-219).
   const maksimumOpbrugt =
-    (values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Ja') ||
+    (erSvieSmerteTidligereMaxRelevant(values) && values.tidligereSsMax === 'Ja') ||
     (beregnes && options.engine.maksimumOpbrugtFoerPerioden);
   const ingenBeloebAarsag: SvieSmerteIngenBeloebAarsag | null = maksimumOpbrugt
     ? 'maksimumOpbrugt'

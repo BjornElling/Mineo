@@ -513,9 +513,9 @@ describe('eoPdfModel', () => {
     expect(model.svieSmerte.satserPerDag.status).toBe('not_calculable');
   });
 
-  it('markerer svie/smerte som fravalgt i PDF-model når tidligereSsMax er Ja trods stale periodefelter', () => {
+  it.each(['Ja', 'Nej', 'Skjul'] as const)('fører tidligere opbrugt maksimum til PDF-model ved krav=%s trods bevarede periodefelter', (kravPaaSvieSmerteGodtgoerelse) => {
     const eoValues = makeValues({
-      kravPaaSvieSmerteGodtgoerelse: 'Ja',
+      kravPaaSvieSmerteGodtgoerelse,
       tidligereSsMax: 'Ja',
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-01-31'),
@@ -533,6 +533,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
     expect(model.svieSmerte.beregnes).toBe(false);
+    expect(model.svieSmerte.skjul).toBe(kravPaaSvieSmerteGodtgoerelse === 'Skjul');
+    expect(model.svieSmerte.ingenBeloebAarsag).toBe(kravPaaSvieSmerteGodtgoerelse === 'Skjul' ? 'ikkeRejst' : 'maksimumOpbrugt');
     expect(model.svieSmerte.harPerioder).toBe(false);
     expect(model.svieSmerte.totalOre).toBe(0);
   });

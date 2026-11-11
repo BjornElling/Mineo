@@ -134,6 +134,26 @@ const buildReader = (eo: ErstatningsopgoerelseValues | null, stamdata: StamdataV
 };
 
 describe('buildErstatningsopgoerelseReaderProjection', () => {
+  // EO-kontrakten §14: maksimumoplysningen er relevant ved både Ja og Nej, men aldrig Skjul.
+  it.each([
+    ['Ja', 'Ja', 'Ja'],
+    ['Nej', 'Ja', 'Ja'],
+    ['Skjul', 'Ja', 'Nej'],
+    ['Ja', 'Nej', 'Nej'],
+    ['Nej', 'Nej', 'Nej'],
+    ['Skjul', 'Nej', 'Nej'],
+  ] as const)('fører krav=%s og tidligere maksimum=%s korrekt til opgørelsen', (
+    kravPaaSvieSmerteGodtgoerelse, tidligereSsMax, laestMaksimum,
+  ) => {
+    const eo: ErstatningsopgoerelseValues = {
+      ...buildValidEo(), kravPaaSvieSmerteGodtgoerelse, tidligereSsMax,
+      svieSmertePerioder: [],
+    };
+    const projection = buildErstatningsopgoerelseReaderProjection(buildReader(eo, validStamdata));
+    expect(projection.eoValues.tidligereSsMax).toBe(laestMaksimum);
+    expect(eo.tidligereSsMax).toBe(tidligereSsMax);
+  });
+
   it('behandler en delvis øvrige krav-række med dato som påbegyndt', () => {
     const eo: ErstatningsopgoerelseValues = {
       ...buildValidEo(),

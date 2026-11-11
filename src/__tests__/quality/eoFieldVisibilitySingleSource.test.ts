@@ -34,7 +34,8 @@ describe('EO felt-synlighed har ét sandt sted (relevans-prædikater)', () => {
   it('importerer og bruger relevans-prædikaterne', () => {
     const source = readEoOplysningerSources();
     expect(source).toContain("domain/erstatningsopgoerelse/helpers/eoInputRelevance'");
-    expect(source).toContain('erSvieSmerteSektionAktiv(values)');
+    expect(source).toContain('erSvieSmerteTidligereMaxRelevant(values)');
+    expect(source).toContain('erSvieSmertePeriodeInputRelevant(values)');
     expect(source).toContain('erTabtArbejdsfortjenesteSektionAktiv(values)');
     expect(source).toContain('erOevrigeKravSektionAktiv(values)');
     expect(source).toContain('erBilagsnumreRelevant(values)');
