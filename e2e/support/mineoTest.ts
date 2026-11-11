@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page, test as base } from '@playwright/test';
+import { type ConsoleMessage, expect, type Locator, type Page, test as base } from '@playwright/test';
 
 // Delt e2e-grundlag – det ENE sted, et spec henter `test`, `expect` og sine helpers fra.
 //
@@ -258,6 +258,22 @@ export const clearFieldBlinkRecording = (page: Page): Promise<void> =>
   });
 
 /**
+ * Konsolbeskeder, som browseren eller Playwright selv udsteder, og som ikke er Mineos runtime-signal.
+ * Delt af fixturen og af specs, der selv lytter på en ekstra fane, så filteret findes ét sted.
+ */
+export const isBrowserNoiseConsoleMessage = (message: ConsoleMessage): boolean => {
+  if (message.type() !== 'warning') return false;
+  // Playwright sender selv denne advarsel, når suiten med vilje blokerer service workers.
+  // En ægte registreringsfejl rapporteres stadig af appens egen bootstrap, når den ikke rammer
+  // den blokerede adapters `undefined`-registration.
+  if (message.text() === 'Service Worker registration blocked by Playwright') return true;
+  // WebKit udsteder selv denne timingdiagnose for gyldige modulepreloads, når en lazy route
+  // bruger assetet senere end få sekunder efter window.load. Det er hverken applikationskode,
+  // en runtimefejl eller en fejlet request, og må ikke gøre en stabil brugerrejse flaky.
+  return /^The resource .+ was preloaded using link preload but not used within a few seconds /.test(message.text());
+};
+
+/**
  * Test-fixture med runtime-orakler slået til fra FØR første navigation.
  *
  * `runtimeSignals` og `externalRequests` opsamles altid; et spec, der ikke hævder på dem, mister dermed
@@ -274,17 +290,7 @@ export const test = base.extend<{
   runtimeSignals: async ({ page }, provide) => {
     const signals: string[] = [];
     page.on('console', (message) => {
-      // Playwright sender selv denne advarsel, når suiten med vilje blokerer service workers.
-      // Den er ikke Mineos runtime-signal; en ægte registreringsfejl rapporteres stadig af appens
-      // egen bootstrap, når den ikke rammer den blokerede adapters `undefined`-registration.
-      const isPlaywrightServiceWorkerBlockWarning = message.type() === 'warning'
-        && message.text() === 'Service Worker registration blocked by Playwright';
-      // WebKit udsteder selv denne timingdiagnose for gyldige modulepreloads, når en lazy route
-      // bruger assetet senere end få sekunder efter window.load. Det er hverken applikationskode,
-      // en runtimefejl eller en fejlet request, og må ikke gøre en stabil brugerrejse flaky.
-      const isWebKitPreloadTimingWarning = message.type() === 'warning'
-        && /^The resource .+ was preloaded using link preload but not used within a few seconds /.test(message.text());
-      if (isPlaywrightServiceWorkerBlockWarning || isWebKitPreloadTimingWarning) return;
+      if (isBrowserNoiseConsoleMessage(message)) return;
       if (message.type() === 'error' || message.type() === 'warning') {
         signals.push(`${message.type()}: ${message.text()}`);
       }

@@ -319,7 +319,9 @@ export const useFileSaveLoad = ({
     overlayData: OverlayData,
     navigateToStamdataAfterApply: boolean,
   ): Promise<'applied' | 'awaitingUser'> => {
-    if (ops.file.hasAnyData()) {
+    // Erstat-bekræftelsen beskytter alt synligt arbejde: også en faktisk ændret, åben indtastning, som endnu
+    // ikke er afsluttet (BB-397). Draften settles ikke her; Annuller bevarer den, Erstat kasserer den.
+    if (ops.file.hasAnyData() || criticalActions.hasChangedOpenDraft()) {
       transitionLoadFlow({ phase: 'overwrite', result, overlay: overlayData, navigateToStamdataAfterApply });
       return 'awaitingUser';
     }
@@ -332,7 +334,7 @@ export const useFileSaveLoad = ({
       navigate(APP_ROUTES.stamdata, { replace: true });
     }
     return 'applied';
-  }, [applyLoadedSnapshot, navigate, ops.file, showOverlay, transitionLoadFlow]);
+  }, [applyLoadedSnapshot, criticalActions, navigate, ops.file, showOverlay, transitionLoadFlow]);
 
   const handleGem = React.useCallback(async () => {
     if (!beginFileOperation('save', true)) return;

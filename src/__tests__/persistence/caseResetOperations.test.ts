@@ -61,6 +61,7 @@ describe('caseResetOperations.clearAll', () => {
     registry.register({
       id: 'test-editor',
       isEditing: () => true,
+      hasDraftChanges: () => true,
       settle: () => { throw new Error('clearAll må aldrig settle'); },
       discard: () => { discarded = true; },
     });

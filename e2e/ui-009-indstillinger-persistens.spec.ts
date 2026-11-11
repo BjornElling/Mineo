@@ -1,5 +1,6 @@
 import {
   expect,
+  isBrowserNoiseConsoleMessage,
   login,
   openPage,
   setFieldValueAndSettle,
@@ -16,6 +17,7 @@ test.describe('UI-009 – device-lokale indstillinger', () => {
     const otherErrors: string[] = [];
     other.on('pageerror', (error) => otherErrors.push(error.message));
     other.on('console', (message) => {
+      if (isBrowserNoiseConsoleMessage(message)) return;
       if (message.type() === 'error' || message.type() === 'warning') otherErrors.push(message.text());
     });
     const holdWrites = async () => {

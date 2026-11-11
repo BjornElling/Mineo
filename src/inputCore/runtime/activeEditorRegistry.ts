@@ -18,6 +18,12 @@ export type EditorFocusTarget = Readonly<{ focus: () => void }>;
 export type ActiveEditor = Readonly<{
   id: string;
   isEditing: () => boolean;
+  /**
+   * Om den åbne draft faktisk afviger fra den afsluttede værdi, editoren blev åbnet over. Bruges KUN til
+   * beskyttelse mod tab (exit-advarsel og Erstat-bekræftelse ved Hent): teksten er synligt arbejde, selv om
+   * den aldrig når beregning eller `.eo`. En uændret åbning er ikke arbejde, der kan mistes.
+   */
+  hasDraftChanges: () => boolean;
   settle: () => void | Promise<void>;
   /** Kasserer den åbne draft uden command efter en vellykket autoritativ replacement. */
   discard: () => void;
@@ -48,6 +54,11 @@ export class ActiveEditorRegistry {
   getEditing(): ActiveEditor | null {
     if (this.active === null) return null;
     return this.active.isEditing() ? this.active : null;
+  }
+
+  /** Om der står en åben, faktisk ændret draft, som brugeren kan miste ved reload eller erstatning. */
+  hasChangedDraft(): boolean {
+    return this.getEditing()?.hasDraftChanges() ?? false;
   }
 }
 

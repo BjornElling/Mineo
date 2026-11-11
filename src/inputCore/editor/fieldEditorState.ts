@@ -66,7 +66,14 @@ const seedDraft = <T>(field: FieldRef<T>, view: SettledFieldView<T>, initialKey?
   return field.descriptor.codec.formatForEdit(view.value);
 };
 
-export const createClosedEditor = <T>(field: FieldRef<T>, location: EditorLocation): FieldEditorState<T> =>
+/**
+ * Om den åbne draft afviger fra den tekst, den afsluttede værdi åbnes med. En lukket editor har ingen draft.
+ * Escape lukker editoren, så en annulleret rettelse aldrig tæller; en tast-initieret åbning tæller straks.
+ */
+export const hasDraftChanged = <T>(state: FieldEditorState<T>, view: SettledFieldView<T>): boolean =>
+  state.open !== null && state.open.draft !== seedDraft(state.field, view);
+
+export const createClosedEditor =<T>(field: FieldRef<T>, location: EditorLocation): FieldEditorState<T> =>
   Object.freeze({ field, location, open: null });
 
 export const isEditorOpen = <T>(state: FieldEditorState<T>): boolean => state.open !== null;

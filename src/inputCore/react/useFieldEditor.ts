@@ -10,6 +10,7 @@ import {
   settleEditorWithText,
   cancelEditor,
   isEditorOpen,
+  hasDraftChanged,
   isSettleStale,
   type EditorLocation,
   type FieldEditorState,
@@ -235,6 +236,7 @@ export const useFieldEditor = <T>(
       const unregister = edit.registry.register({
         id: location.locationId,
         isEditing: () => isEditorOpen(latest.current.state),
+        hasDraftChanges: () => hasDraftChanged(latest.current.state, latest.current.view),
         settle,
         discard: cancel,
         getFocusTarget: () => latest.current.focusTarget ?? null,

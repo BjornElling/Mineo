@@ -337,7 +337,6 @@ describe('fileSave', () => {
       const result = await verifyAfterSave('encrypted', expectedData, false);
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
-      expect(result.warning).toBeUndefined();
     });
 
     it('afviser en ellers læsbar fil med manglende eller forkert dataversion', async () => {
@@ -710,7 +709,7 @@ describe('fileSave', () => {
       );
     });
 
-    it('bevarer saved-status når file-handle-verifikation kun giver en advarsel', async () => {
+    it('gemmer en sag med tomme Stamdata uden advarsel eller teknisk alarm (BB-393)', async () => {
       const pickedHandle = { name: 'tom-sag.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
       const emptySnapshot = {
         stamdata: undefined,
@@ -735,11 +734,9 @@ describe('fileSave', () => {
 
       const result = await saveToFile(emptySnapshot);
 
-      expect(result).toMatchObject({
-        status: 'saved',
-        warning: expect.stringContaining('Manglende sektioner: stamdata'),
-      });
-      expect(mockedLogWarning).toHaveBeenCalledWith('⚠ Verificering fandt advarsler (se konsol for detaljer)');
+      expect(result).toMatchObject({ status: 'saved', verified: true });
+      expect(result).not.toHaveProperty('warning');
+      expect(mockedLogWarning).not.toHaveBeenCalled();
     });
 
     it('downloader ALDRIG et korrupt artefakt i fallback-stien (byg-og-verificér-før-sink)', async () => {

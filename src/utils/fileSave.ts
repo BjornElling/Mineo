@@ -196,13 +196,6 @@ export const saveToFile = async (
         closing: 'Prøv at gemme igen.',
       });
 
-      if (verification.warning) {
-        // Advarsel - filen er læsbar, men noget er anderledes end forventet
-        logWarning('⚠ Verificering fandt advarsler (se konsol for detaljer)');
-        // Vi fortsætter - filen er teknisk OK, bare med advarsler
-        // Advarslen returneres til UI senere
-      }
-
       if (target.persistHandleAfterSuccess) {
         const persisted = await saveFileHandleToIndexedDB(target.fileHandle);
         if (!persisted) {
@@ -242,12 +235,6 @@ export const saveToFile = async (
       // Artefaktet er verificeret: download fil (browseren håndterer "filen eksisterer allerede").
       downloadFile(encrypted, filename, 'application/octet-stream');
 
-      if (verification.warning) {
-        // Advarsel - data er læsbar, men noget er anderledes end forventet
-        logWarning('⚠ Verificering fandt advarsler (se konsol for detaljer)');
-        // Vi fortsætter - filen er teknisk OK, bare med advarsler
-      }
-
       try {
         persistSavedFilenameMetadata(filename, fileData.data.stamdata);
       } catch {
@@ -262,9 +249,9 @@ export const saveToFile = async (
       fieldCount,
       sections: Object.keys(canonicalData).length,
       verified: verification?.verified ?? false,
-      ...((fallbackWarning || verification?.warning || metadataWarnings.length > 0)
+      ...((fallbackWarning || metadataWarnings.length > 0)
         ? {
-            warning: [fallbackWarning, verification.message, ...metadataWarnings].filter(Boolean).join('\n\n'),
+            warning: [fallbackWarning, ...metadataWarnings].filter(Boolean).join('\n\n'),
           }
         : {}),
     };

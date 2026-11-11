@@ -4,6 +4,7 @@ import { satserAargangField } from '../../../inputCore/catalog/satserDescriptors
 import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { projectSatser } from '../../../domain/satser/satserProjection';
+import { describeMissingSatserCoverage } from '../../../domain/satser/satserCoverage';
 import { satserDocumentDefinition } from '../../../domain/satser/satserDocumentDefinition';
 import { useMineoDocumentOutput } from '../../../document/runtime/react/useMineoDocumentOutput';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
@@ -34,6 +35,9 @@ export function useSatserViewModel() {
   const projection = React.useMemo(() => projectSatser(evaluation.reader), [evaluation]);
   const effectiveYear = projection.status === 'ready' ? projection.value.year : undefined;
   const satser = projection.status === 'ready' ? projection.value.satser : null;
+  const missingCoverageNote = projection.status === 'ready'
+    ? describeMissingSatserCoverage(projection.value.year, projection.value.satser)
+    : null;
 
   const download = useMineoDocumentOutput(satserDocumentDefinition, undefined);
 
@@ -42,6 +46,8 @@ export function useSatserViewModel() {
     aargangLocation,
     effectiveYear,
     satser,
+    /** Konkret besked om satskategorier, Mineo endnu ikke har for året (BB-392); `null` ved fuld dækning. */
+    missingCoverageNote,
     download,
     /** Sidetitlen bærer årstallet, men KUN for et gyldigt valgt år. */
     pageTitle: effectiveYear !== undefined ? `Arbejdsskadesatser ${effectiveYear}` : 'Arbejdsskadesatser',

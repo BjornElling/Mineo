@@ -32,7 +32,16 @@ const Satser = React.memo(() => {
           </Typography>
         </ContentBox>
       ) : (
-        <SatserRateSections satser={vm.satser} />
+        <>
+          {vm.missingCoverageNote !== null && (
+            <ContentBox className="content-box">
+              <Typography className="row--text" role="note">
+                {vm.missingCoverageNote}
+              </Typography>
+            </ContentBox>
+          )}
+          <SatserRateSections satser={vm.satser} />
+        </>
       )}
     </Box>
   );

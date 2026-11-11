@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSettledSnapshot } from '../../inputCore/react';
+import { useCriticalInputActions, useSettledSnapshot } from '../../inputCore/react';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import type { DocumentOutcome } from '../../document/definition/documentOutcome';
 
@@ -10,8 +10,8 @@ import type { DocumentOutcome } from '../../document/definition/documentOutcome'
  * eneste varige spor af en halv times arbejde er den PDF, brugeren måtte have hentet. Fanen lukkede
  * uden spørgsmål, og alt var væk – mens søskendefladen Mineo i samme situation viser browserens «vil
  * du forlade siden?». Forskellen er ikke synlig for den offentlige besøgende, og han har ingen grund
- * til at forvente, at der ikke er noget net under (BB-048). Bemærk at F5 er sikker i forvejen:
- * indtastningerne ligger i fanens egen sessionslagring og kommer tilbage.
+ * til at forvente, at der ikke er noget net under (BB-048). Indtastningerne overlever F5 i fanens egen
+ * sessionslagring, og markeringen «endnu ikke hentet» overlever sammen med dem (BB-394).
  *
  * **Hvad der udløser advarslen.** Præcis det samme grundlag som Mineos: den afsluttede revision målt
  * mod en baseline. Forskellen er, hvad der flytter baselinen. I Mineo er det en `.eo`-save; her er det
@@ -39,9 +39,11 @@ export type StandaloneDownloadTracker = (outcome: DocumentOutcome) => void;
 
 export const useStandaloneExitGuard = (): StandaloneDownloadTracker => {
   const { revision, replacementGeneration } = useSettledSnapshot();
+  const criticalActions = useCriticalInputActions();
   const { combinedSectionRevisionRef, markSaved } = useUnsavedChangesGuard({
     combinedSectionRevision: Number(revision),
     authoritativeSnapshotEpoch: replacementGeneration,
+    hasChangedOpenDraft: () => criticalActions.hasChangedOpenDraft(),
   });
 
   return React.useCallback((outcome: DocumentOutcome) => {

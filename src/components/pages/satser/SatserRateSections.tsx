@@ -13,6 +13,7 @@ import {
   renderReferenceValue,
 } from './satserRows';
 import type { SatserProjectionValue } from '../../../domain/satser/satserProjection';
+import { hasAnyEalSats } from '../../../domain/satser/satserCoverage';
 
 type Satser = NonNullable<SatserProjectionValue['satser']>;
 
@@ -25,7 +26,8 @@ type Satser = NonNullable<SatserProjectionValue['satser']>;
  */
 const SatserRateSections = React.memo(({ satser }: { satser: Satser }) => (
   <>
-    <ContentBox className="content-box">
+    {/* En EAL-sektion uden en eneste sats udelades som i dokumentet; manglen nævnes i dækningsbeskeden (BB-392). */}
+    {hasAnyEalSats(satser) && <ContentBox className="content-box">
       <Typography className="section-header">Erstatningsansvarsloven</Typography>
 
       <DataRow
@@ -42,7 +44,7 @@ const SatserRateSections = React.memo(({ satser }: { satser: Satser }) => (
         label="Vejledende udtalelse om erhvervsevnetab"
         value={formatKroner(satser.eal.vejledendeUdtalelseEet)}
       />
-    </ContentBox>
+    </ContentBox>}
 
     <ContentBox className="content-box">
       <Typography className="section-header">Arbejdsskadesikringsloven</Typography>
