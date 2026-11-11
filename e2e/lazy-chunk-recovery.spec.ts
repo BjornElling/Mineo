@@ -49,6 +49,14 @@ test.describe('Lazy chunk recovery', { tag: BROWSER_LANE_TAG }, () => {
     // Firefox/WebKit rapporterer ikke nødvendigvis 404-consolefejlen eller gentager den fejlede
     // import efter reload. Det afgørende cross-browser-bevis er den første preload-fejl, synlig
     // recovery uden automatisk reload og den eksplicitte reload – ikke browserens logpolitik.
-    expect(runtimeErrors.every((message) => message.includes('status of 404'))).toBe(true);
+    //
+    // Hvilken ordlyd browseren bruger om den fjernede chunk, er derimod timingafhængigt: Firefox melder
+    // i nogle kørsler «Loading failed for the module with source …» i stedet for en 404-linje. Den
+    // gamle prøve godtog kun «status of 404» og var derfor flaky i Firefox på CI. Reglen er nu den
+    // egentlige: enhver fejl skal handle om netop den chunk, testen selv har fjernet.
+    const missingChunkPaths = [...new Set(missingChunkRequests.map((url) => new URL(url).pathname))];
+    const isAboutMissingChunk = (message: string): boolean =>
+      message.includes('status of 404') || missingChunkPaths.some((chunkPath) => message.includes(chunkPath));
+    expect(runtimeErrors.filter((message) => !isAboutMissingChunk(message))).toEqual([]);
   });
 });

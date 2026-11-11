@@ -17,7 +17,7 @@ type StrykerConfig = {
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const configPath = join(repoRoot, 'stryker.config.json');
 const mutationTarget = 'src/domain/money/money.ts';
-const selectedTestCommand = 'npx vitest run src/__tests__/domain/money/money.test.ts --reporter=dot';
+const selectedTestCommand = 'node scripts/run-vitest.mjs run src/__tests__/domain/money/money.test.ts --reporter=dot';
 
 const isJsonRecord = (value: unknown): value is JsonRecord => (
   value !== null && typeof value === 'object' && !Array.isArray(value)

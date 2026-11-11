@@ -31,14 +31,14 @@ describe('MappedToggleField', () => {
     const toggle = screen.getByRole('checkbox', { name: 'Medtag ydelser' });
     act(() => toggle.focus());
 
-    await act(async () => user.keyboard('{Enter}'));
+    await user.keyboard('{Enter}');
     expect(toggle).toBeChecked();
     mounted.rerender(view(true));
     expect(screen.getByRole('checkbox', { name: 'Medtag ydelser' })).toBe(toggle);
     expect(toggle).toHaveFocus();
     expect(toggle.closest('[data-mineo-field-warning]')).not.toBeNull();
 
-    await act(async () => user.keyboard(' '));
+    await user.keyboard(' ');
     expect(toggle).not.toBeChecked();
     mounted.rerender(view(false));
     expect(screen.getByRole('checkbox', { name: 'Medtag ydelser' })).toBe(toggle);

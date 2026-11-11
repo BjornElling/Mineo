@@ -59,8 +59,14 @@ test.describe('UI-009 – device-lokale indstillinger', () => {
       } finally {
         await releaseWrites();
       }
-      const stored = await page.evaluate((key) => navigator.locks.request(key, () => localStorage.getItem(key)), APP_SETTINGS_LOCAL_STORAGE_KEY);
-      expect(JSON.parse(stored ?? '{}')).toMatchObject({ brevhovedIndstillinger: { shDage: true, satser: true } });
+      // Chromium synkroniserer localStorage asynkront mellem fanernes processer, så en enkelt aflæsning
+      // straks efter kan være forældet, selv når begge valg er gemt korrekt. Et tabt valg er derimod
+      // permanent, så det endelige udfald afventes i begge faner: her ville en overskrivning stadig fejle.
+      for (const tab of [page, other]) {
+        await expect.poll(async () => JSON.parse(
+          await tab.evaluate((key) => localStorage.getItem(key), APP_SETTINGS_LOCAL_STORAGE_KEY) ?? '{}',
+        ) as unknown).toMatchObject({ brevhovedIndstillinger: { shDage: true, satser: true } });
+      }
       for (const tab of [page, other]) {
         await expect(tab.getByRole('checkbox', { name: 'SH-dage', exact: true })).toBeChecked();
         await expect(tab.getByRole('checkbox', { name: 'Satser', exact: true })).toBeChecked();

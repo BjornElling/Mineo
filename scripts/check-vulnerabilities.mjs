@@ -76,7 +76,8 @@ const runAudit = (repoRoot) => {
   return { status: result.status, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
 };
 
-const checkVulnerabilities = (repoRoot, { audit = runAudit } = {}) => {
+// `sleep` er injicerbar, så testene af gentagelsen ikke selv venter 10 s i en busy-loop og blokerer en worker.
+const checkVulnerabilities = (repoRoot, { audit = runAudit, sleep: pause = sleep } = {}) => {
   let last = { status: null, output: '' };
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     last = audit(repoRoot);
@@ -91,7 +92,7 @@ const checkVulnerabilities = (repoRoot, { audit = runAudit } = {}) => {
         `check:vulnerabilities – npm-registret kunne ikke svare (forsøg ${attempt} af ${MAX_ATTEMPTS}); `
         + `prøver igen om ${Math.round(delay / 1000)} s.`,
       );
-      sleep(delay);
+      pause(delay);
     }
   }
   return { outcome: 'registry-unavailable', output: last.output };

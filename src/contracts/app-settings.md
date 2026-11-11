@@ -39,6 +39,11 @@ udviklingsrester og ændrer ikke reglen om, at nye eller ukendte device-lokale s
 Valgene ændres ved brugerens aktive handling, også i andre åbne faner i samme browser. Der vises ingen oplysning om, at de ikke kan fortrydes.
 
 ## Kontrakter (normative, ikke-forklarende)
+- **Samtidige valg i flere faner må ikke overskrive hinanden.** En ændring committes under Web Lock'en
+  `mineo_app_settings_v1` i én IndexedDB-`readwrite`-transaktion (`src/settings/appSettingsCommitStore.ts`), som
+  læser den seneste værdi og skriver den nye. `localStorage` er kun spejlet til synkron opstart og `storage`-events:
+  Chromium synkroniserer det asynkront mellem processer, så en læsning af `localStorage` inde i låsen kan være
+  forældet. Uden IndexedDB skrives direkte til `localStorage` som hidtil.
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
 - **Defaults til ny sagsdata SKAL materialiseres ved oprettelsen – ikke først når brugeren rører feltet.** Kategori 2 har præcis to veje ind i en sag, og begge er eksplicitte:
   - **Ny sag:** ny-sags-seeden (`src/domain/newCaseSeed.ts` → `src/inputCore/newCaseSections.ts`), som anvendes ved bootstrap af en frisk session OG ved `Slet alt`. Se `docs/architecture/input-architecture.md` §2.11.

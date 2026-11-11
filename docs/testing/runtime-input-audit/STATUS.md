@@ -19,10 +19,10 @@ næste scenarier og historiske fund nedenfor skal læses som tidsstemplet auditd
 
 | Input-/afhængighedsområde | Dækning |
 |---|---|
-| Tomme/delvise perioder, kravvalg og beregningsmetoder | `eoInputRuntimeMatrix.test.ts`: 6.561 kombinationer |
+| Tomme/delvise perioder, kravvalg og beregningsmetoder | `eoInputRuntimeMatrix.taf*.test.ts` (én fil pr. TAF-kravvalg): 6.561 kombinationer |
 | Offentlige ydelser, SFGG og AES-valg uden datoer | `eoInputRuntimeCoverage.test.ts` og eksisterende domænetests |
-| EO-felter og ansættelsesforhold, grænser og manglende værdier | `eoInputRuntimeFuzz.test.ts`: schemafeltinventar og seedede tilfældige/sammenhængende sager |
-| Løn, reguleringskilder, ferie/fravær, flere ansættelser og EET-import | `eoInputRuntimeMutations.test.ts` samt eksisterende motor-/validatortests |
+| EO-felter og ansættelsesforhold, grænser og manglende værdier | `eoInputRuntimeFuzz.test.ts` (schemafeltinventar) og `eoInputRuntimeFuzz.*.shard*.test.ts` (seedede tilfældige/sammenhængende sager, fordelt på shards) |
+| Løn, reguleringskilder, ferie/fravær, flere ansættelser og EET-import | `eoInputRuntimeMutations*.test.ts` samt eksisterende motor-/validatortests |
 | Beregning, EO-kontrol, kontrolrækker og syv dokumentprojektioner | Fælles `helpers/eoRuntimePage.ts`; exception og kontrolleret runtime-fallback tæller begge som fund |
 | Alle fire hovedfaner og begge kontrolfaner | `Erstatningsopgoerelse.runtimeInputSmoke.test.tsx`, inklusive historiske/tomme dropdownværdier |
 | Faktisk indtastning, settle og faneskift | `erstatningsopgoerelse-runtime-input-matrix.spec.ts`; overvåger browserfejl, systemfejl og eksterne requests |

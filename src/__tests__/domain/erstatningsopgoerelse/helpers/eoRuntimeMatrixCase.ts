@@ -1,7 +1,9 @@
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { toISODateString } from '../../../types/branded';
+// Fælles grundlag for EO-inputmatrixen. Fordelt på én testfil pr. TAF-kravvalg, så de 27 tunge hovedgrene
+// kører parallelt; tilsammen dækkes fortsat alle 6.561 kombinationer.
+import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -64,15 +66,15 @@ const oevrigeRows = (template: ReturnType<typeof buildValues>['oevrigeTemplate']
   }];
 };
 
-const kravValg = ['Ja', 'Nej', 'Skjul'] as const;
+export const kravValg = ['Ja', 'Nej', 'Skjul'] as const;
 const beregningsmetoder = ['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn'] as const;
 const shapes: readonly RowShape[] = ['tom', 'delvis', 'fuld'];
 
-// Bevar alle 6.561 kombinationer, men giv hver af de 27 hovedgrene sit eget timeoutbudget.
-const branches = kravValg.flatMap((tafKrav) => beregningsmetoder.flatMap((beregningsmetode) =>
-  shapes.map((beregningsperiodeShape) => [tafKrav, beregningsmetode, beregningsperiodeShape] as const)));
+/** Definerer de ni hovedgrene for ét TAF-kravvalg; hver gren har sit eget timeoutbudget. */
+export const defineMatrixBranches = (tafKravValg: (typeof kravValg)[number]): void => {
+  const branches = beregningsmetoder.flatMap((beregningsmetode) =>
+    shapes.map((beregningsperiodeShape) => [tafKravValg, beregningsmetode, beregningsperiodeShape] as const));
 
-describe('EO-inputmatrix – tomme og delvise afhængigheder', () => {
   it.each(branches)('tåler EO-grenene med TAF=%s, grundlag=%s, periode=%s', (
     tafKrav,
     beregningsmetode,
@@ -121,4 +123,4 @@ describe('EO-inputmatrix – tomme og delvise afhængigheder', () => {
 
     expect(runtimeCases).toEqual([]);
   });
-});
+};
