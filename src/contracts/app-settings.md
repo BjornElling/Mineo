@@ -36,7 +36,7 @@ udviklingsrester og ændrer ikke reglen om, at nye eller ukendte device-lokale s
 ## Normativ regel: indstillinger er uden for undo/redo
 Ændringer på Indstillinger-siden må **aldrig** indgå i sagens fortrydelseshistorik.
 
-Valgene ændres kun ved brugerens aktive handling. Der vises ingen oplysning om, at de ikke kan fortrydes.
+Valgene ændres ved brugerens aktive handling, også i andre åbne faner i samme browser. Der vises ingen oplysning om, at de ikke kan fortrydes.
 
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
@@ -111,6 +111,15 @@ current-session-envelope. Browserlagerets namespace og den ene sessionsnøgle ej
   revision læses atomisk og indgår sammen med inputrevisionen i `EvaluationSourceToken`; async-gates sammenligner altid
   hele tokenet.
 - **Fail-safe**: hvis `localStorage` er blokeret/fejler, må app’en stadig fungere (fallback til in-memory state).
+- **Åbne faner deler de seneste valg.** En brugerhandling sender kun de ændrede felter, også for enkelte
+  brevhoveder. Fælleslaget læser den senest gemte kopi før merge og skriver straks fra handlingen,
+  aldrig fra en render-effekt. Web Locks serialiserer skrivninger mellem faner, når browseren understøtter
+  det; uden Web Locks bruges synkron læs/merge/skriv som best-effort. Storage-events opdaterer visningen
+  fra lagerets aktuelle snapshot uden tilbageskrivning. Events i kø må ikke rulle nyere valg tilbage.
+  Læse-/skrivefejl bevarer afsluttede in-memory-valg; en manglende nøgle er fortsat standardtilstanden.
+- **Mappevalg kræver browserunderstøttelse.** Uden en callable `showDirectoryPicker` er «Vælg mappe»
+  inaktiv med tooltippen «Denne browser understøtter ikke valg af en fast mappe til gemte filer.».
+  Placeringen vises fortsat, og manglende understøttelse udløser ingen teknisk advarsel.
 - **Schema-alignment og tolerant feltredning**: settings skal valideres via Zod. En ikke-objektværdi falder tilbage til alle defaults. For et objekt valideres hvert kendt felt selvstændigt: et ugyldigt felt falder kun tilbage til sit eget default, ukendte felter ignoreres, og øvrige schema-gyldige felter bevares. Samme regel gælder pr. felt i nested settingsobjekter. Det samlede sanitiserede objekt slutvalideres altid mod `appSettingsSchema`, før det publiceres.
 - **Ingen netværk/telemetri**: settings må ikke forårsage data-overførsel ud af browseren.
 - **Versionering af localStorage-nøgle**: En schemaændring må ikke gøre tidligere gyldige settings ulæselige eller

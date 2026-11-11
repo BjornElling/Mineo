@@ -12,7 +12,7 @@ import { useDefaultDirectorySetting } from './useDefaultDirectorySetting';
  * stylet som et brugervalg. Se `defaultDirectoryLocation.ts`.
  */
 const DefaultDirectoryRow = React.memo(() => {
-  const { location, chooseDirectory, resetToDefault } = useDefaultDirectorySetting();
+  const { location, canChooseDirectory, chooseDirectory, resetToDefault } = useDefaultDirectorySetting();
 
   // Kun `valgt` er en intakt brugervalgt mappe. `utilgaengelig` peger på skrivebordet præcis som
   // `standard` gør, og skal derfor se sådan ud – men beholder Nulstil, så det døde valg kan ryddes.
@@ -34,27 +34,32 @@ const DefaultDirectoryRow = React.memo(() => {
           >
             {location === null ? 'Indlæser...' : location.displayName}
           </Typography>
-          <Tooltip title="Vælg mappe">
-            <IconButton
-              type="button"
-              onClick={chooseDirectory}
-              // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
-              aria-label="Vælg mappe"
-              /*
-                Opt-in til Container'ens feltsekvens (§Implementeringsfrihed i
-                `keyboard-navigation.md`): uden markøren er mappevalget kun tilgængeligt for musen,
-                fordi CONTAINER_FOCUSABLE_SELECTOR bevidst kun medtager knapper, der beder om det.
-                Aktivering med Enter/mellemrum følger af det native <button> – ingen egen keydown.
-              */
-              data-mineo-focusable-button="true"
-              size="small"
-              sx={{
-                padding: 0.5,
-                '&:hover': { backgroundColor: 'var(--color-hover)' },
-              }}
-            >
-              <FolderOpenIcon fontSize="small" />
-            </IconButton>
+          <Tooltip title={canChooseDirectory
+            ? 'Vælg mappe'
+            : 'Denne browser understøtter ikke valg af en fast mappe til gemte filer.'}>
+            <span>
+              <IconButton
+                disabled={!canChooseDirectory}
+                type="button"
+                onClick={chooseDirectory}
+                // Kun et ikon som indhold; tooltippen giver ikke et varigt tilgængeligt navn.
+                aria-label="Vælg mappe"
+                /*
+                  Opt-in til Container'ens feltsekvens (§Implementeringsfrihed i
+                  `keyboard-navigation.md`): uden markøren er mappevalget kun tilgængeligt for musen,
+                  fordi CONTAINER_FOCUSABLE_SELECTOR bevidst kun medtager knapper, der beder om det.
+                  Aktivering med Enter/mellemrum følger af det native <button> – ingen egen keydown.
+                */
+                data-mineo-focusable-button="true"
+                size="small"
+                sx={{
+                  padding: 0.5,
+                  '&:hover': { backgroundColor: 'var(--color-hover)' },
+                }}
+              >
+                <FolderOpenIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
           {location !== null && location.kind !== 'standard' && (
             <Tooltip title="Nulstil til skrivebord">

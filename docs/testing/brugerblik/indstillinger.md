@@ -1,5 +1,173 @@
 # Brugerblik – Indstillinger
 
+## Fornyet gennemgang – 2026-11-11
+
+**Gennemgået. Nye fund: 2 – én Fejl med prioritet Høj og ét Fornuft-fund med prioritet Mellem.**
+Commit `1517f1a7` samt eksisterende ændringer i Brugerblik-materialet. Produktet er ikke ændret.
+Afprøvet med projektets Playwright CLI i Chrome og Firefox, headless, mod egen Vite-server på
+`127.0.0.1:3001`; synligt login. Chrome: 1536×864 og 1366×620; Firefox: 1536×864.
+Fornuftsblikket A1–A8 og relevante prøver B0–B7 er gennemgået. Første gennemgangs afgørelser er
+historisk grundlag nedenfor; BB-023, BB-025, BB-026, BB-027 og BB-029 genåbnes ikke.
+
+### Inventar, grænser og afhængigheder
+
+Fire bokse med 25 betjeningspunkter i produktion, når hver radiogruppe regnes som ét valg og hver
+brevhoved-checkboks som ét punkt. DEV har desuden «Farvemarkering af font-styles».
+
+| Område | Kontroller og tilstande |
+|---|---|
+| System | Farvetema: Lyst/Mørkt/Følg computeren, standard Følg computeren. Mappe: standard/valgt/utilgængelig/indlæser, Vælg mappe og betinget Nulstil. Dokumentformat: PDF/Word, standard PDF. Ni uafhængige brevhovedvalg for Erstatningsopgørelse, Erhvervsevnetab, Varige mén, Forsørgertab, Årslønsberegning, Renteberegning, Satser, SH-dage og Regulering. |
+| Standardværdier, TAF | Løn indtastes som: Måned/Uge/Dato, standard Måned. Fuld løn under ferie: til/fra, standard til. Løn på helligdage: Almindelig løn/SH-udbetaling/Ingen, standard Almindelig løn. To organisationsfiltre med Alle samt katalogets navne, standard Alle; tidligere gemte organisationsnavne bevares også som valg. |
+| Standardværdier, øvrige | Delvis sygemelding: Fuld sats/Halv sats, standard Halv sats. Udkast-stempel: til/fra, standard til. Bilagsnumre: til/fra, standard fra. Afslutning: Bekræftet godkendt/Underskrift-linje/Ingen, standard Bekræftet godkendt. |
+| Beregningsteknisk | Udløbstolerance: heltal 0–12 måneder, standard 6. Tillad regulering ved udløb før TAF-slut: til/fra, standard fra. |
+| Kontrol | Rapportknapper og kontrolfaner: hver til/fra, begge standard fra. DEV-kontrollen er ikke en produktionsindstilling. |
+
+Ingen fritekst, datoeditor, brugeroprettede rækker eller åbne drafts på selve siden. Valgmængderne
+afgrænser input; B0 giver derfor ingen manglende tal-/tekstgrænse. Organisationsfiltrenes åbne
+lagringstype er en bevidst bevarelse af tidligere valg, ikke en fri teksteditor. Ingen lokal
+«tom række» eller dokumentknap. Alle synlige valg har en værdi også i en ny sag; de er ikke i sig
+selv sagsindtastninger. Sagens tomhed sammenlignes med ny-sags-grundlaget, ikke med disse flueben.
+
+Valgene gemmes på computeren/browseren og er uden for `.eo` og undo/redo. Standardværdier anvendes
+ved ny sag/nyt ansættelsesforhold, mens format, brevhoved, tema, kontrolvisning og de to
+beregningstekniske valg virker på den aktuelle visning eller næste dokument. Dette er de tidligere
+accepterede forskelle, ikke nye fund. Forbrugerne er sporet gennem `AppSettingsContext`,
+`sourceSettings`, ny-sags-seeds, ansættelsesforholdets fabrik og `eoRowIndkomstRows`.
+
+### BB-390 – Et valg i en anden browserfane nulstiller allerede gemte indstillinger
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-44--en-gammel-kopi-overskriver-et-nyere-uvedkommende-valg`
+- **Prioritet:** Høj
+- **Beslutning:** Godkendt til rettelse 2026-11-11; implementeret i fælles indstillingslag.
+- **Sådan fremprovokeres det:**
+  1. Åbn Mineo i to faner, A og B, og gå til Indstillinger i begge. Temaet er Følg computeren.
+  2. Vælg Mørkt i A.
+  3. Slå Bilagsnumre i erstatningsopgørelser til i B.
+  4. Genindlæs A.
+- **Det sker:** A viser først stadig Mørkt, mens B viser Følg computeren. Efter B's bilagsvalg
+  er det gemte tema igen `system`; efter genindlæsning viser også A Følg computeren. Mørkt er
+  forsvundet, selv om ingen har ændret temaet tilbage. Bilagsvalget er bevaret. Ingen besked,
+  console-fejl eller advarsel. Forløbet er målt i to samtidige Chrome-faner.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan arbejde på to sager og miste sine seneste valg
+  ved at ændre noget helt andet. Samme skrivning omfatter også dokumentformat, brevhoveder og
+  tolerancen for udløbne reguleringstabeller. Dermed kan følgerne række ud over udseendet;
+  tema-forløbet er den browsermålte forekomst, de øvrige følger er sporet i koden.
+- **Bedre ville være:** Vis de seneste programindstillinger i alle åbne faner. Ændring af
+  bilagsnumre skal bevare det senest valgte farvetema og alle øvrige valg; ændres samme valg to
+  gange, gælder det seneste aktive valg.
+- **Andre steder det kan gælde:** Om-sidens startsidevalg bruger samme indstillingslag. Alle ni
+  brevhovedvalg og begge beregningstekniske kontroller er konkrete kandidater til samme prøve.
+  Dette er ikke BB-025 om ryddet/ødelagt browserlager: her nulstiller almindelig brug et gyldigt,
+  allerede gemt valg.
+
+### BB-391 – Mappeknappen får en normal browserbegrænsning til at ligne en kodefejl
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-45--en-forventet-browserbegraensning-omtales-som-en-kodefejl`
+- **Prioritet:** Mellem
+- **Beslutning:** Godkendt til rettelse 2026-11-11; mappevalg følger browserunderstøttelsen.
+- **Sådan fremprovokeres det:** Åbn Indstillinger i Firefox, og klik Vælg mappe.
+- **Det sker:** Knappen er aktiv og har tooltippen «Vælg mappe». Der åbnes ingen mappevælger;
+  placeringen bliver ved med at være «Skrivebord (standard)». I stedet vises den globale boks
+  «Teknisk advarsel registreret», som siger «Der er fundet en fejl i den underliggende kode» og
+  beder brugeren gennemgå sine beregninger grundigt. Først under tekniske detaljer ligger årsagen
+  `showDirectoryPicker ikke tilgængelig i denne browser`. Målt i en rigtig Firefox-runtime, hvor
+  API'et er fraværende, uden at ændre browserens egenskaber. Én console-advarsel pr. klik, ingen
+  page-fejl; gentaget klik og åbning af tekniske detaljer bekræfter samme årsag.
+- **Det er uhensigtsmæssigt fordi:** Et tilbud om at vælge en mappe kan slet ikke bruges i denne
+  browser. Svaret udpeger kode og beregninger som mistænkelige i stedet for at forklare den
+  konkrete begrænsning. Brugeren kan hverken reparere noget eller gennemføre det lovede valg.
+- **Bedre ville være:** Vis Vælg mappe inaktiv i browsere uden mappevalg, med tooltippen
+  «Denne browser understøtter ikke valg af en fast mappe til gemte filer.» Bevar placeringens
+  visning. Det skal ikke udløse en teknisk advarsel om kode eller beregninger.
+- **Andre steder det kan gælde:** Manglende eller fejlende persistent storage i
+  `fileHandleStorage.ts`, browserafvisning af mappevælgeren i `useDefaultDirectorySetting.ts` og
+  forkert filendelse i Gem-vælgeren i `fileSystemAccess.ts`. Kandidaterne er kun kildeundersøgt.
+  M-12 passer ikke her: problemet er et ubrugeligt tilbud og forkert fejlklasse, ikke manglende
+  kvittering for en indstilling eller manglende vej tilbage til et tidligere valg.
+
+### Efterprøvet og overvejet uden yderligere fund
+
+- **Valgkontroller:** Alle checkbokse/toggles og radiogrupper aktiveret og gendannet; alle seks
+  dropdowns åbnet og sammenholdt med valgmængden. Ingen mislykkede kontrolskift i de 38 aflæsninger.
+- **Dropdown-grænser:** Valg af 0, 12 og 6 måneder, yderste katalogvalg og tilbage; Escape uden
+  valg bevarer værdien. Delete rydder ikke de obligatoriske valg, og felterne er read-only.
+- **Farvetema:** Følg computeren følger mørkt/lyst live; et eksplicit Lyst forbliver lyst ved
+  mørk systempræference. Der ventes på den faktisk malede tilstand før aflæsning.
+- **Tastatur:** Tab passerer mappevalg, format, alle ni brevhoveder, standardværdier og kontrolvalg
+  i visningsrækkefølge og cirkulerer tilbage til temaet. Radiogrupper har ét stop hver.
+- **Standarder på eksisterende sag:** Ændret svie/smerte-standard til Fuld sats lader den åbne
+  sags Halv sats stå. Det er den tilsigtede adfærd fra BB-023.
+- **Ny sag:** Efter Slet alt står afslutning til Underskrift-linje, udkast fra, bilagsnumre til og
+  delvis sygemelding til Fuld sats; Årsløn står til Uge. Det svarer til de valgte nye standarder.
+- **Nyt ansættelsesforhold:** Uge, Ingen løn på helligdage samt filtrene 3F/KL vises på det nye
+  kort. Fuld løn under ferie er sporet til samme fabrik; den betingede kontrol er ikke særskilt
+  browsermålt i en færdig overenskomstsag.
+- **Kontrolfaner:** Tilvalget viser EO-kontrol/Kontroltabel. Fravalg efter besøg på EO-kontrol
+  fører ved tilbagevenden til EO oplysninger; der efterlades ingen aktiv, skjult kontrolfane.
+- **Rapportknapper:** Tilvalg viser straks fire rapportknapper på Indstillinger; fravalg skjuler
+  dem igen. Ingen rapport sendt.
+- **Sagsinput og undo/redo:** Navnet «Brugerblik Indstillinger prøvesag» og afsluttet ugyldig
+  Skadedato `31-02-2026` bevares gennem indstillingsskift. Ctrl+Z fra Indstillinger fører til
+  Stamdata og rydder datoen; Ctrl+Y genskaber den. Bilagsstandardens fravalg forbliver fravalgt.
+- **Dokumentformat:** Firefox henter rigtige filer som `Arbejdsskadesatser 2026.pdf` og
+  `Arbejdsskadesatser 2026.docx`, begge uden downloadfejl; knappens navn følger formatet.
+  Ingen fuld dokument-layoutkontrol er udledt af filnavne eller vellykket download.
+- **Layout:** Lyst tema ved 1536×864 og 1366×620 samt mørk visning er screenshot-inspiceret;
+  ingen vandret overflow eller felter ud over højre kant i de målte viewporter.
+- **Konsol:** Ingen nye `console.error` eller ukontrollerede page-fejl. Chrome-opsamlingen har
+  ingen eksterne requests. Firefox har to advarsler fra de to klik på mappeknappen i BB-391 og
+  ingen andre opsamlede console-advarsler; dette er ikke talt som en fejlfri kontrol.
+
+### Dækningshuller og videre spor
+
+- Native valg/nulstilling af en rigtig mappe og mistet mappetilladelse er ikke afprøvet headless;
+  standardtilstanden er set, de øvrige tilstande er læst i resolver/hook. BB-036's Nulstil-fokus
+  er derfor ikke genmålt på en faktisk valgt mappe.
+- Udkast, bilagsnumre og alle ni brevhoveder er kontrolleret som valg og sporet til forbrugerne,
+  men ikke renderet og sammenlignet i samtlige færdige PDF-/Word-dokumenter. Satser-downloads
+  ovenfor lukker kun formatsporet. Ingen ny fuld `.eo`-round-trip i denne gennemgang.
+- 0/12-månedersvalg og tilladelses-toggle er set på siden; deres severity-skift og de tidligere
+  nævnte kontroltekster kræver en færdig sag med passende reguleringsdækning. De er fortsat
+  opfølgning ved Erstatningsopgørelse, ikke nye fund om reglernes rigtighed.
+- Edge og WebKit er ikke kørt; BB-391 er bekræftet i Firefox, ikke blot antaget for andre browsere.
+- Evidens ligger lokalt i `test-results/brugerblik-indstillinger/`: browserprøvescripts,
+  `firefox-mappe.png`, `layout-1366.png`, `layout-1536.png`, `chrome-moerkt.png` og de to downloads.
+  Mappen er ignoreret af Git. Ingen test-, lint- eller build-gate kørt, fordi produktkode og tests
+  ikke er ændret; kun rapporter. `git diff --check` bestået. Build-info er genereret for at starte
+  udviklingsserveren. Egne browser- og serverprocesser er lukket efter gennemgangen.
+
+### Rettelse – 2026-11-11
+
+Udvikleren har bedt om at rette begge nye fund og afslutte med commit.
+
+- **BB-390:** Alle indstillingshandlinger sender kun de aktivt ændrede felter, også det enkelte
+  brevhovedvalg. Fælleslaget fletter dem ind i senest gemte snapshot og serialiserer samtidige
+  skrivninger med Web Locks i understøttede browsere. Storage-events opdaterer åbne faner uden
+  tilbageskrivning; gamle events kan ikke rulle nyere valg tilbage. Lagerfejl bevarer valgene i
+  hukommelsen. Ingen ændring af lagernøgle, gemt format, `.eo` eller beregningsregler.
+- **BB-391:** «Vælg mappe» er inaktiv uden browserunderstøttelse og viser den foreslåede tooltip.
+  Placeringens visning bevares, og manglende mappevalg udløser ingen teknisk advarsel.
+- Regressionstests gengav begge fund før rettelsen. De 104 målrettede Vitest-tests består.
+  19 browserprøver består på det nybyggede E2E-artefakt: indstillingsforløb og eksisterende
+  skalerings-/kontrolforløb, med browserafhængige prøver i Chrome, Edge, Firefox og WebKit.
+  Faneskrivning er desuden gentaget tre gange; testen holder skriveadgangen tilbage, køer to
+  uafhængige brevhovedvalg og afventer derefter begge skrivninger før kontrol af lager og UI.
+  Ingen nye runtimefejl eller advarsler. Firefox-skærmbilledet med inaktiv mappeknap og tooltip
+  er gennemset ved 1536×864. Egne browser- og serverprocesser er lukket.
+- **Slutkontrol:** Fuld Vitest-suite består med 1.041 filer og 11.163 tests. Kildetyper,
+  testtyper, E2E-typer, build-konfigurationens typer, lint, LF-kontrol og `git diff --check`
+  består. Et uafhængigt kode- og testreview er godkendt. E2E-forløbet byggede og kontrollerede
+  begge apps; ingen separat release-build er nødvendig. Afhængighedstjek er udeladt, fordi
+  ingen pakker eller manifester er ændret; browserkontrollen bruger de relevante baner frem for
+  den fulde 4×4-matrix.
+
+**Åbne beslutninger:** Ingen om BB-390 og BB-391. De kildeundersøgte kandidater er fortsat spor,
+ikke bekræftede nye fund eller ændret fejlklassificering.
+
+## Første gennemgang – historik
+
 - Rute/placering: `/indstillinger`
 - Gennemgået: 2026-08-18 · commit `a8d2b13c`
 - Afprøvet i: Chrome (playwright-cli), 1536×864 – designmålet, jf. M-09

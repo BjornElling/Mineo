@@ -108,12 +108,8 @@ const Indstillinger = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
 
   const handleBrevhovedToggle = React.useCallback((key: keyof BrevhovedIndstillinger, checked: boolean) => {
-    const newBrevhovedIndstillinger: BrevhovedIndstillinger = {
-      ...settings.brevhovedIndstillinger,
-      [key]: checked,
-    };
-    return updateSettings({ brevhovedIndstillinger: newBrevhovedIndstillinger });
-  }, [settings.brevhovedIndstillinger, updateSettings]);
+    return updateSettings({ brevhovedIndstillinger: { [key]: checked } });
+  }, [updateSettings]);
 
   // Hent alle organisationer til overenskomst-dropdowns
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);

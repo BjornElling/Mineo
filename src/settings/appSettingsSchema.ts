@@ -158,6 +158,11 @@ export const appSettingsSchema = z
 
 export type AppSettings = z.infer<typeof appSettingsSchema>;
 
+/** Kun de aktivt ændrede valg, også inden for brevhovedgruppen. */
+export type AppSettingsPatch = Readonly<Partial<Omit<AppSettings, 'brevhovedIndstillinger'>> & {
+  brevhovedIndstillinger?: Readonly<Partial<BrevhovedIndstillinger>>;
+}>;
+
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   // «Følg computeren» er standarden: uden et aktivt valg skal Mineo følge maskinens lyse/mørke
   // indstilling, også når den skifter midt i en session (BB-024).

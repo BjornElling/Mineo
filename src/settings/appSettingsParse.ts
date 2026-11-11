@@ -5,7 +5,7 @@
  * Håndterer schema-evolution ved at merge ukendte værdier med defaults.
  */
 
-import { DEFAULT_APP_SETTINGS, type AppSettings, appSettingsSchema } from './appSettingsSchema';
+import { DEFAULT_APP_SETTINGS, type AppSettings, type AppSettingsPatch, appSettingsSchema } from './appSettingsSchema';
 import { LOCAL_STORAGE_KEY, readLocalStorage } from './appSettingsStorage';
 import { isRecord } from '../utils/typeGuards';
 
@@ -92,9 +92,9 @@ export const parseStoredSettings = (raw: unknown): AppSettings => {
 
 export const mergeAppSettings = (
   prev: AppSettings,
-  patch: Readonly<Partial<AppSettings>>
+  patch: AppSettingsPatch
 ): AppSettings => {
-  // Defensive second-line guard: patch forventes type-korrekt fra intern kode,
+  // Ekstra sikkerhedsnet: patch forventes type-korrekt fra intern kode,
   // men vi fastholder schema-invarianten før state skrives tilbage.
   return resolveAppSettings({
     ...prev,
@@ -109,11 +109,10 @@ export const mergeAppSettings = (
 };
 
 /**
- * Indlæser initial settings fra localStorage.
- * Returnerer defaults hvis localStorage er tom eller ugyldig.
+ * Parser ét råt snapshot fra localStorage uden at genlæse lageret.
+ * Returnerer defaults hvis snapshottet er tomt eller ugyldigt.
  */
-export const loadInitialSettings = (): AppSettings => {
-  const raw = readLocalStorage(LOCAL_STORAGE_KEY);
+export const parseStoredSettingsJson = (raw: string | undefined): AppSettings => {
   if (!raw) return createDefaultAppSettings();
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -122,3 +121,6 @@ export const loadInitialSettings = (): AppSettings => {
     return createDefaultAppSettings();
   }
 };
+
+export const loadInitialSettings = (): AppSettings =>
+  parseStoredSettingsJson(readLocalStorage(LOCAL_STORAGE_KEY));

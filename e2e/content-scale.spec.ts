@@ -287,7 +287,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     await login(page);
     await openPage(page, 'Indstillinger');
     const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });
-    if (!(await kontrolfaner.isChecked())) await kontrolfaner.check();
+    if (!(await kontrolfaner.isChecked())) await kontrolfaner.click();
+    await expect(kontrolfaner).toBeChecked();
 
     await openPage(page, 'Erstatningsopgørelse');
     await expect(page.getByRole('button', { name: 'EO-kontrol' })).toBeVisible();
@@ -389,11 +390,14 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     await login(page);
     await openPage(page, 'Indstillinger');
     const kontrolfaner = page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' });
-    if (!(await kontrolfaner.isChecked())) await kontrolfaner.check();
+    if (!(await kontrolfaner.isChecked())) await kontrolfaner.click();
+    await expect(kontrolfaner).toBeChecked();
 
     for (const theme of ['Lyst', 'Mørkt'] as const) {
       await openPage(page, 'Indstillinger');
-      await page.getByRole('radio', { name: theme }).check();
+      const themeChoice = page.getByRole('radio', { name: theme });
+      await themeChoice.click();
+      await expect(themeChoice).toBeChecked();
       await openPage(page, 'Erstatningsopgørelse');
       await expect(page.getByRole('button', { name: 'Kontroltabel' })).toBeVisible();
 
@@ -557,7 +561,8 @@ test.describe('afgrænset skalering af Mineos arbejdsflade', () => {
     const reportSetting = page.getByRole('checkbox', {
       name: 'Vis knap til at rapportere fejl og forbedringsønsker på indholdsbokse',
     });
-    if (!(await reportSetting.isChecked())) await reportSetting.check();
+    if (!(await reportSetting.isChecked())) await reportSetting.click();
+    await expect(reportSetting).toBeChecked();
 
     await openPage(page, 'Erstatningsopgørelse');
     const reportButton = page.getByRole('button', { name: 'Rapportér fejl eller forbedringsønske' }).first();

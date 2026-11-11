@@ -1,5 +1,13 @@
 # Brugerblik – auditspor og fremdrift
 
+## Fornyet gennemgang fra 2026-11-11
+
+- **Gennemgået:** 1. Stamdata, 2. Om og 3. Indstillinger, 2026-11-11. Stamdata/Om: ingen nye fund. Indstillinger: BB-390 (Fejl, Høj) og BB-391 (Fornuft, Mellem) er godkendt til rettelse og implementeret; se fladernes rapporter for prøver og dækningshuller.
+- **Næste flade:** 4. Satser.
+- **Næste fund-ID:** BB-392.
+
+Første gennemgangs status og historik nedenfor er bevaret uændret.
+
 Dokumentet bevarer beslutninger og observationer fra Brugerblik-gennemgangen og fører samtidig dens
 fremdrift. Afsnittene under flade-tabellen er et **historisk auditspor**: formuleringer som «Afventer
 udvikleren» og historiske næste-trin beskriver status på det tidspunkt, hvor det pågældende afsnit blev

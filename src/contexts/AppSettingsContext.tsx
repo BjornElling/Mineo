@@ -1,18 +1,21 @@
 import * as React from 'react';
-import { resolveThemeMode, type AppSettings } from '../settings/appSettingsSchema';
-import { LOCAL_STORAGE_KEY, writeLocalStorage } from '../settings/appSettingsStorage';
-import { loadInitialSettings, mergeAppSettings } from '../settings/appSettingsParse';
+import { resolveThemeMode, type AppSettingsPatch } from '../settings/appSettingsSchema';
+import { LOCAL_STORAGE_KEY, readLocalStorage, readLocalStorageResult, writeLocalStorage } from '../settings/appSettingsStorage';
+import { parseStoredSettingsJson, mergeAppSettings } from '../settings/appSettingsParse';
 import { AppSettingsContext, type AppSettingsContextValue } from './AppSettingsContext.shared';
 import { SYSTEM_DARK_MEDIA_QUERY, THEME_COLOR_BY_MODE } from '../settings/themeBootstrap';
+import { logError } from '../utils/logger';
+import { asError } from '../utils/typeGuards';
+import { getPersistentLocalStorage } from '../utils/safeLocalStorage';
 
 /**
  * AppSettingsContext
  *
- * Programindstillinger (device-local) som ikke må indgå i `.eo` gem/indlæs.
+ * Programindstillinger (device-lokale) som ikke må indgå i `.eo` gem/indlæs.
  *
- * Persistence:
- * - Local: `localStorage` (best-effort; fail-safe fallback til in-memory).
- * - `.eo`: NEVER. `.eo`-payloaden bygges ud fra de registrerede sektioner i `persistenceRegistry`.
+ * Lagring:
+ * - Lokalt: `localStorage` (best-effort; fail-safe fallback til in-memory).
+ * - `.eo`: aldrig. `.eo`-payloaden bygges ud fra de registrerede sektioner i `persistenceRegistry`.
  *
  * Se `src/contracts/app-settings.md` for normativt rationale og constraints.
  */
@@ -45,21 +48,60 @@ const useSystemPrefersDark = (): boolean => {
 };
 
 export const AppSettingsProvider = ({ children }: { children: React.ReactNode }): React.ReactElement => {
-  const [settings, setSettings] = React.useState(() => loadInitialSettings());
+  const [initial] = React.useState(() => {
+    const raw = readLocalStorage(LOCAL_STORAGE_KEY);
+    return { raw, settings: parseStoredSettingsJson(raw) };
+  });
+  const [settings, setSettings] = React.useState(initial.settings);
+  const current = React.useRef(settings);
+  const lastStored = React.useRef(initial.raw);
   const systemPrefersDark = useSystemPrefersDark();
   const resolvedThemeMode = resolveThemeMode(settings.themeMode, systemPrefersDark);
 
-  const updateSettings = React.useCallback((patch: Readonly<Partial<AppSettings>>) => {
-    setSettings((prev) => {
-      const next = mergeAppSettings(prev, patch);
-      return next;
-    });
-    return true;
+  const readLatestSettings = React.useCallback(() => {
+    const result = readLocalStorageResult(LOCAL_STORAGE_KEY);
+    if (!result.ok) return current.current;
+    const stored = result.value;
+    if (stored !== lastStored.current) {
+      current.current = parseStoredSettingsJson(stored);
+      lastStored.current = stored;
+    }
+    return current.current;
   }, []);
 
+  const updateSettings = React.useCallback((patch: AppSettingsPatch) => {
+    const commit = () => {
+      // Storage-events kan stå i kø. Læs derfor også før skrivning, og gem kun brugerens patch
+      // oven på den nyeste kopi. Ingen I/O i Reacts state-updater eller efterfølgende effekt.
+      const next = mergeAppSettings(readLatestSettings(), patch);
+      const serialized = JSON.stringify(next);
+      if (writeLocalStorage(LOCAL_STORAGE_KEY, serialized)) lastStored.current = serialized;
+      current.current = next;
+      setSettings(next);
+    };
+    // Faner har hver sin event-loop. Den fælles lås forhindrer, at to samtidige klik læser
+    // samme grundlag og derefter overskriver hinandens uafhængige valg.
+    if (navigator.locks) {
+      void navigator.locks.request(LOCAL_STORAGE_KEY, commit).catch((error: unknown) => {
+        logError('Kunne ikke opdatere programindstillinger', { error: asError(error) });
+      });
+    } else {
+      commit();
+    }
+    return true;
+  }, [readLatestSettings]);
+
   React.useEffect(() => {
-    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(settings));
-  }, [settings]);
+    const sync = () => setSettings(readLatestSettings());
+    const onStorage = (event: StorageEvent) => {
+      if (event.storageArea !== null && event.storageArea !== getPersistentLocalStorage()) return;
+      // Læs lageret frem for event.newValue: et ældre event må ikke rulle et nyere valg tilbage.
+      if (event.key === LOCAL_STORAGE_KEY || event.key === null) sync();
+    };
+    window.addEventListener('storage', onStorage);
+    sync();
+    return () => window.removeEventListener('storage', onStorage);
+  }, [readLatestSettings]);
 
   React.useEffect(() => {
     // Tværgående UI-debug-kontrol (CSS-niveau). DEV-only: font-style-farverne er kun

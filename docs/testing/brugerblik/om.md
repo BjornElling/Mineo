@@ -1,5 +1,76 @@
 # Brugerblik – Om
 
+## Fornyet gennemgang – 2026-11-11
+
+**Gennemgået. Nye fund: 0.** Første gennemgangs tolv fund og afgørelser er bevaret nedenfor og er
+ikke genregistreret. Fornuftsblikket A1–A8 og de relevante dele af B0–B7 er gennemgået. Siden er
+fortsat en informationsside med juridisk formål, ikke en vejledning til første beregning.
+
+**Grundlag.** Aktuel kode ved `1517f1a7`, `AGENTS.md`, kontrakttopologien, sidekomponent-,
+app-shell-, app-settings-, auth-gate- og tastaturkontrakterne samt brugerfundslisten. Browserprøver
+med projektets Playwright CLI i Chrome, headless, mod egen Vite-server på `127.0.0.1:3001`.
+Login gennem den synlige formular. Viewporter: 1536×864, 1366×620 og 1244×620 CSS-px.
+
+**Inventar, tilstande og afhængigheder.** Fem tekstbokse: Programmet, Teknisk, Persondata,
+Licensvilkår og Status; derudover fælles kontakt-/søskendebundlinje. Tre lokale kontroller:
+Installér hjælpeprogram, startside-kontakten og MIT-licensen. Fire synlige web-links (GitHub og
+tre søskendesider) samt ét mail-link; minEO.dk er den aktive, ikke-klikbare side i bundlinjen.
+Den skjulte mobiludgave af bundlinjen giver ingen ekstra synlige kontroller. Startside-kontakten
+er et ja/nej-valg, som starter slået fra og gemmes på computeren/browseren; den er uden for sagens
+undo/redo og `.eo`-fil. Den ændrer næste åbning af rodadressen, ikke en udtrykkeligt valgt side.
+Installationshandlingen afhænger af browserens tilbud og installationsstatus; den kan starte en
+installation, vise allerede installeret/åbent eller vise en konkret fallback. Licensvinduet er
+åbent/lukket med en original engelsk licenstekst og dansk overskrift/lukkeknap. Ingen sagsfelter,
+datogrænser, tabeller, rækkehandlinger, beregninger eller dokumentknapper på selve fladen; B0's
+tal-/tekstgrænser og B6a's rækketomhed er derfor ikke relevante. Sidens indhold er uafhængigt af,
+om sagen er tom, gyldig eller har afsluttet ugyldigt input.
+
+**Efterprøvet og overvejet uden nye fund:**
+
+- **Startside.** Klik slår valget til uden at forlade Om; næste åbning af `/` lander på Stamdata.
+  Mellemrum slår det fra igen; næste åbning af `/` lander på Om. Valget overlever navigation.
+- **Begge vinduer.** Enter og mellemrum åbner; Escape, klik udenfor og browserens tilbage-knap
+  lukker. Efter lukning vender fokus tilbage til den rigtige udløserknap; tilbage forlader ikke Om.
+  Den synlige Luk-knap lukker også licensvinduet. Gentagen åbning og dobbeltklik giver ét vindue.
+- **Licens.** Otte Tab og Shift+Tab bliver i vinduet. Teksten ombrydes uden vandret overflow ved
+  alle tre viewporter; ved lav højde har tekstområdet lodret scroll. Screenshots er inspiceret.
+  Den engelske originaltekst er allerede afgjort som tilsigtet; de danske hovedpunkter står på siden.
+- **Installationsfallback.** Den faktiske headless-browser viser »Installationsdialogen kunne ikke
+  åbnes« med vej til adresselinjens ikon eller browserens menu. Beskeden kan lukkes og åbnes igen.
+  Klik for at få installationsstatus er fortsat det accepterede kompromis fra BB-017.
+- **Igangværende sag.** Navnet `Brugerblik Om prøvesag` og afsluttet ugyldig Skadedato `31-02-2026`
+  bevares gennem Om, åbning/lukning af licensen og startside-valg frem og tilbage; datoen er stadig rød.
+  Ctrl+Z fra Om fører til Stamdata og fortryder datoen; Ctrl+Y genskaber den ugyldige tekst.
+  Startside-kontakten ændres ikke af sagens undo/redo.
+- **Links.** Alle fire web-links har ny fane og `noopener noreferrer`; minDomssamling.dk er også
+  klikprøvet med lokalt opsnappet svar, så eksternt indhold ikke blev hentet. Om og sagen bliver i
+  den oprindelige fane. Mailadressen er fortsat et almindeligt mail-link, ikke en automatisk afsendelse.
+- **Persondata.** Teksten nævner fanens levetid og gem-funktionen og lover ikke længere, at der
+  slet ikke hentes programressourcer. En uafhængigt åbnet ny fane har tomt navn og ændrer ikke sagen.
+  Sessionsgendannelse og reel produktionstrafik er ikke udledt af denne prøve, se dækningshuller.
+- **Layout.** Indhold og bundlinjens tre links er synligt tilgængelige ved alle tre viewporter;
+  ingen nye afskæringer eller dækkede links i de inspicerede screenshots. Den fælles skalering
+  håndterer de små desktopvinduer; tidligere BB-014/BB-015 genåbnes ikke.
+- **Konsol.** CLI-opsamlingen efter browserprøverne viste 121 beskeder, 0 fejl og 0 advarsler.
+  En supplerende fejl-/promise-opsamling under kontrolprøverne var tom.
+
+**Systematik-tjek.** M-08–M-12 er holdt op mod den aktuelle side. Links følger den fælles regel,
+indholdet skaleres, bundlinjen kan nås, og startsidevalgets senere virkning er efterprøvet.
+Ingen nye mønstre eller uverificerede kandidatsteder fra denne flade. De tidligere afvisninger om
+tastaturnavigation, navngivning og startsidevalg fastholdes.
+
+**Dækningshuller.** Kun Chrome; Edge, Firefox og WebKit er ikke kørt. Native PWA-installation,
+åbning af en allerede installeret PWA, protokoltilladelse og dobbeltklik på en lokal `.eo`-fil kan
+ikke efterprøves i denne headless-session. De øvrige installationsbeskeder er læst i koden og de
+eksisterende tests, men deres browserbetingelser er ikke simuleret her. Ingen påstand om, at de
+eksisterende tests er kørt. Browserens sessionsgendannelse, installation/offline/opdatering på
+produktion samt operativsystemets mailprogram er ikke afprøvet.
+
+**Åbne spørgsmål:** Ingen nye. Ingen produktkode ændret; ingen test-, lint- eller build-gates kørt,
+da skillen alene dokumenterer. Egen browser og devserver lukkes efter prøverne.
+
+---
+
 - Rute/placering: `/mineo` (sidemenuens punkt hedder «Om», sidens overskrift hedder «Mineo»)
 - Gennemgået: 2026-08-16 · commit `190f9453`
 - Forelagt og besvaret: 2026-08-16 i to runder – **alle tolv fund afgjort**, fire af dem efter

@@ -1,5 +1,61 @@
 # Brugerblik – Stamdata
 
+## Fornyet gennemgang – 2026-11-11
+
+**Gennemgået. Nye fund: 0.** Den første gennemgangs ti fund og udviklerens afgørelser er
+historisk grundlag nedenfor; de er ikke genregistreret. Fornuftsblikket A1–A8 og de relevante dele af
+B0–B7 er gennemgået for de syv felter. Stamdata har ingen tabel, rækkehandling, lokal download eller
+faner; tabel- og periodeprøver på selve siden er derfor ikke relevante.
+
+**Inventar og grænser.** Journalnr. og Skadelidtes navn er valgfrie tekstfelter med 60 tegn;
+Advokat og Sagsbehandler har 6 tegn. Fødselsdato er valgfri, fra 01-01-1900 til i dag og højst
+sagsdatoen; Skadedato/Anmeldelsesdato er valgfri, fra 01-01-2005 til i dag og mindst fødselsdatoen.
+Skadestype er tom, Arbejdsulykke eller Erhvervssygdom og bestemmer sagsdatoens betegnelse. Siden
+har ingen separat handlingsknap. En tom stamdatasektion betyder ingen af de syv værdier; den fælles
+sag sammenlignes med en ny sag, og afsluttet ugyldigt input tæller også ved Slet alt. Manglende
+forudsætninger vises dér, hvor de bruges, som allerede besluttet ved BB-006.
+
+**Efterprøvet og overvejet:**
+
+- Tomme og delvise oplysninger kræves ikke på Stamdata. Mellemrum i navn bliver tomt; et enkelt
+  ugyldigt datofelt aktiverer Slet alt og giver en advarsel før sletning.
+- Gyldige datoer på grænserne 01-01-1900 og 01-01-2005 accepteres; dagen før, fremtidig dato,
+  00 i dag, 31-02 og 29-02 i et ikke-skudår markeres. 29-02-2000 accepteres. Lighed mellem
+  fødsel og sagsdato accepteres. Et krydset par markeres på begge felter med den modsatte dato;
+  ved Erhvervssygdom bruger begge fejltekster «anmeldelsesdato». Det følger BB-002 og BB-010.
+- Skift af skadestype bevarer sagsdatoen; undo og redo genskaber både navn og værdi. Dette er
+  udviklerens udtrykkelige afgørelse ved BB-001. Erhvervssygdom med anmeldelse 01-06-2020 og
+  svie/smerte fra 01-06-2018 accepterede datoen; efter skift til Arbejdsulykke stod datoen stadig,
+  men var rød med «Datoen kan ikke være før skadedatoen (01-06-2020)».
+- Den tidligere accepterede unge alder blev efterprøvet nedstrøms: fødsel 01-01-2024 og anmeldelse
+  01-06-2025 viste 1 år på Varige mén. Med 10 % og beregningsdato 01-06-2025 viste siden 105.300 kr.
+  med 0 % aldersreduktion. Dette er en adfærdsobservation, ikke en godkendelse af beregningsreglen.
+- Enter afslutter, Escape genskaber den tidligere dato, Delete rydder et fokuseret felt, og undo/redo
+  genskaber/rydder journalnummeret. Navigation med åben redigering afsluttede og bevarede teksten.
+  Afvist fødselsdato overlevede navigation og F5 med fejlmarkering; Gem forklarede, at røde felter
+  skal rettes. Slet alt advarede også, når den afviste dato var eneste indtastning.
+- Kopiér/indsæt af hårdt mellemrum, tabulator og linjeskift i navn gav almindelige mellemrum;
+  nulbredde-tegn i journalnummer blev fjernet. Indsat `01061980` blev `01-06-1980`; otte indsatte
+  initialer blev til seks. Tekstgrænser og sondringen mellem tastning og indsættelse er tidligere
+  besluttet under BB-003, BB-004 og BB-007.
+- Alle syv felter blev gemt i en rigtig `.eo` via Firefox og derefter hentet efter ændring af
+  journalnummeret. Erstat-dialogen advarede om den ufortrydelige erstatning; alle syv gemte
+  værdier kom tilbage. Chrome-prøvens manglende download-event skyldtes en anden gemmevej og er
+  ikke brugt som tegn på fejl.
+- På Varige mén gav fødselsdato 01-01-1980 og skadedato 01-01-2015 35 år; ved 10 % og
+  beregningsdato 01-01-2020 viste både skærm og PDF 91.800 kr. PDF'en havde journalnummer,
+  initialer og de samme datoer. Ugyldig fødselsdato blev på siden angivet som «Ugyldig værdi
+  (ret i Stamdata)» og dokumentknappen var deaktiveret med «Fejl i indtastning».
+- Fornuftsvurderingen gav ingen nye konkrete fund ud over tidligere afgjorte spørgsmål om
+  initialetiketter, datoens skiftende navn, alder, manglende felter og tekstlofter. Ingen nye
+  tværgående mønstre er konstateret; eksisterende M-01–M-07, M-19 og M-22 er relevante spor.
+
+**Afgrænsning og dækningshuller:** Browserprøverne blev udført i Chrome og Firefox headless;
+ikke en fuld browser- eller viewportmatrix. Der er ikke udført en komplet beregningsmæssig kontrol
+for børn på alle nedstrøms sider eller en fuld dokumentkontrol for alle dokumenttyper. F5 med en
+*åben, endnu ikke afsluttet* tekst og lukning af browserfanen er ikke målt; F5 med afsluttet
+ugyldig dato er målt. Ingen nye console-fejl blev observeret. Ingen produktkode er ændret.
+
 - Rute/placering: `/stamdata`
 - Gennemgået: 2026-08-16 · commit `8a2d0320`
 - Afprøvet i: Chrome (Playwright, headless), CSS-viewport 1536×864, devserver på 4173

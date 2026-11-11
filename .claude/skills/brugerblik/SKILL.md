@@ -1,6 +1,6 @@
 ---
 name: brugerblik
-description: Gennemgå én Mineo-flade (side eller fane) med brugerens øjne i stedet for kodens. Brug den, når du skal vurdere, om programmets faktiske adfærd er den bedst tænkelige brugeroplevelse – også dér hvor koden er korrekt – og når du skal afdække edge cases fra forkerte, ufuldstændige eller uforudsete indtastninger og kombinationer af indtastninger. Skillen finder og dokumenterer; den ændrer ikke produktet.
+description: Gennemgå en Mineo-flade igen med brugerens øjne for at finde forhold, der blev overset i den første gennemgang. Brug den, når du skal vurdere, om programmets faktiske adfærd er den bedst tænkelige brugeroplevelse – også dér hvor koden er korrekt – og når du skal afdække edge cases fra forkerte, ufuldstændige eller uforudsete indtastninger og kombinationer af indtastninger. Skillen finder og dokumenterer; den ændrer ikke produktet.
 argument-hint: "[flade, fx 'stamdata' – eller 'fortsæt']"
 disable-model-invocation: true
 model: opus
@@ -10,6 +10,11 @@ effort: high
 # Brugerblik
 
 ## Baggrund – hvorfor denne skill findes
+
+Hele programmet er tidligere gennemgået med Brugerblik. Fundene er afgjort, og de godkendte rettelser
+er gennemført. Formålet er nu en fornyet, selvstændig gennemgang, der finder forhold, første
+gennemgang overså. Tidligere fund og afviste forslag er historisk grundlag, ikke nye fund. Kontrollér
+dog den aktuelle adfærd og undersøg nært beslægtede situationer.
 
 Over den seneste tid er der dukket mange eksempler op på, at Mineos UI/UX **ikke** har haft en
 hensigtsmæssig adfærd set fra brugerens side. Koden bag har som regel været af høj kvalitet:
@@ -72,11 +77,19 @@ afsnit hver for sig.
 tvivlsspørgsmål registreres som fund eller som åbne spørgsmål i rapporten. Først når fladen er
 gennemgået og skrevet ned, kommer den samlede tilbagemelding.
 
+**Stop aldrig midt i en flade af egen drift.** Fuldfør inventar, begge blikke, browserprøver,
+systematik-tjek og rapportering, før du afslutter turen. Lang varighed, mange prøver, kontekstskift
+eller en delvis status er ikke grunde til at stoppe; fortsæt også efter eventuel kontekstkomprimering.
+En enkelt prøve, der ikke kan udføres, dokumenteres som dækningshul, og resten gennemføres. Kun en
+udtrykkelig besked om stop eller en reel hindring, som gør videre arbejde umuligt, kan afbryde fladen;
+ved en sådan hindring beskrives årsagen konkret og alt uafhængigt arbejde færdiggøres først. Markér
+aldrig fladen som færdig alene for at kunne afslutte.
+
 **Rækkefølgen går fra små til store flader.** Se [references/flader.md](references/flader.md).
 Tanken er, at de generelle, gennemgående problemer bliver fundet og afklaret på de simple sider,
 hvor de er lette at se og lette at bedømme – så de store sider senere kan gennemgås med et
 færdigafklaret sæt principper i hånden i stedet for at genopdage det samme.
-Argumentet `fortsæt` betyder: tag den næste ikke-gennemgåede flade i den rækkefølge.
+Argumentet `fortsæt` betyder: tag den næste flade, der ikke er gennemgået i den aktuelle fornyede gennemgang, i den rækkefølge. En udtrykkelig anmodning om flere flader eller hele programmet går forud for reglen om én flade og gennemføres stadig én flade ad gangen.
 
 ## 2. Arbejdsmappe og filer
 
@@ -89,7 +102,7 @@ Alt materiale ligger under `docs/testing/brugerblik/`:
 | `TVAERGAAENDE.md` | De systematiske mønstre, som går igen på tværs af flader. |
 
 Skabeloner ligger i `assets/`. Findes mappen eller `STATUS.md` ikke, oprettes de fra skabelonerne
-ved første kørsel. Eksisterende dokumenter overskrives aldrig – de udbygges.
+ved første kørsel. Eksisterende dokumenter overskrives aldrig – tilføj nye fund og kort dokumentation for efterreviewet i den eksisterende flades fil. Bevar første gennemgangs historik og før særskilt fremdrift for den fornyede gennemgang i `STATUS.md`.
 
 Fund-ID'er er løbende på tværs af hele programmet: `BB-001`, `BB-002`, … Næste ledige ID står i
 `STATUS.md` og opdateres i samme skrivning som fundene.
@@ -98,7 +111,7 @@ Fund-ID'er er løbende på tværs af hele programmet: `BB-001`, `BB-002`, … N�
 
 ### Trin 1 – Grundlag
 
-1. Læs `STATUS.md` og `TVAERGAAENDE.md`. Kendte mønstre skal genkendes, ikke genopdages.
+1. Læs `STATUS.md`, `TVAERGAAENDE.md` og den eksisterende rapport for fladen. Kendte fund, beslutninger og mønstre skal genkendes, ikke genopdages. Undersøg også tidligere dækningshuller og situationer tæt på de rettede fund.
 2. Læs `AGENTS.md` og de kontrakter, fladen er omfattet af (`src/contracts/contract-topology.json`).
    Kontrakterne er her **ikke** facit, men referencepunkt: en dokumenteret adfærd kan udmærket være
    en uhensigtsmæssig adfærd, og så er selve kontrakten fundet.
@@ -249,5 +262,4 @@ Når fladen er skrevet ned, gives én samlet tilbagemelding til udvikleren med:
 3. de systematiske mønstre, fladen afdækkede, og hvor de forventes at gå igen;
 4. hvilken flade der står som den næste.
 
-Herefter stopper skillen. Den fortsætter ikke af sig selv til næste flade – den næste kørsel startes
-med `/brugerblik fortsæt`.
+Herefter stopper skillen, medmindre udvikleren udtrykkeligt har bedt om flere flader eller hele programmet. Ellers startes næste kørsel med `/brugerblik fortsæt`.

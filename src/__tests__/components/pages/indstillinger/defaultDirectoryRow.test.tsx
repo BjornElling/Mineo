@@ -99,6 +99,18 @@ describe('DefaultDirectoryRow – navn og udseende har én kilde', () => {
 });
 
 describe('DefaultDirectoryRow – handlinger', () => {
+  it('viser mappevalg inaktivt med en forklaring i browsere uden understøttelse', async () => {
+    renderRow(undefined);
+    const button = screen.getByRole('button', { name: 'Vælg mappe' });
+    expect(button).toBeDisabled();
+    const wrapper = button.parentElement;
+    if (!wrapper) throw new Error('Mappeknappen mangler sin tooltip-wrapper');
+    await userEvent.setup().hover(wrapper);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Denne browser understøtter ikke valg af en fast mappe til gemte filer.',
+    );
+  });
+
   it('Nulstil sletter registreringen og rydder settings-id\'et', async () => {
     const user = userEvent.setup();
     getDirectoryDisplayInfoMock.mockResolvedValue({

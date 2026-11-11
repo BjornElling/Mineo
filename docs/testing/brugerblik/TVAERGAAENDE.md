@@ -1,5 +1,13 @@
 # Brugerblik – tværgående mønstre
 
+**Fornyet gennemgang 2026-11-11, Indstillinger:** To nye mønstre, M-44 og M-45. Et valg i en anden
+åben fane overskriver et allerede gemt tema (BB-390, Høj); Firefox' manglende mappevalg udløser en
+teknisk alarm om kode og beregninger (BB-391, Mellem). Tidligere afvisninger i M-12 genåbnes ikke.
+
+**Fornyet gennemgang 2026-11-11, Om:** Ingen nye fund eller mønstre. M-08–M-12 er efterprøvet
+inden for sidens omfang; tidligere afgørelser fastholdes. Startsidevalg, vinduernes lukkeveje,
+links og skalering er kontrolleret i browseren; prøver og dækningshuller står øverst i `om.md`.
+
 Mønstre, der er fundet på én flade, men som efter deres natur kan gælde flere steder. Hvert mønster
 er formuleret uden reference til den flade, det blev fundet på, så det kan efterprøves andre steder.
 
@@ -3313,3 +3321,50 @@ advarsler, og hvad sker der så med beløbet i den modtagende flade?
   EET-sidens beregninger og dermed i importen; samme følge ad en anden vej). **Gennemført 2026-10-29:** en tom virkningsdato er afgørelsesdatoen (udviklerens valg B).
 - Efterprøvet 2026-10-29 uden fund: `forsoergertabAslYdelser.ts:331` (listen rummer kun fejl, og den spærrer);
   `eetImportPort.ts:167` (kildens egne linjer er altid fejl).
+
+## M-44 – En gammel kopi overskriver et nyere, uvedkommende valg
+
+> To åbne flader deler indstillinger, men hver husker sin egen kopi. En ændring af ét valg skriver
+> den gamle kopi af alle andre valg tilbage og fjerner dermed et nyere valg fra den anden flade.
+
+Brugeren behøver ikke ændre samme indstilling to steder. Det er nok at vælge et tema i den ene
+fane og bilagsnumre i den anden. Første fane viser stadig sit nyere valg, indtil den genindlæses;
+den synlige tilstand og det, næste åbning vil bruge, er i mellemtiden forskellige.
+
+**Efterprøv, hvor:** et helt indstillingsobjekt skrives til fælles browserlager fra lokal runtime-
+state uden at modtage ændringer fra andre faner. Søg på lagerets writer og `storage`-abonnementer.
+Lad to åbne faner ændre forskellige felter, og genindlæs den første.
+
+- Bekræftet i `indstillinger.md` BB-390, **Høj**: Mørkt i A forsvinder, når B slår Bilagsnumre til.
+  Mekanisme: `AppSettingsContext.tsx` skriver hele settings i en effect og lytter ikke på ændringer
+  fra andre faner. Ingen anden hel-objekt-settings-writer fundet i produktionskoden.
+- Konkrete kandidater: Om-sidens startsidevalg (`Mineo.tsx`) bruger samme writer; brevhoveder,
+  dokumentformat og beregningstekniske valg ligger i samme objekt. Disse valg er ikke særskilt
+  prøvet på tværs af faner.
+- Adskilt fra M-17: dette er rigtigt fælles programindstillinger, ikke sagsdata delt over to
+  lagerscoper. Adskilt fra BB-025: lageret er hverken ryddet eller ødelagt.
+- Forslag: Bevar de seneste øvrige valg, når ét ændres, og vis seneste indstillinger i alle åbne
+  faner. Godkendt og implementeret 2026-11-11 i fælleslaget med feltvise patches,
+  storage-abonnement og serialisering af skrivninger via Web Locks.
+
+## M-45 – En forventet browserbegrænsning omtales som en kodefejl
+
+> En normal begrænsning eller afvisning i browseren sendes til den tekniske fejlalarm. Brugeren får
+> at vide, at programmets kode eller beregninger bør mistænkes, frem for hvad der faktisk kan gøres.
+
+**Efterprøv, hvor:** feature detection, tilladelsesafvisning eller brugerens filvalg håndteres med
+`logWarning`/`logError`. Følg signalet helt frem til den synlige besked; en console-linje er ikke
+hele oplevelsen. Prøv i en rigtig runtime uden den pågældende API, når det er muligt.
+
+- Bekræftet i `indstillinger.md` BB-391, **Mellem**: aktiv Vælg mappe i Firefox uden
+  `showDirectoryPicker` giver «Teknisk advarsel registreret» og opfordring til at gennemgå
+  beregninger. Ingen mappe kan vælges. Målested: `useDefaultDirectorySetting.ts`.
+- Konkrete uverificerede kandidater: manglende/fejlende persistent storage i `fileHandleStorage.ts`,
+  mappevælgerens afvisninger bortset fra AbortError i `useDefaultDirectorySetting.ts` og forkert
+  filendelse fra Gem-vælgeren i `fileSystemAccess.ts`.
+- Eksisterende modstykke: `fileHandleVerification.ts` behandler mistet fil/adgang og forventede
+  sikkerhedsafvisninger som konkrete negative resultater uden teknisk alarm.
+- Forslag for den målte forekomst: Vælg mappe er inaktiv med konkret forklaring om browserens
+  manglende understøttelse. Det er ikke M-12's afviste krav om kvitteringer eller forklaringer på
+  standardværdier; handlingen kan faktisk ikke udføres. Godkendt og implementeret 2026-11-11
+  for den målte forekomst; de øvrige kandidater er fortsat uverificerede.

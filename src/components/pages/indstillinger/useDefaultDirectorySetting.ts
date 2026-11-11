@@ -21,6 +21,7 @@ import { logWarning } from '../../../utils/logger';
  * læst hver for sig; se modulets docstring for den fejl, den opdeling gav.
  */
 export type DefaultDirectorySetting = Readonly<{
+  canChooseDirectory: boolean;
   /** `null` mens placeringen resolveres første gang (og ved skift af valg). */
   location: DefaultDirectoryLocation | null;
   chooseDirectory: () => Promise<void>;
@@ -64,10 +65,7 @@ export const useDefaultDirectorySetting = (): DefaultDirectorySetting => {
   const chooseDirectory = React.useCallback(async () => {
     try {
       const showDirectoryPicker = window.showDirectoryPicker;
-      if (!showDirectoryPicker) {
-        logWarning('showDirectoryPicker ikke tilgængelig i denne browser');
-        return;
-      }
+      if (typeof showDirectoryPicker !== 'function') return;
 
       // VIGTIGT: Bevidst UDEN `mode: 'readwrite'`. Med write-mode blokerer browseren
       // special-mapper (Downloads, Skrivebord, OneDrive). Write-permission requesteres først,
@@ -110,5 +108,5 @@ export const useDefaultDirectorySetting = (): DefaultDirectorySetting => {
     updateSettings({ defaultDirectoryHandleId: undefined });
   }, [updateSettings]);
 
-  return { location, chooseDirectory, resetToDefault };
+  return { location, canChooseDirectory: typeof window.showDirectoryPicker === 'function', chooseDirectory, resetToDefault };
 };
