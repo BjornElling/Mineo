@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { hydrateSlimInputStoreForTest } from '../../../test/actSafeInputStore';
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
@@ -52,7 +52,7 @@ vi.mock('../../../utils/fileHandleStorage', () => ({
 
 import MainLayout from '../../../components/layout/MainLayout';
 import { loadFromFileHandle } from '../../../utils/fileLoad';
-import { dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
+import { clickMainLayoutAction, dispatchPwaFileOpen } from './mainLayoutActionTestUtils';
 
 // PWA-samtidighed drives via DOM-events; mount-wrapperen er testens eneste særegne del
 // fra legacy FormPersistence til den ene produktions-runtime. Ingen af disse tests hævder mod field-error-lageret.
@@ -113,7 +113,7 @@ describe('MainLayout (PWA concurrency)', () => {
     await screen.findByText('En anden fil er klar til at blive indlæst');
     expect(screen.getByText(/Filen “Tidligere sag\.eo” venter fra en tidligere Mineo-session/)).toBeInTheDocument();
     expect(loadFromFileHandleMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: action }));
+    await clickMainLayoutAction(action);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(loadFromFileHandleMock).toHaveBeenCalledTimes(action === 'Indlæs fil' ? 1 : 0);
   });
@@ -182,13 +182,13 @@ describe('MainLayout (PWA concurrency)', () => {
 
     expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
     // Preflight-dialogen beholder sine tre fastlagte valg (persistence-contract §preflight).
-    fireEvent.click(screen.getByRole('button', { name: 'Stop og gør intet' }));
+    await clickMainLayoutAction('Stop og gør intet');
 
     await screen.findByText('En anden fil er klar til at blive indlæst');
     expect(screen.getByText(/Filen “B\.eo”/)).toBeInTheDocument();
     expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Indlæs fil' }));
+    await clickMainLayoutAction('Indlæs fil');
     await waitFor(() => {
       expect(loadFromFileHandleMock).toHaveBeenCalledTimes(2);
     });
@@ -250,7 +250,7 @@ describe('MainLayout (PWA concurrency)', () => {
 
     await screen.findByText('En anden fil er klar til at blive indlæst');
     expect(screen.getByText(/Filen “Seneste\.eo”/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Annuller' }));
+    await clickMainLayoutAction('Annuller');
     await waitFor(() => {
       expect(pendingPwaRequest).toBeNull();
     });

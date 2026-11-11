@@ -28,10 +28,19 @@ const renderLicenseModal = (props: { open: boolean; onClose: () => void }) => {
   });
   const Harness = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
     const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const [closed, setClosed] = React.useState(false);
     return (
       <ThemeProvider theme={theme}>
         <button type="button" ref={triggerRef}>MIT-licensen</button>
-        <LicenseModal open={open} onClose={onClose} restoreFocusTo={triggerRef} />
+        <LicenseModal
+          open={open && !closed}
+          onClose={() => {
+            // Som i appen lukker værten vinduet, før det tilhørende historiktrin fjernes.
+            setClosed(true);
+            onClose();
+          }}
+          restoreFocusTo={triggerRef}
+        />
       </ThemeProvider>
     );
   };

@@ -66,13 +66,24 @@ describe('ConfirmationDialog', () => {
   it('lukker ved Escape gennem annuller-callbacken', async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();
-    renderDialog({
-      open: true,
-      title: 'Bekræft handling',
-      message: 'Besked',
-      onCancel,
-      onConfirm: vi.fn(),
-    });
+    const Host = () => {
+      const [open, setOpen] = React.useState(true);
+      return (
+        <ConfirmationDialog
+          open={open}
+          title="Bekræft handling"
+          message="Besked"
+          onCancel={() => {
+            onCancel();
+            setOpen(false);
+          }}
+          onConfirm={vi.fn()}
+        />
+      );
+    };
+    // Den virkelige vært lukker dialogen ved annullering; en permanent open=true lader
+    // historikkens efterfølgende popstate ramme samme allerede annullerede dialog igen.
+    render(<ThemeProvider theme={createTheme()}><Host /></ThemeProvider>);
 
     await waitFor(() => expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Annuller' })).toHaveFocus());
     await user.keyboard('{Escape}');

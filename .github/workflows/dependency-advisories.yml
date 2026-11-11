@@ -17,7 +17,7 @@ on:
 jobs:
   advisories:
     name: Dependency advisories (main)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
 
@@ -33,6 +33,9 @@ jobs:
 
       # Tilsynet kører præcis den gate, release-gaten indeholder – ikke en variant af den.
       # `check:tool-isolation` aflæser `node_modules/.bin`, så det låste træ skal være installeret.
+      - name: Setup npm from packageManager
+        run: npm install --global "$(node --print 'JSON.parse(require("node:fs").readFileSync("package.json", "utf8")).packageManager')"
+
       - name: Install dependencies (strict)
         run: npm ci
 

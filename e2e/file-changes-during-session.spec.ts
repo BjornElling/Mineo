@@ -57,6 +57,8 @@ test.describe('Ændringer af .eo-filen under en åben sag', () => {
       });
       sessionStorage.setItem('mineo_fileOperationClientSession', 'client-legacy-session-1234');
     });
+    // Afslut baggrundshentninger før den bevidste reload, så dens normale afbrydelser ikke tælles som filfejl.
+    await page.waitForLoadState('networkidle');
     await page.reload();
     const offer = page.getByRole('dialog').filter({ hasText: 'venter fra en tidligere Mineo-session' });
     await expect(offer).toBeVisible();
@@ -64,6 +66,7 @@ test.describe('Ændringer af .eo-filen under en åben sag', () => {
     await expect(page.locator('input[name="journalnr"]')).toHaveValue('BEVARES UDEN INDLÆSNING');
     await offer.getByRole('button', { name: 'Annuller', exact: true }).click();
     await expect(offer).toBeHidden();
+    await page.waitForLoadState('networkidle');
     await page.reload();
     await expect(page.locator('.page-title')).toHaveText('Stamdata');
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -106,6 +109,8 @@ test.describe('Ændringer af .eo-filen under en åben sag', () => {
 
     await setFieldValueAndSettle(page.getByRole('textbox', { name: 'Journalnr.' }), 'ÆNDRING I OPRINDELIG FANE');
     await page.getByRole('button', { name: 'Gem', exact: true }).click();
+    // Browserens File-snapshot kan blive ugyldigt under skrivningen; læs først efter den bekræftede save.
+    await expect(page.getByText('Gemt', { exact: true })).toBeVisible();
     await expect.poll(() => page.evaluate(async () => (await (window as unknown as Window & { __mineoFileProbe: FileProbe }).__mineoFileProbe.current.getFile()).text())).not.toBe(original);
     expect(await copy.evaluate(async () => (await (window as unknown as Window & { __mineoFileProbe: FileProbe }).__mineoFileProbe.current.getFile()).text())).toBe(original);
     expect(await page.evaluate(() => (window as unknown as Window & { __mineoFileProbe: FileProbe }).__mineoFileProbe.pickerCalls)).toBe(1);
@@ -190,6 +195,7 @@ test.describe('Ændringer af .eo-filen under en åben sag', () => {
       if (choice === 'Annuller') {
         // F5 skal bevare sammenligningsgrundlaget. Filvælger-fixturen installeres igen,
         // men målet genfindes gennem produktets egen IndexedDB og browsermetadata.
+        await page.waitForLoadState('networkidle');
         await page.reload();
         await expect(page.locator('.page-title')).toHaveText('Stamdata');
         await installFileSystem(page);

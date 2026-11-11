@@ -17,7 +17,7 @@ test.describe('Brøkfeltet', () => {
     await expect(input).toHaveAttribute('aria-invalid', 'true');
     await input.focus();
     await input.hover();
-    await expect(page.getByText('Nævneren må ikke være 0', { exact: true })).toBeVisible();
+    await expect(page.getByRole('tooltip').getByText('Nævneren må ikke være 0', { exact: true })).toBeVisible();
 
     expect(runtimeErrors).toEqual([]);
   });

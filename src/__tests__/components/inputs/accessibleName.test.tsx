@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   accessibleNameAttributes,
@@ -196,12 +196,12 @@ describe('LabeledControlRow', () => {
 });
 
 describe('InfoTooltipIcon', () => {
-  it('kan fokuseres med tastatur og har tooltipteksten som navn', () => {
+  it('kan fokuseres med tastatur og har tooltipteksten som navn', async () => {
     render(<InfoTooltipIcon title="Forklaring til feltet" />);
 
     const icon = screen.getByRole('img', { name: 'Forklaring til feltet' });
     expect(icon).toHaveAttribute('tabindex', '0');
-    icon.focus();
+    await act(async () => icon.focus());
     expect(icon).toHaveFocus();
   });
 });

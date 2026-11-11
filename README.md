@@ -7,8 +7,8 @@ Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lo
 ## Kom i gang
 
 Forudsætninger:
-- Node.js 24 LTS (mindst 24.18.0)
-- npm 11 (mindst 11.16.0)
+- Node.js 26 LTS (mindst 26.13.0)
+- npm 12 (mindst 12.2.2)
 - Git
 
 Installation:
@@ -16,6 +16,8 @@ Installation:
 git clone https://github.com/BjornElling/mineo.git
 cd mineo
 nvm use
+npm install --global npm@12.2.2
+npm --version # kontrollér, at den aktive version er mindst 12.2.2
 npm ci
 ```
 
@@ -58,6 +60,20 @@ npm run check:commit    # samlet typecheck + lint, samme gate som pre-commit
 npm run lint            # eslint (--max-warnings 0)
 npm run test            # samlet typecheck efterfulgt af hele testsuiten (Vitest)
 npm run test:watch      # Vitest i watch-mode
+```
+
+I PowerShell bruges `npm.cmd`, når flag skal sendes videre til et script. PowerShell fjerner ellers
+separatoren `--` fra `npm.ps1`, og npm 12 afviser derefter fx `--project` som et ukendt npm-flag:
+```powershell
+npm.cmd run test:e2e -- --project=chrome-desktop
+```
+
+Hvis Windows stadig finder den gamle npm efter den globale opdatering, ligger Node-mappen før
+brugerens npm-mappe i PATH. Prioritér den opdaterede npm i den aktuelle PowerShell og kontrollér igen:
+```powershell
+$mineoNpmPrefix = npm.cmd prefix --global
+$env:Path = "$mineoNpmPrefix;$env:Path"
+npm.cmd --version
 ```
 
 Data:

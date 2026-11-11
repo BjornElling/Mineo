@@ -169,9 +169,7 @@ describe('MainLayout (overwrite gating)', () => {
     expect(storedInput().sections.stamdata?.skadelidte).toBe('X');
     expect(storedInput().sections.satser?.aargang).toBe(2020);
 
-    await act(async () => {
-      screen.getByText('Annuller').click();
-    });
+    await clickMainLayoutAction('Annuller');
 
     await waitFor(() => {
       expect(screen.queryByText('Erstat de aktuelle indtastninger?')).toBeNull();
