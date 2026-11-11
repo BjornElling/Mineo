@@ -48,7 +48,8 @@ jobs:
           if-no-files-found: error
 
       - name: Install Chromium for verified artifact smoke
-        run: npx playwright install --with-deps chromium
+        # Genforsøg ved DNS-/netværksudfald; manglende installation stopper stadig jobbet.
+        run: node scripts/install-playwright.mjs chromium
 
       - name: Smoke-test verified Mineo artifact
         shell: bash
@@ -156,7 +157,7 @@ jobs:
       # Playwright-motor, som begge channel-projekter bruger som fallback. Hvert job installerer
       # kun sin egen motor, så paralleliseringen ikke betaler for tre ubrugte browserpakker.
       - name: Install Playwright browser engine
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: node scripts/install-playwright.mjs ${{ matrix.browser }}
 
       - name: Run browser project against verified artifact
         shell: bash
