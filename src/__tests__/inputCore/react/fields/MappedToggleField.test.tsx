@@ -44,5 +44,10 @@ describe('MappedToggleField', () => {
     expect(screen.getByRole('checkbox', { name: 'Medtag ydelser' })).toBe(toggle);
     expect(toggle).toHaveFocus();
     expect(toggle.closest('[data-mineo-field-warning]')).toBeNull();
+
+    // Afmonter synkront i samme tur. MUI's Tooltip- og ripple-timere (fokus, tastetryk) står stadig og
+    // venter; mellem testens afslutning og den automatiske cleanup giver runneren event-loopet fri, og på
+    // en belastet CI-runner nåede en af dem at fyre en tilstandsopdatering uden for act.
+    mounted.unmount();
   });
 });

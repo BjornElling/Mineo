@@ -174,7 +174,13 @@ export default defineConfig({
   // Ingen lokale retries: en flaky test skal ses som flaky, ikke skjules af et genforsøg. Det er
   // parallelitetsloftet – ikke retries – der holder en svagere maskine fri af ressourcecrashes.
   workers: process.env.CI ? 1 : machineProfile.workers,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // I CI giver `github`-reporteren en annotation på kørslen for hver fejlet OG hver flaky test – én der
+  // først bestod ved et genforsøg. Genforsøgene bliver, så et enkelt netværksudfald ikke vælter en
+  // deploy, men en flaky test er ikke længere tavst grøn: den står på kørselssiden og i jobbets
+  // opsummering (se `e2e/support/flakySummaryReporter.ts`).
+  reporter: process.env.CI
+    ? [['list'], ['github'], ['./e2e/support/flakySummaryReporter.ts'], ['html', { open: 'never' }]]
+    : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,
     trace: 'retain-on-failure',

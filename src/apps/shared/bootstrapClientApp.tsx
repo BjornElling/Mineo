@@ -9,6 +9,12 @@ const UNSUPPORTED_MAX_SHORTEST_SIDE_PX = 1366;
 
 export type ClientAppBootstrapOptions = Readonly<{
   renderApp: () => React.ReactNode | Promise<React.ReactNode>;
+  /**
+   * Starter hentningen af appens lazy chunks parallelt med PWA-opstarten (`beforeDesktopRender`), så den
+   * normale opstart ikke venter på de to i rækkefølge. Kun en hentning: `renderApp` ejer brugen og
+   * dermed også fejlen, hvis hentningen mislykkes.
+   */
+  preloadApp?: () => Promise<unknown>;
   loadAppStyles: () => Promise<unknown>;
   setupPwaFileOpenHandling?: () => Promise<void>;
   setupPwaInstallPromptCapture?: () => void;
@@ -82,6 +88,8 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
 
   try {
     const supportedDeviceStylesPromise = loadSupportedDeviceStyles(options.loadAppStyles);
+    // Afvisningen ignoreres her med vilje; `renderApp` importerer igen og rapporterer den selv.
+    void options.preloadApp?.().catch(() => undefined);
 
     await options.setupPwaFileOpenHandling?.();
     await options.beforeDesktopRender?.();

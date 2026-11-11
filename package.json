@@ -84,6 +84,7 @@
     "typecheck:e2e": "tsc -p tsconfig.e2e.json --noEmit",
     "typecheck:node": "tsc -p tsconfig.node.json --noEmit",
     "test": "node scripts/run-vitest.mjs run --maxWorkers=100%",
+    "test:file": "node scripts/run-vitest.mjs run",
     "test:mutation": "stryker run",
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:headed": "node scripts/run-e2e.mjs --headed",

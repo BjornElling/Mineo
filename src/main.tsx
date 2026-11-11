@@ -6,12 +6,23 @@ import {
   hydratePendingPwaFileOpenRequest,
   setupPwaLaunchQueueConsumer,
 } from './utils/pwaLaunchQueue';
-import { bootstrapProductionInputRuntime } from './inputCore/react';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 
+/**
+ * Programmet – AuthGate, input-runtimen og dermed feltkataloget med sats- og kapitaliseringstabellerne –
+ * hentes som lazy chunks, ikke i entry-chunken. Entry'en skal kun bære det, opstartens opdateringstjek
+ * behøver: står en ny version klar, skal venteskærmen frem og genindlæsningen ske uden først at hente og
+ * evaluere den gamle versions fulde program. Service workeren precacher alle chunks, så det er fuldt
+ * offline-sikkert. `preloadApp` starter hentningen parallelt med opdateringstjekket, så den normale
+ * opstart ikke venter på de to i rækkefølge. Størrelsesbudgettet i `verify-build-artifacts.mjs` holder
+ * grænsen.
+ */
+const loadApp = () => Promise.all([import('./auth/AuthGate'), import('./inputCore/react/productionInputRuntime')]);
+
 void bootstrapClientApp({
+  preloadApp: loadApp,
   renderApp: async () => {
-    const { default: AuthGate } = await import('./auth/AuthGate');
+    const [{ default: AuthGate }, { bootstrapProductionInputRuntime }] = await loadApp();
     // Hydrér input-runtime FØR render (§3.10).
     // Kun bindingen bruges her: `MainLayout` henter selv `startup.notice` ved at gen-kalde den
     // IDEMPOTENTE bootstrap, og viser den som overlay ved mount.

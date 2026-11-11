@@ -72,6 +72,12 @@ test.describe('Gentagen feltmarkering', { tag: BROWSER_LANE_TAG }, () => {
     // (page-component-contract §11.1b). Togglens position i viewporten afslører enhver scroll.
     const toggleTop = async () => (await toggle.boundingBox())?.y;
     await toggle.scrollIntoViewIfNeeded();
+    // Montserrats vægte hentes først, når de bruges (`font-display: swap`). Under en fuld, belastet
+    // kørsel kunne et sent skrifttype-skift over togglen flytte den 2 px mellem de to målinger og ligne
+    // en scroll. Testen måler scroll, ikke skrifttype-indlæsning.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
     const topBefore = await toggleTop();
 
     for (const attempt of [1, 2, 3]) {

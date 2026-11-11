@@ -97,27 +97,39 @@ describe('check-github-actions-runtime', () => {
     });
   });
 
-  it('kobler verify-, E2E- og deploy-job til samme dist-artefakt', () => {
+  it('kobler build-, E2E- og deploy-job til samme dist-artefakt', () => {
     const workflow = readFileSync(join(repoRoot, '.github', 'workflows', 'ci.yml'), 'utf8');
+    const buildJob = getWorkflowJob(workflow, 'build', 'verify');
     const verifyJob = getWorkflowJob(workflow, 'verify', 'e2e');
     const e2eJob = getWorkflowJob(workflow, 'e2e', 'deploy');
     const deployJob = getWorkflowJob(workflow, 'deploy');
 
     // Et statisk værn er passende her: CI-kontrakten skal være synlig i workflow-filen, og
     // ellers kan en separat test-build igen blive forvekslet med det artefakt, der deployes.
-    expect(verifyJob).toContain('uses: actions/upload-artifact@v7');
-    expect(verifyJob).toContain('name: dist');
-    expect(verifyJob).toContain('path: dist/');
-    expect(verifyJob).toContain('e2e/production-artifact-smoke.spec.ts');
+    expect(buildJob).toContain('run: npm run build:all');
+    expect(buildJob).toContain('uses: actions/upload-artifact@v7');
+    expect(buildJob).toContain('name: dist');
+    expect(buildJob).toContain('path: dist/');
+    expect(buildJob).toContain('e2e/production-artifact-smoke.spec.ts');
+    // Artefaktet uploades først, når smoke-testen har startet det.
+    expect(buildJob.indexOf('uses: actions/upload-artifact@v7'))
+      .toBeGreaterThan(buildJob.indexOf('e2e/production-artifact-smoke.spec.ts'));
 
-    expect(e2eJob).toContain('needs: verify');
+    // Release-gaten kører fortsat, men dens eget build er ikke det, der udrulles.
+    expect(verifyJob).toContain('run: npm run verify:release:core');
+    expect(verifyJob).not.toContain('actions/upload-artifact');
+
+    expect(e2eJob).toContain('needs: build');
     expect(e2eJob).toContain('uses: actions/download-artifact@v8');
     expect(e2eJob).toContain('name: dist');
     expect(e2eJob).toContain('path: dist/');
     expect(e2eJob).toContain('node scripts/serve-e2e-builds.mjs');
     expect(e2eJob).not.toContain('npm run build');
 
-    expect(deployJob).toContain('needs: [verify, e2e]');
+    expect(deployJob).toContain('needs: [build, verify, e2e]');
+    // En igangværende udrulning afbrydes aldrig, og en ældre commit overskriver aldrig en nyere.
+    expect(deployJob).toContain('cancel-in-progress: false');
+    expect(deployJob).toContain('git ls-remote origin refs/heads/main');
     expect(deployJob).toContain(
       "if: github.event_name == 'push' && github.ref == 'refs/heads/main'"
     );
