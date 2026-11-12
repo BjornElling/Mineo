@@ -170,6 +170,14 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       kildePdfFil: 'Bkg. 1068 2003.pdf',
     });
     expect(tabel.erhvervsevnetabTabeller).toEqual({});
+    expect(tabel.erhvervsevnetabKoensopdelteTabeller.A?.map((raekke) => raekke.alder))
+      .toEqual(Array.from({ length: 58 }, (_, index) => index + 5));
+    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'A', 5))
+      .toEqual({ alder: 5, maendFaktor: 10.443, kvinderFaktor: 10.453 });
+    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'A', 34))
+      .toEqual({ alder: 34, maendFaktor: 9.771, kvinderFaktor: 9.834 });
+    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'A', 62))
+      .toEqual({ alder: 62, maendFaktor: 2.742, kvinderFaktor: 2.753 });
     expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'B', 5))
       .toEqual({ alder: 5, maendFaktor: 10.453, kvinderFaktor: 10.463 });
     expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'B', 64))
@@ -184,6 +192,45 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       .toEqual({ alder: 18, faktorerPraHeleAar: [0.957, 1.828, 2.619, 3.337, 3.989, 4.583, 5.122, 5.611, 6.056, 6.461] });
     expect(findAldersraekke(tabel.forsoergertabTabellerKvinder, 'E', 66))
       .toEqual({ alder: 66, faktorerPraHeleAar: [0.951] });
+  });
+
+  it('fastholder særfaktoren for ≤ 2 år til folkepension i hver bekendtgørelse som trykt i PDF\'en', () => {
+    // Facit er afskrevet fra kilde-PDF'ernes paragraf om tilskadekomne, der er «2 år eller mindre fra at
+    // nå folkepensionsalderen». 1068/2003 og 449/2009 har ingen sådan paragraf (tabellerne er «uden
+    // omsætningsmulighed» de sidste 2 år), og ingen bekendtgørelse har en særfaktor for skader før
+    // 1. juli 2007. 1202/2013 trykker «1,2514» og registreres som skrevet.
+    const facit: Readonly<Record<string, readonly (readonly [string, number])[]>> = {
+      '1068/2003': [],
+      '449/2009': [],
+      '678/2007': [['2007-07-01', 1.164]],
+      '1263/2007': [['2007-07-01', 1.164]],
+      '1047/2008': [['2007-07-01', 1.16]],
+      '440/2009': [['2007-07-01', 1.16]],
+      '1022/2009': [['2007-07-01', 1.168]],
+      '1221/2010': [['2007-07-01', 1.168]],
+      '1403/2011': [['2007-07-01', 1.168]],
+      '198/2015': [['2007-07-01', 1.168]],
+      '1700/2015': [['2007-07-01', 1.168]],
+      '9871/2020': [['2007-07-01', 1.168]],
+      '1220/2010': [['2011-01-01', 1.254]],
+      '1358/2011': [['2011-01-01', 1.254]],
+      '990/2012': [['2011-01-01', 1.254]],
+      '1202/2013': [['2011-01-01', 1.2514]],
+      '1275/2014': [['2011-01-01', 1.251]],
+      '199/2015': [['2011-01-01', 1.251]],
+      '1663/2015': [['2011-01-01', 1.251]],
+      '1664/2015': [['2011-01-01', 1.246]],
+      '1275/2016': [['2011-01-01', 1.246]],
+      '1156/2017': [['2011-01-01', 1.246]],
+      '1233/2018': [['2011-01-01', 1.246]],
+      '9921/2019': [['2011-01-01', 1.245]],
+      '9870/2020': [['2011-01-01', 1.245]],
+    };
+    for (const [id, forventet] of Object.entries(facit)) {
+      const faktiske = requireKapitaliseringstabel(id).saerfaktorUnderToAarTilFpPerSkadesinterval
+        .map((entry) => [entry.skadedatoFra, entry.faktor] as const);
+      expect(faktiske, id).toEqual(forventet);
+    }
   });
 
   it('fastholder de ældste offentlige lønendpoints fra lokale Excel-kilder', () => {

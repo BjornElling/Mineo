@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; underordnet domænespecifik beregningslogik og sideordnet med `amount-contract.md` og `date-contract.md`.
-**Senest verificeret mod kode:** 2026-08-19
+**Senest verificeret mod kode:** 2026-11-12
 
 ## 1. Scope
 
@@ -63,7 +63,8 @@ konstanter er ikke katalogdata.
 ## 5. Kendte undtagelser
 
 Enkelte ældre kapitaliseringskilder refererer til tabeller, som ikke findes i den lokale
-payload. Den verificerede inventory er `1068/2003:A`, `1221/2010:L` samt
-`1403/2011:J`, `1403/2011:K` og `1403/2011:L`. Fraværet er bevaret, fordi EET-beregningen eksplicit
+payload. Den verificerede inventory er `1221/2010:L` samt
+`1403/2011:J`, `1403/2011:K` og `1403/2011:L`. `1068/2003:A` er udgået af inventoryen: tabellen er
+udtrukket fra kilde-PDF'en 2026-11-12 efter udviklerens godkendelse. Fraværet af de øvrige er bevaret, fordi EET-beregningen eksplicit
 fail-closer med en blokerende domænefejl. Undtagelsen revurderes kun, hvis den manglende
 originaltabel tilføjes efter særskilt godkendelse af beregningsdataene.

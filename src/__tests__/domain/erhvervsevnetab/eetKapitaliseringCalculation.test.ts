@@ -640,6 +640,13 @@ describe('computeEetKapitaliseringCalculation', () => {
   });
 
   it('blokerer når særfaktor mangler efter faktortabellens sidste alder', () => {
+    // Vejl. 9871/2020 har siden 2026-11-12 sin særfaktor (1,168) registreret; den fjernes her, så
+    // vagten for en bekendtgørelse uden særfaktor fortsat er dækket.
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['9871/2020'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 9871/2020');
+    dataById['9871/2020'] = { ...original, saerfaktorUnderToAarTilFpPerSkadesinterval: [] };
+    try {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -668,6 +675,34 @@ describe('computeEetKapitaliseringCalculation', () => {
       severity: 'error',
       message: 'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler',
     });
+    } finally {
+      dataById['9871/2020'] = original;
+    }
+  });
+
+  it('interpolerer efter faktortabellens sidste alder mod særfaktoren fra Vejl. 9871/2020', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [{
+          id: 'a',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2015-01-01'),
+          virkningsDato: toISODateString('2015-01-01'),
+          eetPct: 50,
+          kapDato: toISODateString('2020-12-31'),
+          kapPct: 25,
+          afgoerelseType: 'Delvist endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+    });
+
+    expect(result.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+    expect(result.computation?.afgoerelser[0]?.saerfaktor).toBe(1.168);
   });
 
   it('blokerer når alderen ligger under den valgte faktortabels minimum', () => {
@@ -973,6 +1008,7 @@ describe('computeEetKapitaliseringCalculation', () => {
   });
 
   it('giver specifik fejl når den valgte tabel mangler kapitaliseringsfaktorer', () => {
+    // 1403/2011:L er fortsat i inventoryen over manglende tabeller (1068/2003:A er udtrukket).
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -982,10 +1018,10 @@ describe('computeEetKapitaliseringCalculation', () => {
           {
             id: 'a',
             fsTilbageholdtEet: 'Nej',
-            afgoerelsesDato: toISODateString('2004-01-15'),
-            virkningsDato: toISODateString('2004-01-15'),
+            afgoerelsesDato: toISODateString('2012-01-15'),
+            virkningsDato: toISODateString('2012-01-15'),
             eetPct: 50,
-            kapDato: toISODateString('2004-02-01'),
+            kapDato: toISODateString('2012-02-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
@@ -993,14 +1029,14 @@ describe('computeEetKapitaliseringCalculation', () => {
         ],
       },
       skadedato: toISODateString('2005-01-01'),
-      skadelidteFodselsdato: toISODateString('1944-01-01'),
+      skadelidteFodselsdato: toISODateString('1953-01-01'),
     });
 
     expect(result.computation).toBeNull();
     expect(result.issues).toContainEqual({
       id: 'kapitaliseringstabel-missing',
       severity: 'error',
-      message: 'Ingen kapitaliseringsfaktorer indtastet for tabel A.',
+      message: 'Ingen kapitaliseringsfaktorer indtastet for tabel L.',
     });
   });
 

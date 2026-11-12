@@ -57,6 +57,8 @@ Fremgangsmåde:
 
 Hvis særfaktoren bruges direkte, er kapitaliseringsfaktoren lig særfaktoren afrundet til 3 decimaler. Skadelidte der allerede har nået folkepensionsalderen falder også ind under særfaktoren.
 
+Særfaktoren er registreret pr. bekendtgørelse og skadesinterval i `saerfaktorUnderToAarTilFpPerSkadesinterval`. Alle bekendtgørelser fra 678/2007 og frem fastsætter den for skader fra 1. juli 2007 (fra 1220/2010 også særskilt for skader fra 1. januar 2011). For skader før 1. juli 2007 fastsætter ingen bekendtgørelse en særfaktor; de ældre tabeller er i stedet «uden omsætningsmulighed» de sidste 2 år. Bkg. 1202/2013 angiver faktoren med fire decimaler (1,2514); den registreres som skrevet og afrundes ved brug til 1,251 (udviklerens afgørelse 2026-11-12).
+
 Denne vurdering siger kun noget om faktoren. Om der overhovedet skal ske kapitalisering, afhænger af afgørelsestypen og hovedreglen:
 - `Endelig` inden for eller præcis 2 år før folkepension: hele EET kapitaliseres.
 - `Endelig` mere end 2 år før folkepension: de almindelige kapitaliseringsregler gælder fortsat.

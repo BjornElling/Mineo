@@ -197,7 +197,6 @@ const assertFinite = (value: number, label: string): void => {
 // Inventory over verificeret eksisterende payloadfravær. Listen beskriver alene de
 // lokale kildefiler og tager ikke stilling til, om kildens juridiske indhold er korrekt.
 const TILLADETE_MANGLENDE_EET_TABELREFERENCER = new Set([
-  '1068/2003:A',
   '1221/2010:L',
   '1403/2011:J',
   '1403/2011:K',

@@ -1,3 +1,4 @@
+import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
@@ -37,6 +38,21 @@ export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
     tabel,
   })
 );
+
+// Særfaktor for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen (ulykker og erhvervssygdomme 1. juli 2007 – 31. december 2010).
+// Bekendtgørelsens ældre afsnit (skader før 1. juli 2007) angiver ingen særfaktor.
+const SAERFAKTOR_UNDER_TO_AAR_DATA = [
+  // skadedatoFra     faktor
+  ['2007-07-01',     1.168],
+] as const;
+
+export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
+  skadedatoFra: ISODateString;
+  faktor: number;
+}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
+  skadedatoFra: toISODateString(skadedatoFra),
+  faktor,
+}));
 
 export const erhvervsevnetabTabeller = 
 {

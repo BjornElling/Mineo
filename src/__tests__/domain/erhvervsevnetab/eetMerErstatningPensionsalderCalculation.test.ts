@@ -311,6 +311,37 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
   });
 
   it('blokerer fail-closed når den nye bekendtgørelse mangler særfaktor under to år til folkepension', () => {
+    // Vejl. 9870/2020 har siden 2026-11-12 sin særfaktor (1,245) registreret; den fjernes her, så
+    // vagten for en bekendtgørelse uden særfaktor fortsat er dækket.
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['9870/2020'];
+    if (original === undefined) throw new Error('Forventede kapitaliseringsdata for 9870/2020');
+    dataById['9870/2020'] = { ...original, saerfaktorUnderToAarTilFpPerSkadesinterval: [] };
+    try {
+      const issues: EetIssue[] = [];
+      const computation = computeMerErstatningPensionsalder(
+        {
+          ...base,
+          skadedato: iso('2011-01-01'),
+          fodselsdato: iso('1955-07-01'),
+          beregningsdato: iso('2021-06-01'),
+          kapitaliseringer: [kap(toISODateString('2019-06-01'))],
+        },
+        issues
+      );
+
+      expect(computation).toBeNull();
+      expect(issues).toContainEqual(expect.objectContaining({
+        id: 'mer-erstatning-ny-faktor-unresolved',
+        severity: 'error',
+        message: 'Særfaktor mangler.',
+      }));
+    } finally {
+      dataById['9870/2020'] = original;
+    }
+  });
+
+  it('blokerer ikke længere, når særfaktoren fra Vejl. 9870/2020 er registreret', () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
       {
@@ -323,12 +354,10 @@ describe('computeMerErstatningPensionsalder – betingelser', () => {
       issues
     );
 
+    // Både den gamle og den nye kapitalværdi ligger inden for 2 år til folkepension og bruger derfor
+    // samme særfaktor; der opstår ingen mer-erstatning, og beregningen returnerer intet fradrag.
+    expect(issues.filter((issue) => issue.severity === 'error')).toEqual([]);
     expect(computation).toBeNull();
-    expect(issues).toContainEqual(expect.objectContaining({
-      id: 'mer-erstatning-ny-faktor-unresolved',
-      severity: 'error',
-      message: 'Særfaktor mangler.',
-    }));
   });
 
   it('blokerer fail-closed når særfaktoren mangler efter den gamle faktortabel', () => {

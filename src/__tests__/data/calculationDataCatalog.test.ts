@@ -80,7 +80,9 @@ describe('calculationDataCatalog', () => {
       // (udviklerbeslutning; `indskudte-loentillaeg-contract.md` §6). Payload'et er nu Store Bededag alene.
       'indskudte-loentillaeg': 'b253ea22c6f700fd78f0ac1f58fb931f5ec009bcbcf47bb049ca08505fb06acf',
       kapitaliseringsbekendtgoerelser: '696a0023f6cbfcbdc97b1e37f7dc7b2cfad399e2d4f8dd9c406e6a3940cdc54d',
-      kapitaliseringstabeller: '2922b85b4c7be096731ee2a1afc2eb25176ca848d76fdec613a80236dff253e1',
+      // Ændret 2026-11-12: Tabel A tilføjet til 1068/2003 og særfaktoren for ≤ 2 år til folkepension
+      // registreret i 23 ældre bekendtgørelser – begge fra kilde-PDF'erne.
+      kapitaliseringstabeller: '0cc3332dde81493837e41cb7684853ab8c834e8d33f9cc55dcce27e18a360f6d',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
       'lovbestemte-satser': 'e30834b2ecd5a082c6a3b2c0be209e3118974914d224e268c05bc8cc2ec8f420',
@@ -120,6 +122,8 @@ describe('calculationDataCatalog', () => {
       }])
     );
 
-    expect(fingerprint(legacyShape)).toBe('349be6bd26c1167a0068af975d62589b62d723a75cbec2394ba031a1c5e04b79');
+    // Ændret 2026-11-12: Tabel A tilføjet til 1068/2003 og særfaktoren for ≤ 2 år til folkepension
+    // registreret i 23 ældre bekendtgørelser – begge fra kilde-PDF'erne.
+    expect(fingerprint(legacyShape)).toBe('0fb6e8c0be93d15fd02ff22589b81400f0df7f0207497742dd10787b8d0264ce');
   });
 });
