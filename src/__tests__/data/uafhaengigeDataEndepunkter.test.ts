@@ -189,6 +189,10 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       G: 'afloesningsbeloeb',
       H: 'varigt-men',
     });
+    // Kilden trykker 2,061 – en slåfejl for 2,601 (udviklerbeslutning 2026-11-12). Tabel E's identiske
+    // række (kvinder, alder 54) bekræfter værdien.
+    expect(findAldersraekke(tabel.forsoergertabTabellerMaend, 'D', 50).faktorerPraHeleAar[2]).toBe(2.601);
+    expect(findAldersraekke(tabel.forsoergertabTabellerKvinder, 'E', 54).faktorerPraHeleAar[2]).toBe(2.601);
     expect(tabel.erhvervsevnetabTabelvalg).toEqual([
       { skadedatoFra: '2004-01-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: null, tabel: 'A' },
     ]);

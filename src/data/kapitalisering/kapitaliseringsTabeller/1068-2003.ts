@@ -22,7 +22,9 @@ export const supplerendeKildePdfFiler = [] as const;
 // `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
 // Tabel A gælder løbende ydelser efter lov om arbejdsskadesikring (skader fra 1. januar 2004).
 // Tabel D og E angiver kun udvalgte aldre (18, 20, 25, ..., 50-66); § 3 foreskriver mellemliggende faktorer.
-// Tabel D, alder 50, 3 år står i kilden som 2,061 (naboerne 2,608 og 2,599) og registreres som trykt.
+// Tabel D, alder 50, 3 år står i kilden som 2,061 (naboerne 2,608 og 2,599) – en åbenlys slåfejl for 2,601.
+// Udviklerbeslutning 2026-11-12: værdien er rettet til 2,601. Rettelsen meddeles ikke i brugerfladen
+// eller i de genererede dokumenter.
 
 export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
 
@@ -122,7 +124,7 @@ export const forsoergertabTabellerMaend = {
     { alder: 35, faktorerPraHeleAar: [0.957, 1.826, 2.615, 3.33, 3.98, 4.569, 5.104, 5.589, 6.029, 6.427] },
     { alder: 40, faktorerPraHeleAar: [0.957, 1.825, 2.612, 3.326, 3.973, 4.56, 5.091, 5.573, 6.009, 6.404] },
     { alder: 45, faktorerPraHeleAar: [0.956, 1.823, 2.608, 3.319, 3.962, 4.544, 5.071, 5.547, 5.977, 6.366] },
-    { alder: 50, faktorerPraHeleAar: [0.956, 1.82, 2.061, 3.307, 3.944, 4.52, 5.038, 5.506, 5.927, 6.305] },
+    { alder: 50, faktorerPraHeleAar: [0.956, 1.82, 2.601, 3.307, 3.944, 4.52, 5.038, 5.506, 5.927, 6.305] },
     { alder: 51, faktorerPraHeleAar: [0.955, 1.819, 2.599, 3.304, 3.94, 4.513, 5.03, 5.495, 5.913, 6.289] },
     { alder: 52, faktorerPraHeleAar: [0.955, 1.818, 2.597, 3.301, 3.935, 4.506, 5.02, 5.483, 5.899, 6.271] },
     { alder: 53, faktorerPraHeleAar: [0.955, 1.817, 2.595, 3.297, 3.929, 4.498, 5.01, 5.47, 5.882, 6.252] },

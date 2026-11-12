@@ -86,7 +86,8 @@ describe('calculationDataCatalog', () => {
       // manglende tabeller for skader 2004-2007 (1221/2010 L-N, 1403/2011 J-N, 198/2015 L, 1700/2015 N) og
       // forsørgertab i 2014 (BEK 1339/2013); tilføjet BEK 229/2014; eksplicitte forsørgertabsvalg og
       // fuldstændige EET-årgange; tabeller for skader før 2004 flyttet til de begrundede udeladelser.
-      kapitaliseringstabeller: '7686642a1c0b07e37bc85e3b36439c6eb2db75b9d086f8f1517a83685313295d',
+      // Ændret 2026-11-12 (udviklerbeslutning): slåfejlen 2,061 → 2,601 i 1068/2003 tabel D, alder 50, 3 år.
+      kapitaliseringstabeller: '4a1ee0dfaca5bccaef5c61fb7b3a79e68a064131b0318d6da68eb5f7f7e1b2c7',
       'kl-loenaftaler': 'c75de1dc16462569b7fcfe4bab5860b4c978d50d0fdb68fe4d4580c66cda9780',
       'krl-satstabeller': '080e201d0300a4354e50ad939a698412cdc4d7af1764192cd79b19c0403e53d6',
       'lovbestemte-satser': 'e30834b2ecd5a082c6a3b2c0be209e3118974914d224e268c05bc8cc2ec8f420',
@@ -127,6 +128,6 @@ describe('calculationDataCatalog', () => {
     );
 
     // Ændret 2026-11-12 (revision): se `kapitaliseringstabeller` i testen ovenfor.
-    expect(fingerprint(legacyShape)).toBe('6f3b53ffe575eab88bad6eb82d4891456b22455ead54d13d4424ec5cf33d79a2');
+    expect(fingerprint(legacyShape)).toBe('25574cb75794819c3511ddb6a9241eb5c82b313cceb893a23abe1fdf8b62f8df');
   });
 });

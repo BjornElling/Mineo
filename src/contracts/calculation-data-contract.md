@@ -69,7 +69,8 @@ konstanter er ikke katalogdata.
 
 - BEK 1068/2003 tabel D og E angiver forsørgertabsfaktorer for udvalgte aldre (18, 20, 25, …, 50–66);
   bekendtgørelsens § 3 foreskriver mellemliggende faktorer, som forsørgertabsberegningen interpolerer.
-  Tabel D, alder 50, 3 år står i kilden som 2,061 (naboerne 2,608 og 2,599) og er registreret som trykt.
+  Tabel D, alder 50, 3 år står i kilden som 2,061 – en åbenlys slåfejl, der efter udviklerbeslutning er
+  rettet til 2,601 (naboerne 2,608 og 2,599).
 - BEK 1202/2013 trykker særfaktoren «1,2514». Den registreres som skrevet; BEK 229/2014 retter den til
   «1,251» fra 15. marts 2014 og har sin egen post i oversigten.
 - Kilder uden tabel for de ældste årgange (fx BEK 1156/2017 for født før 1. juli 1954) dækker årgange, der
