@@ -6,7 +6,7 @@ import { coerceToISODateString } from '../../types/branded';
 import {
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
-import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
+import { getDagenFoerFolkepensionsdato, isWithinTwoYearsOfFolkepension } from '../../data/folkepensionAlderRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
@@ -18,7 +18,6 @@ import {
   interpolateFactorBeyondTable,
   interpolateFactorWithinTable,
   resolveFactorTable,
-  isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
@@ -224,12 +223,6 @@ const analyzeAslRowsAtBeregningsdato = (
 
 // ─── Proforma-kapitalisering ──────────────────────────────────────────────────
 
-const resolveSaerfaktorPaaDato = (skadedato: ISODateString, dato: ISODateString): number | null => {
-  const bekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, dato);
-  const tabeldata = bekId ? getKapitaliseringsTabelData(bekId) : null;
-  return tabeldata ? resolveSaerfaktor(tabeldata, skadedato) : null;
-};
-
 const computeProformaKapitalisering = (
   args: Readonly<{
     loebendeEetPct: number;
@@ -242,7 +235,7 @@ const computeProformaKapitalisering = (
     amFaktor: number;
     before2024Skade: boolean;
     koen: ErhvervsevnetabComposedValues['koen'];
-    /** Kaldersidens ≤ 2 år-vurdering (`isUnderOrEqualTwoYearsToFpByBekendtgoerelse`) på beregningsdatoen. */
+    /** Kaldersidens kalenderbaserede ≤ 2 år-vurdering på beregningsdatoen. */
     underToAarTilFp: boolean;
   }>,
   issues: EetIssue[]
@@ -291,7 +284,7 @@ const computeProformaKapitalisering = (
   }
 
   const saerfaktor = resolveSaerfaktor(tabeldata, skadedato);
-  const useDirectSaerfaktor = tabelvalg.folkepensionsalderMaaneder - age.totalMonths <= 24;
+  const useDirectSaerfaktor = args.underToAarTilFp;
   let kapitaliseringsfaktor: number | null;
   let kapitaliseretPgaUnderToAarTilFp = false;
   let maanederTilFolkepension: number | null = null;
@@ -658,9 +651,12 @@ export const composeEetDifferencekravCalculation = (
       ? resolveLoebendeEetPct(loebendeComputation.afgoerelser, kapitaliseringerForProforma)
       : 0;
 
-    if (loebendeEetPct > 0 && grundloenOre > 0) {
-      const beregningUnderEllerLigeToAarTilFp = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
-        skadedato,
+    const dagenFoerFolkepensionsdato = getDagenFoerFolkepensionsdato(fodselsdato, beregningsdato);
+    // Efter folkepension er resten nul. Et faktoropslag er da irrelevant og må ikke
+    // blokere opgørelsen, fx fordi beregningsårets kapitaliseringstabeller mangler.
+    if (loebendeEetPct > 0 && grundloenOre > 0
+      && dagenFoerFolkepensionsdato && beregningsdato <= dagenFoerFolkepensionsdato) {
+      const beregningUnderEllerLigeToAarTilFp = isWithinTwoYearsOfFolkepension(
         fodselsdato,
         beregningsdato
       );
@@ -669,10 +665,9 @@ export const composeEetDifferencekravCalculation = (
       // bekendtgørelsen ikke fastsætter nogen særfaktor (skader før 1. juli 2007, hvis ældre
       // tabeller i stedet er «uden omsætningsmulighed» de sidste 2 år), opgøres resten fortsat som
       // de resterende løbende ydelser (udviklerens afgørelse 2026-11-12).
-      const proformaMedSaerfaktor = beregningUnderEllerLigeToAarTilFp
-        && resolveSaerfaktorPaaDato(skadedato, beregningsdato) !== null;
-
-      if (beregningUnderEllerLigeToAarTilFp && !proformaMedSaerfaktor) {
+      // Kun skadedatoen afgør undtagelsen. Manglende data for nyere skader skal give
+      // en opslagsfejl, aldrig tavst skifte fradraget til løbende ydelser.
+      if (beregningUnderEllerLigeToAarTilFp && skadedato < SKAERING_2007_07_01) {
         resterendeLoebendeYdelser = computeResterendeLoebendeYdelser(
           {
             loebendeEetPct,

@@ -7,9 +7,10 @@ import {
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
 } from '../aslEalAarsloen/aarsloenValidators';
-import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
+import { isTwoYearKapitaliseringApplicable, isUdenKapitaliseringFoer2007VedToAarsgraensen } from './eetKapitaliseringOpslag';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
 export { validateAslAarsloenBySkadesaarMax, validateAslAarsloenDivisibleBy1000 };
@@ -223,7 +224,7 @@ export const validateKapPctByAfgoerelsestype = (
     afgoerelsestype === 'Endelig' &&
     skadedato !== undefined &&
     fodselsdato !== undefined &&
-    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDateIso);
+    isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDateIso);
 
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
@@ -313,7 +314,7 @@ export const validateKapDatoByAfgoerelsestype = (
     kapDatoIso !== undefined &&
     skadedato !== undefined &&
     fodselsdato !== undefined &&
-    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDateIso);
+    isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDateIso);
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
     return KAP_DATO_UNDER_TO_AAR_MESSAGE;
@@ -350,6 +351,35 @@ const validateDateNotBeforeSkadedato = (
     return `Der er indtastet en ${fieldLabel} før ${resolveStamdataDatoReference(skadestype).labelLower}`;
   }
   return undefined;
+};
+
+const validateKapDatoAfterLaterForcedKapitalisering = (
+  row: AslAfgoerelseRow,
+  allRows: readonly AslAfgoerelseRow[],
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined,
+): string | undefined => {
+  const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+  const kapDato = coerceToISODateString(row.kapDato);
+  const kapPct = parseCommittedPercent(row.kapPct);
+  if (!afgoerelsesdato || !kapDato || kapPct === undefined || kapPct <= 0
+    || row.afgoerelseType === 'Midlertidig') return undefined;
+
+  // En fremtidig delkapitalisering må ikke overleve en senere afgørelses
+  // fuldkapitalisering. Ellers regner kapitalbeløbet og periodeplanen på hver sin rest.
+  const fuldkapitaliseringsdato = allRows.reduce<ISODateString | undefined>((earliest, candidate) => {
+    const candidateDato = coerceToISODateString(candidate.afgoerelsesDato);
+    const candidatePct = parseCommittedPercent(candidate.eetPct);
+    const order = compareAfgoerelseOrder(row, candidate);
+    if (candidate.afgoerelseType !== 'Endelig' || !candidateDato
+      || candidatePct === undefined || candidatePct <= 0
+      || order === null || order >= 0 || candidateDato >= kapDato
+      || !isTwoYearKapitaliseringApplicable(skadedato, fodselsdato,
+        coerceToISODateString(candidate.tidlKapDato) ?? candidateDato)) return earliest;
+    return earliest === undefined || candidateDato < earliest ? candidateDato : earliest;
+  }, undefined);
+  return fuldkapitaliseringsdato === undefined ? undefined
+    : `Kapitaliseringsdatoen skal være senest ${formatISOToDanish(fuldkapitaliseringsdato)}, hvor en senere endelig afgørelse kapitaliserer hele det resterende erhvervsevnetab.`;
 };
 
 export const collectEetAslAfgoerelseValidationIssues = (
@@ -391,7 +421,8 @@ export const collectEetAslAfgoerelseValidationIssues = (
     const kapDatoError =
       kapDatoBeforeSkadedatoError ??
       validateKapDatoByAfgoerelsestype(row, skadedato, fodselsdato) ??
-      validateKapDatoByTidlKapDato(row);
+      validateKapDatoByTidlKapDato(row) ??
+      validateKapDatoAfterLaterForcedKapitalisering(row, rows, skadedato, fodselsdato);
     if (kapDatoError) {
       issues.push({ rowId: row.id, field: 'kapDato', message: kapDatoError });
     }
@@ -622,6 +653,7 @@ export const INCOMPLETE_ROW_ISSUE_IDS = {
   kapDatoNotAfterTidlKapDato: 'kap-dato-not-after-tidlkap-dato',
   invalidEetPct: 'invalid-eet-pct',
   invalidKapPct: 'invalid-kap-pct',
+  kapDatoAfterLaterForcedKapitalisering: 'kap-dato-after-later-forced-kapitalisering',
 } as const;
 
 /**
@@ -671,6 +703,17 @@ export const collectIncompleteRowIssues = (
 ): IncompleteRowIssue[] => {
   const issues: IncompleteRowIssue[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
+
+  for (const row of startedRows) {
+    const message = validateKapDatoAfterLaterForcedKapitalisering(row, rows, skadedato, fodselsdato);
+    if (message !== undefined) {
+      issues.push({
+        id: INCOMPLETE_ROW_ISSUE_IDS.kapDatoAfterLaterForcedKapitalisering,
+        message,
+        target: { rowId: row.id, field: 'kapDato' },
+      });
+    }
+  }
 
   const missingAfgoerelsesdatoRow = startedRows.find((row) => !coerceToISODateString(row.afgoerelsesDato));
   if (missingAfgoerelsesdatoRow) {
@@ -735,11 +778,12 @@ export const collectIncompleteRowIssues = (
     // (`collectResolvedRows` i `eetKapitaliseringCalculation`), som også bærer samme undtagelse.
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
+    if (isUdenKapitaliseringFoer2007VedToAarsgraensen(skadedato, fodselsdato, controlDate)) return false;
     const isForcedUnderTwoYears =
       skadedato !== undefined &&
       fodselsdato !== undefined &&
       controlDate !== undefined &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate);
+      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate);
     if (isForcedUnderTwoYears) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });

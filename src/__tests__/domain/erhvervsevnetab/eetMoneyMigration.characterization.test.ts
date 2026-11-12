@@ -122,7 +122,18 @@ describe('EET MoneyOre-migration karakterisering', () => {
   });
 
   it('låser kapitalisering med delvist endelig og endelig afgørelse', () => {
-    expect(goldenHash(snapshot.kapitalisering)).toBe('fef5c1aa3c40ad069710ae68800c2921c7dff1e7ab8f32bed17e1e764b413a6b');
+    const computation = snapshot.kapitalisering.computation;
+    if (!computation) throw new Error('Forventede kapitalisering');
+    expect(computation.afgoerelser.map((row) => row.tidligereKapitaliseringsdato)).toEqual([null, null]);
+    // Den nye datoforklaring er ikke en del af MoneyOre-migrationens historiske facit.
+    // Samme hash uden dette ene metadatafelt beviser, at alle hidtidige beløb og delresultater er bevaret.
+    expect(goldenHash({
+      ...snapshot.kapitalisering,
+      computation: {
+        ...computation,
+        afgoerelser: computation.afgoerelser.map(({ tidligereKapitaliseringsdato: _dato, ...row }) => row),
+      },
+    })).toBe('fef5c1aa3c40ad069710ae68800c2921c7dff1e7ab8f32bed17e1e764b413a6b');
   });
 
   // Hash-opdateringen 2026-09-09 er bevist frem for antaget, jf. kravet i denne fils historik: det

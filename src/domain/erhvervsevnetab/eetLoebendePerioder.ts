@@ -2,7 +2,7 @@ import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates
 import type { JaNej } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { endOfYearIso, firstOfMonthAfterIso, getDayAfterIso, getDayBeforeIso, isoYear, minISO } from '../../utils/isoDateHelpers';
-import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
+import { isTwoYearKapitaliseringApplicable } from './eetKapitaliseringOpslag';
 import { z } from 'zod';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
 
@@ -33,6 +33,7 @@ export type ResolvedAfgoerelse = Readonly<{
   eetPct: number;
   kapDato: ISODateString | undefined;
   kapPct: number;
+  tidlKapDato?: ISODateString;
   fsTilbageholdtEet: JaNej;
   sortKey: string;
 }>;
@@ -220,7 +221,9 @@ export const buildKapitaliseringEvents = (
   for (const row of rows) {
     const isEndeligUnderOrEqualTwoYears =
       row.afgoerelseType === 'Endelig' &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, row.afgoerelsesdato);
+      // Genoptagelse skal bruge samme kontroltidspunkt som kapitalbeløbet. Ellers
+      // standses hele ydelsen, selv om kun den indtastede andel kapitaliseres.
+      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, row.tidlKapDato ?? row.afgoerelsesdato);
     const effectiveKapDato = isEndeligUnderOrEqualTwoYears ? row.afgoerelsesdato : row.kapDato;
     const activeKapPctBeforeCurrent = effectiveKapDato
       ? activeKapitaliseringPctAt(events, effectiveKapDato)

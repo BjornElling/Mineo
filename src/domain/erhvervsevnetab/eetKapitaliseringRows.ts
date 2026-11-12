@@ -41,7 +41,7 @@ import { toKroner } from '../money/money';
  * Etiketterne for ≤2-års-særreglen.
  *
  * `≤` er den korrekte operator – reglen omfatter også kontroltidspunktet præcis 2 år før
- * folkepensionsalderen (`folkepensionsalderMaaneder − alder <= 24`), og det er den operator,
+ * folkepensionsdatoen (kontroldato ≥ folkepensionsdato minus 24 måneder), og det er den operator,
  * feltbeskederne på EET oplysninger bruger. Dokumentet skrev tidligere `<` som en «læsbar
  * forenkling» på den ene af de to linjer, så to linjer i træk stod med hver sin operator om samme
  * regel (BB-172). Operatoren ER reglens indhold; den må ikke forenkles.
@@ -173,9 +173,21 @@ export const buildKapitaliseringAfgoerelseRows = (
     value: afgoerelse.kapitaliseringsbekendtgoerelseLabel,
   });
 
+  if (afgoerelse.tidligereKapitaliseringsdato !== null) {
+    rows.push({
+      kind: 'labelValue',
+      label: 'Tidligere kapitaliseringsdato',
+      value: formatISOToDanish(afgoerelse.tidligereKapitaliseringsdato),
+    });
+  }
+
   rows.push({
     kind: 'labelValue',
-    label: 'Alder ved kapitalisering',
+    label: afgoerelse.tidligereKapitaliseringsdato === null
+      ? afgoerelse.kapitaliseretPgaUnderToAarTilFp && afgoerelse.afgoerelsesdato !== afgoerelse.kapitaliseringsdato
+        ? 'Alder ved afgørelsen'
+        : 'Alder ved kapitalisering'
+      : 'Alder ved tidligere kapitalisering',
     value: `${afgoerelse.alderAar} år, ${afgoerelse.alderMaaneder} måneder`,
   });
 

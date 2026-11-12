@@ -247,6 +247,14 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ---
 
+#### `kap-dato-after-later-forced-kapitalisering` – "Kapitaliseringsdatoen skal være senest {dato}, hvor en senere endelig afgørelse kapitaliserer hele det resterende erhvervsevnetab."
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F2, F3, F5 samt rød markering og tooltip på den tidligere rækkes Kap.dato |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven → den tidligere rækkes Kap.dato |
+| Betingelse | En tidligere afgørelses positive delkapitalisering ligger efter en senere endelig afgørelses tvungne fuldkapitalisering. Samme afgørelsesdag ordnes efter virkningsdato. Kapitalisering før eller på fuldkapitaliseringens dato er tilladt. |
+
 ### Regulering og satser
 
 #### `reguleringssats-missing` – "Reguleringssats mangler for år {år}" (F3, F4, F5) / `reguleringssats-missing-{år}` (F2, F5)

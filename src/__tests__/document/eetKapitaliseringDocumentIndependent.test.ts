@@ -136,6 +136,7 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
       rowId: 'eet-kapitalisering-row',
       afgoerelsesdato: '2024-01-15',
       kapitaliseringsdato: '2024-02-01',
+      tidligereKapitaliseringsdato: null,
       eetPct: 25,
       kapitaliseringspct: 25,
       grundloenOre: 33295500,

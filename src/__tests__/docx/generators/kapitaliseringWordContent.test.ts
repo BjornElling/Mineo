@@ -34,6 +34,7 @@ describe('kapitalisering → Word-indhold', () => {
       rowId: 'kap-1',
       afgoerelsesdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
+      tidligereKapitaliseringsdato: null,
       // Afgørelsens EGEN erhvervsevnetabsprocent er 30, mens kapitaliseringsprocenten nedenfor er
       // 100. De to er forskellige størrelser, og det er netop pointen i BB-170: overskriften skal
       // bære afgørelsens procent, så læseren kan se hvor stor en del kapitalbeløbet dækker.
@@ -89,6 +90,7 @@ describe('kapitalisering → Word-indhold', () => {
       rowId: 'kap-saerfaktor',
       afgoerelsesdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
+      tidligereKapitaliseringsdato: null,
       eetPct: 30,
       kapitaliseringspct: 100,
       grundloenOre: fromKroner(320000),

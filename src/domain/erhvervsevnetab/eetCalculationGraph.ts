@@ -46,7 +46,7 @@ export const computeEetDifferencekravCalculation = (
     // forligsgraden på sit eget beløb, når alle fire ASL-fradrag er trukket fra
     // (`composeEetDifferencekravCalculation`, «Forlig om ansvarsgrad»). Sendes forliget ind her,
     // reduceres EAL-kravet to gange, og differencekravet bliver markant for lavt.
-    // Se `erhvervsevnetab-differencekrav-contract.md` §7 og
+    // Se `eet-snapshot-contract.md` §4.1 og
     // `src/__tests__/domain/erhvervsevnetab/eetForligGrundlag.test.ts`.
     forlig: null,
   });

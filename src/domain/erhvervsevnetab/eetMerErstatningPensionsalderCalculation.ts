@@ -1,5 +1,6 @@
 import type { EetIssue } from './eetTypes';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import { isWithinTwoYearsOfFolkepension } from '../../data/folkepensionAlderRates';
 import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
@@ -169,7 +170,7 @@ const resolveFaktorForBekendtgoerelse = (
   }
 
   const saerfaktor = resolveSaerfaktor(tabeldata, args.skadedato);
-  const useDirectSaerfaktor = tabelvalg.folkepensionsalderMaaneder - age.totalMonths <= 24;
+  const useDirectSaerfaktor = isWithinTwoYearsOfFolkepension(args.fodselsdato, args.opslagsdato);
   const typeLabel = tabeldata.kapitaliseringsType === 'vejl' ? 'Vejl.' : 'Bkg.';
   const bekLabel = `${typeLabel} ${bekId}, tabel ${tabelvalg.tabel}`;
 

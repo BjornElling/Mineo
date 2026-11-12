@@ -131,6 +131,14 @@ Ved særreglen er dette især relevant i to situationer:
 - `Endelig` inden for eller præcis 2 år før folkepension: hele kapitalbeløbet fratrækkes.
 - `Delvist endelig` inden for eller præcis 2 år før folkepension: kun den faktisk kapitaliserede andel fratrækkes.
 
+Den tvungne kapitalisering af en endelig afgørelse gælder kun skader fra 1. juli 2007. Den fulde 2-årskapitalværdi fratrækkes også, når den endelige afgørelse træffes på eller efter folkepensionsdatoen; her sker ingen forholdsmæssig nedsættelse. Midlertidige og delvist endelige afgørelser udløser ingen tvungen fuldkapitalisering (udviklerafklaring 2026-11-12).
+
+For skader før 1. juli 2007 fortsætter en sen endelig afgørelse som løbende ydelse frem til og med dagen før folkepensionsdatoen, også når afgørelsen først træffes på denne dato eller senere. Der beregnes intet tvunget kapitalbeløb. Det gælder også ved et erhvervsevnetab under 50 %, hvor tomme kapitaliseringsfelter i denne situation er tilladt.
+
+Ved genoptagelse afgør den tidligere kapitaliseringsdato både, om 2-årsreglen gælder, og hvilken bekendtgørelse, tabel, alder og faktor der anvendes. Årsydelsen reguleres til den nye kapitaliseringsdatos kalenderår. Ligger den tidligere dato mere end to år før folkepension, bruges de almindelige kapitaliseringsregler, og en resterende løbende del må ikke forsvinde alene på grund af den nye afgørelsesdato.
+
+En tidligere afgørelse kan ikke have en fremtidig delkapitalisering efter en senere endelig afgørelses tvungne fuldkapitalisering. Eksempel: En afgørelse fra 2019 har 25 % kapitalisering den 1. juni 2022, men en endelig afgørelse den 1. oktober 2021 kapitaliserer hele den resterende ydelse. Kapitaliseringsdatoen 1. juni 2022 markeres da rød med besked om, at den skal være senest 1. oktober 2021. Både løbende ydelser, kapitalisering og differencekrav blokeres. En delkapitalisering før eller på fuldkapitaliseringens dato er tilladt (udviklerafklaring 2026-11-12).
+
 ### Fradrag 3 – Tilbageværende EET
 
 Fradrag 3 dækker den del af EET, der fortsat består som løbende ydelse på beregningsdatoen.
@@ -168,6 +176,8 @@ fradrag = round0(måneder × månedlig løbende ydelse på beregningsdatoen)
 ```
 
 Den månedlige ydelse beregnes efter samme løbende-ydelsesprincip som fane 2: årsydelsen afrundes til nærmeste hele kronebeløb deleligt med 12, og månedssatsen er årsydelsen divideret med 12.
+
+Undtagelsen vælges alene ud fra skadedato før 1. juli 2007. Mangler en bekendtgørelse, tabel eller særfaktor for en nyere skade, blokeres beregningen med en konkret fejl. Manglende data må aldrig tavst udløse fradrag efter en anden metode.
 
 Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
 

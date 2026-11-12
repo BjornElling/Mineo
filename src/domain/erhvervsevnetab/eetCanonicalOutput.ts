@@ -21,7 +21,7 @@ const integer = z.number().int();
  * - Differencekrav: forlig x (EAL-krav − løbende ydelser − kapitalbeløb − rest-EET − mer-erstatning)
  *
  * Et differencekrav, der reducerede det rene EAL-krav, ville være en alvorlig beregningsfejl (kravet
- * ville blive markant for lavt). Se `erhvervsevnetab-differencekrav-contract.md` §7.
+ * ville blive markant for lavt). Se `eet-snapshot-contract.md` §4.1.
  */
 export const eetEalForligSchema = z.object({
   /** Forligsgradens brugervendte form, fx «50 %» eller «2/3». */
@@ -77,6 +77,8 @@ export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   kapitaliseringsdato: isoDateString,
+  /** Ved genoptagelse stammer faktorens alder fra denne tidligere dato. Kun afledt output. */
+  tidligereKapitaliseringsdato: isoDateString.nullable(),
   /**
    * Afgørelsens EGEN erhvervsevnetabsprocent – ikke den kapitaliserede andel.
    *

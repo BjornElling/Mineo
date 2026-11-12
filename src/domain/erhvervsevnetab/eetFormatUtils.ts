@@ -166,6 +166,7 @@ const ASL_IDS = new Set([
   'missing-kap-pct',
   'virkningsdato-after-tidlkap-dato',
   'kap-dato-not-after-tidlkap-dato',
+  'kap-dato-after-later-forced-kapitalisering',
   'kapitaliseringsbekendtgoerelse-missing-control-date',
   'kapitaliseringsbekendtgoerelse-missing-effective-date',
   'kapitaliseringstabel-missing',

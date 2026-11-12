@@ -19,9 +19,11 @@ Fane 3 beregner et éngangsbeløb for det erhvervsevnetab, der kapitaliseres. Ka
 
 Kun `Endelig` og `Delvist endelig` kan kapitaliseres. `Midlertidig` kan ikke.
 
-Særreglen ved ≤ 2 år til folkepensionsalderen gælder kun for `Endelig`:
+Særreglen med tvungen kapitalisering ved ≤ 2 år til folkepensionsalderen gælder kun for `Endelig` og skader fra 1. juli 2007:
 - Ved `Endelig` og afgørelsesdato inden for eller præcis 2 år før folkepension skal hele erhvervsevnetabet kapitaliseres.
 - Ved `Endelig` og afgørelsesdato mere end 2 år før folkepension gælder de almindelige kapitaliseringsregler fortsat.
+
+For skader før 1. juli 2007 beregnes ingen tvungen 2-årskapitalværdi. En endelig afgørelse i 2-årsvinduet eller på/efter folkepensionsdatoen medregnes alene som løbende ydelse frem til og med dagen før folkepensionsdatoen, også under 50 % EET. Ved genoptagelse afgør den tidligere kapitaliseringsdato, om 2-årsreglen gælder, og faktoren bevares fra denne dato; årsydelsen reguleres til den nye kapitaliseringsdatos år. Se [den samlede særregel](./under-to-aar-til-fp.md).
 - Ved `Delvist endelig` kapitaliseres kun den indtastede andel. Den skal være mindre end det fulde EET og højst 50 %.
 
 ### Statiske datakilder
@@ -53,7 +55,7 @@ Fremgangsmåde:
 2. Slå tabelbogstavet op i bekendtgørelsens tabelvalgsdata.
 3. Slå folkepensionsalderen op centralt i `src/data/folkepensionAlderRates.ts`.
 4. Beregn alder på kontroltidspunktet i hele år og måneder.
-5. Hvis `folkepensionsalder_måneder − alder_måneder ≤ 24`: brug særfaktoren direkte.
+5. Hvis kontroldatoen er på eller efter den faktiske folkepensionsdato minus 24 kalendermåneder: brug særfaktoren direkte. Alderen i afsluttede måneder bruges kun til tabelinterpolation, ikke til denne datogrænse.
 
 Hvis særfaktoren bruges direkte, er kapitaliseringsfaktoren lig særfaktoren afrundet til 3 decimaler. Skadelidte der allerede har nået folkepensionsalderen falder også ind under særfaktoren.
 
@@ -71,6 +73,10 @@ Opslagsgrundlaget bestemmes af:
 2. ellers kapitaliseringsdatoen
 
 Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning som om kapitaliseringen skete på den tidligere kapitaliseringsdato. Regulering sker dog til kalenderåret for den nye kapitaliseringsdato.
+
+På skærmen og i PDF/Word vises både »Kapitaliseringsdato« og »Tidligere kapitaliseringsdato«. Alderen, som faktoren bygger på, står som »Alder ved tidligere kapitalisering«. Uden genoptagelse bevares rækken »Alder ved kapitalisering«.
+
+Ved direkte særfaktor uden genoptagelse står alderen som »Alder ved afgørelsen«, hvis kapitaliseringsdatoen ligger senere end afgørelsesdatoen. Faktoren bygger i dette tilfælde på alderen ved afgørelsen.
 
 #### Trin 2 – Valg af tabel og folkepensionsalder
 

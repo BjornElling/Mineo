@@ -1,14 +1,14 @@
 import { kapitaliseringsbekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import {
-  getKapitaliseringsTabelData,
   type AldersFaktorRaekke,
   type ErhvervsevnetabTabelvalg,
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { getFolkepensionAlder } from '../../data/folkepensionAlderRates';
+import { getFolkepensionAlder, isWithinTwoYearsOfFolkepension } from '../../data/folkepensionAlderRates';
 import { parseISODate, type ISODateString } from '../../types/branded';
 import { endOfYearIso, getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import { SKAERING_2007_07_01 } from './eetSkaeringsdatoer';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -139,8 +139,7 @@ export const resolveKapitaliseringTabelvalg = (
   if (!folkepensionAlder) return null;
   if (tabelvalg.foedtFoerKildensAargange) {
     // Kildens fravær af en tabel er kun forsvarligt, når særfaktoren gælder. Ellers fail-closed.
-    const alder = calculateAgeYearsMonths(fodselsdato, opslagsdato);
-    if (!alder || folkepensionAlder.alderMaaneder - alder.totalMonths > 24) return null;
+    if (!isWithinTwoYearsOfFolkepension(fodselsdato, opslagsdato)) return null;
   }
   return {
     tabel: tabelvalg.tabel,
@@ -148,22 +147,6 @@ export const resolveKapitaliseringTabelvalg = (
     folkepensionsalderMaaneder: folkepensionAlder.alderMaaneder,
     folkepensionsalderLabel: folkepensionAlder.alderLabel,
   };
-};
-
-export const resolveKapitaliseringTabelvalgForControlDate = (
-  skadedato: ISODateString | undefined,
-  fodselsdato: ISODateString | undefined,
-  controlDate: ISODateString | undefined
-): ResolvedKapitaliseringTabelvalg | null => {
-  if (!skadedato || !fodselsdato || !controlDate) return null;
-
-  const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, controlDate);
-  if (!controlBekId) return null;
-
-  const controlData = getKapitaliseringsTabelData(controlBekId);
-  if (!controlData) return null;
-
-  return resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato, controlDate);
 };
 
 export type ResolveFactorTableResult = Readonly<{
@@ -260,17 +243,25 @@ export const resolveFactorTable = (
   return { rows: normalized, reason: null, koenOpdelt: true };
 };
 
-export const isUnderOrEqualTwoYearsToFpByBekendtgoerelse = (
+export const isTwoYearKapitaliseringApplicable = (
   skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined,
   controlDate: ISODateString | undefined
 ): boolean => {
-  const controlTabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
-  if (!controlTabelvalg) return false;
+  // Ældre skader har ingen 2-årsydelse. Alderen alene må derfor ikke udløse
+  // tvungen kapitalisering eller gøre de løbende ydelser til nul.
+  if (!skadedato || skadedato < SKAERING_2007_07_01) return false;
   if (!fodselsdato || !controlDate) return false;
-
-  const controlAge = calculateAgeYearsMonths(fodselsdato, controlDate);
-  if (!controlAge) return false;
-
-  return controlTabelvalg.folkepensionsalderMaaneder - controlAge.totalMonths <= 24;
+  // Regelvalget må ikke afhænge af, om faktoropslaget lykkes. Ellers bliver
+  // manglende data fejlagtigt til fravær af kapitalisering frem for en fejl.
+  return isWithinTwoYearsOfFolkepension(fodselsdato, controlDate);
 };
+
+/** Ældre skader fortsætter løbende i 2-årsvinduet, også ved en endelig afgørelse under 50 %. */
+export const isUdenKapitaliseringFoer2007VedToAarsgraensen = (
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined,
+  controlDate: ISODateString | undefined
+): boolean => skadedato !== undefined && skadedato < SKAERING_2007_07_01
+  && fodselsdato !== undefined && controlDate !== undefined
+  && isWithinTwoYearsOfFolkepension(fodselsdato, controlDate);

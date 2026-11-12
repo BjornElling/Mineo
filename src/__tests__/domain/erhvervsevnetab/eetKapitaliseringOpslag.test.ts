@@ -3,10 +3,9 @@ import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
   interpolateFactorWithinTable,
-  isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
+  isTwoYearKapitaliseringApplicable,
   resolveFactorTable,
   resolveKapitaliseringTabelvalg,
-  resolveKapitaliseringTabelvalgForControlDate,
   resolveSaerfaktor,
   type AgeYearsMonths,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringOpslag';
@@ -162,32 +161,13 @@ describe('eetKapitaliseringOpslag – særfaktor og kontrolopslag', () => {
     expect(resolveSaerfaktor(tableData, iso('2006-12-31'))).toBeNull();
   });
 
-  it('resolver et kontrolopslag og fail-closer ved manglende kontrolinput', () => {
-    expect(resolveKapitaliseringTabelvalgForControlDate(undefined, iso('1972-01-08'), iso('2021-01-01')))
-      .toBeNull();
-    expect(resolveKapitaliseringTabelvalgForControlDate(iso('1900-01-01'), iso('1972-01-08'), iso('2021-01-01')))
-      .toBeNull();
-
-    const result = resolveKapitaliseringTabelvalgForControlDate(
-      iso('2007-07-01'),
-      iso('1972-01-08'),
-      iso('2021-01-01')
-    );
-    expect(result).toEqual({
-      tabel: 'A',
-      folkepensionsalderMaaneder: 828,
-      folkepensionsalderLabel: '69 år',
-      usesKoen: false,
-    });
-  });
-
   it('fastholder kontrolgrænsen på højst to år til folkepension', () => {
-    expect(isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+    expect(isTwoYearKapitaliseringApplicable(
       iso('2025-01-01'),
       iso('1959-01-01'),
       iso('2025-07-01')
     )).toBe(true);
-    expect(isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+    expect(isTwoYearKapitaliseringApplicable(
       iso('1900-01-01'),
       iso('1900-01-01'),
       iso('2004-01-01')

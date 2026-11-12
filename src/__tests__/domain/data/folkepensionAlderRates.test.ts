@@ -1,5 +1,24 @@
-import { getFolkepensionAlder } from '../../../data/folkepensionAlderRates';
+import { getFolkepensionAlder, isWithinTwoYearsOfFolkepension } from '../../../data/folkepensionAlderRates';
 import { toISODateString } from '../../../types/branded';
+
+describe('isWithinTwoYearsOfFolkepension', () => {
+  it.each([
+    ['1955-07-15', '2020-07-14', '2020-07-15', '2020-07-16', '2022-07-15'],
+    ['1954-03-31', '2017-09-29', '2017-09-30', '2017-10-01', '2019-09-30'],
+    ['1954-05-31', '2017-11-29', '2017-11-30', '2017-12-01', '2019-11-30'],
+    ['1960-02-29', '2025-02-27', '2025-02-28', '2025-03-01', '2027-02-28'],
+  ])('bruger den faktiske pensionsdato ved fødselsdato %s', (birth, before, boundary, after, pension) => {
+    const fodselsdato = toISODateString(birth);
+    expect(isWithinTwoYearsOfFolkepension(fodselsdato, toISODateString(before))).toBe(false);
+    for (const date of [boundary, after, pension]) {
+      expect(isWithinTwoYearsOfFolkepension(fodselsdato, toISODateString(date))).toBe(true);
+    }
+  });
+
+  it('returnerer false når pensionsalderen ikke kan bestemmes', () => {
+    expect(isWithinTwoYearsOfFolkepension(toISODateString('1940-01-01'), toISODateString('2002-12-31'))).toBe(false);
+  });
+});
 
 // Periodegrænser (opslagsdato):
 //   2003-01-01 – 2009-06-30

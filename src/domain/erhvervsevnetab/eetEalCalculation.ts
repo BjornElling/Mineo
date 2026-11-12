@@ -99,7 +99,7 @@ type Input = Readonly<{
    * `null`, fordi de aftager det UREDUCEREDE `ealKravOre` og selv anvender forligsgraden på deres
    * eget beløb. Var argumentet optional, kunne et forlig sive ind i differencekravets EAL-krav ved
    * en uopmærksom ændring, og differencekravet ville blive markant for lavt (dobbelt reduktion).
-   * Se `eetEalForligSchema` og `erhvervsevnetab-differencekrav-contract.md` §7.
+   * Se `eetEalForligSchema` og `eet-snapshot-contract.md` §4.1.
    */
   forlig: EetEalForligInput | null;
 }>;

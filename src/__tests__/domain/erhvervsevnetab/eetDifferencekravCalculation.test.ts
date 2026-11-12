@@ -866,6 +866,81 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
+  it.each(['saerfaktor', 'data'] as const)('blokerer frem for at bruge løbende ydelser, når %s mangler i 2-årsvinduet', (missing) => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['9864/2021'];
+    if (!original) throw new Error('Forventede kapitaliseringsdata for 9864/2021');
+    dataById['9864/2021'] = missing === 'data' ? undefined : {
+      ...original,
+      saerfaktorUnderToAarTilFpPerSkadesinterval: [],
+    };
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString('2022-04-01'),
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2019-06-01'),
+            eetPct: 60,
+            afgoerelseType: 'Endelig',
+          }],
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+      expect(result.hasBlockingErrors).toBe(true);
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual(expect.objectContaining({
+        id: missing === 'data'
+          ? 'proforma-kapitaliseringsbekendtgoerelse-missing'
+          : 'proforma-kapitaliseringsfaktor-unresolved',
+        severity: 'error',
+      }));
+    } finally {
+      dataById['9864/2021'] = original;
+    }
+  });
+
+  it.each(['2022-07-01', '2022-09-01'])('kræver ingen kapitaliseringsdata efter ydelsens ophør ved beregning %s', (dato) => {
+    const dataById = kapitaliseringsTabelDataById as Record<string, KapitaliseringsTabelData | undefined>;
+    const original = dataById['9864/2021'];
+    dataById['9864/2021'] = undefined;
+    try {
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: toISODateString(dato),
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [{
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2019-06-01'),
+            eetPct: 60,
+            afgoerelseType: 'Endelig',
+          }],
+        },
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
+      });
+      expect(result.hasBlockingErrors).toBe(false);
+      expect(result.computation).not.toBeNull();
+      expect(result.computation?.proformaKapitalisering).toBeNull();
+      expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
+      // 7 × 15.314 + 12 × 15.648 + 12 × 16.013 + 6 × 16.200 kr.
+      expect(result.computation?.fradragLoebendeYdelserOre).toBe(fromKroner(584330));
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe('2022-06-30');
+    } finally {
+      dataById['9864/2021'] = original;
+    }
+  });
+
   it('blokerer historisk proformakapitalisering når køn mangler', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {

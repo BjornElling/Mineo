@@ -18,6 +18,40 @@ import { fromKroner } from '../../../domain/money/money';
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('computeEetKapitaliseringCalculation', () => {
+  it.each([
+    ['1954-03-31', '2017-09-30'],
+    ['1960-02-29', '2025-02-28'],
+  ])('fuldkapitaliserer på den præcise kalendergrænse ved fødselsdato %s', (birth, boundary) => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(300000),
+        aslAfgoerelser: [{
+          id: 'a',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString(boundary),
+          virkningsDato: toISODateString(boundary),
+          eetPct: 60,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2011-01-01'),
+      skadelidteFodselsdato: toISODateString(birth),
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.computation?.afgoerelser).toHaveLength(1);
+    expect(result.computation?.afgoerelser[0]).toMatchObject({
+      kapitaliseringsdato: boundary,
+      kapitaliseringspct: 60,
+      kapitaliseretPgaUnderToAarTilFp: true,
+    });
+    expect(result.computation?.afgoerelser[0]?.kapitalbelobOre).toBeGreaterThan(0);
+  });
+
   it('blokerer en canonical negativ årsløn som afledt domæneissue', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

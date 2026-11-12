@@ -193,6 +193,7 @@ const collectResolvedAfgoerelser = (
       eetPct,
       kapDato: coerceToISODateString(row.kapDato),
       kapPct: parsePct(row.kapPct) ?? 0,
+      tidlKapDato: coerceToISODateString(row.tidlKapDato),
       fsTilbageholdtEet: row.fsTilbageholdtEet ?? 'Nej',
       sortKey: row.id,
     });
@@ -262,8 +263,13 @@ const collectWarnings = (
   }
 };
 
-const collectBlockingInputIssues = (rows: readonly AslAfgoerelseRow[], issues: EetIssue[]): void => {
-  for (const issue of collectIncompleteRowIssues(rows)) {
+const collectBlockingInputIssues = (
+  rows: readonly AslAfgoerelseRow[],
+  issues: EetIssue[],
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined,
+): void => {
+  for (const issue of collectIncompleteRowIssues(rows, skadedato, fodselsdato)) {
     if (issue.id === 'endelig-under-50-missing-kapitalisering') continue;
     issues.push(toIssue(issue.id, issue.message));
   }
@@ -366,7 +372,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
     issues.push(toIssue('skadedato-missing', `${stamdataDatoReference.label} er ikke udfyldt`));
   }
 
-  collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
+  collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues, skadedato, fodselsdato);
 
   const hasUnknownAfgoerelseType = input.erhvervsevnetab.aslAfgoerelser.some(
     (row) => row.afgoerelseType !== undefined && !isKnownAfgoerelseType(row.afgoerelseType)

@@ -28,7 +28,7 @@ import {
   resolveNonEndeligAfterEndeligWarning,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import {
-  isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
+  isTwoYearKapitaliseringApplicable,
   resolveKapitaliseringTabelvalg,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringOpslag';
 import { getKapitaliseringsTabelData } from '../../../data/kapitalisering/kapitaliseringsTabeller';
@@ -1183,9 +1183,19 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
   });
 });
 
-describe('isUnderOrEqualTwoYearsToFpByBekendtgoerelse', () => {
+describe('isTwoYearKapitaliseringApplicable', () => {
+  it.each([
+    ['1954-03-31', '2017-09-29', '2017-09-30'],
+    ['1960-02-29', '2025-02-27', '2025-02-28'],
+  ])('skifter på kalendergrænsen ved fødselsdato %s', (birth, before, boundary) => {
+    const skadedato = toISODateString('2010-01-01');
+    const fodselsdato = toISODateString(birth);
+    expect(isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, toISODateString(before))).toBe(false);
+    expect(isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, toISODateString(boundary))).toBe(true);
+  });
+
   it('returnerer true når kontroltidspunktet er inden for eller præcis to år til folkepension', () => {
-    const result = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+    const result = isTwoYearKapitaliseringApplicable(
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01'),
       toISODateString('2025-07-01')
@@ -1194,7 +1204,7 @@ describe('isUnderOrEqualTwoYearsToFpByBekendtgoerelse', () => {
   });
 
   it('returnerer false når kontroltidspunktet er mere end to år før folkepension', () => {
-    const result = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+    const result = isTwoYearKapitaliseringApplicable(
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01'),
       toISODateString('2025-07-01')
@@ -1203,7 +1213,7 @@ describe('isUnderOrEqualTwoYearsToFpByBekendtgoerelse', () => {
   });
 
   it('returnerer false fail-closed når bekendtgørelse/tabelvalg ikke kan bestemmes', () => {
-    const result = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+    const result = isTwoYearKapitaliseringApplicable(
       toISODateString('1900-01-01'),
       toISODateString('1900-01-01'),
       toISODateString('2004-01-01')

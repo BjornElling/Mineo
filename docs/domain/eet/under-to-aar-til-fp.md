@@ -14,16 +14,24 @@ Se også:
 Særreglen gælder når:
 
 ```
-folkepensionsalder_måneder − alder_måneder ≤ 24
+kontroldato ≥ folkepensionsdato minus 24 kalendermåneder
 ```
 
 på det relevante kontroltidspunkt.
+
+Grænsen beregnes fra den faktiske folkepensionsdato, ikke fra alder i afsluttede måneder.
+Eksempel: født 31. marts 1954 giver folkepensionsdato 30. september 2019 og 2-årsgrænse
+30. september 2017. Det gælder også, når fødselsdagen er 29. februar.
 
 Grænsen er inklusiv:
 - Datoen præcis 24 måneder før folkepensionsdatoen er inden for særreglen.
 - Dagen før denne dato er uden for særreglen.
 
 Folkepensionsalderen opslås centralt i `src/data/folkepensionAlderRates.ts` ud fra fødselsdato og kontroltidspunkt. Kapitaliseringsbekendtgørelsen bruges fortsat til tabelvalg og særfaktor (skadedato × kontroltidspunkt → bekendtgørelse → tabelvalg/særfaktor).
+
+**Skader før 1. juli 2007:** Der er ingen særlig 2-årsydelse. En endelig afgørelse i 2-årsvinduet eller på/efter folkepensionsdatoen udløser derfor ingen tvungen kapitalisering. Kun løbende ydelser frem til og med dagen før folkepensionsdatoen indgår, også ved et erhvervsevnetab under 50 %. Tomme kapitaliseringsfelter er derfor tilladt i denne situation (udviklerafklaring 2026-11-12).
+
+Regelvalget følger skadedatoen og kalendergrænsen, ikke om faktoropslaget lykkes. Manglende kapitaliseringsdata for nyere skader skal give en blokerende fejl frem for at skifte beregningsmetode.
 
 ---
 
@@ -33,6 +41,7 @@ Disse regler gælder generelt, også uden for særreglen:
 
 - En senere afgørelse erstatter den tidligere afgørelses retsvirkning fra sin egen virkningsdato.
 - Tidligere kapitalisering bevares altid. En senere afgørelse ændrer derfor kun den resterende løbende del.
+- En tidligere afgørelses kapitaliseringsdato må ikke ligge efter en senere endelig afgørelses tvungne fuldkapitalisering. Brugeren får en rød markering på den tidligere kapitaliseringsdato med den konkrete seneste dato, og beregningerne blokeres, indtil datoen er rettet. Kapitalisering før eller på samme dag er fortsat tilladt (udviklerafklaring 2026-11-12).
 - To afgørelser må godt have samme afgørelsesdato og forskellig virkningsdato. I så fald gælder afgørelsen med den tidligste virkningsdato indtil dagen før den senere virkningsdato.
 
 ---
@@ -41,7 +50,7 @@ Disse regler gælder generelt, også uden for særreglen:
 
 ### Kontroltidspunkt
 
-Afgørelsesdatoen.
+Afgørelsesdatoen. Ved genoptagelse med en tidligere kapitaliseringsdato bruges denne dato til at afgøre, om tvungen kapitalisering gælder, præcis som i fane 3. En genoptaget afgørelse kan derfor bevare en løbende rest, selv om den nye afgørelsesdato er tæt på folkepension.
 
 ### Hovedregel
 
@@ -92,6 +101,10 @@ kapitaliseretPgaUnderToAarTilFp = true
 
 Særfaktoren siger kun noget om kapitaliseringsfaktoren. Om der overhovedet skal ske kapitalisering, afhænger af afgørelsestypen og hovedreglen nedenfor.
 
+For skader fra 1. juli 2007 gælder den fulde særfaktor også ved endelige afgørelser truffet på eller efter folkepensionsdatoen. Faktoren nedsættes ikke efter den resterende tid i denne situation. Midlertidige og delvist endelige afgørelser udløser fortsat ingen tvungen fuldkapitalisering.
+
+Ved genoptagelse bevares bekendtgørelse, tabel, alder og faktor fra den tidligere kapitaliseringsdato. Årsydelsen reguleres derimod til den nye kapitaliseringsdatos kalenderår. Er den tidligere dato mere end to år før folkepension, bruges de almindelige regler, og den ikke-kapitaliserede del fortsætter løbende frem til ophør (udviklerafklaring 2026-11-12).
+
 Hvis skadelidte endnu ikke er inden for 2-årsgrænsen, men alderstabellen allerede er udtømt, fortsætter faktorberegningen lineært mod særfaktoren.
 Det gælder også i månedsafhængige tabeller, når den sidste tabelrække er et helt år, men skadelidte er ældre end dette med ekstra måneder.
 Eksempel: Slutter tabellen ved 64 år, skal `64 år, 2 måneder` interpoleres mellem 64-års-faktoren og særfaktoren ved 65 år, ikke låses til 64-års-faktoren.
@@ -118,7 +131,7 @@ I fane 5 er kontroltidspunktet for ≤ 2 år-vurderingen beregningsdatoen, ikke 
 Differencekrav medregner alle indtastede afgørelser med virkning på eller før beregningsdatoen. Afgørelsesdatoen må godt ligge efter beregningsdatoen; det udelukker ikke afgørelsen fra differencekravet.
 
 Hvis der på beregningsdatoen fortsat består en løbende ydelse, afhænger fradrag 3 af afstanden til folkepensionsalderen:
-- Ved beregningsdato inden for eller præcis 2 år til folkepension proformakapitaliseres rest-EET med særfaktoren nedsat forholdsmæssigt: `round3(særfaktor × måneder til og med dagen før folkepensionsdatoen / 24)` (udviklerens afgørelse 2026-11-12). Har bekendtgørelsen ingen særfaktor (skader før 1. juli 2007), fratrækkes i stedet de tilbageværende løbende ydelser fra beregningsdatoen til og med dagen før folkepensionsdatoen.
+- Ved beregningsdato inden for eller præcis 2 år til folkepension proformakapitaliseres rest-EET med særfaktoren nedsat forholdsmæssigt: `round3(særfaktor × måneder til og med dagen før folkepensionsdatoen / 24)` (udviklerens afgørelse 2026-11-12). For skader før 1. juli 2007 fratrækkes i stedet de tilbageværende løbende ydelser fra beregningsdatoen til og med dagen før folkepensionsdatoen. Manglende faktoroplysninger for nyere skader giver en fejl, ikke denne undtagelse.
 - Ved beregningsdato mere end 2 år før folkepension proformakapitaliseres hele rest-EET på beregningsdatoen.
 
 Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
@@ -182,9 +195,9 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 |---|---|---|
 | `folkepensionAlderRates.ts` | `getFolkepensionAlder()` / `getFolkepensionsdato()` | Central kilde til folkepensionsalder i måneder, label og folkepensionsdato. |
 | `eetLoebendeYdelserCalculation.ts` | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat for løbende ydelser via den centrale ratefil. |
-| `eetKapitaliseringCalculation.ts` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24`, hvor `folkepensionsalderMaaneder` kommer fra den centrale ratefil. |
+| `folkepensionAlderRates.ts` | `isWithinTwoYearsOfFolkepension()` | Sammenligner kontroldatoen med den faktiske folkepensionsdato minus 24 kalendermåneder. Genbruges af alle særfaktorgrene. |
 | `eetDifferencekravCalculation.ts` | Fradrag 3 | Rest-EET proformakapitaliseres; ved beregningsdato ≤ 2 år til FP med særfaktor × måneder/24, og kun uden særfaktor (skader før 1. juli 2007) som resterende løbende ydelser til dagen før FP. |
-| `eetKapitaliseringOpslag.ts:309` | `isUnderOrEqualTwoYearsToFpByBekendtgoerelse()` | Eksponeret hjælpefunktion til UI-validering |
+| `eetKapitaliseringOpslag.ts:309` | `isTwoYearKapitaliseringApplicable()` | Eksponeret hjælpefunktion til UI-validering |
 
 ### Implementeringsstatus
 

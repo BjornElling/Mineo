@@ -101,6 +101,7 @@ describe('EET PDF empty states', () => {
             rowId: '1',
             afgoerelsesdato: toISODateString('2022-07-01'),
             kapitaliseringsdato: toISODateString('2022-11-11'),
+            tidligereKapitaliseringsdato: null,
             kapitaliseringspct: 50,
             grundloenOre: fromKroner(351539),
             erstatningsniveauPct: 80,
