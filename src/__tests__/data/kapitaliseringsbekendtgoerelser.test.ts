@@ -66,8 +66,16 @@ describe('kapitaliseringsbekendtgørelser', () => {
     expect(resolveIdForDatoer(toISODateString('2021-01-01'), toISODateString('2024-07-01'))).toBe('9376/2024');
   });
 
-  it('fail-closed: skadedato før første interval (1978-04-01) → null', () => {
-    expect(resolveIdForDatoer(toISODateString('1978-03-31'), toISODateString('2024-01-01'))).toBeNull();
+  it('fail-closed: skadedato før lov om arbejdsskadesikring (2004-01-01) → null', () => {
+    expect(resolveIdForDatoer(toISODateString('2003-12-31'), toISODateString('2024-01-01'))).toBeNull();
+  });
+
+  it('skifter fra BEK 1202/2013 til den rettede særfaktor i BEK 229/2014 den 15. marts 2014', () => {
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2014-03-14'))).toBe('1202/2013');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2014-03-15'))).toBe('229/2014');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2014-12-31'))).toBe('229/2014');
+    expect(kapitaliseringsTabelDataById['1202/2013']?.saerfaktorUnderToAarTilFpPerSkadesinterval[0]?.faktor).toBe(1.2514);
+    expect(kapitaliseringsTabelDataById['229/2014']?.saerfaktorUnderToAarTilFpPerSkadesinterval[0]?.faktor).toBe(1.251);
   });
 
   it('fail-closed: kapitaliseringsdato før enhver kapitalisering i intervallet → null', () => {
@@ -94,72 +102,45 @@ describe('kapitaliseringsbekendtgørelser', () => {
     expect(readKapitaliseringsTabelFilnavne()).toEqual(expected);
   });
 
-  it('udelader kun PDF-dokumenterede tabeller for skader før 2005', () => {
-    type TableField =
-      | 'erhvervsevnetabTabeller'
-      | 'erhvervsevnetabKoensopdelteTabeller'
-      | 'forsoergertabTabeller'
-      | 'forsoergertabTabellerMaend'
-      | 'forsoergertabTabellerKvinder';
-
-    const tableNames = (id: keyof typeof kapitaliseringsTabelDataById, field: TableField): string[] => {
-      const tableData = kapitaliseringsTabelDataById[id];
-      return Object.keys(tableData[field]);
+  it('har indlæst de tabeller, der tidligere manglede, og udelader kun begrundede kildetabeller', () => {
+    const indlaeste = (id: string): string[] => {
+      const data = kapitaliseringsTabelDataById[id];
+      if (!data) throw new Error(`mangler ${id}`);
+      return Object.keys({
+        ...data.erhvervsevnetabTabeller,
+        ...data.erhvervsevnetabKoensopdelteTabeller,
+        ...data.forsoergertabTabeller,
+        ...data.forsoergertabTabellerMaend,
+        ...data.forsoergertabTabellerKvinder,
+      });
     };
+    // Skader 1. januar 2004 – 30. juni 2007 kapitaliseret 2011-2020, og forsørgertab i 2014 (BEK 1339/2013).
+    expect(indlaeste('1221/2010')).toEqual(expect.arrayContaining(['L', 'M', 'N']));
+    expect(indlaeste('1403/2011')).toEqual(expect.arrayContaining(['J', 'K', 'L', 'M', 'N']));
+    expect(indlaeste('198/2015')).toEqual(expect.arrayContaining(['L']));
+    expect(indlaeste('1700/2015')).toEqual(expect.arrayContaining(['N']));
+    expect(indlaeste('1202/2013')).toEqual(expect.arrayContaining(['F', 'G']));
 
-    const tablesOnlyBefore2005: ReadonlyArray<readonly [keyof typeof kapitaliseringsTabelDataById, TableField, string[]]> = [
-      ['10029/2024', 'erhvervsevnetabTabeller', ['Q', 'R']],
-      ['10029/2024', 'forsoergertabTabeller', ['S']],
-      ['9376/2024', 'erhvervsevnetabTabeller', ['Q', 'R']],
-      ['9376/2024', 'forsoergertabTabeller', ['S']],
-      ['10056/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
-      ['10056/2025', 'forsoergertabTabeller', ['Z']],
-      ['10253/2026', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
-      ['10253/2026', 'forsoergertabTabeller', ['Z']],
-      ['10183/2025', 'erhvervsevnetabTabeller', ['U', 'V', 'X', 'Y']],
-      ['10183/2025', 'forsoergertabTabeller', ['Z']],
-      ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['O', 'P']],
-      ['1221/2010', 'forsoergertabTabellerMaend', ['M']],
-      ['1221/2010', 'forsoergertabTabellerKvinder', ['N']],
-      ['1403/2011', 'erhvervsevnetabKoensopdelteTabeller', ['O', 'P']],
-      ['1403/2011', 'forsoergertabTabellerMaend', ['M']],
-      ['1403/2011', 'forsoergertabTabellerKvinder', ['N']],
-      ['1700/2015', 'erhvervsevnetabTabeller', ['O', 'P']],
-      ['1700/2015', 'forsoergertabTabeller', ['N']],
-      ['198/2015', 'erhvervsevnetabTabeller', ['M', 'N']],
-      ['198/2015', 'forsoergertabTabeller', ['L']],
-    ];
+    const grunde = new Set(Object.values(kapitaliseringsTabelDataById)
+      .flatMap((data) => Object.values(data.udeladteKildetabeller)));
+    expect([...grunde].sort()).toEqual(['afloesningsbeloeb', 'behandlingsudgifter', 'skader-foer-2004', 'varigt-men']);
+  });
 
-    for (const [id, field, tables] of tablesOnlyBefore2005) {
-      expect(tableNames(id, field)).not.toEqual(expect.arrayContaining(tables));
-    }
-
-    const mixedTablesWith2005Coverage: ReadonlyArray<readonly [keyof typeof kapitaliseringsTabelDataById, TableField, string[]]> = [
-      ['10029/2024', 'erhvervsevnetabTabeller', ['M', 'N', 'O']],
-      ['10029/2024', 'forsoergertabTabeller', ['P']],
-      ['9376/2024', 'erhvervsevnetabTabeller', ['M', 'N', 'O']],
-      ['9376/2024', 'forsoergertabTabeller', ['P']],
-      ['10056/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
-      ['10056/2025', 'forsoergertabTabeller', ['T']],
-      ['10253/2026', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
-      ['10253/2026', 'forsoergertabTabeller', ['T']],
-      ['10183/2025', 'erhvervsevnetabTabeller', ['P', 'Q', 'R', 'S']],
-      ['10183/2025', 'forsoergertabTabeller', ['T']],
-      ['1221/2010', 'erhvervsevnetabKoensopdelteTabeller', ['H', 'I', 'J', 'K']],
-      ['1403/2011', 'erhvervsevnetabKoensopdelteTabeller', ['H', 'I']],
-      ['1700/2015', 'erhvervsevnetabTabeller', ['H', 'I', 'J', 'K', 'L', 'M']],
-      ['198/2015', 'erhvervsevnetabTabeller', ['G', 'H', 'I', 'J', 'K']],
-    ];
-
-    for (const [id, field, tables] of mixedTablesWith2005Coverage) {
-      expect(tableNames(id, field)).toEqual(expect.arrayContaining(tables));
+  it('kønsopdeler præcis de kilder, der gælder før 1. marts 2015 (forsørgertabets input-regel)', () => {
+    for (const data of Object.values(kapitaliseringsTabelDataById)) {
+      const koensopdelt = data.forsoergertabTabelvalg.every((valg) => valg.koensopdelt);
+      expect({ id: data.kapitaliseringsId, koensopdelt }).toEqual({
+        id: data.kapitaliseringsId,
+        koensopdelt: data.gyldigTil < '2015-03-01',
+      });
     }
   });
 
-  it('har præcis én lokal original-PDF pr. katalogiseret tabel', () => {
+  it('har præcis kildernes original-PDF\'er (primære og supplerende ændringsakter) i kildemappen', () => {
     const pdfDir = path.resolve(__dirname, '../../data/kapitalisering/kapitaliseringOriginalPdf');
     const actual = fs.readdirSync(pdfDir).filter((file) => file.toLowerCase().endsWith('.pdf')).sort();
-    const expected = Object.values(kapitaliseringsTabelDataById).map((entry) => entry.kildePdfFil).sort();
+    const expected = [...new Set(Object.values(kapitaliseringsTabelDataById).flatMap((entry) =>
+      [entry.kildePdfFil, ...entry.supplerendeKildePdfFiler]))].sort();
     expect(actual).toEqual(expected);
   });
 
@@ -280,27 +261,43 @@ describe('kapitaliseringsbekendtgørelser', () => {
       .toThrow('duplikeret særfaktorinterval');
   });
 
-  it('fail-closer både ved nye tabelreferencemangler og ved en stale allowlist', () => {
-    const valid = Object.values(kapitaliseringsTabelDataById)[0];
-    if (!valid) throw new Error('Testfixture mangler en kapitaliseringstabel');
-    const missing: KapitaliseringsTabelData = {
-      ...valid,
-      erhvervsevnetabTabelvalg: [{
-        skadedatoFra: toISODateString('2011-01-01'),
-        foedselsdatoFra: toISODateString('1900-01-01'),
-        foedselsdatoTil: null,
-        tabel: 'MANGLER',
-      }],
-    };
-    expect(() => assertKapitaliseringsTabelDataIntegritet(
-      { [valid.kapitaliseringsId]: missing },
-      new Set(),
-    )).toThrow('faktisk');
+  it('fail-closer ved en valgt tabel uden faktorer, en indlæst tabel uden valg og en tavst manglende kildetabel', () => {
+    const valid = kapitaliseringsTabelDataById['1221/2010'];
+    if (!valid) throw new Error('Testfixture mangler 1221/2010');
+    const check = (entry: KapitaliseringsTabelData) => () =>
+      assertKapitaliseringsTabelDataIntegritet({ [entry.kapitaliseringsId]: entry });
 
-    expect(() => assertKapitaliseringsTabelDataIntegritet(
-      { [valid.kapitaliseringsId]: { ...valid, erhvervsevnetabTabelvalg: [] } },
-      new Set([`${valid.kapitaliseringsId}:MANGLER`]),
-    )).toThrow('inventory');
+    const udenL = Object.fromEntries(
+      Object.entries(valid.erhvervsevnetabKoensopdelteTabeller).filter(([navn]) => navn !== 'L')
+    );
+    expect(check({ ...valid, erhvervsevnetabKoensopdelteTabeller: udenL })).toThrow('skal hver være indlæst');
+    expect(check({
+      ...valid,
+      erhvervsevnetabKoensopdelteTabeller: udenL,
+      udeladteKildetabeller: { ...valid.udeladteKildetabeller, L: 'skader-foer-2004' },
+    })).toThrow('matcher ikke EET-tabellerne');
+    expect(check({ ...valid, kildetabeller: [...valid.kildetabeller, 'T'] })).toThrow('skal hver være indlæst');
+    expect(check({
+      ...valid,
+      forsoergertabTabelvalg: valid.forsoergertabTabelvalg.filter((valg) => valg.skadedatoFra !== '2004-01-01'),
+    })).toThrow('matcher ikke tabellerne');
+  });
+
+  it('fail-closer ved manglende eller overtallig særfaktor', () => {
+    const valid = kapitaliseringsTabelDataById['1221/2010'];
+    if (!valid) throw new Error('Testfixture mangler 1221/2010');
+    expect(() => assertKapitaliseringsTabelDataIntegritet({
+      [valid.kapitaliseringsId]: { ...valid, saerfaktorUnderToAarTilFpPerSkadesinterval: [] },
+    })).toThrow('særfaktor findes for');
+    expect(() => assertKapitaliseringsTabelDataIntegritet({
+      [valid.kapitaliseringsId]: {
+        ...valid,
+        saerfaktorUnderToAarTilFpPerSkadesinterval: [
+          ...valid.saerfaktorUnderToAarTilFpPerSkadesinterval,
+          { skadedatoFra: toISODateString('2004-01-01'), faktor: 1.1 },
+        ],
+      },
+    })).toThrow('særfaktor findes for');
   });
 
   it('fail-closer ved omvendte eller duplikerede fødselsintervaller i EET-tabelvalg', () => {
@@ -323,7 +320,7 @@ describe('kapitaliseringsbekendtgørelser', () => {
           tabel: tableName,
         }],
       },
-    }, new Set())).toThrow('ugyldigt EET-tabelvalg');
+    })).toThrow('ugyldigt EET-tabelvalg');
 
     expect(() => assertKapitaliseringsTabelDataIntegritet({
       [valid.kapitaliseringsId]: {
@@ -343,6 +340,6 @@ describe('kapitaliseringsbekendtgørelser', () => {
           },
         ],
       },
-    }, new Set())).toThrow('duplikeret EET-tabelvalg');
+    })).toThrow('overlapper eller har et hul');
   });
 });

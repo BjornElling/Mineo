@@ -104,6 +104,19 @@ const validatePackageManifest = (repoRoot) => {
         `packageManager (${packageManagerVersion}) ligger uden for package.json → engines.npm (${engines.npm}).`
       );
     }
+
+    // `devEngines.runtime` er det, der får npm til at afvise `npm run`/`npm exec`/`npx` på en forkert Node –
+    // `engines` + `engine-strict` rammer kun installationen. Intervallet skal være identisk med `engines.node`
+    // og fejle hårdt; en `warn` ville lade hele værktøjskæden køre på en lavere lokal Node.
+    // `packageManager` står bevidst ikke i devEngines: CI's setup-node kalder `npm config get cache` med den
+    // npm, Node leveres med, FØR projektets npm er installeret, og et npm-krav dér ville vælte CI. npm-versionen
+    // håndhæves af `engines.npm` ved installation og af `check:runtime` i gaten.
+    const runtime = packageJson.devEngines?.runtime;
+    if (!isObject(runtime) || runtime.name !== 'node' || runtime.version !== engines.node || runtime.onFail !== 'error') {
+      problems.push(
+        `package.json → devEngines.runtime skal være { name: 'node', version: '${engines.node}', onFail: 'error' }.`
+      );
+    }
   }
 
   const lockPackages = packageLock.packages;

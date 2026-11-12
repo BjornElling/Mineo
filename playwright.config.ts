@@ -1,6 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 import { reportMachineProfile, resolveMachineProfile } from './e2e/support/machineProfile';
 import { BROWSER_LANE_TAG, VIEWPORT_LANE_TAG } from './e2e/support/lanes';
+import { assertSupportedNode } from './scripts/runtime-requirements.mjs';
+
+// Også editorens Playwright-udvidelse indlæser konfigurationen uden om npm og dermed uden om `devEngines`.
+assertSupportedNode();
 
 const defaultBaseURL = 'http://127.0.0.1:4173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? defaultBaseURL;

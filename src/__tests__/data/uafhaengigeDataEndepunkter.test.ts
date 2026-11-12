@@ -33,7 +33,7 @@ const findAldersraekke = <T extends Readonly<{ alder: number }>>(
 };
 
 describe('TD-020 – uafhængige dataendepunkter', () => {
-  it('registrerer alle 34 kapitaliseringstabeller med deres PDF-kilde', () => {
+  it('registrerer alle 35 kapitaliseringstabeller med deres PDF-kilde', () => {
     // Dette er en uafhængig mængde fra katalogets afledte Object.keys-kontrol. Den
     // fanger en bortfaldet tabel eller en ny tabel uden registrering i index.ts.
     const forventedeIds = [
@@ -60,6 +60,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       '1700/2015',
       '198/2015',
       '199/2015',
+      '229/2014',
       '440/2009',
       '449/2009',
       '678/2007',
@@ -94,6 +95,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
         'Bkg. 1700 2015.pdf',
         'Bkg. 198 2015.pdf',
         'Bkg. 199 2015.pdf',
+        'Bkg. 229 2014.pdf',
         'Bkg. 440 2009.pdf',
         'Bkg. 449 2009.pdf',
         'Bkg. 678 2007.pdf',
@@ -158,7 +160,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       .toEqual({ alder: 65, faktorerPraHeleAar: [0.618, 1.226] });
   });
 
-  it('fastholder de kønsopdelte og manglende tabelpartitioner i ældste PDF', () => {
+  it('fastholder de kønsopdelte tabeller og de begrundet udeladte tabeller i ældste PDF', () => {
     // Facit er kopieret fra den committede kildefil Bkg. 1068 2003.pdf.
     const tabel = requireKapitaliseringstabel('1068/2003');
 
@@ -178,12 +180,21 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       .toEqual({ alder: 34, maendFaktor: 9.771, kvinderFaktor: 9.834 });
     expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'A', 62))
       .toEqual({ alder: 62, maendFaktor: 2.742, kvinderFaktor: 2.753 });
-    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'B', 5))
-      .toEqual({ alder: 5, maendFaktor: 10.453, kvinderFaktor: 10.463 });
-    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'B', 64))
-      .toEqual({ alder: 64, maendFaktor: 4.521, kvinderFaktor: 4.544 });
-    expect(findAldersraekke(tabel.erhvervsevnetabKoensopdelteTabeller, 'C', 66))
-      .toEqual({ alder: 66, maendFaktor: 2.727, kvinderFaktor: 2.742 });
+    // Tabel B og C gælder løbende ydelser efter lov om sikring mod følger af arbejdsskade (skader før 2004).
+    expect(Object.keys(tabel.erhvervsevnetabKoensopdelteTabeller)).toEqual(['A']);
+    expect(tabel.udeladteKildetabeller).toEqual({
+      B: 'skader-foer-2004',
+      C: 'skader-foer-2004',
+      F: 'afloesningsbeloeb',
+      G: 'afloesningsbeloeb',
+      H: 'varigt-men',
+    });
+    expect(tabel.erhvervsevnetabTabelvalg).toEqual([
+      { skadedatoFra: '2004-01-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: null, tabel: 'A' },
+    ]);
+    expect(tabel.forsoergertabTabelvalg).toEqual([
+      { skadedatoFra: '2004-01-01', koensopdelt: true, tabelMaend: 'D', tabelKvinder: 'E' },
+    ]);
     expect(findAldersraekke(tabel.forsoergertabTabellerMaend, 'D', 18))
       .toEqual({ alder: 18, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.989, 4.582, 5.12, 5.61, 6.054, 6.458] });
     expect(findAldersraekke(tabel.forsoergertabTabellerMaend, 'D', 66))
@@ -198,7 +209,8 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
     // Facit er afskrevet fra kilde-PDF'ernes paragraf om tilskadekomne, der er «2 år eller mindre fra at
     // nå folkepensionsalderen». 1068/2003 og 449/2009 har ingen sådan paragraf (tabellerne er «uden
     // omsætningsmulighed» de sidste 2 år), og ingen bekendtgørelse har en særfaktor for skader før
-    // 1. juli 2007. 1202/2013 trykker «1,2514» og registreres som skrevet.
+    // 1. juli 2007. 1202/2013 trykker «1,2514» og registreres som skrevet; BEK 229/2014 retter den til
+    // «1,251» fra 15. marts 2014.
     const facit: Readonly<Record<string, readonly (readonly [string, number])[]>> = {
       '1068/2003': [],
       '449/2009': [],
@@ -216,6 +228,7 @@ describe('TD-020 – uafhængige dataendepunkter', () => {
       '1358/2011': [['2011-01-01', 1.254]],
       '990/2012': [['2011-01-01', 1.254]],
       '1202/2013': [['2011-01-01', 1.2514]],
+      '229/2014': [['2011-01-01', 1.251]],
       '1275/2014': [['2011-01-01', 1.251]],
       '199/2015': [['2011-01-01', 1.251]],
       '1663/2015': [['2011-01-01', 1.251]],

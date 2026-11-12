@@ -1,53 +1,48 @@
-import type { ISODateString } from '../../../types/branded';
-import { toISODateString } from '../../../types/branded';
-import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
+import type {
+  AldersFaktorRaekke,
+  AldersKoensopdeltFaktorRaekke,
+  ForsoergertabMatrixRaekke,
+  RaaErhvervsevnetabTabelvalg,
+  RaaForsoergertabTabelvalg,
+  RaaSaerfaktor,
+  UdeladelsesGrund,
+} from '.';
 
 export const kapitaliseringsId = '1358/2011' as const;
 export const kapitaliseringsType = 'bkg' as const;
 export const kapitaliseringsFuldeNavn =
   'Bekendtgørelse om omsætning af løbende ydelser til kapitalbeløb i 2012 efter lov om arbejdsskadesikring for ulykker indtrådt og for erhvervssygdomme anmeldt den 1. januar 2011 eller senere' as const;
 export const kapitaliseringsDatering = '22/12/2011' as const;
-export const gyldigFra = toISODateString('2012-01-01');
-export const gyldigTil = toISODateString('2012-12-31');
+export const gyldigFra = '2012-01-01';
+export const gyldigTil = '2012-12-31';
+export const supplerendeKildePdfFiler = [] as const;
 
-// Udtrukket fra BEK nr 1358 af 22/12/2011.
-// Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
-// Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
+// Udtrukket maskinelt fra Bkg. 1358 2011.pdf og kontrolleret tal for tal mod kilden.
+// Registret rummer præcis de tabeller, et tabelvalg kan pege på; kildens øvrige tabeller står i
+// `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
 
-const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     tabel
-  ['2011-01-01',     '1955-07-01',     null,     'A'],
-  ['2011-01-01',     '1955-01-01',     '1955-06-30',     'B'],
-  ['2011-01-01',     '1954-07-01',     '1954-12-31',     'C'],
-  ['2011-01-01',     '1954-01-01',     '1954-06-30',     'D'],
-] as const;
+export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
-export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    foedselsdatoFra: toISODateString(foedselsdatoFra),
-    foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
-    tabel,
-  })
-);
+export const udeladteKildetabeller = {} as const satisfies Readonly<Record<string, UdeladelsesGrund>>;
 
-// Særfaktor for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen (skader fra 1. januar 2011).
-// Bekendtgørelsens ældre afsnit (skader før 1. juli 2007) angiver ingen særfaktor.
-const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadedatoFra     faktor
-  ['2011-01-01',     1.254],
-] as const;
+export const erhvervsevnetabTabelvalg = [
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1955-07-01', foedselsdatoTil: null, tabel: 'A' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1955-01-01', foedselsdatoTil: '1955-06-30', tabel: 'B' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1954-07-01', foedselsdatoTil: '1954-12-31', tabel: 'C' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1954-01-01', foedselsdatoTil: '1954-06-30', tabel: 'D' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: '1953-12-31', tabel: 'E' },
+] as const satisfies readonly RaaErhvervsevnetabTabelvalg[];
 
-export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadedatoFra: ISODateString;
-  faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
-  skadedatoFra: toISODateString(skadedatoFra),
-  faktor,
-}));
+export const forsoergertabTabelvalg = [
+  { skadedatoFra: '2011-01-01', tabelMaend: 'F', tabelKvinder: 'G' },
+] as const satisfies readonly RaaForsoergertabTabelvalg[];
 
-export const erhvervsevnetabTabeller = {
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
+// Faktoren for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen eller har nået den.
+export const saerfaktorUnderToAarTilFp = [
+  { skadedatoFra: '2011-01-01', faktor: 1.254 },
+] as const satisfies readonly RaaSaerfaktor[];
+
+export const erhvervsevnetabTabeller = {} as const satisfies Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
 
 export const erhvervsevnetabKoensopdelteTabeller = {
   A: [
@@ -128,10 +123,9 @@ export const erhvervsevnetabKoensopdelteTabeller = {
     { alder: 61, maendFaktor: 2.436, kvinderFaktor: 2.454 },
     { alder: 62, maendFaktor: 1.849, kvinderFaktor: 1.857 },
   ],
-} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
 
-export const forsoergertabTabeller = {
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabeller = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
 export const forsoergertabTabellerMaend = {
   F: [
@@ -183,7 +177,7 @@ export const forsoergertabTabellerMaend = {
     { alder: 63, faktorerPraHeleAar: [0.621, 1.227] },
     { alder: 64, faktorerPraHeleAar: [0.62] },
   ],
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
 export const forsoergertabTabellerKvinder = {
   G: [
@@ -235,4 +229,4 @@ export const forsoergertabTabellerKvinder = {
     { alder: 63, faktorerPraHeleAar: [0.622, 1.234] },
     { alder: 64, faktorerPraHeleAar: [0.622] },
   ],
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;

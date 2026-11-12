@@ -22,9 +22,12 @@ import { endOfYearIso, isoYear, maxISO, minISO } from '../../utils/isoDateHelper
 //
 // Tomme celler i den originale oversigt (kombinationer der ikke kan forekomme) er udeladt.
 //
-// Note: Intervallet 01-04-1978 indeholder ældre bekendtgørelser fra før 2005.
-// Disse kan aldrig forekomme i praksis (stamdata låser mindste skadedato til 01-01-2005),
-// men bevares af dokumentationsmæssige årsager.
+// Det ældste interval begynder 01-01-2004: lov om arbejdsskadesikring gælder ulykker fra den dato.
+// Ældre skader følger lov om sikring mod følger af arbejdsskade, hvis tabeller ikke er i registret
+// (stamdata låser desuden mindste skadedato til 01-01-2005).
+//
+// En ændringsakt, der ændrer en faktor midt i en bekendtgørelses periode, får sin egen post fra
+// ikrafttrædelsesdatoen (fx BEK 229/2014, der retter særfaktoren i BEK 1202/2013 fra 15-03-2014).
 //
 // Sådan tilføjes et nyt år:
 //   1. Tilføj en ny { kapitaliseringsdatoFra, id } linje nederst i HVERT relevant interval.
@@ -57,7 +60,7 @@ type RawKapitaliseringsSkadedatoInterval = Readonly<{
 const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoInterval[] = [
 
   {
-    skadedatoFra: '1978-04-01',
+    skadedatoFra: '2004-01-01',
     kapitaliseringer: [
       { kapitaliseringsdatoFra: '2004-01-01', id: '1068/2003' },
       { kapitaliseringsdatoFra: '2007-07-01', id: '1068/2003' },
@@ -130,6 +133,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoI
       { kapitaliseringsdatoFra: '2012-01-01', id: '1358/2011' },
       { kapitaliseringsdatoFra: '2013-01-01', id: '990/2012'  },
       { kapitaliseringsdatoFra: '2014-01-01', id: '1202/2013' },
+      { kapitaliseringsdatoFra: '2014-03-15', id: '229/2014'  },
       { kapitaliseringsdatoFra: '2015-01-01', id: '1275/2014' },
       { kapitaliseringsdatoFra: '2015-03-01', id: '199/2015'  },
       { kapitaliseringsdatoFra: '2015-12-29', id: '1663/2015' },

@@ -10,6 +10,7 @@ type FixturePackageJson = {
   license: string;
   packageManager: string;
   engines: { node: string; npm: string };
+  devEngines: { runtime: { name: string; version: string; onFail: string } };
   dependencies: Record<string, string>;
   devDependencies: Record<string, string>;
   allowScripts: Record<string, boolean>;
@@ -33,6 +34,7 @@ const makeFixture = (): { packageJson: FixturePackageJson; packageLock: FixtureL
     license: 'MIT',
     packageManager: 'npm@11.16.0',
     engines: { node: '>=24.18.0 <27', npm: '>=11.13.0 <12' },
+    devEngines: { runtime: { name: 'node', version: '>=24.18.0 <27', onFail: 'error' } },
     dependencies: { 'runtime-pkg': '^1.0.0' },
     devDependencies: { 'build-pkg': '^2.0.0' },
     allowScripts: { 'build-pkg@2.0.1': true },
@@ -118,6 +120,22 @@ describe('check-package-manifest', () => {
       const result = runCheck(fixtureRoot);
       expect(result.status).toBe(1);
       expect(`${result.stdout}${result.stderr}`).toContain('.nvmrc');
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ['et andet interval end engines.node', { name: 'node', version: '>=24.0.0 <27', onFail: 'error' }],
+    ['en advarsel i stedet for en fejl', { name: 'node', version: '>=24.18.0 <27', onFail: 'warn' }],
+  ])('afviser devEngines.runtime med %s', (_label, runtime) => {
+    const fixture = makeFixture();
+    fixture.packageJson.devEngines = { runtime };
+    const fixtureRoot = writeFixture(fixture);
+    try {
+      const result = runCheck(fixtureRoot);
+      expect(result.status).toBe(1);
+      expect(`${result.stdout}${result.stderr}`).toContain('devEngines.runtime');
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true });
     }

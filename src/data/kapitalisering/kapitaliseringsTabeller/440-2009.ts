@@ -1,56 +1,50 @@
-import type { ISODateString } from '../../../types/branded';
-import { toISODateString } from '../../../types/branded';
-import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
+import type {
+  AldersFaktorRaekke,
+  AldersKoensopdeltFaktorRaekke,
+  ForsoergertabMatrixRaekke,
+  RaaErhvervsevnetabTabelvalg,
+  RaaForsoergertabTabelvalg,
+  RaaSaerfaktor,
+  UdeladelsesGrund,
+} from '.';
 
 export const kapitaliseringsId = '440/2009' as const;
 export const kapitaliseringsType = 'bkg' as const;
 export const kapitaliseringsFuldeNavn =
   'Bekendtgørelse om omsætning af løbende ydelser til kapitalbeløb fra 1. juli 2009 efter lov om arbejdsskadesikring for ulykker indtrådt og for erhvervssygdomme anmeldt den 1. juli 2007 eller senere' as const;
 export const kapitaliseringsDatering = '29/05/2009' as const;
-export const gyldigFra = toISODateString('2009-07-01');
-export const gyldigTil = toISODateString('2009-12-31');
+export const gyldigFra = '2009-07-01';
+export const gyldigTil = '2009-12-31';
+export const supplerendeKildePdfFiler = [] as const;
 
-// Udtrukket maskinelt fra Bkg. 440 2009.pdf.
-// Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
-// Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
+// Udtrukket maskinelt fra Bkg. 440 2009.pdf og kontrolleret tal for tal mod kilden.
+// Registret rummer præcis de tabeller, et tabelvalg kan pege på; kildens øvrige tabeller står i
+// `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
 
-const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     tabel
-  ['2007-07-01',     '1960-07-01',     null,     'A'],
-  ['2007-07-01',     '1960-01-01',     '1960-06-30',     'B'],
-  ['2007-07-01',     '1959-07-01',     '1959-12-31',     'C'],
-  ['2007-07-01',     '1959-01-01',     '1959-06-30',     'D'],
-  ['2007-07-01',     '1900-01-01',     '1958-12-31',     'E'],
-] as const;
+export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
-export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    foedselsdatoFra: toISODateString(foedselsdatoFra),
-    foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
-    tabel,
-  })
-);
+export const udeladteKildetabeller = {} as const satisfies Readonly<Record<string, UdeladelsesGrund>>;
 
-// Særfaktor for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen (ulykker og erhvervssygdomme 1. juli 2007 – 31. december 2010).
-// Bekendtgørelsens ældre afsnit (skader før 1. juli 2007) angiver ingen særfaktor.
-const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadedatoFra     faktor
-  ['2007-07-01',     1.160],
-] as const;
+export const erhvervsevnetabTabelvalg = [
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1960-07-01', foedselsdatoTil: null, tabel: 'A' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1960-01-01', foedselsdatoTil: '1960-06-30', tabel: 'B' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1959-07-01', foedselsdatoTil: '1959-12-31', tabel: 'C' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1959-01-01', foedselsdatoTil: '1959-06-30', tabel: 'D' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: '1958-12-31', tabel: 'E' },
+] as const satisfies readonly RaaErhvervsevnetabTabelvalg[];
 
-export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadedatoFra: ISODateString;
-  faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
-  skadedatoFra: toISODateString(skadedatoFra),
-  faktor,
-}));
+export const forsoergertabTabelvalg = [
+  { skadedatoFra: '2007-07-01', tabelMaend: 'F', tabelKvinder: 'G' },
+] as const satisfies readonly RaaForsoergertabTabelvalg[];
 
-export const erhvervsevnetabTabeller = {} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
+// Faktoren for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen eller har nået den.
+export const saerfaktorUnderToAarTilFp = [
+  { skadedatoFra: '2007-07-01', faktor: 1.16 },
+] as const satisfies readonly RaaSaerfaktor[];
 
-export const erhvervsevnetabKoensopdelteTabeller = 
-{
+export const erhvervsevnetabTabeller = {} as const satisfies Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
+
+export const erhvervsevnetabKoensopdelteTabeller = {
   A: [
     { alder: 5, maendFaktor: 30.319, kvinderFaktor: 30.729 },
     { alder: 6, maendFaktor: 29.865, kvinderFaktor: 30.276 },
@@ -97,20 +91,20 @@ export const erhvervsevnetabKoensopdelteTabeller =
     { alder: 47, maendFaktor: 10.245, kvinderFaktor: 10.499 },
     { alder: 48, maendFaktor: 9.754, kvinderFaktor: 9.995 },
     { alder: 49, maendFaktor: 9.262, kvinderFaktor: 9.491 },
-    { alder: 50, maendFaktor: 8.771, kvinderFaktor: 8.986 }
+    { alder: 50, maendFaktor: 8.771, kvinderFaktor: 8.986 },
   ],
   B: [
     { alder: 49, maendFaktor: 9.047, kvinderFaktor: 9.261 },
-    { alder: 50, maendFaktor: 8.553, kvinderFaktor: 8.754 }
+    { alder: 50, maendFaktor: 8.553, kvinderFaktor: 8.754 },
   ],
   C: [
     { alder: 49, maendFaktor: 8.831, kvinderFaktor: 9.03 },
     { alder: 50, maendFaktor: 8.335, kvinderFaktor: 8.521 },
-    { alder: 51, maendFaktor: 7.839, kvinderFaktor: 8.011 }
+    { alder: 51, maendFaktor: 7.839, kvinderFaktor: 8.011 },
   ],
   D: [
     { alder: 50, maendFaktor: 8.111, kvinderFaktor: 8.284 },
-    { alder: 51, maendFaktor: 7.613, kvinderFaktor: 7.772 }
+    { alder: 51, maendFaktor: 7.613, kvinderFaktor: 7.772 },
   ],
   E: [
     { alder: 50, maendFaktor: 7.887, kvinderFaktor: 8.047 },
@@ -125,14 +119,13 @@ export const erhvervsevnetabKoensopdelteTabeller =
     { alder: 59, maendFaktor: 3.308, kvinderFaktor: 3.347 },
     { alder: 60, maendFaktor: 2.782, kvinderFaktor: 2.809 },
     { alder: 61, maendFaktor: 2.25, kvinderFaktor: 2.266 },
-    { alder: 62, maendFaktor: 1.709, kvinderFaktor: 1.717 }
-  ]
-} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;
+    { alder: 62, maendFaktor: 1.709, kvinderFaktor: 1.717 },
+  ],
+} as const satisfies Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
 
-export const forsoergertabTabeller = {} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabeller = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerMaend = 
-{
+export const forsoergertabTabellerMaend = {
   F: [
     { alder: 18, faktorerPraHeleAar: [0.579, 1.155, 1.729, 2.3, 2.869, 3.435, 3.998, 4.559, 5.117, 5.672] },
     { alder: 19, faktorerPraHeleAar: [0.579, 1.155, 1.729, 2.3, 2.869, 3.435, 3.998, 4.558, 5.116, 5.671] },
@@ -180,12 +173,11 @@ export const forsoergertabTabellerMaend =
     { alder: 61, faktorerPraHeleAar: [0.575, 1.138, 1.688, 2.224] },
     { alder: 62, faktorerPraHeleAar: [0.574, 1.136, 1.684] },
     { alder: 63, faktorerPraHeleAar: [0.574, 1.134] },
-    { alder: 64, faktorerPraHeleAar: [0.574] }
-  ]
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+    { alder: 64, faktorerPraHeleAar: [0.574] },
+  ],
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerKvinder = 
-{
+export const forsoergertabTabellerKvinder = {
   G: [
     { alder: 18, faktorerPraHeleAar: [0.579, 1.156, 1.73, 2.301, 2.87, 3.436, 4, 4.561, 5.12, 5.676] },
     { alder: 19, faktorerPraHeleAar: [0.579, 1.156, 1.729, 2.301, 2.87, 3.436, 4, 4.561, 5.119, 5.675] },
@@ -233,6 +225,6 @@ export const forsoergertabTabellerKvinder =
     { alder: 61, faktorerPraHeleAar: [0.576, 1.143, 1.7, 2.247] },
     { alder: 62, faktorerPraHeleAar: [0.576, 1.142, 1.697] },
     { alder: 63, faktorerPraHeleAar: [0.576, 1.14] },
-    { alder: 64, faktorerPraHeleAar: [0.575] }
-  ]
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+    { alder: 64, faktorerPraHeleAar: [0.575] },
+  ],
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;

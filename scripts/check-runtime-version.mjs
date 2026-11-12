@@ -2,43 +2,17 @@
 /**
  * Kontrollerer, at den KØRENDE Node/npm-version er den, projektet erklærer i `package.json` → `engines`.
  *
- * **Hvorfor der er brug for dette ud over `engine-strict`.** `.npmrc` har `engine-strict=true`, så `npm ci` og
- * `npm install` fejler fail-closed med `EBADENGINE` på en forkert version – det er efterprøvet. Men den kontrol
- * rammer kun INSTALLATIONEN. Kører man `npm run verify:release` på et træ, der allerede er installeret, udfører
- * npm ingen engine-kontrol, og gaten bliver grøn på en runtime, projektet ikke understøtter. Et grønt gate-udfald
- * ville da bære en påstand om den understøttede toolchain, som ingen har målt (R0-F01).
+ * **Hvorfor der er brug for dette ud over `engine-strict` og `devEngines`.** `engine-strict=true` rammer kun
+ * installationen, og `devEngines.runtime` får npm til at afvise `npm run` på forkert Node – men ingen af dem
+ * kontrollerer npm-versionen ved en almindelig kørsel. Gaten skal enten være kørt på den erklærede toolchain,
+ * eller slet ikke være kørt (R0-F01). Lagdelingen er beskrevet i `runtime-requirements.mjs`.
  *
- * Kontrollen er derfor et obligatorisk trin i `verify:release`: enten er gaten kørt på den erklærede runtime, eller
- * den er slet ikke kørt.
- *
- * Sandheden er ÉN kilde: `package.json` → `engines`. Scriptet dublerer ikke intervallerne, så en bump af
- * `engines` (eller af `.nvmrc`) kan ikke efterlade kontrollen bagud.
- *
- * Projektet bruger Node 26 LTS. `.nvmrc` fastlægger den konkrete CI-version, og `engines`
- * tillader efterfølgende rettelser i samme major. CI installerer npm-versionen fra `packageManager`,
- * så lokale kontroller og CI bruger samme hovedversion af begge værktøjer.
- *
- * `--warn-only` findes bevidst IKKE. En advarsel ville gøre kontrollen til støj, man scroller forbi, og det er
- * netop den tilstand, fundet beskriver.
+ * `--warn-only` findes bevidst IKKE. En advarsel ville gøre kontrollen til støj, man scroller forbi.
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { satisfiesRange } from './version-range.mjs';
+import { readRuntimeRequirements, upgradeInstructions } from './runtime-requirements.mjs';
 
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-
-/** Læs `engines` fra den ENE kanoniske kilde. */
-const readEngines = () => {
-  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
-  const engines = pkg.engines;
-  if (engines === undefined || typeof engines.node !== 'string' || typeof engines.npm !== 'string') {
-    throw new Error('package.json → engines mangler node/npm. Kontrollen kan ikke måle mod en tom erklæring.');
-  }
-  return engines;
-};
-
-const engines = readEngines();
+const requirements = readRuntimeRequirements();
 
 const actual = {
   node: process.versions.node,
@@ -50,27 +24,22 @@ const actual = {
 
 const problems = [];
 
-if (!satisfiesRange(actual.node, engines.node)) {
-  problems.push(`Node: kræver ${engines.node}, kører ${actual.node}`);
+if (!satisfiesRange(actual.node, requirements.node)) {
+  problems.push(`Node: kræver ${requirements.node}, kører ${actual.node} (${process.execPath})`);
 }
 
 if (actual.npm === undefined) {
   console.warn(
     'check:runtime – npm-versionen kunne ikke læses (scriptet blev ikke kaldt gennem npm). Kun Node er kontrolleret.'
   );
-} else if (!satisfiesRange(actual.npm, engines.npm)) {
-  problems.push(`npm: kræver ${engines.npm}, kører ${actual.npm}`);
+} else if (!satisfiesRange(actual.npm, requirements.npm)) {
+  problems.push(`npm: kræver ${requirements.npm}, kører ${actual.npm}`);
 }
 
 if (problems.length > 0) {
   console.error('\nRuntime matcher ikke projektets erklærede toolchain:\n');
   for (const problem of problems) console.error(`  - ${problem}`);
-  console.error(
-    '\nKør gaten på den erklærede runtime. Versionen står i .nvmrc (og i package.json → engines);'
-    + '\nen version manager kan skifte til den med `nvm use` / `fnm use`.'
-    + '\n\nEt grønt gate-udfald på en anden runtime ville bære en påstand om den understøttede'
-    + '\ntoolchain, som ingen har målt (R0-F01).\n'
-  );
+  console.error(`\n${upgradeInstructions(requirements)}\n`);
   process.exit(1);
 }
 

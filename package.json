@@ -24,6 +24,13 @@
     "node": ">=26.13.0 <27",
     "npm": ">=12.2.2 <13"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26.13.0 <27",
+      "onFail": "error"
+    }
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",

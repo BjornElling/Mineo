@@ -7,6 +7,11 @@ import fs from 'node:fs';
 import react from '@vitejs/plugin-react';
 import { createThemeBootstrapScript } from './src/settings/themeBootstrap.ts';
 import { createStartupUpdateScreenScript } from './src/apps/mineo/startupUpdateScreen.ts';
+import { assertSupportedNode } from './scripts/runtime-requirements.mjs';
+
+// Vite, Vitest og begge app-konfigurationer indlæser denne fil – også når editoren starter dem uden om npm,
+// hvor `devEngines` ikke virker. En lavere lokal Node stopper derfor her i stedet for at køre stiltiende.
+assertSupportedNode();
 
 const BUILD_INFO_ENV_FILE = path.resolve(import.meta.dirname, '.env.build-info.local');
 

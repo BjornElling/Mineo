@@ -11,6 +11,7 @@ import {
 import {
   assertKapitaliseringsTabelDataIntegritet,
   kapitaliseringsTabelDataById,
+  SAERFAKTOR_SKADEDATO_FRA,
   type KapitaliseringsTabelData,
 } from '../kapitalisering/kapitaliseringsTabeller';
 import {
@@ -153,6 +154,22 @@ export const assertKapitaliseringsMappingIntegritet = (
           `Kapitaliseringsbekendtgørelser: ${current.id} afledes som `
           + `${current.kapitaliseringsdatoFra}–${derivedThrough}, men kilden gælder `
           + `${table.gyldigFra}–${table.gyldigTil}`
+        );
+      }
+      // Kilden skal have sit eget afsnit for netop dette skadesinterval – ellers ville opslaget stille
+      // låne et andet skadesintervals tabeller eller særfaktor.
+      const harAfsnit = (skadedatoer: readonly Readonly<{ skadedatoFra: string }>[]): boolean =>
+        skadedatoer.some((entry) => entry.skadedatoFra === interval.skadedatoFra);
+      if (!harAfsnit(table.erhvervsevnetabTabelvalg) || !harAfsnit(table.forsoergertabTabelvalg)) {
+        throw new Error(
+          `Kapitaliseringsbekendtgørelser: ${current.id} har intet tabelvalg for skader fra ${interval.skadedatoFra}`
+        );
+      }
+      const saerfaktorKraevet = interval.skadedatoFra >= SAERFAKTOR_SKADEDATO_FRA;
+      if (harAfsnit(table.saerfaktorUnderToAarTilFpPerSkadesinterval) !== saerfaktorKraevet) {
+        throw new Error(
+          `Kapitaliseringsbekendtgørelser: ${current.id} ${saerfaktorKraevet ? 'mangler' : 'har uventet'} `
+          + `særfaktor for skader fra ${interval.skadedatoFra}`
         );
       }
     }

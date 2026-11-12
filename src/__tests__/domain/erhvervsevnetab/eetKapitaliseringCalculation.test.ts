@@ -1007,8 +1007,9 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBeGreaterThan(0);
   });
 
-  it('giver specifik fejl når den valgte tabel mangler kapitaliseringsfaktorer', () => {
-    // 1403/2011:L er fortsat i inventoryen over manglende tabeller (1068/2003:A er udtrukket).
+  it('kapitaliserer en skade fra 2004-2007 i 2012 med tabel L i 1403/2011 (ældste årgang)', () => {
+    // Tabel L manglede tidligere i registret, så beregningen blokerede. Født 1953-01-01 → 59 år den
+    // 2012-02-01; for skader før 1. juli 2007 slås op på fyldt alder uden månedsinterpolation (mænd: 4,561).
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -1032,12 +1033,9 @@ describe('computeEetKapitaliseringCalculation', () => {
       skadelidteFodselsdato: toISODateString('1953-01-01'),
     });
 
-    expect(result.computation).toBeNull();
-    expect(result.issues).toContainEqual({
-      id: 'kapitaliseringstabel-missing',
-      severity: 'error',
-      message: 'Ingen kapitaliseringsfaktorer indtastet for tabel L.',
-    });
+    expect(result.issues).toEqual([]);
+    expect(result.computation?.afgoerelser[0]?.tabelLabel).toBe('L');
+    expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(4.561);
   });
 
   it('sorterer flere afgørelser deterministisk efter afgørelsesdato, kapitaliseringsdato og row id', () => {

@@ -1,52 +1,46 @@
-import type { ISODateString } from '../../../types/branded';
-import { toISODateString } from '../../../types/branded';
-import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
+import type {
+  AldersFaktorRaekke,
+  AldersKoensopdeltFaktorRaekke,
+  ForsoergertabMatrixRaekke,
+  RaaErhvervsevnetabTabelvalg,
+  RaaForsoergertabTabelvalg,
+  RaaSaerfaktor,
+  UdeladelsesGrund,
+} from '.';
 
 export const kapitaliseringsId = '9870/2020' as const;
 export const kapitaliseringsType = 'vejl' as const;
 export const kapitaliseringsFuldeNavn =
   'Vejledning om omsætning foretaget den 31. december 2020 af løbende erstatninger til kapitalbeløb efter lov om arbejdsskadesikring for arbejdsskader indtrådt fra den 1. januar 2011' as const;
 export const kapitaliseringsDatering = '01/12/2020' as const;
-export const gyldigFra = toISODateString('2020-12-31');
-export const gyldigTil = toISODateString('2020-12-31');
-// Denne vejledning dækker kun én særskilt kapitaliseringsdato (31-12-2020).
-// Datoerne før 31-12-2020 i 2020 dækkes af VEJ 9921/2019.
+export const gyldigFra = '2020-12-31';
+export const gyldigTil = '2020-12-31';
+export const supplerendeKildePdfFiler = [] as const;
 
-// Udtrukket fra VEJ nr 9870 af 01/12/2020.
-// Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
-// Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
-// Kilden angiver ikke eksplicit EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg
-// eller særfaktor ved ≤2 år til folkepension. Disse felter udfyldes derfor ikke.
+// Udtrukket maskinelt fra Vejl. 9870 2020.pdf og kontrolleret tal for tal mod kilden.
+// Registret rummer præcis de tabeller, et tabelvalg kan pege på; kildens øvrige tabeller står i
+// `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
+// Vejledningen gælder alene kapitalisering den 31. december 2020. VEJ 9738/2020 (29.-31. december 2020)
+// bortfaldt ved denne vejledning, før den fik virkning, så 29.-30. december 2020 dækkes af VEJ 9921/2019.
 
-const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     tabel
-  ['2011-01-01',     '1967-01-01',     'A'],
-  ['2011-01-01',     '1963-01-01',     'B'],
-  ['2011-01-01',     '1955-07-01',     'C'],
-] as const;
+export const kildetabeller = ['A', 'B', 'C', 'D'] as const;
 
-export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    foedselsdatoFra: toISODateString(foedselsdatoFra),
-    tabel,
-  })
-);
+export const udeladteKildetabeller = {} as const satisfies Readonly<Record<string, UdeladelsesGrund>>;
 
-// Særfaktor for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen (skader fra 1. januar 2011).
-// Bekendtgørelsens ældre afsnit (skader før 1. juli 2007) angiver ingen særfaktor.
-const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadedatoFra     faktor
-  ['2011-01-01',     1.245],
-] as const;
+export const erhvervsevnetabTabelvalg = [
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1967-01-01', foedselsdatoTil: null, tabel: 'A' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1963-01-01', foedselsdatoTil: '1966-12-31', tabel: 'B' },
+  { skadedatoFra: '2011-01-01', foedselsdatoFra: '1955-07-01', foedselsdatoTil: '1962-12-31', tabel: 'C' },
+] as const satisfies readonly RaaErhvervsevnetabTabelvalg[];
 
-export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadedatoFra: ISODateString;
-  faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
-  skadedatoFra: toISODateString(skadedatoFra),
-  faktor,
-}));
+export const forsoergertabTabelvalg = [
+  { skadedatoFra: '2011-01-01', tabel: 'D' },
+] as const satisfies readonly RaaForsoergertabTabelvalg[];
+
+// Faktoren for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen eller har nået den.
+export const saerfaktorUnderToAarTilFp = [
+  { skadedatoFra: '2011-01-01', faktor: 1.245 },
+] as const satisfies readonly RaaSaerfaktor[];
 
 export const erhvervsevnetabTabeller = {
   A: [
@@ -119,14 +113,11 @@ export const erhvervsevnetabTabeller = {
     { alder: 63, faktor: 2.442 },
     { alder: 64, faktor: 1.846 },
   ],
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
 
-export const erhvervsevnetabKoensopdelteTabeller = {
-} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;
+export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
 
 export const forsoergertabTabeller = {
-  // Kolonne 1: Fyldt alder
-  // Kolonne 2: Resterende erstatningsperiode, antal hele år
   D: [
     { alder: 18, faktorerPraHeleAar: [0.624, 1.25, 1.878, 2.508, 3.141, 3.776, 4.413, 5.053, 5.694, 6.338] },
     { alder: 19, faktorerPraHeleAar: [0.624, 1.25, 1.878, 2.508, 3.141, 3.776, 4.413, 5.052, 5.693, 6.337] },
@@ -172,10 +163,8 @@ export const forsoergertabTabeller = {
     { alder: 59, faktorerPraHeleAar: [0.62, 1.236, 1.845, 2.448, 3.044, 3.632, 4.212, 4.781] },
     { alder: 60, faktorerPraHeleAar: [0.62, 1.234, 1.842, 2.443, 3.036, 3.619, 4.193] },
   ],
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerMaend = {
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabellerMaend = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerKvinder = {
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabellerKvinder = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;

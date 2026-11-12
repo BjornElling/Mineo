@@ -1,61 +1,62 @@
-import type { ISODateString } from '../../../types/branded';
-import { toISODateString } from '../../../types/branded';
-import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
+import type {
+  AldersFaktorRaekke,
+  AldersKoensopdeltFaktorRaekke,
+  ForsoergertabMatrixRaekke,
+  RaaErhvervsevnetabTabelvalg,
+  RaaForsoergertabTabelvalg,
+  RaaSaerfaktor,
+  UdeladelsesGrund,
+} from '.';
 
 export const kapitaliseringsId = '1700/2015' as const;
 export const kapitaliseringsType = 'bkg' as const;
 export const kapitaliseringsFuldeNavn =
   'Bekendtgørelse om omsætning af løbende ydelser til kapitalbeløb for arbejdsskader før den 1. januar 2011' as const;
 export const kapitaliseringsDatering = '15/12/2015' as const;
-export const gyldigFra = toISODateString('2015-12-29');
-export const gyldigTil = toISODateString('2020-12-30');
+export const gyldigFra = '2015-12-29';
+export const gyldigTil = '2020-12-30';
+export const supplerendeKildePdfFiler = [] as const;
 
-// Udtrukket maskinelt fra Bkg. 1700 2015.pdf.
-// Kun tabeller for erhvervsevnetab og forsørgertab er medtaget.
-// Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
+// Udtrukket maskinelt fra Bkg. 1700 2015.pdf og kontrolleret tal for tal mod kilden.
+// Registret rummer præcis de tabeller, et tabelvalg kan pege på; kildens øvrige tabeller står i
+// `udeladteKildetabeller` med begrundelse, så ingen udeladelse er tavs.
 
-const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     tabel
-  ['2007-07-01',     '1963-01-01',     null,     'A'],
-  ['2007-07-01',     '1955-07-01',     '1962-12-31',     'B'],
-  ['2007-07-01',     '1955-01-01',     '1955-06-30',     'C'],
-  ['2007-07-01',     '1954-07-01',     '1954-12-31',     'D'],
-  ['2007-07-01',     '1954-01-01',     '1954-06-30',     'E'],
-  ['2007-07-01',     '1900-01-01',     '1953-12-31',     'F'],
-  ['2004-01-01',     '1963-01-01',     null,     'H'],
-  ['2004-01-01',     '1955-07-01',     '1962-12-31',     'I'],
-  ['2004-01-01',     '1955-01-01',     '1955-06-30',     'J'],
-  ['2004-01-01',     '1954-07-01',     '1954-12-31',     'K'],
-  ['2004-01-01',     '1954-01-01',     '1954-06-30',     'L'],
-  ['2004-01-01',     '1900-01-01',     '1953-12-31',     'M'],
-] as const;
+export const kildetabeller = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S'] as const;
 
-export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    foedselsdatoFra: toISODateString(foedselsdatoFra),
-    foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
-    tabel,
-  })
-);
+export const udeladteKildetabeller = {
+  O: 'skader-foer-2004', // lov om sikring mod følger af arbejdsskade (skader før 2004)
+  P: 'skader-foer-2004', // lov om sikring mod følger af arbejdsskade (skader før 2004)
+  Q: 'afloesningsbeloeb', // afløsningsbeløb efter lov om sikring mod følger af arbejdsskade
+  R: 'afloesningsbeloeb', // afløsningsbeløb efter lov om sikring mod følger af arbejdsskade
+  S: 'varigt-men', // varigt mén
+} as const satisfies Readonly<Record<string, UdeladelsesGrund>>;
 
-// Særfaktor for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen (ulykker og erhvervssygdomme 1. juli 2007 – 31. december 2010).
-// Bekendtgørelsens ældre afsnit (skader før 1. juli 2007) angiver ingen særfaktor.
-const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadedatoFra     faktor
-  ['2007-07-01',     1.168],
-] as const;
+export const erhvervsevnetabTabelvalg = [
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1963-01-01', foedselsdatoTil: null, tabel: 'A' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1955-07-01', foedselsdatoTil: '1962-12-31', tabel: 'B' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1955-01-01', foedselsdatoTil: '1955-06-30', tabel: 'C' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1954-07-01', foedselsdatoTil: '1954-12-31', tabel: 'D' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1954-01-01', foedselsdatoTil: '1954-06-30', tabel: 'E' },
+  { skadedatoFra: '2007-07-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: '1953-12-31', tabel: 'F' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1963-01-01', foedselsdatoTil: null, tabel: 'H' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1955-07-01', foedselsdatoTil: '1962-12-31', tabel: 'I' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1955-01-01', foedselsdatoTil: '1955-06-30', tabel: 'J' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1954-07-01', foedselsdatoTil: '1954-12-31', tabel: 'K' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1954-01-01', foedselsdatoTil: '1954-06-30', tabel: 'L' },
+  { skadedatoFra: '2004-01-01', foedselsdatoFra: '1900-01-01', foedselsdatoTil: '1953-12-31', tabel: 'M' },
+] as const satisfies readonly RaaErhvervsevnetabTabelvalg[];
 
-export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadedatoFra: ISODateString;
-  faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
-  skadedatoFra: toISODateString(skadedatoFra),
-  faktor,
-}));
+export const forsoergertabTabelvalg = [
+  { skadedatoFra: '2007-07-01', tabel: 'G' },
+  { skadedatoFra: '2004-01-01', tabel: 'N' },
+] as const satisfies readonly RaaForsoergertabTabelvalg[];
 
-export const erhvervsevnetabTabeller = 
-{
+// Faktoren for tilskadekomne, der er 2 år eller mindre fra folkepensionsalderen eller har nået den.
+export const saerfaktorUnderToAarTilFp = [
+  { skadedatoFra: '2007-07-01', faktor: 1.168 },
+] as const satisfies readonly RaaSaerfaktor[];
+
+export const erhvervsevnetabTabeller = {
   A: [
     { alder: 5, faktor: 33.55 },
     { alder: 6, faktor: 33.019 },
@@ -117,7 +118,7 @@ export const erhvervsevnetabTabeller =
     { alder: 62, faktor: 3.338 },
     { alder: 63, faktor: 2.805 },
     { alder: 64, faktor: 2.267 },
-    { alder: 65, faktor: 1.722 }
+    { alder: 65, faktor: 1.722 },
   ],
   B: [
     { alder: 52, faktor: 8.079 },
@@ -132,29 +133,29 @@ export const erhvervsevnetabTabeller =
     { alder: 61, faktor: 3.351 },
     { alder: 62, faktor: 2.814 },
     { alder: 63, faktor: 2.272 },
-    { alder: 64, faktor: 1.724 }
+    { alder: 64, faktor: 1.724 },
   ],
   C: [
     { alder: 60, faktor: 3.623 },
     { alder: 61, faktor: 3.086 },
     { alder: 62, faktor: 2.546 },
     { alder: 63, faktor: 1.999 },
-    { alder: 64, faktor: 1.446 }
+    { alder: 64, faktor: 1.446 },
   ],
   D: [
     { alder: 60, faktor: 3.362 },
     { alder: 61, faktor: 2.822 },
     { alder: 62, faktor: 2.277 },
-    { alder: 63, faktor: 1.726 }
+    { alder: 63, faktor: 1.726 },
   ],
   E: [
     { alder: 61, faktor: 2.552 },
     { alder: 62, faktor: 2.003 },
-    { alder: 63, faktor: 1.447 }
+    { alder: 63, faktor: 1.447 },
   ],
   F: [
     { alder: 61, faktor: 2.282 },
-    { alder: 62, faktor: 1.728 }
+    { alder: 62, faktor: 1.728 },
   ],
   H: [
     { alder: 5, faktor: 10.455 },
@@ -217,7 +218,7 @@ export const erhvervsevnetabTabeller =
     { alder: 62, faktor: 4.545 },
     { alder: 63, faktor: 4.002 },
     { alder: 64, faktor: 3.403 },
-    { alder: 65, faktor: 2.738 }
+    { alder: 65, faktor: 2.738 },
   ],
   I: [
     { alder: 52, faktor: 7.732 },
@@ -232,36 +233,35 @@ export const erhvervsevnetabTabeller =
     { alder: 61, faktor: 4.559 },
     { alder: 62, faktor: 4.013 },
     { alder: 63, faktor: 3.41 },
-    { alder: 64, faktor: 2.742 }
+    { alder: 64, faktor: 2.742 },
   ],
   J: [
     { alder: 60, faktor: 4.813 },
     { alder: 61, faktor: 4.291 },
     { alder: 62, faktor: 3.714 },
     { alder: 63, faktor: 3.077 },
-    { alder: 64, faktor: 2.371 }
+    { alder: 64, faktor: 2.371 },
   ],
   K: [
     { alder: 60, faktor: 4.572 },
     { alder: 61, faktor: 4.023 },
     { alder: 62, faktor: 3.416 },
-    { alder: 63, faktor: 2.745 }
+    { alder: 63, faktor: 2.745 },
   ],
   L: [
     { alder: 61, faktor: 3.722 },
     { alder: 62, faktor: 3.082 },
-    { alder: 63, faktor: 2.372 }
+    { alder: 63, faktor: 2.372 },
   ],
   M: [
     { alder: 61, faktor: 3.422 },
-    { alder: 62, faktor: 2.748 }
+    { alder: 62, faktor: 2.748 },
   ],
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
+} as const satisfies Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
 
-export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Record<string, readonly AldersKoensopdeltFaktorRaekke[]>;
+export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
 
-export const forsoergertabTabeller = 
-{
+export const forsoergertabTabeller = {
   G: [
     { alder: 18, faktorerPraHeleAar: [0.584, 1.166, 1.748, 2.328, 2.907, 3.485, 4.062, 4.638, 5.212, 5.786] },
     { alder: 19, faktorerPraHeleAar: [0.584, 1.166, 1.748, 2.328, 2.907, 3.485, 4.062, 4.637, 5.211, 5.784] },
@@ -312,10 +312,62 @@ export const forsoergertabTabeller =
     { alder: 64, faktorerPraHeleAar: [0.579, 1.146, 1.701, 2.242] },
     { alder: 65, faktorerPraHeleAar: [0.578, 1.144, 1.696] },
     { alder: 66, faktorerPraHeleAar: [0.578, 1.142] },
-    { alder: 67, faktorerPraHeleAar: [0.577] }
+    { alder: 67, faktorerPraHeleAar: [0.577] },
   ],
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+  N: [
+    { alder: 18, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.989, 4.582, 5.121, 5.611, 6.055, 6.46] },
+    { alder: 19, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.989, 4.582, 5.121, 5.61, 6.055, 6.459] },
+    { alder: 20, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.989, 4.582, 5.12, 5.61, 6.054, 6.458] },
+    { alder: 21, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.988, 4.581, 5.12, 5.609, 6.054, 6.457] },
+    { alder: 22, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.988, 4.581, 5.119, 5.609, 6.053, 6.457] },
+    { alder: 23, faktorerPraHeleAar: [0.957, 1.827, 2.618, 3.336, 3.988, 4.581, 5.119, 5.608, 6.052, 6.456] },
+    { alder: 24, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.335, 3.988, 4.58, 5.118, 5.607, 6.051, 6.455] },
+    { alder: 25, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.335, 3.987, 4.58, 5.118, 5.607, 6.05, 6.453] },
+    { alder: 26, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.335, 3.987, 4.579, 5.117, 5.606, 6.049, 6.452] },
+    { alder: 27, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.335, 3.987, 4.579, 5.116, 5.605, 6.048, 6.451] },
+    { alder: 28, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.334, 3.986, 4.578, 5.116, 5.604, 6.047, 6.449] },
+    { alder: 29, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.334, 3.986, 4.577, 5.115, 5.603, 6.046, 6.448] },
+    { alder: 30, faktorerPraHeleAar: [0.957, 1.827, 2.617, 3.334, 3.985, 4.577, 5.114, 5.601, 6.044, 6.446] },
+    { alder: 31, faktorerPraHeleAar: [0.957, 1.827, 2.616, 3.333, 3.985, 4.576, 5.113, 5.6, 6.042, 6.444] },
+    { alder: 32, faktorerPraHeleAar: [0.957, 1.827, 2.616, 3.333, 3.984, 4.575, 5.112, 5.599, 6.041, 6.442] },
+    { alder: 33, faktorerPraHeleAar: [0.957, 1.826, 2.616, 3.333, 3.983, 4.574, 5.11, 5.597, 6.039, 6.439] },
+    { alder: 34, faktorerPraHeleAar: [0.957, 1.826, 2.616, 3.332, 3.983, 4.573, 5.109, 5.595, 6.036, 6.437] },
+    { alder: 35, faktorerPraHeleAar: [0.957, 1.826, 2.615, 3.331, 3.982, 4.572, 5.107, 5.593, 6.034, 6.434] },
+    { alder: 36, faktorerPraHeleAar: [0.957, 1.826, 2.615, 3.331, 3.981, 4.57, 5.106, 5.591, 6.031, 6.43] },
+    { alder: 37, faktorerPraHeleAar: [0.957, 1.826, 2.614, 3.33, 3.98, 4.569, 5.104, 5.588, 6.028, 6.427] },
+    { alder: 38, faktorerPraHeleAar: [0.957, 1.826, 2.614, 3.329, 3.979, 4.567, 5.101, 5.586, 6.025, 6.423] },
+    { alder: 39, faktorerPraHeleAar: [0.957, 1.825, 2.614, 3.329, 3.977, 4.566, 5.099, 5.583, 6.021, 6.418] },
+    { alder: 40, faktorerPraHeleAar: [0.957, 1.825, 2.613, 3.328, 3.976, 4.564, 5.097, 5.58, 6.017, 6.414] },
+    { alder: 41, faktorerPraHeleAar: [0.957, 1.825, 2.612, 3.327, 3.974, 4.562, 5.094, 5.576, 6.013, 6.408] },
+    { alder: 42, faktorerPraHeleAar: [0.957, 1.825, 2.612, 3.326, 3.973, 4.559, 5.091, 5.572, 6.008, 6.403] },
+    { alder: 43, faktorerPraHeleAar: [0.957, 1.824, 2.611, 3.324, 3.971, 4.557, 5.087, 5.568, 6.003, 6.396] },
+    { alder: 44, faktorerPraHeleAar: [0.957, 1.824, 2.61, 3.323, 3.969, 4.554, 5.084, 5.563, 5.997, 6.389] },
+    { alder: 45, faktorerPraHeleAar: [0.956, 1.824, 2.61, 3.322, 3.967, 4.551, 5.08, 5.558, 5.991, 6.382] },
+    { alder: 46, faktorerPraHeleAar: [0.956, 1.823, 2.609, 3.32, 3.964, 4.547, 5.075, 5.552, 5.984, 6.373] },
+    { alder: 47, faktorerPraHeleAar: [0.956, 1.823, 2.608, 3.318, 3.962, 4.544, 5.07, 5.546, 5.976, 6.364] },
+    { alder: 48, faktorerPraHeleAar: [0.956, 1.822, 2.606, 3.316, 3.959, 4.54, 5.065, 5.539, 5.967, 6.354] },
+    { alder: 49, faktorerPraHeleAar: [0.956, 1.822, 2.605, 3.314, 3.955, 4.535, 5.059, 5.531, 5.958, 6.343] },
+    { alder: 50, faktorerPraHeleAar: [0.956, 1.821, 2.604, 3.312, 3.952, 4.53, 5.052, 5.523, 5.948, 6.33] },
+    { alder: 51, faktorerPraHeleAar: [0.956, 1.82, 2.602, 3.309, 3.948, 4.525, 5.045, 5.514, 5.936, 6.317] },
+    { alder: 52, faktorerPraHeleAar: [0.956, 1.82, 2.601, 3.306, 3.944, 4.518, 5.037, 5.504, 5.924, 6.302] },
+    { alder: 53, faktorerPraHeleAar: [0.955, 1.819, 2.599, 3.303, 3.939, 4.512, 5.028, 5.493, 5.91, 6.286] },
+    { alder: 54, faktorerPraHeleAar: [0.955, 1.818, 2.597, 3.3, 3.934, 4.505, 5.018, 5.48, 5.896, 6.268] },
+    { alder: 55, faktorerPraHeleAar: [0.955, 1.817, 2.595, 3.296, 3.928, 4.497, 5.008, 5.467, 5.879, 6.248] },
+    { alder: 56, faktorerPraHeleAar: [0.955, 1.816, 2.592, 3.292, 3.922, 4.488, 4.996, 5.452, 5.861, 6.227] },
+    { alder: 57, faktorerPraHeleAar: [0.954, 1.815, 2.59, 3.287, 3.915, 4.478, 4.984, 5.436, 5.842, 6.203] },
+    { alder: 58, faktorerPraHeleAar: [0.954, 1.813, 2.587, 3.282, 3.907, 4.467, 4.97, 5.419, 5.82, 6.178] },
+    { alder: 59, faktorerPraHeleAar: [0.954, 1.812, 2.584, 3.277, 3.899, 4.456, 4.954, 5.399, 5.796] },
+    { alder: 60, faktorerPraHeleAar: [0.953, 1.81, 2.58, 3.271, 3.889, 4.443, 4.937, 5.378] },
+    { alder: 61, faktorerPraHeleAar: [0.953, 1.808, 2.576, 3.264, 3.879, 4.429, 4.919] },
+    { alder: 62, faktorerPraHeleAar: [0.952, 1.807, 2.572, 3.257, 3.868, 4.414] },
+    { alder: 63, faktorerPraHeleAar: [0.952, 1.804, 2.567, 3.249, 3.856] },
+    { alder: 64, faktorerPraHeleAar: [0.951, 1.802, 2.562, 3.24] },
+    { alder: 65, faktorerPraHeleAar: [0.95, 1.799, 2.556] },
+    { alder: 66, faktorerPraHeleAar: [0.95, 1.797] },
+    { alder: 67, faktorerPraHeleAar: [0.949] },
+  ],
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerMaend = {} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabellerMaend = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 
-export const forsoergertabTabellerKvinder = {} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
+export const forsoergertabTabellerKvinder = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;

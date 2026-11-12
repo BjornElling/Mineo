@@ -15,11 +15,15 @@ Installation:
 ```bash
 git clone https://github.com/BjornElling/mineo.git
 cd mineo
-nvm use
+winget upgrade --id OpenJS.NodeJS.LTS --exact   # Windows med MSI-installation; ellers: nvm install
 npm install --global npm@12.2.2
-npm --version # kontrollér, at den aktive version er mindst 12.2.2
+node --version; npm --version # i en NY terminal: mindst 26.13.0 og 12.2.2
 npm ci
 ```
+
+En lavere Node accepteres ikke, heller ikke lokalt: `npm install`/`npm ci` (engine-strict), `npm run`/`npx`
+(`devEngines.runtime`) og Vite/Vitest/Playwright – også startet fra editoren – stopper med en anvisning på
+opgraderingen. Se `scripts/runtime-requirements.mjs`.
 
 Start udviklingsserver:
 ```bash

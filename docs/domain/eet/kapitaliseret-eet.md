@@ -74,7 +74,7 @@ Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning so
 
 #### Trin 2 – Valg af tabel og folkepensionsalder
 
-Inden for den fundne bekendtgørelse opslås tabel på baggrund af skadedato og fødselsdato. Folkepensionsalderen beregnes derefter centralt i `src/data/folkepensionAlderRates.ts` med fødselsdato og den relevante kontrol-/kapitaliseringsdato.
+Inden for den fundne bekendtgørelse opslås tabel på baggrund af skadedato og fødselsdato: det seneste afsnit med `skadedatoFra ≤ skadedato` og i det den ene årgang, fødselsdatoen falder i (årgangene er sammenhængende intervaller). Er den tilskadekomne født før kildens ældste årgang, har kilden ingen tabel, fordi årgangen i hele kildens periode er højst 2 år fra folkepension; den ældste årgangs tabel bruges da som udgangspunkt for særfaktoren, og opslaget fail-closer, hvis særfaktoren ikke gælder. Folkepensionsalderen beregnes derefter centralt i `src/data/folkepensionAlderRates.ts` med fødselsdato og den relevante kontrol-/kapitaliseringsdato.
 
 For bekendtgørelser før 2015-03-01 er tabellerne kønsopdelte. Her skal køn være angivet.
 

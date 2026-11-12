@@ -286,7 +286,7 @@ Bekendtgørelse vælges med samme opslag som i EET:
 resolveKapitaliseringsbekendtgoerelseId(skadedato, beregningsdato)
 ```
 
-Folkepensionsalderen for den efterladte på beregningsdatoen fastlægges centralt i `src/data/folkepensionAlderRates.ts`. Bekendtgørelsen bruges fortsat til at vælge relevant kapitaliserings- og forsørgertabstabel.
+Folkepensionsalderen for den efterladte på beregningsdatoen fastlægges direkte i `src/data/folkepensionAlderRates.ts` (`getFolkepensionAlder`) – ikke via et EET-tabelvalg for den efterladtes fødselsdato. Bekendtgørelsen bruges alene til at vælge forsørgertabstabel.
 
 ### 6.2 Relevant forsørgertabstabel
 
@@ -303,7 +303,11 @@ Normative regler:
 - Hvis `beregningsdato < 2015-03-01`, anvendes kønsafhængig forsørgertabstabel.
 - Når `beregningsdato < 2015-03-01`, er `koen` påkrævet input.
 - Systemet skal kunne slå korrekt op i `forsoergertabTabellerMaend` og `forsoergertabTabellerKvinder`.
-- Hvis den relevante bekendtgørelse ikke har den tabeltype, der kræves for situationen, er det en blokerende fejl.
+- Tabellen vælges udelukkende fra kildens `forsoergertabTabelvalg`: det seneste afsnit med `skadedatoFra ≤ skadedato`.
+  Et kønsopdelt afsnit angiver `tabelMaend`/`tabelKvinder`, et kønsneutralt `tabel`. Domænekoden har ingen
+  egen tabelliste pr. bekendtgørelse.
+- Hvis afsnittets kønsopdeling ikke svarer til reglen ovenfor, eller tabellen mangler, er det en blokerende fejl.
+  Integritetskontrollen sikrer, at det ikke sker med registrets kilder.
 
 Den samlede kapitaliseringsaggregator (`src/data/kapitalisering/kapitaliseringsTabeller/index.ts`)
 eksponerer derfor pr. bekendtgørelse:
@@ -331,14 +335,15 @@ alderHeleAar = calculateAgeYearsMonths(efterladteFodselsdato, beregningsdato).ye
 
 ### 7.2 Aldersrække
 
-Der kræves eksakt match på aldersrække.
+Normalt har tabellen en række for hver alder, og der bruges eksakt match.
 
 Normative regler:
 
 - Find rækken hvor `alder === alderHeleAar`
-- Hvis der ikke findes en eksakt række, skal systemet vise fejl og ikke beregne
-- Der må ikke bruges nærmest lavere alder
-- Der må ikke bruges nærmest højere alder
+- Angiver kilden kun udvalgte aldre (BEK 1068/2003 tabel D og E: 18, 20, 25, …, 50–66), foreskriver dens § 3
+  mellemliggende faktorer: rækken interpoleres lineært pr. kolonne mellem nærmeste lavere og højere alder.
+- Ligger alderen uden for tabellens aldre, skal systemet vise fejl og ikke beregne
+- Der må aldrig bruges nærmest lavere eller nærmest højere alder i stedet for interpolation
 
 ### 7.3 Faktor for restperiode
 

@@ -26,6 +26,13 @@ export type ResolvedKapitaliseringTabelvalg = Readonly<{
 type ResolvedErhvervsevnetabTabel = Readonly<{
   tabel: string;
   usesKoen: boolean;
+  /**
+   * Den tilskadekomne er født før kildens ældste årgang. Kilderne har ingen tabel for de årgange, fordi de i
+   * hele kildens gyldighedsperiode er højst 2 år fra folkepensionsalderen (eller har nået den), så kun
+   * særfaktoren kan komme i anvendelse. Den ældste årgangs tabel bruges alene som udgangspunkt for
+   * interpolationen frem mod særfaktoren.
+   */
+  foedtFoerKildensAargange: boolean;
 }>;
 
 export const resolveKapitaliseringsbekendtgoerelseId = (
@@ -65,38 +72,6 @@ export const resolveKapitaliseringsbekendtgoerelseId = (
   return dato <= gyldigTil ? kandidat.id : null;
 };
 
-const resolveModernFoerMinimumFoedselsdatoTabelvalg = (
-  tabeldata: KapitaliseringsTabelData,
-  skadedato: ISODateString,
-  fodselsdato: ISODateString
-): ResolvedErhvervsevnetabTabel | null => {
-  const relevanteEntries = tabeldata.erhvervsevnetabTabelvalg.filter(
-    (entry) =>
-      entry.skadedatoFra <= skadedato &&
-      entry.foedselsdatoTil === null
-  );
-  if (relevanteEntries.length === 0) return null;
-
-  const relevantskadedatoFra = relevanteEntries.reduce<ISODateString>(
-    (latest, current) => (current.skadedatoFra > latest ? current.skadedatoFra : latest),
-    relevanteEntries[0]!.skadedatoFra
-  );
-  const entriesForSkadesinterval = relevanteEntries.filter((entry) => entry.skadedatoFra === relevantskadedatoFra);
-  if (entriesForSkadesinterval.length === 0) return null;
-
-  const earliestEntry = entriesForSkadesinterval.reduce<ErhvervsevnetabTabelvalg>(
-    (earliest, current) => (current.foedselsdatoFra < earliest.foedselsdatoFra ? current : earliest),
-    entriesForSkadesinterval[0]!
-  );
-
-  if (fodselsdato >= earliestEntry.foedselsdatoFra) return null;
-
-  return {
-    tabel: earliestEntry.tabel,
-    usesKoen: Object.keys(tabeldata.erhvervsevnetabKoensopdelteTabeller).length > 0,
-  };
-};
-
 export const calculateAgeYearsMonths = (
   fodselsdato: ISODateString,
   referenceDato: ISODateString
@@ -122,34 +97,34 @@ export const calculateAgeYearsMonths = (
   return { years, months, totalMonths: years * 12 + months };
 };
 
+/**
+ * Kildens tabelvalg for skadesintervallet: det seneste afsnit, der gælder skadedatoen, og inden for det den
+ * ene årgang, fødselsdatoen falder i. Årgangene er sammenhængende intervaller (håndhævet ved indlæsning).
+ */
 const resolveErhvervsevnetabTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
   skadedato: ISODateString,
   fodselsdato: ISODateString
 ): ResolvedErhvervsevnetabTabel | null => {
-  const kandidat = tabeldata.erhvervsevnetabTabelvalg
-    .filter((entry) => {
-      if (entry.skadedatoFra > skadedato) return false;
-      if (entry.foedselsdatoFra > fodselsdato) return false;
-      if (entry.foedselsdatoTil && fodselsdato > entry.foedselsdatoTil) return false;
-      return true;
-    })
-    .reduce<ErhvervsevnetabTabelvalg | null>((latest, current) => {
-      if (!latest) return current;
-      if (current.skadedatoFra !== latest.skadedatoFra) {
-        return current.skadedatoFra > latest.skadedatoFra ? current : latest;
-      }
-      return current.foedselsdatoFra > latest.foedselsdatoFra ? current : latest;
-    }, null);
+  const afsnit = tabeldata.erhvervsevnetabTabelvalg
+    .map((entry) => entry.skadedatoFra)
+    .filter((skadedatoFra) => skadedatoFra <= skadedato)
+    .reduce<ISODateString | null>((latest, current) => (latest === null || current > latest ? current : latest), null);
+  if (afsnit === null) return null;
 
-  if (!kandidat) {
-    return resolveModernFoerMinimumFoedselsdatoTabelvalg(tabeldata, skadedato, fodselsdato);
-  }
+  const aargange = tabeldata.erhvervsevnetabTabelvalg.filter((entry) => entry.skadedatoFra === afsnit);
+  const usesKoen = Object.keys(tabeldata.erhvervsevnetabKoensopdelteTabeller).length > 0;
+  const aargang = aargange.find((entry) =>
+    entry.foedselsdatoFra <= fodselsdato && (entry.foedselsdatoTil === null || fodselsdato <= entry.foedselsdatoTil)
+  );
+  if (aargang) return { tabel: aargang.tabel, usesKoen, foedtFoerKildensAargange: false };
 
-  return {
-    tabel: kandidat.tabel,
-    usesKoen: Object.keys(tabeldata.erhvervsevnetabKoensopdelteTabeller).length > 0,
-  };
+  const aeldste = aargange.reduce<ErhvervsevnetabTabelvalg | null>(
+    (earliest, current) => (earliest === null || current.foedselsdatoFra < earliest.foedselsdatoFra ? current : earliest),
+    null
+  );
+  if (aeldste === null || fodselsdato >= aeldste.foedselsdatoFra) return null;
+  return { tabel: aeldste.tabel, usesKoen, foedtFoerKildensAargange: true };
 };
 
 export const resolveKapitaliseringTabelvalg = (
@@ -162,8 +137,14 @@ export const resolveKapitaliseringTabelvalg = (
   if (!tabelvalg) return null;
   const folkepensionAlder = getFolkepensionAlder(fodselsdato, opslagsdato);
   if (!folkepensionAlder) return null;
+  if (tabelvalg.foedtFoerKildensAargange) {
+    // Kildens fravær af en tabel er kun forsvarligt, når særfaktoren gælder. Ellers fail-closed.
+    const alder = calculateAgeYearsMonths(fodselsdato, opslagsdato);
+    if (!alder || folkepensionAlder.alderMaaneder - alder.totalMonths > 24) return null;
+  }
   return {
-    ...tabelvalg,
+    tabel: tabelvalg.tabel,
+    usesKoen: tabelvalg.usesKoen,
     folkepensionsalderMaaneder: folkepensionAlder.alderMaaneder,
     folkepensionsalderLabel: folkepensionAlder.alderLabel,
   };

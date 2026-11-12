@@ -7,8 +7,10 @@ import { validateAslAarsloenBySkadesaarMax } from '../aslEalAarsloen/aarsloenVal
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
+  type ForsoergertabTabelvalg,
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
+import { getFolkepensionAlder } from '../../data/folkepensionAlderRates';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -23,7 +25,6 @@ import { isoDateToDate } from '../dates/isoDate';
 import {
   calculateAgeYearsMonths,
   resolveKapitaliseringsbekendtgoerelseId,
-  resolveKapitaliseringTabelvalg,
 } from '../erhvervsevnetab/eetKapitaliseringOpslag';
 import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
@@ -42,36 +43,7 @@ type Input = Readonly<{
   aslAarsloen: AmountValue | undefined;
 }>;
 
-type FallbackTableChoice = Readonly<{
-  neutral?: string;
-  maend?: string;
-  kvinder?: string;
-}>;
-
-const SKADEDATO_2007 = '2007-07-01' as ISODateString;
 const FORSOERGERTABSPROCENT = 0.3;
-
-const FORSOERGERTAB_TABLE_CHOICES_FALLBACK: Readonly<Record<string, Readonly<{
-  before2007: FallbackTableChoice;
-  from2007: FallbackTableChoice;
-}>>> = {
-  '1221/2010': {
-    before2007: { maend: 'M', kvinder: 'N' },
-    from2007: { maend: 'F', kvinder: 'G' },
-  },
-  '1403/2011': {
-    before2007: { maend: 'M', kvinder: 'N' },
-    from2007: { maend: 'F', kvinder: 'G' },
-  },
-  '198/2015': {
-    before2007: { neutral: 'L' },
-    from2007: { neutral: 'F' },
-  },
-  '1700/2015': {
-    before2007: { neutral: 'N' },
-    from2007: { neutral: 'G' },
-  },
-};
 
 const toIssue = (id: string, message: string): EetIssue => ({
   id,
@@ -79,60 +51,52 @@ const toIssue = (id: string, message: string): EetIssue => ({
   message,
 });
 
-const resolveForsoergertabTableFallback = (
-  tabeldata: KapitaliseringsTabelData,
-  skadedato: ISODateString,
-  usesKoen: boolean,
-  koen: Koen | undefined
-): string | null => {
-  const explicit = FORSOERGERTAB_TABLE_CHOICES_FALLBACK[tabeldata.kapitaliseringsId];
-  if (explicit) {
-    const bucket = skadedato >= SKADEDATO_2007 ? explicit.from2007 : explicit.before2007;
-    if (!usesKoen) {
-      return bucket.neutral ?? null;
-    }
-    if (!koen) return null;
-    return koen === 'Mand' ? (bucket.maend ?? null) : (bucket.kvinder ?? null);
-  }
-
-  const keys = Object.keys(
-    usesKoen
-      ? (koen === 'Mand' ? tabeldata.forsoergertabTabellerMaend : tabeldata.forsoergertabTabellerKvinder)
-      : tabeldata.forsoergertabTabeller
-  );
-  return keys.length === 1 ? keys[0] ?? null : null;
-};
-
-const resolveForsoergertabTabel = (
-  tabeldata: KapitaliseringsTabelData,
-  skadedato: ISODateString,
-  usesKoen: boolean,
-  koen: Koen | undefined
-): string | null => {
-  const explicit = tabeldata.forsoergertabTabelvalg
-    .filter((entry) => entry.skadedatoFra <= skadedato)
-    .reduce<typeof tabeldata.forsoergertabTabelvalg[number] | null>((latest, current) => {
-      if (!latest) return current;
-      return current.skadedatoFra > latest.skadedatoFra ? current : latest;
-    }, null);
-
-  if (explicit) return explicit.tabel;
-  return resolveForsoergertabTableFallback(tabeldata, skadedato, usesKoen, koen);
-};
-
+/**
+ * Kildens forsørgertabsvalg for skadesintervallet (seneste afsnit, der gælder skadedatoen). Kønsopdelingen
+ * er en egenskab ved kilden; den skal stemme med inputreglen (`usesKoen`), ellers fail-closed.
+ */
 const resolveForsoergertabRows = (
   tabeldata: KapitaliseringsTabelData,
-  tabel: string,
+  skadedato: ISODateString,
   usesKoen: boolean,
   koen: Koen | undefined
-): readonly ForsoergertabMatrixRaekke[] | null => {
-  if (!usesKoen) {
-    return tabeldata.forsoergertabTabeller[tabel] ?? null;
+): Readonly<{ tabel: string; rows: readonly ForsoergertabMatrixRaekke[] }> | null => {
+  const valg = tabeldata.forsoergertabTabelvalg
+    .filter((entry) => entry.skadedatoFra <= skadedato)
+    .reduce<ForsoergertabTabelvalg | null>((latest, current) =>
+      latest === null || current.skadedatoFra > latest.skadedatoFra ? current : latest, null);
+  if (valg === null || valg.koensopdelt !== usesKoen) return null;
+  if (!valg.koensopdelt) {
+    const rows = tabeldata.forsoergertabTabeller[valg.tabel];
+    return rows ? { tabel: valg.tabel, rows } : null;
   }
   if (!koen) return null;
-  return koen === 'Mand'
-    ? (tabeldata.forsoergertabTabellerMaend[tabel] ?? null)
-    : (tabeldata.forsoergertabTabellerKvinder[tabel] ?? null);
+  const tabel = koen === 'Mand' ? valg.tabelMaend : valg.tabelKvinder;
+  const rows = koen === 'Mand' ? tabeldata.forsoergertabTabellerMaend[tabel] : tabeldata.forsoergertabTabellerKvinder[tabel];
+  return rows ? { tabel, rows } : null;
+};
+
+/**
+ * Faktorrækken for efterladtes fyldte alder. Har kilden kun udvalgte aldre (BEK 1068/2003 tabel D og E:
+ * 18, 20, 25, ...), foreskriver den mellemliggende faktorer; de findes lineært mellem nabo-aldrene.
+ */
+const resolveAgeRow = (
+  rows: readonly ForsoergertabMatrixRaekke[],
+  alderAar: number
+): ForsoergertabMatrixRaekke | null => {
+  const exact = rows.find((row) => row.alder === alderAar);
+  if (exact) return exact;
+  const lower = [...rows].reverse().find((row) => row.alder < alderAar);
+  const upper = rows.find((row) => row.alder > alderAar);
+  if (!lower || !upper) return null;
+  const andel = (alderAar - lower.alder) / (upper.alder - lower.alder);
+  const laengde = Math.min(lower.faktorerPraHeleAar.length, upper.faktorerPraHeleAar.length);
+  return {
+    alder: alderAar,
+    faktorerPraHeleAar: lower.faktorerPraHeleAar
+      .slice(0, laengde)
+      .map((faktor, index) => faktor + andel * (upper.faktorerPraHeleAar[index]! - faktor)),
+  };
 };
 
 const interpolateKapitalfaktor = (
@@ -397,13 +361,9 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
-  const fpTabelvalg = resolveKapitaliseringTabelvalg(
-    tabeldata,
-    input.skadedato,
-    input.efterladteFodselsdato,
-    input.beregningsdato
-  );
-  if (!fpTabelvalg) {
+  // Efterladtes folkepensionsalder følger direkte af den centrale kilde – ikke af et EET-tabelvalg.
+  const folkepensionAlder = getFolkepensionAlder(input.efterladteFodselsdato, input.beregningsdato);
+  if (!folkepensionAlder) {
     issues.push(toIssue('folkepensionsalder-unresolved', 'Folkepensionsalder kan ikke fastlægges fra de centrale satser.'));
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
@@ -414,25 +374,20 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesByIdentity(issues), computation: null };
   }
 
-  const harNaaetFolkepensionsalder = alder.totalMonths >= fpTabelvalg.folkepensionsalderMaaneder;
+  const harNaaetFolkepensionsalder = alder.totalMonths >= folkepensionAlder.alderMaaneder;
 
   let kapitaliseringsTabel: string | null = null;
   let kapitalfaktor: number | null = null;
 
   if (!harNaaetFolkepensionsalder && resterendeMaanederTotal > 0) {
-    kapitaliseringsTabel = resolveForsoergertabTabel(tabeldata, input.skadedato, usesKoen, input.koen);
-    if (!kapitaliseringsTabel) {
+    const forsoergertabTabel = resolveForsoergertabRows(tabeldata, input.skadedato, usesKoen, input.koen);
+    if (!forsoergertabTabel) {
       issues.push(toIssue('forsoergertab-tabel-missing', 'Der kan ikke findes relevant forsørgertabstabel.'));
       return { issues: dedupeIssuesByIdentity(issues), computation: null };
     }
+    kapitaliseringsTabel = forsoergertabTabel.tabel;
 
-    const rows = resolveForsoergertabRows(tabeldata, kapitaliseringsTabel, usesKoen, input.koen);
-    if (!rows || rows.length === 0) {
-      issues.push(toIssue('forsoergertab-tabel-rows-missing', `Ingen kapitaliseringsfaktorer fundet for tabel ${kapitaliseringsTabel}.`));
-      return { issues: dedupeIssuesByIdentity(issues), computation: null };
-    }
-
-    const ageRow = rows.find((row) => row.alder === alder.years);
+    const ageRow = resolveAgeRow(forsoergertabTabel.rows, alder.years);
     if (!ageRow) {
       issues.push(toIssue('forsoergertab-alder-missing', `Der findes ingen aldersrække for ${alder.years} år i tabel ${kapitaliseringsTabel}.`));
       return { issues: dedupeIssuesByIdentity(issues), computation: null };
@@ -474,8 +429,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     kapitaliseringsTabel,
     kapitaliseringsTabelKoensopdelt: usesKoen,
     alderHeleAar: alder.years,
-    folkepensionsalderLabel: fpTabelvalg.folkepensionsalderLabel,
-    folkepensionsalderMaaneder: fpTabelvalg.folkepensionsalderMaaneder,
+    folkepensionsalderLabel: folkepensionAlder.alderLabel,
+    folkepensionsalderMaaneder: folkepensionAlder.alderMaaneder,
     harNaaetFolkepensionsalder,
     kapitalfaktor,
     kapitalbelob,

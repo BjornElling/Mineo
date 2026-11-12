@@ -61,16 +61,14 @@ Dette matcher implementeringsretningen i:
 ## Kendte undtagelser der skal dokumenteres i filerne
 
 - Der findes kun én gyldig EET-kontrakt i programmet: `erhvervsevnetabTabelvalg`.
-- Ældre bekendtgørelser skal stadig registreres i samme kontrakt som nyere bekendtgørelser. Programmet skal kunne beregne bagud i tid, men bekendtgørelser må aldrig registreres som en særskilt type.
-- Hvis kilden arbejder med ophørsalder eller folkepensionsalder, må værdien ikke indlægges i `erhvervsevnetabTabelvalg`. Kontrollér i stedet, at `src/data/folkepensionAlderRates.ts` dækker den relevante lovperiode og fødselskohorte.
-- Hvis kilden ikke har fødselsdato-intervaller, bruges stadig `erhvervsevnetabTabelvalg` med et eksplicit bredt fødselsinterval i data i stedet for en særskilt alternativ export.
-- For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt i to intervaller:
-  - `9921/2019` dækker `2020-01-01` til `2020-12-30`.
-  - `9870/2020` dækker kun `2020-12-31`.
-- For VEJ `9921/2019` og `9870/2020` udfyldes ikke ekstra EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
-- For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med skæringsdato `2024-07-01`.
-- For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadedatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
-- Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `erhvervsevnetabTabelvalg`. I disse kilder kan fødselsintervallet være bredt, fordi fødselsdato ikke er en reel del af opslagsnøglen i kilden.
+- Ældre bekendtgørelser registreres i samme kontrakt som nyere. Programmet skal kunne beregne bagud i tid.
+- Hvis kilden arbejder med ophørsalder eller folkepensionsalder, må værdien ikke indlægges i tabelvalget. Kontrollér i stedet, at `src/data/folkepensionAlderRates.ts` dækker den relevante lovperiode og fødselskohorte.
+- Hvis kilden ikke har fødselsdato-intervaller, får tabelvalget én åben årgang fra `1900-01-01`.
+- Hvis kilden ingen tabel har for de ældste årgange (fx BEK 1156/2017 for født før 1. juli 1954), er det fordi de i hele kildens periode er højst 2 år fra folkepensionsalderen. Årgangen udelades; opslaget bruger da den ældste årgangs tabel som udgangspunkt for særfaktoren og fail-closer, hvis særfaktoren ikke gælder.
+- En ændringsakt, der ændrer en faktor midt i perioden, får sin egen fil og post i oversigten fra ikrafttrædelsen og genbruger den ændrede kildes tabeller (fx `229-2014.ts`). En ændringsakt, der kun tilføjer eller erstatter tabeller fra kildens ikrafttræden, indlæses i kildens fil og angives i `supplerendeKildePdfFiler` (fx BEK 1339/2013 i `1202-2013.ts`).
+- Gennemgå altid kildens «Senere ændringer til forskriften» på Retsinformation: en ændring kan tilføje tabeller (1202/2013 manglede forsørgertabstabellerne) eller rette en faktor (229/2014). En akt, der bortfaldt, før den fik virkning (fx VEJ 9738/2020, VEJ 9914/2024, BEK 1188/2015), registreres ikke.
+- For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt: `9921/2019` dækker `2020-01-01`–`2020-12-30`, `9870/2020` kun `2020-12-31`.
+- For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; prioriteringen styres i `kapitaliseringsbekendtgoerelser.ts` med skæringsdato `2024-07-01`.
 
 ## Udtræksflow (hver gang)
 
@@ -136,106 +134,77 @@ Vigtigt om folkepensionsalder:
 
 ## Fast kodekontrakt for hver `xxxx-yyyy.ts`
 
-Alle filer skal have samme struktur og eksportnavne:
+Alle filer har samme struktur og eksportnavne. Datoer skrives som ISO-strenge; `index.ts` validerer og
+brander dem ved indlæsning. Eksemplet er et illustrativt udsnit – tabelindhold er altid 1:1 fra kilden.
 
 ```ts
-// Eksemplet nedenfor er et illustrativt udsnit af strukturen.
-// I faktiske filer skal tabelindhold altid være 1:1 fra kilden (ingen udfyldning/genbrug).
-import type { ISODateString } from '../../../types/branded';
-import { toISODateString } from '../../../types/branded';
-import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
+import type {
+  AldersFaktorRaekke,
+  AldersKoensopdeltFaktorRaekke,
+  ForsoergertabMatrixRaekke,
+  RaaErhvervsevnetabTabelvalg,
+  RaaForsoergertabTabelvalg,
+  RaaSaerfaktor,
+  UdeladelsesGrund,
+} from '.';
 
 export const kapitaliseringsId = '10029/2024' as const;
 export const kapitaliseringsType = 'vejl' as const;
-export const kapitaliseringsFuldeNavn =
-  'Vejledning om omsætning af løbende erstatning til kapitalbeløb i 2025 i sager om arbejdsskader' as const;
-export const kapitaliseringsDatering = '06/12/2024' as const; // eksempelværdi
-export const gyldigFra = toISODateString('2025-01-01');
-export const gyldigTil = toISODateString('2025-12-31');
+export const kapitaliseringsFuldeNavn = 'Vejledning om omsætning af løbende erstatning til kapitalbeløb i 2025 …' as const;
+export const kapitaliseringsDatering = '06/12/2024' as const;
+export const gyldigFra = '2025-01-01';
+export const gyldigTil = '2025-12-31';
+export const supplerendeKildePdfFiler = [] as const;
 
-const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     tabel
-  ['2021-01-01',     '1967-01-01',     'A'],
-  ['2011-01-01',     '1967-01-01',     'F'],
-] as const;
+// Kildens fulde tabelliste – hver tabel er indlæst ELLER står i udeladteKildetabeller.
+export const kildetabeller = ['A', 'B', 'C', 'D', /* … */ 'W'] as const;
 
-export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    foedselsdatoFra: toISODateString(foedselsdatoFra),
-    tabel,
-  })
-);
+export const udeladteKildetabeller = {
+  Q: 'skader-foer-2004', // lov om sikring mod følger af arbejdsskade (skader før 2004)
+  T: 'afloesningsbeloeb',
+  V: 'behandlingsudgifter',
+  W: 'varigt-men',
+} as const satisfies Readonly<Record<string, UdeladelsesGrund>>;
 
-const FORSOERGERTAB_TABELVALG_DATA = [
-  // skadedatoFra     tabel
-  ['2021-01-01',     'E'],
-  ['2011-01-01',     'J'],
-] as const;
+// Sammenhængende årgange pr. skadesinterval; kun den yngste er åben (foedselsdatoTil: null).
+export const erhvervsevnetabTabelvalg = [
+  { skadedatoFra: '2021-01-01', foedselsdatoFra: '1967-01-01', foedselsdatoTil: null, tabel: 'A' },
+  { skadedatoFra: '2021-01-01', foedselsdatoFra: '1963-01-01', foedselsdatoTil: '1966-12-31', tabel: 'B' },
+] as const satisfies readonly RaaErhvervsevnetabTabelvalg[];
 
-export const forsoergertabTabelvalg = FORSOERGERTAB_TABELVALG_DATA.map(
-  ([skadedatoFra, tabel]) => ({
-    skadedatoFra: toISODateString(skadedatoFra),
-    tabel,
-  })
-);
+// Ét afsnit pr. skadesinterval; kønsopdelte kilder angiver tabelMaend/tabelKvinder i stedet for tabel.
+export const forsoergertabTabelvalg = [
+  { skadedatoFra: '2021-01-01', tabel: 'D' },
+] as const satisfies readonly RaaForsoergertabTabelvalg[];
 
-const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadedatoFra     faktor
-  ['2021-01-01',     1.245],
-  ['2011-01-01',     1.245],
-] as const;
-
-export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadedatoFra: ISODateString;
-  faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
-  skadedatoFra: toISODateString(skadedatoFra),
-  faktor,
-}));
+// Præcis én pr. skadesinterval fra 1. juli 2007; ingen for ældre skadesintervaller.
+export const saerfaktorUnderToAarTilFp = [
+  { skadedatoFra: '2021-01-01', faktor: 1.245 },
+] as const satisfies readonly RaaSaerfaktor[];
 
 export const erhvervsevnetabTabeller = {
   A: [
-    { alder: 16, faktor: 15.123 },
-    { alder: 17, faktor: 14.876 },
+    { alder: 5, faktor: 59.629 },
   ],
-  B: [
-    { alder: 16, faktor: 14.982 },
-    { alder: 17, faktor: 14.740 },
-  ],
-} as const satisfies Record<string, readonly AldersFaktorRaekke[]>;
-
+} as const satisfies Readonly<Record<string, readonly AldersFaktorRaekke[]>>;
+export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Readonly<Record<string, readonly AldersKoensopdeltFaktorRaekke[]>>;
 export const forsoergertabTabeller = {
-  // Kolonne 1: Fyldt alder
-  // Kolonne 2: Resterende erstatningsperiode, antal hele år
-  E: [
-    { alder: 18, faktorerPraHeleAar: [0.627, 1.262, 1.906] },
-    { alder: 19, faktorerPraHeleAar: [0.627, 1.262, 1.906] },
+  D: [
+    { alder: 18, faktorerPraHeleAar: [0.626, 1.26, 1.901, 2.55, 3.206, 3.871, 4.543, 5.223, 5.912, 6.609] },
   ],
-} as const satisfies Record<string, readonly ForsoergertabMatrixRaekke[]>;
-
-// Filer med kønsopdeling skal desuden eksportere:
-export const erhvervsevnetabKoensopdelteTabeller = {} as const satisfies Record<
-  string,
-  readonly AldersKoensopdeltFaktorRaekke[]
->;
-export const forsoergertabTabellerMaend = {} as const satisfies Record<
-  string,
-  readonly ForsoergertabMatrixRaekke[]
->;
-export const forsoergertabTabellerKvinder = {} as const satisfies Record<
-  string,
-  readonly ForsoergertabMatrixRaekke[]
->;
+} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+export const forsoergertabTabellerMaend = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
+export const forsoergertabTabellerKvinder = {} as const satisfies Readonly<Record<string, readonly ForsoergertabMatrixRaekke[]>>;
 ```
 
-Præcisering for filer med ældre bekendtgørelser:
+Integritetskontrollen i `index.ts` afviser ved indlæsning: en kildetabel, der hverken er indlæst eller
+begrundet udeladt; en indlæst tabel, intet tabelvalg peger på; et tabelvalg uden tabel; huller eller
+overlap i EET-årgangene; forsørgertabsvalg, der ikke følger kildens kønsopdeling eller dækker andre
+skadesintervaller end EET-valget; og en særfaktor, der mangler eller er overtallig. Kataloget kontrollerer
+desuden, at hver kilde har sit eget afsnit for det skadesinterval, oversigten knytter den til.
 
-- Hvis kilden kun har kønsopdelte EET-tabeller, skal `erhvervsevnetabTabeller` være tom (`{}`), og kønsopdelte data skal ligge i `erhvervsevnetabKoensopdelteTabeller`.
-- Hvis kilden kun har kønsopdelte forsørgertabstabeller, skal `forsoergertabTabeller` være tom (`{}`), og data skal ligge i `forsoergertabTabellerMaend` og/eller `forsoergertabTabellerKvinder`.
-- Hvis kilden har både kønsneutrale og kønsopdelte tabeller, skal begge datatyper bevares i hver deres eksport uden transformation.
-- Alle bekendtgørelser, også ældre, skal bruge `erhvervsevnetabTabelvalg`.
-- Brug et eksplicit bredt fødselsinterval i `erhvervsevnetabTabelvalg`, når kilden ikke arbejder med fødselsdato som egentlig opslagsnøgle.
+Kønsopdelingen følger kildens gyldighed: kilder, der gælder før 1. marts 2015, er kønsopdelte (EET og
+forsørgertab), senere kilder kønsneutrale.
 
 ## Krav til tabellignende layout (læsbart i kode)
 
@@ -243,38 +212,22 @@ Præcisering for filer med ældre bekendtgørelser:
 - Hver række er ét objekt på én linje.
 - Kolonner holdes visuelt på linje når muligt.
 - Ingen kompakt/minificeret arraysyntaks.
-- Tabelvalg-data skal skrives som grid-arrays (`const ..._DATA`) med **fast 5 mellemrum** mellem kolonner.
-- Grid-data skal have en header-kommentarlinje med kolonnenavne.
+- Tabelvalg skrives som ét objekt pr. linje (se kodekontrakten).
 - Rækkefølge i filen er bindende:
 1. metadata exports
-2. `..._TABELVALG_DATA` + mapped exports
-3. `...SAERFAKTOR..._DATA` + mapped export
-4. selve tabel-exports (inkl. kønsopdelte exports når relevante)
-- Relevante tabeller fra kilden skal bevares, også hvis de ikke er refereret i det aktuelle tabelvalg. Tilføj en kort kommentar ved tabellerne om dette. Tabeller, der kun vedrører skader frem til og med 31. december 2004, er ikke relevante og må ikke udtrækkes.
-- Før første forsørgertabstabel i `forsoergertabTabeller` skal kolonneforklaringen stå:
-  - `Kolonne 1: Fyldt alder`
-  - `Kolonne 2: Resterende erstatningsperiode, antal hele år`
-
-Eksempel:
-
-```ts
-const FORSOERGERTAB_TABELVALG_DATA = [
-  // skadedatoFra     tabel
-  ['2021-01-01',     'E'],
-  ['2011-01-01',     'J'],
-] as const;
-```
+2. `kildetabeller` og `udeladteKildetabeller`
+3. `erhvervsevnetabTabelvalg`, `forsoergertabTabelvalg` og `saerfaktorUnderToAarTilFp`
+4. selve tabel-exports (alle fem, også de tomme)
+- Hver indlæst tabel skal kunne vælges af et tabelvalg; alle øvrige kildetabeller står i `udeladteKildetabeller` med begrundelse.
 
 ## Integrationstrin efter ny fil
 
-Når en ny fil er udtrukket:
-
-1. Læg filen i `src/data/kapitalisering/kapitaliseringsTabeller/`.
-2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgoerelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
-3. Verificer at den nye fil ikke indeholder folkepensionsalder/ophørsalder i sine EET-tabelvalg, og at `src/data/folkepensionAlderRates.ts` dækker opslagsperioden.
-4. Verificer at udløbsreglen for seneste post stadig er opfyldt.
-5. Registrer og verificer kilden i `beregningsdataCatalog`, herunder tabelreference-inventory og golden-fingerprint.
-6. Kør relevante data-tests samt `npm run typecheck`.
+1. Læg kilde-PDF'en i `src/data/kapitalisering/kapitaliseringOriginalPdf/` og filen i `kapitaliseringsTabeller/`.
+2. Importér modulet i `kapitaliseringsTabeller/index.ts` (`MODULER`).
+3. Opdater `kapitaliseringsbekendtgoerelser.ts` med korrekt `id` og `kapitaliseringsdatoFra` i hvert relevant skadesinterval.
+4. Kontrollér, at `src/data/folkepensionAlderRates.ts` dækker opslagsperioden og årgangene.
+5. Opdater katalogets golden-fingerprints i `calculationDataCatalog.test.ts` med en begrundelse.
+6. Kør `npm run check:types` og data-/domænetestene.
 
 ## Promptskabelon til fremtidige udtræk
 
