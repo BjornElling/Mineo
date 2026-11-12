@@ -131,6 +131,7 @@ const MainLayoutContent = React.memo(({ children }: MainLayoutProps) => {
   const { markSaved } = useUnsavedChangesGuard({
     combinedSectionRevision: Number(revision),
     authoritativeSnapshotEpoch: replacementGeneration,
+    hasChangedOpenDraft: () => criticalActions.hasChangedOpenDraft(),
   });
 
   const handlePageChange = React.useCallback(async (pageId: MenuPageKey) => {

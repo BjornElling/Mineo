@@ -2,27 +2,9 @@
 import { z } from 'zod';
 import { persistedErstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
 import { getOverenskomstMetaById } from '../../../data/overenskomstRates';
-import { generateEoCase, OVERENSKOMST_IDS, type EoCaseMode } from './helpers/eoRuntimeInputArbitrary';
-import { eoRuntimeStats, runEoPage, type Failure } from './helpers/eoRuntimePage';
+import { generateEoCase, OVERENSKOMST_IDS } from './helpers/eoRuntimeInputArbitrary';
 
-const CASES = Number(process.env.EO_FUZZ_CASES ?? 150);
-const FIRST_SEED = Number(process.env.EO_FUZZ_SEED ?? 1);
-
-const fuzz = (mode: EoCaseMode) => {
-  eoRuntimeStats.status = {};
-  const failures: Failure[] = [];
-  for (let seed = FIRST_SEED; seed < FIRST_SEED + CASES; seed += 1) {
-    failures.push(...runEoPage(generateEoCase(seed, mode)));
-  }
-  // Gruppér efter stage + besked, så én rodårsag ikke drukner rapporten.
-  const grouped = new Map<string, number[]>();
-  for (const failure of failures) {
-    const key = `${failure.stage} :: ${failure.message}`;
-    grouped.set(key, [...(grouped.get(key) ?? []), failure.seed]);
-  }
-  return [...grouped.entries()].map(([key, seeds]) =>
-    `${key} (seeds: ${seeds.slice(0, 8).join(', ')}${seeds.length > 8 ? ', …' : ''}; ${String(seeds.length)} stk.)`);
-};
+// Selve fuzzingen ligger i `eoInputRuntimeFuzz.<tilstand>.shardN.test.ts` (se `helpers/eoRuntimeFuzzShard.ts`).
 
 describe('Erstatningsopgørelse – runtime-fuzzing af alle inputfelter', () => {
   it('dækker hvert persisteret schemafelt, også i de nestede tabeller', () => {
@@ -49,15 +31,4 @@ describe('Erstatningsopgørelse – runtime-fuzzing af alle inputfelter', () => 
     // Et forkert id gør hver overenskomstsag til en «ukendt overenskomst» og fjerner dermed de dybe grene fra fuzzingen.
     expect(OVERENSKOMST_IDS.filter((id) => getOverenskomstMetaById(id) === undefined)).toEqual([]);
   });
-
-  it.each(['tilfaeldig', 'sammenhaengende'] as const)(
-    'kaster aldrig og ender aldrig i runtime_exception (%s)',
-    (mode) => {
-      expect(fuzz(mode)).toEqual([]);
-      if (mode === 'sammenhaengende') {
-        expect((eoRuntimeStats.status.ok ?? 0) + (eoRuntimeStats.status.warning ?? 0)).toBeGreaterThan(0);
-      }
-    },
-    600_000
-  );
 });

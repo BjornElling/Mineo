@@ -54,23 +54,44 @@ const getAssetUrls = async () => {
   return assetPaths;
 };
 
-const precacheBuildAssets = async () => {
-  const [cacheName, assetUrls] = await Promise.all([Promise.resolve(getBuildCacheName()), getAssetUrls()]);
-  const cache = await caches.open(cacheName);
-  await cache.addAll(assetUrls);
-};
+const getBuildCacheNames = async () =>
+  (await caches.keys()).filter((cacheName) => cacheName.startsWith(CACHE_PREFIX));
 
-const findCachedAsset = async (request) => {
-  const cacheNames = await caches.keys();
-  const buildCacheNames = cacheNames.filter((cacheName) => cacheName.startsWith(CACHE_PREFIX));
-
-  for (const cacheName of buildCacheNames) {
+const matchInCaches = async (request, cacheNames) => {
+  for (const cacheName of cacheNames) {
     const cache = await caches.open(cacheName);
     const response = await cache.match(request);
     if (response) return response;
   }
   return undefined;
 };
+
+/**
+ * En ny build genbruger de assets, en tidligere build allerede har i cache, og henter kun resten.
+ *
+ * Det er sikkert, fordi navnene er indholds-hashes: samme navn er samme bytes, uanset hvilken build der
+ * cachede filen. Typisk ændrer en deploy kun få chunks, så opdateringen henter en brøkdel af buildet –
+ * det afgør, om opstartens opdatering når at blive komplet inden for sit loft på en langsom forbindelse.
+ * Kravet er uændret: installationen lykkes kun, når HVER asset ligger i denne builds egen cache.
+ */
+const precacheBuildAssets = async () => {
+  const cacheName = getBuildCacheName();
+  const assetUrls = await getAssetUrls();
+  const cache = await caches.open(cacheName);
+  const previousCacheNames = (await getBuildCacheNames()).filter((name) => name !== cacheName);
+
+  const reused = await Promise.all(assetUrls.map(async (assetUrl) => {
+    const response = await matchInCaches(assetUrl, previousCacheNames);
+    if (!response || !response.ok) return false;
+    await cache.put(assetUrl, response);
+    return true;
+  }));
+
+  const missingAssetUrls = assetUrls.filter((_, index) => !reused[index]);
+  if (missingAssetUrls.length > 0) await cache.addAll(missingAssetUrls);
+};
+
+const findCachedAsset = async (request) => matchInCaches(request, await getBuildCacheNames());
 
 self.addEventListener('install', (event) => {
   // En worker installeres kun, når ALLE den versions immutable assets er i cache. En halv cache

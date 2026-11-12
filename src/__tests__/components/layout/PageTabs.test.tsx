@@ -117,6 +117,7 @@ describe('PageTabs', () => {
     registry.register({
       id: 'aabent-felt',
       isEditing: () => true,
+      hasDraftChanges: () => true,
       settle,
       discard: vi.fn(),
     });

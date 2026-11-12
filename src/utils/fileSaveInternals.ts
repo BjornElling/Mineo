@@ -3,7 +3,7 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { decryptFromString } from './encryption';
 import { FileHandleAccessError, isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
-import { logError, logWarning } from './logger';
+import { logError } from './logger';
 import type {
   SaveSnapshot,
   CanonicalEoData,
@@ -233,24 +233,8 @@ export const verifyAfterSave = async (
     }
 
 
-    // Valider at kritiske sektioner findes
-    const criticalSections = ['stamdata'];
-    const actualCanonicalRecord = isRecord(actualCanonicalJson) ? actualCanonicalJson : {};
-    const missingSections = criticalSections.filter((section) => {
-      const sectionValue = (actualCanonicalRecord as Record<string, unknown>)[section];
-      return !isRecord(sectionValue) || Object.keys(sectionValue).length === 0;
-    });
-
-    if (missingSections.length > 0) {
-      logWarning(`⚠ ADVARSEL: Manglende kritiske sektioner: ${missingSections.join(', ')}`);
-      return {
-        success: true,
-        verified: true,
-        warning: true,
-        message: `ADVARSEL: Manglende sektioner: ${missingSections.join(', ')}`,
-      };
-    }
-
+    // En tom sagsdel (fx Stamdata ved et rent satsopslag) er en gyldig, forventet sag – ikke en kodefejl.
+    // Filen er nu dekrypteret, schema-valideret og identisk med det forventede indhold (BB-393).
     return {
       success: true,
       verified: true,

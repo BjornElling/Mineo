@@ -92,6 +92,14 @@ export class CriticalActionCoordinator {
   }
 
   /**
+   * Om en åben editor bærer en faktisk ændret, uafsluttet draft (M-47). Forespørgslen er ren læsning: den
+   * settler ikke og sender aldrig draften videre, men lader en erstatning spørge, før synligt arbejde mistes.
+   */
+  hasChangedOpenDraft(): boolean {
+    return this.registry.hasChangedDraft();
+  }
+
+  /**
    * Udfører den autoritative replace/clear/reset-transaktion og kasserer først derefter en eventuel åben draft.
    * Ved annullering eller apply-fejl skal kalderen undlade dette kald eller kaste; begge dele bevarer draften.
    *

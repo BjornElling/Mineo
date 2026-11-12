@@ -6,7 +6,8 @@ import React from 'react';
 import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
 import { setDocumentBrand } from '../../document/documentBrand';
-import { bootstrapProductionInputRuntime } from '../../inputCore/react';
+import { bootstrapInputRuntime } from '../../inputCore/react/inputRuntimeHost';
+import { getRenteberegningInputCatalog } from '../../inputCore/catalog/renteberegningCatalog';
 import StandaloneErrorBoundary from './StandaloneErrorBoundary';
 
 setDocumentBrand('minprocesrente.dk');
@@ -14,7 +15,8 @@ setDocumentBrand('minprocesrente.dk');
 void bootstrapClientApp({
   renderApp: () => {
     // Hydrér den ene input-runtime FØR render (§3.10). Standalone og hovedappen bruger samme inputkerne.
-    const { binding } = bootstrapProductionInputRuntime();
+    // Kun renteberegningens katalog: Mineos øvrige descriptors og deres satstabeller hører ikke til her.
+    const { binding } = bootstrapInputRuntime({ catalog: getRenteberegningInputCatalog() });
     return (
       <StandaloneErrorBoundary>
         <MinProcesrenteApp inputRuntimeBinding={binding} />

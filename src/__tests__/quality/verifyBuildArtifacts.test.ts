@@ -8,12 +8,25 @@ type FixtureOptions = {
   assetPath: string;
   writeAsset: boolean;
   indexScriptSrc?: string;
+  /** Entry-chunkens størrelse i bytes (`assets/app.js`). */
+  entryBytes?: number;
+  /** En ekstra lazy chunk med den givne størrelse i bytes. */
+  lazyChunkBytes?: number;
+  /** Entry'en importerer statisk (transitivt) denne chunk, fx `vendor-jspdf-ABC.js`. */
+  transitiveEntryImport?: string;
 };
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const verifyScript = join(repoRoot, 'scripts', 'verify-build-artifacts.mjs');
 
-const writeMineoFixture = ({ assetPath, writeAsset, indexScriptSrc = '/assets/app.js' }: FixtureOptions): string => {
+const writeMineoFixture = ({
+  assetPath,
+  writeAsset,
+  indexScriptSrc = '/assets/app.js',
+  entryBytes = 0,
+  lazyChunkBytes,
+  transitiveEntryImport,
+}: FixtureOptions): string => {
   const fixtureRoot = mkdtempSync(join(tmpdir(), 'mineo-build-artifacts-'));
   mkdirSync(join(fixtureRoot, '.vite'), { recursive: true });
   mkdirSync(join(fixtureRoot, 'assets'), { recursive: true });
@@ -33,9 +46,23 @@ const writeMineoFixture = ({ assetPath, writeAsset, indexScriptSrc = '/assets/ap
   );
   writeFileSync(
     join(fixtureRoot, '.vite', 'manifest.json'),
-    `${JSON.stringify({ 'index.html': { src: 'index.html' } }, null, 2)}\n`
+    `${JSON.stringify({
+      'index.html': {
+        src: 'index.html',
+        file: 'assets/app.js',
+        isEntry: true,
+        ...(transitiveEntryImport === undefined ? {} : { imports: ['_shared.js'] }),
+      },
+      ...(transitiveEntryImport === undefined ? {} : {
+        '_shared.js': { file: 'assets/shared.js', imports: ['_heavy.js'] },
+        '_heavy.js': { file: `assets/${transitiveEntryImport}` },
+      }),
+    }, null, 2)}\n`
   );
-  writeFileSync(join(fixtureRoot, 'assets', 'app.js'), '');
+  writeFileSync(join(fixtureRoot, 'assets', 'app.js'), 'x'.repeat(entryBytes));
+  if (lazyChunkBytes !== undefined) {
+    writeFileSync(join(fixtureRoot, 'assets', 'lazy.js'), 'x'.repeat(lazyChunkBytes));
+  }
   if (writeAsset && assetPath !== 'assets/app.js') {
     mkdirSync(dirname(join(fixtureRoot, assetPath)), { recursive: true });
     writeFileSync(join(fixtureRoot, assetPath), '');
@@ -88,6 +115,42 @@ describe('verify-build-artifacts PWA-assets', () => {
       expect(output(result)).toContain(
         'PWA-assetmanifest peger på en asset, der ikke findes i buildet: assets/mangler.js.'
       );
+    });
+  });
+
+  it('accepterer en entry-chunk og en lazy chunk lige på deres lofter', () => {
+    withFixture({ assetPath: 'assets/app.js', writeAsset: true, entryBytes: 560_000, lazyChunkBytes: 750_000 }, (result) => {
+      expect(output(result)).toContain('verificeret');
+      expect(result.status).toBe(0);
+    });
+  });
+
+  it('afviser en entry-chunk over budgettet og peger på den dynamiske import i main.tsx', () => {
+    withFixture({ assetPath: 'assets/app.js', writeAsset: true, entryBytes: 560_001 }, (result) => {
+      expect(result.status).toBe(1);
+      expect(output(result)).toContain('entry-chunk app.js er 560 kB (budget 560 kB)');
+      expect(output(result)).toContain('src/main.tsx');
+    });
+  });
+
+  it('afviser enhver chunk over loftet, også en lazy chunk', () => {
+    withFixture({ assetPath: 'assets/app.js', writeAsset: true, lazyChunkBytes: 750_001 }, (result) => {
+      expect(result.status).toBe(1);
+      expect(output(result)).toContain('chunk lazy.js er 750 kB (loft 750 kB)');
+    });
+  });
+
+  it('afviser et build, hvor entry\'en transitivt importerer en dokument-vendor', () => {
+    withFixture({ assetPath: 'assets/app.js', writeAsset: true, transitiveEntryImport: 'vendor-jspdf-ABC123.js' }, (result) => {
+      expect(result.status).toBe(1);
+      expect(output(result)).toContain('entry importerer statisk assets/vendor-jspdf-ABC123.js');
+    });
+  });
+
+  it('godtager at entry\'en transitivt importerer en almindelig delt chunk', () => {
+    withFixture({ assetPath: 'assets/app.js', writeAsset: true, transitiveEntryImport: 'vendor-zod-ABC123.js' }, (result) => {
+      expect(output(result)).toContain('verificeret');
+      expect(result.status).toBe(0);
     });
   });
 

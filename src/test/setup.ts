@@ -6,6 +6,21 @@
  * `// @vitest-environment jsdom`.
  */
 import { createRequire } from 'node:module';
+import { vi as importedVi } from 'vitest';
+
+/**
+ * Vagt mod en dubleret Vitest-modulgraf (Windows, arbejdsmappe `c:\…` i stedet for `C:\…`).
+ *
+ * Da findes to mock-registre: `clearMocks` rydder den globale `vi`, mens testene bruger den importerede, og
+ * mock-kald lækker tavst mellem tests. Det gav lokale fejl, der ikke kunne genskabes i CI. Brug `npm test`
+ * (eller `npm run test:watch`), som starter Vitest via `scripts/run-vitest.mjs` med normaliseret sti.
+ */
+if ((globalThis as { vi?: unknown }).vi !== undefined && (globalThis as { vi?: unknown }).vi !== importedVi) {
+  throw new Error(
+    'Vitest er indlæst to gange (arbejdsmappe med lille drevbogstav, fx "c:\\"). Mocks ryddes da ikke mellem '
+      + 'tests. Kør via "npm test" / "npm run test:watch", eller start fra en sti med "C:\\".',
+  );
+}
 
 /**
  * Global test guard: ingen rigtige PDF-/Word-filer på disk under test.

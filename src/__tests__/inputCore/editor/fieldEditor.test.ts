@@ -14,6 +14,7 @@ import {
   immediateCommitCommand,
   immediateClearCommand,
   isSettleStale,
+  hasDraftChanged,
   type EditorLocation,
 } from '../../../inputCore/editor';
 import {
@@ -339,5 +340,19 @@ describe('felt-editor i dynamisk række – placeholder-first-invalid overlever 
     expect(view.kind === 'rejected' && view.rejected.raw).toBe('ikke-et-beløb');
     // rækken findes stadig
     expect(catalog.listEntityIds(store.getState().input.sections, rentekravRowsRef())).toContain('row-a');
+  });
+});
+
+describe('hasDraftChanged (M-47: åben tekst som arbejde, der kan mistes)', () => {
+  it('skelner en uændret åbning fra en faktisk ændret draft og glemmer en annulleret rettelse', () => {
+    const opened = openEditor(createClosedEditor(aargangRef, LOC), viewOf(aargangRef), store.getState().replacementGeneration);
+    expect(hasDraftChanged(createClosedEditor(aargangRef, LOC), viewOf(aargangRef))).toBe(false);
+    expect(hasDraftChanged(opened, viewOf(aargangRef))).toBe(false);
+
+    const typed = changeDraft(opened, '2024');
+    expect(hasDraftChanged(typed, viewOf(aargangRef))).toBe(true);
+    // Tilbage til åbningsteksten er ikke længere en ændring.
+    expect(hasDraftChanged(changeDraft(typed, ''), viewOf(aargangRef))).toBe(false);
+    expect(hasDraftChanged(cancelEditor(typed), viewOf(aargangRef))).toBe(false);
   });
 });

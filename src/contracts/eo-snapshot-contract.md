@@ -392,7 +392,7 @@ Regler:
   fælles fail-closed-tilstand bygges af `buildEoRuntimeExceptionSnapshot`.
 - Alle forventelige brugerinputfejl skal opdages og rapporteres i validator eller som
   snapshot-invariants – ikke via engine-throws. Backstoppet ovenfor er et sikkerhedsnet, ikke en
-  erstatning: `eoInputRuntimeFuzz.test.ts` kører genererede sager gennem hele siden og fejler på
+  erstatning: fuzz-shardene (`src/__tests__/domain/erstatningsopgoerelse/helpers/eoRuntimeFuzzShard.ts`) kører genererede sager gennem hele siden og fejler på
   enhver `runtime_exception`.
 
 ---

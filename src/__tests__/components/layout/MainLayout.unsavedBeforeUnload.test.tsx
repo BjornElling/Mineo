@@ -114,34 +114,14 @@ const authoritativeReplace = (candidate: SettledInputCandidate = { sections: emp
   });
 };
 
-const getBeforeUnloadHandler = (
-  addEventListenerSpy: ReturnType<typeof vi.spyOn>
-): ((event: BeforeUnloadEvent) => void) | undefined => {
-  const call = addEventListenerSpy.mock.calls.find((args: unknown[]) => args[0] === 'beforeunload');
-  return call?.[1] as ((event: BeforeUnloadEvent) => void) | undefined;
-};
-
-const getLastBeforeUnloadHandler = (
-  addEventListenerSpy: ReturnType<typeof vi.spyOn>
-): ((event: BeforeUnloadEvent) => void) | undefined => {
-  const calls = addEventListenerSpy.mock.calls.filter((args: unknown[]) => args[0] === 'beforeunload');
-  const lastCall = calls[calls.length - 1];
-  return lastCall?.[1] as ((event: BeforeUnloadEvent) => void) | undefined;
-};
-
-const isBeforeUnloadHandlerRegistered = (
-  addEventListenerSpy: ReturnType<typeof vi.spyOn>,
-  removeEventListenerSpy: ReturnType<typeof vi.spyOn>
-): boolean => {
-  const lastHandler = getLastBeforeUnloadHandler(addEventListenerSpy);
-  if (!lastHandler) return false;
-  const addCount = addEventListenerSpy.mock.calls.filter(
-    (args: unknown[]) => args[0] === 'beforeunload' && args[1] === lastHandler
-  ).length;
-  const removeCount = removeEventListenerSpy.mock.calls.filter(
-    (args: unknown[]) => args[0] === 'beforeunload' && args[1] === lastHandler
-  ).length;
-  return addCount > removeCount;
+/**
+ * Måler udfaldet frem for lytterens livscyklus: ville browseren spørge, før siden forlades? Lytteren er
+ * bevidst altid monteret, fordi en åben, ændret draft (BB-396) kan opstå uden en React-render i guarden.
+ */
+const exitIsGuarded = (): boolean => {
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
 };
 
 const renderLayout = (initialEntry = '/stamdata', children: React.ReactNode = <div />) =>
@@ -168,54 +148,48 @@ describe('MainLayout (unsaved beforeunload)', () => {
   });
 
   it('prevents beforeunload after committed input change', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-
     renderLayout();
-
-    expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeUndefined();
+    await act(async () => {});
+    expect(exitIsGuarded()).toBe(false);
 
     commitInputChange();
 
     await waitFor(() => {
-      expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
-    await act(async () => {});
-    expect(getBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
-
-    const handler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
-    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
-    handler(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.returnValue).toBe('');
-
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
   });
 
   it('keeps beforeunload disabled after session hydration without a new commit', async () => {
-    // Hydration sætter baseline uden at hæve revisionen ud over den → ingen unsaved-guard.
+    // Hydration uden en båret «ugemt»-markering sætter baseline uden at hæve revisionen → ingen advarsel.
     hydrateSlimInputStoreForTest(slimInputStore,
       catalog.validateSettledInput({
         sections: { ...emptyInput().sections, satser: { aargang: 2020 } },
         rejectedInputs: {},
       })
     );
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
     renderLayout();
 
     await act(async () => {});
-    expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
+    expect(exitIsGuarded()).toBe(false);
+  });
 
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
+  it('keeps warning after reload when the restored work was never saved (BB-395)', async () => {
+    const first = renderLayout();
+    commitInputChange();
+    await waitFor(() => {
+      expect(exitIsGuarded()).toBe(true);
+    });
+    first.unmount();
+
+    // F5: samme input hydreres igen, og shellen monteres på ny.
+    hydrateSlimInputStoreForTest(slimInputStore, slimInputStore.getState().input);
+    renderLayout();
+    await act(async () => {});
+    expect(exitIsGuarded()).toBe(true);
   });
 
   it('does not prevent beforeunload after successful save', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
       status: 'saved',
@@ -227,10 +201,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
     commitInputChange();
 
     await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
-
-    const beforeUnloadHandler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
 
     await clickMainLayoutAction('Gem');
 
@@ -239,11 +211,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
 
     await waitFor(() => {
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', beforeUnloadHandler);
+      expect(exitIsGuarded()).toBe(false);
     });
-
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
   });
 
   it('blocks save when an open editor cannot be committed', async () => {
@@ -317,12 +286,13 @@ describe('MainLayout (unsaved beforeunload)', () => {
     expect(screen.queryByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.')).not.toBeInTheDocument();
   });
 
-  it('shows verification warning after successful save with warning details', async () => {
+  it('shows save warning after successful save with warning details', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
+    const warning = 'Filen blev gemt, men koblingen til senere direkte Gem kunne ikke gemmes.';
     saveToFileMock.mockResolvedValue({
       status: 'saved',
       filename: 'warning.eo',
-      warning: 'ADVARSEL: Manglende sektioner: stamdata',
+      warning,
     } satisfies SaveFileResult);
 
     renderLayout();
@@ -333,7 +303,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     const matches = await screen.findAllByText((_, element) => {
       const text = element?.textContent ?? '';
-      return text.includes('Gemt med advarsel') && text.includes('ADVARSEL: Manglende sektioner: stamdata');
+      return text.includes('Gemt med advarsel') && text.includes(warning);
     });
     expect(matches.length).toBeGreaterThan(0);
   });
@@ -392,45 +362,28 @@ describe('MainLayout (unsaved beforeunload)', () => {
   });
 
   it('clears unsaved warning on authoritative replace and re-enables on later edits', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-
     renderLayout();
 
     commitInputChange();
 
     await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
-
-    const firstHandler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
 
     authoritativeReplace();
 
     await waitFor(() => {
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('beforeunload', firstHandler);
+      expect(exitIsGuarded()).toBe(false);
     });
 
     commitInputChange('2021');
 
     await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
-
-    const secondHandler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
-    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
-    secondHandler(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.returnValue).toBe('');
-
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
   });
 
   it('keeps beforeunload disabled after authoritative replace until a new committed edit happens', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-
     renderLayout();
 
     authoritativeReplace({
@@ -439,26 +392,16 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
 
     await act(async () => {});
-    expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
+    expect(exitIsGuarded()).toBe(false);
 
     commitInputChange('2021');
 
     await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
-
-    const handler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
-    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
-    handler(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.returnValue).toBe('');
-
-    addEventListenerSpy.mockRestore();
-    removeEventListenerSpy.mockRestore();
   });
 
   it('does not leave beforeunload suppression enabled after failed "Slet alt"', async () => {
-    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const deleteFileHandleMock = vi.mocked(deleteFileHandleFromIndexedDB);
     deleteFileHandleMock.mockRejectedValue(new Error('Simuleret cleanup-fejl'));
@@ -478,16 +421,9 @@ describe('MainLayout (unsaved beforeunload)', () => {
     commitInputChange('2021');
 
     await waitFor(() => {
-      expect(getLastBeforeUnloadHandler(addEventListenerSpy)).toBeDefined();
+      expect(exitIsGuarded()).toBe(true);
     });
 
-    const handler = getLastBeforeUnloadHandler(addEventListenerSpy)!;
-    const event = { preventDefault: vi.fn(), returnValue: undefined } as unknown as BeforeUnloadEvent;
-    handler(event);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(event.returnValue).toBe('');
-
-    addEventListenerSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
 });

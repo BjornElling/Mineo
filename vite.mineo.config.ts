@@ -1,7 +1,7 @@
 import { defineConfig, mergeConfig, type Connect, type Plugin } from 'vite';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import baseConfig from './vite.config.ts';
+import baseConfig, { SHARED_CHUNK_GROUPS } from './vite.config.ts';
 import pwaManifest from './public/manifest.json' with { type: 'json' };
 
 /**
@@ -190,9 +190,22 @@ export default defineConfig(
     build: {
       outDir: 'dist/mineo',
       emptyOutDir: true,
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           index: path.resolve(import.meta.dirname, 'index.html'),
+        },
+        output: {
+          codeSplitting: {
+            // Dokument-writerne (PDF/Word) får navngivne vendor-chunks; de indlæses først ved download.
+            // `verify-build-artifacts.mjs` afviser et build, hvor entry'en preloader en af dem.
+            groups: [
+              ...SHARED_CHUNK_GROUPS,
+              { name: 'vendor-jspdf', test: /[\\/]node_modules[\\/]jspdf[\\/]/ },
+              { name: 'vendor-jspdf-autotable', test: /[\\/]node_modules[\\/]jspdf-autotable[\\/]/ },
+              { name: 'vendor-docx', test: /[\\/]node_modules[\\/]docx[\\/]/ },
+              { name: 'vendor-html2canvas', test: /[\\/]node_modules[\\/]html2canvas[\\/]/ },
+            ],
+          },
         },
       },
     },

@@ -109,10 +109,11 @@ const inputWithRejected = (): SettledInput =>
 
 /** Registrerer en åben editor, hvis settle KASTER → fail-closed `blocked` (§1.4 settle-policy). */
 let unregisterEditor: (() => void) | null = null;
-const registerEditorThatFailsSettle = (): void => {
+const registerEditorThatFailsSettle = (draftChanged = false): void => {
   const editor: ActiveEditor = {
     id: 'test-open-editor',
     isEditing: () => true,
+    hasDraftChanges: () => draftChanged,
     settle: () => {
       throw new Error('Simuleret uventet settle-fejl');
     },
@@ -126,6 +127,8 @@ const renderHook = (
     hasData?: boolean;
     rejected?: boolean;
     openEditorFailsSettle?: boolean;
+    /** Den åbne editor bærer en faktisk ændret, uafsluttet draft (BB-397). */
+    openEditorDraftChanged?: boolean;
   } = {}
 ): HarnessHandles => {
   // Hydrér den ægte runtime FØR mount, så porten ser præcis den tilsigtede tilstand.
@@ -136,8 +139,8 @@ const renderHook = (
       : emptyInput();
   hydrateSlimInputStoreForTest(slimInputStore, initialInput);
 
-  if (overrides.openEditorFailsSettle) {
-    registerEditorThatFailsSettle();
+  if (overrides.openEditorFailsSettle || overrides.openEditorDraftChanged) {
+    registerEditorThatFailsSettle(overrides.openEditorDraftChanged === true);
   }
 
   const handles: HarnessHandles = {
@@ -480,6 +483,18 @@ describe('useFileSaveLoad', () => {
 
       expect(loadFromFileMock).toHaveBeenCalledTimes(1);
       expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('spørger før en tom sag med en ændret, åben indtastning erstattes – uden at settle den (BB-397)', async () => {
+      const handles = renderHook({ hasData: false, openEditorDraftChanged: true });
+      loadFromFileMock.mockResolvedValue(successfulLoad());
+
+      await act(async () => {
+        await handles.api?.handleHent();
+      });
+
+      expect(handles.api?.pendingOverwriteApply).not.toBeNull();
+      expect(applyAuthoritativeLoadSnapshotMock).not.toHaveBeenCalled();
     });
 
     it('sætter pendingLoadResult og anvender IKKE data ved preflight-advarsel', async () => {

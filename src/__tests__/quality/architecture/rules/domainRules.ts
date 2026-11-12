@@ -373,6 +373,8 @@ export const NON_DOMAIN_CATALOG_MODULES: readonly string[] = [
   'dateBoundsValidators',
   'dateOrderValidators',
   'productionCatalog',
+  // MinProcesrentes katalog (kun renteberegningens descriptors); en samler som productionCatalog, ikke et domæne.
+  'renteberegningCatalog',
   'fieldLocationCatalog',
   // Rene tal-/politik-konstanter for feltlængder (§1.2). Ingen descriptorer, ingen domænekobling.
   'fieldLengthLimits',

@@ -48,11 +48,44 @@ const actNamesFor = (source: ts.SourceFile): ReadonlySet<string> => {
   return names;
 };
 
-const containsAsyncQuery = (node: ts.Node): boolean => {
+/**
+ * Navnene, user-event er bundet til i filen: `userEvent` selv og enhver `const x = userEvent.setup(...)`.
+ *
+ * user-event wrapper selv sine handlinger i RTL's async act. Lægges de i endnu en `act(async …)`, slår den
+ * indre wrapper React's act-miljø fra midt i den ydre, og React advarer «The current testing environment is
+ * not configured to support act(...)» – samme klasse som en async query inde i act.
+ */
+const userEventNamesFor = (source: ts.SourceFile): ReadonlySet<string> => {
+  const names = new Set(['userEvent']);
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer
+      && ts.isCallExpression(node.initializer) && ts.isPropertyAccessExpression(node.initializer.expression)
+      && ts.isIdentifier(node.initializer.expression.expression)
+      && node.initializer.expression.expression.text === 'userEvent'
+      && node.initializer.expression.name.text === 'setup'
+    ) {
+      names.add(node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return names;
+};
+
+const isUserEventCall = (expression: ts.Expression, userEventNames: ReadonlySet<string>): boolean =>
+  ts.isPropertyAccessExpression(expression)
+  && ts.isIdentifier(expression.expression)
+  && userEventNames.has(expression.expression.text)
+  && expression.name.text !== 'setup';
+
+const containsAsyncQuery = (node: ts.Node, userEventNames: ReadonlySet<string> = new Set()): boolean => {
   let found = false;
   const visit = (current: ts.Node): void => {
     if (found) return;
-    if (ts.isCallExpression(current) && isAsyncQueryName(callName(current.expression))) {
+    if (ts.isCallExpression(current) && (
+      isAsyncQueryName(callName(current.expression)) || isUserEventCall(current.expression, userEventNames)
+    )) {
       found = true;
       return;
     }
@@ -64,6 +97,7 @@ const containsAsyncQuery = (node: ts.Node): boolean => {
 
 const findAsyncActQueries = (source: ts.SourceFile, relativePath: string): readonly Finding[] => {
   const actNames = actNamesFor(source);
+  const userEventNames = userEventNamesFor(source);
   const findings: Finding[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node)) {
@@ -71,7 +105,7 @@ const findAsyncActQueries = (source: ts.SourceFile, relativePath: string): reado
         ? actNames.has(node.expression.text)
         : ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'act';
       const callback = node.arguments[0];
-      if (isAct && callback && isAsyncCallback(callback) && containsAsyncQuery(callback.body)) {
+      if (isAct && callback && isAsyncCallback(callback) && containsAsyncQuery(callback.body, userEventNames)) {
         const { line, character } = source.getLineAndCharacterOfPosition(node.getStart(source));
         findings.push({ relativePath, line: line + 1, column: character + 1 });
       }
@@ -107,6 +141,39 @@ describe('React act-brug i tests', () => {
     expect(findAsyncActQueries(source, 'probe.test.tsx')).toHaveLength(1);
   });
 
+  it('finder et user-event-kald inde i en async act-callback', () => {
+    const source = ts.createSourceFile(
+      'probe.test.tsx',
+      [
+        "import { act } from '@testing-library/react';",
+        'const user = userEvent.setup();',
+        "await act(async () => user.keyboard('{Enter}'));",
+      ].join('\n'),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+
+    expect(findAsyncActQueries(source, 'probe.test.tsx')).toHaveLength(1);
+  });
+
+  it('accepterer et user-event-kald uden ydre act', () => {
+    const source = ts.createSourceFile(
+      'probe.test.tsx',
+      [
+        "import { act } from '@testing-library/react';",
+        'const user = userEvent.setup();',
+        "await user.keyboard('{Enter}');",
+        'act(() => input.focus());',
+      ].join('\n'),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+
+    expect(findAsyncActQueries(source, 'probe.test.tsx')).toEqual([]);
+  });
+
   it('accepterer en async query før den separate act-grænse', () => {
     const source = ts.createSourceFile(
       'probe.test.tsx',
@@ -119,7 +186,7 @@ describe('React act-brug i tests', () => {
     expect(findAsyncActQueries(source, 'probe.test.tsx')).toEqual([]);
   });
 
-  it('ingen test har async queries inde i en async act-callback', () => {
+  it('ingen test har async queries eller user-event-kald inde i en async act-callback', () => {
     const findings = TEST_ROOTS.flatMap(collectTestSourceFiles).flatMap(scanFile);
 
     expect(findings, findings.map((finding) =>

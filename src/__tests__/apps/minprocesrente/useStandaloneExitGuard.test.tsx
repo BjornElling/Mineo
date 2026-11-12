@@ -42,23 +42,14 @@ const settleBeregningsdato = (raw: string) => {
   });
 };
 
-const beforeUnloadIsArmed = (
-  addSpy: ReturnType<typeof vi.spyOn>,
-  removeSpy: ReturnType<typeof vi.spyOn>
-): boolean => {
-  const added = addSpy.mock.calls.filter((args: unknown[]) => args[0] === 'beforeunload');
-  const last = added[added.length - 1]?.[1];
-  if (!last) return false;
-  const addCount = added.filter((args: unknown[]) => args[1] === last).length;
-  const removeCount = removeSpy.mock.calls.filter(
-    (args: unknown[]) => args[0] === 'beforeunload' && args[1] === last
-  ).length;
-  return addCount > removeCount;
+/** Måler udfaldet, ikke lytterens livscyklus: ville browseren spørge, før fanen lukkes? */
+const beforeUnloadIsArmed = (): boolean => {
+  const event = new Event('beforeunload', { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
 };
 
 describe('useStandaloneExitGuard', () => {
-  let addSpy: ReturnType<typeof vi.spyOn>;
-  let removeSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     sessionStorage.clear();
@@ -67,8 +58,6 @@ describe('useStandaloneExitGuard', () => {
     // se en flade uden ændringer.
     hydrateSlimInputStoreForTest(slimInputStore, catalog.validateSettledInput(createEmptySettledInput()));
     tracker = undefined;
-    addSpy = vi.spyOn(window, 'addEventListener');
-    removeSpy = vi.spyOn(window, 'removeEventListener');
   });
 
   afterEach(() => {
@@ -77,33 +66,33 @@ describe('useStandaloneExitGuard', () => {
 
   it('advarer ikke på en tom flade – der er intet at miste', () => {
     renderGuard();
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(false);
+    expect(beforeUnloadIsArmed()).toBe(false);
   });
 
   it('advarer, når der er afsluttet indtastning, som ikke er hentet', () => {
     renderGuard();
     settleBeregningsdato('01-01-2024');
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(true);
+    expect(beforeUnloadIsArmed()).toBe(true);
   });
 
   it('holder op med at advare efter et gennemført hent', () => {
     renderGuard();
     settleBeregningsdato('01-01-2024');
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(true);
+    expect(beforeUnloadIsArmed()).toBe(true);
 
     act(() => { tracker?.(documentDownloaded); });
     // Den, der lige har hentet sit dokument, generes ikke.
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(false);
+    expect(beforeUnloadIsArmed()).toBe(false);
   });
 
   it('advarer igen, når brugeren taster videre efter sit hent', () => {
     renderGuard();
     settleBeregningsdato('01-01-2024');
     act(() => { tracker?.(documentDownloaded); });
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(false);
+    expect(beforeUnloadIsArmed()).toBe(false);
 
     settleBeregningsdato('02-01-2024');
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(true);
+    expect(beforeUnloadIsArmed()).toBe(true);
   });
 
   it('rydder IKKE advarslen ved et fejlet hent – brugeren fik ingen fil', () => {
@@ -114,6 +103,6 @@ describe('useStandaloneExitGuard', () => {
       tracker?.(documentFailed({ kind: 'runtime', phase: 'render', cause: new Error('test') }));
     });
 
-    expect(beforeUnloadIsArmed(addSpy, removeSpy)).toBe(true);
+    expect(beforeUnloadIsArmed()).toBe(true);
   });
 });

@@ -7,6 +7,12 @@ import { SYSTEM_DARK_MEDIA_QUERY, THEME_COLOR_BY_MODE } from '../settings/themeB
 import { logError } from '../utils/logger';
 import { asError } from '../utils/typeGuards';
 import { getPersistentLocalStorage } from '../utils/safeLocalStorage';
+import type { AppSettings } from '../settings/appSettingsSchema';
+import {
+  commitAppSettingsRaw,
+  discardCommittedAppSettings,
+  isAppSettingsCommitStoreAvailable,
+} from '../settings/appSettingsCommitStore';
 
 /**
  * AppSettingsContext
@@ -69,15 +75,42 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
     return current.current;
   }, []);
 
+  /** Fanens senest kendte råtekst – kun grundlag, indtil IndexedDB har sin første autoritative værdi. */
+  const readLatestRaw = React.useCallback((): string | undefined => {
+    readLatestSettings();
+    return lastStored.current;
+  }, [readLatestSettings]);
+
   const updateSettings = React.useCallback((patch: AppSettingsPatch) => {
-    const commit = () => {
-      // Storage-events kan stå i kø. Læs derfor også før skrivning, og gem kun brugerens patch
-      // oven på den nyeste kopi. Ingen I/O i Reacts state-updater eller efterfølgende effekt.
-      const next = mergeAppSettings(readLatestSettings(), patch);
-      const serialized = JSON.stringify(next);
+    const apply = (next: AppSettings, serialized: string) => {
       if (writeLocalStorage(LOCAL_STORAGE_KEY, serialized)) lastStored.current = serialized;
       current.current = next;
       setSettings(next);
+    };
+    const commitToLocalStorage = () => {
+      // Storage-events kan stå i kø. Læs derfor også før skrivning, og gem kun brugerens patch
+      // oven på den nyeste kopi. Ingen I/O i Reacts state-updater eller efterfølgende effekt.
+      const next = mergeAppSettings(readLatestSettings(), patch);
+      apply(next, JSON.stringify(next));
+    };
+    const commit = async () => {
+      if (!isAppSettingsCommitStoreAvailable()) {
+        commitToLocalStorage();
+        return;
+      }
+      // `localStorage` kan være forældet i en anden renderer-proces, også inde i låsen. Grundlaget
+      // læses derfor fra IndexedDB i samme transaktion som skrivningen (se appSettingsCommitStore).
+      let next: AppSettings | undefined;
+      const serialized = await commitAppSettingsRaw(readLatestRaw(), (baseRaw) => {
+        next = mergeAppSettings(parseStoredSettingsJson(baseRaw), patch);
+        return JSON.stringify(next);
+      });
+      if (serialized === null || next === undefined) {
+        await discardCommittedAppSettings();
+        commitToLocalStorage();
+        return;
+      }
+      apply(next, serialized);
     };
     // Faner har hver sin event-loop. Den fælles lås forhindrer, at to samtidige klik læser
     // samme grundlag og derefter overskriver hinandens uafhængige valg.
@@ -86,10 +119,10 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
         logError('Kunne ikke opdatere programindstillinger', { error: asError(error) });
       });
     } else {
-      commit();
+      void commit();
     }
     return true;
-  }, [readLatestSettings]);
+  }, [readLatestRaw, readLatestSettings]);
 
   React.useEffect(() => {
     const sync = () => setSettings(readLatestSettings());

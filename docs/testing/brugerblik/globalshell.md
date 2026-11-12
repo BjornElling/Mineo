@@ -832,3 +832,146 @@ Dette lukker samtidig et spor: **foreslå ikke en «Log ud» igen**, og læs ikk
 Kode, kontrakt og værn for de gennemførte fund (BB-049, BB-050, BB-053, BB-054 delvist, BB-055,
 BB-056, BB-057) står under hvert fund. Fuld vitest grøn efter rettelserne. `npm run lint` og
 `npm run check:types` grønne.
+
+## Fornyet gennemgang 2026-11-11
+
+- Grundlag: commit `6571f889` samt eksisterende rapportændringer i arbejdstræet. Historikken ovenfor er bevaret.
+- Afprøvet headless i Chrome ved 1536×864 og 1366×620 samt Firefox ved 1536×864.
+- **Resultat: tre nye fund, alle Høj: én Fejl og to Edge case.** Alle godkendt til rettelse og implementeret 2026-11-11.
+  M-46 er bekræftet i Mineo, og M-47 samler de to forekomster af ubeskyttet åben indtastning.
+- Ingen produktkode, beregninger eller gemte dataformater er ændret. Ingen gates eller commit.
+
+### Inventar og de to blikke
+
+- **Login:** ét adgangskodefelt uden erklæret længdeloft, Log ind og kontaktlink. Tomt/forkert input
+  afvises; store/små bogstaver og blanktegn i enderne normaliseres. Et vilkårligt lavt længdeloft har
+  ingen meningsfuld forbindelse til opgaven. Kontaktlinket er ikke aktiveret.
+- **Menu:** fold ud/sammen, otte sagssider, Gem/Hent/Slet alt og Indstillinger/Om, i alt 14 knapper.
+  Udfoldning huskes pr. fane; sammenfoldede knapper har navne og tooltips. Alle ti sidemål er besøgt.
+  Arbejdsflade og menu skaleres automatisk; ingen manuel zoom- eller låsekontrol.
+- **Filhandlinger:** urørt sag, åben indtastning, afsluttet gyldigt input, afvist dato og kanoniske
+  grænsefejl er skilt ad. Gem afslutter editoren; Hent bevarer den indtil vellykket erstatning.
+  Tomhed måles mod den nye sags standardværdier. Det sidste bliver problematisk ved eneste åbne
+  indtastning, BB-397. Kanoniske grænsefejls round-trip er allerede målt ved Satser, BB-393.
+- **Dialoger:** Slet alt; Erstat; load-preflight; filkonflikt med Annuller/Gem i en anden fil/Overskriv;
+  tilbud om ventende PWA-fil. De første fire er set, PWA-tilbuddet kun kildegennemgået. Lokal
+  fejlrapport er åbnet fra preflight; ingen oplysninger er sendt, kopieret eller downloadet derfra.
+- **Genveje og beskeder:** Ctrl+S; Ctrl+Z/Y/Shift+Z; feltets Escape; dialogernes Tab/Escape/tilbage/
+  backdrop; statusbeskeder og blivende fejlbesked. Undo genfinder den ændrede side og feltet;
+  Gem ændrer ikke historikken, mens vellykket Hent/Slet alt rydder den.
+- **Usynlig tilstand:** browserfanens input, editorens uafsluttede tekst, senest gemte revision,
+  filnavn/filindhold/filhåndtag, filoperationslås og overlay-stak. Særligt beskyttelsen mod at
+  forlade siden har kortere levetid end de indtastninger, den skal beskytte, BB-395.
+- **Fornuftsblik:** genkendelig handling, forklaring ved blokering, tydelig annullering og forskellen
+  mellem synligt arbejde og programmets begreb om gemt/tomt er vurderet for ovenstående kontroller.
+  **Edge case-blik:** første indtastning, efter Gem, efter F5, åben/afsluttet/afvist værdi, handling fra
+  anden side, filfejl, erstatning, fortrydelse og annullering er kombineret i browseren.
+
+### BB-395 – Efter F5 kan en ugemt sag forlades uden advarsel
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md`, M-46; samme fejl som MinProcesrentes BB-394.
+- **Prioritet:** Høj
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret: «ugemt»-markeringen gemmes i fanens sessionStorage (`ui_unsavedWork`, caseScoped) og læses ved mount i `useUnsavedChangesGuard`; kun vellykket Gem/download eller Hent/Slet alt fjerner den.
+- **Sådan fremprovokeres det:** Skriv `UGEMT EFTER F5` i Journalnr. og afslut med Enter. Genindlæs,
+  accepter browserens advarsel, klik derefter én gang i det gendannede felt uden at ændre det,
+  og navigér væk fra webstedet.
+- **Det sker:** Første genindlæsning viser en rigtig browseradvarsel. Journalnummeret gendannes,
+  men næste navigation til `about:blank` sker uden advarsel, selv om sagen aldrig er gemt.
+  Brugeraktivering var bekræftet efter genindlæsningen; det skyldes ikke browserens krav om et klik.
+- **Det er uhensigtsmæssigt fordi:** En tilsyneladende harmløs genindlæsning fjerner den primære
+  beskyttelse mod at lukke en ugemt sag. Lukning kan derefter miste hele sagen uden varsel.
+- **Bedre ville være:** Oplysningen om, at sagen endnu ikke er gemt, skal overleve genindlæsningen
+  sammen med indtastningerne. Vellykket Gem/Hent/Slet alt beholder deres eksisterende betydning.
+- **Andre steder det kan gælde:** Standalone MinProcesrente er allerede bekræftet, BB-394.
+  `useUnsavedChangesGuard` har ingen øvrige produktionskaldere. Ingen genåbning af BB-052's afviste
+  synlige gem-status eller BB-059's accepterede ekstra advarsel ved selve F5.
+- **Kilde:** `useUnsavedChangesGuard.ts` starter sin gemte baseline ved den gendannede revision.
+  Før F5 var `beforeunload` annulleret af programmet; efter F5 var den ikke, mens input var identisk.
+
+### BB-396 – En endnu ikke afsluttet indtastning kan forsvinde ved F5 uden advarsel
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md`, M-47.
+- **Prioritet:** Høj
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret: aktive editorer melder `hasDraftChanges`, og exit-guardens `beforeunload` medregner en faktisk ændret, åben indtastning. Uændret åbning og Escape tæller ikke.
+- **Sådan fremprovokeres det:** Start med en tom sag. Åbn Journalnr., skriv
+  `IKKE AFSLUTTET JOURNAL`, og genindlæs uden Enter eller klik i et andet felt.
+- **Det sker:** Genindlæsningen gennemføres uden browseradvarsel, og Journalnr. er tomt bagefter.
+  Efter et vellykket Gem blev en ny åben rettelse også målt uden beskyttelse mod at forlade siden.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan se sin nye tekst, men programmet regner ikke
+  teksten som arbejde, der kan mistes. Én forkert genindlæsning kan derfor slette den uden en chance
+  for at vende tilbage og afslutte feltet.
+- **Bedre ville være:** Browserens advarsel skal også omfatte en faktisk ændret, åben indtastning.
+  Brugeren kan så annullere og afslutte eller gemme feltet. At åbne et uændret felt eller annullere
+  en rettelse med Escape skal fortsat ikke i sig selv gøre sagen ugemt.
+- **Andre steder det kan gælde:** Alle formular- og tabelredigeringer i Mineo samt standalone
+  MinProcesrente bruger samme grænse mellem åbent og afsluttet input. Disse øvrige felter er kandidater,
+  ikke særskilt browserprøvede forekomster.
+- **Kilde:** Exit-guarden læser kun afsluttede revisioner og spørger ikke den aktive editor om ændringer.
+
+### BB-397 – Hent erstatter den eneste åbne indtastning uden at spørge
+
+- **Type:** Edge case
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md`, M-47.
+- **Prioritet:** Høj
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret: `requestApplyLoadedSnapshot` viser Erstat-dialogen også ved en faktisk ændret, åben indtastning (`criticalActions.hasChangedOpenDraft()`). Draften settles ikke; Annuller bevarer den.
+- **Sådan fremprovokeres det:** Start tomt. Skriv `KUN ÅBEN TEKST` i Journalnr. uden Enter eller blur.
+  Klik Hent, og vælg en gyldig sag med et andet journalnummer.
+- **Det sker:** Sagen indlæses straks, den synlige tekst erstattes, og Erstat-dialogen kommer ikke.
+  Præcis samme rejse med afsluttet Journalnr. viser derimod «Erstat de aktuelle indtastninger?».
+  Bekræftet i Chrome med rigtige browserfilhåndtag og i Firefox gennem den instrumenterede fallback.
+- **Det er uhensigtsmæssigt fordi:** Beskyttelsen afhænger af et Enter/blur, som brugeren ikke har
+  grund til at forbinde med, om hans synlige arbejde kan slettes uden bekræftelse.
+- **Bedre ville være:** Vis den eksisterende Erstat-dialog, også når det eneste arbejde er en faktisk
+  ændret, åben indtastning. Annuller bevarer teksten; Erstat indlæser filen. Ingen tvungen afslutning
+  eller validering af den tekst, brugeren netop er ved at erstatte.
+- **Andre steder det kan gælde:** Manuel Hent og PWA-Hent deler beslutningen; PWA-forekomsten er kun
+  kildeaflæst. En tabelcelle kan ramme samme problem, når sagen ellers svarer til ny-sags-standarderne.
+- **Kilde:** `requestApplyLoadedSnapshot` i `useFileSaveLoad.ts` spørger kun `ops.file.hasAnyData()`;
+  den forespørgsel ser afsluttet input. Replacement kasserer derefter editoren ved vellykket apply.
+
+### Efterprøvet uden yderligere fund
+
+- Tomt/forkert login afvises; korrekt kode med ændret bogstavstørrelse og blanktegn i enderne åbner gaten.
+- Urørt Gem siger «Ingen data fundet at gemme». Tom Slet alt beholder sin bekræftelse som tidligere besluttet.
+- Sideskift afslutter åben Journalnr.; værdien genfindes efter tilbagevenden. Ctrl+Z/Y gendanner korrekt.
+- Native tekst-undo i en åben Chrome-editor fjerner netop de nyskrevne tegn; Escape genfinder åbningsværdien.
+- Ctrl+Z og Ctrl+S ændrer ikke sagen bag Slet alt-dialogen. Tab bliver inde i dialogen.
+- Escape, tilbage, backdrop og Annuller lukker uden sletning; bekræftet Slet alt rydder sagen og historikken.
+- Ctrl+S med åben Journalnr. gemmer den afsluttede tekst. Efter Gem er exit-advarslen korrekt væk indtil ny rettelse.
+- Native Gem/Hent er prøvet med rigtige OPFS-filer: round-trip, erstatningsbekræftelse og Annuller bevarer input.
+- Filkonflikt efter ekstern ændring forklarer forskellen: Annuller bevarer filen, Gem i en anden fil bevarer den
+  gamle og skriver den nye, og Overskriv skriver først efter bekræftelsen.
+- Forkert filindhold giver «Kunne ikke indlæse fil. Tjek at filen er gyldig.»; eksisterende journalnummer bevares.
+  Escape lukker den røde besked, og der kommer ingen teknisk alarm.
+- Afvist Skadedato `99-99-9999` blokerer Gem fra Satser, åbner Stamdata, fokuserer datoen og forklarer blokeringen.
+- Syntetisk fil med ét fremmed felt giver preflight med `44 af 45` felter og alle tre foreskrevne valg.
+  Stop bevarer sagen; Indlæs trods fejl går videre til Erstat; Annuller dér bevarer også sagen.
+- Send fejloplysninger åbner lokal gennemgang med persondataadvarsel. Luk afslutter forløbet uden afsendelse.
+- Firefox-Gem downloader en rigtig `.eo` og forklarer, at den er en ny fil. Ingen teknisk alarm.
+- Alle menumål monterer den rigtige side; 404 viser sidemenu og «Din sag er uændret; vælg en side i menuen.».
+  Sagen genfindes uændret via menuen.
+- Menuen er visuelt kontrolleret udfoldet ved 1366×620 og sammenfoldet ved 1536×864. Om-knappen ender ved
+  y≈611 i det lave vindue, så hele menuen kan bruges. Preflight er også screenshot-kontrolleret ved 1536×864.
+- Ingen observerede `console.error`, `console.warn` eller ukontrollerede page-fejl i de gennemførte rejser.
+  DEV-info/timestamps og afbrudte værktøjsventepunkter er ikke produktfejl.
+- Historiske afvisninger er respekteret: ingen ny gem-status, logout, annoncering af Ctrl+S eller ændring af Tab-ringen.
+
+### Dækningshuller og afgrænsning
+
+- Native Windows-filvælgere og fysisk disks filrettigheder er ikke automatiseret. Chromes native filgren er prøvet
+  med rigtige OPFS-handles; kun pickerens returværdi er erstattet. Det er ikke en prøve af OS-dialogen.
+- Firefox headless sender `cancel` ca. 8 ms efter native file-input-klik, før Playwright leverer filen. Inputtet er
+  allerede fjernet ved `setFiles`. Dette er dokumenteret med eventrækkefølge og behandles som værktøjsbegrænsning.
+  Fallback er efterprøvet særskilt ved kun at undertrykke native file-input-klik og levere filen til produktets
+  rigtige input/onchange: BB-397 reproduceres; afsluttet input giver Erstat, og Annuller bevarer teksten.
+- Installeret PWA, systemets dobbeltklik på `.eo`, deploy/opdateringsbarriere og lazy-chunk-recovery er kun
+  kildegennemgået; recovery er PROD-gatet og kan ikke efterprøves på den anvendte Vite-devserver.
+- Mistet lageradgang, fuld disk, samtidige filændringer fra andre processer og to faners native filadgang er ikke
+  gennemspillet i denne omgang. De historiske fejl og dækningsgrænser genregistreres ikke som nye fund.
+- Et dokumentationsspor, ikke nyt brugerfund: `undo-redo-contract.md` §2 omtaler fortsat spærring af browserens
+  tekst-undo, mens `keyboard-navigation.md`, den aktuelle kode og browserprøven tillader den. Produktet er ikke ændret.
+- Reproduktioner/screenshots ligger lokalt i `test-results/brugerblik-shell/` og er ikke versionsstyrede.
+  Alle ad hoc-browsere og udviklingsserveren lukkes efter gennemgangen. Ingen test-, lint- eller buildgate,
+  fordi denne skill kun dokumenterer. Næste flade: **7a. Varige mén → Ménberegning**.

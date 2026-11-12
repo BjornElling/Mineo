@@ -1,5 +1,14 @@
 # Brugerblik – tværgående mønstre
 
+**Fornyet gennemgang 2026-11-11, MinProcesrente:** BB-394 (Fejl, Høj) afdækker M-46:
+arbejdet overlever F5, men advarslen mod at forlade uhentet arbejde forsvinder. Rigtig genindlæsning
+og efterfølgende navigation er målt; Mineos fælles guard er kandidat til flade 6. Rettet 2026-11-11 sammen med BB-395.
+
+**Fornyet gennemgang 2026-11-11, Satser:** BB-392 (Fornuft, Mellem) er lokal: 2027 kan vælges,
+men EAL og fri proces mangler tavst, også i dokumentet. BB-393 (Fornuft, Mellem) udvider M-45:
+en gyldig Gem uden Stamdata udløser en teknisk kodealarm. Begge rettet 2026-11-11.
+Ingen tidligere afvisninger genåbnes; prøver og afgrænsninger står i `satser.md`.
+
 **Fornyet gennemgang 2026-11-11, Indstillinger:** To nye mønstre, M-44 og M-45. Et valg i en anden
 åben fane overskriver et allerede gemt tema (BB-390, Høj); Firefox' manglende mappevalg udløser en
 teknisk alarm om kode og beregninger (BB-391, Mellem). Tidligere afvisninger i M-12 genåbnes ikke.
@@ -3368,3 +3377,77 @@ hele oplevelsen. Prøv i en rigtig runtime uden den pågældende API, når det e
   manglende understøttelse. Det er ikke M-12's afviste krav om kvitteringer eller forklaringer på
   standardværdier; handlingen kan faktisk ikke udføres. Godkendt og implementeret 2026-11-11
   for den målte forekomst; de øvrige kandidater er fortsat uverificerede.
+
+### Udvidelse 2026-11-11 – En gyldig, tom sagsdel udløser samme kodealarm
+
+- **Bekræftet i `satser.md`, BB-393, Mellem:** Gem med kun satsår og helt tomme Stamdata downloader
+  filen, men giver «ADVARSEL: Manglende sektioner: stamdata» og «Teknisk advarsel registreret».
+  Alarmen påstår en kodefejl og foreslår at gennemgå beregningerne. Målt med både 2027 og canonical
+  grænsefejl 2028 i Chromes fallback-filflow; den sidste værdi blev bagefter gendannet korrekt via Hent.
+- Dette er en **anden forventelig tilstand** end den oprindelige browserbegrænsning: en valgfri sagsdel
+  er tom. Den fælles mekanisme er, at en normal situation gøres til en teknisk advarsel, som derefter
+  bliver en misvisende påstand om programmets korrekthed. BB-391's rettelse lukker ikke denne forekomst.
+- **Mekanisme:** `fileSaveInternals.ts` → `verifyAfterSave` markerer tom `stamdata` som warning, efter
+  at filen er valideret og svarer til forventet indhold. `fileSave.ts` logger en ekstra warning i begge
+  Gem-grene. Browseren viste to advarsler pr. Gem og nul errors.
+- **Kandidater, ikke browserverificeret:** renteberegning/årsløn uden Stamdata og native Gem i Chrome/Edge.
+  De bruger samme verifikation. Søg desuden på `logWarning` efter succesfuld verifikation af valgfrie data;
+  skeln dette fra faktiske integritetsfejl, som fortsat skal være tekniske fejl.
+- **Forslag:** Ingen manglende-Stamdata-advarsel eller teknisk alarm ved ellers gyldig Gem. Behold beskeden
+  om fallback-downloadens nye fil samt faktiske skrive-/integritetsfejl. Rettet 2026-11-11 (BB-393).
+
+## M-46 – Arbejdet overlever genindlæsning, men beskyttelsen gør ikke
+
+> Brugerens arbejde gendannes efter genindlæsning, mens oplysningen om, at arbejdet endnu ikke er gemt
+> eller hentet, starter forfra. Programmet behandler derfor det gendannede arbejde som allerede sikret.
+
+Genindlæsningen ser harmløs ud: alle felter kommer igen. Det usynlige tab er beskyttelsen mod næste
+handling, der faktisk kan miste arbejdet. En måling af felternes indhold efter F5 finder derfor ikke
+fejlen; prøven skal fortsætte med at forsøge at forlade siden uden endnu en rettelse.
+
+**Efterprøv, hvor:** en advarsel mod at forlade siden sammenligner den aktuelle revision med en
+baseline, som kun lever i React-state/ref, mens input hydrerer fra sessionStorage. Søg på
+`useUnsavedChangesGuard`, `savedRevisionBaseline` og `markSaved`. Afprøv både uhentet arbejde og
+download → ny rettelse → F5; kontrollér også, at rent brugerfokus efter F5 ikke forveksles med
+browserens manglende brugeraktivering.
+
+- **Bekræftet i `minprocesrente.md`, BB-394, Høj:** `100.000 kr.` fra `01-01-2024` til `11-11-2026`
+  uden PDF giver en rigtig browseradvarsel ved første genindlæsning. Efter genindlæsning bevares alle
+  input og kommentaren, men efterfølgende navigation til `about:blank` viser ingen advarsel.
+- **Mekanisme:** `useUnsavedChangesGuard.ts` initialiserer `savedRevisionBaseline` til den hydrerede
+  revision ved mount. `useStandaloneExitGuard.ts` bruger den samme hook som Mineo.
+- **Bekræftet på flade 6, BB-395, Høj:** `UGEMT EFTER F5` i Mineos Journalnr. giver browseradvarsel
+  før genindlæsningen. Efter accepteret genindlæsning står teksten stadig, men navigation til
+  `about:blank` viser ingen advarsel. Brugeraktivering var bekræftet efter reload. `MainLayout.tsx`
+  anvender samme guard; ingen øvrige kaldssteder fundet i produktionskoden.
+- **Forslag:** Arbejdets markering som endnu ikke gemt/hentet skal overleve genindlæsningen sammen
+  med input. Vellykket gemning/download og nye afsluttede rettelser beholder deres eksisterende
+  betydning. Rettet 2026-11-11 (BB-394/BB-395) med en caseScoped `ui_unsavedWork`-markør i sessionStorage.
+- **Afgrænsning mod M-17 og BB-059:** Her er problemet forskellig levetid inden for én fane, ikke to
+  faners delte filhåndtag. BB-059's accepterede ekstra advarsel ved F5 genåbnes ikke.
+
+## M-47 – Synligt arbejde i et åbent felt tæller ikke med i beskyttelsen mod tab
+
+> En handling afgør, om brugeren har arbejde, der kan mistes, ved kun at se på afsluttede
+> indtastninger. Teksten i det felt, brugeren stadig skriver i, er usynlig for beskyttelsen.
+
+Det er korrekt at holde åben tekst ude af beregning og `.eo`. Det gør ikke teksten værdiløs for
+brugeren: genindlæsning og erstatning kan stadig slette den. En tom sag med ét åbent felt og samme
+sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synlige tekst.
+
+- **Bekræftet, BB-396, Høj:** Første åbne Journalnr. i Mineo forsvinder ved F5 uden browseradvarsel.
+  Efter et vellykket Gem giver en ny åben rettelse heller ikke exit-beskyttelse.
+  `useUnsavedChangesGuard.ts` læser kun afsluttede revisioner.
+- **Bekræftet, BB-397, Høj:** Hent erstatter eneste åbne Journalnr. uden Erstat-dialog. Afsluttes
+  samme indtastning først, vises dialogen. Målt i Chrome med OPFS og i Firefox med instrumenteret
+  fallback-filvalg. `requestApplyLoadedSnapshot` spørger kun `ops.file.hasAnyData()`.
+- **Systematiksøgning:** `hasAnyData()`, `combinedSectionRevision`, `markSaved` og `getEditing()`
+  er fulgt i shell/inputlaget. Gem spørger også om afsluttede data, men afslutter først editoren og
+  har derfor ikke den målte Hent-fejl. Slet alt har altid bekræftelse. Navigation afslutter feltet.
+- **Konkrete kandidater:** standalone MinProcesrentes exit-guard; åbne tabelceller i Mineo;
+  PWA-Hent gennem samme `requestApplyLoadedSnapshot`. Kun kodeaflæst, ikke særskilt browsermålt.
+- **Forslag:** Medregn faktisk ændret, åben tekst i beslutningen om advarsel/bekræftelse, uden at
+  sende teksten videre til beregning eller tvinge et settle under Hent. Uændret åbning og Escape
+  skal ikke i sig selv udløse beskyttelse. Rettet 2026-11-11 (BB-396/BB-397) via editorens `hasDraftChanges`.
+- **Afgrænsning mod M-46:** Her er beskyttelsen fraværende allerede før en genindlæsning, fordi
+  arbejdet stadig står åbent. M-46 mister beskyttelsen af afsluttet arbejde under genindlæsningen.

@@ -16,6 +16,7 @@ export const OpenEditor = ({ label }: { label: string }): React.ReactElement => 
     const editor: ActiveEditor = {
       id: `test-open-editor:${label}`,
       isEditing: () => true,
+      hasDraftChanges: () => false,
       settle: () => {
         throw new Error('Simuleret uventet settle-fejl fra åben testeditor');
       },

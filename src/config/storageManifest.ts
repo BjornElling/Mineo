@@ -67,6 +67,7 @@ const UI_STORAGE_KEY_SUFFIXES = {
   eoOffentligeYdelserHelpers: 'ui_eoOffentligeYdelserHelpers',
   devtoolsLastSeenIssueId: 'ui_devtools_lastSeenIssueId',
   sideMenuExpanded: 'sideMenuExpanded',
+  unsavedWork: 'ui_unsavedWork',
 } as const;
 
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
@@ -94,6 +95,8 @@ const SESSION_RESET_POLICY = {
   eoOffentligeYdelserHelpers: 'caseScoped',
   devtoolsLastSeenIssueId: 'deviceScoped',
   sideMenuExpanded: 'deviceScoped',
+  // Markøren for «arbejdet er endnu ikke gemt/hentet» beskriver netop den aktuelle sag (BB-394/395).
+  unsavedWork: 'caseScoped',
 } as const satisfies { readonly [K in keyof typeof UI_STORAGE_KEY_SUFFIXES]: 'caseScoped' | 'deviceScoped' };
 
 /**

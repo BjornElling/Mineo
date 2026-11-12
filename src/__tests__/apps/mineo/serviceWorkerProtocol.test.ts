@@ -17,23 +17,44 @@ const loadServiceWorker = (options: {
   manifestResponseOk?: boolean;
   manifestVersion?: string;
   workerVersion?: string;
+  /** Caches fra tidligere builds: cachenavn → assetstier med indholdet `previous:<url>`. */
+  previousCaches?: Readonly<Record<string, readonly string[]>>;
 } = {}) => {
   const listeners = new Map<string, WorkerListener>();
   const skipWaiting = vi.fn(() => Promise.resolve());
   const claim = vi.fn(() => Promise.resolve());
-  const entries = new Map<string, Response>();
-  const cache = {
+  const toUrl = (request: Request | string): string =>
+    new URL(typeof request === 'string' ? request : request.url, 'https://mineo.dk').toString();
+  const createCache = (entries = new Map<string, Response>()) => ({
+    entries,
     addAll: vi.fn(async (urls: readonly string[]) => {
       for (const url of urls) {
-        const resolvedUrl = new URL(url, 'https://mineo.dk').toString();
+        const resolvedUrl = toUrl(url);
         entries.set(resolvedUrl, new Response(`cached:${resolvedUrl}`));
       }
     }),
-    match: vi.fn(async (request: Request) => entries.get(request.url)),
-  };
+    put: vi.fn(async (request: Request | string, response: Response) => {
+      entries.set(toUrl(request), response);
+    }),
+    match: vi.fn(async (request: Request | string) => entries.get(toUrl(request))?.clone()),
+  });
+  const cacheName = `mineo-build-assets:${options.workerVersion ?? BUILD_VERSION}`;
+  const cacheStore = new Map(Object.entries(options.previousCaches ?? {}).map(([name, urls]) => [
+    name,
+    createCache(new Map(urls.map((url) => [toUrl(url), new Response(`previous:${toUrl(url)}`)]))),
+  ]));
+  const cache = createCache();
   const caches = {
-    open: vi.fn(async () => cache),
-    keys: vi.fn(async () => ['mineo-build-assets:2026.08.12']),
+    open: vi.fn(async (name: string) => {
+      if (name === cacheName) {
+        cacheStore.set(name, cache);
+        return cache;
+      }
+      const existing = cacheStore.get(name) ?? createCache();
+      cacheStore.set(name, existing);
+      return existing;
+    }),
+    keys: vi.fn(async () => [...cacheStore.keys()]),
   };
   const fetch = vi.fn(async () => new Response(
     JSON.stringify({
@@ -78,6 +99,51 @@ describe('service worker-opdateringsprotokol', () => {
     expect(fetch).toHaveBeenCalledWith('/pwa-assets.json', { cache: 'no-store' });
     expect(cache.addAll).toHaveBeenCalledWith(['/assets/index-ABC123.js', '/assets/pdf-DEF456.js']);
     expect(skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('genbruger uændrede hash-assets fra en tidligere builds cache og henter kun resten', async () => {
+    const { listeners, cache, fetch } = loadServiceWorker({
+      workerVersion: '2026.08.13',
+      manifestVersion: '2026.08.13',
+      manifestAssets: ['assets/vendor-AAA111.js', 'assets/index-NEW222.js', 'assets/data-BBB333.js'],
+      previousCaches: {
+        'mineo-build-assets:2026.08.12': ['assets/vendor-AAA111.js', 'assets/index-OLD999.js'],
+        'mineo-build-assets:2026.08.11': ['assets/data-BBB333.js'],
+        // En fremmed cache er ikke en build-cache og må aldrig levere indhold.
+        'anden-cache': ['assets/index-NEW222.js'],
+      },
+    });
+    const waitUntil = vi.fn();
+    listeners.get('install')?.({ waitUntil });
+    await waitUntil.mock.calls[0]?.[0];
+
+    expect(cache.addAll).toHaveBeenCalledExactlyOnceWith(['/assets/index-NEW222.js']);
+    expect(fetch).toHaveBeenCalledOnce(); // kun assetmanifestet
+    // Den nye builds cache er komplet – også de genbrugte filer ligger i den.
+    const contents = await Promise.all(
+      ['vendor-AAA111.js', 'index-NEW222.js', 'data-BBB333.js'].map(async (name) =>
+        (await cache.match(`https://mineo.dk/assets/${name}`))?.text()),
+    );
+    expect(contents).toEqual([
+      'previous:https://mineo.dk/assets/vendor-AAA111.js',
+      'cached:https://mineo.dk/assets/index-NEW222.js',
+      'previous:https://mineo.dk/assets/data-BBB333.js',
+    ]);
+  });
+
+  it('henter ikke noget ud over manifestet, når hele buildet kan genbruges', async () => {
+    const { listeners, cache } = loadServiceWorker({
+      workerVersion: '2026.08.13',
+      manifestVersion: '2026.08.13',
+      manifestAssets: ['assets/vendor-AAA111.js'],
+      previousCaches: { 'mineo-build-assets:2026.08.12': ['assets/vendor-AAA111.js'] },
+    });
+    const waitUntil = vi.fn();
+    listeners.get('install')?.({ waitUntil });
+    await waitUntil.mock.calls[0]?.[0];
+
+    expect(cache.addAll).not.toHaveBeenCalled();
+    expect(cache.put).toHaveBeenCalledOnce();
   });
 
   it('navngiver cachen efter den indbagte build-version, ikke efter worker-URL\'ens query', async () => {

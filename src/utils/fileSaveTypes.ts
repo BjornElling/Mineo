@@ -25,8 +25,6 @@ export type VerificationResult = {
   success: boolean;
   kind?: VerificationFailureKind;
   verified?: boolean;
-  warning?: boolean;
-  message?: string;
   error?: string;
   details?: string;
   differences?: string[];

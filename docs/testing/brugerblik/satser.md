@@ -1,5 +1,135 @@
 # Brugerblik – Satser
 
+## Fornyet gennemgang 2026-11-11
+
+- **Resultat:** To nye fund, BB-392 og BB-393, begge Fornuft og Mellem; begge godkendt til rettelse og implementeret 2026-11-11.
+- **Grundlag:** `5e2d5b72`; HEAD blev under gennemgangen `6571f889`, som kun ændrer CI's browserinstallation.
+  Satser og det undersøgte Gem-flow er uændrede mellem de to revisioner. Første gennemgang nedenfor bevares.
+- **Browser:** Chrome headless, 1536×864 og 1366×620; synligt login, lokal Vite uden `--open`.
+  Både kodeinventar og browserinventar er gennemgået med fornufts- og edge case-blikket.
+
+### Aktuelt inventar og afhængigheder
+
+- Ét felt: «Vis satser for år:», tilgængeligt navn «Satsår», adresse `satser.aargang`.
+  Tomværdi `undefined`, fire cifre, tocifret år fortolkes efter den fælles årsregel.
+  Det aktuelle interval er **2005–2027**, udledt af mindst én dækket satsserie; det betyder ikke fuld dækning.
+  Forkert format bevares som rejected tekst; et velformet år uden for intervallet bevares canonical med rød fejl.
+- Én specifikationsknap i valgt PDF-/Word-format. Årstal, sidetitel, viste satser og årsgate bruger samme projektion.
+  Tomt, rejected eller grænseoverskridende år skjuler satssektionerne og blokerer dokumentet; åben draft ændrer dem ikke.
+- Fire visningssektioner: fem mulige EAL-rækker, ni ASL-rækker, tre Diverse-tal og ni referencerækker.
+  Fri proces har et informationsikon; referencer bruger links til nye faner. Manglende satser/rækker skjules,
+  mens en sats på nul vises. Sektionerne på skærmen bliver stående, også når alle deres rækker mangler.
+- Året bruges kun til dette opslag og dokument; ingen erstatningsberegning læser det. Ingen tabelrækker,
+  lokale sletteknapper eller øvrige valg. Default på en ny sag er aktuelt 2026.
+- Brevhovedvalget i Indstillinger bestemmer, om fejl i Stamdata kan blokere specifikationen.
+  `.eo` gemmer det valgte år; rejected tekst blokerer Gem, mens canonical grænsefejl kan gemmes.
+  En helt tom Stamdata-sektion har desuden en hidtil overset følge i Gem-verificeringen, se BB-393.
+
+### BB-392 – Et delvist dækket år udleveres uden at fortælle, hvilke satser der mangler
+
+- **Type:** Fornuft
+- **Rækkevidde:** Lokal
+- **Prioritet:** Mellem
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret: `describeMissingSatserCoverage` giver den ene dækningsbesked til både side og specifikation; en EAL-sektion helt uden satser udelades også på skærmen.
+- **Sådan fremprovokeres det:** Vælg `2026`, skift til `2027`, og hent specifikationen som PDF eller Word.
+- **Det sker:** Året accepteres uden fejl. Hele «Erstatningsansvarsloven» bliver en tom boks, og
+  fri proces-beløbene og deres reference forsvinder. ASL-satserne og Reguleringssats vises fortsat.
+  Download er aktiv. Dokumentet hedder «Arbejdsskadesatser 2027», men udelader EAL-sektionen helt
+  og nævner hverken fri proces eller den manglende dækning. Bekræftet i PDF og Word.
+- **Det er uhensigtsmæssigt fordi:** Brugeren kan ikke skelne «Mineo har endnu ikke disse oplysninger»
+  fra «disse oplysninger hører ikke til årets oversigt». Den tomme boks kan ligne en indlæsningsfejl;
+  i det udleverede dokument forsvinder selv dette spor. De viste tal er ikke påvist forkerte,
+  men oversigtens fuldstændighed kan ikke aflæses.
+- **Bedre ville være:** Behold de tilgængelige 2027-satser og aktiv download, men skriv konkret på
+  skærmen og i specifikationen: «Mineo indeholder endnu ikke satser efter erstatningsansvarsloven
+  eller beløbsgrænser for fri proces for 2027.» Beskeden vises kun ved faktisk manglende dækning
+  og følger de berørte kategorier, når nye satser tilføjes. Ingen fallback til 2026-tal.
+- **Afgrænsning:** BB-032's afviste generelle intervalvejledning og BB-034/035's afviste faglige
+  forklaringer genåbnes ikke. Her mangler oplysninger for et accepteret nyt år, også på papiret.
+  M-15's præmis om en dateret tabel, hvor dækningen kan læses af rækkerne og dokumentet har et
+  forbehold, er ikke til stede i denne ét-årsvisning.
+- **Systematik-tjek:** `getYearBoundsForAnyCoverage` har kun dette produktionskald.
+  `getSatserForYear` giver `null` for mangler; `DataRow` skjuler rækken, og dokumentgeneratoren
+  udelader tomme sektioner. Ingen anden konkret forekomst fundet. Varige méns og renternes
+  daterede satstabeller er beslægtede kontrolsteder, men er ikke nye fund.
+
+### BB-393 – Gem med tomme Stamdata får en gyldig sag til at ligne en kodefejl
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-45--en-forventet-browserbegrænsning-omtales-som-en-kodefejl`
+- **Prioritet:** Mellem
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret: `verifyAfterSave` advarer ikke længere om tomme Stamdata, og `fileSave.ts` logger ingen verifikationsadvarsel. Fallback-beskeden og faktiske skrive-/integritetsfejl er uændrede.
+- **Sådan fremprovokeres det:** Lad alle Stamdata-felter stå tomme, vælg `2027` på Satser, og
+  tryk «Gem». Målt i Chromes fallback-filflow med filvælger-API'erne gjort utilgængelige.
+- **Det sker:** `.eo`-filen downloades, men kvitteringen siger «Gemt med advarsel» og
+  «ADVARSEL: Manglende sektioner: stamdata». Samtidig åbner «Teknisk advarsel registreret» med
+  «Der er fundet en fejl i den underliggende kode» og opfordring til at gennemgå beregningerne.
+  Samme alarm kom ved Gem af `2028`; begge forløb gav to console-advarsler.
+- **Det er uhensigtsmæssigt fordi:** Brugeren har kun brugt et selvstændigt opslag og har ingen
+  grund til at udfylde personoplysninger. Alligevel udlægges det tomme som en fejl i programmet
+  og skaber tvivl om, hvorvidt filen eller beregningerne kan betros. Den efterfølgende Hent-prøve
+  gendannede faktisk `2028` korrekt; intet datatab blev observeret.
+- **Bedre ville være:** Gem en sag uden Stamdata uden advarslen om manglende Stamdata og uden
+  teknisk alarm. Behold fallback-flowets eksisterende besked om en ny fil frem for overskrivning;
+  den handler om en anden, reel browserbegrænsning. Faktiske skrive-/integritetsfejl skal fortsat
+  give fejl. Forslaget ændrer ikke filindhold eller krav til beregningernes egne Stamdata.
+- **Systematik-tjek:** `verifyAfterSave` i `fileSaveInternals.ts` har en særskilt prøve på en tom
+  `stamdata`-sektion, efter at filen allerede er schema-valideret og sammenlignet uden forskelle.
+  Den returnerer `success: true`, `verified: true`, `warning: true`; `fileSave.ts` logger igen.
+  Begge Gem-grene bruger kontrollen. Kandidater til senere Global shell-gennemgang: Gem af en
+  renteberegning eller årslønsberegning uden Stamdata samt den native Chrome/Edge-filvælger.
+  Disse kandidater er ikke browserverificeret her.
+
+### Efterprøvet uden yderligere fund
+
+- **Grænser/tomhed:** `2004`, `2005`, `2027`, `2028`, `9999`, `200`, `0`, `26` og tomt input.
+  Røde grænser siger 2005–2027; tomt giver «Indtastning mangler», rejected giver «Fejl i indtastning».
+  Der vises aldrig et fallback-år. `0` bliver 2000 og rød; `26` bliver 2026 efter den aftalte årsregel.
+- **Alle 23 år:** Visningen er gennemløbet fra 2005 til 2027. Årene 2005–2026 har ingen helt tom EAL-sektion;
+  2024 viser begge minimumsårslønninger og begge reguleringsserier. 2027 er BB-392.
+- **Tidligere BB-030:** 2024's `0 %` står på skærmen og i faktisk downloadet PDF og Word.
+  PDF'erne for 2024 og 2027 er tekstaflæst og renderet; 2027 er også visuelt inspiceret.
+  Word er indholdskontrolleret i dokumentets XML, ikke visuelt renderet.
+- **Tidligere BB-031 og naboer:** Paste af `2.026`, `01-02-2026`, to år på hver sin linje,
+  `Satsår 2026 (gældende)`, hårdt mellemrum, arabisk-indiske cifre, emoji og for mange cifre
+  er prøvet i både tomt og udfyldt felt. Resultaterne følger det fælles tegnfilter;
+  ikke-numerisk paste bevarer en eksisterende værdi. Datoen giver fortsat 102 med rød grænse
+  efter udviklerens udtrykkelige afgørelse; det er ikke et nyt fund.
+- **Draft/fortryd:** 2026 → åben 2028 beholder 2026-visning og aktiv knap; klik på download
+  afslutter input og stopper downloaden. Escape efterfulgt af blur gendanner 2026.
+  Åben 2024 fra afsluttet rød 2028 beholder blokeringen til settle. Undo/redo gendanner begge
+  afsluttede tilstande. Delete på et lukket fokuseret felt rydder straks; undo gendanner året.
+- **Tilbagevenden:** Rejected `200` overlever Om → Satser og browsergenindlæsning med bekræftet
+  beforeunload. Felt og dokumentknap er fortsat ugyldige. «Slet alt» fra denne tilstand virker;
+  tilbage på Satser er default 2026 korrekt gendannet.
+- **Gem/Hent:** Canonical `2028` er gemt, året er ændret til 2026, og den gemte fil er valgt via Hent
+  og erstatningsbekræftelsen. Tilbage på Satser står igen 2028 med samme røde grænse og blokerede
+  dokumentknap. Det tidligere hul for et canonical ugyldigt år er dermed dækket i fallback-flowet;
+  Gem-alarmen er BB-393. Rejected Fødselsdato blokerer Gem og peger til Stamdata som forventet.
+- **Brevhoved:** Rejected Fødselsdato på Stamdata blokerer specifikationen med «Ret fejlen i Stamdata»,
+  når brevhoved er slået til. Slås det fra, bliver knappen «Download som PDF» igen. Ingen skjult
+  afhængighed uden brevhoved; M-22 genåbnes ikke.
+- **Layout/links:** Skærmbilleder ved 1536×864 og 1366×620 er inspiceret; nederste referencer kan
+  rulles frem og læses. Ingen ny afskæring eller dækkede links. Referencelinks beholder den
+  fælles nye-fane-/tastaturregel; M-08/09 genåbnes ikke.
+- **Runtime:** Ingen `console.error` eller ukontrollerede page-fejl observeret. De fire
+  `console.warn` fra de to Gem-forløb er netop BB-393, ikke en fejlfri console-kontrol.
+- **Internt tilfældighedsfund:** JSDoc i `src/domain/policies/satserCalculations.ts` henviser stadig
+  til slettede `usePersistedForm`. Noteret uden produktændring, da skillen kun dokumenterer.
+
+### Dækningshuller og afslutning
+
+- Native filvælgere, Edge/Firefox/WebKit og lukning/genåbning af hele browseren er ikke prøvet her.
+  Gem/Hent blev målt via det eksisterende fallback-flow, ikke ved en mock af sagsdata eller loader.
+- Word-layout er ikke visuelt kontrolleret; kun faktisk download og indhold. Reference-linkenes
+  eksterne mål og satsers juridiske korrekthed er ikke vurderet.
+- Lokal, ignoreret måleevidens: `test-results/brugerblik-satser/` indeholder scripts, screenshots,
+  downloadede `.eo`-/PDF-/Word-filer og årsvisningernes output. Ingen gates kørt, fordi kun
+  rapporter ændres. Browser og den startede udviklingsserver er stoppet.
+- Ingen øvrige åbne spørgsmål. Næste flade er **5. MinProcesrente**.
+
+## Første gennemgang og afgørelser
+
 - Rute/placering: `/satser`
 - Gennemgået: 2026-08-18 · commit `a8d2b13c`
 - Afprøvet i: Chrome (headless), 1536×864 – plus kildegennemgang af PDF-/Word-generatoren og de

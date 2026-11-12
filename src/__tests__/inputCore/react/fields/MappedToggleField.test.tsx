@@ -31,18 +31,23 @@ describe('MappedToggleField', () => {
     const toggle = screen.getByRole('checkbox', { name: 'Medtag ydelser' });
     act(() => toggle.focus());
 
-    await act(async () => user.keyboard('{Enter}'));
+    await user.keyboard('{Enter}');
     expect(toggle).toBeChecked();
     mounted.rerender(view(true));
     expect(screen.getByRole('checkbox', { name: 'Medtag ydelser' })).toBe(toggle);
     expect(toggle).toHaveFocus();
     expect(toggle.closest('[data-mineo-field-warning]')).not.toBeNull();
 
-    await act(async () => user.keyboard(' '));
+    await user.keyboard(' ');
     expect(toggle).not.toBeChecked();
     mounted.rerender(view(false));
     expect(screen.getByRole('checkbox', { name: 'Medtag ydelser' })).toBe(toggle);
     expect(toggle).toHaveFocus();
     expect(toggle.closest('[data-mineo-field-warning]')).toBeNull();
+
+    // Afmonter synkront i samme tur. MUI's Tooltip- og ripple-timere (fokus, tastetryk) står stadig og
+    // venter; mellem testens afslutning og den automatiske cleanup giver runneren event-loopet fri, og på
+    // en belastet CI-runner nåede en af dem at fyre en tilstandsopdatering uden for act.
+    mounted.unmount();
   });
 });

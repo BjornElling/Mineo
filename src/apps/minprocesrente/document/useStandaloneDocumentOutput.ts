@@ -16,7 +16,8 @@ import {
   useDocumentSourceContext,
   type DocumentDownloadHandle,
 } from '../../../document/definition/react/useDocumentDownload';
-import { useDocumentInputAccess, useInputEvaluation } from '../../../inputCore/react';
+import { useDocumentInputAccess } from '../../../inputCore/react/inputRuntimeContext';
+import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation';
 import { createStandaloneDocumentEnvironment } from './standaloneDocumentEnvironment';
 import type { StandaloneDownloadTracker } from '../useStandaloneExitGuard';
 

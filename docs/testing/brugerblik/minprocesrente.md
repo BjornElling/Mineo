@@ -1,5 +1,119 @@
 # Brugerblik – MinProcesrente
 
+## Fornyet gennemgang 2026-11-11
+
+- **Resultat:** Ét nyt fund, BB-394 (Fejl, Høj), godkendt til rettelse og implementeret 2026-11-11.
+- **Grundlag:** `6571f889`. Første gennemgang og dens beslutninger nedenfor er bevaret.
+- **Browser:** Chromium headless via projektets Playwright CLI, lokal standalone-Vite uden `--open`.
+  Desktop 1536×864, telefonemulering 412×915 og rotation til 915×412 samt touch-tablet 768×1024.
+  Standalone har ingen loginformular.
+  Kodeinventaret er afstemt mod den kørende side; begge blikke i prøvekataloget er anvendt.
+- **Referencegrundlag:** `contract-topology.json`, rente-, form-, inputfelt-, dato-, beløbs-, keyboard-,
+  undo/redo-, critical-action-, persistence-, app-shell- og dokument-output-kontrakterne samt brugerfundslisten.
+
+### Aktuelt inventar og afhængigheder
+
+| Kontrol | Tomhed, grænser og betydning |
+|---|---|
+| «Rente beregnes til og med» / «Beregningsdato» | Tom ved start; dato 01-01-2005–31-12-2031. «Indsæt dags dato» afslutter et eksplicit valg. Fælles for alle krav. |
+| Beløb pr. række | Tomt eller beløb/udtryk; højst syv indtastede heltalscifre og to decimaler. Skal være større end 0 kr.; 0,01 kr. er tilladt. |
+| Forfaldsdato pr. række | Samme datointerval, skærpet til beregningsdatoen. Ugyldig kalenderdato bevares som rejected tekst; dato uden for grænsen bevares med rød fejl. |
+| Evt. tillægstid, desktop | Tom eller 0–99, højst to cifre. Rød, hvis rentedatoen kommer efter beregningsdatoen. |
+| Enhed, desktop | Dage, Uger eller Måneder; default Dage. Enhedsvalget alene gør ikke rækken udfyldt. |
+| Kommentarer | Valgfri tekst, højst 512 tegn, linjeskift bevaret; samme kommentar på alle specifikationer og oversigten. |
+
+- Tabellen har én trailing indtastningsrække; afsluttet indhold, inklusive rejected tekst, giver en rigtig række.
+  Tømmes hele rækken, forsvinder den. Kun valget af enhed skaber ingen ekstra række.
+- Desktop viser afledt rentedato, rente, specifikationsknap og sletning pr. udfyldt række samt samlet oversigt
+  og «Slet alle indtastninger» med bekræftelse. Beløb og Forfaldsdato kan sorteres; sorteringen er permanent.
+- Telefon viser Beløb, Forfaldsdato og Beregnet rente samt én knap til alle specifikationer. Ingen tillægstid,
+  rækkeknapper eller samlet rydning. Felterne åbnes med ét tryk; rydning af rækkens felter fjerner rækken.
+- Autofill på desktop foreslår ens beløb, datoserier og ens tillægstider ved samme enhed. Først Enter skriver.
+  Der er ingen autofill på telefon. Summen vises kun ved mindst to beregningsklare krav; en delvis/fejlende
+  række skjuler summen og blokerer samlet download. En anden gyldig rækkes specifikation er uafhængig.
+- Input lagres i fanens eget standalone-namespace. Ingen Stamdata, Indstillinger, `.eo`, brevhoved eller
+  anden sagsafhængighed. Tre lokale PDF-outputs; ingen brugerdata sendes til eksterne tjenester.
+- Titlen linker til `/`; kontakt og tre søskendesider står nederst. Forudsætningerne er fire faste linjer.
+  Opstillingen låses til enheden ved åbning; skjulte tillægstider kan derfor ikke opstå ved rotation.
+
+### BB-394 – Efter F5 kan uhentet arbejde forlades uden advarsel
+
+- **Type:** Fejl
+- **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-46--arbejdet-overlever-genindlæsning-men-beskyttelsen-gør-ikke`
+- **Prioritet:** Høj
+- **Beslutning:** Godkendt til rettelse 2026-11-11 og implementeret gennem den fælles guard (samme rettelse som BB-395): markeringen «endnu ikke hentet» overlever F5.
+- **Sådan fremprovokeres det:**
+  1. Sæt beregningsdatoen til `11-11-2026`, og indtast `100.000 kr.` med forfaldsdato `01-01-2024`.
+     Tilføj eventuelt en kommentar. Hent ingen PDF.
+  2. Genindlæs siden, og bekræft browserens advarsel. Alle felter og renten `30.376,37 kr.` kommer tilbage.
+  3. Klik i et felt uden at ændre det, og forlad siden igen.
+- **Det sker:** Før genindlæsningen åbner browserens advarsel; bagefter kan siden forlades uden spørgsmål.
+  Det er målt som en rigtig genindlæsning med `beforeunload`-dialog og derefter rigtig navigation til
+  `about:blank`, uden nogen download imellem. Beregningsdato, beløb, forfaldsdato og begge kommentarlinjer
+  var fortsat til stede før den sidste navigation. Feltklikket sikrede brugeraktivering, så fraværet af
+  dialogen ikke blot skyldtes browserens krav om en brugerhandling efter indlæsning.
+- **Det er uhensigtsmæssigt fordi:** Brugeren har stadig intet varigt eksemplar af arbejdet. F5 ser ud til
+  at bevare alt, men fjerner samtidig beskyttelsen mod senere at lukke fanen og miste indtastningerne.
+  BB-048's godkendte advarsel virker derfor kun indtil første genindlæsning.
+- **Bedre ville være:** Bevar advarslen efter F5, når arbejdet endnu ikke er hentet som PDF.
+  En gennemført PDF-download skal fortsat fjerne advarslen, og nye afsluttede rettelser skal aktivere den igen.
+  Genindlæsning skal hverken tælle som hentet PDF eller ændre de indtastede værdier.
+- **Andre steder det kan gælde:** Mineos `MainLayout.tsx` bruger præcis samme `useUnsavedChangesGuard`.
+  En ugemt Mineo-sag efter F5 er en konkret kandidat til flade 6; ikke browserprøvet i denne gennemgang.
+  Hooken sætter ved mount sin sammenligningsværdi til den aktuelle indlæste revision, selv om den ikke
+  er kvittering for en gemning/download. Arbejdet overlever i sessionStorage; denne markering gør ikke.
+- **Afgrænsning:** Dette er ikke BB-059's accepterede ekstra advarsel under selve F5 og ikke et forslag om
+  at ændre BB-048's fælles kvittering for sidens tre outputs. Fejlen er den manglende beskyttelse bagefter.
+
+### Overvejet og afprøvet uden nye fund
+
+- **Tom/delvis/fejlende:** Tom beregningsdato giver «Indtastning mangler». Ryddes datoen efter udfyldte krav,
+  bevares kravene. `31-02-2026` bevares rødt med «Datoen findes ikke i kalenderen» og blokerer download.
+- **Grænser:** `0 kr.` giver «Beløbet skal være større end 0 kr.»; `0,01 kr.` og ens start/slutdato er
+  beregningsklare, selv om renten afrundes til `0,00 kr.`. `9.999.999,99 kr.` giver et helt synligt resultat.
+  `1/0` bevares rødt og kan fortrydes. Beregningsdato `01-01-1900` giver røde datoer med konkrete grænser.
+- **Tillægstid:** En dag efter beregningsdatoen og 99 måneder for langt frem giver rødt tillægstidsfelt med
+  «Beregnet rentedato kan senest være 11-11-2026». En måned efter 31-01-2024 bliver 29-02-2024;
+  uger, dage og måneder skifter resultatet ved valg. Ingen nye tavse afvisninger som BB-037/BB-038.
+- **Draft/Escape:** Åbent beløb `999999` ændrer ikke renten; Escape og efterfølgende blur bevarer den gamle
+  værdi. Afsluttet `50.000` ændrer renten; Ctrl+Z/Ctrl+Y gendanner henholdsvis `100.000`/`50.000`.
+- **Sletning og dialog:** Ctrl+Z gør intet bag åben bekræftelse. Escape bevarer samtlige værdier;
+  «Ja, slet» rydder dato, rækker og kommentar. Efter lukket dialog gendanner Ctrl+Z hele indholdet.
+  Enkelt rækkesletning kan ligeledes fortrydes. Ingen `.eo`-tekst i standalones bekræftelse.
+- **Sortering og tomhed:** Forfaldsdato sorterer med datoens år; rækkesletning og undo bevarer indhold.
+  Kun enhedsvalg i trailing række ændrer ikke rækkeantallet. Den bevidste tovejs-sortering genåbnes ikke.
+- **Autofill:** To beløb på `100.000` foreslår `100.000,00`; 31-01 og 29-02 foreslår 31-03-2024.
+  Enter indsætter de viste værdier. To tillægstider på 2 måneder giver intet forslag ved Dage i målrækken,
+  men foreslår 2 ved Måneder. De første, uafsluttede forslag ændrer hverken sum eller dokument.
+- **Skærm mod PDF:** Hentet rækkespecifikation og oversigt er tekstlæst og renderet til PNG.
+  Specifikationen viser `29.349,04 kr.`; oversigten viser `29.349,04 + 28.418,03 + 27.422,81 = 85.189,88 kr.`,
+  identisk med skærmen. Begge bevarer kommentarens to linjer og de fire beregningsprincipper.
+- **Telefon:** Ingen vandret side-overflow ved 412 px. Rotation bevarer tre kolonner; rydning af række 2
+  efterlader række 1 og én tom række. Hentet samle-PDF har to specifikationer, `30.376,37 kr.` og
+  `4.688,02 kr.`, som på skærmen; begge sider er tekstlæst og visuelt inspiceret. Ingen nye layoutfund.
+- **100 krav:** Indtastet gennem felterne i en frisk browserkontekst. 100 × `1.000 kr.` fra 01-01-2024
+  giver 100 krav plus én tom række og samlet rente `30.376,00 kr.`. Oversigten har alle 100 krav over
+  tre sider og samme sum; ingen `pageerror`, console.error eller console.warn under hele forløbet.
+- **Touch-tablet:** 768×1024 får den dokumenterede desktopopstilling, fordi telefon-grænsen er 599 px.
+  Højre side med beregningsdato og handlinger ligger uden for det viste udsnit. Dette er under det
+  accepterede designmål, jf. M-09, og registreres ikke som et nyt krav om responsivt tablet-layout.
+- **Historiske afgørelser:** Tom startdato, telefonens begrænsede kolonner, skærmens fravær af fremtidssats-
+  forbehold og de fælles kommentarer beholdes som afgjort. Et fravær af ny feature er ikke genregistreret.
+
+### Evidens, begrænsninger og kontrol
+
+- Lokale prøvescripts, screenshots og hentede PDF'er ligger under `test-results/brugerblik-mpr/` (git-ignoreret).
+  PDF-tekst er læst med pypdf/PyMuPDF; PNG-rendering med PyMuPDF, da Poppler ikke findes i miljøet.
+- CLI-konsollen: 0 errors og 0 warnings i både desktop- og telefonforløbet. Ingen eksterne dynamiske
+  requests blev registreret; kildegennemgangen fandt ingen udgående sti for sagsdata.
+- Rigtig telefon/tablet, skærmtastatur, iOS-Safari og produktionens rodlink er fortsat dækningshuller.
+  Rodlinket serverer i udviklingsmiljøet en anden app; den forskel er allerede dokumenteret i første gennemgang.
+  Print, offline/deploy-skift og en komplet browsermatrix er ikke afprøvet her.
+- Ingen `test`, `lint` eller `build` er kørt: kun auditdokumentation ændres. Ingen commit.
+- **Beslutningspunkt afgjort:** BB-394 er rettet som foreslået. Øvrige tidligere beslutninger genåbnes ikke.
+
+---
+
 - Rute/placering: selvstændig app (`minprocesrente.html`, i drift `minprocesrente.dk`)
 - Gennemgået: 2026-08-19 · commit `5859007f`
 - Afprøvet i: Chromium headless – 1536×864, 1244×620, 800×900, 650×900, 599×900 samt

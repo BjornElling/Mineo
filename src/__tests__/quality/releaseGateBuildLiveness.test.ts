@@ -37,7 +37,7 @@ const releaseGateBuildsBothVariants = (scripts: PackageScripts): boolean => {
 const commitGateRunsQualityGuards = (scripts: PackageScripts, hook: string): boolean =>
   /^\s*npm run check:commit\s*$/m.test(hook)
   && reachableScripts('check:commit', scripts).has('check:quality')
-  && scripts['check:quality'] === 'vitest run src/__tests__/quality';
+  && scripts['check:quality'] === 'node scripts/run-vitest.mjs run src/__tests__/quality';
 
 describe('verify:release:core – build-wiringens liveness', () => {
   it('når begge deploybare buildvarianter gennem build:all', () => {
@@ -74,7 +74,7 @@ describe('pre-commit – kvalitetsværnenes liveness', () => {
   });
 
   it('afviser et håndvalgt udsnit i stedet for hele quality-mappen', () => {
-    const scripts = { ...readPackageScripts(), 'check:quality': 'vitest run src/__tests__/quality/e2eLoginAwaitGuard.test.ts' };
+    const scripts = { ...readPackageScripts(), 'check:quality': 'node scripts/run-vitest.mjs run src/__tests__/quality/e2eLoginAwaitGuard.test.ts' };
     expect(commitGateRunsQualityGuards(scripts, readHook())).toBe(false);
   });
 

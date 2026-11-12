@@ -39,10 +39,72 @@ const manifestSources = Object.entries(manifest)
   .flatMap(([key, value]) => [key, value?.src])
   .filter((value) => typeof value === 'string');
 
+/**
+ * Størrelsesbudget. Vites `chunkSizeWarningLimit` er kun en advarsel, der let glider forbi i en lang
+ * build-log; her bliver den en fejl.
+ *
+ * - Enhver lazy chunk har loftet 750 kB. En chunk derover er næsten altid en ny tung afhængighed eller
+ *   et datamodul, der burde have sin egen codeSplitting-gruppe (`vite.config.ts`).
+ * - Entry-chunken har et budget pr. variant med ca. 15 % luft. I Mineo hentes og evalueres den, før
+ *   opstartens opdateringstjek kan vise venteskærmen, så programmet hører hjemme bag den dynamiske
+ *   import i `src/main.tsx`. MinProcesrentes entry bærer selve beregneren og er derfor større.
+ *
+ * MinProcesrentes opstartsvej må desuden aldrig nå sats-, løn- eller kapitaliseringstabellerne. De kommer kun
+ * med, hvis noget i standalone-grafen importerer Mineos fulde felt-katalog (`productionCatalog.ts`,
+ * `productionInputRuntime.tsx` eller barrel-modulet `inputCore/react`); standalone bruger
+ * `renteberegningCatalog.ts` gennem `inputRuntimeHost.ts`. Datachunkene er særskilte grupper, så de ville
+ * ikke tælle med i entry-budgettet – derfor tjekkes de statiske imports eksplicit nedenfor.
+ */
+const KB = 1000; // Samme enhed som Vites build-rapport.
+const MAX_CHUNK_BYTES = 750 * KB;
+const ENTRY_CHUNK_BUDGET_BYTES = { mineo: 560 * KB, minprocesrente: 960 * KB };
+
+const entryFiles = new Set(
+  Object.values(manifest)
+    .filter((entry) => entry?.isEntry === true && typeof entry.file === 'string')
+    .map((entry) => entry.file),
+);
+const assetsDir = path.join(outDir, 'assets');
+for (const name of (existsSync(assetsDir) ? readdirSync(assetsDir) : []).filter((file) => file.endsWith('.js'))) {
+  const bytes = statSync(path.join(assetsDir, name)).size;
+  const isEntry = entryFiles.has(`assets/${name}`);
+  const limit = isEntry ? ENTRY_CHUNK_BUDGET_BYTES[variant] : MAX_CHUNK_BYTES;
+  if (bytes <= limit) continue;
+  throw new Error(isEntry
+    ? `${variant}-buildets entry-chunk ${name} er ${Math.round(bytes / KB)} kB (budget ${limit / KB} kB). `
+      + 'En ny statisk import i opstartsvejen hører hjemme bag en dynamisk import (se src/main.tsx).'
+    : `${variant}-buildets chunk ${name} er ${Math.round(bytes / KB)} kB (loft ${limit / KB} kB). `
+      + 'Del den op med en dynamisk import eller en codeSplitting-gruppe.');
+}
+
 if (variant === 'mineo') {
   for (const required of ['sw.js', 'manifest.json', 'pwa-assets.json', 'icons']) requirePath(required);
   if (!manifestSources.some((source) => source.endsWith('index.html'))) {
     throw new Error('Mineo-buildets manifest mangler index.html-entryen.');
+  }
+  const entryFile = manifest['index.html']?.file;
+  if (typeof entryFile !== 'string' || !existsSync(path.join(outDir, entryFile))) {
+    throw new Error('Mineo-buildets manifest peger ikke på en eksisterende entry-chunk.');
+  }
+
+  // Dokument-writernes vendorer (PDF/Word) må kun hentes ved download. Ligger et lille delt modul i
+  // en af deres chunks, importerer entry'en fra den, og hele vendoren hentes og evalueres ved hver
+  // opstart – sådan var det med jsPDF, før Vites preload-hjælper og Babels hjælpere fik egne chunks.
+  const staticEntryFiles = new Set();
+  const pendingKeys = ['index.html'];
+  while (pendingKeys.length > 0) {
+    const entry = manifest[pendingKeys.pop()];
+    if (entry === undefined || staticEntryFiles.has(entry.file)) continue;
+    staticEntryFiles.add(entry.file);
+    pendingKeys.push(...(entry.imports ?? []));
+  }
+  const eagerDocumentVendor = [...staticEntryFiles].find((file) =>
+    /(^|\/)vendor-(jspdf|jspdf-autotable|docx|html2canvas)-[^/]+\.js$/.test(file));
+  if (eagerDocumentVendor !== undefined) {
+    throw new Error(
+      `Mineo-buildets entry importerer statisk ${eagerDocumentVendor}; dokument-vendorerne må kun indlæses ved `
+      + 'download. Giv det delte modul, entry\'en henter derfra, sin egen gruppe i SHARED_CHUNK_GROUPS.',
+    );
   }
   if (
     html.includes('MINEO_THEME_BOOTSTRAP')
@@ -155,6 +217,22 @@ if (variant === 'mineo') {
         }
       }
     }
+  }
+  const minprocesrenteEntry = Object.values(manifest).find((entry) => entry?.isEntry === true);
+  const staticallyLoaded = new Set();
+  const pending = [...(minprocesrenteEntry?.imports ?? [])];
+  while (pending.length > 0) {
+    const key = pending.pop();
+    if (staticallyLoaded.has(key)) continue;
+    staticallyLoaded.add(key);
+    pending.push(...(manifest[key]?.imports ?? []));
+  }
+  const loadedDataChunk = [...staticallyLoaded].find((key) => /(^|\/)_?data-/.test(key));
+  if (loadedDataChunk !== undefined) {
+    throw new Error(
+      `MinProcesrentes opstartsvej indlæser datachunken ${loadedDataChunk}. Standalone må kun bruge `
+      + 'renteberegningCatalog.ts via inputRuntimeHost.ts – ikke productionCatalog, productionInputRuntime eller inputCore/react-barrel.',
+    );
   }
   if (!manifestSources.some((source) => source.endsWith('minprocesrente.html'))) {
     throw new Error('MinProcesrente-buildets manifest mangler standalone-entryen.');

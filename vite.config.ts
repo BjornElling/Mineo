@@ -43,6 +43,44 @@ const defineBuildEnv = (key: string): string =>
 
 const MINEO_THEME_BOOTSTRAP_MARKER = '<!-- MINEO_THEME_BOOTSTRAP -->';
 
+type ChunkGroup = Readonly<{ name: string; test: RegExp; priority?: number }>;
+
+/**
+ * Fælles chunk-grupper for begge app-varianter (`codeSplitting.groups`). Hver variant sætter selv sin
+ * fulde gruppeliste, fordi `mergeConfig` sammenkæder lister i stedet for at erstatte dem.
+ *
+ * Bundleren tager en gruppes afhængigheder med ind i gruppen. Et lille, delt modul, som både en
+ * gruppe og den øvrige kode bruger, ville derfor havne i gruppens chunk – og så importerer resten af
+ * programmet fra den chunk, som dermed hentes og evalueres ved opstart. Sådanne moduler får deres
+ * egen gruppe med højere prioritet.
+ */
+export const SHARED_CHUNK_GROUPS: readonly ChunkGroup[] = [
+  // Babel-hjælpere, som jsPDF, MUI og andre deler. Lå de i jsPDF-chunken (sådan var det), importerede
+  // entry'en fra den, og hele jsPDF (~400 KB) blev hentet og evalueret ved hver opstart.
+  { name: 'vendor-babel-runtime', test: /[\\/]node_modules[\\/]@babel[\\/]runtime[\\/]/, priority: 10 },
+  // Vites egen hjælper til dynamiske imports (`__vitePreload`). jsPDF importerer selv dynamisk, så
+  // uden denne gruppe lå hjælperen i jsPDF-chunken, og ENHVER dynamisk import i programmet – også
+  // entry'ens – trak jsPDF med ved opstart.
+  { name: 'vite-preload-helper', test: /vite[\\/]preload-helper/, priority: 10 },
+  // `branded.ts` har ingen imports og kaldes af tabellerne nedenfor ved indlæsning. Uden sin egen gruppe
+  // ville al øvrig kode importere den fra en datachunk, hvis hash så skiftede ved hver ændring i modulet.
+  { name: 'types-branded', test: /[\\/]src[\\/]types[\\/]branded\.ts$/, priority: 10 },
+  // Sats- og kapitaliseringstabellerne er ~900 KB rene data, der sjældent ændrer sig. I egne chunks
+  // beholder de deres indholds-hash på tværs af deploys, så de genbruges fra cachen (service workerens
+  // forrige build-cache i Mineo, browserens HTTP-cache i MinProcesrente) i stedet for at hentes igen.
+  // Kun selve tabelfilerne: opslags- og indeksmodulerne er kode og bliver i kodens chunks.
+  {
+    name: 'data-offentlig-loen',
+    test: /[\\/]src[\\/]data[\\/](KL[\\/]klLoenSatser|RLTN[\\/]rltnLoenSatser|offentligLoenTypes)\.ts$/,
+  },
+  {
+    name: 'data-kapitalisering',
+    test: /[\\/]src[\\/]data[\\/]kapitalisering[\\/]kapitaliseringsTabeller[\\/]\d+-\d{4}\.ts$/,
+  },
+  { name: 'vendor-zod', test: /[\\/]node_modules[\\/]zod[\\/]/ },
+  { name: 'vendor-zustand', test: /[\\/]node_modules[\\/]zustand[\\/]/ },
+];
+
 export default defineConfig({
   plugins: [
     react(),
@@ -87,41 +125,6 @@ export default defineConfig({
   build: {
     manifest: true,
     chunkSizeWarningLimit: 750,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) {
-            return undefined;
-          }
-
-          if (id.includes('/jspdf/')) {
-            return 'vendor-jspdf';
-          }
-
-          if (id.includes('/jspdf-autotable/')) {
-            return 'vendor-jspdf-autotable';
-          }
-
-          if (id.includes('/docx/')) {
-            return 'vendor-docx';
-          }
-
-          if (id.includes('/html2canvas/')) {
-            return 'vendor-html2canvas';
-          }
-
-          if (id.includes('/zod/')) {
-            return 'vendor-zod';
-          }
-
-          if (id.includes('/zustand/')) {
-            return 'vendor-zustand';
-          }
-
-          return undefined;
-        },
-      },
-    },
   },
 
   test: {

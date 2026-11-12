@@ -33,6 +33,7 @@ const makeEditor = (options?: Partial<ActiveEditor> & { throwOnSettle?: boolean 
   const editor: ActiveEditor = Object.freeze({
     id: options?.id ?? 'test-editor',
     isEditing: options?.isEditing ?? (() => true),
+    hasDraftChanges: options?.hasDraftChanges ?? (() => true),
     settle: async () => {
       settles += 1;
       if (options?.throwOnSettle === true) throw new Error('settle sprang');
@@ -227,6 +228,7 @@ describe('CriticalActionCoordinator – fail-closed og serialisering', () => {
     const editor: ActiveEditor = Object.freeze({
       id: 'serial',
       isEditing: () => true,
+      hasDraftChanges: () => true,
       settle: async () => {
         concurrent += 1;
         maxConcurrent = Math.max(maxConcurrent, concurrent);

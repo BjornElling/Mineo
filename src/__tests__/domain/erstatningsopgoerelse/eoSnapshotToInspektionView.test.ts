@@ -3,10 +3,18 @@ const {
   buildRegulationTimelineMock,
   buildRegulationInspektionSectionsMock,
   executeEoRowBuilderEntriesBySectionMock,
+  reportSystemIssueMock,
 } = vi.hoisted(() => ({
+  reportSystemIssueMock: vi.fn(),
   buildRegulationTimelineMock: vi.fn(() => ({ ansaettelser: [] })),
   buildRegulationInspektionSectionsMock: vi.fn(() => []),
   executeEoRowBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
+}));
+
+// Systemfejlen er en del af det forventede udfald nedenfor. Den påstås her i stedet for at blive skrevet
+// til stderr, hvor den lignede en ægte fejl i hver eneste grønne CI-kørsel.
+vi.mock('../../../utils/systemIssueReporter', () => ({
+  reportSystemIssue: reportSystemIssueMock,
 }));
 
 vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => ({
@@ -378,5 +386,9 @@ describe('eoSnapshotToInspektionView', () => {
       title: 'EO-kontrol er blokeret',
       message: 'Reguleringsdelen i EO-kontrol kunne ikke vises, fordi kontrolgrundlaget er inkonsistent.',
     });
+    expect(reportSystemIssueMock).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'eo_inspektion:regulation_projection',
+      context: 'EOInspektion.regulationSections',
+    }));
   });
 });

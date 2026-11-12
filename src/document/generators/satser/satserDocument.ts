@@ -9,6 +9,7 @@ import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
+import { describeMissingSatserCoverage } from '../../../domain/satser/satserCoverage';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 import type { DocumentArtifact } from '../../downloadArtifact';
@@ -64,7 +65,14 @@ const generateSatser = defineDocument<SatserDocumentInput>({
   ),
   brevhoved: ({ options: { visBrevhoved = false, stamdata } }) =>
     visBrevhoved ? buildStamdataBrevhovedData(stamdata) : null,
-  body: (writer, { satser }) => {
+  body: (writer, { year, satser }) => {
+
+  // Samme dækningsbesked som siden (BB-392): en udeladt kategori må ikke forsvinde tavst på papiret.
+  const missingCoverageNote = describeMissingSatserCoverage(year, satser);
+  if (missingCoverageNote !== null) {
+    writer.writeWrappedText(missingCoverageNote);
+    writer.addSectionSpacer();
+  }
 
   // Tilføj Erstatningsansvarsloven sektion
   if (satser && satser.eal) {

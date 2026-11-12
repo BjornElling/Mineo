@@ -150,6 +150,11 @@ standardfane i den nye, tomme sag. Medlemmerne udledes af `PAGE_DEFAULT_TAB`, s�
 fanevalg automatisk indgår i oprydningen. En ny dynamisk nøglefamilie skal tilsvarende have en eksplicit
 reset-policy her og i manifestet.
 
+**Markeringen af ugemt arbejde (`unsavedWork`) er caseScoped og har samme levetid som inputenvelopen.**
+`useUnsavedChangesGuard` skriver den, mens sagen har afsluttede ændringer siden sidste gem/hent, og læser den
+ved mount. Uden den behandlede exit-advarslen gendannet, aldrig gemt arbejde som sikret efter F5 (BB-394/395).
+Kun et vellykket gem/download eller en autoritativ erstatning efter mount fjerner den.
+
 Hele reset-transaktionen (inputenvelope, sagsnær sessionstate, filhåndtag) ejes af `CaseResetOperations`, som
 er det ENESTE sted der enumererer policyen. Hver oprydningsgrænses resultat skal kontrolleres, og en
 oprydning, der ikke kunne verificeres, rapporteres som en REST i handlingens resultat. `Slet alt` må aldrig
