@@ -40,7 +40,7 @@ import {
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
 import { formatDeduction, formatDeductionKr } from '../../../utils/deductionFormatting';
-import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatFaktor, formatJaNej, formatMaaneder } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { FORHOEJET_PENSIONSALDER_LABEL } from '../../../domain/erhvervsevnetab/eetLabels';
 import { toKroner } from '../../../domain/money/money';
 import {
@@ -57,13 +57,14 @@ import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
 import {
   buildBeregnetDifferencekravLabel,
   buildMerErstatningForhoejelseOverskrift,
+  buildNedsatSaerfaktorUdtryk,
   DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
+  MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL,
+  resolveNedsatSaerfaktorForklaring,
   SAMLET_MER_ERSTATNING_LABEL,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
-const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
-const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
 // ============================================================================
 // PROFORMAKAPITALISERING-SEKTION
@@ -175,6 +176,18 @@ const addProformaKapitaliseringSection = (
       pk.saerfaktor === null ? '-' : formatFaktor(pk.saerfaktor),
       rowOpts
     );
+    if (pk.saerfaktor !== null && pk.maanederTilFolkepension !== null) {
+      writer.writeLeftRightText(
+        MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL,
+        formatMaaneder(pk.maanederTilFolkepension),
+        rowOpts
+      );
+      writer.writeLeftRightText(
+        `Kapitaliseringsfaktor (${buildNedsatSaerfaktorUdtryk(formatFaktor(pk.saerfaktor), formatMaaneder(pk.maanederTilFolkepension))})`,
+        formatFaktor(pk.kapitaliseringsfaktor),
+        rowOpts
+      );
+    }
   } else {
     writer.writeBoldSubheader('Kapitaliseringsfaktor');
 
@@ -475,7 +488,10 @@ const renderDifferencekravPage = (
       );
     } else if (computation.proformaKapitalisering) {
       const pk = computation.proformaKapitalisering;
-      writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
+      writer.writeWrappedText(
+        resolveNedsatSaerfaktorForklaring(pk)
+          ?? 'Der foretages fradrag med kapitaliseringsværdien af resterende EET.'
+      );
       writer.writeLeftRightText(
         `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatISOToDanish(pk.kapitaliseringsdato)}:`,
         formatDeductionKr(toKroner(pk.proformaBeloebOre)),

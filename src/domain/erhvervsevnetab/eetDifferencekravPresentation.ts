@@ -1,4 +1,6 @@
 import { FORHOEJET_PENSIONSALDER_LABEL } from './eetLabels';
+import type { EetDifferencekravProformaKapitalisering } from './eetCanonicalOutput';
+import { formatAsAmountTrimmed, formatPercentRounded4 } from '../../utils/formatUtils';
 
 /**
  * Label til "Beregnet differencekrav"-rækken på differencekrav-fanen og i PDF'en.
@@ -95,11 +97,63 @@ export const resolveMerErstatningPensionsalderBilagDisabledReason = (
   return null;
 };
 
+/** Bilagsrækken med restperioden, når særfaktoren nedsættes ved ≤ 2 år til folkepension. */
+export const MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL = 'Måneder til folkepensionsdatoen';
+
+/** Regnestykket for den forholdsmæssigt nedsatte særfaktor, fx «1,246 x 17,5161/24». */
+export const buildNedsatSaerfaktorUdtryk = (
+  saerfaktorFormatted: string,
+  maanederFormatted: string
+): string => `${saerfaktorFormatted} x ${maanederFormatted}/24`;
+
+/**
+ * Forklaringen over fradraget for resterende EET ved ≤ 2 år til folkepension.
+ *
+ * Særfaktoren gælder efter bekendtgørelsen hele 2-årsvinduet. Differencekravet nedsætter den
+ * forholdsmæssigt efter den faktiske restperiode (udviklerens afgørelse 2026-11-12), og det er netop
+ * det skridt, en læser ellers ikke kan gætte: teksten viser derfor hele regnestykket. Funktionen
+ * formaterer ikke selv, så skærm og dokument deler præcis samme tekst.
+ */
+export const buildNedsatSaerfaktorForklaring = (args: Readonly<{
+  loebendeEetPctFormatted: string;
+  saerfaktorFormatted: string;
+  maanederFormatted: string;
+  faktorFormatted: string;
+}>): string =>
+  `Den løbende ydelse (${args.loebendeEetPctFormatted}) omregnes til et kapitalbeløb. `
+  + `Ved 2 år eller mindre til folkepension bruges særfaktoren ${args.saerfaktorFormatted}. `
+  + `Der er ${args.maanederFormatted} mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: `
+  + `${buildNedsatSaerfaktorUdtryk(args.saerfaktorFormatted, args.maanederFormatted)} = ${args.faktorFormatted}.`;
+
+/**
+ * Forklaringen for en konkret proformakapitalisering, eller `null` når faktoren er slået op i
+ * alderstabellen (mere end 2 år til folkepension). Formaterer med EET's kanoniske decimaler
+ * (faktor 3, måneder 4, procent 4) direkte fra `utils`, så domænemodulet ikke trækker
+ * EET-facaden og dens descriptor-katalog med.
+ */
+export const resolveNedsatSaerfaktorForklaring = (
+  pk: Pick<
+    EetDifferencekravProformaKapitalisering,
+    'kapitaliseretPgaUnderToAarTilFp' | 'saerfaktor' | 'maanederTilFolkepension' | 'kapitaliseringsfaktor' | 'loebendeEetPct'
+  >
+): string | null => {
+  if (!pk.kapitaliseretPgaUnderToAarTilFp || pk.saerfaktor === null || pk.maanederTilFolkepension === null) {
+    return null;
+  }
+  return buildNedsatSaerfaktorForklaring({
+    loebendeEetPctFormatted: formatPercentRounded4(pk.loebendeEetPct),
+    saerfaktorFormatted: formatAsAmountTrimmed(pk.saerfaktor, 3),
+    maanederFormatted: formatAsAmountTrimmed(pk.maanederTilFolkepension, 4),
+    faktorFormatted: formatAsAmountTrimmed(pk.kapitaliseringsfaktor, 3),
+  });
+};
+
 /**
  * Hvorfor bilagsvalget "Proformakap. af rest-EET" er inaktivt.
  *
- * Fradraget for det resterende erhvervsevnetab opgøres på ÉN af to måder, aldrig begge: er der mere end
- * to år til folkepensionsalderen på beregningsdatoen, proformakapitaliseres resten; ellers opgøres den som
+ * Fradraget for det resterende erhvervsevnetab opgøres på ÉN af to måder, aldrig begge: som udgangspunkt
+ * proformakapitaliseres resten (ved ≤ 2 år til folkepension med nedsat særfaktor). Kun hvor
+ * bekendtgørelsen ingen særfaktor har (skader før 1. juli 2007), opgøres resten ved ≤ 2 år som
  * resterende løbende ydelser. Der er derfor to grunde til, at bilaget ikke kan vælges – ingen rest-EET at
  * opgøre, eller en rest der er opgjort som løbende ydelser og altså ikke har et proformabilag.
  *

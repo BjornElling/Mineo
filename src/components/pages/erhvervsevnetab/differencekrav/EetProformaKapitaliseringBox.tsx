@@ -8,8 +8,13 @@ import { toKroner } from '../../../../domain/money/money';
 import {
   formatFaktor,
   formatJaNej,
+  formatMaaneder,
   formatPct as formatKapPct,
 } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
+import {
+  buildNedsatSaerfaktorUdtryk,
+  MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL,
+} from '../../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
@@ -150,6 +155,25 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
           <Typography className="row--text">{pk.saerfaktor === null ? '-' : formatFaktor(pk.saerfaktor)}</Typography>
         </Box>
       </Box>
+    )}
+
+    {pk.kapitaliseretPgaUnderToAarTilFp && pk.saerfaktor !== null && pk.maanederTilFolkepension !== null && (
+      <>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">{MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL}</Typography>
+          <Box className="row--label-right-hover__content">
+            <Typography className="row--text">{formatMaaneder(pk.maanederTilFolkepension)}</Typography>
+          </Box>
+        </Box>
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            {`Kapitaliseringsfaktor (${buildNedsatSaerfaktorUdtryk(formatFaktor(pk.saerfaktor), formatMaaneder(pk.maanederTilFolkepension))})`}
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <Typography className="row--text">{formatFaktor(pk.kapitaliseringsfaktor)}</Typography>
+          </Box>
+        </Box>
+      </>
     )}
 
     {!pk.kapitaliseretPgaUnderToAarTilFp && (

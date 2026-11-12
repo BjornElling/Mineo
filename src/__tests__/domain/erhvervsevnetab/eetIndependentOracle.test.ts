@@ -30,8 +30,8 @@ const values: ErhvervsevnetabValues = {
   koen: 'Kvinde',
   ealEetPct: 50,
   // Én endelig afgørelse uden kapitalisering gør ASL-fradraget synligt som løbende ydelse. Den
-  // overordnede beregningsdato ligger inden for to år til folkepension, så rest-EET kan opgøres
-  // direkte for de tre resterende måneder uden et kapitaliseringsfaktor-facit.
+  // overordnede beregningsdato ligger inden for to år til folkepension, så rest-EET proformakapitaliseres
+  // med særfaktoren nedsat til de tre resterende måneder (3/24).
   aslAfgoerelser: [{
     id: 'eet-independent-row',
     afgoerelsesDato: iso('2019-06-01'),
@@ -160,30 +160,35 @@ describe('uafhængig EET-totalfacit', () => {
       iAltBeregnetEetOre: 53627000,
     }));
 
-    // Differencefacit: 2.284.800 - 535.730 - 48.600 = 1.700.470 kr.; forliget reducerer
-    // først dette samlede beløb, ikke det rene EAL-krav, og giver 850.235 kr.
+    // Rest-EET-facit: grundydelse round2(273.037 x 60 % x 83 % x 92 %) = 125.094,63 kr.;
+    // årsydelse 2022 round2(125.094,63 x 1,554) = 194.397,06 kr. Særfaktor 1,245 (Vejl. 9864/2021)
+    // nedsat til 3/24: round3(0,155625) = 0,156. Kapitalbeløb ceil(194.397,06 x 0,156) = 30.326 kr.
+    // Differencefacit: 2.284.800 - 535.730 - 30.326 = 1.718.744 kr.; forliget reducerer
+    // først dette samlede beløb, ikke det rene EAL-krav, og giver 859.372 kr.
     expect(difference).toEqual(expect.objectContaining({
       ealKravOre: 228480000,
       ealEetPct: 50,
       fradragLoebendeYdelserOre: 53573000,
       fradragKapitaliseretEetOre: 0,
-      differencekravFoerForligOre: 170047000,
+      differencekravFoerForligOre: 171874400,
       forligFactor: 0.5,
       forligLabel: '50 %',
       forligDato: null,
-      differencekravOre: 85023500,
+      differencekravOre: 85937200,
     }));
     expect(difference.ealComputation?.forlig).toBeNull();
-    expect(difference.resterendeLoebendeYdelser).toEqual({
+    expect(difference.resterendeLoebendeYdelser).toBeNull();
+    expect(difference.proformaKapitalisering).toEqual(expect.objectContaining({
       loebendeEetPct: 60,
-      beregningsdato: iso('2022-04-01'),
-      dagenFoerFolkepensionsdato: iso('2022-06-30'),
-      aarsydelseOre: 19440000,
-      maanedligYdelseOre: 1620000,
-      tilbageraevendeMaaneder: 3,
-      fradragBeloebOre: 4860000,
-    });
-    expect(difference.proformaKapitalisering).toBeNull();
+      kapitaliseringsdato: iso('2022-04-01'),
+      grundydelseOre: 12509463,
+      aarsydelseOre: 19439706,
+      kapitaliseretPgaUnderToAarTilFp: true,
+      saerfaktor: 1.245,
+      maanederTilFolkepension: 3,
+      kapitaliseringsfaktor: 0.156,
+      proformaBeloebOre: 3032600,
+    }));
     expect(difference.merErstatningPensionsalder).toBeNull();
 
     expectAllowedGates(evaluateErhvervsevnetabDownloadGates(projection));

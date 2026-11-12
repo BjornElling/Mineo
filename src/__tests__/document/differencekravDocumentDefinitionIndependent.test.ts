@@ -141,17 +141,18 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
   it('fører det håndberegnede Differencekrav-facit gennem definitionen til Word', async () => {
     const input = project();
 
-    // Uafhængigt facit: 2.284.800 − 535.730 − 48.600 = 1.700.470 kr.;
-    // 1.700.470 x 50 % = 850.235 kr. efter forliget.
+    // Uafhængigt facit: rest-EET proformakapitaliseres med særfaktoren 1,245 nedsat til 3/24 = 0,156:
+    // ceil(194.397,06 x 0,156) = 30.326 kr. 2.284.800 − 535.730 − 30.326 = 1.718.744 kr.;
+    // 1.718.744 x 50 % = 859.372 kr. efter forliget.
     expect(input.computation).toEqual(expect.objectContaining({
       ealKravOre: fromKroner(2284800),
       ealEetPct: 50,
       fradragLoebendeYdelserOre: fromKroner(535730),
       fradragKapitaliseretEetOre: fromKroner(0),
-      differencekravFoerForligOre: fromKroner(1700470),
+      differencekravFoerForligOre: fromKroner(1718744),
       forligFactor: 0.5,
       forligLabel: '50 %',
-      differencekravOre: fromKroner(850235),
+      differencekravOre: fromKroner(859372),
     }));
     expect(input.bilagSelection.opgoerelse).toBe(true);
 
@@ -170,11 +171,13 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
 
     expect(filename).toBe('Differencekrav (EET).docx');
     expect(pdfText).toContain('Differencekrav (EET)');
-    expect(pdfText).toContain('1.700.470 kr.');
-    expect(pdfText).toContain('850.235 kr.');
+    expect(pdfText).toContain('1.718.744 kr.');
+    expect(pdfText).toContain('859.372 kr.');
+    // Forklaringen af den nedsatte særfaktor står i specifikationen i begge kanaler.
+    expect(pdfText).toContain('Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.');
     expect(text).toContain('Differencekrav (EET)');
-    expect(text).toContain('1.700.470 kr.');
-    expect(text).toContain('850.235 kr.');
+    expect(text).toContain('1.718.744 kr.');
+    expect(text).toContain('859.372 kr.');
     expect(wordText).toBe(pdfText);
   });
 });

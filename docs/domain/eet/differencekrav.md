@@ -146,11 +146,21 @@ Hvis `løbende_eet_pct = 0`, springes fradrag 3 over.
 
 #### Beregningsdato inden for eller præcis 2 år til folkepension
 
-Hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepensionsalderen, og der fortsat består rest-EET, fratrækkes de tilbageværende løbende ydelser fra beregningsdatoen til og med dagen før folkepensionsdatoen.
+Udviklerens afgørelse 2026-11-12. Hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepensionsalderen, og der fortsat består rest-EET, proformakapitaliseres resten på beregningsdatoen med bekendtgørelsens særfaktor for ≤ 2 år til folkepension – nedsat forholdsmæssigt efter den faktiske restperiode:
 
-Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
+```
+måneder = præcis månedsoptælling fra beregningsdato til og med dagen før folkepensionsdato (4 decimaler, højst 24)
+faktor  = round3(round3(særfaktor) × måneder / 24)
+fradrag = ceil0(årsydelse på beregningsdatoen × faktor)
+```
 
-Beløbet beregnes som:
+Eksempel: 18 måneder til folkepensionsdatoen og særfaktor 1,246 giver faktor 1,246 × 18/24 = 0,935 (75 % af særfaktoren).
+
+Årsydelsen opgøres som ved den øvrige proformakapitalisering (kapitaliseringsårets regulering, ingen 12-kr.-afrunding). Køn indgår ikke, fordi særfaktoren er kønsneutral. Fradrag 1 er uændret: de løbende ydelser fratrækkes til og med dagen før beregningsdatoen.
+
+Skærm og dokument forklarer regnestykket i én sætning, fx: «Den løbende ydelse (60 %) omregnes til et kapitalbeløb. Ved 2 år eller mindre til folkepension bruges særfaktoren 1,245. Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.» Bilaget «Proformakap. af rest-EET» kan vælges og viser særfaktor, måneder og den nedsatte faktor.
+
+**Undtagelse – ingen særfaktor i bekendtgørelsen.** Bekendtgørelserne fastsætter kun særfaktoren for skader fra 1. juli 2007. For ældre skader (hvis tabeller i stedet er «uden omsætningsmulighed» de sidste 2 år) opgøres resten fortsat som de tilbageværende løbende ydelser:
 
 ```
 måneder = præcis månedsoptælling fra beregningsdato til dagen før folkepensionsdato
@@ -158,6 +168,8 @@ fradrag = round0(måneder × månedlig løbende ydelse på beregningsdatoen)
 ```
 
 Den månedlige ydelse beregnes efter samme løbende-ydelsesprincip som fane 2: årsydelsen afrundes til nærmeste hele kronebeløb deleligt med 12, og månedssatsen er årsydelsen divideret med 12.
+
+Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
 
 #### Beregningsdato mere end 2 år før folkepension
 
@@ -239,7 +251,7 @@ Differencekravet fratrækker derfor kun kapitalbeløbet.
 
 I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedreglen. Differencekravet fraviger derfor ASL-forløbet på ét punkt:
 - løbende ydelser fratrækkes kun til og med dagen før beregningsdatoen, dog aldrig efter dagen før folkepensionsdatoen
-- hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepension, og beregningsdatoen er før folkepensionsdatoen, fratrækkes de resterende løbende ydelser frem til dagen før folkepensionsdatoen
+- hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepension, og beregningsdatoen er før folkepensionsdatoen, proformakapitaliseres rest-EET med særfaktoren nedsat forholdsmæssigt (måneder til folkepensionsdatoen / 24); uden særfaktor i bekendtgørelsen (skader før 1. juli 2007) fratrækkes i stedet de resterende løbende ydelser frem til dagen før folkepensionsdatoen
 - hvis beregningsdatoen ligger mere end 2 år før folkepension, proformakapitaliseres hele rest-EET på beregningsdatoen
 
 ---
@@ -254,8 +266,8 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 
 | Funktion | Beskrivelse |
 |---|---|
-| `computeProformaKapitalisering(args, issues)` | Proformaberegning på beregningsdatoen |
-| `computeResterendeLoebendeYdelser(args, issues)` | Opgør resterende løbende ydelser frem til folkepensionsalderen ved beregningsdato inden for 2-årsgrænsen |
+| `computeProformaKapitalisering(args, issues)` | Proformaberegning på beregningsdatoen; ved ≤ 2 år til folkepension med forholdsmæssigt nedsat særfaktor |
+| `computeResterendeLoebendeYdelser(args, issues)` | Opgør resterende løbende ydelser frem til folkepensionsalderen ved beregningsdato inden for 2-årsgrænsen, når bekendtgørelsen ingen særfaktor har |
 | `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
 | `skalFradragForetages(afgoerelseType, skadedato)` | Afgør om en afgørelse skal fratrækkes |
 | `computeTilbagevirkendeKraftFradrag(midlertidig, endeligVirkningsdato)` | Beregner fradraget når en endelig afgørelse gør midlertidig ydelse endelig med tilbagevirkende kraft (toggle) |

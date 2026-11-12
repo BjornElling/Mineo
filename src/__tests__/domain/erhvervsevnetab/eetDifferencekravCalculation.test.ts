@@ -220,7 +220,7 @@ describe('computeEetDifferencekravCalculation', () => {
   });
 
   describe('≤ 2 år til folkepension – scenarie 1 (afgørelsesdato > 2 år før FP)', () => {
-    it('fradrager løbende ydelser og resterende løbende ydelser frem til folkepensionsdatoen', () => {
+    it('fradrager løbende ydelser og proformakapitaliserer resten med forholdsmæssigt nedsat særfaktor', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -249,17 +249,23 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('beregningsdato');
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2022-03-31'));
       expect(kroner(result.computation?.fradragKapitaliseretEetOre)).toBe(0);
-      expect(result.computation?.proformaKapitalisering).toBeNull();
-      expect(result.computation?.resterendeLoebendeYdelser).toEqual({
+      // Udviklerens afgørelse 2026-11-12: 2022-04-01 – 2022-06-30 = 3 mdr. til folkepensionsdatoen.
+      // Særfaktor 1,245 (Vejl. 9864/2021) nedsættes til round3(1,245 x 3/24) = round3(0,155625) = 0,156.
+      // Tidligere fratrak reglen de resterende ydelser fuldt: 3 x 16.200 = 48.600 kr.
+      const pk = result.computation?.proformaKapitalisering;
+      expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
+      expect(pk).toMatchObject({
         loebendeEetPct: 60,
-        beregningsdato: toISODateString('2022-04-01'),
-        dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
-        aarsydelseOre: fromKroner(194400),
-        maanedligYdelseOre: fromKroner(16200),
-        tilbageraevendeMaaneder: 3,
-        fradragBeloebOre: fromKroner(48600),
+        kapitaliseringsdato: toISODateString('2022-04-01'),
+        kapitaliseretPgaUnderToAarTilFp: true,
+        saerfaktor: 1.245,
+        maanederTilFolkepension: 3,
+        kapitaliseringsfaktor: 0.156,
       });
-      expect(kroner(result.computation?.differencekravOre)).toBe(638230);
+      expect(kroner(pk?.proformaBeloebOre)).toBe(Math.ceil(kroner(pk?.aarsydelseOre) * 0.156));
+      expect(kroner(pk?.proformaBeloebOre)).toBe(30326);
+      // 638.230 kr. efter den tidligere regel + 48.600 – 30.326 = 656.504 kr.
+      expect(kroner(result.computation?.differencekravOre)).toBe(656504);
     });
   });
 
@@ -382,10 +388,10 @@ describe('computeEetDifferencekravCalculation', () => {
 
   describe('delvis kapitalisering med resterende løbende ydelser ved ≤ 2 år', () => {
     // 60 % EET, 30 % kapitaliseret ≤ 2 år til FP, 30 % løbende tilbage
-    // Beregningsdato 2021-12-01 (7 mdr til FP → ≤ 2 år) → resterende løbende ydelser
+    // Beregningsdato 2021-12-01 (7 mdr til FP → ≤ 2 år) → proforma med nedsat særfaktor
     // Virkningsdato = afgørelsesdato = 2021-10-01 → ingen løbende ydelser
 
-    it('resterende del behandles som løbende ydelse når beregningsdato er ≤ 2 år til FP', () => {
+    it('resterende del proformakapitaliseres med 7/24 af særfaktoren når beregningsdato er ≤ 2 år til FP', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -415,17 +421,19 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(kroner(c.fradragLoebendeYdelserOre)).toBe(0);
       expect(kroner(c.fradragKapitaliseretEetOre)).toBe(119611);
 
-      expect(c.proformaKapitalisering).toBeNull();
-      expect(c.resterendeLoebendeYdelser).toEqual({
+      // 2021-12-01 – 2022-06-30 = 7 mdr.; særfaktor 1,245 (Vejl. 9741/2020):
+      // round3(1,245 x 7/24) = round3(0,363125) = 0,363. Tidligere: 7 x 8.007 = 56.049 kr.
+      expect(c.resterendeLoebendeYdelser).toBeNull();
+      expect(c.proformaKapitalisering).toMatchObject({
         loebendeEetPct: 30,
-        beregningsdato: toISODateString('2021-12-01'),
-        dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
-        aarsydelseOre: fromKroner(96084),
-        maanedligYdelseOre: fromKroner(8007),
-        tilbageraevendeMaaneder: 7,
-        fradragBeloebOre: fromKroner(56049),
+        kapitaliseretPgaUnderToAarTilFp: true,
+        saerfaktor: 1.245,
+        maanederTilFolkepension: 7,
+        kapitaliseringsfaktor: 0.363,
       });
-      expect(kroner(c.differencekravOre)).toBe(1031060);
+      const pk = c.proformaKapitalisering!;
+      expect(kroner(pk.proformaBeloebOre)).toBe(Math.ceil(kroner(pk.aarsydelseOre) * 0.363));
+      expect(kroner(c.differencekravOre)).toBe(1031060 + 56049 - kroner(pk.proformaBeloebOre));
     });
 
     it('loebendeEetPct = 0 giver proformaKapitalisering = null', () => {
@@ -527,8 +535,8 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.hasBlockingErrors).toBe(false);
     expect(result.computation?.afgoerelser).toHaveLength(1);
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
-    expect(result.computation?.proformaKapitalisering).toBeNull();
-    expect(result.computation?.resterendeLoebendeYdelser?.loebendeEetPct).toBe(30);
+    expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
+    expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
   });
 
   it('afgrænser ikke længere på afgørelsesdato når virkningsdatoen er på eller før beregningsdatoen', () => {
@@ -754,7 +762,7 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.computation?.proformaKapitalisering?.kapitaliseringsfaktor).toBe(1.759);
   });
 
-  it('blokerer proformakapitalisering når særfaktor mangler efter faktortabellens sidste alder', () => {
+  it('interpolerer efter faktortabellens sidste alder mod særfaktoren fra Bkg. 1700/2015', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -778,11 +786,83 @@ describe('computeEetDifferencekravCalculation', () => {
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
-    expect(result.computation).toBeNull();
-    expect(result.issues).toContainEqual({
-      id: 'proforma-kapitaliseringsfaktor-unresolved',
-      severity: 'error',
-      message: 'Kapitaliseringsfaktor kan ikke beregnes, fordi særfaktor mangler',
+    // Blokerede indtil 2026-11-12, fordi særfaktoren 1,168 (§ 1, stk. 11) aldrig var indlæst.
+    expect(result.hasBlockingErrors).toBe(false);
+    const pk = result.computation?.proformaKapitalisering;
+    expect(pk?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+    expect(pk?.saerfaktor).toBe(1.168);
+    // Tabel B slutter ved 64 år (1,724); 2-årsgrænsen er 65 år (folkepension 67). Alder 64 år 6 mdr.:
+    // 1,724 + 6/12 x (1,168 - 1,724) = 1,446.
+    expect(pk?.kapitaliseringsfaktor).toBe(1.446);
+  });
+
+  it('kræver ikke køn ved ≤ 2 år til folkepension, fordi særfaktoren er kønsneutral', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        koen: undefined,
+        beregningsdato: toISODateString('2014-01-01'),
+        aslAarsloen: asAmount(aarsloenAslMax[2007]!),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2013-01-01'),
+          virkningsDato: toISODateString('2013-01-01'),
+          eetPct: 50,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2007-07-01'),
+      // Folkepension ved 65 år den 2014-06-01: 5 mdr. fra 2014-01-01 til og med 2014-05-31.
+      skadelidteFodselsdato: toISODateString('1949-06-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.issues).not.toContainEqual(expect.objectContaining({ id: 'missing-koen' }));
+    expect(result.computation?.proformaKapitalisering).toMatchObject({
+      kapitaliseretPgaUnderToAarTilFp: true,
+      saerfaktor: 1.168,
+      maanederTilFolkepension: 5,
+      // round3(1,168 x 5/24) = round3(0,243333) = 0,243
+      kapitaliseringsfaktor: 0.243,
+    });
+  });
+
+  it('bruger fortsat de resterende løbende ydelser ved ≤ 2 år, når bekendtgørelsen ingen særfaktor har (skade før 1. juli 2007)', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        koen: 'Mand',
+        beregningsdato: toISODateString('2022-04-01'),
+        aslAarsloen: asAmount(aarsloenAslMax[2005]!),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2019-06-01'),
+          virkningsDato: toISODateString('2019-06-01'),
+          eetPct: 60,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2005-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.hasBlockingErrors).toBe(false);
+    expect(result.computation?.proformaKapitalisering).toBeNull();
+    expect(result.computation?.resterendeLoebendeYdelser).toMatchObject({
+      loebendeEetPct: 60,
+      dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
+      tilbageraevendeMaaneder: 3,
     });
   });
 
@@ -1432,7 +1512,7 @@ describe('computeEetDifferencekravCalculation – fradrag 4 (mer-erstatning ved 
 });
 
 describe('computeEetDifferencekravCalculation – forlig om ansvarsgrad', () => {
-  // Genbruger scenarie 1 (≤ 2 år til folkepension), hvor differencekravet uden forlig er 638.230 kr.
+  // Genbruger scenarie 1 (≤ 2 år til folkepension), hvor differencekravet uden forlig er 656.504 kr.
   const buildMedForlig = (
     forlig: { factor: number; label: string } | null | undefined,
     forligDato?: ReturnType<typeof toISODateString>,
@@ -1465,12 +1545,12 @@ describe('computeEetDifferencekravCalculation – forlig om ansvarsgrad', () => 
   it('reducerer det endelige differencekrav med en brøk-faktor og bevarer det fulde krav', () => {
     const result = buildMedForlig({ factor: 2 / 3, label: '2/3' });
     const c = result.computation!;
-    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(656504);
     expect(c.forligFactor).toBe(2 / 3);
     expect(c.forligLabel).toBe('2/3');
     expect(c.forligDato).toBeNull();
-    // round0(638230 × 2/3) = round0(425486,67) = 425487
-    expect(kroner(c.differencekravOre)).toBe(425487);
+    // round0(656504 × 2/3) = round0(437669,33) = 437669
+    expect(kroner(c.differencekravOre)).toBe(437669);
   });
 
   it('viderefører forligsdatoen til computation når der reduceres', () => {
@@ -1487,18 +1567,18 @@ describe('computeEetDifferencekravCalculation – forlig om ansvarsgrad', () => 
   it('reducerer med en procent-faktor', () => {
     const result = buildMedForlig({ factor: 0.5, label: '50 %' });
     const c = result.computation!;
-    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(656504);
     expect(c.forligFactor).toBe(0.5);
     expect(c.forligLabel).toBe('50 %');
-    expect(kroner(c.differencekravOre)).toBe(319115);
+    expect(kroner(c.differencekravOre)).toBe(328252);
   });
 
   it('anvender ingen reduktion når forlig er null (intet forlig)', () => {
     const c = buildMedForlig(null).computation!;
-    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(656504);
     expect(c.forligFactor).toBeNull();
     expect(c.forligLabel).toBeNull();
-    expect(kroner(c.differencekravOre)).toBe(638230);
+    expect(kroner(c.differencekravOre)).toBe(656504);
   });
 
   it('anvender ingen reduktion når forlig udelades helt (bagudkompatibel)', () => {
@@ -1510,9 +1590,9 @@ describe('computeEetDifferencekravCalculation – forlig om ansvarsgrad', () => 
 
   it('anvender ingen reduktion og ingen parentes-label ved 100 % (factor = 1)', () => {
     const c = buildMedForlig({ factor: 1, label: '100 %' }).computation!;
-    expect(kroner(c.differencekravFoerForligOre)).toBe(638230);
+    expect(kroner(c.differencekravFoerForligOre)).toBe(656504);
     expect(c.forligFactor).toBeNull();
     expect(c.forligLabel).toBeNull();
-    expect(kroner(c.differencekravOre)).toBe(638230);
+    expect(kroner(c.differencekravOre)).toBe(656504);
   });
 });

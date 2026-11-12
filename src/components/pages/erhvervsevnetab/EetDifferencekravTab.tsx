@@ -8,6 +8,7 @@ import {
   buildBeregnetDifferencekravLabel,
   buildMerErstatningForhoejelseOverskrift,
   DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
+  resolveNedsatSaerfaktorForklaring,
   SAMLET_MER_ERSTATNING_LABEL,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import {
@@ -408,7 +409,10 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                 </>
               ) : computation.proformaKapitalisering ? (
                 <>
-                  <HoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
+                  <HoverRow
+                    text={resolveNedsatSaerfaktorForklaring(computation.proformaKapitalisering)
+                      ?? 'Der foretages fradrag med kapitaliseringsværdien af resterende EET.'}
+                  />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
                       {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatISOToDanish(computation.proformaKapitalisering.kapitaliseringsdato)}:`}

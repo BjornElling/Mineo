@@ -172,6 +172,9 @@ export const eetDifferencekravProformaKapitaliseringSchema = z.object({
   alderAar: integer,
   alderMaaneder: integer,
   kapitaliseretPgaUnderToAarTilFp: z.boolean(),
+  // Kun ved ≤ 2 år til folkepension: månederne fra beregningsdatoen til og med dagen før
+  // folkepensionsdatoen (4 decimaler), som nedsætter særfaktoren forholdsmæssigt (x/24).
+  maanederTilFolkepension: finite.nullable(),
   faktorMaanedsAfhaengig: z.boolean(),
   saerfaktor: finite.nullable(),
   kapitaliseringsfaktor: finite,
