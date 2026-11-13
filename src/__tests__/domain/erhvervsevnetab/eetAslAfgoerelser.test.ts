@@ -28,6 +28,10 @@ import {
   resolveNonEndeligAfterEndeligWarning,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import {
+  KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING,
+  resolveKapDatoFeltWarning,
+} from '../../../domain/erhvervsevnetab/eetFieldWarnings';
+import {
   isTwoYearKapitaliseringApplicable,
   resolveKapitaliseringTabelvalg,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringOpslag';
@@ -183,12 +187,11 @@ describe('collectIncompleteRowIssues – manglende rækkeoplysninger', () => {
   });
 });
 
-describe('collectIncompleteRowIssues – ≤ 2 år til folkepension', () => {
-  // En endelig afgørelse på 40 % ≤ 2 år før folkepensionsalderen. Kapitaliseringsfelterne SKAL være
-  // tomme (motoren udleder dem selv), men uden ≤2-års-undtagelsen blokerede fanen alligevel på
-  // «Endelig afgørelse under 50 % mangler oplysninger om kapitalisering» – mens de to feltregler
-  // afviste enhver udfyldt værdi. Ingen lovlig indtastning fandtes (BB-168).
-  const row = () =>
+describe('≤ 2 år til folkepension – obligatoriske kapitaliseringsfelter', () => {
+  // En endelig afgørelse på 40 % ≤ 2 år før folkepensionsalderen. Kapitaliseringsdatoen SKAL angives som
+  // afgørelsesdatoen eller senere og procenten som hele det resterende EET. Mangler meldes i
+  // beregningens fejloversigt med feltlink, mens tomme celler bevarer deres normale udseende.
+  const row = (patch: Partial<AslAfgoerelseRow> = {}) =>
     buildRow({
       afgoerelsesDato: toISODateString('2023-06-01'),
       virkningsDato: toISODateString('2023-01-01'),
@@ -196,13 +199,74 @@ describe('collectIncompleteRowIssues – ≤ 2 år til folkepension', () => {
       eetPct: 40,
       kapDato: undefined,
       kapPct: undefined,
+      ...patch,
     });
   const skadedato = toISODateString('2018-06-01');
   const fodselsdato = toISODateString('1958-01-01');
 
-  it('kræver ikke kapitaliseringsfelter, når de netop skal stå tomme', () => {
+  it('melder begge tomme felter som mangler med feltmål uden røde celler', () => {
+    expect(collectEetAslAfgoerelseValidationIssues([row()], skadedato, fodselsdato)).toEqual([]);
+    expect(collectIncompleteRowIssues([row()], skadedato, fodselsdato)).toEqual([
+      { id: 'missing-kap-dato', message: KAP_DATO_UNDER_TO_AAR_MESSAGE, target: { rowId: 'r1', field: 'kapDato' } },
+      { id: 'missing-kap-pct', message: KAP_PCT_UNDER_TO_AAR_MESSAGE, target: { rowId: 'r1', field: 'kapPct' } },
+    ]);
+  });
+
+  it('accepterer afgørelsesdatoen og hele EET-procenten', () => {
+    const issues = collectEetAslAfgoerelseValidationIssues(
+      [row({ kapDato: toISODateString('2023-06-01'), kapPct: 40 })],
+      skadedato,
+      fodselsdato
+    );
+    expect(issues).toEqual([]);
+    expect(collectIncompleteRowIssues(
+      [row({ kapDato: toISODateString('2023-06-01'), kapPct: 40 })],
+      skadedato,
+      fodselsdato
+    )).toEqual([]);
+  });
+
+  it('melder ikke også fanens generelle «mangler oplysninger om kapitalisering»', () => {
     const ids = collectIncompleteRowIssues([row()], skadedato, fodselsdato).map((issue) => issue.id);
     expect(ids).not.toContain('endelig-under-50-missing-kapitalisering');
+  });
+
+  it('kræver felterne også ved EET % på 50 eller derover', () => {
+    const issues = collectIncompleteRowIssues([row({ eetPct: 70 })], skadedato, fodselsdato);
+    expect(issues.map((issue) => issue.target.field)).toEqual(['kapDato', 'kapPct']);
+  });
+
+  it('kræver ikke felterne, når hele EET allerede er kapitaliseret ved en tidligere afgørelse', () => {
+    const previous = row({
+      id: 'r0',
+      afgoerelsesDato: toISODateString('2020-01-01'),
+      virkningsDato: toISODateString('2020-01-01'),
+      afgoerelseType: 'Endelig',
+      eetPct: 40,
+      kapDato: toISODateString('2020-01-01'),
+      kapPct: 40,
+    });
+    const issues = collectEetAslAfgoerelseValidationIssues([previous, row()], skadedato, fodselsdato);
+    expect(issues.filter((issue) => issue.rowId === 'r1')).toEqual([]);
+    expect(collectIncompleteRowIssues([previous, row()], skadedato, fodselsdato)).toEqual([]);
+  });
+
+  it('kræver ikke felterne ved skader før 1. juli 2007', () => {
+    const issues = collectEetAslAfgoerelseValidationIssues([row()], toISODateString('2007-06-30'), fodselsdato);
+    expect(issues.filter((issue) => issue.field === 'kapDato' || issue.field === 'kapPct')).toEqual([]);
+    expect(collectIncompleteRowIssues([row()], toISODateString('2007-06-30'), fodselsdato)).toEqual([]);
+  });
+
+  it('kræver ikke felterne, når fødselsdatoen er ukendt', () => {
+    const issues = collectEetAslAfgoerelseValidationIssues([row()], skadedato, undefined);
+    expect(issues.filter((issue) => issue.field === 'kapDato' || issue.field === 'kapPct')).toEqual([]);
+  });
+
+  it.each([
+    [{ kapDato: toISODateString('2023-06-01') }, 'missing-kap-pct'],
+    [{ kapPct: 40 }, 'missing-kap-dato'],
+  ] as const)('melder kun den konkrete mangel ved ét udfyldt kapitaliseringsfelt', (patch, id) => {
+    expect(collectIncompleteRowIssues([row(patch)], skadedato, fodselsdato).map((issue) => issue.id)).toEqual([id]);
   });
 
   it('kræver dem fortsat, når afgørelsen ligger mere end 2 år før folkepensionsalderen', () => {
@@ -353,7 +417,7 @@ describe('validateKapPctByAfgoerelsestype', () => {
     expect(error).toBe('Kun relevant ved tidligere kapitalisering.');
   });
 
-  it('afviser kap.dato ved genoptagelse fra 1. juli 2024 når kap.dato afviger fra afgørelsesdato', () => {
+  it('tillader kap.dato efter afgørelsesdatoen ved genoptagelse fra 1. juli 2024', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
@@ -362,16 +426,46 @@ describe('validateKapPctByAfgoerelsestype', () => {
         tidlKapDato: toISODateString('2024-01-01'),
       })
     );
-    expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.');
+    expect(error).toBeUndefined();
   });
 
-  it('afviser kap.dato ved endelig afgørelse ≤ 2 år til folkepension når kap.dato afviger fra afgørelsesdato', () => {
+  it('afviser kap.dato før afgørelsesdatoen ved genoptagelse fra 1. juli 2024', () => {
+    expect(validateKapDatoByAfgoerelsestype(buildRow({
+      afgoerelseType: 'Endelig',
+      afgoerelsesDato: toISODateString('2024-07-01'),
+      virkningsDato: toISODateString('2024-01-01'),
+      kapDato: toISODateString('2024-06-30'),
+      tidlKapDato: toISODateString('2024-01-01'),
+    }))).toBe('Kapitaliseringsdatoen kan ikke ligge før afgørelsesdatoen ved genoptagelse fra 1. juli 2024.');
+  });
+
+  it('tillader en senere kap.dato ved endelig afgørelse ≤ 2 år til folkepension – kun gul advarsel', () => {
+    const row = buildRow({
+      afgoerelseType: 'Endelig',
+      afgoerelsesDato: toISODateString('2025-07-01'),
+      virkningsDato: toISODateString('2025-07-01'),
+      kapDato: toISODateString('2025-10-01'),
+    });
+    const skadedato = toISODateString('2025-01-01');
+    const fodselsdato = toISODateString('1959-01-01');
+    expect(validateKapDatoByAfgoerelsestype(row, skadedato, fodselsdato)).toBeUndefined();
+    expect(resolveKapDatoFeltWarning(row, skadedato, fodselsdato, undefined)?.message)
+      .toBe(KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING);
+    // På afgørelsesdatoen: hverken fejl eller advarsel.
+    const paaDagen = { ...row, kapDato: toISODateString('2025-07-01') };
+    expect(validateKapDatoByAfgoerelsestype(paaDagen, skadedato, fodselsdato)).toBeUndefined();
+    expect(resolveKapDatoFeltWarning(paaDagen, skadedato, fodselsdato, undefined)).toBeUndefined();
+    // Mere end 2 år før folkepension: ingen advarsel.
+    expect(resolveKapDatoFeltWarning(row, skadedato, toISODateString('1980-01-01'), undefined)).toBeUndefined();
+  });
+
+  it('afviser kap.dato før afgørelsesdatoen ved endelig afgørelse ≤ 2 år til folkepension', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
         afgoerelsesDato: toISODateString('2025-07-01'),
-        virkningsDato: toISODateString('2025-07-01'),
-        kapDato: toISODateString('2025-10-01'),
+        virkningsDato: toISODateString('2025-06-01'),
+        kapDato: toISODateString('2025-06-15'),
       }),
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
@@ -1028,10 +1122,10 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
       buildRow({
         id: 'r1',
         afgoerelsesDato: toISODateString('2024-07-01'),
-        virkningsDato: toISODateString('2024-07-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         afgoerelseType: 'Endelig',
         eetPct: 40,
-        kapDato: toISODateString('2024-07-02'),
+        kapDato: toISODateString('2024-06-30'),
         kapPct: 40,
         tidlKapDato: toISODateString('2024-01-01'),
       }),
@@ -1044,7 +1138,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         (issue) =>
           issue.rowId === 'r1' &&
           issue.field === 'kapDato' &&
-          issue.message === 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.'
+          issue.message === 'Kapitaliseringsdatoen kan ikke ligge før afgørelsesdatoen ved genoptagelse fra 1. juli 2024.'
       )
     ).toBe(true);
   });

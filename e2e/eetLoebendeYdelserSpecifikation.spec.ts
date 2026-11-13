@@ -164,7 +164,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
     await expect(page.getByText('Afgørelsen giver ingen løbende ydelse i den valgte periode.')).toBeVisible();
 
     // BB-159: én linje navngiver årsagen, i stedet for tre linjer om de tre datoer.
-    await expect(page.getByText('Beregningsdatoen (01-01-2021) ligger før sagens afgørelser.')).toBeVisible();
+    await expect(page.getByText('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (01-01-2021).')).toBeVisible();
     await expect(page.getByText('Der er angivet en afgørelsesdato efter beregningsdatoen')).toHaveCount(0);
 
     expect(runtimeErrors).toEqual([]);

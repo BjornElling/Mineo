@@ -50,7 +50,7 @@ Disse regler gælder generelt, også uden for særreglen:
 
 ### Kontroltidspunkt
 
-Afgørelsesdatoen. Ved genoptagelse med en tidligere kapitaliseringsdato bruges denne dato til at afgøre, om tvungen kapitalisering gælder, præcis som i fane 3. En genoptaget afgørelse kan derfor bevare en løbende rest, selv om den nye afgørelsesdato er tæt på folkepension.
+Afgørelsesdatoen. Ved genoptagelse med en tidligere kapitaliseringsdato og en afgørelsesdato før 1. juli 2024 bruges den tidligere dato til at afgøre, om tvungen kapitalisering gælder, præcis som i fane 3. En sådan genoptaget afgørelse kan derfor bevare en løbende rest, selv om den nye afgørelsesdato er tæt på folkepension. Fra 1. juli 2024 styrer den nye afgørelsesdato (udviklerafgørelse 2026-11-13).
 
 ### Hovedregel
 
@@ -61,11 +61,11 @@ Der er kun én særregel med tvungen fuldkapitalisering, og den gælder kun for 
 ### Endelig afgørelse inden for eller præcis 2 år før folkepension
 
 Hvis en `Endelig` afgørelse træffes inden for eller præcis 2 år før folkepensionsalderen:
-- hele erhvervsevnetabet skal kapitaliseres på afgørelsesdatoen
-- kapitaliseringsdatoen er derfor lig afgørelsesdatoen
+- hele erhvervsevnetabet kapitaliseres, som udgangspunkt på afgørelsesdatoen
+- en senere indtastet kapitaliseringsdato er tilladt og lægges til grund (gul advarsel, se fane 3)
 
 Løbende ydelser afhænger herefter af virkningsdatoen:
-- Hvis virkningsdatoen ligger før 2-årsgrænsen, beregnes løbende ydelser fra virkningsdatoen til og med dagen før afgørelsesdatoen.
+- Hvis virkningsdatoen ligger før 2-årsgrænsen, beregnes løbende ydelser fra virkningsdatoen til og med dagen før 2-årsgrænsen. Der udbetales ingen løbende ydelser i selve toårsvinduet, heller ikke når kapitaliseringsdatoen ligger senere (udviklerafklaring 2026-11-13).
 - Hvis virkningsdatoen ligger på eller efter 2-årsgrænsen, beregnes der ingen løbende ydelser.
 
 ### Endelig afgørelse mere end 2 år før folkepension
@@ -88,7 +88,7 @@ Den resterende løbende del af en `Delvist endelig` afgørelse behandles i alle 
 
 ### Kontroltidspunkt
 
-Normalt afgørelsesdatoen. Ved genoptagelse (kolonne 7 udfyldt): den tidligere kapitaliseringsdato.
+Normalt afgørelsesdatoen. Ved genoptagelse (kolonne 7 udfyldt) med afgørelsesdato før 1. juli 2024: den tidligere kapitaliseringsdato. Ved genoptagelse med afgørelsesdato fra 1. juli 2024: afgørelsesdatoen – den tidligere dato indgår da hverken i regelvalg eller faktor (udviklerafgørelse 2026-11-13).
 
 ### Særfaktor
 
@@ -103,7 +103,7 @@ Særfaktoren siger kun noget om kapitaliseringsfaktoren. Om der overhovedet skal
 
 For skader fra 1. juli 2007 gælder den fulde særfaktor også ved endelige afgørelser truffet på eller efter folkepensionsdatoen. Faktoren nedsættes ikke efter den resterende tid i denne situation. Midlertidige og delvist endelige afgørelser udløser fortsat ingen tvungen fuldkapitalisering.
 
-Ved genoptagelse bevares bekendtgørelse, tabel, alder og faktor fra den tidligere kapitaliseringsdato. Årsydelsen reguleres derimod til den nye kapitaliseringsdatos kalenderår. Er den tidligere dato mere end to år før folkepension, bruges de almindelige regler, og den ikke-kapitaliserede del fortsætter løbende frem til ophør (udviklerafklaring 2026-11-12).
+Ved genoptagelse før 1. juli 2024 bevares bekendtgørelse, tabel, alder og faktor fra den tidligere kapitaliseringsdato. Årsydelsen reguleres derimod til den nye kapitaliseringsdatos kalenderår. Er den tidligere dato mere end to år før folkepension, bruges de almindelige regler, og den ikke-kapitaliserede del fortsætter løbende frem til ophør (udviklerafklaring 2026-11-12).
 
 Hvis skadelidte endnu ikke er inden for 2-årsgrænsen, men alderstabellen allerede er udtømt, fortsætter faktorberegningen lineært mod særfaktoren.
 Det gælder også i månedsafhængige tabeller, når den sidste tabelrække er et helt år, men skadelidte er ældre end dette med ekstra måneder.
@@ -111,14 +111,35 @@ Eksempel: Slutter tabellen ved 64 år, skal `64 år, 2 måneder` interpoleres me
 
 ### Hvilke afgørelser kapitaliseres?
 
-- `Endelig` inden for eller præcis 2 år før folkepension: hele EET kapitaliseres pr. afgørelsesdatoen.
+- `Endelig` inden for eller præcis 2 år før folkepension: hele det resterende EET kapitaliseres på den indtastede kapitaliseringsdato, som udgangspunkt afgørelsesdatoen.
 - `Endelig` mere end 2 år før folkepension: de almindelige kapitaliseringsregler gælder fortsat. Særreglen ændrer ikke dette.
 - `Delvist endelig`: kun den indtastede andel kapitaliseres. Den skal være mindre end det fulde EET og højst 50 %.
 - `Midlertidig`: ingen kapitalisering.
 
 ### Kapitaliseringsdatoen ved særreglen
 
-Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension, skal kapitaliseringsdatoen være lig afgørelsesdatoen.
+Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension, sker kapitaliseringen som udgangspunkt på afgørelsesdatoen.
+
+Brugeren skal selv angive begge kapitaliseringsfelter (udviklerafgørelser 2026-11-13):
+- kapitaliseringsdato = afgørelsesdatoen eller en senere dato
+- kapitaliseringsprocent = hele det resterende EET (EET % minus tidligere kapitaliseringsprocenter)
+
+Et tomt felt giver en blokerende fejl i de berørte faners «Fejl og advarsler» med link til feltet, men ingen rød ring. En udfyldt kapitaliseringsdato før afgørelsesdatoen eller en forkert procent giver en rød feltfejl. En kapitaliseringsdato EFTER afgørelsesdatoen er tilladt: feltet får en gul ring og en ikke-blokerende advarsel («Ved ≤ 2 år til folkepension sker kapitalisering som udgangspunkt på afgørelsesdatoen»). Den indtastede dato bruges til kapitalbeløbet og dets fradrag; årsydelsen reguleres til kapitaliseringsdatoens kalenderår, og en tidligere afgørelses kapitaliseringsdato må højst ligge på denne dato. Datoen forlænger ikke de løbende ydelser ind i toårsvinduet. Kontroltidspunktet for særreglen og særfaktoren er fortsat afgørelsesdatoen (ved genoptagelse før 1. juli 2024 den tidligere kapitaliseringsdato). Kravet gælder ikke, når hele EET allerede er kapitaliseret ved tidligere afgørelser, og heller ikke for skader før 1. juli 2007.
+
+### Kapitaliseringsdato inden for de sidste to år uden for særreglen
+
+En kapitaliseringsdato inden for de sidste to år før folkepensionsalderen (på eller efter 2-årsgrænsen) giver en gul ring og en ikke-blokerende advarsel: »Kapitalisering inden for de sidste to år før folkepensionsalderen (fra {2-årsgrænsen}) er som udgangspunkt udelukket«. Fanerne Kapitalisering og Differencekrav viser linjen »Kapitalisering inden for de sidste to år før folkepensionsalderen er som udgangspunkt udelukket« med link til feltet. Advarslen vises ikke, når kapitaliseringen netop er påkrævet efter særreglen (endelig afgørelse med kontroltidspunkt i vinduet), og ikke når skadedato eller fødselsdato er ukendt (udviklerafgørelse 2026-11-13).
+
+Eksempler (født 1. juli 1955, 2-årsgrænse 1. juli 2020):
+- Endelig afgørelse 1. januar 2019, kapitalisering 1. oktober 2020: advarsel.
+- Delvist endelig afgørelse 1. oktober 2021, kapitalisering 1. oktober 2021: advarsel.
+- Endelig afgørelse 1. oktober 2021, kapitalisering 1. oktober 2021: ingen advarsel – kapitaliseringen er påkrævet.
+
+Kap.dato-cellen bærer kun én advarsel ad gangen: advarslen om en senere dato end afgørelsesdatoen vinder over denne, som vinder over advarslen om en dato efter beregningsdatoen.
+
+### Gemte filer
+
+Tidligere gemte filer med tomme kapitaliseringsfelter indlæses med sagsdata bevaret og uden ny load-advarsel. De relevante beregninger og dokumenter blokeres herefter, indtil brugeren udfylder felterne (godkendt af udvikleren 2026-11-13). Felterne udfyldes aldrig automatisk under load.
 
 ---
 
@@ -141,8 +162,8 @@ Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen t
 #### Endelig afgørelse inden for eller præcis 2 år, virkningsdato før 2-årsgrænsen
 
 Skadelidte har i denne situation:
-- fået løbende ydelser fra virkningsdatoen til og med dagen før afgørelsesdatoen
-- fået et kapitalbeløb pr. afgørelsesdatoen
+- fået løbende ydelser fra virkningsdatoen til og med dagen før 2-årsgrænsen
+- fået et kapitalbeløb på den indtastede kapitaliseringsdato
 
 Differencekravet fratrækker derfor:
 - de løbende ydelser
@@ -153,7 +174,7 @@ Differencekravet fratrækker derfor:
 
 Skadelidte har i denne situation:
 - ikke fået løbende ydelser
-- fået et kapitalbeløb pr. afgørelsesdatoen
+- fået et kapitalbeløb på den indtastede kapitaliseringsdato
 
 Differencekravet fratrækker derfor:
 - ingen løbende ydelser
@@ -181,7 +202,7 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 | Situation | Fane 2 | Fane 3 | Fane 5 |
 |---|---|---|---|
 | Endelig > 2 år før FP | Løbende til dagen før FP | Almindelige kapitaliseringsregler | Løbende fradrag til dagen før beregningsdatoen, dog aldrig efter dagen før FP, samt proforma af rest-EET med nedsat særfaktor hvis beregningsdatoen er ≤ 2 år til FP; ellers proforma af rest-EET med tabelfaktor |
-| Endelig ≤ 2 år før FP, virkning før 2-årsgrænsen | Løbende til dagen før afgørelsesdatoen | Hele EET kapitaliseres | Fradrag for både løbende ydelser og kapitalbeløb |
+| Endelig ≤ 2 år før FP, virkning før 2-årsgrænsen | Løbende til dagen før 2-årsgrænsen | Hele det resterende EET kapitaliseres på den indtastede dato | Fradrag for både løbende ydelser og kapitalbeløb; overtagne midlertidige ydelser fratrækkes også kun til dagen før 2-årsgrænsen (se [differencekrav](./differencekrav.md)) |
 | Endelig ≤ 2 år før FP, virkning på/efter 2-årsgrænsen | Ingen løbende ydelser | Hele EET kapitaliseres | Kun kapitalbeløbet fratrækkes |
 | Delvist endelig eller midlertidig | Løbende til dagen før FP, medmindre andet stopper tidligere | Kun faktisk indtastet kapitalisering | Proforma af rest-EET med nedsat særfaktor hvis beregningsdatoen er ≤ 2 år til FP; ellers med tabelfaktor |
 

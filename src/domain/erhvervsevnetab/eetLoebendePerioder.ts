@@ -2,7 +2,11 @@ import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates
 import type { JaNej } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { endOfYearIso, firstOfMonthAfterIso, getDayAfterIso, getDayBeforeIso, isoYear, minISO } from '../../utils/isoDateHelpers';
-import { isTwoYearKapitaliseringApplicable } from './eetKapitaliseringOpslag';
+import {
+  isTwoYearKapitaliseringApplicable,
+  resolveKapitaliseringKontroldato,
+  resolveToAarsreglensSidsteYdelsesdag,
+} from './eetKapitaliseringOpslag';
 import { z } from 'zod';
 import { isoDateString } from '../../schemas/formSchemas/baseSchemas';
 
@@ -223,8 +227,9 @@ export const buildKapitaliseringEvents = (
       row.afgoerelseType === 'Endelig' &&
       // Genoptagelse skal bruge samme kontroltidspunkt som kapitalbeløbet. Ellers
       // standses hele ydelsen, selv om kun den indtastede andel kapitaliseres.
-      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, row.tidlKapDato ?? row.afgoerelsesdato);
-    const effectiveKapDato = isEndeligUnderOrEqualTwoYears ? row.afgoerelsesdato : row.kapDato;
+      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, resolveKapitaliseringKontroldato(row));
+    // Samme effektive dato som kapitaliseringsmotoren: den indtastede, ellers afgørelsesdatoen.
+    const effectiveKapDato = isEndeligUnderOrEqualTwoYears ? row.kapDato ?? row.afgoerelsesdato : row.kapDato;
     const activeKapPctBeforeCurrent = effectiveKapDato
       ? activeKapitaliseringPctAt(events, effectiveKapDato)
       : 0;
@@ -385,7 +390,7 @@ const buildComputedSectionRows = (
 };
 
 
-export const eetLoebendeOphoerAarsagSchema = z.enum(['beregningsdato', 'senere-afgoerelse', 'kapitalisering', 'folkepensionsdato']);
+export const eetLoebendeOphoerAarsagSchema = z.enum(['beregningsdato', 'senere-afgoerelse', 'kapitalisering', 'folkepensionsdato', 'to-aarsgraense']);
 type LoebendeOphoerAarsag = z.infer<typeof eetLoebendeOphoerAarsagSchema>;
 type LoebendeOphoer = Readonly<{ date: ISODateString; cause: LoebendeOphoerAarsag }>;
 type LoebendePeriodeplanEntry = Readonly<{
@@ -407,6 +412,7 @@ const resolveFolkepensionsDagFoer = (
 };
 
 const OPHOER_AARSAG_PRIORITY: Readonly<Record<LoebendeOphoerAarsag, number>> = {
+  'to-aarsgraense': 0,
   'senere-afgoerelse': 1,
   kapitalisering: 2,
   folkepensionsdato: 3,
@@ -417,6 +423,7 @@ const OPHOER_AARSAG_PRIORITY: Readonly<Record<LoebendeOphoerAarsag, number>> = {
 export const buildLoebendePeriodeplan = (
   resolvedAfgoerelserWithKapitalisering: readonly ResolvedAfgoerelseWithKapitalisering[],
   kapitaliseringEvents: readonly KapitaliseringEvent[],
+  skadedato: ISODateString,
   fodselsdato: ISODateString,
   loebendeYdelserSlutdato: ISODateString,
 ): LoebendePeriodeplanEntry[] => {
@@ -441,6 +448,10 @@ export const buildLoebendePeriodeplan = (
     ];
     if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
     if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
+    // En endelig afgørelse i toårsvinduet giver ingen løbende ydelse i selve vinduet,
+    // heller ikke når brugeren angiver en senere kapitaliseringsdato (udviklerafklaring 2026-11-13).
+    const toAarsreglensSidsteYdelsesdag = resolveToAarsreglensSidsteYdelsesdag(current, skadedato, fodselsdato);
+    if (toAarsreglensSidsteYdelsesdag) finalCandidates.push({ date: toAarsreglensSidsteYdelsesdag, cause: 'to-aarsgraense' });
     if (!hasRestSection && dayBeforeKapitalisering) {
       finalCandidates.push({ date: dayBeforeKapitalisering, cause: 'kapitalisering' });
     }

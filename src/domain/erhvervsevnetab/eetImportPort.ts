@@ -15,9 +15,9 @@ import {
 import { isISODateString, isoToDanish } from '../../types/branded';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
-import { readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
+import { buildAslAfgoerelseRuleFieldIssues, readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
-import { isAslAfgoerelseRowEmpty, isKnownAfgoerelseType, resolveAslVirkningsdato } from './eetAslAfgoerelser';
+import { collectEetAslAfgoerelseValidationIssues, isAslAfgoerelseRowEmpty, isKnownAfgoerelseType, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import { resolveEetIssueFocusTarget } from './eetIssueFocusTargets';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
@@ -104,6 +104,23 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       message: 'Afgørelsen er ikke gyldigt udfyldt.',
       ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
     });
+  } else {
+    // Readerens felter kan hver for sig være gyldige, mens hele afgørelsesforløbet er rødt.
+    // Brug præcis tabellens samlede regler og feltmapping, så EO ikke beregner på et afvist forløb.
+    const issue = buildAslAfgoerelseRuleFieldIssues(collectEetAslAfgoerelseValidationIssues(
+      eetValues.aslAfgoerelser,
+      skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined,
+      eetValues.skadelidteFodselsdato,
+      skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined,
+    ))[0];
+    if (issue !== undefined) {
+      sourceIssues.push({
+        id: 'field-asl-afgoerelser',
+        severity: 'error',
+        message: issue.message,
+        focusTarget: { kind: 'fieldAddress', address: issue.field.address },
+      });
+    }
   }
   if (aarsloenProjection.readIssues().length > 0) {
     const issue = aarsloenProjection.readIssues()[0];

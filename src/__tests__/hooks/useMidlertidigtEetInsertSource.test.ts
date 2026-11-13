@@ -1,9 +1,11 @@
 import {
   buildMidlertidigtEetInsertSource,
+  buildEetImportContext,
 } from '../../domain/erhvervsevnetab/eetImportPort';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
+import { aslAfgoerelseEetPctField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../inputCore/inputReader';
 import {
@@ -30,13 +32,14 @@ const buildEvaluation = (options?: Readonly<{
   skadedato?: string;
   beregningsdato?: string | null;
   invalidSkadestype?: boolean;
+  aslAfgoerelser?: ErhvervsevnetabValues['aslAfgoerelser'];
 }>) => {
   const beregningsdato = options?.beregningsdato === undefined ? '2026-03-01' : options.beregningsdato;
   const erhvervsevnetab: ErhvervsevnetabValues = {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
     beregningsdato: beregningsdato === null ? undefined : toISODateString(beregningsdato),
     ealEetPct: options?.eetPct ?? 25,
-    aslAfgoerelser: [{
+    aslAfgoerelser: options?.aslAfgoerelser ?? [{
       id: 'afg-1',
       afgoerelsesDato: toISODateString('2026-02-01'),
       virkningsDato: toISODateString('2026-02-01'),
@@ -119,6 +122,53 @@ describe('buildMidlertidigtEetInsertSource', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ afgoerelseEetPct: 101 }));
 
     expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-source-schema-invalid');
+  });
+
+  it('genbruger tabellens tværrækkefejl og feltadresse før EO-importen', () => {
+    const rows: ErhvervsevnetabValues['aslAfgoerelser'] = [{
+      id: 'tidligere-kapitalisering',
+      afgoerelsesDato: toISODateString('2019-06-01'),
+      eetPct: 40,
+      kapDato: toISODateString('2019-06-01'),
+      kapPct: 40,
+      afgoerelseType: 'Endelig',
+      fsTilbageholdtEet: 'Nej',
+    }, {
+      id: 'midlertidig-rest',
+      afgoerelsesDato: toISODateString('2020-01-01'),
+      eetPct: 60,
+      afgoerelseType: 'Midlertidig',
+      fsTilbageholdtEet: 'Nej',
+    }, {
+      id: 'lavere-end-kapitaliseret',
+      afgoerelsesDato: toISODateString('2021-10-01'),
+      eetPct: 30,
+      afgoerelseType: 'Endelig',
+      fsTilbageholdtEet: 'Nej',
+    }];
+    const options = { foedselsdato: '1955-07-01', skadedato: '2019-04-01', aslAarsloen: 401000 };
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({ ...options, aslAfgoerelser: rows }));
+    expect(source.issues).toEqual([{
+      id: 'field-asl-afgoerelser', severity: 'error',
+      message: 'EET % kan ikke være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser.',
+      focusTarget: { kind: 'fieldAddress', address: aslAfgoerelseEetPctField.bind('lavere-end-kapitaliseret').address },
+    }]);
+    const blocked = buildEetImportContext(source, toISODateString('2022-06-30'));
+    expect(blocked.groups).toEqual([]);
+    expect(blocked.issues).toEqual(source.issues);
+
+    // Rettelsen af EET-forløbet genåbner importen. Et uafhængigt rødt EAL-felt spærrer den stadig ikke.
+    const readySource = buildMidlertidigtEetInsertSource(buildEvaluation({
+      ...options,
+      eetPct: 101,
+      aslAfgoerelser: rows.map((row) => row.id === 'lavere-end-kapitaliseret' ? {
+        ...row, eetPct: 60, kapDato: toISODateString('2021-10-01'), kapPct: 20,
+      } : row),
+    }));
+    expect(readySource.issues).toBeUndefined();
+    const ready = buildEetImportContext(readySource, toISODateString('2022-06-30'));
+    expect(ready.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+    expect(ready.groups).not.toHaveLength(0);
   });
 
   it('fail-closer ved en rød ASL-årsløn – grundlønnen ganges ind i hvert periodebeløb', () => {

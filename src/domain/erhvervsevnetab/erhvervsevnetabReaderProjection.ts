@@ -139,7 +139,7 @@ const ASL_RULE_FIELD_DESCRIPTORS = {
  * issue pr. adresse (§1.8) sikres af `buildFieldIssueSet`, som beholder det højest prioriterede – samme
  * afgrænsning som den tidligere "første besked pr. celle".
  */
-const buildAslAfgoerelseRuleFieldIssues = (
+export const buildAslAfgoerelseRuleFieldIssues = (
   issues: readonly EetAslAfgoerelseValidationIssue[]
 ): readonly FieldIssue[] => issues.map((issue) => {
   const field = toAnyFieldRef(ASL_RULE_FIELD_DESCRIPTORS[issue.field].bind(issue.rowId) as FieldRef<unknown>);
@@ -173,6 +173,8 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
   values: ErhvervsevnetabComposedValues;
   /** Reader-sikker skadedato til synlighedsregler og dokumentvisning. */
   skadedato: ISODateString | undefined;
+  /** Reader-sikker fødselsdato til afgørelsestabellens feltadvarsel ved ≤ 2 år til folkepension. */
+  skadelidteFodselsdato: ISODateString | undefined;
   /** Stamdatadatoens kontekstuelle navn til EET-oplysningernes afhængighedsgenvej. */
   skadedatoLabel: SkadestypeDatoLabel;
   /** Readerens besked, når stamdatadatoen er udfyldt, men ikke kan bruges. */
@@ -376,6 +378,7 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     aslAfgoerelserRuleIssues: buildFieldIssueSet(aslAfgoerelserRuleFieldIssues),
     values: composedValues,
     skadedato: skadedato.value,
+    skadelidteFodselsdato: coerceToISODateString(skadelidteFodselsdato.value),
     skadedatoLabel: resolveStamdataDatoReference(skadestype.value).label,
     skadedatoError: skadedato.errorMessage,
     forligValues: {

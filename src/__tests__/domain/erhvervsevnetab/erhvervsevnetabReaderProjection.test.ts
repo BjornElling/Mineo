@@ -26,7 +26,11 @@ import {
   erhvervsevnetabAslAfgoerelserCollectionRef,
   erhvervsevnetabBilagOpgoerelseField,
 } from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
-import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import {
+  emptyAslAfgoerelseRowFields,
+  KAP_DATO_UNDER_TO_AAR_MESSAGE,
+  KAP_PCT_UNDER_TO_AAR_MESSAGE,
+} from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { APP_ROUTES } from '../../../config/pageNavigation';
 
 /** De celler, kryds-række-reglerne kan placere et issue på – samme sæt som tabellen renderer. */
@@ -124,6 +128,58 @@ const expectedComposedValues = (): ErhvervsevnetabComposedValues => ({
 });
 
 describe('buildErhvervsevnetabReaderProjection', () => {
+  it('blokerer ASL-beregninger ved tomme kapitaliseringsfelter tæt på folkepension uden at ændre sagsdata', () => {
+    const values: ErhvervsevnetabValues = {
+      ...validErhvervsevnetab,
+      beregningsdato: toISODateString('2022-04-01'),
+      ealEetPct: 60,
+      aslAfgoerelser: [{
+        ...validErhvervsevnetab.aslAfgoerelser[0]!,
+        afgoerelsesDato: toISODateString('2021-10-01'),
+        virkningsDato: toISODateString('2019-06-01'),
+        eetPct: 60,
+        afgoerelseType: 'Endelig',
+      }],
+    };
+    const stamdata = {
+      ...validStamdata,
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+    };
+    const aarsloen = { aslAarsloen: asAmount(401000), ealAarsloen: asAmount(401000) };
+    const original = structuredClone(values);
+    const blocked = buildErhvervsevnetabReaderProjection(buildReader(values, aarsloen, stamdata));
+    expect(blocked.aslAfgoerelserRuleIssues.all).toEqual([]);
+    // Kapitaliseringsfelterne er ikke en dependency for den udtrykkeligt angivne EAL-procent.
+    expect(blocked.snapshot.efterEal.hasBlockingErrors).toBe(false);
+    expect(blocked.snapshot.efterEal.computation).not.toBeNull();
+    for (const result of [blocked.snapshot.loebendeYdelser, blocked.snapshot.kapitalisering, blocked.snapshot.differencekrav]) {
+      expect(result.hasBlockingErrors).toBe(true);
+      expect(result.computation).toBeNull();
+      expect(result.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'missing-kap-dato', message: KAP_DATO_UNDER_TO_AAR_MESSAGE }),
+        expect.objectContaining({ id: 'missing-kap-pct', message: KAP_PCT_UNDER_TO_AAR_MESSAGE }),
+      ]));
+    }
+    expect(values).toEqual(original);
+    expect(blocked.aslAfgoerelserCommittedRows).toEqual(original.aslAfgoerelser);
+
+    const completed = {
+      ...values,
+      aslAfgoerelser: values.aslAfgoerelser.map((row) => ({
+        ...row,
+        kapDato: toISODateString('2021-12-01'),
+        kapPct: 60,
+      })),
+    };
+    const ready = buildErhvervsevnetabReaderProjection(buildReader(completed, aarsloen, stamdata));
+    expect(ready.aslAfgoerelserRuleIssues.all).toEqual([]);
+    expect(ready.snapshot.differencekrav.hasBlockingErrors).toBe(false);
+    expect(ready.snapshot.kapitalisering.computation?.afgoerelser[0]?.kapitaliseringsdato).toBe('2021-12-01');
+    expect(ready.snapshot.loebendeYdelser.computation?.afgoerelser[0]?.ophoerDato).toBe('2020-06-30');
+    expect(ready.snapshot.loebendeYdelser.computation?.afgoerelser[0]?.ophoerAarsag).toBe('to-aarsgraense');
+  });
+
   it('rekonstruerer de afsluttede ASL-afgørelser gennem den offentlige reader-facade', () => {
     const reader = buildReader(validErhvervsevnetab, validFaellesAarsloen, validStamdata);
 

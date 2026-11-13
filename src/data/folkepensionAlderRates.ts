@@ -189,13 +189,19 @@ export const getDagenFoerFolkepensionsdato = (
 };
 
 /** Kalendergrænsen følger pensionsdatoen, også når fødselsdagen er 29. februar eller månedens sidste dag. */
+export const getToAarsgraenseFoerFolkepension = (
+  foedselsdato: ISODateString,
+  opslagsdato: ISODateString
+): ISODateString | undefined => {
+  const folkepensionsdato = getFolkepensionsdato(foedselsdato, opslagsdato);
+  const pensionDate = folkepensionsdato ? parseISODate(folkepensionsdato) : undefined;
+  return pensionDate ? dateToISO(addMonths(pensionDate, -24)) : undefined;
+};
+
 export const isWithinTwoYearsOfFolkepension = (
   foedselsdato: ISODateString,
   opslagsdato: ISODateString
 ): boolean => {
-  const folkepensionsdato = getFolkepensionsdato(foedselsdato, opslagsdato);
-  const pensionDate = folkepensionsdato ? parseISODate(folkepensionsdato) : undefined;
-  if (!pensionDate) return false;
-  const graensedato = dateToISO(addMonths(pensionDate, -24));
+  const graensedato = getToAarsgraenseFoerFolkepension(foedselsdato, opslagsdato);
   return graensedato !== undefined && opslagsdato >= graensedato;
 };

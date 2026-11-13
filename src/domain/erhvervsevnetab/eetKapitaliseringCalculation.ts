@@ -22,7 +22,15 @@ import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent, resolveAslVirkningsdato } from './eetAslAfgoerelser';
+import {
+  collectIncompleteRowIssues,
+  hasTextValue,
+  isAslAfgoerelseRowEmpty,
+  isEndeligUnderToAarTilFp,
+  parseCommittedPercent,
+  resolveAslKontroldato,
+  resolveAslVirkningsdato,
+} from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -30,6 +38,8 @@ import {
   isTwoYearKapitaliseringApplicable,
   isUdenKapitaliseringFoer2007VedToAarsgraensen,
   resolveFactorTable,
+  resolveKapitaliseringKontroldato,
+  resolveRegelvalgendeTidlKapDato,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
@@ -46,6 +56,7 @@ import type {
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { MISSING_KOEN_ISSUE } from './eetIssueCatalog';
 import {
+  collectKapDatoWarnings,
   KAPITALISERING_UNDER_15_WARNING,
   kapitaliseringUnder15WarningRowIds,
 } from './eetFieldWarnings';
@@ -204,8 +215,7 @@ const collectResolvedRows = (
     return result;
   }
 
-  // Datoerne skal med: uden dem blokerer den delte samler stadig på manglende kapitaliseringsfelter
-  // ved ≤ 2 år til folkepension, hvor de netop skal være tomme (BB-168).
+  // Datoerne skal med: den fælles samler håndhæver kapitaliseringsfelterne ved ≤ 2 år til folkepension.
   for (const issue of collectIncompleteRowIssues(rows, skadedato, fodselsdato)) {
     issues.push(toIssue(issue.id, issue.message));
   }
@@ -224,13 +234,7 @@ const collectResolvedRows = (
     const kapPct = parseCommittedPercent(row.kapPct);
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     if (!afgoerelsesdato) continue;
-    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
-    const isEndeligUnderOrEqualTwoYears =
-      row.afgoerelseType === 'Endelig' &&
-      skadedato !== undefined &&
-      fodselsdato !== undefined &&
-      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate);
-    if (!isEndeligUnderOrEqualTwoYears && (kapPct === undefined || kapPct <= 0)) continue;
+    if (!isEndeligUnderToAarTilFp(row, skadedato, fodselsdato) && (kapPct === undefined || kapPct <= 0)) continue;
 
     result.push({
       rowId: row.id,
@@ -269,32 +273,20 @@ const collectResolvedRows = (
     if (row.afgoerelseType !== 'Endelig') return false;
     const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
-    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
-    if (isUdenKapitaliseringFoer2007VedToAarsgraensen(skadedato, fodselsdato, controlDate)) return false;
-    const isForcedUnderTwoYears =
-      skadedato !== undefined &&
-      fodselsdato !== undefined &&
-      controlDate !== undefined &&
-      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate);
-    if (isForcedUnderTwoYears) return false;
+    if (isUdenKapitaliseringFoer2007VedToAarsgraensen(skadedato, fodselsdato, resolveAslKontroldato(row))) return false;
+    if (isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
   const hasAnyKapInput = rows.some((row) => hasTextValue(row.kapDato) || hasTextValue(row.kapPct));
-  const hasForcedEndeligUnderTwoYears = rowsWithKapitaliserbarAfgoerelse.some((row) => {
-    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
-    return (
-      row.afgoerelseType === 'Endelig' &&
-      skadedato !== undefined &&
-      fodselsdato !== undefined &&
-      controlDate !== undefined &&
-      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate)
-    );
-  });
+  const hasForcedEndeligUnderTwoYears = rowsWithKapitaliserbarAfgoerelse.some((row) =>
+    isEndeligUnderToAarTilFp(row, skadedato, fodselsdato));
 
   if (startedRows.length > 0 && !hasAnyKapInput && !hasForcedEndeligUnderTwoYears) {
     issues.push(toWarning(WARN_NO_KAP_INPUT_ID, 'Der er ikke angivet kapitaliseringsdato eller -procent for nogen afgørelse'));
+  }
+  // Samme regler som Kap.dato-cellens gule ring, så advarslen også står på fanernes advarselsflade.
+  for (const warning of collectKapDatoWarnings(startedRows, skadedato, fodselsdato)) {
+    issues.push(toWarning(warning.id, warning.message));
   }
 
   if (
@@ -378,10 +370,11 @@ export const computeEetKapitaliseringCalculation = (
   const erstatningsniveau = from2011 ? 0.83 : 0.8;
   const amFaktor = from2011 ? 0.92 : 1;
   const needsKoen = resolvedRows.some((row) => {
-    const faktordato = row.tidlKapDato ?? row.kapDato;
+    const faktordato = resolveRegelvalgendeTidlKapDato(row) ?? row.kapDato;
     return faktordato !== null && faktordato < SKAERING_2015_03_01
       && resolveKapitaliseringsbekendtgoerelseId(skadedato, faktordato) !== null
-      && !isWithinTwoYearsOfFolkepension(fodselsdato, faktordato);
+      // Den direkte særfaktor vælges på kontroltidspunktet, ikke på en senere kapitaliseringsdato.
+      && !isWithinTwoYearsOfFolkepension(fodselsdato, resolveKapitaliseringKontroldato(row) ?? row.afgoerelsesdato);
   });
   if (needsKoen && !values.koen) {
     issues.push(MISSING_KOEN_ISSUE);
@@ -392,15 +385,18 @@ export const computeEetKapitaliseringCalculation = (
   let kumulativKapPct = 0;
 
   for (const row of resolvedRows) {
-    const controlDate = row.tidlKapDato ?? row.afgoerelsesdato;
+    const regelvalgendeTidlKapDato = resolveRegelvalgendeTidlKapDato(row);
+    const controlDate = regelvalgendeTidlKapDato ?? row.afgoerelsesdato;
     const isEndeligUnderOrEqualTwoYears =
       row.afgoerelseType === 'Endelig' &&
       isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate);
     const effectiveKapPct = isEndeligUnderOrEqualTwoYears
       ? Math.max(0, row.eetPct - kumulativKapPct)
       : row.kapPct;
+    // Ved ≤ 2 år sker kapitaliseringen som udgangspunkt på afgørelsesdatoen; en senere indtastet
+    // kapitaliseringsdato er tilladt (gul advarsel) og lægges til grund (udviklerafgørelse 2026-11-13).
     const effectiveKapDato = isEndeligUnderOrEqualTwoYears
-      ? row.afgoerelsesdato
+      ? row.kapDato ?? row.afgoerelsesdato
       : row.kapDato;
     if (!effectiveKapDato || effectiveKapPct <= 0) {
       continue;
@@ -471,9 +467,9 @@ export const computeEetKapitaliseringCalculation = (
       kapitaliseringsfaktor = round3(resolvedSaerfaktor);
       kapitaliseretPgaUnderToAarTilFp = true;
     } else {
-      // Genoptagelse bevarer den tidligere kapitaliserings faktorgrundlag. Kun
+      // Genoptagelse før 1. juli 2024 bevarer den tidligere kapitaliserings faktorgrundlag. Kun
       // årsydelsens regulering nedenfor følger den nye kapitaliseringsdato.
-      const faktordato = row.tidlKapDato ?? effectiveKapDato;
+      const faktordato = regelvalgendeTidlKapDato ?? effectiveKapDato;
       const effectiveBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, faktordato);
       if (!effectiveBekId) {
         issues.push(
@@ -608,7 +604,9 @@ export const computeEetKapitaliseringCalculation = (
       rowId: row.rowId,
       afgoerelsesdato: row.afgoerelsesdato,
       kapitaliseringsdato: effectiveKapDato,
-      tidligereKapitaliseringsdato: row.tidlKapDato,
+      // Kun når den tidligere dato bærer faktorgrundlaget; ellers ville visningen kalde alderen
+      // »Alder ved tidligere kapitalisering«, selv om faktoren bygger på den nye afgørelse.
+      tidligereKapitaliseringsdato: regelvalgendeTidlKapDato ?? null,
       eetPct: row.eetPct,
       kapitaliseringspct: effectiveKapPct,
       grundloenOre,

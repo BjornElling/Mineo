@@ -2,7 +2,11 @@ import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import type { AttentionTarget } from '../../utils/attentionTarget';
 import type { EetIssue } from './eetTypes';
-import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from './eetIssueCatalog';
+import {
+  EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID,
+  KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID,
+  KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID,
+} from './eetIssueCatalog';
 import {
   resolveEetIssueFocusTarget,
   type EetIssueFocusContext,
@@ -58,6 +62,7 @@ export const isEetFieldErrorIssueId = (issueId: string): boolean =>
   issueId === 'forlig-ansvarsgrad-invalid' ||
   issueId === 'invalid-eet-pct' ||
   issueId === 'invalid-kap-pct' ||
+  issueId === 'invalid-kap-dato' ||
   issueId === 'invalid-afgoerelse-type' ||
   issueId.endsWith('-invalid');
 
@@ -153,6 +158,7 @@ const ASL_IDS = new Set([
   'asl-selected-eet-pct-invalid',
   'invalid-eet-pct',
   'invalid-kap-pct',
+  'invalid-kap-dato',
   'invalid-afgoerelse-type',
   'missing-afgoerelsesdato',
   'missing-eet-pct',
@@ -182,6 +188,8 @@ const ASL_IDS = new Set([
   'warn-non-endelig-after-endelig',
   'warn-kap-pct-under-15',
   'warn-ingen-kap-input',
+  KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID,
+  KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID,
 ]);
 
 export const resolveEetIssueNavigation = (

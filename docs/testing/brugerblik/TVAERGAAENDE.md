@@ -2525,6 +2525,12 @@ og hold hver fanefejl op mod feltreglerne for de felter, den nævner.
   til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.» Kun den første halvdel
   åbner døren; kun den anden fortæller brugeren, at den er åben. **En M-29-rettelse, der stopper ved den
   første, efterlader et felt, brugeren stadig ikke tør lade stå tomt.**
+  **Afløst 2026-11-13:** udvikleren har vendt præmissen – felterne er nu obligatoriske (Kap.dato = afgørelsesdatoen,
+  Kap. % = hele det resterende EET; en senere Kap.dato er tilladt med gul advarsel), og fejlteksterne lyder «Angiv
+  afgørelsesdatoen eller en senere dato som kapitaliseringsdato: …» /
+  «Angiv hele det resterende EET % som kapitaliseringsprocent: …». Mønsterets lære står ved magt: der findes én
+  lovlig indtastning, og begge beskeder navngiver den. Tomme felter vises som blokerende mangler i de relevante
+  faners «Fejl og advarsler» med feltlinks, uden rød ring. Udfyldte værdier, der bryder reglerne, er fortsat røde.
 - **Bemærk fail-closed-detaljen:** kender rettelsen ikke skadedato eller fødselsdato, kræver den
   fortsat kapitaliseringsfelterne. Undtagelsen må ikke være det, der lukker et hul i en sag, hvor
   forudsætningen for undtagelsen er ukendt.

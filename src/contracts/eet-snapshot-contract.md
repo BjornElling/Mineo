@@ -1,9 +1,9 @@
 # Mineo - EET snapshot-kontrakt
 
 **Status:** Normativ og gældende
-**Type:** Domænekontrakt  
-**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-11-11
+**Type:** Domænekontrakt
+**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.
+**Senest verificeret mod kode:** 2026-11-13
 
 ---
 
@@ -119,6 +119,28 @@ aggregerer snapshotissues, relevante rækkeissues og output-invariants ud fra si
 persisteres ikke og duplikeres ikke i `EetSnapshot` som selvstændig state.
 
 ---
+
+### Kapitalisering tæt på folkepension
+
+Ved en endelig afgørelse omfattet af den tvungne kapitalisering ved højst to år til folkepension skal brugeren
+selv angive kapitaliseringsdato og hele den resterende kapitaliseringsprocent. Mangler en værdi, rapporterer
+den fælles rækkevalidering en consumerfejl med link til det konkrete felt. Tomme felter får ingen rød ring,
+og manglen blokerer ikke `.eo`-save. Udfyldte værdier følger de samme feltregler i tabellen, beregningsmotorerne
+og EO-importen. Importen må aldrig udlede en skjult kapitalisering bag tomme eller ugyldige felter.
+
+En senere kapitaliseringsdato accepteres med gul feltadvarsel. Datoen bruges til kapitalbeløbet, reguleringsåret
+og fradragets tidsafgrænsning. Løbende ydelser fra en endelig afgørelse omfattet af toårsreglen stopper senest
+dagen før toårsgrænsen, uanset den indtastede kapitaliseringsdato. Ophørsårsagen `to-aarsgraense` er afledt
+runtime-output og persisteres aldrig som brugerinput. Den fælles periodeplan ejer også denne afgrænsning,
+så skærm, dokumenter, differencekrav og EO-import ikke får hver sin regel.
+
+Kontroltidspunktet for toårsreglen og kapitaliseringens regelvalg ejes alene af
+`resolveKapitaliseringKontroldato`: afgørelsesdatoen, ved genoptagelse med afgørelsesdato før 1. juli 2024
+den tidligere kapitaliseringsdato. Dagen før toårsgrænsen ejes af `resolveToAarsreglensSidsteYdelsesdag`, som
+både periodeplanen og differencekravets fradrag for overtagne midlertidige ydelser bruger.
+
+Tidligere gemte filer med tomme kapitaliseringsfelter indlæses uændret uden ny load-advarsel; de afhængige
+beregninger blokeres herefter, indtil felterne udfyldes (udviklergodkendelse 2026-11-13).
 
 ## 4.1 Forlig om ansvarsgrad: to faner, to grundlag
 

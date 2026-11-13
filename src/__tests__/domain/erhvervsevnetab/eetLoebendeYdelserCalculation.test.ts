@@ -1381,7 +1381,7 @@ describe('computeEetLoebendeYdelser', () => {
     // Én linje navngiver årsagen – beregningsdatoen – i stedet for tre linjer om samme forhold (BB-159).
     const datoWarnings = result.issues.filter((issue) => issue.id === EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID);
     expect(datoWarnings).toHaveLength(1);
-    expect(datoWarnings[0]?.message).toBe('Beregningsdatoen (14-01-2026) ligger før sagens afgørelser.');
+    expect(datoWarnings[0]?.message).toBe('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (14-01-2026).');
   });
 
   it('beregner rest-grundydelse proportionalt fra fuld grundydelse', () => {
@@ -1880,7 +1880,7 @@ describe('computeEetLoebendeYdelser', () => {
     expect(result.computation?.afgoerelser[1]?.virkningsdato).toBe(toISODateString('2024-07-01'));
   });
 
-  it('ender med kapitalisering på afgørelsesdatoen når endelig afgørelse er ≤ 2 år før FP', () => {
+  it('stopper ved toårsgrænsen når en nyere endelig afgørelse er ≤ 2 år før FP', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -1893,8 +1893,8 @@ describe('computeEetLoebendeYdelser', () => {
             afgoerelsesDato: toISODateString('2021-08-01'),
             virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
-            kapDato: undefined,
-            kapPct: undefined,
+            kapDato: toISODateString('2021-08-01'),
+            kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
@@ -1910,8 +1910,8 @@ describe('computeEetLoebendeYdelser', () => {
     const afgoerelse = computation.afgoerelser[0];
     if (!afgoerelse) throw new Error('expected first decision');
 
-    expect(afgoerelse.ophoerAarsag).toBe('kapitalisering');
-    expect(afgoerelse.ophoerDato).toBe(toISODateString('2021-07-31'));
+    expect(afgoerelse.ophoerAarsag).toBe('to-aarsgraense');
+    expect(afgoerelse.ophoerDato).toBe(toISODateString('2020-06-30'));
   });
 
   it('midlertidig afgoerelse faar ikke folkepensionsdato som ophoer før den faktisk indtraeder', () => {
@@ -2427,7 +2427,15 @@ describe('resolveLoebendeOphoerVisning', () => {
     });
     expect(folkepension.kind).toBe('ingen-periode');
     if (folkepension.kind !== 'ingen-periode') throw new Error('expected ingen-periode');
-    expect(folkepension.forklaring).toContain('folkepensionsdatoen');
+    // `ophoerDato` er sidste betalingsdag; folkepensionsdatoen er dagen efter.
+    expect(folkepension.forklaring).toBe('Virkningsdatoen (01-01-2022) ligger efter folkepensionsdatoen (01-07-2021).');
+
+    const sammeDag = resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2021-07-01'),
+      ophoerDato: toISODateString('2021-06-30'),
+      ophoerAarsag: 'folkepensionsdato',
+    });
+    expect(sammeDag).toEqual({ kind: 'ingen-periode', forklaring: 'Virkningsdatoen er folkepensionsdatoen (01-07-2021).' });
   });
 
   it('forklarer senere afgørelse og kapitalisering, når begge ophør ligger før virkning', () => {
@@ -2446,7 +2454,19 @@ describe('resolveLoebendeOphoerVisning', () => {
       ophoerAarsag: 'kapitalisering',
     })).toEqual({
       kind: 'ingen-periode',
-      forklaring: 'Afgørelsen er kapitaliseret, før den fik virkning (01-01-2021).',
+      // Sidste betalingsdag 01-01-2021; kapitaliseringen sker dagen efter.
+      forklaring: 'Afgørelsen er kapitaliseret, før den fik virkning (02-01-2021).',
+    });
+  });
+
+  it('forklarer kapitalisering på selve virkningsdatoen uden at kalde den tidligere', () => {
+    expect(resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2021-01-02'),
+      ophoerDato: toISODateString('2021-01-01'),
+      ophoerAarsag: 'kapitalisering',
+    })).toEqual({
+      kind: 'ingen-periode',
+      forklaring: 'Afgørelsen er kapitaliseret fra virkningsdatoen (02-01-2021).',
     });
   });
 });

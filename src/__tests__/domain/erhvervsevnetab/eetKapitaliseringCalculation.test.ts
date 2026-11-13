@@ -32,8 +32,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           afgoerelsesDato: toISODateString(boundary),
           virkningsDato: toISODateString(boundary),
           eetPct: 60,
-          kapDato: undefined,
-          kapPct: undefined,
+          kapDato: toISODateString(boundary),
+          kapPct: 60,
           afgoerelseType: 'Endelig',
           tidlKapDato: undefined,
         }],
@@ -294,7 +294,7 @@ describe('computeEetKapitaliseringCalculation', () => {
               eetPct: 25,
               kapDato: toISODateString('2024-02-01'),
               kapPct: 25,
-              afgoerelseType: 'Delvist endelig',
+              afgoerelseType: 'Endelig',
               tidlKapDato: undefined,
             },
           ],
@@ -391,10 +391,11 @@ describe('computeEetKapitaliseringCalculation', () => {
           {
             id: 'a',
             fsTilbageholdtEet: 'Nej',
-            afgoerelsesDato: toISODateString('2025-07-01'),
+            // Før 1. juli 2024: den tidligere kapitaliseringsdato styrer stadig kontroltidspunktet.
+            afgoerelsesDato: toISODateString('2024-06-01'),
             virkningsDato: toISODateString('1978-03-30'),
             eetPct: 50,
-            kapDato: toISODateString('2025-10-01'),
+            kapDato: toISODateString('2024-06-15'),
             kapPct: 25,
             afgoerelseType: 'Endelig',
             tidlKapDato: toISODateString('1978-03-31'),
@@ -413,7 +414,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
   });
 
-  it('fastholder konkret effektiv-datofejl ved ukendt kapitaliseringstidspunkt', () => {
+  it('afviser en kapitaliseringsdato før virkningsdatoen inden et faktoropslag', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -439,9 +440,9 @@ describe('computeEetKapitaliseringCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues).toContainEqual({
-      id: 'kapitaliseringsbekendtgoerelse-missing-effective-date',
+      id: 'invalid-kap-dato',
       severity: 'error',
-      message: 'Kapitaliseringsbekendtgørelse mangler for 31-03-1978.',
+      message: 'Kapitaliseringsdato er før virkningsdato.',
     });
   });
 
@@ -553,7 +554,7 @@ describe('computeEetKapitaliseringCalculation', () => {
     });
   });
 
-  it('accepterer endelig afgørelse under to år til folkepension uden kapitaliseringsfelter under 50 procent', () => {
+  it('accepterer endelig afgørelse under to år til folkepension med hele EET kapitaliseret under 50 procent', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -564,8 +565,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           afgoerelsesDato: toISODateString('2025-07-01'),
           virkningsDato: toISODateString('2025-07-01'),
           eetPct: 40,
-          kapDato: undefined,
-          kapPct: undefined,
+          kapDato: toISODateString('2025-07-01'),
+          kapPct: 40,
           afgoerelseType: 'Endelig',
           tidlKapDato: undefined,
         }],
@@ -797,7 +798,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             eetPct: 25,
             kapDato: toISODateString('2024-02-01'),
             kapPct: 25,
-            afgoerelseType: 'Delvist endelig',
+            afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
@@ -864,7 +865,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-10-01'),
-            kapPct: 25,
+            kapPct: 50,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
@@ -874,7 +875,8 @@ describe('computeEetKapitaliseringCalculation', () => {
       skadelidteFodselsdato: toISODateString('1959-01-01'),
     });
 
-    expect(result.issues).toEqual([]);
+    // Den senere kapitaliseringsdato er tilladt, men giver den gule advarsel på fanen.
+    expect(result.issues).toEqual([expect.objectContaining({ id: 'warn-kap-dato-efter-afgoerelsesdato', severity: 'warning' })]);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
     expect(result.computation?.afgoerelser[0]?.kapitalbelobOre).toBe(30027900);
@@ -902,7 +904,7 @@ describe('computeEetKapitaliseringCalculation', () => {
               virkningsDato: toISODateString('2025-07-01'),
               eetPct: 50,
               kapDato: toISODateString('2025-10-01'),
-              kapPct: 25,
+              kapPct: 50,
               afgoerelseType: 'Endelig',
               tidlKapDato: undefined,
             },
@@ -946,7 +948,8 @@ describe('computeEetKapitaliseringCalculation', () => {
       skadelidteFodselsdato: toISODateString('1959-01-01'),
     });
 
-    expect(result.issues).toEqual([]);
+    // En delvist endelig kapitalisering i toårsvinduet er ikke påkrævet og giver derfor den gule advarsel.
+    expect(result.issues).toEqual([expect.objectContaining({ id: 'warn-kap-dato-inden-for-to-aar-til-fp', severity: 'warning' })]);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
     expect(result.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.245);
     expect(result.computation?.afgoerelser[0]?.folkepensionsalderLabel).toBe('67 år');
@@ -1085,7 +1088,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-10-01'),
-            kapPct: 25,
+            kapPct: 5,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
@@ -1096,7 +1099,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-06-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-08-01'),
-            kapPct: 25,
+            kapPct: 5,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
@@ -1107,7 +1110,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-06-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-08-01'),
-            kapPct: 25,
+            kapPct: 5,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
@@ -1118,7 +1121,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-09-01'),
-            kapPct: 25,
+            kapPct: 5,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
@@ -1129,7 +1132,7 @@ describe('computeEetKapitaliseringCalculation', () => {
             virkningsDato: toISODateString('2025-08-01'),
             eetPct: 50,
             kapDato: toISODateString('2025-11-01'),
-            kapPct: 25,
+            kapPct: 5,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
@@ -1139,7 +1142,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
-    expect(result.issues).toEqual([]);
+    expect(result.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
     expect(result.computation?.afgoerelser.map((row) => row.rowId)).toEqual(['a', 'a2', 'b', 'c', 'd']);
   });
 });

@@ -1348,7 +1348,15 @@ afhængighed for proformakapitaliseringen og skal blive vist.
 - **Type:** Edge case
 - **Rækkevidde:** Mønster → `TVAERGAAENDE.md#m-29--to-regler-der-tilsammen-ikke-efterlader-en-lovlig-indtastning`
 - **Prioritet:** **Høj**
-- **Beslutning:** Implementeret 2026-09-03 – ≤2-års-undtagelsen givet til den delte samler, og de to celletekster navngiver nu handlingen
+- **Beslutning:** Implementeret 2026-09-03 – ≤2-års-undtagelsen givet til den delte samler, og de to celletekster navngiver nu handlingen.
+  **Præmissen afløst 2026-11-13 (udviklerafgørelse):** felterne skal ikke længere stå tomme. Ved en endelig afgørelse
+  ≤ 2 år til folkepension er Kap.dato (som udgangspunkt afgørelsesdatoen) og Kap. % (= hele det resterende EET)
+  obligatoriske. Et tomt felt giver en blokerende fejl i de relevante faners «Fejl og advarsler» med feltlink,
+  uden rød ring. En udfyldt værdi, der bryder reglen, bliver rød. Blindgyden forbliver lukket: beskederne navngiver
+  den lovlige indtastning. Gemte filer med tomme felter indlæses uændret og viser derefter manglerne i fejlboksen.
+  **Justeret samme dag:** en kapitaliseringsdato EFTER afgørelsesdatoen er tilladt med gul ring og ikke-blokerende
+  advarsel, og den indtastede dato lægges til grund for kapitalbeløbet. Tomt felt er en mangel i fejlboksen;
+  kun en udfyldt dato før afgørelsesdatoen er rød («Angiv afgørelsesdatoen eller en senere dato som kapitaliseringsdato: …»).
 - **Sådan fremprovokeres det:**
   1. Stamdata: Fødselsdato `01-01-1958`, Skadedato `01-06-2018`.
   2. EET oplysninger: Beregningsdato `01-07-2026`, ASL-årsløn `400.000`.

@@ -18,6 +18,10 @@ export const MISSING_BEREGNINGSDATO_ISSUE: EetIssue = Object.freeze({
  */
 export const EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID = 'warn-dato-after-beregningsdato';
 
+/** Kap.dato-advarslerne (se `collectKapDatoWarnings` i `eetFieldWarnings`). */
+export const KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID = 'warn-kap-dato-efter-afgoerelsesdato';
+export const KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID = 'warn-kap-dato-inden-for-to-aar-til-fp';
+
 /** Én fejlidentitet kan komme fra flere EET-beregninger, men skal altid læses som ét manglende input. */
 export const MISSING_KOEN_ISSUE: EetIssue = Object.freeze({
   id: 'missing-koen',

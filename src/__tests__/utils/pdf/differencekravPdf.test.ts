@@ -277,7 +277,7 @@ describe('generateDifferencekravDocument', () => {
       'text' in block ? [block.text] : []
     );
 
-    expect(capturedModel?.blocks).toContainEqual({ kind: 'title', text: 'Forhøjet pensionsalder' });
+    expect(capturedModel?.blocks).toContainEqual({ kind: 'title', text: 'Forhøjet pensionsalder (ASL)' });
     expect(renderedText).toContain('Forhøjet pensionsalder');
     expect(renderedText).not.toContain('Mer-erstatning ved forhøjet folkepensionsalder');
   });

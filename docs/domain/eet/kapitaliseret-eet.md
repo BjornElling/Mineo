@@ -23,7 +23,7 @@ Særreglen med tvungen kapitalisering ved ≤ 2 år til folkepensionsalderen gæ
 - Ved `Endelig` og afgørelsesdato inden for eller præcis 2 år før folkepension skal hele erhvervsevnetabet kapitaliseres.
 - Ved `Endelig` og afgørelsesdato mere end 2 år før folkepension gælder de almindelige kapitaliseringsregler fortsat.
 
-For skader før 1. juli 2007 beregnes ingen tvungen 2-årskapitalværdi. En endelig afgørelse i 2-årsvinduet eller på/efter folkepensionsdatoen medregnes alene som løbende ydelse frem til og med dagen før folkepensionsdatoen, også under 50 % EET. Ved genoptagelse afgør den tidligere kapitaliseringsdato, om 2-årsreglen gælder, og faktoren bevares fra denne dato; årsydelsen reguleres til den nye kapitaliseringsdatos år. Se [den samlede særregel](./under-to-aar-til-fp.md).
+For skader før 1. juli 2007 beregnes ingen tvungen 2-årskapitalværdi. En endelig afgørelse i 2-årsvinduet eller på/efter folkepensionsdatoen medregnes alene som løbende ydelse frem til og med dagen før folkepensionsdatoen, også under 50 % EET. Ved genoptagelse med afgørelsesdato før 1. juli 2024 afgør den tidligere kapitaliseringsdato, om 2-årsreglen gælder, og faktoren bevares fra denne dato; årsydelsen reguleres til den nye kapitaliseringsdatos år. Ved genoptagelse med afgørelsesdato fra 1. juli 2024 styrer den nye afgørelsesdato i stedet (udviklerafgørelse 2026-11-13). Se [den samlede særregel](./under-to-aar-til-fp.md).
 - Ved `Delvist endelig` kapitaliseres kun den indtastede andel. Den skal være mindre end det fulde EET og højst 50 %.
 
 ### Statiske datakilder
@@ -48,7 +48,10 @@ Single point of truth for folkepensionsalder. Kapitaliseringsberegningen henter 
 
 Inden det ordinære tabelopslag vurderes om skadelidte er ≤ 2 år fra sin folkepensionsalder på kontroltidspunktet:
 - normalt: afgørelsesdatoen
-- ved genoptagelse: den tidligere kapitaliseringsdato
+- ved genoptagelse med afgørelsesdato før 1. juli 2024: den tidligere kapitaliseringsdato
+- ved genoptagelse med afgørelsesdato fra 1. juli 2024: afgørelsesdatoen (udviklerafgørelse 2026-11-13)
+
+Kontroltidspunktet ejes ét sted (`resolveKapitaliseringKontroldato` i `eetKapitaliseringOpslag.ts`) og bruges af validering, kapitalisering, løbende ydelser og differencekrav.
 
 Fremgangsmåde:
 1. Find bekendtgørelsen gældende på kontroltidspunktet.
@@ -69,12 +72,12 @@ Denne vurdering siger kun noget om faktoren. Om der overhovedet skal ske kapital
 #### Trin 1 – Valg af bekendtgørelse
 
 Opslagsgrundlaget bestemmes af:
-1. tidligere kapitaliseringsdato ved genoptagelse
+1. tidligere kapitaliseringsdato ved genoptagelse med afgørelsesdato før 1. juli 2024
 2. ellers kapitaliseringsdatoen
 
-Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning som om kapitaliseringen skete på den tidligere kapitaliseringsdato. Regulering sker dog til kalenderåret for den nye kapitaliseringsdato.
+Ved genoptagelse før 1. juli 2024 foretages bekendtgørelsesvalg, tabelvalg og faktorberegning som om kapitaliseringen skete på den tidligere kapitaliseringsdato. Regulering sker dog til kalenderåret for den nye kapitaliseringsdato. Fra 1. juli 2024 beregnes en genoptagelse som en almindelig kapitalisering.
 
-På skærmen og i PDF/Word vises både »Kapitaliseringsdato« og »Tidligere kapitaliseringsdato«. Alderen, som faktoren bygger på, står som »Alder ved tidligere kapitalisering«. Uden genoptagelse bevares rækken »Alder ved kapitalisering«.
+På skærmen og i PDF/Word vises både »Kapitaliseringsdato« og »Tidligere kapitaliseringsdato«, når den tidligere dato bærer faktorgrundlaget. Alderen, som faktoren bygger på, står da som »Alder ved tidligere kapitalisering«. Uden genoptagelse – og ved genoptagelse fra 1. juli 2024, hvor den tidligere dato ikke indgår – bevares rækken »Alder ved kapitalisering« (eller »Alder ved afgørelsen«, se nedenfor), og den tidligere dato vises ikke.
 
 Ved direkte særfaktor uden genoptagelse står alderen som »Alder ved afgørelsen«, hvis kapitaliseringsdatoen ligger senere end afgørelsesdatoen. Faktoren bygger i dette tilfælde på alderen ved afgørelsen.
 
@@ -123,7 +126,11 @@ Afrunding: op til nærmeste hele krone.
 
 ### Kapitaliseringsdato ved særreglen
 
-Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension, skal kapitaliseringsdatoen være lig afgørelsesdatoen.
+Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension, skal brugeren angive kapitaliseringsdato og hele den resterende kapitaliseringsprocent. Datoen er som udgangspunkt afgørelsesdatoen, men en senere dato accepteres med gul, ikke-blokerende advarsel og lægges til grund for kapitalbeløbet. Tomme felter blokerer de afhængige beregninger med fejl og feltlink uden rød ring. Se [den samlede særregel](./under-to-aar-til-fp.md).
+
+Ved genoptagelse fra 1. juli 2024 er afgørelsesdatoen ligeledes udgangspunktet, men en senere kapitaliseringsdato er tilladt med gul advarsel, også uden for toårsvinduet (udviklerafklaring 2026-11-13).
+
+En kapitaliseringsdato inden for de sidste to år før folkepensionsalderen giver en gul, ikke-blokerende advarsel om, at kapitalisering her som udgangspunkt er udelukket – undtagen når kapitaliseringen netop er påkrævet efter særreglen (udviklerafgørelse 2026-11-13). Se [den samlede særregel](./under-to-aar-til-fp.md).
 
 ---
 
@@ -135,7 +142,7 @@ Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension,
 
 ### Internt flow
 
-1. `collectResolvedRows()` filtrerer rækker med `Endelig` og `Delvist endelig`. Ved `Endelig` inden for `≤ 2 år` kan rækken også indgå uden manuel kapitaliseringsindtastning, fordi hele EET kapitaliseres automatisk på afgørelsesdatoen.
+1. Den fælles rækkevalidering kontrollerer nødvendige kapitaliseringsfelter og deres indbyrdes regler. `collectResolvedRows()` filtrerer rækker med `Endelig` og `Delvist endelig`. Ved `Endelig` inden for `≤ 2 år` skal brugeren selv angive kapitaliseringsdatoen og hele den resterende kapitaliseringsprocent; tomme felter giver intet beregningsresultat.
 2. For hver række beregnes kontroltidspunkt, tabelvalg, alder og eventuel særfaktor.
 3. Regulering, årsydelse og kapitalbeløb beregnes.
 

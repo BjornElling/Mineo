@@ -7,7 +7,11 @@ import {
   validateAslAarsloenBySkadesaarMax,
   validateAslAarsloenDivisibleBy1000,
 } from '../aslEalAarsloen/aarsloenValidators';
-import { isTwoYearKapitaliseringApplicable, isUdenKapitaliseringFoer2007VedToAarsgraensen } from './eetKapitaliseringOpslag';
+import {
+  isTwoYearKapitaliseringApplicable,
+  isUdenKapitaliseringFoer2007VedToAarsgraensen,
+  resolveKapitaliseringKontroldato,
+} from './eetKapitaliseringOpslag';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { formatISOToDanish } from '../../utils/dateFormatting';
@@ -79,19 +83,21 @@ export const TIDL_KAP_DATO_NOT_ALLOWED_BY_AFGOERELSE_TYPE_MESSAGE =
   'Tidligere kapitaliseringsdato må kun udfyldes ved endelig eller delvist endelig afgørelsestype.';
 
 /**
- * De to celletekster ved ≤ 2 år til folkepension navngiver HANDLINGEN, ikke reglen.
+ * De to beskeder ved ≤ 2 år til folkepension navngiver HANDLINGEN, ikke reglen.
  *
- * Ved en endelig afgørelse ≤ 2 år før folkepensionsalderen kapitaliseres hele erhvervsevnetabet fra
- * afgørelsesdagen, og motoren udleder selv begge værdier. De to felter skal derfor stå TOMME. De
- * tidligere tekster oplyste kun reglen («Ved ≤ 2 år til folkepension sker kapitalisering fra
- * afgørelsesdagen.»), så brugeren stod med to røde celler uden anledning til at gætte, at tomme
- * felter var svaret – og et tomt felt gav i sig selv en tredje, blokerende fejl på fanen (BB-168).
- * Sig hvad brugeren skal GØRE; reglen står som begrundelse efter kolonet.
+ * Ved en endelig afgørelse ≤ 2 år før folkepensionsalderen kapitaliseres hele det resterende EET.
+ * Brugeren SKAL angive begge felter: kapitaliseringsdatoen er som udgangspunkt
+ * afgørelsesdatoen, og kapitaliseringsprocenten er hele det endnu ikke kapitaliserede EET
+ * (udviklerafgørelse 2026-11-13). Den tidligere ordning, hvor felterne skulle stå tomme og motoren
+ * udledte dem (BB-168), er afløst: kapitaliseringen skal fremgå af afgørelsestabellen som enhver anden
+ * kapitalisering. En SENERE kapitaliseringsdato er tilladt og lægges til grund i beregningen; den får
+ * kun en gul feltadvarsel (`KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING`). Tomme felter meldes
+ * som mangler i den relevante beregning, aldrig som røde celler. Sig hvad brugeren skal GØRE.
  */
 export const KAP_DATO_UNDER_TO_AAR_MESSAGE =
-  'Lad kapitaliseringsdato stå tom: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.';
+  'Angiv afgørelsesdatoen eller en senere dato som kapitaliseringsdato: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet som udgangspunkt fra afgørelsesdagen.';
 export const KAP_PCT_UNDER_TO_AAR_MESSAGE =
-  'Lad kapitaliseringsprocent stå tom: ved ≤ 2 år til folkepension kapitaliseres hele erhvervsevnetabet fra afgørelsesdagen.';
+  'Angiv hele det resterende EET % som kapitaliseringsprocent: ved ≤ 2 år til folkepension kapitaliseres hele det resterende erhvervsevnetab.';
 
 const assertNeverAfgoerelsestype = (_value: never): undefined => undefined;
 
@@ -152,6 +158,42 @@ const sumPriorKapPct = (
     if (candidateKapPct === undefined) return sum;
     return sum + candidateKapPct;
   }, 0);
+};
+
+/** Rækkens kontroltidspunkt for toårsreglen og regelvalget (se `resolveKapitaliseringKontroldato`). */
+export const resolveAslKontroldato = (row: AslAfgoerelseRow): ISODateString | undefined =>
+  resolveKapitaliseringKontroldato({
+    afgoerelsesdato: coerceToISODateString(row.afgoerelsesDato),
+    tidlKapDato: coerceToISODateString(row.tidlKapDato),
+  });
+
+/**
+ * Sand, når en endelig afgørelse er omfattet af den tvungne fuldkapitalisering ved ≤ 2 år til folkepension.
+ * Ukendt skadedato eller fødselsdato giver falsk; skader før 1. juli 2007 er aldrig omfattet.
+ */
+export const isEndeligUnderToAarTilFp = (
+  row: AslAfgoerelseRow,
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): boolean =>
+  row.afgoerelseType === 'Endelig' &&
+  isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, resolveAslKontroldato(row));
+
+/**
+ * Sand, når kapitaliseringsfelterne SKAL udfyldes efter ≤ 2-års-reglen. Er hele EET allerede kapitaliseret
+ * ved tidligere afgørelser, er der intet at kapitalisere, og et krav ville være en blindgyde (procenten må
+ * ikke være 0). Ukendt EET % kræver felterne – manglen melder sig også selvstændigt.
+ */
+const requiresUnderToAarKapitalisering = (
+  row: AslAfgoerelseRow,
+  allRows: readonly AslAfgoerelseRow[],
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): boolean => {
+  if (!isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)) return false;
+  if (coerceToISODateString(row.afgoerelsesDato) === undefined) return false;
+  const eetPct = parseCommittedPercent(row.eetPct);
+  return eetPct === undefined || eetPct - sumPriorKapPct(row, allRows) > 0;
 };
 
 export const validateEetPctByPriorKapPct = (
@@ -219,12 +261,7 @@ export const validateKapPctByAfgoerelsestype = (
 
   const eetPctRaw = parseCommittedPercent(row.eetPct);
   const eetPct = eetPctRaw === 0 ? undefined : eetPctRaw;
-  const controlDateIso = coerceToISODateString(row.tidlKapDato) ?? coerceToISODateString(row.afgoerelsesDato);
-  const isWithinTwoYearsRuleActive =
-    afgoerelsestype === 'Endelig' &&
-    skadedato !== undefined &&
-    fodselsdato !== undefined &&
-    isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDateIso);
+  const isWithinTwoYearsRuleActive = isEndeligUnderToAarTilFp(row, skadedato, fodselsdato);
 
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
@@ -301,22 +338,17 @@ export const validateKapDatoByAfgoerelsestype = (
       afgoerelsesdatoIso !== undefined &&
       afgoerelsesdatoIso >= SKAERING_2024_07_01 &&
       kapDatoIso !== undefined &&
-      kapDatoIso !== afgoerelsesdatoIso
+      kapDatoIso < afgoerelsesdatoIso
     ) {
-      return 'Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.';
+      return 'Kapitaliseringsdatoen kan ikke ligge før afgørelsesdatoen ved genoptagelse fra 1. juli 2024.';
     }
   }
 
-  const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
-  const controlDateIso = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdatoIso;
-  const isWithinTwoYearsRuleActive =
-    afgoerelsestype === 'Endelig' &&
-    kapDatoIso !== undefined &&
-    skadedato !== undefined &&
-    fodselsdato !== undefined &&
-    isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDateIso);
+  if (kapDatoIso === undefined) return undefined;
 
-  if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
+  const afgoerelsesdatoForToAarIso = coerceToISODateString(row.afgoerelsesDato);
+  if (isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)
+    && afgoerelsesdatoForToAarIso !== undefined && kapDatoIso < afgoerelsesdatoForToAarIso) {
     return KAP_DATO_UNDER_TO_AAR_MESSAGE;
   }
 
@@ -368,14 +400,16 @@ const validateKapDatoAfterLaterForcedKapitalisering = (
   // En fremtidig delkapitalisering må ikke overleve en senere afgørelses
   // fuldkapitalisering. Ellers regner kapitalbeløbet og periodeplanen på hver sin rest.
   const fuldkapitaliseringsdato = allRows.reduce<ISODateString | undefined>((earliest, candidate) => {
-    const candidateDato = coerceToISODateString(candidate.afgoerelsesDato);
+    const candidateAfgoerelsesdato = coerceToISODateString(candidate.afgoerelsesDato);
+    // Fuldkapitaliseringen sker på den senere afgørelses kapitaliseringsdato – som udgangspunkt
+    // afgørelsesdatoen, men en senere indtastet dato er tilladt og lægges til grund.
+    const candidateDato = coerceToISODateString(candidate.kapDato) ?? candidateAfgoerelsesdato;
     const candidatePct = parseCommittedPercent(candidate.eetPct);
     const order = compareAfgoerelseOrder(row, candidate);
-    if (candidate.afgoerelseType !== 'Endelig' || !candidateDato
+    if (candidate.afgoerelseType !== 'Endelig' || !candidateAfgoerelsesdato || !candidateDato
       || candidatePct === undefined || candidatePct <= 0
       || order === null || order >= 0 || candidateDato >= kapDato
-      || !isTwoYearKapitaliseringApplicable(skadedato, fodselsdato,
-        coerceToISODateString(candidate.tidlKapDato) ?? candidateDato)) return earliest;
+      || !isEndeligUnderToAarTilFp(candidate, skadedato, fodselsdato)) return earliest;
     return earliest === undefined || candidateDato < earliest ? candidateDato : earliest;
   }, undefined);
   return fuldkapitaliseringsdato === undefined ? undefined
@@ -544,8 +578,8 @@ export const validatePercentDivisibleBy5FromValue = (
  *   1. Afgørelsesdato skal være udfyldt
  *   2. EET % skal være udfyldt
  *   3. Afgørelsestype skal være valgt
- *   4. Endelig afgørelse med EET % < 50 kræver både kap.dato og kap. % – UNDTAGEN ved ≤ 2 år til
- *      folkepension, hvor de to felter netop skal stå tomme (kræver `skadedato` og `fodselsdato`)
+ *   4. Endelig afgørelse med EET % < 50 kræver både kap.dato og kap. % – ved ≤ 2 år til folkepension
+ *      kræves felterne uanset EET-procent (kræver `skadedato` og `fodselsdato`)
  *   5. Kap.dato uden kap. % er ikke tilladt
  *   6. Kap. % uden kap.dato er ikke tilladt
  *
@@ -646,12 +680,15 @@ export const INCOMPLETE_ROW_ISSUE_IDS = {
   missingAfgoerelsesdato: 'missing-afgoerelsesdato',
   missingEetPct: 'missing-eet-pct',
   missingAfgoerelseType: 'missing-afgoerelseType',
+  missingKapDato: 'missing-kap-dato',
+  missingKapPct: 'missing-kap-pct',
   endeligUnder50MissingKap: 'endelig-under-50-missing-kapitalisering',
   kapDatoWithoutKapPct: 'kap-dato-without-kap-pct',
   kapPctWithoutKapDato: 'kap-pct-without-kap-dato',
   virkningsdatoAfterTidlKapDato: 'virkningsdato-after-tidlkap-dato',
   kapDatoNotAfterTidlKapDato: 'kap-dato-not-after-tidlkap-dato',
   invalidEetPct: 'invalid-eet-pct',
+  invalidKapDato: 'invalid-kap-dato',
   invalidKapPct: 'invalid-kap-pct',
   kapDatoAfterLaterForcedKapitalisering: 'kap-dato-after-later-forced-kapitalisering',
 } as const;
@@ -748,13 +785,31 @@ export const collectIncompleteRowIssues = (
   }
 
   const invalidKapPct = startedRows
-    .map((row) => ({ row, message: validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent') }))
+    .map((row) => ({
+      row,
+      message: validatePercentNotZero(row.kapPct, 'Kapitaliseringsprocent')
+        ?? validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent')
+        ?? validateKapPctByAfgoerelsestype(row, rows, skadedato, fodselsdato),
+    }))
     .find((entry) => entry.message !== undefined);
   if (invalidKapPct?.message !== undefined) {
     issues.push({
       id: INCOMPLETE_ROW_ISSUE_IDS.invalidKapPct,
       message: invalidKapPct.message,
       target: { rowId: invalidKapPct.row.id, field: 'kapPct' },
+    });
+  }
+
+  // Direkte motorbrug og EO-import skal respektere de samme udfyldte feltregler som tabellen.
+  // Ellers kan en rød dato eller procent stadig ændre tidligere afgørelsers perioder.
+  const invalidKapDato = startedRows
+    .map((row) => ({ row, message: validateKapDatoByAfgoerelsestype(row, skadedato, fodselsdato) }))
+    .find((entry) => entry.message !== undefined);
+  if (invalidKapDato?.message !== undefined) {
+    issues.push({
+      id: INCOMPLETE_ROW_ISSUE_IDS.invalidKapDato,
+      message: invalidKapDato.message,
+      target: { rowId: invalidKapDato.row.id, field: 'kapDato' },
     });
   }
 
@@ -767,24 +822,25 @@ export const collectIncompleteRowIssues = (
     });
   }
 
+  // Mangler hører til beregningen, ikke til røde celler. Den fælles samler sikrer også,
+  // at direkte motorbrug og EO-import ikke udleder en kapitalisering bag tomme felter.
+  for (const [field, id, message] of [
+    ['kapDato', INCOMPLETE_ROW_ISSUE_IDS.missingKapDato, KAP_DATO_UNDER_TO_AAR_MESSAGE],
+    ['kapPct', INCOMPLETE_ROW_ISSUE_IDS.missingKapPct, KAP_PCT_UNDER_TO_AAR_MESSAGE],
+  ] as const) {
+    const row = startedRows.find((candidate) =>
+      !hasTextValue(candidate[field]) && requiresUnderToAarKapitalisering(candidate, rows, skadedato, fodselsdato)
+    );
+    if (row) issues.push({ id, message, target: { rowId: row.id, field } });
+  }
+
   const endeligUnder50MissingKapRow = startedRows.find((row) => {
     if (row.afgoerelseType !== 'Endelig') return false;
     const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
-    // Ved ≤ 2 år til folkepension er de TOMME felter den rigtige indtastning: kapitalisering sker fra
-    // afgørelsesdagen af hele erhvervsevnetabet, og de to feltregler afviser derfor enhver anden
-    // værdi. Uden denne undtagelse var både «udfyld» og «lad stå tomt» en blokering – en blindgyde
-    // uden en lovlig indtastning (BB-168). Motoren udleder selv begge værdier i netop dette tilfælde
-    // (`collectResolvedRows` i `eetKapitaliseringCalculation`), som også bærer samme undtagelse.
-    const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
-    const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
-    if (isUdenKapitaliseringFoer2007VedToAarsgraensen(skadedato, fodselsdato, controlDate)) return false;
-    const isForcedUnderTwoYears =
-      skadedato !== undefined &&
-      fodselsdato !== undefined &&
-      controlDate !== undefined &&
-      isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, controlDate);
-    if (isForcedUnderTwoYears) return false;
+    // Ved ≤ 2 år til folkepension melder de to præcise feltmangler sig ovenfor.
+    if (isUdenKapitaliseringFoer2007VedToAarsgraensen(skadedato, fodselsdato, resolveAslKontroldato(row))) return false;
+    if (isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
   if (endeligUnder50MissingKapRow) {
@@ -821,6 +877,7 @@ export const collectIncompleteRowIssues = (
     (row) =>
       hasTextValue(row.kapDato) &&
       !hasTextValue(row.kapPct) &&
+      !requiresUnderToAarKapitalisering(row, rows, skadedato, fodselsdato) &&
       row.afgoerelseType !== undefined &&
       row.afgoerelseType !== 'Midlertidig'
   );
@@ -836,6 +893,7 @@ export const collectIncompleteRowIssues = (
     (row) =>
       hasTextValue(row.kapPct) &&
       !hasTextValue(row.kapDato) &&
+      !requiresUnderToAarKapitalisering(row, rows, skadedato, fodselsdato) &&
       row.afgoerelseType !== undefined &&
       row.afgoerelseType !== 'Midlertidig'
   );

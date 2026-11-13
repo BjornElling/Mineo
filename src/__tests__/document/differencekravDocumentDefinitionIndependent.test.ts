@@ -173,11 +173,35 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
     expect(pdfText).toContain('Differencekrav (EET)');
     expect(pdfText).toContain('1.718.744 kr.');
     expect(pdfText).toContain('859.372 kr.');
-    // Forklaringen af den nedsatte særfaktor står i specifikationen i begge kanaler.
-    expect(pdfText).toContain('Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.');
+    // Forklaringen af den nedsatte særfaktor står som «Note» nederst i proformabilaget – ikke på
+    // differencekravssiden – i begge kanaler (wordText === pdfText nedenfor).
+    const forklaring = 'Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.';
+    const bilagStart = pdfText.indexOf('Proformakapitalisering af rest-EET (ASL)');
+    expect(bilagStart).toBeGreaterThan(-1);
+    expect(pdfText.indexOf(forklaring)).toBeGreaterThan(pdfText.indexOf('Note', bilagStart));
+    expect(pdfText.indexOf('Note', bilagStart)).toBeGreaterThan(bilagStart);
+    expect(pdfText.split(forklaring)).toHaveLength(2);
+    // Bilagenes overskrifter i differencekravet angiver loven (ASL), ikke tabstypen (EET).
+    expect(pdfText).toContain('Løbende ydelser (ASL)');
+    expect(pdfText).not.toContain('Løbende ydelser (EET)');
+    expect(pdfText).not.toContain('Kapitalisering (EET)');
     expect(text).toContain('Differencekrav (EET)');
     expect(text).toContain('1.718.744 kr.');
     expect(text).toContain('859.372 kr.');
     expect(wordText).toBe(pdfText);
+  });
+
+  it('udelader særfaktornoten, når brugeren fravælger proformabilaget', async () => {
+    const input = project();
+    const renderer = await differencekravDocumentDefinition.loadRenderer();
+    const { documentXml } = await renderWordDocument((session) => renderer(session, {
+      ...input,
+      bilagSelection: { ...input.bilagSelection, proformaKapitalisering: false },
+    }, { visBrevhoved: false }));
+    const text = normalizeWordText(documentXml);
+    expect(text).toContain('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
+    expect(text).toContain('859.372 kr.');
+    expect(text).not.toContain('Proformakapitalisering af rest-EET (ASL)');
+    expect(text).not.toContain('så faktoren nedsættes forholdsmæssigt');
   });
 });

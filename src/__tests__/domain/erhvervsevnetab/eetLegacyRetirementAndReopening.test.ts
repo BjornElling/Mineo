@@ -28,6 +28,9 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
         afgoerelsesDato: toISODateString('2021-10-01'),
         eetPct: 60,
         afgoerelseType: 'Endelig' as const,
+        // ≤ 2 år til folkepension: afgørelsesdatoen og hele det resterende EET er obligatoriske.
+        kapDato: toISODateString('2021-10-01'),
+        kapPct: 35,
       }],
     };
     const stamdata = {
@@ -45,6 +48,35 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
     expect(result.computation?.loebendeComputation?.afgoerelser.map((row) => row.kapPctAktuel)).toEqual([25, 35]);
     expect(result.computation?.loebendeComputation?.afgoerelser[1]?.restEetPct).toBe(0);
     expect(result.computation?.proformaKapitalisering).toBeNull();
+  });
+
+  it('lægger en senere kapitaliseringsdato til grund ved ≤ 2 år til folkepension (udviklerafgørelse 2026-11-13)', () => {
+    const values = {
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      beregningsdato: toISODateString('2022-12-01'),
+      aslAarsloen: { kind: 'number' as const, value: 401000 },
+      aslAfgoerelser: [{
+        id: 'sen',
+        fsTilbageholdtEet: 'Nej' as const,
+        afgoerelsesDato: toISODateString('2021-10-01'),
+        virkningsDato: toISODateString('2021-01-01'),
+        eetPct: 60,
+        afgoerelseType: 'Endelig' as const,
+        kapDato: toISODateString('2021-12-01'),
+        kapPct: 60,
+      }],
+    };
+    const stamdata = {
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+    };
+    expect(collectEetAslAfgoerelseValidationIssues(values.aslAfgoerelser, stamdata.skadedato, stamdata.skadelidteFodselsdato)).toEqual([]);
+    const kap = computeEetKapitaliseringCalculation({ ...stamdata, erhvervsevnetab: values });
+    expect(kap.computation?.afgoerelser[0]?.kapitaliseringsdato).toBe('2021-12-01');
+    expect(kap.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
+    const loebende = computeEetLoebendeYdelser({ ...stamdata, erhvervsevnetab: values });
+    expect(loebende.computation?.afgoerelser[0]?.ophoerDato).toBe('2020-06-30');
+    expect(loebende.computation?.afgoerelser[0]?.ophoerAarsag).toBe('to-aarsgraense');
   });
 
   it.each([
@@ -120,6 +152,8 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
             afgoerelsesDato: toISODateString('2022-07-01'),
             eetPct: 60,
             afgoerelseType: 'Endelig',
+            kapDato: toISODateString('2022-07-01'),
+            kapPct: 60,
           }],
         },
         skadedato: toISODateString('2019-04-01'),
@@ -161,6 +195,36 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
     expect(result.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
     expect(result.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
     expect(result.computation?.afgoerelser[0]?.koenOpdelt).toBe(false);
+  });
+
+  it('viser kønsmanglen, når en senere kapitaliseringsdato ikke ændrer valget af kønsopdelt faktor', () => {
+    const values = {
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      aslAarsloen: { kind: 'number' as const, value: 300000 },
+      aslAfgoerelser: [{
+        id: 'senere-kapitalisering',
+        fsTilbageholdtEet: 'Nej' as const,
+        afgoerelsesDato: toISODateString('2013-01-01'),
+        virkningsDato: toISODateString('2013-01-01'),
+        eetPct: 60,
+        afgoerelseType: 'Endelig' as const,
+        kapDato: toISODateString('2014-01-01'),
+        kapPct: 30,
+      }],
+    };
+    const stamdata = {
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1950-07-01'),
+    };
+    const missing = computeEetKapitaliseringCalculation({ ...stamdata, erhvervsevnetab: values });
+    expect(missing.computation).toBeNull();
+    // Kapitaliseringen 01-01-2014 ligger inden for toårsvinduet (fra 01-07-2013) uden at være påkrævet.
+    expect(missing.issues.map((issue) => issue.id)).toEqual(['warn-kap-dato-inden-for-to-aar-til-fp', 'missing-koen']);
+    const ready = computeEetKapitaliseringCalculation({
+      ...stamdata, erhvervsevnetab: { ...values, koen: 'Mand' },
+    });
+    expect(ready.issues.map((issue) => issue.id)).toEqual(['warn-kap-dato-inden-for-to-aar-til-fp']);
+    expect(ready.computation?.afgoerelser[0]?.kapitaliseringsfaktor).toBe(1.168);
   });
 
   it.each([
@@ -246,5 +310,65 @@ describe('Ældre skader og genoptagelse ved folkepension', () => {
     expect(result.computation?.loebendeComputation?.afgoerelser[0]?.restEetPct).toBe(30);
     expect(result.computation?.afgoerelser[0]?.fradragesTil).toBe('2022-03-31');
     expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
+  });
+
+  // Udviklerafgørelse 2026-11-13: ved genoptagelse fra 1. juli 2024 styrer den nye afgørelsesdato
+  // regelvalg og faktor. Født 01-01-1959: folkepension 01-01-2026, toårsgrænse 01-01-2024.
+  describe('genoptagelse fra 1. juli 2024', () => {
+    const stamdata = {
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1959-01-01'),
+    };
+    const genoptaget = (kapPct: number) => ({
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      beregningsdato: toISODateString('2025-10-01'),
+      aslAarsloen: { kind: 'number' as const, value: 401000 },
+      aslAfgoerelser: [{
+        id: 'genoptaget',
+        fsTilbageholdtEet: 'Nej' as const,
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2019-06-01'),
+        eetPct: 60,
+        afgoerelseType: 'Endelig' as const,
+        kapDato: toISODateString('2025-09-01'),
+        kapPct,
+        tidlKapDato: toISODateString('2021-06-01'),
+      }],
+    });
+
+    it('kræver hele EET kapitaliseret med særfaktor, selv om den tidligere dato lå over to år før', () => {
+      expect(collectEetAslAfgoerelseValidationIssues(genoptaget(30).aslAfgoerelser, stamdata.skadedato, stamdata.skadelidteFodselsdato))
+        .toContainEqual(expect.objectContaining({ field: 'kapPct' }));
+      const kap = computeEetKapitaliseringCalculation({ ...stamdata, erhvervsevnetab: genoptaget(60) });
+      expect(kap.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+      const afgoerelse = kap.computation?.afgoerelser[0];
+      expect(afgoerelse?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
+      expect(afgoerelse?.kapitaliseringspct).toBe(60);
+      expect(afgoerelse?.kapitaliseringsdato).toBe('2025-09-01');
+      // Den tidligere dato bærer ikke længere faktorgrundlaget og vises derfor ikke som sådan.
+      expect(afgoerelse?.tidligereKapitaliseringsdato).toBeNull();
+      expect([afgoerelse?.alderAar, afgoerelse?.alderMaaneder]).toEqual([66, 6]);
+    });
+
+    it('stopper de løbende ydelser dagen før toårsgrænsen', () => {
+      const loebende = computeEetLoebendeYdelser({ ...stamdata, erhvervsevnetab: genoptaget(60) });
+      expect(loebende.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+      expect(loebende.computation?.afgoerelser[0]?.ophoerDato).toBe('2023-12-31');
+      expect(loebende.computation?.afgoerelser[0]?.ophoerAarsag).toBe('to-aarsgraense');
+    });
+
+    it('bevarer den tidligere dato som kontroltidspunkt ved en afgørelse dagen før skæringsdatoen', () => {
+      const values = genoptaget(30);
+      const foer = {
+        ...values,
+        aslAfgoerelser: values.aslAfgoerelser.map((row) => ({
+          ...row, afgoerelsesDato: toISODateString('2024-06-30'), kapDato: toISODateString('2024-06-30'),
+        })),
+      };
+      const kap = computeEetKapitaliseringCalculation({ ...stamdata, erhvervsevnetab: foer });
+      expect(kap.issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+      expect(kap.computation?.afgoerelser[0]?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+      expect(kap.computation?.afgoerelser[0]?.tidligereKapitaliseringsdato).toBe('2021-06-01');
+    });
   });
 });

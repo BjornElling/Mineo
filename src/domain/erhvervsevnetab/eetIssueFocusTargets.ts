@@ -38,7 +38,7 @@ import {
   type AslIssueField,
   resolveAslVirkningsdato,
 } from './eetAslAfgoerelser';
-import { harEetTitrinAfvigelse, resolveEetUnder15Warning } from './eetFieldWarnings';
+import { collectKapDatoWarnings, harEetTitrinAfvigelse, resolveEetUnder15Warning } from './eetFieldWarnings';
 
 export type EetIssueFocusContext = Readonly<{
   aslAfgoerelser?: readonly AslAfgoerelseRow[];
@@ -185,6 +185,10 @@ const resolveRowIssueFocusTarget = (
     )?.row;
     return row ? asFieldTarget(aslAfgoerelseEetPctField.bind(row.id).address) : undefined;
   }
+
+  const kapDatoWarning = collectKapDatoWarnings(startedRows, context.skadedato, context.skadelidteFodselsdato)
+    .find((warning) => warning.id === issueId);
+  if (kapDatoWarning) return asFieldTarget(aslAfgoerelseKapDatoField.bind(kapDatoWarning.rowId).address);
 
   if (issueId === 'warn-non-endelig-after-endelig') {
     const row = findNonEndeligAfterEndeligRow(rows);

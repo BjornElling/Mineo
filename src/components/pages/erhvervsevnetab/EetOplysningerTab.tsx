@@ -179,6 +179,7 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
           ruleIssues={projection.aslAfgoerelserRuleIssues}
           kapitaliseringAfgoerelser={projection.snapshot.kapitalisering.computation?.afgoerelser ?? []}
           skadedato={projection.skadedato}
+          skadelidteFodselsdato={projection.skadelidteFodselsdato}
           beregningsdato={projection.values.beregningsdato}
           saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />

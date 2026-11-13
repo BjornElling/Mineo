@@ -4,18 +4,28 @@ import {
   EET_TITRIN_FRA_2024_WARNING,
   EET_UNDER_15_WARNING,
   KAPITALISERING_UNDER_15_WARNING,
+  KAP_DATO_EFTER_AFGOERELSESDATO_GENOPTAGELSE_WARNING,
+  KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING,
+  KAP_DATO_INDEN_FOR_TO_AAR_WARNING,
+  collectKapDatoWarnings,
   hasEetAslAarsloenMaxWarning,
   hasEetEalAarsloenMaxWarning,
   kapitaliseringUnder15WarningRowIds,
   formatDatoEfterBeregningsdatoWarning,
   resolveDatoEfterBeregningsdatoWarning,
+  resolveKapDatoFeltWarning,
   resolveEetAslAarsloenMaxWarning,
   resolveEetTitrinWarning,
   resolveKapitaliseringUnder15Warning,
   resolveEetUnder15Warning,
 } from '../../../domain/erhvervsevnetab/eetFieldWarnings';
+import {
+  KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID,
+  KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID,
+} from '../../../domain/erhvervsevnetab/eetIssueCatalog';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
+import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 
 const amount = (value: number) => ({ kind: 'number' as const, value });
 
@@ -175,6 +185,111 @@ describe('resolveDatoEfterBeregningsdatoWarning', () => {
   it('navngiver årsagen én gang i boksens linje', () => {
     // BB-159: tre linjer om ét forhold læses som tre problemer, hvor der er ét.
     expect(formatDatoEfterBeregningsdatoWarning(beregningsdato))
-      .toBe('Beregningsdatoen (01-01-2021) ligger før sagens afgørelser.');
+      .toBe('En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (01-01-2021).');
+  });
+});
+
+describe('resolveKapDatoFeltWarning – kapitaliseringsdato efter afgørelsesdatoen', () => {
+  const row: AslAfgoerelseRow = {
+    id: 'genoptaget',
+    afgoerelsesDato: toISODateString('2024-07-01'),
+    virkningsDato: toISODateString('2019-06-01'),
+    eetPct: 60,
+    kapDato: toISODateString('2024-10-01'),
+    kapPct: 30,
+    afgoerelseType: 'Endelig',
+    tidlKapDato: toISODateString('2019-06-01'),
+    fsTilbageholdtEet: 'Nej',
+  };
+  const skadedato = toISODateString('2019-04-01');
+  const fodselsdato = toISODateString('1980-01-01');
+
+  it.each(['Endelig', 'Delvist endelig'] as const)('advarer ved senere kapitalisering efter genoptagelse fra 1. juli 2024 (%s), også uden for 2-årsvinduet', (afgoerelseType) => {
+    expect(resolveKapDatoFeltWarning({ ...row, afgoerelseType }, skadedato, fodselsdato, undefined))
+      .toEqual({ severity: 'warning', message: KAP_DATO_EFTER_AFGOERELSESDATO_GENOPTAGELSE_WARNING });
+  });
+
+  it.each([
+    { afgoerelsesDato: toISODateString('2024-06-30') },
+    { tidlKapDato: undefined },
+    { afgoerelseType: 'Midlertidig' as const },
+    { afgoerelseType: undefined },
+    { kapDato: toISODateString('2024-07-01') },
+    { kapDato: toISODateString('2024-06-30') },
+    { kapDato: undefined },
+    { afgoerelsesDato: undefined },
+  ])('advarer ikke uden en senere dato under genoptagelsesreglen (%j)', (overrides) => {
+    expect(resolveKapDatoFeltWarning({ ...row, ...overrides }, skadedato, fodselsdato, undefined)).toBeUndefined();
+  });
+
+  it('bevarer advarslen for en endelig afgørelse i 2-årsvinduet uden genoptagelse', () => {
+    expect(resolveKapDatoFeltWarning({ ...row, tidlKapDato: undefined }, skadedato, toISODateString('1959-01-01'), undefined))
+      .toEqual({ severity: 'warning', message: KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING });
+  });
+});
+
+// Født 01-07-1955: folkepension 01-07-2022, toårsgrænse 01-07-2020 (udviklerafgørelse 2026-11-13).
+describe('resolveKapDatoFeltWarning – kapitalisering inden for de sidste to år før folkepension', () => {
+  const skadedato = toISODateString('2019-04-01');
+  const fodselsdato = toISODateString('1955-07-01');
+  const endelig: AslAfgoerelseRow = {
+    id: 'b',
+    afgoerelsesDato: toISODateString('2019-06-01'),
+    virkningsDato: toISODateString('2019-06-01'),
+    eetPct: 30,
+    kapDato: toISODateString('2020-10-01'),
+    kapPct: 30,
+    afgoerelseType: 'Endelig',
+    fsTilbageholdtEet: 'Nej',
+  };
+  const graenseTekst = 'Kapitalisering inden for de sidste to år før folkepensionsalderen (fra 01-07-2020) er som udgangspunkt udelukket';
+
+  it('advarer ved en endelig afgørelse over to år før, kapitaliseret inden for vinduet', () => {
+    expect(resolveKapDatoFeltWarning(endelig, skadedato, fodselsdato, undefined))
+      .toEqual({ severity: 'warning', message: graenseTekst });
+  });
+
+  it('advarer ved en delvist endelig afgørelse kapitaliseret inden for vinduet', () => {
+    const delvist = { ...endelig, afgoerelseType: 'Delvist endelig' as const, afgoerelsesDato: toISODateString('2021-10-01'), kapDato: toISODateString('2021-10-01'), kapPct: 25 };
+    expect(resolveKapDatoFeltWarning(delvist, skadedato, fodselsdato, undefined))
+      .toEqual({ severity: 'warning', message: graenseTekst });
+  });
+
+  it('advarer præcis på grænsen, men ikke dagen før', () => {
+    expect(resolveKapDatoFeltWarning({ ...endelig, kapDato: toISODateString('2020-07-01') }, skadedato, fodselsdato, undefined))
+      .toEqual({ severity: 'warning', message: graenseTekst });
+    expect(resolveKapDatoFeltWarning({ ...endelig, kapDato: toISODateString('2020-06-30') }, skadedato, fodselsdato, undefined))
+      .toBeUndefined();
+  });
+
+  it('advarer ikke, når toårsreglen netop kræver kapitaliseringen', () => {
+    const tvungen = { ...endelig, afgoerelsesDato: toISODateString('2021-10-01'), kapDato: toISODateString('2021-10-01'), eetPct: 60, kapPct: 60 };
+    expect(resolveKapDatoFeltWarning(tvungen, skadedato, fodselsdato, undefined)).toBeUndefined();
+    expect(collectKapDatoWarnings([tvungen], skadedato, fodselsdato)).toEqual([]);
+  });
+
+  it('advarer ikke ved ukendt skadedato eller fødselsdato', () => {
+    expect(resolveKapDatoFeltWarning(endelig, undefined, fodselsdato, undefined)).toBeUndefined();
+    expect(resolveKapDatoFeltWarning(endelig, skadedato, undefined, undefined)).toBeUndefined();
+  });
+
+  it('har forrang for beregningsdatoens advarsel, men viger for genoptagelsesreglen', () => {
+    expect(resolveKapDatoFeltWarning(endelig, skadedato, fodselsdato, toISODateString('2020-08-01'))?.message)
+      .toBe(graenseTekst);
+    expect(resolveKapDatoFeltWarning(
+      { ...endelig, eetPct: 60, kapPct: 30, afgoerelsesDato: toISODateString('2024-07-01'), kapDato: toISODateString('2024-10-01'), tidlKapDato: toISODateString('2019-06-01') },
+      skadedato, toISODateString('1960-01-01'), undefined,
+    )?.message).toBe(KAP_DATO_EFTER_AFGOERELSESDATO_GENOPTAGELSE_WARNING);
+  });
+
+  it('samler fanernes advarselslinjer med den første berørte række', () => {
+    const senere = {
+      ...endelig, id: 'tvungen', afgoerelsesDato: toISODateString('2021-10-01'), kapDato: toISODateString('2021-12-01'),
+      eetPct: 60, kapPct: 30,
+    };
+    expect(collectKapDatoWarnings([endelig, senere], skadedato, fodselsdato)).toEqual([
+      { id: KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID, message: KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING, rowId: 'tvungen' },
+      { id: KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID, message: KAP_DATO_INDEN_FOR_TO_AAR_WARNING, rowId: 'b' },
+    ]);
   });
 });

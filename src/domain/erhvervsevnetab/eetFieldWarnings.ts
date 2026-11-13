@@ -1,14 +1,18 @@
 import { createFieldWarning, type FieldWarning } from '../../inputCore/fieldWarning';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import type { ISODateString } from '../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../types/branded';
+import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
+import { isEndeligUnderToAarTilFp } from './eetAslAfgoerelser';
 import { isoYear } from '../../utils/isoDateHelpers';
 import { aarsloenAslMax, type YearlyRate } from '../../data/lovbestemteRates';
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { ASL_AARSLOEN_MAX_NOTICE } from '../aslEalAarsloen/aslAarsloenMaxNotice';
 import { SKADELIDTES_AARSLOEN_EAL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
-import { SKAERING_2024_07_01 as EET_TITRIN_SKAERINGSDATO } from './eetSkaeringsdatoer';
+import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { formatISOToDanish } from '../../utils/dateFormatting';
+import { getToAarsgraenseFoerFolkepension } from '../../data/folkepensionAlderRates';
+import { KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID, KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID } from './eetIssueCatalog';
 
 type KapitaliseringsPctRow = Readonly<{ rowId: string; kapitaliseringspct: number }>;
 
@@ -49,7 +53,7 @@ export const harEetTitrinAfvigelse = (
 ): boolean =>
   value !== undefined &&
   skadedato !== undefined &&
-  skadedato >= EET_TITRIN_SKAERINGSDATO &&
+  skadedato >= SKAERING_2024_07_01 &&
   value > 15 &&
   value % 10 !== 0;
 
@@ -68,7 +72,7 @@ export const resolveEetTitrinWarning = (
  * gang, og hver af de tre datoceller bærer sin egen gule feltadvarsel, hvor brugeren sidder.
  */
 export const formatDatoEfterBeregningsdatoWarning = (beregningsdato: ISODateString): string =>
-  `Beregningsdatoen (${formatISOToDanish(beregningsdato)}) ligger før sagens afgørelser.`;
+  `En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen (${formatISOToDanish(beregningsdato)}).`;
 
 export const formatDatoEfterBeregningsdatoFeltWarning = (
   datoLabel: string,
@@ -83,6 +87,104 @@ export const resolveDatoEfterBeregningsdatoWarning = (
   dato !== undefined && beregningsdato !== undefined && dato > beregningsdato
     ? createFieldWarning(formatDatoEfterBeregningsdatoFeltWarning(datoLabel, beregningsdato))
     : undefined;
+
+/**
+ * Kanonisk advarsel for en kapitaliseringsdato efter afgørelsesdatoen.
+ *
+ * Kapitalisering sker her som udgangspunkt på afgørelsesdatoen, men en senere dato er tilladt og lægges til
+ * grund i beregningen (udviklerafgørelse 2026-11-13). Derfor gul, ikke rød.
+ */
+export const KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING =
+  'Ved ≤ 2 år til folkepension sker kapitalisering som udgangspunkt på afgørelsesdatoen';
+
+export const KAP_DATO_EFTER_AFGOERELSESDATO_GENOPTAGELSE_WARNING =
+  'Ved genoptagelse fra 1. juli 2024 sker kapitalisering som udgangspunkt på afgørelsesdatoen';
+
+const resolveKapDatoEfterAfgoerelsesdatoText = (
+  row: AslAfgoerelseRow,
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): string | undefined => {
+  const kapDato = coerceToISODateString(row.kapDato);
+  const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
+  if (kapDato === undefined || afgoerelsesdato === undefined || kapDato <= afgoerelsesdato) return undefined;
+  // Genoptagelsesreglen gælder også uden for 2-årsvinduet og ved delvist endelige afgørelser.
+  if ((row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig')
+    && coerceToISODateString(row.tidlKapDato) !== undefined && afgoerelsesdato >= SKAERING_2024_07_01) {
+    return KAP_DATO_EFTER_AFGOERELSESDATO_GENOPTAGELSE_WARNING;
+  }
+  return isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)
+    ? KAP_DATO_EFTER_AFGOERELSESDATO_UNDER_TO_AAR_WARNING
+    : undefined;
+};
+
+/**
+ * Advarsel for en kapitaliseringsdato inden for de sidste to år før folkepensionsalderen.
+ *
+ * Kapitalisering er her som udgangspunkt udelukket, men advarslen blokerer ikke (udviklerafgørelse
+ * 2026-11-13). Den vises IKKE, når kapitaliseringen netop er påkrævet efter toårsreglen – så ville
+ * brugeren både få et krav om at udfylde feltet og en advarsel om, at det er udelukket. Ukendt
+ * skadedato giver ingen advarsel, fordi det så ikke kan afgøres, om kapitaliseringen er påkrævet.
+ */
+export const KAP_DATO_INDEN_FOR_TO_AAR_WARNING =
+  'Kapitalisering inden for de sidste to år før folkepensionsalderen er som udgangspunkt udelukket';
+
+const resolveKapDatoIndenForToAarText = (
+  row: AslAfgoerelseRow,
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): string | undefined => {
+  const kapDato = coerceToISODateString(row.kapDato);
+  if (kapDato === undefined || skadedato === undefined || fodselsdato === undefined
+    || (row.afgoerelseType !== 'Endelig' && row.afgoerelseType !== 'Delvist endelig')
+    || isEndeligUnderToAarTilFp(row, skadedato, fodselsdato)) return undefined;
+  const graensedato = getToAarsgraenseFoerFolkepension(fodselsdato, kapDato);
+  return graensedato !== undefined && kapDato >= graensedato
+    ? `Kapitalisering inden for de sidste to år før folkepensionsalderen (fra ${formatISOToDanish(graensedato)}) er som udgangspunkt udelukket`
+    : undefined;
+};
+
+/**
+ * Kap.dato-cellens ene gule advarsel. Rækkefølgen er bevidst: reglen om datovalget ved afgørelsen
+ * vinder over toårsvinduet, som vinder over beregningsdatoen – de to første angår selve kapitaliseringen.
+ */
+export const resolveKapDatoFeltWarning = (
+  row: AslAfgoerelseRow,
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined,
+  beregningsdato: ISODateString | undefined
+): FieldWarning | undefined => {
+  const text = resolveKapDatoEfterAfgoerelsesdatoText(row, skadedato, fodselsdato)
+    ?? resolveKapDatoIndenForToAarText(row, skadedato, fodselsdato);
+  return text !== undefined
+    ? createFieldWarning(text)
+    : resolveDatoEfterBeregningsdatoWarning(coerceToISODateString(row.kapDato), beregningsdato, 'Kapitaliseringsdatoen');
+};
+
+/**
+ * Fanernes advarselslinjer for de to kapitaliseringsdato-advarsler, med den første berørte række som
+ * fokusmål. Samme regler som cellen, så linje og gul ring altid følges ad.
+ */
+export const collectKapDatoWarnings = (
+  rows: readonly AslAfgoerelseRow[],
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): readonly Readonly<{ id: string; message: string; rowId: string }>[] => {
+  const result: Readonly<{ id: string; message: string; rowId: string }>[] = [];
+  const efter = rows.find((row) => resolveKapDatoEfterAfgoerelsesdatoText(row, skadedato, fodselsdato) !== undefined);
+  if (efter) {
+    result.push({
+      id: KAP_DATO_EFTER_AFGOERELSESDATO_WARNING_ID,
+      message: resolveKapDatoEfterAfgoerelsesdatoText(efter, skadedato, fodselsdato)!,
+      rowId: efter.id,
+    });
+  }
+  const indenFor = rows.find((row) => resolveKapDatoIndenForToAarText(row, skadedato, fodselsdato) !== undefined);
+  if (indenFor) {
+    result.push({ id: KAP_DATO_INDEN_FOR_TO_AAR_WARNING_ID, message: KAP_DATO_INDEN_FOR_TO_AAR_WARNING, rowId: indenFor.id });
+  }
+  return result;
+};
 
 /** Kanonisk advarsel for en selvstændig kapitalisering under den lovbestemte tærskel. */
 export const KAPITALISERING_UNDER_15_WARNING = 'Der er angivet kapitalisering med mindre end 15 %';

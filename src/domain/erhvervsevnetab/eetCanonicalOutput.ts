@@ -77,7 +77,10 @@ export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
   kapitaliseringsdato: isoDateString,
-  /** Ved genoptagelse stammer faktorens alder fra denne tidligere dato. Kun afledt output. */
+  /**
+   * Ved genoptagelse før 1. juli 2024 stammer faktorens alder fra denne tidligere dato. Null, når den
+   * tidligere dato ikke styrer regelvalget (også ved genoptagelse fra 1. juli 2024). Kun afledt output.
+   */
   tidligereKapitaliseringsdato: isoDateString.nullable(),
   /**
    * Afgørelsens EGEN erhvervsevnetabsprocent – ikke den kapitaliserede andel.

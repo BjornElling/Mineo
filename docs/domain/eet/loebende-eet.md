@@ -189,13 +189,13 @@ Næste afgørelses afløsningsdato er:
 
 **Særreglen ved ≤ 2 år til folkepension gælder kun for `Endelig` og skader fra 1. juli 2007:**
 - Hvis en endelig afgørelse træffes mere end 2 år før folkepensionsalderen, sker der ingen tvungen kapitalisering. Løbende ydelser fortsætter til og med dagen før folkepensionsdatoen.
-- Hvis en endelig afgørelse træffes inden for eller præcis 2 år før folkepensionsalderen, skal hele erhvervsevnetabet kapitaliseres på afgørelsesdatoen.
-- Hvis virkningsdatoen i dette tilfælde ligger før 2-årsgrænsen, løber ydelserne fra virkningsdatoen til og med dagen før afgørelsesdatoen.
+- Hvis en endelig afgørelse træffes inden for eller præcis 2 år før folkepensionsalderen, skal hele det resterende erhvervsevnetab kapitaliseres, som udgangspunkt på afgørelsesdatoen. En senere indtastet kapitaliseringsdato er tilladt med gul advarsel.
+- Hvis virkningsdatoen i dette tilfælde ligger før 2-årsgrænsen, løber ydelserne fra virkningsdatoen til og med dagen før 2-årsgrænsen. Der er ingen løbende ydelser i toårsvinduet, heller ikke ved en senere kapitaliseringsdato (udviklerafklaring 2026-11-13).
 - Hvis virkningsdatoen ligger på eller efter 2-årsgrænsen, tilkendes ingen løbende ydelser.
 
 For skader før 1. juli 2007 sker ingen tvungen kapitalisering, heller ikke ved en endelig afgørelse på eller efter folkepensionsdatoen. Løbende ydelser opgøres frem til og med dagen før folkepensionsdatoen; tomme kapitaliseringsfelter er i denne situation også tilladt under 50 % EET.
 
-Ved genoptagelse vurderes 2-årsreglen på den tidligere kapitaliseringsdato. Ligger denne mere end to år før folkepension, fortsætter den ikke-kapitaliserede rest efter de almindelige regler, også selv om den nye afgørelse træffes i 2-årsvinduet. Den tidligere afgørelses kapitalisering må ikke ligge efter en senere tvungen fuldkapitalisering; en sådan dato markeres rød og blokerer beregningen. Se [den samlede særregel](./under-to-aar-til-fp.md).
+Ved genoptagelse med afgørelsesdato før 1. juli 2024 vurderes 2-årsreglen på den tidligere kapitaliseringsdato; fra 1. juli 2024 på den nye afgørelsesdato (udviklerafgørelse 2026-11-13). Ligger denne mere end to år før folkepension, fortsætter den ikke-kapitaliserede rest efter de almindelige regler, også selv om den nye afgørelse træffes i 2-årsvinduet. Den tidligere afgørelses kapitalisering må ikke ligge efter en senere tvungen fuldkapitalisering; en sådan dato markeres rød og blokerer beregningen. Se [den samlede særregel](./under-to-aar-til-fp.md).
 
 `Delvist endelig` og `Midlertidig` følger ikke denne tvungne fuldkapitalisering. De løbende ydelser fortsætter derfor til og med dagen før folkepensionsdatoen, medmindre afgørelsen ophører tidligere på grund af næste afgørelse eller en faktisk kapitalisering.
 

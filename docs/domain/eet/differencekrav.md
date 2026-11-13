@@ -102,9 +102,12 @@ Konsekvenser:
 Forholdet er besværligt, og ved tvivlstilfælde skal udvikleren spørges.
 
 Ved særreglen for ≤ 2 år til folkepension gælder derudover:
-- Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger før 2-årsgrænsen, fratrækkes løbende ydelser kun frem til og med dagen før afgørelsesdatoen.
+- Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger før 2-årsgrænsen, fratrækkes løbende ydelser kun frem til og med dagen før 2-årsgrænsen, uanset en senere kapitaliseringsdato.
 - Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger på eller efter 2-årsgrænsen, fratrækkes ingen løbende ydelser.
 - Hvis der er truffet `Endelig` afgørelse mere end 2 år før folkepension, eller afgørelsen ikke er endelig, fratrækkes løbende ydelser til og med den faktiske sidste dag, som ydelsen er beregnet til, dog aldrig efter dagen før folkepensionsdatoen.
+- Midlertidige ydelser, som den endelige afgørelse overtager, behandles som endelige i hele perioden og fratrækkes derfor også højst til og med dagen før 2-årsgrænsen; kapitalbeløbet dækker de sidste to år (udviklerafgørelse 2026-11-13). Det gælder både det tilbagevirkende fradrag nedenfor og – for skader før 16-06-2011 – det altid foretagne fradrag for midlertidige ydelser. Ved de ældre skader fratrækkes ydelsen før den endelige virkningsdato fortsat fuldt, fordi den var midlertidig. Fane 2 viser uændret de faktisk beregnede midlertidige ydelser; kun differencekravets fradrag afkortes.
+
+  Eksempel: Skade 1. april 2019, født 1. juli 1955 (2-årsgrænse 1. juli 2020). Midlertidig 60 % fra 1. juni 2019; endelig 60 % truffet 1. oktober 2021 med virkning fra 1. juni 2019 og kapitalisering 1. december 2021; beregningsdato 1. april 2022. Den midlertidige ydelse løber i fane 2 til 31. oktober 2021, men differencekravet fratrækker kun 201.086 kr. for perioden 1. juni 2019 – 30. juni 2020 samt kapitalbeløbet.
 
 #### Tilbagevirkende kraft – endelig afgørelse gør midlertidig ydelse endelig (toggle)
 
@@ -117,11 +120,11 @@ Denne regel styres af valgmuligheden `endeligEetGoerMidlertidigEndeligMedTilbage
 Hovedreglen er, at midlertidigt EET ikke fradrages i differencekravet for skader fra 16-06-2011 og frem. Denne regel bryder med det princip i ét tilfælde:
 
 - Hvis en `Endelig` afgørelses virkningsdato ligger inden i den periode, hvor der beregnes løbende ydelse for en `Midlertidig` afgørelse (dvs. inden for `[midlertidigs virkningsdato, midlertidigs ophørsdato]`), så bliver den midlertidige ydelse endelig med tilbagevirkende kraft fra den endelige virkningsdato.
-- Der foretages derfor fradrag i differencekravet for den midlertidige afgørelses **egen** løbende ydelse – beregnet med den midlertidiges egen rest-EET-procent og egen sats, præcis som fane 2 har beregnet den – for delperioden fra den endelige afgørelses virkningsdato til den midlertidiges normale ophør.
+- Der foretages derfor fradrag i differencekravet for den midlertidige afgørelses **egen** løbende ydelse – beregnet med den midlertidiges egen rest-EET-procent og egen sats, præcis som fane 2 har beregnet den – for delperioden fra den endelige afgørelses virkningsdato til den midlertidiges normale ophør, dog højst til og med dagen før 2-årsgrænsen, når den endelige afgørelse er omfattet af særreglen ved ≤ 2 år til folkepension. Ligger den endelige virkningsdato selv på eller efter 2-årsgrænsen, bortfalder fradraget.
 
-Beløbet beregnes ved at genbruge den midlertidiges allerede beregnede periode-rækker: rækker der starter på eller efter den endelige virkningsdato medregnes fuldt, og en eventuel række der krydser den endelige virkningsdato recomputes for delperioden med samme regel som kilden (`round0(måneder × månedlig ydelse)`).
+Beløbet beregnes ved at genbruge den midlertidiges allerede beregnede periode-rækker: rækker der starter på eller efter den endelige virkningsdato medregnes fuldt, og en eventuel række der krydser den endelige virkningsdato eller 2-årsgrænsen recomputes for delperioden med samme regel som kilden (`round0(måneder × månedlig ydelse)`).
 
-**Gating:** Reglen er en no-op for skader før 16-06-2011, fordi midlertidige ydelser her allerede fradrages 100 % efter hovedreglen. Den tidligste endelige afgørelses virkningsdato er den, der udløser reglen.
+**Gating:** Reglen er en no-op for skader før 16-06-2011, fordi midlertidige ydelser her allerede fradrages 100 % efter hovedreglen (med samme afkortning ved 2-årsgrænsen, se ovenfor). Den tidligste endelige afgørelses virkningsdato er den, der udløser reglen; har flere endelige afgørelser samme virkningsdato, bruges den tidligste 2-årsgrænse.
 
 ### Fradrag 2 – Kapitaliseret EET
 
@@ -135,7 +138,9 @@ Den tvungne kapitalisering af en endelig afgørelse gælder kun skader fra 1. ju
 
 For skader før 1. juli 2007 fortsætter en sen endelig afgørelse som løbende ydelse frem til og med dagen før folkepensionsdatoen, også når afgørelsen først træffes på denne dato eller senere. Der beregnes intet tvunget kapitalbeløb. Det gælder også ved et erhvervsevnetab under 50 %, hvor tomme kapitaliseringsfelter i denne situation er tilladt.
 
-Ved genoptagelse afgør den tidligere kapitaliseringsdato både, om 2-årsreglen gælder, og hvilken bekendtgørelse, tabel, alder og faktor der anvendes. Årsydelsen reguleres til den nye kapitaliseringsdatos kalenderår. Ligger den tidligere dato mere end to år før folkepension, bruges de almindelige kapitaliseringsregler, og en resterende løbende del må ikke forsvinde alene på grund af den nye afgørelsesdato.
+Ved genoptagelse med en afgørelsesdato før 1. juli 2024 afgør den tidligere kapitaliseringsdato både, om 2-årsreglen gælder, og hvilken bekendtgørelse, tabel, alder og faktor der anvendes. Årsydelsen reguleres til den nye kapitaliseringsdatos kalenderår. Ligger den tidligere dato mere end to år før folkepension, bruges de almindelige kapitaliseringsregler, og en resterende løbende del må ikke forsvinde alene på grund af den nye afgørelsesdato.
+
+Ved genoptagelse med en afgørelsesdato fra 1. juli 2024 styrer den nye afgørelsesdato i stedet regelvalg og faktor, som om der ikke var en tidligere kapitalisering (udviklerafgørelse 2026-11-13). Eksempel: født 1. januar 1959 (folkepension 1. januar 2026), endelig afgørelse 1. juli 2025 med tidligere kapitaliseringsdato 1. juni 2021: 2-årsreglen gælder, »Kap. %« skal være hele det resterende EET, særfaktoren bruges, og de løbende ydelser stopper 31. december 2023. Den tidligere dato vises ikke i kapitaliseringsbilaget, fordi den ikke indgår i beregningen.
 
 En tidligere afgørelse kan ikke have en fremtidig delkapitalisering efter en senere endelig afgørelses tvungne fuldkapitalisering. Eksempel: En afgørelse fra 2019 har 25 % kapitalisering den 1. juni 2022, men en endelig afgørelse den 1. oktober 2021 kapitaliserer hele den resterende ydelse. Kapitaliseringsdatoen 1. juni 2022 markeres da rød med besked om, at den skal være senest 1. oktober 2021. Både løbende ydelser, kapitalisering og differencekrav blokeres. En delkapitalisering før eller på fuldkapitaliseringens dato er tilladt (udviklerafklaring 2026-11-12).
 
@@ -166,7 +171,7 @@ Eksempel: 18 måneder til folkepensionsdatoen og særfaktor 1,246 giver faktor 1
 
 Årsydelsen opgøres som ved den øvrige proformakapitalisering (kapitaliseringsårets regulering, ingen 12-kr.-afrunding). Køn indgår ikke, fordi særfaktoren er kønsneutral. Fradrag 1 er uændret: de løbende ydelser fratrækkes til og med dagen før beregningsdatoen.
 
-Skærm og dokument forklarer regnestykket i én sætning, fx: «Den løbende ydelse (60 %) omregnes til et kapitalbeløb. Ved 2 år eller mindre til folkepension bruges særfaktoren 1,245. Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.» Bilaget «Proformakap. af rest-EET» kan vælges og viser særfaktor, måneder og den nedsatte faktor.
+Skærmen forklarer regnestykket, fx: «Den løbende ydelse (60 %) omregnes til et kapitalbeløb. Ved 2 år eller mindre til folkepension bruges særfaktoren 1,245. Der er 3 mdr. til folkepensionsdatoen, så faktoren nedsættes forholdsmæssigt: 1,245 x 3/24 = 0,156.» I dokumentet står forklaringen under «Note» nederst i det valgbare bilag «Proformakapitalisering af rest-EET (ASL)», som også viser særfaktor, måneder og den nedsatte faktor. Forklaringen står ikke på differencekravssiden og udelades, når bilaget fravælges (udviklerafgørelse 2026-11-13).
 
 **Undtagelse – ingen særfaktor i bekendtgørelsen.** Bekendtgørelserne fastsætter kun særfaktoren for skader fra 1. juli 2007. For ældre skader (hvis tabeller i stedet er «uden omsætningsmulighed» de sidste 2 år) opgøres resten fortsat som de tilbageværende løbende ydelser:
 
@@ -244,8 +249,8 @@ hertil, og grænsen er testdækket i
 #### Endelig afgørelse ≤ 2 år før folkepension, virkning før 2-årsgrænsen
 
 Skadelidte har i denne situation:
-- fået løbende ydelser fra virkningsdatoen til og med dagen før afgørelsesdatoen
-- fået et kapitalbeløb pr. afgørelsesdatoen
+- fået løbende ydelser fra virkningsdatoen til og med dagen før 2-årsgrænsen
+- fået et kapitalbeløb på den indtastede kapitaliseringsdato
 
 Differencekravet fratrækker derfor både de løbende ydelser og kapitalbeløbet.
 
@@ -253,7 +258,7 @@ Differencekravet fratrækker derfor både de løbende ydelser og kapitalbeløbet
 
 Skadelidte har i denne situation:
 - ikke fået løbende ydelser
-- fået et kapitalbeløb pr. afgørelsesdatoen
+- fået et kapitalbeløb på den indtastede kapitaliseringsdato
 
 Differencekravet fratrækker derfor kun kapitalbeløbet.
 
@@ -280,7 +285,8 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 | `computeResterendeLoebendeYdelser(args, issues)` | Opgør resterende løbende ydelser frem til folkepensionsalderen ved beregningsdato inden for 2-årsgrænsen, når bekendtgørelsen ingen særfaktor har |
 | `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
 | `skalFradragForetages(afgoerelseType, skadedato)` | Afgør om en afgørelse skal fratrækkes |
-| `computeTilbagevirkendeKraftFradrag(midlertidig, endeligVirkningsdato)` | Beregner fradraget når en endelig afgørelse gør midlertidig ydelse endelig med tilbagevirkende kraft (toggle) |
+| `computeTilbagevirkendeKraftFradrag(midlertidig, endelig)` | Beregner fradraget når en endelig afgørelse gør midlertidig ydelse endelig med tilbagevirkende kraft (toggle), afkortet ved 2-årsgrænsen |
+| `resolveAfkortetMidlertidigFradragTil(midlertidig, endelig)` | Afkorter det altid foretagne fradrag for midlertidige ydelser (skader før 16-06-2011) ved 2-årsgrænsen |
 
 ### Implementeringsstatus
 

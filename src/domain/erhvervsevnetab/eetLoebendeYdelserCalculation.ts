@@ -444,7 +444,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const { resolvedRows: resolvedAfgoerelserWithKapitalisering, events: kapitaliseringEvents } =
     buildKapitaliseringEvents(resolvedAfgoerelser, skadedato, fodselsdato);
 
-  const periodeplan = buildLoebendePeriodeplan(resolvedAfgoerelserWithKapitalisering, kapitaliseringEvents, fodselsdato, beregningsdato);
+  const periodeplan = buildLoebendePeriodeplan(resolvedAfgoerelserWithKapitalisering, kapitaliseringEvents, skadedato, fodselsdato, beregningsdato);
 
   const computations: EetLoebendeAfgoerelseComputation[] = [];
 
@@ -709,6 +709,8 @@ export const toOphoerAarsagLabel = (
       return 'Kapitalisering';
     case 'folkepensionsdato':
       return 'Folkepensionsdato';
+    case 'to-aarsgraense':
+      return 'To år før folkepensionsdatoen';
     default:
       return cause;
   }
@@ -738,7 +740,11 @@ export const resolveLoebendeOphoerVisning = (
   afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'ophoerDato' | 'ophoerAarsag' | 'virkningsdato'>
 ): LoebendeOphoerVisning => {
   if (afgoerelse.ophoerDato < afgoerelse.virkningsdato) {
+    // `ophoerDato` er sidste dag med ydelse. Ved beregningsdatoen er det selve datoen; ved folkepension og
+    // kapitalisering er begivenheden dagen efter – ydelsen ophører PÅ folkepensions-/kapitaliseringsdatoen.
     const datoTekst = formatISOToDanish(afgoerelse.ophoerDato);
+    const begivenhedsdato = getDayAfterIso(afgoerelse.ophoerDato);
+    const begivenhedsdatoTekst = formatISOToDanish(begivenhedsdato);
     switch (afgoerelse.ophoerAarsag) {
       case 'beregningsdato':
         return {
@@ -748,7 +754,14 @@ export const resolveLoebendeOphoerVisning = (
       case 'folkepensionsdato':
         return {
           kind: 'ingen-periode',
-          forklaring: `Virkningsdatoen ligger efter folkepensionsdatoen (${formatISOToDanish(afgoerelse.virkningsdato)} er efter ${datoTekst}).`,
+          forklaring: afgoerelse.virkningsdato === begivenhedsdato
+            ? `Virkningsdatoen er folkepensionsdatoen (${begivenhedsdatoTekst}).`
+            : `Virkningsdatoen (${formatISOToDanish(afgoerelse.virkningsdato)}) ligger efter folkepensionsdatoen (${begivenhedsdatoTekst}).`,
+        };
+      case 'to-aarsgraense':
+        return {
+          kind: 'ingen-periode',
+          forklaring: `Virkningsdatoen ligger på eller efter toårsgrænsen (${begivenhedsdatoTekst}). En endelig afgørelse giver derfor ingen løbende ydelser.`,
         };
       case 'senere-afgoerelse':
         return {
@@ -758,7 +771,9 @@ export const resolveLoebendeOphoerVisning = (
       case 'kapitalisering':
         return {
           kind: 'ingen-periode',
-          forklaring: `Afgørelsen er kapitaliseret, før den fik virkning (${datoTekst}).`,
+          forklaring: afgoerelse.virkningsdato === begivenhedsdato
+            ? `Afgørelsen er kapitaliseret fra virkningsdatoen (${begivenhedsdatoTekst}).`
+            : `Afgørelsen er kapitaliseret, før den fik virkning (${begivenhedsdatoTekst}).`,
         };
     }
   }

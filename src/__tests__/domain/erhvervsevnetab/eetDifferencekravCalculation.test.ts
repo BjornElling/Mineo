@@ -273,7 +273,7 @@ describe('computeEetDifferencekravCalculation', () => {
     // Afgørelsesdato 2021-10-01 er 9 måneder til FP → ≤ 2 år ✓
     // Virkningsdato 2020-01-01 er 30 måneder til FP → > 2 år ✓
     // Kapitaliseringsdato = afgørelsesdato = 2021-10-01, kapPct = 60 (hele EET)
-    // Løbende ydelser beregnes fra virkningsdato til dagen før kapitaliseringsdatoen
+    // Løbende ydelser beregnes fra virkningsdato til dagen før toårsgrænsen (30-06-2020).
     // Beregningsdato 2022-09-01 (efter FP)
 
     it('fradrager løbende ydelser og kapitalbeløb – ingen proformakapitalisering', () => {
@@ -304,7 +304,8 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation).not.toBeNull();
       const c = result.computation!;
 
-      expect(kroner(c.fradragLoebendeYdelserOre)).toBe(336273);
+      // Afgørelsesårets sats bruges også for tilbagevirkende ydelser: 6 × 16.013 kr.
+      expect(kroner(c.fradragLoebendeYdelserOre)).toBe(96078);
 
       // Fradrag 2: kapitalbeløb beregnet med særfaktor (≤ 2 år)
       expect(kroner(c.fradragKapitaliseretEetOre)).toBe(239221);
@@ -317,7 +318,7 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(kroner(c.differencekravOre)).toBeGreaterThan(0);
     });
 
-    it('løbende ydelse ophører ved kapitalisering på afgørelsesdatoen (ikke ved beregningsdato)', () => {
+    it('løbende ydelse ophører ved toårsgrænsen uanset senere kapitalisering og beregningsdato', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -342,8 +343,8 @@ describe('computeEetDifferencekravCalculation', () => {
       });
 
       const loebendeAfg = result.computation?.loebendeComputation?.afgoerelser[0];
-      expect(loebendeAfg?.ophoerAarsag).toBe('kapitalisering');
-      expect(loebendeAfg?.ophoerDato).toBe(toISODateString('2021-09-30'));
+      expect(loebendeAfg?.ophoerAarsag).toBe('to-aarsgraense');
+      expect(loebendeAfg?.ophoerDato).toBe(toISODateString('2020-06-30'));
     });
   });
 
@@ -552,8 +553,8 @@ describe('computeEetDifferencekravCalculation', () => {
             afgoerelsesDato: toISODateString('2022-02-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: undefined,
-            kapPct: undefined,
+            kapDato: toISODateString('2022-02-01'),
+            kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
@@ -596,8 +597,8 @@ describe('computeEetDifferencekravCalculation', () => {
             afgoerelsesDato: toISODateString('2021-11-01'),
             virkningsDato: undefined,
             eetPct: 80,
-            kapDato: undefined,
-            kapPct: undefined,
+            kapDato: toISODateString('2021-11-01'),
+            kapPct: 50,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },

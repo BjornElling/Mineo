@@ -4,11 +4,11 @@ import {
   type ErhvervsevnetabTabelvalg,
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { getFolkepensionAlder, isWithinTwoYearsOfFolkepension } from '../../data/folkepensionAlderRates';
+import { getFolkepensionAlder, getToAarsgraenseFoerFolkepension, isWithinTwoYearsOfFolkepension } from '../../data/folkepensionAlderRates';
 import { parseISODate, type ISODateString } from '../../types/branded';
 import { endOfYearIso, getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
-import { SKAERING_2007_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2007_07_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -255,6 +255,42 @@ export const isTwoYearKapitaliseringApplicable = (
   // Regelvalget må ikke afhænge af, om faktoropslaget lykkes. Ellers bliver
   // manglende data fejlagtigt til fravær af kapitalisering frem for en fejl.
   return isWithinTwoYearsOfFolkepension(fodselsdato, controlDate);
+};
+
+type KontroldatoKilde = Readonly<{
+  afgoerelsesdato: ISODateString | null | undefined;
+  tidlKapDato?: ISODateString | null | undefined;
+}>;
+
+/**
+ * Den tidligere kapitaliseringsdato, når den styrer regelvalget ved genoptagelse – ellers undefined.
+ *
+ * Før 1. juli 2024 vurderes en genoptagelse som om kapitaliseringen skete på den tidligere dato
+ * (toårsregel, bekendtgørelse, tabel, alder og faktor). Ved en afgørelse fra 1. juli 2024 styrer den nye
+ * afgørelsesdato i stedet (udviklerafgørelse 2026-11-13); den tidligere dato er da kun oplysning.
+ * Ukendt afgørelsesdato bevarer den tidligere dato, så en ufuldstændig række ikke skifter regel tavst.
+ */
+export const resolveRegelvalgendeTidlKapDato = ({ afgoerelsesdato, tidlKapDato }: KontroldatoKilde): ISODateString | undefined =>
+  tidlKapDato && (!afgoerelsesdato || afgoerelsesdato < SKAERING_2024_07_01) ? tidlKapDato : undefined;
+
+/** Kontroltidspunktet for toårsreglen og kapitaliseringens regelvalg. Eneste kilde – brug aldrig `tidlKapDato ?? afgoerelsesdato`. */
+export const resolveKapitaliseringKontroldato = (kilde: KontroldatoKilde): ISODateString | undefined =>
+  resolveRegelvalgendeTidlKapDato(kilde) ?? kilde.afgoerelsesdato ?? undefined;
+
+/**
+ * Sidste dag med løbende ydelse fra en endelig afgørelse omfattet af toårsreglen: dagen før toårsgrænsen.
+ * Undefined, når afgørelsen ikke er omfattet. Ejes her, så periodeplanen og differencekravets fradrag for
+ * midlertidige ydelser gjort endelige stopper på samme dag.
+ */
+export const resolveToAarsreglensSidsteYdelsesdag = (
+  row: KontroldatoKilde & Readonly<{ afgoerelseType: string | undefined }>,
+  skadedato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined
+): ISODateString | undefined => {
+  if (row.afgoerelseType !== 'Endelig' || !fodselsdato) return undefined;
+  const kontroldato = resolveKapitaliseringKontroldato(row);
+  if (!kontroldato || !isTwoYearKapitaliseringApplicable(skadedato, fodselsdato, kontroldato)) return undefined;
+  return getDayBeforeIso(getToAarsgraenseFoerFolkepension(fodselsdato, kontroldato));
 };
 
 /** Ældre skader fortsætter løbende i 2-årsvinduet, også ved en endelig afgørelse under 50 %. */

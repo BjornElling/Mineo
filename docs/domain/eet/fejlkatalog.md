@@ -185,7 +185,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Mindst én Endelig afgørelse med EET % < 50 har hverken kap.dato eller kap.% udfyldt. Vises ikke hvis kun ét felt mangler – det fanges af `kap-dato-without-kap-pct` / `kap-pct-without-kap-dato`. |
+| Betingelse | Mindst én Endelig afgørelse med EET % < 50 har hverken kap.dato eller kap.% udfyldt. Vises ikke ved tvungen kapitalisering efter toårsreglen, hvor `missing-kap-dato` / `missing-kap-pct` beskriver manglerne præcist. Vises heller ikke ved skader før 1. juli 2007 omfattet af undtagelsen uden kapitalisering. Vises ikke hvis kun ét felt mangler – det fanges af `kap-dato-without-kap-pct` / `kap-pct-without-kap-dato`. |
 
 #### `delvist-endelig-missing-kapitalisering` – "Der er angivet en delvist endelig afgørelse uden kapitalisering."
 | Felt | Værdi |
@@ -215,9 +215,18 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
-| Vises på | F3, F5 |
-| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Der er `Endelig`/`Delvist endelig` afgørelser og noget kap.-input, men ingen rækker resulterer i en komplet kapitalisering, og ingen af de mere specifikke fejl er aktive. |
+| Vises på | F2, F3, F5 samt EO-import ved tvungen kapitalisering; ellers F3, F5 |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven → den konkrete manglende Kap.dato / Kap. % |
+| Betingelse | Ved tvungen kapitalisering efter toårsreglen mangler et eller begge kapitaliseringsfelter, og der er rest-EET at kapitalisere. Manglerne vises med hver sin handlingsanvisning uden rød ring på tomme felter. Ellers: der er `Endelig`/`Delvist endelig` afgørelser og noget kap.-input, men ingen rækker resulterer i en komplet kapitalisering, og ingen af de mere specifikke fejl er aktive. |
+
+#### `invalid-kap-dato` / `invalid-kap-pct` – udfyldte kapitaliseringsfelter bryder en feltregel
+
+| Felt | Værdi |
+|---|---|
+| Type | Feltfejl |
+| Vises på | F2, F3, F5 samt EO-import |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven → den konkrete Kap.dato / Kap. % |
+| Betingelse | En udfyldt værdi bryder den samme eksisterende feltregel som i afgørelsestabellen, fx en kapitaliseringsdato før virkningsdatoen eller en procent, der ikke svarer til hele den resterende tvungne kapitalisering. Direkte beregninger og EO-import afviser værdien frem for at udlede andre tal bag den røde celle. |
 
 #### `missing-koen` – "Ved kapitalisering før 1. marts 2015 skal køn angives." (F3) / "Ved beregning før 1. marts 2015 skal køn angives." (F5)
 | Felt | Værdi |
@@ -451,7 +460,7 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Mindst én `Midlertidig` eller `Delvist endelig` afgørelse har afgørelsesdato efter den tidligste `Endelig` afgørelses dato |
 
-#### `warn-dato-after-beregningsdato` – "Beregningsdatoen ({dato}) ligger før sagens afgørelser."
+#### `warn-dato-after-beregningsdato` – "En eller flere datoer i ASL-afgørelserne ligger efter beregningsdatoen ({dato})."
 | Felt | Værdi |
 |---|---|
 | Type | Advarsel |
@@ -466,6 +475,22 @@ Afledes af den fælles issueprojektion og vises foruden inline ved feltet på fa
 | Vises på | F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
 | Betingelse | Der er påbegyndte rækker, men ingen har kap.dato eller kap.% udfyldt. ID: `WARN_NO_KAP_INPUT_ID` exporteret fra `eetKapitaliseringCalculation.ts`. |
+
+#### `warn-kap-dato-efter-afgoerelsesdato` – "Ved ≤ 2 år til folkepension sker kapitalisering som udgangspunkt på afgørelsesdatoen" / "Ved genoptagelse fra 1. juli 2024 sker kapitalisering som udgangspunkt på afgørelsesdatoen"
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F3, F5 samt gul ring på Kap.dato |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven → den første berørte Kap.dato |
+| Betingelse | Kapitaliseringsdatoen ligger efter afgørelsesdatoen ved en endelig afgørelse omfattet af toårsreglen eller ved en (delvist) endelig genoptagelse med afgørelsesdato fra 1. juli 2024. Datoen er tilladt og lægges til grund. |
+
+#### `warn-kap-dato-inden-for-to-aar-til-fp` – "Kapitalisering inden for de sidste to år før folkepensionsalderen er som udgangspunkt udelukket"
+| Felt | Værdi |
+|---|---|
+| Type | Advarsel |
+| Vises på | F3, F5 samt gul ring på Kap.dato (celleteksten nævner 2-årsgrænsens dato) |
+| Navigationslink | EET oplysninger → Arbejdsskadesikringsloven → den første berørte Kap.dato |
+| Betingelse | En endelig eller delvist endelig afgørelse har kapitaliseringsdato på eller efter 2-årsgrænsen, uden at kapitaliseringen er påkrævet efter toårsreglen. Kræver kendt skadedato og fødselsdato. Viger i cellen for `warn-kap-dato-efter-afgoerelsesdato`. |
 
 #### `warn-kap-pct-under-15` – "Der er angivet kapitalisering med mindre end 15 %."
 | Felt | Værdi |

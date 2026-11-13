@@ -80,7 +80,7 @@ const addProformaKapitaliseringSection = (
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   writer.writeSectionHeader(
-    'Proformakapitalisering af rest-EET'
+    'Proformakapitalisering af rest-EET (ASL)'
   );
 
   writer.writeLeftRightText(
@@ -215,6 +215,13 @@ const addProformaKapitaliseringSection = (
     formatKr(toKroner(pk.proformaBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );
+
+  // Forklaringen af den nedsatte særfaktor hører til bilaget, hvor faktoren opgøres – ikke til
+  // differencekravssiden (udviklerafgørelse 2026-11-13).
+  const nedsatSaerfaktorForklaring = resolveNedsatSaerfaktorForklaring(pk);
+  if (nedsatSaerfaktorForklaring !== null) {
+    writer.writeBoldSubheaderWithWrappedText('Note', nedsatSaerfaktorForklaring);
+  }
 };
 
 // ============================================================================
@@ -333,7 +340,7 @@ const addMerErstatningPensionsalderSection = (
   koen: string | undefined
 ): void => {
   writer.addPage();
-  writer.writeTitle(FORHOEJET_PENSIONSALDER_LABEL);
+  writer.writeTitle(`${FORHOEJET_PENSIONSALDER_LABEL} (ASL)`);
 
   computation.events.forEach((event) => {
     addMerErstatningEvent(writer, event, koen);
@@ -488,10 +495,8 @@ const renderDifferencekravPage = (
       );
     } else if (computation.proformaKapitalisering) {
       const pk = computation.proformaKapitalisering;
-      writer.writeWrappedText(
-        resolveNedsatSaerfaktorForklaring(pk)
-          ?? 'Der foretages fradrag med kapitaliseringsværdien af resterende EET.'
-      );
+      // Den nedsatte særfaktor forklares i bilaget «Proformakapitalisering af rest-EET» under «Note».
+      writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
       writer.writeLeftRightText(
         `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatISOToDanish(pk.kapitaliseringsdato)}:`,
         formatDeductionKr(toKroner(pk.proformaBeloebOre)),
@@ -619,7 +624,7 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
   if (bilagSelection.loebendeYdelser && computation.loebendeComputation) {
     const lc = computation.loebendeComputation;
     writer.addPage();
-    writer.writeTitle('Løbende ydelser (EET)');
+    writer.writeTitle('Løbende ydelser (ASL)');
     if (lc.afgoerelser.length === 0) {
       addLoebendeYdelserEmptyState(writer);
     } else {
@@ -636,7 +641,7 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
   if (bilagSelection.kapitalisering && computation.kapComputation) {
     const kc = computation.kapComputation;
     writer.addPage();
-    writer.writeTitle('Kapitalisering (EET)');
+    writer.writeTitle('Kapitalisering (ASL)');
     if (kc.afgoerelser.length === 0) {
       addKapitaliseringEmptyState(writer);
     } else {

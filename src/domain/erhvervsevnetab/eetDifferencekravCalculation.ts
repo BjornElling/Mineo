@@ -10,7 +10,7 @@ import { getDagenFoerFolkepensionsdato, isWithinTwoYearsOfFolkepension } from '.
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
-import { isoYear } from '../../utils/isoDateHelpers';
+import { getDayBeforeIso, isoYear, maxISO, minISO } from '../../utils/isoDateHelpers';
 import { parseCommittedPercent } from './eetAslAfgoerelser';
 import { MISSING_BEREGNINGSDATO_ISSUE, MISSING_KOEN_ISSUE } from './eetIssueCatalog';
 import {
@@ -21,6 +21,7 @@ import {
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
+  resolveToAarsreglensSidsteYdelsesdag,
 } from './eetKapitaliseringOpslag';
 import { ceil0, ceilNearest12, round0, round2, round3, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
@@ -532,6 +533,40 @@ type LoebendeAfgoerelseComputation =
   import('./eetLoebendeYdelserCalculation').EetLoebendeAfgoerelseComputation;
 
 /**
+ * Den endelige afgørelse, der overtager tidligere midlertidige ydelser: den med tidligste virkningsdato.
+ * `sidsteYdelsesdag` er sat, når den er omfattet af toårsreglen – så betragtes de overtagne ydelser som
+ * endelige og stopper dagen før toårsgrænsen, mens kapitalbeløbet dækker de sidste to år
+ * (udviklerafgørelse 2026-11-13).
+ */
+type EndeligOvertagelse = Readonly<{
+  virkningsdato: ISODateString;
+  sidsteYdelsesdag: ISODateString | undefined;
+}>;
+
+/**
+ * Den midlertidige ydelse for delperioden [fra, til], med de allerede beregnede periode-rækker fra fane 2.
+ * Kun en række, der krydser en af grænserne, genberegnes – med samme måneds-/afrundingsregel som kilden
+ * (round0(måneder × månedlig ydelse)).
+ */
+const sumLoebendeYdelseForInterval = (
+  afgoerelse: LoebendeAfgoerelseComputation,
+  fra: ISODateString,
+  til: ISODateString
+): MoneyOre => {
+  const beloebParts: MoneyOre[] = [];
+  for (const row of afgoerelse.perioder) {
+    if (row.til < fra || row.fra > til) continue;
+    if (row.fra >= fra && row.til <= til) {
+      beloebParts.push(row.beregnetEetOre);
+      continue;
+    }
+    const maaneder = sumMaanedsbroekForInterval(maxISO(row.fra, fra), minISO(row.til, til));
+    beloebParts.push(fromKroner(round0(maaneder * toKroner(row.maanedligYdelseOre))));
+  }
+  return sumMoneyOre(beloebParts);
+};
+
+/**
  * Beregner det fradrag der opstår, når en endelig afgørelse med tilbagevirkende kraft
  * gør en tidligere midlertidig afgørelses løbende ydelse fradragsberettiget i differencekravet.
  *
@@ -540,42 +575,45 @@ type LoebendeAfgoerelseComputation =
  * - Aktiveres når en endelig afgørelses virkningsdato ligger inden i den midlertidiges
  *   egen løbende-ydelsesperiode [virkningsdato, ophørDato].
  * - Fradraget = den midlertidiges egen løbende ydelse (dens egen rest-EET og sats, præcis
- *   som fane 2 har beregnet den) for delperioden [endeligVirkningsdato, midlertidigs ophør].
- *
- * Genbruger den midlertidiges allerede beregnede periode-rækker frem for at genberegne,
- * og recomputeer kun den eventuelle delperiode der krydser den endelige virkningsdato med
- * samme måneds-/afrundingsregel som kilden (round0(måneder × månedlig ydelse)).
+ *   som fane 2 har beregnet den) for delperioden [endeligVirkningsdato, midlertidigs ophør],
+ *   dog højst til dagen før toårsgrænsen, når den endelige afgørelse er omfattet af toårsreglen.
  */
 const computeTilbagevirkendeKraftFradrag = (
   midlertidig: LoebendeAfgoerelseComputation,
-  endeligVirkningsdato: ISODateString
+  endelig: EndeligOvertagelse
 ): EetDifferencekravTilbagevirkendeKraftFradrag | null => {
+  const endeligVirkningsdato = endelig.virkningsdato;
   // Den endelige virkningsdato skal ligge inden i den midlertidiges løbende periode.
   if (endeligVirkningsdato < midlertidig.virkningsdato || endeligVirkningsdato > midlertidig.ophoerDato) {
     return null;
   }
 
-  const beloebParts: MoneyOre[] = [];
-  for (const row of midlertidig.perioder) {
-    if (row.til < endeligVirkningsdato) continue;
-    if (row.fra >= endeligVirkningsdato) {
-      beloebParts.push(row.beregnetEetOre);
-      continue;
-    }
-    // Rækken krydser den endelige virkningsdato – medregn kun delen fra og med den dato.
-    const maaneder = sumMaanedsbroekForInterval(endeligVirkningsdato, row.til);
-    beloebParts.push(fromKroner(round0(maaneder * toKroner(row.maanedligYdelseOre))));
-  }
-
-  const beloebOre = sumMoneyOre(beloebParts);
+  const til = minISO(midlertidig.ophoerDato, endelig.sidsteYdelsesdag ?? midlertidig.ophoerDato);
+  if (til < endeligVirkningsdato) return null;
+  const beloebOre = sumLoebendeYdelseForInterval(midlertidig, endeligVirkningsdato, til);
   if (beloebOre <= 0) return null;
 
   return {
     endeligVirkningsdato,
     fra: endeligVirkningsdato,
-    til: midlertidig.ophoerDato,
+    til,
     beloebOre,
   };
+};
+
+/**
+ * Sidste fradragsdag for en midlertidig ydelse, der altid fratrækkes (skader før 16-06-2011), når en
+ * endelig afgørelse omfattet af toårsreglen overtager den. Ydelsen før den endelige virkningsdato er
+ * fortsat midlertidig og fratrækkes fuldt; fra virkningsdatoen er den endelig og stopper dagen før
+ * toårsgrænsen. Undefined, når fradraget ikke afkortes.
+ */
+const resolveAfkortetMidlertidigFradragTil = (
+  midlertidig: LoebendeAfgoerelseComputation,
+  endelig: EndeligOvertagelse | null
+): ISODateString | undefined => {
+  if (!endelig?.sidsteYdelsesdag) return undefined;
+  const slut = maxISO(endelig.sidsteYdelsesdag, getDayBeforeIso(endelig.virkningsdato));
+  return slut < midlertidig.ophoerDato ? slut : undefined;
 };
 
 // ─── Beregning ────────────────────────────────────────────────────────────────
@@ -814,23 +852,41 @@ export const composeEetDifferencekravCalculation = (
     // allerede 100 %, så reglen ville være en no-op/dobbelttælling og deaktiveres derfor.
     const tilbagevirkendeKraftAktiv =
       input.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft && skadedato >= SKAERING_2011_06_16;
-    // Tidligste endelige afgørelses virkningsdato – det er denne der kan gøre tidligere
-    // midlertidige ydelser endelige med tilbagevirkende kraft.
-    const tidligsteEndeligVirkningsdato = tilbagevirkendeKraftAktiv
-      ? loebendeComputation.afgoerelser
-          .filter((a) => a.afgoerelseType === 'Endelig')
-          .reduce<ISODateString | null>(
-            (earliest, a) => (earliest === null || a.virkningsdato < earliest ? a.virkningsdato : earliest),
-            null
-          )
-      : null;
+    // Tidligste endelige afgørelse – det er denne der overtager tidligere midlertidige ydelser.
+    // Ved samme virkningsdato vinder den tidligste toårsgrænse, så en tvungen kapitalisering aldrig overses.
+    const aslRowsById = new Map(input.erhvervsevnetab.aslAfgoerelser.map((row) => [row.id, row]));
+    const endeligOvertagelse = loebendeComputation.afgoerelser
+      .filter((a) => a.afgoerelseType === 'Endelig')
+      .map((a): EndeligOvertagelse => {
+        const row = aslRowsById.get(a.rowId);
+        return {
+          virkningsdato: a.virkningsdato,
+          sidsteYdelsesdag: row === undefined ? undefined : resolveToAarsreglensSidsteYdelsesdag({
+            afgoerelseType: a.afgoerelseType,
+            afgoerelsesdato: a.afgoerelsesdato,
+            tidlKapDato: coerceToISODateString(row.tidlKapDato),
+          }, skadedato, fodselsdato),
+        };
+      })
+      .reduce<EndeligOvertagelse | null>((earliest, candidate) => {
+        if (earliest === null || candidate.virkningsdato < earliest.virkningsdato) return candidate;
+        if (candidate.virkningsdato > earliest.virkningsdato) return earliest;
+        return { ...earliest, sidsteYdelsesdag: minISO(earliest.sidsteYdelsesdag, candidate.sidsteYdelsesdag) };
+      }, null);
 
     for (let i = 0; i < sortedByVirkningsdato.length; i++) {
       const afgoerelse = sortedByVirkningsdato[i]!;
-      const fradragesTil = afgoerelse.ophoerDato;
 
       const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadedato);
-      const beloebOre = foretages ? afgoerelse.iAltBeregnetEetOre : zeroMoneyOre();
+      const afkortetFradragTil = foretages && afgoerelse.afgoerelseType === 'Midlertidig'
+        ? resolveAfkortetMidlertidigFradragTil(afgoerelse, endeligOvertagelse)
+        : undefined;
+      const fradragesTil = afkortetFradragTil ?? afgoerelse.ophoerDato;
+      const beloebOre = !foretages
+        ? zeroMoneyOre()
+        : afkortetFradragTil === undefined
+          ? afgoerelse.iAltBeregnetEetOre
+          : sumLoebendeYdelseForInterval(afgoerelse, afgoerelse.virkningsdato, afkortetFradragTil);
       fradragLoebendeYdelserParts.push(beloebOre);
 
       // Tilbagevirkende kraft: en midlertidig afgørelse, der ellers ikke fradrages, får
@@ -839,11 +895,12 @@ export const composeEetDifferencekravCalculation = (
       if (
         !foretages &&
         afgoerelse.afgoerelseType === 'Midlertidig' &&
-        tidligsteEndeligVirkningsdato !== null
+        tilbagevirkendeKraftAktiv &&
+        endeligOvertagelse !== null
       ) {
         tilbagevirkendeKraftFradrag = computeTilbagevirkendeKraftFradrag(
           afgoerelse,
-          tidligsteEndeligVirkningsdato
+          endeligOvertagelse
         );
         if (tilbagevirkendeKraftFradrag) {
           fradragLoebendeYdelserParts.push(tilbagevirkendeKraftFradrag.beloebOre);

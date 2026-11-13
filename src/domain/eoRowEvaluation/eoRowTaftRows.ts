@@ -296,7 +296,7 @@ export const buildEoTaftRows = (
       rows.push({
         id: `taf.folkepensionsalder.${periode.id}`,
         label: 'Periode',
-        displayValue: `Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (${isoToDanish(folkepensionsdato)}).)`,
+        displayValue: `Advarsel (TAF-perioden løber til eller efter skadelidtes folkepensionsdato (${isoToDanish(folkepensionsdato)}).)`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
       });

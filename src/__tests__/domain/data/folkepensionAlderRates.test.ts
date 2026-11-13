@@ -1,4 +1,4 @@
-import { getFolkepensionAlder, isWithinTwoYearsOfFolkepension } from '../../../data/folkepensionAlderRates';
+import { getFolkepensionAlder, getToAarsgraenseFoerFolkepension, isWithinTwoYearsOfFolkepension } from '../../../data/folkepensionAlderRates';
 import { toISODateString } from '../../../types/branded';
 
 describe('isWithinTwoYearsOfFolkepension', () => {
@@ -9,6 +9,7 @@ describe('isWithinTwoYearsOfFolkepension', () => {
     ['1960-02-29', '2025-02-27', '2025-02-28', '2025-03-01', '2027-02-28'],
   ])('bruger den faktiske pensionsdato ved fødselsdato %s', (birth, before, boundary, after, pension) => {
     const fodselsdato = toISODateString(birth);
+    expect(getToAarsgraenseFoerFolkepension(fodselsdato, toISODateString(boundary))).toBe(boundary);
     expect(isWithinTwoYearsOfFolkepension(fodselsdato, toISODateString(before))).toBe(false);
     for (const date of [boundary, after, pension]) {
       expect(isWithinTwoYearsOfFolkepension(fodselsdato, toISODateString(date))).toBe(true);
@@ -17,6 +18,7 @@ describe('isWithinTwoYearsOfFolkepension', () => {
 
   it('returnerer false når pensionsalderen ikke kan bestemmes', () => {
     expect(isWithinTwoYearsOfFolkepension(toISODateString('1940-01-01'), toISODateString('2002-12-31'))).toBe(false);
+    expect(getToAarsgraenseFoerFolkepension(toISODateString('1940-01-01'), toISODateString('2002-12-31'))).toBeUndefined();
   });
 });
 

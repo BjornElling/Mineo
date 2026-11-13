@@ -36,7 +36,7 @@ const createValues = (
       eetPct: 25,
       kapDato: toISODateString('2026-03-01'),
       kapPct: 10,
-      afgoerelseType: 'Endelig',
+      afgoerelseType: 'Delvist endelig',
       tidlKapDato: undefined,
       fsTilbageholdtEet: 'Nej',
     },

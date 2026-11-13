@@ -399,7 +399,7 @@ describe('buildEoTaftRows overlap parity', () => {
     const warningRow = rows.find((row) => row.id === 'taf.folkepensionsalder.a');
 
     expect(warningRow?.status).toBe('warning');
-    expect(warningRow?.displayValue).toContain('folkepensionsalder');
+    expect(warningRow?.displayValue).toContain('folkepensionsdato');
   });
 
   it('viser midlertidig EET som ophørsårsag og clampet TAF-slutdato for pre-2011-sager', () => {
