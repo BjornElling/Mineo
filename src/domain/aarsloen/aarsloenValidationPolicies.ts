@@ -6,7 +6,8 @@
 
 import type { AarsloenValues, StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
-import { formatPercent } from '../../utils/formatUtils';
+import { formatCountWithUnit, formatPercent } from '../../utils/formatUtils';
+import type { AarsloenBeregningResult, AarsloenBeregningResultBeregnet } from '../../types/calculation';
 import { ferieYdelseNavn, resolveFerieYdelse } from '../loen/feriePctYdelse';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
 import { getStandardLoenTableValidation } from '../standardLoen/standardLoenTableValidation';
@@ -57,13 +58,52 @@ export const resolveAarsloenCanonicalRangeIssues = (
 };
 
 /**
- * Feriedage kan ikke overstige periodens EGNE hverdage.
+ * De dage, omregningen deler lønnen med, FØR feriedagene trækkes fra: hverdage minus SH-dage (metode A) eller
+ * hverdage (metode B og metode C's dag-fallback). `null`, når omregningen ikke deler med dage – måneds- og
+ * ugeomregningen og dag-tilstandens hele kalendermåneder deler med enheder, som en periode altid har mindst én af.
+ *
+ * Tallet udledes af motorens EGET resultat (arbejdsdage + de fratrukne feriedage), ikke af en selvstændig
+ * genberegning, så grænsen ikke kan komme ud af trit med den mellemregning, siden viser.
+ */
+export const resolveAarsloenOmregningsdageFoerFerie = (
+  data: AarsloenBeregningResultBeregnet,
+  loenperiode: Loenperiode
+): number | null => {
+  const delerMedDage = data.metode === 'A' || data.metode === 'B'
+    || (data.metode === 'C' && loenperiode === 'dag' && data.antalHeleKalendermaaneder === null);
+  if (!delerMedDage) return null;
+  // Motoren trækker kun feriedagene fra, når de er relevante (uden fuld løn under ferie); ellers er de 0 her.
+  return data.arbejdsdageIPeriode + data.feriedageFraInput;
+};
+
+/**
+ * Perioderne har ingen dage at omregne efter (BB-400) – uanset feriedagene: fx en datoperiode, der kun dækker en
+ * weekend, eller kun en SH-dag ved «Ingen»/«SH-udbetaling». Omregningen ville dele med nul og vise `0,00 kr.` som
+ * en årsløn. Feriedagenes egen grænse (`resolveAarsloenFeriedageOverskriderPeriodenIssue`) dækker resten.
+ */
+export const AARSLOEN_INGEN_OMREGNINGSDAGE_BESKED = 'De indtastede perioder indeholder ingen arbejdsdage at omregne lønnen efter';
+
+export const harAarsloenIngenOmregningsdage = (
+  data: AarsloenBeregningResult,
+  loenperiode: Loenperiode
+): boolean => {
+  if (data.metode === 'ingen') return false;
+  const dage = resolveAarsloenOmregningsdageFoerFerie(data, loenperiode);
+  return dage !== null && dage <= 0;
+};
+
+/**
+ * Feriedagene skal efterlade mindst én dag at omregne lønnen efter.
  *
  * Feltets erklærede grænse (0–99) er valgt efter feltets ART – et antal dage – ikke efter det tal, det
  * bliver trukket fra. Uden denne regel gav «99 feriedage» i en enkelt måned et negativt antal arbejdsdage
  * (23 − 99 = −76), og omregningen klampede resultatet til `0,00 kr.` og præsenterede nullet som et beløb.
  *
- * Grænsen kendes præcist: det er det hverdagstal, siden selv skriver i samme linje. Reglen er derfor en
+ * Grænsen var først periodens hverdage (BB-097). Den fangede hverken lighed (23 feriedage på 23 hverdage giver
+ * 0 dage) eller de SH-dage, metode A også trækker fra – begge gav en hentbar nulårsløn (BB-400, udviklerafgørelse
+ * 2026-11-17, også for tidligere gemte sager). Grænsen er derfor omregningens egne dage minus én.
+ *
+ * Grænsen kendes præcist: det er de tal, siden selv skriver i samme linje. Reglen er derfor en
  * AFLEDT grænse, ikke en indtastningsbegrænsning – værdien committes canonical, og feltet bliver rødt med
  * den konkrete grænse i tooltippet (udviklerbeslutning 2026-08-26: ingen egentlig begrænsning i
  * indtastningen, men rød ring og en tooltip, der forklarer fejlen).
@@ -73,20 +113,29 @@ export const resolveAarsloenCanonicalRangeIssues = (
  */
 export const resolveAarsloenFeriedageOverskriderPeriodenIssue = (
   values: AarsloenValues,
-  options: Readonly<{ omregningAktiveret: boolean; hverdageIPeriode: number }>
+  options: Readonly<{ omregningAktiveret: boolean; beregningsData: AarsloenBeregningResultBeregnet }>
 ): AarsloenCanonicalRangeIssue | null => {
   if (!options.omregningAktiveret) return null;
   if (values.fuldLoenUnderFerie) return null;
   if (values.antalFeriedage === undefined) return null;
   // Den statiske 0–99-grænse svarer først; to samtidige beskeder på ét felt ville konkurrere.
   if (values.antalFeriedage < 0 || values.antalFeriedage > 99) return null;
-  // Uden en beregnet periode findes grænsen ikke endnu – tabellen bærer selv sine egne fejl.
-  if (!Number.isFinite(options.hverdageIPeriode) || options.hverdageIPeriode <= 0) return null;
-  if (values.antalFeriedage <= options.hverdageIPeriode) return null;
+  const dage = resolveAarsloenOmregningsdageFoerFerie(options.beregningsData, values.loenperiode);
+  // Uden dage at omregne efter er det perioden, ikke feriedagene, der er problemet (`harAarsloenIngenOmregningsdage`).
+  if (dage === null || !Number.isFinite(dage) || dage <= 0) return null;
+  const max = dage - 1;
+  if (values.antalFeriedage <= max) return null;
 
+  const { metode, hverdageIPeriode } = options.beregningsData;
+  const shDage = hverdageIPeriode - dage;
+  const grundlag = metode === 'A' && shDage > 0
+    ? `${formatCountWithUnit(hverdageIPeriode, 'hverdag', 'hverdage')} - ${formatCountWithUnit(shDage, 'SH-dag', 'SH-dage')}`
+    : formatCountWithUnit(hverdageIPeriode, 'hverdag', 'hverdage');
+  // Metode A omregner efter arbejdsdage, B og dag-fallbacken efter hverdage – samme ord som mellemregningen.
+  const enhed = metode === 'A' ? 'arbejdsdag' : 'hverdag';
   return {
     field: 'antalFeriedage',
-    message: `Antal feriedage kan højst være ${options.hverdageIPeriode} (hverdage i de indtastede perioder).`,
+    message: `Antal feriedage kan højst være ${max}, så der er mindst én ${enhed} tilbage (${grundlag} i de indtastede perioder).`,
   };
 };
 

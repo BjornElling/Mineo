@@ -124,7 +124,7 @@ export function useAarsloenViewModel() {
     () => buildAarsloenReaderProjection(evaluation.reader),
     [evaluation]
   );
-  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues, feriePctMangler, feriePctRuleIssue } = readerProjection;
+  const { values, tableValidation, omregningGate, tableRowWarnings, tableCellWarnings, feriedageFieldIssues, tabelSatserUkendte, feriePctRuleIssue } = readerProjection;
 
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
 
@@ -250,8 +250,11 @@ export function useAarsloenViewModel() {
     tabelRef,
     values,
     tableSatser,
-    /** Den påkrævede feriesats er tom (M-37): tabellens afledte kolonner viser «—» som sammentællingen (BB-099). */
-    feriePctMangler,
+    /**
+     * En sats er ukendt – tom påkrævet feriesats (M-37) eller overenskomstsatser, der ikke kan slås op (BB-402):
+     * tabellens afledte kolonner viser «—» som sammentællingen (BB-099).
+     */
+    tabelSatserUkendte,
     /** Kryds-række-dubletter som feltissues – gør de gentagne rækkers celler røde. */
     tableCellWarnings,
     /** Den afledte feriedage-grænse (feltet må ikke overstige periodens egne hverdage). */

@@ -4,7 +4,9 @@ import { resolveAarsloenSatsBindings, resolveAarsloenTillaegsMode } from './aars
 import { beregnOmregnetAarsloen } from './aarsloenCalculations';
 import { calculateStandardLoenRowDerived, roundStandardLoenAmountToTwoDecimals } from './standardLoenRowCalculations';
 import {
+  AARSLOEN_INGEN_OMREGNINGSDAGE_BESKED,
   beregnFejlmeddelelser,
+  harAarsloenIngenOmregningsdage,
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
 } from './aarsloenValidationPolicies';
@@ -164,6 +166,9 @@ export const computeAarsloenBeregning = ({
   else if (shDageAntalResult && isErr(shDageAntalResult)) beregningsFejl = 'Fejl ved beregning af SH-dage';
   else if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) beregningsFejl = 'Fejl ved beregning af årsløn';
   else if (beregningsDataResult && isErr(beregningsDataResult)) beregningsFejl = 'Fejl ved beregning af omregnet årsløn';
+  // Ingen dage at dele med: omregningen ville vise `0,00 kr.` som en årsløn (BB-400). Fatal, så resultatet er «—»
+  // og dokumentet spærret. Er det feriedagene, der æder dagene, er det i stedet feltets røde grænse.
+  else if (omregningAktiveret && harAarsloenIngenOmregningsdage(beregningsData, loenperiode)) beregningsFejl = AARSLOEN_INGEN_OMREGNINGSDAGE_BESKED;
 
   return {
     periodeData,

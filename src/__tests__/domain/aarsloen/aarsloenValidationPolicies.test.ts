@@ -6,7 +6,9 @@ import {
   harTabelData,
   resolveAarsloenCanonicalRangeIssues,
   resolveAarsloenFeriedageOverskriderPeriodenIssue,
+  harAarsloenIngenOmregningsdage,
 } from '../../../domain/aarsloen/aarsloenValidationPolicies';
+import type { AarsloenBeregningResultBeregnet } from '../../../types/calculation';
 import { AARSLOEN_INITIAL_VALUES, createAarsloenInitialValues } from '../../../domain/aarsloen/aarsloenInitialValues';
 import type { AarsloenValues } from '../../../schemas/formSchemas';
 
@@ -89,58 +91,100 @@ describe('resolveAarsloenFeriedageOverskriderPeriodenIssue', () => {
     fuldLoenUnderFerie: false,
     ...overrides,
   });
+  /** Motorens resultat for en periode uden fuld løn under ferie, som `beregnOmregnetAarsloen` danner det. */
+  const data = (
+    metode: 'A' | 'B',
+    args: Readonly<{ hverdage: number; shDage?: number; feriedage: number }>
+  ): AarsloenBeregningResultBeregnet => ({
+    metode, erEtAar: false, hverdageIPeriode: args.hverdage, feriedageFraInput: args.feriedage,
+    arbejdsdageIPeriode: args.hverdage - args.feriedage - (metode === 'A' ? args.shDage ?? 0 : 0),
+    feriedagePaaAar: 25, arbejdsdagePaaAar: 0, hverdagePaaAar: 0, omregnetAarsloen: 0,
+    antalEnheder: 1, antalHeleKalendermaaneder: null,
+  });
+  const issueFor = (
+    antalFeriedage: number | undefined,
+    beregningsData: AarsloenBeregningResultBeregnet,
+    overrides: Partial<AarsloenValues> = {},
+    omregningAktiveret = true
+  ) => resolveAarsloenFeriedageOverskriderPeriodenIssue(
+    values({ antalFeriedage, ...overrides }),
+    { omregningAktiveret, beregningsData }
+  );
 
   it('feriedage over periodens hverdage → issue med den KONKRETE grænse', () => {
-    const issue = resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 99 }),
-      { omregningAktiveret: true, hverdageIPeriode: 23 }
-    );
-    expect(issue).toEqual({
+    expect(issueFor(99, data('B', { hverdage: 23, feriedage: 99 }))).toEqual({
       field: 'antalFeriedage',
-      message: 'Antal feriedage kan højst være 23 (hverdage i de indtastede perioder).',
+      message: 'Antal feriedage kan højst være 22, så der er mindst én hverdag tilbage (23 hverdage i de indtastede perioder).',
     });
   });
 
-  it('feriedage præcis lig periodens hverdage → intet issue', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 23 }),
-      { omregningAktiveret: true, hverdageIPeriode: 23 }
-    )).toBeNull();
+  it('feriedage lig periodens hverdage efterlader 0 dage → issue (BB-400)', () => {
+    expect(issueFor(23, data('B', { hverdage: 23, feriedage: 23 }))?.message)
+      .toBe('Antal feriedage kan højst være 22, så der er mindst én hverdag tilbage (23 hverdage i de indtastede perioder).');
+  });
+
+  it('metode A trækker SH-dagene fra grænsen og navngiver dem (BB-400)', () => {
+    // Brugerfundet: januar 2024, 23 hverdage og nytårsdag, «Ingen» løn på helligdage. 22 feriedage gav 0 dage.
+    for (const feriedage of [22, 23]) {
+      expect(issueFor(feriedage, data('A', { hverdage: 23, shDage: 1, feriedage }))).toEqual({
+        field: 'antalFeriedage',
+        message: 'Antal feriedage kan højst være 21, så der er mindst én arbejdsdag tilbage (23 hverdage - 1 SH-dag i de indtastede perioder).',
+      });
+    }
+  });
+
+  it('feriedage, der efterlader én dag → intet issue', () => {
+    expect(issueFor(21, data('A', { hverdage: 23, shDage: 1, feriedage: 21 }))).toBeNull();
+    expect(issueFor(22, data('B', { hverdage: 23, feriedage: 22 }))).toBeNull();
   });
 
   it('uden omregning → intet issue (feltet er irrelevant)', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 99 }),
-      { omregningAktiveret: false, hverdageIPeriode: 23 }
-    )).toBeNull();
+    expect(issueFor(99, data('B', { hverdage: 23, feriedage: 99 }), {}, false)).toBeNull();
   });
 
   it('med fuld løn under ferie → intet issue (feltet er irrelevant)', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 99, fuldLoenUnderFerie: true }),
-      { omregningAktiveret: true, hverdageIPeriode: 23 }
-    )).toBeNull();
+    expect(issueFor(99, data('B', { hverdage: 23, feriedage: 0 }), { fuldLoenUnderFerie: true })).toBeNull();
   });
 
   it('tomt felt → intet issue', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: undefined }),
-      { omregningAktiveret: true, hverdageIPeriode: 23 }
-    )).toBeNull();
+    expect(issueFor(undefined, data('B', { hverdage: 23, feriedage: 0 }))).toBeNull();
   });
 
   it('værdi uden for 0–99 → intet issue (den statiske bounds-fejl svarer først)', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 150 }),
-      { omregningAktiveret: true, hverdageIPeriode: 23 }
-    )).toBeNull();
+    expect(issueFor(150, data('B', { hverdage: 23, feriedage: 150 }))).toBeNull();
   });
 
-  it('uden en beregnet periode → intet issue (grænsen findes ikke endnu)', () => {
-    expect(resolveAarsloenFeriedageOverskriderPeriodenIssue(
-      values({ antalFeriedage: 99 }),
-      { omregningAktiveret: true, hverdageIPeriode: 0 }
-    )).toBeNull();
+  it('periode uden dage at omregne efter → intet feltissue (perioden er problemet, ikke feriedagene)', () => {
+    expect(issueFor(5, data('B', { hverdage: 0, feriedage: 5 }))).toBeNull();
+    expect(issueFor(0, data('A', { hverdage: 1, shDage: 1, feriedage: 0 }))).toBeNull();
+  });
+});
+
+describe('harAarsloenIngenOmregningsdage', () => {
+  const beregnet = (overrides: Partial<AarsloenBeregningResultBeregnet>): AarsloenBeregningResultBeregnet => ({
+    metode: 'B', erEtAar: false, hverdageIPeriode: 0, feriedageFraInput: 0, arbejdsdageIPeriode: 0,
+    feriedagePaaAar: 25, arbejdsdagePaaAar: 0, hverdagePaaAar: 0, omregnetAarsloen: 0,
+    antalEnheder: 1, antalHeleKalendermaaneder: null,
+    ...overrides,
+  });
+
+  it('melder en periode uden dage at dele med i metode A, B og dag-fallbacken (BB-400)', () => {
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'B' }), 'dag')).toBe(true);
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'A', hverdageIPeriode: 1 }), 'dag')).toBe(true);
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'C' }), 'dag')).toBe(true);
+  });
+
+  it('melder ikke feriedagenes fradrag – det er feltets egen grænse', () => {
+    expect(harAarsloenIngenOmregningsdage(
+      beregnet({ hverdageIPeriode: 23, feriedageFraInput: 23, arbejdsdageIPeriode: 0 }), 'maaned'
+    )).toBe(false);
+  });
+
+  it('melder ikke måneds-, uge- og kalendermånedsomregning, som deler med enheder', () => {
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'C' }), 'maaned')).toBe(false);
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'C' }), 'uge')).toBe(false);
+    expect(harAarsloenIngenOmregningsdage(beregnet({ metode: 'C', antalHeleKalendermaaneder: 1 }), 'dag')).toBe(false);
+    expect(harAarsloenIngenOmregningsdage({ metode: 'ingen', erEtAar: false }, 'dag')).toBe(false);
   });
 });
 

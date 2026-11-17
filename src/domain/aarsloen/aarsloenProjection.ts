@@ -42,7 +42,7 @@ import { ferieYdelseNavn, resolveFerieYdelse } from '../loen/feriePctYdelse';
 import { formatPercent } from '../../utils/formatUtils';
 import { erAarsloenLoenforholdValgRelevante, erAarsloenSatsFelterRelevante } from '../policies/aarsloenPolicy';
 import { aarsloenOverenskomstIdField, aarsloenOverenskomstLoenmodtagerField, aarsloenOverenskomstArbejdsgiverField, aarsloenReguleringsdatoField, aarsloenBeregnStoreBededagstillaegField } from '../../inputCore/catalog/aarsloenDescriptors';
-import { applyAarsloenOverenskomstSatser, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
+import { applyAarsloenOverenskomstSatser, erAarsloenOverenskomstSatserUkendte, resolveAarsloenTillaegsMode } from './aarsloenTillaeg';
 
 // Årsløn-projektionen samler afsluttet input, afledte satser, validering og beregning fra samme revision.
 // Consumerne læser udelukkende denne projektion; overenskomstens satser skrives aldrig tilbage i inputtet.
@@ -131,7 +131,7 @@ export const readAarsloenValues = (reader: InputReader): AarsloenValues => {
  * har allerede sin egen fejl i feltgaten. «Fuld løn under ferie» læses kun, når valget vises (BB-353) – skjult
  * tæller det som sin tomværdi (M-32), så et usynligt valg aldrig kræver feltet.
  *
- * Feltgaten og løntabellens afledte kolonner (BB-099, `hasStandardLoenSatsFejl`) læser begge denne funktion, så
+ * Feltgaten og løntabellens afledte kolonner (BB-099, `tabelSatserUkendte`) læser begge denne funktion, så
  * tabellen viser «—» på præcis samme betingelse, som gaten nægter at beregne.
  */
 export const resolveAarsloenFeriePctManglerIssue = (
@@ -276,10 +276,11 @@ export type AarsloenReaderProjection = Readonly<{
   calculation: AarsloenBeregningState | null;
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   /**
-   * Den påkrævede feriesats er tom (M-37) – samme svar, som feltgaten blokerer på. Løntabellens afledte kolonner
-   * viser da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
+   * En sats, løntabellen regner med, er ukendt uden selv at stå rød: den påkrævede feriesats er tom (M-37), eller
+   * overenskomstens satser kan ikke slås op (BB-402). Begge spærrer feltgaten. Løntabellens afledte kolonner viser
+   * da «—» (BB-099), fordi rækkerne ellers ville være regnet med satsen som 0 %.
    */
-  feriePctMangler: boolean;
+  tabelSatserUkendte: boolean;
   /** Satsfeltets røde regel – feriegodtgørelse ved fuld løn under ferie – til feltets ring; også i `fieldIssues`. */
   feriePctRuleIssue: FieldIssue | undefined;
   /**
@@ -316,9 +317,8 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
   const fieldIssues = resolveAarsloenFieldErrorGate(reader, values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   });
-  const feriePctMangler = resolveAarsloenFeriePctManglerIssue(reader, values, {
-    omregningAktiveret: omregningGate.effectiveEnabled,
-  }) !== null;
+  const tabelSatserUkendte = erAarsloenOverenskomstSatserUkendte(values)
+    || resolveAarsloenFeriePctManglerIssue(reader, values, { omregningAktiveret: omregningGate.effectiveEnabled }) !== null;
   const feriePctRuleIssue = resolveAarsloenFeriegodtgoerelseVedFuldLoenIssue(values, {
     omregningAktiveret: omregningGate.effectiveEnabled,
   }) ?? undefined;
@@ -377,7 +377,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     ? null
     : resolveAarsloenFeriedageOverskriderPeriodenIssue(values, {
         omregningAktiveret: omregningGate.effectiveEnabled,
-        hverdageIPeriode: beregningsData.hverdageIPeriode,
+        beregningsData,
       });
   const feriedageFieldIssues: readonly FieldIssue[] = feriedageIssue === null ? [] : [Object.freeze({
     kind: 'field' as const,
@@ -394,7 +394,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     omregningGate,
     calculation,
     fieldIssues,
-    feriePctMangler,
+    tabelSatserUkendte,
     feriePctRuleIssue,
     tableRowWarnings,
     tableCellWarnings,

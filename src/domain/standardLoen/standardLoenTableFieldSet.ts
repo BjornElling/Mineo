@@ -99,22 +99,23 @@ export const readStandardLoenTableRows = (
 
 /**
  * Om tabellens satser er ukendte i en tilstand, hvor satserne læses (BB-099): en sats står med en rød fejl,
- * eller en påkrævet sats er tom (`paakraevetSatsMangler`, den fælles feriesatsregel M-37).
+ * eller fladen melder en sats ukendt uden rød ring (`satserUkendte`).
  *
  * Readeren skjuler en rød sats bag sin tomværdi, så rækkens afledte kolonner ellers ville blive regnet med satsen
  * som 0 % og vise et forkert tal ved siden af en sammentælling, der netop siger «kan ikke beregnes». Betingelsen er
  * den samme som Årslønnens feltgate (`resolveAarsloenFieldErrorGate`): en rød sats tæller, medmindre tillæggene
- * angives som beløb – dér læses satserne ikke. `paakraevetSatsMangler` leveres af fladens egen kravregel (Årsløn:
- * projektionens `feriePctMangler`; EO: satsvurderingens `missing`), så gaten og tabellen læser samme svar.
+ * angives som beløb – dér læses satserne ikke. `satserUkendte` leveres af fladens egne regler (Årsløn:
+ * projektionens `tabelSatserUkendte` – tom feriesats M-37 og overenskomstsatser, der ikke kan slås op, BB-402;
+ * EO: satsvurderingens `missing`), så gaten og tabellen læser samme svar.
  */
 export const hasStandardLoenSatsFejl = (
   reader: InputReader,
   fieldSet: StandardLoenTableFieldSet,
   tillaegAngivesSom: TillaegAngivesSom,
-  options: Readonly<{ paakraevetSatsMangler?: boolean }> = {}
+  options: Readonly<{ satserUkendte?: boolean }> = {}
 ): boolean =>
   tillaegAngivesSom !== 'beloeb'
-  && (options.paakraevetSatsMangler === true || fieldSet.satsRefs.some((ref) => reader.read(ref).status === 'error'));
+  && (options.satserUkendte === true || fieldSet.satsRefs.some((ref) => reader.read(ref).status === 'error'));
 
 /** Rækkens beløbsceller, der indgår i de afledte kolonner: løn 2–5 og, i Beløb-tilstand, tillægsbeløbene 6/7. */
 const amountCellsFor = (

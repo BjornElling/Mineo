@@ -30,7 +30,10 @@ import {
   aarsloenFeriePctField,
   aarsloenFuldLoenUnderFerieField,
   aarsloenLoenPaaHelligdageField,
+  aarsloenLoenperiodeField,
   aarsloenOmregningTilFuldtAarField,
+  aarsloenTableCol0DagField,
+  aarsloenTableCol1DagField,
   aarsloenTableCol0MaanedField,
   aarsloenTableCol1MaanedField,
   aarsloenTableCol2Field,
@@ -41,6 +44,7 @@ import {
   stamdataSkadelidteFodselsdatoField,
 } from '../../../inputCore/catalog/stamdataDescriptors';
 import { buildAarsloenReaderProjection } from '../../../domain/aarsloen/aarsloenProjection';
+import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRows';
 import {
   evaluateAarsloenDownloadGate,
   evaluateShDageDownloadGate,
@@ -245,6 +249,58 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(shDageGate, 'aarsloen:sh-feriedage-over-perioden');
     if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('specific');
     if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('specific');
+  });
+
+  /**
+   * BB-400: januar 2024 har 23 hverdage og nytårsdag. Med «Ingen» løn på helligdage trækker metode A også SH-dagen
+   * fra, så 22 feriedage efterlod 0 arbejdsdage – og en hentbar årsløn på 0,00 kr. Grænsen var kun hverdagene.
+   */
+  it.each([22, 23])('blokerer ved %s feriedage, der sammen med SH-dagen efterlader ingen arbejdsdage (BB-400)', (feriedage) => {
+    let input = withOneValidMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+    input = dispatch(input, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
+    input = dispatch(input, settle(aarsloenFeriePctField.bind(), '12,5'));
+    input = dispatch(input, settle(aarsloenLoenPaaHelligdageField.bind(), 'Ingen'));
+    input = dispatch(input, settle(aarsloenAntalFeriedageField.bind(), String(feriedage)));
+    const projection = project(input);
+
+    expect(projection.feriedageFieldIssues.map((issue) => issue.message)).toEqual([
+      'Antal feriedage kan højst være 21, så der er mindst én arbejdsdag tilbage (23 hverdage - 1 SH-dag i de indtastede perioder).',
+    ]);
+    expectBlocked(evaluateAarsloenDownloadGate(projection), 'aarsloen:feriedage-over-perioden');
+    // «Fejl og advarsler» gentager ikke feltnavnet foran en besked, der selv begynder med det.
+    expect(buildAarsloenIssueRows({
+      beregningsFejl: null, fieldIssues: [], feriedageIssues: projection.feriedageFieldIssues, tableErrors: [],
+      tableRowIds: [], downloadError: null, warnings: [],
+    }).map((row) => row.message)).toEqual([
+      'Antal feriedage kan højst være 21, så der er mindst én arbejdsdag tilbage (23 hverdage - 1 SH-dag i de indtastede perioder).',
+    ]);
+
+    // Grænsen selv er lovlig: 21 feriedage efterlader én arbejdsdag.
+    const vedGraensen = project(dispatch(input, settle(aarsloenAntalFeriedageField.bind(), '21')));
+    expect(vedGraensen.feriedageFieldIssues).toEqual([]);
+    expect(evaluateAarsloenDownloadGate(vedGraensen)).toEqual({ canDownload: true, reasons: [] });
+  });
+
+  it('spærrer omregningen af en periode helt uden arbejdsdage i stedet for at vise 0,00 kr. (BB-400)', () => {
+    let input = withValidStamdata(empty());
+    input = dispatch(input, settle(aarsloenLoenperiodeField.bind(), 'dag'));
+    input = dispatch(input, insert(emptyRow('r1')));
+    // Lørdag 06-01-2024 til søndag 07-01-2024: ingen hverdage at omregne efter.
+    input = dispatch(input, settle(aarsloenTableCol0DagField.bind('r1'), '06-01-2024'));
+    input = dispatch(input, settle(aarsloenTableCol1DagField.bind('r1'), '07-01-2024'));
+    input = dispatch(input, settle(aarsloenTableCol2Field.bind('r1'), '2000'));
+    input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+    input = dispatch(input, settle(aarsloenFuldLoenUnderFerieField.bind(), 'false'));
+    input = dispatch(input, settle(aarsloenFeriePctField.bind(), '12,5'));
+    input = dispatch(input, settle(aarsloenLoenPaaHelligdageField.bind(), 'Almindelig løn'));
+    const projection = project(input);
+
+    expect(projection.omregningGate.effectiveEnabled).toBe(true);
+    expect(projection.calculation?.beregningsFejl).toBe('De indtastede perioder indeholder ingen arbejdsdage at omregne lønnen efter');
+    expect(projection.calculation?.harFatalBeregningsFejl).toBe(true);
+    expect(projection.feriedageFieldIssues).toEqual([]);
+    expectBlocked(evaluateAarsloenDownloadGate(projection), 'aarsloen:fatal-calculation-error');
   });
 
   // M-37: en tom feriesats uden fuld løn under ferie er en MANGEL – «Indtastning mangler», ikke «Fejl i indtastning».

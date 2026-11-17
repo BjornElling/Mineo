@@ -135,9 +135,9 @@ describe('eoStandardLoenFieldSet', () => {
     it('er sand, når fladens kravregel melder en tom påkrævet sats – men ikke i Beløb-tilstand (M-37)', () => {
       const reader = buildReader(buildEoWithSatser({ feriePct: undefined }));
       const fieldSet = createEoStandardLoenFieldSet('af-1');
-      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { paakraevetSatsMangler: true })).toBe(true);
-      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { paakraevetSatsMangler: false })).toBe(false);
-      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'beloeb', { paakraevetSatsMangler: true })).toBe(false);
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { satserUkendte: true })).toBe(true);
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'procent', { satserUkendte: false })).toBe(false);
+      expect(hasStandardLoenSatsFejl(reader, fieldSet, 'beloeb', { satserUkendte: true })).toBe(false);
     });
   });
 

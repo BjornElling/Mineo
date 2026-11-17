@@ -1,5 +1,8 @@
 # Brugerblik – Renteberegning
 
+**Fornyet gennemgang af Beregning 2026-11-17:** Ét nyt fund, BB-399 (Fornuft, Mellem),
+afvist af udvikleren samme dag. Se det nye afsnit nederst; første gennemgangs beslutninger bevares.
+
 Fladen har to faner og føres derfor som to kørsler. Dette dokument samler dem begge; `STATUS.md` har
 én række pr. fane.
 
@@ -1014,3 +1017,203 @@ er gjort eksplicit med en kommentar om, at den er en bevidst undtagelse.
    det.» Ingen kodeændring – den nuværende visning ER afgørelsen. Den er nu normativ i
    `renteberegning-contract.md` §2.12, så rækken ikke senere rykkes ned eller sættes under en
    «overgangsregel»-overskrift som en formodet forbedring.
+
+# Fornyet gennemgang 2026-11-17 – 8a, Beregning
+
+- Grundlag: `787e5f7`, eksisterende rapporter, afgørelser og tværgående mønstre, brugerfundslisten,
+  kontrakttopologien og de relevante rente-, felt-, dato-, beløbs-, tastatur-, critical-action-,
+  persistence-, shell- og dokumentkontrakter. MinProcesrentes efterreview fra 2026-11-11 er fælles baggrund.
+- Browser: Chrome headless via projektets Playwright CLI; lokal Vite uden `--open`, synligt login.
+  1536×864 samt 1181×620 i lyst tema; minimumsstørrelsen også i mørkt tema.
+- **Resultat: ét nyt fund**, Fornuft/Mellem (BB-399). Ingen nye Fejl- eller Edge case-fund.
+  M-48 er nyt. Ingen produktkode ændret.
+
+## Inventar og de to blikke
+
+| Kontrol | Tomhed, grænser og betydning |
+|---|---|
+| Beregningsdato / «Rente beregnes til og med» | Tom ved start; 01-01-2005–31-12-2031 ved prøven. Bestemmer slutdatoen for alle krav. «Indsæt dags dato» er en eksplicit indtastning. |
+| Beløb pr. række | Tomt eller beløb/udtryk; over 0 kr., højst syv indtastede heltalscifre og to decimaler pr. talled; råtekstloft 512. Ingen særskilt beløbsmaksimum ud over de fælles repræsentationsregler. |
+| Forfaldsdato pr. række | Samme ydre datodækning, skærpet til Beregningsdato. Kalenderfejl bevares som afvist tekst; kronologifejl bevares med rød markering. |
+| Evt. tillægstid | Tom eller heltal 0–99, højst to cifre; skal give en rentedato senest på Beregningsdato. |
+| Enhed | Dage/Uger/Måneder, default Dage, aldrig tom. Enhedsvalg alene gør ikke rækken udfyldt. |
+| Kommentarer | Valgfri tekst, højst 512 tegn; linjeskift bevares og samme tekst bruges i begge dokumenttyper. |
+
+- Én trailing indtastningsrække. Canonical eller afvist input gør rækken udfyldt; enhed alene gør ikke.
+  Hver udfyldt række har sletning og en vedvarende, eventuelt deaktiveret specifikationsknap.
+- Beløb og Forfaldsdato kan sorteres. Autofill foreslår ens beløb, datoserier og tillægstid ved
+  samme enhed. Afledt rentedato, rente og samlet rente er læsefelter; en delvis/fejlende række
+  fjerner samlet sum og spærrer oversigten, mens en anden gyldig rækkes specifikation kan hentes.
+- To dokumentudgange: rækkespecifikation og samlet oversigt. Desuden lokal sletning med
+  bekræftelse, Kommentarer og fire faste beregningsforudsætninger. Faneskift, Gem/Hent,
+  genindlæsning og undo/redo er overgangene i scope.
+- Satserne er fælles statiske data. Stamdata er kun dokumentafhængighed ved tilvalgt brevhoved;
+  format og brevhoved vælges i Indstillinger. Ingen rentebeløb overføres til en anden beregningsside.
+  Begge blikke er anvendt på hver kontrol og på tomme, delvise, fejlende og komplette forløb.
+
+## BB-399 – På oversigtens næste sider mangler kolonnenavnene
+
+- **Type:** Fornuft
+- **Rækkevidde:** Mønster → M-48 i `TVAERGAAENDE.md`.
+- **Prioritet:** Mellem
+- **Beslutning:** Afvist 2026-11-17.
+- **Udviklerens afgørelse 2026-11-17:** Afvist. Udvikleren er ikke tilhænger af gentagne kolonneoverskrifter på
+  hver ny side. Ingen produktændring; M-48 lukkes uden rettelse, og kandidaterne forfølges ikke.
+- **Sådan fremprovokeres det:** Indtast nok komplette rentekrav til flere sider og hent
+  «Download samlet oversigt» som PDF. Målt med 100 krav og Beregningsdato `31-12-2026`.
+  De første tre er `1.000 kr.` fra 31-01, 29-02 og 31-03-2024; de øvrige er `1.003`–`1.099 kr.`
+  fra `01-01-2020`. Oversigten har tre sider og samlet rente `67.950,57 kr.`.
+- **Det sker:** Kun side 1 viser «Beløb», «Rentedato» og «Beregnet rente». Side 2 og 3 starter
+  direkte med talrækker. Fx står `1.033,00 kr.`, `01-01-2020` og `679,46 kr.` øverst på side 2,
+  uden at de to kronekolonner navngives. Side 3 viser også totalen uden kolonneoverskrifter.
+- **Det er uhensigtsmæssigt fordi:** Ved læsning eller udskrift af en fortsættelsesside skal
+  brugeren bladre tilbage for at kontrollere, hvilken kronekolonne der er hovedstol, og hvilken
+  der er renter. Et dokument til modparten bør kunne forklare sine kolonner på den side, der læses.
+  Tallene og summen er korrekte; problemet er deres forståelighed på den enkelte side.
+- **Bedre ville være:** Gentag de tre eksisterende kolonnenavne øverst på hver fortsættelsesside
+  af tabellen, med samme udseende som på side 1. Bevar indhold, rækkefølge og beregninger.
+- **Andre steder det kan gælde:** Den fælles PDF-renderer sender `head: []` og også overskriften
+  som almindelig body-række til AutoTable. MinProcesrentes oversigt bruger samme generator;
+  Årsløn, løbende ydelser, Forsørgertab, KRL/KL og EO's løn-/ydelsesbilag bruger samme renderer.
+  Disse kandidater er kodeaflæst, ikke særskilt efterprøvet her. Word er ikke målt.
+- **Evidens:** `test-results/brugerblik-8a/100-krav.pdf` og de tre renderede PNG'er. Alle sider
+  tekstlæst og visuelt inspiceret; kolonnenavnene findes kun på første side.
+
+## Overvejet og afprøvet uden nye fund
+
+- **Tomhed:** Urørt fane har tom dato og inaktiv lokal sletning. Kun Måneder i trailing række
+  ændrer ikke rækkeantal eller slettegate. Kun afvist dato `31-02-2026` giver en rigtig række,
+  sletteknap og én ny trailing række. Sletning vender tilbage til tom tilstand.
+- **Delvis række:** Et ekstra beløb `7.000` uden dato spærrer oversigten og skjuler totalen.
+  Ingen røde partnerfelter; BB-083's afvisning fastholdes.
+- **Datoer:** 31-12-2004 og 01-01-2032 bevares rødt; 01-01-2005 og 31-12-2031 accepteres.
+  «Indsæt dags dato» giver `17-11-2026`. 31-01-2024 + én måned giver 29-02-2024.
+  Beregningsdato 28-02-2024 gør tillægstiden rød med grænsen 28-02-2024; lighed 29-02-2024
+  giver en dags rente, `32,10 kr.` af 100.000 kr.
+- **Beløb og udtryk:** Nul giver «Beløbet skal være større end 0 kr.»; `1+2*3` afsluttes som
+  `7,00`, og `1/0` bevares afvist og spærrer output. Direkte fill af negativt eller for langt
+  input afvises og bevarer den tidligere værdi; det er ikke dokumentation af paste-normalisering.
+- **Tillægstid:** 99 måneder giver rød grænsefejl i prøvesagen. Fill af `100` giver `10` via
+  tociffergrænsen; fill af `1,5` accepteres ikke. Ingen tavs beregning med en ugyldig tillægstid.
+- **Editor og historik:** Åbent beløb ændrer ikke renten; Escape bevarer `100.000,00`.
+  Faneskift med åben `50000` afslutter til `50.000,00`; Ctrl+Z/Ctrl+Y gendanner 100.000/50.000.
+- **Afvist naborække:** Række 2 med `31-02-2026` spærrer egen specifikation og oversigt;
+  række 1's specifikation er fortsat aktiv. Knapperne forsvinder ikke.
+- **Kommentar:** 520 tegn afsluttes som 512. Kommentarens to linjer og danske tegn vises korrekt
+  i begge PDF-dokumenter. Den fælles kommentar genforelægges ikke som ønske om kommentar pr. krav.
+- **Autofill:** To 1.000-beløb foreslår `1.000,00`; datoerne 31-01 og 29-02-2024 foreslår
+  `31-03-2024`. Enter indsætter netop den synlige værdi. Ingen skjult indtastning før accept.
+- **Sletning:** Annuller bevarer samtlige felter; «Ja, slet» rydder hele fanen. Ét Ctrl+Z
+  gendanner dato, rækker, rækkefølge, enheder og kommentar, kontrolleret med feltadresser og værdier.
+- **Gem/Hent:** To krav sorteret med Beløb faldende, gemt som `.eo`, ryddet/fortrudt og derefter
+  indlæst via Hent/Erstat. Begge krav, rækkefølge, én måneds tillæg og flerlinjet kommentar bevares;
+  sum `49.657,58 kr.` før og efter. Load åbner Stamdata; prøven navigerede derefter tilbage.
+- **Stamdata:** Afvist fødselsdato giver «Ret fejlen i Stamdata» på dokumentknapperne ved brevhoved.
+  Fravalg af Renteberegningens brevhoved frigiver download, selv med samme fejl. Rettet fødselsdato
+  og tilvalgt brevhoved giver PDF med journalnummer `BB-8A`; beregningen er uændret.
+- **Skærm/PDF:** 100.000 kr. fra 29-02-2024 giver `29.852,11 kr.` til 31-12-2026; 200.000 kr.
+  fra 31-12-2025 giver `19.805,47 kr.`. Specifikation, oversigt og skærmens total `49.657,58 kr.`
+  stemmer. Datoform og kommentarer stemmer; beløbene har to decimaler. PDF'erne er tekstlæst og renderet.
+- **100 krav:** Indtastet gennem felterne i to arbejdsenheder. 100 udfyldte rækker plus én trailing;
+  samlet rente `67.950,57 kr.` på skærmen og i den tresidede PDF. Ingen tabte rækker eller runtimefejl.
+  BB-399 er den særskilte observation af fortsættelsessidernes manglende kolonnenavne.
+- **Læsbarhed:** Screenshots ved 1536×864 og 1181×620 inspiceret, sidstnævnte i begge temaer.
+  Første/sidste række og downloads er tilgængelige; ingen vandret scroll eller dækkende flydende knap.
+- **Genindlæsning:** Browseradvarsel før rigtig reload accepteret. Både `50.000,00`, den gyldige
+  forfaldsdato og række 2's afviste `31-02-2026` bevares efter genindlæsning. Gem ved denne afviste
+  dato åbner ingen filvælger. Dette er ikke en ny prøve af exit-beskyttelsen efter F5 (M-46).
+- **Historiske valg:** Ingen genåbning af tom startdato, 7 %-reglen, sagsuafhængig satsfane,
+  fælles kommentar, den permanente sortering eller fraværet af fremtidssatsadvarsel på skærmen.
+
+## Evidens og dækningshuller
+
+- Scripts, `.eo`, PDF'er og screenshots: `test-results/brugerblik-8a/` (Git-ignoreret).
+  PDF'er læst og renderet med PyMuPDF, da Poppler ikke findes på maskinen.
+- Gem/Hent blev kontrolleret gennem browserens fallback med de native filvælger-API'er deaktiveret
+  i den isolerede testsession. Den native Windows-filvælger er ikke kontrolleret; `.eo`-indhold og
+  produktets save/load-forløb blev ikke omgået. Der er ikke prøvet gamle filer i denne kørsel.
+- Chrome alene; ingen ny tværbrowserkørsel. Word-format, simuleret generator-/storagefejl,
+  M-47 med en eneste åben tabelcelle og clipboard-paste er ikke særskilt målt her.
+- To korrigerede værktøjsgreb: load åbner Stamdata, så vent på den side og navigér tilbage;
+  tooltip på disabled download bæres af wrapperen, som opfanger musen. Timeout på selve knappens
+  hover var et locatorproblem; snapshot viste den korrekte forklaring. CLI-filvalg krævede `upload`.
+- Indtil reload var særskilt opsamling af page-fejl og console.error/warn tom ved alle aflæsninger.
+  CLI-konsollen efter reload viste også 0 errors og 0 warnings; loggen før reload har ingen nye
+  sådanne signaler. Ingen produktkode ændret, ingen test-, lint- eller buildgate kørt.
+- Tilfældighedsfund i dokumentation: M-09's historiske tekst beskriver fortsat 1244 px og uskaleret
+  menu. Den aktuelle shell-kontrakt siger 1181 px og skalerer også menuen; prøven følger kontrakten.
+
+## Åbne spørgsmål
+
+Ingen. BB-399 er afvist af udvikleren 2026-11-17.
+Næste flade: **8b. Renteberegning → Satser**.
+
+# Fornyet gennemgang 2026-11-17 – 8b, Satser
+
+- Grundlag: den eksisterende rapport og alle afgørelser for BB-091–BB-095, `STATUS.md`,
+  `TVAERGAAENDE.md`, brugerfundslisten, kontrakttopologien samt rente-, side-, tastatur- og
+  shell-kontrakterne. Begge blikke i Brugerbliks prøvekatalog er anvendt.
+- Browser: Chrome headless via projektets Playwright CLI; lokal Vite uden `--open` og synligt
+  login. 1536×864 i lyst tema samt 1181×620 i lyst og mørkt tema.
+- **Nye fund: 0**, alle typer og prioriteter. Ingen nye mønstre eller beslutningspunkter.
+  BB-399 fra 8a er fortsat åbent; denne kørsel afgør det ikke.
+
+## Inventar og afhængigheder
+
+- To bokse med hver en overskrift, to forklarende tekstlinjer og en tabel med «Gælder fra» og
+  «Sats». Referencesats: 44 rækker, 01-07-2026 tilbage til 01-01-2005; Tillægssats: to rækker,
+  01-03-2013 / 8 % og 01-08-2002 / 7 %.
+- Ingen felter, valg, links, rækkehandlinger, sortering, sletning eller dokumentudgang på fanen.
+  B0–B5/B6a har derfor intet lokalt input eller tomhedsbegreb at prøve. Overgangene til/fra
+  Beregning og via sidemenuen er prøvet særskilt.
+- Begge tabeller dannes direkte af `referenceRates`/`surchargeRates`, som også leveres til
+  Beregning. Fanen læser ingen sagsdata og skriver intet sagsinput. Den ældste referencesats
+  bestemmer beregningsfelternes nedre datogrænse; tabellen filtreres ikke efter sagen.
+- Fornuftsblikket er stillet til begge lovhenvisninger, forskellen på satsernes virkning,
+  dato-/procentform, negative fortegn, kronologi, mange ens halvår og genfinding af nederste tabel.
+
+## Overvejet og afprøvet uden nye fund
+
+- **Alle rækker:** Browserens to tabeller er maskinelt afstemt række for række mod de statiske
+  kildetabeller, inklusive dato, fortegn og dansk procentform. 44 + 2 stemmer, nyeste først.
+  Referencesatserne viser alle halvår 2005–2026; ingen huller, dubletter eller skjulte rækker.
+- **Tidligere rettelser:** Begge kolonner hedder «Gælder fra». Referencesatsen beskrives som
+  skiftende ved hvert halvår; tillægget som fastlagt efter kravets rentedato og uændret undervejs.
+  Lovhenvisningerne er henholdsvis § 5, stk. 1, 2. pkt. og § 5, stk. 1, som udvikleren har afgjort.
+- **Sammenhæng med beregningen:** BB-092's sag gentaget: 100.000 kr., forfald 20-02-2013,
+  30 dage, beregningsdato 31-12-2013 giver rentedato 22-03-2013 og rente 6.402,74 kr.
+  Forklaringen om rentedato som grundlag for tillægssatsen passer til det viste resultat.
+- **Sagsuafhængighed:** Samtlige satsrækker er identiske før/efter udfyldning af Beregning
+  og efter en afvist forfaldsdato. Intet krav fremhæves eller får tabellen til at skifte indhold.
+- **Åben og afvist indtastning:** Åbent beløb `50000` afsluttes ved faneskift og vises som
+  `50.000,00` ved tilbagevenden. Afvist `31-02-2013` bevares ordret gennem endnu et besøg på Satser.
+- **Navigation:** Piletast og Enter på fokuserede faneknapper skifter begge veje. Tilbagevenden
+  fra Indstillinger husker Satser. Efter rulning til nederste tabel og skift til Beregning går
+  indholdets scrollTop fra 1419 til 0; den korte fane åbner fra toppen.
+- **Læsbarhed:** Screenshots af top/bund inspiceret, også i mørkt tema. Ved 1181×620 er begge
+  tabeller 300 px brede, x=268–568, uden vandret scrollbar. Nederste tabel og forklaringer er
+  fuldt tilgængelige; rul-til-toppen-knappen dækker intet indhold.
+- **Bevidste valg:** BB-094's fravær af ekstra dækningsadvarsel, BB-095's `- 0,45 %`, den
+  ligeværdige 7 %-række og BB-077's sagsuafhængige opslag genåbnes ikke. Ingen sammenlagt
+  procesrentesats foreslås; den ville skjule forskellen på periodisk reference og fast tillæg.
+- **Systematik:** M-09/M-10/M-11/M-13/M-38 kontrolleret uden ny forekomst. Fanen har ingen
+  dokumentknap og giver ingen ny måling af M-48. Ingen konkurrerende satskopi i fanens kode.
+- **Runtime:** CLI-konsollen: 32 beskeder, 0 errors og 0 warnings. Særskilt opsamling af
+  page-fejl og console.error/warn er tom gennem browserforløbet.
+
+## Evidens og dækningshuller
+
+- Scripts, tabelafstemning og screenshots: `test-results/brugerblik-8b/` (Git-ignoreret).
+  Afstemningens første udgave overså kildelinjer med mellemrum før `]`; regexen blev rettet,
+  og begge fulde tabeller stemmer. Det var en fejl i prøvescriptet, ikke i produktet.
+- Chrome alene; ingen ny tværbrowserkørsel. Ingen særskilt F5, Gem/Hent eller global Slet alt
+  her: fanen har ingen egne sagsdata, og 8a har netop prøvet rentekravenes save/load og reload.
+- Ingen ny PDF-/Word-kørsel af BB-092/BB-093's historiske sager. 8a's dokumentprøver dækker
+  andre sager; det gamle, specifikke dækningshul hævdes ikke lukket af denne skærmprøve.
+- Ingen kontrol af satser eller juridiske regler mod eksterne kilder; det ligger uden for
+  skillens mandat. Kildedata er alene sammenholdt med det, brugeren ser.
+- Produktkode er uændret. Ingen test-, lint- eller buildgate kørt efter skillens afgrænsning.
+
+## Åbne spørgsmål
+
+Ingen nye. Næste flade: **9. Årslønsberegning**.

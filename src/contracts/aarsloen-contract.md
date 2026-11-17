@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `amount-contract.md` og `periodisering-contract.md`.  
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-17
 
 ---
 
@@ -27,6 +27,13 @@
    beløbscelle. Rækken må ikke aktivere helårsomregning eller passere dokumentgaten.
 7. SH-dage-dokumentet sammenlægger overlappende/sammenhængende perioder og skriver `Periode`/`Perioder` efter
    det sammenlagte antal. Flere perioder formateres med den fælles danske listehelper og `og` før sidste led.
+8. Helårsomregningen må aldrig dele med nul eller færre dage (BB-400, udviklerafgørelse 2026-11-17, også for
+   tidligere gemte sager). Har perioderne ingen dage at omregne efter (metode A: hverdage minus SH-dage; metode B og
+   dag-fallbacken: hverdage), er beregningen en fatal fejl: resultatet er «—», og dokumentet er spærret. Har de dage,
+   kan «Antal feriedage» højst være antallet minus én; overskrides det, er feltet rødt med den konkrete grænse, og
+   begge dokumenter er spærret (`aarsloenValidationPolicies.ts`).
+9. En rød, udfyldt periodecelle meldes kun som ugyldig – ikke også som en ufuldstændig periode. `partial_period`
+   meldes kun for en partnercelle, der faktisk er tom (BB-401, den fælles `getStandardLoenTableValidation`).
 
 ---
 
@@ -50,7 +57,7 @@ Siden er delt i bokse (brugerblik BB-347/BB-348, udviklerafgørelse 2026-10-27):
 
 **Siden udfyldes oppefra og ned** (udviklerafgørelse 2026-10-27): et valg eller en indtastning må kun ændre, hvad der vises *længere nede* – aldrig få en ny række til at dukke op ovenfor. Derfor står Fuld løn under ferie og Løn på helligdage dér, hvor de læses: i Overenskomst i Lønforhold (satsopslaget), ellers i Beregningsprincipper under omregningen, lige over de felter, de styrer (`loenforholdValgPlacering` i viewmodellen). Placeringen afhænger kun af tillægsgrundlaget, sidens første valg. Kan en række ikke placeres efter princippet, vises den hellere altid end betinget af noget nedenfor.
 
-I Overenskomst vises samme organisationsfiltre og overenskomstvælger som på Lønindkomst samt en særskilt Reguleringsdato. `domain/loen/overenskomstSatser.ts` ejer fælles satsbindinger, dækning og tooltiptekster. Årsløn anvender den valgte datos satser på **alle** lønrækker, også før datoen og ved satsskift i perioden. Der periodiseres ikke, og der gives ikke advarsel om lønrækker før overenskomstens dækning. Manglende overenskomst/dato, ugyldig dato og privat overenskomst uden satser på datoen spærrer beregning og dokument. Årslønsdokumentets satsafsnit angiver overenskomsten og satsdatoen (`resolveAarsloenSatsKilde`, BB-355).
+I Overenskomst vises samme organisationsfiltre og overenskomstvælger som på Lønindkomst samt en særskilt Reguleringsdato. `domain/loen/overenskomstSatser.ts` ejer fælles satsbindinger, dækning og tooltiptekster. Årsløn anvender den valgte datos satser på **alle** lønrækker, også før datoen og ved satsskift i perioden. Der periodiseres ikke, og der gives ikke advarsel om lønrækker før overenskomstens dækning. Manglende overenskomst/dato, ugyldig dato og privat overenskomst uden satser på datoen spærrer beregning og dokument; i samme tilstande viser løntabellens afledte kolonner «—» i stedet for at regne de ukendte tillæg som 0 % (`erAarsloenOverenskomstSatserUkendte`, BB-402 som genskabelse af BB-099). Årslønsdokumentets satsafsnit angiver overenskomsten og satsdatoen (`resolveAarsloenSatsKilde`, BB-355).
 
 Feriegodtgørelse/-tillæg indtastes altid manuelt. Fritvalg, SH/SO og arbejdsgiverpension fastsættes og låses af overenskomsten; ved offentlige tillæg uden sats forbliver feltet manuelt som på Lønindkomst. Indtil både overenskomst og en gyldig dato kendes, står de tre felter låste og tomme med en tooltip om det, der mangler (BB-349/BB-351); dækningsteksten bruges kun ved en dato før overenskomstens første satser. `resolveAarsloenSatsBindings` i `aarsloenTillaeg.ts` er det ene sted for låsningen, descriptor-relevansen og projektionen. Helligdagsvalget indgår i det fælles satsopslag, herunder tilpasning af både SH/SO og fritvalg.
 

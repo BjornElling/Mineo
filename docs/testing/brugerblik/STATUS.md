@@ -4,8 +4,12 @@
 
 - **Gennemgået:** 1. Stamdata, 2. Om, 3. Indstillinger, 4. Satser, 5. MinProcesrente og 6. Global shell, 2026-11-11. Stamdata/Om: ingen nye fund. Indstillinger: BB-390 (Fejl, Høj) og BB-391 (Fornuft, Mellem) er godkendt til rettelse og implementeret. Satser: BB-392 og BB-393 (begge Fornuft, Mellem). MinProcesrente: BB-394 (Fejl, Høj); M-46 er nyt. Global shell: BB-395 (Fejl, Høj) og BB-396–BB-397 (begge Edge case, Høj); M-46 er bekræftet i Mineo, og M-47 er nyt. BB-392–BB-397 er godkendt til rettelse og implementeret 2026-11-11. Se fladernes rapporter for prøver og dækningshuller.
 - **Gennemgået 2026-11-17:** 7a. Varige mén → Beregning (tidligere Ménberegning). Ét nyt fund: BB-398 (Fejl, Mellem), dokumentets datoord ved fravalgt brevhoved. Rettet 2026-11-17 sammen med en programdækkende lås af skadedato-terminologien (M-02). M-47 bestod på åben méngrad; Gem/Hent, grænser og editorovergange efterprøvet. Se `varigemen.md` nederst.
-- **Næste flade:** 7b. Varige mén → Satser.
-- **Næste fund-ID:** BB-399.
+- **Gennemgået 2026-11-17:** 7b. Varige mén → Satser. Ingen nye fund. Alle 23 satsår (2005–2027), ydergrænsernes sammenhæng med Beregning, faneskift med åben/afvist indtastning, tastaturbetjening og læsbarhed i begge temaer kontrolleret. Se `varigemen.md` nederst.
+- **Gennemgået 2026-11-17:** 8a. Renteberegning → Beregning. Ét nyt fund: BB-399 (Fornuft, Mellem), kolonnenavne mangler på oversigtens fortsættelsessider. Afvist af udvikleren 2026-11-17; M-48 lukket uden rettelse. Gem/Hent efter sortering, brevhovedets gate, PDF-indhold, 100 krav, datogrænser, autofill og genindlæsning med afvist input efterprøvet. Se `renteberegning.md` nederst.
+- **Gennemgået 2026-11-17:** 8b. Renteberegning → Satser. Ingen nye fund. Alle 44 referencesatser og to tillægssatser afstemt mod kilden; forklaringer, negative satser, faneskift og minimumsviewport i begge temaer kontrolleret. Se `renteberegning.md` nederst.
+- **Gennemgået 2026-11-17:** 9. Årslønsberegning. Tre nye fund: BB-400 (Edge case, Høj), nul/negative arbejdsdage giver hentbar nulårsløn; BB-401 (Fornuft, Mellem), et udfyldt rødt periodefelt meldes også som manglende; BB-402 (Fejl, Mellem), ukendte overenskomstsatser giver delvise tabelsummer. Alle tre er afgjort og gennemført 2026-11-17 (BB-400 godkendt af udvikleren, også for gemte sager; BB-402 genskaber BB-099). Procent/Beløb/Overenskomst, måned/uge/dato, fem PDF'er, autofill, Gem/Hent og begge temaer efterprøvet. Se `aarsloen.md` nederst.
+- **Næste flade:** 10. Forsørgertab.
+- **Næste fund-ID:** BB-403.
 
 Første gennemgangs status og historik nedenfor er bevaret uændret.
 

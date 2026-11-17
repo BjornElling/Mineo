@@ -40,6 +40,8 @@ vi.mock('../../../domain/aarsloen/aarsloenCalculations', () => ({
 vi.mock('../../../domain/aarsloen/aarsloenValidationPolicies', () => ({
   beregnFejlmeddelelser: vi.fn(() => []),
   harTabelData: vi.fn(),
+  harAarsloenIngenOmregningsdage: vi.fn(() => false),
+  AARSLOEN_INGEN_OMREGNINGSDAGE_BESKED: 'De indtastede perioder indeholder ingen arbejdsdage at omregne lønnen efter',
   resolveAarsloenCanonicalRangeIssues: vi.fn(() => []),
 }));
 

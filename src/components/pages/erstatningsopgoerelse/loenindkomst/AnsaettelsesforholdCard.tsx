@@ -620,7 +620,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         loenperiode={af.loenperiode}
         tillaegAngivesSom={af.tillaegAngivesSom}
         satser={satserByAfId.get(af.id) ?? {}}
-        paakraevetSatsMangler={feriePctManglerByAfId.has(af.id)}
+        satserUkendte={feriePctManglerByAfId.has(af.id)}
         calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
         cellWarnings={tableCellWarningsByAfId.get(af.id)}
         useSmallFont={true}

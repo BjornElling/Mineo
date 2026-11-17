@@ -1,5 +1,34 @@
 # Brugerblik – tværgående mønstre
 
+**Fornyet gennemgang 2026-11-17, Årslønsberegning:** Tre nye forekomster af kendte mønstre,
+ingen ny mønsterklasse. **M-24:** ferieantal inden for det gamle maksimum kan sammen med SH-dage
+efterlade nul/negative arbejdsdage og en hentbar nulårsløn (BB-400, Høj). Årslønnens metoder A/B/C
+har samme nul-fallback; EO har allerede eksplicitte guards mod ikke-positive divisorer.
+**M-19/M-33:** et rødt, udfyldt periodefelt bliver både «ugyldig værdi» og «perioden er ikke
+udfyldt» i fejlboksen (BB-401, Mellem). EO's lønrække-fejllinjer prioriterer allerede feltets
+konkrete issue. **M-37/M-38:** BB-099's tabelværn ser røde satser og manglende ferie, men ikke
+utilgængelige overenskomstsatser; tabelsummen regner derfor med ukendte satser som nul, mens
+hovedtotalen korrekt er «—» (BB-402, Mellem). EO's ansættelseskort er en uverificeret kandidat.
+Alle tre er gennemført 2026-11-17; BB-401 er rettet i den fælles tabelvalidering og gælder også EO.
+EO-kandidaten til BB-402 er afkræftet (EO periodiserer satserne pr. række). Detaljer i `aarsloen.md`.
+
+**Fornyet gennemgang 2026-11-17, Renteberegning → Satser:** Ingen nye fund eller mønstre.
+M-09/M-10 bestod ved 1181×620 i begge temaer; M-11/M-38's tidligere rettelser er bevaret:
+«Gælder fra» i begge tabeller, periodisk referencesats og fast tillæg efter rentedato.
+BB-094/BB-095's afvisninger fastholdes. Fanen har ingen dokumentudgang og giver ingen ny
+forekomst af M-48; BB-399 fra 8a er afvist af udvikleren. Se `renteberegning.md` nederst.
+
+**Fornyet gennemgang 2026-11-17, Renteberegning → Beregning:** BB-399 (Fornuft, Mellem)
+afdækker M-48: en lang PDF-tabel mister kolonnenavnene efter første side. Konkret målt på
+100 krav over tre sider. Fælles PDF-rendering bruges også af blandt andet Årsløn, løbende
+ydelser og EO's bilag; disse er kandidater, ikke nye bekræftede fund. Se `renteberegning.md`.
+
+**Fornyet gennemgang 2026-11-17, Varige mén → Satser:** Ingen nye fund eller mønstre.
+M-09/M-10 er efterprøvet ved 1181×620: sidste række er tilgængelig uden vandret rul eller overlap.
+M-13/M-38: BB-078/BB-079's hele kroner og fælles satsgrundlag holder, nu også for 2027.
+BB-075–BB-077's afvisninger fastholdes: fanen er et sagsuafhængigt historisk opslag.
+Se `varigemen.md` for inventar, browserprøver og dækningshuller.
+
 **Fornyet gennemgang 2026-11-17, Varige mén → Beregning:** BB-398 (Fejl, Mellem) viser, at fravalgt
 brevhoved fjerner skadestypen fra dokumentets navnevalg: Anmeldelsesdato bliver Skadedato i PDF'en.
 Systematiksøgning på `projectStamdataForDocumentIfEnabled` og `resolveStamdataDatoReference` fandt samme
@@ -3486,3 +3515,22 @@ sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synl
   skal ikke i sig selv udløse beskyttelse. Rettet 2026-11-11 (BB-396/BB-397) via editorens `hasDraftChanges`.
 - **Afgrænsning mod M-46:** Her er beskyttelsen fraværende allerede før en genindlæsning, fordi
   arbejdet stadig står åbent. M-46 mister beskyttelsen af afsluttet arbejde under genindlæsningen.
+
+## M-48 – En lang tabel mister kolonnenavnene på næste side
+
+> En tabel fortsætter på flere dokumentsider, men forklaringen på kolonnernes indhold bliver
+> tilbage på første side. En fortsættelsesside viser tal uden at navngive dem.
+
+- **Bekræftet:** Renteberegningens PDF-oversigt med 100 krav, BB-399, Mellem. Side 2 og 3 har
+  hovedstol og rente i hver sin kronekolonne, men ingen «Beløb»/«Rentedato»/«Beregnet rente».
+- **Mekanisme:** `pdfDocumentTableRenderer.ts` sender `head: []` til AutoTable og hele tabellen,
+  inklusive overskriftsrækken, som `body`. `hasHeaderRow` giver første række sit udseende,
+  men gør den ikke til et tabelhoved, der kan gentages ved sideskift.
+- **Konkrete kandidater:** MinProcesrentes oversigt bruger samme generator. Årsløn, løbende
+  ydelser, Forsørgertab, KRL/KL-satstabeller og EO's løn-/ydelsesbilag bruger samme tabelrenderer
+  med `hasHeaderRow: true`; lange udgaver er ikke browser-/dokumentprøvet i denne kørsel.
+  Word har sin egen tabelrendering og er ikke verificeret her.
+- **Forslag:** Gentag de eksisterende kolonnenavne øverst på hver fortsættelsesside af samme
+  tabel. Bevar beløb, rækkefølge og sammentælling.
+- **Afvist 2026-11-17:** Udvikleren er ikke tilhænger af gentagne kolonneoverskrifter på hver ny side.
+  Mønstret lukkes uden rettelse; kandidaterne forfølges ikke og skal ikke genforelægges.

@@ -53,6 +53,21 @@ export const resolveAarsloenSatsBindings = (values: AarsloenSatsValg): Overensko
 };
 
 /**
+ * Er overenskomstens satser ukendte (BB-402)? Det er de i Overenskomst, så længe overenskomst eller gyldig
+ * reguleringsdato mangler, eller programmet ingen satser har for overenskomsten på datoen (`utilgaengelig`).
+ *
+ * Felterne står da låste og tomme, og projektionen giver `undefined` – som den fælles løntabel ellers regnede som
+ * 0 %, så «Samlet løn» viste en delsum ved siden af en hovedberegning, der siger «—». Betingelsen dækker præcis
+ * de tilstande, feltgaten spærrer på (overenskomst/dato mangler, dato før dækningen), og kun dem.
+ */
+export const erAarsloenOverenskomstSatserUkendte = (values: AarsloenSatsValg): boolean => {
+  if (values.tillaegAngivesSom !== 'overenskomst') return false;
+  // Uden gyldig dato er også Store Bededagstillæg ukendt (BB-349), selv ved en offentlig overenskomst.
+  if (resolveAarsloenSatsdato(values.reguleringsdato) === undefined) return true;
+  return Object.values(resolveAarsloenSatsBindings(values)).some((binding) => binding.kind === 'utilgaengelig');
+};
+
+/**
  * Forklaringen ved et låst felt. Uden overenskomst eller gyldig dato er det DET, der mangler – ikke
  * overenskomstens satsdækning (BB-349).
  */

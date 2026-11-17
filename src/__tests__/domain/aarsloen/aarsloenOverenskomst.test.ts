@@ -141,11 +141,20 @@ describe('årslønnens overenskomstgrundlag', () => {
     { reguleringsdato: undefined },
     { reguleringsdato: iso('2011-02-28') },
     { overenskomstId: 'ukendt-overenskomst' },
+    { overenskomstId: '   ' },
   ])('spærrer beregning og dokument ved manglende eller utilgængeligt satsopslag: %j', (patch) => {
     const result = project(patch);
     expect(result.fieldIssues.length).toBeGreaterThan(0);
     expect(result.calculation).toBeNull();
     expect(evaluateAarsloenDownloadGate(result).canDownload).toBe(false);
+    // BB-402: løntabellens afledte kolonner må ikke regne de ukendte tillæg som 0 % og vise en delsum.
+    expect(result.tabelSatserUkendte).toBe(true);
+  });
+
+  it('melder kendte satser til løntabellen, når opslaget lykkes – også ved en offentlig overenskomst uden sats (BB-402)', () => {
+    expect(project().tabelSatserUkendte).toBe(false);
+    expect(project({ overenskomstId: 'kl-overenskomst', fritvalgPct: 3, shSoPct: 4, pensionPct: 17 }).tabelSatserUkendte).toBe(false);
+    expect(project({ tillaegAngivesSom: 'procent', overenskomstId: undefined, reguleringsdato: undefined }).tabelSatserUkendte).toBe(false);
   });
 
   it('låser de offentlige satsfelter uden gyldig dato, bevarer brugerens tal og spærrer resultatet (BB-351)', () => {

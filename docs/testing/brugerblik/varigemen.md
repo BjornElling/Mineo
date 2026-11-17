@@ -963,3 +963,69 @@ programmets skadedato-terminologi låst til én kilde – se `TVAERGAAENDE.md` M
   Værktøjet er ikke opdateret under gennemgangen.
 - Reproduktioner og screenshots ligger lokalt i `test-results/brugerblik-7a/`, uden for Git. Produktkode og tests er urørte;
   ingen test-, lint- eller buildgate kørt. Næste flade: **7b. Varige mén → Satser**.
+
+# Fornyet gennemgang 2026-11-17 – 7b, Satser
+
+- Grundlag: eksisterende fund og afgørelser ovenfor, `STATUS.md`, `TVAERGAAENDE.md`, udviklerens
+  fundliste, kontrakttopologien samt varige mén-, side-, tastatur- og shell-kontrakterne.
+- Afprøvet lokalt i Chrome headless via projektets Playwright CLI, 1536×864 og 1181×620.
+  Lyst tema i begge størrelser; mørkt tema ved minimumsstørrelsen. Login gennem den synlige formular.
+- **Nye fund: 0** i alle typer og prioriteter. Ingen beslutninger eller nye tværgående mønstre.
+
+## Inventar og de to blikke
+
+- Én overskrift, lovhenvisningen som almindelig tekst og én tabel med kolonnerne «Beregningsår» og
+  «Sats pr. méngrad». Alle 23 rækker, 2027–2005, aflæst og sammenholdt med `varigeMenPrGrad`.
+  Øverst `11.355 kr.`, nederst `6.450 kr.`; ingen årshuller eller decimaler.
+- Ingen felter, valg, links, rækkehandlinger, sortering, lokal rydning eller dokumentknap.
+  B0–B5/B6a har derfor ingen selvstændige inputpartitioner eller tomhedsbegreb på denne fane.
+  Ekstreme/ugyldige sagsinput skal ikke ændre det historiske opslag.
+- Tabellen læser kun det faste satsdatasæt. Den har ingen afhængighed af Stamdata, méngrad eller
+  beregningsdato og skriver ingen sagsdata. Beregningens satsopslag og datodækning bruger samme
+  datasæt; fanen har ingen egne værdier at prøve gennem Gem/Hent eller dokumentoutput.
+- De to faneknapper er overgangene i scope; sidemenu og indstillinger er brugt til at kontrollere
+  tilbagevenden og tema. Begge blikke er stillet til lovtekst, kolonnenavne, årsrækkefølge,
+  beløbsformat, tilgængelighed af sidste række og overgange til/fra Beregning.
+
+## Overvejet og afprøvet uden nye fund
+
+- **Yderår og sammenhæng:** `01-01-2005` og `31-12-2027` på Beregning giver henholdsvis
+  `6.450 kr.` og `11.355 kr.`, identisk med tabellens ender, også uden udfyldt Stamdata.
+- **Uden for dækningen:** `31-12-2004` og `01-01-2028` viser «Fejl i indtastning» ved satsrækken
+  og datogrænsen `01-01-2005`–`31-12-2027`. Satser forbliver et uændret opslag med 23 rækker.
+- **Åben indtastning:** Méngrad ændret fra `10` til åben `33` afsluttes ved faneskift;
+  tilbagevenden viser `33`. Åben `44` efterfulgt af Escape og faneskift bevarer `33`.
+- **Afvist indtastning:** `31-02-2026` bevares ordret på Beregning efter besøg på Satser;
+  tabellen forbliver tilgængelig. Et forsøg med `abc` filtreres ved indtastningen og genskaber
+  den hidtidige dato ved settle; det er ikke en prøve af afvist datotekst.
+- **Tastatur:** Fra fokuseret faneknap skifter pil venstre/højre og Enter mellem fanerne.
+  Tabellen foregiver ingen redigerbare eller sorterbare celler.
+- **Rulning:** Efter sidste satsrække og skift tilbage til Beregning er indholdets scrollTop `0`.
+  Tilbagevenden fra Indstillinger husker Satser-fanen.
+- **Læsbarhed:** Screenshots inspiceret ved 1536×864 og ved minimumsstørrelsen i begge temaer.
+  Ved 1181×620 står tabellen x=268–643; sidste række er fuldt synlig omkring y=498–522 efter rul.
+  Ingen vandret scrollbar eller dækkende flydende knap; danske tusindseparatorer og enheder er læsbare.
+- **Tidligere afgørelser:** BB-078/BB-079's hele kroner holder. BB-075–BB-077 genåbnes ikke:
+  begge lovhenvisninger, den faglige betegnelse og fraværet af sagsmarkering er bevidste valg.
+- **Systematik:** M-09/M-10 og M-13/M-38 kontrolleret uden ny forekomst. Kildelæsning af
+  `SatserTab`, `VarigeMenSatserTable`, `StandardDisplayTable`, fanernes viewmodel og
+  `usePersistedActiveTab` viser ingen skjult sagskobling eller lokal kopi af satsgrundlaget.
+- **Runtime:** CLI'ens samlede console-log: 0 errors, 0 warnings. Særskilt opsamling af
+  page-fejl og console-signaler fra inventarprøven til afslutningen: tom.
+
+## Dækningshuller og dokumentationsspor
+
+- Ingen tværbrowserkørsel, rigtig F5 eller ny Gem/Hent-rundtur i denne kørsel. Fanen har ingen
+  egne sagsinput; den fælles beskyttelse og Varige mén-inputs blev prøvet i henholdsvis flade 6
+  og 7a. Denne kørsel gør ikke krav på ny dækning af de forløb.
+- Ingen ændring af satsdata eller prøve med syntetiske øre-satser; den eksisterende testdækning
+  er læst i den historiske rapport, men ikke genkørt. Juridisk korrekthed er ikke vurderet.
+- To værktøjsprøver krævede korrektion: ventepunktet «Tema» hedder «Farvetema», og radioens
+  `check()` kontrollerede tilstanden før den asynkrone ændring var færdig. Det mørke valg var
+  efterfølgende markeret, og resten af prøven gennemførtes. Ingen produktfund fra disse fejlgreb.
+- Scripts og screenshots ligger lokalt under `test-results/brugerblik-7b/` (ignoreret af Git).
+  Produktkode er uændret; ingen test-, lint- eller buildgate kørt efter skillens afgrænsning.
+
+## Åbne spørgsmål
+
+Ingen. Næste flade: **8a. Renteberegning → Beregning**.

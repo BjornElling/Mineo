@@ -1,5 +1,9 @@
 # Brugerblik – Årslønsberegning
 
+**Fornyet gennemgang 2026-11-17:** Tre nye fund, BB-400–BB-402, alle afgjort og gennemført samme dag.
+Se afsnittet nederst.
+Første gennemgang og efterreviewenes afgørelser bevares.
+
 - Rute/placering: `/aarsloen` (flade 9, ingen faner)
 - Gennemgået: 2026-08-25 · commit `45f7fb3b`
 - **Efterfølgende rettelser implementeret: 2026-08-26 · commit `447905ca`.** Alle fund BB-096–BB-116 er
@@ -1027,3 +1031,194 @@ Vi går med A. Sørg for at sikre, at de to generelt følges ad, så hvis vi sen
   ændringer gælder tidligere gemte `.eo`-filer (STATUS.md, kritisk efterreview).
 - Tests: `feriePctKrav.test.ts` (den fælles regel og EO's kald af den), `aarsloenProjection.test.ts` (syv tilstande) og
   `aarsloenDownloadGate.test.ts` (spærret som mangel).
+
+# Fornyet gennemgang 2026-11-17 – 9, Årslønsberegning
+
+- Grundlag: `787e5f7`, første gennemgang, efterreviews fra oktober, `STATUS.md`, tværgående mønstre,
+  brugerfundslisten og de relevante kontrakter, især årsløn, feriepengebegreber, input, persistence
+  og dokumentoutput. Et særskilt læsereview undersøgte tidligere afgørelser og nye kandidater;
+  fundene nedenfor er derefter efterprøvet i browseren.
+- Browser: Chrome headless via projektets Playwright CLI, lokal Vite uden `--open`, synligt login.
+  1536×864 i lyst tema og 1181×620 i lyst/mørkt tema.
+- **Tre nye fund:** én Edge case/Høj, én Fornuft/Mellem og én Fejl/Mellem.
+  Ingen nye tværgående mønstre; M-24, M-19/M-33 og M-37/M-38 får nye forekomster.
+  Ingen produktkode eller beregningsregler ændret.
+
+## Inventar og de to blikke
+
+| Kontrol | Tomhed, grænser og afhængigheder |
+|---|---|
+| Tillæg beregnes på baggrund af | Procent, Beløb eller Overenskomst; bestemmer satsfelter og tabelkolonner. Gyldige skjulte værdier bevares, men ignoreres. |
+| Overenskomst og organisationsfiltre | Valgfrit uden for Overenskomst; dér kræves overenskomst og Reguleringsdato. Begge filtre har Alle som udgangspunkt. |
+| Reguleringsdato | 01-01-2005–31-12-2027; privat overenskomst kræver også satsdækning. Samme datos satser anvendes på alle rækker. |
+| Feriegodtgørelse/-tillæg | Manuel sats også ved Overenskomst, 0–25 %, gul over 20. Tom er blokerende uden fuld løn under ferie, når valget er relevant. Fra 12 % konflikter satsen med vist fuld løn under ferie. |
+| Fritvalg, SH/SO, Store Bededag, pension | Procenter 0–100. Overenskomst låser de satser, den leverer; offentlige manuelle satser bevarer brugerinput. Store Bededag er afledt af dato/tilvalg i Overenskomst. |
+| Løn indtastes som | Måned, Uge eller Dato. Måned 1–12, år 2005–2026; gyldige ISO-uger i samme årsdækning; datoer 01-01-2005–31-12-2026 og start senest slut. Fremtid inden for dækningen advares gult. |
+| Løn, Løn (2), Ikke-pensionsgivende løn, ATP og anden løn u. tillæg | Valgfrie beløb/udtryk; fælles syvciffer-/todecimalgrænse pr. talled, negative reguleringer tilladt. Mindst et lønbeløb kræves i en komplet lønperiode. |
+| FP/FV/SH/SO/St.B. og Arb.g. Pension | Afledte i Procent/Overenskomst, manuelle beløb i Beløb. Samlet løn er altid afledt. |
+| Omregning til fuldt år | Eksplicit toggle; kræver brugbare lønperioder. Låser op for de relevante ferie-/helligdagsvalg, enhedstælling og helårstal. |
+| Fuld løn under ferie, Ret til 6. ferieuge, Løn på helligdage | Boolean/Boolean/tre valg. De første og sidste står i Lønforhold ved Overenskomst, ellers under aktiv omregning. |
+| Antal feriedage | Optional heltal 0–99, to indtastede cifre; desuden kontrol mod periodens hverdage. Nul/tomt er bevidst tilladt. |
+
+- Tabellen har sortering, sletning, én trailing række og autofill. Input eller afvist tekst gør en
+  række udfyldt; tomme nye rækker fjernes igen, mens periodemodellens gyldige skjulte input bevares.
+- «Fejl og advarsler» samler fejl/mangler og advarsler med genveje til felter eller tabelceller.
+  To dokumentudgange: årsløn og SH-dage; begge afhænger af samme afsluttede beregningsgrundlag.
+- Stamdata bruges til valgfrit brevhoved. Satser og indtastninger er lokale for årslønssiden;
+  den overfører ikke automatisk sin beregnede årsløn til andre beregningssider.
+- Begge blikke er stillet til hvert felt, tilstandsskift, rækkehandling og output. De konkrete
+  browserprøver nedenfor dækker alle tre tillægsgrundlag og alle tre periodeformer.
+
+## BB-400 – Nul eller negative arbejdsdage giver en hentbar årsløn på 0,00 kr.
+
+- **Type:** Edge case · **Prioritet:** Høj · **Rækkevidde:** Mønster, M-24.
+- **Beslutning:** Afgjort og gennemført 2026-11-17.
+- **Udviklerens afgørelse 2026-11-17:** Godkendt, også for tidligere gemte sager: de åbner uændret, men feltet
+  bliver rødt, og nulårslønnen kan ikke længere hentes.
+- **Gennemført:** BB-097's grænse er nu omregningens egne dage minus én: metode A hverdage minus SH-dage, metode B
+  og dag-fallbacken hverdage. Tooltippen navngiver grundlaget, fx «Antal feriedage kan højst være 21, så der er
+  mindst én arbejdsdag tilbage (23 hverdage - 1 SH-dag i de indtastede perioder)». Begge dokumenter spærres som
+  ved den hidtidige grænse; mellemregningen vises fortsat som ved den hidtidige grænse. Har perioderne slet ingen
+  dage at omregne efter (weekend i Dato-tilstand, kun en SH-dag ved Ingen/SH-udbetaling), er det en fatal
+  beregningsfejl: resultatet er «—», «Fejl og advarsler» skriver «De indtastede perioder indeholder ingen
+  arbejdsdage at omregne lønnen efter», og dokumentet er spærret. Grænsen udledes af motorens eget resultat
+  (`resolveAarsloenOmregningsdageFoerFerie`), så den ikke kan komme ud af trit med mellemregningen.
+  Efterfølgende (udvikleren, 2026-11-17): «Fejl og advarsler» gentager ikke længere feltnavnet foran en besked,
+  der selv begynder med feltnavnets kerne. Linjen er nu blot «Antal feriedage kan højst være 21, …».
+  `aarsloen-contract.md` §2-regel 8.
+- **Sådan fremprovokeres det:** Procent, én lønrække for januar 2024: Løn 30.000, Løn (2) 2.000,
+  Ikke-pensionsgivende løn 1.000 og ATP mv. 500. Satser: ferie 12,5 %, fritvalg 9 %, SH/SO 0 %,
+  Store Bededag 0,45 % og pension 11 %. Slå omregning til, fuld løn under ferie fra og vælg
+  «Ingen» ved Løn på helligdage. Skriv 22 og derefter 23 feriedage.
+- **Det sker:** Perioden har 23 hverdage og én SH-dag. Ved 22 feriedage vises `0 arbejdsdage`
+  og `Beregnet årsløn (45.036,14 / 0 x 223): 0,00 kr.`. Ved 23 vises `-1 arbejdsdage` og
+  `45.036,14 / -1 x 223`, stadig 0,00 kr. Feriedagefeltet er ikke rødt, der er ingen blokerende
+  fejl, og PDF kan hentes med dette nulbeløb. PDF'en med -1 arbejdsdag er hentet og visuelt læst.
+- **Hvorfor det er uhensigtsmæssigt:** Nullet ligner en færdig årsløn og kan sendes til en modpart,
+  selv om den viste omregning ikke har et positivt antal arbejdsdage at fordele lønnen på.
+  BB-097's kontrol af ferieantal større end 23 fanger hverken lighed eller fradraget for SH-dage.
+- **Forslag:** Bevar indtastningerne, men vis en konkret fejl om, at ferie-/SH-fradragene ikke
+  efterlader arbejdsdage til omregningen. Vis ikke en beregnet nulårsløn, og blokér årslønsdownload,
+  indtil der er mindst én arbejdsdag tilbage. Vis det konkrete antal dage og de ansvarlige valg.
+  Den faglige grænse skal afgøres af udvikleren, ikke udledes af dette auditfund.
+- **Gamle filer:** En tidligere gemt sag med disse værdier vil efter forslaget beholde input,
+  men få en ny fejl og miste muligheden for at hente nulårslønnen. Det kræver udtrykkelig godkendelse
+  inden implementering; der foreslås ingen schemaafvisning eller sletning under load.
+- **Systematik:** Metode A og hjælpefunktionen `beregnHverdagsOmregning` i B/C har nul-fallback ved
+  ikke-positiv nævner. Nære uverificerede varianter: ferie lig alle hverdage med Almindelig løn,
+  en periode kun på en SH-dag eller en weekend i Dato-tilstand. EO har allerede særskilte guards i
+  `beregningsgrundlagFradragRules.ts` og `sfggReferenceperiodeRules.ts`; ingen ny EO-forekomst hævdes.
+- **Evidens:** `zero-days.js`, `negative-dage.pdf` og tilhørende PNG'er under kørselsmappen.
+
+## BB-401 – En udfyldt, ugyldig periode bliver også kaldt manglende
+
+- **Type:** Fornuft · **Prioritet:** Mellem · **Rækkevidde:** Mønster, M-19/M-33.
+- **Beslutning:** Afgjort og gennemført 2026-11-17 (udvikleren: ret fund, agenten er enig i).
+- **Gennemført:** Rettet i den fælles `getStandardLoenTableValidation`, så Årsløn og EO følges ad: en rød,
+  udfyldt periodecelle giver kun sin `invalid`. `partial_period` meldes kun for en partnercelle, der faktisk er
+  tom. Fejlboksen viser derfor kun «Lønrække 1, Uge til: ugyldig værdi». `aarsloen-contract.md` §2-regel 9.
+- **Sådan fremprovokeres det:** Med løn i rækken: Uge fra `01-2024`, Uge til `53-2024`.
+  Samme forhold er målt med Dato fra `01-01-2024`, Dato til `31-02-2024`, og Måned `13`/År `2024`.
+- **Det sker:** Fejlboksen skriver både «Lønrække 1, Uge til: ugyldig værdi» og «Lønrække 1:
+  perioden er ikke udfyldt». Begge dato-/ugefelter er udfyldt. Datovarianten giver de samme to
+  beskeder med Dato til i stedet for Uge til. Beregning og dokument er korrekt blokeret.
+- **Hvorfor det er uhensigtsmæssigt:** Brugeren sendes på jagt efter en ekstra tom oplysning,
+  selv om én rettelse af den udfyldte værdi løser begge linjer.
+- **Forslag:** Vis fejlbeskeden for den ugyldige, udfyldte celle. Vis kun en særskilt mangel,
+  hvis der faktisk er et andet tomt partnerfelt. Bevar de to forskellige fejl ved reelt to fejl.
+- **Systematik:** `readStandardLoenTableRows` maskerer det røde felt som tomt; den fælles
+  `getStandardLoenTableValidation` tilføjer `partial_period` ved siden af cellens `invalid`.
+  Årsløns `buildAarsloenIssueRows` viser begge. EO's `eoRowLoenindkomstTableLines.ts` prioriterer
+  allerede feltets issue over mangeltekst for samme kolonne og er et eksisterende modstykke.
+- **Evidens:** `week.js`, `day-amount.js`, `invalid-date-summary.png` og `load-and-layout.js`.
+
+## BB-402 – Ukendte overenskomstsatser bliver til nul i tabellens summer
+
+- **Type:** Fejl · **Prioritet:** Mellem · **Rækkevidde:** Mønster, M-37/M-38.
+- **Beslutning:** Afgjort og gennemført 2026-11-17 som genskabelse af BB-099's godkendte visning.
+- **Gennemført:** `erAarsloenOverenskomstSatserUkendte` (`aarsloenTillaeg.ts`) melder satserne ukendte i præcis
+  de Overenskomst-tilstande, feltgaten spærrer på: overenskomst eller gyldig dato mangler, eller privat
+  overenskomst uden satser på datoen. Projektionens `tabelSatserUkendte` samler den med den tomme feriesats (M-37)
+  og fodrer løntabellens afledte kolonner, som da viser «—». Den fælles tabels prop hedder nu `satserUkendte`.
+- **EO-kandidaten afkræftet:** EO's løntabel periodiserer satserne pr. række. En række før overenskomstens dækning
+  regnes bevidst med 0 % og en gul advarsel (udviklerafgørelse 2026-10-06), mens en reguleringsdato før dækningen
+  spærrer beregningen. Tabellens rækkeværdier er dér rækkens egne satser, ikke ukendte satser.
+- **Sådan fremprovokeres det:** Brug lønrækken fra BB-400 og ferie 12,5 %. Vælg Overenskomst,
+  men lad overenskomst og/eller Reguleringsdato være tom. Også målt med Industriens overenskomst
+  valgt og dato 01-01-2005, før dens satsdækning.
+- **Det sker:** De automatiske satsfelter er låste og tomme. Alligevel står der `4.125,00 kr.`
+  i FP/FV/SH/SO/St.B., `0,00 kr.` i pension og `37.625,00 kr.` i Samlet løn. Hovedberegningen
+  viser korrekt «—», og dokumentet er blokeret med de manglende forudsætninger i fejlboksen.
+  Med gyldig Industriens overenskomst/dato 01-01-2024 bliver samme rækkes samlede løn 45.207,00 kr.
+- **Hvorfor det er uhensigtsmæssigt:** Tabellen præsenterer en tilsyneladende færdig lønsum,
+  hvor de endnu ukendte tillæg er regnet som nul. Det er forskellen mellem ukendt og intet,
+  som BB-099 allerede krævede bevaret i netop disse tabelkolonner.
+- **Forslag:** Vis «—» i afhængige afledte tabelkolonner, indtil overenskomstens satser kan
+  fastlægges. Bevar løninput og den manuelle feriesats. Hovedberegningens eksisterende blokering bevares.
+- **Systematik:** `hasStandardLoenSatsFejl` ser røde satsrefs eller `feriePctMangler`, men ikke
+  satsbindinger af typen `utilgaengelig`. De bliver `undefined` og derefter regnet som nul i tabellen.
+  EO's `AnsaettelsesforholdCard.tsx` sender også kun `feriePctMangler` til den fælles tabel;
+  det er en konkret kandidat, ikke en verificeret EO-fejl.
+- **Evidens:** `day-amount.js`, `agreement.js` og `unknown-rates-table.png`. Sidste billede
+  er gentaget ved 1181×620 i mørkt tema og viser de tomme satsfelter over den delvise tabelsum.
+
+## Overvejet og afprøvet uden nye fund
+
+- **Procent og omregning:** Januar 2024 med alle fire lønkolonner giver 40.836,34 kr. ved ferie 1 %,
+  fritvalg 9 %, SH/SO 0 %, Store Bededag 0,45 % og pension 11 %. Fuld løn under ferie og månedlig
+  omregning giver 490.036,08 kr.; de synlige mellemregninger hænger sammen.
+- **Feriesats:** 21 %/25 % giver den aftalte gule advarsel, 26 % rød fejl. Fritvalg 101 % gør
+  afledte tabelkolonner og hovedsum til «—». Manglende påkrævet ferie skjuler beregningen og har
+  ét link til Satser. Den eksisterende 99-feriedagesfejl markerer feltet og blokerer dokumentet;
+  BB-400 angår de hidtil udækkede grænser 22/23, ikke en genåbning af BB-097.
+- **Beløb:** Manuelle tillæg 5.000 kr. og pension 3.000 kr. giver samlet 41.500,00 kr. og årsløn
+  462.725,00 kr. i den målte omregning. Satser-boksen udgår; dokumentet har heller ikke satsafsnit.
+- **Overenskomst:** Industriens overenskomst 01-01-2024 giver låst fritvalg 11 % og pension 10 %
+  samt årsløn 504.058,05 kr. i prøvesagen. Dato før dækningen forklarer den konkrete første dato,
+  01-03-2011. Offentlig KL åbner manuelle satser; Fritvalg kunne ændres fra 9 til 8 %.
+- **Valg og filtre:** Fuld løn under ferie, Ret til 6. ferieuge, alle helligdagsvalg og Store Bededag
+  til/fra betjent. Fravalgt Store Bededag giver den aftalte advarsel. Filtrene 3F/Dansk Industri
+  indsnævrer listen; Mejeribranchens NNF-visningsnavn er ikke en filterfejl, da metadata også har 3F.
+- **Skjulte værdier:** Gyldige tillægsbeløb 5.000/3.000 vender tilbage i Beløb; manuelle 8 %/11 %
+  vender tilbage i Procent efter Overenskomst. Rød Fritvalg 101 % ryddes ved skjulning, som den
+  fælles, reversible relevansregel kræver; det er ikke nyt datatab.
+- **Periodeformer:** Måned → Uge → Dato → Måned bevarer januars måned/år og lønbeløbene.
+  Uge 01–04/2024 giver et sammenhængende forløb; uge 53 får konkret 1–52-tooltip. Dato
+  01-01–31-01-2024 giver samme årsløn som januarrækken. Fremtidig december 2026 giver gul
+  «Perioden ligger efter dags dato (17-11-2026)», som bekræftet ved efterfølgende tekstaflæsning.
+- **Dubletter/overlap:** To forskellige lønbilag for januar tælles begge; identisk lønrække får
+  gul «Lønrækken 01-2024 er identisk med en tidligere række». Ingen ny blokering foreslås.
+- **Tomhed og historik:** En ny række med kun `1/0` får sletning og en trailing række. Sletning
+  og Ctrl+Z gendanner den afviste tekst. En række uden skjult indhold forsvinder igen, når dens
+  måned, år og løn ryddes. Åben løn ændrer ingen sum; Escape bevarer 30.000,00 kr.
+- **Autofill:** Januar/februar foreslår måned 3 og år 2024; ens løn foreslår 30.000,00.
+  Enter indsætter de viste værdier; der bliver kun oprettet rækkeindhold ved accept.
+- **Gem/Hent:** `.eo` med tre rækker og bevarede periodefelter/tillægstilstande gemt og indlæst
+  gennem Hent/Erstat. Ikke-tomme feltadresser, værdier og toggle-state sammenholdt før/efter i
+  Uge, Dato og Måned: alle tre sammenligninger stemmer. Ingen preflight eller sagsdatatab observeret.
+- **PDF'er:** Procent 502.152,96 kr., Beløb 462.725,00 kr. og Overenskomst 504.058,05 kr. stemmer
+  med skærmen i de respektive prøver. SH-dage viser én nytårsdag i januar 2024, som skærmen.
+  Alle fire samt BB-400's fejldokument er tekstlæst, renderet og visuelt inspiceret. Overenskomst
+  og satsdato fremgår af dokumentet; Beløb har intet misvisende satsafsnit.
+- **Layout/runtime:** Ingen vandret scrollbar ved 1181×620; tabel og beregningsafsnit inspiceret
+  i begge temaer. Ingen dækkende flydende knap. CLI: 198 beskeder, 0 errors og 0 warnings;
+  separat opsamling af page-fejl og console-signaler er tom gennem forløbet.
+
+## Dækningshuller og afgrænsning
+
+- Evidens ligger i `test-results/brugerblik-9/` (Git-ignoreret). PDF læst/renderet med PyMuPDF,
+  fordi Poppler ikke findes i miljøet. Ingen ny Word-kørsel eller tværbrowserkørsel.
+- Gem/Hent bruger den rigtige fallback med native filvælger-API'er deaktiveret i testsessionen.
+  Den native Windows-filvælger og gamle `.eo`-filer er ikke prøvet. Afvist tekst er ikke gemt i
+  filen; save→load-prøven brugte alene canonical input.
+- Ingen ny F5-/exit-guard-prøve eller sagsdækkende Slet alt. Ingen clipboard-paste,
+  storage-/generatorfejl, fuld sorteringsmatrix, 100 lønrækker eller lang årslønstabel-PDF prøvet.
+  BB-399/M-48 er dermed ikke særskilt målt på denne flade.
+- Fejlgenvejen blev aktiveret og rullede tabellen frem. En umiddelbar fokusaflæsning stod stadig
+  på linket; hverken fokusflytning eller det transiente celleblink hævdes særskilt verificeret.
+- Ingen juridisk vurdering eller ændring af beregninger. Ingen produktrettelser, test-, lint-
+  eller buildgate kørt. Dokumentationen er kontrolleret med `git diff --check`.
+
+## Åbne spørgsmål
+
+Ingen. BB-400–BB-402 er afgjort og gennemført 2026-11-17. Næste flade: **10. Forsørgertab**.
