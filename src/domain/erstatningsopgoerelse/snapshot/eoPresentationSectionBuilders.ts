@@ -412,7 +412,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     }
     if (kilde === 'midlertidigEet' && valgtOphoersgrund === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
-      eetLinjer.push(`Da ${resolveStamdataDatoReference(options.skadestype).haendelseSket} før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.`);
+      eetLinjer.push(`Da ${resolveStamdataDatoReference(options.skadestype).skadenErSket} før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.`);
     }
   };
 

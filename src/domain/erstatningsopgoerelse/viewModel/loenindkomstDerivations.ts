@@ -127,8 +127,7 @@ export type SfggPresentation = Readonly<{
   relevanteFelter: Readonly<Record<SfggFelt, boolean>>;
   /**
    * Bemærkningen om, at alle TAF-perioder skal være indtastet, når datoen ligger før 2015 – ellers `null`.
-   * «siden skaden» betyder selve skaden (perioderne kan ved en erhvervssygdom ligge før anmeldelsen);
-   * kun datoens led følger skadestypen.
+   * «skaden er før» / «skaden er anmeldt før» følger skadestypen; «siden skaden» betegner selve skaden.
    */
   sharedSfggBefore2015Besked: string | null;
   /** Enheden, fraværsdagene i referenceperioden tælles i – samme som opgørelsen af sygeferiegodtgørelsen (BB-329). */
@@ -293,7 +292,7 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
         alleredeBetalt: erSfggFeltRelevantForSynlighed('alleredeBetalt', synlighed, kilde),
       },
       sharedSfggBefore2015Besked: skadedato && skadedato < '2015-01-01'
-        ? `Bemærk: Da ${resolveSkadeEllerAnmeldelsesdatoReference(skadestype).haendelse} er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen`
+        ? `Bemærk: Da ${resolveSkadeEllerAnmeldelsesdatoReference(skadestype).skadenEr} før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen`
         : null,
       fravaersdageEnhed: resolveSfggDayBasis(source, computeTafBeregningsenhed(eoValues)),
       referenceperiodeTooltip: buildSfggReferenceperiodeTooltip(source.kind, af),

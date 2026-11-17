@@ -223,13 +223,13 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
   });
 
-  it('formulerer 4-måneders-afkortningen ud fra anmeldelsen ved en erhvervssygdom', () => {
+  it('formulerer 4-måneders-afkortningen som anmeldt ved en erhvervssygdom', () => {
     expect(
       formatSfggAfkortningPdfLine(
         { aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') },
         resolveStamdataDatoReference('Erhvervssygdom'),
       ).left
-    ).toBe('Anmeldelsen er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
+    ).toBe('Skaden er anmeldt før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
   });
 
   it('formatterer ansættelsesophør-afkortningen med det korrekte verbum', () => {

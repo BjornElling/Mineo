@@ -21,17 +21,20 @@ export type StamdataDatoReference = Readonly<{
   tidspunktBestemt: 'anmeldelsestidspunktet' | 'skadestidspunktet';
   /** Årsformen: «Regulering fra **skadesår** 2020» / «… **anmeldelsesår** 2020». */
   aar: 'anmeldelsesår' | 'skadesår';
-  /**
-   * Begivenheden som tidsreference i prosa: «lønoplysninger før **skaden**», «Da **anmeldelsen** er før
-   * 1/1-2011». Bruges kun, hvor ordet står for datoen – ikke hvor det betyder selve skaden som sådan.
+  /*
+   * Sætningsled om, HVORNÅR skaden ligger. «Skaden» er fællesbetegnelsen for arbejdsulykker og
+   * erhvervssygdomme og bevares derfor; udsagnsordet følger skadestypen: kun en arbejdsulykke «sker» eller
+   * «indtræder», en erhvervssygdom er «anmeldt» (udviklerafgørelse 2026-11-17). Sætningsstart via
+   * `capitalizeFirstCharDa`.
    */
-  haendelse: 'anmeldelsen' | 'skaden';
-  /** Ubestemt form af {@link haendelse} i korte inspektionsetiketter: «(**skade** før 16-06-2011)». */
-  haendelseUbestemt: 'anmeldelse' | 'skade';
-  /** «**Skaden er sket** før 1. juli 2024» / «**Erhvervssygdommen er anmeldt** før …» (sætningsstart via `capitalizeFirstCharDa`). */
-  haendelseSket: 'erhvervssygdommen er anmeldt' | 'skaden er sket';
-  /** «**Skaden er indtrådt** før 16. juni 2011» / «**Erhvervssygdommen er anmeldt** før …». */
-  haendelseIndtraadt: 'erhvervssygdommen er anmeldt' | 'skaden er indtrådt';
+  /** «Da **skaden er** før 1/1-2011» / «Da **skaden er anmeldt** før 1/1-2011». */
+  skadenEr: 'skaden er' | 'skaden er anmeldt';
+  /** «**Skaden er sket** før 1. juli 2024» / «**Skaden er anmeldt** før 1. juli 2024». */
+  skadenErSket: 'skaden er anmeldt' | 'skaden er sket';
+  /** «**Skaden er indtrådt** før 16. juni 2011» / «**Skaden er anmeldt** før 16. juni 2011». */
+  skadenErIndtraadt: 'skaden er anmeldt' | 'skaden er indtrådt';
+  /** Korte inspektionsetiketter: «(**skade** før 16-06-2011)» / «(**skade anmeldt** før 16-06-2011)». */
+  skadeKort: 'skade' | 'skade anmeldt';
   /** Forbindelsen mellem skadestype og dato: «Erhvervssygdom **anmeldt den** …» / «Arbejdsulykke **den** …». */
   datoForbindelse: 'anmeldt den' | 'den';
 }>;
@@ -58,7 +61,7 @@ export const resolveSkadestypeDatoLabel = (
 
 /**
  * DEN ENE KILDE til enhver brugervendt formulering om sagens skade-/anmeldelsesdato – navnet, de bøjede
- * former, tidspunkts- og årsformen og sætningsleddene «skaden er sket/indtrådt» / «erhvervssygdommen er
+ * former, tidspunkts- og årsformen og sætningsleddene «skaden er sket/indtrådt» / «skaden er
  * anmeldt». Udviklerens regel (2026-08-16, M-02): formuleringen følger ALTID den indtastede skadestype –
  * «anmeld…» ved Erhvervssygdom, ellers «skade…».
  *
@@ -78,10 +81,10 @@ export const resolveStamdataDatoReference = (
       tidspunkt: 'anmeldelsestidspunkt',
       tidspunktBestemt: 'anmeldelsestidspunktet',
       aar: 'anmeldelsesår',
-      haendelse: 'anmeldelsen',
-      haendelseUbestemt: 'anmeldelse',
-      haendelseSket: 'erhvervssygdommen er anmeldt',
-      haendelseIndtraadt: 'erhvervssygdommen er anmeldt',
+      skadenEr: 'skaden er anmeldt',
+      skadenErSket: 'skaden er anmeldt',
+      skadenErIndtraadt: 'skaden er anmeldt',
+      skadeKort: 'skade anmeldt',
       datoForbindelse: 'anmeldt den',
     }
     : {
@@ -91,10 +94,10 @@ export const resolveStamdataDatoReference = (
       tidspunkt: 'skadestidspunkt',
       tidspunktBestemt: 'skadestidspunktet',
       aar: 'skadesår',
-      haendelse: 'skaden',
-      haendelseUbestemt: 'skade',
-      haendelseSket: 'skaden er sket',
-      haendelseIndtraadt: 'skaden er indtrådt',
+      skadenEr: 'skaden er',
+      skadenErSket: 'skaden er sket',
+      skadenErIndtraadt: 'skaden er indtrådt',
+      skadeKort: 'skade',
       datoForbindelse: 'den',
     };
 };

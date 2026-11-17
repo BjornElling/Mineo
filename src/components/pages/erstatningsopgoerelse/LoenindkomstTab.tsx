@@ -11,7 +11,6 @@ import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
-import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 
 type Props = {
   eoValues: ErstatningsopgoerelseValues;
@@ -50,11 +49,10 @@ const LoenindkomstTab = React.memo(({
     handleDeleteConfirm,
   } = vm;
 
-  const { haendelse } = resolveStamdataDatoReference(stamdataValues.skadestype);
   const angivetLoenNote = eoValues.beregnesUdFra === 'Angivet månedsløn'
-    ? `Når beregningen foretages ud fra en angivet månedsløn, behøver du ikke indtaste lønoplysninger før ${haendelse}.`
+    ? 'Når beregningen foretages ud fra en angivet månedsløn, behøver du ikke indtaste lønoplysninger før skaden.'
     : eoValues.beregnesUdFra === 'Angivet dagsløn'
-      ? `Når beregningen foretages ud fra en angivet dagsløn, behøver du ikke indtaste lønoplysninger før ${haendelse}.`
+      ? 'Når beregningen foretages ud fra en angivet dagsløn, behøver du ikke indtaste lønoplysninger før skaden.'
       : null;
   const insertEmploymentPrompt = totalAnsaettelsesforhold === 0
     ? 'Tryk på den blå knap for at indsætte et ansættelsesforhold.'
@@ -112,7 +110,7 @@ const LoenindkomstTab = React.memo(({
 
           {[
             'Lønindkomst, tillæg og andre relevante oplysninger skal angives individuelt for hvert enkelt ansættelsesforhold.',
-            `Det er ikke nødvendigt at dele indtastninger op i før og efter ${haendelse}. Programmet sondrer selv.`,
+            'Det er ikke nødvendigt at dele indtastninger op i før og efter skaden. Programmet sondrer selv.',
             ...(angivetLoenNote === null ? [] : [angivetLoenNote]),
           ].map((punkt) => (
             // Indrykningen ligger som margin, ikke padding: `.flow--16 .row--text` sætter

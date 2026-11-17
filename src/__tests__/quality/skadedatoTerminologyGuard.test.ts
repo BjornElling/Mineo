@@ -9,9 +9,10 @@ import ts from 'typescript';
 // gangen (BB-072, BB-121 og senere), og hver gang dukkede en ny hardkodet «skadedato», «skadestidspunkt»
 // eller «Skaden er sket» op et andet sted – i en etiket, et dokument, en kontroltabel, en fejlbesked.
 //
-// «skaden» om selve skaden («siden skaden», «hvis skaden ikke var sket») er bevidst ikke omfattet: arbejdsskade er
-// fællesbetegnelsen for arbejdsulykker og erhvervssygdomme (udviklerafgørelse 2026-11-17). Kun ord, der står for
-// sagens DATO, følger skadestypen.
+// «skaden» som navneord («før skaden», «siden skaden») er bevidst ikke omfattet: arbejdsskade er fællesbetegnelsen
+// for arbejdsulykker og erhvervssygdomme. Udsagnsordet efter er derimod omfattet: kun en arbejdsulykke «sker» eller
+// «indtræder», en erhvervssygdom er «anmeldt» (udviklerafgørelser 2026-11-17). «Skaden er før …» kræver også
+// formen, fordi en erhvervssygdom skal have «anmeldt» med.
 //
 // Derfor er formerne nu DATA i `resolveStamdataDatoReference` (`src/domain/policies/stamdataCalculations.ts`),
 // og dette værn afviser dem som tekstliteraler i resten af `src/`. Mangler en form, tilføjes den dér.
@@ -57,9 +58,9 @@ const FORBIDDEN_DATE_TERMS: ReadonlyArray<Readonly<{ name: string; pattern: RegE
   { name: 'tidspunktsform', pattern: word('skades?tidspunkt(?:et|s)?|anmeldelsestidspunkt(?:et|s)?') },
   { name: 'årsform', pattern: word('skades?år(?:et)?|anmeldelsesår(?:et)?') },
   { name: '«anmeldt»/«indtrådt»', pattern: word('anmeldt|indtrådt') },
-  { name: 'skaden som tidsreference', pattern: word('(?:før|efter|fra) skaden') },
-  { name: 'skaden som tidsreference', pattern: word('skaden er (?:sket|indtrådt|før|fra|efter)') },
-  { name: 'skaden som tidsreference', pattern: word('skade (?:før|fra|efter)') },
+  { name: 'skadens udsagnsord', pattern: word('skaden er (?:sket|indtrådt|før|fra|efter)') },
+  { name: 'skadens udsagnsord', pattern: word('skaden (?:skete|indtraf|sker|indtræder)') },
+  { name: 'skadens udsagnsord', pattern: word('skade (?:før|fra|efter)') },
 ];
 
 /** Bøjede former, der ER prosa, selv når de står alene uden mellemrum (fx en tidligere `?? 'skadedatoen'`). */
@@ -167,7 +168,7 @@ describe('skadedatoTerminologyGuard', () => {
       "const e = 'Regulering fra skadesår 2020';",
       "const f = 'Skaden er sket før 1. juli 2024.';",
       "const g = 'Da skaden er før 1/1-2011';",
-      "const h = 'lønoplysninger før skaden.';",
+      "const h = 'Da skaden skete før 2011';",
       "const i = `TAF ophører (skade før ${d})`;",
       "const j = `Erhvervssygdom ${'anmeldt'} den`;",
       'const k = <p>Skaden er indtrådt før 16. juni 2011.</p>;',
@@ -183,6 +184,7 @@ describe('skadedatoTerminologyGuard', () => {
       "// Skaden er sket før 2011 – en kommentar er ikke brugervendt",
       "const e = 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)';",
       "const f = 'samtlige TAF-perioder siden skaden';",
+      "const fb = 'lønoplysninger før og efter skaden.';",
       "throw new Error(`Kapitaliseringsinterval for skadedato ${x}`);",
       "const g = { notes: 'Valideres mod dynamisk min-værdi (skadedato)' };",
       "import { x } from './skadedatoAnmeldt';",

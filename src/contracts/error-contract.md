@@ -165,8 +165,10 @@ Heraf følger:
    skal altid følge denne regel.
 
    Reglen omfatter også de afledte former og sætningsled: tidspunktet («skadestidspunktet»/«anmeldelsestidspunktet»),
-   året («skadesår»/«anmeldelsesår») og begivenheden som tidsreference («før skaden»/«før anmeldelsen», «Skaden er
-   sket/indtrådt»/«Erhvervssygdommen er anmeldt»). Alle formerne leveres af `resolveStamdataDatoReference`
+   året («skadesår»/«anmeldelsesår») og udsagnsordet om, hvornår skaden ligger: kun en arbejdsulykke «sker» eller
+   «indtræder», en erhvervssygdom er «anmeldt» («Skaden er sket/indtrådt før …»/«Skaden er anmeldt før …», «Da skaden
+   er før …»/«Da skaden er anmeldt før …»). Selve ordet «skaden» bevares som fællesbetegnelse for arbejdsulykker og
+   erhvervssygdomme («før skaden», «siden skaden»). Alle formerne leveres af `resolveStamdataDatoReference`
    (`src/domain/policies/stamdataCalculations.ts`) og må ikke skrives som tekstliteraler andre steder.
    `skadedatoTerminologyGuard.test.ts` afviser dem i `src/` uden for den kilde (med navngivne, begrundede
    undtagelser), og `dateBoundsStamdataDatoNavn.test.ts` kalder hvert datofelts grænser i en erhvervssygdomssag.

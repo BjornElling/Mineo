@@ -7,7 +7,7 @@ import { capitalizeFirstCharDa } from '../../utils/formatUtils';
  * Sætningerne, der forklarer, hvilken side af en skæringsdato sagens skade-/anmeldelsesdato ligger på.
  *
  * Skærmen og dokumentet skrev før hver sin ordrette kopi med «Skaden er sket/indtrådt …» – også ved en
- * erhvervssygdom, hvor datoen er anmeldelsesdatoen. Teksterne bor nu ét sted og udleder formuleringen af
+ * erhvervssygdom, som ikke «sker», men er anmeldt. Teksterne bor nu ét sted og udleder formuleringen af
  * beregningens egen `skadestype` gennem `resolveStamdataDatoReference` (M-02).
  */
 
@@ -15,14 +15,14 @@ import { capitalizeFirstCharDa } from '../../utils/formatUtils';
 export const buildDifferencekravFradragLinjer = (
   computation: Pick<EetDifferencekravComputation, 'skadestype' | 'fradragGaelderForFoer2011'>
 ): readonly [string, string] => {
-  const haendelse = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).haendelseIndtraadt);
+  const skadenEr = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).skadenErIndtraadt);
   return computation.fradragGaelderForFoer2011
     ? [
-      `${haendelse} før 16. juni 2011.`,
+      `${skadenEr} før 16. juni 2011.`,
       'Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser.',
     ]
     : [
-      `${haendelse} den 16. juni 2011 eller senere.`,
+      `${skadenEr} den 16. juni 2011 eller senere.`,
       'Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser.',
     ];
 };
@@ -31,10 +31,10 @@ export const buildDifferencekravFradragLinjer = (
 export const buildLoebendeGrundloenNiveauTekst = (
   computation: Pick<EetLoebendeComputation, 'skadestype' | 'grundloenNiveau'>
 ): string => {
-  const haendelse = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).haendelseSket);
+  const skadenEr = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).skadenErSket);
   return computation.grundloenNiveau === '2003'
-    ? `${haendelse} før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.`
-    : `${haendelse} fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.`;
+    ? `${skadenEr} før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.`
+    : `${skadenEr} fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.`;
 };
 
 /** Venstreteksten ud for erstatningsniveauet (80 % / 83 %). */
@@ -43,6 +43,6 @@ export const buildLoebendeErstatningsniveauTekst = (
 ): string => {
   const reference = resolveStamdataDatoReference(computation.skadestype);
   return computation.erstatningsniveauPct === 83
-    ? `Da ${reference.haendelseSket} 1/1-2011 eller senere, udgør erstatningsniveauet`
-    : `Da ${reference.haendelse} er før 1/1-2011, udgør erstatningsniveauet`;
+    ? `Da ${reference.skadenErSket} 1/1-2011 eller senere, udgør erstatningsniveauet`
+    : `Da ${reference.skadenEr} før 1/1-2011, udgør erstatningsniveauet`;
 };

@@ -11,7 +11,7 @@ describe('eetSkaeringsdatoTekster', () => {
       'Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser.',
     ]);
     expect(buildDifferencekravFradragLinjer({ skadestype: 'Erhvervssygdom', fradragGaelderForFoer2011: false })).toEqual([
-      'Erhvervssygdommen er anmeldt den 16. juni 2011 eller senere.',
+      'Skaden er anmeldt den 16. juni 2011 eller senere.',
       'Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser.',
     ]);
   });
@@ -20,7 +20,7 @@ describe('eetSkaeringsdatoTekster', () => {
     expect(buildLoebendeGrundloenNiveauTekst({ skadestype: undefined, grundloenNiveau: '2003' }))
       .toBe('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
     expect(buildLoebendeGrundloenNiveauTekst({ skadestype: 'Erhvervssygdom', grundloenNiveau: '2024' }))
-      .toBe('Erhvervssygdommen er anmeldt fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
+      .toBe('Skaden er anmeldt fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
   });
 
   it('formulerer erstatningsniveauet efter skadestypen', () => {
@@ -29,8 +29,8 @@ describe('eetSkaeringsdatoTekster', () => {
     expect(buildLoebendeErstatningsniveauTekst({ skadestype: 'Arbejdsulykke', erstatningsniveauPct: 80 }))
       .toBe('Da skaden er før 1/1-2011, udgør erstatningsniveauet');
     expect(buildLoebendeErstatningsniveauTekst({ skadestype: 'Erhvervssygdom', erstatningsniveauPct: 83 }))
-      .toBe('Da erhvervssygdommen er anmeldt 1/1-2011 eller senere, udgør erstatningsniveauet');
+      .toBe('Da skaden er anmeldt 1/1-2011 eller senere, udgør erstatningsniveauet');
     expect(buildLoebendeErstatningsniveauTekst({ skadestype: 'Erhvervssygdom', erstatningsniveauPct: 80 }))
-      .toBe('Da anmeldelsen er før 1/1-2011, udgør erstatningsniveauet');
+      .toBe('Da skaden er anmeldt før 1/1-2011, udgør erstatningsniveauet');
   });
 });

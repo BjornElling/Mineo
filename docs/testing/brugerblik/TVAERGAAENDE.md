@@ -598,18 +598,19 @@ ofte allerede i erklæringen ved siden af.
 **Låst 2026-11-17 – mønsteret efterprøves ikke længere fladevis.** Endnu en forekomst blev fundet efter
 BB-121's rettelse, og en gennemgang af hele `src/` fandt yderligere: «Skaden er indtrådt/sket …» i
 differencekravet og de løbende ydelser (skærm og dokument), «Da skaden er sket før 16. juni 2011» i
-opgørelsen, sygeferiegodtgørelsens «Da skaden er fra/før …», «før skaden» på Lønindkomst, kontroltabellens
+opgørelsen, sygeferiegodtgørelsens «Da skaden er fra/før …», kontroltabellens
 «skade før/fra» og «skadedato mangler», ferietabellens fejltekst og de statiske labels «Ansat på
 skadestidspunktet»/«Anciennitetstillæg efter skadedatoen». Beregningsdatoen på Erhvervsevnetab og Forsørgertab
 sagde desuden «kan ikke være før skadedatoen» ved en erhvervssygdom, fordi grænsen ikke fik datoens reference.
-Alle former – også sætningsleddene «skaden er sket/indtrådt» / «erhvervssygdommen er anmeldt» og «før skaden» /
-«før anmeldelsen» – leveres nu af `resolveStamdataDatoReference`, og to værn låser reglen:
+Alle former – også sætningsleddene «skaden er sket/indtrådt» / «skaden er anmeldt» og «skaden er før» / «skaden er
+anmeldt før» – leveres nu af `resolveStamdataDatoReference`, og to værn låser reglen:
 `skadedatoTerminologyGuard.test.ts` afviser ordene som tekstliteraler i `src/` uden for den kanoniske kilde, og
 `dateBoundsStamdataDatoNavn.test.ts` kalder hvert datofelts grænser i en erhvervssygdomssag. Bevidst uden for:
 bekendtgørelsernes ordrette titler og Satser-sidens sagsuafhængige «Kapitalisering (skade fra 1.1.2011)».
-«siden skaden» og «hvis skaden ikke var sket» handler om selve skaden, ikke datoen, og er ikke omfattet.
-**Udviklerafgørelse 2026-11-17:** «skaden» bevares, hvor ordet betegner selve skaden – arbejdsskade er
-fællesbetegnelsen for arbejdsulykker og erhvervssygdomme. Kun ord, der står for sagens DATO, følger skadestypen.
+**Udviklerafgørelser 2026-11-17:** «skaden» bevares som navneord («før skaden», «siden skaden») – arbejdsskade er
+fællesbetegnelsen for arbejdsulykker og erhvervssygdomme. Udsagnsordet efter «skaden» følger derimod skadestypen:
+kun en arbejdsulykke «sker» eller «indtræder»; en erhvervssygdom er «anmeldt». «Da skaden er før 1/1-2011» bliver
+derfor «Da skaden er anmeldt før 1/1-2011» ved en erhvervssygdom.
 Udløseren (`varigemen.md` BB-398) var BB-121's lære igen: dokumentet læste skadestypen fra brevhovedets
 stamdata, som er tomme ved fravalgt brevhoved. Brevhovedprojektionens type (`DocumentBrevhovedStamdata`)
 udelader nu sagens fakta, så den kanal ikke længere kan levere skadestypen.

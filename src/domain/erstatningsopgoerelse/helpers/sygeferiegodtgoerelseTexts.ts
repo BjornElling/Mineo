@@ -163,7 +163,7 @@ export const resolveSfggFoerstEfterSygeloen = (args: Readonly<{
 );
 
 export const buildSfggFirstTafDayExcludedText = (skadestype: StamdataValues['skadestype'] | undefined): string =>
-  `Da ${resolveStamdataDatoReference(skadestype).haendelse} er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.`;
+  `Da ${resolveStamdataDatoReference(skadestype).skadenEr} fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.`;
 
 export const SFGG_TABLE_TOTAL_LABEL = 'Samlet';
 
@@ -243,7 +243,7 @@ export const formatSfggAfkortningPdfLine = (
   const dato = isoToDanish(afkortning.dato) ?? afkortning.dato;
   if (afkortning.aarsag === 'cap4mdr') {
     return {
-      left: `${capitalizeFirstCharDa(datoReference.haendelse)} er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte`,
+      left: `${capitalizeFirstCharDa(datoReference.skadenEr)} før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte`,
       right: dato,
     };
   }

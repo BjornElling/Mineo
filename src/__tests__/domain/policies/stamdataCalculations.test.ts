@@ -18,10 +18,10 @@ describe('stamdataCalculations', () => {
       tidspunkt: 'skadestidspunkt',
       tidspunktBestemt: 'skadestidspunktet',
       aar: 'skadesår',
-      haendelse: 'skaden',
-      haendelseUbestemt: 'skade',
-      haendelseSket: 'skaden er sket',
-      haendelseIndtraadt: 'skaden er indtrådt',
+      skadenEr: 'skaden er',
+      skadenErSket: 'skaden er sket',
+      skadenErIndtraadt: 'skaden er indtrådt',
+      skadeKort: 'skade',
       datoForbindelse: 'den',
     });
     expect(resolveSkadestypeDatoLabel(undefined)).toBe('Skadedato');
@@ -37,10 +37,10 @@ describe('stamdataCalculations', () => {
       tidspunkt: 'anmeldelsestidspunkt',
       tidspunktBestemt: 'anmeldelsestidspunktet',
       aar: 'anmeldelsesår',
-      haendelse: 'anmeldelsen',
-      haendelseUbestemt: 'anmeldelse',
-      haendelseSket: 'erhvervssygdommen er anmeldt',
-      haendelseIndtraadt: 'erhvervssygdommen er anmeldt',
+      skadenEr: 'skaden er anmeldt',
+      skadenErSket: 'skaden er anmeldt',
+      skadenErIndtraadt: 'skaden er anmeldt',
+      skadeKort: 'skade anmeldt',
       datoForbindelse: 'anmeldt den',
     });
   });

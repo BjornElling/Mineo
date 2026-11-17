@@ -123,7 +123,7 @@ export type SfggAnsaettelsesforholdContext = Readonly<{
   employmentCalculator: EmploymentSfggCalculator;
   /** Lønnens reguleringsopslag; `undefined`, når ansættelsesforholdet ingen lønudvikling har. */
   reguleringOpslag: ReguleringOpslag | undefined;
-  /** Afgør formuleringen af tekster om sagens dato («skaden»/«anmeldelsen»). */
+  /** Afgør formuleringen af tekster om sagens dato («skaden er …»/«skaden er anmeldt …»). */
   skadestype: StamdataValues['skadestype'] | undefined;
 }>;
 

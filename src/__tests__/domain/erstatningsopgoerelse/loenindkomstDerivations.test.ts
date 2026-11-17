@@ -475,7 +475,7 @@ describe('deriveLoenindkomstVm', () => {
       });
     });
 
-    it('formulerer før-2015-bemærkningen ud fra anmeldelsen ved en erhvervssygdom og udelader den fra 2015', () => {
+    it('formulerer før-2015-bemærkningen som anmeldt ved en erhvervssygdom og udelader den fra 2015', () => {
       const af = createDefaultLoenindkomstAnsaettelsesforhold();
       const erhvervssygdom = deriveLoenindkomstVm({
         ...buildInput([af]),
@@ -485,7 +485,7 @@ describe('deriveLoenindkomstVm', () => {
       const fra2015 = deriveLoenindkomstVm({ ...buildInput([af]), skadedato: toISODateString('2015-01-01') });
 
       expect(erhvervssygdom.getSfggPresentation(af).sharedSfggBefore2015Besked)
-        .toBe('Bemærk: Da anmeldelsen er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen');
+        .toBe('Bemærk: Da skaden er anmeldt før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen');
       expect(fra2015.getSfggPresentation(af).sharedSfggBefore2015Besked).toBeNull();
     });
 

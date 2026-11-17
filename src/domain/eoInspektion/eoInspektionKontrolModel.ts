@@ -211,7 +211,7 @@ export const buildTafAfskaeringOversigt = (
   const midlertidigDato = resolveMidlertidigEetDato(values);
   if (cutoffs.midlertidigEETDato) {
     rows.push({
-      label: `TAF ophører: midlertidigt EET (${datoReference.haendelseUbestemt} før ${skaeringsdato})`,
+      label: `TAF ophører: midlertidigt EET (${datoReference.skadeKort} før ${skaeringsdato})`,
       dato: cutoffs.midlertidigEETDato,
     });
   } else if (midlertidigDato) {
@@ -219,7 +219,7 @@ export const buildTafAfskaeringOversigt = (
       ? 'verserende klage'
       : skadedatoISO === undefined
         ? `${datoReference.label.toLowerCase()} mangler`
-        : `${datoReference.haendelseUbestemt} fra ${skaeringsdato}`;
+        : `${datoReference.skadeKort} fra ${skaeringsdato}`;
     rows.push({ label: `Midlertidigt EET – TAF fortsætter (${grund})`, dato: midlertidigDato });
   }
 
