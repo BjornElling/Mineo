@@ -50,11 +50,11 @@ const gateSettingsWithBrevhoved = projectMineoDocumentGateSettings(__createTestS
   },
 }));
 
-const project = () => {
+const project = (stamdataValues: StamdataValues = stamdata) => {
   const catalog = getProductionInputCatalog();
   const input = catalog.validateSettledInput({
     sections: {
-      stamdata,
+      stamdata: stamdataValues,
       satser: null,
       aarsloen: null,
       faellesAarsloen: null,
@@ -146,6 +146,22 @@ describe('CALC-004 – varige mén fra snapshot til Word', () => {
     expect(text).toContain('389.610 kr.');
     expect(text).toContain('85.714 kr.');
     expect(text).toContain('303.896 kr.');
+  });
+
+  it('navngiver anmeldelsesdatoen ved en erhvervssygdom, også når brevhovedet er fravalgt (BB-398)', async () => {
+    // Uden brevhoved er brevhovedets stamdata tomme. Datoens navn skal derfor følge sagens skadestype
+    // og ikke brevhovedet – før faldt dokumentet her tilbage til «Skadedato» og «Alder på skadestidspunkt».
+    const input = project({ ...stamdata, skadestype: 'Erhvervssygdom' });
+    expect(input.datoReference.label).toBe('Anmeldelsesdato');
+
+    const renderer = await varigeMenDocumentDefinition.loadRenderer();
+    const { documentXml } = await renderWordDocument((session) =>
+      renderer(session, input, { visBrevhoved: false })
+    );
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('Anmeldelsesdato');
+    expect(text).toContain('Alder på anmeldelsestidspunkt');
+    expect(text).not.toMatch(/skadedato|skadestidspunkt/iu);
   });
 
   it('blokerer med den konkrete stamdataårsag, når brevhovedet er aktivt', () => {

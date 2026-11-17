@@ -26,6 +26,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { formatAsAmount } from '../../../utils/formatUtils';
+import { buildLoebendeErstatningsniveauTekst, buildLoebendeGrundloenNiveauTekst } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import { resolveDocumentArtifactFileName, formatKr, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
 import { round0, round4 } from '../../../utils/roundingShortcuts';
 import {
@@ -223,7 +224,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   // Grundløn
   writer.writeBoldSubheader('Grundløn');
   if (computation.grundloenNiveau === '2003') {
-    writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
+    writer.writeWrappedText(buildLoebendeGrundloenNiveauTekst(computation));
     writer.writeWrappedTextContinued(`Årsløn x (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
       `${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
@@ -231,7 +232,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       rowOpts
     );
   } else {
-    writer.writeWrappedText('Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
+    writer.writeWrappedText(buildLoebendeGrundloenNiveauTekst(computation));
     writer.writeWrappedTextContinued(`Årsløn x (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
       `${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`,
@@ -244,7 +245,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   writer.writeBoldSubheader('Ydelsesniveau');
   if (computation.erstatningsniveauPct === 83) {
     writer.writeLeftRightText(
-      'Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet',
+      buildLoebendeErstatningsniveauTekst(computation),
       '83 %',
       rowOpts
     );
@@ -255,7 +256,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
     );
   } else {
     writer.writeLeftRightText(
-      'Da skaden er før 1/1-2011, udgør erstatningsniveauet',
+      buildLoebendeErstatningsniveauTekst(computation),
       '80 %',
       rowOpts
     );

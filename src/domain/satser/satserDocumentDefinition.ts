@@ -13,8 +13,7 @@
  */
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { blockedProjectionForStamdata, blockedProjectionFromCauses } from '../../document/definition/documentOutcome';
-import type { StamdataValues } from '../../schemas/formSchemas';
-import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
+import { projectStamdataForDocumentIfEnabled, type DocumentBrevhovedStamdata } from '../stamdata/stamdataDocumentProjection';
 import { projectSatser, type SatserProjectionValue } from './satserProjection';
 
 export const SATSER_DOCUMENT_CONSUMER_ID = 'document.satser';
@@ -23,7 +22,7 @@ export type SatserDocumentInput = Readonly<{
   year: number;
   /** Afledt af projektionen, ikke restateret: satstabellens form ejes af `getSatserForYear`. */
   satser: SatserProjectionValue['satser'];
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const satserDocumentDefinition: MineoDocumentDefinition<SatserDocumentInput> =

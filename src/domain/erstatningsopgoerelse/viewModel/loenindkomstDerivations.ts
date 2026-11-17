@@ -125,7 +125,12 @@ export type SfggPresentation = Readonly<{
    * (`eoLoenindkomstRelevance.ts`), så sektionen ikke kan vise et felt, readeren skjuler, eller omvendt.
    */
   relevanteFelter: Readonly<Record<SfggFelt, boolean>>;
-  showSharedSfggBefore2015: boolean;
+  /**
+   * Bemærkningen om, at alle TAF-perioder skal være indtastet, når datoen ligger før 2015 – ellers `null`.
+   * «siden skaden» betyder selve skaden (perioderne kan ved en erhvervssygdom ligge før anmeldelsen);
+   * kun datoens led følger skadestypen.
+   */
+  sharedSfggBefore2015Besked: string | null;
   /** Enheden, fraværsdagene i referenceperioden tælles i – samme som opgørelsen af sygeferiegodtgørelsen (BB-329). */
   fravaersdageEnhed: SfggDayBasis;
   /** Info-tooltippen ved «Referenceperiode»: reglens udgangspunkt, og at perioden er fri (BB-321). */
@@ -287,7 +292,9 @@ export function deriveLoenindkomstVm(input: LoenindkomstDerivationInput): Loenin
         manuel: erSfggFeltRelevantForSynlighed('manuel', synlighed, kilde),
         alleredeBetalt: erSfggFeltRelevantForSynlighed('alleredeBetalt', synlighed, kilde),
       },
-      showSharedSfggBefore2015: Boolean(skadedato && skadedato < '2015-01-01'),
+      sharedSfggBefore2015Besked: skadedato && skadedato < '2015-01-01'
+        ? `Bemærk: Da ${resolveSkadeEllerAnmeldelsesdatoReference(skadestype).haendelse} er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen`
+        : null,
       fravaersdageEnhed: resolveSfggDayBasis(source, computeTafBeregningsenhed(eoValues)),
       referenceperiodeTooltip: buildSfggReferenceperiodeTooltip(source.kind, af),
       seksMaanederBesked: buildSfggSeksMaanederBesked(eoValues, af),

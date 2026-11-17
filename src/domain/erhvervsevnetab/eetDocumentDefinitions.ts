@@ -9,7 +9,7 @@
  * projekterer derefter brevhovedets stamdata med det konkrete toggle. Reaktiv gate og click-preflight
  * evaluerer dermed samme formel, også når stamdata ikke skal bruges.
  */
-import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { DocumentProjectionResult } from '../../document/definition/documentDefinition';
 import {
   defineMineoDocument,
@@ -36,7 +36,7 @@ import {
   buildErhvervsevnetabReaderProjection,
   type ErhvervsevnetabReaderProjection,
 } from './erhvervsevnetabReaderProjection';
-import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
+import { projectStamdataForDocumentIfEnabled, type DocumentBrevhovedStamdata } from '../stamdata/stamdataDocumentProjection';
 
 type SharedEetSource = Readonly<{
   projection: ErhvervsevnetabReaderProjection;
@@ -62,7 +62,7 @@ const projectEetFane = <TComputation, TInput>(
   toInput: (
     projection: ErhvervsevnetabReaderProjection,
     computation: TComputation,
-    stamdata: StamdataValues
+    stamdata: DocumentBrevhovedStamdata
   ) => TInput
 ): DocumentProjectionResult<TInput> => {
   const { projection, gates } = context.shared(readSharedEetSource);
@@ -100,7 +100,7 @@ const projectEetFane = <TComputation, TInput>(
 export type LoebendeYdelserDocumentInput = Readonly<{
   computation: EetLoebendeComputation;
   visUdvidetSpecifikation: boolean;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const loebendeYdelserDocumentDefinition: MineoDocumentDefinition<LoebendeYdelserDocumentInput> =
@@ -138,7 +138,7 @@ export const loebendeYdelserDocumentDefinition: MineoDocumentDefinition<Loebende
 export type KapitaliseringDocumentInput = Readonly<{
   computation: EetKapitaliseringComputation;
   koen: Koen | undefined;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const kapitaliseringDocumentDefinition: MineoDocumentDefinition<KapitaliseringDocumentInput> =
@@ -175,7 +175,7 @@ export const kapitaliseringDocumentDefinition: MineoDocumentDefinition<Kapitalis
 
 export type EfterEalDocumentInput = Readonly<{
   computation: EetEalComputation;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const efterEalDocumentDefinition: MineoDocumentDefinition<EfterEalDocumentInput> =
@@ -215,7 +215,7 @@ export type DifferencekravDocumentInput = Readonly<{
    * outputtet faktisk afhænger af.
    */
   bilagSelection: ErhvervsevnetabComposedValues['eetDifferencekravBilagSelection'];
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 /**

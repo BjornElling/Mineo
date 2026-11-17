@@ -31,6 +31,7 @@ import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import { formatJaNej, formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
+import { buildLoebendeErstatningsniveauTekst, buildLoebendeGrundloenNiveauTekst } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import { round0, sumRoundedValues } from '../../../utils/roundingShortcuts';
 import { getDocumentFormatLabel } from '../../../document/documentFormat';
 import { toKroner } from '../../../domain/money/money';
@@ -297,7 +298,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
 
             {computation.grundloenNiveau === '2003' ? (
               <>
-                <HoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
+                <HoverRow text={buildLoebendeGrundloenNiveauTekst(computation)} />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
                     {`Årsløn x (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
@@ -309,7 +310,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               </>
             ) : (
               <>
-                <HoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
+                <HoverRow text={buildLoebendeGrundloenNiveauTekst(computation)} />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
                     {`Årsløn x (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(toKroner(computation.benyttetAarsloenOre))} x (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)}) =`}
@@ -326,7 +327,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
             {computation.erstatningsniveauPct === 83 ? (
               <>
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet</Typography>
+                  <Typography className="row--text">{buildLoebendeErstatningsniveauTekst(computation)}</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">83 %</Typography>
                   </Box>
@@ -342,7 +343,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
             ) : (
               <>
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Da skaden er før 1/1-2011, udgør erstatningsniveauet</Typography>
+                  <Typography className="row--text">{buildLoebendeErstatningsniveauTekst(computation)}</Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">80 %</Typography>
                   </Box>

@@ -8,6 +8,8 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowShared';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
+import { STAMDATA_DATO_REFERENCES } from '../../../domain/policies/stamdataCalculations';
+import { capitalizeFirstCharDa } from '../../../utils/formatUtils';
 import {
   INSPEKTION_REGULATION_ROW_LABEL_WIDTH,
   INSPEKTION_ROW_LABEL_WIDTH as LABEL_WIDTH,
@@ -83,11 +85,15 @@ const dedupeMergedRegulationRows = (
   return regulationRows.filter((row) => !existingKeys.has(`${row.label}__${getRegulationDisplayValue(row)}`));
 };
 
+// Genkender en reguleringsdato-etiket uanset skadestype; datonavnene hentes fra den ene navneautoritet.
+const STAMDATA_DATO_LABEL_PREFIXES = STAMDATA_DATO_REFERENCES.map(
+  (reference) => `${capitalizeFirstCharDa(reference.labelLower)} (`
+);
+
 const isReguleringsdatoLabel = (label: string): boolean =>
   label === 'Reguleringsdato' ||
   label.startsWith('Reguleringsdatoen (') ||
-  label.startsWith('Skadedatoen (') ||
-  label.startsWith('Anmeldelsesdatoen (') ||
+  STAMDATA_DATO_LABEL_PREFIXES.some((prefix) => label.startsWith(prefix)) ||
   label.startsWith('Beregningsperiodens udløb (') ||
   label.startsWith('Den manuelt angivne reguleringsdato (');
 

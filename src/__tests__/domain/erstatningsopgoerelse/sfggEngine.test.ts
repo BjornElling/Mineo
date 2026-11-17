@@ -8,6 +8,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
+import { resolveStamdataDatoReference } from '../../../domain/policies/stamdataCalculations';
 import {
   asSfggAmount as asAmount,
   createSfggEmployment as createEmployment,
@@ -212,16 +213,31 @@ describe('computeSygeferiegodtgoerelse', () => {
 
   it('formatterer 4-måneders-afkortningen til bilagets venstre/højre-linje', () => {
     expect(
-      formatSfggAfkortningPdfLine({ aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') })
+      formatSfggAfkortningPdfLine(
+        { aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') },
+        resolveStamdataDatoReference('Arbejdsulykke'),
+      )
     ).toEqual({
       left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
       right: '30-04-2014',
     });
   });
 
+  it('formulerer 4-måneders-afkortningen ud fra anmeldelsen ved en erhvervssygdom', () => {
+    expect(
+      formatSfggAfkortningPdfLine(
+        { aarsag: 'cap4mdr', verbum: 'bortfalder', dato: iso('2014-04-30') },
+        resolveStamdataDatoReference('Erhvervssygdom'),
+      ).left
+    ).toBe('Anmeldelsen er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
+  });
+
   it('formatterer ansættelsesophør-afkortningen med det korrekte verbum', () => {
     expect(
-      formatSfggAfkortningPdfLine({ aarsag: 'ansaettelsesophoer', verbum: 'bortfaldt', dato: iso('2024-02-15') })
+      formatSfggAfkortningPdfLine(
+        { aarsag: 'ansaettelsesophoer', verbum: 'bortfaldt', dato: iso('2024-02-15') },
+        resolveStamdataDatoReference('Arbejdsulykke'),
+      )
     ).toEqual({
       left: 'Retten bortfaldt ved ansættelsesforholdets ophør',
       right: '15-02-2024',

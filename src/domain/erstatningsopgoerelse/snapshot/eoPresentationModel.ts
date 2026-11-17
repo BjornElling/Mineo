@@ -11,6 +11,7 @@ import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLo
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import type { EoComputedTotals } from './eoCanonicalOutput';
 import {
+  formatSkadestypeMedDato,
   resolveSkadestypeDatoLabel,
   type SkadestypeDatoLabel,
 } from '../../policies/stamdataCalculations';
@@ -79,11 +80,9 @@ export const buildEoPdfPresentation = (
     periodeFra && periodeTil ? `${formatDateShort(periodeFra)} - ${formatDateShort(periodeTil)}` : null;
 
   const navn = (stamdataValues.skadelidte ?? '').trim();
-  const skadestype = (stamdataValues.skadestype ?? '').trim();
+  const skadestype = stamdataValues.skadestype;
   const skadedato = formatDateLong(stamdataValues.skadedato);
-  const skadestypeLinje = skadestype && skadedato
-    ? `${skadestype} ${skadestype === 'Erhvervssygdom' ? 'anmeldt ' : ''}den ${skadedato}`
-    : null;
+  const skadestypeLinje = skadestype && skadedato ? formatSkadestypeMedDato(skadestype, skadedato) : null;
 
   return {
     titel,

@@ -447,7 +447,7 @@ describe('deriveLoenindkomstVm', () => {
         canShowOverenskomstDetails: true,
         requiresReferenceperiode: false,
         showSatsvalg: false,
-        showSharedSfggBefore2015: true,
+        sharedSfggBefore2015Besked: 'Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen',
       });
     });
 
@@ -471,8 +471,22 @@ describe('deriveLoenindkomstVm', () => {
         canShowOverenskomstDetails: true,
         requiresReferenceperiode: true,
         showSatsvalg: false,
-        showSharedSfggBefore2015: true,
+        sharedSfggBefore2015Besked: 'Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen',
       });
+    });
+
+    it('formulerer før-2015-bemærkningen ud fra anmeldelsen ved en erhvervssygdom og udelader den fra 2015', () => {
+      const af = createDefaultLoenindkomstAnsaettelsesforhold();
+      const erhvervssygdom = deriveLoenindkomstVm({
+        ...buildInput([af]),
+        skadedato: toISODateString('2014-12-31'),
+        skadestype: 'Erhvervssygdom',
+      });
+      const fra2015 = deriveLoenindkomstVm({ ...buildInput([af]), skadedato: toISODateString('2015-01-01') });
+
+      expect(erhvervssygdom.getSfggPresentation(af).sharedSfggBefore2015Besked)
+        .toBe('Bemærk: Da anmeldelsen er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen');
+      expect(fra2015.getSfggPresentation(af).sharedSfggBefore2015Besked).toBeNull();
     });
 
     it('viser direkte overenskomstsats og differentieret satsvalg', () => {

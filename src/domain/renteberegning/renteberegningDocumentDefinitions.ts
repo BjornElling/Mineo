@@ -27,11 +27,11 @@ import {
 import type { DocumentSourceContext } from '../../document/definition/documentSourceContext';
 import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import { renteberegningBeregningsdatoField, renteberegningKommentarerField } from '../../inputCore/catalog/renteberegningDescriptors';
-import type { StamdataValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import {
   projectStamdataForDocument,
   projectStamdataForDocumentIfEnabled,
+  type DocumentBrevhovedStamdata,
 } from '../stamdata/stamdataDocumentProjection';
 import type { ProcessInterestPeriod } from './procesrenteCalculator';
 import { evaluateOversigtDownloadGate } from './renteberegningDownloadGate';
@@ -84,7 +84,7 @@ const requireReadyAggregate = <TInput>(
   source: SharedRenteSource
 ):
   | Readonly<{ kind: 'blocked'; result: DocumentProjectionResult<TInput> }>
-  | Readonly<{ kind: 'ok'; stamdata: StamdataValues; aggregate: NonNullable<ReturnType<typeof readAggregate>> }> => {
+  | Readonly<{ kind: 'ok'; stamdata: DocumentBrevhovedStamdata; aggregate: NonNullable<ReturnType<typeof readAggregate>> }> => {
   if (source.stamdata.status !== 'ready') {
     return {
       kind: 'blocked',
@@ -121,7 +121,7 @@ export type RenteOversigtDocumentInput = Readonly<{
   rows: readonly RenteOversigtRow[];
   latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 /**
@@ -224,7 +224,7 @@ export type RenteDocumentInput = Readonly<{
   periods: readonly ProcessInterestPeriod[];
   latestReferenceRatePeriodEnd: ISODateString | null;
   kommentarer: string | undefined;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const renteDocumentDefinition: MineoDocumentDefinition<RenteDocumentInput, RenteRowRequest> =

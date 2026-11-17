@@ -103,13 +103,11 @@ const SygeferiegodtgoerelseSection = ({
         </Box>
       ) : null}
 
-      {sfgg.showSharedSfggBefore2015 ? (
+      {sfgg.sharedSfggBefore2015Besked !== null ? (
         <Box className="row--label-right-hover">
           <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <Typography className="row--text">
-                Bemærk: Da skaden er før 01-01-2015, skal samtlige TAF-perioder siden skaden være indtastet på fanen
-              </Typography>
+              <Typography className="row--text">{sfgg.sharedSfggBefore2015Besked}</Typography>
               <Typography className="row--text">&nbsp;</Typography>
               <Typography
                 className="row--text icon-text-link"

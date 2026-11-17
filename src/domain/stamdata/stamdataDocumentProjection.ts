@@ -53,6 +53,15 @@ export const projectStamdataForDocument = (
   }));
 
 /**
+ * Brevhovedets stamdata: sagens identifikation, men IKKE sagens fakta.
+ *
+ * Skadestype, skade-/anmeldelsesdato og fødselsdato er udeladt af typen, fordi værdien er tom, når brevhovedet
+ * er fravalgt. Et dokument, der læste skadestypen herfra, skiftede tavst «Anmeldelsesdato» ud med «Skadedato»
+ * blot fordi brevhovedet var slået fra (BB-398). Sagens fakta hentes fra dokumentets eget beregningsgrundlag.
+ */
+export type DocumentBrevhovedStamdata = Omit<StamdataValues, 'skadestype' | 'skadedato' | 'skadelidteFodselsdato'>;
+
+/**
  * Projekter kun brevhovedets stamdata, når det konkrete output faktisk skal tegne et brevhoved.
  * Et output uden brevhoved må ikke blokeres af en ugyldig værdi i stamdata, som det hverken viser
  * eller bruger. Den naive løsning – altid at læse stamdata – gjorde en anden fane til en usynlig
@@ -62,6 +71,6 @@ export const projectStamdataForDocumentIfEnabled = (
   reader: InputReader,
   consumerId: string,
   enabled: boolean
-): ProjectionResult<StamdataValues> => enabled
+): ProjectionResult<DocumentBrevhovedStamdata> => enabled
   ? projectStamdataForDocument(reader, consumerId)
   : Object.freeze({ status: 'ready', value: EMPTY_STAMDATA, issues: Object.freeze([]), sourceToken: reader.sourceToken });

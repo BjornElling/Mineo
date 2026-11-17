@@ -1,0 +1,48 @@
+import type { EetDifferencekravComputation } from './eetCanonicalOutput';
+import type { EetLoebendeComputation } from './eetLoebendeYdelserCalculation';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
+import { capitalizeFirstCharDa } from '../../utils/formatUtils';
+
+/**
+ * Sætningerne, der forklarer, hvilken side af en skæringsdato sagens skade-/anmeldelsesdato ligger på.
+ *
+ * Skærmen og dokumentet skrev før hver sin ordrette kopi med «Skaden er sket/indtrådt …» – også ved en
+ * erhvervssygdom, hvor datoen er anmeldelsesdatoen. Teksterne bor nu ét sted og udleder formuleringen af
+ * beregningens egen `skadestype` gennem `resolveStamdataDatoReference` (M-02).
+ */
+
+/** De to linjer under «Løbende ASL-ydelser» i differencekravet. */
+export const buildDifferencekravFradragLinjer = (
+  computation: Pick<EetDifferencekravComputation, 'skadestype' | 'fradragGaelderForFoer2011'>
+): readonly [string, string] => {
+  const haendelse = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).haendelseIndtraadt);
+  return computation.fradragGaelderForFoer2011
+    ? [
+      `${haendelse} før 16. juni 2011.`,
+      'Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser.',
+    ]
+    : [
+      `${haendelse} den 16. juni 2011 eller senere.`,
+      'Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser.',
+    ];
+};
+
+/** Linjen under «Grundløn» i de løbende ydelsers udvidede specifikation. */
+export const buildLoebendeGrundloenNiveauTekst = (
+  computation: Pick<EetLoebendeComputation, 'skadestype' | 'grundloenNiveau'>
+): string => {
+  const haendelse = capitalizeFirstCharDa(resolveStamdataDatoReference(computation.skadestype).haendelseSket);
+  return computation.grundloenNiveau === '2003'
+    ? `${haendelse} før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.`
+    : `${haendelse} fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.`;
+};
+
+/** Venstreteksten ud for erstatningsniveauet (80 % / 83 %). */
+export const buildLoebendeErstatningsniveauTekst = (
+  computation: Pick<EetLoebendeComputation, 'skadestype' | 'erstatningsniveauPct'>
+): string => {
+  const reference = resolveStamdataDatoReference(computation.skadestype);
+  return computation.erstatningsniveauPct === 83
+    ? `Da ${reference.haendelseSket} 1/1-2011 eller senere, udgør erstatningsniveauet`
+    : `Da ${reference.haendelse} er før 1/1-2011, udgør erstatningsniveauet`;
+};

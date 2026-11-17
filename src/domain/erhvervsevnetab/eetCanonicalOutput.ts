@@ -243,6 +243,8 @@ export type EetDifferencekravKapitaliseretAfgoerelse = z.infer<
 export const eetDifferencekravComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
+  /** Bæres med af samme grund som EAL-beregningens `skadestype`: sætningerne om datoen følger skadestypen. */
+  skadestype: skadestypeEnum.optional(),
   dagFoerBeregningsdato: isoDateString,
   fradragGaelderForFoer2011: z.boolean(),
   ealKravOre: moneyOreSchema,

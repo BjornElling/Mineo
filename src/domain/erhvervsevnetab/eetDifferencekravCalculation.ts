@@ -1013,6 +1013,7 @@ export const composeEetDifferencekravCalculation = (
     computation: {
       beregningsdato,
       skadedato,
+      skadestype: input.skadestype,
       dagFoerBeregningsdato,
       fradragGaelderForFoer2011: skadedato < SKAERING_2011_06_16,
       ealKravOre,

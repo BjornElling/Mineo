@@ -93,7 +93,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Statistikmodel',
             kildeVaerdi: 'ASL-årslønsmaksimum',
             referenceIso: iso('2023-05-24'),
-            referenceLabel: 'Skadedato',
             referenceValue: 100,
             entries: [
               {
@@ -215,7 +214,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeVaerdi: 'Låsesmedeoverenskomsten',
             overenskomstId: 'laasesmedeoverenskomsten',
             referenceIso: iso('2020-01-01'),
-            referenceLabel: 'Skadedato',
             referenceValue: 0,
             entries: [],
           },
@@ -310,7 +308,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Statistikmodel',
             kildeVaerdi: 'ASL-årslønsmaksimum',
             referenceIso: iso('2024-03-15'),
-            referenceLabel: undefined,
             referenceValue: 100,
             entries: [
               {
@@ -378,7 +375,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Statistikmodel',
             kildeVaerdi: 'ASL-årslønsmaksimum',
             referenceIso: iso('2023-05-24'),
-            referenceLabel: 'Skadedato',
             referenceValue: 100,
             entries: [
               {
@@ -438,7 +434,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Overenskomst',
             kildeVaerdi: 'Eksempel',
             referenceIso: iso('2023-05-24'),
-            referenceLabel: 'Skadedato',
             referenceValue: 100,
             entries: [
               {
@@ -557,7 +552,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Manuelt angivet',
             kildeVaerdi: 'Manuelt angivet',
             referenceIso: iso('2020-01-01'),
-            referenceLabel: 'Skadedato',
             referenceValue: 141.2411,
             entries: [
               {
@@ -808,7 +802,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Manuelt angivet',
             kildeVaerdi: 'Manuelt angivet',
             referenceIso: iso('2024-01-26'),
-            referenceLabel: 'Skadedato',
             referenceValue: 138.15,
             entries: [
               {
@@ -972,7 +965,6 @@ describe('buildRegulationInspektionSections', () => {
             kildeLabel: 'Manuelt angivet',
             kildeVaerdi: 'Manuelt angivet',
             referenceIso: iso('2024-01-26'),
-            referenceLabel: undefined,
             referenceValue: 0,
             entries: [
               {

@@ -21,6 +21,19 @@ export type StamdataDatoReference = Readonly<{
   tidspunktBestemt: 'anmeldelsestidspunktet' | 'skadestidspunktet';
   /** Årsformen: «Regulering fra **skadesår** 2020» / «… **anmeldelsesår** 2020». */
   aar: 'anmeldelsesår' | 'skadesår';
+  /**
+   * Begivenheden som tidsreference i prosa: «lønoplysninger før **skaden**», «Da **anmeldelsen** er før
+   * 1/1-2011». Bruges kun, hvor ordet står for datoen – ikke hvor det betyder selve skaden som sådan.
+   */
+  haendelse: 'anmeldelsen' | 'skaden';
+  /** Ubestemt form af {@link haendelse} i korte inspektionsetiketter: «(**skade** før 16-06-2011)». */
+  haendelseUbestemt: 'anmeldelse' | 'skade';
+  /** «**Skaden er sket** før 1. juli 2024» / «**Erhvervssygdommen er anmeldt** før …» (sætningsstart via `capitalizeFirstCharDa`). */
+  haendelseSket: 'erhvervssygdommen er anmeldt' | 'skaden er sket';
+  /** «**Skaden er indtrådt** før 16. juni 2011» / «**Erhvervssygdommen er anmeldt** før …». */
+  haendelseIndtraadt: 'erhvervssygdommen er anmeldt' | 'skaden er indtrådt';
+  /** Forbindelsen mellem skadestype og dato: «Erhvervssygdom **anmeldt den** …» / «Arbejdsulykke **den** …». */
+  datoForbindelse: 'anmeldt den' | 'den';
 }>;
 
 /**
@@ -43,7 +56,16 @@ export const resolveSkadestypeDatoLabel = (
 ): SkadestypeDatoLabel =>
   skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
 
-/** Samler også den bøjede form, så fejltekster ikke kan vælge et andet navn end feltets label. */
+/**
+ * DEN ENE KILDE til enhver brugervendt formulering om sagens skade-/anmeldelsesdato – navnet, de bøjede
+ * former, tidspunkts- og årsformen og sætningsleddene «skaden er sket/indtrådt» / «erhvervssygdommen er
+ * anmeldt». Udviklerens regel (2026-08-16, M-02): formuleringen følger ALTID den indtastede skadestype –
+ * «anmeld…» ved Erhvervssygdom, ellers «skade…».
+ *
+ * Værnet `src/__tests__/quality/skadedatoTerminologyGuard.test.ts` afviser disse ord som tekstliteraler
+ * alle andre steder i `src/`, så en ny tekst ikke kan hardkode den ene form. Mangler en form, tilføjes den
+ * HER – ikke som en inline ternary ved kaldsstedet.
+ */
 export const resolveStamdataDatoReference = (
   skadestype: StamdataValues['skadestype'] | undefined
 ): StamdataDatoReference => {
@@ -56,6 +78,11 @@ export const resolveStamdataDatoReference = (
       tidspunkt: 'anmeldelsestidspunkt',
       tidspunktBestemt: 'anmeldelsestidspunktet',
       aar: 'anmeldelsesår',
+      haendelse: 'anmeldelsen',
+      haendelseUbestemt: 'anmeldelse',
+      haendelseSket: 'erhvervssygdommen er anmeldt',
+      haendelseIndtraadt: 'erhvervssygdommen er anmeldt',
+      datoForbindelse: 'anmeldt den',
     }
     : {
       kind: 'skadedato',
@@ -64,8 +91,32 @@ export const resolveStamdataDatoReference = (
       tidspunkt: 'skadestidspunkt',
       tidspunktBestemt: 'skadestidspunktet',
       aar: 'skadesår',
+      haendelse: 'skaden',
+      haendelseUbestemt: 'skade',
+      haendelseSket: 'skaden er sket',
+      haendelseIndtraadt: 'skaden er indtrådt',
+      datoForbindelse: 'den',
     };
 };
+
+/** Referencen ud fra et allerede valgt datonavn – for modeller, der kun bærer `SkadestypeDatoLabel`. */
+export const resolveStamdataDatoReferenceForLabel = (label: SkadestypeDatoLabel): StamdataDatoReference =>
+  resolveStamdataDatoReference(label === 'Anmeldelsesdato' ? 'Erhvervssygdom' : undefined);
+
+/** Referencen, når skadestypen er ukendt – den kontekstfrie form, en descriptors statiske `label` bærer. */
+export const STAMDATA_DATO_REFERENCE_DEFAULT: StamdataDatoReference = resolveStamdataDatoReference(undefined);
+
+/** Begge referencer – til kode, der skal GENKENDE en allerede formuleret tekst uanset skadestype. */
+export const STAMDATA_DATO_REFERENCES: readonly StamdataDatoReference[] = [
+  resolveStamdataDatoReference('Arbejdsulykke'),
+  resolveStamdataDatoReference('Erhvervssygdom'),
+];
+
+/** Skadestype og dato i én linje: «Arbejdsulykke den 1. juni 2020» / «Erhvervssygdom anmeldt den 1. juni 2020». */
+export const formatSkadestypeMedDato = (
+  skadestype: NonNullable<StamdataValues['skadestype']>,
+  datoTekst: string
+): string => `${skadestype} ${resolveStamdataDatoReference(skadestype).datoForbindelse} ${datoTekst}`;
 
 /** Navnet bruges af EO-prosa og re-eksporteres derfra for eksisterende forbrugere. */
 export const resolveSkadeEllerAnmeldelsesdatoReference = resolveStamdataDatoReference;

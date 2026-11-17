@@ -47,12 +47,11 @@ import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { offentligLoenTypeEnum } from '../../schemas/formSchemas/enumSchemas';
-import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToDanishDateString, type DanishDateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import {
-  projectStamdataForDocument,
   projectStamdataForDocumentIfEnabled,
+  type DocumentBrevhovedStamdata,
 } from '../stamdata/stamdataDocumentProjection';
 
 export const REGULERING_DOCUMENT_CONSUMER_ID = 'document.regulering';
@@ -226,7 +225,7 @@ const resolveReguleringsDatoInterval = (
  */
 type SharedReguleringSource = Readonly<{
   reader: InputReader;
-  stamdata: ReturnType<typeof projectStamdataForDocument>;
+  stamdata: ReturnType<typeof projectStamdataForDocumentIfEnabled>;
 }>;
 
 /** Builderen er selv memo-nøglen, så de tre outputs deler ét slot pr. kildekontekst. */
@@ -276,7 +275,7 @@ const readRequestedSource = (
 /** Fælles for alle tre outputs. */
 type ReguleringCommonInput = Readonly<{
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 /**

@@ -5,10 +5,9 @@
  * (§5.4). Stamdata-projektionen er en dependency i `project`, så samme blokering styrer både
  * knappens tilstand og click-preflighten.
  */
-import type { StamdataValues } from '../../schemas/formSchemas';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
-import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
+import { projectStamdataForDocumentIfEnabled, type DocumentBrevhovedStamdata } from '../stamdata/stamdataDocumentProjection';
 import { evaluateForsoergertabDownloadGate } from './forsoergertabDownloadGate';
 import { buildForsoergertabReaderProjection } from './forsoergertabReaderProjection';
 import type { ForsoergertabPdfProjection } from './forsoergertabSnapshot';
@@ -17,7 +16,7 @@ export const FORSOERGERTAB_DOCUMENT_CONSUMER_ID = 'document.forsoergertab';
 
 export type ForsoergertabDocumentInput = Readonly<{
   pdfProjection: ForsoergertabPdfProjection;
-  stamdata: StamdataValues;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const forsoergertabDocumentDefinition: MineoDocumentDefinition<ForsoergertabDocumentInput> =

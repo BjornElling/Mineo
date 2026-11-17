@@ -1,5 +1,6 @@
 import { EET_KLAGE_FORBEHOLD_LINJE, resolveTafYdelsesforbeholdLinje } from '../helpers/tafForbehold';
-import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import { resolveStamdataDatoReference } from '../../policies/stamdataCalculations';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, isoToDanish } from '../../../types/branded';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../engines/periodiseringsMotor';
@@ -241,6 +242,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     tafNetto: TafNettoBeregningResult;
     tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
     skadedatoISO?: ISODateString;
+    skadestype?: StamdataValues['skadestype'];
   }>
 ): TabtArbejdsfortjenesteSectionPresentation => {
   const beregnes = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
@@ -410,7 +412,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     }
     if (kilde === 'midlertidigEet' && valgtOphoersgrund === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
-      eetLinjer.push('Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.');
+      eetLinjer.push(`Da ${resolveStamdataDatoReference(options.skadestype).haendelseSket} før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.`);
     }
   };
 

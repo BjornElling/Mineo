@@ -82,6 +82,7 @@ export const buildEOInspektionSnapshot = (args: {
   const model = buildEOInspektionModel(eoValues, {
     tafRanges,
     skadedatoISO: stamdataValues.skadedato,
+    skadestype: stamdataValues.skadestype,
     beregningsperiodeProjection: args.beregningsperiodeProjection,
     svieSmerteConstrainedPeriods: args.blockedBranches?.svieSmerte === true
       ? []

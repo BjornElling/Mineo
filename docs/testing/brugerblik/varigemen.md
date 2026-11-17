@@ -860,3 +860,106 @@ Ingen ud over de to, fane 1 allerede har rejst (forudfyldt beregningsdato; advar
 mellem skadedato og beregningsdato). Fanen tilføjer ingen nye – BB-075 er ikke et åbent spørgsmål,
 men et fund med to mulige udfald, som begge kræver en rettelse. **Opdateret 2026-10-30:** BB-075 er afvist
 2026-08-21 – satsen er fælles, og ingen rettelse var nødvendig (se fundet).
+
+
+# Fornyet gennemgang 2026-11-17 – 7a, Beregning
+
+- Grundlag: commit `91e3483d`; den tidligere rapports navn «Ménberegning» svarer nu til fanen **Beregning**.
+- Afprøvet: Chrome headless, 1536×864, lyst tema, lokal Vite-server; synligt login med testkoden.
+- Resultat: **ét nyt fund, BB-398 (Fejl, Mellem)**. Ingen nye Fornuft-/Edge case-fund.
+- Historiske beslutninger er bevaret; navnlig ingen forudfyldt beregningsdato, ingen advarsel om stor datoafstand,
+  ingen ny markering i satstabellen og ingen ændret paste-regel.
+
+## Inventar og de to blikke
+
+| Element | Grænse/tilstand og betydning |
+|---|---|
+| Fødselsdato, Skadedato/Anmeldelsesdato, alder | Spejler Stamdata. Tomt og ugyldigt har hver sin besked med vej til Stamdata. Alder kræver begge gyldige datoer. |
+| Méngrad | Tomværdi `undefined`, heltal, højst tre cifre, synlig enhed %. Det aktuelle felt tillader 5–120; 0–4 og 121–999 bevares med rød fejl og blokerer dokument/beregning. |
+| Beregningsdato | Tom fra start; datofelt med datoformatets længdegrænse. Tidligst 01-01-2005, indsnævret af sagens skade-/anmeldelsesdato; senest **31-12-2027** fra aktuelle satser. |
+| Indsæt dags dato | Afslutter værdien gennem feltet; inaktiv efter satsdækningens slutning. |
+| Satsrækken | Følger afsluttet beregningsdato alene, også når méngrad/Stamdata mangler. Skelner tom og fejlende dato. |
+| Grundbeløb, aldersreduktion, slutbeløb | Vises ved komplet gyldigt grundlag; hele kroner. Senest afsluttede input gælder, mens et felt redigeres. |
+| Download | PDF i den prøvede indstilling. Reaktiv gate og afslutning af åben editor ved klik; brevhoved slås til/fra i Indstillinger. |
+| Faner, links og global Gem/Hent/undo | Navigations- og bevaringsprøver nedenfor. Ingen redigerbar tabel eller rækkehandling på denne fane. |
+
+Fladens egne felter er tomme, når begge er `undefined`; en rød værdi er stadig indtastet arbejde.
+Ingen automatisk beregningsdato eller lokal række-default gør en ny sag udfyldt. Åben tekst tæller med i
+beskyttelsen mod tab, men ikke i beregningen. Fanen låner kun de nødvendige Stamdata; dens egne input bruges af
+ménberegningen og dokumentet. Brevhovedindstillingen har desuden en skjult indvirkning på dokumentets datoord,
+se fundet. Juridisk rigtighed og beregningsregler er ikke vurderet.
+
+## BB-398 – Uden brevhoved bliver erhvervssygdommens anmeldelsesdato til «Skadedato» i dokumentet
+
+- **Type:** Fejl
+- **Rækkevidde:** Lokal; systematiksøgning nedenfor.
+- **Prioritet:** Mellem
+- **Beslutning:** Agent afgør – genskaber BB-072's allerede godkendte skadestypebestemte navne.
+  Dokumenteret, ikke rettet: denne skill ændrer ikke produktkode.
+- **Sådan fremprovokeres det:**
+  1. Stamdata: Fødselsdato `10-06-1975`, Skadestype `Erhvervssygdom`, Anmeldelsesdato `10-06-2020`.
+  2. Varige mén → Beregning: Méngrad `5`, Beregningsdato `17-11-2026`.
+  3. Hent PDF med brevhoved aktiveret. Slå derefter «Varige mén» fra under «Indsæt brevhoved i», og hent igen.
+- **Det sker:** Skærmen viser i begge tilfælde «Anmeldelsesdato» og «Alder på anmeldelsestidspunkt».
+  Dokumentet med brevhoved har samme navne. Dokumentet uden brevhoved skriver i stedet «Skadedato» og
+  «Alder på skadestidspunkt». Datoen `10. juni 2020`, alderen `45 år` og slutbeløbet `51.865 kr.` er uændrede.
+- **Det er uhensigtsmæssigt fordi:** fravalg af sagsoplysninger i dokumentets top ændrer, hvad dokumentet
+  påstår om sagen. Brugeren har ikke ændret skadestype eller dato, men får alligevel en arbejdsulykkes betegnelser.
+- **Bedre ville være:** bevar «Anmeldelsesdato» og «Alder på anmeldelsestidspunkt» ved erhvervssygdom,
+  uanset om brevhovedet er valgt. Kun selve brevhovedet skal forsvinde.
+- **Mekanisme:** `varigeMenDocumentDefinition.ts` udleder datoens navn af brevhovedets `stamdata.skadestype`.
+  `projectStamdataForDocumentIfEnabled` leverer tomme stamdata, når brevhovedet er slået fra.
+  Sagens skadestype skal derfor følge dokumentets eget grundlag, som det allerede sker i Forsørgertab.
+- **Andre steder det kan gælde:** Forsørgertab og Satser bruger samme betingede stamdataprojektion.
+  Forsørgertabs datoord er allerede beskyttet ved at læse `grundlaeggende.skadestype`; Satser har ikke dette datoord.
+  De tre generatorers brug af `stamdata.journalnr` til filnavn er et særskilt, uafprøvet spor ved fravalgt brevhoved.
+  Ingen bred ny mønsterpost på baggrund af én bekræftet navnefejl.
+- **Evidens:** lokale `test-results/brugerblik-7a/disease.pdf`, `disease-no-header.pdf` og deres PNG-renderinger;
+  skærmen i `result-screen.png`. Begge PDF'er er tekstkontrolleret og visuelt inspiceret.
+
+**Rettet (2026-11-17).** Dokumentdefinitionen læser nu datoens navn direkte fra sagens skadestype
+(`readStamdataDatoReference`), ikke fra brevhovedets stamdata. Brevhovedprojektionens type
+(`DocumentBrevhovedStamdata`) udelader desuden skadestype, skade-/anmeldelsesdato og fødselsdato, så intet
+dokument igen kan læse sagens fakta fra en værdi, der er tom ved fravalgt brevhoved. Samtidig er hele
+programmets skadedato-terminologi låst til én kilde – se `TVAERGAAENDE.md` M-02, «Låst 2026-11-17».
+
+## Overvejet og afprøvet uden nye fund
+
+- **Rækkefølge:** Méngrad og beregningsdato før Stamdata bevares; satsen vises selvstændigt, og manglende datoer har links.
+- **Méngrad:** tomt/mellemrum, 0, 1, 4, 5, 100, 120, 121 og 999 giver forventet tom/gyldig/rød tilstand.
+  120 giver `1.244.748 kr.` ved den prøvede alder og dato; 121 giver ingen beregning eller download.
+- **Tegn og længde:** et fjerde ciffer afskæres ved admission; negative tegn, decimalforsøg, enheder, tekst og emoji
+  prøvet. Rigtig clipboard-paste af `5 %`, `5,5`, `-5`, `1 000`, hårdt mellemrum, `ca. 5` og emoji følger den
+  udtrykkeligt afgjorte tegn-for-tegn-regel. `5,5` bliver derfor `55`, og `1 000` bliver `100`; dette genåbnes ikke.
+- **Datoer:** tom, enkeltciffer, 31-02-2026, 29-02-2025 og 00-01-2026 giver tomhed eller forståelig format-/kalenderfejl.
+  `09-06-2020` afvises med anmeldelsesdatoens konkrete grænse; lighed `10-06-2020` er gyldig.
+- **Satsdækning:** 2004 og 2028 er røde, 2026 og 2027 er gyldige; `01-01-24` bliver `01-01-2024`, og punktummer normaliseres.
+- **Dags dato:** indsætter `17-11-2026`. Med browserur sat til 01-01-2028 og fanen genåbnet er knappen inaktiv med
+  «Der kan kun foretages beregninger frem til 31. december 2027». Det tidligere dækningshul om et ur efter satsdækningen er lukket.
+- **Stamdatafejl:** ugyldig kalenderdato og fødselsdato efter anmeldelsesdato giver «Ugyldig værdi (ret i Stamdata)»;
+  gyldige spejlede oplysninger bliver ikke fejlagtigt kaldt tomme. Begge egne input bevares ved alle skift.
+- **Umulige grænser:** Anmeldelsesdato `01-01-2028` forklarer, at 01-01-2028 ligger efter 31-12-2027, og nævner
+  Anmeldelsesdato og satsdækningen. Rydning og genindtastning af Stamdata genskaber resultatet uden at ændre egne input.
+- **Editor:** åben 120-draft beholder resultatet fra 5; Escape genskaber 5. Undo/redo giver 5 → 33; faneskift afslutter 44;
+  Delete rydder straks, og undo genskaber 44. Download med åben 121 afslutter feltet og blokerer uden fil.
+- **M-47 efterprøvet:** ny tom sag med kun åben méngrad `33` udløser beforeunload. Hent viser Erstat-dialog, Annuller
+  bevarer `33`, og Escape genskaber tomt felt. Ingen genkomst af BB-396/BB-397 på dette beregningsfelt.
+- **Gem/Hent:** rigtig OPFS-fil, kun filvælgerens returværdi erstattet. Efter ændring 5 → 120 gendannes 5 og
+  `17-11-2026` med samme datoord og `51.865 kr.`. Load går til Stamdata; resultatet genfindes via menuen.
+- **Rødt input:** rejected `31-02-2026` blokerer Gem med forklaring. Canonical `121` kan gemmes og genindlæses som
+  `121`, stadig rødt og uden download, uden ny preflight. Slet alt rydder begge felter.
+- **Skærm/papir:** 55.175 − 3.310 = 51.865 kr. på begge PDF'er og skærmen. Ingen decimaler, afskårne linjer eller overlap
+  i de inspicerede PDF-renderinger og screenshots; resultatet er tilgængeligt ved almindelig rulning.
+- **Runtime:** ingen observerede console errors/warnings eller ukontrollerede page-fejl; CLI rapporterede 0 errors/0 warnings.
+
+## Dækningshuller og dokumentationsspor
+
+- Kun Chrome, 1536×864 og lyst tema. Word, andre motorer/temaer, OS-filvælgere og fysisk fuld disk er ikke afprøvet.
+- Årsskiftets knap er prøvet efter genåbning af fanen; en fane, der står åben hen over midnat/årsskifte, er ikke tidsfremskrevet.
+- Brevhovedets faktiske indhold med udfyldt navn/journalnummer og filnavnets afhængighed af brevhoved er ikke prøvet.
+- Dokumentationsdrift, ikke nyt brugerfund: `varigemen-contract.md` §2.5–2.8 beskriver stadig 1–4 som gyldigt/
+  ikke-blokerende, mens det aktuelle felt afviser 1–4 med intervallet 5–120 efter BB-063. Ingen domæneafgørelse genåbnet.
+- Playwright-wrapperen advarer om forskel mellem skill- og værktøjsversion; de anvendte kommandoer virker.
+  Værktøjet er ikke opdateret under gennemgangen.
+- Reproduktioner og screenshots ligger lokalt i `test-results/brugerblik-7a/`, uden for Git. Produktkode og tests er urørte;
+  ingen test-, lint- eller buildgate kørt. Næste flade: **7b. Varige mén → Satser**.

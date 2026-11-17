@@ -711,6 +711,7 @@ export const computeEoSnapshot = (args: Readonly<{
         tafNetto,
         tafRanges: canonicalOutput.periodiseringer.tafPerioder,
         skadedatoISO: parsedStamdata.data.skadedato,
+        skadestype: parsedStamdata.data.skadestype,
       }),
       oevrigeKrav,
       forlig: forligForPdf,

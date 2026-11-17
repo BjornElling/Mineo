@@ -61,6 +61,7 @@ import {
   isLoenudviklingManuelRowEmpty,
 } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { resolveStamdataDatoReferenceFromView, stamdataSkadedatoField } from './stamdataDescriptors';
+import { STAMDATA_DATO_REFERENCE_DEFAULT } from '../../domain/policies/stamdataCalculations';
 import {
   erDatoUdenOverenskomstSatser,
   formatReguleringsdatoUdenOverenskomstSatserBesked,
@@ -343,7 +344,7 @@ export const eoEmploymentFields = {
   // `contextualLabel` som naboen `harAnciennitetstillaegEfterSkadedatoen` (BB-121): den kontekstfrie label
   // var den eneste, der stadig sagde «skadestidspunktet» ved en erhvervssygdom. UI'en byggede allerede
   // selv det rigtige navn to steder, så det var descriptorens label, der drev fra dem.
-  ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: 'Ansat på skadestidspunktet', contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
+  ansatPaaSkadestidspunktet: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansatPaaSkadestidspunktet', label: `Ansat på ${STAMDATA_DATO_REFERENCE_DEFAULT.tidspunktBestemt}`, contextualLabel: (view) => `Ansat på ${resolveStamdataDatoReferenceFromView(view).tidspunktBestemt}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false }),
   ansaettelsesforholdOphoert: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'ansaettelsesforholdOphoert', label: 'Opsagt fra stillingen', controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentRelevance(erAnsaettelsesforholdOphoertRelevant) }),
   sidsteArbejdsdag: empDate('sidsteArbejdsdag', 'Sidste dag i ansættelsesforholdet', systemrammeSpec, employmentRelevance(erSidsteArbejdsdagRelevant), [sidsteDagEfterSkadedatoValidator]),
   fritvalgPct: emp<number>('fritvalgPct', 'Fritvalg', 'text', percentCodec, empPercentBounds('fritvalgPct'), empSatsRelevance()),
@@ -355,7 +356,7 @@ export const eoEmploymentFields = {
     EMP_ID, employmentPath, 'fuldLoenUnderFerie', 'Fuld løn under ferie', ['Ja', 'Nej'] as const, 'Nej', 'toggle',
     (_field, view) => erFuldLoenUnderFerieRelevant({ beregnesUdFra: view.readCanonical(eoBeregnesUdFraField.bind()) }),
   ),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentLoenudviklingRelevance('anciennitet') }),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EMP_ID, path: employmentPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: `Anciennitetstillæg efter ${STAMDATA_DATO_REFERENCE_DEFAULT.labelLower}`, contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: employmentLoenudviklingRelevance('anciennitet') }),
   anciennitetstillaegDato: empDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, employmentLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EMP_ID, employmentPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', employmentLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSats: emp<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, empAmountBounds('anciennitetstillaegSats'), employmentLoenudviklingRelevance('anciennitetDetaljer')),
@@ -692,7 +693,7 @@ const eoLoenDate = (
 
 export const eoAngivetLoenFields = {
   overenskomstId: eoLoen<string>('overenskomstId', 'Vælg overenskomst', 'choice', optionalTextCodec, undefined, eoLoenudviklingRelevance('overenskomst')),
-  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: 'Anciennitetstillæg efter skadedatoen', contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: eoLoenudviklingRelevance('anciennitet') }),
+  harAnciennitetstillaegEfterSkadedatoen: createField<boolean>({ ownerId: EO_LOEN_ID, path: eoLoenPath, field: 'harAnciennitetstillaegEfterSkadedatoen', label: `Anciennitetstillæg efter ${STAMDATA_DATO_REFERENCE_DEFAULT.labelLower}`, contextualLabel: (view) => `Anciennitetstillæg efter ${resolveStamdataDatoReferenceFromView(view).labelLower}`, controlKind: 'toggle', codec: booleanFieldCodec, emptyValue: false, isEmpty: () => false, relevance: eoLoenudviklingRelevance('anciennitet') }),
   anciennitetstillaegDato: eoLoenDate('anciennitetstillaegDato', 'Dato for opnået anciennitetstillæg', systemrammeSpec, eoLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSatsAngivesPer: reqChoiceField(EO_LOEN_ID, eoLoenPath, 'anciennitetstillaegSatsAngivesPer', 'Satsen angives per', anciennitetSatsPerEnum.options, 'Måned', 'choice', eoLoenudviklingRelevance('anciennitetDetaljer')),
   anciennitetstillaegSats: eoLoen<AmountValue>('anciennitetstillaegSats', 'Anciennitetstillægssats', 'text', amountCodec, eoLoenAmountBounds('anciennitetstillaegSats'), eoLoenudviklingRelevance('anciennitetDetaljer')),

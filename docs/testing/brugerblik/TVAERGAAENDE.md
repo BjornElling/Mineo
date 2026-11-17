@@ -1,5 +1,14 @@
 # Brugerblik – tværgående mønstre
 
+**Fornyet gennemgang 2026-11-17, Varige mén → Beregning:** BB-398 (Fejl, Mellem) viser, at fravalgt
+brevhoved fjerner skadestypen fra dokumentets navnevalg: Anmeldelsesdato bliver Skadedato i PDF'en.
+Systematiksøgning på `projectStamdataForDocumentIfEnabled` og `resolveStamdataDatoReference` fandt samme
+projektion i Forsørgertab og Satser; Forsørgertabs datoord er allerede uafhængige af brevhoved, og Satser
+har ikke dette datoord. Filnavnenes brug af journalnummer er et uafprøvet spor på de tre flader.
+Ingen ny bred mønsterpost. **M-47 bestod** med eneste åbne méngrad `33`: exit-advarsel, Erstat ved Hent,
+Annuller bevarer teksten, Escape genskaber tomt. Se `varigemen.md` for prøver og afgrænsning.
+
+
 **Fornyet gennemgang 2026-11-11, MinProcesrente:** BB-394 (Fejl, Høj) afdækker M-46:
 arbejdet overlever F5, men advarslen mod at forlade uhentet arbejde forsvinder. Rigtig genindlæsning
 og efterfølgende navigation er målt; Mineos fælles guard er kandidat til flade 6. Rettet 2026-11-11 sammen med BB-395.
@@ -585,6 +594,23 @@ ofte allerede i erklæringen ved siden af.
 - **Udviklerens regel 2026-08-16 (bindende for hele programmet):** navngivningen i beskeder skal følge
   den til enhver tid værende værdi i skadestype-feltet – «Anmeldelsesdato» ved Erhvervssygdom,
   ellers «Skadedato». De to betegnelser er de eneste korrekte brugervendte betegnelser.
+
+**Låst 2026-11-17 – mønsteret efterprøves ikke længere fladevis.** Endnu en forekomst blev fundet efter
+BB-121's rettelse, og en gennemgang af hele `src/` fandt yderligere: «Skaden er indtrådt/sket …» i
+differencekravet og de løbende ydelser (skærm og dokument), «Da skaden er sket før 16. juni 2011» i
+opgørelsen, sygeferiegodtgørelsens «Da skaden er fra/før …», «før skaden» på Lønindkomst, kontroltabellens
+«skade før/fra» og «skadedato mangler», ferietabellens fejltekst og de statiske labels «Ansat på
+skadestidspunktet»/«Anciennitetstillæg efter skadedatoen». Beregningsdatoen på Erhvervsevnetab og Forsørgertab
+sagde desuden «kan ikke være før skadedatoen» ved en erhvervssygdom, fordi grænsen ikke fik datoens reference.
+Alle former – også sætningsleddene «skaden er sket/indtrådt» / «erhvervssygdommen er anmeldt» og «før skaden» /
+«før anmeldelsen» – leveres nu af `resolveStamdataDatoReference`, og to værn låser reglen:
+`skadedatoTerminologyGuard.test.ts` afviser ordene som tekstliteraler i `src/` uden for den kanoniske kilde, og
+`dateBoundsStamdataDatoNavn.test.ts` kalder hvert datofelts grænser i en erhvervssygdomssag. Bevidst uden for:
+bekendtgørelsernes ordrette titler og Satser-sidens sagsuafhængige «Kapitalisering (skade fra 1.1.2011)».
+«siden skaden» og «hvis skaden ikke var sket» handler om selve skaden, ikke datoen, og er ikke omfattet.
+Udløseren (`varigemen.md` BB-398) var BB-121's lære igen: dokumentet læste skadestypen fra brevhovedets
+stamdata, som er tomme ved fravalgt brevhoved. Brevhovedprojektionens type (`DocumentBrevhovedStamdata`)
+udelader nu sagens fakta, så den kanal ikke længere kan levere skadestypen.
 **Ny forekomst 2026-08-25 (fra `aarsloen.md` BB-113) – mønsterets rene prosa-form, tre navne for ét
 felt på én skærm.** Feltet hedder «Feriegodtgørelse/-tillæg»; den ene advarsel kalder det
 «feriepengesats», den anden «feriegodtgørelsessats». Begge tekster er hardkodet prosa i

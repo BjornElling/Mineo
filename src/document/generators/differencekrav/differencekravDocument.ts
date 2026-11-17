@@ -18,6 +18,7 @@ import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { buildDifferencekravFradragLinjer } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import type {
   EetDifferencekravComputation,
   EetDifferencekravProformaKapitalisering,
@@ -396,16 +397,9 @@ const renderDifferencekravPage = (
   // Løbende ASL-ydelser
   writer.writeBoldSubheader('Løbende ASL-ydelser');
 
-  if (computation.skadedato < '2011-06-16') {
-    writer.writeWrappedText('Skaden er indtrådt før 16. juni 2011.');
-    writer.writeWrappedText(
-      'Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser.'
-    );
-  } else {
-    writer.writeWrappedText('Skaden er indtrådt den 16. juni 2011 eller senere.');
-    writer.writeWrappedText(
-      'Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser.'
-    );
+  // Samme flag og samme tekst som skærmen – dokumentet sammenlignede før selv datoen med en literal.
+  for (const linje of buildDifferencekravFradragLinjer(computation)) {
+    writer.writeWrappedText(linje);
   }
 
   for (const afgoerelse of computation.afgoerelser) {

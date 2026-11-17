@@ -9,12 +9,12 @@
  * bevidst IKKE en del af definitionen: siden reagerer på `download()`s `rejected`-udfald. Gaten
  * afgør HVAD der er blokeret; siden afgør hvordan det vises.
  */
-import type { StamdataValues } from '../../schemas/formSchemas';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { defineMineoDocument, type MineoDocumentDefinition } from '../../document/definition/mineoDocumentDefinition';
 import { blockedProjection, blockedProjectionForStamdata, toGateReasons } from '../../document/definition/documentOutcome';
-import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
-import { projectStamdataForDocumentIfEnabled } from '../stamdata/stamdataDocumentProjection';
+import type { StamdataDatoReference } from '../policies/stamdataCalculations';
+import { readStamdataDatoReference } from '../stamdata/stamdataDatoReferenceReader';
+import { projectStamdataForDocumentIfEnabled, type DocumentBrevhovedStamdata } from '../stamdata/stamdataDocumentProjection';
 import type { VarigeMenBeregningResult } from './varigeMenCalculations';
 import { evaluateVarigeMenDownloadGate } from './varigeMenDownloadGate';
 import { buildVarigeMenReaderProjection } from './varigeMenReaderProjection';
@@ -27,7 +27,9 @@ export type VarigeMenDocumentInput = Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  stamdata: StamdataValues;
+  /** Datoens navn ud fra sagens skadestype – uafhængig af brevhovedet (BB-398). */
+  datoReference: StamdataDatoReference;
+  stamdata: DocumentBrevhovedStamdata;
 }>;
 
 export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocumentInput> =
@@ -76,6 +78,7 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
           mengrad: data.mengrad,
           beregningsdato: coerceToISODateString(data.beregningsdato),
           beregningsResultat,
+          datoReference: readStamdataDatoReference(context.evaluation.reader),
           stamdata: stamdata.value,
         },
       };
@@ -90,7 +93,7 @@ export const varigeMenDocumentDefinition: MineoDocumentDefinition<VarigeMenDocum
         mengrad: input.mengrad,
         beregningsdato: input.beregningsdato,
         beregningsResultat: input.beregningsResultat,
-        datoReference: resolveStamdataDatoReference(input.stamdata?.skadestype),
+        datoReference: input.datoReference,
         visBrevhoved: ctx.visBrevhoved,
         stamdata: input.stamdata,
       });

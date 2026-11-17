@@ -6,6 +6,7 @@ import {
   STATIC_DATE_BOUNDS,
 } from '../../utils/dateRangeErrorMessages';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
+import { resolveStamdataDatoReference } from '../../domain/policies/stamdataCalculations';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -63,7 +64,7 @@ describe('resolveDateRangeErrorMessage', () => {
   });
 
   it('bruger Anmeldelsesdato konsekvent i de kontekstuelle stamdata-beskeder', () => {
-    const reference = { label: 'Anmeldelsesdato', labelLower: 'anmeldelsesdatoen' };
+    const reference = resolveStamdataDatoReference('Erhvervssygdom');
     const beforeReference = resolveDateRangeErrorMessage({
       iso: iso('2020-01-01'),
       minDate: iso('2024-01-01'),
@@ -92,7 +93,7 @@ describe('resolveDateRangeErrorMessage', () => {
   });
 
   it('viser den konkrete modgående dato i begge stamdata-felters datoordensbeskeder', () => {
-    const reference = { label: 'Anmeldelsesdato', labelLower: 'anmeldelsesdatoen' };
+    const reference = resolveStamdataDatoReference('Erhvervssygdom');
     const beforeBirth = resolveDateRangeErrorMessage({
       iso: iso('2020-01-01'),
       minDate: iso('2021-06-01'),

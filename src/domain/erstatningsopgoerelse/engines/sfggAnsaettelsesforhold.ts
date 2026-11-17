@@ -3,6 +3,7 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
 import type { TafCalculationValues } from './tafCalculationInput';
+import type { StamdataValues } from '../../policies/stamdataCalculations';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parseISODate, type ISODateString } from '../../../types/branded';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
@@ -55,7 +56,7 @@ import type {
 import {
   buildSfggAfterEmployerSickPayText,
   buildSfggLovbestemtFeriepengeNote,
-  SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT,
+  buildSfggFirstTafDayExcludedText,
   buildSfggIntroText,
   resolveSfggFoerstEfterSygeloen,
   resolveSfggDifferentieretSatsLabel,
@@ -122,6 +123,8 @@ export type SfggAnsaettelsesforholdContext = Readonly<{
   employmentCalculator: EmploymentSfggCalculator;
   /** Lønnens reguleringsopslag; `undefined`, når ansættelsesforholdet ingen lønudvikling har. */
   reguleringOpslag: ReguleringOpslag | undefined;
+  /** Afgør formuleringen af tekster om sagens dato («skaden»/«anmeldelsen»). */
+  skadestype: StamdataValues['skadestype'] | undefined;
 }>;
 
 // Fradraget for modtagne feriepenge afhænger af de øvrige SFGG-krav (se buildSfggFeriepengeFradrag).
@@ -154,6 +157,7 @@ export const planSfggForAnsaettelsesforhold = (
     tafArbejdsdageSetIncludingFirstExcluded,
     employmentCalculator,
     reguleringOpslag,
+    skadestype,
   } = context;
 
   const sfggRow = getSfggRowForEmployment(values, employment.id);
@@ -218,7 +222,7 @@ export const planSfggForAnsaettelsesforhold = (
   // loft/ophør (cap4mdr/ansaettelsesophoer): læse-siden formatterer det, motoren genudleder det ikke.
   // (foersteSygedag pushes præcis når employmentHadFirstExcludedDate er sand, jf. buildSfggPeriode.)
   const sfggFirstTafDayExcludedText = periode.afkortninger.some((afkortning) => afkortning.aarsag === 'foersteSygedag')
-    ? SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT
+    ? buildSfggFirstTafDayExcludedText(skadestype)
     : null;
   const sfggAfterEmployerSickPayText = resolveSfggAfterEmployerSickPayText({
     excludedAny: afterEmployerSickPayExcludedAny,

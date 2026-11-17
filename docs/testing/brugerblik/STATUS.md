@@ -3,8 +3,9 @@
 ## Fornyet gennemgang fra 2026-11-11
 
 - **Gennemgået:** 1. Stamdata, 2. Om, 3. Indstillinger, 4. Satser, 5. MinProcesrente og 6. Global shell, 2026-11-11. Stamdata/Om: ingen nye fund. Indstillinger: BB-390 (Fejl, Høj) og BB-391 (Fornuft, Mellem) er godkendt til rettelse og implementeret. Satser: BB-392 og BB-393 (begge Fornuft, Mellem). MinProcesrente: BB-394 (Fejl, Høj); M-46 er nyt. Global shell: BB-395 (Fejl, Høj) og BB-396–BB-397 (begge Edge case, Høj); M-46 er bekræftet i Mineo, og M-47 er nyt. BB-392–BB-397 er godkendt til rettelse og implementeret 2026-11-11. Se fladernes rapporter for prøver og dækningshuller.
-- **Næste flade:** 7a. Varige mén → Ménberegning. Efterprøv M-47 ved en åben indtastning i beregningsfelter.
-- **Næste fund-ID:** BB-398.
+- **Gennemgået 2026-11-17:** 7a. Varige mén → Beregning (tidligere Ménberegning). Ét nyt fund: BB-398 (Fejl, Mellem), dokumentets datoord ved fravalgt brevhoved. Rettet 2026-11-17 sammen med en programdækkende lås af skadedato-terminologien (M-02). M-47 bestod på åben méngrad; Gem/Hent, grænser og editorovergange efterprøvet. Se `varigemen.md` nederst.
+- **Næste flade:** 7b. Varige mén → Satser.
+- **Næste fund-ID:** BB-399.
 
 Første gennemgangs status og historik nedenfor er bevaret uændret.
 

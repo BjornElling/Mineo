@@ -79,13 +79,14 @@ const eetBeregningsdatoBoundsSpec: DateBoundsSpec = {
   max: () => dateRanges_erhvervsevnetab.beregningsdato.max,
   special: (context) => {
     const skadedato = context.view.readCanonical(stamdataSkadedatoField.bind());
-    return {
+    // Uden referencen sagde beskeden «før skadedatoen» også ved en erhvervssygdom.
+    return withStamdataDatoReference(context, {
       ...(skadedato !== undefined && skadedato > dateRanges_erhvervsevnetab.beregningsdato.fallbackMin
         ? { minBoundKind: 'skadedato' as const, minBoundReferenceISO: skadedato }
         : {}),
       maxBoundKind: 'eetDataMax' as const,
       maxBoundFieldLabel: 'Beregningsdato',
-    };
+    });
   },
   // Min ER skadedatoen (uden clamp), så en skadedato efter datadækningen gør intervallet umuligt.
   origin: (context) => derivedDateBounds(resolveStamdataDatoReferenceFromView(context.view).label),

@@ -5,7 +5,7 @@ import {
 } from './eetLoebendePerioder';
 export { firstOfMonthAfter, hasOverlapPeriod } from './eetLoebendePerioder';
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
-import type { Skadestype } from '../../schemas/formSchemas/enumSchemas';
+import { skadestypeEnum, type Skadestype } from '../../schemas/formSchemas/enumSchemas';
 import type { EetIssue } from './eetTypes';
 import {
   EET_TITRIN_FRA_2024_WARNING,
@@ -121,6 +121,8 @@ export type EetLoebendeAarsydelseReguleringStep = z.infer<typeof eetLoebendeAars
 export const eetLoebendeComputationSchema = z.object({
   beregningsdato: isoDateString,
   skadedato: isoDateString,
+  /** Bæres med af samme grund som EAL-beregningens `skadestype`: sætningerne om datoen følger skadestypen. */
+  skadestype: skadestypeEnum.optional(),
   fodselsdato: isoDateString,
   skadesaar: z.number().int(),
   aslAarsloenAfrundet1000Ore: moneyOreSchema,
@@ -543,6 +545,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
   const computation: EetLoebendeComputation = {
     beregningsdato,
     skadedato,
+    skadestype: input.skadestype,
     fodselsdato,
     skadesaar,
     aslAarsloenAfrundet1000Ore: fromKroner(aslAarsloenAfrundet1000),

@@ -109,6 +109,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       tafArbejdsdageSetIncludingFirstExcluded,
       employmentCalculator: buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []),
       reguleringOpslag: args.reguleringOpslagPerAnsaettelse?.get(employment.id),
+      skadestype: stamdata.skadestype,
     }));
   const fradrag = buildSfggFeriepengeFradrag({
     kalkulatorer,

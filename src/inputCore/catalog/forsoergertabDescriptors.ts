@@ -18,6 +18,7 @@ import { digitsRequiredFor } from './fieldLengthLimits';
 import { FORSOERGERTAB_SKADELIDTES_KOEN_LABEL } from '../../domain/forsoergertab/forsoergertabLabels';
 import {
   resolveStamdataDatoReferenceFromView,
+  withStamdataDatoReference,
   stamdataSkadedatoField,
 } from './stamdataDescriptors';
 
@@ -93,7 +94,8 @@ export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Ber
     const virkningsdato = context.view.readCanonical(forsoergertabVirkningsdatoField.bind());
     const skadedatoMin = resolveSkadedatoMin(skadedato);
     const minFromVirkningsdato = virkningsdato !== undefined && virkningsdato >= skadedatoMin;
-    return {
+    // Uden referencen sagde beskeden «før skadedatoen» også ved en erhvervssygdom.
+    return withStamdataDatoReference(context, {
       ...(minFromVirkningsdato
         ? { minBoundKind: 'efterFelt' as const, minBoundReferenceISO: virkningsdato, minBoundLabel: VIRKNINGSDATO_LABEL.toLowerCase() }
         : skadedato !== undefined && skadedato > dateRanges_forsoergertab.beregningsdato.fallbackMin
@@ -101,7 +103,7 @@ export const forsoergertabBeregningsdatoField = dateField('beregningsdato', 'Ber
           : {}),
       maxBoundKind: 'dataCoverageMax' as const,
       maxBoundFieldLabel: 'Beregningsdato',
-    };
+    });
   },
   // Min udledes af Skadedato og Virkningsdato; en for sen af dem gør intervallet umuligt.
   origin: (context) => derivedDateBounds(

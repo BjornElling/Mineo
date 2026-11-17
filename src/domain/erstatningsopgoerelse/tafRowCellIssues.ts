@@ -20,6 +20,7 @@ import {
   type PeriodOverlapSource,
 } from './periodOverlapIssues';
 import { resolveSagensTafCutoffDates } from './tafCutoffDateIssues';
+import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { buildFerieCutoffErrorMessage } from './validation/tafPeriodConstraints';
 import { buildTafLoseFeriedageMaxMessage, resolveTafLoseFeriedageMaksimum } from './validation/tafRowRules';
 
@@ -65,9 +66,10 @@ const collectFerieperiodeBoundIssues = (
   const messageFor = (value: ISODateString): string | undefined => {
     if (value < minRule.minDate) {
       const reference = danish(minRule.minBoundReferenceISO ?? minRule.minDate);
-      if (minRule.minBoundKind === 'skadedato') return `Ferien ligger før skadedatoen (${reference})`;
+      const { labelLower } = resolveStamdataDatoReference(stamdata.skadestype);
+      if (minRule.minBoundKind === 'skadedato') return `Ferien ligger før ${labelLower} (${reference})`;
       if (minRule.minBoundKind === 'anmeldelsesdatoMinus5Aar') {
-        return `Ferien ligger mere end 5 år før anmeldelsesdatoen (${reference})`;
+        return `Ferien ligger mere end 5 år før ${labelLower} (${reference})`;
       }
       return `Ferien ligger før ${danish(minRule.minDate)}`;
     }

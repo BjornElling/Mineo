@@ -31,7 +31,6 @@ const buildTimeline = (): RegulationIndexTimeline => ({
     kildeLabel: 'KL-lønaftaler',
     kildeVaerdi: 'KL-lønaftaler',
     referenceIso: iso('2024-01-01'),
-    referenceLabel: 'Skadedato',
     referenceValue: 1,
     entries: [],
   }],

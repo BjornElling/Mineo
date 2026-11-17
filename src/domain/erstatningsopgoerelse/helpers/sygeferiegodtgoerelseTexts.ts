@@ -3,7 +3,8 @@ import type {
   SygeferiegodtgoerelseAnsaettelsesforholdRow,
 } from '../../../schemas/formSchemas';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
-import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { capitalizeFirstCharDa, formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { resolveStamdataDatoReference, type StamdataDatoReference, type StamdataValues } from '../../policies/stamdataCalculations';
 import { isoToDanish } from '../../../types/branded';
 import type { SfggAfkortning } from '../engines/sfggPeriodisering';
 import type { SfggReferencesatsFormula } from '../engines/sfggReferencesats';
@@ -161,8 +162,8 @@ export const resolveSfggFoerstEfterSygeloen = (args: Readonly<{
   )
 );
 
-export const SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT =
-  'Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.';
+export const buildSfggFirstTafDayExcludedText = (skadestype: StamdataValues['skadestype'] | undefined): string =>
+  `Da ${resolveStamdataDatoReference(skadestype).haendelse} er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.`;
 
 export const SFGG_TABLE_TOTAL_LABEL = 'Samlet';
 
@@ -236,12 +237,13 @@ export const buildSfggReferenceperiodeCountLabel = (
  * Både 4-måneders-afkortningen og ansættelsesophør vises som en venstre-tekst + dato i højre kolonne.
  */
 export const formatSfggAfkortningPdfLine = (
-  afkortning: SfggAfkortning
+  afkortning: SfggAfkortning,
+  datoReference: StamdataDatoReference
 ): Readonly<{ left: string; right: string }> => {
   const dato = isoToDanish(afkortning.dato) ?? afkortning.dato;
   if (afkortning.aarsag === 'cap4mdr') {
     return {
-      left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
+      left: `${capitalizeFirstCharDa(datoReference.haendelse)} er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte`,
       right: dato,
     };
   }

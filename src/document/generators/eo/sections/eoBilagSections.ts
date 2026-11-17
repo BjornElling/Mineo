@@ -67,6 +67,7 @@ import {
   formatSfggAfkortningPdfLine,
   buildSfggReguleretSatsLines,
 } from '../../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
+import { resolveStamdataDatoReferenceForLabel } from '../../../../domain/policies/stamdataCalculations';
 
 type StandardPdfWriter = DocumentComposer;
 
@@ -567,7 +568,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         writeLabelValueLine('Referencesatsen udgør', `${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr./arbejdsdag`);
       }
       entry.sfggAfkortninger.forEach((afkortning) => {
-        const { left, right } = formatSfggAfkortningPdfLine(afkortning);
+        const { left, right } = formatSfggAfkortningPdfLine(afkortning, resolveStamdataDatoReferenceForLabel(model.skadedatoLabel));
         safeAddLeftRightText(left, right, standardRightMaxWidth, { rightFontStyle: 'normal' });
       });
       if (entry.sfggSourceKind !== 'manuel') {

@@ -2,7 +2,7 @@
 
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-17
 
 Kontrakten skelner mellem forventelige input-/domæneissues og systemtekniske runtimefejl. Afledelige issues er rene
 projektioner af input og domæneregler; de er ikke en skrivbar runtime-store.
@@ -163,6 +163,13 @@ Heraf følger:
    stavemåde eller synonym formulering er en fejl og må ikke indføres i labels, tooltips, fejl-, warning- eller
    dokumenttekster. Interne identifikatorer for regler og data er ikke brugerfladetekst, men deres afledte tekst
    skal altid følge denne regel.
+
+   Reglen omfatter også de afledte former og sætningsled: tidspunktet («skadestidspunktet»/«anmeldelsestidspunktet»),
+   året («skadesår»/«anmeldelsesår») og begivenheden som tidsreference («før skaden»/«før anmeldelsen», «Skaden er
+   sket/indtrådt»/«Erhvervssygdommen er anmeldt»). Alle formerne leveres af `resolveStamdataDatoReference`
+   (`src/domain/policies/stamdataCalculations.ts`) og må ikke skrives som tekstliteraler andre steder.
+   `skadedatoTerminologyGuard.test.ts` afviser dem i `src/` uden for den kilde (med navngivne, begrundede
+   undtagelser), og `dateBoundsStamdataDatoNavn.test.ts` kalder hvert datofelts grænser i en erhvervssygdomssag.
 
 ## 4. Prioritet og visning
 

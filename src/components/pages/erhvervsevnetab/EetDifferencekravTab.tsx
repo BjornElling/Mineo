@@ -34,6 +34,7 @@ import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { formatMaaneder, formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
+import { buildDifferencekravFradragLinjer } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import { formatDeductionKr } from '../../../utils/deductionFormatting';
 import { toKroner } from '../../../domain/money/money';
 import type { ErhvervsevnetabReaderProjection } from '../../../domain/erhvervsevnetab/erhvervsevnetabReaderProjection';
@@ -295,17 +296,9 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
           {/* Løbende ASL-ydelser */}
           <Typography className="row--subheading" sx={{ mt: 2 }}>Løbende ASL-ydelser</Typography>
 
-          {computation.fradragGaelderForFoer2011 ? (
-            <>
-              <HoverRow text="Skaden er indtrådt før 16. juni 2011." />
-              <HoverRow text="Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser." />
-            </>
-          ) : (
-            <>
-              <HoverRow text="Skaden er indtrådt den 16. juni 2011 eller senere." />
-              <HoverRow text="Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser." />
-            </>
-          )}
+          {buildDifferencekravFradragLinjer(computation).map((linje) => (
+            <HoverRow key={linje} text={linje} />
+          ))}
 
           {computation.afgoerelser.map((afgoerelse) => {
             const foretages = afgoerelse.fradragForetages;

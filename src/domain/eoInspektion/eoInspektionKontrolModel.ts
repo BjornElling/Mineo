@@ -25,6 +25,7 @@ import { erTabtArbejdsfortjenesteSektionAktiv } from '../erstatningsopgoerelse/h
 import { resolveMidlertidigEetDato, resolveTafCutoffDates } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { resolveSvieSmerteCutoffDate } from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../erstatningsopgoerelse/helpers/eoConstants';
+import { resolveStamdataDatoReference, type StamdataValues } from '../policies/stamdataCalculations';
 
 export type KontrolTabelDateSource = Readonly<{
   label: string;
@@ -184,12 +185,14 @@ export type KontrolTabelTafAfskaeringRaekke = Readonly<{
  */
 export const buildTafAfskaeringOversigt = (
   values: ErstatningsopgoerelseValues,
-  skadedatoISO: ISODateString | undefined
+  skadedatoISO: ISODateString | undefined,
+  skadestype?: StamdataValues['skadestype']
 ): readonly KontrolTabelTafAfskaeringRaekke[] => {
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return [];
   const cutoffs = resolveTafCutoffDates({ ...values, skadedatoISO });
   const skaeringsdato = isoToDanish(TAF_MIDLERTIDIG_EET_SKAERINGSDATO) ?? TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
   const klage = values.verserendeKlageEet === 'Ja';
+  const datoReference = resolveStamdataDatoReference(skadestype);
   const rows: KontrolTabelTafAfskaeringRaekke[] = [];
 
   if (cutoffs.differencekravDato) {
@@ -208,15 +211,15 @@ export const buildTafAfskaeringOversigt = (
   const midlertidigDato = resolveMidlertidigEetDato(values);
   if (cutoffs.midlertidigEETDato) {
     rows.push({
-      label: `TAF ophører: midlertidigt EET (skade før ${skaeringsdato})`,
+      label: `TAF ophører: midlertidigt EET (${datoReference.haendelseUbestemt} før ${skaeringsdato})`,
       dato: cutoffs.midlertidigEETDato,
     });
   } else if (midlertidigDato) {
     const grund = klage
       ? 'verserende klage'
       : skadedatoISO === undefined
-        ? 'skadedato mangler'
-        : `skade fra ${skaeringsdato}`;
+        ? `${datoReference.label.toLowerCase()} mangler`
+        : `${datoReference.haendelseUbestemt} fra ${skaeringsdato}`;
     rows.push({ label: `Midlertidigt EET – TAF fortsætter (${grund})`, dato: midlertidigDato });
   }
 
@@ -489,6 +492,8 @@ export const buildEOInspektionModel = (
   options: Readonly<{
     tafRanges?: readonly IsoRange[];
     skadedatoISO?: ISODateString;
+    /** Afgør formuleringen af kontroltabellens tekster om sagens dato («skade»/«anmeldelse»). */
+    skadestype?: StamdataValues['skadestype'];
     beregningsperiodeProjection?: EOInspektionBeregningsperiodeProjection;
     /** Clampede svie/smerte-perioder fra engine. Når leveret afspejler kontroltabellen
      *  præcist de perioder der indgik i beregningen – ikke de rå committede datoer. */
@@ -546,7 +551,7 @@ export const buildEOInspektionModel = (
     ? resolvedTafRanges.reduce<ISODateString | undefined>((acc, r) => maxISO(acc, r.til), undefined)
     : undefined;
 
-  const tafAfskaering = buildTafAfskaeringOversigt(values, options.skadedatoISO);
+  const tafAfskaering = buildTafAfskaeringOversigt(values, options.skadedatoISO, options.skadestype);
 
   const sources: KontrolTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },

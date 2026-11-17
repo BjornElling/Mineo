@@ -3,10 +3,15 @@ import type { ISODateString } from '../types/branded';
 import { getToday } from '../config/dateRanges';
 import { validateISODateRange } from './isoDateHelpers';
 import { DATE_ORDER_ERROR_MESSAGE } from './dateOrderValidation';
+import {
+  resolveStamdataDatoReference,
+  STAMDATA_DATO_REFERENCE_DEFAULT,
+  type StamdataDatoReference,
+} from '../domain/policies/stamdataCalculations';
 
 export type DateRangeSpecialErrors = {
   /** Kontekstnavnet på stamdata-datoen, når beskeden handler om den. */
-  stamdataDatoReference?: Readonly<{ label: string; labelLower: string }>;
+  stamdataDatoReference?: StamdataDatoReference;
   /**
    * Bruges til parrede "Fra-dato" / "Til-dato"-inputs, hvor max/min udledes fra det andet felt.
    */
@@ -124,7 +129,7 @@ export const resolveDateRangeErrorMessage = (args: {
   }
 
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
-  // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
+  // Eksempel: når den effektive min er skade-/anmeldelsesdatoen, er den korrekte besked om den, ikke "Til < Fra".
   //
   // «Dags dato» kræver, at grænsen FAKTISK er kalenderen – ikke blot at den tilfældigvis lander på i dag.
   // Er max udledt af et andet felt (`kind: 'derived'`), navngiver `maxBoundFieldLabel`-grenen nedenfor
@@ -137,13 +142,14 @@ export const resolveDateRangeErrorMessage = (args: {
 
   if (special?.minBoundKind === 'skadedato' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
-    const labelLower = special.stamdataDatoReference?.labelLower ?? 'skadedatoen';
+    const labelLower = (special.stamdataDatoReference ?? STAMDATA_DATO_REFERENCE_DEFAULT).labelLower;
     return `Datoen kan ikke være før ${labelLower} (${formatISOForTooltip(reference)})`;
   }
 
   if (special?.minBoundKind === 'anmeldelsesdatoMinus5Aar' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
-    const labelLower = special.stamdataDatoReference?.labelLower ?? 'anmeldelsesdatoen';
+    // Grænsen findes kun ved en erhvervssygdom, så uden reference er formen anmeldelsesdatoens.
+    const labelLower = (special.stamdataDatoReference ?? resolveStamdataDatoReference('Erhvervssygdom')).labelLower;
     return `Datoen er mere end 5 år før ${labelLower} (${formatISOForTooltip(reference)})`;
   }
 
@@ -160,7 +166,7 @@ export const resolveDateRangeErrorMessage = (args: {
 
   if (special?.minBoundKind === 'fodselsdato' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
-    const label = special.stamdataDatoReference?.label ?? 'Skadedato';
+    const label = (special.stamdataDatoReference ?? STAMDATA_DATO_REFERENCE_DEFAULT).label;
     return `Der er angivet en ${label.toLowerCase()} før skadelidtes fødselsdato (${formatISOForTooltip(reference)})`;
   }
 
@@ -196,7 +202,7 @@ export const resolveDateRangeErrorMessage = (args: {
 
   if (special?.maxBoundKind === 'skadedato' && maxDate && iso > maxDate) {
     const reference = special.maxBoundReferenceISO ?? maxDate;
-    const label = special.stamdataDatoReference?.label.toLowerCase() ?? 'skadedato';
+    const label = (special.stamdataDatoReference ?? STAMDATA_DATO_REFERENCE_DEFAULT).label.toLowerCase();
     return `Fødselsdatoen ligger efter den angivne ${label} (${formatISOForTooltip(reference)})`;
   }
 
