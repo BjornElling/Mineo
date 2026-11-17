@@ -9,6 +9,10 @@ import ts from 'typescript';
 // gangen (BB-072, BB-121 og senere), og hver gang dukkede en ny hardkodet «skadedato», «skadestidspunkt»
 // eller «Skaden er sket» op et andet sted – i en etiket, et dokument, en kontroltabel, en fejlbesked.
 //
+// «skaden» om selve skaden («siden skaden», «hvis skaden ikke var sket») er bevidst ikke omfattet: arbejdsskade er
+// fællesbetegnelsen for arbejdsulykker og erhvervssygdomme (udviklerafgørelse 2026-11-17). Kun ord, der står for
+// sagens DATO, følger skadestypen.
+//
 // Derfor er formerne nu DATA i `resolveStamdataDatoReference` (`src/domain/policies/stamdataCalculations.ts`),
 // og dette værn afviser dem som tekstliteraler i resten af `src/`. Mangler en form, tilføjes den dér.
 //

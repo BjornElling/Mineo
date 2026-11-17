@@ -608,6 +608,8 @@ Alle former – også sætningsleddene «skaden er sket/indtrådt» / «erhvervs
 `dateBoundsStamdataDatoNavn.test.ts` kalder hvert datofelts grænser i en erhvervssygdomssag. Bevidst uden for:
 bekendtgørelsernes ordrette titler og Satser-sidens sagsuafhængige «Kapitalisering (skade fra 1.1.2011)».
 «siden skaden» og «hvis skaden ikke var sket» handler om selve skaden, ikke datoen, og er ikke omfattet.
+**Udviklerafgørelse 2026-11-17:** «skaden» bevares, hvor ordet betegner selve skaden – arbejdsskade er
+fællesbetegnelsen for arbejdsulykker og erhvervssygdomme. Kun ord, der står for sagens DATO, følger skadestypen.
 Udløseren (`varigemen.md` BB-398) var BB-121's lære igen: dokumentet læste skadestypen fra brevhovedets
 stamdata, som er tomme ved fravalgt brevhoved. Brevhovedprojektionens type (`DocumentBrevhovedStamdata`)
 udelader nu sagens fakta, så den kanal ikke længere kan levere skadestypen.
