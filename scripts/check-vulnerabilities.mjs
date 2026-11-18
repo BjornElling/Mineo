@@ -50,6 +50,59 @@ const REGISTRY_FAILURE_PATTERNS = [
 
 const isRegistryFailure = (output) => REGISTRY_FAILURE_PATTERNS.some((pattern) => pattern.test(output));
 
+/**
+ * Advisories, som udgiveren har TRUKKET TILBAGE, men som npm-registrets audit-database endnu melder.
+ *
+ * Kun en tilbagetrukket advisory hører her – aldrig en ægte sårbarhed, der blot er ubelejlig. Hver post bærer
+ * sin begrundelse og kilden, der kan efterprøves. Fjern posten, når `npm audit` ikke længere melder den; så
+ * længe den står her, skrives det i loggen ved hver kørsel, hvor den faktisk blev sorteret fra.
+ */
+const WITHDRAWN_ADVISORIES = new Map([
+  [
+    'https://github.com/advisories/GHSA-fc5q-39xc-vjpf',
+    'picomatch ReDoS (<= 4.0.7) – trukket tilbage af GitHub 2026-11-18 («Withdrawn Advisory»); ingen rettet '
+      + 'version findes, så npm audit kan ikke løse den. Kilde: https://api.github.com/advisories/GHSA-fc5q-39xc-vjpf',
+  ],
+]);
+
+/** De advisories, `npm audit --json` bygger sine fund på. Transitive poster peger kun på andre pakker. */
+const collectAdvisories = (auditJson) => {
+  const advisories = new Map();
+  for (const vulnerability of Object.values(auditJson?.vulnerabilities ?? {})) {
+    for (const via of vulnerability?.via ?? []) {
+      if (typeof via === 'object' && via !== null && typeof via.url === 'string') {
+        advisories.set(via.url, { url: via.url, severity: via.severity, title: via.title });
+      }
+    }
+  }
+  return [...advisories.values()];
+};
+
+const SEVERITY_RANK = { info: 0, low: 1, moderate: 2, high: 3, critical: 4 };
+
+/**
+ * Afgør, om ET FUND kun består af tilbagetrukne advisories. Fail-closed: kan JSON-svaret ikke læses, eller
+ * findes ingen advisory at pege på, er fundet stadig et fund.
+ */
+const classifyFinding = (jsonOutput) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonOutput);
+  } catch {
+    return { onlyWithdrawn: false, ignored: [] };
+  }
+  const relevant = collectAdvisories(parsed)
+    .filter((advisory) => (SEVERITY_RANK[advisory.severity] ?? SEVERITY_RANK.critical) >= SEVERITY_RANK[AUDIT_LEVEL]);
+  const remaining = relevant.filter((advisory) => !WITHDRAWN_ADVISORIES.has(advisory.url));
+  const ignored = relevant.filter((advisory) => WITHDRAWN_ADVISORIES.has(advisory.url));
+  return { onlyWithdrawn: relevant.length > 0 && remaining.length === 0, ignored };
+};
+
+const runAuditJson = (repoRoot) => {
+  const result = spawnSync('npm audit --json', { cwd: repoRoot, encoding: 'utf8', shell: true });
+  return result.error === undefined ? (result.stdout ?? '') : '';
+};
+
 const sleep = (milliseconds) => {
   // Synkron pause: kontrollen er et enkelt sekventielt trin i gaten, så der er intet at vente på imens.
   const until = Date.now() + milliseconds;
@@ -77,7 +130,10 @@ const runAudit = (repoRoot) => {
 };
 
 // `sleep` er injicerbar, så testene af gentagelsen ikke selv venter 10 s i en busy-loop og blokerer en worker.
-const checkVulnerabilities = (repoRoot, { audit = runAudit, sleep: pause = sleep } = {}) => {
+const checkVulnerabilities = (
+  repoRoot,
+  { audit = runAudit, auditJson = runAuditJson, sleep: pause = sleep } = {},
+) => {
   let last = { status: null, output: '' };
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     last = audit(repoRoot);
@@ -85,7 +141,12 @@ const checkVulnerabilities = (repoRoot, { audit = runAudit, sleep: pause = sleep
     // Kunne kommandoen slet ikke startes, er der intet audit-svar at tolke – hverken et fund
     // eller et tavst register. Det er en fejl i miljøet, og den skal meldes som sig selv.
     if (last.spawnFailed === true) return { outcome: 'audit-unrunnable', output: last.output };
-    if (!isRegistryFailure(last.output)) return { outcome: 'vulnerable', output: last.output };
+    if (!isRegistryFailure(last.output)) {
+      const { onlyWithdrawn, ignored } = classifyFinding(auditJson(repoRoot));
+      return onlyWithdrawn
+        ? { outcome: 'clean-except-withdrawn', output: last.output, ignored }
+        : { outcome: 'vulnerable', output: last.output };
+    }
     if (attempt < MAX_ATTEMPTS) {
       const delay = RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS.at(-1) ?? 0;
       console.warn(
@@ -104,7 +165,16 @@ const getRepoRoot = () => {
 };
 
 const main = () => {
-  const { outcome, output } = checkVulnerabilities(getRepoRoot());
+  const { outcome, output, ignored } = checkVulnerabilities(getRepoRoot());
+
+  if (outcome === 'clean-except-withdrawn') {
+    console.warn(
+      'check:vulnerabilities – npm audit melder kun advisories, som udgiveren har trukket tilbage:\n'
+      + (ignored ?? []).map((advisory) => `  - ${advisory.url}: ${WITHDRAWN_ADVISORIES.get(advisory.url)}`).join('\n')
+      + '\nGaten fortsætter. Fjern posten i WITHDRAWN_ADVISORIES, når npm audit ikke længere melder den.',
+    );
+    return;
+  }
 
   if (outcome === 'vulnerable') {
     console.error(output.trimEnd());
@@ -151,4 +221,4 @@ if (isMain) {
   }
 }
 
-export { checkVulnerabilities, isRegistryFailure };
+export { checkVulnerabilities, classifyFinding, isRegistryFailure };
