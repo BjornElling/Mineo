@@ -14,6 +14,7 @@ import { STATIC_DATE_BOUNDS } from '../../utils/dateRangeErrorMessages';
 import { isStandardLoenRowPersistenceEmpty } from '../../domain/aarsloen/standardLoenRowInitialValues';
 import { STANDARD_LOEN_COLUMN_LABELS } from '../../types/table';
 import { dateBounds } from './dateBoundsValidators';
+import { withSkadelidtesFoedselsdatoMin } from './stamdataDescriptors';
 import { dateOrderValidator, weekOrderValidator, type DatePairBinding, type WeekPairBinding } from './dateOrderValidators';
 import type { DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
@@ -300,7 +301,11 @@ const rowDate = (
     controlKind: 'text',
     createEmptySection: createEmptyAarsloenSection,
     relevance: periodIs('dag'),
-    ...dateBounds(dateBoundsSpecFor(role), [dateOrderValidator(role, dagPair)]),
+    // Fra-datoen kan ikke ligge før skadelidtes fødsel; til-datoen følger af datoordenen.
+    ...dateBounds(
+      role === 'fra' ? withSkadelidtesFoedselsdatoMin(dateBoundsSpecFor(role)) : dateBoundsSpecFor(role),
+      [dateOrderValidator(role, dagPair)],
+    ),
   });
 
 const rowString = (

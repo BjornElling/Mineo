@@ -15,7 +15,11 @@ import {
   buildRenteberegningReaderProjection,
   hasAnyRentekravInput,
   readRentekravCommittedRows,
+  resolveSenesteRentedato,
 } from '../../../domain/renteberegning/renteberegningReaderProjection';
+import { dateRanges_renteberegning } from '../../../config/dateRanges';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { resolveInsertTodayDisabledReason } from '../../../utils/insertTodayDate';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import DownloadIconButton from '../../inputs/DownloadIconButton';
@@ -150,6 +154,14 @@ const RenteberegningTab = React.memo(({
   const committedRows = React.useMemo(() => readRentekravCommittedRows(evaluation.reader), [evaluation]);
   const beregningsdatoRead = evaluation.reader.read(beregningsdatoRef);
   const beregningsdato = beregningsdatoRead.status === 'usable' ? beregningsdatoRead.value : undefined;
+  // «Indsæt dags dato» må ikke gøre en række rød (M-49): ligger en rentedato efter dags dato, er knappen
+  // inaktiv med datoen i tooltippen, og den indtastede beregningsdato bliver stående.
+  const todayIso = React.useMemo(() => getTodayLocalISO(), []);
+  const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
+    today: todayIso,
+    max: dateRanges_renteberegning.renteTil.max,
+    lowerBounds: [resolveSenesteRentedato(committedRows)],
+  });
   const kommentarerRead = evaluation.reader.read(kommentarerRef);
   const kommentarer = kommentarerRead.status === 'usable' ? kommentarerRead.value : undefined;
 
@@ -245,6 +257,8 @@ const RenteberegningTab = React.memo(({
                 onCommit={(today) => {
                   beregningsdatoController.settleValue(today);
                 }}
+                disabled={insertTodayDisabledReason !== undefined}
+                disabledReason={insertTodayDisabledReason}
               />
             </Box>
           </Box>

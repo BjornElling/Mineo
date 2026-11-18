@@ -1,5 +1,15 @@
 # Brugerblik – tværgående mønstre
 
+**Opfølgning 2026-11-18, datoer før en persons fødsel (BB-403's fejlklasse):** Programmet er gennemgået for
+datoer, der kan ligge før fødslen, uden at noget fanger det. Datoer med skadedatoen som gulv er sikre, fordi
+Stamdata håndhæver fødselsdatoen mod skadedatoen. To reelle huller er rettet efter udviklerens afgørelse, også
+for gemte sager:
+- EO's «Periode til beregning af før-løn, fra»: en periode før fødslen delte indkomsten over langt flere måneder.
+- Årslønstabellens fra-dato: samme fejl.
+Begge har nu skadelidtes fødselsdato som gulv (`withSkadelidtesFoedselsdatoMin`). Bevidst uændret efter
+afgørelsen: lønreguleringsdatoerne. Ikke dækket: Årslønstabellens måneds- og ugeperioder, der angives som
+måned/uge og år og ikke som dato.
+
 **Fornyet gennemgang 2026-11-18, Forsørgertab:** M-32 og M-25 mødes i BB-404, hvor et skjult kønsvalg
 får et færdigt EAL-krav til at se ud som en ufuldstændig ASL-sag. BB-405 udvider BB-068's datoprøve
 til feltets nedre grænse (M-49). BB-403 er lokalt bekræftet: en periodiseret ydelse kan ligge helt før
@@ -3563,4 +3573,10 @@ sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synl
   forklar den bindende grænse ved knappen og bevar den indtastede dato.
 - **Rettet 2026-11-18 på Forsørgertab:** `resolveInsertTodayDisabledReason` afprøver nu både øvre og nedre
   grænse. Varige mén og Erhvervsevnetab bruger samme helper, foreløbig kun med den øvre grænse.
-  Kandidaterne ovenfor står stadig åbne.
+- **Efterprøvet 2026-11-18 på alle flader:** Varige mén, Erhvervsevnetab og EO's «Opgørelse lavet den» er
+  sikre. Deres nedre grænse er skadedatoen, og den kan ikke ligge efter dags dato. To nye forekomster er
+  rettet efter udviklerens afgørelse:
+  - **Renteberegning/MinProcesrente:** En rækkes rentedato må højst være beregningsdatoen. Knappen er derfor
+    inaktiv, når en rentedato ligger efter dags dato («Dags dato er før forfaldsdatoen (…)»).
+  - **EO's «Indsæt årstal» ved svie/smerte:** Feltets loft var indeværende år, mens knappen vælger året én
+    måned efter opgørelsesdatoen. Loftet følger nu det seneste år med svie/smerte-satser.

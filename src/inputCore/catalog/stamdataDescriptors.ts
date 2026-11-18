@@ -3,7 +3,7 @@ import type { ISODateString } from '../../types/branded';
 import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
 import { derivedDateBounds } from '../../utils/dateRangeErrorMessages';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
-import { dateBounds } from './dateBoundsValidators';
+import { dateBounds, resolveBound } from './dateBoundsValidators';
 import type { DateBoundsContext, DateBoundsSpec } from '../dateBoundsDeclaration';
 import {
   createChoiceFieldCodec,
@@ -134,6 +134,49 @@ export const stamdataSkadedatoField = dateField('skadedato', SKADESTYPE_DATO_LAB
   },
   origin: (context) => derivedDateBounds(`Fødselsdato og ${resolveStamdataDatoReferenceFromView(context.view).label}`),
 }), (view) => resolveSkadestypeDatoLabel(view.readCanonical(stamdataSkadestypeField.bind())));
+
+/**
+ * Hæver et datofelts gulv til skadelidtes fødselsdato fra Stamdata.
+ *
+ * Til datoer, der beskriver skadelidtes EGEN indkomstperiode, men ikke er bundet til skadedatoen (som
+ * transitivt allerede ligger efter fødslen). Uden grænsen kunne en tastefejl i årstallet lade perioden
+ * starte før fødslen: indkomsten blev delt over langt flere måneder, og førlønnen faldt stiltiende (fx
+ * 1/18 af det rigtige) uden rød markering. Udviklerens afgørelse 2026-11-18, også for gemte sager.
+ *
+ * Grænsen er en skærpelse og kan kun hæve gulvet; en tom eller rød fødselsdato åbner ikke rammen.
+ * Fødselsdatoen ligger altid inden dags dato, så intervallet kan ikke blive umuligt af den.
+ */
+export const withSkadelidtesFoedselsdatoMin = (spec: DateBoundsSpec): DateBoundsSpec => {
+  const readFoedselsdato = (context: DateBoundsContext): ISODateString | undefined =>
+    context.view.readCanonical(stamdataSkadelidteFodselsdatoField.bind());
+  return {
+    ...spec,
+    narrowMin: (context) => {
+      const own = spec.narrowMin?.(context);
+      const foedselsdato = readFoedselsdato(context);
+      if (own === undefined) return foedselsdato;
+      return foedselsdato === undefined || own >= foedselsdato ? own : foedselsdato;
+    },
+    special: (context) => {
+      const own = spec.special?.(context);
+      const foedselsdato = readFoedselsdato(context);
+      // Beskeden navngiver kun fødselsdatoen, når den FAKTISK er det bindende gulv – ellers ville en
+      // fødselsdato før systemrammen få æren for systemrammens grænse.
+      const ownMin = spec.narrowMin?.(context);
+      const binds = foedselsdato !== undefined
+        && foedselsdato > resolveBound(spec.min, context)
+        && (ownMin === undefined || foedselsdato > ownMin);
+      return binds
+        ? {
+          ...(own ?? {}),
+          minBoundKind: 'efterFelt',
+          minBoundLabel: 'skadelidtes fødselsdato',
+          minBoundReferenceISO: foedselsdato,
+        }
+        : own;
+    },
+  };
+};
 
 export const stamdataFields = catalogFields(
   stamdataJournalnrField,

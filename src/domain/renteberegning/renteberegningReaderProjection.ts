@@ -18,6 +18,7 @@ import type { ISODateString } from '../../types/branded';
 import type { RentekravRow } from '../../schemas/formSchemas';
 import { computeRentekravRow, type RentekravRowResult } from './renteberegningEngine';
 import { isRentekravRowEmpty } from './rowEmpty';
+import { calculateInterestDate } from './rentekravValidation';
 
 // Rækkeafhængighed udtrykkes ved de refs, den konkrete projektion læser. Der findes derfor ingen parallel
 // global/row-scope-model eller manuelt opbyggede blockers ved siden af inputkernens issue-model.
@@ -73,6 +74,38 @@ const readRowEngineInput = (
   const row = readRow(collector, rowId);
   if (beregningsdato.status === 'unavailable' || row === undefined) return undefined;
   return { row, beregningsdato: beregningsdato.value };
+};
+
+/**
+ * Den seneste rentedato blandt rækkerne – den tidligste beregningsdato, der lader alle rækker stå gyldige.
+ *
+ * Beregningsdatoen har selv et statisk interval, men hver rækkes rentedato (forfaldsdato plus tillægstid)
+ * må højst være beregningsdatoen. «Indsæt dags dato» kunne derfor gøre en række rød, når den lå efter
+ * dags dato (M-49, samme fejlklasse som BB-405; udviklerens afgørelse 2026-11-18: knappen gøres inaktiv).
+ * Navnet følger brugerens ord: uden tillægstid er rentedatoen selve forfaldsdatoen.
+ */
+export const resolveSenesteRentedato = (
+  rows: readonly RentekravRow[]
+): Readonly<{ date: ISODateString; labelBestemt: string }> | undefined => {
+  const datoer = rows.flatMap((row) => {
+    if (row.renterFra === undefined) return [];
+    const rentedato = calculateInterestDate({
+      kravetDato: row.renterFra,
+      tillaegstid: row.tillaegstid ?? 0,
+      enhed: row.enhed,
+    });
+    return rentedato.success ? [{ rentedato: rentedato.value, forskudt: rentedato.value !== row.renterFra }] : [];
+  });
+  const seneste = datoer.reduce<(typeof datoer)[number] | undefined>(
+    (latest, current) => (latest === undefined || current.rentedato > latest.rentedato ? current : latest),
+    undefined,
+  );
+  if (seneste === undefined) return undefined;
+  const navn = seneste.forskudt ? 'rentedato' : 'forfaldsdato';
+  return {
+    date: seneste.rentedato,
+    labelBestemt: datoer.length > 1 ? `den seneste ${navn}` : `${navn}en`,
+  };
 };
 
 /** Læser de afsluttede rækker til tabelvisning og sortering gennem samme readergrænse. */

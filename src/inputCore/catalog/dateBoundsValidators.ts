@@ -37,7 +37,7 @@ import type {
 // dags dato; blev de indfanget ved modulets import, ville en session hen over midnat validere mod gårsdagens
 // maksimum. Se `getToday` i `dateRanges.ts`, som løste samme fejl ét lag nede.
 
-const resolveBound = (
+export const resolveBound = (
   resolver: DateBoundResolver,
   context: DateBoundsContext
 ): ISODateString =>

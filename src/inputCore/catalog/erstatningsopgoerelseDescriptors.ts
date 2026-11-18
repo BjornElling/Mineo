@@ -31,6 +31,7 @@ import {
 import { DEFAULT_FRACTION_MAX_DIGITS } from '../../utils/fraction';
 import type { ISODateString } from '../../types/branded';
 import { EO_MIDLERTIDIGT_EET_FRA_EET_SIDEN_LABEL } from '../../domain/erstatningsopgoerelse/eoLabels';
+import { findLatestSvieSmerteSatsAarAtOrBefore } from '../../domain/erstatningsopgoerelse/helpers/svieSmerteSatsAar';
 import {
   createBooleanFieldCodec,
   createAmountFieldCodec,
@@ -104,6 +105,7 @@ import {
   resolveStamdataDatoReferenceFromView,
   stamdataSkadedatoField,
   stamdataSkadestypeField,
+  withSkadelidtesFoedselsdatoMin,
   withStamdataDatoReference,
 } from './stamdataDescriptors';
 import { evaluateForligAnsvarsgradRules } from '../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
@@ -713,17 +715,27 @@ export const eoSvieSmerteHelbredsstatusField = choiceField<Helbredsstatus>(
 export const eoTidligereSsMaxField = requiredJaNejField(
   'tidligereSsMax', 'Tidligere svie/smerte-max nået', 'Nej', whenEo(svieSmerteTidligereMaxRelevant),
 );
-// Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..getCurrentYear er det afledte bounds-issue.
+/**
+ * Satsårets loft: indeværende år eller det seneste år med fulde svie/smerte-satser, hvis det ligger senere.
+ *
+ * «Indsæt årstal» vælger satsåret én måned efter opgørelsesdatoen. I december med næste års satser
+ * indlagt gav knappen derfor et år, feltets gamle loft (indeværende år) afviste. Udviklerens afgørelse
+ * 2026-11-18: feltet følger satsdækningen. Loftet kan kun hæves, så ingen gemt værdi bliver ny rød.
+ */
+const resolveSvieSmerteSatserAarMax = (): number =>
+  Math.max(getCurrentYear(), findLatestSvieSmerteSatsAarAtOrBefore(Number.POSITIVE_INFINITY) ?? getCurrentYear());
+
+// Årsfelt: tocifrede år infereres; MIN_SVIESMERTE_YEAR..resolveSvieSmerteSatserAarMax er det afledte bounds-issue.
 export const eoSvieSmerteSatserAarField = defineStructuralField<number | undefined>({
   id: 'eo.svieSmerteSatserAar',
   template: { section: S, path: [], field: 'svieSmerteSatserAar' },
-  codec: createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_SVIESMERTE_YEAR, maxYear: getCurrentYear() }),
+  codec: createYearFieldCodec({ twoDigitYearPolicy: 'infer', minYear: MIN_SVIESMERTE_YEAR, maxYear: resolveSvieSmerteSatserAarMax() }),
   emptyValue: undefined,
   isEmpty: isUndefined,
   label: 'Hvilket års svie/smerte-satser lægges til grund?',
   controlKind: 'text',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
-  validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, getCurrentYear)],
+  validators: [yearBoundsValidator('eo.svieSmerteSatserAar.bounds', MIN_SVIESMERTE_YEAR, resolveSvieSmerteSatserAarMax)],
   relevance: whenEo(svieSmertePeriodeInputRelevant),
 });
 export const eoSvieSmerteDelvisSygemeldingSatsField = requiredChoiceField<SvieSmerteDelvisSygemeldingSats>(
@@ -779,7 +791,8 @@ const tafBeregningsperiodePair: DatePairBinding = {
 const BEREGNINGSPERIODE_LABEL = 'Periode til beregning af før-løn';
 export const eoTafBeregningsperiodeFraField = dateField(
   'tafBeregningsperiodeFra', `${BEREGNINGSPERIODE_LABEL}, fra`,
-  dateBounds(systemrammeRelationalSpec, [dateOrderValidator('fra', tafBeregningsperiodePair)]),
+  // Perioden kan ikke starte før skadelidtes fødsel; til-datoen følger af datoordenen.
+  dateBounds(withSkadelidtesFoedselsdatoMin(systemrammeRelationalSpec), [dateOrderValidator('fra', tafBeregningsperiodePair)]),
   whenEo(beregningsperiodeInputRelevant),
 );
 export const eoTafBeregningsperiodeTilField = dateField(

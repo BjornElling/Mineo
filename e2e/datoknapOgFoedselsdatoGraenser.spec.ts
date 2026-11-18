@@ -14,6 +14,7 @@ import type { Page } from '@playwright/test';
  * - BB-403: en efterladt, der er født efter virkningsdatoen, gør feltet rødt og spærrer dokumentet.
  * - BB-404: et kønsvalg spærrer ikke længere en ren EAL-sag; kønnet vises først ved påbegyndt ASL-ydelse.
  * - BB-405: «Indsæt dags dato» er inaktiv, når dags dato ligger før virkningsdatoen.
+ * - M-49-opfølgningen: samme knap på Renteberegning er inaktiv før en rækkes forfaldsdato.
  *
  * Uret fastlåses, fordi BB-405 netop handler om forholdet mellem dags dato og en fremtidig virkningsdato.
  */
@@ -27,7 +28,7 @@ const fillStamdata = async (page: Page, skadedato: string): Promise<void> => {
 
 const koenRow = (page: Page) => page.locator('.row--label-right-hover').filter({ hasText: 'Skadelidtes køn' });
 
-test.describe('Forsørgertab – brugerblik flade 10', () => {
+test.describe('Brugerblik flade 10 og opfølgning', () => {
   test.beforeEach(async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-11-18T12:00:00'));
     await login(page);
@@ -65,6 +66,21 @@ test.describe('Forsørgertab – brugerblik flade 10', () => {
     await setFieldValueAndSettle(page.locator('input[name="aslAarsloen"]'), '400000');
     await expect(koenRow(page)).toHaveCount(1);
     await expect(page.getByTestId('forsoergertab-download')).toBeDisabled();
+
+    expect(runtimeErrors).toEqual([]);
+  });
+
+  // Samme fejlklasse på Renteberegning: en rækkes forfaldsdato efter dags dato er knappens nedre grænse.
+  test('M-49: Renteberegningens «Indsæt dags dato» er inaktiv før en forfaldsdato', async ({ page, runtimeErrors }) => {
+    await openPage(page, 'Renteberegning');
+    const beregningsdato = page.getByRole('textbox', { name: 'Beregningsdato' });
+    await setFieldValueAndSettle(beregningsdato, '30-06-2027');
+    const firstRow = page.locator('tbody tr').first();
+    await setFieldValueAndSettle(firstRow.getByRole('textbox', { name: 'Beløb' }), '10000');
+    await setFieldValueAndSettle(firstRow.getByRole('textbox', { name: 'Forfaldsdato' }), '01-03-2027');
+
+    await expect(page.getByRole('button', { name: 'Dags dato er før forfaldsdatoen (01-03-2027)' })).toBeDisabled();
+    await expect(beregningsdato).toHaveValue('30-06-2027');
 
     expect(runtimeErrors).toEqual([]);
   });
