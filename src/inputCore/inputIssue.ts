@@ -104,6 +104,24 @@ export const buildFieldIssueMessage = (field: AnyFieldRef): string =>
 export const quoteFieldLabel = (label: string): string => `'${label}'`;
 
 /**
+ * Feltets navn foran beskeden, til en fejloversigt, der læses uden feltet foran sig («Fejl og advarsler»).
+ *
+ * Navngiver beskeden allerede feltet, udelades præfikset. Det gælder også feltnavnets kerne foran en forklarende
+ * parentes: «Antal feriedage (mandag-fredag) i de indtastede perioder» står i beskeden som «Antal feriedage kan
+ * højst være …», og præfikset gav før linjen «Antal feriedage (…) i de indtastede perioder: Antal feriedage …».
+ *
+ * Ét sted for alle oversigter (årsløn, EET-faner, EO's import af midlertidigt EET), så en feltfejl læses ens,
+ * uanset hvilken side den vises på (BB-406/BB-407, mønster M-50).
+ */
+export const prefixFieldLabel = (label: string, message: string): string => {
+  const kerne = label.split(' (')[0]?.trim() ?? label;
+  const navngiverFeltet = message.includes(quoteFieldLabel(label))
+    || message.startsWith(label)
+    || (kerne !== label && message.startsWith(`${kerne} `));
+  return navngiverFeltet ? message : `${label}: ${message}`;
+};
+
+/**
  * Den generiske tooltiptekst for en feltfejl, hvis fulde besked ikke tilføjer noget ved feltet: `format`
  * (råteksten kunne slet ikke parses – fx en delvist indtastet dato) uden en eksplicit codec-detalje og `schema`
  * (en gemt værdi, der ikke længere validerer). Begge deres fulde beskeder siger normalt kun "dette felt er forkert"

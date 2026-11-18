@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-18
 
 ---
 
@@ -745,6 +745,11 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - Blokerende importfejl skal forklare følgen først: "Midlertidigt EET kan ikke hentes fra
   Erhvervsevnetab-siden: <årsag>". En besked, der allerede begynder med "Midlertidigt EET",
   bevares. Issue-id, severity og fokusmål ændres ikke.
+- Årsagerne er de konkrete: hver rød celle i ASL-afgørelsestabellen (feltfejl og tabellens samlede regler) giver
+  sin egen linje med række, kolonne og feltets besked og peger på cellen; ASL-årslønnen og Stamdata giver feltets
+  navn og konkrete besked. En generisk «ikke gyldigt udfyldt» er ikke tilladt, og importen må ikke nøjes med den
+  første årsag (BB-407, mønster M-50). EET-fanerne og importen bygger linjerne med samme funktion
+  (`buildAslAfgoerelserSummaryIssues`).
 - Når importen er slået til uden errors, men ingen positiv importeret ydelse overlapper TAF-perioderne,
   vises en ikke-blokerende advarsel, hvis mindst én TAF-periode når den midlertidige afgørelses aktive dato
   på EO oplysninger. Den aktive dato er virkningsdatoen, ellers afgørelsesdatoen. Uden denne dato

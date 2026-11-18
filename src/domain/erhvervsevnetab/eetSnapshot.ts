@@ -37,8 +37,13 @@ type FieldIssueMessage = Readonly<{ message: string }> | undefined;
 
 type EetInputIssues = Readonly<{
   stamdata: Partial<Record<keyof StamdataValues, FieldIssueMessage>>;
-  erhvervsevnetab: Partial<Record<string, FieldIssueMessage>>;
+  erhvervsevnetab: Partial<Record<Exclude<keyof ErhvervsevnetabComposedValues, 'aslAfgoerelser'>, FieldIssueMessage>>;
   faellesAarsloen: Partial<Record<keyof FaellesAarsloenValues, FieldIssueMessage>>;
+  /**
+   * ALLE røde celler i ASL-afgørelsestabellen, én linje pr. celle med cellen som mål (BB-406). Tabellen er ét
+   * input med mange felter; en enkelt besked her lod fanerne vise den første fejl og skjule resten.
+   */
+  aslAfgoerelser?: readonly EetIssue[];
 }>;
 
 // Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
@@ -161,6 +166,10 @@ const buildGatedProjection = <TComputation>(
   };
 };
 
+/** Afgørelsestabellens røde celler – hver sin linje (BB-406). Tom, når tabellen ikke har nogen. */
+const aslAfgoerelserIssues = (input: EetSnapshotInput): readonly EetIssue[] =>
+  input.fieldErrors.aslAfgoerelser ?? [];
+
 const createStamdataDateOrderIssues = (stamdata: StamdataValues | null): readonly EetIssue[] => {
   if (stamdata === null) return [];
   return resolveStamdataDateOrder(stamdata).issues.map((issue) => ({
@@ -175,10 +184,10 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
     ...createFieldIssues(input.fieldErrors, [
       { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
       { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
       { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
+    ...aslAfgoerelserIssues(input),
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
@@ -196,10 +205,10 @@ const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['ka
   const blockingIssues = [
     ...createFieldIssues(input.fieldErrors, [
       { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
       { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
+    ...aslAfgoerelserIssues(input),
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
@@ -334,12 +343,10 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
       ...(usesAslAarsloenFallback
         ? [{ id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message }]
         : []),
-      ...(usesAslEetPctFallback
-        ? [{ id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message }]
-        : []),
       { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
+    ...(usesAslEetPctFallback ? aslAfgoerelserIssues(input) : []),
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
@@ -367,12 +374,12 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     ...createFieldIssues(input.fieldErrors, [
       { id: 'field-beregningsdato', message: input.fieldErrors.erhvervsevnetab.beregningsdato?.message },
       { id: 'field-aarsloen-asl', message: input.fieldErrors.faellesAarsloen.aslAarsloen?.message },
-      { id: 'field-asl-afgoerelser', message: input.fieldErrors.erhvervsevnetab.aslAfgoerelser?.message },
       { id: 'field-eal-eet-pct', message: input.fieldErrors.erhvervsevnetab.ealEetPct?.message },
       { id: 'field-aarsloen-eal', message: input.fieldErrors.faellesAarsloen.ealAarsloen?.message },
       { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
+    ...aslAfgoerelserIssues(input),
     ...createStamdataDateOrderIssues(input.stamdata),
     ...forligBlocking.issues,
   ];
@@ -391,9 +398,8 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   }));
 };
 
-// Den reader-baserede projektion fører den første tabelblokerende ASL-rækkefejl ind som `field-asl-afgoerelser`.
-// De øvrige rækkeissues forbliver tilgængelige for den senere tabel-overgang, men beregning og dokumentgate er
-// allerede uafhængige af mounted reporters.
+// Den reader-baserede projektion fører hver rød celle i ASL-afgørelsestabellen ind som `field-asl-afgoerelser`
+// med cellen som mål. Beregning og dokumentgate er uafhængige af mounted reporters.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
   const output = {
     loebendeYdelser: safeBuildProjection(() => buildLoebendeYdelserProjection(input), 'loebende_ydelser'),

@@ -16,10 +16,10 @@ import { isISODateString, isoToDanish } from '../../types/branded';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from './erhvervsevnetabInitialValues';
 import { buildAslAfgoerelseRuleFieldIssues, readAslAfgoerelserCommittedRows } from './erhvervsevnetabReaderProjection';
+import { buildAslAfgoerelserSummaryIssues, buildFieldSummaryIssue } from './aslAfgoerelserIssueSummary';
 import { eetIssueSchema, type EetIssue } from './eetTypes';
 import { collectEetAslAfgoerelseValidationIssues, isAslAfgoerelseRowEmpty, isKnownAfgoerelseType, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import { resolveEetIssueFocusTarget } from './eetIssueFocusTargets';
-import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../aslEalAarsloen/aarsloenLabels';
 import {
   computeEetLoebendeYdelserForEoImport,
   EET_LOEBENDE_BEREGNINGSDATO_RELATIVE_WARNING_IDS,
@@ -96,40 +96,25 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
   };
   const sourceIssues: EetIssue[] = [];
 
-  if (eetProjection.readIssues().length > 0) {
-    const issue = eetProjection.readIssues()[0];
-    sourceIssues.push({
-      id: 'midlertidigt-eet-source-schema-invalid',
-      severity: 'error',
-      message: 'Afgørelsen er ikke gyldigt udfyldt.',
-      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
-    });
-  } else {
-    // Readerens felter kan hver for sig være gyldige, mens hele afgørelsesforløbet er rødt.
-    // Brug præcis tabellens samlede regler og feltmapping, så EO ikke beregner på et afvist forløb.
-    const issue = buildAslAfgoerelseRuleFieldIssues(collectEetAslAfgoerelseValidationIssues(
-      eetValues.aslAfgoerelser,
-      skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined,
-      eetValues.skadelidteFodselsdato,
-      skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined,
-    ))[0];
-    if (issue !== undefined) {
-      sourceIssues.push({
-        id: 'field-asl-afgoerelser',
-        severity: 'error',
-        message: issue.message,
-        focusTarget: { kind: 'fieldAddress', address: issue.field.address },
-      });
-    }
-  }
-  if (aarsloenProjection.readIssues().length > 0) {
-    const issue = aarsloenProjection.readIssues()[0];
-    sourceIssues.push({
-      id: 'midlertidigt-eet-faelles-aarsloen-schema-invalid',
-      severity: 'error',
-      message: `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke gyldigt udfyldt.`,
-      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
-    });
+  // Alle røde celler i afgørelsestabellen – feltfejl og tabellens samlede regler – med række, kolonne og konkret
+  // årsag, hver med sin celle som mål. Samme builder som EET-fanerne, så EO og EET siger det samme om samme celle.
+  // Før blev feltfejlene samlet til «Afgørelsen er ikke gyldigt udfyldt», og kun den første regel nåede EO (BB-407).
+  // Reglerne køres på præcis tabellens rækker og feltmapping, så EO ikke beregner på et afvist forløb.
+  sourceIssues.push(...buildAslAfgoerelserSummaryIssues(
+    [
+      ...eetProjection.readIssues(),
+      ...buildAslAfgoerelseRuleFieldIssues(collectEetAslAfgoerelseValidationIssues(
+        eetValues.aslAfgoerelser,
+        skadedatoRead.status === 'usable' ? skadedatoRead.value : undefined,
+        eetValues.skadelidteFodselsdato,
+        skadestypeRead.status === 'usable' ? skadestypeRead.value : undefined,
+      )),
+    ],
+    eetValues.aslAfgoerelser,
+  ));
+  // ASL-årslønnens konkrete besked (fx beløbsloftet) frem for «… er ikke gyldigt udfyldt» (BB-407).
+  for (const issue of aarsloenProjection.readIssues()) {
+    sourceIssues.push(buildFieldSummaryIssue('midlertidigt-eet-faelles-aarsloen-schema-invalid', issue));
   }
   const skadedatoIssue = skadedatoRead.status === 'error' ? skadedatoRead.issue : undefined;
   const hasStamdataDateOrderIssue = skadedatoIssue?.code === 'stamdata.skadedato.bounds'
@@ -147,14 +132,11 @@ export const buildMidlertidigtEetInsertSource = (evaluation: InputEvaluation): E
       message: `Der er angivet en ${datoReference.label.toLowerCase()} før skadelidtes fødselsdato (${fodselsdatoDisplay ?? 'ukendt dato'})`,
       focusTarget: { kind: 'fieldAddress', address: stamdataSkadedatoField.bind().address },
     });
-  } else if (stamdataProjection.readIssues().length > 0) {
-    const issue = stamdataProjection.readIssues()[0];
-    sourceIssues.push({
-      id: 'midlertidigt-eet-stamdata-schema-invalid',
-      severity: 'error',
-      message: 'Stamdata kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
-      ...(issue === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: issue.field.address } }),
-    });
+  } else {
+    // Hvert Stamdata-felts navn og konkrete årsag frem for «Stamdata kunne ikke valideres …» (BB-407).
+    for (const issue of stamdataProjection.readIssues()) {
+      sourceIssues.push(buildFieldSummaryIssue('midlertidigt-eet-stamdata-schema-invalid', issue));
+    }
   }
 
   return Object.freeze({

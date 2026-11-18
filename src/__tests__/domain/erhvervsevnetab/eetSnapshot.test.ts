@@ -163,16 +163,17 @@ describe('computeEetSnapshot', () => {
       stamdata: createStamdata(),
       fieldErrors: {
         stamdata: {},
-        erhvervsevnetab: { aslAfgoerelser: { message: 'ASL-afgørelserne er ugyldige' } },
+        erhvervsevnetab: {},
         faellesAarsloen: {},
+        aslAfgoerelser: [
+          { id: 'field-asl-afgoerelser', severity: 'error', message: 'Afgørelse 1, EET %: Erhvervsevnetabet skal være mellem 5 og 100' },
+          { id: 'field-asl-afgoerelser', severity: 'error', message: 'Afgørelse 1, Kap. %: Procent skal være mellem 0 og 100' },
+        ],
       },
     });
 
-    expect(snapshot.efterEal.issues).toContainEqual({
-      id: 'field-asl-afgoerelser',
-      severity: 'error',
-      message: 'ASL-afgørelserne er ugyldige',
-    });
+    // Alle tabellens røde celler følger med – ikke kun den første (BB-406).
+    expect(snapshot.efterEal.issues.filter((issue) => issue.id === 'field-asl-afgoerelser')).toHaveLength(2);
     expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
   });
 

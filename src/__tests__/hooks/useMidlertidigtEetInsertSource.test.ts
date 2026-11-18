@@ -5,7 +5,10 @@ import {
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import { stamdataSkadestypeField } from '../../inputCore/catalog/stamdataDescriptors';
-import { aslAfgoerelseEetPctField } from '../../inputCore/catalog/erhvervsevnetabDescriptors';
+import {
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseVirkningsDatoField,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { getProductionInputCatalog } from '../../inputCore/catalog/productionCatalog';
 import { createInputEvaluation } from '../../inputCore/inputReader';
 import {
@@ -23,6 +26,13 @@ import type {
 const catalog = getProductionInputCatalog();
 const amount = (value: number) => ({ kind: 'number' as const, value });
 
+/** Codec'ets egen afvisning af råteksten, så den rejected post matcher feltet (§1.5). */
+const rejectedEntry = (raw: string) => {
+  const parsed = aslAfgoerelseVirkningsDatoField.codec.parseForSettle(raw);
+  if (parsed.status !== 'rejected') throw new Error(`Forventede afvist råtekst: ${raw}`);
+  return { raw, reason: parsed.reason, ...(parsed.detail === undefined ? {} : { detail: parsed.detail }) };
+};
+
 const buildEvaluation = (options?: Readonly<{
   eetPct?: number;
   /** Procenten på selve ASL-afgørelsesrækken – i modsætning til `eetPct` ER den en importafhængighed. */
@@ -33,6 +43,8 @@ const buildEvaluation = (options?: Readonly<{
   beregningsdato?: string | null;
   invalidSkadestype?: boolean;
   aslAfgoerelser?: ErhvervsevnetabValues['aslAfgoerelser'];
+  /** Rå, ikke-committbar tekst i afgørelsesrækkens virkningsdato (fx en dato, der ikke findes). */
+  rejectedVirkningsdato?: string;
 }>) => {
   const beregningsdato = options?.beregningsdato === undefined ? '2026-03-01' : options.beregningsdato;
   const erhvervsevnetab: ErhvervsevnetabValues = {
@@ -42,7 +54,7 @@ const buildEvaluation = (options?: Readonly<{
     aslAfgoerelser: options?.aslAfgoerelser ?? [{
       id: 'afg-1',
       afgoerelsesDato: toISODateString('2026-02-01'),
-      virkningsDato: toISODateString('2026-02-01'),
+      virkningsDato: options?.rejectedVirkningsdato === undefined ? toISODateString('2026-02-01') : undefined,
       eetPct: options?.afgoerelseEetPct ?? 25,
       kapDato: undefined,
       kapPct: undefined,
@@ -66,12 +78,18 @@ const buildEvaluation = (options?: Readonly<{
       stamdata, satser: null, aarsloen: null, faellesAarsloen, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: null, erhvervsevnetab,
     },
-    rejectedInputs: options?.invalidSkadestype ? {
-      [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
-        raw: 'ikke-en-type',
-        reason: 'format' as const,
-      },
-    } : {},
+    rejectedInputs: {
+      ...(options?.invalidSkadestype ? {
+        [serializeFieldAddress(stamdataSkadestypeField.bind().address)]: {
+          raw: 'ikke-en-type',
+          reason: 'format' as const,
+        },
+      } : {}),
+      ...(options?.rejectedVirkningsdato === undefined ? {} : {
+        [serializeFieldAddress(aslAfgoerelseVirkningsDatoField.bind('afg-1').address)]:
+          rejectedEntry(options.rejectedVirkningsdato),
+      }),
+    },
   });
   return createInputEvaluation({
     input,
@@ -121,7 +139,35 @@ describe('buildMidlertidigtEetInsertSource', () => {
     // så en maskeret værdi ville give et falsk tal.
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ afgoerelseEetPct: 101 }));
 
-    expect(source.issues?.map((issue) => issue.id)).toContain('midlertidigt-eet-source-schema-invalid');
+    expect(source.issues).toEqual([{
+      id: 'field-asl-afgoerelser',
+      severity: 'error',
+      message: 'Afgørelsen af 01-02-2026, EET %: Erhvervsevnetabet skal være mellem 5 og 100',
+      focusTarget: { kind: 'fieldAddress', address: aslAfgoerelseEetPctField.bind('afg-1').address },
+    }]);
+  });
+
+  it('nævner HVER rød celle i afgørelsen med række, kolonne og årsag – ikke én generisk fejl (BB-407)', () => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({
+      afgoerelseEetPct: 101,
+      rejectedVirkningsdato: '31-02-2026',
+    }));
+
+    const issues = source.issues ?? [];
+    expect(issues.map((issue) => issue.id)).toEqual(['field-asl-afgoerelser', 'field-asl-afgoerelser']);
+    expect(issues.map((issue) => issue.focusTarget)).toEqual([
+      { kind: 'fieldAddress', address: aslAfgoerelseVirkningsDatoField.bind('afg-1').address },
+      { kind: 'fieldAddress', address: aslAfgoerelseEetPctField.bind('afg-1').address },
+    ]);
+    expect(issues[0]?.message).toMatch(/^Afgørelsen af 01-02-2026, Virkningsdato: /);
+    expect(issues[1]?.message).toBe('Afgørelsen af 01-02-2026, EET %: Erhvervsevnetabet skal være mellem 5 og 100');
+    expect(issues.some((issue) => issue.message.includes('ikke gyldigt udfyldt'))).toBe(false);
+
+    // Rettes datoen, står procenten tilbage alene – brugeren kan se, at den første rettelse hjalp.
+    const efterDato = buildMidlertidigtEetInsertSource(buildEvaluation({ afgoerelseEetPct: 101 }));
+    expect(efterDato.issues?.map((issue) => issue.message)).toEqual([
+      'Afgørelsen af 01-02-2026, EET %: Erhvervsevnetabet skal være mellem 5 og 100',
+    ]);
   });
 
   it('genbruger tabellens tværrækkefejl og feltadresse før EO-importen', () => {
@@ -150,7 +196,7 @@ describe('buildMidlertidigtEetInsertSource', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ ...options, aslAfgoerelser: rows }));
     expect(source.issues).toEqual([{
       id: 'field-asl-afgoerelser', severity: 'error',
-      message: 'EET % kan ikke være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser.',
+      message: 'Afgørelsen af 01-10-2021, EET % kan ikke være lavere end den akkumulerede kapitaliseringsprocent fra tidligere afgørelser.',
       focusTarget: { kind: 'fieldAddress', address: aslAfgoerelseEetPctField.bind('lavere-end-kapitaliseret').address },
     }]);
     const blocked = buildEetImportContext(source, toISODateString('2022-06-30'));
@@ -174,8 +220,18 @@ describe('buildMidlertidigtEetInsertSource', () => {
   it('fail-closer ved en rød ASL-årsløn – grundlønnen ganges ind i hvert periodebeløb', () => {
     const source = buildMidlertidigtEetInsertSource(buildEvaluation({ aslAarsloen: -5 }));
 
-    expect(source.issues?.map((issue) => issue.id))
-      .toContain('midlertidigt-eet-faelles-aarsloen-schema-invalid');
+    const issue = source.issues?.find((candidate) => candidate.id === 'midlertidigt-eet-faelles-aarsloen-schema-invalid');
+    expect(issue).toBeDefined();
+    // Feltets konkrete besked, ikke «… er ikke gyldigt udfyldt» (BB-407).
+    expect(issue?.message).not.toContain('ikke gyldigt udfyldt');
+  });
+
+  it('gengiver ASL-årslønnens konkrete loft, når beløbet er for højt (BB-407)', () => {
+    const source = buildMidlertidigtEetInsertSource(buildEvaluation({ aslAarsloen: 9000000 }));
+
+    const issue = source.issues?.find((candidate) => candidate.id === 'midlertidigt-eet-faelles-aarsloen-schema-invalid');
+    expect(issue?.message).toMatch(/\d{3}\.\d{3}/);
+    expect(issue?.focusTarget?.kind).toBe('fieldAddress');
   });
 
   it('fail-closer ved ugyldig datoorden i stamdata', () => {
@@ -228,6 +284,8 @@ describe('buildMidlertidigtEetInsertSource', () => {
         severity: 'error',
       }),
     ]));
+    // Feltets navn og årsag, ikke «Stamdata kunne ikke valideres» (BB-407).
+    expect(source.issues?.some((issue) => issue.message.startsWith('Stamdata kunne ikke valideres'))).toBe(false);
   });
 
 });

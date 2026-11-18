@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-11-13
+**Senest verificeret mod kode:** 2026-11-18
 
 ---
 
@@ -109,6 +109,11 @@ fra snapshot-orchestreringen og rapporterer enhver blokering som issue.
 
 ASL-/EAL-rækkeissues afledes fra samme `InputReader` og rækkevalidatorer som snapshotinputtet. De lagres ikke i en
 field-error-bus og må ikke afhænge af, om rækkekomponenten er mounted.
+
+Hver rød celle i ASL-afgørelsestabellen – readerens feltfejl og tabellens kryds-række-regler – går ind i snapshottet
+som sit eget `field-asl-afgoerelser`-issue med række, kolonne, feltets besked og cellen som `focusTarget`
+(`buildAslAfgoerelserSummaryIssues`). Fanerne viser dem alle samtidig og fører til cellen; højst én linje pr. celle,
+feltfejlen før reglen (BB-406, mønster M-50).
 
 Canonical EET-procenter større end 0 og mindre end 15 giver en ikke-blokerende `FieldWarning` med teksten
 `Der kan ikke tilkendes erhvervsevnetab under 15 %`. Den vises på både ASL-rækker og EAL-feltet og ændrer ikke

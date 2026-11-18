@@ -3580,3 +3580,34 @@ sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synl
     inaktiv, når en rentedato ligger efter dags dato («Dags dato er før forfaldsdatoen (…)»).
   - **EO's «Indsæt årstal» ved svie/smerte:** Feltets loft var indeværende år, mens knappen vælger året én
     måned efter opgørelsesdatoen. Loftet følger nu det seneste år med svie/smerte-satser.
+
+## M-50 – En fejloversigt udelader andre samtidige årsager
+
+- **BB-406:** Løbende ydelser, Kapitalisering og Differencekrav modtager kun den første
+  fejl fra ASL-afgørelsestabellen. Begge fejl findes allerede ved cellerne. Efter rettelse
+  af den første skifter oversigten til den anden. Se [EET oplysninger](erhvervsevnetab.md#bb-406--tre-resultatfaner-viser-kun-den-første-fejl-i-afgørelsestabellen).
+- **BB-407:** Erstatningsopgørelsens import af midlertidigt EET samler via en særskilt vej
+  flere konkrete fejl til «afgørelsen er ikke gyldigt udfyldt». Prøven med en ugyldig dato
+  og procent bestod først, da begge blev rettet. Se [importfundet](erhvervsevnetab.md#bb-407--importen-af-midlertidigt-eet-fortæller-ikke-hvad-der-skal-rettes).
+- **Undersøgt for BB-406:** Årsløn viste begge fejl for Måned 13 og År 1900 i samme lønrække.
+  Renteberegning og MinProcesrente viste hver sin konkrete fejl ved to ugyldige forfaldsdatoer
+  og har ingen særskilt oversigt over disse cellefejl. Varige mén og Forsørgertab viste begge
+  felter som ugyldige, hhv. méngrad/beregningsdato og efterladtes fødselsdato/virkningsdato.
+  Forsørgertabs sammenfoldning af Stamdatas datoorden har kun én mulig regel, fødselsdato mod
+  skadedato. Stamdata har direkte feltfeedback. Om, Indstillinger og Satser har ingen
+  beregningsoversigt med flere rækkevalideringsfejl. Gem kan pege på et felt efter en blokeret
+  handling. Hent-preflight opsummerer pr. sektion og er ikke browsermålt med flere problemer i
+  samme sektion.
+- **Undersøgt for BB-407:** To yderligere tilfælde er bekræftet i samme EO-import.
+  En ASL-årsløn på 9.000.000 kr. giver en generisk fejl om feltet uden beløbsloftet.
+  Fødselsdato 31-02-1980 giver en generisk Stamdata-fejl uden feltets navn og årsag.
+  Samtidig procent og brøk i EET's forlig gav den konkrete besked «Kan ikke udfylde både
+  procent og brøk» på EET efter EAL og Differencekrav. Der blev ikke fundet andre
+  indgange med samme generiske importfejl.
+- **Afgrænsning mod M-40:** M-40 samler gentagelser af den samme fejl, hvor hver berørt række
+  fortsat skal fremgå. Her er der flere årsager, der kan rettes hver for sig.
+- **Rettet 2026-11-18 (BB-406, BB-407):** Fælles årsag var, at afgørelsestabellen, et input med mange
+  celler, blev ført videre som én besked. Nu går hver rød celle videre som sin egen linje med række, kolonne,
+  feltets besked og cellen som mål, og samme funktion bruges af EET-fanerne og EO's import. Feltnavnet foran
+  beskeden kommer fra samme regel som Årsløns oversigt. EET-fanernes oversigt fulgte desuden aldrig et issues
+  eget mål. Det gør den nu.

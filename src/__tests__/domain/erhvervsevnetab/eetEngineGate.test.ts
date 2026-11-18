@@ -61,6 +61,7 @@ const NO_FIELD_ERRORS = {
 } as const;
 
 const FIELD_ERROR = { message: 'Ugyldig værdi' } as const;
+const ASL_CELL_ERRORS = [{ id: 'field-asl-afgoerelser', severity: 'error', message: 'Afgørelse 1, EET %: Ugyldig værdi' }] as const;
 
 type SnapshotArgs = Parameters<typeof computeEetSnapshot>[0];
 
@@ -172,10 +173,10 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
   });
 
   it('en rød ASL-rækkecelle med en BRUGBAR EAL-% bevarer Efter-EAL', () => {
-    // Rækkefejl kommer ind som ét `field-asl-afgoerelser`-aggregat fra reader-projektionen.
+    // Rækkefejl kommer ind som én `field-asl-afgoerelser`-linje pr. rød celle fra reader-projektionen.
     compute({
       ...NO_FIELD_ERRORS,
-      erhvervsevnetab: { aslAfgoerelser: FIELD_ERROR },
+      aslAfgoerelser: ASL_CELL_ERRORS,
     });
 
     expect(spies.loebende).not.toHaveBeenCalled();
@@ -186,7 +187,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
 
   it('en rød ASL-rækkecelle med TOM EAL-% blokerer Efter-EAL – eetPct-fallbacken nås', () => {
     compute(
-      { ...NO_FIELD_ERRORS, erhvervsevnetab: { aslAfgoerelser: FIELD_ERROR } },
+      { ...NO_FIELD_ERRORS, aslAfgoerelser: ASL_CELL_ERRORS },
       { values: createValues({ ealEetPct: undefined }) }
     );
 
@@ -196,7 +197,7 @@ describe('EET: panelmotoren kaldes kun for en ready dependency-gruppe', () => {
   it('en EAL-% på 0 tæller som tom, så ASL-rækkefejlen blokerer Efter-EAL', () => {
     // Motoren behandler `ealEetPct === 0` som "ikke angivet" (`eetEalCalculation.ts:169`); gaten skal spejle det.
     compute(
-      { ...NO_FIELD_ERRORS, erhvervsevnetab: { aslAfgoerelser: FIELD_ERROR } },
+      { ...NO_FIELD_ERRORS, aslAfgoerelser: ASL_CELL_ERRORS },
       { values: createValues({ ealEetPct: 0 }) }
     );
 

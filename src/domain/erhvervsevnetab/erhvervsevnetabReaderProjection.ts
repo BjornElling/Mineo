@@ -5,7 +5,6 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type {
-  AfgoerelseType,
   AslAfgoerelseRow,
   ErhvervsevnetabComposedValues,
   Koen,
@@ -56,6 +55,7 @@ import {
 } from '../../inputCore/inputIssue';
 import { toAnyFieldRef } from '../../inputCore/fieldDescriptor';
 import { computeEetSnapshot, type EetSnapshot } from './eetSnapshot';
+import { buildAslAfgoerelserSummaryIssues } from './aslAfgoerelserIssueSummary';
 import { resolveStamdataDatoReference, type SkadestypeDatoLabel } from '../policies/stamdataCalculations';
 
 // Erhvervsevnetab-projektionen (§3.4/§5.4/§1.10). En ALMINDELIG ren
@@ -80,9 +80,8 @@ import { resolveStamdataDatoReference, type SkadestypeDatoLabel } from '../polic
 //    alle læsere eller kende deres kontekst – ingen af de to er rigtige:
 //      * ASL-årsløns-reglen (delelig 1.000 / maks i skadesår) → `fieldErrors.faellesAarsloen.aslAarsloen`. Samme
 //        regel bæres af Forsørgertab-slicen af samme grund; `faellesAarsloen.aslAarsloen` er delt mellem dem.
-//      * ASL-afgørelsesrækkernes indbyrdes valideringsfejl (`collectEetAslAfgoerelseValidationIssues`) → snapshottet
-//        aftager KUN den FØRSTE via `fieldErrors.erhvervsevnetab.aslAfgoerelser`. Afgrænsningen er bevidst: feltet
-//        viser én aktiv rød fejl (§1.8), og de øvrige rækkefejl vises inline i tabellen på deres egne celler.
+//      * ASL-afgørelsesrækkernes indbyrdes valideringsfejl (`collectEetAslAfgoerelseValidationIssues`) → sammen med
+//        cellernes egne feltfejl i `fieldErrors.aslAfgoerelser`, én linje pr. rød celle med cellen som mål (BB-406).
 //      * Forligs-blokeringen ("begge udfyldt"/brøk > 1/ugyldigt rå draft) føres via `forlig`-argumentet uændret ind.
 //  - Køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) er en ren save-gate-fejl.
 //    Den påvirker derfor ikke beregningsprojektionen.
@@ -165,8 +164,7 @@ export type ErhvervsevnetabReaderProjection = Readonly<{
    * descriptor-validator ikke kan se, fordi den kun kender sin egen celle.
    *
    * Sættet bærer rigtige feltadresser, så rød markering, tooltip, fokusnavigation og consumerblokering læser
-   * ÉN repræsentation. Snapshottets `field-asl-afgoerelser` aftager fortsat kun den første (uændret
-   * afgrænsning).
+   * ÉN repræsentation. Snapshottets `field-asl-afgoerelser` aftager dem alle sammen med cellernes feltfejl.
    */
   aslAfgoerelserRuleIssues: FieldIssueSet;
   /** Reader-sikre afsluttede værdier til fanernes rene visning; felter med rødt issue er allerede skjult. */
@@ -204,45 +202,51 @@ const asFieldError = (errorMessage: string | undefined): { message: string } | u
 const readBoolean = (read: ReadFieldResult<boolean>, fallback: boolean): boolean =>
   read.status === 'usable' ? read.value : fallback;
 
+/** Readerens røde feltfejl, hvis læsningen blev afvist. */
+const issueOf = <T>(read: ReadFieldResult<T>): FieldIssue | undefined =>
+  read.status === 'error' ? read.issue : undefined;
+
 /**
  * Rekonstruerer én committed ASL-afgørelsesrække fra readeren. En celle med rød feltfejl (eetPct/kapPct-bounds)
  * skjules til `undefined`, præcis som readeren gør – rækkevaliderings-collectoren (der udleder de indbyrdes
  * regler) ser derfor samme værdier som beregningen. `fsTilbageholdtEet` er required-choice (tomværdi 'Nej').
+ * ALLE rækkens røde feltfejl følger med, så fejloversigten kan nævne hver celle (BB-406).
  */
 const readCommittedAslRow = (
   reader: InputReader,
   rowId: string
-): Readonly<{ row: AslAfgoerelseRow; errorMessage: string | undefined }> => {
-  const afgoerelsesDato = readField<ISODateString>(reader.read(aslAfgoerelseAfgoerelsesDatoField.bind(rowId)));
-  const virkningsDato = readField<ISODateString>(reader.read(aslAfgoerelseVirkningsDatoField.bind(rowId)));
-  const eetPct = readField<number>(reader.read(aslAfgoerelseEetPctField.bind(rowId)));
-  const kapDato = readField<ISODateString>(reader.read(aslAfgoerelseKapDatoField.bind(rowId)));
-  const kapPct = readField<number>(reader.read(aslAfgoerelseKapPctField.bind(rowId)));
-  const tidlKapDato = readField<ISODateString>(reader.read(aslAfgoerelseTidlKapDatoField.bind(rowId)));
-  const afgoerelseType = readField<AfgoerelseType>(reader.read(aslAfgoerelseAfgoerelseTypeField.bind(rowId)));
+): Readonly<{ row: AslAfgoerelseRow; fieldIssues: readonly FieldIssue[] }> => {
+  const afgoerelsesDato = reader.read(aslAfgoerelseAfgoerelsesDatoField.bind(rowId));
+  const virkningsDato = reader.read(aslAfgoerelseVirkningsDatoField.bind(rowId));
+  const eetPct = reader.read(aslAfgoerelseEetPctField.bind(rowId));
+  const kapDato = reader.read(aslAfgoerelseKapDatoField.bind(rowId));
+  const kapPct = reader.read(aslAfgoerelseKapPctField.bind(rowId));
+  const tidlKapDato = reader.read(aslAfgoerelseTidlKapDatoField.bind(rowId));
+  const afgoerelseType = reader.read(aslAfgoerelseAfgoerelseTypeField.bind(rowId));
   const fsTilbageholdtEet = reader.read(aslAfgoerelseFsTilbageholdtEetField.bind(rowId));
+  const usable = <T>(read: ReadFieldResult<T>): T | undefined => (read.status === 'usable' ? read.value : undefined);
   return {
     row: {
       id: rowId,
-      afgoerelsesDato: afgoerelsesDato.value,
-      virkningsDato: virkningsDato.value,
-      eetPct: eetPct.value,
-      kapDato: kapDato.value,
-      kapPct: kapPct.value,
-      tidlKapDato: tidlKapDato.value,
-      afgoerelseType: afgoerelseType.value,
+      afgoerelsesDato: usable(afgoerelsesDato),
+      virkningsDato: usable(virkningsDato),
+      eetPct: usable(eetPct),
+      kapDato: usable(kapDato),
+      kapPct: usable(kapPct),
+      tidlKapDato: usable(tidlKapDato),
+      afgoerelseType: usable(afgoerelseType),
       fsTilbageholdtEet: fsTilbageholdtEet.status === 'usable' ? fsTilbageholdtEet.value : 'Nej',
     },
-    errorMessage: [
-      afgoerelsesDato.errorMessage,
-      virkningsDato.errorMessage,
-      eetPct.errorMessage,
-      kapDato.errorMessage,
-      kapPct.errorMessage,
-      tidlKapDato.errorMessage,
-      afgoerelseType.errorMessage,
-      fsTilbageholdtEet.status === 'error' ? fsTilbageholdtEet.issue.message : undefined,
-    ].find((message) => message !== undefined),
+    fieldIssues: [
+      issueOf(afgoerelsesDato),
+      issueOf(virkningsDato),
+      issueOf(eetPct),
+      issueOf(kapDato),
+      issueOf(kapPct),
+      issueOf(tidlKapDato),
+      issueOf(afgoerelseType),
+      issueOf(fsTilbageholdtEet),
+    ].filter((issue): issue is FieldIssue => issue !== undefined),
   };
 };
 
@@ -275,26 +279,27 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
     .listEntities(erhvervsevnetabAslAfgoerelserCollectionRef)
     .map((entity) => readCommittedAslRow(reader, entity.entityId));
   const aslAfgoerelser = aslRowReads.map(({ row }) => row);
-  const aslAfgoerelserFieldError = aslRowReads.find(({ errorMessage }) => errorMessage !== undefined)?.errorMessage;
 
   // ASL-årslønnens felt-placerede domæneregel (delelig med 1.000 / maks i skadesåret) er KANONISK i
   // descriptoren (`faellesAarsloenAslAarsloenField`) og kommer derfor ind som en almindelig rød reader-feltfejl
   // i `aslAarsloen.errorMessage`. Den genberegnes IKKE her – ét sandt sted for reglen (§1.6).
 
-  // ASL-afgørelsesrækkernes indbyrdes (kryds-række) valideringsfejl. Snapshottet aftager KUN den første (uændret
-  // afgrænsning), mens tabellen viser dem alle inline pr. celle via `aslAfgoerelserValidationMessageByCell`.
-  const aslAfgoerelserRuleIssues = collectEetAslAfgoerelseValidationIssues(
+  // ASL-afgørelsesrækkernes indbyrdes (kryds-række) valideringsfejl. Kryds-række-reglerne bliver STRUKTURELLE
+  // feltissues med rigtige feltadresser i stedet for en parallel `${rowId}|${field}`-strengnøgle. Rød markering,
+  // tooltip, fokusnavigation og consumerblokering læser derfor samme repræsentation som alle andre røde felter
+  // (§1.8) – og cellen behøver ingen fri fejltekst-prop ved siden af sit eget issue.
+  const aslAfgoerelserRuleFieldIssues = buildAslAfgoerelseRuleFieldIssues(collectEetAslAfgoerelseValidationIssues(
     aslAfgoerelser,
     coerceToISODateString(skadedato.value),
     coerceToISODateString(skadelidteFodselsdato.value),
     skadestype.value,
+  ));
+  // Snapshottet får ALLE tabellens røde celler – feltfejl og regler – som hver sin linje med sin celle som mål,
+  // præcis som tabellen selv viser dem (BB-406). Før aftog det kun den første.
+  const aslAfgoerelserIssues = buildAslAfgoerelserSummaryIssues(
+    [...aslRowReads.flatMap(({ fieldIssues }) => fieldIssues), ...aslAfgoerelserRuleFieldIssues],
+    aslAfgoerelser,
   );
-  const aslAfgoerelserRuleMessage = aslAfgoerelserRuleIssues[0]?.message;
-  // Kryds-række-reglerne bliver STRUKTURELLE feltissues med rigtige feltadresser i stedet for en
-  // parallel `${rowId}|${field}`-strengnøgle. Rød markering, tooltip, fokusnavigation og consumerblokering
-  // læser derfor samme repræsentation som alle andre røde felter (§1.8) – og cellen behøver ingen fri
-  // fejltekst-prop ved siden af sit eget issue.
-  const aslAfgoerelserRuleFieldIssues = buildAslAfgoerelseRuleFieldIssues(aslAfgoerelserRuleIssues);
 
   const composedValues: ErhvervsevnetabComposedValues = {
     beregningsdato: beregningsdato.value,
@@ -348,12 +353,12 @@ export const buildErhvervsevnetabReaderProjection = (reader: InputReader): Erhve
       erhvervsevnetab: {
         beregningsdato: asFieldError(beregningsdato.errorMessage),
         ealEetPct: asFieldError(ealEetPct.errorMessage),
-        aslAfgoerelser: asFieldError(aslAfgoerelserFieldError ?? aslAfgoerelserRuleMessage),
       },
       faellesAarsloen: {
         aslAarsloen: asFieldError(aslAarsloen.errorMessage),
         ealAarsloen: asFieldError(ealAarsloen.errorMessage),
       },
+      aslAfgoerelser: aslAfgoerelserIssues,
     },
     forlig: {
       values: {

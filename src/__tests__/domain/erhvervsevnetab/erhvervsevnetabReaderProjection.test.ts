@@ -278,6 +278,30 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     expect(projection.snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
   });
 
+  it('viser ALLE røde celler i afgørelsestabellen på resultatfanerne, hver med række, kolonne og celle (BB-406)', () => {
+    const reader = buildReader(
+      {
+        ...validErhvervsevnetab,
+        aslAfgoerelser: [
+          { ...validErhvervsevnetab.aslAfgoerelser[0], eetPct: 101, kapPct: 105 },
+        ],
+      },
+      validFaellesAarsloen,
+      validStamdata
+    );
+    const projection = buildErhvervsevnetabReaderProjection(reader);
+    const rowId = validErhvervsevnetab.aslAfgoerelser[0]?.id ?? '';
+    for (const tab of [projection.snapshot.loebendeYdelser, projection.snapshot.kapitalisering, projection.snapshot.differencekrav]) {
+      const aslIssues = tab.issues.filter((issue) => issue.id === 'field-asl-afgoerelser');
+      expect(aslIssues.map((issue) => issue.focusTarget)).toEqual([
+        { kind: 'fieldAddress', address: aslAfgoerelseEetPctField.bind(rowId).address },
+        { kind: 'fieldAddress', address: aslAfgoerelseKapPctField.bind(rowId).address },
+      ]);
+      expect(aslIssues[0]?.message).toBe('Afgørelsen af 01-02-2026, EET %: Erhvervsevnetabet skal være mellem 5 og 100');
+      expect(aslIssues[1]?.message).toMatch(/^Afgørelsen af 01-02-2026, Kap\. %: /);
+    }
+  });
+
   it('fører ASL-årsløns-domænereglen (ikke delelig med 1.000) ind på faellesAarsloen.aslAarsloen (§1.10)', () => {
     const reader = buildReader(
       validErhvervsevnetab,

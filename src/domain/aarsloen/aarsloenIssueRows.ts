@@ -1,6 +1,6 @@
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { ConsumerIssue, FieldIssue } from '../../inputCore/inputIssue';
-import { quoteFieldLabel } from '../../inputCore/inputIssue';
+import { prefixFieldLabel } from '../../inputCore/inputIssue';
 import { STANDARD_LOEN_COLUMN_LABELS, type TableError } from '../../types/table';
 
 /**
@@ -46,20 +46,11 @@ const SECTION_BY_FIELD: Readonly<Record<string, string>> = {
 
 /**
  * Feltets navn står foran beskeden, fordi boksen læses uden feltet foran sig – som på EO's beregningsfane.
- *
- * Navngiver beskeden allerede feltet, udelades præfikset. Det gælder også feltnavnets kerne foran en forklarende
- * parentes: «Antal feriedage (mandag-fredag) i de indtastede perioder» står i beskeden som «Antal feriedage kan
- * højst være …», og præfikset gav før linjen «Antal feriedage (…) i de indtastede perioder: Antal feriedage …».
  * Beskeden skal selv navngive feltet, fordi downloadknappens tooltip citerer den ordret.
  */
 const formatFieldIssueMessage = (issue: FieldIssue | ConsumerIssue): string => {
   if (issue.kind === 'consumer' || issue.field === undefined) return issue.message;
-  const label = issue.field.descriptor.label;
-  const kerne = label.split(' (')[0]?.trim() ?? label;
-  const navngiverFeltet = issue.message.includes(quoteFieldLabel(label))
-    || issue.message.startsWith(label)
-    || (kerne !== label && issue.message.startsWith(`${kerne} `));
-  return navngiverFeltet ? issue.message : `${label}: ${issue.message}`;
+  return prefixFieldLabel(issue.field.descriptor.label, issue.message);
 };
 
 const CELL_ISSUE_TEXT: Readonly<Record<Extract<TableError, { kind: 'cell' }>['issue'], string>> = {

@@ -224,7 +224,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
   const renderEetLoebendeIssueRows = React.useCallback((rows: readonly EetIssueRow[]) => {
     return rows.map((row) => (
       <Box
-        key={row.id}
+        // Samme kilde-id kan bære flere årsager (fx én pr. rød celle i afgørelsestabellen, BB-407).
+        key={`${row.id}|${row.message}`}
         className="row--label-right-hover"
         sx={{
           '--label-width': '400px',

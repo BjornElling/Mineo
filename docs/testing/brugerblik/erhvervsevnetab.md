@@ -3284,3 +3284,86 @@ EAL-bilag viser det ureducerede krav med én linje om, at forliget anvendes på 
 `typecheck:test`, `typecheck:e2e`, `lint` og `check:mojibake` rene. Karakteriseringstestens EAL-hash er
 opdateret, og opdateringen er BEVIST frem for antaget: to nye assertions låser, at `ealKravOre` er
 uændret (1.388.687 kr.), og at det eneste nye i projektionen er forligsblokken.
+
+---
+
+## Fornyet gennemgang 2026-11-18 – 11a. EET oplysninger
+
+Fladen har fire bokse. «Grundlæggende oplysninger» har Beregningsdato, «Indsæt dags dato» og
+det betingede Køn. «Arbejdsskadesikringsloven» har henvisning til manglende eller ugyldig
+Skadedato, den delte ASL-årsløn og en sortérbar tabel med otte felter pr. afgørelse.
+«Erstatningsansvarsloven» har den delte EAL-årsløn, den særskilte EET-procent og forligets
+procent, brøk og valgfrie dato. «Bemærk» rummer tre faglige påmindelser.
+
+### BB-406 – Tre resultatfaner viser kun den første fejl i afgørelsestabellen
+
+- **Type:** Fornuft. **Prioritet:** Mellem. **Beslutning:** Gennemført 2026-11-18.
+- **Reproduktion:** Brug Skadedato 01-06-2018, Fødselsdato 01-01-1970, Beregningsdato 01-06-2022 og
+  ASL-årsløn 400.000 kr. Tilføj en endelig afgørelse med Afgørelsesdato og Kap.dato 01-06-2020 og
+  Virkningsdato 01-01-2020. Skriv 101 i «EET %» og 105 i «Kap. %». Begge celler er røde.
+- **Oplevelse:** «Fejl og advarsler» på Løbende ydelser, Kapitalisering og Differencekrav viser kun
+  «Erhvervsevnetabet skal være mellem 5 og 100» med henvisning til ASL-afsnittet. Rettes 101 til 25,
+  viser Kapitalisering nu «Procent skal være mellem 0 og 100». Brugeren kan rette den eneste
+  viste fejl, vende tilbage til resultatet og først da blive bedt om endnu en rettelse.
+- **Forslag:** Vis begge fejl på én gang. Navngiv rækken og kolonnen, og før hvert fejlpunkt til
+  den relevante celle. Saml gentagelser af samme problem, hvor alle berørte rækker stadig kan findes.
+- **Rækkevidde:** [M-50](TVAERGAAENDE.md#m-50--en-fejloversigt-udelader-andre-samtidige-årsager).
+  EET efter EAL holdt sin særskilt indtastede EET-procent på 30 % brugbar i prøven.
+- **Udfald:** Hver rød celle i afgørelsestabellen står nu som sin egen linje på de tre faner, fx «Afgørelsen af
+  01-06-2020, EET %: Erhvervsevnetabet skal være mellem 5 og 100» og «Afgørelsen af 01-06-2020, Kap. %: …».
+  Rækken navngives ved sin afgørelsesdato, ellers ved sin plads i tabellen («Afgørelse 2»). Linket fører til
+  netop den celle; før førte «Fejl og advarsler» på EET-fanerne aldrig til et issues egen celle. Samme celle giver
+  højst én linje. EET efter EAL viser linjerne, når den falder tilbage på ASL-procenten. Browsertest i
+  `e2e/eetIssueDeduplication.spec.ts`.
+
+### BB-407 – Importen af midlertidigt EET fortæller ikke, hvad der skal rettes
+
+- **Type:** Fornuft. **Prioritet:** Mellem. **Beslutning:** Gennemført 2026-11-18.
+- **Reproduktion:** Brug en opgørelse med TAF, en midlertidig afgørelse dateret 01-06-2026 og
+  «Midlertidigt EET indsættes fra Erhvervsevnetab-siden». Skriv 31-02-2026 i afgørelsens
+  «Virkningsdato» og 101 i «EET %». Prøven tog udgangspunkt i den fiktive sag
+  `e2e/fixtures/manuel-regulering-med-tillaeg.json`.
+- **Oplevelse:** Erstatningsopgørelse → Beregning viser «Midlertidigt EET kan ikke hentes fra
+  Erhvervsevnetab-siden: afgørelsen er ikke gyldigt udfyldt.» og ét link til «EET oplysninger».
+  Når datoen rettes til 01-06-2026, står samme tekst. Den forsvinder, når procenten også rettes
+  til 20. Brugeren får besked om konsekvensen, men kan ikke læse, hvilke indtastninger der
+  spærrer, eller se om den første rettelse hjalp.
+- **Beslægtede tilfælde i samme import:** ASL-årsløn på 9.000.000 kr. giver besked om en
+  ugyldig årsløn uden det konkrete loft. Fødselsdato 31-02-1980 giver besked om, at
+  Stamdata ikke kunne valideres, uden at fødselsdatoen eller kalenderfejlen nævnes.
+- **Forslag:** Bevar forklaringen om, at midlertidigt EET ikke kan hentes. Vis de konkrete årsager
+  samlet, fx «Virkningsdato: Datoen findes ikke i kalenderen» og «EET %: Erhvervsevnetabet skal
+  være mellem 5 og 100», med hver sin vej til cellen. Gengiv også feltets konkrete besked ved
+  fejl i ASL-årsløn og Stamdata.
+- **Rækkevidde:** [M-50](TVAERGAAENDE.md#m-50--en-fejloversigt-udelader-andre-samtidige-årsager).
+- **Udfald:** Følgen står fortsat først, og hver årsag har sin egen linje med vej til cellen, fx «Midlertidigt EET
+  kan ikke hentes fra Erhvervsevnetab-siden: afgørelsen af 01-06-2026, Virkningsdato: …» og en tilsvarende linje
+  for EET %. Rettes datoen, forsvinder dens linje, og kun procenten står tilbage. ASL-årslønnen gengiver feltets
+  egen besked med beløbsloftet, og Stamdata nævner feltet og årsagen. Importen og EET-fanerne bygger linjerne
+  med samme funktion, så de siger det samme om samme celle.
+
+### Efterprøvet uden nye fund
+
+- Beregningsdato: ugyldig kalenderdato, dagen før skadedatoen, lighed med skadedatoen,
+  år uden for satsdækningen og «Indsæt dags dato». Køn blev skjult ved skadedato efter 2015
+  og viste fortsat «Kvinde», da den gamle dato blev gendannet.
+- ASL-årsløn: skadesårsloft og indsætning med dansk tusind- og decimalformat, hårdt mellemrum
+  og «kr.». EAL-årsløn: særskilt beløb og samme beløb som ASL. EET-procenter: 0, 25/30 og
+  værdier over 100. Det tidligere afgjorte nulprincip i BB-143 blev genkendt.
+- Afgørelser: to tomme indtastningsrækker, datoer i omvendt rækkefølge, samme afgørelses- og
+  virkningsdato, virkningsdato efter beregningsdato, tidligere kapitaliseringsdato lig
+  afgørelsesdato og skift mellem de tre afgørelsestyper. Med 17 udfyldte rækker virkede
+  sortering, rækkesletning og Ctrl+Z. Ved 1244×620 var der ingen vandret scroll.
+- Escape bevarede senest afsluttede EET-procent. Delete, Ctrl+Z og Ctrl+Y ryddede, gendannede og
+  ryddede igen. Gem/Hent med en fiktiv sag gendannede 25 % efter en senere ændring til 35 %,
+  samt forligsbrøk, forligsdato og beregningsdato.
+- Forlig: procent og brøk samtidig markerede begge felter røde. EET efter EAL og Differencekrav
+  viste den konkrete forklaring. 15 eksisterende Chrome-tests bestod, bl.a. faneskift midt i
+  indtastning, genindlæsning, kønshenvisning, forlig og PDF/Word. De interaktive konsoller viste
+  ingen fejl.
+
+### Dækning
+
+Browserprøverne kørte lokalt i Chrome. Øvrige browsermotorer, særskilt gennemgang i mørkt tema,
+tabeller over 17 udfyldte afgørelser og alle kombinationer af felter og afgørelsestyper er ikke
+målt. Den tværgående undersøgelse pr. fund og dens dækningshuller står under M-50.
