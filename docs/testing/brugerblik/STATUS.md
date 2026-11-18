@@ -8,8 +8,9 @@
 - **Gennemgået 2026-11-17:** 8a. Renteberegning → Beregning. Ét nyt fund: BB-399 (Fornuft, Mellem), kolonnenavne mangler på oversigtens fortsættelsessider. Afvist af udvikleren 2026-11-17; M-48 lukket uden rettelse. Gem/Hent efter sortering, brevhovedets gate, PDF-indhold, 100 krav, datogrænser, autofill og genindlæsning med afvist input efterprøvet. Se `renteberegning.md` nederst.
 - **Gennemgået 2026-11-17:** 8b. Renteberegning → Satser. Ingen nye fund. Alle 44 referencesatser og to tillægssatser afstemt mod kilden; forklaringer, negative satser, faneskift og minimumsviewport i begge temaer kontrolleret. Se `renteberegning.md` nederst.
 - **Gennemgået 2026-11-17:** 9. Årslønsberegning. Tre nye fund: BB-400 (Edge case, Høj), nul/negative arbejdsdage giver hentbar nulårsløn; BB-401 (Fornuft, Mellem), et udfyldt rødt periodefelt meldes også som manglende; BB-402 (Fejl, Mellem), ukendte overenskomstsatser giver delvise tabelsummer. Alle tre er afgjort og gennemført 2026-11-17 (BB-400 godkendt af udvikleren, også for gemte sager; BB-402 genskaber BB-099). Procent/Beløb/Overenskomst, måned/uge/dato, fem PDF'er, autofill, Gem/Hent og begge temaer efterprøvet. Se `aarsloen.md` nederst.
-- **Næste flade:** 10. Forsørgertab.
-- **Næste fund-ID:** BB-403.
+- **Gennemgået 2026-11-18:** 10. Forsørgertab. Tre nye fund, alle gennemført 2026-11-18 (BB-403 afgjort af udvikleren, også for gemte sager). BB-403 (Fejl, Høj) trækker løbende ydelser fra for en periode før efterladtes fødsel. BB-404 (Edge case, Høj) spærrer et færdigt EAL-dokument efter et kønsvalg, også når feltet er skjult. BB-405 (Fornuft, Mellem) lader «Indsæt dags dato» gøre en gyldig beregning ugyldig. Gem/Hent, F5, beregningsgrænser, brevhoved, PDF og Word er efterprøvet. Se `forsoergertab.md` nederst.
+- **Næste flade:** 11a. Erhvervsevnetab → EET oplysninger.
+- **Næste fund-ID:** BB-406.
 
 Første gennemgangs status og historik nedenfor er bevaret uændret.
 

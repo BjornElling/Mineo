@@ -970,3 +970,133 @@ begreb, og begge formler var interne konsistente – derfor fangede ingen test d
 i at vælge den rigtige formel, men i at fjerne den ene**, så der kun er én kilde. Prøven for de
 resterende flader: når to steder i samme opgørelse regner det samme tal, spørg om det ene kan **afledes**
 af det andet frem for at blive genberegnet.
+
+## Fornyet gennemgang 2026-11-18
+
+- Flade 10, `/forsoergertab`, commit `069bca80`.
+- Chromium headless ved 1536×864 og 1181×620. Lyst og mørkt tema. Prøvesagerne er indtastet gennem brugerfladen.
+
+### Inventar og grænser
+
+| Element | Hvad brugeren møder |
+|---|---|
+| Beregningsdato | Tomt datofelt. Tidligst skadedatoen/anmeldelsesdatoen eller virkningsdatoen, alt efter hvilken der ligger sidst. Uden sagsdato starter intervallet 01-01-2005. Seneste dato var 31-12-2026. En rød beregningsdato stopper begge beregninger. |
+| «Indsæt dags dato» | Udfylder Beregningsdato med det samme. Tager højde for satsdækningens slutdato. Se BB-405 om feltets minimum. |
+| «Download specifikation» | PDF eller Word efter Indstillinger. Synlig hele tiden. Forklarer enten «Indtastning mangler», «Fejl i indtastning» eller en fejl i brevhovedets stamdata. |
+| Skadelidtes fødselsdato og sagens dato | Læses fra Stamdata. «Skadedato» bliver til «Anmeldelsesdato» ved erhvervssygdom. Mangler og feltfejl vises med vej til Stamdata. |
+| Skadelidtes køn | Tomt valg mellem Mand og Kvinde. Synligt ved en gyldig beregningsdato før 01-03-2015. Valget bevares ved datoskift. Se BB-404. |
+| Skadelidtes årsløn (efter ASL) | Tomt beløbsfelt, mindst 1.000 kr., deleligt med 1.000 og højst ASL-maksimum for sagens år. ASL påbegyndes, når værdien udfyldes. Værdien bruges også til EAL, hvis det felt er tomt. |
+| Virkningsdato | Tomt datofelt, fra sagens dato til beregningsdatoen, inden for satsdækningen. Kan gøre Beregningsdato rød og omvendt. |
+| Tilkendt for periode | Tomt heltalsfelt med højst to cifre og interval 1–10 år. Styrer sidste udbetalingsdag og den resterende periode. |
+| Efterladte ægtefælle/samlevers fødselsdato | Tomt datofelt med interval 01-01-1900 til i dag. Validering i beregningen kan afvise alderen ved tabelopslag. Se BB-403 om ydelsesperiodens datoer. |
+| Skadelidtes årsløn efter EAL (hvis forskellig fra ASL) | Tomt beløbsfelt. Repræsenterer 1.000–9.999.999 kr. ASL-maksimum kan udløse en gul oplysning. En rød EAL-årsløn blokerer EAL frem for at falde tilbage til ASL. Begge årslønninger deles med Erhvervsevnetab. |
+| Beregnet forsørgertab, EAL-krav og ASL-ydelser | Læseafsnit, der vises, når de respektive beregninger kan vises. ASL-tabellen periodiseres automatisk og har ingen rækkehandlinger. Sammentælling vises ved begge beregnede dele. |
+
+### BB-403 – En hel ASL-ydelsesperiode før efterladtes fødsel trækkes fra
+
+- **Type:** Fejl · **Prioritet:** Høj · **Rækkevidde:** Lokal · **Beslutning:** Afgjort og gennemført 2026-11-18,
+  også for gemte sager. Fødselsdatoen må senest være virkningsdatoen; samme dag er tilladt.
+- **Sådan fremprovokeres det:** Sæt Skadelidtes fødselsdato til `15-03-1975` og sagens dato til `10-06-2020`.
+  På Forsørgertab sættes Beregningsdato til `01-07-2025`, Skadelidtes årsløn (efter ASL) til `400.000`,
+  Virkningsdato til `10-06-2020`, Tilkendt for periode til `1` år og Efterladte ægtefælle/samlevers
+  fødselsdato til `01-01-2022`. Lad EAL-årsløn stå tom.
+- **Det sker:** Fødselsdatoen er uden rød markering. Hele ASL-perioden, 10-06-2020 til 09-06-2021,
+  ligger før den angivne fødselsdato. Mineo viser og fratrækker alligevel **121.251 kr.** i allerede
+  udbetalte ydelser. Forsørgertabserstatningen vises som **1.034.169 kr.** PDF’en kan hentes og
+  indeholder både fødselsdatoen, de to ydelsesrækker og fradraget.
+- **Det er uhensigtsmæssigt fordi:** En tastefejl i fødselsdatoen kan blive stående i en tilsyneladende
+  færdig specifikation, der viser udbetalinger før modtagerens fødsel. Med 10 år i stedet for ét opstår
+  der i prøven et aldersopslag, som gør en tilsvarende fødselsdato rød. Når hele ydelsen er opgjort som
+  udbetalt, kan tabelopslaget ikke fange datoen.
+- **Bedre ville være:** Markér efterladtes fødselsdato med en forklaring om, at den ligger efter
+  virkningsdatoen. Vis ingen ASL-sum eller samlet erstatning og spær specifikationen, indtil datoerne
+  er rettet. Samme behandling efter indlæsning af en gemt sag med kombinationen.
+- **Systematik:** Kontrollér datoernes rækkefølge, også når beregningen ikke behøver et aldersopslag.
+  Erhvervsevnetabs løbende ydelser er et spor for samme prøve med en ydelsesstart før skadelidtes
+  fødselsdato. Her er fødselsdatoen koblet til Stamdata, og en tilsvarende fejl er ikke verificeret.
+- **Evidens:** `year-before-birth.png` og `ydelse-foer-foedsel.pdf`.
+- **Udfald:** Feltet har nu virkningsdatoen som øvre grænse. En senere fødselsdato bliver rød med «Datoen er
+  efter virkningsdatoen (10-06-2020)». ASL-delen og den samlede erstatning vises ikke, og download spærres.
+  EAL-kravet vises stadig. En gemt sag indlæses uændret og får samme markering.
+
+### BB-404 – Et kønsvalg spærrer et færdigt EAL-dokument, også når valget skjules
+
+- **Type:** Edge case · **Prioritet:** Høj · **Rækkevidde:** Mønster M-32 og M-25 · **Beslutning:** Gennemført 2026-11-18.
+- **Sådan fremprovokeres det:** Sæt Skadelidtes fødselsdato til `15-03-1975` og Skadedato til
+  `10-06-2013`. På Forsørgertab sættes Beregningsdato til `28-02-2015` og EAL-årsløn til `450.000`.
+  Lad alle fire felter under ASL-ydelse stå tomme. Vælg herefter «Kvinde» under «Skadelidtes køn» og
+  flyt Beregningsdato til `01-03-2015`.
+- **Det sker:** Før kønsvalget kan EAL-specifikationen hentes. Valget gør knappen grå med
+  «Indtastning mangler», mens EAL-kravet stadig vises. Fra `01-03-2015` skjules kønsfeltet, men
+  knappen forbliver grå. Ved at gå tilbage til den tidligere beregningsdato og rydde kønsvalget kan
+  brugeren igen hente dokumentet.
+- **Det er uhensigtsmæssigt fordi:** Brugeren svarer på en synlig oplysning og mister muligheden for
+  at hente den allerede beregnede EAL-specifikation. Efter datoskiftet kan brugeren ikke se eller
+  rette det valg, der spærrer.
+- **Bedre ville være:** Lad de fire felter under «ASL-ydelse» afgøre, om ASL er påbegyndt. Vis og
+  kræv kun skadelidtes køn ved en påbegyndt ASL-ydelse med beregningsdato før 1. marts 2015. Bevar
+  markeringen af et manglende valg dér, hvor det kræves, og genvis et tidligere valg, når det igen
+  er relevant. En gemt EAL-sag med et tidligere kønsvalg skal kunne åbnes med værdien bevaret og
+  dokumentet tilgængeligt på samme vilkår som en ny EAL-sag.
+- **Systematik:** Se M-32. Næste konkrete kandidat er kønsvalget i Erhvervsevnetabs «EET oplysninger».
+  For en faktisk påbegyndt ASL-sag virker det eksisterende værn mod et ufuldstændigt dokument.
+- **Udfald:** Kun de fire felter under «ASL-ydelse» afgør, om ASL er påbegyndt. Skadelidtes køn vises og
+  kræves kun ved påbegyndt ASL-ydelse med beregningsdato før 1. marts 2015. Et tidligere valg bevares og
+  vises igen, når det bliver relevant. En EAL-sag kan hentes, uanset kønsvalg.
+
+### BB-405 – «Indsæt dags dato» kan gøre en gyldig beregning ugyldig
+
+- **Type:** Fornuft · **Prioritet:** Mellem · **Rækkevidde:** Mønster M-49 · **Beslutning:** Gennemført 2026-11-18.
+- **Sådan fremprovokeres det:** Brug prøvesagen fra BB-403 med efterladtes fødselsdato `20-08-1978`
+  og Tilkendt for periode `10` år. Den 18. november 2026 kunne begge datofelter udfyldes gyldigt med
+  `01-12-2026`. Vælg derefter «Indsæt dags dato».
+- **Det sker:** Knappen er aktiv og erstatter den gyldige Beregningsdato med `18-11-2026`. Både
+  Beregningsdato og Virkningsdato bliver røde, beregningen forsvinder, og download spærres.
+- **Det er uhensigtsmæssigt fordi:** Genvejen gør en færdig sag ugyldig med en dato, brugeren ikke selv
+  har tastet. Før klikket giver knappen ingen antydning af konflikten.
+- **Bedre ville være:** Gør knappen inaktiv, når dags dato ligger før den tidligst tilladte
+  beregningsdato. Forklar grænsen ved knappen, fx «Dags dato er før virkningsdatoen (01-12-2026)».
+  Den eksisterende Beregningsdato bliver stående.
+- **Systematik:** Samme greb som udviklerens afgørelse om satsdækningens slutdato i BB-068. Se M-49
+  for de øvrige flader med datoknappen. De er endnu ikke efterprøvet med en nedre grænse efter dags dato.
+- **Evidens:** `today-invalid.png`.
+- **Udfald:** Knappen er inaktiv, når dags dato ligger før virkningsdatoen eller skadedatoen/
+  anmeldelsesdatoen. Tooltippen siger fx «Dags dato er før virkningsdatoen (01-12-2026)». Den indtastede
+  Beregningsdato bliver stående. Varige mén og Erhvervsevnetab bruger nu samme regel for knappens øvre
+  grænse. Deres nedre grænse er ikke ændret.
+
+### Efterprøvet uden nye fund
+
+- Tom sag, kun EAL og en ASL-sag under indtastning viste hver deres forventede paneler og downloadtilstand.
+  En rød EAL-årsløn lod den gyldige ASL-del stå, men stoppede download. ASL- og EAL-årsløn genfandtes på Erhvervsevnetab.
+- Ved historisk ASL-beregning gav Mand og Kvinde tabel F og G den 28-02-2015. Den 01-03-2015
+  skiftede tabellen, og kønsfeltet forsvandt. Beregningsgrænserne 01-01-2005 og 31-12-2026 blev
+  accepteret i de målte sager. Med Beregningsdato før Skadedato forklarede Virkningsdato begge
+  grænser i det umulige interval.
+- Ens virknings- og beregningsdato gav én dags ydelse. Med ét tilkendt år fra 10-06-2020
+  stoppede tabellen 09-06-2021, også når beregningsdatoen blev flyttet til dagen efter.
+  Dagen før udløb stod der «0 år og 0 måneder» ved opslag i hele år og måneder. Ved udløb stod der «Ingen».
+  Ved nået folkepensionsalder viste prøven 0 kr. for den fremtidige del.
+- ASL-maksimum, delelighed, beløbsminimum, EAL-minimum og perioden 1–10 år blev prøvet.
+  Et dansk decimalbeløb i ASL-feltet blev afrundet til hele kroner uden BB-118's gamle faktor-ti-fejl.
+- En rød fødselsdato i Stamdata blev vist med fejltekst og vej tilbage. Siden bevarede en afvist
+  Beregningsdato efter sidenavigation. Uafsluttet ændring påvirkede ikke beregningen. Escape,
+  Ctrl+Z og Ctrl+Y bevarede eller genskabte de forventede værdier.
+- Gem og Hent i browserens filfallback genskabte felterne og nettokravet **82.741 kr.** efter
+  bekræftet erstatning af en ændret sag. F5 bevarede den afviste dato `31-02-2020`. Efter Hent
+  udløste en ændret, åben dato afgangsbeskyttelsen, mens Escape ophævede den igen (M-47).
+  Annullering af «Slet alt» bevarede sagen. Bekræftelse tømte felterne.
+- Skærmen, PDF og Word viste **82.741 kr.**, herunder **643.653 kr.** i løbende ydelser,
+  **429.026 kr.** i kapitalbeløb og **4 år og 11 måneder** som resterende periode. Ved erhvervssygdom
+  fulgte datoordene skadestypen med og uden brevhoved. PDF-brevhovedet viste prøvesagens journalnummer,
+  advokat- og sagsbehandlerinitialer. Alle tre PDF-sider blev visuelt kontrolleret. En 10-årig prøve
+  gav 11 rækker på samme ASL-side. Tabellen var læsbar i begge skærmtemaer ved 1181×620.
+- Ingen nye konsolfejl eller ukontrollerede sidefejl i browserprøverne.
+
+### Dækningshuller
+
+- Kun Chromium. Word er kontrolleret for indhold i selve den hentede fil, uden visuel åbning i Word.
+  Gem/Hent er målt med filfallback. Systemets egen mappevælger er ikke prøvet.
+- Prøverne brugte en ny, syntetisk sag og dens egen genindlæste `.eo`-fil. De omfattede udvalgte
+  år og grænser, herunder ældre og nyere tabeller. Ingen fuld afstemning af kapitalfaktorer eller satser.
+- Lokale prøvescripts, screenshots og dokumenter ligger i den ignorerede mappe `test-results/brugerblik-10/`.

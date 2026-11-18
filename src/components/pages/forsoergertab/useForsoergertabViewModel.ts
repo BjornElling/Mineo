@@ -30,8 +30,8 @@ import { useInputEvaluation } from '../../../inputCore/react/useInputEvaluation'
 import { useFieldEditor } from '../../../inputCore/react/useFieldEditor';
 import type { EditorLocation } from '../../../inputCore/editor/fieldEditorState';
 import { dateRanges_forsoergertab } from '../../../config/dateRanges';
-import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { resolveInsertTodayDisabledReason } from '../../../utils/insertTodayDate';
 
 /**
  * Forsørgertabs ene kanoniske viewmodel (`page-component-contract.md` §4.4).
@@ -172,14 +172,22 @@ export function useForsoergertabViewModel() {
     [beregningsdatoController]
   );
 
-  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
-  // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (forsørgertab-
-  // satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
-  const beregningsdatoMax = dateRanges_forsoergertab.beregningsdato.max;
+  // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068/BB-405): ligger dags
+  // dato efter satsdækningens slutdato ELLER før beregningsdatoens nedre grænse (virkningsdatoen eller
+  // skadedatoen), er knappen inaktiv med årsagen i tooltippen, og den indtastede dato bliver stående.
+  // Kun brugbare (ikke-røde) datoer hæver grænsen – samme læsning som feltets egen `narrowMin`.
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
-  const insertTodayDisabledReason = todayIso > beregningsdatoMax
-    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
-    : undefined;
+  const virkningsdatoRead = evaluation.reader.read(virkningsdatoRef);
+  const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
+    today: todayIso,
+    max: dateRanges_forsoergertab.beregningsdato.max,
+    lowerBounds: [
+      virkningsdatoRead.status === 'usable' && virkningsdatoRead.value !== undefined
+        ? { date: virkningsdatoRead.value, labelBestemt: 'virkningsdatoen' }
+        : undefined,
+      skadedato === undefined ? undefined : { date: skadedato, labelBestemt: datoReference.labelLower },
+    ],
+  });
 
   return {
     fields: FIELDS,

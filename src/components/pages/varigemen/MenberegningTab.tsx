@@ -18,6 +18,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatKr } from '../../../utils/formatUtils';
 import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { calculateUtcAgeInWholeYears, getTodayLocalISO } from '../../../utils/dateUtils';
+import { resolveInsertTodayDisabledReason } from '../../../utils/insertTodayDate';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { resolveVarigeMenWarning } from '../../../domain/varigemen/varigeMenPolicy';
@@ -135,11 +136,11 @@ const MenberegningTab = React.memo(() => {
 
   // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (BB-068): er dags dato uden for
   // beregningsdatoens øvre grænse (satsdatasættets sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
-  const beregningsdatoMax = dateRanges_varigemen.beregningsdato.max;
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
-  const insertTodayDisabledReason = todayIso > beregningsdatoMax
-    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
-    : undefined;
+  const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
+    today: todayIso,
+    max: dateRanges_varigemen.beregningsdato.max,
+  });
 
   /**
    * Naviger til Stamdata OG markér det felt, der mangler.

@@ -34,8 +34,8 @@ import {
 import { APP_ROUTES } from '../../../config/pageNavigation';
 import { stamdataSkadedatoField } from '../../../inputCore/catalog/stamdataDescriptors';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
-import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { resolveInsertTodayDisabledReason } from '../../../utils/insertTodayDate';
 import {
   resolveEetAslAarsloenMaxWarning,
   resolveEetUnder15Warning,
@@ -89,11 +89,11 @@ const EetOplysningerTab = ({ projection }: EetOplysningerTabProps) => {
   // "Indsæt dags dato" må ikke kunne producere en værdi, feltet selv afviser (samme fejlklasse som
   // Varige méns BB-068): er dags dato uden for beregningsdatoens øvre grænse (EET-satsdatasættets
   // sidste dækkede år), er knappen inaktiv med årsagen i tooltippen.
-  const beregningsdatoMax = dateRanges_erhvervsevnetab.beregningsdato.max;
   const todayIso = React.useMemo(() => getTodayLocalISO(), []);
-  const insertTodayDisabledReason = todayIso > beregningsdatoMax
-    ? `Der kan kun foretages beregninger frem til ${formatIsoDateLong(beregningsdatoMax)}`
-    : undefined;
+  const insertTodayDisabledReason = resolveInsertTodayDisabledReason({
+    today: todayIso,
+    max: dateRanges_erhvervsevnetab.beregningsdato.max,
+  });
 
   const visKoenFelt = React.useMemo(() => {
     const hasKapDatoFoer2015 = values.aslAfgoerelser.some(

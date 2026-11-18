@@ -22,11 +22,11 @@ Persisted data fra `erhvervsevnetab` bruges ikke.
 
 | Felt | Type | Betydning |
 |---|---|---|
-| `efterladteFodselsdato` | `ISODateString` | Den efterladte ægtefælle/samlevers fødselsdato |
+| `efterladteFodselsdato` | `ISODateString` | Den efterladte ægtefælle/samlevers fødselsdato. Senest virkningsdatoen (samme dag tilladt), jf. BB-403 |
 | `beregningsdato` | `ISODateString` | Omsætningstidspunktet |
 | `virkningsdato` | `ISODateString` | Startdato for de løbende ASL-ydelser |
 | `tilkendtForPeriodeAar` | `number` | Tilkendt periode i hele år, 1-10 |
-| `koen` | `Koen` \| `undefined` | Køn for den efterladte ægtefælle/samlever. Påkrævet når beregningsdato er før 2015-03-01 |
+| `koen` | `Koen` \| `undefined` | Skadelidtes køn (udviklerens afgørelse 2026-08-27, BB-134). Vises og kræves kun ved påbegyndt ASL-ydelse med beregningsdato før 2015-03-01. Tæller ikke selv som påbegyndt ASL-ydelse (BB-404) |
 
 ### `faellesAarsloen`
 
@@ -54,6 +54,7 @@ Disse forhold er blokerende fejl og skal forhindre download af specifikation:
 - EAL-årsløn kan ikke fastlægges
 - ASL-årsløn kan ikke fastlægges
 - `beregningsdato < virkningsdato`
+- `efterladteFodselsdato > virkningsdato` (feltet markeres rødt; EAL-delen vises fortsat)
 - Årslønsmaksimum mangler for skadesåret, beregningsåret eller et mellemliggende år i ydelsesperioden
 - Kapitaliseringstabeldata mangler for den relevante bekendtgørelse
 - Der kan ikke findes relevant kapitaliseringsbekendtgørelse

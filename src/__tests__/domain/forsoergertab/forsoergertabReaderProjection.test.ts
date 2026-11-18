@@ -6,6 +6,7 @@ import { createInputEvaluation } from '../../../inputCore/inputReader';
 import { createEvaluationSourceToken, createInputRevision, createSettingsRevision } from '../../../inputCore/evaluationSource';
 import { toISODateString } from '../../../types/branded';
 import { faellesAarsloenAslAarsloenField } from '../../../inputCore/catalog/faellesAarsloenDescriptors';
+import { forsoergertabEfterladteFodselsdatoField } from '../../../inputCore/catalog/forsoergertabDescriptors';
 import type {
   FaellesAarsloenValues,
   ForsoergertabValues,
@@ -98,6 +99,65 @@ describe('buildForsoergertabReaderProjection', () => {
     expect(projection.snapshot.canShowEal).toBe(true);
     expect(projection.snapshot.canShowAsl).toBe(false);
     expect(projection.snapshot.pdfGate.canDownload).toBe(false);
+  });
+
+  /**
+   * BB-403: en ASL-periode, der ligger helt før efterladtes fødsel, blev trukket fra, fordi motorens
+   * aldersopslag ikke kører, når hele perioden er udbetalt. Grænsen ligger nu på feltet selv.
+   */
+  describe('efterladtes fødselsdato efter virkningsdatoen (BB-403)', () => {
+    const bb403Stamdata: StamdataValues = {
+      ...validStamdata,
+      skadedato: toISODateString('2020-06-10'),
+      skadelidteFodselsdato: toISODateString('1975-03-15'),
+    };
+    const bb403 = (efterladteFodselsdato: string) => buildForsoergertabReaderProjection(buildReader(
+      {
+        beregningsdato: toISODateString('2025-07-01'),
+        virkningsdato: toISODateString('2020-06-10'),
+        efterladteFodselsdato: toISODateString(efterladteFodselsdato),
+        koen: undefined,
+        tilkendtForPeriodeAar: 1,
+      },
+      { aslAarsloen: asAmount(400000), ealAarsloen: undefined },
+      bb403Stamdata,
+    ));
+
+    it('markerer fødselsdatoen, skjuler ASL-delen og spærrer download', () => {
+      const { snapshot } = bb403('2022-01-01');
+      expect(snapshot.canShowAsl).toBe(false);
+      expect(snapshot.canShowResult).toBe(false);
+      expect(snapshot.calculation.aslComputation).toBeNull();
+      expect(snapshot.pdfGate.canDownload).toBe(false);
+      expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+        code: 'forsoergertab:blocking-input-error', kind: 'invalid-input',
+      }));
+    });
+
+    it('navngiver virkningsdatoen som grænse i feltets besked', () => {
+      const catalogReader = buildReader(
+        {
+          beregningsdato: toISODateString('2025-07-01'),
+          virkningsdato: toISODateString('2020-06-10'),
+          efterladteFodselsdato: toISODateString('2022-01-01'),
+          koen: undefined,
+          tilkendtForPeriodeAar: 1,
+        },
+        { aslAarsloen: asAmount(400000), ealAarsloen: undefined },
+        bb403Stamdata,
+      );
+      const read = catalogReader.read(forsoergertabEfterladteFodselsdatoField.bind());
+      expect(read.status).toBe('error');
+      if (read.status === 'error') {
+        expect(read.issue.message).toBe('Datoen er efter virkningsdatoen (10-06-2020)');
+      }
+    });
+
+    it('tillader en fødselsdato på selve virkningsdatoen', () => {
+      const { snapshot } = bb403('2020-06-10');
+      expect(snapshot.canShowAsl).toBe(true);
+      expect(snapshot.pdfGate.canDownload).toBe(true);
+    });
   });
 
   it('en byttet stamdata-datoorden giver en rød feltfejl og blokerer download (§1.6)', () => {

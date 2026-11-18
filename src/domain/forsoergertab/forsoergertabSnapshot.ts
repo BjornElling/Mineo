@@ -270,9 +270,27 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     }
   })();
 
+  /**
+   * ASL-ydelsen er påbegyndt, når mindst ét af de fire felter under «ASL-ydelse» er udfyldt (BB-404).
+   *
+   * Kønnet tæller bevidst IKKE med. Det stod før på listen, og et kønsvalg i en ren EAL-sag gjorde derfor
+   * ASL «påbegyndt-men-ufuldstændig»: downloaden blev spærret med «Indtastning mangler», selv om EAL-kravet
+   * var færdigt – og blev ved med at være det, efter at en beregningsdato fra 1. marts 2015 havde skjult
+   * feltet, så brugeren hverken kunne se eller rette det, der spærrede. Kønnet er et opslag i ASL-
+   * kapitaliseringen, ikke en del af ydelsen selv; det kræves først, når ydelsen er påbegyndt.
+   */
+  const hasAnyAslInput = Boolean(
+    faellesAarsloen.aslAarsloen ||
+    values.virkningsdato ||
+    values.tilkendtForPeriodeAar !== undefined ||
+    values.efterladteFodselsdato
+  );
+
+  // Kønnet vises og kræves kun, hvor ASL-kapitaliseringen bruger det: en påbegyndt ASL-ydelse med
+  // beregningsdato før 1. marts 2015 (BB-404). Et tidligere valg bevares og vises igen, når det bliver relevant.
   const visKoenValg = (() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
-    return beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
+    return hasAnyAslInput && beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
   })();
 
   const hasEalAarsloenAslMaxIssue = hasIssue(calculation.issues, EAL_AARSLOEN_ASL_MAX_ISSUE_IDS);
@@ -301,7 +319,9 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       'forsoergertab-faktor-unresolved',
     ]),
     virkningsdato: getIssueMessage(calculation.issues, ['beregningsdato-before-virkningsdato']),
-    koen: getIssueMessage(calculation.issues, ['missing-koen']),
+    // Uden påbegyndt ASL-ydelse er et manglende køn ikke en mangel (BB-404); ellers ville feltet vises
+    // igen af `koenFieldHasError` i en ren EAL-sag.
+    koen: hasAnyAslInput ? getIssueMessage(calculation.issues, ['missing-koen']) : undefined,
     tilkendtForPeriodeAar: getIssueMessage(calculation.issues, ['tilkendt-for-periode-invalid']),
     aslAarsloen: getIssueMessage(calculation.issues, ['asl-aarsloen-zero', 'asl-aarsloen-over-max']),
     ealAarsloen: ealAarsloenHelperIssue,
@@ -429,13 +449,6 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   ]);
   const hasDownloadBlockingFieldError =
     hasDescriptorFieldError || hasSharedDateOrderError || hasDomainInputError;
-  const hasAnyAslInput = Boolean(
-    faellesAarsloen.aslAarsloen ||
-    values.virkningsdato ||
-    values.tilkendtForPeriodeAar !== undefined ||
-    values.efterladteFodselsdato ||
-    values.koen
-  );
   const hasAnyEalInput = Boolean(faellesAarsloen.ealAarsloen);
   const hasCompleteAslInput = Boolean(
     faellesAarsloen.aslAarsloen &&

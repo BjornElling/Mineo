@@ -1,5 +1,36 @@
 // @vitest-environment jsdom
-import { insertTodayDate } from '../../utils/insertTodayDate';
+import { insertTodayDate, resolveInsertTodayDisabledReason } from '../../utils/insertTodayDate';
+import { toISODateString } from '../../types/branded';
+
+// ─── resolveInsertTodayDisabledReason ─────────────────────────────────────────
+
+describe('resolveInsertTodayDisabledReason', () => {
+  const today = toISODateString('2026-11-18');
+  const max = toISODateString('2026-12-31');
+
+  it('er aktiv, når dags dato ligger inden for feltets interval', () => {
+    expect(resolveInsertTodayDisabledReason({
+      today, max, lowerBounds: [{ date: toISODateString('2026-11-18'), labelBestemt: 'virkningsdatoen' }],
+    })).toBeUndefined();
+  });
+
+  it('navngiver satsdækningens slutdato, når dags dato er efter den (BB-068)', () => {
+    expect(resolveInsertTodayDisabledReason({ today, max: toISODateString('2025-12-31') }))
+      .toBe('Der kan kun foretages beregninger frem til 31. december 2025');
+  });
+
+  it('navngiver den første nedre grænse, dags dato er før (BB-405)', () => {
+    expect(resolveInsertTodayDisabledReason({
+      today,
+      max,
+      lowerBounds: [
+        undefined,
+        { date: toISODateString('2026-12-01'), labelBestemt: 'virkningsdatoen' },
+        { date: toISODateString('2026-12-15'), labelBestemt: 'skadedatoen' },
+      ],
+    })).toBe('Dags dato er før virkningsdatoen (01-12-2026)');
+  });
+});
 
 // ─── insertTodayDate ──────────────────────────────────────────────────────────
 

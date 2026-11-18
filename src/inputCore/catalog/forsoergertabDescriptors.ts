@@ -68,13 +68,32 @@ const dateField = (
  */
 const VIRKNINGSDATO_LABEL = 'Virkningsdato';
 
-// Efterladtes fødselsdato: statisk 1900-01-01 .. i dag (dateRanges_forsoergertab.efterladteFodselsdato).
+// Efterladtes fødselsdato: 1900-01-01 .. min(i dag, virkningsdato).
 export const forsoergertabEfterladteFodselsdatoField = dateField(
   'efterladteFodselsdato', 'Efterladte ægtefælle/samlevers fødselsdato',
   dateBounds({
     min: () => dateRanges_forsoergertab.efterladteFodselsdato.min,
     max: () => dateRanges_forsoergertab.efterladteFodselsdato.max,
-    // Begge grænser er konstanter fra konfigurationen; intervallet kan ikke blive umuligt.
+    /**
+     * Den efterladte skal være født senest på virkningsdatoen (BB-403, udviklerens afgørelse 2026-11-18,
+     * også for gemte sager; samme dag er tilladt som Stamdatas fødselsdato/skadedato-regel).
+     *
+     * Uden grænsen kunne hele ASL-perioden ligge før modtagerens fødsel og alligevel trækkes fra som
+     * udbetalte ydelser. Motorens aldersopslag fanger det ikke, når hele perioden er udbetalt eller
+     * folkepensionsalderen er nået – så slås der ingen kapitalfaktor op.
+     */
+    narrowMax: (context) => context.view.readCanonical(forsoergertabVirkningsdatoField.bind()),
+    special: (context) => {
+      const virkningsdato = context.view.readCanonical(forsoergertabVirkningsdatoField.bind());
+      return virkningsdato !== undefined && virkningsdato < dateRanges_forsoergertab.efterladteFodselsdato.max
+        ? {
+          maxBoundKind: 'efterFelt' as const,
+          maxBoundFieldLabel: `${VIRKNINGSDATO_LABEL.toLowerCase()}en`,
+          maxBoundReferenceISO: virkningsdato,
+        }
+        : undefined;
+    },
+    // Virkningsdatoen ligger altid efter 1900-01-01, så skærpelsen kan ikke gøre intervallet umuligt.
     origin: STATIC_DATE_BOUNDS,
   }),
 );

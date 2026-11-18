@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
-**Senest verificeret mod kode:** 2026-09-04
+**Senest verificeret mod kode:** 2026-11-18
 
 ---
 
@@ -51,7 +51,9 @@ Runtimefejl skal routes efter `error-contract.md` og give dansk blokerende bruge
 Dokumentgaten følger disse regler:
 
 1. Er både ASL- og EAL-området uden ydelsesinput, blokeres som `missing-input`.
-2. Er ASL-området påbegyndt, kræves alle dets relevante felter, herunder betinget køn.
+2. ASL-området er påbegyndt, når ASL-årsløn, virkningsdato, tilkendt periode eller efterladtes fødselsdato
+   er udfyldt. Er det påbegyndt, kræves alle dets relevante felter, herunder betinget køn. Kønnet tæller ikke
+   selv som påbegyndt ASL-område og vises kun, når det kræves (BB-404).
 3. En konkret felt-/domæneregel-fejl hvor som helst på siden blokerer hele dokumentet som ugyldigt input, også
    hvis den anden ydelsesdel isoleret kan beregnes.
 4. Beregningsdato, skadedato og skadelidtes fødselsdato er fælles nødvendige input; tomhed er `missing-input`,

@@ -1,5 +1,11 @@
 # Brugerblik – tværgående mønstre
 
+**Fornyet gennemgang 2026-11-18, Forsørgertab:** M-32 og M-25 mødes i BB-404, hvor et skjult kønsvalg
+får et færdigt EAL-krav til at se ud som en ufuldstændig ASL-sag. BB-405 udvider BB-068's datoprøve
+til feltets nedre grænse (M-49). BB-403 er lokalt bekræftet: en periodiseret ydelse kan ligge helt før
+modtagerens fødsel, når kapitalfaktoren ikke skal beregnes. Alle tre er gennemført 2026-11-18. Se
+`forsoergertab.md` nederst.
+
 **Fornyet gennemgang 2026-11-17, Årslønsberegning:** Tre nye forekomster af kendte mønstre,
 ingen ny mønsterklasse. **M-24:** ferieantal inden for det gamle maksimum kan sammen med SH-dage
 efterlade nul/negative arbejdsdage og en hentbar nulårsløn (BB-400, Høj). Årslønnens metoder A/B/C
@@ -2764,6 +2770,14 @@ fortsat, hvor to flader faktisk besvarer samme spørgsmål.
 
 ## M-32 – Et skjult felt er ikke udfyldt – men kun nogle af dets læsere ved det
 
+**Efterprøvet igen 2026-11-18:** BB-404 korrigerer Forsørgertab-delen af status fra 2026-10-30.
+Når «Skadelidtes køn» skjules fra 1. marts 2015, ser ASL-beregningen bort fra valget, mens
+downloadknappen stadig bruger det til at afgøre, om ASL er påbegyndt. Det spærrer et dokument
+med et færdigt EAL-krav, selv om ASL-felterne er tomme. Næste kandidat er Erhvervsevnetabs
+«EET oplysninger», hvor køn også vises betinget. Undersøg både download og beregning, når et
+tidligere valg skjules ved at flytte eller fjerne en kapitaliseringsdato. **Rettet 2026-11-18** for
+Forsørgertab: kun de fire ASL-felter afgør, om ASL er påbegyndt, og kønnet vises kun, når det kræves.
+
 **Status 2026-10-30:** Kandidaterne Erhvervsevnetab, Forsørgertab og Årsløn er efterprøvet uden fund. Årsløn har allerede
 `relevance` på sine descriptorer og neutraliserer satserne i Beløb-tilstand; på Erhvervsevnetab og Forsørgertab skjules
 kun «Køn», og kun når beregningen ikke bruger det (det vises igen ved fejl). Afgørelsestabellernes irrelevante celler
@@ -3534,3 +3548,19 @@ sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synl
   tabel. Bevar beløb, rækkefølge og sammentælling.
 - **Afvist 2026-11-17:** Udvikleren er ikke tilhænger af gentagne kolonneoverskrifter på hver ny side.
   Mønstret lukkes uden rettelse; kandidaterne forfølges ikke og skal ikke genforelægges.
+
+## M-49 – En datoknap indsætter en dato, som feltet afviser
+
+- **Øvre grænse:** BB-068 viste risikoen, når satsdækningen stopper før dags dato. Varige mén,
+  Forsørgertab og Erhvervsevnetab har nu en kontrol af den øvre grænse.
+- **Nedre grænse:** BB-405 viser samme problem fra den anden side. På Forsørgertab kan en
+  fremtidig virkningsdato være gyldig. «Indsæt dags dato» gør herefter begge felter røde og
+  fjerner beregningen.
+- **Kandidater:** Erhvervsevnetab og Varige mén har tilsvarende knapkontroller af maksimum. Deres
+  anvendelige minimum skal efterprøves med de datoer, brugeren faktisk kan indtaste der. EO og
+  Renteberegning bruger også datoknappen og har egne grænser.
+- **Forslag:** Afprøv dags dato mod hele feltets aktuelle datointerval. Hvis datoen ligger udenfor,
+  forklar den bindende grænse ved knappen og bevar den indtastede dato.
+- **Rettet 2026-11-18 på Forsørgertab:** `resolveInsertTodayDisabledReason` afprøver nu både øvre og nedre
+  grænse. Varige mén og Erhvervsevnetab bruger samme helper, foreløbig kun med den øvre grænse.
+  Kandidaterne ovenfor står stadig åbne.

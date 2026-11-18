@@ -236,6 +236,55 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
   });
 
+  /**
+   * BB-404: et kønsvalg er ikke en påbegyndt ASL-ydelse. Før spærrede valget et færdigt EAL-dokument med
+   * «Indtastning mangler» – også efter at en beregningsdato fra 1. marts 2015 havde skjult feltet.
+   */
+  describe('kønsvalg uden påbegyndt ASL-ydelse (BB-404)', () => {
+    const ealOnly = (beregningsdato: string) => computeForsoergertabSnapshot({
+      values: createValues({
+        beregningsdato: toISODateString(beregningsdato),
+        efterladteFodselsdato: undefined,
+        virkningsdato: undefined,
+        koen: 'Kvinde',
+        tilkendtForPeriodeAar: undefined,
+      }),
+      faellesAarsloen: createFaellesAarsloen({ aslAarsloen: undefined }),
+      stamdata: createStamdata({ skadedato: toISODateString('2013-06-10'), skadelidteFodselsdato: toISODateString('1975-03-15') }),
+      fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+    });
+
+    it.each(['2015-02-28', '2015-03-01'])('lader EAL-dokumentet hente ved beregningsdato %s', (beregningsdato) => {
+      const snapshot = ealOnly(beregningsdato);
+      expect(snapshot.canShowEal).toBe(true);
+      expect(snapshot.pdfGate.canDownload).toBe(true);
+    });
+
+    it('viser og kræver ikke kønnet, før ASL-ydelsen er påbegyndt', () => {
+      const snapshot = ealOnly('2015-02-28');
+      expect(snapshot.visKoenValg).toBe(false);
+      expect(snapshot.koenFieldHasError).toBe(false);
+      expect(snapshot.pdfProjection.grundlaeggende.visKoenValg).toBe(false);
+    });
+
+    it('viser og kræver kønnet ved påbegyndt ASL-ydelse før 1. marts 2015', () => {
+      const snapshot = computeForsoergertabSnapshot({
+        values: createValues({
+          beregningsdato: toISODateString('2015-02-28'),
+          virkningsdato: toISODateString('2014-01-01'),
+          koen: undefined,
+        }),
+        faellesAarsloen: createFaellesAarsloen({ ealAarsloen: undefined }),
+        stamdata: createStamdata({ skadedato: toISODateString('2013-06-10'), skadelidteFodselsdato: toISODateString('1975-03-15') }),
+        fieldErrors: { forsoergertab: {}, faellesAarsloen: {}, stamdata: {} },
+      });
+      expect(snapshot.visKoenValg).toBe(true);
+      expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+        code: 'forsoergertab:partial-asl-input', kind: 'missing-input',
+      }));
+    });
+  });
+
   it('lader feltfejl overstyre domænehelpertekst i snapshot-projektionen', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues(),
