@@ -72,6 +72,8 @@ Skillen aktiveres kun, når udvikleren beder om det (`/brugerblik <flade>` eller
 tæt nok til, at hvert enkelt felt, hver knap, hver tilstand og hver overgang faktisk er tænkt
 igennem. Bliver en flade for stor, deles den i afgrænsede afsnit, og STATUS.md fører de enkelte
 afsnit hver for sig.
+For hvert fund omfatter invokationen også en målrettet gennemgang af resten af programmet for
+beslægtede fejl efter trin 5.
 
 **Kør autonomt indtil fladen er færdig.** Undervejs stilles ingen spørgsmål til udvikleren; alle
 tvivlsspørgsmål registreres som fund eller som åbne spørgsmål i rapporten. Først når fladen er
@@ -168,15 +170,20 @@ blive gættet.
 
 ### Trin 5 – Systematik-tjek
 
-For **hvert** fund: spørg, om det er en enkeltstående uheldig detalje eller ét udslag af et mønster.
+Gennemgå resten af programmet for beslægtede fejl for **hvert** fund, også når fundet umiddelbart
+ser lokalt ud. Formulér både fejltypen og den oplevede konsekvens uafhængigt af fladen, fx
+«brugerens indtastning forsvinder uden besked, når en forudsætning ændres».
 
-Formuler mønsteret som en sætning uden reference til den konkrete flade («en afhængig værdi ryddes
-uden besked, når forudsætningen ændres»), og søg derefter i koden efter andre steder, hvor samme
-sætning kunne være sand. Brug `rg` på mekanismen, ikke på ordlyden. Skriv de konkrete kandidatsteder
-ned – også dem, der ikke er verificeret; en uverificeret kandidat er et spor for en senere flade,
-ikke et fund.
+Brug fladelisten og inventaret i koden til at afgøre, hvor fejlen eller en variant kan opstå.
+Søg efter delte og parallelle mekanismer og efter samme brugerproblem med en anden årsag, fx tab
+af indtastning ved sideskift, genindlæsning eller ændring af et andet valg. Efterprøv relevante
+kandidater i browseren i samme kørsel. Notér pr. fund, hvilke flader og funktioner der er undersøgt,
+hvilke kandidater der bestod, og hvad der eventuelt ikke kunne efterprøves og hvorfor.
 
-Rammer mønsteret bredt, får det en post i `TVAERGAAENDE.md`, og de enkelte fund henviser dertil.
+Registrér bekræftede varianter med reproduktion og knyt dem til fundet i fladerapporten og til
+mønsteret i `TVAERGAAENDE.md`, når det går igen. Giv en selvstændig variant sit eget fund-ID,
+og gentag tjekket for den, hvis den afdækker en ny fejltype eller beslægtet adfærd, der endnu ikke
+er undersøgt. Målrettede prøver tæller ikke som en fuld gennemgang af de øvrige flader.
 
 ### Trin 6 – Skriv ned
 
@@ -259,7 +266,7 @@ Når fladen er skrevet ned, gives én samlet tilbagemelding til udvikleren med:
 1. hvor mange fund, fordelt på type og prioritet;
 2. de fund, der kræver udviklerens beslutning – hver formuleret som en konkret brugeroplevelse med et
    konkret forslag, uden interne begreber (`AGENTS.md` §Mandat: UI/UX og beregning er udviklerens);
-3. de systematiske mønstre, fladen afdækkede, og hvor de forventes at gå igen;
+3. hvor beslægtede fejl blev undersøgt og bekræftet, samt eventuelle dækningshuller;
 4. hvilken flade der står som den næste.
 
 Herefter stopper skillen, medmindre udvikleren udtrykkeligt har bedt om flere flader eller hele programmet. Ellers startes næste kørsel med `/brugerblik fortsæt`.
