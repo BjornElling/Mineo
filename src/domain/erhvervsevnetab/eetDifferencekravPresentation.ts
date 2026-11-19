@@ -92,7 +92,7 @@ export const resolveMerErstatningPensionsalderBilagDisabledReason = (
   harKapitaliseringer: boolean
 ): string | null => {
   if (!indregnMerErstatning) return `${FORHOEJET_PENSIONSALDER_LABEL} er fravalgt nedenfor`;
-  if (!harKapitaliseringer) return 'Der er ingen kapitalisering at forhøje';
+  if (!harKapitaliseringer) return 'Ingen kapitalisering på eller før beregningsdatoen';
   if (!harMerErstatning) return 'Pensionsalderen er ikke forhøjet i perioden';
   return null;
 };

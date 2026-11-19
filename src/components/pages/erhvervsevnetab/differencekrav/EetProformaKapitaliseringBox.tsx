@@ -22,7 +22,7 @@ import {
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import {
-  KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
+  SAERFAKTOR_ANVENDES_LABEL,
   SAERFAKTOR_UNDER_TO_AAR_LABEL,
 } from '../../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 
@@ -60,7 +60,8 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
       <Typography className="row--text">
         {buildKapitaliseringGrundydelseLabel(
           formatKapPct(pk.loebendeEetPct),
-          pk.amBidragPct
+          pk.amBidragPct,
+          'rest-eet'
         )}
       </Typography>
       <Box className="row--label-right-hover__content">
@@ -142,7 +143,7 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
 
     <Box className="row--label-right-hover">
       {/* Delte etiketter: `≤` er reglens faktiske operator og skal stå ens overalt (BB-172). */}
-      <Typography className="row--text">{KAPITALISERET_PGA_UNDER_TO_AAR_LABEL}</Typography>
+      <Typography className="row--text">{SAERFAKTOR_ANVENDES_LABEL}</Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatJaNej(pk.kapitaliseretPgaUnderToAarTilFp)}</Typography>
       </Box>
@@ -210,7 +211,7 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
 
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) =`}
+        {`Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) (oprundet) =`}
       </Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text text-bold">{formatKr(toKroner(pk.proformaBeloebOre))}</Typography>

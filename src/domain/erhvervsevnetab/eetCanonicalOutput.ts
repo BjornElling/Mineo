@@ -76,12 +76,16 @@ export type EetEalComputation = z.infer<typeof eetEalComputationSchema>;
 export const eetKapitaliseringAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
+  // Skiller to afgørelser med samme dato og procent i overskriften (BB-411).
+  virkningsdato: isoDateString,
   kapitaliseringsdato: isoDateString,
   /**
    * Ved genoptagelse før 1. juli 2024 stammer faktorens alder fra denne tidligere dato. Null, når den
    * tidligere dato ikke styrer regelvalget (også ved genoptagelse fra 1. juli 2024). Kun afledt output.
    */
   tidligereKapitaliseringsdato: isoDateString.nullable(),
+  // Genoptagelse, hvor den tidligere kapitaliseringsdato ikke længere bærer faktoropslaget (BB-415).
+  genoptagetMedNyFaktordato: z.boolean(),
   /**
    * Afgørelsens EGEN erhvervsevnetabsprocent – ikke den kapitaliserede andel.
    *
@@ -231,6 +235,7 @@ export type EetDifferencekravLoebendeAfgoerelse = z.infer<
 export const eetDifferencekravKapitaliseretAfgoerelseSchema = z.object({
   rowId: z.string(),
   afgoerelsesdato: isoDateString,
+  virkningsdato: isoDateString,
   kapitaliseringsdato: isoDateString.nullable(),
   kapitaliseringspct: finite.nullable(),
   kapitalbelobOre: moneyOreSchema.nullable(),

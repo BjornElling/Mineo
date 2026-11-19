@@ -141,6 +141,8 @@ const makePdfGroup = (
   }],
 ): MidlertidigtEetAfgoerelseGroup => ({
   afgoerelsesdato: iso('2024-01-01'),
+  virkningsdato: iso('2024-01-01'),
+  tilbageholdtForgaenger: null,
   eetPct: 20,
   rows: [],
   perioder,
@@ -340,6 +342,8 @@ describe('midlertidigt EET transient injection', () => {
     };
     const groups = [{
       afgoerelsesdato: iso('2024-01-01'),
+      virkningsdato: iso('2024-01-01'),
+      tilbageholdtForgaenger: null,
       eetPct: 20,
       rows: [],
       perioder: [{
@@ -509,6 +513,8 @@ describe('midlertidigt EET transient injection', () => {
     const groups: MidlertidigtEetAfgoerelseGroup[] = [
       {
         afgoerelsesdato: iso('2025-07-16'),
+        virkningsdato: iso('2025-07-16'),
+        tilbageholdtForgaenger: null,
         eetPct: 60,
         rows: [],
         perioder: [{
@@ -524,6 +530,8 @@ describe('midlertidigt EET transient injection', () => {
       },
       {
         afgoerelsesdato: iso('2025-08-29'),
+        virkningsdato: iso('2025-08-29'),
+        tilbageholdtForgaenger: null,
         eetPct: 25,
         rows: [],
         perioder: [{
@@ -870,6 +878,8 @@ describe('midlertidigt EET transient injection', () => {
   it('udelader en virtuel række med ikke-positiv månedsydelse', () => {
     const groups: MidlertidigtEetAfgoerelseGroup[] = [{
       afgoerelsesdato: iso('2024-01-01'),
+      virkningsdato: iso('2024-01-01'),
+      tilbageholdtForgaenger: null,
       eetPct: 20,
       rows: [],
       perioder: [{

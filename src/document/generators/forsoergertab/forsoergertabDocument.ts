@@ -376,7 +376,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
         );
         writer.writeLeftRightText(
           // Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne (BB-132).
-          `Beregnet kapitalbeløb (${formatKr(asl.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(asl.kapitalfaktor, 3)}) =`,
+          `Beregnet kapitalbeløb (${formatKr(asl.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(asl.kapitalfaktor, 3)}) (oprundet) =`,
           formatKr(asl.kapitalbelob),
           { rightFontStyle: 'bold' }
         );

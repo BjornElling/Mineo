@@ -21,7 +21,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 - Alle fejl og advarsler med ét entydigt årsagsfelt har et navigationslink til netop det felt. Regler med flere mulige årsagsfelter (fx flere afgørelsesrækker) bruger i stedet deres fælles sektion som ærligt anker. Begge mål blinkmarkeres efter navigationen. Fejl der udelukkende skyldes manglende systemdata (satser mv.), peger ikke på et brugerfelt.
 - `alder-unresolved` undertrykkes hvis `skadelidte-fodselsdato-missing` eller `skadedato-missing` allerede er aktiv – den afledte fejl er redundant.
-- `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` – de to kan vises samtidigt.
+- `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` eller `eal-aarsloen-missing` – de kan vises samtidigt.
 - `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
 - På F5 filtreres `no-endelig-afgoerelser` altid fra. `warn-ingen-kap-input` kan også vises på F5,
   fordi differencekravet fortsat skal kunne opgøres uden kapitalisering.
@@ -92,10 +92,17 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
-| Vises på | F2, F3, F4, F5 |
+| Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse F2, F3 | `!Number.isFinite(aslAarsloenRaw)` |
-| Betingelse F4, F5 | `aarsloen.value === null` – hverken EAL-årsløn > 0 eller ASL-årsløn > 0 |
+| Betingelse | `!Number.isFinite(aslAarsloenRaw)`. På F5 kommer den fra ASL-grenene, fordi differencekravet kræver ASL-årslønnen. |
+
+#### `eal-aarsloen-missing` – "Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL"
+| Felt | Værdi |
+|---|---|
+| Type | Fejl |
+| Vises på | F4 (på F5 kun uden `aarsloen-missing`) |
+| Navigationslink | EET oplysninger → Erstatningsansvarsloven |
+| Betingelse | `aarsloen.value === null` – hverken EAL-årsløn > 0 eller ASL-årsløn > 0. Nævner begge veje, fordi en ren EAL-sag ikke har en ASL-årsløn (BB-418). |
 
 #### `aarsloen-zero` – "Skadelidtes årsløn (efter ASL) skal være større end 0 kr"
 | Felt | Værdi |
@@ -128,7 +135,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Alle rækker i afgørelsestabellen er tomme. På F5 undertrykker denne `eet-pct-missing`. |
+| Betingelse | Alle rækker i afgørelsestabellen er tomme. På F5 også, når ingen påbegyndt række kan beregnes og ingen af dem har fået en konkret rækkemangel (fx en række med kun en procent); har en påbegyndt række sin egen mangel, udgår denne linje (BB-423). På F5 undertrykker denne – og rækkens egen `missing-eet-pct` – `eet-pct-missing`. |
 
 #### `no-asl-afgoerelser-known-at-beregningsdato` – "Der er ingen ASL-afgørelser med virkningsdato på eller før beregningsdatoen."
 | Felt | Værdi |

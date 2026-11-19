@@ -8,7 +8,7 @@ import {
 describe('eetKapitaliseringPresentation', () => {
   it('udelader AM-bidrag i grundydelsesformlen for skader foer 2011', () => {
     expect(buildKapitaliseringGrundydelseLabel('50 %', 0)).toBe(
-      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau'
+      'Grundydelse (50 %): Grundløn x Kap. % x Erstatningsniveau'
     );
 
     expect(
@@ -18,12 +18,18 @@ describe('eetKapitaliseringPresentation', () => {
 
   it('bevarer AM-bidrag i grundydelsesformlen for skader fra 2011', () => {
     expect(buildKapitaliseringGrundydelseLabel('50 %', 8)).toBe(
-      'Grundydelse (50 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag)'
+      'Grundydelse (50 %): Grundløn x Kap. % x Erstatningsniveau x (100 % − AM-bidrag)'
     );
 
     expect(
       buildKapitaliseringGrundydelseExpression('351.539 kr.', '50 %', 83, 8, '134.998,98 kr.')
     ).toBe('351.539 kr. x 50 % x 83 % x 92 % = 134.998,98 kr.');
+  });
+
+  it('navngiver proformaens faktor som det resterende EET, ikke afgørelsens EET (BB-416)', () => {
+    expect(buildKapitaliseringGrundydelseLabel('15 %', 8, 'rest-eet')).toBe(
+      'Grundydelse (15 %): Grundløn x Rest-EET x Erstatningsniveau x (100 % − AM-bidrag)'
+    );
   });
 
   describe('buildKapitaliseringOpreguleringTil2024Expression', () => {

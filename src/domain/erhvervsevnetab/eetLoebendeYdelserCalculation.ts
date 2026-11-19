@@ -85,6 +85,7 @@ export const eetLoebendeAfgoerelseComputationSchema = z.object({
   virkningsdato: isoDateString,
   kapitaliseringsdato: isoDateString.nullable(),
   skaeringsDato: isoDateString.nullable(),
+  tilbageholdtForgaenger: isoDateString.nullable(),
   harOverlap: z.boolean(),
   beregningsperioder: z.array(eetLoebendeDelperiodeSchema).readonly(),
   afgoerelseType: z.enum(['Midlertidig', 'Delvist endelig', 'Endelig']),
@@ -515,6 +516,7 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       virkningsdato: current.virkningsdato,
       kapitaliseringsdato: hasKapitalisering && current.effectiveKapDato ? current.effectiveKapDato : null,
       skaeringsDato: currentTransition.skaeringsDato,
+      tilbageholdtForgaenger: currentTransition.tilbageholdtForgaenger,
       harOverlap: currentTransition.useOverlap,
       beregningsperioder: allPeriods,
       afgoerelseType: current.afgoerelseType,
@@ -739,20 +741,34 @@ export type LoebendeOphoerVisning =
   | Readonly<{ kind: 'interval'; ophoerLabel: string; ophoerDato: ISODateString; aarsagLabel: string }>
   | Readonly<{ kind: 'ingen-periode'; forklaring: string }>;
 
+/**
+ * Hvor opgørelsen af løbende ydelser slutter. Fanen og det selvstændige dokument opgør til og med
+ * beregningsdatoen; differencekravet opgør til og med dagen før, fordi beregningsdagen selv indgår i
+ * rest-EET-fradraget (BB-186). Motoren får i begge tilfælde blot en slutdato og kan ikke selv se forskel.
+ */
+export type LoebendeOpgoerelsesAfgraensning = 'beregningsdato' | 'dagen-foer-beregningsdato';
+
 export const resolveLoebendeOphoerVisning = (
-  afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'ophoerDato' | 'ophoerAarsag' | 'virkningsdato'>
+  afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'ophoerDato' | 'ophoerAarsag' | 'virkningsdato'>,
+  afgraensning: LoebendeOpgoerelsesAfgraensning = 'beregningsdato'
 ): LoebendeOphoerVisning => {
   if (afgoerelse.ophoerDato < afgoerelse.virkningsdato) {
     // `ophoerDato` er sidste dag med ydelse. Ved beregningsdatoen er det selve datoen; ved folkepension og
     // kapitalisering er begivenheden dagen efter – ydelsen ophører PÅ folkepensions-/kapitaliseringsdatoen.
     const datoTekst = formatISOToDanish(afgoerelse.ophoerDato);
+    const virkningsdatoTekst = formatISOToDanish(afgoerelse.virkningsdato);
     const begivenhedsdato = getDayAfterIso(afgoerelse.ophoerDato);
     const begivenhedsdatoTekst = formatISOToDanish(begivenhedsdato);
     switch (afgoerelse.ophoerAarsag) {
       case 'beregningsdato':
+        // Det er virkningsdatoen, der ligger efter opgørelsens slutning – afgørelsen kan sagtens være
+        // truffet før (BB-410). I differencekravet er slutningen dagen før beregningsdatoen, og den må
+        // ikke kaldes beregningsdatoen i et dokument, hvis forside viser den rigtige (BB-421).
         return {
           kind: 'ingen-periode',
-          forklaring: `Afgørelsen ligger helt efter beregningsdatoen (${datoTekst}).`,
+          forklaring: afgraensning === 'dagen-foer-beregningsdato'
+            ? `Løbende ydelser til differencekravet opgøres til og med dagen før beregningsdatoen (${datoTekst}). Afgørelsen har virkning fra ${virkningsdatoTekst}.`
+            : `Virkningsdatoen (${virkningsdatoTekst}) ligger efter beregningsdatoen (${datoTekst}).`,
         };
       case 'folkepensionsdato':
         return {
@@ -807,6 +823,17 @@ export const visGrundydelseNiveauSkift = (
 };
 
 /** Forklarer hver faktisk overlapdel, også når den giver nul og derfor ikke står i tabellen. */
+/**
+ * Note ved en afgørelse, hvis forgænger er tilbageholdt (BB-408/409). Tilbageholdelsen flytter perioder og
+ * beløb – og kan fjerne den tidligere afgørelse helt fra et bilag – uden at tabellen selv viser hvorfor.
+ */
+export const resolveLoebendeTilbageholdelsesNote = (
+  afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'tilbageholdtForgaenger'>
+): string | null =>
+  afgoerelse.tilbageholdtForgaenger === null
+    ? null
+    : `Ydelsen efter afgørelsen af ${formatISOToDanish(afgoerelse.tilbageholdtForgaenger)} er tilbageholdt og fratrækkes ikke.`;
+
 export const resolveLoebendeSkaeringsNote = (
   afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'beregningsperioder'>
 ): string | null => {
@@ -853,7 +880,7 @@ export const resolveLoebendeSkaeringsNote = (
  * er sagsspecifikke og derfor hører ved deres egen tabel.
  */
 export const LOEBENDE_YDELSE_AFRUNDING_NOTE =
-  'Ydelse/md. beregnes som grundydelsen pr. år gange reguleringen, oprundet til nærmeste 12 kr. og divideret med 12.';
+  'Ydelse/md. beregnes som grundydelsen pr. år gange (100 % + reguleringen), oprundet til nærmeste 12 kr. og divideret med 12.';
 
 export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');

@@ -10,7 +10,7 @@ import { resolveMidlertidigtEetIssueNavigation } from '../../../domain/erhvervse
 import { eoMidlertidigtEETAfgorelseField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { toISODateString } from '../../../types/branded';
 
-const group = { afgoerelsesdato: toISODateString('2026-06-01'), eetPct: 50, rows: [], perioder: [] } as MidlertidigtEetAfgoerelseGroup;
+const group = { afgoerelsesdato: toISODateString('2026-06-01'), virkningsdato: toISODateString('2026-06-01'), tilbageholdtForgaenger: null, eetPct: 50, rows: [], perioder: [] } as MidlertidigtEetAfgoerelseGroup;
 
 const values = (midlertidigtEETAfgorelse: 'Ja' | 'Nej', midlertidigtEetFraEetSiden: 'Ja' | 'Nej' = 'Ja') =>
   ({ midlertidigtEETAfgorelse, midlertidigtEetFraEetSiden });

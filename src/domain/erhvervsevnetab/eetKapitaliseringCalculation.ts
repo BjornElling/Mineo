@@ -603,10 +603,12 @@ export const computeEetKapitaliseringCalculation = (
     computations.push({
       rowId: row.rowId,
       afgoerelsesdato: row.afgoerelsesdato,
+      virkningsdato: row.virkningsdato ?? row.afgoerelsesdato,
       kapitaliseringsdato: effectiveKapDato,
       // Kun når den tidligere dato bærer faktorgrundlaget; ellers ville visningen kalde alderen
       // »Alder ved tidligere kapitalisering«, selv om faktoren bygger på den nye afgørelse.
       tidligereKapitaliseringsdato: regelvalgendeTidlKapDato ?? null,
+      genoptagetMedNyFaktordato: row.tidlKapDato !== null && regelvalgendeTidlKapDato === undefined,
       eetPct: row.eetPct,
       kapitaliseringspct: effectiveKapPct,
       grundloenOre,

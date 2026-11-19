@@ -1,5 +1,5 @@
 import { prefixFieldLabel, type FieldIssue } from '../../inputCore/inputIssue';
-import { serializeFieldAddress } from '../../inputCore/fieldAddress';
+import { serializeFieldAddress, type FieldAddress } from '../../inputCore/fieldAddress';
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import { coerceToISODateString, isoToDanish } from '../../types/branded';
 import type { EetIssue } from './eetTypes';
@@ -7,16 +7,19 @@ import type { EetIssue } from './eetTypes';
 /** Det fælles issue-id for en rød celle i ASL-afgørelsestabellen – uanset hvilken fane eller side der viser den. */
 export const ASL_AFGOERELSER_FIELD_ISSUE_ID = 'field-asl-afgoerelser';
 
-const entityIdOf = (issue: FieldIssue): string | undefined => {
-  const segment = [...issue.field.address.path].reverse().find((candidate) => candidate.kind === 'entity');
+/** Rækkens id i en feltadresse i afgørelsestabellen; `undefined` for felter uden for tabellen. */
+export const aslRowIdOfAddress = (address: FieldAddress): string | undefined => {
+  const segment = [...address.path].reverse().find((candidate) => candidate.kind === 'entity');
   return segment?.kind === 'entity' ? segment.entityId : undefined;
 };
+
+const entityIdOf = (issue: FieldIssue): string | undefined => aslRowIdOfAddress(issue.field.address);
 
 /**
  * Rækkens navn i en fejloversigt: afgørelsesdatoen, når den er gyldig og entydig, ellers rækkens plads i tabellen.
  * Pladsen er collectionens rækkefølge, som også er tabellens (sortering flytter rækkerne i collectionen).
  */
-const describeRow = (
+export const describeAslAfgoerelseRow = (
   rowId: string | undefined,
   rows: readonly AslAfgoerelseRow[]
 ): string | undefined => {
@@ -51,7 +54,7 @@ export const buildAslAfgoerelserSummaryIssues = (
     if (seen.has(key)) continue;
     seen.add(key);
     const feltbesked = prefixFieldLabel(issue.field.descriptor.label, issue.message.trim());
-    const raekke = describeRow(entityIdOf(issue), rows);
+    const raekke = describeAslAfgoerelseRow(entityIdOf(issue), rows);
     summary.push({
       id: ASL_AFGOERELSER_FIELD_ISSUE_ID,
       severity: 'error',

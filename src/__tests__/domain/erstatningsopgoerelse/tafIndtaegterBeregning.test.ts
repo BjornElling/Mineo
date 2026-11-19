@@ -36,7 +36,7 @@ const makeValues = () => ({
 });
 
 const groups: readonly MidlertidigtEetAfgoerelseGroup[] = [{
-  afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [],
+  afgoerelsesdato: iso('2024-01-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 20, rows: [],
   perioder: [
     { fra: iso('2024-01-01'), til: iso('2024-01-31') },
     { fra: iso('2024-02-01'), til: iso('2024-02-29') },

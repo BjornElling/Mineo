@@ -13,6 +13,7 @@ import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatt
 import type {
   EetLoebendeComputation,
   EetLoebendeAfgoerelseComputation,
+  LoebendeOpgoerelsesAfgraensning,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
   LOEBENDE_YDELSE_AFRUNDING_NOTE,
@@ -21,10 +22,12 @@ import {
   resolveLoebendeAfgoerelseRestVisning,
   resolveLoebendeOphoerVisning,
   resolveLoebendeSkaeringsNote,
+  resolveLoebendeTilbageholdelsesNote,
   toAfgoerelseTypeLabel,
   visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
+import { formatAfgoerelseVirkningsTillaeg } from '../../../domain/erhvervsevnetab/eetAfgoerelseOverskrift';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { buildLoebendeErstatningsniveauTekst, buildLoebendeGrundloenNiveauTekst } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import { resolveDocumentArtifactFileName, formatKr, formatMaanederFixed, formatReguleringPct } from '../../layout/documentFormatUtils';
@@ -62,7 +65,8 @@ export const addLoebendeAfgoerelseSection = (
   writer: DocumentComposer,
   afgoerelse: EetLoebendeAfgoerelseComputation,
   computation: EetLoebendeComputation,
-  isFirst: boolean
+  isFirst: boolean,
+  afgraensning: LoebendeOpgoerelsesAfgraensning = 'beregningsdato'
 ): void => {
   if (!isFirst) {
     writer.addPage();
@@ -75,7 +79,10 @@ export const addLoebendeAfgoerelseSection = (
   );
 
   writer.writeSectionHeader(
-    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`
+    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg(
+      { afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato },
+      computation.afgoerelser
+    )}`
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
@@ -106,7 +113,7 @@ export const addLoebendeAfgoerelseSection = (
   writer.writeLeftRightText('Virkningsdato', formatISOToDanish(afgoerelse.virkningsdato), rowOpts);
   writer.writeLeftRightText('Afgørelse med tilbagevirkende kraft?', formatJaNej(afgoerelse.tilbagevirkendeKraft), rowOpts);
 
-  const ophoerVisning = resolveLoebendeOphoerVisning(afgoerelse);
+  const ophoerVisning = resolveLoebendeOphoerVisning(afgoerelse, afgraensning);
   if (ophoerVisning.kind === 'interval') {
     writer.writeLeftRightText(ophoerVisning.ophoerLabel, formatISOToDanish(ophoerVisning.ophoerDato), rowOpts);
     writer.writeLeftRightText('Årsag', ophoerVisning.aarsagLabel, rowOpts);
@@ -126,6 +133,11 @@ export const addLoebendeAfgoerelseSection = (
 
   writer.writeBoldSubheader('Beregnede ydelser');
 
+  const tilbageholdelsesNote = resolveLoebendeTilbageholdelsesNote(afgoerelse);
+  if (tilbageholdelsesNote) {
+    writer.writeWrappedText(tilbageholdelsesNote);
+    writer.addSectionSpacer();
+  }
   const skaeringsNote = resolveLoebendeSkaeringsNote(afgoerelse);
   if (skaeringsNote) {
     writer.writeWrappedText(skaeringsNote);
@@ -302,7 +314,10 @@ export const addLoebendeUdvidetSpecifikationPage = (
       ? restGrundydelse2024
       : afgoerelse.grundydelse2024FuldOre;
 
-    writer.writeBoldSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
+    writer.writeBoldSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg(
+      { afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato },
+      computation.afgoerelser
+    )}`);
 
     writer.writeLeftRightText(
       formatEetLabel(afgoerelse.eetPct, afgoerelse.priorKapPct),

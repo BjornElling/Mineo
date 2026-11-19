@@ -32,8 +32,10 @@ import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import DocumentOutcomeMessage from '../../inputs/DocumentOutcomeMessage';
 import EetDocumentDownloadBox from './EetDocumentDownloadBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
-import { formatMaaneder, formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { formatKr } from '../../../utils/formatUtils';
+import { formatDocumentMaanederTrimmed } from '../../../utils/documentMaanederFormatting';
+import { formatAfgoerelseVirkningsTillaeg } from '../../../domain/erhvervsevnetab/eetAfgoerelseOverskrift';
 import { buildDifferencekravFradragLinjer } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import { formatDeductionKr } from '../../../utils/deductionFormatting';
 import { toKroner } from '../../../domain/money/money';
@@ -316,7 +318,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
 
             return (
               <Box key={afgoerelse.rowId} sx={{ mt: 1 }}>
-                <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
+                <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg({ afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato }, computation.afgoerelser)}`} />
                 <HoverRow text={typeLabel} />
 
                 {foretages && afgoerelse.beloebOre > 0 && (
@@ -362,7 +364,7 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
 
           {computation.kapitaliseringerAfgoerelser.map((afgoerelse) => (
             <Box key={afgoerelse.rowId} sx={{ mt: 1 }}>
-              <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
+              <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg({ afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato }, computation.kapitaliseringerAfgoerelser)}`} />
               {afgoerelse.kapitalbelobOre !== null && afgoerelse.kapitaliseringsdato !== null && afgoerelse.kapitaliseringspct !== null ? (
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
@@ -393,7 +395,8 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
                   <HoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md. =`}
+                      {/* Fem decimaler som Løbende ydelser (BB-162), så linjen kan efterregnes (BB-424). */}
+                      {`${formatDocumentMaanederTrimmed(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(computation.resterendeLoebendeYdelser.maanedligYdelseOre))}/md. =`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
                       <Typography className="row--text">{formatDeductionKr(toKroner(computation.resterendeLoebendeYdelser.fradragBeloebOre))}</Typography>

@@ -43,7 +43,7 @@ export type EetDifferencekravBilagAvailabilityMap =
 // Bilagsvalgenes tooltips: ÉN kort sætning uden punktum, jf. `page-component-contract.md` §10.5 punkt 3.
 const INGEN_BEREGNING_REASON = 'Differencekravet kan ikke beregnes for den aktuelle sag';
 const INGEN_LOEBENDE_YDELSER_REASON = 'Der er ingen løbende ydelser i sagen';
-const INGEN_KAPITALISERINGER_REASON = 'Der er ingen kapitaliserede afgørelser i sagen';
+const INGEN_KAPITALISERINGER_REASON = 'Ingen kapitalisering på eller før beregningsdatoen';
 const INTET_EAL_KRAV_REASON = 'Der er intet beregnet EAL-krav i sagen';
 const LOEBENDE_YDELSER_BILAG_FRAVALGT_REASON = 'Bilaget «Løbende ydelser» er fravalgt';
 

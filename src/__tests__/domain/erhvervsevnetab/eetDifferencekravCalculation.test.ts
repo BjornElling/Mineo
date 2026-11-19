@@ -703,6 +703,137 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'no-asl-afgoerelser-known-at-beregningsdato')).toBe(false);
   });
 
+  it('melder kun ASL-årslønnens mangel, fordi differencekravet kræver den (BB-418)', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-06-01'),
+        ealEetPct: 30,
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2020-06-01'),
+          virkningsDato: undefined,
+          eetPct: 30,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2018-06-01'),
+      skadelidteFodselsdato: toISODateString('1970-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    const ids = result.issues.map((issue) => issue.id);
+    expect(ids).toContain('aarsloen-missing');
+    expect(ids).not.toContain('eal-aarsloen-missing');
+  });
+
+  it('lader kapitaliseringsbilaget vise de samme kapitaliseringer, som opgørelsen trækker fra (BB-420)', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-06-01'),
+        aslAarsloen: asAmount(400000),
+        ealAarsloen: asAmount(750000),
+        ealEetPct: 60,
+        aslAfgoerelser: [{
+          id: 'midl',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2020-06-01'),
+          virkningsDato: undefined,
+          eetPct: 30,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+        }, {
+          id: 'delvis',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2023-06-01'),
+          virkningsDato: undefined,
+          eetPct: 50,
+          kapDato: toISODateString('2024-07-01'),
+          kapPct: 25,
+          afgoerelseType: 'Delvist endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2018-06-01'),
+      skadelidteFodselsdato: toISODateString('1970-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+      indregnMerErstatningVedForhoejetPensionsalder: true,
+    });
+
+    expect(result.computation?.fradragKapitaliseretEetOre).toBe(0);
+    expect(result.computation?.kapComputation?.afgoerelser).toEqual([]);
+  });
+
+  it('kalder ikke tabellen tom, når en påbegyndt afgørelse allerede får sine konkrete mangler (BB-423)', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-06-01'),
+        aslAarsloen: asAmount(400000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2020-06-01'),
+          virkningsDato: undefined,
+          eetPct: undefined,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: undefined,
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2018-06-01'),
+      skadelidteFodselsdato: toISODateString('1970-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    const ids = result.issues.map((issue) => issue.id);
+    expect(ids).toContain('missing-eet-pct');
+    expect(ids).toContain('missing-afgoerelseType');
+    expect(ids).not.toContain('asl-afgoerelser-empty');
+    // Samme rodproblem må ikke også meldes som EAL-fanens manglende procent.
+    expect(ids).not.toContain('eet-pct-missing');
+    expect(result.computation).toBeNull();
+    expect(result.hasBlockingErrors).toBe(true);
+  });
+
+  it('bevarer tomhedsmeldingen som blokering, når den påbegyndte række ikke giver en konkret mangel her (BB-423)', () => {
+    const result = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-06-01'),
+        aslAarsloen: asAmount(400000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: undefined,
+          virkningsDato: undefined,
+          eetPct: 30,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: undefined,
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2018-06-01'),
+      skadelidteFodselsdato: toISODateString('1970-01-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+    });
+
+    expect(result.computation).toBeNull();
+    expect(result.hasBlockingErrors).toBe(true);
+  });
+
   it('viser ikke EAL-fejlen om manglende erhvervsevnetabsprocent når der er indtastet ASL-procent, selv om virkningsdatoen ligger efter beregningsdatoen', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {

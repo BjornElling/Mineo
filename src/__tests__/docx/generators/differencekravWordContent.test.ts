@@ -68,6 +68,58 @@ describe('differencekrav → Word-indhold', () => {
     expect(text).toContain('100.000 kr.');
   });
 
+  it('trykker restydelsens månedsbrøk med fem decimaler, så linjen kan efterregnes (BB-424)', async () => {
+    const { documentXml } = await renderWordDocument((session) => {
+      return generateDifferencekravDocument(session, {
+        computation: {
+          beregningsdato: toISODateString('2022-05-02'),
+          skadedato: toISODateString('2005-04-01'),
+          dagFoerBeregningsdato: toISODateString('2022-05-01'),
+          fradragGaelderForFoer2011: true,
+          ealKravOre: fromKroner(500000),
+          ealEetPct: 60,
+          fradragLoebendeYdelserOre: fromKroner(0),
+          fradragKapitaliseretEetOre: fromKroner(0),
+          proformaKapitalisering: null,
+          resterendeLoebendeYdelser: {
+            loebendeEetPct: 60,
+            beregningsdato: toISODateString('2022-05-02'),
+            dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
+            aarsydelseOre: fromKroner(273756),
+            maanedligYdelseOre: fromKroner(22813),
+            // 30/31 + 1 måned: med fire decimaler (1,9677) gav linjen 44.889 kr. mod det viste 44.890 kr.
+            tilbageraevendeMaaneder: 30 / 31 + 1,
+            fradragBeloebOre: fromKroner(44890),
+          },
+          merErstatningPensionsalder: null,
+          differencekravFoerForligOre: fromKroner(455110),
+          forligFactor: null,
+          forligLabel: null,
+          forligDato: null,
+          differencekravOre: fromKroner(455110),
+          afgoerelser: [],
+          kapitaliseringerAfgoerelser: [],
+          loebendeComputation: null,
+          kapComputation: null,
+          ealComputation: null,
+        } satisfies EetDifferencekravComputation,
+        bilagSelection: {
+          opgoerelse: true,
+          loebendeYdelser: false,
+          kapitalisering: false,
+          eetEfterEal: false,
+          proformaKapitalisering: false,
+          merErstatningPensionsalder: false,
+          visUdvidetSpecifikationLoebendeYdelserBilag: false,
+        },
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('1,96774 mdr. x 22.813 kr./md. =');
+    expect(text).not.toContain('1,9677 mdr.');
+  });
+
   /**
    * BB-182: EAL-bilaget kaldes med `includeBeregningsdatoHeader = false`, som fjerner hele
    * «Beregning»-sektionen fra kroppen. Skadedatoen ligger derfor i Specifikationen og ikke i

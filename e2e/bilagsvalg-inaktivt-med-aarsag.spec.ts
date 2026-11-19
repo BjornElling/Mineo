@@ -16,7 +16,7 @@ import { expect, login, openPage, setFieldValueAndSettle, setVerbatimFieldValueA
 
 const FRAVALGT_DELTEKST = 'fravalgt nedenfor';
 const INGEN_FORHOEJELSE_DELTEKST = 'ikke forhøjet i perioden';
-const INGEN_KAPITALISERING_DELTEKST = 'ingen kapitalisering at forhøje';
+const INGEN_KAPITALISERING_DELTEKST = 'Ingen kapitalisering på eller før beregningsdatoen';
 /** BB-191: ÉT navn for fradrag 4 – bilagsvalg, boks, specifikation, dokumentsektion og bilagstitel. */
 const FORHOEJET_PENSIONSALDER = 'Forhøjet pensionsalder';
 const MIDLERTIDIGT_EET_FRA_EET_SIDEN_TEKST = 'Indstillingen «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» er slået fra på fanen «Offentlige ydelser»';
@@ -156,7 +156,7 @@ test.describe('Bilagsvalg – inaktivt med årsag frem for skjult', () => {
     await expect(bilag).not.toBeChecked();
 
     await bilagHoverFlade(page, 'Kapitalisering').hover();
-    await expect(page.getByRole('tooltip')).toContainText('ingen kapitaliserede afgørelser i sagen');
+    await expect(page.getByRole('tooltip')).toContainText('Ingen kapitalisering på eller før beregningsdatoen');
 
     // «Opgørelse» er den modsatte tilstand: altid markeret, aldrig redigerbar.
     const opgoerelse = page.getByRole('checkbox', { name: 'Opgørelse', exact: true });

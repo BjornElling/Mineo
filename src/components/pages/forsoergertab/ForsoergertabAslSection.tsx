@@ -210,7 +210,7 @@ const ForsoergertabAslSection = React.memo(() => {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
                       {/* Afsluttende `=` som alle andre formellinjer med et resultat i højre kolonne (BB-132). */}
-                      {`Beregnet kapitalbeløb (${formatKr(aslComputation.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(aslComputation.kapitalfaktor, 3)}) =`}
+                      {`Beregnet kapitalbeløb (${formatKr(aslComputation.opreguleretAarligYdelse, 2)} x ${formatAsAmountTrimmed(aslComputation.kapitalfaktor, 3)}) (oprundet) =`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
                       <Typography className="row--text text-bold">{formatKr(aslComputation.kapitalbelob)}</Typography>

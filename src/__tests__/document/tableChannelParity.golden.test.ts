@@ -185,6 +185,7 @@ const loebendeComputation = {
       virkningsdato: toISODateString('2021-01-01'),
       kapitaliseringsdato: null,
       skaeringsDato: null,
+      tilbageholdtForgaenger: null,
       harOverlap: false,
       beregningsperioder: [],
       afgoerelseType: 'Midlertidig',

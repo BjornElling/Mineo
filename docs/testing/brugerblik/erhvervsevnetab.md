@@ -3367,3 +3367,623 @@ procent, brøk og valgfrie dato. «Bemærk» rummer tre faglige påmindelser.
 Browserprøverne kørte lokalt i Chrome. Øvrige browsermotorer, særskilt gennemgang i mørkt tema,
 tabeller over 17 udfyldte afgørelser og alle kombinationer af felter og afgørelsestyper er ikke
 målt. Den tværgående undersøgelse pr. fund og dens dækningshuller står under M-50.
+
+## Fornyet gennemgang 2026-11-19 – 11b. Løbende ydelser
+
+- Rute: Erhvervsevnetab → Løbende ydelser.
+- Grundlag: `4688ca7e`. Chrome headless ved 1536×864 og 1366×620, lyst og mørkt tema.
+
+### Fladen kort
+
+Beregningsboksen viser beregningsdatoen, et dokumentvalg og en downloadknap. Det eneste felt på
+fanen, «Medtag udvidet specifikation i PDF/Word», er et ja/nej-valg med fra som udgangspunkt.
+Det styrer dokumentets sidste afsnit. Skærmen viser altid mellemregningerne, når beregningen
+kan vises. Ved blokerende input vises fejloversigten og en inaktiv downloadknap. Ved en beregnelig
+afgørelse uden ydelse vises dens periodeforklaring, også når den ikke har en tabel.
+
+Stamdata leverer fødselsdato og skadedato. EET oplysninger leverer beregningsdato, ASL-årsløn og
+afgørelsesrækker med datoer, procent, type, kapitalisering og tilbageholdelse. Beregningsdato og
+afgørelsesdatoer har aktive datogrænser fra skaden og satsdækningen. Kapitaliseringsdatoer har
+yderligere grænser fra afgørelsen. Årsløn har skadesårsloft og hele tusinder. EET % kan være
+5–100 med advarsler under 15 % og ved trin uden for den gældende satsinddeling. De to synlige
+tomme indtastningsrækker på EET oplysninger udløser ingen resultater. En tom virkningsdato får
+afgørelsesdatoens virkning, og afsluttet afvist input udløser en konkret fejl. Differencekravets
+bilag bruger samme periodespecifikation med sin egen afgrænsning og sit eget tilvalg.
+Erstatningsopgørelsen henter de relevante perioder til sit TAF-fradrag og midlertidige EET-bilag.
+
+Prøvesag nedenfor: Skadedato 01-06-2018, Fødselsdato 01-01-1970, Beregningsdato 01-07-2026
+og ASL-årsløn 400.000 kr. To midlertidige afgørelser: 01-06-2020 med virkning fra 01-01-2020
+og 25 %, samt 01-06-2022 med virkning fra 01-01-2022 og 30 %.
+
+### BB-408 – Tilbageholdelse ændrer periodetabellen uden en forklaring
+
+- **Type** Fornuft. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Åbn Løbende ydelser i prøvesagen. Sæt så «FS tilbageholdt EET» til Ja
+  på afgørelsen fra 2020, og åbn fanen igen.
+- **Oplevelse** Før ændringen dækker den første afgørelse til 30-06-2022. Den anden forklarer,
+  at de første seks måneder af 2022 kun giver 5 % yderligere. Efter ændringen stopper den
+  første ved 31-12-2021, og den anden viser fuld ydelse for hele 2022 uden overlapnoten.
+  Første tabel falder fra 202.830 til 161.508 kr. Anden tabel stiger fra 433.522 til
+  474.838 kr. Årsagen er stadig «Senere afgørelse». Skærmen og Word viser ingen besked
+  om tilbageholdelsen, selv om perioden er flyttet.
+- **Forslag** Skriv ved periodeskiftet, at den tidligere ydelse var tilbageholdt, og at den
+  senere afgørelse derfor dækker den fulde løbende ydelse for den angivne periode. Vis samme
+  begrundelse på skærmen og i dokumentet.
+- **Rækkevidde** [M-51](TVAERGAAENDE.md#m-51--en-tilbageholdt-ydelse-flytter-perioder-uden-forklaring).
+  Differencekravets Word-bilag viser samme periodeskift uden begrundelse. Det har sin egen
+  slutdato. Kapitalisering viser ingen ydelsesperioder. Varianten i Erstatningsopgørelsen er BB-409.
+- **Udfald** Gennemført 2026-11-19 efter udviklerens godkendelse. Den senere afgørelse viser nu «Ydelsen efter afgørelsen af 01-06-2020 er tilbageholdt og fratrækkes ikke.» på skærmen, i PDF/Word og i Differencekravets bilag.
+
+### BB-409 – TAF-bilaget kan miste en afgørelse med samme fradrag
+
+- **Type** Fornuft. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Brug den fiktive sag `e2e/fixtures/manuel-regulering-med-tillaeg.json`.
+  Sæt ASL-årsløn til 300.000 kr., EET-beregningsdato til 25-09-2026 og indtast to midlertidige
+  afgørelser. Den første er af 01-06-2026 med virkning fra 01-01-2026 og 20 %. Den anden er af
+  01-08-2026 med virkning fra 01-05-2026 og 30 %. Tilvælg midlertidig EET-afgørelse under
+  EO oplysninger med dato 01-08-2026. Tilvælg «Midlertidigt EET indsættes fra Erhvervsevnetab-siden»
+  under Offentlige ydelser. Hent opgørelsen som Word før og efter «FS tilbageholdt EET» sættes
+  til Ja på den første afgørelse.
+- **Oplevelse** Ved Nej viser bilaget den første afgørelse med 12.903 kr. og den anden med
+  6.452 kr. og 4.000 kr. Ved Ja udgår juni-afgørelsen, og bilaget viser én linje på
+  23.355 kr. under august-afgørelsen. Hovedopgørelsens fradrag er 23.355 kr. i begge dokumenter.
+  Læseren kan se, at afgørelsen er væk, uden at få at vide hvorfor den anden nu dækker hele perioden.
+- **Forslag** Tilføj en kort note i bilaget om, at den tidligere ydelse er tilbageholdt,
+  så den senere afgørelse dækker hele den angivne periode.
+- **Rækkevidde** [M-51](TVAERGAAENDE.md#m-51--en-tilbageholdt-ydelse-flytter-perioder-uden-forklaring).
+  Den samme årsag er tavs i EET-specifikationen og Differencekravets bilag, se BB-408.
+  Andre TAF-ydelser læser ikke afgørelsernes valg om tilbageholdelse.
+- **Udfald** Gennemført 2026-11-19. EO-bilaget viser samme note under den afgørelse, der overtager perioden.
+
+### BB-410 – Fremtidig virkning beskrives som en senere afgørelse
+
+- **Type** Fejl. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Sæt Virkningsdato for afgørelsen af 01-06-2022 til 01-08-2026 i prøvesagen.
+  Lad Beregningsdato stå som 01-07-2026.
+- **Oplevelse** Boksen og Word-dokumentet viser Afgørelsesdato 01-06-2022 og Virkningsdato
+  01-08-2026. Under dem står «Afgørelsen ligger helt efter beregningsdatoen (01-07-2026).»
+  Afgørelsen er på det tidspunkt allerede truffet. Beskeden navngiver derfor den forkerte
+  grund til, at tabellen er tom.
+- **Forslag** Skriv «Virkningsdatoen (01-08-2026) ligger efter beregningsdatoen (01-07-2026).»
+  Brug samme forklaring i Word og PDF. Ved en efterfølgende afgørelsesdato kan den fælles
+  datoadvarsel fortsat pege på afgørelsesdatoen.
+- **Rækkevidde** Lokal forklaring. Differencekravets skærm viste i samme sag den generelle
+  datoadvarsel og gengav ikke påstanden. Løbende-ydelsesbilaget bruger samme tekst, når en af
+  dets afgørelser får denne periodeforklaring. EO's import bruger TAF-periodens slutdato og
+  viser ingen EET-beregningsdato. Naboforklaringen om folkepension navngiver allerede den
+  bindende virkningsdato i koden.
+- **Udfald** Skærm, PDF og Word skriver nu «Virkningsdatoen (01-08-2026) ligger efter
+  beregningsdatoen (01-07-2026).», samme form som naboforklaringen om folkepension.
+  Differencekravets bilag har sin egen ordlyd, se BB-421.
+
+### BB-411 – Afgørelser fra samme dag kan få identiske overskrifter
+
+- **Type** Edge case. **Prioritet** Lav. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Giv begge afgørelser i prøvesagen Afgørelsesdato 01-06-2022 og EET 30 %.
+  Bevar Virkningsdato 01-01-2020 og 01-01-2022.
+- **Oplevelse** Begge resultatbokse hedder «Afgørelse 1. juni 2022 (30 %)». To overskrifter i
+  den udvidede specifikation og på forskellige Word-sider bærer også samme dato. Første boks
+  viser «Senere afgørelse» som grund til, at dens periode ender, selv om begge afgørelser
+  blev truffet samme dag. Læseren må finde virkningsdatoen inde i hver boks for at genkende
+  rækken og forstå, hvilken afgørelse der overtog.
+- **Forslag** Medtag virkningsdatoen i de overskrifter, der ellers ville være ens, fx
+  «Afgørelse 1. juni 2022 (30 %) – virkning fra 01-01-2020». Angiv ved ophøret, at den
+  samtidige afgørelse med virkning fra 01-01-2022 overtager.
+- **Rækkevidde** [M-52](TVAERGAAENDE.md#m-52--samme-dato-og-procent-kan-identificere-flere-afgørelser).
+  Samme problem er målt i Differencekrav, Kapitalisering og EO-bilaget «Midlertidigt EET».
+  Historisk BB-171 dækkede Kapitalisering med forskellige procenter. Den foreliggende
+  kombination har samme dato **og** procent, men forskellige virkningsdatoer.
+- **Udfald** Gennemført 2026-11-19. Kun hvor overskrifterne ellers er ens, tilføjes «– virkning fra 01-01-2020». Det gælder Løbende ydelser, Kapitalisering, Differencekrav og EO-bilaget. Ophørsårsagen er uændret.
+
+### BB-412 – Formlen for månedsydelsen bruger et andet tal end tabellens procent
+
+- **Type** Fornuft. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Find 2024-rækken under afgørelsen med 30 % i prøvesagen. Læs noten under
+  «Udvidet specifikation» på fanen eller i den udvidede PDF eller Word.
+- **Oplevelse** Tabellen viser grundydelse 105.736,60 kr., regulering «+ 0 %» og ydelse pr.
+  måned 8.812 kr. Noten siger «grundydelsen pr. år gange reguleringen, oprundet til nærmeste
+  12 kr. og divideret med 12». Direkte brug af den viste 0 %-sats giver nul. Ved +55,4 %
+  skal brugeren selv slutte, at faktoren er 1,554. Dermed kan læseren kun efterregne månedsydelsen,
+  hvis han kender den mellemregning, noten skal forklare.
+- **Forslag** Skriv «Gang grundydelsen pr. år med (100 % + reguleringsprocenten), rund
+  beløbet op til nærmeste multiplum af 12 kr., og del med 12.» Tilføj et kort eksempel med
+  «+ 0 %», der viser faktoren 1 og den faktiske månedsydelse.
+- **Rækkevidde** Samme note er målt i Differencekravets udvidede Word-bilag. EO-bilaget har
+  reguleringskolonnen, men trykker ingen tilsvarende regneanvisning. Forsørgertabs hovedtabel
+  har en særskilt beskrivelse af sin opregulering, og EAL-afsnittet viser udtrykkeligt
+  «x (100 % + … %)» i sin egen formel. Den konkrete misvisende tekst bruges kun i
+  de to EET-specifikationer. BB-156 tilføjede noten. Dette fund handler om den tilføjede formulering.
+- **Udfald** Gennemført 2026-11-19. Noten siger nu «gange (100 % + reguleringen)». Intet eksempel.
+
+### Efterprøvet uden nye fund
+
+- Tom sag viste fem årsager og «Indtastning mangler». Kalenderfejl og EET 101 % blev vist
+  samtidig med hver sin cellehenvisning. Datoens link fremhævede den konkrete virkningscelle
+  i browseren, jf. BB-406.
+- Beregningsdato dagen før skaden, skadedatoen selv, 31-12-2026 og 01-01-2027 gav henholdsvis
+  fejl, gyldig, gyldig og fejl. På virkningsdato lig beregningsdato viste tabellen én dag
+  (0,03226 måned i januar). En senere virkningsdato gav ingen ydelse, jf. BB-410 om ordlyden.
+- Positivt overlap viste 5 % yderligere og 8.268 kr. i skærm, Word og PDF. Overlap med samme
+  procent forklarede nulkravet, også når hele perioden gav nul ekstra. Kapitalisering på en
+  senere afgørelse gav ophørsårsagen «Kapitalisering» for begge berørte afgørelser.
+- Toårsgrænsen viste to særskilte mangler for kapitaliseringsdato og -procent. Efter indtastning
+  af 01-01-2022 og 60 % stoppede ydelsen fortsat 30-06-2020 med årsagen «To år før folkepensionsdatoen».
+- Overgangen til 2024-niveau var forklaret. Månedsbrøken 6,03226 og totalen 433.522 kr. gik
+  igen i PDF, og summen af skærmens rækker svarede til totalen. Advarslen ved 25 % for skade
+  fra juli 2024 lod dokumentet blive hentet.
+- Tastaturets mellemrum skiftede dokumentvalget, og Ctrl+Z/Ctrl+Y slog valget fra og til igen. PDF havde to sider uden valget og tre med det. Word med brevhoved
+  viste det fiktive journalnummer. Differencekravets eget valg var separat, jf. BB-164,
+  og gav den udvidede specifikation i bilaget ved tilvalg.
+- Gem/Hent med browserens download- og filvælgervej genskabte tabellernes totaler og
+  dokumentvalget. Escape bevarede en gyldig dato. Klik til resultatfanen afsluttede
+  31-02-2022 som afvist input, genindlæsning bevarede fejlen, og bekræftet «Slet alt» gav
+  den tomme sag igen.
+- Femten afgørelser gav femten tabeller og femten totaler, og Word kunne hentes. Ved
+  1366×620 i mørkt tema var alle syv kolonner inden for viewporten. Ingen konsolfejl eller
+  -advarsler i Chrome.
+
+### Dækningshuller
+
+- Edge, Firefox og WebKit blev ikke kørt. Gem/Hent brugte den almindelige download og
+  browserens HTML-filvælger via eksplicit fallback i Chrome. Den native filvælger og
+  overskrivning af en fysisk fil er ikke genmålt.
+- PDF- og Word-indholdet er læst fra de hentede filer. Sideskift og typografi i Word er
+  ikke visuelt vurderet. Fremtidig virkning og identiske overskrifter er hentet i Word,
+  og PDF's tekst kommer fra samme dokumentgenerator.
+- Ophør på selve folkepensionsgrænsen, genoptagelse og afbrudt dokumentgenerering er
+  ikke særskilt browserprøvet.
+
+## Fornyet gennemgang 2026-11-19 – 11c. Kapitalisering
+
+- Rute: Erhvervsevnetab → Kapitalisering.
+- Grundlag: `4688ca7e`. Chrome headless ved 1536×864 og 1366×620, lyst og mørkt tema.
+
+### Fladen kort
+
+Fanen har ingen indtastningsfelter. «Download specifikation» er dens eneste handling ud over
+fejlhenvisningerne. Brugeren får en boks pr. kapitaliseret afgørelse med dato, kapitaliseringsprocent,
+grundydelse, regulering, årlig ydelse, vejledning og tabel, alder, faktor og kapitalbeløb. Særfaktor,
+køn og alder ved tidligere kapitalisering vises, når de bruges. Skærm, PDF og Word bruger samme
+beregnede rækker. Differencekravets bilag viser beregningen for de kapitaliseringer, der indgår
+i opgørelsen, og kan særskilt vise en proformakapitalisering af resten.
+
+Fladen læser fødselsdato og skadedato fra Stamdata, ASL-årsløn og afgørelser fra EET oplysninger
+samt ved ældre tabeller også Køn. Beregningsdato påvirker med vilje ikke denne specifikation
+(BB-166/167). Afgørelsesdato, virkningsdato og de to kapitaliseringsdatoer har grænser fra
+skadedato, satsdækning og datoerne i rækken. En tom virkningsdato afløses af afgørelsesdatoen.
+Procentgrænser afhænger af typen, EET %, tidligere kapitaliseringer og afstanden til folkepension.
+Delvist endelig kræver kapitaliseringsoplysninger. En ellers gyldig endelig afgørelse uden
+kapitalisering kan give en specifikation, der siger, at der ingen kapitaliserede afgørelser er.
+Ved fejl forklarer oversigten, hvad der spærrer for download.
+
+Prøvesag A: Skadedato 01-06-2018, Fødselsdato 01-01-1970, ASL-årsløn 400.000 kr.
+og én delvist endelig afgørelse af 01-06-2022 med virkning fra 01-01-2022, EET 30 %,
+Kap.dato 01-06-2022 og Kap. % 15.
+
+### BB-413 – Fejllinket peger på den allerede udfyldte afgørelse
+
+- **Type** Fejl. **Prioritet** Høj. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Brug prøvesag A, men med fødselsdato 01-07-1955. Flyt første afgørelse og
+  dens kapitalisering til 01-12-2019, med virkning fra 01-01-2019. Tilføj en endelig afgørelse
+  på 60 % af 01-10-2021 med samme virkningsdato. Lad begge kapitaliseringsfelter i anden række
+  stå tomme. Sæt Beregningsdato til 01-07-2024 for også at kunne sammenligne resultatfanerne.
+- **Oplevelse** Kapitalisering beder brugeren angive kapitaliseringsdato og hele det resterende
+  EET %. Ingen af linjerne navngiver afgørelsen. Datoens link fremhæver første rækkes
+  «Kap.dato», hvor 01-12-2019 allerede er indtastet. Procentens link fremhæver første rækkes
+  «Kap. %», hvor 15 % allerede er indtastet. Anden række er den, der skal udfyldes med
+  01-10-2021 og 45 %. Brugeren kan komme til at ændre en rigtig, tidligere kapitalisering,
+  mens dokumentet fortsat er blokeret.
+- **Forslag** Skriv «Afgørelsen af 01-10-2021» ved begge mangler og fremhæv den tomme celle i
+  den række, også efter sortering. Angiv gerne den resterende andel på 45 %, når den er kendt.
+- **Rækkevidde** [M-53](TVAERGAAENDE.md#m-53--en-manglende-indtastning-peger-på-en-udfyldt-række).
+  Samme forkerte datolink blev målt på Løbende ydelser og Differencekrav. Da 60 % blev skrevet
+  i anden række, navngav den røde feltfejl den rigtige afgørelse. BB-406 dækker udfyldte røde celler.
+  Ved en tilsvarende mangel i Erstatningsopgørelsens import fremhævede linket den rigtige række.
+- **Udfald** Årsagen var, at EET-fanernes fejloversigt opløste linkmålet uden sagens rækker og
+  derfor faldt tilbage til første række. Snapshottet giver nu hver beregningsmangel sin celle,
+  opløst mod rækkerne på samme måde som EO-importen. Linket fører til anden rækkes tomme
+  «Kap.dato» og «Kap. %» på Kapitalisering, Løbende ydelser og Differencekrav.
+- **Udfald (rækkenavn)** Gennemført 2026-11-19. Ved flere afgørelser står fx «Afgørelsen af 01-10-2021:» foran kapitaliseringsmanglerne. «Der er en afgørelse uden …»-beskederne får ikke rækkenavn.
+
+### BB-414 – En delvis kapitalisering beskrives som udløst af toårsreglen
+
+- **Type** Fejl. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Brug prøvesag A med fødselsdato 01-07-1955 og Beregningsdato 01-06-2022.
+  Bevar «Delvist endelig» og kap. 15 % af EET 30 %.
+- **Oplevelse** Øverst står, at kapitalisering inden for de sidste to år før folkepensionsalderen
+  som udgangspunkt er udelukket. Samme boks viser derefter «Kapitaliseret pga. ≤ 2 år til
+  folkepension? Ja», særfaktor 1,245 og 61.730 kr. PDF'en trykker «Ja» og særfaktoren.
+  Betegnelsen får faktorvalget til at fremstå som en begrundelse for selve kapitaliseringen.
+  Ved endelig afgørelse på 60 % i samme periode viste rækken også «Ja», nu med krav om
+  kapitalisering af hele den resterende andel.
+- **Forslag** Skriv «Anvendes særfaktor pga. højst 2 år til folkepension?». Bevar den gule
+  besked om den indtastede delvise kapitalisering. Brug samme faktorsprog for proforma.
+- **Rækkevidde** Differencekrav viste advarslen og fradraget 61.730 kr. Samme PDF indeholdt
+  «Ja» både ved den faktiske kapitalisering og ved proformaberegningen af resten. Løbende
+  ydelser viste ikke den årsagslinje. Forsørgertab navngiver sin proformaberegning udtrykkeligt.
+  Se [M-54](TVAERGAAENDE.md#m-54--en-faktor-forklares-som-årsag-til-selve-kapitaliseringen).
+- **Udfald** Gennemført 2026-11-19. Etiketten hedder nu «Særfaktor pga. ≤ 2 år til folkepension?», kortere end før, også i proforma.
+
+### BB-415 – En genoptagelsesdato mister synligt sin rolle ved skæringsdatoen
+
+- **Type** Fornuft. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Brug prøvesag A med Virkningsdato 01-01-2020, tidligere kapitaliseringsdato
+  01-06-2020, Afgørelsesdato 30-06-2024 og Kap.dato 01-07-2024. Sæt Beregningsdato til
+  01-07-2024 for at sammenligne Differencekrav. Flyt kun Afgørelsesdato til 01-07-2024.
+- **Oplevelse** Før ændringen vises den tidligere dato, «Alder ved tidligere kapitalisering»,
+  faktor 10,461 og 553.056 kr. Efter ændringen forsvinder den tidligere dato fra specifikationen,
+  faktoren bliver 9, og beløbet bliver 475.815 kr. Feltet på EET oplysninger står stadig med
+  01-06-2020. Hverken skærm eller PDF forklarer skiftet. Hvis Kapitaliseringsdato derefter
+  flyttes til 02-07-2024, vises den gule besked om, at kapitalisering ved genoptagelse fra
+  1. juli 2024 som udgangspunkt sker på afgørelsesdatoen. Den historiske dato har altså
+  stadig betydning for, hvilken datoregel brugeren møder.
+- **Forslag** Vis ved faktoropslaget, at afgørelsen er en genoptagelse, og hvilken dato
+  faktoren bygger på. Ved afgørelse fra 1. juli 2024 kan der fx stå «Ved genoptagelse fra
+  1. juli 2024 bruges den nye kapitaliseringsdato til faktoropslaget.»
+- **Rækkevidde** Opfølgning på [M-35](TVAERGAAENDE.md#m-35--et-synligt-felt-som-den-aktuelle-beregningsmåde-ikke-læser).
+  Differencekrav viser samme fradrag på 475.815 kr. og bruger samme afsnit i kapitaliseringsbilaget.
+  Løbende ydelser bruger også den tidligere dato ved valg af regel for toårsgrænsen.
+  Proformaberegningen i Differencekrav viser datoen for sit eget opslag. EO's særskilte
+  TAF-advarsel læser den aktuelle kapitaliseringsdato ved en delvist endelig afgørelse.
+  De to sidstnævnte mekanismers genoptagelsesgrænse er kun kildeafstemt.
+- **Udfald** Gennemført 2026-11-19. Aldersrækken hedder ved genoptagelse fra 1. juli 2024 «Alder ved ny kapitalisering (genoptaget fra 1. juli 2024)».
+
+### BB-416 – Grundydelsens formel kalder 15 % for EET, mens afgørelsen siger 30 %
+
+- **Type** Fornuft. **Prioritet** Mellem. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Åbn Kapitalisering og hent PDF'en i prøvesag A.
+- **Oplevelse** Overskriften siger «Afgørelse 1. juni 2022 (30 %)». Kapitaliseringsprocenten
+  står som 15 %. Linjen «Grundløn x EET x Erstatningsniveau» kalder procenten for EET,
+  men regnestykket lige under bruger de kapitaliserede 15 %. En læser, der sætter
+  afgørelsens EET på 30 % ind, får dobbelt så stor grundydelse.
+- **Forslag** Navngiv faktoren som «kapitaliseringsprocent» i kapitaliseringsformlen. Brug
+  «resterende EET %» i proformaberegningen, hvor det er den resterende andel, der bruges.
+- **Rækkevidde** Differencekravs proformaboks viste den samme tvetydige formel med 15 %
+  resterende af 30 %. PDF'en med faktiske kapitaliseringer og proforma bruger samme etikette.
+  Mer-erstatning ved forhøjet pensionsalder bruger den også ifølge koden. Den gren blev
+  ikke udløst i browseren. I Løbende ydelser kan faktoren være fratrukket en tidligere
+  kapitalisering. Der står allerede en linje med fradraget, så brugeren kan følge tallet.
+  Se [M-55](TVAERGAAENDE.md#m-55--formelteksten-skal-kunne-bruges-til-at-efterregne).
+- **Udfald** Gennemført 2026-11-19. Formlen hedder «Grundløn x Kap. % x Erstatningsniveau», i proforma «Grundløn x Rest-EET x Erstatningsniveau».
+
+### BB-417 – Kapitalbeløbets lighedstegn skjuler oprundingen
+
+- **Type** Fornuft. **Prioritet** Lav. **Beslutning** Gennemført 2026-11-19.
+- **Reproduktion** Brug prøvesag A. Læs sidste linje på skærmen eller i PDF'en.
+- **Oplevelse** «Beregnet kapitalbeløb (49.581,97 kr. x 10,073) =» står ud for 499.440 kr.
+  Produktet er 499.439,18381 kr. Ved almindelig afrunding til hele kroner får læseren
+  499.439 kr. Der står ingen forklaring på den ekstra krone.
+- **Forslag** Tilføj «oprundet til hele kroner» ved kapitalbeløbets formel. Vis samme tekst
+  ved tilsvarende beløb, hvor oprundingen bruges.
+- **Rækkevidde** Samme forskel er bekræftet for proformakapitalisering i Differencekrav
+  og Forsørgertab. Beregningen på EET efter EAL bruger andre afrundingsregler.
+  Se [M-55](TVAERGAAENDE.md#m-55--formelteksten-skal-kunne-bruges-til-at-efterregne).
+- **Udfald** Gennemført 2026-11-19. Kapitalbeløbets linje slutter med «(oprundet) =» på Kapitalisering, i proforma og i Forsørgertab, som «(afrundet)» ved EAL.
+
+### Efterprøvet uden nye fund
+
+- Tom sag viste fire mangler og grå download. Kap.dato alene gav besked om manglende procent.
+  Delvist endelig uden kapitaliseringsfelter blokerede. En endelig afgørelse på 50 % uden
+  kapitalisering gav den aftalte tomme, hentbare specifikation. En midlertidig afgørelse
+  alene gav ingen kapitaliseringsspecifikation.
+- En rød Beregningsdato lod kapitalbeløbet og PDF-knappen bestå. Det følger den afgjorte
+  opdeling i BB-166/167. En dato lige før den tilladte nedre grænse og en efter 31-12-2026
+  blev afvist. 31-12-2026 blev accepteret. 0 og 4 % blev røde på delvist endelig, 5 %
+  kunne bruges, og en samlet kapitalisering over 50 % blev afvist. Første kapitalisering
+  på 10 % gav den sædvanlige gule advarsel med aktiv download.
+- En endelig afgørelse på grænsedagen 01-07-2020 for den målte fødselsdato brugte særfaktoren.
+  Kap. % 45 med 15 tidligere kapitaliseret gav en beregning for EET 60 %. Kap. % 60 gav en
+  konkret rød feltfejl. En senere tilladt dato blev brugt med gul advarsel. En alder på
+  3 år og 11 måneder blokerede med tabelgrænsen på 5 år.
+- En kapitalisering i 2014 krævede Køn og viste de forskellige faktorer 12,395 og 12,101
+  ved Kvinde og Mand. Word med brevhoved bevarede den valgte værdi og det fiktive
+  journalnummer. Sagen fra 1. juli 2024 brugte direkte 2024-niveau, mens genoptagelsesprøven
+  med en skade fra 2018 viste omregningen fra 2003-niveau.
+- BB-411/M-52 om identiske overskrifter er allerede registreret, også på Kapitalisering.
+  Ti afgørelser med forskellige datoer gav ti bokse og ti kapitalbeløb i Word og på skærmen.
+  Den aftalte afgørelsesvise visning følger BB-174.
+- Gem/Hent genskabte køn, kapitaliseringsandel og resultat. Escape bevarede datoen. Faneskift
+  afsluttede 31-02-2014 som afvist input. Undo genskabte kapitalbeløbet, redo genskabte fejlen,
+  og genindlæsning bevarede den. Bekræftet «Slet alt» gav en tom sag.
+- Den mørke visning ved 1366×620 holdt alle bokse inden for viewporten. Ingen konsolfejl
+  eller -advarsler i Chrome.
+
+### Dækningshuller
+
+- Øvrige browsermotorer og den native filvælger er ikke kørt. Gem/Hent brugte download og
+  HTML-filvælger via fallback i Chrome.
+- PDF- og Word-teksten er kontrolleret fra de hentede filer. Dokumenternes typografi og
+  sideskift er ikke visuelt gennemgået.
+- Afbrudt dokumentgenerering, kønsopdelte faktorer helt op til grænsedatoen og hver enkelt
+  historisk vejledning er ikke efterprøvet særskilt. Historiske tabeller uden for de konkrete prøvesager indgik kun i kildegennemgangen.
+
+## Fornyet gennemgang 2026-11-19 – 11d. EET efter EAL
+
+Chrome headless ved 1536×864 og 1366×620, lyst og mørkt tema, commit `4688ca7e`.
+
+### Fladen kort
+
+Fanen er skrivebeskyttet. «Fejl og advarsler» viser årsager og links til Stamdata eller EET
+oplysninger. «Beregning» viser dato og dokumentknap. «Specifikation» viser årsløn og regulering,
+erhvervsevnetabsprocent og maksimum, aldersreduktion og bundlinje med et eventuelt forlig.
+Specifikationen kan hentes som PDF eller Word. Differencekrav genbruger EAL-beregningen som
+grundlag og anvender forliget efter sine ASL-fradrag.
+
+| Oplysning eller kontrol | Tomværdi, grænse og betydning |
+|---|---|
+| Fødselsdato, skadestype og skade-/anmeldelsesdato | Stamdata. Kalenderdatoer i de aktive datointervaller, fødselsdato højst lig skadereferencen. Skadestypen styrer datoordene. Datoerne bestemmer alder og reguleringsår. |
+| Beregningsdato | Dato fra skadereferencen til sidste dækkede satsår. Tom eller rød dato stopper resultat og dokument. En dato i samme år kræver ingen opregulering. |
+| Årsløn efter EAL og ASL | Valgfrie heltalsfelter mellem 1.000 og 9.999.999 kr. ASL kræver også hele tusinder og skadesårets ASL-maksimum. Tom EAL-årsløn fører til ASL-årslønnen. En rød anvendt årsløn blokerer. Beløbene er fælles med Forsørgertab og Erstatningsopgørelsen, hvor relevante. |
+| EET % efter EAL og ASL-afgørelser | EAL-feltet accepterer 5–100 % i trin på fem. 0 betyder tomt. 5 og 10 % advarer. Når feltet er tomt, bruges den seneste ASL-afgørelse, med virkningsdato og afgørelsestype som næste kriterier ved samme afgørelsesdato. En tom tabel giver ingen procent. En begyndt række kan udløse en konkret mangel. |
+| Forlig | Frivillig procent (1–100) eller brøk med positiv tæller højst lig nævner. En udfyldt dato kræver en ansvarsgrad. Et ugyldigt forlig stopper EAL og Differencekrav. Ved gyldigt forlig under 100 % anvendes andelen på fanens EAL-krav efter aldersreduktion. |
+| Links og download | Fejllinks fører tilbage til sagens oplysninger. Dokumentknappen afspejler beregningens tilstand og downloadformatet i Indstillinger. Brevhovedet følger indstillingen for Erhvervsevnetab. Gem/Hent og Slet alt ligger i sidemenuen. |
+
+### BB-418 – En ren EAL-sag får kun besked om at udfylde ASL-årslønnen
+
+- **Type** Fornuft.
+- **Rækkevidde** [M-56](TVAERGAAENDE.md#m-56--meldingen-om-en-mangel-viser-kun-den-ene-vej-videre).
+- **Prioritet** Mellem.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Angiv fødselsdato 01-01-1996, skadedato 01-07-2024,
+  beregningsdato 01-07-2026 og EET % efter EAL 15. Lad begge årslønninger og
+  afgørelsestabellen stå tomme. Åbn «EET efter EAL».
+- **Oplevelse** Fanen skriver «Skadelidtes årsløn (efter ASL) er ikke udfyldt» og linker
+  kun til «Arbejdsskadesikringsloven». Udfyldes i stedet 600.000 kr. under
+  «Erstatningsansvarsloven», bliver specifikationen tilgængelig med et krav på 980.250 kr.
+- **Konsekvens** En bruger med en ren EAL-sag kan blive sendt efter et beløb, sagen
+  ikke har, eller indtaste EAL-årslønnen i ASL-feltet. På samme fane forklarer den
+  tilsvarende mangel på EET-procent allerede begge veje.
+- **Forslag** Skriv «Årslønnen mangler. Angiv skadelidtes årsløn efter EAL, eller udfyld
+  årslønnen efter ASL, hvis den kan bruges i sagen.» Link til EAL-feltet.
+- **Systematik** Løbende ydelser, Kapitalisering og Differencekrav har brug for
+  ASL-årslønnen til deres ASL-beregninger. Forsørgertab viste EAL-kravet med EAL-årsløn
+  alene og viste ingen tilsvarende ASL-mangel for EAL-kravet. Se M-56.
+- **Udfald** Gennemført 2026-11-19. EET efter EAL skriver «Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL» med link til EAL-feltet. Differencekrav melder fortsat kun ASL-årslønnen.
+
+### BB-419 – En ældre afgørelses kapitaliseringsdato stopper EAL-specifikationen
+
+- **Type** Edge case.
+- **Rækkevidde** [M-57](TVAERGAAENDE.md#m-57--en-fejl-i-en-oplysning-uden-betydning-for-resultatet-stopper-beregningen).
+- **Prioritet** Mellem.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Brug datoerne fra BB-418 og EAL-årsløn 600.000 kr. Lad EAL-procenten
+  stå tom. Tilføj en delvist endelig afgørelse 01-08-2024 med virkning samme dag, EET
+  30 %, Kap. % 15 og Kap.dato 01-08-2024. Tilføj en midlertidig afgørelse 10-08-2024
+  med virkning samme dag og EET 40 %. Åbn «EET efter EAL», og ret derefter den første
+  afgørelses Kap.dato til 31-02-2024.
+- **Oplevelse** Kravet på 2.614.000 kr. forsvinder. Fanen viser «Afgørelsen af
+  01-08-2024, Kap.dato: Datoen findes ikke i kalenderen» og blokerer dokumentet.
+  Tastes 40 % i «EET % (hvis afviger fra ASL)», vender samme beløb og dokumentknap
+  tilbage, selv om kapitaliseringsdatoen stadig er rød.
+- **Konsekvens** Brugeren kan ikke hente EAL-specifikationen, mens den ældre
+  kapitaliseringsdato undersøges. Den synlige omvej gør 40 % til en særskilt EAL-værdi.
+  Hvis den seneste ASL-afgørelse senere rettes, vil EAL fortsat bruge de indtastede 40 %.
+- **Forslag** Lad brugeren hente EAL-specifikationen, når Mineo kan fastslå den valgte
+  afgørelse og dens procent uafhængigt af den røde kapitaliseringsdato. Behold den
+  konkrete fejl ved den afgørelse og blokeringen af de opgørelser, der bruger datoen.
+  Fejl, der kan ændre afgørelsesvalget eller den valgte procent, skal stadig blokere.
+- **Systematik** Samme prøve med en ugyldig virkningsdato på den ældre række stoppede
+  EAL. En rød procent på den seneste afgørelse stoppede med rette. Løbende ydelser,
+  Kapitalisering og Differencekrav blokerede, fordi de bruger kapitaliseringsdatoen.
+  Forsørgertab viste fortsat sit EAL-krav med en rød ASL-årsløn, da EAL-årslønnen var
+  udfyldt. Se M-57 for EO-importen.
+- **Udfald** Gennemført 2026-11-19. Røde celler i Kap.dato, Kap. % og tidl. kap.dato blokerer ikke længere EET efter EAL. Afgørelsesdato, virkningsdato, EET % og type blokerer fortsat.
+
+### Overvejet uden nye fund
+
+- Tom sag viste fem mangler. En særskilt EAL-procent på 35 % holdt EAL-beregningen
+  åben med en rød ASL-afgørelse. Ti gyldige afgørelser brugte de 40 % fra den seneste.
+- 0 betød tomt, 5 og 10 % advarede, 14 % og 105 % blokerede med konkrete grænser,
+  og 15 og 100 % kunne bruges. Det aftalte nulforløb følger BB-143.
+- Kalenderfejl, dato før skadedato og dato efter sidste dækkede år gav konkrete
+  beskeder. Dato lig skadedato og 31-12-2026 passerede datovalideringen.
+- Ved skade 01-07-2024 og ASL-årsløn alene kom advarslen om de to lønregler med
+  link til «Erstatningsansvarsloven». En udfyldt EAL-årsløn fjernede advarslen.
+  Manglende kildeetiketter i selve specifikationen er allerede afgjort i BB-180.
+- Årsløn under 1.000 kr. blev rød. Ved 9.999.999 kr. og EET 100 % viste fanen
+  maksimumsreduktionen til 11.582.500 kr. Alder 28 viste 0 % uden minustegn. Alder
+  75 viste 70 % med loft i formlen. «(afrundet)» ved opreguleringen følger BB-131.
+- Forligsdato alene bad om procent eller brøk. Begge former udfyldt samtidigt
+  blokerede. 50 % med dato og 1/3 uden dato gav den forventede tekst og formel.
+  Differencekravs hentede Word-bilag oplyste, at forliget anvendes på forsiden.
+- PDF med brevhoved og Word uden brevhoved gengav de viste mellemregninger og
+  forligsbeløbet 980.250 kr. PDF'en havde ét ark og viste journalnummeret.
+- Gem/Hent via browserens fallback genskabte EAL-procent 35 og 2.287.250 kr. efter
+  en senere ændring til 60 %. Escape bevarede datoen, og faneskift afsluttede den
+  ugyldige dato. Undo og redo genfandt datoens felt og genskabte begge tilstande.
+  F5 bevarede den afviste dato. Bekræftet «Slet alt» gav en tom sag.
+- End fra første fane flyttede fokus til sidste fane. I mørkt tema ved 1366×620
+  holdt boksene sig inden for skærmen. Chrome registrerede 0 konsolfejl og
+  0 konsoladvarsler.
+
+### Dækningshuller
+
+- Øvrige browsermotorer, den native filvælger og afbrudt dokumentgenerering er ikke
+  efterprøvet. PDF- og Word-teksten er læst fra filerne. Dokumenterne er ikke
+  gennemgået visuelt.
+- Alle historiske satsår, særtilfælde med samme afgørelsesdato og den præcise variation
+  i EAL-advarslen ved hver historisk ASL-maksimumssats er ikke udtømt.
+
+## Fornyet gennemgang 2026-11-19 – 11e. Differencekrav
+
+Chrome headless ved 1536×864 og 1366×620, lyst og mørkt tema, commit `4688ca7e`.
+
+### Fladen kort
+
+Fanen viser EAL-kravet og trækker løbende ASL-ydelser, kapitalbeløb, resterende EET og en
+eventuel mer-erstatning ved forhøjet pensionsalder fra. Et forlig anvendes på beløbet efter
+fradragene. Skærmen viser opgørelsen og eventuelle særskilte beregningsbokse for proforma
+og forhøjet pensionsalder. Oplysningerne indtastes på Stamdata og EET oplysninger. Kun
+valg om beregning og dokument ligger på Differencekrav.
+
+| Oplysning eller kontrol | Tilstand og betydning |
+|---|---|
+| Stamdata, beregningsdato og årsløn | Fødselsdato, skadetype og skade-/anmeldelsesdato bestemmer alder og satsår. Beregningsdato fra skadereferencen til sidste satsår. ASL-årsløn i hele tusinder og inden for skadesårets maksimum. Valgfri EAL-årsløn i hele kroner, 1.000–9.999.999 kr. |
+| Erhvervsevnetabsprocent og afgørelser | EAL-procent i trin på 5 fra 5 til 100, med mulighed for at bruge ASL-procenten. Differencekrav kræver en ASL-afgørelse med virkning på eller før beregningsdatoen. Tom virkningsdato bruger afgørelsesdatoen. Afgørelsestype, kapitaliseringsdato/-procent og tilbageholdelse styrer de relevante fradrag. Ældre faktortabeller kan kræve køn. |
+| Forlig | Procent 1–100 eller brøk med tæller højst lig nævner. Forligsdatoen kræver ansvarsgrad og kan højst være dags dato. Felterne deles med Erstatningsopgørelsen. Et ugyldigt forlig stopper Differencekrav og EET efter EAL. |
+| Beregningsvalg | «Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft» og «Indregn forhøjet pensionsalder». Begge starter slået til og kan vælges, mens sagen er ufuldstændig. |
+| Dokumentvalg | «Opgørelse» er låst til. De fem valg gælder Løbende ydelser, Kapitalisering, EET efter EAL, Proformakap. af rest-EET og Forhøjet pensionsalder. En separat kontakt styrer den udvidede specifikation i løbende-ydelsesbilaget. |
+| Fejl, download og sag | Fejl og advarsler har links tilbage til sagens oplysninger. Ufuldstændig eller ugyldig sag skjuler specifikation og bilagsvalg. Downloadformat og brevhoved følger Indstillinger. Gem/Hent og Slet alt ligger i sidemenuen. Ingen tabeller på selve fanen kan redigeres. |
+
+### BB-420 – Kapitaliseringsbilaget viser et beløb uden for opgørelsens skæringsdato
+
+- **Type** Fejl.
+- **Rækkevidde** [M-31](TVAERGAAENDE.md#m-31--samme-beregning-kørt-med-et-justeret-input-udleveres-under-samme-navn).
+- **Prioritet** Høj.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Brug fødselsdato 01-01-1970, skade 01-06-2018, beregningsdato
+  01-06-2024, ASL-årsløn 400.000 kr., EAL-årsløn 750.000 kr. og EAL-procent 60.
+  Tilføj midlertidig afgørelse 01-06-2020, EET 30 %, og delvist endelig afgørelse
+  01-06-2023, EET 50 %, med Kap.dato 01-07-2024 og Kap. % 25. Begge afgørelser har
+  virkning fra afgørelsesdatoen. Hent Differencekravs PDF med standardbilagene.
+- **Oplevelse** Opgørelsen skriver «Ikke kapitaliseret på beregningsdatoen.» og bruger
+  de fulde 50 % i proformafradraget på 1.595.566 kr. Bilaget «Kapitalisering (ASL)»
+  er afkrydset og viser alligevel 793.025 kr. kapitaliseret 01-07-2024 uden at sige,
+  at beløbet står uden for opgørelsen. Ved ingen tidligere kapitalisering siger
+  tooltippet for «Forhøjet pensionsalder» samtidig «Pensionsalderen er ikke forhøjet
+  i perioden», selv om mer-erstatning ikke har nogen kapitalisering at regne på i perioden.
+- **Konsekvens** Modparten kan læse bilaget som dokumentation for et kapitalbeløb, som
+  opgørelsen har glemt at trække fra. Forvirringen opstår i én fil, selv når læseren har
+  valgt den rigtige beregningsdato.
+- **Forslag** Lad kapitaliseringsbilaget dokumentere de beløb, der indgår i opgørelsen.
+  Ved ingen af disse beløb skal bilagsvalget forklare, at der ikke var kapitalisering
+  på eller før beregningsdatoen. Brug samme grund ved «Forhøjet pensionsalder», når
+  alene senere kapitaliseringer findes.
+- **Systematik** Kapitalisering-fanen viste samme senere beløb som forventet for en
+  selvstændig kapitaliseringsberegning, jf. BB-166. På skæringsdagen 01-06-2024 var
+  beløbet med både på opgørelsen og i bilaget. Løbende-ydelsesbilagets egen
+  skæringsdatotekst er efterprøvet i BB-421. EAL-bilaget viste regulering til
+  opgørelsens beregningsår, og proformabilaget brugte opgørelsens dato.
+- **Udfald** Gennemført 2026-11-19. Bilaget viser kun kapitaliseringer på eller før beregningsdatoen. Er der ingen, er valget inaktivt med «Ingen kapitalisering på eller før beregningsdatoen». Samme årsag står ved «Forhøjet pensionsalder». Kapitalisering-fanen er uændret (BB-166).
+
+### BB-421 – Løbende-ydelsesbilaget kalder dagen før for beregningsdatoen
+
+- **Type** Fejl.
+- **Rækkevidde** [M-31](TVAERGAAENDE.md#m-31--samme-beregning-kørt-med-et-justeret-input-udleveres-under-samme-navn).
+- **Prioritet** Mellem.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Brug fødselsdato 01-01-1970, skade 01-06-2018, ASL-årsløn
+  400.000 kr. og én midlertidig afgørelse på 30 % med afgørelses- og virkningsdato
+  01-06-2020. Sæt beregningsdatoen til samme dag. Hent Differencekrav med bilaget
+  «Løbende ydelser».
+- **Oplevelse** Opgørelsen skriver «Beregningsdato 01-06-2020» og tager afgørelsen med.
+  Bilaget i samme dokument siger «Afgørelsen ligger helt efter beregningsdatoen
+  (31-05-2020).» Den formulering stod i både PDF og Word.
+- **Konsekvens** Læseren får to forskellige datoer med samme navn og kan tro, at
+  opgørelsen bygger på en afgørelse, som lå efter den valgte dato.
+- **Forslag** Skriv i bilaget, at løbende ydelser til differencekravet opgøres til og
+  med dagen før beregningsdatoen, og at denne afgørelse får virkning 01-06-2020.
+- **Systematik** Det selvstændige dokument og fanen «Løbende ydelser» medregnede
+  01-06-2020 med 266 kr. Det følger den tidligere afgørelse om forskellig
+  periodeafgrænsning (BB-186). Dette fund vedrører navngivningen af datoen inden
+  i Differencekravs eget bilag. EAL-bilaget gentog ingen beregningsdato.
+- **Udfald** Bilaget skriver nu «Løbende ydelser til differencekravet opgøres til og med dagen
+  før beregningsdatoen (31-05-2020). Afgørelsen har virkning fra 01-06-2020.» Fanen og det
+  selvstændige dokument er uændrede bortset fra BB-410.
+
+### BB-422 – Den udvidede specifikation står fortsat til, når bilaget fravælges
+
+- **Type** Fornuft.
+- **Rækkevidde** [M-25](TVAERGAAENDE.md#m-25--gaten-spørger-findes-der-noget-ikke-findes-det-brugeren-bad-om).
+- **Prioritet** Lav.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Åbn en sag med et tilgængeligt «Løbende ydelser»-bilag. Slå
+  «Medtag udvidet specifikation på løbende ydelser» til, og fjern derefter
+  afkrydsningen ved «Løbende ydelser». Hent en specifikation.
+- **Oplevelse** Kontakten bliver grå, men står stadig til højre som slået til.
+  Dokumentet udelader både bilaget og den udvidede specifikation. Genvalg af
+  bilaget gør kontakten aktiv med den bevarede værdi.
+- **Konsekvens** Det fremgår ikke ved aflæsning af kontakten alene, at den ekstra
+  side er udeladt. De utilgængelige bilagsvalg i samme boks viser deres faktiske
+  fravalg ved at blive umarkerede.
+- **Forslag** Vis kontakten slået fra, mens bilaget er fravalgt. Bevar brugerens valg
+  og vis det igen, når bilaget vælges på ny.
+- **Systematik** «Forhøjet pensionsalder» viste sig umarkeret ved fravalg af
+  beregningen og genskabte valget ved genaktivering. Erstatningsopgørelsens
+  utilgængelige bilagsvalg var også umarkerede. Koden har kun denne ene afhængige
+  kontakt til en udvidet specifikation. BB-188 dækkede den tidligere aktive kontakt;
+  her er kontakten inaktiv, og fundet gælder dens viste tilstand.
+- **Udfald** Afvigelse fra page-component-contract §10.5, som kræver inaktive valg vist
+  umarkerede. En inaktiv kontakt vises nu slået fra. Brugerens valg bevares og vises igen, når
+  bilaget vælges. Kontrakten nævner nu kontakter udtrykkeligt.
+
+### BB-423 – En påbegyndt afgørelse får også besked om, at tabellen er tom
+
+- **Type** Fornuft.
+- **Rækkevidde** [M-58](TVAERGAAENDE.md#m-58--en-påbegyndt-indtastning-meldes-som-fraværende).
+- **Prioritet** Lav.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Sæt fødselsdato 01-01-1970, skadedato 01-06-2018,
+  beregningsdato 01-06-2024 og ASL-årsløn 400.000 kr. Indtast kun afgørelsesdatoen
+  01-06-2020 på første række. Åbn Differencekrav.
+- **Oplevelse** Boksen viser «Der er en afgørelse uden EET %», «Der er en afgørelse
+  uden afgørelsestype» og «Ingen ASL-afgørelser er indtastet» samtidigt.
+- **Konsekvens** Brugeren kan tro, at Mineo ikke har registreret afgørelsen, selv
+  om de første beskeder forklarer præcis, hvad der mangler på den.
+- **Forslag** Behold de konkrete mangler og brug kun «Ingen ASL-afgørelser er
+  indtastet», når tabellen reelt er tom.
+- **Systematik** Løbende ydelser, Kapitalisering og EET efter EAL undlod
+  tomhedsmeldingen i samme sag. Differencekrav gav korrekt en særskilt besked, da
+  tabellen i stedet indeholdt en gyldig afgørelse med fremtidig virkningsdato.
+- **Udfald** Differencekrav viser nu kun de konkrete mangler, som de tre søsterfaner. Har den
+  påbegyndte række ingen konkret mangel på fanen, fx en række med kun en procent, står
+  tomhedsbeskeden fortsat og blokerer. EAL-fanens «Erhvervsevnetabsprocent er ikke udfyldt»
+  undertrykkes, når rækken selv mangler sin EET %.
+
+### BB-424 – Afrundede måneder giver en anden krone i det viste regnestykke
+
+- **Type** Fornuft.
+- **Rækkevidde** [M-55](TVAERGAAENDE.md#m-55--formelteksten-skal-kunne-bruges-til-at-efterregne).
+- **Prioritet** Lav.
+- **Beslutning** Gennemført 2026-11-19.
+- **Fremgangsmåde** Brug fødselsdato 01-07-1955, skade 01-04-2005, beregningsdato
+  02-05-2022 og ASL-årsløn 387.000 kr. Indtast én endelig afgørelse på 60 % med
+  virkning og afgørelsesdato 01-06-2019, uden kapitalisering.
+- **Oplevelse** Skærm og Word viser «1,9677 mdr. x 22.813 kr./md. =» og et
+  fradrag på 44.890 kr. Ganget som vist bliver resultatet 44.889,1401 kr.,
+  afrundet 44.889 kr.
+- **Konsekvens** Læseren kan ikke efterregne fradraget af tallene på linjen.
+- **Forslag** Vis den præcise andel af perioden, fx «(30/31 + 1) mdr. x 22.813
+  kr./md.», så linjen kan efterregnes med den eksisterende afrundingsregel.
+- **Systematik** Løbende ydelser viste 1,96774 måneder og 44.890 kr. for perioden
+  02-05-2022–30-06-2022 på skærm og i Word. Den nedsatte særfaktor i Differencekravs
+  nyere gren kunne efterregnes med den præcision, programmet viste.
+- **Udfald** Afvigelse fra den afgjorte BB-162-regel om fem decimaler. Skærm, PDF og Word viser
+  nu «1,96774 mdr. x 22.813 kr./md. =», som giver de viste 44.890 kr. Brøkvisningen fra
+  forslaget er ikke indført.
+
+### Overvejet uden nye fund
+
+- Tom sag gav fem konkrete mangler og grå download. Elleve gyldige afgørelser gav
+  22 afgørelsesoverskrifter fordelt på de to afsnit. Et EAL-beløb mindre end fradragene
+  gav et hentbart differencekrav på 0 kr. som tidligere afgjort.
+- Dato lig virkningsdato kunne beregnes. En sag med kun afgørelser efter den valgte
+  dato blev blokeret. En kapitalisering på beregningsdatoen blev medregnet.
+- Skade i 2019 gav proformafradrag på 25.272 kr. med nedsat særfaktor før pension.
+  På folkepensionsdatoen forsvandt restfradraget. Ældre skade brugte resterende
+  løbende ydelser og viste årsagen til det utilgængelige proformabilag.
+- Manglende kapitaliseringsfelter ved højst to år til pension blokerede med hver
+  sin konkrete besked. Gyldige felter gjorde det tilbagevirkende fradrag synligt
+  til 30-06-2020. Valget ændrede differencekravet fra 983.339 kr. til 782.253 kr.
+  I sagen før 16-06-2011 ændrede valget ikke det allerede gældende fradrag.
+- Forlig 2/3 af 3.167.551 kr. gav 2.111.701 kr. og blev genfundet i
+  Erstatningsopgørelsen. Samtidig procent og brøk gav en konkret fejl. 101 % og
+  en fremtidig forligsdato gav begge grænsebeskeder.
+- Opgørelsen var låst til. PDF med alle tilgængelige bilag havde de valgte afsnit
+  og journalnummer. Word uden brevhoved og uden valgbare bilag havde kun
+  opgørelsen. Mer-erstatning, fravalg og genvalg virkede også i dokumentet.
+- Bilagsvalg kunne betjenes med mellemrum og fortrydes/gentages. Gem/Hent via
+  browserens fallback genskabte begge beregningsvalg og dokumentvalgene. Escape
+  genskabte den afsluttede dato, F5 bevarede den afviste dato, og bekræftet
+  «Slet alt» ryddede prøvesagen.
+- Fanen holdt bredden uden vandret scroll i mørkt tema ved 1366×620. Chrome
+  registrerede 0 konsolfejl og 0 konsoladvarsler.
+
+### Dækningshuller
+
+- Øvrige browsermotorer, den native filvælger og afbrudt dokumentgenerering er
+  ikke efterprøvet. PDF- og Word-tekst er kontrolleret fra hentede filer; den
+  fulde visuelle typografi i dokumenterne er ikke gennemgået.
+- Historiske faktoropslag og alle permutationer af delvise kapitaliseringer,
+  afgørelser med samme dato og genoptagelse er ikke udtømt. Kendte varianter fra
+  de tidligere Erhvervsevnetab-faner er bevaret i de respektive afsnit.

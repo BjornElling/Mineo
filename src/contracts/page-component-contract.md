@@ -3,7 +3,7 @@
 **Version:** 0.3
 **Status:** Normativ og gældende
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-19
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -412,7 +412,8 @@ tilpasning. Et langt sammenhængende token må nødombrydes, så det ikke oversk
 
 Individuelle afkrydsningsfelter og deres tilhørende tekst skjules aldrig, så længe den omgivende sektion
 vises. Det gælder både almindelige og betingede valg. Hvis et felt ikke er aktuelt, vises det **inaktivt
-og umarkeret** med årsagen i tooltippet. Den afsluttede værdi bevares i inputkernen og vises igen, når
+og umarkeret** med årsagen i tooltippet. Det samme gælder en betinget kontakt (`ToggleField` med
+`unavailableReason`): den vises slået fra, mens den er inaktiv (BB-422). Den afsluttede værdi bevares i inputkernen og vises igen, når
 forudsætningen bliver opfyldt. Hele sektionen må fortsat skjules efter sidens overordnede flow.
 
 Begrundelsen er den samme som for download-ikonet (§11): et valg, der forsvinder, efterlader brugeren i tvivl

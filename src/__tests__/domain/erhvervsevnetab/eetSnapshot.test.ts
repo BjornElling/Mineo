@@ -8,6 +8,11 @@ import { toKroner } from '../../../domain/money/money';
 import { eetCanonicalOutputSchema } from '../../../domain/erhvervsevnetab/eetCanonicalOutput';
 import * as systemIssueReporter from '../../../utils/systemIssueReporter';
 import { z } from 'zod';
+import {
+  aslAfgoerelseEetPctField,
+  aslAfgoerelseKapDatoField,
+  aslAfgoerelseKapPctField,
+} from '../../../inputCore/catalog/erhvervsevnetabDescriptors';
 
 const createValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -197,11 +202,92 @@ describe('computeEetSnapshot', () => {
 
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
     expect(snapshot.differencekrav.computation).toBeNull();
-    expect(beregningsdatoIssues).toEqual([{
+    expect(beregningsdatoIssues).toEqual([expect.objectContaining({
       id: 'beregningsdato-missing',
       severity: 'error',
       message: 'Beregningsdato er ikke udfyldt',
-    }]);
+    })]);
+  });
+
+  it('fører en rækkemangel til den række, der mangler oplysningen – ikke til første række (BB-413)', () => {
+    const udfyldtKapitalisering = {
+      id: 'foerste',
+      fsTilbageholdtEet: 'Nej' as const,
+      afgoerelsesDato: toISODateString('2019-12-01'),
+      virkningsDato: toISODateString('2019-01-01'),
+      eetPct: 30,
+      kapDato: toISODateString('2019-12-01'),
+      kapPct: 15,
+      afgoerelseType: 'Delvist endelig' as const,
+      tidlKapDato: undefined,
+    };
+    const manglendeKapitalisering = {
+      id: 'anden',
+      fsTilbageholdtEet: 'Nej' as const,
+      afgoerelsesDato: toISODateString('2021-10-01'),
+      virkningsDato: toISODateString('2019-01-01'),
+      eetPct: 60,
+      kapDato: undefined,
+      kapPct: undefined,
+      afgoerelseType: 'Endelig' as const,
+      tidlKapDato: undefined,
+    };
+    const snapshot = computeEetSnapshot({
+      values: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2024-07-01'),
+        ...FAELLES_AARSLOEN_INITIAL_VALUES,
+        aslAarsloen: { kind: 'number', value: 400000 },
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+        aslAfgoerelser: [udfyldtKapitalisering, manglendeKapitalisering],
+      },
+      stamdata: {
+        ...createStamdata(),
+        skadedato: toISODateString('2018-06-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
+      },
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+    });
+
+    for (const fane of [snapshot.kapitalisering, snapshot.loebendeYdelser, snapshot.differencekrav]) {
+      const manglerDato = fane.issues.find((issue) => issue.id === 'missing-kap-dato');
+      expect(manglerDato?.focusTarget).toEqual({
+        kind: 'fieldAddress',
+        address: aslAfgoerelseKapDatoField.bind('anden').address,
+      });
+    }
+    // Med flere afgørelser navngiver linjen den, der mangler oplysningen.
+    expect(snapshot.kapitalisering.issues.find((issue) => issue.id === 'missing-kap-dato')?.message)
+      .toMatch(/^Afgørelsen af 01-10-2021: /);
+    const manglerProcent = snapshot.kapitalisering.issues.find((issue) => issue.id === 'missing-kap-pct');
+    expect(manglerProcent?.focusTarget).toEqual({
+      kind: 'fieldAddress',
+      address: aslAfgoerelseKapPctField.bind('anden').address,
+    });
+  });
+
+  it('lader en rød kapitaliseringsdato stå uden at stoppe EET efter EAL, men blokerer ved en rød EET % (BB-419)', () => {
+    const values = createValues();
+    const rowId = values.aslAfgoerelser[0]!.id;
+    const redCell = (field: 'kapDato' | 'eetPct') => ({
+      id: 'field-asl-afgoerelser',
+      severity: 'error' as const,
+      message: 'Datoen findes ikke i kalenderen',
+      focusTarget: {
+        kind: 'fieldAddress' as const,
+        address: (field === 'kapDato' ? aslAfgoerelseKapDatoField : aslAfgoerelseEetPctField).bind(rowId).address,
+      },
+    });
+    const snapshotFor = (field: 'kapDato' | 'eetPct') => computeEetSnapshot({
+      values: { ...values, ealEetPct: undefined },
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {}, aslAfgoerelser: [redCell(field)] },
+    });
+
+    const medRoedKapDato = snapshotFor('kapDato');
+    expect(medRoedKapDato.efterEal.computation).not.toBeNull();
+    expect(medRoedKapDato.kapitalisering.computation).toBeNull();
+    expect(snapshotFor('eetPct').efterEal.computation).toBeNull();
   });
 
   it('et blokeret panel har ALTID computation null – motoren må ikke have kørt på et maskeret input', () => {

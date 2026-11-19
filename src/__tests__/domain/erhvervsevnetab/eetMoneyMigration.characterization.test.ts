@@ -125,13 +125,19 @@ describe('EET MoneyOre-migration karakterisering', () => {
     const computation = snapshot.kapitalisering.computation;
     if (!computation) throw new Error('Forventede kapitalisering');
     expect(computation.afgoerelser.map((row) => row.tidligereKapitaliseringsdato)).toEqual([null, null]);
-    // Den nye datoforklaring er ikke en del af MoneyOre-migrationens historiske facit.
-    // Samme hash uden dette ene metadatafelt beviser, at alle hidtidige beløb og delresultater er bevaret.
+    // Datoforklaringen, virkningsdatoen til overskriften (BB-411) og genoptagelsesflaget (BB-415) er ikke en del
+    // af MoneyOre-migrationens historiske facit. Samme hash uden disse visningsfelter beviser, at alle hidtidige
+    // beløb og delresultater er bevaret.
     expect(goldenHash({
       ...snapshot.kapitalisering,
       computation: {
         ...computation,
-        afgoerelser: computation.afgoerelser.map(({ tidligereKapitaliseringsdato: _dato, ...row }) => row),
+        afgoerelser: computation.afgoerelser.map(({
+          tidligereKapitaliseringsdato: _dato,
+          virkningsdato: _virkningsdato,
+          genoptagetMedNyFaktordato: _genoptaget,
+          ...row
+        }) => row),
       },
     })).toBe('fef5c1aa3c40ad069710ae68800c2921c7dff1e7ab8f32bed17e1e764b413a6b');
   });

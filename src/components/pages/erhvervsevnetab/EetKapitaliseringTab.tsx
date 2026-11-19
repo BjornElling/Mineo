@@ -124,11 +124,7 @@ const EetKapitaliseringTab = ({ onGoToEetOplysninger, projection, download }: Pr
         afgoerelser.map((afgoerelse) => (
           <ContentBox key={afgoerelse.rowId} className="content-box">
             <Typography className="section-header">
-              {buildKapitaliseringAfgoerelseHeading(
-                afgoerelse.afgoerelsesdato,
-                afgoerelse.eetPct,
-                formatIsoDateLong
-              )}
+              {buildKapitaliseringAfgoerelseHeading(afgoerelse, afgoerelser, formatIsoDateLong)}
             </Typography>
 
             {/* Ingen Beregningsdato-række: fanen er bevidst uafhængig af beregningsdatoen

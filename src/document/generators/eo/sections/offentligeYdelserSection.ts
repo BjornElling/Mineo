@@ -1,4 +1,6 @@
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
+import { formatAfgoerelseVirkningsTillaeg } from '../../../../domain/erhvervsevnetab/eetAfgoerelseOverskrift';
+import { resolveLoebendeTilbageholdelsesNote } from '../../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { formatIsoDateLong as formatAfgoerelsesdato } from '../../../../utils/dateFormatting';
 import { formatAsAmount, formatPercentRounded4 } from '../../../../utils/formatUtils';
 import { roundByMethod } from '../../../../utils/rounding';
@@ -244,7 +246,7 @@ type MidlertidigtEetSectionContext = Readonly<{
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   tafRanges: readonly IsoRange[];
-  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable'>;
+  writer: Pick<DocumentComposer, 'addSectionSpacer' | 'addTable' | 'writeWrappedText'>;
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
@@ -304,7 +306,12 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
     const pctText = Number.isFinite(group.eetPct) ? ` (${formatPercentRounded4(group.eetPct)})` : '';
-    renderSubheader(`Afgørelse ${datoText}${pctText}`, { addTopSpacing: groupIndex > 0 });
+    // Samme dato og procent skilles ved virkningsdatoen (BB-411).
+    const virkningsTillaeg = formatAfgoerelseVirkningsTillaeg(group, clampedGroups);
+    renderSubheader(`Afgørelse ${datoText}${pctText}${virkningsTillaeg}`, { addTopSpacing: groupIndex > 0 });
+    // En tilbageholdt forgænger kan forsvinde helt fra bilaget; noten siger hvorfor (BB-409).
+    const tilbageholdelsesNote = resolveLoebendeTilbageholdelsesNote(group);
+    if (tilbageholdelsesNote !== null) writer.writeWrappedText(tilbageholdelsesNote);
 
     const erSidsteGruppe = groupIndex === clampedGroups.length - 1;
     const specRows: RowSpec[] = [

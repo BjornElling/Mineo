@@ -45,6 +45,7 @@ const computation = {
     {
       rowId: 'differencekrav-pdf-word-kapitaliseret',
       afgoerelsesdato: iso('2021-01-01'),
+      virkningsdato: iso('2021-01-01'),
       kapitaliseringsdato: iso('2021-02-01'),
       kapitaliseringspct: 25,
       kapitalbelobOre: fromKroner(67_890),

@@ -152,7 +152,7 @@ describe('EET kapitalisering – uafhængigt snapshot → Word-facit', () => {
     expect(text).toContain('01-02-2008');
     expect(text).toContain('Kapitaliseringsprocent');
     expect(text).toContain('25 %');
-    expect(text).toContain('Grundydelse (25 %): Grundløn x EET x Erstatningsniveau');
+    expect(text).toContain('Grundydelse (25 %): Grundløn x Kap. % x Erstatningsniveau');
     expect(text).toContain('360.688 kr. x 25 % x 80 %');
     expect(text).toContain('72.137,60 kr.');
     expect(text).toContain('Reguleringsprocent (01-02-2008)');
@@ -165,7 +165,7 @@ describe('EET kapitalisering – uafhængigt snapshot → Word-facit', () => {
     expect(text).toContain('48 år, 1 måneder');
     expect(text).toContain('Folkepensionsalder');
     expect(text).toContain('65 år');
-    expect(text).toContain('Kapitaliseret pga. ≤ 2 år til folkepension?');
+    expect(text).toContain('Særfaktor pga. ≤ 2 år til folkepension?');
     expect(text).toContain('Nej');
     expect(text).toContain('Faktor måneds-afhængig?');
     expect(text).toContain('Ja');
@@ -173,7 +173,7 @@ describe('EET kapitalisering – uafhængigt snapshot → Word-facit', () => {
     expect(text).toContain('Mand');
     expect(text).toContain('Kapitaliseringsfaktor');
     expect(text).toContain('8,764');
-    expect(text).toContain('Beregnet kapitalbeløb (82.453,28 kr. x 8,764) =');
+    expect(text).toContain('Beregnet kapitalbeløb (82.453,28 kr. x 8,764) (oprundet) =');
     expect(text).toContain('722.621 kr.');
   });
 });

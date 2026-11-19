@@ -243,6 +243,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     ];
     const groups = [{
       afgoerelsesdato: iso('2024-01-01'),
+      virkningsdato: iso('2024-01-01'),
+      tilbageholdtForgaenger: null,
       eetPct: 20,
       rows: [],
       perioder: [
@@ -283,6 +285,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     const tafRanges = [{ fra: iso('2024-01-01'), til: iso('2024-01-05') }];
     const groups = [{
       afgoerelsesdato: iso('2024-01-01'),
+      virkningsdato: iso('2024-01-01'),
+      tilbageholdtForgaenger: null,
       eetPct: 20,
       rows: [],
       perioder: [{
@@ -314,6 +318,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
   it('viser 11-12 januar som 2/31 måned i Midlertidig EET-bilaget', () => {
     const groups = [{
       afgoerelsesdato: iso('2025-07-16'),
+      virkningsdato: iso('2025-07-16'),
+      tilbageholdtForgaenger: null,
       eetPct: 60,
       rows: [],
       perioder: [{
@@ -340,6 +346,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
   it('afrunder 13. januar til 31. maj 2025 med 8.975 kr./md. til 41.401 kr.', () => {
     const groups = [{
       afgoerelsesdato: iso('2025-08-29'),
+      virkningsdato: iso('2025-08-29'),
+      tilbageholdtForgaenger: null,
       eetPct: 25,
       rows: [],
       perioder: [{
@@ -376,6 +384,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     ];
     const groups = [{
       afgoerelsesdato: iso('2025-08-29'),
+      virkningsdato: iso('2025-08-29'),
+      tilbageholdtForgaenger: null,
       eetPct: 25,
       rows: [],
       perioder: [
@@ -416,6 +426,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     renderMidlertidigtEetSection({
       groups: [{
         afgoerelsesdato: iso('2024-01-01'),
+        virkningsdato: iso('2024-01-01'),
+        tilbageholdtForgaenger: null,
         eetPct: 20,
         rows: [],
         perioder: [{
@@ -434,6 +446,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       renderSubheader: vi.fn(),
       writer: {
         addSectionSpacer: vi.fn(),
+        writeWrappedText: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -452,6 +465,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     renderMidlertidigtEetSection({
       groups: [{
         afgoerelsesdato: iso('2025-07-16'),
+        virkningsdato: iso('2025-07-16'),
+        tilbageholdtForgaenger: null,
         eetPct: 60,
         rows: [],
         perioder: [{
@@ -470,6 +485,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
       renderSubheader,
       writer: {
         addSectionSpacer: vi.fn(),
+        writeWrappedText: vi.fn(),
         addTable: vi.fn((spec: TableSpec) => {
           y = renderPdfTableSpec(doc as never, y, spec).endY;
         }),
@@ -494,26 +510,30 @@ describe('BB-367: bilaget «Midlertidigt EET»', () => {
   const render = (groups: Parameters<typeof renderMidlertidigtEetSection>[0]['groups']) => {
     const startEoBilagPage = vi.fn();
     const addTable = vi.fn();
+    const renderSubheader = vi.fn();
+    const writeWrappedText = vi.fn();
     renderMidlertidigtEetSection({
       groups,
       tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-12-31') }],
       startEoBilagPage,
-      renderSubheader: vi.fn(),
-      writer: { addSectionSpacer: vi.fn(), addTable },
+      renderSubheader,
+      writer: { addSectionSpacer: vi.fn(), addTable, writeWrappedText },
     });
     const tables = addTable.mock.calls.map(([spec]) => spec as TableSpec);
-    return { startEoBilagPage, tables };
+    const overskrifter = renderSubheader.mock.calls.map(([text]) => String(text));
+    const noter = writeWrappedText.mock.calls.map(([text]) => String(text));
+    return { startEoBilagPage, tables, overskrifter, noter };
   };
 
   it('hedder «Midlertidigt EET» ligesom ydelsestypen og fradragslinjen', () => {
-    const { startEoBilagPage } = render([{ afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
+    const { startEoBilagPage } = render([{ afgoerelsesdato: iso('2024-01-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
     expect(startEoBilagPage).toHaveBeenCalledWith('Midlertidigt EET');
   });
 
   it('slutter med «I alt» over alle afgørelser, når der er mere end én række', () => {
     const { tables } = render([
-      { afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] },
-      { afgoerelsesdato: iso('2024-03-01'), eetPct: 30, rows: [], perioder: [periode('2024-03-01', '2024-03-31', 1500)] },
+      { afgoerelsesdato: iso('2024-01-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] },
+      { afgoerelsesdato: iso('2024-03-01'), virkningsdato: iso('2024-03-01'), tilbageholdtForgaenger: null, eetPct: 30, rows: [], perioder: [periode('2024-03-01', '2024-03-31', 1500)] },
     ]);
 
     expect(tables).toHaveLength(2);
@@ -524,8 +544,25 @@ describe('BB-367: bilaget «Midlertidigt EET»', () => {
     expect(texts).toEqual(expect.arrayContaining(['I alt', '2.500 kr.']));
   });
 
+  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen (BB-411)', () => {
+    const { overskrifter } = render([
+      { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 30, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] },
+      { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-07-01'), tilbageholdtForgaenger: null, eetPct: 30, rows: [], perioder: [periode('2024-07-01', '2024-07-31', 1000)] },
+    ]);
+    expect(overskrifter[0]).toMatch(/\(30 %\) – virkning fra 01-01-2024$/);
+    expect(overskrifter[1]).toMatch(/\(30 %\) – virkning fra 01-07-2024$/);
+  });
+
+  it('forklarer en tilbageholdt forgænger, der ellers forsvinder tavst fra bilaget (BB-409)', () => {
+    const { overskrifter, noter } = render([
+      { afgoerelsesdato: iso('2024-08-01'), virkningsdato: iso('2024-05-01'), tilbageholdtForgaenger: iso('2024-06-01'), eetPct: 30, rows: [], perioder: [periode('2024-05-01', '2024-05-31', 1000)] },
+    ]);
+    expect(overskrifter[0]).not.toContain('virkning fra');
+    expect(noter).toEqual(['Ydelsen efter afgørelsen af 01-06-2024 er tilbageholdt og fratrækkes ikke.']);
+  });
+
   it('har ingen «I alt» med én række', () => {
-    const { tables } = render([{ afgoerelsesdato: iso('2024-01-01'), eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
+    const { tables } = render([{ afgoerelsesdato: iso('2024-01-01'), virkningsdato: iso('2024-01-01'), tilbageholdtForgaenger: null, eetPct: 20, rows: [], perioder: [periode('2024-01-01', '2024-01-31', 1000)] }]);
     expect(tables[0]!.rows.some((row) => row.kind === 'total')).toBe(false);
   });
 });

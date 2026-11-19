@@ -1,10 +1,24 @@
+/**
+ * Faktoren i grundydelsens formel. Den er aldrig afgørelsens fulde EET: en kapitalisering regner med den
+ * kapitaliserede andel, en proformakapitalisering med det resterende EET (BB-416). «EET» fik en læser, der
+ * indsatte afgørelsens procent, til at få en dobbelt så stor grundydelse.
+ */
+export type KapitaliseringGrundydelseFaktor = 'kapitaliseringsprocent' | 'rest-eet';
+
+const FAKTOR_NAVN: Readonly<Record<KapitaliseringGrundydelseFaktor, string>> = {
+  kapitaliseringsprocent: 'Kap. %',
+  'rest-eet': 'Rest-EET',
+};
+
 export const buildKapitaliseringGrundydelseLabel = (
   kapitaliseringsPctText: string,
-  amBidragPct: number
+  amBidragPct: number,
+  faktor: KapitaliseringGrundydelseFaktor = 'kapitaliseringsprocent'
 ): string => {
+  const navn = FAKTOR_NAVN[faktor];
   return amBidragPct === 0
-    ? `Grundydelse (${kapitaliseringsPctText}): Grundløn x EET x Erstatningsniveau`
-    : `Grundydelse (${kapitaliseringsPctText}): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag)`;
+    ? `Grundydelse (${kapitaliseringsPctText}): Grundløn x ${navn} x Erstatningsniveau`
+    : `Grundydelse (${kapitaliseringsPctText}): Grundløn x ${navn} x Erstatningsniveau x (100 % − AM-bidrag)`;
 };
 
 export const buildKapitaliseringGrundydelseExpression = (

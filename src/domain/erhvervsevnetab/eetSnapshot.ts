@@ -18,6 +18,14 @@ import {
 import { computeEetDifferencekravCalculation } from './eetCalculationGraph';
 import { computeEetEalCalculation, type EetEalForligInput } from './eetEalCalculation';
 import { navigationSortKey, toFieldIssue } from './eetFormatUtils';
+import { resolveEetIssueFocusTarget } from './eetIssueFocusTargets';
+import { aslRowIdOfAddress, describeAslAfgoerelseRow } from './aslAfgoerelserIssueSummary';
+import { INCOMPLETE_ROW_ISSUE_IDS, isAslAfgoerelseRowEmpty } from './eetAslAfgoerelser';
+import {
+  aslAfgoerelseKapDatoField,
+  aslAfgoerelseKapPctField,
+  aslAfgoerelseTidlKapDatoField,
+} from '../../inputCore/catalog/erhvervsevnetabDescriptors';
 import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import type { EetIssue } from './eetTypes';
@@ -133,6 +141,53 @@ const createFieldIssues = (
 };
 
 /**
+ * Giver motorens issues deres konkrete celle som mål, opløst mod de rækker, brugeren faktisk har udfyldt.
+ *
+ * Motorerne melder en rækkemangel ved id alene. Uden rækkerne faldt fejloversigten tilbage til FØRSTE række, så
+ * «angiv kapitaliseringsdato» kunne fremhæve en allerede udfyldt, korrekt kapitalisering, mens den tomme celle
+ * stod i en anden række (BB-413). EO's import af midlertidigt EET opløser allerede målet på samme måde.
+ */
+const withRowFocusTargets = (issues: readonly EetIssue[], input: EetSnapshotInput): readonly EetIssue[] => {
+  const context = {
+    aslAfgoerelser: input.values.aslAfgoerelser,
+    skadedato: input.stamdata?.skadedato,
+    skadelidteFodselsdato: input.values.skadelidteFodselsdato,
+  };
+  const flereRaekker = input.values.aslAfgoerelser.filter((row) => !isAslAfgoerelseRowEmpty(row)).length > 1;
+  return issues.map((issue) => {
+    if (issue.focusTarget !== undefined) return issue;
+    const focusTarget = resolveEetIssueFocusTarget(issue.id, context);
+    if (focusTarget === undefined) return issue;
+    // Med flere afgørelser navngives den, der mangler oplysningen (BB-413), som ved røde celler (BB-406).
+    const rowId = focusTarget.kind === 'rowId'
+      ? focusTarget.rowId
+      : focusTarget.kind === 'fieldAddress' ? aslRowIdOfAddress(focusTarget.address) : undefined;
+    const raekke = flereRaekker && RAEKKENAVNGIVNE_ISSUE_IDS.has(issue.id) && rowId !== undefined
+      ? describeAslAfgoerelseRow(rowId, input.values.aslAfgoerelser)
+      : undefined;
+    return {
+      ...issue,
+      focusTarget,
+      ...(raekke === undefined ? {} : { message: `${raekke}: ${issue.message}` }),
+    };
+  });
+};
+
+/**
+ * Rækkemangler, hvis besked ikke selv peger på en bestemt afgørelse. «Der er en afgørelse uden …»-beskederne
+ * er udeladt: de taler allerede om «en afgørelse» og ville læses dobbelt med et rækkenavn foran.
+ */
+const RAEKKENAVNGIVNE_ISSUE_IDS: ReadonlySet<string> = new Set([
+  INCOMPLETE_ROW_ISSUE_IDS.missingKapDato,
+  INCOMPLETE_ROW_ISSUE_IDS.missingKapPct,
+  INCOMPLETE_ROW_ISSUE_IDS.endeligUnder50MissingKap,
+  INCOMPLETE_ROW_ISSUE_IDS.virkningsdatoAfterTidlKapDato,
+  INCOMPLETE_ROW_ISSUE_IDS.kapDatoNotAfterTidlKapDato,
+  INCOMPLETE_ROW_ISSUE_IDS.kapDatoAfterLaterForcedKapitalisering,
+  'delvist-endelig-missing-kapitalisering',
+]);
+
+/**
  * Bygger ét EET-panel med en STRUKTUREL dependency-gate foran motoren (§1.10/§3.9).
  *
  * Kontraktkravet er, at kun en `ready` projektion må fodre en beregningsmotor (`form-contract.md` §2.3), og
@@ -149,6 +204,7 @@ const createFieldIssues = (
  * beregningsdato blokerer Løbende/Efter-EAL/Difference, mens Kapitalisering fortsætter uændret.
  */
 const buildGatedProjection = <TComputation>(
+  input: EetSnapshotInput,
   blockingIssues: readonly EetIssue[],
   calculate: () => Readonly<{ issues: readonly EetIssue[]; computation: TComputation | null }>
 ): EetTabProjection<TComputation> => {
@@ -158,7 +214,10 @@ const buildGatedProjection = <TComputation>(
     return { issues, hasBlockingErrors: true, computation: null };
   }
   const calculationResult = calculate();
-  const issues = sortAndDedupeIssues([...calculationResult.issues, ...blockingIssues]);
+  const issues = sortAndDedupeIssues([
+    ...withRowFocusTargets(calculationResult.issues, input),
+    ...blockingIssues,
+  ]);
   return {
     issues,
     hasBlockingErrors: issues.some((issue) => issue.severity === 'error'),
@@ -169,6 +228,21 @@ const buildGatedProjection = <TComputation>(
 /** Afgørelsestabellens røde celler – hver sin linje (BB-406). Tom, når tabellen ikke har nogen. */
 const aslAfgoerelserIssues = (input: EetSnapshotInput): readonly EetIssue[] =>
   input.fieldErrors.aslAfgoerelser ?? [];
+
+/**
+ * Kapitaliseringskolonnerne læses ikke af EAL-motoren: den vælger afgørelse ud fra afgørelsesdato, virkningsdato og
+ * type og bruger kun dens EET %. En rød kapitaliseringsdato på en anden afgørelse stoppede alligevel EAL-kravet
+ * (BB-419). De øvrige kolonner kan ændre, hvilken afgørelse der vælges, og blokerer derfor fortsat.
+ */
+const EAL_ULAESTE_ASL_KOLONNER: ReadonlySet<string> = new Set([
+  aslAfgoerelseKapDatoField.template.field,
+  aslAfgoerelseKapPctField.template.field,
+  aslAfgoerelseTidlKapDatoField.template.field,
+]);
+
+const aslAfgoerelserIssuesForEal = (input: EetSnapshotInput): readonly EetIssue[] =>
+  aslAfgoerelserIssues(input).filter((issue) =>
+    issue.focusTarget?.kind !== 'fieldAddress' || !EAL_ULAESTE_ASL_KOLONNER.has(issue.focusTarget.address.field));
 
 const createStamdataDateOrderIssues = (stamdata: StamdataValues | null): readonly EetIssue[] => {
   if (stamdata === null) return [];
@@ -191,7 +265,7 @@ const buildLoebendeYdelserProjection = (input: EetSnapshotInput): EetSnapshot['l
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
-  return buildGatedProjection(blockingIssues, () => computeEetLoebendeYdelser({
+  return buildGatedProjection(input, blockingIssues, () => computeEetLoebendeYdelser({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadestype: input.stamdata?.skadestype,
@@ -212,7 +286,7 @@ const buildKapitaliseringProjection = (input: EetSnapshotInput): EetSnapshot['ka
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
-  return buildGatedProjection(blockingIssues, () => computeEetKapitaliseringCalculation({
+  return buildGatedProjection(input, blockingIssues, () => computeEetKapitaliseringCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadestype: input.stamdata?.skadestype,
@@ -346,11 +420,11 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
       { id: 'field-skadelidte-fodselsdato', message: input.fieldErrors.stamdata.skadelidteFodselsdato?.message },
       { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
     ]),
-    ...(usesAslEetPctFallback ? aslAfgoerelserIssues(input) : []),
+    ...(usesAslEetPctFallback ? aslAfgoerelserIssuesForEal(input) : []),
     ...createStamdataDateOrderIssues(input.stamdata),
   ];
 
-  return buildGatedProjection(blockingIssues, () => computeEetEalCalculation({
+  return buildGatedProjection(input, blockingIssues, () => computeEetEalCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadestype: input.stamdata?.skadestype,
@@ -384,7 +458,7 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     ...forligBlocking.issues,
   ];
 
-  return buildGatedProjection(blockingIssues, () => computeEetDifferencekravCalculation({
+  return buildGatedProjection(input, blockingIssues, () => computeEetDifferencekravCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadestype: input.stamdata?.skadestype,

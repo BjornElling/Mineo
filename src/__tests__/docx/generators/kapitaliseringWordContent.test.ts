@@ -33,8 +33,10 @@ describe('kapitalisering → Word-indhold', () => {
     const afgoerelse = {
       rowId: 'kap-1',
       afgoerelsesdato: toISODateString('2025-01-01'),
+      virkningsdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
       tidligereKapitaliseringsdato: null,
+      genoptagetMedNyFaktordato: false,
       // Afgørelsens EGEN erhvervsevnetabsprocent er 30, mens kapitaliseringsprocenten nedenfor er
       // 100. De to er forskellige størrelser, og det er netop pointen i BB-170: overskriften skal
       // bære afgørelsens procent, så læseren kan se hvor stor en del kapitalbeløbet dækker.
@@ -89,8 +91,10 @@ describe('kapitalisering → Word-indhold', () => {
     const afgoerelse = {
       rowId: 'kap-saerfaktor',
       afgoerelsesdato: toISODateString('2025-01-01'),
+      virkningsdato: toISODateString('2025-01-01'),
       kapitaliseringsdato: toISODateString('2025-01-01'),
       tidligereKapitaliseringsdato: null,
+      genoptagetMedNyFaktordato: false,
       eetPct: 30,
       kapitaliseringspct: 100,
       grundloenOre: fromKroner(320000),
@@ -123,7 +127,7 @@ describe('kapitalisering → Word-indhold', () => {
     );
 
     const text = xmlToPlainText(documentXml);
-    expect(text).toMatch(/Kapitaliseret pga\. ≤ 2 år til folkepension\?\s*Ja/);
+    expect(text).toMatch(/Særfaktor pga\. ≤ 2 år til folkepension\?\s*Ja/);
     expect(text).toMatch(/Særfaktor \(≤ 2 år til folkepension\)\s*1,245/);
     expect(text).not.toContain('Faktor måneds-afhængig?');
     expect(text).not.toContain('Kapitaliseringsfaktor');

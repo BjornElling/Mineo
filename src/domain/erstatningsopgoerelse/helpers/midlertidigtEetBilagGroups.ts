@@ -9,6 +9,8 @@ type ClampedMidlertidigtEetRow = MidlertidigtEetAfgoerelseGroup['perioder'][numb
 
 export type ClampedMidlertidigtEetGroup = Readonly<{
   afgoerelsesdato: MidlertidigtEetAfgoerelseGroup['afgoerelsesdato'];
+  virkningsdato: MidlertidigtEetAfgoerelseGroup['virkningsdato'];
+  tilbageholdtForgaenger: MidlertidigtEetAfgoerelseGroup['tilbageholdtForgaenger'];
   eetPct: MidlertidigtEetAfgoerelseGroup['eetPct'];
   perioder: readonly ClampedMidlertidigtEetRow[];
 }>;
@@ -46,6 +48,8 @@ export const buildMidlertidigtEetPdfGroupsForTafRanges = (
   const pendingRows: PendingClampedMidlertidigtEetRow[] = [];
   const outputGroups = groups.map((group) => ({
     afgoerelsesdato: group.afgoerelsesdato,
+    virkningsdato: group.virkningsdato,
+    tilbageholdtForgaenger: group.tilbageholdtForgaenger,
     eetPct: group.eetPct,
     perioder: [] as ClampedMidlertidigtEetRow[],
   }));

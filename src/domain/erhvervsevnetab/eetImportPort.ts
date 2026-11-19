@@ -28,6 +28,8 @@ import {
 
 const eetImportGroupSchema = z.object({
   afgoerelsesdato: isoDateString,
+  virkningsdato: isoDateString,
+  tilbageholdtForgaenger: isoDateString.nullable(),
   eetPct: z.number().finite(),
   perioder: z.array(eetLoebendePeriodeRowSchema).readonly(),
 }).strict().readonly();
@@ -274,6 +276,8 @@ export const buildEetImportContext = (
       }
       return afgoerelse.perioder.length === 0 ? [] : [{
         afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        virkningsdato: afgoerelse.virkningsdato,
+        tilbageholdtForgaenger: afgoerelse.tilbageholdtForgaenger,
         eetPct: afgoerelse.eetPct,
         perioder: afgoerelse.perioder,
       }];

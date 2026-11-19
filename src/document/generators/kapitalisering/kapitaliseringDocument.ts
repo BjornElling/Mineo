@@ -15,7 +15,7 @@ import type {
 import {
   buildKapitaliseringAfgoerelseHeading,
   buildKapitaliseringAfgoerelseRows,
-  KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
+  SAERFAKTOR_ANVENDES_LABEL,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -27,7 +27,7 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
  * under – særfaktor-etiketten – skrev "≤ 2 år" om samme regel. To operatorer i træk læses som to
  * forskellige grænser, og operatoren ER reglens indhold (BB-172). Genindfør ikke en lokal variant.
  */
-export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL = KAPITALISERET_PGA_UNDER_TO_AAR_LABEL;
+export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL = SAERFAKTOR_ANVENDES_LABEL;
 
 export const addKapitaliseringEmptyState = (
   writer: DocumentComposer
@@ -44,18 +44,15 @@ export const addKapitaliseringAfgoerelseSection = (
   writer: DocumentComposer,
   afgoerelse: EetKapitaliseringAfgoerelseComputation,
   koen: string | undefined,
-  isFirst: boolean
+  isFirst: boolean,
+  alle: readonly EetKapitaliseringAfgoerelseComputation[] = [afgoerelse]
 ): void => {
   if (!isFirst) {
     writer.addPage();
   }
 
   writer.writeSectionHeader(
-    buildKapitaliseringAfgoerelseHeading(
-      afgoerelse.afgoerelsesdato,
-      afgoerelse.eetPct,
-      formatIsoDateLong
-    )
+    buildKapitaliseringAfgoerelseHeading(afgoerelse, alle, formatIsoDateLong)
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
@@ -115,7 +112,7 @@ export const generateKapitaliseringDocument = defineDocument<GenerateKapitaliser
       return;
     }
     computation.afgoerelser.forEach((afgoerelse, index) => {
-      addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
+      addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0, computation.afgoerelser);
     });
   },
 });

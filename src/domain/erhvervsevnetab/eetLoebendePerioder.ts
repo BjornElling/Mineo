@@ -58,6 +58,8 @@ type AfgoerelseTransition = Readonly<{
   calculateOverlap: boolean;
   cutoverDate: ISODateString;
   skaeringsDato: ISODateString | null;
+  /** Afgørelsesdatoen for en tilbageholdt forgænger, hvis ydelse derfor ikke fratrækkes (BB-408). */
+  tilbageholdtForgaenger: ISODateString | null;
 }>;
 
 type ResolvedAfgoerelseTiming = Readonly<{
@@ -274,6 +276,7 @@ const resolveAfgoerelseTransition = (
       calculateOverlap: false,
       cutoverDate: current.virkningsdato,
       skaeringsDato: null,
+      tilbageholdtForgaenger: null,
     };
   }
 
@@ -286,6 +289,7 @@ const resolveAfgoerelseTransition = (
       calculateOverlap: true,
       cutoverDate: skaeringsDato,
       skaeringsDato: null,
+      tilbageholdtForgaenger: previous.afgoerelsesdato,
     };
   }
   return {
@@ -293,6 +297,7 @@ const resolveAfgoerelseTransition = (
     calculateOverlap: true,
     cutoverDate: skaeringsDato,
     skaeringsDato,
+    tilbageholdtForgaenger: null,
   };
 };
 

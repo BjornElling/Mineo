@@ -68,7 +68,11 @@ const ToggleField = (props: ToggleFieldProps) => {
     const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
     // En boolsk descriptor har altid en defineret canonical værdi (emptyValue false/true); controller.value er
     // derfor defineret for et toggle-felt. Fald tilbage til false for at opfylde den controlled kontrakt.
-    const checked = checkedOverride ?? controller.value ?? false;
+    const unavailable = unavailableReason !== undefined && unavailableReason !== null;
+    // Et programinaktivt valg vises umarkeret, præcis som `StyledCheckbox` (page-component-contract.md §10.5):
+    // en inaktiv kontakt, der står «til», lover en side, dokumentet ikke har (BB-422). Den afsluttede værdi
+    // bevares uændret i inputkernen og vises igen, når forudsætningen er opfyldt.
+    const checked = unavailable ? false : checkedOverride ?? controller.value ?? false;
 
     const handleCommit = React.useCallback(
       (e: CommitEvent<boolean>): boolean => {
@@ -81,7 +85,6 @@ const ToggleField = (props: ToggleFieldProps) => {
       [commit, controller]
     );
 
-    const unavailable = unavailableReason !== undefined && unavailableReason !== null;
     const toggle = (
       <StyledToggleSwitch
         checked={checked}

@@ -15,6 +15,7 @@ import {
   hasOverlapPeriod,
   resolveLoebendeAfgoerelseRestVisning,
   resolveLoebendeOphoerVisning,
+  resolveLoebendeTilbageholdelsesNote,
   resolveLoebendeSkaeringsNote,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
@@ -2097,6 +2098,7 @@ describe('resolveLoebendeAfgoerelseRestVisning', () => {
     afgoerelsesdato: toISODateString('2020-01-01'),
     virkningsdato: toISODateString('2020-01-01'),
     skaeringsDato: null,
+    tilbageholdtForgaenger: null,
     harOverlap: false,
     beregningsperioder: [],
     afgoerelseType: 'Endelig',
@@ -2415,9 +2417,19 @@ describe('resolveLoebendeOphoerVisning', () => {
       ophoerDato: toISODateString('2021-01-01'),
       ophoerAarsag: 'beregningsdato',
     });
+    // Det er virkningsdatoen, der ligger efter – afgørelsen kan være truffet før beregningsdatoen (BB-410).
     expect(beregningsdato).toEqual({
       kind: 'ingen-periode',
-      forklaring: 'Afgørelsen ligger helt efter beregningsdatoen (01-01-2021).',
+      forklaring: 'Virkningsdatoen (01-01-2022) ligger efter beregningsdatoen (01-01-2021).',
+    });
+    // Differencekravet opgør til og med dagen før beregningsdatoen og må ikke kalde den beregningsdatoen (BB-421).
+    expect(resolveLoebendeOphoerVisning({
+      virkningsdato: toISODateString('2020-06-01'),
+      ophoerDato: toISODateString('2020-05-31'),
+      ophoerAarsag: 'beregningsdato',
+    }, 'dagen-foer-beregningsdato')).toEqual({
+      kind: 'ingen-periode',
+      forklaring: 'Løbende ydelser til differencekravet opgøres til og med dagen før beregningsdatoen (31-05-2020). Afgørelsen har virkning fra 01-06-2020.',
     });
 
     const folkepension = resolveLoebendeOphoerVisning({
@@ -2516,5 +2528,43 @@ describe('resolveLoebendeSkaeringsNote', () => {
 
   it('giver ingen overlapforklaring til en almindelig ydelsesperiode', () => {
     expect(resolveLoebendeSkaeringsNote({ beregningsperioder: [{ ...periode, overlap: false }] })).toBeNull();
+  });
+});
+
+describe('tilbageholdt forgænger (BB-408)', () => {
+  const rows = (tilbageholdt: 'Ja' | 'Nej') => [
+    testRow({
+      id: 'a2020',
+      afgoerelsesDato: toISODateString('2020-06-01'),
+      virkningsDato: toISODateString('2020-01-01'),
+      eetPct: 25,
+      afgoerelseType: 'Midlertidig',
+      fsTilbageholdtEet: tilbageholdt,
+    }),
+    testRow({
+      id: 'a2022',
+      afgoerelsesDato: toISODateString('2022-06-01'),
+      virkningsDato: toISODateString('2022-01-01'),
+      eetPct: 30,
+      afgoerelseType: 'Midlertidig',
+    }),
+  ];
+  const options = {
+    beregningsdato: toISODateString('2026-07-01'),
+    aslAarsloen: 400000,
+    skadedato: toISODateString('2018-06-01'),
+    skadelidteFodselsdato: toISODateString('1970-01-01'),
+  };
+
+  it('navngiver den tilbageholdte forgænger ved den afgørelse, der derfor dækker fuldt', () => {
+    const afgoerelser = computeTestRows(rows('Ja'), options).computation?.afgoerelser ?? [];
+    expect(afgoerelser.map((a) => a.tilbageholdtForgaenger)).toEqual([null, toISODateString('2020-06-01')]);
+    expect(resolveLoebendeTilbageholdelsesNote(afgoerelser[1]!))
+      .toBe('Ydelsen efter afgørelsen af 01-06-2020 er tilbageholdt og fratrækkes ikke.');
+  });
+
+  it('har ingen note, når forgængeren er udbetalt', () => {
+    const afgoerelser = computeTestRows(rows('Nej'), options).computation?.afgoerelser ?? [];
+    expect(afgoerelser.map((a) => resolveLoebendeTilbageholdelsesNote(a))).toEqual([null, null]);
   });
 });

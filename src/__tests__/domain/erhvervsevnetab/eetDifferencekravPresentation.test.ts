@@ -68,7 +68,7 @@ describe('resolveMerErstatningPensionsalderBilagDisabledReason', () => {
   // datoen. Testen låser, at de to tilstande har hver sin grund.
   it('forklarer den manglende kapitalisering frem for at påstå noget om pensionsalderen', () => {
     const reason = resolveMerErstatningPensionsalderBilagDisabledReason(true, false, false);
-    expect(reason).toContain('ingen kapitalisering');
+    expect(reason).toBe('Ingen kapitalisering på eller før beregningsdatoen');
     expect(reason).not.toContain('ikke forhøjet i perioden');
   });
 });

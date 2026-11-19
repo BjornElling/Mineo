@@ -1,3 +1,4 @@
+import { formatAfgoerelseVirkningsTillaeg } from './eetAfgoerelseOverskrift';
 import type { ISODateString } from '../../types/branded';
 import { formatAsAmountTrimmed, formatKr } from '../../utils/formatUtils';
 import { formatISOToDanish } from '../../utils/dateFormatting';
@@ -46,7 +47,8 @@ import { toKroner } from '../money/money';
  * forenkling» på den ene af de to linjer, så to linjer i træk stod med hver sin operator om samme
  * regel (BB-172). Operatoren ER reglens indhold; den må ikke forenkles.
  */
-export const KAPITALISERET_PGA_UNDER_TO_AAR_LABEL = 'Kapitaliseret pga. ≤ 2 år til folkepension?';
+// Linjen angiver, om særfaktoren bruges – ikke en grund til selve kapitaliseringen (BB-414).
+export const SAERFAKTOR_ANVENDES_LABEL = 'Særfaktor pga. ≤ 2 år til folkepension?';
 export const SAERFAKTOR_UNDER_TO_AAR_LABEL = 'Særfaktor (≤ 2 år til folkepension)';
 
 /**
@@ -66,13 +68,15 @@ export const SAERFAKTOR_UNDER_TO_AAR_LABEL = 'Særfaktor (≤ 2 år til folkepen
  *
  * Formen er den samme som Løbende ydelsers («Afgørelse 1. juni 2022 (30 %)»), så de to faner kan
  * læses op mod hinanden. Er to afgørelser fra samme dag stadig ikke til at skille – samme dato OG
- * samme EET % – skiller rækken «Kapitaliseringsdato» inde i boksen dem.
+ * samme EET % – får overskriften virkningsdatoen med (BB-411).
  */
 export const buildKapitaliseringAfgoerelseHeading = (
-  afgoerelsesdato: ISODateString,
-  eetPct: number,
+  afgoerelse: Readonly<{ afgoerelsesdato: ISODateString; virkningsdato: ISODateString; eetPct: number }>,
+  alle: readonly Readonly<{ afgoerelsesdato: ISODateString; virkningsdato: ISODateString; eetPct: number }>[],
   formatDato: (iso: ISODateString) => string
-): string => `Afgørelse ${formatDato(afgoerelsesdato)} (${formatKapitaliseringsPct(eetPct)})`;
+): string =>
+  `Afgørelse ${formatDato(afgoerelse.afgoerelsesdato)} (${formatKapitaliseringsPct(afgoerelse.eetPct)})`
+  + formatAfgoerelseVirkningsTillaeg(afgoerelse, alle);
 
 export type KapitaliseringRow =
   | Readonly<{ kind: 'subheading'; text: string }>
@@ -186,7 +190,10 @@ export const buildKapitaliseringAfgoerelseRows = (
     label: afgoerelse.tidligereKapitaliseringsdato === null
       ? afgoerelse.kapitaliseretPgaUnderToAarTilFp && afgoerelse.afgoerelsesdato !== afgoerelse.kapitaliseringsdato
         ? 'Alder ved afgørelsen'
-        : 'Alder ved kapitalisering'
+        // Den tidligere kapitaliseringsdato står fortsat på EET oplysninger; navngiv hvorfor den ikke bruges (BB-415).
+        : afgoerelse.genoptagetMedNyFaktordato
+          ? 'Alder ved ny kapitalisering (genoptaget fra 1. juli 2024)'
+          : 'Alder ved kapitalisering'
       : 'Alder ved tidligere kapitalisering',
     value: `${afgoerelse.alderAar} år, ${afgoerelse.alderMaaneder} måneder`,
   });
@@ -195,7 +202,7 @@ export const buildKapitaliseringAfgoerelseRows = (
 
   rows.push({
     kind: 'labelValue',
-    label: KAPITALISERET_PGA_UNDER_TO_AAR_LABEL,
+    label: SAERFAKTOR_ANVENDES_LABEL,
     value: formatJaNej(afgoerelse.kapitaliseretPgaUnderToAarTilFp),
   });
 
@@ -228,7 +235,7 @@ export const buildKapitaliseringAfgoerelseRows = (
   rows.push({
     kind: 'labelValue',
     // Afsluttende « =» som alle andre formellinjer med et resultat i højre kolonne (BB-132).
-    label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)}) =`,
+    label: `Beregnet kapitalbeløb (${formatKr(toKroner(afgoerelse.aarsydelseOre), 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)}) (oprundet) =`,
     value: formatKr(toKroner(afgoerelse.kapitalbelobOre), 0),
     bold: true,
   });

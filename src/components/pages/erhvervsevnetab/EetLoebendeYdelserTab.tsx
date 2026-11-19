@@ -18,11 +18,13 @@ import {
   resolveLoebendeAfgoerelseRestVisning,
   resolveLoebendeOphoerVisning,
   resolveLoebendeSkaeringsNote,
+  resolveLoebendeTilbageholdelsesNote,
   toAfgoerelseTypeLabel,
   visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { roundByMethod } from '../../../utils/rounding';
 import { formatDocumentMaanederFixed } from '../../../utils/documentMaanederFormatting';
+import { formatAfgoerelseVirkningsTillaeg } from '../../../domain/erhvervsevnetab/eetAfgoerelseOverskrift';
 import { formatReguleringPctSigned } from '../../../utils/formatUtils';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
@@ -143,9 +145,10 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
             const ingenLoebendeYdelse = afgoerelse.perioder.length === 0;
             const ophoerVisning = resolveLoebendeOphoerVisning(afgoerelse);
             const skaeringsNote = resolveLoebendeSkaeringsNote(afgoerelse);
+            const tilbageholdelsesNote = resolveLoebendeTilbageholdelsesNote(afgoerelse);
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">
-                <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)} (${formatPct(afgoerelse.eetPct)})`}</Typography>
+                <Typography className="section-header">{`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)} (${formatPct(afgoerelse.eetPct)})${formatAfgoerelseVirkningsTillaeg(afgoerelse, afgoerelser)}`}</Typography>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Type</Typography>
@@ -235,6 +238,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
                 )}
 
                 <Typography className="row--subheading">Beregnede ydelser</Typography>
+                {tilbageholdelsesNote && <HoverRow text={tilbageholdelsesNote} />}
                 {skaeringsNote && <HoverRow text={skaeringsNote} />}
                 {viserGrundydelseNiveauSkift && (
                   <HoverRow text="Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau." />
@@ -385,7 +389,7 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
               return (
                 <Box key={`grundydelse-${afgoerelse.rowId}`} sx={{ mt: 2 }}>
                   <Typography className="row--subheading">
-                    {`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`}
+                    {`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg({ afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato }, computation.afgoerelser)}`}
                   </Typography>
 
                   <Box className="row--label-right-hover">

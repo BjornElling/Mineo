@@ -135,8 +135,10 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
     expect(afgoerelse).toEqual({
       rowId: 'eet-kapitalisering-row',
       afgoerelsesdato: '2024-01-15',
+      virkningsdato: '2024-01-15',
       kapitaliseringsdato: '2024-02-01',
       tidligereKapitaliseringsdato: null,
+      genoptagetMedNyFaktordato: false,
       eetPct: 25,
       kapitaliseringspct: 25,
       grundloenOre: 33295500,
@@ -181,17 +183,17 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
     expect(text).toContain('Afgørelse 15. januar 2024 (25 %)');
     expect(text).toContain('Kapitaliseringsdato01-02-2024');
     expect(text).toContain('Kapitaliseringsprocent25 %');
-    expect(text).toContain('Grundydelse (25 %): Grundløn x EET x Erstatningsniveau x (100 % − AM-bidrag) =332.955 kr. x 25 % x 83 % x 92 % =63.561,11 kr.');
+    expect(text).toContain('Grundydelse (25 %): Grundløn x Kap. % x Erstatningsniveau x (100 % − AM-bidrag) =332.955 kr. x 25 % x 83 % x 92 % =63.561,11 kr.');
     expect(text).toContain('Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 65,7 %): 63.561,11 kr. x 1,657 =105.320,76 kr.');
     expect(text).toContain('Årlig ydelse (105.320,76 kr.) =105.320,76 kr.');
     expect(text).toContain('Vejl. 9820/2023, tabel F');
     expect(text).toContain('Alder ved kapitalisering59 år, 1 måneder');
     expect(text).toContain('Folkepensionsalder68 år');
-    expect(text).toContain('Kapitaliseret pga. ≤ 2 år til folkepension?Nej');
+    expect(text).toContain('Særfaktor pga. ≤ 2 år til folkepension?Nej');
     expect(text).toContain('Faktor måneds-afhængig?Ja');
     expect(text).toContain('Kapitaliseringsfaktor5,479');
-    expect(text).toContain('Beregnet kapitalbeløb (105.320,76 kr. x 5,479) =577.053 kr.');
-    expect(text).not.toContain('Særfaktor');
+    expect(text).toContain('Beregnet kapitalbeløb (105.320,76 kr. x 5,479) (oprundet) =577.053 kr.');
+    expect(text).not.toContain('Særfaktor (≤ 2 år til folkepension)');
     expect(wordText).toBe(pdfText);
   });
 });

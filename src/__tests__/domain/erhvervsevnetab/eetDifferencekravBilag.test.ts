@@ -48,7 +48,7 @@ describe('getEetDifferencekravBilagAvailability', () => {
 
     expect(availability.kapitalisering).toEqual({
       enabled: false,
-      disabledReason: 'Der er ingen kapitaliserede afgørelser i sagen',
+      disabledReason: 'Ingen kapitalisering på eller før beregningsdatoen',
     });
     expect(availability.loebendeYdelser).toEqual({ enabled: true });
   });
@@ -120,7 +120,7 @@ describe('getEetDifferencekravBilagAvailability', () => {
 
     expect(availability.merErstatningPensionsalder.enabled).toBe(false);
     expect(availability.merErstatningPensionsalder).toMatchObject({
-      disabledReason: 'Der er ingen kapitalisering at forhøje',
+      disabledReason: 'Ingen kapitalisering på eller før beregningsdatoen',
     });
   });
 

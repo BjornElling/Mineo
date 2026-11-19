@@ -30,7 +30,7 @@ import {
   WARN_NO_KAP_INPUT_ID,
 } from './eetKapitaliseringCalculation';
 import type { EetKapitaliseringCalculationResult } from './eetKapitaliseringCalculation';
-import type { EetEalCalculationResult } from './eetEalCalculation';
+import { EAL_AARSLOEN_MISSING_ID, type EetEalCalculationResult } from './eetEalCalculation';
 import type { EetLoebendeCalculationResult } from './eetLoebendeYdelserCalculation';
 import { EET_DATO_EFTER_BEREGNINGSDATO_WARNING_ID } from './eetIssueCatalog';
 import { formatDatoEfterBeregningsdatoWarning } from './eetFieldWarnings';
@@ -38,7 +38,7 @@ import {
   computeMerErstatningPensionsalder,
   type MerErstatningPensionsalderComputation,
 } from './eetMerErstatningPensionsalderCalculation';
-import { hasTextValue, resolveAslVirkningsdato } from './eetAslAfgoerelser';
+import { hasTextValue, INCOMPLETE_ROW_ISSUE_IDS, resolveAslVirkningsdato } from './eetAslAfgoerelser';
 import { sumMaanedsbroekForInterval } from '../dates/maanedsbroek';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
@@ -108,6 +108,8 @@ export type EetDifferencekravInput = Readonly<{
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
+
+const INCOMPLETE_ROW_ISSUE_ID_SET: ReadonlySet<string> = new Set(Object.values(INCOMPLETE_ROW_ISSUE_IDS));
 
 type KnownAtBeregningsdatoAnalysis = Readonly<{
   hasAnyEnteredRows: boolean;
@@ -800,18 +802,35 @@ export const composeEetDifferencekravCalculation = (
       // fordi de udløses efter beregningsdato-filteret.
       // Risk: hvis underberegninger senere får flere "tom input"-fejl, skal denne afgrænsning genbesøges.
       if (issue.id === 'asl-afgoerelser-empty') return false;
+      // Differencekravet kræver ASL-årslønnen. Mangler den, melder ASL-grenene det præcist; EAL-fanens
+      // «angiv efter EAL eller ASL» (BB-418) ville her være en anden besked om samme tomme felt.
+      if (issue.id === EAL_AARSLOEN_MISSING_ID && allSourceIssues.some((other) => other.id === 'aarsloen-missing')) {
+        return false;
+      }
       return true;
     });
   const dedupedWithKnownAtBeregningsdatoIssues = dedupeIssuesByIdentity([
     ...deduped,
     ...aslRowsAnalysis.issues,
   ]);
-  const hasAslAfgoerelserEmpty = dedupedWithKnownAtBeregningsdatoIssues.some((issue) => issue.id === 'asl-afgoerelser-empty');
-  // 'eet-pct-missing' undertrykkes når afgørelsestabellen er tom.
-  // Ellers vises både den generelle tom-tabel-fejl og den afledte feltfejl for samme rodproblem.
-  const aggregatedIssues = hasAslAfgoerelserEmpty
-    ? dedupedWithKnownAtBeregningsdatoIssues.filter((issue) => issue.id !== 'eet-pct-missing')
+  // En påbegyndt afgørelse er ikke en tom tabel (BB-423). Analysen kan kun se, om en række er
+  // beregnelig; når underberegningerne allerede navngiver rækkens konkrete mangel, er
+  // tomhedsmeldingen forkert og udgår. Uden en sådan mangel – fx en række med kun en procent, som
+  // beregningsdato-filteret har sorteret fra – bevares den, så fanen stadig blokerer fail-closed.
+  const harKonkretRaekkemangel = aslRowsAnalysis.hasAnyEnteredRows
+    && dedupedWithKnownAtBeregningsdatoIssues.some((issue) =>
+      issue.severity === 'error' && INCOMPLETE_ROW_ISSUE_ID_SET.has(issue.id));
+  const issuesUdenFejlagtigTomhed = harKonkretRaekkemangel
+    ? dedupedWithKnownAtBeregningsdatoIssues.filter((issue) => issue.id !== 'asl-afgoerelser-empty')
     : dedupedWithKnownAtBeregningsdatoIssues;
+  const aslProcentmangelVisesAllerede = issuesUdenFejlagtigTomhed.some((issue) =>
+    issue.id === 'asl-afgoerelser-empty' || issue.id === INCOMPLETE_ROW_ISSUE_IDS.missingEetPct);
+  // 'eet-pct-missing' undertrykkes, når afgørelsestabellen er tom, eller når en påbegyndt række
+  // selv mangler sin EET %. Ellers vises både rækkens/tabellens fejl og den afledte EAL-fejl for
+  // samme rodproblem.
+  const aggregatedIssues = aslProcentmangelVisesAllerede
+    ? issuesUdenFejlagtigTomhed.filter((issue) => issue.id !== 'eet-pct-missing')
+    : issuesUdenFejlagtigTomhed;
   const finalIssues = hasAnyPctInput
     ? aggregatedIssues.filter((issue) => issue.id !== 'eet-pct-missing')
     : aggregatedIssues;
@@ -932,6 +951,7 @@ export const composeEetDifferencekravCalculation = (
     })
     .map((row) => {
       const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato)!;
+      const virkningsdato = resolveAslVirkningsdato(row) ?? afgoerelsesdato;
       const kapComp = kapResult.computation?.afgoerelser.find((a) => a.rowId === row.id);
       // Kapitalisering medregnes kun hvis kapitaliseringsdatoen er <= beregningsdatoen.
       // Er kapitaliseringsdatoen efter beregningsdatoen, vises afgørelsen som "ikke kapitaliseret
@@ -941,6 +961,7 @@ export const composeEetDifferencekravCalculation = (
         return {
           rowId: row.id,
           afgoerelsesdato,
+          virkningsdato,
           kapitaliseringsdato: kapComp.kapitaliseringsdato,
           kapitaliseringspct: kapComp.kapitaliseringspct,
           kapitalbelobOre: kapComp.kapitalbelobOre,
@@ -951,6 +972,7 @@ export const composeEetDifferencekravCalculation = (
         return {
           rowId: row.id,
           afgoerelsesdato,
+          virkningsdato,
           kapitaliseringsdato: null as ISODateString | null,
           kapitaliseringspct: null as number | null,
           kapitalbelobOre: null,
@@ -960,6 +982,7 @@ export const composeEetDifferencekravCalculation = (
       return {
         rowId: row.id,
         afgoerelsesdato,
+        virkningsdato,
         kapitaliseringsdato: null as ISODateString | null,
         kapitaliseringspct: null as number | null,
         kapitalbelobOre: null,
@@ -1031,7 +1054,13 @@ export const composeEetDifferencekravCalculation = (
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,
       loebendeComputation: loebendeResult?.computation ?? null,
-      kapComputation: kapResult.computation,
+      // Bilaget dokumenterer de kapitaliseringer, opgørelsen trækker fra – på eller før beregningsdatoen. En senere
+      // kapitalisering stod i bilaget, mens forsiden skrev «Ikke kapitaliseret på beregningsdatoen» (BB-420).
+      // Kapitalisering-fanen og dens eget dokument viser fortsat alle (BB-166).
+      kapComputation: kapResult.computation === null ? null : {
+        ...kapResult.computation,
+        afgoerelser: kapResult.computation.afgoerelser.filter((a) => a.kapitaliseringsdato <= beregningsdato),
+      },
       ealComputation: ealResult.computation,
     },
   };

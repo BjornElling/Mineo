@@ -117,7 +117,7 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
     // derfor én gang i den udvidede specifikation frem for over hver afgørelse.
     await expect(page.getByRole('columnheader', { name: 'Grundydelse pr. år' }).first()).toBeVisible();
     await expect(page.getByText(
-      'Ydelse/md. beregnes som grundydelsen pr. år gange reguleringen, oprundet til nærmeste 12 kr. og divideret med 12.',
+      'Ydelse/md. beregnes som grundydelsen pr. år gange (100 % + reguleringen), oprundet til nærmeste 12 kr. og divideret med 12.',
     )).toHaveCount(1);
 
     expect(runtimeErrors).toEqual([]);
@@ -160,7 +160,8 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
     await eetTab(page, 'Løbende ydelser').click();
 
     // BB-154: én linje der siger hvorfor, frem for et interval der slutter før det begynder.
-    await expect(page.getByText('Afgørelsen ligger helt efter beregningsdatoen (01-01-2021).')).toBeVisible();
+    // BB-410: årsagen er virkningsdatoen – afgørelsen selv kan være truffet før beregningsdatoen.
+    await expect(page.getByText('Virkningsdatoen (01-01-2022) ligger efter beregningsdatoen (01-01-2021).')).toBeVisible();
     await expect(page.getByText('Afgørelsen giver ingen løbende ydelse i den valgte periode.')).toBeVisible();
 
     // BB-159: én linje navngiver årsagen, i stedet for tre linjer om de tre datoer.

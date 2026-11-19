@@ -1650,6 +1650,8 @@ describe('buildTafPerYearBuildOutcome: kanonisk midlertidigt EET-fradrag', () =>
 
   const midlertidigtEetGroup = {
     afgoerelsesdato: iso('2024-01-01'),
+    virkningsdato: iso('2024-01-01'),
+    tilbageholdtForgaenger: null,
     eetPct: 50,
     rows: [],
     perioder: [{

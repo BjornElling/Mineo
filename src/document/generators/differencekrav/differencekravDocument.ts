@@ -18,6 +18,8 @@ import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { formatDocumentMaanederTrimmed } from '../../../utils/documentMaanederFormatting';
+import { formatAfgoerelseVirkningsTillaeg } from '../../../domain/erhvervsevnetab/eetAfgoerelseOverskrift';
 import { buildDifferencekravFradragLinjer } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoTekster';
 import type {
   EetDifferencekravComputation,
@@ -101,7 +103,8 @@ const addProformaKapitaliseringSection = (
   writer.writeWrappedTextContinued(
     `${buildKapitaliseringGrundydelseLabel(
       formatKapPct(pk.loebendeEetPct),
-      pk.amBidragPct
+      pk.amBidragPct,
+      'rest-eet'
     )} =`
   );
   writer.writeLeftRightText(
@@ -212,7 +215,7 @@ const addProformaKapitaliseringSection = (
   writer.writeBoldSubheader('Kapitalbeløb');
 
   writer.writeLeftRightText(
-    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) =`,
+    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) (oprundet) =`,
     formatKr(toKroner(pk.proformaBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );
@@ -417,7 +420,10 @@ const renderDifferencekravPage = (
       return `Endelig afgørelse (${formatKapPct(afgoerelse.eetPct)})`;
     })();
 
-    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
+    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg(
+      { afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato },
+      computation.afgoerelser
+    )}`);
     writer.writeWrappedText(typeLabel);
 
     if (foretages && afgoerelse.beloebOre > 0) {
@@ -451,7 +457,10 @@ const renderDifferencekravPage = (
   writer.writeWrappedText('Værdien af modtagne kapitalbeløb fratrækkes.');
 
   for (const afgoerelse of computation.kapitaliseringerAfgoerelser) {
-    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
+    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}${formatAfgoerelseVirkningsTillaeg(
+      { afgoerelsesdato: afgoerelse.afgoerelsesdato, virkningsdato: afgoerelse.virkningsdato },
+      computation.kapitaliseringerAfgoerelser
+    )}`);
 
     if (
       afgoerelse.kapitalbelobOre !== null &&
@@ -483,7 +492,9 @@ const renderDifferencekravPage = (
       const rest = computation.resterendeLoebendeYdelser;
       writer.writeWrappedText('De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes.');
       writer.writeLeftRightText(
-        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md. =`,
+        // Månedsbrøken med samme fem decimaler som Løbende ydelser (BB-162); med fire kunne linjen ikke
+        // efterregnes til det viste fradrag (BB-424).
+        `${formatDocumentMaanederTrimmed(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(toKroner(rest.maanedligYdelseOre))}/md. =`,
         formatDeductionKr(toKroner(rest.fradragBeloebOre)),
         rowOpts
       );
@@ -623,7 +634,8 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
       addLoebendeYdelserEmptyState(writer);
     } else {
       lc.afgoerelser.forEach((afgoerelse, index) => {
-        addLoebendeAfgoerelseSection(writer, afgoerelse, lc, index === 0);
+        // Bilaget opgør til og med dagen før beregningsdatoen; se `LoebendeOpgoerelsesAfgraensning`.
+        addLoebendeAfgoerelseSection(writer, afgoerelse, lc, index === 0, 'dagen-foer-beregningsdato');
       });
     }
     if (bilagSelection.visUdvidetSpecifikationLoebendeYdelserBilag) {
@@ -640,7 +652,7 @@ export const generateDifferencekravDocument = defineDocument<GenerateDifferencek
       addKapitaliseringEmptyState(writer);
     } else {
       kc.afgoerelser.forEach((afgoerelse, index) => {
-        addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0);
+        addKapitaliseringAfgoerelseSection(writer, afgoerelse, koen, index === 0, kc.afgoerelser);
       });
     }
   }

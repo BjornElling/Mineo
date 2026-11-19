@@ -17,6 +17,8 @@ import { toKroner } from '../../money/money';
  */
 export type MidlertidigtEetAfgoerelseGroup = Readonly<{
   afgoerelsesdato: ISODateString;
+  virkningsdato: ISODateString;
+  tilbageholdtForgaenger: ISODateString | null;
   eetPct: number;
   rows: readonly OffentligeYdelserRow[];
   perioder: readonly EetLoebendePeriodeRow[];
@@ -50,6 +52,8 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromImportContext = (
     if (rows.length > 0) {
       groups.push({
         afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        virkningsdato: afgoerelse.virkningsdato,
+        tilbageholdtForgaenger: afgoerelse.tilbageholdtForgaenger,
         eetPct: afgoerelse.eetPct,
         rows,
         perioder: afgoerelse.perioder,

@@ -64,7 +64,8 @@ describe('computeEetEalCalculation', () => {
 
     expect(result.computation).toBeNull();
     expect(result.issues).toEqual(expect.arrayContaining([
-      { id: 'aarsloen-missing', severity: 'error', message: 'Skadelidtes årsløn (efter ASL) er ikke udfyldt' },
+      // Begge årslønninger kan bære EAL-kravet; beskeden nævner begge og fører til EAL-feltet (BB-418).
+      { id: 'eal-aarsloen-missing', severity: 'error', message: 'Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL' },
       { id: 'skadelidte-fodselsdato-missing', severity: 'error', message: 'Fødselsdato er ikke udfyldt' },
     ]));
   });

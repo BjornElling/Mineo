@@ -1,4 +1,5 @@
 import {
+  buildKapitaliseringAfgoerelseHeading,
   buildKapitaliseringAfgoerelseRows,
   SAERFAKTOR_UNDER_TO_AAR_LABEL,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringRows';
@@ -9,8 +10,10 @@ import { toISODateString } from '../../../types/branded';
 const baseAfgoerelse = (): EetKapitaliseringAfgoerelseComputation => ({
   rowId: 'rows-independent',
   afgoerelsesdato: toISODateString('2024-01-15'),
+  virkningsdato: toISODateString('2024-01-15'),
   kapitaliseringsdato: toISODateString('2024-02-01'),
   tidligereKapitaliseringsdato: null,
+  genoptagetMedNyFaktordato: false,
   eetPct: 25,
   kapitaliseringspct: 25,
   grundloenOre: fromKroner(332955),
@@ -47,6 +50,7 @@ describe('buildKapitaliseringAfgoerelseRows – defensive visningsfacitter', () 
       ...baseAfgoerelse(),
       kapitaliseringsdato: toISODateString('2021-10-01'),
       tidligereKapitaliseringsdato: toISODateString('2019-06-01'),
+      genoptagetMedNyFaktordato: false,
       alderAar: 63,
       alderMaaneder: 11,
     }, { koen: undefined, koenRowMode: 'whenPresent' });
@@ -62,6 +66,7 @@ describe('buildKapitaliseringAfgoerelseRows – defensive visningsfacitter', () 
     const rows = buildKapitaliseringAfgoerelseRows({
       ...baseAfgoerelse(),
       afgoerelsesdato: toISODateString('2021-10-01'),
+      virkningsdato: toISODateString('2021-10-01'),
       kapitaliseringsdato: toISODateString('2022-01-01'),
       kapitaliseretPgaUnderToAarTilFp: true,
       alderAar: 66,
@@ -107,5 +112,28 @@ describe('buildKapitaliseringAfgoerelseRows – defensive visningsfacitter', () 
         value: '',
       }),
     ]));
+  });
+});
+
+describe('genoptagelse og overskrifter', () => {
+  it('navngiver den nye faktordato ved genoptagelse fra 1. juli 2024 (BB-415)', () => {
+    const rows = buildKapitaliseringAfgoerelseRows(
+      { ...baseAfgoerelse(), genoptagetMedNyFaktordato: true },
+      { koen: undefined, koenRowMode: 'always' }
+    );
+    expect(rows).toContainEqual(expect.objectContaining({
+      label: 'Alder ved ny kapitalisering (genoptaget fra 1. juli 2024)',
+    }));
+  });
+
+  it('skiller to afgørelser med samme dato og procent ved virkningsdatoen (BB-411)', () => {
+    const a = { ...baseAfgoerelse(), virkningsdato: toISODateString('2019-06-01'), eetPct: 60 };
+    const b = { ...baseAfgoerelse(), virkningsdato: toISODateString('2020-10-01'), eetPct: 60 };
+    const c = { ...baseAfgoerelse(), eetPct: 30 };
+    const format = (iso: string) => iso;
+    expect(buildKapitaliseringAfgoerelseHeading(a, [a, b], format))
+      .toBe('Afgørelse 2024-01-15 (60 %) – virkning fra 01-06-2019');
+    // Forskellig procent skiller allerede overskrifterne; intet tillæg.
+    expect(buildKapitaliseringAfgoerelseHeading(c, [a, c], format)).toBe('Afgørelse 2024-01-15 (30 %)');
   });
 });

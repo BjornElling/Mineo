@@ -129,6 +129,9 @@ const toWarning = (id: string, message: string): EetIssue => ({
  * Den hedder bevidst ikke blot «Erhvervsevnetabsprocent er ikke udfyldt» længere: det navngav et
  * begreb frem for et felt og fortalte ikke, at der var to måder at afhjælpe manglen.
  */
+export const EAL_AARSLOEN_MISSING_ID = 'eal-aarsloen-missing';
+export const EAL_AARSLOEN_MISSING_MESSAGE = 'Årslønnen mangler: angiv årslønnen efter EAL eller efter ASL';
+
 export const EET_PCT_MISSING_MESSAGE =
   'Erhvervsevnetabsprocenten mangler: angiv EET % efter EAL, eller udfyld EET % på en afgørelse';
 
@@ -292,7 +295,9 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     // EAL-fanen, når brugeren allerede har angivet en positiv EAL-årsløn.
     issues.push(toIssue('aarsloen-zero', `${SKADELIDTES_AARSLOEN_ASL_LABEL} skal være større end 0 kr`));
   } else if (aarsloen.value === null || aarsloen.source === null) {
-    issues.push(toIssue('aarsloen-missing', `${SKADELIDTES_AARSLOEN_ASL_LABEL} er ikke udfyldt`));
+    // Begge årslønninger kan bære EAL-kravet, og en ren EAL-sag har ingen ASL-årsløn. Beskeden nævner derfor
+    // begge veje og fører til EAL-feltet, som EET_PCT_MISSING_MESSAGE (BB-418).
+    issues.push(toIssue(EAL_AARSLOEN_MISSING_ID, EAL_AARSLOEN_MISSING_MESSAGE));
   }
 
   // Identiske ASL-afgørelser er kun relevante, når EAL-EET-procenten skal findes via ASL-fallbacken.

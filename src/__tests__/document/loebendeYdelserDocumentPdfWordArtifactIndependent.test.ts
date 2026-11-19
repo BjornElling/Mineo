@@ -29,6 +29,7 @@ const computation = {
     virkningsdato: toISODateString('2024-01-01'),
     kapitaliseringsdato: null,
     skaeringsDato: null,
+    tilbageholdtForgaenger: null,
     harOverlap: false,
     beregningsperioder: [],
     afgoerelseType: 'Midlertidig',
