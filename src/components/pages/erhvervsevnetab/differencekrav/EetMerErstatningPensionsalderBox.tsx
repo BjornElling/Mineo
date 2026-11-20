@@ -24,6 +24,7 @@ import {
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
+  visKapitaliseringAarsydelseLinje,
 } from '../../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 
 /**
@@ -98,19 +99,21 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
       </Box>
     )}
 
-    <Box className="row--label-right-hover">
-      <Typography className="row--text">
-        {buildKapitaliseringAarsydelseExpression(
-          formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
-          event.aarsydelseReguleringsPctRounded4 === null
-            ? null
-            : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
-        )}
-      </Typography>
-      <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(toKroner(event.aarsydelseOre), 2)}</Typography>
+    {visKapitaliseringAarsydelseLinje(event) && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {buildKapitaliseringAarsydelseExpression(
+            formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
+            event.aarsydelseReguleringsPctRounded4 === null
+              ? null
+              : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
+          )}
+        </Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{formatKr(toKroner(event.aarsydelseOre), 2)}</Typography>
+        </Box>
       </Box>
-    </Box>
+    )}
 
     {/*
       Faktoropslagets forudsætninger navngives som i naboboksen «Proformakapitalisering af rest-EET»

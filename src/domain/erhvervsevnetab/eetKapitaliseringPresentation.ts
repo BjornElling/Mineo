@@ -47,6 +47,19 @@ export const buildKapitaliseringOpreguleringTil2024Expression = (
   return opreguleretGrundydelseText === undefined ? `${expression} =` : `${expression} = ${opreguleretGrundydelseText}`;
 };
 
+/**
+ * Om linjen «Årlig ydelse (…) = …» skal vises. Uden reguleringsprocent (kapitalisering i
+ * referenceåret 2024) gentager den blot beløbet fra linjen over og udelades (udviklerafgørelse
+ * 2026-11-20). Med regulering ER linjen beregningen og vises altid; ligeså hvis beløbene mod
+ * forventning afviger, så en forskel aldrig skjules.
+ */
+export const visKapitaliseringAarsydelseLinje = (args: Readonly<{
+  aarsydelseReguleringsPctRounded4: number | null;
+  aarsydelseGrundlagOre: number;
+  aarsydelseOre: number;
+}>): boolean =>
+  args.aarsydelseReguleringsPctRounded4 !== null || args.aarsydelseGrundlagOre !== args.aarsydelseOre;
+
 export const buildKapitaliseringAarsydelseExpression = (
   aarsydelseGrundlagText: string,
   reguleringsPctText: string | null,

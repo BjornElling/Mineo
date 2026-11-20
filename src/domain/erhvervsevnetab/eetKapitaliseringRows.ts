@@ -8,6 +8,7 @@ import {
 } from './eetKapitaliseringCalculation';
 import {
   buildKapitaliseringAarsydelseExpression,
+  visKapitaliseringAarsydelseLinje,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
@@ -158,16 +159,18 @@ export const buildKapitaliseringAfgoerelseRows = (
     });
   }
 
-  rows.push({
-    kind: 'labelValue',
-    label: buildKapitaliseringAarsydelseExpression(
-      formatKr(toKroner(afgoerelse.aarsydelseGrundlagOre), 2),
-      afgoerelse.aarsydelseReguleringsPctRounded4 === null
-        ? null
-        : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
-    ),
-    value: formatKr(toKroner(afgoerelse.aarsydelseOre), 2),
-  });
+  if (visKapitaliseringAarsydelseLinje(afgoerelse)) {
+    rows.push({
+      kind: 'labelValue',
+      label: buildKapitaliseringAarsydelseExpression(
+        formatKr(toKroner(afgoerelse.aarsydelseGrundlagOre), 2),
+        afgoerelse.aarsydelseReguleringsPctRounded4 === null
+          ? null
+          : `${formatAsAmountTrimmed(100 + afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`
+      ),
+      value: formatKr(toKroner(afgoerelse.aarsydelseOre), 2),
+    });
+  }
 
   rows.push({ kind: 'subheading', text: 'Kapitaliseringsbekendtgørelse og tabel' });
 

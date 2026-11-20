@@ -290,9 +290,12 @@ describe('differencekrav → Word-indhold', () => {
     expect(text).toContain('Forhøjet pensionsalder');
     expect(text).not.toContain('Mer-erstatning forhøjet folkepension');
 
-    // BB-193: de to fradragslinjer kan skelnes, fordi overskriften bærer kapitaliseringen.
-    expect(text).toContain('Forhøjelse pr. 31-12-2020 (68 år → 69 år) · kapitaliseret (15 %) den 01-01-2019');
-    expect(text).toContain('Forhøjelse pr. 31-12-2020 (68 år → 69 år) · kapitaliseret (25 %) den 01-06-2020');
+    // Forsidens fradragslinjer nævner kun forhøjelsen (udviklerafgørelse 2026-11-20); kapitaliseringen,
+    // der skelner de to (BB-193), står i bilaget under hver forhøjelses overskrift.
+    expect(text).toContain('Forhøjelse pr. 31-12-2020 (68 år → 69 år):');
+    expect(text).not.toContain('· kapitaliseret');
+    expect(text).toContain('Kapitaliseret (15 %) den 01-01-2019');
+    expect(text).toContain('Kapitaliseret (25 %) den 01-06-2020');
 
     // BB-201: summen står i BÅDE specifikationen og bilaget.
     expect(text.match(/Samlet mer-erstatning/g)?.length).toBe(2);

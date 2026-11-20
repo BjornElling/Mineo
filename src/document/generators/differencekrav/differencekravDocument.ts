@@ -35,6 +35,7 @@ import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  visKapitaliseringAarsydelseLinje,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import {
@@ -59,7 +60,6 @@ import {
 import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
 import {
   buildBeregnetDifferencekravLabel,
-  buildMerErstatningForhoejelseOverskrift,
   buildMerErstatningForhoejelseTitel,
   buildMerErstatningKapitaliseringTekst,
   buildNedsatSaerfaktorUdtryk,
@@ -133,16 +133,18 @@ const addProformaKapitaliseringSection = (
     );
   }
 
-  writer.writeLeftRightText(
-    buildKapitaliseringAarsydelseExpression(
-      formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
-      pk.aarsydelseReguleringsPctRounded4 === null
-        ? null
-        : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
-    ),
-    formatKr(toKroner(pk.aarsydelseOre), 2),
-    rowOpts
-  );
+  if (visKapitaliseringAarsydelseLinje(pk)) {
+    writer.writeLeftRightText(
+      buildKapitaliseringAarsydelseExpression(
+        formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
+        pk.aarsydelseReguleringsPctRounded4 === null
+          ? null
+          : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
+      ),
+      formatKr(toKroner(pk.aarsydelseOre), 2),
+      rowOpts
+    );
+  }
 
   writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel');
 
@@ -287,16 +289,18 @@ const addMerErstatningEvent = (
     );
   }
 
-  writer.writeLeftRightText(
-    buildKapitaliseringAarsydelseExpression(
-      formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
-      event.aarsydelseReguleringsPctRounded4 === null
-        ? null
-        : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
-    ),
-    formatKr(toKroner(event.aarsydelseOre), 2),
-    rowOpts
-  );
+  if (visKapitaliseringAarsydelseLinje(event)) {
+    writer.writeLeftRightText(
+      buildKapitaliseringAarsydelseExpression(
+        formatKr(toKroner(event.aarsydelseGrundlagOre), 2),
+        event.aarsydelseReguleringsPctRounded4 === null
+          ? null
+          : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
+      ),
+      formatKr(toKroner(event.aarsydelseOre), 2),
+      rowOpts
+    );
+  }
 
   // Faktoropslagets forudsætninger navngives som i proformaboksen (BB-194): alderen på
   // forhøjelsesdatoen er den ENESTE nøgle ind i de to faktortabeller, og uden den kan hverken
@@ -519,14 +523,14 @@ const renderDifferencekravPage = (
   // hører til hvad, i et papir uden indholdsfortegnelse (BB-192).
   if (computation.merErstatningPensionsalder) {
     writer.writeBoldSubheader(FORHOEJET_PENSIONSALDER_LABEL);
+    // Udviklerafgørelse 2026-11-20: på forsiden nævnes kun forhøjelsen, ikke den kapitalisering, den
+    // regulerer (BB-193's skelnen står i bilaget «Forhøjet pensionsalder»).
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
-        `${buildMerErstatningForhoejelseOverskrift({
+        `${buildMerErstatningForhoejelseTitel({
           forhoejelsesdatoFormatted: formatISOToDanish(event.forhoejelsesdato),
           gammelAlderLabel: event.gammelAlderLabel,
           nyAlderLabel: event.nyAlderLabel,
-          kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
-          kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
         })}:`,
         // Linjen formaterer selv (trimmet valuta med NBSP); vagten måler derfor mod DEN streng, så
         // dokumentet og skærmen ikke kan blive uenige om formen ved nul (BB-130).

@@ -20,6 +20,7 @@ import {
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
+  visKapitaliseringAarsydelseLinje,
 } from '../../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import {
   SAERFAKTOR_ANVENDES_LABEL,
@@ -104,19 +105,21 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
       </Box>
     )}
 
-    <Box className="row--label-right-hover">
-      <Typography className="row--text">
-        {buildKapitaliseringAarsydelseExpression(
-          formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
-          pk.aarsydelseReguleringsPctRounded4 === null
-            ? null
-            : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
-        )}
-      </Typography>
-      <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatKr(toKroner(pk.aarsydelseOre), 2)}</Typography>
+    {visKapitaliseringAarsydelseLinje(pk) && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {buildKapitaliseringAarsydelseExpression(
+            formatKr(toKroner(pk.aarsydelseGrundlagOre), 2),
+            pk.aarsydelseReguleringsPctRounded4 === null
+              ? null
+              : `${formatAsAmountTrimmed(100 + pk.aarsydelseReguleringsPctRounded4, 4)} %`
+          )}
+        </Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{formatKr(toKroner(pk.aarsydelseOre), 2)}</Typography>
+        </Box>
       </Box>
-    </Box>
+    )}
 
     <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitaliseringsbekendtgørelse og tabel</Typography>
 

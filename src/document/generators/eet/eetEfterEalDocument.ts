@@ -76,8 +76,6 @@ export const renderEfterEalBody = (
 
   writer.writeSectionHeader('Specifikation');
 
-  writer.writeBoldSubheader('Årsløn');
-
   // Sagens egen dato står i Specifikationen og ikke i den betingede «Beregning»-sektion (BB-182),
   // fordi differencekravet trykker netop denne krop som bilag med `includeBeregningsdatoHeader` =
   // false – lå datoen i headeren, ville bilaget mangle den forudsætning, både årslønnens
@@ -87,11 +85,16 @@ export const renderEfterEalBody = (
   // to, de bærer tilsammen aldersreduktionen, og en modpart skal kunne lægge dem op mod hinanden
   // uden at oversætte mellem to formater (BB-146's formregel). «Beregningsdato» i headeren står i
   // lang form, fordi den er sagens overskrift og ikke et led i et regnestykke.
+  //
+  // Datoen står direkte under «Specifikation» og før «Årsløn» (udviklerafgørelse 2026-11-20): den er
+  // en forudsætning for hele specifikationen, ikke kun for årslønnen.
   writer.writeLeftRightText(
     datoReference.label,
     formatISOToDanish(computation.skadedato),
     rowOpts
   );
+
+  writer.writeBoldSubheader('Årsløn');
 
   writer.writeLeftRightText(
     `Årsløn på ${datoReference.tidspunktBestemt}`,

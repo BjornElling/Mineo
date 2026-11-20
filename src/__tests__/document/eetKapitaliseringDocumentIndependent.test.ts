@@ -185,7 +185,9 @@ describe('EET-kapitalisering – uafhængigt snapshot→Word-facit', () => {
     expect(text).toContain('Kapitaliseringsprocent25 %');
     expect(text).toContain('Grundydelse (25 %): Grundløn x Kap. % x Erstatningsniveau x (100 % − AM-bidrag) =332.955 kr. x 25 % x 83 % x 92 % =63.561,11 kr.');
     expect(text).toContain('Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 65,7 %): 63.561,11 kr. x 1,657 =105.320,76 kr.');
-    expect(text).toContain('Årlig ydelse (105.320,76 kr.) =105.320,76 kr.');
+    // Uden reguleringsprocent (2024-niveau) gentager «Årlig ydelse» blot beløbet ovenfor og udelades
+    // (udviklerafgørelse 2026-11-20).
+    expect(text).not.toContain('Årlig ydelse');
     expect(text).toContain('Vejl. 9820/2023, tabel F');
     expect(text).toContain('Alder ved kapitalisering59 år, 1 måneder');
     expect(text).toContain('Folkepensionsalder68 år');
