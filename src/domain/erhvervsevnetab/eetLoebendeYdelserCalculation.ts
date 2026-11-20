@@ -867,23 +867,8 @@ export const resolveLoebendeSkaeringsNote = (
   }).join(' ');
 };
 
-/**
- * Noten under «Beregnede ydelser», der gør tabellens rækker efterregnelige.
- *
- * To skridt mellem «Grundydelse pr. år» og «Ydelse/md.» stod ingen steder: grundydelsen er et
- * ÅRSbeløb, og den regulerede årsydelse oprundes til nærmeste 12 kr., før den divideres med 12
- * (`ceilNearest12`). Uden dem giver `grundydelse x regulering / 12` et andet tal end det viste, og
- * den, der efterregner, må gætte på, om det er en afrunding eller en fejl (BB-156).
- *
- * Bevidst ÉN note frem for et mellemtrin pr. satsår: tabellen er i forvejen lang, og en ekstra
- * talkolonne eller to linjer pr. år ville lægge mere visuelt rod til end den forklarer.
- *
- * Noten står i den UDVIDEDE SPECIFIKATION, ikke over hver afgørelses tabel. Reglen er den samme for
- * alle tabeller, og gentaget pr. afgørelse ville den lægge sig oven i skærings- og 2024-noterne, som
- * er sagsspecifikke og derfor hører ved deres egen tabel.
- */
-export const LOEBENDE_YDELSE_AFRUNDING_NOTE =
-  'Ydelse/md. beregnes som grundydelsen pr. år gange (100 % + reguleringen), oprundet til nærmeste 12 kr. og divideret med 12.';
+// Afrundingsnoten for «Ydelse/md.» (BB-156) er fjernet efter udviklerafgørelse 2026-11-20: den
+// gengav en fast beregningsregel og var overflødig. Genindfør den ikke.
 
 export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');

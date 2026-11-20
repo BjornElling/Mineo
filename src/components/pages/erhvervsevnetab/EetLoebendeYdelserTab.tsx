@@ -12,7 +12,6 @@ import {
   ASL_MAX_AARSLOEN_2024,
 } from '../../../data/lovbestemteRates';
 import {
-  LOEBENDE_YDELSE_AFRUNDING_NOTE,
   formatLoebendeRestEetLinje,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
@@ -286,8 +285,6 @@ const EetLoebendeYdelserTab = ({ onGoToEetOplysninger, projection, download }: P
 
           <ContentBox className="content-box">
             <Typography className="section-header">Udvidet specifikation</Typography>
-
-            <HoverRow text={LOEBENDE_YDELSE_AFRUNDING_NOTE} />
 
             <Typography className="row--subheading">Årsløn</Typography>
 

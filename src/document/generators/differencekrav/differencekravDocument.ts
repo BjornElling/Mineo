@@ -60,6 +60,8 @@ import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
 import {
   buildBeregnetDifferencekravLabel,
   buildMerErstatningForhoejelseOverskrift,
+  buildMerErstatningForhoejelseTitel,
+  buildMerErstatningKapitaliseringTekst,
   buildNedsatSaerfaktorUdtryk,
   DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
   MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL,
@@ -82,15 +84,9 @@ const addProformaKapitaliseringSection = (
 
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  writer.writeSectionHeader(
-    'Proformakapitalisering af rest-EET (ASL)'
-  );
-
-  writer.writeLeftRightText(
-    'Kapitaliseringsdato',
-    formatISOToDanish(pk.kapitaliseringsdato),
-    rowOpts
-  );
+  // Bilagenes fælles struktur (se `addMerErstatningEvent`): sidetitel + sektionsoverskrift i fuld linje.
+  writer.writeTitle('Proformakapitalisering af rest-EET (ASL)');
+  writer.writeSectionHeader(`Kapitaliseringsdato ${formatISOToDanish(pk.kapitaliseringsdato)}`);
 
   writer.writeBoldSubheader('Grundydelse og regulering');
 
@@ -239,12 +235,15 @@ const addMerErstatningEvent = (
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  // Manuel topafstand over underoverskriften er fjernet (document-output B6): writerens centrale
-  // subheader-topspacing styrer afstanden mellem mer-erstatning-events.
-  writer.writeUnderlinedSubheader(buildMerErstatningForhoejelseOverskrift({
+  // Bilagenes fælles struktur: sidetitel → én sektionsoverskrift pr. afgørelse/hændelse (som
+  // «Afgørelse …» i Løbende ydelser og Kapitalisering) → fede underoverskrifter → rækker. Writerens
+  // centrale sektions-topspacing styrer afstanden mellem mer-erstatning-events (document-output B6).
+  writer.writeSectionHeader(buildMerErstatningForhoejelseTitel({
     forhoejelsesdatoFormatted: formatIsoDateLong(event.forhoejelsesdato),
     gammelAlderLabel: event.gammelAlderLabel,
     nyAlderLabel: event.nyAlderLabel,
+  }));
+  writer.writeWrappedText(buildMerErstatningKapitaliseringTekst({
     kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
     kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
   }));
@@ -331,8 +330,9 @@ const addMerErstatningEvent = (
     rowOpts
   );
 
+  writer.writeBoldSubheader('Beregnet mer-erstatning');
   writer.writeLeftRightText(
-    `Mer-erstatning (${formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)} − ${formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)})`,
+    `${formatKr(toKroner(event.ny.kapitalvaerdiOre), 2)} − ${formatKr(toKroner(event.gammel.kapitalvaerdiOre), 2)} =`,
     formatKr(toKroner(event.merErstatningOre)),
     { rightFontStyle: 'bold' as const }
   );

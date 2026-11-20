@@ -16,7 +16,6 @@ import type {
   LoebendeOpgoerelsesAfgraensning,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
-  LOEBENDE_YDELSE_AFRUNDING_NOTE,
   formatLoebendeRestEetLinje,
   formatSkadedatoCompact,
   resolveLoebendeAfgoerelseRestVisning,
@@ -223,15 +222,14 @@ export const addLoebendeUdvidetSpecifikationPage = (
 
   writer.writeSectionHeader('Udvidet specifikation');
 
-  writer.writeWrappedText(LOEBENDE_YDELSE_AFRUNDING_NOTE);
-  writer.addSectionSpacer();
-
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   // Årsløn
   writer.writeBoldSubheader('Årsløn');
-  const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(toKroner(computation.maxAarsloenISkadesaarOre), 0)} kr.)`;
-  writer.writeLeftRightText(aslLabel, formatKr(toKroner(computation.benyttetAarsloenOre)), rowOpts);
+  // Udviklerafgørelse 2026-11-20: årslønnens beregningsprincipper (afrunding, maksimum) gengives ikke.
+  // Årslønnen er fastsat i arbejdsskademyndighedernes afgørelse, hvor principperne fremgår. Etiketten
+  // er skærmens («ASL-årsløn»).
+  writer.writeLeftRightText('ASL-årsløn', formatKr(toKroner(computation.benyttetAarsloenOre)), rowOpts);
 
   // Grundløn
   writer.writeBoldSubheader('Grundløn');

@@ -112,13 +112,10 @@ test.describe('Løbende ydelser – specifikationen kan efterregnes', () => {
       '01-01-2022 – 30-06-2022: Den løbende EET er 30 %. Tidligere afgørelser dækker 25 %. Denne afgørelse giver derfor 5 % yderligere.',
     )).toBeVisible();
 
-    // BB-156: de to skridt mellem «Grundydelse pr. år» og «Ydelse/md.», uden hvilke rækken ikke går op.
-    // Kolonnenavnet står ved tabellen; selve afrundingsreglen er den samme for alle tabeller og står
-    // derfor én gang i den udvidede specifikation frem for over hver afgørelse.
+    // Kolonnenavnet står ved tabellen. Afrundingsnoten for «Ydelse/md.» er fjernet som overflødig
+    // (udviklerafgørelse 2026-11-20).
     await expect(page.getByRole('columnheader', { name: 'Grundydelse pr. år' }).first()).toBeVisible();
-    await expect(page.getByText(
-      'Ydelse/md. beregnes som grundydelsen pr. år gange (100 % + reguleringen), oprundet til nærmeste 12 kr. og divideret med 12.',
-    )).toHaveCount(1);
+    await expect(page.getByText(/Ydelse\/md\. beregnes som grundydelsen/)).toHaveCount(0);
 
     expect(runtimeErrors).toEqual([]);
   });

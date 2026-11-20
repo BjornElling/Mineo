@@ -281,4 +281,96 @@ describe('generateDifferencekravDocument', () => {
     expect(renderedText).toContain('Forhøjet pensionsalder');
     expect(renderedText).not.toContain('Mer-erstatning ved forhøjet folkepensionsalder');
   });
+
+  it('opbygger hver forhøjelse i bilaget som sektionsoverskrift, kapitaliseringstekst og beregnet mer-erstatning', async () => {
+    const { generateDifferencekravDocument } = await import('../../../document/generators/differencekrav/differencekravDocument');
+    let capturedModel: DocumentModel | undefined;
+    const modelSession: DocumentGenerationSession = {
+      format: 'pdf',
+      render: async ({ model }) => {
+        capturedModel = model;
+        return new Blob([], { type: 'application/pdf' });
+      },
+    };
+    const kapitalvaerdi = (label: string, faktor: number, kr: number) => ({
+      kapitaliseringsbekendtgoerelseLabel: 'Bek. 2024',
+      folkepensionsalderLabel: label,
+      kapitaliseringsfaktor: faktor,
+      kapitalvaerdiOre: fromKroner(kr),
+    });
+
+    await generateDifferencekravDocument(modelSession, {
+      computation: {
+        beregningsdato: toISODateString('2026-03-17'),
+        afgoerelser: [],
+        kapitaliseringerAfgoerelser: [],
+        proformaKapitalisering: null,
+        merErstatningPensionsalder: {
+          events: [{
+            rowId: 'r1',
+            afgoerelsesdato: toISODateString('2023-06-01'),
+            kapitaliseringsdato: toISODateString('2024-01-01'),
+            kapitaliseringspct: 50,
+            forhoejelsesdato: toISODateString('2025-12-31'),
+            satsAar: 2026,
+            gammelAlderLabel: '69 år',
+            nyAlderLabel: '70 år',
+            alderAar: 50,
+            alderMaaneder: 3,
+            faktorMaanedsAfhaengig: false,
+            koenOpdelt: false,
+            grundloenOre: fromKroner(400000),
+            erstatningsniveauPct: 80,
+            amBidragPct: 8,
+            grundydelseOre: fromKroner(147200),
+            grundydelse2024Ore: null,
+            opreguleringTil2024PctRounded4: null,
+            aarsydelseGrundlagOre: fromKroner(147200),
+            aarsydelseReguleringsPctRounded4: null,
+            aarsydelseOre: fromKroner(147200),
+            gammel: kapitalvaerdi('69 år', 24.034, 3537184.15),
+            ny: kapitalvaerdi('70 år', 25.1, 3694554.15),
+            merErstatningOre: fromKroner(157370),
+          }],
+          samletMerErstatningOre: fromKroner(157370),
+        },
+        loebendeComputation: null,
+        kapComputation: null,
+        ealComputation: null,
+      } as never,
+      bilagSelection: {
+        opgoerelse: true,
+        loebendeYdelser: false,
+        kapitalisering: false,
+        eetEfterEal: false,
+        proformaKapitalisering: false,
+        merErstatningPensionsalder: true,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+
+    const blocks = capturedModel?.blocks ?? [];
+    const titleIndex = blocks.findIndex(
+      (block) => block.kind === 'title' && block.text === 'Forhøjet pensionsalder (ASL)'
+    );
+    expect(titleIndex).toBeGreaterThan(-1);
+    expect(blocks[titleIndex + 1]).toEqual({
+      kind: 'sectionHeader',
+      text: 'Forhøjelse pr. 31. december 2025 (69 år → 70 år)',
+    });
+    expect(blocks[titleIndex + 2]).toMatchObject({
+      kind: 'wrappedText',
+      text: 'Kapitaliseret (50 %) den 01-01-2024',
+    });
+
+    const beregnetIndex = blocks.findIndex(
+      (block) => block.kind === 'boldSubheader' && block.text === 'Beregnet mer-erstatning'
+    );
+    expect(beregnetIndex).toBeGreaterThan(titleIndex);
+    expect(blocks[beregnetIndex + 1]).toMatchObject({
+      kind: 'labelValue',
+      label: '3.694.554,15 kr. − 3.537.184,15 kr. =',
+      value: '157.370 kr.',
+    });
+  });
 });

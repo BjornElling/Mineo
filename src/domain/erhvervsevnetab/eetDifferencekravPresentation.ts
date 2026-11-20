@@ -62,8 +62,25 @@ export const buildMerErstatningForhoejelseOverskrift = (args: Readonly<{
   kapitaliseringspctFormatted: string;
   kapitaliseringsdatoFormatted: string;
 }>): string =>
-  `Forhøjelse pr. ${args.forhoejelsesdatoFormatted} (${args.gammelAlderLabel} → ${args.nyAlderLabel})`
-  + ` · kapitaliseret (${args.kapitaliseringspctFormatted}) den ${args.kapitaliseringsdatoFormatted}`;
+  `${buildMerErstatningForhoejelseTitel(args)} · kapitaliseret (${args.kapitaliseringspctFormatted}) den ${args.kapitaliseringsdatoFormatted}`;
+
+/**
+ * Overskriftens to led hver for sig. Bilaget «Forhøjet pensionsalder» viser forhøjelsen som
+ * sektionsoverskrift og kapitaliseringen som almindelig tekst på linjen under (udviklerafgørelse
+ * 2026-11-20); skærm og specifikationslinje bruger den samlede `buildMerErstatningForhoejelseOverskrift`.
+ */
+export const buildMerErstatningForhoejelseTitel = (args: Readonly<{
+  forhoejelsesdatoFormatted: string;
+  gammelAlderLabel: string;
+  nyAlderLabel: string;
+}>): string =>
+  `Forhøjelse pr. ${args.forhoejelsesdatoFormatted} (${args.gammelAlderLabel} → ${args.nyAlderLabel})`;
+
+export const buildMerErstatningKapitaliseringTekst = (args: Readonly<{
+  kapitaliseringspctFormatted: string;
+  kapitaliseringsdatoFormatted: string;
+}>): string =>
+  `Kapitaliseret (${args.kapitaliseringspctFormatted}) den ${args.kapitaliseringsdatoFormatted}`;
 
 /**
  * Hvorfor bilagsvalget «Forhøjet pensionsalder» er inaktivt.

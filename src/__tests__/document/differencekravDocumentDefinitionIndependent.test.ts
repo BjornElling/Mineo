@@ -26,6 +26,10 @@ import { getProductionInputCatalog } from '../../inputCore/catalog/productionCat
 import { __createTestSourceSettings } from '../../settings/sourceSettings';
 import { DEFAULT_BREVHOVED_INDSTILLINGER } from '../../settings/appSettingsSchema';
 import { toISODateString } from '../../types/branded';
+import type {
+  DocumentGenerationSession,
+  DocumentRenderRequest,
+} from '../../document/documentGenerationSession';
 import { renderWordDocument, xmlToPlainText } from '../docx/generators/wordContentHarness';
 import { createRealPdfDocumentSessionForTest } from '../utils/pdf/createPdfDocumentSession';
 import { extractPdfText } from '../utils/pdf/pdfTextExtractor';
@@ -189,6 +193,35 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
     expect(text).toContain('1.718.744 kr.');
     expect(text).toContain('859.372 kr.');
     expect(wordText).toBe(pdfText);
+  });
+
+  it('opbygger alle bilag ens: sidetitel efterfulgt af sektionsoverskrift, ingen særopsætning', async () => {
+    const input = project();
+    const requests: DocumentRenderRequest[] = [];
+    const session: DocumentGenerationSession = Object.freeze({
+      format: 'pdf',
+      render: async (request): Promise<Blob> => {
+        requests.push(request);
+        return new Blob();
+      },
+    });
+    const renderer = await differencekravDocumentDefinition.loadRenderer();
+    await renderer(session, input, { visBrevhoved: false });
+    const blocks = requests[0]?.model.blocks ?? [];
+
+    const bilagTitler = blocks.flatMap((block, index) =>
+      block.kind === 'title' && index > 0 ? [{ text: block.text, next: blocks[index + 1] }] : []
+    );
+    expect(bilagTitler.map((t) => t.text)).toContain('Proformakapitalisering af rest-EET (ASL)');
+    for (const titel of bilagTitler) {
+      expect(titel.next?.kind, `bilaget «${titel.text}»`).toBe('sectionHeader');
+    }
+
+    const proformaIndex = blocks.findIndex(
+      (block) => block.kind === 'title' && block.text === 'Proformakapitalisering af rest-EET (ASL)'
+    );
+    expect(blocks[proformaIndex + 1]).toEqual({ kind: 'sectionHeader', text: 'Kapitaliseringsdato 01-04-2022' });
+    expect(blocks.some((block) => block.kind === 'labelValue' && block.label === 'Kapitaliseringsdato')).toBe(false);
   });
 
   it('udelader særfaktornoten, når brugeren fravælger proformabilaget', async () => {
