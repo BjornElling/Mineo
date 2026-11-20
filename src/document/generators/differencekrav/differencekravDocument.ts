@@ -209,10 +209,10 @@ const addProformaKapitaliseringSection = (
     );
   }
 
-  writer.writeBoldSubheader('Kapitalbeløb');
+  writer.writeBoldSubheader('Beregnet proformakapitalisering');
 
   writer.writeLeftRightText(
-    `Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) (oprundet) =`,
+    `${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)} (oprundet) =`,
     formatKr(toKroner(pk.proformaBeloebOre)),
     { rightFontStyle: 'bold' as const }
   );

@@ -210,11 +210,11 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
       </>
     )}
 
-    <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitalbeløb</Typography>
+    <Typography className="row--subheading" sx={{ mt: 2 }}>Beregnet proformakapitalisering</Typography>
 
     <Box className="row--label-right-hover">
       <Typography className="row--text">
-        {`Beregnet proformakapitalisering (${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)}) (oprundet) =`}
+        {`${formatKr(toKroner(pk.aarsydelseOre), 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)} (oprundet) =`}
       </Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text text-bold">{formatKr(toKroner(pk.proformaBeloebOre))}</Typography>
