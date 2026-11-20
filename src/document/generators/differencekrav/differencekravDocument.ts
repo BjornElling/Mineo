@@ -61,7 +61,8 @@ import { renderEfterEalBody } from '../eet/eetEfterEalDocument';
 import {
   buildBeregnetDifferencekravLabel,
   buildMerErstatningForhoejelseTitel,
-  buildMerErstatningKapitaliseringTekst,
+  buildMerErstatningKapitaliseringVaerdi,
+  MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL,
   buildNedsatSaerfaktorUdtryk,
   DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
   MAANEDER_TIL_FOLKEPENSIONSDATOEN_LABEL,
@@ -85,16 +86,14 @@ const addProformaKapitaliseringSection = (
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   // Bilagenes fælles struktur (se `addMerErstatningEvent`): sidetitel + sektionsoverskrift i fuld linje.
+  // Dato og procent er sagens forudsætninger og står under «Specifikation» før første
+  // underoverskrift (udviklerafgørelse 2026-11-20).
   writer.writeTitle('Proformakapitalisering af rest-EET (ASL)');
-  writer.writeSectionHeader(`Kapitaliseringsdato ${formatISOToDanish(pk.kapitaliseringsdato)}`);
+  writer.writeSectionHeader('Specifikation');
+  writer.writeLeftRightText('Kapitaliseringsdato', formatISOToDanish(pk.kapitaliseringsdato), rowOpts);
+  writer.writeLeftRightText('Proformakapitalisering', formatKapPct(pk.loebendeEetPct), rowOpts);
 
   writer.writeBoldSubheader('Grundydelse og regulering');
-
-  writer.writeLeftRightText(
-    'Proformakapitalisering',
-    formatKapPct(pk.loebendeEetPct),
-    rowOpts
-  );
 
   writer.writeWrappedTextContinued(
     `${buildKapitaliseringGrundydelseLabel(
@@ -245,10 +244,14 @@ const addMerErstatningEvent = (
     gammelAlderLabel: event.gammelAlderLabel,
     nyAlderLabel: event.nyAlderLabel,
   }));
-  writer.writeWrappedText(buildMerErstatningKapitaliseringTekst({
-    kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
-    kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
-  }));
+  writer.writeLeftRightText(
+    MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL,
+    buildMerErstatningKapitaliseringVaerdi({
+      kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
+      kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
+    }),
+    rowOpts
+  );
 
   writer.writeBoldSubheader('Løbende ydelse');
 

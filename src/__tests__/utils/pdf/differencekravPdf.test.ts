@@ -359,8 +359,9 @@ describe('generateDifferencekravDocument', () => {
       text: 'Forhøjelse pr. 31. december 2025 (69 år → 70 år)',
     });
     expect(blocks[titleIndex + 2]).toMatchObject({
-      kind: 'wrappedText',
-      text: 'Kapitaliseret (50 %) den 01-01-2024',
+      kind: 'labelValue',
+      label: 'Tidligere kapitalisering',
+      value: '50 % den 01-01-2024',
     });
 
     const beregnetIndex = blocks.findIndex(

@@ -1,6 +1,7 @@
 import {
   buildBeregnetDifferencekravLabel,
-  buildMerErstatningForhoejelseOverskrift,
+  buildMerErstatningForhoejelseTitel,
+  buildMerErstatningKapitaliseringVaerdi,
   resolveMerErstatningPensionsalderBilagDisabledReason,
   resolveProformaKapitaliseringBilagDisabledReason,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
@@ -23,17 +24,17 @@ describe('buildBeregnetDifferencekravLabel', () => {
   });
 });
 
-describe('buildMerErstatningForhoejelseOverskrift', () => {
-  it('viser forhøjelsesdato, alderstrin og den kapitalisering der reguleres', () => {
-    expect(buildMerErstatningForhoejelseOverskrift({
+describe('buildMerErstatningForhoejelseTitel / buildMerErstatningKapitaliseringVaerdi', () => {
+  it('viser forhøjelsen i overskriften og den regulerede kapitalisering som værdi', () => {
+    expect(buildMerErstatningForhoejelseTitel({
       forhoejelsesdatoFormatted: '31.12.2020',
       gammelAlderLabel: '66 år',
       nyAlderLabel: '67 år',
+    })).toBe('Forhøjelse pr. 31.12.2020 (66 år → 67 år)');
+    expect(buildMerErstatningKapitaliseringVaerdi({
       kapitaliseringspctFormatted: '30 %',
       kapitaliseringsdatoFormatted: '01.01.2019',
-    })).toBe(
-      'Forhøjelse pr. 31.12.2020 (66 år → 67 år) · kapitaliseret (30 %) den 01.01.2019'
-    );
+    })).toBe('30 % den 01.01.2019');
   });
 });
 

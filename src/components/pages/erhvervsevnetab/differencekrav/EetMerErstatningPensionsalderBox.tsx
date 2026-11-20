@@ -16,7 +16,9 @@ import {
 } from '../../../../domain/erhvervsevnetab/eetFormatUtils';
 import { FORHOEJET_PENSIONSALDER_LABEL } from '../../../../domain/erhvervsevnetab/eetLabels';
 import {
-  buildMerErstatningForhoejelseOverskrift,
+  buildMerErstatningForhoejelseTitel,
+  buildMerErstatningKapitaliseringVaerdi,
+  MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL,
   SAMLET_MER_ERSTATNING_LABEL,
 } from '../../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
 import {
@@ -39,16 +41,29 @@ type MerErstatningBoxProps = Readonly<{
 
 const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensionsalderEvent; koen: ErhvervsevnetabValues['koen'] }) => (
   <>
-    {/* Overskriften bærer den kapitalisering, forhøjelsen regulerer (BB-193). */}
+    {/*
+      Overskriften nævner forhøjelsen; rækken under den den kapitalisering, forhøjelsen regulerer
+      (BB-193) – som i bilaget (udviklerafgørelse 2026-11-20).
+    */}
     <HoverRow underlined
-      text={buildMerErstatningForhoejelseOverskrift({
+      text={buildMerErstatningForhoejelseTitel({
         forhoejelsesdatoFormatted: formatIsoDateLong(event.forhoejelsesdato),
         gammelAlderLabel: event.gammelAlderLabel,
         nyAlderLabel: event.nyAlderLabel,
-        kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
-        kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
       })}
     />
+
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">{MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL}</Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">
+          {buildMerErstatningKapitaliseringVaerdi({
+            kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
+            kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
+          })}
+        </Typography>
+      </Box>
+    </Box>
 
     <Typography className="row--subheading">Løbende ydelse</Typography>
 

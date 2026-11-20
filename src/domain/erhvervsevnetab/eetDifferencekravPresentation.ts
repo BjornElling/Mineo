@@ -43,31 +43,13 @@ export const DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST =
 export const SAMLET_MER_ERSTATNING_LABEL = 'Samlet mer-erstatning';
 
 /**
- * Overskriften over én forhøjelse af folkepensionsalderen.
- *
- * Overskriften BÆRER den kapitalisering, forhøjelsen regulerer. To kapitaliseringer i samme sag
- * rammes af samme forhøjelse og gav ellers to ordret identiske overskrifter med to forskellige beløb
- * (BB-193) – på skærmen i to bokse og i specifikationen i to fradragslinjer, hvor den eneste forskel
- * lå inde i blokken («Grundydelse (15 %)» mod «(25 %)»). Brugeren kunne da hverken se, hvilken
- * kapitalisering en linje hørte til, eller efterprøve nogen af dem, og to identiske overskrifter
- * læses let som en dublet, han tror han skal slette.
+ * Overskriften over én forhøjelse af folkepensionsalderen – kun forhøjelsen (udviklerafgørelse
+ * 2026-11-20). Fradragslinjerne på differencekravets forside står derfor ens, når to kapitaliseringer
+ * rammes af samme forhøjelse; i bilaget og boksen skelnes de af rækken «Tidligere kapitalisering»
+ * under overskriften (BB-193).
  *
  * Funktionen formaterer bevidst ikke selv – kalderen leverer formaterede strenge, så skærm og
  * dokument deler præcis samme tekst med hver sin datoform (lang i overskrifter, kort indlejret).
- */
-export const buildMerErstatningForhoejelseOverskrift = (args: Readonly<{
-  forhoejelsesdatoFormatted: string;
-  gammelAlderLabel: string;
-  nyAlderLabel: string;
-  kapitaliseringspctFormatted: string;
-  kapitaliseringsdatoFormatted: string;
-}>): string =>
-  `${buildMerErstatningForhoejelseTitel(args)} · kapitaliseret (${args.kapitaliseringspctFormatted}) den ${args.kapitaliseringsdatoFormatted}`;
-
-/**
- * Overskriftens to led hver for sig. Bilaget «Forhøjet pensionsalder» viser forhøjelsen som
- * sektionsoverskrift og kapitaliseringen som almindelig tekst på linjen under (udviklerafgørelse
- * 2026-11-20); skærm og specifikationslinje bruger den samlede `buildMerErstatningForhoejelseOverskrift`.
  */
 export const buildMerErstatningForhoejelseTitel = (args: Readonly<{
   forhoejelsesdatoFormatted: string;
@@ -76,11 +58,17 @@ export const buildMerErstatningForhoejelseTitel = (args: Readonly<{
 }>): string =>
   `Forhøjelse pr. ${args.forhoejelsesdatoFormatted} (${args.gammelAlderLabel} → ${args.nyAlderLabel})`;
 
-export const buildMerErstatningKapitaliseringTekst = (args: Readonly<{
+/**
+ * Rækken under forhøjelsens overskrift: venstre etiket, højre værdi (udviklerafgørelse 2026-11-20).
+ * Skelner to kapitaliseringer ramt af samme forhøjelse (BB-193).
+ */
+export const MER_ERSTATNING_TIDLIGERE_KAPITALISERING_LABEL = 'Tidligere kapitalisering';
+
+export const buildMerErstatningKapitaliseringVaerdi = (args: Readonly<{
   kapitaliseringspctFormatted: string;
   kapitaliseringsdatoFormatted: string;
 }>): string =>
-  `Kapitaliseret (${args.kapitaliseringspctFormatted}) den ${args.kapitaliseringsdatoFormatted}`;
+  `${args.kapitaliseringspctFormatted} den ${args.kapitaliseringsdatoFormatted}`;
 
 /**
  * Hvorfor bilagsvalget «Forhøjet pensionsalder» er inaktivt.

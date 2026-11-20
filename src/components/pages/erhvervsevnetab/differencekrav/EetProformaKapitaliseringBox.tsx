@@ -48,14 +48,14 @@ export const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => 
       </Box>
     </Box>
 
-    <Typography className="row--subheading">Grundydelse og regulering</Typography>
-
     <Box className="row--label-right-hover">
       <Typography className="row--text">Proformakapitalisering</Typography>
       <Box className="row--label-right-hover__content">
         <Typography className="row--text">{formatKapPct(pk.loebendeEetPct)}</Typography>
       </Box>
     </Box>
+
+    <Typography className="row--subheading">Grundydelse og regulering</Typography>
 
     <Box className="row--label-right-hover">
       <Typography className="row--text">

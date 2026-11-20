@@ -88,8 +88,6 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
           <ContentBox className="content-box">
             <Typography className="section-header">Specifikation</Typography>
 
-            <Typography className="row--subheading">Årsløn</Typography>
-
             {/*
               Sagens egen dato bærer både aldersreduktionen og opreguleringen, men fanen viste kun
               fødselsdatoen plus en færdig alder (BB-182). Uden datoen kan modparten ikke kontrollere
@@ -106,6 +104,9 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, projection, download }: Props) =
                 <Typography className="row--text">{formatISOToDanish(computation.skadedato)}</Typography>
               </Box>
             </Box>
+
+            {/* Datoen står før «Årsløn», som i dokumentet (udviklerafgørelse 2026-11-20). */}
+            <Typography className="row--subheading">Årsløn</Typography>
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">{`Årsløn på ${datoReference.tidspunktBestemt}`}</Typography>

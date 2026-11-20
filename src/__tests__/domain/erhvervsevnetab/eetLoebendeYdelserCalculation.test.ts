@@ -2493,7 +2493,7 @@ describe('formatLoebendeRestEetLinje', () => {
       kapPctAktuel: 5,
       restEetPct: 10,
       kapitaliseringsdato: toISODateString('2022-06-01'),
-    })).toBe('Resterende EET (30 % - 15 % tidl. kap. - 5 % kap. = 10 %) efter kapitalisering 01-06-2022');
+    })).toBe('Resterende EET (30 - 15 % tidl. kap. - 5 % = 10 %) efter kapitalisering 01-06-2022');
   });
 
   it('udelader leddet for tidligere kapitalisering, når der ikke er nogen', () => {
@@ -2503,7 +2503,7 @@ describe('formatLoebendeRestEetLinje', () => {
       kapPctAktuel: 10,
       restEetPct: 15,
       kapitaliseringsdato: toISODateString('2022-06-01'),
-    })).toBe('Resterende EET (25 % - 10 % kap. = 15 %) efter kapitalisering 01-06-2022');
+    })).toBe('Resterende EET (25 - 10 % = 15 %) efter kapitalisering 01-06-2022');
   });
 });
 

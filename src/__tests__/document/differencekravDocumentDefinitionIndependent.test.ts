@@ -220,8 +220,10 @@ describe('DOC-001/DOC-003 – Differencekravs definition og renderer', () => {
     const proformaIndex = blocks.findIndex(
       (block) => block.kind === 'title' && block.text === 'Proformakapitalisering af rest-EET (ASL)'
     );
-    expect(blocks[proformaIndex + 1]).toEqual({ kind: 'sectionHeader', text: 'Kapitaliseringsdato 01-04-2022' });
-    expect(blocks.some((block) => block.kind === 'labelValue' && block.label === 'Kapitaliseringsdato')).toBe(false);
+    expect(blocks[proformaIndex + 1]).toEqual({ kind: 'sectionHeader', text: 'Specifikation' });
+    expect(blocks[proformaIndex + 2]).toMatchObject({ kind: 'labelValue', label: 'Kapitaliseringsdato', value: '01-04-2022' });
+    expect(blocks[proformaIndex + 3]).toMatchObject({ kind: 'labelValue', label: 'Proformakapitalisering' });
+    expect(blocks[proformaIndex + 4]).toMatchObject({ kind: 'boldSubheader', text: 'Grundydelse og regulering' });
   });
 
   it('udelader særfaktornoten, når brugeren fravælger proformabilaget', async () => {

@@ -6,7 +6,7 @@ import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
 import ToggleField from '../../../inputCore/react/fields/ToggleField';
 import {
   buildBeregnetDifferencekravLabel,
-  buildMerErstatningForhoejelseOverskrift,
+  buildMerErstatningForhoejelseTitel,
   DELVIST_ENDELIG_LOEBENDE_YDELSE_TEKST,
   resolveNedsatSaerfaktorForklaring,
   SAMLET_MER_ERSTATNING_LABEL,
@@ -429,12 +429,11 @@ const EetDifferencekravTab = ({ onGoToEetOplysninger, projection, download }: Pr
               {computation.merErstatningPensionsalder.events.map((event) => (
                 <Box key={`${event.rowId}-${event.forhoejelsesdato}`} className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`${buildMerErstatningForhoejelseOverskrift({
+                    {/* Kun forhøjelsen, som i dokumentet (udviklerafgørelse 2026-11-20). */}
+                    {`${buildMerErstatningForhoejelseTitel({
                       forhoejelsesdatoFormatted: formatISOToDanish(event.forhoejelsesdato),
                       gammelAlderLabel: event.gammelAlderLabel,
                       nyAlderLabel: event.nyAlderLabel,
-                      kapitaliseringspctFormatted: formatKapPct(event.kapitaliseringspct),
-                      kapitaliseringsdatoFormatted: formatISOToDanish(event.kapitaliseringsdato),
                     })}:`}
                   </Typography>
                   <Box className="row--label-right-hover__content">

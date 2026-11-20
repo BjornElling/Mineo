@@ -687,11 +687,14 @@ export const formatLoebendeRestEetLinje = (
     'eetPct' | 'priorKapPct' | 'kapPctAktuel' | 'restEetPct' | 'kapitaliseringsdato'
   >
 ): string => {
-  const led = [`${formatPct(afgoerelse.eetPct)}`];
+  // Udviklerafgørelse 2026-11-20: «65 - 50 % = 15 %» – første led uden %-tegn, og den aktuelle
+  // kapitalisering uden «kap.», da den efterstillede tekst allerede siger «efter kapitalisering».
+  // «tidl. kap.» bevares, fordi det led IKKE er den kapitalisering, teksten efter parentesen nævner.
+  const led = [formatAsAmountTrimmed(afgoerelse.eetPct, 4)];
   if (afgoerelse.priorKapPct > 0) {
     led.push(`- ${formatPct(afgoerelse.priorKapPct)} tidl. kap.`);
   }
-  led.push(`- ${formatPct(afgoerelse.kapPctAktuel)} kap.`);
+  led.push(`- ${formatPct(afgoerelse.kapPctAktuel)}`);
   const regnestykke = `${led.join(' ')} = ${formatPct(afgoerelse.restEetPct)}`;
 
   return afgoerelse.kapitaliseringsdato !== null
