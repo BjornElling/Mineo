@@ -5,6 +5,7 @@ import {
   verifyFileHandle,
   verifyFileHandleDetailed,
 } from '../../utils/file/fileHandleVerification';
+import { PERMISSION_QUERY_TIMEOUT_MS } from '../../utils/file/handlePermissionQuery';
 
 vi.mock('../../utils/logger', () => ({
   logWarning: vi.fn(),
@@ -68,6 +69,21 @@ describe('fileHandleVerification', () => {
         valid: false,
         reason: 'missing_handle',
       });
+    });
+
+    it('returnerer permission_api_failed uden at hænge, når queryPermission aldrig svarer', async () => {
+      vi.useFakeTimers();
+      try {
+        const queryPermission = vi.fn<PermissionMethod>(() => new Promise<PermissionState>(() => {}));
+        const handle = createFileHandle({ queryPermission });
+
+        const result = verifyFileHandleDetailed(handle, { allowRequestPermission: true });
+        await vi.advanceTimersByTimeAsync(PERMISSION_QUERY_TIMEOUT_MS);
+
+        await expect(result).resolves.toMatchObject({ valid: false, reason: 'permission_api_failed' });
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('returnerer missing_permission_api når handle mangler queryPermission', async () => {
@@ -214,6 +230,23 @@ describe('fileHandleVerification', () => {
       await expect(
         verifyDirectoryHandle(handle, { allowRequestPermission: true }),
       ).resolves.toBe(false);
+    });
+
+    it('falder tilbage (false) uden at hænge, når queryPermission aldrig svarer (Edge)', async () => {
+      vi.useFakeTimers();
+      try {
+        const queryPermission = vi.fn<PermissionMethod>(() => new Promise<PermissionState>(() => {}));
+        const requestPermission = createPermissionMock('granted');
+        const handle = createDirectoryHandle({ queryPermission, requestPermission });
+
+        const result = verifyDirectoryHandle(handle, { mode: 'read', allowRequestPermission: true });
+        await vi.advanceTimersByTimeAsync(PERMISSION_QUERY_TIMEOUT_MS);
+
+        await expect(result).resolves.toBe(false);
+        expect(requestPermission).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('anmoder om directory permission når det er tilladt', async () => {

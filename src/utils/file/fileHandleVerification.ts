@@ -1,5 +1,6 @@
 import { logWarning } from '../logger';
 import { isRecord } from '../typeGuards';
+import { queryHandlePermission } from './handlePermissionQuery';
 
 /**
  * Permission-verifikation af File System Access-handles.
@@ -53,7 +54,14 @@ export const verifyFileHandleDetailed = async (
     }
 
     try {
-      let permission = await permissionHandle.queryPermission({ mode: 'readwrite' });
+      const queried = await queryHandlePermission(
+        { queryPermission: permissionHandle.queryPermission.bind(handle) },
+        'readwrite',
+      );
+      if (queried === 'unanswered') {
+        return { valid: false, reason: 'permission_api_failed', detail: 'queryPermission ubesvaret' };
+      }
+      let permission: PermissionState = queried;
 
       if (
         permission !== 'granted' &&
@@ -148,7 +156,11 @@ export const verifyDirectoryHandle = async (
     // Hvis kaldet sker fra en direkte brugergestus-handler, må vi bede browseren om tilladelse
     // i stedet for at falde tilbage til skrivebordet ved permission='prompt'.
     try {
-      let permission = await handle.queryPermission({ mode });
+      const queried = await queryHandlePermission(handle, mode);
+      // Et ubesvaret tjek er en ubrugelig startmappe: fald tilbage til skrivebordet, så pickeren
+      // stadig åbner. En efterfølgende `requestPermission` ville blot hænge på samme handle.
+      if (queried === 'unanswered') return false;
+      let permission: PermissionState = queried;
 
       if (
         permission !== 'granted' &&

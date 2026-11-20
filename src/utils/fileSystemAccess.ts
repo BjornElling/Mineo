@@ -2,6 +2,7 @@ import { logWarning, logError, sanitizeFilenameForLog } from './logger';
 import { asError, getErrorName } from './typeGuards';
 import { readFileContentFingerprint } from './fileContentFingerprint';
 import { MAX_FILE_SIZE } from '../config/version';
+import { queryHandlePermission } from './file/handlePermissionQuery';
 
 /**
  * Tjekker om File System Access API er tilgængelig i browseren.
@@ -73,7 +74,12 @@ export const ensureFileHandleReadPermission = async (fileHandle: FileSystemFileH
     return;
   }
 
-  let state = await handle.queryPermission({ mode: 'read' });
+  const queried = await queryHandlePermission({ queryPermission: handle.queryPermission.bind(handle) }, 'read');
+  if (queried === 'unanswered') {
+    // Samme handle ville også lade `requestPermission` hænge; fejl fail-closed med anvisningen.
+    throw new FileHandleAccessError('Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.');
+  }
+  let state: PermissionState = queried;
   if (state === 'granted') return;
 
   if (typeof handle.requestPermission === 'function') {
