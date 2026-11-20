@@ -15,6 +15,7 @@ import { pageSectionAccessBoundary } from './rules/domainRules';
  */
 const EXPECTED_ARCHITECTURE_RULE_IDS: readonly string[] = [
   'a11y/interactive-control-has-accessible-name',
+  'a11y/conditional-choice-has-unavailable-reason',
   'a11y/web-link-policy-single-source',
   'criticalAction/no-dom-scan-or-frame-wait',
   'data/calculation-catalog-not-eager-from-entrypoint',

@@ -5,6 +5,7 @@ import {
   buildBeregningsperiodeRange,
   buildIncomeForRangesDetailed,
   buildTafRanges,
+  ansaettelsesforholdNavne,
   resolveAnsaettelsesforholdNavn,
   type IncomeNegativeSource,
 } from '../helpers/indtaegtPerioder';
@@ -31,9 +32,13 @@ const PERIODE_TEKST: Readonly<Record<NegativIndkomstkildeFund['periode'], string
   erstatningsperioden: 'EO-perioden',
 };
 
-const buildMessage = (source: IncomeNegativeSource, periode: NegativIndkomstkildeFund['periode']): string =>
+const buildMessage = (
+  source: IncomeNegativeSource,
+  periode: NegativIndkomstkildeFund['periode'],
+  navne: readonly (string | undefined)[]
+): string =>
   source.kind === 'employer'
-    ? `Lønnen fra ${resolveAnsaettelsesforholdNavn(source.name, source.index)} er samlet negativ i ${PERIODE_TEKST[periode]} `
+    ? `Lønnen fra ${resolveAnsaettelsesforholdNavn(source.name, source.index, navne)} er samlet negativ i ${PERIODE_TEKST[periode]} `
       + `(${formatKroner(source.amount)}). En samlet negativ løn kan ikke indgå i beregningen – kontrollér lønrækkerne`
     : `${source.label} er samlet negativ i ${PERIODE_TEKST[periode]} (${formatKroner(source.amount)}). En samlet negativ ydelse `
       + 'kan ikke indgå i beregningen – kontrollér ydelsesrækkerne';
@@ -45,16 +50,17 @@ export const resolveNegativeIndkomstkilder = (
 ): readonly NegativIndkomstkildeFund[] => {
   if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') return [];
   const fund: NegativIndkomstkildeFund[] = [];
+  const navne = ansaettelsesforholdNavne(values.loenindkomstAnsaettelsesforhold);
   const beregningsperiode = values.beregnesUdFra === 'Beregningsperiode' ? buildBeregningsperiodeRange(values) : null;
   if (beregningsperiode) {
     for (const source of buildIncomeForRangesDetailed(values, [beregningsperiode], undefined, skadedato).negativeSources) {
-      fund.push({ source, periode: 'beregningsperioden', message: buildMessage(source, 'beregningsperioden') });
+      fund.push({ source, periode: 'beregningsperioden', message: buildMessage(source, 'beregningsperioden', navne) });
     }
   }
   const tafRanges = buildTafRanges(values, { skadedatoISO: skadedato });
   if (tafRanges.length > 0) {
     for (const source of buildIncomeForRangesDetailed(values, tafRanges, undefined, skadedato).negativeSources) {
-      fund.push({ source, periode: 'erstatningsperioden', message: buildMessage(source, 'erstatningsperioden') });
+      fund.push({ source, periode: 'erstatningsperioden', message: buildMessage(source, 'erstatningsperioden', navne) });
     }
   }
   return fund;

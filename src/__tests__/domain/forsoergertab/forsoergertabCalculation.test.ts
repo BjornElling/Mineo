@@ -4,7 +4,7 @@ import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/fo
 import { computeForsoergertabEalKrav } from '../../../domain/forsoergertab/forsoergertabEalKrav';
 import { opregulerMedAslAarsloensmaksimum } from '../../../domain/satser/opreguleringsmotorer';
 import { aarsloenAslMax, erhvervsevnetabEalMax, foersoergertabEalMin } from '../../../data/lovbestemteRates';
-import { round0, round2, round4 } from '../../../utils/roundingShortcuts';
+import { round0, round2 } from '../../../utils/roundingShortcuts';
 import { toISODateString } from '../../../types/branded';
 import { toKroner } from '../../../domain/money/money';
 
@@ -375,8 +375,9 @@ describe('computeForsoergertabAslYdelser', () => {
     });
 
     expect(result.computation).not.toBeNull();
-    expect(result.computation?.alleredeUdbetaltMaaneder).toBe(round4(1 / 31));
-    expect(result.computation?.resterendeMaanederTotal).toBe(round4(12 - 1 / 31));
+    // Uafrundet månedsbrøk (udviklerens afgørelse 2026-11-19).
+    expect(result.computation?.alleredeUdbetaltMaaneder).toBeCloseTo(1 / 31, 10);
+    expect(result.computation?.resterendeMaanederTotal).toBeCloseTo(12 - 1 / 31, 10);
   });
 
   it('læser de udbetalte måneder af tabellens egen sum, så de to halvdele ikke kan drifte', () => {
@@ -394,12 +395,12 @@ describe('computeForsoergertabAslYdelser', () => {
 
     expect(result.computation).not.toBeNull();
     const computation = result.computation!;
-    const tabelSum = round4(computation.lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));
+    const tabelSum = computation.lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0);
 
-    expect(computation.alleredeUdbetaltMaaneder).toBe(tabelSum);
+    expect(computation.alleredeUdbetaltMaaneder).toBeCloseTo(tabelSum, 10);
     // Den målte sag fra brugerblik-gennemgangen: 60,7323 udbetalt, 59,2677 tilbage – ikke 62/58.
-    expect(computation.alleredeUdbetaltMaaneder).toBe(60.7323);
-    expect(computation.resterendeMaanederTotal).toBe(59.2677);
+    expect(computation.alleredeUdbetaltMaaneder).toBeCloseTo(60.7323, 4);
+    expect(computation.resterendeMaanederTotal).toBeCloseTo(59.2677, 4);
     // Tabelopslaget afkorter til hele år og måneder: 4 år og 11 måneder.
     expect(computation.resterendeAar).toBe(4);
     expect(computation.resterendeMaaneder).toBe(11);
@@ -467,8 +468,7 @@ describe('computeForsoergertabAslYdelser', () => {
     expect(raekke.fraDato).toBe(toISODateString('2025-03-15'));
     expect(raekke.tilDato).toBe(toISODateString('2025-03-31'));
     // 17 dage ud af 31 dage i marts
-    const forventetMaaneder = Math.round((17 / 31) * 10000) / 10000;
-    expect(raekke.maaneder).toBe(forventetMaaneder);
+    expect(raekke.maaneder).toBeCloseTo(17 / 31, 10);
   });
 
   it('fører skuddagen korrekt gennem den håndberegnede ASL-dagbrøk', () => {
@@ -486,19 +486,19 @@ describe('computeForsoergertabAslYdelser', () => {
     const computation = result.computation!;
 
     // Håndfacit: 29. februar–1. marts 2024 er 1/29 + 1/31 = 0,0667408...
-    // måned, som afrundes til 0,0667. 30 % af 400.000 kr. giver 120.000 kr.
+    // måned (uafrundet). 30 % af 400.000 kr. giver 120.000 kr.
     // årligt og 10.000 kr. pr. måned; rækken bliver derfor 667 kr. i alt.
     expect(computation.opreguleringsfaktor).toBe(1);
     expect(computation.opreguleretAarligYdelse).toBe(120000);
     expect(computation.lobendeYdelser).toEqual([{
       fraDato: toISODateString('2024-02-29'),
       tilDato: toISODateString('2024-03-01'),
-      maaneder: 0.0667,
+      maaneder: expect.closeTo(1 / 29 + 1 / 31, 10),
       maanedligYdelse: 10000,
       ydelseIAlt: 667,
     }]);
-    expect(computation.alleredeUdbetaltMaaneder).toBe(0.0667);
-    expect(computation.resterendeMaanederTotal).toBe(11.9333);
+    expect(computation.alleredeUdbetaltMaaneder).toBeCloseTo(1 / 29 + 1 / 31, 10);
+    expect(computation.resterendeMaanederTotal).toBeCloseTo(12 - 1 / 29 - 1 / 31, 10);
     expect(computation.aslLobendeYdelserTotal).toBe(667);
   });
 });

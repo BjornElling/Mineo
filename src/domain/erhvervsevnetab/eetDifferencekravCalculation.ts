@@ -23,7 +23,7 @@ import {
   resolveSaerfaktor,
   resolveToAarsreglensSidsteYdelsesdag,
 } from './eetKapitaliseringOpslag';
-import { ceil0, ceilNearest12, round0, round2, round3, round4 } from '../../utils/roundingShortcuts';
+import { ceil0, ceilNearest12, round0, round2, round3 } from '../../utils/roundingShortcuts';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import {
   resolveKapitaliseringAarsydelseBreakdown,
@@ -303,14 +303,14 @@ const computeProformaKapitalisering = (
       return null;
     }
     // Udviklerens afgørelse 2026-11-12: særfaktoren gælder hele 2-årsvinduet, men nedsættes her
-    // forholdsmæssigt efter den faktiske restperiode (fx 18 mdr. → 18/24 af særfaktoren). Måneder og
-    // særfaktor afrundes FØR multiplikationen til de decimaler, der vises, så regnestykket i
-    // forklaringen kan efterregnes præcist.
+    // forholdsmæssigt efter den faktiske restperiode (fx 18 mdr. → 18/24 af særfaktoren). Månederne
+    // afrundes ikke (2026-11-19); særfaktoren og den nedsatte faktor afrundes til tre decimaler som vist.
     const dagenFoerFolkepensionsdato = getDagenFoerFolkepensionsdato(fodselsdato, beregningsdato);
     if (!dagenFoerFolkepensionsdato || beregningsdato > dagenFoerFolkepensionsdato) return null;
     maanederTilFolkepension = Math.min(
       24,
-      round4(sumMaanedsbroekForInterval(beregningsdato, dagenFoerFolkepensionsdato))
+      // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler (udviklerens afgørelse 2026-11-19).
+      sumMaanedsbroekForInterval(beregningsdato, dagenFoerFolkepensionsdato)
     );
     if (maanederTilFolkepension <= 0) return null;
     kapitaliseringsfaktor = round3(round3(saerfaktor) * maanederTilFolkepension / 24);

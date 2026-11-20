@@ -10,12 +10,13 @@
  * specifikationen på siden med de grundlæggende oplysninger. Er der to, får hver sin side.
  */
 
+import { formatDocumentMaanederFixed } from '../../../utils/documentMaanederFormatting';
 import type { DocumentComposer } from '../../model/documentModel';
 import { buildStamdataBrevhovedData, defineDocument } from '../documentGeneratorSetup';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { type ColumnSpec, type RowSpec } from '../../layout/tableSpec';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentRounded4, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
+import { formatKr, formatAsAmountTrimmed, formatCountWithUnit, formatPercentRounded4, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { formatDeductionKr, formatDeductionPercent } from '../../../utils/deductionFormatting';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
 import type { Skadestype } from '../../../schemas/formSchemas/enumSchemas';
@@ -304,7 +305,7 @@ const addAslSection = (writer: DocumentComposer, asl: ForsoergertabAslComputatio
         cells: [
           { text: isoToDanish(raekke.fraDato) ?? '' },
           { text: isoToDanish(raekke.tilDato) ?? '' },
-          { text: formatAsAmount(raekke.maaneder, 4) },
+          { text: formatDocumentMaanederFixed(raekke.maaneder) },
           { text: formatKr(raekke.maanedligYdelse, 0) },
           { text: formatKr(raekke.ydelseIAlt, 0) },
         ],

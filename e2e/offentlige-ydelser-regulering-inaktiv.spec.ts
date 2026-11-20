@@ -13,11 +13,13 @@ test.describe('Offentlige ydelser – regulering følger beregningsgrundlaget', 
 
     const toggle = page.locator("input[name='regulerOffentligeYdelser']");
     const label = page.locator('label').filter({ hasText: 'Offentlige ydelser i beregningsperioden reguleres' });
-    const inactiveText = 'Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF.';
+    const inactiveText = 'Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF';
     const activeText = 'Offentlige ydelser, der indgår i beregningsgrundlaget, opreguleres til erstatningsåret ved beregning af TAF.';
     await expect(toggle).toBeDisabled();
     const inactiveColor = await label.evaluate(element => getComputedStyle(element).color);
-    await label.getByRole('img').hover();
+    // Årsagen står på selve kontrollen (§10.5); info-ikonet forklarer altid reguleringen.
+    const switchHoverTarget = page.locator('.mineo-disabled-hover-target').filter({ has: toggle });
+    await switchHoverTarget.hover();
     await expect(page.getByRole('tooltip')).toHaveText(inactiveText);
     await page.screenshot({ path: testInfo.outputPath('regulering-inaktiv.png') });
 
@@ -49,7 +51,7 @@ test.describe('Offentlige ydelser – regulering følger beregningsgrundlaget', 
     await setVerbatimFieldValueAndSettle(inputs.nth(1), '31-12-2021');
     await expect(toggle).toBeDisabled();
     await expect(toggle).not.toBeChecked();
-    await label.getByRole('img').hover();
+    await switchHoverTarget.hover();
     await expect(page.getByRole('tooltip')).toHaveText(inactiveText);
     await setVerbatimFieldValueAndSettle(inputs.nth(1), '31-12-2022');
     await expect(toggle).toBeEnabled();

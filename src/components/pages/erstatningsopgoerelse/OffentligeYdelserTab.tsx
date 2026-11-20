@@ -530,9 +530,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
             label={(
               <>
                 Offentlige ydelser i beregningsperioden reguleres
-                <InfoTooltipIcon title={harOffentligeYdelserIBeregningsgrundlaget
-                  ? 'Offentlige ydelser, der indgår i beregningsgrundlaget, opreguleres til erstatningsåret ved beregning af TAF.'
-                  : 'Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF.'} />
+                <InfoTooltipIcon title="Offentlige ydelser, der indgår i beregningsgrundlaget, opreguleres til erstatningsåret ved beregning af TAF." />
               </>
             )}
           >
@@ -543,7 +541,10 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
                 checkedValue="Ja"
                 uncheckedValue="Nej"
                 name="regulerOffentligeYdelser"
-                disabled={!harOffentligeYdelserIBeregningsgrundlaget}
+                // Inaktiv og slået fra med årsagen som tooltip på kontrollen (page-component-contract.md §10.5).
+                unavailableReason={harOffentligeYdelserIBeregningsgrundlaget
+                  ? null
+                  : 'Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF'}
                 id={controlId}
                 labelledBy={labelledBy}
               />

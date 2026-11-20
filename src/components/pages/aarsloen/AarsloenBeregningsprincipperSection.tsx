@@ -67,7 +67,6 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 location={locations.retTilSjetteFerieuge}
                 id={controlId}
                 labelledBy={labelledBy}
-                disabled={!omregningAktiveret}
               />
             )}
           </LabeledControlRow>
@@ -84,7 +83,6 @@ const AarsloenBeregningsprincipperSection = React.memo(() => {
                 location={locations.antalFeriedage}
                 placeholder="0"
                 width={50}
-                disabled={!omregningAktiveret}
                 {...(vm.feriedageIssue === undefined ? {} : { crossFieldIssue: vm.feriedageIssue })}
               />
             </Box>

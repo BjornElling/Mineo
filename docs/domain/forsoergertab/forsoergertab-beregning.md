@@ -255,7 +255,7 @@ Særtilfælde: hvis start- og slutdato er i samme måned:
 maaneder = (slutDag - startDag + 1) / daysInMonth(maaned)
 ```
 
-`maaneder` afrundes til 4 decimaler.
+`maaneder` afrundes ikke; den vises med fem decimaler (udviklerens afgørelse 2026-11-19).
 
 ### 5a.6 Ydelse i alt pr. række
 

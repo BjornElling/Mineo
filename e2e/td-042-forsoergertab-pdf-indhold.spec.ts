@@ -50,7 +50,7 @@ test.describe('TD-042 – Forsørgertabets PDF-indhold', () => {
 
     const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
     await expect(resultRow).toBeVisible();
-    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(resultRow.getByText('82.742 kr.', { exact: true })).toBeVisible();
 
     const downloadButton = page.getByTestId('forsoergertab-download');
     await expect(downloadButton).toBeEnabled();
@@ -73,7 +73,7 @@ test.describe('TD-042 – Forsørgertabets PDF-indhold', () => {
       'Løbende ydelser (efter ASL)',
       'Kapitalbeløb (efter ASL)',
       'Forsørgertabserstatning',
-      '82.741 kr.',
+      '82.742 kr.',
     ]) {
       expect(pdfText, `Forsørgertab-PDF mangler «${expectedText}»`).toContain(expectedText);
     }

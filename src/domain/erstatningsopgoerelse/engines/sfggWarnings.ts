@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { addMonths } from '../../../utils/dateUtils';
 import { dateToISO, isoToDanish, parseISODate, type ISODateString } from '../../../types/branded';
-import { parseAarsloenRowInterval, resolveAnsaettelsesforholdNavn } from '../helpers/indtaegtPerioder';
+import { parseAarsloenRowInterval, ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../helpers/indtaegtPerioder';
 import { erSfggFeltRelevant } from '../helpers/eoLoenindkomstRelevance';
 import { shouldRequireSygeferiegodtgoerelseInput } from '../helpers/sygeferiegodtgoerelseEligibility';
 import type { SygeferiegodtgoerelseAnsaettelsesforholdResult, SygeferiegodtgoerelseResult } from './sfggResult';
@@ -117,6 +117,7 @@ export const buildSfggSeksMaanederBesked = (
   const navn = resolveAnsaettelsesforholdNavn(
     employment.navnPaaArbejdssted,
     values.loenindkomstAnsaettelsesforhold.findIndex((entry) => entry.id === employment.id),
+    ansaettelsesforholdNavne(values.loenindkomstAnsaettelsesforhold),
   );
   const efter = lastIncomeDate ? ` efter ${isoToDanish(lastIncomeDate) ?? lastIncomeDate}` : '';
   return `Der er ikke registreret løn fra ${navn}${efter}. `

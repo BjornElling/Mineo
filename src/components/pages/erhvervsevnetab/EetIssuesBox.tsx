@@ -37,7 +37,7 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
       if (focusTarget?.kind === 'fieldAddress') {
         scrollToFieldAddress(focusTarget.address);
       } else if (focusTarget?.kind === 'collectionField') {
-        scrollToCollectionFieldTemplate(focusTarget.template);
+        scrollToCollectionFieldTemplate(focusTarget.template, { row: focusTarget.row ?? 'first' });
       } else if (focusTarget?.kind === 'rowId') {
         scrollToEoRow('', { focusTarget });
       } else {

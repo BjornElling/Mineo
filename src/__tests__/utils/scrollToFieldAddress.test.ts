@@ -90,7 +90,7 @@ describe('scrollToFieldAddress', () => {
 
     scrollToCollectionFieldTemplate(template, { maxRetries: 4, onSuccess });
 
-    expect(findFirstVisibleEditorForTemplateMock).toHaveBeenCalledWith(template);
+    expect(findFirstVisibleEditorForTemplateMock).toHaveBeenCalledWith(template, 'first');
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
     expect(blinkFieldAttentionMock).toHaveBeenCalledTimes(1);
     expect(blinkFieldAttentionMock).toHaveBeenCalledWith(editor);

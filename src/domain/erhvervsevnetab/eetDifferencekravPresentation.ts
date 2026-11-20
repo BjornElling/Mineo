@@ -1,6 +1,7 @@
 import { FORHOEJET_PENSIONSALDER_LABEL } from './eetLabels';
 import type { EetDifferencekravProformaKapitalisering } from './eetCanonicalOutput';
 import { formatAsAmountTrimmed, formatPercentRounded4 } from '../../utils/formatUtils';
+import { formatMaaneder } from './eetFormatUtils';
 
 /**
  * Label til "Beregnet differencekrav"-rækken på differencekrav-fanen og i PDF'en.
@@ -143,7 +144,7 @@ export const resolveNedsatSaerfaktorForklaring = (
   return buildNedsatSaerfaktorForklaring({
     loebendeEetPctFormatted: formatPercentRounded4(pk.loebendeEetPct),
     saerfaktorFormatted: formatAsAmountTrimmed(pk.saerfaktor, 3),
-    maanederFormatted: formatAsAmountTrimmed(pk.maanederTilFolkepension, 4),
+    maanederFormatted: formatMaaneder(pk.maanederTilFolkepension),
     faktorFormatted: formatAsAmountTrimmed(pk.kapitaliseringsfaktor, 3),
   });
 };

@@ -61,7 +61,12 @@ describe('eoSnapshotToTafKravGrafDocument – fælles indkomstgrundlag', () => {
     }));
     const graf = project();
     if (graf.kind !== 'ok') throw new Error(graf.message);
-    const employers = graf.document.series.filter((serie) => serie.label === 'Løn (Arbejdsgiver A)');
+    // Samme arbejdssted skelnes ved kortets nummer (BB-411-mønstret).
+    const employers = graf.document.series.filter((serie) => serie.label.startsWith('Løn (Arbejdsgiver A (ansættelsesforhold '));
+    expect(employers.map((serie) => serie.label)).toEqual([
+      'Løn (Arbejdsgiver A (ansættelsesforhold 1))',
+      'Løn (Arbejdsgiver A (ansættelsesforhold 2))',
+    ]);
     expect(employers.map(({ color, segments }) => ({ color, segments }))).toEqual([
       { color: '#2F6B9A', segments: [{ fra: iso('2024-02-01'), til: iso('2024-02-29'), amountOre: 100_000 }] },
       { color: '#4F8A5B', segments: [{ fra: iso('2024-02-01'), til: iso('2024-02-29'), amountOre: 200_000 }] },

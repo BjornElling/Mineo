@@ -17,7 +17,8 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { resolveOffentligLoenEnhed, resolveOffentligLoenTypeFromLabel } from '../../../../data/offentligLoenTypes';
 import { resolveAktivOverenskomst } from '../../../../domain/loen/aktivOverenskomst';
-import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { resolveReguleringBilagKilder } from '../../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
   REGULERINGSVAERDIER_FERIE_HEADERS,
   REGULERINGSVAERDIER_PENSION_HEADER,
@@ -359,12 +360,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);
-  const reguleredeAnsaettelser = ansaettelser
-    .map((ansaettelsesforhold, originalIndex) => ({ ansaettelsesforhold, originalIndex }))
-    .filter(({ ansaettelsesforhold }) => {
-      const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
-      return grundlag !== undefined && grundlag !== 'Ingen';
-    });
+  // Samme afgrænsning som bilagets gate: kun kilder, der indgår i beregningsgrundlaget.
+  const reguleredeAnsaettelser = resolveReguleringBilagKilder(eoValues)
+    .map(({ kilde, originalIndex }) => ({ ansaettelsesforhold: kilde, originalIndex }));
 
   if (reguleredeAnsaettelser.length === 0) {
     return;
@@ -388,7 +386,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ansaettelsesforhold.id
     );
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
-    const underoverskrift = resolveAnsaettelsesforholdNavn(ansaettelsesforhold.navnPaaArbejdssted, originalIndex);
+    const underoverskrift = resolveAnsaettelsesforholdNavn(
+      ansaettelsesforhold.navnPaaArbejdssted,
+      originalIndex,
+      ansaettelsesforholdNavne(ansaettelser)
+    );
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
     if (visUnderoverskrift) {
       renderSubheader(underoverskrift, { addTopSpacing: visibleIndex > 0 });

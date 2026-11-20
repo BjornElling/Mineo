@@ -1,4 +1,5 @@
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { formatDocumentMaanederTrimmed } from '../../utils/documentMaanederFormatting';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import type { AttentionTarget } from '../../utils/attentionTarget';
 import type { EetIssue } from './eetTypes';
@@ -25,8 +26,11 @@ export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 export const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
 
-/** Kanonisk formatter for et månedsantal i EET (4 decimaler, trailing zeros trimmet). */
-export const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
+/**
+ * Månedsantal i EET: programmets ene månedsformat (fem decimaler, efterstillede nuller trimmet) – udviklerens
+ * afgørelse 2026-11-19: måneder vises med fem decimaler alle steder.
+ */
+export const formatMaaneder = (value: number): string => formatDocumentMaanederTrimmed(value);
 
 /**
  * EET-facadens navn bevares for de EET-specifikke visninger. Andre domæner skal importere den

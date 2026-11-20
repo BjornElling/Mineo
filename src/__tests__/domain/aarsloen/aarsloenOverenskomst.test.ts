@@ -373,13 +373,22 @@ describe('årslønnens overenskomst – efterreview 2026-10-27', () => {
       tableErrors: result.tableValidation.errors,
       tableRowIds: result.values.tableData.map((r) => r.id),
       downloadError: null,
-      warnings: ['En advarsel'],
+      warnings: [
+        { message: 'En advarsel' },
+        { message: 'Lønrække 2: identisk med lønrække 1', address: aarsloenReguleringsdatoField.bind().address },
+      ],
     });
     expect(rows).toEqual([
       expect.objectContaining({ severity: 'error', message: 'Overenskomst mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
       expect.objectContaining({ severity: 'error', message: 'Reguleringsdato mangler', target: expect.objectContaining({ sectionName: 'Lønforhold' }) }),
       expect.objectContaining({ severity: 'warning', message: 'En advarsel' }),
+      // En rækkeadvarsel fører til sin celle (BB-289/BB-298), som EO's.
+      expect.objectContaining({
+        severity: 'warning',
+        target: { kind: 'field', address: aarsloenReguleringsdatoField.bind().address, sectionName: 'Indtægtsoplysninger' },
+      }),
     ]);
+    expect(rows[2]).not.toHaveProperty('target');
   });
 
   it('navngiver feltet foran en feltfejl', () => {

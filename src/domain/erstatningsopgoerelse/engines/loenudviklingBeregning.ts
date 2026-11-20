@@ -3,7 +3,7 @@ import type { TafCalculationValues } from './tafCalculationInput';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, resolveAnsaettelsesforholdNavn, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { resolveBeregningsperiodeEmployerAtReguleringsdato } from './indkomstSkadestidspunktBeregning';
@@ -373,7 +373,11 @@ export const buildLoenudviklingBeregning = (
       const grundlag = grundlagByIndex[employer.index];
       if (!grundlag) continue;
       const modelForAf = buildFromStrategiAndBase(grundlag, baseLoen);
-      const ansaettelsesforholdNavn = resolveAnsaettelsesforholdNavn(ansaettelsesforhold.navnPaaArbejdssted, employer.index);
+      const ansaettelsesforholdNavn = resolveAnsaettelsesforholdNavn(
+        ansaettelsesforhold.navnPaaArbejdssted,
+        employer.index,
+        ansaettelsesforholdNavne(values.loenindkomstAnsaettelsesforhold)
+      );
 
       perAnsaettelse.push({
         ansaettelsesforholdId: ansaettelsesforhold.id,

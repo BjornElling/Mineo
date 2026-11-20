@@ -162,7 +162,7 @@ Hvis `løbende_eet_pct = 0`, springes fradrag 3 over.
 Udviklerens afgørelse 2026-11-12. Hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepensionsalderen, og der fortsat består rest-EET, proformakapitaliseres resten på beregningsdatoen med bekendtgørelsens særfaktor for ≤ 2 år til folkepension – nedsat forholdsmæssigt efter den faktiske restperiode:
 
 ```
-måneder = præcis månedsoptælling fra beregningsdato til og med dagen før folkepensionsdato (4 decimaler, højst 24)
+måneder = præcis månedsoptælling fra beregningsdato til og med dagen før folkepensionsdato (uafrundet, vist med fem decimaler, højst 24)
 faktor  = round3(round3(særfaktor) × måneder / 24)
 fradrag = ceil0(årsydelse på beregningsdatoen × faktor)
 ```

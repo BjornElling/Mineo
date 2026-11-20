@@ -24,6 +24,11 @@ export type MappedToggleFieldProps<TValue> = Readonly<{
   uncheckedValue: NoInfer<TValue>;
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   disabled?: boolean;
+  /**
+   * Årsagen til, at valget ikke kan betjenes – vist som tooltip på kontrollen, præcis som `ToggleField`s og
+   * `CheckboxField`s prop af samme navn (page-component-contract.md §10.5). Kontakten vises da slået fra.
+   */
+  unavailableReason?: string | null;
   name?: string;
   id?: string;
   /**
@@ -55,11 +60,13 @@ const MappedToggleField = <TValue,>(
     uncheckedValue,
     labelPlacement,
     disabled,
+    unavailableReason,
     name,
     id,
     commit,
     warning,
   } = props;
+  const unavailable = unavailableReason !== undefined && unavailableReason !== null;
   const controller = useFieldEditor(field, location);
   const restoreTargetAttributes = useRestoreTargetAttributes(field.address, location);
   const checked = Object.is(controller.value, checkedValue);
@@ -81,7 +88,7 @@ const MappedToggleField = <TValue,>(
       onCommit={handleCommit}
       {...selectAccessibleNameProps(props)}
       {...(labelPlacement === undefined ? {} : { labelPlacement })}
-      {...(disabled === undefined ? {} : { disabled })}
+      {...(disabled === undefined && !unavailable ? {} : { disabled: disabled === true || unavailable })}
       {...(name === undefined ? {} : { name })}
       {...(id === undefined ? {} : { id })}
       restoreTargetAttributes={restoreTargetAttributes}
@@ -90,9 +97,10 @@ const MappedToggleField = <TValue,>(
   // Bevar samme træ, når advarslen skifter: ellers bliver det fokuserede input udskiftet ved klik,
   // så brugeren ikke kan slå valget fra igen med Enter eller mellemrum.
   return (
-    <Tooltip title={warning?.message ?? ''} arrow placement="top">
+    <Tooltip title={unavailable ? unavailableReason : warning?.message ?? ''} arrow placement="top">
       <Box
         component="span"
+        {...(unavailable ? { className: 'mineo-disabled-hover-target' } : {})}
         {...(warning === undefined ? {} : { 'data-mineo-field-warning': '' })}
         sx={{
           display: 'inline-flex',

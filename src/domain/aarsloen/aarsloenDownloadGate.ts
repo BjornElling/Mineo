@@ -16,6 +16,7 @@
  * `calculation === null` er projektionens måde at sige "feltgaten er rød, så motoren blev ikke kaldt"
  * (§3.9). Det er derfor en blokerings-årsag her, ikke en manglende værdi at gætte om.
  */
+import { getStandardLoenPeriodKeys } from '../standardLoen/standardLoenTableValidation';
 import {
   allowDocumentDownload,
   blockDocumentDownload,
@@ -162,33 +163,33 @@ export const evaluateAarsloenDownloadGate = (
   return allowDocumentDownload();
 };
 
-/** SH-dage-dokumentet. Rækkefølgen er identisk med `resolveShDageDocumentEligibility`. */
+/**
+ * SH-dage-dokumentet. Det bygger alene på periodecellerne og «Løn på helligdage» og blokeres derfor kun af dem –
+ * ikke af årslønnens satser, overenskomst, feriedage eller beløb, som dokumentet ikke bruger (BB-419-princippet,
+ * udviklerens afgørelse 2026-11-19). Grundlaget er projektionens `shDage`.
+ */
 export const evaluateShDageDownloadGate = (
   projection: AarsloenReaderProjection
 ): DocumentDownloadGateResult => {
-  const rangeBlocked = blockedByCanonicalRange(projection, 'aarsloen:sh-canonical-range-error');
-  if (rangeBlocked) return rangeBlocked;
-  const feriedageBlocked = blockedByFeriedageOverPerioden(projection, 'aarsloen:sh-feriedage-over-perioden');
-  if (feriedageBlocked) return feriedageBlocked;
-
-  const { calculation } = projection;
-  // Som årslønsgaten: `calculation === null` er en RØD feltgate, ikke en mangel. SH-dage-gaten tjekker
-  // desuden IKKE `tableValidation.errors` først, så røde tabelfejl lander netop her – de fik derfor
-  // "Indtastning mangler" på en udfyldt, men ugyldig tabel.
-  if (calculation === null) {
+  const { shDage, tableValidation, values } = projection;
+  if (shDage === null) {
+    const periodKeys: readonly string[] = getStandardLoenPeriodKeys(values.loenperiode);
+    const periodCellErrors = tableValidation.errors.filter(
+      (error) => error.kind === 'cell' && error.issue === 'invalid' && periodKeys.includes(error.colKey)
+    );
     return blockDocumentDownloadFromCauses(
       'aarsloen:sh-missing-period-data',
-      toBlockingCauses(projection.fieldIssues),
+      [...toBlockingCauses(projection.shDageBlockingIssues), ...periodCellErrors.map(toTableBlockingCause)],
       'Mangler periode-data'
     );
   }
-  if (calculation.periodeData === null) {
+  if (shDage.periodeData === null) {
     return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-missing-period-data', message: 'Mangler periode-data' });
   }
-  if (calculation.shDageAntal === null) {
+  if (shDage.shDageAntal === null) {
     return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-no-count', message: 'Antal SH-dage er ikke beregnet' });
   }
-  if (calculation.shDageAntal === 0) {
+  if (shDage.shDageAntal === 0) {
     // Et GYLDIGT, komplet input med resultatet nul. Intet mangler og intet er forkert – dokumentet ville
     // blot være tomt.
     return blockDocumentDownloadForUnavailableCalculation({ code: 'aarsloen:sh-zero', message: 'Ingen SH-dage i de indtastede perioder' });

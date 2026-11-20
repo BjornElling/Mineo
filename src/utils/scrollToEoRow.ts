@@ -71,7 +71,7 @@ const findElementByFocusTarget = (target: EoIssueFocusTarget | undefined): HTMLE
   if (target.kind === 'rowId') return findElementByMineoRowId(target.rowId);
   // Den endnu ikke oprettede indtastning: feltet udpeges af sin template, og tabellens tomme
   // indtastningsrække er den flade, brugeren skal udfylde.
-  if (target.kind === 'collectionField') return findFirstVisibleEditorForTemplate(target.template);
+  if (target.kind === 'collectionField') return findFirstVisibleEditorForTemplate(target.template, target.row);
   return findVisibleFieldEditor(target);
 };
 

@@ -19,7 +19,7 @@ import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferie
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
-import { formatRowCount, formatRowMonths } from './eoRowShared';
+import { focusOnSenesteTil, formatRowCount, formatRowMonths, resolveSenestSluttendePeriodeId } from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 import { activeFieldIssue } from '../../inputCore/inputIssue';
@@ -194,6 +194,10 @@ export const buildEoTaftRows = (
       label: 'TAF-ophør skyldes',
       displayValue: dateDanish ? `${tafOphoer.label} (${dateDanish})` : tafOphoer.label,
       status: tafOphoer.label === tafIkkeRejstLabel ? 'warning' : 'ok',
+      // Forlængelsen sker i den senest sluttende periode, ikke nødvendigvis i tabellens første række.
+      ...(tafOphoer.label === tafIkkeRejstLabel
+        ? focusOnSenesteTil(resolveSenestSluttendePeriodeId(perioder), eoTafPeriodeTilField)
+        : {}),
     });
   }
 

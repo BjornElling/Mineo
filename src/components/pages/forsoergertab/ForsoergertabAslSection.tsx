@@ -1,10 +1,11 @@
 import React from 'react';
+import { formatDocumentMaanederFixed } from '../../../utils/documentMaanederFormatting';
 import { Box, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 
 import ContentBox from '../../layout/ContentBox';
 import StandardLooseTable from '../../tables/StandardLooseTable';
 import { isoToDanish } from '../../../types/branded';
-import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../../utils/formatUtils';
+import { formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../../utils/formatUtils';
 import { useForsoergertabVm } from './forsoergertabContext';
 import { SKADELIDTES_AARSLOEN_ASL_LABEL } from '../../../domain/aslEalAarsloen/aarsloenLabels';
 import {
@@ -76,7 +77,7 @@ const ForsoergertabAslSection = React.memo(() => {
                 <TableRow key={raekke.fraDato}>
                   <TableCell>{isoToDanish(raekke.fraDato)}</TableCell>
                   <TableCell>{isoToDanish(raekke.tilDato)}</TableCell>
-                  <TableCell>{formatAsAmount(raekke.maaneder, 4)}</TableCell>
+                  <TableCell>{formatDocumentMaanederFixed(raekke.maaneder)}</TableCell>
                   <TableCell>{formatKr(raekke.maanedligYdelse, 0)}</TableCell>
                   <TableCell>{formatKr(raekke.ydelseIAlt, 0)}</TableCell>
                 </TableRow>

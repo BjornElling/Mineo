@@ -53,26 +53,22 @@ const valueOrNull = <T>(result: Result<T> | null): T | null =>
  * beregningen bor nu ved sin domænegrænse, hvor dens eneste consumer også bor (`src/hooks` importeres ikke
  * længere fra `src/domain`).
  */
-export const computeAarsloenBeregning = ({
-  values,
-  omregningAktiveret,
-}: AarsloenBeregningInput): AarsloenBeregningState => {
-  const {
-    tableData,
-    loenperiode,
-    tillaegAngivesSom,
-    feriePct,
-    fritvalgPct,
-    shSoPct,
-    storeBededagPct,
-    pensionPct,
-    fuldLoenUnderFerie,
-    retTilSjetteFerieuge,
-    antalFeriedage,
-    loenPaaHelligdage,
-  } = values;
-  const canonicalRangeIssues = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret });
+type AarsloenPeriodeInput = Readonly<{
+  tableData: AarsloenBeregningInput['values']['tableData'];
+  loenperiode: AarsloenBeregningInput['values']['loenperiode'];
+  loenPaaHelligdage: AarsloenBeregningInput['values']['loenPaaHelligdage'];
+  omregningAktiveret: boolean;
+}>;
 
+const computeAarsloenPeriodeOgShDageResults = ({
+  tableData,
+  loenperiode,
+  loenPaaHelligdage,
+  omregningAktiveret,
+}: AarsloenPeriodeInput): Readonly<{
+  periodeDataResult: Result<PeriodeResult | null> | null;
+  shDageAntalResult: Result<number> | null;
+}> => {
   let periodeDataResult: Result<PeriodeResult | null> | null = null;
   if (tableData.length > 0 && harTabelData(tableData, loenperiode)) {
     periodeDataResult = safeCompute(() => {
@@ -95,6 +91,46 @@ export const computeAarsloenBeregning = ({
       return datoSet === undefined || datoSet.size === 0 ? 0 : beregnSHDageForDatoSet(datoSet);
     }, 'aarsloenBeregning.shDageBeregning');
   }
+  return { periodeDataResult, shDageAntalResult };
+};
+
+/**
+ * Periodedata og SH-dage alene – det SH-dage-dokumentet bygger på. Læser kun periodecellerne, valget «Løn på
+ * helligdage» og om omregningen er slået til, så en rød sats, overenskomst eller et beløb, som SH-dage ikke bruger,
+ * ikke kan spærre dokumentet (samme princip som BB-419).
+ */
+export const computeAarsloenPeriodeOgShDage = (input: AarsloenPeriodeInput): Readonly<{
+  periodeData: PeriodeResult | null;
+  shDageAntal: number | null;
+}> => {
+  const { periodeDataResult, shDageAntalResult } = computeAarsloenPeriodeOgShDageResults(input);
+  return { periodeData: valueOrNull(periodeDataResult), shDageAntal: valueOrNull(shDageAntalResult) };
+};
+
+export const computeAarsloenBeregning = ({
+  values,
+  omregningAktiveret,
+}: AarsloenBeregningInput): AarsloenBeregningState => {
+  const {
+    tableData,
+    loenperiode,
+    tillaegAngivesSom,
+    feriePct,
+    fritvalgPct,
+    shSoPct,
+    storeBededagPct,
+    pensionPct,
+    fuldLoenUnderFerie,
+    retTilSjetteFerieuge,
+    antalFeriedage,
+    loenPaaHelligdage,
+  } = values;
+  const canonicalRangeIssues = resolveAarsloenCanonicalRangeIssues(values, { omregningAktiveret });
+
+  const { periodeDataResult, shDageAntalResult } = computeAarsloenPeriodeOgShDageResults({
+    tableData, loenperiode, loenPaaHelligdage, omregningAktiveret,
+  });
+  const periodeData = valueOrNull(periodeDataResult);
   const shDageAntal = valueOrNull(shDageAntalResult);
 
   const beregnetAarsloenResult = tableData.length === 0

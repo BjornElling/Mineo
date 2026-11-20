@@ -521,7 +521,10 @@ const computeEetLoebendeYdelserForContext = (input: Input): EetLoebendeCalculati
       beregningsperioder: allPeriods,
       afgoerelseType: current.afgoerelseType,
       eetPct: current.eetPct,
-      priorKapPct,
+      // Visningens «tidligere kap.» skal være præcis det fradrag, grundydelsen er regnet med – ved afgørelsens egen
+      // kapitaliseringsdato, ikke ved virkningsdatoen. Ligger en anden afgørelses kapitalisering mellem de to datoer,
+      // viste formlen ellers en anden EET-faktor end den, beløbet bygger på.
+      priorKapPct: kapPctFoerAktuelKap,
       eetPctFoerAktuelKap,
       kapPctAktuel: current.effectiveKapPct,
       kapPctKumulativ,

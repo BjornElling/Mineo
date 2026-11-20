@@ -147,7 +147,8 @@ export function useAarsloenViewModel() {
 
   // Beregningsfelterne læses kun når der ER et resultat; ellers viser siden '—' (harFatalBeregningsFejl).
   const periodeData = calculation?.periodeData ?? null;
-  const shDageAntal = calculation?.shDageAntal ?? null;
+  // SH-dage har sit eget grundlag (perioderne), så antallet vises, selv om årslønnen er spærret af en sats.
+  const shDageAntal = readerProjection.shDage?.shDageAntal ?? null;
   const beregnetAarsloen = calculation?.beregnetAarsloen ?? 0;
   // `metode: 'ingen'` er modellens kanoniske "ingen beregning" – samme variant motoren selv returnerer, når
   // input ikke rækker til en metode. Ingen opdigtede tal.
@@ -155,7 +156,14 @@ export function useAarsloenViewModel() {
   // Løntabellens rækkeadvarsler (identisk række, periode efter dags dato) står først i «Advarsler»: de navngiver
   // rækken, den gule ring sidder på (BB-289/BB-298). De er sidens egne og når ikke dokumentet.
   const advarsler = React.useMemo(
-    () => [...tableRowWarnings.map((warning) => warning.summaryMessage), ...(calculation?.fejlmeddelelser ?? [])],
+    () => [
+      // Den første markerede celle er linkets mål (StandardLoenRowWarning.cells).
+      ...tableRowWarnings.map((warning) => ({
+        message: warning.summaryMessage,
+        ...(warning.cells[0] === undefined ? {} : { address: warning.cells[0].address }),
+      })),
+      ...(calculation?.fejlmeddelelser ?? []).map((message) => ({ message })),
+    ],
     [calculation, tableRowWarnings]
   );
   // Den kritiske beregningsfejl som `PageMessage`, ikke som rå streng: rækken må ikke kunne vises uden indhold.

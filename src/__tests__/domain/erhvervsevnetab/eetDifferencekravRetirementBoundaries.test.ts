@@ -109,10 +109,10 @@ describe('Differencekravets grænser ved to år til folkepension', () => {
 
   it.each([
     ['2020-07-01', '2020-06-30', 24, 1.245],
-    // 30 resterende julidage / 31 plus 23 hele måneder, afrundet til fire decimaler.
-    ['2020-07-02', '2020-07-01', 23.9677, 1.243],
+    // 30 resterende julidage / 31 plus 23 hele måneder – uafrundet (udviklerens afgørelse 2026-11-19).
+    ['2020-07-02', '2020-07-01', 23 + 30 / 31, 1.243],
     ['2022-04-16', '2022-04-15', 2.5, 0.13],
-    ['2022-06-30', '2022-06-29', 0.0333, 0.002],
+    ['2022-06-30', '2022-06-29', 1 / 30, 0.002],
   ])('deler fradraget uden hul eller overlap ved beregning %s', (dato, sidsteLoebendeDag, maaneder, faktor) => {
     const c = calculate(dato);
     expect(c.fradragKapitaliseretEetOre).toBe(fromKroner(0));
@@ -123,9 +123,9 @@ describe('Differencekravets grænser ved to år til folkepension', () => {
       loebendeEetPct: 60,
       kapitaliseretPgaUnderToAarTilFp: true,
       saerfaktor: 1.245,
-      maanederTilFolkepension: maaneder,
       kapitaliseringsfaktor: faktor,
     });
+    expect(c.proformaKapitalisering?.maanederTilFolkepension).toBeCloseTo(maaneder, 10);
     const pk = c.proformaKapitalisering;
     if (!pk) throw new Error('Forventede proformakapitalisering');
     expect(pk.proformaBeloebOre).toBe(fromKroner(Math.ceil(toKroner(pk.aarsydelseOre) * faktor)));

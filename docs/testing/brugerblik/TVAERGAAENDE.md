@@ -3759,3 +3759,28 @@ sag efter Enter bør derfor ikke have forskellig beskyttelse mod tab af den synl
 - **Forslag:** Lad oversigten bruge den hjælpetekst, der svarer til det, brugeren kan se:
   en tom tabel, en afgørelse med manglende oplysninger eller en afgørelse uden virkning
   på den valgte dato.
+
+## M-59 – Tværgående efterprøvning af Erhvervsevnetab-fundene (2026-11-19)
+
+Efter BB-408–BB-424 er hele programmet gennemsøgt for de samme fejltyper.
+
+- **Rettet:**
+  - Inaktive kontakter vises slået fra alle steder (`StyledToggleSwitch`, §10.5), og `MappedToggleField` har fået
+    `unavailableReason`. Et AST-værn forbyder en tavs `disabled` på valgkontroller i siderne.
+  - EO-fejllinks rammer nu den rigtige række: den senest sluttende TAF- og svie/smerte-periode, ydelsesrækken
+    bag en negativ samlet ydelse og den tomme indtastningsrække (`row: 'entry'`) for «afgørelse uden ydelser».
+  - Falske tomhedsbeskeder: Kapitaliserings «Ingen endelig … indtastet» og EO's «… ikke indtastet ydelser»
+    udgår ved en påbegyndt række. Renteberegningens gate nævner den ufuldstændige linje først.
+  - Løbende ydelsers «tidligere kap.» viser nu det fradrag, grundydelsen faktisk er regnet med.
+- **Afgjort af udvikleren og gennemført 2026-11-19:**
+  - Månedsbrøken afrundes aldrig i beregningen; en krones afvigelse accepteres. Måneder vises med fem decimaler
+    gennem én formatter (`formatDocumentMaanederTrimmed`/`Fixed`). Også Forsørgertab og proformakapitaliseringen
+    er lagt om (før fire decimaler i beregningen). Eneste undtagelse er kolonnen «Antal måneder» i TAF-
+    periodetabellen på EO oplysninger, som er ren visning med to decimaler.
+  - SH-dage-dokumentet blokeres kun af periodecellerne og «Løn på helligdage». EO's TAF-dokumenter blokeres ikke
+    af fejl i svie/smerte, øvrige krav, særlige kommentarer og bilagsnumre.
+  - Bilaget «Regulering» viser kun ansættelsesforhold med løn i beregningsperioden.
+  - Ens arbejdsstednavne får kortets nummer i dokumenter, graf og beskeder.
+  - Årslønnens rækkeadvarsler linker til cellen.
+  - EO-kontakten «Offentlige ydelser i beregningsperioden reguleres» viser årsagen på kontrollen (§10.5).
+

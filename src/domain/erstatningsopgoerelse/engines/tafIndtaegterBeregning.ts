@@ -1,7 +1,7 @@
 import type { TafCalculationValues } from './tafCalculationInput';
 import {
   buildIncomeForRanges,
-  resolveAnsaettelsesforholdNavn,
+  ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn,
   roundIncomeBenefitAmountKroner,
   type IncomeCalculationContext,
   type IsoRange,
@@ -41,7 +41,7 @@ export const buildTafIndtaegterBeregning = (
   const employers: TafIndtaegtEntry[] = income.employers.map((entry) => ({
     kind: 'loen',
     employmentId: entry.id,
-    label: resolveAnsaettelsesforholdNavn(entry.name, entry.index),
+    label: resolveAnsaettelsesforholdNavn(entry.name, entry.index, ansaettelsesforholdNavne(values.loenindkomstAnsaettelsesforhold)),
     amountOre: fromKroner(roundKroner(entry.amount)),
   }));
   const benefits = income.benefits.map<TafIndtaegtEntry>((entry) => {

@@ -18,6 +18,7 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
+import { focusOnSenesteTil, resolveSenestSluttendePeriodeId } from './eoRowShared';
 import { erSvieSmertePeriodeInputRelevant, erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../erstatningsopgoerelse/helpers/svieSmerteMaksimum';
 import {
@@ -832,6 +833,10 @@ export const buildEoSvieSmerteRows = (
     label: 'Svie/smerte-ophør skyldes',
     displayValue: svieSmerteOphoerSkyldes.displayValue,
     status: svieSmerteOphoerSkyldes.status,
+    // Forlængelsen sker i den senest sluttende periode, ikke nødvendigvis i tabellens første række.
+    ...(svieSmerteOphoerSkyldes.status === 'warning'
+      ? focusOnSenesteTil(resolveSenestSluttendePeriodeId(perioder), eoSvieSmertePeriodeTilField)
+      : {}),
   });
 
   return rows;

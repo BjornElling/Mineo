@@ -32,6 +32,11 @@ describe('renteberegningDownloadGate', () => {
       expect(gate.reasons[0]?.code).toBe('renteberegning:no-valid-rows');
     });
 
+    it('nævner den ufuldstændige linje frem for «ingen gyldige linjer», når den eneste linje er påbegyndt', () => {
+      const gate = evaluateDownloadAllGate({ hasValidPdfContexts: false, anyRowHasError: true });
+      expect(gate.reasons[0]?.code).toBe('renteberegning:row-has-error');
+    });
+
     it('blokerer når en række med indtastning er ufuldstændig', () => {
       const gate = evaluateDownloadAllGate({ hasValidPdfContexts: true, anyRowHasError: true });
       expect(gate.canDownload).toBe(false);

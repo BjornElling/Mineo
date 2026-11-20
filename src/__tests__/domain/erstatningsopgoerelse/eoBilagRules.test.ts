@@ -8,6 +8,7 @@ import {
   hasLoenReguleringEoBilagData,
   hasLoenReguleringInModel,
   hasMidlertidigtEetYdelsestype,
+  resolveReguleringBilagKilder,
   shouldIncludeEoReguleringBilag,
   type EoBilagAvailabilityState,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
@@ -606,6 +607,26 @@ describe('shouldIncludeEoReguleringBilag', () => {
 
   it('medtager bilaget når en reguleringskilde med indkomst er aktiv', () => {
     expect(shouldIncludeEoReguleringBilag(makeBeregningsperiodeReguleringValues('Statistik'))).toBe(true);
+  });
+
+  it('viser kun reguleringskilder med løn i beregningsperioden – ikke et nyt job i erstatningsperioden', () => {
+    const values = makeBeregningsperiodeReguleringValues('Statistik');
+    const [iGrundlaget] = values.loenindkomstAnsaettelsesforhold;
+    if (iGrundlaget === undefined) throw new Error('forventede et ansættelsesforhold');
+    const nytJob = {
+      ...structuredClone(iGrundlaget),
+      id: 'nyt-job',
+      navnPaaArbejdssted: 'Nyt job',
+      indtaegtsoplysningerTableData: iGrundlaget.indtaegtsoplysningerTableData.map((row) => ({
+        ...row,
+        id: 'nyt-job-row',
+        col1_maaned: '2025',
+      })),
+    };
+    const medNytJob = { ...values, loenindkomstAnsaettelsesforhold: [iGrundlaget, nytJob] };
+
+    expect(resolveReguleringBilagKilder(medNytJob).map(({ kilde }) => kilde.id)).toEqual([iGrundlaget.id]);
+    expect(shouldIncludeEoReguleringBilag(medNytJob)).toBe(true);
   });
 
   it('udelader bilaget ved angivet løn uden valgt lønudvikling', () => {

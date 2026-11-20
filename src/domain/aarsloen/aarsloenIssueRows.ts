@@ -66,7 +66,8 @@ export const buildAarsloenIssueRows = (input: Readonly<{
   tableErrors: readonly TableError[];
   tableRowIds: readonly string[];
   downloadError: string | null;
-  warnings: readonly string[];
+  /** En advarsel om en bestemt lønrække bærer cellens adresse, så linjen fører dertil som EO's (BB-289/BB-298). */
+  warnings: readonly Readonly<{ message: string; address?: FieldAddress }>[];
 }>): readonly AarsloenIssueRow[] => {
   const rows: AarsloenIssueRow[] = [];
   const seen = new Set<string>();
@@ -108,6 +109,11 @@ export const buildAarsloenIssueRows = (input: Readonly<{
   if (input.downloadError !== null && input.downloadError.trim() !== '') {
     push({ id: 'download', severity: 'error', message: input.downloadError });
   }
-  input.warnings.forEach((message, index) => push({ id: `warning:${index}:${message}`, severity: 'warning', message }));
+  input.warnings.forEach(({ message, address }, index) => push({
+    id: `warning:${index}:${message}`,
+    severity: 'warning',
+    message,
+    ...(address === undefined ? {} : { target: { kind: 'field', address, sectionName: INDTAEGTSOPLYSNINGER } }),
+  }));
   return rows;
 };

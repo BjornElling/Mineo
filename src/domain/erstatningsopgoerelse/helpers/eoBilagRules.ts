@@ -391,6 +391,28 @@ export const shouldIncludeOffentligYdelseRowInEoBilag = (params: Readonly<{
   return hasOffentligYdelseRowOverlapWithRanges(row, mode, ranges);
 };
 
+/**
+ * De reguleringskilder, bilaget «Regulering» viser – med deres plads i kildelisten.
+ *
+ * Bilaget dokumenterer reguleringen af beregningsgrundlaget. Et ansættelsesforhold, der kun har løn i
+ * erstatningsperioden, indgår ikke i grundlaget og blev alligevel vist med reguleringsværdier (samme fejltype som
+ * BB-420). Gaten nedenfor og rendereren bruger derfor samme afgrænsning. Uden en brugbar beregningsperiode, eller
+ * når ingen kilde har løn i den, vises alle regulerede kilder som hidtil.
+ */
+export const resolveReguleringBilagKilder = (
+  eoValues: ErstatningsopgoerelseValues
+): readonly Readonly<{ kilde: ReturnType<typeof resolveLoenudviklingKilde>[number]; originalIndex: number }>[] => {
+  const kilder = resolveLoenudviklingKilde(eoValues).map((kilde, originalIndex) => ({ kilde, originalIndex }));
+  const regulerede = kilder.filter(({ kilde }) =>
+    kilde.loenudviklingBeregningsgrundlag !== undefined && kilde.loenudviklingBeregningsgrundlag !== 'Ingen');
+  if (eoValues.beregnesUdFra !== 'Beregningsperiode') return regulerede;
+  const beregningsperiodeRange = buildBeregningsperiodeRange(eoValues);
+  if (!beregningsperiodeRange) return regulerede;
+  const employerIdsWithIncome = new Set(buildIncomeForRanges(eoValues, [beregningsperiodeRange]).employers.map((entry) => entry.id));
+  if (!kilder.some(({ kilde }) => employerIdsWithIncome.has(kilde.id))) return regulerede;
+  return regulerede.filter(({ kilde }) => employerIdsWithIncome.has(kilde.id));
+};
+
 export const shouldIncludeEoReguleringBilag = (
   eoValues: ErstatningsopgoerelseValues
 ): boolean => {

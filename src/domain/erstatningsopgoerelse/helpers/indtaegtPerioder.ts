@@ -78,7 +78,8 @@ export type IncomePeriodResult = Readonly<{
  */
 export type IncomeNegativeSource = Readonly<
   | { kind: 'employer'; id: string; index: number; name: string; amount: number }
-  | { kind: 'benefit'; typeKey: string; label: string; amount: number }
+  // `sourceRowId`: den række, fejllinket skal pege på – første negative række af typen, ellers første række.
+  | { kind: 'benefit'; typeKey: string; label: string; amount: number; sourceRowId: string }
 >;
 
 export type IncomePeriodResultDetailed = IncomePeriodResult & Readonly<{
@@ -102,8 +103,26 @@ const isEffectivelyZero = (amount: number): boolean => Math.abs(amount) < INCOME
  * unavngivne hed begge «Arbejdssted» (BB-279). `index` er positionen i HELE listen, aldrig i en filtreret
  * delmængde – ellers flytter nummeret sig væk fra skærmens.
  */
-export const resolveAnsaettelsesforholdNavn = (navn: string | undefined, index: number): string =>
-  (navn ?? '').trim() || `Ansættelsesforhold ${index + 1}`;
+export const resolveAnsaettelsesforholdNavn = (
+  navn: string | undefined,
+  index: number,
+  /**
+   * Alle ansættelsesforholds arbejdsstednavne i skærmens rækkefølge. Har et andet ansættelsesforhold samme navn,
+   * tilføjes kortets nummer, så to ens overskrifter i et dokument kan skelnes (BB-411-mønstret). Udelades kun,
+   * hvor listen ikke er kendt.
+   */
+  alleNavne?: readonly (string | undefined)[]
+): string => {
+  const trimmet = (navn ?? '').trim();
+  if (trimmet === '') return `Ansættelsesforhold ${index + 1}`;
+  const ens = alleNavne?.some((andet, andenIndex) => andenIndex !== index && (andet ?? '').trim() === trimmet) ?? false;
+  return ens ? `${trimmet} (ansættelsesforhold ${index + 1})` : trimmet;
+};
+
+/** Arbejdsstednavnene til {@link resolveAnsaettelsesforholdNavn}s skelnen. */
+export const ansaettelsesforholdNavne = (
+  ansaettelsesforhold: readonly Readonly<{ navnPaaArbejdssted?: string | undefined }>[] | undefined
+): readonly (string | undefined)[] => (ansaettelsesforhold ?? []).map((af) => af.navnPaaArbejdssted);
 
 export type IncomeCalculationContext = Readonly<{
   boundsFra: ISODateString;
@@ -676,16 +695,27 @@ export const buildIncomeForRangesDetailed = (
     }
   }
 
-  const benefitsMap = new Map<string, { label: string; typeKey: string; amount: number }>();
+  const benefitsMap = new Map<string, { label: string; typeKey: string; amount: number; sourceRowId: string; harNegativKilde: boolean }>();
   for (const share of shares.ydelseRows) {
     // NOTE: Fail-closed semantics kræver sporbar aggregation.
     // Rækker uden type må ikke sammenklappes via label.
     const key = share.typeKey !== '' ? `type:${share.typeKey}` : `row:${share.row.id}`;
     const existing = benefitsMap.get(key);
+    const negativ = share.periodiseretAmount < 0;
     if (existing) {
       existing.amount += share.periodiseretAmount;
+      if (negativ && !existing.harNegativKilde) {
+        existing.sourceRowId = share.row.id;
+        existing.harNegativKilde = true;
+      }
     } else {
-      benefitsMap.set(key, { label: share.label, typeKey: share.typeKey, amount: share.periodiseretAmount });
+      benefitsMap.set(key, {
+        label: share.label,
+        typeKey: share.typeKey,
+        amount: share.periodiseretAmount,
+        sourceRowId: share.row.id,
+        harNegativKilde: negativ,
+      });
     }
   }
 
@@ -695,7 +725,13 @@ export const buildIncomeForRangesDetailed = (
     if (entry.amount > 0) {
       benefits.push({ typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
     } else {
-      negativeSources.push({ kind: 'benefit', typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
+      negativeSources.push({
+        kind: 'benefit',
+        typeKey: entry.typeKey,
+        label: entry.label,
+        amount: entry.amount,
+        sourceRowId: entry.sourceRowId,
+      });
     }
   }
 

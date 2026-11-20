@@ -99,6 +99,9 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const nameAttributes = accessibleNameAttributes(props, `StyledToggleSwitch(${resolvedName})`);
   const { visibleLabel } = props;
   const inputRef = React.useRef<HTMLInputElement | null>(null);
+  // En programinaktiv kontakt vises slået fra, som `StyledCheckbox` (page-component-contract.md §10.5, BB-422):
+  // en inaktiv kontakt, der står «til», lover en virkning, valget ikke har. Den afsluttede værdi er urørt.
+  const visibleChecked = disabled ? false : checked;
 
   // Rystelsen lægges på switchens rod, så kun kontakten bevæger sig – ikke en tilknyttet label.
   const shake = React.useCallback(() => {
@@ -181,7 +184,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
     ref: inputRef,
     role: 'checkbox',
     onKeyDown: handleKeyDown,
-    'aria-checked': checked,
+    'aria-checked': visibleChecked,
     ...nameAttributes,
     // Undo/redo-restore lokaliserer via feltadresse + editorlokation, ikke `name` (§3.2/§3.7).
     ...(restoreTargetAttributes ?? {}),
@@ -190,7 +193,7 @@ const StyledToggleSwitch = (props: StyledToggleSwitchProps) => {
   const switchComponent = (
     <Switch
       id={resolvedId}
-      checked={checked}
+      checked={visibleChecked}
       onChange={handleMuiChange}
       disabled={disabled}
       name={resolvedName}

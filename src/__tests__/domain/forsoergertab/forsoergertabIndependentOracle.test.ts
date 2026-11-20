@@ -96,7 +96,7 @@ describe('CALC-005 – uafhængigt håndberegnet totalsag', () => {
 
     // ASL-facit, uafhængigt af kapitaliseringsmotoren:
     // 30 % af 100.000 kr. = 30.000 kr. årligt = 2.500 kr. pr. måned.
-    // Den ene dag i januar er 1/31 måned: afrundet til 0,0323 og 81 kr.
+    // Den ene dag i januar er 1/31 måned (uafrundet) og giver 81 kr.
     // Resten er 11,9677 måneder, altså opslag på 0 år + 11 måneder. Kvindetabellens
     // faktor 0,625 x 11/12 = 0,572916..., afrundet til 0,573; kapitalbeløbet er 17.190 kr.
     expect(asl).toEqual(expect.objectContaining({
@@ -108,8 +108,8 @@ describe('CALC-005 – uafhængigt håndberegnet totalsag', () => {
       opreguleringsfaktor: 1,
       opreguleretAarligYdelse: 30000,
       samletMaaneder: 12,
-      alleredeUdbetaltMaaneder: 0.0323,
-      resterendeMaanederTotal: 11.9677,
+      alleredeUdbetaltMaaneder: expect.closeTo(1 / 31, 10),
+      resterendeMaanederTotal: expect.closeTo(12 - 1 / 31, 10),
       resterendeAar: 0,
       resterendeMaaneder: 11,
       kapitaliseringsbekendtgoerelseId: '990/2012',
@@ -123,7 +123,7 @@ describe('CALC-005 – uafhængigt håndberegnet totalsag', () => {
     expect(asl.lobendeYdelser).toEqual([{
       fraDato: iso('2013-01-01'),
       tilDato: iso('2013-01-01'),
-      maaneder: 0.0323,
+      maaneder: expect.closeTo(1 / 31, 10),
       maanedligYdelse: 2500,
       ydelseIAlt: 81,
     }]);

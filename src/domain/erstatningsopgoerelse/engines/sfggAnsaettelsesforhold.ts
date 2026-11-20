@@ -30,7 +30,7 @@ import {
   type SfggSourceKind,
 } from './sfggKilde';
 import { getOverenskomstSfggPolicy } from '../../../data/overenskomstRates';
-import { resolveAnsaettelsesforholdNavn } from '../helpers/indtaegtPerioder';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../helpers/indtaegtPerioder';
 import {
   SFGG_LOVBESTEMT_FERIEPENGE_PCT,
   notCalculableSfggReferencesats,
@@ -80,7 +80,8 @@ const getEmploymentName = (
   employment: LoenindkomstAnsaettelsesforhold
 ): string => resolveAnsaettelsesforholdNavn(
   employment.navnPaaArbejdssted,
-  (values.loenindkomstAnsaettelsesforhold ?? []).findIndex((entry) => entry.id === employment.id)
+  (values.loenindkomstAnsaettelsesforhold ?? []).findIndex((entry) => entry.id === employment.id),
+  ansaettelsesforholdNavne(values.loenindkomstAnsaettelsesforhold)
 );
 
 const assertNever = (value: never): never => {

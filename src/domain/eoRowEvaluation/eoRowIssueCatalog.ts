@@ -358,10 +358,9 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
     return target(eoMidlertidigtEETAfgorelseField.bind());
   }
   if (row.id === 'midlertidigtEetKonsistens.afgorelseUdenYdelser') {
-    // Der findes ingen ydelsesrække endnu – netop derfor advarslen. Tabellen viser altid sin tomme
-    // indtastningsrække, og dens fra-dato er den indtastning, advarslen efterspørger. Tidligere pegede
-    // rækken på sit eget synthetiske id, som intet element bærer, så linket blinkede intet.
-    return firstRowTarget(eoOffentligeYdelserFraDatoField);
+    // Der findes ingen midlertidig-EET-række endnu – netop derfor advarslen. Tabellen kan dog have andre
+    // ydelser; «første række» ramte da en udfyldt, irrelevant række. Målet er den tomme indtastningsrække.
+    return { kind: 'collectionField', template: eoOffentligeYdelserFraDatoField.template, row: 'entry' };
   }
 
   // «Valgt regulering» og «KL-/RLTN-oplysninger» bærer selv deres feltmål fra builderen (BB-316).
@@ -445,7 +444,8 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
   if (row.id === 'sviesmerte.ophoerSkyldes' || row.id === 'taf.ophoerSkyldes') {
     // Advarslen «Der er ikke rejst … krav for hele EO-perioden» betyder, at perioderne slutter FØR
     // EO-periodens udløb. Den indtastning, brugeren forlænger, er til-datoen i periodetabellen – ikke
-    // den afledte ophørsrække, som ingen kan redigere. Første rækkes til-celle er indgangen til tabellen.
+    // den afledte ophørsrække, som ingen kan redigere. Builderen peger på den senest sluttende periode; dette er
+    // kun reserven, når ingen række har en til-dato.
     return firstRowTarget(
       row.id === 'taf.ophoerSkyldes' ? eoTafPeriodeTilField : eoSvieSmertePeriodeTilField
     );

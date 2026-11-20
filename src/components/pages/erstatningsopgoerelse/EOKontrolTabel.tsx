@@ -20,7 +20,7 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
-import { resolveAnsaettelsesforholdNavn } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 const ROW_HEIGHT = 28;
 
@@ -36,7 +36,8 @@ const INGEN_PERIODER_TEKST =
 const resolveEmploymentHeaderTitle = (snapshot: EOInspektionSnapshot, employmentIndex: number): string =>
   resolveAnsaettelsesforholdNavn(
     snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex]?.navnPaaArbejdssted,
-    employmentIndex
+    employmentIndex,
+    ansaettelsesforholdNavne(snapshot.eoValues.loenindkomstAnsaettelsesforhold)
   );
 
 type EOKontrolTabelProps = {

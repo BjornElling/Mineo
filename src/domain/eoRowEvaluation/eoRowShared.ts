@@ -2,9 +2,12 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { formatDocumentMaanederTrimmed } from '../../utils/documentMaanederFormatting';
 import { getInclusivePeriodEndByMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
+import type { FieldAddress } from '../../inputCore/fieldAddress';
+import type { AttentionTarget } from '../../utils/attentionTarget';
 
 // Kanoniske id-prefikser for SFGG-rækker bygget efter sygeferiegodtgørelses-tabellen.
 // Predikaterne ligger her sammen med byggeren der emitterer id'erne, så ingen
@@ -23,8 +26,31 @@ export type ErstatningsopgoerelseFieldName = Extract<keyof Erstatningsopgoerelse
 export type ErstatningsopgoerelseFieldIssues = FieldIssueSet;
 export type StamdataValues = PersistedSectionMap['stamdata'];
 
+/**
+ * Rækken med den seneste til-dato i en periodetabel. Advarslen om, at der ikke er rejst krav for hele EO-perioden,
+ * rettes ved at forlænge NETOP den række; tabellens første række kunne være en tidligere, afsluttet periode.
+ */
+export const resolveSenestSluttendePeriodeId = (
+  perioder: readonly Readonly<{ id: string; til?: string | null | undefined }>[]
+): string | undefined => {
+  let senest: Readonly<{ id: string; til: ISODateString }> | undefined;
+  for (const periode of perioder) {
+    const til = coerceToISODateString(periode.til ?? undefined);
+    if (til !== undefined && (senest === undefined || til > senest.til)) senest = { id: periode.id, til };
+  }
+  return senest?.id;
+};
+
+/** Fokusmålet på til-cellen i den senest sluttende periode; tomt, når tabellen ingen til-dato har. */
+export const focusOnSenesteTil = (
+  rowId: string | undefined,
+  tilField: Readonly<{ bind: (rowId: string) => Readonly<{ address: FieldAddress }> }>
+): Readonly<{ focusTarget?: AttentionTarget }> =>
+  rowId === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: tilField.bind(rowId).address } };
+
 export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);
-export const formatRowMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
+// Programmets ene månedsformat: fem decimaler, efterstillede nuller trimmet (udviklerens afgørelse 2026-11-19).
+export const formatRowMonths = (value: number): string => formatDocumentMaanederTrimmed(value);
 
 export const formatStatusMessage = (status: EoRowStatus, message: string): string => {
   if (status === 'ok') return '-';

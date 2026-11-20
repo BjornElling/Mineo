@@ -50,4 +50,36 @@ describe('MappedToggleField', () => {
     // en belastet CI-runner nåede en af dem at fyre en tilstandsopdatering uden for act.
     mounted.unmount();
   });
+
+  it('viser en inaktiv kontakt slået fra med årsagen, og den bevarede værdi igen, når valget bliver muligt (§10.5)', async () => {
+    const runtime = createTestInputRuntime();
+    const field = omregningField.bind();
+    const location = testLocation('mapped-toggle-unavailable');
+    const user = userEvent.setup();
+    const view = (unavailableReason: string | null) => (
+      <InputRuntimeProvider binding={runtime.binding}>
+        <MappedToggleField
+          field={field}
+          location={location}
+          checkedValue={true}
+          uncheckedValue={false}
+          ariaLabel="Medtag ydelser"
+          unavailableReason={unavailableReason}
+        />
+      </InputRuntimeProvider>
+    );
+    const mounted = render(view(null));
+    const toggle = screen.getByRole('checkbox', { name: 'Medtag ydelser' });
+    act(() => toggle.focus());
+    await user.keyboard('{Enter}');
+    expect(toggle).toBeChecked();
+
+    mounted.rerender(view('Der indgår ikke offentlige ydelser i beregningsgrundlaget for TAF'));
+    expect(toggle).toBeDisabled();
+    expect(toggle).not.toBeChecked();
+
+    mounted.rerender(view(null));
+    expect(toggle).toBeChecked();
+    mounted.unmount();
+  });
 });

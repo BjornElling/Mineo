@@ -30,8 +30,9 @@ describe('formatFaktor', () => {
 });
 
 describe('formatMaaneder', () => {
-  it('formaterer månedsantal med fire decimaler og dansk komma', () => {
-    expect(formatMaaneder(1.23456)).toBe('1,2346');
+  it('formaterer månedsantal med fem decimaler og dansk komma og trimmer efterstillede nuller (2026-11-19)', () => {
+    expect(formatMaaneder(1.234567)).toBe('1,23457');
+    expect(formatMaaneder(17.5161)).toBe('17,5161');
   });
 });
 

@@ -63,6 +63,19 @@ describe('CALC-006 – uafhængigt facit for midlertidig EET-konsistens', () => 
     expect(advarselIds(efter2011({}))).toEqual(['midlertidigtEetKonsistens.afgorelseUdenYdelser:warning']);
   });
 
+  it('kalder ikke ydelserne fraværende, når en midlertidig-EET-række er påbegyndt uden beløb', () => {
+    expect(advarselIds(efter2011({
+      offentligeYdelserRows: [{
+        id: 'paabegyndt',
+        fraDato: iso('2024-01-01'),
+        tilDato: iso('2024-12-31'),
+        ydelsestype: 'midlertidigt_eet',
+        ydelse: undefined,
+        tillaeg: undefined,
+      }],
+    }))).toEqual([]);
+  });
+
   it('er tavs, når TAF slutter før afgørelsens dato', () => {
     expect(advarselIds(efter2011({ midlertidigEETAfgoerelseDato: iso('2025-01-01') }))).toEqual([]);
   });

@@ -17,7 +17,8 @@ import { toAnyFieldRef, type FieldRef } from '../../inputCore/fieldDescriptor';
 import type { FieldIssue, ConsumerIssue } from '../../inputCore/inputIssue';
 import type { InputReader } from '../../inputCore/inputReader';
 import type { EvaluationSourceToken } from '../../inputCore/evaluationSource';
-import { computeAarsloenBeregning, type AarsloenBeregningState } from './aarsloenBeregning';
+import { computeAarsloenBeregning, computeAarsloenPeriodeOgShDage, type AarsloenBeregningState } from './aarsloenBeregning';
+import { getStandardLoenPeriodKeys } from '../standardLoen/standardLoenTableValidation';
 import { calculateStandardLoenRowDerived } from './standardLoenRowCalculations';
 import {
   resolveAarsloenFeriedageOverskriderPeriodenIssue,
@@ -274,6 +275,14 @@ export type AarsloenReaderProjection = Readonly<{
    * mens gaten er rød – hverken på siden eller i dokumentpreflighten.
    */
   calculation: AarsloenBeregningState | null;
+  /**
+   * SH-dage-dokumentets eget grundlag: periodedata og antal SH-dage. Afgøres af SH-dagenes egne felter – en rød
+   * periodecelle eller et rødt «Løn på helligdage» – og ikke af årslønnens satser, overenskomst eller beløb.
+   * `null`, når et af disse felter er rødt (`shDageBlockingIssues`/`shDagePeriodCellErrors`).
+   */
+  shDage: Readonly<{ periodeData: AarsloenBeregningState['periodeData']; shDageAntal: number | null }> | null;
+  /** Feltfejl, der spærrer SH-dage: kun «Løn på helligdage» (den eneste skalar, SH-dage læser). */
+  shDageBlockingIssues: readonly (FieldIssue | ConsumerIssue)[];
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   /**
    * En sats, løntabellen regner med, er ukendt uden selv at stå rød: den påkrævede feriesats er tom (M-37), eller
@@ -341,6 +350,22 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     ? null
     : computeAarsloenBeregning({ values, omregningAktiveret: omregningGate.effectiveEnabled });
 
+  // SH-dage læser kun periodecellerne og «Løn på helligdage» (BB-419-princippet: et dokument blokeres kun af de
+  // felter, det selv bruger).
+  const periodKeys: readonly string[] = getStandardLoenPeriodKeys(values.loenperiode);
+  const hasInvalidPeriodCell = tableValidation.errors.some(
+    (error) => error.kind === 'cell' && error.issue === 'invalid' && periodKeys.includes(error.colKey)
+  );
+  const shDageBlockingIssues = fieldIssues.filter((issue) => issue.field?.descriptor.id === 'aarsloen.loenPaaHelligdage');
+  const shDage = hasInvalidPeriodCell || shDageBlockingIssues.length > 0
+    ? null
+    : computeAarsloenPeriodeOgShDage({
+      tableData: values.tableData,
+      loenperiode: values.loenperiode,
+      loenPaaHelligdage: values.loenPaaHelligdage,
+      omregningAktiveret: omregningGate.effectiveEnabled,
+    });
+
   // Rækkeadvarslerne nuller ikke beregningen og spærrer ikke dokumentet: en gentagen række eller en fremtidig
   // periode har kendte værdier og kan være rigtig. En række med en rød fejl får ingen gul advarsel oveni.
   const tableRowWarnings = resolveStandardLoenRowWarnings({
@@ -393,6 +418,8 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     tableValidation,
     omregningGate,
     calculation,
+    shDage,
+    shDageBlockingIssues,
     fieldIssues,
     tabelSatserUkendte,
     feriePctRuleIssue,

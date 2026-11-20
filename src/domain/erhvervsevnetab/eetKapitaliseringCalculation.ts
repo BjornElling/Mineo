@@ -204,6 +204,11 @@ const collectResolvedRows = (
   const rowsWithKapitaliserbarAfgoerelse = rowsWithAfgoerelse.filter(
     (row) => row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig'
   );
+  // Typen testes på alle PÅBEGYNDTE rækker: en endelig afgørelse, der mangler sin EET %, er stadig indtastet og
+  // får sin konkrete mangel. «Ingen endelig … indtastet» ved siden af var usand (samme fejltype som BB-423).
+  const harPaabegyndtKapitaliserbarAfgoerelse = startedRows.some(
+    (row) => row.afgoerelseType === 'Endelig' || row.afgoerelseType === 'Delvist endelig'
+  );
 
   if (startedRows.length === 0) {
     issues.push(
@@ -220,7 +225,7 @@ const collectResolvedRows = (
     issues.push(toIssue(issue.id, issue.message));
   }
 
-  if (rowsWithAfgoerelse.length > 0 && rowsWithKapitaliserbarAfgoerelse.length === 0) {
+  if (rowsWithAfgoerelse.length > 0 && !harPaabegyndtKapitaliserbarAfgoerelse) {
     issues.push(
       toIssue(
         'no-endelig-afgoerelser',

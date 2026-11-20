@@ -19,7 +19,7 @@ import {
   buildIncomeForRanges,
   buildIncomeSourceRanges,
   type IncomeCalculationContext,
-  resolveAnsaettelsesforholdNavn,
+  ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn,
   roundIncomeBenefitAmountKroner,
 } from '../helpers/indtaegtPerioder';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
@@ -490,7 +490,11 @@ export const eoSnapshotToTafKravGrafDocument = (
       );
       // Hvert ansættelsesforhold er sin egen serie (ingen sammenlægning af lønindkomst).
       for (const employer of income.employers) {
-        const label = `Løn (${resolveAnsaettelsesforholdNavn(employer.name, employer.index)})`;
+        const label = `Løn (${resolveAnsaettelsesforholdNavn(
+          employer.name,
+          employer.index,
+          ansaettelsesforholdNavne(tafCalculationInput.values.loenindkomstAnsaettelsesforhold)
+        )})`;
         for (const segment of clampSegmentToWindows({
           fra: sampleRange.fra,
           til: sampleRange.til,

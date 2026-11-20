@@ -6,7 +6,7 @@ import { sortStandardLoenRowsChronologically } from '../../../../domain/standard
 import { isISODateString, type ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstDisplay } from '../../../../data/overenskomstRates';
 import { resolveAktivOverenskomst } from '../../../../domain/loen/aktivOverenskomst';
-import { resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveSatserHeadingForAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/satserHeading';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
@@ -218,7 +218,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       // Nummeret er kortets plads på skærmen, ikke pladsen blandt de ansættelsesforhold, bilaget viser.
       const arbejdsstedNavn = resolveAnsaettelsesforholdNavn(
         ansaettelsesforhold.navnPaaArbejdssted,
-        alleAnsaettelser.indexOf(ansaettelsesforhold)
+        alleAnsaettelser.indexOf(ansaettelsesforhold),
+        ansaettelsesforholdNavne(alleAnsaettelser)
       );
       const shouldAddTopSpacing = index > 0;
       renderSubheader(arbejdsstedNavn, { addTopSpacing: shouldAddTopSpacing });

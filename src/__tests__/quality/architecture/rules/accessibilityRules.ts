@@ -248,4 +248,69 @@ export const interactiveControlHasAccessibleNameRule = defineRule({
   ],
 });
 
-export const ACCESSIBILITY_RULES = [interactiveControlHasAccessibleNameRule] as const;
+// --- Betingede valg bærer årsagen, ikke en tavs `disabled` -------------------------------------------
+
+/**
+ * Et betinget valg på en side skal være inaktivt MED årsag: `unavailableReason` (page-component-contract.md §10.5).
+ *
+ * `disabled` alene gav to fejl, som skulle genopdages side for side: kontakten stod «til», mens den intet gjorde
+ * (BB-422 på Differencekrav, samme fejl på EO's «Offentlige ydelser i beregningsperioden reguleres»), og årsagen
+ * stod i et info-ikon ved teksten eller slet ikke. `unavailableReason` gør inaktivering og årsag uadskillelige, og
+ * kontrollen viser sig da umarkeret. Reglen gælder de persisterede valgkontroller under `src/components/pages`.
+ */
+const CONDITIONAL_CHOICE_CONTROLS: ReadonlySet<string> = new Set(['ToggleField', 'MappedToggleField', 'CheckboxField']);
+
+const collectDisabledConditionalChoices = (entry: SourceEntry): readonly Finding[] => {
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+      && ts.isIdentifier(node.tagName)
+      && CONDITIONAL_CHOICE_CONTROLS.has(node.tagName.text)) {
+      for (const attribute of node.attributes.properties) {
+        if (ts.isJsxAttribute(attribute) && ts.isIdentifier(attribute.name) && attribute.name.text === 'disabled') {
+          const { line, character } = entry.ast.getLineAndCharacterOfPosition(attribute.getStart(entry.ast));
+          findings.push({
+            position: { line: line + 1, column: character + 1 },
+            message: `${node.tagName.text} er gjort inaktiv med 'disabled'. Brug 'unavailableReason' med en kort `
+              + 'årsag, så valget vises umarkeret med årsagen i tooltippet (page-component-contract.md §10.5).',
+          });
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(entry.ast);
+  return findings;
+};
+
+export const conditionalChoiceHasUnavailableReasonRule = defineRule({
+  id: 'a11y/conditional-choice-has-unavailable-reason',
+  description:
+    'Et betinget valg på en side gøres inaktivt med unavailableReason, aldrig med en tavs disabled (§10.5).',
+  liveTarget: {
+    kind: 'scoped',
+    roots: ['src/components/pages'],
+    rationale: 'siderne er dér, betingede valg placeres',
+  },
+  appliesTo: (relativePath) => relativePath.startsWith('src/components/pages/') && relativePath.endsWith('.tsx'),
+  find: (entry) => collectDisabledConditionalChoices(entry),
+  allow: [],
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/pages/x/X.tsx',
+      code: 'const el = <MappedToggleField field={f} location={l} checkedValue="Ja" uncheckedValue="Nej" ariaLabel="a" disabled={!aktiv} />;',
+    },
+    {
+      relativePath: 'src/components/pages/x/X.tsx',
+      code: 'const el = <ToggleField field={f} location={l} ariaLabel="a" disabled />;',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/x/X.tsx',
+      code: "const el = <ToggleField field={f} location={l} ariaLabel=\"a\" unavailableReason={aktiv ? null : 'Årsag'} />;",
+    },
+  ],
+});
+
+export const ACCESSIBILITY_RULES = [interactiveControlHasAccessibleNameRule, conditionalChoiceHasUnavailableReasonRule] as const;

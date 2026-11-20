@@ -156,6 +156,9 @@ export const buildEoMidlertidigtEetKonsistensRows = (
   }
 
   if (harYdelser) return [];
+  // En påbegyndt midlertidig-EET-række (fx uden beløb endnu) er indtastet og får sin egen konkrete mangel.
+  // «… ikke indtastet ydelser» ved siden af var usand (samme fejltype som BB-423).
+  if ((values.offentligeYdelserRows ?? []).some((row) => erMidlertidigtEetYdelsestype(row.ydelsestype))) return [];
   const afgoerelseDato = resolveMidlertidigEetDato(values);
   if (!afgoerelseDato) return [];
   const sidsteTafKravDato = resolveSidsteTafKravDato(values, skadedatoISO);
@@ -1041,7 +1044,8 @@ export const buildEoOffentligeYdelserRows = (
         message: fund.message,
         summaryDisplay: 'messageOnly',
         summaryText: fund.message,
-        focusTarget: { kind: 'collectionField', template: eoOffentligeYdelserYdelseField.template },
+        // Linket fører til ydelsescellen i den række, der gør summen negativ – ikke til tabellens første række.
+        focusTarget: { kind: 'fieldAddress', address: offentligeYdelserCellAddress(fund.source.sourceRowId, 'ydelse') },
       });
     });
 

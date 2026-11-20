@@ -14,7 +14,7 @@ import type { Page } from '@playwright/test';
  * Fladen havde før hver sin læsning i hver sin halvdel, og de gav to forskellige tal for de samme
  * udbetalinger i den samme opgørelse:
  *
- * - tabellen «Løbende ydelse» værdiansatte dag for dag og nåede 60,7323 måneder,
+ * - tabellen «Løbende ydelse» værdiansatte dag for dag og nåede ca. 60,7323 måneder,
  * - kapitalfaktoren talte hele kalendermåneder inklusive begge ender og nåede 62 måneder,
  *   hvilket gav «Resterende periode 4 år og 10 måneder» i stedet for 4 år og 11.
  *
@@ -64,12 +64,12 @@ test.describe('Forsørgertabets resterende periode', () => {
     await login(page);
     await fillMaaltSag(page);
 
-    // Halvdel 1 – tabellen: summen af de seks delperioder er 60,7323 måneder. Den sidste række er
+    // Halvdel 1 – tabellen: summen af de seks delperioder er ca. 60,7323 måneder. Den sidste række er
     // brøkmåneden, der gjorde de to læsninger uenige: 1.-31. juli findes ikke, kun 1. juli.
     const sidsteTabelraekke = page.locator('tbody tr').last();
-    await expect(sidsteTabelraekke).toContainText('6,0323');
+    await expect(sidsteTabelraekke).toContainText('6,03226');
 
-    // Halvdel 2 – kapitalfaktorens opslagsnøgle. 120 - 60,7323 = 59,2677 måneder, som afkortet til
+    // Halvdel 2 – kapitalfaktorens opslagsnøgle. 120 - 60,7323 = ca. 59,2677 måneder, som afkortet til
     // hele år og måneder er 4 år og 11 måneder. Den gamle kalendertælling gav 4 år og 10 måneder.
     const resterende = row(page, 'Resterende periode (hele år og måneder)');
     await expect(resterende).toHaveCount(1);
@@ -78,7 +78,7 @@ test.describe('Forsørgertabets resterende periode', () => {
 
     // Og de to tal, omlægningen faktisk flytter. Kapitalbeløbet trækkes FRA kravet, så en længere
     // resterende periode giver en MINDRE forsørgertabserstatning: 429.026 kr. mod 421.731 kr. og
-    // dermed 82.741 kr. mod 90.036 kr. Assertionerne står her, fordi beløbene er det eneste,
+    // dermed 82.742 kr. mod 90.036 kr. Assertionerne står her, fordi beløbene er det eneste,
     // brugeren og modparten læser.
     //
     // Rækken adresseres på sin EGEN etiket (`getByText(..., { exact: true })`), ikke på `hasText`:
@@ -90,7 +90,8 @@ test.describe('Forsørgertabets resterende periode', () => {
       });
 
     await expect(resultatRow('Kapitalbeløb (efter ASL)')).toContainText('429.026 kr.');
-    await expect(resultatRow('Forsørgertabserstatning')).toContainText('82.741 kr.');
+    // 82.742 kr.: månedsbrøken afrundes ikke længere (2026-11-19), så de løbende ydelser er 1 kr. lavere end før.
+    await expect(resultatRow('Forsørgertabserstatning')).toContainText('82.742 kr.');
 
     expect(runtimeErrors).toEqual([]);
   });

@@ -238,17 +238,17 @@ describe('evaluateAarsloenDownloadGate', () => {
     expect(evaluateAarsloenDownloadGate(projection)).toEqual({ canDownload: true, reasons: [] });
   });
 
-  it('blokerer begge dokumentgates ved feriedage over periodens hverdage', () => {
+  it('blokerer årslønsdokumentet ved feriedage over periodens hverdage – men ikke SH-dage, som ikke bruger feriedagene', () => {
     const projection = project(withFeriedageOverPeriod(withValidStamdata(empty())));
 
     expect(projection.feriedageFieldIssues).toHaveLength(1);
     const aarsloenGate = evaluateAarsloenDownloadGate(projection);
-    const shDageGate = evaluateShDageDownloadGate(projection);
 
     expectBlocked(aarsloenGate, 'aarsloen:feriedage-over-perioden');
-    expectBlocked(shDageGate, 'aarsloen:sh-feriedage-over-perioden');
     if (!aarsloenGate.canDownload) expect(aarsloenGate.reasons[0]?.kind).toBe('specific');
-    if (!shDageGate.canDownload) expect(shDageGate.reasons[0]?.kind).toBe('specific');
+    // SH-dage læser kun perioderne og «Løn på helligdage» (udviklerens afgørelse 2026-11-19).
+    expect(evaluateShDageDownloadGate(projection).reasons.map((reason) => reason.code))
+      .not.toContain('aarsloen:sh-feriedage-over-perioden');
   });
 
   /**
@@ -454,15 +454,17 @@ describe('evaluateShDageDownloadGate', () => {
     expectBlocked(gate, 'aarsloen:sh-no-count');
   });
 
-  it('klassificerer en rød beregningsgate som manglende periode-data', () => {
-    const input = dispatch(
-      withOneValidMonthRow(withValidStamdata(empty())),
-      settle(aarsloenFeriePctField.bind(), '150')
-    );
+  it('lader en rød sats, som SH-dage ikke bruger, stå uden at spærre SH-dage-dokumentet', () => {
+    let input = withOneValidMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, settle(aarsloenOmregningTilFuldtAarField.bind(), 'true'));
+    input = dispatch(input, settle(aarsloenLoenPaaHelligdageField.bind(), 'SH-udbetaling'));
+    input = dispatch(input, settle(aarsloenFeriePctField.bind(), '150'));
     const projection = project(input);
 
     expect(projection.calculation).toBeNull();
-    expectBlocked(evaluateShDageDownloadGate(projection), 'aarsloen:sh-missing-period-data');
+    expect(projection.shDage?.shDageAntal).toBeGreaterThan(0);
+    expect(evaluateShDageDownloadGate(projection)).toEqual({ canDownload: true, reasons: [] });
+    expectBlocked(evaluateAarsloenDownloadGate(projection), 'aarsloen:fatal-calculation-error');
   });
 
   it('blokerer SH-dage-dokumentet med en særskilt forklaring ved nul faktiske SH-dage', () => {

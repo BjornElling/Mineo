@@ -99,7 +99,8 @@ export const lookupEditorLocation = (serializedAddress: string): EditorLocationL
  * naturligt udfylder først.
  */
 export const findFirstVisibleEditorForTemplate = (
-  template: FieldAddressTemplate
+  template: FieldAddressTemplate,
+  row: 'first' | 'entry' = 'first'
 ): HTMLElement | null => {
   if (typeof document === 'undefined') return null;
 
@@ -118,14 +119,18 @@ export const findFirstVisibleEditorForTemplate = (
     });
   };
 
+  // Tabellens tomme indtastningsrække står altid sidst; 'entry' vælger derfor den sidste synlige editor.
+  let last: HTMLElement | null = null;
   for (const element of document.querySelectorAll(`[${FIELD_ADDRESS_ATTR}]`)) {
     if (!(element instanceof HTMLElement)) continue;
     const serialized = element.getAttribute(FIELD_ADDRESS_ATTR);
     if (serialized === null) continue;
     const address = deserializeFieldAddress(serialized);
     if (address === null || !matchesTemplate(address)) continue;
-    if (isRestoreTargetVisible(element)) return element;
+    if (!isRestoreTargetVisible(element)) continue;
+    if (row === 'first') return element;
+    last = element;
   }
 
-  return null;
+  return last;
 };

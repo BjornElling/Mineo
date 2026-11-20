@@ -26,7 +26,8 @@ import {
   calculateAgeYearsMonths,
   resolveKapitaliseringsbekendtgoerelseId,
 } from '../erhvervsevnetab/eetKapitaliseringOpslag';
-import { ceil0, ceilNearest12, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
+import { ceil0, ceilNearest12, round0, round2, round3, roundNearest1000 } from '../../utils/roundingShortcuts';
+import { fjernMaanedsbroekRegnestoej } from '../dates/maanedsbroek';
 import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
 import { resolveStamdataDatoReference } from '../policies/stamdataCalculations';
@@ -189,7 +190,7 @@ const computeLobendeYdelser = (
       maaneder = firstPartial + fullMonths + lastPartial;
     }
 
-    maaneder = round4(maaneder);
+    // Månedsbrøken afrundes ikke i beregningen; den vises med fem decimaler (udviklerens afgørelse 2026-11-19).
     const ydelseIAlt = round0(maanedligYdelse * maaneder);
 
     rows.push({
@@ -341,9 +342,11 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   // (fx 60,7323 mdr.), mens kapitalfaktoren talte hele kalendermåneder inklusive begge ender (62 mdr.), så
   // de samme udbetalinger gav to forskellige tal i samme opgørelse. Ved at læse tabellens sum kan de to
   // ikke længere drifte: ændres periodiseringen, følger den resterende periode med.
-  const alleredeUdbetaltMaaneder = round4(lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));
+  // Ingen afrunding af månedsbrøken – kun fjernelse af regnestøj før afskæringen til hele år og måneder og
+  // sammenligningen med 0 nedenfor (se `fjernMaanedsbroekRegnestoej`).
+  const alleredeUdbetaltMaaneder = fjernMaanedsbroekRegnestoej(lobendeYdelser.reduce((sum, r) => sum + r.maaneder, 0));
   const samletMaaneder = input.tilkendtForPeriodeAar * 12;
-  const resterendeMaanederTotal = Math.max(0, round4(samletMaaneder - alleredeUdbetaltMaaneder));
+  const resterendeMaanederTotal = Math.max(0, fjernMaanedsbroekRegnestoej(samletMaaneder - alleredeUdbetaltMaaneder));
   // Kapitaliseringstabellen slår op på HELE år og måneder, så den dagbaserede rest afkortes her – og kun
   // her. `resterendeMaanederTotal` bevarer decimalerne, så visningen kan sige hvad der faktisk er tilbage.
   const resterendeAar = roundByMethod(resterendeMaanederTotal / 12, 0, 'floor');

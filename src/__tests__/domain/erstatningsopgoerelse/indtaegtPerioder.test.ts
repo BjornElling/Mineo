@@ -38,6 +38,14 @@ const makeEo = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 // ─── buildBeregningsperiodeRange ──────────────────────────────────────────────
 
 describe('resolveAnsaettelsesforholdNavn', () => {
+  it('skelner to ansættelsesforhold med samme arbejdssted ved kortets nummer – kun når navnene er ens', () => {
+    const navne = ['Firma A', ' Firma A ', 'Firma B', undefined];
+    expect(resolveAnsaettelsesforholdNavn('Firma A', 0, navne)).toBe('Firma A (ansættelsesforhold 1)');
+    expect(resolveAnsaettelsesforholdNavn(' Firma A ', 1, navne)).toBe('Firma A (ansættelsesforhold 2)');
+    expect(resolveAnsaettelsesforholdNavn('Firma B', 2, navne)).toBe('Firma B');
+    expect(resolveAnsaettelsesforholdNavn(undefined, 3, navne)).toBe('Ansættelsesforhold 4');
+  });
+
   it('bruger det indtastede arbejdsstednavn når det findes', () => {
     expect(resolveAnsaettelsesforholdNavn('Netto', 0)).toBe('Netto');
   });

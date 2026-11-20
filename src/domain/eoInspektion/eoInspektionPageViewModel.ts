@@ -4,7 +4,7 @@ import type { RegulationInspektionSection } from './eoInspektionRegulationViewMo
 import type { EoRowModel } from '../eoRowEvaluation/eoRowTypes';
 import type { EoInspektionViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToInspektionView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
-import { resolveAnsaettelsesforholdNavn } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveSkadeEllerAnmeldelsesdatoReference } from '../erstatningsopgoerelse/helpers/eoDateReferenceText';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
@@ -219,7 +219,11 @@ export const buildEOInspektionPageViewModel = (
   const employmentNamesById = new Map(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
       af.id,
-      resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, index),
+      resolveAnsaettelsesforholdNavn(
+        af.navnPaaArbejdssted,
+        index,
+        ansaettelsesforholdNavne(erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold)
+      ),
     ] as const)
   );
 

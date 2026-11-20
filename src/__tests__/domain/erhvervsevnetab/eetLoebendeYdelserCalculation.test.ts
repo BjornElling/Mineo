@@ -2568,3 +2568,37 @@ describe('tilbageholdt forgænger (BB-408)', () => {
     expect(afgoerelser.map((a) => resolveLoebendeTilbageholdelsesNote(a))).toEqual([null, null]);
   });
 });
+
+describe('visningens tidligere kapitalisering', () => {
+  it('viser præcis det fradrag, grundydelsen er regnet med, også når en anden kapitalisering ligger imellem', () => {
+    const afgoerelser = computeTestRows([
+      testRow({
+        id: 'a',
+        afgoerelsesDato: toISODateString('2015-06-01'),
+        virkningsDato: toISODateString('2015-06-01'),
+        eetPct: 30,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2016-06-01'),
+        kapPct: 10,
+      }),
+      testRow({
+        id: 'b',
+        afgoerelsesDato: toISODateString('2016-01-01'),
+        virkningsDato: toISODateString('2016-01-01'),
+        eetPct: 40,
+        afgoerelseType: 'Delvist endelig',
+        kapDato: toISODateString('2017-01-01'),
+        kapPct: 15,
+      }),
+    ], {
+      beregningsdato: toISODateString('2018-12-31'),
+      skadedato: toISODateString('2014-01-01'),
+      skadelidteFodselsdato: toISODateString('1970-01-01'),
+    }).computation?.afgoerelser ?? [];
+
+    expect(afgoerelser).toHaveLength(2);
+    for (const afgoerelse of afgoerelser) {
+      expect(afgoerelse.eetPct - afgoerelse.priorKapPct).toBe(afgoerelse.eetPctFoerAktuelKap);
+    }
+  });
+});

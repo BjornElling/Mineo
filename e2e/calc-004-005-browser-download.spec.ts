@@ -102,7 +102,7 @@ test.describe('CALC-004/CALC-005 – gyldig browserrejse og PDF-download', () =>
 
     const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
     await expect(resultRow).toBeVisible();
-    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(resultRow.getByText('82.742 kr.', { exact: true })).toBeVisible();
 
     await expect(page.getByTestId('forsoergertab-download')).toBeEnabled();
     await expectPdfDownload(page, 'forsoergertab-download');

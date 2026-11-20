@@ -188,13 +188,13 @@ export const shDageDocumentDefinition: MineoDocumentDefinition<ShDageDocumentInp
           }),
         };
       }
-      const { calculation } = projection;
+      const { shDage } = projection;
       const documentStamdata = projectStamdataForDocumentIfEnabled(
         context.evaluation.reader,
         'document.aarsloen',
         context.settings.brevhovedIndstillinger.shDage
       );
-      if (calculation?.periodeData == null) {
+      if (shDage?.periodeData == null) {
         return blockedProjection('sh-dage:no-result', 'SH-dage kan ikke dannes');
       }
       if (documentStamdata.status !== 'ready') {
@@ -204,7 +204,7 @@ export const shDageDocumentDefinition: MineoDocumentDefinition<ShDageDocumentInp
       return {
         status: 'ready',
         input: {
-          perioder: calculation.periodeData.perioder ?? [],
+          perioder: shDage.periodeData.perioder ?? [],
           stamdata: documentStamdata.value,
         },
       };

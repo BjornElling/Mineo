@@ -52,7 +52,7 @@ test.describe('UI-005 – Forsørgertab fra input til Word-dokument', () => {
 
     const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
     await expect(resultRow).toBeVisible();
-    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(resultRow.getByText('82.742 kr.', { exact: true })).toBeVisible();
 
     await openPage(page, 'Indstillinger');
     await page.getByRole('combobox', { name: 'Download-format for dokumenter', exact: true }).click();
@@ -79,7 +79,7 @@ test.describe('UI-005 – Forsørgertab fra input til Word-dokument', () => {
     expect(documentXml).toContain('Forsørgertab');
     expect(documentXml).toContain('Beregnet forsørgertab');
     expect(documentXml).toContain('EAL-krav');
-    expect(documentXml).toContain('82.741 kr.');
+    expect(documentXml).toContain('82.742 kr.');
 
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);
@@ -97,7 +97,7 @@ test.describe('UI-005 – Forsørgertab fra input til Word-dokument', () => {
     const resultRow = page.getByText('Forsørgertabserstatning', { exact: true }).locator('..');
     const downloadButton = page.getByTestId('forsoergertab-download');
 
-    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(resultRow.getByText('82.742 kr.', { exact: true })).toBeVisible();
     await expect(downloadButton).toBeEnabled();
 
     await setFieldValueAndSettle(periode, '11');
@@ -107,7 +107,7 @@ test.describe('UI-005 – Forsørgertab fra input til Word-dokument', () => {
     await setFieldValueAndSettle(periode, '10');
     await expect(periode).not.toHaveAttribute('aria-invalid', 'true');
     await expect(downloadButton).toBeEnabled();
-    await expect(resultRow.getByText('82.741 kr.', { exact: true })).toBeVisible();
+    await expect(resultRow.getByText('82.742 kr.', { exact: true })).toBeVisible();
 
     expect(runtimeErrors).toEqual([]);
     expect(externalRequests).toEqual([]);

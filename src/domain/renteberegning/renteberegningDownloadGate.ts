@@ -55,11 +55,12 @@ const blockedByIncompleteRow = (code: string): DocumentDownloadGateResult =>
  * knappens `disabled`, så en igangværende download stadig deaktiverer knappen.
  */
 export const evaluateDownloadAllGate = (input: RenteDownloadGateInput): DocumentDownloadGateResult => {
-  if (!input.hasValidPdfContexts) {
-    return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
-  }
+  // En påbegyndt, ufuldstændig linje er den præcise årsag; «ingen gyldige linjer» er kun sand, når intet er tastet.
   if (input.anyRowHasError) {
     return blockedByIncompleteRow('renteberegning:row-has-error');
+  }
+  if (!input.hasValidPdfContexts) {
+    return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
   }
   return allowDocumentDownload();
 };
@@ -76,11 +77,12 @@ export const evaluateOversigtDownloadGate = (
   if (input.beregningsdato === undefined) {
     return blockDocumentDownload({ code: 'renteberegning:missing-beregningsdato', message: 'Beregningsdato mangler' });
   }
-  if (!input.hasValidPdfContexts) {
-    return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
-  }
+  // En påbegyndt, ufuldstændig linje er den præcise årsag; «ingen gyldige linjer» er kun sand, når intet er tastet.
   if (input.anyRowHasError) {
     return blockedByIncompleteRow('renteberegning:row-has-error');
+  }
+  if (!input.hasValidPdfContexts) {
+    return blockDocumentDownload({ code: 'renteberegning:no-valid-rows', message: 'Ingen gyldige rente-linjer' });
   }
   return allowDocumentDownload();
 };

@@ -1,5 +1,6 @@
 import { DEFAULT_EO_ROW_POLICY } from '../../settings/sourceSettings';
-import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
+import { collectAllEoRows, type EoNavigableIssueRow } from '../eoRowEvaluation/eoRowAggregator';
+import type { SectionId } from '../eoRowEvaluation/eoRowNavigationMap';
 import { resolveEoIssueSummaryText } from '../eoRowEvaluation/eoRowIssueCatalog';
 import { safeCompute } from '../../utils/safeComputation';
 import { isErr } from '../../types/result';
@@ -66,7 +67,42 @@ const toProjectionStatus = (projection: EoDocumentProjectionStatus): EoDownloadP
  * Den samlede række-/EET-blokerings-tilstand, som gaten forbruger – udledt af reader-projektionens rekonstruerede
  * værdier og error-maps. Spejler `useEoBeregningViewModel`s `firstBlockingEoRowErrorMessage`/`hasBlockingEoRowErrors`.
  */
-type EoRowBlockingState = Readonly<{ blockingRowMessage: string | null; hasBlockingRows: boolean }>;
+type EoRowBlocking = Readonly<{ blockingRowMessage: string | null; hasBlockingRows: boolean }>;
+
+/**
+ * Opgørelsen blokeres af alle fejlrækker. De tre TAF-dokumenter bygges kun af TAF og blokeres derfor ikke af
+ * fejl i afsnit, de ikke bruger: svie/smerte, øvrige krav, særlige kommentarer og bilagsnumre
+ * (BB-419-princippet, udviklerens afgørelse 2026-11-19). EET-importens fejl vedrører TAF og blokerer fortsat.
+ */
+type EoRowBlockingState = Readonly<{ opgoerelse: EoRowBlocking; taf: EoRowBlocking }>;
+
+const TAF_UAFHAENGIGE_SEKTIONER: ReadonlySet<SectionId> = new Set<SectionId>([
+  'sviesmerte',
+  'oevrige-krav',
+  'saerlige-kommentarer',
+  'bilagsnumre',
+]);
+
+export const erTafUafhaengigEoFejl = (row: Pick<EoNavigableIssueRow, 'navigation'>): boolean =>
+  row.navigation.kind === 'erstatningsopgoerelse-tab'
+  && row.navigation.sectionId !== undefined
+  && TAF_UAFHAENGIGE_SEKTIONER.has(row.navigation.sectionId);
+
+const toRowBlocking = (
+  errors: readonly EoNavigableIssueRow[],
+  eetErrorMessages: readonly string[]
+): EoRowBlocking => {
+  const firstError = errors[0];
+  const firstErrorMessage = firstError
+    ? (firstError.summaryText
+      ?? resolveEoIssueSummaryText(firstError)
+      ?? ((firstError.message?.trim() || '') || firstError.label))
+    : (eetErrorMessages[0] ?? null);
+  return {
+    blockingRowMessage: firstErrorMessage,
+    hasBlockingRows: errors.length > 0 || eetErrorMessages.length > 0,
+  };
+};
 
 const resolveEoRowBlockingState = (
   projection: ErstatningsopgoerelseReaderProjection,
@@ -103,23 +139,17 @@ const resolveEoRowBlockingState = (
 
   if (isErr(rowsResult)) {
     // En aggregerings-fejl er selv en blokerende tilstand (som view-modellens `eoRowAggregationErrorMessage`).
-    return {
+    const intern: EoRowBlocking = {
       blockingRowMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl',
       hasBlockingRows: true,
     };
+    return { opgoerelse: intern, taf: intern };
   }
 
   const errors = rowsResult.value.errors;
-  const firstError = errors[0];
-  const firstErrorMessage = firstError
-    ? (firstError.summaryText
-      ?? resolveEoIssueSummaryText(firstError)
-      ?? ((firstError.message?.trim() || '') || firstError.label))
-    : (eetErrorMessages[0] ?? null);
-
   return {
-    blockingRowMessage: firstErrorMessage,
-    hasBlockingRows: errors.length > 0 || eetErrorMessages.length > 0,
+    opgoerelse: toRowBlocking(errors, eetErrorMessages),
+    taf: toRowBlocking(errors.filter((row) => !erTafUafhaengigEoFejl(row)), eetErrorMessages),
   };
 };
 
@@ -133,13 +163,14 @@ export const evaluateErstatningsopgoerelseDownloadGates = (
 ): ErstatningsopgoerelseDownloadGates => {
   const snapshot: EoSnapshot = projection.snapshot;
   const authoritativeBlockingInvariants = getAuthoritativeBlockingInvariants(snapshot.invariants);
-  const { blockingRowMessage, hasBlockingRows } = resolveEoRowBlockingState(projection, settings);
+  const rowBlocking = resolveEoRowBlockingState(projection, settings);
 
   const gateFor = (
     key: EoDocumentKey,
     documentProjection: EoDocumentProjectionStatus
-  ): DocumentDownloadGateResult =>
-    evaluateEoDocumentDownloadGate({
+  ): DocumentDownloadGateResult => {
+    const { blockingRowMessage, hasBlockingRows } = key === 'erstatningsopgoerelse' ? rowBlocking.opgoerelse : rowBlocking.taf;
+    return evaluateEoDocumentDownloadGate({
       snapshot,
       projection: toProjectionStatus(documentProjection),
       authoritativeBlockingInvariants,
@@ -149,6 +180,7 @@ export const evaluateErstatningsopgoerelseDownloadGates = (
       gateFallback: FALLBACK_MESSAGE[key],
       documentName: EO_DOCUMENT_NAME[key],
     });
+  };
 
   return {
     erstatningsopgoerelse: gateFor('erstatningsopgoerelse', eoSnapshotToEoDocument(snapshot)),

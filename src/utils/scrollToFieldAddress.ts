@@ -31,16 +31,17 @@ export const findVisibleFieldEditor = (address: FieldAddress): HTMLElement | nul
 export const scrollToCollectionFieldTemplate = (
   template: FieldAddressTemplate,
   options: {
+    row?: 'first' | 'entry';
     maxRetries?: number;
     onSuccess?: () => void;
     onFailure?: (reason: string) => void;
   } = {}
 ): CancelScrollWithRetry => {
-  const { maxRetries = 150, onSuccess, onFailure } = options;
+  const { maxRetries = 150, onSuccess, onFailure, row = 'first' } = options;
 
   return scrollWithRetry({
     maxRetries,
-    findTarget: () => findFirstVisibleEditorForTemplate(template),
+    findTarget: () => findFirstVisibleEditorForTemplate(template, row),
     onSuccess: (target) => {
       blinkFieldAttention(target);
       onSuccess?.();

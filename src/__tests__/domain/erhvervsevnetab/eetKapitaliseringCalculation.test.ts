@@ -479,6 +479,46 @@ describe('computeEetKapitaliseringCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'missing-kap-pct')).toBe(false);
   });
 
+  it('kalder ikke en påbegyndt endelig afgørelse uden EET % for fraværende', () => {
+    const result = computeEetKapitaliseringCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        aslAarsloen: asAmount(632000),
+        aslAfgoerelser: [
+          {
+            id: 'midl',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
+            eetPct: 50,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Midlertidig',
+            tidlKapDato: undefined,
+          },
+          {
+            id: 'endelig',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2025-09-01'),
+            virkningsDato: undefined,
+            eetPct: undefined,
+            kapDato: undefined,
+            kapPct: undefined,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
+    });
+
+    const ids = result.issues.map((issue) => issue.id);
+    expect(ids).toContain('missing-eet-pct');
+    expect(ids).not.toContain('no-endelig-afgoerelser');
+    expect(result.computation).toBeNull();
+  });
+
   it('giver specifik fejl for afgørelsesdato når kun den mangler', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

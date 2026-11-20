@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { evaluateErstatningsopgoerelseDownloadGates } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import { erTafUafhaengigEoFejl, evaluateErstatningsopgoerelseDownloadGates } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseDownloadGate';
+import type { EoNavigableIssueRow } from '../../../domain/eoRowEvaluation/eoRowAggregator';
+import type { SectionId } from '../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { buildErstatningsopgoerelseReaderProjection } from '../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import type { EetImportSource } from '../../../domain/erhvervsevnetab/eetImportPort';
@@ -253,6 +255,20 @@ describe('evaluateErstatningsopgoerelseDownloadGates', () => {
     const gates = evaluateErstatningsopgoerelseDownloadGates(projection, DEFAULT_EO_ROW_POLICY);
     expect(gates.erstatningsopgoerelse.canDownload).toBe(false);
     expect(gates.tafKravGraf.canDownload).toBe(false);
+  });
+
+  it('lader fejl i svie/smerte, øvrige krav, kommentarer og bilagsnumre stå uden at spærre TAF-dokumenterne', () => {
+    const row = (navigation: EoNavigableIssueRow['navigation']) => ({ navigation }) as EoNavigableIssueRow;
+    const tab = (sectionId: SectionId): EoNavigableIssueRow['navigation'] => ({
+      kind: 'erstatningsopgoerelse-tab', tabId: 'eo_oplysninger', sectionId, tabName: 'EO oplysninger', sectionTitle: 'X',
+    });
+    for (const sectionId of ['sviesmerte', 'oevrige-krav', 'saerlige-kommentarer', 'bilagsnumre'] as const) {
+      expect(erTafUafhaengigEoFejl(row(tab(sectionId)))).toBe(true);
+    }
+    for (const sectionId of ['taf', 'taf-beregningsgrundlag', 'loenindkomst', 'forlig', 'aes'] as const) {
+      expect(erTafUafhaengigEoFejl(row(tab(sectionId)))).toBe(false);
+    }
+    expect(erTafUafhaengigEoFejl(row({ kind: 'stamdata-page', pageName: 'Stamdata', sectionTitle: 'Skadelidte' }))).toBe(false);
   });
 
   it('blokerer på aktiv midlertidig EET-kildefejl selv uden række-fejl', () => {
