@@ -6,6 +6,7 @@ import {
   saveFileWithPicker,
   writeToFileHandle,
 } from '../../utils/fileSystemAccess';
+import { FILE_IO_TIMEOUT_MS } from '../../utils/file/fileIoDeadline';
 import { readFileContentFingerprint } from '../../utils/fileContentFingerprint';
 import { logError, logWarning } from '../../utils/logger';
 
@@ -107,6 +108,47 @@ describe('fileSystemAccess – eksterne filændringer og afbrudt skrivning', () 
     expect(logWarning).not.toHaveBeenCalled();
   });
 
+  it('aborterer den klargjorte skrivning hvis sagen ændres inden close', async () => {
+    const probe = writableProbe();
+    let sourceCurrent = true;
+    probe.write.mockImplementationOnce(async () => { sourceCurrent = false; });
+
+    await expect(writeToFileHandle(probe.handle, 'nyt indhold', 'accepteret revision', () => sourceCurrent))
+      .rejects.toThrow('sagen blev ændret undervejs');
+    expect(probe.write).toHaveBeenCalledOnce();
+    expect(probe.abort).toHaveBeenCalledOnce();
+    expect(probe.close).not.toHaveBeenCalled();
+  });
+
+  it('frigiver en stream, der først åbner efter den afbrudte gemning', async () => {
+    vi.useFakeTimers();
+    try {
+      const probe = writableProbe();
+      let release!: () => void;
+      probe.createWritable.mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => { release = resolve; });
+        return { write: probe.write, close: probe.close, abort: probe.abort };
+      });
+      const assertion = expect(writeToFileHandle(probe.handle, 'nyt indhold')).rejects.toThrow('Filen svarede ikke');
+      await vi.advanceTimersByTimeAsync(FILE_IO_TIMEOUT_MS);
+      await assertion;
+      release();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(probe.abort).toHaveBeenCalledOnce();
+      expect(probe.write).not.toHaveBeenCalled();
+      expect(probe.close).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('viser en afbrudt læsning efter filvalg som en fejl', async () => {
+    const getFile = vi.fn().mockRejectedValue(new DOMException('Læsningen blev afbrudt', 'AbortError'));
+    Object.defineProperty(window, 'showOpenFilePicker', { configurable: true, value: async () => [{ getFile }] });
+
+    await expect(openFileWithPicker()).rejects.toThrow('Indlæsningen blev afbrudt');
+  });
+
   const expectedWriteErrors = [
     'NotFoundError', 'NotAllowedError', 'SecurityError', 'NoModificationAllowedError',
     'NotReadableError', 'QuotaExceededError', 'AbortError',
@@ -162,10 +204,10 @@ describe('fileSystemAccess – eksterne filændringer og afbrudt skrivning', () 
     it.each(['NotFoundError', 'NotAllowedError', 'SecurityError', 'NotReadableError'])(
       `viser %s under læsningens ${phase} uden teknisk alarm`, async (name) => {
         const error = new DOMException('Filen er ikke tilgængelig', name);
-        const text = vi.fn().mockResolvedValue('indhold');
-        const getFile = vi.fn().mockResolvedValue({ text });
+        const arrayBuffer = vi.fn().mockResolvedValue('indhold');
+        const getFile = vi.fn().mockResolvedValue({ arrayBuffer });
         if (phase === 'getFile') getFile.mockRejectedValueOnce(error);
-        else text.mockRejectedValueOnce(error);
+        else arrayBuffer.mockRejectedValueOnce(error);
         const handle = { getFile } as unknown as FileSystemFileHandle;
 
         await expect(readFromFileHandle(handle))

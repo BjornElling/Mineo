@@ -196,6 +196,28 @@ describe('sanitizeFilename', () => {
   });
 });
 
+describe('standardmappe uden svar', () => {
+  it('lader aldrig et forsinket storage-svar vise en tilladelsesdialog efter fallback', async () => {
+    vi.useFakeTimers();
+    try {
+      verifyDirectoryHandleMock.mockClear();
+      let complete!: (handle: FileSystemDirectoryHandle) => void;
+      loadDefaultDirectoryHandleMock.mockImplementationOnce(
+        () => new Promise<FileSystemDirectoryHandle>((resolve) => { complete = resolve; }),
+      );
+      const directory = resolveDefaultDirectoryHandle({ ...baseSettings, defaultDirectoryHandleId: 'sager' });
+
+      await vi.advanceTimersByTimeAsync(750);
+      await expect(directory).resolves.toMatchObject({ isFallback: true });
+      complete({ kind: 'directory' } as FileSystemDirectoryHandle);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(verifyDirectoryHandleMock).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('generateFilename og getStartInValue', () => {
   it('bygger filnavn med skadelidte, skadestype og dansk dato', () => {
     expect(generateFilename({
@@ -226,20 +248,20 @@ describe('generateFilename og getStartInValue', () => {
     expect(generateFilename(null)).toBe('Mineo - Erstatningsopgørelse');
   });
 
-  it('returnerer et verificeret handle og ellers well-known fallback', () => {
+  it('returnerer et verificeret handle og ellers well-known fallback', async () => {
     const directoryHandle = { name: 'Sager' } as FileSystemDirectoryHandle;
 
-    expect(getStartInValue({
+    expect(await getStartInValue({
       handle: directoryHandle,
       wellKnown: 'desktop',
       isFallback: false,
     })).toBe(directoryHandle);
-    expect(getStartInValue({
+    expect(await getStartInValue({
       handle: directoryHandle,
       wellKnown: 'desktop',
       isFallback: true,
     })).toBe('desktop');
-    expect(getStartInValue({
+    expect(await getStartInValue({
       handle: null,
       wellKnown: 'desktop',
       isFallback: true,

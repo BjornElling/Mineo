@@ -47,6 +47,33 @@ ikke aflæses som en fuld sti; flytning/omdøbning følger den enkelte browsers 
 
 Grundlag: [File System Standard](https://fs.spec.whatwg.org/), især fil-låse, getFile og createWritable.
 
+## Opfølgning 2026-11-21
+
+Standardmappen er kun relevant ved åbning af en filvælger. Mineo læser mappens håndtag og
+registrering sammen, kræver match med det valgte ID og falder tilbage til skrivebordet, hvis
+opslaget eller det passive tilladelsestjek ikke svarer. Blokerede IndexedDB-åbninger afvises,
+og eventuelle sene forbindelser lukkes. En udløbet skrivetransaktion frigives først, når
+IndexedDB accepterer abort eller leverer sit endelige resultat.
+
+Hent skelner mellem et annulleret filvalg og en afbrudt læsning efter filvalget. Sene svar fra
+filåbning og læsning kan ikke anvende en sag. En godkendt indlæsning beholder fillåsen gennem
+anvendelse og synkronisering. Gem verificerer det krypterede artefakt før filvalget, kontrollerer
+sagsrevisionen igen inden endelig skrivning og sammenligner de skrevne bytes med artefaktet,
+før der vises en kvittering. Sene skrivestreams afbrydes uden commit.
+
+Udvikleren har valgt at beholde Windows' Gem-dialog. Ved overskrivning gennem den dialog kan
+Chromium tømme den eksisterende fil, før Mineo modtager håndtaget. Fejl efter brugerens accept
+kan derfor efterlade filen tom. Det gælder selv med den nye kontrol før filvalg og gælder ikke
+den efterfølgende direkte skrivning til et allerede kendt håndtag.
+[Chromiums browsertest](https://github.com/chromium/chromium/blob/157.0.8103.79/content/browser/file_system_access/file_system_chooser_browsertest.cc#L356)
+
+Når Chromium har overtaget et fil- eller tilladelsesvalg, kan Mineo ikke lukke dialogen eller
+skelne sikkert mellem en bruger, der stadig overvejer valget, og en browser, der venter på et
+drev. Efter start på den endelige filskrivning kan et sent svar stadig betyde, at filen er blevet
+erstattet. Mineo starter derfor ingen automatisk gentagelse i de faser.
+[Filvælgerens specifikation](https://wicg.github.io/file-system-access/#api-showsavefilepicker),
+[standarden for skrivestreams](https://fs.spec.whatwg.org/#api-filesystemwritablefilestream).
+
 ## Verifikation
 
 - `npm run check:types`: kildekode, enhedstests, E2E og build-konfiguration.

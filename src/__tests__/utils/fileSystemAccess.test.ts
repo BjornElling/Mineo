@@ -265,13 +265,13 @@ describe('fileSystemAccess', () => {
     });
 
     it('læser tekst fra fil-handle', async () => {
-      const text = vi.fn().mockResolvedValue('content');
-      const getFile = vi.fn().mockResolvedValue({ text });
+      const arrayBuffer = vi.fn().mockResolvedValue(new TextEncoder().encode('content').buffer);
+      const getFile = vi.fn().mockResolvedValue({ arrayBuffer });
       const handle = makeFileHandle({ getFile });
 
       await expect(readFromFileHandle(handle)).resolves.toBe('content');
       expect(getFile).toHaveBeenCalledOnce();
-      expect(text).toHaveBeenCalledOnce();
+      expect(arrayBuffer).toHaveBeenCalledOnce();
     });
 
     it('oversætter læsefejl og logger den reelle fejl', async () => {

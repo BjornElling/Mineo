@@ -19,7 +19,7 @@ type PermissionQueryableHandle = Readonly<{
   queryPermission: (descriptor?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
 }>;
 
-export const queryHandlePermission = (
+export const queryHandlePermission = async (
   handle: PermissionQueryableHandle,
   mode: 'read' | 'readwrite',
   timeoutMs: number = PERMISSION_QUERY_TIMEOUT_MS,
@@ -28,5 +28,9 @@ export const queryHandlePermission = (
   const timeout = new Promise<'unanswered'>((resolve) => {
     timer = setTimeout(() => resolve('unanswered'), timeoutMs);
   });
-  return Promise.race([handle.queryPermission({ mode }), timeout]).finally(() => clearTimeout(timer));
+  try {
+    return await Promise.race([handle.queryPermission({ mode }), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 };

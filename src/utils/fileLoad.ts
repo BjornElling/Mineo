@@ -1,5 +1,5 @@
 import { countFilledFields, countMeaningfulFields } from './dataCollection';
-import { type ResolvedDirectory } from './fileHelpers';
+import { type FilePickerDirectory } from './fileHelpers';
 import { logError } from './logger';
 import { LEGACY_PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { persistenceSchemas, PERSISTED_SECTION_KEYS, type PersistedSectionKey } from '../config/persistenceRegistry';
@@ -280,7 +280,7 @@ const mapGenericLoadError = (error: unknown, context: string): never => {
 };
 
 export const loadFromFile = async (
-  resolvedDirectory?: ResolvedDirectory
+  resolvedDirectory?: FilePickerDirectory
 ): Promise<LoadFileResult> => {
 
   try {

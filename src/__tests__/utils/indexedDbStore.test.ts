@@ -134,6 +134,49 @@ describe('indexedDbStore', () => {
     Object.defineProperty(globalThis, 'IDBKeyRange', { value: originalKeyRange ?? {}, configurable: true, writable: true });
   };
 
+  it('afviser en blokeret åbning og lukker den sene forbindelse uden at udføre arbejde', async () => {
+    const close = vi.fn();
+    const transaction = vi.fn();
+    const request = {
+      onblocked: null as (() => void) | null,
+      onsuccess: null as (() => void) | null,
+      result: { close, transaction },
+    };
+    installStub({ open: () => request });
+    const work = vi.fn();
+
+    const pending = runTransaction(SCHEMA, ['s'], 'readwrite', work, 'test');
+    request.onblocked?.();
+    await expect(pending).resolves.toMatchObject({ status: 'error' });
+    request.onsuccess?.();
+    expect(close).toHaveBeenCalledOnce();
+    expect(transaction).not.toHaveBeenCalled();
+    expect(work).not.toHaveBeenCalled();
+  });
+
+  it('afbryder en hængende write før resultatet frigives', async () => {
+    vi.useFakeTimers();
+    try {
+      const open = { onsuccess: null as (() => void) | null, result: {
+        close: vi.fn(),
+        transaction: () => ({ abort }),
+      } };
+      const abort = vi.fn();
+      installStub({ open: () => open });
+      const work = vi.fn(() => new Promise<void>(() => undefined));
+
+      const pending = runTransaction(SCHEMA, ['s'], 'readwrite', work, 'test');
+      open.onsuccess?.();
+      await vi.advanceTimersByTimeAsync(5_000);
+      await expect(pending).resolves.toMatchObject({ status: 'error' });
+      expect(work).toHaveBeenCalledOnce();
+      expect(abort).toHaveBeenCalledOnce();
+      expect(open.result.close).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   describe('utilgængelig IndexedDB er en egen tilstand, ikke en fejl', () => {
     // Tidligere var `typeof indexedDB`-guarden gentaget 9 steder med INKONSISTENTE
     // returværdier (false/null/true). Nu er der ét svar, som kalderen oversætter.

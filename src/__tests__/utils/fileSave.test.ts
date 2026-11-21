@@ -9,7 +9,7 @@ import {
   saveToFile,
 } from '../../utils/fileSave';
 import { downloadFile } from '../../utils/fileHelpers';
-import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
+import { buildAllDataRawFromSnapshot, compareData, verifySaveArtifact } from '../../utils/fileSaveInternals';
 import { logError, logWarning } from '../../utils/logger';
 import {
   deleteFileHandleFromIndexedDB,
@@ -115,6 +115,7 @@ describe('fileSave', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockedEncryptToString.mockResolvedValue('encrypted');
     mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(true);
     mockedIsFileSystemFileHandle.mockImplementation(
       (value): value is FileSystemFileHandle =>
@@ -223,7 +224,7 @@ describe('fileSave', () => {
     });
   });
 
-  describe('verifyAfterSave', () => {
+  describe('verifySaveArtifact', () => {
     const expectedData = eoFileDataSchema.parse({
       stamdata: { journalnr: 'J-1' },
     });
@@ -231,7 +232,7 @@ describe('fileSave', () => {
     it('returnerer unusable ved dekrypteringsfejl', async () => {
       mockedDecryptFromString.mockRejectedValueOnce(new Error('decrypt fail'));
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(false);
       expect(result.kind).toBe('unusable');
     });
@@ -239,7 +240,7 @@ describe('fileSave', () => {
     it('returnerer unusable ved ugyldig container-struktur', async () => {
       mockedDecryptFromString.mockResolvedValueOnce({ version: '1.0.0' });
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(false);
       expect(result.kind).toBe('unusable');
       expect(result.error).toContain('Ugyldig fil-struktur');
@@ -250,7 +251,7 @@ describe('fileSave', () => {
         ukendtSektion: { x: 1 },
       }));
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(false);
       expect(result.kind).toBe('unusable');
       expect(result.error).toContain('Ugyldig fil-struktur');
@@ -261,7 +262,7 @@ describe('fileSave', () => {
         stamdata: { journalnr: 'J-2' },
       }));
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(false);
       expect(result.kind).toBe('integrity');
       expect(result.differences?.some((line) => line.includes('stamdata.journalnr'))).toBe(true);
@@ -291,42 +292,10 @@ describe('fileSave', () => {
         forsoergertab: {},
       }));
 
-      const result = await verifyAfterSave('encrypted', richExpectedData, false);
+      const result = await verifySaveArtifact('encrypted', richExpectedData);
 
       expect(result).toMatchObject({ success: false, kind: 'integrity' });
       expect(mockedLogError).toHaveBeenCalledWith(expect.stringContaining('flere forskelle'));
-    });
-
-    it('læser via file handle når isFileHandle=true', async () => {
-      mockedReadFromFileHandle.mockResolvedValueOnce('encrypted');
-      mockedDecryptFromString.mockResolvedValueOnce(currentContainer({
-        stamdata: { journalnr: 'J-1' },
-      }));
-
-      const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
-      const result = await verifyAfterSave(handle, expectedData, true);
-
-      expect(mockedReadFromFileHandle).toHaveBeenCalledOnce();
-      expect(result.success).toBe(true);
-      expect(result.verified).toBe(true);
-    });
-
-    it('returnerer unusable ved exception under read-back', async () => {
-      mockedReadFromFileHandle.mockRejectedValueOnce(new Error('read-back fejlede'));
-      const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
-
-      const result = await verifyAfterSave(handle, expectedData, true);
-
-      expect(result).toEqual({
-        success: false,
-        kind: 'unusable',
-        error: 'Kunne ikke verificere gemt fil',
-        details: 'read-back fejlede',
-      });
-      expect(mockedLogError).toHaveBeenCalledWith(
-        'Verificering fejlede',
-        expect.objectContaining({ context: 'verifyAfterSave' }),
-      );
     });
 
     it('returnerer success ved identisk data via content-verificering', async () => {
@@ -334,7 +303,7 @@ describe('fileSave', () => {
         stamdata: { journalnr: 'J-1' },
       }));
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
     });
@@ -352,11 +321,11 @@ describe('fileSave', () => {
           },
         });
 
-      await expect(verifyAfterSave('encrypted', expectedData, false)).resolves.toMatchObject({
+      await expect(verifySaveArtifact('encrypted', expectedData)).resolves.toMatchObject({
         success: false,
         kind: 'unusable',
       });
-      await expect(verifyAfterSave('encrypted', expectedData, false)).resolves.toMatchObject({
+      await expect(verifySaveArtifact('encrypted', expectedData)).resolves.toMatchObject({
         success: false,
         kind: 'unusable',
       });
@@ -407,7 +376,7 @@ describe('fileSave', () => {
 
       mockedDecryptFromString.mockResolvedValueOnce(currentContainer(structuredClone(expectedData)));
 
-      const result = await verifyAfterSave('encrypted', expectedData, false);
+      const result = await verifySaveArtifact('encrypted', expectedData);
       expect(result.success).toBe(true);
       expect(result.verified).toBe(true);
     });
@@ -480,6 +449,7 @@ describe('fileSave', () => {
       mockedWriteToFileHandle.mockResolvedValue(undefined);
       const error = new FileHandleAccessError('Filen blev ikke fundet');
       mockedReadFromFileHandle.mockRejectedValueOnce(error);
+      mockedDecryptFromString.mockResolvedValue(currentContainer({ stamdata: { journalnr: 'J-1' } }));
       await expect(saveToFile(snapshot)).rejects.toBe(error);
       expect(mockedSaveFileHandleToIndexedDB).not.toHaveBeenCalled();
       expect(persistSavedFilenameMetadataMock).not.toHaveBeenCalled();
@@ -515,6 +485,20 @@ describe('fileSave', () => {
       );
     });
 
+    it('bekræfter ikke en gemning, når det læste filindhold afviger fra artefaktet', async () => {
+      const handle = { name: 'sag.eo', getFile: vi.fn() } as unknown as FileSystemFileHandle;
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
+      mockedSaveFileWithPicker.mockResolvedValue(handle);
+      mockedWriteToFileHandle.mockResolvedValue(undefined);
+      mockedDecryptFromString.mockResolvedValue(currentContainer({ stamdata: { journalnr: 'J-1' } }));
+      mockedReadFromFileHandle.mockResolvedValueOnce('et andet krypteret artefakt');
+
+      await expect(saveToFile(snapshot)).rejects.toBeInstanceOf(SaveIntegrityError);
+      expect(mockedSaveFileHandleToIndexedDB).not.toHaveBeenCalled();
+      expect(persistSavedFilenameMetadataMock).not.toHaveBeenCalled();
+    });
+
     it('genbruger indlæst file handle når write-adgang kan anmodes ved gem', async () => {
       const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
 
@@ -546,6 +530,7 @@ describe('fileSave', () => {
       mockedIsFileSystemAccessSupported.mockReturnValue(true);
       mockedRequestPersistentStorage.mockResolvedValue(true);
       mockedLoadFileHandleFromIndexedDB.mockResolvedValue(loadedHandle);
+      mockedDecryptFromString.mockResolvedValue(currentContainer({ stamdata: { journalnr: 'J-1' } }));
       mockedVerifyFileHandleDetailed.mockResolvedValue({
         valid: false,
         reason: 'permission_denied',
@@ -577,6 +562,8 @@ describe('fileSave', () => {
 
       await expect(saveToFile(snapshot)).rejects.toThrow('INTEGRITETSKONTROL FEJLEDE');
       expect(mockedSaveFileHandleToIndexedDB).not.toHaveBeenCalled();
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+      expect(mockedWriteToFileHandle).not.toHaveBeenCalled();
     });
 
     it('fejler ikke på korrupt lastSavedFilenameBasis metadata', async () => {
@@ -587,6 +574,7 @@ describe('fileSave', () => {
       mockedRequestPersistentStorage.mockResolvedValue(true);
       mockedLoadFileHandleFromIndexedDB.mockResolvedValue(null);
       mockedSaveFileWithPicker.mockResolvedValue(null);
+      mockedDecryptFromString.mockResolvedValue(currentContainer({ stamdata: { journalnr: 'J-1' } }));
 
       const result = await saveToFile(snapshot);
 

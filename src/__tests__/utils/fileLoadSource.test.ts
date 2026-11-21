@@ -101,7 +101,7 @@ describe('createManualLoadSource', () => {
       isFallback: false,
     };
     mockedOpenFileWithPicker.mockResolvedValue({ file, handle });
-    mockedGetStartInValue.mockReturnValue('desktop');
+    mockedGetStartInValue.mockResolvedValue('desktop');
 
     await createManualLoadSource(resolvedDirectory).open();
 

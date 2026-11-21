@@ -562,6 +562,34 @@ describe('useFileSaveLoad', () => {
   });
 
   describe('handleLoadDespiteIssues', () => {
+    it('beholder fillåsen, hvis en sen annullering ankommer efter godkendelse', async () => {
+      const handles = renderHook({ hasData: false });
+      loadFromFileMock.mockResolvedValue(successfulLoad({ preflightWarning: { loadedCount: 1, issues: [] } }));
+      let finishMetadata!: () => void;
+      synchronizeLoadMetadataMock.mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => { finishMetadata = resolve; });
+        return { status: 'applied' };
+      });
+
+      await act(async () => { await handles.api?.handleHent(); });
+      let applying: Promise<void> | undefined;
+      await act(async () => { applying = handles.api?.handleLoadDespiteIssues(); });
+
+      await act(async () => {
+        handles.api?.dismissPendingLoad();
+        await handles.api?.handleHent();
+      });
+      expect(handles.api?.isFileOperationInProgress()).toBe(true);
+      expect(loadFromFileMock).toHaveBeenCalledOnce();
+      expect(applyAuthoritativeLoadSnapshotMock).toHaveBeenCalledOnce();
+
+      await act(async () => {
+        finishMetadata();
+        await applying;
+      });
+      expect(handles.api?.isFileOperationInProgress()).toBe(false);
+    });
+
     it('anvender det ventende preflight-snapshot med advarsels-overlay', async () => {
       const handles = renderHook({ hasData: false });
       loadFromFileMock.mockResolvedValue(

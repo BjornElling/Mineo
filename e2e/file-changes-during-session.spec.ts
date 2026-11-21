@@ -28,6 +28,38 @@ const installFileSystem = async (page: Parameters<typeof login>[0], folder?: str
 };
 
 test.describe('Ændringer af .eo-filen under en åben sag', () => {
+  test('afbrudt fillæsning bevarer sagen og frigiver Hent til nyt forsøg', async ({ page, runtimeErrors, runtimeSignals }) => {
+    await login(page);
+    await openPage(page, 'Stamdata');
+    const journal = page.getByRole('textbox', { name: 'Journalnr.' });
+    await setFieldValueAndSettle(journal, 'BEVARES');
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'showSaveFilePicker', { configurable: true, value: async () => null });
+      Object.defineProperty(window, 'showOpenFilePicker', {
+        configurable: true,
+        value: async () => [{
+          getFile: async () => { throw new DOMException('Drevet afbrød læsningen', 'AbortError'); },
+        }],
+      });
+    });
+
+    const hent = page.getByRole('button', { name: 'Hent', exact: true });
+    await hent.click();
+    await expect(page.getByText('Indlæsningen blev afbrudt.', { exact: false })).toBeVisible();
+    await expect(journal).toHaveValue('BEVARES');
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'showOpenFilePicker', {
+        configurable: true,
+        value: async () => [{ getFile: async () => new File(['ugyldig'], 'sag.txt') }],
+      });
+    });
+    await hent.click();
+    await expect(page.getByText('Valgt fil er ikke en .eo fil')).toBeVisible();
+    await expect(journal).toHaveValue('BEVARES');
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+  });
+
   test('en ventende fil fra gammel udgivelse kræver et aktivt valg og genafspilles ikke efter Annuller', async ({ page, runtimeErrors, runtimeSignals }, testInfo) => {
     await login(page);
     await openPage(page, 'Stamdata');

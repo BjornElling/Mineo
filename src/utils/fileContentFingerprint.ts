@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getFileSnapshot, readFileText } from './file/fileIoDeadline';
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
 import { MAX_FILE_SIZE } from '../config/version';
 import { readOptionalSessionStorageValue } from './safeSessionStorage';
@@ -19,11 +20,11 @@ export const readSavedFileContentFingerprint = (): string | null => {
 };
 
 export const readFileContentFingerprint = async (handle: FileSystemFileHandle): Promise<string> => {
-  const file = await handle.getFile();
+  const file = await getFileSnapshot(handle, 'write');
   // En eksternt erstattet fil kan være vilkårligt stor. Gem må ikke læse gigabytes
   // ind i hukommelsen for at afgøre, om den tidligere .eo-fil er ændret.
   if (file.size > MAX_FILE_SIZE) {
     throw new DOMException('Filen er for stor til sikker kontrol', 'NotReadableError');
   }
-  return createFileContentFingerprint(await file.text());
+  return createFileContentFingerprint(await readFileText(file, 'write'));
 };

@@ -1,11 +1,11 @@
-import { generateFilename, type ResolvedDirectory, getStartInValue } from './fileHelpers';
-import { logWarning } from './logger';
+import { generateFilename, type FilePickerDirectory, getStartInValue } from './fileHelpers';
 import {
   isFileSystemAccessSupported,
   isFileSystemFileHandle,
   saveFileWithPicker,
   toFileHandleAccessError,
   FileHandleAccessError,
+  FileSaveSourceChangedError,
 } from './fileSystemAccess';
 import {
   requestPersistentStorage,
@@ -129,14 +129,22 @@ const isUserDismissedPermissionPrompt = (
  */
 export const resolveSaveTarget = async (
   fileData: EoFileContainer,
-  resolvedDirectory?: ResolvedDirectory,
-  resolveConflict?: ResolveSaveConflict
+  resolvedDirectory?: FilePickerDirectory,
+  resolveConflict?: ResolveSaveConflict,
+  isSourceStillCurrent?: () => boolean,
 ): Promise<SaveTarget> => {
   if (isFileSystemAccessSupported()) {
-    await requestPersistentStorage();
+    // Browserens fastholdelse af lokale data er valgfri. Ventetid her kan blokere
+    // Gem og bruge den transiente aktivering, som filvælgeren kræver.
+    void requestPersistentStorage();
 
     const loadedHandle: unknown = await loadFileHandleFromIndexedDB();
     let fileHandle: FileSystemFileHandle | null = isFileSystemFileHandle(loadedHandle) ? loadedHandle : null;
+    // En læsefejl kan også give null. Bekræft, at et ældre håndtag ikke kan
+    // dukke op igen sammen med det nye måls metadata, hvis lageret kommer tilbage.
+    if (!fileHandle && !await deleteFileHandleFromIndexedDB()) {
+      throw new Error('Det tidligere filhåndtag kunne ikke ryddes. Prøv Gem igen.');
+    }
     const savedFilePath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
     const savedFilenameBasis = loadStoredFilenameBasis();
     const currentStamdata = fileData.data.stamdata || {};
@@ -166,10 +174,7 @@ export const resolveSaveTarget = async (
             // Et gammelt handle må ikke blive liggende, mens et nyt filnavn eventuelt gemmes:
             // ellers kan næste Gem koble de nye metadata til den gamle fil og overskrive forkert mål.
             // Fail-closed er den eneste sikre vej, når browseren ikke kan bekræfte oprydningen.
-            logWarning('Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
-              context: 'resolveSaveTarget.failedToInvalidateStoredHandle',
-            });
-            return { kind: 'cancelled' };
+            throw new Error('Det tidligere filhåndtag kunne ikke ryddes. Prøv Gem igen.');
           }
           fileHandle = null;
         }
@@ -180,12 +185,7 @@ export const resolveSaveTarget = async (
         if (!deleted) {
           // Samme fail-closed-regel gælder ved en bevidst ny fil: et gammelt handle må ikke kunne
           // genbruges, hvis persisteringen af det nye handle senere fejler.
-          logWarning('Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
-            context: stamdataChanged
-              ? 'resolveSaveTarget.changedFilenameBasisHandle'
-              : 'resolveSaveTarget.foreignTabHandle',
-          });
-          return { kind: 'cancelled' };
+          throw new Error('Det tidligere filhåndtag kunne ikke ryddes. Prøv Gem igen.');
         }
         if (!handleBelongsToThisTab) {
           // Brugeren skal vide HVORFOR filvælgeren kom, når han bad om et direkte gem. Uden en
@@ -202,10 +202,7 @@ export const resolveSaveTarget = async (
       // picker-flowet, så manglende metadata aldrig bliver en genvej til et ukendt gammelt mål.
       const deleted = await deleteFileHandleFromIndexedDB();
       if (!deleted) {
-        logWarning('Ukendt file handle kunne ikke ryddes sikkert; gemning afbrudt', {
-          context: 'resolveSaveTarget.orphanedStoredHandle',
-        });
-        return { kind: 'cancelled' };
+        throw new Error('Det tidligere filhåndtag kunne ikke ryddes. Prøv Gem igen.');
       }
       fileHandle = null;
     }
@@ -240,7 +237,8 @@ export const resolveSaveTarget = async (
     const currentFilename = generateFilename(fileData.data);
     const suggestedFilename =
       savedFilePath && !stamdataChanged ? savedFilePath : `${currentFilename}.eo`;
-    const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
+    const startIn = await getStartInValue(resolvedDirectory);
+    if (isSourceStillCurrent && !isSourceStillCurrent()) throw new FileSaveSourceChangedError();
     const pickedHandle: unknown = await saveFileWithPicker(suggestedFilename, startIn);
     const picked = isFileSystemFileHandle(pickedHandle) ? pickedHandle : null;
 

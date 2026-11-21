@@ -55,13 +55,36 @@ export const awaitRequest = <T>(request: IDBRequest<T>): Promise<T> =>
     request.onerror = () => reject(request.error ?? new Error('IndexedDB-request fejlede'));
   });
 
+const DATABASE_OPEN_TIMEOUT_MS = 2_000;
+const TRANSACTION_TIMEOUT_MS = 5_000;
+
 const openDatabase = (schema: IndexedDbSchema): Promise<IDBDatabase> =>
   new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(schema.databaseName, schema.version);
-    request.onerror = () => reject(request.error ?? new Error('IndexedDB kunne ikke åbnes'));
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = (event) => {
-      schema.upgrade((event.target as IDBOpenDBRequest).result);
+    let abandoned = false;
+    const fail = (error: Error): void => {
+      abandoned = true;
+      clearTimeout(timer);
+      reject(error);
+    };
+    const timer = setTimeout(() => fail(new Error('IndexedDB svarede ikke ved åbning')), DATABASE_OPEN_TIMEOUT_MS);
+    request.onblocked = () => fail(new Error('IndexedDB-åbningen blev blokeret af en anden forbindelse'));
+    request.onerror = () => fail(request.error ?? new Error('IndexedDB kunne ikke åbnes'));
+    request.onsuccess = () => {
+      clearTimeout(timer);
+      if (abandoned) {
+        request.result.close();
+        return;
+      }
+      resolve(request.result);
+    };
+    request.onupgradeneeded = () => {
+      // Et forladt opslag må ikke senere ændre databasen eller holde en åben forbindelse.
+      if (abandoned) {
+        request.transaction?.abort();
+        return;
+      }
+      schema.upgrade(request.result);
     };
   });
 
@@ -106,29 +129,41 @@ export const runTransaction = async <T>(
         reject(transaction.error ?? new Error('IndexedDB-transaction blev afbrudt'));
     });
 
-    let workValue: T;
+    // Observér abort med det samme, også hvis en request aldrig leverer sin egen fejlhændelse.
+    void settled.catch(() => undefined);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let abortRequested = false;
     try {
-      workValue = await work(transaction);
+      const operation = work(transaction);
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          if (mode !== 'readonly') {
+            // En skrivning må kun opgives, hvis databasen accepterer abort. I
+            // committing-tilstand ejer oncomplete/onabort stadig udfaldet.
+            try {
+              transaction.abort();
+              abortRequested = true;
+            } catch {
+              return;
+            }
+          }
+          reject(new Error('IndexedDB svarede ikke under transaktionen'));
+        }, TRANSACTION_TIMEOUT_MS);
+      });
+      const result = mode === 'readonly' ? operation : Promise.all([operation, settled]).then(([value]) => value);
+      const value = await Promise.race([result, settled.then(() => result), timeout]);
+      return { status: 'ok', value };
     } catch (workError: unknown) {
       // Rul transactionen tilbage, så en delvis skrivning ikke committes, og lad
       // ARBEJDETS fejl være årsagen – ikke den afledte abort.
-      try { transaction.abort(); } catch { /* allerede afsluttet */ }
-      settled.catch(() => { /* aborten er forventet her */ });
+      if (!abortRequested) {
+        try { transaction.abort(); } catch { /* allerede afsluttet */ }
+      }
       throw asError(workError);
+    } finally {
+      clearTimeout(timer);
     }
-
-    // For en SKRIVNING er dataene først gemt, når transactionen er committet – det er
-    // forskellen på "requesten svarede" og "skrivningen landede". For en ren læsning er
-    // værdien derimod allerede i hånden, og at vente på commit ville kun forsinke svaret
-    // (og gøre resultatet afhængigt af, at forbindelsen får lov at committe i ro).
-    if (mode !== 'readonly') {
-      await settled;
-    } else {
-      settled.catch(() => { /* en fejlende readonly-commit ændrer ikke det læste svar */ });
-    }
-    const value = workValue;
-
-    return { status: 'ok', value };
   } catch (error: unknown) {
     const wrapped = asError(error);
     if (options?.silent !== true) {

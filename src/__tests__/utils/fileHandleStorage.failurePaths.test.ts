@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 const storageMocks = vi.hoisted(() => ({
   readFileHandleValueResult: vi.fn(),
-  readFileHandleValue: vi.fn(),
+  readDefaultDirectoryRegistration: vi.fn(),
   writeFileHandleValues: vi.fn(),
   deleteFileHandleValues: vi.fn(),
   readClientScopedFileHandleValueResult: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock('../../utils/file/fileHandleKvStore', async (importOriginal) => {
   return {
     ...actual,
     readFileHandleValueResult: (...args: unknown[]) => storageMocks.readFileHandleValueResult(...args),
-    readFileHandleValue: (...args: unknown[]) => storageMocks.readFileHandleValue(...args),
+    readDefaultDirectoryRegistration: (...args: unknown[]) => storageMocks.readDefaultDirectoryRegistration(...args),
     writeFileHandleValues: (...args: unknown[]) => storageMocks.writeFileHandleValues(...args),
     deleteFileHandleValues: (...args: unknown[]) => storageMocks.deleteFileHandleValues(...args),
     readClientScopedFileHandleValueResult: (...args: unknown[]) => storageMocks.readClientScopedFileHandleValueResult(...args),
@@ -162,8 +162,8 @@ describe('fileHandleStorage – IndexedDB-fejlstier', () => {
     });
 
     it('returnerer null ved læsefejl og slettefejl', async () => {
-      storageMocks.readFileHandleValue.mockResolvedValue(null);
-      await expect(loadDefaultDirectoryHandle()).resolves.toBeNull();
+      storageMocks.readDefaultDirectoryRegistration.mockResolvedValue(null);
+      await expect(loadDefaultDirectoryHandle('mappe-id')).resolves.toBeNull();
 
       storageMocks.deleteFileHandleValues.mockResolvedValue(storageError('directory delete fejlede'));
       await expect(deleteDefaultDirectoryHandle()).resolves.toBe(false);

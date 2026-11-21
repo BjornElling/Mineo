@@ -1,5 +1,6 @@
 import { logWarning } from '../logger';
 import { isRecord } from '../typeGuards';
+import { getFileSnapshot } from './fileIoDeadline';
 import { queryHandlePermission } from './handlePermissionQuery';
 
 /**
@@ -80,7 +81,7 @@ export const verifyFileHandleDetailed = async (
       }
 
       // Når write-adgang er bekræftet, tjekker vi at filen stadig eksisterer.
-      await handle.getFile();
+      await getFileSnapshot(handle, 'write');
 
       return { valid: true };
 
@@ -92,6 +93,9 @@ export const verifyFileHandleDetailed = async (
         // Sletning/flytning er en forventelig filændring. Kalderen tilbyder et nyt gem-mål;
         // en teknisk advarsel ville fejlagtigt tænde programmets runtime-alarm.
         return { valid: false, reason: 'not_found', detail: errMessage };
+      }
+      if (errName === 'NotReadableError' || errName === 'TimeoutError') {
+        return { valid: false, reason: 'file_access_failed', detail: errMessage };
       }
       if (errName === 'NotAllowedError' || errName === 'SecurityError') {
         return { valid: false, reason: 'permission_denied', detail: errMessage };

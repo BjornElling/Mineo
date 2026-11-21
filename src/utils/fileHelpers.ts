@@ -1,6 +1,8 @@
 import { coerceToDanishDateString } from '../types/branded';
 import { loadDefaultDirectoryHandle, verifyDirectoryHandle } from './fileHandleStorage';
 import { logError, logWarning } from './logger';
+import { getErrorName } from './typeGuards';
+import { withinFileIoDeadline } from './file/fileIoDeadline';
 import type { AppSettings } from '../settings/appSettingsSchema';
 
 // Konstanter for filhåndtering
@@ -168,15 +170,17 @@ export const downloadFile = (content: string, filename: string, mimeType = 'appl
  * @returns {Promise<string>} Fil-indhold som tekst
  */
 export const readFile = (file: File | null | undefined): Promise<string> => {
-  return new Promise<string>((resolve, reject) => {
+  let reader: FileReader | undefined;
+  const reading = new Promise<string>((resolve, reject) => {
     if (!file) {
       reject(new Error('Ingen fil valgt'));
       return;
     }
 
-    const reader = new FileReader();
+    const fileReader = new FileReader();
+    reader = fileReader;
 
-    reader.onload = (e: ProgressEvent<FileReader>) => {
+    fileReader.onload = (e: ProgressEvent<FileReader>) => {
       const result = e.target?.result;
       if (typeof result === 'string') {
         resolve(result);
@@ -185,14 +189,15 @@ export const readFile = (file: File | null | undefined): Promise<string> => {
       reject(new Error('Kunne ikke læse fil'));
     };
 
-    reader.onerror = () => {
+    fileReader.onerror = () => {
       // Bevar browserens fejltype, så load kan forklare fx ekstern ændring/adgangstab.
-      reject(reader.error ?? new Error('Kunne ikke læse fil'));
+      reject(fileReader.error ?? new Error('Kunne ikke læse fil'));
     };
-    reader.onabort = () => reject(new DOMException('Fil-læsningen blev afbrudt', 'AbortError'));
+    fileReader.onabort = () => reject(new DOMException('Fil-læsningen blev afbrudt', 'AbortError'));
 
-    reader.readAsText(file);
+    fileReader.readAsText(file);
   });
+  return withinFileIoDeadline(reading, 'read', () => reader?.abort());
 };
 
 /**
@@ -202,21 +207,24 @@ export const readFile = (file: File | null | undefined): Promise<string> => {
  * @returns {Promise<File>} Valgt fil eller null hvis annulleret
  */
 export const selectFile = (accept = '.eo'): Promise<File | null> => {
-  return new Promise<File | null>((resolve) => {
+  return new Promise<File | null>((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = accept;
     input.style.display = 'none';
 
+    const cleanup = (): void => {
+      input.onchange = null;
+      input.oncancel = null;
+      input.remove();
+    };
     let settled = false;
     const finish = (file: File | null): void => {
       // Firefox kan levere både change og cancel for samme dialogforløb. Dialogens cleanup skal derfor
       // være idempotent; et ubetinget removeChild kastede en teknisk fejl efter en ellers gyldig Hent.
       if (settled) return;
       settled = true;
-      input.onchange = null;
-      input.oncancel = null;
-      input.remove();
+      cleanup();
       resolve(file);
     };
 
@@ -231,8 +239,21 @@ export const selectFile = (accept = '.eo'): Promise<File | null> => {
       finish(null);
     };
 
-    document.body.appendChild(input);
-    input.click();
+    try {
+      document.body.appendChild(input);
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+      } else {
+        // click kan være en tavs no-op, når browserens aktivering er udløbet.
+        if (navigator.userActivation?.isActive === false) {
+          throw new DOMException('Filvælgeren kræver et nyt klik', 'NotAllowedError');
+        }
+        input.click();
+      }
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
   });
 };
 
@@ -299,7 +320,7 @@ export const resolveDefaultDirectoryHandle = async (
 
   try {
     // Forsøg at hente directory handle fra IndexedDB
-    const handle = await loadDefaultDirectoryHandle();
+    const handle = await withinFileIoDeadline(loadDefaultDirectoryHandle(settings.defaultDirectoryHandleId), 'directory');
 
     if (!handle) {
       // Handle ikke fundet i IndexedDB (muligvis slettet)
@@ -329,6 +350,7 @@ export const resolveDefaultDirectoryHandle = async (
     };
 
   } catch (error) {
+    if (getErrorName(error) === 'TimeoutError') return desktopFallback;
     // Uventet fejl - log og brug fallback
     logWarning('Fejl ved resolve af standard-placering - falder tilbage til skrivebord', {
       context: 'resolveDefaultDirectoryHandle',
@@ -345,11 +367,11 @@ export const resolveDefaultDirectoryHandle = async (
  * @param resolved ResolvedDirectory fra resolveDefaultDirectoryHandle
  * @returns FileSystemDirectoryHandle eller 'desktop' string
  */
-export const getStartInValue = (
-  resolved: ResolvedDirectory
-): FileSystemDirectoryHandle | 'desktop' => {
-  if (resolved.handle && !resolved.isFallback) {
-    return resolved.handle;
-  }
-  return resolved.wellKnown;
+export type FilePickerDirectory = ResolvedDirectory | (() => Promise<ResolvedDirectory>);
+
+export const getStartInValue = async (
+  directory?: FilePickerDirectory,
+): Promise<FileSystemDirectoryHandle | 'desktop'> => {
+  const resolved = typeof directory === 'function' ? await directory() : directory;
+  return resolved?.handle && !resolved.isFallback ? resolved.handle : resolved?.wellKnown ?? 'desktop';
 };

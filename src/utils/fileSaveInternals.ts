@@ -2,7 +2,6 @@ import { eoFileContainerSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { PersistedSectionKey } from '../config/persistenceRegistry';
 import { decryptFromString } from './encryption';
-import { FileHandleAccessError, isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
 import { logError } from './logger';
 import type {
   SaveSnapshot,
@@ -140,38 +139,12 @@ export const compareData = (expected: unknown, actual: unknown, path = 'root', d
   return differences;
 };
 
-/**
- * Verificerer at en gemt fil kan læses korrekt og indeholder forventet data.
- *
- * Læser filen tilbage efter gem og validerer:
- * - At filen kan dekrypteres
- * - At data fra sessionStorage matcher data i filen (felt-for-felt via compareData)
- * - At kritiske sektioner findes
- */
-export const verifyAfterSave = async (
-  fileHandleOrContent: FileSystemFileHandle | string,
+/** Verificerer det klargjorte artefakt, før filvælger eller anden skrivning kan ændre disken. */
+export const verifySaveArtifact = async (
+  fileContent: string,
   expectedData: CanonicalEoData,
-  isFileHandle = true
 ): Promise<VerificationResult> => {
-
   try {
-    let fileContent: string;
-
-    // Læs fil-indhold baseret på type
-    if (isFileHandle) {
-      // File System Access API - læs via file handle
-      if (!isFileSystemFileHandle(fileHandleOrContent)) {
-        throw new Error('Intern fejl: verifyAfterSave forventede et FileSystemFileHandle');
-      }
-      fileContent = await readFromFileHandle(fileHandleOrContent);
-    } else {
-      // Fallback - vi har allerede indholdet (det der lige blev "downloadet")
-      if (typeof fileHandleOrContent !== 'string') {
-        throw new Error('Intern fejl: verifyAfterSave forventede fil-indhold som string');
-      }
-      fileContent = fileHandleOrContent;
-    }
-
     // Dekrypter filen
     let decrypted: unknown;
     try {
@@ -240,9 +213,8 @@ export const verifyAfterSave = async (
       verified: true,
     };
   } catch (error) {
-    if (error instanceof FileHandleAccessError) throw error;
     logError('Verificering fejlede', {
-      context: 'verifyAfterSave',
+      context: 'verifySaveArtifact',
       error: error instanceof Error ? error : undefined,
     });
     const details = error instanceof Error ? error.message : 'Ukendt fejl';

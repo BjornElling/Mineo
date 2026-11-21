@@ -4,7 +4,7 @@ import {
   deleteFileHandleValues,
   directoryHandleMetaSchema,
   deleteClientScopedFileHandleValue,
-  readFileHandleValue,
+  readDefaultDirectoryRegistration,
   readFileHandleValueResult,
   readClientScopedFileHandleValueResult,
   writeClientScopedFileHandleValue,
@@ -215,8 +215,10 @@ export const getDirectoryDisplayInfo = async (): Promise<DirectoryHandleMeta | n
 };
 
 /** Henter standardmappens handle, eller `null`. */
-export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryHandle | null> =>
-  readFileHandleValue('default_directory_handle', 'loadDefaultDirectoryHandle');
+export const loadDefaultDirectoryHandle = async (expectedId: string): Promise<FileSystemDirectoryHandle | null> => {
+  const registration = await readDefaultDirectoryRegistration();
+  return registration?.meta.id === expectedId ? registration.handle : null;
+};
 
 /** Sletter både standardmappens handle og dens metadata atomisk. */
 export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {

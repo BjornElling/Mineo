@@ -1,10 +1,11 @@
 import { MAX_FILE_SIZE } from '../config/version';
-import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
+import { selectFile, readFile, type FilePickerDirectory, getStartInValue } from './fileHelpers';
 import {
   ensureFileHandleReadPermission,
   isFileSystemAccessSupported,
   openFileWithPicker,
 } from './fileSystemAccess';
+import { getFileSnapshot } from './file/fileIoDeadline';
 import { formatAsAmount } from './formatUtils';
 
 /**
@@ -71,10 +72,10 @@ export const assertLoadableEoFile = (file: File): void => {
  * Manuel indlæsning: File System Access-picker hvis understøttet, ellers fallback-`<input>`.
  * Begge mapper brugerens annullering til `cancelled` (ingen fejl).
  */
-export const createManualLoadSource = (resolvedDirectory?: ResolvedDirectory): LoadSource => ({
+export const createManualLoadSource = (resolvedDirectory?: FilePickerDirectory): LoadSource => ({
   async open(): Promise<LoadSourceOutcome> {
     if (isFileSystemAccessSupported()) {
-      const startIn = resolvedDirectory ? getStartInValue(resolvedDirectory) : 'desktop';
+      const startIn = await getStartInValue(resolvedDirectory);
       const result = await openFileWithPicker(startIn);
       if (!result) {
         return { status: 'cancelled', source: 'manual' };
@@ -115,7 +116,7 @@ export const createPwaLoadSource = (
 ): LoadSource => ({
   async open(): Promise<LoadSourceOutcome> {
     await ensureFileHandleReadPermission(fileHandle);
-    const file = await fileHandle.getFile();
+    const file = await getFileSnapshot(fileHandle, 'read');
     return {
       status: 'selected',
       source: 'pwa',

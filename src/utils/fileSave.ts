@@ -1,11 +1,17 @@
 import { countFilledFields } from './dataCollection';
 import { buildEoFileContainer, encodeEoFile } from './eoFileCodec';
-import { downloadFile, type ResolvedDirectory } from './fileHelpers';
+import { downloadFile, type FilePickerDirectory } from './fileHelpers';
 import {
   logError,
   logWarning,
 } from './logger';
-import { FileHandleAccessError, writeToFileHandle } from './fileSystemAccess';
+import {
+  FileHandleAccessError,
+  FileSaveRevisionChangedError,
+  FileSaveSourceChangedError,
+  readFromFileHandle,
+  writeToFileHandle,
+} from './fileSystemAccess';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import type { SaveFileResult } from '../types/fileOperations';
 import { eoFileDataSchema, type EoFileContainer } from '../schemas/eoFileSchema';
@@ -17,7 +23,7 @@ import type {
 } from './fileSaveTypes';
 import {
   buildAllDataRawFromSnapshot,
-  verifyAfterSave,
+  verifySaveArtifact,
 } from './fileSaveInternals';
 import { asError } from './typeGuards';
 import { applyRegisteredTableSaveOrder } from './tableSaveOrderRegistry';
@@ -99,7 +105,7 @@ const throwIfVerificationFailed = (
  * Proces:
  * 1. Indsaml + schema-valider data (kun brugerinput persisteres)
  * 2. Opbyg container-metadata og kod ét artefakt (`EoFileCodec`)
- * 3. Resolver et typet gem-mål (`resolveSaveTarget`: handle / download / annulleret)
+ * 3. Verificér artefaktet og find et typet gem-mål (`resolveSaveTarget`: handle / download / annulleret)
  * 4. Skriv til målet og verificér ét artefakt (read-back for File System Access, in-memory før download)
  * 5. Persistér filnavn/handle til sessionStorage/IndexedDB (til hurtig overskrivning næste gang)
  *
@@ -112,7 +118,7 @@ const throwIfVerificationFailed = (
  */
 export const saveToFile = async (
   snapshot: SaveSnapshot,
-  resolvedDirectory?: ResolvedDirectory,
+  resolvedDirectory?: FilePickerDirectory,
   isSourceStillCurrent?: () => boolean,
   resolveConflict?: ResolveSaveConflict
 ): Promise<SaveFileResult> => {
@@ -155,23 +161,32 @@ export const saveToFile = async (
       throw new SaveValidationError('Filen er for stor til at kunne indlæses igen. Gemningen blev afbrudt; dine indtastninger er bevaret.');
     }
 
+    if (isSourceStillCurrent !== undefined && !isSourceStillCurrent()) return { status: 'stale' };
+
+    // Verificér før filvalg: Chromium kan tømme en eksisterende fil, når brugeren
+    // accepterer den i Gem-dialogen, før Mineo overhovedet får filhåndtaget.
+    const verification = await verifySaveArtifact(encrypted, canonicalData);
+    throwIfVerificationFailed(verification, {
+      integrityBody: 'De klargjorte fildata svarer ikke præcist til den aktuelle sag.',
+      unusableBody: 'De klargjorte fildata kan ikke læses som en brugbar .eo-fil.',
+      closing: 'Prøv at gemme igen.',
+    });
+    if (isSourceStillCurrent !== undefined && !isSourceStillCurrent()) return { status: 'stale' };
+
     // 6. Resolver det typede gem-mål (genbrug handle / picker / fallback-download / annulleret).
-    const target = await resolveSaveTarget(fileData, resolvedDirectory, resolveConflict);
+    const target = await resolveSaveTarget(fileData, resolvedDirectory, resolveConflict, isSourceStillCurrent);
     if (target.kind === 'cancelled') {
       return { status: 'cancelled' };
     }
 
-    // 6b. FRISKHEDSKONTROL (critical-action-kontrakten §5). Fil-pickeren ovenfor er en async-grænse: brugeren kan
-    //     have redigeret sagen eller ændret en dokumentrelevant indstilling, mens dialogen var åben. Kontrollen
-    //     ligger derfor HER – efter al target-/picker-resolution og umiddelbart før den første skrivning – ikke
-    //     før kaldet. Fail-closed: intet røres på disken, og kalderen beder brugeren gemme igen.
+    // Kontrollér revisionen igen efter filvalget. Mineo må ikke skrive en
+    // forældet sag, selv hvis browseren allerede har oprettet eller tømt målet.
     if (isSourceStillCurrent !== undefined && !isSourceStillCurrent()) {
       return { status: 'stale' };
     }
 
     // 7. Skriv til målet og verificér ét artefakt før/efter sinken alt efter dens read-back-evne.
     let filename: string;
-    let verification: VerificationResult;
     let fallbackWarning: string | undefined;
     const metadataWarnings: string[] = [];
 
@@ -182,19 +197,11 @@ export const saveToFile = async (
       await writeToFileHandle(target.fileHandle, encrypted, target.expectedFingerprint, isSourceStillCurrent);
       filename = target.fileHandle.name;
 
-      // VERIFICER at filen er gemt korrekt. File System Access-sinken understøtter read-back:
-      // vi læser den netop skrevne fil tilbage og verificerer de faktiske bytes på disk.
-      verification = await verifyAfterSave(target.fileHandle, canonicalData, true);
-
-      if (!verification.success) {
-        // KRITISK fejl - filen kunne ikke læses tilbage!
-        logError('⚠⚠⚠ KRITISK: Fil blev gemt, men verificering fejlede!');
+      // Artefaktet er allerede valideret. Læs tilbage og kontrollér, at netop
+      // dette krypterede indhold blev skrevet, før filen kobles til sagen.
+      if (await readFromFileHandle(target.fileHandle) !== encrypted) {
+        throw new SaveIntegrityError('Filen blev skrevet, men indholdet kunne ikke bekræftes. Prøv at gemme igen.');
       }
-      throwIfVerificationFailed(verification, {
-        integrityBody: 'Filen blev skrevet og kan læses, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.',
-        unusableBody: 'Filen blev skrevet, men kan ikke læses tilbage som en brugbar .eo-fil.',
-        closing: 'Prøv at gemme igen.',
-      });
 
       if (target.persistHandleAfterSuccess) {
         const persisted = await saveFileHandleToIndexedDB(target.fileHandle);
@@ -217,22 +224,6 @@ export const saveToFile = async (
       filename = target.filename;
       fallbackWarning = target.fallbackWarning;
 
-      // VERIFICER indholdet FØR download. Fallback-sinken (browser-download) understøtter ikke
-      // read-back, så det ene artefakt verificeres i hukommelsen, mens vi stadig kan afbryde:
-      // et korrupt artefakt bliver aldrig downloadet (byg-og-verificér-før-sink).
-      verification = await verifyAfterSave(encrypted, canonicalData, false);
-
-      if (!verification.success) {
-        // KRITISK fejl - data kunne ikke dekrypteres/verificeres før download!
-        logError('⚠⚠⚠ KRITISK: Verificering af gemt data fejlede!');
-      }
-      throwIfVerificationFailed(verification, {
-        integrityBody: 'Data blev opbygget og krypteret, men integritetskontrollen fejlede. Systemet kan derfor ikke garantere, at filen svarer præcist til den aktuelle beregning.',
-        unusableBody: 'Data blev opbygget og krypteret, men den resulterende fil kan ikke verificeres som en brugbar .eo-fil.',
-        closing: 'Dette er en alvorlig fejl - prøv at gemme igen.',
-      });
-
-      // Artefaktet er verificeret: download fil (browseren håndterer "filen eksisterer allerede").
       downloadFile(encrypted, filename, 'application/octet-stream');
 
       try {
@@ -248,7 +239,7 @@ export const saveToFile = async (
       filename,
       fieldCount,
       sections: Object.keys(canonicalData).length,
-      verified: verification?.verified ?? false,
+      verified: verification.verified ?? false,
       ...((fallbackWarning || metadataWarnings.length > 0)
         ? {
             warning: [fallbackWarning, ...metadataWarnings].filter(Boolean).join('\n\n'),
@@ -261,6 +252,9 @@ export const saveToFile = async (
   } catch (error: unknown) {
 
     const err = asError(error);
+    if (err instanceof FileSaveSourceChangedError) return { status: 'stale' };
+    // Bevar koblingen, så næste Gem kan vise konflikten på det kendte mål.
+    if (err instanceof FileSaveRevisionChangedError) throw err;
 
     // Sikkerhed: Log kun fejltype, ikke følsomme data
     const safeErrorMessage = err.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre

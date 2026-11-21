@@ -111,8 +111,10 @@ describe('resolveSaveTarget', () => {
     mockedLoadFileHandleFromIndexedDB.mockResolvedValue(handle);
     mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: true });
 
-    const target = await resolveSaveTarget(fileData);
+    const resolveDirectory = vi.fn();
+    const target = await resolveSaveTarget(fileData, resolveDirectory);
 
+    expect(resolveDirectory).not.toHaveBeenCalled();
     expect(target).toEqual({ kind: 'fileHandle', fileHandle: handle, persistHandleAfterSuccess: false, expectedFingerprint: 'fingerprint' });
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
   });
@@ -169,14 +171,8 @@ describe('resolveSaveTarget', () => {
     mockedLoadFileHandleFromIndexedDB.mockResolvedValue(orphaned);
     mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
 
-    const target = await resolveSaveTarget(fileData);
-
-    expect(target).toEqual({ kind: 'cancelled' });
+    await expect(resolveSaveTarget(fileData)).rejects.toThrow('Det tidligere filhåndtag kunne ikke ryddes');
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
-    expect(mockedLogWarning).toHaveBeenCalledWith(
-      'Ukendt file handle kunne ikke ryddes sikkert; gemning afbrudt',
-      expect.objectContaining({ context: 'resolveSaveTarget.orphanedStoredHandle' }),
-    );
   });
 
   it('annullerer stille når brugeren afviser tilladelses-prompten på et gemt handle', async () => {
@@ -256,14 +252,8 @@ describe('resolveSaveTarget', () => {
     mockedVerifyFileHandleDetailed.mockResolvedValue({ valid: false, reason: 'not_found' });
     mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
 
-    const target = await resolveSaveTarget(fileData);
-
-    expect(target).toEqual({ kind: 'cancelled' });
+    await expect(resolveSaveTarget(fileData)).rejects.toThrow('Det tidligere filhåndtag kunne ikke ryddes');
     expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
-    expect(mockedLogWarning).toHaveBeenCalledWith(
-      'Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt',
-      expect.objectContaining({ context: 'resolveSaveTarget.failedToInvalidateStoredHandle' })
-    );
   });
 
   /**
@@ -334,14 +324,8 @@ describe('resolveSaveTarget', () => {
       setupForeignHandleScenario();
       mockedDeleteFileHandleFromIndexedDB.mockResolvedValue(false);
 
-      const target = await resolveSaveTarget(fileData);
-
-      expect(target).toEqual({ kind: 'cancelled' });
-      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
-      expect(mockedLogWarning).toHaveBeenCalledWith(
-        'Gammelt file handle kunne ikke ryddes sikkert; gemning afbrudt',
-        expect.objectContaining({ context: 'resolveSaveTarget.foreignTabHandle' })
-      );
+      await expect(resolveSaveTarget(fileData)).rejects.toThrow('Det tidligere filhåndtag kunne ikke ryddes');
+    expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
     });
 
     it('genbruger stadig håndtaget, når det ER fanens egen fil', async () => {

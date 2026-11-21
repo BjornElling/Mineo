@@ -100,6 +100,23 @@ export const readFileHandleValueResult = async <K extends FileHandleStoreKey>(
     : runTransaction(SCHEMA, [STORE_NAME], 'readonly', read, context);
 };
 
+/** Læser mappe og ID i samme snapshot af IndexedDB. */
+export const readDefaultDirectoryRegistration = async (): Promise<Readonly<{
+  handle: FileSystemDirectoryHandle;
+  meta: DirectoryHandleMeta;
+}> | null> => {
+  const result = await runTransactionSilently(SCHEMA, [STORE_NAME], 'readonly', async (transaction) => {
+    const store = transaction.objectStore(STORE_NAME);
+    const [handle, metadata] = await Promise.all([
+      awaitRequest<FileSystemDirectoryHandle | undefined>(store.get('default_directory_handle')),
+      awaitRequest<unknown>(store.get('default_directory_meta')),
+    ]);
+    const meta = directoryHandleMetaSchema.safeParse(metadata);
+    return handle?.kind === 'directory' && meta.success ? { handle, meta: meta.data } : null;
+  });
+  return result.status === 'ok' ? result.value : null;
+};
+
 /** Skriver én eller flere nøgler ATOMISK i samme transaction. */
 export const writeFileHandleValues = async (
   entries: Partial<{ [K in FileHandleStoreKey]: FileHandleStoreValue[K] }>,

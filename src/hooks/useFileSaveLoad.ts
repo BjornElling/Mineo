@@ -237,6 +237,7 @@ export const useFileSaveLoad = ({
   const [pendingSaveConflict, setPendingSaveConflict] = React.useState<SaveConflict | null>(null);
   const saveConflictResolverRef = React.useRef<((decision: SaveConflictDecision) => void) | null>(null);
   const mountedRef = React.useRef(true);
+  const applyingPreflightRef = React.useRef(false);
 
   const decideSaveConflict = React.useCallback((decision: SaveConflictDecision): void => {
     const resolve = saveConflictResolverRef.current;
@@ -386,15 +387,14 @@ export const useFileSaveLoad = ({
       // `SaveSnapshot === PersistedSectionsSnapshot`, så save-projektionens snapshot går uændret til `saveToFile`.
       const snapshot: SaveSnapshot = saveOutcome.snapshot;
       const savedInputRevision = Number(saveOutcome.token.inputRevision);
-      const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
 
       // Critical-action-kontrakten §5: friskheds-kontrollen skal ligge efter AL target-/picker-resolution og
       // umiddelbart før den første skrivning. Fil-pickeren ligger inde i `saveToFile`, så kontrollen injiceres
       // dér som callback – ikke her før kaldet, hvor den ville kunne omgås af netop pickeren.
       const result: SaveFileResult = await saveToFile(
         snapshot,
-        resolvedDirectory,
-        () => ops.file.isSaveSourceStillCurrent(saveOutcome.token),
+        () => resolveDefaultDirectoryHandle(settings),
+        () => mountedRef.current && ops.file.isSaveSourceStillCurrent(saveOutcome.token),
         (conflict) => {
           conflictDialogOpened = true;
           return resolveSaveConflict(conflict);
@@ -407,8 +407,8 @@ export const useFileSaveLoad = ({
       }
 
       if (result.status === 'stale') {
-        // Sagen blev ændret, mens gem-dialogen var åben. Intet er skrevet; brugeren gemmer igen mod den
-        // aktuelle tilstand (fail-closed frem for at skrive en ældre sag).
+        // Mineo skriver aldrig den ældre sagsrevision. Browserens filvælger kan allerede
+        // have oprettet eller tømt den valgte fil.
         if (!conflictDialogOpened) focusBeforeAction?.focus();
         showOverlay({
           message: 'Gem blev afbrudt, fordi sagen blev ændret undervejs. Prøv at gemme igen.',
@@ -472,6 +472,7 @@ export const useFileSaveLoad = ({
 
       transitionLoadFlow({ phase: 'idle' });
       const result: LoadFileResult = await source.load();
+      if (!mountedRef.current) return 'cancelled';
 
       if (result.status === 'cancelled') {
         focusBeforeAction?.focus();
@@ -508,7 +509,7 @@ export const useFileSaveLoad = ({
       kind: 'manual-load',
       showBusyWarning: true,
       errorLogLabel: 'Hent',
-      load: async () => loadFromFile(await resolveDefaultDirectoryHandle(settings)),
+      load: () => loadFromFile(() => resolveDefaultDirectoryHandle(settings)),
       successOverlay: () => ({ message: 'Hentet', type: 'success' }),
     });
   }, [runLoadShell, settings]);
@@ -533,7 +534,8 @@ export const useFileSaveLoad = ({
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
     const pending = loadFlowRef.current;
-    if (pending.phase !== 'preflight') return;
+    if (pending.phase !== 'preflight' || applyingPreflightRef.current) return;
+    applyingPreflightRef.current = true;
     let awaitsOverwriteDecision = false;
     // Gå direkte fra preflight til overskrivning. Den fælles dialog beholder dermed sit
     // overlay-/historik-ejerskab gennem begge udviklerbeslutninger; et kort `idle` ville lukke det
@@ -556,6 +558,7 @@ export const useFileSaveLoad = ({
         type: 'error',
       });
     } finally {
+      applyingPreflightRef.current = false;
       if (!awaitsOverwriteDecision) finishFileOperation();
     }
   }, [finishFileOperation, requestApplyLoadedSnapshot, showOverlay, transitionLoadFlow]);
@@ -652,7 +655,9 @@ export const useFileSaveLoad = ({
 
   const dismissPendingLoad = React.useCallback(() => {
     const currentFlow = loadFlowRef.current;
-    const requestId = currentFlow.phase === 'idle' ? undefined : currentFlow.result.requestId;
+    // Efter godkendelse må en sen Escape/backdrop ikke frigive låsen under apply.
+    if (currentFlow.phase === 'idle' || (currentFlow.phase === 'preflight' && applyingPreflightRef.current)) return;
+    const requestId = currentFlow.result.requestId;
     transitionLoadFlow({ phase: 'idle' });
     finishFileOperation();
     if (requestId) {
