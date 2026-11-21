@@ -240,16 +240,13 @@ export const selectFile = (accept = '.eo'): Promise<File | null> => {
     };
 
     try {
-      document.body.appendChild(input);
-      if (typeof input.showPicker === 'function') {
-        input.showPicker();
-      } else {
-        // click kan være en tavs no-op, når browserens aktivering er udløbet.
-        if (navigator.userActivation?.isActive === false) {
-          throw new DOMException('Filvælgeren kræver et nyt klik', 'NotAllowedError');
-        }
-        input.click();
+      // click kan blive ignoreret, når browserens aktivering er udløbet.
+      if (navigator.userActivation?.isActive === false) {
+        throw new DOMException('Filvælgeren kræver et nyt klik', 'NotAllowedError');
       }
+      document.body.appendChild(input);
+      // WebKit kan returnere fra showPicker() uden at åbne filvælgeren for det skjulte felt.
+      input.click();
     } catch (error) {
       cleanup();
       reject(error);
