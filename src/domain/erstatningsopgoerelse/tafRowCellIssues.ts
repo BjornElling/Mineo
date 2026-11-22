@@ -91,10 +91,10 @@ const collectTafLoseFeriedageIssues = (
   stamdata: Pick<StamdataValues, 'skadedato'>,
 ): readonly FieldIssue[] =>
   values.tafPerioder.flatMap((row) => {
-    const maksimum = resolveTafLoseFeriedageMaksimum(row, values, stamdata.skadedato);
-    return maksimum === undefined
+    const overskridelse = resolveTafLoseFeriedageMaksimum(row, values, stamdata.skadedato);
+    return overskridelse === undefined
       ? []
-      : [ruleIssue(eoTafPeriodeLoseFeriedageField.bind(row.id), 'maksimum', buildTafLoseFeriedageMaxMessage(maksimum))];
+      : [ruleIssue(eoTafPeriodeLoseFeriedageField.bind(row.id), 'maksimum', buildTafLoseFeriedageMaxMessage(overskridelse))];
   });
 
 /**

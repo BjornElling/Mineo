@@ -10,6 +10,7 @@ import { useFieldEditor, type ImmediateCommitOverride } from '../useFieldEditor'
 import { useRestoreTargetAttributes } from '../historyRestoreTarget';
 import { resolveFieldIssueText } from '../fieldIssueText';
 import type { FieldIssue } from '../../inputIssue';
+import type { FieldWarning } from '../../fieldWarning';
 import { useFieldLabel } from '../useFieldLabel';
 import { resolveChoiceAllowEmpty } from './choiceEmptinessPolicy';
 
@@ -56,6 +57,8 @@ export type ChoiceFieldProps<
    * netop dette valg. Feltets eget issue har forrang (§1.8) – samme kontrakt som `DateField`.
    */
   crossFieldIssue?: FieldIssue;
+  /** Ikke-blokerende feltadvarsel (gul ring + tooltip) – samme kontrakt som `TextField`/`DateField`. */
+  warning?: FieldWarning;
 }>;
 
 const ChoiceField = <
@@ -79,6 +82,7 @@ const ChoiceField = <
   containerSx,
   immediateCommitOverride,
   crossFieldIssue,
+  warning,
 }: ChoiceFieldProps<TValue, TCanonical>): React.ReactElement => {
   const accessibleName = useFieldLabel(field);
   const resolvedAllowEmpty = resolveChoiceAllowEmpty(field, allowEmpty, 'ChoiceField');
@@ -122,6 +126,7 @@ const ChoiceField = <
         error={hasError}
         helperText={issueText.message ?? ''}
         {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
+        {...(warning === undefined ? {} : { warning })}
         restoreTargetAttributes={restoreTargetAttributes}
         sx={sx}
         listboxSx={listboxSx}
@@ -148,6 +153,7 @@ const ChoiceField = <
       error={hasError}
       helperText={issueText.message ?? ''}
       {...(issueText.tooltip === undefined ? {} : { tooltipText: issueText.tooltip })}
+      {...(warning === undefined ? {} : { warning })}
       restoreTargetAttributes={restoreTargetAttributes}
       sx={sx}
       listboxSx={listboxSx}

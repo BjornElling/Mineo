@@ -491,4 +491,33 @@ describe('buildErhvervsevnetabReaderProjection', () => {
     expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
     expect(projection.snapshot.differencekrav.hasBlockingErrors).toBe(true);
   });
+
+  // NY-12a-4: brøkens nedre grænse (1 %) er fælles for de to sider, der deler forligsfelterne.
+  it.each([
+    ['1/100', false],
+    ['2/200', false],
+    ['1/101', true],
+    ['1/200', true],
+  ] as const)('brøken %s: rød domænegrænse og blokeret differencekrav = %s', (broek, roed) => {
+    const input = catalog.validateSettledInput({
+      sections: {
+        stamdata: validStamdata, satser: null, aarsloen: null, faellesAarsloen: validFaellesAarsloen,
+        renteberegning: null, varigemen: null, forsoergertab: null,
+        erstatningsopgoerelse: { ...createErstatningsopgoerelseInitialValues(), forligAnsvarsgradBroek: broek },
+        erhvervsevnetab: validErhvervsevnetab,
+      },
+      rejectedInputs: {},
+    });
+    const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
+    const evaluation = createInputEvaluation({ input, catalog, sourceToken });
+    const projection = buildErhvervsevnetabReaderProjection(evaluation.reader);
+
+    // Værdien er committet og bevaret canonical – grænsen er en feltissue, ikke en formatafvisning.
+    expect(input.sections.erstatningsopgoerelse?.forligAnsvarsgradBroek).toBe(broek);
+    const broekIssues = evaluation.issues.all.filter((issue) => issue.code === 'eo.forligAnsvarsgradBroek.bounds');
+    expect(broekIssues).toEqual(roed
+      ? [expect.objectContaining({ reason: 'bounds', severity: 'error', message: 'Brøk skal svare til mindst 1 %' })]
+      : []);
+    expect(projection.snapshot.differencekrav.issues.some((i) => i.id === 'forlig-ansvarsgrad-invalid')).toBe(roed);
+  });
 });

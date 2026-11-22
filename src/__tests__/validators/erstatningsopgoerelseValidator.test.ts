@@ -1026,7 +1026,7 @@ describe('TAF – clampede feriedage', () => {
     expect(
       result.errors.some((error) =>
         error.path === 'tafPerioder[0].loseFeriedage' &&
-        error.message.startsWith('Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden')
+        error.message === 'Løse ferie-/feriefridage overstiger mulige arbejdsdage i den del af perioden, der indgår i opgørelsen (01-01-2024 - 05-01-2024, maksimalt 4)'
       )
     ).toBe(true);
   });
@@ -1102,7 +1102,7 @@ describe('TAF – clampede feriedage', () => {
     expect(
       resultWithSkadedatoClamp.errors.some((error) =>
         error.path === 'tafPerioder[0].loseFeriedage' &&
-        error.message.startsWith('Løse ferie-/feriefridage overstiger mulige arbejdsdage i perioden')
+        error.message.startsWith('Løse ferie-/feriefridage overstiger mulige arbejdsdage i den del af perioden, der indgår i opgørelsen (01-01-2010 - 30-06-2011, maksimalt ')
       )
     ).toBe(true);
   });

@@ -14,6 +14,7 @@ import {
 } from './dropdownInteractionCore';
 import { resolveAccessibleName } from './accessibleName';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
+import type { FieldWarning } from '../../inputCore/fieldWarning';
 
 /**
  * StyledDropdown (combobox-trigger + popover-listbox)
@@ -50,6 +51,11 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   helperText?: string;
   /** Kortere hover-tekst end den fulde besked. Se `StyledTextFieldBaseProps.tooltipText`. */
   tooltipText?: string;
+  /**
+   * Ikke-blokerende advarsel (gul ring + tooltip + skjult beskrivelse) – samme model som
+   * `StyledTextFieldBaseProps.warning`. En fejl har forrang og skjuler advarslen.
+   */
+  warning?: FieldWarning;
   /**
    * Valgfri styling-hooks for popover-listbox'en og dens options.
    *
@@ -180,6 +186,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     error = false,
     helperText = '',
     tooltipText,
+    warning,
     getOptionLabel,
     expectedOptionValues,
     allowEmpty = true,
@@ -577,6 +584,10 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     ]
   );
 
+  const showError = error && helperText.trim() !== '';
+  const normalizedWarningText = warning?.message.trim() ?? '';
+  const showWarning = !showError && normalizedWarningText !== '';
+
   const containerSxBase: SxProps<Theme> = {
     position: 'relative',
     width: typeof width === 'number' ? `${width}px` : width,
@@ -630,6 +641,20 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       borderColor: 'var(--color-input-border-focus)',
       borderWidth: '1px',
     },
+    // Gul ring som `StyledTextFieldBase`: fokusringen har forrang, så brugeren altid ser, hvor han står.
+    ...(showWarning ? {
+      '&:not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'var(--color-status-warning)',
+        borderWidth: '1px',
+      },
+      '&:not(.Mui-error):hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'var(--color-status-warning)',
+      },
+      '&:not(.Mui-error).Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'var(--color-input-border-focus)',
+        borderWidth: '1px',
+      },
+    } : {}),
     '& input::placeholder': {
       color: 'var(--mineo-color-placeholder)',
       opacity: 1,
@@ -663,22 +688,21 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     color: 'var(--color-text-secondary)',
   }, iconSx);
 
-  const showError = error && helperText.trim() !== '';
   const resolvedTooltipText = tooltipText ?? helperText;
   const errorTextId = `${resolvedId}-error`;
   const describedByIds = [
-    ...(showError ? [errorTextId] : []),
+    ...(showError || showWarning ? [errorTextId] : []),
     ...(additionalDescribedBy?.trim() === '' || additionalDescribedBy === undefined ? [] : [additionalDescribedBy]),
   ];
 
   return (
     <Tooltip
-      title={showError ? resolvedTooltipText : ''}
+      title={showError ? resolvedTooltipText : showWarning ? normalizedWarningText : ''}
       arrow
       placement="top"
-      disableHoverListener={!showError}
-      disableFocusListener={!showError}
-      disableTouchListener={!showError}
+      disableHoverListener={!showError && !showWarning}
+      disableFocusListener={!showError && !showWarning}
+      disableTouchListener={!showError && !showWarning}
     >
     <Box sx={containerSxMerged}>
       <OutlinedInput
@@ -822,8 +846,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         sx={inputSx}
       />
 
-      {showError ? (
-        <span id={errorTextId} style={visuallyHiddenStyle}>{helperText}</span>
+      {showError || showWarning ? (
+        <span id={errorTextId} style={visuallyHiddenStyle}>{showError ? helperText : normalizedWarningText}</span>
       ) : null}
 
       <ArrowDropDownIcon sx={iconSxMerged} />
@@ -903,15 +927,21 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 onMouseDown={(e) => {
                   e.preventDefault();
                 }}
-                onClick={() => handleSelect(v)}
+                // En deaktiveret option er kun CSS-blokeret (`pointer-events: none`); værnet her sikrer, at et
+                // klik, der alligevel når frem, aldrig committer den.
+                onClick={() => {
+                  if (isSelectableVisualIndex(index)) handleSelect(v);
+                }}
                 selected={isSelected}
                 disabled={opt.kind === 'value' && opt.disabled}
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
+                {/* En deaktiveret option har ingen typeahead-label (`visualOptionLabels` er tom), så dens egen
+                    markup vises – ellers blev en ikke-valgbar oplysningslinje en tom række (BB-435). */}
                 {opt.kind === 'empty'
                   ? <em style={{ color: 'var(--mineo-color-dropdown-option-placeholder)' }}>{placeholder}</em>
-                  : getOptionLabel
+                  : getOptionLabel && !opt.disabled
                     ? visualOptionLabels[index]
                     : opt.children}
               </MenuItem>

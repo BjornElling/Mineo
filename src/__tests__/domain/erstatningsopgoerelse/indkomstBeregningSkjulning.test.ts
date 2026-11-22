@@ -7,7 +7,16 @@ import {
 import {
   erIndkomstBeregningsgrundlagGyldigt,
   kanIndkomstBeregningenSkjules,
+  udeladAdvarslerForSkjultGrundlag,
 } from '../../../domain/erstatningsopgoerelse/indkomstBeregningSkjulning';
+import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
+import { selectBlockingLoenindkomstEntityIds } from '../../../domain/erstatningsopgoerelse/eoInputIssues';
+import {
+  ANGIVET_DAGSLOEN_HOEJ_MESSAGE,
+  ANGIVET_DAGSLOEN_LAV_MESSAGE,
+  ANGIVET_MAANEDSLOEN_LAV_MESSAGE,
+  OEVRIGE_FRAVAERSDAGE_ER_NUL_MESSAGE,
+} from '../../../domain/erstatningsopgoerelse/validation/beregningsgrundlagFeltAdvarsler';
 import {
   eoFravaerPeriodeFraField,
   eoForligAnsvarsgradProcentField,
@@ -204,9 +213,85 @@ describe('kanIndkomstBeregningenSkjules', () => {
       .toBe(true);
   });
 
+  it('BB-431: en rimelighedsadvarsel holder ikke grundlaget åbent', () => {
+    expect(kanSkjules(sag({ beregnesUdFra: 'Angivet dagsløn', dagsloenenUdgoer: amount(30000) }))).toBe(true);
+  });
+
   it('bedømmer grundlaget uafhængigt af togglen', () => {
     // Gyldigheden er grundlagets egen; togglen og opgørelsens nummer afgør kun, om den spørges.
     expect(gyldigt(sag({ eoNummer: '1' }))).toBe(true);
     expect(gyldigt(sag({ eoNummer: '1', tafBeregningsperiodeTil: undefined }))).toBe(false);
+  });
+});
+
+describe('BB-431 – et skjult grundlag giver ingen rimelighedsadvarsler på Beregning', () => {
+  /** Beregning-fanens rækker: `indkomstBeregningSkjult` er `kanIndkomstBeregningenSkjules` uden for et besøg. */
+  const beregningsAdvarsler = (eo: ErstatningsopgoerelseValues): string[] => {
+    const projection = project(eo);
+    const rows = collectAllEoRows(
+      projection.stamdataValues,
+      projection.stamdataErrors,
+      projection.eoValues,
+      projection.eoErrors,
+      selectBlockingLoenindkomstEntityIds(projection.eoErrors),
+      DEFAULT_EO_ROW_POLICY,
+      projection.snapshot.data?.canonicalOutput,
+      projection.snapshot.data?.pdfModel,
+    );
+    const summary = udeladAdvarslerForSkjultGrundlag(rows, kanIndkomstBeregningenSkjules(projection, DEFAULT_EO_ROW_POLICY));
+    expect(summary.relevantRows.filter((row) => row.status === 'warning').map((row) => row.id))
+      .toEqual(summary.warnings.map((row) => row.id));
+    return summary.warnings.map((row) => row.message ?? row.displayValue);
+  };
+
+  it.each([
+    ['høj dagsløn', { beregnesUdFra: 'Angivet dagsløn' as const, dagsloenenUdgoer: amount(30000) }, ANGIVET_DAGSLOEN_HOEJ_MESSAGE],
+    ['lav dagsløn', { beregnesUdFra: 'Angivet dagsløn' as const, dagsloenenUdgoer: amount(99.99) }, ANGIVET_DAGSLOEN_LAV_MESSAGE],
+    ['lav månedsløn', { beregnesUdFra: 'Angivet månedsløn' as const, maanedsloenenUdgoer: amount(2000) }, ANGIVET_MAANEDSLOEN_LAV_MESSAGE],
+  ])('%s: ingen advarsel i opgørelse nr. 2 med sammenklappet grundlag, men med afkrydsningen fjernet', (_navn, patch, message) => {
+    expect(beregningsAdvarsler(sag(patch))).not.toContain(message);
+    expect(beregningsAdvarsler(sag({ ...patch, komprimerBeregningEfterFoersteOpgoerelse: 'Nej' }))).toContain(message);
+    expect(beregningsAdvarsler(sag({ ...patch, eoNummer: '1' }))).toContain(message);
+  });
+
+  it('fravær uden løn: 0 dage og manglende årsag advarer ikke fra et sammenklappet grundlag', () => {
+    const patch = { oevrigtFravaerUdenLoen: 'Ja' as const, oevrigeFravaersdage: 0, oevrigeFravaersdageBeskrivelse: undefined };
+    const sammenklappet = sag(patch);
+    expect(kanSkjules(sammenklappet)).toBe(true);
+    expect(beregningsAdvarsler(sammenklappet)
+      .filter((linje) => linje.includes('fraværsdage') || linje.includes('Årsag'))).toEqual([]);
+
+    const aaben = beregningsAdvarsler(sag({ ...patch, komprimerBeregningEfterFoersteOpgoerelse: 'Nej' }));
+    expect(aaben).toContain(OEVRIGE_FRAVAERSDAGE_ER_NUL_MESSAGE);
+    expect(aaben.some((linje) => linje.includes('Årsag'))).toBe(true);
+  });
+
+  it('røde fejl i grundlaget røres ikke – de holder sektionen åben', () => {
+    const values = sag({ oevrigtFravaerUdenLoen: 'Ja', oevrigeFravaersdage: undefined, oevrigeFravaersdageBeskrivelse: 'Barsel' });
+    const projection = project(values);
+    const rows = collectAllEoRows(
+      projection.stamdataValues, projection.stamdataErrors, projection.eoValues, projection.eoErrors,
+      selectBlockingLoenindkomstEntityIds(projection.eoErrors), DEFAULT_EO_ROW_POLICY,
+      projection.snapshot.data?.canonicalOutput, projection.snapshot.data?.pdfModel,
+    );
+    // Også med `grundlagSkjult` tvunget sand står fejlene uændret.
+    expect(udeladAdvarslerForSkjultGrundlag(rows, true).errors).toEqual(rows.errors);
+    expect(rows.errors.some((row) => row.id === 'taf.beregningsgrundlag.oevrigeFravaersdage')).toBe(true);
+    expect(kanSkjules(values)).toBe(false);
+  });
+
+  it('et ugyldigt grundlag vises og beholder advarslen', () => {
+    // Uden lønudviklingens overenskomst er grundlaget rødt og dermed ikke skjult.
+    const values = sag({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: amount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: undefined,
+      },
+    });
+    expect(kanSkjules(values)).toBe(false);
+    expect(beregningsAdvarsler(values)).toContain(ANGIVET_DAGSLOEN_HOEJ_MESSAGE);
   });
 });

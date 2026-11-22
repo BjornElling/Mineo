@@ -324,3 +324,28 @@ describe('BB-257 – en TAF-periode uden arbejdsdage', () => {
     ]);
   });
 });
+
+describe('BB-427 – maksimum for løse feriedage i en afgrænset række', () => {
+  it('navngiver den del af rækken, der indgår i opgørelsen, i cellen og i linjen', () => {
+    const { projection, errorLinjer } = project(dagsloenSag({
+      vedroererPeriodeFra: iso('2024-01-05'),
+      vedroererPeriodeTil: iso('2024-01-05'),
+      tafPerioder: [taf('t1', '2024-01-01', '2024-01-05', 2)],
+    }));
+    const besked = 'Løse ferie-/feriefridage overstiger mulige arbejdsdage i den del af perioden, der indgår i opgørelsen '
+      + '(05-01-2024 - 05-01-2024, maksimalt 1)';
+
+    expect(cellMessage(projection, eoTafPeriodeLoseFeriedageField.bind('t1'))).toBe(besked);
+    expect(errorLinjer).toEqual([`TAF-perioden 01-01-2024 - 05-01-2024: ${besked}`]);
+  });
+});
+
+describe('BB-429 – ferie med kun Fra uden TAF-række', () => {
+  it('melder manglen gult og spærrer ikke', () => {
+    const { rows } = project(dagsloenSag({ tafPerioder: [], ferieperioder: [ferie('f1', '2024-01-03', undefined)] }));
+
+    expect(rows.warnings.map((row) => row.summaryText ?? row.message))
+      .toContain('Ferieperioden fra 03-01-2024: Til-dato er ikke angivet');
+    expect(rows.errors.filter((row) => row.id.startsWith('taf.ferie'))).toEqual([]);
+  });
+});

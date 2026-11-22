@@ -1,5 +1,6 @@
 import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
-import { buildEOInspektionSammentaellingModel, buildSvieSmerteContext, buildTaftContext } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildEOInspektionSammentaellingModel } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import { collectSammentaellingControlMismatchMessages } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';

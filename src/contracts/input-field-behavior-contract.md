@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-22
 
 Dette dokument beskriver den autoritative brugeradfærd for inputfelter og kontroller. Generelle regler gælder
 også felter, der ikke er nævnt særskilt; feltspecifikke regler gælder de angivne felter.
@@ -698,6 +698,10 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 - Valgmulighederne er `Sygemeldt`, `Delvist Sygemeldt` og `Raskmeldt`. Der er ingen standardværdi ved ny sag.
 - Feltet kan stå tomt uden direkte rød fejl, når svie-/smertegodtgørelse ikke er relevant.
 - Når godtgørelsen er relevant og feltet mangler, vises kun samlet fejl på Beregning-siden.
+- Er en status valgt, godtgørelsen relevant og statusdatoen (dagen efter `Vedrører perioden` til) senere end
+  `Opgørelse lavet den`, får feltet en ikke-blokerende gul ring og en linje i «Fejl og advarsler»:
+  «Statusdatoen ligger efter opgørelsens dato (<dato>)». Ved lighed ingen advarsel. Dokument, beløb og
+  download er uændrede (NY-12a-5).
 - Paste, typeahead, Delete/Backspace, Escape, straks-commit, no-op ved ukendt/ufuldstændig paste og undo følger
   dropdownreglerne.
 
@@ -708,6 +712,7 @@ undo-trin». Håndhæves sammen med dropdownens ben af
   `Folkepension`, `Førtidspension`, `Kontanthjælp`, `Revalidering`, `Seniorpension` og `Uddannelse`.
 - Når tabt arbejdsfortjeneste ikke er relevant, kan feltet stå tomt uden direkte rød fejl. Når det er relevant
   og tomt, vises kun samlet fejl på Beregning-siden.
+- Samme gule statusdato-advarsel som `Helbredsforhold` (§4.8), når tabt arbejdsfortjeneste er relevant.
 - Øvrig adfærd følger dropdownreglerne.
 
 ### 4.10 `Forlig om ansvarsgrad → Procent`
@@ -732,7 +737,16 @@ undo-trin». Håndhæves sammen med dropdownens ben af
 - Feltet er frivilligt. Både Procent og Brøk må være tomme; begge udfyldte felter markeres rødt.
 - Brøkformatet, herunder komma i begge dele, højst 10 heltalscifre og 10 decimaler pr. del, er bindende.
 - Tæller 0, nævner 0, brøker over 1 og ufuldstændige værdier bevares som røde fejltekster efter reglerne i §2.4.
+- Minimum svarer til procentfeltets: en brøk under 1/100 er en domænegrænse (NY-12a-4). Den committes og
+  bevares canonical med rød ring og tooltip «Brøk skal svare til mindst 1 %» og blokerer download på begge
+  sider, der deler felterne. `1/100` og `2/200` er gyldige; `1/101` og `1/200` er røde. En ældre `.eo` med
+  fx `1/200` loades uændret uden preflight og viser feltet rødt.
 - `2/4` forbliver `2/4`; indledende nuller normaliseres, men brøken reduceres ikke.
+- `Evt. dato for forlig` efter `Opgørelse lavet den` giver på Erstatningsopgørelsen en ikke-blokerende gul
+  ring og en linje i «Fejl og advarsler»: «Forliget er dateret efter opgørelsens dato (<dato>)». Ved lighed
+  ingen advarsel; dokument, beløb og download er uændrede (NY-12a-3). EET oplysninger har ingen
+  dokumentdato at sammenligne med (dokumenterne dateres med dags dato, og forligsdatoen kan ikke ligge
+  efter dags dato), så reglen gælder kun Erstatningsopgørelsen.
 
 ### 4.12 `Varige mén-afgørelse` og `Verserende klagesag over ménafgørelse?`
 

@@ -3,10 +3,9 @@ import { buildKontrolTabelCsv, buildKontrolTabelCsvHeaders } from '../../../doma
 import {
   buildEOInspektionSammentaellingModel,
   buildSammentaellingDisplayTables,
-  buildSvieSmerteContext,
-  buildTaftContext,
   flattenSammentaellingDisplayTables,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import {
   collectSammentaellingControlMismatchMessages,
   getSammentaellingControlStatus,

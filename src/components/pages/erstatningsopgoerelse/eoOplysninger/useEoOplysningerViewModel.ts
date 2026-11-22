@@ -39,7 +39,7 @@ import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
 import { isoDateToDate } from '../../../../domain/dates/isoDate';
 import { MONTH_NAMES_DA } from '../../../../utils/dateFormatting';
-import { getAlleArbejdsgiverOrg, getAlleLoenmodtagerOrg, getOverenskomsterByOrg, getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId, withGemtOrganisation } from '../../../../data/overenskomstRates';
+import { getReguleringsDatoIntervalForOverenskomst, isOffentligOverenskomstId } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
 import { getReguleringsDatoIntervalForKlLoenaftaler } from '../../../../data/klLoenaftaler';
@@ -175,7 +175,6 @@ export function useEoOplysningerViewModel(
   const forligFejl = React.useMemo(() => ({ harFejl: forligEvaluation.beggeUdfyldt, fejlbesked: forligEvaluation.beggeUdfyldtFejl ?? '' }), [forligEvaluation]);
   const visLoenudviklingFraEO = values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
   const loenudviklingBasis = eoLoenudvikling.loenudviklingBeregningsgrundlag;
-  const filteredOverenskomster = React.useMemo(() => getOverenskomsterByOrg(eoLoenudvikling.overenskomstFilter.loenmodtager, eoLoenudvikling.overenskomstFilter.arbejdsgiver), [eoLoenudvikling.overenskomstFilter]);
   const erOffentligOverenskomst = Boolean(eoLoenudvikling.overenskomstId && isOffentligOverenskomstId(eoLoenudvikling.overenskomstId));
   const loenudviklingRelevansInput = {
     blokVist: visLoenudviklingFraEO,
@@ -224,9 +223,6 @@ export function useEoOplysningerViewModel(
     // ved strengsammensætning (`'månedsløn' + 'en'`) gav før «månedslønen».
     angivetLoenOpreguleringLabel: `Det angivne beløb afspejler ${values.beregnesUdFra === 'Angivet månedsløn' ? 'månedslønnen' : 'dagslønnen'} per dato (hvis forskellig fra ${referencedato.labelLower})`,
     aktivAngivetLoenOpreguleresFraDato, visLoenudviklingFraEO, eoLoenudvikling, loentrinFinder,
-    alleLoenmodtagerOrg: withGemtOrganisation(getAlleLoenmodtagerOrg(), eoLoenudvikling.overenskomstFilter.loenmodtager, 'ALLE'),
-    alleArbejdsgiverOrg: withGemtOrganisation(getAlleArbejdsgiverOrg(), eoLoenudvikling.overenskomstFilter.arbejdsgiver, 'ALLE'),
-    filteredOverenskomster,
     loenudviklingBasis, erOffentligOverenskomst,
     // Brugerens eget enhedsvalg – samme felt, som «Satsen angives per» binder (afklaringslog 10a).
     eoAnciennitetSatsPerTekst: eoLoenudvikling.anciennitetstillaegSatsAngivesPer === 'Time' ? 'time' : 'måned',

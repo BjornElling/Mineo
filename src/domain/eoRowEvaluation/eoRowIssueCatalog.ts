@@ -580,7 +580,7 @@ const CATALOG: readonly EoIssueCatalogEntry[] = [
   {
     key: 'forlig-dato',
     match: { kind: 'id', id: 'forlig.dato' },
-    when: 'Der er angivet forligsdato uden en gyldig forligsgrad.',
+    when: 'Der er angivet forligsdato uden en gyldig forligsgrad, eller forligsdatoen ligger efter «Opgørelse lavet den» (gul advarsel).',
     summaryText: (_row, message) =>
       message === 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk'
         ? 'Der er indtastet forligsdato, men ikke forligsprocent eller -brøk'

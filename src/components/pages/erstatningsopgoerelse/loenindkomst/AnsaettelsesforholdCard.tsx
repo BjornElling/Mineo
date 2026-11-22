@@ -57,6 +57,7 @@ import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { createFieldWarning } from '../../../../inputCore/fieldWarning';
 import { activeFieldIssue } from '../../../../inputCore/inputIssue';
 import { erLoenudviklingFeltRelevant } from '../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import { formatAnsaettelsesforholdKortOverskrift } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { useInputReadPort } from '../../../../inputCore/react/inputRuntimeContext';
 import {
   erAnsaettelsesforholdOphoertRelevant,
@@ -222,7 +223,6 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const showMedlemOpsagt = erAnsaettelsesforholdOphoertRelevant(af);
   const showSidsteArbejdsdag = erSidsteArbejdsdagRelevant(af);
   const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
-  const displayNumber = index + 1;
   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
   const skadeEllerAnmeldelsesdato = resolveSkadeEllerAnmeldelsesdatoReference(skadestype);
   const anvendtReguleringsdatoReferenceText = resolveAnvendtReguleringsdatoReferenceText({
@@ -340,11 +340,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   })();
   const reguleringsDatoInterval = formatReguleringsDatoInterval(reguleringsDatoIntervalData);
 
-  const baseHeaderText = `Ansættelsesforhold ${displayNumber}`;
-
-  const headerText = af.navnPaaArbejdssted
-    ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
-    : baseHeaderText;
+  const headerText = formatAnsaettelsesforholdKortOverskrift(af.navnPaaArbejdssted, index);
   // Hele SFGG-visningsafledningen kommer fra VM'en; kortet afleder ikke selv domæneflag.
   const sfgg = getSfggPresentation(af);
   // Advarslen er en snapshot-observation (ikke en ren af-afledning), så den kommer stadig som prop.

@@ -107,6 +107,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               setActiveTab={setActiveTab}
               isActive={activeTab === TAB_KEYS.BEREGNING}
               projection={vm.projection}
+              indkomstBeregningSkjult={vm.indkomstBeregningKanSkjules}
             />
           </Box>
         )}

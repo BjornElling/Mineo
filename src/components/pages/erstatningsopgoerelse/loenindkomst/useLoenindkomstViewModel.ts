@@ -34,6 +34,7 @@ import { resolveLoenindkomstRowWarnings } from '../../../../domain/erstatningsop
 import { resolveLoenudviklingFieldWarnings } from '../../../../domain/erstatningsopgoerelse/loenudviklingFieldWarnings';
 import { getToday } from '../../../../config/dateRanges';
 import { isISODateString } from '../../../../types/branded';
+import { formatAnsaettelsesforholdKortOverskrift } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -147,7 +148,11 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [deleteTargetId, setDeleteTargetId] = React.useState<string | null>(null);
   const [scrollTargetId, setScrollTargetId] = React.useState<string | null>(null);
-  const deleteTargetName = employments.find((employment) => employment.id === deleteTargetId)?.navnPaaArbejdssted?.trim() ?? '';
+  // Dialogen nævner kortets egen overskrift (nummer + navn), så to kort med samme navn kan skelnes (BB-438).
+  const deleteTargetIndex = employments.findIndex((employment) => employment.id === deleteTargetId);
+  const deleteTargetHeading = deleteTargetIndex < 0
+    ? null
+    : formatAnsaettelsesforholdKortOverskrift(employments[deleteTargetIndex]?.navnPaaArbejdssted, deleteTargetIndex);
   const loentrinFinder = useLoentrinFinder();
 
   /**
@@ -211,7 +216,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,
-    deleteTargetName,
+    deleteTargetHeading,
     totalAnsaettelsesforhold: employments.length,
     cannotAddMore: employments.length >= MAX_ANSAETTELSESFORHOLD,
     /**

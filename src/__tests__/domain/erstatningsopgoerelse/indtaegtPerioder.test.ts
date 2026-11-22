@@ -17,6 +17,7 @@ import {
   buildIncomeSourceRanges,
   roundIncomeBenefitAmountKroner,
   resolveAnsaettelsesforholdNavn,
+  formatAnsaettelsesforholdKortOverskrift,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/isoRangeAlgebra';
 import {
@@ -58,6 +59,15 @@ describe('resolveAnsaettelsesforholdNavn', () => {
     expect(resolveAnsaettelsesforholdNavn(undefined, 0)).toBe('Ansættelsesforhold 1');
     expect(resolveAnsaettelsesforholdNavn('', 1)).toBe('Ansættelsesforhold 2');
     expect(resolveAnsaettelsesforholdNavn('   ', 2)).toBe('Ansættelsesforhold 3');
+  });
+});
+
+describe('formatAnsaettelsesforholdKortOverskrift', () => {
+  it('giver kortets overskrift: nummer altid, navnet i parentes når det er indtastet (BB-438)', () => {
+    expect(formatAnsaettelsesforholdKortOverskrift('Fiktiv kommune A', 1)).toBe('Ansættelsesforhold 2 (Fiktiv kommune A)');
+    expect(formatAnsaettelsesforholdKortOverskrift('  Netto  ', 0)).toBe('Ansættelsesforhold 1 (Netto)');
+    expect(formatAnsaettelsesforholdKortOverskrift(undefined, 1)).toBe('Ansættelsesforhold 2');
+    expect(formatAnsaettelsesforholdKortOverskrift('   ', 2)).toBe('Ansættelsesforhold 3');
   });
 });
 

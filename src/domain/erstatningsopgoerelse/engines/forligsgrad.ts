@@ -30,7 +30,21 @@ export type ForligAnsvarsgradInput = Pick<
 export type ForligsgradEvaluation =
   | Readonly<{ status: 'empty'; forlig: null }>
   | Readonly<{ status: 'valid'; forlig: ForligsgradResolved }>
-  | Readonly<{ status: 'invalid'; forlig: null; reason: 'both' | 'broek'; message: string }>;
+  | Readonly<{ status: 'invalid'; forlig: null; reason: 'both' | 'broek' | 'broekUnderMinimum'; message: string }>;
+
+/**
+ * En brøk under 1/100 er udtryk for en fejl, ligesom en procent under 1 (NY-12a-4): de to felter er to
+ * måder at taste samme ansvarsgrad og skal derfor have samme nedre grænse. Teksten følger procentfeltets
+ * «Procent skal være mellem 1 og 100».
+ */
+export const FORLIG_BROEK_UNDER_MINIMUM_FEJL = 'Brøk skal svare til mindst 1 %';
+
+/**
+ * Om brøken er under 1 %. Sammenligningen holdes på tæller og nævner (`tæller · 100 < nævner`), så en
+ * brøk præcis på grænsen (1/100, 2/200) ikke afhænger af kommatalsafrunding i den udregnede faktor.
+ */
+const erBroekUnderEnProcent = (parsed: Readonly<{ numerator: number; denominator: number }>): boolean =>
+  parsed.numerator * 100 < parsed.denominator;
 
 const parseForligBroek = (broekTrimmed: string) =>
   parseFractionString(broekTrimmed, {
@@ -64,6 +78,9 @@ export const evaluateForligsgrad = (values: ForligAnsvarsgradInput): Forligsgrad
   if (hasBroek) {
     const result = parseForligBroek(broekTrimmed);
     if (result.ok && result.parsed.numerator <= result.parsed.denominator) {
+      if (erBroekUnderEnProcent(result.parsed)) {
+        return { status: 'invalid', forlig: null, reason: 'broekUnderMinimum', message: FORLIG_BROEK_UNDER_MINIMUM_FEJL };
+      }
       return { status: 'valid', forlig: { factor: result.parsed.factor, label: result.parsed.value } };
     }
     return { status: 'invalid', forlig: null, reason: 'broek', message: 'Brøk skal angives som fx "1/3" og kan ikke overstige 1' };

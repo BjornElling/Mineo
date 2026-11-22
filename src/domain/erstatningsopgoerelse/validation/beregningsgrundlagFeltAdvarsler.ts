@@ -35,7 +35,7 @@ export const resolveOevrigtFravaerAarsagAdvarsel = (values: OevrigtFravaerInput)
     ? OEVRIGT_FRAVAER_AARSAG_IKKE_UDFYLDT_MESSAGE
     : undefined;
 
-// ── Angivet løn: en lønform, der ligner den anden (BB-268) ─────────────────────────────────────
+// ── Angivet løn: rimelighedsadvarsler (BB-268, BB-432) ─────────────────────────────────────────
 
 /**
  * Grænserne er udviklerens (2026-10-02): en dagsløn OVER 10.000 kr. og en månedsløn UNDER 2.500 kr. ligner den
@@ -44,8 +44,14 @@ export const resolveOevrigtFravaerAarsagAdvarsel = (values: OevrigtFravaerInput)
  */
 export const ANGIVET_DAGSLOEN_ADVARSEL_OVER_KR = 10_000;
 export const ANGIVET_MAANEDSLOEN_ADVARSEL_UNDER_KR = 2_500;
+/**
+ * En positiv dagsløn UNDER 100 kr. ligner en tastefejl i kroner og øre (BB-432, udviklerens grænse 2026-11-22).
+ * Lave lønninger forekommer i bijob, så det er en kontrolbesked, ikke en fejl; 100,00 kr. advares ikke.
+ */
+export const ANGIVET_DAGSLOEN_ADVARSEL_UNDER_KR = 100;
 
 export const ANGIVET_DAGSLOEN_HOEJ_MESSAGE = 'Dagslønnen er usædvanlig høj – er det en månedsløn?';
+export const ANGIVET_DAGSLOEN_LAV_MESSAGE = 'Dagslønnen er usædvanlig lav – kontrollér kroner og øre';
 export const ANGIVET_MAANEDSLOEN_LAV_MESSAGE = 'Månedslønnen er usædvanlig lav – er det en dagsløn?';
 
 export const resolveAngivetLoenAdvarsel = (
@@ -53,7 +59,10 @@ export const resolveAngivetLoenAdvarsel = (
 ): string | undefined => {
   if (values.beregnesUdFra === 'Angivet dagsløn') {
     const dagsloen = amountValueToNumber(values.dagsloenenUdgoer);
-    return dagsloen !== undefined && dagsloen > ANGIVET_DAGSLOEN_ADVARSEL_OVER_KR ? ANGIVET_DAGSLOEN_HOEJ_MESSAGE : undefined;
+    if (dagsloen === undefined) return undefined;
+    if (dagsloen > ANGIVET_DAGSLOEN_ADVARSEL_OVER_KR) return ANGIVET_DAGSLOEN_HOEJ_MESSAGE;
+    // 0 kr. er en rød fejl (BB-258) og advares ikke oveni.
+    return dagsloen > 0 && dagsloen < ANGIVET_DAGSLOEN_ADVARSEL_UNDER_KR ? ANGIVET_DAGSLOEN_LAV_MESSAGE : undefined;
   }
   if (values.beregnesUdFra === 'Angivet månedsløn') {
     const maanedsloen = amountValueToNumber(values.maanedsloenenUdgoer);

@@ -7,9 +7,8 @@ import { getSammentaellingControlStatus } from '../../../domain/erstatningsopgoe
 import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
 import {
   buildEOInspektionSammentaellingModel,
-  buildSvieSmerteContext,
-  buildTaftContext,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 

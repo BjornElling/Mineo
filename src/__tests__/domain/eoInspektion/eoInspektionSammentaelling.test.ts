@@ -4,10 +4,9 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import {
   buildEOInspektionSammentaellingModel,
   buildSammentaellingDisplayTables,
-  buildSvieSmerteContext,
-  buildTaftContext,
   type SammentaellingModel,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
 import {
   beregnetVaerdi,

@@ -568,7 +568,13 @@ export const eoForligAnsvarsgradBroekField: FieldDescriptor<string | undefined> 
       return { reason: 'rule', code: 'eo.forlig.beggeUdfyldt', message: rulesMessage };
     }
     const evaluation = evaluateForligsgrad({ forligAnsvarsgradProcent, forligAnsvarsgradBroek: value });
-    return evaluation.status === 'invalid' && evaluation.reason === 'broek'
+    if (evaluation.status !== 'invalid') return undefined;
+    // Under 1 % er en domænegrænse som procentfeltets 1–100 (NY-12a-4): værdien committes og bevares,
+    // feltet bliver rødt og blokerer – også for en ældre .eo-fil, der loades med fx 1/200.
+    if (evaluation.reason === 'broekUnderMinimum') {
+      return { reason: 'bounds', code: 'eo.forligAnsvarsgradBroek.bounds', message: evaluation.message };
+    }
+    return evaluation.reason === 'broek'
       ? { reason: 'rule', code: 'eo.forlig.broek', message: evaluation.message }
       : undefined;
   }],

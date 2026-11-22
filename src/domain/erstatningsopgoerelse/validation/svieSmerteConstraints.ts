@@ -17,11 +17,19 @@ export type SvieSmerteConstraintBounds = Readonly<{
   maxEnd?: ISODateString;
 }>;
 
+/**
+ * Sand, når ménafgørelsen stopper svie/smerte-perioderne – uanset om datoen er udfyldt. Afgørelsen er truffet,
+ * og der er ingen verserende klage. Dækningsvurderingen spørger, om en afvist ménafgørelsesdato kunne have
+ * flyttet kravets slutning, og skal derfor kende betingelsen uden datoen.
+ */
+export const erSvieSmerteMenAfskaeringAktiv = (values: SvieSmerteConstraintSource): boolean =>
+  values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
+
 /** Den aktive afgørelsesdato, som stopper svie/smerte-perioder. */
 export const resolveSvieSmerteCutoffDate = (
   values: SvieSmerteConstraintSource,
 ): ISODateString | undefined => {
-  if (values.varigeMenAfgorelse !== 'Ja' || values.verserendeKlageMen !== 'Nej') return undefined;
+  if (!erSvieSmerteMenAfskaeringAktiv(values)) return undefined;
   return values.menAfgoerelseDato;
 };
 

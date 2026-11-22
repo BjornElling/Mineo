@@ -18,14 +18,37 @@ import { clampTafRow, resolveTafConstraintBounds } from './tafPeriodConstraints'
 /** Den faglige betegnelse for rækkens løse fridage: de kan være både feriedage og feriefridage (BB-256). */
 export const TAF_LOSE_FERIEDAGE_LABEL = 'Løse ferie-/feriefridage';
 
-export const buildTafLoseFeriedageMaxMessage = (maksimum: number): string =>
-  `${TAF_LOSE_FERIEDAGE_LABEL} overstiger mulige arbejdsdage i perioden (maksimalt ${maksimum})`;
+const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
- * Det største antal løse feriedage, rækkens periode kan rumme, når det indtastede antal er for stort – ellers
- * `undefined`. Perioden er rækkens del inden for opgørelsen (samme clamping som TAF-kolonnen), og kun TAF-
- * afsnittets EGNE ferieperioder fylder dagene op: det er dem, beregningen fradrager løse feriedage efter.
- * Ferie i beregningsperioden talte før med her og kunne dermed sænke maksimum under det, beregningen brugte.
+ * For mange løse feriedage i en TAF-række: maksimum og – når rækken er afgrænset af erstatningsperioden eller en
+ * afskæring – den del af rækken, maksimum er talt på.
+ */
+export type TafLoseFeriedageOverskridelse = Readonly<{
+  maksimum: number;
+  /** Den talte del af rækken; kun sat, når den er kortere end rækken selv. */
+  talteDel?: IsoRange;
+}>;
+
+/**
+ * Beskeden står ordret i cellens tooltip og i «Fejl og advarsler». Er rækken afgrænset, navngiver den den talte
+ * del: ellers så det ud, som om de løse dage var for mange for hele rækken, selv om den samme indtastning var
+ * gyldig, når hele rækken lå i erstatningsperioden (BB-427).
+ */
+export const buildTafLoseFeriedageMaxMessage = (overskridelse: TafLoseFeriedageOverskridelse): string => {
+  const { maksimum, talteDel } = overskridelse;
+  if (talteDel === undefined) {
+    return `${TAF_LOSE_FERIEDAGE_LABEL} overstiger mulige arbejdsdage i perioden (maksimalt ${maksimum})`;
+  }
+  return `${TAF_LOSE_FERIEDAGE_LABEL} overstiger mulige arbejdsdage i den del af perioden, der indgår i opgørelsen `
+    + `(${danish(talteDel.fra)} - ${danish(talteDel.til)}, maksimalt ${maksimum})`;
+};
+
+/**
+ * Overskridelsen, når rækkens indtastede antal løse feriedage er for stort – ellers `undefined`. Perioden er
+ * rækkens del inden for opgørelsen (samme clamping som TAF-kolonnen), og kun TAF-afsnittets EGNE ferieperioder
+ * fylder dagene op: det er dem, beregningen fradrager løse feriedage efter. Ferie i beregningsperioden talte før
+ * med her og kunne dermed sænke maksimum under det, beregningen brugte.
  *
  * En række, der ligger helt uden for opgørelsen, bidrager ikke og kan ikke overskride noget.
  */
@@ -33,7 +56,7 @@ export const resolveTafLoseFeriedageMaksimum = (
   row: TafPeriodeRow,
   values: Pick<ErstatningsopgoerelseValues, 'ferieperioder'> & Parameters<typeof resolveTafConstraintBounds>[0],
   skadedatoISO: ISODateString | undefined,
-): number | undefined => {
+): TafLoseFeriedageOverskridelse | undefined => {
   if (typeof row.loseFeriedage !== 'number') return undefined;
   const clamped = clampTafRow(row, resolveTafConstraintBounds(values, { skadedatoISO }));
   if (!clamped) return undefined;
@@ -45,7 +68,10 @@ export const resolveTafLoseFeriedageMaksimum = (
     { kind: 'taf' }
   );
   if (!breakdown || row.loseFeriedage <= breakdown.loseFeriedage) return undefined;
-  return breakdown.loseFeriedage;
+  const erAfgraenset = clamped.fra !== row.fra || clamped.til !== row.til;
+  return erAfgraenset
+    ? { maksimum: breakdown.loseFeriedage, talteDel: clamped }
+    : { maksimum: breakdown.loseFeriedage };
 };
 
 /**
@@ -80,8 +106,6 @@ export const assessPeriodeDatoMangler = (
 };
 
 // ── Rækkens navn i «Fejl og advarsler» ─────────────────────────────────────────────────────────
-
-const danish = (iso: ISODateString): string => isoToDanish(iso) ?? iso;
 
 /**
  * Rækkens navn, så to rækker med samme mangel aldrig giver ordret samme linje – «Fejl og advarsler» folder

@@ -3,7 +3,11 @@ import type { EoRowPolicy } from '../../settings/sourceSettings';
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import { isErr } from '../../types/result';
 import { safeCompute } from '../../utils/safeComputation';
-import { collectAllEoRows } from '../eoRowEvaluation/eoRowAggregator';
+import {
+  collectAllEoRows,
+  type BeregningErrorSummary,
+  type EoRowWithNavigation,
+} from '../eoRowEvaluation/eoRowAggregator';
 import type { ErstatningsopgoerelseReaderProjection } from './erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from './eoInputIssues';
 import { skalKomprimereIndkomstBeregning } from './validation/eoNummerValidering';
@@ -117,3 +121,32 @@ export const kanIndkomstBeregningenSkjules = (
   rowPolicy: EoRowPolicy,
 ): boolean =>
   skalKomprimereIndkomstBeregning(projection.eoValues) && erIndkomstBeregningsgrundlagGyldigt(projection, rowPolicy);
+
+/**
+ * En sammenklappet, skjult værdi giver ingen advarsler (BB-431, udviklerafgørelse 2026-11-22): alle gule rækker
+ * under grundlagets præfiks – den angivne løns rimelighedsadvarsler, fravær uden løn (0 dage, manglende årsag),
+ * fradrag, ferie, lønnens kilde og den angivne løns lønudvikling. Samme præfiks som gyldigheden ovenfor, så
+ * «skjult» og «advarer ikke» dækker de samme rækker. Advarslen vises i 1. opgørelse; har brugeren ladet den stå
+ * dér, lægges det til grund, at værdien er bevidst, og et link til en sammenklappet sektion kan ikke vise den.
+ */
+const erUdeladtAdvarsel = (row: EoRowWithNavigation): boolean =>
+  row.status === 'warning' && row.id.startsWith(BEREGNINGSGRUNDLAG_RAEKKE_PRAEFIKS);
+
+/**
+ * Udelader grundlagets gule advarsler, når grundlaget er skjult. `grundlagSkjult` er `kanIndkomstBeregningenSkjules`:
+ * uden for et besøg på EO-oplysninger følger skjulningen den direkte (`useIndtaegtFoerSkadenSkjult`). Røde rækker
+ * røres aldrig – de holder i forvejen grundlaget åbent. Gyldigheden ovenfor læser kun røde rækker, så
+ * udeladelsen kan ikke påvirke, om grundlaget skjules.
+ */
+export const udeladAdvarslerForSkjultGrundlag = (
+  summary: BeregningErrorSummary,
+  grundlagSkjult: boolean,
+): BeregningErrorSummary => {
+  if (!grundlagSkjult) return summary;
+  return {
+    errors: summary.errors,
+    warnings: summary.warnings.filter((row) => !erUdeladtAdvarsel(row)),
+    allRows: summary.allRows.filter((row) => !erUdeladtAdvarsel(row)),
+    relevantRows: summary.relevantRows.filter((row) => !erUdeladtAdvarsel(row)),
+  };
+};

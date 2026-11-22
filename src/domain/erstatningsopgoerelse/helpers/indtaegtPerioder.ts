@@ -119,6 +119,17 @@ export const resolveAnsaettelsesforholdNavn = (
   return ens ? `${trimmet} (ansættelsesforhold ${index + 1})` : trimmet;
 };
 
+/**
+ * ENESTE kortoverskrift for et ansættelsesforhold på Lønindkomst: «Ansættelsesforhold N» og, når et arbejdsstednavn
+ * er indtastet, «Ansættelsesforhold N (navn)». Kortet og sletedialogen deler den, så dialogen nævner præcis det kort,
+ * brugeren klikkede på – også når to kort har samme navn (BB-438). `index` er positionen i hele listen.
+ */
+export const formatAnsaettelsesforholdKortOverskrift = (navn: string | undefined, index: number): string => {
+  const trimmet = (navn ?? '').trim();
+  const nummer = `Ansættelsesforhold ${index + 1}`;
+  return trimmet === '' ? nummer : `${nummer} (${trimmet})`;
+};
+
 /** Arbejdsstednavnene til {@link resolveAnsaettelsesforholdNavn}s skelnen. */
 export const ansaettelsesforholdNavne = (
   ansaettelsesforhold: readonly Readonly<{ navnPaaArbejdssted?: string | undefined }>[] | undefined

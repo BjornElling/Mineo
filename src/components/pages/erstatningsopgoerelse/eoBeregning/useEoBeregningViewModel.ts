@@ -61,6 +61,7 @@ import {
 } from '../../../../domain/erhvervsevnetab/eetIssueNavigation';
 import type { ErstatningsopgoerelseReaderProjection } from '../../../../domain/erstatningsopgoerelse/erstatningsopgoerelseReaderProjection';
 import { selectBlockingLoenindkomstEntityIds } from '../../../../domain/erstatningsopgoerelse/eoInputIssues';
+import { udeladAdvarslerForSkjultGrundlag } from '../../../../domain/erstatningsopgoerelse/indkomstBeregningSkjulning';
 import {
   eoTafPeriodeFraField,
   eoTafPeriodeTilField,
@@ -73,6 +74,12 @@ export interface EOberegningTabProps {
   setActiveTab: (tab: TabKey) => void;
   isActive: boolean;
   projection: ErstatningsopgoerelseReaderProjection;
+  /**
+   * «Indtægt før skaden» er skjult af «Skjul beregning efter første opgørelse» (`kanIndkomstBeregningenSkjules`).
+   * Uden for et besøg på EO-oplysninger følger skjulningen den direkte. Et skjult grundlag giver ingen gule
+   * rimelighedsadvarsler her (BB-431).
+   */
+  indkomstBeregningSkjult: boolean;
 }
 
 export type SystemIssueRow = Readonly<{
@@ -229,7 +236,7 @@ const buildInvariantDiagnostics = (
  * uændret ud af `EOberegningTab`.
  */
 export function useEoBeregningViewModel(props: EOberegningTabProps) {
-  const { activeTab, setActiveTab, isActive, projection } = props;
+  const { activeTab, setActiveTab, isActive, projection, indkomstBeregningSkjult } = props;
   const { snapshot: eoSnapshot, stamdataValues, eoValues, stamdataErrors, eoErrors } = projection;
 
   const navigate = useNavigate();
@@ -290,8 +297,8 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
       };
     }
 
-    return { ...result.value, eoRowAggregationErrorMessage: null };
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, rowPolicy, beregningView, eoSnapshot?.data?.pdfModel]);
+    return { ...udeladAdvarslerForSkjultGrundlag(result.value, indkomstBeregningSkjult), eoRowAggregationErrorMessage: null };
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, rowPolicy, beregningView, eoSnapshot?.data?.pdfModel, indkomstBeregningSkjult]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoDocument(eoSnapshot) : null),
     [eoSnapshot]

@@ -21,7 +21,8 @@ type ChoiceBinding = Readonly<{
 type FilterBinding = ChoiceBinding & Readonly<{ value: string | undefined }>;
 
 type Props = Readonly<{
-  namePrefix: string;
+  /** Skelner flere vælgere på samme side (fx ét pr. ansættelsesforhold); udelades, hvor fladen kun har én. */
+  namePrefix?: string;
   overenskomst: ChoiceBinding;
   loenmodtager: FilterBinding;
   arbejdsgiver: FilterBinding;
@@ -42,7 +43,13 @@ const FILTER_SX = {
   '& .MuiSvgIcon-root': { fontSize: '12px !important' },
 } as const;
 
-/** Fælles overenskomstvalg med samme organisationsfiltre, tooltips og feltmotor på begge lønflader. */
+/** Ikke-valgbar oplysningslinje, når organisationsfiltrene tilsammen ikke matcher nogen overenskomst. */
+const INGEN_MATCH_TEXT = 'Ingen overenskomster matcher de valgte filtre';
+// Værdien er kun en teknisk nøgle til den deaktiverede linje; den kan ikke vælges og når aldrig feltet.
+const INGEN_MATCH_VALUE = '__ingen-overenskomst-match__';
+
+/** Fælles overenskomstvalg med samme organisationsfiltre, tooltips og feltmotor på alle tre lønflader
+ * (Lønindkomst, Årslønsberegning og «Angivet dagsløn/månedsløn» med lønudvikling efter overenskomst). */
 export default function OverenskomstVaelger({
   namePrefix, overenskomst, loenmodtager, arbejdsgiver, overenskomstIssue,
 }: Props) {
@@ -50,6 +57,8 @@ export default function OverenskomstVaelger({
     { part: 'loenmodtager', binding: loenmodtager, organisations: getAlleLoenmodtagerOrg() },
     { part: 'arbejdsgiver', binding: arbejdsgiver, organisations: getAlleArbejdsgiverOrg() },
   ] as const;
+  const overenskomster = getOverenskomsterByOrg(loenmodtager.value, arbejdsgiver.value);
+  const controlName = (suffix: string) => (namePrefix === undefined ? suffix : `${namePrefix}:${suffix}`);
 
   return (
     <Box className="row--label-right-hover">
@@ -62,7 +71,7 @@ export default function OverenskomstVaelger({
               <ChoiceField
                 field={binding.field}
                 location={binding.location}
-                name={`${namePrefix}:overenskomstFilter.${part}`}
+                name={controlName(`overenskomstFilter.${part}`)}
                 emptyUiValue="ALLE"
                 width={120}
                 allowEmpty={false}
@@ -80,16 +89,21 @@ export default function OverenskomstVaelger({
           <ChoiceField
             field={overenskomst.field}
             location={overenskomst.location}
-            name={`${namePrefix}:overenskomstId`}
+            name={controlName('overenskomstId')}
             width={460}
             placeholder="Vælg overenskomst..."
             allowEmpty={true}
             getOptionLabel={(id) => resolveOverenskomstDisplay(typeof id === 'string' ? id : String(id))}
             {...(overenskomstIssue === undefined ? {} : { crossFieldIssue: overenskomstIssue })}
           >
-            {getOverenskomsterByOrg(loenmodtager.value, arbejdsgiver.value).map((meta) => (
-              <MenuItem key={meta.id} value={meta.id}>{formatOverenskomstMetaDisplay(meta)}</MenuItem>
-            ))}
+            {overenskomster.length === 0
+              // Filtrene udelukker hinanden (fx RLTN + Dansk Metal): listen siger det i stedet for kun at vise
+              // placeholderen. Linjen er deaktiveret, så hverken klik, piletaster, typeahead eller paste kan vælge
+              // den, og et allerede valgt id bevares urørt (BB-435).
+              ? <MenuItem key={INGEN_MATCH_VALUE} value={INGEN_MATCH_VALUE} disabled>{INGEN_MATCH_TEXT}</MenuItem>
+              : overenskomster.map((meta) => (
+                <MenuItem key={meta.id} value={meta.id}>{formatOverenskomstMetaDisplay(meta)}</MenuItem>
+              ))}
           </ChoiceField>
         </Box>
       </Box>

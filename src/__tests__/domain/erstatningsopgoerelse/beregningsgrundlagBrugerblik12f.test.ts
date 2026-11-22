@@ -6,6 +6,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { buildEoTafBeregningsgrundlagRows } from '../../../domain/eoRowEvaluation/eoRowTafBeregningsgrundlagRows';
+import { resolveAngivetLoenAdvarsel } from '../../../domain/erstatningsopgoerelse/validation/beregningsgrundlagFeltAdvarsler';
 import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { selectEoSafetyNetInvariants } from '../../../domain/erstatningsopgoerelse/eoSafetyNetInvariants';
 import { renderTafBeregningsgrundlag } from '../../../document/generators/eo/sections/tafBeregningsgrundlagSection';
@@ -494,6 +495,31 @@ describe('BB-268 – en lønform, der ligner den anden', () => {
     ['Angivet månedsløn' as const, { maanedsloenenUdgoer: amount(2500) }],
   ])('%s: ingen advarsel ved selve grænsen', (beregnesUdFra, patch) => {
     expect(project(sag({ beregnesUdFra, ...patch })).warningLinjer.some((linje) => linje.includes('usædvanlig'))).toBe(false);
+  });
+});
+
+describe('BB-432 – en meget lav dagsløn', () => {
+  const LAV = 'Dagslønnen er usædvanlig lav – kontrollér kroner og øre';
+  const dagsloen = (value: number) => project(sag({ beregnesUdFra: 'Angivet dagsløn', dagsloenenUdgoer: amount(value) }));
+
+  it.each([99.99, 0.01])('%s kr.: gul advarsel ved feltet og i «Fejl og advarsler»', (value) => {
+    const result = dagsloen(value);
+    expect(result.warningLinjer).toContain(LAV);
+    expect(result.errorLinjer).toEqual([]);
+    // Feltets gule ring læser samme regel (`useEoOplysningerViewModel`).
+    expect(resolveAngivetLoenAdvarsel(result.projection.eoValues)).toBe(LAV);
+  });
+
+  it('100,00 kr.: ingen advarsel ved selve grænsen', () => {
+    const result = dagsloen(100);
+    expect(result.warningLinjer.some((linje) => linje.includes('usædvanlig'))).toBe(false);
+    expect(resolveAngivetLoenAdvarsel(result.projection.eoValues)).toBeUndefined();
+  });
+
+  it('0 kr.: rød fejl uden lav-advarslen oveni', () => {
+    const result = dagsloen(0);
+    expect(issueOf(result, eoDagsloenenUdgoerField.bind())?.severity).toBe('error');
+    expect(result.warningLinjer).not.toContain(LAV);
   });
 });
 

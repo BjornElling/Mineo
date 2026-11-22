@@ -34,14 +34,19 @@ const isRed = (issue: FieldIssue | undefined): issue is FieldIssue =>
 const isRowLineIssue = (issue: FieldIssue | undefined): issue is FieldIssue =>
   isRed(issue) && !isPeriodOverlapIssue(issue);
 
+// En celle med en rød værdi er udfyldt – forkert – selv om readeren giver den som tom.
+const harDatoer = (periode: FerieperiodeRowInput, cellIssues: FerieperiodeCellIssues) => ({
+  harFra: isNonEmptyString(periode.fra) || isRed(cellIssues.fra),
+  harTil: isNonEmptyString(periode.til) || isRed(cellIssues.til),
+});
+
 const evaluateOne = (
   periode: FerieperiodeRowInput,
   cellIssues: FerieperiodeCellIssues,
   hasOverlap: boolean,
   overlapLinje: string,
 ): TafPeriodeEvaluation => {
-  const harFra = isNonEmptyString(periode.fra) || isRed(cellIssues.fra);
-  const harTil = isNonEmptyString(periode.til) || isRed(cellIssues.til);
+  const { harFra, harTil } = harDatoer(periode, cellIssues);
   if (!harFra && !harTil) return { kind: 'skip' };
 
   const dele: Array<Readonly<{ message: string; field: 'fra' | 'til' }>> = [];
@@ -84,4 +89,24 @@ export const evaluateFerieperioder = (
     result.set(periode.id, evaluateOne(periode, cellIssues(periode.id), overlappingIds.has(periode.id), overlapLinje));
   }
   return result;
+};
+
+/**
+ * En påbegyndt ferierækkes manglende dato, når der ingen TAF-række er. Ferien indgår da ikke i opgørelsen, og
+ * manglen blokerer derfor ikke – men den må heller ikke forsvinde tavst: brugeren kunne ellers afslutte
+ * opgørelsen med en halvt indtastet ferie uden at opdage den (BB-429). Samme ordlyd som den blokerende linje,
+ * der gælder, når der er en TAF-række. `undefined` for en helt tom række og for en række med begge datoer.
+ */
+export const resolveFerieperiodeDatoMangel = (
+  periode: FerieperiodeRowInput,
+  cellIssues: FerieperiodeCellIssues,
+): Readonly<{ message: string; field: 'fra' | 'til' }> | undefined => {
+  const { harFra, harTil } = harDatoer(periode, cellIssues);
+  if (!harFra && !harTil) return undefined;
+  const mangler = assessPeriodeDatoMangler(harFra, harTil);
+  if (mangler === undefined) return undefined;
+  return {
+    message: `${buildPeriodeRaekkeNavn('Ferieperioden', resolvePeriodeNavneDatoer(periode, cellIssues))}: ${mangler.message}`,
+    field: mangler.field,
+  };
 };

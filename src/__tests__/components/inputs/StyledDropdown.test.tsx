@@ -233,6 +233,45 @@ describe('StyledDropdown', () => {
     expect(screen.getByRole('option', { name: 'Blokeret' })).toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('viser en deaktiveret options egen tekst trods getOptionLabel og lader den aldrig vælge noget (BB-435)', async () => {
+    // Overenskomstvælgerens «ingen match»-linje: et valgfrit felt med getOptionLabel, hvor den eneste option er
+    // deaktiveret, og den gemte værdi ikke længere står blandt options. Linjen skal kunne LÆSES (før blev den
+    // tom, fordi getOptionLabel-grenen viste den tomme typeahead-label), men hverken klik, piletaster, Enter,
+    // typeahead eller paste må committe den – og den gemte værdi skal stå urørt.
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <StyledDropdown<string>
+        ariaLabel="Overenskomst"
+        value="gemt-id"
+        placeholder="Vælg..."
+        onChange={onChange}
+        getOptionLabel={(id) => `Etiket for ${id}`}
+      >
+        <MenuOption value="__ingen__" disabled>Ingen match</MenuOption>
+      </StyledDropdown>
+    );
+
+    const input = screen.getByRole('combobox');
+    expect(input).toHaveValue('Etiket for gemt-id');
+    await user.click(input);
+    const note = screen.getByRole('option', { name: 'Ingen match' });
+    expect(note).toHaveAttribute('aria-disabled', 'true');
+
+    fireEvent.click(note);
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{ArrowDown}');
+    expect(input).not.toHaveAttribute('aria-activedescendant', note.id);
+    await user.keyboard('i');
+    await user.keyboard('{Escape}');
+    act(() => input.focus());
+    await user.keyboard('i');
+    fireEvent.paste(input, { clipboardData: { getData: () => 'Ingen match' } });
+
+    expect(onChange.mock.calls.some(([event]) => (event as { target: { value: unknown } }).target.value === '__ingen__'))
+      .toBe(false);
+    expect(input).toHaveValue('Etiket for gemt-id');
+  });
+
   it('kaster i DEV når allowEmpty=false og value=undefined', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 

@@ -12,24 +12,37 @@ import {
   getValidTafRange,
   resolveTafConstraintBounds,
   resolveMidlertidigEetDatoHvisAktiv,
+  resolveTafAfskaeringerDerKanGaelde,
   resolveTafCutoffDates,
   vaelgTafOphoersgrund,
+  type TafConstraintSource,
   type TafCutoffKilde,
 } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeriodeValidation';
-import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
+import { evaluateFerieperioder, resolveFerieperiodeDatoMangel } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
-import { focusOnSenesteTil, formatRowCount, formatRowMonths, resolveSenestSluttendePeriodeId } from './eoRowShared';
+import {
+  focusOnSenesteTil,
+  formatRowCount,
+  formatRowMonths,
+  kanDaekningIkkeVurderesPgaAfvistInput,
+  resolveSenestSluttendePeriodeId,
+} from './eoRowShared';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 import { activeFieldIssue } from '../../inputCore/inputIssue';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
 import {
+  eoDifferencekravDatoField,
+  eoEndeligEETAfgoerelseDatoField,
+  eoEndeligEETVirkningsdatoField,
   eoFerieperiodeFraField,
   eoFerieperiodeTilField,
+  eoMidlertidigEETAfgoerelseDatoField,
+  eoMidlertidigEETVirkningsdatoField,
   eoTafPeriodeFraField,
   eoTafPeriodeLoseFeriedageField,
   eoTafPeriodeTilField,
@@ -104,6 +117,25 @@ export const buildEoTaftRows = (
   const periodeLabel = synligeTafPerioder.length === 1 ? 'Periode' : 'Perioder';
 
   if (!harPerioder) {
+    // Uden TAF-række indgår ferien ikke, og en påbegyndt ferierække blokerer ikke. Dens manglende dato vises
+    // alligevel som gul linje med link til feltet, så den ikke forsvinder tavst (BB-429).
+    const ferieDatoMangler: EoRowModel[] = (values.ferieperioder ?? []).flatMap((periode) => {
+      const mangel = resolveFerieperiodeDatoMangel(periode, {
+        fra: cellIssue(eoFerieperiodeFraField, periode.id),
+        til: cellIssue(eoFerieperiodeTilField, periode.id),
+      });
+      if (mangel === undefined) return [];
+      const felt = mangel.field === 'fra' ? eoFerieperiodeFraField : eoFerieperiodeTilField;
+      return [{
+        id: `taf.ferieDatoMangler.${periode.id}`,
+        label: 'Ferieperiode',
+        displayValue: `Advarsel (${mangel.message})`,
+        status: 'warning',
+        message: mangel.message,
+        summaryDisplay: 'messageOnly',
+        focusTarget: { kind: 'fieldAddress', address: felt.bind(periode.id).address },
+      }];
+    });
     return [
       {
         id: 'taf.ingenTafIEoPerioden',
@@ -118,6 +150,7 @@ export const buildEoTaftRows = (
         displayValue: 'Ingen',
         status: 'ok',
       },
+      ...ferieDatoMangler,
     ];
   }
 
@@ -166,11 +199,26 @@ export const buildEoTaftRows = (
   // Rækken havde før sin egen kopi af klage-betingelsen og lagde den også på differencekravet, som klagen
   // IKKE ophæver: med en verserende EET-klage blev et TAF-ophør ved differencekravet til advarslen «Der er
   // ikke rejst TAF-krav for hele EO-perioden», som ingen lovlig indtastning kunne rydde (BB-238, M-34).
-  const tafCutoffs = resolveTafCutoffDates({
+  const tafCutoffSource: TafConstraintSource = {
     ...values,
     skadedatoISO: context.skadedatoISO,
     verserendeKlageEet: context.verserendeKlageEet ? 'Ja' : 'Nej',
-  });
+  };
+  const tafCutoffs = resolveTafCutoffDates(tafCutoffSource);
+
+  // Dækningsadvarslen venter, mens en dato, den hviler på, er afvist: rækkernes egne datoer og de afskæringer,
+  // der kunne flytte TAF-kravets slutning (NY-12b-4, BB-426). Kalenderfejlen står allerede med sit link.
+  const afskaeringerDerKanGaelde = resolveTafAfskaeringerDerKanGaelde(tafCutoffSource);
+  const tafDaekningKanIkkeVurderes = kanDaekningIkkeVurderesPgaAfvistInput(errors, [
+    ...perioder.flatMap((periode) => [eoTafPeriodeFraField.bind(periode.id), eoTafPeriodeTilField.bind(periode.id)]),
+    eoDifferencekravDatoField.bind(),
+    ...(afskaeringerDerKanGaelde.endeligEet
+      ? [eoEndeligEETAfgoerelseDatoField.bind(), eoEndeligEETVirkningsdatoField.bind()]
+      : []),
+    ...(afskaeringerDerKanGaelde.midlertidigEet
+      ? [eoMidlertidigEETAfgoerelseDatoField.bind(), eoMidlertidigEETVirkningsdatoField.bind()]
+      : []),
+  ]);
 
   // `taf.ophoerSkyldes` beregnes kun, når der er TAF inden for EO-perioden.
   // Er der ingen TAF i EO-perioden (lastTafKravDato === undefined), vises
@@ -179,7 +227,7 @@ export const buildEoTaftRows = (
     if (!lastTafKravDato) return undefined;
     // Ved EO 2+ er manglende TAF i starten af EO-perioden også et fravalg af TAF
     // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
-    if (manglerTafVedStartAfIkkeFoersteEo) return { label: tafIkkeRejstLabel };
+    if (manglerTafVedStartAfIkkeFoersteEo) return tafDaekningKanIkkeVurderes ? undefined : { label: tafIkkeRejstLabel };
 
     // Kandidaterne er de afskæringer, TAF faktisk slutter dagen før. Valget mellem dem – også ved samme dato –
     // er dokumentets eget (`vaelgTafOphoersgrund`), så kontrol og papir nævner samme grund (BB-425).
@@ -200,7 +248,7 @@ export const buildEoTaftRows = (
       return { label: 'Erstatningsperiodens ophør', datoISO: values.vedroererPeriodeTil };
     }
 
-    return { label: tafIkkeRejstLabel };
+    return tafDaekningKanIkkeVurderes ? undefined : { label: tafIkkeRejstLabel };
   })();
 
   if (tafOphoer !== undefined) {

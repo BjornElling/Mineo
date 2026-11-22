@@ -12,6 +12,11 @@ import {
   type AesDatoEfterOpgoerelseFelt,
 } from '../erstatningsopgoerelse/validation/aesDatoEfterOpgoerelse';
 import {
+  resolveForligDatoEfterOpgoerelseMessage,
+  resolveStatusDatoEfterOpgoerelseMessage,
+  type StatusDatoEfterOpgoerelseFelt,
+} from '../erstatningsopgoerelse/validation/forligOgStatusDatoEfterOpgoerelse';
+import {
   eoDifferencekravDatoField,
   eoEndeligEETAfgoerelseDatoField,
   eoEndeligEETVirkningsdatoField,
@@ -21,6 +26,17 @@ import {
 } from '../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 
 const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(value);
+
+type EoRowDisplay = Readonly<{ displayValue: string; status: EoRowStatus }>;
+
+/**
+ * Lægger en dato-efter-opgørelsen-advarsel (BB-242, NY-12a-3, NY-12a-5) på en ellers gyldig række. En rød
+ * eller manglende værdi har sin egen, vigtigere besked og bevares uændret.
+ */
+const medAdvarselPaaGyldigRaekke = (display: EoRowDisplay, message: string | undefined): EoRowDisplay =>
+  display.status !== 'ok' || message === undefined
+    ? display
+    : { displayValue: `Advarsel (${message})`, status: 'warning' };
 
 export const buildEoErstatningsopgoerelseRows = (
   values: ErstatningsopgoerelseValues,
@@ -94,6 +110,13 @@ export const buildEoErstatningsopgoerelseRows = (
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
 
+  // En valgt status dateret efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel (NY-12a-5),
+  // lagt på en ellers gyldig række ligesom AES-datoernes (BB-242).
+  const medStatusDatoEfterOpgoerelse = (
+    felt: StatusDatoEfterOpgoerelseFelt,
+    display: EoRowDisplay
+  ): EoRowDisplay => medAdvarselPaaGyldigRaekke(display, resolveStatusDatoEfterOpgoerelseMessage(felt, values));
+
   return [
     {
       id: 'erstatningsopgoerelse.eoNummer',
@@ -135,16 +158,20 @@ export const buildEoErstatningsopgoerelseRows = (
     {
       id: 'erstatningsopgoerelse.helbredsstatus',
       label: 'Helbredsforhold',
-      ...resolveEoRowDisplay({
+      ...medStatusDatoEfterOpgoerelse('svieSmerteHelbredsstatus', resolveEoRowDisplay({
         value: values.svieSmerteHelbredsstatus,
         issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteHelbredsstatus'),
         emptyState: 'error',
-      }),
+      })),
     },
     {
       id: 'erstatningsopgoerelse.arbejdsstatus',
       label: 'Arbejdssituation',
-      ...resolveEoRowDisplay({ value: values.tafArbejdsstatus, issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tafArbejdsstatus'), emptyState: 'error' }),
+      ...medStatusDatoEfterOpgoerelse('tafArbejdsstatus', resolveEoRowDisplay({
+        value: values.tafArbejdsstatus,
+        issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'tafArbejdsstatus'),
+        emptyState: 'error',
+      })),
     },
     ...(ingenKravRejst
       ? [{
@@ -202,11 +229,15 @@ export const buildEoForligRows = (
   const forligDatoRow: EoRowModel = {
     id: 'forlig.dato',
     label: 'Evt. dato for forlig',
-    ...resolveEoRowDisplay({
-      value: danishForligDato,
-      issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'forligDato'),
-      emptyState: 'ok',
-    }),
+    // En forligsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende advarsel (NY-12a-3).
+    ...medAdvarselPaaGyldigRaekke(
+      resolveEoRowDisplay({
+        value: danishForligDato,
+        issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'forligDato'),
+        emptyState: 'ok',
+      }),
+      resolveForligDatoEfterOpgoerelseMessage(values)
+    ),
   };
 
   if (!harPraecisEnUdfyldt) {
@@ -422,14 +453,8 @@ export const buildEoAesRows = (
   // En afgørelses- eller differencekravsdato efter «Opgørelse lavet den» er en gul, ikke-blokerende
   // advarsel (BB-242). Den lægges kun på en ellers gyldig række: en rød dato eller en manglende dato har
   // sin egen, vigtigere besked.
-  const medDatoEfterOpgoerelse = (
-    felt: AesDatoEfterOpgoerelseFelt,
-    display: Readonly<{ displayValue: string; status: EoRowStatus }>
-  ): Readonly<{ displayValue: string; status: EoRowStatus }> => {
-    if (display.status !== 'ok') return display;
-    const message = resolveAesDatoEfterOpgoerelseMessage(felt, values);
-    return message === undefined ? display : { displayValue: `Advarsel (${message})`, status: 'warning' };
-  };
+  const medDatoEfterOpgoerelse = (felt: AesDatoEfterOpgoerelseFelt, display: EoRowDisplay): EoRowDisplay =>
+    medAdvarselPaaGyldigRaekke(display, resolveAesDatoEfterOpgoerelseMessage(felt, values));
 
   // Rækkernes labels er feltets synlige navn fra descriptoren, så «Fejl og advarsler», oplæsningen og
   // skærmen navngiver feltet ens (BB-243).

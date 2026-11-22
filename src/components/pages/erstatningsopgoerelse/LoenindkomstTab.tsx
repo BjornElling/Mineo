@@ -41,7 +41,7 @@ const LoenindkomstTab = React.memo(({
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,
-    deleteTargetName,
+    deleteTargetHeading,
     loentrinFinder,
     totalAnsaettelsesforhold,
     addAnsaettelsesforholdGate,
@@ -171,8 +171,8 @@ const LoenindkomstTab = React.memo(({
         title="Slet ansættelsesforhold"
         message={
           <>
-            {deleteTargetName !== ''
-              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}).`
+            {deleteTargetHeading !== null
+              ? `Dette vil slette alle oplysninger i ${deleteTargetHeading}.`
               : 'Dette vil slette alle oplysninger i dette ansættelsesforhold.'}
             <br />
             <br />

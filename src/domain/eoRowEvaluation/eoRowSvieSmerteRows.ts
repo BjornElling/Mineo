@@ -12,6 +12,7 @@ import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/va
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
 import {
+  erSvieSmerteMenAfskaeringAktiv,
   resolveSvieSmerteCutoffDate,
   resolveSvieSmerteOphoer,
   resolveSvieSmerteSenesteKravDato,
@@ -22,7 +23,7 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
-import { focusOnSenesteTil, resolveSenestSluttendePeriodeId } from './eoRowShared';
+import { focusOnSenesteTil, kanDaekningIkkeVurderesPgaAfvistInput, resolveSenestSluttendePeriodeId } from './eoRowShared';
 import { erSvieSmertePeriodeInputRelevant, erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
 import {
   erSvieSmerteMaksimumOpbrugt,
@@ -37,6 +38,7 @@ import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
 import { activeFieldIssue } from '../../inputCore/inputIssue';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import {
+  eoMenAfgoerelseDatoField,
   eoSvieSmertePeriodeFraField,
   eoSvieSmertePeriodeTilField,
   eoSvieSmertePeriodeTilstandField,
@@ -821,6 +823,17 @@ export const buildEoSvieSmerteRows = (
     if (values.svieSmerteHelbredsstatus === 'Raskmeldt') {
       return { displayValue: 'Raskmeldt', status: 'ok' as EoRowStatus };
     }
+
+    // Dækningsadvarslen venter, mens en dato, den hviler på, er afvist: periodernes egne datoer og en aktiv
+    // ménafgørelses dato, der kunne flytte kravets slutning (NY-12b-4, BB-426). Kalenderfejlen står med sit link.
+    const daekningKanIkkeVurderes = kanDaekningIkkeVurderesPgaAfvistInput(errors, [
+      ...perioder.flatMap((periode) => [
+        eoSvieSmertePeriodeFraField.bind(periode.id),
+        eoSvieSmertePeriodeTilField.bind(periode.id),
+      ]),
+      ...(erSvieSmerteMenAfskaeringAktiv(values) ? [eoMenAfgoerelseDatoField.bind()] : []),
+    ]);
+    if (daekningKanIkkeVurderes) return undefined;
 
     return { displayValue: svieSmerteIkkeRejstLabel, status: 'warning' as EoRowStatus };
   })();

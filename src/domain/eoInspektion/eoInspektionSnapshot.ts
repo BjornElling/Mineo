@@ -9,12 +9,11 @@ import {
   buildEOInspektionSammentaellingModel,
   buildSammentaellingDisplayTables,
   flattenSammentaellingDisplayTables,
-  buildSvieSmerteContext,
-  buildTaftContext,
   type SammentaellingDisplayTables,
   type SammentaellingModel,
 } from './eoInspektionSammentaelling';
 import type { SammentaellingDisplayRow } from '../erstatningsopgoerelse/control/eoControlMismatch';
+import { buildSvieSmerteContext, buildTaftContext } from '../erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import type { EOInspektionBeregningsperiodeProjection, EOInspektionModel } from './eoInspektionKontrolModel';
 import type { FieldIssueSet } from '../../inputCore/inputIssue';
 

@@ -106,6 +106,20 @@ describe('evaluateForligsgrad', () => {
     });
   });
 
+  // NY-12a-4: brøken har samme nedre grænse som procentfeltet (1 %). Grænsen er inklusiv.
+  it.each(['1/100', '2/200', '3/300'])('accepterer brøken %s, der svarer til præcis 1 %%', (broek) => {
+    expect(evaluateForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: broek }).status).toBe('valid');
+  });
+
+  it.each(['1/101', '1/200', '0,5/100'])('afviser brøken %s, der svarer til under 1 %%', (broek) => {
+    expect(evaluateForligsgrad({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: broek })).toEqual({
+      status: 'invalid',
+      forlig: null,
+      reason: 'broekUnderMinimum',
+      message: 'Brøk skal svare til mindst 1 %',
+    });
+  });
+
   it('ændrer ikke parseForligsgrads adfærd (prioriterer fortsat procent ved begge udfyldt)', () => {
     // parseForligsgrad er bevidst urørt og prioriterer procent; evaluateForligsgrad er strengere
     // (begge udfyldt = invalid). De to funktioner tjener forskellige formål.

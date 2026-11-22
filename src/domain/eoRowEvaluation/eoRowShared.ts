@@ -5,8 +5,8 @@ import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { formatDocumentMaanederTrimmed } from '../../utils/documentMaanederFormatting';
 import { getInclusivePeriodEndByMonths } from '../../utils/dateUtils';
 import type { EoRowStatus } from './eoRowTypes';
-import type { FieldIssueSet } from '../../inputCore/inputIssue';
-import type { FieldAddress } from '../../inputCore/fieldAddress';
+import { activeFieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
+import { serializeFieldAddress, type FieldAddress } from '../../inputCore/fieldAddress';
 import type { AttentionTarget } from '../../utils/attentionTarget';
 
 // Kanoniske id-prefikser for SFGG-rækker bygget efter sygeferiegodtgørelses-tabellen.
@@ -47,6 +47,22 @@ export const focusOnSenesteTil = (
   tilField: Readonly<{ bind: (rowId: string) => Readonly<{ address: FieldAddress }> }>
 ): Readonly<{ focusTarget?: AttentionTarget }> =>
   rowId === undefined ? {} : { focusTarget: { kind: 'fieldAddress', address: tilField.bind(rowId).address } };
+
+/**
+ * Dækningen af et krav kan ikke vurderes, fordi et input, vurderingen hviler på, er afvist (rød råtekst). Fælles
+ * for «Ikke rejst svie/smerte-krav for hele perioden» og «Der er ikke rejst TAF-krav for hele EO-perioden».
+ *
+ * En afvist dato læses som tom: en tastefejl i en periodes dato eller i en afskæringsdato (ménafgørelse,
+ * EET-afgørelse, differencekrav) fik derfor programmet til at bede om at forlænge kravet – en forlængelse, der
+ * efter rettelsen kunne ramme afskæringen (NY-12b-4, BB-426). Kalenderfejlen står allerede med link til feltet;
+ * dækningen vurderes først, når den er rettet. Kalderen sender kun de felter, der faktisk kan flytte kravets
+ * slutning: forklares ophøret af en gyldig, uafhængig afskæring, nås advarslen slet ikke.
+ */
+export const kanDaekningIkkeVurderesPgaAfvistInput = (
+  issues: FieldIssueSet,
+  felter: readonly Readonly<{ address: FieldAddress }>[],
+): boolean =>
+  felter.some((felt) => activeFieldIssue(issues, serializeFieldAddress(felt.address))?.reason === 'format');
 
 export const formatRowCount = (value: number): string => formatAsAmountTrimmed(value, 0);
 // Programmets ene månedsformat: fem decimaler, efterstillede nuller trimmet (udviklerens afgørelse 2026-11-19).

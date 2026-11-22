@@ -55,6 +55,10 @@ export const resolveMidlertidigEetDato = (values: TafConstraintSource): ISODateS
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
 };
 
+/** 2011-grænsen: kun en skade før skæringsdatoen kan få TAF afskåret af en midlertidig EET-afgørelse. */
+const kanMidlertidigEetAfskaereTaf = (skadedatoISO: ISODateString | undefined): boolean =>
+  skadedatoISO !== undefined && skadedatoISO < TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
+
 /**
  * ANVENDELSEN: den midlertidige EET-afgørelses dato, hvis den er aktiv som TAF-afgrænsning.
  *
@@ -68,8 +72,26 @@ export const resolveMidlertidigEetDato = (values: TafConstraintSource): ISODateS
  * afgørelsens dato, er det `resolveMidlertidigEetDato`.
  */
 export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource): ISODateString | undefined => {
-  if (!values.skadedatoISO || values.skadedatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
+  if (!kanMidlertidigEetAfskaereTaf(values.skadedatoISO)) return undefined;
   return resolveMidlertidigEetDato(values);
+};
+
+/**
+ * De afskæringer, der VILLE skære TAF af, hvis deres dato var udfyldt – samme betingelser som
+ * `resolveTafCutoffDates`, men uden selve datoen. Dækningsvurderingen spørger, om en afvist dato kunne have
+ * flyttet, hvor TAF-kravet skal slutte; en afgørelse uden virkning (fx under EET-klage) kan det ikke.
+ */
+export const resolveTafAfskaeringerDerKanGaelde = (
+  values: TafConstraintSource,
+): Readonly<Record<TafCutoffKilde, boolean>> => {
+  const klageSuspenderer = values.verserendeKlageEet === 'Ja';
+  return {
+    differencekrav: true,
+    endeligEet: !klageSuspenderer && values.endeligtEETAfgorelse === 'Ja',
+    midlertidigEet: !klageSuspenderer
+      && values.midlertidigtEETAfgorelse === 'Ja'
+      && kanMidlertidigEetAfskaereTaf(values.skadedatoISO),
+  };
 };
 
 /**
@@ -84,11 +106,11 @@ export const resolveTafCutoffDates = (values: TafConstraintSource): Readonly<{
   endeligEETDato: ISODateString | undefined;
   midlertidigEETDato: ISODateString | undefined;
 }> => {
-  const klageSuspenderer = values.verserendeKlageEet === 'Ja';
+  const kanGaelde = resolveTafAfskaeringerDerKanGaelde(values);
   return {
     differencekravDato: values.differencekravDato,
-    endeligEETDato: klageSuspenderer ? undefined : resolveEndeligEetDato(values),
-    midlertidigEETDato: klageSuspenderer ? undefined : resolveMidlertidigEetDatoHvisAktiv(values),
+    endeligEETDato: kanGaelde.endeligEet ? resolveEndeligEetDato(values) : undefined,
+    midlertidigEETDato: kanGaelde.midlertidigEet ? resolveMidlertidigEetDato(values) : undefined,
   };
 };
 

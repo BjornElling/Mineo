@@ -778,10 +778,10 @@ export function validateTafLoseFeriedage(
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] {
   return (values.tafPerioder ?? []).flatMap((row, i) => {
-    const maksimum = resolveTafLoseFeriedageMaksimum(row, values, options?.skadedatoISO);
-    return maksimum === undefined
+    const overskridelse = resolveTafLoseFeriedageMaksimum(row, values, options?.skadedatoISO);
+    return overskridelse === undefined
       ? []
-      : [{ path: `tafPerioder[${i}].loseFeriedage`, message: buildTafLoseFeriedageMaxMessage(maksimum), severity: 'error' as const }];
+      : [{ path: `tafPerioder[${i}].loseFeriedage`, message: buildTafLoseFeriedageMaxMessage(overskridelse), severity: 'error' as const }];
   });
 }
 

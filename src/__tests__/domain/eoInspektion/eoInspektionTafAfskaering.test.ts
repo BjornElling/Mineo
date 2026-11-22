@@ -2,10 +2,11 @@ import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektio
 import {
   buildEOInspektionSammentaellingModel,
   buildSammentaellingDisplayTables,
-  buildSvieSmerteContext,
-  buildTaftContext,
   flattenSammentaellingDisplayTables,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
+import { buildEOInspektionSnapshot } from '../../../domain/eoInspektion/eoInspektionSnapshot';
+import { EMPTY_FIELD_ISSUE_SET } from '../../../inputCore/inputIssue';
 import { collectSammentaellingControlMismatchMessages } from '../../../domain/erstatningsopgoerelse/control/eoControlMismatch';
 import { buildTafRanges, type IsoRange } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -117,5 +118,38 @@ describe('Kontroltabellens TAF-afskæring ved EET', () => {
     const { model } = build(values({ loenindkomstAnsaettelsesforhold: [] }), SKADE_EFTER_2011);
 
     expect(model.columns.find((column) => column.id === 'base:taf_day')?.header).toBe('TAF-dag');
+  });
+});
+
+describe('buildEOInspektionSnapshot – samme TAF-kontekst som række-evalueringen', () => {
+  it('skade før 16-06-2011: snapshot-vejen afskærer TAF ved det midlertidige EET uden afvigelser', () => {
+    // Inspektionen havde sin egen `buildTaftContext` uden den midlertidige EET-dato. Den læste kun skadedatoen,
+    // så visningen var korrekt; nu er der én afledning, og snapshot-vejen skal give samme kontroltabel som før.
+    const eoValues = values();
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: SKADE_FOER_2011 };
+    const tafRanges = buildTafRanges(eoValues, { skadedatoISO: SKADE_FOER_2011 });
+    const snapshot = buildEOInspektionSnapshot({
+      revision: 'r1',
+      stamdataValues: stamdata,
+      eoValues,
+      stamdataErrors: EMPTY_FIELD_ISSUE_SET,
+      eoErrors: EMPTY_FIELD_ISSUE_SET,
+      tafRanges,
+    });
+    const direkte = build(eoValues, SKADE_FOER_2011, tafRanges);
+
+    expect(snapshot.model.tafAfskaering).toEqual([
+      { label: 'TAF ophører: midlertidigt EET (skade før 16-06-2011)', dato: iso('2024-01-15') },
+    ]);
+    expect(snapshot.sammentaellingRows).toEqual(
+      flattenSammentaellingDisplayTables(buildSammentaellingDisplayTables(buildEOInspektionSammentaellingModel({
+        values: eoValues,
+        model: direkte.model,
+        svieSmerteContext: buildSvieSmerteContext(stamdata, eoValues),
+        taftContext: buildTaftContext(stamdata, eoValues),
+        tafRanges,
+      }))),
+    );
+    expect(collectSammentaellingControlMismatchMessages(snapshot.sammentaellingRows)).toEqual([]);
   });
 });

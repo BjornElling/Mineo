@@ -11,9 +11,8 @@ import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/in
 import { buildEOInspektionModel } from '../../../domain/eoInspektion/eoInspektionKontrolModel';
 import {
   buildEOInspektionSammentaellingModel,
-  buildSvieSmerteContext,
-  buildTaftContext,
 } from '../../../domain/eoInspektion/eoInspektionSammentaelling';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';

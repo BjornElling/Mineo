@@ -22,13 +22,25 @@ import {
 } from '../../../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { useFieldEditor } from '../../../../../inputCore/react/useFieldEditor';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
+import { createFieldWarning } from '../../../../../inputCore/fieldWarning';
+import {
+  resolveStatusDatoEfterOpgoerelseMessage,
+  type StatusDatoEfterOpgoerelseFelt,
+} from '../../../../../domain/erstatningsopgoerelse/validation/forligOgStatusDatoEfterOpgoerelse';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 // route + tabKey på location er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 
 /** Sektion 1: Erstatningsopgørelse-info (nummer, periode, status, bekræftelse). */
 export default function EoSagsinfoSection() {
-  const { statusSubheaderLabel } = useEoOplysningerVm();
+  const { statusSubheaderLabel, values } = useEoOplysningerVm();
+  // Gul ring på en valgt status, hvis statusdato ligger efter «Opgørelse lavet den» – samme regel og tekst
+  // som «Fejl og advarsler» (NY-12a-5).
+  const statusWarning = (felt: StatusDatoEfterOpgoerelseFelt) => {
+    const message = resolveStatusDatoEfterOpgoerelseMessage(felt, values);
+    const warning = message === undefined ? undefined : createFieldWarning(message);
+    return warning === undefined ? {} : { warning };
+  };
   const opgoerelseLavetDenEditor = useFieldEditor(
     eoOpgørelseLavetDenField.bind(),
     { locationId: 'erstatningsopgoerelse.opgørelseLavetDen', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }
@@ -137,6 +149,7 @@ export default function EoSagsinfoSection() {
               location={{ locationId: 'erstatningsopgoerelse.svieSmerteHelbredsstatus', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="svieSmerteHelbredsstatus"
               width={200}
+              {...statusWarning('svieSmerteHelbredsstatus')}
             >
               <MenuItem value="Sygemeldt">Sygemeldt</MenuItem>
               <MenuItem value="Delvist Sygemeldt">Delvist Sygemeldt</MenuItem>
@@ -153,6 +166,7 @@ export default function EoSagsinfoSection() {
               location={{ locationId: 'erstatningsopgoerelse.tafArbejdsstatus', route: APP_ROUTES.erstatningsopgoerelse, tabKey: EO_TAB_KEYS.EO_OPLYSNINGER }}
               name="tafArbejdsstatus"
               width={200}
+              {...statusWarning('tafArbejdsstatus')}
             >
               <MenuItem value="Uarbejdsdygtig">Uarbejdsdygtig</MenuItem>
               <MenuItem value="Delvist raskmeldt">Delvist raskmeldt</MenuItem>

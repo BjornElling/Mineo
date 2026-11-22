@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { erStoreBededagstillaegRelevant } from '../../../../../domain/loen/storeBededagstillaeg';
 import { Box, MenuItem, Typography } from '@mui/material';
-import OverenskomstFilterLabel from '../../../../common/OverenskomstFilterLabel';
+import OverenskomstVaelger from '../../../../common/OverenskomstVaelger';
 import ContentBox from '../../../../layout/ContentBox';
 import LabeledControlRow from '../../../../layout/LabeledControlRow';
 import MappedToggleField from '../../../../../inputCore/react/fields/MappedToggleField';
@@ -40,7 +40,6 @@ import LoenudviklingFields from '../../loenudvikling/LoenudviklingFields';
 import AnciennitetstillaegFields from '../../loenudvikling/AnciennitetstillaegFields';
 import { capitalizeFirstCharDa } from '../../../../../utils/formatUtils';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
-import { formatOverenskomstMetaDisplay, resolveOverenskomstDisplay } from '../../../../../data/overenskomstRates';
 import { useEoOplysningerVm } from '../eoOplysningerContext';
 import { EO_OPLYSNINGER_LOENTRIN_FINDER_KEY } from '../../shared/useLoentrinFinder';
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
@@ -53,38 +52,6 @@ const eoOplyLocation = (locationId: string) => ({
   route: APP_ROUTES.erstatningsopgoerelse,
   tabKey: EO_TAB_KEYS.EO_OPLYSNINGER,
 });
-
-/**
- * De to overenskomst-filterdropdowns er bevidst kompakte (24 px høje, 11 px tekst), fordi de
- * står inline foran den brede overenskomstvælger. Stylingen var tidligere skrevet ordret to
- * gange lige efter hinanden; her er den ét sted, så de to filtre ikke kan drive fra hinanden.
- */
-const OVERENSKOMST_FILTER_SX = {
-  '& .MuiInputBase-root': {
-    height: '24px !important',
-    minHeight: '24px !important',
-    paddingRight: '20px !important',
-  },
-  '& .MuiInputBase-input': {
-    fontSize: '11px !important',
-    padding: '0 4px 0 8px !important',
-    lineHeight: '24px',
-  },
-  '& .MuiSvgIcon-root': {
-    fontSize: '12px !important',
-  },
-} as const;
-
-const OVERENSKOMST_FILTER_ICON_SX = {
-  fontSize: '16px',
-  right: 2,
-} as const;
-
-const OVERENSKOMST_FILTER_OPTION_SX = {
-  fontSize: '11px',
-  minHeight: '24px',
-  padding: '3px 8px',
-} as const;
 
 /**
  * Sektion 5: indtægt før stamdatadatoen (beregningsmetode, beregningsperiode/ferie/fravær eller
@@ -102,9 +69,6 @@ export default function IndtaegtFoerSkadenSection() {
     angivetLoenOpreguleringLabel,
     visLoenudviklingFraEO,
     loenudviklingBasis,
-    alleLoenmodtagerOrg,
-    alleArbejdsgiverOrg,
-    filteredOverenskomster,
     erOffentligOverenskomst,
     loenudviklingBaseDateDisplay,
     loenudviklingBaseDateISO,
@@ -509,70 +473,23 @@ export default function IndtaegtFoerSkadenSection() {
           statistikModel={eoLoenudvikling.loenudviklingStatistikModel}
                 erOffentligOverenskomst={erOffentligOverenskomst}
                 overenskomstSlot={
-                  <Box className="row--label-right-hover">
-                    <Typography className="row--text">Vælg overenskomst</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-                        <OverenskomstFilterLabel part="loenmodtager" />
-                        <ChoiceField
-                          field={eoAngivetLoenFilterFields.loenmodtager.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager')}
-                          name="overenskomstFilter.loenmodtager"
-                          emptyUiValue="ALLE"
-                          width={120}
-                          allowEmpty={false}
-                          sx={OVERENSKOMST_FILTER_SX}
-                          iconSx={OVERENSKOMST_FILTER_ICON_SX}
-                          optionSx={OVERENSKOMST_FILTER_OPTION_SX}
-                        >
-                          <MenuItem value="ALLE">Alle</MenuItem>
-                          {alleLoenmodtagerOrg.map((org) => (
-                            <MenuItem key={org} value={org}>
-                              {org}
-                            </MenuItem>
-                          ))}
-                        </ChoiceField>
-
-                        {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
-                        <OverenskomstFilterLabel part="arbejdsgiver" />
-                        <ChoiceField
-                          field={eoAngivetLoenFilterFields.arbejdsgiver.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver')}
-                          name="overenskomstFilter.arbejdsgiver"
-                          emptyUiValue="ALLE"
-                          width={120}
-                          allowEmpty={false}
-                          sx={OVERENSKOMST_FILTER_SX}
-                          iconSx={OVERENSKOMST_FILTER_ICON_SX}
-                          optionSx={OVERENSKOMST_FILTER_OPTION_SX}
-                        >
-                          <MenuItem value="ALLE">Alle</MenuItem>
-                          {alleArbejdsgiverOrg.map((org) => (
-                            <MenuItem key={org} value={org}>
-                              {org}
-                            </MenuItem>
-                          ))}
-                        </ChoiceField>
-
-                        <ChoiceField
-                          field={eoAngivetLoenFields.overenskomstId.bind()}
-                          location={eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstId')}
-                          name="overenskomstId"
-                          width={460}
-                          placeholder="Vælg overenskomst..."
-                          allowEmpty={true}
-                          getOptionLabel={(id) => resolveOverenskomstDisplay(typeof id === 'string' ? id : String(id))}
-                        >
-                          {filteredOverenskomster.map((meta) => (
-                            <MenuItem key={meta.id} value={meta.id}>
-                              {formatOverenskomstMetaDisplay(meta)}
-                            </MenuItem>
-                          ))}
-                        </ChoiceField>
-                      </Box>
-                    </Box>
-                  </Box>
+                  // Samme fælles vælger som Lønindkomst og Årslønsberegning (filtre, tooltips, «ingen match»-linjen).
+                  <OverenskomstVaelger
+                    overenskomst={{
+                      field: eoAngivetLoenFields.overenskomstId.bind(),
+                      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstId'),
+                    }}
+                    loenmodtager={{
+                      field: eoAngivetLoenFilterFields.loenmodtager.bind(),
+                      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.loenmodtager'),
+                      value: eoLoenudvikling.overenskomstFilter.loenmodtager,
+                    }}
+                    arbejdsgiver={{
+                      field: eoAngivetLoenFilterFields.arbejdsgiver.bind(),
+                      location: eoOplyLocation('erstatningsopgoerelse.eoAngivetLoenLoenudvikling.overenskomstFilter.arbejdsgiver'),
+                      value: eoLoenudvikling.overenskomstFilter.arbejdsgiver,
+                    }}
+                  />
                 }
                 onOpenLoentrinFinder={openLoentrinFinder}
                 loentrinFinderTriggerRef={loentrinFinderTriggerRef}

@@ -637,7 +637,8 @@ export const buildEoTafBeregningsgrundlagRows = (
     });
   }
 
-  // En dagsløn, der ligner en månedsløn, og omvendt (BB-268): gul ring på beløbet og samme tekst her.
+  // Den angivne løns rimelighedsadvarsler (BB-268, BB-432): gul ring på beløbet og samme tekst her. Skjuler
+  // «Skjul beregning efter første opgørelse» grundlaget, udelader Beregning grundlagets gule rækker (BB-431).
   const angivetLoenAdvarsel = resolveAngivetLoenAdvarsel(values);
   if (angivetLoenAdvarsel !== undefined) {
     rows.push({

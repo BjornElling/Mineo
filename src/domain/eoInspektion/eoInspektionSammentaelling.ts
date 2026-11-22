@@ -1,7 +1,6 @@
 import { resolveIndkomstFerieperioder } from '../erstatningsopgoerelse/helpers/indkomstFerieperioder';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
 import { parseDanishNumberString as parseCanonicalDanishNumberString, toNonNegativeInt } from '../../utils/numberParsing';
@@ -20,6 +19,10 @@ import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engin
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sfggResult';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+// Kontrollens kontekst er den samme som række-evalueringens – ÉN afledning. Inspektionen havde sin egen kopi,
+// som manglede den midlertidige EET-dato og klage-relevansen; den læste kun skadedatoen, så kopien gav endnu
+// ikke forkert visning, men næste læser af et andet felt ville have fået et andet svar end «Fejl og advarsler».
+import type { SvieSmerteContext, TaftContext } from '../erstatningsopgoerelse/validation/eoPeriodeBlockingContext';
 import {
   beregnetVaerdi,
   buildSammentaellingControl,
@@ -28,21 +31,6 @@ import {
   type SammentaellingControl,
   type SammentaellingDisplayRow,
 } from '../erstatningsopgoerelse/control/eoControlMismatch';
-
-export type SvieSmerteContext = Readonly<{
-  skadedatoISO: ISODateString | undefined;
-  erErhvervssygdom: boolean;
-  menAfgoerelseDatoForTabel: ISODateString | undefined;
-  verserendeKlageMen: boolean;
-}>;
-
-export type TaftContext = Readonly<{
-  skadedatoISO: ISODateString | undefined;
-  erErhvervssygdom: boolean;
-  endeligEETBeregnetDato: ISODateString | undefined;
-  differencekravDato: ISODateString | undefined;
-  verserendeKlageEet: boolean;
-}>;
 
 export type SammentaellingModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
@@ -55,43 +43,6 @@ export type SammentaellingModel = Readonly<{
   beregningsperiodeIndtaegter: readonly SammentaellingDisplayRow[];
   tafIndtaegter: readonly SammentaellingDisplayRow[];
 }>;
-
-export const buildSvieSmerteContext = (
-  stamdataValues: StamdataValues,
-  eoValues: ErstatningsopgoerelseValues
-): SvieSmerteContext => {
-  const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
-  const menAfgoerelseDatoForTabel =
-    eoValues.varigeMenAfgorelse === 'Ja' ? getDayBeforeIso(eoValues.menAfgoerelseDato) : undefined;
-  const verserendeKlageMen = eoValues.verserendeKlageMen === 'Ja';
-
-  return {
-    skadedatoISO: stamdataValues.skadedato,
-    erErhvervssygdom,
-    menAfgoerelseDatoForTabel,
-    verserendeKlageMen,
-  };
-};
-
-export const buildTaftContext = (
-  stamdataValues: StamdataValues,
-  eoValues: ErstatningsopgoerelseValues
-): TaftContext => {
-  const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
-  const endeligEETBeregnetDato =
-    eoValues.endeligtEETAfgorelse === 'Ja'
-      ? eoValues.endeligEETVirkningsdato || eoValues.endeligEETAfgoerelseDato
-      : undefined;
-  const verserendeKlageEet = eoValues.verserendeKlageEet === 'Ja';
-
-  return {
-    skadedatoISO: stamdataValues.skadedato,
-    erErhvervssygdom,
-    endeligEETBeregnetDato,
-    differencekravDato: eoValues.differencekravDato,
-    verserendeKlageEet,
-  };
-};
 
 export type SammentaellingDisplayTables = Readonly<{
   basis: readonly SammentaellingDisplayRow[];
