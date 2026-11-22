@@ -505,3 +505,119 @@ Tabellen skelner den oprindelige Chrome-måling fra den senere BB-274-E2E. Unit-
 ## Åbne spørgsmål
 
 Ingen. De to faglige spørgsmål er besvaret 2026-10-06 og står under BB-274 og BB-283.
+
+## Fornyet gennemgang 2026-11-22
+
+- **Grundlag**: commit `fc27ca1e`, tidligere fund BB-274–BB-288 og Brugerbliks fulde prøvekatalog.
+- **Browser**: Chrome headless, 1536×864 og 1366×620, lyst og mørkt tema. Fiktive sager med
+  arbejdsulykke og erhvervssygdom samt PDF, Word og en ny `.eo`-fil.
+
+### Inventar og grænser
+
+| Del af kortet | Tomhed, grænser og brugerens næste skridt |
+| --- | --- |
+| Kort og handlinger | Uden kort vises introboksen og Tilføj. Et åbent, ellers tomt kort er en påbegyndt del af sagen: et andet kort uden data blokerede et ellers hentbart dokument med konkrete mangler og links. Et kort kan flyttes ét trin, slettes efter bekræftelse og gendannes med Ctrl+Z. Loftet på 10 kort er browsermålt. |
+| Arbejdssted og ansættelse | Navn har 60 tegn, og ydermellemrum fjernes ved afslutning. «Ansat på skadedatoen» skifter til «Ansat på anmeldelsesdatoen» ved erhvervssygdom. «Opsagt fra stillingen» åbner slutdatoen. Slutdatoen har kalender- og systemgrænser samt sagens skade-/anmeldelsesdato som tidligste dato, når personen var ansat da. |
+| Lønforhold | Overenskomst åbner lønmodtager-, arbejdsgiver- og aftalevalg. «Fuld løn under ferie» og «Løn på helligdage» er forudsætninger for enheden ved Beregningsperiode. Almindelig løn, SH-udbetaling og Ingen blev skiftet. Store Bededagstillæg vises efter valg og relevans. |
+| Reguleringsdato | Særlig fra-dato har kalender- og systemgrænser, højst dags dato og for private aftaler deres faktiske satsdækning. Tomt felt bruger den relevante dato fra sagen. Satsoverskriften skelner mellem beregningsperiodens udløb og brugerens dato. |
+| Satser og periodeform | Procent/Beløb afgør indtastningen i satser og tabel. Procentfelterne har to decimaler. Fritvalg, SH/SO og pension ligger i 0–100 %. Feriefeltet vurderes særskilt som godtgørelse/tillæg. Overenskomsten kan udfylde og låse satsen. Måned/Uge/Dato skifter tabellens periodekolonner. |
+
+### BB-434 – Dobbeltklik på Tilføj flytter også et eksisterende kort
+
+- **Type**: Fejl. **Prioritet**: Mellem. **Rækkevidde**: Mønster M-62. **Beslutning**: Afventer udvikleren.
+- **Reproduktion**: Opret ni kort og kald nr. 8 «Otte» og nr. 9 «Ni». Dobbeltklik samme sted på
+  «Tilføj nyt ansættelsesforhold» nederst.
+- **Oplevelse**: Ét kort tilføjes, og «Ni» flytter samtidig fra plads 9 til 8. Første klik
+  rammer Tilføj. Det andet rammer «Flyt ansættelsesforhold op», som nu ligger samme sted.
+  Ved overgangen 1→2 blev det oprindelige kort flyttet ned, og ved 2→3 flyttede det oprindelige
+  andet kort op. Enkeltklik bevarer rækkefølgen. Første Ctrl+Z fortryder flytningen, andet fortryder
+  oprettelsen.
+- **Forslag**: Lad et hurtigt andet klik på Tilføjs plads være uden virkning på de eksisterende
+  kort. Brugeren kan stadig flytte et kort med et særskilt klik.
+- **Tværgående prøve**: Ved 0→1 ramte andet klik ingen knap. Den samme skiftende placering findes
+  ved Flyt, se BB-437. Dobbeltklik på rækkesletning i Offentlige ydelser fjernede kun den valgte række.
+
+### BB-435 – En tom overenskomstliste forklarer ikke, hvad filtrene gjorde
+
+- **Type**: Fornuft. **Prioritet**: Lav. **Rækkevidde**: Mønster M-63. **Beslutning**: Afventer udvikleren.
+- **Reproduktion**: Vælg KL-overenskomsten, sæt arbejdsgiverfilteret til RLTN og lønmodtagerfilteret
+  til Dansk Metal. Åbn «Vælg overenskomst».
+- **Oplevelse**: Det lukkede felt viser fortsat KL, men listen har kun «Vælg overenskomst…».
+  Den forklarer hverken, at de to filtre tilsammen giver nul muligheder, eller hvordan brugeren
+  får alternativerne tilbage. De eksisterende forklaringer på L og A fra BB-287 løser fortsat deres
+  egen opgave.
+- **Forslag**: Vis «Ingen overenskomster matcher de valgte filtre» i den åbne liste, og lad
+  brugeren se, at et filter kan nulstilles til «Alle». Bevar aftalen, som allerede er valgt.
+- **Tværgående prøve**: Samme filtervalg gav kun pladsholderen i Årsløn og ved Angivet dagsløn
+  med lønudvikling efter Overenskomst. Nulstilling til «Alle» genoprettede listen på Lønindkomst.
+
+### BB-436 – En anvendt, låst sats er svær at læse i mørkt tema
+
+- **Type**: Fornuft. **Prioritet**: Mellem. **Rækkevidde**: Mønster M-64. **Beslutning**: Afventer udvikleren.
+- **Reproduktion**: Vælg mørkt tema, «Almindelig løn» på helligdage og en reguleringsdato
+  `02-01-2024` med Store Bededagstillæg aktivt. Se «Satser på den manuelt angivne reguleringsdato».
+- **Oplevelse**: Den viste, låste værdi `0,45 %` er svær at skelne fra den mørke baggrund.
+  Chromes beregnede tekstfarve over baggrunden giver ca. 1,66:1 i kontrast. Til højre står
+  den redigerbare pensionssats læseligt. Brugeren kan derfor overse en sats, der indgår i beregningen.
+- **Forslag**: Vis anvendte satser med læsbar tekstfarve og behold en synlig markering af, at
+  de er låst. Bevar forklaringen om, hvor satsen kommer fra.
+- **Tværgående prøve**: Årslønsberegnings låste SH/SO-sats `3,40 %` havde de samme farver med
+  Bygge-/anlægsoverenskomsten. Koden viser samme felt i Årslønsberegnings og Lønindkomstens øvrige
+  låste satser. Screenshots viser forskellen til redigerbare felter.
+
+### BB-437 – To hurtige klik på Flyt op flytter hvert sit kort
+
+- **Type**: Fejl. **Prioritet**: Lav. **Rækkevidde**: Mønster M-62. **Beslutning**: Afventer udvikleren.
+- **Reproduktion**: Opret tre lige høje kort i rækkefølgen B / A / C. Dobbeltklik på
+  «Flyt ansættelsesforhold op» på C.
+- **Oplevelse**: Første klik flytter C op. Andet klik rammer A's tilsvarende knap, som overtager
+  den hidtidige plads, og flytter A op. Brugeren ser samme rækkefølge som før. Ctrl+Z bagefter
+  viser den mellemliggende rækkefølge B / C / A, som et enkelt klik gav.
+- **Forslag**: Lad et hurtigt andet klik samme sted være uden virkning, når knappen dér nu
+  hører til et andet kort. Et nyt klik på C's nye knap kan stadig flytte C videre.
+- **Tværgående prøve**: Midterste kort flyttede kun én gang i den tilsvarende prøve.
+  BB-434 viser, at samme problem også kan skifte selve handlingen.
+
+### BB-438 – Sletedialogen skelner ikke mellem to kort med samme navn
+
+- **Type**: Fornuft. **Prioritet**: Lav. **Rækkevidde**: Mønster M-59. **Beslutning**: Afventer udvikleren.
+- **Reproduktion**: Navngiv kort 1 og 2 «Fiktiv kommune A». Åbn Slet på hvert af dem, og brug
+  Escape mellem de to prøver.
+- **Oplevelse**: Begge dialoger siger «Dette vil slette alle oplysninger i ansættelsesforholdet
+  (Fiktiv kommune A).» Kortnummeret, som skelner dem på skærmen, står ingen steder i dialogen.
+  Brugeren kan derfor ikke kontrollere, hvilket af de to kort der er ved at blive slettet.
+- **Forslag**: Vis den synlige kortoverskrift i dialogen, fx «Ansættelsesforhold 2 (Fiktiv kommune A)».
+- **Tværgående prøve**: M-59 dokumenterer, at ens navne allerede får et kortnummer i graf,
+  fejlbeskeder og dokumenter. Den samme kombination af nummer og navn findes på kortene.
+  Renteberegning og Offentlige ydelser bekræfter sletning af hele afsnit i stedet for ét navngivet kort.
+
+### Afprøvet uden yderligere fund
+
+- **Grænser og kalender**: 31-05-2018 som slutdato mod skade/anmeldelse 01-06-2018 gav konkret fejl,
+  mens dagen på og efter grænsen var gyldig. Slutdatoen kom tilbage efter fra- og tilvalg af Opsagt.
+  Særlig fra-dato afviste 31-02-2024 og 29-02-2023, men accepterede 29-02-2024.
+- **Procentsatser og overenskomster**: Ferie 11,99 viste advarsel om ferietillæg. 12 og 20 gav ingen
+  advarsel, mens 20,01 var gul og 100 rød. Pension accepterede 0 og 100, men 100,01 var rød.
+  KL og RLTN lod de manuelt indtastede tillæg stå. Læreroverenskomsten låste fritvalg og pension,
+  mens SH/SO kunne indtastes. Med KL gav manglende løntrin og gruppe en konkret fejl, som
+  forsvandt ved løntrin 20 og gruppe 0.
+- **Tastatur og historik**: Tab fulgte kortets ramme og Lønforhold til satsfelterne. Escape fortrød
+  navneredigering. Faneskift afsluttede den åbne indtastning, og Ctrl+Z/Ctrl+Y genskabte hver værdi.
+  Escape og Annuller bevarede kortet, bekræftet sletning kunne fortrydes og gentages. Formskift
+  mellem måned, uge og dato gav de forventede kolonner.
+- **Gem, Hent og genindlæsning**: En hentet `.eo` genskabte navn, opsigelsesdato, manuel
+  reguleringsdato, RLTN-valg og filter, satser og løn. Efter browserens genindlæsning stod den
+  afviste reguleringsdato `31-02-2024` stadig i feltet med kalenderfejlen.
+- **Bilag**: Med Beregningsperiode og arbejdsdage kunne «SH-dage» tilvælges. Både PDF og Word
+  viste to SH-dage i maj 2018 og otte i TAF-året 2024. Beregningsgrundlaget viste `23 − 2 = 21`
+  arbejdsdage for maj og navngav reguleringsdatoen. Der blev observeret nul browser- og console-fejl.
+
+### Dækningshuller i den fornyede gennemgang
+
+- De tre offentlige eksempeloverenskomster blev prøvet. Øvrige overenskomster, alle deres løntrin
+  og alle satsdatoer blev gennemgået i udvalgte grænsetilfælde. Indtægtsrækker, detaljer i
+  lønudvikling og sygeferiegodtgørelse ligger i 12h–12j.
+- Browsermålingerne dækker Chrome. Systemets native filvælgere og egentlig skærmlæser blev ikke
+  afprøvet. Visuel gennemgang omfattede kortet i lyst og mørkt tema, og dokumenterne blev tekstafstemt.
+- Lokal evidens ligger under `test-results/brugerblik-12g-20261122/`. Klikmålinger for BB-434
+  og BB-437 ligger under `test-results/brugerblik-12-ledelse/`.

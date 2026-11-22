@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import type { PdfDocumentAdapter, PdfImageCompression, PdfImageFormat, PdfTextOptions } from './pdfDocumentAdapter';
 import type { PdfFontFamily, PdfFontStyle } from '../../document/layout/pdfConfig';
 import { getJsPdfPageSize as getPageSize } from '../../document/layout/jsPdfGeometry';
+import { toPdfStandardFontText } from '../../document/layout/pdfTextUtils';
 
 export const createJsPdfAdapter = (doc: jsPDF): PdfDocumentAdapter => {
   // Defensiv check ved oprettelse: fejler hårdt ved version-inkompatibilitet
@@ -17,8 +18,10 @@ export const createJsPdfAdapter = (doc: jsPDF): PdfDocumentAdapter => {
   getPageSize(doc);
 
   return {
+    // Al adapter-tekst (brevhoved, sektionsoverskrift, footer, vandmærke) skal kunne
+    // gengives med standardfonten – ellers spredes hele linjen (jf. pdfTextUtils).
     text: (text: string, x: number, y: number, options?: PdfTextOptions) =>
-      doc.text(text, x, y, options),
+      doc.text(toPdfStandardFontText(text), x, y, options),
     addImage: (
       imageDataUrl: string,
       format: PdfImageFormat,

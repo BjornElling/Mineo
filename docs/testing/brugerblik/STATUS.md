@@ -15,8 +15,14 @@
 - **Gennemgået 2026-11-19:** 11d. Erhvervsevnetab → EET efter EAL. To nye fund med prioritet Mellem. BB-418 (Fornuft) peger en ren EAL-sag mod ASL-årslønnen. BB-419 (Edge case) blokerer EAL-specifikationen ved en ugyldig kapitaliseringsdato på en ældre afgørelse. M-56 og M-57 er efterprøvet på søsterfanerne og i Forsørgertab. PDF, Word, Gem/Hent, genindlæsning og ti afgørelser er afprøvet. Se `erhvervsevnetab.md` nederst.
 - **Gennemgået 2026-11-19:** 11e. Erhvervsevnetab → Differencekrav. Fem nye fund, BB-420–BB-424: to Fejl og tre Fornuft. Én Høj, én Mellem og tre Lav. Beregningsdato, bilagsvalg, forlig, pensionsgrænser, PDF, Word, Gem/Hent og elleve afgørelser er afprøvet. Alle fem Erhvervsevnetab-faner er nu gennemgået i den fornyede runde. Se `erhvervsevnetab.md` nederst.
 - **Afgjort 2026-11-19:** Alle 17 nye Erhvervsevnetab-fund (BB-408–BB-424) er gennemført: seks som fejlrettelser, elleve efter udviklerens godkendelse.
-- **Næste flade:** 12a. Erstatningsopgørelse → Opgørelsens ramme.
-- **Næste fund-ID:** BB-425.
+- **Gennemgået 2026-11-20:** 12a–12c. Den fornyede gennemgang står nederst i de tre fladerapporter under datoen. Fundenes lokale ID'er er bevaret.
+- **Gennemgået 2026-11-21:** 12d. AES-afgørelser og erstatningsperiodens afgrænsning. BB-425 (Fejl, Mellem) og BB-426 (Fornuft, Lav) afventer udvikleren. Begge er browserbekræftede, BB-425 også i PDF og Word. Se `erstatningsopgoerelse-12d.md` nederst.
+- **Gennemgået 2026-11-22:** 12e. Tabt arbejdsfortjeneste. Tre Fornuft-fund, BB-427–BB-429, afventer udvikleren. To Mellem og ét Lav. Grænser, enhedsskift via Lønindkomst, EO-kontrol, Kontroltabel, PDF, Word, Gem/Hent, F5 og en 3.14-prøvesag er afprøvet. Se `erstatningsopgoerelse-12e.md` nederst.
+- **Gennemgået 2026-11-22:** 12f. Beregningsgrundlaget for TAF. Fire fund, BB-430–BB-433, afventer udvikleren. Én Fejl (Høj), to Fornuft og ét Edge case (alle Mellem). M-61 blev bekræftet i Årslønsberegning og Offentlige ydelser. Erhvervssygdom, PDF, Word, Gem/Hent og F5 blev prøvet. Se `erstatningsopgoerelse-12f.md` nederst.
+- **Gennemgået 2026-11-22:** 12g. Ansættelsesforholdets ramme, lønforhold og satser. Fem fund, BB-434–BB-438, afventer udvikleren. To Fejl og tre Fornuft, fordelt på to Mellem og tre Lav. Ti kort, offentlige overenskomster, lyst og mørkt tema, SH-dage i PDF og Word, Gem/Hent og F5 blev prøvet. Se `erstatningsopgoerelse-12g.md` nederst.
+- **Fejlrettet 2026-11-22 (12a–12g):** NY-12a-1, NY-12b-1, NY-12b-2, NY-12b-3, NY-12c-3, NY-12c-4, BB-425, BB-430, BB-433, BB-434, BB-436 og BB-437. NY-12a-2/NY-12c-1 er delvist rettet: PDF'en spreder ikke længere linjen, men translittererer tegn uden for standardfonten (Ł → L); ordret gengivelse kræver en indlejret font og afventer udvikleren. Afventer udvikleren: NY-12a-3, NY-12a-4, NY-12a-5, NY-12b-4 og BB-426 (samme mønster), NY-12c-2, BB-427, BB-428, BB-429, BB-431, BB-432, BB-435 og BB-438.
+- **Næste flade:** 12h. Erstatningsopgørelse → Ansættelsesforholdets indtægtsoplysninger.
+- **Næste fund-ID:** BB-439.
 
 Første gennemgangs status og historik nedenfor er bevaret uændret.
 

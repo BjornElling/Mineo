@@ -657,3 +657,73 @@ Status skelner mellem oprindelig browsermåling, kode-/testaflæsning og konkret
 - **B6 – tilstandsskift:** **Browser:** normale settles/faneskift. **Kode:** fælles history- og save/load-flow. **Uprøvet i den oprindelige kørsel:** undo/redo, F5, luk fane, browser-tilbage med åben editor, `Gem`/`Hent` og «Slet alt». Playwright kan automatisere filvælger og download; senere navngivne `.eo`-loadtests er ikke en generel rundtur.
 - **B6a – tomhed:** **Browser:** eksisterende værdier bevares ved toggle fra/til; S/S-beløb ved nummerændring. **Kode:** descriptorernes relevans/tomhed. **Uprøvet:** tomme standarder felt for felt, ryddet felt efter tidligere værdi og om tomme dokumentfelter bliver fravær eller nul.
 - **B7 – downstream:** **Browser:** Word viser titel, periode, bemærkninger og bilagsreferencer; nummerændring påvirker sektioner. **Kode/test:** beregnings- og dokumentforbrug af periode/forlig. **Uprøvet:** PDF og save→load round-trip, inklusive præcis før/efter-paritet. Senere navngivne tests af ældre `.eo`-sager dækker kun de pågældende loadscenarier, ikke en generel 12a-rundtur.
+
+## Fornyet gennemgang 2026-11-20
+
+- Grundlag: `ace2a2df`. Chrome headless 1536×864, synligt login og fiktive sager. Hentede PDF'er læst og renderet med PyMuPDF. Word-filer læst via dokumentets XML.
+- Inventar afstemt mellem kilde og browser: titel med frivilligt nummer (7 tegn) og ledsagetekst (64), «Revideret opgørelse», to periodefelter, «Opgørelse lavet den» og dagsdatoknappen, udkast-stempel, de tre valg for helbredsforhold, de 11 valg for arbejdssituation og de tre afslutninger. Forlig har valgfri procent (1–100), valgfri brøk (positiv, højst 1, højst 10 heltalscifre og decimaler pr. del) og en dato, der kræver en ansvarsgrad. Bemærkninger er frivillige med 512 tegn; bilagsvælgeren viser syv frivillige numre med 12 tegn. Alle tomværdier for fritekst, dato og status er tomme. Første opgørelse udledes også af tomt nummer. Udkast-stempel, bilagsvalg og afslutning har nye sagers standarder fra Indstillinger.
+- Afhængigheder: Stamdata leverer skadelidtes navn, journalnummer, skadestype og nedre datogrænser. Beregningsoversigten kan blokere for manglende periode/dato, kræve status afhængigt af krav og advare om manglende nummer, fravær af krav og bilagsnumre uden tilsvarende indhold. EO-perioden styrer kravene og statusdatoen, forligsgraden kan ændre beløb, og nummeret kan gøre oplysninger om tidligere opgørelser og førstegangsgrundlaget relevante. Brevhoved, titel, status, afslutning og bemærkninger går videre til de hentede dokumenter.
+
+### NY-12a-1 – Et filnavn i bemærkningerne og Word-dokumentets journalnummer skrives om
+
+- **Type:** Fejl · **Rækkevidde:** Mønster · **Prioritet:** Høj · **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Skriv `AES-2024-01-15` i «Journalnr.» på Stamdata og `Vedlagt fil AES-2024-01-15.pdf.` i «Særlige bemærkninger». Hent en gyldig opgørelse som PDF og Word med brevhoved slået til.
+- **Det sker:** Begge dokumenter siger `Vedlagt fil AES-15-01-2024.pdf.`. Word ændrer også brevhovedet til `J.nr. AES-15-01-2024`. PDF-brevhovedet og begge hentede filnavne bevarer `AES-2024-01-15`.
+- **Det er uhensigtsmæssigt fordi:** Læseren kan lede efter en vedhæftning under et navn, den aldrig har haft, eller journalisere Word-versionen under en anden reference end PDF-versionen. Sagen indeholder stadig de oprindeligt indtastede værdier.
+- **Bedre ville være:** Bevar tekst og referencer fra brugerens fritekstfelter tegn for tegn i begge dokumentformater, og formatér programmets egne datofelter som hidtil.
+- **Systematik:** Den samme forskel mellem PDF/Word og filnavn er målt på brevhovedet i «Varige mén». I «Renteberegning» er filreferencen ligeledes ændret i PDF-specifikationens «Kommentarer», mens PDF-brevhovedet igen bevarer journalnummeret. Den fælles dokumentbehandling omformaterer også datoformede fragmenter i filnavn eller identifikator. Tre diagnostiske konsolfejl kom under de to EO-downloads med denne indtastning. «Offentlige ydelser» og «Øvrige erstatningskrav» har også dokumentført fritekst, men er ikke prøvet særskilt med en datoformet reference.
+
+### NY-12a-2 – PDF forvansker skadelidtes navn og bemærkninger med polske bogstaver
+
+- **Type:** Fejl · **Rækkevidde:** Mønster · **Prioritet:** Høj · **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Skriv `Łukasz Żak` på Stamdata, `Kontakt: Łukasz Żak.` i «Særlige bemærkninger», og vælg «Underskrift-linje». Hent som PDF og Word.
+- **Det sker:** På PDF-forsiden og ved underskriften fremstår navnet med spredte bogstaver som `A u k a s z  { a k`. Også hele kontaktlinjen får spredte bogstaver. Word har det korrekte navn alle tre steder.
+- **Det er uhensigtsmæssigt fordi:** I en PDF til modparten eller til underskrift fremgår den skadelidtes navn forkert, selv om det er indtastet og står korrekt på skærmen.
+- **Bedre ville være:** Gengiv `Łukasz Żak` læseligt og med de indtastede bogstaver i PDF'en både på forsiden, under underskriften og i friteksten.
+- **Systematik:** Samme navnesvigt er målt i tre forskellige tekstdele, og Word er kontrolleret for den samme sag. PDF-specifikationens «Kommentarer» på «Renteberegning» gengiver `Kontakt: Łukasz Żak.` med samme fejl. «Varige mén» har intet navnefelt på den målte dokumentforside. PDF'ens standardfont og den fælles tekstbehandling gør øvrige dokumenter med navne og fritekst til kandidater.
+
+### NY-12a-3 – Opgørelsen beskriver et senere forlig som allerede indgået
+
+- **Type:** Fornuft · **Rækkevidde:** Mønster → M-05 og BB-242 · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Med skadedato `01-01-2024`, sæt «Opgørelse lavet den» til `01-02-2024`, forligsprocenten til `50` og «Evt. dato for forlig» til `01-03-2024`. Hent opgørelsen. Gentag med et aktivt krav, fx «Medicin» til `10.000` kr. den `10-01-2024` og et forlig indtastet som `1/200`.
+- **Det sker:** Datoen står neutralt på «EO oplysninger», og «Fejl og advarsler» nævner ikke kombinationen. PDF og Word dateret 1. februar 2024 siger «Der er den 1. marts 2024 indgået forlig i sagen på betaling af 50 %.» I Word- og PDF-prøven med det aktive krav bliver de 10.000 kr. også faktisk reduceret til 50 kr. via det senere forlig.
+- **Det er uhensigtsmæssigt fordi:** Den læser, der har opgørelsens dato og indgåelsesdatoen foran sig, får to oplysninger, der ikke passer tidsmæssigt sammen. Brugeren kan sende papiret videre uden at se sammenstillingen, da datoerne står i hver sin sektion.
+- **Bedre ville være:** Giv en gul, ikke-blokerende advarsel ved forligsdatoen og på Beregning med den konkrete tidligere opgørelsesdato. Det svarer til den eksisterende advarsel for AES-afgørelser dateret efter opgørelsen.
+- **Systematik:** AES-advarslen er sammenligningspunktet fra BB-242. «TAF fordelt på kalenderår» og «TAF opreguleret til beregningsåret» er bekræftet med dokumenter dateret 4. januar 2024 og et forlig indgået 5. januar 2024. «EET efter EAL» og «Differencekrav» har også en forligssætning. Beregningsdatoen i de to dokumenter er særskilt fra deres dato i brevhovedet.
+
+### NY-12a-4 – Procent og brøk giver forskellige svar ved samme ansvarsgrad
+
+- **Type:** Fornuft · **Rækkevidde:** Mønster · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Tilføj «Medicin» til `10.000` kr. den `10-01-2024` til en ellers gyldig opgørelse. Under «Forlig om ansvarsgrad» skriv `0,5` i «Procent» og læs Beregning. Ryd feltet, skriv `1/200` ved «eller brøk», og hent opgørelsen.
+- **Det sker:** `0,5` bliver rød med «Procent skal være mellem 1 og 100», og downloadknappen melder «Opgørelse kan ikke hentes, når der er fejl ovenfor». `1/200` er neutral og giver et krav på 50 kr. i begge dokumentformater. De to indtastninger angiver den samme andel.
+- **Det er uhensigtsmæssigt fordi:** «Eller» præsenterer felterne som to måder at indtaste samme ansvarsgrad. Brugeren kan få indtryk af, at en oplyst ansvarsgrad på 0,5 % er umulig eller ugyldig, medmindre vedkommende selv regner den om til en brøk.
+- **Bedre ville være:** Brug samme tilladte andele for begge felter. Hvis `1/200` fortsat skal være en tilladt andel, bør `0,5` virke direkte i procentfeltet og give de samme 50 kr. En ændring af gældende grænser kræver udviklerens afgørelse.
+- **Systematik:** I «Erhvervsevnetab → EET oplysninger» blev samme `0,5` vist rødt, og `1/200` blev accepteret. Det vedligeholdes som ét fund, fordi de tre forligsfelter er fælles for de to sider. Øvrige brøkfelter blev søgt som kontrol. En måleenhed med både procent og brøk er her afgrænset til forlig.
+
+### NY-12a-5 – Opgørelsen beskriver skadelidtes senere status som en historisk kendsgerning
+
+- **Type:** Fornuft · **Rækkevidde:** Mønster → M-05 og BB-242 · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Med skadedato `01-01-2024`, periode `01-01-2024` til `31-01-2024` og «Opgørelse lavet den» `04-01-2024`, udfyld S/S og TAF for `08-01-2024` til `12-01-2024`. Vælg «Sygemeldt» og «Uarbejdsdygtig» under «Status den 1. februar 2024». Hent PDF.
+- **Det sker:** Beregning advarer om de delvise S/S- og TAF-perioder, men giver ingen advarsel om statusdatoen. Dokumentet siger «Den 1. februar 2024 var skadelidte fortsat sygemeldt» og «Den 1. februar 2024 var skadelidte fortsat uarbejdsdygtig». Begge er i datid, selv om opgørelsen er lavet 4. januar.
+- **Det er uhensigtsmæssigt fordi:** Et krav kan anslås for en fremtidig periode, mens formuleringen om skadelidtes status læses som en konstateret oplysning. I den målte opgørelse står observationer dateret i februar og januar om hinanden.
+- **Bedre ville være:** Gør opmærksom ved de valgte statusfelter og på Beregning, når den viste statusdato ligger efter «Opgørelse lavet den». Bevar muligheden for at opgøre fremad. Udvikleren afgør, om fremadrettet status også skal mærkes som forventet i dokumentet.
+- **Systematik:** Begge statusfelter danner hver sin tekst med samme dato. Begge alternative TAF-dokumenter med brevhoved dateret 4. januar gengav den senere arbejdssituation. En opgørelsesdato lig statusdatoen gav ingen modsætning. Forslaget bevarer den afgjorte dag-efter-regel fra BB-210.
+
+### Afprøvet uden nye fund
+
+| Område | Målt på den aktuelle udgave |
+|---|---|
+| A1–A3, A7 – navn, sted og næste skridt | De navngivne felter og alle valgmuligheder er afstemt med fladen. Målt fra Stamdata gennem de relevante EO-valg til dokumenter. «Helbredsforhold» og «Arbejdssituation» kan begge stå tomme uden de respektive krav. Ved relevante, gyldige krav giver Beregning hver sin konkrete besked, der forsvinder, når status er valgt. |
+| A4, A8, B4 og B7 – følgevirkninger | Flytning af periodens begyndelse fra 1. til 11. januar gør en eksisterende medicinudgift 10. januar rød med forklaring på Beregning og bevarer posten. Et bilagsnummer `7 A` står i begge dokumenter efter en gyldig øvrig udgift. Et gemt nummer for en ukendt ménafgørelse giver den eksisterende advarsel og udelades af opgørelsen som besluttet ved BB-207. |
+| A5, B0–B2 – grænser og fejl | Alle syv bilagsfelter blev målt hver for sig med 11, 12 og 13 tegn, og stopper ved 12. Nummer, ledsagetekst og bemærkninger stopper henholdsvis ved 7, 64 og 512. Tom dato, 31. februar, før skadedato, kronologi og ens fra/til blev målt. Dagens dato var tilladt i «Opgørelse lavet den» og forligsdatoen, mens dagen efter var rød. Periodeslut 31-12-2027 blev accepteret, mens 01-01-2028 blev rød. «Indsæt dags dato» indsatte 20-11-2026 og beholdt fokus. |
+| A5, B1, B4–B5 – forlig | `0` og `101` er røde, `1`, `12,5` og `100` er gyldige. `0/1`, `1/0`, `2/1` og `1/` var røde, `2/4` bevarede formen og var gyldig. Tom ansvarsgrad sætter kun forligsdatoen rød, hvis en dato står indtastet. Samtidig `50` og `1/2` gjorde begge felter røde. Ny asymmetri under 1 % er registreret ovenfor. |
+| A6, B6 og B6a – fortrydelse og bevarelse | Escape gendannede nummeret, og Ctrl+Z/Ctrl+Y fulgte afsluttede nummerændringer. `2 → Nr. 2 → 2` skjulte og genviste `4.500,00` kr. i «Svie/smerte opgjort i tidligere erstatningsopgørelser» i tråd med BB-202 og BB-225. Faneskiftet afsluttede en åben ledsagetekst, som stod i titlen på Beregning. Skift af bilagstoggle skjulte alle syv felter og viste deres værdier igen. Efter F5 var både den afviste `31-02-2024` med rød ring og de afsluttede bemærkninger til stede. |
+| A6, B6 og B7 – filrundtur | Efter «Gem», «Slet alt» og «Hent» gennem browserens filvælger var titel, revideret valg, 512 tegn med linjeskift, afslutningen «Ingen» og fravalgt stempel bevaret. Et skjult `M-12` kom tilbage ved genaktivering af bilagsnumre. Første sletteforsøg blev annulleret, andet blev bekræftet i den fiktive sag. |
+| A7 og B7 – dokument | PDF og Word fulgte titlen, perioden samt godkendelsesalternativerne «Bekræftet godkendt», «Underskrift-linje» og «Ingen» i de målte eksempler. Udkast-PDF'en viste vandmærket, og Word havde vandmærket i overskriftsdelene. PDF med brevhoved fra udelod journalnummeret og dokumentets dato fra toppen. Bemærkninger på 512 tegn ombrød inden for PDF'ens tekstbredde. Opgørelsens egen advarsel om 0 kr. uden rejste krav stod på Beregning som besluttet ved BB-215. |
+
+### Dækningshuller
+
+- Chrome headless med lyst tema ved 1536×864. Supplerende browsermotorer, fysisk tastatur, native gemmedialog og lukning af browserfanen blev ikke prøvet. Gem/Hent brugte browserens fallback. Word blev læst som dokumenttekst og dokumentdele. PDF'ens navnefejl blev visuelt kontrolleret på renderede sider.
+- B3 vedrører inputtabellerne i 12b–12e. Her blev tabeller kun brugt som downstream-kontrol for rammefelter. Sjældnere ombytningsrækkefølger og kombinationer med legacy-filer er fortsat dækket af afgrænsningen i 2026-10-24-efterkontrollen. Der blev ikke kørt en ny fuld serie på de historiske filer.
+- Dobbeltklik ved den røde forligsdato kunne under en matrixkørsel opsnappes af dens forklaringsboks over brøkfeltet. En særskilt almindelig hover-prøve genskabte ikke den samme tilstand. Der er derfor ikke registreret et selvstændigt fund om boksen.
+- Lokal evidens: `test-results/brugerblik-12a-fornyet/` og `test-results/brugerblik-12a-e-cross/`. Browserkonsollen viste daterelateret diagnostik for fritekstfundet. Den senere input- og genindlæsningsprøve gav ingen konsolfejl.

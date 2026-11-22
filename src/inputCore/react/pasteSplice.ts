@@ -1,9 +1,11 @@
 import type { DraftAdmission } from '../../components/inputs/draftAdmission';
-import type { FieldCodecFamily } from '../fieldCodec';
+import type { FieldCodecFamily, FieldSignPolicy } from '../fieldCodec';
 import { normalizeClipboardText } from '../../utils/inputPasteNormalization';
+import { normalizeSignCharactersForCodec } from './fields/signPolicy';
 
 type PasteCodec = Readonly<{
   family: FieldCodecFamily;
+  signPolicy?: FieldSignPolicy;
   normalizePaste?: (raw: string) => string;
   preservesLineBreaks?: boolean;
 }>;
@@ -55,9 +57,11 @@ export const normalizePasteForDraft = (
   codec: PasteCodec,
   existingDraft: string,
 ): string => {
+  // Typografiske minustegn bliver ASCII '-' FØR familiens tegnfilter, så `10−1` ikke mister sit
+  // minus og bliver `101` (BB-430). Gælder både et tomt felt og en splice i en åben draft.
   const genericNormalized = codec.family === 'text' || codec.family === 'optionalText'
     ? normalizeClipboardText(raw, { preservesLineBreaks: codec.preservesLineBreaks })
-    : raw;
+    : normalizeSignCharactersForCodec(codec, raw);
   return existingDraft === ''
     ? (codec.normalizePaste?.(genericNormalized) ?? genericNormalized)
     : genericNormalized;

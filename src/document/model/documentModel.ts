@@ -1,5 +1,6 @@
 import type { BrevhovedData } from '../layout/documentLayoutHelpers';
 import type { TableSpec } from '../layout/tableSpec';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../layout/pdfConfig';
 import type { DocumentWriter } from '../writer';
 import { assertNever } from '../../utils/assertNever';
 
@@ -288,11 +289,62 @@ export const createDocumentComposer = (): Readonly<{
   };
 };
 
+/**
+ * Keep-with-previous for sumlinjer (NY-12c-3): en sumlinje er en label/værdi-linje med
+ * summeringsstreg over værdien («I alt», «Samlet …»). Den må aldrig stå alene øverst på en
+ * side, adskilt fra de poster, den summerer. Modelrendereren ser hele blokfølgen og beder
+ * writeren holde den forudgående posts SIDSTE linje sammen med de mellemliggende
+ * sektionsafstande og hele kæden af sumlinjer (fx subtotal + «I alt») – også når posten er
+ * ombrudt over flere linjer. Word-kanalen styrer selv sideflowet.
+ */
+const LABEL_VALUE_LINE_HEIGHT_MM = PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM;
+const SECTION_SPACER_HEIGHT_MM = PDF_BASE_LINE_HEIGHT_MM;
+
+const isSumLine = (block: DocumentBlock | undefined): boolean =>
+  block?.kind === 'labelValue' && block.options?.separatorAboveValue !== undefined;
+
+/** Højden af de sektionsafstande og sumlinjer, der følger direkte efter `index` (0 = ingen sumlinje). */
+const resolveTrailingSumLinesHeight = (blocks: readonly DocumentBlock[], index: number): number => {
+  let height = 0;
+  let pendingSpacerHeight = 0;
+  for (let next = index + 1; next < blocks.length; next += 1) {
+    const block = blocks[next];
+    if (block.kind === 'sectionSpacer') {
+      pendingSpacerHeight += SECTION_SPACER_HEIGHT_MM;
+    } else if (isSumLine(block)) {
+      height += pendingSpacerHeight + LABEL_VALUE_LINE_HEIGHT_MM;
+      pendingSpacerHeight = 0;
+    } else {
+      break;
+    }
+  }
+  return height;
+};
+
+/**
+ * Tekstblokke, hvis SIDSTE linje holdes sammen med en efterfølgende sumlinje. Blokken kan
+ * ombrydes over flere linjer, så reservationen lægges i writeren på sidste linje
+ * (`keepLastLineWithNext`) – ikke som et skøn før blokken.
+ */
+const isTextContentBlock = (block: DocumentBlock): boolean =>
+  block.kind === 'labelValue' || block.kind === 'normalThenBoldLine' || block.kind === 'wrappedText';
+
+/**
+ * `inheritedTrailingHeight` er sumlinje-kæden efter en indlejret blokliste (fx sidste række i
+ * en atomisk rækkeblok); den gælder listens sidste blok.
+ */
 const renderBlocks = (
   writer: DocumentWriter,
   blocks: readonly DocumentBlock[],
+  inheritedTrailingHeight = 0,
 ): void => {
-  for (const block of blocks) {
+  for (const [index, block] of blocks.entries()) {
+    const isLastBlock = index === blocks.length - 1;
+    const trailingSumLinesHeight =
+      resolveTrailingSumLinesHeight(blocks, index) + (isLastBlock ? inheritedTrailingHeight : 0);
+    if (trailingSumLinesHeight > 0 && isTextContentBlock(block)) {
+      writer.keepLastLineWithNext(trailingSumLinesHeight);
+    }
     switch (block.kind) {
       case 'wrappedText':
         if (block.bold) writer.writeBoldWrappedText(block.text);
@@ -352,15 +404,29 @@ const renderBlocks = (
       case 'table':
         writer.renderTable(block.spec);
         break;
-      case 'atomicChunks':
+      case 'atomicChunks': {
+        // Følger en sumlinje, holdes sidste række (eller, uden rækker ud over den første,
+        // header + første række) sammen med den. Rækkens sidste tekstlinje bærer desuden
+        // reservationen, så også en ombrudt række holdes sammen med sumlinjen.
+        const lastRow = block.rows.length > 0 ? block.rows[block.rows.length - 1] : undefined;
+        const lastRowStandsAlone = block.rows.length > 1;
         writer.writeAtomicTableChunks({
           rows: block.rows,
           renderHeader: () => renderBlocks(writer, block.header),
-          renderRow: (row) => renderBlocks(writer, row),
+          renderRow: (row) => {
+            const isLastRow = row === lastRow;
+            if (trailingSumLinesHeight > 0 && isLastRow && lastRowStandsAlone) {
+              writer.keepWithNext(block.estimateRowHeight + trailingSumLinesHeight);
+            }
+            renderBlocks(writer, row, isLastRow ? trailingSumLinesHeight : 0);
+          },
           estimateRowHeight: block.estimateRowHeight,
-          headerHeight: block.headerHeight,
+          headerHeight: lastRowStandsAlone
+            ? block.headerHeight
+            : block.headerHeight + trailingSumLinesHeight,
         });
         break;
+      }
       case 'signature':
         if (block.requiredHeight !== undefined)
           writer.keepWithNext(block.requiredHeight);

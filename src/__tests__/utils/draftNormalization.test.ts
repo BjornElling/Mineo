@@ -4,7 +4,24 @@ import {
   trimToNumericEdgesPreserveLeadingMinus,
   prefixZeroBeforeLeadingComma,
   stripAmountGroupingSeparators,
+  normalizeMinusCharacters,
 } from '../../utils/draftNormalization';
+
+describe('normalizeMinusCharacters', () => {
+  it('erstatter hvert genkendt minustegn med ASCII-minus og bevarer længden (BB-430)', () => {
+    expect(normalizeMinusCharacters('10−1')).toBe('10-1');
+    expect(normalizeMinusCharacters('10–1')).toBe('10-1');
+    expect(normalizeMinusCharacters('—1‑2')).toBe('-1-2');
+    const raw = '−1200−200';
+    expect(normalizeMinusCharacters(raw)).toBe('-1200-200');
+    expect(normalizeMinusCharacters(raw)).toHaveLength(raw.length);
+  });
+
+  it('lader tekst uden minustegn være uændret', () => {
+    expect(normalizeMinusCharacters('1.200,50+3')).toBe('1.200,50+3');
+    expect(normalizeMinusCharacters('')).toBe('');
+  });
+});
 
 describe('trimWhitespaceEdges', () => {
   it('trims leading and trailing whitespace', () => {

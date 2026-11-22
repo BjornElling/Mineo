@@ -1,13 +1,17 @@
 import { svieSmerteMax } from '../../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatCurrency } from '../../../utils/formatUtils';
+import { roundKroner } from '../../money/money';
 import { parseForligsgrad } from '../engines/forligsgrad';
-import { erSvieSmerteTidligereTotalRelevant } from './eoInputRelevance';
+import { erSvieSmerteTidligereMaxRelevant, erSvieSmerteTidligereTotalRelevant } from './eoInputRelevance';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 /**
  * Maksimum som beregningen faktisk bruger: lovens loft for satsåret, skaleret med en eventuel
- * forligsgrad – samme to led som `svieSmerteEngine` (`satsMax * forlig.factor`).
+ * forligsgrad og afrundet til hele øre – samme tre led som `svieSmerteEngine`
+ * (`roundKroner(satsMax * forlig.factor)`). Uden afrundingen var loftet ved brøkforlig (fx 88.500/7 =
+ * 12.642,857…) et andet tal end det, der vises og regnes med (12.642,86), og et beløb LIG det viste
+ * maksimum blev meldt som over det (NY-12b-2).
  *
  * `undefined` når satsåret ikke er brugbart: så findes der ingen grænse at måle et beløb mod.
  */
@@ -19,7 +23,7 @@ export const resolveEffektivtSvieSmerteMaksimum = (
   const satsMax = svieSmerteMax[aar as keyof typeof svieSmerteMax];
   if (!satsMax) return undefined;
   const forligsgrad = parseForligsgrad(values)?.factor;
-  return forligsgrad !== undefined ? satsMax * forligsgrad : satsMax;
+  return roundKroner(forligsgrad !== undefined ? satsMax * forligsgrad : satsMax);
 };
 
 /**
@@ -44,3 +48,19 @@ export const resolveSvieSmerteTidligereTotalOverMaxWarning = (
   if (maksimum === undefined || beloeb <= maksimum) return null;
   return `Svie/smerte opgjort i tidligere erstatningsopgørelser overstiger maksimum (${formatCurrency(maksimum)} kr.)`;
 };
+
+/**
+ * Maksimum var opbrugt i tidligere erstatningsopgørelser. To veje fører hertil – brugerens afkrydsning
+ * «Tidligere beregnet S/S til max.» og motorens `maksimumOpbrugtFoerPerioden`, når et indtastet tidligere
+ * beløb æder hele rammen – og de er samme tilstand (BB-219).
+ *
+ * Ét prædikat, som både dokumentet («Maksimum for svie- og smertegodtgørelse er nået i tidligere
+ * erstatningsopgørelse.») og EO-kontrollens «Svie/smerte-ophør skyldes» læser, så de ikke kan give to
+ * forskellige grunde for samme indtastning (NY-12b-1).
+ */
+export const erSvieSmerteMaksimumOpbrugt = (
+  values: Pick<ErstatningsopgoerelseValues, 'kravPaaSvieSmerteGodtgoerelse' | 'tidligereSsMax'>,
+  maksimumOpbrugtFoerPerioden: boolean,
+): boolean =>
+  (erSvieSmerteTidligereMaxRelevant(values) && values.tidligereSsMax === 'Ja') ||
+  (values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej' && maksimumOpbrugtFoerPerioden);

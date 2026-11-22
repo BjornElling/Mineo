@@ -101,6 +101,10 @@ const eoCanonicalOutputSchema = z.object({
   }).strict(),
   svieSmerte: z.object({
     maxApplied: z.boolean(),
+    // Ophørsgrundens to maksimum-tilstande, så EO-kontrollen læser samme udfald som dokumentet
+    // (NY-12b-1). Påvirker ingen beløb.
+    maksimumOpbrugtFoerPerioden: z.boolean(),
+    maksimumNaaet: z.boolean(),
   }).strict(),
   taf: z.object({
     harTafPerioder: z.boolean(),
@@ -233,6 +237,8 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
     },
     svieSmerte: {
       maxApplied: args.svieSmerte.maxApplied,
+      maksimumOpbrugtFoerPerioden: args.svieSmerte.maksimumOpbrugtFoerPerioden,
+      maksimumNaaet: args.svieSmerte.maksimumNaaet,
     },
     taf: {
       harTafPerioder: args.tafNetto.harTafPerioder,

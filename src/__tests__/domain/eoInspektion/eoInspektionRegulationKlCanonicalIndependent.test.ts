@@ -45,7 +45,7 @@ const buildCanonicalOutput = (): EoCanonicalOutput => ({
     oevrigeKravOre: moneyOre(0),
     samletTotalOre: moneyOre(0),
   },
-  svieSmerte: { maxApplied: false },
+  svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
   taf: {
     harTafPerioder: true,
     offentligeYdelserUdviklingOre: null,

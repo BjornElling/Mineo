@@ -1035,3 +1035,163 @@ manglende prøve.
 - **B6 – tilstandsskift:** **Browser:** tab til Beregning, link tilbage til felt og download. **Kode:** fælles revision/history-/document gate. **Uprøvet i den oprindelige kørsel:** undo/redo, `Gem`/`Hent`, F5, browser-tilbage, luk fane og åben editor på tværs af navigation. Playwright kan automatisere filvælger og download; senere navngivne loadtests dækker kun deres konkrete sager.
 - **B6a – tomhed:** **Browser:** en række med kun «Tilstand» alene blev talt som udfyldt; en helt ugyldig og en tom trailing række blev ikke prøvet i den oprindelige kørsel. **Kode/test:** evaluatorens `skip`-/fejlgrene og overlap. **Uprøvet:** hver tomhedstilstand browsermålt, især kun rejected råtekst, ryddet række og persistence af blanke celler.
 - **B7 – downstream:** **Browser:** PDF og EO-kontrol viste dage, satser, maksimum og beløb; download blev blokeret af fejl. **Kode/test:** engine, dokument og gate er sporet. **Uprøvet:** Word, generel save→load-rundtur, skjult værdis paritet, antal/dokument efter præcise periodegrænser og TAF-afhængigheder i samme sag. Senere tests af navngivne ældre `.eo`-sager er ikke universel persistensdækning.
+
+## Fornyet gennemgang 2026-11-20
+
+Grundlag `ace2a2df`. Afprøvet i Chrome headless, 1536×864, lyst tema, med syntetiske sager.
+Den tidligere rapport, den aktuelle fundliste og de relevante kontrakter blev brugt til at afgrænse
+kendte forhold. Browserprøver, målinger, PDF og Word ligger i den ignorerede mappe
+`test-results/brugerblik-12b-fornyet/`.
+
+### Inventar
+
+| Indtastning eller handling | Tilladte værdier og betydning |
+|---|---|
+| «Er der krav på svie- og smertegodtgørelse i erstatningsperioden» | Ja viser periodeinput, Nej viser kun valget om tidligere maksimum, Skjul udelader afsnittet fra opgørelsen. |
+| «Tidligere beregnet S/S til max.» | Til/fra. Skjuler og neutraliserer periodeinput, når maksimum er nået. De afsluttede værdier kan vises igen ved reaktivering. |
+| «Fra o.m.» og «Til o.m.» | Datoer med inklusiv optælling. Standardramme fra 01-01-2005 til i dag, konkretiseret af skadeoplysninger, datoernes rækkefølge og en upåklaget ménafgørelse. Lighed mellem Fra og Til giver én dag. EO-perioden bestemmer, hvilke ellers gyldige dage der tæller. |
+| «Tilstand» | Tom, «Sygemeldt» eller «Delvist Sygemeldt». Et valg aktiverer rækken og efterlader en ny tom række. Hver kolonne kan sorteres. Et klik på «Slet rækken» fjerner rækken og kan fortrydes. |
+| «Antal dage» og informationsikoner | Dage inden for erstatningsperioden. Periodeikonet forklarer, at tidligere indtastede perioder bevares. Forklaringen til delvis sygemelding beskriver satsvalget. |
+| «Hvilket års svie/smerte-satser lægges til grund?» og «Indsæt årstal» | Tomt felt eller årstal med fire cifre efter afslutning. Grænserne var 2005–2026 i kørslens satsdata. Knappen foreslår et dækket satsår fra opgørelsesdatoen eller dags dato. |
+| «Svie/smerte-sats ved delvis sygemelding» | «Fuld sats» eller «Halv sats». Nye sager arver indstillingen. Valget bruges til perioder med delvis sygemelding. |
+| «Svie/smerte opgjort i tidligere erstatningsopgørelser» og «Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode» | Valgfrie beløb fra 0 med op til syv heltalscifre og to decimaler. Det første felt vises fra anden opgørelse og reducerer det resterende maksimum. Det andet felt reducerer det aktuelle krav. |
+
+Beregning viser perioder, fejl, advarsler og dokumenthandlinger. EO-kontrol viser desuden dagsats,
+loft, antal dage, beregnet beløb og ophørsgrund. Relevante oplysninger andre steder er skadestype
+og skadedato, opgørelsens nummer, dato og periode, «Helbredsforhold», forlig, ménafgørelse og klage
+samt bilagsnummer. De kan ændre gyldighed, beløb, dokument eller synlighed uden en ændring i selve tabellen.
+
+### NY-12b-1 – Ophørsgrunden viser forkert, hvornår maksimum er nået
+
+- **Type** Fejl. **Rækkevidde** Lokal. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug erstatningsopgørelse 2 for 20-01-2024 til 31-01-2024,
+  satsår 2024 og «Helbredsforhold» = «Sygemeldt». Sæt 20-01-2024 som eneste sygedag inden for
+  perioden og lad det aktuelt modtagne beløb stå tomt. Skift «Svie/smerte opgjort i tidligere
+  erstatningsopgørelser» mellem 88.269 kr., 88.270 kr., 88.271 kr. og 88.500 kr.
+- **Det sker.** Ved 88.269 kr. og 88.270 kr. viser EO-kontrol 230,00 kr. og ophørsårsagen
+  «Ikke rejst svie/smerte-krav for hele perioden». Sidstnævnte efterlader nul kroner af loftet
+  på 88.500 kr. Ved 88.271 kr. viser kontrollen 229,00 kr. og «Nået max i denne periode».
+  Ved 88.500 kr. viser kontrollen 0,00 kr. og stadig «Nået max i denne periode». Word siger i
+  samme sag «Maksimum for svie- og smertegodtgørelse er nået i tidligere erstatningsopgørelse.»
+- **Konsekvens for brugeren.** Ved 88.270 kr. ledes brugeren hen til slutdatoen, selv om en forlængelse
+  ikke kan øge kravet. Ved 88.500 kr. får brugeren og dokumentets modtager hver sin forklaring på,
+  hvornår rammen blev opbrugt.
+- **Forslag.** Vis «Nået max i denne periode», når det tidligere opgjorte beløb og den aktuelle
+  godtgørelse tilsammen når loftet. Når det tidligere beløb alene når loftet, vis samme ophørsgrund
+  som dokumentet. Bevar den nuværende advarsel i eksemplet med 88.269 kr.
+- **Systematik.** Gennemgik de tilsvarende ophørslinjer for TAF og EET og sporene til godtgørelse
+  i Varige mén. De har ingen fælles ophørsvisning baseret på tidligere beløb og et loft i kroner.
+  BB-219 handler om dokumentets visning ved reduktion og beskriver ikke disse to ophørsforklaringer.
+- **Evidens** `05-results.json`, `11-results.json` og de to Word-filer `naet-i-perioden.docx` og
+  `naet-foer-perioden.docx`.
+
+### NY-12b-2 – Beløbet advares for at overstige et maksimum, som det er lig med
+
+- **Type** Fejl. **Rækkevidde** Lokal. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Opret opgørelse 2 med et gyldigt S/S-krav for mindst én dag,
+  satsår 2024 og «Forlig om ansvarsgrad» som brøken `1/7`. Indtast først `12642,85`, så
+  `12642,86` og til sidst `12642,87` som tidligere opgjort S/S-beløb.
+- **Det sker.** Feltet er uden advarsel ved 12.642,85 kr. Ved både 12.642,86 kr. og 12.642,87 kr.
+  advarer Mineo «Svie/smerte opgjort i tidligere erstatningsopgørelser overstiger maksimum
+  (12.642,86 kr.)». Teksten findes ved feltet og på Beregning. Ved lighed siger Word, at maksimum
+  er nået i en tidligere opgørelse, og opgørelsen viser 0,00 kr. i aktuelt S/S-krav.
+- **Konsekvens for brugeren.** Brugeren får en gul advarsel, når beløbet matcher det oplyste loft
+  øre for øre. En ændring til 12.642,85 kr. alene for at fjerne advarslen ville gøre det tidligere
+  opgjorte beløb forkert.
+- **Forslag.** Sammenlign tidligere beløb med det samme loft i kroner og øre, som beregningen bruger
+  og kontrollen viser. Vis advarslen fra og med 12.642,87 kr. i denne sag.
+- **Systematik.** TAF's opgørelse og EET efter EAL samt Differencekrav bruger også en forligsgrad.
+  Deres kode viser forligets virkning uden en tilsvarende sammenligning med et indtastet tidligere
+  beløb. Gennemgik desuden advarsler om overskredet maksimum i hele domænet. Ingen tilsvarende
+  sammenligning med et forligsberegnet beløbsloft blev fundet.
+- **Evidens** `06-results.json`, `11-results.json`, `11-equal-cap.png` og
+  `forlig-praecis-max.docx`.
+
+### NY-12b-3 – Kontrollen giver en ophørsgrund i en periode uden en eneste godtgørelsesdag
+
+- **Type** Fejl. **Rækkevidde** Lokal. **Prioritet** Lav. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug erstatningsperioden 01-02-2023 til 28-02-2023 og behold
+  gyldige sygemeldingsrækker, der alle ligger i januar 2024. Vælg «Ja» til svie- og smertegodtgørelse.
+  Se Beregning, EO-kontrol og Word.
+- **Det sker.** Tabellens rækker viser 0 dage, og Beregning siger, at ingen af perioderne ligger
+  inden for EO-perioden. Word skriver «Ingen» under sygeperioder og viser 0,00 kr.
+  EO-kontrol viser desuden «Svie/smerte-ophør skyldes» → «Erstatningsperiodens ophør (28-02-2023)».
+- **Konsekvens for brugeren.** Kontrollen kan læses som om februar 2023 rummede et krav, der sluttede
+  ved månedens udløb. Datoerne viser, at alle sygeperioder begyndte senere.
+- **Forslag.** Udelad ophørsgrunden, når ingen af de indtastede perioder giver dage inden for
+  erstatningsperioden. Den eksisterende advarsel om 0 kr. forklarer resultatet.
+- **Systematik.** TAF i januar 2023 for en opgørelse fra januar 2024 viste 0 kr.-advarslen uden en
+  ophørsgrund. TAF tager udgangspunkt i dage inden for EO-perioden. Gennemgik ferie/fravær,
+  Offentlige ydelser og EET's Løbende ydelser for den samme kombination af afgrænsning og
+  særskilt forklaring om ophørsgrund. Ingen tilsvarende ophørsvisning fundet.
+- **Evidens** `05-results.json` og `10-results.json`.
+
+### NY-12b-4 – En forkert dato udløser også en for tidlig advarsel om et ufuldstændigt krav
+
+- **Type** Fornuft. **Rækkevidde** Lokal. **Prioritet** Lav. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug erstatningsperioden januar 2024 og «Helbredsforhold» =
+  «Sygemeldt». Vælg «Ja» til kravet. Tast `31-02-2024` i Fra i den eneste række og se Beregning.
+- **Det sker.** Feltet siger «Datoen findes ikke i kalenderen», og Beregning siger «Datoen findes
+  ikke i kalenderen; Til-dato og tilstand er ikke angivet». Beregning viser også «Ikke rejst
+  svie/smerte-krav for hele perioden». Til sammenligning siger den helt tomme tabel «Der er ikke
+  angivet nogen svie/smerte-periode i EO-perioden».
+- **Konsekvens for brugeren.** Brugeren får besked om kravets dækning på et tidspunkt, hvor Mineo
+  mangler den første gyldige periode. Der er endnu ingen afsluttet periode at forlænge.
+- **Forslag.** Behold den konkrete fejl og dens link. Vent med advarslen om kravets dækning,
+  indtil der er en gyldig periode at vurdere.
+- **Systematik.** TAF med samme afviste dato viste kalenderfejlen og den manglende Til, uden
+  advarsel om hele EO-perioden. Ferie og Øvrige erstatningskrav med samme afviste dato viste de
+  konkrete fejl for rækkerne. Den tidligere BB-227 omtalte de fire godkendte visningstilstande
+  i sammendraget og beskrev ikke denne kombination i «Fejl og advarsler».
+- **Evidens** `12-results.json`, `10-results.json` og den fælles prøve
+  `test-results/brugerblik-12a-e-cross/invalid-only.json`.
+
+### Afprøvet uden yderligere fund
+
+- **A1–A3 og A7.** Synlige feltnavne, kolonner og valgene for første og anden opgørelse er afstemt med
+  formularen og beregningsvisningen. Første opgørelse udelader beløbet fra tidligere opgørelser,
+  og skift tilbage til anden opgørelse viser det igen. Historiske BB-223 og BB-226 er afgjort.
+- **A4 og A6 samt B4 og B6.** «Tidligere beregnet S/S til max.» skjuler tre rækker, satsåret og
+  beløbene, Ctrl+Z genviser dem, og Ctrl+Shift+Z skjuler dem igen. Ja → Nej → Skjul → Ja gav de
+  samme værdier tilbage. Escape bevarede den afsluttede Fra-dato. Et klik til Beregning med åben
+  editor afsluttede den ugyldige dato og viste kalenderfejlen. F5 advarede om ugemt arbejde og
+  genviste den afviste råtekst. «Slet alt» sendte tilbage til Stamdata og efterlod én tom S/S-række.
+- **A5 og B2.** Fra dagen før skaden blev rød, og Fra på skadedatoen var tilladt. Prøvede 00
+  som dag, en ugyldig skudårsdag, en gyldig skudårsdag med overlap og en fremtidig dato. Ved
+  ændring af ménafgørelsesdatoen til 06-01-2024 forblev 05-01 gyldig, mens 06-01 og 07-01 blev røde.
+  Ved to rækker, der delte en enkelt dag, blev begge rækker markeret og Beregning viste én
+  overlappende periodefejl. Fejllinket bragte den afviste Fra-dato i syne.
+- **B0, B1 og B5.** Satsår `2004` og `2027` blev røde, `2005` og `2026` accepteret, og `24`
+  blev til `2024`. Med opgørelsesdato 15-12-2025 indsatte årsknappen `2026`. Datoen
+  `01.01.2024` indsat i datoeditoren blev vist som `01-01-2024`. Beløbsfelterne har syv heltalscifre
+  og to decimaler samt et minimum på nul. «Evt. allerede modtaget …» tog imod 9.999.999 kr.
+  og viste den indtastede størrelse. Den historiske afgørelse om overbetaling og nul i BB-119
+  og M-24 gjaldt også denne form. Beløb indsat med hårdt mellemrum, linjeskift og «kr.» blev
+  vist som `1.234,56`. Et komma alene blev stående som afvist tekst.
+- **B3 og B6a.** Tom tabel havde kun én indtastningsrække. «Tilstand» alene oprettede en aktiv
+  række, og afvist dato alene talte ligeledes som indhold. Rydning fjernede den ekstra række.
+  Slet en række → undo → redo viste den forventede rækkehistorik. Afprøvede 14 datoafgrænsede
+  rækker og faldende sortering på «Fra o.m.». To tilstødende rækker med samme tilstand gav en
+  advarsel uden blokering.
+- **A8 og B7.** En dag og en dagsgrænse ved EO-periodens start blev talt inklusivt. Samme 12 hele
+  og 4 delvise sygedage med satsår 2024 og 150 kr. modtaget gav 3.070,00 kr. i begge dokumenter
+  og bevarede det samme S/S-beløb, da et overlappende TAF-krav med en angivet månedsløn blev
+  tilføjet. PDF med brevhoved og Word uden brevhoved havde samme S/S-afsnit. Halv og fuld sats
+  gav henholdsvis 2.150,00 kr. og 2.840,00 kr. i kontrolprøven med 14 rækker.
+- **B7 og persistens.** Gem og Hent via browserens filfallback genskabte tre rækker, satsår og
+  beløbene 1.000,00 og 150,00 kr. fra `ss-valid.eo`, efter at feltet for modtaget beløb var ændret
+  til 170,00 kr., og en Fra-dato var gjort ugyldig i den aktive sag. En særskilt Gem-prøve med
+  afvist dato gav «Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.»
+  PDF/Word var spærret, mens datoen stod rød.
+- **Drift.** Ingen konsolfejl eller advarsler. Lyttere registrerede ingen ukontrollerede sidefejl eller
+  eksterne forespørgsler i de instrumenterede forløb.
+
+### Dækningshuller
+
+- Browserprøverne brugte Chrome ved designmålet. Firefox, Edge, WebKit, mørkt tema, mindre
+  viewporter og den indbyggede operativsystem-filvælger blev ikke målt i denne kørsel.
+- Word blev tekstlæst. Sideskift i Word med mange rækker blev ikke kontrolleret i Word-programmet.
+- Browserens tilbageknap med en åben datoredigering, manuel fanenedlukning og filrejser med
+  historiske filer og skjulte felter blev ikke målt. F5 og aktuelle Gem/Hent-forløb blev målt.
+- De afprøvede kombinationer omfatter datogrænser, overlap, cutoff, forlig, tidligere beløb og TAF.
+  Samspil med flere ansættelsesforhold og forskellige offentlige ydelser hører til de særskilte afsnit.

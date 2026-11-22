@@ -67,6 +67,34 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     expect(text).toContain('03-04-2025 - 22-02-2026');
   });
 
+  // NY-12a-1: brugerens fritekst og identifikatorer gengives tegn for tegn – også når de
+  // indeholder et ISO-dato-formet fragment. Kun programmets egne datofelter formateres.
+  it('gengiver journalnummer og særlige bemærkninger ordret, også med ISO-formet fragment', async () => {
+    const stamdata = baseStamdata();
+    const eo = baseEo();
+    stamdata.journalnr = 'AES-2024-01-15';
+    eo.saerligeKommentarer = 'Vedlagt fil AES-2024-01-15.pdf.';
+    eo.vedroererPeriodeFra = toISODateString('2025-04-03');
+    eo.vedroererPeriodeTil = toISODateString('2026-02-22');
+
+    const { documentXml } = await renderWordDocument(
+      (session) =>
+        generateErstatningsopgoerelseDocument(session, stamdata, eo, selected, {
+          visUdkastStempel: false,
+          visBrevhoved: true,
+          document: buildProjectedDocument(stamdata, eo),
+        }),
+      { verbatimUserIsoDates: ['2024-01-15'] }
+    );
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('J.nr. AES-2024-01-15');
+    expect(text).toContain('Vedlagt fil AES-2024-01-15.pdf.');
+    expect(text).not.toContain('15-01-2024');
+    // Programmets egen dato formateres fortsat ved kilden.
+    expect(text).toContain('03-04-2025 - 22-02-2026');
+  });
+
   it('tilføjer UDKAST-vandmærke i header og (udkast)-filnavn når visUdkastStempel=true', async () => {
     const stamdata = baseStamdata();
     const eo = baseEo();

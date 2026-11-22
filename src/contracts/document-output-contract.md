@@ -3,7 +3,7 @@
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-22
 
 ## Scope
 
@@ -304,13 +304,16 @@ genvej.
    `resolveStandardLoenPeriodColumns` (`src/domain/aarsloen/standardLoenTableColumns.ts`),
    så `dag`-perioden altid formateres til dansk. Generatorer må ikke duplikere denne
    periode-resolvering lokalt.
-4. **Sidste forsvarslinje (kanal-neutral):** Begge kanalers tekst- og tabel-stier router
-   gennem det centrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`).
-   Værnet er IKKE et alternativ til formatering ved kilden; det er et sikkerhedsnet, der
-   fanger en stray ISO-dato (valideret token), logger høj-lydt i udvikling (brudt invariant,
-   jf. console-politik) og deterministisk omformaterer til dansk `DD-MM-ÅÅÅÅ` i produktion,
-   så en utestet lækage-sti aldrig viser brugeren en ISO-dato. Værnet er en ren
-   string→string-ombytning uden `Date`/tidszone (samme kalenderdag).
+4. **Brugertekst gengives tegn for tegn.** Dato-formatering sker KUN på typede datoværdier ved
+   kilden – aldrig ved mønstergenkendelse på færdig tekst i kanalerne. Kanalerne kan ikke skelne
+   en lækket programdato fra brugerens fritekst eller identifikatorer (fx journalnummeret
+   `AES-2024-01-15`), så et runtime-værn, der omformaterer ISO-formede fragmenter, ville
+   forvanske brugerens data (NY-12a-1, derfor fjernet).
+5. **Sikkerhedsnettet ligger i testene:** Word-indholdsharnessen
+   (`src/__tests__/docx/generators/wordContentHarness.ts`) kører alle generatorer gennem
+   ISO-detektoren i `src/__tests__/document/rawIsoDateDetection.ts` og fejler på enhver rå
+   ISO-dato. Generatorerne er kanal-neutrale, så samme tekst dækker PDF-kanalen. Kun en
+   ISO-formet tekst, testen selv har lagt i brugerens fritekst, må undtages eksplicit.
 
 ## A9. Stregtegn i output (kanal-neutralt)
 
@@ -328,6 +331,11 @@ genvej.
    og `—` til ASCII `-`, fordi kanalens standardfont ikke bærer stregtegnene. Skiftet fra
    em-dash til en-dash i prosa er derfor visuelt neutralt i PDF, mens Word-kanalen viser
    tegnene som skrevet.
+4. Generelt gælder i PDF-kanalen, at al tekst passerer `toPdfStandardFontText`
+   (`src/document/layout/pdfTextUtils.ts`) før den når jsPDF: tegn, standardfonten kan vise
+   (Latin-1 og WinAnsi-tilføjelserne), bevares; øvrige tegn translittereres (`Ł`→`L`, `ż`→`z`)
+   eller erstattes med `?`. Ét ikke-gengiveligt tegn får ellers jsPDF til at sprede hele linjen
+   i enkeltbogstaver. Word-kanalen viser tegnene som skrevet.
 
 ---
 
@@ -426,6 +434,14 @@ Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædnin
 Generatorer kan ikke angive en lokal followup-højde. Overskrifters keep-together-højde ejes af det interne
 writer-lag, som kender den konkrete kanal. Kræver en ny bloktype en anden højde, skal behovet udtrykkes som en
 navngiven blokintention i modellen frem for som et råt mål fra generatoren.
+
+**Sumlinjer holdes sammen med den sidste post (keep-with-previous).** En sumlinje er en
+label/værdi-linje med `separatorAboveValue` («I alt», «Samlet …»). Modelrendereren
+(`renderDocumentModel` i `src/document/model/documentModel.ts`) ser hele blokfølgen og beder writeren
+(`keepLastLineWithNext`) holde den forudgående posts sidste linje sammen med mellemliggende
+sektionsafstande og hele kæden af sumlinjer – også når posten er ombrudt over flere linjer eller er
+sidste række i en atomisk rækkeblok. En sumlinje kan derfor ikke stå
+alene øverst på en side. Generatorer udtrykker intet ekstra; markeringen er selve summeringsstregen.
 
 `writeUnderlinedSubheader()` bruger altid rendererens centralt definerede standard-X-position.
 Generator-API'et modtager ikke en X-koordinat; en reel afvigelse kræver derfor en navngiven
@@ -650,7 +666,7 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`
 - `src/__tests__/utils/pdf/pdfWriter.test.ts`
 - `src/__tests__/docx/docxWriter.test.ts` (Word-kanalens paritet mod det fælles writer-API)
-- `src/__tests__/quality/documentDateFormatGuard.test.ts` (datoformat-værnet, §A8)
+- `src/__tests__/quality/documentDateFormatGuard.test.ts` (datoreglens test-sikkerhedsnet og ordret brugertekst, §A8)
 
 Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
@@ -676,7 +692,7 @@ Denne kontrakt skal understøttes af:
 3. writer unit-tests for spacing- og sidebrydningsinvariants
 4. quality guards for kendte generator-anti-mønstre
 5. generator-/domænetests for trust-kritiske gates og output-specifikke blokeringer
-6. det kanal-neutrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`), kaldt fra både tabel-rendereren og begge kanalers tekst-normalisering (§A8)
+6. datoreglens test-sikkerhedsnet (ISO-detektoren i `src/__tests__/document/rawIsoDateDetection.ts`), kørt af Word-indholdsharnessen over alle generatorer (§A8)
 
 Tekstbaserede quality guards er sekundære sikkerhedsnet. De må ikke erstatte egentlige writer- og domænetests.
 

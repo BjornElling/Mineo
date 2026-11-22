@@ -11,7 +11,11 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
-import { resolveSvieSmerteCutoffDate } from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
+import {
+  resolveSvieSmerteCutoffDate,
+  resolveSvieSmerteOphoer,
+  resolveSvieSmerteSenesteKravDato,
+} from '../erstatningsopgoerelse/validation/svieSmerteConstraints';
 import { resolveSvieSmerteSammenhaengendePerioder } from '../erstatningsopgoerelse/validation/sammenhaengendePerioderAdvarsler';
 import { mergeDateRanges } from '../erstatningsopgoerelse/engines/isoRangeAlgebra';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
@@ -20,7 +24,10 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { focusOnSenesteTil, resolveSenestSluttendePeriodeId } from './eoRowShared';
 import { erSvieSmertePeriodeInputRelevant, erSvieSmerteTidligereTotalRelevant } from '../erstatningsopgoerelse/helpers/eoInputRelevance';
-import { resolveSvieSmerteTidligereTotalOverMaxWarning } from '../erstatningsopgoerelse/helpers/svieSmerteMaksimum';
+import {
+  erSvieSmerteMaksimumOpbrugt,
+  resolveSvieSmerteTidligereTotalOverMaxWarning,
+} from '../erstatningsopgoerelse/helpers/svieSmerteMaksimum';
 import {
   erSvieSmerteSatserHoejere,
   hasSvieSmerteSatserForAar,
@@ -598,13 +605,13 @@ export const buildEoSvieSmerteRows = (
 
   // Alle perioder ligger uden for EO-perioden: kravet bliver 0 kr., og intet sagde det. Samme advarsel som TAF's
   // `taf.perioder.clampedAway` (BB-374); kataloget lader den erstatte «Ikke rejst svie/smerte-krav for hele perioden».
-  if (
+  const svieSmertePerioderClampedAway =
     values.kravPaaSvieSmerteGodtgoerelse === 'Ja'
     && harPerioder
     && !harPeriodeFejl
     && 'lines' in beregnetPeriodeResult
-    && beregnetPeriodeResult.lines.length === 0
-  ) {
+    && beregnetPeriodeResult.lines.length === 0;
+  if (svieSmertePerioderClampedAway) {
     rows.push({
       id: 'sviesmerte.perioder.clampedAway',
       label: 'Perioder',
@@ -752,14 +759,12 @@ export const buildEoSvieSmerteRows = (
       return {
         displayValue: '-',
         status: 'ok' as EoRowStatus,
-        naetMaxIPerioden: false,
       };
     }
 
     return {
       displayValue: `${formatCurrency(canonicalOutput.totals.svieSmerteOre / 100)} kr.`,
       status: 'ok' as EoRowStatus,
-      naetMaxIPerioden: canonicalOutput.svieSmerte.maxApplied,
     };
   })();
 
@@ -775,30 +780,26 @@ export const buildEoSvieSmerteRows = (
     ],
   });
 
-  const lastSvieSmerteKravDato = (() => {
-    let latest: ISODateString | undefined = undefined;
-    for (const periode of values.svieSmertePerioder ?? []) {
-      const hasFra = isNonEmptyString(periode.fra);
-      const hasTil = isNonEmptyString(periode.til);
-      const hasTilstand = isNonEmptyString(periode.tilstand);
-      if (!hasFra || !hasTil || !hasTilstand) continue;
-      if (periode.fra && periode.til && periode.fra <= periode.til) {
-        if (!latest || periode.til > latest) latest = periode.til;
-      }
-    }
-    return latest;
-  })();
+  // Den AFKLIPPEDE seneste dag (ménafgørelse og EO-periode) – som TAF's og som dokumentets. Den rå til-dato
+  // gav «Erstatningsperiodens ophør», når en periode løb forbi ménafgørelsen, mens papiret nævnte ménafgørelsen.
+  const svieSmerteOphoer = resolveSvieSmerteOphoer(values, resolveSvieSmerteSenesteKravDato(values));
 
-  const svieSmerteOphoerSkyldes = (() => {
+  const svieSmerteOphoerSkyldes = ((): Readonly<{ displayValue: string; status: EoRowStatus }> | undefined => {
     if (values.kravPaaSvieSmerteGodtgoerelse !== 'Ja') {
       return { displayValue: 'Ingen krav i perioden', status: 'ok' as EoRowStatus };
     }
 
-    if (values.tidligereSsMax === 'Ja') {
+    // Afkrydsningen og et indtastet tidligere beløb, der æder hele rammen, er samme tilstand og får
+    // samme grund – det prædikat, dokumentets «… er nået i tidligere erstatningsopgørelse.» læser (NY-12b-1).
+    if (erSvieSmerteMaksimumOpbrugt(values, canonicalOutput?.svieSmerte.maksimumOpbrugtFoerPerioden ?? false)) {
       return { displayValue: 'Tidligere beregnet til max', status: 'ok' as EoRowStatus };
     }
 
-    if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato >= values.vedroererPeriodeTil) {
+    // Ingen dag i EO-perioden: der er intet ophør at begrunde. Samme regel som `taf.ophoerSkyldes`, der
+    // ikke emitteres, når ingen TAF ligger i EO-perioden (NY-12b-3).
+    if (svieSmertePerioderClampedAway) return undefined;
+
+    if (svieSmerteOphoer.erstatningsperiodensOphoer && values.vedroererPeriodeTil) {
       const vedroererPeriodeTilDanish = isoToDanish(values.vedroererPeriodeTil);
       return {
         displayValue: vedroererPeriodeTilDanish
@@ -808,16 +809,12 @@ export const buildEoSvieSmerteRows = (
       };
     }
 
-    const menStopdato = resolveSvieSmerteCutoffDate(values);
-    if (
-      lastSvieSmerteKravDato &&
-      menStopdato &&
-      getDayBeforeIso(menStopdato) === lastSvieSmerteKravDato
-    ) {
+    if (svieSmerteOphoer.menafgoerelse) {
       return { displayValue: 'Ménafgørelse', status: 'ok' as EoRowStatus };
     }
 
-    if (beregnetBeloebResult.naetMaxIPerioden) {
+    // «Nået», ikke «skåret ned»: tidligere + aktuelt LIG loftet har også nået maksimum (NY-12b-1).
+    if (canonicalOutput?.svieSmerte.maksimumNaaet) {
       return { displayValue: 'Nået max i denne periode', status: 'ok' as EoRowStatus };
     }
 
@@ -828,16 +825,18 @@ export const buildEoSvieSmerteRows = (
     return { displayValue: svieSmerteIkkeRejstLabel, status: 'warning' as EoRowStatus };
   })();
 
-  rows.push({
-    id: 'sviesmerte.ophoerSkyldes',
-    label: 'Svie/smerte-ophør skyldes',
-    displayValue: svieSmerteOphoerSkyldes.displayValue,
-    status: svieSmerteOphoerSkyldes.status,
-    // Forlængelsen sker i den senest sluttende periode, ikke nødvendigvis i tabellens første række.
-    ...(svieSmerteOphoerSkyldes.status === 'warning'
-      ? focusOnSenesteTil(resolveSenestSluttendePeriodeId(perioder), eoSvieSmertePeriodeTilField)
-      : {}),
-  });
+  if (svieSmerteOphoerSkyldes !== undefined) {
+    rows.push({
+      id: 'sviesmerte.ophoerSkyldes',
+      label: 'Svie/smerte-ophør skyldes',
+      displayValue: svieSmerteOphoerSkyldes.displayValue,
+      status: svieSmerteOphoerSkyldes.status,
+      // Forlængelsen sker i den senest sluttende periode, ikke nødvendigvis i tabellens første række.
+      ...(svieSmerteOphoerSkyldes.status === 'warning'
+        ? focusOnSenesteTil(resolveSenestSluttendePeriodeId(perioder), eoSvieSmertePeriodeTilField)
+        : {}),
+    });
+  }
 
   return rows;
 };

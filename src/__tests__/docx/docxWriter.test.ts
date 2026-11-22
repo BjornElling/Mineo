@@ -159,6 +159,33 @@ describe('createDocxWriter', () => {
     expect(footerFiles).toEqual([]);
   });
 
+  // NY-12a-1: Word-kanalen gengiver brugertekst tegn for tegn – et ISO-formet fragment i et
+  // journalnummer eller en fritekst omformes ikke til dansk datoformat.
+  it('gengiver ISO-formede fragmenter i brevhoved, brødtekst, label/værdi og tabel ordret', async () => {
+    const writer = createDocxWriter();
+    writer.writeBrevhoved({
+      journalnr: 'AES-2024-01-15',
+      dagsDatoISO: toISODateString('2026-04-18'),
+    });
+    writer.writeWrappedText('Vedlagt fil AES-2024-01-15.pdf.');
+    writer.writeLeftRightText('Kommentar 2024-01-15', '100 kr.');
+    writer.renderTable({
+      columns: [{ width: { kind: 'flex' } }],
+      rows: [{ cells: [{ text: 'Kvittering 2024-01-15' }] }],
+      hasHeaderRow: false,
+    });
+
+    const zip = await JSZip.loadAsync(await writer.build());
+    const xmlFiles = Object.keys(zip.files).filter((name) => /^word\/(document|header\d+)\.xml$/.test(name));
+    const allXml = (await Promise.all(xmlFiles.map((name) => zip.file(name)!.async('string')))).join('\n');
+
+    expect(allXml).toContain('J.nr. AES-2024-01-15');
+    expect(allXml).toContain('Vedlagt fil AES-2024-01-15.pdf.');
+    expect(allXml).toContain('Kommentar 2024-01-15');
+    expect(allXml).toContain('Kvittering 2024-01-15');
+    expect(allXml).not.toContain('15-01-2024');
+  });
+
   it('lægger versions-footeren i både default- og first-footer ved brevhoved', async () => {
     clearDocumentFooterImageCacheForTests();
     const capture = captureDownload();

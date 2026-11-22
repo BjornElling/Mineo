@@ -4,7 +4,13 @@ import StyledTextFieldBase from '../StyledTextFieldBase';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { parseAmountInput, amountValueToDraftString } from '../../../utils/expressionAmount';
 import { useTransientDraft } from './useTransientDraft';
-import { amountExpressionAdmission, keyFilterFromAdmission, restoreDomValueAfterRejectedDraft } from '../draftAdmission';
+import {
+  amountExpressionAdmission,
+  keyFilterFromAdmission,
+  restoreDomValueAfterRejectedDraft,
+  syncDomValueAfterNormalizedDraft,
+} from '../draftAdmission';
+import { isTranslatedSignKey, normalizeSignCharactersForCodec } from '../../../inputCore/react/fields/signPolicy';
 import { readClipboardText } from '../../../utils/clipboardUtils';
 import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
 import { assignRef } from '../../../utils/refUtils';
@@ -72,6 +78,16 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       maxDecimalDigits: DEFAULT_AMOUNT_PRECISION,
     }), [allowDecimals, allowNegative]);
     const settlePrecision = allowDecimals ? DEFAULT_AMOUNT_PRECISION : 0;
+    // Samme fortegns-politik og dermed samme minus-normalisering som de persisterede beløbsfelter (BB-430):
+    // `10−1` er subtraktion, ikke `101`. Helperen er den ene, de persisterede flader også bruger.
+    const signPolicy = React.useMemo(
+      () => ({ signPolicy: allowNegative ? 'signed' as const : 'nonNegative' as const }),
+      [allowNegative]
+    );
+    const normalizeInput = React.useCallback(
+      (text: string) => normalizeSignCharactersForCodec(signPolicy, text),
+      [signPolicy]
+    );
     const draftState = useTransientDraft<AmountValue | undefined>({
       value,
       format: (v) => amountValueToDraftString(v, DEFAULT_AMOUNT_PRECISION),
@@ -92,6 +108,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       // eller uden decimaler åbner på præcis de tegn, det også accepterer bagefter.
       twoStageActivation: { acceptsInitialKey: (key) => admission(key) },
       admission,
+      normalizeInput,
     });
 
     const assignInputRef = React.useCallback(
@@ -131,15 +148,17 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       draftState.onBlur();
     }, [draftState]);
 
-    const handleDraftChange = React.useCallback((next: string) => {
+    const handleDraftChange = React.useCallback((raw: string) => {
+      const next = normalizeInput(raw);
       if (!admission(next)) {
         // Et afvist input-event ændrer DOM'en, selv om den kontrollerede draft forbliver uændret.
         // Skriv den accepterede tekst tilbage, så DOM og draft ikke kan vise to forskellige værdier.
         restoreDomValueAfterRejectedDraft(inputElementRef.current, draftState.draft);
         return;
       }
+      if (next !== raw) syncDomValueAfterNormalizedDraft(inputElementRef.current, next);
       draftState.onDraftChange(next);
-    }, [admission, draftState]);
+    }, [admission, draftState, normalizeInput]);
 
     const keyFilter = React.useMemo(() => keyFilterFromAdmission(admission), [admission]);
 
@@ -147,8 +166,11 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       draftState.onKeyDown(event);
       // Tegnfilteret gælder kun den ÅBNE editor. I lukket tilstand ejer `onKeyDown` selv tasten:
       // den afgør, om et tegn åbner editoren, og et filter oveni ville afvise åbningstasten.
-      if (draftState.isOpen && !event.defaultPrevented) keyFilter(event);
-    }, [draftState, keyFilter]);
+      // En tast, der oversættes (typografisk minus), vurderes af `handleDraftChange` på den oversatte draft.
+      if (draftState.isOpen && !event.defaultPrevented && !isTranslatedSignKey(signPolicy, event.key)) {
+        keyFilter(event);
+      }
+    }, [draftState, keyFilter, signPolicy]);
 
     const handlePaste = React.useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
       event.preventDefault();
@@ -161,7 +183,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         // Lukket felt: paste ERSTATTER værdien i stedet for at splejse ind i den viste tekst – samme
         // regel som `TransientDateInput` og de ordinære felter.
         draftState.isOpen ? draft : '',
-        readClipboardText(event),
+        normalizeInput(readClipboardText(event)),
         draftState.isOpen ? start : 0,
         draftState.isOpen ? end : 0,
         MAX_AMOUNT_RAW_LENGTH,
@@ -186,7 +208,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
           // no-op
         }
       });
-    }, [admission, draftState]);
+    }, [admission, draftState, normalizeInput]);
 
     return (
       <StyledTextFieldBase

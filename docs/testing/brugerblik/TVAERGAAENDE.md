@@ -3014,6 +3014,17 @@ forkert?** Er svaret ja, må de to lag ikke «ryddes op» ved at slette det ene;
   oplysninger, og de nævner ikke ansættelsesforholdet. Datofelterne er ikke røde, og alle fire dokumenter er spærret.
   Kandidat: en manglende «Sygeferiegodtgørelse beregnes ud fra» (uverificeret).
 
+- **Fornyet gennemgang 2026-11-21, 12d:** BB-425 viser, at samme dækningsdato kan få to forskellige
+  ophørsgrunde i EO-kontrol og i PDF og Word. Ved både endeligt EET og differencekrav pr. 01-07-2024
+  vælger EO-kontrol endeligt EET, og dokumenterne vælger differencekravet. Kontroltabellen og
+  fejlbeskeden ved en periode til og med datoen viser begge kilder. En lige dato for midlertidigt
+  og endeligt EET ved skade før 16-06-2011 gav samme primære grund på skærm og i PDF.
+- **Fornyet gennemgang 2026-11-21, 12d:** BB-426 viser en dækningsadvarsel, mens en afskæringsdato er
+  afvist. Bekræftet for en afvist differencekravsdato og en afvist ménafgørelsesdato samt for
+  afviste EET-datoer uden en brugbar alternativ dato. En gyldig alternativ dato eller en
+  uafhængig afskæring kan stadig forklare ophøret. NY-12b-4 dokumenterer samme type for tidlig
+  advarsel med en ugyldig dato i selve svie/smerte-perioden.
+
 ## M-34 – En regel genbruger en nabo-regels prædikat – og arver dens undtagelser
 
 > En regel har brug for en oplysning, som en anden regel allerede udleder, og kalder den andens funktion.
@@ -3783,4 +3794,129 @@ Efter BB-408–BB-424 er hele programmet gennemsøgt for de samme fejltyper.
   - Ens arbejdsstednavne får kortets nummer i dokumenter, graf og beskeder.
   - Årslønnens rækkeadvarsler linker til cellen.
   - EO-kontakten «Offentlige ydelser i beregningsperioden reguleres» viser årsagen på kontrollen (§10.5).
+
+## M-60 – Yderdatoer alene viser ikke, hvilke dage der er med
+
+BB-428 (2026-11-22) viser samme hul to steder i Erstatningsopgørelsen. Beregning advarer, hvis den
+sidste TAF-række slutter før erstatningsperioden, men giver ingen besked om arbejdsdage mellem rækkerne.
+Kontroltabellens «TAF-perioder» viser kun første og sidste dato, selv om fx arbejdsdagene 5. og
+8.–10. januar ikke indgår. PDF og Word viser hver periode med de dage, den bidrager med.
+
+- **Sammenlignet:** Løn og offentlige ydelser i beregningsperioden har en særskilt besked med datoerne i
+  hullet (12h). Svie/smerte har en lignende ophørsbesked. Browserprøven dér havde samtidig
+  manglende tilstande og afgjorde ikke, om et hul alene udløser den.
+- **Forslag:** Vis arbejdsdagene i hullet som en gul besked i Beregning. Angiv i Kontroltabellen,
+  at datoerne er den første og sidste TAF-dato.
+
+### Tværgående efterprøvning af BB-427 og BB-429
+
+- **M-02, BB-427:** Maksimumsbeskeden siger «i perioden» om den del af TAF-rækken, der indgår i
+  erstatningsperioden. Den tilsvarende fejl i beregningsgrundlaget (12f) siger udtrykkeligt
+  «i beregningsperioden». Svie/smerte har intet tilsvarende felt til et løst antal dage.
+- **M-50, BB-429:** Beregning nævner den manglende slutdato på en påbegyndt ferierække, mens der
+  findes en TAF-række. Når sidste TAF-række ryddes, ses kun beskeden om, at TAF-perioden mangler.
+  Svie/smerte-prøven viste derimod den konkrete mangel pr. række sammen med andre fejl.
+
+## M-61 – Et kopieret minustegn forsvinder fra beløbet
+
+BB-430 (2026-11-22) blev fundet i «Dagslønnen udgør». Ved indsættelse fra udklipsholderen bliver
+`10−1` til `101,00`, mens `10-1` giver `9,00`. En tankestreg (`10–1`) giver også `101,00`.
+Feltet bliver ikke rødt. I samme helårssag blev Word-opgørelsen på 25.654,00 kr. med det kopierede
+minustegn og 2.286,00 kr. med det almindelige minustegn. Begge kunne hentes uden advarsel.
+
+- **Samme konsekvens i Årslønsberegning og Offentlige ydelser.** I «Løn» og «Ydelse» giver `−1200`
+  og `–1200` begge `1.200,00`, mens `-1200` giver `-1.200,00`. I «Løn» blev `1200−200` og
+  `1200–200` til `1.200.200,00`, mens `1200-200` gav `1.000,00`. Ingen af felterne viste en
+  rød markering ved indsættelsen. Eksemplerne er målt med udklipsholderen og Ctrl+V i Chrome.
+- **Hvor det kan gå igen.** Beløbsfelter, der bruger den fælles indsættelsesregel, kan miste et
+  foranstillet fortegn eller en regneoperator. Eksemplerne dækker et felt til angivet løn og løn- og
+  ydelsesceller. Øvrige beløbsfelter er kortlagt via den fælles regel.
+- **Forslag.** Bevar det kopierede minus, hvor et almindeligt minustegn er tilladt. Hvis fortegnet
+  eller udtrykket ikke kan bruges i feltet, så vis en fejl, før det kan indgå i beregningen.
+
+### Tværgående efterprøvning af BB-431–BB-433
+
+- **M-32, BB-431.** I opgørelse nr. 2 lander advarselslinket ved det lukkede beregningsgrundlag for
+  både arbejdsulykkens høje dagsløn og erhvervssygdommens lave månedsløn. Skjulningen er unik for
+  beregningsgrundlaget. Et link kan åbne sektionen for dette besøg og bevare afkrydsningen for senere opgørelser.
+- **M-05, BB-432.** Dagsløn på 0,01 kr. og 1,00 kr. passerede uden vejledning. Nul var rødt i både
+  dags- og månedsløn, som desuden advarede om henholdsvis høj og lav løn. En gul nedre grænse for
+  positiv dagsløn vil give brugeren anledning til at kontrollere kroner og øre.
+- **M-27 og M-32, BB-433.** En ugyldig beregningsslutdato skjulte ferietabellen og fjernede en
+  tidligere afvist feriedato. Gyldige værdier vendte tilbage. En ugyldig skadedato på Stamdata
+  lod ferierækken og dens afviste dato stå. Ved bevidst valg af TAF «Nej» blev en afvist dato i
+  den manuelle lønregulering ryddet, og Gem virkede igen. Gyldige sagsdata kom tilbage ved «Ja».
+
+## M-62 – Det næste klik rammer en anden handling eller et andet kort
+
+BB-434 (2026-11-22) blev fundet ved dobbeltklik på «Tilføj nyt ansættelsesforhold». Første klik
+tilføjer et kort. Ved andet klik ligger en flytteknap på samme sted, og et eksisterende kort
+skifter plads. Et enkelt klik gav én tilføjelse med uændret rækkefølge.
+
+- **Afgrænsning.** Fra nul til ét kort ramte andet klik ingen handling. Fra ét til to kort ramte
+  det «Flyt ansættelsesforhold ned», og fra to til tre eller ni til ti kort ramte det «Flyt
+  ansættelsesforhold op». Ved ni kort fjernede første Ctrl+Z flytningen og andet Ctrl+Z tilføjelsen.
+- **BB-437.** Dobbeltklik på det sidste korts «Flyt ansættelsesforhold op» flyttede først kort C
+  op. Det næste klik ramte nu kort A og flyttede A op igen, så rækkefølgen så uændret ud.
+  Efter ét Ctrl+Z blev den første flytning synlig. Samme prøve på det midterste kort gav kun
+  én flytning.
+- **Sammenlignet.** Lønindkomst er det eneste sted med denne kombination af flydende tilføjelses-,
+  flytte- og sletteknapper. Dobbeltklik på «Slet rækken» i Offentlige ydelser fjernede kun den
+  udpegede række i browserprøven.
+- **Forslag.** Bevar den handling og det kort, brugeren sigtede efter. Et hurtigt efterfølgende
+  klik på samme sted bør hverken flytte et kort efter en tilføjelse eller flytte et andet kort.
+
+## M-63 – En tom filtreret vælger fortæller ikke, hvorfor der ingen valg er
+
+BB-435 (2026-11-22) blev fundet ved at kombinere Dansk Metal og RLTN i overenskomstfiltrene.
+Foldelisten viste kun «Vælg overenskomst...», mens feltet stadig viste den tidligere valgte aftale.
+Det samme blev målt i Årslønsberegning og ved «Angivet dagsløn» i Erstatningsopgørelse. Filtrene
+har hjælpetekster som aftalt i BB-287.
+
+- **Forslag.** Vis «Ingen overenskomster matcher de valgte filtre» og behold den tidligere valgte aftale,
+  medmindre brugeren eksplicit ændrer den.
+
+## M-64 – Låste satser bliver svære at læse i mørkt tema
+
+BB-436 (2026-11-22) blev fundet på Lønindkomsts låste Store Bededagstillæg på 0,45 %.
+Teksten var næsten ulæselig i mørkt tema, med målt kontrast på ca. 1,7:1. Årslønsberegningens
+låste SH/SO-sats på 3,40 % viste samme forhold i en separat prøve.
+
+- **Forslag.** Brug en læsbar tekstfarve for værdien og bevar en særskilt markering af, at satsen
+  er fastsat af aftalen.
+
+### Tværgående efterprøvning af BB-438
+
+- **M-59.** Ved ens arbejdsstednavne skelner dokumenter, graf og beskeder mellem kortene med
+  deres nummer. I Lønindkomst var teksten i «Slet ansættelsesforhold» ordret ens, uanset hvilket
+  af to kort med samme navn brugeren var ved at slette. Vis kortets nummer sammen med navnet i dialogen.
+
+### Tværgående efterprøvning af BB-439
+
+- **M-14.** Når to heltalsceller fra et regneark indsættes i samme beløbsfelt, kan cifrene blive læst
+  som ét gyldigt beløb. I Lønindkomsts «Løn» blev `1200` og `200` på hver sin linje eller med Tab
+  imellem til `1.200.200,00`. Med enkeltværdien `1200` stod der 16.200,00 kr. i TAF i PDF'en.
+  Med de to kopierede værdier stod der 16.202.700,00 kr. Begge dokumenter kunne hentes uden advarsel.
+  Beløbsfelterne i Renteberegning og Offentlige ydelser accepterede samme sammenlagte beløb. Tre
+  decimalbeløb i en kolonne gav kun første værdi, som forventet efter kommarettelsen i BB-088.
+- **Forslag.** Vis en fælles besked om at indsætte ét beløb, når det kopierede indhold rummer flere
+  regnearksceller, før cifre fra forskellige celler kan danne et nyt beregningsbeløb.
+
+## M-65 – Beløbsfeltet fortæller ikke, at der divideres med nul
+
+BB-440 (2026-11-22) blev fundet i Lønindkomsts «Løn». Udtrykket `1/0` blev bevaret og markeret rødt.
+Feltet sagde, at værdien var ugyldig, og Beregning gentog den generiske melding. Offentlige ydelsers
+«Ydelse» og Renteberegnings «Beløb» gav også den samme melding for `1/0` som for den ufuldstændige `1/`.
+
+- **Forslag.** Forklar ved feltet og i fejloversigten, at beløbet ikke kan beregnes, fordi der
+  divideres med 0. Bevar udtrykket til rettelse og fasthold blokeringen.
+
+## M-66 – Månedsforslaget springer over forskellen i årstal
+
+BB-441 (2026-11-22) blev fundet i Lønindkomst og efterprøvet i Årslønsberegning. To på hinanden
+følgende rækker med december 2010 og januar 2018 gav månedsforslaget `2` og intet årsforslag.
+Hvis december blev rettet til 2017, kom både måned `2` og år `2018` frem som forventet.
+
+- **Forslag.** Vis kun et månedsforslag ud fra månedsnumrene alene, når der mangler et årstal
+  til at afprøve sammenhængen. Når begge årsangivelser kendes og viser et spring, så undlad forslaget.
 

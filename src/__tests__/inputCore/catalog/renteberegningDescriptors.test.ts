@@ -57,10 +57,25 @@ describe('rentekravBelobField – nulbeløb (BB-038)', () => {
 
     expect(read.status).toBe('error');
     if (read.status !== 'error') return;
-    expect(read.issue.reason).toBe('rule');
+    // Grænsen er en EKSKLUSIV nedre bounds-grænse (NY-12c-4). `bounds` står på allowlisten af reasons,
+    // hvis fulde besked vises ordret – netop fordi den fortæller HVAD rettelsen er.
+    expect(read.issue.reason).toBe('bounds');
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
-    // `rule` står på allowlisten af reasons, hvis fulde besked vises ordret – netop fordi den
-    // fortæller HVAD rettelsen er. Bliver den generisk, skjules rettelsen dér, hvor brugeren kigger.
+    expect(resolveFieldIssueTooltip(read.issue)).toBe('Beløbet skal være større end 0 kr.');
+  });
+
+  it('giver SAMME besked for et negativt udtryksresultat – ikke «0 kr. eller højere» (NY-12c-4)', () => {
+    // `100-200` → -100. Før ramte værdien både en inklusiv grænse på 0 og «> 0»-reglen, og bounds-beskeden
+    // vandt efter §1.8's prioritet – en påstand om, at 0 er tilladt, i et felt hvor 0 afvises.
+    const reader = buildReader(
+      { belob: { kind: 'expression', expression: '100-200', value: -100 } },
+      '2026-08-19'
+    );
+    const read = reader.read(rentekravBelobField.bind(ROW_ID));
+
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
+    expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
     expect(resolveFieldIssueTooltip(read.issue)).toBe('Beløbet skal være større end 0 kr.');
   });
 

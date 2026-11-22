@@ -19,6 +19,7 @@ import { resolveFieldLabel, toAnyFieldRef } from './fieldDescriptor';
 import { resolveDateFormatIssueText } from './catalog/dateBoundsValidators';
 import type { ISODateString } from '../types/branded';
 import type { EvaluationSourceToken } from './evaluationSource';
+import { createRelevanceTrackingView, resolveRelevanceStatus, type RelevanceStatus } from './fieldRelevance';
 
 export type EntityRef = Readonly<{ collection: CollectionRef; entityId: string }>;
 
@@ -32,6 +33,8 @@ export type ValidationReader = Readonly<{
   readCanonical: <T>(field: FieldRef<T>) => T;
   readRejected: <T>(field: FieldRef<T>) => RejectedInput | undefined;
   isRelevant: <T>(field: FieldRef<T>) => boolean;
+  /** Skelner `irrelevant` (brugerens valg) fra `ubestemt` (afvist input andetsteds), jf. `fieldRelevance.ts`. */
+  relevanceStatus: <T>(field: FieldRef<T>) => RelevanceStatus;
   listEntities: (collection: CollectionRef) => readonly EntityRef[];
 }>;
 
@@ -47,12 +50,15 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
 
   const listEntityIds = (collection: CollectionRef): readonly string[] =>
     catalog.listEntityIds(snapshot.sections, collection);
-  const view: CanonicalView = Object.freeze({ readCanonical, listEntityIds });
+  const view = createRelevanceTrackingView({
+    readCanonical,
+    listEntityIds,
+    rejectedInputs: snapshot.rejectedInputs,
+  });
 
-  const isRelevant = <T>(field: FieldRef<T>): boolean => {
-    const relevance = field.descriptor.relevance;
-    return relevance === undefined ? true : relevance(field, view);
-  };
+  const relevanceStatus = <T>(field: FieldRef<T>): RelevanceStatus => resolveRelevanceStatus(field, view);
+  // Et `ubestemt` felt er skjult og tavst som et irrelevant felt; kun reduceren og relevans-invarianten skelner.
+  const isRelevant = <T>(field: FieldRef<T>): boolean => relevanceStatus(field) === 'relevant';
 
   return Object.freeze({
     input: snapshot,
@@ -63,6 +69,7 @@ export const createValidationReader = (input: SettledInput, catalog: InputCatalo
       return snapshot.rejectedInputs[serializeFieldAddress(field.address)];
     },
     isRelevant,
+    relevanceStatus,
     listEntities: (collection) => Object.freeze(
       listEntityIds(collection).map((entityId) => Object.freeze({ collection, entityId }))
     ),
@@ -86,14 +93,27 @@ const canonicalViewOf = (reader: ValidationReader): CanonicalView => Object.free
  * kan se, kan hverken rettes eller retfærdiggøres. Det gælder BEGGE fejlformer, og det er netop derfor
  * reduceren (`clearFieldsHiddenWhileRed`) RYDDER et felt, som en ændring skjuler, mens det bar en rød fejl (§7.5 pkt. 2) –
  * ellers ville en skjult rejection blokere `.eo`-save globalt (§8) uden et felt at pege på. Rydningen og
- * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet.
+ * denne tavshed er to halvdele af samme regel: det skjulte er tavst, FORDI det er ryddet. Undtagelsen er et
+ * `ubestemt` felt (BB-433): dets afviste råtekst bevares, mens årsagen – selv afvist og synlig – spærrer Gem.
  */
-export const deriveFieldIssueSet = (reader: ValidationReader, catalog: InputCatalog): FieldIssueSet => {
+export const deriveFieldIssueSet = (
+  reader: ValidationReader,
+  catalog: InputCatalog,
+  options: Readonly<{
+    /**
+     * Medtag også `ubestemte` felter. KUN til reducerens rydning (§7.5 pkt. 2): et ubestemt felt er skjult og
+     * derfor tavst, men bliver det irrelevant, skal det ryddes, hvis det var rødt – også ved en canonical
+     * grænsefejl, ikke kun afvist råtekst. Visning, Gem og dokumenter bruger aldrig denne mulighed.
+     */
+    includeUndetermined?: boolean;
+  }> = {}
+): FieldIssueSet => {
   const issues: FieldIssue[] = [];
   const view = canonicalViewOf(reader);
 
   for (const field of catalog.listFieldInstances(reader.input.sections)) {
-    if (!reader.isRelevant(field)) continue;
+    const status = reader.relevanceStatus(field);
+    if (status === 'irrelevant' || (status === 'ubestemt' && options.includeUndetermined !== true)) continue;
     // Kontekstuelle labels (§3.2a) opløses HER, hvor konteksten findes: issuet skal navngive feltet med
     // præcis det navn, brugeren ser stå ved feltet i denne tilstand.
     const anyRef = toAnyFieldRef(field, view);

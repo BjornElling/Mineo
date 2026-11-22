@@ -307,6 +307,7 @@ const withForligGate = (
     // heller ikke påstå, at maksimum var opbrugt – papiret ville ellers skrive en konklusion om en
     // ramme, ingen kender.
     maksimumOpbrugtFoerPerioden: false,
+    maksimumNaaet: false,
   })
   : output;
 

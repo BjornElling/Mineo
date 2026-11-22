@@ -606,3 +606,157 @@ Status skelner mellem oprindelig browsermåling, kode-/testaflæsning og konkret
 - **B6 – tilstandsskift:** **Browser:** skift mellem oplysninger og Beregning, links og PDF. **Kode:** fælles history-/persistenceflow. **Uprøvet i den oprindelige kørsel:** undo/redo, `Gem`/`Hent`, F5, browser-tilbage, luk fane, «Slet alt» og åben editor. Playwright kan automatisere filvælger og download; de senere navngivne loadtests dækker andre sager.
 - **B6a – tomhed:** **Browser:** tom tabel/Ja-advarsel, skjult delvis række og række med kun ugyldig dato blev undersøgt. **Kode/test:** ny projection skelner tom trailing række fra påbegyndt delrække; Zod normaliserer gammel alenestående `udgiftTil: ''` til `undefined`. **Uprøvet:** browser-load af eksplicit tom legacycelle, kun rejected råtekst, ryddet tidligere række og post-fix visuelt rækkeantal.
 - **B7 – downstream:** **Browser:** PDF, sorteringsrækkefølge, sum og forligsreduktion blev målt. **Kode/test:** dokumentmodel og beregning er delt; browsermålt gammel `.eo`-adfærd findes for nærliggende 12a/12b-fejl, ikke denne række. **Uprøvet:** Word, save→load af rækkedata, skjulte værdier og dokumentparitet efter ændret kravvalg. De navngivne ældre-filsager er ikke generelle save→load-rundture.
+
+## Fornyet gennemgang 2026-11-20
+
+Commit `ace2a2df`. Chrome headless ved 1536×864 og en layoutprøve ved 1366×620 med fiktive
+arbejdsulykkessager. De hentede PDF'er
+er tekstaflæst og renderet. Word-indhold er aflæst fra de faktisk hentede filer. Lokale prøver og
+dokumenter ligger i `test-results/brugerblik-12c-new/`.
+
+### Inventar og grænser
+
+| Element | Det brugeren møder og det, valget styrer |
+|---|---|
+| Er der øvrige krav i erstatningsperioden | «Ja» åbner tabellen. «Nej» viser «Ingen» i dokumentet. «Skjul» udelader emnet. «Nej» og «Skjul» tager posterne ud af beregningen; de almindelige feltværdier vises igen ved «Ja». |
+| Dato | Valgfri, `dd-mm-åååå`, og begyndende ved sagens skade-/anmeldelsesdato med dags dato som øvre grænse. En gyldig dato uden for den angivne opgørelsesperiode får gul markering. En ugyldig dato er rød, også når kun datoen er udfyldt, og spærrer opgørelsen. |
+| Udgift til | Fritekst, højst 60 tegn. Feltet kontrollerer kun længde og tomhed. En påbegyndt post kræver en beskrivelse, som står ved posten på kontrolfanen og i dokumentet. |
+| Beløb | Kr. med to decimaler. Der kan tastes regneudtryk. Feltet kræver et resultat over 0 og op til 9.999.999,99 kr. En påbegyndt post kræver beløbet; et beløb uden beskrivelse tæller også som en påbegyndt post. |
+| Rækkehandlinger | Klik på Dato, Udgift til eller Beløb sorterer. En afsluttet værdi i den nederste tomme række åbner den næste. Knappen «Slet rækken» kommer frem under musen på en påbegyndt række. Ryddes alle felter i rækken, står der igen præcis én tom indtastningsrække. |
+| Nedstrøms | «Beregning» viser antal, fravalg eller fejl; fejl og advarsler kan føre til den relevante celle. «EO-kontrol» viser poster og vurdering. Ved «Ja» går poster og subtotal til opgørelsen; et forlig kan reducere den del, der overføres til «Samlet erstatningskrav». Bilagsnummeret hentes fra «Bilagsnumre». |
+
+### NY-12c-1 – Et navn med polske bogstaver forvanskes i opgørelsens PDF
+
+- **Type:** Fejl · **Prioritet:** Mellem · **Rækkevidde:** Mønster, bekræftet i flere fritekster i opgørelsen.
+- **Beslutning:** Afventer udvikleren.
+- Sæt «Øvrige erstatningskrav» til «Ja», tast `Behandling hos dr. Łukasz Żółć` i «Udgift til»
+  og `480,50` i «Beløb». Hent opgørelsen som PDF fra «Beregning».
+- Tabellen bevarer navnet, og download er aktiv. I PDF'en ændres navnet omtrent til
+  `Aukasz {óB`, og datoen og hele beskrivelsen får afstand mellem bogstaverne. En separat prøve
+  med `Fysioterapi – José / Łódź / 小林 🙂` er bevaret ordret i Word, mens PDF'en ændrer de
+  særlige tegn og gør hele linjen spredt. Beløbet står korrekt i begge formater.
+- Brugeren kan kopiere navnet korrekt fra kvitteringen, men PDF-modtageren kan få et andet navn
+  og have svært ved at genfinde den udgift, beløbet henviser til.
+- Bevar navne og beskrivelser læseligt og ordret i PDF'en. Sig til før download, hvis en indtastning
+  indeholder et tegn, som PDF'en ikke kan gengive.
+- **På tværs.** Samme realistiske navn forvanskes under «Særlige bemærkninger». Navnet fra Stamdata
+  forvanskes også på forsiden af opgørelsen. Danske bogstaver i dokumentets faste tekster og almindelige
+  beskrivelser havde normal visning. Varige mén-PDF'en havde ikke et tilsvarende navnefelt i den afprøvede visning.
+  TAF-dokumenterne kan også trykke navnet fra Stamdata; de to særskilte dokumenter blev vurderet
+  fra deres skrivevej og downloadet ikke i denne prøve.
+- **Evidens.** `krav-navn.pdf` med side 1 og 2, `krav-ja.pdf`, `krav-ja.docx` og `krav-mange.pdf`.
+
+### NY-12c-2 – Indsatte beløb skifter fortegn eller størrelsesorden uden besked
+
+- **Type:** Fornuft · **Prioritet:** Høj · **Rækkevidde:** Mønster, bekræftet på tre felter i EO og i Renteberegning.
+- **Beslutning:** Afventer udvikleren.
+- Sæt «Øvrige erstatningskrav» til «Ja». Angiv «Krediteret fysioterapi» som udgift, åbn beløbsfeltet
+  og tryk Ctrl+V med `-480,50` på udklipsholderen. Afslut med Tab. Prøv derpå `1234.50` fra et
+  regneark eller en kvittering med punktum som decimalseparator.
+- Første værdi bliver `480,50` kr. Anden værdi bliver `123.450,00` kr. Cellen er neutral,
+  «Beregning» viser «1 post», download er aktiv, og hvert af de to forandrede beløb står som
+  den eneste udgift og som den samlede erstatning i sit eget dokument.
+- En kreditpost kan dermed blive til et erstatningskrav. Et sædvanligt beløb på 1.234,50 kan
+  blive hundrede gange for stort uden noget synligt signal om, at indsættelsen ændrede det.
+- Når et indsat beløb får et andet fortegn eller en anden størrelsesorden af at få fjernet tegn,
+  vis en konkret besked ved feltet og bed brugeren rette beløbet, før det tæller med. For en
+  udenlandsk kvittering kan beskeden fx bede om komma til decimaler. Bevar indsættelse af den
+  danske form `1.234,50` og den almindelige `1 234,50 kr.`, som begge blev læst korrekt.
+- **På tværs.** Samme Ctrl+V-prøve gav begge udfald i beløbet for allerede modtaget svie/smerte,
+  i beløbet for allerede modtaget tabt arbejdsfortjeneste og i Renteberegning → «Beløb».
+  Formkontrakten §8.2 kræver, at et unært minus springes over ved indsættelse i disse felter.
+  BF-032 kræver fælles filtrering af punktum og mellemrum. Forslaget om konkret feedback og
+  beskyttelse mod et ændret beløb ændrer den nuværende aftale om indsættelse.
+- **Evidens.** `08-result.json`, `09-result.json`, `10-result.json`,
+  `krav-negativ-paste.pdf` og `krav-decimalpunktum-paste.pdf`.
+
+### NY-12c-3 – Opgørelsens PDF kan sætte «I alt» alene på næste side
+
+- **Type:** Fornuft · **Prioritet:** Lav · **Rækkevidde:** Lokal.
+- **Beslutning:** Afventer udvikleren.
+- I sagen med periode `01-01-2022` – `31-12-2022`, opgørelsesdato `01-02-2023`, svie/smerte
+  og TAF på «Nej» og øvrige krav på «Ja», indtast 24 udaterede poster «Kvittering 01» til
+  «Kvittering 24» med beløb fra `100` til `123` kr. Hent opgørelsen som PDF.
+- Side 1 slutter efter den sidste kvittering. Side 2 begynder med «I alt 2.676,00 kr.» uden en
+  post til at vise, hvilken liste der lige er afsluttet. Først efter subtotalen læses overskriften
+  «Samlet erstatningskrav». Begge totaler er korrekte.
+- Læseren må se tilbage på forrige side for at knytte «I alt» til kvitteringslisten. Det er
+  især uklart, hvis side 2 læses løsrevet fra forrige side.
+- Hold sidste udgift og «I alt» samlet ved sideskift, så subtotalen fortsat står lige efter en
+  post fra den liste, den gælder.
+- **På tværs.** Ved 23 udgifter står sidste post og subtotal samlet på side 1, og ved 25 står de
+  samlet på side 2. «Samlet erstatningskrav» holdt sin egen overskrift sammen med første linje ved
+  prøve med 23 poster. Beslægtede tabeller med en subtotal findes i andre dokumenter, men
+  dette forsøg påviste ingen yderligere forekomst. M-48's tidligere afgørelse om gentagne
+  kolonneoverskrifter har et andet sigte.
+- **Evidens.** Renderet `krav-mange-1.png`, `krav-mange-2.png`, samt
+  `krav-sideskift-23.pdf` og `krav-sideskift-25.pdf`.
+
+### NY-12c-4 – Fejlbeskeden beder brugeren prøve 0 kr., som også er en fejl
+
+- **Type:** Fornuft · **Prioritet:** Mellem · **Rækkevidde:** Mønster, bekræftet i Renteberegning.
+- **Beslutning:** Afventer udvikleren.
+- I en øvrig krav-række med beskrivelse, tast `100-200` i «Beløb» og afslut med Tab. Før musen
+  over cellen, eller se «Fejl og advarsler» på «Beregning». Følg derefter beskeden og tast `0`.
+- Resultatet `-100,00` står rødt med beskeden «Værdi skal være 0 kr. eller højere». Efter
+  indtastning af `0` er cellen stadig rød, og beskeden er nu «Beløbet skal være større end 0 kr.».
+  `0,01` får fejlmarkeringen til at forsvinde og åbner download igen.
+- Brugeren får et ekstra forsøg og skal selv udlede den egentlige grænse af to forskellige beskeder.
+- Vis «Beløbet skal være større end 0 kr.» både ved et negativt resultat og ved nul, så den første
+  besked peger på en værdi, feltet kan tage imod.
+- **På tværs.** De samme to beskeder i den rækkefølge er målt i Renteberegning → «Beløb».
+  En lokal, syntetisk 3.14-fil med `-480,50` i en øvrig udgift blev indlæst uden forvarsel og
+  bevarede både fortegn og rød markering; den gav samme vildledende besked. Et felt, der faktisk
+  accepterer nul, kan fortsat vise «0 kr. eller højere». Det viderefører M-02's fokus på en
+  handlingsanvisning, brugeren faktisk kan følge.
+- **Evidens.** `15-legacy-result.json` og `17-result.json`.
+
+### Overvejet uden nye fund
+
+- **A1, A3 og A7.** Radiogruppens tilgængelige navn er identisk med spørgsmålet på skærmen. Alle tre
+  kolonner har tilsvarende feltnavne, inklusive kr. ved «Beløb». Rækker oprettet med dato, tekst eller
+  beløb som første felt blev stående; de kunne færdiggøres i den rækkefølge, oplysningerne kom.
+- **A2 og A5.** Tomt «Ja» giver «Ingen poster angivet» og en ikke-blokerende advarsel. En påbegyndt
+  række uden beløb spærrer med et navngivet link. Ugyldig dato, manglende beskrivelse og nulbeløb
+  samles i én linje. To identiske mangler bliver til to nummererede linjer, hver med blink på egen
+  beløbscelle. Den gule datoadvarsel i en ellers korrekt række spærrer ikke; mangler beløbet,
+  prioriterer panelet den røde række-fejl, som afgjort ved BB-235.
+- **A4, A6 og B6.** Skift til «Skjul» bliver ét trin. Ved rød dato kommer valget og den røde dato
+  tilbage ved Ctrl+Z, igen skjult ved Ctrl+Y, og datoen er ryddet ved nyt manuelt «Ja» efter den
+  allerede aftalte regel. Gyldig beskrivelse og beløb blev bevaret. Escape annullerer en åben
+  tekstændring. Klik på «Beregning» eller «Stamdata» afslutter en åben redigering og bevarer
+  værdien ved tilbagevenden. Genindlæsning efter bekræftet browserdialog beholdt både `31-02-2022`
+  og den gyldige beskrivelse. Slet række og fortryd genindsatte rækken, og Ctrl+Z efter en
+  beløbsændring beholdt den forudgående sortering.
+- **A8 og B7.** En udateret post på 1.250,25 kr. og en dateret på 480,50 kr. står begge i PDF og Word,
+  med 1.730,75 kr. som subtotal. Forlig på 50 % giver 865,38 kr. i begge dokumenter. «Nej»
+  trykker «Ingen» og 0 kr., og «Skjul» udelader emnet. På EO-kontrol ses to poster med retvisende
+  beløb eller række-fejl. Efter Gem/Hent af en ny `.eo` med «Nej» kom en skjult dato og
+  beskrivelse uden beløb tilbage ved «Ja»; den anden, fulde post var også bevaret.
+- **B0 og B1.** Beskrivelsen prøvet med ren whitespace, ét tegn, ikke-latinsk tekst og 59/60/61
+  tegn. 61 blev begrænset til 60. Dansk beløbsformat med grupper og valuta blev læst korrekt.
+  `0,01`, `1`, `9.999.999,99` og `5000000+4999999,99` bestod. `5000000*2` kom synligt til
+  10.000.000,00 kr. med rød markering. `0,01/3` afrundede til 0 og blev rød, og `0,01/2`
+  blev 0,01 og godkendt. Indsat tabulator og linjeskift i beskrivelsen viste mellemrum.
+- **B2, B4 og B5.** 00 som dag, 31. februar og 29. februar i et ikke-skudår blev røde. 29. februar
+  2024 blev accepteret. Datoen lige før skaden og en dato langt efter dags dato blev røde.
+  Opgørelsens grænser var inklusive. Flytning af slutdatoen til udgiftsdatoen fjernede den gule
+  advarsel, og rydning af slutdatoen gav en særskilt, blokerende fejl for opgørelsesperioden
+  uden at ændre udgiftsdatoen. En meget stor, men repræsenterbar udgift er tilladt; sektionen
+  har ingen oplysninger om udgiftstypen, der kan afgrænse den meningsfuldt.
+- **B3 og B6a.** En helt tom tabel rummer én tom indtastningsrække. Kun en afvist dato tæller som
+  udfyldt og kan slettes. Når sidste værdi ryddes, forsvinder den gamle række. En dateret række
+  uden beskrivelse eller beløb giver begge mangler. Syntetisk 3.14-række med kun tom beskrivelse
+  blev normaliseret ved load, uden en ekstra synlig eller fejlende række. 24 poster overlevede
+  genindlæsning og blev alle trykt med korrekt subtotal. Tabellen gav intet vandret rul ved 1366×620.
+- **Konsol.** De overvågede browserforløb gav ingen nye `console.error` eller uhåndterede sidefejl.
+
+### Dækningshuller
+
+- En browser og lyst tema. Den native Gem/Hent-dialog i Chrome, lukning af en fane med
+  en åben editor og skærmlæserens faktiske oplæsning er ikke målt. Gem/Hent-dækningen bruger
+  browserens upload- og downloadvej uden den native filadgang.
+- TAF-forbeholdene fra BB-233 er gennemgået ved deres dokumentplacering. Kontanthjælpsvarianten
+  er kodebekræftet og blev ikke udløst i denne isolerede gennemgang af øvrige krav.
+- Word-indhold er sammenholdt med PDF. Den visuelle Word-sideombrydning står åben efter en fastlåst
+  eksport fra den lokale Word-installation.

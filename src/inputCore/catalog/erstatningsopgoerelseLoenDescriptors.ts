@@ -49,7 +49,7 @@ import {
   integerBoundsValidator,
   integerStringBoundsValidator,
   percentBoundsValidator,
-  positiveAmountValidator,
+  positiveAmountBoundsValidator,
   weekYearBoundsValidator,
   yearStringBoundsValidator,
 } from './boundsValidators';
@@ -588,7 +588,7 @@ export type ManualBindings = Readonly<{
  * rettet (BB-308, samme form som BB-232).
  */
 const manualGrundloenPositiveValidator = (code: string): FieldValidator<AmountValue | undefined> =>
-  positiveAmountValidator(code, 'Grundløn skal være større end 0 kr.');
+  positiveAmountBoundsValidator(code, 'Grundløn');
 
 /** Ejerens relevansregel for en af de to manuelle tabeller – samme betingelse, som tabellen vises under. */
 type ManualTableRelevance = <T>(felt: 'manueltAngivet' | 'manuelProcentsats') => RelevanceRule<T>;

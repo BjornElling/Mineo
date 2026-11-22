@@ -517,3 +517,103 @@ ikke i sig selv browserdækning.
 Ingen. De elleve oprindelige fund er afgjort 2026-09-25: ti rettet (BB-247 indsnævret, BB-248–BB-253, BB-255–BB-257) og
 ét afvist (BB-254). BB-247, BB-248, BB-250 og BB-254 blev afgjort efter modsvar. Den kritiske efterkontrol tilføjede
 BB-342 og BB-344; begge er godkendt og gennemført 2026-10-24.
+
+## Fornyet gennemgang 2026-11-22
+
+Commit `fc27ca1e`. Chrome headless i 1536×864 og 1366×620, lyst og mørkt tema. Fladen ligger i
+Erstatningsopgørelse → EO oplysninger → Tabt arbejdsfortjeneste. Lokal evidens i
+`test-results/brugerblik-12e-20261122/`.
+
+### Inventar
+
+- Kravvalget «Ja / Nej / Skjul» styrer synlighed, medregning og dokumentafsnittet. «Ja» viser begge tabeller
+  og beløbet under «Øvrigt». De indtastede, gyldige værdier kommer tilbage ved genvalg af «Ja».
+- «Samlet TAF-periode» har Fra, Til, eventuelt løse ferie-/feriefridage og en beregnet kolonne i dage eller
+  måneder. Datoerne er inklusive og begrænses af skadedato eller anmeldelsesdato minus fem år, dags dato,
+  datoorden og de aktive afgørelsesdatoer. Til beregningen afgrænses rækken også til erstatningsperioden.
+  Det mulige antal løse dage afhænger af hverdagene i den afgrænsede del, helligdage og dateret ferie.
+- «Evt. ferie i TAF-perioden» har Fra, Til og beregnede feriedage. Helt tomme rækker bidrager ikke.
+  Ved gyldig indtastning tælles ferien inden for TAF-perioderne. Uden en gyldig TAF-periode vises
+  hele ferierækkens antal med egen forklaring. En udfyldt ferierække påvirker også sygeferiegodtgørelsen.
+- Tomt «Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode» behandles som nul.
+  Beløbet er ikke-negativt med øre. I den afprøvede forligssag blev det trukket fra efter ansvarsgraden.
+  Beregning, EO-kontrol, Kontroltabel og opgørelsens TAF-afsnit blev fulgt.
+
+### BB-427 – Fejlbeskeden om løse feriedage angiver ikke de datoer, maksimum gælder for
+
+- **Type:** Fornuft. **Rækkevidde:** Mønster, M-02. **Prioritet:** Mellem. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Vælg angivet dagsløn. Indtast TAF fra 01-01-2024 til 05-01-2024 og
+  to løse ferie-/feriefridage. Afgræns erstatningsperioden til 05-01-2024 alene.
+- **Det sker:** Feltet bliver rødt. Cellen og Beregning siger «Løse ferie-/feriefridage overstiger mulige
+  arbejdsdage i perioden (maksimalt 1)». Beregning sætter teksten efter «TAF-perioden 01-01-2024 - 05-01-2024»
+  og blokerer hentning. Den ene dag er fredag 05-01-2024. Den samme indtastning var gyldig med hele rækken
+  inden for erstatningsperioden.
+- **Konsekvens og forslag:** Brugeren kan tro, at de to løse dage er forkerte for hele rækken. Vis den
+  afgrænsede del direkte, fx «Der er plads til højst 1 løs ferie-/feriefridag i den del af TAF-perioden,
+  som indgår i opgørelsen (05-01-2024)». Behold grænsen.
+- **Systematik:** Den tilsvarende prøve med 99 løse dage i 12f gav «Der skal være mindst én arbejdsdag
+  tilbage i beregningsperioden (højst 20 løse ferie-/feriefridage)». Den navngiver den periode, den bruger.
+  Svie/smerte har ingen indtastning af et løst antal dage. BB-250 handler om kolonnens optælling, og
+  BB-252 om at føre selve maksimumsfejlen hen til feltet.
+
+### BB-428 – Beregning gør opmærksom på en manglende slutdag, men tier om et hul mellem TAF-rækkerne
+
+- **Type:** Fornuft. **Rækkevidde:** Mønster, M-60. **Prioritet:** Mellem. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Første opgørelse for 02-01-2024 til 12-01-2024. Indtast TAF fra
+  02-01-2024 til 04-01-2024 og fra 11-01-2024 til 12-01-2024. Brug dagsløn 1.000 kr.
+- **Det sker:** Beregning advarer ikke om de udeladte arbejdsdage 5., 8., 9. og 10. januar. EO-kontrol viser
+  «TAF-ophør skyldes» → «Erstatningsperiodens ophør (12-01-2024)». Kontroltabellens datooversigt viser
+  «TAF-perioder» fra 02-01-2024 til 12-01-2024. PDF og Word viser begge rækker og regner korrekt med fem
+  arbejdsdage. Flyt slutdatoen fra 12. til 11. januar, og Beregning skriver «Der er ikke rejst TAF-krav
+  for hele EO-perioden».
+- **Konsekvens og forslag:** En uge kan være udeladt med vilje eller være en tastefejl. Vis en gul,
+  ikke-blokerende besked om arbejdsdage i et hul, med datoerne for hullet og et link til tabellen.
+  Kald de to datoer i Kontroltabellens datooversigt «Første og sidste TAF-dato», så de kan læses
+  sammen med de enkelte perioder.
+- **Systematik:** 12h viser allerede de konkrete datoer, hvor hverken løn eller offentlige ydelser er
+  angivet. Svie/smerte har en lignende ophørsbesked. Browserprøven dér havde også manglende tilstande,
+  så den afgjorde ikke, om et hul alene udløser beskeden. Se M-60.
+
+### BB-429 – En ferie med kun startdato forsvinder fra fejloversigten, når den sidste TAF-række ryddes
+
+- **Type:** Fornuft. **Rækkevidde:** Mønster, M-50. **Prioritet:** Lav. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det:** Vælg «Ja» til TAF og angivet dagsløn. Indtast 03-01-2024 som Fra i
+  ferietabellen og lad Til stå tom. Prøv først med en udfyldt TAF-række, og ryd så alle TAF-rækker.
+- **Det sker:** Med TAF-rækken siger Beregning «Ferieperioden fra 03-01-2024: Til-dato er ikke angivet»
+  og blokerer hentning. Efter rydningen står feriens Fra-dato stadig i tabellen. Beregning viser kun
+  «Der er ikke angivet nogen TAF-periode i EO-perioden» og tillader hentning. En ugyldig kalenderdato
+  i samme feriecelle blev derimod meldt, også uden en TAF-række.
+- **Konsekvens og forslag:** Brugeren kan afslutte opgørelsen med en påbegyndt ferieindtastning uden at
+  opdage den. Vis den manglende Til-dato som en gul besked med link til feltet, når der ikke er nogen
+  TAF-række, og ferien ikke indgår i opgørelsen. Det bevarer muligheden for at hente opgørelsen i den situation.
+- **Systematik:** 12f og svie/smerte har hver deres regler for ufuldstændige rækker. Prøven på svie/smerte
+  viste de konkrete mangler i hver række, også sammen med andre fejl. Der er ikke påvist en tilsvarende
+  tavs udeladelse i de to flader. Se M-50.
+
+### Overvejet uden fund
+
+- En TAF-række med kun `0` løse dage behandles som påbegyndt og efterspørger begge datoer. Med en
+  afvist Fra-dato meldes kalenderfejl og manglende Til-dato samlet. En helt ryddet TAF-tabel giver
+  egen advarsel, og en hel ferierække uden TAF viser sin egen optælling.
+- I 01-01-2024 til 05-01-2024 med ferie 01-01 til 02-01 var tre løse dage lovlige, og fire blev
+  markeret med maksimum tre. To TAF-rækker med fælles dag i 2099 gav både datogrænse og overlap i
+  Beregning. Afprøvning ved erhvervssygdom viste rød 31-05-2013 og gyldig 01-06-2013 ved anmeldelse
+  01-06-2018; beskeden navngav anmeldelsesdatoen.
+- «Nej» og «Skjul» fjernede tabeller og TAF-fejl. «Ja» gendannede data. Angivet månedsløn skjulte løse
+  dage. Med «Beregningsperiode» og løn i maj 2018 blev begge lønvalg prøvet: fravalg af «Fuld løn
+  under ferie» og valg af «SH-udbetaling» gav arbejdsdage. Skift tilbage til måneder og derpå arbejdsdage
+  bevarede det indtastede `1`. Den daterede ferie forblev synlig.
+- Escape gendannede den afsluttede dato. Faneskift og bekræftet F5 bevarede den afviste feriedato
+  29-02-2023. Gem/Hent bevarede begge TAF-rækker, løse dage, en endagsferie og modtaget TAF på
+  1.200 kr. Den eksisterende 3.14-prøvesag blev indlæst uden preflight, med TAF-rækken
+  01-08-2025 til 20-09-2026 i tabellen. Browserkonsollen viste ingen fejl eller advarsler.
+- PDF og Word viste de samme perioder, brutto 5.000 kr., 50 % ansvarsgrad, fradrag på 1.200 kr.
+  og et krav på 1.300 kr. Mørkt tema ved 1366×620 havde ingen vandret scroll.
+
+### Dækningshuller
+
+- Chrome headless. Andre motorer, de native Windows-fildialoger og dokumentåbning i Word blev ikke
+  afprøvet. PDF- og Word-indhold blev læst fra de hentede filer.
+- Ingen særskilt langkørsel med mange rækker, alle indsættelsesformater fra eksterne dokumenter,
+  eller alle kombinationer af ydelsesfradrag, ansættelsesforhold og afgørelsesdatoer. Sammenligningen
+  med 12f og svie/smerte var målrettet de nye fund.

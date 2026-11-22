@@ -13,8 +13,10 @@ import { normalizePasteForDraft, resolvePasteContextDraft, spliceDraftWithPaste 
 import {
   isDraftWithinMaxLength,
   restoreDomValueAfterRejectedDraft,
+  syncDomValueAfterNormalizedDraft,
   type DraftAdmission,
 } from '../../components/inputs/draftAdmission';
+import { isTranslatedSignKey, normalizeSignCharactersForCodec } from './fields/signPolicy';
 import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 import { useAutofillSuggestion } from './autofillSuggestContext';
 import type { AutofillSuggestion } from '../autofill/autofillSuggestModel';
@@ -167,23 +169,28 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     [cell]
   );
 
-  const onDraftChange = React.useCallback((nextDraft: string) => {
+  const onDraftChange = React.useCallback((rawDraft: string) => {
     const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
+    // Typografisk minus → '-' FØR tegnværnet (BB-430) – samme regel som formularfeltet.
+    const nextDraft = normalizeSignCharactersForCodec(cellFieldRef.current.descriptor.codec, rawDraft);
     if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien, og blokeringen er tavs. Se
       // `restoreDomValueAfterRejectedDraft` for hvorfor DOM'en skal skrives tilbage eksplicit.
       restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
       return;
     }
+    if (nextDraft !== rawDraft) syncDomValueAfterNormalizedDraft(inputElementRef.current, nextDraft);
     ctl.changeDraft(nextDraft);
   }, []);
 
   // Tegnfilter i åben editor. Enter/Escape ejes af grid-core-navigationen (capture-fase) og når ikke hertil
-  // som edit-taster. En aktiv rød fejl ændrer ikke feltets tegn- eller længdepolitik.
+  // som edit-taster. En aktiv rød fejl ændrer ikke feltets tegn- eller længdepolitik. En tast, der
+  // oversættes (typografisk minus), vurderes af `onDraftChange` på den oversatte draft i stedet.
   const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     const { controller: ctl, keyFilter: filter } = latest.current;
     if (!ctl.isOpen) return;
     if (!filter) return;
+    if (isTranslatedSignKey(cellFieldRef.current.descriptor.codec, e.key)) return;
     filter(e);
   }, []);
 
@@ -314,9 +321,12 @@ export const useGridCellSurface = <T, TEntity = unknown>(
     },
     prepareEditFromKey: (key: string) => {
       if (latest.current.locked) return false;
-      if (!cellFieldRef.current.descriptor.codec.acceptsInitialKey(key)) return false;
+      const codec = cellFieldRef.current.descriptor.codec;
+      // Første tegn normaliseres som enhver anden indtastning (typografisk minus → '-', BB-430).
+      const seed = normalizeSignCharactersForCodec(codec, key);
+      if (!codec.acceptsInitialKey(seed)) return false;
       // Tast-initieret åbning (§1.3): editoren seedes med det første tegn (overwrite-all-semantik).
-      latest.current.controller.open(key);
+      latest.current.controller.open(seed);
       requestAnimationFrame(() => {
         const el = inputElementRef.current;
         if (!el) return;

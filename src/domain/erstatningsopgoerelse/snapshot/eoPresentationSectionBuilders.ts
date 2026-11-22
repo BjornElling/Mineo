@@ -2,7 +2,7 @@ import { EET_KLAGE_FORBEHOLD_LINJE, resolveTafYdelsesforbeholdLinje } from '../h
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { resolveStamdataDatoReference } from '../../policies/stamdataCalculations';
 import type { ISODateString } from '../../../types/branded';
-import { isISODateString, isoToDanish } from '../../../types/branded';
+import { isoToDanish } from '../../../types/branded';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../engines/periodiseringsMotor';
 import { isoDateToDate } from '../../dates/isoDate';
 import { isTafRowEmpty } from '../helpers/rowEmpty';
@@ -14,7 +14,10 @@ import type { MoneyOre } from '../../money/money';
 import { moneyOre, zeroMoneyOre } from '../../money/money';
 import { asCalculable } from '../shared/eoTypes';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
-import { erEETKlageRelevant, erSvieSmerteTidligereMaxRelevant } from '../helpers/eoInputRelevance';
+import { erEETKlageRelevant } from '../helpers/eoInputRelevance';
+import { erSvieSmerteMaksimumOpbrugt } from '../helpers/svieSmerteMaksimum';
+import { vaelgTafOphoersgrund, type TafCutoffKilde } from '../validation/tafPeriodConstraints';
+import { resolveSvieSmerteOphoer } from '../validation/svieSmerteConstraints';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
@@ -71,9 +74,7 @@ export const buildSvieSmerteModel = (
   // Den udtømte ramme har to veje – brugerens egen afkrydsning og programmets beregning ud fra et
   // indtastet beløb, der æder hele maksimum. De er beregningsteknisk og forventningsmæssigt samme
   // tilstand og får derfor samme årsag og samme sætning i papiret (BB-219).
-  const maksimumOpbrugt =
-    (erSvieSmerteTidligereMaxRelevant(values) && values.tidligereSsMax === 'Ja') ||
-    (beregnes && options.engine.maksimumOpbrugtFoerPerioden);
+  const maksimumOpbrugt = erSvieSmerteMaksimumOpbrugt(values, options.engine.maksimumOpbrugtFoerPerioden);
   const ingenBeloebAarsag: SvieSmerteIngenBeloebAarsag | null = maksimumOpbrugt
     ? 'maksimumOpbrugt'
     : beregnes
@@ -83,12 +84,6 @@ export const buildSvieSmerteModel = (
   const periodeTilISO = values.vedroererPeriodeTil;
 
   const engine = options.engine;
-
-  const constrained = engine.constrainedPeriods.map((p) => ({
-    fra: isoDateToDate(p.fra),
-    til: isoDateToDate(p.til),
-    isDelvist: p.isDelvist,
-  }));
 
   const varigeMenAfgorelse = values.varigeMenAfgorelse;
   const opgLavetDen = values.opgørelseLavetDen;
@@ -128,11 +123,13 @@ export const buildSvieSmerteModel = (
     statusLinjer.push(verserendeKlageMen === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
   }
 
-  if (varigeMenAfgorelse === 'Ja' && verserendeKlageMen === 'Nej' && menDato && isISODateString(menDato)) {
-    const ophoerDato = getDayBeforeIso(menDato);
-    if (ophoerDato && perioderCoverDate(constrained, ophoerDato)) {
-      statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
-    }
+  // Samme udsagn som EO-kontrollens «Ménafgørelse», ud fra motorens afklippede perioder.
+  const senesteSvieSmerteDag = engine.constrainedPeriods.reduce<ISODateString | undefined>(
+    (seneste, p) => (!seneste || p.til > seneste ? p.til : seneste),
+    undefined
+  );
+  if (resolveSvieSmerteOphoer(values, senesteSvieSmerteDag).menafgoerelse) {
+    statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
   }
 
   const periodeLinjer = engine.constrainedPeriods.flatMap((p) => {
@@ -369,46 +366,29 @@ export const buildTabtArbejdsfortjenesteModel = (
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
 
-  type AfgraensningsKilde = 'endeligtEet' | 'midlertidigEet' | 'differencekrav';
-  const OPHOERSGRUND_PRIORITY: Record<AfgraensningsKilde, number> = {
-    differencekrav: 0,
-    endeligtEet: 1,
-    midlertidigEet: 2,
-  };
-
-  type OphoersgrundKandidat = Readonly<{
-    kilde: AfgraensningsKilde;
-    referenceDato: ISODateString;
-  }>;
-
-  const ophoersgrundKandidater: OphoersgrundKandidat[] = [];
+  // Valget mellem kandidaterne deles med EO-kontrollens «TAF-ophør skyldes» (BB-425).
+  const ophoersgrundKandidater: Array<Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>> = [];
   if (differencekravBringTilOphoer && differencekravReferenceDato) {
     ophoersgrundKandidater.push({ kilde: 'differencekrav', referenceDato: differencekravReferenceDato });
   }
   if (endeligtEetBringTilOphoer && endeligtEetReferenceDato) {
-    ophoersgrundKandidater.push({ kilde: 'endeligtEet', referenceDato: endeligtEetReferenceDato });
+    ophoersgrundKandidater.push({ kilde: 'endeligEet', referenceDato: endeligtEetReferenceDato });
   }
   if (midlertidigEetBringTilOphoer && midlertidigEetReferenceDato) {
     ophoersgrundKandidater.push({ kilde: 'midlertidigEet', referenceDato: midlertidigEetReferenceDato });
   }
 
-  ophoersgrundKandidater.sort((a, b) => {
-    if (a.referenceDato < b.referenceDato) return -1;
-    if (a.referenceDato > b.referenceDato) return 1;
-    return OPHOERSGRUND_PRIORITY[a.kilde] - OPHOERSGRUND_PRIORITY[b.kilde];
-  });
-
-  const valgtOphoersgrund = ophoersgrundKandidater[0]?.kilde;
+  const valgtOphoersgrund = vaelgTafOphoersgrund(ophoersgrundKandidater)?.kilde;
 
   let differencekravLinje: string | null = null;
 
   const appendEetLinje = (
-    kilde: Extract<AfgraensningsKilde, 'endeligtEet' | 'midlertidigEet'>,
+    kilde: Extract<TafCutoffKilde, 'endeligEet' | 'midlertidigEet'>,
     linje: string | null
   ): void => {
     if (!linje) return;
     eetLinjer.push(linje);
-    if (kilde === 'endeligtEet' && valgtOphoersgrund === 'endeligtEet' && endeligtEetBringTilOphoer) {
+    if (kilde === 'endeligEet' && valgtOphoersgrund === 'endeligEet' && endeligtEetBringTilOphoer) {
       eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     }
     if (kilde === 'midlertidigEet' && valgtOphoersgrund === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
@@ -418,8 +398,8 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   if (valgtOphoersgrund === 'differencekrav' && differencekravLinjeBase) {
     differencekravLinje = `${differencekravLinjeBase} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
-  } else if (valgtOphoersgrund === 'endeligtEet') {
-    appendEetLinje('endeligtEet', endeligtEetLinje);
+  } else if (valgtOphoersgrund === 'endeligEet') {
+    appendEetLinje('endeligEet', endeligtEetLinje);
   } else if (valgtOphoersgrund === 'midlertidigEet') {
     appendEetLinje('midlertidigEet', midlertidigEetLinje);
   }
@@ -428,7 +408,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   const harEndeligtEetAfgorelse = endeligtEetLinje !== null;
   const skalViseInformativEetLinje =
     (harMidlertidigEetAfgorelse || harEndeligtEetAfgorelse)
-    && valgtOphoersgrund !== 'endeligtEet'
+    && valgtOphoersgrund !== 'endeligEet'
     && valgtOphoersgrund !== 'midlertidigEet';
 
   if (skalViseInformativEetLinje) {

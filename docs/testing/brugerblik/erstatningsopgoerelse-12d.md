@@ -500,3 +500,96 @@ ikke i sig selv browserdækning.
 
 Ingen. Alle ni fund er afgjort 2026-09-24: syv gennemført (BB-238, BB-240–BB-245), to afvist
 (BB-239, BB-246) og BB-239's to opfølgende spørgsmål besvaret «som i dag».
+
+## Fornyet gennemgang 2026-11-21
+
+Chrome headless ved 1536×864 og 1244×620 på `bc231236`. Fiktiv sag med perioden 01-01-2024 til
+31-12-2024, svie/smerte og TAF til og med 30-06-2024, opgørelsesdato 01-02-2025 og en angivet
+månedsløn på 30.000 kr. Beregning, EO-kontrol, Kontroltabel, PDF og Word samt Gem/Hent er afstemt
+med AES-felterne.
+
+### Inventar
+
+| Gruppe | Felter og virkning |
+|---|---|
+| Varige mén | «Truffet afgørelse om varige mén på 5 % eller derover» åbner «Dato for første ménafgørelse» og «Verserende klagesag over ménafgørelse?». Datoen afgrænser svie/smerte, mens en klage ophæver afskæringen. |
+| Midlertidigt erhvervsevnetab | «Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover» åbner afgørelsesdato og virkningsdato. Virkningsdatoen har forrang. Afskærer TAF ved skader før 16-06-2011 og kan udløse en advarsel om manglende ydelser, når kravet når datoen. |
+| Endeligt erhvervsevnetab | «Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover» åbner afgørelsesdato og virkningsdato. Virkningsdatoen har forrang ved afskæring af TAF. |
+| Øvrigt | «Verserende klagesag over EET-afgørelse?» vises, når mindst én EET-afgørelse er slået til, og ophæver begge EET-afskæringer. «Evt. differencekrav opgjort per» vises altid, og afskæringen gælder også ved klage. |
+
+De fem valg starter på Nej, og de seks datofelter starter tomme. Datoernes nedre grænse er
+skadedatoen, med 01-01-2005 som reserve og systemgrænse. Afgørelsesdatoerne og
+differencekravsdatoen har dags dato som loft. Virkningsdatoerne har 31. december året efter som
+loft. En tom dato tæller som manglende. For en EET-afgørelse er den ene dato nok. Ellers kan
+afgørelsen fremgå af dokumentet som truffet uden dato og uden afskæring. En afvist dato har sin
+egen fejl, og download er spærret, mens den er aktiv. Afskæringsdatoerne kan bruges som
+forudsætninger og statuslinjer i dokumentet.
+
+### BB-425 – EO-kontrol og opgørelsen giver hver sin grund til TAF-ophør
+
+- **Type** Fejl. **Rækkevidde** Mønster M-33. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug en erstatningsperiode til 31-12-2024 med TAF til 30-06-2024.
+  Slå endeligt erhvervsevnetab til og angiv virkningsdato 01-07-2024. Indtast samme dato i
+  «Evt. differencekrav opgjort per». Lad EET-klagen være slået fra.
+- **Det sker.** «TAF-ophør skyldes» i EO-kontrol viser «Endelig EET-afgørelse (01-07-2024)».
+  PDF og Word nævner begge kilder, men siger «Differencekravet bringer retten til tabt
+  arbejdsfortjeneste til ophør.» Kontroltabellen viser begge som afskæringer på datoen. Forlænges
+  TAF med én dag, viser Beregning begge kilder som begrundelse for den samme fejl.
+- **Konsekvens for brugeren.** Brugeren kan efterprøve slutdatoen, men EO-kontrol forklarer ophøret
+  med en anden begivenhed end den, modparten får oplyst i dokumentet.
+- **Forslag.** Brug dokumentets nuværende ophørsgrund i EO-kontrol, når datoerne er ens og begge
+  kilder gælder. Kontroltabellen kan fortsat vise begge kilder.
+- **Systematik.** Samme dato for midlertidigt og endeligt EET ved skade 15-06-2011 gav «Endelig
+  EET-afgørelse» som ophørsgrund i både EO-kontrol og PDF. Med EET-klage var differencekravet
+  fortsat aktivt i Beregning og PDF. Svie/smerte har kun én AES-kilde, så samme sammenfald kan
+  ikke opstå dér.
+- **Evidens** `cross.log`, `tied-cutoff.pdf`, `tied-cutoff.docx` og `old.log`.
+
+### BB-426 – En tastefejl i afskæringsdatoen udløser også en advarsel om at forlænge kravet
+
+- **Type** Fornuft. **Rækkevidde** Mønster M-33. **Prioritet** Lav. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug en erstatningsperiode til 31-12-2024 med TAF til 30-06-2024.
+  Angiv 01-07-2024 i «Evt. differencekrav opgjort per». Lad begge EET-afgørelser stå på Nej,
+  eller slå EET-klage til, så differencekravets dato er den eneste aktive afskæring. Skift nu
+  differencekravsdatoen til 31-02-2024 og åbn Beregning.
+- **Det sker.** Beregning viser «Evt. differencekrav opgjort per: Datoen findes ikke i kalenderen»
+  og «Der er ikke rejst TAF-krav for hele EO-perioden». Gendannes 01-07-2024, forsvinder begge
+  linjer uden at ændre TAF-perioden. Hent opgørelse er spærret, mens kalenderfejlen er aktiv.
+- **Konsekvens for brugeren.** Den ekstra linje får det til at se ud, som om selve kravet også
+  skal forlænges. I eksemplet ville en forlængelse ramme en afskæring, når tastefejlen er rettet.
+- **Forslag.** Vis kalenderfejlen med link til datoen først. Vent med dækningsadvarslen, hvis den
+  røde dato kan ændre vurderingen af, om kravet slutter korrekt.
+- **Systematik.** Samme reaktion ved 31-02-2024 i «Dato for første ménafgørelse» og ved afviste
+  EET-datoer uden en brugbar erstatningsdato. En korrekt afgørelsesdato, der stadig forklarede
+  ophøret, gav kun fejl om den afviste virkningsdato. En gyldig, uafhængig differencekravsdato
+  forklarede også ophøret under EET-klage. NY-12b-4 dokumenterer en beslægtet advarsel, mens
+  selve svie/smerte-perioden har en datofejl.
+- **Evidens** `cases.log`, `cross.log` og `last.log`.
+
+### Afprøvet uden yderligere fund
+
+- Alle seks datofelter blev prøvet under og på skadedatoen, over dags dato, ved årsskiftet 2027/2028,
+  med ugyldig skuddag, tomt input, punktummer, tocifret år og et enkelt minustegn. De viste de
+  relevante grænser og normaliserede de genkendte datoer.
+- På 15-06-2011 gav midlertidigt EET åbenlyst udslag på TAF-periodens slutdato. På 16-06-2011 og
+  17-06-2011 fortsatte TAF, og Beregning advarede om manglende ydelser. Klager ophævede mén- og
+  EET-afskæringerne. Differencekravet gjaldt fortsat ved EET-klage.
+- En virkningsdato alene kunne bruges, mens en afgørelse uden nogen af datoerne gav gul
+  advarsel. En afgørelsesdato efter opgørelsesdatoen gav BB-242's gule advarsel. Linket førte
+  tilbage til AES-afgørelser. Ved 1244×620 var der ingen vandret scroll, og fejl-linket til
+  differencekravet scrollede selve feltet ind i det synlige område.
+- Escape gendannede den foregående dato. Delete, Ctrl+Z og Ctrl+Y gav henholdsvis tom, gendannet
+  og igen tom dato. Faneskift afsluttede den åbne dato. Skjul/genvis bevarede en gyldig virkningsdato
+  og ryddede den afviste afgørelsesdato. Afsluttet afvist differencekravsdato overlevede F5 og
+  browserens tilbage-knap. «Slet alt» viste bekræftelse og førte til Stamdata.
+- Gem/Hent via browserens download- og filinput-fallback bevarede seks gyldige datoer og begge
+  klagevalg. PDF og Word gengav efterprøvede afgørelser, klager og differencekrav. Browserkonsollen
+  viste ingen fejl eller advarsler.
+
+### Dækningshuller
+
+- Gem/Hent blev prøvet med en ny fiktiv fil gennem fallbacken. Operativsystemets filvælgere og
+  en ældre fil blev ikke gentaget i denne runde. Den eksisterende 3.14-prøve for BB-242 står ovenfor.
+- Målt i én browser og lyst tema. Kontrolfanernes kalender og alle eksportkolonner hører til 12m.
+
+Lokal evidens ligger i `test-results/brugerblik-12d/`.

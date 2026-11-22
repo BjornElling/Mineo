@@ -650,6 +650,142 @@ describe('pdfWriter addContentWidthImage', () => {
   });
 });
 
+// ─── Tekstgengivelse: ordret brugertekst og standardfontens tegnsæt ──────────
+
+describe('pdfWriter tekstgengivelse', () => {
+  const renderedTexts = (doc: MockJsPDF): string[] =>
+    doc.text.mock.calls.map((call: unknown[]) => String(call[0]));
+
+  // NY-12a-1: et ISO-formet fragment i brugerens fritekst eller journalnummer omformes ikke.
+  it('gengiver ISO-formede fragmenter i brevhoved, brødtekst og label/værdi ordret', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { toISODateString } = await import('../../../types/branded');
+    const writer = createPdfChannelWriter();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    writer.writeBrevhoved({
+      journalnr: 'AES-2024-01-15',
+      dagsDatoISO: toISODateString('2026-04-18'),
+    });
+    writer.writeWrappedText('Vedlagt fil AES-2024-01-15.pdf.');
+    writer.writeLeftRightText('Kommentar 2024-01-15', '100 kr.');
+
+    const texts = renderedTexts(getMockDoc(writer));
+    expect(texts).toContain('J.nr. AES-2024-01-15');
+    expect(texts).toContain('Vedlagt fil AES-2024-01-15.pdf.');
+    expect(texts).toContain('Kommentar 2024-01-15');
+    expect(texts.join('\n')).not.toContain('15-01-2024');
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  // NY-12a-2 / NY-12c-1: tegn uden for standardfontens tegnsæt må ikke nå jsPDF – ét
+  // sådant tegn spreder hele linjen. Det gælder alle tekstveje, også brevhoved og underskrift.
+  it('translittererer tegn uden for standardfonten i alle tekstveje og bevarer æøå', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { toISODateString } = await import('../../../types/branded');
+    const writer = createPdfChannelWriter();
+
+    writer.writeBrevhoved({
+      journalnr: 'Żak-1',
+      advokat: 'ŁŻ',
+      dagsDatoISO: toISODateString('2026-04-18'),
+    });
+    writer.writeWrappedText('Łukasz Żak, Łódź');
+    writer.writeLeftRightText('Żółć og æøå', '100 kr.');
+    writer.writeSectionHeader('Sag om Łukasz');
+    writer.writeNormalThenBoldLine('Navn: ', 'Łukasz Żak');
+    writer.writeSignatureBlock('____', '________', 'Łukasz Żak');
+
+    const texts = renderedTexts(getMockDoc(writer));
+    expect(texts).toEqual(expect.arrayContaining([
+      'J.nr. Zak-1 LZ',
+      'Lukasz Zak, Lódz',
+      'Zólc og æøå',
+      'Sag om Lukasz',
+      'Lukasz Zak',
+    ]));
+    for (const text of texts) {
+      expect([...text].every((char) => (char.codePointAt(0) ?? 0) <= 0xff)).toBe(true);
+    }
+  });
+});
+
+// ─── Sumlinje holdes sammen med sidste post (NY-12c-3) ────────────────────────
+
+describe('pdfWriter sumlinje ved sideskift', () => {
+  // Gengiver brugerblikkets scenarie: 24 poster i «Øvrige krav» efterfulgt af afstand og
+  // «I alt». Uanset hvor på siden listen starter, må «I alt» ikke stå alene på en ny side.
+  it('placerer «I alt» på samme side som sidste post for enhver startposition', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { createDocumentComposer, renderDocumentModel } = await import('../../../document/model/documentModel');
+    const { PDF_BASE_LINE_HEIGHT_MM, MARGINS } = await import('../../../document/layout/pdfConfig');
+
+    const rows = Array.from({ length: 24 }, (_, index) => `Kvittering ${String(index + 1).padStart(2, '0')}`);
+    const { composer, build } = createDocumentComposer();
+    composer.writeAtomicTableChunks({
+      rows,
+      renderHeader: () => {
+        composer.writeSectionHeader('Øvrige krav');
+        return undefined;
+      },
+      renderRow: (row) => {
+        composer.writeLeftRightText(row, '100,00 kr.');
+        return undefined;
+      },
+      estimateRowHeight: PDF_BASE_LINE_HEIGHT_MM * 2,
+      headerHeight: PDF_BASE_LINE_HEIGHT_MM * 4,
+    });
+    composer.addSectionSpacer();
+    composer.writeLeftRightText('I alt', '2.676,00 kr.', { rightFontStyle: 'bold', separatorAboveValue: { widthMm: 30, gapMm: 4 } });
+    const model = build();
+
+    const pageOfText = (doc: MockJsPDF, text: string): number => {
+      const textIndex = doc.text.mock.calls.findIndex((call: unknown[]) => call[0] === text);
+      const order = doc.text.mock.invocationCallOrder[textIndex];
+      return doc.addPage.mock.invocationCallOrder.filter((pageOrder: number) => pageOrder < order).length;
+    };
+
+    for (let startY = MARGINS.top; startY < 297 - MARGINS.bottom; startY += 0.5) {
+      const writer = createPdfChannelWriter();
+      writer.setY(startY);
+      renderDocumentModel(writer, model);
+      const doc = getMockDoc(writer);
+      expect(pageOfText(doc, 'I alt'), `startY=${startY}`).toBe(pageOfText(doc, 'Kvittering 24'));
+    }
+  });
+
+  // En flerlinjet brødtekst foran sumlinjen må ikke brydes, så sumlinjen står
+  // alene øverst – sidste linje af teksten skal følge med sumlinjen.
+  it('holder sidste linje af en ombrudt brødtekst sammen med «I alt» for enhver startposition', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { createDocumentComposer, renderDocumentModel } = await import('../../../document/model/documentModel');
+    const { MARGINS } = await import('../../../document/layout/pdfConfig');
+
+    const paragraph = 'Linje 1|Linje 2|Linje 3|Linje 4|Linje 5';
+    const { composer, build } = createDocumentComposer();
+    composer.writeWrappedText(paragraph);
+    composer.addSectionSpacer();
+    composer.writeLeftRightText('I alt', '500,00 kr.', { separatorAboveValue: { widthMm: 30, gapMm: 4 } });
+    const model = build();
+
+    const pageOfText = (doc: MockJsPDF, text: string): number => {
+      const textIndex = doc.text.mock.calls.findIndex((call: unknown[]) => call[0] === text);
+      const order = doc.text.mock.invocationCallOrder[textIndex];
+      return doc.addPage.mock.invocationCallOrder.filter((pageOrder: number) => pageOrder < order).length;
+    };
+
+    for (let startY = MARGINS.top; startY < 297 - MARGINS.bottom; startY += 0.5) {
+      const writer = createPdfChannelWriter();
+      const doc = getMockDoc(writer);
+      doc.splitTextToSize.mockImplementation((text: string) => text.split('|'));
+      writer.setY(startY);
+      renderDocumentModel(writer, model);
+      expect(pageOfText(doc, 'I alt'), `startY=${startY}`).toBe(pageOfText(doc, 'Linje 5'));
+    }
+  });
+});
+
 // ─── writeAtomicTableChunks ───────────────────────────────────────────────────
 
 describe('pdfWriter writeAtomicTableChunks', () => {

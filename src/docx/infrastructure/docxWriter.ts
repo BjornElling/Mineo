@@ -31,7 +31,6 @@ import {
 import type { DocumentWriter } from '../../document/writer/documentWriter';
 import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers';
 import { formatIsoDateLong } from '../../utils/dateFormatting';
-import { guardDocumentDateText } from '../../document/layout/documentDateGuard';
 import { roundByMethod } from '../../utils/rounding';
 import {
   buildDocumentFooterText,
@@ -102,10 +101,10 @@ const tableBorders = {
   insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D9D9D9' },
 } as const;
 
-// Dato-værn + NBSP→mellemrum: alt Word-tekstindhold (afsnit, tabelceller,
-// blandede linjer) går gennem denne normalisering, så en rå ISO-dato aldrig
-// kan nå .docx'en. Se documentDateGuard.ts.
-const normalizeText = (text: string): string => guardDocumentDateText(text).replace(/\u00A0/g, ' ');
+// NBSP→mellemrum: alt Word-tekstindhold (afsnit, tabelceller, blandede linjer) går
+// gennem denne normalisering. Teksten gengives ellers tegn for tegn – brugerens fritekst
+// og identifikatorer omformes aldrig; datoer formateres ved kilden (document-output-contract §A8).
+const normalizeText = (text: string): string => text.replace(/\u00A0/g, ' ');
 
 const splitLines = (text: string): string[] => {
   const lines = normalizeText(text).split(/\r?\n/);
@@ -818,6 +817,7 @@ export const createDocxWriter = (params?: Readonly<{
     },
     // Word håndterer pagination; bloktypernes keepNext/cantSplit bærer intentionen.
     keepWithNext: () => {},
+    keepLastLineWithNext: () => {},
     addSpacer: (height) => {
       pushSpacer(height);
     },

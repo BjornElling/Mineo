@@ -48,6 +48,12 @@ export type UseTransientDraftConfig<T> = Readonly<{
    * redigeringsflade følger BEVIDST det ordinære felts regler, så værnet skal også findes her.
    */
   admission?: DraftAdmission;
+  /**
+   * Tegn-ækvivalens på vejen ind i draften, anvendt FØR `admission` – på draft-ændringer og på åbningstasten.
+   * Beløbsfeltet giver her den samme sign-policy-normalisering som de persisterede felter (typografisk
+   * minus → '-', BB-430), så transient og persisteret beløbsindtastning opfører sig ens.
+   */
+  normalizeInput?: (text: string) => string;
 }>;
 
 export type TransientDraftState = Readonly<{
@@ -73,7 +79,7 @@ export type TransientDraftState = Readonly<{
  * trukket væk under fingrene.
  */
 export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): TransientDraftState => {
-  const { value, format, parse, onCommit, onReject, twoStageActivation, admission } = config;
+  const { value, format, parse, onCommit, onReject, twoStageActivation, admission, normalizeInput } = config;
 
   const formatted = format(value);
   const [draft, setDraft] = React.useState(formatted);
@@ -95,8 +101,12 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
   // uændret draft ikke committer igen – uden at gøre den FØRSTE commit til en falsk no-op.
   const draftAtLastCommitRef = React.useRef<string | null>(null);
 
-  const latest = React.useRef({ draft, formatted, parse, onCommit, onReject, twoStageActivation, isOpen, isTwoStage, admission });
-  latest.current = { draft, formatted, parse, onCommit, onReject, twoStageActivation, isOpen, isTwoStage, admission };
+  const latest = React.useRef({
+    draft, formatted, parse, onCommit, onReject, twoStageActivation, isOpen, isTwoStage, admission, normalizeInput,
+  });
+  latest.current = {
+    draft, formatted, parse, onCommit, onReject, twoStageActivation, isOpen, isTwoStage, admission, normalizeInput,
+  };
 
   const commitDraft = React.useCallback((raw: string, closeEditor = false) => {
     const { parse: doParse, onCommit: doCommit, onReject: doReject, formatted: current } = latest.current;
@@ -131,7 +141,8 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
     }
   }, [format]);
 
-  const onDraftChange = React.useCallback((next: string) => {
+  const onDraftChange = React.useCallback((raw: string) => {
+    const next = latest.current.normalizeInput?.(raw) ?? raw;
     // §1.2: et tegn uden for feltets tegnsæt/længde bliver aldrig en del af draften, og blokeringen er tavs.
     // DOM'en skrives tilbage af kalderen, der ejer `<input>`-referencen.
     if (latest.current.admission !== undefined && !latest.current.admission(next)) return;
@@ -186,10 +197,11 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
           && !e.metaKey
           && !e.altKey
           && e.key.length === 1;
-        if (isPrintable && acceptsInitialKey?.(e.key)) {
+        const initialKey = latest.current.normalizeInput?.(e.key) ?? e.key;
+        if (isPrintable && acceptsInitialKey?.(initialKey)) {
           e.preventDefault();
           e.stopPropagation();
-          openEditor(e.key);
+          openEditor(initialKey);
         }
         return;
       }

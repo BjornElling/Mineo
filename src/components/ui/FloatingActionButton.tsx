@@ -37,6 +37,20 @@ type FloatingActionButtonProps = {
  * gav to modstridende svar på samme klik og oplyste knappen som brugbar for en skærmlæser. Knappen er
  * nu ægte `disabled` med årsagen i tooltippet. Genindfør ikke en shake-prop her.
  */
+/**
+ * Et klik, der er 2. (eller senere) klik i samme dobbeltklik, udløser ikke handlingen (BB-434, BB-437).
+ *
+ * Kortenes handlinger flytter sig, når de virker: «Tilføj» lægger et nyt kort ind, så det forrige korts
+ * «Flyt op»/«Flyt ned» havner præcis under markøren, og «Flyt op» flytter kortet, så nabokortets tilsvarende
+ * knap overtager pladsen. Andet klik i et dobbeltklik ramte derfor en ANDEN knap eller et ANDET kort end det,
+ * brugeren sigtede efter – et eksisterende kort skiftede plads uden at brugeren havde bedt om det.
+ *
+ * `MouseEvent.detail` er browserens klikantal på samme sted inden for dobbeltklik-intervallet: 1 ved et
+ * enkeltklik, 2 ved andet klik i et dobbeltklik – og 0 ved tastaturaktivering (Enter/mellemrum), som derfor
+ * altid virker. Et nyt, særskilt klik efter intervallet har igen `detail` 1 og flytter kortet videre.
+ */
+const isRepeatClickOfSameGesture = (event: React.MouseEvent): boolean => event.detail >= 2;
+
 const FloatingActionButton = React.memo(({
   onClick,
   icon,
@@ -53,7 +67,10 @@ const FloatingActionButton = React.memo(({
       color={color}
       // Navnet er stabilt og følger handlingen, ikke blokeringstilstanden.
       aria-label={tooltip}
-      onClick={disabled ? undefined : onClick}
+      onClick={disabled ? undefined : (event) => {
+        if (isRepeatClickOfSameGesture(event)) return;
+        onClick();
+      }}
       disabled={disabled}
       sx={mergeSx({
         width: 56,

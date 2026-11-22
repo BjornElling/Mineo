@@ -255,6 +255,142 @@ describe('Svie/smerte beregning', () => {
       expect(row?.status).toBe('ok');
     });
 
+    // NY-12b-1: opgørelse 2, én sygedag á 230 kr. (2024), loft 88.500 kr. Grænsen ligger ved lighed:
+    // tidligere + aktuelt LIG loftet har nået maksimum, selv om intet skæres ned.
+    describe('maksimum ved tidligere opgjort beløb (NY-12b-1)', () => {
+      const medTidligere = (tidligere: number) => makeValues({
+        eoNummer: '2',
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        tidligereSsMax: 'Nej',
+        svieSmerteHelbredsstatus: 'Sygemeldt',
+        svieSmerteSatserAar: 2024,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        svieSmerteTidligereTotal: asAmountValue(tidligere),
+        vedroererPeriodeFra: iso('2024-01-20'),
+        vedroererPeriodeTil: iso('2024-01-31'),
+        svieSmertePerioder: [{ id: '1', fra: iso('2024-01-20'), til: iso('2024-01-20'), tilstand: 'sygemeldt' }],
+      });
+
+      it.each([
+        [88_269, '230,00 kr.', 'Ikke rejst svie/smerte-krav for hele perioden', 'warning'],
+        [88_270, '230,00 kr.', 'Nået max i denne periode', 'ok'],
+        [88_271, '229,00 kr.', 'Nået max i denne periode', 'ok'],
+      ] as const)('tidligere %d kr. giver %s og «%s»', (tidligere, beloeb, grund, status) => {
+        const values = medTidligere(tidligere);
+        expect(getBeregnetBeloeb(values)).toBe(beloeb);
+        const row = getSvieSmerteOphoerRow(values);
+        expect(row?.displayValue).toBe(grund);
+        expect(row?.status).toBe(status);
+      });
+
+      it('viser samme grund som dokumentet, når maksimum var nået i tidligere opgørelse (88.500 kr.)', () => {
+        const values = medTidligere(88_500);
+        expect(getBeregnetBeloeb(values)).toBe('0,00 kr.');
+        const row = getSvieSmerteOphoerRow(values);
+        expect(row?.displayValue).toBe('Tidligere beregnet til max');
+        expect(row?.status).toBe('ok');
+
+        // Dokumentet trykker «Maksimum … er nået i tidligere erstatningsopgørelse.» for præcis denne årsag.
+        const pdfModel = computeEoSnapshot({
+          revision: 'test',
+          stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadedato: iso('2023-01-01') },
+          eoValues: buildCanonicalReadyValues(values),
+        }).data?.pdfModel;
+        expect(pdfModel?.svieSmerte.ingenBeloebAarsag).toBe('maksimumOpbrugt');
+      });
+    });
+
+    // Ophørsgrunden læser den AFKLIPPEDE seneste dag, ligesom dokumentet – ikke den rå til-dato.
+    describe('afklippet seneste svie/smerte-dag', () => {
+      const pdfSvieSmerte = (values: ErstatningsopgoerelseValues) => computeEoSnapshot({
+        revision: 'test',
+        stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadedato: iso('2023-01-01') },
+        eoValues: buildCanonicalReadyValues(values),
+      }).data?.pdfModel.svieSmerte;
+      const MEN_LINJE = 'Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.';
+
+      // En periode forbi ménafgørelsen er en blokerende fejl og giver intet dokument; derfor slutter den
+      // seneste periode her dagen før ménafgørelsen (og en anden ligger før erstatningsperioden).
+      it('nævner ménafgørelsen begge steder, når den seneste indgående dag er dagen før ménafgørelsen', () => {
+        const values = makeValues({
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Sygemeldt',
+          svieSmerteSatserAar: 2024,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          varigeMenAfgorelse: 'Ja',
+          verserendeKlageMen: 'Nej',
+          menAfgoerelseDato: iso('2024-06-01'),
+          vedroererPeriodeFra: iso('2024-03-01'),
+          vedroererPeriodeTil: iso('2024-09-30'),
+          svieSmertePerioder: [
+            { id: '1', fra: iso('2024-01-01'), til: iso('2024-02-15'), tilstand: 'sygemeldt' },
+            { id: '2', fra: iso('2024-03-01'), til: iso('2024-05-31'), tilstand: 'delvist-sygemeldt' },
+          ],
+        });
+        expect(getSvieSmerteOphoerRow(values)?.displayValue).toBe('Ménafgørelse');
+        expect(pdfSvieSmerte(values)?.statusLinjer).toContain(MEN_LINJE);
+      });
+
+      it('nævner ikke erstatningsperiodens ophør, når kun en periode EFTER erstatningsperioden rækker dertil', () => {
+        const values = makeValues({
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Sygemeldt',
+          svieSmerteSatserAar: 2024,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          vedroererPeriodeFra: iso('2024-01-01'),
+          vedroererPeriodeTil: iso('2024-12-31'),
+          svieSmertePerioder: [
+            { id: '1', fra: iso('2024-03-01'), til: iso('2024-03-15'), tilstand: 'sygemeldt' },
+            { id: '2', fra: iso('2025-02-01'), til: iso('2025-02-28'), tilstand: 'sygemeldt' },
+          ],
+        });
+        const row = getSvieSmerteOphoerRow(values);
+        expect(row?.displayValue).toBe('Ikke rejst svie/smerte-krav for hele perioden');
+        expect(row?.status).toBe('warning');
+        // Dokumentet siger det samme: perioderne er ikke opgjort frem til erstatningsperiodens slutning.
+        expect(pdfSvieSmerte(values)?.opgjortFremTilPeriodeTil).toBe(false);
+      });
+
+      it('nævner erstatningsperiodens ophør, når en periode inden for rækker ud over erstatningsperioden', () => {
+        const values = makeValues({
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteHelbredsstatus: 'Sygemeldt',
+          svieSmerteSatserAar: 2024,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          vedroererPeriodeFra: iso('2024-01-01'),
+          vedroererPeriodeTil: iso('2024-06-30'),
+          svieSmertePerioder: [
+            { id: '1', fra: iso('2024-05-01'), til: iso('2024-08-31'), tilstand: 'sygemeldt' },
+          ],
+        });
+        expect(getSvieSmerteOphoerRow(values)?.displayValue).toBe('Erstatningsperiodens ophør (30-06-2024)');
+        expect(pdfSvieSmerte(values)?.opgjortFremTilPeriodeTil).toBe(true);
+        expect(pdfSvieSmerte(values)?.statusLinjer).not.toContain(MEN_LINJE);
+      });
+    });
+
+    // NY-12b-3: ingen svie/smerte-dag i EO-perioden – ingen ophørsgrund, samme regel som `taf.ophoerSkyldes`.
+    it('udelader ophørsgrunden, når ingen svie/smerte-dag ligger i EO-perioden', () => {
+      const row = getSvieSmerteOphoerRow(
+        makeValues({
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
+          tidligereSsMax: 'Nej',
+          svieSmerteSatserAar: 2024,
+          svieSmerteDelvisSygemeldingSats: 'fuld',
+          vedroererPeriodeFra: iso('2023-02-01'),
+          vedroererPeriodeTil: iso('2023-02-28'),
+          svieSmertePerioder: [
+            { id: '1', fra: iso('2024-01-02'), til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+            { id: '2', fra: iso('2024-01-15'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
+          ],
+        })
+      );
+      expect(row).toBeUndefined();
+    });
+
     it('viser warning med "Ikke rejst svie/smerte-krav for hele perioden" i fallback', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({

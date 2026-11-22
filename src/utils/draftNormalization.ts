@@ -38,6 +38,19 @@ const LEADING_MINUS_REGEX = new RegExp(`^[${MINUS_REGEX_CLASS}]+`);
 const isMinusChar = (ch: string): boolean =>
   MINUS_CHARS.has(ch);
 
+const ANY_MINUS_REGEX = new RegExp(`[${MINUS_REGEX_CLASS}]`, 'g');
+
+/**
+ * Erstat ethvert genkendt minustegn (typografisk minus, tankestreg, em-dash, hård bindestreg) med ASCII '-'.
+ *
+ * Bruges af de fortegnsbærende feltfamiliers indtastningsvej (tastning, paste, første tegn), så
+ * `10−1` og `10–1` behandles præcis som `10-1`. Uden den sprang tegnfilteret det ukendte tegn over, og
+ * cifrene smeltede sammen (`10−1` → `101`). Alle tegnene i klassen er ét UTF-16-tegn, så længden og
+ * dermed caret-positionen er uændret.
+ */
+export const normalizeMinusCharacters = (text: string): string =>
+  text.replace(ANY_MINUS_REGEX, '-');
+
 /**
  * Fjern whitespace før det første tegn og efter det sidste tegn.
  */

@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Status:** Normativ og gældende
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-22
 
 **Formål:** At fastlægge én ensartet model for input, redigering, validering og beregningsgrænser i Mineo.
 
@@ -242,6 +242,17 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    Afgrænsningen er snæver med vilje. Rydningen rammer netop overgangen **synlig + rød → skjult** – ikke
    gyldige værdier, og ikke skjulte værdier i almindelighed.
 
+   **Ubestemt relevans rydder ikke (BB-433).** Bygger relevansreglens «skjult» på et felt med afvist råtekst,
+   er feltet ikke fravalgt, men midlertidigt ubestemt: den afviste værdi har tomt canonical slot, så reglen
+   kunne ikke kende brugerens reelle valg (fx en beregningsslutdato `31-02-2018`, så det ikke kan afgøres, om
+   TAF opgøres i dage eller måneder). Feltet er skjult, tavst og læses som tomt som et irrelevant felt, men
+   dets afviste råtekst bevares og kommer frem igen, når årsagen rettes. Det spærrer ikke Gem usynligt,
+   fordi årsagen selv er afvist og spærrer synligt. Gør en senere ændring feltet egentlig irrelevant (fx TAF
+   «Nej», eller årsagen ryddes til tom), ryddes råteksten (og en rød canonical værdi) da – rydningen gentages til fast punkt, så også et
+   felt, der først afgøres af en anden rydning i samme transaktion, ryddes. Skelnen udledes generisk af,
+   hvilke felter reglen læste (`src/inputCore/fieldRelevance.ts`); en regel behøver ikke selv kende til rejected
+   input.
+
 6. **Et skjult felt UDEN aktiv rød feltfejl bevares altid** – gennem F5 og `.eo`. Bliver det relevant igen,
    vises den samme værdi. Sammen med punkt 5 giver det én konsistent regel: skjult og gyldigt bevares;
    skjult og rødt ryddes.
@@ -250,7 +261,7 @@ Keyboard-navigation ejes af `keyboard-navigation.md`.
    en fejl, der stadig findes: det skjulte felt er tavst, **fordi** det er ryddet. De to halvdele –
    rydningen i punkt 5 og tavsheden her – skal derfor ændres sammen, aldrig hver for sig. Håndhæves af
    relevans-invarianten i `validateSettledInput`, som afviser en færdig tilstand med rejected råtekst i et
-   skjult felt.
+   irrelevant felt (et ubestemt felt, punkt 5, er tilladt).
 
 7. **Relevans er en læsegrænse.** `InputReader` udleverer altid feltets `emptyValue`, når descriptorens
    relevansregel er falsk. Den bevarede canonical værdi er dermed kun tilgængelig for inputinfrastrukturen,
@@ -322,6 +333,11 @@ frem for at få fortegnet stille fjernet.
 
 Beløbsfelter er den ene bevidste nuance: `-` er også subtraktion i et udtryk (`5000-200`), så et ikke-negativt
 beløbsfelt tillader tegnet og blokerer kun det **unære** minus.
+
+Typografiske minustegn (U+2212 minus, U+2013 tankestreg, U+2014 em-dash og U+2011 hård bindestreg) er i
+enhver familie med en `signPolicy` det SAMME tegn som `-`: de normaliseres til ASCII `-` FØR tegnfilteret ved
+tastning, paste og første tast, på både formularfelt og tabelcelle (`normalizeSignCharactersForCodec`, BB-430).
+Reglerne ovenfor gælder derefter uændret – også at et unært minus springes over i et felt uden negative værdier.
 
 ### 8.2a Længdepolitikken ejes af feltets codec
 

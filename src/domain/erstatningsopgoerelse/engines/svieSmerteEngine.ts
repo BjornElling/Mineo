@@ -59,6 +59,13 @@ export type SvieSmerteEngineOutput = Readonly<{
    * til max» er sandt i det ene tilfælde og misvisende i det andet, hvor beløbet bliver 0 (BB-219).
    */
   maksimumOpbrugtFoerPerioden: boolean;
+  /**
+   * Kravet i denne periode NÅR maksimum: råbeløbet er mindst den resterende plads (målt i hele øre).
+   * Adskilt fra `maxApplied`, som kun er sand, når kravet skæres ned – ved præcis lighed skæres intet,
+   * men loftet er nået alligevel, og det er det, EO-kontrollens ophørsgrund skal sige (NY-12b-1).
+   * Påvirker ingen beløb.
+   */
+  maksimumNaaet: boolean;
   totalOre: MoneyOre;
 }>;
 
@@ -142,6 +149,7 @@ const buildZeroOutput = (values: DeepReadonly<SvieSmerteCalculationValues>): Svi
     delvisFaktor: values.svieSmerteDelvisSygemeldingSats === 'fuld' ? 1 : 0.5,
     maxApplied: false,
     maksimumOpbrugtFoerPerioden: false,
+    maksimumNaaet: false,
     totalOre: zeroMoneyOre(),
   };
 };
@@ -288,6 +296,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
   let totalOre = zeroMoneyOre();
   let maxApplied = false;
   let maksimumOpbrugtFoerPerioden = false;
+  let maksimumNaaet = false;
 
   if (harPerioder) {
     // Satser er garanteret tilstede her: harPerioder kræver harInputPerioder,
@@ -313,6 +322,9 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     // maksimum – det bortfalder. Den tilstand er samme virkelighed som togglen «Tidligere beregnet
     // S/S til max.» og skal behandles ens (BB-219).
     maksimumOpbrugtFoerPerioden = restPladsEfterTidligere <= 0 && rawKroner > 0;
+    // I hele øre, så flydende-tals-støj i summen af dagssatser ikke afgør en præcis lighed.
+    maksimumNaaet = rawKroner > 0
+      && fromKroner(roundKroner(rawKroner)) >= fromKroner(roundKroner(restPladsEfterTidligere));
     const beloeb = clampToNonNegative(beloebFoerFradrag - allerede);
     totalOre = clampMoneyOreToZero(fromKroner(roundKroner(beloeb)));
   }
@@ -337,6 +349,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     delvisFaktor,
     maxApplied,
     maksimumOpbrugtFoerPerioden,
+    maksimumNaaet,
     totalOre: clampMoneyOreToZero(totalOre),
   };
 };

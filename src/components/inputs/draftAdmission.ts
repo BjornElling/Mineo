@@ -122,6 +122,29 @@ export const restoreDomValueAfterRejectedDraft = (
   }
 };
 
+/**
+ * Skriver en NORMALISERET, men ellers accepteret draft tilbage i `<input>` og bevarer markeringen.
+ *
+ * Bruges, når indtastningsvejen har erstattet tegn med en ækvivalent af samme længde (typografisk minus
+ * → ASCII '-', se `normalizeSignCharactersForCodec`). Skrives elementet ikke her, ville React selv
+ * overskrive værdien ved næste render og flytte caret'en til feltets slutning i flere browsere.
+ */
+export const syncDomValueAfterNormalizedDraft = (
+  element: HTMLInputElement | null,
+  normalizedDraft: string
+): void => {
+  if (element === null || element.value === normalizedDraft) return;
+  const start = element.selectionStart;
+  const end = element.selectionEnd;
+  element.value = normalizedDraft;
+  if (start === null || end === null) return;
+  try {
+    element.setSelectionRange(Math.min(start, normalizedDraft.length), Math.min(end, normalizedDraft.length));
+  } catch {
+    // no-op: elementtyper uden selection-API.
+  }
+};
+
 export type IntegerDraftConstraints = Readonly<{
   maxDigits?: number;
   maxValue?: number;

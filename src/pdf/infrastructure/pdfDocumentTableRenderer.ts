@@ -10,8 +10,7 @@ import {
   TABLE_STYLES,
 } from '../../document/layout/pdfConfig';
 import { getJsPdfPageSize } from '../../document/layout/jsPdfGeometry';
-import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
-import { guardDocumentDateText } from '../../document/layout/documentDateGuard';
+import { normalizeRightAlignedTextForDocument, normalizeTextForDocument, toPdfStandardFontText } from '../../document/layout/pdfTextUtils';
 import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
 import {
   attachPdfColumnLayoutMeta,
@@ -48,25 +47,6 @@ const normalizePdfTableCellContent = (content: string, halign?: PdfCellAlign): s
   return halign === 'right' ? normalizeRightAlignedTextForDocument(content) : content;
 };
 
-// PDF-kanalens sidste dato-værn for tabelindhold. Her fanges enhver rå ISO-dato,
-// der ved en fejl er sendt uformateret med i en celle. Se documentDateGuard.ts.
-// Celleobjektets styles/colSpan bevares; kun content kan ændres.
-const guardRowInputDates = (body: RowInput[]): RowInput[] =>
-  body.map((row) => {
-    if (!Array.isArray(row)) return row;
-    return (row as unknown[]).map((cell) => {
-      if (typeof cell === 'string') return guardDocumentDateText(cell);
-      if (isPdfTableCell(cell) && typeof cell.content === 'string') {
-        const guarded = guardDocumentDateText(cell.content);
-        return guarded === cell.content ? cell : { ...cell, content: guarded };
-      }
-      return cell;
-    }) as RowInput;
-  });
-
-const isPdfTableCell = (value: unknown): value is PdfTableCell => {
-  return typeof value === 'object' && value !== null && 'content' in value;
-};
 
 const canMeasurePdfText = (doc: jsPDF): doc is jsPDF & Readonly<{
   getTextWidth: (text: string) => number;
@@ -320,7 +300,7 @@ export const renderDocumentTable = (params: Readonly<{
   const {
     doc,
     startY,
-    body: rawBody,
+    body,
     columnStyles,
     tableWidth = PDF_CONTENT_WIDTH_MM,
     hasHeaderRow = true,
@@ -330,9 +310,6 @@ export const renderDocumentTable = (params: Readonly<{
     didParseCell,
     didDrawCell,
   } = params;
-
-  // Sidste forsvarslinje mod rå ISO-datoer i tabelindhold (begge kanaler).
-  const body = guardRowInputDates(rawBody);
 
   // Fail-closed: en tom tabel-body er altid en fejl i kalderen (en sektion der skulle
   // have været undertrykt eller fået en eksplicit "Ingen ..."-række før kaldet). At
@@ -392,8 +369,13 @@ export const renderDocumentTable = (params: Readonly<{
     columnStyles: resolvedColumnStyles,
     didParseCell: (data: CellHookData) => {
       const resolvedHalign = data.cell.styles.halign;
-      if (resolvedHalign === 'right' && Array.isArray(data.cell.text)) {
-        data.cell.text = data.cell.text.map((line) => normalizeRightAlignedTextForDocument(line));
+      if (Array.isArray(data.cell.text)) {
+        // Alle celler (også venstrejusterede) skal kunne gengives med standardfonten;
+        // ét ikke-gengiveligt tegn spreder ellers hele cellens tekst. Sker før autoTable
+        // måler og ombryder cellen.
+        data.cell.text = data.cell.text.map((line) =>
+          resolvedHalign === 'right' ? normalizeRightAlignedTextForDocument(line) : toPdfStandardFontText(line)
+        );
       }
 
       if (hasHeaderRow && data.row.index === 0) {

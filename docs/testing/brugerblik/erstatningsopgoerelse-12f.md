@@ -687,3 +687,92 @@ og kontrollaget. Kun sager med en beregningsperiode efter skaden ændrer tal.
 
 Ingen. Alle 16 oprindelige fund er afgjort 2026-10-02; BB-333 og BB-338–BB-340 fra den kritiske efterkontrol er afgjort
 2026-10-24 (se de enkelte fund).
+
+## Fornyet Brugerblik 2026-11-22
+
+Chrome headless ved 1536×864 på commit `fc27ca1e`. Prøvesagen brugte skadedato 01-06-2018 og TAF i
+2024. Beregningsperioden var maj 2018 med 30.000 kr. i løn. Erhvervssygdom blev også prøvet med samme
+dato som anmeldelsesdato. Historiske afgørelser er bevaret.
+
+### BB-430 – Et kopieret minustegn kan gøre en dagsløn større
+
+- **Type** Fejl · **Prioritet** Høj · **Rækkevidde** Mønster, M-61 · **Beslutning** Afventer udvikleren.
+- **Prøve og oplevelse.** Vælg «Angivet dagsløn». Markér hele «Dagslønnen udgør» i det åbne felt, og
+  indsæt `10-1` med Ctrl+V. Feltet viser `9,00`. Gentag med `10−1` (minustegn U+2212) eller `10–1`
+  (tankestreg U+2013). Begge bliver `101,00` uden rød markering. Den indsatte tekst ligner et
+  fradrag, men ender som et andet beløb ved afslutning af feltet. Med 254 arbejdsdage, ingen
+  lønudvikling og samme øvrige oplysninger steg det hentede Word-dokuments TAF-krav fra
+  2.286,00 kr. med almindeligt tastaturminus til 25.654,00 kr. med U+2212. Ingen af de to forløb
+  viste «Fejl og advarsler».
+- **Forslag.** Bevar betydningen af et genkendeligt minus fra udklipsholderen. Hvor minus er tilladt,
+  skal `10−1` regnes som `10-1`. Hvis feltet ikke kan acceptere fradraget eller fortegnet, skal det
+  vise en konkret fejl, der kan rettes.
+- **Systematik.** Faktisk udklipsholder og Ctrl+V bekræftede søsterfejlen i Årslønsberegningens «Løn»
+  og Offentlige ydelsers «Ydelse», hvor `−1200` og `–1200` bliver positive, mens `-1200` bliver
+  negativt. Årsløn regner `1200-200` som 1.000,00 kr. og `1200−200` som 1.200.200,00 kr.
+  Dansk formateret beløb `1.234,56` og `1 234,56 kr.` beholdt beløbets betydning i 12f.
+
+### BB-431 – Advarselslinket fører til en lukket sektion i opgørelse nr. 2
+
+- **Type** Fornuft · **Prioritet** Mellem · **Rækkevidde** Mønster, M-32 · **Beslutning** Afventer udvikleren.
+- **Prøve og oplevelse.** Angiv 30.000 kr. som dagsløn og vælg lønudvikling «Ingen». Sæt opgørelsens
+  nummer til 2, og lad «Skjul beregning efter første opgørelse» være markeret. Under Beregning står
+  «Dagslønnen er usædvanlig høj – er det en månedsløn?». Klik på «Indtægt før skadedatoen». Fanen
+  skifter, men der er stadig kun overskriften og afkrydsningen. Beløbet er væk fra skærmen, og
+  opgørelsen kan hentes med 7.620.000,00 kr. i TAF. For at undersøge advarslen skal brugeren selv
+  gætte, at afkrydsningen skal fjernes.
+- **Forslag.** Fold sektionen ud til dette besøg, og før brugeren til beløbet, når advarslen åbnes.
+  Behold brugerens valg om at forkorte senere opgørelser.
+- **Systematik.** Samme klik ved 2.000 kr. i angivet månedsløn landede også i en lukket sektion,
+  denne gang i en erhvervssygdomssag. Det er samme skjulning i begge tilfælde. Søgningen efter
+  tilsvarende skjulning fandt ingen anden sektion styret af «Skjul beregning efter første opgørelse».
+  BB-203's afgørelse om at skjule et gyldigt grundlag gælder fortsat ved almindeligt faneskift.
+
+### BB-432 – En dagsløn på én øre passerer uden advarsel
+
+- **Type** Fornuft · **Prioritet** Mellem · **Rækkevidde** Mønster, M-05 · **Beslutning** Afventer udvikleren.
+- **Prøve og oplevelse.** Vælg «Angivet dagsløn», skriv `0,01` som dagsløn, angiv en lønseddel som
+  kilde og vælg lønudvikling «Ingen». Feltet er neutralt, «Fejl og advarsler» er tom, og PDF'en kan
+  hentes med `254 arbejdsdage á 0,01 kr.` og et samlet krav på 2,54 kr. En tastefejl kan passere,
+  selv når et helt års arbejdsfortjeneste ender på få kroner.
+- **Forslag.** Giv en gul advarsel ved meget lav positiv dagsløn, som beder brugeren kontrollere
+  kroner og øre. Grænsen fastsættes af udvikleren, og beløbet forbliver brugbart til atypiske sager.
+- **Systematik.** Samme flade viser allerede gul advarsel for 2.000 kr. som månedsløn og over
+  10.000 kr. som dagsløn (BB-268). Prøven med 1,00 kr. som dagsløn gav heller ingen advarsel.
+  Et indtastet nul er fortsat en konkret rød fejl i begge grene. Beregningsperiodens særskilte
+  rimelighedsadvarsel for store fradrag efterlod korrekt lønudbetalingen tilgængelig som input.
+
+### BB-433 – En fejl i periodens slutdato rydder en anden indtastning i ferietabellen
+
+- **Type** Edge case · **Prioritet** Mellem · **Rækkevidde** Mønster, M-27 og M-32 · **Beslutning** Afventer udvikleren.
+- **Prøve og oplevelse.** Brug beregningsperiode 01-05-2018 til 31-05-2018 og indtast løn for maj
+  med «Fuld løn under ferie» slået fra. Giv ferierækken Fra `31-02-2018` og Til `04-05-2018`. Skriv
+  derefter `31-02-2018` som selve beregningsperiodens slutdato. Ferieafsnittet forsvinder. Når
+  slutdatoen rettes tilbage til `31-05-2018`, er ferierækkens tidligere røde Fra-dato blevet tom,
+  mens Til står som før. To gange Ctrl+Z genskaber den oprindelige række. At rette slutdatoen får
+  dermed en separat indtastning til at forsvinde, selv om brugeren fortsat vil beregne i arbejdsdage.
+- **Forslag.** Lad ferieindtastningerne stå synligt til rettelse, mens en fejl i beregningsperioden
+  forhindrer, at dage eller måneder kan afgøres. Skjul ferien på sædvanlig vis, når en brugbar
+  beregningsperiode faktisk opgøres i måneder.
+- **Systematik.** Gyldige feriedatoer og løse dage blev vist igen efter samme slutdatofejl. `8` løse
+  dage blev også bevaret, da de midlertidigt stod rødt efter forkortelse af perioden. Et midlertidigt
+  ugyldigt Stamdatafelt («Skadedato») bevarede den afviste feriedato. Et direkte skift i TAF-kravet
+  til Nej fjernede derimod en separat rød dato i den manuelle lønregulering og gjorde Gem mulig,
+  mens gyldige værdier kom tilbage ved Ja. Det er den tilsigtede relevansoprydning. TAF-tabellens
+  «Løse ferie-/feriefridage» bruger samme skift mellem dage og måneder, så den er også kandidat.
+
+### Inventar og øvrige prøver
+
+| Område | Observeret |
+|---|---|
+| A1, A2 og A8 – find vej og forstå omfanget | Tre metoder, med `Beregningsperiode` som udgangspunkt. Ved angivet løn vises beløb i kr., en frivillig kilde og en frivillig løndato. Uden dato bruges skadens eller anmeldelsens dato. Lønudvikling kræver et aktivt valg, også når man vil vælge «Ingen». Erhvervssygdom gav «Indtægt før anmeldelsesdatoen» og korrekt datoord i Word. |
+| A3–A5 og B4 – kombinationer og feedback | Fravær før periodedatoer gav særskilte beskeder for manglende periode, dage og årsag. Når en korrekt majperiode manglede løn, navngav den perioden. Ansættelsesforhold uden fuld løn under ferie skiftede først til arbejdsdage, da dets lønrække faktisk overlappede perioden, også med et andet ansættelsesforhold med fuld løn under ferie. Et aktivt valg af «Manuelt angivet» viste Store Bededagstillæg ved almindelig løn på helligdage, fra som standard ved dagsløn og til ved månedsløn, jf. den senere afklaringslog 9b. Ved «Ingen» var valget skjult. |
+| B0–B2 og B5 – grænser og formater | Lønfelter tager højst syv heltalscifre og to decimaler pr. led. `100/3` blev `33,33`, mens `1,00/1000` afrundede til `0,00` og blev rødt. Kalenderfejl, skuddag, omvendt periode, dato før systemets gulv samt dags dato og dagen efter blev prøvet. Majperiodens fraværsgrænse i måneder var 20 dage. `20` advarede om `0,04` måned tilbage, `21` gav rød fejl, og `367` ramte den faste grænse på `366`. |
+| B3 og B6a – rækker og tomhed | En tom ferietabel viste én tom række, og en afvist dato oprettede den næste. Ferie uden for perioden viste 0 og to ens røde cellebeskeder. Overlap på en fælles slut-/startdag og dublet markerede begge rækker. Sletning kunne fortrydes og gentages. Sortering efter Fra og rækkernes datoer overlevede Gem og Hent. |
+| A6 og B6 – fortrydelse og bevarelse | Escape rullede åben fraværstekst tilbage. Faneskift afsluttede næste indtastning. Gem og Hent via browserens filvælger gendannede periodedatoer, begge ferierækker, løse dage og fraværsårsag med samme downloadstatus. En afvist angivet løndato overlevede almindeligt faneskift og bekræftet F5. Ved direkte skift til en anden lønform blev den skjulte røde dato ryddet, og gyldigt beløb og kilde vendte tilbage, jf. formularkontraktens §7. |
+| A7 og B7 – papir og tal | Både PDF og Word viste 33.750,00 kr. løn inkl. feriepenge, 14 arbejdsdage, 2.410,71 kr. pr. dag og 612.320,34 kr. i TAF. Nr. 2 viste grundlaget i den aftalte forkortede form. En dagsløn på 0 kr. holdt sektionen åben og spærrede download. En afvist dato spærrede også download, mens en ren dagslønsadvarsel var vejledende. |
+
+Ingen ukontrollerede browserfejl eller `console.error` i de målte forløb. Nyt `.eo`-format og den almindelige
+browserfilvælger blev prøvet. Den native filvælger, andre browsere, et stort antal ferierækker, alle
+overenskomster og systematisk skærmlæserbrug er udækket. Evidens ligger lokalt i
+`test-results/brugerblik-12f-20261122/` og `test-results/brugerblik-12-ledelse/`.

@@ -18,7 +18,7 @@ import {
   type SettledInputCandidate,
 } from './settledInput';
 import { createValidationReader, deriveFieldIssueSet } from './inputReader';
-import { activeFieldIssue } from './inputIssue';
+import { activeFieldIssue, type FieldIssueSet } from './inputIssue';
 
 // Inputkernen (§3.6): alle autoritative ændringer bygges af ÉN ren, exhaustiv reducer. Storage, revision
 // og history ejes af runtime-runneren (inputkernen). Reduceren håndhæver XOR-invarianten (§1.5): et ugyldigt settle
@@ -330,6 +330,16 @@ const removeRejectedBelowEntity = (
  * Afgrænsningen er snæver med vilje: et skjult felt UDEN rød fejl bevares altid (§7.6). Rydningen rammer
  * altså netop overgangen `synlig+rød → skjult`, ikke skjulte værdier i almindelighed. Undo gendanner
  * både ændringen og den ryddede værdi som ét trin, så handlingen er fuldt reversibel.
+ *
+ * **Kun `irrelevant`, aldrig `ubestemt` (BB-433).** Bygger relevansen på et felt med afvist råtekst – fx en
+ * beregningsperiode med slutdatoen `31-02-2018`, så det ikke kan afgøres, om der regnes i dage eller måneder –
+ * er feltet skjult, men ikke fravalgt. Dets afviste input bevares, og det kommer frem igen, når årsagen rettes.
+ * Gør en senere ændring det `irrelevant` (brugeren vælger fx TAF «Nej»), ryddes dets afviste råtekst da.
+ *
+ * **Gentaget til fast punkt.** En rydning kan selv afgøre et andet felts relevans: vælger brugeren TAF «Nej»,
+ * mens slutdatoen er afvist, ryddes slutdatoen – og først derefter er ferien ikke længere `ubestemt`, men
+ * `irrelevant`. Uden gentagelsen blev feltets råtekst stående i et irrelevant felt, og relevans-invarianten
+ * afviste tilstanden.
  */
 const clearFieldsHiddenWhileRed = (
   input: SettledInput,
@@ -338,31 +348,45 @@ const clearFieldsHiddenWhileRed = (
 ): SettledInputCandidate => {
   // 1. Før-snapshottets inputdrevne relevans. Kun felter MED en relevansregel kan skifte til skjult, så kun de
   //    vurderes – reducen kører ved hver indtastning, og et lønindkomsttræ har tusinder af felter uden regel.
-  //    Issues udledes først, hvis et felt faktisk skifter.
+  //    Issues udledes først, hvis et felt faktisk skifter. Et `ubestemt` felt kan bære afvist råtekst og skal
+  //    derfor også med: overgangen `ubestemt → irrelevant` rydder den.
   const beforeReader = createValidationReader(input, catalog);
-  const beforeRelevant = catalog.listFieldInstances(input.sections)
-    .filter((field) => field.descriptor.relevance !== undefined && beforeReader.isRelevant(field));
-  if (beforeRelevant.length === 0) return uncleaned;
+  let pending = catalog.listFieldInstances(input.sections)
+    .filter((field) => field.descriptor.relevance !== undefined && beforeReader.relevanceStatus(field) !== 'irrelevant');
+  if (pending.length === 0) return uncleaned;
 
-  // 2. Efter-relevansen på kandidaten; find felter med overgangen relevant → irrelevant.
-  const candidate = catalog.validateSettledInputBeforeRelevanceCleanup(uncleaned);
-  const afterReader = createValidationReader(candidate, catalog);
-  const hidden = beforeRelevant.filter((field) =>
-    catalog.containsAddressEntities(candidate.sections, field.address) && !afterReader.isRelevant(field));
-  if (hidden.length === 0) return uncleaned;
+  let beforeIssues: FieldIssueSet | undefined;
+  let cleaned: InputParts | undefined;
+  for (;;) {
+    // 2. Efter-relevansen på (den hidtil rensede) kandidat; find felter, der nu er `irrelevant`.
+    const candidate = catalog.validateSettledInputBeforeRelevanceCleanup(cleaned ?? uncleaned);
+    const afterReader = createValidationReader(candidate, catalog);
+    const hidden = pending.filter((field) =>
+      catalog.containsAddressEntities(candidate.sections, field.address)
+      && afterReader.relevanceStatus(field) === 'irrelevant');
+    if (hidden.length === 0) return cleaned ?? uncleaned;
+    pending = pending.filter((field) => !hidden.includes(field));
 
-  // 3. Ryd HVIS OG KUN HVIS feltet bar en aktiv rød feltfejl, brugeren nu ikke længere kan se.
-  const beforeIssues = deriveFieldIssueSet(beforeReader, catalog);
-  let cleaned: InputParts = candidate;
-  for (const field of hidden) {
-    if (activeFieldIssue(beforeIssues, serializeFieldAddress(field.address)) === undefined) continue;
-    // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
-    // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
-    // blokere `.eo`-save globalt (§8) fra et skjult felt – præcis den usynlige blokering, undtagelsen
-    // findes for at forhindre.
-    cleaned = withCanonicalValue(cleaned, field, field.descriptor.emptyValue);
+    // 3. Ryd HVIS OG KUN HVIS feltet bar en rød feltfejl i før-tilstanden. Et `ubestemt` felt var skjult og
+    //    derfor tavst; dets fejl udledes alligevel her, så både afvist råtekst OG en canonical grænsefejl ryddes
+    //    ved overgangen `ubestemt → irrelevant` – samme regel som `synlig+rød → skjult`.
+    beforeIssues ??= deriveFieldIssueSet(beforeReader, catalog, { includeUndetermined: true });
+    let next: InputParts = candidate;
+    let clearedAny = false;
+    for (const field of hidden) {
+      const address = serializeFieldAddress(field.address);
+      if (activeFieldIssue(beforeIssues, address) === undefined) continue;
+      // Rydningen fjerner BÅDE den canonical værdi OG en eventuel rejected råtekst: `withCanonicalValue`
+      // dropper adressens rejected-post som del af samme skrivning. Blev råteksten efterladt, ville den
+      // blokere `.eo`-save globalt (§8) fra et skjult felt – præcis den usynlige blokering, undtagelsen
+      // findes for at forhindre.
+      next = withCanonicalValue(next, field, field.descriptor.emptyValue);
+      clearedAny = true;
+    }
+    // Uden en rydning kan ingen anden relevans have ændret sig siden sidste gennemløb.
+    if (!clearedAny) return cleaned ?? uncleaned;
+    cleaned = next;
   }
-  return cleaned;
 };
 
 const reduceImmediateChoice = <T>(

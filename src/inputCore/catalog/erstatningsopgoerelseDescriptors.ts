@@ -62,6 +62,7 @@ import type {
   FieldValidator,
   RelevanceRule,
 } from '../fieldDescriptor';
+import { memoizeRelevancePerView } from '../fieldRelevance';
 import {
   erAngivetLoenGrenRelevant,
   erBeregningsperiodeFerieRelevant,
@@ -96,7 +97,7 @@ import {
 } from '../structuralDescriptors';
 import {
   amountBoundsValidator,
-  positiveAmountValidator,
+  positiveAmountBoundsValidator,
   integerBoundsValidator,
   percentBoundsValidator,
   yearBoundsValidator,
@@ -257,11 +258,16 @@ const systemrammeRelationalSpec: DateBoundsSpec = {
   issuePriority: 'context',
 };
 
+/**
+ * Beløbsfelt på EO's øverste niveau. Nedre grænse er 0 – inklusiv, medmindre `positiveSubject` er givet:
+ * så er 0 heller ikke et svar, og grænsen erklæres EKSKLUSIV med beskeden «<subjekt> skal være større end
+ * 0 kr.» (NY-12c-4: én erklæring, ikke en inklusiv grænse plus en separat «> 0»-regel).
+ */
 const amountField = (
   field: string,
   label: string,
   relevance?: RelevanceRule<AmountValue | undefined>,
-  extraValidators: readonly FieldValidator<AmountValue | undefined>[] = [],
+  positiveSubject?: string,
 ): FieldDescriptor<AmountValue | undefined> =>
   defineStructuralField<AmountValue | undefined>({
     id: `eo.${field}`,
@@ -272,7 +278,9 @@ const amountField = (
     label,
     controlKind: 'text',
     createEmptySection: createEmptyErstatningsopgoerelseSection,
-    validators: [...extraValidators, amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)],
+    validators: [positiveSubject === undefined
+      ? amountBoundsValidator(`eo.${field}.bounds`, 0, undefined)
+      : positiveAmountBoundsValidator(`eo.${field}.bounds`, positiveSubject)],
     ...(relevance === undefined ? {} : { relevance }),
   });
 
@@ -391,21 +399,15 @@ const svieSmerteTidligereTotalRelevant = (view: CanonicalView): boolean =>
 const tafSektionAktiv = (view: CanonicalView): boolean =>
   erTabtArbejdsfortjenesteSektionAktiv({ kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField) });
 // Enheden læser hele lønindkomsttræet, og reglen kaldes for hver TAF-række; svaret huskes derfor pr. view,
-// som er bundet til én uændrelig inputtilstand.
-const tafLoseFeriedageRelevansPrView = new WeakMap<CanonicalView, boolean>();
-const tafLoseFeriedageRelevant = (view: CanonicalView): boolean => {
-  const cached = tafLoseFeriedageRelevansPrView.get(view);
-  if (cached !== undefined) return cached;
-  const relevant = erTafLoseFeriedageRelevant({
-    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
-    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
-    tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
-    tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
-    loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
-  });
-  tafLoseFeriedageRelevansPrView.set(view, relevant);
-  return relevant;
-};
+// som er bundet til én uændrelig inputtilstand. `memoizeRelevancePerView` – ikke et rå `WeakMap` – så et svar,
+// der byggede på afvist råtekst (fx en afvist slutdato), også ved et cache-hit vurderes som `ubestemt` (BB-433).
+const tafLoseFeriedageRelevant = memoizeRelevancePerView((view) => erTafLoseFeriedageRelevant({
+  kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+  beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+  tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
+  tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
+  loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
+}));
 // Beregningsgrundlagets grene (BB-266). Enheden for ferie/løse dage læser hele lønindkomsttræet og huskes
 // pr. view som TAF-rækkernes løse feriedage ovenfor.
 const beregningsperiodeInputRelevant = (view: CanonicalView): boolean =>
@@ -413,20 +415,13 @@ const beregningsperiodeInputRelevant = (view: CanonicalView): boolean =>
     kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
     beregnesUdFra: readEo(view, eoBeregnesUdFraField),
   });
-const beregningsperiodeFerieRelevansPrView = new WeakMap<CanonicalView, boolean>();
-const beregningsperiodeFerieRelevant = (view: CanonicalView): boolean => {
-  const cached = beregningsperiodeFerieRelevansPrView.get(view);
-  if (cached !== undefined) return cached;
-  const relevant = erBeregningsperiodeFerieRelevant({
-    kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
-    beregnesUdFra: readEo(view, eoBeregnesUdFraField),
-    tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
-    tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
-    loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
-  });
-  beregningsperiodeFerieRelevansPrView.set(view, relevant);
-  return relevant;
-};
+const beregningsperiodeFerieRelevant = memoizeRelevancePerView((view) => erBeregningsperiodeFerieRelevant({
+  kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
+  beregnesUdFra: readEo(view, eoBeregnesUdFraField),
+  tafBeregningsperiodeFra: readEo(view, eoTafBeregningsperiodeFraField),
+  tafBeregningsperiodeTil: readEo(view, eoTafBeregningsperiodeTilField),
+  loenindkomstAnsaettelsesforhold: readTafBeregningsenhedEmployments(view),
+}));
 const oevrigtFravaerRelevant = (view: CanonicalView): boolean =>
   erOevrigtFravaerRelevant({
     kravPaaTabtArbejdsfortjeneste: readEo(view, eoKravPaaTabtArbejdsfortjenesteField),
@@ -842,11 +837,11 @@ export const eoOevrigeFravaersdageBeskrivelseField = optionalTextField(
 // Udviklerafgørelse 2026-10-02: rød ring frem for at opgøre kravet til 0 kr.
 export const eoMaanedsloenenUdgoerField = amountField(
   'maanedsloenenUdgoer', 'Månedslønnen udgør', whenEo(angivetLoenGrenRelevant('Angivet månedsløn')),
-  [positiveAmountValidator('eo.maanedsloenenUdgoer.positive', 'Månedslønnen skal være større end 0 kr.')],
+  'Månedslønnen',
 );
 export const eoDagsloenenUdgoerField = amountField(
   'dagsloenenUdgoer', 'Dagslønnen udgør', whenEo(angivetLoenGrenRelevant('Angivet dagsløn')),
-  [positiveAmountValidator('eo.dagsloenenUdgoer.positive', 'Dagslønnen skal være større end 0 kr.')],
+  'Dagslønnen',
 );
 
 /**
@@ -1084,10 +1079,8 @@ export const eoOevrigeKravBeloebField = defineStructuralField<AmountValue | unde
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   // En udgift på 0 kr. er ikke et krav. Reglen stod før kun i validatoren (`> 0`), mens feltet tog imod
   // 0 med neutral kant: opgørelsen blev spærret af en linje uden link og uden rød celle (BB-232).
-  validators: [
-    positiveAmountValidator('eo.oevrigeKravPerioder.beloeb.positive', 'Beløbet skal være større end 0 kr.'),
-    amountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds', 0, undefined),
-  ],
+  // Grænsen er EKSKLUSIV, så også et negativt udtryksresultat (`100-200`) får «større end 0 kr.» (NY-12c-4).
+  validators: [positiveAmountBoundsValidator('eo.oevrigeKravPerioder.beloeb.bounds')],
   relevance: whenEo(oevrigeKravSektionAktiv),
 });
 

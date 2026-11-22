@@ -77,6 +77,69 @@ describe('TransientAmountInput', () => {
     // Kalderen fik en fejl at vise; feltet ruller ikke stiltiende tilbage til tom.
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
   });
+
+  /**
+   * BB-430: typografiske minustegn følger SAMME sign-policy-vej som de persisterede beløbsfelter – de
+   * normaliseres til ASCII '-' før tegnfilteret ved paste, tastning og første tast.
+   */
+  describe('typografisk minus (BB-430)', () => {
+    const SignedHarness = ({ onCommit, allowNegative }: {
+      onCommit: (v: AmountValue | undefined) => void;
+      allowNegative: boolean;
+    }) => {
+      const [value, setValue] = React.useState<AmountValue | undefined>(undefined);
+      return (
+        <TransientAmountInput
+          value={value}
+          allowNegative={allowNegative}
+          onCommit={(next) => { setValue(next); onCommit(next); }}
+        />
+      );
+    };
+
+    const paste = (text: string) =>
+      fireEvent.paste(screen.getByRole('textbox'), { clipboardData: { getData: () => text } });
+
+    it.each([['U+2212', '−'], ['U+2013', '–']])('%s: indsat 10x1 og 1200x200 regnes som subtraktion', (_name, minus) => {
+      const onCommit = vi.fn();
+      render(<SignedHarness onCommit={onCommit} allowNegative={false} />);
+      paste(`10${minus}1`);
+      expect(onCommit).toHaveBeenLastCalledWith(expect.objectContaining({ value: 9 }));
+      paste(`1200${minus}200`);
+      expect(onCommit).toHaveBeenLastCalledWith(expect.objectContaining({ value: 1000 }));
+    });
+
+    it('indsat −1200 er negativt i et fortegnet felt og springer det unære minus over ellers (§8.2)', () => {
+      const signed = vi.fn();
+      const { unmount } = render(<SignedHarness onCommit={signed} allowNegative />);
+      paste('−1200');
+      expect(signed).toHaveBeenLastCalledWith(expect.objectContaining({ value: -1200 }));
+      unmount();
+
+      const nonNegative = vi.fn();
+      render(<SignedHarness onCommit={nonNegative} allowNegative={false} />);
+      paste('−1200');
+      expect(nonNegative).toHaveBeenLastCalledWith(expect.objectContaining({ value: 1200 }));
+    });
+
+    it('tastet 10−1 bliver 10-1 i draften og committes som 9', async () => {
+      const user = userEvent.setup();
+      const onCommit = vi.fn();
+      render(<SignedHarness onCommit={onCommit} allowNegative={false} />);
+      const input = screen.getByRole('textbox');
+      await user.type(input, '10−1');
+      expect(input).toHaveValue('10-1');
+      await user.keyboard('{Enter}');
+      expect(onCommit).toHaveBeenLastCalledWith(expect.objectContaining({ value: 9 }));
+    });
+
+    it('U+2212 som første tast åbner et fortegnet felt med ASCII-minus', () => {
+      render(<SignedHarness onCommit={vi.fn()} allowNegative />);
+      const input = screen.getByRole('textbox');
+      fireEvent.keyDown(input, { key: '−' });
+      expect(input).toHaveValue('-');
+    });
+  });
 });
 
 describe('TransientDateInput', () => {

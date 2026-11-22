@@ -111,3 +111,48 @@ export const clampSvieSmerteRange = (
   if (fra > til) return null;
   return { fra, til };
 };
+
+/**
+ * Den seneste svie/smerte-dag, der faktisk indgår: hver udfyldt periode afklippet som i motoren – først
+ * mod ménafgørelsen (dagen før), dernæst mod EO-perioden. `undefined`, når ingen dag indgår.
+ *
+ * Den rå til-dato må ikke bruges til ophørsgrunden: en periode, der løber ud over ménafgørelsen eller
+ * EO-perioden, ville ellers pege på et ophør, dokumentet ikke nævner.
+ */
+export const resolveSvieSmerteSenesteKravDato = (
+  values: SvieSmerteConstraintSource & Readonly<{
+    svieSmertePerioder?: ReadonlyArray<Readonly<{ fra?: ISODateString | undefined; til?: ISODateString | undefined; tilstand?: string | undefined }>> | undefined;
+  }>,
+): ISODateString | undefined => {
+  const fejlgivende = resolveSvieSmerteFejlgivendeBounds(values);
+  const eoPeriode = resolveSvieSmerteEoPeriodeBounds(values);
+  let seneste: ISODateString | undefined = undefined;
+  for (const periode of values.svieSmertePerioder ?? []) {
+    if (!periode.fra || !periode.til || !periode.tilstand || periode.fra > periode.til) continue;
+    const efterMen = clampSvieSmerteRange({ fra: periode.fra, til: periode.til }, fejlgivende);
+    const clamped = efterMen ? clampSvieSmerteRange(efterMen, eoPeriode) : null;
+    if (clamped && (!seneste || clamped.til > seneste)) seneste = clamped.til;
+  }
+  return seneste;
+};
+
+/**
+ * Hvilke afgrænsninger den seneste indgående svie/smerte-dag rammer. Ét udsagn, som både dokumentets
+ * ménlinje («Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.») og EO-kontrollens
+ * «Svie/smerte-ophør skyldes» læser, så de ikke kan nævne hver sin grund.
+ *
+ * `senesteKravDato` SKAL være afklippet (`resolveSvieSmerteSenesteKravDato` eller motorens
+ * `constrainedPeriods`). Da intet ligger efter afklipningen, er «perioderne dækker dagen før ménafgørelsen»
+ * og «den seneste dag ER dagen før» samme udsagn.
+ */
+export const resolveSvieSmerteOphoer = (
+  values: SvieSmerteConstraintSource,
+  senesteKravDato: ISODateString | undefined,
+): Readonly<{ erstatningsperiodensOphoer: boolean; menafgoerelse: boolean }> => {
+  if (!senesteKravDato) return { erstatningsperiodensOphoer: false, menafgoerelse: false };
+  const menDagenFoer = getDayBeforeIso(resolveSvieSmerteCutoffDate(values));
+  return {
+    erstatningsperiodensOphoer: values.vedroererPeriodeTil !== undefined && senesteKravDato === values.vedroererPeriodeTil,
+    menafgoerelse: menDagenFoer !== undefined && senesteKravDato === menDagenFoer,
+  };
+};

@@ -138,7 +138,24 @@ describe('OevrigeKravTable', () => {
     const read = reader.read(eoOevrigeKravBeloebField.bind('ok-1'));
     expect(read.status).toBe('error');
     if (read.status !== 'error') return;
-    expect(read.issue.reason).toBe('rule');
+    // Eksklusiv nedre bounds-grænse (NY-12c-4); `bounds` vises ordret i tooltippet ligesom `rule`.
+    expect(read.issue.reason).toBe('bounds');
+    expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
+  });
+
+  it('et negativt udtryksresultat får samme besked som 0 – ikke «0 kr. eller højere» (NY-12c-4)', () => {
+    const reader = buildReader(
+      eoWith([{
+        id: 'ok-1',
+        dato: toISODateString('2022-05-01'),
+        udgiftTil: 'Medicin',
+        beloeb: { kind: 'expression', expression: '100-200', value: -100 },
+      }]),
+      stamdata
+    );
+    const read = reader.read(eoOevrigeKravBeloebField.bind('ok-1'));
+    expect(read.status).toBe('error');
+    if (read.status !== 'error') return;
     expect(read.issue.message).toBe('Beløbet skal være større end 0 kr.');
   });
 

@@ -119,15 +119,36 @@ export const percentBoundsValidator = (
   return { reason: 'bounds', code, message, detail: boundsDetail(bounds.minValue, bounds.maxValue) };
 };
 
-/** Canonical bounds-validator for et beløbsfelt (tidligere codec-`range` via direkte min/max-sammenligning). */
+/**
+ * Erklæring af en EKSKLUSIV nedre grænse på et beløbsfelt: `minValue` selv er ikke tilladt.
+ *
+ * `subject` er sætningens subjekt i den udledte besked («Månedslønnen skal være større end 0 kr.»);
+ * udeladt = «Beløbet».
+ */
+export type AmountExclusiveMin = Readonly<{ minExclusive: true; subject?: string }>;
+
+/**
+ * Canonical bounds-validator for et beløbsfelt (tidligere codec-`range` via direkte min/max-sammenligning).
+ *
+ * **Eksklusiv nedre grænse (NY-12c-4).** Et felt, hvor 0 kr. ikke er et svar, erklærer det HER med
+ * `exclusiveMin` – ikke som en separat «> 0»-regel ved siden af en inklusiv grænse på 0. Med to
+ * erklæringer ramte et negativt resultat (`100-200` → -100) begge, og §1.8's prioritet (bounds før rule)
+ * lod den inklusive besked «Værdi skal være 0 kr. eller højere» vinde – en påstand om, at 0 er tilladt, i
+ * et felt, hvor 0 netop afvises. Én erklæring giver én udledt besked, der er sand for både 0 og negativt.
+ */
 export const amountBoundsValidator = (
   code: string,
   minValue: number | undefined,
-  maxValue: number | undefined
+  maxValue: number | undefined,
+  exclusiveMin?: AmountExclusiveMin
 ): FieldValidator<AmountValue | undefined> => (value) => {
   const numeric = value?.value;
   if (numeric === undefined) return undefined;
-  if ((minValue === undefined || numeric >= minValue) && (maxValue === undefined || numeric <= maxValue)) {
+  const minExclusive = exclusiveMin?.minExclusive === true;
+  // Et negativt beløb bryder også en eksklusiv grænse, selv i et felt, hvis codec tillader minus (de
+  // manuelle grundlønninger, BB-308): «større end 0» er den grænse, brugeren skal ramme.
+  const satisfiesMin = minValue === undefined || (minExclusive ? numeric > minValue : numeric >= minValue);
+  if (satisfiesMin && (maxValue === undefined || numeric <= maxValue)) {
     return undefined;
   }
   return {
@@ -135,29 +156,25 @@ export const amountBoundsValidator = (
     code,
     // Et beløbsfelts grænser er kroner; enheden står i beskeden af samme grund som tusindseparatoren
     // (BB-125): «mellem 1000 og 551000» kan ikke læses i en fart og siger ikke, hvad tallet er.
-    message: getIntegerRangeErrorMessage(numeric, minValue, maxValue, { unit: 'kr.' }),
+    message: getIntegerRangeErrorMessage(numeric, minValue, maxValue, {
+      unit: 'kr.',
+      ...(minExclusive ? { minExclusive: true, subject: exclusiveMin?.subject ?? 'Beløbet' } : {}),
+    }),
     detail: boundsDetail(minValue, maxValue),
   };
 };
 
 /**
- * Et beløbsfelt, hvor 0 kr. ikke er et svar: grænsen er EKSKLUSIV.
- *
- * Reglen står som sin egen validator frem for som en skarpere `amountBoundsValidator`-grænse, fordi den
- * fælles bounds-besked («Værdi skal være 0 eller højere») kun kan udtrykke inklusive grænser og ville
- * påstå, at 0 er tilladt. `reason: 'rule'` giver den ordrette tooltip (`REASONS_WITH_SPECIFIC_TOOLTIP`),
- * så brugeren læser årsagen ved det felt, der skal rettes. Sættes FØR feltets bounds-validator: den er
- * den mest konkrete besked, og §1.8 viser højst ét issue pr. felt.
+ * Et beløbsfelt, hvor 0 kr. ikke er et svar: nedre grænse 0, EKSKLUSIV. Den ene erklæring for alle de
+ * felter – brug den i stedet for en inklusiv grænse på 0 (se {@link amountBoundsValidator}).
  */
-export const positiveAmountValidator = (
+export const positiveAmountBoundsValidator = (
   code: string,
-  message: string
-): FieldValidator<AmountValue | undefined> => (value) => {
-  // Også et negativt beløb: et felt, hvis codec tillader minus (de manuelle grundlønninger, BB-308), skal have
-  // samme besked som 0 – «større end 0» er den grænse, brugeren skal ramme.
-  if (value?.value === undefined || value.value > 0) return undefined;
-  return { reason: 'rule', code, message };
-};
+  subject?: string
+): FieldValidator<AmountValue | undefined> =>
+  amountBoundsValidator(code, 0, undefined, subject === undefined
+    ? { minExclusive: true }
+    : { minExclusive: true, subject });
 
 /** Canonical bounds-validator for et årstalsfelt (tidligere codec-`range` via `getYearRangeErrorMessage`). */
 export const yearBoundsValidator = (

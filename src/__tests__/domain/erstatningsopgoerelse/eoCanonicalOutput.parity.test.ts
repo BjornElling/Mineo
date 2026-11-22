@@ -160,7 +160,8 @@ const scenarios: readonly Scenario[] = [
 // projiceres fortsat fra PDF-modellens formaterede linjer og er stadig ægte paritetstjek.
 const projectCanonicalFromPdfModel = (
   eoValues: ErstatningsopgoerelseValues,
-  pdfModel: EoModel
+  pdfModel: EoModel,
+  canonicalMaksimumNaaet: boolean
 ): EoCanonicalOutput => ({
   totals: {
     svieSmerteOre: pdfModel.samlet.svieSmerteOre,
@@ -172,6 +173,12 @@ const projectCanonicalFromPdfModel = (
   },
   svieSmerte: {
     maxApplied: pdfModel.svieSmerte.maxApplied,
+    // Dokumentets «maksimum nået i tidligere opgørelse» for et beregnet krav er netop motorens flag.
+    maksimumOpbrugtFoerPerioden:
+      pdfModel.svieSmerte.beregnes && pdfModel.svieSmerte.ingenBeloebAarsag === 'maksimumOpbrugt',
+    // PDF-modellen bærer ikke «loftet nået»-flaget (kun EO-kontrollen læser det); det videreføres derfor
+    // fra canonical og er her alene en wiring-guard, ikke en krydsudledning.
+    maksimumNaaet: canonicalMaksimumNaaet,
   },
   taf: {
     harTafPerioder: pdfModel.tabtArbejdsfortjeneste.harTafPerioder,
@@ -223,7 +230,7 @@ describe('eoCanonicalOutput parity matrix', () => {
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-27') });
     const pdfModel = snapshot.data!.pdfModel;
     const canonical = snapshot.data!.canonicalOutput;
-    const projected = projectCanonicalFromPdfModel(eoValues, pdfModel);
+    const projected = projectCanonicalFromPdfModel(eoValues, pdfModel, canonical.svieSmerte.maksimumNaaet);
 
     expect(canonical).toEqual(projected);
     expect(canonical).toMatchSnapshot();

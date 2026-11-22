@@ -39,7 +39,7 @@ describe('buildRegulationInspektionSections', () => {
         totals: { svieSmerteOre: moneyOre(0), tabtArbejdsfortjenesteFoerForligOre: moneyOre(110_000),
           tabtArbejdsfortjenesteOre: moneyOre(110_000), oevrigeKravFoerForligOre: moneyOre(0),
           oevrigeKravOre: moneyOre(0), samletTotalOre: moneyOre(110_000) },
-        svieSmerte: { maxApplied: false },
+        svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
         taf: { harTafPerioder: true, offentligeYdelserUdviklingOre: moneyOre(0), tafIndtaegterOre: moneyOre(0),
           tidligereModtagetTafOre: moneyOre(0), sygeferiegodtgoerelseOre: moneyOre(0) },
         periodiseringer: { tafPerioder: [{ fra: iso('2024-07-01'), til: iso('2024-07-31') }] },
@@ -123,6 +123,8 @@ describe('buildRegulationInspektionSections', () => {
         },
         svieSmerte: {
           maxApplied: false,
+          maksimumOpbrugtFoerPerioden: false,
+          maksimumNaaet: false,
         },
         taf: {
           harTafPerioder: true,
@@ -228,7 +230,7 @@ describe('buildRegulationInspektionSections', () => {
           oevrigeKravOre: moneyOre(0),
           samletTotalOre: moneyOre(0),
         },
-        svieSmerte: { maxApplied: false },
+        svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
         taf: {
           harTafPerioder: true,
           offentligeYdelserUdviklingOre: null,
@@ -645,7 +647,7 @@ describe('buildRegulationInspektionSections', () => {
           oevrigeKravOre: moneyOre(0),
           samletTotalOre: moneyOre(0),
         },
-        svieSmerte: { maxApplied: false },
+        svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
         taf: {
           harTafPerioder: true,
           offentligeYdelserUdviklingOre: null,
@@ -856,7 +858,7 @@ describe('buildRegulationInspektionSections', () => {
           oevrigeKravOre: moneyOre(0),
           samletTotalOre: moneyOre(0),
         },
-        svieSmerte: { maxApplied: false },
+        svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
         taf: {
           harTafPerioder: true,
           offentligeYdelserUdviklingOre: null,
@@ -1006,7 +1008,7 @@ describe('buildRegulationInspektionSections', () => {
           oevrigeKravOre: moneyOre(0),
           samletTotalOre: moneyOre(0),
         },
-        svieSmerte: { maxApplied: false },
+        svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
         taf: {
           harTafPerioder: true,
           offentligeYdelserUdviklingOre: null,

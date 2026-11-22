@@ -313,7 +313,7 @@ describe('buildEOInspektionSammentaellingModel regression', () => {
         oevrigeKravOre: moneyOre(0),
         samletTotalOre: moneyOre(322090),
       },
-      svieSmerte: { maxApplied: false },
+      svieSmerte: { maxApplied: false, maksimumOpbrugtFoerPerioden: false, maksimumNaaet: false },
       taf: {
         harTafPerioder: true,
         offentligeYdelserUdviklingOre: moneyOre(322090),

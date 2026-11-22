@@ -25,6 +25,12 @@ export type DocumentProperties = Readonly<{
 export type DocumentWriter = {
   setProperties: (props: DocumentProperties) => void;
   keepWithNext: (minimumHeight: number) => void;
+  /**
+   * Holder SIDSTE linje af den næste tekstblok (brødtekst, label/værdi eller normal+fed linje)
+   * sammen med de efterfølgende `followingHeight` mm: sideskiftet lægges før sidste linje,
+   * hvis linjen og det efterfølgende ikke kan være på siden. Gælder kun den næste tekstblok.
+   */
+  keepLastLineWithNext: (followingHeight: number) => void;
   addSpacer: (height: number) => void;
   addSectionSpacer: () => void;
   writeWrappedText: (text: string) => void;

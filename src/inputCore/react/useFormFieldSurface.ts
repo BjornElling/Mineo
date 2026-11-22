@@ -11,9 +11,12 @@ import { normalizePasteForDraft, resolvePasteContextDraft, spliceDraftWithPaste 
 import {
   isDraftWithinMaxLength,
   restoreDomValueAfterRejectedDraft,
+  syncDomValueAfterNormalizedDraft,
   type DraftAdmission,
 } from '../../components/inputs/draftAdmission';
 import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
+import type { FieldCodec } from '../fieldCodec';
+import { isTranslatedSignKey, normalizeSignCharactersForCodec } from './fields/signPolicy';
 
 // React-laget (§2.3/§3.5): den ENE UI-mekanik-lag for et persisteret single-`<input>` formularfelt.
 // Den parrer `useFieldEditor`-controlleren (som ejer draft/settle/cancel/clear/commit + dispatch, §3.6) med
@@ -25,15 +28,15 @@ import { isFocusTransferIntoConfirmationDialog } from './modalFocusTransfer';
 // intet lukket draftkopi/epoch/resync). `readOnly = !isOpen` styrer det redigerbare element.
 
 /** Én-tegns tastfilter delegeret til codec'et: må denne tast åbne editoren som første tegn (§1.3)? */
-const isPrintableActivationKey = (
+const isPrintableActivationKey = <T>(
   e: React.KeyboardEvent<HTMLInputElement>,
-  acceptsInitialKey: (key: string) => boolean
+  codec: FieldCodec<T>
 ): boolean => {
   const native = e.nativeEvent as unknown as { isComposing?: boolean };
   if (native.isComposing === true || e.key === 'Process' || e.key === 'Unidentified') return false;
   if (e.ctrlKey || e.metaKey || e.altKey) return false;
   if (e.key.length !== 1) return false;
-  return acceptsInitialKey(e.key);
+  return codec.acceptsInitialKey(normalizeSignCharactersForCodec(codec, e.key));
 };
 
 export type FormFieldSurfaceConfig = Readonly<{
@@ -170,8 +173,10 @@ export const useFormFieldSurface = <T>(
   // holder. Feltfamilier, der normaliserer draften løbende (fx beløbs-tusindpunktummer), tilføjer den mapping
   // i deres egen codec/adapter ved migreringen – den generiske surface holder ingen caret-genskabelse, som
   // ellers ville kunne genskabe en forældet caret ved en senere ekstern revisionsændring.
-  const onDraftChange = React.useCallback((nextDraft: string, _selection?: InputSelectionSnapshot) => {
+  const onDraftChange = React.useCallback((rawDraft: string, _selection?: InputSelectionSnapshot) => {
     const { controller: ctl, draftAdmission: admits, maxDraftLength } = latest.current;
+    // Typografisk minus → '-' FØR tegnværnet (BB-430), så tegnet møder præcis samme regler som '-'.
+    const nextDraft = normalizeSignCharactersForCodec(field.descriptor.codec, rawDraft);
     if (!isDraftWithinMaxLength(nextDraft, maxDraftLength) || (admits !== undefined && !admits(nextDraft))) {
       // §1.2: tegnet blev aldrig en del af værdien. Blokeringen er TAVS – ingen rød ring, ingen fejltekst.
       // `<input>` er styret af `displayText`, men React skriver ikke elementet tilbage, når den rendrede
@@ -180,8 +185,9 @@ export const useFormFieldSurface = <T>(
       restoreDomValueAfterRejectedDraft(inputElementRef.current, ctl.displayText);
       return;
     }
+    if (nextDraft !== rawDraft) syncDomValueAfterNormalizedDraft(inputElementRef.current, nextDraft);
     ctl.changeDraft(nextDraft);
-  }, []);
+  }, [field]);
 
   // ⚠️ FJERN IKKE – caret-limbo-fixet. Ved editor-åbning på et
   // ALLEREDE-fokuseret element etablerer visse browsere (specifikt <textarea>, men vi gør det ensartet)
@@ -254,11 +260,12 @@ export const useFormFieldSurface = <T>(
         ctl.clearImmediate();
         return;
       }
-      if (isPrintableActivationKey(e, field.descriptor.codec.acceptsInitialKey)) {
-        // Tast-initieret åbning (§1.3): editoren seedes med det første tegn.
+      if (isPrintableActivationKey(e, field.descriptor.codec)) {
+        // Tast-initieret åbning (§1.3): editoren seedes med det første tegn – normaliseret som enhver
+        // anden indtastning, så et typografisk minus åbner og seeder som '-' (BB-430).
         e.preventDefault();
         e.stopPropagation();
-        ctl.open(e.key);
+        ctl.open(normalizeSignCharactersForCodec(field.descriptor.codec, e.key));
         return;
       }
       cfg.onKeyDown?.(e);
@@ -279,7 +286,11 @@ export const useFormFieldSurface = <T>(
     }
     // En afsluttet format- eller bounds-fejl må aldrig slå tegn- og længdeværnet fra.
     // Ellers kunne et felt med rød ring bruges til at indtaste værdier, som samme felt afviser normalt.
-    filter?.(e);
+    //
+    // En tast, indtastningsvejen oversætter (typografisk minus → '-'), kan keydown-filteret ikke vurdere,
+    // fordi det ser det uoversatte tegn. Den vurderes i stedet af `onDraftChange` på den oversatte draft
+    // – med det SAMME prædikat – så værnet er intakt.
+    if (!isTranslatedSignKey(field.descriptor.codec, e.key)) filter?.(e);
     cfg.onKeyDown?.(e);
   }, [field]);
 

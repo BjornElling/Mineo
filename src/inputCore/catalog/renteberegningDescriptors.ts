@@ -18,7 +18,7 @@ import {
 import { catalogCollections, catalogFields } from '../fieldCatalog';
 import { createCollectionRef, entityIdForCollection, type CollectionRef } from '../fieldAddress';
 import { defineStructuralCollection, defineStructuralField, isUndefined } from '../structuralDescriptors';
-import { amountBoundsValidator, integerBoundsValidator, positiveAmountValidator } from './boundsValidators';
+import { integerBoundsValidator, positiveAmountBoundsValidator } from './boundsValidators';
 import { COMMENT_TEXT_MAX_LENGTH } from './fieldLengthLimits';
 import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { calculateInterestDate } from '../../domain/renteberegning/rentekravValidation';
@@ -102,11 +102,11 @@ const rowTemplate = (field: string) => ({
  * `validateInterestCalculation` kræver `> 0`. De to var uenige, og uenigheden ramte brugeren som en
  * tavs blokering: `0` blev canonical og grønt, rækken mistede sin beregning, og hele sidens
  * download blev grå med «Indtastning mangler» – også for de øvrige, gyldige rækker (BB-038).
+ *
+ * Grænsen erklæres som ÉN eksklusiv nedre grænse, så et negativt udtryksresultat (`100-200`) får samme
+ * sande besked som 0 i stedet for «Værdi skal være 0 kr. eller højere» (NY-12c-4).
  */
-const rentekravBelobPositiveValidator = positiveAmountValidator(
-  'renteberegning.rentekravRows.belob.positive',
-  'Beløbet skal være større end 0 kr.'
-);
+const rentekravBelobPositiveValidator = positiveAmountBoundsValidator('renteberegning.rentekravRows.belob.bounds');
 
 export const rentekravBelobField = defineStructuralField<AmountValue | undefined>({
   id: 'renteberegning.rentekravRows.belob',
@@ -117,11 +117,7 @@ export const rentekravBelobField = defineStructuralField<AmountValue | undefined
   label: 'Beløb',
   controlKind: 'text',
   createEmptySection: createEmptyRenteberegningSection,
-  // Nulreglen FØRST: den er den mest konkrete besked, og §1.8 viser højst ét issue pr. felt.
-  validators: [
-    rentekravBelobPositiveValidator,
-    amountBoundsValidator('renteberegning.rentekravRows.belob.bounds', 0, undefined),
-  ],
+  validators: [rentekravBelobPositiveValidator],
 });
 
 export const rentekravRenterFraField = defineStructuralField<ISODateString | undefined>({

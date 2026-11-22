@@ -27,6 +27,26 @@ describe('svieSmerteMaksimum', () => {
     }))).toBe(59_000);
   });
 
+  it('afrunder brøkforligets maksimum til hele øre som beregningen og visningen (NY-12b-2)', () => {
+    // 88.500 / 7 = 12.642,857… – beregningen og «Satser per dag/max» bruger 12.642,86.
+    expect(resolveEffektivtSvieSmerteMaksimum(makeValues({
+      forligAnsvarsgradProcent: undefined,
+      forligAnsvarsgradBroek: '1/7',
+    }))).toBe(12_642.86);
+  });
+
+  it('advarer først, når tidligere opgjort beløb overstiger det VISTE maksimum ved brøkforlig (NY-12b-2)', () => {
+    const medBroek = (tidligere: number) => makeValues({
+      forligAnsvarsgradProcent: undefined,
+      forligAnsvarsgradBroek: '1/7',
+      svieSmerteTidligereTotal: asAmount(tidligere),
+    });
+    expect(resolveSvieSmerteTidligereTotalOverMaxWarning(medBroek(12_642.86))).toBeNull();
+    expect(resolveSvieSmerteTidligereTotalOverMaxWarning(medBroek(12_642.87))).toBe(
+      'Svie/smerte opgjort i tidligere erstatningsopgørelser overstiger maksimum (12.642,86 kr.)'
+    );
+  });
+
   it('returnerer ingen grænse for manglende eller ukendt satsår', () => {
     expect(resolveEffektivtSvieSmerteMaksimum(makeValues({ svieSmerteSatserAar: undefined }))).toBeUndefined();
     expect(resolveEffektivtSvieSmerteMaksimum(makeValues({ svieSmerteSatserAar: 1900 }))).toBeUndefined();

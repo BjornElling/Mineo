@@ -10,7 +10,8 @@ import {
   type FieldAddressPathSegment,
   type SectionKey,
 } from './fieldAddress';
-import type { CanonicalView, FieldDescriptor, FieldRef } from './fieldDescriptor';
+import type { FieldDescriptor, FieldRef } from './fieldDescriptor';
+import { createRelevanceTrackingView, resolveRelevanceStatus } from './fieldRelevance';
 
 // Type-erasure er isoleret til katalogets heterogene samling; alle writes forbliver typed ved FieldRef-callsitet.
 type AnyFieldRef = FieldRef<unknown>;
@@ -547,9 +548,10 @@ export const createInputCatalog = (options: Readonly<{
       }
       return cloneAndDeepFreeze(field.descriptor.readCanonical(isolateSections(sections), field.address)) as T;
     };
-    const view: CanonicalView = Object.freeze({
+    const view = createRelevanceTrackingView({
       readCanonical,
       listEntityIds: (collection: CollectionRef) => listEntityIds(sections, collection),
+      rejectedInputs: structural.rejectedInputs,
     });
 
     for (const [serialized, rejected] of Object.entries(structural.rejectedInputs)) {
@@ -577,12 +579,16 @@ export const createInputCatalog = (options: Readonly<{
       //
       // Den er slået fra i ét enkelt kald: `validateSettledInputBeforeRelevanceCleanup`, som reduceren
       // bruger til at LÆSE efter-relevansen, netop før den rydder. Der er tilstanden lovligt mellemliggende.
+      //
+      // Kun `irrelevant` afvises, ikke `ubestemt` (BB-433): et felt, der kun er skjult, fordi dets relevans byggede
+      // på afvist råtekst i et ANDET felt, bevarer sin afviste råtekst. Den spærrer ikke Gem usynligt – årsagen
+      // er selv afvist og spærrer synligt – og feltet kommer frem igen, når årsagen rettes.
       if (enforceRejectedRelevance) {
         const entityIds = address.path
           .filter((segment): segment is Extract<FieldAddressPathSegment, { kind: 'entity' }> => segment.kind === 'entity')
           .map((segment) => segment.entityId);
         const field = descriptor.bind(...entityIds);
-        if (descriptor.relevance !== undefined && !descriptor.relevance(field, view)) {
+        if (resolveRelevanceStatus(field, view) === 'irrelevant') {
           throw new Error(`SettledInput: rejected felt er ikke relevant (${serialized})`);
         }
       }

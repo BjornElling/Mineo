@@ -13,6 +13,8 @@ import {
   resolveTafConstraintBounds,
   resolveMidlertidigEetDatoHvisAktiv,
   resolveTafCutoffDates,
+  vaelgTafOphoersgrund,
+  type TafCutoffKilde,
 } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeriodeValidation';
 import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
@@ -45,6 +47,13 @@ const resolveFolkepensionsdato = (
 ): ISODateString | undefined => {
   if (!fodselsdato || !controlDate) return undefined;
   return getFolkepensionsdato(fodselsdato, controlDate);
+};
+
+/** EO-kontrollens navn for hver afskæringskilde i «TAF-ophør skyldes». */
+const TAF_OPHOER_LABEL: Readonly<Record<TafCutoffKilde, string>> = {
+  differencekrav: 'Differencekrav opgjort',
+  endeligEet: 'Endelig EET-afgørelse',
+  midlertidigEet: 'Midlertidig EET-afgørelse',
 };
 
 
@@ -172,13 +181,20 @@ export const buildEoTaftRows = (
     // for hele perioden. Første EO beholder den hidtidige ophørsbaserede advarsel.
     if (manglerTafVedStartAfIkkeFoersteEo) return { label: tafIkkeRejstLabel };
 
-    const afskaeringer = [
-      { label: 'Endelig EET-afgørelse', datoISO: tafCutoffs.endeligEETDato },
-      { label: 'Midlertidig EET-afgørelse', datoISO: tafCutoffs.midlertidigEETDato },
-      { label: 'Differencekrav opgjort', datoISO: tafCutoffs.differencekravDato },
-    ];
-    const afskaering = afskaeringer.find(({ datoISO }) => datoISO !== undefined && getDayBeforeIso(datoISO) === lastTafKravDato);
-    if (afskaering) return afskaering;
+    // Kandidaterne er de afskæringer, TAF faktisk slutter dagen før. Valget mellem dem – også ved samme dato –
+    // er dokumentets eget (`vaelgTafOphoersgrund`), så kontrol og papir nævner samme grund (BB-425).
+    const kandidater: Array<Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>> = [];
+    for (const [kilde, datoISO] of [
+      ['differencekrav', tafCutoffs.differencekravDato],
+      ['endeligEet', tafCutoffs.endeligEETDato],
+      ['midlertidigEet', tafCutoffs.midlertidigEETDato],
+    ] as const) {
+      if (datoISO !== undefined && getDayBeforeIso(datoISO) === lastTafKravDato) {
+        kandidater.push({ kilde, referenceDato: datoISO });
+      }
+    }
+    const afskaering = vaelgTafOphoersgrund(kandidater);
+    if (afskaering) return { label: TAF_OPHOER_LABEL[afskaering.kilde], datoISO: afskaering.referenceDato };
 
     if (values.vedroererPeriodeTil && values.vedroererPeriodeTil <= lastTafKravDato) {
       return { label: 'Erstatningsperiodens ophør', datoISO: values.vedroererPeriodeTil };

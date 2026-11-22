@@ -102,7 +102,34 @@ const resolveEetMaxBounds = (values: TafConstraintSource): TafConstraintBounds =
   return { maxEnd: minDefined(endeligEetMax, midlertidigEetMax) };
 };
 
-type TafCutoffKilde = 'differencekrav' | 'endeligEet' | 'midlertidigEet';
+export type TafCutoffKilde = 'differencekrav' | 'endeligEet' | 'midlertidigEet';
+
+/**
+ * Rangordenen, når flere afskæringer falder på SAMME dato. Differencekravet går forud for en endelig
+ * EET-afgørelse, som går forud for en midlertidig.
+ */
+const TAF_OPHOERSGRUND_PRIORITET: Readonly<Record<TafCutoffKilde, number>> = {
+  differencekrav: 0,
+  endeligEet: 1,
+  midlertidigEet: 2,
+};
+
+/**
+ * TAF-ophørsgrunden blandt de afskæringer, der faktisk bringer TAF til ophør: den tidligste dato, og ved
+ * samme dato den højest rangerende kilde. `undefined`, når der ingen kandidat er.
+ *
+ * Ét sted, fordi dokumentets statuslinje («Differencekravet bringer retten …») og EO-kontrollens
+ * «TAF-ophør skyldes» skal nævne samme grund. De afgjorde før hver sin uafgjorte dato forskelligt, så
+ * endelig EET og differencekrav på samme dato gav to forskellige ophørsgrunde (BB-425).
+ */
+export const vaelgTafOphoersgrund = <K extends Readonly<{ kilde: TafCutoffKilde; referenceDato: ISODateString }>>(
+  kandidater: readonly K[]
+): K | undefined =>
+  [...kandidater].sort((a, b) => {
+    if (a.referenceDato < b.referenceDato) return -1;
+    if (a.referenceDato > b.referenceDato) return 1;
+    return TAF_OPHOERSGRUND_PRIORITET[a.kilde] - TAF_OPHOERSGRUND_PRIORITET[b.kilde];
+  })[0];
 
 type TafCutoffDatoer = Readonly<{
   differencekravDato?: ISODateString | undefined;

@@ -14,11 +14,13 @@ import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers'
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
-import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
+import { normalizeRightAlignedTextForDocument, normalizeTextForDocument, toPdfStandardFontText } from '../../document/layout/pdfTextUtils';
 import { formatRoundedCanonical, roundByMethod } from '../../utils/rounding';
 import { renderPdfTableSpec } from './pdfTableRenderer';
 
-const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
+const fitTextToWidth = (doc: jsPDF, rawText: string, maxWidth: number): string => {
+  // Målt på den tekst, standardfonten faktisk viser – ellers måles et ikke-gengiveligt tegn forkert.
+  const text = toPdfStandardFontText(rawText);
   if (doc.getTextWidth(text) <= maxWidth) return text;
   const ellipsis = '...';
   const ellipsisWidth = doc.getTextWidth(ellipsis);
@@ -116,6 +118,7 @@ type PdfCursor = Readonly<{
   getY: () => number;
   setY: (nextY: number) => void;
   ensureSpace: (height: number) => void;
+  keepLastLineWithNext: (followingHeight: number) => void;
   advanceY: (delta: number) => void;
   writeWrappedText: (text: string, maxWidth?: number, x?: number) => void;
   writeStyledWrappedText: (
@@ -197,6 +200,13 @@ const createPdfCursor = (params: Readonly<{
   let hasUdkastWatermark = false;
   let activeFont: { fontName: string; fontStyle: string } = { fontName: PDF_FONT_FAMILY, fontStyle: PDF_FONT_STYLES.normal };
   let activeFontSize = FONT_SIZES.normal;
+  // Engangs-reservation fra keepLastLineWithNext: forbruges af næste tekstbloks sidste linje.
+  let pendingLastLineKeepHeight = 0;
+  const takeLastLineKeepHeight = (): number => {
+    const height = pendingLastLineKeepHeight;
+    pendingLastLineKeepHeight = 0;
+    return height;
+  };
 
   const addPage = () => {
     doc.addPage();
@@ -283,6 +293,7 @@ const createPdfCursor = (params: Readonly<{
     const trailingSpacing = options?.trailingSpacing ?? PDF_LINE_BOTTOM_SPACING_MM;
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
     const lines = splitWrappedLinesWithStyle(text, maxWidth, { fontStyle, fontSize });
+    const lastLineKeepHeight = takeLastLineKeepHeight();
 
     withTextStyle({
       fontStyle,
@@ -291,7 +302,7 @@ const createPdfCursor = (params: Readonly<{
         lines.forEach((line, index) => {
           const isLast = index === lines.length - 1;
           const step = isLast ? resolvedLineHeight + trailingSpacing : resolvedLineHeight;
-          ensureSpace(step);
+          ensureSpace(isLast ? step + lastLineKeepHeight : step);
           doc.text(line, x, y);
           y += step;
         });
@@ -318,13 +329,15 @@ const createPdfCursor = (params: Readonly<{
     const fontSize = options?.fontSize ?? activeFontSize;
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
     const lines = splitWrappedLinesWithStyle(text, maxWidth, { fontStyle, fontSize });
+    const lastLineKeepHeight = takeLastLineKeepHeight();
 
     withTextStyle({
       fontStyle,
       fontSize,
       fn: () => {
-        for (const line of lines) {
-          ensureSpace(resolvedLineHeight);
+        for (const [index, line] of lines.entries()) {
+          const isLast = index === lines.length - 1;
+          ensureSpace(isLast ? resolvedLineHeight + lastLineKeepHeight : resolvedLineHeight);
           doc.text(line, x, y);
           y += resolvedLineHeight;
         }
@@ -349,9 +362,14 @@ const createPdfCursor = (params: Readonly<{
   ) => {
     const explicitRightLines = rightText.split('\n');
     if (explicitRightLines.length > 1) {
+      // Reservationen gælder blokkens sidste linje, dvs. den sidste delkørsel.
+      const blockLastLineKeepHeight = takeLastLineKeepHeight();
       explicitRightLines.forEach((line, index) => {
         if (index > 0) {
           y -= PDF_LINE_BOTTOM_SPACING_MM;
+        }
+        if (index === explicitRightLines.length - 1) {
+          pendingLastLineKeepHeight = blockLastLineKeepHeight;
         }
         writeLeftRightText(
           index === 0 ? leftText : '',
@@ -407,6 +425,7 @@ const createPdfCursor = (params: Readonly<{
       ? [normalizeTextForDocument(leftText)]
       : splitWrappedLinesWithStyle(leftText, leftMaxWidth, { fontStyle: leftFontStyle, fontSize });
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    const lastLineKeepHeight = takeLastLineKeepHeight();
 
     if (hasRightOverflow) {
       onLayoutFallback({ message: 'højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.', label: leftText });
@@ -429,7 +448,7 @@ const createPdfCursor = (params: Readonly<{
       rightLines.forEach((line, index) => {
         const isLast = index === rightLines.length - 1;
         const step = isLast ? resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM : resolvedLineHeight;
-        ensureSpace(step);
+        ensureSpace(isLast ? step + lastLineKeepHeight : step);
         withTextStyle({
           fontStyle: rightFontStyle,
           fontSize,
@@ -454,7 +473,7 @@ const createPdfCursor = (params: Readonly<{
     leftLines.forEach((line, index) => {
       const isLastLine = index === leftLines.length - 1;
       const step = isLastLine ? resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM : resolvedLineHeight;
-      ensureSpace(step);
+      ensureSpace(isLastLine ? step + lastLineKeepHeight : step);
       withTextStyle({
         fontStyle: leftFontStyle,
         fontSize,
@@ -500,7 +519,10 @@ const createPdfCursor = (params: Readonly<{
     y += resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
   };
 
-  const writeSignatureBlock = (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => {
+  const writeSignatureBlock = (rawDateLine: string, rawSigLine: string, dateX: number, sigX: number, rawSkadelidteNavn: string) => {
+    const dateLine = toPdfStandardFontText(rawDateLine);
+    const sigLine = toPdfStandardFontText(rawSigLine);
+    const skadelidteNavn = toPdfStandardFontText(rawSkadelidteNavn);
     const fontSize = FONT_SIZES.normal;
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
     let dateCenterX = dateX;
@@ -553,7 +575,7 @@ const createPdfCursor = (params: Readonly<{
   const writeNormalThenBoldLine = (normalPart: string, boldPart: string) => {
     const fontSize = FONT_SIZES.normal;
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
-    ensureSpace(resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM);
+    ensureSpace(resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM + takeLastLineKeepHeight());
     let normalWidth = 0;
     withTextStyle({
       fontStyle: 'normal',
@@ -588,6 +610,9 @@ const createPdfCursor = (params: Readonly<{
       y = nextY;
     },
     ensureSpace,
+    keepLastLineWithNext: (followingHeight: number) => {
+      pendingLastLineKeepHeight = Math.max(0, followingHeight);
+    },
     advanceY: (delta: number) => {
       y += delta;
     },
@@ -609,7 +634,7 @@ const createPdfCursor = (params: Readonly<{
     },
     splitWrappedLines,
     measureWrappedTextHeight,
-    getTextWidth: (text: string) => doc.getTextWidth(text),
+    getTextWidth: (text: string) => doc.getTextWidth(toPdfStandardFontText(text)),
     getFullWidth: () => fullWidth,
     addPage,
     getRemainingSpace: () => Math.max(0, contentBottom - y),
@@ -842,6 +867,7 @@ export const createPdfWriter = (params: Readonly<{
     fitTextToWidth: (text, maxWidth) => fitTextToWidth(cursor.getDoc(), text, maxWidth),
     ensureSpace: cursor.ensureSpace,
     keepWithNext: cursor.ensureSpace,
+    keepLastLineWithNext: cursor.keepLastLineWithNext,
     addSpacer: (height: number) => {
       if (height <= 0) {
         previousBlockWasSectionHeader = false;
