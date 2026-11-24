@@ -3,6 +3,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toAnyFieldRef } from '../../../inputCore/fieldDescriptor';
 import {
+  eoSfggManuelDagssatsField,
   eoSfggReferenceperiodeFraField,
   eoSfggReferenceperiodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
@@ -64,5 +65,27 @@ describe('buildEoSygeferiegodtgoerelseRows – tom referenceperiode (BB-369)', (
 
   it('kræver ingen referenceperiode, når satsen er angivet manuelt', () => {
     expect(manglerRows(values({ sfggBeregningskilde: 'Manuelt angivet' }))).toEqual([]);
+  });
+});
+
+describe('buildEoSygeferiegodtgoerelseRows – afvist dagssats (BB-452)', () => {
+  const dagssatsRows = (fieldIssues: Readonly<Record<string, readonly FieldIssue[]>> = {}) =>
+    buildEoSygeferiegodtgoerelseRows(values({ sfggBeregningskilde: 'Manuelt angivet' }), STAMDATA, undefined, undefined, fieldIssues)
+      .filter((row) => row.id === 'sfgg.dagssats.af-1');
+
+  it('melder en tom dagssats som manglende', () => {
+    expect(dagssatsRows()).toHaveLength(1);
+  });
+
+  it('melder ikke en afvist dagssats som manglende – feltets egen fejl står i forvejen', () => {
+    const rejected: FieldIssue = {
+      kind: 'field',
+      code: 'eo.sfggAnsaettelsesforhold.sfggManuelDagssats.format',
+      severity: 'error',
+      field: toAnyFieldRef(eoSfggManuelDagssatsField.bind('af-1')),
+      reason: 'format',
+      message: 'Ugyldigt beløb',
+    };
+    expect(dagssatsRows({ 'af-1': [rejected] })).toEqual([]);
   });
 });

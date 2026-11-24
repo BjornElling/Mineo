@@ -4,6 +4,8 @@ import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import type { CollectionRef } from '../../inputCore/fieldAddress';
 import type { FieldDescriptor, FieldRef } from '../../inputCore/fieldDescriptor';
 import type { InputReader } from '../../inputCore/inputReader';
+import type { FieldIssue } from '../../inputCore/inputIssue';
+import type { StandardLoenTableColumnKey, TableError } from '../../types/table';
 import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import {
   getStandardLoenTableValidation,
@@ -189,6 +191,45 @@ const collectCellErrorsByCellKey = (
     }
   }
   return cellErrors;
+};
+
+/**
+ * De røde cellers egne feltissues, nøglet `rowId:colKey` som `TableError`.
+ *
+ * `TableError` bærer kun AT cellen er ugyldig. En oversigt, der vil sige HVORFOR – fx at et regnestykke dividerer
+ * med 0 (BB-440) – skal have cellens issue; det læses her på samme adresse, som cellen redigeres på.
+ */
+export const resolveStandardLoenInvalidCellIssues = (
+  fieldSet: StandardLoenTableFieldSet,
+  reader: InputReader,
+  errors: readonly TableError[]
+): ReadonlyMap<string, FieldIssue> => {
+  const issueOf = <T>(descriptor: FieldDescriptor<T>, rowId: string): FieldIssue | undefined => {
+    const result = reader.read(bindCell(fieldSet, descriptor, rowId));
+    return result.status === 'error' ? result.issue : undefined;
+  };
+  // Kolonnerne har tre værdityper; grupperingen giver hver gren én descriptortype uden et cast.
+  const cellIssueOf = (colKey: StandardLoenTableColumnKey, rowId: string): FieldIssue | undefined => {
+    switch (colKey) {
+      case 'col0_dag':
+      case 'col1_dag':
+        return issueOf(fieldSet[colKey], rowId);
+      case 'col0_maaned':
+      case 'col1_maaned':
+      case 'col0_uge':
+      case 'col1_uge':
+        return issueOf(fieldSet[colKey], rowId);
+      default:
+        return issueOf(fieldSet[colKey], rowId);
+    }
+  };
+  const issues = new Map<string, FieldIssue>();
+  for (const error of errors) {
+    if (error.kind !== 'cell' || error.issue !== 'invalid') continue;
+    const issue = cellIssueOf(error.colKey, error.rowId);
+    if (issue !== undefined) issues.set(`${error.rowId}:${error.colKey}`, issue);
+  }
+  return issues;
 };
 
 /** Reader-afledt valideringssummary + errors. Den ENE kilde til løntabellens summary (§2.5/§3.4). */

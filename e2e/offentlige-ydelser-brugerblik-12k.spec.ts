@@ -109,8 +109,8 @@ test.describe('Erstatningsopgørelse – Offentlige ydelser (12k)', () => {
     await setDate(helperTil, '01-06-2026');
     await expect(helperFra).toHaveAttribute('aria-invalid', 'true');
     await expect(helperTil).toHaveAttribute('aria-invalid', 'true');
-    await expect(helperFra).toHaveAccessibleDescription(/Fra-dato skal være før til-dato \(01-06-2026\)/);
-    await expect(helperTil).toHaveAccessibleDescription(/Til-dato skal være efter fra-dato \(30-06-2026\)/);
+    await expect(helperFra).toHaveAccessibleDescription(/Fra-dato skal være på eller før til-dato \(01-06-2026\)/);
+    await expect(helperTil).toHaveAccessibleDescription(/Til-dato skal være på eller efter fra-dato \(30-06-2026\)/);
     await page.screenshot({ path: testInfo.outputPath('offentlige-ydelser-12k.png'), fullPage: true });
 
     expect(runtimeErrors).toEqual([]);

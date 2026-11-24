@@ -22,6 +22,7 @@ import {
   buildMidlertidigtEetImportContext,
   buildMidlertidigtEetCalculationRows,
   buildMidlertidigtEetSourceResult,
+  vilMidlertidigtEetImportGiveFradrag,
 } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 import {
   buildMidlertidigtEetPdfGroupsForTafRanges,
@@ -728,6 +729,20 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.invariants.filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:')).map((invariant) => invariant.id))
       .toEqual(['midlertidigt_eet_source:midlertidigt-eet-uden-afgoerelse-intet-hentet']);
     expect(snapshot.data?.midlertidigtEetGroups).toEqual([]);
+  });
+
+  it('ved før kildeskiftet, om importen henter et fradrag i TAF-perioden (BB-457)', () => {
+    const tafRanges = buildTafRanges(createValidEoBase(), { skadedatoISO: stamdata.skadedato });
+    expect(vilMidlertidigtEetImportGiveFradrag(
+      { revision: 'r', eetValues, skadedato: stamdata.skadedato },
+      tafRanges,
+    )).toBe(true);
+    expect(vilMidlertidigtEetImportGiveFradrag({
+      revision: 'r',
+      eetValues: { ...eetValues, beregningsdato: undefined, aslAfgoerelser: [], aslAarsloen: undefined, skadelidteFodselsdato: undefined },
+      skadedato: undefined,
+    }, tafRanges)).toBe(false);
+    expect(vilMidlertidigtEetImportGiveFradrag(undefined, tafRanges)).toBe(false);
   });
 
   it('ignorerer EET-kildefejl når der kun findes endelige afgørelser, som ikke kan importeres', () => {

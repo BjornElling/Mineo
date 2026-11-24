@@ -397,8 +397,10 @@
 }
 
 /* Neutralisér UA-knap-styling, så en `<button class="icon-text-link">` er visuelt umulig at skelne fra
-   `<a class="icon-text-link">` og flyder med i den omgivende brødtekst. */
+   `<a class="icon-text-link">` og flyder med i den omgivende brødtekst. Knappen renderes ét sted:
+   `components/inputs/TextLinkButton.tsx` (BB-463/BB-464), så callsites ikke gentager nulstillingen i `sx`. */
 button.icon-text-link {
+  margin: 0;
   padding: 0;
   border: none;
   background: none;

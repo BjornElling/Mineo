@@ -22,7 +22,6 @@
 export const ERROR_MESSAGES = {
   // Dato-fejl
   INVALID_DATE_FORMAT: 'Datoen skal være i formatet dd-mm-åååå',
-  DATE_FROM_AFTER_DATE_TO: 'Fra-dato skal være før til-dato',
   DATE_OUT_OF_RANGE: 'Datoen ligger uden for tilladt interval',
   INVALID_YEAR_FORMAT: 'Året skal være 4 cifre (fx 2025)',
 

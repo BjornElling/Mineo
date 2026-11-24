@@ -67,12 +67,12 @@ test.describe('TD-031 – datoorden i offentlig ydelsesrække', () => {
     await expect(row.locator('input[data-mineo-field-address]').nth(2)).toHaveValue('1.000,00');
     await fromDate.hover();
     await expect(page.getByRole('tooltip', {
-      name: 'Fra-dato skal være før til-dato (01-02-2022)',
+      name: 'Fra-dato skal være på eller før til-dato (01-02-2022)',
       exact: true,
     })).toBeVisible();
     await row.locator('input[data-mineo-field-address]').nth(1).hover();
     await expect(page.getByRole('tooltip', {
-      name: 'Til-dato skal være efter fra-dato (01-03-2022)',
+      name: 'Til-dato skal være på eller efter fra-dato (01-03-2022)',
       exact: true,
     })).toBeVisible();
 

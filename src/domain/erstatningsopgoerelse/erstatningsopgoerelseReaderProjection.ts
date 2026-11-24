@@ -147,7 +147,7 @@ import {
 } from '../../inputCore/catalog/stamdataDescriptors';
 import { buildEoRuntimeExceptionSnapshot, computeEoSnapshot, type EoSnapshot } from './snapshot/eoSnapshot';
 import { buildTafRanges } from './helpers/indtaegtPerioder';
-import { buildMidlertidigtEetImportContext } from './helpers/midlertidigtEetTransientInjection';
+import { buildMidlertidigtEetImportContext, vilMidlertidigtEetImportGiveFradrag } from './helpers/midlertidigtEetTransientInjection';
 import {
   resolveDelvistEndeligeKapitaliseringsdatoer,
   resolveEetAfgoerelseDatoer,
@@ -583,6 +583,8 @@ export type ErstatningsopgoerelseReaderProjection = Readonly<{
   // stamdata-invarianter. Projektionen må ikke bære en ekstra, ulæst `documentStamdata`-projektion,
   // fordi den ville ligne en dependency-erklæring uden faktisk at gate outputtet.
   /** Kildesnapshottets token – issue-snapshot og reader stammer fra samme evaluering (§3.4). */
+  /** Henter et skift til «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» et fradrag? (BB-457) */
+  midlertidigtEetSkiftGiverFradrag: boolean;
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -772,13 +774,15 @@ export const buildErstatningsopgoerelseReaderProjection = (
     // hvis afledningen fejler, så fejlen blokerer beregningen uden at vælte formularen.
     eoValues = projectLoenindkomstSatser(eoValues, stamdataValues);
 
+    const tafRangesForMidlertidigtEet = buildTafRanges(eoValues, { skadedatoISO: stamdataValues.skadedato });
+    // Bekræftelsen før kildeskiftet skal vide, om skiftet henter et fradrag (BB-457).
+    const midlertidigtEetSkiftGiverFradrag = eoValues.midlertidigtEetFraEetSiden !== 'Ja'
+      && vilMidlertidigtEetImportGiveFradrag(options?.midlertidigtEetInsertSource, tafRangesForMidlertidigtEet);
+
     // Transient midlertidigt-EET-injektion: kun når togglen er 'Ja'.
     const midlertidigtEetImportContext =
       eoValues.midlertidigtEetFraEetSiden === 'Ja' && options?.midlertidigtEetInsertSource
-        ? buildMidlertidigtEetImportContext(
-          options.midlertidigtEetInsertSource,
-          buildTafRanges(eoValues, { skadedatoISO: stamdataValues.skadedato })
-        )
+        ? buildMidlertidigtEetImportContext(options.midlertidigtEetInsertSource, tafRangesForMidlertidigtEet)
         : undefined;
 
     // Kun mens togglen er «Ja»: datoerne for EET-afgørelserne på EO oplysninger skal genfindes på
@@ -803,7 +807,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
     const anciennitetstillaegDatoIssueList = collectAnciennitetstillaegDatoIssues(eoValues, stamdataValues);
     // Sygeferiegodtgørelsens referenceperiode: før første TAF-dag, fraværsdagenes loft og en periode uden løn
     // (BB-319, BB-322, BB-323). Projekteret samme vej, så feltet får rød ring, og TAF-grenen spærres.
-    const sfggReferenceperiodeIssueList = collectSfggReferenceperiodeIssues(eoValues);
+    const sfggReferenceperiodeIssueList = collectSfggReferenceperiodeIssues(eoValues, buildFieldIssueSet(eoProjection.readIssues()));
     const missingLoenudviklingReguleringsdatoIssueList = collectMissingLoenudviklingReguleringsdatoIssues(eoValues, stamdataValues);
     // TAF-cutoff (differencekrav + endeligt/midlertidigt EET) kan ikke ligge på descriptoren: grænsen udledes
     // af domæneregler (klage-suspension, 2011-skæringsdatoen, virkningsdato-præcedens). Den projekteres derfor
@@ -867,6 +871,7 @@ export const buildErstatningsopgoerelseReaderProjection = (
       tafCellIssues: buildFieldIssueSet(tafCellIssueList),
       svieSmerteCellIssues: buildFieldIssueSet(svieSmerteProjectedIssues),
       tafEfterKapitaliseringAdvarsler,
+      midlertidigtEetSkiftGiverFradrag,
       sourceToken: reader.sourceToken,
     };
   } catch (error) {
@@ -887,6 +892,8 @@ export const buildErstatningsopgoerelseReaderProjection = (
       tafCellIssues: EMPTY_FIELD_ISSUE_SET,
       svieSmerteCellIssues: EMPTY_FIELD_ISSUE_SET,
       tafEfterKapitaliseringAdvarsler: [],
+      // Uden beregning vides det ikke; bekræftelsen siger da intet ekstra.
+      midlertidigtEetSkiftGiverFradrag: true,
       sourceToken: reader.sourceToken,
     };
   }

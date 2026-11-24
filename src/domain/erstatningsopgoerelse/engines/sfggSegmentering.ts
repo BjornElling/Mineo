@@ -456,6 +456,19 @@ const assertKlKaedeloenMatcherRegulering = (vaerdi: ReguleringsVaerdi): void => 
   }
 };
 
+/**
+ * Datoen, SFGG-satsen reguleres fra. Manuelle former har intet niveau før deres basisdato (reguleringsdatoen), så en
+ * ældre referenceperiode behandles som reguleringsdatoens niveau (afklaringslog 8a). Én kilde for beregningen og
+ * bilagets tekst, så bilaget ikke siger «fra referenceperiodens slutdato», når der regnes fra reguleringsdatoen (BB-453).
+ */
+export const resolveSfggReguleringFraDato = (
+  reguleringOpslag: Pick<ReguleringOpslag, 'manuelBasisDato'>,
+  referenceTil: ISODateString,
+): Readonly<{ dato: ISODateString; fraReguleringsdato: boolean }> =>
+  reguleringOpslag.manuelBasisDato !== undefined && referenceTil < reguleringOpslag.manuelBasisDato
+    ? { dato: reguleringOpslag.manuelBasisDato, fraReguleringsdato: true }
+    : { dato: referenceTil, fraReguleringsdato: false };
+
 type SfggReguleretSats = Pick<SygeferiegodtgoerelseSegment, 'satsOre' | 'reguleringsindeks' | 'reguleringsgrundlag' | 'klTrin'>;
 
 const resolveAdjustedRate = (
@@ -475,8 +488,7 @@ const resolveAdjustedRate = (
   const vaerdi = kraevReguleringPaaDato(reguleringOpslag, iso);
   // Manuelle former har intet historisk niveau. En ældre referenceperiode har
   // eksplicit reguleringsdatoens niveau (afklaringslog 8a).
-  const referenceDato = reguleringOpslag.manuelBasisDato && referenceTil < reguleringOpslag.manuelBasisDato
-    ? reguleringOpslag.manuelBasisDato : referenceTil;
+  const referenceDato = resolveSfggReguleringFraDato(reguleringOpslag, referenceTil).dato;
   const reference = kraevReguleringPaaDato(reguleringOpslag, referenceDato);
   assertKlKaedeloenMatcherRegulering(vaerdi);
   assertKlKaedeloenMatcherRegulering(reference);

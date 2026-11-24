@@ -88,8 +88,8 @@ const CASES: readonly Case[] = [
   },
   {
     name: 'svie/smerte – rækkefølge',
-    row: { id: 'sviesmerte.periode.ss-1', label: 'Periode', message: 'Til-dato skal være efter fra-dato', focusFieldHint: 'til' },
-    expectedSummary: 'Til-dato skal være efter fra-dato',
+    row: { id: 'sviesmerte.periode.ss-1', label: 'Periode', message: 'Til-dato skal være på eller efter fra-dato', focusFieldHint: 'til' },
+    expectedSummary: 'Til-dato skal være på eller efter fra-dato',
     expectedFocus: focus(eoSvieSmertePeriodeTilField, 'ss-1'),
   },
   // Tilstands-hintet er ligeledes autoritativt: beskeden nævner ikke tilstanden, så ordlyd-grenen ville
@@ -156,9 +156,9 @@ const CASES: readonly Case[] = [
     row: {
       id: 'taf.periode.taf-1',
       label: 'Periode',
-      message: 'Til-dato skal være efter fra-dato',
+      message: 'Til-dato skal være på eller efter fra-dato',
     },
-    expectedSummary: 'Til-dato skal være efter fra-dato',
+    expectedSummary: 'Til-dato skal være på eller efter fra-dato',
     expectedFocus: focus(eoTafPeriodeTilField, 'taf-1'),
   },
   // ── Ferieperioder ─────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 
 import ContentBox from '../../layout/ContentBox';
+import TextLinkButton from '../../inputs/TextLinkButton';
 import { scrollToFieldAddress } from '../../../utils/scrollToFieldAddress';
 import type { AarsloenIssueRow, AarsloenIssueTarget } from '../../../domain/aarsloen/aarsloenIssueRows';
 import { useAarsloenVm } from './aarsloenContext';
@@ -20,15 +21,6 @@ const ROW_SX = {
     whiteSpace: 'nowrap',
     alignSelf: 'flex-start',
   },
-} as const;
-
-const LINK_SX = {
-  cursor: 'pointer',
-  border: 0,
-  background: 'transparent',
-  p: 0,
-  m: 0,
-  font: 'inherit',
 } as const;
 
 /**
@@ -53,15 +45,9 @@ export const AarsloenFejlOgAdvarslerSection = React.memo(() => {
       <Typography className="row--text">{row.message}</Typography>
       <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
         {row.target !== undefined && (
-          <Typography
-            className="row--text icon-text-link"
-            component="button"
-            type="button"
-            onClick={() => { if (row.target !== undefined) goTo(row.target); }}
-            sx={LINK_SX}
-          >
+          <TextLinkButton onClick={() => { if (row.target !== undefined) goTo(row.target); }}>
             {row.target.sectionName}
-          </Typography>
+          </TextLinkButton>
         )}
         {row.severity === 'error'
           ? <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />

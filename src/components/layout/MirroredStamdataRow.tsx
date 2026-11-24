@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import TextLinkButton from '../inputs/TextLinkButton';
 
 // En SPEJLET stamdata-række: en værdi, siden viser, men som ejes af Stamdata og kun kan rettes dér.
 //
@@ -38,17 +39,14 @@ const STAMDATA_LINK_LABEL = 'Stamdata';
 /**
  * Linket til Stamdata. Ét sted, så de to grene ikke kan få hver sin markup – det var netop dét, der lod
  * den røde gren miste linket, mens den tomme beholdt det.
+ *
+ * Linket var et `<span onClick>` og kunne derfor slet ikke nås med tastaturet (BB-464). Som
+ * `TextLinkButton` er det en native knap i Containerens Tab-ring, der aktiveres med Enter og mellemrum.
  */
 const StamdataLink = ({ onNavigate }: Readonly<{ onNavigate: () => void }>) => (
-  <Typography
-    component="span"
-    className="icon-text-link"
-    color="inherit"
-    onClick={onNavigate}
-    sx={{ cursor: 'pointer' }}
-  >
+  <TextLinkButton placement="inline" onClick={onNavigate}>
     {STAMDATA_LINK_LABEL}
-  </Typography>
+  </TextLinkButton>
 );
 
 const MirroredStamdataRow = React.memo(({

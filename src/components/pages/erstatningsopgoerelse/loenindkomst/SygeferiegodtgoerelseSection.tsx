@@ -7,6 +7,7 @@ import EntityChoiceField from '../../../../inputCore/react/fields/EntityChoiceFi
 import AmountField from '../../../../inputCore/react/fields/AmountField';
 import MappedToggleField from '../../../../inputCore/react/fields/MappedToggleField';
 import IntegerField from '../../../../inputCore/react/fields/IntegerField';
+import TextLinkButton from '../../../inputs/TextLinkButton';
 import {
   eoSfggAlleredeBetaltBeloebField,
   eoSfggBeregningskildeField,
@@ -109,22 +110,9 @@ const SygeferiegodtgoerelseSection = ({
             <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
               <Typography className="row--text">{sfgg.sharedSfggBefore2015Besked}</Typography>
               <Typography className="row--text">&nbsp;</Typography>
-              <Typography
-                className="row--text icon-text-link"
-                component="button"
-                type="button"
-                onClick={onNavigateToTabtArbejdsfortjeneste}
-                sx={{
-                  cursor: 'pointer',
-                  border: 0,
-                  background: 'transparent',
-                  p: 0,
-                  m: 0,
-                  font: 'inherit',
-                }}
-              >
+              <TextLinkButton onClick={onNavigateToTabtArbejdsfortjeneste}>
                 EO oplysninger
-              </Typography>
+              </TextLinkButton>
               <Typography className="row--text">.</Typography>
             </Box>
           </Box>

@@ -222,10 +222,11 @@ export function useAarsloenViewModel() {
     fieldIssues: readerProjection.fieldIssues,
     feriedageIssues: feriedageFieldIssues,
     tableErrors: tableValidation.errors,
+    tableCellIssues: readerProjection.tableCellIssues,
     tableRowIds: values.tableData.map((row) => row.id),
     downloadError: hasPageMessage(downloadErrorMessage) ? downloadErrorMessage.text : null,
     warnings: advarsler,
-  }), [advarsler, beregningsFejl, downloadErrorMessage, feriedageFieldIssues, readerProjection.fieldIssues, tableValidation.errors, values.tableData]);
+  }), [advarsler, beregningsFejl, downloadErrorMessage, feriedageFieldIssues, readerProjection.fieldIssues, readerProjection.tableCellIssues, tableValidation.errors, values.tableData]);
   const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
   const shouldShowFerieFields = React.useMemo(() => shouldShowAarsloenFerieFields(values), [values]);
   const shouldShowShDageFields = React.useMemo(() => shouldShowAarsloenShDageFields(values), [values]);

@@ -37,6 +37,10 @@ export type LoentrinFinderResult = Readonly<{
 }>;
 
 /** «Løntrin 38, gruppe 4», «Løntrin 50, alle grupper» eller «Løntrin 12, gruppe 1 og 2». */
+/** Tooltip, når opslagets løntype ikke er sagens «Ansættelse» (BB-445). */
+export const buildLoentrinFinderLoenTypeSpaerring = (sagensLoenType: string): string =>
+  `Ansættelse er sat til ${sagensLoenType.toLowerCase()} – søg med ${sagensLoenType.toLowerCase()} for at indsætte`;
+
 export const formatLoentrinFinderResultLabel = (result: Pick<LoentrinFinderResult, 'loentrin' | 'grupper'>): string => {
   const trin = `Løntrin ${String(result.loentrin)}`;
   if (result.grupper.length === LOENGRUPPER.length) return `${trin}, alle grupper`;

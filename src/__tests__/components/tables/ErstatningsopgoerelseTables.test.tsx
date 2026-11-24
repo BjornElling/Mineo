@@ -145,7 +145,7 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     }];
     hydrate({ ...createErstatningsopgoerelseInitialValues(), offentligeYdelserRows: rows });
     const derived = new Map([['ydelse-1', {
-      periodiseringLabel: 'Pr. måned', antalDageDisplay: '31', ydelsePerDagDisplay: '100,00',
+      periodiseringLabel: 'Pr. måned', antalDage: 31, antalDageDisplay: '31', ydelsePerDag: 100, ydelsePerDagDisplay: '100,00',
     }]]);
 
     renderInRuntime(
@@ -159,6 +159,34 @@ describe('Erstatningsopgørelses tabeller over den fælles grid-adapter', () => 
     expect(dataRows()).toHaveLength(2);
     expect(within(dataRows()[0]!).getByText('Pr. måned')).toBeInTheDocument();
     expect(within(dataRows()[0]!).getByText('31')).toBeInTheDocument();
+  });
+
+  it('sorterer «Antal dage» og «Ydelse per dag» efter talværdien, ikke den viste tekst (BB-454)', () => {
+    const row = (id: string, fra: string) => ({
+      id,
+      fraDato: toISODateString(fra),
+      tilDato: toISODateString(fra),
+      ydelse: amount(1),
+      tillaeg: undefined,
+      ydelsestype: 'kontanthjaelp',
+    });
+    const rows = [row('a', '2026-06-01'), row('b', '2026-06-05'), row('c', '2026-06-12')];
+    hydrate({ ...createErstatningsopgoerelseInitialValues(), offentligeYdelserRows: rows });
+    const derived = new Map([
+      ['a', { periodiseringLabel: 'Kalenderdage', antalDage: 2, antalDageDisplay: '2', ydelsePerDag: 6000, ydelsePerDagDisplay: '6.000,00 kr.' }],
+      ['b', { periodiseringLabel: 'Kalenderdage', antalDage: 10, antalDageDisplay: '10', ydelsePerDag: 90, ydelsePerDagDisplay: '90,00 kr.' }],
+      ['c', { periodiseringLabel: 'Kalenderdage', antalDage: 1, antalDageDisplay: '1', ydelsePerDag: 20, ydelsePerDagDisplay: '20,00 kr.' }],
+    ]);
+
+    renderInRuntime(
+      <OffentligeYdelserTable committedRows={rows} derivedByRowId={derived} disableMidlertidigtEetOption={false} />
+    );
+    const rowOrder = (): (string | null)[] => dataRows().map((element) => element.getAttribute('data-mineo-row-id'));
+
+    fireEvent.click(screen.getByText('Antal dage'));
+    expect(rowOrder().slice(0, 3)).toEqual(['c', 'a', 'b']);
+    fireEvent.click(screen.getByText('Ydelse per dag'));
+    expect(rowOrder().slice(0, 3)).toEqual(['c', 'b', 'a']);
   });
 
   it('grupperer de supplerende ydelsestyper efter en divider og sorterer hver gruppe alfabetisk', () => {

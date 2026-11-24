@@ -263,7 +263,12 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     writer.writeUnderlinedSubheader(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL);
     safeAddWrappedText(
       hasRegulatedSfggRate
-        ? `Kravet beregnes per ${dayUnit} med ${rateLabel} reguleret efter lønudviklingen fra referenceperiodens slutdato.`
+        // Manuelle former regulerer fra reguleringsdatoen, når referenceperioden ligger før den (BB-453).
+        ? `Kravet beregnes per ${dayUnit} med ${rateLabel} reguleret efter lønudviklingen fra ${
+          entry.sfggReguleringsdatoForReference === null
+            ? 'referenceperiodens slutdato'
+            : `reguleringsdatoen (${formatDateShort(entry.sfggReguleringsdatoForReference)})`
+        }.`
         : `Kravet beregnes per ${dayUnit} med ${rateLabel}.`
     );
 

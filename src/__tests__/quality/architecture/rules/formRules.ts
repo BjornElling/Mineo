@@ -699,8 +699,9 @@ export const sfggAnsaettelsesforholdImportBoundary = forbidImports({
 export const sfggSegmenteringImportBoundary = forbidImports({
   id: 'domain/sfgg-segmentering-import-boundary',
   description:
-    'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer og referenceperiode-reglen, der skal '
-    + 'summere referenceperiodens løn med præcis samme beregner som motoren (BB-319), så reglen og satsen aldrig er uenige.',
+    'SFGG-segmentmatematik må kun bruges af engine-lagets to orkestratorer, referenceperiode-reglen og advarslen om '
+    + 'en manuel dagssats over en dags løn (BB-450). De to sidste skal summere lønnen med præcis samme beregner som '
+    + 'motoren (BB-319), så reglen og satsen aldrig er uenige.',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggSegmentering.ts'),
@@ -709,6 +710,7 @@ export const sfggSegmenteringImportBoundary = forbidImports({
   allow: [
     'src/domain/erstatningsopgoerelse/engines/sfggAnsaettelsesforhold.ts',
     'src/domain/erstatningsopgoerelse/engines/sfggEngine.ts',
+    'src/domain/erstatningsopgoerelse/engines/sfggWarnings.ts',
     'src/domain/erstatningsopgoerelse/sfggReferenceperiodeRules.ts',
   ],
   forbidden: (ref) =>
@@ -728,7 +730,7 @@ export const sfggWarningsImportBoundary = forbidImports({
   id: 'domain/sfgg-warnings-import-boundary',
   description:
     'SFGG-advarslerne forbruges kun af snapshot, den fælles row-builder, feltadvarsels-projektionen (gul ring på en '
-    + 'gammel referenceperiode, BB-324) og Lønindkomst-afledningen (seksmånedersteksten på kortet, BB-325).',
+    + 'gammel referenceperiode, BB-324, og en høj manuel dagssats, BB-450) og Lønindkomst-afledningen (seksmånedersteksten på kortet, BB-325).',
   liveTarget: {
     kind: 'precondition',
     probe: (entry) => entry.relativePath.endsWith('/sfggWarnings.ts'),

@@ -1,6 +1,6 @@
 import type { FieldAddress } from '../../inputCore/fieldAddress';
 import type { ConsumerIssue, FieldIssue } from '../../inputCore/inputIssue';
-import { prefixFieldLabel } from '../../inputCore/inputIssue';
+import { prefixFieldLabel, resolveFieldIssueSummaryText } from '../../inputCore/inputIssue';
 import { STANDARD_LOEN_COLUMN_LABELS, type TableError } from '../../types/table';
 
 /**
@@ -59,11 +59,21 @@ const CELL_ISSUE_TEXT: Readonly<Record<Extract<TableError, { kind: 'cell' }>['is
   missing_amount: 'beløbet mangler',
 };
 
+const cellIssueText = (
+  error: Extract<TableError, { kind: 'cell' }>,
+  cellIssues: ReadonlyMap<string, FieldIssue> | undefined
+): string => {
+  const issue = error.issue === 'invalid' ? cellIssues?.get(`${error.rowId}:${error.colKey}`) : undefined;
+  return issue === undefined ? CELL_ISSUE_TEXT[error.issue] : resolveFieldIssueSummaryText(issue);
+};
+
 export const buildAarsloenIssueRows = (input: Readonly<{
   beregningsFejl: string | null;
   fieldIssues: readonly (FieldIssue | ConsumerIssue)[];
   feriedageIssues: readonly FieldIssue[];
   tableErrors: readonly TableError[];
+  /** De ugyldige cellers egne feltissues (`rowId:colKey`); en konkret årsag erstatter «ugyldig værdi» (BB-440). */
+  tableCellIssues?: ReadonlyMap<string, FieldIssue>;
   tableRowIds: readonly string[];
   downloadError: string | null;
   /** En advarsel om en bestemt lønrække bærer cellens adresse, så linjen fører dertil som EO's (BB-289/BB-298). */
@@ -98,7 +108,7 @@ export const buildAarsloenIssueRows = (input: Readonly<{
     push({
       id: `cell:${error.rowId}:${error.issue}${error.issue === 'partial_period' ? '' : `:${error.colKey}`}`,
       severity: 'error',
-      message: `${raekke}${kolonne}: ${CELL_ISSUE_TEXT[error.issue]}`,
+      message: `${raekke}${kolonne}: ${cellIssueText(error, input.tableCellIssues)}`,
       target: { kind: 'cell', error, sectionName: INDTAEGTSOPLYSNINGER },
     });
   }

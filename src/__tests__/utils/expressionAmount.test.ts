@@ -3,8 +3,6 @@ import {
   amountValueToNumber,
   amountValueToDisplayString,
   amountValueToDraftString,
-  isExpressionErrorMessage,
-  formatExpressionErrorMessage,
 } from '../../utils/expressionAmount';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { MAX_AMOUNT_RAW_LENGTH } from '../../utils/amountInputUtils';
@@ -211,7 +209,7 @@ describe('parseAmountInput', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { kind: 'expression', message: 'Ugyldig operatorfølge' },
+      error: { kind: 'expression', message: 'Ugyldig operatorfølge', code: 'INVALID_OPERATOR_SEQUENCE' },
     });
   });
 
@@ -220,7 +218,9 @@ describe('parseAmountInput', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.kind).toBe('expression');
-    expect(result.error.message).toBe('Division med 0');
+    // BB-440: den fælles, konkrete beløbsbesked og den maskinlæsbare årsag, codec'en aflæser.
+    expect(result.error.message).toBe('Beløbet kan ikke beregnes, fordi der divideres med 0');
+    expect(result.error.code).toBe('DIVISION_BY_ZERO');
   });
 
   it('rejects too many integer digits when configured', () => {
@@ -246,7 +246,7 @@ describe('parseAmountInput', () => {
     expect(parse('70368744177664,00-0,01').ok).toBe(true);
     expect(parse('70368744177663,99+0,01')).toEqual({
       ok: false,
-      error: { kind: 'expression', message: 'Beløb er for stort til at kunne gemmes præcist' },
+      error: { kind: 'expression', message: 'Beløb er for stort til at kunne gemmes præcist', code: 'UNSAFE_NUMBER' },
     });
   });
 
@@ -374,47 +374,5 @@ describe('amountValueToDraftString', () => {
   it('expression AmountValue → returnerer expression-strengen (ikke formateret value)', () => {
     const av: AmountValue = { kind: 'expression', expression: '1000+0,5', value: 1000.5 };
     expect(amountValueToDraftString(av, 2)).toBe('1000+0,5');
-  });
-});
-
-// ─── isExpressionErrorMessage ─────────────────────────────────────────────────
-
-describe('isExpressionErrorMessage', () => {
-  it('undefined → false', () => {
-    expect(isExpressionErrorMessage(undefined)).toBe(false);
-  });
-
-  it('tom streng → false', () => {
-    expect(isExpressionErrorMessage('')).toBe(false);
-  });
-
-  it('streng der starter med "Fejl i funktion:" → true', () => {
-    expect(isExpressionErrorMessage('Fejl i funktion: Division med 0')).toBe(true);
-  });
-
-  it('alm. fejlbesked → false', () => {
-    expect(isExpressionErrorMessage('Ugyldigt beløb')).toBe(false);
-  });
-
-  it('delvis match → false', () => {
-    expect(isExpressionErrorMessage('Ikke Fejl i funktion:')).toBe(false);
-  });
-});
-
-// ─── formatExpressionErrorMessage ────────────────────────────────────────────
-
-describe('formatExpressionErrorMessage', () => {
-  it('tilføjer "Fejl i funktion:"-præfix', () => {
-    expect(formatExpressionErrorMessage('Division med 0')).toBe('Fejl i funktion: Division med 0');
-  });
-
-  it('præfix efterfølges af mellemrum', () => {
-    const result = formatExpressionErrorMessage('test');
-    expect(result.startsWith('Fejl i funktion: ')).toBe(true);
-  });
-
-  it('isExpressionErrorMessage genkender formatExpressionErrorMessage-output (round-trip)', () => {
-    const formatted = formatExpressionErrorMessage('Ugyldigt tegn');
-    expect(isExpressionErrorMessage(formatted)).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ import TransientDateInput from '../../../components/inputs/transient/TransientDa
 import TransientTextInput from '../../../components/inputs/transient/TransientTextInput';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { AMOUNT_DIVISION_BY_ZERO_MESSAGE } from '../../../utils/expressionAmount';
 import type { ISODateString } from '../../../types/branded';
 
 // Transiente felter (§3.1-undtagelse: IKKE sagsdata). De har ingen feltadresse, issue-snapshot, history eller
@@ -78,6 +79,29 @@ describe('TransientAmountInput', () => {
     expect(await screen.findByRole('textbox')).toBeInTheDocument();
   });
 
+  it('rydder den forrige værdi ved en afvisning og afvisningen ved et gyldigt beløb', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    render(<Harness onCommit={onCommit} />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('30000');
+    await user.tab();
+    await user.click(input);
+    await user.keyboard('1/0');
+    await user.tab();
+    expect(onCommit).toHaveBeenLastCalledWith(undefined);
+    expect(input).toHaveValue('1/0');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+
+    await user.click(input);
+    await user.keyboard('500');
+    await user.tab();
+    expect(onCommit).toHaveBeenLastCalledWith({ kind: 'number', value: 500 });
+    expect(input).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
   /**
    * BB-430: typografiske minustegn følger SAMME sign-policy-vej som de persisterede beløbsfelter – de
    * normaliseres til ASCII '-' før tegnfilteret ved paste, tastning og første tast.
@@ -140,6 +164,44 @@ describe('TransientAmountInput', () => {
       expect(input).toHaveValue('-');
     });
   });
+
+  /**
+   * BB-439: Tab og Enter afslutter en tastet indtastning, så en indsat tabulator eller et linjeskift afslutter
+   * den indsatte. To regnearksceller må ikke smelte sammen til 1.200.200,00.
+   */
+  describe('indsættelse fra regneark (BB-439)', () => {
+    const paste = (text: string) =>
+      fireEvent.paste(screen.getByRole('textbox'), { clipboardData: { getData: () => text } });
+
+    it.each([
+      ['tabulator', '1200\t200'],
+      ['linjeskift', '1200\n200'],
+      ['Windows-linjeskift', '1200\r\n200'],
+      ['afsluttende linjeskift fra én celle', '1200\r\n'],
+      ['indledende linjeskift', '\r\n1200'],
+    ])('%s giver kun det første beløb', (_name, text) => {
+      const onCommit = vi.fn();
+      render(<Harness onCommit={onCommit} />);
+      paste(text);
+      expect(onCommit).toHaveBeenLastCalledWith({ kind: 'number', value: 1200 });
+      expect(screen.getByRole('textbox')).toHaveValue('1.200,00');
+    });
+  });
+
+  it('forklarer division med 0 med den fælles beløbsbesked (BB-440)', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    render(<Harness onCommit={onCommit} />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('1/0');
+    await user.tab();
+
+    expect(onCommit).toHaveBeenLastCalledWith(undefined);
+    expect(input).toHaveValue('1/0');
+    expect(screen.getByText(AMOUNT_DIVISION_BY_ZERO_MESSAGE)).toBeInTheDocument();
+  });
 });
 
 describe('TransientDateInput', () => {
@@ -185,6 +247,27 @@ describe('TransientDateInput', () => {
     expect(await screen.findByText(/2026/)).toBeInTheDocument();
   });
 
+  it('beholder en afvist dato synligt, også når den erstatter en gyldig dato (BB-458/BB-459)', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn();
+    render(<Harness onCommit={onCommit} />);
+    const input = screen.getByRole('textbox');
+
+    await user.click(input);
+    await user.keyboard('01-07-2026');
+    await user.tab();
+    expect(input).toHaveValue('01-07-2026');
+
+    await user.click(input);
+    await user.keyboard('31-02-2026');
+    await user.tab();
+
+    // XOR-reglen: værdien ryddes, men den afviste tekst står tilbage til rettelse med sin fejl.
+    expect(onCommit).toHaveBeenLastCalledWith(undefined);
+    expect(input).toHaveValue('31-02-2026');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('viser en ekstern værdiændring, når feltet ikke redigeres', async () => {
     const Controlled = () => {
       const [value, setValue] = React.useState<ISODateString | undefined>(toISODateString('2026-01-15'));
@@ -226,6 +309,15 @@ describe('TransientDateInput', () => {
       clipboardData: { getData: () => '---12--2----------2026' },
     });
     expect(onCommit).toHaveBeenLastCalledWith(toISODateString('2026-02-12'));
+  });
+
+  it('bruger kun den første af to indsatte regnearksceller (BB-439)', () => {
+    const onCommit = vi.fn();
+    render(<Harness onCommit={onCommit} />);
+    fireEvent.paste(screen.getByRole('textbox'), {
+      clipboardData: { getData: () => '01-02-2026\t15-03-2026' },
+    });
+    expect(onCommit).toHaveBeenLastCalledWith(toISODateString('2026-02-01'));
   });
 });
 

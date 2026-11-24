@@ -575,3 +575,152 @@ dér.
 
 Ingen. De tre oprindelige spørgsmål, de fire modsvar og det opfølgende spørgsmål under BB-368 er besvaret og gennemført
 2026-10-29.
+
+## Fornyet gennemgang 2026-11-23
+
+Chrome headless ved 1536×864 på `9c0b359a`, med lyst og mørkt tema og breddekontrol ved 1366×620.
+Prøverne brugte fiktive sager. Et lokalt produktionsbuild fra 20. november blev desuden brugt til at
+efterprøve datofelternes adfærd ved fejl og sideskift.
+
+### Hvad fanen viser og bruger
+
+- Tabellen har to datoer, to beløb i kroner og 15 ydelsestyper i to grupper. Datoerne følger sagens
+  ydre ramme og må være ens. Beløbene tillader fortegn, regneudtryk og to decimaler, med 512 rå tegn,
+  syv heltalscifre pr. talled og resultatgrænsen ±9.999.999,99 kr. Typen styrer dagtællingen.
+  Periodisering, antal dage og ydelse per dag læses i tre afledte kolonner. Alle otte kolonner kan
+  sorteres, og udfyldte rækker kan slettes. Den tomme bundrække er klar til indtastning.
+- «Indsæt maksimal sygedagpengesats for perioden» accepterer to inklusive datoer fra 03-01-2005 til
+  03-01-2027. Begge skal være gyldige og i rækkefølge. Handlingen kan indsætte flere rækker, bede om
+  bekræftelse eller afvise en periode uden sygedagpengedage.
+- «Midlertidigt EET indsættes fra Erhvervsevnetab-siden» skifter kilde for fradraget og vælger
+  det tilsvarende bilag. Ved manuelle EET-rækker spørger den først om lov til at slette dem.
+  «Offentlige ydelser i beregningsperioden reguleres» vises ved beregning ud fra en beregningsperiode
+  og kan bruges, når en ydelse bidrager i den periode. Kommentaren tillader linjeskift og 512 tegn.
+- Ved TAF «Nej» eller «Skjul» viser fanen en forklaring i stedet for felterne. Ved «Ja» påvirker
+  ydelsesrækkerne TAF, Kontroltabel og bilag. En række med datoer og type uden beløb kan ses og
+  meldes som ufuldstændig. Nul er en indtastet beløbsværdi.
+
+### BB-454 – Antal dage og dagsbeløb sorteres i forkert rækkefølge
+
+- **Type** Fejl. **Rækkevidde** Mønster, se M-69. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** Opret tre rækker med «Kontanthjælp» i juni 2026. Brug 01.–02. juni
+  med 12.000 kr., 05.–14. juni med 900 kr. og 12. juni med 20 kr. Klik på «Antal dage» og derefter
+  «Ydelse per dag».
+- **Det sker** Stigende sortering giver 1, 10, 2 dage og 20,00, 6.000,00, 90,00 kr. per dag.
+  Andet klik vender de målte talrækkefølger om.
+- **Det er uhensigtsmæssigt fordi** Kolonnerne kan bruges til at finde lange perioder, store
+  dagsbeløb og usædvanlige værdier. Den misvisende rækkefølge kan skjule den række, brugeren leder efter.
+- **Bedre ville være** Sortér dagtal og dagsbeløb numerisk.
+- **Andre steder undersøgt** «Ydelse» sorterede stigende fra 20,00 til 12.000,00 kr. og «Fra dato»
+  kronologisk i samme tabel. «Ydelsestype» gav samme rækkefølge som sortering på de 15 viste navne
+  ved sammenligning. «Antal dage» under Svie og smerte viste korrekt faldende 10, 2, 1.
+  Lønindkomst og manuel procentregulering bruger tal til de tilsvarende beregnede kolonner ved
+  kildegennemgangen. BB-294 er en tidligere variant ved måned og år.
+
+### BB-455 – Hjælperen siger stadig, at en rettet periode ingen sygedagpengedage har
+
+- **Type** Fejl. **Rækkevidde** Lokal. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** Indtast 06-06-2026 til 07-06-2026 under «Tilføj særligt» og klik
+  «Indsæt». Ret derefter kun til-datoen til mandag 08-06-2026 og afslut feltet.
+- **Det sker** Linjen «Den valgte periode indeholder ingen sygedagpenge-dage, så der blev ikke
+  indsat nogen rækker.» bliver stående, samtidig med at «Indsæt» er aktiv. Et klik indsætter en
+  arbejdsdag med 1.099,00 kr. i ydelse og 45,00 kr. i tillæg.
+- **Det er uhensigtsmæssigt fordi** Brugeren får besked om den gamle periode efter at have rettet den.
+- **Bedre ville være** Fjern beskeden, når en af datoerne ændres og afsluttes. Vis den igen, hvis
+  brugeren forsøger at indsætte den ændrede periode, og den heller ingen sygedagpengedage har.
+- **Andre steder undersøgt** Hjælperens røde kronologifejl forsvandt, når datoerne igen var i
+  rækkefølge. Løntrin-finderens feltfejl ryddes ved commit i samme felt. Finderens resultater,
+  der kan blive stående efter andre ændringer, er allerede beskrevet i M-67.
+
+### BB-456 – En fælles lørdag udløser advarsel om dobbelt indtastning
+
+- **Type** Edge case. **Rækkevidde** Lokal, beslægtet med M-60. **Prioritet** Lav. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** Opret «Sygedagpenge» på 500 kr. fra fredag 22-05-2026 til lørdag
+  23-05-2026. Brug hjælperen fra 23-05-2026 til tirsdag 26-05-2026.
+- **Det sker** Hjælperen siger «Sygedagpenge for perioden er allerede indtastet» og nævner den
+  eksisterende række. Dens ene arbejdsdag er fredag. Hjælperperioden starter lørdag og har
+  tirsdag som arbejdsdag. Lørdag er den eneste dato, de har til fælles.
+- **Det er uhensigtsmæssigt fordi** Beskeden får brugeren til at lede efter en dobbeltpostering,
+  selv om ingen sygedagpengedag får beløb fra begge rækker.
+- **Bedre ville være** Bed kun om bekræftelse, når en dag faktisk får beløb fra begge rækker.
+  Bevar dialogen, når fx to perioder begge medregner mandag 08-06-2026.
+- **Andre steder undersøgt** Kontroltabellen viser arbejdets dage særskilt fra periodens datoer.
+  TAF- og ferierækkernes overlaptjek gælder selve periodernes datoer og har en anden funktion.
+  Beslægtede forskelle mellem periodens yderdatoer og de medregnede dage er ført i M-60.
+
+### BB-457 – Brugeren kan slette et fradrag, før Mineo fortæller, at der intet er at hente
+
+- **Type** Fornuft. **Rækkevidde** Lokal, beslægtet med M-43. **Prioritet** Høj. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** Brug en sag med TAF fra 01-05-2026 til 30-09-2026. Skriv en manuel
+  «Midlertidigt EET»-række med 12.000 kr. for august. Lad oplysninger om midlertidigt EET stå tomme
+  på både «EO oplysninger» og Erhvervsevnetab. Slå importen til og læs bekræftelsesdialogen.
+- **Det sker** Dialogen siger, at den manuelle række slettes. Efter bekræftelse oplyser
+  «Beregning», at der intet midlertidigt EET fradrages. Hent opgørelse er stadig aktiv.
+  Annullering bevarer rækken, og Ctrl+Z bragte rækken og kildevalget tilbage efter sletning.
+- **Det er uhensigtsmæssigt fordi** Brugeren kan bekræfte i forventning om et nyt fradrag fra Erhvervsevnetab-siden.
+  Fradraget på 12.000 kr. bortfalder, og opgørelsen kan hentes med det tilsvarende højere krav.
+- **Bedre ville være** Fortæl i selve dialogen, når Mineo ikke kan hente en ydelse fra Erhvervsevnetab-siden for
+  perioden. Skriv fx «Den manuelle ydelse på 12.000 kr. slettes. Der fradrages derefter intet
+  midlertidigt EET.» Bevar muligheden for at annullere eller bekræfte.
+- **Andre steder undersøgt** Ved en brugbar afgørelse på 20 % fra 01-06-2026 gav det samme
+  kildeskift et fradrag på 16.000 kr. og samme sum i Word-bilaget. Lønudviklingens kildeskift
+  skjuler tidligere satser i stedet for at slette dem. «Slet alt» og Hent har egne dialoger for
+  afgrænsede handlinger med hele sagen. BB-358 gælder tilbagemeldingen efter aktivering.
+
+### BB-458 – En ugyldig dato bliver usynlig, når den erstatter en gyldig
+
+- **Type** Fejl. **Rækkevidde** Mønster, se M-70. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** Skriv 01-07-2026 i hjælperens «Fra-dato» og 10-07-2026 i «Til-dato».
+  Erstat «Fra-dato» med 31-02-2026 og afslut med Tab eller Enter.
+- **Det sker** «Fra-dato» ser tom ud og har en rød markering. Det samme 31-02-2026 skrevet i et
+  allerede tomt felt blev stående med rød markering. «Indsæt» er spærret i begge tilfælde.
+- **Det er uhensigtsmæssigt fordi** Brugeren, der ville rette ét ciffer, mister den tekst, der
+  skulle rettes, og møder to forskellige visninger af samme fejl.
+- **Bedre ville være** Behold 31-02-2026 synligt med fejlbeskeden, så brugeren kan rette i datoen.
+- **Andre steder undersøgt** Samme datofelt i «Find løntrin» viser en selvstændig variant, BB-459.
+  Ydelsestabellens beløbsfelt beholdt `1/0` med rød markering, da det erstattede et gyldigt beløb.
+
+### BB-459 – «Find løntrin» viser et blankt datofelt efter en fejltastning
+
+- **Type** Fejl. **Rækkevidde** Mønster, se M-70. **Prioritet** Mellem. **Beslutning** Afventer udvikleren.
+- **Sådan fremprovokeres det** På «Lønindkomst» vælg KL-overenskomsten og «Lønudvikling beregnes
+  ud fra» → «Overenskomst». Åbn «Find løntrin», sæt «Dato» til 01-07-2026, erstat den med
+  31-02-2026 og afslut med Tab.
+- **Det sker** Feltet bliver blankt uden rød markering ved afslutningen. Opslagsdatoen, som var
+  under rettelse, kan ikke længere læses.
+- **Det er uhensigtsmæssigt fordi** Det ser ud, som om datoen er ryddet, selv om brugeren lige
+  har prøvet at angive en ny. Vedkommende skal skrive datoen igen for at opdage fejlen.
+- **Bedre ville være** Lad den afviste dato stå med rød markering, så fejlen kan rettes direkte.
+- **Andre steder undersøgt** Samme vindues «Månedsløn» beholdt det synlige `1/0`. Den anden
+  finderindgang bruger samme vindue og datofelt, men gentog ikke browserprøven. Den almindelige
+  ydelsestabel bruger sagens felter og beholdt den afviste beløbstekst.
+
+### Afprøvet uden nyt fund
+
+- Satsgrænserne 03-01-2005 og 03-01-2027 var tilladte for hjælperen. Dagen uden for hver grænse
+  var rød. Omvendt periode markerede begge felter. En ren weekend indsatte ingen rækker.
+- 28-12-2025 til 07-01-2026 blev delt ved satsændringen 05-01-2026 med henholdsvis 4 og 3
+  arbejdsdage. Bekræftelsesdialogens «Annuller» bevarede datoerne. Efter indsættelse blev de
+  ryddet, og fokus gik til «Fra-dato». Ctrl+Z fjernede hele indsættelsen og Ctrl+Y genskabte den.
+- Tom og delvist udfyldt række, samme start- og slutdato, beløb nul, negative tillæg, afvist
+  regneudtryk, Escape og fortrydelse blev kontrolleret. Efter to månedsrækker kom 01-12-2026
+  frem som forslag. Ingen uventet browserfejl eller eksternt kald blev observeret.
+- Samme sag viste TAF «Nej» og «Skjul» med hver sin forklaring og viste tabellen igen ved «Ja».
+  Regulering blev tilgængelig med en ydelse i beregningsperioden. Da perioden blev afkortet,
+  var den inaktiv. Det afsluttede valg var tilbage, da perioden igen dækkede ydelsen.
+- PDF og Word viste 1.099,00 kr. i ydelse, 45,00 kr. i tillæg og 1.144,00 kr. i alt i bilaget.
+  Kontanthjælp på 12.920,00 kr. stemte mellem opgørelse og Kontroltabel. En kommentar på to
+  linjer stod i bilaget og flyttede til hovedopgørelsen, når bilaget blev fravalgt i PDF.
+  Gem/Hent via browserens filinput genskabte kommentar og udfyldte rækker.
+- Tabellen kunne læses i begge temaer ved 1536×864. Tabellen holdt sig inden for vinduets
+  bredde ved 1366×620.
+- Bekræftet «Slet alt» gav en tom tabel, tomme hjælpedatoer og tom kommentar, da TAF blev slået til igen.
+
+### Dækningshuller
+
+- Én browser, ingen native Windows-filvælgere og ingen arkiveret fil med et gammelt ydelsesnavn.
+- EET-prøven dækkede tom kilde og én brugbar midlertidig afgørelse. Flere samtidige afgørelser,
+  delvist endelig afgørelse og blokerende kildefejl blev ikke kørt særskilt.
+- Gyldige hjælpedatoer blev bevaret ved faneskift. I udviklingsserveren blev de blanke efter
+  sideskift og genindlæsning, mens sideskift bevarede dem i det lokale produktionsbuild fra
+  20. november. Den seneste produktionskørsel er derfor uafklaret for denne overgang.

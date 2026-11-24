@@ -110,6 +110,33 @@ export const buildMidlertidigtEetSourceResult = (
   };
 };
 
+/** Giver importen et positivt midlertidigt EET i mindst én TAF-periode? */
+export const harMidlertidigtEetYdelseITafPerioden = (
+  result: MidlertidigtEetTransientResult,
+  tafRanges: readonly IsoRange[],
+): boolean =>
+  !result.issues.some((issue) => issue.severity === 'error')
+  && result.groups.some((group) => group.perioder.some((periode) =>
+    periode.beregnetEetOre > 0 && tafRanges.some((range) => periode.fra <= range.til && range.fra <= periode.til)
+  ));
+
+/**
+ * Vil et kildeskift hente et fradrag? Læses FØR togglen slås til, så bekræftelsen kan sige, at de manuelle rækker
+ * slettes uden at blive erstattet (BB-457). Samme import og samme TAF-perioder som beregningen efter skiftet.
+ */
+export const vilMidlertidigtEetImportGiveFradrag = (
+  source: EetImportSource | null | undefined,
+  tafRanges: readonly IsoRange[],
+): boolean => source !== undefined && source !== null
+  && harMidlertidigtEetYdelseITafPerioden(
+    buildMidlertidigtEetSourceResult(buildMidlertidigtEetImportContext(source, tafRanges)),
+    tafRanges,
+  );
+
+/** Tilføjes bekræftelsen, når skiftet ikke henter et fradrag (BB-457). */
+export const MIDLERTIDIGT_EET_SKIFT_UDEN_FRADRAG_TEKST =
+  'Erhvervsevnetab-siden har intet midlertidigt EET i TAF-perioden – der fradrages derefter intet.';
+
 export const MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID = 'midlertidigt-eet-ingen-ydelser-i-taf';
 
 export const MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_MESSAGE =
@@ -142,10 +169,7 @@ export const resolveMidlertidigtEetIngenYdelserIssue = (args: Readonly<{
   const afgoerelsensDato = resolveMidlertidigEetDato(values);
   if (afgoerelsensDato === undefined) return undefined;
   if (!tafRanges.some((range) => range.til >= afgoerelsensDato)) return undefined;
-  const harYdelseITafPerioden = result.groups.some((group) => group.perioder.some((periode) =>
-    periode.beregnetEetOre > 0 && tafRanges.some((range) => periode.fra <= range.til && range.fra <= periode.til)
-  ));
-  if (harYdelseITafPerioden) return undefined;
+  if (harMidlertidigtEetYdelseITafPerioden(result, tafRanges)) return undefined;
   return {
     id: MIDLERTIDIGT_EET_INGEN_YDELSER_I_TAF_ID,
     severity: 'warning',

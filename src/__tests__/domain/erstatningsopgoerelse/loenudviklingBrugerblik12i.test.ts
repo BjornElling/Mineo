@@ -11,6 +11,7 @@ import {
 } from '../../../inputCore/evaluationSource';
 import { serializeFieldAddress } from '../../../inputCore/fieldAddress';
 import { eoAngivetLoenFields, eoAngivetLoenManual } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { eoOffentligeYdelserYdelseField } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
 import { loenudviklingOgSatserSchema } from '../../../schemas/formSchemas/sections/erstatningsopgoerelseSchemas';
 import {
   collectManualRegulationIssues,
@@ -76,13 +77,13 @@ const sag = (loen: Partial<AngivetLoen> = {}, patch: Partial<Erstatningsopgoerel
   };
 };
 
-const project = (eo: ErstatningsopgoerelseValues) => {
+const project = (eo: ErstatningsopgoerelseValues, rejectedInputs: Record<string, Readonly<{ raw: string; reason: 'format' }>> = {}) => {
   const input = catalog.validateSettledInput({
     sections: {
       stamdata, satser: null, aarsloen: null, faellesAarsloen: null, renteberegning: null,
       varigemen: null, forsoergertab: null, erstatningsopgoerelse: eo, erhvervsevnetab: null,
     },
-    rejectedInputs: {},
+    rejectedInputs,
   });
   const sourceToken = createEvaluationSourceToken(createInputRevision(1), createSettingsRevision(1));
   const evaluation = createInputEvaluation({ input, catalog, sourceToken });
@@ -256,6 +257,21 @@ describe('Lønudvikling og regulering (brugerblik 12i)', () => {
       expect(project(values).errorLines).toContain('Anciennitetstillæg er slået til, men dato og sats mangler');
     });
 
+    it('BB-447: en sats med egen rød fejl meldes ikke også som manglende', () => {
+      const values = anciennitetSag({ anciennitetstillaegDato: iso('2026-07-01'), anciennitetstillaegSats: undefined });
+      const kilde = resolveLoenudviklingKilde(values)[0]!;
+      expect(resolveAnciennitetstillaegMangel(values, kilde)?.message).toBe('Anciennitetstillæg er slået til, men satsen mangler');
+      expect(resolveAnciennitetstillaegMangel(values, kilde, (field) => field === 'anciennitetstillaegSats')).toBeUndefined();
+    });
+
+    it('BB-447: en afvist sats giver kun feltets egen linje i «Fejl og advarsler»', () => {
+      const values = anciennitetSag({ anciennitetstillaegDato: iso('2024-07-01'), anciennitetstillaegSats: undefined });
+      const sats = serializeFieldAddress(eoAngivetLoenFields.anciennitetstillaegSats.bind().address);
+      const { errorLines } = project(values, { [sats]: { raw: '1/', reason: 'format' } });
+      expect(errorLines.some((line) => line.includes('Anciennitetstillægssats'))).toBe(true);
+      expect(errorLines.filter((line) => line.startsWith('Anciennitetstillæg er slået til'))).toEqual([]);
+    });
+
     it('BB-305: en dato på eller før reguleringsdatoen er en rød feltfejl på datoen', () => {
       const issues = collectAnciennitetstillaegDatoIssues(
         anciennitetSag({ anciennitetstillaegDato: iso('2010-01-01'), anciennitetstillaegSats: amount(1000) }),
@@ -338,5 +354,33 @@ describe('Lønudvikling og regulering (brugerblik 12i)', () => {
       expect(formatLoentrinFinderResultLabel({ loentrin: 38, grupper: [4] })).toBe('Løntrin 38, gruppe 4');
       expect(formatLoentrinFinderResultLabel({ loentrin: 12, grupper: [1, 2] })).toBe('Løntrin 12, gruppe 1 og 2');
     });
+  });
+});
+
+describe('følgefejl fra en afvist indkomstcelle (BB-442, M-58)', () => {
+  const beregningsperiodeSag = () => sag({}, {
+    beregnesUdFra: 'Beregningsperiode',
+    tafBeregningsperiodeFra: iso('2023-07-01'),
+    tafBeregningsperiodeTil: iso('2023-07-31'),
+    offentligeYdelserRows: [{
+      id: 'ydelse-1',
+      fraDato: iso('2023-07-01'),
+      tilDato: iso('2023-07-31'),
+      ydelse: undefined,
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }],
+  });
+  const ingenIndkomst = (lines: readonly string[]) => lines.filter((line) => line.startsWith('Ingen indkomst i beregningsperioden'));
+
+  it('melder «Ingen indkomst», når periodens eneste ydelse reelt er tom', () => {
+    expect(ingenIndkomst(project(beregningsperiodeSag()).errorLines)).toHaveLength(1);
+  });
+
+  it('venter med «Ingen indkomst», mens periodens eneste ydelse har et afvist beløb', () => {
+    const ydelse = serializeFieldAddress(eoOffentligeYdelserYdelseField.bind('ydelse-1').address);
+    const { errorLines } = project(beregningsperiodeSag(), { [ydelse]: { raw: '1/', reason: 'format' } });
+    expect(ingenIndkomst(errorLines)).toEqual([]);
+    expect(errorLines.length).toBeGreaterThan(0);
   });
 });

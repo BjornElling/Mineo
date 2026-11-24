@@ -120,6 +120,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     getSfggPresentation,
     handleMoveUp,
     handleMoveDown,
+    sfggEnhedsskift,
   } = useLoenindkomstVm();
 
   /**
@@ -340,6 +341,23 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   })();
   const reguleringsDatoInterval = formatReguleringsDatoInterval(reguleringsDatoIntervalData);
 
+  /**
+   * «Fuld løn under ferie» og «Løn på helligdage» indgår i den sagsbrede TAF-enhed og kan dermed skifte
+   * fraværsdagenes enhed i sygeferiegodtgørelsen – også på de andre kort. Et sådant skift bekræftes først (BB-449).
+   */
+  const fuldLoenUnderFerieField = field(eoEmploymentFields.fuldLoenUnderFerie);
+  const loenPaaHelligdageField = field(eoEmploymentFields.loenPaaHelligdage);
+  const fuldLoenUnderFerieCommit = sfggEnhedsskift.toggleOverride({
+    field: fuldLoenUnderFerieField,
+    location: location('fuldLoenUnderFerie'),
+    efter: (fuldLoenUnderFerie) => sfggEnhedsskift.efterKortvalg(af.id, { fuldLoenUnderFerie }),
+  });
+  const loenPaaHelligdageCommit = sfggEnhedsskift.choiceOverride({
+    field: loenPaaHelligdageField,
+    location: location('loenPaaHelligdage'),
+    efter: (loenPaaHelligdage) => sfggEnhedsskift.efterKortvalg(af.id, { loenPaaHelligdage }),
+  });
+
   const headerText = formatAnsaettelsesforholdKortOverskrift(af.navnPaaArbejdssted, index);
   // Hele SFGG-visningsafledningen kommer fra VM'en; kortet afleder ikke selv domæneflag.
   const sfgg = getSfggPresentation(af);
@@ -437,10 +455,11 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <LabeledControlRow label="Fuld løn under ferie:">
           {({ labelledBy, controlId }) => (
             <MappedToggleField
-              field={field(eoEmploymentFields.fuldLoenUnderFerie)}
+              field={fuldLoenUnderFerieField}
               location={location('fuldLoenUnderFerie')}
               checkedValue="Ja"
               uncheckedValue="Nej"
+              commit={fuldLoenUnderFerieCommit}
               name={`${af.id}:fuldLoenUnderFerie`}
               id={controlId}
               labelledBy={labelledBy}
@@ -453,8 +472,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
         <Typography className="row--text">Løn på helligdage:</Typography>
         <Box className="row--label-right-hover__content">
           <ChoiceField
-            field={field(eoEmploymentFields.loenPaaHelligdage)}
+            field={loenPaaHelligdageField}
             location={location('loenPaaHelligdage')}
+            immediateCommitOverride={loenPaaHelligdageCommit}
             name={`${af.id}:loenPaaHelligdage`}
             width={185}
             allowEmpty={false}

@@ -35,6 +35,8 @@ import { resolveLoenudviklingFieldWarnings } from '../../../../domain/erstatning
 import { getToday } from '../../../../config/dateRanges';
 import { isISODateString } from '../../../../types/branded';
 import { formatAnsaettelsesforholdKortOverskrift } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { useSfggEnhedsskiftBekraeftelse } from '../../../../domain/erstatningsopgoerelse/react/useSfggEnhedsskiftBekraeftelse';
+import { medAnsaettelsesforholdValg } from '../../../../domain/erstatningsopgoerelse/sfggFravaersdageEnhedsskift';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 const MAX_ANSAETTELSESFORHOLD = 10;
@@ -154,6 +156,14 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     ? null
     : formatAnsaettelsesforholdKortOverskrift(employments[deleteTargetIndex]?.navnPaaArbejdssted, deleteTargetIndex);
   const loentrinFinder = useLoentrinFinder();
+  // Kortenes valg, der kan skifte fraværsdagenes enhed på ET HVILKET SOM HELST kort, deler én bekræftelse (BB-449).
+  const sfggEnhedsskiftBekraeftelse = useSfggEnhedsskiftBekraeftelse(eoValues);
+  const sfggEnhedsskift = {
+    ...sfggEnhedsskiftBekraeftelse,
+    /** Sagen, som den ser ud efter et valg på ét kort – det, bekræftelsen sammenligner med. */
+    efterKortvalg: (ansaettelsesforholdId: string, aendring: Partial<Employment>) =>
+      medAnsaettelsesforholdValg(eoValues, ansaettelsesforholdId, aendring),
+  };
 
   /**
    * Tilføj sker uden bekræftelse – Ctrl+Z fortryder handlingen, så en dialog beskyttede ikke mod noget – og
@@ -213,6 +223,7 @@ export function useLoenindkomstViewModel({ eoValues, stamdataValues }: Loenindko
     feriePctManglerByAfId,
     loenudviklingWarnings,
     loentrinFinder,
+    sfggEnhedsskift,
     deleteDialogOpen,
     setDeleteDialogOpen,
     setDeleteTargetId,

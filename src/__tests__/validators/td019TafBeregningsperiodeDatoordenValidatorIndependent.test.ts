@@ -117,7 +117,7 @@ describe('TD-019 – TAF-beregningsperiodens datoorden uden schema-fixture', () 
       isValid: false,
       errors: [{
         path: 'tafBeregningsperiodeFra',
-        message: 'Til-dato skal være efter fra-dato',
+        message: 'Til-dato skal være på eller efter fra-dato',
         severity: 'error',
       }],
     });

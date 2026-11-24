@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Mere specifikke domænekontrakter kan supplere denne kontrakt. Den er underordnet `form-contract.md`, `mineo-field-pattern.md`, `date-contract.md`, `amount-contract.md`, `error-contract.md` og `keyboard-navigation.md` for deres arkitekturelle emner; ved konflikt ejer dette dokument den her beskrevne brugeradfærd for de navngivne felter.  
-**Senest verificeret mod kode:** 2026-11-22
+**Senest verificeret mod kode:** 2026-11-24
 
 Dette dokument beskriver den autoritative brugeradfærd for inputfelter og kontroller. Generelle regler gælder
 også felter, der ikke er nævnt særskilt; feltspecifikke regler gælder de angivne felter.
@@ -164,6 +164,11 @@ der ikke er acceptable i feltet eller overstiger det maksimalt tilladte antal:
    - En paste, der indsættes MIDT i en draft eller erstatter kun en del af den, får ikke
      familie-normaliseringen: der er en eksisterende kontekst at splice ind i, og en normalisering fra tom
      draft kunne flytte en separator eller fjerne et fortegn, før admission-prædikatet vurderer kandidaten.
+8. **Tabulator og linjeskift afslutter en indsættelse i et typed enkeltlinjefelt (BB-439).** Ved tastning
+   afslutter Tab og Enter feltets indtastning, så i beløbs-, procent-, tal-, dato-, års-, uge- og brøkfelter
+   bruges kun teksten frem til første tabulator eller linjeskift efter første synlige tegn, mens adskillelser før
+   det springes over (`1200<TAB>200` giver `1200`, og en celle kopieret med afsluttende linjeskift giver sin
+   værdi); frie tekstfelter er ikke omfattet (`takeFirstPastedEntry`).
 
 For frie tekstfelter udføres der før denne afgrænsning en fælles, tabsfri normalisering af clipboard-teksten:
 

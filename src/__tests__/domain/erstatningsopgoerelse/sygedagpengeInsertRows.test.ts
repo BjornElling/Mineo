@@ -341,6 +341,16 @@ describe('findOverlappingSygedagpengeRows (BB-359 valg B)', () => {
     );
   });
 
+  it('ser bort fra et overlap, der kun er en weekend, men ikke fra en fælles hverdag (BB-456)', () => {
+    const rows = [row('a', '2026-05-22', '2026-05-23', 'sygedagpenge')];
+    // Fredag-lørdag mod lørdag-tirsdag: kun lørdagen er fælles, og den regnes ikke.
+    expect(findOverlappingSygedagpengeRows(rows, toISODateString('2026-05-23'), toISODateString('2026-05-26'))).toEqual([]);
+    // Fredag-mandag mod mandag-tirsdag: mandagen regnes i begge.
+    const medMandag = [row('b', '2026-06-05', '2026-06-08', 'sygedagpenge')];
+    expect(findOverlappingSygedagpengeRows(medMandag, toISODateString('2026-06-08'), toISODateString('2026-06-09'))
+      .map((candidate) => candidate.id)).toEqual(['b']);
+  });
+
   it('finder intet, når perioderne ikke rører hinanden', () => {
     const rows = [row('a', '2026-05-01', '2026-05-31', 'sygedagpenge')];
     expect(findOverlappingSygedagpengeRows(rows, toISODateString('2026-06-01'), toISODateString('2026-06-30'))).toEqual([]);

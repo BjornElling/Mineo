@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { assessLoenindkomstSatser } from '../erstatningsopgoerelse/validation/loenindkomstSatsAssessment';
-import { FIELD_ISSUE_GENERIC_TOOLTIP, resolveFieldIssueTooltip, type FieldIssue } from '../../inputCore/inputIssue';
+import { resolveFieldIssueSummaryText, type FieldIssue } from '../../inputCore/inputIssue';
 import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../standardLoen/standardLoenTableValidation';
 import {
   OFFENTLIGE_YDELSER_COLUMN_ORDER,
@@ -254,8 +254,7 @@ export const buildOffentligeYdelserStatusRows = (
       for (const colKey of OFFENTLIGE_YDELSER_COLUMN_ORDER) {
         if (!rowErrorKeys.has(colKey)) continue;
         const cellIssue = issuesByCellKey.get(`${row.id}:${colKey}`);
-        const tooltip = cellIssue === undefined ? FIELD_ISSUE_GENERIC_TOOLTIP : resolveFieldIssueTooltip(cellIssue);
-        const text = tooltip === FIELD_ISSUE_GENERIC_TOOLTIP ? 'ugyldig værdi' : tooltip;
+        const text = cellIssue === undefined ? 'ugyldig værdi' : resolveFieldIssueSummaryText(cellIssue);
         parts.push(`${resolveOffentligeYdelserColumnLabel(colKey)} – ${text}`);
         focusColKey ??= colKey;
       }

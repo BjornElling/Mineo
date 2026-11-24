@@ -9,13 +9,16 @@ import { isSfggNoEligibleDaysNotCalculable } from '../erstatningsopgoerelse/engi
 import {
   SFGG_SYGELOEN_UDEN_LOENRAEKKER_BESKED,
   buildSfggGammelReferenceperiodeBesked,
+  buildSfggManuelDagssatsBesked,
   buildSfggSeksMaanederBesked,
   findSfggSixMonthWarningEmploymentIds,
   harSfggSygeloenUdenLoenraekker,
   resolveSfggGamleReferenceperiodeAdvarsler,
+  resolveSfggManuelDagssatsAdvarsler,
 } from '../erstatningsopgoerelse/engines/sfggWarnings';
 import type { FieldIssue } from '../../inputCore/inputIssue';
 import {
+  eoSfggManuelDagssatsField,
   eoSfggReferenceperiodeFraField,
   eoSfggManuelFoerstEfterSygeloenField,
   eoSfggReferenceperiodeTilField,
@@ -49,6 +52,7 @@ export const buildEoSygeferiegodtgoerelseRows = (
 ): EoRowModel[] => {
   const rows: EoRowModel[] = [];
   const gamleReferenceperioder = resolveSfggGamleReferenceperiodeAdvarsler({ values, stamdata });
+  const hoejeManuelleDagssatser = resolveSfggManuelDagssatsAdvarsler(values);
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
   // Læs seksmåneders-advarslen fra motorens autoritative resultat via den kanoniske helper –
   // samme funktion som snapshottet bruger til den inline-advarsel på Lønindkomst-fanen, så
@@ -292,9 +296,13 @@ export const buildEoSygeferiegodtgoerelseRows = (
       });
     }
 
+    // En rød dagssats (fx `1/0`) læses som tom, men er ikke en mangel: feltets egen linje står ovenfor. Uden værnet
+    // gav én indtastning både formatfejlen og «ikke angivet» (BB-452, M-58) – samme værn som referencedatoerne.
+    const dagssatsErRoed = employmentFieldIssues.some((issue) => issue.field.descriptor.id === eoSfggManuelDagssatsField.id);
     let sfggManuelDagssatsMangler: string | undefined;
     if (
-      sfggSource.kind === 'manuel'
+      !dagssatsErRoed
+      && sfggSource.kind === 'manuel'
       && result
       && result.sfggReferencesats.status !== 'ok'
       // Ingen dage i erstatningsperioden (4-månedersgrænsen nået før perioden, ophør eller sygeløn hele perioden)
@@ -302,7 +310,9 @@ export const buildEoSygeferiegodtgoerelseRows = (
       && !isSfggNoEligibleDaysNotCalculable(result.sfggReferencesats)
     ) {
       sfggManuelDagssatsMangler = result.sfggReferencesats.reason;
-    } else if (sfggSource.kind === 'manuel' && !result && amountValueToNumber(row?.sfggManuelDagssats) === undefined) {
+    } else if (
+      !dagssatsErRoed && sfggSource.kind === 'manuel' && !result && amountValueToNumber(row?.sfggManuelDagssats) === undefined
+    ) {
       sfggManuelDagssatsMangler = SFGG_MANUEL_DAGSSATS_MANGLER_MESSAGE;
     }
 
@@ -540,6 +550,24 @@ export const buildEoSygeferiegodtgoerelseRows = (
         focusTarget: {
           kind: 'fieldAddress',
           address: eoSfggReferenceperiodeTilField.bind(employment.id).address,
+        },
+      });
+    }
+
+    // En manuel dagssats over en dags registreret løn er gul (BB-450): typisk en ekstra nulgruppe.
+    const hoejDagssats = hoejeManuelleDagssatser.find((advarsel) => advarsel.employmentId === employment.id);
+    if (hoejDagssats !== undefined) {
+      const besked = buildSfggManuelDagssatsBesked(hoejDagssats);
+      rows.push({
+        id: `sfgg.advarsel.manuelDagssatsOverDagloen.${employment.id}`,
+        label: 'Dagssats',
+        displayValue: `Advarsel (${besked})`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+        message: besked,
+        focusTarget: {
+          kind: 'fieldAddress',
+          address: eoSfggManuelDagssatsField.bind(employment.id).address,
         },
       });
     }

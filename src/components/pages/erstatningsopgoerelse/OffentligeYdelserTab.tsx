@@ -1,7 +1,8 @@
 import React from 'react';
+import { MIDLERTIDIGT_EET_SKIFT_UDEN_FRADRAG_TEKST } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
-import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
+import OffentligeYdelserTable, { type OffentligeYdelserDerivedRow } from '../../tables/OffentligeYdelserTable';
 import { buildFieldWarningMap, type FieldWarning } from '../../../inputCore/fieldWarning';
 import { resolveOffentligeYdelserRowWarnings } from '../../../domain/erstatningsopgoerelse/validation/eoIncomeRowWarnings';
 import ContentBox from '../../layout/ContentBox';
@@ -115,12 +116,14 @@ type Props = Readonly<{
   values: ErstatningsopgoerelseValues;
   /** Gul ring på midlertidigt-EET-togglen, når den intet henter i TAF-perioden (BB-358). */
   midlertidigtEetToggleWarning?: FieldWarning | undefined;
+  /** Henter kildeskiftet et fradrag? Ellers siger bekræftelsen, at intet erstatter de slettede rækker (BB-457). */
+  midlertidigtEetSkiftGiverFradrag?: boolean;
 }>;
 
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning }: Props) => {
+const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning, midlertidigtEetSkiftGiverFradrag = true }: Props) => {
   const edit = useInputEditPort();
   const rows = values.offentligeYdelserRows;
   const harOffentligeYdelserIBeregningsgrundlaget = React.useMemo(() => {
@@ -139,7 +142,13 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
-  const [sygedagpengeInsertError, setSygedagpengeInsertError] = React.useState<string | null>(null);
+  // Hjælperens besked gælder den periode, den blev dannet for. Rettes en af datoerne, er beskeden ikke længere sand og
+  // vises ikke – før stod «… ingen sygedagpenge-dage …» tilbage over en rettet periode med en aktiv «Indsæt» (BB-455).
+  const [sygedagpengeInsertOutcome, setSygedagpengeInsertOutcome] = React.useState<Readonly<{
+    message: string;
+    fraDato: ISODateString;
+    tilDato: ISODateString;
+  }> | null>(null);
   const [midlertidigtEetToggleError, setMidlertidigtEetToggleError] = React.useState<string | null>(null);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
   const [pendingSygedagpengeInsert, setPendingSygedagpengeInsert] = React.useState<Readonly<{
@@ -198,12 +207,14 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
   }, []);
 
   const derivedByRowId = React.useMemo(() => {
-    const map = new Map<string, { periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>();
+    const map = new Map<string, OffentligeYdelserDerivedRow>();
     for (const row of rows) {
       const derived = deriveOffentligeYdelserRow(row);
       map.set(row.id, {
         periodiseringLabel: derived.periodiseringLabel,
+        antalDage: derived.antalDage,
         antalDageDisplay: derived.antalDage !== null ? formatAntalDage(derived.antalDage) : '',
+        ydelsePerDag: derived.ydelsePerDag,
         ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatKr(derived.ydelsePerDag, 2) : '',
       });
     }
@@ -256,7 +267,7 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
         if (error instanceof SygedagpengeCoverageError) {
           // Manglende satsdækning er en forventet brugerfejl: vis beskeden direkte,
           // indfør ingen rækker, og rapportér det IKKE som en intern systemfejl.
-          setSygedagpengeInsertError(error.message);
+          setSygedagpengeInsertOutcome({ message: error.message, fraDato: sygedagpengeFraDato, tilDato: sygedagpengeTilDato });
           return null;
         }
         const normalizedError = asError(error);
@@ -268,7 +279,11 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
           developerMessage: normalizedError.message,
           error: normalizedError,
         });
-        setSygedagpengeInsertError('Sygedagpenge-rækker kunne ikke indsættes på grund af en intern beregningsfejl.');
+        setSygedagpengeInsertOutcome({
+          message: 'Sygedagpenge-rækker kunne ikke indsættes på grund af en intern beregningsfejl.',
+          fraDato: sygedagpengeFraDato,
+          tilDato: sygedagpengeTilDato,
+        });
         return null;
       }
     })();
@@ -277,13 +292,15 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
       // Defensivt: en fuldt dækket periode bør altid give mindst én række. Hvis ikke,
       // har brugeren valgt et interval uden sygedagpenge-arbejdsdage (fx kun weekend) –
       // sig det tydeligt frem for at fejle tavst.
-      setSygedagpengeInsertError(
-        'Den valgte periode indeholder ingen sygedagpenge-dage, så der blev ikke indsat nogen rækker.'
-      );
+      setSygedagpengeInsertOutcome({
+        message: 'Den valgte periode indeholder ingen sygedagpenge-dage, så der blev ikke indsat nogen rækker.',
+        fraDato: sygedagpengeFraDato,
+        tilDato: sygedagpengeTilDato,
+      });
       return;
     }
 
-    setSygedagpengeInsertError(null);
+    setSygedagpengeInsertOutcome(null);
     // Står der allerede sygedagpenge for nogle af dagene, bekræfter brugeren først – ellers trækkes de samme dage fra
     // to gange uden et ord (BB-359 valg B).
     const overlap = findOverlappingSygedagpengeRows(rows, sygedagpengeFraDato, sygedagpengeTilDato);
@@ -311,6 +328,12 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
    * sider, og to datopar på samme fane må ikke sige det samme forskelligt (BB-366). Felternes egne fejl (format og
    * satsdækning) har forrang; kronologien udledes af de to afsluttede datoer.
    */
+  const sygedagpengeInsertError = sygedagpengeInsertOutcome !== null
+    && sygedagpengeInsertOutcome.fraDato === sygedagpengeFraDato
+    && sygedagpengeInsertOutcome.tilDato === sygedagpengeTilDato
+    ? sygedagpengeInsertOutcome.message
+    : null;
+
   const sygedagpengeOrderReversed = sygedagpengeFraDato !== undefined
     && sygedagpengeTilDato !== undefined
     && sygedagpengeFraDato > sygedagpengeTilDato;
@@ -591,6 +614,13 @@ const OffentligeYdelserTab = React.memo(({ values, midlertidigtEetToggleWarning 
             Når midlertidigt EET indsættes fra Erhvervsevnetab-siden, kan der ikke samtidig stå manuelle rækker med ydelsestypen &quot;Midlertidigt EET&quot; i tabellen ovenfor. Disse rækker vil blive slettet.
             <br />
             <br />
+            {midlertidigtEetSkiftGiverFradrag ? null : (
+              <>
+                {MIDLERTIDIGT_EET_SKIFT_UDEN_FRADRAG_TEKST}
+                <br />
+                <br />
+              </>
+            )}
             Bekræft venligst.
           </>
         )}

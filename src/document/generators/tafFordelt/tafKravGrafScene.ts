@@ -366,7 +366,9 @@ const buildWindowSamples = (
       }
     }
     let transitionOrder = 0;
-    for (const iso of [...transitionDates].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const sortedTransitionDates = [...transitionDates].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    const edgeColumnDates = new Set<ISODateString>();
+    for (const iso of sortedTransitionDates) {
       const x = mapDate(iso);
       if (x === null) continue;
       const beforeIso = getDayBeforeIso(iso);
@@ -396,7 +398,24 @@ const buildWindowSamples = (
       transitionOrder += 1;
       columns.push({ x, order: transitionOrder, values: afterValues });
       transitionOrder += 1;
+      edgeColumnDates.add(iso);
     }
+
+    // Et niveau mellem to positive niveauer får ingen kantkolonne, og månedens ene midtpunkt kan ligge uden for det.
+    // Så forsvandt fx dagpenge på 10.000 kr. 1.-3. juli mellem 3.700 og 7.900 kr. helt af grafen, selv om tallene
+    // regnede med dem (BB-460). Hvert stykke med uændrede beløb, som hverken rummer et månedsmidtpunkt eller starter
+    // med en kantkolonne, får derfor én kolonne på sit eget midtpunkt. Kurvens bløde form er uændret.
+    const monthMidpoints = months.map(midpointIso);
+    sortedTransitionDates.forEach((fra, index) => {
+      const nextFra = sortedTransitionDates[index + 1];
+      const til = nextFra === undefined ? entry.window.til : getDayBeforeIso(nextFra);
+      if (til < fra || edgeColumnDates.has(fra)) return;
+      if (monthMidpoints.some((midpoint) => midpoint >= fra && midpoint <= til)) return;
+      const midpoint = midpointIso({ fra, til });
+      const x = mapDate(midpoint);
+      if (x === null) return;
+      columns.push({ x, order: 500 + index, values: buildValuesAtIso(document, midpoint) });
+    });
     columns.sort((a, b) => a.x - b.x || a.order - b.order);
     // Ingen udglatning af værdierne: hver serie tegnes med de faktiske niveauer, så
     // høje peaks og lave lavpunkter bevares i fuld højde. Afrundingen af overgangene

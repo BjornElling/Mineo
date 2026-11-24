@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { FieldAddress } from '../../inputCore/fieldAddress';
-import { FIELD_ISSUE_GENERIC_TOOLTIP, resolveFieldIssueTooltip, type FieldIssue } from '../../inputCore/inputIssue';
+import { resolveFieldIssueSummaryText, type FieldIssue } from '../../inputCore/inputIssue';
 import { bindCollectionCell } from '../../inputCore/collectionCellBinding';
 import type { StandardLoenTableColumnKey, TableError } from '../../types/table';
 import { getStandardLoenTableValidation } from '../standardLoen/standardLoenTableValidation';
@@ -56,12 +56,6 @@ const COLUMN_KEYS: ReadonlySet<string> = new Set<StandardLoenTableColumnKey>([
   'col0_maaned', 'col1_maaned', 'col0_uge', 'col1_uge', 'col0_dag', 'col1_dag',
   'col2', 'col3', 'col4', 'col5', 'fpFvShSoBeloeb', 'pensionBeloeb',
 ]);
-
-/** Cellens egen tekst – tooltippens, eller «ugyldig værdi», når tooltippen kun ville sige «Fejl i indtastning». */
-const cellIssueText = (issue: FieldIssue): string => {
-  const tooltip = resolveFieldIssueTooltip(issue);
-  return tooltip === FIELD_ISSUE_GENERIC_TOOLTIP ? 'ugyldig værdi' : tooltip;
-};
 
 const rowIdOfIssue = (issue: FieldIssue): string | undefined => {
   const segment = issue.field.address.path[1];
@@ -133,7 +127,7 @@ export const buildLoenindkomstTableLines = (
         const label = resolveStandardLoenColumnLabel(error.colKey);
         const issue = issuesByCellKey.get(`${row.id}:${error.colKey}`);
         if (issue !== undefined) {
-          parts.push(`${label} – ${cellIssueText(issue)}`);
+          parts.push(`${label} – ${resolveFieldIssueSummaryText(issue)}`);
           focusAddress ??= issue.field.address;
         } else if (error.issue === 'partial_period') {
           parts.push(`${label} er ikke angivet`);

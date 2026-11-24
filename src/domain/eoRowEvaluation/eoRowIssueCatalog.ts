@@ -470,7 +470,7 @@ const focusByRowPattern = (row: EoRowModel, message: string): EoIssueFocusTarget
 
 /**
  * Selvstændig fejltekst for en periode-/tabelrække. Validatorerne leverer allerede
- * selvstændige, felt-specifikke beskeder ("Til-dato mangler", "Til-dato skal være efter fra-dato",
+ * selvstændige, felt-specifikke beskeder ("Til-dato mangler", "Til-dato skal være på eller efter fra-dato",
  * "Der er overlappende perioder", TAF-cutoff-tekster m.fl.), så de vises uændret. Den eneste
  * besked der ikke er selvforklarende er det generiske datointerval ("Dato skal være mellem …"),
  * der derfor får perioden navngivet, så brugeren ved hvilken tabel fejlen hører til.

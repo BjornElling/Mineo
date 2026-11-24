@@ -4,6 +4,7 @@ import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material
 import ContentBox from '../../layout/ContentBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
+import TextLinkButton from '../../inputs/TextLinkButton';
 import ChoiceField from '../../../inputCore/react/fields/ChoiceField';
 import CheckboxField from '../../../inputCore/react/fields/CheckboxField';
 import {
@@ -122,22 +123,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
               <Typography className="row--text">
                 {row.navigation.tabName} {'->'}{' '}
               </Typography>
-              <Typography
-                className="row--text icon-text-link"
-                component="button"
-                type="button"
-                onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}
-                sx={{
-                  cursor: 'pointer',
-                  border: 0,
-                  background: 'transparent',
-                  p: 0,
-                  m: 0,
-                  font: 'inherit',
-                }}
-              >
+              <TextLinkButton onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}>
                 {row.navigation.sectionTitle}
-              </Typography>
+              </TextLinkButton>
             </>
           )}
           {row.navigation.kind === 'stamdata-page' && (
@@ -145,22 +133,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
               <Typography className="row--text">
                 {row.navigation.pageName} {'->'}{' '}
               </Typography>
-              <Typography
-                className="row--text icon-text-link"
-                component="button"
-                type="button"
-                onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}
-                sx={{
-                  cursor: 'pointer',
-                  border: 0,
-                  background: 'transparent',
-                  p: 0,
-                  m: 0,
-                  font: 'inherit',
-                }}
-              >
+              <TextLinkButton onClick={() => handleNavigate(row.navigation, row.id, row.focusTarget)}>
                 {row.navigation.sectionTitle}
-              </Typography>
+              </TextLinkButton>
             </>
           )}
           {row.navigation.kind === 'unsupported' && (
@@ -192,22 +167,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           }}
         >
           {row.actionLabel && row.onAction && (
-            <Typography
-              className="row--text icon-text-link"
-              component="button"
-              type="button"
-              onClick={row.onAction}
-              sx={{
-                cursor: 'pointer',
-                border: 0,
-                background: 'transparent',
-                p: 0,
-                m: 0,
-                font: 'inherit',
-              }}
-            >
+            <TextLinkButton onClick={row.onAction}>
               {row.actionLabel}
-            </Typography>
+            </TextLinkButton>
           )}
           <ErrorOutline
             sx={{
@@ -237,24 +199,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
           <Typography className="row--text">
             {row.navigation.pageName} {'->'}{' '}
           </Typography>
-          <Typography
-            className="row--text icon-text-link"
-            component="button"
-            type="button"
-            onClick={row.onAction}
-            sx={{
-              cursor: 'pointer',
-              border: 0,
-              background: 'transparent',
-              p: 0,
-              m: 0,
-              font: 'inherit',
-            }}
-          >
+          <TextLinkButton onClick={row.onAction}>
             {row.navigation.kind === 'erhvervsevnetab-tab'
               ? row.navigation.tabName
               : row.navigation.sectionTitle}
-          </Typography>
+          </TextLinkButton>
           {row.severity === 'error' ? (
             <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
           ) : (

@@ -1,11 +1,9 @@
 import type * as React from 'react';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import {
   amountExpressionAdmission,
   dateLikeAdmission,
   fractionAdmission,
   integerAdmission,
-  isIntegerDraftAllowed,
   keyFilterFromAdmission,
   percentAdmission,
   weekAdmission,
@@ -23,35 +21,14 @@ export { isIntegerDraftAllowed } from './draftAdmission';
 // værn oven på prædikatet, ikke en parallel sandhed om hvad feltet tillader.
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
-type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
 
 type IntegerInputConstraints = IntegerDraftConstraints;
-
-const getNextValueFromInsertion = (input: HTMLInputElement, insertion: string): string => {
-  const current = input.value ?? '';
-  const start = typeof input.selectionStart === 'number' ? input.selectionStart : current.length;
-  const end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
-  return current.slice(0, start) + insertion + current.slice(end);
-};
 
 /**
  * Heltal: kun cifre.
  */
 export const filterIntegerKeyDown = (e: KeyDownEvent, options?: IntegerInputConstraints): void => {
   keyFilterFromAdmission(integerAdmission(options))(e);
-};
-
-/**
- * Heltals-paste-værn der håndhæver de samme begrænsninger som keydown-filtreringen.
- */
-export const filterIntegerPaste = (e: PasteEvent, options?: IntegerInputConstraints): void => {
-  const text = readClipboardText(e);
-  if (text === '') return;
-  const next = getNextValueFromInsertion(e.currentTarget, text);
-  if (!isIntegerDraftAllowed(next, options)) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
 };
 
 /**

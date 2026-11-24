@@ -711,7 +711,11 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
   }, [beregnesSvieSmerte, svieSmerteRow]);
   const harIndtastedeSvieSmertePerioder =
     beregnesSvieSmerte && (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand);
-  const harSvieSmertePerioder = harIndtastedeSvieSmertePerioder && svieSmerteLines.length > 0;
+  // En rød række tæller som en indtastning, også når dens eneste indhold er en afvist dato: den læses som tom, men
+  // sammendraget sagde da «Ingen perioder angivet» lige under fejlen om samme række (BB-462, M-58). Øvrige krav
+  // viser allerede «Fejl» på samme måde.
+  const svieSmerteHarFejl = beregnesSvieSmerte && svieSmerteRow?.status === 'error';
+  const harSvieSmertePerioder = svieSmerteHarFejl || (harIndtastedeSvieSmertePerioder && svieSmerteLines.length > 0);
   // Etiketten er «Svie/smerte-periode», og «Nej» er ikke en periode (BB-227); ordene deles med de to
   // andre krav i `eoBeregningSummaryTexts.ts`. Står der perioder, som alle ligger uden for EO-perioden, siger
   // rækken netop det – ikke at der intet er angivet (BB-374).
@@ -724,11 +728,10 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     ? 'Svie/smerte-perioder'
     : 'Svie/smerte-periode';
 
+  const harTafPeriodeFejl = beregnesTabtArbejdsfortjeneste && relevantRows.some((row) =>
+    row.id.startsWith('taf.periode.') && row.id !== 'taf.periode.empty' && row.status === 'error');
   const tafPerioderLabels = React.useMemo(() => {
     if (!beregnesTabtArbejdsfortjeneste || !eoValues) return [];
-
-    const tafPeriodeRows = relevantRows.filter((row) => row.id.startsWith('taf.periode.') && row.id !== 'taf.periode.empty');
-    const harTafPeriodeFejl = tafPeriodeRows.some((row) => row.status === 'error');
 
     if (harTafPeriodeFejl) {
       return ['Fejl'];
@@ -750,11 +753,12 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         return fra && til ? `${fra} - ${til}` : '';
       })
       .filter((value) => value !== '');
-  }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, relevantRows, stamdataValues.skadedato]);
+  }, [beregnesTabtArbejdsfortjeneste, beregningView, eoValues, harTafPeriodeFejl, stamdataValues.skadedato]);
   const harIndtastedeTafPerioder =
     beregnesTabtArbejdsfortjeneste &&
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number');
-  const harTafPerioder = harIndtastedeTafPerioder && tafPerioderLabels.length > 0;
+  // Samme regel som svie/smerte ovenfor (BB-462).
+  const harTafPerioder = harTafPeriodeFejl || (harIndtastedeTafPerioder && tafPerioderLabels.length > 0);
   const tafPerioderLines = tafPerioderLabels;
   // Samme ord som svie/smerte-rækken: «Nej» dækkede før både et fravalgt krav og et rejst krav uden
   // perioder (BB-234), og perioder uden for EO-perioden er ikke «ingen perioder» (BB-374).

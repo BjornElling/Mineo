@@ -29,6 +29,10 @@ import {
   readAarsloenValues,
   resolveAarsloenFieldErrorGate,
 } from '../../../domain/aarsloen/aarsloenProjection';
+import { buildAarsloenIssueRows } from '../../../domain/aarsloen/aarsloenIssueRows';
+import { resolveFieldIssueTooltip } from '../../../inputCore/inputIssue';
+import { STANDARD_LOEN_COLUMN_LABELS } from '../../../types/table';
+import { AMOUNT_DIVISION_BY_ZERO_MESSAGE } from '../../../utils/expressionAmount';
 
 // Årsløn-projektionen (§3.4/§5.4). Beviser at `readAarsloenValues`
 // rekonstruerer et komplet `AarsloenValues` fra readeren, og at `resolveAarsloenFieldErrorGate` spejler
@@ -299,6 +303,38 @@ describe('buildAarsloenReaderProjection', () => {
     // De beregningskritiske SKALARER er fejlfrie – gaten må derfor ikke hvile på `fieldIssues` alene.
     expect(projection.fieldIssues).toHaveLength(0);
     expect(projection.calculation).toBeNull();
+  });
+
+  /**
+   * BB-440: division med 0 skal forklares både ved cellen og i «Fejl og advarsler». `TableError` bærer kun AT
+   * cellen er ugyldig, så projektionen fører cellens eget issue med; en ren formfejl siger fortsat «ugyldig værdi».
+   */
+  it('division med 0 i en celle forklares i tooltip og i «Fejl og advarsler»', () => {
+    let input = dispatch(empty(), settle(feriePctRef, '12'));
+    input = dispatch(input, insert(emptyRow('r1')));
+    input = dispatch(input, insert(emptyRow('r2')));
+    input = dispatch(input, settle(col2Ref('r1'), '1/0'));
+    input = dispatch(input, settle(col2Ref('r2'), '1/'));
+
+    const projection = buildAarsloenReaderProjection(reader(input));
+    const issue = projection.tableCellIssues.get('r1:col2');
+    expect(issue).toBeDefined();
+    if (issue === undefined) return;
+    expect(resolveFieldIssueTooltip(issue)).toBe(AMOUNT_DIVISION_BY_ZERO_MESSAGE);
+    expect(issue.message).toBe(AMOUNT_DIVISION_BY_ZERO_MESSAGE);
+
+    const messages = buildAarsloenIssueRows({
+      beregningsFejl: null,
+      fieldIssues: projection.fieldIssues,
+      feriedageIssues: [],
+      tableErrors: projection.tableValidation.errors,
+      tableCellIssues: projection.tableCellIssues,
+      tableRowIds: ['r1', 'r2'],
+      downloadError: null,
+      warnings: [],
+    }).map((row) => row.message);
+    expect(messages).toContain(`Lønrække 1, ${STANDARD_LOEN_COLUMN_LABELS.col2}: ${AMOUNT_DIVISION_BY_ZERO_MESSAGE}`);
+    expect(messages).toContain(`Lønrække 2, ${STANDARD_LOEN_COLUMN_LABELS.col2}: ugyldig værdi`);
   });
 
   it('gyldige rækker giver fortsat et resultat, når ingen celle er ugyldig', () => {

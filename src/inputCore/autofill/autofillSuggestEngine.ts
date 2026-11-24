@@ -105,6 +105,10 @@ const yearPlacingMonthNearest = (reference: number, month: number): number | nul
  * Ankeret er den FØRSTE række med et ægte årstal, og der udledes både fremad og bagud fra det. Uden
  * bagud-udledningen ville en glemt årscelle i den øverste række koste hele dens månedsprøve.
  */
+/** Har en af de to prøverækker over `rowIndex` et ægte årstal? Så findes der en kalender at placere månederne i. */
+const hasYearSampleAbove = (yearColumn: AutofillColumn, rowIndex: number): boolean =>
+  [rowIndex - 2, rowIndex - 1].some((index) => yearColumn.samples[index]?.kind === 'year');
+
 const absoluteMonthSamplesAbove = (
   monthColumn: AutofillColumn,
   yearColumn: AutofillColumn,
@@ -338,6 +342,10 @@ export const projectAutofillColumnValue = (
     if (linked !== null && linked.kind === 'year') {
       const next = projectAbsoluteMonthSeries(absoluteMonthSamplesAbove(column, linked, rowIndex));
       if (next !== null) return { kind: 'monthOfYear', month: fromAbsoluteMonth(next).month };
+      // Med ét ægte årstal i prøverne ER måned og år én serie (§1.5), og et brud i den er svaret: intet forslag.
+      // Før faldt motoren altid tilbage til den rene månedsserie, så 12/2010 og 1/2018 foreslog måned 2 uden
+      // et år – et forslag, der sprang over syv års forskel (BB-441).
+      if (hasYearSampleAbove(linked, rowIndex)) return null;
     }
     // Uden ét ægte årstal findes der ingen kalender at wrappe i; måneden fortsætter da modulært.
     const next = projectMonthOfYearSeries(collectAbove(column, rowIndex, pickMonth));

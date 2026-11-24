@@ -18,25 +18,29 @@ import { parseOffentligLoenSelection } from './helpers/offentligLoenSelection';
 export const FORHOEJET_GRUNDLOEN_STOERRE_END_TRINLOEN_ADVARSEL =
   'Den forhøjede grundløn er større end løntrinnets løn – kontrollér beløb og enhed';
 
-/** Er den forhøjede grundløn – omregnet til løntrinnets enhed – større end trinlønnen på reguleringsdatoen? */
-const erForhoejetGrundloenStoerreEndTrinloen = (
+export type LoentrinetsLoen = Readonly<{ beloeb: number; enhed: 'Time' | 'Måned' }>;
+
+/**
+ * Løntrinnets løn efter overenskomsttabellen på reguleringsdatoen, i indplaceringens enhed – den enhed, motoren
+ * regner tillæg om til (jf. `getGrundloenAngivetPerForOverenskomst`). Kun offentlige overenskomster har et
+ * løntrin; `undefined`, når lønnen ikke kan slås op. Sammenligningsgrundlag for de gule advarsler om forhøjet
+ * grundløn (BB-313) og anciennitetstillæg (BB-446).
+ */
+export const resolveLoentrinetsLoen = (
   values: ErstatningsopgoerelseValues,
   source: LoenudviklingSource,
   skadedato: ISODateString | undefined,
-): boolean => {
-  if (source.loenudviklingBeregningsgrundlag !== 'Overenskomst') return false;
+): LoentrinetsLoen | undefined => {
+  if (source.loenudviklingBeregningsgrundlag !== 'Overenskomst') return undefined;
   const offentligType = getOffentligOverenskomstTypeById(source.overenskomstId ?? '');
-  if (offentligType === undefined) return false;
-  const beloeb = amountValueToNumber(source.offentligLoenEkstraGrundloen);
-  if (beloeb === undefined || !Number.isFinite(beloeb) || beloeb <= 0) return false;
-
+  if (offentligType === undefined) return undefined;
   const selection = parseOffentligLoenSelection({
     offentligType,
     offentligLoenType: source.offentligLoenType,
     offentligLoenTrin: source.offentligLoenTrin,
     offentligLoenGruppe: source.offentligLoenGruppe,
   });
-  if (!selection.ok) return false;
+  if (!selection.ok) return undefined;
   const reguleringsdato = resolveAnvendtReguleringsdato({
     beregnesUdFra: values.beregnesUdFra,
     angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
@@ -45,19 +49,32 @@ const erForhoejetGrundloenStoerreEndTrinloen = (
     skadedato,
   });
   const reguleringsdatoDa = reguleringsdato === undefined ? undefined : isoToDanish(reguleringsdato);
-  if (reguleringsdatoDa === undefined) return false;
+  if (reguleringsdatoDa === undefined) return undefined;
 
   let trinloen: ReturnType<typeof getOffentligLoenForDato>;
   try {
     trinloen = getOffentligLoenForDato(offentligType, reguleringsdatoDa, selection.selection.loentrin, selection.selection.loengruppe);
   } catch {
-    // Et løntrin, tabellen ikke har, meldes af reguleringen selv; advarslen har intet at sammenligne med.
-    return false;
+    // Et løntrin, tabellen ikke har, meldes af reguleringen selv; advarslerne har intet at sammenligne med.
+    return undefined;
   }
-  if (trinloen === undefined) return false;
+  if (trinloen === undefined) return undefined;
   const enhed = resolveOffentligLoenEnhed(selection.selection.loenType);
-  const trinbeloeb = enhed === 'Time' ? trinloen.timeLoen : trinloen.maanedsLoen;
-  return resolveOffentligLoenEkstraGrundloen(beloeb, source.offentligLoenEkstraGrundloenAngivesPer, enhed) > trinbeloeb;
+  return { beloeb: enhed === 'Time' ? trinloen.timeLoen : trinloen.maanedsLoen, enhed };
+};
+
+/** Er den forhøjede grundløn – omregnet til løntrinnets enhed – større end trinlønnen på reguleringsdatoen? */
+const erForhoejetGrundloenStoerreEndTrinloen = (
+  values: ErstatningsopgoerelseValues,
+  source: LoenudviklingSource,
+  skadedato: ISODateString | undefined,
+): boolean => {
+  const beloeb = amountValueToNumber(source.offentligLoenEkstraGrundloen);
+  if (beloeb === undefined || !Number.isFinite(beloeb) || beloeb <= 0) return false;
+  const trinloen = resolveLoentrinetsLoen(values, source, skadedato);
+  if (trinloen === undefined) return false;
+  return resolveOffentligLoenEkstraGrundloen(beloeb, source.offentligLoenEkstraGrundloenAngivesPer, trinloen.enhed)
+    > trinloen.beloeb;
 };
 
 export type ForhoejetGrundloenAdvarsel = Readonly<{

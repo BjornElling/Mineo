@@ -61,6 +61,7 @@ import {
 } from '../erstatningsopgoerelse/manualRegulationIssues';
 import {
   resolveAnciennitetstillaegEfterTafAdvarsler,
+  resolveAnciennitetstillaegOverTrinloenAdvarsler,
   resolveAnciennitetstillaegMangel,
 } from '../erstatningsopgoerelse/anciennitetstillaegRules';
 import { resolveForhoejetGrundloenAdvarsler } from '../erstatningsopgoerelse/forhoejetGrundloenRules';
@@ -599,7 +600,7 @@ export const buildEoIndkomstRows = (
 
     // Anciennitetstillægget: slået til uden dato eller sats spærrer (BB-304), og en dato efter erstatningsperioden
     // advarer (BB-305). Feltrelevansen giver et skjult tillæg som slået fra.
-    const anciennitetMangel = resolveAnciennitetstillaegMangel(values, ansaettelsesforhold);
+    const anciennitetMangel = resolveAnciennitetstillaegMangel(values, ansaettelsesforhold, harFeltfejl);
     if (anciennitetMangel !== undefined) {
       rows.push({
         id: `${loenudviklingRowPrefix}.anciennitetstillaeg`,
@@ -628,6 +629,23 @@ export const buildEoIndkomstRows = (
           ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
           dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
         });
+    // Et tillæg over selve trinlønnen er gult (BB-446): typisk en månedssats angivet pr. time.
+    resolveAnciennitetstillaegOverTrinloenAdvarsler(values, { skadedato })
+      .filter((advarsel) => advarsel.ownerKey === ansaettelsesforhold.id)
+      .forEach((advarsel) => {
+        const cell = advarsel.cells[0];
+        rows.push({
+          id: `${loenudviklingRowPrefix}.anciennitetstillaegOverTrinloen`,
+          ...employmentIdProp,
+          label: 'Anciennitetstillæg',
+          displayValue: `Advarsel (${advarsel.summaryMessage})`,
+          status: 'warning',
+          summaryDisplay: 'messageOnly',
+          summaryText: advarsel.summaryMessage,
+          ...(cell === undefined ? {} : { focusTarget: { kind: 'fieldAddress' as const, address: cell.address } }),
+          dependsOn: [{ kind: 'id', id: valgtReguleringRowId }],
+        });
+      });
       });
 
     const anvendtReguleringsdato = resolveAnvendtReguleringsdato({

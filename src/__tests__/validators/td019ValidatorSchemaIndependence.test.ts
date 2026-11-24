@@ -440,7 +440,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'vedroererPeriodeFra',
-        message: 'Til-dato skal være efter fra-dato',
+        message: 'Til-dato skal være på eller efter fra-dato',
         severity: 'error',
       }],
     });
@@ -795,7 +795,7 @@ describe('TD-019 – validatorens domænelag uden schema-fixture', () => {
       errors: [
         {
           path: 'sfggAnsaettelsesforhold[0].sfggReferenceperiodeFra',
-          message: 'Til-dato skal være efter fra-dato',
+          message: 'Til-dato skal være på eller efter fra-dato',
           severity: 'error',
         },
       ],

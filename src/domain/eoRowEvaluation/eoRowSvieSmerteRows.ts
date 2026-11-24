@@ -239,7 +239,9 @@ export const buildEoSvieSmerteRows = (
     issue: topLevelFieldIssue(errors, 'erstatningsopgoerelse', 'svieSmerteSatserAar'),
     emptyState: 'ok',
   });
-  const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue);
+  // Et afvist årstal læses som tomt, men er ikke en mangel: rækken viser da feltets egen fejl (M-58, samme værn som
+  // BB-447/BB-452). Uden værnet erstattede «er ikke angivet» den tekst, der siger, hvad der er galt.
+  const satserAarMangler = harPerioder && !isNonEmptyString(satserAarValue) && satserAarResolved.status !== 'error';
   const satserAarParsed = Number.parseInt(satserAarValue?.trim() ?? '', 10);
   const hasValidSatserAar = Number.isInteger(satserAarParsed);
   // Satsåret er lovbestemt og uafhængigt af, hvornår sygeperioderne ligger (udviklerafgørelse 2026-09-23,

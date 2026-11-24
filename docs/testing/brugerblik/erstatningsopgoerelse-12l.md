@@ -403,3 +403,81 @@ Jeg afviser. Dette er selvforklarende. Brugeren har ingen interesse i kun at få
 ## Åbne spørgsmål
 
 - Ingen. Valget i BB-370 er flyttet ind under fundet og afgjort dér.
+
+## Fornyet gennemgang 2026-11-23
+
+Chrome headless, lyst og mørkt tema ved 1536×864 og stikprøve ved 1366×620, mod lokal Mineo på `9c0b359a`. Der blev brugt fiktive sager gennem «Hent», herunder den eksisterende prøve «REGULERING-FIKTIV» i format 3.14. Grundsagen har skadedato 11-07-2025, opgørelse nr. 3 lavet 25-09-2026 og EO-perioden 25-05-2026 til 20-09-2026.
+
+### Inventar
+
+| Del | Hvad brugeren møder |
+| --- | --- |
+| Fejl og advarsler | Boksen vises ved fejl eller advarsler. Røde linjer står før gule. Henvisninger åbner den relevante side, fane eller det relevante ansættelsesforhold og kan blinkmarkere feltet. |
+| Beregning | Titel med opgørelsens nummer, skadedato eller anmeldelsesdato, S/S- og TAF-perioder, antal øvrige poster, og «Hent opgørelse». Tekst og beløb bygger på afsluttet input på andre faner og sider. Den samlede kroneopgørelse står i dokumentet. |
+| Bilag | «Opgørelse» står altid markeret og låst. Lønindkomst, Offentlige ydelser, Midlertidigt EET, Regulering, SH-dage og Sygeferiegodtgørelse er ja/nej-valg. Et utilgængeligt valg vises umarkeret med en grund ved hover. Det gemte valg kommer tilbage, når bilaget igen kan bruges. |
+| Lønindkomst og offentlige ydelser, der indsættes som bilag | Valgfelt uden fritekst eller tomværdi. Standard er «Perioden». «Alle» omfatter også rækker uden for TAF-perioderne. Valget styrer opgørelsens bilag og bilagene til «TAF opreguleret til beregningsåret», jf. BB-377 og BB-378. |
+| Alternative beregninger | Tre downloadknapper til kalenderårsfordelingen, den opregulerede opgørelse og indtægtsgrafen. De første to har et informationsikon. Alle fire dokumenter følger format og brevhovedvalg i Indstillinger. TAF-dokumenterne har egne grunde til spærring. |
+
+### BB-460 – En kort ændring i dagpengene forsvinder fra grafen
+
+- **Type** – Fejl. **Prioritet** – Høj. **Rækkevidde** – [M-71](TVAERGAAENDE.md#m-71--en-kort-ændring-i-indtægten-forsvinder-fra-grafen). **Beslutning** – Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug grundsagen og slå regulering af offentlige ydelser fra. Erstat ydelserne med tre dagpengerækker: 25-05 til 30-06 med 3.700 kr., 01-07 til 03-07 med 300 kr. og 04-07 til 20-09 med 7.900 kr., alle i 2026. Hent grafen og kalenderårsfordelingen. Ret beløbet i rækken 01-07 til 03-07 til 10.000 kr., og hent begge dokumenter igen.
+- **Det sker.** Kalenderårsfordelingen ændres fra 176.539,38 kr. til 166.839,38 kr. Grafens billede er identisk før og efter, både i PDF og Word. En kontrolsag med de samme 10.000 kr. hen over 14-07 til 16-07 viser udsvinget.
+- **Konsekvens.** Brugeren kan sende grafen som illustration af den faktiske indtægt og overse en væsentlig ændring, som tallene i sagen tager med.
+- **Forslag.** Vis det kortvarige udsving på de dage, hvor beløbet gælder. Bevar den nuværende visuelle form, hvor kurven fortsat gengiver ændringens størrelse og placering.
+- **Andre steder.** Opgørelsen og de to TAF-dokumenter med beløb reagerede på ændringen. Grafen genbruger samme tegning i PDF og Word. Gennemgangen fandt ingen anden eksporteret indtægtsgraf. Kildeprøven viser, at samme bortfald kan ramme et kort lønudsving mellem to positive niveauer. Den variant blev ikke målt særskilt.
+
+### BB-461 – Grafen siger «Indtastning mangler», når der ingen indtægt er
+
+- **Type** – Fornuft. **Prioritet** – Mellem. **Rækkevidde** – [M-16](TVAERGAAENDE.md#m-16--en-komplet-række-programmet-ikke-vil-regne-på). **Beslutning** – Afventer udvikleren.
+- **Sådan fremprovokeres det.** Brug en sag med angivet dagsløn 1.000 kr. og TAF 01-01 til 05-04-2024. Lad Lønindkomst og Offentlige ydelser stå tomme. Se på downloadknapperne.
+- **Det sker.** Opgørelsen, kalenderårsfordelingen og den opregulerede opgørelse kan hentes. Fejlboksen er væk. Kun grafen er spærret, og dens tooltip siger «Indtastning mangler».
+- **Konsekvens.** Brugeren kan lede efter en ufuldstændig indtastning eller tro, at en sag uden løn eller ydelser er mangelfuld.
+- **Forslag.** Vis «Der er ingen indtægter at vise i grafen» i denne situation.
+- **Andre steder.** I sager uden TAF-krav og uden TAF-perioder gav alle tre alternative knapper allerede den konkrete fælles grund. De to taldokumenter var aktive i selve nulindtægtssagen.
+
+### BB-462 – En afvist dato får sammendraget til at melde, at tabellen er tom
+
+- **Type** – Fejl. **Prioritet** – Mellem. **Rækkevidde** – [M-58](TVAERGAAENDE.md#m-58--en-påbegyndt-indtastning-meldes-som-fraværende). **Beslutning** – Afventer udvikleren.
+- **Sådan fremprovokeres det.** Vælg «Ja» til TAF. Skriv 31-02-2026 i Fra i den ellers tomme TAF-tabel, afslut feltet, og åbn Beregning. Gentag med Fra i den ellers tomme tabel for svie og smerte.
+- **Det sker.** Øverst står «Datoen findes ikke i kalenderen», sammen med de øvrige mangler i rækken. Længere nede står der «Ingen perioder angivet». Skiftes datoen til 01-06-2026 med resten af S/S-rækken stadig tom, står der «Fejl».
+- **Konsekvens.** Brugeren får to forskellige svar om samme tabel og kan overse den dato, der skal rettes.
+- **Forslag.** Vis «Fejl» i sammendraget, når en synlig række har en fejl, også hvis dens eneste indtastning er en ugyldig dato. Bevar «Ingen perioder angivet» ved en reelt tom tabel.
+- **Andre steder.** Bekræftet i både TAF og svie og smerte. «Øvrige krav» viste allerede «Fejl», da et ellers tomt krav kun havde det afviste beløb `1/0`. Skadedato har også en særskilt fejlvisning ved afvist tekst.
+
+### BB-463 – Tab springer reparationslinkene over, og Enter åbner dem ikke
+
+- **Type** – Fornuft. **Prioritet** – Mellem. **Rækkevidde** – [M-08](TVAERGAAENDE.md#m-08--links-er-ikke-med-i-tastaturrækkefølgen). **Beslutning** – Afventer udvikleren.
+- **Sådan fremprovokeres det.** Åbn Beregning i en tom sag. Fra feltet med «Perioden» kan Tab presses gentagne gange uden at nå «Skadelidte» ved «Skadedato er ikke angivet». Når «Skadelidte» har fokus, flytter Enter fokus til «Perioden». Mellemrum på samme link åbner Stamdata.
+- **Det sker.** Museklik og mellemrum på det fokuserede link virker. Enter blev også afvist på et link, der går til «Tabt arbejdsfortjeneste» i samme sag. Museklik på «Skadelidte» blinkmarkerede skadedatoen.
+- **Konsekvens.** En bruger, der retter med tastaturet, skal skifte til mus for at bruge fejloversigtens henvisninger. Enter på et fokuseret link giver et uventet spring.
+- **Forslag.** Lad fejloversigtens reparationslinks indgå i fanens Tab-rækkefølge, og lad Enter og mellemrum åbne dem.
+- **Andre steder.** Se den tværgående gennemgang for det beslægtede Stamdata-link og allerede afgjorte undtagelser i sidemenuen.
+
+### BB-464 – Stamdata-henvisninger ved manglende oplysninger kan kun bruges med mus
+
+- **Type** – Fornuft. **Prioritet** – Mellem. **Rækkevidde** – [M-08](TVAERGAAENDE.md#m-08--links-er-ikke-med-i-tastaturrækkefølgen). **Beslutning** – Afventer udvikleren.
+- **Sådan fremprovokeres det.** Åbn Varige mén → Beregning i en tom sag. Ved «Fødselsdato» står «Mangler (angiv i Stamdata)». Prøv at nå «Stamdata» med tastaturet. Samme henvisning vises ved manglende skadedato på Forsørgertab og Erhvervsevnetab.
+- **Det sker.** Teksten «Stamdata» tager ikke fokus. Et museklik åbner Stamdata på alle tre flader.
+- **Konsekvens.** Brugeren kan læse, hvor feltet skal udfyldes, men skal bruge mus for at følge selve henvisningen.
+- **Forslag.** Gør «Stamdata» til en handling, brugeren kan nå med Tab og åbne med Enter eller mellemrum. Bevar springet til det relevante felt.
+- **Andre steder.** De tre flader har samme adfærd og blev prøvet hver for sig. Beregningsfanens egne henvisninger er den beslægtede variant i BB-463. Eksterne links og sidemenuen er omfattet af tidligere afgørelser.
+
+### Overvejet uden nye fund
+
+- En tom sag blokerer alle fire dokumenter med konkrete fejl. «TAF: Nej», ingen TAF-række og en TAF-række uden for EO-perioden kan give en hentbar opgørelse. De tre alternative dokumenter forklarer da, hvorfor de er spærret.
+- Delvis TAF-række og to TAF-intervaller med mellemrum fremstår forskelligt. Sammendraget viser begge gyldige intervaller, og PDF'en bruger dem. En ekstra TAF-række helt uden for EO-perioden påvirker ikke den viste periode.
+- En isoleret S/S-fejl eller fejl i Øvrige krav spærrer opgørelsen. De tre TAF-dokumenter kan stadig hentes, som afgjort efter BB-370.
+- To manglende SFGG-slutdatoer gav hver sin linje med «Ansættelsesforhold 1» og «Ansættelsesforhold 2». Links blinkmarkerede den rigtige slutdato begge steder. Det lukker den gamle prøve i BB-369.
+- Grundsagen afstemmes til 16.500,00 + 110.044,38 = 126.544,38 kr. i PDF og Word. Over årsskiftet summerer 776,11 + 162.275,63 til 163.051,74 kr., som står i hovedopgørelsen. Det opregulerede dokument viser særskilt 163.088,99 kr.
+- «Alle» gjorde løn og ydelser uden for perioden tilgængelige i bilag. «Perioden» udelod de tidlige ydelsesrækker. Ved fravalg forsvandt bilagene fra de relevante dokumenter, mens sammentællingen var uændret. «Opgørelse» forblev valgt, også i en fil med et tidligere gemt fravalg. Tom EET-import gav et utilgængeligt bilag.
+- SH-bilaget fulgte fluebenet for en dagslønssag over påsken 2024. Grafens arbejdsdagsvisning viste særskilte serier for to ens arbejdsstedsnavne, dagpenge og midlertidigt EET. Erhvervssygdom gav «Anmeldelsesdato» i graf og sammendrag.
+- De fire dokumenter blev hentet i PDF og Word, også med brevhoved fravalgt. Dokumenterne beholdt beløbene og udelod brevhovedet. En simuleret downloadfejl kunne efterfølges af en vellykket hentning af samme graf.
+- «Alle» → fortryd → gentag genskabte «Perioden» og «Alle». Valg og fravalg overlevede Gem/Hent og F5. De to gemte filer gav ens sagsdata efter indlæsning. «Slet alt» førte tilbage til tom sag med «Perioden».
+- Grundsagens aktive, valgte og utilgængelige bilag kunne skelnes i både lyst og mørkt tema. Fejlboksen var læsbar ved 1366×620.
+- De ordinære browserprøver gav ingen `console.error`, ukontrollerede sidefejl eller eksterne forespørgsler. Ved den ene simulerede fejl registrerede Mineo den forventede dokumentfejl.
+
+### Dækningshuller
+
+- Native fildialoger, skærmlæser og andre browsermotorer er ikke prøvet i denne runde. Filhandlinger gik gennem den almindelige fallback. Word blev kontrolleret via dokumentets tekst og indlejrede graf, uden visuel kontrol af Words egen sideombrydning.
+- Grafens korte positive lønudsving er kun efterset i koden. Tredagesprøven er gennemført for dagpenge. Downloadfejl blev simuleret ved dannelsen af downloadlinket.

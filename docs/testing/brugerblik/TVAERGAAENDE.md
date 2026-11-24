@@ -3899,14 +3899,18 @@ låste SH/SO-sats på 3,40 % viste samme forhold i en separat prøve.
   Med de to kopierede værdier stod der 16.202.700,00 kr. Begge dokumenter kunne hentes uden advarsel.
   Beløbsfelterne i Renteberegning og Offentlige ydelser accepterede samme sammenlagte beløb. Tre
   decimalbeløb i en kolonne gav kun første værdi, som forventet efter kommarettelsen i BB-088.
+- **Genprøvet 2026-11-23.** Lønindkomst, Årslønsberegning, Offentlige ydelser og Renteberegning
+  accepterer fortsat `1.200.200,00`. PDF-beløbene ovenfor er bekræftet på `9c0b359a`.
 - **Forslag.** Vis en fælles besked om at indsætte ét beløb, når det kopierede indhold rummer flere
-  regnearksceller, før cifre fra forskellige celler kan danne et nyt beregningsbeløb.
+  regnearksceller, og bevar feltets værdi. Almindelige tusindtalsmellemrum i ét beløb skal
+  fortsat virke. Se beslutningspunktet om den aftalte indsættelsesregel i fladerapporten for 12h.
 
 ## M-65 – Beløbsfeltet fortæller ikke, at der divideres med nul
 
 BB-440 (2026-11-22) blev fundet i Lønindkomsts «Løn». Udtrykket `1/0` blev bevaret og markeret rødt.
 Feltet sagde, at værdien var ugyldig, og Beregning gentog den generiske melding. Offentlige ydelsers
 «Ydelse» og Renteberegnings «Beløb» gav også den samme melding for `1/0` som for den ufuldstændige `1/`.
+Genprøvet 2026-11-23 på de tre flader og bekræftet i Årslønsberegning.
 
 - **Forslag.** Forklar ved feltet og i fejloversigten, at beløbet ikke kan beregnes, fordi der
   divideres med 0. Bevar udtrykket til rettelse og fasthold blokeringen.
@@ -3916,7 +3920,119 @@ Feltet sagde, at værdien var ugyldig, og Beregning gentog den generiske melding
 BB-441 (2026-11-22) blev fundet i Lønindkomst og efterprøvet i Årslønsberegning. To på hinanden
 følgende rækker med december 2010 og januar 2018 gav månedsforslaget `2` og intet årsforslag.
 Hvis december blev rettet til 2017, kom både måned `2` og år `2018` frem som forventet.
+Genprøvet 2026-11-23 på begge flader. De øvrige forslag til perioder læser en hel dato i hver
+celle og har derfor ingen tilsvarende særskilt årskolonne.
 
 - **Forslag.** Vis kun et månedsforslag ud fra månedsnumrene alene, når der mangler et årstal
   til at afprøve sammenhængen. Når begge årsangivelser kendes og viser et spring, så undlad forslaget.
 
+### Tværgående efterprøvning af BB-442
+
+- **M-58.** På Beregning udløser et rødt beløb i periodens eneste lønrække både den konkrete
+  rækkefejl og «Ingen indkomst i beregningsperioden», som leder til en anden fane. Målt med et
+  rødt beløb på en dagpengerække som eneste indtægt i perioden med samme udfald.
+- **Afgrænsning.** En ekstra gyldig positiv lønrække fjerner kun følgefejlen. Gyldigt 0 kr. som eneste
+  beløb viser alene «Ingen indkomst». Den gennemførte BB-333 fjerner allerede følgefejlen ved en
+  samlet negativ løn. Sygeferiegodtgørelsens særskilte referencebesked er en kandidat til 12j.
+- **Forslag.** Lad brugeren rette det navngivne røde beløb, før programmet konkluderer, at perioden
+  mangler positiv indkomst.
+
+### Tværgående efterprøvning af BB-443
+
+- **M-42.** Lønindkomst, Årsløn og Offentlige ydelser siger «før» og «efter» ved omvendte datoer,
+  selv om alle tre accepterer samme dato. Den tilsvarende ugefejl i løntabellen nævner allerede
+  muligheden for samme uge. Kildetjek viser samme ordlyd i flere af Erstatningsopgørelsens perioder,
+  herunder de tidligere browsermålte svie/smerte- og fraværsperioder.
+- **Forslag.** Hvis en periode med samme Fra og Til er gyldig, så skriv «på eller før» og «på eller efter»
+  og behold datoen fra modpartens felt i beskeden.
+
+
+## M-67 – Løntrin-finderen indsætter et svar under andre forudsætninger
+
+BB-444 og BB-445 blev fundet 2026-11-23 ved Lønindkomst og angivet løn på «EO oplysninger».
+En ny dato eller et afvist beløb efterlader tidligere resultater klar til indsættelse.
+Løntypen kan desuden være en anden i opslaget end i sagen, efter at resultatet er sat ind.
+
+- **Efterprøvet.** Ved KL kunne trin 28, gruppe 2 indsættes efter datoændring, selv om et nyt opslag
+  gav trin 38, gruppe 4. På «EO oplysninger» kunne samme gamle trin indsættes efter `1/0`.
+  Både KL og RLTN har samme finder. To Lønindkomst-kort holdt opslagets indtastninger adskilt og
+  gav fokus tilbage til den rette knap.
+- **Afgrænsning.** Årslønsberegning har ingen finder til overenskomsten. Sygedagpengehjælperen på
+  «Offentlige ydelser» blokerede indsættelse ved ugyldig eller omvendt periode og lod brugeren indsætte
+  efter at have rettet den. Det særskilte tilgængelighedsfund BB-448 gælder de to finderindgange.
+- **Forslag.** Gør et resultat uvirksomt, når opslagets oplysninger ændres. Lad indsættelsen vise og
+  omfatte et eventuelt skift af løntype.
+
+### Tværgående efterprøvning i lønudvikling
+
+- **M-05 / BB-446.** Anciennitetstillæg på 1.000.000 kr. pr. time gav et hentbart dokument på begge
+  indgange uden en besked ved satsen. Den manuelle løntabel advarede derimod om en ændring fra 31.000
+  til 320.000 kr. Forslaget er en sammenligning med grundlønnen, efter at tillæggets enhed er omregnet.
+- **M-58 og M-65 / BB-447.** På begge indgange blev en afvist anciennitetssats også meldt som manglende.
+  Den manuelle grundlønscelle gav kun formatfejlen ved samme udtryk.
+
+## M-68 – Et valg ændrer enheden for et allerede indtastet tal
+
+- **BB-449.** På Lønindkomst skifter «Løn på helligdage» sygeferiegodtgørelsens fraværsfelt fra
+  kalenderdage til arbejdsdage. En indtastet uge på 7 kalenderdage forbliver 7 og regnes med som
+  syv arbejdsdage. Bekræftet i bilagene før og efter skiftet. En ændring på Firma B gav samme enhedsskift på Firma A.
+- **Afgrænsning.** På «EO oplysninger» bliver «Løse ferie-/feriefridage» skjult ved måneder og
+  er kun i brug ved arbejdsdage (BB-247). Perioder med datoer kan tælles igen efter samme
+  datointerval. Det éne tal i sygeferiegodtgørelsen indeholder ingen datoer at tælle efter.
+- **Forslag.** Gør enheden synlig ved det styrende valg, når en indtastning påvirkes, og giv
+  brugeren en besked ved feltet med det bevarede tal og den nye enhed.
+
+### Tværgående efterprøvning af 12j
+
+- **M-05 / BB-450.** Dagssatsen i sygeferiegodtgørelsen kunne vokse fra 230 kr. til 23.000 kr.
+  uden en gul besked. Begge Word-bilag kunne hentes. Indkomsttabellerne har kontrol mod de
+  andre rækker, og den manuelle lønudviklings kontrol af store spring var målt i 12i.
+- **M-58 / BB-451 og BB-452.** En afvist februarløn gav både en lønfejl og en misvisende
+  opfordring til at ændre referenceperioden. En afvist manuel sats gav både den konkrete
+  fejl og en melding om en manglende sats. Referencefelternes egne afviste datoer og
+  det valgfri allerede betalte beløb gav kun formatfejlen. Beslægtet med BB-442 og BB-447.
+- **M-42.** Omvendte referencedatoer bruger «før» og «efter», selv om samme dato i begge
+  felter accepteres. Føjer denne datoparvariant til BB-443.
+
+## M-69 – Tabellens sortering følger en anden rækkefølge end den, tallene viser
+
+- **BB-454.** Offentlige ydelser sorterede 1, 10, 2 dage og 20,00, 6.000,00, 90,00 kr. per dag
+  i stigende retning. Begge kolonner sorterer på den formaterede tekst.
+- **Systematik.** «Ydelse» på samme fane og «Antal dage» på Svie og smerte sorterede numerisk
+  i browseren. Lønindkomst og manuel procentregulering bruger numeriske værdier i deres
+  beregnede kolonner. BB-294 er en tidligere variant, hvor sortering på måneden alene adskiller
+  perioden fra årstallet. Udviklerens tidligere afgørelse om månedssorteringen står ved BB-294.
+- **Forslag.** Brug kolonnens talværdi til sortering og formater den ved visning.
+
+## M-70 – En afvist rettelse til et hjælpedatofelt bliver til et blankt felt
+
+- **BB-458.** På Offentlige ydelser blev en gyldig dato erstattet med 31-02-2026. Feltet stod
+  blankt med rød markering. Samme fejl indtastet i et tomt felt forblev synlig.
+- **BB-459.** På Lønindkomst gjorde samme prøve «Dato» i «Find løntrin» blank uden en
+  rød markering ved afslutning. Beløbsfeltet i samme vindue beholdt det afviste `1/0`.
+  Den anden finderindgang bruger samme datofelt. De ordinære ydelsesfelter beholdt det
+  afviste regneudtryk i browseren.
+- **Forslag.** Bevar den afviste dato ved feltet som grundlag for den næste rettelse, med
+  en synlig feltfejl og den eksisterende spærring af handlingen.
+
+### Tværgående efterprøvning af 12k
+
+- **M-60 / BB-456.** Hjælperen brugte intervallets yderdatoer ved overlap. To perioder med
+  én fælles lørdag gav advarsel om dobbelt indtastning, selv om hver række havde sin egen
+  arbejdsdag. Kontroltabellen skelner mellem yderdatoer og arbejdsdage.
+- **M-43 / BB-457.** EET-kildeskiftet kan fjerne en manuelt indtastet ydelse på 12.000 kr.
+  uden at fortælle i bekræftelsen, at ingen importeret ydelse erstatter den. I den prøvede
+  sag oplyste Beregning bagefter om fradraget på nul. Med en brugbar kilde stemte det nye
+  fradrag og bilaget på 16.000 kr.
+
+## M-71 – En kort ændring i indtægten forsvinder fra grafen
+
+- **BB-460.** Hvis samme indtægtskilde har et positivt beløb før, under og efter et kort udsving, kan udsvinget forsvinde mellem de datoer, grafen viser. Ved 300 → 10.000 kr. for dagpenge 1.–3. juli var grafbilledet identisk før og efter i både PDF og Word. Når perioden blev flyttet hen over midten af juli, viste grafen udsvinget.
+- **Systematik.** Hovedopgørelsen, kalenderårsfordelingen og den opregulerede opgørelse bevarede beløbsændringen. Grafens regel gælder både løn og ydelser. Kun ydelsesvarianten er browserprøvet. Der er ingen anden eksporteret indtægtsgraf i Mineo.
+- **Forslag.** Lad korte ændringer i et positivt niveau få plads i grafen på samme måde som start og ophør af indtægten.
+
+### Tværgående efterprøvning af Beregning (12l)
+
+- **M-16 / BB-461.** Ved en fuldt beregnelig TAF-sag uden indtægt viste grafen «Indtastning mangler». Hovedopgørelsen og de to taldokumenter kunne hentes. BB-371's særskilte tekster for et fravalgt TAF-krav og en sag uden TAF-perioder bestod.
+- **M-58 / BB-462.** En afvist enlig Fra-dato gav «Ingen perioder angivet» både på TAF- og S/S-linjen. Øvrige krav viste «Fejl» ved samme type prøve med et afvist beløb.
+- **M-08 / BB-463.** Tab og Enter kom forbi reparationslinkene i Beregning. Mellemrum på det fokuserede «Skadelidte» og museklik virker. **BB-464** bekræftede en anden variant i Varige mén, Forsørgertab og Erhvervsevnetab. «Stamdata» ved en manglende oplysning kan klikkes med mus, men kan ikke få fokus. Sidemenuens og fanernes tidligere afgørelser gælder fortsat.

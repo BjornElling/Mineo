@@ -12,7 +12,11 @@ import {
 } from '../draftAdmission';
 import { isTranslatedSignKey, normalizeSignCharactersForCodec } from '../../../inputCore/react/fields/signPolicy';
 import { readClipboardText } from '../../../utils/clipboardUtils';
-import { spliceDraftWithPaste } from '../../../inputCore/react/pasteSplice';
+import {
+  normalizePasteForDraft,
+  resolvePasteContextDraft,
+  spliceDraftWithPaste,
+} from '../../../inputCore/react/pasteSplice';
 import { assignRef } from '../../../utils/refUtils';
 import {
   DEFAULT_AMOUNT_PRECISION,
@@ -40,8 +44,11 @@ export type TransientAmountInputProps = Readonly<{
   allowDecimals?: boolean;
   /** Vist fejl (ejes af kalderen, som også rydder den ved et nyt commit). */
   errorMessage?: string;
-  /** Kaldes når draften afvises ved commit, så kalderen kan vise sin egen fejl. */
-  onReject?: (message: string) => void;
+  /**
+   * Kaldes med beskeden, når draften afvises ved commit, så kalderen kan vise sin egen fejl, og med
+   * `undefined` ved et gyldigt commit, som rydder en tidligere afvisning.
+   */
+  onReject?: (message: string | undefined) => void;
   width?: number | string;
   placeholder?: string;
   inputRef?: React.Ref<HTMLInputElement>;
@@ -101,8 +108,18 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
         if (!parsed.ok) return { ok: false, message: parsed.error.message };
         return { ok: true, value: parsed.value };
       },
-      onCommit,
-      onReject: (_draft, message) => onReject?.(message ?? 'Ugyldigt beløb'),
+      // Samme XOR-regel og samme fejlkontrakt som `TransientDateInput`: et gyldigt commit rydder en tidligere
+      // afvisning, og et afvist settle rydder den forrige værdi. Før blev en afvisning aldrig ryddet igen, så
+      // løntrin-finderens «Beregn» blev ved med at fejle efter `1/0` rettet til et gyldigt beløb, og det gamle
+      // beløb lå skjult under den røde tekst.
+      onCommit: (next) => {
+        onReject?.(undefined);
+        onCommit(next);
+      },
+      onReject: (_draft, message) => {
+        onCommit(undefined);
+        onReject?.(message ?? 'Ugyldigt beløb');
+      },
       // Åbningstasterne er feltets EGNE lovlige starttegn, ikke en håndskrevet liste: `admission`
       // kender allerede tegnsættet (cifre, separator og evt. minus), så et felt med `allowNegative`
       // eller uden decimaler åbner på præcis de tegn, det også accepterer bagefter.
@@ -179,11 +196,18 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
       const element = inputElementRef.current;
       const start = typeof element?.selectionStart === 'number' ? element.selectionStart : draft.length;
       const end = typeof element?.selectionEnd === 'number' ? element.selectionEnd : start;
+      // Samme paste-normalisering som de persisterede beløbsfelter: minus-oversættelse (BB-430) og kun
+      // teksten frem til første tabulator/linjeskift (BB-439).
+      const normalized = normalizePasteForDraft(
+        readClipboardText(event),
+        { family: 'amount', ...signPolicy },
+        resolvePasteContextDraft(draftState.isOpen, draft, start, end)
+      );
       const spliced = spliceDraftWithPaste(
         // Lukket felt: paste ERSTATTER værdien i stedet for at splejse ind i den viste tekst – samme
         // regel som `TransientDateInput` og de ordinære felter.
         draftState.isOpen ? draft : '',
-        normalizeInput(readClipboardText(event)),
+        normalized,
         draftState.isOpen ? start : 0,
         draftState.isOpen ? end : 0,
         MAX_AMOUNT_RAW_LENGTH,
@@ -208,7 +232,7 @@ const TransientAmountInput = React.forwardRef<HTMLDivElement, TransientAmountInp
           // no-op
         }
       });
-    }, [admission, draftState, normalizeInput]);
+    }, [admission, draftState, signPolicy]);
 
     return (
       <StyledTextFieldBase

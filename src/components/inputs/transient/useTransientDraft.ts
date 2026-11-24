@@ -92,7 +92,14 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
 
   // Resync fra den committede værdi, men ALDRIG mens brugeren redigerer.
   const lastFormattedRef = React.useRef(formatted);
-  if (!isFocused && formatted !== lastFormattedRef.current) {
+  // Et afvist settle rydder kalderens værdi (XOR-reglen), og den ændring kommer i SAMME batch som afvisningen.
+  // Den første render derefter må ikke resynce: ellers overskrev den tomme værdi den afviste tekst, så en ugyldig
+  // dato, der erstattede en gyldig, stod blank (BB-458/BB-459), mens samme dato i et tomt felt blev stående.
+  const rejectedSettlePendingRef = React.useRef(false);
+  if (rejectedSettlePendingRef.current) {
+    rejectedSettlePendingRef.current = false;
+    lastFormattedRef.current = formatted;
+  } else if (!isFocused && formatted !== lastFormattedRef.current) {
     lastFormattedRef.current = formatted;
     if (draft !== formatted) setDraft(formatted);
   }
@@ -131,6 +138,7 @@ export const useTransientDraft = <T>(config: UseTransientDraftConfig<T>): Transi
       }
       return;
     }
+    rejectedSettlePendingRef.current = true;
     doReject?.(raw, result.message);
     if (closeEditor && latest.current.isTwoStage) {
       // Rejected tekst er den lukkede visning efter et ugyldigt settle – samme synlige regel som et

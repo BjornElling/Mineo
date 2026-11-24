@@ -8,6 +8,9 @@ import {
   eoSfggReferenceperiodeFravaersdageUdenLoenField,
   eoSfggReferenceperiodeTilField,
 } from '../../../inputCore/catalog/erstatningsopgoerelseDescriptors';
+import { eoStandardRowFields } from '../../../inputCore/catalog/erstatningsopgoerelseLoenDescriptors';
+import { toAnyFieldRef } from '../../../inputCore/fieldDescriptor';
+import { buildFieldIssueSet } from '../../../inputCore/inputIssue';
 import type { ErstatningsopgoerelseValues, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import {
   asSfggAmount as asAmount,
@@ -176,5 +179,26 @@ describe('collectSfggReferenceperiodeIssues', () => {
       values.loenindkomstAnsaettelsesforhold = [{ ...values.loenindkomstAnsaettelsesforhold[0]!, ansatPaaSkadestidspunktet: false }];
       expect(summarize(values)).toEqual([]);
     });
+  });
+});
+
+describe('collectSfggReferenceperiodeIssues – rød lønrække (BB-451)', () => {
+  const afvistLoen = { ...loenRaekke('2', '2023', 30000), col2: undefined };
+
+  it('melder en periode med en tom lønrække som en periode uden løn', () => {
+    expect(summarize(buildValues({ loen: [afvistLoen] })).map((issue) => issue.message))
+      .toEqual([buildSfggReferenceperiodeUdenLoenBesked(iso('2023-02-01'), iso('2023-02-28'))]);
+  });
+
+  it('venter med «ingen løn», mens periodens lønrække har en rød celle', () => {
+    const roedCelle = buildFieldIssueSet([{
+      kind: 'field',
+      code: 'eo.standardLoen.col2.format',
+      severity: 'error',
+      field: toAnyFieldRef(eoStandardRowFields.col2.bind('af-1', afvistLoen.id)),
+      reason: 'format',
+      message: 'Ugyldigt beløb',
+    }]);
+    expect(collectSfggReferenceperiodeIssues(buildValues({ loen: [afvistLoen] }), roedCelle)).toEqual([]);
   });
 });

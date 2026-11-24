@@ -13,6 +13,7 @@ import ConfirmationDialog from '../ui/ConfirmationDialog';
 import ExternalLink from '../ui/ExternalLink';
 import LicenseModal from '../ui/LicenseModal';
 import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
+import TextLinkButton from '../inputs/TextLinkButton';
 import type { CommitEvent } from '../../types/fieldEvents';
 import { useAppSettings } from '../../contexts/useAppSettings';
 
@@ -87,8 +88,8 @@ const Mineo = React.memo(() => {
   const installButtonRef = React.useRef<HTMLButtonElement>(null);
   const licenseButtonRef = React.useRef<HTMLButtonElement>(null);
 
-  // Begge kontroller bærer `data-mineo-focusable-button="true"`: uden markøren er de ikke i
-  // Containerens fokusinventar, og Enter faldt derfor igennem til den generiske «flyt til næste
+  // Begge kontroller er `TextLinkButton` og bærer dermed `data-mineo-focusable-button="true"`: uden
+  // markøren er de ikke i Containerens fokusinventar, og Enter faldt derfor igennem til den generiske «flyt til næste
   // felt»-vej frem for at ramme knap-undtagelsen. Mellemrum virkede (native knapsemantik), men
   // Enter flyttede fokus videre uden at åbne popupen – en popup-åbnende knap skal kunne aktiveres
   // med begge taster (jf. keyboard-navigation.md §Implementeringsfrihed og §Popup-fokus-restore).
@@ -203,16 +204,9 @@ const Mineo = React.memo(() => {
           sx={{ marginTop: 0, marginBottom: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}
         >
           <Box component="li" sx={{ marginBottom: 0 }}>
-            <Box
-              component="button"
-              type="button"
-              ref={installButtonRef}
-              onClick={handleInstallClick}
-              data-mineo-focusable-button="true"
-              className="icon-text-link"
-            >
+            <TextLinkButton placement="inline" ref={installButtonRef} onClick={handleInstallClick}>
               Installér hjælpeprogram
-            </Box>
+            </TextLinkButton>
           </Box>
         </Box>
 
@@ -270,17 +264,9 @@ const Mineo = React.memo(() => {
         {/* Licensforklaring */}
         <Typography className="row--text">
           Programmet er gratis at bruge og udgives under{' '}
-          <Box
-            component="button"
-            type="button"
-            ref={licenseButtonRef}
-            onClick={handleLicenseClick}
-            data-mineo-focusable-button="true"
-            className="icon-text-link"
-            sx={{ display: 'inline' }}
-          >
+          <TextLinkButton placement="inline" ref={licenseButtonRef} onClick={handleLicenseClick}>
             MIT-licensen
-          </Box>
+          </TextLinkButton>
           , hvilket indebærer:
         </Typography>
 

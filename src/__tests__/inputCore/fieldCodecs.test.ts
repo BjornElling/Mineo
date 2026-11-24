@@ -20,6 +20,7 @@ import {
   type FieldIssue,
 } from '../../inputCore/inputIssue';
 import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
+import { AMOUNT_DIVISION_BY_ZERO_MESSAGE } from '../../utils/expressionAmount';
 
 describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
@@ -280,6 +281,25 @@ describe('fieldCodecs', () => {
       // Readeren gør den konkrete tekst til issuets besked, så «Fejl og advarsler» siger det samme (BB-296).
       expect(asIssue('53/2021').message)
         .toBe('Der er udfyldt en ugyldig værdi i feltet \'Uge\'');
+    });
+
+    /**
+     * BB-440: `1/0` fik før samme generiske besked som det ufuldstændige `1/`. Division med 0 er den ene
+     * udtryksfejl, der får en konkret forklaring; de øvrige formfejl forbliver generiske.
+     */
+    it('beløbets division med 0 bærer den fælles konkrete besked', () => {
+      for (const allowDecimals of [true, false]) {
+        const amount = createAmountFieldCodec({ allowNegative: false, allowDecimals });
+        expect(amount.parseForSettle('1/0')).toEqual({
+          status: 'rejected',
+          reason: 'format',
+          detail: { tooltip: AMOUNT_DIVISION_BY_ZERO_MESSAGE },
+        });
+        expect(amount.parseForSettle('100/(5-5)'))
+          .toMatchObject({ detail: { tooltip: AMOUNT_DIVISION_BY_ZERO_MESSAGE } });
+        expect(amount.parseForSettle('1/')).toEqual({ status: 'rejected', reason: 'format' });
+        expect(amount.parseForSettle('1/2')).toMatchObject({ status: 'valid' });
+      }
     });
   });
 });

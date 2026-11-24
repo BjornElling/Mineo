@@ -11,12 +11,12 @@ import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
 import { parseAmountInput } from '../../../utils/expressionAmount';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
-import { maxISO, minISO } from '../../../utils/isoDateHelpers';
+import { iterateIsoDatesInclusive, maxISO, minISO } from '../../../utils/isoDateHelpers';
 import {
   buildSygedagpengeGrundlagPrKalenderuge,
   type KalenderugeSygedagpengeGrundlag,
 } from '../engines/periodiseringsMotor';
-import { coerceToISODateString, type ISODateString } from '../../../types/branded';
+import { coerceToISODateString, parseISODate, type ISODateString } from '../../../types/branded';
 import { canonicalYdelsestypeKey } from '../../../data/ydelsestyper';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -259,7 +259,19 @@ export const findOverlappingSygedagpengeRows = (
     const rowFra = coerceToISODateString(row.fraDato);
     const rowTil = coerceToISODateString(row.tilDato);
     if (rowFra === undefined || rowTil === undefined || rowFra > rowTil) return false;
-    return rowFra <= til && fra <= rowTil;
+    const faellesFra = maxISO(rowFra, fra);
+    const faellesTil = minISO(rowTil, til);
+    if (faellesFra > faellesTil) return false;
+    // Sygedagpenge regnes på hverdage. Deler perioderne kun en weekend, får ingen dag beløb fra begge rækker, og
+    // spørgsmålet om dobbelt indtastning er forkert (BB-456: en række til lørdag og hjælperen fra samme lørdag).
+    // En helligdag på en hverdag tæller med: om den betales, afhænger af rækkens slutdato, og et ekstra spørgsmål
+    // er her bedre end et tavst dobbeltfradrag.
+    let harFaellesHverdag = false;
+    iterateIsoDatesInclusive(faellesFra, faellesTil, (iso) => {
+      const ugedag = parseISODate(iso)?.getUTCDay();
+      if (ugedag !== undefined && ugedag >= 1 && ugedag <= 5) harFaellesHverdag = true;
+    });
+    return harFaellesHverdag;
   });
 
 /** «Der står allerede sygedagpenge for 25-05-2026 - 21-06-2026 og 22-06-2026 - 26-07-2026.» */

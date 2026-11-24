@@ -15,6 +15,7 @@ import { inputTransaction, inputTransactionStep, settleField } from '../../../..
 import { buildFieldHistoryOrigin } from '../../../../inputCore/editor/fieldEditorEngine';
 import type { BoundField } from '../loenudvikling/loenudviklingBinding';
 import {
+  buildLoentrinFinderLoenTypeSpaerring,
   calculateLoentrinFinderResults,
   resolveLoentrinFinderOverenskomstLabel,
   type LoentrinFinderErrors,
@@ -72,13 +73,14 @@ export type UseLoentrinFinderResult = Readonly<{
   /** Id'et finderen er åben for, eller `null`. Kun relevant for flader med flere åbnende kontroller. */
   openForKey: string | null;
   ansaettelse: OffentligLoenTypeLabel;
-  setAnsaettelse: React.Dispatch<React.SetStateAction<OffentligLoenTypeLabel>>;
+  /** Ændrer opslagets oplysninger. En reel ændring fjerner resultaterne fra de tidligere oplysninger (BB-444). */
+  setAnsaettelse: (next: OffentligLoenTypeLabel) => void;
   beloeb: AmountValue | undefined;
-  setBeloeb: React.Dispatch<React.SetStateAction<AmountValue | undefined>>;
+  setBeloeb: (next: AmountValue | undefined) => void;
   dato: ISODateString | undefined;
-  setDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
+  setDato: (next: ISODateString | undefined) => void;
+  /** Feltfejl: ejes af `handle*FieldError` (afvisning ved commit) og «Beregn» (manglende oplysninger). */
   errors: LoentrinFinderErrors;
-  setErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
   handleAmountFieldError: (errorMsg: string | undefined) => void;
   handleDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
@@ -87,6 +89,8 @@ export type UseLoentrinFinderResult = Readonly<{
   erNyesteSatser: boolean;
   /** Kan et resultat sættes ind i fladen (er finderen åbnet med et indsætningsmål)? */
   kanIndsaette: boolean;
+  /** Hvorfor resultaterne ikke kan sættes ind, når de er fundet med en anden løntype end sagens (BB-445). */
+  indsaetSpaerretGrund: string | undefined;
   /** Sætter løntrin – og gruppen, når resultatet kun har én – ind og peger fokus-restoren på gruppefeltet. */
   insertResult: (result: LoentrinFinderResult) => boolean;
   headingId: string;
@@ -205,7 +209,8 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     const persistedEntry = readSessionState()[key];
 
     setTarget(nextTarget);
-    setAnsaettelse(persistedEntry?.ansaettelse ?? nextTarget.offentligLoenType ?? DEFAULT_ANSAETTELSE);
+    // Sagens løntype vinder over den huskede: kun et opslag med sagens løntype kan sættes ind (BB-445).
+    setAnsaettelse(nextTarget.offentligLoenType ?? persistedEntry?.ansaettelse ?? DEFAULT_ANSAETTELSE);
     setBeloeb(persistedEntry?.beloeb);
     // Den gemte indtastning vinder; ellers reguleringsdatoen, som svaret skal passe til (BB-310).
     setDato((persistedEntry?.dato as ISODateString | undefined) ?? nextTarget.reguleringsdato);
@@ -218,13 +223,45 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     resetTransientState();
   }, [resetTransientState]);
 
+  // Resultatlisten gælder kun for de oplysninger, den blev beregnet ud fra. Ændres løntype, beløb eller dato,
+  // eller afvises en ny indtastning, fjernes listen, så et gammelt svar ikke kan sættes ind under nye
+  // forudsætninger (BB-444) – samme regel som sygedagpengehjælperen, der danner sine rækker ved klikket.
+  const clearResults = React.useCallback(() => {
+    setResults([]);
+    setSatsDato(undefined);
+    setErNyesteSatser(false);
+  }, []);
+
+  const changeAnsaettelse = React.useCallback((next: OffentligLoenTypeLabel) => {
+    if (next !== ansaettelse) clearResults();
+    setAnsaettelse(next);
+  }, [ansaettelse, clearResults]);
+
+  const changeBeloeb = React.useCallback((next: AmountValue | undefined) => {
+    if (amountValueToNumber(next) !== amountValueToNumber(beloeb)) clearResults();
+    setBeloeb(next);
+  }, [beloeb, clearResults]);
+
+  const changeDato = React.useCallback((next: ISODateString | undefined) => {
+    if (next !== dato) clearResults();
+    setDato(next);
+  }, [dato, clearResults]);
+
+  // Feltets egen afvisning (format- eller intervalfejl) vises straks med rød ring, som i sygedagpengehjælperen.
+  // Før lå den kun i en skjult tilstand, der først blev vist efter «Beregn», så en afvist dato stod uden
+  // markering (BB-459). `undefined` kommer ved et gyldigt commit og rydder både feltfejlen og en tidligere
+  // «skal udfyldes»-besked fra «Beregn».
   const handleAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
     setAmountFieldError(errorMsg);
-  }, []);
+    setErrors((prev) => ({ ...prev, beloeb: errorMsg }));
+    if (errorMsg !== undefined) clearResults();
+  }, [clearResults]);
 
   const handleDateFieldError = React.useCallback((errorMsg: string | undefined) => {
     setDateFieldError(errorMsg);
-  }, []);
+    setErrors((prev) => ({ ...prev, dato: errorMsg }));
+    if (errorMsg !== undefined) clearResults();
+  }, [clearResults]);
 
   const handleCalculate = React.useCallback(() => {
     const outcome = calculateLoentrinFinderResults({
@@ -253,9 +290,16 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
   }, [target?.overenskomstId, ansaettelse, beloeb, dato, amountFieldError, dateFieldError]);
 
   const insertTarget = target?.insert;
+  // Indsættelsen må aldrig ændre brugerens valg af «Ansættelse» på sagen. Er resultaterne fundet med en anden
+  // løntype end sagens, spærres indsættelsen med en forklaring i stedet for at sætte et trin ind under en løntype,
+  // brugeren ikke søgte med (BB-445, udviklerens afgørelse 2026-11-24).
+  const sagensLoenType = target?.offentligLoenType;
+  const indsaetSpaerretGrund = sagensLoenType !== undefined && sagensLoenType !== ansaettelse
+    ? buildLoentrinFinderLoenTypeSpaerring(sagensLoenType)
+    : undefined;
   const insertResult = React.useCallback((result: LoentrinFinderResult): boolean => {
     // «55+» har intet tal i løntrinsfeltet (1–55) og kan ikke sættes ind.
-    if (insertTarget === undefined || result.loentrin === '55+') return false;
+    if (insertTarget === undefined || indsaetSpaerretGrund !== undefined || result.loentrin === '55+') return false;
     const eneGruppe = result.grupper.length === 1 ? result.grupper[0] : undefined;
     // Én handling og ét fortryd-trin. Er grupperne samlet («alle grupper»), sættes kun løntrinnet ind: gruppen er
     // brugerens valg, og fokus lander netop på gruppefeltet.
@@ -269,7 +313,7 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     // Restoren ved lukningen sender fokus hertil i stedet for til «Find løntrin»-knappen.
     if (insertTarget.gruppeInputRef.current !== null) activeTriggerRef.current = insertTarget.gruppeInputRef.current;
     return true;
-  }, [edit, insertTarget]);
+  }, [edit, indsaetSpaerretGrund, insertTarget]);
 
   const inputAmountNumber = React.useMemo(() => amountValueToNumber(beloeb), [beloeb]);
 
@@ -293,19 +337,19 @@ export const useLoentrinFinder = (): UseLoentrinFinderResult => {
     open,
     openForKey,
     ansaettelse,
-    setAnsaettelse,
+    setAnsaettelse: changeAnsaettelse,
     beloeb,
-    setBeloeb,
+    setBeloeb: changeBeloeb,
     dato,
-    setDato,
+    setDato: changeDato,
     errors,
-    setErrors,
     handleAmountFieldError,
     handleDateFieldError,
     results,
     satsDato,
     erNyesteSatser,
     kanIndsaette: insertTarget !== undefined,
+    indsaetSpaerretGrund,
     insertResult,
     headingId,
     overenskomstLabel,

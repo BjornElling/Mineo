@@ -38,6 +38,8 @@ import { buildLoenArbejdsdageSet } from '../engines/periodiseringsMotor';
 
 const FAR_MELLEMLIGGENDE_PERIODE_DAGE = 180;
 
+
+export const TAF_KRAV_GRAF_INGEN_INDTAEGTER = 'Der er ingen indtægter at vise i grafen';
 export type TafKravGrafSeriesSegment = Readonly<{
   fra: ISODateString;
   til: ISODateString;
@@ -554,8 +556,10 @@ export const eoSnapshotToTafKravGrafDocument = (
         : bridged;
     });
 
+  // En sag uden løn og ydelser er ikke ufuldstændig: knappen siger tilstanden i stedet for «Indtastning mangler»,
+  // som sendte brugeren på jagt efter et tomt felt (BB-461, samme form som BB-371).
   if (series.length === 0) {
-    return { kind: 'blocked', message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er indkomstsegmenter i TAF-perioden.', invariants: [] };
+    return { kind: 'blocked', message: TAF_KRAV_GRAF_INGEN_INDTAEGTER, invariants: [], specific: true };
   }
 
   const firstWindow = timeWindows[0];

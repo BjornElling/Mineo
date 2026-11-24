@@ -1,5 +1,5 @@
 import { toAnyFieldRef, type AnyFieldRef } from '../../inputCore/fieldDescriptor';
-import type { FieldIssue } from '../../inputCore/inputIssue';
+import { EMPTY_FIELD_ISSUE_SET, type FieldIssue, type FieldIssueSet } from '../../inputCore/inputIssue';
 import {
   eoSfggReferenceperiodeFraField,
   eoSfggReferenceperiodeFravaersdageUdenLoenField,
@@ -13,6 +13,7 @@ import { getFirstIndtastedeTafFraDato, resolveSfggReferenceperiodeDayCount } fro
 import { buildEmploymentSfggCalculator } from './engines/sfggSegmentering';
 import { erSfggFeltRelevant } from './helpers/eoLoenindkomstRelevance';
 import { shouldRequireSygeferiegodtgoerelseInput } from './helpers/sygeferiegodtgoerelseEligibility';
+import { selectLoenindkomstTableFieldIssues } from './eoInputIssues';
 
 // Sygeferiegodtgørelsens referenceperiode-regler – ét sted, projekteret til feltets egen adresse, så feltet får
 // rød ring med reglen i tooltippen, og «Fejl og advarsler» får én linje med link til feltet. Reglerne stod før
@@ -67,7 +68,10 @@ const buildIngenDageBesked = (label: 'kalenderdage' | 'arbejdsdage'): string => 
  */
 export const collectSfggReferenceperiodeIssues = (
   values: ErstatningsopgoerelseValues,
+  /** De strukturelle feltfejl, så en rød lønrække ikke læses som en manglende løn (BB-451). */
+  structuralIssues: FieldIssueSet = EMPTY_FIELD_ISSUE_SET,
 ): readonly FieldIssue[] => {
+  const roedeLoencellerPrAnsaettelse = selectLoenindkomstTableFieldIssues(structuralIssues);
   const firstTafFraDato = getFirstIndtastedeTafFraDato(values);
   return Object.freeze((values.loenindkomstAnsaettelsesforhold ?? []).flatMap((employment): FieldIssue[] => {
     if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) return [];
@@ -114,6 +118,9 @@ export const collectSfggReferenceperiodeIssues = (
     }
 
     // En samlet NEGATIV løn spærrer i motoren med sin egen besked (BB-290); her fanges kun den tomme periode.
+    // En rød lønrække læses som tom, men er ikke en manglende løn: rækkens egen linje siger, hvad der skal rettes.
+    // Uden værnet blev en korrekt referenceperiode rød med en opfordring til at flytte den (BB-451, M-58).
+    if ((roedeLoencellerPrAnsaettelse[employment.id]?.length ?? 0) > 0) return [];
     const loen = roundKroner(
       buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []).sumLoenInRangesKroner([{ fra, til }])
     );

@@ -29,10 +29,21 @@ import { AutofillSuggestProvider } from '../../inputCore/react/autofillSuggestCo
 import { buildOffentligeYdelserAutofillModel } from './autofill/offentligeYdelserAutofillModel';
 import { getOffentligeYdelserTableHeaderNodes } from './offentligeYdelserTableHeaderNodes';
 
-type DerivedRow = Readonly<{ periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string }>;
+/**
+ * Afledte kolonner. Talværdien sorteres, teksten vises: sortering på den formaterede tekst gav 1, 10, 2 dage og
+ * 20,00, 6.000,00, 90,00 kr. (BB-454). Afrundingen i visningen er monoton, så den uafrundede værdi giver aldrig en
+ * anden rækkefølge end den viste.
+ */
+export type OffentligeYdelserDerivedRow = Readonly<{
+  periodiseringLabel: string;
+  antalDage: number | null;
+  antalDageDisplay: string;
+  ydelsePerDag: number | null;
+  ydelsePerDagDisplay: string;
+}>;
 export type OffentligeYdelserTableProps = Readonly<{
   committedRows: readonly OffentligeYdelserRow[];
-  derivedByRowId: ReadonlyMap<string, DerivedRow>;
+  derivedByRowId: ReadonlyMap<string, OffentligeYdelserDerivedRow>;
   disableMidlertidigtEetOption: boolean;
   saveOrderPath?: TableSaveOrderPath;
   /** Rækkernes ikke-blokerende advarsler (identisk række, negativt beløb) som gul ring pr. celle. */
@@ -72,8 +83,8 @@ const OffentligeYdelserTable = React.memo(({
     { colId: 'tillaeg', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.tillaeg) },
     { colId: 'ydelsestype', getSortValue: (row: OffentligeYdelserRow) => canonicalYdelsestypeKey(row.ydelsestype) },
     { colId: 'periodisering', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.periodiseringLabel ?? '' },
-    { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDageDisplay ?? '' },
-    { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDagDisplay ?? '' },
+    { colId: 'antalDage', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.antalDage ?? null },
+    { colId: 'ydelsePerDag', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId.get(row.id)?.ydelsePerDag ?? null },
   ], [derivedByRowId]);
   const persistSortedOrder = usePersistSortedCollectionOrder(collection);
   const { sortedRows, sortableHeader } = useSortedCollectionTable({

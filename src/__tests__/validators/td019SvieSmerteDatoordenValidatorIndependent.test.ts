@@ -122,7 +122,7 @@ describe('TD-019 – svie/smerte-datoorden uden schema-fixture', () => {
       isValid: false,
       errors: [{
         path: 'svieSmertePerioder[0].fra',
-        message: 'Til-dato skal være efter fra-dato',
+        message: 'Til-dato skal være på eller efter fra-dato',
         severity: 'error',
       }],
     });

@@ -6,7 +6,10 @@ import { isISODateString, type ISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from './helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdatoReferenceText } from './helpers/eoDateReferenceText';
-import { resolveAnvendtReguleringsdato } from './helpers/eoSharedUtils';
+import { convertAnciennitetSats, resolveAnvendtReguleringsdato } from './helpers/eoSharedUtils';
+import { resolveLoentrinetsLoen, type LoentrinetsLoen } from './forhoejetGrundloenRules';
+import { formatCurrency } from '../../utils/formatUtils';
+import { round2 } from '../../utils/roundingShortcuts';
 
 // Anciennitetstillæggets regler – ét sted for begge ejere (ansættelsesforholdet og den angivne løn). Tillægget
 // indgår kun ved reguleringsformen Overenskomst; relevansen på felterne sørger for, at et skjult tillæg læses som
@@ -95,12 +98,19 @@ export type AnciennitetstillaegMangel = Readonly<{
 export const resolveAnciennitetstillaegMangel = (
   values: ErstatningsopgoerelseValues,
   source: LoenudviklingSource,
+  /**
+   * Har feltet en rød fejl? Et afvist udtryk (fx `1/0`) læses som tomt, men er ikke en mangel: feltets egen linje
+   * siger, hvad der skal rettes. Uden værnet fik én indtastning to linjer, den ene om en sats, der ikke manglede
+   * (BB-447, M-58).
+   */
+  harFeltfejl: (field: 'anciennitetstillaegDato' | 'anciennitetstillaegSats') => boolean = () => false,
 ): AnciennitetstillaegMangel | undefined => {
   if (source.loenudviklingBeregningsgrundlag !== 'Overenskomst' || !source.harAnciennitetstillaegEfterSkadedatoen) {
     return undefined;
   }
-  const manglerDato = !isISODateString(source.anciennitetstillaegDato);
-  const manglerSats = amountValueToNumber(source.anciennitetstillaegSats) === undefined;
+  const manglerDato = !harFeltfejl('anciennitetstillaegDato') && !isISODateString(source.anciennitetstillaegDato);
+  const manglerSats = !harFeltfejl('anciennitetstillaegSats')
+    && amountValueToNumber(source.anciennitetstillaegSats) === undefined;
   if (!manglerDato && !manglerSats) return undefined;
   const mangler = manglerDato && manglerSats ? 'dato og sats mangler' : manglerDato ? 'datoen mangler' : 'satsen mangler';
   return {
@@ -142,3 +152,51 @@ export const resolveAnciennitetstillaegEfterTafAdvarsler = (
       summaryMessage: `Anciennitetstillæg: ${ANCIENNITETSTILLAEG_EFTER_TAF_ADVARSEL}`,
     }]
     : []);
+
+const formatBeloebPerEnhed = (beloeb: number, enhed: LoentrinetsLoen['enhed']): string =>
+  `${formatCurrency(beloeb)} kr./${enhed === 'Time' ? 'time' : 'måned'}`;
+
+export const buildAnciennitetstillaegOverTrinloenBesked = (tillaeg: number, trinloen: LoentrinetsLoen): string =>
+  `Anciennitetstillægget (${formatBeloebPerEnhed(tillaeg, trinloen.enhed)}) er større end løntrinnets løn `
+  + `(${formatBeloebPerEnhed(trinloen.beloeb, trinloen.enhed)}) – kontrollér sats og enhed`;
+
+/**
+ * Tillægget omregnet til løntrinnets enhed, når det er større end selve trinlønnen på reguleringsdatoen – typisk en
+ * månedssats angivet pr. time eller en ekstra nulgruppe. Omregningen er motorens (`resolveAnciennitetForIndex`:
+ * timer→måned-faktoren og afrunding til øre). Udviklerafgørelse 2026-11-24 (BB-446): gul ring og linje, ingen
+ * spærring. Uden et opslåeligt løntrin (fx privat overenskomst) er der intet at sammenligne med.
+ */
+const resolveAnciennitetstillaegOverTrinloen = (
+  values: ErstatningsopgoerelseValues,
+  source: LoenudviklingSource,
+  skadedato: ISODateString | undefined,
+): Readonly<{ tillaeg: number; trinloen: LoentrinetsLoen }> | undefined => {
+  if (!source.harAnciennitetstillaegEfterSkadedatoen) return undefined;
+  const sats = amountValueToNumber(source.anciennitetstillaegSats);
+  if (sats === undefined || !Number.isFinite(sats) || sats <= 0) return undefined;
+  const trinloen = resolveLoentrinetsLoen(values, source, skadedato);
+  if (trinloen === undefined) return undefined;
+  const tillaeg = round2(convertAnciennitetSats(sats, source.anciennitetstillaegSatsAngivesPer ?? 'Måned', trinloen.enhed));
+  return tillaeg > trinloen.beloeb ? { tillaeg, trinloen } : undefined;
+};
+
+export type AnciennitetstillaegOverTrinloenAdvarsel = AnciennitetstillaegEfterTafAdvarsel;
+
+/** De gule anciennitetstillæg over løntrinnets løn – for fladens ring og for linjen i «Fejl og advarsler». */
+export const resolveAnciennitetstillaegOverTrinloenAdvarsler = (
+  values: ErstatningsopgoerelseValues,
+  stamdata: Pick<StamdataValues, 'skadedato'>,
+): readonly AnciennitetstillaegOverTrinloenAdvarsel[] => {
+  if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') return [];
+  return resolveLoenudviklingKilde(values).flatMap((source) => {
+    const fund = resolveAnciennitetstillaegOverTrinloen(values, source, stamdata.skadedato);
+    if (fund === undefined) return [];
+    const besked = buildAnciennitetstillaegOverTrinloenBesked(fund.tillaeg, fund.trinloen);
+    return [{
+      ownerKey: source.id,
+      cells: [toAnyFieldRef(satsField(values, source))],
+      cellMessage: besked,
+      summaryMessage: besked,
+    }];
+  });
+};

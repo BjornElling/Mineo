@@ -1,6 +1,6 @@
 import type { DraftAdmission } from '../../components/inputs/draftAdmission';
 import type { FieldCodecFamily, FieldSignPolicy } from '../fieldCodec';
-import { normalizeClipboardText } from '../../utils/inputPasteNormalization';
+import { normalizeClipboardText, takeFirstPastedEntry } from '../../utils/inputPasteNormalization';
 import { normalizeSignCharactersForCodec } from './fields/signPolicy';
 
 type PasteCodec = Readonly<{
@@ -59,9 +59,13 @@ export const normalizePasteForDraft = (
 ): string => {
   // Typografiske minustegn bliver ASCII '-' FØR familiens tegnfilter, så `10−1` ikke mister sit
   // minus og bliver `101` (BB-430). Gælder både et tomt felt og en splice i en åben draft.
+  //
+  // Et typed felt bruger kun teksten frem til første tabulator eller linjeskift (BB-439): ved tastning
+  // afslutter Tab og Enter feltets indtastning, så to regnearksceller må ikke smelte sammen til ét tal.
+  // Reglen gælder uanset draftkontekst, så samme paste giver samme resultat (§1.2a punkt 7 og 8).
   const genericNormalized = codec.family === 'text' || codec.family === 'optionalText'
     ? normalizeClipboardText(raw, { preservesLineBreaks: codec.preservesLineBreaks })
-    : normalizeSignCharactersForCodec(codec, raw);
+    : normalizeSignCharactersForCodec(codec, takeFirstPastedEntry(raw));
   return existingDraft === ''
     ? (codec.normalizePaste?.(genericNormalized) ?? genericNormalized)
     : genericNormalized;

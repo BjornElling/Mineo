@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import MirroredStamdataRow from '../../../components/layout/MirroredStamdataRow';
 
@@ -44,5 +44,18 @@ describe('MirroredStamdataRow', () => {
     if (errorMessage !== undefined) {
       expect(rowElement.querySelector('[title="Datoen skal være en gyldig dato"]')).not.toBeNull();
     }
+  });
+
+  // BB-464: linket var et `<span onClick>` og kunne slet ikke nås med tastaturet.
+  it('Stamdata-genvejen er en tastaturknap, der følger linket med Enter', async () => {
+    const user = userEvent.setup();
+    const { onNavigate, row } = renderRow({ value: undefined, errorMessage: undefined });
+
+    const link = within(row as HTMLElement).getByRole('button', { name: 'Stamdata' });
+    expect(link).toHaveAttribute('data-mineo-focusable-button', 'true');
+
+    act(() => link.focus());
+    await user.keyboard('{Enter}');
+    expect(onNavigate).toHaveBeenCalledTimes(1);
   });
 });

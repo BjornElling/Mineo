@@ -273,6 +273,41 @@ describe('tafKravGrafScene – buildWindowSamples', () => {
     expect(columnsAtFeb1).toHaveLength(0);
   });
 
+  it('viser et kort niveau mellem to positive niveauer, selv når det ikke rammer månedens midtpunkt (BB-460)', () => {
+    const document = {
+      model: { titel: 'x' },
+      unit: 'kalenderdag',
+      timeWindows: [win('2026-05-25', '2026-09-20')],
+      beregningsperiode: null,
+      skadeMarker: null,
+      series: [
+        {
+          id: 'dagpenge',
+          label: 'Dagpenge',
+          color: '#4F8A5B',
+          segments: [
+            { fra: toISODateString('2026-05-25'), til: toISODateString('2026-06-30'), amountOre: moneyOre(3_700) },
+            { fra: toISODateString('2026-07-01'), til: toISODateString('2026-07-03'), amountOre: moneyOre(10_000) },
+            { fra: toISODateString('2026-07-04'), til: toISODateString('2026-09-20'), amountOre: moneyOre(7_900) },
+          ],
+        },
+      ],
+    } as unknown as TafKravGrafDocument;
+    const layout = buildWindowLayout(document.timeWindows);
+    const mapDate = buildXMapper(layout);
+    const sample = buildWindowSamples(document, layout, mapDate)[0];
+    if (!sample) throw new Error('forventede sample');
+
+    const xFra = mapDate(toISODateString('2026-07-01')) ?? -1;
+    const xTil = mapDate(toISODateString('2026-07-03')) ?? -1;
+    const kortNiveau = sample.sampleX
+      .map((x, index) => ({ x, value: sample.valuesBySeries[0]?.[index] }))
+      .filter((column) => column.x >= xFra && column.x <= xTil);
+    expect(kortNiveau).toEqual([expect.objectContaining({ value: 10_000 })]);
+    // Og ingen kolonne på selve grænsedatoerne: kurvens bløde form er uændret.
+    expect(sample.sampleX.filter((x) => Math.abs(x - xFra) < 0.0001)).toHaveLength(0);
+  });
+
   it('tegner start og ophør som lodrette spring (før/efter-dublet på samme x)', () => {
     const document = {
       model: { titel: 'x' },

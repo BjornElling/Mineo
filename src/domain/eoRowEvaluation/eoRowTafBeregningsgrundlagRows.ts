@@ -3,6 +3,7 @@ import { isoToDanish, dateToISO, isISODateString, parseISODate } from '../../typ
 import { formatCurrency } from '../../utils/formatUtils';
 import { addDays } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import { presentIssuesForRow, resolveEoRowDisplay, summarizeFieldErrorsForEoRow } from './eoRowCommon';
 import { isNonEmptyString } from '../erstatningsopgoerelse/validation/eoDateRangeMessages';
 import type { EoRowModel, EoRowStatus } from './eoRowTypes';
@@ -16,7 +17,11 @@ import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/
 import { buildBeregningsperiodeRange, buildIncomeForRangesDetailed } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldIssues } from './eoRowShared';
 import { formatRowCount, formatRowMonths, calculateElapsedWholeMonths } from './eoRowShared';
-import { topLevelFieldIssue } from '../erstatningsopgoerelse/eoInputIssues';
+import {
+  selectLoenindkomstTableFieldIssues,
+  selectOffentligeYdelserFieldIssues,
+  topLevelFieldIssue,
+} from '../erstatningsopgoerelse/eoInputIssues';
 import { activeFieldIssue } from '../../inputCore/inputIssue';
 import { serializeFieldAddress } from '../../inputCore/fieldAddress';
 import type { FieldDescriptor } from '../../inputCore/fieldDescriptor';
@@ -52,11 +57,21 @@ import {
   resolveBeregningsperiodeIndkomstHuller,
 } from '../erstatningsopgoerelse/validation/beregningsperiodeIndkomstHuller';
 
-/** Har en lønindkomst- eller ydelsesrække en fejl, der holder den ude af beregningen? */
-const harFejlIIndkomstraekker = (values: ErstatningsopgoerelseValues): boolean =>
+/**
+ * Har en lønindkomst- eller ydelsesrække en fejl, der holder den ude af beregningen? Både en regelfejl i de
+ * afsluttede værdier og en afvist råtekst (fx `1/0`) tæller: den afviste celle læses som tom og forsvinder derfor
+ * fra beregningen præcis som en ugyldig række. Uden den sidste del blev en enkelt rød lønrække både meldt som
+ * rækkefejl og som «Ingen indkomst i beregningsperioden» (BB-442, M-58).
+ */
+const harFejlIIndkomstraekker = (
+  values: ErstatningsopgoerelseValues,
+  errors: ErstatningsopgoerelseFieldIssues,
+): boolean =>
   values.loenindkomstAnsaettelsesforhold.some((af) =>
     getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom).size > 0)
-  || getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []).size > 0;
+  || getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []).size > 0
+  || Object.keys(selectLoenindkomstTableFieldIssues(errors)).length > 0
+  || selectOffentligeYdelserFieldIssues(errors).length > 0;
 
 export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
@@ -160,7 +175,7 @@ export const buildEoTafBeregningsgrundlagRows = (
       return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as EoRowStatus };
     }
     if (periodeFra > periodeTil) {
-      return { displayValue: 'Fejl (Til-dato skal være efter fra-dato)', status: 'error' as EoRowStatus };
+      return { displayValue: `Fejl (${DATE_ORDER_ERROR_MESSAGE})`, status: 'error' as EoRowStatus };
     }
 
     const fraDanish = isoToDanish(periodeFra);
@@ -205,6 +220,9 @@ export const buildEoTafBeregningsgrundlagRows = (
     // Samlet negativ indkomst har sin egen navngivne fejl. Vis ikke også «Ingen indkomst», som ellers får den
     // synlige, men negative kilde til at ligne en manglende række (BB-333).
     if (hasIncome || beregningsperiodeIncome.negativeSources.length > 0) return null;
+    // En rød løn- eller ydelsesrække har sin egen linje med link til cellen. Indtil den er rettet, kan programmet
+    // ikke vide, om perioden reelt mangler indkomst (BB-442).
+    if (harFejlIIndkomstraekker(values, errors)) return null;
 
     const fraDanish = isoToDanish(beregningsperiodeRangeForIncome.fra);
     const tilDanish = isoToDanish(beregningsperiodeRangeForIncome.til);
@@ -259,7 +277,7 @@ export const buildEoTafBeregningsgrundlagRows = (
   // Har en lønrække eller ydelsesrække en rød fejl, meldes hullerne ikke: rækken indgår ikke, så dens måned
   // blev et «hul» – samme ene fejl som en linje mere (BB-291). Rækkens egen linje siger, hvad der skal rettes,
   // og et reelt hul meldes, så snart den er rettet.
-  const indkomstHuller = isBeregningsperiode && beregningsperiodeRangeOk && !harFejlIIndkomstraekker(values)
+  const indkomstHuller = isBeregningsperiode && beregningsperiodeRangeOk && !harFejlIIndkomstraekker(values, errors)
     ? resolveBeregningsperiodeIndkomstHuller(values)
     : [];
   if (indkomstHuller.length > 0) {

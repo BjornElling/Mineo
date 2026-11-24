@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Målgrænser:** `Container`, fælles felt-editor og grid-navigation
-**Senest verificeret mod kode:** 2026-11-11
+**Senest verificeret mod kode:** 2026-11-24
 
 ---
 
@@ -40,8 +40,8 @@ Alle tastatur-navigation skal:
 knapper, der bærer `data-mineo-focusable-button="true"` (`CONTAINER_FOCUSABLE_SELECTOR` i
 `gridCore/tableFocusHelpers.ts`). En knap uden markøren kan derfor kun betjenes med mus. Udenfor står de almindelige handlingsknapper
 (`FloatingActionButton`: Tilføj, Flyt op, Flyt ned, Slet), «Tilbage til toppen»
-(`ScrollToTopButton`), info-ikonet (`InfoTooltipIcon`) og de blå genvejslinks til Stamdata.
-En knap uden markøren er fortsat mus-kun.
+(`ScrollToTopButton`) og info-ikonet (`InfoTooltipIcon`). Eksterne links (`ExternalLink`) står også
+udenfor; de er ikke knapper og har `tabIndex={-1}` (M-08). En knap uden markøren er fortsat mus-kun.
 
 `PageTabs` og `SideTab` er den eksplicitte undtagelse: de er native tastaturkontroller og bærer
 `data-mineo-tab-navigation="true"`, men står stadig uden for Containerens indholds-inventar. På en
@@ -515,9 +515,14 @@ Det betyder:
 - Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
 - Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
 - `Indsæt dags dato`, `Find løntrin`, synlige dokumentdownload-knapper, `Vælg mappe` på Indstillinger,
-  Renteberegnings `Slet alle indtastninger` samt `MIT-licensen` og `Download hjælpeprogram` på Om-siden
-  har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med native knapadfærd
-  (`Enter` og mellemrum).
+  Renteberegnings `Slet alle indtastninger`, `MIT-licensen` og `Installér hjælpeprogram` på Om-siden,
+  reparationslinkene i «Fejl og advarsler»-boksene og `Stamdata`-linket i «Mangler (angiv i Stamdata)» /
+  «Ugyldig værdi (ret i Stamdata)» har dette opt-in. De skal kunne fokuseres med Tab og aktiveres med
+  native knapadfærd (`Enter` og mellemrum).
+- Et internt tekstlink, der udfører en handling (navigerer til et felt, åbner en dialog), renderes
+  altid som `TextLinkButton` (`components/inputs/TextLinkButton.tsx`), der fastlåser markøren og den
+  native knap (BB-463/BB-464). AST-reglen `a11y/text-link-button-single-source` forbyder at sammensætte
+  `icon-text-link` i hånden uden for den og link-primitiverne.
   Skjulte eller native deaktiverede knapper indgår ikke i sekvensen.
 - Rækkens `Slet rækken`-ikon står bevidst uden for navigationen.
 - **Opt-in'et er en forudsætning for `Enter`, ikke kun for Tab.** Uden markøren er knappen ikke i

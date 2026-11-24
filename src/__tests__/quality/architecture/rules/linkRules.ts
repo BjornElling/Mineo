@@ -12,6 +12,7 @@ import type { SourceEntry } from '../sourceGraph';
 
 const EXTERNAL_LINK_PATH = 'src/components/ui/ExternalLink.tsx';
 const INTERNAL_LINK_PATH = 'src/components/ui/InternalLink.tsx';
+const TEXT_LINK_BUTTON_PATH = 'src/components/inputs/TextLinkButton.tsx';
 
 /**
  * Den ENESTE fil der må sammensætte et eksternt web-link i hånden.
@@ -310,6 +311,125 @@ export const webLinkPolicyRule = defineRule({
     {
       relativePath: 'src/components/system/OtherSystemPage.tsx',
       code: '<ExternalLink href="https://minprocesrente.dk">minProcesrente.dk</ExternalLink>',
+    },
+  ],
+});
+
+/** Link-primitiverne, der lovligt bærer `icon-text-link` på en callsite: web-links er `<a>`, ikke knapper. */
+const WEB_LINK_PRIMITIVES: ReadonlySet<string> = new Set(['ExternalLink', 'InternalLink']);
+
+/** Bærer en `className`-værdi klassen `icon-text-link` i nogen af sine strengled (også i en ternary)? */
+const classNameHasTextLinkClass = (attribute: ts.JsxAttribute): boolean => {
+  const initializer = attribute.initializer;
+  if (!initializer) return false;
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (found) return;
+    if (
+      (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node)
+        || ts.isTemplateMiddle(node) || ts.isTemplateTail(node))
+      && /(^|\s)icon-text-link(\s|$)/.test(node.text)
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(initializer);
+  return found;
+};
+
+const findHandBuiltTextLinks = (entry: SourceEntry): readonly Finding[] => {
+  if (!/\.tsx$/.test(entry.relativePath)) return [];
+  if (entry.relativePath === TEXT_LINK_BUTTON_PATH) return [];
+
+  const findings: Finding[] = [];
+  const visit = (node: ts.Node): void => {
+    const opening = ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node) ? node : null;
+    if (opening !== null && !WEB_LINK_PRIMITIVES.has(jsxTagName(opening))) {
+      const className = jsxAttribute(opening, 'className');
+      if (className !== undefined && classNameHasTextLinkClass(className)) {
+        const { line, character } = entry.ast.getLineAndCharacterOfPosition(opening.getStart(entry.ast));
+        findings.push({
+          position: { line: line + 1, column: character + 1 },
+          message:
+            'Håndsammensat tekstlink (`icon-text-link`). Brug `TextLinkButton` til et link, der udfører en '
+            + 'handling, eller `ExternalLink`/`InternalLink` til et web-link. Et hjemmelavet tekstlink mangler '
+            + 'typisk `data-mineo-focusable-button` og kan da hverken nås med Tab eller aktiveres med Enter (BB-463/BB-464).',
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(entry.ast);
+  return findings;
+};
+
+/**
+ * Det interne tekstlink, der udfører en handling, har ÉN kilde: `TextLinkButton`.
+ *
+ * Reparationslinkene i «Fejl og advarsler» og Stamdata-linket var håndsammensatte `<Typography
+ * component="button">` og et `<span onClick>` uden Containerens opt-in-markør. De lå derfor uden for den
+ * app-ejede Tab-ring, og Enter på et fokuseret link flyttede fokus til sidens første felt i stedet for at
+ * følge linket (BB-463/BB-464, M-08). Reglen gør det umuligt at genindføre et sådant link: klassen
+ * `icon-text-link` må kun stå på link-primitiverne og inde i `TextLinkButton`.
+ */
+export const textLinkButtonSingleSourceRule = defineRule({
+  id: 'a11y/text-link-button-single-source',
+  description:
+    'Klassen icon-text-link må kun bruges af TextLinkButton (interne handlingslinks med Container-opt-in) '
+    + 'og af web-link-primitiverne ExternalLink/InternalLink.',
+  liveTarget: {
+    kind: 'precondition',
+    probe: (entry) => hasIdentifier(entry, 'TextLinkButton'),
+    rationale:
+      'reglen forudsætter, at TextLinkButton stadig er den fælles primitive for fejlboksenes reparationslinks og Stamdata-linket',
+    minimumMatches: 7,
+    requiredPaths: [
+      TEXT_LINK_BUTTON_PATH,
+      'src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx',
+      'src/components/layout/MirroredStamdataRow.tsx',
+      'src/components/pages/Mineo.tsx',
+    ],
+  },
+  find: findHandBuiltTextLinks,
+  violatingFixtures: [
+    {
+      relativePath: 'src/components/pages/FejlBoks.tsx',
+      code: '<Typography className="row--text icon-text-link" component="button" type="button" onClick={go}>Felt</Typography>',
+    },
+    // Markøren alene gør det ikke lovligt: den ene kilde er pointen, så næste link ikke kan glemme den.
+    {
+      relativePath: 'src/components/pages/FejlBoks.tsx',
+      code: '<Box component="button" type="button" data-mineo-focusable-button="true" className="icon-text-link" onClick={go}>Felt</Box>',
+    },
+    {
+      relativePath: 'src/components/layout/StamdataRaekke.tsx',
+      code: '<Typography component="span" className="icon-text-link" onClick={go}>Stamdata</Typography>',
+    },
+    {
+      relativePath: 'src/components/pages/FejlBoks.tsx',
+      code: '<span className={inline ? "icon-text-link" : "row--text icon-text-link"} onClick={go}>Felt</span>',
+    },
+  ],
+  cleanFixtures: [
+    {
+      relativePath: 'src/components/pages/FejlBoks.tsx',
+      code: '<TextLinkButton onClick={go}>Felt</TextLinkButton>',
+    },
+    {
+      relativePath: 'src/components/pages/satser/satserRows.tsx',
+      code: '<ExternalLink className="row--text icon-text-link" href="https://example.test">Lov</ExternalLink>',
+    },
+    {
+      relativePath: TEXT_LINK_BUTTON_PATH,
+      code: '<Typography component="button" type="button" data-mineo-focusable-button="true" className="row--text icon-text-link" onClick={onClick} />',
+    },
+    // Et beslægtet klassenavn er ikke klassen.
+    {
+      relativePath: 'src/components/pages/FejlBoks.tsx',
+      code: '<Box className="icon-text-row">Tekst</Box>',
     },
   ],
 });

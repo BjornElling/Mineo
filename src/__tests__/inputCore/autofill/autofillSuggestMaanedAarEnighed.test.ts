@@ -93,3 +93,21 @@ describe('måneds- og årsforslaget modsiger aldrig hinanden', () => {
     }
   });
 });
+
+describe('et spring i måned/år-serien giver intet månedsforslag (BB-441)', () => {
+  it('12/2010 og 1/2018 foreslår hverken måned eller år', () => {
+    const built = build([['12', '2010'], ['1', '2018']]);
+    expect(ghost(built, 0)).toBeNull();
+    expect(ghost(built, 1)).toBeNull();
+  });
+
+  it('uden et eneste årstal fortsætter måneden stadig alene', () => {
+    expect(ghost(build([['12', ''], ['1', '']]), 0)).toBe('2');
+  });
+
+  it('en sammenhængende serie over årsskiftet foreslår fortsat både måned og år', () => {
+    const built = build([['12', '2017'], ['1', '2018']]);
+    expect(ghost(built, 0)).toBe('2');
+    expect(ghost(built, 1)).toBe('2018');
+  });
+});

@@ -188,6 +188,7 @@ Brug det mest restriktive niveau, der dækker behovet:
 Kun inputinfrastrukturen må se aggregatets rå `sections` og rejected-input-map. `FormPersistenceContext`, sektionsselectors, `usePersistedForm`, `invalidDrafts`-/`fieldErrors`-API'erne og draft-hookene er SLETTET (2026-07-25) og må ikke genindføres – hverken under de gamle navne eller som en ny parallel inputmodel. Et AST-værn håndhæver det.
 
 ## Validering og fejl-UI
+- **Korte og præcise tekster til brugeren** (udviklerens krav 2026-11-24). Fejl, advarsler, tooltips, dialoger og forklarende tekster i dokumenter siger det nødvendige i så få ord som muligt – hvad der er galt, eller hvad der gælder, og evt. den konkrete værdi. Ingen omskrivninger, gentagelser eller indskudte forklaringer.
 - Ugyldigt input: rød kant + tooltip ved hover. Ingen inline-valideringstekst under felter.
 - Range/dato-tooltips skal indeholde konkrete grænser. Findes ingen gyldige datoer (min > max): tooltippen forklarer dette, viser begge grænser og navngiver de brugervendte inputs der producerer dem.
 - Talformattering i UI/tooltips følger danske konventioner.

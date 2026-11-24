@@ -45,6 +45,12 @@ import { EO_OPLYSNINGER_LOENTRIN_FINDER_KEY } from '../../shared/useLoentrinFind
 import { APP_ROUTES } from '../../../../../config/pageNavigation';
 import { EO_TAB_KEYS } from '../../../../../config/eoTabKeys';
 import { createEoBeregningsgrundlagCommitOverride } from '../../../../../domain/erstatningsopgoerelse/angivetLoenBeregningsgrundlagCommit';
+import ConfirmationDialog from '../../../../ui/ConfirmationDialog';
+import {
+  SFGG_ENHEDSSKIFT_CONFIRM_TEXT,
+  SFGG_ENHEDSSKIFT_DIALOG_TITLE,
+  useSfggEnhedsskiftBekraeftelse,
+} from '../../../../../domain/erstatningsopgoerelse/react/useSfggEnhedsskiftBekraeftelse';
 
 // route + tabKey er eksplicit navigation-metadata (§3.7); alle felter i denne sektion bor på EO-oplysningerfanen.
 const eoOplyLocation = (locationId: string) => ({
@@ -91,8 +97,24 @@ export default function IndtaegtFoerSkadenSection() {
 
   // Gruppefeltets input – fokus lander her, når et resultat fra løntrin-finderen er sat ind (BB-310).
   const gruppeInputRef = useRef<HTMLInputElement | null>(null);
+  // «Beregnes ud fra» bestemmer TAF-enheden og dermed enheden for sygeferiegodtgørelsens fraværsdage på
+  // Lønindkomst; et skift af et indtastet antal bekræftes først (BB-449).
+  const sfggEnhedsskift = useSfggEnhedsskiftBekraeftelse(values);
 
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) return null;
+
+  const beregnesUdFraField = eoBeregnesUdFraField.bind();
+  const beregnesUdFraLocation = eoOplyLocation('erstatningsopgoerelse.beregnesUdFra');
+  const beregnesUdFraCommit = sfggEnhedsskift.choiceOverride({
+    field: beregnesUdFraField,
+    location: beregnesUdFraLocation,
+    efter: (beregnesUdFra) => ({ ...values, beregnesUdFra }),
+    base: createEoBeregningsgrundlagCommitOverride({
+      field: beregnesUdFraField,
+      storeBededagField: eoAngivetLoenFields.beregnStoreBededagstillaeg.bind(),
+      location: beregnesUdFraLocation,
+    }),
+  });
 
   // Beregningsgrundlagets regler, der afhænger af perioden og de andre fradrag (overlap med en TAF-periode,
   // mindst én arbejdsdag tilbage), projekteres fra domænet og gives til feltet her (BB-258, BB-262, BB-264).
@@ -182,6 +204,7 @@ export default function IndtaegtFoerSkadenSection() {
   };
 
   return (
+      <>
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
         <Typography className="section-header">{indtaegtFoerSkadenSectionTitle}</Typography>
 
@@ -206,13 +229,9 @@ export default function IndtaegtFoerSkadenSection() {
               <Typography className="row--text">Beregnes ud fra</Typography>
               <Box className="row--label-right-hover__content">
                 <ChoiceField
-                  field={eoBeregnesUdFraField.bind()}
-                  location={eoOplyLocation('erstatningsopgoerelse.beregnesUdFra')}
-                  immediateCommitOverride={createEoBeregningsgrundlagCommitOverride({
-                    field: eoBeregnesUdFraField.bind(),
-                    storeBededagField: eoAngivetLoenFields.beregnStoreBededagstillaeg.bind(),
-                    location: eoOplyLocation('erstatningsopgoerelse.beregnesUdFra'),
-                  })}
+                  field={beregnesUdFraField}
+                  location={beregnesUdFraLocation}
+                  immediateCommitOverride={beregnesUdFraCommit}
                   name="beregnesUdFra"
                   width={200}
                   allowEmpty={false}
@@ -562,5 +581,12 @@ export default function IndtaegtFoerSkadenSection() {
           </>
         )}
       </ContentBox>
+      <ConfirmationDialog
+        {...sfggEnhedsskift.dialogProps}
+        title={SFGG_ENHEDSSKIFT_DIALOG_TITLE}
+        confirmText={SFGG_ENHEDSSKIFT_CONFIRM_TEXT}
+        cancelText="Annuller"
+      />
+      </>
   );
 }

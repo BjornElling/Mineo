@@ -28,6 +28,7 @@ import {
 import { type StandardLoenTableValidationResult } from '../standardLoen/standardLoenTableValidation';
 import {
   readStandardLoenTableRows,
+  resolveStandardLoenInvalidCellIssues,
   resolveStandardLoenTableValidationFromReader,
 } from '../standardLoen/standardLoenTableFieldSet';
 import { aarsloenStandardLoenFieldSet } from './aarsloenStandardLoenFieldSet';
@@ -308,6 +309,8 @@ export type AarsloenReaderProjection = Readonly<{
    * rødt med den konkrete grænse i tooltippen – og blokerer dokumentet gennem gaten.
    */
   feriedageFieldIssues: readonly FieldIssue[];
+  /** De ugyldige tabelcellers feltissues (`rowId:colKey`), så «Fejl og advarsler» kan sige årsagen (BB-440). */
+  tableCellIssues: ReadonlyMap<string, FieldIssue>;
   sourceToken: EvaluationSourceToken;
 }>;
 
@@ -426,6 +429,7 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     tableRowWarnings,
     tableCellWarnings,
     feriedageFieldIssues,
+    tableCellIssues: resolveStandardLoenInvalidCellIssues(aarsloenStandardLoenFieldSet, reader, tableValidation.errors),
     sourceToken: reader.sourceToken,
   });
 };

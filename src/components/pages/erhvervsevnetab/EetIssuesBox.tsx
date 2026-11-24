@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContentBox from '../../layout/ContentBox';
+import TextLinkButton from '../../inputs/TextLinkButton';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { type EetTabNavigation, resolveEetIssueNavigation } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { APP_ROUTES } from '../../../config/pageNavigation';
@@ -80,22 +81,9 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
                   <Typography className="row--text">
                     {navigation.pageName} {'→'}{' '}
                   </Typography>
-                  <Typography
-                    className="row--text icon-text-link"
-                    component="button"
-                    type="button"
-                    onClick={() => handleNavigate(navigation)}
-                    sx={{
-                      cursor: 'pointer',
-                      border: 0,
-                      background: 'transparent',
-                      p: 0,
-                      m: 0,
-                      font: 'inherit',
-                    }}
-                  >
+                  <TextLinkButton onClick={() => handleNavigate(navigation)}>
                     {navigation.sectionName}
-                  </Typography>
+                  </TextLinkButton>
                 </>
               )}
               {issue.severity === 'error' ? (

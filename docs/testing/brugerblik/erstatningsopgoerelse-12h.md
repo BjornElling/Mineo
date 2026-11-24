@@ -669,3 +669,67 @@ BB-337 er godkendt og gennemført 2026-10-24. BB-294's særskilt godkendte persi
 De oprindelige spørgsmål er afgjort 2026-10-19 i tredje runde efter anbefalingerne: sygeferiegodtgørelsen modregner negative lønsedler
 (BB-290), bilaget tager beregningsperiodens lønsedler med i opgørelse nr. 2, når udregningen vises (BB-293), og en række
 over ti gange de øvrige giver en gul advarsel (BB-297).
+
+## Fornyet gennemgang 2026-11-23
+
+- **Placering:** Erstatningsopgørelse → Lønindkomst → Indtægtsoplysninger på ansættelsesforholdet.
+- **Grundlag:** `9c0b359a`. Headless Chromium ved 1536 × 864, med fiktiv sag og login gennem formularen.
+- **Genoptagelse:** Det tværgående notat i `f56fc320` indeholdt allerede BB-439–BB-441. Alle tre er genprøvet på den aktuelle kode og har bevaret deres ID. BB-442–BB-443 er nye.
+
+### Fladen kort
+
+«Løn indtastes som» vælger mellem Måned (1–12 og år fra 2005 til indeværende år), Uge (gyldig ISO-uge inden for samme årsvindue og korrekt rækkefølge) og Dato (1. januar 2005 til årets udgang og korrekt rækkefølge). Begge ender må være ens ved Uge og Dato. Tabellen har «Løn», «Løn (2)», «Ikke-pensionsgivende løn» og «ATP og anden løn u. tillæg». «FP/FV/SH/SO/St.B.» og «Arb.g. Pension» beregnes ud fra satser eller indtastes i Beløb. «Samlet løn» er altid beregnet. Indtastede beløb kan være negative og har et loft på syv cifre før kommaet. En tom celle viser format eller enhed, og et forslag kan fremkomme ved fokus ud fra de to foregående rækker.
+
+Kolonneoverskrifterne sorterer, og «Slet rækken» vises i sidste celle ved den udfyldte række. En tom tabel viser to indtastningsrækker. En gyldig værdi, nul eller afvist råtekst kan gøre rækken til en selvstændig række. Hvis den sidste værdi ryddes, ophører rækken med at være selvstændig. Valg af lønperiode og tillægsform ligger på ansættelsesforholdet. Når en anden indtastningsform vælges, bevares de gyldige skjulte oplysninger til et eventuelt skift tilbage.
+
+Rækkens datoer bestemmer, om lønnen indgår i beregningsperioden, erstatningsperioden, begge eller ingen. Beløbene og satserne bruges i tabellens total, Beregning, EO-kontrol, Kontroltabel og bilaget «Lønindkomst». Lønnen kan også være grundlag for sygeferiegodtgørelse. Både de røde felter og de afledte perioderegler kan standse dokumentet. Et gyldigt delgrundlag og en rød række kan derfor godt findes samtidig.
+
+### BB-439 – To tal fra et regneark bliver til ét beløb
+
+- **Type og prioritet:** Edge case, Høj. **Beslutning:** Afventer udvikleren. **Mønster:** M-14.
+- **Prøve:** Indsæt `1200` og `200` med linjeskift eller tabulator imellem i «Løn». Feltet viser `1.200.200,00` uden advarsel. I den fiktive sag gav én løn på 1.200 kr. et TAF-krav på 16.200 kr. i PDF'en, mens indsættelsen gav 16.202.700 kr. Begge PDF'er kunne hentes. Tre beløb med decimalkomma gav kun det første beløb.
+- **Konsekvens:** Brugeren kan kopiere en række eller kolonne ved en fejl og få et helt nyt beløb ind i opgørelsen. Den eksisterende advarsel for store afvigelser har brug for flere sammenlignelige lønrækker og var tavs i sagen med én række.
+- **Forslag:** Vis «Indsæt ét beløb ad gangen», hvis det kopierede indeholder flere beløb adskilt med tabulator eller linjeskift. Bevar den tidligere værdi. Bevar også den almindelige indsættelse af én værdi, fx et beløb med tusindtalsmellemrum. Det er en afgrænset ændring af den aftalte indsættelsesadfærd.
+- **Systematik:** Bekræftet i Årslønsberegning, Offentlige ydelser og Renteberegning. Søgning i beløbsfelternes fælles indsættelse pegede også på enkeltfelterne på beregningssiderne og MinProcesrente. De blev ikke særskilt browserprøvet.
+
+### BB-440 – Division med nul får samme besked som et ufuldstændigt regnestykke
+
+- **Type og prioritet:** Fornuft, Mellem. **Beslutning:** Afventer udvikleren. **Mønster:** M-65.
+- **Prøve:** Afslut `1/0` i «Løn». Feltet bevarer udtrykket og bliver rødt med «Der er udfyldt en ugyldig værdi i feltet 'Løn'». Beregning siger «Løn – ugyldig værdi». `1/` giver samme feltbesked, mens `1/2` giver 0,50 kr.
+- **Forslag:** Vis «Beløbet kan ikke beregnes, fordi der divideres med 0» ved feltet og i fejloversigten. Bevar teksten, så brugeren kan rette regnestykket, og lad dokument og Gem vente på rettelsen.
+- **Systematik:** Samme generiske feltbesked blev målt i Årslønsberegning, «Ydelse» og Renteberegnings «Beløb». De øvrige regnefelter med fælles beløbsindtastning er kandidater fra koden.
+
+### BB-441 – Månedsforslaget springer over forskellen i årstal
+
+- **Type og prioritet:** Fejl, Lav. **Beslutning:** Afventer udvikleren. **Mønster:** M-66.
+- **Prøve:** Indtast december 2010 og januar 2018 i to på hinanden følgende rækker. Den næste måned foreslås som `2`, mens årsfeltet kun viser `åååå`. Ret december til 2017. Nu foreslås februar 2018 som ventet. Tab forlod den tomme celle uden indsættelse. Enter indsatte månedens forslag og bevarede fokus.
+- **Forslag:** Når begge år er udfyldt, må en måned række frem ud fra det samlede mønster for måned og år. Bevar månedsforslag ud fra månedsnumrene alene, hvis et år mangler.
+- **Systematik:** Målt på den fælles tabel i Årslønsberegning. Renteberegning og Offentlige ydelser har hele datoer i hver celle og bruger derfor ingen selvstændige måneds- og årskolonner som grundlag for et forslag.
+
+### BB-442 – Fejl i periodens eneste indtægt bliver også til «Ingen indkomst»
+
+- **Type og prioritet:** Fornuft, Mellem. **Beslutning:** Afventer udvikleren. **Mønster:** M-58.
+- **Prøve:** Vælg juli 2017 som beregningsperiode og lad julis eneste lønrække have `1/0` i «Løn». Beregning viser både den røde lønrækkes fejl og «Ingen indkomst i beregningsperioden (01-07-2017 - 31-07-2017)». Den anden linje sender brugeren til «Indtægt før skadedatoen». Med en anden gyldig lønrække i juli står kun feltfejlen. Med en gyldig række på 0 kr. står kun «Ingen indkomst». En samlet negativ løn udløser den særskilte negative fejl og ingen generisk «Ingen indkomst»-linje, som aftalt i BB-333.
+- **Forslag:** Når eneste indtægtsgrundlag i perioden har et rødt beløbsfelt, så vis den navngivne fejl, som brugeren kan rette. Bevar «Ingen indkomst» for en periode, hvor gyldige oplysninger viser, at der reelt mangler positiv indkomst.
+- **Systematik:** Samme følgefejl målt med «Ydelse» på den eneste ydelsesrække (dagpenge, juli 2017). De to kilder mødes i samme beregningsgrundlag. Sygeferiegodtgørelsens særskilte «Der er ingen løn i referenceperioden» blev fundet som kandidat i koden og hører til 12j. Dens reaktion på et rødt beløb er ikke browserprøvet her.
+
+### BB-443 – Datofejlen udelader, at én dag er nok
+
+- **Type og prioritet:** Fejl, Mellem. **Beslutning:** Afventer udvikleren. **Mønster:** M-42.
+- **Prøve:** Vælg Dato og skriv Fra 01-07-2017 og Til 30-06-2017. Begge felter bliver røde. Ved Fra står «Fra-dato skal være før til-dato (30-06-2017)», og ved Til «Til-dato skal være efter fra-dato (01-07-2017)». Begge datoer kan faktisk være 01-07-2017. Ugetabellen forklarer allerede, at enderne må ligge i samme uge.
+- **Forslag:** Skriv «Fra-dato skal være på eller før til-dato» og «Til-dato skal være på eller efter fra-dato», med modpartens dato som i dag. Brug den formulering de steder, hvor samme dato er tilladt.
+- **Systematik:** Bekræftet i Årsløn og Offentlige ydelser. Samme fejltekst er tidligere målt i svie/smerte og ved fravær under Beregningsgrundlag uden særskilt afgørelse om lighedsformuleringen. Den fælles regel bruges også til opgørelses-, TAF-, ferie- og referenceperioder. Andre datoafhængigheder, fx en frist mod en særskilt skæringsdato, har andre regler.
+
+### Afprøvet uden nye fund
+
+- Måned 0 og 13 var røde, 1 og 12 gyldige. År 2005 og 2026 virkede, også med indtastning af 26. 2004 og 2027 gav det konkrete årsspænd. Uge 53/2025 gav «Uge skal være mellem 1 og 52 i 2025». Ved omvendte uger pegede begge celler på den anden uge. Skuddag, samme dag og yderdatoer blev prøvet.
+- Én tom række med afvist beløb blev en række med sletteknap. Delete fjernede den afviste tekst og gjorde rækken til tom indtastningsrække igen. Nul, positive og negative beløb blev prøvet i lønkolonnerne. Efter syv cifre tog almindelig tastning ikke imod flere cifre. Dubletten gav gul advarsel. Med færre end tre sammenlignelige lønrækker kom ingen advarsel for det store beløb som aftalt i BB-297.
+- Escape gendannede forrige løn, faneskift afsluttede den åbne indtastning, Delete ryddede, og Ctrl+Z/Ctrl+Y gendannede eller gentog rydning og rækkesletning. Sortering efter år blev prøvet. To ansættelsesforhold kunne have forskellige beløb i første række.
+- Måned → Uge → Dato → Måned bevarede gyldige perioder og beløb. Procent → Beløb → Procent → Beløb bevarede de to indtastede tillægsbeløb og skiftede «Samlet løn» mellem 1.350 kr. og 1.405 kr. i prøven.
+- PDF'en viste både lønbeløb og det ændrede krav i BB-439. Word viste 1.200 kr. løn, 1.405 kr. samlet løn og 16.860 kr. opgjort på løngrundlaget i Beløb-prøven. Kontroltabellens sammentælling viste 1.405 kr. for samme løngrundlag. EO-kontrol kunne åbnes og blev ikke afstemt linje for linje.
+- Gem/Hent via browserens almindelige filinput gendannede løn, begge beløbstillæg, den anden lønrække og Beløb-visningen. Efter afvist `1/0` forklarede Gem, at det røde felt skulle rettes. Den afviste tekst overlevede genindlæsning. Den tidligere fil erstattede først sagen efter klik på «Erstat».
+
+### Dækningshuller
+
+- Indsættelsesprøverne brugte almindelige tekstdata i en browser-pastehændelse. Udklip fra konkrete Excel-/Word-versioner, andre browsermotorer og den native filvælger blev ikke prøvet.
+- Den aktuelle fils Gem/Hent blev målt. En ældre `.eo`-fil, opgørelse nr. 2, delvise lønperioder i Word, fanebaggrund, mørkt tema og meget store tabeller blev ikke gentaget i denne runde. Den oprindelige gennemgang ovenfor beskriver de tidligere prøver.

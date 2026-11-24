@@ -101,8 +101,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
     expect(fra?.reason).toBe('rule');
     expect(til?.reason).toBe('rule');
     // Hver tooltip navngiver den MODGÅENDE dato, ikke feltets egen.
-    expect(fra?.message).toBe('Fra-dato skal være før til-dato (01-01-2025)');
-    expect(til?.message).toBe('Til-dato skal være efter fra-dato (01-01-2026)');
+    expect(fra?.message).toBe('Fra-dato skal være på eller før til-dato (01-01-2025)');
+    expect(til?.message).toBe('Til-dato skal være på eller efter fra-dato (01-01-2026)');
     // `rule` vises ORDRET i tooltippet (§4) – ellers ville netop modpartsdatoen forsvinde.
     expect(resolveFieldIssueTooltip(fra!)).toBe(fra!.message);
     expect(resolveFieldIssueTooltip(til!)).toBe(til!.message);
@@ -164,8 +164,8 @@ describe('EO dato-par: kronologien er en strukturel feltfejl på begge felter', 
 
     const fejlFra = issueAt(evaluation, eoOffentligeYdelserFraDatoField.bind('r-fejl'));
     const fejlTil = issueAt(evaluation, eoOffentligeYdelserTilDatoField.bind('r-fejl'));
-    expect(fejlFra?.message).toBe('Fra-dato skal være før til-dato (06-02-2026)');
-    expect(fejlTil?.message).toBe('Til-dato skal være efter fra-dato (26-02-2026)');
+    expect(fejlFra?.message).toBe('Fra-dato skal være på eller før til-dato (06-02-2026)');
+    expect(fejlTil?.message).toBe('Til-dato skal være på eller efter fra-dato (26-02-2026)');
     // Adressen bærer rækken: en fejl i én række må aldrig farve en anden rækkes celle.
     expect(fejlFra?.field.address.path.some(
       (s) => s.kind === 'entity' && s.entityId === 'r-fejl'

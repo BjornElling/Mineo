@@ -133,6 +133,7 @@ export function useErstatningsopgoerelseViewModel() {
     stamdataValues: projection.stamdataValues,
     eoSnapshot: projection.snapshot,
     midlertidigtEetToggleWarning,
+    midlertidigtEetSkiftGiverFradrag: projection.midlertidigtEetSkiftGiverFradrag,
     manuelReguleringInputErrors,
     indkomstBeregningKanSkjules,
     handleNavigateToTabtArbejdsfortjeneste,

@@ -238,10 +238,10 @@ describe('produktdescriptors – dato-, periode- og relevansregler', () => {
     input = dispatch(input, settleField(aarsloenTableCol1DagField.bind('r1'), '01-01-2025'));
     evaluation = evaluate(input);
     expect(evaluation.reader.read(aarsloenTableCol0DagField.bind('r1'))).toMatchObject({
-      status: 'error', issue: { message: 'Fra-dato skal være før til-dato (01-01-2025)' },
+      status: 'error', issue: { message: 'Fra-dato skal være på eller før til-dato (01-01-2025)' },
     });
     expect(evaluation.reader.read(aarsloenTableCol1DagField.bind('r1'))).toMatchObject({
-      status: 'error', issue: { message: 'Til-dato skal være efter fra-dato (01-06-2025)' },
+      status: 'error', issue: { message: 'Til-dato skal være på eller efter fra-dato (01-06-2025)' },
     });
   });
 

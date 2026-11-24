@@ -53,6 +53,8 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   alleredeBetaltOre: MoneyOre;
   sfggVisningsperiode: readonly IsoRange[];
   sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
+  /** Sat, når satsen reguleres fra reguleringsdatoen i stedet for referenceperiodens slutdato (BB-453). */
+  sfggReguleringsdatoForReference: ISODateString | null;
   sfggReferencesats: SfggReferencesatsCalculable;
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
   feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;

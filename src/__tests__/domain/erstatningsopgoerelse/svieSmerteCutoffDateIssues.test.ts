@@ -200,7 +200,7 @@ describe('collectSvieSmerteCutoffDateIssues', () => {
 
     expect(evaluation).toEqual({
       kind: 'error',
-      message: 'Til-dato skal være efter fra-dato',
+      message: 'Til-dato skal være på eller efter fra-dato',
       field: 'til',
     });
   });

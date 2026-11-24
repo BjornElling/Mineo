@@ -258,8 +258,10 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
 
       expect(projection).toEqual({
         kind: 'blocked',
-        message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er indkomstsegmenter i TAF-perioden.',
+        // Tilstanden er konkret, så knappen viser beskeden frem for «Indtastning mangler» (BB-461).
+        message: 'Der er ingen indtægter at vise i grafen',
         invariants: [],
+        specific: true,
       });
     } finally {
       if (originalIncome) incomeMock.mockImplementation(originalIncome);

@@ -11,6 +11,10 @@ import AnsaettelsesforholdCard from './loenindkomst/AnsaettelsesforholdCard';
 import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import type { FieldIssueSet } from '../../../inputCore/inputIssue';
 import { erTabtArbejdsfortjenesteSektionAktiv } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import {
+  SFGG_ENHEDSSKIFT_CONFIRM_TEXT,
+  SFGG_ENHEDSSKIFT_DIALOG_TITLE,
+} from '../../../domain/erstatningsopgoerelse/react/useSfggEnhedsskiftBekraeftelse';
 
 type Props = {
   eoValues: ErstatningsopgoerelseValues;
@@ -47,6 +51,7 @@ const LoenindkomstTab = React.memo(({
     addAnsaettelsesforholdGate,
     handleAdd,
     handleDeleteConfirm,
+    sfggEnhedsskift,
   } = vm;
 
   const angivetLoenNote = eoValues.beregnesUdFra === 'Angivet månedsløn'
@@ -149,13 +154,13 @@ const LoenindkomstTab = React.memo(({
         dato={loentrinFinder.dato}
         setDato={loentrinFinder.setDato}
         errors={loentrinFinder.errors}
-        setErrors={loentrinFinder.setErrors}
         onAmountFieldError={loentrinFinder.handleAmountFieldError}
         onDateFieldError={loentrinFinder.handleDateFieldError}
         results={loentrinFinder.results}
         satsDato={loentrinFinder.satsDato}
         erNyesteSatser={loentrinFinder.erNyesteSatser}
         kanIndsaette={loentrinFinder.kanIndsaette}
+        indsaetSpaerretGrund={loentrinFinder.indsaetSpaerretGrund}
         onInsertResult={loentrinFinder.insertResult}
         headingId={loentrinFinder.headingId}
         overenskomstLabel={loentrinFinder.overenskomstLabel}
@@ -163,6 +168,14 @@ const LoenindkomstTab = React.memo(({
         triggerRef={loentrinFinder.activeTriggerRef}
         onClose={loentrinFinder.closeFinder}
         onCalculate={loentrinFinder.handleCalculate}
+      />
+
+      {/* Et valg på et kort kan skifte fraværsdagenes enhed på alle kort (BB-449). */}
+      <ConfirmationDialog
+        {...sfggEnhedsskift.dialogProps}
+        title={SFGG_ENHEDSSKIFT_DIALOG_TITLE}
+        confirmText={SFGG_ENHEDSSKIFT_CONFIRM_TEXT}
+        cancelText="Annuller"
       />
 
       {/* Slet-dialog */}

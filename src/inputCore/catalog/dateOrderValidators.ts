@@ -33,8 +33,8 @@ export const buildDateOrderMessage = (
 ): string => {
   const counterpartText = isoToDanish(counterpart) ?? counterpart;
   return role === 'fra'
-    ? `Fra-dato skal være før til-dato (${counterpartText})`
-    : `Til-dato skal være efter fra-dato (${counterpartText})`;
+    ? `Fra-dato skal være på eller før til-dato (${counterpartText})`
+    : `Til-dato skal være på eller efter fra-dato (${counterpartText})`;
 };
 
 /**

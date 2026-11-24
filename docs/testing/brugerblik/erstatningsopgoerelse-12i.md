@@ -745,3 +745,138 @@ Der blev kørt seks browserforløb i den oprindelige gennemgang; matricen gør i
 ## Åbne spørgsmål
 
 Ingen. Fundenes egne valg og de fire tillægsspørgsmål (BB-301, BB-306, BB-312, BB-313) er afgjort 2026-10-23.
+
+## Fornyet gennemgang 2026-11-23
+
+Afprøvet mod `9c0b359a` i Chrome og Chromium headless ved 1536×864, med en ekstra visuel
+prøve ved 1244×620. Grundsagen er den fiktive 3.14-fil fra reguleringsregressionen. Opgørelse
+nr. 3 dækker 25-05-2026 til 20-09-2026, med beregningsperiodens slutdato 30-06-2025 og
+skadedato 11-07-2025. Den angivne månedsløn i browserprøverne var 31.000 kr.
+
+### BB-444 – Løntrin-finderen indsætter stadig resultatet fra den tidligere dato
+
+- **Type:** Fejl. **Rækkevidde:** Mønster M-67. **Prioritet:** Høj. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det** Åbn «Find løntrin» på et Lønindkomst-kort med KL-overenskomsten.
+  Vælg «Månedsløn», angiv 31.000 kr. og dato 30-06-2025, og klik «Beregn». Ret derefter datoen
+  til 01-06-2018, afslut feltet med Enter, og klik på det øverste resultat.
+- **Det sker** De fem tidligere resultater står stadig under den nye dato, og klikket indsætter
+  løntrin 28, gruppe 2. Efter et nyt klik på «Beregn» er første resultat trin 38, gruppe 4.
+  På «EO oplysninger» kunne de tidligere resultater også indsættes efter indtastning af beløbet
+  `1/0`. Med datoen 31-02-2025 forblev fem resultater indsættelige, indtil «Beregn» blev trykket igen.
+- **Det er uhensigtsmæssigt fordi** Brugeren kan tro, at resultatlisten svarer til den viste dato
+  og løn. Det indsatte løntrin bruges derefter til at regulere lønnen.
+- **Bedre ville være** Fjern resultaterne, når en ny dato, løn eller ansættelsestype afsluttes, eller
+  når en ny indtastning afvises. Vis «Beregn igen for at se løntrin for de ændrede oplysninger».
+- **Andre steder** Begge indgange og RLTN's fælles resultatliste gennemgået. Sygedagpengehjælperen på
+  «Offentlige ydelser» spærrede indsættelse ved en ugyldig eller omvendt periode og åbnede igen efter rettelse.
+
+### BB-445 – Et timelønsopslag indsættes under «Månedsløn»
+
+- **Type:** Fornuft. **Rækkevidde:** Mønster M-67. **Prioritet:** Mellem. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det** På «EO oplysninger» vælg KL-overenskomsten med «Ansættelse» sat til
+  «Månedsløn». Åbn «Find løntrin», vælg «Timeløn», angiv 220 kr. og dato 11-07-2025, klik «Beregn»
+  og klik på første resultat.
+- **Det sker** Trin 37, gruppe 0 indsættes fra resultatet på 219,88 kr. pr. time. Hovedfeltet
+  «Ansættelse» står stadig på «Månedsløn». Fokus går til «Gruppe», og forskellen nævnes ingen steder.
+- **Det er uhensigtsmæssigt fordi** Brugeren kan opfatte den indsatte lønindplacering som en
+  indplacering med den løntype, han valgte under opslaget. Det er en anden løntype, der står i sagen.
+- **Bedre ville være** Når løntyperne er forskellige, skal resultatet tilbyde den tydelige handling
+  «Skift til timeløn og indsæt løntrin og gruppe». Lad handlingen kunne fortrydes i ét trin.
+- **Andre steder** Lønindkomst bruger samme indsættelse. Årslønsberegning blev undersøgt som søsterflade
+  med overenskomstfelt og har ingen tilsvarende løntrinshjælper. Ingen variant uden for finderen fundet.
+
+### BB-446 – En forkert enhed i anciennitetstillæg kan føre til et krav i hundredmillionklassen uden advarsel
+
+- **Type:** Edge case. **Rækkevidde:** Mønster M-05. **Prioritet:** Høj. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det** På «EO oplysninger» med angivet månedsløn på 31.000 kr. og
+  KL-overenskomst, trin 37, gruppe 0, slå «Anciennitetstillæg» til fra 01-07-2026. Udskift
+  1.800 kr. pr. måned med 1.000.000 kr. pr. time.
+- **Det sker** Beløbet accepteres uden gul ring eller linje i «Fejl og advarsler». PDF'en
+  omregner tillægget til 160.330.000,00 kr. pr. måned. Kravet på tabt arbejdsfortjeneste stiger
+  fra 50.662,73 kr. til 375.998.748,33 kr. På Lønindkomst med trin 28, gruppe 2 forblev dokumentet
+  også hentbart, uden besked om det indtastede tillæg.
+- **Det er uhensigtsmæssigt fordi** Et forkert antal nuller eller et fejlvalg af «Time» kan få en
+  meget stor konsekvens i et dokument, som programmet tilbyder uden at bede brugeren kontrollere beløbet.
+- **Bedre ville være** Vis en gul advarsel ved satsen og i «Fejl og advarsler», når tillægget omregnet
+  til samme enhed overstiger grundlønnen. Vis de to sammenlignelige beløb og bed brugeren kontrollere
+  sats og enhed. Bevar muligheden for at hente dokumentet.
+- **Andre steder** En grundløn på 320.000 kr. efter 31.000 kr. i «Manuelt angivet» gav en gul
+  advarsel. «Evt. forhøjet grundløn udover løntrin» advarede ved 500 kr. pr. time på begge indgange,
+  og ved 1.000.000 kr. pr. time i den isolerede prøve på «EO oplysninger».
+
+### BB-447 – En afvist anciennitetssats meldes også som manglende
+
+- **Type:** Fornuft. **Rækkevidde:** Mønster M-58 og M-65. **Prioritet:** Mellem. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det** Slå anciennitetstillæg til under Overenskomst. Indtast `1/0` i
+  «Sats per måned» og gå til «Beregning».
+- **Det sker** Der står både «Anciennitetstillægssats: Der er udfyldt en ugyldig værdi i feltet
+  'Anciennitetstillægssats'» og «Anciennitetstillæg er slået til, men satsen mangler». Begge beskeder
+  vises også på Lønindkomst.
+- **Det er uhensigtsmæssigt fordi** Brugeren har ét felt at rette, men får to linjer, der beskriver
+  indtastningen på hver sin måde. Feltets synlige navn er «Sats per måned» eller «Sats per time».
+- **Bedre ville være** Vis én fejl med feltets synlige navn og forklar den konkrete årsag, fx
+  «Sats per måned: Kan ikke dividere med nul». Behold beskeden om en manglende sats, når feltet er tomt.
+- **Andre steder** En afvist «Grundløn» i den manuelle tabel gav én formatfejl. BB-440 dokumenterer den
+  beslægtede generiske fejlbesked ved division med nul i løntabeller.
+
+### BB-448 – Alle løntrin-resultater har samme navn for skærmlæsere
+
+- **Type:** Fejl. **Rækkevidde:** Lokal. **Prioritet:** Lav. **Beslutning:** Afventer udvikleren.
+- **Sådan fremprovokeres det** Slå 31.000 kr. op som månedsløn under KL-overenskomsten. Aflæs de
+  fem resultatknappers navne i browserens tilgængelighedstræ.
+- **Det sker** Alle fem hedder «Indsæt i programmet». Resultaterne har synlig tekst, fx
+  «Løntrin 28, gruppe 2» og «30.914,42 kr.», men det indgår ikke i knappens tilgængelige navn.
+  Det samme er målt via «EO oplysninger» og ved opslag i RLTN.
+- **Det er uhensigtsmæssigt fordi** Brugeren kan ikke skelne trinnene ved at navigere fra knap til
+  knap eller bruge en liste over knapper.
+- **Bedre ville være** Brug løntrin, gruppe og beløb som del af knappens navn, fx «Indsæt løntrin
+  28, gruppe 2, 30.914,42 kr.». Bevar den korte hjælpetekst ved musen.
+- **Andre steder** Gennemgået sammen med øvrige indsæt-handlinger. Sygedagpengehjælperen har én
+  indsætknap efter de to datofelter. Der er ikke fundet en anden liste med handlinger af denne art.
+
+### Inventar og kontrol af grænser
+
+| Del | Indtastning, grænse og virkning |
+|---|---|
+| Lønudvikling | Tomt valg eller én af syv former. Statistik har tre modeller, KRL fire tabeller, KL-lønaftaler og Ingen ingen underindstilling. Dækning og satsdokument vises efter kildevalg. |
+| Overenskomst | Lønindkomst genbruger arbejdsstedets overenskomst, EO oplysninger har egen filtreret vælger. Offentlige aftaler viser Månedsløn/Timeløn, trin 1–55, gruppe 0–4, finder og valgfrit kronetillæg pr. Time/Måned. Trin 56 og gruppe 5 gav hver sin fejl. Kronetillæg har nedre grænse 0 og almindeligt beløbsloft for indtastning. |
+| Anciennitet | Slået fra eller til. Ved til kræves dato og sats, med Time/Måned som særskilt valg. Dato skal være efter reguleringsdatoen og advarer efter TAF-perioden. Ingen øvre rimelighedsgrænse for satsen blev målt. |
+| Manuelt angivet | Valgfrit navn, 60 tegn i koden. Låst basisdato, positiv grundløn, feriegodtgørelse 0–25 %, øvrige satser 0–100 %. Ved procenttilstand spejler basisrækken procentfelter på Lønindkomst. Dato, rækker, sletteknap og feltbeskeder er set i browseren. |
+| Manuel procentsats | Låst basisdato og 0 % i første række. Efterfølgende dato skal ligge senere end basis og være unik. Sats 0–100 %. Indeks og akkumuleret procent er læsefelter. Tom indtastningsrække tæller ikke. Delvist udfyldt række giver en konkret mangel. |
+| Find løntrin | Midlertidig løntype, beløb og dato, «Beregn», fem resultater i de målte opslag og indsættelse direkte til trin/gruppe. Datoen starter ved sagens reguleringsdato og huskes sammen med beløb og løntype pr. indgang. Nyeste tabel navngives ved dato efter satsdækningen. |
+| Uddata | Reguleringen påvirker TAF, kontrol og opgørelsens «Forventet indkomst» og «Regulering». Den aktive kilde bestemmer satsdokumentet. Komprimering fra opgørelse nr. 2 kan skjule et gyldigt grundlag, som fortsat anvendes. |
+
+### Afprøvet uden yderligere fund
+
+- Alle syv former åbnet på Lønindkomst. De tre statistikmodeller viste hver sin dækning, og ILON12
+  viste ophørsnoten. De fire KRL-valg blev åbnet. PDF for Regulering, KRL og KL-lønaftaler kunne hentes,
+  og KRL markerede «SHK (regioner)» som anvendt.
+- «Manuel procentsats» uden data gav en konkret mangel. Ved 101 % blev feltgrænsen vist.
+  10-07-2025 og 11-07-2025 blev afvist mod basisdatoen 11-07-2025. 12-07-2025 blev godtaget,
+  og en anden række med samme dato blev afvist. Ved 12,50 % blev der vist en gul advarsel.
+- «Manuelt angivet» meldte 0 kr. på basisrækken, manglende dato på en delvis række og grænsen
+  ved 25,01 % ferie. Sletning og fortrydelse gendannede 32.000 kr. Skift til dagsløn og tilbage
+  beholdt den manuelle form og dens rækker.
+- Escape fortrød en åben procentændring. Fortryd/gentag virkede efter skift af reguleringsform.
+  Den skjulte anciennitetsfejl forsvandt fra beregningsfanen ved skift til «Ingen».
+- To arbejdssteder holdt finderens beløb adskilt og gav fokus tilbage til den rette knap. Tab
+  flyttede fokus fra ansættelse til beløb og dato. KL og RLTN gav resultater, og Læreroverenskomsten
+  kunne vælges og viste finderen. Erhvervssygdom viste «anmeldelsesdatoen» i indkomstafsnittet.
+- Den ældre manuelle grundsag viste 2,28 % i forventet indkomst og bilag. I procentsatsen viste
+  rækken 115,31 og +15,31 %. PDF og Word viste 12,50 % indtil 30-06-2026 og 15,31 % efterfølgende.
+  F5 bevarede en ændring til 3,50 %, og genindlæsning af den gemte .eo-fil gendannede 2,50 %.
+- Ved 1244×620 var dokumentets bredde lig viewporten. De instrumenterede Chrome-forløb gav ingen
+  `console.error`, ukontrollerede sidefejl eller eksterne forespørgsler.
+
+### Dækningshuller
+
+- Edge, Firefox, WebKit, mørkt tema, native filvælgere og en fysisk skærmlæser blev ikke afprøvet.
+  Tilgængelighedsnavnene er målt i browserens træ.
+- Der er ikke lavet fulde dokumentrundture for hver statistikmodel, privat overenskomst og
+  Læreroverenskomsten. Word blev læst som dokumenttekst. PDF-bilag og skærm er visuelt inspiceret i udsnit.
+- Lange reguleringstabeller, alle paste-varianter og alle mulige satsdatoer er ikke kørt.
+- Lokal evidens findes i `test-results/brugerblik-12i-20261123/`.
+
+### Åbne spørgsmål
+
+Se de fem konkrete forslag under BB-444–BB-448.

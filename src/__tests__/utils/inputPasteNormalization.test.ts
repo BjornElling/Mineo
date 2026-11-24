@@ -7,6 +7,7 @@ import {
   normalizePercentPaste,
   normalizeWeekPaste,
   normalizeYearPaste,
+  takeFirstPastedEntry,
 } from '../../utils/inputPasteNormalization';
 import { yearAdmission } from '../../components/inputs/draftAdmission';
 import { spliceDraftWithPaste } from '../../inputCore/react/pasteSplice';
@@ -179,5 +180,26 @@ describe('inputPasteNormalization', () => {
       const intoFilledField = spliceDraftWithPaste('2015', text, 0, 4, 4, yearAdmission()).draft;
       expect(intoFilledField, `paste af ${JSON.stringify(text)}`).toBe(intoEmptyField);
     }
+  });
+});
+
+describe('takeFirstPastedEntry (BB-439)', () => {
+  it('slutter ved første tabulator eller linjeskift, som Tab og Enter afslutter en tastet indtastning', () => {
+    expect(takeFirstPastedEntry('1200\t200')).toBe('1200');
+    expect(takeFirstPastedEntry('1200\n200')).toBe('1200');
+    expect(takeFirstPastedEntry('1200\r\n200')).toBe('1200');
+    expect(takeFirstPastedEntry('1200\r200')).toBe('1200');
+  });
+
+  it('fjerner adskillelser før første synlige tegn og fører øvrige tegn uændret videre', () => {
+    expect(takeFirstPastedEntry('1200\r\n')).toBe('1200');
+    expect(takeFirstPastedEntry('\r\n1200')).toBe('1200');
+    // Mellemrum er familiens tegnfilters sag, ikke denne regels.
+    expect(takeFirstPastedEntry('\r\n \t1 200,50\n9')).toBe(' 1 200,50');
+  });
+
+  it('giver ingen adskillelser tilbage, når teksten kun består af dem', () => {
+    expect(takeFirstPastedEntry('\r\n\t')).toBe('');
+    expect(takeFirstPastedEntry('')).toBe('');
   });
 });

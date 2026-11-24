@@ -43,6 +43,7 @@ import {
   buildSfggGrossOre,
   buildYearAllocationsForGroupedSegment,
   resolveSfggSegmentBoundaryStarts,
+  resolveSfggReguleringFraDato,
   resolveSfggSegmentRateForDate,
   sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner,
   type EmploymentSfggCalculator,
@@ -282,6 +283,7 @@ export const planSfggForAnsaettelsesforhold = (
       alleredeBetaltOre: zeroMoneyOre(),
       sfggVisningsperiode,
       sfggReferenceperiode: null,
+      sfggReguleringsdatoForReference: null,
       sfggReferencesats: notCalculableSfggReferencesats(
         sfggDayBasis === 'kalenderdage' ? 'no_calendar_days' : 'no_workdays'
       ),
@@ -414,6 +416,12 @@ export const planSfggForAnsaettelsesforhold = (
       };
     });
 
+    const reguleringFra = reguleringOpslag !== undefined && sfggBaseRate.sfggReferenceperiode !== null
+      && sfggKildeUsesReferenceperiode(sfggSource.kind)
+      ? resolveSfggReguleringFraDato(reguleringOpslag, sfggBaseRate.sfggReferenceperiode.til)
+      : undefined;
+    const sfggReguleringsdatoForReference = reguleringFra?.fraReguleringsdato === true ? reguleringFra.dato : null;
+
     const feriepengeModtagetOre = sumMoneyOre(
       segments.map((segment) => segment.feriepengeAfSygeloenOre)
     );
@@ -445,6 +453,7 @@ export const planSfggForAnsaettelsesforhold = (
       alleredeBetaltOre: alreadyPaidOre,
       sfggVisningsperiode,
       sfggReferenceperiode: sfggBaseRate.sfggReferenceperiode,
+      sfggReguleringsdatoForReference,
       sfggReferencesats: sfggBaseRate.sfggReferencesatsOre,
       sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
       feriepengeModtagetFormula,

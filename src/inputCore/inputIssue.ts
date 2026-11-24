@@ -162,6 +162,18 @@ export const resolveFieldIssueTooltip = (issue: FieldIssue): string => {
 };
 
 /**
+ * Feltfejlens tekst i en oversigtslinje, der selv navngiver feltet («Løn – …»): tooltippens konkrete tekst, eller
+ * «ugyldig værdi», når tooltippen kun ville sige «Fejl i indtastning».
+ *
+ * Ét sted for EO's og Årslønnens tabellinjer, så en konkret årsag – fx division med 0 (BB-440) – når frem i alle
+ * oversigter frem for kun i den ene.
+ */
+export const resolveFieldIssueSummaryText = (issue: FieldIssue): string => {
+  const tooltip = resolveFieldIssueTooltip(issue);
+  return tooltip === FIELD_ISSUE_GENERIC_TOOLTIP ? 'ugyldig værdi' : tooltip;
+};
+
+/**
  * Immutabelt feltissue-snapshot: højst ét aktivt rødt issue pr. felt (§1.8). Bygges af feltvalidatorerne
  * fra afsluttet input; mounted komponenter rapporterer aldrig ind i det (§1.8/§3.4).
  */

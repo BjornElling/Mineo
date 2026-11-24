@@ -27,13 +27,12 @@ import { isoToDanish } from '../../../../types/branded';
 export type LoentrinFinderOverlayProps = Readonly<{
   open: boolean;
   ansaettelse: OffentligLoenTypeLabel;
-  setAnsaettelse: React.Dispatch<React.SetStateAction<OffentligLoenTypeLabel>>;
+  setAnsaettelse: (next: OffentligLoenTypeLabel) => void;
   beloeb: AmountValue | undefined;
-  setBeloeb: React.Dispatch<React.SetStateAction<AmountValue | undefined>>;
+  setBeloeb: (next: AmountValue | undefined) => void;
   dato: ISODateString | undefined;
-  setDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
+  setDato: (next: ISODateString | undefined) => void;
   errors: LoentrinFinderErrors;
-  setErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
   onAmountFieldError: (errorMsg: string | undefined) => void;
   onDateFieldError: (errorMsg: string | undefined) => void;
   results: ReadonlyArray<LoentrinFinderResult>;
@@ -42,6 +41,8 @@ export type LoentrinFinderOverlayProps = Readonly<{
   erNyesteSatser: boolean;
   /** Kan et resultat sættes ind i fladen? Uden indsætningsmål er linjerne kun til læsning. */
   kanIndsaette: boolean;
+  /** Hvorfor resultaterne ikke kan sættes ind (anden løntype end sagens, BB-445). */
+  indsaetSpaerretGrund: string | undefined;
   /** Sætter resultatet ind; `true`, når det lykkedes – overlayet lukker da. */
   onInsertResult: (result: LoentrinFinderResult) => boolean;
   headingId: string;
@@ -81,13 +82,13 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
     dato,
     setDato,
     errors,
-    setErrors,
     onAmountFieldError,
     onDateFieldError,
     results,
     satsDato,
     erNyesteSatser,
     kanIndsaette,
+    indsaetSpaerretGrund,
     onInsertResult,
     headingId,
     overenskomstLabel,
@@ -406,10 +407,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 width={180}
                 value={beloeb}
                 allowNegative={false}
-                onCommit={(next) => {
-                  setBeloeb(next);
-                  setErrors((prev) => ({ ...prev, beloeb: undefined }));
-                }}
+                onCommit={setBeloeb}
                 onReject={onAmountFieldError}
                 errorMessage={errors.beloeb}
               />
@@ -423,10 +421,7 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 ref={loentrinFinderDatoRef}
                 aria-label="Dato"
                 value={dato}
-                onCommit={(next) => {
-                  setDato(next);
-                  setErrors((prev) => ({ ...prev, dato: undefined }));
-                }}
+                onCommit={setDato}
                 onReject={onDateFieldError}
                 errorMessage={errors.dato}
               />
@@ -465,7 +460,8 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                 const isExactMatch = inputAmountNumber === undefined
                   ? false
                   : hasExactDisplayedAmountMatch(inputAmountNumber, result.beloeb);
-                const indsaettelig = kanIndsaette && result.loentrin !== '55+';
+                const spaerret = kanIndsaette && result.loentrin !== '55+' && indsaetSpaerretGrund !== undefined;
+                const indsaettelig = kanIndsaette && result.loentrin !== '55+' && !spaerret;
                 const key = `${String(result.loentrin)}-${result.grupper.join('-')}`;
                 const linje = (
                   <Box
@@ -473,6 +469,10 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                     {...(indsaettelig ? {
                       role: 'button',
                       tabIndex: 0,
+                      // Eget navn pr. resultat. Uden det gav tooltippen alle linjer det samme navn, «Indsæt i
+                      // programmet», så en skærmlæser ikke kunne skelne trinnene (BB-448). Et tooltip er ikke et
+                      // navn (`page-component-contract.md`).
+                      'aria-label': `Indsæt ${formatLoentrinFinderResultLabel(result).replace(/^Løntrin/, 'løntrin')}, ${formatCurrency(result.beloeb)} kr.`,
                       [RESULTAT_ATTRIBUT]: 'true',
                       onClick: () => indsaet(result),
                       onKeyDown: (event: React.KeyboardEvent) => {
@@ -505,8 +505,12 @@ const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => 
                     </Typography>
                   </Box>
                 );
-                return indsaettelig
-                  ? <Tooltip key={key} title="Indsæt i programmet" arrow placement="left">{linje}</Tooltip>
+                if (indsaettelig) {
+                  return <Tooltip key={key} title="Indsæt i programmet" arrow placement="left">{linje}</Tooltip>;
+                }
+                // Fundet med en anden løntype end sagens: linjen kan læses, men ikke sættes ind (BB-445).
+                return spaerret
+                  ? <Tooltip key={key} title={indsaetSpaerretGrund} describeChild arrow placement="left">{linje}</Tooltip>
                   : linje;
               })}
             </Box>

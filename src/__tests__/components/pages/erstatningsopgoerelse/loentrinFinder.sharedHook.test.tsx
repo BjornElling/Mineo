@@ -55,6 +55,7 @@ const employmentWithFinder = (id: string, navn: string) => {
     navnPaaArbejdssted: navn,
     overenskomstId: offentligOverenskomstId,
     loenudviklingBeregningsgrundlag: 'Overenskomst' as const,
+    offentligLoenType: 'Månedsløn' as const,
   };
 };
 
@@ -175,6 +176,60 @@ describe('useLoentrinFinder – én hook for begge flader', () => {
     const persisted = sessionStorage.getItem(UI_STORAGE_KEYS.loentrinFinderOverlay);
     expect(persisted).not.toBeNull();
     expect(persisted).toContain('af-1');
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('fjerner resultaterne, når datoen ændres, og giver hver linje sit eget navn (BB-444/BB-448)', async () => {
+    const user = userEvent.setup();
+    hydrateTwoEmployments();
+    renderSurface();
+
+    const [firstTrigger] = await findTriggers();
+    await user.click(firstTrigger);
+    const dialog = await screen.findByRole('dialog');
+    const beloeb = within(dialog).getByRole('textbox', { name: 'Månedsløn' });
+    const dato = within(dialog).getByRole('textbox', { name: 'Dato' });
+
+    await user.click(beloeb);
+    await user.keyboard('31000');
+    await user.tab();
+    await user.click(dato);
+    await user.keyboard('30-06-2025');
+    await user.tab();
+    await user.click(within(dialog).getByRole('button', { name: 'Beregn' }));
+
+    const resultater = await within(dialog).findAllByRole('button', { name: /^Indsæt løntrin \d+, .+ kr\.$/ });
+    expect(resultater.length).toBeGreaterThan(1);
+    expect(new Set(resultater.map((knap) => knap.getAttribute('aria-label'))).size).toBe(resultater.length);
+
+    // Et svar for den gamle dato må ikke kunne sættes ind under den nye.
+    await user.click(dato);
+    await user.keyboard('01-06-2018');
+    await user.tab();
+    expect(within(dialog).queryAllByRole('button', { name: /^Indsæt løntrin/ })).toHaveLength(0);
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('spærrer indsættelsen, når opslaget bruger en anden løntype end sagens (BB-445)', async () => {
+    const user = userEvent.setup();
+    hydrateTwoEmployments();
+    renderSurface();
+
+    const [firstTrigger] = await findTriggers();
+    await user.click(firstTrigger);
+    const dialog = await screen.findByRole('dialog');
+    const ansaettelse = within(dialog).getByRole('combobox', { name: 'Ansættelse' });
+    await user.click(ansaettelse);
+    await user.click(await screen.findByRole('option', { name: 'Timeløn' }));
+
+    await user.click(within(dialog).getByRole('textbox', { name: 'Timeløn' }));
+    await user.keyboard('220');
+    await user.tab();
+    await user.click(within(dialog).getByRole('textbox', { name: 'Dato' }));
+    await user.keyboard('11-07-2025');
+    await user.tab();
+    await user.click(within(dialog).getByRole('button', { name: 'Beregn' }));
+
+    expect((await within(dialog).findAllByText(/^Løntrin \d+/)).length).toBeGreaterThan(0);
+    expect(within(dialog).queryAllByRole('button', { name: /^Indsæt løntrin/ })).toHaveLength(0);
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('cirkulerer tab-sekvensen Ansættelse -> Beløb -> Dato -> Beregn inde i overlayet', async () => {

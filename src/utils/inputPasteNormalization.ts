@@ -71,6 +71,30 @@ export const normalizeClipboardText = (
 };
 
 /**
+ * Den del af en indsat tekst, et typed enkeltlinjefelt (beløb, procent, tal, dato, år, uge, brøk) skal bruge:
+ * teksten fra første synlige tegn frem til første tabulator eller linjeskift.
+ *
+ * **Hvorfor (BB-439).** To regnearksceller (`1200<TAB>200` eller `1200\n200`) blev til beløbet 1.200.200,00,
+ * fordi tegnfilteret tavst sprang adskillelsen over. Paste skal give samme resultat som at taste tegnene ét ad
+ * gangen (§1.2a), og ved tastning AFSLUTTER Tab og Enter feltets indtastning – de efterfølgende tegn havner
+ * aldrig i samme felt. Derfor slutter den indsatte indtastning ved første adskillelse.
+ *
+ * Adskillelser FØR første synlige tegn afslutter intet – der er endnu ikke tastet noget – og fjernes blot, så en
+ * enkelt celle kopieret med afsluttende `\r\n` og en tekst med et indledende linjeskift stadig indsætter værdien.
+ * Øvrige tegn (også mellemrum) føres uændret videre til familiens egen tegnfilter.
+ *
+ * Gælder IKKE frie tekstfelter: de normaliseres af {@link normalizeClipboardText}, og kommentarfelter må bevare
+ * linjeskift.
+ */
+export const takeFirstPastedEntry = (raw: string): string => {
+  const firstVisible = raw.search(/\S/u);
+  const lead = firstVisible < 0 ? raw : raw.slice(0, firstVisible);
+  const entry = firstVisible < 0 ? '' : raw.slice(firstVisible);
+  const end = entry.search(/[\t\r\n]/u);
+  return lead.replace(/[\t\r\n]/gu, '') + (end < 0 ? entry : entry.slice(0, end));
+};
+
+/**
  * Behandler den indsatte tekst som på hinanden følgende tastetryk fra et tomt felt.
  * Tegn, der ikke passer feltets aktuelle tekst, springes over, mens resten fortsætter.
  */

@@ -19,7 +19,19 @@ export type ExpressionError = Readonly<{
 export type AmountParseError = Readonly<{
   kind: 'expression' | 'number';
   message: string;
+  /**
+   * Udtryksparserens maskinlæsbare årsag, når fejlen stammer fra et regnestykke. Codec'en aflæser den – aldrig
+   * beskedteksten – for at afgøre, om fejlen har en konkret forklaring til feltet (BB-440).
+   */
+  code?: ExpressionErrorCode;
 }>;
+
+/**
+ * Den ENE besked for division med 0 i et beløbsfelt (BB-440). `1/0` fik før samme generiske «ugyldig værdi»
+ * som det ufuldstændige `1/`, selv om programmet kendte årsagen. Teksten bruges både af de persisterede
+ * beløbsfelter (via codec'ens `detail.tooltip`) og af de transiente beløbsfelter.
+ */
+export const AMOUNT_DIVISION_BY_ZERO_MESSAGE = 'Beløbet kan ikke beregnes, fordi der divideres med 0';
 
 export type AmountParseResult =
   | {
@@ -42,7 +54,6 @@ export type AmountParseOptions = Readonly<{
   maxRawLength?: number;
 }>;
 
-const EXPRESSION_ERROR_PREFIX = 'Fejl i funktion:';
 const MAX_DECIMAL_DIGITS = 15;
 
 type Token =
@@ -321,7 +332,7 @@ const evaluateExpressionTokens = (
 
       if (token.op === '/') {
         if (right.value.numerator === 0n) {
-          return fail({ code: 'DIVISION_BY_ZERO', message: 'Division med 0' });
+          return fail({ code: 'DIVISION_BY_ZERO', message: AMOUNT_DIVISION_BY_ZERO_MESSAGE });
         }
         left = {
           ok: true,
@@ -465,12 +476,12 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
 
   const tokenized = tokenizeExpression(trimmed, options.precision, options.maxIntegerDigits);
   if (!tokenized.ok) {
-    return { ok: false, error: { kind: 'expression', message: tokenized.error.message } };
+    return { ok: false, error: { kind: 'expression', message: tokenized.error.message, code: tokenized.error.code } };
   }
 
   const evaluated = evaluateExpressionTokens(tokenized.tokens, options.precision);
   if (!evaluated.ok) {
-    return { ok: false, error: { kind: 'expression', message: evaluated.error.message } };
+    return { ok: false, error: { kind: 'expression', message: evaluated.error.message, code: evaluated.error.code } };
   }
 
   const normalizedValue = normalizeZero(evaluated.value);
@@ -514,13 +525,4 @@ export const amountValueToDraftString = (value: AmountValue | undefined, precisi
   if (!value) return '';
   if (value.kind === 'expression') return value.expression;
   return formatAsAmount(value.value, precision);
-};
-
-export const isExpressionErrorMessage = (message: string | undefined): boolean => {
-  if (!message) return false;
-  return message.startsWith(EXPRESSION_ERROR_PREFIX);
-};
-
-export const formatExpressionErrorMessage = (message: string): string => {
-  return `${EXPRESSION_ERROR_PREFIX} ${message}`;
 };

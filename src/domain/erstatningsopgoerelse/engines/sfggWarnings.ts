@@ -10,6 +10,11 @@ import { resolveSfggSource, sfggKildeUsesReferenceperiode } from './sfggKilde';
 import { resolveLoenudviklingKilde, getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import { formatCurrency } from '../../../utils/formatUtils';
+import { roundKroner } from '../../money/money';
+import { buildEmploymentSfggCalculator } from './sfggSegmentering';
+import { optaelArbejdsdageBreakdown } from './periodiseringsMotor';
+import { mergeIsoDateRanges } from './isoRangeAlgebra';
 
 type Employment = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -100,7 +105,74 @@ export const resolveSfggGamleReferenceperiodeAdvarsler = (args: Readonly<{
   });
 };
 
-export const buildSfggGammelReferenceperiodeBesked = (reguleringsdato: ISODateString): string =>
+/**
+ * En dags løn efter ansættelsesforholdets registrerede lønrækker, opgjort som SFGG-referencesatsen deler løn med
+ * dage (`resolveSfggBaseRate`): motorens løn (`buildEmploymentSfggCalculator`) over lønrækkernes samlede
+ * periode delt med periodens arbejdsdage efter søgnehelligdage og ferie. Den manuelle dagssats gælder pr.
+ * arbejdsdag («mandag-fredag»; `resolveSfggDayBasis` giver altid arbejdsdage ved manuel kilde). `undefined`, når
+ * lønrækkerne ikke giver en positiv løn over mindst én arbejdsdag.
+ */
+export const resolveSfggRegistreretDagloen = (
+  employment: Employment,
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'],
+): number | undefined => {
+  const ranges = mergeIsoDateRanges(
+    (employment.indtaegtsoplysningerTableData ?? []).flatMap((row) => {
+      const interval = parseAarsloenRowInterval(row, employment.loenperiode);
+      const fra = interval ? dateToISO(interval.start) : undefined;
+      const til = interval ? dateToISO(interval.end) : undefined;
+      return fra && til && fra <= til ? [{ fra, til }] : [];
+    }),
+    { mergeAdjacent: true },
+  );
+  if (ranges.length === 0) return undefined;
+  const loen = buildEmploymentSfggCalculator(employment, ferieperioder).sumLoenInRangesKroner(ranges);
+  const dage = ranges.reduce((sum, range) => sum + (optaelArbejdsdageBreakdown({
+    fra: range.fra,
+    til: range.til,
+    ferieperioder: ferieperioder ?? [],
+    loseFeriedage: 0,
+    context: { kind: 'taf' },
+  })?.tafDage ?? 0), 0);
+  if (!Number.isFinite(loen) || loen <= 0 || dage <= 0) return undefined;
+  return roundKroner(loen / dage);
+};
+
+export type SfggManuelDagssatsAdvarsel = Readonly<{
+  employmentId: string;
+  dagssats: number;
+  dagloen: number;
+}>;
+
+/**
+ * Udviklerafgørelse 2026-11-24 (BB-450): en manuelt angivet dagssats over en dags registreret løn fra samme
+ * ansættelsesforhold er usædvanlig – typisk en ekstra nulgruppe. Gul ring og gul linje; satsen kan fortsat bruges.
+ */
+export const resolveSfggManuelDagssatsAdvarsler = (
+  values: ErstatningsopgoerelseValues,
+): readonly SfggManuelDagssatsAdvarsel[] =>
+  values.loenindkomstAnsaettelsesforhold.flatMap((employment) => {
+    if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) return [];
+    const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
+    if (resolveSfggSource(row, employment).kind !== 'manuel') return [];
+    if (!erSfggFeltRelevant('manuel', {
+      kravPaaTabtArbejdsfortjeneste: values.kravPaaTabtArbejdsfortjeneste,
+      employment,
+      sfggBeregningskilde: row?.sfggBeregningskilde,
+    })) return [];
+    const indtastet = amountValueToNumber(row?.sfggManuelDagssats);
+    if (indtastet === undefined || !Number.isFinite(indtastet) || indtastet <= 0) return [];
+    // Samme afrunding som motorens sats (`resolveSfggBaseRate`), så det viste beløb er det sammenlignede.
+    const dagssats = roundKroner(indtastet);
+    const dagloen = resolveSfggRegistreretDagloen(employment, values.ferieperioder);
+    return dagloen !== undefined && dagssats > dagloen ? [{ employmentId: employment.id, dagssats, dagloen }] : [];
+  });
+
+export const buildSfggManuelDagssatsBesked = (advarsel: Pick<SfggManuelDagssatsAdvarsel, 'dagssats' | 'dagloen'>): string =>
+  `Dagssatsen (${formatCurrency(advarsel.dagssats)} kr.) er højere end en dags løn (${formatCurrency(advarsel.dagloen)} kr.)`
+  + ' – kontrollér beløbet';
+
+export const buildSfggGammelReferenceperiodeBesked =(reguleringsdato: ISODateString): string =>
   `Referenceperioden slutter mere end 12 måneder før reguleringsdatoen (${isoToDanish(reguleringsdato) ?? reguleringsdato})`
   + ' – satsen er regnet med lønnen på reguleringsdatoen uden regulering';
 

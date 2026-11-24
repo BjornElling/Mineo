@@ -640,3 +640,130 @@ Oprindelig kørsel og efterfølgende E2E er adskilt i kolonnen; de 41 fixtures e
 
 Ingen. Modsvarene på BB-319 og BB-321 er besvaret og gennemført 2026-10-24 og står under fundene; BB-323's bemærkning
 var til orientering.
+
+## Fornyet gennemgang 2026-11-23
+
+Flade 12j er gennemgået på `9c0b359a` i Chrome headless. Lønindkomst blev prøvet ved 1536×864
+og i mørkt tema ved 1244×620. Standardprøven har skadedato 01-03-2023, TAF til 31-12-2023,
+Firma A med 30.000 kr. i løn for februar 2023 og 8 % arbejdsgiverpension.
+
+### BB-449 – Indtastede kalenderdage bliver til arbejdsdage
+
+- **Type:** Edge case · **Prioritet:** Høj · **Beslutning:** Afventer udvikleren.
+- **Rækkevidde:** Mønster → [M-68](TVAERGAAENDE.md#m-68--et-valg-ændrer-enheden-for-et-allerede-indtastet-tal).
+- **Sådan fremprovokeres det.** Vælg Ferieloven. Brug februar 2023 som referenceperiode og indtast
+  7 under «Evt. ferie- og fraværsdage uden løn (kalenderdage)», svarende til én hel uge. Hent opgørelsen.
+  Skift «Løn på helligdage» på kortet fra «Almindelig løn» til «Ingen». Hent opgørelsen igen.
+- **Det sker.** Feltet står fortsat på 7, men enheden er nu arbejdsdage. Før delte bilaget 30.000 kr.
+  gange 12,50 % med 21 kalenderdage. Efter skiftet er nævneren 13 arbejdsdage, fordi 7 arbejdsdage er
+  trukket fra de 20. Begge PDF'er kan hentes. Bilagets netto ændres fra 58.820,96 kr. til 65.111,19 kr.
+  Det samlede skift omfatter også dagtællingen i erstatningsperioden. Det særskilte problem med
+  fraværsugen er, at dens 7 kalenderdage nu tæller som 7 arbejdsdage.
+- **Konsekvens.** Brugeren kan rette en helligdagsoplysning højt oppe på kortet og derefter sende en
+  opgørelse, hvor en allerede beskrevet uges fravær tæller som syv arbejdsdage.
+- **Forslag.** Behold tallet og vis en gul besked ved ændringen og ved fraværsfeltet, fx «De 7 dage
+  tælles nu som arbejdsdage. Kontrollér antallet.» Gør beskeden synlig på «Beregning» med et link til
+  feltet. De konkrete datoer for fraværet kendes ikke, så en automatisk omregning kan gætte forkert.
+- **Tværgående.** Samme enhedsskift på «EO oplysninger» viste eller skjulte «Løse ferie-/feriefridage»
+  som afgjort i BB-247. Det felt bliver kun brugt i arbejdsdage. Sygeferiegodtgørelsen bruger derimod
+  det samme tal i begge enheder. På to kort skiftede de 7 dage på Firma A også enhed, da ændringen blev foretaget på Firma B. Det tidligere BB-329 sikrede en synlig enhed ved feltet.
+
+### BB-450 – En ekstra nulgruppe i dagssatsen går ubemærket i bilaget
+
+- **Type:** Edge case · **Prioritet:** Høj · **Beslutning:** Afventer udvikleren.
+- **Rækkevidde:** Mønster → [M-05](TVAERGAAENDE.md#m-05--ingen-rimelighedskontrol-af-lovlige-men-usandsynlige-værdier).
+- **Sådan fremprovokeres det.** Skift standardprøven til «Manuelt angivet». Hent Word med dagssats
+  230 kr. og igen med 23.000 kr. uden at ændre andet.
+- **Det sker.** Bilaget går fra 51.915,60 kr. til 5.191.560,00 kr. Begge kan hentes uden besked om
+  satsen, selv om én dags sygeferiegodtgørelse i det andet bilag næsten svarer til en hel måneds
+  registreret løn. 1.000.000 kr. pr. arbejdsdag var også gyldigt.
+- **Konsekvens.** En tastefejl kan gøre en post hundrede gange større, mens den almindelige
+  seksmånedersadvarsel er den eneste advarsel.
+- **Forslag.** Vis en gul besked om at kontrollere størrelsesorden og enhed, når en angivet dagssats
+  er højere end den registrerede dagløn fra samme ansættelsesforhold, hvor den kan udledes.
+  Et aftalt beløb kan fortsat bruges og hentes.
+- **Tværgående.** Lønindkomst og Årsløns indkomsttabeller har allerede sammenligning med de øvrige
+  lønrækker. Den manuelle lønregulering advarer ved et stort spring mellem rækker, mens
+  anciennitetstillæg på begge indgange havde samme tavshed i BB-446.
+
+### BB-451 – En fejl i lønrækken gør den korrekte referenceperiode rød
+
+- **Type:** Fejl · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Rækkevidde:** Mønster → [M-58](TVAERGAAENDE.md#m-58--en-påbegyndt-indtastning-meldes-som-fraværende).
+- **Sådan fremprovokeres det.** Behold Ferieloven og referenceperioden 01-02-2023 til 28-02-2023.
+  Erstat 30.000 kr. i den eneste februarløn med `1/0`. Gå til «Beregning».
+- **Det sker.** Oversigten viser både «Lønrækken 02-2023: Løn – ugyldig værdi» og «Der er ingen løn
+  i referenceperioden (01-02-2023 – 28-02-2023) – angiv perioden før sygeforløbet». Sidstnævnte link
+  fører til den røde Fra-dato, selv om perioden allerede ligger før sygeforløbet. Rettes lønnen til
+  30.000 kr., forsvinder begge fejl. Ved et gyldigt 0 kr. står kun beskeden om ingen løn. Ved
+  −30.000 kr. er den særskilte besked om samlet negativ løn den eneste referencebesked.
+- **Konsekvens.** Brugeren får to steder at rette og opfordres til at ændre en korrekt dato, selv om
+  den ene rettelse af lønrækken er nok.
+- **Forslag.** Vis og link til den fejlede lønrække først. Vent med den røde referencebesked, mens
+  en lønrække i perioden kan ændre konklusionen.
+- **Tværgående.** BB-442 har samme mønster i TAF-beregningsperioden for løn- og ydelsesrækker.
+  Den fornyede prøve af referenceperioden viste også, at en afvist referencedato selv får kalenderfejlen
+  alene. Den eksisterende håndtering af den dato kan bruges som forbillede.
+
+### BB-452 – Den udfyldte dagssats meldes også som manglende
+
+- **Type:** Fejl · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Rækkevidde:** Mønster → [M-58](TVAERGAAENDE.md#m-58--en-påbegyndt-indtastning-meldes-som-fraværende).
+- **Sådan fremprovokeres det.** Vælg «Manuelt angivet» og indtast `1/0` eller `1/` i
+  «Dagssats for sygeferiegodtgørelse (mandag-fredag)».
+- **Det sker.** Feltet viser det afviste udtryk med rød ring. «Fejl og advarsler» siger både, at værdien
+  er ugyldig, og at dagssatsen ikke er angivet. Et tilsvarende afvist udtryk i «Evt. allerede betalt
+  sygeferiegodtgørelse i denne erstatningsperiode» giver kun den konkrete formatfejl.
+- **Konsekvens.** En enkelt indtastning ligner to mangler. Den samme dagssats får brugeren til at
+  lede efter både en formatfejl og et sted, der stadig er tomt.
+- **Forslag.** Vis kun feltets egen fejl ved et afvist udtryk, og behold manglende-beskeden til et
+  tomt felt. Dokumentet er blokeret i begge tilfælde. Den generiske forklaring ved `1/0` hører
+  fortsat til det kendte M-65.
+- **Tværgående.** Samme dobbelte fejl er vist i anciennitetstillægget på begge indgange (BB-447).
+  Referencedatoen og feltet for allerede betalt beløb gav hver sin konkrete fejl alene.
+
+### BB-453 – Bilaget kalder en ældre dato begyndelsen på reguleringen
+
+- **Type:** Fejl · **Prioritet:** Mellem · **Beslutning:** Afventer udvikleren.
+- **Rækkevidde:** Lokal. De to manuelle reguleringsformer har samme vilkår for den ældre referenceperiode.
+- **Sådan fremprovokeres det.** Vælg Ferieloven med reference 01-02-2022 til 27-02-2022 og løn i
+  perioden. Reguleringsdatoen er 28-02-2023. Vælg «Manuel procentsats» med 0 % på reguleringsdatoen
+  og 5 % fra 01-07-2023. Hent opgørelsen.
+- **Det sker.** På Lønindkomst siger den gule besked, at satsen er regnet med lønnen på
+  reguleringsdatoen uden regulering. Bilaget siger, at referencesatsen reguleres «fra
+  referenceperiodens slutdato». Slutdatoen i bilaget er 27-02-2022. De viste beregningstrin
+  holder dog satsen på 131,94 kr. indtil 01-07-2023, hvor den stiger til 138,54 kr.
+- **Konsekvens.** En modtager af opgørelsen kan læse bilaget som en historisk lønregulering fra
+  februar 2022, selv om den oplyste referencesats er lagt til grund på februardatoen i 2023.
+- **Forslag.** Skriv i bilaget, at referencesatsen behandles som satsen på reguleringsdatoen
+  28-02-2023, og at den følger de angivne ændringer efter denne dato. Vis det også, når
+  forskellen mellem de to datoer er højst et år.
+- **Tværgående.** I de hentede dokumenter for Overenskomst, Statistik, KRL og KL var kildens
+  historiske regulering knyttet til referenceperiodens slutdato, så den fælles formulering
+  passede dér. «Manuelt angivet» som beregningskilde for selve sygeferiegodtgørelsen viste
+  korrekt en fast dagssats. «Manuelt angivet» som lønudviklingsform er en beslægtet variant
+  i koden, men denne konkrete fejl er browserbekræftet med «Manuel procentsats».
+
+### Inventar og efterprøvning
+
+| Område | Felter, grænser og observeret adfærd |
+|---|---|
+| Afsnittets adgang | Kræver TAF «Ja» og «Ansat på skadestidspunktet». Valget «Opsagt fra stillingen» og datoen kan afkorte perioden. Før 2015 vises henvisningen til «EO oplysninger». |
+| Beregningskilde | Tom kilde kræver valg. «Ingen» bruger ingen øvrige felter. «Overenskomst» kræver et aftalevalg på kortet. Bygge-/anlægsoverenskomsten viser de fire valg for uddannelse og arbejdssted, der blev valgt ét ad gangen. Industriens Overenskomst viser datoer og oplyser den særlige referencelængde. |
+| Referenceperiode | To inklusive datoer, ramme 01-01-2005 til 31-12-2027 i prøven. BB-319, BB-322 og BB-323 genprøvet med manglende løn, før/ved første TAF-dag og 27/28 fraværsdage i februar. Én dags reference accepteres. Rækkefølgefejlen skriver «før»/«efter» trods tilladt ligedato, samme ordlyd som BB-443 (M-42). `31-02-2023` fik alene kalenderfejlen. Tocifret år fulgte den fælles datoregel. Ved Erhvervssygdom stod «Anmeldelsesdato» på Stamdata, og referenceperioden kunne bruges. |
+| Fravær | Tomt felt svarer til 0. Heltalsfelt med 0–366 og normalt højst periodens relevante dage minus én. Både 367 i februar og 400 i en flerårig referenceperiode blev afvist med systemloftet. Datoerne i en referenceperiode er frie, så systemloftet og periodens eget loft blev prøvet særskilt. |
+| Manuelt angivet | Dagssats og allerede betalt beløb accepterer beløbsudtryk og 0, med nedre grænse 0, et indtastningsloft på syv heltalscifre og ingen særskilt faglig øvre grænse. Blank aftaletekst er valgfri, med længdeloft på 60 tegn. Kontakten om sygeløn starter slået fra. Med kontakten slået til gav ingen lønrækker en gul besked og fuld periode, mens løn i hele perioden gav en forklaring om intet krav i både PDF og Word. Allerede betalt beløb over kravet gav fortsat 0 kr. i netto, jf. første gennemgang. |
+| Afhængigheder | Lønrækker, TAF-afgrænsning, ferie, valg på kortet og valgte reguleringssatser påvirker bilaget. Seksmånedersadvarslen kom ved TAF til 29-08-2023 og udeblev ved 28-08-2023, med sidste registrerede løn i februar. To kort havde hver sin advarsel. Valg af «Ingen» på ét kort fjernede kun dets beregning. |
+| Tastatur og tilstand | Tab gik fra dagssats til aftaletekst, kontakt og allerede betalt. Escape beholdt fraværstallet, faneskift afsluttede redigeringen. Ctrl+Z / Ctrl+Y fortrød og gentog kildeskiftet. Tilbagevalg bevarede de gyldige manuelle værdier. En afvist manuel sats blev ryddet ved valg af «Ingen». «Slet alt» og «Annuller» bevarede satsen, mens «Ja, slet» ryddede prøvesagen. |
+| Beregning og bilag | EO-kontrol, Kontroltabel, PDF og Word viste 44.116,54 kr. i basissagen, afstemt som 305 × 133,93 kr. × 1,08. PDF's bilag blev også inspiceret visuelt. Statistik, Overenskomst, KRL og KL gav reguleringslinjer i hentede dokumenter. Prøven med skadedato i 2014, arbejdsdage og linket til «EO oplysninger» viste 20 arbejdsdage i referencen og forklaring om firemånedersgrænsen i bilaget. |
+| Gem/Hent og F5 | Genindlæsning bevarede den afviste kalenderdato. Efter rettelse blev 3 fraværsdage og 1.000 kr. betalt gemt, ændret og hentet tilbage via «Hent». Sagsdata i de to efterfølgende gemte filer var identiske. Ingen konsol- eller sidefejl og ingen eksterne kald i de registrerede forløb. |
+
+### Dækningshuller og evidens
+
+- Indsættelse af `10−1` og `10-1` gav begge 9,00 kr. efter BB-430. En indsættelse med 21 heltalscifre blev afkortet til de første syv, i tråd med det eksisterende indtastningsloft.
+- Word er hentet og tekstafstemt. Layoutet er visuelt kontrolleret i PDF.
+- Temaerne er kontrolleret i Chrome på desktop. Edge, Firefox og WebKit er ikke særskilt prøvet.
+- KRL, KL, Statistik og Overenskomst blev fulgt til konkrete dokumenter. Der er ikke fuld dækning af
+  alle aftaler, satshistorikker, ferieperioder og grænsekombinationer.
+- Lokal evidens ligger under `test-results/brugerblik-12j-20261123/`, herunder dokumenter, screenshots
+  og browserlog med de konkrete værdier.

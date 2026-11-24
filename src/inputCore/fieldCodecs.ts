@@ -384,7 +384,16 @@ export const createAmountFieldCodec = (options: Readonly<{
       });
       // Kun format/schema-repræsenterbarhed afvises (§1.6). Aktive min/max vurderes af en canonical
       // feltvalidator på den committede værdi, ikke som en rejection her.
-      if (!parsed.ok || (parsed.value === undefined && raw.trim() !== '')) return rejectedResolution('format');
+      //
+      // Division med 0 er den ene udtryksfejl med en konkret forklaring (BB-440): `1/0` fik før samme
+      // generiske besked som det ufuldstændige `1/`. Detaljen bliver både tooltip og «Fejl og advarsler»-tekst.
+      if (!parsed.ok) {
+        return rejectedResolution(
+          'format',
+          parsed.error.code === 'DIVISION_BY_ZERO' ? tooltipDetail(parsed.error.message) : undefined
+        );
+      }
+      if (parsed.value === undefined && raw.trim() !== '') return rejectedResolution('format');
       return validResolution(parsed.value);
     },
     format: (value) => amountValueToDisplayString(value, displayPrecision),
