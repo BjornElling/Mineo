@@ -91,9 +91,13 @@ export type MineoPageName = keyof typeof MINEO_PAGE_TITLES;
  *
  * Ventepunktet er sidens egen `.page-title`, fordi den er det første, den nye side maler – og fordi
  * URL'en skifter FØR monteringen og derfor ikke kan bruges som signal.
+ *
+ * Knappen afgrænses til sidemenuens `.menu-item`: sidernes fejllinks (`TextLinkButton`, fx «Mangler (angiv i
+ * Stamdata)» på Varige mén) er rigtige `<button>`-elementer med sidenavnet som navn, og et bart rollenavn
+ * rammer dem i strict mode.
  */
 export const openPage = async (page: Page, name: MineoPageName): Promise<void> => {
-  await page.getByRole('button', { name, exact: true }).click();
+  await page.locator('.menu-item').and(page.getByRole('button', { name, exact: true })).click();
   await expect(page.locator('.page-title')).toHaveText(MINEO_PAGE_TITLES[name]);
 };
 

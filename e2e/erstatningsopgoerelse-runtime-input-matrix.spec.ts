@@ -51,7 +51,10 @@ test.describe('Erstatningsopgørelse – runtime-matrix på tværs af faner', ()
     await page.getByRole('tab', { name: 'Beregning', exact: true }).click();
     const beregningPanel = visiblePanel(page);
     await expect(beregningPanel.getByText('Fejl og advarsler', { exact: true })).toBeVisible();
-    await expect(beregningPanel).toContainText('Ingen indkomst i beregningsperioden');
+    // Den delvise ydelsesrække melder sin egen fejl. Indtil den er rettet, kan perioden ikke kaldes uden indkomst,
+    // så «Ingen indkomst i beregningsperioden» undertrykkes (BB-442).
+    await expect(beregningPanel).toContainText('Ydelsestype er ikke valgt');
+    await expect(beregningPanel).not.toContainText('Ingen indkomst i beregningsperioden');
     await page.screenshot({ path: testInfo.outputPath('delvis-eo-beregning.png') });
 
     await openPage(page, 'Indstillinger');
