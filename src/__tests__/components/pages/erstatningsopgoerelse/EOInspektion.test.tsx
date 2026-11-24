@@ -125,9 +125,10 @@ describe('EOInspektion', () => {
         kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
+        // Afsnittets titel følger sagens værdier efter den kanoniske navneregel (BB-466), så navnene står begge steder.
         loenindkomstAnsaettelsesforhold: [
-          { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
-          { ...createEmployment('af2'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
+          { ...createEmployment('af1'), navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted', loenudviklingBeregningsgrundlag: 'Overenskomst' },
+          { ...createEmployment('af2'), navnPaaArbejdssted: 'Hennings Autoophug', loenudviklingBeregningsgrundlag: 'Overenskomst' },
         ],
       },
       rowsBySection: new Map([
@@ -1115,7 +1116,8 @@ describe('EOInspektion', () => {
     const fourthRow = fourthLabel.closest('.row--label-right-hover');
 
     expect(screen.getAllByText('Sygeferiegodtgørelse').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
-    expect(screen.getByText('Ansættelsesforhold 1')).toBeInTheDocument();
+    // Afsnittets titel følger sagens værdier efter den kanoniske navneregel (BB-466).
+    expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
     expect(screen.getByText('553,50')).toBeInTheDocument();
     expect(screen.queryByText('Sygeferiegodtgørelse fordelt på år')).not.toBeInTheDocument();
     expect(firstRow).not.toBeNull();
