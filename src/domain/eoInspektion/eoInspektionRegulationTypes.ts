@@ -21,7 +21,8 @@ export type IndeksEntry = Readonly<{
 
 export type AnsaettelsesforholdIndeks = Readonly<{
   ansaettelsesforholdId: string;
-  navn: string | undefined;
+  /** Ansættelsesforholdets kanoniske navn (`resolveAnsaettelsesforholdNavn`). */
+  navn: string;
   kildeLabel: string;
   kildeVaerdi: string;
   overenskomstId?: string;

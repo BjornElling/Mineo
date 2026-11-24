@@ -368,3 +368,68 @@ brugeren i forvejen er blevet advaret om.»
 - Samtidig hentes kontroltabellens ménafskæring af svie/smerte fra motorens eget opslag (`resolveSvieSmerteCutoffDate`)
   i stedet for en egen kopi af betingelsen (§6.2 pkt. 4). Betingelserne var i praksis ens, fordi «Verserende klage
   (mén)» altid har værdien «Nej» eller «Ja»; ændringen fjerner muligheden for, at de driver fra hinanden.
+
+## Fornyet gennemgang 2026-11-24
+
+Grundlag: `1f924ac0`. Chrome headless ved 1536×864 i lyst tema og 1280×730 i mørkt tema. Tom sag, direkte indtastning og fiktive varianter af den eksisterende 3.14-prøvesag «REGULERING-FIKTIV».
+
+### Inventar
+
+- Indstillinger åbner de to lodrette faner. De læser senest afsluttede indtastninger fra Stamdata og Erstatningsopgørelsens indtastningsfaner. Kontrolfanerne har ingen egne indtastningsfelter.
+- EO-kontrol viser Stamdata, opgørelsens ramme, forlig, AES-afgørelser og relevante krav, indtægtsgrundlag, ansættelsesforhold, ydelser, sygeferiegodtgørelse, regulering, bemærkninger og bilagsnumre. Indholdet følger sagens valg og kan vise oplysninger, fejl og advarsler side om side.
+- Kontroltabel viser seks intervalkilder, dagtabellens månedsgrænser og relevante TAF-afskæringer. Sammentælling sammenholder dage og beløb. Dagtabellen viser dato, dagtyper og relevante løn- og ydelseskolonner. CSV-knappen eksporterer dagtabellen, når den har rækker.
+- Et kontrolgrundlag kan findes i en sag, hvor en anden del af beregningen er stoppet. Fanerne har en særskilt besked, når beregningen er stoppet og kontrolgrundlaget mangler. En rapporteret uoverensstemmelse i Beregning kan føre til Kontroltabel, når fanerne er slået til.
+
+### BB-465 – En dato fra en halv periode forlænger dagtabellen og CSV-filen
+
+- **Type** Edge case
+- **Rækkevidde** Mønster (M-41)
+- **Prioritet** Mellem
+- **Beslutning** Rettet 2026-11-24 som foreslået. Kun en hel, ordnet erstatningsperiode afgrænser dagtabellen og CSV-filen.
+- **Prøve.** Åbn «REGULERING-FIKTIV». Sæt «Opgørelse lavet den» til 24-11-2026. Ryd begge datoer i «Vedrører perioden», og indtast kun Til 15-11-2026. Åbn Kontroltabel, og hent CSV. Ryd derefter Til, og gentag.
+- **Oplevelse.** 15-11-2026 bliver slutdato på «Sagens første og sidste dato». Tabel og CSV slutter 30-11-2026 med 883 dagsrækker. Når Til ryddes, slutter begge 30-09-2026 med 822 dagsrækker. Med Til udfyldt siger EO-kontrol og Beregning samtidig, at Fra mangler.
+- **Konsekvens.** 61 ekstra kalenderdage fremstår som del af det kontrollerede tidsrum, selv om brugeren endnu kun har angivet den ene dato. Med kun en Fra-dato i en ellers tom sag kan «Tabellen viser (hele måneder)» også vise en startdato samtidig med beskeden om, at tabellen mangler perioder.
+- **Forslag.** Bevar enkeltdatoen på rækken «Erstatningsperiode». Lad kun en udfyldt, gyldig erstatningsperiode bidrage til tabelgrænsen. I eksemplet slutter dagtabellen og CSV-filen fortsat 30-09-2026, indtil Fra er udfyldt.
+- **Tværgående.** En tilsvarende Til 15-11-2026 i en ufuldstændig TAF-, svie/smerte- eller ydelsesrække forlængede ingen af de to visninger. Den tidligere godkendte visning af en kontekstmarkeret ferierække står særskilt under M-41.
+
+### BB-466 – To ansættelsesforhold kan få samme overskrift i kontrollen
+
+- **Type** Fejl
+- **Rækkevidde** Mønster (M-52)
+- **Prioritet** Mellem
+- **Beslutning** Rettet 2026-11-24 som foreslået. Den fælles navneregel bruger Lønindkomsts kortoverskrift ved kollision, også med et andet korts standardnavn. EO-kontrols afsnit og reguleringsoverskrifter bruger nu samme regel som Kontroltabel, dokumenter og bilag.
+- **Prøve.** Brug to ansættelsesforhold med løn i samme sag. Giv begge arbejdsstedet «Kommune; "Nord"». Prøv derefter at navngive det første «Ansættelsesforhold 2» og lade det andet stå uden navn.
+- **Oplevelse.** I første prøve står «Kommune; "Nord"» to gange i EO-kontrol. Kontroltabel og CSV viser nummeret på hvert ansættelsesforhold. I anden prøve står «Ansættelsesforhold 2» to gange i både EO-kontrol og dagtabellen. CSV tilføjer «(1)» og «(2)».
+- **Konsekvens.** Brugeren må tælle afsnit eller kolonnegrupper for at finde det rigtige arbejdssted, når en kontrolværdi skal sammenholdes med Lønindkomst.
+- **Forslag.** Brug Lønindkomsts entydige titler, når navnene kolliderer. I andet eksempel bliver det «Ansættelsesforhold 1 (Ansættelsesforhold 2)» og «Ansættelsesforhold 2». Vis de samme titler i EO-kontrol, dagtabellen, Sammentælling og CSV.
+- **Tværgående.** Lønindkomst skelnede kortene i begge prøver. Sammentælling skelnede navnekollisionen med det navnløse kort. CSV-kolonnerne var entydige i begge tilfælde, også med semikolon og anførselstegn i navnet. Lønindkomst- og reguleringsbilag deler navngivningen med dagtabellen. Visningen dér er ikke browserprøvet. I eksemplet med det navnløse kort viser Beregning også, at arbejdsstedets navn mangler.
+
+### BB-467 – Datoen forsvinder, når brugeren ruller hen til løn eller ydelser
+
+- **Type** Fornuft
+- **Rækkevidde** Lokal
+- **Prioritet** Mellem
+- **Beslutning** Gennemført 2026-11-24 som foreslået. «Ugedag» og «Dato» bliver stående til venstre ved vandret rul.
+- **Prøve.** Åbn Kontroltabel med to ansættelsesforhold og sygedagpenge i et vindue på 1536×864. Rul ned i dagtabellen og dernæst til højre, til «Sygedagpenge» er synlig.
+- **Oplevelse.** Løn- og ydelseskolonnerne kommer til syne, og deres overskrifter står øverst. Datokolonnen forsvinder til venstre.
+- **Konsekvens.** For at knytte et beløb i højre side til en dato må brugeren rulle frem og tilbage og holde styr på den samme række blandt mange ens beløb.
+- **Forslag.** Fasthold «Dato» til venstre, mens resten af dagtabellen ruller vandret.
+- **Tværgående.** Renteberegning, Årslønsberegning og EET oplysninger blev prøvet ved 1280×730. Der var plads til hele bredden i de prøvede tabeller. Kontroltabel er programmets eneste dagtabel med dette layout. Datoen står i starten af hver CSV-række.
+
+### Overvejet uden fund
+
+- Kontrolfanerne var slået fra ved start. Da indstillingen blev slået fra med Kontroltabel aktiv, vendte siden tilbage til «EO oplysninger». Genaktivering viste knapperne og bevarede denne fane.
+- Enter og mellemrum aktiverede en fokuseret kontrolfane. Den tidligere afgjorte Tab-rækkefølge fra hovedfanerne holdt. Enter hentede CSV fra den aktive downloadknap.
+- I en tom sag og med kun skadedato forklarede fanen, hvad dagtabellen dannes af. CSV var spærret, og tomme sammentællinger havde ingen grønne flueben.
+- En omvendt periode og datoen 31-02-2024 gav ingen dagtabel. En gyldig periode fra 18. til 21. februar 2024 gav 1.–29. februar i tabellen.
+- Ved TAF «Nej» og svie/smerte «Skjul» udelod EO-kontrol de relevante afsnit. Dagtabellen og CSV udelod TAF-, løn- og ydelseskolonnerne.
+- Grundsagens 822 dagsrækker gik fra 01-07-2024 til 30-09-2026. Sammentællingerne viste bl.a. 261/261 arbejdsdage i beregningsperioden, 85/85 i TAF-perioden og 78.395,00/78.395,00 for sygedagpenge. CSV havde journalnummer i filnavnet, UTF-8 med BOM og danske beløb.
+- Ved skadedato før 16-06-2011 stod «Midlertidigt EET» på afskæringsdagen i CSV, og den overskredne TAF-periode var markeret i Beregning. På skæringsdatoen og ved verserende klage viste tabellen, hvorfor TAF fortsatte. Sammentællingen viste 85/85.
+- Escape bevarede den tidligere indtastning. Faneskift afsluttede den åbne dato, og kontrolvisningen blev opdateret. Fortryd/gentag førte til datofeltets fane og opdaterede kontrolvisningen ved næste besøg. Gem/Hent og F5 gav samme tabelgrænse. Slet alt sendte Erstatningsopgørelse tilbage til standardfanen.
+- Det klæbende tabelhoved blev set i begge temaer og begge vinduesstørrelser. Der var ingen konsolfejl eller ukontrollerede sidefejl i browserkørslen.
+
+### Dækningshuller
+
+- Ingen prøvesag frembragte en sammentællingsuoverensstemmelse eller en intern fejl, der gjorde kontrolgrundlaget utilgængeligt. Kildegennemgangen dækkede reparationslinket, det røde kontrolmærke og BB-389's beskeder.
+- Prøven med ILON12 og TAF til 31-03-2026 viste reguleringsafsnittet. Særteksten «Ja (sidste værdi under 6 måneder før)» er fortsat kun kildeaflæst.
+- CSV blev læst som fil. Excel, systemets native filvælger og andre browsermotorer indgik ikke.

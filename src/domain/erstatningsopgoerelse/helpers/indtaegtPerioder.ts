@@ -107,16 +107,20 @@ export const resolveAnsaettelsesforholdNavn = (
   navn: string | undefined,
   index: number,
   /**
-   * Alle ansættelsesforholds arbejdsstednavne i skærmens rækkefølge. Har et andet ansættelsesforhold samme navn,
-   * tilføjes kortets nummer, så to ens overskrifter i et dokument kan skelnes (BB-411-mønstret). Udelades kun,
-   * hvor listen ikke er kendt.
+   * Alle ansættelsesforholds arbejdsstednavne i skærmens rækkefølge. Rammer navnet et andet ansættelsesforholds
+   * navn – også dets standardnavn «Ansættelsesforhold N» – bruges Lønindkomsts kortoverskrift, så to ens
+   * overskrifter kan skelnes (BB-411-mønstret, BB-466). Udelades kun, hvor listen ikke er kendt.
    */
   alleNavne?: readonly (string | undefined)[]
 ): string => {
   const trimmet = (navn ?? '').trim();
   if (trimmet === '') return `Ansættelsesforhold ${index + 1}`;
-  const ens = alleNavne?.some((andet, andenIndex) => andenIndex !== index && (andet ?? '').trim() === trimmet) ?? false;
-  return ens ? `${trimmet} (ansættelsesforhold ${index + 1})` : trimmet;
+  const ens = alleNavne?.some((andet, andenIndex) => {
+    if (andenIndex === index) return false;
+    const andetTrimmet = (andet ?? '').trim();
+    return (andetTrimmet === '' ? `Ansættelsesforhold ${andenIndex + 1}` : andetTrimmet) === trimmet;
+  }) ?? false;
+  return ens ? formatAnsaettelsesforholdKortOverskrift(trimmet, index) : trimmet;
 };
 
 /**

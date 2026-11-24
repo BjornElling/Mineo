@@ -39,12 +39,20 @@ const makeEo = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 // ─── buildBeregningsperiodeRange ──────────────────────────────────────────────
 
 describe('resolveAnsaettelsesforholdNavn', () => {
-  it('skelner to ansættelsesforhold med samme arbejdssted ved kortets nummer – kun når navnene er ens', () => {
+  it('skelner to ansættelsesforhold med samme arbejdssted ved kortoverskriften – kun når navnene er ens', () => {
     const navne = ['Firma A', ' Firma A ', 'Firma B', undefined];
-    expect(resolveAnsaettelsesforholdNavn('Firma A', 0, navne)).toBe('Firma A (ansættelsesforhold 1)');
-    expect(resolveAnsaettelsesforholdNavn(' Firma A ', 1, navne)).toBe('Firma A (ansættelsesforhold 2)');
+    expect(resolveAnsaettelsesforholdNavn('Firma A', 0, navne)).toBe('Ansættelsesforhold 1 (Firma A)');
+    expect(resolveAnsaettelsesforholdNavn(' Firma A ', 1, navne)).toBe('Ansættelsesforhold 2 (Firma A)');
     expect(resolveAnsaettelsesforholdNavn('Firma B', 2, navne)).toBe('Firma B');
     expect(resolveAnsaettelsesforholdNavn(undefined, 3, navne)).toBe('Ansættelsesforhold 4');
+  });
+
+  it('skelner et navn, der rammer et andet korts standardnavn (BB-466)', () => {
+    const navne = ['Ansættelsesforhold 2', undefined];
+    expect(resolveAnsaettelsesforholdNavn('Ansættelsesforhold 2', 0, navne)).toBe('Ansættelsesforhold 1 (Ansættelsesforhold 2)');
+    expect(resolveAnsaettelsesforholdNavn(undefined, 1, navne)).toBe('Ansættelsesforhold 2');
+    // Kortets eget standardnavn er ingen kollision.
+    expect(resolveAnsaettelsesforholdNavn('Ansættelsesforhold 1', 0, ['Ansættelsesforhold 1', 'Firma'])).toBe('Ansættelsesforhold 1');
   });
 
   it('bruger det indtastede arbejdsstednavn når det findes', () => {

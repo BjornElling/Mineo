@@ -8,6 +8,7 @@ import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angi
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { resolveLoenudviklingSegmenterForKilde } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
 import { formatKRLSatstabelDisplay } from '../../data/krlRates';
+import { ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 export type RegulationCoreInput = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
@@ -21,7 +22,9 @@ export type RegulationCoreInput = Readonly<{
  */
 export function buildRegulationTimeline(input: RegulationCoreInput): RegulationIndexTimeline {
   const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
-  const ansaettelser = resolveLoenudviklingKilde(input.eoValues).flatMap((af) => {
+  const kilder = resolveLoenudviklingKilde(input.eoValues);
+  const navne = ansaettelsesforholdNavne(kilder);
+  const ansaettelser = kilder.flatMap((af, kildeIndex) => {
     if (!af.loenudviklingBeregningsgrundlag || af.loenudviklingBeregningsgrundlag === 'Ingen') return [];
     const segments = resolveLoenudviklingSegmenterForKilde({
       perAnsaettelse: input.loenudvikling?.perAnsaettelse ?? [],
@@ -59,7 +62,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const grundlag = af.loenudviklingBeregningsgrundlag;
     return [{
       ansaettelsesforholdId: af.id,
-      navn: af.navnPaaArbejdssted,
+      // Kanonisk navn efter positionen i hele listen; før nummererede overskriften efter de regulerede
+      // ansættelsesforhold alene og skelnede ikke ens navne (BB-466).
+      navn: resolveAnsaettelsesforholdNavn(af.navnPaaArbejdssted, kildeIndex, navne),
       kildeLabel: grundlag === 'Overenskomst' ? 'Overenskomst'
         : grundlag === 'Statistik' ? 'Statistikmodel'
           : grundlag === 'KRL satstabel' ? 'KRL satstabel'

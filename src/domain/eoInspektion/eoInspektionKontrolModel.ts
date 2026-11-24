@@ -553,8 +553,9 @@ export const buildEOInspektionModel = (
 
   const tafAfskaering = buildTafAfskaeringOversigt(values, options.skadedatoISO, options.skadestype);
 
+  const erstatningsperiodeSource: KontrolTabelDateSource = { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil };
   const sources: KontrolTabelDateSource[] = [
-    { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
+    erstatningsperiodeSource,
     {
       label: 'Beregningsperiode',
       fra: isBeregningsperiode ? beregningsFra : undefined,
@@ -566,8 +567,15 @@ export const buildEOInspektionModel = (
     { label: 'TAF-perioder', fra: tafSourceFra, til: tafSourceTil },
   ];
 
-  const combinedMinFra = sources.reduce<ISODateString | undefined>((acc, s) => minISO(acc, s.fra), undefined);
-  const combinedMaxTil = sources.reduce<ISODateString | undefined>((acc, s) => maxISO(acc, s.til), undefined);
+  // Rækken «Erstatningsperiode» viser fortsat en enlig dato, men kun en hel, ordnet periode afgrænser tabellen. En
+  // enlig Til-dato forlængede før dagtabellen og CSV-filen, mens Beregning meldte, at Fra manglede; en enlig Fra-dato
+  // gav en halv «Tabellen viser»-linje over en tom tabel (BB-465). De øvrige kilder bidrager kun med hele intervaller.
+  const erstatningsperiodeErHel = erstatningsFra !== undefined && erstatningsTil !== undefined && erstatningsFra <= erstatningsTil;
+  const rangeSources = erstatningsperiodeErHel
+    ? sources
+    : sources.filter((source) => source !== erstatningsperiodeSource);
+  const combinedMinFra = rangeSources.reduce<ISODateString | undefined>((acc, s) => minISO(acc, s.fra), undefined);
+  const combinedMaxTil = rangeSources.reduce<ISODateString | undefined>((acc, s) => maxISO(acc, s.til), undefined);
 
   const { fra: summaryTableFra, til: summaryTableTil } = computeSummaryTableRange(combinedMinFra, combinedMaxTil);
   const tableFra = summaryTableFra;

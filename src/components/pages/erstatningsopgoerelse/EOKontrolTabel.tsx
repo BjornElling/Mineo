@@ -257,6 +257,8 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
    * gælde, og hovedet vil klæbe forkert overalt undtagen ved fuld skala.
    */
   const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)) - 2, [theme]);
+  /** Samme kompensation vandret: `Container`s venstre luft er også `theme.spacing(3)`. */
+  const stickyColumnLeft = React.useMemo(() => -Number.parseFloat(theme.spacing(3)), [theme]);
   // Samme betingelse som tom-tilstanden nedenfor: knappen og forklaringen kan ikke være uenige om, hvorvidt der
   // er en tabel.
   const canDownloadKontrolTabel = Boolean(model && model.rowCount > 0);
@@ -357,6 +359,9 @@ const EOKontrolTabel = React.memo(({ inspektionSnapshot = null, isActive = false
             scrollMode="ancestor"
             stickyHeader
             stickyHeaderTop={stickyHeaderTop}
+            // «Ugedag» og «Dato» bliver stående, når brugeren ruller vandret hen til løn og ydelser (BB-467).
+            stickyLeadingColumns={2}
+            stickyLeadingColumnsLeft={stickyColumnLeft}
           />
         )}
       </Box>

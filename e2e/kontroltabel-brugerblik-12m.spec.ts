@@ -163,3 +163,64 @@ test.describe('Kontroltabel – TAF-afskæring ved midlertidigt EET', () => {
     expect(externalRequests).toEqual([]);
   });
 });
+
+// BB-467: «Ugedag» og «Dato» bliver stående til venstre, når brugeren ruller vandret hen til løn og ydelser.
+test.describe('Kontroltabel – datoen bliver stående ved vandret rul', () => {
+  test('holder datokolonnen synlig, mens løn- og ydelseskolonnerne ruller', async ({
+    page,
+    runtimeErrors,
+    runtimeSignals,
+    externalRequests,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'showOpenFilePicker', { configurable: true, value: undefined });
+    });
+    await login(page);
+    await openPage(page, 'Indstillinger');
+    await page.getByRole('checkbox', { name: 'Vis kontrolfaner på Erstatningsopgørelse-side' }).click();
+    await openPage(page, 'Stamdata');
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Hent', exact: true }).click();
+    await (await chooser).setFiles({
+      name: 'fiktiv-reguleringssag.eo', mimeType: 'application/octet-stream',
+      buffer: Buffer.from(await encryptToString(caseFixture)),
+    });
+    await expect(page.locator('input[name="journalnr"]')).toHaveValue('REGULERING-FIKTIV');
+
+    await openPage(page, 'Erstatningsopgørelse');
+    await page.getByRole('button', { name: 'Kontroltabel', exact: true }).click();
+    const panel = page.locator('[role="tabpanel"]:visible');
+    const datoHeader = panel.locator('th[data-mineo-column-id="base:date"]');
+    await expect(datoHeader).toBeVisible();
+    await datoHeader.scrollIntoViewIfNeeded();
+
+    const scrollContainer = page.locator('[data-mineo-scroll-container="true"]');
+    const scrolled = await scrollContainer.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+      return element.scrollLeft;
+    });
+    expect(scrolled).toBeGreaterThan(0);
+
+    const containerBox = await scrollContainer.boundingBox();
+    const datoCell = panel.locator('td[data-mineo-column-id="base:date"]').first();
+    const sidsteKolonne = panel.locator('th[data-mineo-column-id]').last();
+    await expect.poll(async () => (await datoHeader.boundingBox())?.x).toBeGreaterThanOrEqual(containerBox!.x);
+    const headerBox = await datoHeader.boundingBox();
+    const cellBox = await datoCell.boundingBox();
+    expect(cellBox!.x).toBeCloseTo(headerBox!.x, 0);
+    await expect(sidsteKolonne).toBeInViewport();
+    // Den fastholdte celle dækker de rullende celler: øverst ved datocellens midte ligger datocellen selv.
+    const oeverst = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('td')?.dataset.mineoColumnId, {
+      x: cellBox!.x + cellBox!.width / 2,
+      y: cellBox!.y + cellBox!.height / 2,
+    });
+    expect(oeverst).toBe('base:date');
+
+    await page.screenshot({ path: testInfo.outputPath('kontroltabel-vandret-rul.png') });
+
+    expect(runtimeErrors).toEqual([]);
+    expect(runtimeSignals).toEqual([]);
+    expect(externalRequests).toEqual([]);
+  });
+});
+

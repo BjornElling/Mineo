@@ -91,4 +91,50 @@ describe('buildEOInspektionPageViewModel', () => {
     expect(result.offentligeYdelserTables).toEqual([]);
     expect(result.offentligeYdelserRows).toEqual([]);
   });
+
+  it('giver ansættelsesforholdene entydige overskrifter efter den kanoniske navneregel (BB-466)', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    const [skabelon] = eoValues.loenindkomstAnsaettelsesforhold;
+    const view = (navne: readonly (string | undefined)[]): EoInspektionViewReady => {
+      const values = {
+        ...eoValues,
+        loenindkomstAnsaettelsesforhold: navne.map((navn, index) => ({
+          ...skabelon!,
+          id: `af-${index + 1}`,
+          navnPaaArbejdssted: navn,
+          // Et kort skal have indhold for at blive vist.
+          harOverenskomst: true,
+        })),
+      };
+      return {
+        kind: 'ready',
+        canonicalOutput: undefined,
+        inspektionSnapshot: {} as NonNullable<EoSnapshot['inspektionSnapshot']>,
+        stamdataValues: STAMDATA_INITIAL_VALUES,
+        erstatningsopgoerelseValues: values,
+        rowsBySection: new Map([['loenindkomst', navne.map((navn, index) => ({
+          id: `loenindkomst.af-${index + 1}.navn`,
+          label: 'Navn på arbejdssted',
+          displayValue: navn ?? '-',
+          status: 'ok' as const,
+          employmentId: `af-${index + 1}`,
+        }))]]),
+        regulationSections: [],
+        pdfModel: undefined,
+      } as unknown as EoInspektionViewReady;
+    };
+
+    const titler = (navne: readonly (string | undefined)[]) =>
+      buildEOInspektionPageViewModel(view(navne), {} as AppSettings).employmentSections.map((section) => section.title);
+
+    expect(titler(['Kommune; "Nord"', 'Kommune; "Nord"'])).toEqual([
+      'Ansættelsesforhold 1 (Kommune; "Nord")',
+      'Ansættelsesforhold 2 (Kommune; "Nord")',
+    ]);
+    expect(titler(['Ansættelsesforhold 2', undefined])).toEqual([
+      'Ansættelsesforhold 1 (Ansættelsesforhold 2)',
+      'Ansættelsesforhold 2',
+    ]);
+  });
 });

@@ -50,4 +50,17 @@ describe('eoInspektionRegulationCore', () => {
     input.eoValues.loenindkomstAnsaettelsesforhold[0].id = 'andet-job';
     expect(buildRegulationTimeline(input).ansaettelser).toEqual([]);
   });
+
+  it('navngiver efter den kanoniske regel og positionen i hele listen (BB-466)', () => {
+    const input = fixture();
+    const [reguleret] = input.eoValues.loenindkomstAnsaettelsesforhold;
+    // Første kort er ureguleret og navnløst; det regulerede andet kort hedder det samme som det første korts standardnavn.
+    input.eoValues.loenindkomstAnsaettelsesforhold = [
+      { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'ureguleret' },
+      { ...reguleret!, navnPaaArbejdssted: 'Ansættelsesforhold 1' },
+    ];
+    expect(buildRegulationTimeline(input).ansaettelser.map((af) => af.navn)).toEqual([
+      'Ansættelsesforhold 2 (Ansættelsesforhold 1)',
+    ]);
+  });
 });

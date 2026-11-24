@@ -202,4 +202,57 @@ describe('Kontroltabellen – brugerblik 12m', () => {
       expect(header?.split(';')).toHaveLength(model.columns.length);
     });
   });
+
+  describe('BB-465: kun en hel erstatningsperiode afgrænser dagtabellen', () => {
+    const lonVaerdier = (patch: Partial<ErstatningsopgoerelseValues>) => values({
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      tafBeregningsperiodeFra: undefined,
+      tafBeregningsperiodeTil: undefined,
+      ...patch,
+    });
+
+    it('lader en enlig Til-dato stå på rækken uden at forlænge tabellen', () => {
+      const model = buildEOInspektionModel(lonVaerdier({
+        vedroererPeriodeFra: undefined,
+        vedroererPeriodeTil: iso('2024-03-15'),
+      }), { tafRanges: [] });
+
+      expect(model.sources.find((source) => source.label === 'Erstatningsperiode')?.til).toBe(iso('2024-03-15'));
+      expect(model.combinedMaxTil).toBe(iso('2024-01-12'));
+      expect(model.tableTil).toBe(iso('2024-01-31'));
+    });
+
+    it('giver ingen halv tabelgrænse med kun en Fra-dato i en ellers tom sag', () => {
+      const model = buildEOInspektionModel(lonVaerdier({
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: undefined,
+        loenindkomstAnsaettelsesforhold: [],
+      }), { tafRanges: [] });
+
+      expect(model.sources.find((source) => source.label === 'Erstatningsperiode')?.fra).toBe(iso('2024-01-01'));
+      expect(model.summaryTableFra).toBeUndefined();
+      expect(model.summaryTableTil).toBeUndefined();
+      expect(model.rowCount).toBe(0);
+    });
+
+    it('lader en omvendt periode være uden betydning for tabellen', () => {
+      const model = buildEOInspektionModel(lonVaerdier({
+        vedroererPeriodeFra: iso('2024-05-01'),
+        vedroererPeriodeTil: iso('2023-11-01'),
+      }), { tafRanges: [] });
+
+      expect(model.tableFra).toBe(iso('2024-01-01'));
+      expect(model.tableTil).toBe(iso('2024-01-31'));
+    });
+
+    it('bruger en hel periode som før', () => {
+      const model = buildEOInspektionModel(lonVaerdier({
+        vedroererPeriodeFra: iso('2023-12-10'),
+        vedroererPeriodeTil: iso('2024-03-15'),
+      }), { tafRanges: [] });
+
+      expect(model.tableFra).toBe(iso('2023-12-01'));
+      expect(model.tableTil).toBe(iso('2024-03-31'));
+    });
+  });
 });

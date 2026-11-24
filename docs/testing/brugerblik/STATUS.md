@@ -29,8 +29,11 @@
 - **Gennemgået 2026-11-23:** 12l. Erstatningsopgørelse → Beregning. Fem fund, BB-460–BB-464, afventer udvikleren. To Fejl og tre Fornuft, fordelt på ét Høj og fire Mellem. M-71 er tilføjet. Tastatur, bilag, PDF og Word, årsskifte, Gem/Hent, F5 og Slet alt blev afprøvet. Se `erstatningsopgoerelse-12l.md` nederst.
 - **Fejlrettet 2026-11-24 (12h–12l):** BB-441, BB-442, BB-443, BB-444, BB-447 (dobbeltlinjen), BB-448, BB-451, BB-452, BB-454, BB-455, BB-456, BB-458, BB-459, BB-460 og BB-462. Tværgående: M-58 også for svie/smerte-satsåret; M-42's «på eller før/efter» i den fælles datoordenstekst; løntrin-finderens beløbsfelt blev ved med at fejle efter en rettet afvisning.
 - **Afgjort af udvikleren og gennemført 2026-11-24 (12h–12l):** BB-439 (indsættelse stopper ved første tabulator/linjeskift, som ved tastning), BB-440 (fælles besked ved division med 0), BB-445 (indsættelsen spærres med tooltip, når opslagets løntype ikke er sagens «Ansættelse»; sagens løntype ændres aldrig), BB-446 og BB-450 (gule advarsler ved urealistisk store satser), BB-449 (bekræftelse, når et valg flytter fraværsdagenes enhed; enhedsskift via datoer, lønrækker eller sletning af et ansættelsesforhold er bevidst uden bekræftelse), BB-453 (bilaget siger «fra reguleringsdatoen (…)», når der reguleres derfra), BB-457 (bekræftelsen siger, når kildeskiftet intet fradrag henter), BB-461 (grafen: «Der er ingen indtægter at vise i grafen»), BB-463 og BB-464 (reparations- og Stamdata-links kan nås med Tab og åbnes med Enter/mellemrum).
-- **Næste flade:** 12m. Erstatningsopgørelse → EO-kontrol og Kontroltabel.
-- **Næste fund-ID:** BB-465.
+- **Gennemgået 2026-11-24:** 12m. Erstatningsopgørelse → EO-kontrol og Kontroltabel. Tre nye fund med prioritet Mellem, BB-465–BB-467. Ét Edge case, én Fejl og ét Fornuft. En halv periode kan forlænge dagtabellen og CSV-filen, ansættelsesforhold kan få samme overskrift, og datoerne ruller ud af syne ved vandret rul. CSV, redigering, fortryd/gentag, F5, Gem/Hent og begge temaer er efterprøvet. Se `erstatningsopgoerelse-12m.md` nederst.
+- **Fejlrettet 2026-11-24 (12m):** BB-465 (kun en hel, ordnet erstatningsperiode afgrænser dagtabellen og CSV-filen) og BB-466 (ens arbejdsstedsnavne og et navn, der rammer et andet korts standardnavn, får Lønindkomsts kortoverskrift i EO-kontrol, Kontroltabel, CSV, dokumenter og bilag).
+- **Gennemført efter udviklerens godkendelse 2026-11-24 (12m):** BB-467 («Ugedag» og «Dato» bliver stående ved vandret rul i dagtabellen).
+- **Næste flade:** Ingen. Alle planlagte flader er gennemgået i den fornyede runde.
+- **Næste fund-ID:** BB-468.
 
 Første gennemgangs status og historik nedenfor er bevaret uændret.
 

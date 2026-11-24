@@ -65,10 +65,8 @@ export function buildRegulationInspektionSections(
   );
   const sections: RegulationInspektionSection[] = [];
 
-  timeline.ansaettelser.forEach((af, idx) => {
-    const header = af.navn && af.navn.trim() !== ''
-      ? `Regulering (${af.navn.trim()})`
-      : `Regulering (Ansættelsesforhold ${idx + 1})`;
+  timeline.ansaettelser.forEach((af) => {
+    const header = `Regulering (${af.navn})`;
 
     const sectionId = `regulation.${af.ansaettelsesforholdId}`;
     const ansaettelsesforhold = loenudviklingsKilderById.get(af.ansaettelsesforholdId);

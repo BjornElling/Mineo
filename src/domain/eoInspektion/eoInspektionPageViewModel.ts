@@ -63,7 +63,10 @@ export type EOInspektionPageViewModel = Readonly<{
 // `.regulering.`, fordi det er en rækkeKATEGORI og ikke et tilhørsforhold – se noten nedenfor.
 const isLoenindkomstRegulationRow = (row: EoRowModel): boolean => row.id.includes('.regulering.');
 
-const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
+const buildLoenindkomstSections = (
+  rows: readonly EoRowModel[],
+  employmentNamesById: ReadonlyMap<string, string>
+) => {
   const grouped = new Map<string, EoRowModel[]>();
   const order: string[] = [];
 
@@ -81,9 +84,11 @@ const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
     const sectionRows = grouped.get(ansaettelsesforholdId) ?? [];
     const arbejdsstedNavn = sectionRows.find((row) => row.label === 'Navn på arbejdssted')?.displayValue.trim() ?? '';
     const hasNamedArbejdssted = arbejdsstedNavn !== '' && arbejdsstedNavn !== '-';
-    const title = hasNamedArbejdssted
-      ? arbejdsstedNavn
-      : `Ansættelsesforhold ${index + 1}`;
+    // Den kanoniske navneregel skelner ens navne og et navn, der rammer et andet korts standardnavn. Før dannede
+    // afsnittet sin egen titel af rækkens visningsværdi og nummererede efter afsnittenes rækkefølge, så to
+    // ansættelsesforhold kunne stå under samme overskrift (BB-466).
+    const title = employmentNamesById.get(ansaettelsesforholdId)
+      ?? (hasNamedArbejdssted ? arbejdsstedNavn : `Ansættelsesforhold ${index + 1}`);
     const visibleRows = hasNamedArbejdssted
       ? sectionRows.filter((row) => row.label !== 'Navn på arbejdssted')
       : sectionRows;
@@ -215,7 +220,6 @@ export const buildEOInspektionPageViewModel = (
       )
     : [];
 
-  const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows);
   const employmentNamesById = new Map(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
       af.id,
@@ -226,6 +230,7 @@ export const buildEOInspektionPageViewModel = (
       ),
     ] as const)
   );
+  const loenindkomstSections = buildLoenindkomstSections(loenindkomstRows, employmentNamesById);
 
   const regulationSectionsByEmploymentId = new Map<string, RegulationInspektionSection>();
   regulationSections.forEach((section) => {

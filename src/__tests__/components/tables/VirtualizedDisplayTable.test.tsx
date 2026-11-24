@@ -220,4 +220,42 @@ describe('VirtualizedDisplayTable', () => {
     expect(screen.getByText('B').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:b');
     expect(screen.getByText('C').closest('th')).toHaveAttribute('data-mineo-column-id', 'col:c');
   });
+
+  it('fastholder de førende kolonner i venstre side ved vandret rul (BB-467)', () => {
+    const { container } = render(
+      <VirtualizedDisplayTable
+        columns={[
+          { id: 'ugedag', header: 'Ugedag', width: 120 },
+          { id: 'dato', header: 'Dato', width: 100 },
+          { id: 'loen', header: 'Løn', width: 120 },
+        ]}
+        headerRows={[
+          { key: 'top', cells: [{ content: '' }, { content: '' }, { content: 'Arbejdssted', columnId: 'gruppe' }] },
+          { key: 'bund', cells: [
+            { content: 'Ugedag', columnId: 'ugedag' },
+            { content: 'Dato', columnId: 'dato' },
+            { content: 'Løn', columnId: 'loen' },
+          ] },
+        ]}
+        rowCount={1}
+        rowHeight={28}
+        height={28}
+        stickyHeader
+        scrollMode="ancestor"
+        stickyLeadingColumns={2}
+        stickyLeadingColumnsLeft={-24}
+        getRowKey={() => 'row0'}
+        renderCell={(rowIndex, columnIndex) => `${rowIndex}-${columnIndex}`}
+      />
+    );
+
+    const cells = (columnId: string) => Array.from(container.querySelectorAll<HTMLElement>(`[data-mineo-column-id="${columnId}"]`));
+    for (const cell of cells('ugedag')) expect(cell.style.left).toBe('-24px');
+    for (const cell of cells('dato')) expect(cell.style.left).toBe('96px');
+    for (const cell of [...cells('ugedag'), ...cells('dato')]) expect(cell.style.position).toBe('sticky');
+    for (const cell of [...cells('loen'), ...cells('gruppe')]) expect(cell.style.left).toBe('');
+    // Kun den sidste fastholdte kolonne bærer skillelinjen mod de rullende kolonner.
+    expect(cells('dato').every((cell) => cell.style.boxShadow !== '')).toBe(true);
+    expect(cells('ugedag').every((cell) => cell.style.boxShadow === '')).toBe(true);
+  });
 });

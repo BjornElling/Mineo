@@ -4036,3 +4036,9 @@ Løntypen kan desuden være en anden i opslaget end i sagen, efter at resultatet
 - **M-16 / BB-461.** Ved en fuldt beregnelig TAF-sag uden indtægt viste grafen «Indtastning mangler». Hovedopgørelsen og de to taldokumenter kunne hentes. BB-371's særskilte tekster for et fravalgt TAF-krav og en sag uden TAF-perioder bestod.
 - **M-58 / BB-462.** En afvist enlig Fra-dato gav «Ingen perioder angivet» både på TAF- og S/S-linjen. Øvrige krav viste «Fejl» ved samme type prøve med et afvist beløb.
 - **M-08 / BB-463.** Tab og Enter kom forbi reparationslinkene i Beregning. Mellemrum på det fokuserede «Skadelidte» og museklik virker. **BB-464** bekræftede en anden variant i Varige mén, Forsørgertab og Erhvervsevnetab. «Stamdata» ved en manglende oplysning kan klikkes med mus, men kan ikke få fokus. Sidemenuens og fanernes tidligere afgørelser gælder fortsat.
+
+### Tværgående efterprøvning af EO-kontrol og Kontroltabel (12m)
+
+- **M-41 / BB-465.** En enlig Til-dato under «Vedrører perioden» forlængede dagtabellen og CSV med 61 dage. Beregning og EO-kontrol viste samtidig, at Fra manglede. Samme enlige Til-dato i ufuldstændige TAF-, svie/smerte- og ydelsesrækker forlængede ingen af de to visninger.
+- **M-52 / BB-466.** To ens arbejdsstedsnavne gav ens overskrifter i EO-kontrol, selv om Kontroltabel og CSV viste kortnumrene. Et arbejdsstedsnavn, der rammer det andet korts standardnavn, gav to ens overskrifter i begge kontrolfaner. Lønindkomsts korttitler skelnede begge par.
+- **BB-467.** Datokolonnen forsvandt ved vandret rul til løn- og ydelsesbeløb, mens kolonneoverskrifterne holdt deres plads øverst. Renteberegning, Årslønsberegning og EET oplysninger kunne vise alle kolonner i de prøvede tabeller ved 1280×730. Dagtabellen har sit eget layout.

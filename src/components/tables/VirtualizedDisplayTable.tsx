@@ -55,6 +55,17 @@ export type VirtualizedDisplayTableProps = Readonly<{
    */
   stickyHeaderTop?: number;
   /**
+   * Antal førende kolonner, der bliver stående i venstre side, når tabellen ruller vandret – så en række stadig kan
+   * knyttes til sin dato, mens brugeren ser beløbene længst til højre (BB-467). Kun i `scrollMode="ancestor"`, hvor
+   * scroll-containeren også ruller vandret.
+   */
+  stickyLeadingColumns?: number;
+  /**
+   * Sticky-offset fra venstre kant af scroll-containeren (pixels); kompenserer som `stickyHeaderTop` for
+   * containerens egen luft.
+   */
+  stickyLeadingColumnsLeft?: number;
+  /**
    * Scroll-strategi:
    * - 'self' (default): tabellen renderer inde i sin egen vertikale scroll-container.
    * - 'ancestor': tabellen opretter ikke sin egen scroll-container; virtualiseringen følger den nærmeste
@@ -78,6 +89,8 @@ const VirtualizedDisplayTable = React.memo(
     stickyHeader = false,
     stickyHeaderTop = 0,
     scrollMode = 'self',
+    stickyLeadingColumns = 0,
+    stickyLeadingColumnsLeft = 0,
     getRowKey,
     renderCell,
     containerSx,
@@ -207,6 +220,37 @@ const VirtualizedDisplayTable = React.memo(
       return { startIndex: start, endIndex: end, topSpacerHeight: top, bottomSpacerHeight: bottom };
     }, [overscan, rowCount, rowHeight, scrollTop, totalHeight, viewportHeight]);
 
+    /**
+     * `left`-offset pr. fastholdt kolonne (summen af de foregående kolonners bredde). Kolonnerne efter de fastholdte
+     * får ingen post. Den sidste fastholdte kolonne får en skillelinje, så de rullende kolonner ikke flyder sammen
+     * med den.
+     */
+    const stickyLeftOffsets = React.useMemo<readonly number[]>(() => {
+      if (scrollMode !== 'ancestor') return [];
+      const offsets: number[] = [];
+      let left = stickyLeadingColumnsLeft;
+      for (const column of columns.slice(0, Math.max(0, stickyLeadingColumns))) {
+        offsets.push(left);
+        left += column.width;
+      }
+      return offsets;
+    }, [columns, scrollMode, stickyLeadingColumns, stickyLeadingColumnsLeft]);
+
+    const stickyColumnStyle = React.useCallback(
+      (columnIndex: number, colSpan: number): React.CSSProperties => {
+        const left = stickyLeftOffsets[columnIndex];
+        if (left === undefined || columnIndex + colSpan > stickyLeftOffsets.length) return {};
+        return {
+          position: 'sticky',
+          left,
+          ...(columnIndex + colSpan === stickyLeftOffsets.length
+            ? { boxShadow: 'inset -2px 0 0 var(--color-table-border)' }
+            : {}),
+        };
+      },
+      [stickyLeftOffsets]
+    );
+
     const tableStyle = React.useMemo(() => getHtmlTableStyles(useSmallFont), [useSmallFont]);
     const cellBaseStyle = React.useMemo<React.CSSProperties>(
       () => ({
@@ -256,50 +300,66 @@ const VirtualizedDisplayTable = React.memo(
 
     const renderHeader = React.useCallback(() => (
       <thead>
-        {resolvedHeaderRows.map((row, rowIndex) => (
-          <tr key={row.key ?? rowIndex}>
-            {row.cells.map((cell, cellIndex) => (
-              <th
-                key={cell.key ?? cellIndex}
-                data-mineo-column-id={cell.columnId}
-                colSpan={cell.colSpan ?? 1}
-                style={{
-                  ...htmlTableHeaderStyles,
-                  ...headerCellBaseStyle,
-                  ...(stickyHeader
-                    ? {
-                        position: 'sticky',
-                        top: stickyHeaderTop + resolvedHeaderRows
-                          .slice(0, rowIndex)
-                          .reduce((sum, currentRow) => sum + (currentRow.stickyHeight ?? 36), 0),
-                        zIndex: 4 + (resolvedHeaderRows.length - rowIndex),
-                        backgroundColor: 'var(--color-table-header-bg)',
-                        backgroundImage: 'none',
-                      }
-                    : {}),
-                  width: cell.width,
-                  height: row.stickyHeight,
-                  minHeight: row.stickyHeight,
-                  boxSizing: 'border-box',
-                  textAlign: cell.align ?? 'center',
-                  verticalAlign: 'bottom',
-                  whiteSpace: 'pre-line',
-                  overflowWrap: 'anywhere',
-                  wordBreak: 'break-word',
-                  borderBottom: rowIndex === resolvedHeaderRows.length - 1
-                    ? htmlTableHeaderStyles.borderBottom
-                    : 'none',
-                  ...(rowIndex === resolvedHeaderRows.length - 1 ? headerSeparatorBackground : {}),
-                  borderLeft: cell.borderLeft ? '2px solid var(--color-table-border)' : undefined,
-                }}
-              >
-                {cell.content}
-              </th>
-            ))}
-          </tr>
-        ))}
+        {resolvedHeaderRows.map((row, rowIndex) => {
+          let nextStartColumn = 0;
+          return (
+            <tr key={row.key ?? rowIndex}>
+              {row.cells.map((cell, cellIndex) => {
+                const startColumn = nextStartColumn;
+                nextStartColumn += cell.colSpan ?? 1;
+                const stickyLeft = stickyColumnStyle(startColumn, cell.colSpan ?? 1);
+                return (
+                  <th
+                    key={cell.key ?? cellIndex}
+                    data-mineo-column-id={cell.columnId}
+                    colSpan={cell.colSpan ?? 1}
+                    style={{
+                      ...htmlTableHeaderStyles,
+                      ...headerCellBaseStyle,
+                      ...(stickyHeader
+                        ? {
+                            position: 'sticky',
+                            top: stickyHeaderTop + resolvedHeaderRows
+                              .slice(0, rowIndex)
+                              .reduce((sum, currentRow) => sum + (currentRow.stickyHeight ?? 36), 0),
+                            zIndex: 4 + (resolvedHeaderRows.length - rowIndex),
+                            backgroundColor: 'var(--color-table-header-bg)',
+                            backgroundImage: 'none',
+                          }
+                        : {}),
+                      width: cell.width,
+                      height: row.stickyHeight,
+                      minHeight: row.stickyHeight,
+                      boxSizing: 'border-box',
+                      textAlign: cell.align ?? 'center',
+                      verticalAlign: 'bottom',
+                      whiteSpace: 'pre-line',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word',
+                      borderBottom: rowIndex === resolvedHeaderRows.length - 1
+                        ? htmlTableHeaderStyles.borderBottom
+                        : 'none',
+                      ...(rowIndex === resolvedHeaderRows.length - 1 ? headerSeparatorBackground : {}),
+                      borderLeft: cell.borderLeft ? '2px solid var(--color-table-border)' : undefined,
+                      ...(stickyLeft.position
+                        ? {
+                            ...stickyLeft,
+                            // Over både de rullende overskrifter og de fastholdte celler i tabellens krop.
+                            zIndex: 8 + (resolvedHeaderRows.length - rowIndex),
+                            backgroundColor: 'var(--color-table-header-bg)',
+                          }
+                        : {}),
+                    }}
+                  >
+                    {cell.content}
+                  </th>
+                );
+              })}
+            </tr>
+          );
+        })}
       </thead>
-    ), [headerCellBaseStyle, headerSeparatorBackground, resolvedHeaderRows, stickyHeader, stickyHeaderTop]);
+    ), [headerCellBaseStyle, headerSeparatorBackground, resolvedHeaderRows, stickyColumnStyle, stickyHeader, stickyHeaderTop]);
 
     const renderBody = React.useCallback(() => (
       <tbody>
@@ -324,6 +384,10 @@ const VirtualizedDisplayTable = React.memo(
                     width: col.width,
                     textAlign: col.align ?? 'center',
                     borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
+                    // En fastholdt celle skal dække de rullende celler under sig; rækkens farve arves fra `<tr>`.
+                    ...(colIdx < stickyLeftOffsets.length
+                      ? { ...stickyColumnStyle(colIdx, 1), zIndex: 2, backgroundColor: 'inherit' }
+                      : {}),
                   }}
                 >
                   {renderCell(rowIndex, colIdx)}
@@ -339,7 +403,7 @@ const VirtualizedDisplayTable = React.memo(
           </tr>
         ) : null}
       </tbody>
-    ), [bottomSpacerHeight, cellBaseStyle, columns, endIndex, getRowKey, renderCell, rowHeight, startIndex, topSpacerHeight]);
+    ), [bottomSpacerHeight, cellBaseStyle, columns, endIndex, getRowKey, renderCell, rowHeight, startIndex, stickyColumnStyle, stickyLeftOffsets.length, topSpacerHeight]);
 
     if (scrollMode === 'ancestor') {
       return (
