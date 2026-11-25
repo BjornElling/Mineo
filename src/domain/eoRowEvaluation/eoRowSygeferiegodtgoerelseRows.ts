@@ -317,12 +317,19 @@ export const buildEoSygeferiegodtgoerelseRows = (
     }
 
     let direkteOverenskomstDagssatsMangler: string | undefined;
+    // Mangler kun en del af perioden sats (fx dage før overenskomstens første direkte sats), spærrer det som når
+    // hele perioden mangler – før faldt de dage ud af kravet uden besked (fund C, 2026-11-25).
     if (
       sfggSource.kind === 'overenskomst_direkte'
       && result
-      && result.segments.length === 0
-      && result.sfggReferencesats.status === 'not_calculable'
-      && !isSfggNoEligibleDaysNotCalculable(result.sfggReferencesats)
+      && (
+        result.foersteDagUdenSats !== undefined
+        || (
+          result.segments.length === 0
+          && result.sfggReferencesats.status === 'not_calculable'
+          && !isSfggNoEligibleDaysNotCalculable(result.sfggReferencesats)
+        )
+      )
     ) {
       direkteOverenskomstDagssatsMangler = 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden';
     }

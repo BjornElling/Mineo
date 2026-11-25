@@ -172,7 +172,10 @@ export const buildSvieSmerteModel = (
   const tidligere: Calculable<MoneyOre> = engine.tidligereOre === null || engine.tidligereOre <= zeroMoneyOre()
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(engine.tidligereOre);
-  const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null
+  // Et modtaget beløb på 0 er intet fradrag. Uden prøven trykte papiret «á 230 kr. - 0 kr. =» og «Der er
+  // tidligere modtaget 0 kr. for denne periode.», mod den fælles fortegnsregel (BB-129/BB-130), som TAF-linjen
+  // nedenfor følger (værdiklasse-gennemgangen 2026-11-24). Beløbsmæssigt uden virkning: 0 fradrager intet.
+  const aktuel: Calculable<MoneyOre> = engine.aktuelOre === null || engine.aktuelOre <= zeroMoneyOre()
     ? notCalculableMoney('Ikke angivet')
     : asCalculable(engine.aktuelOre);
 

@@ -142,6 +142,32 @@ describe('lag 2 – hvert numerisk produktionsfelt ERKLÆRER en politik', () => 
     expect(signed.length).toBeGreaterThan(0);
     expect([...new Set(signed.map((field) => field.codec.family))]).toEqual(['amount']);
   });
+
+  /**
+   * Politikken styrer kun tastetrykket. Et ikke-negativt beløbsfelt kan stadig få et negativt RESULTAT gennem et
+   * udtryk («1000-3000») eller en indlæst `.eo`-fil, og settle er fortegns-blind (§1.6). Det er feltets egen
+   * grænsevalidator, der gør værdien rød – og den skrives pr. felt, mens den afledte resultatgrænse kun dækker
+   * ±9.999.999,99. Uden dette ben ville et nyt beløbsfelt uden grænse tage imod -2000 uden fejl
+   * (værdiklasse-gennemgangen 2026-11-24).
+   */
+  it('hvert ikke-negativt numerisk produktionsfelt giver en feltfejl på en negativ værdi', () => {
+    const view = { readCanonical: () => undefined, listEntityIds: () => [] } as never;
+    const negativeValue = (family: string): unknown => (family === 'amount' ? { kind: 'number', value: -1 } : -1);
+    const nonNegativeFields = productionInputFields
+      .filter((field) => NUMERIC_FAMILIES.has(field.codec.family) && field.codec.signPolicy === 'nonNegative');
+    // Ankeret: værnet måler faktisk felter og består ikke på en tom liste.
+    expect(nonNegativeFields.length).toBeGreaterThan(20);
+    const withoutIssue = nonNegativeFields
+      .filter((field) => {
+        const entityCount = field.template.path.filter((segment) => segment.kind === 'entity').length;
+        const ref = field.bind(...Array.from({ length: entityCount }, (_, i) => `id-${i}`)) as never;
+        return !(field.validators ?? []).some((validate) => (validate as (...args: unknown[]) => unknown)(
+          negativeValue(field.codec.family), ref, view
+        ) !== undefined);
+      })
+      .map((field) => `${field.id} (${field.codec.family})`);
+    expect(withoutIssue, 'ikke-negative felter, der tager imod en negativ værdi uden fejl').toEqual([]);
+  });
 });
 
 describe('lag 3 – den ægte komponent blokerer tastetrykket', () => {

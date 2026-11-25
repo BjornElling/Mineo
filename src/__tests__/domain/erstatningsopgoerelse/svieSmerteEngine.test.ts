@@ -54,6 +54,32 @@ describe('computeSvieSmerteEngine', () => {
     expect(result.maxApplied).toBe(true);
   });
 
+  it('melder ikke «reduceret til max», når kravet præcis rammer restpladsen trods kommatalsstøj', () => {
+    // Brøkforlig 1/3 og et tidligere beløb med øre: restpladsen bliver 14319,999999999998 som kommatal,
+    // mens 179 dage á 80,00 kr. er præcis 14.320,00 kr. Intet skæres ned – loftet er blot nået.
+    const result = computeSvieSmerteEngine({
+      erstatningsopgoerelse: makeValues({
+        tidligereSsMax: 'Nej',
+        vedroererPeriodeFra: iso('2024-01-01'),
+        vedroererPeriodeTil: iso('2024-06-27'),
+        svieSmertePerioder: [
+          { id: '1', fra: iso('2024-01-01'), til: iso('2024-06-27'), tilstand: 'sygemeldt' },
+        ],
+        svieSmerteSatserAar: 2025,
+        svieSmerteDelvisSygemeldingSats: 'fuld',
+        forligAnsvarsgradProcent: undefined,
+        forligAnsvarsgradBroek: '1/3',
+        svieSmerteTidligereTotal: asAmountValue(16_346.67),
+        svieSmerteAktuelPeriode: asAmountValue(0),
+      }),
+    });
+
+    expect(result.sygedage).toBe(179);
+    expect(result.totalOre).toBe(1_432_000);
+    expect(result.maksimumNaaet).toBe(true);
+    expect(result.maxApplied).toBe(false);
+  });
+
   it('returnerer tomt beregningsoutput ved overlappende perioder', () => {
     const result = computeSvieSmerteEngine({
       erstatningsopgoerelse: makeValues({

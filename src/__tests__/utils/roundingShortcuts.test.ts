@@ -51,6 +51,10 @@ describe('roundingShortcuts', () => {
       expect(ceilNearest12(1)).toBe(12);
       expect(ceilNearest12(12)).toBe(12);
       expect(ceilNearest12(13)).toBe(24);
+      // Forsørgertabets løbende ydelse: et produkt, der præcist er deleligt med 12, men som kommatal ligger lige
+      // over, må ikke rundes et trin op (fund A, 2026-11-25: 15.300 kr. blev 15.312 kr.).
+      expect(ceilNearest12(15300.000000000002)).toBe(15300);
+      expect(ceilNearest12(15300.01)).toBe(15312);
       expect(ceilNearest12(120000)).toBe(120000);
     });
 

@@ -281,8 +281,10 @@ describe('eoCanonicalOutput – fail-closed drift-guard (schema-invariant)', () 
       eoValues: withSfggIngenForEmployments(eoValues),
     });
     expect(snapshot.status).not.toBe('fail_closed');
-    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingSegmenter[0]?.deltaPct).toBe(2.7);
-    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingTotalFoerForligOre).toBe(3081000);
+    // 1,002 × 1,025 = 1,02705: halvgrænsen rundes væk fra nul efter decimalværdien, ikke efter kommatallets
+    // 2,7049999… (fund A, godkendt af udvikleren 2026-11-25).
+    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingSegmenter[0]?.deltaPct).toBe(2.71);
+    expect(snapshot.data?.canonicalOutput.regulering.loenudviklingTotalFoerForligOre).toBe(3081300);
   });
 });
 

@@ -21,6 +21,7 @@ import {
 } from '../../inputCore/inputIssue';
 import type { AnyFieldRef } from '../../inputCore/fieldDescriptor';
 import { AMOUNT_DIVISION_BY_ZERO_MESSAGE } from '../../utils/expressionAmount';
+import { amountValueSchema } from '../../schemas/amountExpressionSchema';
 
 describe('fieldCodecs', () => {
   it('canonicaliserer tomhed efter codecets værditype', () => {
@@ -154,6 +155,26 @@ describe('fieldCodecs', () => {
     expect(integerOnly.acceptsInitialKey('5')).toBe(true);
     expect(integerOnly.decimalPolicy).toBe('integerOnly');
     expect(withDecimals.decimalPolicy).toBe('decimal');
+  });
+
+  it('committer et regnestykke med øre i et decimalløst felt som det afrundede tal, så det kan gemmes', () => {
+    const integerOnly = createAmountFieldCodec({
+      allowNegative: false, allowDecimals: false, minValue: 1000, maxValue: 9999999,
+    });
+    const withRemainder = integerOnly.parseForSettle('399999,5+0');
+    expect(withRemainder).toEqual({ status: 'valid', value: { kind: 'number', value: 400000 } });
+    const third = integerOnly.parseForSettle('1000/3');
+    expect(third).toEqual({ status: 'valid', value: { kind: 'number', value: 333 } });
+    // Værdien skal kunne bestå det persisterede schema – før kastede commit'en her.
+    for (const resolution of [withRemainder, third]) {
+      if (resolution.status !== 'valid') throw new Error('forventede valid');
+      expect(amountValueSchema.safeParse(resolution.value).success).toBe(true);
+    }
+    // Kontrast: et udtryk, der går op i hele kroner, bevares som udtryk.
+    const whole = integerOnly.parseForSettle('200000+200000');
+    expect(whole).toMatchObject({ status: 'valid', value: { kind: 'expression', value: 400000 } });
+    if (whole.status !== 'valid') throw new Error('forventede valid');
+    expect(amountValueSchema.safeParse(whole.value).success).toBe(true);
   });
 
   it('bærer procentfeltets decimalpolitik fra codec-konfigurationen', () => {

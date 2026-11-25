@@ -99,6 +99,48 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(false);
   });
 
+  it('lader «EET efter EAL» og differencekravet se bort fra samme afgørelse efter beregningsdatoen', () => {
+    // Fund D (2026-11-25): uden EAL EET % valgte fanen den seneste afgørelse uanset beregningsdatoen, mens
+    // differencekravet afgrænsede til beregningsdatoen – samme sag gav to forskellige EAL-krav.
+    const values: ErhvervsevnetabComposedValues = {
+      ...createValues(),
+      ealEetPct: undefined,
+      aslAfgoerelser: [
+        {
+          id: 'row-endelig',
+          afgoerelsesDato: toISODateString('2025-01-01'),
+          virkningsDato: toISODateString('2025-01-01'),
+          eetPct: 50,
+          kapDato: toISODateString('2025-02-01'),
+          kapPct: 25,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+          fsTilbageholdtEet: 'Nej',
+        },
+        {
+          id: 'row-fremtidig',
+          afgoerelsesDato: toISODateString('2026-06-01'),
+          virkningsDato: toISODateString('2026-06-01'),
+          eetPct: 65,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Midlertidig',
+          tidlKapDato: undefined,
+          fsTilbageholdtEet: 'Nej',
+        },
+      ],
+    };
+    const snapshot = computeEetSnapshot({
+      values,
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+    });
+
+    expect(snapshot.efterEal.computation?.eetPct).toBe(50);
+    expect(snapshot.differencekrav.computation).not.toBeNull();
+    expect(snapshot.efterEal.computation?.ealKravOre).toBe(snapshot.differencekrav.computation?.ealKravOre);
+  });
+
   it('viser ikke EAL-irrelevante ASL-issues, når EAL-felterne er de primære', () => {
     const values = createValues();
     const duplicateRow = { ...values.aslAfgoerelser[0], id: 'row-2' };

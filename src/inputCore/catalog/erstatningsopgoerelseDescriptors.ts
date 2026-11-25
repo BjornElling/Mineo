@@ -46,6 +46,7 @@ import {
   createYearFieldCodec,
 } from '../fieldCodecs';
 import { catalogCollections, catalogFields } from '../fieldCatalog';
+import { resolveYdelsestype } from '../../data/ydelsestyper';
 import { entityIdForCollection, type CollectionRef } from '../fieldAddress';
 import {
   BILAGSNUMMER_MAX_LENGTH,
@@ -1139,6 +1140,18 @@ export const eoOffentligeYdelserYdelsestypeField = defineStructuralField<string 
   controlKind: 'choice',
   createEmptySection: createEmptyErstatningsopgoerelseSection,
   relevance: whenEo(tafSektionAktiv),
+  // En `.eo`-fil kan bære en type, kataloget ikke kender (håndrettet fil eller en type, der er fjernet). Rækken
+  // talte før ikke med i fradraget, uden at brugeren fik det at vide (værdiklasse-gennemgangen 2026-11-24, fund G,
+  // godkendt af udvikleren 2026-11-25). Værdien bevares og bliver rød, så brugeren vælger en kendt type.
+  validators: [(value) => {
+    const trimmed = value?.trim() ?? '';
+    if (trimmed === '' || resolveYdelsestype(trimmed) !== null) return undefined;
+    return {
+      reason: 'rule',
+      code: 'eo.offentligeYdelserRows.ydelsestype.ukendt',
+      message: `Ukendt ydelsestype «${trimmed}» – vælg en ydelsestype`,
+    };
+  }],
 });
 
 // sfggAnsaettelsesforhold – samling med custom entity-id (`ansaettelsesforholdId`).

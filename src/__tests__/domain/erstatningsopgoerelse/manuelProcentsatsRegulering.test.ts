@@ -29,7 +29,8 @@ describe('buildManuelProcentsatsEntries', () => {
     });
     expect(entries.at(-1)).toMatchObject({
       indeks: 102.705, akkumuleretPct: 2.7049999999999983,
-      anvendtIndeks: 102.7, anvendtPct: 2.7,
+      // Decimalværdien 2,705 rundes væk fra nul (fund A, 2026-11-25); før gav kommatallet 2,70.
+      anvendtIndeks: 102.71, anvendtPct: 2.71,
     });
   });
 

@@ -470,6 +470,28 @@ describe('eoPdfModel', () => {
     // 10 dage * 250 kr = 2.500 kr = 250.000 øre
     expect(model.svieSmerte.totalOre).toBe(250000);
     expect(model.svieSmerte.satserPerDag.status).toBe('ok');
+    // Et modtaget beløb på 0 er intet fradrag: papiret må ikke trykke «- 0 kr.» (BB-129/BB-130).
+    expect(model.svieSmerte.aktuel.status).toBe('not_calculable');
+  });
+
+  it('fører et modtaget beløb større end 0 til PDF-modellen som fradrag', () => {
+    const eoValues = makeValues({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-10'),
+      tidligereSsMax: 'Nej',
+      svieSmertePerioder: [
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+      ],
+      svieSmerteSatserAar: 2026,
+      svieSmerteDelvisSygemeldingSats: 'fuld',
+      svieSmerteAktuelPeriode: asAmountValue(500),
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+
+    expect(model.svieSmerte.aktuel).toEqual({ status: 'ok', value: 50000 });
+    expect(model.svieSmerte.totalOre).toBe(200000);
   });
 
   // BB-241: en ménafgørelse uden dato er stadig truffet og skal stå i papiret – med sin klage, som

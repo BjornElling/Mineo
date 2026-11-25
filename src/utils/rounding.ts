@@ -30,10 +30,29 @@ export type RoundingMethod = 'halfAwayFromZero' | 'floor' | 'ceil' | 'none';
  * @param decimals - Antal decimaler (default: 2)
  * @returns Det rundede tal, normaliseret
  */
+/**
+ * Fjerner binær regnestøj fra det skalerede tal, før det afrundes.
+ *
+ * Et produkt, der i decimaler går præcis op, kan som kommatal ligge lige ved siden af: 64.500 × (1 − 18/100)
+ * bliver 52.890,00000000001 og 100.050 × 0,29 bliver 29.014,499999999996. Uden rensning rundede `ceil` det
+ * første op til 52.891 (varigt mén 1 kr. for højt) og «half away from zero» det andet ned til 29.014. Det
+ * tidligere tillæg af `Number.EPSILON` virkede kun under 1 (værdiklasse-gennemgangen 2026-11-24, fund A,
+ * godkendt af udvikleren 2026-11-25).
+ *
+ * 15 betydende cifre er det, et kommatal altid kan bære præcist. Den rensede værdi bruges kun, når den ligger
+ * under en milliontedel af afrundingsenheden fra den rå: så fjernes kun støj, aldrig en reel brøkdel, og et
+ * meget stort tal med 16 cifre (fx 7.036.874.417.766.399 øre) beholder sit sidste ciffer.
+ */
+const BINARY_NOISE_TOLERANCE = 1e-6;
+const withoutBinaryNoise = (scaled: number): number => {
+  const cleaned = Number(scaled.toPrecision(15));
+  return Math.abs(cleaned - scaled) < BINARY_NOISE_TOLERANCE ? cleaned : scaled;
+};
+
 const roundHalfAwayFromZero = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
   const abs = Math.abs(value);
-  const roundedAbs = Math.round((abs * factor) + Number.EPSILON) / factor;
+  const roundedAbs = Math.round(withoutBinaryNoise(abs * factor)) / factor;
   const signed = Math.sign(value) * roundedAbs;
   return normalizeZero(signed);
 };
@@ -43,7 +62,7 @@ const roundHalfAwayFromZero = (value: number, decimals: number): number => {
  */
 const roundFloor = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
-  const result = Math.floor(value * factor) / factor;
+  const result = Math.floor(withoutBinaryNoise(value * factor)) / factor;
   return normalizeZero(result);
 };
 
@@ -52,7 +71,7 @@ const roundFloor = (value: number, decimals: number): number => {
  */
 const roundCeil = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
-  const result = Math.ceil(value * factor) / factor;
+  const result = Math.ceil(withoutBinaryNoise(value * factor)) / factor;
   return normalizeZero(result);
 };
 

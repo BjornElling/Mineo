@@ -27,6 +27,18 @@ const createEmptyFaellesAarsloenSection = (): unknown => ({});
 const AMOUNT_MIN = 1000;
 const AMOUNT_MAX = 9999999;
 
+/**
+ * Feltet tager kun hele kroner; en tastet decimal afrundes ved settle (BB-118). En `.eo`-fil kan dog bære øre
+ * (`amountValue` tillader to decimaler), og så viste feltet «400.001», mens beregningen brugte 400.000,50
+ * (værdiklasse-gennemgangen 2026-11-24, fund G, godkendt af udvikleren 2026-11-25). Værdien bevares og
+ * bliver rød, så brugeren selv retter den.
+ */
+const wholeKronerValidator = (field: string): FieldValidator<AmountValue | undefined> => (value) => {
+  const amount = amountValueToNumber(value);
+  if (amount === undefined || Number.isInteger(amount)) return undefined;
+  return { reason: 'rule', code: `faellesAarsloen.${field}.helekroner`, message: 'Beløbet skal angives i hele kroner' };
+};
+
 const amountField = (
   field: string,
   label: string,
@@ -83,7 +95,10 @@ export const faellesAarsloenAslAarsloenField = amountField('aslAarsloen', SKADEL
       : { reason: 'rule', code: 'faellesAarsloen.aslAarsloen.rule', message };
   },
 ]);
-export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', SKADELIDTES_AARSLOEN_EAL_FELT_LABEL);
+// ASL-feltet fanges allerede af «deleligt med 1.000»; EAL-feltet har ingen sådan regel.
+export const faellesAarsloenEalAarsloenField = amountField('ealAarsloen', SKADELIDTES_AARSLOEN_EAL_FELT_LABEL, [
+  wholeKronerValidator('ealAarsloen'),
+]);
 
 export const faellesAarsloenFields = catalogFields(faellesAarsloenAslAarsloenField, faellesAarsloenEalAarsloenField);
 export const faellesAarsloenCollections = catalogCollections();

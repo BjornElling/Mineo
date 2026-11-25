@@ -317,7 +317,10 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     const restPlads = maxKroner - tidligereValue;
     const restPladsEfterTidligere = clampToNonNegative(restPlads);
     const beloebFoerFradrag = Math.min(rawKroner, restPladsEfterTidligere);
-    maxApplied = rawKroner > restPladsEfterTidligere;
+    // I hele øre som `maksimumNaaet`: et brøkforlig og et tidligere beløb med øre kan give en restplads på
+    // 14319,999999999998 mod et krav på præcis 14320, og så trykte papiret «(reduceret til max)», selv om
+    // intet blev skåret ned (værdiklasse-gennemgangen 2026-11-24). Beløbet er uberørt: det afrundes alligevel.
+    maxApplied = fromKroner(roundKroner(rawKroner)) > fromKroner(roundKroner(restPladsEfterTidligere));
     // Ingen restplads overhovedet: rammen var brugt op i forvejen, og kravet nedsættes ikke TIL
     // maksimum – det bortfalder. Den tilstand er samme virkelighed som togglen «Tidligere beregnet
     // S/S til max.» og skal behandles ens (BB-219).

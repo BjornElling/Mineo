@@ -284,6 +284,21 @@ describe('renderReguleringSection – kronetillæg og deres enheder', () => {
       '500,00 kr./måned / 160,33 = 3,12 kr./time fra 01-05-2024'
     );
   });
+
+  it('viser en anciennitetstillægssats på 0 som 0 – ikke som en manglende indtastning', () => {
+    const { writeLabelValueLine, ctx } = makeContext(makeOffentligValues({
+      offentligLoenType: 'Månedsløn',
+      harAnciennitetstillaegEfterSkadedatoen: true,
+      anciennitetstillaegDato: iso('2024-05-01'),
+      anciennitetstillaegSats: { kind: 'number', value: 0 },
+      anciennitetstillaegSatsAngivesPer: 'Måned',
+    }));
+
+    renderReguleringSection(ctx);
+
+    expect(writeLabelValueLine).toHaveBeenCalledWith('Anciennitetstillæg', '0,00 kr./måned fra 01-05-2024');
+    expect(writeLabelValueLine).not.toHaveBeenCalledWith('Anciennitetstillæg', 'Indtastning mangler');
+  });
 });
 
 describe('renderReguleringSection – loenSkadedatoText input', () => {

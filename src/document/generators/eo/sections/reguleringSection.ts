@@ -208,7 +208,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     if (!aktivOverenskomst.aktiv) return null;
 
     const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
-    if (typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
+    // 0 er en udfyldt sats (feltets grænse er inklusiv 0, og `resolveAnciennitetstillaegMangel` melder ingen
+    // mangel); beregningen regner med 0 kr. i tillæg, så bilaget må ikke påstå, at indtastningen mangler.
+    if (typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue < 0) {
       return 'Indtastning mangler';
     }
     const dato = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);

@@ -640,18 +640,32 @@ export const buildIncomeForRanges = (
   values: TafCalculationValues,
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
-  skadedato?: ISODateString
+  skadedato?: ISODateString,
+  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate'
 ): IncomePeriodResult => {
-  const { employers, benefits } = buildIncomeForRangesDetailed(values, rawRanges, context, skadedato);
+  const { employers, benefits } = buildIncomeForRangesDetailed(values, rawRanges, context, skadedato, negativeSourceHandling);
   return { employers, benefits };
 };
+
+/**
+ * Hvordan en kilde, der samlet er negativ i de valgte ranges, afleveres.
+ *
+ * - `'separate'` (standard): kilden holdes ude af `employers`/`benefits` og meldes i `negativeSources`. Det er
+ *   reglen for hele beregnings- og erstatningsperioden, hvor en samlet negativ kilde spærrer (BB-290).
+ * - `'include'`: kilden står i `employers`/`benefits` med sit negative beløb. Bruges af årsfordelingen, hvor en
+ *   kilde kan være positiv over hele erstatningsperioden, men negativ inden for ét kalenderår; uden den fik året
+ *   et for stort fradrag, og årene kunne ikke afstemmes med opgørelsen (værdiklasse-gennemgangen 2026-11-24,
+ *   fund B, godkendt af udvikleren 2026-11-25).
+ */
+export type IncomeNegativeSourceHandling = 'separate' | 'include';
 
 /** Som `buildIncomeForRanges`, men med de kilder, der samlet er negative i perioden (BB-290). */
 export const buildIncomeForRangesDetailed = (
   values: TafCalculationValues,
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
-  skadedato?: ISODateString
+  skadedato?: ISODateString,
+  negativeSourceHandling: IncomeNegativeSourceHandling = 'separate'
 ): IncomePeriodResultDetailed => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
   if (ranges.length === 0) return { employers: [], benefits: [], negativeSources: [] };
@@ -702,7 +716,7 @@ export const buildIncomeForRangesDetailed = (
     }
     if (Number.isFinite(breakdown.samlet) && !isEffectivelyZero(breakdown.samlet)) {
       const name = (af.navnPaaArbejdssted ?? '').trim();
-      if (breakdown.samlet > 0) {
+      if (breakdown.samlet > 0 || negativeSourceHandling === 'include') {
         employers.push({ id: af.id, index, name, amount: breakdown.samlet, breakdown });
       } else {
         negativeSources.push({ kind: 'employer', id: af.id, index, name, amount: breakdown.samlet });
@@ -737,7 +751,7 @@ export const buildIncomeForRangesDetailed = (
   const benefits: IncomeBenefitAmount[] = [];
   for (const entry of benefitsMap.values()) {
     if (isEffectivelyZero(entry.amount)) continue;
-    if (entry.amount > 0) {
+    if (entry.amount > 0 || negativeSourceHandling === 'include') {
       benefits.push({ typeKey: entry.typeKey, label: entry.label, amount: entry.amount });
     } else {
       negativeSources.push({

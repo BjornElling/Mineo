@@ -45,6 +45,21 @@ describe('resolveMenSatsForBeregningsdato', () => {
 
 // ─── beregnAldersfradragPct (indirekte via beregnVarigeMenGodtgoerelseWithRates) ───
 
+describe('beregnVarigeMenGodtgoerelseWithRates – oprunding af et beløb, der går lige op', () => {
+  it('runder ikke et helt kronebeløb op efter binær regnestøj (fund A, 2026-11-25)', () => {
+    // 6.450 × 10 = 64.500; alder 57 giver 18 % fradrag; 64.500 × 0,82 = 52.890 præcis. Kommatallet er
+    // 52.890,00000000001, som før blev rundet op til 52.891.
+    const result = beregnVarigeMenGodtgoerelseWithRates(
+      baseValues({ mengrad: 10, beregningsdato: iso('2024-06-01') }),
+      iso('2024-01-01'),
+      buildRates({ 2024: 6450 }),
+      iso('1967-01-01')
+    );
+    expect(result?.aldersreduktionPct).toBe(18);
+    expect(result?.beregnetGodtgoerelse).toBe(52890);
+  });
+});
+
 describe('beregnVarigeMenGodtgoerelseWithRates', () => {
   describe('null-cases (manglende input)', () => {
     it('returnerer null ved mengrad = undefined', () => {

@@ -392,9 +392,12 @@ export const buildTafPerYearBuildOutcome = (
     // Klip TAF-ranges til det pågældende kalenderår for fradragsberegning
     const yearClippedRanges = yearClippedRangesByYear.get(year) ?? [];
 
+    // En kilde kan være positiv over hele erstatningsperioden og negativ inden for ét år; året skal da have
+    // et negativt fradrag, så årene summer til opgørelsen (fund B, 2026-11-25).
     const income = buildTafIndtaegterBeregning(eoValues, yearClippedRanges, {
       midlertidigtEetGroups,
       incomeContext,
+      negativeSourceHandling: 'include',
     });
     const deductions: TafYearDeduction[] = income.entries
       // Årsdokumentet har hidtil udeladt importeret EET, når bilagets periodeafrunding giver 0 kr.
@@ -431,15 +434,34 @@ export const buildTafPerYearBuildOutcome = (
   }
 
   const reconciledYears = samletTafKravOre === 0
-    ? years.map((year) => ({
-      ...year,
+    ? years.map((year) => {
       // TAF erstatter kun manglende indtægt. Når det samlede krav er 0, er også hvert års
       // viste krav 0, mens indtægter og fradrag bevares – fx giver lønfremgang intet krav.
       // Dette er tilsigtet domæneadfærd, ikke en afrundingsfejl (udviklerbeslutning 2026-10-18,
       // eo-snapshot-contract.md §10.4).
-      yearTafFoerForligOre: zeroMoneyOre(),
-      yearTafOre: zeroMoneyOre(),
-    }))
+      const yearTafEfterForligOre = forligFactor !== null
+        ? scaleMoneyOre(year.yearTafFoerForligOre, forligFactor)
+        : year.yearTafFoerForligOre;
+      // Skyldes nullet allerede betalt TAF, og dækker årets andel det forlig-skalerede krav, vises årets
+      // regnestykke helt: «I alt (50 % af 23.000) 11.500 / Allerede betalt TAF – 11.500 / I alt 0». Det
+      // allerede betalte vises da med den del, der modregnes i året. Før stod «50 % af 0,00 kr.» over
+      // årets andel af det betalte, fx 9.523,81 kr. (fund F, godkendt af udvikleren 2026-11-25).
+      if (yearTafEfterForligOre > 0 && year.yearTidligereModtagetTafOre >= yearTafEfterForligOre) {
+        return {
+          ...year,
+          yearTidligereModtagetTafOre: yearTafEfterForligOre,
+          yearTafOre: zeroMoneyOre(),
+        };
+      }
+      return {
+        ...year,
+        yearTafFoerForligOre: zeroMoneyOre(),
+        // Ved forlig regnes subtotalen som årets krav plus det betalte; med et nulstillet krav ville
+        // den ellers vise det betalte som «50 % af 0,00 kr.».
+        yearTidligereModtagetTafOre: forligFactor !== null ? zeroMoneyOre() : year.yearTidligereModtagetTafOre,
+        yearTafOre: zeroMoneyOre(),
+      };
+    })
     // Ét år behandles som flere år: årets beregnede yearTafOre bevares, og en evt. residual
     // mod den autoritative total vises ærligt via afrundingslinjen (jf. eo-snapshot-contract.md §10).
     // Tidligere blev ét-års-totalen lydløst overskrevet til facit, så dellinjerne ikke gik op og

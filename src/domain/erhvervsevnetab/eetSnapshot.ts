@@ -8,7 +8,8 @@ import {
   FORLIG_ANSVARSGRAD_LABEL,
   type ForligAnsvarsgradInput,
 } from '../erstatningsopgoerelse/engines/forligsgrad';
-import type { ISODateString } from '../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../types/branded';
+import { filterAslRowsKnownAtBeregningsdato } from './eetDifferencekravCalculation';
 import { dedupeIssuesByIdentity } from '../../utils/issueUtils';
 import {
   aarsloenAslMax,
@@ -425,7 +426,16 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   ];
 
   return buildGatedProjection(input, blockingIssues, () => computeEetEalCalculation({
-    erhvervsevnetab: input.values,
+    // Samme afgrænsning som differencekravet: en afgørelse med virkning efter beregningsdatoen indgår ikke.
+    // Før valgte fanen den seneste afgørelse uanset beregningsdatoen, så samme sag gav to forskellige
+    // EAL-krav (værdiklasse-gennemgangen 2026-11-24, fund D, godkendt af udvikleren 2026-11-25).
+    erhvervsevnetab: {
+      ...input.values,
+      aslAfgoerelser: [...filterAslRowsKnownAtBeregningsdato(
+        input.values.aslAfgoerelser,
+        coerceToISODateString(input.values.beregningsdato)
+      )],
+    },
     skadedato: input.stamdata?.skadedato,
     skadestype: input.stamdata?.skadestype,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,

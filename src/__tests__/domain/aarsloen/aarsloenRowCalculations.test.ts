@@ -398,8 +398,9 @@ describe('calculateStandardLoenProjectedAmounts', () => {
 
 describe('roundStandardLoenAmountToTwoDecimals', () => {
   it('afrunder til 2 decimaler med halfAwayFromZero', () => {
-    // 1.005 er i floating-point faktisk 1.004999... → afrunder ned til 1.00
-    expect(roundStandardLoenAmountToTwoDecimals(1.005)).toBe(1);
+    // 1.005 er i floating-point 1.004999…, men afrundes efter decimalværdien → 1.01 (fund A, 2026-11-25),
+    // som feltet selv gør ved indtastning.
+    expect(roundStandardLoenAmountToTwoDecimals(1.005)).toBe(1.01);
     // 2.005 er i floating-point faktisk 2.005000... → afrunder op til 2.01
     expect(roundStandardLoenAmountToTwoDecimals(2.005)).toBe(2.01);
     expect(roundStandardLoenAmountToTwoDecimals(1.234)).toBe(1.23);

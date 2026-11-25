@@ -59,6 +59,12 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   sfggReferencesatsFormula: SfggReferencesatsFormula | null;
   feriepengeModtagetFormula: SfggFeriepengeModtagetFormula | null;
   capReachedDate: ISODateString | null;
+  /**
+   * Første dag med krav, som ikke kunne få en sats (fx før overenskomstens første direkte sats). Dagene indgår
+   * ikke i beregningen; feltet er sat, så valideringen kan spærre i stedet for, at dagene udelades uden besked
+   * (værdiklasse-gennemgangen 2026-11-24, fund C, godkendt af udvikleren 2026-11-25).
+   */
+  foersteDagUdenSats?: ISODateString;
 }>;
 
 export type SygeferiegodtgoerelseResult = Readonly<{

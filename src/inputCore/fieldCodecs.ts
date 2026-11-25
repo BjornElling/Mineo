@@ -352,6 +352,31 @@ export const createIntegerFieldCodec = (
   });
 };
 
+/**
+ * Et regnestykke med øre i et decimalløst beløbsfelt («399999,5+0», «1000/3») committes som det afrundede tal.
+ *
+ * Det persisterede `amountExpressionSchema` regner udtrykket igen med 2 decimaler og kræver, at resultatet er
+ * den gemte værdi. Heltalsfeltet afrunder til 0 decimaler (BB-118), så udtryk og værdi ville stride mod
+ * hinanden: før denne regel kastede commit'en en ZodError, feltet blev stående med teksten, og beregningen
+ * brugte stadig den gamle værdi uden et ord (værdiklasse-gennemgangen 2026-11-24). Et udtryk, der går op i
+ * hele kroner, bevares som udtryk.
+ */
+const integerAmountExpressionWithRemainderAsNumber = (
+  value: AmountValue | undefined,
+  raw: string,
+  precision: number
+): AmountValue | undefined => {
+  if (precision !== 0 || value?.kind !== 'expression') return value;
+  const exact = parseAmountInput(raw, {
+    precision: DEFAULT_AMOUNT_PRECISION,
+    allowNegative: true,
+    maxIntegerDigits: MAX_AMOUNT_INPUT_INTEGER_DIGITS,
+    maxRawLength: MAX_AMOUNT_RAW_LENGTH,
+  });
+  if (exact.ok && exact.value?.kind === 'expression' && Object.is(exact.value.value, value.value)) return value;
+  return { kind: 'number', value: value.value };
+};
+
 export const createAmountFieldCodec = (options: Readonly<{
   allowNegative: boolean;
   allowDecimals: boolean;
@@ -394,7 +419,7 @@ export const createAmountFieldCodec = (options: Readonly<{
         );
       }
       if (parsed.value === undefined && raw.trim() !== '') return rejectedResolution('format');
-      return validResolution(parsed.value);
+      return validResolution(integerAmountExpressionWithRemainderAsNumber(parsed.value, raw, displayPrecision));
     },
     format: (value) => amountValueToDisplayString(value, displayPrecision),
     formatForEdit: (value) => amountValueToDraftString(value, displayPrecision),

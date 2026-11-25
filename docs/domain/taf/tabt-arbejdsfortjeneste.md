@@ -130,9 +130,9 @@ Komponenterne:
   blokerende: retten til ydelsen kan være bortfaldet siden afgørelsen.
 - **Sygeferiegodtgørelse**: trækkes fra som allerede afholdt.
 
-Offentlige ydelser periodiseres forskelligt:
-- De fleste ydelser: hverdage (ekskl. SH-dage). Undtagelse: sygedagpenge **før 2012-07-02** periodiseres på hverdage uden SH-fradrag.
-- Visse ydelser (fx kontanthjælp, ressourceforløbsydelse): kalenderdage.
+Offentlige ydelser periodiseres efter ydelsestypen (`src/data/ydelsestyper.ts`):
+- Sygedagpenge og feriepenge: hverdage (ekskl. SH-dage). Undtagelse: sygedagpenge **før 2012-07-02** periodiseres på hverdage uden SH-fradrag.
+- Alle øvrige ydelser (fx dagpenge, kontanthjælp, ressourceforløbsydelse, pension): kalenderdage.
 
 ### Tillægssatser fra en overenskomst
 

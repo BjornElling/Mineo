@@ -98,7 +98,7 @@ describe('autoritativt reguleringsgrundlag', () => {
     expect(reguleringsbevisSchema.safeParse({ ...proof, wageUnit: 'Måned' }).success).toBe(false);
   });
 
-  it('bevarer den oprindelige manuelle kædes afrunding ved en binær halvgrænse', () => {
+  it('afrunder den manuelle kædes halvgrænse efter decimalværdien, så kæde og indeksforhold er enige', () => {
     const result = byggReguleringsResultat({
       ...common, strategi: 'manualProcentsats', manualProcentsatsRows: [
         { id: 'base', dato: iso('2024-01-01'), procent: 0 },
@@ -109,8 +109,9 @@ describe('autoritativt reguleringsgrundlag', () => {
     const evidence = result.segmenter.at(-1)?.regulering;
     expect(evidence?.periodValue).toBe(102.705);
     expect(evidence?.rawDeltaPct).toBe(2.7049999999999983);
-    expect(evidence?.appliedDeltaPct).toBe(2.7);
-    // Et nyt indeksforhold ville ligge på den anden side af halvgrænsen og ændre eksisterende beløb.
+    // 1,002 × 1,025 = 1,02705. Kommatallet 2,7049999… gav før 2,70, mens indeksforholdet lå over 2,705; nu
+    // giver begge 2,71 (fund A, godkendt af udvikleren 2026-11-25).
+    expect(evidence?.appliedDeltaPct).toBe(2.71);
     expect(evidence && (evidence.rawFactor - 1) * 100).toBeGreaterThan(2.705);
   });
 

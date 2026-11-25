@@ -86,8 +86,9 @@ export const evaluateForligsgrad = (values: ForligAnsvarsgradInput): Forligsgrad
     return { status: 'invalid', forlig: null, reason: 'broek', message: 'Brøk skal angives som fx "1/3" og kan ikke overstige 1' };
   }
 
-  // En procent uden for det gyldige interval (fx 0) uden brøk betragtes som "intet forlig" – ingen
-  // reduktion. Spejler at EO-validatoren ikke flagger procent=0 som fejl.
+  // En procent uden for det gyldige interval (fx 0) uden brøk betragtes her som "intet forlig" – ingen
+  // reduktion. Feltet selv er rødt under 1 % (`eo.forligAnsvarsgradProcent.bounds`), så værdien spærrer
+  // download og når aldrig et dokument; motoren skal blot ikke regne med en faktor på 0 imens.
   return { status: 'empty', forlig: null };
 };
 

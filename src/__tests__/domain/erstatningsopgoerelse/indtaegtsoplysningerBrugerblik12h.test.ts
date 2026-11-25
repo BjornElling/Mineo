@@ -246,6 +246,27 @@ describe('BB-290 – en negativ række regnes med og modregnes', () => {
     expect(result.warningLinjer.some((linje) => linje.includes('er negativ (-1.000,00 kr.)'))).toBe(true);
   });
 
+  // Værdiklasse-gennemgangen 2026-11-24: en negativ række, der kun ligger på dage uden arbejdsdage (weekend,
+  // helligdag), skal modregnes fuldt som enhver anden – den må ikke forsvinde i en tom fordeling.
+  it.each([
+    ['en weekend', iso('2024-03-02'), iso('2024-03-03'), -500],
+    ['langfredag', iso('2024-03-29'), iso('2024-03-29'), -300],
+  ])('modregner en negativ sygedagpengerække, der kun ligger på %s', (_navn, fraDato, tilDato, beloeb) => {
+    const sygedagpenge = { fraDato: iso('2024-03-01'), tilDato: iso('2024-03-31'), tillaeg: undefined, ydelsestype: 'sygedagpenge' };
+    const udenNegativ = kravKr(project(sag({ offentligeYdelserRows: [{ id: 'y1', ...sygedagpenge, ydelse: amount(5000) }] })));
+    const result = project(sag({
+      offentligeYdelserRows: [
+        { id: 'y1', ...sygedagpenge, ydelse: amount(5000) },
+        { id: 'y2', fraDato, tilDato, ydelse: amount(beloeb), tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+      ],
+    }));
+
+    expect(result.projection.snapshot.status).toBe('ok');
+    expect(result.errorLinjer).toEqual([]);
+    // Fradraget falder med præcis det negative beløb, så kravet stiger tilsvarende.
+    expect(kravKr(result)! - udenNegativ!).toBeCloseTo(-beloeb, 2);
+  });
+
   it('lader en række på 0 kr. være uændret', () => {
     const result = project(sag({
       loenindkomstAnsaettelsesforhold: [ansaettelse({
@@ -620,5 +641,43 @@ describe('BB-297 – en lønrække over ti gange de øvrige får en gul advarsel
         + 'kontrollér beløbet',
     ]);
     expect(result.errorLinjer).toEqual([]);
+  });
+});
+
+// Værdiklasse-gennemgangen 2026-11-24, fund G (godkendt af udvikleren 2026-11-25): værdier, en `.eo`-fil kan bære,
+// men som feltet aldrig ville tage imod ved indtastning, bliver røde i stedet for at blive læst forkert uden besked.
+describe('fund G – værdier fra en .eo-fil, feltet ikke kan fortolke', () => {
+  it('spærrer med en navngiven linje, når en ydelsesrække har en ukendt ydelsestype', () => {
+    const result = project(sag({
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: iso('2024-03-01'), tilDato: iso('2024-03-31'), ydelse: amount(5000), tillaeg: undefined, ydelsestype: 'Ukendt ydelse' },
+      ],
+    }));
+
+    expect(result.errorLinjer.some((linje) => linje?.includes('Ukendt ydelsestype «Ukendt ydelse»'))).toBe(true);
+    expect(result.evaluation.issues.all.some((issue) =>
+      issue.code === 'eo.offentligeYdelserRows.ydelsestype.ukendt')).toBe(true);
+  });
+
+  it('godtager en ydelsestype gemt som sin viste label (ældre fil)', () => {
+    const result = project(sag({
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: iso('2024-03-01'), tilDato: iso('2024-03-31'), ydelse: amount(5000), tillaeg: undefined, ydelsestype: 'Kontanthjælp' },
+      ],
+    }));
+
+    expect(result.evaluation.issues.all.some((issue) =>
+      issue.code === 'eo.offentligeYdelserRows.ydelsestype.ukendt')).toBe(false);
+  });
+
+  it.each(['1.5', '1,9', '1e1'])('gør månedscellen rød for den ikke-fortolkelige værdi «%s»', (maaned) => {
+    const result = project(sag({
+      loenindkomstAnsaettelsesforhold: [ansaettelse({
+        indtaegtsoplysningerTableData: [...loenRaekker(undefined, 11), { ...raekke('m', 5, 2018, 30000), col0_maaned: maaned }],
+      })],
+    }));
+
+    expect(result.evaluation.issues.all.some((issue) =>
+      issue.reason === 'schema' && issue.code.endsWith('.col0_maaned.schema'))).toBe(true);
   });
 });

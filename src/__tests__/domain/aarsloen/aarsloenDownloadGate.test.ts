@@ -196,6 +196,30 @@ describe('evaluateAarsloenDownloadGate', () => {
     expectBlocked(evaluateAarsloenDownloadGate(project(input)), 'aarsloen:fatal-calculation-error');
   });
 
+  it('blokerer med en navngiven linje og giver gul ring, når lønnen samlet er negativ (fund E)', () => {
+    let input = withOneValidMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, settle(aarsloenTableCol2Field.bind('r1'), '-30000'));
+    const projection = project(input);
+
+    expect(projection.calculation?.beregningsFejl)
+      .toBe('Lønnen i tabellen er samlet negativ (-30.000,00 kr.) – kontrollér lønrækkerne');
+    expectBlocked(evaluateAarsloenDownloadGate(projection), 'aarsloen:fatal-calculation-error');
+    expect(projection.tableRowWarnings.map((warning) => warning.kind)).toContain('negativeTotal');
+  });
+
+  it('modregner en negativ række i en samlet positiv løn uden at spærre', () => {
+    let input = withOneValidMonthRow(withValidStamdata(empty()));
+    input = dispatch(input, insert(emptyRow('r2')));
+    input = dispatch(input, settle(aarsloenTableCol0MaanedField.bind('r2'), '2'));
+    input = dispatch(input, settle(aarsloenTableCol1MaanedField.bind('r2'), '2024'));
+    input = dispatch(input, settle(aarsloenTableCol2Field.bind('r2'), '-2000'));
+    const projection = project(input);
+
+    expect(projection.calculation?.beregnetAarsloen).toBe(28000);
+    expect(evaluateAarsloenDownloadGate(projection).canDownload).toBe(true);
+    expect(projection.tableRowWarnings.find((warning) => warning.kind === 'negativeTotal')?.rowId).toBe('r2');
+  });
+
   it('tillader download for et komplet, gyldigt grundlag', () => {
     const gate = evaluateAarsloenDownloadGate(project(withOneValidMonthRow(withValidStamdata(empty()))));
     expect(gate.canDownload).toBe(true);

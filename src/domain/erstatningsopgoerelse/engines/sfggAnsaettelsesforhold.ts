@@ -294,6 +294,7 @@ export const planSfggForAnsaettelsesforhold = (
   }
 
   const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource, employmentCalculator);
+  let foersteDagUdenSats: ISODateString | undefined;
   const groupedWithEligibleDays = splitRangesAtBoundaryStarts(
     eligibleRanges,
     resolveSfggSegmentBoundaryStarts({
@@ -311,14 +312,20 @@ export const planSfggForAnsaettelsesforhold = (
       sfggBaseRate,
       reguleringOpslag,
     });
-    if (rate === null) return [];
-
     const dates = buildEligibleDatesForSfggRange({
       range,
       sfggDayBasis,
       ferieperioder: values.ferieperioder ?? [],
     });
     if (dates.length === 0) return [];
+    if (rate === null) {
+      // Dagene har krav, men ingen sats. De kan ikke regnes, og de må ikke forsvinde uden besked (fund C).
+      const foerste = dates[0];
+      if (foerste !== undefined && (foersteDagUdenSats === undefined || foerste < foersteDagUdenSats)) {
+        foersteDagUdenSats = foerste;
+      }
+      return [];
+    }
 
     return [{
       ...range,
@@ -458,6 +465,7 @@ export const planSfggForAnsaettelsesforhold = (
       sfggReferencesatsFormula: sfggBaseRate.sfggReferencesatsFormula,
       feriepengeModtagetFormula,
       capReachedDate,
+      ...(foersteDagUdenSats !== undefined ? { foersteDagUdenSats } : {}),
     };
   };
 

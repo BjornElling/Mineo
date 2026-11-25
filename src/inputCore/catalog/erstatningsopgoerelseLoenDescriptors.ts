@@ -46,6 +46,7 @@ import {
 } from '../structuralDescriptors';
 import {
   amountBoundsValidator,
+  canonicalStringCodecValidator,
   integerBoundsValidator,
   integerStringBoundsValidator,
   percentBoundsValidator,
@@ -477,7 +478,11 @@ const stdString = (
 ): FieldDescriptor<string | undefined> =>
   createField<string | undefined>({
     ownerId: STD_ID, path: stdRowPath, field, label, controlKind: 'text', codec, emptyValue: '', isEmpty: isEmptyString,
-    validators, relevance,
+    // Samme værn som Årsløns kolonner: en `.eo`-fil kan bære en schema-gyldig streng som «1.5», codecet ikke
+    // kan fortolke. Uden værnet læste beregningen den med `parseInt` som januar, mens cellen viste «1.5»
+    // (værdiklasse-gennemgangen 2026-11-24, fund G, godkendt af udvikleren 2026-11-25).
+    validators: [canonicalStringCodecValidator(`${STD_ID}.${field}.schema`, codec), ...validators],
+    relevance,
   });
 
 // Månedskolonnens 1..12 er en canonical bounds-feltvalidator (string-backed, §1.6).

@@ -26,6 +26,8 @@ EAL-beregningen er fuldstændig adskilt fra ASL-beregningen. Ingen satser, tabel
 | **EET-procent** | EAL EET-% bruges hvis udfyldt og > 0. Ellers fallback til seneste ASL-afgørelse (se nedenfor). |
 
 **Fallback-regel for EET-% fra ASL:**
+0. Afgørelser med virkning efter beregningsdatoen indgår ikke – samme afgrænsning som differencekravet, så fanen
+   «EET efter EAL» og differencekravet altid regner med samme afgørelse (udviklerens afgørelse 2026-11-25).
 1. Find afgørelsen med den seneste afgørelsesdato
 2. Ved uafgjort: vælg afgørelsen med den seneste virkningsdato
 3. Ved fortsat uafgjort: prioritér `Endelig` > `Delvist endelig` > øvrige

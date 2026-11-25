@@ -371,6 +371,13 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
 
   // Rækkeadvarslerne nuller ikke beregningen og spærrer ikke dokumentet: en gentagen række eller en fremtidig
   // periode har kendte værdier og kan være rigtig. En række med en rød fejl får ingen gul advarsel oveni.
+  const aarsloenRowTotal = (row: (typeof values.tableData)[number]): number => calculateStandardLoenRowDerived(row, {
+    feriePct: values.feriePct,
+    fritvalgPct: values.fritvalgPct,
+    shSoPct: values.shSoPct,
+    storeBededagPct: values.storeBededagPct,
+    pensionPct: values.pensionPct,
+  }, { mode: tableMode }).samlet;
   const tableRowWarnings = resolveStandardLoenRowWarnings({
     fieldSet: aarsloenStandardLoenFieldSet,
     rows: values.tableData,
@@ -380,16 +387,13 @@ export const buildAarsloenReaderProjection = (reader: InputReader): AarsloenRead
     errorRowIds: new Set(tableValidation.summary.rowIssues
       .filter((issue) => issue.level === 'error')
       .map((issue) => issue.rowId)),
+    // En negativ række får samme gule advarsel som på EO (BB-290); før passerede den på Årsløn uden et ord
+    // (værdiklasse-gennemgangen 2026-11-24, fund E, godkendt af udvikleren 2026-11-25).
+    rowTotal: aarsloenRowTotal,
     // Rimelighedskontrollen (BB-297): Årsløn har ingen beregnings- og erstatningsperiode, så hele tabellen er én
     // gruppe. Beløbet er rækkens «Samlet løn», som tabellen viser den.
     amountOutlier: {
-      rowTotal: (row) => calculateStandardLoenRowDerived(row, {
-        feriePct: values.feriePct,
-        fritvalgPct: values.fritvalgPct,
-        shSoPct: values.shSoPct,
-        storeBededagPct: values.storeBededagPct,
-        pensionPct: values.pensionPct,
-      }, { mode: tableMode }).samlet,
+      rowTotal: aarsloenRowTotal,
       group: () => 'tabellen',
       sammenligning: 'tabellens øvrige lønrækker',
     },

@@ -23,7 +23,7 @@ import {
   resolveDocumentArtifactFileName,
 } from '../../layout/documentFormatUtils';
 import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
-import { addMoneyOre } from '../../../domain/money/money';
+import { addMoneyOre, subtractMoneyOre, zeroMoneyOre } from '../../../domain/money/money';
 import type { DocumentGenerationSession } from '../../documentGenerationSession';
 
 const NBSP = '\u00A0';
@@ -176,9 +176,13 @@ export const generateTafFordeltPaaAarDocument = (
 
     // Fradrag (med minus-prefix)
     for (const deduction of yearEntry.deductions) {
+      // Et negativt fradrag (en kilde, der er negativ i netop dette år, fund B 2026-11-25) lægges til: «+ 1.000,00
+      // kr.», aldrig det dobbeltnegerede «- -1.000,00 kr.».
       const rightText = deduction.amountOre === 0
         ? ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre))
-        : ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
+        : deduction.amountOre < 0
+          ? ensureNonBreakingKr(`+ ${formatMoneyOreWithKr(subtractMoneyOre(zeroMoneyOre(), deduction.amountOre))}`)
+          : ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
       writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidthText: '000.000.000,00' });
     }
 

@@ -4,6 +4,7 @@ import {
   ansaettelsesforholdNavne, resolveAnsaettelsesforholdNavn,
   roundIncomeBenefitAmountKroner,
   type IncomeCalculationContext,
+  type IncomeNegativeSourceHandling,
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
 import { TAF_FORBEHOLD_YDELSESTYPER } from '../helpers/tafForbehold';
@@ -34,9 +35,11 @@ export const buildTafIndtaegterBeregning = (
   options: Readonly<{
     midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
     incomeContext?: IncomeCalculationContext | null;
+    /** Se `IncomeNegativeSourceHandling`. Årsfordelingen bruger `'include'`. */
+    negativeSourceHandling?: IncomeNegativeSourceHandling;
   }>
 ): TafIndtaegterBeregning => {
-  const income = buildIncomeForRanges(values, ranges, options.incomeContext);
+  const income = buildIncomeForRanges(values, ranges, options.incomeContext, undefined, options.negativeSourceHandling);
   const importedEet = values.midlertidigtEetFraEetSiden === 'Ja';
   const employers: TafIndtaegtEntry[] = income.employers.map((entry) => ({
     kind: 'loen',

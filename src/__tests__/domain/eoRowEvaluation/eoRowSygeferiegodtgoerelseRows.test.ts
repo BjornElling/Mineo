@@ -1691,6 +1691,57 @@ describe('buildEoSygeferiegodtgoerelseRows', () => {
     expect(rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
   });
 
+  it('viser fejl når direkte overenskomstsats kun mangler i en del af TAF-perioden', () => {
+    // Fund C (2026-11-25): Transportoverenskomsten (ATL) har satser fra 01-03-2011. Dagene før faldt før ud af
+    // kravet uden besked, og opgørelsen kunne hentes; nu spærrer det som når hele perioden mangler sats.
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'transportoverenskomsten-atl',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggBeregningskilde: 'Overenskomst',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: asAmount(0),
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: toISODateString('2011-02-21'),
+        til: toISODateString('2011-03-04'),
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2011-02-01'),
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          status: 'error',
+          message: 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden',
+        }),
+      ])
+    );
+  });
+
   it('viser satsvalg-fejlen som blokerende rod-årsag ved differentieret direkte overenskomstsats uden satsvalg', () => {
     // Manglende satsvalg for en differentieret direkte overenskomstsats er nu en blokerende
     // valideringsfejl ("Satsvalg mangler"), så den autoritative beregning standses (snapshot.data

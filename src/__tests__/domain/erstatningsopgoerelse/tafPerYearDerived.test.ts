@@ -191,6 +191,69 @@ describe('buildTafPerYearResult', () => {
     expect(result.years[0].segments[0].kind).toBe('arbejdsdage');
   });
 
+  it('fører et negativt år igennem, når indtægten i ét år overstiger det tabte, og årene summerer til kravet', () => {
+    // Værdiklasse-gennemgangen 2026-11-24: et negativt år ved positiv total var ikke testet i årsfordelingen.
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: toISODateString('2024-12-01'), tilDato: toISODateString('2024-12-31'), ydelse: asAmountValue(40000), tillaeg: undefined, ydelsestype: 'dagpenge' },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-11-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    expect(result.samletTafKravOre).toBeGreaterThan(0);
+    const [aar2024, aar2025] = result.years;
+    expect(aar2024.year).toBe(2024);
+    expect(aar2024.yearTafOre).toBeLessThan(0);
+    expect(aar2025.yearTafOre).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ['over 1 kr.', -1000],
+    ['under 1 kr.', -0.5],
+  ])('giver året et negativt fradrag, når en samlet positiv kilde er negativ i netop det år (%s)', (_navn, negativ) => {
+    // Fund B (2026-11-25): før faldt kilden ud af året. Over 1 kr. spærrede det begge årsdokumenter med en
+    // uforklaret afstemningsfejl; under 1 kr. havnede forskellen tavst i «Afrunding».
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2023-12-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: toISODateString('2023-12-01'), tilDato: toISODateString('2023-12-31'), ydelse: asAmountValue(5000), tillaeg: undefined, ydelsestype: 'dagpenge' },
+        { id: 'y2', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelse: asAmountValue(negativ), tillaeg: undefined, ydelsestype: 'dagpenge' },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-11-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    expect(result.afrundingOre).toBe(0);
+    const aar2024 = result.years.find((year) => year.year === 2024);
+    expect(aar2024?.deductions).toEqual([{ label: 'Dagpenge', amountOre: Math.round(negativ * 100) }]);
+  });
+
   it('holder afrundingsinvariant med offentlige ydelser som månedlige hypotetiske segmenter', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
@@ -262,6 +325,40 @@ describe('buildTafPerYearResult', () => {
     expect(result.years.flatMap((year) => year.segments).some((segment) =>
       segment.kind === 'arbejdsdage' && segment.sourceLabel === 'Sygedagpenge'
     )).toBe(true);
+  });
+
+  it('viser et helt regnestykke pr. år, når allerede betalt TAF overstiger kravet efter forlig', () => {
+    // Fund F (2026-11-25): før stod «I alt (50 % af 0,00 kr.) 9.523,81 kr.» – årets andel af det betalte under
+    // et nulstillet krav. Nu går «50 % af X − betalt = 0» op for hvert år.
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      forligAnsvarsgradProcent: 50,
+      tidligereModtagetTaf: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        { ...createDefaultLoenindkomstAnsaettelsesforhold(), loenudviklingBeregningsgrundlag: 'Ingen' },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-11-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    expect(result.samletTafKravOre).toBe(0);
+    expect(result.years).toHaveLength(2);
+    for (const year of result.years) {
+      expect(year.yearTafFoerForligOre).toBeGreaterThan(0);
+      // Forlig-subtotalen (krav + betalt) er præcis 50 % af kravet før forlig.
+      expect(year.yearTafOre + year.yearTidligereModtagetTafOre).toBe(Math.round(year.yearTafFoerForligOre * 0.5));
+      expect(year.yearTafOre).toBe(0);
+    }
   });
 
   it('anvender forligsgrad kun på års-I alt (segmenter forbliver fulde)', () => {

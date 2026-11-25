@@ -23,6 +23,7 @@ import {
   type PeriodeResult,
 } from '../../utils/periodeBeregning';
 import { safeCompute } from '../../utils/safeComputation';
+import { formatAsAmount } from '../../utils/formatUtils';
 
 export type AarsloenBeregningState = Readonly<{
   periodeData: PeriodeResult | null;
@@ -201,6 +202,10 @@ export const computeAarsloenBeregning = ({
   else if (periodeDataResult && isErr(periodeDataResult)) beregningsFejl = 'Fejl ved beregning af periode-data';
   else if (shDageAntalResult && isErr(shDageAntalResult)) beregningsFejl = 'Fejl ved beregning af SH-dage';
   else if (beregnetAarsloenResult && isErr(beregnetAarsloenResult)) beregningsFejl = 'Fejl ved beregning af årsløn';
+  // En samlet negativ løn kan ikke danne en årsløn. Den spærrer med en navngiven linje som en samlet negativ kilde
+  // på EO (BB-290); før kunne dokumentet hentes med fx «Omregnet årsløn -360.000 kr.» (værdiklasse-gennemgangen
+  // 2026-11-24, fund E, godkendt af udvikleren 2026-11-25).
+  else if (beregnetAarsloen < 0) beregningsFejl = `Lønnen i tabellen er samlet negativ (${formatAsAmount(beregnetAarsloen, 2)} kr.) – kontrollér lønrækkerne`;
   else if (beregningsDataResult && isErr(beregningsDataResult)) beregningsFejl = 'Fejl ved beregning af omregnet årsløn';
   // Ingen dage at dele med: omregningen ville vise `0,00 kr.` som en årsløn (BB-400). Fatal, så resultatet er «—»
   // og dokumentet spærret. Er det feriedagene, der æder dagene, er det i stedet feltets røde grænse.

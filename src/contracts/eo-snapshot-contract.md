@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-11-20
+**Senest verificeret mod kode:** 2026-11-25
 
 ---
 
@@ -603,6 +603,14 @@ Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs
   De beregnede indtægter og fradrag bevares og vises fortsat. En linje med 1.000 kr. i beregnet
   indtægt uden skaden og 1.500 kr. i faktisk indtægt efter skaden viser derfor korrekt et
   TAF-krav på 0 kr., ikke et negativt krav på -500 kr.
+- Skyldes nullet allerede betalt TAF, og dækker årets andel af det betalte årets krav efter forlig, vises
+  årets regnestykke helt, og «Allerede betalt TAF» vises med den del, der modregnes i året: «I alt (50 % af
+  23.000,00 kr.) 11.500,00 kr. / Allerede betalt TAF – 11.500,00 kr. / I alt 0,00 kr.». Ellers vises årets
+  krav før forlig som 0, og ved forlig udelades det betalte i året, så «50 % af 0,00 kr.» aldrig står over et
+  beløb (udviklerens afgørelse 2026-11-25).
+- Et år kan have et negativt fradrag, når en indtægtskilde er positiv over hele erstatningsperioden, men
+  negativ i netop det år. Fradraget vises da som et tillæg («+ 1.000,00 kr.»), så årene summer til
+  opgørelsen (udviklerens afgørelse 2026-11-25).
 - Dette er tilsigtet domæneadfærd, ikke en afrundingsfejl eller et ugyldigt dokument.
   Årsdokumenterne må ikke blokeres alene af denne grund, og forskellen må ikke vises som "Afrunding".
 
